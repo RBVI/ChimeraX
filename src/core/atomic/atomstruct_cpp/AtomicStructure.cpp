@@ -271,8 +271,7 @@ AtomicStructure::make_chains() const
         chain->bulk_set(polymer, nullptr);
 
         auto three_let_i = _input_seq_info.find(chain_id);
-        if (three_let_i != _input_seq_info.end()
-        && unique_chain_id[chain_id]) {
+        if (three_let_i != _input_seq_info.end() && unique_chain_id[chain_id]) {
             // try to adjust chain based on SEQRES
             auto& three_let_seq = three_let_i->second;
             auto seqres_size = three_let_seq.size();
@@ -356,7 +355,7 @@ AtomicStructure::make_chains() const
 
             // if a jump in numbering is in an unresolved part of the structure,
             // the estimated length can be too long...
-            if (ap.est_len < sr_seq.size())
+            if (ap.est_len > sr_seq.size())
                 ap.est_len = sr_seq.size();
 
             // since gapping a structure sequence is considered an "error",

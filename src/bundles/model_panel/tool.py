@@ -125,8 +125,10 @@ class ModelPanel(ToolInstance):
             if display is not None:
                 item.setCheckState(2, Qt.Checked if display else Qt.Unchecked)
             item.setText(3, name)
-        if not update:
-            self.tree.expandAll()
+            if not update:
+                from chimerax.core.atomic import Structure
+                if not isinstance(model, Structure) and model.display:
+                    self.tree.expandItem(item)
         for i in range(1,self.tree.columnCount()):
             self.tree.resizeColumnToContents(i)
 

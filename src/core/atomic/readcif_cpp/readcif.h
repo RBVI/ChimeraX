@@ -114,7 +114,7 @@ inline double str_to_float(const char* s)
             if (saw_exp)
                 continue;
             break;
-        case 'e':
+        case 'E': case 'e':
             saw_exp = true;
             continue;
         }

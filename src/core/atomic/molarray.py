@@ -736,6 +736,8 @@ class Residues(Collection):
 
     atoms = cvec_property('residue_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True, per_object = False, doc =
     '''Return :class:`.Atoms` belonging to each residue all as a single collection. Read only.''')
+    centers = cvec_property('residue_center', float64, 3, read_only = True)
+    '''Average of atom positions as a numpy length 3 array, 64-bit float values.'''
     chains = cvec_property('residue_chain', cptr, astype = _non_null_chains, read_only = True, doc =
     '''Return :class:`.Chains` for residues. Residues with no chain are omitted. Read only.''')
     chain_ids = cvec_property('residue_chain_id', string, read_only = True, doc =

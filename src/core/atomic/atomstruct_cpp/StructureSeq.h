@@ -23,7 +23,7 @@
 #include "imex.h"
 #include "Sequence.h"
 #include "string_types.h"
-    
+
 namespace atomstruct {
 
 class Structure;
@@ -62,7 +62,7 @@ protected:
 
 public:
     StructureSeq(const ChainID& chain_id, Structure* as);
-    virtual ~StructureSeq() {}
+    virtual ~StructureSeq() { }
 
     Contents::const_reference  back() const { return Sequence::back(); }
     Contents::const_iterator  begin() const { return Sequence::begin(); }

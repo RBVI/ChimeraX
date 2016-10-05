@@ -176,7 +176,9 @@ class Logger:
         if sys.excepthook == sys.__excepthook__:
             def ehook(*args):
                 from traceback import format_exception
-                self.error("".join(format_exception(*args)))
+                # self.error("".join(format_exception(*args)))
+                self.session.ui.thread_safe(self.error,
+                    "".join(format_exception(*args)))
             sys.excepthook = ehook
         # non-exclusively collate any early log messages, so that they
         # can also be sent to the first "real" log to hit the stack
@@ -552,6 +554,7 @@ class Collator:
 
     def __enter__(self):
         self.logger.add_log(self.collater)
+        return self
 
     def __exit__(self, *exc_info):
         self.logger.remove_log(self.collater)

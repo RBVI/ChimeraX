@@ -1503,6 +1503,30 @@ extern "C" EXPORT void residue_atoms(void *residues, size_t n, pyobject_t *atoms
     }
 }
 
+extern "C" EXPORT void residue_center(void *residues, size_t n, float64_t *xyz)
+{
+    Residue **r = static_cast<Residue **>(residues);  
+    try {
+      for (size_t i = 0; i != n; ++i) {
+	Residue *ri = r[i];
+	double x = 0, y = 0, z = 0;
+	int na = 0;
+	for (auto atom: ri->atoms()) {
+	  const Coord &c = atom->coord();
+	  x += c[0]; y += c[1]; z += c[2];
+	  na += 1;
+	}
+	if (na > 0) {
+	  *xyz++ = x/na;  *xyz++ = y/na;  *xyz++ = z/na;
+        } else {
+	  *xyz++ = 0;  *xyz++ = 0;  *xyz++ = 0;
+	}
+      }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void residue_chain(void *residues, size_t n, pyobject_t *chainp)
 {
     Residue **r = static_cast<Residue **>(residues);

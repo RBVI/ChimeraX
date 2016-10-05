@@ -597,6 +597,8 @@ class Residue:
 
     atoms = c_property('residue_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True)
     ''':class:`.Atoms` collection containing all atoms of the residue.'''
+    center = c_property('residue_center', float64, 3, read_only = True)
+    '''Average of atom positions as a numpy length 3 array, 64-bit float values.'''
     chain = c_property('residue_chain', cptr, astype = _chain, read_only = True)
     ''':class:`.Chain` that this residue belongs to, if any. Read only.'''
     chain_id = c_property('residue_chain_id', string, read_only = True)
