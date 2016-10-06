@@ -15,7 +15,7 @@
 ihm: Integrative Hybrid Model file format support
 =================================================
 """
-def read_ihm(session, filename, name, *args, load_linked_files = True, **kw):
+def read_ihm(session, filename, name, *args, load_linked_files = True, read_templates = False, **kw):
     """Read an integrative hybrid models file creating sphere models and restraint models
 
     :param filename: either the name of a file or a file-like object
@@ -49,7 +49,7 @@ def read_ihm(session, filename, name, *args, load_linked_files = True, **kw):
 
     acomp = assembly_components(tables['ihm_struct_assembly'])
     
-    gmodels = make_model_groups(session, tables['ihm_model_list'])
+    gmodels = make_sphere_model_groups(session, tables['ihm_model_list'])
     for g in gmodels[1:]:
         g.display = False	# Only show first group.
     ihm_model.add(gmodels)
@@ -71,7 +71,7 @@ def read_ihm(session, filename, name, *args, load_linked_files = True, **kw):
     tmodels = []
     starting_models = tables['ihm_starting_model_details']
     if starting_models:
-        dataset_entities, emodels, tmodels = read_starting_models(session, starting_models)
+        dataset_entities, emodels, tmodels = read_starting_models(session, starting_models, read_templates)
         if emodels:
             align_atomic_models_to_spheres(emodels, smodels)
             from chimerax.core.models import Model
@@ -84,14 +84,19 @@ def read_ihm(session, filename, name, *args, load_linked_files = True, **kw):
     if datasets_table and load_linked_files:
         lmodels = read_linked_datasets(session, datasets_table, gmodels, acomp, dataset_entities)
         align_atomic_models_to_spheres(lmodels, smodels)
-        if tmodels:
-            lmodels = insert_template_models(session, tmodels, lmodels)
         if lmodels:
             from chimerax.core.models import Model
             comp_group = Model('Comparative models', session)
             comp_group.add(lmodels)
             ihm_model.add([comp_group])
-        
+
+    if tmodels and lmodels:
+        # Group templates with grouping name matching comparative model name.
+        tg = group_template_models(session, tmodels, lmodels)
+        ihm_model.add([tg])
+        # Align templates to comparative models using matchmaker.
+        align_template_models(session, lmodels)
+            
     msg = ('Opened IHM file %s containing %d model groups, %d sphere models, %d distance restraints, %d ensemble distributions, %d linked models' %
            (filename, len(gmodels), len(smodels), len(xlinks), len(pgrids), len(lmodels)))
     return [ihm_model], msg
@@ -124,7 +129,7 @@ def assembly_components(ihm_struct_assembly_table):
     
 # -----------------------------------------------------------------------------
 #
-def make_model_groups(session, ihm_model_list_table):
+def make_sphere_model_groups(session, ihm_model_list_table):
     ml_fields = [
         'model_id',
         'model_group_id',
@@ -137,6 +142,7 @@ def make_model_groups(session, ihm_model_list_table):
     from chimerax.core.models import Model
     for (gid, gname), mid_list in gm.items():
         m = Model(gname, session)
+        m.display = False
         m.ihm_group_id = gid
         m.ihm_model_ids = mid_list
         models.append(m)
@@ -349,7 +355,7 @@ from chimerax.core.map import covariance_sum
 
 # -----------------------------------------------------------------------------
 #
-def read_starting_models(session, starting_models):
+def read_starting_models(session, starting_models, read_templates):
     fields = ['entity_id', 'asym_id', 'seq_id_begin', 'seq_id_end', 'starting_model_source',
               'starting_model_db_name', 'starting_model_db_code', 'starting_model_db_pdb_auth_asym_id',
               'dataset_list_id']
@@ -361,6 +367,8 @@ def read_starting_models(session, starting_models):
         dataset_entities[did] = (eid, asym_id)
         if (source in ('experimental model', 'comparative model') and
             db_name == 'PDB' and db_code != '?'):
+            if source == 'comparative model' and not read_templates:
+                continue
             from chimerax.core.atomic.mmcif import fetch_mmcif
             models, msg = fetch_mmcif(session, db_code, smart_initial_display = False)
             name = '%s %s' % (db_code, db_asym_id)
@@ -369,7 +377,7 @@ def read_starting_models(session, starting_models):
                 m.name = name
                 m.entity_id = eid
                 m.asym_id = asym_id
-                m.seq_begin, m.seq_end = seq_beg, seq_end
+                m.seq_begin, m.seq_end = int(seq_beg), int(seq_end)
                 m.dataset_id = did
                 show_colored_ribbon(m, asym_id)
             if source == 'experimental model':
@@ -388,8 +396,6 @@ def keep_one_chain(s, chain_id):
     dcount = dmask.sum()
     if dcount > 0 and dcount < len(atoms):	# Don't delete all atoms if chain id not found.
         datoms = atoms.filter(dmask)
-        import sys
-        sys.__stderr__.write('delete atoms %s %s %d %d\n' % (s.name, chain_id, len(atoms), len(datoms)))
         datoms.delete()
     
 # -----------------------------------------------------------------------------
@@ -419,19 +425,18 @@ def read_linked_datasets(session, datasets_table, gmodels, acomp, dataset_entiti
 
 # -----------------------------------------------------------------------------
 #
-def insert_template_models(session, template_models, comparative_models):
-    '''Place template models after their comparative model.'''
+def group_template_models(session, template_models, comparative_models):
+    '''Place template models in groups named after their comparative model.'''
     mm = []
     tmodels = template_models
+    from chimerax.core.models import Model
     for cm in comparative_models:
-        mm.append(cm)
         did = cm.dataset_id
         templates = [tm for tm in tmodels if tm.dataset_id == did]
         if templates:
-            from chimerax.core.models import Model
-            tm_group = Model(cm.name + ' templates', session)
-            tm_group.display = False
+            tm_group = Model(cm.name, session)
             tm_group.add(templates)
+            cm.template_models = templates
             mm.append(tm_group)
             tmodels = [tm for tm in tmodels if tm.dataset_id != did]
     if tmodels:
@@ -439,7 +444,38 @@ def insert_template_models(session, template_models, comparative_models):
         tm_group = Model('extra templates', session)
         tm_group.add(tmodels)
         mm.append(tm_group)
-    return mm
+    tg = Model('Template models', session)
+    tg.display = False
+    tg.add(mm)
+    return tg
+
+# -----------------------------------------------------------------------------
+#
+def align_template_models(session, comparative_models):
+    for cm in comparative_models:
+        tmodels = getattr(cm, 'template_models', [])
+        if tmodels is None:
+            continue
+        catoms = cm.atoms
+        rnums = catoms.residues.numbers
+        for tm in tmodels:
+            # Find range of comparative model residues that template was matched to.
+            from numpy import logical_and
+            cratoms = catoms.filter(logical_and(rnums >= tm.seq_begin, rnums <= tm.seq_end))
+            print('match maker', tm.name, 'to', cm.name, 'residues', tm.seq_begin, '-', tm.seq_end)
+            from chimerax.match_maker.match import cmd_match
+            matches = cmd_match(session, tm.atoms, cratoms, iterate = False)
+            fatoms, toatoms, rmsd, full_rmsd, tf = matches[0]
+            # Color unmatched template residues gray.
+            mres = fatoms.residues
+            tres = tm.residues
+            nonmatched_res = tres.subtract(mres)
+            nonmatched_res.ribbon_colors = (170,170,170,255)
+            # Hide unmatched template beyond ends of matching residues
+            mnums = mres.numbers
+            tnums = tres.numbers
+            tres.filter(tnums < mnums.min()).ribbon_displays = False
+            tres.filter(tnums > mnums.max()).ribbon_displays = False
 
 # -----------------------------------------------------------------------------
 #
