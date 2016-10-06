@@ -47,6 +47,13 @@ CONFIG	= ./Configure
 TARGET	= darwin64-x86_64-cc
 endif
 
+ifeq ($(OS),Darwin)
+USE_OLD_HEADERS=1
+# OpenSSL headers for 0.9.8 were copied from
+# /usr/local/src/MacOSX.sdks/MacOSX10.10.sdk/usr/include/openssl
+# from El Capitan
+endif
+
 all:
 
 ifdef WIN32
@@ -66,6 +73,10 @@ install: $(SOURCE)
 endif
 
 ifeq ($(OS),Darwin)
+ifdef USE_OLD_HEADERS
+install:
+	tar zxf openssl-include-0.9.8.tar.gz -C $(includedir)
+else
 install: $(SOURCE)
 	cd $(SOURCE) && $(MAKE) $(MAKE_ARGS) -j1 PERL=perl
 	cd $(SOURCE) && $(MAKE) $(MAKE_ARGS) -j1 PERL=perl build-shared
@@ -91,12 +102,15 @@ install: $(SOURCE)
 			$$f; \
 	done
 endif
+endif
 
 app-install:
 ifndef WIN32
+ifndef USE_OLD_HEADERS
 	$(RSYNC) $(shlibdir)/libcrypto.*$(SHLIB_EXT)* \
 		$(shlibdir)/libssl.*$(SHLIB_EXT)* $(app_shlibdir)
 	# do we need $(shlibdir)/engines/?
+endif
 endif
 
 $(SOURCE):
