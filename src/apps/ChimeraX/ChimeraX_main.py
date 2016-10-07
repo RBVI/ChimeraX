@@ -378,6 +378,9 @@ def init(argv, event_loop=True):
         if sess.ui.is_gui and opts.debug:
             print("Initializing core", flush=True)
 
+    from chimerax.core import toolshed
+    # toolshed.init returns a singleton so it's safe to call multiple times
+    sess.toolshed = toolshed.init(sess.logger, debug=sess.debug)
     if opts.module != 'pip':
         # keep bugs in ChimeraX from preventing pip from working
         if not opts.silent:
@@ -385,9 +388,6 @@ def init(argv, event_loop=True):
                                 next(splash_step), num_splash_steps)
             if sess.ui.is_gui and opts.debug:
                 print("Initializing bundles", flush=True)
-        from chimerax.core import toolshed
-        # toolshed.init returns a singleton so it's safe to call multiple times
-        sess.toolshed = toolshed.init(sess.logger, debug=sess.debug)
         sess.toolshed.bootstrap_bundles(sess)
         from chimerax.core import tools
         sess.tools = tools.Tools(sess, first=True)
@@ -473,16 +473,20 @@ def init(argv, event_loop=True):
         import runpy
         import warnings
         sys.argv[:] = args  # runpy will insert appropriate argv[0]
+        exit = SystemExit(os.EX_OK)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=BytesWarning)
             global_dict = {
                 'session': sess
             }
-            runpy.run_module(opts.module, init_globals=global_dict,
+            try:
+                runpy.run_module(opts.module, init_globals=global_dict,
                              run_name='__main__', alter_sys=True)
-        if opts.module == 'pip':
+            except SystemExit as e:
+                exit = e
+        if opts.module == 'pip' and exit.code == os.EX_OK:
             sess.toolshed.reload(sess.logger, rebuild_cache=True)
-        return os.EX_OK
+        return exit.code
 
     if opts.cmd:
         # This is needed for -m pip to work in some cases.

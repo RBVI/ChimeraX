@@ -70,7 +70,6 @@ setup(
         "chimerax.core.ui": ["*.jpg", "*.png", "*.html"],
     },
     data_files=[
-        ("", ["timestamp"]),
         (rel_inst_shlib_dir, [
             os.path.join(shlib_dir, "libappdirs.SHLIB_EXT"),
             os.path.join(shlib_dir, "libarrays.SHLIB_EXT"),

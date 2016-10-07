@@ -556,6 +556,8 @@ class Residue:
 
     atoms = c_property('residue_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True)
     ''':class:`.Atoms` collection containing all atoms of the residue.'''
+    center = c_property('residue_center', float64, 3, read_only = True)
+    '''Average of atom positions as a numpy length 3 array, 64-bit float values.'''
     chain = c_property('residue_chain', cptr, astype = _chain, read_only = True)
     ''':class:`.Chain` that this residue belongs to, if any. Read only.'''
     chain_id = c_property('residue_chain_id', string, read_only = True)
@@ -635,14 +637,14 @@ class Residue:
         f(r_ref, 1, loc)
 
     def set_secondary_structure(self, ss_type, value):
-        '''Set helix/sheet to True/False
+        '''Set helix/strand to True/False
         Unlike is_helix/is_strand attrs, this function only sets the value requested,
         it will not unset any other types as a side effect.
-        'ss_type' should be one of Residue.SS_HELIX or RESIDUE.SS_SHEET'''
+        'ss_type' should be one of Residue.SS_HELIX or RESIDUE.SS_STRAND'''
         if ss_type == Residue.SS_HELIX:
             f = c_array_function('residue_set_ss_helix', args=(npy_bool,), per_object=False)
         else:
-            f = c_array_function('residue_set_ss_sheet', args=(npy_bool,), per_object=False)
+            f = c_array_function('residue_set_ss_strand', args=(npy_bool,), per_object=False)
         f(self._c_pointer_ref, 1, value)
 
     def take_snapshot(self, session, flags):
@@ -912,7 +914,7 @@ class StructureSeq(Sequence):
             return None
         if r.is_helix:
             return self.SS_HELIX
-        if r.is_sheet:
+        if r.is_strand:
             return self.SS_STRAND
         return self.SS_OTHER
 

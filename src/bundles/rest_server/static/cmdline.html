@@ -1,0 +1,59 @@
+<html>
+<head>
+<title>Chimera Web Command Line</title>
+<script type="text/javascript">
+
+function submitForm(event) {
+	event.preventDefault();
+	var f = document.getElementById("cmdForm");
+	var data = new FormData(f);
+	var req = new XMLHttpRequest();
+	if (req == null) {
+		alert("unable to allocate XMLHttpRequest instance");
+		return;
+	}
+	req.addEventListener("readystatechange", showReplies, false);
+	req.open("POST", f.action, true);
+	req.send(data);
+}
+
+function showReplies() {
+	if (this.readyState != 4)
+		return;
+	var cmd = document.getElementById("cmd");
+	cmd.select();
+	if (this.status != 200) {
+		alert("Unable to run command: " + this.status);
+		return;
+	}
+	var e = document.getElementById("replies");
+	e.innerHTML = this.responseText;
+}
+
+function clearReplies() {
+	var e = document.getElementById("replies");
+	e.innerHTML = "";
+}
+
+window.onload = function() {
+	var f = document.getElementById("cmdForm");
+	f.addEventListener("submit", submitForm, false);
+	var b = document.getElementById("clear");
+	b.addEventListener("click", clearReplies, false);
+	var cmd = document.getElementById("cmd");
+	cmd.focus();
+	cmd.select();	// In case there's something there already
+}
+
+</script>
+</head>
+<body>
+<h2>Chimera Web Command Line</h2>
+<form id="cmdForm" action="/run" method="GET">
+Command: <input id="cmd" type="text" name="command">
+</form>
+<p>Replies: <input id="clear" type="button" value="Clear"/>
+<pre id="replies"/>
+</p>
+</body>
+</html>

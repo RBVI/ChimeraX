@@ -539,6 +539,18 @@ extern "C" EXPORT PyObject *atom_idatm_info_map()
             type_desc.doc = (char*)"Information about an IDATM type";
             type_desc.fields = fields;
             type_desc.n_in_sequence = 3;
+            // Need to disable and enable Python garbage collection around
+            // PyStructSequence_NewType, because Py_TPFLAGS_HEAPTYPE isn't
+            // set until after the call returns, and then it's too late
+            PyObject *mod = PyImport_ImportModule("gc");
+            PyObject *mod_dict = mod ? PyModule_GetDict(mod) : NULL;
+            PyObject *disable = mod_dict ? PyDict_GetItemString(mod_dict, "disable") : NULL;
+            PyObject *enable = mod_dict ? PyDict_GetItemString(mod_dict, "enable") : NULL;
+            if (disable == NULL || enable == NULL) {
+                disable = enable = NULL;
+                std::cerr << "Can't control garbage collection\n";
+            }
+            if (disable) Py_XDECREF(PyEval_CallObject(disable, NULL));
             auto type_obj = PyStructSequence_NewType(&type_desc);
             // As per https://bugs.python.org/issue20066 and https://bugs.python.org/issue15729,
             // the type object isn't completely initialized, so...
@@ -557,6 +569,7 @@ extern "C" EXPORT PyObject *atom_idatm_info_map()
                 Py_DECREF(key);
                 Py_DECREF(val);
             }
+            if (enable) Py_XDECREF(PyEval_CallObject(enable, NULL));
         } catch (...) {
             molc_error();
         }
@@ -1512,6 +1525,30 @@ extern "C" EXPORT void residue_atoms(void *residues, size_t n, pyobject_t *atoms
     }
 }
 
+extern "C" EXPORT void residue_center(void *residues, size_t n, float64_t *xyz)
+{
+    Residue **r = static_cast<Residue **>(residues);  
+    try {
+      for (size_t i = 0; i != n; ++i) {
+	Residue *ri = r[i];
+	double x = 0, y = 0, z = 0;
+	int na = 0;
+	for (auto atom: ri->atoms()) {
+	  const Coord &c = atom->coord();
+	  x += c[0]; y += c[1]; z += c[2];
+	  na += 1;
+	}
+	if (na > 0) {
+	  *xyz++ = x/na;  *xyz++ = y/na;  *xyz++ = z/na;
+        } else {
+	  *xyz++ = 0;  *xyz++ = 0;  *xyz++ = 0;
+	}
+      }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void residue_chain(void *residues, size_t n, pyobject_t *chainp)
 {
     Residue **r = static_cast<Residue **>(residues);
@@ -2236,7 +2273,7 @@ extern "C" EXPORT void residue_set_ss_helix(void *residues, size_t n, bool value
     }
 }
 
-extern "C" EXPORT void residue_set_ss_sheet(void *residues, size_t n, bool value)
+extern "C" EXPORT void residue_set_ss_strand(void *residues, size_t n, bool value)
 {
     // Doesn't touch is_helix
     Residue **r = static_cast<Residue **>(residues);

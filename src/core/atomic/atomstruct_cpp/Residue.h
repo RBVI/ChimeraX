@@ -47,7 +47,10 @@ private:
     virtual  ~Residue();
 
     friend class StructureSeq;
-    void  set_chain(Chain* chain) { _chain = chain; if (chain == nullptr) set_ribbon_display(false); }
+    void  set_chain(Chain* chain) {
+        _chain = chain;
+        if (chain == nullptr) set_ribbon_display(false);
+    }
     friend class AtomicStructure;
     friend class Bond;
     void  set_polymer_type(PolymerType pt) { _polymer_type = pt; }
