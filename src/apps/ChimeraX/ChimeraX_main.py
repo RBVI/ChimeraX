@@ -469,6 +469,9 @@ def init(argv, event_loop=True):
         sess.logger.info('OpenGL renderer: ' + r.opengl_renderer())
         sess.logger.info('OpenGL vendor: ' + r.opengl_vendor())
 
+    from chimerax.core import startup
+    startup.run_user_startup_scripts(sess)
+    
     if opts.module:
         import runpy
         import warnings
