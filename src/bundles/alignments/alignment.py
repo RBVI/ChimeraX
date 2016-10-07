@@ -17,14 +17,21 @@ class Alignment(State):
     
     Should only be created through new_alignment method of the alignment manager
     """
+
     def __init__(self, session, seqs, name, file_attrs, file_markups, autodestroy):
         self.session = session
         self.seqs = seqs
         self.name = name
         self.file_attrs = file_attrs
         self.file_markups = file_markups
+        self.associations = {}
         from chimerax.core.atomic import AtomicStructure
-        self.associate([s for s in session.models if isinstance(s, AtomicStructure)])
+        self.associate([s for s in session.models if isinstance(s, AtomicStructure)], force=False)
+
+        from chimerax.core.triggerset import TriggerSet
+        self.triggers = TriggerSet()
+        self.triggers.add_trigger("add assoc")
+        self.triggers.add_trigger("mod assoc")
 
     def associate(self, models, seq=None, force=True, min_length=10, reassoc=False):
         """associate models with sequences
@@ -45,7 +52,7 @@ class Alignment(State):
         """
 
         from chimerax.core.atomic import Chain, StructureSeq, AtomicStructure, SeqMatchMap, \
-            estimate_assoc_params, StructAssocError
+            estimate_assoc_params, StructAssocError, try_assoc
         from .settings import settings
         status = self.session.logger.status
         reeval = False
@@ -81,7 +88,7 @@ class Alignment(State):
                 aseqs = [seq]
         else:
             aseqs = self.seqs[:]
-            aseqs.sort(lambda a, b: cmp(len(a.ungapped()), len(b.ungapped())))
+            aseqs.sort(key=lambda s: len(s.ungapped()))
         if structures:
             forw_aseqs = aseqs
             rev_aseqs = aseqs[:]
@@ -91,14 +98,30 @@ class Alignment(State):
                 sseqs = [struct]
                 struct = struct.structure
             else:
-                sseqs = struct.chains
+                sseqs = list(struct.chains)
                 # sort sequences so that longest is tried first
-                sseqs.sort(lambda a, b: 0 - cmp(len(a),len(b)))
-            assoc_info = None
-            struct_name = os.path.split(struct.name)[-1]
+                sseqs.sort(key=lambda s: len(s), reverse=True)
+            associated = False
+            struct_name = struct.name
             if '.' in struct.id_string():
                 # ensemble
                 struct_name += " (" + struct.id_string() + ")"
+            def do_assoc():
+                if reeval and sseq in self.associations:
+                    old_aseq = self.associations[sseq]
+                    if old_aseq == best_seq:
+                        return
+                    #TODO
+                    #self.disassociate(sseq)
+                msg = "Associated %s %s to %s with %d error(s)\n" % (struct_name, sseq.name,
+                        best_seq.name, best_errors)
+                status(msg, log=True, follow_with= "Right-click to focus on residue\n"
+                    "Right-shift-click to focus on region", follow_log=False, blank_after=10)
+                self.prematched_assoc_structure(best_seq, sseq,
+                        best_match_map, best_errors, reassoc)
+                new_match_maps.append(best_match_map)
+                nonlocal associated
+                associated = True
             for sseq in sseqs:
                 if len(sseq) < min_length:
                     continue
@@ -119,21 +142,18 @@ class Alignment(State):
                 elif est_len > len(forw_aseqs[0].ungapped()):
                     # mixture of longer and shorter alignment seqs;
                     # do special sorting
-                    def _mix_sort(a, b, lm):
-                        la = len(a.ungapped())
-                        lb = len(b.ungapped())
-                        if la >= lm:
-                            if lb >= lm:
-                                return cmp(la, lb)
-                            else:
-                                return -1
-                        else:
-                            if lb >= lm:
-                                return 1
-                            else:
-                                return cmp(lb, la)
                     mixed = aseqs[:]
-                    mixed.sort(lambda a, b: _mix_sort(a, b, est_len))
+                    def mixed_key_func(s):
+                        ls = len(s)
+                        uls = len(s.ungapped())
+                        if ls >= est_len:
+                            # larger than estimated length; want smallest (closest to est_len)
+                            # first; and before all the ones smaller than est_len; so use
+                            # negative numbers
+                            return uls - ls
+                        # smaller than est_len; want largest (closest to est_len) first
+                        return ls - uls
+                    mixed.sort(key=mixed_key_func)
                     aseqs = mixed
                 else:
                     aseqs = forw_aseqs
@@ -151,14 +171,14 @@ class Alignment(State):
                     else:
                         try_errors = max_errors
                     try:
-                        match_map, errors = try_assoc(aseq, sseq, segments, gaps, est_len,
-                            max_errors=try_errors)
+                        match_map, errors = try_assoc(self.session, aseq, sseq,
+                            (est_len, segments, gaps), max_errors=try_errors)
                     except StructAssocError:
                         # maybe the sequence is derived from the structure...
                         if gaps:
                             try:
-                                match_map, errors = try_assoc(aseq, sseq, [sseq[:]], [], len(sseq),
-                                    max_errors=try_errors)
+                                match_map, errors = try_assoc(self.session, aseq, sseq,
+                                    (len(sseq), [sseq[:]], []), max_errors=try_errors)
                             except StructAssocError:
                                 continue
                         else:
@@ -168,8 +188,8 @@ class Alignment(State):
                         # smooshing sequence together works better
                         if errors and gaps:
                             try:
-                                match_map, errors = try_assoc(aseq, sseq, [sseq[:]], [], len(sseq),
-                                    max_errors=errors-1)
+                                match_map, errors = try_assoc(self.session, aseq, sseq,
+                                    (len(sseq), [sseq[:]], []), max_errors=errors-1)
                             except StructAssocError:
                                 pass
 
@@ -180,10 +200,8 @@ class Alignment(State):
                         break
 
                 if best_seq:
-                    if assoc_info and best_errors >= assoc_info[-1]:
-                        continue
-                    assoc_info = (best_seq, sseq, best_match_map, best_errors)
-            if not assoc_info and force:
+                    do_assoc()
+            if not associated and force:
                 # nothing matched built-in criteria, use Needleman-Wunsch
                 best_seq = best_sseq = best_errors = None
                 max_errors = len(sseq) // settings.assoc_error_rate
@@ -192,45 +210,25 @@ class Alignment(State):
                     for aseq in aseqs:
                         status("Using Needleman-Wunsch to test-associate"
                             " %s %s with %s\n" % (struct_name, sseq.name, aseq.name))
-                        match_map, errors = nw_assoc(aseq, sseq)
+                        match_map, errors = nw_assoc(self.session, aseq, sseq)
                         if not best_seq or errors < best_errors:
                             best_match_map = match_map
                             best_errors = errors
                             best_seq = aseq
                             best_sseq = sseq
                 if best_match_map:
-                    assoc_info = (best_seq, best_sseq, best_match_map, best_errors)
+                    do_assoc()
                 else:
                     status("No reasonable association found for %s %s\n" % (struct_name, sseq.name))
 
-            if assoc_info:
-                best_seq, sseq, best_match_map, best_errors = assoc_info
-                if reeval and sseq in self.associations:
-                    old_aseq = self.associations[sseq]
-                    if old_aseq == best_seq:
-                        continue
-                    #TODO
-                    #self.disassociate(sseq.molecule)
-                msg = "Associated %s %s to %s with %d error(s)\n" % (struct_name, sseq.name,
-                        best_seq.name, best_errors)
-                status(msg, log=True, follow_with= "Right-click to focus on residue\n"
-                    "Right-shift-click to focus on region", follow_log=False, blank_after=10)
-                self.prematched_assoc_structure(best_seq, sseq,
-                        best_match_map, best_errors, reassoc)
-                new_match_maps.append(best_match_map)
-        #TODO
-        """
         if new_match_maps:
             if reassoc:
-                trigName = MOD_ASSOC
-                trigData = (ADD_ASSOC, new_match_maps)
+                trig_name = "mod assoc"
+                trig_data = ("add assoc", new_match_maps)
             else:
-                trigName = ADD_ASSOC
-                trigData = new_match_maps
-            self.triggers.activateTrigger(trigName, trigData)
-            if self.prefs[SHOW_SEL]:
-                self.regionBrowser.showChimeraSelection()
-        """
+                trig_name = "add assoc"
+                trig_data = new_match_maps
+            self.triggers.activate_trigger(trig_name, trig_data)
 
     def prematched_assoc_structure(self, aseq, sseq, match_map, errors, reassoc):
         """If somehow you had obtained a SeqMatchMap for the aseq<->sseq correspondence,
@@ -243,9 +241,6 @@ class Alignment(State):
             aseq.match_maps = { chain: match_map }
         self.associations[chain] = aseq
 
-        #TODO
-        #self.seqCanvas.assocSeq(aseq)
-        #TODO
         # set up callbacks for structure changes
         """
         match_map["mavDelHandler"] = mseq.triggers.addHandler(
@@ -269,7 +264,7 @@ class Alignment(State):
         """Called by alignments manager so alignment can clean up (notify viewers, etc.)"""
         pass
 
-def nw_assoc(align_seq, struct_seq):
+def nw_assoc(session, align_seq, struct_seq):
     '''Wrapper around Needle-Wunch matching, to make it return the same kinds of values
        that try_assoc returns'''
 
@@ -277,7 +272,7 @@ def nw_assoc(align_seq, struct_seq):
     sseq = struct_seq
     aseq = Sequence(name=align_seq.name, characters=align_seq.ungapped())
     aseq.circular = align_seq.circular
-    from chimerax.align_algs.NeedlemanWunsch import nw
+    from chimerax.seqalign.align_algs.NeedlemanWunsch import nw
     score, match_list = nw(sseq, aseq)
 
     errors = 0
@@ -290,7 +285,7 @@ def nw_assoc(align_seq, struct_seq):
         # trailing unmatched
         errors += len(sseq) - m_end - 1
 
-    match_map = SeqMatchMap(aseq, sseq)
+    match_map = SeqMatchMap(session, aseq, sseq)
     last_match = m_end + 1
     for s_index, a_index in match_list:
         if sseq[s_index] != aseq[a_index]:

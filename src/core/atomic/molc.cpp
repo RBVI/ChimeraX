@@ -2481,7 +2481,13 @@ extern "C" EXPORT PyObject *sseq_try_assoc(void *seq_ptr, void *sseq_ptr, size_t
             arv = try_assoc(*seq, *sseq, ap, max_errors);
         } catch (SA_AssocFailure& e) {
             // convert to error that maps to ValueError
-            throw std::logic_error(e.what());
+            PyErr_SetString(PyExc_ValueError, e.what());
+            Py_DECREF(tuple);
+            return nullptr;
+        } catch (...) {
+            molc_error();
+            Py_DECREF(tuple);
+            return nullptr;
         }
         PyObject* map = pysupport::cmap_of_ptr_int_to_pydict(arv.match_map.res_to_pos(),
             "residue", "associated seq position");

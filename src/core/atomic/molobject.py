@@ -1016,7 +1016,7 @@ def estimate_assoc_params(sseq):
 class StructAssocError(ValueError):
     pass
 
-def try_assoc(seq, sseq, assoc_params, max_errors = 6):
+def try_assoc(session, seq, sseq, assoc_params, *, max_errors = 6):
     '''Try to associate StructureSeq 'sseq' with Sequence 'seq'.
 
        A set of association parameters ('assoc_params') must be provided, typically obtained
@@ -1030,10 +1030,16 @@ def try_assoc(seq, sseq, assoc_params, max_errors = 6):
        An unsuccessful association throws StructAssocError.
     '''
     f = c_function('sseq_try_assoc', args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t,
-        ctypes.py_object, ctypes.py_object, ctype.c_int), ret = ctypes.py_object)
+        ctypes.py_object, ctypes.py_object, ctypes.c_int), ret = ctypes.py_object)
     est_len, segments, gaps = assoc_params
-    res_to_pos, errors = f(seq._c_pointer, sseq._c_pointer, est_len, segments, gaps, max_errors)
-    mmap = SeqMatchMap(seq, sseq)
+    try:
+        res_to_pos, errors = f(seq._c_pointer, sseq._c_pointer, est_len, segments, gaps, max_errors)
+    except ValueError as e:
+        if str(e) == "bad assoc":
+            raise StructAssocError(str(e))
+        else:
+            raise
+    mmap = SeqMatchMap(session, seq, sseq)
     for r, i in res_to_pos.items():
         mmap.match(_residue(r), i)
     return mmap, errors
@@ -1627,8 +1633,8 @@ class SeqMatchMap:
         }
         return data
 
-    def _atomic_changes(self, changes):
-        if change.num_deleted_residues() > 0:
+    def _atomic_changes(self, trig_name, changes):
+        if changes.num_deleted_residues() > 0:
             for r, i in list(self._res_to_pos.items()):
                 if r.deleted:
                     del self._res_to_pos[r]
