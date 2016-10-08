@@ -9,9 +9,6 @@ class _MyAPI(BundleAPI):
         # 'register_command' is lazily called when the command is referenced
         from . import cmd
         from chimerax.core.commands import register
-        register("listinfo notify",
-                 cmd.listinfo_notify_desc,
-                 cmd.listinfo_notify)
         register("listinfo models",
                  cmd.listinfo_models_desc,
                  cmd.listinfo_models)
@@ -36,5 +33,17 @@ class _MyAPI(BundleAPI):
         register("listinfo distmat",
                  cmd.listinfo_distmat_desc,
                  cmd.listinfo_distmat)
+        register("listinfo notify start",
+                 cmd.listinfo_notify_start_desc,
+                 cmd.listinfo_notify_start)
+        register("listinfo notify stop",
+                 cmd.listinfo_notify_stop_desc,
+                 cmd.listinfo_notify_stop)
+        register("listinfo notify suspend",
+                 cmd.listinfo_notify_suspend_desc,
+                 cmd.listinfo_notify_suspend)
+        register("listinfo notify resume",
+                 cmd.listinfo_notify_resume_desc,
+                 cmd.listinfo_notify_resume)
 
 bundle_api = _MyAPI()

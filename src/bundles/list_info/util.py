@@ -1,5 +1,8 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
+# ==============================================================================
+# Code for formatting listinfo responses
+
 def attr_string(obj, attr):
     # Get attribute as a string
     a = getattr(obj, attr)
@@ -94,5 +97,155 @@ def report_atoms(logger, atoms, attr):
             pass
         logger.info("atom id %s %s %s" % (spec(a), attr, value))
 
+def report_resattr(logger, attr):
+    logger.info("resattr %s" % attr)
+
 def report_distance(logger, ai, aj, dist):
     logger.info("distmat %s %s %s" % (spec(ai), spec(aj), dist))
+
+
+# ==============================================================================
+# Code for sending REST request and waiting for response in a separate thread
+
+from chimerax.core.tasks import Task
+from contextlib import contextmanager
+
+@contextmanager
+def closing(thing):
+    try:
+        yield thing
+    finally:
+        thing.close()
+
+
+class RESTTransaction(Task):
+
+    def reset_state(self, session):
+        pass
+
+    def run(self, url, msg):
+        from urllib.parse import urlencode
+        from urllib.request import urlopen, URLError
+        full_url = "%s?%s" % (url, urlencode([("chimerax_notification", msg)]))
+        try:
+            with closing(urlopen(full_url, timeout=30)) as f:
+                # Discard response since we cannot handle an error anyway
+                f.read()
+        except URLError:
+            pass
+
+
+class Notifier:
+
+    SupportedTypes = ["models"]
+    # A TYPE is suppored when both _create_TYPE_handler
+    # and _destroy_TYPE_handler methods are defined
+
+    def __init__(self, what, client_id, session, prefix, url):
+        self.what = what
+        self.client_id = client_id
+        self.session = session
+        self.prefix = prefix
+        self.url = url
+        try:
+            c_func = getattr(self, "_create_%s_handler" % what)
+        except AttributeError:
+            from chimera.core.errors import UserError
+            raise UserError("unsupported notification type: %s" % what)
+        self._handler = c_func()
+        self._handler_suspended = True
+        self._destroy_handler = getattr(self, "_destroy_%s_handler" % what)
+        self.Create(self)
+
+    def start(self):
+        self._handler_suspended = False
+        msg = "listening for %s" % self.what
+        self.session.logger.info(msg)
+
+    def stop(self):
+        self._destroy_handler()
+        self.Destroy(self)
+        msg = "stopped listening for %s" % self.what
+        self.session.logger.info(msg)
+
+    def suspend(self):
+        self._handler_suspended = True
+        msg = "suspended listening for %s" % self.what
+        self.session.logger.info(msg)
+
+    def resume(self):
+        self._handler_suspended = False
+        msg = "resumed listening for %s" % self.what
+        self.session.logger.info(msg)
+
+    #
+    # Methods for "models" notifications
+    #
+    def _create_models_handler(self):
+        from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
+        add_handler = self.session.triggers.add_handler(ADD_MODELS,
+                                                        self._notify_models)
+        rem_handler = self.session.triggers.add_handler(REMOVE_MODELS,
+                                                        self._notify_models)
+        return [add_handler, rem_handler]
+
+    def _destroy_models_handler(self):
+        self.session.triggers.remove_handler(self._handler[0])
+        self.session.triggers.remove_handler(self._handler[1])
+
+    def _notify_models(self, trigger, trigger_data):
+        msgs = []
+        for m in trigger_data:
+            msgs.append("%smodel %s" % (self.prefix, spec(m)))
+        if self.url is None:
+            logger = self.session.logger
+            for msg in msgs:
+                logger.info(msg)
+        else:
+            RESTTransaction().run(self.url, ''.join(msgs))
+
+    #
+    # Methods for "selection" notifications
+    #
+    def _create_selection_handler(self):
+        handler = True
+        return handler
+
+    def _destroy_selection_handler(self):
+        pass
+
+    #
+    # Class variables and methods for tracking by client identifier
+    #
+
+    _client_map = {}
+
+    @classmethod
+    def Find(cls, what, client_id, session=None, prefix=None, url=None):
+        try:
+            return cls._client_map[(what, client_id)]
+        except KeyError:
+            if session is None:
+                from chimera.core.errors import UserError
+                raise UserError("using undefined notification client id: %s" %
+                                client_id)
+            return cls(what, client_id, session, prefix, url)
+
+    @classmethod
+    def Create(cls, n):
+        key = (n.what, n.client_id)
+        if key in cls._client_map:
+            from chimera.core.errors import UserError
+            raise UserError("notification client id already in use: %s" %
+                            n.client_id)
+        else:
+            cls._client_map[key] = n
+
+    @classmethod
+    def Destroy(cls, n):
+        try:
+            del cls._client_map[(n.what, n.client_id)]
+        except KeyError:
+            from chimera.core.errors import UserError
+            raise UserError("destroying undefined notification client id: %s" %
+                            n.client_id)

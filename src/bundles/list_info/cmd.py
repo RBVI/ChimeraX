@@ -2,15 +2,7 @@
 
 from chimerax.core.commands import CmdDesc, EnumOf, StringArg, AtomSpecArg
 from .util import report_models, report_chains, report_polymers, report_residues
-from .util import report_residues, report_atoms, report_distance
-
-def listinfo_notify(session, mode, prefix=None, url=None):
-    print("listinfo notify", mode, prefix, url)
-listinfo_notify_desc = CmdDesc(required=[("mode", EnumOf(["start","stop"]))],
-                               keyword=[("prefix", StringArg),
-                                        ("url", StringArg),],
-                               synopsis="Generate notifications for events")
-
+from .util import report_residues, report_atoms, report_resattr, report_distance
 
 def listinfo_models(session, spec=None, type_=None, attribute="name"):
     if spec is None:
@@ -131,7 +123,7 @@ listinfo_selection_desc = CmdDesc(keyword=[("level", EnumOf(["atom",
 
 def listinfo_resattr(session):
     for a in _ResidueAttributes:
-        session.logger.info("resattr %s" % a)
+        report_resattr(session.logger, a)
 listinfo_resattr_desc = CmdDesc(synopsis="Report residue attribute information")
 _ResidueAttributes = [
     "chain_id",
@@ -165,3 +157,35 @@ def listinfo_distmat(session, spec):
             report_distance(session.logger, atoms[i], atoms[j], distmat[i,j])
 listinfo_distmat_desc = CmdDesc(required=([("spec", AtomSpecArg)]),
                                 synopsis="Report distance matrix information")
+
+from .util import Notifier
+_WhatArg = EnumOf(Notifier.SupportedTypes)
+
+def listinfo_notify_start(session, what, client_id, prefix="", url=None):
+    Notifier.Find(what, client_id, session, prefix, url).start()
+listinfo_notify_start_desc = CmdDesc(required=[("what", _WhatArg),
+                                               ("client_id", StringArg),],
+                                     keyword=[("prefix", StringArg),
+                                              ("url", StringArg),],
+                                     synopsis="Start notifications for events")
+
+
+def listinfo_notify_stop(session, what, client_id):
+    Notifier.Find(what, client_id).stop()
+listinfo_notify_stop_desc = CmdDesc(required=[("what", _WhatArg),
+                                              ("client_id", StringArg),],
+                                    synopsis="Stop notifications for events")
+
+
+def listinfo_notify_suspend(session, what, client_id):
+    Notifier.Find(what, client_id).stop()
+listinfo_notify_suspend_desc = CmdDesc(required=[("what", _WhatArg),
+                                                 ("client_id", StringArg),],
+                                       synopsis="Suspend notifications")
+
+
+def listinfo_notify_resume(session, what, client_id):
+    Notifier.Find(what, client_id).resume()
+listinfo_notify_resume_desc = CmdDesc(required=[("what", _WhatArg),
+                                                ("client_id", StringArg),],
+                                      synopsis="Resume notifications")
