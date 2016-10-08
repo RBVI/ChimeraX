@@ -137,7 +137,7 @@ class RESTTransaction(Task):
 
 class Notifier:
 
-    SupportedTypes = ["models"]
+    SupportedTypes = ["models", "selection"]
     # A TYPE is suppored when both _create_TYPE_handler
     # and _destroy_TYPE_handler methods are defined
 
@@ -150,7 +150,7 @@ class Notifier:
         try:
             c_func = getattr(self, "_create_%s_handler" % what)
         except AttributeError:
-            from chimera.core.errors import UserError
+            from chimerax.core.errors import UserError
             raise UserError("unsupported notification type: %s" % what)
         self._handler = c_func()
         self._handler_suspended = True
@@ -178,6 +178,18 @@ class Notifier:
         msg = "resumed listening for %s" % self.what
         self.session.logger.info(msg)
 
+    def _notify(self, msgs):
+        if self._handler_suspended:
+            return
+        if self.url is not None:
+            # Notify via REST
+            RESTTransaction().run(self.url, ''.join(msgs))
+        else:
+            # Just regular info messages
+            logger = self.session.logger
+            for msg in msgs:
+                logger.info(msg)
+
     #
     # Methods for "models" notifications
     #
@@ -197,22 +209,22 @@ class Notifier:
         msgs = []
         for m in trigger_data:
             msgs.append("%smodel %s" % (self.prefix, spec(m)))
-        if self.url is None:
-            logger = self.session.logger
-            for msg in msgs:
-                logger.info(msg)
-        else:
-            RESTTransaction().run(self.url, ''.join(msgs))
+        self._notify(msgs)
 
     #
     # Methods for "selection" notifications
     #
     def _create_selection_handler(self):
-        handler = True
+        from chimerax.core.selection import SELECTION_CHANGED
+        handler = self.session.triggers.add_handler(SELECTION_CHANGED,
+                                                    self._notify_selection)
         return handler
 
     def _destroy_selection_handler(self):
-        pass
+        self.session.triggers.remove_handler(self._handler)
+
+    def _notify_selection(self, trigger, trigger_data):
+        self._notify(["%sselection changed" % self.prefix])
 
     #
     # Class variables and methods for tracking by client identifier
@@ -226,7 +238,7 @@ class Notifier:
             return cls._client_map[(what, client_id)]
         except KeyError:
             if session is None:
-                from chimera.core.errors import UserError
+                from chimerax.core.errors import UserError
                 raise UserError("using undefined notification client id: %s" %
                                 client_id)
             return cls(what, client_id, session, prefix, url)
@@ -235,7 +247,7 @@ class Notifier:
     def Create(cls, n):
         key = (n.what, n.client_id)
         if key in cls._client_map:
-            from chimera.core.errors import UserError
+            from chimerax.core.errors import UserError
             raise UserError("notification client id already in use: %s" %
                             n.client_id)
         else:
@@ -246,6 +258,6 @@ class Notifier:
         try:
             del cls._client_map[(n.what, n.client_id)]
         except KeyError:
-            from chimera.core.errors import UserError
+            from chimerax.core.errors import UserError
             raise UserError("destroying undefined notification client id: %s" %
                             n.client_id)

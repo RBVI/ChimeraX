@@ -1914,6 +1914,10 @@ class StructureGraphicsChangeManager:
                 self.num_atoms_shown = n
                 self._update_level_of_detail()
             self._need_update = False
+            if (gc & StructureData._SELECT_CHANGE).any():
+                from ..selection import SELECTION_CHANGED
+                self.session.triggers.activate_trigger(SELECTION_CHANGED, None)
+                # XXX: No data for now.  What should be passed?
             
     def _update_level_of_detail(self):
         n = self.num_atoms_shown

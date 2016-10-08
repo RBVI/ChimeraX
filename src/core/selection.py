@@ -1,3 +1,5 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -9,11 +11,17 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+SELECTION_CHANGED = 'selection changed'
+
 class Selection:
 
-    def __init__(self, all_models):
-        self._all_models = all_models	# Models object
-        self._promotion = SelectionPromoter(all_models.drawing)
+    def __init__(self, sess):
+        self._all_models = sess.models	# Models object
+        self._promotion = SelectionPromoter(self._all_models.drawing)
+        sess.triggers.add_trigger(SELECTION_CHANGED)
+        # XXX: SELECTION_CHANGED trigger is currently fired in by
+        # atomic.structure.StructureGraphicsChangeManager
+        # Maybe it should be moved up to Model level somehow?
 
     def all_models(self):
         return self._all_models.list()

@@ -178,7 +178,7 @@ listinfo_notify_stop_desc = CmdDesc(required=[("what", _WhatArg),
 
 
 def listinfo_notify_suspend(session, what, client_id):
-    Notifier.Find(what, client_id).stop()
+    Notifier.Find(what, client_id).suspend()
 listinfo_notify_suspend_desc = CmdDesc(required=[("what", _WhatArg),
                                                  ("client_id", StringArg),],
                                        synopsis="Suspend notifications")
