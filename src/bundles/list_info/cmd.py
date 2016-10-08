@@ -44,10 +44,11 @@ def listinfo_polymers(session, spec=None):
         spec = atomspec.everything(session)
     results = spec.evaluate(session)
     polymers = []
+    residues = results.atoms.unique_residues
     for m in results.atoms.unique_structures:
         try:
             for p in m.polymers(False, False):
-                if p.intersects(results.atoms):
+                if p.intersects(residues):
                     polymers.append(p)
         except AttributeError:
             # No chains, no problem
