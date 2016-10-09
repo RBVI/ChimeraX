@@ -100,8 +100,18 @@ def report_atoms(logger, atoms, attr):
 def report_resattr(logger, attr):
     logger.info("resattr %s" % attr)
 
-def report_distance(logger, ai, aj, dist):
-    logger.info("distmat %s %s %s" % (spec(ai), spec(aj), dist))
+def report_distmat(logger, atoms, distmat):
+    num_atoms = len(atoms)
+    msgs = []
+    for i in range(num_atoms):
+        for j in range(i+1,num_atoms):
+            # distmat is a scipy condensed distance matrix
+            # Index calculation from answer by HongboZhu in
+            # http://stackoverflow.com/questions/13079563/how-does-condensed-distance-matrix-work-pdist
+            dmi = num_atoms*i - i*(i+1)//2 + j - 1 - i
+            msgs.append("distmat %s %s %s" % (spec(atoms[i]), spec(atoms[j]),
+                                              distmat[dmi]))
+    logger.info('\n'.join(msgs))
 
 
 # ==============================================================================
