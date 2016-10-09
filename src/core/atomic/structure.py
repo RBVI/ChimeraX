@@ -2022,7 +2022,7 @@ class LevelOfDetail(State):
     def clamp_geometric(self, n, nmin, nmax):
         f = self._step_factor
         from math import log, pow
-        n1 = int(nmin*pow(f,int(log(n/nmin,f))))
+        n1 = int(nmin*pow(f,int(log(max(n,nmin)/nmin,f))))
         n2 = min(n1, nmax)
         n3 = max(n2, nmin)
         return n3
