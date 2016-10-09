@@ -536,6 +536,27 @@ class MainWindow(QMainWindow, PlainTextLog):
         about_action.triggered.connect(self._about)
         help_menu.addAction(about_action)
 
+    def add_custom_menu_entry(self, menu_name, entry_name, callback):
+        '''
+        Add a custom top level menu entry.  Currently you can not add to
+        the standard ChimeraX menus but can create new ones.
+        Callback function takes no arguments.
+        '''
+        mb = self.menuBar()
+        from PyQt5.QtWidgets import QMenu, QAction
+        menu = mb.findChild(QMenu, menu_name)
+        add = (menu is None)
+        if add:
+            menu = QMenu(menu_name, mb)
+            menu.setObjectName(menu_name)	# Need for findChild() above to work.
+        
+        action = QAction(entry_name, self)
+        action.triggered.connect(lambda arg, cb = callback: callback())
+        menu.addAction(action)
+        if add:
+            # Add menu after adding entry otherwise it is not shown on Mac.
+            mb.addMenu(menu)
+
     def _tool_window_destroy(self, tool_window):
         tool_instance = tool_window.tool_instance
         all_windows = self.tool_instance_to_windows[tool_instance]
