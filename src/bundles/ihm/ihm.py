@@ -94,7 +94,10 @@ def read_ihm(session, filename, name, *args, load_linked_files = True, read_temp
     xlinks = []
     xlink_table = tables['ihm_cross_link_restraint']
     if xlink_table is not None:
-        xlinks = make_crosslink_pseudobonds(session, xlink_table, smodels)
+        xlinks = crosslinks(xlink_table)
+        if xlinks:
+            for smodel in smodels:
+                make_crosslink_pseudobonds(session, xlinks, smodel)
 
     pgrids = []
     ensembles_table = tables['ihm_ensemble_info']
@@ -207,10 +210,17 @@ def make_sphere_models(session, spheres_obj_site, group_models, acomp):
 
 # -----------------------------------------------------------------------------
 #
-def make_crosslink_pseudobonds(session, xlink_restraint, smodels,
-                               radius = 1.0,
-                               color = (0,255,0,255),		# Green
-                               long_color = (255,0,0,255)):	# Red
+class Crosslink:
+    def __init__(self, asym1, seq1, asym2, seq2, dist):
+        self.asym1 = asym1
+        self.seq1 = seq1
+        self.asym2 = asym2
+        self.seq2 = seq2
+        self.distance = dist
+
+# -----------------------------------------------------------------------------
+#
+def crosslinks(xlink_restraint_table):
 
     xlink_fields = [
         'asym_id_1',
@@ -220,34 +230,37 @@ def make_crosslink_pseudobonds(session, xlink_restraint, smodels,
         'type',
         'distance_threshold'
         ]
-    xlink_rows = xlink_restraint.fields(xlink_fields)
+    xlink_rows = xlink_restraint_table.fields(xlink_fields)
     xlinks = {}
     for asym_id_1, seq_id_1, asym_id_2, seq_id_2, type, distance_threshold in xlink_rows:
-        xl = ((asym_id_1, int(seq_id_1)), (asym_id_2, int(seq_id_2)), float(distance_threshold))
+        xl = Crosslink(asym_id_1, int(seq_id_1), asym_id_2, int(seq_id_2), float(distance_threshold))
         xlinks.setdefault(type, []).append(xl)
 
-    if not xlinks:
-        return xlinks
-    
-    for sm in smodels:
-        pbgs = []
-        for type, xl in xlinks.items():
-            xname = '%d %s crosslinks %s' % (len(xl), type, sm.ihm_model_id)
-            g = session.pb_manager.get_group(xname)
-            # g.name = xname
-            pbgs.append(g)
-            for (asym1, seq1), (asym2, seq2), d in xl:
-                m1, m2 = sm.asym_model(asym1), sm.asym_model(asym2)
-                s1, s2 = m1.residue_sphere(seq1), m2.residue_sphere(seq2)
-                if s1 and s2 and s1 is not s2:
-                    b = g.new_pseudobond(s1, s2)
-                    b.color = long_color if b.length > d else color
-                    b.radius = radius
-                    b.halfbond = False
-                    b.restraint_distance = d
-        sm.add(pbgs)
-
     return xlinks
+
+# -----------------------------------------------------------------------------
+#
+def make_crosslink_pseudobonds(session, xlinks, smodel,
+                               radius = 1.0,
+                               color = (0,255,0,255),		# Green
+                               long_color = (255,0,0,255)):	# Red
+    
+    pbgs = []
+    for type, xlist in xlinks.items():
+        xname = '%d %s crosslinks %s' % (len(xlist), type, smodel.ihm_model_id)
+        g = session.pb_manager.get_group(xname)
+        # g.name = xname
+        pbgs.append(g)
+        for xl in xlist:
+            m1, m2 = smodel.asym_model(xl.asym1), smodel.asym_model(xl.asym2)
+            s1, s2 = m1.residue_sphere(xl.seq1), m2.residue_sphere(xl.seq2)
+            if s1 and s2 and s1 is not s2:
+                b = g.new_pseudobond(s1, s2)
+                b.color = long_color if b.length > xl.distance else color
+                b.radius = radius
+                b.halfbond = False
+                b.restraint_distance = xl.distance
+    smodel.add(pbgs)
 
 # -----------------------------------------------------------------------------
 #
@@ -270,7 +283,8 @@ def read_localization_maps(session, ensemble_table, localization_table,
     from chimerax.core.map.volume import open_map
     from chimerax.core.atomic.colors import chain_rgba
     from os.path import join
-    for ensemble_id, asym_loc in ens.items():
+    for ensemble_id in sorted(ens.keys()):
+        asym_loc = ens[ensemble_id]
         gid, n = ens_group[ensemble_id]
         m = Model('Ensemble %s of %d models' % (ensemble_id, n), session)
         pmods.append(m)
