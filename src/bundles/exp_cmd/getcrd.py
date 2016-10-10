@@ -16,7 +16,7 @@ from chimerax.core.commands import register, CmdDesc, BoolArg, AtomSpecArg
 def initialize(command_name):
     register("getcrd", getcrd_desc, getcrd)
 
-def getcrd(session, spec=None, scene=False):
+def getcrd(session, spec=None, scene=True):
     from chimerax.core.core_settings import settings
     if spec is None:
         spec = atomspec.everything(session)
