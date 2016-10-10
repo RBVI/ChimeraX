@@ -95,6 +95,9 @@ class RESTHandler(BaseHTTPRequestHandler):
 
     do_POST = do_GET
 
+    def log_request(self, code='-', size='-'):
+        pass
+
     def _parse_post(self):
         ctype = self.headers.get("content-type")
         if not ctype:
