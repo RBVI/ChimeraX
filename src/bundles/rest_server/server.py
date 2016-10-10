@@ -141,7 +141,7 @@ class RESTHandler(BaseHTTPRequestHandler):
                 else:
                     try:
                         for cmd in commands:
-                            run(session, cmd.decode("utf-8"), log=False)
+                            run(session, cmd, log=False)
                     except NotABug as e:
                         logger.info(str(e))
                 q.put(rest_log.output())
