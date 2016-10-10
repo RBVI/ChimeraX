@@ -2808,11 +2808,8 @@ def volume_from_grid_data(grid_data, session, representation = None,
   return v
 
 def show_volume_dialog(session):
-  try:
-    from chimerax.volume_viewer.gui import show_volume_dialog
-    show_volume_dialog(session)
-  except ImportError:
-    pass	# Volume viewer tool not available.
+  from chimerax.volume_viewer.tool import show_volume_dialog
+  show_volume_dialog(session)
 
 # -----------------------------------------------------------------------------
 #
