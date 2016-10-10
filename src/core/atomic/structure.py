@@ -1914,6 +1914,10 @@ class StructureGraphicsChangeManager:
                 self.num_atoms_shown = n
                 self._update_level_of_detail()
             self._need_update = False
+            if (gc & StructureData._SELECT_CHANGE).any():
+                from ..selection import SELECTION_CHANGED
+                self.session.triggers.activate_trigger(SELECTION_CHANGED, None)
+                # XXX: No data for now.  What should be passed?
             
     def _update_level_of_detail(self):
         n = self.num_atoms_shown
@@ -2018,7 +2022,7 @@ class LevelOfDetail(State):
     def clamp_geometric(self, n, nmin, nmax):
         f = self._step_factor
         from math import log, pow
-        n1 = int(nmin*pow(f,int(log(n/nmin,f))))
+        n1 = int(nmin*pow(f,int(log(max(n,nmin)/nmin,f))))
         n2 = min(n1, nmax)
         n3 = max(n2, nmin)
         return n3

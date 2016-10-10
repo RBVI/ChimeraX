@@ -807,13 +807,18 @@ class Residues(Collection):
 
     @property
     def unique_structures(self):
-        '''The unique structures as an :class:`.StructureDatas` collection'''
+        '''The unique structures as a :class:`.StructureDatas` collection'''
         return StructureDatas(unique(self.structures._pointers))
 
     @property
     def unique_chain_ids(self):
         '''The unique chain IDs as a numpy array of strings.'''
         return unique(self.chain_ids)
+
+    @property
+    def unique_chains(self):
+        '''The unique chains as a :class:`.Chains` collection'''
+        return _chains(unique(self.chains._pointers))
 
     @property
     def by_structure(self):

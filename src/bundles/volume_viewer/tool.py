@@ -35,6 +35,9 @@ class VolumeViewer(ToolInstance):
         self.tool_window = tw = MainToolWindow(self)
         parent = tw.ui_area
 
+        from . import defaultsettings
+        self.default_settings = defaultsettings.VolumeViewerDefaultSettings()
+
         self.make_panels(parent)
 
         from PyQt5.QtWidgets import QVBoxLayout
@@ -42,10 +45,8 @@ class VolumeViewer(ToolInstance):
         pl.setContentsMargins(0,0,0,0)
         pl.setSpacing(0)
 
-        from . import defaultsettings
-        default_settings = defaultsettings.VolumeViewerDefaultSettings()
-        default_settings.set_gui_to_defaults(self)
-#        default_settings.add_change_callback(self.default_settings_changed_cb)
+        self.default_settings.set_gui_to_defaults(self)
+#        self.default_settings.add_change_callback(self.default_settings_changed_cb)
 
         tw.manage(placement="side")
     
@@ -1645,11 +1646,12 @@ class Thresholds_Panel(PopupPanel):
   #
   def maximum_histograms(self):
 
-    if not hasattr(self.dialog, 'display_options_panel'):
-        # return 1
-        return 5
-    dop = self.dialog.display_options_panel
-    h = max(1, integer_variable_value(dop.max_histograms, 1))
+    d = self.dialog
+    if hasattr(d, 'display_options_panel'):
+        dop = d.display_options_panel
+        h = max(1, integer_variable_value(dop.max_histograms, 1))
+    else:
+        h = d.default_settings['max_histograms']
     return h
 
   # ---------------------------------------------------------------------------

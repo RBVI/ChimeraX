@@ -1,32 +1,25 @@
-# === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
-# === UCSF ChimeraX Copyright ===
-
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-PKG_NAME = chimerax.log
-PKG_VERSION = 1.0
-PKG_DESCRIPTION = ChimeraX Logger User Interface
+PKG_NAME = chimerax.list_info
+PKG_VERSION = 0.1
+PKG_DESCRIPTION = Commands for listing atomic data
 
-TOOL_NAME = log
-TOOL_PKG_NAME = chimerax.log
-TOOL_DISPLAY_NAME = Log
-TOOL_CATEGORY = General
-TOOL_FILE_TYPES =
+# For many cases, only a single tool and a single command
+# is provided by a package.  Variables below are designed
+# for this case.  If you have multiple tools or commands,
+# you need manually edit all the files.
+TOOL_NAME = list_info
+TOOL_PKG_NAME = chimerax.list_info
+TOOL_DISPLAY_NAME = List Info
+TOOL_CATEGORY = Hidden
+TOOL_FILE_TYPES = 
 TOOL_SESSION_VERSIONS = 1,1
 TOOL_CUSTOM_INIT = false
-TOOL_SYNOPSIS = Log of information and output
-COMMAND_NAME = log,echo
+TOOL_SYNOPSIS = Report attributes for selected atomic data
+COMMAND_NAME = listinfo
 
-PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,')
+PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,'g)
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
 ifdef WIN32
 PKG_DIR := $(shell cygpath -m '$(PKG_DIR)' | sed 's,/,\\\\\\\\,g')
@@ -37,9 +30,8 @@ PYSRCS = $(wildcard *.py)
 WHEEL = dist/$(PKG_NAME)-$(PKG_VERSION)-py3-none-any.whl
 
 all: $(PYOBJS)
-	$(PYTHON_EXE) -B -m py_compile $?
 
-install: dir
+install: dir all
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 	if [ -d "$(app_prefix)" ]; then \
 		$(MAKE) app-install ;\
@@ -59,6 +51,8 @@ setup.py: setup.py.in Makefile
 		-e 's,SHLIB_DIR,$(shlibdir),' \
 		-e 's,PYMOD_EXT,$(PYMOD_EXT),' \
 		-e 's,SHLIB_EXT,$(SHLIB_EXT),' \
+		-e 's,#$(OS)#,,' \
+		-e 's,#$(OSARCH)#,,' \
 		-e 's,TOOL_NAME,$(TOOL_NAME),' \
 		-e 's,TOOL_PKG_NAME,$(TOOL_PKG_NAME),' \
 		-e 's,TOOL_DISPLAY_NAME,$(TOOL_DISPLAY_NAME),' \

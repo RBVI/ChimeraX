@@ -20,6 +20,7 @@ class RESTServer(Task):
 
     def run(self, port, use_ssl):
         from http.server import HTTPServer
+        import sys
         if port is None:
             # Defaults to any available port
             port = 0
@@ -40,6 +41,7 @@ class RESTServer(Task):
         msg = ("REST server started on host %s port %d" %
                self.httpd.server_address)
         self.session.ui.thread_safe(self.session.logger.info, msg)
+        self.session.ui.thread_safe(print, msg, file=sys.__stdout__, flush=True)
         self.httpd.serve_forever()
 
     def terminate(self):
@@ -93,6 +95,9 @@ class RESTHandler(BaseHTTPRequestHandler):
 
     do_POST = do_GET
 
+    def log_request(self, code='-', size='-'):
+        pass
+
     def _parse_post(self):
         ctype = self.headers.get("content-type")
         if not ctype:
@@ -136,7 +141,7 @@ class RESTHandler(BaseHTTPRequestHandler):
                 else:
                     try:
                         for cmd in commands:
-                            run(session, cmd.decode("utf-8"))
+                            run(session, cmd.decode("utf-8"), log=False)
                     except NotABug as e:
                         logger.info(str(e))
                 q.put(rest_log.output())

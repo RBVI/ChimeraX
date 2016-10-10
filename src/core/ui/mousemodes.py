@@ -190,6 +190,7 @@ class MouseModes:
             ('left', [], 'rotate'),
             ('middle', [], 'translate'),
             ('right', [], 'zoom'),
+            ('right', ['shift'], 'pivot'),
             ('wheel', [], 'zoom'),
             ('pause', [], 'identify object'),
             )
@@ -674,6 +675,21 @@ class ObjectIdMouseMode(MouseMode):
         # Hide atom spec balloon
         self.session.ui.main_window.graphics_window.popup.hide()
 
+class AtomCenterOfRotationMode(MouseMode):
+    '''Clicking on an atom sets the center of rotation at that position.'''
+    name = 'pivot'
+    icon_file = 'pivot.png'
+
+    def mouse_down(self, event):
+        MouseMode.mouse_down(self, event)
+        x,y = event.position()
+        view = self.session.main_view
+        pick = view.first_intercept(x,y)
+        if hasattr(pick, 'atom'):
+            from chimerax.core.commands import cofr
+            xyz = pick.atom.scene_coord
+            cofr.cofr(self.session,pivot=xyz)
+           
 class NullMouseMode(MouseMode):
     '''Used to assign no mode to a mouse button.'''
     name = 'none'
@@ -854,6 +870,7 @@ def standard_mouse_mode_classes():
         ClipMouseMode,
         ClipRotateMouseMode,
         ObjectIdMouseMode,
+        AtomCenterOfRotationMode,
         mouselevel.ContourLevelMouseMode,
         moveplanes.PlanesMouseMode,
         markers.MarkerMouseMode,
