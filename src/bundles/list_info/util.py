@@ -193,7 +193,7 @@ class Notifier:
             return
         if self.url is not None:
             # Notify via REST
-            RESTTransaction().run(self.url, ''.join(msgs))
+            RESTTransaction(self.session).run(self.url, ''.join(msgs))
         else:
             # Just regular info messages
             logger = self.session.logger
