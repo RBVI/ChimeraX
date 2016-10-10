@@ -79,7 +79,7 @@ def report_residues(logger, residues, attr):
         try:
             value = attr_string(r, attr)
         except AttributeError:
-            pass
+            continue
         info = "residue id %s %s %s" % (spec(r), attr, value)
         try:
             index = r.chain.residues.index(r)
