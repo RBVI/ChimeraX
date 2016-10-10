@@ -489,6 +489,7 @@ def init(argv, event_loop=True):
                 exit = e
         if opts.module == 'pip' and exit.code == os.EX_OK:
             sess.toolshed.reload(sess.logger, rebuild_cache=True)
+            remove_python_scripts(chimerax.app_bin_dir)
         return exit.code
 
     if opts.cmd:
@@ -578,6 +579,21 @@ def uninstall(sess):
 
     sess.logger.error('can not yet uninstall on %s' % sys.platform)
     return os.EX_UNAVAILABLE
+
+def remove_python_scripts(directory):
+    # remove pip installed scripts since they have hardcoded paths to
+    # python and thus don't work when ChimeraX is installed elsewhere
+    import os
+    for filename in os.listdir(directory):
+        path = os.path.join(directory, filename)
+        if not os.path.isfile(filename):
+            continue
+        with open(filename, 'br') as f:
+            line = f.readline()
+            if line[0:2] != b'#!' or b'python' not in line:
+                continue
+        print('removing (pip installed)', filename)
+        os.remove(filename)
 
 if __name__ == '__main__':
     raise SystemExit(init(sys.argv))
