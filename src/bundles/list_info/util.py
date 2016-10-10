@@ -79,7 +79,7 @@ def report_residues(logger, residues, attr):
         try:
             value = attr_string(r, attr)
         except AttributeError:
-            pass
+            continue
         info = "residue id %s %s %s" % (spec(r), attr, value)
         try:
             index = r.chain.residues.index(r)
@@ -100,8 +100,18 @@ def report_atoms(logger, atoms, attr):
 def report_resattr(logger, attr):
     logger.info("resattr %s" % attr)
 
-def report_distance(logger, ai, aj, dist):
-    logger.info("distmat %s %s %s" % (spec(ai), spec(aj), dist))
+def report_distmat(logger, atoms, distmat):
+    num_atoms = len(atoms)
+    msgs = []
+    for i in range(num_atoms):
+        for j in range(i+1,num_atoms):
+            # distmat is a scipy condensed distance matrix
+            # Index calculation from answer by HongboZhu in
+            # http://stackoverflow.com/questions/13079563/how-does-condensed-distance-matrix-work-pdist
+            dmi = num_atoms*i - i*(i+1)//2 + j - 1 - i
+            msgs.append("distmat %s %s %s" % (spec(atoms[i]), spec(atoms[j]),
+                                              distmat[dmi]))
+    logger.info('\n'.join(msgs))
 
 
 # ==============================================================================
@@ -183,7 +193,7 @@ class Notifier:
             return
         if self.url is not None:
             # Notify via REST
-            RESTTransaction().run(self.url, ''.join(msgs))
+            RESTTransaction(self.session).run(self.url, ''.join(msgs))
         else:
             # Just regular info messages
             logger = self.session.logger

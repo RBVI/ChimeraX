@@ -2,7 +2,7 @@
 
 from chimerax.core.commands import CmdDesc, EnumOf, StringArg, AtomSpecArg
 from .util import report_models, report_chains, report_polymers, report_residues
-from .util import report_residues, report_atoms, report_resattr, report_distance
+from .util import report_residues, report_atoms, report_resattr, report_distmat
 
 def listinfo_models(session, spec=None, type_=None, attribute="name"):
     if spec is None:
@@ -12,7 +12,7 @@ def listinfo_models(session, spec=None, type_=None, attribute="name"):
     if type_ is not None:
         type_ = type_.lower()
     models = [m for m in results.models
-              if type_ is None or type(m).__name__ == type_]
+              if type_ is None or type(m).__name__.lower() == type_]
     report_models(session.logger, models, attribute)
 listinfo_models_desc = CmdDesc(keyword=[("spec", AtomSpecArg),
                                         ("type_", StringArg),
@@ -152,10 +152,8 @@ def listinfo_distmat(session, spec):
     results = spec.evaluate(session)
     atoms = results.atoms
     coords = atoms.scene_coords
-    distmat = squareform(pdist(coords, "euclidean"))
-    for i in range(len(atoms)):
-        for j in range(i+1,len(atoms)):
-            report_distance(session.logger, atoms[i], atoms[j], distmat[i,j])
+    distmat = pdist(coords, "euclidean")
+    report_distmat(session.logger, atoms, distmat)
 listinfo_distmat_desc = CmdDesc(required=([("spec", AtomSpecArg)]),
                                 synopsis="Report distance matrix information")
 
