@@ -29,7 +29,7 @@ endif
 PYSRCS = $(wildcard *.py)
 WHEEL = dist/$(PKG_NAME)-$(PKG_VERSION)-py3-none-any.whl
 
-all: $(PYOBJS)
+all: $(PYSRCS)
 	$(PYTHON_EXE) -B -m py_compile $?
 
 install: dir all
