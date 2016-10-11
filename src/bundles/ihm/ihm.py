@@ -15,7 +15,8 @@
 ihm: Integrative Hybrid Model file format support
 =================================================
 """
-def read_ihm(session, filename, name, *args, load_linked_files = True, read_templates = False, **kw):
+def read_ihm(session, filename, name, *args, load_linked_files = True, read_templates = False,
+             show_sphere_crosslinks = False, **kw):
     """Read an integrative hybrid models file creating sphere models and restraint models
 
     :param filename: either the name of a file or a file-like object
@@ -35,6 +36,7 @@ def read_ihm(session, filename, name, *args, load_linked_files = True, read_temp
     from chimerax.core.models import Model
     ihm_model = Model(name, session)
 
+    # Read mmcif tables
     table_names = ['ihm_struct_assembly',  	# Asym ids, entity ids, and entity names
                    'ihm_model_list',		# Model groups
                    'ihm_sphere_obj_site',	# Bead model for each cluster
@@ -50,7 +52,9 @@ def read_ihm(session, filename, name, *args, load_linked_files = True, read_temp
     tables = dict(zip(table_names, table_list))
 
     acomp = assembly_components(tables['ihm_struct_assembly'])
-    
+
+    # Experimental starting models
+    # Comparative model templates.
     dataset_entities = {}
     emodels = tmodels = []
     starting_models = tables['ihm_starting_model_details']
@@ -62,23 +66,26 @@ def read_ihm(session, filename, name, *args, load_linked_files = True, read_temp
             am_group.add(emodels)
             ihm_model.add([am_group])
 
-    lmodels = []
+    # Comparative models
+    cmodels = []
     datasets_table = tables['ihm_dataset_other']
     if datasets_table and load_linked_files:
-        lmodels = read_linked_datasets(session, datasets_table, acomp, dataset_entities)
-        if lmodels:
+        cmodels = read_linked_datasets(session, datasets_table, acomp, dataset_entities)
+        if cmodels:
             from chimerax.core.models import Model
             comp_group = Model('Comparative models', session)
-            comp_group.add(lmodels)
+            comp_group.add(cmodels)
             ihm_model.add([comp_group])
 
-    if tmodels and lmodels:
+    # Align templates with comparative models
+    if tmodels and cmodels:
         # Group templates with grouping name matching comparative model name.
-        tg = group_template_models(session, tmodels, lmodels)
+        tg = group_template_models(session, tmodels, cmodels)
         ihm_model.add([tg])
         # Align templates to comparative models using matchmaker.
-        align_template_models(session, lmodels)
+        align_template_models(session, cmodels)
 
+    # Sphere models
     gmodels = make_sphere_model_groups(session, tables['ihm_model_list'])
     for g in gmodels[1:]:
         g.display = False	# Only show first group.
@@ -87,18 +94,32 @@ def read_ihm(session, filename, name, *args, load_linked_files = True, read_temp
     smodels = make_sphere_models(session, tables['ihm_sphere_obj_site'], gmodels, acomp)
     if emodels:
         align_atomic_models_to_spheres(emodels, smodels)
-    if lmodels:
-        align_atomic_models_to_spheres(lmodels, smodels)
+    if cmodels:
+        align_atomic_models_to_spheres(cmodels, smodels)
 
 
+    # Crosslinks
     xlinks = []
     xlink_table = tables['ihm_cross_link_restraint']
     if xlink_table is not None:
         xlinks = crosslinks(xlink_table)
         if xlinks:
-            for smodel in smodels:
-                make_crosslink_pseudobonds(session, xlinks, smodel)
+            pbgs = []
+            if show_sphere_crosslinks:
+                for smodel in smodels:
+                    pbgs += make_crosslink_pseudobonds(session, xlinks, smodel.residue_sphere)
+            amodels = emodels + cmodels
+            if amodels:
+                # Comparative model crosslinks.  Missing disordered regions.
+                pbgs += make_crosslink_pseudobonds(session, xlinks, atom_lookup(amodels))
+            if pbgs:
+                xl_group = Model('Crosslinks', session)
+                xl_group.add(pbgs)
+                ihm_model.add([xl_group])
 
+# TODO: Show multi-residue spheres and crosslinks to starting models?
+
+    # Ensemble localization densities
     pgrids = []
     ensembles_table = tables['ihm_ensemble_info']
     gaussian_table = tables['ihm_gaussian_obj_ensemble']
@@ -116,7 +137,7 @@ def read_ihm(session, filename, name, *args, load_linked_files = True, read_temp
             ihm_model.add([el_group])
             
     msg = ('Opened IHM file %s containing %d model groups, %d sphere models, %d distance restraints, %d ensemble distributions, %d linked models' %
-           (filename, len(gmodels), len(smodels), len(xlinks), len(pgrids), len(lmodels)))
+           (filename, len(gmodels), len(smodels), len(xlinks), len(pgrids), len(cmodels)))
     return [ihm_model], msg
 
 # -----------------------------------------------------------------------------
@@ -240,27 +261,27 @@ def crosslinks(xlink_restraint_table):
 
 # -----------------------------------------------------------------------------
 #
-def make_crosslink_pseudobonds(session, xlinks, smodel,
+def make_crosslink_pseudobonds(session, xlinks, atom_lookup,
                                radius = 1.0,
                                color = (0,255,0,255),		# Green
                                long_color = (255,0,0,255)):	# Red
     
     pbgs = []
     for type, xlist in xlinks.items():
-        xname = '%d %s crosslinks %s' % (len(xlist), type, smodel.ihm_model_id)
+        xname = '%d %s crosslinks' % (len(xlist), type)
         g = session.pb_manager.get_group(xname)
         # g.name = xname
         pbgs.append(g)
         for xl in xlist:
-            m1, m2 = smodel.asym_model(xl.asym1), smodel.asym_model(xl.asym2)
-            s1, s2 = m1.residue_sphere(xl.seq1), m2.residue_sphere(xl.seq2)
-            if s1 and s2 and s1 is not s2:
-                b = g.new_pseudobond(s1, s2)
+            a1 = atom_lookup(xl.asym1, xl.seq1)
+            a2 = atom_lookup(xl.asym2, xl.seq2)
+            if a1 and a2 and a1 is not a2:
+                b = g.new_pseudobond(a1, a2)
                 b.color = long_color if b.length > xl.distance else color
                 b.radius = radius
                 b.halfbond = False
                 b.restraint_distance = xl.distance
-    smodel.add(pbgs)
+    return pbgs
 
 # -----------------------------------------------------------------------------
 #
@@ -583,8 +604,19 @@ def align_atomic_models_to_spheres(amodels, smodels):
             from numpy import array, float64
             p, rms = align_points(array(mxyz,float64), array(sxyz,float64))
             m.position = p
-            print ('aligned %s, %d points, rms %.4g' % (m.name, len(mxyz), rms))
-            
+            print ('aligned %s, %d residues, rms %.4g' % (m.name, len(mxyz), rms))
+    
+# -----------------------------------------------------------------------------
+#
+def atom_lookup(models):
+    amap = {}
+    for m in models:
+        res = m.residues
+        for res_num, atom in zip(res.numbers, res.principal_atoms):
+            amap[(m.asym_id, res_num)] = atom
+    def lookup(asym_id, res_num, amap=amap):
+        return amap.get((asym_id, res_num))
+    return lookup
     
 # -----------------------------------------------------------------------------
 #
@@ -615,6 +647,9 @@ class SphereModel(Model):
 
     def asym_model_map(self):
         return self._asym_models
+
+    def residue_sphere(self, asym_id, res_num):
+        return self.asym_model(asym_id).residue_sphere(res_num)
     
 # -----------------------------------------------------------------------------
 #
