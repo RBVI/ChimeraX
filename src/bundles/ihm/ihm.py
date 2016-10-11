@@ -15,7 +15,7 @@
 ihm: Integrative Hybrid Model file format support
 =================================================
 """
-def read_ihm(session, filename, name, *args, load_linked_files = True, **kw):
+def read_ihm(session, filename, name, *args, load_linked_files = True, read_templates = False, **kw):
     """Read an integrative hybrid models file creating sphere models and restraint models
 
     :param filename: either the name of a file or a file-like object
@@ -29,7 +29,8 @@ def read_ihm(session, filename, name, *args, load_linked_files = True, **kw):
         filename = stream.name
         stream.close()
 
-    from os.path import basename, splitext
+    from os.path import basename, splitext, dirname
+    ihm_dir = dirname(filename)
     name = splitext(basename(filename))[0]
     from chimerax.core.models import Model
     ihm_model = Model(name, session)
@@ -40,6 +41,7 @@ def read_ihm(session, filename, name, *args, load_linked_files = True, **kw):
                    'ihm_cross_link_restraint',	# Crosslinks
                    'ihm_ensemble_info',		# Names of ensembles, e.g. cluster 1, 2, ...
                    'ihm_gaussian_obj_ensemble',	# Distribution of ensemble models
+                   'ihm_ensemble_localization', # Distribution of ensemble models
                    'ihm_dataset_other',		# Comparative models, EM data, DOI references
                    'ihm_starting_model_details', # Starting models, including compararative model templates
     ]
@@ -49,31 +51,12 @@ def read_ihm(session, filename, name, *args, load_linked_files = True, **kw):
 
     acomp = assembly_components(tables['ihm_struct_assembly'])
     
-    gmodels = make_model_groups(session, tables['ihm_model_list'])
-    for g in gmodels[1:]:
-        g.display = False	# Only show first group.
-    ihm_model.add(gmodels)
-    
-    smodels = make_sphere_models(session, tables['ihm_sphere_obj_site'], gmodels, acomp)
-
-    xlinks = []
-    xlink_table = tables['ihm_cross_link_restraint']
-    if xlink_table is not None:
-        xlinks = make_crosslink_pseudobonds(session, xlink_table, smodels)
-
-    pgrids = []
-    ensembles_table = tables['ihm_ensemble_info']
-    gaussian_table = tables['ihm_gaussian_obj_ensemble']
-    if ensembles_table is not None and gaussian_table is not None:
-        pgrids = make_probability_grids(session, ensembles_table, gaussian_table, gmodels)
-
     dataset_entities = {}
-    tmodels = []
+    emodels = tmodels = []
     starting_models = tables['ihm_starting_model_details']
     if starting_models:
-        dataset_entities, emodels, tmodels = read_starting_models(session, starting_models)
+        dataset_entities, emodels, tmodels = read_starting_models(session, starting_models, read_templates)
         if emodels:
-            align_atomic_models_to_spheres(emodels, smodels)
             from chimerax.core.models import Model
             am_group = Model('Experimental models', session)
             am_group.add(emodels)
@@ -82,16 +65,56 @@ def read_ihm(session, filename, name, *args, load_linked_files = True, **kw):
     lmodels = []
     datasets_table = tables['ihm_dataset_other']
     if datasets_table and load_linked_files:
-        lmodels = read_linked_datasets(session, datasets_table, gmodels, acomp, dataset_entities)
-        align_atomic_models_to_spheres(lmodels, smodels)
-        if tmodels:
-            lmodels = insert_template_models(session, tmodels, lmodels)
+        lmodels = read_linked_datasets(session, datasets_table, acomp, dataset_entities)
         if lmodels:
             from chimerax.core.models import Model
             comp_group = Model('Comparative models', session)
             comp_group.add(lmodels)
             ihm_model.add([comp_group])
-        
+
+    if tmodels and lmodels:
+        # Group templates with grouping name matching comparative model name.
+        tg = group_template_models(session, tmodels, lmodels)
+        ihm_model.add([tg])
+        # Align templates to comparative models using matchmaker.
+        align_template_models(session, lmodels)
+
+    gmodels = make_sphere_model_groups(session, tables['ihm_model_list'])
+    for g in gmodels[1:]:
+        g.display = False	# Only show first group.
+    ihm_model.add(gmodels)
+    
+    smodels = make_sphere_models(session, tables['ihm_sphere_obj_site'], gmodels, acomp)
+    if emodels:
+        align_atomic_models_to_spheres(emodels, smodels)
+    if lmodels:
+        align_atomic_models_to_spheres(lmodels, smodels)
+
+
+    xlinks = []
+    xlink_table = tables['ihm_cross_link_restraint']
+    if xlink_table is not None:
+        xlinks = crosslinks(xlink_table)
+        if xlinks:
+            for smodel in smodels:
+                make_crosslink_pseudobonds(session, xlinks, smodel)
+
+    pgrids = []
+    ensembles_table = tables['ihm_ensemble_info']
+    gaussian_table = tables['ihm_gaussian_obj_ensemble']
+    localization_table = tables['ihm_ensemble_localization']
+    if ensembles_table is not None:
+        if localization_table is not None:
+            pgrids = read_localization_maps(session, ensembles_table, localization_table, ihm_dir)
+        elif gaussian_table is not None:
+            pgrids = make_probability_grids(session, ensembles_table, gaussian_table)
+        if pgrids:
+            for g in pgrids[1:]:
+                g.display = False	# Only show first ensemble
+            el_group = Model('Ensemble localization', session)
+            el_group.add(pgrids)
+            ihm_model.add([el_group])
+            
     msg = ('Opened IHM file %s containing %d model groups, %d sphere models, %d distance restraints, %d ensemble distributions, %d linked models' %
            (filename, len(gmodels), len(smodels), len(xlinks), len(pgrids), len(lmodels)))
     return [ihm_model], msg
@@ -124,7 +147,7 @@ def assembly_components(ihm_struct_assembly_table):
     
 # -----------------------------------------------------------------------------
 #
-def make_model_groups(session, ihm_model_list_table):
+def make_sphere_model_groups(session, ihm_model_list_table):
     ml_fields = [
         'model_id',
         'model_group_id',
@@ -137,6 +160,7 @@ def make_model_groups(session, ihm_model_list_table):
     from chimerax.core.models import Model
     for (gid, gname), mid_list in gm.items():
         m = Model(gname, session)
+        m.display = False
         m.ihm_group_id = gid
         m.ihm_model_ids = mid_list
         models.append(m)
@@ -186,10 +210,17 @@ def make_sphere_models(session, spheres_obj_site, group_models, acomp):
 
 # -----------------------------------------------------------------------------
 #
-def make_crosslink_pseudobonds(session, xlink_restraint, smodels,
-                               radius = 1.0,
-                               color = (0,255,0,255),		# Green
-                               long_color = (255,0,0,255)):	# Red
+class Crosslink:
+    def __init__(self, asym1, seq1, asym2, seq2, dist):
+        self.asym1 = asym1
+        self.seq1 = seq1
+        self.asym2 = asym2
+        self.seq2 = seq2
+        self.distance = dist
+
+# -----------------------------------------------------------------------------
+#
+def crosslinks(xlink_restraint_table):
 
     xlink_fields = [
         'asym_id_1',
@@ -199,38 +230,80 @@ def make_crosslink_pseudobonds(session, xlink_restraint, smodels,
         'type',
         'distance_threshold'
         ]
-    xlink_rows = xlink_restraint.fields(xlink_fields)
+    xlink_rows = xlink_restraint_table.fields(xlink_fields)
     xlinks = {}
     for asym_id_1, seq_id_1, asym_id_2, seq_id_2, type, distance_threshold in xlink_rows:
-        xl = ((asym_id_1, int(seq_id_1)), (asym_id_2, int(seq_id_2)), float(distance_threshold))
+        xl = Crosslink(asym_id_1, int(seq_id_1), asym_id_2, int(seq_id_2), float(distance_threshold))
         xlinks.setdefault(type, []).append(xl)
-
-    if not xlinks:
-        return xlinks
-    
-    for sm in smodels:
-        pbgs = []
-        for type, xl in xlinks.items():
-            xname = '%d %s crosslinks %s' % (len(xl), type, sm.ihm_model_id)
-            g = session.pb_manager.get_group(xname)
-            # g.name = xname
-            pbgs.append(g)
-            for (asym1, seq1), (asym2, seq2), d in xl:
-                m1, m2 = sm.asym_model(asym1), sm.asym_model(asym2)
-                s1, s2 = m1.residue_sphere(seq1), m2.residue_sphere(seq2)
-                if s1 and s2 and s1 is not s2:
-                    b = g.new_pseudobond(s1, s2)
-                    b.color = long_color if b.length > d else color
-                    b.radius = radius
-                    b.halfbond = False
-                    b.restraint_distance = d
-        sm.add(pbgs)
 
     return xlinks
 
 # -----------------------------------------------------------------------------
 #
-def make_probability_grids(session, ensemble_table, gaussian_table, group_models,
+def make_crosslink_pseudobonds(session, xlinks, smodel,
+                               radius = 1.0,
+                               color = (0,255,0,255),		# Green
+                               long_color = (255,0,0,255)):	# Red
+    
+    pbgs = []
+    for type, xlist in xlinks.items():
+        xname = '%d %s crosslinks %s' % (len(xlist), type, smodel.ihm_model_id)
+        g = session.pb_manager.get_group(xname)
+        # g.name = xname
+        pbgs.append(g)
+        for xl in xlist:
+            m1, m2 = smodel.asym_model(xl.asym1), smodel.asym_model(xl.asym2)
+            s1, s2 = m1.residue_sphere(xl.seq1), m2.residue_sphere(xl.seq2)
+            if s1 and s2 and s1 is not s2:
+                b = g.new_pseudobond(s1, s2)
+                b.color = long_color if b.length > xl.distance else color
+                b.radius = radius
+                b.halfbond = False
+                b.restraint_distance = xl.distance
+    smodel.add(pbgs)
+
+# -----------------------------------------------------------------------------
+#
+def read_localization_maps(session, ensemble_table, localization_table,
+                           ihm_dir, level = 0.2, opacity = 0.5):
+    '''Level sets surface threshold so that fraction of mass is outside the surface.'''
+
+    ensemble_fields = ['ensemble_id', 'model_group_id', 'num_ensemble_models']
+    ens = ensemble_table.fields(ensemble_fields)
+    ens_group = {id:(gid,int(n)) for id, gid, n in ens}
+    
+    loc_fields = ['asym_id', 'ensemble_id', 'file']
+    loc = localization_table.fields(loc_fields)
+    ens = {}
+    for asym_id, ensemble_id, file in loc:
+        ens.setdefault(ensemble_id, []).append((asym_id, file))
+
+    pmods = []
+    from chimerax.core.models import Model
+    from chimerax.core.map.volume import open_map
+    from chimerax.core.atomic.colors import chain_rgba
+    from os.path import join
+    for ensemble_id in sorted(ens.keys()):
+        asym_loc = ens[ensemble_id]
+        gid, n = ens_group[ensemble_id]
+        m = Model('Ensemble %s of %d models' % (ensemble_id, n), session)
+        pmods.append(m)
+        for asym_id, filename in sorted(asym_loc):
+            map_path = join(ihm_dir, filename)
+            maps,msg = open_map(session, map_path, show_dialog=False)
+            color = chain_rgba(asym_id)[:3] + (opacity,)
+            v = maps[0]
+            ms = v.matrix_value_statistics()
+            vlev = ms.mass_rank_data_value(level)
+            v.set_parameters(surface_levels = [vlev], surface_colors = [color])
+            v.show()
+            m.add([v])
+
+    return pmods
+
+# -----------------------------------------------------------------------------
+#
+def make_probability_grids(session, ensemble_table, gaussian_table, localization_table,
                            level = 0.2, opacity = 0.5):
     '''Level sets surface threshold so that fraction of mass is outside the surface.'''
 
@@ -266,15 +339,12 @@ def make_probability_grids(session, ensemble_table, gaussian_table, group_models
 
     # Compute probability volume models
     pmods = []
-    gmodel = {id:g for g in group_models for id in g.ihm_model_ids}
     from chimerax.core.models import Model
     from chimerax.core.map import volume_from_grid_data
     from chimerax.core.atomic.colors import chain_rgba
-    first_model_id = min(cov.keys())
     for ensemble_id, asym_gaussians in cov.items():
         gid, n = ens_group[ensemble_id]
         m = Model('Ensemble %s of %d models' % (ensemble_id, n), session)
-        gmodel[gid].add([m])
         pmods.append(m)
         for asym_id in sorted(asym_gaussians.keys()):
             g = probability_grid(asym_gaussians[asym_id])
@@ -349,7 +419,7 @@ from chimerax.core.map import covariance_sum
 
 # -----------------------------------------------------------------------------
 #
-def read_starting_models(session, starting_models):
+def read_starting_models(session, starting_models, read_templates):
     fields = ['entity_id', 'asym_id', 'seq_id_begin', 'seq_id_end', 'starting_model_source',
               'starting_model_db_name', 'starting_model_db_code', 'starting_model_db_pdb_auth_asym_id',
               'dataset_list_id']
@@ -361,6 +431,8 @@ def read_starting_models(session, starting_models):
         dataset_entities[did] = (eid, asym_id)
         if (source in ('experimental model', 'comparative model') and
             db_name == 'PDB' and db_code != '?'):
+            if source == 'comparative model' and not read_templates:
+                continue
             from chimerax.core.atomic.mmcif import fetch_mmcif
             models, msg = fetch_mmcif(session, db_code, smart_initial_display = False)
             name = '%s %s' % (db_code, db_asym_id)
@@ -369,7 +441,7 @@ def read_starting_models(session, starting_models):
                 m.name = name
                 m.entity_id = eid
                 m.asym_id = asym_id
-                m.seq_begin, m.seq_end = seq_beg, seq_end
+                m.seq_begin, m.seq_end = int(seq_beg), int(seq_end)
                 m.dataset_id = did
                 show_colored_ribbon(m, asym_id)
             if source == 'experimental model':
@@ -388,13 +460,11 @@ def keep_one_chain(s, chain_id):
     dcount = dmask.sum()
     if dcount > 0 and dcount < len(atoms):	# Don't delete all atoms if chain id not found.
         datoms = atoms.filter(dmask)
-        import sys
-        sys.__stderr__.write('delete atoms %s %s %d %d\n' % (s.name, chain_id, len(atoms), len(datoms)))
         datoms.delete()
     
 # -----------------------------------------------------------------------------
 #
-def read_linked_datasets(session, datasets_table, gmodels, acomp, dataset_entities):
+def read_linked_datasets(session, datasets_table, acomp, dataset_entities):
     '''Read linked data from ihm_dataset_other table'''
     lmodels = []
     fields = ['dataset_list_id', 'data_type', 'doi', 'content_filename']
@@ -419,19 +489,18 @@ def read_linked_datasets(session, datasets_table, gmodels, acomp, dataset_entiti
 
 # -----------------------------------------------------------------------------
 #
-def insert_template_models(session, template_models, comparative_models):
-    '''Place template models after their comparative model.'''
+def group_template_models(session, template_models, comparative_models):
+    '''Place template models in groups named after their comparative model.'''
     mm = []
     tmodels = template_models
+    from chimerax.core.models import Model
     for cm in comparative_models:
-        mm.append(cm)
         did = cm.dataset_id
         templates = [tm for tm in tmodels if tm.dataset_id == did]
         if templates:
-            from chimerax.core.models import Model
-            tm_group = Model(cm.name + ' templates', session)
-            tm_group.display = False
+            tm_group = Model(cm.name, session)
             tm_group.add(templates)
+            cm.template_models = templates
             mm.append(tm_group)
             tmodels = [tm for tm in tmodels if tm.dataset_id != did]
     if tmodels:
@@ -439,7 +508,38 @@ def insert_template_models(session, template_models, comparative_models):
         tm_group = Model('extra templates', session)
         tm_group.add(tmodels)
         mm.append(tm_group)
-    return mm
+    tg = Model('Template models', session)
+    tg.display = False
+    tg.add(mm)
+    return tg
+
+# -----------------------------------------------------------------------------
+#
+def align_template_models(session, comparative_models):
+    for cm in comparative_models:
+        tmodels = getattr(cm, 'template_models', [])
+        if tmodels is None:
+            continue
+        catoms = cm.atoms
+        rnums = catoms.residues.numbers
+        for tm in tmodels:
+            # Find range of comparative model residues that template was matched to.
+            from numpy import logical_and
+            cratoms = catoms.filter(logical_and(rnums >= tm.seq_begin, rnums <= tm.seq_end))
+            print('match maker', tm.name, 'to', cm.name, 'residues', tm.seq_begin, '-', tm.seq_end)
+            from chimerax.match_maker.match import cmd_match
+            matches = cmd_match(session, tm.atoms, cratoms, iterate = False)
+            fatoms, toatoms, rmsd, full_rmsd, tf = matches[0]
+            # Color unmatched template residues gray.
+            mres = fatoms.residues
+            tres = tm.residues
+            nonmatched_res = tres.subtract(mres)
+            nonmatched_res.ribbon_colors = (170,170,170,255)
+            # Hide unmatched template beyond ends of matching residues
+            mnums = mres.numbers
+            tnums = tres.numbers
+            tres.filter(tnums < mnums.min()).ribbon_displays = False
+            tres.filter(tnums > mnums.max()).ribbon_displays = False
 
 # -----------------------------------------------------------------------------
 #

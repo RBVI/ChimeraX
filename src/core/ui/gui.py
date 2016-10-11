@@ -329,10 +329,10 @@ class MainWindow(QMainWindow, PlainTextLog):
         from PyQt5.QtWidgets import QFileDialog
         from .open_save import open_file_filter
         paths_and_types = QFileDialog.getOpenFileNames(filter=open_file_filter(all=True))
-        if not paths_and_types:
+        paths, types = paths_and_types
+        if not paths:
             return
 
-        paths, types = paths_and_types
         models = session.models.open(paths)
         if models and len(paths) == 1:
             # Remember in file history
@@ -535,6 +535,27 @@ class MainWindow(QMainWindow, PlainTextLog):
         about_action = QAction("About %s %s" % (ad.appauthor, ad.appname), self)
         about_action.triggered.connect(self._about)
         help_menu.addAction(about_action)
+
+    def add_custom_menu_entry(self, menu_name, entry_name, callback):
+        '''
+        Add a custom top level menu entry.  Currently you can not add to
+        the standard ChimeraX menus but can create new ones.
+        Callback function takes no arguments.
+        '''
+        mb = self.menuBar()
+        from PyQt5.QtWidgets import QMenu, QAction
+        menu = mb.findChild(QMenu, menu_name)
+        add = (menu is None)
+        if add:
+            menu = QMenu(menu_name, mb)
+            menu.setObjectName(menu_name)	# Need for findChild() above to work.
+        
+        action = QAction(entry_name, self)
+        action.triggered.connect(lambda arg, cb = callback: callback())
+        menu.addAction(action)
+        if add:
+            # Add menu after adding entry otherwise it is not shown on Mac.
+            mb.addMenu(menu)
 
     def _tool_window_destroy(self, tool_window):
         tool_instance = tool_window.tool_instance

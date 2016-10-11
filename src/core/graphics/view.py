@@ -259,6 +259,12 @@ class View:
         import numpy
         color = numpy.asarray(rgba, dtype=numpy.float32)
         color[3] = 0	# For transparent background images.
+        r = self._render
+        if r:
+            lp = r.lighting
+            if lp.depth_cue_color == tuple(self._background_rgba[:3]):
+                # Make depth cue color follow background color if they are the same.
+                lp.depth_cue_color = tuple(color[:3])
         self._background_rgba = color
         self.redraw_needed = True
     background_color = property(get_background_color, set_background_color)

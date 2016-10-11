@@ -2,16 +2,10 @@ PREREQ_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-ifneq ($(OS),Darwin)
-VERSION = 1.0.1j
-SHLIB_VERSION=$(shell awk '$$2 == "SHLIB_VERSION_NUMBER" { print $$3 }' $(SOURCE)/include/openssl/opensslv.h | sed s/\"//g)
+VERSION = 1.0.1u
+SHLIB_VERSION=$(shell awk '$$3 == "SHLIB_VERSION_NUMBER" { print $$4 }' $(SOURCE)/include/openssl/opensslv.h | sed s/\"//g)
 DISTRIBUTION = openssl-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/openssl-$(VERSION)
-else
-# Mac OS X ships with version 0.9.8
-VERSION = 0.9.8
-SHLIB_VERSION=0.9.8
-endif
 
 QUOTE_CC := $(subst ','\'',$(CC) $(TARGET_ARCH))
 QUOTE_CXX := $(subst ','\'',$(CXX) $(TARGET_ARCH))
@@ -53,6 +47,13 @@ CONFIG	= ./Configure
 TARGET	= darwin64-x86_64-cc
 endif
 
+ifeq ($(OS),Darwin)
+USE_OLD_HEADERS=1
+# OpenSSL headers for 0.9.8 were copied from
+# /usr/local/src/MacOSX.sdks/MacOSX10.10.sdk/usr/include/openssl
+# from El Capitan
+endif
+
 all:
 
 ifdef WIN32
@@ -72,42 +73,44 @@ install: $(SOURCE)
 endif
 
 ifeq ($(OS),Darwin)
-SWIFT_SDK = /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-migrator/sdk/MacOSX.sdk
+ifdef USE_OLD_HEADERS
 install:
-ifneq (,$(wildcard $(SWIFT_SDK)/usr/include/openssl))
-	#/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-migrator/sdk/MacOSX.sdk/usr/include/openssl/opensslv.h
-	ln -fs $(SWIFT_SDK)/usr/include/openssl $(includedir)
+	tar zxf openssl-include-0.9.8.tar.gz -C $(includedir)
+else
+install: $(SOURCE)
+	cd $(SOURCE) && $(MAKE) $(MAKE_ARGS) -j1 PERL=perl
+	cd $(SOURCE) && $(MAKE) $(MAKE_ARGS) -j1 PERL=perl build-shared
+	cd $(SOURCE) && $(MAKE) $(MAKE_ARGS) -j1 PERL=perl install_sw
+	cd $(shlibdir) && \
+	chmod ug+w \
+	    libcrypto.$(SHLIB_VERSION).$(SHLIB_EXT) \
+	    libssl.$(SHLIB_VERSION).$(SHLIB_EXT); \
+	install_name_tool -id \
+	    @rpath/libcrypto.$(SHLIB_VERSION).$(SHLIB_EXT) \
+	    libcrypto.$(SHLIB_VERSION).$(SHLIB_EXT) ; \
+	install_name_tool -id \
+	    @rpath/libssl.$(SHLIB_VERSION).$(SHLIB_EXT) \
+	    libssl.$(SHLIB_VERSION).$(SHLIB_EXT) ; \
+	install_name_tool -change \
+	    $(shlibdir)/libcrypto.$(SHLIB_VERSION).$(SHLIB_EXT) \
+	    @rpath/libcrypto.$(SHLIB_VERSION).$(SHLIB_EXT) \
+	    libssl.$(SHLIB_VERSION).$(SHLIB_EXT)
+	cd $(libdir)/engines; chmod ug+w *.dylib; for f in *.dylib; do \
+		install_name_tool -change \
+			$(shlibdir)/libcrypto.$(SHLIB_VERSION).$(SHLIB_EXT) \
+			@rpath/libcrypto.$(SHLIB_VERSION).$(SHLIB_EXT) \
+			$$f; \
+	done
 endif
-#	cd $(shlibdir) && \
-#	chmod 644 \
-#	    libcrypto.$(SHLIB_VERSION).$(SHLIB_EXT) \
-#	    libssl.$(SHLIB_VERSION).$(SHLIB_EXT) ; \
-#	install_name_tool -id \
-#	    @rpath/libcrypto.$(SHLIB_VERSION).$(SHLIB_EXT) \
-#	    libcrypto.$(SHLIB_VERSION).$(SHLIB_EXT) ; \
-#	install_name_tool -id \
-#	    @rpath/libssl.$(SHLIB_VERSION).$(SHLIB_EXT) \
-#	    libssl.$(SHLIB_VERSION).$(SHLIB_EXT) ; \
-#	install_name_tool -change \
-#	    $(shlibdir)/libcrypto.$(SHLIB_VERSION).$(SHLIB_EXT) \
-#	    @rpath/libcrypto.$(SHLIB_VERSION).$(SHLIB_EXT) \
-#	    libssl.$(SHLIB_VERSION).$(SHLIB_EXT) ; \
-#	chmod 444 \
-#	    libcrypto.$(SHLIB_VERSION).$(SHLIB_EXT) \
-#	    libssl.$(SHLIB_VERSION).$(SHLIB_EXT)
-#	cd $(libdir)/engines; chmod 644 *.dylib; for f in *.dylib; do \
-#		install_name_tool -change \
-#			$(shlibdir)/libcrypto.$(SHLIB_VERSION).$(SHLIB_EXT) \
-#			@rpath/libcrypto.$(SHLIB_VERSION).$(SHLIB_EXT) \
-#			$$f; \
-#	done; chmod 444 *.dylib
 endif
 
 app-install:
-ifeq ($(OS),Linux)
+ifndef WIN32
+ifndef USE_OLD_HEADERS
 	$(RSYNC) $(shlibdir)/libcrypto.*$(SHLIB_EXT)* \
 		$(shlibdir)/libssl.*$(SHLIB_EXT)* $(app_shlibdir)
 	# do we need $(shlibdir)/engines/?
+endif
 endif
 
 $(SOURCE):

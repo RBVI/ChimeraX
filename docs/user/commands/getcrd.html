@@ -15,7 +15,7 @@ or derivations thereof.
 
 <head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
-<title>Tool: Log</title>
+<title>Command: getcrd</title>
 </head><body>
 
 <a name="top"></a>
@@ -23,23 +23,22 @@ or derivations thereof.
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
 class="clRight" title="User Guide Index"/></a>
 
-<h3><a href="../index.html#tools">Tool</a>: Log</h3>
+<h3><a href="../index.html#commands">Command</a>: getcrd</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>getcrd</b> 
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
+[&nbsp;scene&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+</h3>
 <p>
-The <b>Log</b> tool echoes <a href="../index.html#commands">commands</a>
-that have been executed, with any truncations expanded and
-links to show their help pages.
-The <b>Log</b> also shows messages and other output information.
-Like other tools, this interface can be opened from the <b>Tools</b> menu
-(<a href="../window.html">more...</a>).
-</p><p>
-The <a href="../commands/log.html"><b>log</b></a> command performs several
-functions related to the <b>Log</b>, including clearing its contents
-or saving them to an HTML file.
-</p><p>
-See also: 
-<a href="cli.html#history"><b>Command History</b></a>,
-<a href="../commands/usage.html"><b>usage</b></a>,
-<a href="../window.html#browser">ChimeraX browser</a>
+The <b>getcrd</b> command reports the coordinates of the
+<a href="atomspec.html">specified</a> atoms in the 
+<a href="../tools/log.html"><b>Log</b></a>.
+The <b>scene</b> option specifies whether to include any rotations and
+translations of atomic models relative to the scene (default <b>true</b>).
+Otherwise, the untransformed coordinates will be reported.
+If only global rotations and transformations have been applied,
+this option makes no difference.
+See also: <a href="save.html"><b>save</b></a>
 </p>
 
 <hr>

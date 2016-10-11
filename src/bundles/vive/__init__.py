@@ -21,3 +21,4 @@ class _MyAPI(BundleAPI):
         from . import vive
         vive.register_vive_command()
 
+bundle_api = _MyAPI()

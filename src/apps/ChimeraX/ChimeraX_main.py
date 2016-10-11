@@ -469,6 +469,9 @@ def init(argv, event_loop=True):
         sess.logger.info('OpenGL renderer: ' + r.opengl_renderer())
         sess.logger.info('OpenGL vendor: ' + r.opengl_vendor())
 
+    from chimerax.core import startup
+    startup.run_user_startup_scripts(sess)
+
     if opts.module:
         import runpy
         import warnings
@@ -481,11 +484,12 @@ def init(argv, event_loop=True):
             }
             try:
                 runpy.run_module(opts.module, init_globals=global_dict,
-                             run_name='__main__', alter_sys=True)
+                                 run_name='__main__', alter_sys=True)
             except SystemExit as e:
                 exit = e
         if opts.module == 'pip' and exit.code == os.EX_OK:
             sess.toolshed.reload(sess.logger, rebuild_cache=True)
+            remove_python_scripts(chimerax.app_bin_dir)
         return exit.code
 
     if opts.cmd:
@@ -575,6 +579,32 @@ def uninstall(sess):
 
     sess.logger.error('can not yet uninstall on %s' % sys.platform)
     return os.EX_UNAVAILABLE
+
+
+def remove_python_scripts(bin_dir):
+    # remove pip installed scripts since they have hardcoded paths to
+    # python and thus don't work when ChimeraX is installed elsewhere
+    import os
+    if sys.platform.startswith('win'):
+        # Windows
+        script_dir = os.path.join(bin_dir, 'Scripts')
+        for dirpath, dirnames, filenames in os.walk(script_dir, topdown=False):
+            for f in filenames:
+                path = os.path.join(dirpath, f)
+                os.remove(path)
+            os.rmdir(dirpath)
+    else:
+        # Linux, Mac OS X
+        for filename in os.listdir(bin_dir):
+            path = os.path.join(bin_dir, filename)
+            if not os.path.isfile(path):
+                continue
+            with open(path, 'br') as f:
+                line = f.readline()
+                if line[0:2] != b'#!' or b'/bin/python' not in line:
+                    continue
+            print('removing (pip installed)', path)
+            os.remove(path)
 
 if __name__ == '__main__':
     raise SystemExit(init(sys.argv))

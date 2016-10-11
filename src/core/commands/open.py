@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def open(session, filename, format=None, name=None, from_database=None, ignore_cache=False,
-         smart_initial_display = True):
+         smart_initial_display = True, explode = True):
     '''Open a file.
 
     Parameters
@@ -35,6 +35,9 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
         to cache.
     smart_initial_display : bool
         Whether to display molecules with rich styles and colors.
+    explode : bool
+        Whether to read PDB format multimodel files as multiple models (true)
+        or as coordinate sets (false).
     '''
 
     if ':' in filename:
@@ -57,7 +60,8 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
             if format is None:
                 format = 'mmcif'
 
-    kw = {'smart_initial_display': smart_initial_display}
+    kw = {'smart_initial_display': smart_initial_display,
+          'explode': explode}
 
     from ..filehistory import remember_file
     if from_database is not None:
@@ -182,6 +186,7 @@ def register_command(session):
             ('from_database', DynamicEnum(db_formats)),
             ('ignore_cache', NoArg),
             ('smart_initial_display', BoolArg),
+            ('explode', BoolArg),
             # ('id', ModelIdArg),
         ],
         synopsis='read and display data')

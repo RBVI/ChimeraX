@@ -723,7 +723,7 @@ def common_startup(sess):
     register_core_triggers(sess.triggers)
 
     from .selection import Selection
-    sess.selection = Selection(sess.models)
+    sess.selection = Selection(sess)
 
     try:
         from .core_settings import settings

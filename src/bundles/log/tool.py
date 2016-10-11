@@ -280,7 +280,32 @@ class Log(ToolInstance, HtmlLog):
         lw = self.log_window
         # Disable and reenable to avoid QWebEngineView taking focus, QTBUG-52999 in Qt 5.7
         lw.setEnabled(False)
-        lw.setHtml(html)
+        # HACK ALERT: to get around a QWebEngineView bug where HTML
+        # source is converted into a "data:" link and runs into the
+        # URL length limit.
+        if len(html) < 1000000:
+            lw.setHtml(html)
+        else:
+            try:
+                tf = open(self._tf_name, "wb")
+            except AttributeError:
+                import tempfile, atexit
+                tf = tempfile.NamedTemporaryFile(prefix="chtmp", suffix=".html",
+                                                 delete=False, mode="wb")
+                self._tf_name = tf.name
+                def clean(filename):
+                    import os
+                    try:
+                        os.remove(filename)
+                    except OSError:
+                        pass
+                atexit.register(clean, tf.name)
+            from PyQt5.QtCore import QUrl
+            tf.write(bytes(html, "utf-8"))
+            # On Windows, we have to close the temp file before
+            # trying to open it again (like loading HTML from it).
+            tf.close()
+            lw.load(QUrl.fromLocalFile(self._tf_name))
         lw.setEnabled(True)
 
     def navigate(self, data):

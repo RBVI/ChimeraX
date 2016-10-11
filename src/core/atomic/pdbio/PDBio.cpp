@@ -1193,7 +1193,7 @@ read_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
 {
     PyObject *pdb_file;
     PyObject *py_logger = Py_None;
-    bool explode = true;
+    int explode = 1;
     static const char *kw_list[] = {"file", "log", "explode", NULL};
     if (!PyArg_ParseTupleAndKeywords(args, keywords, "O|$Op",
             (char **) kw_list, &pdb_file, &py_logger, &explode))

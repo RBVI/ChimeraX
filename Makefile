@@ -70,6 +70,7 @@ endif
 distclean: clean
 	rm -rf $(build_prefix) $(app_prefix) prereqs/prebuilt-*.tar.bz2
 	$(MAKE) -C prereqs/PyQt distclean
+	$(MAKE) -C docs clean
 
 build-from-scratch:
 	$(MAKE) distclean
