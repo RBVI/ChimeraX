@@ -329,10 +329,10 @@ class MainWindow(QMainWindow, PlainTextLog):
         from PyQt5.QtWidgets import QFileDialog
         from .open_save import open_file_filter
         paths_and_types = QFileDialog.getOpenFileNames(filter=open_file_filter(all=True))
-        if not paths_and_types:
+        paths, types = paths_and_types
+        if not paths:
             return
 
-        paths, types = paths_and_types
         models = session.models.open(paths)
         if models and len(paths) == 1:
             # Remember in file history
