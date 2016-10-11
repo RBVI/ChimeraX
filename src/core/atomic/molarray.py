@@ -55,7 +55,7 @@ size_t = ctype_type_to_numpy[ctypes.c_size_t]   # numpy dtype for size_t
 def _atoms(p):
     return Atoms(p)
 def _atoms_or_nones(p):
-    from molobject import object_map, Atom
+    from .molobject import object_map, Atom
     return [object_map(ptr, Atom) if ptr else None for ptr in p]
 def _non_null_atoms(p):
     return Atoms(p[p!=0])
@@ -689,7 +689,7 @@ class Pseudobonds(Collection):
     '''
     showns = cvec_property('pseudobond_shown', npy_bool, read_only = True)
     '''
-    Whether each pseudobond is displayed, visible and has both atoms shown.
+    Whether each pseudobond is displayed, visible and has both atoms displayed.
     '''
 
     def delete(self):
