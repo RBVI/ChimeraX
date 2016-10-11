@@ -30,6 +30,7 @@ PYSRCS = $(wildcard *.py)
 WHEEL = dist/$(PKG_NAME)-$(PKG_VERSION)-py3-none-any.whl
 
 all: $(PYOBJS)
+	$(PYTHON_EXE) -B -m py_compile $?
 
 install: dir all
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)

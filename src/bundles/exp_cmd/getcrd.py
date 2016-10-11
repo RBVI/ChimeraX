@@ -31,7 +31,7 @@ def getcrd(session, spec=None, scene=True):
     settings.atomspec_contents = "command-line specifier"
     for i, a in enumerate(atoms):
         c = coords[i]
-        msgs.append("Atom %s %.3f %.3f %.3f" % (a, c[0], c[1], c[2]))
+        msgs.append("Atom %s %.3f %.3f %.3f" % (a.atomspec(), c[0], c[1], c[2]))
     settings.atomspec_contents = save
     session.logger.info('\n'.join(msgs))
 getcrd_desc = CmdDesc(required=[("spec", AtomSpecArg),],
