@@ -357,11 +357,13 @@ class SeqCanvas:
         matchMaps = trigData[1]
         for mm in matchMaps:
             self.recolor(mm['aseq'])
+    """
 
-    def assocSeq(self, aseq):
+    def assoc_mod(self, aseq):
         '''alignment sequence has gained or lost associated structure'''
-        self.leadBlock.assocSeq(aseq)
+        self.lead_block.assoc_mod(aseq)
 
+    """TODO
     def bboxList(self, line1, line2, pos1, pos2, coverGaps=True):
         '''return coords that bound given lines and positions'''
         return self.leadBlock.bboxList(line1, line2, pos1, pos2,
@@ -1302,6 +1304,7 @@ class SeqBlock:
     from PyQt5.QtCore import Qt
     normal_label_color = Qt.black
     header_label_color = Qt.blue
+    multi_assoc_color = Qt.darkGreen
     label_pad = 3
 
     def __init__(self, label_scene, main_scene, prev_block, font, seq_offset,
@@ -1356,6 +1359,8 @@ class SeqBlock:
             self.font_metrics = prev_block.font_metrics
             self.numbering_widths = prev_block.numbering_widths
             self._brushes = prev_block._brushes
+            self.multi_assoc_brush = prev_block.multi_assoc_brush
+            self.multi_assoc_pen = prev_block.multi_assoc_pen
         else:
             self.top_y = 0
             self.line_index = {}
@@ -1363,7 +1368,7 @@ class SeqBlock:
             for i in range(len(lines)):
                 self.line_index[lines[i]] = i
             self.lines = lines
-            from PyQt5.QtGui import QFont, QFontMetrics
+            from PyQt5.QtGui import QFont, QFontMetrics, QBrush, QPen
             self.emphasis_font = QFont(self.font)
             self.emphasis_font.setBold(True)
             """TODO
@@ -1376,6 +1381,10 @@ class SeqBlock:
             font_width, font_height = self.font_metrics.maxWidth(), self.font_metrics.height()
             # pad font a little...
             self.font_pixels = (font_width + 1, font_height + 1)
+            from PyQt5.QtCore import Qt
+            self.multi_assoc_brush = QBrush(self.multi_assoc_color, Qt.NoBrush)
+            self.multi_assoc_pen = QPen(QBrush(self.multi_assoc_color, Qt.SolidPattern),
+                                        0, Qt.DashLine)
             self._brushes = {}
             """TODO
             self.numbering_widths = self.findNumberingWidths(self.font)
@@ -1475,15 +1484,17 @@ class SeqBlock:
     def _assocResBind(self, item, aseq, index):
         item.tagBind('<Enter>', lambda e: self._mouseResidue(1, aseq, index))
         item.tagBind('<Leave>', lambda e: self._mouseResidue(0))
+    """
 
-    def assocSeq(self, aseq):
-        item = self.label_texts[aseq]
-        self.label_scene.itemconfigure(item, font=self._label_font(aseq))
+    def assoc_mod(self, aseq):
+        label = self.label_texts[aseq]
+        label.setFont(self._label_font(aseq))
         associated = self.has_associated_structures(aseq)
         if associated:
-            self._colorizeLabel(aseq)
+            self._colorize_label(aseq)
+        """
         else:
-            if self.label_rects.has_key(aseq):
+            if aseq in self.label_rects:
                 self.label_scene.delete(self.label_rects[aseq])
                 del self.label_rects[aseq]
         if self._largeAlignment():
@@ -1499,7 +1510,7 @@ class SeqBlock:
                     item.tagBind('<Leave>', "")
         if self.next_block:
             self.next_block.assocSeq(aseq)
-    """
+        """
         
     def base_layout_info(self):
         half_x = self.font_pixels[0] / 2
@@ -1631,31 +1642,32 @@ class SeqBlock:
             return line.color_func
         except AttributeError:
             return lambda l, o: 'black'
+    """
 
-    def _colorizeLabel(self, aseq):
-        labelText = self.label_texts[aseq]
-        bbox = self.label_scene.bbox(labelText)
-        if self.label_rects.has_key(aseq):
-            labelRect = self.label_rects[aseq]
-            self.label_scene.coords(labelRect, *bbox)
+    def _colorize_label(self, aseq):
+        label_text = self.label_texts[aseq]
+        bbox = label_text.boundingRect()
+        if aseq in self.label_rects:
+            label_rect = self.label_rects[aseq]
+            label_rect.setRect(bbox)
         else:
-            labelRect = self.label_scene.create_rectangle(*bbox)
-            self.label_scene.tag_lower(labelRect, labelText)
-            self.label_rects[aseq] = labelRect
-        if len(aseq.matchMaps) > 1:
-            stipple = ""
-            color = ""
-            dash = "."
-            outline = "dark green"
+            label_rect = self.label_scene.addRect(bbox)
+            label_rect.setZValue(-1)
+            self.label_rects[aseq] = label_rect
+        if len(aseq.match_maps) > 1:
+            brush = self.multi_assoc_brush
+            pen = self.multi_assoc_pen
         else:
-            from CGLtk.color import rgba2tk
-            color = rgba2tk(aseq.matchMaps.keys()[0].color.rgba())
-            stipple= ""
-            dash = ""
-            outline = ""
-        self.label_scene.itemconfigure(labelRect, stipple=stipple,
-                    dash=dash, outline=outline, fill=color)
+            struct = list(aseq.match_maps.keys())[0].structure
+            from PyQt5.QtGui import QPen, QBrush
+            from PyQt5.QtGui import QColor
+            from PyQt5.QtCore import Qt
+            brush = QBrush(QColor(*struct.single_color), Qt.SolidPattern)
+            pen = QPen(brush, 0, Qt.SolidLine)
+        label_rect.setBrush(brush)
+        label_rect.setPen(pen)
 
+    """TODO
     def _computeNumbering(self, line, end):
         if end == 0:
             count = len([c for c in line[:self.seq_offset]
@@ -1781,7 +1793,7 @@ class SeqBlock:
             self.label_scene.itemconfigure(labelText,
                         font=self._label_font(line))
             self.label_scene.move(labelText, 0, down)
-            if self.label_rects.has_key(line):
+            if line in self.label_rects:
                 self._colorizeLabel(line)
             leftNumberingText = self.numbering_texts[line][0]
             if leftNumberingText:
@@ -1859,13 +1871,13 @@ class SeqBlock:
             x += self.chunk_gap
         return xs
 
-    """TODO
     def has_associated_structures(self, line):
-        if hasattr(line, 'matchMaps') \
-        and [mol for mol in line.matchMaps.keys() if not mol.__destroyed__]:
+        if getattr(line, 'match_maps', None) \
+        and [chain for chain in line.match_maps.keys() if not chain.structure.deleted]:
             return True
         return False
 
+    """TODO
     def hideHeaders(self, headers, pushDown=0, delIndex=None):
         self.top_y += pushDown
         if self.prev_block:
@@ -1923,10 +1935,8 @@ class SeqBlock:
     """
 
     def _label_font(self, line):
-        """TODO
         if self.has_associated_structures(line):
             return self.emphasis_font
-        """
         return self.font
 
     """TODO
@@ -2173,7 +2183,7 @@ class SeqBlock:
             for oldx, oldy in self.item_aux_info[line]:
                 item_aux_info.append((oldx+over, oldy+down))
             self.item_aux_info[line] = item_aux_info
-            if self.label_rects.has_key(line):
+            if line in self.label_rects:
                 self.label_scene.move(self.label_rects[line],
                                 0, down)
     def _moveTree(self, down):

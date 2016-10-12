@@ -609,7 +609,7 @@ class ToolWindow:
 
     #: Whether closing this window destroys it or hides it.
     #: If it destroys it and this is the main window, all the
-    #: child windows will also be destroyedRolls
+    #: child windows will also be destroyed
     close_destroys = True
 
     def __init__(self, tool_instance, title):

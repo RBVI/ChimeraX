@@ -18,20 +18,23 @@ class Alignment(State):
     Should only be created through new_alignment method of the alignment manager
     """
 
-    def __init__(self, session, seqs, name, file_attrs, file_markups, autodestroy):
+    def __init__(self, session, seqs, name, file_attrs, file_markups, auto_destroy):
         self.session = session
         self.seqs = seqs
         self.name = name
         self.file_attrs = file_attrs
         self.file_markups = file_markups
+        self.auto_destroy = auto_destroy
+        self.viewers = []
         self.associations = {}
+        from chimerax.core.atomic import Chain
+        for i, seq in enumerate(seqs):
+            if isinstance(seq, Chain):
+                from copy import copy
+                seqs[i] = copy(seq)
+            seq.match_maps = {}
         from chimerax.core.atomic import AtomicStructure
         self.associate([s for s in session.models if isinstance(s, AtomicStructure)], force=False)
-
-        from chimerax.core.triggerset import TriggerSet
-        self.triggers = TriggerSet()
-        self.triggers.add_trigger("add assoc")
-        self.triggers.add_trigger("mod assoc")
 
     def associate(self, models, seq=None, force=True, min_length=10, reassoc=False):
         """associate models with sequences
@@ -113,7 +116,7 @@ class Alignment(State):
                         return
                     #TODO
                     #self.disassociate(sseq)
-                msg = "Associated %s %s to %s with %d error(s)\n" % (struct_name, sseq.name,
+                msg = "Associated %s %s to %s with %d error(s)" % (struct_name, sseq.name,
                         best_seq.name, best_errors)
                 status(msg, log=True, follow_with= "Right-click to focus on residue\n"
                     "Right-shift-click to focus on region", follow_log=False, blank_after=10)
@@ -219,31 +222,43 @@ class Alignment(State):
                 if best_match_map:
                     do_assoc()
                 else:
-                    status("No reasonable association found for %s %s\n" % (struct_name, sseq.name))
+                    status("No reasonable association found for %s %s" % (struct_name, sseq.name))
 
         if new_match_maps:
             if reassoc:
-                trig_name = "mod assoc"
-                trig_data = ("add assoc", new_match_maps)
+                note_name = "mod assoc"
+                note_data = ("add assoc", new_match_maps)
             else:
-                trig_name = "add assoc"
-                trig_data = new_match_maps
-            self.triggers.activate_trigger(trig_name, trig_data)
+                note_name = "add assoc"
+                note_data = new_match_maps
+            self._notify_viewers(note_name, note_data)
+
+    def attach_viewer(self, viewer):
+        """Called by the viewer (with the viewer instance as the arg) to receive notifications
+           from the alignment (via the viewers alignment_notification method).  When the viewer
+           is done with the alignment (typically at viewer exit), it should call the
+           detach_viewer method (which may destroy the alignment if the alignment's
+           auto_destroy attr is True).
+        """
+        self.viewers.append(viewer)
+
+    def detach_viewer(self, viewer):
+        """Called when a viewer is done with the alignment (see attach_viewer)"""
+        self.viewers.remove(viewer)
+        if not self.viewers and self.auto_destroy:
+            self.session.alignments.destroy_alignment(self)
 
     def prematched_assoc_structure(self, aseq, sseq, match_map, errors, reassoc):
         """If somehow you had obtained a SeqMatchMap for the aseq<->sseq correspondence,
            you would use this call instead of the more usual associate() call
         """
         chain = sseq.chain
-        try:
-            aseq.match_maps[chain] = match_map
-        except AttributeError:
-            aseq.match_maps = { chain: match_map }
+        aseq.match_maps[chain] = match_map
         self.associations[chain] = aseq
 
         # set up callbacks for structure changes
         """
-        match_map["mavDelHandler"] = mseq.triggers.addHandler(
+        match_map["mavDelHandler"] = mseq.notegers.addHandler(
                 mseq.TRIG_DELETE, self._mseqDelCB, match_map)
         match_map["mavModHandler"] = mseq.triggers.addHandler(
                 mseq.TRIG_MODIFY, self._mseqModCB, match_map)
@@ -251,18 +266,30 @@ class Alignment(State):
 
     def take_snapshot(self, session, flags):
         return { 'version': 1, 'seqs': self.seqs, 'name': self.name,
-            'file_attrs': self.file_atts, 'file_markups': self.file_markups }
+            'file attrs': self.file_atts, 'file markups': self.file_markups,
+            'associations': self.associations, 'match maps': [s.match_maps for s in self.seqs]}
 
     def reset_state(self, session):
         pass
 
     @staticmethod
     def restore_snapshot(session, data):
-        return Alignment(data['seqs'], data['name'], data['file_attrs'], data['file_markups'])
+        aln = Alignment(data['seqs'], data['name'], data['file attrs'], data['file markups'])
+        aln.associations = associations
+        for s, mm in zip(aln.seqs, data['match maps']):
+            s.match_maps = mm
+        return aln
 
-    def _close(self):
-        """Called by alignments manager so alignment can clean up (notify viewers, etc.)"""
-        pass
+    def _destroy(self):
+        for viewer in self.viewers[:]:
+            viewer.alignment_notification(self, "destroyed", None)
+        self.viewers = []
+
+    def _notify_viewers(self, note_name, note_data):
+        for viewer in self.viewers:
+            viewer.alignment_notification(note_name, note_data)
+            if note_name in ["add assoc", "del assoc"]:
+                viewer.alignment_notification("mod assoc", (note_name, note_data))
 
 def nw_assoc(session, align_seq, struct_seq):
     '''Wrapper around Needle-Wunch matching, to make it return the same kinds of values

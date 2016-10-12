@@ -23,7 +23,7 @@ class _MavBundleAPI(BundleAPI):
     @staticmethod
     def initialize(session, bundle_info):
         """Register MAV with alignments manager"""
-        session.alignments.register_viewer(bundle_info, ["mav", "multalign"])
+        session.alignments.register_viewer(bundle_info, synonyms=["mav", "multalign"])
 
     @staticmethod
     def start_tool(session, bundle_info, alignment):

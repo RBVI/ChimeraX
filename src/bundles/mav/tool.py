@@ -61,6 +61,7 @@ class MultalignViewer(ToolInstance):
         self.seqs = seqs
         """
         self.alignment = alignment
+        alignment.attach_viewer(self)
         """
         self.prefs = prefs
         from SeqCanvas import shouldWrap
@@ -129,6 +130,7 @@ class MultalignViewer(ToolInstance):
         """
         from chimerax.core.ui.gui  import MainToolWindow
         self.tool_window = MainToolWindow(self)
+        self.tool_window.close_destroys = True
         parent = self.tool_window.ui_area
         """TODO
         # SeqCanvas will use these...
@@ -141,6 +143,11 @@ class MultalignViewer(ToolInstance):
         """
         from .seq_canvas import SeqCanvas
         self.seq_canvas = SeqCanvas(parent, self, self.alignment)
+        if self.alignment.associations:
+            # There are pre-existing associations, show them
+            for aseq in self.alignment.seqs:
+                if aseq.match_maps:
+                    self.seq_canvas.assoc_mod(aseq)
         """TODO
         self.regionBrowser = RegionBrowser(self.seq_canvas)
         if self.fileMarkups:
@@ -388,3 +395,12 @@ class MultalignViewer(ToolInstance):
             parent.after_idle(lambda: self._loadStructures(auto=1))
         """
         self.tool_window.manage('side' if self.seq_canvas.should_wrap() else 'top')
+
+    def alignment_notification(self, note_name, note_data):
+        if note_name == "mod assoc":
+            for match_map in note_data[-1]:
+                self.seq_canvas.assoc_mod(match_map.aseq)
+
+    def delete(self):
+        self.alignment.detach_viewer(self)
+        ToolInstance.delete(self)
