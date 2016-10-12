@@ -885,7 +885,7 @@ class Toolshed:
                 custom_init = parts[4]
                 if custom_init:
                     kw["custom_init"] = (custom_init == "true")
-                bi = BundleInfo(name, installed, **kw)
+                bi = BundleInfo(installed=installed, **kw)
             elif parts[0] == "ChimeraX-Tool":
                 # 'ChimeraX-Tool' :: tool_name :: categories :: synopsis
                 if bi is None:
