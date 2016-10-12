@@ -34,9 +34,8 @@ class ResiduePlot(Plot):
         self.noninterface_residues = allres.subtract(res)
         
         # Create matplotlib panel
-        bundle_info = session.toolshed.find_bundle('contacts')
         title = '%s %d residues and %s %d residues' % (g1.name, len(r1), g2.name, len(r2))
-        Plot.__init__(self, session, bundle_info, title = title)
+        Plot.__init__(self, session, "Chain Contacts", title = title)
 
         # Create graph
         self.graph = self._make_graph()

@@ -16,8 +16,7 @@ from chimerax.core.toolshed import BundleAPI
 class _MyAPI(BundleAPI):
 
     @staticmethod
-    def start_tool(session, bundle_info):
-        # 'start_tool' is called to start an instance of the tool
+    def start_tool(session, tool_name):
         from . import tool
         return tool.show_volume_dialog(session)
 

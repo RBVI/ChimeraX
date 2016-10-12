@@ -16,13 +16,9 @@ from chimerax.core.toolshed import BundleAPI
 class _MyAPI(BundleAPI):
 
     @staticmethod
-    def start_tool(session, bundle_info):
-        # 'start_tool' is called to start an instance of the tool
-        # This function is simple because we "know" we only provide
-        # a single tool in the entire package, so we do not need to
-        # look at the name in 'bundle_info.name'
+    def start_tool(session, tool_name):
         from .tool import panel_classes
-        cls = panel_classes[bundle_info.name]
+        cls = panel_classes[tool_name]
         spanel = cls.get_singleton(session)
         if spanel is not None:
             spanel.display(True)
@@ -34,7 +30,7 @@ class _MyAPI(BundleAPI):
         return spanel
 
     @staticmethod
-    def register_command(command_name, bundle_info):
+    def register_command(command_name):
         # 'register_command' is lazily called when command is referenced
         from . import shortcuts
         shortcuts.register_shortcut_command()

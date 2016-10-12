@@ -497,13 +497,10 @@ class MainWindow(QMainWindow, PlainTextLog):
         tools_menu = mb.addMenu("&Tools")
         categories = {}
         for bi in session.toolshed.bundle_info():
-            for cat in bi.menu_categories:
-                categories.setdefault(cat, {})[bi.display_name] = bi
+            for tool in bi.tools:
+                for cat in tool.categories:
+                    categories.setdefault(cat, {})[tool.name] = (bi, tool)
         cat_keys = sorted(categories.keys())
-        try:
-            cat_keys.remove('Hidden')
-        except ValueError:
-            pass
         one_menu = len(cat_keys) == 1
         for cat in cat_keys:
             if one_menu:
@@ -512,10 +509,10 @@ class MainWindow(QMainWindow, PlainTextLog):
                 cat_menu = tools_menu.addMenu(cat)
             cat_info = categories[cat]
             for tool_name in sorted(cat_info.keys()):
-                bi = cat_info[tool_name]
+                bi, tool = cat_info[tool_name]
                 tool_action = QAction(tool_name, self)
-                tool_action.setStatusTip(bi.synopsis)
-                tool_action.triggered.connect(lambda arg, ses=session, bi=bi: bi.start(ses))
+                tool_action.setStatusTip(tool.synopsis)
+                tool_action.triggered.connect(lambda arg, ses=session, bi=bi: bi.start_tool(ses, tool_name))
                 cat_menu.addAction(tool_action)
 
         help_menu = mb.addMenu("&Help")

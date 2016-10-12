@@ -22,8 +22,8 @@ class CageBuilder(ToolInstance):
 
     SESSION_SKIP = True
 
-    def __init__(self, session, bundle_info):
-        ToolInstance.__init__(self, session, bundle_info)
+    def __init__(self, session, tool_name):
+        ToolInstance.__init__(self, session, tool_name)
 
         self.minimize_steps = 10
         self.edge_thickness = 0.1  # Edge diameter as fraction of edge length.
@@ -89,8 +89,8 @@ class CageBuilder(ToolInstance):
         for i in range(self.minimize_steps):
             cage.optimize_shape(self.session)
 
-def cage_builder_panel(session, bundle_info):
+def cage_builder_panel(session, tool_name):
   cb = getattr(session, '_cage_builder', None)
   if cb is None:
-    session._cage_builder = cb = CageBuilder(session, bundle_info)
+    session._cage_builder = cb = CageBuilder(session, tool_name)
   return cb

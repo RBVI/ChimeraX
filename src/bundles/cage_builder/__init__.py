@@ -16,13 +16,13 @@ from chimerax.core.toolshed import BundleAPI
 class _MyAPI(BundleAPI):
 
     @staticmethod
-    def start_tool(session, bi):
+    def start_tool(session, tool_name):
         from .tool import cage_builder_panel
         p = cage_builder_panel(session, bi)
         return p
 
     @staticmethod
-    def register_command(command_name, bundle_info):
+    def register_command(command_name):
         # 'register_command' is lazily called when command is referenced
         from . import cmd
         cmd.register_cage_command()

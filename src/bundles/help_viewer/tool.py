@@ -26,13 +26,10 @@ class HelpUI(ToolInstance):
 
     SESSION_ENDURING = False    # default
 
-    def __init__(self, session, bundle_info, target):
-        ToolInstance.__init__(self, session, bundle_info, target)
-        # 'display_name' defaults to class name with spaces inserted
-        # between lower-then-upper-case characters (therefore "Help UI"
-        # in this case), so only override if different name desired
+    def __init__(self, session, target):
+        tool_name = "Help Viewer"
+        ToolInstance.__init__(self, session, tool_name)
         from chimerax import app_dirs
-        self.display_name = "%s Help Viewer" % app_dirs.appname
         self.target = target
         from chimerax.core.ui.gui import MainToolWindow
         self.tool_window = MainToolWindow(self)
@@ -80,9 +77,8 @@ class HelpUI(ToolInstance):
 
         from PyQt5.QtWebEngineWidgets import QWebEngineView
         class HelpWebView(QWebEngineView):
-            def __init__(self, ses=session, bi=bundle_info):
+            def __init__(self, ses=session):
                 self.session = ses
-                self.bundle_info = bi
                 QWebEngineView.__init__(self)
 
             def createWindow(self, win_type):
@@ -226,7 +222,6 @@ class HelpUI(ToolInstance):
             target = 'help'
         if target in _targets:
             return _targets[target]
-        bundle_info = session.toolshed.find_bundle('help_viewer')
-        viewer = HelpUI(session, bundle_info, target)
+        viewer = HelpUI(session, target)
         _targets[target] = viewer
         return viewer

@@ -19,9 +19,9 @@ class ResidueFit(ToolInstance):
 
     SESSION_SKIP = True
 
-    def __init__(self, session, bundle_info, residues, map, residue_range = (-2,1),
+    def __init__(self, session, tool_name, residues, map, residue_range = (-2,1),
                  pause_frames = 50, motion_frames = 50, movie_framerate = 25):
-        ToolInstance.__init__(self, session, bundle_info)
+        ToolInstance.__init__(self, session, tool_name)
 
         self.residues = {r.number:r for r in residues}
         self.map = map

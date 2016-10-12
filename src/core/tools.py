@@ -67,7 +67,6 @@ class ToolInstance(State):
     display_name : str
         If a different name is desired (e.g. multi-instance tool) make sure
         to set the attribute before creating the first tool window.
-        Defaults to ``bundle_info.display_name``.
     SESSION_ENDURING : bool, class-level optional
         If True, then tool survives across sessions.
     SESSION_SKIP : bool, class-level optional
@@ -80,39 +79,40 @@ class ToolInstance(State):
     SESSION_SKIP = False
     help = None
 
-    def __init__(self, session, bundle_info, id=None):
+    def __init__(self, session, tool_name, *, id=None):
         self.id = id
         import weakref
         self._session = weakref.ref(session)
-        self.bundle_info = bundle_info
-        self.display_name = bundle_info.display_name
+        self.display_name = tool_name
         # TODO: track.created(ToolInstance, [self])
         session.tools.add([self])
 
     def take_snapshot(self, session, flags):
-        data = {'id':self.id,
-                'name':self.bundle_info.name,
-                'version': CORE_STATE_VERSION}
+        data = {
+            'id': self.id,
+            'name': self.display_name,
+            'version': CORE_STATE_VERSION
+        }
         if hasattr(self, 'tool_window'):
             data['shown'] = self.tool_window.shown
         return data
 
     @classmethod
     def restore_snapshot(cls, session, data):
-        bundle_info = session.toolshed.find_bundle(data['name'])
+        bundle_info = session.toolshed.find_bundle_for_class(cls)
+        tool_name = data['name']
+        if bundle_info is None:
+            print("can't find bundle info", data)
+            return
         if 'version' in data and data['version'] not in bundle_info.session_versions:
             from chimerax.core.state import RestoreError
             raise RestoreError('unexpected version restoring tool "%s", got %d, expected %s'
-                               % (cls.__name__, data['version'],
+                               % (tool_name, data['version'],
                                   ', '.join(str(v) for v in bundle_info.session_versions)))
-        bundle_info = session.toolshed.find_bundle(data['name'])
-        if bundle_info is None:
-            session.logger.info('unable to find tool "%s"' % data['name'])
-            return None
         if hasattr(cls, 'get_singleton'):
             ti = cls.get_singleton(session)
         else:
-            ti = cls(session, bundle_info)
+            ti = cls(session, tool_name)
         if ti:
             ti.set_state_from_snapshot(session, data)
         return ti
@@ -167,13 +167,12 @@ def get_singleton(session, tool_class, tool_name, create=True, display=False, **
     if not session.ui.is_gui:
         return None
     running = [t for t in session.tools.find_by_class(tool_class)
-               if t.bundle_info.name == tool_name]
+               if t.display_name == tool_name]
     if len(running) > 1:
         raise RuntimeError("too many %s instances running" % tool_name)
     if not running:
         if create:
-            bundle_info = session.toolshed.find_bundle(tool_name)
-            tinst = tool_class(session, bundle_info, **kw)
+            tinst = tool_class(session, tool_name, **kw)
         else:
             tinst = None
     else:
@@ -366,23 +365,23 @@ class Tools(State):
         session = self._session()   # resolve back reference
         from .toolshed import ToolshedError
         from .core_settings import settings
-        start_ti = [None] * len(tool_names)
+        start_bi = [None] * len(tool_names)
         for bi in session.toolshed.bundle_info():
-            # TODO: look for tools within bundles, not bundles with name
-            try:
-                start_ti[tool_names.index(bi.name)] = bi
-            except ValueError:
-                continue
+            for ti in bi.tools:
+                try:
+                    start_bi[tool_names.index(ti.name)] = bi
+                except ValueError:
+                    continue
         # start them in the same order as given in the setting
-        for tool_name, tool_inst in zip(tool_names, start_ti):
-            if tool_inst is None:
+        for tool_name, bi in zip(tool_names, start_bi):
+            if bi is None:
                 print("Could not find tool \"%s\"" % tool_name)
                 continue
             try:
-                tool_inst.start(session)
+                bi.start_tool(session, tool_name)
             #except ToolshedError as e:
             except Exception as e:
-                msg = "Tool \"%s\" failed to start" % tool_inst.name
+                msg = "Tool \"%s\" failed to start" % tool_name
                 # session.logger.info(msg)
                 print(msg)
                 import traceback

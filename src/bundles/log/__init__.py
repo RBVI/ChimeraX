@@ -16,13 +16,13 @@ from chimerax.core.toolshed import BundleAPI
 class _MyAPI(BundleAPI):
 
     @staticmethod
-    def start_tool(session, bundle_info):
+    def start_tool(session, tool_name):
         # 'start_tool' is called to start an instance of the tool
         from . import cmd
         return cmd.get_singleton(session, create=True)
 
     @staticmethod
-    def register_command(command_name, bundle_info):
+    def register_command(command_name):
         # 'register_command' is lazily called when command is referenced
         from . import cmd
         from chimerax.core.commands import register, create_alias

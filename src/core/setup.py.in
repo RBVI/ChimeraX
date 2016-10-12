@@ -29,7 +29,7 @@ else:
     rel_inst_shlib_dir = os.path.basename(shlib_dir)
 
 setup(
-    name="chimerax.core",
+    name="ChimeraX-Core",
     version="CORE_VERSION",
     description="ChimeraX Core Package",
     author="UCSF RBVI",
@@ -38,6 +38,21 @@ setup(
     package_dir={
         "chimerax.core": pkg_dir,
     },
+    install_requires=[
+        "beautifulsoup4 >= 4",
+        "colorama >= 0.3",
+        "filelock >= 2",
+        "grako >= 3.6",
+        "numpy >= 1.11",
+        "Pillow >= 3.2",
+        "pycollada >= 0.4",
+        "PyOpenGL >= 3.1",
+        # "PyQt5_commercial >= 5.7",
+        "scipy >= 0.18",
+        "setuptools >= 27",
+        "sortedcontainers >= 1.4",
+        "suds_jurko >= 0.6",
+    ],
     packages=[
         "chimerax.core",
         "chimerax.core.atomic",
