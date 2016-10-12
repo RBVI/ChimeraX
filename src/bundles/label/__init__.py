@@ -20,3 +20,5 @@ class _MyAPI(BundleAPI):
         label.register_label_command()
 
 bundle_api = _MyAPI()
+
+from .label import label_create, label_change, label_delete
