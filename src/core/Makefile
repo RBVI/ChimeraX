@@ -36,7 +36,7 @@ endif
 GENSRCS = buildinfo.py
 PYSRCS = $(wildcard *.py) $(GENSRCS)
 CORE_VERSION = 0.1
-WHEEL = dist/chimerax.core-$(CORE_VERSION)-py3-none-any.whl
+WHEEL = dist/ChimeraX_Core-$(CORE_VERSION)-py3-none-any.whl
 
 .FORCE: wheel
 

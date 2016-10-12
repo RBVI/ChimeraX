@@ -438,7 +438,9 @@ def init(argv, event_loop=True):
             sess.ui.splash_info(msg, next(splash_step), num_splash_steps)
             if sess.ui.is_gui and opts.debug:
                 print(msg, flush=True)
-        sess.tools.start_tools(opts.start_tools)
+        # canonicalize tool names
+        start_tools = [sess.toolshed.find_bundle_for_tool(t)[1] for t in opts.start_tools]
+        sess.tools.start_tools(start_tools)
 
     if opts.commands:
         if not opts.silent:

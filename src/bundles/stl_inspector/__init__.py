@@ -16,12 +16,9 @@ from chimerax.core.toolshed import BundleAPI
 class _MyAPI(BundleAPI):
 
     @staticmethod
-    def start_tool(session, bi):
-        # 'start_tool' is called to start an instance of the tool
-        # If providing more than one tool in package,
-        # look at the name in 'bi.name' to see which is being started.
+    def start_tool(session, tool_name):
         from .tool import ToolUI
-        return ToolUI(session, bi)     # UI should register itself with tool state manager
+        return ToolUI(session, tool_name)
 
     @staticmethod
     def get_class(class_name):

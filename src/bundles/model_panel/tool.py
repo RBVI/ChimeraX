@@ -19,8 +19,8 @@ class ModelPanel(ToolInstance):
     SESSION_ENDURING = True
     # if SESSION_ENDURING is True, tool instance not deleted at session closure
 
-    def __init__(self, session, bundle_info):
-        ToolInstance.__init__(self, session, bundle_info)
+    def __init__(self, session, tool_name):
+        ToolInstance.__init__(self, session, tool_name)
         self.display_name = "Models"
         from chimerax.core.ui.gui import MainToolWindow
 
@@ -73,7 +73,7 @@ class ModelPanel(ToolInstance):
     @classmethod
     def get_singleton(self, session):
         from chimerax.core import tools
-        return tools.get_singleton(session, ModelPanel, 'model panel', create=False)
+        return tools.get_singleton(session, ModelPanel, 'Model Panel', create=False)
 
     def _changes_cb(self, trigger_name, changes):
         reasons = changes.atom_reasons()
@@ -203,10 +203,10 @@ def hide(models, session):
         m.display = False
 
 _mp = None
-def model_panel(session, bundle_info):
+def model_panel(session, tool_name):
     global _mp
     if _mp is None:
-        _mp = ModelPanel(session, bundle_info)
+        _mp = ModelPanel(session, tool_name)
     return _mp
 
 def show(models, session):

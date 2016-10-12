@@ -21,9 +21,6 @@ class _MyAPI(BundleAPI):
         from . import stl
         stl.register()
 
-        # Configure STLModel for session saving
-        stl.STLModel.bundle_info = bundle_info
-
     @staticmethod
     def get_class(class_name):
         # 'get_class' is called by session code to get class saved in a session

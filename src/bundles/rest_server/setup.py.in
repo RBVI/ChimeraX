@@ -37,7 +37,8 @@ setup(
         "PKG_NAME": everything("static") + [ "server.pem" ],
     },
     install_requires=[
-        "chimerax.core",
+        # PyPI packages and ChimeraX bundles this bundle depends on
+        "ChimeraX-Core >= 0.1",
     ],
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",

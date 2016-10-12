@@ -16,14 +16,14 @@ from chimerax.core.toolshed import BundleAPI
 class _MyAPI(BundleAPI):
 
     @staticmethod
-    def start_tool(session, bundle_info):
+    def start_tool(session, tool_name):
         # 'start_tool' is called to start an instance of the tool
         # GUI started by command, so this is for restoring sessions
         from .tool import Plot
-        return Plot(session, bundle_info)
+        return Plot(session, tool_name)
 
     @staticmethod
-    def register_command(command_name, bundle_info):
+    def register_command(command_name):
         # 'register_command' is called by the toolshed on start up
         from . import cmd
         cmd.register_contacts()

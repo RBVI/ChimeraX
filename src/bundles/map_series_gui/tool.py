@@ -20,8 +20,8 @@ class MapSeries(ToolInstance):
 
     SESSION_SKIP = True
 
-    def __init__(self, session, bundle_info, *, series=[]):
-        ToolInstance.__init__(self, session, bundle_info)
+    def __init__(self, session, tool_name, *, series=[]):
+        ToolInstance.__init__(self, session, tool_name)
 
         self.series = list(series)
         self.playing = False
@@ -239,5 +239,4 @@ def models_added_cb(models, session):
             if mss:
                 mss.add_series(m)
             else:
-                bundle_info = session.toolshed.find_bundle('map_series_gui')
-                MapSeries(session, bundle_info, series = [m]).show()
+                MapSeries(session, "Map Series", series = [m]).show()

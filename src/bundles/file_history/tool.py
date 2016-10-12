@@ -19,8 +19,8 @@ class FilePanel(ToolInstance):
     SESSION_SKIP = True
     help = "help:user/tools/filehistory.html"
 
-    def __init__(self, session, bundle_info):
-        ToolInstance.__init__(self, session, bundle_info)
+    def __init__(self, session, tool_name):
+        ToolInstance.__init__(self, session, tool_name)
 
         self.thumbnail_size = (64,64)	# Pixels
         self._default_image = None
