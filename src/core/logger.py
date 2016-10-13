@@ -318,8 +318,10 @@ class Logger:
         if log:
             self.info(msg)
 
-        for log in self.logs:
-            log.status(msg, color, secondary)
+        # "highest prority" log is last added, so:
+        for log in reversed(list(self.logs)):
+            if log.status(msg, color, secondary) and log.excludes_other_logs:
+                break
         if secondary:
             status_timer = self._status_timer2
             follow_timer = self._follow_timer2

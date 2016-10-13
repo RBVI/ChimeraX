@@ -18,7 +18,7 @@ class _MyAPI(BundleAPI):
     @staticmethod
     def start_tool(session, tool_name):
         from .tool import cage_builder_panel
-        p = cage_builder_panel(session, bi)
+        p = cage_builder_panel(session, tool_name)
         return p
 
     @staticmethod

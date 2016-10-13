@@ -1,6 +1,11 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
+BUNDLE_NAME = FIXME Replace with legal package name (PEP 426)
+# By convention, UCSF RBVI bundles start with "ChimeraX-"
+BUNDLE_VERSION = FIXME Replace with package version number (PEP 440 style)
+PKG_NAME = FIXME Replace with fully qualified Python package name
+
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,'g)
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
 ifdef WIN32
@@ -9,10 +14,9 @@ shlibdir := $(shell cygpath -m '$(shlibdir)' | sed 's,/,\\\\\\\\,g')
 endif
 
 PYSRCS = $(wildcard *.py)
-WHEEL = dist/$(PKG_NAME)-$(PKG_VERSION)-py3-none-any.whl
+WHEEL = dist/$(subst -,_,$(BUNDLE_NAME))-$(BUNDLE_VERSION)-py3-none-any.whl
 
-all: $(PYSRCS)
-	$(PYTHON_EXE) -B -m py_compile $?
+all: $(PYOBJS)
 
 install: dir all
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
@@ -26,7 +30,7 @@ app-install: wheel
 
 wheel: setup.py
 	$(PYTHON_EXE) setup.py bdist_wheel
-	rm -rf $(PKG_NAME).egg-info
+	rm -rf $(BUNDLE_NAME).egg-info
 
 setup.py: setup.py.in Makefile
 	sed -e 's,PKG_DIR,$(PKG_DIR),' \
@@ -35,6 +39,10 @@ setup.py: setup.py.in Makefile
 		-e 's,SHLIB_EXT,$(SHLIB_EXT),' \
 		-e 's,#$(OS)#,,' \
 		-e 's,#$(OSARCH)#,,' \
+		-e 's,BUNDLE_NAME,$(BUNDLE_NAME),' \
+		-e 's,BUNDLE_VERSION,$(BUNDLE_VERSION),' \
+		-e 's,PKG_NAME,$(PKG_NAME),' \
+		-e 's,PKG_DIR,$(PKG_DIR),' \
 		< setup.py.in > setup.py
 
 dir:

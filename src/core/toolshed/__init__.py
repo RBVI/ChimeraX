@@ -731,19 +731,18 @@ class Toolshed:
         import filelock
         import json
         cache_file = self._bundle_cache(False)
-        lock = filelock.FileLock(cache_file + '.lock')
-        with lock.acquire():
-            try:
+        try:
+            lock = filelock.FileLock(cache_file + '.lock')
+            with lock.acquire():
                 f = open(cache_file, "r", encoding='utf-8')
-            except OSError:
-                return None
-            try:
-                with f:
-                    data = json.load(f)
-                bundle_info = [BundleInfo.from_cache_data(x) for x in data]
-            except:
-                return None
-            return bundle_info
+                try:
+                    with f:
+                        data = json.load(f)
+                    return [BundleInfo.from_cache_data(x) for x in data]
+                except:
+                    return None
+        except OSError:
+            return None
 
     def _write_cache(self, bundle_info, logger):
         """Write current bundle information to cache file."""
@@ -886,7 +885,7 @@ class Toolshed:
                 custom_init = parts[4]
                 if custom_init:
                     kw["custom_init"] = (custom_init == "true")
-                bi = BundleInfo(name, installed, **kw)
+                bi = BundleInfo(installed=installed, **kw)
             elif parts[0] == "ChimeraX-Tool":
                 # 'ChimeraX-Tool' :: tool_name :: categories :: synopsis
                 if bi is None:
@@ -1832,15 +1831,13 @@ class BundleAPI:
 
     @staticmethod
     def start_tool(session, tool_name):
-        """Called to create a tool instance.
+        """Called to lazily create a tool instance.
 
         Parameters
         ----------
         session : :py:class:`~chimerax.core.session.Session` instance.
         tool_name : str.
 
-        If no tool instance is created when called,
-        ``start_tool`` should return ``None``.
         Errors should be reported via exceptions.
         """
         raise NotImplementedError
