@@ -117,7 +117,7 @@ class MRC_Data:
     r = ((1,0,0),(0,1,0),(0,0,1))
     for lbl in v['labels']:
       if lbl.startswith(b'Chimera rotation: '):
-        ax,ay,az,angle = [float(x) for x in lbl.rstrip('\0').split()[2:]]
+        ax,ay,az,angle = [float(x) for x in lbl.rstrip(b'\0').split()[2:]]
         from ....geometry import rotation
         r = rotation((ax,ay,az), angle).matrix[:,:3]
     self.rotation = r
