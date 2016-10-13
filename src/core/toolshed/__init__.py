@@ -825,6 +825,7 @@ class Toolshed:
 
     def _make_bundle_info(self, d, installed, logger):
         """Convert distribution into a list of :py:class:`BundleInfo` instances."""
+        from chimerax.core import io
         name = d.name
         version = d.version
         md = d.metadata.dictionary
@@ -906,17 +907,22 @@ class Toolshed:
                 ti = ToolInfo(name, categories, synopsis)
                 bi.tools.append(ti)
             elif parts[0] == "ChimeraX-Command":
-                # 'ChimeraX-Command' :: name :: synopsis
+                # 'ChimeraX-Command' :: name :: categories :: synopsis
                 if bi is None:
                     logger.warning('ChimeraX-Bundle entry must be first')
                     return None
-                if len(parts) != 3:
+                if len(parts) != 4:
                     logger.warning("Malformed ChimeraX-Command line in %s skipped." % name)
-                    logger.warning("Expected 3 fields and got %d." % len(parts))
+                    logger.warning("Expected 4 fields and got %d." % len(parts))
                     continue
                 name = parts[1]
-                synopsis = parts[2]
-                ci = CommandInfo(name, synopsis)
+                categories = parts[2]
+                if not categories:
+                    logger.warning("Missing command categories")
+                    continue
+                categories = [v.strip() for v in categories.split(',')]
+                synopsis = parts[3]
+                ci = CommandInfo(name, categories, synopsis)
                 bi.commands.append(ci)
             elif parts[0] == "ChimeraX-DataFormat":
                 # ChimeraX-DataFormat :: format_name :: alternate_names :: category :: suffixes :: mime_types :: url :: dangerous :: icon :: synopsis
@@ -955,12 +961,62 @@ class Toolshed:
                     logger.warning("Malformed ChimeraX-Open line in %s skipped." % name)
                     logger.warning("Expected 4 fields and got %d." % len(parts))
                     continue
-                pass
+                name = parts[1]
+                tag = parts[2]
+                priority = parts[3]
+                try:
+                    fi = [fi for fi in bi.formats if fi.name == name][0]
+                except KeyError:
+                    logger.warning("Unknown format name: %r." % name)
+                    continue
+
+                def open_cb(*args, format_name=fi.name, **kw):
+                    try:
+                        f = self._get_api().open_file
+                    except AttributeError:
+                        raise ToolshedError(
+                            "no open_file function found for bundle \"%s\""
+                            % self.name)
+                    if f == BundleAPI.open_file:
+                        raise ToolshedError("bundle \"%s\"'s API forgot to override open_file()" % self.name)
+
+                    # optimize by replacing open_func for format
+                    def open_shim(*args, f=f, format_name=format_name, **kw):
+                        return f(*args, format_name=format_name, **kw)
+                    format = io.format_from_name(format_name)
+                    format.open_func = open_shim
+                    return open_shim(*args, **kw)
+                fi.open_func = open_cb
             elif parts[0] == "ChimeraX-Save":
                 if bi is None:
                     logger.warning('ChimeraX-Bundle entry must be first')
                     return None
-                pass
+                name = parts[1]
+                tag = parts[2]
+                priority = parts[3]
+                try:
+                    fi = [fi for fi in bi.formats if fi.name == name][0]
+                except KeyError:
+                    logger.warning("Unknown format name: %r." % name)
+                    continue
+
+                def save_cb(*args, format_name=fi.name, **kw):
+                    try:
+                        f = self._get_api().save_file
+                    except AttributeError:
+                        raise ToolshedError(
+                            "no save_file function found for bundle \"%s\""
+                            % self.name)
+                    if f == BundleAPI.save_file:
+                        raise ToolshedError("bundle \"%s\"'s API forgot to override save_file()" % self.name)
+
+                    # optimize by replacing save_func for format
+                    def save_shim(*args, f=f, format_name=format_name, **kw):
+                        return f(*args, format_name=format_name, **kw)
+                    format = io.format_from_name(format_name)
+                    format.export_func = save_shim
+                    return save_shim(*args, **kw)
+                fi.export_func = save_cb
         return bi
 
     # Following methods are used for installing and removing
