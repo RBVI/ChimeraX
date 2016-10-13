@@ -16,12 +16,6 @@ from chimerax.core.toolshed import BundleAPI
 class _MyAPI(BundleAPI):
 
     @staticmethod
-    def start_tool(session, tool_name):
-        # 'start_tool' is called to start an instance of the tool
-        from .tool import HelpUI
-        return HelpUI.get_viewer(session)
-
-    @staticmethod
     def register_command(command_name):
         # 'register_command' is lazily called when command is referenced
         from . import cmd
