@@ -12,9 +12,10 @@ ifdef WIN32
 PKG_DIR := $(shell cygpath -m '$(PKG_DIR)' | sed 's,/,\\\\\\\\,g')
 shlibdir := $(shell cygpath -m '$(shlibdir)' | sed 's,/,\\\\\\\\,g')
 endif
+WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
 
 PYSRCS = $(wildcard *.py)
-WHEEL = dist/$(subst -,_,$(BUNDLE_NAME))-$(BUNDLE_VERSION)-py3-none-any.whl
+WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-py3-none-any.whl
 
 all: $(PYOBJS)
 
@@ -30,7 +31,7 @@ app-install: wheel
 
 wheel: setup.py
 	$(PYTHON_EXE) setup.py bdist_wheel
-	rm -rf $(BUNDLE_NAME).egg-info
+	rm -rf $(WHL_BNDL_NAME).egg-info
 
 setup.py: setup.py.in Makefile
 	sed -e 's,PKG_DIR,$(PKG_DIR),' \
@@ -53,4 +54,4 @@ lint:
 	$(PYLINT) $(PYSRCS)
 
 clean:
-	rm -rf __pycache__ build dist $(PKG_NAME).egg-info setup.py
+	rm -rf __pycache__ build dist $(WHL_BNDL_NAME).egg-info setup.py
