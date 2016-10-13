@@ -75,6 +75,9 @@ def read_ihm(session, filename, name, *args, load_linked_files = True, read_temp
                                show_atom_crosslinks, emodels+cmodels,
                                ihm_model)
 
+    # 2D electron microscopy projections
+    em2d = create_2dem_images(session, tables['ihm_dataset_other'], ihm_dir, ihm_model)
+    
     # Ensemble localization
     pgrids = create_localization_maps(session, tables['ihm_ensemble_info'],
                                       tables['ihm_ensemble_localization'],
@@ -178,13 +181,20 @@ def make_sphere_models(session, spheres_obj_site, group_models, acomp):
         models.sort(key = lambda m: m.asym_id)
         sm.add_asym_models(models)
     smodels.sort(key = lambda m: m.ihm_model_id)
-    for sm in smodels[1:]:
-        sm.display = False
 
     # Add sphere models to group
     gmodel = {id:g for g in group_models for id in g.ihm_model_ids}
-    for m in smodels:
-        gmodel[m.ihm_model_id].add([m])
+    for sm in smodels:
+        gmodel[sm.ihm_model_id].add([sm])
+
+    # Undisplay all but first sphere model in each group
+    gfound = set()
+    for sm in smodels:
+        g = gmodel[sm.ihm_model_id]
+        if g in gfound:
+            sm.display = False
+        else:
+            gfound.add(g)
 
     return smodels
 
@@ -303,6 +313,29 @@ def make_crosslink_pseudobonds(session, xlinks, atom_lookup,
 
 # -----------------------------------------------------------------------------
 #
+def create_2dem_images(session, ihm_dataset_other_table, ihm_dir, ihm_model):
+    em2d = []
+    fields = ['data_type', 'file']
+    for data_type, filename in ihm_dataset_other_table.fields(fields, allow_missing_fields = True):
+        if data_type == '2DEM class average' and filename.endswith('.mrc'):
+            from os.path import join, isfile
+            image_path = join(ihm_dir, filename)
+            if isfile(image_path):
+                from chimerax.core.map.volume import open_map
+                maps,msg = open_map(session, image_path)
+                v = maps[0]
+                v.initialize_thresholds(vfrac = (0.01,1), replace = True)
+                v.show()
+                em2d.append(v)
+    if em2d:
+        em_group = Model('2D electron microscopy', session)
+        em_group.add(em2d)
+        ihm_model.add([em_group])
+
+    return em2d
+
+# -----------------------------------------------------------------------------
+#
 def create_localization_maps(session, ihm_ensemble_info_table,
                              ihm_ensemble_localization_table,
                              ihm_gaussian_obj_ensemble_table,
@@ -322,6 +355,7 @@ def create_localization_maps(session, ihm_ensemble_info_table,
         for g in pgrids[1:]:
             g.display = False	# Only show first ensemble
         el_group = Model('Ensemble localization', session)
+        el_group.display = False
         el_group.add(pgrids)
         ihm_model.add([el_group])
         
@@ -368,7 +402,7 @@ def read_localization_maps(session, ensemble_table, localization_table,
 
 # -----------------------------------------------------------------------------
 #
-def make_probability_grids(session, ensemble_table, gaussian_table, localization_table,
+def make_probability_grids(session, ensemble_table, gaussian_table,
                            level = 0.2, opacity = 0.5):
     '''Level sets surface threshold so that fraction of mass is outside the surface.'''
 
@@ -407,7 +441,9 @@ def make_probability_grids(session, ensemble_table, gaussian_table, localization
     from chimerax.core.models import Model
     from chimerax.core.map import volume_from_grid_data
     from chimerax.core.atomic.colors import chain_rgba
-    for ensemble_id, asym_gaussians in cov.items():
+    
+    for ensemble_id in sorted(cov.keys()):
+        asym_gaussians = cov[ensemble_id]
         gid, n = ens_group[ensemble_id]
         m = Model('Ensemble %s of %d models' % (ensemble_id, n), session)
         pmods.append(m)
