@@ -27,7 +27,7 @@ def getcrd(session, spec=None, coordinate_system='scene'):
         coords = atoms.scene_coords
     elif coordinate_system == 'model':
         coords = atoms.coords
-    elif coordinate_system == 'camera':
+    elif coordinate_system == 'screen':
         s2c = session.main_view.camera.position.inverse()
         coords = atoms.scene_coords
         s2c.move(coords)
@@ -39,5 +39,5 @@ def getcrd(session, spec=None, coordinate_system='scene'):
     settings.atomspec_contents = save
     session.logger.info('\n'.join(msgs))
 getcrd_desc = CmdDesc(required=[("spec", AtomSpecArg),],
-                      optional=[("coordinate_system", EnumOf(('scene', 'model', 'camera')))],
+                      optional=[("coordinate_system", EnumOf(('scene', 'model', 'screen')))],
                       synopsis='report atomic coordinates')
