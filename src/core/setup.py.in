@@ -43,12 +43,12 @@ setup(
         "colorama >= 0.3",
         "filelock >= 2",
         "grako >= 3.6",
-        "numpy >= 1.11",
+        # "numpy >= 1.11",  # TODO: breaks on Windows
         "Pillow >= 3.2",
-        "pycollada >= 0.4",
+        # "pycollada >= 0.4",  # TODO: pypi version doesn't work with Python 3
         "PyOpenGL >= 3.1",
-        # "PyQt5_commercial >= 5.7",
-        "scipy >= 0.18",
+        # "PyQt5_commercial >= 5.7",  # TODO: how are we going to handle this?
+        # "scipy >= 0.18",  # TODO: breaks on Windows
         "setuptools >= 27",
         "sortedcontainers >= 1.4",
         "suds_jurko >= 0.6",
