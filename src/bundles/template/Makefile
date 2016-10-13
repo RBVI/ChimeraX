@@ -11,10 +11,11 @@ PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
 ifdef WIN32
 PKG_DIR := $(shell cygpath -m '$(PKG_DIR)' | sed 's,/,\\\\\\\\,g')
 shlibdir := $(shell cygpath -m '$(shlibdir)' | sed 's,/,\\\\\\\\,g')
+datadir := $(shell cygpath -m '$(datadir)' | sed 's,/,\\\\\\\\,g')
 endif
 WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
 
-PYSRCS = $(wildcard *.py)
+PYSRCS = $(filter-out setup.py,$(wildcard *.py))
 WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-py3-none-any.whl
 
 all: $(PYOBJS)
@@ -36,6 +37,7 @@ wheel: setup.py
 setup.py: setup.py.in Makefile
 	sed -e 's,PKG_DIR,$(PKG_DIR),' \
 		-e 's,SHLIB_DIR,$(shlibdir),' \
+		-e 's,DATA_DIR,$(datadir),' \
 		-e 's,PYMOD_EXT,$(PYMOD_EXT),' \
 		-e 's,SHLIB_EXT,$(SHLIB_EXT),' \
 		-e 's,#$(OS)#,,' \

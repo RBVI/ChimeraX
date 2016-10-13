@@ -37,7 +37,7 @@ PKG_DIR := $(shell cygpath -m '$(PKG_DIR)' | sed 's,/,\\\\\\\\,g')
 shlibdir := $(shell cygpath -m '$(shlibdir)' | sed 's,/,\\\\\\\\,g')
 endif
 
-PYSRCS = $(wildcard *.py)
+PYSRCS = $(filter-out setup.py,$(wildcard *.py))
 DATAFILES = close.png hidden.png shown.png
 WHEEL = dist/$(PKG_NAME)-$(PKG_VERSION)-py3-none-any.whl
 
