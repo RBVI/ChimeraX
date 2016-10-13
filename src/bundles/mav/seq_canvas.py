@@ -101,7 +101,6 @@ class SeqCanvas:
         self.mav = mav
         self.alignment = alignment
         """TODO
-        self.seqs = seqs
         for trig in [ADD_HEADERS, DEL_HEADERS,
                 SHOW_HEADERS, HIDE_HEADERS, DISPLAY_TREE]:
             self.mav.triggers.addTrigger(trig)
@@ -185,13 +184,13 @@ class SeqCanvas:
 
     def _addDelSeqsCB(self, trigName, myData, trigData):
         self._clustalXcache = {}
-        for seq in self.seqs:
+        for seq in self.alignment.seqs:
             try:
                 cf = seq.color_func
             except AttributeError:
                 continue
             break
-        for seq in self.seqs:
+        for seq in self.alignment.seqs:
             seq.color_func = cf
             if cf != self._cfBlack:
                 self.recolor(seq)
@@ -248,9 +247,9 @@ class SeqCanvas:
             return
 
         line1, line2, pos1, pos2 = region.blocks[0]
-        if line1 not in self.seqs:
-            line1 = self.seqs[0]
-        if line2 not in self.seqs:
+        if line1 not in self.alignment.seqs:
+            line1 = self.alignment.seqs[0]
+        if line2 not in self.alignment.seqs:
             replyobj.error("Edit region does not contain any"
                         " editable sequences.\n")
             return
@@ -265,8 +264,8 @@ class SeqCanvas:
             end = pos1 - 1
 
         gapPos = start + incr
-        seqs = self.seqs[self.seqs.index(line1)
-                        :self.seqs.index(line2)+1]
+        seqs = self.alignment.seqs[self.alignment.seqs.index(line1)
+                        :self.alignment.seqs.index(line2)+1]
 
         offset = 0
         if gapPos < 0 or gapPos >= len(line1):
@@ -275,7 +274,7 @@ class SeqCanvas:
             # try to figure out the gap character
             # in use...
             gapChar = None
-            for s in self.seqs:
+            for s in self.alignment.seqs:
                 for c in str(s):
                     if not c.isalnum():
                         gapChar = c
@@ -287,7 +286,7 @@ class SeqCanvas:
             num2add = 10
             if incr == -1:
                 newSeqs = [gapChar * num2add + str(x)
-                            for x in self.seqs]
+                            for x in self.alignment.seqs]
                 start += num2add
                 end += num2add
                 pos1 += num2add
@@ -296,7 +295,7 @@ class SeqCanvas:
                 offset = num2add
             else:
                 newSeqs = [str(x) + gapChar * num2add
-                            for x in self.seqs]
+                            for x in self.alignment.seqs]
             self.mav.realign(newSeqs, offset=offset,
                             markEdited=True)
             self.mav.status("Columns added")
@@ -385,7 +384,7 @@ class SeqCanvas:
             self._checkPoints = []
             self._checkPointIndex = -1
         self._checkPoints = self._checkPoints[:self._checkPointIndex+1]
-        chkpt = [s[:] for s in self.seqs]
+        chkpt = [s[:] for s in self.alignment.seqs]
         if checkChange:
             if chkpt == self._checkPoints[self._checkPointIndex][0]:
                 return
@@ -415,19 +414,19 @@ class SeqCanvas:
     def _copyCB(self, e):
         region = self.mav.currentRegion()
         if region is None:
-            copy = "\n".join([s.ungapped() for s in self.seqs])
+            copy = "\n".join([s.ungapped() for s in self.alignment.seqs])
         else:
             texts = {}
             for line1, line2, pos1, pos2 in region.blocks:
                 try:
-                    i1 = self.seqs.index(line1)
+                    i1 = self.alignment.seqs.index(line1)
                 except ValueError:
                     i1 = 0
                 try:
-                    i2 = self.seqs.index(line2)
+                    i2 = self.alignment.seqs.index(line2)
                 except ValueError:
                     continue
-                for seq in self.seqs[i1:i2+1]:
+                for seq in self.alignment.seqs[i1:i2+1]:
                     text = "".join([seq[p] for p in range(pos1, pos2+1)
                                 if seq.gapped2ungapped(p) is not None])
                     if text:
@@ -435,12 +434,12 @@ class SeqCanvas:
             if not texts:
                 self.mav.status("Active region is all gaps!", color="red")
                 return
-            copy = "\n".join([texts[seq] for seq in self.seqs
+            copy = "\n".join([texts[seq] for seq in self.alignment.seqs
                             if seq in texts])
         self.mainCanvas.clipboard_clear()
         self.mainCanvas.clipboard_append(copy)
         if region is None:
-            if len(self.seqs) > 1:
+            if len(self.alignment.seqs) > 1:
                 self.mav.status("No current region; copied all sequences")
             else:
                 self.mav.status("Sequence copied")
@@ -454,7 +453,7 @@ class SeqCanvas:
         if not headers:
             return
         for header in headers:
-            if header in self.seqs:
+            if header in self.alignment.seqs:
                 raise ValueError(
                     "Cannot delete an alignment sequence")
             if header in self.builtinHeaders:
@@ -542,7 +541,7 @@ class SeqCanvas:
             self._undoRedo(True)
 
     def headerDisplayOrder(self):
-        return self.leadBlock.lines[:-len(self.seqs)]
+        return self.leadBlock.lines[:-len(self.alignment.seqs)]
 
     def hideHeaders(self, headers, fromMenu=False):
         headers = [hd for hd in headers if self.displayHeader[hd]]
@@ -565,7 +564,7 @@ class SeqCanvas:
                 return
         for header in headers:
             header.hide()
-        if fromMenu and len(self.seqs) > 1:
+        if fromMenu and len(self.alignment.seqs) > 1:
             startHeaders = set(self.mav.prefs[STARTUP_HEADERS])
             startHeaders -= set([hd.name for hd in headers])
             self.mav.prefs[STARTUP_HEADERS] = startHeaders
@@ -602,7 +601,7 @@ class SeqCanvas:
                 startupHeaders.add(header.name)
         if useDispDefault:
             self.mav.prefs[STARTUP_HEADERS] = startupHeaders
-        singleSequence = len(self.seqs) == 1
+        singleSequence = len(self.alignment.seqs) == 1
         self.displayHeader = {}
         for header in self.headers:
             show = self.displayHeader[header] = header.name in startupHeaders \
@@ -613,7 +612,7 @@ class SeqCanvas:
         self.headers.sort(lambda s1, s2: cmp(s1.sortVal, s2.sortVal)
                         or cmp(s1.name, s2.name))
         self.labelBindings = {}
-        for seq in self.seqs:
+        for seq in self.alignment.seqs:
             self.labelBindings[seq] = {
                 '<Enter>': lambda e, s=seq:
                     self.mav.status(self.seqInfoText(s)),
@@ -641,7 +640,7 @@ class SeqCanvas:
             rc = self._cfRibbon
         else:
             rc = self._cfClustalX
-        for seq in self.seqs:
+        for seq in self.alignment.seqs:
             seq.color_func = rc
         self._clustalXcache = {}
         self._clustalCategories, self._clustalColorings = clustalInfo()
@@ -667,7 +666,7 @@ class SeqCanvas:
         self.showNumberings = [self.mav.leftNumberingVar.get(),
                     self.mav.rightNumberingVar.get()]
         self.leadBlock = SeqBlock(self._labelCanvas(), self.mainCanvas,
-            None, self.font, 0, initialHeaders, self.seqs,
+            None, self.font, 0, initialHeaders, self.alignment.seqs,
             self.lineWidth, self.labelBindings, lambda *args, **kw:
             self.mav.status(secondary=True, *args, **kw),
             self.showRuler, self.treeBalloon, self.showNumberings,
@@ -688,7 +687,7 @@ class SeqCanvas:
                 prefix = ""
             return self.mav.prefs[prefix + LINE_WIDTH]
         # lay out entire sequence horizontally
-        return 2 * len(self.seqs[0])
+        return 2 * len(self.alignment.seqs[0])
 
     def _molChange(self, trigger, myData, changes):
         # molecule attributes changed
@@ -801,9 +800,9 @@ class SeqCanvas:
             self.setLeftNumberingDisplay(False)
         if self.showNumberings[1]:
             self.setRightNumberingDisplay(False)
-        prevLen = len(self.seqs[0])
+        prevLen = len(self.alignment.seqs[0])
         for i in range(len(seqs)):
-            self.seqs[i][:] = seqs[i]
+            self.alignment.seqs[i][:] = seqs[i]
         for header in self.headers:
             header.reevaluate()
         self._clustalXcache = {}
@@ -813,7 +812,7 @@ class SeqCanvas:
         if savedSNs[1]:
             self.setRightNumberingDisplay(True)
         self._resizescrollregion()
-        if len(self.seqs[0]) != prevLen:
+        if len(self.alignment.seqs[0]) != prevLen:
             self._recomputeScrollers()
         if handleRegions:
             for region, seq, ungappedBlocks in regionUpdateInfo:
@@ -878,7 +877,7 @@ class SeqCanvas:
         initialHeaders = [hd for hd in self.headers
                         if self.displayHeader[hd]]
         self.leadBlock = SeqBlock(self._labelCanvas(), self.mainCanvas,
-            None, self.font, 0, initialHeaders, self.seqs,
+            None, self.font, 0, initialHeaders, self.alignment.seqs,
             self.lineWidth, self.labelBindings, lambda *args, **kw:
             self.mav.status(secondary=True, *args, **kw),
             self.showRuler, self.treeBalloon, self.showNumberings,
@@ -892,7 +891,7 @@ class SeqCanvas:
                 self.leadBlock.treeNodeMap = {'active':
                                 activeNode }
         self.mav.regionBrowser.redrawRegions(cullEmpty=cullEmpty)
-        if len(self.seqs) != len(self._checkPoints[0]):
+        if len(self.alignment.seqs) != len(self._checkPoints[0]):
             self._checkPoint(fromScratch=True)
         else:
             self._checkPoint(checkChange=True)
@@ -902,7 +901,7 @@ class SeqCanvas:
         if seq in self.displayHeader and not self.displayHeader[seq]:
             return
         if right is None:
-            right = len(self.seqs[0])-1
+            right = len(self.alignment.seqs[0])-1
         self.leadBlock.refresh(seq, left, right)
         if updateAttrs:
             self.mav.setResidueAttrs()
@@ -1053,7 +1052,7 @@ class SeqCanvas:
                         categories, colorings
         if self.mav.prefs[RESIDUE_COLORING] in [RC_BLACK, RC_RIBBON]:
             return
-        for seq in self.seqs:
+        for seq in self.alignment.seqs:
             self.refresh(seq)
 
     def seqInfoText(self, aseq):
@@ -1088,7 +1087,7 @@ class SeqCanvas:
             cf = self._cfRibbon
         else:
             cf = self._cfClustalX
-        for seq in self.seqs:
+        for seq in self.alignment.seqs:
             if not hasattr(seq, 'color_func'):
                 seq.color_func = None
             if seq.color_func != cf:
@@ -1167,11 +1166,11 @@ class SeqCanvas:
         except KeyError:
             pass
         chars = {}
-        for seq in self.seqs:
+        for seq in self.alignment.seqs:
             char = seq[offset].lower()
             chars[char] = chars.get(char, 0) + 1
         consensusChars = {}
-        numSeqs = float(len(self.seqs))
+        numSeqs = float(len(self.alignment.seqs))
 
         for members, threshold, result in self._clustalCategories:
             sum = 0
@@ -1187,7 +1186,7 @@ class SeqCanvas:
     def should_wrap(self):
         return True
         """TODO
-        return shouldWrap(len(self.seqs), self.mav.prefs)
+        return shouldWrap(len(self.alignment.seqs), self.mav.prefs)
 
     def showHeaders(self, headers, fromMenu=False):
         headers = [hd for hd in headers if not self.displayHeader[hd]]
@@ -1195,7 +1194,7 @@ class SeqCanvas:
             return
         for header in headers:
             header.show()
-        if fromMenu and len(self.seqs) > 1:
+        if fromMenu and len(self.alignment.seqs) > 1:
             startHeaders = set(self.mav.prefs[STARTUP_HEADERS])
             startHeaders |= set([hd.name for hd in headers])
             self.mav.prefs[STARTUP_HEADERS] = startHeaders
@@ -1287,16 +1286,16 @@ class SeqCanvas:
             offset = chkOffset
             left, right = chkLeft, chkRight
         self.mav._edited = chkEdited
-        if len(checkPoint[0]) != len(self.seqs[0]):
+        if len(checkPoint[0]) != len(self.alignment.seqs[0]):
             self.mav.status("Need to change number of columns in"
                 " alignment to allow for requested change.\n"
                 "Please wait...")
             self.mav.realign(checkPoint, offset=offset)
             self.mav.status("Columns changed")
             return
-        for seq, chkSeq in zip(self.seqs, checkPoint):
+        for seq, chkSeq in zip(self.alignment.seqs, checkPoint):
             seq[:] = chkSeq
-        self._editRefresh(self.seqs, left, right)
+        self._editRefresh(self.alignment.seqs, left, right)
         """
 
 
@@ -1421,7 +1420,7 @@ class SeqBlock:
                 show_ruler, tree_balloon, show_numberings,
                 self.prefs)
 
-    """
+    """TODO
     def activateNode(self, node, callback=None,
                     fromPrev=False, fromNext=False):
         active = self.treeNodeMap['active']
@@ -1480,11 +1479,15 @@ class SeqBlock:
         self.bottom_y += pushDown
         if self.next_block:
             self.next_block.addSeqs(seqs, pushDown=pushDown)
-
-    def _assocResBind(self, item, aseq, index):
-        item.tagBind('<Enter>', lambda e: self._mouseResidue(1, aseq, index))
-        item.tagBind('<Leave>', lambda e: self._mouseResidue(0))
     """
+
+    def _assoc_res_bind(self, item, aseq, index):
+        if self.seq_offset == 0:
+            print("Binding hover on", aseq.name, index, aseq.characters[index])
+        item.setAcceptHoverEvents(True)
+        item.hoverEnterEvent = lambda e: self._mouse_residue(True, aseq, index)
+        item.hoverLeaveEvent = lambda e: self._mouse_residue(False)
+        item.setToolTip("enter %s %s" % (aseq.name, aseq.characters[index]))
 
     def assoc_mod(self, aseq):
         label = self.label_texts[aseq]
@@ -1492,25 +1495,25 @@ class SeqBlock:
         associated = self.has_associated_structures(aseq)
         if associated:
             self._colorize_label(aseq)
-        """
         else:
             if aseq in self.label_rects:
-                self.label_scene.delete(self.label_rects[aseq])
+                self.label_scene.removeItem(self.label_rects[aseq])
                 del self.label_rects[aseq]
-        if self._largeAlignment():
+        """
+        if self._large_alignment():
             line_items = self.line_items[aseq]
             for i in range(len(line_items)):
                 item = line_items[i]
                 if not item:
                     continue
                 if associated:
-                    self._assocResBind(item, aseq, self.seq_offset+i)
+                    self._assoc_res_bind(item, aseq, self.seq_offset+i)
                 else:
                     item.tagBind('<Enter>', "")
                     item.tagBind('<Leave>', "")
-        if self.next_block:
-            self.next_block.assocSeq(aseq)
         """
+        if self.next_block:
+            self.next_block.assoc_mod(aseq)
         
     def base_layout_info(self):
         half_x = self.font_pixels[0] / 2
@@ -1568,7 +1571,7 @@ class SeqBlock:
                 + int(right/10) * self.chunk_gap
         lry = self.bottom_ruler_y + (self.line_index[line2] + 1) * (
                 self.font_pixels[1] + self.letter_gaps[1])
-        if len(self.seqs) == 1:
+        if len(self.alignment.seqs) == 1:
             prefPrefix = SINGLE_PREFIX
         else:
             prefPrefix = ""
@@ -1645,20 +1648,22 @@ class SeqBlock:
     """
 
     def _colorize_label(self, aseq):
+        print("Colorizing label for", aseq.name, "in block with offset", self.seq_offset)
         label_text = self.label_texts[aseq]
         bbox = label_text.boundingRect()
         if aseq in self.label_rects:
             label_rect = self.label_rects[aseq]
             label_rect.setRect(bbox)
         else:
-            label_rect = self.label_scene.addRect(bbox)
+            label_rect = self.label_scene.addRect(label_text.mapRectToScene(bbox))
             label_rect.setZValue(-1)
             self.label_rects[aseq] = label_rect
-        if len(aseq.match_maps) > 1:
+        structures = set([chain.structure for chain in aseq.match_maps.keys()])
+        if len(structures) > 1:
             brush = self.multi_assoc_brush
             pen = self.multi_assoc_pen
         else:
-            struct = list(aseq.match_maps.keys())[0].structure
+            struct = structures.pop()
             from PyQt5.QtGui import QPen, QBrush
             from PyQt5.QtGui import QColor
             from PyQt5.QtCore import Qt
@@ -1725,9 +1730,9 @@ class SeqBlock:
     def findNumberingWidths(self, font):
         lwidth = rwidth = 0
         if self.show_numberings[0]:
-            baseNumBlocks = int(len(self.seqs[0]) / self.line_width)
+            baseNumBlocks = int(len(self.alignment.seqs[0]) / self.line_width)
             blocks = baseNumBlocks + (baseNumBlocks !=
-                    len(self.seqs[0]) / self.line_width)
+                    len(self.alignment.seqs[0]) / self.line_width)
             extent = (blocks - 1) * self.line_width
             for seq in self.lines:
                 if getattr(seq, 'numberingStart', None) == None:
@@ -1754,7 +1759,7 @@ class SeqBlock:
         else:
             self.emphasis_font = self.font.copy()
             self.emphasis_font.configure(weight=tkFont.BOLD)
-        if len(self.seqs) == 1:
+        if len(self.alignment.seqs) == 1:
             prefPrefix = SINGLE_PREFIX
         else:
             prefPrefix = ""
@@ -1939,10 +1944,10 @@ class SeqBlock:
             return self.emphasis_font
         return self.font
 
-    """TODO
-    def _largeAlignment(self):
-        return len(self.seqs) * len(self.seqs[0]) >= 250000
-    """
+    def _large_alignment(self):
+        # for now, return False until performance can be tested
+        return False
+        return len(self.alignment.seqs) * len(self.alignment.seqs[0]) >= 250000
 
     def layout_ruler(self, rerule=False):
         if rerule:
@@ -2004,19 +2009,15 @@ class SeqBlock:
         line_items = []
         item_aux_info = []
         xs = self._get_xs(end - self.seq_offset)
-        """TODO
-        if self._largeAlignment():
-            resStatus = hasattr(line, "matchMaps") and line.matchMaps
+        if self._large_alignment():
+            res_status = hasattr(line, "match_maps") and line.match_maps
         else:
-            resStatus = line in self.seqs or adding
-        """
+            res_status = line in self.alignment.seqs or adding
         for i in range(end - self.seq_offset):
             item = self.make_item(line, self.seq_offset + i, xs[i],
                 y, half_x, left_rect_off, right_rect_off, color_func)
-            """TODO
-            if resStatus:
-                self._assocResBind(item, line, self.seq_offset + i)
-            """
+            if res_status:
+                self._assoc_res_bind(item, line, self.seq_offset + i)
             line_items.append(item)
             item_aux_info.append((xs[i], y))
 
@@ -2049,7 +2050,7 @@ class SeqBlock:
         def yFunc(y):
             return (self.bottom_ruler_y + self.letter_gaps[1] +
                 0.5 * self.font_pixels[1] +
-                (y + len(self.lines) - len(self.seqs)) *
+                (y + len(self.lines) - len(self.alignment.seqs)) *
                 (self.font_pixels[1] + self.letter_gaps[1]))
         x = xFunc(node.xPos, node.xDelta)
         y = yFunc(node.yPos)
@@ -2150,12 +2151,18 @@ class SeqBlock:
             self._colorizeLabel(seq)
         if self.next_block:
             self.next_block._molChange(seqs)
+    """
 
-    def _mouseResidue(self, enter, seq=None, index=None):
+    def _mouse_residue(self, enter, seq=None, index=None):
         if enter:
+            print("enter", seq.name, index)
+            """
             self._mouseID = self.main_scene.after(300,
                     lambda: self._showResidue(seq, index))
+            """
         else:
+            print("exit")
+            """
             if self._mouseID:
                 if self._mouseID == "done":
                     # only clear the status line if we've
@@ -2165,7 +2172,9 @@ class SeqBlock:
                     self.main_scene.after_cancel(
                                 self._mouseID)
                 self._mouseID = None
+            """
 
+    """TODO
     def _moveLines(self, lines, overLabel, overNumber, down):
         over = overLabel + overNumber
         for line in lines:
@@ -2221,7 +2230,7 @@ class SeqBlock:
                             + self.letter_gaps[0]))
         offset = 10 * chunk + min(chunkOffset, 10)
         myLineWidth = min(self.line_width,
-                    len(self.seqs[0]) - self.seq_offset)
+                    len(self.alignment.seqs[0]) - self.seq_offset)
         if offset >= myLineWidth:
             if bound == "left":
                 if self.next_block:
@@ -2268,10 +2277,10 @@ class SeqBlock:
         half_x, left_rect_off, right_rect_off = self.base_layout_info()
         line_items = self.line_items[seq]
         item_aux_info = self.item_aux_info[seq]
-        if self._largeAlignment():
-            resStatus = hasattr(seq, "matchMaps") and seq.matchMaps
+        if self._large_alignment():
+            res_status = hasattr(seq, "match_maps") and seq.match_maps
         else:
-            resStatus = seq in self.seqs
+            res_status = seq in self.alignment.seqs
         color_func = self._color_func(seq)
         for i in range(myLeft, myRight+1):
             lineItem = line_items[i]
@@ -2281,9 +2290,8 @@ class SeqBlock:
             line_items[i] = self.make_item(seq, self.seq_offset + i,
                         x, y, half_x, left_rect_off,
                         right_rect_off, color_func)
-            if resStatus:
-                self._assocResBind(line_items[i], seq,
-                            self.seq_offset + i)
+            if res_status:
+                self._assoc_res_bind(line_items[i], seq, self.seq_offset + i)
         if self.show_numberings[0] and seq.numberingStart != None \
                             and myLeft == 0:
             self.main_scene.delete(self.numbering_texts[seq][0])
@@ -2310,12 +2318,12 @@ class SeqBlock:
     def realign(self, prevLen):
         '''sequences globally realigned'''
 
-        if shouldWrap(len(self.seqs), self.prefs):
+        if shouldWrap(len(self.alignment.seqs), self.prefs):
             blockEnd = self.seq_offset + self.line_width
             prev_blockLen = min(prevLen, blockEnd)
-            curBlockLen = min(len(self.seqs[0]), blockEnd)
+            curBlockLen = min(len(self.alignment.seqs[0]), blockEnd)
         else:
-            blockEnd = len(self.seqs[0])
+            blockEnd = len(self.alignment.seqs[0])
             self.line_width = blockEnd
             prev_blockLen = prevLen
             curBlockLen = blockEnd
@@ -2327,10 +2335,10 @@ class SeqBlock:
             line_items = self.line_items[line]
             item_aux_info = self.item_aux_info[line]
             color_func = self._color_func(line)
-            if self._largeAlignment():
-                resStatus = hasattr(line, "matchMaps") and line.matchMaps
+            if self._large_alignment():
+                res_status = hasattr(line, "match_maps") and line.match_maps
             else:
-                resStatus = line in self.seqs
+                res_status = line in self.alignment.seqs
             for i in range(numUnchanged):
                 item = line_items[i]
                 if item is not None:
@@ -2339,9 +2347,8 @@ class SeqBlock:
                 line_items[i] = self.make_item(line,
                     self.seq_offset + i, x, y, half_x,
                     left_rect_off, right_rect_off, color_func)
-                if resStatus:
-                    self._assocResBind(line_items[i], line,
-                            self.seq_offset + i)
+                if res_status:
+                    self._assoc_res_bind(line_items[i], line, self.seq_offset + i)
 
         if curBlockLen < prev_blockLen:
             # delete excess items
@@ -2361,10 +2368,10 @@ class SeqBlock:
             # add items
             self.layout_ruler(rerule=True)
             for line in self.lines:
-                if self._largeAlignment():
-                    resStatus = hasattr(line, "matchMaps") and line.matchMaps
+                if self._large_alignment():
+                    res_status = hasattr(line, "match_maps") and line.match_maps
                 else:
-                    resStatus = line in self.seqs
+                    res_status = line in self.alignment.seqs
                 line_items = self.line_items[line]
                 item_aux_info = self.item_aux_info[line]
                 x, y = item_aux_info[0]
@@ -2376,10 +2383,10 @@ class SeqBlock:
                         x, y, half_x, left_rect_off,
                         right_rect_off, color_func))
                     item_aux_info.append((x, y))
-                    if resStatus:
-                        self._assocResBind(line_items[-1], line, i)
+                    if res_status:
+                        self._assoc_res_bind(line_items[-1], line, i)
 
-        if len(self.seqs[0]) <= blockEnd:
+        if len(self.alignment.seqs[0]) <= blockEnd:
             # no further blocks
             if self.next_block:
                 self.next_block.destroy()
@@ -2392,8 +2399,8 @@ class SeqBlock:
                 self.next_block = SeqBlock(self.label_scene,
                     self.main_scene, self, self.font,
                     self.seq_offset + self.line_width,
-                    self.lines[:0-len(self.seqs)],
-                    self.seqs, self.line_width,
+                    self.lines[:0-len(self.alignment.seqs)],
+                    self.alignment.seqs, self.line_width,
                     self.label_bindings, self.status_func,
                     self.show_ruler, self.tree_balloon,
                     self.show_numberings, self.prefs)
@@ -2550,12 +2557,12 @@ class SeqBlock:
         self.top_y += pushDown
         if self.prev_block:
             newLabelWidth = self.prev_block.label_width
-            insertIndex = len(self.lines) - len(self.seqs) - len(
+            insertIndex = len(self.lines) - len(self.alignment.seqs) - len(
                                 headers)
         else:
-            insertIndex = len(self.lines) - len(self.seqs)
+            insertIndex = len(self.lines) - len(self.alignment.seqs)
             self.lines[insertIndex:insertIndex] = headers
-            for seq in self.seqs:
+            for seq in self.alignment.seqs:
                 self.line_index[seq] += len(headers)
             for i in range(len(headers)):
                 self.line_index[headers[i]] = insertIndex + i

@@ -149,7 +149,7 @@ class Alignment(State):
                     def mixed_key_func(s):
                         ls = len(s)
                         uls = len(s.ungapped())
-                        if ls >= est_len:
+                        if uls >= est_len:
                             # larger than estimated length; want smallest (closest to est_len)
                             # first; and before all the ones smaller than est_len; so use
                             # negative numbers
