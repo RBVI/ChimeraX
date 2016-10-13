@@ -26,10 +26,11 @@ PKG_DIR := $(shell cygpath -m '$(PKG_DIR)' | sed 's,/,\\\\\\\\,g')
 shlibdir := $(shell cygpath -m '$(shlibdir)' | sed 's,/,\\\\\\\\,g')
 endif
 
-PYSRCS = $(wildcard *.py)
+PYSRCS = $(filter-out setup.py,$(wildcard *.py))
 WHEEL = dist/$(PKG_NAME)-$(PKG_VERSION)-py3-none-any.whl
 
-all: $(PYOBJS)
+all: $(PYSRCS)
+	$(PYTHON_EXE) -B -m py_compile $?
 
 install: dir all
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)

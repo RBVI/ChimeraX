@@ -24,10 +24,9 @@ class VolumeViewer(ToolInstance):
 
     SESSION_SKIP = True
 
-    def __init__(self, session, bundle_info):
-        ToolInstance.__init__(self, session, bundle_info)
+    def __init__(self, session, tool_name):
+        ToolInstance.__init__(self, session, tool_name)
 
-        self.display_name = 'Volume Viewer'
         self.active_volume = None
         self.redisplay_in_progress = False
 
@@ -107,7 +106,7 @@ class VolumeViewer(ToolInstance):
     @classmethod
     def get_singleton(self, session, create=True):
         from chimerax.core import tools
-        return tools.get_singleton(session, VolumeViewer, 'volume_viewer', create=create)
+        return tools.get_singleton(session, VolumeViewer, 'Volume Viewer', create=create)
 
     # Override ToolInstance method
     def delete(self):
@@ -378,8 +377,8 @@ def models_added_cb(models, session):
     vlist = [m for m in models if isinstance(m, Volume)]
     if vlist:
         for v in vlist:
-            bundle_info = session.toolshed.find_bundle('volume_viewer')
-            vv = VolumeViewer(session, bundle_info, volume = v)
+            tool_name = "Volume Viewer"
+            vv = VolumeViewer(session, tool_name, volume = v)
             vv.show()
 
 # -----------------------------------------------------------------------------

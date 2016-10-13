@@ -28,8 +28,9 @@ class _CoreSettings(Settings):
 
     EXPLICIT_SAVE = {
         'autostart': [
-            'molecule_display_shortcuts', 'log', 'model panel',
-            'mouse_modes', 'graphics_shortcuts', 'cmd_line',
+            'Molecule Display Toolbar', 'Log', 'Model Panel',
+            'Mouse Modes for Right Button', 'Graphics Toolbar',
+            'Command Line Interface',
         ],
         'atomspec_contents': 'simple', # choices: simple, command-line specifier, serial number
         'bg_color': configfile.Value(

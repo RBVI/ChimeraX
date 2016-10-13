@@ -35,17 +35,9 @@ def attr_string(obj, attr):
         return s
 
 def spec(o):
-    from chimerax.core.atomic import Atom, Residue, Chain
-    if isinstance(o, Atom):
-        return spec(o.residue) + '@' + o.name
-    elif isinstance(o, Residue):
-        residue = ':' + str(o.number) + o.insertion_code
-        if o.chain_id:
-            residue = '/' + o.chain_id + residue
-        return spec(o.structure) + residue
-    elif isinstance(o, Chain):
-        return spec(o.structure) + '/' + o.chain_id
-    else:
+    try:
+        return o.atomspec()
+    except AttributeError:
         try:
             return '#' + o.id_string()
         except AttributeError:

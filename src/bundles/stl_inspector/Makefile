@@ -33,7 +33,7 @@ COMMAND_NAME =
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,')
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
 
-PYSRCS = $(wildcard *.py)
+PYSRCS = $(filter-out setup.py,$(wildcard *.py))
 WHEEL = dist/$(PKG_NAME)-$(PKG_VERSION)-py3-none-any.whl
 
 all: $(PYOBJS)

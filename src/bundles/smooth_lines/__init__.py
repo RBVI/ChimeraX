@@ -16,7 +16,7 @@ from chimerax.core.toolshed import BundleAPI
 class _SmoothLinesAPI(BundleAPI):
 
     @staticmethod
-    def register_command(command_name, bundle_info):
+    def register_command(command_name):
         # 'register_command' is lazily called when the command is referenced
         from . import smoothlines
         smoothlines.register_smoothlines_command()

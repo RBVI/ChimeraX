@@ -22,7 +22,7 @@ PKG_DESCRIPTION = User interface for density maps
 # you need manually edit all the files.
 TOOL_NAME = volume_viewer
 TOOL_PKG_NAME = chimerax.volume_viewer
-TOOL_DISPLAY_NAME = Map Viewer
+TOOL_DISPLAY_NAME = Volume Viewer
 TOOL_CATEGORY = Hidden
 TOOL_FILE_TYPES =
 TOOL_SESSION_VERSIONS = 1,1
@@ -37,7 +37,7 @@ PKG_DIR := $(shell cygpath -m '$(PKG_DIR)' | sed 's,/,\\\\\\\\,g')
 shlibdir := $(shell cygpath -m '$(shlibdir)' | sed 's,/,\\\\\\\\,g')
 endif
 
-PYSRCS = $(wildcard *.py)
+PYSRCS = $(filter-out setup.py,$(wildcard *.py))
 DATAFILES = close.png hidden.png shown.png
 WHEEL = dist/$(PKG_NAME)-$(PKG_VERSION)-py3-none-any.whl
 

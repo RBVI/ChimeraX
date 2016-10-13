@@ -24,8 +24,8 @@ class ToolUI(ToolInstance):
     SESSION_ENDURING = False    # default
     SIZE = (500, 25)
 
-    def __init__(self, session, bundle_info):
-        ToolInstance.__init__(self, session, bundle_info)
+    def __init__(self, session, tool_name):
+        ToolInstance.__init__(self, session, tool_name)
         self.display_name = "STL Inspector"
         self.ti_list = []
         if session.ui.is_gui:
@@ -84,7 +84,7 @@ class ToolUI(ToolInstance):
     #
     def take_snapshot(self, session, flags):
         data = {
-            'name': self.bundle_info.name,
+            'name': self.display_name,
             'tool state': ToolInstance.take_snapshot(self, session, flags),
             'triangles': self.ti_list,
             'version': self.bundle_info.session_write_version,
@@ -93,8 +93,8 @@ class ToolUI(ToolInstance):
 
     @staticmethod
     def restore_snapshot(session, data):
-        bundle_info = session.toolshed.find_bundle(data['name'])
-        tui = ToolUI(session, bundle_info)
+        tool_name = data['name']
+        tui = ToolUI(session, tool_name)
         tui.set_state_from_snapshot(session, data['tool state'])
         tui.ti_list = data['triangles']
         if session.ui.is_gui:

@@ -17,19 +17,19 @@ from chimerax.core.toolshed import BundleAPI
 class _MyAPI(BundleAPI):
 
     @staticmethod
-    def start_tool(session, bundle_info):
+    def start_tool(session, tool_name):
         # If providing more than one tool in package,
-        # look at the name in 'bundle_info.name' to see which is being started.
+        # look at the tool name to see which is being started.
         from . import tool
         try:
-            ui = getattr(tool, bundle_info.name + "UI")
+            ui = getattr(tool, "bogusUI")
         except AttributeError:
-            raise RuntimeError("cannot find UI for tool \"%s\"" % bundle_info.name)
+            raise RuntimeError("cannot find UI for tool \"%s\"" % tool_name)
         else:
-            return ui(session, bundle_info)
+            return ui(session)
 
     @staticmethod
-    def register_command(command_name, bundle_info):
+    def register_command(command_name):
         from . import cmd
         from chimerax.core.commands import register
         desc_suffix = "_desc"

@@ -415,8 +415,8 @@ class SideViewUI(ToolInstance):
 
     help = "help:user/tools/sideview.html"
 
-    def __init__(self, session, bundle_info):
-        ToolInstance.__init__(self, session, bundle_info)
+    def __init__(self, session, tool_name):
+        ToolInstance.__init__(self, session, tool_name)
         from chimerax.core.ui.gui import MainToolWindow
         self.tool_window = MainToolWindow(self)
         parent = self.tool_window.ui_area

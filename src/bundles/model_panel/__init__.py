@@ -16,12 +16,9 @@ from chimerax.core.toolshed import BundleAPI
 class _MyAPI(BundleAPI):
 
     @staticmethod
-    def start_tool(session, bi):
-        # 'start_tool' is called to start an instance of the tool
-        # If providing more than one tool in package,
-        # look at the name in 'bi.name' to see which is being started.
+    def start_tool(session, tool_name):
         from .tool import model_panel
-        return model_panel(session, bi)     # UI should register itself with tool state manager
+        return model_panel(session, tool_name)
 
     @staticmethod
     def register_command(command_name):
@@ -30,7 +27,6 @@ class _MyAPI(BundleAPI):
         from chimerax.core.commands import register
         register(command_name + " SUBCOMMAND_NAME",
                  cmd.subcommand_desc, cmd.subcommand_function)
-        # TODO: Register more subcommands here
 
     @staticmethod
     def get_class(class_name):

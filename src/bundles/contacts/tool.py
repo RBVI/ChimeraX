@@ -16,8 +16,8 @@
 from chimerax.core.tools import ToolInstance
 class Plot(ToolInstance):
 
-    def __init__(self, session, bundle_info, *, title=None):
-        ToolInstance.__init__(self, session, bundle_info)
+    def __init__(self, session, tool_name, *, title=None):
+        ToolInstance.__init__(self, session, tool_name)
 
         from chimerax.core.ui.gui import MainToolWindow
         tw = MainToolWindow(self)
@@ -114,9 +114,8 @@ class ContactPlot(Plot):
     def __init__(self, session, groups, contacts):
 
         # Create matplotlib panel
-        bundle_info = session.toolshed.find_bundle('contacts')
         title = '%d Chains %d Contacts' % (len(groups), len(contacts))
-        Plot.__init__(self, session, bundle_info, title = title)
+        Plot.__init__(self, session, "Chain Contacts", title = title)
         self.tool_window.fill_context_menu = self.fill_context_menu
 
         self.groups = groups

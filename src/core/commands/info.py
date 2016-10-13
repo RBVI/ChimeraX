@@ -54,6 +54,10 @@ def info(session, models=None):
             if pmap:
                 line += '\n' + ', '.join('%d %s' % (pbg.num_pseudobonds, name)
                                          for name, pbg in pmap.items())
+        from ..atomic import PseudobondGroup
+        if isinstance(m, PseudobondGroup):
+            line += ', %d pseudobonds' % m.num_pseudobonds
+
         from ..map import Volume
         if isinstance(m, Volume):
             size = 'size %d,%d,%d' % tuple(m.data.size)

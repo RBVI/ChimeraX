@@ -92,8 +92,8 @@ class ToolshedUI(ToolInstance):
 
     SESSION_ENDURING = True
 
-    def __init__(self, session, bundle_info):
-        ToolInstance.__init__(self, session, bundle_info)
+    def __init__(self, session, tool_name):
+        ToolInstance.__init__(self, session, tool_name)
         from chimerax.core.ui.gui import MainToolWindow
         self.tool_window = MainToolWindow(self)
         parent = self.tool_window.ui_area
@@ -165,7 +165,7 @@ class ToolshedUI(ToolInstance):
 
         # installed
         def bundle_key(bi):
-            return bi.display_name
+            return bi.name
         s = StringIO()
         bi_list = ts.bundle_info(installed=True, available=False)
         if not bi_list:
@@ -177,7 +177,7 @@ class ToolshedUI(ToolInstance):
                 update_link = _UPDATE_LINK % bi.name
                 remove_link = _REMOVE_LINK % bi.name
                 links = "&nbsp;".join([start_link, update_link, remove_link])
-                print(_ROW % (links, bi.display_name, bi.synopsis), file=s)
+                print(_ROW % (links, bi.name, bi.synopsis), file=s)
             print("</table>", file=s)
         page = page.replace("INSTALLED_TOOLS", s.getvalue())
         installed_bundles = dict([(bi.name, bi) for bi in bi_list])
@@ -201,7 +201,7 @@ class ToolshedUI(ToolInstance):
                     print("<table>", file=s)
                     any_shown = True
                 link = _INSTALL_LINK % bi.name
-                print(_ROW % (link, bi.display_name, bi.synopsis), file=s)
+                print(_ROW % (link, bi.name, bi.synopsis), file=s)
             if any_shown:
                 print("</table>", file=s)
             else:
@@ -272,7 +272,7 @@ class ToolshedUI(ToolInstance):
     @classmethod
     def get_singleton(cls, session):
         from chimerax.core import tools
-        return tools.get_singleton(session, ToolshedUI, 'toolshed')
+        return tools.get_singleton(session, ToolshedUI, 'Toolshed')
 
     #
     # Override ToolInstance methods

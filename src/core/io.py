@@ -84,7 +84,7 @@ class FileFormat:
 
     ..attribute:: short_names
 
-        Short names for format.
+        Alternative names for format, usually includes a short abbreviation.
 
     ..attribute:: mime_types
 
@@ -206,10 +206,10 @@ def formats(open=True, export=True, source_is_file=False):
 
 
 def format_from_name(name):
-    for f in _file_formats.values():
-        if f.name == name:
-            return f
-    return None
+    try:
+        return _file_formats[name]
+    except KeyError:
+        return None
 
 
 def deduce_format(filename, has_format=None, open=True, save=False):

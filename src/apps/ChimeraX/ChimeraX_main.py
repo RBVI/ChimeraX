@@ -226,10 +226,12 @@ def init(argv, event_loop=True):
         del paths
 
     # use chimerax.core's version
+    from chimerax.core.toolshed import _ChimeraCore
+    core_pip_key = _ChimeraCore.casefold()
     import pip
     dists = pip.get_installed_distributions(local_only=True)
     for d in dists:
-        if d.key == 'chimerax.core':
+        if d.key == core_pip_key:
             version = d.version
             break
     else:
@@ -438,7 +440,9 @@ def init(argv, event_loop=True):
             sess.ui.splash_info(msg, next(splash_step), num_splash_steps)
             if sess.ui.is_gui and opts.debug:
                 print(msg, flush=True)
-        sess.tools.start_tools(opts.start_tools)
+        # canonicalize tool names
+        start_tools = [sess.toolshed.find_bundle_for_tool(t)[1] for t in opts.start_tools]
+        sess.tools.start_tools(start_tools)
 
     if opts.commands:
         if not opts.silent:

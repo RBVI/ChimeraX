@@ -11,29 +11,33 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.commands import register, CmdDesc, BoolArg, AtomSpecArg
+from chimerax.core.commands import register, CmdDesc, EnumOf, AtomSpecArg
 
 def initialize(command_name):
     register("getcrd", getcrd_desc, getcrd)
 
-def getcrd(session, spec=None, scene=True):
+def getcrd(session, spec=None, coordinate_system='scene'):
     from chimerax.core.core_settings import settings
     if spec is None:
         spec = atomspec.everything(session)
     results = spec.evaluate(session)
     atoms = results.atoms
     msgs = []
-    if scene:
+    if coordinate_system == 'scene':
         coords = atoms.scene_coords
-    else:
+    elif coordinate_system == 'model':
         coords = atoms.coords
+    elif coordinate_system == 'screen':
+        s2c = session.main_view.camera.position.inverse()
+        coords = atoms.scene_coords
+        s2c.move(coords)
     save = settings.atomspec_contents
     settings.atomspec_contents = "command-line specifier"
     for i, a in enumerate(atoms):
         c = coords[i]
-        msgs.append("Atom %s %.3f %.3f %.3f" % (a, c[0], c[1], c[2]))
+        msgs.append("Atom %s %.3f %.3f %.3f" % (a.atomspec(), c[0], c[1], c[2]))
     settings.atomspec_contents = save
     session.logger.info('\n'.join(msgs))
 getcrd_desc = CmdDesc(required=[("spec", AtomSpecArg),],
-                      keyword=[("scene", BoolArg),],
+                      optional=[("coordinate_system", EnumOf(('scene', 'model', 'screen')))],
                       synopsis='report atomic coordinates')

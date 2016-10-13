@@ -39,7 +39,9 @@ setup(name="PKG_NAME",
         "PKG_NAME": [],
     },
     install_requires=[
-        "chimerax.core", "chimerax.seqalign.align_algs", "chimerax.seqalign.sim_matrices"
+        "ChimeraX-Core >= 0.1",
+        "chimerax.seqalign.align_algs",
+        "chimerax.seqalign.sim_matrices"
     ],
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",

@@ -83,8 +83,8 @@ sym #1 as 4
 sym #1 clear
 toolshed list
 toolshed refresh
-toolshed hide cmd_line
-toolshed show cmd_line
+toolshed hide "Command Line Interface"
+toolshed show "Command Line Interface"
 molmap #1 5 grid 1
 volume #2 level .05
 volume #2 color tan enclose 1e5

@@ -63,6 +63,10 @@ public:
     ChangeTracker*  change_tracker() const;
     GraphicsContainer*  graphics_container() const;
     PBGroup*  group() const { return _group; }
+    bool shown() const
+    { return (visible() &&
+	      (atoms()[0]->display() || atoms()[0]->hide()) &&
+	      (atoms()[1]->display() || atoms()[1]->hide())); }
     // version "0" means latest version
     static int  session_num_floats(int version=0) {
         return SESSION_NUM_FLOATS(version) + Connection::session_num_floats(version);
