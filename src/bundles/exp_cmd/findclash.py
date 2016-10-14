@@ -18,8 +18,8 @@ def initialize(command_name):
     register("findclash", findclash_desc, findclash)
 
 def findclash(session, spec=None, make_pseudobonds=False, log=True,
-              naming_style="command", overlap_cutoff=-0.4,
-              hbond_allowance=0.0, bond_separation=4, test="self",
+              naming_style="command", overlap_cutoff=0.6,
+              hbond_allowance=0.4, bond_separation=4, test="self",
               intra_residue=False):
     from chimerax.core.errors import LimitationError
     from chimerax.core.atomic import Atoms
@@ -40,14 +40,25 @@ def findclash(session, spec=None, make_pseudobonds=False, log=True,
     clashes = []
     for i in range(len(atoms)-1):
         a = atoms[i]
-        others = set(atoms[i+1:]) - neighbors[a]
-        if not intra_residue:
-            others = set([oa for oa in others if oa.residue != a.residue])
-        if others:
-            clashes.extend(_find_clash_self(a, Atoms(list(others)),
+        if intra_residue:
+            # Want intra-residue contacts, so check all atoms
+            others = atoms[i+1:]
+        else:
+            # Do not want intra-residue contacts, so remove atoms from residue
+            from numpy import logical_not
+            others = atoms[i+1:]
+            residues = others.residues
+            # Generate mask for atoms from same residue
+            mask = others.residues.mask(Atoms([a.residue]))
+            others = others.filter(logical_not(mask))
+        # Remove atoms within "separation" bonds of this atom
+        others -= neighbors[a]
+        if len(others) > 0:
+            clashes.extend(_find_clash_self(a, others,
                                             overlap_cutoff, hbond_allowance))
     if log:
         session.logger.info("Allowed overlap: %g" % overlap_cutoff)
+        session.logger.info("H-bond overlap reduction: %g" % hbond_allowance)
         session.logger.info("Ignored contact between atoms separated by %d "
                             "bonds or less" % bond_separation)
         session.logger.info("%d contacts" % len(clashes))
@@ -79,7 +90,8 @@ findclash_desc = CmdDesc(required=[("spec", AtomSpecArg)],
 
 def _find_neighbors(atoms, separation):
     # Find neighboring atoms within "separation" bonds
-    # Return as a dictionary of sets
+    # Return as a dictionary of Atoms
+    from chimerax.core.atomic import Atoms
     m = {}
     for a in atoms:
         neighbors = set()
@@ -92,7 +104,7 @@ def _find_neighbors(atoms, separation):
                 new_check_list.update(atoms)
                 neighbors.update(atoms)
             check_list = new_check_list
-        m[a] = neighbors
+        m[a] = Atoms(list(neighbors))
     return m
 
 
@@ -100,6 +112,7 @@ def _find_clash_self(a, others, cutoff, allowance):
     from numpy import where
     from numpy.linalg import norm
     dist = norm(others.scene_coords - a.scene_coord, axis=1)
+    # TODO: Only subtract allowance for potentially hydrogen-bonded pairs
     overlap = (others.radii + a.radius) - dist - allowance
     return [(a, others[i], overlap[i], dist[i])
             for i in where(overlap >= cutoff)[0]]

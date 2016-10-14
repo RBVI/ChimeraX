@@ -1717,7 +1717,10 @@ class BundleInfo:
         from chimerax.core.commands import cli
         for ci in self.commands:
             _debug("deregister_command", ci.name)
-            cli.deregister(ci.name)
+            try:
+                cli.deregister(ci.name)
+            except RuntimeError:
+                pass  # don't care if command was already missing
 
     def register_file_types(self):
         """Register file types."""

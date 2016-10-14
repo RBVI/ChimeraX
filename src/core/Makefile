@@ -41,7 +41,7 @@ WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
 
 GENSRCS = buildinfo.py
 PYSRCS = $(filter-out setup.py,$(wildcard *.py)) $(GENSRCS)
-WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-py3-none-any.whl
+WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-py3-none-$(BIN_PLATFORM).whl
 
 .FORCE: wheel
 
@@ -58,7 +58,7 @@ app-install: wheel
 	$(RSYNC) $(WHEEL) $(wheelhouse)
 
 wheel: setup.py timestamp
-	$(PYTHON_EXE) setup.py bdist_wheel
+	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel --plat-name $(BIN_PLATFORM)
 	rm -rf $(WHL_BNDL_NAME).egg-info
 
 SETUP_SED_ARGS = -e 's,PKG_DIR,$(PKG_DIR),' \
