@@ -1008,12 +1008,16 @@ class StructureData:
         '''Deletes the C++ data for this atomic structure.'''
         c_function('structure_delete', args = (ctypes.c_void_p,))(self._c_pointer)
 
+    active_coordset_id = c_property('structure_active_coordset_id', int32)
+    '''Index of the active coordinate set.'''
     atoms = c_property('structure_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True)
     ''':class:`.Atoms` collection containing all atoms of the structure.'''
     bonds = c_property('structure_bonds', cptr, 'num_bonds', astype = _bonds, read_only = True)
     ''':class:`.Bonds` collection containing all bonds of the structure.'''
     chains = c_property('structure_chains', cptr, 'num_chains', astype = _chains, read_only = True)
     ''':class:`.Chains` collection containing all chains of the structure.'''
+    coordset_ids = c_property('structure_coordset_ids', int32, 'num_coord_sets', read_only = True)
+    '''Return array of ids of all coordinate sets.'''
     name = c_property('structure_name', string)
     '''Structure name, a string.'''
     num_atoms = c_property('structure_num_atoms', size_t, read_only = True)
