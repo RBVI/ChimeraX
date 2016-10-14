@@ -10,6 +10,26 @@
 # Can use -1 for last frame.  Frame numbers start at 1.
 #
 def coordset(session, molecules, index_range, hold_steady = None, loop = 1):
+  '''
+  Change which coordinate set is shown for a structure.  Can play through
+  a range of coordinate sets.  
+
+  Parameters
+  ----------
+  molecules : list of AtomicStructure
+    List of molecules to show as assemblies.
+  index_range : list of 1 to 3 integers
+    Starting, ending and step coordinate set ids.  If only one value is given that
+    coordinate set becomes the active coordinate set.  If two values are given then
+    the coordinate set is change from the start id to the end id incrementing or
+    decrementing the id by 1 each frame.  If the third value is given the id is
+    incremented by this value each frame.
+  hold_steady : Atoms
+    Collection of atoms to hold steady while changing coordinate set.
+    The atomic structure is repositioned to minimize change in RMSD of these atoms.
+  loop : integer
+    How many times to repeat playing through the coordinates in the specified range.
+  '''
 
   if len(molecules) == 0:
     from ..errors import UserError
