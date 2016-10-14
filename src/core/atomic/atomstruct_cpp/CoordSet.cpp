@@ -40,6 +40,17 @@ CoordSet::~CoordSet()
         _structure->pb_mgr().remove_cs(this);
 }
 
+void
+CoordSet::set_coords(float *xyz, size_t n)
+{
+  size_t nc = _coords.size();
+  size_t c = 0;
+  for (size_t i = 0 ; i < nc ; ++i, c += 3)
+    _coords[i].set_xyz(xyz[c], xyz[c+1], xyz[c+2]);
+  for (size_t i = nc ; i < n ; ++i, c += 3)
+    add_coord(Coord(xyz[c], xyz[c+1], xyz[c+2]));
+}
+
 float
 CoordSet::get_bfactor(const Atom *a) const
 {

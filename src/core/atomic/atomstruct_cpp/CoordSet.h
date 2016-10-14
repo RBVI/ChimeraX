@@ -44,6 +44,7 @@ private:
 public:
     void  add_coord(const Point &coord) { _coords.push_back(coord); }
     const Coords &  coords() const { return _coords; }
+    void set_coords(float *xyz, size_t n);
     virtual  ~CoordSet();
     float  get_bfactor(const Atom *) const;
     float  get_occupancy(const Atom *) const;
