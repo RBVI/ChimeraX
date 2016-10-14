@@ -35,7 +35,7 @@ endif
 
 PYSRCS = __init__.py oculuscmd.py track.py window.py
 DATAFILES =
-WHEEL = dist/$(PKG_NAME)-$(PKG_VERSION)-py3-none-any.whl
+WHEEL = dist/$(PKG_NAME)-$(PKG_VERSION)-py3-none-$(BIN_PLATFORM).whl
 
 PYMOD_NAME = _oculus
 SRCS	= oculus.cpp
@@ -72,7 +72,7 @@ app-install: wheel
 	$(RSYNC) $(WHEEL) $(wheelhouse) && cd $(wheelhouse) && make update
 
 wheel: setup.py
-	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel
+	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel --plat-name $(BIN_PLATFORM)
 	rm -rf $(PKG_NAME).egg-info
 
 ifdef HAVE_OCULUS_SDK
