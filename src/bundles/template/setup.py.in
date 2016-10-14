@@ -92,7 +92,7 @@ setup(
         # Bundle Metadata:
         # ----------------
         #
-        "ChimeraX-Bundle' :: categories :: session_versions :: api_module_name :: custom_session_init",
+        "ChimeraX-Bundle :: categories :: session_versions :: api_module_name :: custom_session_init",
         #
         # 'categories' is a comma separated string.  The categories should
         # be a subset of the toolshed categories.
