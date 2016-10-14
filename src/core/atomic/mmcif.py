@@ -218,19 +218,23 @@ class MMCIFTable:
             m = dict((v[ki], v[vi]) for v in self.values)
         return m
 
-    def fields(self, field_names):
+    def fields(self, field_names, allow_missing_fields = False):
         t = self.tags
-        missing = [n for n in field_names if n not in t]
-        if missing:
-            from chimerax.core.commands.cli import commas, plural_form
-            missed = commas(missing, ' and')
-            missed_noun = plural_form(missing, 'Field')
-            missed_verb = plural_form(missing, 'is', 'are')
-            have = commas(t, ' and')
-            have_noun = plural_form(t, 'field')
-            raise ValueError('%s %s %s not in table "%s", have %s %s' % (
-                missed_noun, missed, missed_verb, self.table_name, have_noun,
-                have))
-        fi = tuple(t.index(f) for f in field_names)
-        ftable = tuple(tuple(v[i] for i in fi) for v in self.values)
+        if allow_missing_fields:
+            fi = tuple((t.index(f) if f in t else -1) for f in field_names)
+            ftable = tuple(tuple((v[i] if i >= 0 else '') for i in fi) for v in self.values)
+        else:
+            missing = [n for n in field_names if n not in t]
+            if missing:
+                from chimerax.core.commands.cli import commas, plural_form
+                missed = commas(missing, ' and')
+                missed_noun = plural_form(missing, 'Field')
+                missed_verb = plural_form(missing, 'is', 'are')
+                have = commas(t, ' and')
+                have_noun = plural_form(t, 'field')
+                raise ValueError('%s %s %s not in table "%s", have %s %s' % (
+                    missed_noun, missed, missed_verb, self.table_name, have_noun,
+                    have))
+            fi = tuple(t.index(f) for f in field_names)
+            ftable = tuple(tuple(v[i] for i in fi) for v in self.values)
         return ftable

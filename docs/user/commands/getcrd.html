@@ -27,18 +27,39 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="usageconventions.html">Usage</a>:
 <BR><b>getcrd</b> 
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
-[&nbsp;scene&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;model&nbsp;|&nbsp;scene&nbsp;|&nbsp;screen&nbsp;]
 </h3>
 <p>
 The <b>getcrd</b> command reports the coordinates of the
 <a href="atomspec.html">specified</a> atoms in the 
-<a href="../tools/log.html"><b>Log</b></a>.
-The <b>scene</b> option specifies whether to include any rotations and
-translations of atomic models relative to the scene (default <b>true</b>).
-Otherwise, the untransformed coordinates will be reported.
-If only global rotations and transformations have been applied,
-this option makes no difference.
-See also: <a href="save.html"><b>save</b></a>
+<a href="../tools/log.html"><b>Log</b></a>. 
+See also: 
+<!--
+<a href="save.html"><b>save</b></a>,
+-->
+<a href="camera.html"><b>camera</b></a>,
+<a href="position.html"><b>position</b></a>,
+<a href="view.html"><b>view</b></a>
+</p><p>
+The keywords indicate which coordinate system to use:
+</p>
+<ul>
+<li><b>model</b> - the original coordinate system of a model
+<li><b>scene</b> (default)
+- the <a href="view.html#scenecoords">scene coordinate system</a>,
+which includes changes from moving any models relative to other models
+(by fitting, matching, <i>etc.</i>)
+<li><b>screen</b> 
+- the <a href="view.html#screencoords">screen coordinate system</a>,
+with X horizontal increasing rightward, Y vertical increasing upward,
+Z perpendicular to the screen increasing toward the viewer,
+and origin at the viewpoint
+</ul>
+<p>
+If models have not been moved relative to one another,
+the <b>model</b> and <b>scene</b> options are the same. 
+The <b>scene</b> and <b>camera</b> options both preserve spatial 
+relationships among models that have been moved relative to one another.
 </p>
 
 <hr>
