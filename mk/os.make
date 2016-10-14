@@ -59,7 +59,7 @@ endif
 
 ifeq ($(OS),Darwin)
 ifeq (,$(MACOSX_DEPLOYMENT_TARGET))
-	BIN_PLATFORM=macosx_$(subst .,_,$(OSXER))_x86_64
+	BIN_PLATFORM=macosx_$(subst .,_,$(OSXVER))_x86_64
 else
 	BIN_PLATFORM=macosx_$(subst .,_,$(MACOSX_DEPLOYMENT_TARGET))_x86_64
 endif
