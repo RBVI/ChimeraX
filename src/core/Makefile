@@ -58,7 +58,7 @@ app-install: wheel
 	$(RSYNC) $(WHEEL) $(wheelhouse)
 
 wheel: setup.py timestamp
-	$(PYTHON_EXE) setup.py bdist_wheel
+	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel
 	rm -rf $(WHL_BNDL_NAME).egg-info
 
 SETUP_SED_ARGS = -e 's,PKG_DIR,$(PKG_DIR),' \
