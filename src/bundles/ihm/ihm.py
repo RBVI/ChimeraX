@@ -61,7 +61,8 @@ def read_ihm(session, filename, name, *args, load_linked_files = True, read_temp
 
     # Sphere models
     smodels, gmodels = create_sphere_models(session, tables['ihm_model_list'],
-                                            tables['ihm_sphere_obj_site'], acomp, ihm_model)
+                                            tables['ihm_sphere_obj_site'], acomp,
+                                            ihm_model, ihm_dir)
     
     # Align starting models to first sphere model
     if emodels:
@@ -120,13 +121,14 @@ def assembly_components(ihm_struct_assembly_table):
 # -----------------------------------------------------------------------------
 #
 def create_sphere_models(session, ihm_model_list_table, ihm_sphere_obj_site_table,
-                         acomp, ihm_model):
+                         acomp, ihm_model, ihm_dir):
     gmodels = make_sphere_model_groups(session, ihm_model_list_table)
     for g in gmodels[1:]:
         g.display = False	# Only show first group.
     ihm_model.add(gmodels)
     
-    smodels = make_sphere_models(session, ihm_sphere_obj_site_table, gmodels, acomp)
+    smodels = make_sphere_models(session, ihm_model_list_table,
+                                 ihm_sphere_obj_site_table, gmodels, acomp, ihm_dir)
     return smodels, gmodels
 
 # -----------------------------------------------------------------------------
@@ -152,7 +154,15 @@ def make_sphere_model_groups(session, ihm_model_list_table):
 
 # -----------------------------------------------------------------------------
 #
-def make_sphere_models(session, spheres_obj_site, group_models, acomp):
+def make_sphere_models(session, model_list_table, spheres_obj_site,
+                       group_models, acomp, ihm_dir):
+    ml_fields = [
+        'model_id',
+        'model_name',
+        'model_group_id',
+        'file',]
+    ml = model_list_table.fields(ml_fields, allow_missing_fields = True)
+    mnames = {mid:mname for mid,mname,gid,file in ml}
 
     sos_fields = [
         'seq_id_begin',
@@ -174,7 +184,7 @@ def make_sphere_models(session, spheres_obj_site, group_models, acomp):
     aname = {a.asym_id:a.entity_description for a in acomp}
     smodels = []
     for mid, asym_spheres in mspheres.items():
-        sm = SphereModel(mid, session)
+        sm = SphereModel(mnames[mid], mid, session)
         smodels.append(sm)
         models = [SphereAsymModel(session, aname[asym_id], asym_id, mid, slist)
                   for asym_id, slist in asym_spheres.items()]
@@ -195,6 +205,26 @@ def make_sphere_models(session, spheres_obj_site, group_models, acomp):
             sm.display = False
         else:
             gfound.add(g)
+
+    # Open ensemble sphere models that are not included in ihm sphere obj table.
+    from os.path import isfile, join
+    smids = set(sm.ihm_model_id for sm in smodels)
+    for mid, mname, gid, file in ml:
+        path = join(ihm_dir, file)
+        if file and isfile(path) and file.endswith('.pdb') and mid not in smids:
+            from chimerax.core.atomic.pdb import open_pdb
+            mlist,msg = open_pdb(session, path, mname,
+                                 smart_initial_display = False, explode = False)
+            sm = mlist[0]
+            sm.display = False
+            atoms = sm.atoms
+            from chimerax.core.atomic.colors import chain_colors
+            atoms.colors = chain_colors(atoms.residues.chain_ids)
+            if isfile(path + '.crd'):
+                from .coordsets import read_coordinate_sets
+                read_coordinate_sets(path + '.crd', sm)
+            # TODO: Align to match ihm sphere model.
+            gmodel[gid].add([sm])
 
     return smodels
 
@@ -751,9 +781,9 @@ def register():
 #
 from chimerax.core.models import Model
 class SphereModel(Model):
-    def __init__(self, model_id, session):
-        Model.__init__(self, 'Sphere model %s' % model_id, session)
-        self.ihm_model_id = model_id
+    def __init__(self, name, ihm_model_id, session):
+        Model.__init__(self, name, session)
+        self.ihm_model_id = ihm_model_id
         self._asym_models = {}
 
     def add_asym_models(self, models):
