@@ -1085,7 +1085,12 @@ class StructureData:
         f = c_function('structure_copy', args = (ctypes.c_void_p,), ret = ctypes.c_void_p)
         p = f(self._c_pointer)
         return p
-        
+
+    def add_coordset(self, id, xyz):
+        '''Add a coordinate set with the given id.'''
+        f = c_function('structure_add_coordset',
+                       args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p))
+        f(self._c_pointer, id, pointer(xyz))
     def new_atom(self, atom_name, element_name):
         '''Create a new :class:`.Atom` object. It must be added to a :class:`.Residue` object
         belonging to this structure before being used.'''

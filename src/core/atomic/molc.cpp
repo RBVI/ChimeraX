@@ -2871,6 +2871,17 @@ extern "C" EXPORT void set_structure_active_coordset_id(void *mols, size_t n, in
     }
 }
 
+extern "C" EXPORT void structure_add_coordset(void *mol, int id, void *xyz)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        CoordSet *cs = m->new_coord_set(id);
+	cs->set_coords((float *)xyz, m->num_atoms());
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void structure_coordset_ids(void *mols, size_t n, int32_t *coordset_ids)
 {
     Structure **m = static_cast<Structure **>(mols);
