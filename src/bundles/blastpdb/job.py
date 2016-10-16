@@ -22,16 +22,18 @@ class BlastPDBJob(OpalJob):
     QUERY_FILENAME = "query.fa"
     RESULTS_FILENAME = "results.txt"
 
-    def __init__(self, session, seq, database, cutoff, matrix, max_hits,
-                 finish_callback, fail_callback):
+    def __init__(self, session, seq, database="pdb", cutoff=1.0e-3,
+                 matrix="BLOSUM62", max_hits=500, log=None,
+                 finish_callback=None, fail_callback=None):
         super().__init__(session)
         self.seq = seq                          # string
         self.database = database                # string
         self.cutoff = cutoff                    # float
         self.matrix = matrix                    # string
         self.max_hits = max_hits                # int
-        self.finish_callback = finish_callback  # callable or None
-        self.fail_callback = fail_callback      # callable or None
+        self.log = log
+        self.finish_callback = finish_callback
+        self.fail_callback = fail_callback
 
         options = ["-d", self.database,
                    "-e", str(self.cutoff),
@@ -76,11 +78,16 @@ class BlastPDBJob(OpalJob):
                     logger.error("BLAST output parsing error: %s" % str(e))
             else:
                 if self.finish_callback:
-                    self.finish_callback(self, p)
+                    self.finish_callback(p, self)
                 else:
-                    msgs = ["BLAST results:"]
-                    for m in p.matches:
-                        name = m.pdb if m.pdb else m.name
-                        msgs.append('\t'.join([name, "%.1e" % m.evalue,
-                                               str(m.score), m.description]))
-                    logger.info('\n'.join(msgs))
+                    if self.session.ui.is_gui:
+                        from .tool import ToolUI
+                        ToolUI(self.session, "blastpdb", blast_results=p)
+                    if self.log or (self.log is None and
+                                    not self.session.ui.is_gui):
+                        msgs = ["BLAST results:"]
+                        for m in p.matches:
+                            name = m.pdb if m.pdb else m.name
+                            msgs.append('\t'.join([name, "%.1e" % m.evalue,
+                                                   str(m.score), m.description]))
+                        logger.info('\n'.join(msgs))

@@ -5,8 +5,9 @@
 #
 from chimerax.core.tools import ToolInstance
 
-_EmptyPage = "<html><body><h2>This space intentionally left blank</body></html>"
-_NonEmptyPage = "<html><body><h2>This space unintentionally left blank</body></html>"
+_EmptyPage = "<h2>This space intentionally left blank</h2>"
+_InProgressPage = "<h2>BLAST search in progress&hellip;</h2>"
+_NonEmptyPage = "<h2>This space unintentionally left blank</h2>"
 
 
 class ToolUI(ToolInstance):
@@ -25,26 +26,30 @@ class ToolUI(ToolInstance):
         # UI consists of a chain selector and search button on top
         # and HTML widget below for displaying results.
         # First we import/define all the widget classes we need:
-        from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout
+        from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QGridLayout
         from PyQt5.QtWidgets import QLabel, QComboBox, QPushButton
-        from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEnginePage
+        from PyQt5.QtWebEngineWidgets import QWebEngineView
 
         # Layout all the widgets
-        layout = QVBoxLayout()
-        search_layout = QHBoxLayout()
+        layout = QGridLayout()
+        layout.setContentsMargins(0,0,0,0)
         label = QLabel("Chain:")
-        search_layout.addWidget(label)
+        layout.addWidget(label, 0, 0)
         self.chain_combobox = QComboBox()
-        search_layout.addWidget(self.chain_combobox)
+        layout.addWidget(self.chain_combobox, 0, 1)
         button = QPushButton("BLAST")
         button.clicked.connect(self._blast_cb)
-        search_layout.addWidget(button)
-        search_layout.setStretchFactor(label, 0)
-        search_layout.setStretchFactor(self.chain_combobox, 10)
-        search_layout.setStretchFactor(button, 0)
-        layout.addLayout(search_layout)
-        self.results_view = QWebEngineView(parent)
-        layout.addWidget(self.results_view)
+        layout.addWidget(button, 0, 2)
+        # self.results_view = QWebEngineView(parent)
+        self.results_view = HtmlView(parent, size=(575,300),
+                                     navigate=self._navigate)
+        layout.addWidget(self.results_view, 1, 0, 1, 3)
+        layout.setColumnStretch(0, 0)
+        layout.setColumnStretch(1, 10)
+        layout.setColumnStretch(2, 0)
+        layout.setRowStretch(0, 0)
+        layout.setRowStretch(1, 10)
+        parent.setLayout(layout)
 
         # Register for model addition/removal so we can update chain list
         from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
@@ -54,13 +59,15 @@ class ToolUI(ToolInstance):
 
         # Set widget values and go
         self._update_chains()
-        if blast_results:
-            self._update_blast_results(blast_results)
-        parent.setLayout(layout)
+        self._update_blast_results(blast_results)
 
     def _blast_cb(self, _):
-        # TODO: initiate blast
-        pass
+        from .job import BlastPDBJob
+        n = self.chain_combobox.currentIndex()
+        chain = self.chain_combobox.itemData(n)
+        BlastPDBJob(self.session, chain.characters,
+                    finish_callback=self._update_blast_results)
+        self.results_view.setHtml(_InProgressPage)
 
     def _update_chains(self, trigger=None, trigger_data=None):
         from chimerax.core.atomic import AtomicStructure
@@ -72,13 +79,72 @@ class ToolUI(ToolInstance):
         for chain in all_chains:
             self.chain_combobox.addItem(str(chain), userData=chain)
 
-    def _update_blast_results(self, blast_results):
+    def _update_blast_results(self, blast_results, job=None):
+        # blast_results is either None or a blastp_parser.Parser
         if blast_results is None:
             self.results_view.setHtml(_EmptyPage)
         else:
-            self.results_view.setHtml(_NonEmptyPage)
+            html = ["<table><tr>"
+                    "<th>Name</th>"
+                    "<th>E&#8209;Value</th>"
+                    "<th>Score</th>"
+                    "<th>Description</th>"
+                    "</tr>"]
+            for m in blast_results.matches[1:]:
+                name = m.pdb if m.pdb else m.name
+                html.append("<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>" %
+                            (name, "%.1e" % m.evalue, str(m.score), m.description))
+            html.append("</table>")
+            self.results_view.setHtml('\n'.join(html))
+
+    def _navigate(self, qurl):
+        return False
 
     def delete(self):
         t = session.triggers
         t.remove_handler(self._add_handler)
         t.remove_handler(self._remove_handler)
+
+
+from PyQt5.QtWebEngineWidgets import QWebEngineView
+class HtmlView(QWebEngineView):
+    def __init__(self, *args, navigate=None, size=None, **kw):
+        super().__init__(*args, **kw)
+        self.setAutoFillBackground(True)
+        self._hv_size = size
+        if navigate:
+            def link_clicked(qurl, nav_type, is_main_frame, cb=navigate):
+                return cb(qurl)
+            self.page().acceptNavigationRequest = link_clicked
+    def sizeHint(self):
+        if self._hv_size:
+            from PyQt5.QtCore import QSize
+            return QSize(*self._hv_size)
+        else:
+            return super().sizeHint()
+    def setHtml(self, html):
+        self.setEnabled(False)
+        if len(html) < 1000000:
+            super().setHtml(html)
+        else:
+            try:
+                tf = open(self._tf_name, "wb")
+            except AttributeError:
+                import tempfile, atexit
+                tf = tempfile.NamedTemporaryFile(prefix="chbp", suffix=".html",
+                                                 delete=False, mode="wb")
+                self._tf_name = tf.name
+                def clean(filename):
+                    import os
+                    try:
+                        os.remove(filename)
+                    except OSError:
+                        pass
+                atexit.register(clean, tf.name)
+            from PyQt5.QtCore import QUrl
+            tf.write(bytes(html, "utf-8"))
+            # On Windows, we have to close the temp file before
+            # trying to open it again (like loading HTML from it).
+            tf.close()
+            self.load(QUrl.fromLocalFile(self._tf_name))
+        self.setEnabled(True)

@@ -13,9 +13,9 @@ class _MyAPI(BundleAPI):
         return None
 
     @staticmethod
-    def start_tool(session, tool_name):
+    def start_tool(session, tool_name, **kw):
         from .tool import ToolUI
-        return ToolUI(session, tool_name)
+        return ToolUI(session, tool_name, **kw)
 
     @staticmethod
     def register_command(command_name):

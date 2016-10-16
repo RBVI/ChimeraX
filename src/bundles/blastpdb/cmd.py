@@ -8,8 +8,7 @@ Matrices = ["BLOSUM45", "BLOSUM62", "BLOSUM80", "BLOSUM90", "BLOSUM100",
             "PAM30", "PAM70"]
 
 def blastpdb(session, spec=None, database="pdb", cutoff=1.0e-3,
-             matrix="BLOSUM62", max_hits=500,
-             finish_callback=None, fail_callback=None):
+             matrix="BLOSUM62", max_hits=500, log=None):
     from .job import BlastPDBJob
     if spec is None:
         spec = atomspec.everything(session)
@@ -23,13 +22,13 @@ def blastpdb(session, spec=None, database="pdb", cutoff=1.0e-3,
         raise UserError("please choose exactly one chain (%d were specified)" %
                         len(chains))
     BlastPDBJob(session, chains[0].characters,
-                database, cutoff, matrix, max_hits,
-                finish_callback, fail_callback)
+                database, cutoff, matrix, max_hits, log)
 blastpdb_desc = CmdDesc(required=[("spec", AtomSpecArg),],
                         keyword=[("database", EnumOf(DBs)),
                                  ("cutoff", FloatArg),
                                  ("matrix", EnumOf(Matrices)),
                                  ("max_hits", IntArg),
+                                 ("log", BoolArg),
                                  ],
                         synopsis="Search PDB/NR using BLAST")
 
