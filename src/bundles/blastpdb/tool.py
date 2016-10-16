@@ -25,14 +25,11 @@ class ToolUI(ToolInstance):
 
         # UI consists of a chain selector and search button on top
         # and HTML widget below for displaying results.
-        # First we import/define all the widget classes we need:
-        from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QGridLayout
-        from PyQt5.QtWidgets import QLabel, QComboBox, QPushButton
-        from PyQt5.QtWebEngineWidgets import QWebEngineView
-
         # Layout all the widgets
+        from PyQt5.QtWidgets import QGridLayout, QLabel, QComboBox, QPushButton
+        from .htmlview import HtmlView
         layout = QGridLayout()
-        layout.setContentsMargins(0,0,0,0)
+        layout.setContentsMargins(0, 0, 0, 0)
         label = QLabel("Chain:")
         layout.addWidget(label, 0, 0)
         self.chain_combobox = QComboBox()
@@ -40,9 +37,9 @@ class ToolUI(ToolInstance):
         button = QPushButton("BLAST")
         button.clicked.connect(self._blast_cb)
         layout.addWidget(button, 0, 2)
-        # self.results_view = QWebEngineView(parent)
-        self.results_view = HtmlView(parent, size=(575,300),
-                                     navigate=self._navigate)
+        self.results_view = HtmlView(parent, size_hint=(575, 300),
+                                     interceptor=self._navigate,
+                                     schemes=["fetch"])
         layout.addWidget(self.results_view, 1, 0, 1, 3)
         layout.setColumnStretch(0, 0)
         layout.setColumnStretch(1, 10)
@@ -92,59 +89,19 @@ class ToolUI(ToolInstance):
                     "</tr>"]
             for m in blast_results.matches[1:]:
                 name = m.pdb if m.pdb else m.name
-                html.append("<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>" %
-                            (name, "%.1e" % m.evalue, str(m.score), m.description))
+                name_link = "<a href=\"fetch:%s\">%s</a>" % (name, name)
+                html.append("<tr><td>%s</td><td>%s</td>"
+                            "<td>%s</td><td>%s</td></tr>" %
+                            (name_link, "%.1e" % m.evalue,
+                             str(m.score), m.description))
             html.append("</table>")
             self.results_view.setHtml('\n'.join(html))
 
-    def _navigate(self, qurl):
-        return False
+    def _navigate(self, info):
+        # "info" is an instance of QWebEngineUrlRequestInfo
+        print("_navigate", info, info.requestUrl())
 
     def delete(self):
         t = session.triggers
         t.remove_handler(self._add_handler)
         t.remove_handler(self._remove_handler)
-
-
-from PyQt5.QtWebEngineWidgets import QWebEngineView
-class HtmlView(QWebEngineView):
-    def __init__(self, *args, navigate=None, size=None, **kw):
-        super().__init__(*args, **kw)
-        self.setAutoFillBackground(True)
-        self._hv_size = size
-        if navigate:
-            def link_clicked(qurl, nav_type, is_main_frame, cb=navigate):
-                return cb(qurl)
-            self.page().acceptNavigationRequest = link_clicked
-    def sizeHint(self):
-        if self._hv_size:
-            from PyQt5.QtCore import QSize
-            return QSize(*self._hv_size)
-        else:
-            return super().sizeHint()
-    def setHtml(self, html):
-        self.setEnabled(False)
-        if len(html) < 1000000:
-            super().setHtml(html)
-        else:
-            try:
-                tf = open(self._tf_name, "wb")
-            except AttributeError:
-                import tempfile, atexit
-                tf = tempfile.NamedTemporaryFile(prefix="chbp", suffix=".html",
-                                                 delete=False, mode="wb")
-                self._tf_name = tf.name
-                def clean(filename):
-                    import os
-                    try:
-                        os.remove(filename)
-                    except OSError:
-                        pass
-                atexit.register(clean, tf.name)
-            from PyQt5.QtCore import QUrl
-            tf.write(bytes(html, "utf-8"))
-            # On Windows, we have to close the temp file before
-            # trying to open it again (like loading HTML from it).
-            tf.close()
-            self.load(QUrl.fromLocalFile(self._tf_name))
-        self.setEnabled(True)
