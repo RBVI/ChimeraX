@@ -750,7 +750,7 @@ class _Qt:
         dw.closeEvent = lambda e, tw=tool_window, mw=mw: mw.close_request(tw, e)
         dw.setAttribute(Qt.WA_MacAlwaysShowToolWindow)
         self.ui_area = QWidget(dw)
-        self.ui_area.contextMenuEvent = lambda e, self=self: self.show_context_menu(e.globalPos())
+        self.ui_area.contextMenuEvent = lambda e, self=self: self.show_context_menu(e)
         self.dock_widget.setWidget(self.ui_area)
 
     def destroy(self):
@@ -812,7 +812,7 @@ class _Qt:
             no_help_action = QAction("No help available", self.ui_area)
             no_help_action.setEnabled(False)
             menu.addAction(no_help_action)
-        menu.exec(event)
+        menu.exec(event.globalPos())
 
     def _get_shown(self):
         return not self.dock_widget.isHidden()
