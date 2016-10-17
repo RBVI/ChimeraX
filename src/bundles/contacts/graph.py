@@ -122,8 +122,8 @@ class Graph(Plot):
         self.background_nodes = ()	# No click events
         self.edges = edges
 
-        self.node_font_size = 12
-        self.node_font_family = 'sans-serif'
+        self.font_size = 12
+        self.font_family = 'sans-serif'
 
         # Create graph
         self.graph = self._make_graph()
@@ -250,8 +250,18 @@ class Graph(Plot):
         node_names = {n:n.name for n in self.graph if not n.background}
         import networkx as nx
         labels = nx.draw_networkx_labels(self.graph, node_pos, labels=node_names,
-                                         font_size=self.node_font_size,
-                                         font_family=self.node_font_family, ax=self.axes)
+                                         font_size=self.font_size,
+                                         font_family=self.font_family, ax=self.axes)
+
+        elabel = [e for e in self.edges if e.label]
+        if elabel:
+            ed = {tuple(e.nodes):e.label for e in elabel}
+            elab = nx.draw_networkx_edge_labels(self.graph, node_pos, edge_labels=ed,
+                                                font_size=self.font_size,
+                                                font_family=self.font_family,
+                                                rotate = False, ax=self.axes)
+            labels.update(elab)
+
         if self._labels:
             # Remove existing labels.
             for t in self._labels.values():
@@ -342,3 +352,4 @@ class Edge:
     nodes = (None,None) # Two Node objects connected by this edge
     style = 'solid'	# Line style: 'solid', 'dotted', 'dashed'...
     width = 3		# Line width in pixels
+    label = None	# Text label for edge
