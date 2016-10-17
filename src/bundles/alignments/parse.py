@@ -30,6 +30,8 @@ def open_file(session, stream, fname, file_type="FASTA", return_seqs=False,
             seqs, file_attrs, file_markups = ns['read'](f)
         except FormatSyntaxError as err:
             raise IOError("Syntax error in %s file '%s': %s" % (file_type, fname, err))
+    if not seqs:
+        raise ValueError("No sequences found in %s file '%s'!" % (file_type, fname))
     uniform_length = True
     for s in seqs:
         if uniform_length and len(s) != len(seqs[0]):
@@ -49,7 +51,7 @@ def open_file(session, stream, fname, file_type="FASTA", return_seqs=False,
             raise UserError("Sequence '%s' differs in length from preceding sequences, and"
                 " it is therefore impossible to open these sequences as an alignment.  If"
                 " you want to open the sequences individually, specify 'false' as the value"
-                " of the 'oneAlignment' keyword in the 'open' command.")
+                " of the 'oneAlignment' keyword in the 'open' command." % differing_seq.name)
         session.alignments.new_alignment(seqs, identify_as if identify_as is not None else fname,
             align_attrs=file_attrs, align_markups=file_markups, **kw)
     else:

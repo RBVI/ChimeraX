@@ -33,6 +33,7 @@ class ATOMSTRUCT_IMEX StructureSeq: private Sequence {
 public:
     typedef std::vector<unsigned char>::size_type  SeqPos;
     typedef std::vector<Residue *>  Residues;
+    typedef std::map<Residue*, SeqPos>  ResMap;
 
 protected:
     friend class Residue;
@@ -43,7 +44,6 @@ protected:
 
     ChainID  _chain_id;
     bool  _from_seqres;
-    typedef std::map<Residue*, SeqPos>  ResMap;
     ResMap  _res_map;
     Residues  _residues;
     Structure*  _structure;
@@ -82,6 +82,7 @@ public:
     void  pop_front();
     void  push_back(Residue* r);
     void  push_front(Residue* r);
+    const ResMap&  res_map() const { return _res_map; }
     const Residues&  residues() const { return _residues; }
     int  session_num_floats(int version=0) const {
         return Sequence::session_num_floats(version) + SESSION_NUM_FLOATS(version);

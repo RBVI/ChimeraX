@@ -13,16 +13,22 @@
 
 from chimerax.core.toolshed import BundleAPI
 
-class _MyAPI(BundleAPI):
-
-    @staticmethod
-    def initialize(session, bundle_info):
-        """Register MAV with alignments manager"""
-        session.alignments.register_viewer(bundle_info, ["mav", "multalign"])
+class _MavBundleAPI(BundleAPI):
 
     @staticmethod
     def finish(session, bundle_info):
         """De-register MAV from alignments manager"""
         session.alignments.deregister_viewer(bundle_info)
 
-bundle_api = _MyAPI()
+    @staticmethod
+    def initialize(session, bundle_info):
+        """Register MAV with alignments manager"""
+        session.alignments.register_viewer(bundle_info, synonyms=["mav", "multalign"])
+
+    @staticmethod
+    def start_tool(session, tool_name, alignment):
+        from .tool import MultalignViewer
+        return MultalignViewer(session, tool_name, alignment)
+
+
+bundle_api = _MavBundleAPI()

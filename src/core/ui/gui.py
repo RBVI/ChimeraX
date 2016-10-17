@@ -259,6 +259,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         dw = QDesktopWidget()
         main_screen = dw.availableGeometry(dw.primaryScreen())
         self.resize(main_screen.width()*.67, main_screen.height()*.67)
+        self.setDockOptions(self.dockOptions() | self.GroupedDragging)
 
         from PyQt5.QtCore import QSize
         class GraphicsArea(QStackedWidget):
@@ -610,7 +611,7 @@ class ToolWindow:
 
     #: Whether closing this window destroys it or hides it.
     #: If it destroys it and this is the main window, all the
-    #: child windows will also be destroyedRolls
+    #: child windows will also be destroyed
     close_destroys = True
 
     def __init__(self, tool_instance, title):

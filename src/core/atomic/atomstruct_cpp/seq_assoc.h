@@ -21,8 +21,8 @@
 #include <valarray>
 #include <vector>
 
-#include "Chain.h"
 #include "imex.h"
+#include "StructureSeq.h"
 
 namespace atomstruct {
 
@@ -42,12 +42,12 @@ struct AssocParams {
     AssocParams(): est_len(0) {}
 };
 
-AssocParams  estimate_assoc_params(Chain&);
+AssocParams  ATOMSTRUCT_IMEX estimate_assoc_params(StructureSeq&);
 
 class ATOMSTRUCT_IMEX MatchMap {
 public:
-    typedef std::map<Chain::SeqPos, Residue*>  PosToRes;
-    typedef std::map<Residue*, Chain::SeqPos>  ResToPos;
+    typedef std::map<StructureSeq::SeqPos, Residue*>  PosToRes;
+    typedef std::map<Residue*, StructureSeq::SeqPos>  ResToPos;
 
 private:
     PosToRes  _pos_to_res;
@@ -55,9 +55,9 @@ private:
 
 public:
     Sequence*  aseq;
-    Chain*  mseq;
-    Residue*&  operator[](Chain::SeqPos pos) { return _pos_to_res[pos]; }
-    Chain::SeqPos&  operator[](Residue* r) { return _res_to_pos[r]; }
+    StructureSeq*  mseq;
+    Residue*&  operator[](StructureSeq::SeqPos pos) { return _pos_to_res[pos]; }
+    StructureSeq::SeqPos&  operator[](Residue* r) { return _res_to_pos[r]; }
     const PosToRes&  pos_to_res() const { return _pos_to_res; }
     const ResToPos&  res_to_pos() const { return _res_to_pos; }
 };
@@ -67,7 +67,7 @@ struct AssocRetvals {
     unsigned int  num_errors;
 };
 
-AssocRetvals  try_assoc(const Sequence& aseq, const Chain& mseq,
+AssocRetvals  ATOMSTRUCT_IMEX try_assoc(const Sequence& aseq, const StructureSeq& mseq,
     const AssocParams& ap, unsigned int max_errors = 6);
 
 // thrown when seq-structure association fails
