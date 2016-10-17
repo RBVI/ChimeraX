@@ -226,6 +226,10 @@ class UI(QApplication):
     def thread_safe(self, func, *args, **kw):
         """Call function 'func' in a thread-safe manner
         """
+        import threading
+        if threading.main_thread() == threading.current_thread():
+            func(*args, **kw)
+            return
         from PyQt5.QtCore import QEvent
         class ThreadSafeGuiFuncEvent(QEvent):
             EVENT_TYPE = QEvent.Type(QEvent.registerEventType())
