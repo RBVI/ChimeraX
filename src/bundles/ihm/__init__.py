@@ -20,5 +20,7 @@ class _MyAPI(BundleAPI):
         """Register IHM file format."""
         from . import ihm
         ihm.register()
+        from . import savecoords
+        savecoords.register_coord_format()
 
 bundle_api = _MyAPI()
