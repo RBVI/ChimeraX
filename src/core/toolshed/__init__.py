@@ -385,7 +385,7 @@ class Toolshed:
         """
 
         _debug("reload", rebuild_cache, check_remote)
-        for bi in reversed(self._installed_bundle_info):
+        for bi in self._installed_bundle_info:
             for p in bi.packages:
                 try:
                     del self._installed_packages[p]
