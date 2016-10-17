@@ -21,7 +21,7 @@ class _MyAPI(BundleAPI):
         settings.init(session)
 
     @staticmethod
-    def register_command(command_name, bundle_info):
+    def register_command(command_name):
         from . import match
         match.register_command()
 

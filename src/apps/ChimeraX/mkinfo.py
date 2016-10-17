@@ -117,7 +117,7 @@ year = datetime.datetime.now().year
 # extract chimerax.core version
 f = open('../../core/Makefile')
 for line in f.readlines():
-    if line.startswith('CORE_VERSION'):
+    if line.startswith('BUNDLE_VERSION'):
         break
 else:
     print('error: unable to find chimerax.core version')

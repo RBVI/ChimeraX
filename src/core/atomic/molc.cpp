@@ -23,6 +23,7 @@
 #include <atomstruct/Bond.h>
 #include <atomstruct/Chain.h>
 #include <atomstruct/ChangeTracker.h>
+#include <atomstruct/CoordSet.h>
 #include <atomstruct/destruct.h>     // Use DestructionObserver
 #include <atomstruct/PBGroup.h>
 #include <atomstruct/Pseudobond.h>
@@ -2931,6 +2932,56 @@ extern "C" EXPORT void structure_residues(void *mols, size_t n, pyobject_t *res)
             for (size_t j = 0; j != r.size(); ++j)
                 *res++ = r[j];
         }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void structure_active_coordset_id(void *mols, size_t n, int32_t *coordset_ids)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    try {
+        for (size_t i = 0; i != n; ++i)
+	  coordset_ids[i] = m[i]->active_coord_set()->id();
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void set_structure_active_coordset_id(void *mols, size_t n, int32_t *coordset_ids)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+	    CoordSet *cs = m[i]->find_coord_set(coordset_ids[i]);
+	    if (cs == NULL)
+	      PyErr_Format(PyExc_IndexError, "No coordset id %d", coordset_ids[i]);
+	    else
+	      m[i]->set_active_coord_set(cs);
+	}
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void structure_add_coordset(void *mol, int id, void *xyz)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        CoordSet *cs = m->new_coord_set(id);
+	cs->set_coords((float *)xyz, m->num_atoms());
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void structure_coordset_ids(void *mols, size_t n, int32_t *coordset_ids)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    try {
+        for (size_t i = 0; i != n; ++i)
+	  for (auto cs: m[i]->coord_sets())
+	    *coordset_ids++ = cs->id();
     } catch (...) {
         molc_error();
     }

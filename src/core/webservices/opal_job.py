@@ -110,7 +110,9 @@ class OpalJob(Job):
         from suds.client import Client
         self._suds = Client(self.service_url + "?wsdl")
         md = self._suds.service.getAppMetadata()
-        logger.info("Web Service: %s" % md.usage)
+        def _notify(logger=logger, md=md):
+            logger.info("Web Service: %s" % md.usage)
+        self.session.ui.thread_safe(_notify)
 
         # Add job keywords
         job_kw = dict([(k[1:], v) for k, v in kw.items() if k.startswith('_')])
@@ -130,16 +132,17 @@ class OpalJob(Job):
             raise JobLaunchError(str(e))
         else:
             self.job_id = r.jobID
-            logger.info("Opal service URL: %s" % self.service_url)
-            logger.info("Opal job id: %s" % self.job_id)
-            logger.info("Opal status URL: %s" % r.status[2])
+            def _notify(logger=logger, self=self, r=r):
+                logger.info("Opal service URL: %s" % self.service_url)
+                logger.info("Opal job id: %s" % self.job_id)
+                logger.info("Opal status URL: %s" % r.status[2])
+            self.session.ui.thread_safe(_notify)
             import time
             self.start_time = time.time()
             self._save_status(r.status)
 
     def _save_status(self, status):
         self._status_code = int(status[0])
-        print("_status_code", self._status_code)
         self._status_message = str(status[1])
         self._status_url = str(status[2])
         if self._status_code in [4, 8]:

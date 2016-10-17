@@ -117,7 +117,6 @@ class LabelDrawing(Drawing):
         if v.window_size != self.window_size:
             # Window has resized so update texture drawing size
             self.window_size = w,h = v.window_size
-            print('resizing label', w,h)
             tw,th = self.texture_size
             uw,uh = 2*tw/w, 2*th/h
             x,y = (-1 + 2*l.xpos, -1 + 2*l.ypos)    # Convert 0-1 position to -1 to 1.

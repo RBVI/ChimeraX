@@ -36,7 +36,7 @@ setup(
         # Add subpackage names here
     ],
     install_requires=[
-        "chimerax.core",
+        "ChimeraX-Core >= 0.1",
     ],
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",

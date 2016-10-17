@@ -14,9 +14,11 @@ from chimerax.core.toolshed import BundleAPI
 class _MyAPI(BundleAPI):
 
     @staticmethod
-    def register_command(command_name, bundle_info):
+    def register_command(command_name):
         # 'register_command' is lazily called when the command is referenced
         from . import label
         label.register_label_command()
 
 bundle_api = _MyAPI()
+
+from .label import label_create, label_change, label_delete

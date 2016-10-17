@@ -1,0 +1,103 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: contacts</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: contacts</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+ <BR><b>contacts</b>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+[&nbsp;probeRadius&nbsp;&nbsp;<i>rad</i>&nbsp;]
+[&nbsp;areaCutoff&nbsp;&nbsp;<i>area</i>&nbsp;] 
+<!--
+[&nbsp;cutoffArea&nbsp;&nbsp;<i>area</i>&nbsp;] 
+-->
+</h3>
+<p>
+The <b>contacts</b> command calculates the buried solvent-accessible
+surface area (SASA) for each pair of chains in the
+<a href="atomspec.html">specified</a> set of atoms, based on chain IDs,
+and generates a <a href="#diagram">network diagram</a>
+of the interchain contacts. Unspecified atoms are ignored, but
+solvent, ions, and ligand residues are <i>not</i> excluded automatically.
+The SASA is calculated as described
+for <a href="buriedarea.html"><b>buriedarea</b></a>, and the measured 
+interface areas are reported in the <a href="../tools/log.html"><b>Log</b></a>.
+See also: <a href="sasa.html"><b>sasa</b></a>
+</p><p>
+Whereas the <a href="surface.html"><b>surface</b></a> command shows
+<b><i>solvent-excluded</i></b> surfaces (SES) defined by the closest
+approach of the surface of a probe sphere rolled over the
+atomic <a href="../radii.html">VDW spheres</a>,
+the <b><i>solvent-accessible</i></b> surface (SAS) 
+is traced out by the center of the probe sphere and is not displayed.
+The <b>probeRadius</b> <i>rad</i> is the radius of this 
+&ldquo;rolling sphere&rdquo; probe (default <b>1.4</b> &Aring;, 
+the value often used to approximate a water molecule).
+Interfaces with at least <i>area</i> buried
+(default <b>300</b> &Aring;<sup>2</sup>) are counted as contacts
+and shown as lines in the <a href="#diagram">diagram</a>.
+</p>
+
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<a name="diagram"></a>
+<h3>Chain-Chain Network Diagram</h3>
+<p>
+<table class="clRight">
+<tr><td><img class="outline" src="contacts.png" width="330px"
+alt="1i50 'contact protein' diagram"
+title="1i50 'contact protein' diagram"></td></tr>
+</table>
+In the 2D network diagram, the <b><i>nodes</i></b> (circles) represent chains,
+and the <b><i>edges</i></b> (lines) between nodes 
+represent chain-chain interfaces. 
+Node colors match the predominant colors of the chains when the
+diagram is created, and node sizes are proportional to chain surface areas.
+Chain-chain interfaces with buried area 
+less than half of the largest interface in the structure 
+are depicted with dashed lines.
+</p>
+<!--
+size of node?
+solid vs dashed line?
+clicking line shows atoms in that chain pair that were specified,
+  hides atoms that were specified but not in that chain pair 
+  (unspecified atoms remain displayed)
+
+Notes
+traceback and empty graph if no contacts, e.g. 5dwb "contact protein"
+traceback and empty graph if I deleted parts of some chains, even if several 
+  contacts are still found (e.g. 5dwb "delete /a:300-950; contact protein")
+suggest areaCutoff -> cutoffArea like buriedArea command
+suggest option to not generate diagram and/or to replace existing diagram
+I get the same context menu no matter where I click in 2D diagram
+"Unxplode" missing an "e"
+explode/unexplode don't seem to work right on nucleic acids, e.g. 1bna, 5dwb
+-->
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+October 2016</address>
+</body></html>

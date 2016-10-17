@@ -107,6 +107,9 @@ class Atom:
             return '%s%s' % (str(self.residue), atom_str)
         return '%s %s' % (str(self.residue), atom_str)
 
+    def atomspec(self):
+        return self.residue.atomspec() + '@' + self.name
+
     alt_loc = c_property('atom_alt_loc', byte, doc='Alternate location indicator')
     bfactor = c_property('atom_bfactor', float32, doc = "B-factor, floating point value.")
     bonds = c_property('atom_bonds', cptr, "num_bonds", astype=_bonds, read_only=True,
@@ -261,6 +264,9 @@ class Bond:
             joiner = "" if res_str.startswith(":") else " "
             return str(a1) + bond_sep + res_str + joiner + atom_str
         return str(a1) + bond_sep + str(a2)
+
+    def atomspec(self):
+        return a1.atomspec() + a2.atomspec()
 
     atoms = c_property('bond_atoms', cptr, 2, astype = _atom_pair, read_only = True)
     '''Two-tuple of :py:class:`Atom` objects that are the bond end points.'''
@@ -584,7 +590,7 @@ class Residue:
             res_str = self.name + " " + str(self.number) + ic
         if residue_only:
             return res_str
-        chain_str = '/' + self.chain_id
+        chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
         from .structure import Structure
         if len([s for s in self.structure.session.models.list() if isinstance(s, Structure)]) > 1:
             struct_string = str(self.structure)
@@ -594,6 +600,11 @@ class Residue:
         if cmd_style:
             return struct_string + chain_str + res_str
         return '%s%s %s' % (struct_string, chain_str, res_str)
+
+    def atomspec(self):
+        res_str = ":" + str(self.number) + self.insertion_code
+        chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
+        return self.structure.atomspec() + chain_str + res_str
 
     atoms = c_property('residue_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True)
     ''':class:`.Atoms` collection containing all atoms of the residue.'''
@@ -1054,6 +1065,22 @@ class Chain(StructureSeq):
 
     '''
 
+    def __str__(self):
+        from ..core_settings import settings
+        cmd_style = settings.atomspec_contents == "command-line specifier"
+        chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
+        from .structure import Structure
+        if len([s for s in self.structure.session.models.list() if isinstance(s, Structure)]) > 1:
+            struct_string = str(self.structure)
+        else:
+            struct_string = ""
+        from ..core_settings import settings
+        return struct_string + chain_str
+
+    def atomspec(self):
+        chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
+        return self.structure.atomspec() + chain_str
+
     def extend(self, chars):
         # disallow extend
         raise AssertionError("extend() called on Chain object")
@@ -1105,12 +1132,16 @@ class StructureData:
         '''Deletes the C++ data for this atomic structure.'''
         c_function('structure_delete', args = (ctypes.c_void_p,))(self._c_pointer)
 
+    active_coordset_id = c_property('structure_active_coordset_id', int32)
+    '''Index of the active coordinate set.'''
     atoms = c_property('structure_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True)
     ''':class:`.Atoms` collection containing all atoms of the structure.'''
     bonds = c_property('structure_bonds', cptr, 'num_bonds', astype = _bonds, read_only = True)
     ''':class:`.Bonds` collection containing all bonds of the structure.'''
     chains = c_property('structure_chains', cptr, 'num_chains', astype = _chains, read_only = True)
     ''':class:`.Chains` collection containing all chains of the structure.'''
+    coordset_ids = c_property('structure_coordset_ids', int32, 'num_coord_sets', read_only = True)
+    '''Return array of ids of all coordinate sets.'''
     name = c_property('structure_name', string)
     '''Structure name, a string.'''
     num_atoms = c_property('structure_num_atoms', size_t, read_only = True)
@@ -1178,7 +1209,12 @@ class StructureData:
         f = c_function('structure_copy', args = (ctypes.c_void_p,), ret = ctypes.c_void_p)
         p = f(self._c_pointer)
         return p
-        
+
+    def add_coordset(self, id, xyz):
+        '''Add a coordinate set with the given id.'''
+        f = c_function('structure_add_coordset',
+                       args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p))
+        f(self._c_pointer, id, pointer(xyz))
     def new_atom(self, atom_name, element_name):
         '''Create a new :class:`.Atom` object. It must be added to a :class:`.Residue` object
         belonging to this structure before being used.'''

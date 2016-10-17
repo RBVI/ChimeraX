@@ -1758,7 +1758,7 @@ def deregister(name, *, is_user_alias=False):
         if word_info is None:
             if is_user_alias:
                 raise UserError('No alias named %s exists' % dq_repr(name))
-            raise RuntimeError("unregistering unknown command")
+            raise RuntimeError("unregistering unknown command: %r" % name)
         parent_info = word_info
     if is_user_alias and not parent_info.is_user_alias():
         raise UserError('%s is not a user alias' % dq_repr(name))

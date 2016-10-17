@@ -90,8 +90,11 @@ class Model(State, Drawing):
     '''
 
     def add(self, models):
-        for m in models:
-            self.add_drawing(m)
+        if self.id is None:
+            for m in models:
+                self.add_drawing(m)
+        else:
+            self.session.models.add(models, parent = self)
 
     def child_models(self):
         '''Return all models including self and children at all levels.'''

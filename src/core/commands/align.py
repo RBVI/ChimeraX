@@ -17,17 +17,22 @@ class IterationError(UserError):
 
 def align(session, atoms, to_atoms = None, move = None, each = None,
           match_chain_ids = False, match_sequence_numbers = False, match_atom_names = False,
-          sequence = None, cutoff_distance = None, report_matrix=False):
+          sequence = None, cutoff_distance = None, report_matrix = False):
     """Move atoms to minimize RMSD with to_atoms.
+    Returns matched atoms and matched to_atoms, matched atom rmsd, paired atom rmsd, and transform.
+    The matched atoms can be fewer than the paired atoms if cutoff distance is specified.
+    If "each" is not None then nothing is returned.
 
-    If 'move' is 'molecules', superimpose the models.  If it is 'atoms',
-    'residues' or 'chains' move just those atoms.  If move is False
-    move nothing or True move molecules.  If move is a tuple, list or
-    set of atoms then move those.
+    If 'move' is 'molecules', superimpose the models by changing the model positions.
+    If it is 'atoms', 'residues', 'chains' or 'molecule atoms', then atoms promoted extended
+    to this level are moved.  If move is False move nothing or True move molecules.
+    If move is an Atoms collection then move only the specified atoms.
 
     If 'each' is "molecule" then each molecule of atoms is separately
     aligned to the to_atoms.  If 'each' is "chain" then each chain is
-    aligned separately.  Default is that all atoms are aligned as one group.
+    aligned separately.  If 'each' is "coordset" then each coordinate set
+    of the first set of atoms (which must belong to a single structure)
+    is aligned. Default is that all atoms are aligned as one group.
 
     If 'match_chain_ids' is true then only atoms with matching chain identifiers are paired.
     Unpaired atoms or to_atoms are not used for alignment.
@@ -45,10 +50,7 @@ def align(session, atoms, to_atoms = None, move = None, each = None,
     If 'report_matrix' is True, report the transformation matrix to
     the Reply Log.
     """
-    if to_atoms is None:
-        from . import AnnotationError
-        raise AnnotationError('Require "to" keyword: align #1 to #2')
-
+    from ..errors import UserError
     if each == 'chain':
         groups = atoms.by_chain
         if move is None:
@@ -65,6 +67,17 @@ def align(session, atoms, to_atoms = None, move = None, each = None,
                   match_sequence_numbers=match_sequence_numbers, match_atom_names=match_atom_names,
                   sequence=sequence, report_matrix=report_matrix)
         return
+    elif each == 'coordset':
+        us = atoms.unique_structures
+        if len(us) != 1:
+            raise UserError('Atoms must belong to a single structure to align each coordset, got %d structures'
+                            % len(us))
+        cset_mol = us[0]
+        if move is None or move == 'molecules':
+            move = 'molecule atoms'
+
+    if move is None:
+        move = 'molecules'
 
     log = session.logger
     if sequence is None:
@@ -77,41 +90,53 @@ def align(session, atoms, to_atoms = None, move = None, each = None,
         patoms, pto_atoms = sequence_alignment_pairing(atoms, to_atoms, sequence)
 
     npa, npta = len(patoms), len(pto_atoms)
-    from ..errors import UserError
     if npa != npta:
         raise UserError('Must align equal numbers of atoms, got %d and %d' % (npa, npta))
     elif npa == 0:
         raise UserError('No atoms paired for alignment')
-        
+
+    xyz_to = pto_atoms.scene_coords
+    if each == 'coordset':
+        cs = cset_mol.active_coordset_id
+        for id in cset_mol.coordset_ids:
+            cset_mol.active_coordset_id = id
+            align_atoms(patoms, pto_atoms, xyz_to, cutoff_distance,
+                        atoms, to_atoms, move, log, report_matrix)
+        cset_mol.active_coordset_id = cs
+        return
+
+    return align_atoms(patoms, pto_atoms, xyz_to, cutoff_distance,
+                       atoms, to_atoms, move, log, report_matrix)
+
+def align_atoms(patoms, pto_atoms, xyz_to, cutoff_distance,
+                atoms, to_atoms, move, log, report_matrix):
+
+    xyz_from = patoms.scene_coords
     if cutoff_distance is None:
         from ..geometry import align_points
-        tf, rmsd = align_points(patoms.scene_coords, pto_atoms.scene_coords)
-        np = npa
+        tf, rmsd = align_points(xyz_from, xyz_to)
         full_rmsd = rmsd
         matched_patoms, matched_pto_atoms = patoms, pto_atoms
-        msg = 'RMSD between %d atom pairs is %.3f angstroms' % (np, rmsd)
+        msg = 'RMSD between %d atom pairs is %.3f angstroms' % (len(patoms), rmsd)
     else:
         if cutoff_distance <= 0.0:
+            from ..errors import UserError
             raise UserError("Distance cutoff must be positive")
-        tf, rmsd, indices = align_and_prune(patoms.scene_coords, pto_atoms.scene_coords,
-                                         cutoff_distance)
+        tf, rmsd, indices = align_and_prune(xyz_from, xyz_to, cutoff_distance)
         np = len(indices)
-        dxyz = tf*patoms.scene_coords - pto_atoms.scene_coords
+        dxyz = tf*xyz_from - xyz_to
         d2 = (dxyz*dxyz).sum(axis=1)
         import math
         full_rmsd = math.sqrt(d2.sum() / len(d2))
         matched_patoms, matched_pto_atoms = patoms[indices], pto_atoms[indices]
         msg = 'RMSD between %d pruned atom pairs is %.3f angstroms;' \
-            ' (across all %d pairs: %.3f)' % (np, rmsd, npa, full_rmsd)
+            ' (across all %d pairs: %.3f)' % (np, rmsd, len(patoms), full_rmsd)
 
     if report_matrix:
         log.info(matrix_text(tf, atoms, to_atoms))
 
     log.status(msg)
     log.info(msg)
-
-    if move is None:
-        move = 'molecules'
 
     move_atoms(atoms, to_atoms, tf, move)
 
@@ -251,12 +276,18 @@ def move_atoms(atoms, to_atoms, tf, move):
         for m in atoms.unique_structures:
             m.scene_position = tf * m.scene_position
     else:
+        from ..atomic import Atoms
         if move == 'atoms':
             matoms = atoms
         elif move == 'residues':
             matoms = atoms.unique_residues.atoms
         elif move == 'chains':
             matoms = extend_to_chains(atoms)
+        elif move == 'molecule atoms':
+            from ..atomic import concatenate, Atoms
+            matoms = concatenate([m.atoms for m in atoms.unique_structures], Atoms)
+        elif isinstance(move, Atoms):
+            matoms = move
         else:
             return	# Move nothing
 
@@ -277,12 +308,14 @@ def register_command(session):
     from . import CmdDesc, register, AtomsArg, EnumOf, NoArg, FloatArg, IntArg
     desc = CmdDesc(required = [('atoms', AtomsArg)],
                    keyword = [('to_atoms', AtomsArg),
-                              ('move', EnumOf(('atoms', 'residues', 'chains', 'molecules', 'nothing'))),
-                              ('each', EnumOf(('chain', 'molecule'))),
+                              ('move', EnumOf(('atoms', 'residues', 'chains', 'molecules',
+                                               'molecule atoms', 'nothing'))),
+                              ('each', EnumOf(('chain', 'molecule', 'coordset'))),
                               ('match_chain_ids', NoArg),
                               ('match_sequence_numbers', NoArg),
                               ('match_atom_names', NoArg),
                               ('cutoff_distance', FloatArg),
                               ('report_matrix', NoArg)],
+                   required_arguments = ['to_atoms'],
                    synopsis = 'Align one set of atoms to another')
     register('align', desc, align)

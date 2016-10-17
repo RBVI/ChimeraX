@@ -1,49 +1,27 @@
+# Fix all parts that say FIXME
+#
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-PKG_NAME = Replace with fully qualified Python package name
-PKG_VERSION = Replace with package version number (PEP 440 style)
-PKG_DESCRIPTION = Replace with short description of tool
-# Example:
-# PKG_NAME = chimerax.cmd_line
-# PKG_VERSION = 1.0
-# PKG_DESCRIPTION = ChimeraX command line interface
-
-# For many cases, only a single tool and a single command
-# is provided by a package.  Variables below are designed
-# for this case.  If you have multiple tools or commands,
-# you need manually edit all the files.
-TOOL_NAME = Replace with internal name
-TOOL_PKG_NAME = Replace with tool Python package name
-TOOL_DISPLAY_NAME = Replace with tool name to display to user
-TOOL_CATEGORY = Replace with tool menu category name
-TOOL_FILE_TYPES = Replace with file types
-TOOL_SESSION_VERSIONS = Replace with minimum and maximum session versions
-TOOL_CUSTOM_INIT = Replace with 'true' if custom initialization code is needed
-TOOL_SYNOPSIS = Replace with synopsis for tool
-COMMAND_NAME = Replace with one-word command name
-# Example:
-# TOOL_NAME = cmd_line
-# TOOL_PKG_NAME = chimerax.cmd_line
-# TOOL_DISPLAY_NAME = Command Line Interface
-# TOOL_CATEGORY = General
-# TOOL_FILE_TYPES = 
-# TOOL_SESSION_VERSIONS = 1,1
-# TOOL_CUSTOM_INIT = false
-# COMMAND_NAME = command_line
+BUNDLE_NAME = FIXME Replace with legal package name (PEP 426)
+# By convention, UCSF RBVI bundles start with "ChimeraX-"
+BUNDLE_VERSION = FIXME Replace with package version number (PEP 440 style)
+PKG_NAME = FIXME Replace with fully qualified Python package name
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,'g)
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
 ifdef WIN32
 PKG_DIR := $(shell cygpath -m '$(PKG_DIR)' | sed 's,/,\\\\\\\\,g')
 shlibdir := $(shell cygpath -m '$(shlibdir)' | sed 's,/,\\\\\\\\,g')
+datadir := $(shell cygpath -m '$(datadir)' | sed 's,/,\\\\\\\\,g')
 endif
+WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
 
-PYSRCS = $(wildcard *.py)
-WHEEL = dist/$(PKG_NAME)-$(PKG_VERSION)-py3-none-any.whl
+PYSRCS = $(filter-out setup.py,$(wildcard *.py))
+WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-py3-none-any.whl
+# FIXME WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-py3-none-$(BIN_PLATFORM).whl
 
-all: $(PYSRCS)
-	$(PYTHON_EXE) -B -m py_compile $?
+all: $(PYOBJS)
 
 install: dir all
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
@@ -56,29 +34,22 @@ app-install: wheel
 	$(RSYNC) $(WHEEL) $(wheelhouse) && cd $(wheelhouse) && make update
 
 wheel: setup.py
-	$(PYTHON_EXE) setup.py bdist_wheel
-	rm -rf $(PKG_NAME).egg-info
+	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel
+	# FIXME $(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel --plat-name $(BIN_PLATFORM)
+	rm -rf $(WHL_BNDL_NAME).egg-info
 
 setup.py: setup.py.in Makefile
-	# "TOOL_PKG_NAME" includes "PKG_NAME" so must be replaced first
 	sed -e 's,PKG_DIR,$(PKG_DIR),' \
 		-e 's,SHLIB_DIR,$(shlibdir),' \
+		-e 's,DATA_DIR,$(datadir),' \
 		-e 's,PYMOD_EXT,$(PYMOD_EXT),' \
 		-e 's,SHLIB_EXT,$(SHLIB_EXT),' \
 		-e 's,#$(OS)#,,' \
 		-e 's,#$(OSARCH)#,,' \
-		-e 's,TOOL_NAME,$(TOOL_NAME),' \
-		-e 's,TOOL_PKG_NAME,$(TOOL_PKG_NAME),' \
-		-e 's,TOOL_DISPLAY_NAME,$(TOOL_DISPLAY_NAME),' \
-		-e 's/TOOL_CATEGORY/$(TOOL_CATEGORY)/' \
-		-e 's/TOOL_FILE_TYPES/$(TOOL_FILE_TYPES)/' \
-		-e 's/TOOL_SESSION_VERSIONS/$(TOOL_SESSION_VERSIONS)/' \
-		-e 's/TOOL_CUSTOM_INIT/$(TOOL_CUSTOM_INIT)/' \
-		-e 's/TOOL_SYNOPSIS/$(TOOL_SYNOPSIS)/' \
-		-e 's/COMMAND_NAME/$(COMMAND_NAME)/' \
+		-e 's,BUNDLE_NAME,$(BUNDLE_NAME),' \
+		-e 's,BUNDLE_VERSION,$(BUNDLE_VERSION),' \
 		-e 's,PKG_NAME,$(PKG_NAME),' \
-		-e 's,PKG_VERSION,$(PKG_VERSION),' \
-		-e 's,PKG_DESCRIPTION,$(PKG_DESCRIPTION),' \
+		-e 's,PKG_DIR,$(PKG_DIR),' \
 		< setup.py.in > setup.py
 
 dir:
@@ -89,4 +60,4 @@ lint:
 	$(PYLINT) $(PYSRCS)
 
 clean:
-	rm -rf __pycache__ build dist $(PKG_NAME).egg-info setup.py
+	rm -rf __pycache__ build dist $(WHL_BNDL_NAME).egg-info setup.py

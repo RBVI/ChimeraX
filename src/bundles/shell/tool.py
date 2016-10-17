@@ -20,8 +20,8 @@ class ShellUI(ToolInstance):
     SESSION_ENDURING = True
     SESSION_SKIP = True
 
-    def __init__(self, session, bundle_info):
-        ToolInstance.__init__(self, session, bundle_info)
+    def __init__(self, session, tool_name):
+        ToolInstance.__init__(self, session, tool_name)
         # 'display_name' defaults to class name with spaces inserted
         # between lower-then-upper-case characters (therefore "Tool UI"
         # in this case), so only override if different name desired

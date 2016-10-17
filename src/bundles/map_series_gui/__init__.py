@@ -16,12 +16,12 @@ from chimerax.core.toolshed import BundleAPI
 class _MyAPI(BundleAPI):
 
     @staticmethod
-    def start_tool(session, bundle_info):
+    def start_tool(session, tool_name):
         # 'start_tool' is called to start an instance of the tool
         # GUI actually starts when data is opened, so this is for
         # restoring sessions
         from . import tool
-        return tool.MapSeries(session, bundle_info)
+        return tool.MapSeries(session, tool_name)
 
     @staticmethod
     def initialize(session, bundle_info):

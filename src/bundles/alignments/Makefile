@@ -41,7 +41,7 @@ PKG_DIR := $(shell cygpath -m '$(PKG_DIR)' | sed 's,/,\\\\\\\\,g')
 shlibdir := $(shell cygpath -m '$(shlibdir)' | sed 's,/,\\\\\\\\,g')
 endif
 
-PYSRCS = $(wildcard *.py)
+PYSRCS = $(filter-out setup.py,$(wildcard *.py))
 DATAFILES = 
 WHEEL = dist/$(PKG_NAME)-$(PKG_VERSION)-py3-none-any.whl
 
@@ -58,7 +58,7 @@ app-install: wheel
 	$(RSYNC) $(WHEEL) $(wheelhouse) && cd $(wheelhouse) && make update
 
 wheel: setup.py
-	$(PYTHON_EXE) setup.py bdist_wheel
+	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel
 	rm -rf $(PKG_NAME).egg-info
 
 setup.py: setup.py.in Makefile

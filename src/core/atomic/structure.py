@@ -76,6 +76,9 @@ class Structure(Model, StructureData):
             return id
         return '%s %s' % (self.name, id)
 
+    def atomspec(self):
+        return '#' + self.id_string()
+
     def delete(self):
         '''Delete this structure.'''
         t = self.session.triggers

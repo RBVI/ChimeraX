@@ -39,7 +39,7 @@ endif
 
 PYSRCS = __init__.py stl.py
 DATAFILES =
-WHEEL = dist/$(PKG_NAME)-$(PKG_VERSION)-py3-none-any.whl
+WHEEL = dist/$(PKG_NAME)-$(PKG_VERSION)-py3-none-$(BIN_PLATFORM).whl
 
 all: $(PYOBJS)
 
@@ -54,7 +54,7 @@ app-install: wheel
 	$(RSYNC) $(WHEEL) $(wheelhouse) && cd $(wheelhouse) && make update
 
 wheel: setup.py
-	$(PYTHON_EXE) setup.py bdist_wheel
+	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel --plat-name $(BIN_PLATFORM)
 	rm -rf $(PKG_NAME).egg-info
 
 setup.py: setup.py.in Makefile

@@ -22,8 +22,8 @@ class CommandLine(ToolInstance):
     compact_label = "Remove duplicate consecutive commands"
     help = "help:user/tools/cli.html"
 
-    def __init__(self, session, bundle_info):
-        ToolInstance.__init__(self, session, bundle_info)
+    def __init__(self, session, tool_name):
+        ToolInstance.__init__(self, session, tool_name)
         from chimerax.core.ui.gui import MainToolWindow
 
         class CmdWindow(MainToolWindow):
@@ -178,7 +178,7 @@ class CommandLine(ToolInstance):
     @classmethod
     def get_singleton(cls, session):
         from chimerax.core import tools
-        return tools.get_singleton(session, CommandLine, 'cmd_line')
+        return tools.get_singleton(session, CommandLine, 'Command Line Interface')
 
 class _HistoryDialog:
 

@@ -1,6 +1,6 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
-from chimerax.core.commands import CmdDesc, EnumOf, StringArg, AtomSpecArg
+from chimerax.core.commands import CmdDesc, EmptyArg, EnumOf, Or, StringArg, AtomSpecArg, StructuresArg
 from .util import report_models, report_chains, report_polymers, report_residues
 from .util import report_residues, report_atoms, report_resattr, report_distmat
 
@@ -14,8 +14,8 @@ def listinfo_models(session, spec=None, type_=None, attribute="name"):
     models = [m for m in results.models
               if type_ is None or type(m).__name__.lower() == type_]
     report_models(session.logger, models, attribute)
-listinfo_models_desc = CmdDesc(keyword=[("spec", AtomSpecArg),
-                                        ("type_", StringArg),
+listinfo_models_desc = CmdDesc(required=[("spec", Or(AtomSpecArg, EmptyArg))],
+                               keyword=[("type_", StringArg),
                                         ("attribute", StringArg),],
                                synopsis="Report model information")
 
@@ -33,8 +33,8 @@ def listinfo_chains(session, spec=None, attribute="chain_id"):
             # No chains, no problem
             pass
     report_chains(session.logger, chains, attribute)
-listinfo_chains_desc = CmdDesc(keyword=[("spec", AtomSpecArg),
-                                        ("attribute", StringArg),],
+listinfo_chains_desc = CmdDesc(required=[("spec", Or(AtomSpecArg, EmptyArg))],
+                               keyword=[("attribute", StringArg),],
                                synopsis="Report chain information")
 
 
@@ -54,7 +54,7 @@ def listinfo_polymers(session, spec=None):
             # No chains, no problem
             pass
     report_polymers(session.logger, polymers)
-listinfo_polymers_desc = CmdDesc(keyword=([("spec", AtomSpecArg)]),
+listinfo_polymers_desc = CmdDesc(required=[("spec", Or(AtomSpecArg, EmptyArg))],
                                  synopsis="Report polymer information")
 
 
@@ -65,8 +65,8 @@ def listinfo_residues(session, spec=None, attribute="name"):
     results = spec.evaluate(session)
     residues = results.atoms.unique_residues
     report_residues(session.logger, residues, attribute)
-listinfo_residues_desc = CmdDesc(keyword=[("spec", AtomSpecArg),
-                                          ("attribute", StringArg),],
+listinfo_residues_desc = CmdDesc(required=[("spec", Or(AtomSpecArg, EmptyArg))],
+                                 keyword=[("attribute", StringArg),],
                                  synopsis="Report residue information")
 
 
@@ -77,8 +77,8 @@ def listinfo_atoms(session, spec=None, attribute="idatm_type"):
     results = spec.evaluate(session)
     residues = results.atoms.unique_residues
     report_atoms(session.logger, results.atoms, attribute)
-listinfo_atoms_desc = CmdDesc(keyword=[("spec", AtomSpecArg),
-                                       ("attribute", StringArg),],
+listinfo_atoms_desc = CmdDesc(required=[("spec", Or(AtomSpecArg, EmptyArg))],
+                              keyword=[("attribute", StringArg),],
                               synopsis="Report atom information")
 
 
@@ -154,7 +154,7 @@ def listinfo_distmat(session, spec):
     coords = atoms.scene_coords
     distmat = pdist(coords, "euclidean")
     report_distmat(session.logger, atoms, distmat)
-listinfo_distmat_desc = CmdDesc(required=([("spec", AtomSpecArg)]),
+listinfo_distmat_desc = CmdDesc(required=([("spec", Or(AtomSpecArg, EmptyArg))]),
                                 synopsis="Report distance matrix information")
 
 from .util import Notifier

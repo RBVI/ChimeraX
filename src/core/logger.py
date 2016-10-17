@@ -318,8 +318,10 @@ class Logger:
         if log:
             self.info(msg)
 
-        for log in self.logs:
-            log.status(msg, color, secondary)
+        # "highest prority" log is last added, so:
+        for log in reversed(list(self.logs)):
+            if log.status(msg, color, secondary) and log.excludes_other_logs:
+                break
         if secondary:
             status_timer = self._status_timer2
             follow_timer = self._follow_timer2
@@ -457,19 +459,23 @@ class CollatingLog(PlainTextLog):
         return True
 
     def log_summary(self, logger, summary_title, collapse_similar=True):
-        max_level = None
-        msg = "%s:" % (summary_title)
+        title = "<i>%s</i>:" % (summary_title)
+        title_logged = False
         for level, msgs in reversed(list(enumerate(self.msgs))):
             if not msgs:
                 continue
-            if max_level is None:
-                max_level = level
-            msg += "\n\n{}{}:\n".format(
-                self.LEVEL_DESCRIPTS[level].capitalize(),
+            if not title_logged:
+                logger.info(title, is_html=True)
+                title_logged = True
+                msg = ""
+            else:
+                msg = "\n"
+            msg += "{}{}:\n".format(self.LEVEL_DESCRIPTS[level].capitalize(),
                 "s" if len(msgs) > 1 else "")
             msg += self.summarize_msgs(msgs, collapse_similar)
-        if max_level is not None:
-            logger.method_map[max_level](msg, add_newline=False)
+            logger.method_map[level](msg)
+        if title_logged:
+            logger.info("<i>End of summary</i>", is_html=True)
 
     def summarize_msgs(self, msgs, collapse_similar):
         if collapse_similar:

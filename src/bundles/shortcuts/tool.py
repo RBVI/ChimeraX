@@ -20,8 +20,8 @@ class ShortcutPanel(ToolInstance):
     shortcuts = []
     SESSION_ENDURING = True
 
-    def __init__(self, session, bundle_info):
-        ToolInstance.__init__(self, session, bundle_info)
+    def __init__(self, session, tool_name):
+        ToolInstance.__init__(self, session, tool_name)
 
         from .shortcuts import keyboard_shortcuts
         self.keyboard_shortcuts = keyboard_shortcuts(session)
@@ -87,7 +87,7 @@ class ShortcutPanel(ToolInstance):
         return tools.get_singleton(session, cls, cls.tool_name)
 
 class MoleculeDisplayPanel(ShortcutPanel):
-    tool_name = 'molecule_display_shortcuts'
+    tool_name = 'Molecule Display Toolbar'
     shortcuts = (
         ('da', 'atomshow.png', 'Show atoms'),
         ('ha', 'atomhide.png', 'Hide atoms'),
@@ -105,7 +105,7 @@ class MoleculeDisplayPanel(ShortcutPanel):
     help = "help:user/tools/moldisplay.html"
 
 class GraphicsPanel(ShortcutPanel):
-    tool_name = 'graphics_shortcuts'
+    tool_name = 'Graphics Toolbar'
     shortcuts = (
         ('wb', 'whitebg.png', 'White background'),
         ('gb', 'graybg.png', 'Gray background'),
@@ -123,7 +123,7 @@ class GraphicsPanel(ShortcutPanel):
     help = "help:user/tools/graphics.html"
 
 class DensityMapPanel(ShortcutPanel):
-    tool_name = 'density_map_shortcuts'
+    tool_name = 'Density Map Toolbar'
     shortcuts = (
         ('sM', 'showmap.png', 'Show map'),
         ('hM', 'hidemap.png', 'Hide map'),
@@ -141,7 +141,7 @@ class DensityMapPanel(ShortcutPanel):
     )
 
 panel_classes = {
-    'molecule_display_shortcuts': MoleculeDisplayPanel,
-    'graphics_shortcuts': GraphicsPanel,
-    'density_map_shortcuts': DensityMapPanel,
+    MoleculeDisplayPanel.tool_name: MoleculeDisplayPanel,
+    GraphicsPanel.tool_name: GraphicsPanel,
+    DensityMapPanel.tool_name: DensityMapPanel,
 }

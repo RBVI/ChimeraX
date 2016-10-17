@@ -139,8 +139,8 @@ class Log(ToolInstance, HtmlLog):
     SESSION_ENDURING = True
     help = "help:user/tools/log.html"
 
-    def __init__(self, session, bundle_info):
-        ToolInstance.__init__(self, session, bundle_info)
+    def __init__(self, session, tool_name):
+        ToolInstance.__init__(self, session, tool_name)
         self.warning_shows_dialog = False
         self.error_shows_dialog = True
         from chimerax.core.ui.gui import MainToolWindow
@@ -391,4 +391,4 @@ class Log(ToolInstance, HtmlLog):
     @classmethod
     def get_singleton(cls, session):
         from chimerax.core import tools
-        return tools.get_singleton(session, Log, 'log')
+        return tools.get_singleton(session, Log, 'Log')

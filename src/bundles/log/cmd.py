@@ -16,7 +16,7 @@ def get_singleton(session, create=False):
         return None
     from chimerax.core import tools
     from .tool import Log
-    return tools.get_singleton(session, Log, 'log', create=create)
+    return tools.get_singleton(session, Log, 'Log', create=create)
 
 def log(session, show = False, hide = False, clear = False, save_path = None,
         thumbnail = False, text = None, html = None, width = 100, height = 100,

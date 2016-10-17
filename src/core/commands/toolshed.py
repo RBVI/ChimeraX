@@ -11,17 +11,22 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.commands import EnumOf, CmdDesc, StringArg, BoolArg
+from . import CmdDesc, EnumOf, StringArg, BoolArg
 
 _bundle_types = EnumOf(["all", "installed", "available"])
 
 
 def _display_bundles(bi_list, logger):
     def bundle_key(bi):
-        return bi.display_name
+        return bi.name
     for bi in sorted(bi_list, key=bundle_key):
-        logger.info(" %s (%s %s): %s" % (bi.display_name, bi.name,
-                                         bi.version, bi.synopsis))
+        logger.info(" %s (%s) [%s]: %s" % (bi.name, bi.version, ', '.join(bi.categories), bi.synopsis))
+        for t in bi.tools:
+            logger.info("    Tool: %s: %s" % (t.name, t.synopsis))
+        for c in bi.commands:
+            logger.info("    Command: %s: %s" % (c.name, c.synopsis))
+        for f in bi.formats:
+            logger.info("    Formats: %s [%s]" % (f.name, f.category))
 
 
 def ts_list(session, bundle_type="installed"):
@@ -156,57 +161,56 @@ ts_update_desc = CmdDesc(required=[("bundle_name", StringArg)],
 
 
 #
-# Commands that deal with GUI (singleton)
+# Commands that deal with tools
 #
 
-def ts_start(session, bundle_name):
+def ts_show(session, tool_name, _show=True):
     '''
-    Start a tool in a bundle.
+    Show a tool, or start one if none is running.
 
     Parameters
     ----------
-    bundle_name : string
+    tool_name : string
     '''
-    ts = session.toolshed
-    tinfo = ts.find_bundle(bundle_name)
-    if tinfo is None:
-        from chimerax.core.errors import UserError
-        raise UserError('No installed bundle named "%s"' % bundle_name)
     if not session.ui.is_gui:
         from chimerax.core.errors import UserError
-        raise UserError("Need a GUI to start tools")
-    tinfo.start(session)
-ts_start_desc = CmdDesc(required=[('bundle_name', StringArg)])
-
-
-def ts_show(session, bundle_name, _show=True):
-    '''
-    Show a tool panel, or start one if none is running.
-
-    Parameters
-    ----------
-    bundle_name : string
-    '''
+        raise UserError("Need a GUI to show or hide tools")
     ts = session.toolshed
-    tinfo = ts.find_bundle(bundle_name)
-    if tinfo is None:
+    bi, tool_name = ts.find_bundle_for_tool(tool_name)
+    if bi is None:
         from chimerax.core.errors import UserError
-        raise UserError('No installed bundle named "%s"' % bundle_name)
-    tinst = [t for t in session.tools.list() if t.bundle_info is tinfo]
+        raise UserError('No installed tool named "%s"' % tool_name)
+    tinst = [t for t in session.tools.list() if t.display_name == tool_name]
     for ti in tinst:
         ti.display(_show)
     if _show and len(tinst) == 0:
-        tinfo.start(session)
-ts_show_desc = CmdDesc(required=[('bundle_name', StringArg)])
+        bi.start_tool(session, tool_name)
+ts_show_desc = CmdDesc(required=[('tool_name', StringArg)],
+                       synopsis="Show tool.  Start if necessary")
 
 
-def ts_hide(session, bundle_name):
+def ts_hide(session, tool_name):
     '''
-    Hide tool panels.
+    Hide tool.
 
     Parameters
     ----------
-    bundle_name : string
+    tool_name : string
     '''
-    ts_show(session, bundle_name, _show=False)
-ts_hide_desc = CmdDesc(required=[('bundle_name', StringArg)])
+    ts_show(session, tool_name, _show=False)
+ts_hide_desc = CmdDesc(required=[('tool_name', StringArg)],
+                       synopsis="Hide tool from view")
+
+
+def register_command(session):
+    from . import register, create_alias
+
+    register("toolshed list", ts_list_desc, ts_list)
+    register("toolshed refresh", ts_refresh_desc, ts_refresh)
+    register("toolshed install", ts_install_desc, ts_install)
+    register("toolshed remove", ts_remove_desc, ts_remove)
+    # register("toolshed update", ts_update_desc, ts_update)
+    register("toolshed show", ts_show_desc, ts_show)
+    register("toolshed hide", ts_hide_desc, ts_hide)
+
+    create_alias("ts", "toolshed $*")
