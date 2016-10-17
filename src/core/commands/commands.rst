@@ -31,7 +31,7 @@ and their code location is described with the function descriptions.
 | `contacts`_ * - Make a buried area contact graph
 | `coordset`_ - Play through structure coordinate sets
 | `crossfade`_ - Fade between scenes for movie making
-| `crosslinks`_ - Move atomic structures to minimize crosslinks
+| `crosslinks`_ * - Move atomic structures to minimize crosslinks
 | `delete`_ - Delete models
 | `echo`_ - Write message to log
 | `exit`_ - Quit
@@ -153,7 +153,9 @@ crossfade
 
 crosslinks
 ==========
-.. autofunction:: chimerax.core.commands.crosslinks.crosslinks
+Function found in *chimerax.crosslinks.crosslinks*
+
+.. autofunction:: chimerax.crosslinks.crosslinks
 
 delete
 ======

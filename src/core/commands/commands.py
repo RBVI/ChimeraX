@@ -20,7 +20,7 @@ def register_core_commands(session):
     modules = [
         'alias', 'align', 'buriedarea',
         'camera', 'clip', 'close', 'cofr', 'color', 'colorname',
-        'coordset', 'crossfade', 'crosslinks',
+        'coordset', 'crossfade',
         'delete', 'dssp', 'exit', 'hide', 'info',
         'lighting', 'list', 'material', 'mousemode', 'move',
         'open', 'pdbimages', 'perframe', 'position', 'pwd',
