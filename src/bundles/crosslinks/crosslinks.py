@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def crosslinks(session, pbgroups = None, color = None, radius = None,
-               minimize = None, iterations = 10, frames = None):
+               plot = None, minimize = None, iterations = 10, frames = None):
     '''
     Move atomic models to minimize crosslink lengths.
 
@@ -24,6 +24,8 @@ def crosslinks(session, pbgroups = None, color = None, radius = None,
       Set the pseudobonds to this color
     radius : float
       Set pseudobond cylinder radius.
+    plot : bool
+      Whether to show a 2d graph of chains with crosslinks between them.
     minimize : bool
       Move each atomic structure model rigidly to minimize the sum of squares of link distances
       to other models.  Each model is moved one time.  This does not produce minimum sum of squares
@@ -53,6 +55,13 @@ def crosslinks(session, pbgroups = None, color = None, radius = None,
     if radius:
         for pb in pbonds:
             pb.radius = radius
+
+    if plot:
+        from .chainplot import CrosslinksPlot, chains_and_edges
+        from chimerax.core.atomic import concatenate, Pseudobonds
+        pbonds = concatenate([pbg.pseudobonds for pbg in pbgroups], Pseudobonds)
+        cnodes, edges = chains_and_edges(pbonds)
+        CrosslinksPlot(session, cnodes, edges)
 
     if minimize:
         minimize_link_lengths(minimize, pbonds, iterations, frames, session)
@@ -138,10 +147,11 @@ class interpolate_position:
             self.frame += 1
 
 def register_command():
-    from chimerax.core.commands import register, CmdDesc, ColorArg, FloatArg, IntArg, PseudobondGroupsArg, StructuresArg
+    from chimerax.core.commands import register, CmdDesc, ColorArg, FloatArg, IntArg, PseudobondGroupsArg, StructuresArg, NoArg
     desc = CmdDesc(optional = [('pbgroups', PseudobondGroupsArg)],
                        keyword = [('color', ColorArg),
                                   ('radius', FloatArg),
+                                  ('plot', NoArg),
                                   ('minimize', StructuresArg),
                                   ('iterations', IntArg),
                                   ('frames', IntArg),
