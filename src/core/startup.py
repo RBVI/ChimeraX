@@ -11,7 +11,12 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def run_user_startup_scripts(session, directory = '~/chimerax_start'):
+def run_user_startup_scripts(session, directory = None):
+
+    if directory is None:
+        from os import environ
+        directory = environ.get('CHIMERAX_START', '~/chimerax_start')
+        
     from os import path, listdir
     dir = path.expanduser(directory)
     if not path.isdir(dir):
