@@ -42,9 +42,13 @@ class SeqCanvas:
     def __init__(self, parent, mav, alignment):
         from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QFrame, QHBoxLayout
         from PyQt5.QtCore import Qt
+        #parent.setMouseTracking(True)
         self.label_scene = QGraphicsScene()
+        """
         self.label_scene.setBackgroundBrush(Qt.lightGray)
+        """
         self.label_view = QGraphicsView(self.label_scene)
+        #self.label_view.setMouseTracking(True)
         self._vdivider = QFrame()
         self._vdivider.setFrameStyle(QFrame.Panel | QFrame.Raised)
         self._vdivider.setLineWidth(2)
@@ -60,6 +64,7 @@ class SeqCanvas:
         self.main_scene.setBackgroundBrush(ms_color)
         """
         self.main_view = QGraphicsView(self.main_scene)
+        #self.main_view.setMouseTracking(True)
         """TODO
         self.labelCanvas = Tkinter.Canvas(parent, bg="#E4E4E4")
         self._vdivider = Tkinter.Frame(parent, bd=2, relief='raised')
@@ -1482,12 +1487,10 @@ class SeqBlock:
     """
 
     def _assoc_res_bind(self, item, aseq, index):
-        if self.seq_offset == 0:
-            print("Binding hover on", aseq.name, index, aseq.characters[index])
-        item.setAcceptHoverEvents(True)
-        item.hoverEnterEvent = lambda e: self._mouse_residue(True, aseq, index)
-        item.hoverLeaveEvent = lambda e: self._mouse_residue(False)
-        item.setToolTip("enter %s %s" % (aseq.name, aseq.characters[index]))
+        #item.hoverEnterEvent = lambda e: self._mouse_residue(True, aseq, index)
+        #item.hoverLeaveEvent = lambda e: self._mouse_residue(False)
+        #item.setToolTip("enter %s %s" % (aseq.name, aseq.characters[index]))
+        pass
 
     def assoc_mod(self, aseq):
         label = self.label_texts[aseq]
@@ -1987,8 +1990,8 @@ class SeqBlock:
         else:
             y = self.bottom_ruler_y + (line_index+1) * (self.font_pixels[1] + self.letter_gaps[1])
 
-        text = self.label_scene.addSimpleText(seq_name(line, self.prefs),
-            font=self._label_font(line))
+        text = HoverableSimpleTextItem(seq_name(line, self.prefs), font=self._label_font(line))
+        self.label_scene.addItem(text)
         text.setBrush(self._brush(label_color))
         # anchor='sw': subtract the height
         rect = text.sceneBoundingRect()
@@ -2109,7 +2112,8 @@ class SeqBlock:
                 return LineItem(info, self.main_scene, left, right, top, bottom,
                     color_func(line, offset))
             """
-            text = self.main_scene.addSimpleText(info, font=self.font)
+            text = HoverableSimpleTextItem(info, font=self.font)
+            self.main_scene.addItem(text)
             # anchor='s': subtract the height and half the width
             rect = text.sceneBoundingRect()
             text.setPos(x - rect.width()/2, y - rect.height())
@@ -2629,7 +2633,24 @@ class SeqBlock:
                         self._makeNumbering(line, i)
         if self.next_block:
             self.next_block.updateNumberings()
+"""
 
+from PyQt5.QtWidgets import QGraphicsSimpleTextItem
+class HoverableSimpleTextItem(QGraphicsSimpleTextItem):
+    def __init__(self, text, font=None):
+        super(HoverableSimpleTextItem, self).__init__(text)
+        if font:
+            self.setFont(font)
+        self.setAcceptHoverEvents(True)
+        self.setToolTip("tool tip")
+
+    def hoverEnterEvent(self, event):
+        print("enter")
+    
+    def hoverLeaveEvent(self, event):
+        print("leave")
+
+"""TODO
 def shouldWrap(numSeqs, prefs):
     if numSeqs == 1:
         prefix = SINGLE_PREFIX
