@@ -40,7 +40,7 @@ class ResiduePlot(Graph):
         edges = ()
         title = '%s %d residues and %s %d residues' % (g1.name, len(r1), g2.name, len(r2))
         Graph.__init__(self, session, nodes+bnodes, edges, "Chain Contacts", title = title)
-        self.node_font_size = 8
+        self.font_size = 8
 
         self._interface_shown = False
         self.draw_graph()
