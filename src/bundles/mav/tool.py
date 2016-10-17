@@ -28,12 +28,12 @@ class MultalignViewer(ToolInstance):
                 title=None, quitCB=None, frame=None, numberingDisplay=None,
                 sessionSave=True):
     """
-    def __init__(self, session, bundle_info, alignment):
+    def __init__(self, session, tool_name, alignment):
         """ if 'autoAssocate' is None then it is the same as False except
             that any StructureSequences in the alignment will be associated
             with their structures
         """
-        ToolInstance.__init__(self, session, bundle_info)
+        ToolInstance.__init__(self, session, tool_name)
 
         """TODO
         from chimera import triggerSet

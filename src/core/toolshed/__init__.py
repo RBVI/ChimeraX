@@ -608,7 +608,7 @@ class Toolshed:
         """
         _debug("initialize_bundles")
         failed = []
-        for bi in reversed(self._installed_bundle_info):
+        for bi in self._installed_bundle_info:
             try:
                 bi.initialize(session)
             except ToolshedError:

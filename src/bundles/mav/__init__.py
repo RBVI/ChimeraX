@@ -26,9 +26,9 @@ class _MavBundleAPI(BundleAPI):
         session.alignments.register_viewer(bundle_info, synonyms=["mav", "multalign"])
 
     @staticmethod
-    def start_tool(session, bundle_info, alignment):
+    def start_tool(session, tool_name, alignment):
         from .tool import MultalignViewer
-        return MultalignViewer(session, bundle_info, alignment)
+        return MultalignViewer(session, tool_name, alignment)
 
 
 bundle_api = _MavBundleAPI()

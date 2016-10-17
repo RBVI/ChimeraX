@@ -39,7 +39,7 @@ setup(
         ("", ["timestamp"]),
     ],
     install_requires=[
-        "chimerax.core", "chimerax.seqalign"
+        "ChimeraX-Core >= 0.1", "chimerax.seqalign"
     ],
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
