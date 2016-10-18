@@ -1,12 +1,12 @@
-How To Use The Tool Template
-----------------------------
+How To Use The Bundle Template
+------------------------------
 
 0. See http://preview.rbvi.ucsf.edu/chimerax/docs/devel/core/toolshed.html
    for documentation on toolshed API
 1. Copy the entire template directory as a new tool directory.
 2a. If you are providing a single tool and a single command (the
     most common case), do the following:
-        - Edit Makefile and looking for the word "Replace".  Replace
+        - Edit Makefile and looking for the word "FIXME".  Replace
 	  the short sentence with information matching your tool.
 	- Edit __init__.py and look for the same all-caps constants
 	  you just changed in Makefile.  Fix them.
