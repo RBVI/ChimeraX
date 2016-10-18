@@ -48,6 +48,7 @@ class SeqCanvas:
         self.label_scene.setBackgroundBrush(Qt.lightGray)
         """
         self.label_view = QGraphicsView(self.label_scene)
+        self.label_view.setAttribute(Qt.WA_AlwaysShowToolTips)
         #self.label_view.setMouseTracking(True)
         self._vdivider = QFrame()
         self._vdivider.setFrameStyle(QFrame.Panel | QFrame.Raised)
@@ -64,6 +65,7 @@ class SeqCanvas:
         self.main_scene.setBackgroundBrush(ms_color)
         """
         self.main_view = QGraphicsView(self.main_scene)
+        self.main_view.setAttribute(Qt.WA_AlwaysShowToolTips)
         #self.main_view.setMouseTracking(True)
         """TODO
         self.labelCanvas = Tkinter.Canvas(parent, bg="#E4E4E4")
