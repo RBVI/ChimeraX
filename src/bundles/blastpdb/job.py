@@ -22,11 +22,12 @@ class BlastPDBJob(OpalJob):
     QUERY_FILENAME = "query.fa"
     RESULTS_FILENAME = "results.txt"
 
-    def __init__(self, session, seq, database="pdb", cutoff=1.0e-3,
+    def __init__(self, session, seq, atomspec, database="pdb", cutoff=1.0e-3,
                  matrix="BLOSUM62", max_hits=500, log=None,
                  finish_callback=None, fail_callback=None):
         super().__init__(session)
         self.seq = seq                          # string
+        self.atomspec = atomspec                # string (atom specifier)
         self.database = database                # string
         self.cutoff = cutoff                    # float
         self.matrix = matrix                    # string
@@ -82,7 +83,8 @@ class BlastPDBJob(OpalJob):
                 else:
                     if self.session.ui.is_gui:
                         from .tool import ToolUI
-                        ToolUI(self.session, "blastpdb", blast_results=p)
+                        ToolUI(self.session, "blastpdb",
+                               blast_results=p, atomspec=self.atomspec)
                     if self.log or (self.log is None and
                                     not self.session.ui.is_gui):
                         msgs = ["BLAST results:"]

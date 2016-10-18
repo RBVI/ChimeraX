@@ -1,10 +1,9 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-BUNDLE_NAME = ChimeraX-Log
-# By convention, UCSF RBVI bundles start with "ChimeraX-"
-BUNDLE_VERSION = 1.0
-PKG_NAME = chimerax.log
+BUNDLE_NAME = ChimeraX-MMTF
+BUNDLE_VERSION = 0.9
+PKG_NAME = chimerax.mmtf
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,'g)
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
