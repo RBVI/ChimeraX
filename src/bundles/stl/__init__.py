@@ -16,17 +16,24 @@ from chimerax.core.toolshed import BundleAPI
 class _MyAPI(BundleAPI):
 
     @staticmethod
-    def initialize(session, bundle_info):
-        """Register STL file format."""
-        from . import stl
-        stl.register()
-
-    @staticmethod
     def get_class(class_name):
         # 'get_class' is called by session code to get class saved in a session
         if class_name == 'STLModel':
             from . import stl
             return stl.STLModel
         return None
+
+    @staticmethod
+    def open_file(session, f, name, filespec=None, **kw):
+        # 'open_file' is called by session code to open a file
+        # returns (list of models, status message)
+        from . import stl
+        return stl.read_stl(session, f, name, **kw)
+
+    @staticmethod
+    def save_file(session, name, filespec=None, **kw):
+        # 'save_file' is called by session code to save a file
+        from . import stl
+        return stl.write_stl(session, name, **kw)
 
 bundle_api = _MyAPI()
