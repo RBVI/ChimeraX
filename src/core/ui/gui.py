@@ -338,11 +338,19 @@ class MainWindow(QMainWindow, PlainTextLog):
         if not paths:
             return
 
-        models = session.models.open(paths)
-        if models and len(paths) == 1:
-            # Remember in file history
-            from ..filehistory import remember_file
-            remember_file(session, paths[0], format=None, models=models)
+        def _qt_safe(session=session, paths=paths):
+            models = session.models.open(paths)
+            if models and len(paths) == 1:
+                # Remember in file history
+                from ..filehistory import remember_file
+                remember_file(session, paths[0], format=None, models=models)
+        # Opening the model directly adversely affects Qt interfaces that show
+        # as a result.  In particular, Multalign Viewer no longer gets hover
+        # events correctly, nor tool tips.
+        #
+        # Using session.ui.thread_safe() doesn't help either(!)
+        from PyQt5.QtCore import QTimer
+        QTimer.singleShot(0, _qt_safe)
 
     def file_save_cb(self, session):
         self.save_dialog.display(self, session)

@@ -250,7 +250,7 @@ class Logger:
         """
         import sys
         self._log(Log.LEVEL_ERROR, msg, add_newline, image, is_html,
-                  last_resort=sys.stderr)
+                  last_resort=sys.__stderr__)
 
     def info(self, msg, add_newline=True, image=None, is_html=False):
         """Log an info message
@@ -261,7 +261,7 @@ class Logger:
             return
         import sys
         self._log(Log.LEVEL_INFO, msg, add_newline, image, is_html,
-                  last_resort=sys.stdout)
+                  last_resort=sys.__stdout__)
 
     def remove_log(self, log):
         """remove a logger"""
@@ -372,7 +372,7 @@ class Logger:
             return
         import sys
         self._log(Log.LEVEL_WARNING, msg, add_newline, image, is_html,
-                  last_resort=sys.stderr)
+                  last_resort=sys.__stderr__)
 
     def _follow_timeout(self, follow_with, color, log, secondary, follow_log):
         if secondary:
