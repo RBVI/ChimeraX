@@ -385,7 +385,7 @@ class Toolshed:
         """
 
         _debug("reload", rebuild_cache, check_remote)
-        for bi in self._installed_bundle_info:
+        for bi in reversed(self._installed_bundle_info):
             for p in bi.packages:
                 try:
                     del self._installed_packages[p]
@@ -969,24 +969,7 @@ class Toolshed:
                 except KeyError:
                     logger.warning("Unknown format name: %r." % name)
                     continue
-
-                def open_cb(*args, format_name=fi.name, **kw):
-                    try:
-                        f = self._get_api().open_file
-                    except AttributeError:
-                        raise ToolshedError(
-                            "no open_file function found for bundle \"%s\""
-                            % self.name)
-                    if f == BundleAPI.open_file:
-                        raise ToolshedError("bundle \"%s\"'s API forgot to override open_file()" % self.name)
-
-                    # optimize by replacing open_func for format
-                    def open_shim(*args, f=f, format_name=format_name, **kw):
-                        return f(*args, format_name=format_name, **kw)
-                    format = io.format_from_name(format_name)
-                    format.open_func = open_shim
-                    return open_shim(*args, **kw)
-                fi.open_func = open_cb
+                fi.has_open = True
             elif parts[0] == "ChimeraX-Save":
                 if bi is None:
                     logger.warning('ChimeraX-Bundle entry must be first')
@@ -999,24 +982,7 @@ class Toolshed:
                 except KeyError:
                     logger.warning("Unknown format name: %r." % name)
                     continue
-
-                def save_cb(*args, format_name=fi.name, **kw):
-                    try:
-                        f = self._get_api().save_file
-                    except AttributeError:
-                        raise ToolshedError(
-                            "no save_file function found for bundle \"%s\""
-                            % self.name)
-                    if f == BundleAPI.save_file:
-                        raise ToolshedError("bundle \"%s\"'s API forgot to override save_file()" % self.name)
-
-                    # optimize by replacing save_func for format
-                    def save_shim(*args, f=f, format_name=format_name, **kw):
-                        return f(*args, format_name=format_name, **kw)
-                    format = io.format_from_name(format_name)
-                    format.export_func = save_shim
-                    return save_shim(*args, **kw)
-                fi.export_func = save_cb
+                fi.has_save = True
         return bi
 
     # Following methods are used for installing and removing
