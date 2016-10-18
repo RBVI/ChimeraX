@@ -1417,6 +1417,7 @@ class CommandInfo:
     @classmethod
     def from_cache_data(cls, data):
         return cls(*data)
+SelectorInfo = CommandInfo
 
 
 class FormatInfo:
@@ -1446,7 +1447,8 @@ class FormatInfo:
 
     def __init__(self, name, category, alternates=None, suffixes=None,
                  mime_types=None, url=None, synopsis=None,
-                 dangerous=None, icon=None):
+                 dangerous=None, icon=None,
+                 has_open=False, has_save=False):
         self.name = name
         self.alternatives = alternates
         self.category = category
@@ -1457,8 +1459,8 @@ class FormatInfo:
         # self.encoding = encoding
         self.icon = icon
         self.synopsis = synopsis
-        self.has_open = False
-        self.has_save = False
+        self.has_open = has_open
+        self.has_save = has_save
 
     def __repr__(self):
         s = self.name
@@ -1488,6 +1490,8 @@ class FormatInfo:
             'icon': self.icon,
             'synopsis': self.synopsis,
             'alternatives': self.alternatives,
+            'has_open': self.has_open,
+            'has_save': self.has_save,
         }
 
     @classmethod
@@ -1626,9 +1630,9 @@ class BundleInfo:
         }
         more = {
             'tools': [ti.cache_data() for ti in self.tools],
-            'commands': [ti.cache_data() for ti in self.commands],
-            'formats': [ti.cache_data() for ti in self.formats],
-            'selectors': [ti.cache_data() for ti in self.selectors],
+            'commands': [ci.cache_data() for ci in self.commands],
+            'formats': [fi.cache_data() for fi in self.formats],
+            'selectors': [si.cache_data() for si in self.selectors],
         }
         return args, kw, more
 
@@ -1637,9 +1641,9 @@ class BundleInfo:
         args, kw, more = data
         kw['session_versions'] = range(*kw['session_versions'])
         tools = [ToolInfo.from_cache_data(d) for d in more['tools']]
-        commands = [ToolInfo.from_cache_data(d) for d in more['commands']]
-        formats = [ToolInfo.from_cache_data(d) for d in more['formats']]
-        selectors = [ToolInfo.from_cache_data(d) for d in more['selectors']]
+        commands = [CommandInfo.from_cache_data(d) for d in more['commands']]
+        formats = [FormatInfo.from_cache_data(d) for d in more['formats']]
+        selectors = [SelectorInfo.from_cache_data(d) for d in more['selectors']]
         bi = BundleInfo(*args, **kw)
         bi.tools = tools
         bi.commands = commands
