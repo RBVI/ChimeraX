@@ -225,6 +225,9 @@ def init(argv, event_loop=True):
             os.environ['PATH'] = ':'.join(paths)
         del paths
 
+    from chimerax.core.utils import initialize_ssl_cert_dir
+    initialize_ssl_cert_dir()
+
     # use chimerax.core's version
     from chimerax.core.toolshed import _ChimeraCore
     core_pip_key = _ChimeraCore.casefold()
