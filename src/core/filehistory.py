@@ -49,7 +49,8 @@ class FileHistory:
             fs.set_access_time()
         else:
             f[(apath,database)] = fs = FileSpec(apath, format, database = database)
-        if fs.image is None or file_saved:
+        has_graphics = self.session.main_view.render is not None
+        if has_graphics and (fs.image is None or file_saved):
             self._need_thumbnails.append((fs, models))
             if file_saved:
                 self.capture_thumbnails_cb()

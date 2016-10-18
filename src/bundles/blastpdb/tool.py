@@ -28,7 +28,7 @@ class ToolUI(ToolInstance):
         # and HTML widget below for displaying results.
         # Layout all the widgets
         from PyQt5.QtWidgets import QGridLayout, QLabel, QComboBox, QPushButton
-        from .htmlview import HtmlView
+        from chimerax.core.ui.widgets import HtmlView
         layout = QGridLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         label = QLabel("Chain:")

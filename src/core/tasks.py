@@ -180,6 +180,13 @@ class Task(State):
     def _run_thread(self, *args, **kw):
         try:
             self.run(*args, **kw)
+        except Exception:
+            import sys
+            preface = "Exception in thread"
+            if self.id:
+                preface += ' ' + self.id
+            self.session.logger.report_exception(preface=preface,
+                                                 exc_info=sys.exc_info())
         finally:
             if self.terminating():
                 self._update_state(TERMINATED)

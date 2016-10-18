@@ -152,7 +152,7 @@ def stl_unpack(geom):
 
 # -----------------------------------------------------------------------------
 #
-def write_stl(session, filename, models, **kw):
+def write_stl(session, filename, models=None, **kw):
     if models is None:
         models = session.models.list()
 

@@ -43,11 +43,11 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
     if ':' in filename:
         prefix, fname = filename.split(':', maxsplit=1)
         from .. import fetch
-        from_database, default_format = fetch.fetch_from_prefix(session, prefix)
+        from_database, default_format = fetch.fetch_from_prefix(prefix)
         if from_database is None:
             from ..errors import UserError
             raise UserError('Unknown database prefix "%s" must be one of %s'
-                            % (prefix, fetch.prefixes(session)))
+                            % (prefix, fetch.prefixes()))
         if format is None:
             format = default_format
         filename = fname
@@ -67,7 +67,7 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
     if from_database is not None:
         from .. import fetch
         if format is not None:
-            db_formats = fetch.database_formats(session, from_database)
+            db_formats = fetch.database_formats(from_database)
             if format not in db_formats:
                 from ..errors import UserError
                 raise UserError('Only formats %s can be fetched from database %s'
@@ -145,7 +145,7 @@ def open_formats(session):
     else:
         session.logger.info('\nDatabase, Formats:')
     from ..fetch import fetch_databases
-    databases = list(fetch_databases(session).values())
+    databases = list(fetch_databases().values())
     databases.sort(key=lambda k: k.database_name)
     for db in databases:
         formats = list(db.fetch_function.keys())
@@ -177,7 +177,7 @@ def register_command(session):
 
     def db_formats():
         from .. import fetch
-        return [f.database_name for f in fetch.fetch_databases(session).values()]
+        return [f.database_name for f in fetch.fetch_databases().values()]
     desc = CmdDesc(
         required=[('filename', OpenFileNameArg)],
         keyword=[

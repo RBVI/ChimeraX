@@ -40,7 +40,6 @@ def fetch_emdb(session, emdb_id, ignore_cache=False, **kw):
 
 # -----------------------------------------------------------------------------
 #
-def register_emdb_fetch(session):
+def register_emdb_fetch():
     from .. import fetch
-    fetch.register_fetch(session, 'emdb', fetch_emdb, 'ccp4',
-                         prefixes = ['emdb'])
+    fetch.register_fetch('emdb', fetch_emdb, 'ccp4', prefixes = ['emdb'])

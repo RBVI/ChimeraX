@@ -42,10 +42,11 @@ class _MyAPI(BundleAPI):
         # 'open_file' is called by session code to open a file
         # returns (list of models, status message)
         raise NotImplementedError     # FIXME: remove method if unneeded
-        from . import cmd
-        import os.path
-        cmd.help(session, "file:" + os.path.realpath(filespec))
-        return [], "Opened %s" % name
+
+    @staticmethod
+    def save_file(session, name, **kw):
+        # 'save_file' is called by session code to save a file
+        raise NotImplementedError     # FIXME: remove method if unneeded
 
     @staticmethod
     def initialize(session, bi):
