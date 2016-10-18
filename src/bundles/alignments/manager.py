@@ -29,8 +29,11 @@ class AlignmentsManager(State):
         del self.alignments[alignment.name]
         alignment._destroy()
 
-    def deregister_viewer(self, tool_name):
-        del self.viewer_info[tool_name]
+    def deregister_viewer(self, tool_name, sequence_viewer=True, alignment_viewer=True):
+        if sequence_viewer:
+            del self.viewer_info['sequence'][tool_name]
+        if alignment_viewer:
+            del self.viewer_info['alignment'][tool_name]
 
     def new_alignment(self, seqs, identify_as, attrs=None, markups=None,
             auto_destroy=None, align_viewer=None, seq_viewer=None, **kw):
