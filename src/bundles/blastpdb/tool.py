@@ -5,9 +5,8 @@
 #
 from chimerax.core.tools import ToolInstance
 
-_EmptyPage = "<h2>This space intentionally left blank</h2>"
+_EmptyPage = "<h2>Please select a chain and press <b>BLAST</b></h2>"
 _InProgressPage = "<h2>BLAST search in progress&hellip;</h2>"
-_NonEmptyPage = "<h2>This space unintentionally left blank</h2>"
 
 
 class ToolUI(ToolInstance):
@@ -63,6 +62,8 @@ class ToolUI(ToolInstance):
     def _blast_cb(self, _):
         from .job import BlastPDBJob
         n = self.chain_combobox.currentIndex()
+        if n < 0:
+            return
         chain = self.chain_combobox.itemData(n)
         BlastPDBJob(self.session, chain.characters, chain.atomspec(),
                     finish_callback=self._blast_job_finished)
@@ -84,6 +85,14 @@ class ToolUI(ToolInstance):
     def _update_blast_results(self, blast_results, atomspec):
         # blast_results is either None or a blastp_parser.Parser
         self.ref_atomspec = atomspec
+        if atomspec:
+            from chimerax.core.commands import AtomSpecArg
+            arg = AtomSpecArg.parse(atomspec, self.session)[0]
+            s = arg.evaluate(self.session)
+            chains = s.atoms.residues.unique_chains
+            if len(chains) == 1:
+                n = self.chain_combobox.findData(chains[0])
+                self.chain_combobox.setCurrentIndex(n)
         if blast_results is None:
             self.results_view.setHtml(_EmptyPage)
         else:
