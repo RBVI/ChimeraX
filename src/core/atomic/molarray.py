@@ -698,6 +698,14 @@ class Pseudobonds(Collection):
             args = [ctypes.c_void_p, ctypes.c_size_t])(self._c_pointers, len(self))
 
     @property
+    def lengths(self):
+        '''Distances between pseudobond end points.'''
+        a1, a2 = self.atoms
+        v = a1.scene_coords - a2.scene_coords
+        from numpy import sqrt
+        return sqrt((v*v).sum(axis=1))
+
+    @property
     def half_colors(self):
         '''2N x 4 RGBA uint8 numpy array of half bond colors.'''
         f = c_function('pseudobond_half_colors', args = [ctypes.c_void_p, ctypes.c_size_t], ret = ctypes.py_object)
