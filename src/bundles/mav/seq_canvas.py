@@ -1656,7 +1656,6 @@ class SeqBlock:
     """
 
     def _colorize_label(self, aseq):
-        print("Colorizing label for", aseq.name, "in block with offset", self.seq_offset)
         label_text = self.label_texts[aseq]
         bbox = label_text.boundingRect()
         if aseq in self.label_rects:

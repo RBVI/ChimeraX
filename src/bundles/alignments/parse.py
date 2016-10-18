@@ -14,7 +14,7 @@
 class FormatSyntaxError(Exception):
     pass
 
-def open_file(session, stream, fname, file_type="FASTA", return_seqs=False,
+def open_file(session, stream, fname, file_type="FASTA", return_vals=None,
         one_alignment=True, identify_as=None, **kw):
     ns = {}
     try:
@@ -43,7 +43,7 @@ def open_file(session, stream, fname, file_type="FASTA", return_seqs=False,
             nogaps = s.ungapped()
             if nogaps[:len(nogaps)/2] == nogaps[len(nogaps)/2:]:
                 s.circular = True
-    if return_seqs:
+    if return_vals == "seqs":
         return seqs
     from chimerax.core.errors import UserError
     if one_alignment:
@@ -52,12 +52,15 @@ def open_file(session, stream, fname, file_type="FASTA", return_seqs=False,
                 " it is therefore impossible to open these sequences as an alignment.  If"
                 " you want to open the sequences individually, specify 'false' as the value"
                 " of the 'oneAlignment' keyword in the 'open' command." % differing_seq.name)
-        session.alignments.new_alignment(seqs, identify_as if identify_as is not None else fname,
-            align_attrs=file_attrs, align_markups=file_markups, **kw)
+        alignments = [session.alignments.new_alignment(seqs, identify_as if identify_as is not None
+            else fname, align_attrs=file_attrs, align_markups=file_markups, **kw)]
     else:
+        alignments = []
         for seq in seqs:
-            session.alignments.new_alignment([seq],
-                identify_as if identify_as is not None else fname, **kw)
+            alignments.append(session.alignments.new_alignment([seq],
+                identify_as if identify_as is not None else fname, **kw))
+    if return_vals == "alignments":
+        return alignments
     return [], "Opened %d sequences from %s" % (len(seqs), fname)
 
 def make_readable(seq_name):
