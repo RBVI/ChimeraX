@@ -45,7 +45,6 @@ class LengthsPlot(Plot):
         a.set_ylabel('crosslink count')
 
         d = self.pbonds.lengths
-        print ('lengths', d.max())
         n, be, self._patches = a.hist(d, bins=bins)
         self._bin_edges = be
         
@@ -54,10 +53,8 @@ class LengthsPlot(Plot):
             # This makes it fall outside bins in numpy.digitize().
             # Remedy this by extending the rightmost bin edge a little.
             be[bins] += 0.01 * (be[bins]-be[bins-1])
-        print ('bin edges', self._bin_edges)
         from numpy import digitize
         self._pbond_bin_index = digitize(d, self._bin_edges)-1
-        print ('pb bin index', self._pbond_bin_index)
         
     def _mouse_move(self, event):
         e = self.matplotlib_mouse_event(event.x(), event.y())
