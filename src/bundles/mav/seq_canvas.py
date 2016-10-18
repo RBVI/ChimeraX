@@ -1661,6 +1661,14 @@ class SeqBlock:
         if aseq in self.label_rects:
             label_rect = self.label_rects[aseq]
         else:
+            # Qt seems to make the bounding box enclose all of the inter-line space
+            # below the text and none of that space above it.  Move the bounding box up
+            # to make the enclosure look more even
+            ## leading() doesn't seem to return anything useful
+            ##from PyQt5.QtGui import QFontMetrics
+            ##interline = QFontMetrics(label_text.font()).leading()
+            interline = 2
+            bbox.adjust(0, -interline/2, 0, -interline/2)
             label_rect = self.label_scene.addRect(label_text.mapRectToScene(bbox))
             label_rect.setZValue(-1)
             self.label_rects[aseq] = label_rect
