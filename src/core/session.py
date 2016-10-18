@@ -756,7 +756,7 @@ def common_startup(sess):
     )
 
     _register_core_file_formats()
-    _register_core_database_fetch(sess)
+    _register_core_database_fetch()
 
 
 def _register_core_file_formats():
@@ -776,12 +776,11 @@ def _register_core_file_formats():
     image.register_image_save()
 
 
-def _register_core_database_fetch(session):
-    s = session
+def _register_core_database_fetch():
     from .atomic import pdb
-    pdb.register_pdb_fetch(s)
+    pdb.register_pdb_fetch()
     from .atomic import mmcif
-    mmcif.register_mmcif_fetch(s)
+    mmcif.register_mmcif_fetch()
     from . import map
-    map.register_eds_fetch(s)
-    map.register_emdb_fetch(s)
+    map.register_eds_fetch()
+    map.register_emdb_fetch()

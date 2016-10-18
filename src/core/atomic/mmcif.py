@@ -146,9 +146,9 @@ def register_mmcif_format():
         requires_filename=True, open_func=open_mmcif, export_func=write_mmcif)
 
 
-def register_mmcif_fetch(session):
+def register_mmcif_fetch():
     from .. import fetch
-    fetch.register_fetch(session, 'pdb', fetch_mmcif, 'mmcif',
+    fetch.register_fetch('pdb', fetch_mmcif, 'mmcif',
                          prefixes=['pdb'], default_format=True)
 
 

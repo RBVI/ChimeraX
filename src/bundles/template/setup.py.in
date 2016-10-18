@@ -200,9 +200,10 @@ setup(
         #       ChimeraX-Open :: PDB :: PDB ::
         #       ChimeraX-Save :: PDB :: PDB ::
         #
-        # ChimeraX-Selector :: name :: synopsis
+        "ChimeraX-Selector :: name :: categories :: synopsis",
         #
         # 'name' is a string and may have spaces in it.
+        # 'categories' should be a subset of the bundle's categories. 
         # 'synopsis' is a short description of the selector.  It is here for
         # uninstalled commands, so that users can get more than just a
         # name for deciding whether they want the selector or not.
