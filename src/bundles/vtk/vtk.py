@@ -52,9 +52,12 @@ def read_vtk(session, filename, name, *args, **kw):
     points = line_segments = triangles = None
     details = ''
     while True:
-        line = f.readline().strip()
+        line = f.readline()
         if not line:
             break
+        line = line.strip()
+        if not line:
+            continue
         data_type, nobj, nnum = parse_data_type_line(line)
         if data_type == 'POINTS':
             points = read_floats(f, 3*nobj, binary).reshape((nobj,3))
@@ -81,7 +84,7 @@ def read_vtk(session, filename, name, *args, **kw):
     if points is None:
         raise UserError('VTK file did not contain POINTS')
     if line_segments is None and triangles is None:
-        raise UserError('VTK file did not contain LINES or POLYGONS')
+        raise UserError('VTK file did not contain LINES nor POLYGONS')
 
     models = []
     from os.path import basename
@@ -215,12 +218,3 @@ def triangles_model(session, points, triangles,
     m.normals = surface.calculate_vertex_normals(points, triangles)
     m.color = color
     return m
-    
-# -----------------------------------------------------------------------------
-#
-def register():
-    from chimerax.core import io, generic3d
-    io.register_format(
-        "VTK PolyData", generic3d.CATEGORY, (".vtk",), ("vtk",),
-        reference="http://www.vtk.org/wp-content/uploads/2015/04/file-formats.pdf",
-        open_func=read_vtk)
