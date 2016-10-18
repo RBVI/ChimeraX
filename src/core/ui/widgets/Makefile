@@ -9,26 +9,19 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-TOP= ../../..
+TOP= ../../../..
 include $(TOP)/mk/config.make
 
-SUBDIRS	+= widgets
-
-include $(TOP)/mk/subdir.make
-
 PYSRCS= $(wildcard *.py)
-PKG_DIR= $(PYSITEDIR)/chimerax/core/ui
-APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/ui
-DATA = splash.jpg contract*.png expand*.png about.html
+PKG_DIR= $(PYSITEDIR)/chimerax/core/ui/widgets
+APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/ui/widgets
 
 all: $(PYSRCS)
 	$(PYTHON_EXE) -B -m py_compile $?
 
-install: all dir about.html
-	$(RSYNC) $(PYSRCS) $(DATA) $(PKG_DIR)
+install: all dir
+	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 	#if [ -d "$(APP_PKG_DIR)" ]; then $(RSYNC) $(PYSRCS) $(APP_PKG_DIR); fi
-
-$(SUBDIR_INSTALL): dir
 
 dir:
 	if [ ! -d "$(PKG_DIR)" ]; then mkdir -p $(PKG_DIR); fi
@@ -39,11 +32,3 @@ clean:
 
 lint:
 	$(PYLINT) $(PYSRCS)
-
-about.html:	about.html.in Makefile
-	sed -e '/===/d' \
-		-e 's,http:.*html,<a href="&">&</a>.,' \
-		$(TOP)/copyright.txt | \
-		sed $$'/COPYRIGHT_NOTICE/{r /dev/stdin\nd\n}' \
-		about.html.in > about.html \
-		|| rm about.html
