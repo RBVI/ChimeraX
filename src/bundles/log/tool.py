@@ -259,7 +259,8 @@ class Log(ToolInstance, HtmlLog):
                     (level == self.LEVEL_WARNING and self.warning_shows_dialog)):
                 if not is_html:
                     dlg_msg = "<br>".join(msg.split("\n"))
-                self.error_dialog.showMessage(dlg_msg)
+                self.session.ui.thread_safe(self.error_dialog.showMessage,
+                                            dlg_msg)
             if not is_html:
                 from html import escape
                 msg = escape(msg)
