@@ -27,7 +27,6 @@ pip.log
 prebuilt*.bz2
 ChimeraX.app
 imex.h
-timestamp
 setup.py
 *.egg-info
 dist
@@ -41,6 +40,7 @@ src/core/buildinfo.py
 src/core/commands/_atomspec.py
 src/wheelhouse/Makefile.wheelhouse
 src/core/ui/about.html
+src/bundles/rest_server/server.pem
 prereqs/PyQt/*commercial*
 docs/license.html
 docs/license.txt

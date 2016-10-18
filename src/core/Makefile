@@ -57,7 +57,7 @@ app-install: wheel
 	$(APP_BOOTSTRAP_PIP) install -U $(WHEEL)
 	$(RSYNC) $(WHEEL) $(wheelhouse)
 
-wheel: setup.py timestamp
+wheel: setup.py
 	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel --plat-name $(BIN_PLATFORM)
 	rm -rf $(WHL_BNDL_NAME).egg-info
 
@@ -79,9 +79,6 @@ endif
 
 setup.py: setup.py.in
 	sed $(SETUP_SED_ARGS) < setup.py.in > setup.py
-
-timestamp:
-	echo "chimerax.core" > timestamp
 
 lint:
 	$(PYLINT) $(PYSRCS)
