@@ -16,17 +16,40 @@ from . import CmdDesc, EnumOf, StringArg, BoolArg
 _bundle_types = EnumOf(["all", "installed", "available"])
 
 
-def _display_bundles(bi_list, logger):
+def _display_bundles(bi_list, logger, use_html=False):
     def bundle_key(bi):
         return bi.name
-    for bi in sorted(bi_list, key=bundle_key):
-        logger.info(" %s (%s) [%s]: %s" % (bi.name, bi.version, ', '.join(bi.categories), bi.synopsis))
-        for t in bi.tools:
-            logger.info("    Tool: %s: %s" % (t.name, t.synopsis))
-        for c in bi.commands:
-            logger.info("    Command: %s: %s" % (c.name, c.synopsis))
-        for f in bi.formats:
-            logger.info("    Formats: %s [%s]" % (f.name, f.category))
+    info = ""
+    if use_html:
+        info += "<dl>\n"
+        for bi in sorted(bi_list, key=bundle_key):
+            info += "<dt><b>%s</b> (%s) [%s]: <i>%s</i>\n" % (
+                bi.name, bi.version, ', '.join(bi.categories), bi.synopsis)
+            info += "<dd>\n"
+            for t in bi.tools:
+                info += "Tool: <b>%s</b>: <i>%s</i><br>\n" % (t.name, t.synopsis)
+            for c in bi.commands:
+                info += "Command: <b>%s</b>: <i>%s</i><br>\n" % (c.name, c.synopsis)
+            for f in bi.formats:
+                can_open = ' open' if f.has_open else ''
+                can_save = ' save' if f.has_save else ''
+                info += "Formats: <b>%s</b> [%s]%s%s<br>\n" % (f.name, f.category,
+                                                          can_open, can_save)
+        info += "</dl>\n"
+    else:
+        for bi in sorted(bi_list, key=bundle_key):
+            info += " %s (%s) [%s]: %s\n" % (
+                bi.name, bi.version, ', '.join(bi.categories), bi.synopsis)
+            for t in bi.tools:
+                info += "    Tool: %s: %s\n" % (t.name, t.synopsis)
+            for c in bi.commands:
+                info += "    Command: %s: %s\n" % (c.name, c.synopsis)
+            for f in bi.formats:
+                can_open = ' open' if f.has_open else ''
+                can_save = ' save' if f.has_save else ''
+                info += "    Formats: %s [%s]%s%s\n" % (f.name, f.category,
+                                                          can_open, can_save)
+    logger.info(info, is_html=use_html)
 
 
 def ts_list(session, bundle_type="installed"):
@@ -39,18 +62,19 @@ def ts_list(session, bundle_type="installed"):
     '''
     ts = session.toolshed
     logger = session.logger
+    use_html = session.ui.is_gui
     if bundle_type == "installed" or bundle_type == "all":
         bi_list = ts.bundle_info(installed=True, available=False)
         if bi_list:
             logger.info("List of installed bundles:")
-            _display_bundles(bi_list, logger)
+            _display_bundles(bi_list, logger, use_html)
         else:
             logger.info("No installed bundles found.")
     if bundle_type in ("available", "all"):
         bi_list = ts.bundle_info(installed=False, available=True)
         if bi_list:
             logger.info("List of available bundles:")
-            _display_bundles(bi_list, logger)
+            _display_bundles(bi_list, logger, use_html)
         else:
             logger.info("No available bundles found.")
 ts_list_desc = CmdDesc(optional=[("bundle_type", _bundle_types)],
