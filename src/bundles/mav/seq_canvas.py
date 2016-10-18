@@ -1489,10 +1489,7 @@ class SeqBlock:
     """
 
     def _assoc_res_bind(self, item, aseq, index):
-        #item.hoverEnterEvent = lambda e: self._mouse_residue(True, aseq, index)
-        #item.hoverLeaveEvent = lambda e: self._mouse_residue(False)
-        #item.setToolTip("enter %s %s" % (aseq.name, aseq.characters[index]))
-        pass
+        item.setToolTip(self._mouse_res_text(aseq, index))
 
     def assoc_mod(self, aseq):
         label = self.label_texts[aseq]
@@ -1504,6 +1501,12 @@ class SeqBlock:
             if aseq in self.label_rects:
                 self.label_scene.removeItem(self.label_rects[aseq])
                 del self.label_rects[aseq]
+        line_items = self.line_items[aseq]
+        for i in range(len(line_items)):
+            item = line_items[i]
+            if not item:
+                continue
+            self._assoc_res_bind(item, aseq, self.seq_offset+i)
         """
         if self._large_alignment():
             line_items = self.line_items[aseq]
@@ -1992,8 +1995,8 @@ class SeqBlock:
         else:
             y = self.bottom_ruler_y + (line_index+1) * (self.font_pixels[1] + self.letter_gaps[1])
 
-        text = HoverableSimpleTextItem(seq_name(line, self.prefs), font=self._label_font(line))
-        self.label_scene.addItem(text)
+        text = self.label_scene.addSimpleText(seq_name(line, self.prefs),
+            font=self._label_font(line))
         text.setBrush(self._brush(label_color))
         # anchor='sw': subtract the height
         rect = text.sceneBoundingRect()
@@ -2114,8 +2117,7 @@ class SeqBlock:
                 return LineItem(info, self.main_scene, left, right, top, bottom,
                     color_func(line, offset))
             """
-            text = HoverableSimpleTextItem(info, font=self.font)
-            self.main_scene.addItem(text)
+            text = self.main_scene.addSimpleText(info, font=self.font)
             # anchor='s': subtract the height and half the width
             rect = text.sceneBoundingRect()
             text.setPos(x - rect.width()/2, y - rect.height())
@@ -2159,26 +2161,33 @@ class SeqBlock:
             self.next_block._molChange(seqs)
     """
 
-    def _mouse_residue(self, enter, seq=None, index=None):
-        if enter:
-            print("enter", seq.name, index)
-            """
-            self._mouseID = self.main_scene.after(300,
-                    lambda: self._showResidue(seq, index))
-            """
-        else:
-            print("exit")
-            """
-            if self._mouseID:
-                if self._mouseID == "done":
-                    # only clear the status line if we've
-                    # put # a residue ID in it previously...
-                    self.status_func("")
+    def _mouse_res_text(self, aseq, index):
+        ungapped = aseq.gapped_to_ungapped(index)
+        if ungapped is None:
+            res_text = "gap"
+        elif aseq.match_maps:
+            residues = []
+            for match_map in aseq.match_maps.values():
+                try:
+                    residues.append(match_map[ungapped])
+                except KeyError:
+                    continue
+            if residues:
+                if len(residues) < 20:
+                    res_text = "\n".join([str(r) for r in residues])
                 else:
-                    self.main_scene.after_cancel(
-                                self._mouseID)
-                self._mouseID = None
-            """
+                    res_text = "\n".join([str(r) for r in residues[:10]])
+                    res_text += "\n and %d more..." % (len(residues) - 10)
+            else:
+                res_text = "no corresponding structure residue"
+        else:
+            if aseq.numbering_start is None:
+                off = 1
+            else:
+                off = aseq.numbering_start
+            res_text = "sequence position %d" % (ungapped+off)
+
+        return res_text
 
     """TODO
     def _moveLines(self, lines, overLabel, overNumber, down):
@@ -2524,40 +2533,7 @@ class SeqBlock:
         self._moveLines(self.lines, 0, 0, pushDown)
         self._moveTree(pushDown)
         if self.next_block:
-            self.next_block.setRulerDisplay(show_ruler,
-                            pushDown=pushDown)
-
-    def _showResidue(self, aseq, index):
-        self._mouseID = "done"
-        ungapped = aseq.gapped2ungapped(index)
-        if ungapped is None:
-            statusText = "gap"
-        elif hasattr(aseq, 'matchMaps'):
-            residues = []
-            for matchMap in aseq.matchMaps.values():
-                try:
-                    residues.append(matchMap[ungapped])
-                except KeyError:
-                    continue
-            if residues:
-                statusText = ", ".join([chimeraLabel(r,
-                    modelName=True, style="simple") for r in residues])
-                if len(statusText) > 100:
-                    statusText = ", ".join([chimeraLabel(r,
-                        modelName=False, style="simple") for r in residues])
-                if len(statusText) > 100:
-                    statusText = ", ".join([chimeraLabel(r,
-                        modelName=False, style="osl") for r in residues])
-            else:
-                statusText = "no corresponding structure residue"
-        else:
-            if aseq.numberingStart is None:
-                off = 1
-            else:
-                off = aseq.numberingStart
-            statusText = "sequence position %d" % (ungapped+off)
-
-        self.status_func(statusText, blankAfter=0)
+            self.next_block.setRulerDisplay(show_ruler, pushDown=pushDown)
 
     def showHeaders(self, headers, pushDown=0):
         self.top_y += pushDown
@@ -2635,24 +2611,7 @@ class SeqBlock:
                         self._makeNumbering(line, i)
         if self.next_block:
             self.next_block.updateNumberings()
-"""
 
-from PyQt5.QtWidgets import QGraphicsSimpleTextItem
-class HoverableSimpleTextItem(QGraphicsSimpleTextItem):
-    def __init__(self, text, font=None):
-        super(HoverableSimpleTextItem, self).__init__(text)
-        if font:
-            self.setFont(font)
-        self.setAcceptHoverEvents(True)
-        self.setToolTip("tool tip")
-
-    def hoverEnterEvent(self, event):
-        print("enter")
-    
-    def hoverLeaveEvent(self, event):
-        print("leave")
-
-"""TODO
 def shouldWrap(numSeqs, prefs):
     if numSeqs == 1:
         prefix = SINGLE_PREFIX
