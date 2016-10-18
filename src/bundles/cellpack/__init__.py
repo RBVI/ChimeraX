@@ -18,6 +18,6 @@ class _MyAPI(BundleAPI):
     @staticmethod
     def initialize(session, bi):
         from . import fetch_cellpack
-        fetch_cellpack.register_cellpack_fetch(session)
+        fetch_cellpack.register_cellpack_fetch()
 
 bundle_api = _MyAPI()
