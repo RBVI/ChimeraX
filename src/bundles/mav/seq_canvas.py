@@ -1660,7 +1660,6 @@ class SeqBlock:
         bbox = label_text.boundingRect()
         if aseq in self.label_rects:
             label_rect = self.label_rects[aseq]
-            label_rect.setRect(bbox)
         else:
             label_rect = self.label_scene.addRect(label_text.mapRectToScene(bbox))
             label_rect.setZValue(-1)
