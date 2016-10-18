@@ -143,6 +143,10 @@ class ToolInstance(State):
         self.session.tools.remove([self])
         # TODO: track.deleted(ToolInstance, [self])
 
+    def displayed(self):
+        if hasattr(self, 'tool_window'):
+            return self.tool_window.shown
+        
     def display(self, b):
         """Show or hide this tool instance in the user interface.
 
