@@ -19,7 +19,7 @@ PKG_DESCRIPTION = Sequence alignment viewer
 TOOL_NAME = mav
 TOOL_PKG_NAME = $(PKG_NAME)
 TOOL_DISPLAY_NAME = Multalign Viewer
-TOOL_CATEGORY = Hidden
+TOOL_CATEGORY = Sequence
 TOOL_FILE_TYPES = 
 TOOL_SESSION_VERIONS = 1,1
 TOOL_CUSTOM_INIT = true
@@ -48,7 +48,7 @@ app-install: wheel
 	$(APP_PYTHON_EXE) -m pip install -U --no-deps $(WHEEL)
 	$(RSYNC) $(WHEEL) $(wheelhouse) && cd $(wheelhouse) && make update
 
-wheel: setup.py timestamp
+wheel: setup.py
 	$(PYTHON_EXE) setup.py bdist_wheel
 	rm -rf $(PKG_NAME).egg-info
 
@@ -73,9 +73,6 @@ setup.py: setup.py.in Makefile
 		-e 's,PKG_VERSION,$(PKG_VERSION),' \
 		-e 's,PKG_DESCRIPTION,$(PKG_DESCRIPTION),' \
 		< setup.py.in > setup.py
-
-timestamp: always
-	echo "$(TOOL_NAME) $(PKG_VERSION)" >  timestamp
 
 always:
 

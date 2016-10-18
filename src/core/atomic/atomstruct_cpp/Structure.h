@@ -108,8 +108,7 @@ public:
     enum TetherShape { RIBBON_TETHER_CONE = 0,
                        RIBBON_TETHER_REVERSE_CONE = 1,
                        RIBBON_TETHER_CYLINDER = 2 };
-    enum RibbonOrientation { RIBBON_ORIENT_DEFAULT = 0,
-                             RIBBON_ORIENT_GUIDES = 1,
+    enum RibbonOrientation { RIBBON_ORIENT_GUIDES = 1,
                              RIBBON_ORIENT_ATOMS = 2,
                              RIBBON_ORIENT_CURVATURE = 3,
                              RIBBON_ORIENT_PEPTIDE = 4 };
@@ -136,7 +135,7 @@ protected:
     mutable bool  _recompute_rings;
     Residues  _residues;
     int _ribbon_display_count = 0;
-    RibbonOrientation _ribbon_orientation = RIBBON_ORIENT_DEFAULT;
+    RibbonOrientation _ribbon_orientation = RIBBON_ORIENT_PEPTIDE;
     bool  _ribbon_show_spine = false;
     float  _ribbon_tether_scale = 1.0;
     TetherShape  _ribbon_tether_shape = RIBBON_TETHER_CONE;

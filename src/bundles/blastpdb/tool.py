@@ -121,8 +121,8 @@ class ToolUI(ToolInstance):
         url = info.requestUrl()
         scheme = url.scheme()
         if scheme == self.CUSTOM_SCHEME:
-            self._load_pdb(url.path())
-            # self.session.ui.thread_safe(self._load_pdb, url.path())
+            # self._load_pdb(url.path())
+            self.session.ui.thread_safe(self._load_pdb, url.path())
         # For now, we only intercept our custom scheme.  All other
         # requests are processed normally.
 

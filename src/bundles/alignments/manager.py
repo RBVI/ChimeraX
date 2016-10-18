@@ -19,7 +19,7 @@ class AlignmentsManager(State):
         # bundle_info needed for session save
         self.bundle_info = bundle_info
         self.session = session
-        self.viewer_synonyms = {'alignment': {}, 'sequence': {}}
+        self.viewer_info = {'alignment': {}, 'sequence': {}}
 
     def delete_alignment(self, alignment):
         del self.alignments[alignment.name]
@@ -29,8 +29,8 @@ class AlignmentsManager(State):
         del self.alignments[alignment.name]
         alignment._destroy()
 
-    def deregister_viewer(self, bundle_info):
-        del self.viewer_synonyms[bundle_info]
+    def deregister_viewer(self, tool_name):
+        del self.viewer_synonyms[tool_name]
 
     def new_alignment(self, seqs, identify_as, attrs=None, markups=None,
             auto_destroy=None, align_viewer=None, seq_viewer=None, **kw):
@@ -62,8 +62,9 @@ class AlignmentsManager(State):
             from .settings import settings
             viewer = getattr(settings, attr)
         if viewer:
-            for bundle_info, syms in self.viewer_synonyms[text].items():
-                if bundle_info.display_name == viewer:
+            for tool_name, info in self.viewer_info[text].items():
+                viewer_startup_cb, syms = info
+                if tool_name == viewer:
                     break
                 if viewer in syms:
                     break
@@ -82,17 +83,20 @@ class AlignmentsManager(State):
         alignment = Alignment(self.session, seqs, final_identify_as, attrs, markups, auto_destroy)
         self.alignments[final_identify_as] = alignment
         if viewer:
-            bundle_info.start(self.session, alignment)
+            viewer_startup_cb(self.session, tool_name, alignment)
         return alignment
 
-    def register_viewer(self, bundle_info, *,
+    def register_viewer(self, tool_name, startup_cb, *,
             sequence_viewer=True, alignment_viewer=True, synonyms=[]):
         """Register an alignment viewer for possible use by the user.
 
         Parameters
         ----------
-        bundle_info : BundleInfo
-            The toolshed BundleInfo for your tool.
+        tool_name : str
+            The toolshed tool_name for your tool.
+        startup_cb:
+            A callback function used to start the viewer.  The callback will be given the
+            session, the tool_name, and an Alignment object as its arguments.
         sequence_viewer : bool
             Can this viewer show single sequences
         alignment_viewer : bool
@@ -102,19 +106,18 @@ class AlignmentsManager(State):
            in commands.  Example:  ['mav', 'multalign']
         """
         if sequence_viewer:
-            self.viewer_synonyms['sequence'][bundle_info] = synonyms
+            self.viewer_info['sequence'][tool_name] = (startup_cb, synonyms)
         if alignment_viewer:
-            self.viewer_synonyms['alignment'][bundle_info] = synonyms
+            self.viewer_info['alignment'][tool_name] = (startup_cb, synonyms)
 
     @property
     def registered_viewers(self, seq_or_align):
         """Return the registers viewers of type 'seq_or_align'
             (which must be "sequence"  or "alignent")
 
-           The return value is a dictionary keyed on BundleInfo and values of synonyms for
-           the viewer (i.e. usable shorthands in commands)
+           The return value is a list of tool names.
         """
-        return self.viewer_synonyms[seq_or_align]
+        return list(self.viewer_info[seq_or_align].keys())
 
     def reset_state(self, session):
         for alignment in self.alignments.values():
@@ -128,7 +131,7 @@ class AlignmentsManager(State):
         return mgr
 
     def take_snapshot(self, session, flags):
-        # viewer_synonyms are "session independent"
+        # viewer_info is "session independent"
         return {
             'version': 1,
 

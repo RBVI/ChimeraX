@@ -406,3 +406,9 @@ class MultalignViewer(ToolInstance):
     def delete(self):
         self.alignment.detach_viewer(self)
         ToolInstance.delete(self)
+
+def _start_mav(session, tool_name, alignment=None):
+    if alignment is None:
+        raise LimitationError("Running MAV from tools menu not implemented; instead, open"
+            " alignment using 'open' command or File->Open")
+    return MultalignViewer(session, tool_name, alignment)
