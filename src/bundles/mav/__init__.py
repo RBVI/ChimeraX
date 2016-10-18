@@ -18,7 +18,7 @@ class _MavBundleAPI(BundleAPI):
     @staticmethod
     def finish(session, bundle_info):
         """De-register MAV from alignments manager"""
-        session.alignments.deregister_viewer(bundle_info)
+        session.alignments.deregister_viewer(bundle_info.tools[0].name)
 
     @staticmethod
     def initialize(session, bundle_info):

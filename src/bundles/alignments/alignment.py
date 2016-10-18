@@ -35,6 +35,9 @@ class Alignment(State):
             seq.match_maps = {}
         from chimerax.core.atomic import AtomicStructure
         self.associate([s for s in session.models if isinstance(s, AtomicStructure)], force=False)
+        from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
+        self.session.triggers.add_handler(ADD_MODELS, lambda tname, models:
+            self.associate([s for s in models if isinstance(s, AtomicStructure)], force=False))
 
     def associate(self, models, seq=None, force=True, min_length=10, reassoc=False):
         """associate models with sequences

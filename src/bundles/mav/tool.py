@@ -401,7 +401,7 @@ class MultalignViewer(ToolInstance):
     def alignment_notification(self, note_name, note_data):
         if note_name == "mod assoc":
             for match_map in note_data[-1]:
-                self.seq_canvas.assoc_mod(match_map.aseq)
+                self.seq_canvas.assoc_mod(match_map.align_seq)
 
     def delete(self):
         self.alignment.detach_viewer(self)
