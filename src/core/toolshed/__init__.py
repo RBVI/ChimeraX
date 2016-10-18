@@ -1732,7 +1732,7 @@ class BundleInfo:
                         return f(*args, format_name=format_name, **kw)
                     format = io.format_from_name(format_name)
                     format.export_func = save_shim
-                    return save_shim(*args, **kw)
+                    return save_shim(*args, format_name=format_name, **kw)
                 format.export_func = save_cb
 
     def deregister_file_types(self):
