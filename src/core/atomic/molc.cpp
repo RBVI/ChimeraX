@@ -2030,7 +2030,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int
         }
         PyTuple_SetItem(o, 2, ca);
         float *gdata;
-        if (want_peptide) {
+        if (want_peptide && peptide_planes.size() > 0) {
             // For orienting using peptide planes, we need to process some more
             PyObject *ga = python_float_array(centers.size(), 3, &gdata);
             // The peptide_planes vector is one shorter than the number

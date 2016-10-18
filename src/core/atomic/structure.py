@@ -781,11 +781,14 @@ class Structure(Model, StructureData):
                 t_start = t_end
 
             # Create drawing from arrays
-            rp.display = True
-            rp.vertices = concatenate(vertex_list)
-            rp.normals = concatenate(normal_list)
-            rp.triangles = concatenate(triangle_list)
-            rp.vertex_colors = concatenate(color_list)
+            if vertex_list:
+                rp.display = True
+                rp.vertices = concatenate(vertex_list)
+                rp.normals = concatenate(normal_list)
+                rp.triangles = concatenate(triangle_list)
+                rp.vertex_colors = concatenate(color_list)
+            else:
+                rp.display = False
             # Save mappings for picking
             self._ribbon_t2r[rp] = t2r
 
