@@ -20,6 +20,7 @@ class Alignment(State):
 
     def __init__(self, session, seqs, name, file_attrs, file_markups, auto_destroy, auto_associate):
         self.session = session
+        self.seqs = seqs
         self.name = name
         self.file_attrs = file_attrs
         self.file_markups = file_markups
