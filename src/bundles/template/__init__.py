@@ -22,7 +22,7 @@ class _MyAPI(BundleAPI):
         # 'start_tool' is called to start an instance of the tool
         # If providing more than one tool in package,
         # look at 'tool_name' to see which is being started.
-        raise NotImplementedError  # FIXME
+        raise NotImplementedError  # FIXME: remove method if unneeded
         from .tool import ToolUI
         # UI should register itself with tool state manager
         return ToolUI(session, tool_name)
@@ -30,7 +30,7 @@ class _MyAPI(BundleAPI):
     @staticmethod
     def register_command(command_name):
         # 'register_command' is lazily called when the command is referenced
-        raise NotImplementedError  # FIXME
+        raise NotImplementedError  # FIXME: remove method if unneeded
         from . import cmd
         from chimerax.core.commands import register
         register(command_name + " SUBCOMMAND_NAME",
@@ -41,7 +41,7 @@ class _MyAPI(BundleAPI):
     def open_file(session, f, name, filespec=None, **kw):
         # 'open_file' is called by session code to open a file
         # returns (list of models, status message)
-        raise NotImplementedError     # FIXME
+        raise NotImplementedError     # FIXME: remove method if unneeded
         from . import cmd
         import os.path
         cmd.help(session, "file:" + os.path.realpath(filespec))
@@ -50,26 +50,26 @@ class _MyAPI(BundleAPI):
     @staticmethod
     def initialize(session, bi):
         # bundle-specific initialization (causes import)
-        raise NotImplementedError     # FIXME
+        raise NotImplementedError     # FIXME: remove method if unneeded
 
     @staticmethod
     def finish(session, bi):
-        # deinitialize bundle in session
+        # deinitialize bundle in session (causes import)
         raise NotImplementedError
 
     @staticmethod
     def fetch_data(format, database, ident):
         # return function capable of fetching data format
-        raise NotImplementedError     # FIXME
+        raise NotImplementedError     # FIXME: remove method if unneeded
 
     @staticmethod
     def open_data(format, tag):
         # return function capable of opening data format
-        raise NotImplementedError  # FIXME
+        raise NotImplementedError  # FIXME: remove method if unneeded
 
     @staticmethod
     def save_data(format, tag):
         # return function capable of saving data format
-        raise NotImplementedError  # FIXME
+        raise NotImplementedError  # FIXME: remove method if unneeded
 
 bundle_api = _MyAPI()
