@@ -21,9 +21,14 @@ def open_file(session, stream, fname, file_type="FASTA", return_vals=None,
         exec("from .io.read%s import read" % file_type.replace(' ', '_'), globals(), ns)
     except ImportError:
         raise ValueError("No file parser installed for %s files" % file_type)
-    # don't want the binary stream (e.g. "line[0] == '>'" is always False(!))
-    path = stream.name
-    stream.close()
+    if stream is None:
+        path = fname
+        import os.path
+        fname = os.path.basename(path)
+    else:
+        # don't want the binary stream (e.g. "line[0] == '>'" is always False(!))
+        path = stream.name
+        stream.close()
     from chimerax.core.io import open_filename
     with open_filename(path) as f:
         try:
