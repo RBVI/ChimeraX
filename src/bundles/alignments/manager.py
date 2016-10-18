@@ -36,7 +36,7 @@ class AlignmentsManager(State):
             del self.viewer_info['alignment'][tool_name]
 
     def new_alignment(self, seqs, identify_as, attrs=None, markups=None,
-            auto_destroy=None, align_viewer=None, seq_viewer=None, **kw):
+            auto_destroy=None, align_viewer=None, seq_viewer=None, auto_associate=True, **kw):
         """Create new alignment from 'seqs'
 
         Parameters
@@ -47,11 +47,15 @@ class AlignmentsManager(State):
             Whether to automatically destroy the alignment when the last viewer for it
             is closed.  If None, then treated as False if the value of the 'viewer' keyword
             results in no viewer being launched, else True.
-        viewer : str, False or None
-           What alignment viewer to launch.  If False, do not launch a viewer.  If None,
+        align_viewer/seq_viewer : str, False or None
+           What alignment/sequence viewer to launch.  If False, do not launch a viewer.  If None,
            use the current preference setting for the user.  The string must either be
            the viewer's tool display_name or a synonym registered by the viewer (during
            its register_viewer call).
+        auto_associate : boolean or None
+            Whether to automatically associate structures with the alignment.   A value of None
+            is the same as False except that any StructureSeqs in the alignment will be associated
+            with their structures.
         """
         if len(seqs) > 1:
             viewer = align_viewer
@@ -83,7 +87,8 @@ class AlignmentsManager(State):
             i += 1
             disambig = "[%d]" % i
         final_identify_as = identify_as+disambig
-        alignment = Alignment(self.session, seqs, final_identify_as, attrs, markups, auto_destroy)
+        alignment = Alignment(self.session, seqs, final_identify_as, attrs, markups, auto_destroy,
+            auto_associate)
         self.alignments[final_identify_as] = alignment
         if viewer:
             viewer_startup_cb(self.session, tool_name, alignment)

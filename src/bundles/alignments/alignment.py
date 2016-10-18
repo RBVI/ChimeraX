@@ -18,13 +18,13 @@ class Alignment(State):
     Should only be created through new_alignment method of the alignment manager
     """
 
-    def __init__(self, session, seqs, name, file_attrs, file_markups, auto_destroy):
+    def __init__(self, session, seqs, name, file_attrs, file_markups, auto_destroy, auto_associate):
         self.session = session
-        self.seqs = seqs
         self.name = name
         self.file_attrs = file_attrs
         self.file_markups = file_markups
         self.auto_destroy = auto_destroy
+        self.auto_associate = auto_associate
         self.viewers = []
         self.associations = {}
         from chimerax.core.atomic import Chain
@@ -33,11 +33,16 @@ class Alignment(State):
                 from copy import copy
                 seqs[i] = copy(seq)
             seq.match_maps = {}
-        from chimerax.core.atomic import AtomicStructure
-        self.associate([s for s in session.models if isinstance(s, AtomicStructure)], force=False)
-        from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
-        self.session.triggers.add_handler(ADD_MODELS, lambda tname, models:
-            self.associate([s for s in models if isinstance(s, AtomicStructure)], force=False))
+        if self.auto_associate is None:
+            self.associate(None)
+            self.auto_associate = False
+        elif self.auto_associate:
+            from chimerax.core.atomic import AtomicStructure
+            self.associate([s for s in session.models
+                if isinstance(s, AtomicStructure)], force=False)
+            from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
+            self.session.triggers.add_handler(ADD_MODELS, lambda tname, models:
+                self.associate([s for s in models if isinstance(s, AtomicStructure)], force=False))
 
     def associate(self, models, seq=None, force=True, min_length=10, reassoc=False):
         """associate models with sequences
@@ -66,7 +71,7 @@ class Alignment(State):
             structures = [models]
         elif models is None:
             for seq in self.seqs:
-                if isinstance(seq, Chain) \
+                if isinstance(seq, StructureSeq) \
                 and seq.existing_residues.chains[0] not in self.associations:
                     self.associate([], seq=seq, reassoc=reassoc)
             return
