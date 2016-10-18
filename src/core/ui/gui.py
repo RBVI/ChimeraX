@@ -226,6 +226,10 @@ class UI(QApplication):
     def thread_safe(self, func, *args, **kw):
         """Call function 'func' in a thread-safe manner
         """
+        import threading
+        if threading.main_thread() == threading.current_thread():
+            func(*args, **kw)
+            return
         from PyQt5.QtCore import QEvent
         class ThreadSafeGuiFuncEvent(QEvent):
             EVENT_TYPE = QEvent.Type(QEvent.registerEventType())
@@ -255,6 +259,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         dw = QDesktopWidget()
         main_screen = dw.availableGeometry(dw.primaryScreen())
         self.resize(main_screen.width()*.67, main_screen.height()*.67)
+        self.setDockOptions(self.dockOptions() | self.GroupedDragging)
 
         from PyQt5.QtCore import QSize
         class GraphicsArea(QStackedWidget):
@@ -333,11 +338,19 @@ class MainWindow(QMainWindow, PlainTextLog):
         if not paths:
             return
 
-        models = session.models.open(paths)
-        if models and len(paths) == 1:
-            # Remember in file history
-            from ..filehistory import remember_file
-            remember_file(session, paths[0], format=None, models=models)
+        def _qt_safe(session=session, paths=paths):
+            models = session.models.open(paths)
+            if models and len(paths) == 1:
+                # Remember in file history
+                from ..filehistory import remember_file
+                remember_file(session, paths[0], format=None, models=models)
+        # Opening the model directly adversely affects Qt interfaces that show
+        # as a result.  In particular, Multalign Viewer no longer gets hover
+        # events correctly, nor tool tips.
+        #
+        # Using session.ui.thread_safe() doesn't help either(!)
+        from PyQt5.QtCore import QTimer
+        QTimer.singleShot(0, _qt_safe)
 
     def file_save_cb(self, session):
         self.save_dialog.display(self, session)
@@ -606,7 +619,7 @@ class ToolWindow:
 
     #: Whether closing this window destroys it or hides it.
     #: If it destroys it and this is the main window, all the
-    #: child windows will also be destroyedRolls
+    #: child windows will also be destroyed
     close_destroys = True
 
     def __init__(self, tool_instance, title):

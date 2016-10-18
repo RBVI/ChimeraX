@@ -43,7 +43,7 @@ _XSectionMap = {
 }
 _ModeMap = {
     "default": Structure.RIBBON_MODE_DEFAULT,
-    "arc": Structure.RIBBON_MODE_ARC,
+    "tube": Structure.RIBBON_MODE_ARC,
 }
 _XSInverseMap = dict([(v, k) for k, v in _XSectionMap.items()])
 
@@ -183,7 +183,7 @@ def cartoon_style(session, spec=None, width=None, thickness=None, arrows=None, a
     mode_helix : string
         Choose how helices are rendered.
         "default" uses ribbons through the alpha carbons.
-        "arc" uses a tube along an arc so that the alpha carbons are on the surface of the tube.
+        "tube" uses a tube along an arc so that the alpha carbons are on the surface of the tube.
     mode_strand : string
         Same argument values are mode_helix.
     '''
@@ -231,6 +231,9 @@ def cartoon_style(session, spec=None, width=None, thickness=None, arrows=None, a
     is_helix = residues.is_helix
     is_strand = residues.is_strand
     polymer_types = residues.polymer_types
+    from numpy import logical_and, logical_not
+    is_coil = logical_and(logical_and(logical_not(is_helix), logical_not(is_strand)),
+                          polymer_types != Residue.PT_NUCLEIC)
     coil_scale_changed = {}
     # Code uses half-width/thickness but command uses full width/thickness,
     # so we divide by two now so we will not need to do it multiple times
@@ -238,15 +241,16 @@ def cartoon_style(session, spec=None, width=None, thickness=None, arrows=None, a
         width /= 2
     if thickness is not None:
         thickness /= 2
-        # set coil parameters
-    for m in structures:
-        mgr = m.ribbon_xs_mgr
-        if thickness is not None:
-            coil_scale_changed[m] = True
-            mgr.set_coil_scale(thickness, thickness)
-        if (xsection is not None and
-                _XSectionMap[xsection] != XSectionManager.STYLE_PIPING):
-            m.ribbon_xs_mgr.set_coil_style(_XSectionMap[xsection])
+    # set coil parameters
+    if is_coil.any():
+        for m in structures:
+            mgr = m.ribbon_xs_mgr
+            if thickness is not None:
+                coil_scale_changed[m] = True
+                mgr.set_coil_scale(thickness, thickness)
+            if (xsection is not None and
+                    _XSectionMap[xsection] != XSectionManager.STYLE_PIPING):
+                m.ribbon_xs_mgr.set_coil_style(_XSectionMap[xsection])
     if is_helix.any():
         # set helix parameters
         for m in structures:

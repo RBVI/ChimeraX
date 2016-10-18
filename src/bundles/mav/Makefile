@@ -12,27 +12,19 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-SUBDIRS = io
-
-include $(TOP)/mk/subdir.make
-
-PKG_NAME = chimerax.seqalign
+PKG_NAME = chimerax.mav
 PKG_VERSION = 1.0
-PKG_DESCRIPTION = Sequence Alignments
+PKG_DESCRIPTION = Sequence alignment viewer
 
-# For many cases, only a single tool and a single command
-# is provided by a package.  Variables below are designed
-# for this case.  If you have multiple tools or commands,
-# you need manually edit all the files.
-TOOL_NAME = alignments
-TOOL_PKG_NAME = chimerax.seqalign
-TOOL_DISPLAY_NAME = Sequence Alignments
-TOOL_CATEGORY = Hidden
-TOOL_FILE_TYPES = FASTA:Sequence alignment:.fa,MSF:Sequence alignment:.msf
-TOOL_SESSION_VERSIONS = 1,1
+TOOL_NAME = mav
+TOOL_PKG_NAME = $(PKG_NAME)
+TOOL_DISPLAY_NAME = Multalign Viewer
+TOOL_CATEGORY = Sequence
+TOOL_FILE_TYPES = 
+TOOL_SESSION_VERIONS = 1,1
 TOOL_CUSTOM_INIT = true
-TOOL_SYNOPSIS = Sequence alignment support
-COMMAND_NAME = 
+TOOL_SYNOPSIS = Sequence alignment viewer
+COMMAND_NAME =
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,')
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
@@ -41,24 +33,23 @@ PKG_DIR := $(shell cygpath -m '$(PKG_DIR)' | sed 's,/,\\\\\\\\,g')
 shlibdir := $(shell cygpath -m '$(shlibdir)' | sed 's,/,\\\\\\\\,g')
 endif
 
-PYSRCS = $(filter-out setup.py,$(wildcard *.py))
-DATAFILES = 
+PYSRCS = $(wildcard *.py)
 WHEEL = dist/$(PKG_NAME)-$(PKG_VERSION)-py3-none-any.whl
 
 all: $(PYOBJS)
 
 install: dir
-	$(RSYNC) $(PYSRCS) $(DATAFILES) $(PKG_DIR)
+	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 	if [ -d "$(app_prefix)" ]; then \
 		$(MAKE) app-install ;\
 	fi
 
 app-install: wheel
-	$(APP_PIP) install -U $(WHEEL)
+	$(APP_PYTHON_EXE) -m pip install -U --no-deps $(WHEEL)
 	$(RSYNC) $(WHEEL) $(wheelhouse) && cd $(wheelhouse) && make update
 
 wheel: setup.py
-	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel
+	$(PYTHON_EXE) setup.py bdist_wheel
 	rm -rf $(PKG_NAME).egg-info
 
 setup.py: setup.py.in Makefile
@@ -83,6 +74,8 @@ setup.py: setup.py.in Makefile
 		-e 's,PKG_DESCRIPTION,$(PKG_DESCRIPTION),' \
 		< setup.py.in > setup.py
 
+always:
+
 dir:
 	if [ ! -d "$(PKG_DIR)" ]; then mkdir -p $(PKG_DIR); fi
 	if [ ! -d "$(wheelhouse)" ]; then mkdir -p $(wheelhouse); fi
@@ -91,4 +84,4 @@ lint:
 	$(PYLINT) $(PYSRCS)
 
 clean:
-	rm -rf __pycache__ build dist $(PKG_NAME).egg-info setup.py
+	rm -rf __pycache__ build dist $(PKG_NAME).egg-info setup.py timestamp

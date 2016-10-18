@@ -51,6 +51,7 @@ _class_class_init = {
     'Pseudobonds': '.atomic',
     'Residue': '.atomic',
     'Residues': '.atomic',
+	'SeqMatchMap': '.atomic',
     'Sequence': '.atomic',
     'Structure': '.atomic',
     'Tasks': '.tasks',

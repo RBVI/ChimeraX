@@ -11,6 +11,7 @@
 
 from .molobject import Atom, Bond, Chain, Element, Pseudobond, Residue, Sequence, StructureSeq, \
 	add_to_object_map, PseudobondManager, ChangeTracker
+from .molobject import SeqMatchMap, estimate_assoc_params, try_assoc, StructAssocError
 from .molarray import Atoms, AtomicStructures, Bonds, Chains, Pseudobonds, Residues, concatenate
 from .structure import AtomicStructure, Structure, LevelOfDetail
 from .structure import selected_atoms, selected_bonds, all_atoms, all_atomic_structures

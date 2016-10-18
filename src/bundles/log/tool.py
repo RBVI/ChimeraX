@@ -275,6 +275,9 @@ class Log(ToolInstance, HtmlLog):
         return True
 
     def show_page_source(self):
+        self.session.ui.thread_safe(self._show)
+
+    def _show(self):
         css = context_menu_css + cxcmd_css
         html = "<style>%s</style>\n<body onload=\"window.scrollTo(0, document.body.scrollHeight);\">%s</body>" % (cxcmd_css, self.page_source)
         lw = self.log_window

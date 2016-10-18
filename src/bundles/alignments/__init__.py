@@ -13,7 +13,7 @@
 
 from chimerax.core.toolshed import BundleAPI
 
-class _MyAPI(BundleAPI):
+class _AlignmentsBundleAPI(BundleAPI):
 
     @staticmethod
     def get_class(class_name):
@@ -38,6 +38,6 @@ class _MyAPI(BundleAPI):
     @staticmethod
     def open_file(*args, **kw):
         from .parse import open_file
-        open_file(*args, **kw)
+        return open_file(*args, **kw)
 
-bundle_api = _MyAPI()
+bundle_api = _AlignmentsBundleAPI()

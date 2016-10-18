@@ -21,7 +21,7 @@ def blastpdb(session, spec=None, database="pdb", cutoff=1.0e-3,
         from chimerax.core.errors import UserError
         raise UserError("please choose exactly one chain (%d were specified)" %
                         len(chains))
-    BlastPDBJob(session, chains[0].characters,
+    BlastPDBJob(session, chains[0].characters, chains[0].atomspec(),
                 database, cutoff, matrix, max_hits, log)
 blastpdb_desc = CmdDesc(required=[("spec", AtomSpecArg),],
                         keyword=[("database", EnumOf(DBs)),

@@ -13,8 +13,10 @@ _NonEmptyPage = "<h2>This space unintentionally left blank</h2>"
 class ToolUI(ToolInstance):
 
     SESSION_ENDURING = False
+    CUSTOM_SCHEME = "blastpdb"
+    REF_ID_URL = "https://www.ncbi.nlm.nih.gov/gquery/?term=%s"
 
-    def __init__(self, session, tool_name, blast_results=None):
+    def __init__(self, session, tool_name, blast_results=None, atomspec=None):
         # Standard template stuff
         ToolInstance.__init__(self, session, tool_name)
         self.display_name = "Blast PDB"
@@ -39,7 +41,7 @@ class ToolUI(ToolInstance):
         layout.addWidget(button, 0, 2)
         self.results_view = HtmlView(parent, size_hint=(575, 300),
                                      interceptor=self._navigate,
-                                     schemes=["fetch"])
+                                     schemes=[self.CUSTOM_SCHEME])
         layout.addWidget(self.results_view, 1, 0, 1, 3)
         layout.setColumnStretch(0, 0)
         layout.setColumnStretch(1, 10)
@@ -56,14 +58,14 @@ class ToolUI(ToolInstance):
 
         # Set widget values and go
         self._update_chains()
-        self._update_blast_results(blast_results)
+        self._update_blast_results(blast_results, atomspec)
 
     def _blast_cb(self, _):
         from .job import BlastPDBJob
         n = self.chain_combobox.currentIndex()
         chain = self.chain_combobox.itemData(n)
-        BlastPDBJob(self.session, chain.characters,
-                    finish_callback=self._update_blast_results)
+        BlastPDBJob(self.session, chain.characters, chain.atomspec(),
+                    finish_callback=self._blast_job_finished)
         self.results_view.setHtml(_InProgressPage)
 
     def _update_chains(self, trigger=None, trigger_data=None):
@@ -76,32 +78,77 @@ class ToolUI(ToolInstance):
         for chain in all_chains:
             self.chain_combobox.addItem(str(chain), userData=chain)
 
-    def _update_blast_results(self, blast_results, job=None):
+    def _blast_job_finished(self, blast_results, job):
+        self._update_blast_results(blast_results, job.atomspec)
+
+    def _update_blast_results(self, blast_results, atomspec):
         # blast_results is either None or a blastp_parser.Parser
+        self.ref_atomspec = atomspec
         if blast_results is None:
             self.results_view.setHtml(_EmptyPage)
         else:
-            html = ["<table><tr>"
+            html = ["<h2>BlastPDB ",
+                    "<small>(an <a href=\"http://www.rbvi.ucsf.edu\">RBVI</a> "
+                    "web service)</small> Results</h2>",
+                    "<table><tr>"
                     "<th>Name</th>"
                     "<th>E&#8209;Value</th>"
                     "<th>Score</th>"
                     "<th>Description</th>"
                     "</tr>"]
             for m in blast_results.matches[1:]:
-                name = m.pdb if m.pdb else m.name
-                name_link = "<a href=\"fetch:%s\">%s</a>" % (name, name)
+                if m.pdb:
+                    name = "<a href=\"%s:%s\">%s</a>" % (self.CUSTOM_SCHEME,
+                                                         m.pdb, m.pdb)
+                else:
+                    import re
+                    match = re.search(r"\|ref\|([^|]+)\|", m.name)
+                    if match is None:
+                        name = m.name
+                    else:
+                        ref_id = match.group(1)
+                        ref_url = self.REF_ID_URL % ref_id
+                        name = "<a href=\"%s\">%s</a>" % (ref_url, ref_id)
                 html.append("<tr><td>%s</td><td>%s</td>"
                             "<td>%s</td><td>%s</td></tr>" %
-                            (name_link, "%.1e" % m.evalue,
+                            (name, "%.1e" % m.evalue,
                              str(m.score), m.description))
             html.append("</table>")
             self.results_view.setHtml('\n'.join(html))
 
     def _navigate(self, info):
         # "info" is an instance of QWebEngineUrlRequestInfo
-        print("_navigate", info, info.requestUrl())
+        url = info.requestUrl()
+        scheme = url.scheme()
+        if scheme == self.CUSTOM_SCHEME:
+            # self._load_pdb(url.path())
+            self.session.ui.thread_safe(self._load_pdb, url.path())
+        # For now, we only intercept our custom scheme.  All other
+        # requests are processed normally.
+
+    def _load_pdb(self, code):
+        from chimerax.core.commands import run
+        parts = code.split("_", 1)
+        if len(parts) == 1:
+            pdb_id = parts[0]
+            chain_id = None
+        else:
+            pdb_id, chain_id = parts
+        models = run(self.session, "open pdb:%s" % pdb_id)[0]
+        if not self.ref_atomspec:
+            run(self.session, "select clear")
+        for m in models:
+            if chain_id:
+                spec = m.atomspec() + '/' + chain_id
+            else:
+                spec = m.atomspec()
+            if self.ref_atomspec:
+                run(self.session, "matchmaker %s to %s" % (spec,
+                                                           self.ref_atomspec))
+            else:
+                run(self.session, "select add %s" % spec)
 
     def delete(self):
-        t = session.triggers
+        t = self.session.triggers
         t.remove_handler(self._add_handler)
         t.remove_handler(self._remove_handler)
