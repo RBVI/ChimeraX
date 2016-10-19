@@ -29,6 +29,9 @@ class _MyAPI(BundleAPI):
 
     @staticmethod
     def get_class(class_name):
+        if class_name == "RESTServer":
+            from . import server
+            return server.RESTServer
         return None
 
 bundle_api = _MyAPI()

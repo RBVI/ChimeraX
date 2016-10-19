@@ -3,15 +3,17 @@
 # ToolUI classes may also override
 #   "delete" - called to clean up before instance is deleted
 #
-from chimerax.core.tools import ToolInstance
+from chimerax.core.tools import ToolInstance, State
 
 _EmptyPage = "<h2>Please select a chain and press <b>BLAST</b></h2>"
 _InProgressPage = "<h2>BLAST search in progress&hellip;</h2>"
 
 
-class ToolUI(ToolInstance):
+class ToolUI(ToolInstance, State):
 
     SESSION_ENDURING = False
+    # For now, no session saving
+    SESSION_SKIP = True
     CUSTOM_SCHEME = "blastpdb"
     REF_ID_URL = "https://www.ncbi.nlm.nih.gov/gquery/?term=%s"
 
@@ -166,3 +168,15 @@ class ToolUI(ToolInstance):
         t = self.session.triggers
         t.remove_handler(self._add_handler)
         t.remove_handler(self._remove_handler)
+
+    def take_snapshot(self, session, flags):
+        # For now, do not save anything in session.
+        # Need to figure out which attributes (like UI widgets)
+        # should start with _ so that they are not saved in sessions.
+        # And add addition data to superclass data.
+        return super().take_snapshot(session, flags)
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        # For now do nothing.  Should unpack data and restart tool.
+        return None

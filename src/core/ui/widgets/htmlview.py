@@ -10,11 +10,14 @@ three extra keyword arguments:
     size_hint:   a QSize compatible value, typically (width, height),
                  specifying the preferred initial size for the view.
     interceptor: a callback function taking one argument, an instance
-                 of QWebEngineUrlRequestInfo, for handling navigation
+                 of QWebEngineUrlRequestInfo, invoked to handle navigation
                  requests.
     schemes:     an iterable of custom schemes that will be used in the
                  view.  If schemes is specified, then interceptor will
                  be called when custom URLs are clicked.
+    download:    a callback function taking one argument, an instance
+                 of QWebEngineDownloadItem, invoked when download is
+                 requested.
 """
 
 from PyQt5.QtWebEngineWidgets import QWebEngineView
@@ -24,19 +27,20 @@ from PyQt5.QtWebEngineCore import QWebEngineUrlSchemeHandler
 
 class HtmlView(QWebEngineView):
     def __init__(self, *args, size_hint=None, schemes=None,
-                 interceptor=None, **kw):
+                 interceptor=None, download=None, **kw):
         super().__init__(*args, **kw)
         self._size_hint = size_hint
         if interceptor is None:
             self._intercept = None
         else:
             self._intercept = _RequestInterceptor(callback=interceptor)
+        self._download = download
         if schemes is None:
             self._schemes = []
         else:
             self._schemes = [s.encode("utf-8") for s in schemes]
             self._scheme_handler = _SchemeHandler()
-        self._last_page = None
+        self._known_profiles = set()
     def sizeHint(self):
         if self._size_hint:
             from PyQt5.QtCore import QSize
@@ -69,14 +73,15 @@ class HtmlView(QWebEngineView):
             tf.close()
             self.load(QUrl.fromLocalFile(self._tf_name))
         self.setEnabled(True)
-        page = self.page()
-        if page != self._last_page:
-            profile = page.profile()
+        p = self.page().profile()
+        if p not in self._known_profiles:
             if self._intercept:
-                profile.setRequestInterceptor(self._intercept)
+                p.setRequestInterceptor(self._intercept)
                 for scheme in self._schemes:
-                    profile.installUrlSchemeHandler(scheme, self._scheme_handler)
-            self._last_page = page
+                    p.installUrlSchemeHandler(scheme, self._scheme_handler)
+            if self._download:
+                p.downloadRequested.connect(self._download)
+            self._known_profiles.add(p)
 
 
 class _RequestInterceptor(QWebEngineUrlRequestInterceptor):
