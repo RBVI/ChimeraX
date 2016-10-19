@@ -7,9 +7,22 @@ from chimerax.core.logger import PlainTextLog
 class RESTServer(Task):
     """Listen for HTTP/REST requests, execute them and return output."""
 
+    # For now, no session saving
+    SESSION_SKIP = True
+
     def __init__(self, *args, **kw):
         self.httpd = None
         super().__init__(*args, **kw)
+
+    def take_snapshot(self, session, flags):
+        # For now, do not save anything in session.
+        # Should save port and auto-restart on session restore.
+        return None
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        # For now do nothing.  Should restart on port (in data)
+        pass
 
     def reset_state(self, session):
         pass
