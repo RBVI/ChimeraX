@@ -71,6 +71,8 @@ class ToolUI(ToolInstance):
 
     def _update_chains(self, trigger=None, trigger_data=None):
         from chimerax.core.atomic import AtomicStructure
+        n = self.chain_combobox.currentIndex()
+        selected_chain = None if n == -1 else self.chain_combobox.itemData(n)
         all_chains = []
         for m in self.session.models.list(type=AtomicStructure):
             all_chains.extend(m.chains)
@@ -78,6 +80,9 @@ class ToolUI(ToolInstance):
         self.chain_combobox.clear()
         for chain in all_chains:
             self.chain_combobox.addItem(str(chain), userData=chain)
+        if selected_chain:
+            n = self.chain_combobox.findData(selected_chain)
+            self.chain_combobox.setCurrentIndex(n)
 
     def _blast_job_finished(self, blast_results, job):
         self._update_blast_results(blast_results, job.atomspec)
@@ -120,7 +125,7 @@ class ToolUI(ToolInstance):
                         name = "<a href=\"%s\">%s</a>" % (ref_url, ref_id)
                 html.append("<tr><td>%s</td><td>%s</td>"
                             "<td>%s</td><td>%s</td></tr>" %
-                            (name, "%.1e" % m.evalue,
+                            (name, "%.3g" % m.evalue,
                              str(m.score), m.description))
             html.append("</table>")
             self.results_view.setHtml('\n'.join(html))

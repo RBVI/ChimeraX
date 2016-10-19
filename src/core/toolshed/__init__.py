@@ -765,6 +765,8 @@ class Toolshed:
         name = kw['name']
         # Name of bundle
         bundle_name = parts[1]  # not used
+        # Synopsis of bundle/tool/command/format
+        synopsis = parts[9]
         # Name of module implementing bundle API
         kw["api_package_name"] = parts[2]
         # Display name of tool
@@ -774,7 +776,7 @@ class Toolshed:
         # CLI command names (just the first word)
         commands = []
         if parts[4]:
-            commands = [CommandInfo(v.strip(), categories) for v in parts[4].split(',')]
+            commands = [CommandInfo(v.strip(), categories, synopsis) for v in parts[4].split(',')]
         # File types that bundle can open
         file_types = parts[6]
         types = []
@@ -812,8 +814,6 @@ class Toolshed:
         custom_init = parts[8]
         if custom_init:
             kw["custom_init"] = (custom_init == "true")
-        # Synopsis of bundle
-        synopsis = parts[9]
         if not bi:
             bi = BundleInfo(installed=installed, **kw)
         if 'Hidden' not in categories:
@@ -823,9 +823,9 @@ class Toolshed:
         bi.commands.extend(commands)
         return bi
 
+    once = True
     def _make_bundle_info(self, d, installed, logger):
         """Convert distribution into a list of :py:class:`BundleInfo` instances."""
-        from chimerax.core import io
         name = d.name
         version = d.version
         md = d.metadata.dictionary
@@ -839,10 +839,6 @@ class Toolshed:
             kw['synopsis'] = md["summary"]
         except KeyError:
             return None
-        try:
-            description = md['extensions']['python.details']['document_names']['description']
-        except KeyError:
-            description = None
         kw['packages'] = _get_installed_packages(d)
         for classifier in md["classifiers"]:
             parts = [v.strip() for v in classifier.split("::")]
@@ -853,7 +849,7 @@ class Toolshed:
                     continue
                 elif bi is not None:
                     logger.warning("Second ChimeraX-Bundle line ignored.")
-                    return bi
+                    break
                 elif len(parts) != 5:
                     logger.warning("Malformed ChimeraX-Bundle line in %s skipped." % name)
                     logger.warning("Expected 5 fields and got %d." % len(parts))
@@ -983,6 +979,18 @@ class Toolshed:
                     logger.warning("Unknown format name: %r." % name)
                     continue
                 fi.has_save = True
+        if bi is None:
+            return None
+        try:
+            description = md['extensions']['python.details']['document_names']['description']
+            import os
+            dpath = os.path.join(d.path, description)
+            description = open(dpath, encoding='utf-8').read()
+            if description.startswith("UNKNOWN"):
+                description = "Missing bundle description"
+            bi.description = description
+        except (KeyError, OSError):
+            pass
         return bi
 
     # Following methods are used for installing and removing
@@ -1368,7 +1376,10 @@ class ToolInfo:
     def __init__(self, name, categories, synopsis=None):
         self.name = name
         self.categories = categories
-        self.synopsis = synopsis
+        if synopsis:
+            self.synopsis = synopsis
+        else:
+            self.synopsis = "No synopsis given"
 
     def __repr__(self):
         s = self.name
@@ -1386,38 +1397,13 @@ class ToolInfo:
         return cls(*data)
 
 
-class CommandInfo:
-    """Metadata about a command
+class CommandInfo(ToolInfo):
+    """Metadata about a command"""
+    pass
 
-    Attributes
-    ----------
-    name : str
-       Command name (may have spaces in it).
-    categories : list of str
-        Categories that command belong to.
-    synopsis : str
-        One line description.
-    """
-    def __init__(self, name, categories, synopsis=None):
-        self.name = name
-        self.categories = categories
-        self.synopsis = synopsis
-
-    def __repr__(self):
-        s = self.name
-        if self.categories:
-            s += " [categories: %s]" % ', '.join(self.categories)
-        if self.synopsis:
-            s += " [synopsis: %s]" % self.synopsis
-        return s
-
-    def cache_data(self):
-        return (self.name, self.categories, self.synopsis)
-
-    @classmethod
-    def from_cache_data(cls, data):
-        return cls(*data)
-SelectorInfo = CommandInfo
+class SelectorInfo(ToolInfo):
+    """Metadata about a selector"""
+    pass
 
 
 class FormatInfo:
@@ -1535,6 +1521,7 @@ class BundleInfo:
                  api_package_name=None,
                  categories=(),
                  synopsis=None,
+                 description="Unknown",
                  session_versions=range(1, 1 + 1),
                  custom_init=False,
                  packages=[]):
@@ -1570,6 +1557,7 @@ class BundleInfo:
         self.commands = []
         self.formats = []
         self.selectors = []
+        self.description = description
 
         # Private attributes
         self._name = name
@@ -1627,6 +1615,7 @@ class BundleInfo:
             "version": self._version,
             "api_package_name": self._api_package_name,
             "packages": self.packages,
+            "description": self.description,
         }
         more = {
             'tools': [ti.cache_data() for ti in self.tools],

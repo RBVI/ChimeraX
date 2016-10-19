@@ -146,7 +146,8 @@ static void unpack(const char *geom, int ntri,
 	  auto vit = vertices.find(vxyz);
 	  if (vit == vertices.end())
 	    {
-	      vertices[vxyz] = vi = vertices.size();
+	      vi = vertices.size();
+	      vertices[vxyz] = vi;
 	      v.push_back(vxyz.x);
 	      v.push_back(vxyz.y);
 	      v.push_back(vxyz.z);
