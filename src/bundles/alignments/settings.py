@@ -18,7 +18,8 @@ class _AlignmentsSettings(Settings):
     EXPLICIT_SAVE = {
         'seq_viewer': 'Multalign Viewer',
         'align_viewer': 'Multalign Viewer',
-        'assoc_error_rate': 10
+        'assoc_error_rate': 10,
+        'iterate': 2.0
     }
 
 settings = None

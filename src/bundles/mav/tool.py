@@ -409,6 +409,7 @@ class MultalignViewer(ToolInstance):
 
 def _start_mav(session, tool_name, alignment=None):
     if alignment is None:
+        from chimerax.core.errors import LimitationError
         raise LimitationError("Running MAV from tools menu not implemented; instead, open"
             " alignment using 'open' command or File->Open")
     return MultalignViewer(session, tool_name, alignment)

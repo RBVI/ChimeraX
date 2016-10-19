@@ -253,8 +253,78 @@ class Alignment(State):
         if not self.viewers and self.auto_destroy:
             self.session.alignments.destroy_alignment(self)
 
+    def match(self, ref_chain, match_chains, *, iterate=-1, restriction=None):
+        """Match the match_chains onto the ref_chain.  All chains must already be associated
+           with the alignment.
+
+           If 'iterate' is -1, then preference setting for iteration will be used.
+           If 'iterate' is None, then no iteration occurs.  Otherwise, it is the cutoff value
+           where iteration stops.
+
+           'restriction', if provided, is a list of gapped column positions that the matching
+           should be limited to.
+
+           This returns a series of tuples, one per match chain, describing the resulting
+           match.  The values in the 5-tuple are:
+              * atoms used from the match chain
+              * atoms used from the reference chain
+              * RMSD across those atoms
+              * RMSD across the original (possibly restricted) atoms, before iteration pruning
+              * a chimerax.core.Place object describing the transformation to place the match
+                chain onto the reference chain
+            These values can all be None, if the matching failed (usually too few atoms to match).
+        """
+        if ref_chain not in self.associations:
+            raise ValueError("%s not associated with any sequence" % ref_chain.full_name)
+
+        match_structures = set([mc.structure for mc in match_chains])
+        if len(match_structures) != len(match_chains):
+            raise ValueError("Match chains must all come from different structures")
+        if ref_chain.structure in match_structures:
+            raise ValueError("Match chains and reference chain must come from different structures")
+
+        if iterate == -1:
+            from .settings import settings
+            iterate = settings.iterate
+
+        return_vals = []
+        if restriction is not None:
+            ref_ungapped_positions = [ref_chain.gapped_to_ungapped(i) for i in restriction]
+        for match_chain in match_chains:
+            if match_chain not in self.associations:
+                raise ValueError("%s not associated with any sequence" % match_chain.full_name)
+            if restriction is not None:
+                match_ungapped_positions = [match_chain.gapped_to_ungapped(i) for i in restriction]
+                restriction_set = set()
+                for ur, um in zip(ref_ungapped_positions, match_ungapped_positions):
+                    if ur is not None and um is not None:
+                        restriction_set.add(ur)
+            ref_atoms = []
+            match_atoms = []
+            ref_res_to_pos = self.associations[ref_chain].match_maps[ref_chain].res_to_pos
+            match_pos_to_res = self.associations[match_chain].match_maps[match_chain].pos_to_res
+            for rres, pos in ref_res_to_pos.items():
+                if restriction is not None and pos not in restriction_set:
+                    continue
+                try:
+                    mres = match_pos_to_res[pos]
+                except KeyError:
+                    continue
+                if mres is None:
+                    continue
+                ref_atoms.append(rres.principal_atom)
+                match_atoms.append(mres.principal_atom)
+            from chimerax.core.commands import align
+            from chimerax.core.atomic import Atoms
+            try:
+                return_vals.append(align.align(self.session, Atoms(match_atoms), Atoms(ref_atoms),
+                    cutoff_distance=iterate))
+            except align.IterationError:
+                return_vals.append((None, None, None, None, None))
+        return return_vals
+
     def prematched_assoc_structure(self, match_map, errors, reassoc):
-        """If somehow you had obtained a SeqMatchMap for the aseq<->sseq correspondence,
+        """If somehow you had obtained a SeqMatchMap for the align_seq<->struct_seq correspondence,
            you would use this call instead of the more usual associate() call
         """
         chain = match_map.struct_seq.chain
@@ -269,23 +339,6 @@ class Alignment(State):
         match_map["mavModHandler"] = mseq.triggers.addHandler(
                 mseq.TRIG_MODIFY, self._mseqModCB, match_map)
         """
-
-    def take_snapshot(self, session, flags):
-        return { 'version': 1, 'seqs': self.seqs, 'name': self.name,
-            'file attrs': self.file_atts, 'file markups': self.file_markups,
-            'associations': self.associations, 'match maps': [s.match_maps for s in self.seqs]}
-
-    def reset_state(self, session):
-        pass
-
-    @staticmethod
-    def restore_snapshot(session, data):
-        aln = Alignment(data['seqs'], data['name'], data['file attrs'], data['file markups'])
-        aln.associations = associations
-        for s, mm in zip(aln.seqs, data['match maps']):
-            s.match_maps = mm
-        return aln
-
     def _destroy(self):
         for viewer in self.viewers[:]:
             viewer.alignment_notification(self, "destroyed", None)
@@ -296,6 +349,26 @@ class Alignment(State):
             viewer.alignment_notification(note_name, note_data)
             if note_name in ["add assoc", "del assoc"]:
                 viewer.alignment_notification("mod assoc", (note_name, note_data))
+
+    def reset_state(self, session):
+        """For when the session is closed"""
+        pass
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        """For restoring scenes/sessions"""
+        aln = Alignment(data['seqs'], data['name'], data['file attrs'], data['file markups'])
+        aln.associations = associations
+        for s, mm in zip(aln.seqs, data['match maps']):
+            s.match_maps = mm
+        return aln
+
+    def take_snapshot(self, session, flags):
+        """For session/scene saving"""
+        return { 'version': 1, 'seqs': self.seqs, 'name': self.name,
+            'file attrs': self.file_atts, 'file markups': self.file_markups,
+            'associations': self.associations, 'match maps': [s.match_maps for s in self.seqs]}
+
 
 def nw_assoc(session, align_seq, struct_seq):
     '''Wrapper around Needle-Wunch matching, to make it return the same kinds of values
