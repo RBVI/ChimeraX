@@ -592,6 +592,7 @@ def create_starting_models(session, ihm_starting_model_details_table,
         sa_group = Model('Sequence Alignments', session)
         sa_group.add(seqmodels)
         ihm_model.add([sa_group])
+        assign_comparative_models_to_sequences(cmodels, seqmodels)
 
     return emodels, cmodels
 
@@ -632,14 +633,15 @@ def read_starting_models(session, starting_models, fetch_templates, ihm_dir):
                     from os.path import join, isfile
                     p = join(ihm_dir, seqfile)
                     if isfile(p):
-                        seqpaths.append((p, (asym_id, did, db_name, db_code, db_asym_id)))
+                        seqpaths.append(((p, asym_id, did), (db_name, db_code, db_asym_id)))
 
     # Make models for comparative model template alignments
     from collections import OrderedDict
-    seqs = OrderedDict()
-    for p,t in seqpaths:
-        seqs.setdefault(p, []).append(t)
-    seqmodels = [SequenceAlignmentModel(session, p, targets) for p, targets in seqs.items()]
+    alignments = OrderedDict()
+    for a,db in seqpaths:
+        alignments.setdefault(a, []).append(db)
+    seqmodels = [SequenceAlignmentModel(session, alignment_file, asym_id, dataset_id, db_templates)
+                 for (alignment_file, asym_id, dataset_id), db_templates in alignments.items()]
             
     return dataset_entities, emodels, tmodels, seqmodels
 
@@ -647,10 +649,13 @@ def read_starting_models(session, starting_models, fetch_templates, ihm_dir):
 #
 from chimerax.core.models import Model
 class SequenceAlignmentModel(Model):
-    def __init__(self, session, alignment_file, targets):
+    def __init__(self, session, alignment_file, asym_id, dataset_id, db_templates):
         self.alignment_file = alignment_file
-        self.targets = targets
-        self.template_models = []
+        self.asym_id = asym_id			# Identifies comparative model
+        self.dataset_id = dataset_id		# Identifies comparative model
+        self.db_templates = db_templates	# List of (db_name, db_code, db_asym_id), e.g. ('PDB', '1xyz', 'B')
+        self.template_models = []		# Filled in after templates fetched.
+        self.comparative_model = None
         self.alignment = None
         from os.path import basename
         Model.__init__(self, basename(alignment_file), session)
@@ -681,20 +686,22 @@ class SequenceAlignmentModel(Model):
             a = open_file(self.session, None, self.alignment_file,
                           auto_associate=False, return_vals='alignments')[0]
             self.alignment = a
-            # TODO: Associate causing errors.  Eric will fix.
             # Associate templates with sequences in alignment.
-            # tchains = {'%s%s' % (tm.pdb_id.lower(), tm.pdb_chain_id) : tm.chains[0]
-            #            for tm in self.template_models}
-            # if tchains:
-            #     for seq in a.seqs:
-            #         if seq.name in tchains:
-            #             a.associate(tchains[seq.name], seq, force = True)
+            tchains = {'%s%s' % (tm.pdb_id.lower(), tm.pdb_chain_id) : tm.chains[0]
+                       for tm in self.template_models}
+            if tchains:
+                for seq in a.seqs:
+                    if seq.name in tchains:
+                        a.associate(tchains[seq.name], seq, force = True)
+            cm = self.comparative_model
+            if cm:
+                a.associate(cm.chains[0], a.seqs[-1], force = True)
         else:
             for v in a.viewers:
                 v.display(True)
 
     def fetch_template_models(self):
-        for asym_id, dataset_id, db_name, db_code, db_asym_id in self.targets:
+        for db_name, db_code, db_asym_id in self.db_templates:
             if db_name == 'PDB' and len(db_code) == 4:
                 from chimerax.core.atomic.mmcif import fetch_mmcif
                 models, msg = fetch_mmcif(self.session, db_code, smart_initial_display = False)
@@ -702,13 +709,22 @@ class SequenceAlignmentModel(Model):
                 for m in models:
                     m.pdb_id = db_code
                     m.pdb_chain_id = db_asym_id
-                    m.asym_id = asym_id
-                    m.dataset_id = dataset_id	# For locating comparative model
+                    m.asym_id = self.asym_id
+                    m.dataset_id = self.dataset_id	# For locating comparative model
                     keep_one_chain(m, db_asym_id)
-                    show_colored_ribbon(m, asym_id, color_offset = 50)
+                    show_colored_ribbon(m, self.asym_id, color_offset = 80)
                 self.add(models)
                 self.template_models.extend(models)
-
+    
+# -----------------------------------------------------------------------------
+#
+def assign_comparative_models_to_sequences(cmodels, seqmodels):
+    cmap = {(cm.dataset_id, cm.asym_id):cm for cm in cmodels}
+    for sam in seqmodels:
+        ckey = (sam.dataset_id, sam.asym_id)
+        if ckey in cmap:
+            sam.comparative_model = cmap[ckey]
+    
 # -----------------------------------------------------------------------------
 #
 def keep_one_chain(s, chain_id):
