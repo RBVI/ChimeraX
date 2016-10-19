@@ -823,9 +823,9 @@ class Toolshed:
         bi.commands.extend(commands)
         return bi
 
+    once = True
     def _make_bundle_info(self, d, installed, logger):
         """Convert distribution into a list of :py:class:`BundleInfo` instances."""
-        from chimerax.core import io
         name = d.name
         version = d.version
         md = d.metadata.dictionary
@@ -839,10 +839,6 @@ class Toolshed:
             kw['synopsis'] = md["summary"]
         except KeyError:
             return None
-        try:
-            description = md['extensions']['python.details']['document_names']['description']
-        except KeyError:
-            description = None
         kw['packages'] = _get_installed_packages(d)
         for classifier in md["classifiers"]:
             parts = [v.strip() for v in classifier.split("::")]
@@ -853,7 +849,7 @@ class Toolshed:
                     continue
                 elif bi is not None:
                     logger.warning("Second ChimeraX-Bundle line ignored.")
-                    return bi
+                    break
                 elif len(parts) != 5:
                     logger.warning("Malformed ChimeraX-Bundle line in %s skipped." % name)
                     logger.warning("Expected 5 fields and got %d." % len(parts))
@@ -983,6 +979,18 @@ class Toolshed:
                     logger.warning("Unknown format name: %r." % name)
                     continue
                 fi.has_save = True
+        if bi is None:
+            return None
+        try:
+            description = md['extensions']['python.details']['document_names']['description']
+            import os
+            dpath = os.path.join(d.path, description)
+            description = open(dpath, encoding='utf-8').read()
+            if description.startswith("UNKNOWN"):
+                description = "Missing bundle description"
+            bi.description = description
+        except (KeyError, OSError):
+            pass
         return bi
 
     # Following methods are used for installing and removing
@@ -1535,6 +1543,7 @@ class BundleInfo:
                  api_package_name=None,
                  categories=(),
                  synopsis=None,
+                 description="Unknown",
                  session_versions=range(1, 1 + 1),
                  custom_init=False,
                  packages=[]):
@@ -1570,6 +1579,7 @@ class BundleInfo:
         self.commands = []
         self.formats = []
         self.selectors = []
+        self.description = description
 
         # Private attributes
         self._name = name
