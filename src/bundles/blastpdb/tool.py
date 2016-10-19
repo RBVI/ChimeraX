@@ -125,7 +125,7 @@ class ToolUI(ToolInstance):
                         name = "<a href=\"%s\">%s</a>" % (ref_url, ref_id)
                 html.append("<tr><td>%s</td><td>%s</td>"
                             "<td>%s</td><td>%s</td></tr>" %
-                            (name, "%.1e" % m.evalue,
+                            (name, "%.3g" % m.evalue,
                              str(m.score), m.description))
             html.append("</table>")
             self.results_view.setHtml('\n'.join(html))
