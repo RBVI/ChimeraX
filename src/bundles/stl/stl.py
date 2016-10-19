@@ -92,7 +92,7 @@ def read_stl(session, filename, name, *args, **kw):
 
     # Next read uint32 triangle count.
     from numpy import fromstring, uint32, float32, array, uint8
-    tc = fromstring(input.read(4), uint32)        # triangle count
+    tc = fromstring(input.read(4), uint32)[0]        # triangle count
 
     geom = input.read(tc*50)	# 12 floats per triangle, plus 2 bytes padding.
     

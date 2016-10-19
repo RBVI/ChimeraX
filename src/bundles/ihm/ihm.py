@@ -15,7 +15,7 @@
 ihm: Integrative Hybrid Model file format support
 =================================================
 """
-def read_ihm(session, filename, name, *args, load_linked_files = True, read_templates = False,
+def read_ihm(session, filename, name, *args, load_linked_files = True, fetch_templates = False,
              show_sphere_crosslinks = True, show_atom_crosslinks = False, **kw):
     """Read an integrative hybrid models file creating sphere models and restraint models
 
@@ -57,7 +57,7 @@ def read_ihm(session, filename, name, *args, load_linked_files = True, read_temp
     # Starting atomic models, including experimental and comparative structures and templates.
     emodels, cmodels = create_starting_models(session, tables['ihm_starting_model_details'],
                                               tables['ihm_dataset_other'], acomp,
-                                              load_linked_files, read_templates, ihm_model)
+                                              load_linked_files, fetch_templates, ihm_model, ihm_dir)
 
     # Sphere models
     smodels, gmodels = create_sphere_models(session, tables['ihm_model_list'],
@@ -552,15 +552,16 @@ from chimerax.core.map import covariance_sum
 #
 def create_starting_models(session, ihm_starting_model_details_table,
                            ihm_dataset_other_table, acomp,
-                           load_linked_files, read_templates, ihm_model):
+                           load_linked_files, fetch_templates, ihm_model, ihm_dir):
 
     # Experimental starting models.
     # Comparative model templates.
     dataset_entities = {}
-    emodels = tmodels = []
+    emodels = tmodels = seqmodels = []
     starting_models = ihm_starting_model_details_table
     if starting_models:
-        dataset_entities, emodels, tmodels = read_starting_models(session, starting_models, read_templates)
+        dataset_entities, emodels, tmodels, seqmodels = \
+            read_starting_models(session, starting_models, fetch_templates, ihm_dir)
         if emodels:
             from chimerax.core.models import Model
             am_group = Model('Experimental models', session)
@@ -586,41 +587,127 @@ def create_starting_models(session, ihm_starting_model_details_table,
         # Align templates to comparative models using matchmaker.
         align_template_models(session, cmodels)
 
+    if seqmodels:
+        from chimerax.core.models import Model
+        sa_group = Model('Sequence Alignments', session)
+        sa_group.add(seqmodels)
+        ihm_model.add([sa_group])
+
     return emodels, cmodels
 
 # -----------------------------------------------------------------------------
 #
-def read_starting_models(session, starting_models, read_templates):
+def read_starting_models(session, starting_models, fetch_templates, ihm_dir):
     fields = ['entity_id', 'asym_id', 'seq_id_begin', 'seq_id_end', 'starting_model_source',
               'starting_model_db_name', 'starting_model_db_code', 'starting_model_db_pdb_auth_asym_id',
-              'dataset_list_id']
-    rows = starting_models.fields(fields)
+              'dataset_list_id', 'alignment_file']
+    rows = starting_models.fields(fields, allow_missing_fields = True)
     dataset_entities = {}
     emodels = []
     tmodels = []
-    for eid, asym_id, seq_beg, seq_end, source, db_name, db_code, db_asym_id, did in rows:
+    seqpaths = []	# Sequence alignment files for comparative model templates
+    for eid, asym_id, seq_beg, seq_end, source, db_name, db_code, db_asym_id, did, seqfile in rows:
         dataset_entities[did] = (eid, asym_id)
         if (source in ('experimental model', 'comparative model') and
             db_name == 'PDB' and db_code != '?'):
-            if source == 'comparative model' and not read_templates:
-                continue
-            from chimerax.core.atomic.mmcif import fetch_mmcif
-            models, msg = fetch_mmcif(session, db_code, smart_initial_display = False)
-            name = '%s %s' % (db_code, db_asym_id)
-            for m in models:
-                keep_one_chain(m, db_asym_id)
-                m.name = name
-                m.entity_id = eid
-                m.asym_id = asym_id
-                m.seq_begin, m.seq_end = int(seq_beg), int(seq_end)
-                m.dataset_id = did
-                show_colored_ribbon(m, asym_id)
+            if source == 'comparative model' and not fetch_templates:
+                models = []
+            else:
+                from chimerax.core.atomic.mmcif import fetch_mmcif
+                models, msg = fetch_mmcif(session, db_code, smart_initial_display = False)
+                name = '%s %s' % (db_code, db_asym_id)
+                for m in models:
+                    keep_one_chain(m, db_asym_id)
+                    m.name = name
+                    m.entity_id = eid
+                    m.asym_id = asym_id
+                    m.seq_begin, m.seq_end = int(seq_beg), int(seq_end)
+                    m.dataset_id = did
+                    show_colored_ribbon(m, asym_id)
             if source == 'experimental model':
                 emodels.extend(models)
             elif source == 'comparative model':
                 tmodels.extend(models)
+                if seqfile:
+                    from os.path import join, isfile
+                    p = join(ihm_dir, seqfile)
+                    if isfile(p):
+                        seqpaths.append((p, (asym_id, did, db_name, db_code, db_asym_id)))
+
+    # Make models for comparative model template alignments
+    from collections import OrderedDict
+    seqs = OrderedDict()
+    for p,t in seqpaths:
+        seqs.setdefault(p, []).append(t)
+    seqmodels = [SequenceAlignmentModel(session, p, targets) for p, targets in seqs.items()]
             
-    return dataset_entities, emodels, tmodels
+    return dataset_entities, emodels, tmodels, seqmodels
+
+# -----------------------------------------------------------------------------
+#
+from chimerax.core.models import Model
+class SequenceAlignmentModel(Model):
+    def __init__(self, session, alignment_file, targets):
+        self.alignment_file = alignment_file
+        self.targets = targets
+        self.template_models = []
+        self.alignment = None
+        from os.path import basename
+        Model.__init__(self, basename(alignment_file), session)
+        self.display = False
+
+    def _get_display(self):
+        a = self.alignment
+        if a is not None:
+            for v in a.viewers:
+                if v.displayed():
+                    return True
+        return False
+    def _set_display(self, display):
+        a = self.alignment
+        if display:
+            if a is None and len(self.template_models) == 0:
+                self.fetch_template_models()
+            self.show_alignment()
+        elif a:
+            for v in a.viewers:
+                v.display(False)
+    display = property(_get_display, _set_display)
+
+    def show_alignment(self):
+        a = self.alignment
+        if a is None:
+            from chimerax.seqalign.parse import open_file
+            a = open_file(self.session, None, self.alignment_file,
+                          auto_associate=False, return_vals='alignments')[0]
+            self.alignment = a
+            # TODO: Associate causing errors.  Eric will fix.
+            # Associate templates with sequences in alignment.
+            # tchains = {'%s%s' % (tm.pdb_id.lower(), tm.pdb_chain_id) : tm.chains[0]
+            #            for tm in self.template_models}
+            # if tchains:
+            #     for seq in a.seqs:
+            #         if seq.name in tchains:
+            #             a.associate(tchains[seq.name], seq, force = True)
+        else:
+            for v in a.viewers:
+                v.display(True)
+
+    def fetch_template_models(self):
+        for asym_id, dataset_id, db_name, db_code, db_asym_id in self.targets:
+            if db_name == 'PDB' and len(db_code) == 4:
+                from chimerax.core.atomic.mmcif import fetch_mmcif
+                models, msg = fetch_mmcif(self.session, db_code, smart_initial_display = False)
+                name = '%s %s' % (db_code, db_asym_id)
+                for m in models:
+                    m.pdb_id = db_code
+                    m.pdb_chain_id = db_asym_id
+                    m.asym_id = asym_id
+                    m.dataset_id = dataset_id	# For locating comparative model
+                    keep_one_chain(m, db_asym_id)
+                    show_colored_ribbon(m, asym_id, color_offset = 50)
+                self.add(models)
+                self.template_models.extend(models)
 
 # -----------------------------------------------------------------------------
 #
@@ -714,7 +801,7 @@ def align_template_models(session, comparative_models):
 
 # -----------------------------------------------------------------------------
 #
-def show_colored_ribbon(m, asym_id):
+def show_colored_ribbon(m, asym_id, color_offset = None):
     if asym_id is None:
         from numpy import random, uint8
         color = random.randint(128,255,(4,),uint8)
@@ -722,6 +809,11 @@ def show_colored_ribbon(m, asym_id):
     else:
         from chimerax.core.atomic.colors import chain_rgba8
         color = chain_rgba8(asym_id)
+        if color_offset:
+            from numpy.random import randint
+            offset = randint(-color_offset,color_offset,(3,))
+            for a in range(3):
+                color[a] = max(0, min(255, color[a] + offset[a]))
     r = m.residues
     r.ribbon_colors = color
     r.ribbon_displays = True
