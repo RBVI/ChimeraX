@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from . import CmdDesc, EnumOf, StringArg, BoolArg
+from . import CmdDesc, EnumOf, StringArg, BoolArg, plural_form
 
 _bundle_types = EnumOf(["all", "installed", "available"])
 
@@ -29,17 +29,17 @@ def _display_bundles(bi_list, logger, use_html=False):
             info += "<dd>\n"
             info += escape(bi.description)
             if bi.tools or bi.commands or bi.formats:
-                info += "<table border='1'>\n"
+                info += "<table border='1' style='border-collapse:collapse;'>\n"
             if bi.tools:
-                info += "<tr><th>Tool(s):</th></tr>\n"
+                info += "<tr><th colspan='2' style='text-align:left'>%s:</th></tr>\n" % plural_form(bi.tools, "Tool")
             for t in bi.tools:
-                info += "<tr><td><b>%s</b></td> <td><i>%s</i></td></tr>\n" % (t.name, t.synopsis)
+                info += "<tr><td><b>%s</b></td> <td colspan='2'><i>%s</i></td></tr>\n" % (t.name, t.synopsis)
             if bi.commands:
-                info += "<tr><th>Command(s):</th></tr>\n"
+                info += "<tr><th colspan='2' style='text-align:left'>%s:</th></tr>\n" % plural_form(bi.commands, "Command")
             for c in bi.commands:
-                info += "<tr><td><b>%s</b></td> <td><i>%s</i></td></tr>\n" % (c.name, c.synopsis)
+                info += "<tr><td><b>%s</b></td> <td colspan='2'><i>%s</i></td></tr>\n" % (c.name, c.synopsis)
             if bi.formats:
-                info += "<tr><th>Format(s):</th></tr>\n"
+                info += "<tr><th colspan='3' style='text-align:left'>%s:</th></tr>\n" % plural_form(bi.formats, "Format")
             for f in bi.formats:
                 can_open = ' open' if f.has_open else ''
                 can_save = ' save' if f.has_save else ''

@@ -765,6 +765,8 @@ class Toolshed:
         name = kw['name']
         # Name of bundle
         bundle_name = parts[1]  # not used
+        # Synopsis of bundle/tool/command/format
+        synopsis = parts[9]
         # Name of module implementing bundle API
         kw["api_package_name"] = parts[2]
         # Display name of tool
@@ -774,7 +776,7 @@ class Toolshed:
         # CLI command names (just the first word)
         commands = []
         if parts[4]:
-            commands = [CommandInfo(v.strip(), categories) for v in parts[4].split(',')]
+            commands = [CommandInfo(v.strip(), categories, synopsis) for v in parts[4].split(',')]
         # File types that bundle can open
         file_types = parts[6]
         types = []
@@ -812,8 +814,6 @@ class Toolshed:
         custom_init = parts[8]
         if custom_init:
             kw["custom_init"] = (custom_init == "true")
-        # Synopsis of bundle
-        synopsis = parts[9]
         if not bi:
             bi = BundleInfo(installed=installed, **kw)
         if 'Hidden' not in categories:
@@ -1376,7 +1376,10 @@ class ToolInfo:
     def __init__(self, name, categories, synopsis=None):
         self.name = name
         self.categories = categories
-        self.synopsis = synopsis
+        if synopsis:
+            self.synopsis = synopsis
+        else:
+            self.synopsis = "No synopsis given"
 
     def __repr__(self):
         s = self.name
@@ -1394,38 +1397,13 @@ class ToolInfo:
         return cls(*data)
 
 
-class CommandInfo:
-    """Metadata about a command
+class CommandInfo(ToolInfo):
+    """Metadata about a command"""
+    pass
 
-    Attributes
-    ----------
-    name : str
-       Command name (may have spaces in it).
-    categories : list of str
-        Categories that command belong to.
-    synopsis : str
-        One line description.
-    """
-    def __init__(self, name, categories, synopsis=None):
-        self.name = name
-        self.categories = categories
-        self.synopsis = synopsis
-
-    def __repr__(self):
-        s = self.name
-        if self.categories:
-            s += " [categories: %s]" % ', '.join(self.categories)
-        if self.synopsis:
-            s += " [synopsis: %s]" % self.synopsis
-        return s
-
-    def cache_data(self):
-        return (self.name, self.categories, self.synopsis)
-
-    @classmethod
-    def from_cache_data(cls, data):
-        return cls(*data)
-SelectorInfo = CommandInfo
+class SelectorInfo(ToolInfo):
+    """Metadata about a selector"""
+    pass
 
 
 class FormatInfo:
@@ -1637,6 +1615,7 @@ class BundleInfo:
             "version": self._version,
             "api_package_name": self._api_package_name,
             "packages": self.packages,
+            "description": self.description,
         }
         more = {
             'tools': [ti.cache_data() for ti in self.tools],
