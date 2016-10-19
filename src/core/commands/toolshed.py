@@ -25,7 +25,7 @@ def _display_bundles(bi_list, logger, use_html=False):
         info += "<dl>\n"
         for bi in sorted(bi_list, key=bundle_key):
             info += "<dt><b>%s</b> (%s) [%s]: <i>%s</i>\n" % (
-                bi.name, bi.version, ', '.join(bi.categories), bi.synopsis)
+                bi.name, bi.version, ', '.join(bi.categories), escape(bi.synopsis))
             info += "<dd>\n"
             info += escape(bi.description)
             if bi.tools or bi.commands or bi.formats:
@@ -33,11 +33,11 @@ def _display_bundles(bi_list, logger, use_html=False):
             if bi.tools:
                 info += "<tr><th colspan='2' style='text-align:left'>%s:</th></tr>\n" % plural_form(bi.tools, "Tool")
             for t in bi.tools:
-                info += "<tr><td><b>%s</b></td> <td colspan='2'><i>%s</i></td></tr>\n" % (t.name, t.synopsis)
+                info += "<tr><td><b>%s</b></td> <td colspan='2'><i>%s</i></td></tr>\n" % (t.name, escape(t.synopsis))
             if bi.commands:
                 info += "<tr><th colspan='2' style='text-align:left'>%s:</th></tr>\n" % plural_form(bi.commands, "Command")
             for c in bi.commands:
-                info += "<tr><td><b>%s</b></td> <td colspan='2'><i>%s</i></td></tr>\n" % (c.name, c.synopsis)
+                info += "<tr><td><b>%s</b></td> <td colspan='2'><i>%s</i></td></tr>\n" % (c.name, escape(c.synopsis))
             if bi.formats:
                 info += "<tr><th colspan='3' style='text-align:left'>%s:</th></tr>\n" % plural_form(bi.formats, "Format")
             for f in bi.formats:
