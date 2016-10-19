@@ -121,16 +121,15 @@ class Alignment(State):
             def do_assoc():
                 if reeval and sseq in self.associations:
                     old_aseq = self.associations[sseq]
-                    if old_aseq == best_seq:
+                    if old_aseq == best_match_map.align_seq:
                         return
                     #TODO
                     #self.disassociate(sseq)
                 msg = "Associated %s %s to %s with %d error(s)" % (struct_name, sseq.name,
-                        best_seq.name, best_errors)
+                        best_match_map.align_seq.name, best_errors)
                 status(msg, log=True, follow_with= "Right-click to focus on residue\n"
                     "Right-shift-click to focus on region", follow_log=False, blank_after=10)
-                self.prematched_assoc_structure(best_seq, sseq,
-                        best_match_map, best_errors, reassoc)
+                self.prematched_assoc_structure(best_match_map, best_errors, reassoc)
                 new_match_maps.append(best_match_map)
                 nonlocal associated
                 associated = True
@@ -169,7 +168,7 @@ class Alignment(State):
                     aseqs = mixed
                 else:
                     aseqs = forw_aseqs
-                best_seq = best_errors = None
+                best_errors = best_match_map = None
                 max_errors = len(sseq) // settings.assoc_error_rate
                 if reeval:
                     aseqs = []
@@ -207,15 +206,14 @@ class Alignment(State):
 
                     best_match_map = match_map
                     best_errors = errors
-                    best_seq = aseq
                     if errors == 0:
                         break
 
-                if best_seq:
+                if best_match_map:
                     do_assoc()
             if not associated and force:
                 # nothing matched built-in criteria, use Needleman-Wunsch
-                best_seq = best_sseq = best_errors = None
+                best_errors = None
                 max_errors = len(sseq) // settings.assoc_error_rate
                 for sseq in sseqs:
                     # aseqs are already sorted by length...
@@ -223,11 +221,9 @@ class Alignment(State):
                         status("Using Needleman-Wunsch to test-associate"
                             " %s %s with %s\n" % (struct_name, sseq.name, aseq.name))
                         match_map, errors = nw_assoc(self.session, aseq, sseq)
-                        if not best_seq or errors < best_errors:
+                        if not best_match_map or errors < best_errors:
                             best_match_map = match_map
                             best_errors = errors
-                            best_seq = aseq
-                            best_sseq = sseq
                 if best_match_map:
                     do_assoc()
                 else:
@@ -257,11 +253,12 @@ class Alignment(State):
         if not self.viewers and self.auto_destroy:
             self.session.alignments.destroy_alignment(self)
 
-    def prematched_assoc_structure(self, aseq, sseq, match_map, errors, reassoc):
+    def prematched_assoc_structure(self, match_map, errors, reassoc):
         """If somehow you had obtained a SeqMatchMap for the aseq<->sseq correspondence,
            you would use this call instead of the more usual associate() call
         """
-        chain = sseq.chain
+        chain = match_map.struct_seq.chain
+        aseq = match_map.align_seq
         aseq.match_maps[chain] = match_map
         self.associations[chain] = aseq
 
@@ -321,7 +318,7 @@ def nw_assoc(session, align_seq, struct_seq):
         # trailing unmatched
         errors += len(sseq) - m_end - 1
 
-    match_map = SeqMatchMap(session, aseq, sseq)
+    match_map = SeqMatchMap(session, align_seq, struct_seq)
     last_match = m_end + 1
     for s_index, a_index in match_list:
         if sseq[s_index] != aseq[a_index]:

@@ -1492,13 +1492,7 @@ class SeqBlock:
         item.setToolTip(self._mouse_res_text(aseq, index))
 
     def assoc_mod(self, aseq):
-        try:
-            label = self.label_texts[aseq]
-        except KeyError:
-            print("Trying to find", aseq.name, aseq, "in:")
-        for lt_aseq in self.label_texts.keys():
-            print("  ", lt_aseq.name, lt_aseq)
-        label.setFont(self._label_font(aseq))
+        self.label_texts[aseq].setFont(self._label_font(aseq))
         associated = self.has_associated_structures(aseq)
         if associated:
             self._colorize_label(aseq)
