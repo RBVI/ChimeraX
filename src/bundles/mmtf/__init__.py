@@ -1,6 +1,11 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 from chimerax.core.toolshed import BundleAPI
+from chimerax.core.atomic import AtomicStructure
+import mmtf
+
+HELIX = 'helix'
+STRAND = 'strand'
 
 
 class _MyAPI(BundleAPI):
@@ -10,22 +15,18 @@ class _MyAPI(BundleAPI):
         return None
 
     @staticmethod
-    def fetch_from_database(session, identifier, database, **kw):
+    def fetch_url(session, identifier, ignore_cache=False, database_name=None, format_name=None, **kw):
         # 'fetch_from_database' is called by session code to fetch from
         # a database
         # returns (list of models, status message)
-        return fetch_mmtf(identifier)
+        return fetch_mmtf(session, identifier)
 
 bundle_api = _MyAPI()
-
-import sys
-from chimerax.core.atomic import AtomicStructure
-import mmtf
 
 # See README.rst for documentation and implementation status
 
 
-def fetch_mmtf(pdb_id):
+def fetch_mmtf(session, pdb_id):
     # TODO: cache?
     data = mmtf.fetch(pdb_id)
 
@@ -49,9 +50,6 @@ def fetch_mmtf(pdb_id):
 
     atoms = [None] * len(data.x_coord_list)
     models = []
-
-    HELIX = 'helix'
-    STRAND = 'strand'
 
     for model_index in range(data.num_models):
         m = AtomicStructure(session, name=pdb_id)
@@ -209,7 +207,6 @@ def fetch_mmtf(pdb_id):
             #     if xlinks is None:
             #         xlinks = session.pb_manager.get_group('cross links')
             #     xlinks.new_pseudobond(a0, a1)
-
 
     # TODO:
     # for m in models:
