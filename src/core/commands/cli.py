@@ -870,9 +870,21 @@ class AtomsArg(Annotation):
         return atoms, text, rest
 
 
+class StructureArg(Annotation):
+    """Parse command structure specifier"""
+    name = "structure"
+
+    @staticmethod
+    def parse(text, session):
+        m, text, rest = ModelArg.parse(text, session)
+        from ..atomic import Structure
+        if not isinstance(m, Structure):
+            raise AnnotationError('Specified model is not a Structure')
+        return m, text, rest
+
 class StructuresArg(Annotation):
     """Parse command structures specifier"""
-    name = "atomic structures"
+    name = "structures"
 
     @staticmethod
     def parse(text, session):
@@ -910,6 +922,22 @@ class PseudobondGroupsArg(Annotation):
         pbgs = [m for m in models if isinstance(m, PseudobondGroup)]
         return pbgs, used, rest
 
+
+class PseudobondsArg(Annotation):
+    """Parse command specifier for pseudobonds"""
+    name = 'pseudobonds'
+
+    @staticmethod
+    def parse(text, session):
+        objects, used, rest = ObjectsArg.parse(text, session)
+        from ..atomic import PseudobondGroup, interatom_pseudobonds
+        pblist = [m.pseudobonds for m in objects.models if isinstance(m, PseudobondGroup)]
+        pb = interatom_pseudobonds(objects.atoms, session)
+        if len(pb) > 0:
+            pblist.append(pb)
+        from ..atomic import Pseudobonds, concatenate
+        pbonds = concatenate(pblist, Pseudobonds)
+        return pbonds, used, rest
 
 class SurfacesArg(Annotation):
     """Parse command surfaces specifier"""
