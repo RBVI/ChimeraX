@@ -20,12 +20,13 @@ three extra keyword arguments:
                  requested.
 """
 
-from PyQt5.QtWebEngineWidgets import QWebEngineView
+from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEnginePage
 from PyQt5.QtWebEngineCore import QWebEngineUrlRequestInterceptor
 from PyQt5.QtWebEngineCore import QWebEngineUrlSchemeHandler
 
 
 class HtmlView(QWebEngineView):
+
     def __init__(self, *args, size_hint=None, schemes=None,
                  interceptor=None, download=None, **kw):
         super().__init__(*args, **kw)
@@ -41,12 +42,14 @@ class HtmlView(QWebEngineView):
             self._schemes = [s.encode("utf-8") for s in schemes]
             self._scheme_handler = _SchemeHandler()
         self._known_profiles = set()
+
     def sizeHint(self):
         if self._size_hint:
             from PyQt5.QtCore import QSize
             return QSize(*self._size_hint)
         else:
             return super().sizeHint()
+
     def setHtml(self, html):
         self.setEnabled(False)
         if len(html) < 1000000:
@@ -73,6 +76,13 @@ class HtmlView(QWebEngineView):
             tf.close()
             self.load(QUrl.fromLocalFile(self._tf_name))
         self.setEnabled(True)
+        self._update_profile()
+
+    def setUrl(self, url):
+        super().setUrl(url)
+        self._update_profile()
+
+    def _update_profile(self):
         p = self.page().profile()
         if p not in self._known_profiles:
             if self._intercept:
@@ -85,9 +95,11 @@ class HtmlView(QWebEngineView):
 
 
 class _RequestInterceptor(QWebEngineUrlRequestInterceptor):
+
     def __init__(self, *args, callback=None, **kw):
         super().__init__(*args, **kw)
         self._callback = callback
+
     def interceptRequest(self, info):
         # "info" is an instance of QWebEngineUrlRequestInfo
         if self._callback:
