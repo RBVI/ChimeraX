@@ -141,6 +141,7 @@ class CommandLine(ToolInstance):
         for cmd_text in text.split("\n"):
             if not cmd_text:
                 continue
+            self.history_dialog.add(cmd_text)
             try:
                 cmd = Command(session)
                 cmd.run(cmd_text)
@@ -168,8 +169,6 @@ class CommandLine(ToolInstance):
             except:
                 import traceback
                 session.logger.error(traceback.format_exc())
-            else:
-                self.history_dialog.add(cmd_text)
         self.set_focus()
         self.text.lineEdit().setText(cmd_text)
         self.text.lineEdit().selectAll()
