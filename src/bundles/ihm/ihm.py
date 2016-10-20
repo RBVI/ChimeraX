@@ -674,6 +674,9 @@ class SequenceAlignmentModel(Model):
             if a is None and len(self.template_models) == 0:
                 self.fetch_template_models()
             self.show_alignment()
+            if a is None:
+                self.align_templates()
+
         elif a:
             for v in a.viewers:
                 v.display(False)
@@ -687,18 +690,36 @@ class SequenceAlignmentModel(Model):
                           auto_associate=False, return_vals='alignments')[0]
             self.alignment = a
             # Associate templates with sequences in alignment.
-            tchains = {'%s%s' % (tm.pdb_id.lower(), tm.pdb_chain_id) : tm.chains[0]
-                       for tm in self.template_models}
-            if tchains:
+            tmap = {'%s%s' % (tm.pdb_id.lower(), tm.pdb_chain_id) : tm
+                    for tm in self.template_models}
+            if tmap:
                 for seq in a.seqs:
-                    if seq.name in tchains:
-                        a.associate(tchains[seq.name], seq, force = True)
+                    tm = tmap.get(seq.name)
+                    if tm:
+                        a.associate(tm.chains[0], seq, force = True)
+                        tm._associated_sequence = seq
             cm = self.comparative_model
             if cm:
                 a.associate(cm.chains[0], a.seqs[-1], force = True)
         else:
             for v in a.viewers:
                 v.display(True)
+        return a
+
+    def align_templates(self):
+        a = self.alignment
+        cm = self.comparative_model
+        if a and cm:
+            for tm in self.template_models:
+                if tm._associated_sequence:
+                    results = a.match(cm.chains[0], [tm.chains[0]], iterate=None)
+                    if results:
+                        # Show only matched residues
+                        # TODO: Might show full interval of residues with unused
+                        #       insertions colored gray
+                        tmatoms = results[0][0]
+                        tm.residues.ribbon_displays = False
+                        tmatoms.unique_residues.ribbon_displays = True
 
     def fetch_template_models(self):
         for db_name, db_code, db_asym_id in self.db_templates:
@@ -715,7 +736,7 @@ class SequenceAlignmentModel(Model):
                     show_colored_ribbon(m, self.asym_id, color_offset = 80)
                 self.add(models)
                 self.template_models.extend(models)
-    
+                
 # -----------------------------------------------------------------------------
 #
 def assign_comparative_models_to_sequences(cmodels, seqmodels):
@@ -923,14 +944,16 @@ class SphereAsymModel(Structure):
         from chimerax.core.atomic.colors import chain_rgba8
         color = chain_rgba8(asym_id)
         for (sb,se,xyz,r) in sphere_list:
-            aname = ''
-            a = self.new_atom(aname, 'H')
+            aname = 'CA'
+            a = self.new_atom(aname, 'C')
             a.coord = xyz
             a.radius = r
             a.draw_mode = a.SPHERE_STYLE
             a.color = color
             rname = '%d' % (se-sb+1)
-            r = self.new_residue(rname, asym_id, sb)
+            # Convention on ensemble PDB files is beads get middle residue number of range
+            rnum = sb + (sb-se+1)//2
+            r = self.new_residue(rname, asym_id, rnum)
             r.add_atom(a)
             for s in range(sb, se+1):
                 rs[s] = a
