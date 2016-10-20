@@ -49,6 +49,11 @@ class _MyAPI(BundleAPI):
         raise NotImplementedError     # FIXME: remove method if unneeded
 
     @staticmethod
+    def fetch_url(session, identifier, ignore_cache=False, database_name=None, format_name=None, **kw):
+        # 'fetch_url' is called by session code to fetch data from a URL
+        raise NotImplementedError     # FIXME: remove method if unneeded
+
+    @staticmethod
     def initialize(session, bi):
         # bundle-specific initialization (causes import)
         raise NotImplementedError     # FIXME: remove method if unneeded

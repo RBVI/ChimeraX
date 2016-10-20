@@ -224,14 +224,16 @@ def _convert_to_timestamp(date):
 # -----------------------------------------------------------------------------
 #
 def register_fetch(database_name, fetch_function, file_format,
-                   prefixes=(), default_format=None):
+                   prefixes=(), is_default_format=False, example_id=None):
     d = fetch_databases()
     df = d.get(database_name, None)
     if df is None:
         d[database_name] = df = DatabaseFetch(database_name, file_format)
     df.add_format(file_format, fetch_function)
-    if default_format:
+    if is_default_format:
         df.default_format = file_format
+    if example_id:
+        df.example_id = example_id
     for p in prefixes:
         df.prefix_format[p] = file_format
 
@@ -283,7 +285,7 @@ def prefixes():
 #
 class DatabaseFetch:
 
-    def __init__(self, database_name, default_format):
+    def __init__(self, database_name, default_format=False, example_id=None):
         self.database_name = database_name
         self.default_format = default_format
         self.fetch_function = {}		# Map format to fetch function

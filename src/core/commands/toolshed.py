@@ -31,11 +31,11 @@ def _display_bundles(bi_list, logger, use_html=False):
             if bi.tools or bi.commands or bi.formats:
                 info += "<table border='1' style='border-collapse:collapse;'>\n"
             if bi.tools:
-                info += "<tr><th colspan='2' style='text-align:left'>%s:</th></tr>\n" % plural_form(bi.tools, "Tool")
+                info += "<tr><th colspan='3' style='text-align:left'>%s:</th></tr>\n" % plural_form(bi.tools, "Tool")
             for t in bi.tools:
                 info += "<tr><td><b>%s</b></td> <td colspan='2'><i>%s</i></td></tr>\n" % (t.name, escape(t.synopsis))
             if bi.commands:
-                info += "<tr><th colspan='2' style='text-align:left'>%s:</th></tr>\n" % plural_form(bi.commands, "Command")
+                info += "<tr><th colspan='3' style='text-align:left'>%s:</th></tr>\n" % plural_form(bi.commands, "Command")
             for c in bi.commands:
                 info += "<tr><td><b>%s</b></td> <td colspan='2'><i>%s</i></td></tr>\n" % (c.name, escape(c.synopsis))
             if bi.formats:

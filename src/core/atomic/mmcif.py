@@ -149,7 +149,7 @@ def register_mmcif_format():
 def register_mmcif_fetch():
     from .. import fetch
     fetch.register_fetch('pdb', fetch_mmcif, 'mmcif',
-                         prefixes=['pdb'], default_format=True)
+                         prefixes=['pdb'], is_default_format=True)
 
 
 def get_mmcif_tables(filename, table_names):

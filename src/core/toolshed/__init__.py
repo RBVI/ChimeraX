@@ -118,15 +118,15 @@ application property list.
 
 Data formats that can be fetched:
 
-# ChimeraX-Fetch :: format_name :: database_name :: id_category :: example_id :: priority
+# ChimeraX-Fetch :: database_name :: format_name :: prefixes :: example_id :: is_default
 
 Data formats that can be opened:
 
-# ChimeraX-Open :: format_name :: tag :: priority
+# ChimeraX-Open :: format_name :: tag :: is_default
 
 Data formats that can be saved:
 
-# ChimeraX-Save :: format_name :: tag :: priority
+# ChimeraX-Save :: format_name :: tag :: is_default
 
 Attributes
 ----------
@@ -823,7 +823,6 @@ class Toolshed:
         bi.commands.extend(commands)
         return bi
 
-    once = True
     def _make_bundle_info(self, d, installed, logger):
         """Convert distribution into a list of :py:class:`BundleInfo` instances."""
         name = d.name
@@ -944,12 +943,18 @@ class Toolshed:
                                 dangerous=dangerous, synopsis=synopsis)
                 bi.formats.append(fi)
             elif parts[0] == "ChimeraX-Fetch":
+                # ChimeraX-Fetch :: database_name :: format_name :: prefixes :: example_id :: is_default
                 if bi is None:
                     logger.warning('ChimeraX-Bundle entry must be first')
                     return None
-                pass
+                database_name = parts[1]
+                format_name = parts[2]
+                prefixes = [v.strip() for v in parts[3].split(',')] if parts[3] else ()
+                example_id = parts[4]
+                is_default = (parts[5] == 'true')
+                bi.fetches.append((database_name, format_name, prefixes, example_id, is_default))
             elif parts[0] == "ChimeraX-Open":
-                # ChimeraX-Open :: format_name :: tag :: priority
+                # ChimeraX-Open :: format_name :: tag :: is_default
                 if bi is None:
                     logger.warning('ChimeraX-Bundle entry must be first')
                     return None
@@ -959,7 +964,7 @@ class Toolshed:
                     continue
                 name = parts[1]
                 tag = parts[2]
-                priority = parts[3]
+                is_default = parts[3]
                 try:
                     fi = [fi for fi in bi.formats if fi.name == name][0]
                 except KeyError:
@@ -972,7 +977,7 @@ class Toolshed:
                     return None
                 name = parts[1]
                 tag = parts[2]
-                priority = parts[3]
+                is_default = parts[3]
                 try:
                     fi = [fi for fi in bi.formats if fi.name == name][0]
                 except KeyError:
@@ -1557,6 +1562,7 @@ class BundleInfo:
         self.commands = []
         self.formats = []
         self.selectors = []
+        self.fetches = []
         self.description = description
 
         # Private attributes
@@ -1622,6 +1628,7 @@ class BundleInfo:
             'commands': [ci.cache_data() for ci in self.commands],
             'formats': [fi.cache_data() for fi in self.formats],
             'selectors': [si.cache_data() for si in self.selectors],
+            'fetches': self.fetches,
         }
         return args, kw, more
 
@@ -1638,6 +1645,8 @@ class BundleInfo:
         bi.commands = commands
         bi.formats = formats
         bi.selectors = selectors
+        if 'fetches' in more:
+            bi.fetches = more['fetches']
         return bi
 
     def distribution(self):
@@ -1683,7 +1692,7 @@ class BundleInfo:
 
     def register_file_types(self):
         """Register file types."""
-        from chimerax.core import io
+        from chimerax.core import io, fetch
         for fi in self.formats:
             _debug("register_file_type", fi.name)
             format = io.register_format(fi.name, fi.category, fi.suffixes)
@@ -1723,6 +1732,26 @@ class BundleInfo:
                     format.export_func = save_shim
                     return save_shim(*args, format_name=format_name, **kw)
                 format.export_func = save_cb
+        for (database_name, format_name, prefixes, example_id, is_default) in self.fetches:
+            if io.format_from_name(format_name) is None:
+                print('warning: unknown format %r given for database %r' % (format_name, database_name))
+            def fetch_cb(session, identifier, database_name=database_name, format_name=format_name, **kw):
+                try:
+                    f = self._get_api().fetch_url
+                except AttributeError:
+                    raise ToolshedError(
+                        "no fetch_url function found for bundle \"%s\""
+                        % self.name)
+                if f == BundleAPI.save_file:
+                    raise ToolshedError("bundle \"%s\"'s API forgot to override fetch_url()" % self.name)
+                # optimize by replacing fetch_url for (database, format)
+                def fetch_shim(session, identifier, f=f, database_name=database_name, format_name=format_name, **kw):
+                    return f(session, identifier, database_name=database_name, format_name=format_name, **kw)
+                fetch.register_fetch(database_name, fetch_shim, format_name)
+                return fetch_shim(session, identifier, **kw)
+            fetch.register_fetch(
+                database_name, fetch_cb, format_name, prefixes=prefixes,
+                is_default_format=is_default, example_id=example_id)
 
     def deregister_file_types(self):
         """Deregister file types."""
