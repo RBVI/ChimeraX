@@ -11,15 +11,16 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def crosslinks(session, pbgroups = None, color = None, radius = None,
-               network = False, plot = False, minimize = None, iterations = 10, frames = None):
+def crosslinks(session, pbonds = None, color = None, radius = None,
+               network = False, plot = False, ensemble = None,
+               minimize = None, iterations = 10, frames = None):
     '''
     Move atomic models to minimize crosslink lengths.
 
     Parameters
     ----------
-    pbgroups : PseudobondGroups or None
-      Pseudobond groups containing crosslinks.  If None then all pseudbond groups are used.
+    pbonds : Pseudobonds
+      Crosslinks to display or minimize.
     color : Color
       Set the pseudobonds to this color
     radius : float
@@ -28,6 +29,9 @@ def crosslinks(session, pbgroups = None, color = None, radius = None,
       Whether to show a 2d graph of chains with crosslinks between them.
     plot : bool
       Whether to show a histogram of crosslink lengths.
+    ensemble : AtomicStructure
+      If plotting and a single pseudobond is specified plot a histogram of its
+      length across the given ensemble (structure with multiple coordinate sets).
     minimize : bool
       Move each atomic structure model rigidly to minimize the sum of squares of link distances
       to other models.  Each model is moved one time.  This does not produce minimum sum of squares
@@ -38,16 +42,10 @@ def crosslinks(session, pbgroups = None, color = None, radius = None,
       If minimize is true then move the atomic structures gradually to their minimized positions
       over this many frames.
     '''
-    if pbgroups is None:
-        from chimerax.core import atomic
-        pbgroups = atomic.all_pseudobond_groups(session.models)
 
-    if len(pbgroups) == 0:
+    if len(pbonds) == 0:
         from chimerax.core.errors import UserError        
-        raise UserError('No pseudobond groups specified.')
-
-    from chimerax.core.atomic import concatenate
-    pbonds = concatenate([pbg.pseudobonds for pbg in pbgroups])
+        raise UserError('No pseudobonds specified.')
 
     if color:
         rgba = color.uint8x4()
@@ -60,16 +58,20 @@ def crosslinks(session, pbgroups = None, color = None, radius = None,
 
     if network:
         from .chainplot import CrosslinksPlot, chains_and_edges
-        from chimerax.core.atomic import concatenate, Pseudobonds
-        pbonds = concatenate([pbg.pseudobonds for pbg in pbgroups], Pseudobonds)
         cnodes, edges = chains_and_edges(pbonds)
         CrosslinksPlot(session, cnodes, edges)
 
     if plot:
-        from chimerax.core.atomic import concatenate, Pseudobonds
-        pbonds = concatenate([pbg.pseudobonds for pbg in pbgroups], Pseudobonds)
-        from .lengths import LengthsPlot
-        LengthsPlot(session, pbonds)
+        if ensemble:
+            if len(pbonds) == 1:
+                from .lengths import EnsemblePlot
+                EnsemblePlot(session, pbonds[0], ensemble)
+            else:
+                from chimerax.core.errors import UserError        
+                raise UserError('Plotting ensemble lengths requires exactly one crosslink, got %d.' % len(pbonds))
+        else:
+            from .lengths import LengthsPlot
+            LengthsPlot(session, pbonds)
 
     if minimize:
         minimize_link_lengths(minimize, pbonds, iterations, frames, session)
@@ -155,14 +157,15 @@ class interpolate_position:
             self.frame += 1
 
 def register_command():
-    from chimerax.core.commands import register, CmdDesc, ColorArg, FloatArg, IntArg, PseudobondGroupsArg, StructuresArg, NoArg
-    desc = CmdDesc(optional = [('pbgroups', PseudobondGroupsArg)],
-                       keyword = [('color', ColorArg),
-                                  ('radius', FloatArg),
-                                  ('network', NoArg),
-                                  ('plot', NoArg),
-                                  ('minimize', StructuresArg),
-                                  ('iterations', IntArg),
-                                  ('frames', IntArg),
-                              ])
+    from chimerax.core.commands import register, CmdDesc, ColorArg, FloatArg, IntArg, PseudobondsArg, StructureArg, StructuresArg, NoArg
+    desc = CmdDesc(required = [('pbonds', PseudobondsArg)],
+                   keyword = [('color', ColorArg),
+                              ('radius', FloatArg),
+                              ('network', NoArg),
+                              ('plot', NoArg),
+                              ('ensemble', StructureArg),
+                              ('minimize', StructuresArg),
+                              ('iterations', IntArg),
+                              ('frames', IntArg),],
+                   synopsis = 'Plot or minimize crosslink lengths')
     register('crosslinks', desc, crosslinks)
