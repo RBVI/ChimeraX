@@ -74,53 +74,65 @@ _RUNNING_ROW = (
     '</tr>')
 
 
-class Page(QWebEnginePage):
-
-    def __init__(self, parent, tool):
-        QWebEnginePage.__init__(self, parent)
-        self.tool = tool
-
-    def acceptNavigation(self, qurl, nav_type, is_main_frame):  # noqa
-        return self.tool.navigate(qurl)
-
-    def javaScriptConsoleMessage(self, level, msg, linenumber, source_id):  # noqa
-        import sys
-        print('toolshed page: %s' % msg, file=sys.__stderr__)
-
-
 class ToolshedUI(ToolInstance):
 
     SESSION_ENDURING = True
+    TOOLSHED_URL = "https://chi2ti-preview.rbvi.ucsf.edu"
+    # TOOLSHED_URL = "https://www.rbvi.ucsf.edu"
 
     def __init__(self, session, tool_name):
+        # Standard template stuff
         ToolInstance.__init__(self, session, tool_name)
+        self.display_name = "Toolshed"
         from chimerax.core.ui.gui import MainToolWindow
         self.tool_window = MainToolWindow(self)
+        self.tool_window.manage(placement="side")
         parent = self.tool_window.ui_area
-        from PyQt5.QtWebEngineWidgets import QWebEngineView
 
-        class HtmlWindow(QWebEngineView):
-            pass
-
-        def sizeHint():  # noqa
-            from PyQt5.QtCore import QSize
-            return QSize(800, 200)
-        parent.sizeHint = sizeHint
-
-        self.webview = HtmlWindow(parent)
-        from PyQt5.QtWidgets import QGridLayout
-        layout = QGridLayout(parent)
-        layout.addWidget(self.webview, 0, 0)
+        from PyQt5.QtWidgets import QGridLayout, QTabWidget
+        from chimerax.core.ui.widgets import HtmlView
+        layout = QGridLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.tab_widget = QTabWidget()
+        self.html_view = HtmlView(size_hint=(575, 300),
+                                  download=self._download)
+        self.tab_widget.addTab(self.html_view, "Toolshed")
+        layout.addWidget(self.tab_widget, 0, 0)
         parent.setLayout(layout)
-        self.webview.setPage(Page(self.webview, self))
 
         self.tool_window.manage(placement="side")
-        from chimerax.core.tools import ADD_TOOL_INSTANCE, REMOVE_TOOL_INSTANCE
-        self._handlers = [session.triggers.add_handler(ADD_TOOL_INSTANCE, self._make_page),
-                          session.triggers.add_handler(REMOVE_TOOL_INSTANCE, self._make_page)]
-        self._make_page()
 
-    def navigate(self, qurl):
+        from PyQt5.QtCore import QUrl
+        print("setUrl page", self.html_view.page())
+        self.html_view.setUrl(QUrl(self.TOOLSHED_URL))
+        # self.html_view.setHtml("<h2>Html View</h2>")
+
+    def _intercept(self, info):
+        # "info" is an instance of QWebEngineUrlRequestInfo
+        qurl = info.requestUrl()
+        print("intercept", qurl.toString())
+
+    def _download(self, item):
+        # "item" is an instance of QWebEngineDownloadItem
+        print("download")
+        print("  mime type", item.mimeType())
+        print("  path", item.path())
+        print("  url", item.url())
+        print("  total bytes", item.totalBytes())
+        print("  received bytes", item.receivedBytes())
+        if (item.mimeType() == "application/zip" and
+                item.url().path().endswith(".whl")):
+            item.finished.connect(lambda i=item: self._download_finished(i))
+            item.accept()
+
+    def _download_finished(self, item):
+        import os
+        item.finished.disconnect()
+        filename = item.path()
+        s = os.stat(filename)
+        print("%s: %d bytes" % (filename, s.st_size))
+
+    def _navigate(self, qurl):
         session = self.session
         # Handle event
         # data is QUrl
@@ -278,9 +290,5 @@ class ToolshedUI(ToolInstance):
     # Override ToolInstance methods
     #
     def delete(self):
-        session = self.session
-        for h in self._handlers:
-            session.triggers.remove_handler(h)
-        self._handlers = []
         self.tool_window = None
         super().delete()

@@ -266,12 +266,14 @@ class Alignment(State):
 
            This returns a series of tuples, one per match chain, describing the resulting
            match.  The values in the 5-tuple are:
+
               * atoms used from the match chain
               * atoms used from the reference chain
               * RMSD across those atoms
               * RMSD across the original (possibly restricted) atoms, before iteration pruning
-              * a chimerax.core.Place object describing the transformation to place the match
-                chain onto the reference chain
+              * a :py:class:`~chimerax.core.Place` object describing the transformation to place
+                the match chain onto the reference chain
+
             These values can all be None, if the matching failed (usually too few atoms to match).
         """
         if ref_chain not in self.associations:
