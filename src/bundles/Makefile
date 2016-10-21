@@ -18,7 +18,7 @@ SUBDIRS = add_missing_atoms align_algs alignments blastpdb \
 	  log map_series_gui match_maker mav mlp model_panel \
 	  mouse_modes movie oculus remote_control rest_server \
 	  residue_fit sim_matrices shell shortcuts sideview \
-	  smooth_lines spacenavigator stl struts \
+	  smooth_lines spacenavigator stl storm struts \
 	  test toolshed tug vive volume_viewer vtk
 
 include $(TOP)/mk/subdir.make
