@@ -38,6 +38,11 @@ class _MyAPI(BundleAPI):
         # TODO: Register more subcommands here
 
     @staticmethod
+    def register_selector(selector_name):
+        # 'register_selector' is lazily called when the selector is referenced
+        raise NotImplementedError  # FIXME: remove method if unneeded
+
+    @staticmethod
     def open_file(session, f, name, filespec=None, **kw):
         # 'open_file' is called by session code to open a file
         # returns (list of models, status message)

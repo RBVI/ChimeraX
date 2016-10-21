@@ -32,4 +32,4 @@ from .colorarg import ColorArg, ColormapArg, ColormapRangeArg
 from .symarg import SymmetryArg
 
 from .atomspec import AtomSpecArg, all_objects
-from .atomspec import register_selector, deregister_selector
+from .atomspec import register_selector, deregister_selector, get_selector
