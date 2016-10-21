@@ -487,7 +487,7 @@ class Volume(Model):
         if vlow < vmid and vmid < vmax:
           self.solid_levels = ((vlow,0), (vmid,0.99), (vmax,1))
         else:
-          self.solid_levels = ((vlow,0), (vmax,1))
+          self.solid_levels = ((vlow,0), (0.9*vlow+0.1*vmax,0.99), (vmax,1))
         self.solid_colors = [rgba]*len(self.solid_levels)
 
     self.initialized_thresholds = True
