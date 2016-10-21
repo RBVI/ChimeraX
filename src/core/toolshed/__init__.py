@@ -1839,7 +1839,7 @@ class BundleInfo:
     def _deregister_selectors(self):
         from ..commands import deregister_selector
         for si in self.selectors:
-            deregister_selector(None, si.name)
+            deregister_selector(si.name)
 
     def initialize(self, session):
         """Initialize bundle by calling custom initialization code if needed."""
