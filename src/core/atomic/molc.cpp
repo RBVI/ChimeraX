@@ -2696,6 +2696,8 @@ extern "C" EXPORT int sequence_gapped_to_ungapped(void *seq, int32_t index)
     Sequence *s = static_cast<Sequence *>(seq);
     try {
         return s->gapped_to_ungapped(index);
+    } catch (SeqIndexError& e) {
+        return -1;
     } catch (...) {
         molc_error();
         return 0;
@@ -2788,6 +2790,17 @@ extern "C" EXPORT pyobject_t sequence_ungapped(void *seq)
         molc_error();
         Py_INCREF(Py_None);
         return Py_None;
+    }
+}
+
+extern "C" EXPORT int sequence_ungapped_to_gapped(void *seq, int32_t index)
+{
+    Sequence *s = static_cast<Sequence *>(seq);
+    try {
+        return s->ungapped_to_gapped(index);
+    } catch (...) {
+        molc_error();
+        return 0;
     }
 }
 

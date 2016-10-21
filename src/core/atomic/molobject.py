@@ -797,7 +797,10 @@ class Sequence:
     def gapped_to_ungapped(self, index):
         f = c_function('sequence_gapped_to_ungapped', args = (ctypes.c_void_p, ctypes.c_int),
             ret = ctypes.c_int)
-        return f(self._c_pointer, index)
+        g2u = f(self._c_pointer, index)
+        if g2u < 0:
+            return None
+        return g2u
 
     def __getitem__(self, key):
         return self.characters[key]
@@ -859,6 +862,11 @@ class Sequence:
         """String of sequence without gap characters"""
         f = c_function('sequence_ungapped', args = (ctypes.c_void_p,), ret = ctypes.py_object)
         return f(self._c_pointer)
+
+    def ungapped_to_gapped(self, index):
+        f = c_function('sequence_ungapped_to_gapped', args = (ctypes.c_void_p, ctypes.c_int),
+            ret = ctypes.c_int)
+        return f(self._c_pointer, index)
 
     @atexit.register
     def _exiting():

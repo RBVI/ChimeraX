@@ -290,28 +290,32 @@ class Alignment(State):
             iterate = settings.iterate
 
         return_vals = []
+        ref_seq = self.associations[ref_chain]
         if restriction is not None:
-            ref_ungapped_positions = [ref_chain.gapped_to_ungapped(i) for i in restriction]
+            ref_ungapped_positions = [ref_seq.gapped_to_ungapped(i) for i in restriction]
         for match_chain in match_chains:
             if match_chain not in self.associations:
                 raise ValueError("%s not associated with any sequence" % match_chain.full_name)
+            match_seq = self.associations[match_chain]
             if restriction is not None:
-                match_ungapped_positions = [match_chain.gapped_to_ungapped(i) for i in restriction]
+                match_ungapped_positions = [match_seq.gapped_to_ungapped(i) for i in restriction]
                 restriction_set = set()
                 for ur, um in zip(ref_ungapped_positions, match_ungapped_positions):
                     if ur is not None and um is not None:
                         restriction_set.add(ur)
             ref_atoms = []
             match_atoms = []
-            ref_res_to_pos = self.associations[ref_chain].match_maps[ref_chain].res_to_pos
-            match_pos_to_res = self.associations[match_chain].match_maps[match_chain].pos_to_res
-            for rres, pos in ref_res_to_pos.items():
-                if restriction is not None and pos not in restriction_set:
+            ref_res_to_pos = ref_seq.match_maps[ref_chain].res_to_pos
+            match_pos_to_res = match_seq.match_maps[match_chain].pos_to_res
+            for rres, rpos in ref_res_to_pos.items():
+                if restriction is not None and rpos not in restriction_set:
                     continue
-                try:
-                    mres = match_pos_to_res[pos]
-                except KeyError:
+                gpd = ref_seq.ungapped_to_gapped(rpos)
+                mug = match_seq.gapped_to_ungapped(gpd)
+                mpos = match_seq.gapped_to_ungapped(ref_seq.ungapped_to_gapped(rpos))
+                if mpos is None:
                     continue
+                mres = match_pos_to_res[mpos]
                 if mres is None:
                     continue
                 ref_atoms.append(rres.principal_atom)

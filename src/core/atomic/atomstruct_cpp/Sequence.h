@@ -18,6 +18,7 @@
 
 #include <vector>
 #include <map>
+#include <stdexcept>
 #include <string>
 
 #include "imex.h"
@@ -32,6 +33,11 @@ typedef _object PyObject;
 #endif
 
 namespace atomstruct {
+
+class SeqIndexError: public std::range_error {
+public:
+    SeqIndexError(const std::string& msg) : std::range_error(msg) {}
+};
 
 class ATOMSTRUCT_IMEX Sequence {
 public:

@@ -115,7 +115,10 @@ Sequence::gapped_to_ungapped(unsigned int index) const
     if (_cache_ungapped.empty()) {
         (void) ungapped();
     }
-    return _cache_g2ug[index];
+    auto i = _cache_g2ug.find(index);
+    if (i == _cache_g2ug.end())
+        throw SeqIndexError("No corresponding ungapped position");
+    return i->second;
 }
 
 char
