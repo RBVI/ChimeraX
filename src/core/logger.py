@@ -319,8 +319,8 @@ class Logger:
             self.info(msg)
 
         # "highest prority" log is last added, so:
-        for log in reversed(list(self.logs)):
-            if log.status(msg, color, secondary) and log.excludes_other_logs:
+        for l in reversed(list(self.logs)):
+            if l.status(msg, color, secondary) and l.excludes_other_logs:
                 break
         if secondary:
             status_timer = self._status_timer2
