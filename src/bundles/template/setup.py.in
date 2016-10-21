@@ -200,12 +200,11 @@ setup(
         #       ChimeraX-Fetch :: PDB :: mmcif :: pdb :: 1a0m ::
         #       ChimeraX-Fetch :: PDB :: PDB :: :: 1a0m ::
         #
-        "ChimeraX-Selector :: name :: categories :: synopsis",
+        "ChimeraX-Selector :: name :: synopsis",
         #
         # 'name' is a string and may have spaces in it.
-        # 'categories' should be a subset of the bundle's categories. 
         # 'synopsis' is a short description of the selector.  It is here for
-        # uninstalled commands, so that users can get more than just a
+        # uninstalled selectors, so that users can get more than just a
         # name for deciding whether they want the selector or not.
         # Bundles may provide more than one selector.
     ],

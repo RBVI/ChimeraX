@@ -372,17 +372,11 @@ class Keyboard_Shortcuts:
         if sc is not None:
             sc.run(self.session)
 
-_registered_selectors = False
-def register_selectors(session):
-    global _registered_selectors
-    if _registered_selectors:
-        return
-
+def register_selectors():
     from chimerax.core.commands import register_selector
-    register_selector(None, "selAtoms", _sel_atoms_selector)
-    register_selector(None, "selMaps", _sel_maps_selector)
-    register_selector(None, "selModels", _sel_models_selector)
-    _registered_selectors = True
+    register_selector("selAtoms", _sel_atoms_selector)
+    register_selector("selMaps", _sel_maps_selector)
+    register_selector("selModels", _sel_models_selector)
 
 # Selected atoms, or if none selected then all atoms.
 def _sel_atoms_selector(session, models, results):

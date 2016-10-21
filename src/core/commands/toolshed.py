@@ -22,24 +22,41 @@ def _display_bundles(bi_list, logger, use_html=False):
     info = ""
     if use_html:
         from html import escape
+        info = """
+<style>
+table.bundle {
+    border-collapse: collapse;
+    border-spacing: 2px;
+}
+th.bundle {
+    font-style: italic;
+    text-align: left;
+}
+</style>
+        """
         info += "<dl>\n"
         for bi in sorted(bi_list, key=bundle_key):
             info += "<dt><b>%s</b> (%s) [%s]: <i>%s</i>\n" % (
                 bi.name, bi.version, ', '.join(bi.categories), escape(bi.synopsis))
             info += "<dd>\n"
-            info += escape(bi.description)
+            # TODO: convert description's rst text to HTML
+            info += escape(bi.description).replace('\n\n', '<p>\n')
             if bi.tools or bi.commands or bi.formats:
-                info += "<table border='1' style='border-collapse:collapse;'>\n"
+                info += "<table class='bundle' border='1'>\n"
             if bi.tools:
-                info += "<tr><th colspan='3' style='text-align:left'>%s:</th></tr>\n" % plural_form(bi.tools, "Tool")
+                info += "<tr><th class='bundle' colspan='3'>%s:</th></tr>\n" % plural_form(bi.tools, "Tool")
             for t in bi.tools:
                 info += "<tr><td><b>%s</b></td> <td colspan='2'><i>%s</i></td></tr>\n" % (t.name, escape(t.synopsis))
             if bi.commands:
-                info += "<tr><th colspan='3' style='text-align:left'>%s:</th></tr>\n" % plural_form(bi.commands, "Command")
+                info += "<tr><th class='bundle' colspan='3'>%s:</th></tr>\n" % plural_form(bi.commands, "Command")
             for c in bi.commands:
                 info += "<tr><td><b>%s</b></td> <td colspan='2'><i>%s</i></td></tr>\n" % (c.name, escape(c.synopsis))
+            if bi.selectors:
+                info += "<tr><th class='bundle' colspan='3'>%s:</th></tr>\n" % plural_form(bi.selectors, "Selector")
+            for s in bi.selectors:
+                info += "<tr><td><b>%s</b></td> <td colspan='2'><i>%s</i></td></tr>\n" % (s.name, escape(s.synopsis))
             if bi.formats:
-                info += "<tr><th colspan='3' style='text-align:left'>%s:</th></tr>\n" % plural_form(bi.formats, "Format")
+                info += "<tr><th class='bundle' colspan='3'>%s:</th></tr>\n" % plural_form(bi.formats, "Format")
             for f in bi.formats:
                 can_open = ' open' if f.has_open else ''
                 can_save = ' save' if f.has_save else ''
@@ -50,17 +67,27 @@ def _display_bundles(bi_list, logger, use_html=False):
         info += "</dl>\n"
     else:
         for bi in sorted(bi_list, key=bundle_key):
-            info += " %s (%s) [%s]: %s\n" % (
+            info += "%s (%s) [%s]: %s\n" % (
                 bi.name, bi.version, ', '.join(bi.categories), bi.synopsis)
+            if bi.tools:
+                info += "   %s:\n" % plural_form(bi.tools, "Tool")
             for t in bi.tools:
-                info += "    Tool: %s: %s\n" % (t.name, t.synopsis)
+                info += "    %s: %s\n" % (t.name, t.synopsis)
+            if bi.commands:
+                info += "   %s:\n" % plural_form(bi.commands, "Command")
             for c in bi.commands:
-                info += "    Command: %s: %s\n" % (c.name, c.synopsis)
+                info += "    %s: %s\n" % (c.name, c.synopsis)
+            if bi.selectors:
+                info += "   %s:\n" % plural_form(bi.selectors, "Selector")
+            for s in bi.selectors:
+                info += "    %s: %s\n" % (s.name, s.synopsis)
+            if bi.formats:
+                info += "   %s:\n" % plural_form(bi.formats, "Format")
             for f in bi.formats:
                 can_open = ' open' if f.has_open else ''
                 can_save = ' save' if f.has_save else ''
-                info += "    Formats: %s [%s]%s%s\n" % (f.name, f.category,
-                                                          can_open, can_save)
+                info += "    %s [%s]%s%s\n" % (f.name, f.category, can_open,
+                                               can_save)
     logger.info(info, is_html=use_html)
 
 

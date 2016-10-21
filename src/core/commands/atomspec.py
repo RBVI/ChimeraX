@@ -198,13 +198,12 @@ class _AtomSpecSemantics:
 
     def selector_name(self, ast):
         # print("selector_name", ast)
-        if (get_selector(self._session, ast.name) is None and
-           get_selector(None, ast.name) is None):
-                from grako.exceptions import FailedSemantics
-                e = FailedSemantics("\"%s\" is not a selector name" % ast.name)
-                e.pos = ast.parseinfo.pos
-                e.endpos = ast.parseinfo.endpos
-                raise e
+        if get_selector(ast.name) is None:
+            from grako.exceptions import FailedSemantics
+            e = FailedSemantics("\"%s\" is not a selector name" % ast.name)
+            e.pos = ast.parseinfo.pos
+            e.endpos = ast.parseinfo.endpos
+            raise e
         return _SelectorName(ast.name)
 
     def model_list(self, ast):
@@ -532,7 +531,7 @@ class _SelectorName:
         return self.name
 
     def find_matches(self, session, models, results):
-        f = get_selector(session, self.name) or get_selector(None, self.name)
+        f = get_selector(self.name)
         if f:
             f(session, models, results)
 
@@ -669,19 +668,7 @@ class AtomSpec:
 _selectors = {}
 
 
-def _get_selector_map(session):
-    if session is None:
-        return _selectors
-    else:
-        try:
-            return session.atomspec_selectors
-        except AttributeError:
-            d = {}
-            session.atomspec_selectors = d
-            return d
-
-
-def register_selector(session, name, func):
+def register_selector(name, func):
     """Register a (name, func) pair as an atom specifier selector.
 
     Parameters
@@ -701,10 +688,10 @@ def register_selector(session, name, func):
     for c in name[1:]:
         if not c.isalnum() and c not in "-+":
             raise ValueError("registering illegal selector name \"%s\"" % name)
-    _get_selector_map(session)[name] = func
+    _selectors[name] = func
 
 
-def deregister_selector(session, name):
+def deregister_selector(name):
     """Deregister a name as an atom specifier selector.
 
     Parameters
@@ -720,7 +707,7 @@ def deregister_selector(session, name):
         If name is not registered.
 
     """
-    del _get_selector_map(session)[name]
+    del _selectors[name]
 
 
 def list_selectors(session):
@@ -737,10 +724,10 @@ def list_selectors(session):
         Iterator that yields registered selector names.
 
     """
-    return _get_selector_map(session).keys()
+    return _selectors.keys()
 
 
-def get_selector(session, name):
+def get_selector(name):
     """Return function associated with registered selector name.
 
     Parameters
@@ -756,7 +743,7 @@ def get_selector(session, name):
         Callable object if name was registered; None, if not.
 
     """
-    return _get_selector_map(session).get(name, None)
+    return _selectors.get(name, None)
 
 
 def everything(session):

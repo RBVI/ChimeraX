@@ -52,13 +52,11 @@ Bundles that provide tools need:
 1. ``ChimeraX-Tool`` : str constant
     Field identifying entry as tool metadata.
 2. ``tool_name`` : str
-    The name of the tool within the bundle.
-3. ``display_name`` : str
-    The name shown on the tool's title bar in the GUI.
-4. ``categories`` : str
+    The globally unique name of the tool (also shown on title bar).
+3. ``categories`` : str
     Comma-separated list of categories in which the tool belongs.
     Should be a subset of the bundle's categories.
-5. ``synopsis`` : str
+4. ``synopsis`` : str
     A short description of the tool.  It is here for uninstalled tools,
     so that users can get more than just a name for deciding whether
     they want the tool or not.
@@ -70,12 +68,30 @@ Bundles that provide commands need:
 
 1. ``ChimeraX-Command`` : str constant
     Field identifying entry as command metadata.
-2. ``name`` : str
+2. ``command name`` : str
     The (sub)command name.  Subcommand names have spaces in them.
-3. ``synopsis`` : str
+3. ``categories`` : str
+    Comma-separated list of categories in which the command belongs.
+    Should be a subset of the bundle's categories.
+4. ``synopsis`` : str
     A short description of the command.  It is here for uninstalled commands,
     so that users can get more than just a name for deciding whether
     they want the command or not.
+
+Commands are lazily registered,
+so the argument specification isn't needed until the command is first used.
+Bundles may provide more than one command.
+
+Bundles that provide selectors need:
+
+1. ``ChimeraX-Selector`` : str constant
+    Field identifying entry as command metadata.
+2. ``selector name`` : str
+    The selector's name.
+3. ``synopsis`` : str
+    A short description of the selector.  It is here for uninstalled selectors,
+    so that users can get more than just a name for deciding whether
+    they want the selector or not.
 
 Commands are lazily registered,
 so the argument specification isn't needed until the command is first used.
@@ -393,14 +409,12 @@ class Toolshed:
                     pass
             if session is not None:
                 bi.finish(session)
-            bi.deregister_commands()
-            bi.deregister_file_types()
+            bi.deregister()
         self._installed_bundle_info = []
         inst_bi_list = self._load_bundle_infos(logger, rebuild_cache=rebuild_cache)
         for bi in inst_bi_list:
             self.add_bundle_info(bi)
-            bi.register_commands()
-            bi.register_file_types()
+            bi.register()
             if session is not None:
                 bi.initialize(session)
         if check_remote:
@@ -919,6 +933,19 @@ class Toolshed:
                 synopsis = parts[3]
                 ci = CommandInfo(name, categories, synopsis)
                 bi.commands.append(ci)
+            elif parts[0] == "ChimeraX-Selector":
+                # 'ChimeraX-Selector' :: name :: synopsis
+                if bi is None:
+                    logger.warning('ChimeraX-Bundle entry must be first')
+                    return None
+                if len(parts) != 3:
+                    logger.warning("Malformed ChimeraX-Selector line in %s skipped." % name)
+                    logger.warning("Expected 3 fields and got %d." % len(parts))
+                    continue
+                name = parts[1]
+                synopsis = parts[2]
+                si = SelectorInfo(name, synopsis)
+                bi.selectors.append(si)
             elif parts[0] == "ChimeraX-DataFormat":
                 # ChimeraX-DataFormat :: format_name :: alternate_names :: category :: suffixes :: mime_types :: url :: dangerous :: icon :: synopsis
                 if bi is None:
@@ -1033,8 +1060,7 @@ class Toolshed:
         for bi in newly_installed:
             bi.installed = True
             self.add_bundle_info(bi)
-            bi.register_commands()
-            bi.register_file_types()
+            bi.register()
             if session is not None:
                 bi.initialize(session)
 
@@ -1355,8 +1381,7 @@ class Toolshed:
                         del self._installed_packages[p]
                     except KeyError:
                         pass
-                bi.deregister_commands()
-                bi.deregister_file_types()
+                bi.deregister()
                 if session is not None:
                     bi.finish(session)
         self._installed_bundle_info = reversed(keep)
@@ -1407,8 +1432,34 @@ class CommandInfo(ToolInfo):
     pass
 
 class SelectorInfo(ToolInfo):
-    """Metadata about a selector"""
-    pass
+    """Metadata about a selector
+
+    Attributes
+    ----------
+    name : str
+       Tool name.
+    synopsis : str
+        One line description.
+    """
+    def __init__(self, name, synopsis=None):
+        self.name = name
+        if synopsis:
+            self.synopsis = synopsis
+        else:
+            self.synopsis = "No synopsis given"
+
+    def __repr__(self):
+        s = self.name
+        if self.synopsis:
+            s += " [synopsis: %s]" % self.synopsis
+        return s
+
+    def cache_data(self):
+        return (self.name, self.synopsis)
+
+    @classmethod
+    def from_cache_data(cls, data):
+        return cls(*data)
 
 
 class FormatInfo:
@@ -1659,7 +1710,17 @@ class BundleInfo:
         """
         return self._name, self._version
 
-    def register_commands(self):
+    def register(self):
+        self._register_commands()
+        self._register_file_types()
+        self._register_selectors()
+
+    def deregister(self):
+        self._deregister_selectors()
+        self._deregister_file_types()
+        self._deregister_commands()
+
+    def _register_commands(self):
         """Register commands with cli."""
         from chimerax.core.commands import cli
         for ci in self.commands:
@@ -1680,7 +1741,7 @@ class BundleInfo:
             raise ToolshedError("bundle \"%s\"'s API forgot to override register_command()" % self.name)
         f(command_name)
 
-    def deregister_commands(self):
+    def _deregister_commands(self):
         """Deregister commands with cli."""
         from chimerax.core.commands import cli
         for ci in self.commands:
@@ -1690,7 +1751,7 @@ class BundleInfo:
             except RuntimeError:
                 pass  # don't care if command was already missing
 
-    def register_file_types(self):
+    def _register_file_types(self):
         """Register file types."""
         from chimerax.core import io, fetch
         for fi in self.formats:
@@ -1753,10 +1814,32 @@ class BundleInfo:
                 database_name, fetch_cb, format_name, prefixes=prefixes,
                 is_default_format=is_default, example_id=example_id)
 
-    def deregister_file_types(self):
+    def _deregister_file_types(self):
         """Deregister file types."""
         # TODO: implement
         pass
+
+    def _register_selectors(self):
+        from ..commands import register_selector
+        for si in self.selectors:
+            def selector_cb(session, models, results, _name=si.name):
+                try:
+                    reg = self._get_api().register_selector
+                except AttributeError:
+                    raise ToolshedError(
+                        "no register_selector function found for bundle \"%s\""
+                        % self.name)
+                if reg == BundleAPI.register_selector:
+                    raise ToolshedError("bundle \"%s\"'s API forgot to override register_selector()" % self.name)
+                reg(_name)
+                from ..commands import get_selector
+                return get_selector(_name)(session, models, results)
+            register_selector(si.name, selector_cb)
+
+    def _deregister_selectors(self):
+        from ..commands import deregister_selector
+        for si in self.selectors:
+            deregister_selector(si.name)
 
     def initialize(self, session):
         """Initialize bundle by calling custom initialization code if needed."""
@@ -1898,9 +1981,22 @@ class BundleAPI:
         command_name : :py:class:`str`
 
         ``command_name`` is a string of the command to be registered.
-        Must be defined if the ``commands`` metadata field is non-empty.
         This function is called when the command line interface is invoked
         with one of the registered command names.
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    def register_selector(selector_name):
+        """Called when delayed selector registration occurs.
+
+        Parameters
+        ----------
+        selector_name : :py:class:`str`
+
+        ``selector_name`` is the name of the selector to be registered.
+        This function is called when the selector invoked with one of
+        the registered names.
         """
         raise NotImplementedError
 
@@ -1948,6 +2044,7 @@ class BundleAPI:
         session : :py:class:`~chimerax.core.session.Session` instance.
         bundle_info : :py:class:`BundleInfo` instance.
 
+        Must be defined if the ``custom_init`` metadata field is set to 'true'.
         ``finish`` is called when the bundle is unloaded.
         """
         raise NotImplementedError
@@ -1961,8 +2058,9 @@ class BundleAPI:
         name : str
             Name of class in bundle.
 
-        Used when restoring sessions.  Classes that aren't found via
-        'get_class' can not be saved in sessions.
+        Used when restoring sessions.  Instances whose class can't be found via
+        'get_class' can not be saved in sessions.  And those classes must implement
+        the :py:class:`~chimerax.core.state.State` API.
         """
         return None
 
