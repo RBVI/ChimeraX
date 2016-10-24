@@ -15,12 +15,13 @@ endif
 WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
 
 PYSRCS = $(filter-out setup.py,$(wildcard *.py))
+DATAFILES = icons
 WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-py3-none-any.whl
 
 all: $(PYOBJS)
 
 install: dir all
-	$(RSYNC) $(PYSRCS) $(PKG_DIR)
+	$(RSYNC) $(PYSRCS) $(DATAFILES) $(PKG_DIR)
 	if [ -d "$(app_prefix)" ]; then \
 		$(MAKE) app-install ;\
 	fi
