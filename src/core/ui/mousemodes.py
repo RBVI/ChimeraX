@@ -654,6 +654,11 @@ class ObjectIdMouseMode(MouseMode):
     '''
     name = 'identify object'
     def pause(self, position):
+        if self.session.ui.activeWindow() is None:
+            # Qt 5.7 gives app mouse events on Mac even if another application has the focus,
+            # and even if the this app is minimized, it gets events for where it used to be on the screen.
+            return
+        
         x,y = position
         p = self.view.first_intercept(x,y)
 
