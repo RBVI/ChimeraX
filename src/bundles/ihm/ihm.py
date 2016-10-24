@@ -55,25 +55,25 @@ def read_ihm(session, filename, name, *args, load_linked_files = True, fetch_tem
     acomp = assembly_components(tables['ihm_struct_assembly'])
 
     # Starting atomic models, including experimental and comparative structures and templates.
-    emodels, cmodels = create_starting_models(session, tables['ihm_starting_model_details'],
+    xmodels, cmodels = create_starting_models(session, tables['ihm_starting_model_details'],
                                               tables['ihm_dataset_other'], acomp,
                                               load_linked_files, fetch_templates, ihm_model, ihm_dir)
 
-    # Sphere models
-    smodels, gmodels = create_sphere_models(session, tables['ihm_model_list'],
-                                            tables['ihm_sphere_obj_site'], acomp,
-                                            ihm_model, ihm_dir)
+    # Sphere models, ensemble models, groups
+    smodels, emodels, gmodels = create_sphere_models(session, tables['ihm_model_list'],
+                                                     tables['ihm_sphere_obj_site'], acomp,
+                                                     ihm_model, ihm_dir)
     
     # Align starting models to first sphere model
-    if emodels:
-        align_atomic_models_to_spheres(emodels, smodels)
+    if xmodels:
+        align_atomic_models_to_spheres(xmodels, smodels)
     if cmodels:
         align_atomic_models_to_spheres(cmodels, smodels)
 
     # Crosslinks
     xlinks = create_crosslinks(session, tables['ihm_cross_link_restraint'],
-                               show_sphere_crosslinks, smodels,
-                               show_atom_crosslinks, emodels+cmodels,
+                               show_sphere_crosslinks, smodels, emodels,
+                               show_atom_crosslinks, xmodels+cmodels,
                                ihm_model)
 
     # 2D electron microscopy projections
@@ -87,7 +87,7 @@ def read_ihm(session, filename, name, *args, load_linked_files = True, fetch_tem
             
     msg = ('Opened IHM file %s containing %d experimental atomic models, %d comparative models,'
            ' %s, %d sphere models, %d ensemble localization maps, %d model groups,' %
-           (filename, len(emodels), len(cmodels),
+           (filename, len(xmodels), len(cmodels),
             ', '.join('%d %s crosslinks' % (len(xls),type) for type,xls in xlinks.items()),
             len(smodels), len(pgrids), len(gmodels)))
     return [ihm_model], msg
@@ -127,9 +127,9 @@ def create_sphere_models(session, ihm_model_list_table, ihm_sphere_obj_site_tabl
         g.display = False	# Only show first group.
     ihm_model.add(gmodels)
     
-    smodels = make_sphere_models(session, ihm_model_list_table,
-                                 ihm_sphere_obj_site_table, gmodels, acomp, ihm_dir)
-    return smodels, gmodels
+    smodels, emodels = make_sphere_models(session, ihm_model_list_table,
+                                          ihm_sphere_obj_site_table, gmodels, acomp, ihm_dir)
+    return smodels, emodels, gmodels
 
 # -----------------------------------------------------------------------------
 #
@@ -207,6 +207,7 @@ def make_sphere_models(session, model_list_table, spheres_obj_site,
             gfound.add(g)
 
     # Open ensemble sphere models that are not included in ihm sphere obj table.
+    emodels = []
     from os.path import isfile, join
     smids = set(sm.ihm_model_id for sm in smodels)
     for mid, mname, gid, file in ml:
@@ -223,15 +224,15 @@ def make_sphere_models(session, model_list_table, spheres_obj_site,
             if isfile(path + '.crd'):
                 from .coordsets import read_coordinate_sets
                 read_coordinate_sets(path + '.crd', sm)
-            # TODO: Align to match ihm sphere model.
             gmodel[gid].add([sm])
+            emodels.append(sm)
 
-    return smodels
+    return smodels, emodels
 
 # -----------------------------------------------------------------------------
 #
 def create_crosslinks(session, ihm_cross_link_restraint_table,
-                      show_sphere_crosslinks, smodels,
+                      show_sphere_crosslinks, smodels, emodels,
                       show_atom_crosslinks, amodels,
                       ihm_model):
     if ihm_cross_link_restraint_table is None:
@@ -263,6 +264,13 @@ def create_crosslinks(session, ihm_cross_link_restraint_table,
                 for pbg in pbgs:
                     pbg.display = False
             xpbgs.extend(pbgs)
+
+        if emodels and smodels:
+            sindex = smodels[0].sphere_index
+            for emodel in emodels:
+                make_crosslink_pseudobonds(session, xlinks,
+                                           ensemble_sphere_lookup(emodel, sindex),
+                                           parent = emodel)
     if show_atom_crosslinks:
         # Create cross links for starting atomic models.
         if amodels:
@@ -310,21 +318,27 @@ def crosslinks(xlink_restraint_table):
 #
 def make_crosslink_pseudobonds(session, xlinks, atom_lookup,
                                name = None,
+                               parent = None,
                                radius = 1.0,
                                color = (0,255,0,255),		# Green
                                long_color = (255,0,0,255)):	# Red
     
     pbgs = []
+    new_pbgroup = session.pb_manager.get_group if parent is None else parent.pseudobond_group
     for type, xlist in xlinks.items():
         xname = '%d %s crosslinks' % (len(xlist), type)
         if name is not None:
             xname += ' ' + name
-        g = session.pb_manager.get_group(xname)
+        g = new_pbgroup(xname)
         pbgs.append(g)
         missing = []
+        apairs = {}
         for xl in xlist:
             a1 = atom_lookup(xl.asym1, xl.seq1)
             a2 = atom_lookup(xl.asym2, xl.seq2)
+            if (a1,a2) in apairs or (a2,a1) in apairs:
+                # Crosslink already created between multiresidue beads
+                continue
             if a1 and a2 and a1 is not a2:
                 b = g.new_pseudobond(a1, a2)
                 b.color = long_color if b.length > xl.distance else color
@@ -557,15 +571,15 @@ def create_starting_models(session, ihm_starting_model_details_table,
     # Experimental starting models.
     # Comparative model templates.
     dataset_entities = {}
-    emodels = tmodels = seqmodels = []
+    xmodels = tmodels = seqmodels = []
     starting_models = ihm_starting_model_details_table
     if starting_models:
-        dataset_entities, emodels, tmodels, seqmodels = \
+        dataset_entities, xmodels, tmodels, seqmodels = \
             read_starting_models(session, starting_models, fetch_templates, ihm_dir)
-        if emodels:
+        if xmodels:
             from chimerax.core.models import Model
             am_group = Model('Experimental models', session)
-            am_group.add(emodels)
+            am_group.add(xmodels)
             ihm_model.add([am_group])
 
     # Comparative models
@@ -594,7 +608,7 @@ def create_starting_models(session, ihm_starting_model_details_table,
         ihm_model.add([sa_group])
         assign_comparative_models_to_sequences(cmodels, seqmodels)
 
-    return emodels, cmodels
+    return xmodels, cmodels
 
 # -----------------------------------------------------------------------------
 #
@@ -604,7 +618,7 @@ def read_starting_models(session, starting_models, fetch_templates, ihm_dir):
               'dataset_list_id', 'alignment_file']
     rows = starting_models.fields(fields, allow_missing_fields = True)
     dataset_entities = {}
-    emodels = []
+    xmodels = []
     tmodels = []
     seqpaths = []	# Sequence alignment files for comparative model templates
     for eid, asym_id, seq_beg, seq_end, source, db_name, db_code, db_asym_id, did, seqfile in rows:
@@ -626,7 +640,7 @@ def read_starting_models(session, starting_models, fetch_templates, ihm_dir):
                     m.dataset_id = did
                     show_colored_ribbon(m, asym_id)
             if source == 'experimental model':
-                emodels.extend(models)
+                xmodels.extend(models)
             elif source == 'comparative model':
                 tmodels.extend(models)
                 if seqfile:
@@ -643,7 +657,7 @@ def read_starting_models(session, starting_models, fetch_templates, ihm_dir):
     seqmodels = [SequenceAlignmentModel(session, alignment_file, asym_id, dataset_id, db_templates)
                  for (alignment_file, asym_id, dataset_id), db_templates in alignments.items()]
             
-    return dataset_entities, emodels, tmodels, seqmodels
+    return dataset_entities, xmodels, tmodels, seqmodels
 
 # -----------------------------------------------------------------------------
 #
@@ -899,6 +913,14 @@ def atom_lookup(models):
     
 # -----------------------------------------------------------------------------
 #
+def ensemble_sphere_lookup(emodel, aindex):
+    def lookup(asym_id, res_num, atoms=emodel.atoms, aindex=aindex):
+        i = aindex.get((asym_id, res_num))
+        return None if i is None else atoms[i]
+    return lookup
+    
+# -----------------------------------------------------------------------------
+#
 def register():
     from chimerax.core import io
     from chimerax.core.atomic import structure
@@ -914,6 +936,7 @@ class SphereModel(Model):
         Model.__init__(self, name, session)
         self.ihm_model_id = ihm_model_id
         self._asym_models = {}
+        self.sphere_index = {}	# Map chain_id, res_num to ensemble sphere index
 
     def add_asym_models(self, models):
         Model.add(self, models)
@@ -921,6 +944,13 @@ class SphereModel(Model):
         for m in models:
             am[m.asym_id] = m
 
+        si = self.sphere_index
+        io = 0
+        for m in models:
+            for res_num, a in m._res_sphere.items():
+                si[(m.asym_id, res_num)] = a.coord_index+io
+            io += m.num_atoms
+            
     def asym_model(self, asym_id):
         return self._asym_models.get(asym_id)
 
@@ -929,6 +959,16 @@ class SphereModel(Model):
 
     def residue_sphere(self, asym_id, res_num):
         return self.asym_model(asym_id).residue_sphere(res_num)
+    
+# -----------------------------------------------------------------------------
+# Map chain id, res number to atom index for ensemble sphere models.
+#
+def ensemble_sphere_map(smodel):
+    sindex = {}
+    io = 0
+    for smodel in smodels:
+                    sindex.update({cr:i+io for cr,i in smodel.index_map.items()})
+                    io += smodel.num_atoms
     
 # -----------------------------------------------------------------------------
 #
