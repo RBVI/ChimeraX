@@ -24,7 +24,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
     def __init__(self, pbg_pointer, *, session=None):
 
         PseudobondGroupData.__init__(self, pbg_pointer)
-        s = self.structure
+        self._structure = s = self.structure	# Keep structure in case PseudobondGroupData deleted.
         if session is None:
             session = s.session
         Model.__init__(self, self.category, session)
@@ -40,7 +40,10 @@ class PseudobondGroup(PseudobondGroupData, Model):
             pbm = self.session.pb_manager
             pbm.delete_group(self)
         else:
-            self.structure.delete_pseudobond_group(self)
+            s = self._structure
+            if s and not s.deleted:
+                s.delete_pseudobond_group(self)
+            self._structure = None
         Model.delete(self)
         self._pbond_drawing = None
 
