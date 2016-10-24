@@ -318,11 +318,9 @@ class Models(State):
         session.triggers.activate_trigger(REMOVE_MODELS, mlist)
 
     def close(self, models):
-        dset = descendant_models(models)
         self.remove(models)
         for m in models:
-            if m not in dset:	# Deleted parent will delete children.
-                m.delete()
+            m.delete()
 
     def open(self, filenames, id=None, format=None, name=None, **kw):
         from . import io, toolshed
