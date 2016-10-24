@@ -227,6 +227,14 @@ def make_sphere_models(session, model_list_table, spheres_obj_site,
             gmodel[gid].add([sm])
             emodels.append(sm)
 
+    # Copy bead radii from best score model to ensemble models
+    if smodels and emodels:
+        sams = smodels[0].child_models()
+        from numpy import concatenate
+        r = concatenate([sm.atoms.radii for sm in sams])
+        for em in emodels:
+            em.atoms.radii = r
+
     return smodels, emodels
 
 # -----------------------------------------------------------------------------
