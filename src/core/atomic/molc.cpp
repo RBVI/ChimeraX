@@ -386,6 +386,12 @@ extern "C" EXPORT void set_atom_coord(void *atoms, size_t n, float64_t *xyz)
     }
 }
 
+extern "C" EXPORT void atom_coord_index(void *atoms, size_t n, uint32_t *index)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    error_wrap_array_get<Atom, unsigned int, unsigned int>(a, n, &Atom::coord_index, index);
+}
+
 extern "C" EXPORT void atom_delete(void *atoms, size_t n)
 {
     Atom **a = static_cast<Atom **>(atoms);

@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from numpy import uint8, int32, float64, float32, byte, bool as npy_bool
+from numpy import uint8, int32, uint32, float64, float32, byte, bool as npy_bool
 from .molc import string, cptr, pyobject, c_property, set_c_pointer, c_function, c_array_function, ctype_type_to_numpy, pointer
 import ctypes
 size_t = ctype_type_to_numpy[ctypes.c_size_t]   # numpy dtype for size_t
@@ -119,6 +119,8 @@ class Atom:
     color = c_property('atom_color', uint8, 4, doc="Color RGBA length 4 numpy uint8 array.")
     coord = c_property('atom_coord', float64, 3,
         doc="Coordinates as a numpy length 3 array, 64-bit float values.")
+    coord_index = c_property('atom_coord_index', uint32, read_only = True,
+        doc="Coordinate index of atom in coordinate set.")
     display = c_property('atom_display', npy_bool,
         doc="Whether to display the atom. Boolean value.")
     draw_mode = c_property('atom_draw_mode', uint8,

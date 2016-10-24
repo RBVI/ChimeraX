@@ -46,7 +46,7 @@ Collections are immutable so can be hashed.  The only case in which their conten
 can be altered is if C++ objects they hold are deleted in which case those objects
 are automatically removed from the collection.
 '''
-from numpy import uint8, int32, float64, float32, uintp, byte, bool as npy_bool, integer, empty, unique, array
+from numpy import uint8, int32, uint32, float64, float32, uintp, byte, bool as npy_bool, integer, empty, unique, array
 from .molc import string, cptr, pyobject, cvec_property, set_cvec_pointer, c_function, c_array_function, pointer, ctype_type_to_numpy
 from . import molobject
 import ctypes
@@ -328,6 +328,8 @@ class Atoms(Collection):
         "with such an array (or equivalent sequence), or with a single RGBA value.")
     coords = cvec_property('atom_coord', float64, 3,
         doc="Returns a :mod:`numpy` Nx3 array of XYZ values. Can be set.")
+    coord_indices = cvec_property('atom_coord_index', uint32, read_only = True,
+        doc="Coordinate index of atom in coordinate set.")
     displays = cvec_property('atom_display', npy_bool,
         doc="Controls whether the Atoms should be displayed. Returns a :mod:`numpy` array of "
         "boolean values.  Can be set with such an array (or equivalent sequence), or with a "
