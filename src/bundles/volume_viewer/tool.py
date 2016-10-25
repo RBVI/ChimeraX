@@ -157,6 +157,8 @@ class VolumeViewer(ToolInstance):
 
         for v in vlist:
 
+            if not getattr(v, 'show_in_volume_viewer', True):
+                continue
             # Set data region status messages to display in volume dialog
             #v.message_cb = self.message
 
