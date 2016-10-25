@@ -99,7 +99,8 @@ class ViveCamera(Camera):
 
         # Compute projection and eye matrices, units in meters
         zNear = 0.1
-        zFar = 100.0
+        zFar = 500.0
+        # TODO: Scaling models to be huge causes clipping at far clip plane.
 
         # Left and right projections are different. OpenGL 4x4.
         pl = vrs.getProjectionMatrix(openvr.Eye_Left, zNear, zFar, openvr.API_OpenGL)
