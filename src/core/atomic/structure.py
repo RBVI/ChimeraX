@@ -44,7 +44,6 @@ class Structure(Model, StructureData):
         self._smart_initial_display = smart_initial_display
 
         # for now, restore attrs to default initial values even for sessions...
-        self._deleted = False
         self._atoms_drawing = None
         self._bonds_drawing = None
         self._cached_atom_bounds = None
@@ -77,18 +76,16 @@ class Structure(Model, StructureData):
             return id
         return '%s %s' % (self.name, id)
 
+    def atomspec(self):
+        return '#' + self.id_string()
+
     def delete(self):
         '''Delete this structure.'''
-        self._deleted = True
         t = self.session.triggers
         for handler in self._ses_handlers:
             t.remove_handler(handler)
         Model.delete(self)	# Delete children (pseudobond groups) before deleting structure
         StructureData.delete(self)
-
-    def deleted(self):
-        '''Has this atomic structure been deleted.'''
-        return self._deleted
 
     def copy(self, name = None):
         '''
@@ -784,11 +781,14 @@ class Structure(Model, StructureData):
                 t_start = t_end
 
             # Create drawing from arrays
-            rp.display = True
-            rp.vertices = concatenate(vertex_list)
-            rp.normals = concatenate(normal_list)
-            rp.triangles = concatenate(triangle_list)
-            rp.vertex_colors = concatenate(color_list)
+            if vertex_list:
+                rp.display = True
+                rp.vertices = concatenate(vertex_list)
+                rp.normals = concatenate(normal_list)
+                rp.triangles = concatenate(triangle_list)
+                rp.vertex_colors = concatenate(color_list)
+            else:
+                rp.display = False
             # Save mappings for picking
             self._ribbon_t2r[rp] = t2r
 
@@ -1920,6 +1920,10 @@ class StructureGraphicsChangeManager:
                 self.num_atoms_shown = n
                 self._update_level_of_detail()
             self._need_update = False
+            if (gc & StructureData._SELECT_CHANGE).any():
+                from ..selection import SELECTION_CHANGED
+                self.session.triggers.activate_trigger(SELECTION_CHANGED, None)
+                # XXX: No data for now.  What should be passed?
             
     def _update_level_of_detail(self):
         n = self.num_atoms_shown
@@ -2024,7 +2028,7 @@ class LevelOfDetail(State):
     def clamp_geometric(self, n, nmin, nmax):
         f = self._step_factor
         from math import log, pow
-        n1 = int(nmin*pow(f,int(log(n/nmin,f))))
+        n1 = int(nmin*pow(f,int(log(max(n,nmin)/nmin,f))))
         n2 = min(n1, nmax)
         n3 = max(n2, nmin)
         return n3

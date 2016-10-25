@@ -171,12 +171,15 @@ class Logger:
             Log.LEVEL_WARNING: self.warning,
             Log.LEVEL_INFO: self.info
         }
-        import sys
         # only put in an excepthook if we're the first session:
+        import sys
         if sys.excepthook == sys.__excepthook__:
-            def ehook(*args):
+            def ehook(*exc_info):
                 from traceback import format_exception
-                self.error("".join(format_exception(*args)))
+                if self.session.debug:
+                    from traceback import print_exception
+                    print_exception(*exc_info, file=sys.__stderr__)
+                self.session.ui.thread_safe(self.report_exception, exc_info=exc_info)
             sys.excepthook = ehook
         # non-exclusively collate any early log messages, so that they
         # can also be sent to the first "real" log to hit the stack
@@ -247,7 +250,7 @@ class Logger:
         """
         import sys
         self._log(Log.LEVEL_ERROR, msg, add_newline, image, is_html,
-                  last_resort=sys.stderr)
+                  last_resort=sys.__stderr__)
 
     def info(self, msg, add_newline=True, image=None, is_html=False):
         """Log an info message
@@ -258,13 +261,14 @@ class Logger:
             return
         import sys
         self._log(Log.LEVEL_INFO, msg, add_newline, image, is_html,
-                  last_resort=sys.stdout)
+                  last_resort=sys.__stdout__)
 
     def remove_log(self, log):
         """remove a logger"""
         self.logs.discard(log)
 
-    def report_exception(self, preface=None, error_description=None):
+    def report_exception(self, preface=None, error_description=None,
+                         exc_info=None):
         """Report the current exception (without changing execution context)
 
         Parameters
@@ -276,8 +280,11 @@ class Logger:
         """
         from .errors import NotABug, CancelOperation
         from traceback import format_exception_only, format_exception, format_tb
-        import sys
-        ei = sys.exc_info()
+        if exc_info is not None:
+            ei = exc_info
+        else:
+            import sys
+            ei = sys.exc_info()
         if preface:
             preface = "%s:\n" % preface
         else:
@@ -311,8 +318,10 @@ class Logger:
         if log:
             self.info(msg)
 
-        for log in self.logs:
-            log.status(msg, color, secondary)
+        # "highest prority" log is last added, so:
+        for l in reversed(list(self.logs)):
+            if l.status(msg, color, secondary) and l.excludes_other_logs:
+                break
         if secondary:
             status_timer = self._status_timer2
             follow_timer = self._follow_timer2
@@ -363,7 +372,7 @@ class Logger:
             return
         import sys
         self._log(Log.LEVEL_WARNING, msg, add_newline, image, is_html,
-                  last_resort=sys.stderr)
+                  last_resort=sys.__stderr__)
 
     def _follow_timeout(self, follow_with, color, log, secondary, follow_log):
         if secondary:
@@ -450,19 +459,23 @@ class CollatingLog(PlainTextLog):
         return True
 
     def log_summary(self, logger, summary_title, collapse_similar=True):
-        max_level = None
-        msg = "%s:" % (summary_title)
+        title = "<i>%s</i>:" % (summary_title)
+        title_logged = False
         for level, msgs in reversed(list(enumerate(self.msgs))):
             if not msgs:
                 continue
-            if max_level is None:
-                max_level = level
-            msg += "\n\n{}{}:\n".format(
-                self.LEVEL_DESCRIPTS[level].capitalize(),
+            if not title_logged:
+                logger.info(title, is_html=True)
+                title_logged = True
+                msg = ""
+            else:
+                msg = "\n"
+            msg += "{}{}:\n".format(self.LEVEL_DESCRIPTS[level].capitalize(),
                 "s" if len(msgs) > 1 else "")
             msg += self.summarize_msgs(msgs, collapse_similar)
-        if max_level is not None:
-            logger.method_map[max_level](msg, add_newline=False)
+            logger.method_map[level](msg)
+        if title_logged:
+            logger.info("<i>End of summary</i>", is_html=True)
 
     def summarize_msgs(self, msgs, collapse_similar):
         if collapse_similar:
@@ -487,8 +500,9 @@ class CollatingLog(PlainTextLog):
                             continue
                         # let first few reps get logged individually...
                     else:
-                        summarized.append("{} messages similar to the above omitted\n".format(
-                            sim_reps - self.sim_collapse_after))
+                        if sim_reps > self.sim_collapse_after:
+                            summarized.append("{} messages similar to the above omitted\n".format(
+                                sim_reps - self.sim_collapse_after))
                         sim_info = None
                 elif prev_msg is not None:
                     st = self.sim_test_size
@@ -551,6 +565,7 @@ class Collator:
 
     def __enter__(self):
         self.logger.add_log(self.collater)
+        return self
 
     def __exit__(self, *exc_info):
         self.logger.remove_log(self.collater)

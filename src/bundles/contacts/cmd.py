@@ -25,11 +25,11 @@ def contacts(session, atoms = None, probe_radius = 1.4, area_cutoff = 300):
     ba = buried_areas(sg, probe_radius, area_cutoff)	# List of Contact
 
     # Remove common prefix for chain names.
-    for g,sname in zip(sg,short_chain_names([g.name for g in sg])):
-        g.short_name = sname
+    for g,sname in zip(sg,short_chain_names([g.full_name for g in sg])):
+        g.name = sname
 
     # Report result
-    areas = ['%s %s %.0f' % (c.group1.short_name, c.group2.short_name, c.buried_area) for c in ba]
+    areas = ['%s %s %.0f' % (c.group1.name, c.group2.name, c.buried_area) for c in ba]
     msg = '%d buried areas: ' % len(ba) + ', '.join(areas)
     log = session.logger
     log.info(msg)
@@ -50,20 +50,33 @@ def register_contacts():
                    ('area_cutoff', FloatArg),])
     register('contacts', desc, contacts)
 
-
-class SphereGroup:
+from .graph import Node
+class SphereGroup(Node):
     def __init__(self, name, atoms):
-        self.name = name
+        self.full_name = self.name = name
         self.atoms = atoms
         self.centers = atoms.scene_coords
         self.radii = atoms.radii
         from numpy import mean
-        self.color = mean(atoms.colors,axis=0)/255.0
+        self._color = mean(atoms.colors,axis=0)/255.0
+        self._undisplayed_color = (.8,.8,.8,1)	# Node color for undisplayed chains
         self.area = None
+
+    @property
+    def size(self):
+        return 0.03 * self.area		# Area of plot circle in pixels
+
+    @property
+    def position(self):
+        return self.centroid()
 
     def shown(self):
         a = self.atoms
         return a.displays.any() or a.residues.ribbon_displays.any()
+
+    @property
+    def color(self):
+        return self._color if self.shown() else self._undisplayed_color
 
     def centroid(self):
         return self.atoms.scene_coords.mean(axis = 0)
@@ -185,7 +198,8 @@ def optimized_buried_area(xyz1, r1, b1, xyz2, r2, b2, axes, probe_radius):
     c = Contact(ba, a1, a2, a12, i1, i2)
     return c
 
-class Contact:
+from .graph import Edge
+class Contact(Edge):
     def __init__(self, buried_area, area1, area2, area12, i1, i2):
         self.buried_area = buried_area
         self.area1i = area1	# Areas for atom index set i1
@@ -195,6 +209,10 @@ class Contact:
         self.i2 = i2
         self.group1 = None
         self.group2 = None
+
+    @property
+    def nodes(self):
+        return (self.group1, self.group2)
 
     def contact_atoms(self, group, min_area = 1):
         g1, g2 = self.group1, self.group2

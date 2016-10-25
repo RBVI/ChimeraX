@@ -19,8 +19,8 @@ class ModelPanel(ToolInstance):
     SESSION_ENDURING = True
     # if SESSION_ENDURING is True, tool instance not deleted at session closure
 
-    def __init__(self, session, bundle_info):
-        ToolInstance.__init__(self, session, bundle_info)
+    def __init__(self, session, tool_name):
+        ToolInstance.__init__(self, session, tool_name)
         self.display_name = "Models"
         from chimerax.core.ui.gui import MainToolWindow
 
@@ -54,6 +54,7 @@ class ModelPanel(ToolInstance):
         self.tree.itemClicked.connect(self._tree_change_cb)
         buttons_layout = QVBoxLayout()
         layout.addLayout(buttons_layout)
+        self._items = []
         for model_func in [close, hide, show, view]:
             button = QPushButton(model_func.__name__.capitalize())
             buttons_layout.addWidget(button)
@@ -73,7 +74,7 @@ class ModelPanel(ToolInstance):
     @classmethod
     def get_singleton(self, session):
         from chimerax.core import tools
-        return tools.get_singleton(session, ModelPanel, 'model panel', create=False)
+        return tools.get_singleton(session, ModelPanel, 'Model Panel', create=False)
 
     def _changes_cb(self, trigger_name, changes):
         reasons = changes.atom_reasons()
@@ -90,6 +91,8 @@ class ModelPanel(ToolInstance):
     def _fill_tree(self, *args):
         update = self._process_models()
         if not update:
+            expanded_models = { i._model : i.isExpanded()
+                                for i in self._items if hasattr(i, '_model')}
             self.tree.clear()
             self._items = []
         from PyQt5.QtWidgets import QTreeWidgetItem
@@ -112,6 +115,7 @@ class ModelPanel(ToolInstance):
             else:
                 parent = item_stack[len_id-1]
                 item = QTreeWidgetItem(parent)
+                item._model = model
                 item_stack[len_id:] = [item]
                 self._items.append(item)
             item.setText(0, model_id_string)
@@ -125,8 +129,11 @@ class ModelPanel(ToolInstance):
             if display is not None:
                 item.setCheckState(2, Qt.Checked if display else Qt.Unchecked)
             item.setText(3, name)
-        if not update:
-            self.tree.expandAll()
+            if not update:
+                # Expand new top-level displayed models, or if previously expanded
+                expand = expanded_models.get(model, (model.display and len(model.id) <= 1))
+                if expand:
+                    self.tree.expandItem(item)
         for i in range(1,self.tree.columnCount()):
             self.tree.resizeColumnToContents(i)
 
@@ -200,10 +207,10 @@ def hide(models, session):
         m.display = False
 
 _mp = None
-def model_panel(session, bundle_info):
+def model_panel(session, tool_name):
     global _mp
     if _mp is None:
-        _mp = ModelPanel(session, bundle_info)
+        _mp = ModelPanel(session, tool_name)
     return _mp
 
 def show(models, session):

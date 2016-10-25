@@ -226,6 +226,10 @@ class UI(QApplication):
     def thread_safe(self, func, *args, **kw):
         """Call function 'func' in a thread-safe manner
         """
+        import threading
+        if threading.main_thread() == threading.current_thread():
+            func(*args, **kw)
+            return
         from PyQt5.QtCore import QEvent
         class ThreadSafeGuiFuncEvent(QEvent):
             EVENT_TYPE = QEvent.Type(QEvent.registerEventType())
@@ -255,6 +259,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         dw = QDesktopWidget()
         main_screen = dw.availableGeometry(dw.primaryScreen())
         self.resize(main_screen.width()*.67, main_screen.height()*.67)
+        self.setDockOptions(self.dockOptions() | self.GroupedDragging)
 
         from PyQt5.QtCore import QSize
         class GraphicsArea(QStackedWidget):
@@ -328,10 +333,24 @@ class MainWindow(QMainWindow, PlainTextLog):
     def file_open_cb(self, session):
         from PyQt5.QtWidgets import QFileDialog
         from .open_save import open_file_filter
-        paths = QFileDialog.getOpenFileNames(filter=open_file_filter(all=True))
+        paths_and_types = QFileDialog.getOpenFileNames(filter=open_file_filter(all=True))
+        paths, types = paths_and_types
         if not paths:
             return
-        session.models.open(paths[0])
+
+        def _qt_safe(session=session, paths=paths):
+            models = session.models.open(paths)
+            if models and len(paths) == 1:
+                # Remember in file history
+                from ..filehistory import remember_file
+                remember_file(session, paths[0], format=None, models=models)
+        # Opening the model directly adversely affects Qt interfaces that show
+        # as a result.  In particular, Multalign Viewer no longer gets hover
+        # events correctly, nor tool tips.
+        #
+        # Using session.ui.thread_safe() doesn't help either(!)
+        from PyQt5.QtCore import QTimer
+        QTimer.singleShot(0, _qt_safe)
 
     def file_save_cb(self, session):
         self.save_dialog.display(self, session)
@@ -339,6 +358,17 @@ class MainWindow(QMainWindow, PlainTextLog):
     def file_quit_cb(self, session):
         session.ui.quit()
 
+    def hide_other_tools(self, tool_instance):
+        for ti, tool_windows in self.tool_instance_to_windows.items():
+            if ti == tool_instance:
+                continue
+            for tw in tool_windows:
+                if tw.title == "Command Line Interface":
+                    # leave the command line as is
+                    continue
+                if tw.shown:
+                    tw._mw_set_shown(False)
+        
     def _get_hide_tools(self):
         return self._hide_tools
 
@@ -480,13 +510,10 @@ class MainWindow(QMainWindow, PlainTextLog):
         tools_menu = mb.addMenu("&Tools")
         categories = {}
         for bi in session.toolshed.bundle_info():
-            for cat in bi.menu_categories:
-                categories.setdefault(cat, {})[bi.display_name] = bi
+            for tool in bi.tools:
+                for cat in tool.categories:
+                    categories.setdefault(cat, {})[tool.name] = (bi, tool)
         cat_keys = sorted(categories.keys())
-        try:
-            cat_keys.remove('Hidden')
-        except ValueError:
-            pass
         one_menu = len(cat_keys) == 1
         for cat in cat_keys:
             if one_menu:
@@ -495,10 +522,10 @@ class MainWindow(QMainWindow, PlainTextLog):
                 cat_menu = tools_menu.addMenu(cat)
             cat_info = categories[cat]
             for tool_name in sorted(cat_info.keys()):
-                bi = cat_info[tool_name]
+                bi, tool = cat_info[tool_name]
                 tool_action = QAction(tool_name, self)
-                tool_action.setStatusTip(bi.synopsis)
-                tool_action.triggered.connect(lambda arg, ses=session, bi=bi: bi.start(ses))
+                tool_action.setStatusTip(tool.synopsis)
+                tool_action.triggered.connect(lambda arg, ses=session, bi=bi: bi.start_tool(ses, tool_name))
                 cat_menu.addAction(tool_action)
 
         help_menu = mb.addMenu("&Help")
@@ -518,6 +545,27 @@ class MainWindow(QMainWindow, PlainTextLog):
         about_action = QAction("About %s %s" % (ad.appauthor, ad.appname), self)
         about_action.triggered.connect(self._about)
         help_menu.addAction(about_action)
+
+    def add_custom_menu_entry(self, menu_name, entry_name, callback):
+        '''
+        Add a custom top level menu entry.  Currently you can not add to
+        the standard ChimeraX menus but can create new ones.
+        Callback function takes no arguments.
+        '''
+        mb = self.menuBar()
+        from PyQt5.QtWidgets import QMenu, QAction
+        menu = mb.findChild(QMenu, menu_name)
+        add = (menu is None)
+        if add:
+            menu = QMenu(menu_name, mb)
+            menu.setObjectName(menu_name)	# Need for findChild() above to work.
+        
+        action = QAction(entry_name, self)
+        action.triggered.connect(lambda arg, cb = callback: callback())
+        menu.addAction(action)
+        if add:
+            # Add menu after adding entry otherwise it is not shown on Mac.
+            mb.addMenu(menu)
 
     def _tool_window_destroy(self, tool_window):
         tool_instance = tool_window.tool_instance
@@ -571,7 +619,7 @@ class ToolWindow:
 
     #: Whether closing this window destroys it or hides it.
     #: If it destroys it and this is the main window, all the
-    #: child windows will also be destroyedRolls
+    #: child windows will also be destroyed
     close_destroys = True
 
     def __init__(self, tool_instance, title):
@@ -596,8 +644,9 @@ class ToolWindow:
         """
         self.tool_instance.session.ui.main_window._tool_window_destroy(self)
 
-    def fill_context_menu(self, menu):
-        """Add items to this tool window's context menu
+    def fill_context_menu(self, menu, x, y):
+        """Add items to this tool window's context menu,
+           whose downclick occurred at position (x,y)
 
         Override to add items to any context menu popped up over this window"""
         pass
@@ -714,7 +763,7 @@ class _Qt:
         dw.closeEvent = lambda e, tw=tool_window, mw=mw: mw.close_request(tw, e)
         dw.setAttribute(Qt.WA_MacAlwaysShowToolWindow)
         self.ui_area = QWidget(dw)
-        self.ui_area.contextMenuEvent = lambda e, self=self: self.show_context_menu(e.globalPos())
+        self.ui_area.contextMenuEvent = lambda e, self=self: self.show_context_menu(e)
         self.dock_widget.setWidget(self.ui_area)
 
     def destroy(self):
@@ -752,14 +801,21 @@ class _Qt:
         if self.tool_window.close_destroys:
             self.dock_widget.setAttribute(Qt.WA_DeleteOnClose)
 
-    def show_context_menu(self, pos):
+    def show_context_menu(self, event):
         from PyQt5.QtWidgets import QMenu, QAction
         menu = QMenu(self.ui_area)
 
-        self.tool_window.fill_context_menu(menu)
+        self.tool_window.fill_context_menu(menu, event.x(), event.y())
         if not menu.isEmpty():
             menu.addSeparator()
         ti = self.tool_window.tool_instance
+        hide_tool_action = QAction("Hide this tool", self.ui_area)
+        hide_tool_action.triggered.connect(lambda arg, ti=ti: ti.display(False))
+        menu.addAction(hide_tool_action)
+        hide_other_tools_action = QAction("Hide other tools", self.ui_area)
+        hide_other_tools_action.triggered.connect(
+            lambda arg, ti=ti, ho=self.main_window.hide_other_tools: ho(ti))
+        menu.addAction(hide_other_tools_action)
         if ti.help is not None:
             help_action = QAction("Help", self.ui_area)
             help_action.setStatusTip("Show tool help")
@@ -769,7 +825,7 @@ class _Qt:
             no_help_action = QAction("No help available", self.ui_area)
             no_help_action.setEnabled(False)
             menu.addAction(no_help_action)
-        menu.exec(pos)
+        menu.exec(event.globalPos())
 
     def _get_shown(self):
         return not self.dock_widget.isHidden()
@@ -811,7 +867,9 @@ def redirect_stdio_to_logger(logger):
             self.closed = False
 
         def write(self, s):
-            self.logger.info(s, add_newline = False)
+            self.logger.session.ui.thread_safe(self.logger.info,
+                                               s, add_newline = False)
+            # self.logger.info(s, add_newline = False)
 
         def flush(self):
             return

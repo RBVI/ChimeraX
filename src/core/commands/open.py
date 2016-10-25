@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def open(session, filename, format=None, name=None, from_database=None, ignore_cache=False,
-         smart_initial_display = True):
+         smart_initial_display = True, explode = True):
     '''Open a file.
 
     Parameters
@@ -35,16 +35,19 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
         to cache.
     smart_initial_display : bool
         Whether to display molecules with rich styles and colors.
+    explode : bool
+        Whether to read PDB format multimodel files as multiple models (true)
+        or as coordinate sets (false).
     '''
 
     if ':' in filename:
         prefix, fname = filename.split(':', maxsplit=1)
         from .. import fetch
-        from_database, default_format = fetch.fetch_from_prefix(session, prefix)
+        from_database, default_format = fetch.fetch_from_prefix(prefix)
         if from_database is None:
             from ..errors import UserError
             raise UserError('Unknown database prefix "%s" must be one of %s'
-                            % (prefix, fetch.prefixes(session)))
+                            % (prefix, fetch.prefixes()))
         if format is None:
             format = default_format
         filename = fname
@@ -57,13 +60,14 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
             if format is None:
                 format = 'mmcif'
 
-    kw = {'smart_initial_display': smart_initial_display}
+    kw = {'smart_initial_display': smart_initial_display,
+          'explode': explode}
 
     from ..filehistory import remember_file
     if from_database is not None:
         from .. import fetch
         if format is not None:
-            db_formats = fetch.database_formats(session, from_database)
+            db_formats = fetch.database_formats(from_database)
             if format not in db_formats:
                 from ..errors import UserError
                 raise UserError('Only formats %s can be fetched from database %s'
@@ -141,7 +145,7 @@ def open_formats(session):
     else:
         session.logger.info('\nDatabase, Formats:')
     from ..fetch import fetch_databases
-    databases = list(fetch_databases(session).values())
+    databases = list(fetch_databases().values())
     databases.sort(key=lambda k: k.database_name)
     for db in databases:
         formats = list(db.fetch_function.keys())
@@ -173,7 +177,7 @@ def register_command(session):
 
     def db_formats():
         from .. import fetch
-        return [f.database_name for f in fetch.fetch_databases(session).values()]
+        return [f.database_name for f in fetch.fetch_databases().values()]
     desc = CmdDesc(
         required=[('filename', OpenFileNameArg)],
         keyword=[
@@ -182,6 +186,7 @@ def register_command(session):
             ('from_database', DynamicEnum(db_formats)),
             ('ignore_cache', NoArg),
             ('smart_initial_display', BoolArg),
+            ('explode', BoolArg),
             # ('id', ModelIdArg),
         ],
         synopsis='read and display data')

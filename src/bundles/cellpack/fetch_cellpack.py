@@ -116,13 +116,5 @@ def fetch_autopack_results(session, results_name, database = default_autopack_da
                               ignore_cache=ignore_cache)
     return results_path
 
-# -----------------------------------------------------------------------------
-# Register to fetch cellPACK models.
-#
-def register_cellpack_fetch(session):
-    from chimerax.core import fetch
-    fetch.register_fetch(session, 'cellpack', fetch_cellpack, 'cellpack',
-                         prefixes = ['cellpack'])
-
 #  info_url = '%s/results/%%s.apr.json' % (default_autopack_database,)
 # Example id 'HIV-1_0.1.6'

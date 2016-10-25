@@ -19,7 +19,7 @@ SUBDIRS = tools
 DOCDIR = $(app_datadir)/docs/user
 
 SRCS = $(wildcard *.html) userdocs.css commands
-IMAGES = $(wildcard *.png) ChimeraX-icon.svg
+IMAGES = $(wildcard *.png) $(wildcard *.svg)
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make

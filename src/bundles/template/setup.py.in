@@ -1,34 +1,70 @@
 # vim: set expandtab ts=4 sw=4:
 
+# Fix all parts that say FIXME
+
+# FIXME: copyright goes here
+
 # import distutils.core
 # distutils.core.DEBUG = True
+# TODO: remove distlib monkey patch when the wheel package
+# implements PEP 426's pydist.json
 from distlib import metadata
-print(metadata.METADATA_FILENAME)
 metadata.METADATA_FILENAME = "metadata.json"
 from setuptools import setup
+import os
+import sys
 
-shlib_dir = "SHLIB_DIR"
-pkg_dir = "PKG_DIR"
+pkg_dir = "PKG_DIR"  # DO NOT CHANGE
+shlib_dir = "SHLIB_DIR"  # DO NOT CHANGE
+data_dir = "DATA_DIR"  # DO NOT CHANGE
+if sys.platform.startswith('win'):
+    # shared libraries are relative to bindir
+    rel_inst_shlib_dir = ""  # shlib_dir == bindir
+else:
+    # shared libraries are relative to rootdir
+    rel_inst_shlib_dir = os.path.basename(shlib_dir)
+# data files are relative to rootdir
+rel_inst_data_dir = os.path.basename(data_dir)
+
+description = """
+FIXME LONG DESCRIPTION OF BUNDLE
+"""
+# or FIXME description = open('ReadMe.rst', encoding='utf-8').read()
 
 setup(
-    name="PKG_NAME",
-    version="PKG_VERSION",
-    description="PKG_DESCRIPTION",
+    name="BUNDLE_NAME",
+    version="BUNDLE_VERSION",  # PEP 440, should match Development Status below
+    description="FIXME BUNDLE_SYNOPSIS",  # one line synopsis
+    long_description=description,  # see above
     author="UCSF RBVI",
     author_email="chimerax@cgl.ucsf.edu",
     url="https://www.rbvi.ucsf.edu/chimerax/",
+    python_requires=">= 3.5",
     package_dir={
-        "PKG_NAME": pkg_dir,
+        "PKG_NAME": pkg_dir,    # directory package's source files are in
     },
     packages=[
         "PKG_NAME",
-        # Add subpackage names here
+        # FIXME Add (sub)package names here, for ChimeraX there should only be subpackages
+    ],
+    package_data={  # FIXME remove if not used -- for non-Python files in package
+        "PKG_NAME": [ "*.PYMOD_EXT", "*.png" ]
+    },
+    data_files=[
+        # FIXME remove section if unused
+        # ("relative directory to root of installation": [ "list of files" ]),
+        # For libraries directly linked to by multiple bundles
+        # (rel_inst_shlib_dir, [ os.path.join(shlib_dir, "libfoo.SHLIB_EXT"), ]), 
+        # Use rel_inst_data_dir for application-wide data files
     ],
     install_requires=[
-        "chimerax.core",
+        "ChimeraX-Core >= 0.1",
+        # FIXME list all dependences on other packages
     ],
     classifiers=[
-        "Development Status :: 2 - Pre-Alpha",
+        # From https://pypi.python.org/pypi?%3Aaction=list_classifiers
+        # and our own ChimeraX-* classifiers.
+        "Development Status :: 2 - Pre-Alpha",  # FIXME: update as appropriate
         "Environment :: MacOS X :: Aqua",
         "Environment :: Win32 (MS Windows)",
         "Environment :: X11 Applications",
@@ -42,51 +78,134 @@ setup(
         "Topic :: Scientific/Engineering :: Visualization",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
-        # Each tool should have a single line with the following fields:
+        # FIXME: replace below with appropriate ChimeraX-* :: lines
+        # Each bundle should have a single line giving some metadata for
+        # the bundle and separate lines for each deliverable it supplies
+        # (tools, commands, and/or data formats).
+        # In addition, each data format needs
+        # separate lines for how to open, save, or fetch it.  Other bundle
+        # metadata (name, version, synopsis, etc.) are retrieved from
+        # the packaging metadata.
+        # Each deliverable needs to classified into one or more toolshed
+        # categories from chimerax.core.toolshed.
         #
-        # 'ChimeraX-Bundle' :: tool_name :: module_name
-        # :: display_name :: commands :: categories
-        # :: file_types :: session_versions :: custom_init
-        # :: synopsis
+        # Bundle Metadata:
+        # ----------------
         #
-        # 'tool_name', 'module_name' and 'display_name' are strings.
-        # 'commands' and 'categories' are comma separated strings.
-        # Note that TOOL_PKG_NAME does not need to match the install
-        # package name; in particular, it may be a subpackage.
-        # TOOL_DISPLAY_NAME is distinct from PKG_DESCRIPTION because
-        # a single package may provide multiple tools.
-        # 'file_types' is a comma-separated list of colon-separated
-        # strings.  The file_types arguments are used directly as
-        # arguments to chimerax.core.io.register.
+        "ChimeraX-Bundle :: categories :: session_versions :: api_module_name :: custom_session_init",
+        #
+        # 'categories' is a comma separated string.  The categories should
+        # be a subset of the toolshed categories.
         # 'session_versions' is a comma-separated two-tuple of
         # integers, representing the minimum and maximum session
         # versions that this tool can read.
-        # 'custom_init' is a string.  If not set to 'true', the tool
-        # package is not imported until actually invoked.  If set to
-        # 'true', the 'initialize' method is always called on start up.
-        # 'synopsis' is a short description of the tool.  It is here
-        # because it needs to be part of the metadata available for
+        # 'api_module_name' is a string with the name of the module that
+        # has the bundle_api in it.
+        # 'custom_session_init' is a string.  If not set to 'true', the
+        # bundle is not imported until actually invoked.  If set to
+        # 'true', the 'initialize' method is called after the main
+        # session has been created.
+        #
+        # For example:
+        #
+        #       ChimeraX-Bundle :: Volume data :: 1,1 ::
+        #
+        # Tool Metadata:
+        # --------------
+        #
+        "ChimeraX-Tool :: tool_name :: categories :: synopsis",
+        #
+        # 'tool_name' is a string.
+        # 'categories' should be a subset of the bundle's categories. 
+        # 'synopsis' is a short description of the tool.  It is here for
         # uninstalled tools, so that users can get more than just a
         # name for deciding whether they want the tool or not.
-        "ChimeraX-Bundle "
-            # ChimeraX metadata
-        ":: TOOL_NAME "
-            # Tool name
-        ":: TOOL_PKG_NAME "
-            # Package name
-        ":: TOOL_DISPLAY_NAME "
-            # Tool display name
-        ":: COMMAND_NAME "
-            # Commands
-        ":: TOOL_CATEGORY "
-            # Menu category
-        ":: TOOL_FILE_TYPES "
-            # File types
-        ":: TOOL_SESSION_VERSIONS "
-            # Min/max session versions
-        ":: TOOL_CUSTOM_INIT "
-            # Has custom initialization code
-        ":: TOOL_SYNOPSIS",
-            # Synopsis
+        # Tools are created via the bundle's 'start_tool' function.
+        # Bundles may provide more than one tool.
+        #
+        # For example:
+        #
+        #       ChimeraX-Tool :: Help Viewer :: General :: Show help
+        #
+        # Command Metadata:
+        # -----------------
+        #
+        "ChimeraX-Command :: name :: categories :: synopsis",
+        #
+        # 'name' is a string and may have spaces in it.
+        # 'categories' should be a subset of the bundle's categories. 
+        # 'synopsis' is a short description of the command.  It is here for
+        # uninstalled commands, so that users can get more than just a
+        # name for deciding whether they want the command or not.
+        # Bundles may provide more than one command.
+        # Commands are lazily registered, so the argument specification
+        # isn't needed until the command is first used.
+        #
+        # For example:
+        #
+        #       ChimeraX-Command :: exit :: General :: terminate ChimeraX
+        #
+        # Data Format Metadata:
+        # ---------------------
+        #
+        "ChimeraX-DataFormat :: format_name :: alternate_names :: category :: suffixes :: mime_types :: url :: dangerous :: icon :: synopsis",
+        #
+        # 'data_name' is a string.
+        # 'alternate_names' is an optional comma-separated list of strings.
+        # 'category' is a toolshed category.
+        # 'suffixes' is an optional comma-separated list of strings with
+        # leading periods, i.e., '.pdb'.
+        # 'mime_types' is an optinal comma-separated list of strings, e.g.,
+        # chemical/x-pdb.
+        # 'url' is a string that has a URL that points to the data format's docmentation.
+        # 'dangerous' is an optional boolean and should be 'true' if the data
+        # format is insecure -- defaults to true if a script.
+        # 'icon' is an optional string containing the filename of the icon --
+        # it defaults to the default icon for the category.
+        # 'synopsis' is a short description of the data format.  It is here
+        # because it needs to be part of the metadata available for
+        # uninstalled data format, so that users can get more than just a
+        # name for deciding whether they want the data format or not.
+        # Bundles may provide more than one data format.
+        # The data format metadata includes everything needed for the Mac OS X
+        # application property list.
+        #
+        # For example:
+        #
+        #       ChimeraX-DataFormat :: PDB :: :: Molecular Structure :: .pdb, .ent :: chemical/x-pdb :: http://www.pdb.org/ :: :: :: Protein DataBank file
+        #       ChimeraX-DataFormat :: mmCIF :: :: Molecular Structure :: .mmcif, .cif :: chemical/x-mmcif :: http://www.pdb.org/ :: :: :: MacroMolecular CIF
+        #
+        # In addition to describing the format, the bundle should say how if it
+        # can fetch, open or save data in that format.
+        #
+        "ChimeraX-Open :: format_name :: tag :: is_default",
+        "ChimeraX-Save :: format_name :: tag :: is_default",
+        "ChimeraX-Fetch :: database_name :: format_name :: prefixes :: example_id :: is_default",
+        #
+        # 'format_name' is a format previously given in a ChimeraX-DataFormat
+        # line.
+        # 'database_name' is a string with the name of the databasea to fetch
+        # the data from.
+        # 'prefixes' is a comma-separated list of strings associated with the
+        # (database_name, format_name).
+        # 'example_id' is a string with an example identifier.
+        # 'tag' is a string is disambiguate multiple readers or writers.
+        # 'is_default' is a string.  If set to 'true', this format is
+        # the default format for the database.
+        #
+        # For example:
+        #
+        #       ChimeraX-Open :: PDB :: PDB ::
+        #       ChimeraX-Save :: PDB :: PDB ::
+        #       ChimeraX-Fetch :: PDB :: mmcif :: pdb :: 1a0m ::
+        #       ChimeraX-Fetch :: PDB :: PDB :: :: 1a0m ::
+        #
+        "ChimeraX-Selector :: name :: synopsis",
+        #
+        # 'name' is a string and may have spaces in it.
+        # 'synopsis' is a short description of the selector.  It is here for
+        # uninstalled selectors, so that users can get more than just a
+        # name for deciding whether they want the selector or not.
+        # Bundles may provide more than one selector.
     ],
 )

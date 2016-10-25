@@ -16,7 +16,7 @@ from chimerax.core.toolshed import BundleAPI
 class _MyAPI(BundleAPI):
 
     @staticmethod
-    def start_tool(session, bundle_info):
+    def start_tool(session, tool_name):
         # 'start_tool' is called to start an instance of the tool
         return get_singleton(session, create=True)
 
@@ -33,4 +33,4 @@ bundle_api = _MyAPI()
 def get_singleton(session, create=False):
     from chimerax.core import tools
     from .tool import FilePanel
-    return tools.get_singleton(session, FilePanel, 'file history', create=create)
+    return tools.get_singleton(session, FilePanel, 'File History', create=create)

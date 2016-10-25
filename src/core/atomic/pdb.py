@@ -28,8 +28,9 @@ def open_pdb(session, filename, name, *args, **kw):
         input = open(filename, 'rb')
         path = filename
 
+    explode = kw.get('explode', True)
     from . import pdbio
-    pointers = pdbio.read_pdb_file(input, log=session.logger)
+    pointers = pdbio.read_pdb_file(input, log=session.logger, explode=explode)
     if input != filename:
         input.close()
 
@@ -78,9 +79,9 @@ def register_pdb_format():
         reference="http://wwpdb.org/docs.html#format",
         open_func=open_pdb)
 
-def register_pdb_fetch(session):
+def register_pdb_fetch():
     from .. import fetch
-    fetch.register_fetch(session, 'pdb', fetch_pdb, 'pdb', prefixes = [])
+    fetch.register_fetch('pdb', fetch_pdb, 'pdb', prefixes = [])
 
 def process_chem_name(name, use_greek=True, probable_abbrs=False):
     text = ""

@@ -21,8 +21,8 @@ class MouseModePanel(ToolInstance):
     SESSION_ENDURING = True
     help = "help:user/tools/mousemodes.html"
 
-    def __init__(self, session, bundle_info):
-        ToolInstance.__init__(self, session, bundle_info)
+    def __init__(self, session, tool_name):
+        ToolInstance.__init__(self, session, tool_name)
 
         self.mouse_modes = mm = session.ui.mouse_modes
         self.button_to_bind = 'right'
@@ -101,4 +101,4 @@ class MouseModePanel(ToolInstance):
     @classmethod
     def get_singleton(cls, session):
         from chimerax.core import tools
-        return tools.get_singleton(session, MouseModePanel, 'mouse_modes')
+        return tools.get_singleton(session, MouseModePanel, 'Mouse Modes for Right Button')

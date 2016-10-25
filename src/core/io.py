@@ -84,7 +84,7 @@ class FileFormat:
 
     ..attribute:: short_names
 
-        Short names for format.
+        Alternative names for format, usually includes a short abbreviation.
 
     ..attribute:: mime_types
 
@@ -206,14 +206,16 @@ def formats(open=True, export=True, source_is_file=False):
 
 
 def format_from_name(name):
-    for f in _file_formats.values():
-        if f.name == name:
-            return f
-    return None
+    try:
+        return _file_formats[name]
+    except KeyError:
+        return None
 
 
-def deduce_format(filename, has_format=None, savable=False):
-    """Figure out named format associated with filename
+def deduce_format(filename, has_format=None, open=True, save=False):
+    """Figure out named format associated with filename.
+    If open is True then the format must have an open method.
+    If save is True then the format must have a save method.
 
     Return tuple of deduced format, the unmangled filename,
     and the compression format (if present).
@@ -225,7 +227,7 @@ def deduce_format(filename, has_format=None, savable=False):
         fmt = _file_formats.get(has_format, None)
         if fmt is None:
             for f in _file_formats.values():
-                if has_format in f.short_names and (f.open_func or (savable and f.export_func)):
+                if has_format in f.short_names and (not open or f.open_func) and (not save or f.export_func):
                     fmt = f
                     break
         stripped, compression = determine_compression(filename)
@@ -239,7 +241,7 @@ def deduce_format(filename, has_format=None, savable=False):
         ext = ext.casefold()
         fmt = None
         for f in _file_formats.values():
-            if ext in f.extensions and (f.open_func or (savable and f.export_func)):
+            if ext in f.extensions and (not open or f.open_func) and (not save or f.export_func):
                 fmt = f
                 break
         if fmt is None:
@@ -371,7 +373,7 @@ def open_multiple_data(session, filespecs, format=None, name=None, **kw):
 
 def export(session, filename, **kw):
     from .safesave import SaveBinaryFile, SaveTextFile, SaveFile
-    fmt, filename, compression = deduce_format(filename)
+    fmt, filename, compression = deduce_format(filename, save = True, open = False)
     func = fmt.export_func
     enc = fmt.encoding
     if not compression:

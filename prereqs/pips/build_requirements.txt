@@ -6,6 +6,7 @@ Cython==0.23.1
 distlib==0.2.3
 #distribute==0.7.3
 docutils==0.12
+filelock==2.0.6
 flake8==2.5.4
 funcparserlib==0.3.6
 grako==3.6.3

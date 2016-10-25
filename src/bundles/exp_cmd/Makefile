@@ -28,7 +28,7 @@ TOOL_FILE_TYPES =
 TOOL_SESSION_VERSIONS = 1,1
 TOOL_CUSTOM_INIT = false
 TOOL_SYNOPSIS = Experimental commands that may go away
-COMMAND_NAME = cartoon,~cartoon,ribbon,~ribbon
+COMMAND_NAME = cartoon,~cartoon,ribbon,~ribbon,findclash,getcrd
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,')
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
@@ -37,23 +37,25 @@ PKG_DIR := $(shell cygpath -m '$(PKG_DIR)' | sed 's,/,\\\\\\\\,g')
 shlibdir := $(shell cygpath -m '$(shlibdir)' | sed 's,/,\\\\\\\\,g')
 endif
 
-PYSRCS = $(wildcard *.py)
+PYSRCS = $(filter-out setup.py,$(wildcard *.py))
 WHEEL = dist/$(PKG_NAME)-$(PKG_VERSION)-py3-none-any.whl
 
-all: $(PYOBJS)
+all: $(PYSRCS)
+	$(PYTHON_EXE) -B -m py_compile $?
 
-install: dir
+install: dir all
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 	if [ -d "$(app_prefix)" ]; then \
 		$(MAKE) app-install ;\
 	fi
+
 
 app-install: wheel
 	$(APP_PIP) install -U $(WHEEL)
 	$(RSYNC) $(WHEEL) $(wheelhouse) && cd $(wheelhouse) && make update
 
 wheel: setup.py
-	$(PYTHON_EXE) setup.py bdist_wheel
+	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel
 	rm -rf $(PKG_NAME).egg-info
 
 setup.py: setup.py.in Makefile

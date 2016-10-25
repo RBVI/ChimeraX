@@ -18,6 +18,7 @@
 
 #include <vector>
 #include <map>
+#include <stdexcept>
 #include <string>
 
 #include "imex.h"
@@ -33,6 +34,11 @@ typedef _object PyObject;
 
 namespace atomstruct {
 
+class SeqIndexError: public std::range_error {
+public:
+    SeqIndexError(const std::string& msg) : std::range_error(msg) {}
+};
+
 class ATOMSTRUCT_IMEX Sequence {
 public:
     typedef std::vector<char>  Contents;
@@ -46,6 +52,7 @@ protected:
     mutable std::map<unsigned int, unsigned int>  _cache_g2ug;
     mutable std::map<unsigned int, unsigned int>  _cache_ug2g;
     mutable Contents  _cache_ungapped;
+    bool  _circular;
     void  _clear_cache() const
         { _cache_ungapped.clear();  _cache_g2ug.clear(); _cache_ug2g.clear(); }
     // can't inherit from vector, since we need to clear caches on changes
@@ -54,7 +61,9 @@ protected:
     PyObject*  _python_obj;
 
 private:
-    static int  SESSION_NUM_INTS(int /*version*/=0) { return 3; }
+    static int  SESSION_NUM_INTS(int version=0) {
+        return (version == 1 || version == 2) ? 1 : 2;
+    }
     static int  SESSION_NUM_FLOATS(int /*version*/=0) { return 0; }
 
 public:
@@ -65,8 +74,8 @@ public:
     static char  rname3to1(const ResName& rn);
 
     Sequence(std::string name = "sequence"): _name(name), _python_obj(nullptr) {}
-    Sequence(const Contents& chars, std::string name = "sequence"): _contents(chars), _name(name),
-        _python_obj(nullptr) {}
+    Sequence(const Contents& chars, std::string name = "sequence"): _circular(false),
+        _contents(chars), _name(name), _python_obj(nullptr) {}
     Sequence(const std::vector<ResName>& res_names, std::string name = "sequence");  // 3-letter codes
     virtual  ~Sequence() {}
 
@@ -79,6 +88,10 @@ public:
     Contents::reference  back() { _clear_cache(); return _contents.back(); }
     Contents::const_reference  back() const { return _contents.back(); }
     Contents::const_iterator  begin() const { return _contents.begin(); }
+    // circular implies that the character sequence has been doubled, and that although
+    // the res_map (for StructureSeqs) only explicity refers to the front half, it
+    // implicitly also applies to the back half
+    bool  circular() const { return _circular; }
     void  clear() { _clear_cache(); _contents.clear(); }
     const Contents&  contents() const { return _contents; }
     void  extend(const char* s) { extend(std::string(s)); }
@@ -104,6 +117,7 @@ public:
     int  session_num_ints(int version=0) const { return SESSION_NUM_INTS(version) + _contents.size(); }
     void  session_restore(int, int**, float**);
     void  session_save(int**, float**) const;
+    void  set_circular(bool c) { _circular = c; }
     void  set_name(std::string& name) { _name = name; }
     void  set_name(const char* name) { _name = name; }
     void  set_python_obj(PyObject* py_obj);

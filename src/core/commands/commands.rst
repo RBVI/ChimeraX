@@ -21,6 +21,7 @@ and their code location is described with the function descriptions.
 | `alias`_ - Define aliases for commands
 | `align`_ - Align one set of atoms to another
 | `buriedarea`_ - Compute buried area between atomic structures
+| `cage`_ * - Place models on polygonal cages
 | `camera`_ - Change camera settings
 | `cartoon`_ * - Display atomic structure ribbons or pipes/planks
 | `clip`_ - Clip models
@@ -28,8 +29,9 @@ and their code location is described with the function descriptions.
 | `cofr`_ - Set center of rotation method
 | `color`_ - Color atoms, ribbons and surfaces
 | `contacts`_ * - Make a buried area contact graph
+| `coordset`_ - Play through structure coordinate sets
 | `crossfade`_ - Fade between scenes for movie making
-| `crosslinks`_ - Move atomic structures to minimize crosslinks
+| `crosslinks`_ * - Move atomic structures to minimize crosslinks
 | `delete`_ - Delete models
 | `echo`_ - Write message to log
 | `exit`_ - Quit
@@ -54,6 +56,7 @@ and their code location is described with the function descriptions.
 | `pwd`_ - Present working directory
 | `rainbow`_ - Color residues and chains
 | `rename`_ - Rename models
+| `resfit`_ * - Show density around residues
 | `roll`_ - Rotate models
 | `run`_ - Run a user command string
 | `rungs`_ - Display nucleotides as cylinders
@@ -63,10 +66,12 @@ and their code location is described with the function descriptions.
 | `select`_ - Select objects
 | `set`_ - Set rendering effects (background color, silhouettes)
 | `show`_ - Show atoms, ribbons, models
+| `smoothlines`_ * - Smooth paths in line drawings
 | `snav`_ * - Enable space navigator input device
 | `sop`_ - Surface operations
 | `split`_ - Split atomic structures into pieces
 | `stop`_ - Stop motion
+| `struts`_ * - Add struts between atoms for 3d printing
 | `style`_ - Change atom display style
 | `surface`_ - Compute a molecular surface
 | `sym`_ - Show molecular assemblies involving symmetry
@@ -75,6 +80,7 @@ and their code location is described with the function descriptions.
 | `transparency`_ - Set transparency of atoms, ribbons and surfaces
 | `turn`_ - Rotate models
 | `view`_ - Move camera to view specified objects
+| `vive`_ * - Enable HTC Vive virtual reality headset
 | `volume`_ - Change density map display settings
 | `vop`_ - Filter density maps
 | `vseries`_ - Play density map time series
@@ -101,6 +107,10 @@ align
 buriedarea
 ==========
 .. autofunction:: chimerax.core.commands.buriedarea.buriedarea
+
+cage
+====
+.. autofunction:: chimerax.cage_builder.cmd.cage
 
 camera
 ======
@@ -133,13 +143,19 @@ Function found in *chimerax.contacts.cmd*
 
 .. autofunction:: chimerax.contacts.cmd.contacts
 
+coordset
+========
+.. autofunction:: chimerax.core.commands.coordset.coordset
+
 crossfade
 =========
 .. autofunction:: chimerax.core.commands.crossfade.crossfade
 
 crosslinks
 ==========
-.. autofunction:: chimerax.core.commands.crosslinks.crosslinks
+Function found in *chimerax.crosslinks.crosslinks*
+
+.. autofunction:: chimerax.crosslinks.crosslinks
 
 delete
 ======
@@ -244,6 +260,14 @@ rainbow
 =======
 .. autofunction:: chimerax.core.commands.rainbow.rainbow
 
+rename
+======
+.. autofunction:: chimerax.core.commands.rename.rename
+
+resfit
+======
+.. autofunction:: chimerax.residue_fit.cmd.resfit
+
 roll
 ====
 .. autofunction:: chimerax.core.commands.roll.roll
@@ -284,6 +308,10 @@ snav
 ====
 .. autofunction:: chimerax.spacenavigator.snav.snav
 
+smoothlines
+===========
+.. autofunction:: chimerax.smooth_lines.smoothlines.smoothlines
+
 sop
 ===
 .. automodule:: chimerax.core.commands.sop
@@ -296,6 +324,10 @@ split
 stop
 ====
 .. autofunction:: chimerax.core.commands.stop.stop
+
+struts
+======
+.. autofunction:: chimerax.struts.struts.struts
 
 style
 =====
@@ -332,6 +364,10 @@ turn
 view
 ====
 .. autofunction:: chimerax.core.commands.view.view
+
+vive
+====
+.. autofunction:: chimerax.vive.vive.vive
 
 volume
 ======

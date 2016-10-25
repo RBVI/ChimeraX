@@ -95,7 +95,7 @@ endif
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
-SUBDIRS	+= fonts \
+SUBDIRS	+= filelock fonts \
 	   imex numexpr numpy openmm \
 	   pcre pdbfixer pips pycollada \
 	   PyOpenGL PyQt pytables Python \
@@ -165,6 +165,8 @@ endif
 # All packages that have dependencies should depend on the .install
 # target of the other packages.
 
+filelock.install: setuptools.install pips.install
+filelock.app-install: setuptools.app-install pips.app-install
 hdf5.install: zlib.install
 hdf5.app-install: zlib.app-install
 leapmotion.install: setuptools.install

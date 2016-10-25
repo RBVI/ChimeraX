@@ -139,8 +139,8 @@ class Log(ToolInstance, HtmlLog):
     SESSION_ENDURING = True
     help = "help:user/tools/log.html"
 
-    def __init__(self, session, bundle_info):
-        ToolInstance.__init__(self, session, bundle_info)
+    def __init__(self, session, tool_name):
+        ToolInstance.__init__(self, session, tool_name)
         self.warning_shows_dialog = False
         self.error_shows_dialog = True
         from chimerax.core.ui.gui import MainToolWindow
@@ -259,7 +259,8 @@ class Log(ToolInstance, HtmlLog):
                     (level == self.LEVEL_WARNING and self.warning_shows_dialog)):
                 if not is_html:
                     dlg_msg = "<br>".join(msg.split("\n"))
-                self.error_dialog.showMessage(dlg_msg)
+                self.session.ui.thread_safe(self.error_dialog.showMessage,
+                                            dlg_msg)
             if not is_html:
                 from html import escape
                 msg = escape(msg)
@@ -275,12 +276,40 @@ class Log(ToolInstance, HtmlLog):
         return True
 
     def show_page_source(self):
+        self.session.ui.thread_safe(self._show)
+
+    def _show(self):
         css = context_menu_css + cxcmd_css
         html = "<style>%s</style>\n<body onload=\"window.scrollTo(0, document.body.scrollHeight);\">%s</body>" % (cxcmd_css, self.page_source)
         lw = self.log_window
         # Disable and reenable to avoid QWebEngineView taking focus, QTBUG-52999 in Qt 5.7
         lw.setEnabled(False)
-        lw.setHtml(html)
+        # HACK ALERT: to get around a QWebEngineView bug where HTML
+        # source is converted into a "data:" link and runs into the
+        # URL length limit.
+        if len(html) < 1000000:
+            lw.setHtml(html)
+        else:
+            try:
+                tf = open(self._tf_name, "wb")
+            except AttributeError:
+                import tempfile, atexit
+                tf = tempfile.NamedTemporaryFile(prefix="chtmp", suffix=".html",
+                                                 delete=False, mode="wb")
+                self._tf_name = tf.name
+                def clean(filename):
+                    import os
+                    try:
+                        os.remove(filename)
+                    except OSError:
+                        pass
+                atexit.register(clean, tf.name)
+            from PyQt5.QtCore import QUrl
+            tf.write(bytes(html, "utf-8"))
+            # On Windows, we have to close the temp file before
+            # trying to open it again (like loading HTML from it).
+            tf.close()
+            lw.load(QUrl.fromLocalFile(self._tf_name))
         lw.setEnabled(True)
 
     def navigate(self, data):
@@ -366,4 +395,4 @@ class Log(ToolInstance, HtmlLog):
     @classmethod
     def get_singleton(cls, session):
         from chimerax.core import tools
-        return tools.get_singleton(session, Log, 'log')
+        return tools.get_singleton(session, Log, 'Log')

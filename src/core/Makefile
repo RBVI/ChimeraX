@@ -25,18 +25,23 @@ endif
 
 include $(TOP)/mk/subdir.make
 
-PKG_DIR = $(PYSITEDIR)/chimerax/core
+BUNDLE_NAME = ChimeraX-Core
+BUNDLE_VERSION = 0.1
+PKG_NAME = chimerax.core
+
+PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,'g)
+PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
 ifdef WIN32
 TOP := $(shell cygpath -m '$(TOP)' | sed 's,/,\\\\\\\\,g')
 PKG_DIR := $(shell cygpath -m '$(PKG_DIR)' | sed 's,/,\\\\\\\\,g')
 shlibdir := $(shell cygpath -m '$(shlibdir)' | sed 's,/,\\\\\\\\,g')
 datadir := $(shell cygpath -m '$(datadir)' | sed 's,/,\\\\\\\\,g')
 endif
+WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
 
 GENSRCS = buildinfo.py
-PYSRCS = $(wildcard *.py) $(GENSRCS)
-CORE_VERSION = 0.1
-WHEEL = dist/chimerax.core-$(CORE_VERSION)-py3-none-any.whl
+PYSRCS = $(filter-out setup.py,$(wildcard *.py)) $(GENSRCS)
+WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-py3-none-$(BIN_PLATFORM).whl
 
 .FORCE: wheel
 
@@ -52,8 +57,9 @@ app-install: wheel
 	$(APP_BOOTSTRAP_PIP) install -U $(WHEEL)
 	$(RSYNC) $(WHEEL) $(wheelhouse)
 
-wheel: setup.py timestamp
-	$(PYTHON_EXE) setup.py bdist_wheel
+wheel: setup.py
+	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel --plat-name $(BIN_PLATFORM)
+	rm -rf $(WHL_BNDL_NAME).egg-info
 
 SETUP_SED_ARGS = -e 's,PKG_DIR,$(PKG_DIR),' \
 		-e 's,SHLIB_DIR,$(shlibdir),' \
@@ -62,7 +68,9 @@ SETUP_SED_ARGS = -e 's,PKG_DIR,$(PKG_DIR),' \
 		-e 's,SHLIB_EXT,$(SHLIB_EXT),' \
 		-e 's,\#$(OS)\#,,' \
 		-e 's,\#$(OSARCH)\#,,' \
-		-e 's,CORE_VERSION,$(CORE_VERSION),'
+		-e 's,BUNDLE_NAME,$(BUNDLE_NAME),' \
+		-e 's,BUNDLE_VERSION,$(BUNDLE_VERSION),' \
+		-e 's,PKG_NAME,$(PKG_NAME),'
 ifdef WIN32
 ifdef DEBUG
 SETUP_SED_ARGS += -e 's,\#WINDEBUG,,'
@@ -71,9 +79,6 @@ endif
 
 setup.py: setup.py.in
 	sed $(SETUP_SED_ARGS) < setup.py.in > setup.py
-
-timestamp:
-	echo "chimerax.core" > timestamp
 
 lint:
 	$(PYLINT) $(PYSRCS)
@@ -85,7 +90,7 @@ dir:
 	if [ ! -d "$(wheelhouse)" ]; then mkdir -p $(wheelhouse); fi
 
 clean:
-	rm -rf __pycache__ build dist chimerax.core.egg-info setup.py timestamp $(GENSRCS)
+	rm -rf __pycache__ build dist $(WHL_BNDL_NAME).egg-info setup.py
 
 buildinfo.py: buildinfo.py.in mkbuildinfo
 	rm -f buildinfo.py

@@ -78,7 +78,7 @@ class _UniqueName:
         self.uid = uid
 
     @classmethod
-    def from_obj(cls, obj):
+    def from_obj(cls, toolshed, obj):
         """Return a unique identifier for an object in session
         Consequently, the identifier is composed of simple data types.
 
@@ -93,11 +93,7 @@ class _UniqueName:
         if uid is not None:
             return cls(uid)
         obj_cls = obj.__class__
-        bundle_info = None
-        if hasattr(obj, 'bundle_info'):
-            bundle_info = obj.bundle_info
-        elif hasattr(obj_cls, 'bundle_info'):
-            bundle_info = obj_cls.bundle_info
+        bundle_info = toolshed.find_bundle_for_class(obj_cls)
         if bundle_info is None:
             # no tool info, must be in core
             if not obj_cls.__module__.startswith('chimerax.core.'):
@@ -197,14 +193,14 @@ class _SaveManager:
                     self.graph[key] = self._found_objs
                 else:
                     self.unprocessed.append(value)
-                    uid = _UniqueName.from_obj(value)
+                    uid = _UniqueName.from_obj(self.session.toolshed, value)
                     self.processed[key] = uid
                     self.graph[key] = [uid]
             except ValueError as e:
                 raise ValueError("error processing: %r" % key)
         while self.unprocessed:
             obj = self.unprocessed.pop()
-            key = _UniqueName.from_obj(obj)
+            key = _UniqueName.from_obj(self.session.toolshed, obj)
             try:
                 self.processed[key] = self.process(obj)
             except ValueError as e:
@@ -212,7 +208,7 @@ class _SaveManager:
             self.graph[key] = self._found_objs
 
     def _add_obj(self, obj):
-        uid = _UniqueName.from_obj(obj)
+        uid = _UniqueName.from_obj(self.session.toolshed, obj)
         self._found_objs.append(uid)
         if uid not in self.processed:
             self.unprocessed.append(obj)
@@ -559,38 +555,44 @@ def save(session, filename, **kw):
         remember_file(session, filename, 'ses', 'all models', file_saved=True)
 
 
-def dump(session, session_file, output=None):
+def sdump(session, session_file, output=None):
     """dump contents of session for debugging"""
     from . import serialize
     if not session_file.endswith(SESSION_SUFFIX):
         session_file += SESSION_SUFFIX
     input = None
-    from .io import open_filename
-    from .errors import UserError
-    try:
-        input = open_filename(session_file, 'rb')
-    except UserError:
-        session_file2 = session_file + '.gz'
-        try:
-            input = open_filename(session_file2, 'rb')
-        except UserError:
-            pass
-        if input is None:
-            session.logger.error(
-                "Unable to find compressed nor uncompressed file: %s"
-                % session_file)
-            return
+#    from .io import open_filename
+#    from .errors import UserError
+#    try:
+#        input = open_filename(session_file, 'rb')
+#    except UserError:
+#        session_file2 = session_file + '.gz'
+#        try:
+#            input = open_filename(session_file2, 'rb')
+#        except UserError:
+#            pass
+#        if input is None:
+#            session.logger.error(
+#                "Unable to find compressed nor uncompressed file: %s"
+#                % session_file)
+#            return
+    if is_gzip_file(session_file):
+        import gzip
+        input = gzip.open(session_file, 'rb')
+    else:
+        input = _builtin_open(session_file, 'rb')
     if output is not None:
-        output = open_filename(output, 'w')
+    #    output = open_filename(output, 'w')
+        output = _builtin_open(output, 'w')
     from pprint import pprint
     with input:
-        print("session version:", file=output)
+        print("==== session version:", file=output)
         version = serialize.deserialize(input)
         pprint(version, stream=output)
-        print("session metadata:", file=output)
+        print("==== session metadata:", file=output)
         metadata = serialize.deserialize(input)
         pprint(metadata, stream=output)
-        print("tool info:", file=output)
+        print("==== bundle info:", file=output)
         bundle_infos = serialize.deserialize(input)
         pprint(bundle_infos, stream=output)
         while True:
@@ -598,7 +600,7 @@ def dump(session, session_file, output=None):
             if name is None:
                 break
             data = serialize.deserialize(input)
-            print('name/uid:', name, file=output)
+            print('==== name/uid:', name, file=output)
             pprint(data, stream=output)
 
 
@@ -723,7 +725,7 @@ def common_startup(sess):
     register_core_triggers(sess.triggers)
 
     from .selection import Selection
-    sess.selection = Selection(sess.models)
+    sess.selection = Selection(sess)
 
     try:
         from .core_settings import settings
@@ -750,11 +752,11 @@ def common_startup(sess):
         CmdDesc(required=[('session_file', OpenFileNameArg)],
                 optional=[('output', SaveFileNameArg)],
                 synopsis="create human-readable session"),
-        dump
+        sdump
     )
 
     _register_core_file_formats()
-    _register_core_database_fetch(sess)
+    _register_core_database_fetch()
 
 
 def _register_core_file_formats():
@@ -774,12 +776,11 @@ def _register_core_file_formats():
     image.register_image_save()
 
 
-def _register_core_database_fetch(session):
-    s = session
+def _register_core_database_fetch():
     from .atomic import pdb
-    pdb.register_pdb_fetch(s)
+    pdb.register_pdb_fetch()
     from .atomic import mmcif
-    mmcif.register_mmcif_fetch(s)
+    mmcif.register_mmcif_fetch()
     from . import map
-    map.register_eds_fetch(s)
-    map.register_emdb_fetch(s)
+    map.register_eds_fetch()
+    map.register_emdb_fetch()

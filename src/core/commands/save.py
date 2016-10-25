@@ -61,7 +61,7 @@ def save(session, filename, models=None, format=None,
 
     if format is None:
         from .. import io
-        fmt, fname, compress = io.deduce_format(filename, savable = True)
+        fmt, fname, compress = io.deduce_format(filename, open = False, save = True)
     else:
         format = format.casefold()
         from .open import format_from_name

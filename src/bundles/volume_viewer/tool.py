@@ -24,16 +24,18 @@ class VolumeViewer(ToolInstance):
 
     SESSION_SKIP = True
 
-    def __init__(self, session, bundle_info):
-        ToolInstance.__init__(self, session, bundle_info)
+    def __init__(self, session, tool_name):
+        ToolInstance.__init__(self, session, tool_name)
 
-        self.display_name = 'Volume Viewer'
         self.active_volume = None
         self.redisplay_in_progress = False
 
         from chimerax.core.ui.gui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self)
         parent = tw.ui_area
+
+        from . import defaultsettings
+        self.default_settings = defaultsettings.VolumeViewerDefaultSettings()
 
         self.make_panels(parent)
 
@@ -42,10 +44,8 @@ class VolumeViewer(ToolInstance):
         pl.setContentsMargins(0,0,0,0)
         pl.setSpacing(0)
 
-        from . import defaultsettings
-        default_settings = defaultsettings.VolumeViewerDefaultSettings()
-        default_settings.set_gui_to_defaults(self)
-#        default_settings.add_change_callback(self.default_settings_changed_cb)
+        self.default_settings.set_gui_to_defaults(self)
+#        self.default_settings.add_change_callback(self.default_settings_changed_cb)
 
         tw.manage(placement="side")
     
@@ -106,7 +106,7 @@ class VolumeViewer(ToolInstance):
     @classmethod
     def get_singleton(self, session, create=True):
         from chimerax.core import tools
-        return tools.get_singleton(session, VolumeViewer, 'volume_viewer', create=create)
+        return tools.get_singleton(session, VolumeViewer, 'Volume Viewer', create=create)
 
     # Override ToolInstance method
     def delete(self):
@@ -157,6 +157,8 @@ class VolumeViewer(ToolInstance):
 
         for v in vlist:
 
+            if not getattr(v, 'show_in_volume_viewer', True):
+                continue
             # Set data region status messages to display in volume dialog
             #v.message_cb = self.message
 
@@ -377,8 +379,8 @@ def models_added_cb(models, session):
     vlist = [m for m in models if isinstance(m, Volume)]
     if vlist:
         for v in vlist:
-            bundle_info = session.toolshed.find_bundle('volume_viewer')
-            vv = VolumeViewer(session, bundle_info, volume = v)
+            tool_name = "Volume Viewer"
+            vv = VolumeViewer(session, tool_name, volume = v)
             vv.show()
 
 # -----------------------------------------------------------------------------
@@ -1645,11 +1647,12 @@ class Thresholds_Panel(PopupPanel):
   #
   def maximum_histograms(self):
 
-    if not hasattr(self.dialog, 'display_options_panel'):
-        # return 1
-        return 5
-    dop = self.dialog.display_options_panel
-    h = max(1, integer_variable_value(dop.max_histograms, 1))
+    d = self.dialog
+    if hasattr(d, 'display_options_panel'):
+        dop = d.display_options_panel
+        h = max(1, integer_variable_value(dop.max_histograms, 1))
+    else:
+        h = d.default_settings['max_histograms']
     return h
 
   # ---------------------------------------------------------------------------

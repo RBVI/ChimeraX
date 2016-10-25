@@ -11,17 +11,84 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.commands import EnumOf, CmdDesc, StringArg, BoolArg
+from . import CmdDesc, EnumOf, StringArg, BoolArg, plural_form
 
 _bundle_types = EnumOf(["all", "installed", "available"])
 
 
-def _display_bundles(bi_list, logger):
+def _display_bundles(bi_list, logger, use_html=False):
     def bundle_key(bi):
-        return bi.display_name
-    for bi in sorted(bi_list, key=bundle_key):
-        logger.info(" %s (%s %s): %s" % (bi.display_name, bi.name,
-                                         bi.version, bi.synopsis))
+        return bi.name
+    info = ""
+    if use_html:
+        from html import escape
+        info = """
+<style>
+table.bundle {
+    border-collapse: collapse;
+    border-spacing: 2px;
+}
+th.bundle {
+    font-style: italic;
+    text-align: left;
+}
+</style>
+        """
+        info += "<dl>\n"
+        for bi in sorted(bi_list, key=bundle_key):
+            info += "<dt><b>%s</b> (%s) [%s]: <i>%s</i>\n" % (
+                bi.name, bi.version, ', '.join(bi.categories), escape(bi.synopsis))
+            info += "<dd>\n"
+            # TODO: convert description's rst text to HTML
+            info += escape(bi.description).replace('\n\n', '<p>\n')
+            if bi.tools or bi.commands or bi.formats:
+                info += "<table class='bundle' border='1'>\n"
+            if bi.tools:
+                info += "<tr><th class='bundle' colspan='3'>%s:</th></tr>\n" % plural_form(bi.tools, "Tool")
+            for t in bi.tools:
+                info += "<tr><td><b>%s</b></td> <td colspan='2'><i>%s</i></td></tr>\n" % (t.name, escape(t.synopsis))
+            if bi.commands:
+                info += "<tr><th class='bundle' colspan='3'>%s:</th></tr>\n" % plural_form(bi.commands, "Command")
+            for c in bi.commands:
+                info += "<tr><td><b>%s</b></td> <td colspan='2'><i>%s</i></td></tr>\n" % (c.name, escape(c.synopsis))
+            if bi.selectors:
+                info += "<tr><th class='bundle' colspan='3'>%s:</th></tr>\n" % plural_form(bi.selectors, "Selector")
+            for s in bi.selectors:
+                info += "<tr><td><b>%s</b></td> <td colspan='2'><i>%s</i></td></tr>\n" % (s.name, escape(s.synopsis))
+            if bi.formats:
+                info += "<tr><th class='bundle' colspan='3'>%s:</th></tr>\n" % plural_form(bi.formats, "Format")
+            for f in bi.formats:
+                can_open = ' open' if f.has_open else ''
+                can_save = ' save' if f.has_save else ''
+                info += "<tr><td><b>%s</b></td> <td><i>%s</i></td><td>%s%s</td></tr>\n" % (
+                    f.name, f.category, can_open, can_save)
+            if bi.tools or bi.commands or bi.formats:
+                info += "</table>\n"
+        info += "</dl>\n"
+    else:
+        for bi in sorted(bi_list, key=bundle_key):
+            info += "%s (%s) [%s]: %s\n" % (
+                bi.name, bi.version, ', '.join(bi.categories), bi.synopsis)
+            if bi.tools:
+                info += "   %s:\n" % plural_form(bi.tools, "Tool")
+            for t in bi.tools:
+                info += "    %s: %s\n" % (t.name, t.synopsis)
+            if bi.commands:
+                info += "   %s:\n" % plural_form(bi.commands, "Command")
+            for c in bi.commands:
+                info += "    %s: %s\n" % (c.name, c.synopsis)
+            if bi.selectors:
+                info += "   %s:\n" % plural_form(bi.selectors, "Selector")
+            for s in bi.selectors:
+                info += "    %s: %s\n" % (s.name, s.synopsis)
+            if bi.formats:
+                info += "   %s:\n" % plural_form(bi.formats, "Format")
+            for f in bi.formats:
+                can_open = ' open' if f.has_open else ''
+                can_save = ' save' if f.has_save else ''
+                info += "    %s [%s]%s%s\n" % (f.name, f.category, can_open,
+                                               can_save)
+    logger.info(info, is_html=use_html)
 
 
 def ts_list(session, bundle_type="installed"):
@@ -34,18 +101,19 @@ def ts_list(session, bundle_type="installed"):
     '''
     ts = session.toolshed
     logger = session.logger
+    use_html = session.ui.is_gui
     if bundle_type == "installed" or bundle_type == "all":
         bi_list = ts.bundle_info(installed=True, available=False)
         if bi_list:
             logger.info("List of installed bundles:")
-            _display_bundles(bi_list, logger)
+            _display_bundles(bi_list, logger, use_html)
         else:
             logger.info("No installed bundles found.")
     if bundle_type in ("available", "all"):
         bi_list = ts.bundle_info(installed=False, available=True)
         if bi_list:
             logger.info("List of available bundles:")
-            _display_bundles(bi_list, logger)
+            _display_bundles(bi_list, logger, use_html)
         else:
             logger.info("No available bundles found.")
 ts_list_desc = CmdDesc(optional=[("bundle_type", _bundle_types)],
@@ -156,57 +224,56 @@ ts_update_desc = CmdDesc(required=[("bundle_name", StringArg)],
 
 
 #
-# Commands that deal with GUI (singleton)
+# Commands that deal with tools
 #
 
-def ts_start(session, bundle_name):
+def ts_show(session, tool_name, _show=True):
     '''
-    Start a tool in a bundle.
+    Show a tool, or start one if none is running.
 
     Parameters
     ----------
-    bundle_name : string
+    tool_name : string
     '''
-    ts = session.toolshed
-    tinfo = ts.find_bundle(bundle_name)
-    if tinfo is None:
-        from chimerax.core.errors import UserError
-        raise UserError('No installed bundle named "%s"' % bundle_name)
     if not session.ui.is_gui:
         from chimerax.core.errors import UserError
-        raise UserError("Need a GUI to start tools")
-    tinfo.start(session)
-ts_start_desc = CmdDesc(required=[('bundle_name', StringArg)])
-
-
-def ts_show(session, bundle_name, _show=True):
-    '''
-    Show a tool panel, or start one if none is running.
-
-    Parameters
-    ----------
-    bundle_name : string
-    '''
+        raise UserError("Need a GUI to show or hide tools")
     ts = session.toolshed
-    tinfo = ts.find_bundle(bundle_name)
-    if tinfo is None:
+    bi, tool_name = ts.find_bundle_for_tool(tool_name)
+    if bi is None:
         from chimerax.core.errors import UserError
-        raise UserError('No installed bundle named "%s"' % bundle_name)
-    tinst = [t for t in session.tools.list() if t.bundle_info is tinfo]
+        raise UserError('No installed tool named "%s"' % tool_name)
+    tinst = [t for t in session.tools.list() if t.display_name == tool_name]
     for ti in tinst:
         ti.display(_show)
     if _show and len(tinst) == 0:
-        tinfo.start(session)
-ts_show_desc = CmdDesc(required=[('bundle_name', StringArg)])
+        bi.start_tool(session, tool_name)
+ts_show_desc = CmdDesc(required=[('tool_name', StringArg)],
+                       synopsis="Show tool.  Start if necessary")
 
 
-def ts_hide(session, bundle_name):
+def ts_hide(session, tool_name):
     '''
-    Hide tool panels.
+    Hide tool.
 
     Parameters
     ----------
-    bundle_name : string
+    tool_name : string
     '''
-    ts_show(session, bundle_name, _show=False)
-ts_hide_desc = CmdDesc(required=[('bundle_name', StringArg)])
+    ts_show(session, tool_name, _show=False)
+ts_hide_desc = CmdDesc(required=[('tool_name', StringArg)],
+                       synopsis="Hide tool from view")
+
+
+def register_command(session):
+    from . import register, create_alias
+
+    register("toolshed list", ts_list_desc, ts_list)
+    register("toolshed refresh", ts_refresh_desc, ts_refresh)
+    register("toolshed install", ts_install_desc, ts_install)
+    register("toolshed remove", ts_remove_desc, ts_remove)
+    # register("toolshed update", ts_update_desc, ts_update)
+    register("toolshed show", ts_show_desc, ts_show)
+    register("toolshed hide", ts_hide_desc, ts_hide)
+
+    create_alias("ts", "toolshed $*")

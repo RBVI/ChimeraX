@@ -61,7 +61,7 @@ def align(session, ref, match, matrix_name, algorithm, gap_open, gap_extend, dss
                 return ' '
             if r.is_helix:
                 return 'H'
-            elif r.is_sheet:
+            elif r.is_strand:
                 return 'S'
             return 'O'
         if ssf is False or ssf is None:
@@ -588,12 +588,13 @@ def cmd_match(session, match_atoms, to=None, pairing=defaults["chain_pairing"],
     ss_matrix[('S', 'O')] = ss_matrix[('O', 'S')] = float(mat_so)
     if type(iterate) == bool and not iterate:
         iterate = None
-    match(session, pairing, match_items, matrix, alg, gap_open, gap_extend,
+    ret_vals = match(session, pairing, match_items, matrix, alg, gap_open, gap_extend,
         ss_fraction=ss_fraction, ss_matrix=ss_matrix,
         iterate=iterate, show_alignment=show_alignment,
         domain_residues=(ref_atoms.residues.unique(), match_atoms.residues.unique()),
         gap_open_helix=hgap, gap_open_strand=sgap,
         gap_open_other=ogap, compute_ss=compute_ss, verbose=verbose)
+    return ret_vals
 
 _dm_cleanup = []
 def check_domain_matching(chains, sel_residues):
@@ -616,7 +617,7 @@ def check_domain_matching(chains, sel_residues):
             new_chains.append(nc)
             chars = []
             residues = []
-            for c, r in zip(str(chain), chain.residues):
+            for c, r in zip(chain.characters, chain.residues):
                 if r in sel_residues:
                     chars.append(c)
                     residues.append(r)

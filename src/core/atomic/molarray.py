@@ -46,7 +46,7 @@ Collections are immutable so can be hashed.  The only case in which their conten
 can be altered is if C++ objects they hold are deleted in which case those objects
 are automatically removed from the collection.
 '''
-from numpy import uint8, int32, float64, float32, uintp, byte, bool as npy_bool, integer, empty, unique, array
+from numpy import uint8, int32, uint32, float64, float32, uintp, byte, bool as npy_bool, integer, empty, unique, array
 from .molc import string, cptr, pyobject, cvec_property, set_cvec_pointer, c_function, c_array_function, pointer, ctype_type_to_numpy
 from . import molobject
 import ctypes
@@ -55,7 +55,7 @@ size_t = ctype_type_to_numpy[ctypes.c_size_t]   # numpy dtype for size_t
 def _atoms(p):
     return Atoms(p)
 def _atoms_or_nones(p):
-    from molobject import object_map, Atom
+    from .molobject import object_map, Atom
     return [object_map(ptr, Atom) if ptr else None for ptr in p]
 def _non_null_atoms(p):
     return Atoms(p[p!=0])
@@ -328,6 +328,8 @@ class Atoms(Collection):
         "with such an array (or equivalent sequence), or with a single RGBA value.")
     coords = cvec_property('atom_coord', float64, 3,
         doc="Returns a :mod:`numpy` Nx3 array of XYZ values. Can be set.")
+    coord_indices = cvec_property('atom_coord_index', uint32, read_only = True,
+        doc="Coordinate index of atom in coordinate set.")
     displays = cvec_property('atom_display', npy_bool,
         doc="Controls whether the Atoms should be displayed. Returns a :mod:`numpy` array of "
         "boolean values.  Can be set with such an array (or equivalent sequence), or with a "
@@ -689,13 +691,21 @@ class Pseudobonds(Collection):
     '''
     showns = cvec_property('pseudobond_shown', npy_bool, read_only = True)
     '''
-    Whether each pseudobond is displayed, visible and has both atoms shown.
+    Whether each pseudobond is displayed, visible and has both atoms displayed.
     '''
 
     def delete(self):
         '''Delete the C++ Pseudobond objects'''
         c_function('pseudobond_delete',
             args = [ctypes.c_void_p, ctypes.c_size_t])(self._c_pointers, len(self))
+
+    @property
+    def lengths(self):
+        '''Distances between pseudobond end points.'''
+        a1, a2 = self.atoms
+        v = a1.scene_coords - a2.scene_coords
+        from numpy import sqrt
+        return sqrt((v*v).sum(axis=1))
 
     @property
     def half_colors(self):
@@ -736,6 +746,8 @@ class Residues(Collection):
 
     atoms = cvec_property('residue_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True, per_object = False, doc =
     '''Return :class:`.Atoms` belonging to each residue all as a single collection. Read only.''')
+    centers = cvec_property('residue_center', float64, 3, read_only = True)
+    '''Average of atom positions as a numpy length 3 array, 64-bit float values.'''
     chains = cvec_property('residue_chain', cptr, astype = _non_null_chains, read_only = True, doc =
     '''Return :class:`.Chains` for residues. Residues with no chain are omitted. Read only.''')
     chain_ids = cvec_property('residue_chain_id', string, read_only = True, doc =
@@ -805,13 +817,18 @@ class Residues(Collection):
 
     @property
     def unique_structures(self):
-        '''The unique structures as an :class:`.StructureDatas` collection'''
+        '''The unique structures as a :class:`.StructureDatas` collection'''
         return StructureDatas(unique(self.structures._pointers))
 
     @property
     def unique_chain_ids(self):
         '''The unique chain IDs as a numpy array of strings.'''
         return unique(self.chain_ids)
+
+    @property
+    def unique_chains(self):
+        '''The unique chains as a :class:`.Chains` collection'''
+        return _chains(unique(self.chains._pointers))
 
     @property
     def by_structure(self):

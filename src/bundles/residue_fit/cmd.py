@@ -37,9 +37,8 @@ def resfit(session, atoms, map = None, residue_range = (-2,1),
     if len(bbres) == 0:
         raise AnnotationError('None of %d specified residues have backbone atoms "N", "CA" and "C"' % len(res))
     
-    bundle_info = session.toolshed.find_bundle('residue_fit')
     from . import tool
-    tool.ResidueFit(session, bundle_info, bbres, map, residue_range = residue_range,
+    tool.ResidueFit(session, "Residue Fit", bbres, map, residue_range = residue_range,
                    motion_frames = motion_frames, pause_frames = pause_frames,
                    movie_framerate = movie_framerate)
     

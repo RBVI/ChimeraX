@@ -14,6 +14,7 @@ include $(TOP)/mk/detectOS.make
 #### Linux
 
 ifeq ($(OS),Linux)
+	BIN_PLATFORM = linux_x86_64
 	OBJ_EXT = o
 	LIB_EXT = a
 	LIB_LINK = ar rc $(LIBRARY) $(OBJS)
@@ -57,6 +58,11 @@ endif
 #### Darwin, a.k.a., Apple Mac OS X
 
 ifeq ($(OS),Darwin)
+ifeq (,$(MACOSX_DEPLOYMENT_TARGET))
+	BIN_PLATFORM=macosx_$(subst .,_,$(OSXVER))_x86_64
+else
+	BIN_PLATFORM=macosx_$(subst .,_,$(MACOSX_DEPLOYMENT_TARGET))_x86_64
+endif
 	USE_MAC_FRAMEWORKS = 1
 	# *nix system
 	OBJ_EXT = o
@@ -100,6 +106,7 @@ endif
 # Microsoft Windows
 
 ifeq ($(OS),Windows)
+	BIN_PLATFORM = win_amd64
 	shlibdir = $(bindir)
 
 	OBJ_EXT = obj

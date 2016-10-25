@@ -79,8 +79,7 @@ def find_license_file(pkg):
     license_file = None
 
     # scan egg/wheel info for a license
-    dir_re = fnmatch.translate('%s-*info' % pkg.project_name)
-    dir_re = re.compile(fnmatch.translate('%s*info' % pkg.project_name))
+    dir_re = re.compile(fnmatch.translate('%s-*.dist-info' % pkg.project_name))
     for filename in os.listdir(pkg.location):
         if dir_re.match(filename):
             break

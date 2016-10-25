@@ -23,12 +23,14 @@
 #include <atomstruct/Bond.h>
 #include <atomstruct/Chain.h>
 #include <atomstruct/ChangeTracker.h>
+#include <atomstruct/CoordSet.h>
 #include <atomstruct/destruct.h>     // Use DestructionObserver
 #include <atomstruct/PBGroup.h>
 #include <atomstruct/Pseudobond.h>
 #include <atomstruct/PBGroup.h>
 #include <atomstruct/Residue.h>
 #include <atomstruct/RibbonXSection.h>
+#include <atomstruct/seq_assoc.h>
 #include <atomstruct/Sequence.h>
 #include <arrays/pythonarray.h>           // Use python_voidp_array()
 #include <pysupport/convert.h>     // Use cset_of_chars_to_pyset
@@ -384,6 +386,12 @@ extern "C" EXPORT void set_atom_coord(void *atoms, size_t n, float64_t *xyz)
     }
 }
 
+extern "C" EXPORT void atom_coord_index(void *atoms, size_t n, uint32_t *index)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    error_wrap_array_get<Atom, unsigned int, unsigned int>(a, n, &Atom::coord_index, index);
+}
+
 extern "C" EXPORT void atom_delete(void *atoms, size_t n)
 {
     Atom **a = static_cast<Atom **>(atoms);
@@ -539,6 +547,18 @@ extern "C" EXPORT PyObject *atom_idatm_info_map()
             type_desc.doc = (char*)"Information about an IDATM type";
             type_desc.fields = fields;
             type_desc.n_in_sequence = 3;
+            // Need to disable and enable Python garbage collection around
+            // PyStructSequence_NewType, because Py_TPFLAGS_HEAPTYPE isn't
+            // set until after the call returns, and then it's too late
+            PyObject *mod = PyImport_ImportModule("gc");
+            PyObject *mod_dict = mod ? PyModule_GetDict(mod) : NULL;
+            PyObject *disable = mod_dict ? PyDict_GetItemString(mod_dict, "disable") : NULL;
+            PyObject *enable = mod_dict ? PyDict_GetItemString(mod_dict, "enable") : NULL;
+            if (disable == NULL || enable == NULL) {
+                disable = enable = NULL;
+                std::cerr << "Can't control garbage collection\n";
+            }
+            if (disable) Py_XDECREF(PyEval_CallObject(disable, NULL));
             auto type_obj = PyStructSequence_NewType(&type_desc);
             // As per https://bugs.python.org/issue20066 and https://bugs.python.org/issue15729,
             // the type object isn't completely initialized, so...
@@ -557,6 +577,7 @@ extern "C" EXPORT PyObject *atom_idatm_info_map()
                 Py_DECREF(key);
                 Py_DECREF(val);
             }
+            if (enable) Py_XDECREF(PyEval_CallObject(enable, NULL));
         } catch (...) {
             molc_error();
         }
@@ -1436,24 +1457,14 @@ extern "C" EXPORT void pseudobond_global_manager_session_restore(void *manager, 
 
 extern "C" EXPORT PyObject *pseudobond_global_manager_session_save_structure_mapping(void *manager)
 {
-    PyObject* mapping = PyDict_New();
-    if (mapping == nullptr)
+    try {
+        PBManager* mgr = static_cast<PBManager*>(manager);
+        return pysupport::cmap_of_ptr_int_to_pydict(*(mgr->ses_struct_to_id_map()),
+            "structure", "session ID");
+    } catch (...) {
         molc_error();
-    else {
-        try {
-            PBManager* mgr = static_cast<PBManager*>(manager);
-            for (auto struct_id: *(mgr->ses_struct_to_id_map())) {
-                PyObject* key = PyLong_FromVoidPtr(struct_id.first);
-                PyObject* val = PyLong_FromLong(struct_id.second);
-                PyDict_SetItem(mapping, key, val);
-                Py_DECREF(key);
-                Py_DECREF(val);
-            }
-        } catch (...) {
-            molc_error();
-        }
     }
-    return mapping;
+    return nullptr;
 }
 
 extern "C" EXPORT void pseudobond_global_manager_session_restore_structure_mapping(void *manager,
@@ -1507,6 +1518,30 @@ extern "C" EXPORT void residue_atoms(void *residues, size_t n, pyobject_t *atoms
             for (size_t j = 0; j != a.size(); ++j)
                 *atoms++ = a[j];
         }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void residue_center(void *residues, size_t n, float64_t *xyz)
+{
+    Residue **r = static_cast<Residue **>(residues);  
+    try {
+      for (size_t i = 0; i != n; ++i) {
+	Residue *ri = r[i];
+	double x = 0, y = 0, z = 0;
+	int na = 0;
+	for (auto atom: ri->atoms()) {
+	  const Coord &c = atom->coord();
+	  x += c[0]; y += c[1]; z += c[2];
+	  na += 1;
+	}
+	if (na > 0) {
+	  *xyz++ = x/na;  *xyz++ = y/na;  *xyz++ = z/na;
+        } else {
+	  *xyz++ = 0;  *xyz++ = 0;  *xyz++ = 0;
+	}
+      }
     } catch (...) {
         molc_error();
     }
@@ -2001,7 +2036,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int
         }
         PyTuple_SetItem(o, 2, ca);
         float *gdata;
-        if (want_peptide) {
+        if (want_peptide && peptide_planes.size() > 0) {
             // For orienting using peptide planes, we need to process some more
             PyObject *ga = python_float_array(centers.size(), 3, &gdata);
             // The peptide_planes vector is one shorter than the number
@@ -2236,7 +2271,7 @@ extern "C" EXPORT void residue_set_ss_helix(void *residues, size_t n, bool value
     }
 }
 
-extern "C" EXPORT void residue_set_ss_sheet(void *residues, size_t n, bool value)
+extern "C" EXPORT void residue_set_ss_strand(void *residues, size_t n, bool value)
 {
     // Doesn't touch is_helix
     Residue **r = static_cast<Residue **>(residues);
@@ -2390,6 +2425,96 @@ extern "C" EXPORT void* sseq_residue_at(void *sseq_ptr, size_t i)
         molc_error();
         return nullptr;
     }
+}
+
+extern "C" EXPORT PyObject *sseq_res_map(void *sseq_ptr)
+{
+    PyObject* mapping = PyDict_New();
+    if (mapping == nullptr)
+        molc_error();
+    else {
+        try {
+            StructureSeq *sseq = static_cast<StructureSeq*>(sseq_ptr);
+            for (auto res_pos: sseq->res_map()) {
+                PyObject* key = PyLong_FromVoidPtr(res_pos.first);
+                PyObject* val = PyLong_FromSize_t(res_pos.second);
+                PyDict_SetItem(mapping, key, val);
+                Py_DECREF(key);
+                Py_DECREF(val);
+            }
+        } catch (...) {
+            molc_error();
+        }
+    }
+    return mapping;
+}
+
+extern "C" EXPORT PyObject *sseq_estimate_assoc_params(void *sseq_ptr)
+{
+    PyObject* tuple = PyTuple_New(3);
+    if (tuple == nullptr)
+        molc_error();
+    else {
+        try {
+            StructureSeq *sseq = static_cast<StructureSeq*>(sseq_ptr);
+            auto ap = estimate_assoc_params(*sseq);
+            PyObject *py_est_len = PyLong_FromSize_t(ap.est_len);
+            if (py_est_len == nullptr)
+                molc_error();
+            else {
+                try {
+                    PyObject *py_segments = pysupport::cvec_of_cvec_of_char_to_pylist(ap.segments,
+                        "continuous sequence segment");
+                    PyObject *py_gaps = pysupport::cvec_of_int_to_pylist(ap.gaps,
+                        "structure gap size");
+                    PyTuple_SET_ITEM(tuple, 0, py_est_len);
+                    PyTuple_SET_ITEM(tuple, 1, py_segments);
+                    PyTuple_SET_ITEM(tuple, 2, py_gaps);
+                } catch (...) {
+                    molc_error();
+                }
+            }
+        } catch (...) {
+            molc_error();
+        }
+    }
+    return tuple;
+}
+
+extern "C" EXPORT PyObject *sseq_try_assoc(void *seq_ptr, void *sseq_ptr, size_t est_len,
+    PyObject *py_segments, PyObject *py_gaps, int max_errors)
+{
+    PyObject* tuple = PyTuple_New(2);
+    if (tuple == nullptr)
+        molc_error();
+    else {
+        Sequence *seq = static_cast<Sequence*>(seq_ptr);
+        StructureSeq *sseq = static_cast<StructureSeq*>(sseq_ptr);
+        std::vector<Sequence::Contents> segments;
+        pysupport::pylist_of_string_to_cvec_of_cvec(py_segments, segments,
+            "segment residue letter");
+        std::vector<int> gaps;
+        pysupport::pylist_of_int_to_cvec(py_gaps, gaps, "estimated gap");
+        AssocParams ap(est_len, segments.begin(), segments.end(), gaps.begin(), gaps.end());
+        AssocRetvals arv;
+        try {
+            arv = try_assoc(*seq, *sseq, ap, max_errors);
+        } catch (SA_AssocFailure& e) {
+            // convert to error that maps to ValueError
+            PyErr_SetString(PyExc_ValueError, e.what());
+            Py_DECREF(tuple);
+            return nullptr;
+        } catch (...) {
+            molc_error();
+            Py_DECREF(tuple);
+            return nullptr;
+        }
+        PyObject* map = pysupport::cmap_of_ptr_int_to_pydict(arv.match_map.res_to_pos(),
+            "residue", "associated seq position");
+        PyTuple_SET_ITEM(tuple, 0, map);
+        PyTuple_SET_ITEM(tuple, 1, PyLong_FromLong(static_cast<long>(arv.num_errors)));
+    }
+    return tuple;
 }
 
 // -------------------------------------------------------------------------
@@ -2550,6 +2675,18 @@ extern "C" EXPORT void set_sequence_characters(void *seqs, size_t n, pyobject_t 
     }
 }
 
+extern "C" EXPORT void sequence_circular(void *seqs, size_t n, npy_bool *seq_circular)
+{
+    Sequence **s = static_cast<Sequence **>(seqs);
+    error_wrap_array_get(s, n, &Sequence::circular, seq_circular);
+}
+
+extern "C" EXPORT void set_sequence_circular(void *seqs, size_t n, npy_bool *seq_circular)
+{
+    Sequence **s = static_cast<Sequence **>(seqs);
+    error_wrap_array_set(s, n, &Sequence::set_circular, seq_circular);
+}
+
 extern "C" EXPORT void sequence_extend(void *seq, const char *chars)
 {
     Sequence *s = static_cast<Sequence *>(seq);
@@ -2565,6 +2702,8 @@ extern "C" EXPORT int sequence_gapped_to_ungapped(void *seq, int32_t index)
     Sequence *s = static_cast<Sequence *>(seq);
     try {
         return s->gapped_to_ungapped(index);
+    } catch (SeqIndexError& e) {
+        return -1;
     } catch (...) {
         molc_error();
         return 0;
@@ -2657,6 +2796,17 @@ extern "C" EXPORT pyobject_t sequence_ungapped(void *seq)
         molc_error();
         Py_INCREF(Py_None);
         return Py_None;
+    }
+}
+
+extern "C" EXPORT int sequence_ungapped_to_gapped(void *seq, int32_t index)
+{
+    Sequence *s = static_cast<Sequence *>(seq);
+    try {
+        return s->ungapped_to_gapped(index);
+    } catch (...) {
+        molc_error();
+        return 0;
     }
 }
 
@@ -2801,6 +2951,56 @@ extern "C" EXPORT void structure_residues(void *mols, size_t n, pyobject_t *res)
             for (size_t j = 0; j != r.size(); ++j)
                 *res++ = r[j];
         }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void structure_active_coordset_id(void *mols, size_t n, int32_t *coordset_ids)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    try {
+        for (size_t i = 0; i != n; ++i)
+	  coordset_ids[i] = m[i]->active_coord_set()->id();
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void set_structure_active_coordset_id(void *mols, size_t n, int32_t *coordset_ids)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+	    CoordSet *cs = m[i]->find_coord_set(coordset_ids[i]);
+	    if (cs == NULL)
+	      PyErr_Format(PyExc_IndexError, "No coordset id %d", coordset_ids[i]);
+	    else
+	      m[i]->set_active_coord_set(cs);
+	}
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void structure_add_coordset(void *mol, int id, void *xyz)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        CoordSet *cs = m->new_coord_set(id);
+	cs->set_coords((float *)xyz, m->num_atoms());
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void structure_coordset_ids(void *mols, size_t n, int32_t *coordset_ids)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    try {
+        for (size_t i = 0; i != n; ++i)
+	  for (auto cs: m[i]->coord_sets())
+	    *coordset_ids++ = cs->id();
     } catch (...) {
         molc_error();
     }

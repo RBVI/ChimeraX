@@ -11,6 +11,10 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+_database_fetches = {}
+_cache_dirs = []
+
+
 # -----------------------------------------------------------------------------
 #
 def fetch_file(session, url, name, save_name, save_dir, *,
@@ -26,7 +30,7 @@ def fetch_file(session, url, name, save_name, save_dir, *,
 
     if save_dir is None:
         import tempfile
-        f = tempfile.NamedTemporaryFile(suffix = save_name)
+        f = tempfile.NamedTemporaryFile(suffix=save_name)
         filename = f.name
         f.close()
     else:
@@ -46,12 +50,12 @@ def fetch_file(session, url, name, save_name, save_dir, *,
         raise UserError('Fetching url %s failed:\n%s' % (url, str(e)))
     return filename
 
+
 # -----------------------------------------------------------------------------
 #
-_cache_dirs = []
 def cache_directories():
     from os import path
-    from chimerax import app_dirs, app_dirs_unversioned
+    from chimerax import app_dirs_unversioned
     if len(_cache_dirs) == 0:
         _cache_dirs.append(app_dirs_unversioned.user_cache_dir)
         old_cache_dir = path.join('~', 'Downloads', 'Chimera')
@@ -60,10 +64,11 @@ def cache_directories():
             _cache_dirs.append(old_cache_dir)
     return _cache_dirs
 
+
 # -----------------------------------------------------------------------------
 #
-def retrieve_url(request, filename, logger=None,
-                        uncompress=False, update=False, check_certificates=True, name=None):
+def retrieve_url(request, filename, logger=None, uncompress=False,
+                 update=False, check_certificates=True, name=None):
     """Return requested URL in filename
 
     :param request: a :py:class:`urlib.request.Request`
@@ -218,38 +223,37 @@ def _convert_to_timestamp(date):
 
 # -----------------------------------------------------------------------------
 #
-def register_fetch(session, database_name, fetch_function, file_format,
-                   prefixes=(), default_format=None):
-    d = fetch_databases(session)
+def register_fetch(database_name, fetch_function, file_format,
+                   prefixes=(), is_default_format=False, example_id=None):
+    d = fetch_databases()
     df = d.get(database_name, None)
     if df is None:
         d[database_name] = df = DatabaseFetch(database_name, file_format)
     df.add_format(file_format, fetch_function)
-    if default_format:
+    if is_default_format:
         df.default_format = file_format
+    if example_id:
+        df.example_id = example_id
     for p in prefixes:
         df.prefix_format[p] = file_format
 
 
 # -----------------------------------------------------------------------------
 #
-def fetch_databases(session):
-    d = getattr(session, '_database_fetches', None)
-    if d is None:
-        session._database_fetches = d = {}
-    return d
+def fetch_databases():
+    return _database_fetches
 
 
 # -----------------------------------------------------------------------------
 #
-def database_formats(session, from_database):
-    return fetch_databases(session)[from_database].fetch_function.keys()
+def database_formats(from_database):
+    return fetch_databases()[from_database].fetch_function.keys()
 
 
 # -----------------------------------------------------------------------------
 #
 def fetch_from_database(session, from_database, id, format=None, name=None, ignore_cache=False, **kw):
-    d = fetch_databases(session)
+    d = fetch_databases()
     df = d[from_database]
     from .logger import Collator
     with Collator(session.logger, "Summary of problems opening %s fetched from %s" % (id, from_database)):
@@ -262,8 +266,8 @@ def fetch_from_database(session, from_database, id, format=None, name=None, igno
 
 # -----------------------------------------------------------------------------
 #
-def fetch_from_prefix(session, prefix):
-    d = fetch_databases(session)
+def fetch_from_prefix(prefix):
+    d = fetch_databases()
     for db in d.values():
         if prefix in db.prefix_format:
             return db.database_name, db.prefix_format[prefix]
@@ -272,8 +276,8 @@ def fetch_from_prefix(session, prefix):
 
 # -----------------------------------------------------------------------------
 #
-def prefixes(session):
-    d = fetch_databases(session)
+def prefixes():
+    d = fetch_databases()
     return sum((tuple(db.prefix_format.keys()) for db in d.values()), ())
 
 
@@ -281,7 +285,7 @@ def prefixes(session):
 #
 class DatabaseFetch:
 
-    def __init__(self, database_name, default_format):
+    def __init__(self, database_name, default_format=False, example_id=None):
         self.database_name = database_name
         self.default_format = default_format
         self.fetch_function = {}		# Map format to fetch function

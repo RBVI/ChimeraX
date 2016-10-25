@@ -16,8 +16,9 @@ from chimerax.core.toolshed import BundleAPI
 class _MyAPI(BundleAPI):
 
     @staticmethod
-    def initialize(session, bi):
-        from . import fetch_cellpack
-        fetch_cellpack.register_cellpack_fetch(session)
+    def fetch_url(session, identifier, ignore_cache=False, database_name=None, format_name=None, **kw):
+        # 'fetch_url' is called by session code to fetch data from a URL
+        from .fetch_cellpack import fetch_cellpack
+        return fetch_cellpack(session, identifier, ignore_cache=ignore_cache, **kw)
 
 bundle_api = _MyAPI()

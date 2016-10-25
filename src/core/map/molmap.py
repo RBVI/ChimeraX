@@ -217,7 +217,8 @@ def bounding_grid(xyz, step, pad, transforms = None):
 
 # -----------------------------------------------------------------------------
 #
-def add_gaussians(grid, xyz, weights, sdev, cutoff_range, transforms = None):
+def add_gaussians(grid, xyz, weights, sdev, cutoff_range, transforms = None,
+                  normalize = True):
 
     from numpy import zeros, float32, empty
     sdevs = zeros((len(xyz),3), float32)
@@ -234,10 +235,11 @@ def add_gaussians(grid, xyz, weights, sdev, cutoff_range, transforms = None):
         ijk[:] = xyz
         (grid.xyz_to_ijk_transform * tf).move(ijk)
         sum_of_gaussians(ijk, weights, sdevs, cutoff_range, matrix)
-    
-    from math import pow, pi
-    normalization = pow(2*pi,-1.5)*pow(sdev,-3)
-    matrix *= normalization
+
+    if normalize:
+        from math import pow, pi
+        normalization = pow(2*pi,-1.5)*pow(sdev,-3)
+        matrix *= normalization
 
 # -----------------------------------------------------------------------------
 #

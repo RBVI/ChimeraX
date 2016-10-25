@@ -225,11 +225,16 @@ def init(argv, event_loop=True):
             os.environ['PATH'] = ':'.join(paths)
         del paths
 
+    from chimerax.core.utils import initialize_ssl_cert_dir
+    initialize_ssl_cert_dir()
+
     # use chimerax.core's version
+    from chimerax.core.toolshed import _ChimeraCore
+    core_pip_key = _ChimeraCore.casefold()
     import pip
     dists = pip.get_installed_distributions(local_only=True)
     for d in dists:
-        if d.key == 'chimerax.core':
+        if d.key == core_pip_key:
             version = d.version
             break
     else:
@@ -378,19 +383,21 @@ def init(argv, event_loop=True):
         if sess.ui.is_gui and opts.debug:
             print("Initializing core", flush=True)
 
-    if not opts.silent:
-        sess.ui.splash_info("Initializing bundles",
-                            next(splash_step), num_splash_steps)
-        if sess.ui.is_gui and opts.debug:
-            print("Initializing bundles", flush=True)
     from chimerax.core import toolshed
     # toolshed.init returns a singleton so it's safe to call multiple times
     sess.toolshed = toolshed.init(sess.logger, debug=sess.debug)
-    sess.toolshed.bootstrap_bundles(sess)
-    from chimerax.core import tools
-    sess.tools = tools.Tools(sess, first=True)
-    from chimerax.core import tasks
-    sess.tasks = tasks.Tasks(sess, first=True)
+    if opts.module != 'pip':
+        # keep bugs in ChimeraX from preventing pip from working
+        if not opts.silent:
+            sess.ui.splash_info("Initializing bundles",
+                                next(splash_step), num_splash_steps)
+            if sess.ui.is_gui and opts.debug:
+                print("Initializing bundles", flush=True)
+        sess.toolshed.bootstrap_bundles(sess)
+        from chimerax.core import tools
+        sess.tools = tools.Tools(sess, first=True)
+        from chimerax.core import tasks
+        sess.tasks = tasks.Tasks(sess, first=True)
 
     if opts.version >= 0:
         sess.silent = False
@@ -436,7 +443,9 @@ def init(argv, event_loop=True):
             sess.ui.splash_info(msg, next(splash_step), num_splash_steps)
             if sess.ui.is_gui and opts.debug:
                 print(msg, flush=True)
-        sess.tools.start_tools(opts.start_tools)
+        # canonicalize tool names
+        start_tools = [sess.toolshed.find_bundle_for_tool(t)[1] for t in opts.start_tools]
+        sess.tools.start_tools(start_tools)
 
     if opts.commands:
         if not opts.silent:
@@ -471,16 +480,24 @@ def init(argv, event_loop=True):
         import runpy
         import warnings
         sys.argv[:] = args  # runpy will insert appropriate argv[0]
+        exit = SystemExit(os.EX_OK)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=BytesWarning)
             global_dict = {
                 'session': sess
             }
-            runpy.run_module(opts.module, init_globals=global_dict,
-                             run_name='__main__', alter_sys=True)
-        if opts.module == 'pip':
+            try:
+                runpy.run_module(opts.module, init_globals=global_dict,
+                                 run_name='__main__', alter_sys=True)
+            except SystemExit as e:
+                exit = e
+        if opts.module == 'pip' and exit.code == os.EX_OK:
             sess.toolshed.reload(sess.logger, rebuild_cache=True)
-        return os.EX_OK
+            remove_python_scripts(chimerax.app_bin_dir)
+        return exit.code
+
+    from chimerax.core import startup
+    startup.run_user_startup_scripts(sess)
 
     if opts.cmd:
         # This is needed for -m pip to work in some cases.
@@ -569,6 +586,32 @@ def uninstall(sess):
 
     sess.logger.error('can not yet uninstall on %s' % sys.platform)
     return os.EX_UNAVAILABLE
+
+
+def remove_python_scripts(bin_dir):
+    # remove pip installed scripts since they have hardcoded paths to
+    # python and thus don't work when ChimeraX is installed elsewhere
+    import os
+    if sys.platform.startswith('win'):
+        # Windows
+        script_dir = os.path.join(bin_dir, 'Scripts')
+        for dirpath, dirnames, filenames in os.walk(script_dir, topdown=False):
+            for f in filenames:
+                path = os.path.join(dirpath, f)
+                os.remove(path)
+            os.rmdir(dirpath)
+    else:
+        # Linux, Mac OS X
+        for filename in os.listdir(bin_dir):
+            path = os.path.join(bin_dir, filename)
+            if not os.path.isfile(path):
+                continue
+            with open(path, 'br') as f:
+                line = f.readline()
+                if line[0:2] != b'#!' or b'/bin/python' not in line:
+                    continue
+            print('removing (pip installed)', path)
+            os.remove(path)
 
 if __name__ == '__main__':
     raise SystemExit(init(sys.argv))

@@ -90,8 +90,6 @@ def copy_colors(colors, n):
         return colors
     nc = len(colors)
     from numpy import empty
-    c = empty((nc*n,4), colors.dtype)
+    c = empty((n,nc,4), colors.dtype)
     c[:] = colors
-#    for in in range(n):
-#        c[[i*nc:(i+1)*nc,:] = colors
-    return c
+    return c.reshape((n*nc,4))

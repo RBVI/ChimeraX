@@ -317,32 +317,30 @@ class Keyboard_Shortcuts:
             ui = self.session.ui
             ui.register_for_keystrokes(self)
             # TODO: Don't get key strokes if command line has focus
-            ui.main_window.graphics_window.SetFocus()
+            ui.main_window.graphics_window.widget.setFocus()
             self._enabled = True
 
     def disable_shortcuts(self):
         if self._enabled:
-            self.session.ui.deregister_for_keystrokes(self)
+            s = self.session
+            s.ui.deregister_for_keystrokes(self)
             self._enabled = False
 
     def forwarded_keystroke(self, event):
         self.key_pressed(event)
       
     def key_pressed(self, event):
-        if event.KeyCode == 27:        # Escape
+        k = event.key()
+        from PyQt5.QtCore import Qt
+        if k == Qt.Key_Escape:
             self.disable_shortcuts()
             return
-        elif event.KeyCode == 315:        # Up arrow
+        elif k == Qt.Key_Up:        # Up arrow
             self.session.selection.promote()
-        elif event.KeyCode == 317:        # Down arrow
+        elif k == Qt.Key_Down:        # Down arrow
             self.session.selection.demote()
 
-#        t = event.text()
-#        print(event, t, type(t), len(t), str(t), t.encode(), '%x' % event.key(),
-#              '%x' % int(event.modifiers()), event.count())
-
-        c = chr(event.UnicodeKey)
-        self.keys += c
+        self.keys += event.text()
         self.try_shortcut()
 
     def try_shortcut(self, keys = None):
@@ -374,17 +372,11 @@ class Keyboard_Shortcuts:
         if sc is not None:
             sc.run(self.session)
 
-_registered_selectors = False
-def register_selectors(session):
-    global _registered_selectors
-    if _registered_selectors:
-        return
-
+def register_selectors():
     from chimerax.core.commands import register_selector
-    register_selector(None, "selAtoms", _sel_atoms_selector)
-    register_selector(None, "selMaps", _sel_maps_selector)
-    register_selector(None, "selModels", _sel_models_selector)
-    _registered_selectors = True
+    register_selector("selAtoms", _sel_atoms_selector)
+    register_selector("selMaps", _sel_maps_selector)
+    register_selector("selModels", _sel_models_selector)
 
 # Selected atoms, or if none selected then all atoms.
 def _sel_atoms_selector(session, models, results):
@@ -772,6 +764,10 @@ def selection_mouse_mode(session):
 
 def command_line(session):
     session.keyboard_shortcuts.disable_shortcuts()
+    from chimerax.cmd_line.tool import CommandLine
+    c = session.tools.find_by_class(CommandLine)
+    if c:
+        c[0].set_focus()
 
 def color_by_bfactor(atoms):
     from time import time
