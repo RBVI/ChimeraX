@@ -84,12 +84,14 @@ def read_ihm(session, filename, name, *args, load_linked_files = True, fetch_tem
                                       tables['ihm_ensemble_localization'],
                                       tables['ihm_gaussian_obj_ensemble'],
                                       ihm_dir, ihm_model)
-            
-    msg = ('Opened IHM file %s containing %d experimental atomic models, %d comparative models,'
-           ' %s, %d sphere models, %d ensemble localization maps, %d model groups,' %
-           (filename, len(xmodels), len(cmodels),
-            ', '.join('%d %s crosslinks' % (len(xls),type) for type,xls in xlinks.items()),
-            len(smodels), len(pgrids), len(gmodels)))
+    xldesc = ', '.join('%d %s crosslinks' % (len(xls),type) for type,xls in xlinks.items())
+    msg = ('Opened IHM file %s\n'
+           ' %d experimental atomic models\n'
+           ' %d comparative models\n'
+           ' %s\n'
+           ' %d sphere models\n'
+           ' %d ensemble localization maps' %
+           (filename, len(xmodels), len(cmodels), xldesc, len(smodels), len(pgrids)))
     return [ihm_model], msg
 
 # -----------------------------------------------------------------------------
@@ -218,6 +220,7 @@ def make_sphere_models(session, model_list_table, spheres_obj_site,
                                  smart_initial_display = False, explode = False)
             sm = mlist[0]
             sm.display = False
+            sm.ss_assigned = True	# Don't assign secondary structure to sphere model
             atoms = sm.atoms
             from chimerax.core.atomic.colors import chain_colors
             atoms.colors = chain_colors(atoms.residues.chain_ids)
@@ -441,7 +444,7 @@ def read_localization_maps(session, ensemble_table, localization_table,
         pmods.append(m)
         for asym_id, filename in sorted(asym_loc):
             map_path = join(ihm_dir, filename)
-            maps,msg = open_map(session, map_path, show_dialog=False)
+            maps,msg = open_map(session, map_path, show = False, show_dialog=False)
             color = chain_rgba(asym_id)[:3] + (opacity,)
             v = maps[0]
             ms = v.matrix_value_statistics()
@@ -594,7 +597,7 @@ def create_starting_models(session, ihm_starting_model_details_table,
     cmodels = []
     datasets_table = ihm_dataset_other_table
     if datasets_table and load_linked_files:
-        cmodels = read_linked_datasets(session, datasets_table, acomp, dataset_entities)
+        cmodels = read_linked_datasets(session, datasets_table, acomp, dataset_entities, ihm_dir)
         if cmodels:
             from chimerax.core.models import Model
             comp_group = Model('Comparative models', session)
@@ -781,25 +784,31 @@ def keep_one_chain(s, chain_id):
     
 # -----------------------------------------------------------------------------
 #
-def read_linked_datasets(session, datasets_table, acomp, dataset_entities):
+def read_linked_datasets(session, datasets_table, acomp, dataset_entities, ihm_dir):
     '''Read linked data from ihm_dataset_other table'''
     lmodels = []
-    fields = ['dataset_list_id', 'data_type', 'doi', 'content_filename']
-    for did, data_type, doi, content_filename in datasets_table.fields(fields):
-        if data_type == 'Comparative model' and content_filename.endswith('.pdb'):
-            from .doi_fetch import fetch_doi_archive_file
-            pdbf = fetch_doi_archive_file(session, doi, content_filename)
-            from os.path import basename
-            name = basename(content_filename)
-            from chimerax.core.atomic.pdb import open_pdb
-            models, msg = open_pdb(session, pdbf, name, smart_initial_display = False)
+    fields = ['dataset_list_id', 'data_type', 'doi', 'content_filename', 'file']
+    for did, data_type, doi, content_filename, file in datasets_table.fields(fields, allow_missing_fields = True):
+        if data_type == 'Comparative model' and (content_filename.endswith('.pdb') or file.endswith('.cif')):
+            from os.path import basename, isfile, join
+            if file.endswith('.cif'):
+                path = join(ihm_dir, file)
+                name = basename(file)
+                from chimerax.core.atomic.mmcif import open_mmcif
+                models, msg = open_mmcif(session, path, name, smart_initial_display = False)
+            else:
+                from .doi_fetch import fetch_doi_archive_file
+                pdbf = fetch_doi_archive_file(session, doi, content_filename)
+                name = basename(content_filename)
+                from chimerax.core.atomic.pdb import open_pdb
+                models, msg = open_pdb(session, pdbf, name, smart_initial_display = False)
+                pdbf.close()
             eid, asym_id = dataset_entities[did] if did in dataset_entities else (None, None)
             for m in models:
                 m.dataset_id = did
                 m.entity_id = eid
                 m.asym_id = asym_id
                 show_colored_ribbon(m, asym_id)
-            pdbf.close()
             lmodels.extend(models)
       
     return lmodels
@@ -905,7 +914,7 @@ def align_atomic_models_to_spheres(amodels, smodels):
             from numpy import array, float64
             p, rms = align_points(array(mxyz,float64), array(sxyz,float64))
             m.position = p
-            print ('aligned %s, %d residues, rms %.4g' % (m.name, len(mxyz), rms))
+            # print ('aligned %s, %d residues, rms %.4g' % (m.name, len(mxyz), rms))
     
 # -----------------------------------------------------------------------------
 #
