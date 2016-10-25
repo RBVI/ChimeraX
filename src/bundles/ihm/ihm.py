@@ -451,6 +451,7 @@ def read_localization_maps(session, ensemble_table, localization_table,
             ms = v.matrix_value_statistics()
             vlev = ms.mass_rank_data_value(level)
             v.set_parameters(surface_levels = [vlev], surface_colors = [color])
+            v.show_in_volume_viewer = False
             v.show()
             m.add([v])
 
@@ -513,6 +514,7 @@ def make_probability_grids(session, ensemble_table, gaussian_table,
             ms = v.matrix_value_statistics()
             vlev = ms.mass_rank_data_value(level)
             v.set_parameters(surface_levels = [vlev])
+            v.show_in_volume_viewer = False
             v.show()
             m.add([v])
 
