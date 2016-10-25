@@ -61,8 +61,7 @@ def read_ihm(session, filename, name, *args, load_linked_files = True, fetch_tem
 
     # Sphere models, ensemble models, groups
     smodels, emodels, gmodels = create_sphere_models(session, tables['ihm_model_list'],
-                                                     tables['ihm_sphere_obj_site'], acomp,
-                                                     ihm_model, ihm_dir)
+                                                     tables['ihm_sphere_obj_site'], acomp, ihm_dir)
     
     # Align starting models to first sphere model
     if xmodels:
@@ -78,6 +77,9 @@ def read_ihm(session, filename, name, *args, load_linked_files = True, fetch_tem
 
     # 2D electron microscopy projections
     em2d = create_2dem_images(session, tables['ihm_dataset_other'], ihm_dir, ihm_model)
+
+    # Added sphere models
+    ihm_model.add(gmodels)
     
     # Ensemble localization
     pgrids = create_localization_maps(session, tables['ihm_ensemble_info'],
@@ -123,11 +125,10 @@ def assembly_components(ihm_struct_assembly_table):
 # -----------------------------------------------------------------------------
 #
 def create_sphere_models(session, ihm_model_list_table, ihm_sphere_obj_site_table,
-                         acomp, ihm_model, ihm_dir):
+                         acomp, ihm_dir):
     gmodels = make_sphere_model_groups(session, ihm_model_list_table)
     for g in gmodels[1:]:
         g.display = False	# Only show first group.
-    ihm_model.add(gmodels)
     
     smodels, emodels = make_sphere_models(session, ihm_model_list_table,
                                           ihm_sphere_obj_site_table, gmodels, acomp, ihm_dir)
