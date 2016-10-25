@@ -12,13 +12,17 @@
  */
 
 #include <Python.h>
-#include <atomic/Atom.h>
-#include <atomic/AtomicStructure.h>
+#include <atomstruct/Atom.h>
+#include <atomstruct/AtomicStructure.h>
+#include <functional>
 #include <mutex>
 #include <pysupport/convert.h>
 #include <sstream>
 #include <thread>
 #include <vector>
+
+using atomstruct::Atom;
+using atomstruct::AtomicStructure;
 
 class Atom_Condition
 {
@@ -31,9 +35,10 @@ class Atom_Idatm_Condition: public Atom_Condition
 {
 	std::string  _idatm_type;
 public:
-	virtual  ~Atom_Idatm_Condition(const char *idatm_type) _idatm_type(idatm_type) {}
+	Atom_Idatm_Condition(const char *idatm_type): _idatm_type(idatm_type) {}
+	virtual  ~Atom_Idatm_Condition() {}
 	bool  atom_matches(const Atom* a) const { return a->idatm_type() == _idatm_type; }
-}
+};
 
 class CG_Condition: public Atom_Condition
 {
@@ -43,12 +48,20 @@ public:
 
 	virtual  ~CG_Condition() { delete atom_cond; for (auto cond: bonded) delete cond; }
 	bool  atom_matches(const Atom* a) const { return atom_cond->atom_matches(a); }
+	bool  evaluate(const Atom* a, std::vector<const Atom*>& group) {
+		if (atom_cond->atom_matches(a)) {
+			group.push_back(a);
+		} else {
+			return false;
+		}
+		//TODO: evaluate bonded
+	}
 };
 
 Atom_Condition*
 make_atom_condition(PyObject* atom_rep)
 {
-	if (PyUnicode_Check(atom_rep) {
+	if (PyUnicode_Check(atom_rep)) {
 		return new Atom_Idatm_Condition(PyUnicode_AsUTF8(atom_rep));
 	}
 	//TODO: remainder of types
@@ -68,7 +81,7 @@ make_condition(PyObject* group_rep)
 			err_msg << "expected two-element list but got: ";
 			err_msg << PyUnicode_AsUTF8(repr);
 			PyErr_SetString(PyExc_ValueError, err_msg.str().c_str());
-			PY_DECREF(repr);
+			Py_DECREF(repr);
 		}
 		return nullptr;
 	}
@@ -89,8 +102,9 @@ make_condition(PyObject* group_rep)
 	auto list_size = PyList_GET_SIZE(bonded);
 	for (Py_ssize_t i = 0; i < list_size; ++i) {
 		PyObject* b = PyList_GET_ITEM(bonded, i);
+		Atom_Condition* bcond;
 		if (PyList_Check(b))
-			bcond = make_condition(b);
+			bcond = static_cast<Atom_Condition*>(make_condition(b));
 		else
 			bcond = make_atom_condition(b);
 		if (bcond == nullptr) {
@@ -104,21 +118,21 @@ make_condition(PyObject* group_rep)
 
 void
 initiate_find_group(CG_Condition* group_rep, std::vector<long>* group_principals,
-	std::vector<const Atom*>* atoms, std::mutex* atoms_mutex,
+	const std::vector<Atom*>& atoms, std::mutex* atoms_mutex, size_t* atom_index,
 	std::vector<std::vector<const Atom*>>* groups, std::mutex* groups_mutex)
 {
 	atoms_mutex->lock();
-	while (atoms->size() > 0) {
-		auto a = atoms->back();
-		atoms->pop_back();
+	while (*atom_index < atoms.size()) {
+		auto a = atoms[*atom_index];
+		(*atom_index)++;
 		atoms_mutex->unlock();
 
 		std::vector<const Atom*> group;
-		if (group_rep->evaluate(a, group) {
+		if (group_rep->evaluate(a, group)) {
 			//TODO: check rings, reduce to principals, and add group with locking
 		}
 
-		atoms_mutex.lock();
+		atoms_mutex->lock();
 	}
 	atoms_mutex->unlock();
 }
@@ -153,7 +167,7 @@ find_group(PyObject *, PyObject *args)
 
 	std::vector<long>  group_principals;
 	try {
-		pysupport::pylist_of_int_to_cvec(py_group_principals, &group_principals, "group principal");
+		pysupport::pylist_of_int_to_cvec(py_group_principals, group_principals, "group principal");
 	} catch (pysupport::PySupportError& pse) {
 		PyErr_SetString(PyExc_TypeError, pse.what());
 		return nullptr;
@@ -163,21 +177,23 @@ find_group(PyObject *, PyObject *args)
 	if (group_rep == nullptr)
 		return nullptr;
 
-	auto atoms = s->atoms();
+	auto& atoms = s->atoms();
 	std::vector<std::vector<const Atom*>> groups;
 	std::mutex atoms_mtx, groups_mtx;
 
 	int num_threads = num_cpus > 1 ? num_cpus : 1;
-	std::thread threads[num_threads];
+	size_t atom_index = 0;
+	std::vector<std::thread> threads;
 	for (int i = 0; i < num_threads; ++i)
-		threads[i] = std::thread(initiate_find_group, group_rep, &group_principals,
-			&atoms, &atoms_mtx, &groups, &groups_mtx);
-	for (auto th: threads)
+		threads.push_back(std::thread(initiate_find_group, group_rep, &group_principals,
+			std::ref(atoms), &atoms_mtx, &atom_index, &groups, &groups_mtx));
+	for (auto& th: threads)
 		th.join();
 
 	delete group_rep;
 
 	// return some Python form of the groups
+	return Py_None;
 	//return groups;
 
 }

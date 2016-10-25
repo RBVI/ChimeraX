@@ -200,7 +200,7 @@ inline char* pystring_to_cchar(PyObject* string, const char* item_description) {
 
 inline long pyint_to_clong(PyObject* pyint, const char* item_description) {
     if (!PyLong_Check(pyint))
-        throw ErrListItemNotLong(item_description);
+        throw ErrListItemNotInt(item_description);
     return PyLong_AsLong(pyint);
 }
 
@@ -216,24 +216,9 @@ void pylist_of_string_to_cvec(PyObject* pylist, std::vector<Contained>& cvec,
     }
 }
 
-inline char* pyint_to_clong(PyObject* integer, const char* item_description) {
-    if (!PyLong_Check(integer))
-        throw ErrListItemNotInt(item_description);
-    return PyLong_AsLong(integer);
-}
-
-void pylist_of_int_to_cvec(PyObject* pylist, std::vector<long>& cvec, const char* item_description)
+inline void pylist_of_string_to_cvec_of_cvec(PyObject* pylist,
+        std::vector<std::vector<char>>& cvec, const char* item_description)
 {
-    if (!PyList_Check(pylist))
-        throw ErrNotList(item_description);
-    auto num_items = PyList_GET_SIZE(pylist);
-    for (decltype(num_items) i = 0; i < num_items; ++i) {
-        PyObject* item = PyList_GET_ITEM(pylist, i);
-        cvec.push_back(pyint_to_clong(item, item_description));
-
-inline
-void pylist_of_string_to_cvec_of_cvec(PyObject* pylist,
-        std::vector<std::vector<char>>& cvec, const char* item_description) {
     if (!PyList_Check(pylist))
         throw ErrNotList(item_description);
     auto num_items = PyList_GET_SIZE(pylist);
@@ -255,7 +240,6 @@ void pylist_of_int_to_cvec(PyObject* pylist, std::vector<Int>& cvec, const char*
     for (decltype(num_items) i = 0; i < num_items; ++i) {
         PyObject* item = PyList_GET_ITEM(pylist, i);
         cvec[i] = static_cast<int>(pyint_to_clong(item, item_description));
->>>>>>> 204d02f55f03438e6d45558d3392bf1a46a1205b
     }
 }
 
