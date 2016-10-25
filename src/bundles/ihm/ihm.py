@@ -55,9 +55,9 @@ def read_ihm(session, filename, name, *args, load_linked_files = True, fetch_tem
     acomp = assembly_components(tables['ihm_struct_assembly'])
 
     # Starting atomic models, including experimental and comparative structures and templates.
-    xmodels, cmodels = create_starting_models(session, tables['ihm_starting_model_details'],
-                                              tables['ihm_dataset_other'], acomp,
-                                              load_linked_files, fetch_templates, ihm_model, ihm_dir)
+    xmodels, cmodels, seqmodels = create_starting_models(session, tables['ihm_starting_model_details'],
+                                                         tables['ihm_dataset_other'], acomp,
+                                                         load_linked_files, fetch_templates, ihm_model, ihm_dir)
 
     # Sphere models, ensemble models, groups
     smodels, emodels, gmodels = create_sphere_models(session, tables['ihm_model_list'],
@@ -88,12 +88,14 @@ def read_ihm(session, filename, name, *args, load_linked_files = True, fetch_tem
                                       ihm_dir, ihm_model)
     xldesc = ', '.join('%d %s crosslinks' % (len(xls),type) for type,xls in xlinks.items())
     msg = ('Opened IHM file %s\n'
-           ' %d experimental atomic models\n'
-           ' %d comparative models\n'
-           ' %s\n'
-           ' %d sphere models\n'
-           ' %d ensemble localization maps' %
-           (filename, len(xmodels), len(cmodels), xldesc, len(smodels), len(pgrids)))
+           ' %d xray/nmr models, %d comparative models, %d sequence alignments, %d templates\n'
+           ' %s, %d 2D electron microscopy images\n'
+           ' %d sphere models, %d ensembles with %s models, %d localization maps' %
+           (filename, len(xmodels), len(cmodels),
+            len(seqmodels), sum([len(sqm.db_templates) for sqm in seqmodels], 0),
+            xldesc, len(em2d), len(smodels),
+            len(emodels), ' and '.join('%d'%em.num_coord_sets for em in emodels),
+            sum([len(pg.child_models()) for pg in pgrids], 0)))
     return [ihm_model], msg
 
 # -----------------------------------------------------------------------------
@@ -622,7 +624,7 @@ def create_starting_models(session, ihm_starting_model_details_table,
         ihm_model.add([sa_group])
         assign_comparative_models_to_sequences(cmodels, seqmodels)
 
-    return xmodels, cmodels
+    return xmodels, cmodels, seqmodels
 
 # -----------------------------------------------------------------------------
 #
