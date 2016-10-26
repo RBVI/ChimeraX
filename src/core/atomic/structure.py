@@ -153,7 +153,7 @@ class Structure(Model, StructureData):
                     # CA only?
                     atoms.draw_modes = Atom.BALL_STYLE
             elif self.num_chains < 250:
-                lighting = "full"
+                lighting = "full" if self.num_atoms < 300000 else "full multiShadow 16"
                 from .colors import chain_colors, element_colors
                 residues = self.residues
                 residues.ribbon_colors = chain_colors(residues.chain_ids)
