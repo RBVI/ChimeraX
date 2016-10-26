@@ -168,7 +168,6 @@ def fetch_mmtf(session, pdb_id):
                         a.occupancy = occupancy
 
                 # connect bonds in residue
-                debug = group_name == 'HEM'
                 for i in range(0, len(bond_atom_list), 2):
                     # bond_order = bond_order_list[i // 2]  # TODO
                     a0 = atoms[start_atom + bond_atom_list[i]]
@@ -177,8 +176,6 @@ def fetch_mmtf(session, pdb_id):
                         # ignore bonds for alternate atoms
                         # assumes that all 'A' atoms were created first
                         continue
-                    if debug and a0.name == 'FE' or a1.name == 'FE':
-                        print('bonding', a0.name, 'and', a1.name)
                     m.new_bond(a0, a1)
             # TODO:
             # create gap bonds
