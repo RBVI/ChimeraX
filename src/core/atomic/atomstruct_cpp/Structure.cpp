@@ -401,7 +401,8 @@ Structure::_delete_atoms(const std::set<Atom*>& atoms)
         auto new_end = std::remove_if(_residues.begin(), _residues.end(),
             [&res_removals](Residue* r) {
                 bool rm = res_removals.find(r) != res_removals.end();
-                if (rm) delete r; return rm;
+                if (rm) delete r;
+                return rm;
             });
         _residues.erase(new_end, _residues.end());
     }
@@ -411,7 +412,8 @@ Structure::_delete_atoms(const std::set<Atom*>& atoms)
     auto new_a_end = std::remove_if(_atoms.begin(), _atoms.end(),
         [&atoms](Atom* a) { 
             bool rm = atoms.find(a) != atoms.end();
-            if (rm) delete a; return rm;
+            if (rm) delete a;
+            return rm;
         });
     _atoms.erase(new_a_end, _atoms.end());
 
@@ -429,7 +431,8 @@ Structure::_delete_atoms(const std::set<Atom*>& atoms)
         [&atoms](Bond* b) {
             bool rm = atoms.find(b->atoms()[0]) != atoms.end()
             || atoms.find(b->atoms()[1]) != atoms.end();
-            if (rm) delete b; return rm;
+            if (rm) delete b;
+            return rm;
         });
     _bonds.erase(new_b_end, _bonds.end());
     set_gc_shape();

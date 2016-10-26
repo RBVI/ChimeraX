@@ -62,6 +62,7 @@ private:
     Atoms  _atoms;
     Chain*  _chain;
     ChainID  _chain_id;
+    ChainID  _mmcif_chain_id;
     char  _insertion_code;
     bool  _is_helix;
     bool  _is_het;
@@ -116,6 +117,8 @@ public:
     std::vector<Atom*>  template_assign(
         void (Atom::*assign_func)(const char*), const char* app,
         const char* template_dir, const char* extension) const;
+    void set_mmcif_chain_id(const ChainID &cid);
+    const ChainID&  mmcif_chain_id() const;
 
     // handy
     static const std::set<AtomName>  aa_min_backbone_names;
@@ -179,6 +182,18 @@ inline Chain*
 Residue::chain() const {
     (void)_structure->chains();
     return _chain;
+}
+
+inline void
+Residue::set_mmcif_chain_id(const ChainID &cid)
+{
+    _mmcif_chain_id = cid;
+}
+
+inline const ChainID&
+Residue::mmcif_chain_id() const
+{
+    return _mmcif_chain_id;
 }
 
 inline float

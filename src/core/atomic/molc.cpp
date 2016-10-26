@@ -1564,6 +1564,17 @@ extern "C" EXPORT void residue_chain_id(void *residues, size_t n, pyobject_t *ci
     }
 }
 
+extern "C" EXPORT void residue_mmcif_chain_id(void *residues, size_t n, pyobject_t *cids)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            cids[i] = unicode_from_string(r[i]->mmcif_chain_id());
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void* residue_find_atom(void *residue, char *atom_name)
 {
     Residue *r = static_cast<Residue*>(residue);

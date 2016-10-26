@@ -616,6 +616,8 @@ class Residue:
     ''':class:`.Chain` that this residue belongs to, if any. Read only.'''
     chain_id = c_property('residue_chain_id', string, read_only = True)
     '''Protein Data Bank chain identifier. Limited to 4 characters. Read only string.'''
+    mmcif_chain_id = c_property('residue_mmcif_chain_id', string, read_only = True)
+    '''mmCIF chain identifier. Limited to 4 characters. Read only string.'''
     @property
     def description(self):
         '''Description of residue (if available) from HETNAM/HETSYN records or equivalent'''
