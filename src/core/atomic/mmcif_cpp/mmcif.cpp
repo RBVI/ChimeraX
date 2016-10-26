@@ -1175,14 +1175,14 @@ ExtractMolecule::parse_struct_conn()
             if (metal_pbg == nullptr)
                 metal_pbg = mol->pb_mgr().get_group(mol->PBG_METAL_COORDINATION,
                     atomstruct::AS_PBManager::GRP_PER_CS);
-                metal_pbg->new_pseudobond(a1, a2);
+            metal_pbg->new_pseudobond(a1, a2);
             continue;
         }
         if (hydro) {
             if (hydro_pbg == nullptr)
                 hydro_pbg = mol->pb_mgr().get_group(mol->PBG_HYDROGEN_BONDS,
                     atomstruct::AS_PBManager::GRP_PER_CS);
-                hydro_pbg->new_pseudobond(a1, a2);
+            hydro_pbg->new_pseudobond(a1, a2);
             continue;
         }
         float idealBL = Element::bond_length(a1->element(), a2->element());
@@ -1757,6 +1757,8 @@ extract_mmCIF_tables(const char* filename,
     } catch (ExtractTables::Done&) {
         // normal early termination
     }
+    if (extract.data == nullptr)
+        Py_RETURN_NONE;
     return extract.data;
 }
 
