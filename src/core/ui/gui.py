@@ -358,17 +358,6 @@ class MainWindow(QMainWindow, PlainTextLog):
     def file_quit_cb(self, session):
         session.ui.quit()
 
-    def hide_other_tools(self, tool_instance):
-        for ti, tool_windows in self.tool_instance_to_windows.items():
-            if ti == tool_instance:
-                continue
-            for tw in tool_windows:
-                if tw.title == "Command Line Interface":
-                    # leave the command line as is
-                    continue
-                if tw.shown:
-                    tw._mw_set_shown(False)
-        
     def _get_hide_tools(self):
         return self._hide_tools
 
@@ -812,10 +801,6 @@ class _Qt:
         hide_tool_action = QAction("Hide this tool", self.ui_area)
         hide_tool_action.triggered.connect(lambda arg, ti=ti: ti.display(False))
         menu.addAction(hide_tool_action)
-        hide_other_tools_action = QAction("Hide other tools", self.ui_area)
-        hide_other_tools_action.triggered.connect(
-            lambda arg, ti=ti, ho=self.main_window.hide_other_tools: ho(ti))
-        menu.addAction(hide_other_tools_action)
         if ti.help is not None:
             help_action = QAction("Help", self.ui_area)
             help_action.setStatusTip("Show tool help")
