@@ -932,6 +932,8 @@ ExtractMolecule::parse_atom_site()
                 cid = auth_chain_id;
             else
                 cid = chain_id;
+            if (islower(cid[0]))
+                mol->lower_case_chains = true;
             if (auth_position != INT_MAX)
                 pos = auth_position;
             else
