@@ -20,6 +20,10 @@ OPENMM_LIB_INSTALL = $(libdir)/openmm
 PATCHES	= $(wildcard OpenMM-$(VERSION)-$(OS)-*.patch)
 PATCHES += OpenMM-$(VERSION)-mmcif.patch
 
+# Forcefield patch from Tristan Croll for his ISOLDE tool.
+# Allows simulating with missing bonds to adjoining residues.
+PATCHES += OpenMM-$(VERSION)-forcefield.patch
+
 ifeq ($(OS),Windows)
 
 install: $(SOURCE)
