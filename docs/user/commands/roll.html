@@ -32,7 +32,7 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;center&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;|&nbsp;<i>x,y,z</i>&nbsp;]
 [&nbsp;<b>coordinateSystem</b> 
 &nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;]
-[&nbsp;models &nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;] 
+[&nbsp;models&nbsp;&nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;|&nbsp;atoms&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
 </h3>
 <p>
 The <b>roll</b> command performs a rotation of <i>angle</i>
@@ -42,9 +42,13 @@ at each of a specified number of image update <i>frames</i>
 The <i>angle</i> can be positive or negative. 
 The <b>rock</b> option performs one cycle of rocking per <i>N</i> frames,
 reversing the direction of rotation 1/4 and 3/4 of the way through each cycle,
-and repeating until all <i>frames</i> have elapsed. Model(s) to rotate
-can be <a href="atomspec.html">specified</a> with the <b>models</b> keyword;
-otherwise, the scene will be rotated as a whole.
+and repeating until all <i>frames</i> have elapsed.
+The rotation applies to the
+<a href="atomspec.html">specified</a> <b>models</b> or <b>atoms</b>; 
+if none are specified, the scene will be rotated as a whole.
+A movement of <b>atoms</b> cannot be undone except
+with a command that applies the opposite movement to the same atoms
+(not always easy to construct) or by reopening the original structure.
 The commands <b>roll</b> and <a href="turn.html"><b>turn</b></a> are the same
 except for their default values of <i>angle</i> and <i>frames</i>.
 See also:
@@ -105,5 +109,5 @@ To halt an ongoing <b>roll</b>, use <a href="stop.html"><b>stop</b></a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2016</address>
+October 2016</address>
 </body></html> 
