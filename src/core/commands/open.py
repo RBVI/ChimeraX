@@ -44,13 +44,10 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
         prefix, fname = filename.split(':', maxsplit=1)
         from .. import fetch
         from_database, default_format = fetch.fetch_from_prefix(prefix)
-        if from_database is None:
-            from ..errors import UserError
-            raise UserError('Unknown database prefix "%s" must be one of %s'
-                            % (prefix, fetch.prefixes()))
-        if format is None:
-            format = default_format
-        filename = fname
+        if from_database is not None:
+            if format is None:
+                format = default_format
+            filename = fname
     elif from_database is None:
         # Accept 4 character filename without prefix as pdb id.
         from os.path import splitext
