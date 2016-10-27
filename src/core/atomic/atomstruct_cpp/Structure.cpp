@@ -243,6 +243,7 @@ void Structure::_copy(Structure* g) const
     for (auto ri = residues().begin() ; ri != residues().end() ; ++ri) {
         Residue* r = *ri;
         Residue* cr = g->new_residue(r->name(), r->chain_id(), r->position(), r->insertion_code());
+        cr->set_mmcif_chain_id(r->mmcif_chain_id());
         cr->set_ribbon_display(r->ribbon_display());
         cr->set_ribbon_color(r->ribbon_color());
         cr->set_is_helix(r->is_helix());
@@ -874,7 +875,7 @@ Structure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
         num_ints += res->session_num_ints();
         num_floats += res->session_num_floats();
     }
-    PyObject* res_misc = PyList_New(2);
+    PyObject* res_misc = PyList_New(3);
     if (res_misc == nullptr)
         throw std::runtime_error("Cannot create Python list for residue misc info");
     if (PyList_Append(misc, res_misc) < 0)
@@ -895,11 +896,17 @@ Structure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
     if (py_chain_ids == nullptr)
         throw std::runtime_error("Cannot create Python list for chain IDs");
     PyList_SET_ITEM(res_misc, 1, py_chain_ids);
+    PyObject* py_mmcif_chain_ids = PyList_New(num_residues);
+    if (py_mmcif_chain_ids == nullptr)
+        throw std::runtime_error("Cannot create Python list for mmCIF chain IDs");
+    PyList_SET_ITEM(res_misc, 2, py_mmcif_chain_ids);
     i = 0;
     for (auto res: residues()) {
         // remember res name and chain ID
         PyList_SET_ITEM(py_res_names, i, cchar_to_pystring(res->name(), "residue name"));
-        PyList_SET_ITEM(py_chain_ids, i++, cchar_to_pystring(res->chain_id(), "residue chain ID"));
+        PyList_SET_ITEM(py_chain_ids, i, cchar_to_pystring(res->chain_id(), "residue chain ID"));
+        PyList_SET_ITEM(py_mmcif_chain_ids, i++,
+            cchar_to_pystring(res->mmcif_chain_id(), "residue mmCIF chain ID"));
         *res_ints++ = res->position();
         *res_ints++ = res->insertion_code();
         res->session_save(&res_ints, &res_floats);
@@ -1142,12 +1149,22 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
 
     // residues
     PyObject* res_misc = PyList_GET_ITEM(misc, 5);
-    if (!PyList_Check(res_misc) || PyList_GET_SIZE(res_misc) != 2)
-        throw std::invalid_argument("residue misc info is not a two-item list");
+    if (version < 4) {
+        if (!PyList_Check(res_misc) || PyList_GET_SIZE(res_misc) != 2)
+            throw std::invalid_argument("residue misc info is not a two-item list");
+    } else {
+        if (!PyList_Check(res_misc) || PyList_GET_SIZE(res_misc) != 3)
+            throw std::invalid_argument("residue misc info is not a three-item list");
+    }
     std::vector<ResName> res_names;
     pylist_of_string_to_cvec(PyList_GET_ITEM(res_misc, 0), res_names, "residue name");
     std::vector<ChainID> res_chain_ids;
     pylist_of_string_to_cvec(PyList_GET_ITEM(res_misc, 1), res_chain_ids, "chain ID");
+    std::vector<ChainID> res_mmcif_chain_ids;
+    if (version >= 4) {
+        pylist_of_string_to_cvec(PyList_GET_ITEM(res_misc, 2),
+            res_mmcif_chain_ids, "mmCIF chain ID");
+    }
     PyObject* py_res_ints = PyList_GET_ITEM(ints, 5);
     iarray = Numeric_Array();
     if (!array_from_python(py_res_ints, 1, Numeric_Array::Int, &iarray, false))
@@ -1165,6 +1182,8 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
         auto pos = *res_ints++;
         auto insert = *res_ints++;
         auto r = new_residue(res_name, chain_id, pos, insert);
+        if (version >= 4)
+            r->set_mmcif_chain_id(res_mmcif_chain_ids[i]);
         r->session_restore(version, &res_ints, &res_floats);
     }
 
