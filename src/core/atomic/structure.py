@@ -1599,13 +1599,7 @@ class Structure(Model, StructureData):
 
     def _atomspec_filter_chain(self, atoms, num_atoms, parts, attrs):
         chain_ids = atoms.residues.chain_ids
-        try:
-            case_insensitive = self._atomspec_chain_ci
-        except AttributeError:
-            any_upper = any([c.isupper() for c in chain_ids])
-            any_lower = any([c.islower() for c in chain_ids])
-            case_insensitive = not any_upper or not any_lower
-            self._atomspec_chain_ci = case_insensitive
+        case_insensitive = not self.lower_case_chains
         import numpy
         selected = numpy.zeros(num_atoms)
         # TODO: account for attrs in addition to parts
