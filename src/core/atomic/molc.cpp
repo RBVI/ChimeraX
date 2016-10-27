@@ -1966,7 +1966,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int
                     if (o != NULL)
                         guides.push_back(o);
                     else
-                        has_guides = false;
+                        want_peptide = has_guides = false;
                 }
                 if (want_peptide && o != NULL) {
                     Atom *n = r->find_atom("N");
