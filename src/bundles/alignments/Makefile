@@ -3,6 +3,10 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
+SUBDIRS = io
+
+include $(TOP)/mk/subdir.make
+
 BUNDLE_NAME = ChimeraX-Alignments
 BUNDLE_VERSION = 1.0
 PKG_NAME = chimerax.seqalign
