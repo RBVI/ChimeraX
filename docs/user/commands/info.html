@@ -15,7 +15,7 @@ or derivations thereof.
 
 <head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
-<title>Command: close</title>
+<title>Command: info</title>
 </head><body>
 
 <a name="top"></a>
@@ -23,34 +23,22 @@ or derivations thereof.
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
 class="clRight" title="User Guide Index"/></a>
 
-<h3><a href="../index.html#commands">Command</a>: close</h3>
+<h3><a href="../index.html#commands">Command</a>: info</h3>
 <h3><a href="usageconventions.html">Usage</a>:
-<br><b>close</b> &nbsp;<a href="atomspec.html"><i>model-spec</i></a>
+<br><b>info</b> &nbsp;<a href="atomspec.html"><i>model-spec</i></a>
 </h3>
 <p>
-The command <b>close</b> removes the specified model(s) from ChimeraX,
-including any submodels at lower levels of the hierarchy. For example,
-<b>close #3</b> will close any models #3.<i>N</i>, #3.<i>N.N</i>, <i>etc.</i>
-Submodels may arise when <a href="surface.html">molecular surfaces</a>
-are generated or an ensemble (such as from NMR) is opened.
+The command <b>info</b> shows information on the 
+<a href="atomspec.html">specified</a> models in the
+<a href="../tools/log.html"><b>Log</b></a>.
 As per the usual convention, a blank specification indicates &ldquo;all.&rdquo;
-See also: <a href="open.html"><b>open</b></a>,
-<a href="show.html"><b>hide</b></a>,
-<a href="delete.html"><b>delete</b></a>,
-<a href="quit.html"><b>quit</b></a>
-</p><p>
-Examples:
-<blockquote>
-<b>close</b>
-<br>
-<b>close #1</b>
-<br>
-<b>close #2,4-6</b>
-<br>
-<b>close #3.2</b>
-<br>
-<b>close #3.2-10</b>
-</blockquote>
+The type of information depends on the type of model,
+and includes the numbers of atoms, bonds, residues, and chains in an 
+atomic model, the number of coordinate sets in a trajectory model, 
+and the value range and current contour level(s) of a volume data model.
+See also: 
+<a href="open.html"><b>open</b></a>,
+<b>listinfo</b>
 </p>
 
 <hr>

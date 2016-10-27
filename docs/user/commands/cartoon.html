@@ -61,8 +61,11 @@ See also:
 Protein helix and strand assignments are read from the input structure file
 or calculated with <a href="dssp.html"><b>dssp</b></a>.
 The cartoon path is guided by CA atoms (&alpha;-carbons) in peptides 
-and C5' in nucleic acids. The orientation is guided by CA&rarr;O (carbonyl
+and C5' in nucleic acids. 
+<!--
+The orientation is guided by CA&rarr;O (carbonyl
 oxygen) vectors in peptides and C5'&rarr;C1' vectors in nucleic acids.
+-->
 The <b>smooth</b> <i>factor</i> sets the balance between smoothing peptide 
 strands versus following the exact positions of the &alpha;-carbons (0.0 
 unsmoothed, default <b>1.0</b> maximally smoothed).
@@ -106,6 +109,9 @@ cartoon style width 1.5 thick 0.3
 cartoon style <a href="atomspec.html#builtin">helix</a> width 1.5 thick 0.3
 <br>
 car style <a href="atomspec.html#builtin">strand</a> xsection rect width 2
+<br>
+cartoon style <a href="atomspec.html#builtin">nucleic</a> 
+width 2 thickness 2 xsection round
 <br>
 rib style x rect
 <br>
@@ -249,5 +255,5 @@ The tether color tracks the color of the corresponding &alpha;-carbon.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2016</address>
+October 2016</address>
 </body></html>
