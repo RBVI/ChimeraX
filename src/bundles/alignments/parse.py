@@ -14,13 +14,13 @@
 class FormatSyntaxError(Exception):
     pass
 
-def open_file(session, stream, fname, file_type="FASTA", return_vals=None,
+def open_file(session, stream, fname, format_name="FASTA", return_vals=None,
         one_alignment=True, identify_as=None, auto_associate=True, **kw):
     ns = {}
     try:
-        exec("from .io.read%s import read" % file_type.replace(' ', '_'), globals(), ns)
+        exec("from .io.read%s import read" % format_name.replace(' ', '_'), globals(), ns)
     except ImportError:
-        raise ValueError("No file parser installed for %s files" % file_type)
+        raise ValueError("No file parser installed for %s files" % format_name)
     if stream is None:
         path = fname
         import os.path
@@ -34,9 +34,9 @@ def open_file(session, stream, fname, file_type="FASTA", return_vals=None,
         try:
             seqs, file_attrs, file_markups = ns['read'](f)
         except FormatSyntaxError as err:
-            raise IOError("Syntax error in %s file '%s': %s" % (file_type, fname, err))
+            raise IOError("Syntax error in %s file '%s': %s" % (format_name, fname, err))
     if not seqs:
-        raise ValueError("No sequences found in %s file '%s'!" % (file_type, fname))
+        raise ValueError("No sequences found in %s file '%s'!" % (format_name, fname))
     uniform_length = True
     for s in seqs:
         if uniform_length and len(s) != len(seqs[0]):
