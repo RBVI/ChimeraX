@@ -1,10 +1,10 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-BUNDLE_NAME = ChimeraX-BlastPDB
+BUNDLE_NAME = ChimeraX-BlastProtein
 # By convention, UCSF RBVI bundles start with "ChimeraX-"
 BUNDLE_VERSION = 0.1
-PKG_NAME = chimerax.blastpdb
+PKG_NAME = chimerax.blastprotein
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,'g)
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
