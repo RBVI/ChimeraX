@@ -226,6 +226,10 @@ class UI(QApplication):
     def thread_safe(self, func, *args, **kw):
         """Call function 'func' in a thread-safe manner
         """
+        import threading
+        if threading.main_thread() == threading.current_thread():
+            func(*args, **kw)
+            return
         from PyQt5.QtCore import QEvent
         class ThreadSafeGuiFuncEvent(QEvent):
             EVENT_TYPE = QEvent.Type(QEvent.registerEventType())
@@ -255,6 +259,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         dw = QDesktopWidget()
         main_screen = dw.availableGeometry(dw.primaryScreen())
         self.resize(main_screen.width()*.67, main_screen.height()*.67)
+        self.setDockOptions(self.dockOptions() | self.GroupedDragging)
 
         from PyQt5.QtCore import QSize
         class GraphicsArea(QStackedWidget):
@@ -333,11 +338,19 @@ class MainWindow(QMainWindow, PlainTextLog):
         if not paths:
             return
 
-        models = session.models.open(paths)
-        if models and len(paths) == 1:
-            # Remember in file history
-            from ..filehistory import remember_file
-            remember_file(session, paths[0], format=None, models=models)
+        def _qt_safe(session=session, paths=paths):
+            models = session.models.open(paths)
+            if models and len(paths) == 1:
+                # Remember in file history
+                from ..filehistory import remember_file
+                remember_file(session, paths[0], format=None, models=models)
+        # Opening the model directly adversely affects Qt interfaces that show
+        # as a result.  In particular, Multalign Viewer no longer gets hover
+        # events correctly, nor tool tips.
+        #
+        # Using session.ui.thread_safe() doesn't help either(!)
+        from PyQt5.QtCore import QTimer
+        QTimer.singleShot(0, _qt_safe)
 
     def file_save_cb(self, session):
         self.save_dialog.display(self, session)
@@ -345,17 +358,6 @@ class MainWindow(QMainWindow, PlainTextLog):
     def file_quit_cb(self, session):
         session.ui.quit()
 
-    def hide_other_tools(self, tool_instance):
-        for ti, tool_windows in self.tool_instance_to_windows.items():
-            if ti == tool_instance:
-                continue
-            for tw in tool_windows:
-                if tw.title == "Command Line Interface":
-                    # leave the command line as is
-                    continue
-                if tw.shown:
-                    tw._mw_set_shown(False)
-        
     def _get_hide_tools(self):
         return self._hide_tools
 
@@ -606,7 +608,7 @@ class ToolWindow:
 
     #: Whether closing this window destroys it or hides it.
     #: If it destroys it and this is the main window, all the
-    #: child windows will also be destroyedRolls
+    #: child windows will also be destroyed
     close_destroys = True
 
     def __init__(self, tool_instance, title):
@@ -750,7 +752,7 @@ class _Qt:
         dw.closeEvent = lambda e, tw=tool_window, mw=mw: mw.close_request(tw, e)
         dw.setAttribute(Qt.WA_MacAlwaysShowToolWindow)
         self.ui_area = QWidget(dw)
-        self.ui_area.contextMenuEvent = lambda e, self=self: self.show_context_menu(e.globalPos())
+        self.ui_area.contextMenuEvent = lambda e, self=self: self.show_context_menu(e)
         self.dock_widget.setWidget(self.ui_area)
 
     def destroy(self):
@@ -799,10 +801,6 @@ class _Qt:
         hide_tool_action = QAction("Hide this tool", self.ui_area)
         hide_tool_action.triggered.connect(lambda arg, ti=ti: ti.display(False))
         menu.addAction(hide_tool_action)
-        hide_other_tools_action = QAction("Hide other tools", self.ui_area)
-        hide_other_tools_action.triggered.connect(
-            lambda arg, ti=ti, ho=self.main_window.hide_other_tools: ho(ti))
-        menu.addAction(hide_other_tools_action)
         if ti.help is not None:
             help_action = QAction("Help", self.ui_area)
             help_action.setStatusTip("Show tool help")
@@ -812,7 +810,7 @@ class _Qt:
             no_help_action = QAction("No help available", self.ui_area)
             no_help_action.setEnabled(False)
             menu.addAction(no_help_action)
-        menu.exec(event)
+        menu.exec(event.globalPos())
 
     def _get_shown(self):
         return not self.dock_widget.isHidden()

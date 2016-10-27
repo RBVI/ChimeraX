@@ -67,8 +67,9 @@ def read_chimera_map(path):
       g = add_subsamples(d, i, g)
     glist.append(g)
 
-  # Mark as volume series
-  if len(glist) > 1 and len(set(tuple(g.size) for g in glist)) == 1:
+  # Mark as volume series if 5 or more maps of same size.
+  # Fewer than 5 maps are considered different channels.
+  if len(glist) > 4 and len(set(tuple(g.size) for g in glist)) == 1:
       for i,g in enumerate(glist):
         g.series_index = i
 

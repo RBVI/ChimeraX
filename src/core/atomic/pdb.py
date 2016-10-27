@@ -79,9 +79,9 @@ def register_pdb_format():
         reference="http://wwpdb.org/docs.html#format",
         open_func=open_pdb)
 
-def register_pdb_fetch(session):
+def register_pdb_fetch():
     from .. import fetch
-    fetch.register_fetch(session, 'pdb', fetch_pdb, 'pdb', prefixes = [])
+    fetch.register_fetch('pdb', fetch_pdb, 'pdb', prefixes = [])
 
 def process_chem_name(name, use_greek=True, probable_abbrs=False):
     text = ""

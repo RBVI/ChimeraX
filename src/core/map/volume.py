@@ -487,7 +487,7 @@ class Volume(Model):
         if vlow < vmid and vmid < vmax:
           self.solid_levels = ((vlow,0), (vmid,0.99), (vmax,1))
         else:
-          self.solid_levels = ((vlow,0), (vmax,1))
+          self.solid_levels = ((vlow,0), (0.9*vlow+0.1*vmax,0.99), (vmax,1))
         self.solid_colors = [rgba]*len(self.solid_levels)
 
     self.initialized_thresholds = True
@@ -2896,11 +2896,13 @@ def open_map(session, stream, *args, **kw):
     maps = []
     from . import data
     grids = data.open_file(map_path)
+    show = kw.get('show', True)
+    show_dialog = kw.get('show_dialog', True)
     for i,d in enumerate(grids):
-        show = (i == 0 or not hasattr(d, 'series_index'))
-        v = volume_from_grid_data(d, session, open_model = False, show_data = show,
-                                  show_dialog = kw.get('show_dialog', True))
-#        v.new_region(ijk_step = (1,1,1), adjust_step = False, show = show)
+        show_data = show and (i == 0 or not hasattr(d, 'series_index'))
+        v = volume_from_grid_data(d, session, open_model = False,
+                                  show_data = show_data, show_dialog = show_dialog)
+#        v.new_region(ijk_step = (1,1,1), adjust_step = False, show = show_data)
         maps.append(v)
 
     if len(maps) > 1 and len([d for d in grids if hasattr(d, 'series_index')]) == len(grids):

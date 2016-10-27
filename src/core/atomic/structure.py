@@ -153,7 +153,7 @@ class Structure(Model, StructureData):
                     # CA only?
                     atoms.draw_modes = Atom.BALL_STYLE
             elif self.num_chains < 250:
-                lighting = "full"
+                lighting = "full" if self.num_atoms < 300000 else "full multiShadow 16"
                 from .colors import chain_colors, element_colors
                 residues = self.residues
                 residues.ribbon_colors = chain_colors(residues.chain_ids)
@@ -781,11 +781,14 @@ class Structure(Model, StructureData):
                 t_start = t_end
 
             # Create drawing from arrays
-            rp.display = True
-            rp.vertices = concatenate(vertex_list)
-            rp.normals = concatenate(normal_list)
-            rp.triangles = concatenate(triangle_list)
-            rp.vertex_colors = concatenate(color_list)
+            if vertex_list:
+                rp.display = True
+                rp.vertices = concatenate(vertex_list)
+                rp.normals = concatenate(normal_list)
+                rp.triangles = concatenate(triangle_list)
+                rp.vertex_colors = concatenate(color_list)
+            else:
+                rp.display = False
             # Save mappings for picking
             self._ribbon_t2r[rp] = t2r
 

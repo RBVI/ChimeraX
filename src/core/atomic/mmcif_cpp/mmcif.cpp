@@ -316,6 +316,7 @@ ExtractMolecule::reset_parse()
     chain_entity_map.clear();
     all_residues.clear();
     entry_id.clear();
+    generic_tables.clear();
     if (my_templates) {
         delete my_templates;
         my_templates = nullptr;
@@ -385,6 +386,8 @@ copy_nmr_info(Structure* from, Structure* to, PyObject* _logger)
     // copy bonds, pseudobonds, secondary structure
     // -- Assumes atoms were added in the exact same order
 
+    to->metadata = from->metadata;
+
     // Bonds:
     auto& bonds = from->bonds();
     auto& to_atoms = to->atoms();
@@ -439,6 +442,7 @@ ExtractMolecule::finished_parse()
 {
     if (molecules.empty())
         return;
+
     // connect residues in molecule with all_residues information
     auto mol = all_residues.begin()->second.begin()->second->structure();
     for (auto&& r : mol->residues()) {
@@ -449,6 +453,7 @@ ExtractMolecule::finished_parse()
             connect_residue_by_template(r, tr);
         }
     }
+
     // Connect residues in entity_poly_seq.
     // Because some positions are heterogeneous, delay connecting
     // until next group of residues is found.
@@ -517,11 +522,22 @@ ExtractMolecule::finished_parse()
             mol->input_seq_source = "mmCIF entity_poly_seq table";
     }
     find_and_add_metal_coordination_bonds(mol);
+
+    // export mapping of label chain ids to entity ids.
+    StringVector chain_mapping;
+    chain_mapping.reserve(chain_entity_map.size() * 2);
+    for (auto i: chain_entity_map) {
+        chain_mapping.emplace_back(i.first);
+        chain_mapping.emplace_back(i.second);
+    }
+    generic_tables["chain_entity_map"] = chain_mapping;
+
     // multiple molecules means there were multiple models,
     // so copy per-model information
     for (auto& im: molecules) {
         auto m = im.second;
         all_molecules.push_back(m);
+        m->metadata = generic_tables;
         if (m != mol) {
             copy_nmr_info(mol, m, _logger);
         }
@@ -932,11 +948,14 @@ ExtractMolecule::parse_atom_site()
                 cid = auth_chain_id;
             else
                 cid = chain_id;
+            if (islower(cid[0]))
+                mol->lower_case_chains = true;
             if (auth_position != INT_MAX)
                 pos = auth_position;
             else
                 pos = position;
             cur_residue = mol->new_residue(rname, cid, pos, ins_code);
+            cur_residue->set_mmcif_chain_id(chain_id);
             cur_entity_id = entity_id;
             cur_seq_id = position;
             cur_auth_seq_id = auth_position;
@@ -1173,14 +1192,14 @@ ExtractMolecule::parse_struct_conn()
             if (metal_pbg == nullptr)
                 metal_pbg = mol->pb_mgr().get_group(mol->PBG_METAL_COORDINATION,
                     atomstruct::AS_PBManager::GRP_PER_CS);
-                metal_pbg->new_pseudobond(a1, a2);
+            metal_pbg->new_pseudobond(a1, a2);
             continue;
         }
         if (hydro) {
             if (hydro_pbg == nullptr)
                 hydro_pbg = mol->pb_mgr().get_group(mol->PBG_HYDROGEN_BONDS,
                     atomstruct::AS_PBManager::GRP_PER_CS);
-                hydro_pbg->new_pseudobond(a1, a2);
+            hydro_pbg->new_pseudobond(a1, a2);
             continue;
         }
         float idealBL = Element::bond_length(a1->element(), a2->element());
@@ -1563,12 +1582,12 @@ static PyObject*
 structure_pointers(ExtractMolecule &e, const char *filename)
 {
     int count = 0;
-    for (auto m: e.all_molecules)
+    for (auto m: e.all_molecules) {
         if (m->atoms().size() > 0) {
-	    m->set_name(filename);
-	    count += 1;
-        m->metadata = e.generic_tables;
-	}
+            m->set_name(filename);
+            count += 1;
+        }
+    }
 
     void **sa;
     PyObject *s_array = python_voidp_array(count, &sa);
@@ -1755,6 +1774,8 @@ extract_mmCIF_tables(const char* filename,
     } catch (ExtractTables::Done&) {
         // normal early termination
     }
+    if (extract.data == nullptr)
+        Py_RETURN_NONE;
     return extract.data;
 }
 

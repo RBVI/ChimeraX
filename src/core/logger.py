@@ -250,7 +250,7 @@ class Logger:
         """
         import sys
         self._log(Log.LEVEL_ERROR, msg, add_newline, image, is_html,
-                  last_resort=sys.stderr)
+                  last_resort=sys.__stderr__)
 
     def info(self, msg, add_newline=True, image=None, is_html=False):
         """Log an info message
@@ -261,7 +261,7 @@ class Logger:
             return
         import sys
         self._log(Log.LEVEL_INFO, msg, add_newline, image, is_html,
-                  last_resort=sys.stdout)
+                  last_resort=sys.__stdout__)
 
     def remove_log(self, log):
         """remove a logger"""
@@ -319,8 +319,8 @@ class Logger:
             self.info(msg)
 
         # "highest prority" log is last added, so:
-        for log in reversed(list(self.logs)):
-            if log.status(msg, color, secondary) and log.excludes_other_logs:
+        for l in reversed(list(self.logs)):
+            if l.status(msg, color, secondary) and l.excludes_other_logs:
                 break
         if secondary:
             status_timer = self._status_timer2
@@ -372,7 +372,7 @@ class Logger:
             return
         import sys
         self._log(Log.LEVEL_WARNING, msg, add_newline, image, is_html,
-                  last_resort=sys.stderr)
+                  last_resort=sys.__stderr__)
 
     def _follow_timeout(self, follow_with, color, log, secondary, follow_log):
         if secondary:

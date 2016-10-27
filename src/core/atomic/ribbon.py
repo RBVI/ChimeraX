@@ -44,9 +44,6 @@ class Ribbon:
         elif orient == Structure.RIBBON_ORIENT_CURVATURE:
             self.normals = self._compute_normals_from_curvature(coords)
             self.ignore_flip_mode = True
-        elif orient == Structure.RIBBON_ORIENT_PEPTIDE:
-            self.normals = self._compute_normals_from_guides(coords, guides)
-            self.ignore_flip_mode = False
         else:
             # RIBBON_ORIENT_GUIDES, RIBBON_ORIENT_PEPTIDE and default case
             if guides is None or len(coords) != len(guides):
@@ -470,7 +467,7 @@ class XSectionManager:
                 # No parameters yet for square style
             },
             self.STYLE_PIPING: {
-                "sides": 12,
+                "sides": 18,
                 "ratio": 0.5,
                 "faceted": False,
             },
@@ -702,7 +699,11 @@ class XSectionManager:
     @property
     def xs_helix_arrow(self):
         if self._xs_helix_arrow is None:
-            base = self._make_xs(self.style_helix, (1.0, 1.0))
+            if self.style_helix == self.STYLE_PIPING:
+                style = self.STYLE_ROUND
+            else:
+                style = self.style_helix
+            base = self._make_xs(style, (1.0, 1.0))
             self._xs_helix_arrow = base.arrow(self.scale_helix_arrow)
         return self._xs_helix_arrow
 
@@ -715,7 +716,11 @@ class XSectionManager:
     @property
     def xs_sheet_arrow(self):
         if self._xs_sheet_arrow is None:
-            base = self._make_xs(self.style_sheet, (1.0, 1.0))
+            if self.style_sheet == self.STYLE_PIPING:
+                style = self.STYLE_ROUND
+            else:
+                style = self.style_sheet
+            base = self._make_xs(style, (1.0, 1.0))
             self._xs_sheet_arrow = base.arrow(self.scale_sheet_arrow)
         return self._xs_sheet_arrow
 

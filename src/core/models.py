@@ -58,13 +58,18 @@ class Model(State, Drawing):
         Drawing.__init__(self, name)
         self.session = session
         self.id = None
-        self.deleted = False
+        self._deleted = False
         # TODO: track.created(Model, [self])
 
     def delete(self):
-        self.deleted = True
+        self._deleted = True
         Drawing.delete(self)
         delattr(self, "session")
+
+    @property
+    def deleted(self):
+        # may be overriden in subclass, e.g. Structure
+        return self._deleted
 
     def id_string(self):
         if self.id is None:
@@ -313,11 +318,9 @@ class Models(State):
         session.triggers.activate_trigger(REMOVE_MODELS, mlist)
 
     def close(self, models):
-        dset = descendant_models(models)
         self.remove(models)
         for m in models:
-            if m not in dset:	# Deleted parent will delete children.
-                m.delete()
+            m.delete()
 
     def open(self, filenames, id=None, format=None, name=None, **kw):
         from . import io, toolshed

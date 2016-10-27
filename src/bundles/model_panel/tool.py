@@ -54,6 +54,7 @@ class ModelPanel(ToolInstance):
         self.tree.itemClicked.connect(self._tree_change_cb)
         buttons_layout = QVBoxLayout()
         layout.addLayout(buttons_layout)
+        self._items = []
         for model_func in [close, hide, show, view]:
             button = QPushButton(model_func.__name__.capitalize())
             buttons_layout.addWidget(button)
@@ -90,6 +91,8 @@ class ModelPanel(ToolInstance):
     def _fill_tree(self, *args):
         update = self._process_models()
         if not update:
+            expanded_models = { i._model : i.isExpanded()
+                                for i in self._items if hasattr(i, '_model')}
             self.tree.clear()
             self._items = []
         from PyQt5.QtWidgets import QTreeWidgetItem
@@ -112,6 +115,7 @@ class ModelPanel(ToolInstance):
             else:
                 parent = item_stack[len_id-1]
                 item = QTreeWidgetItem(parent)
+                item._model = model
                 item_stack[len_id:] = [item]
                 self._items.append(item)
             item.setText(0, model_id_string)
@@ -126,9 +130,9 @@ class ModelPanel(ToolInstance):
                 item.setCheckState(2, Qt.Checked if display else Qt.Unchecked)
             item.setText(3, name)
             if not update:
-                from chimerax.core.atomic import Structure
-                if model.display and len(model.id) <= 1:
-                    # Only expand top-level displayed models
+                # Expand new top-level displayed models, or if previously expanded
+                expand = expanded_models.get(model, (model.display and len(model.id) <= 1))
+                if expand:
                     self.tree.expandItem(item)
         for i in range(1,self.tree.columnCount()):
             self.tree.resizeColumnToContents(i)

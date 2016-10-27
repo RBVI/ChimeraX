@@ -240,7 +240,9 @@ class Drawing:
 
     def remove_all_drawings(self, delete=True):
         '''Remove all child drawings.'''
-        self.remove_drawings(self.child_drawings(), delete)
+        cd = self.child_drawings()
+        if cd:
+            self.remove_drawings(cd, delete)
 
     @property
     def drawing_lineage(self):

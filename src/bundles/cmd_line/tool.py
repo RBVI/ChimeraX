@@ -141,6 +141,7 @@ class CommandLine(ToolInstance):
         for cmd_text in text.split("\n"):
             if not cmd_text:
                 continue
+            self.history_dialog.add(cmd_text)
             try:
                 cmd = Command(session)
                 cmd.run(cmd_text)
@@ -168,12 +169,13 @@ class CommandLine(ToolInstance):
             except:
                 import traceback
                 session.logger.error(traceback.format_exc())
-            else:
-                self.history_dialog.add(cmd_text)
-        from PyQt5.QtCore import Qt
-        self.text.lineEdit().setFocus(Qt.OtherFocusReason)
+        self.set_focus()
         self.text.lineEdit().setText(cmd_text)
         self.text.lineEdit().selectAll()
+
+    def set_focus(self):
+        from PyQt5.QtCore import Qt
+        self.text.lineEdit().setFocus(Qt.OtherFocusReason)
 
     @classmethod
     def get_singleton(cls, session):

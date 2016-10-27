@@ -27,8 +27,9 @@ _additional_categories = (
     #    'pdbx_struct_assembly',
     #    'pdbx_struct_assembly_gen',
     #    'pdbx_struct_oper_list',
-    #    'pdbx_poly_seq_scheme',
-    #    'pdbx_nonpoly_scheme'
+    "entity",
+    "entity_src_gen",
+    "entity_src_nat",
 )
 
 
@@ -146,10 +147,10 @@ def register_mmcif_format():
         requires_filename=True, open_func=open_mmcif, export_func=write_mmcif)
 
 
-def register_mmcif_fetch(session):
+def register_mmcif_fetch():
     from .. import fetch
-    fetch.register_fetch(session, 'pdb', fetch_mmcif, 'mmcif',
-                         prefixes=['pdb'], default_format=True)
+    fetch.register_fetch('pdb', fetch_mmcif, 'mmcif',
+                         prefixes=['pdb'], is_default_format=True)
 
 
 def get_mmcif_tables(filename, table_names):

@@ -52,13 +52,11 @@ Bundles that provide tools need:
 1. ``ChimeraX-Tool`` : str constant
     Field identifying entry as tool metadata.
 2. ``tool_name`` : str
-    The name of the tool within the bundle.
-3. ``display_name`` : str
-    The name shown on the tool's title bar in the GUI.
-4. ``categories`` : str
+    The globally unique name of the tool (also shown on title bar).
+3. ``categories`` : str
     Comma-separated list of categories in which the tool belongs.
     Should be a subset of the bundle's categories.
-5. ``synopsis`` : str
+4. ``synopsis`` : str
     A short description of the tool.  It is here for uninstalled tools,
     so that users can get more than just a name for deciding whether
     they want the tool or not.
@@ -70,12 +68,30 @@ Bundles that provide commands need:
 
 1. ``ChimeraX-Command`` : str constant
     Field identifying entry as command metadata.
-2. ``name`` : str
+2. ``command name`` : str
     The (sub)command name.  Subcommand names have spaces in them.
-3. ``synopsis`` : str
+3. ``categories`` : str
+    Comma-separated list of categories in which the command belongs.
+    Should be a subset of the bundle's categories.
+4. ``synopsis`` : str
     A short description of the command.  It is here for uninstalled commands,
     so that users can get more than just a name for deciding whether
     they want the command or not.
+
+Commands are lazily registered,
+so the argument specification isn't needed until the command is first used.
+Bundles may provide more than one command.
+
+Bundles that provide selectors need:
+
+1. ``ChimeraX-Selector`` : str constant
+    Field identifying entry as command metadata.
+2. ``selector name`` : str
+    The selector's name.
+3. ``synopsis`` : str
+    A short description of the selector.  It is here for uninstalled selectors,
+    so that users can get more than just a name for deciding whether
+    they want the selector or not.
 
 Commands are lazily registered,
 so the argument specification isn't needed until the command is first used.
@@ -118,15 +134,15 @@ application property list.
 
 Data formats that can be fetched:
 
-# ChimeraX-Fetch :: format_name :: database_name :: id_category :: example_id :: priority
+# ChimeraX-Fetch :: database_name :: format_name :: prefixes :: example_id :: is_default
 
 Data formats that can be opened:
 
-# ChimeraX-Open :: format_name :: tag :: priority
+# ChimeraX-Open :: format_name :: tag :: is_default
 
 Data formats that can be saved:
 
-# ChimeraX-Save :: format_name :: tag :: priority
+# ChimeraX-Save :: format_name :: tag :: is_default
 
 Attributes
 ----------
@@ -393,14 +409,12 @@ class Toolshed:
                     pass
             if session is not None:
                 bi.finish(session)
-            bi.deregister_commands()
-            bi.deregister_file_types()
+            bi.deregister()
         self._installed_bundle_info = []
         inst_bi_list = self._load_bundle_infos(logger, rebuild_cache=rebuild_cache)
         for bi in inst_bi_list:
             self.add_bundle_info(bi)
-            bi.register_commands()
-            bi.register_file_types()
+            bi.register()
             if session is not None:
                 bi.initialize(session)
         if check_remote:
@@ -765,6 +779,8 @@ class Toolshed:
         name = kw['name']
         # Name of bundle
         bundle_name = parts[1]  # not used
+        # Synopsis of bundle/tool/command/format
+        synopsis = parts[9]
         # Name of module implementing bundle API
         kw["api_package_name"] = parts[2]
         # Display name of tool
@@ -774,7 +790,7 @@ class Toolshed:
         # CLI command names (just the first word)
         commands = []
         if parts[4]:
-            commands = [CommandInfo(v.strip(), categories) for v in parts[4].split(',')]
+            commands = [CommandInfo(v.strip(), categories, synopsis) for v in parts[4].split(',')]
         # File types that bundle can open
         file_types = parts[6]
         types = []
@@ -812,8 +828,6 @@ class Toolshed:
         custom_init = parts[8]
         if custom_init:
             kw["custom_init"] = (custom_init == "true")
-        # Synopsis of bundle
-        synopsis = parts[9]
         if not bi:
             bi = BundleInfo(installed=installed, **kw)
         if 'Hidden' not in categories:
@@ -825,7 +839,6 @@ class Toolshed:
 
     def _make_bundle_info(self, d, installed, logger):
         """Convert distribution into a list of :py:class:`BundleInfo` instances."""
-        from chimerax.core import io
         name = d.name
         version = d.version
         md = d.metadata.dictionary
@@ -839,10 +852,6 @@ class Toolshed:
             kw['synopsis'] = md["summary"]
         except KeyError:
             return None
-        try:
-            description = md['extensions']['python.details']['document_names']['description']
-        except KeyError:
-            description = None
         kw['packages'] = _get_installed_packages(d)
         for classifier in md["classifiers"]:
             parts = [v.strip() for v in classifier.split("::")]
@@ -853,7 +862,7 @@ class Toolshed:
                     continue
                 elif bi is not None:
                     logger.warning("Second ChimeraX-Bundle line ignored.")
-                    return bi
+                    break
                 elif len(parts) != 5:
                     logger.warning("Malformed ChimeraX-Bundle line in %s skipped." % name)
                     logger.warning("Expected 5 fields and got %d." % len(parts))
@@ -924,6 +933,19 @@ class Toolshed:
                 synopsis = parts[3]
                 ci = CommandInfo(name, categories, synopsis)
                 bi.commands.append(ci)
+            elif parts[0] == "ChimeraX-Selector":
+                # 'ChimeraX-Selector' :: name :: synopsis
+                if bi is None:
+                    logger.warning('ChimeraX-Bundle entry must be first')
+                    return None
+                if len(parts) != 3:
+                    logger.warning("Malformed ChimeraX-Selector line in %s skipped." % name)
+                    logger.warning("Expected 3 fields and got %d." % len(parts))
+                    continue
+                name = parts[1]
+                synopsis = parts[2]
+                si = SelectorInfo(name, synopsis)
+                bi.selectors.append(si)
             elif parts[0] == "ChimeraX-DataFormat":
                 # ChimeraX-DataFormat :: format_name :: alternate_names :: category :: suffixes :: mime_types :: url :: dangerous :: icon :: synopsis
                 if bi is None:
@@ -948,12 +970,18 @@ class Toolshed:
                                 dangerous=dangerous, synopsis=synopsis)
                 bi.formats.append(fi)
             elif parts[0] == "ChimeraX-Fetch":
+                # ChimeraX-Fetch :: database_name :: format_name :: prefixes :: example_id :: is_default
                 if bi is None:
                     logger.warning('ChimeraX-Bundle entry must be first')
                     return None
-                pass
+                database_name = parts[1]
+                format_name = parts[2]
+                prefixes = [v.strip() for v in parts[3].split(',')] if parts[3] else ()
+                example_id = parts[4]
+                is_default = (parts[5] == 'true')
+                bi.fetches.append((database_name, format_name, prefixes, example_id, is_default))
             elif parts[0] == "ChimeraX-Open":
-                # ChimeraX-Open :: format_name :: tag :: priority
+                # ChimeraX-Open :: format_name :: tag :: is_default
                 if bi is None:
                     logger.warning('ChimeraX-Bundle entry must be first')
                     return None
@@ -963,60 +991,38 @@ class Toolshed:
                     continue
                 name = parts[1]
                 tag = parts[2]
-                priority = parts[3]
+                is_default = parts[3]
                 try:
                     fi = [fi for fi in bi.formats if fi.name == name][0]
                 except KeyError:
                     logger.warning("Unknown format name: %r." % name)
                     continue
-
-                def open_cb(*args, format_name=fi.name, **kw):
-                    try:
-                        f = self._get_api().open_file
-                    except AttributeError:
-                        raise ToolshedError(
-                            "no open_file function found for bundle \"%s\""
-                            % self.name)
-                    if f == BundleAPI.open_file:
-                        raise ToolshedError("bundle \"%s\"'s API forgot to override open_file()" % self.name)
-
-                    # optimize by replacing open_func for format
-                    def open_shim(*args, f=f, format_name=format_name, **kw):
-                        return f(*args, format_name=format_name, **kw)
-                    format = io.format_from_name(format_name)
-                    format.open_func = open_shim
-                    return open_shim(*args, **kw)
-                fi.open_func = open_cb
+                fi.has_open = True
             elif parts[0] == "ChimeraX-Save":
                 if bi is None:
                     logger.warning('ChimeraX-Bundle entry must be first')
                     return None
                 name = parts[1]
                 tag = parts[2]
-                priority = parts[3]
+                is_default = parts[3]
                 try:
                     fi = [fi for fi in bi.formats if fi.name == name][0]
                 except KeyError:
                     logger.warning("Unknown format name: %r." % name)
                     continue
-
-                def save_cb(*args, format_name=fi.name, **kw):
-                    try:
-                        f = self._get_api().save_file
-                    except AttributeError:
-                        raise ToolshedError(
-                            "no save_file function found for bundle \"%s\""
-                            % self.name)
-                    if f == BundleAPI.save_file:
-                        raise ToolshedError("bundle \"%s\"'s API forgot to override save_file()" % self.name)
-
-                    # optimize by replacing save_func for format
-                    def save_shim(*args, f=f, format_name=format_name, **kw):
-                        return f(*args, format_name=format_name, **kw)
-                    format = io.format_from_name(format_name)
-                    format.export_func = save_shim
-                    return save_shim(*args, **kw)
-                fi.export_func = save_cb
+                fi.has_save = True
+        if bi is None:
+            return None
+        try:
+            description = md['extensions']['python.details']['document_names']['description']
+            import os
+            dpath = os.path.join(d.path, description)
+            description = open(dpath, encoding='utf-8').read()
+            if description.startswith("UNKNOWN"):
+                description = "Missing bundle description"
+            bi.description = description
+        except (KeyError, OSError):
+            pass
         return bi
 
     # Following methods are used for installing and removing
@@ -1054,8 +1060,7 @@ class Toolshed:
         for bi in newly_installed:
             bi.installed = True
             self.add_bundle_info(bi)
-            bi.register_commands()
-            bi.register_file_types()
+            bi.register()
             if session is not None:
                 bi.initialize(session)
 
@@ -1376,8 +1381,7 @@ class Toolshed:
                         del self._installed_packages[p]
                     except KeyError:
                         pass
-                bi.deregister_commands()
-                bi.deregister_file_types()
+                bi.deregister()
                 if session is not None:
                     bi.finish(session)
         self._installed_bundle_info = reversed(keep)
@@ -1402,7 +1406,10 @@ class ToolInfo:
     def __init__(self, name, categories, synopsis=None):
         self.name = name
         self.categories = categories
-        self.synopsis = synopsis
+        if synopsis:
+            self.synopsis = synopsis
+        else:
+            self.synopsis = "No synopsis given"
 
     def __repr__(self):
         s = self.name
@@ -1420,33 +1427,35 @@ class ToolInfo:
         return cls(*data)
 
 
-class CommandInfo:
-    """Metadata about a command
+class CommandInfo(ToolInfo):
+    """Metadata about a command"""
+    pass
+
+class SelectorInfo(ToolInfo):
+    """Metadata about a selector
 
     Attributes
     ----------
     name : str
-       Command name (may have spaces in it).
-    categories : list of str
-        Categories that command belong to.
+       Tool name.
     synopsis : str
         One line description.
     """
-    def __init__(self, name, categories, synopsis=None):
+    def __init__(self, name, synopsis=None):
         self.name = name
-        self.categories = categories
-        self.synopsis = synopsis
+        if synopsis:
+            self.synopsis = synopsis
+        else:
+            self.synopsis = "No synopsis given"
 
     def __repr__(self):
         s = self.name
-        if self.categories:
-            s += " [categories: %s]" % ', '.join(self.categories)
         if self.synopsis:
             s += " [synopsis: %s]" % self.synopsis
         return s
 
     def cache_data(self):
-        return (self.name, self.categories, self.synopsis)
+        return (self.name, self.synopsis)
 
     @classmethod
     def from_cache_data(cls, data):
@@ -1480,7 +1489,8 @@ class FormatInfo:
 
     def __init__(self, name, category, alternates=None, suffixes=None,
                  mime_types=None, url=None, synopsis=None,
-                 dangerous=None, icon=None):
+                 dangerous=None, icon=None,
+                 has_open=False, has_save=False):
         self.name = name
         self.alternatives = alternates
         self.category = category
@@ -1491,8 +1501,8 @@ class FormatInfo:
         # self.encoding = encoding
         self.icon = icon
         self.synopsis = synopsis
-        self.has_open = False
-        self.has_save = False
+        self.has_open = has_open
+        self.has_save = has_save
 
     def __repr__(self):
         s = self.name
@@ -1522,6 +1532,8 @@ class FormatInfo:
             'icon': self.icon,
             'synopsis': self.synopsis,
             'alternatives': self.alternatives,
+            'has_open': self.has_open,
+            'has_save': self.has_save,
         }
 
     @classmethod
@@ -1565,6 +1577,7 @@ class BundleInfo:
                  api_package_name=None,
                  categories=(),
                  synopsis=None,
+                 description="Unknown",
                  session_versions=range(1, 1 + 1),
                  custom_init=False,
                  packages=[]):
@@ -1600,6 +1613,8 @@ class BundleInfo:
         self.commands = []
         self.formats = []
         self.selectors = []
+        self.fetches = []
+        self.description = description
 
         # Private attributes
         self._name = name
@@ -1657,12 +1672,14 @@ class BundleInfo:
             "version": self._version,
             "api_package_name": self._api_package_name,
             "packages": self.packages,
+            "description": self.description,
         }
         more = {
             'tools': [ti.cache_data() for ti in self.tools],
-            'commands': [ti.cache_data() for ti in self.commands],
-            'formats': [ti.cache_data() for ti in self.formats],
-            'selectors': [ti.cache_data() for ti in self.selectors],
+            'commands': [ci.cache_data() for ci in self.commands],
+            'formats': [fi.cache_data() for fi in self.formats],
+            'selectors': [si.cache_data() for si in self.selectors],
+            'fetches': self.fetches,
         }
         return args, kw, more
 
@@ -1670,15 +1687,18 @@ class BundleInfo:
     def from_cache_data(cls, data):
         args, kw, more = data
         kw['session_versions'] = range(*kw['session_versions'])
+        kw['packages'] = [tuple(x) for x in kw['packages']]
         tools = [ToolInfo.from_cache_data(d) for d in more['tools']]
-        commands = [ToolInfo.from_cache_data(d) for d in more['commands']]
-        formats = [ToolInfo.from_cache_data(d) for d in more['formats']]
-        selectors = [ToolInfo.from_cache_data(d) for d in more['selectors']]
+        commands = [CommandInfo.from_cache_data(d) for d in more['commands']]
+        formats = [FormatInfo.from_cache_data(d) for d in more['formats']]
+        selectors = [SelectorInfo.from_cache_data(d) for d in more['selectors']]
         bi = BundleInfo(*args, **kw)
         bi.tools = tools
         bi.commands = commands
         bi.formats = formats
         bi.selectors = selectors
+        if 'fetches' in more:
+            bi.fetches = more['fetches']
         return bi
 
     def distribution(self):
@@ -1691,7 +1711,17 @@ class BundleInfo:
         """
         return self._name, self._version
 
-    def register_commands(self):
+    def register(self):
+        self._register_commands()
+        self._register_file_types()
+        self._register_selectors()
+
+    def deregister(self):
+        self._deregister_selectors()
+        self._deregister_file_types()
+        self._deregister_commands()
+
+    def _register_commands(self):
         """Register commands with cli."""
         from chimerax.core.commands import cli
         for ci in self.commands:
@@ -1712,7 +1742,7 @@ class BundleInfo:
             raise ToolshedError("bundle \"%s\"'s API forgot to override register_command()" % self.name)
         f(command_name)
 
-    def deregister_commands(self):
+    def _deregister_commands(self):
         """Deregister commands with cli."""
         from chimerax.core.commands import cli
         for ci in self.commands:
@@ -1722,9 +1752,9 @@ class BundleInfo:
             except RuntimeError:
                 pass  # don't care if command was already missing
 
-    def register_file_types(self):
+    def _register_file_types(self):
         """Register file types."""
-        from chimerax.core import io
+        from chimerax.core import io, fetch
         for fi in self.formats:
             _debug("register_file_type", fi.name)
             format = io.register_format(fi.name, fi.category, fi.suffixes)
@@ -1762,13 +1792,55 @@ class BundleInfo:
                         return f(*args, format_name=format_name, **kw)
                     format = io.format_from_name(format_name)
                     format.export_func = save_shim
-                    return save_shim(*args, **kw)
+                    return save_shim(*args, format_name=format_name, **kw)
                 format.export_func = save_cb
+        for (database_name, format_name, prefixes, example_id, is_default) in self.fetches:
+            if io.format_from_name(format_name) is None:
+                print('warning: unknown format %r given for database %r' % (format_name, database_name))
+            def fetch_cb(session, identifier, database_name=database_name, format_name=format_name, **kw):
+                try:
+                    f = self._get_api().fetch_url
+                except AttributeError:
+                    raise ToolshedError(
+                        "no fetch_url function found for bundle \"%s\""
+                        % self.name)
+                if f == BundleAPI.save_file:
+                    raise ToolshedError("bundle \"%s\"'s API forgot to override fetch_url()" % self.name)
+                # optimize by replacing fetch_url for (database, format)
+                def fetch_shim(session, identifier, f=f, database_name=database_name, format_name=format_name, **kw):
+                    return f(session, identifier, database_name=database_name, format_name=format_name, **kw)
+                fetch.register_fetch(database_name, fetch_shim, format_name)
+                return fetch_shim(session, identifier, **kw)
+            fetch.register_fetch(
+                database_name, fetch_cb, format_name, prefixes=prefixes,
+                is_default_format=is_default, example_id=example_id)
 
-    def deregister_file_types(self):
+    def _deregister_file_types(self):
         """Deregister file types."""
         # TODO: implement
         pass
+
+    def _register_selectors(self):
+        from ..commands import register_selector
+        for si in self.selectors:
+            def selector_cb(session, models, results, _name=si.name):
+                try:
+                    reg = self._get_api().register_selector
+                except AttributeError:
+                    raise ToolshedError(
+                        "no register_selector function found for bundle \"%s\""
+                        % self.name)
+                if reg == BundleAPI.register_selector:
+                    raise ToolshedError("bundle \"%s\"'s API forgot to override register_selector()" % self.name)
+                reg(_name)
+                from ..commands import get_selector
+                return get_selector(_name)(session, models, results)
+            register_selector(si.name, selector_cb)
+
+    def _deregister_selectors(self):
+        from ..commands import deregister_selector
+        for si in self.selectors:
+            deregister_selector(si.name)
 
     def initialize(self, session):
         """Initialize bundle by calling custom initialization code if needed."""
@@ -1910,9 +1982,22 @@ class BundleAPI:
         command_name : :py:class:`str`
 
         ``command_name`` is a string of the command to be registered.
-        Must be defined if the ``commands`` metadata field is non-empty.
         This function is called when the command line interface is invoked
         with one of the registered command names.
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    def register_selector(selector_name):
+        """Called when delayed selector registration occurs.
+
+        Parameters
+        ----------
+        selector_name : :py:class:`str`
+
+        ``selector_name`` is the name of the selector to be registered.
+        This function is called when the selector invoked with one of
+        the registered names.
         """
         raise NotImplementedError
 
@@ -1960,6 +2045,7 @@ class BundleAPI:
         session : :py:class:`~chimerax.core.session.Session` instance.
         bundle_info : :py:class:`BundleInfo` instance.
 
+        Must be defined if the ``custom_init`` metadata field is set to 'true'.
         ``finish`` is called when the bundle is unloaded.
         """
         raise NotImplementedError
@@ -1973,8 +2059,9 @@ class BundleAPI:
         name : str
             Name of class in bundle.
 
-        Used when restoring sessions.  Classes that aren't found via
-        'get_class' can not be saved in sessions.
+        Used when restoring sessions.  Instances whose class can't be found via
+        'get_class' can not be saved in sessions.  And those classes must implement
+        the :py:class:`~chimerax.core.state.State` API.
         """
         return None
 

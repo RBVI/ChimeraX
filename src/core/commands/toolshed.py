@@ -11,22 +11,84 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from . import CmdDesc, EnumOf, StringArg, BoolArg
+from . import CmdDesc, EnumOf, StringArg, BoolArg, plural_form
 
 _bundle_types = EnumOf(["all", "installed", "available"])
 
 
-def _display_bundles(bi_list, logger):
+def _display_bundles(bi_list, logger, use_html=False):
     def bundle_key(bi):
         return bi.name
-    for bi in sorted(bi_list, key=bundle_key):
-        logger.info(" %s (%s) [%s]: %s" % (bi.name, bi.version, ', '.join(bi.categories), bi.synopsis))
-        for t in bi.tools:
-            logger.info("    Tool: %s: %s" % (t.name, t.synopsis))
-        for c in bi.commands:
-            logger.info("    Command: %s: %s" % (c.name, c.synopsis))
-        for f in bi.formats:
-            logger.info("    Formats: %s [%s]" % (f.name, f.category))
+    info = ""
+    if use_html:
+        from html import escape
+        info = """
+<style>
+table.bundle {
+    border-collapse: collapse;
+    border-spacing: 2px;
+}
+th.bundle {
+    font-style: italic;
+    text-align: left;
+}
+</style>
+        """
+        info += "<dl>\n"
+        for bi in sorted(bi_list, key=bundle_key):
+            info += "<dt><b>%s</b> (%s) [%s]: <i>%s</i>\n" % (
+                bi.name, bi.version, ', '.join(bi.categories), escape(bi.synopsis))
+            info += "<dd>\n"
+            # TODO: convert description's rst text to HTML
+            info += escape(bi.description).replace('\n\n', '<p>\n')
+            if bi.tools or bi.commands or bi.formats:
+                info += "<table class='bundle' border='1'>\n"
+            if bi.tools:
+                info += "<tr><th class='bundle' colspan='3'>%s:</th></tr>\n" % plural_form(bi.tools, "Tool")
+            for t in bi.tools:
+                info += "<tr><td><b>%s</b></td> <td colspan='2'><i>%s</i></td></tr>\n" % (t.name, escape(t.synopsis))
+            if bi.commands:
+                info += "<tr><th class='bundle' colspan='3'>%s:</th></tr>\n" % plural_form(bi.commands, "Command")
+            for c in bi.commands:
+                info += "<tr><td><b>%s</b></td> <td colspan='2'><i>%s</i></td></tr>\n" % (c.name, escape(c.synopsis))
+            if bi.selectors:
+                info += "<tr><th class='bundle' colspan='3'>%s:</th></tr>\n" % plural_form(bi.selectors, "Selector")
+            for s in bi.selectors:
+                info += "<tr><td><b>%s</b></td> <td colspan='2'><i>%s</i></td></tr>\n" % (s.name, escape(s.synopsis))
+            if bi.formats:
+                info += "<tr><th class='bundle' colspan='3'>%s:</th></tr>\n" % plural_form(bi.formats, "Format")
+            for f in bi.formats:
+                can_open = ' open' if f.has_open else ''
+                can_save = ' save' if f.has_save else ''
+                info += "<tr><td><b>%s</b></td> <td><i>%s</i></td><td>%s%s</td></tr>\n" % (
+                    f.name, f.category, can_open, can_save)
+            if bi.tools or bi.commands or bi.formats:
+                info += "</table>\n"
+        info += "</dl>\n"
+    else:
+        for bi in sorted(bi_list, key=bundle_key):
+            info += "%s (%s) [%s]: %s\n" % (
+                bi.name, bi.version, ', '.join(bi.categories), bi.synopsis)
+            if bi.tools:
+                info += "   %s:\n" % plural_form(bi.tools, "Tool")
+            for t in bi.tools:
+                info += "    %s: %s\n" % (t.name, t.synopsis)
+            if bi.commands:
+                info += "   %s:\n" % plural_form(bi.commands, "Command")
+            for c in bi.commands:
+                info += "    %s: %s\n" % (c.name, c.synopsis)
+            if bi.selectors:
+                info += "   %s:\n" % plural_form(bi.selectors, "Selector")
+            for s in bi.selectors:
+                info += "    %s: %s\n" % (s.name, s.synopsis)
+            if bi.formats:
+                info += "   %s:\n" % plural_form(bi.formats, "Format")
+            for f in bi.formats:
+                can_open = ' open' if f.has_open else ''
+                can_save = ' save' if f.has_save else ''
+                info += "    %s [%s]%s%s\n" % (f.name, f.category, can_open,
+                                               can_save)
+    logger.info(info, is_html=use_html)
 
 
 def ts_list(session, bundle_type="installed"):
@@ -39,18 +101,19 @@ def ts_list(session, bundle_type="installed"):
     '''
     ts = session.toolshed
     logger = session.logger
+    use_html = session.ui.is_gui
     if bundle_type == "installed" or bundle_type == "all":
         bi_list = ts.bundle_info(installed=True, available=False)
         if bi_list:
             logger.info("List of installed bundles:")
-            _display_bundles(bi_list, logger)
+            _display_bundles(bi_list, logger, use_html)
         else:
             logger.info("No installed bundles found.")
     if bundle_type in ("available", "all"):
         bi_list = ts.bundle_info(installed=False, available=True)
         if bi_list:
             logger.info("List of available bundles:")
-            _display_bundles(bi_list, logger)
+            _display_bundles(bi_list, logger, use_html)
         else:
             logger.info("No available bundles found.")
 ts_list_desc = CmdDesc(optional=[("bundle_type", _bundle_types)],

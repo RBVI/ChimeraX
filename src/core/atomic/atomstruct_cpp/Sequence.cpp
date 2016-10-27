@@ -115,7 +115,10 @@ Sequence::gapped_to_ungapped(unsigned int index) const
     if (_cache_ungapped.empty()) {
         (void) ungapped();
     }
-    return _cache_g2ug[index];
+    auto i = _cache_g2ug.find(index);
+    if (i == _cache_g2ug.end())
+        throw SeqIndexError("No corresponding ungapped position");
+    return i->second;
 }
 
 char
@@ -175,7 +178,13 @@ Sequence::session_restore(int version, int** ints, float**)
     auto& int_ptr = *ints;
 
     auto size = int_ptr[0];
+    if (version > 2)
+        _circular = int_ptr[1];
     int_ptr += SESSION_NUM_INTS(version);
+    if (version < 3)
+        // pre-version 3 had wrong number of ints declared, and
+        // therefore arbitrarily skipped two int positions
+        int_ptr += 2;
 
     _contents.reserve(size);
     for (decltype(size) i = 0; i < size; ++i) {
@@ -189,6 +198,7 @@ Sequence::session_save(int** ints, float**) const
     auto& int_ptr = *ints;
 
     int_ptr[0] = _contents.size();
+    int_ptr[1] = _circular;
     int_ptr += SESSION_NUM_INTS();
 
     for (auto c: _contents)

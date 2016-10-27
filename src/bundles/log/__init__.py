@@ -16,6 +16,14 @@ from chimerax.core.toolshed import BundleAPI
 class _MyAPI(BundleAPI):
 
     @staticmethod
+    def get_class(class_name):
+        # 'get_class' is called by session code to get class saved in a session
+        if class_name == 'Log':
+            from . import tool
+            return tool.Log
+        return None
+
+    @staticmethod
     def start_tool(session, tool_name):
         # 'start_tool' is called to start an instance of the tool
         from . import cmd
@@ -30,13 +38,5 @@ class _MyAPI(BundleAPI):
             create_alias("echo", "log text $*")
             return
         register(command_name, cmd.log_desc, cmd.log)
-
-    @staticmethod
-    def get_class(class_name):
-        # 'get_class' is called by session code to get class saved in a session
-        if class_name == 'Log':
-            from . import tool
-            return tool.Log
-        return None
 
 bundle_api = _MyAPI()

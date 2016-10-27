@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from numpy import uint8, int32, float64, float32, byte, bool as npy_bool
+from numpy import uint8, int32, uint32, float64, float32, byte, bool as npy_bool
 from .molc import string, cptr, pyobject, c_property, set_c_pointer, c_function, c_array_function, ctype_type_to_numpy, pointer
 import ctypes
 size_t = ctype_type_to_numpy[ctypes.c_size_t]   # numpy dtype for size_t
@@ -81,10 +81,18 @@ class Atom:
     def __init__(self, c_pointer):
         set_c_pointer(self, c_pointer)
 
+    # cpp_pointer and deleted are "base class" methods, though for performance reasons
+    # we are placing them directly in each class rather than using a base class,
+    # and for readability by most programmers we avoid using metaclasses
     @property
     def cpp_pointer(self):
         '''Value that can be passed to C++ layer to be used as pointer (Python int)'''
         return self._c_pointer.value
+
+    @property
+    def deleted(self):
+        '''Has the C++ side been deleted?'''
+        return not hasattr(self, '_c_pointer')
 
     def __str__(self, atom_only = False):
         from ..core_settings import settings
@@ -111,6 +119,8 @@ class Atom:
     color = c_property('atom_color', uint8, 4, doc="Color RGBA length 4 numpy uint8 array.")
     coord = c_property('atom_coord', float64, 3,
         doc="Coordinates as a numpy length 3 array, 64-bit float values.")
+    coord_index = c_property('atom_coord_index', uint32, read_only = True,
+        doc="Coordinate index of atom in coordinate set.")
     display = c_property('atom_display', npy_bool,
         doc="Whether to display the atom. Boolean value.")
     draw_mode = c_property('atom_draw_mode', uint8,
@@ -231,10 +241,18 @@ class Bond:
     def __init__(self, bond_pointer):
         set_c_pointer(self, bond_pointer)
 
+    # cpp_pointer and deleted are "base class" methods, though for performance reasons
+    # we are placing them directly in each class rather than using a base class,
+    # and for readability by most programmers we avoid using metaclasses
     @property
     def cpp_pointer(self):
         '''Value that can be passed to C++ layer to be used as pointer (Python int)'''
         return self._c_pointer.value
+
+    @property
+    def deleted(self):
+        '''Has the C++ side been deleted?'''
+        return not hasattr(self, '_c_pointer')
 
     def __str__(self):
         a1, a2 = self.atoms
@@ -311,10 +329,18 @@ class Pseudobond:
     def __init__(self, pbond_pointer):
         set_c_pointer(self, pbond_pointer)
 
+    # cpp_pointer and deleted are "base class" methods, though for performance reasons
+    # we are placing them directly in each class rather than using a base class,
+    # and for readability by most programmers we avoid using metaclasses
     @property
     def cpp_pointer(self):
         '''Value that can be passed to C++ layer to be used as pointer (Python int)'''
         return self._c_pointer.value
+
+    @property
+    def deleted(self):
+        '''Has the C++ side been deleted?'''
+        return not hasattr(self, '_c_pointer')
 
     __str__ = Bond.__str__
 
@@ -388,10 +414,18 @@ class PseudobondGroupData:
     def __init__(self, pbg_pointer):
         set_c_pointer(self, pbg_pointer)
 
+    # cpp_pointer and deleted are "base class" methods, though for performance reasons
+    # we are placing them directly in each class rather than using a base class,
+    # and for readability by most programmers we avoid using metaclasses
     @property
     def cpp_pointer(self):
         '''Value that can be passed to C++ layer to be used as pointer (Python int)'''
         return self._c_pointer.value
+
+    @property
+    def deleted(self):
+        '''Has the C++ side been deleted?'''
+        return not hasattr(self, '_c_pointer')
 
     category = c_property('pseudobond_group_category', string, read_only = True,
         doc = "Name of the pseudobond group.  Read only string.")
@@ -459,6 +493,7 @@ class PseudobondManager(State):
         return object_map(pbg,
             lambda ptr, ses=self.session: PseudobondGroup(ptr, session=ses))
 
+    @property
     def group_map(self):
         '''Returns a dict that maps from :class:`.PseudobondGroup` category to group'''
         f = c_function('pseudobond_global_manager_group_map',
@@ -534,10 +569,18 @@ class Residue:
     def __init__(self, residue_pointer):
         set_c_pointer(self, residue_pointer)
 
+    # cpp_pointer and deleted are "base class" methods, though for performance reasons
+    # we are placing them directly in each class rather than using a base class,
+    # and for readability by most programmers we avoid using metaclasses
     @property
     def cpp_pointer(self):
         '''Value that can be passed to C++ layer to be used as pointer (Python int)'''
         return self._c_pointer.value
+
+    @property
+    def deleted(self):
+        '''Has the C++ side been deleted?'''
+        return not hasattr(self, '_c_pointer')
 
     def __str__(self, residue_only = False):
         from ..core_settings import settings
@@ -573,6 +616,8 @@ class Residue:
     ''':class:`.Chain` that this residue belongs to, if any. Read only.'''
     chain_id = c_property('residue_chain_id', string, read_only = True)
     '''Protein Data Bank chain identifier. Limited to 4 characters. Read only string.'''
+    mmcif_chain_id = c_property('residue_mmcif_chain_id', string, read_only = True)
+    '''mmCIF chain identifier. Limited to 4 characters. Read only string.'''
     @property
     def description(self):
         '''Description of residue (if available) from HETNAM/HETSYN records or equivalent'''
@@ -703,13 +748,25 @@ class Sequence:
         set_c_pointer(self, seq_pointer)
         set_pyobj_f(self._c_pointer, self)
 
+    # cpp_pointer and deleted are "base class" methods, though for performance reasons
+    # we are placing them directly in each class rather than using a base class,
+    # and for readability by most programmers we avoid using metaclasses
     @property
     def cpp_pointer(self):
         '''Value that can be passed to C++ layer to be used as pointer (Python int)'''
         return self._c_pointer.value
 
+    @property
+    def deleted(self):
+        '''Has the C++ side been deleted?'''
+        return not hasattr(self, '_c_pointer')
+
     characters = c_property('sequence_characters', string, doc=
         "A string representing the contents of the sequence")
+    circular = c_property('sequence_circular', npy_bool, doc="Indicates the sequence involves"
+        " a cicular permutation; the sequence characters have been doubled, and residue"
+        " correspondences of the first half implicitly exist in the second half as well."
+        " Typically used in alignments to line up with sequences that aren't permuted.")
     name = c_property('sequence_name', string, doc="The sequence name")
 
     # Some Sequence methods may have to be overridden/disallowed in Chain...
@@ -744,7 +801,10 @@ class Sequence:
     def gapped_to_ungapped(self, index):
         f = c_function('sequence_gapped_to_ungapped', args = (ctypes.c_void_p, ctypes.c_int),
             ret = ctypes.c_int)
-        return f(self._c_pointer, index)
+        g2u = f(self._c_pointer, index)
+        if g2u < 0:
+            return None
+        return g2u
 
     def __getitem__(self, key):
         return self.characters[key]
@@ -807,6 +867,11 @@ class Sequence:
         f = c_function('sequence_ungapped', args = (ctypes.c_void_p,), ret = ctypes.py_object)
         return f(self._c_pointer)
 
+    def ungapped_to_gapped(self, index):
+        f = c_function('sequence_ungapped_to_gapped', args = (ctypes.c_void_p, ctypes.c_int),
+            ret = ctypes.c_int)
+        return f(self._c_pointer, index)
+
     @atexit.register
     def _exiting():
         Sequence.chimera_exiting = True
@@ -841,12 +906,11 @@ class StructureSeq(Sequence):
         " determined from SEQRES (or equivalent) records in the input file")
     num_existing_residues = c_property('sseq_num_existing_residues', size_t, read_only = True)
     '''Number of residues in this sequence with existing structure. Read only.'''
-
+    num_residues = c_property('sseq_num_residues', size_t, read_only = True)
+    '''Number of residues belonging to this sequence, including those without structure. Read only.'''
     residues = c_property('sseq_residues', cptr, 'num_residues', astype = _residues_or_nones,
         read_only = True, doc = "List containing the residues of this sequence in order. "
         "Residues with no structure will be None. Read only.")
-    num_residues = c_property('sseq_num_residues', size_t, read_only = True)
-    '''Number of residues belonging to this sequence, including those without structure. Read only.'''
     structure = c_property('sseq_structure', cptr, astype = _atomic_structure, read_only = True)
     ''':class:`.AtomicStructure` that this structure sequence comes from. Read only.'''
 
@@ -867,6 +931,13 @@ class StructureSeq(Sequence):
         Sequence.__copy__(self, copy_seq = copy_sseq)
         copy_sseq.description = self.description
         return copy_sseq
+
+    @property
+    def chain(self):
+        try:
+            return self.existing_residues[0].chain
+        except IndexError:
+            return None
 
     @property
     def full_name(self):
@@ -891,6 +962,17 @@ class StructureSeq(Sequence):
             if r and Sequence.protein3to1(r.name.encode('utf8')) != 'X':
                 return True
         return False
+
+    @property
+    def res_map(self):
+        '''Returns a dict that maps from :class:`.Residue` to an ungapped sequence position'''
+        f = c_function('sseq_res_map', args = (ctypes.c_void_p,), ret = ctypes.py_object)
+        ptr_map = f(self._c_pointer)
+        obj_map = {}
+        for res_ptr, pos in ptr_map.items():
+            res = _residue(res_ptr)
+            obj_map[res] = pos
+        return obj_map
 
     def residue_at(self, index):
         '''Return the Residue/None at the (ungapped) position 'index'.'''
@@ -938,6 +1020,52 @@ class StructureSeq(Sequence):
             'structure': self.structure
         }
         return data
+
+# sequence-structure association functions that work on StructureSeqs...
+
+def estimate_assoc_params(sseq):
+    '''Estimate the parameters needed to associate a sequence with a Chain/StructureSeq
+
+       Returns a 3-tuple:
+           * Estimated total ungapped length, accounting for missing structure
+
+           * A list of continuous sequence segments
+
+           * A list of the estimated size of the gaps between those segments
+    '''
+    f = c_function('sseq_estimate_assoc_params', args = (ctypes.c_void_p,), ret = ctypes.py_object)
+    return f(sseq._c_pointer)
+
+class StructAssocError(ValueError):
+    pass
+
+def try_assoc(session, seq, sseq, assoc_params, *, max_errors = 6):
+    '''Try to associate StructureSeq 'sseq' with Sequence 'seq'.
+
+       A set of association parameters ('assoc_params') must be provided, typically obtained
+       from the :py:func:`estimate_assoc_params` function.  See that function's documentation
+       for details of assoc_param's contents.  The maximum number of errors allowed can
+       optionally be specified (default: 6).
+
+       The return value is a 2-tuple, consisting of a :py:class:`SeqMatchMap` instance describing
+       the association, and the number of errors encountered.
+       
+       An unsuccessful association throws StructAssocError.
+    '''
+    f = c_function('sseq_try_assoc', args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t,
+        ctypes.py_object, ctypes.py_object, ctypes.c_int), ret = ctypes.py_object)
+    est_len, segments, gaps = assoc_params
+    try:
+        res_to_pos, errors = f(seq._c_pointer, sseq._c_pointer, est_len, segments, gaps, max_errors)
+    except ValueError as e:
+        if str(e) == "bad assoc":
+            raise StructAssocError(str(e))
+        else:
+            raise
+    mmap = SeqMatchMap(session, seq, sseq)
+    for r, i in res_to_pos.items():
+        mmap.match(_residue(r), i)
+    return mmap, errors
 
 # -----------------------------------------------------------------------------
 #
@@ -999,10 +1127,18 @@ class StructureData:
             mol_pointer = c_function(new_func, args = (ctypes.py_object,), ret = ctypes.c_void_p)(logger)
         set_c_pointer(self, mol_pointer)
 
+    # cpp_pointer and deleted are "base class" methods, though for performance reasons
+    # we are placing them directly in each class rather than using a base class,
+    # and for readability by most programmers we avoid using metaclasses
     @property
     def cpp_pointer(self):
         '''Value that can be passed to C++ layer to be used as pointer (Python int)'''
         return self._c_pointer.value
+
+    @property
+    def deleted(self):
+        '''Has the C++ side been deleted?'''
+        return not hasattr(self, '_c_pointer')
 
     def delete(self):
         '''Deletes the C++ data for this atomic structure.'''
@@ -1085,7 +1221,12 @@ class StructureData:
         f = c_function('structure_copy', args = (ctypes.c_void_p,), ret = ctypes.c_void_p)
         p = f(self._c_pointer)
         return p
-        
+
+    def add_coordset(self, id, xyz):
+        '''Add a coordinate set with the given id.'''
+        f = c_function('structure_add_coordset',
+                       args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p))
+        f(self._c_pointer, id, pointer(xyz))
     def new_atom(self, atom_name, element_name):
         '''Create a new :class:`.Atom` object. It must be added to a :class:`.Residue` object
         belonging to this structure before being used.'''
@@ -1256,10 +1397,18 @@ class ChangeTracker:
         f = c_function('change_tracker_create', args = (), ret = ctypes.c_void_p)
         set_c_pointer(self, f())
 
+    # cpp_pointer and deleted are "base class" methods, though for performance reasons
+    # we are placing them directly in each class rather than using a base class,
+    # and for readability by most programmers we avoid using metaclasses
     @property
     def cpp_pointer(self):
         '''Value that can be passed to C++ layer to be used as pointer (Python int)'''
         return self._c_pointer.value
+
+    @property
+    def deleted(self):
+        '''Has the C++ side been deleted?'''
+        return not hasattr(self, '_c_pointer')
 
     def add_modified(self, modded, reason):
         f = c_function('change_tracker_add_modified',
@@ -1332,10 +1481,18 @@ class Element:
     def __init__(self, element_pointer):
         set_c_pointer(self, element_pointer)
 
+    # cpp_pointer and deleted are "base class" methods, though for performance reasons
+    # we are placing them directly in each class rather than using a base class,
+    # and for readability by most programmers we avoid using metaclasses
     @property
     def cpp_pointer(self):
         '''Value that can be passed to C++ layer to be used as pointer (Python int)'''
         return self._c_pointer.value
+
+    @property
+    def deleted(self):
+        '''Has the C++ side been deleted?'''
+        return not hasattr(self, '_c_pointer')
 
     name = c_property('element_name', string, read_only = True)
     '''Element name, for example C for carbon. Read only.'''
@@ -1394,9 +1551,18 @@ class RibbonXSection:
             xs_pointer = f(coords, coords2, normals, normals2, faceted, tess)
         set_c_pointer(self, xs_pointer)
 
-    def delete(self):
-        '''Deletes the C++ data for this atomic structure.'''
-        c_function('rxsection_delete', args = (ctypes.c_void_p,))(self._c_pointer)
+    # cpp_pointer and deleted are "base class" methods, though for performance reasons
+    # we are placing them directly in each class rather than using a base class,
+    # and for readability by most programmers we avoid using metaclasses
+    @property
+    def cpp_pointer(self):
+        '''Value that can be passed to C++ layer to be used as pointer (Python int)'''
+        return self._c_pointer.value
+
+    @property
+    def deleted(self):
+        '''Has the C++ side been deleted?'''
+        return not hasattr(self, '_c_pointer')
 
     def extrude(self, centers, tangents, normals, color,
                 cap_front, cap_back, offset):
@@ -1449,6 +1615,85 @@ class RibbonXSection:
         p = f(self._c_pointer, scales[0][0], scales[0][1], scales[1][0], scales[1][1])
         return RibbonXSection(xs_pointer=p)
 
+# -----------------------------------------------------------------------------
+#
+
+# SeqMatchMaps are returned by C++ functions, but unlike most other classes in this file,
+# they have no persistence in the C++ layer
+class SeqMatchMap:
+    """Class to track the matching between an alignment sequence and a structure sequence
+    
+       The match map can be indexed by either an integer (ungapped) sequence position,
+       or by a Residue, which will return a Residue or a sequence position, respectively.
+       The pos_to_res and res_to_pos attributes return dictionaries of the corresponding
+       mapping.
+    """
+    def __init__(self, session, align_seq, struct_seq):
+        self._pos_to_res = {}
+        self._res_to_pos = {}
+        self._align_seq = align_seq
+        self._struct_seq = struct_seq
+        self.session = session
+        self._handler = session.triggers.add_handler("atomic changes", self._atomic_changes)
+
+    def __getitem__(self, i):
+        if isinstance(i, int):
+            return self._pos_to_res[i]
+        return self._res_to_pos[i]
+
+    @property
+    def align_seq(self):
+        return self._align_seq
+
+    def match(self, res, pos):
+        self._pos_to_res[pos] = res
+        self._res_to_pos[res] = pos
+        if self._align_seq.circular:
+            self._pos_to_res[pos + len(self._align_seq.ungapped())/2] = res
+
+    @property
+    def pos_to_res(self):
+        return self._pos_to_res
+
+    @property
+    def res_to_pos(self):
+        return self._res_to_pos
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        inst = MatchMap(session, data['align seq'], data['struct seq'])
+        inst._pos_to_res = data['pos to res']
+        inst._res_to_pos = data['res to pos']
+        return inst
+
+    @property
+    def struct_seq(self):
+        return self._struct_seq
+
+    def take_snapshot(self, session, flags):
+        '''Gather session info; return version number'''
+        data = {
+            'align seq': self._align_seq,
+            'pos to res': self._pos_to_res,
+            'res to pos': self._res_to_pos,
+            'struct seq': self._struct_seq,
+            'version': 1
+        }
+        return data
+
+    def _atomic_changes(self, trig_name, changes):
+        if changes.num_deleted_residues() > 0:
+            for r, i in list(self._res_to_pos.items()):
+                if r.deleted:
+                    del self._res_to_pos[r]
+                    del self._pos_to_res[i]
+                    if self._align_seq.circular:
+                        del self._pos_to_res[i + len(self._align_seq.ungapped())/2]
+
+    def __del__(self):
+        self._pos_to_res.clear()
+        self._res_to_pos.clear()
+        self.session.triggers.remove_handler(self._handler)
 
 # -----------------------------------------------------------------------------
 #

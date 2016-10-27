@@ -14,32 +14,32 @@
 def register_core_selectors(session):
     # Selectors
     from .atomspec import register_selector as reg
-    reg(None, "sel", _sel_selector)
-    reg(None, "all", _all_selector)
-    reg(None, "ions", lambda s, m, r: _structure_category_selector("ions", m, r))
-    reg(None, "ligand", lambda s, m, r: _structure_category_selector("ligand", m, r))
-    reg(None, "main", lambda s, m, r: _structure_category_selector("main", m, r))
-    reg(None, "solvent", lambda s, m, r: _structure_category_selector("solvent", m, r))
-    reg(None, "strand", _strands_selector)
-    reg(None, "helix", _helices_selector)
-    reg(None, "coil", _coil_selector)
-    reg(None, "protein", lambda s, m, r: _polymer_selector(m, r, True))
-    reg(None, "nucleic", lambda s, m, r: _polymer_selector(m, r, False))
-    reg(None, "nucleic-acid", lambda s, m, r: _polymer_selector(m, r, False))
-    reg(None, "pbonds", _pbonds_selector)
-    reg(None, "hbonds", _hbonds_selector)
-    reg(None, "backbone", _backbone_selector)
-    reg(None, "mainchain", _backbone_selector)
-    reg(None, "sidechain", _sidechain_selector)
-    reg(None, "ribose", _ribose_selector)
+    reg("sel", _sel_selector)
+    reg("all", _all_selector)
+    reg("ions", lambda s, m, r: _structure_category_selector("ions", m, r))
+    reg("ligand", lambda s, m, r: _structure_category_selector("ligand", m, r))
+    reg("main", lambda s, m, r: _structure_category_selector("main", m, r))
+    reg("solvent", lambda s, m, r: _structure_category_selector("solvent", m, r))
+    reg("strand", _strands_selector)
+    reg("helix", _helices_selector)
+    reg("coil", _coil_selector)
+    reg("protein", lambda s, m, r: _polymer_selector(m, r, True))
+    reg("nucleic", lambda s, m, r: _polymer_selector(m, r, False))
+    reg("nucleic-acid", lambda s, m, r: _polymer_selector(m, r, False))
+    reg("pbonds", _pbonds_selector)
+    reg("hbonds", _hbonds_selector)
+    reg("backbone", _backbone_selector)
+    reg("mainchain", _backbone_selector)
+    reg("sidechain", _sidechain_selector)
+    reg("ribose", _ribose_selector)
     from ..atomic import Element, Atom
     # Since IDATM has types in conflict with element symbols (e.g. 'H'), register
     # the types first so that they get overriden by the symbols
     for idatm in Atom.idatm_info_map.keys():
-        reg(None, idatm, lambda ses, models, results, sym=idatm: _idatm_selector(sym, models, results))
+        reg(idatm, lambda ses, models, results, sym=idatm: _idatm_selector(sym, models, results))
     for i in range(1, 115):
         e = Element.get_element(i)
-        reg(None, e.name, lambda ses, models, results, sym=e.name: _element_selector(sym, models, results))
+        reg(e.name, lambda ses, models, results, sym=e.name: _element_selector(sym, models, results))
 
     
 

@@ -41,10 +41,10 @@ setup(
     install_requires=[
         "beautifulsoup4 >= 4",
         "colorama >= 0.3",
-        "filelock >= 2",
+        # "filelock >= 2",  # TODO: breaks on Windows
         "grako >= 3.6",
         # "numpy >= 1.11",  # TODO: breaks on Windows
-        "Pillow >= 3.2",
+        "Pillow >= 3.2, < 3.4.2",
         # "pycollada >= 0.4",  # TODO: pypi version doesn't work with Python 3
         "PyOpenGL >= 3.1",
         # "PyQt5_commercial >= 5.7",  # TODO: how are we going to handle this?
@@ -73,6 +73,7 @@ setup(
         "PKG_NAME.surface",
         "PKG_NAME.toolshed",
         "PKG_NAME.ui",
+        "PKG_NAME.ui.widgets",
         "PKG_NAME.webservices",
     ],
     package_data={

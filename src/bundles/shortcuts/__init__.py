@@ -22,11 +22,6 @@ class _MyAPI(BundleAPI):
         spanel = cls.get_singleton(session)
         if spanel is not None:
             spanel.display(True)
-
-        # TODO: Is there a better place to register selectors?
-        from . import shortcuts
-        shortcuts.register_selectors(session)
-
         return spanel
 
     @staticmethod
@@ -34,6 +29,12 @@ class _MyAPI(BundleAPI):
         # 'register_command' is lazily called when command is referenced
         from . import shortcuts
         shortcuts.register_shortcut_command()
+
+    @staticmethod
+    def register_selector(selector_name):
+        # 'register_selector' is lazily called when command is referenced
+        from . import shortcuts
+        shortcuts.register_selectors()
 
     @staticmethod
     def get_class(class_name):

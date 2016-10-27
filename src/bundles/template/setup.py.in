@@ -92,7 +92,7 @@ setup(
         # Bundle Metadata:
         # ----------------
         #
-        "ChimeraX-Bundle' :: categories :: session_versions :: api_module_name :: custom_session_init",
+        "ChimeraX-Bundle :: categories :: session_versions :: api_module_name :: custom_session_init",
         #
         # 'categories' is a comma separated string.  The categories should
         # be a subset of the toolshed categories.
@@ -178,33 +178,33 @@ setup(
         # In addition to describing the format, the bundle should say how if it
         # can fetch, open or save data in that format.
         #
-        "ChimeraX-Fetch :: format_name :: database_name :: id_category :: example_id :: priority",
-        "ChimeraX-Open :: format_name :: tag :: priority",
-        "ChimeraX-Save :: format_name :: tag :: priority",
+        "ChimeraX-Open :: format_name :: tag :: is_default",
+        "ChimeraX-Save :: format_name :: tag :: is_default",
+        "ChimeraX-Fetch :: database_name :: format_name :: prefixes :: example_id :: is_default",
         #
         # 'format_name' is a format previously given in a ChimeraX-DataFormat
         # line.
         # 'database_name' is a string with the name of the databasea to fetch
         # the data from.
-        # 'id_category' is a string identifying the namespace for the data
-        # identifiers.
+        # 'prefixes' is a comma-separated list of strings associated with the
+        # (database_name, format_name).
         # 'example_id' is a string with an example identifier.
         # 'tag' is a string is disambiguate multiple readers or writers.
-        # 'priority' is an integer use to rank different databases or tags --
-        # the default is zero, and higher is better.
+        # 'is_default' is a string.  If set to 'true', this format is
+        # the default format for the database.
         #
         # For example:
         #
-        #       ChimeraX-Fetch :: PDB :: PDB :: PDB :: 1a0m ::
-        #       ChimeraX-Fetch :: mmcif :: PDB :: PDB :: 1a0m ::
         #       ChimeraX-Open :: PDB :: PDB ::
         #       ChimeraX-Save :: PDB :: PDB ::
+        #       ChimeraX-Fetch :: PDB :: mmcif :: pdb :: 1a0m ::
+        #       ChimeraX-Fetch :: PDB :: PDB :: :: 1a0m ::
         #
-        # ChimeraX-Selector :: name :: synopsis
+        "ChimeraX-Selector :: name :: synopsis",
         #
         # 'name' is a string and may have spaces in it.
         # 'synopsis' is a short description of the selector.  It is here for
-        # uninstalled commands, so that users can get more than just a
+        # uninstalled selectors, so that users can get more than just a
         # name for deciding whether they want the selector or not.
         # Bundles may provide more than one selector.
     ],
