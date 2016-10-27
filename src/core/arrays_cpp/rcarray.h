@@ -343,7 +343,7 @@ void Array<T>::get_values(T *v) const
   if (dimension() == 1)
     {
       for (i0=0, j0=0 ; i0<s0 ; ++i0, j0+=js0)
-    v[k++] = d[j0];
+        v[k++] = d[j0];
       return;
     }
 
@@ -351,8 +351,8 @@ void Array<T>::get_values(T *v) const
   if (dimension() == 2)
     {
       for (i0=0, j0=0 ; i0<s0 ; ++i0, j0+=js0)
-    for (i1=0, j1=j0 ; i1<s1 ; ++i1, j1+=js1)
-      v[k++] = d[j1];
+        for (i1=0, j1=j0 ; i1<s1 ; ++i1, j1+=js1)
+          v[k++] = d[j1];
       return;
     }
 
@@ -360,9 +360,9 @@ void Array<T>::get_values(T *v) const
   if (dimension() == 3)
     {
       for (i0=0, j0=0 ; i0<s0 ; ++i0, j0+=js0)
-    for (i1=0, j1=j0 ; i1<s1 ; ++i1, j1+=js1)
-      for (i2=0, j2=j1 ; i2<s2 ; ++i2, j2+=js2)
-        v[k++] = d[j2];
+        for (i1=0, j1=j0 ; i1<s1 ; ++i1, j1+=js1)
+          for (i2=0, j2=j1 ; i2<s2 ; ++i2, j2+=js2)
+            v[k++] = d[j2];
       return;
     }
 
@@ -370,10 +370,10 @@ void Array<T>::get_values(T *v) const
   if (dimension() == 4)
     {
       for (i0=0, j0=0 ; i0<s0 ; ++i0, j0+=js0)
-    for (i1=0, j1=j0 ; i1<s1 ; ++i1, j1+=js1)
-      for (i2=0, j2=j1 ; i2<s2 ; ++i2, j2+=js2)
-        for (i3=0, j3=j2 ; i3<s3 ; ++i3, j3+=js3)
-          v[k++] = d[j3];
+        for (i1=0, j1=j0 ; i1<s1 ; ++i1, j1+=js1)
+          for (i2=0, j2=j1 ; i2<s2 ; ++i2, j2+=js2)
+            for (i3=0, j3=j2 ; i3<s3 ; ++i3, j3+=js3)
+              v[k++] = d[j3];
       return;
     }
 
@@ -406,7 +406,7 @@ void Array<T>::set(T value)
       T *d = values();
       long length = size();
       for (int i = 0 ; i < length ; ++i)
-    d[i] = value;
+        d[i] = value;
       return;
     }
 
@@ -419,7 +419,7 @@ void Array<T>::set(T value)
   if (dimension() == 1)
     {
       for (i0=0, j0=0 ; i0<s0 ; ++i0, j0+=js0)
-    d[j0] = value;
+        d[j0] = value;
       return;
     }
 
@@ -427,8 +427,8 @@ void Array<T>::set(T value)
   if (dimension() == 2)
     {
       for (i0=0, j0=0 ; i0<s0 ; ++i0, j0+=js0)
-    for (i1=0, j1=j0 ; i1<s1 ; ++i1, j1+=js1)
-      d[j1] = value;
+        for (i1=0, j1=j0 ; i1<s1 ; ++i1, j1+=js1)
+          d[j1] = value;
       return;
     }
 
@@ -436,9 +436,9 @@ void Array<T>::set(T value)
   if (dimension() == 3)
     {
       for (i0=0, j0=0 ; i0<s0 ; ++i0, j0+=js0)
-    for (i1=0, j1=j0 ; i1<s1 ; ++i1, j1+=js1)
-      for (i2=0, j2=j1 ; i2<s2 ; ++i2, j2+=js2)
-        d[j2] = value;
+        for (i1=0, j1=j0 ; i1<s1 ; ++i1, j1+=js1)
+          for (i2=0, j2=j1 ; i2<s2 ; ++i2, j2+=js2)
+            d[j2] = value;
       return;
     }
 
@@ -446,10 +446,10 @@ void Array<T>::set(T value)
   if (dimension() == 4)
     {
       for (i0=0, j0=0 ; i0<s0 ; ++i0, j0+=js0)
-    for (i1=0, j1=j0 ; i1<s1 ; ++i1, j1+=js1)
-      for (i2=0, j2=j1 ; i2<s2 ; ++i2, j2+=js2)
-        for (i3=0, j3=j2 ; i3<s3 ; ++i3, j3+=js3)
-          d[j3] = value;
+        for (i1=0, j1=j0 ; i1<s1 ; ++i1, j1+=js1)
+          for (i2=0, j2=j1 ; i2<s2 ; ++i2, j2+=js2)
+            for (i3=0, j3=j2 ; i3<s3 ; ++i3, j3+=js3)
+              d[j3] = value;
       return;
     }
 
@@ -478,7 +478,7 @@ void Array<T>::set(const Array<S> &a)
   if (dimension() == 1)
     {
       for (i0=0, j0=0, k0=0 ; i0<s0 ; ++i0, j0+=js0, k0+=ks0)
-    d[j0] = static_cast<T>(ad[k0]);
+        d[j0] = static_cast<T>(ad[k0]);
       return;
     }
 
@@ -488,8 +488,8 @@ void Array<T>::set(const Array<S> &a)
   if (dimension() == 2)
     {
       for (i0=0, j0=0, k0=0 ; i0<s0 ; ++i0, j0+=js0, k0+=ks0)
-    for (i1=0, j1=j0, k1=k0 ; i1<s1 ; ++i1, j1+=js1, k1+=ks1)
-      d[j1] = static_cast<T>(ad[k1]);
+        for (i1=0, j1=j0, k1=k0 ; i1<s1 ; ++i1, j1+=js1, k1+=ks1)
+          d[j1] = static_cast<T>(ad[k1]);
       return;
     }
 
@@ -498,9 +498,9 @@ void Array<T>::set(const Array<S> &a)
   if (dimension() == 3)
     {
       for (i0=0, j0=0, k0=0 ; i0<s0 ; ++i0, j0+=js0, k0+=ks0)
-    for (i1=0, j1=j0, k1=k0 ; i1<s1 ; ++i1, j1+=js1, k1+=ks1)
-      for (i2=0, j2=j1, k2=k1 ; i2<s2 ; ++i2, j2+=js2, k2+=ks2)
-        d[j2] = static_cast<T>(ad[k2]);
+        for (i1=0, j1=j0, k1=k0 ; i1<s1 ; ++i1, j1+=js1, k1+=ks1)
+          for (i2=0, j2=j1, k2=k1 ; i2<s2 ; ++i2, j2+=js2, k2+=ks2)
+            d[j2] = static_cast<T>(ad[k2]);
       return;
     }
 
@@ -509,10 +509,10 @@ void Array<T>::set(const Array<S> &a)
   if (dimension() == 4)
     {
       for (i0=0, j0=0, k0=0 ; i0<s0 ; ++i0, j0+=js0, k0+=ks0)
-    for (i1=0, j1=j0, k1=k0 ; i1<s1 ; ++i1, j1+=js1, k1+=ks1)
-      for (i2=0, j2=j1, k2=k1 ; i2<s2 ; ++i2, j2+=js2, k2+=ks2)
-        for (i3=0, j3=j2, k3=k2 ; i3<s3 ; ++i3, j3+=js3, k3+=ks3)
-          d[j3] = static_cast<T>(ad[k3]);
+        for (i1=0, j1=j0, k1=k0 ; i1<s1 ; ++i1, j1+=js1, k1+=ks1)
+          for (i2=0, j2=j1, k2=k1 ; i2<s2 ; ++i2, j2+=js2, k2+=ks2)
+            for (i3=0, j3=j2, k3=k2 ; i3<s3 ; ++i3, j3+=js3, k3+=ks3)
+              d[j3] = static_cast<T>(ad[k3]);
       return;
     }
 
@@ -535,7 +535,7 @@ void Array<T>::apply(Array_Operator<T> &op)
   if (dimension() == 1)
     {
       for (i0=0, j0=0 ; i0<s0 ; ++i0, j0+=js0)
-    d[j0] = op(d[j0]);
+        d[j0] = op(d[j0]);
       return;
     }
 
@@ -543,8 +543,8 @@ void Array<T>::apply(Array_Operator<T> &op)
   if (dimension() == 2)
     {
       for (i0=0, j0=0 ; i0<s0 ; ++i0, j0+=js0)
-    for (i1=0, j1=j0 ; i1<s1 ; ++i1, j1+=js1)
-      d[j1] = op(d[j1]);
+        for (i1=0, j1=j0 ; i1<s1 ; ++i1, j1+=js1)
+          d[j1] = op(d[j1]);
       return;
     }
 
@@ -552,9 +552,9 @@ void Array<T>::apply(Array_Operator<T> &op)
   if (dimension() == 3)
     {
       for (i0=0, j0=0 ; i0<s0 ; ++i0, j0+=js0)
-    for (i1=0, j1=j0 ; i1<s1 ; ++i1, j1+=js1)
-      for (i2=0, j2=j1 ; i2<s2 ; ++i2, j2+=js2)
-        d[j2] = op(d[j2]);
+        for (i1=0, j1=j0 ; i1<s1 ; ++i1, j1+=js1)
+          for (i2=0, j2=j1 ; i2<s2 ; ++i2, j2+=js2)
+            d[j2] = op(d[j2]);
       return;
     }
 
@@ -562,10 +562,10 @@ void Array<T>::apply(Array_Operator<T> &op)
   if (dimension() == 4)
     {
       for (i0=0, j0=0 ; i0<s0 ; ++i0, j0+=js0)
-    for (i1=0, j1=j0 ; i1<s1 ; ++i1, j1+=js1)
-      for (i2=0, j2=j1 ; i2<s2 ; ++i2, j2+=js2)
-        for (i3=0, j3=j2 ; i3<s3 ; ++i3, j3+=js3)
-          d[j3] = op(d[j3]);
+        for (i1=0, j1=j0 ; i1<s1 ; ++i1, j1+=js1)
+          for (i2=0, j2=j1 ; i2<s2 ; ++i2, j2+=js2)
+            for (i3=0, j3=j2 ; i3<s3 ; ++i3, j3+=js3)
+              d[j3] = op(d[j3]);
       return;
     }
 

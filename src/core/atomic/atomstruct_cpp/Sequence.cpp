@@ -181,6 +181,10 @@ Sequence::session_restore(int version, int** ints, float**)
     if (version > 2)
         _circular = int_ptr[1];
     int_ptr += SESSION_NUM_INTS(version);
+    if (version < 3)
+        // pre-version 3 had wrong number of ints declared, and
+        // therefore arbitrarily skipped two int positions
+        int_ptr += 2;
 
     _contents.reserve(size);
     for (decltype(size) i = 0; i < size; ++i) {
