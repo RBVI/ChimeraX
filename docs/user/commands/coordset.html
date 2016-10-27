@@ -1,0 +1,123 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: coordset</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: coordset</h3>
+
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>coordset</b> &nbsp;<a href="atomspec.html"><i>model-spec</i></a>
+&nbsp;<i>frame</i>
+[&nbsp;holdSteady&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
+</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>coordset</b> &nbsp;<a href="atomspec.html"><i>model-spec</i></a>
+[<i>start</i>],[<i>end</i>][,<i>step</i>]
+[&nbsp;holdSteady&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
+[&nbsp;loop&nbsp;&nbsp;<i>N</i>&nbsp;]
+</h3>
+<p>
+<b>Coordset</b> displays the frames of a trajectory, which can be read from
+a multi-model PDB file by using <a href="open.html"><b>open</b></a>
+with <b>explode false</b>. The number of frames in a trajectory can be
+reported with the command <a href="info.html"><b>info</b></a>.
+See also: <a href="../movies.html">making movies</a>
+</p>
+<!-- playing trajectory as ribbon doesn't work anyway, ticket #461
+<blockquote>
+**&nbsp;Protein secondary structure assignments are not recomputed automatically
+over the course of a trajectory.
+If a protein is displayed as a <a href="cartoon.html">cartoon</a> (ribbon),
+users may want to reassign secondary structure at each frame,
+as described <a href="#ssnote">below</a>.&nbsp;**
+</blockquote>
+-->
+<p>
+The <i>model-spec</i> is the model number of the trajectory, preceded by #.
+A comma-separated list or range of model numbers can be used
+to specify multiple trajectories at once.
+Atoms to hold as steady as possible upon frame updates can be
+<a href="atomspec.html">specified</a> using the <b>holdSteady</b> keyword.
+</p><p>
+Supplying only one <i>frame</i> number without commas indicates simply
+going to that frame.  A positive number is taken literally, whereas a
+negative number <i>N</i> is interpreted as the <i>N</i>th-to-last frame.
+Examples:
+</p>
+<blockquote>
+<b>coordset #1 10</b><br>
+&nbsp;&nbsp; - go to frame 10 of trajectory model #1<br>
+<b>coordset #1 -10</b><br>
+&nbsp;&nbsp; - go to the 10th-to-last frame
+</blockquote>
+Supplying comma-separated frame numbers
+<!-- or even commas without preceding numbers -->
+indicates playing from <i>start</i> (default is the current frame)
+to <i>end</i> (default is the last frame) in increments of <i>step</i>.
+The default <i>step</i> is <b>1</b> if <i>start</i> &lt; <i>end</i>,
+<b>&ndash;1</b> if <i>start</i> &gt; <i>end</i>, determined after
+any negative frame numbers are converted to the corresponding
+actual frame numbers. The <b>loop</b> option indicates repeating playback
+<i>N</i> times, wrapping directly from <i>end</i> to <i>start</i>.
+Examples:
+<blockquote>
+<b>coordset #1 1,21 holdSteady @ca</b><br>
+&nbsp;&nbsp;
+- play from frame 1 to 21 of trajectory model #1, holding CA atoms steady<br>
+<!--
+<b>coordset #1 1,</b><br>
+&nbsp;&nbsp; - play from frame 1 to the end<br>
+<b>coordset #1 ,15</b><br>
+&nbsp;&nbsp; - play from the current frame to 15<br>
+<b>coordset #1 ,,5</b><br>
+&nbsp;&nbsp; - play from the current frame to the end, every 5th frame<br>
+-->
+<b>coordset #1 21,1</b><br>
+&nbsp;&nbsp; - play from frame 21 to 1, backwards<br>
+<b>coordset #1 -1,1,-10</b><br>
+&nbsp;&nbsp;
+- play from the last frame to the first, every 10th frame, backwards
+</blockquote>
+
+<!--
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<a name="ssnote"></a>
+<h3>Recomputing Secondary Structure</h3>
+<p>
+If a protein is displayed as a <a href="cartoon.html">cartoon</a> (ribbon)
+and significant conformational changes are occurring over the trajectory,
+users may want to reassign secondary structure at each frame.
+This can be done with the command <b>perframe</b>
+in combination with <a href="dssp.html"><b>dssp</b></a>, for example:
+</p>
+<blockquote>
+<b>perframe dssp; coordset #2 1,21; wait 21; ~perframe</b>
+</blockquote>
+-->
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+October 2016</address>
+</body></html>

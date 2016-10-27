@@ -1687,6 +1687,7 @@ class BundleInfo:
     def from_cache_data(cls, data):
         args, kw, more = data
         kw['session_versions'] = range(*kw['session_versions'])
+        kw['packages'] = [tuple(x) for x in kw['packages']]
         tools = [ToolInfo.from_cache_data(d) for d in more['tools']]
         commands = [CommandInfo.from_cache_data(d) for d in more['commands']]
         formats = [FormatInfo.from_cache_data(d) for d in more['formats']]

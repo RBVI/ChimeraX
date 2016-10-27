@@ -101,11 +101,11 @@ def help(session, topic=None, *, option=None, is_query=False, target=None):
                 if is_query:
                     return True
                 return help(session, url, option=option, is_query=is_query)
-            alias = cli.expand_alias(topic)
+            alias = cli.expand_alias(cmd_name)
             if not alias:
                 break
-            if not is_query:
-                run(session, "usage %s" % cmd_name, log=False)
+            #if not is_query:
+            #    run(session, "usage %s" % cmd_name, log=False)
             alias_words = alias.split()
             for i in range(len(alias_words)):
                 try:

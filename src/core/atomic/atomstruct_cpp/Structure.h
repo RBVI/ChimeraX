@@ -115,7 +115,7 @@ public:
     enum RibbonMode { RIBBON_MODE_DEFAULT = 0,
                       RIBBON_MODE_ARC = 1 };
 protected:
-    const int  CURRENT_SESSION_VERSION = 3;
+    const int  CURRENT_SESSION_VERSION = 4;
 
     CoordSet *  _active_coord_set;
     Atoms  _atoms;

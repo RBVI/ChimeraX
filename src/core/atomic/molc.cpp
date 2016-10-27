@@ -1564,6 +1564,17 @@ extern "C" EXPORT void residue_chain_id(void *residues, size_t n, pyobject_t *ci
     }
 }
 
+extern "C" EXPORT void residue_mmcif_chain_id(void *residues, size_t n, pyobject_t *cids)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            cids[i] = unicode_from_string(r[i]->mmcif_chain_id());
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void* residue_find_atom(void *residue, char *atom_name)
 {
     Residue *r = static_cast<Residue*>(residue);
@@ -1966,7 +1977,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int
                     if (o != NULL)
                         guides.push_back(o);
                     else
-                        has_guides = false;
+                        want_peptide = has_guides = false;
                 }
                 if (want_peptide && o != NULL) {
                     Atom *n = r->find_atom("N");
@@ -2849,6 +2860,17 @@ extern "C" EXPORT void set_structure_graphics_change(void *mols, size_t n, int *
 {
     Structure **m = static_cast<Structure **>(mols);
     error_wrap_array_set<Structure, int, int>(m, n, &Structure::set_all_graphics_changes, changed);
+}
+
+extern "C" EXPORT void structure_lower_case_chains(void *mols, size_t n, npy_bool *lower_case_chains)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            lower_case_chains[i] = m[i]->lower_case_chains;
+    } catch (...) {
+        molc_error();
+    }
 }
 
 extern "C" EXPORT void structure_name(void *mols, size_t n, pyobject_t *names)

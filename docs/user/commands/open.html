@@ -28,6 +28,7 @@ class="clRight" title="User Guide Index"/></a>
 <BR><b>open</b> &nbsp;<i>filename</i> 
 [&nbsp;format&nbsp;&nbsp;<a href="#local"><i>file-format</i></a>&nbsp;]
 [&nbsp;name&nbsp;&nbsp;<i>model-name</i>&nbsp;]
+[&nbsp;explode&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;smartInitialDisplay&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
@@ -46,7 +47,12 @@ The command <b>open</b> reads <a href="#local">local files</a> and
 fetches <a href="#fetch">data from the Web</a>.
 Input files may contain 3D data to be displayed, 
 or commands or code to be executed.
-Local files can also be browsed/opened with <b>File... Open</b> in the menu,
+A multi-model PDB file can be opened as a trajectory 
+(for sequential playback with <a href="coordset.html"><b>coordset</b></a>)
+by setting <b>explode</b> to false.
+</p><p>
+Alternatively, local files can be browsed/opened with 
+<b>File... Open</b> in the menu,
 in which case the proper filename <a href="#local">suffix</a> is required.
 See also: 
 <a href="rename.html"><b>rename</b></a>,

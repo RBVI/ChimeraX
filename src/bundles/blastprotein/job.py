@@ -16,7 +16,7 @@ class CCDJob(OpalJob):
                                  self.get_file("stdout.txt").decode("utf-8"))
 
 
-class BlastPDBJob(OpalJob):
+class BlastProteinJob(OpalJob):
 
     OPAL_SERVICE = "BlastProtein2Service"
     QUERY_FILENAME = "query.fa"
@@ -56,7 +56,7 @@ class BlastPDBJob(OpalJob):
 
     def on_finish(self):
         logger = self.session.logger
-        logger.info("BlastPDB finished.")
+        logger.info("BlastProtein finished.")
         out = self.get_file("stdout.txt")
         if out:
             logger.error("Standard output:\n" + out.decode("utf-8"))
@@ -83,7 +83,7 @@ class BlastPDBJob(OpalJob):
                 else:
                     if self.session.ui.is_gui:
                         from .tool import ToolUI
-                        ToolUI(self.session, "blastpdb",
+                        ToolUI(self.session, "blastprotein",
                                blast_results=p, atomspec=self.atomspec)
                     if self.log or (self.log is None and
                                     not self.session.ui.is_gui):

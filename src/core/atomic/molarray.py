@@ -752,6 +752,8 @@ class Residues(Collection):
     '''Return :class:`.Chains` for residues. Residues with no chain are omitted. Read only.''')
     chain_ids = cvec_property('residue_chain_id', string, read_only = True, doc =
     '''Returns a numpy array of chain IDs. Read only.''')
+    mmcif_chain_ids = cvec_property('residue_mmcif_chain_id', string, read_only = True, doc =
+    '''Returns a numpy array of chain IDs. Read only.''')
     insertion_codes = cvec_property('residue_insertion_code', string, doc =
     '''Returns a numpy array of insertion codes.  An empty string indicates no insertion code.''')
     is_helix = cvec_property('residue_is_helix', npy_bool, doc =
@@ -949,6 +951,8 @@ class StructureDatas(Collection):
     chains = cvec_property('structure_chains', cptr, 'num_chains', astype = _chains,
                            read_only = True, per_object = False)
     '''A single :class:`.Chains` object containing chains for all structures. Read only.'''
+    lower_case_chains = cvec_property('structure_lower_case_chains', npy_bool, read_only=True)
+    '''A numpy bool array of lower_case_names of each structure.'''
     names = cvec_property('structure_name', string)
     '''A numpy string array of names of each structure.'''
     num_atoms = cvec_property('structure_num_atoms', size_t, read_only = True)

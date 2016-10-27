@@ -29,18 +29,21 @@ class="clRight" title="User Guide Index"/></a>
  <BR><b>move</b> &nbsp;<i>axis</i> [&nbsp;<i>distance</i>&nbsp;[&nbsp;<i>frames</i>&nbsp;]]
 [&nbsp;<b>coordinateSystem</b>
 &nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;]
-[&nbsp;models &nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;]
+[&nbsp;models&nbsp;&nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;|&nbsp;atoms&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
 </h3>
 <p>
 The <b>move</b> command translates the <a href="atomspec.html">specified</a> 
-<b>models</b> by <i>distance</i> along <i>axis</i> 
+<b>models</b> or <b>atoms</b> by <i>distance</i> along <i>axis</i> 
 at each of a specified number of image update <i>frames</i>
 (default <b>1</b> frame). 
 The <i>distance</i> is in the units of length intrinsic to the data,
 usually &Aring;, and can be positive or negative.  
 If a <i>distance</i> is not given, the length of the <i>axis</i> vector
 will be used. 
-If no models are specified, the scene will be translated as a whole.
+If no models or atoms are specified, the scene will be translated as a whole.
+A movement of <b>atoms</b> cannot be undone except 
+with a command that applies the opposite movement to the same atoms
+(not always easy to construct) or by reopening the original structure.
 See also: <a href="roll.html"><b>roll</b></a>,
 <a href="turn.html"><b>turn</b></a>,
 <a href="zoom.html"><b>zoom</b></a>,
@@ -70,5 +73,5 @@ To halt an ongoing <b>move</b>, use <a href="stop.html"><b>stop</b></a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-March 2016</address>
+October 2016</address>
 </body></html>

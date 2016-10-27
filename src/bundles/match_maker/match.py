@@ -511,7 +511,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
             for s1, s2 in seq_pairings:
                 logger.info("Sequences:")
                 for s in [s1,s2]:
-                    logger.info(s.name + "\t" + str(s))
+                    logger.info(s.name + "\t" + s.characters)
                 logger.info("Residues:")
                 for s in [s1, s2]:
                     logger.info(", ".join([str(r) for r in s.residues]))
