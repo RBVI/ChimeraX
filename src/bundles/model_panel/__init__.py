@@ -21,14 +21,6 @@ class _MyAPI(BundleAPI):
         return model_panel(session, tool_name)
 
     @staticmethod
-    def register_command(command_name):
-        # 'register_command' is lazily called when command is referenced
-        from . import cmd
-        from chimerax.core.commands import register
-        register(command_name + " SUBCOMMAND_NAME",
-                 cmd.subcommand_desc, cmd.subcommand_function)
-
-    @staticmethod
     def get_class(class_name):
         # 'get_class' is called by session code to get class saved in a session
         if class_name == 'ModelPanel':
