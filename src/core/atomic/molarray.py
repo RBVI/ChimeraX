@@ -232,7 +232,7 @@ class Collection(State):
         return self._objects_class(numpy.union1d(self._pointers, objects._pointers))
     def subtract(self, objects):
         '''Return a new collection subtracting the *objects* :class:`.Collection` from this one.
-        All duplicates are removed.'''
+        All duplicates are removed.  Currently does not preserve order'''
         import numpy
         return self._objects_class(numpy.setdiff1d(self._pointers, objects._pointers))
     def unique(self):
