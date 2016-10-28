@@ -435,6 +435,14 @@ copy_nmr_info(Structure* from, Structure* to, PyObject* _logger)
         to->set_input_seq_info(i.first, i.second);
 
     // Secondary Structure: TODO
+    auto& residues = from->residues();
+    auto& to_residues = to->residues();
+    size_t num_residues = std::min(residues.size(), to_residues.size());
+    for (size_t i = 0; i < num_residues; ++i) {
+        to_residues[i]->set_is_strand(residues[i]->is_strand());
+        to_residues[i]->set_is_helix(residues[i]->is_helix());
+        to_residues[i]->set_ss_id(residues[i]->ss_id());
+    }
 }
 
 void
@@ -948,8 +956,14 @@ ExtractMolecule::parse_atom_site()
                 cid = auth_chain_id;
             else
                 cid = chain_id;
-            if (islower(cid[0]))
-                mol->lower_case_chains = true;
+            if (!mol->lower_case_chains) {
+                for (const char *cp = cid.c_str(); *cp != '\0'; ++cp) {
+                    if (islower(*cp)) {
+                        mol->lower_case_chains = true;
+                        break;
+                    }
+                }
+            }
             if (auth_position != INT_MAX)
                 pos = auth_position;
             else

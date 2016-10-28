@@ -2862,6 +2862,17 @@ extern "C" EXPORT void set_structure_graphics_change(void *mols, size_t n, int *
     error_wrap_array_set<Structure, int, int>(m, n, &Structure::set_all_graphics_changes, changed);
 }
 
+extern "C" EXPORT void structure_lower_case_chains(void *mols, size_t n, npy_bool *lower_case_chains)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            lower_case_chains[i] = m[i]->lower_case_chains;
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void structure_name(void *mols, size_t n, pyobject_t *names)
 {
     Structure **m = static_cast<Structure **>(mols);

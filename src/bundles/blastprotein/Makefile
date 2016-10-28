@@ -17,7 +17,6 @@ WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
 
 PYSRCS = $(filter-out setup.py,$(wildcard *.py))
 WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-py3-none-any.whl
-# FIXME WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-py3-none-$(BIN_PLATFORM).whl
 
 all: $(PYSRCS)
 	$(PYTHON_EXE) -B -m py_compile $?
@@ -34,7 +33,6 @@ app-install: wheel
 
 wheel: setup.py
 	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel
-	# FIXME $(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel --plat-name $(BIN_PLATFORM)
 	rm -rf $(WHL_BNDL_NAME).egg-info
 
 setup.py: setup.py.in Makefile

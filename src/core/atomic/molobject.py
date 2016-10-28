@@ -1154,6 +1154,8 @@ class StructureData:
     ''':class:`.Chains` collection containing all chains of the structure.'''
     coordset_ids = c_property('structure_coordset_ids', int32, 'num_coord_sets', read_only = True)
     '''Return array of ids of all coordinate sets.'''
+    lower_case_chains = c_property('structure_lower_case_chains', npy_bool, read_only = True)
+    '''Structure has lower case chain ids. Boolean'''
     name = c_property('structure_name', string)
     '''Structure name, a string.'''
     num_atoms = c_property('structure_num_atoms', size_t, read_only = True)
