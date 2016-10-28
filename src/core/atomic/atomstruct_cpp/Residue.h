@@ -87,6 +87,7 @@ public:
     const ChainID&  chain_id() const;
     int  count_atom(const AtomName&) const;
     Atom *  find_atom(const AtomName&) const;
+    const ChainID&  mmcif_chain_id() const { return _mmcif_chain_id; }
     char  insertion_code() const { return _insertion_code; }
     bool  is_helix() const { return _is_helix; }
     bool  is_het() const { return _is_het; }
@@ -106,6 +107,7 @@ public:
     void  session_restore(int, int**, float**);
     void  session_save(int**, float**) const;
     void  set_alt_loc(char alt_loc);
+    void  set_mmcif_chain_id(const ChainID &cid) { _mmcif_chain_id = cid; }
     void  set_insertion_code(char ic) { _insertion_code = ic; }
     void  set_is_helix(bool ih);
     void  set_is_het(bool ih);
@@ -117,8 +119,6 @@ public:
     std::vector<Atom*>  template_assign(
         void (Atom::*assign_func)(const char*), const char* app,
         const char* template_dir, const char* extension) const;
-    void set_mmcif_chain_id(const ChainID &cid);
-    const ChainID&  mmcif_chain_id() const;
 
     // handy
     static const std::set<AtomName>  aa_min_backbone_names;
@@ -182,18 +182,6 @@ inline Chain*
 Residue::chain() const {
     (void)_structure->chains();
     return _chain;
-}
-
-inline void
-Residue::set_mmcif_chain_id(const ChainID &cid)
-{
-    _mmcif_chain_id = cid;
-}
-
-inline const ChainID&
-Residue::mmcif_chain_id() const
-{
-    return _mmcif_chain_id;
 }
 
 inline float

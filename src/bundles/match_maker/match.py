@@ -569,7 +569,9 @@ def cmd_match(session, match_atoms, to=None, pairing=defaults["chain_pairing"],
         matches = match_atoms.structures.unique()
     if not matches:
         raise UserError("No molecules/chains to match specified")
-    refs = refs.subtract(matches)
+    # the .subtract() method of Collections does not preserve order (as of 10/28/16),
+    # so "subtract" by hand...
+    refs = [r for r in refs if r not in matches]
     if not matches:
         raise UserError("Must use different reference and match structures")
     if pairing == CP_SPECIFIC_SPECIFIC:

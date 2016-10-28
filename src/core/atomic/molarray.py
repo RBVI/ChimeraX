@@ -232,7 +232,7 @@ class Collection(State):
         return self._objects_class(numpy.union1d(self._pointers, objects._pointers))
     def subtract(self, objects):
         '''Return a new collection subtracting the *objects* :class:`.Collection` from this one.
-        All duplicates are removed.'''
+        All duplicates are removed.  Currently does not preserve order'''
         import numpy
         return self._objects_class(numpy.setdiff1d(self._pointers, objects._pointers))
     def unique(self):
@@ -951,6 +951,8 @@ class StructureDatas(Collection):
     chains = cvec_property('structure_chains', cptr, 'num_chains', astype = _chains,
                            read_only = True, per_object = False)
     '''A single :class:`.Chains` object containing chains for all structures. Read only.'''
+    lower_case_chains = cvec_property('structure_lower_case_chains', npy_bool, read_only=True)
+    '''A numpy bool array of lower_case_names of each structure.'''
     names = cvec_property('structure_name', string)
     '''A numpy string array of names of each structure.'''
     num_atoms = cvec_property('structure_num_atoms', size_t, read_only = True)
