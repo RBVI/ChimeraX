@@ -15,7 +15,8 @@ class ToolUI(ToolInstance):
     # For now, no session saving
     SESSION_SKIP = True
     CUSTOM_SCHEME = "blastprotein"
-    REF_ID_URL = "https://www.ncbi.nlm.nih.gov/gquery/?term=%s"
+    REF_ID_URL = "https://www.ncbi.nlm.nih.gov/protein/%s"
+    KNOWN_IDS = ["ref","gi"]
 
     def __init__(self, session, tool_name, blast_results=None, atomspec=None):
         # Standard template stuff
@@ -118,13 +119,19 @@ class ToolUI(ToolInstance):
                                                          m.pdb, m.pdb)
                 else:
                     import re
-                    match = re.search(r"\|ref\|([^|]+)\|", m.name)
+                    mdb = None
+                    mid = None
+                    for known in self.KNOWN_IDS:
+                        match = re.search(r"\b%s\|([^|]+)\|" % known, m.name)
+                        if match is not None:
+                            mdb = known
+                            mid = match.group(1)
+                            break
                     if match is None:
                         name = m.name
                     else:
-                        ref_id = match.group(1)
-                        ref_url = self.REF_ID_URL % ref_id
-                        name = "<a href=\"%s\">%s</a>" % (ref_url, ref_id)
+                        url = self.REF_ID_URL % mid
+                        name = "<a href=\"%s\">%s (%s)</a>" % (url, mid, mdb)
                 html.append("<tr><td>%s</td><td>%s</td>"
                             "<td>%s</td><td>%s</td></tr>" %
                             (name, "%.3g" % m.evalue,
