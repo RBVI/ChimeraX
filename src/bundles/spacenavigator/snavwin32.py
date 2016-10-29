@@ -29,7 +29,7 @@ class Space_Device_Win32:
 
         status = device.Connect()
         if status:
-            raise IOError, 'COM Connection to %s device failed.' % name
+            raise IOError('COM Connection to %s device failed.' % name)
 
         # Setup button listener
         self.keyboard = device.Keyboard
@@ -37,7 +37,7 @@ class Space_Device_Win32:
 
         # Setup sensor listener
         self.sensor = device.Sensor
-	self.sev = client.GetEvents(self.sensor, self)
+        self.sev = client.GetEvents(self.sensor, self)
 
         # May need PumpEvents() called periodically to process Windows
         #   message queue.
