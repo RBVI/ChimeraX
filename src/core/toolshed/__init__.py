@@ -1384,7 +1384,7 @@ class Toolshed:
                 bi.deregister()
                 if session is not None:
                     bi.finish(session)
-        self._installed_bundle_info = reversed(keep)
+        self._installed_bundle_info = list(reversed(keep))
         # TODO: update _installed_packages
         self._remove_distribution(d, logger)
 
