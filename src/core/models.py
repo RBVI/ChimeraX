@@ -244,6 +244,12 @@ class Models(State):
                 v = session.main_view
                 v.initial_camera_view()
                 v.clip_planes.clear()   # Turn off clipping
+                if len(self._models) == 1:
+                    m = tuple(self._models.values())[0]
+                    from .map import Volume
+                    if isinstance(m, Volume):
+                        from .commands.lighting import lighting
+                        lighting(session, 'full')	# Use full lighting for initial map display
 
         return m_all
 
