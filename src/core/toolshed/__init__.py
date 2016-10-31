@@ -878,7 +878,7 @@ class Toolshed:
                 elif bi is not None:
                     logger.warning("Second ChimeraX-Bundle line ignored.")
                     break
-                elif len(parts) != 6:
+                elif len(parts) not in [5, 6]:
                     logger.warning("Malformed ChimeraX-Bundle line in %s skipped." % name)
                     logger.warning("Expected 6 fields and got %d." % len(parts))
                     continue
@@ -906,12 +906,19 @@ class Toolshed:
                     kw["session_versions"] = range(lo, hi + 1)
                 # Name of package implementing bundle API
                 kw["api_package_name"] = parts[3]
-                # Does bundle have custom initialization code?
-                if parts[4]:
-                    kw['aliases'] = [v.strip() for v in parts[4].split(',')]
-                custom_init = parts[5]
-                if custom_init:
-                    kw["custom_init"] = (custom_init == "true")
+                if len(parts) == 5:
+                    # Does bundle have custom initialization code?
+                    custom_init = parts[4]
+                    if custom_init:
+                        kw["custom_init"] = (custom_init == "true")
+                else:
+                    # Are there bundle name aliases?
+                    if parts[4]:
+                        kw['aliases'] = [v.strip() for v in parts[4].split(',')]
+                    # Does bundle have custom initialization code?
+                    custom_init = parts[5]
+                    if custom_init:
+                        kw["custom_init"] = (custom_init == "true")
                 bi = BundleInfo(installed=installed, **kw)
             elif parts[0] == "ChimeraX-Tool":
                 # 'ChimeraX-Tool' :: tool_name :: categories :: synopsis
