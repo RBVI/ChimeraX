@@ -155,6 +155,9 @@ TOOLSHED_BUNDLE_INSTALLED : str
 TOOLSHED_BUNDLE_UNINSTALLED : str
     Name of trigger fired when an installed bundle is removed.
     The trigger data is a :py:class:`BundleInfo` instance.
+TOOLSHED_BUNDLE_INFO_RELOADED : str
+    Name of trigger fired when bundle metadata is reloaded.
+    The trigger data is a :py:class:`BundleInfo` instance.
 
 Notes
 -----
@@ -170,6 +173,7 @@ from ..orderedset import OrderedSet
 TOOLSHED_BUNDLE_INFO_ADDED = "bundle info added"
 TOOLSHED_BUNDLE_INSTALLED = "bundle installed"
 TOOLSHED_BUNDLE_UNINSTALLED = "bundle uninstalled"
+TOOLSHED_BUNDLE_INFO_RELOADED = "bundle info reloaded"
 
 # Known bundle catagories
 DYNAMICS = "Molecular trajectory"
@@ -350,6 +354,7 @@ class Toolshed:
         self.triggers.add_trigger(TOOLSHED_BUNDLE_INFO_ADDED)
         self.triggers.add_trigger(TOOLSHED_BUNDLE_INSTALLED)
         self.triggers.add_trigger(TOOLSHED_BUNDLE_UNINSTALLED)
+        self.triggers.add_trigger(TOOLSHED_BUNDLE_INFO_RELOADED)
 
         # Reload the bundle info list
         _debug("loading bundles")
@@ -425,6 +430,7 @@ class Toolshed:
                 self.add_bundle_info(bi)
                 # XXX: do we want to register commands so that we can
                 # ask user whether to install bundle when invoked?
+        self.triggers.activate_trigger(TOOLSHED_BUNDLE_INFO_RELOADED, bi)
 
     def bundle_info(self, installed=True, available=False):
         """Return list of bundle info.

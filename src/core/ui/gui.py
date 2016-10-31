@@ -158,6 +158,17 @@ class UI(QApplication):
         mw.graphics_window.keyPressEvent = self.forward_keystroke
         mw.show()
         self.splash.finish(mw)
+        # Register for tool installation/deinstallation so that
+        # we can update the Tools menu
+        from ..toolshed import (TOOLSHED_BUNDLE_INSTALLED,
+                                TOOLSHED_BUNDLE_UNINSTALLED,
+                                TOOLSHED_BUNDLE_INFO_RELOADED)
+        def handler(*args, mw=self.main_window, ses=self.session, **kw):
+            mw.update_tools_menu(ses)
+        triggers = self.session.toolshed.triggers
+        triggers.add_handler(TOOLSHED_BUNDLE_INSTALLED, handler)
+        triggers.add_handler(TOOLSHED_BUNDLE_UNINSTALLED, handler)
+        triggers.add_handler(TOOLSHED_BUNDLE_INFO_RELOADED, handler)
 
     def deregister_for_keystrokes(self, sink, notfound_okay=False):
         """'undo' of register_for_keystrokes().  Use the same argument.
@@ -496,7 +507,30 @@ class MainWindow(QMainWindow, PlainTextLog):
         quit_action.triggered.connect(lambda arg, s=self, sess=session: s.file_quit_cb(sess))
         file_menu.addAction(quit_action)
 
-        tools_menu = mb.addMenu("&Tools")
+        self.tools_menu = mb.addMenu("&Tools")
+        self.update_tools_menu(session)
+
+        help_menu = mb.addMenu("&Help")
+        for entry, topic in (('User Guide', 'user'),
+                           ('Quick Start Guide', 'quickstart'),
+                           ('Programming Manual', 'devel'),
+                           ('Documentation Index', 'index.html'),
+                           ):
+            help_action = QAction(entry, self)
+            help_action.setStatusTip("Show " + entry)
+            def cb(arg, ses=session, t=topic):
+                from chimerax.core.commands import run
+                run(ses, 'help new_viewer help:%s' % t)
+            help_action.triggered.connect(cb)
+            help_menu.addAction(help_action)
+        from chimerax import app_dirs as ad
+        about_action = QAction("About %s %s" % (ad.appauthor, ad.appname), self)
+        about_action.triggered.connect(self._about)
+        help_menu.addAction(about_action)
+
+    def update_tools_menu(self, session):
+        from PyQt5.QtWidgets import QMenu, QAction
+        tools_menu = QMenu("&Tools")
         categories = {}
         for bi in session.toolshed.bundle_info():
             for tool in bi.tools:
@@ -516,24 +550,11 @@ class MainWindow(QMainWindow, PlainTextLog):
                 tool_action.setStatusTip(tool.synopsis)
                 tool_action.triggered.connect(lambda arg, ses=session, bi=bi: bi.start_tool(ses, tool_name))
                 cat_menu.addAction(tool_action)
-
-        help_menu = mb.addMenu("&Help")
-        for entry, topic in (('User Guide', 'user'),
-                           ('Quick Start Guide', 'quickstart'),
-                           ('Programming Manual', 'devel'),
-                           ('Documentation Index', 'index.html'),
-                           ):
-            help_action = QAction(entry, self)
-            help_action.setStatusTip("Show " + entry)
-            def cb(arg, ses=session, t=topic):
-                from chimerax.core.commands import run
-                run(ses, 'help new_viewer help:%s' % t)
-            help_action.triggered.connect(cb)
-            help_menu.addAction(help_action)
-        from chimerax import app_dirs as ad
-        about_action = QAction("About %s %s" % (ad.appauthor, ad.appname), self)
-        about_action.triggered.connect(self._about)
-        help_menu.addAction(about_action)
+        mb = self.menuBar()
+        old_action = self.tools_menu.menuAction()
+        mb.insertMenu(old_action, tools_menu)
+        mb.removeAction(old_action)
+        self.tools_menu = tools_menu
 
     def add_custom_menu_entry(self, menu_name, entry_name, callback):
         '''
