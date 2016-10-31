@@ -92,7 +92,7 @@ setup(
         # Bundle Metadata:
         # ----------------
         #
-        "ChimeraX-Bundle :: categories :: session_versions :: api_module_name :: custom_session_init",
+        "ChimeraX-Bundle :: categories :: session_versions :: api_module_name :: aliases :: custom_session_init",
         #
         # 'categories' is a comma separated string.  The categories should
         # be a subset of the toolshed categories.
@@ -103,6 +103,8 @@ setup(
         # has the bundle_api in it.
         # 'custom_session_init' is a string.  If not set to 'true', the
         # bundle is not imported until actually invoked.  If set to
+        # 'aliases' is an optional comma separated list of previous bundle
+        # names.
         # 'true', the 'initialize' method is called after the main
         # session has been created.
         #

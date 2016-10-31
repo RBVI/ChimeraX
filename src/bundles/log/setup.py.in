@@ -62,7 +62,7 @@ setup(
         "Topic :: Scientific/Engineering :: Visualization",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
-        "ChimeraX-Bundle :: General :: 1,1 :: PKG_NAME :: ",
+        "ChimeraX-Bundle :: General :: 1,1 :: PKG_NAME :: chimerax.log :: ",
         "ChimeraX-Tool :: Log :: General :: Log of information and output",
         "ChimeraX-Command :: echo :: General :: Log a line of text",
         "ChimeraX-Command :: log :: General :: manipulate the Log tool",

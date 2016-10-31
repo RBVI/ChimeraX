@@ -42,7 +42,9 @@ that consists of the following fields separated by double colons (``::``).
     Comma-separated list of categories in which the bundle belongs.
 3. ``session_versions`` : two comma-separated integers
     Minimum and maximum session version that the bundle can read.
-4. ``custom_init`` : str
+4. ``aliases`` : str
+   Comma-separated list of superceded bundle names.
+5. ``custom_init`` : str
     Whether bundle has initialization code that must be called when
     ChimeraX starts.  Either 'true' or 'false'.  If 'true', the bundle
     must override the BundleAPI's 'initialize' and 'finish' functions.
@@ -572,7 +574,7 @@ class Toolshed:
         best_bi = None
         best_version = None
         for bi in container:
-            if bi.name != name:
+            if bi.name != name and name not in bi.aliases:
                 continue
             if version == bi.version:
                 return bi
@@ -869,16 +871,16 @@ class Toolshed:
         for classifier in md["classifiers"]:
             parts = [v.strip() for v in classifier.split("::")]
             if parts[0] == "ChimeraX-Bundle":
-                # 'ChimeraX-Bundle' :: categories :: session_versions :: module_name :: custom_init
+                # 'ChimeraX-Bundle' :: categories :: session_versions :: module_name :: aliases :: custom_init
                 if len(parts) == 10:
                     bi = self._old_bundle_info(parts, kw, installed, logger, bi)
                     continue
                 elif bi is not None:
                     logger.warning("Second ChimeraX-Bundle line ignored.")
                     break
-                elif len(parts) != 5:
+                elif len(parts) != 6:
                     logger.warning("Malformed ChimeraX-Bundle line in %s skipped." % name)
-                    logger.warning("Expected 5 fields and got %d." % len(parts))
+                    logger.warning("Expected 6 fields and got %d." % len(parts))
                     continue
                 # Categories in which bundle should appear
                 categories = parts[1]
@@ -905,7 +907,9 @@ class Toolshed:
                 # Name of package implementing bundle API
                 kw["api_package_name"] = parts[3]
                 # Does bundle have custom initialization code?
-                custom_init = parts[4]
+                if parts[4]:
+                    kw['aliases'] = [v.strip() for v in parts[4].split(',')]
+                custom_init = parts[5]
                 if custom_init:
                     kw["custom_init"] = (custom_init == "true")
                 bi = BundleInfo(installed=installed, **kw)
@@ -1593,7 +1597,7 @@ class BundleInfo:
                  description="Unknown",
                  session_versions=range(1, 1 + 1),
                  custom_init=False,
-                 packages=[]):
+                 packages=[], aliases=[]):
         """Initialize instance.
 
         Parameters
@@ -1628,6 +1632,7 @@ class BundleInfo:
         self.selectors = []
         self.fetches = []
         self.description = description
+        self.aliases = aliases
 
         # Private attributes
         self._name = name
@@ -1686,6 +1691,7 @@ class BundleInfo:
             "api_package_name": self._api_package_name,
             "packages": self.packages,
             "description": self.description,
+            "aliases": self.aliases,
         }
         more = {
             'tools': [ti.cache_data() for ti in self.tools],

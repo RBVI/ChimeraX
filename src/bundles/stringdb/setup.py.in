@@ -93,7 +93,7 @@ setup(
         # Bundle Metadata:
         # ----------------
         #
-        "ChimeraX-Bundle :: Open interaction parters using String-DB :: 1,1 :: chimerax.stringdb ::",
+        "ChimeraX-Bundle :: Open interaction parters using String-DB :: 1,1 :: chimerax.stringdb :: :: ",
         #
         # 'categories' is a comma separated string.  The categories should
         # be a subset of the toolshed categories.
