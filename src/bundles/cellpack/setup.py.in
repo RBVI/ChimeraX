@@ -63,7 +63,7 @@ setup(
         "Topic :: Scientific/Engineering :: Visualization",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
-        "ChimeraX-Bundle :: Molecular structure :: 1,1 :: PKG_NAME :: ",
+        "ChimeraX-Bundle :: Molecular structure :: 1,1 :: PKG_NAME :: :: ",
         "ChimeraX-DataFormat :: cellpack :: :: Molecular structure :: :: :: http://www.cellpack.org/ :: :: :: cellpack data",
         "ChimeraX-Fetch :: cellpack :: cellpack :: cellpack :: HIV-1_0.1.6 :: true",
     ],

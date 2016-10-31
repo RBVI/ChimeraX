@@ -434,7 +434,7 @@ copy_nmr_info(Structure* from, Structure* to, PyObject* _logger)
     for (auto& i: info)
         to->set_input_seq_info(i.first, i.second);
 
-    // Secondary Structure: TODO
+    // Secondary Structure:
     auto& residues = from->residues();
     auto& to_residues = to->residues();
     size_t num_residues = std::min(residues.size(), to_residues.size());

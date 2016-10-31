@@ -64,7 +64,7 @@ setup(
         "Topic :: Scientific/Engineering :: Visualization",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
-        "ChimeraX-Bundle :: Toolbar :: 1,1 :: PKG_NAME :: ",
+        "ChimeraX-Bundle :: Toolbar :: 1,1 :: PKG_NAME :: chimerax.shortcuts :: ",
         "ChimeraX-Tool :: Molecule Display Toolbar :: Toolbar :: button shortcuts for molecular structure",
         "ChimeraX-Tool :: Graphics Toolbar :: Toolbar :: button shortcuts for graphics",
         "ChimeraX-Tool :: Density Map Toolbar :: Toolbar :: button shortcuts for density maps",

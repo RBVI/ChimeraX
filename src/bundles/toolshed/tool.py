@@ -86,7 +86,7 @@ class ToolshedUI(ToolInstance):
         self.display_name = "Toolshed"
         from chimerax.core.ui.gui import MainToolWindow
         self.tool_window = MainToolWindow(self)
-        self.tool_window.manage(placement="side")
+        self.tool_window.manage(placement=None)
         parent = self.tool_window.ui_area
 
         from PyQt5.QtWidgets import QGridLayout, QTabWidget
@@ -94,43 +94,70 @@ class ToolshedUI(ToolInstance):
         layout = QGridLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         self.tab_widget = QTabWidget()
-        self.html_view = HtmlView(size_hint=(575, 300),
+        self.html_view = HtmlView(size_hint=(1000, 600),
                                   download=self._download)
         self.tab_widget.addTab(self.html_view, "Toolshed")
         layout.addWidget(self.tab_widget, 0, 0)
         parent.setLayout(layout)
 
-        self.tool_window.manage(placement="side")
-
         from PyQt5.QtCore import QUrl
-        print("setUrl page", self.html_view.page())
         self.html_view.setUrl(QUrl(self.TOOLSHED_URL))
-        # self.html_view.setHtml("<h2>Html View</h2>")
+        self._pending_downloads = []
 
     def _intercept(self, info):
         # "info" is an instance of QWebEngineUrlRequestInfo
         qurl = info.requestUrl()
-        print("intercept", qurl.toString())
+        # print("intercept", qurl.toString())
 
     def _download(self, item):
         # "item" is an instance of QWebEngineDownloadItem
-        print("download")
-        print("  mime type", item.mimeType())
-        print("  path", item.path())
-        print("  url", item.url())
-        print("  total bytes", item.totalBytes())
-        print("  received bytes", item.receivedBytes())
-        if (item.mimeType() == "application/zip" and
-                item.url().path().endswith(".whl")):
-            item.finished.connect(lambda i=item: self._download_finished(i))
+        import os.path, os
+        urlFile = item.url().fileName()
+        base, extension = os.path.splitext(urlFile)
+        item.finished.connect(self._download_finished)
+        if item.mimeType() == "application/zip" and extension == ".whl":
+            # Since the file name encodes the package name and version
+            # number, we make sure that we are using the right name
+            # instead of whatever QWebEngine may want to use.
+            # Remove _# which may be present if bundle author submitted
+            # the same version of the bundle multiple times.
+            parts = base.rsplit('_', 1)
+            if len(parts) == 2 and parts[1].isdigit():
+                urlFile = parts[0] + extension
+            filePath = os.path.join(os.path.dirname(item.path()), urlFile)
+            item.setPath(filePath)
+            try:
+                # Guarantee that file name is available
+                os.remove(filePath)
+            except OSError:
+                pass
+            self._pending_downloads.append(item)
             item.accept()
+        else:
+            item.cancel()
 
-    def _download_finished(self, item):
-        import os
-        item.finished.disconnect()
-        filename = item.path()
-        s = os.stat(filename)
-        print("%s: %d bytes" % (filename, s.st_size))
+    def _download_finished(self, *args, **kw):
+        import pip
+        finished = []
+        pending = []
+        for item in self._pending_downloads:
+            if not item.isFinished():
+                pending.append(item)
+            else:
+                finished.append(item)
+        self._pending_downloads = pending
+        install_cmd = ["install", "--quiet"]
+        filenames = []
+        for item in finished:
+            item.finished.disconnect()
+            filename = item.path()
+            filenames.append(filename)
+        install_cmd.extend(filenames)
+        return value", pip.main(install_cmd)
+        self.session.toolshed.reload(self.session.logger,
+                                     session=self.session,
+                                     rebuild_cache=True,
+                                     check_remote=False)
 
     def _navigate(self, qurl):
         session = self.session
