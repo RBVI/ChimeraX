@@ -430,7 +430,7 @@ class Toolshed:
                 self.add_bundle_info(bi)
                 # XXX: do we want to register commands so that we can
                 # ask user whether to install bundle when invoked?
-        self.triggers.activate_trigger(TOOLSHED_BUNDLE_INFO_RELOADED, bi)
+        self.triggers.activate_trigger(TOOLSHED_BUNDLE_INFO_RELOADED, self)
 
     def bundle_info(self, installed=True, available=False):
         """Return list of bundle info.
@@ -758,10 +758,14 @@ class Toolshed:
                 try:
                     with f:
                         data = json.load(f)
-                    return [BundleInfo.from_cache_data(x) for x in data]
-                except:
+                    bundles = [BundleInfo.from_cache_data(x) for x in data]
+                    _debug("_read_cache succeeded", len(bundles))
+                    return bundles
+                except Exception as e:
+                    _debug("_read_cache failed", cache_file, e)
                     return None
-        except OSError:
+        except OSError as e:
+            _debug("_read_cache failed os", str(e))
             return None
 
     def _write_cache(self, bundle_info, logger):
@@ -1498,7 +1502,7 @@ class FormatInfo:
                  dangerous=None, icon=None,
                  has_open=False, has_save=False):
         self.name = name
-        self.alternatives = alternates
+        self.alternates = alternates
         self.category = category
         self.suffixes = suffixes
         self.mime_types = mime_types
@@ -1537,7 +1541,7 @@ class FormatInfo:
             'dangerous': self.dangerous,
             'icon': self.icon,
             'synopsis': self.synopsis,
-            'alternatives': self.alternatives,
+            'alternates': self.alternates,
             'has_open': self.has_open,
             'has_save': self.has_save,
         }
