@@ -153,7 +153,7 @@ class ToolshedUI(ToolInstance):
             filename = item.path()
             filenames.append(filename)
         install_cmd.extend(filenames)
-        return value", pip.main(install_cmd)
+        return value, pip.main(install_cmd)
         self.session.toolshed.reload(self.session.logger,
                                      session=self.session,
                                      rebuild_cache=True,
