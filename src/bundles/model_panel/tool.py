@@ -122,9 +122,8 @@ class ModelPanel(ToolInstance):
                     from chimerax.core.ui.widgets import ColorButton
                     but = ColorButton(has_alpha_channel=True, max_size=(16,16))
                     def set_single_color(rgba, m=model):
-                        for cm in m.child_models():
+                        for cm in m.all_models():
                             cm.single_color = rgba
-                        m.single_color = rgba
                     but.color_changed.connect(set_single_color)
                     but.set_color(bg_color)
                     self.tree.setItemWidget(item, 1, but)
