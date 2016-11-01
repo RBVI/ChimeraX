@@ -51,7 +51,7 @@ def cofr(session, method=None, objects=None, pivot=None, coordinate_system=None)
         from numpy import array, float32
         v.center_of_rotation = array(p, float32)
     if method is None and objects is None and pivot is None:
-        msg = 'Center of rotation: %.5g %.5g %.5g' % tuple(v.center_of_rotation)
+        msg = 'Center of rotation: %.5g %.5g %.5g  %s' % (tuple(v.center_of_rotation) + (v.center_of_rotation_method,))
         log = session.logger
         log.status(msg)
         log.info(msg)

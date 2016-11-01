@@ -38,7 +38,7 @@ class State(metaclass=abc.ABCMeta):
     SESSION = 0x2
     ALL = SCENE | SESSION
 
-    #: Which "tool" this state is from (None is core)
+    #: Which "bundle" this state is from (None is core)
     bundle_info = None
 
     def take_snapshot(self, session, flags):
@@ -54,8 +54,6 @@ class State(metaclass=abc.ABCMeta):
         data = self.vars().copy()
         data['bundle name'] = self.bundle_info.name
         data['version'] = self.bundle_info.state_version
-        if 'bundle_info' in data:
-            del data['bundle_info']
         return data
 
     @classmethod
@@ -63,8 +61,6 @@ class State(metaclass=abc.ABCMeta):
         """Create object using snapshot data."""
         obj = cls()
         obj.__dict__ = data
-        if obj.bundle_info is None:
-            obj.bundle_info = session.toolshed.find_bundle(data['bundle name'])
         return obj
 
     @abc.abstractmethod
@@ -125,7 +121,7 @@ def copy_state(data, convert=None):
     data : any
         The data to copy
     convert : function
-        Optional function to convert objects of tool classes.
+        Optional function to convert objects of bundle classes.
 
     Objects that would be named in a session file are not copied.
     Only known data structures are copied.

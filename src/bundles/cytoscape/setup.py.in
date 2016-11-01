@@ -92,7 +92,7 @@ setup(
         # Bundle Metadata:
         # ----------------
         #
-        "ChimeraX-Bundle :: Cytoscape Interface :: 1,1 :: chimerax.cytoscape ::",
+        "ChimeraX-Bundle :: Cytoscape Interface :: 1,1 :: chimerax.cytoscape :: ::",
         #
         # 'categories' is a comma separated string.  The categories should
         # be a subset of the toolshed categories.

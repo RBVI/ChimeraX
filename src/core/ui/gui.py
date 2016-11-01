@@ -548,7 +548,7 @@ class MainWindow(QMainWindow, PlainTextLog):
                 bi, tool = cat_info[tool_name]
                 tool_action = QAction(tool_name, self)
                 tool_action.setStatusTip(tool.synopsis)
-                tool_action.triggered.connect(lambda arg, ses=session, bi=bi: bi.start_tool(ses, tool_name))
+                tool_action.triggered.connect(lambda arg, ses=session, bi=bi, tool_name=tool_name: bi.start_tool(ses, tool_name))
                 cat_menu.addAction(tool_action)
         mb = self.menuBar()
         old_action = self.tools_menu.menuAction()
