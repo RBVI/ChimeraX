@@ -1384,7 +1384,11 @@ class SeqBlock:
             self.font_metrics = QFontMetrics(self.font)
             self.emphasis_font_metrics = QFontMetrics(self.emphasis_font)
             self.label_width = self.find_label_width(self.font_metrics, self.emphasis_font_metrics)
-            font_width, font_height = self.font_metrics.maxWidth(), self.font_metrics.height()
+            # On Windows the maxWidth() of Helvitica is 39(!), whereas the width of 'W' is 14.
+            # So, I have no idea what that 39-wide character is, but I don't care -- just use
+            # the width of 'W' as the maximum widht instead.
+            font_width, font_height = self.font_metrics.width('W'), self.font_metrics.height()
+            print("font w/h:", font_width, font_height)
             # pad font a little...
             self.font_pixels = (font_width + 1, font_height + 1)
             from PyQt5.QtCore import Qt
