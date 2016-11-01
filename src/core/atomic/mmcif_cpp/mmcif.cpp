@@ -61,11 +61,28 @@ using element::Element;
 using atomstruct::MolResId;
 using atomstruct::Coord;
 
-namespace mmcif {
-
 using atomstruct::AtomName;
 using atomstruct::ChainID;
 using atomstruct::ResName;
+
+namespace {
+
+inline void
+canonicalize_atom_name(AtomName* aname, bool* asterisks_translated)
+{
+    for (int i = aname->length(); i > 0; ) {
+        --i;
+        // use prime instead of asterisk
+        if ((*aname)[i] == '*') {
+            (*aname)[i] = '\'';
+            *asterisks_translated = true;
+        }
+    }
+}
+
+} // namespace
+
+namespace mmcif {
 
 typedef vector<string> StringVector;
 typedef vector<unsigned> UIntVector;
@@ -783,7 +800,9 @@ ExtractMolecule::parse_atom_site()
     char ins_code = ' ';          // pdbx_PDB_ins_code
     char alt_id = '\0';           // label_alt_id
     AtomName atom_name;           // label_atom_id
+#if 0
     AtomName auth_atom_name;      // auth_atom_id
+#endif
     ResName residue_name;         // label_comp_id
     ResName auth_residue_name;    // auth_comp_id
     char symbol[3];               // type_symbol
@@ -866,12 +885,14 @@ ExtractMolecule::parse_atom_site()
                     --end;
                 atom_name = AtomName(start, end - start);
             });
+#if 0
         pv.emplace_back(get_column("auth_atom_id"), true,
             [&] (const char* start, const char* end) {
                 auth_atom_name = AtomName(start, end - start);
                 if (auth_atom_name == "." || auth_atom_name == "?")
                     auth_atom_name.clear();
             });
+#endif
         pv.emplace_back(get_column("label_comp_id", true), true,
             [&] (const char* start, const char* end) {
                 residue_name = ResName(start, end - start);
@@ -994,6 +1015,7 @@ ExtractMolecule::parse_atom_site()
                             ": missing coordinates");
             continue;
         }
+        canonicalize_atom_name(&atom_name, &mol->asterisks_translated);
 
         Atom* a;
         if (alt_id && cur_residue->count_atom(atom_name) == 1) {
