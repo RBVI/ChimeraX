@@ -97,7 +97,7 @@ class Model(State, Drawing):
             self.session.models.add(models, parent = self)
 
     def child_models(self):
-        '''Return all models including self and children at all levels.'''
+        '''Return child models.'''
         return [d for d in self.child_drawings() if isinstance(d, Model)]
 
     def all_models(self):
