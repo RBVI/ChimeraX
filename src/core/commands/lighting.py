@@ -119,7 +119,7 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
     if preset == 'default' or preset == 'simple':
         lp.shadows = False
         lp.multishadow = 0
-        lp.set_default_parameters()
+        lp.set_default_parameters(v.background_color)
     elif preset == 'full':
         lp.shadows = True
         lp.multishadow = 64
