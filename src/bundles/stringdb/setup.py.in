@@ -27,14 +27,14 @@ else:
 rel_inst_data_dir = os.path.basename(data_dir)
 
 description = """
-FIXME LONG DESCRIPTION OF BUNDLE
+Interface to String-db
 """
 # or FIXME description = open('ReadMe.rst', encoding='utf-8').read()
 
 setup(
     name="BUNDLE_NAME",
     version="BUNDLE_VERSION",  # PEP 440, should match Development Status below
-    description="FIXME BUNDLE_SYNOPSIS",  # one line synopsis
+    description="String-db interface",  # one line synopsis
     long_description=description,  # see above
     author="UCSF RBVI",
     author_email="chimerax@cgl.ucsf.edu",
@@ -60,6 +60,7 @@ setup(
     install_requires=[
         "ChimeraX-Core >= 0.1",
         # FIXME list all dependences on other packages
+        "ChimeraX-Cytoscape >= 0.1"
     ],
     classifiers=[
         # From https://pypi.python.org/pypi?%3Aaction=list_classifiers
@@ -92,7 +93,7 @@ setup(
         # Bundle Metadata:
         # ----------------
         #
-        "ChimeraX-Bundle :: categories :: session_versions :: api_module_name :: aliases :: custom_session_init",
+        "ChimeraX-Bundle :: Open interaction parters using String-DB :: 1,1 :: chimerax.stringdb :: :: ",
         #
         # 'categories' is a comma separated string.  The categories should
         # be a subset of the toolshed categories.
@@ -103,8 +104,6 @@ setup(
         # has the bundle_api in it.
         # 'custom_session_init' is a string.  If not set to 'true', the
         # bundle is not imported until actually invoked.  If set to
-        # 'aliases' is an optional comma separated list of previous bundle
-        # names.
         # 'true', the 'initialize' method is called after the main
         # session has been created.
         #
@@ -115,7 +114,7 @@ setup(
         # Tool Metadata:
         # --------------
         #
-        "ChimeraX-Tool :: tool_name :: categories :: synopsis",
+        # "ChimeraX-Tool :: tool_name :: categories :: synopsis",
         #
         # 'tool_name' is a string.
         # 'categories' should be a subset of the bundle's categories. 
@@ -132,7 +131,7 @@ setup(
         # Command Metadata:
         # -----------------
         #
-        "ChimeraX-Command :: name :: categories :: synopsis",
+        "ChimeraX-Command :: stringdb :: General :: Open interaction partners using stringdb",
         #
         # 'name' is a string and may have spaces in it.
         # 'categories' should be a subset of the bundle's categories. 
@@ -150,7 +149,7 @@ setup(
         # Data Format Metadata:
         # ---------------------
         #
-        "ChimeraX-DataFormat :: format_name :: alternate_names :: category :: suffixes :: mime_types :: url :: dangerous :: icon :: synopsis",
+        # "ChimeraX-DataFormat :: format_name :: alternate_names :: category :: suffixes :: mime_types :: url :: dangerous :: icon :: synopsis",
         #
         # 'data_name' is a string.
         # 'alternate_names' is an optional comma-separated list of strings.
@@ -180,9 +179,9 @@ setup(
         # In addition to describing the format, the bundle should say how if it
         # can fetch, open or save data in that format.
         #
-        "ChimeraX-Open :: format_name :: tag :: is_default",
-        "ChimeraX-Save :: format_name :: tag :: is_default",
-        "ChimeraX-Fetch :: database_name :: format_name :: prefixes :: example_id :: is_default",
+        #"ChimeraX-Open :: format_name :: tag :: is_default",
+        #"ChimeraX-Save :: format_name :: tag :: is_default",
+        #"ChimeraX-Fetch :: database_name :: format_name :: prefixes :: example_id :: is_default",
         #
         # 'format_name' is a format previously given in a ChimeraX-DataFormat
         # line.
@@ -202,7 +201,7 @@ setup(
         #       ChimeraX-Fetch :: PDB :: mmcif :: pdb :: 1a0m ::
         #       ChimeraX-Fetch :: PDB :: PDB :: :: 1a0m ::
         #
-        "ChimeraX-Selector :: name :: synopsis",
+        #"ChimeraX-Selector :: name :: synopsis",
         #
         # 'name' is a string and may have spaces in it.
         # 'synopsis' is a short description of the selector.  It is here for

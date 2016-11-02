@@ -175,10 +175,9 @@ class Drawing:
             self.redraw_needed()
         if key in self._effects_buffers:
             self._attribute_changes.add(key)
-            gc = key in ('vertices', 'triangles', '_triangle_mask')
-            if gc:
+            sc = key in ('vertices', 'triangles', '_triangle_mask', '_displayed_positions', '_positions')
+            if sc:
                 self._cached_bounds = None
-            sc = (gc or (key in ('_displayed_positions', '_positions')))
             self.redraw_needed(shape_changed=sc)
 
         super(Drawing, self).__setattr__(key, value)

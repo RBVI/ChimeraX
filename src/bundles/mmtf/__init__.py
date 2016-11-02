@@ -11,10 +11,6 @@ STRAND = 'strand'
 class _MyAPI(BundleAPI):
 
     @staticmethod
-    def get_class(class_name):
-        return None
-
-    @staticmethod
     def fetch_url(session, identifier, ignore_cache=False, database_name=None, format_name=None, **kw):
         # 'fetch_from_database' is called by session code to fetch from
         # a database
@@ -209,4 +205,6 @@ def fetch_mmtf(session, pdb_id):
     # for m in models:
     #     find_and_add_metal_coordination_bonds(m)
 
-    return models, "opened MMTF %s" % pdb_id
+    return models, ("Opened MMTF data containing %d atoms and %d bonds"
+                    % (sum(m.num_atoms for m in models),
+                       sum(m.num_bonds for m in models)))

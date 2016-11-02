@@ -10,11 +10,35 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.errors import UserError as CommandError
+from chimerax.core.commands import Annotation, AnnotationError, next_token
+
+class NameArg(Annotation):
+
+    name = 'a label identifier'
+
+    @staticmethod
+    def parse(text, session):
+        if not text:
+            raise AnnotationError("Expected %s" % NameArg.name)
+        lmap = getattr(session, 'labels', None)
+        if lmap is None:
+            raise AnnotationError("Unknown label identifier")
+        token, text, rest = next_token(text)
+        if token not in lmap:
+            possible = [name for name in lmap if name.startswith(token)]
+            if not possible:
+                raise AnnotationError("Unknown label identifier")
+            possible.sort(key=len)
+            token = possible[0]
+        return token, token, rest
+
+
 def register_label_command():
 
     from chimerax.core.commands import CmdDesc, register, BoolArg, IntArg, StringArg, FloatArg, ColorArg
 
     rargs = [('name', StringArg)]
+    existing_arg = [('name', NameArg)]
     # Create and change have same arguments
     cargs = [('text', StringArg),
              ('color', ColorArg),
@@ -25,9 +49,9 @@ def register_label_command():
              ('visibility', BoolArg)]
     create_desc = CmdDesc(required = rargs, keyword = cargs)
     register('2dlabels create', create_desc, label_create)
-    change_desc = CmdDesc(required = rargs, keyword = cargs)
+    change_desc = CmdDesc(required = existing_arg, keyword = cargs)
     register('2dlabels change', change_desc, label_change)
-    delete_desc = CmdDesc(required = rargs)
+    delete_desc = CmdDesc(required = existing_arg)
     register('2dlabels delete', delete_desc, label_delete)
 
 class Label:

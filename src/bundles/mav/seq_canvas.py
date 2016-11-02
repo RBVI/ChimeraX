@@ -1384,7 +1384,10 @@ class SeqBlock:
             self.font_metrics = QFontMetrics(self.font)
             self.emphasis_font_metrics = QFontMetrics(self.emphasis_font)
             self.label_width = self.find_label_width(self.font_metrics, self.emphasis_font_metrics)
-            font_width, font_height = self.font_metrics.maxWidth(), self.font_metrics.height()
+            # On Windows the maxWidth() of Helvetica is 39(!), whereas the width of 'W' is 14.
+            # So, I have no idea what that 39-wide character is, but I don't care -- just use
+            # the width of 'W' as the maximum width instead.
+            font_width, font_height = self.font_metrics.width('W'), self.font_metrics.height()
             # pad font a little...
             self.font_pixels = (font_width + 1, font_height + 1)
             from PyQt5.QtCore import Qt
@@ -1492,7 +1495,14 @@ class SeqBlock:
         item.setToolTip(self._mouse_res_text(aseq, index))
 
     def assoc_mod(self, aseq):
-        self.label_texts[aseq].setFont(self._label_font(aseq))
+        label_text = self.label_texts[aseq]
+        name = seq_name(aseq, self.prefs)
+        from PyQt5.QtGui import QFontMetrics
+        first_width = QFontMetrics(label_text.font()).width(name)
+        label_text.setFont(self._label_font(aseq))
+        diff = QFontMetrics(label_text.font()).width(name) - first_width
+        if diff:
+            label_text.moveBy(-diff, 0.0)
         associated = self.has_associated_structures(aseq)
         if associated:
             self._colorize_label(aseq)

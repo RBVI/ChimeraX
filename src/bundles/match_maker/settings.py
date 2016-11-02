@@ -1,9 +1,9 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
-from . import CP_BEST, AA_NEEDLEMAN_WUNSCH
+from . import CP_BEST_BEST, AA_NEEDLEMAN_WUNSCH
 
 defaults = {
-	'chain_pairing': CP_BEST,
+	'chain_pairing': CP_BEST_BEST,
 	'alignment_algorithm': AA_NEEDLEMAN_WUNSCH,
 	'show_sequence': False,
 	'matrix': "BLOSUM-62",

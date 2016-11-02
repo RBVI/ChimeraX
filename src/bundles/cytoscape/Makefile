@@ -1,9 +1,14 @@
+# Fix all parts that say FIXME
+#
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-BUNDLE_NAME = ChimeraX-RightMouseModes
-BUNDLE_VERSION = 1.0
-PKG_NAME = chimerax.mouse_modes
+BUNDLE_NAME = ChimeraX-Cytoscape
+# By convention, UCSF RBVI bundles start with "ChimeraX-"
+BUNDLE_VERSION = 0.1
+PKG_NAME = chimerax.cytoscape
+PKG_VERSION = 0.1
+PKG_DESCRIPTION = ChimeraX interface to Cytoscape
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,'g)
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
@@ -15,13 +20,13 @@ endif
 WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
 
 PYSRCS = $(filter-out setup.py,$(wildcard *.py))
-DATAFILES = icons
 WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-py3-none-any.whl
+# FIXME WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-py3-none-$(BIN_PLATFORM).whl
 
 all: $(PYOBJS)
 
 install: dir all
-	$(RSYNC) $(PYSRCS) $(DATAFILES) $(PKG_DIR)
+	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 	if [ -d "$(app_prefix)" ]; then \
 		$(MAKE) app-install ;\
 	fi
@@ -32,6 +37,7 @@ app-install: wheel
 
 wheel: setup.py
 	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel
+	# FIXME $(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel --plat-name $(BIN_PLATFORM)
 	rm -rf $(WHL_BNDL_NAME).egg-info
 
 setup.py: setup.py.in Makefile

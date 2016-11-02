@@ -42,7 +42,9 @@ that consists of the following fields separated by double colons (``::``).
     Comma-separated list of categories in which the bundle belongs.
 3. ``session_versions`` : two comma-separated integers
     Minimum and maximum session version that the bundle can read.
-4. ``custom_init`` : str
+4. ``aliases`` : str
+   Comma-separated list of superceded bundle names.
+5. ``custom_init`` : str
     Whether bundle has initialization code that must be called when
     ChimeraX starts.  Either 'true' or 'false'.  If 'true', the bundle
     must override the BundleAPI's 'initialize' and 'finish' functions.
@@ -155,6 +157,9 @@ TOOLSHED_BUNDLE_INSTALLED : str
 TOOLSHED_BUNDLE_UNINSTALLED : str
     Name of trigger fired when an installed bundle is removed.
     The trigger data is a :py:class:`BundleInfo` instance.
+TOOLSHED_BUNDLE_INFO_RELOADED : str
+    Name of trigger fired when bundle metadata is reloaded.
+    The trigger data is a :py:class:`BundleInfo` instance.
 
 Notes
 -----
@@ -170,6 +175,7 @@ from ..orderedset import OrderedSet
 TOOLSHED_BUNDLE_INFO_ADDED = "bundle info added"
 TOOLSHED_BUNDLE_INSTALLED = "bundle installed"
 TOOLSHED_BUNDLE_UNINSTALLED = "bundle uninstalled"
+TOOLSHED_BUNDLE_INFO_RELOADED = "bundle info reloaded"
 
 # Known bundle catagories
 DYNAMICS = "Molecular trajectory"
@@ -350,6 +356,7 @@ class Toolshed:
         self.triggers.add_trigger(TOOLSHED_BUNDLE_INFO_ADDED)
         self.triggers.add_trigger(TOOLSHED_BUNDLE_INSTALLED)
         self.triggers.add_trigger(TOOLSHED_BUNDLE_UNINSTALLED)
+        self.triggers.add_trigger(TOOLSHED_BUNDLE_INFO_RELOADED)
 
         # Reload the bundle info list
         _debug("loading bundles")
@@ -425,6 +432,7 @@ class Toolshed:
                 self.add_bundle_info(bi)
                 # XXX: do we want to register commands so that we can
                 # ask user whether to install bundle when invoked?
+        self.triggers.activate_trigger(TOOLSHED_BUNDLE_INFO_RELOADED, self)
 
     def bundle_info(self, installed=True, available=False):
         """Return list of bundle info.
@@ -566,7 +574,7 @@ class Toolshed:
         best_bi = None
         best_version = None
         for bi in container:
-            if bi.name != name:
+            if bi.name != name and name not in bi.aliases:
                 continue
             if version == bi.version:
                 return bi
@@ -661,7 +669,11 @@ class Toolshed:
 
         # Initialize distlib paths and locators
         _debug("_scan_installed")
-        if self._inst_locator is None:
+        if self._inst_locator is not None:
+            self._inst_locator.clear_cache()
+            self._inst_path.clear_cache()
+            _debug("_inst_path cleared cache")
+        else:
             from distlib.database import DistributionPath
             self._inst_path = DistributionPath()
             _debug("_inst_path", self._inst_path)
@@ -752,10 +764,14 @@ class Toolshed:
                 try:
                     with f:
                         data = json.load(f)
-                    return [BundleInfo.from_cache_data(x) for x in data]
-                except:
+                    bundles = [BundleInfo.from_cache_data(x) for x in data]
+                    _debug("_read_cache succeeded", len(bundles))
+                    return bundles
+                except Exception as e:
+                    _debug("_read_cache failed", cache_file, e)
                     return None
-        except OSError:
+        except OSError as e:
+            _debug("_read_cache failed os", str(e))
             return None
 
     def _write_cache(self, bundle_info, logger):
@@ -856,16 +872,16 @@ class Toolshed:
         for classifier in md["classifiers"]:
             parts = [v.strip() for v in classifier.split("::")]
             if parts[0] == "ChimeraX-Bundle":
-                # 'ChimeraX-Bundle' :: categories :: session_versions :: module_name :: custom_init
+                # 'ChimeraX-Bundle' :: categories :: session_versions :: module_name :: aliases :: custom_init
                 if len(parts) == 10:
                     bi = self._old_bundle_info(parts, kw, installed, logger, bi)
                     continue
                 elif bi is not None:
                     logger.warning("Second ChimeraX-Bundle line ignored.")
                     break
-                elif len(parts) != 5:
+                elif len(parts) not in [5, 6]:
                     logger.warning("Malformed ChimeraX-Bundle line in %s skipped." % name)
-                    logger.warning("Expected 5 fields and got %d." % len(parts))
+                    logger.warning("Expected 6 fields and got %d." % len(parts))
                     continue
                 # Categories in which bundle should appear
                 categories = parts[1]
@@ -891,10 +907,19 @@ class Toolshed:
                     kw["session_versions"] = range(lo, hi + 1)
                 # Name of package implementing bundle API
                 kw["api_package_name"] = parts[3]
-                # Does bundle have custom initialization code?
-                custom_init = parts[4]
-                if custom_init:
-                    kw["custom_init"] = (custom_init == "true")
+                if len(parts) == 5:
+                    # Does bundle have custom initialization code?
+                    custom_init = parts[4]
+                    if custom_init:
+                        kw["custom_init"] = (custom_init == "true")
+                else:
+                    # Are there bundle name aliases?
+                    if parts[4]:
+                        kw['aliases'] = [v.strip() for v in parts[4].split(',')]
+                    # Does bundle have custom initialization code?
+                    custom_init = parts[5]
+                    if custom_init:
+                        kw["custom_init"] = (custom_init == "true")
                 bi = BundleInfo(installed=installed, **kw)
             elif parts[0] == "ChimeraX-Tool":
                 # 'ChimeraX-Tool' :: tool_name :: categories :: synopsis
@@ -1384,7 +1409,7 @@ class Toolshed:
                 bi.deregister()
                 if session is not None:
                     bi.finish(session)
-        self._installed_bundle_info = reversed(keep)
+        self._installed_bundle_info = list(reversed(keep))
         # TODO: update _installed_packages
         self._remove_distribution(d, logger)
 
@@ -1492,7 +1517,7 @@ class FormatInfo:
                  dangerous=None, icon=None,
                  has_open=False, has_save=False):
         self.name = name
-        self.alternatives = alternates
+        self.alternates = alternates
         self.category = category
         self.suffixes = suffixes
         self.mime_types = mime_types
@@ -1531,7 +1556,7 @@ class FormatInfo:
             'dangerous': self.dangerous,
             'icon': self.icon,
             'synopsis': self.synopsis,
-            'alternatives': self.alternatives,
+            'alternates': self.alternates,
             'has_open': self.has_open,
             'has_save': self.has_save,
         }
@@ -1580,7 +1605,7 @@ class BundleInfo:
                  description="Unknown",
                  session_versions=range(1, 1 + 1),
                  custom_init=False,
-                 packages=[]):
+                 packages=[], aliases=[]):
         """Initialize instance.
 
         Parameters
@@ -1615,6 +1640,7 @@ class BundleInfo:
         self.selectors = []
         self.fetches = []
         self.description = description
+        self.aliases = aliases
 
         # Private attributes
         self._name = name
@@ -1673,6 +1699,7 @@ class BundleInfo:
             "api_package_name": self._api_package_name,
             "packages": self.packages,
             "description": self.description,
+            "aliases": self.aliases,
         }
         more = {
             'tools': [ti.cache_data() for ti in self.tools],
