@@ -670,8 +670,9 @@ class Toolshed:
         # Initialize distlib paths and locators
         _debug("_scan_installed")
         if self._inst_locator is not None:
+            self._inst_locator.clear_cache()
             self._inst_path.clear_cache()
-            _debug("_inst_path cleared cache", self._inst_path)
+            _debug("_inst_path cleared cache")
         else:
             from distlib.database import DistributionPath
             self._inst_path = DistributionPath()
