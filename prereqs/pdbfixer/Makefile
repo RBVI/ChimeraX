@@ -13,7 +13,7 @@ install: $(SOURCE)
 	cd $(SOURCE) &&	$(PYTHON_EXE) setup.py install
 
 app-install: install
-	$(RSYNC) $(PYSITEDIR)/pdbfixer-$(EGG_VERSION)-py$(PYTHON_VERSION).egg $(APP_PYSITEDIR)
+	cd $(SOURCE) &&	$(APP_PYTHON_EXE) setup.py install
 
 $(SOURCE):
 	tar xf $(DISTRIBUTION) -C $(tmpdir)
