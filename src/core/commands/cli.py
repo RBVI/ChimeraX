@@ -531,6 +531,7 @@ class TupleOf(Aggregate):
     def add_to(self, container, value):
         return container + (value,)
 
+
 class DottedTupleOf(Aggregate):
     """Annotation for dot-separated lists of a single type
 
@@ -554,6 +555,7 @@ class DottedTupleOf(Aggregate):
     def add_to(self, container, value):
         return container + (value,)
 
+
 class RepeatOf(Annotation):
     '''
     Annotation for keyword options that can occur multiple times.
@@ -563,9 +565,11 @@ class RepeatOf(Annotation):
     Option values are put in list even if option occurs only once.
     '''
     allow_repeat = True
+
     def __init__(self, annotation):
         self.name = annotation.name + ', repeatable'
         self.parse = annotation.parse
+
 
 class BoolArg(Annotation):
     """Annotation for boolean literals"""
@@ -882,6 +886,7 @@ class StructureArg(Annotation):
             raise AnnotationError('Specified model is not a Structure')
         return m, text, rest
 
+
 class StructuresArg(Annotation):
     """Parse command structures specifier"""
     name = "structures"
@@ -894,6 +899,7 @@ class StructuresArg(Annotation):
         from ..atomic import Structure
         mols = [m for m in models if isinstance(m, Structure)]
         return mols, text, rest
+
 
 class AtomicStructuresArg(Annotation):
     """Parse command atomic structures specifier"""
@@ -940,6 +946,7 @@ class PseudobondsArg(Annotation):
         from ..atomic import Pseudobonds, concatenate
         pbonds = concatenate(pblist, Pseudobonds)
         return pbonds, used, rest
+
 
 class SurfacesArg(Annotation):
     """Parse command surfaces specifier"""
@@ -1571,7 +1578,7 @@ class CmdDesc:
         ci = copy.copy(self)
         ci._function = None
         return ci
-    
+
     def is_alias(self):
         return isinstance(self.function, Alias)
 
@@ -1788,7 +1795,7 @@ def deregister(name, *, is_user_alias=False):
         if word_info is None:
             if is_user_alias:
                 raise UserError('No alias named %s exists' % dq_repr(name))
-            raise RuntimeError("unregistering unknown command: %r" % name)
+            raise RuntimeError('unregistering unknown command: "%s"' % name)
         parent_info = word_info
     if is_user_alias and not parent_info.is_user_alias():
         raise UserError('%s is not a user alias' % dq_repr(name))
@@ -1981,7 +1988,7 @@ class Command:
                 if no_aliases:
                     if what.is_alias():
                         if cmd_name not in _aliased_commands:
-                            self._error = 'alias did not hide a command'
+                            self._error = 'Alias did not hide a command'
                             return
                         what = _aliased_commands[cmd_name]
                         if what.cmd_desc is None:
@@ -2029,7 +2036,7 @@ class Command:
             else:
                 if isinstance(kw_name, int):
                     # alias argument position
-                    required = "%s requried" % ordinal(kw_name)
+                    required = "%s required" % ordinal(kw_name)
                 else:
                     required = 'required "%s"' % _user_kw(kw_name)
                 self._error = 'Missing %s positional argument' % required
@@ -2133,7 +2140,7 @@ class Command:
             kw_name = self._ci._keyword_map[arg_name]
             anno = self._ci._keyword[kw_name]
             if not text and anno != NoArg:
-                self._error = 'Missing "%s" keyword argument' % _user_kw(kw_name)
+                self._error = 'Missing "%s" keyword\'s argument' % _user_kw(kw_name)
                 break
 
             self.completion_prefix = ''
@@ -2191,7 +2198,7 @@ class Command:
             self._find_command_name(final, used_aliases=_used_aliases)
             if self._error:
                 if log:
-                    self.log(text)
+                    self.log_parse_error()
                 raise UserError(self._error)
             if not self._ci:
                 if len(self.current_text) > self.amount_parsed and self.current_text[self.amount_parsed] == ';':
@@ -2202,38 +2209,46 @@ class Command:
             prev_annos = self._process_positional_arguments()
             if self._error:
                 if log:
-                    self.log(text)
+                    self.log_parse_error()
                 raise UserError(self._error)
             self._process_keyword_arguments(final, prev_annos)
             if self._error:
                 if log:
-                    self.log(text)
+                    self.log_parse_error()
                 raise UserError(self._error)
             missing = [kw for kw in self._ci._required_arguments if kw not in self._kw_args]
             if missing:
                 arg_names = ['"%s"' % m for m in missing]
                 msg = commas(arg_names, ' and')
                 noun = plural_form(arg_names, 'argument')
+                self._error = "Missing required %s %s" % (msg, noun)
                 if log:
-                    self.log(text)
-                raise UserError("Missing required %s %s" % (msg, noun))
+                    self.log_parse_error()
+                raise UserError(self._error)
             for cond in self._ci._postconditions:
                 if not cond.check(self._kw_args):
+                    self._error = cond.error_message()
                     if log:
-                        self.log(text)
-                    raise UserError(cond.error_message())
+                        self.log_parse_error()
+                    raise UserError(self._error)
 
             if not final:
                 return results
 
-            cmd_text = self.current_text[self.start:self.amount_parsed]
             ci = self._ci
             kw_args = self._kw_args
             if log:
-                self.log(cmd_text)
+                self.log()
             try:
                 if not isinstance(ci.function, Alias):
-                    results.append(ci.function(session, **kw_args))
+                    try:
+                        result = ci.function(session, **kw_args)
+                    except UserError as e:
+                        self.log_error(str(e))
+                        raise
+                    except:
+                        raise
+                    results.append(result)
                 else:
                     arg_names = [k for k in kw_args.keys() if isinstance(k, int)]
                     arg_names.sort()
@@ -2259,8 +2274,9 @@ class Command:
                 if len(traceback.extract_tb(exc_traceback)) > 2:
                     raise
                 raise UserError(err)
-            from .. import atomic
-            atomic.check_for_changes(session)
+            if session is not None:
+                from .. import atomic
+                atomic.check_for_changes(session)
 
             self.command_name = None
             self._ci = None
@@ -2271,20 +2287,80 @@ class Command:
                 return results
             self.amount_parsed += 1  # skip semicolon
 
-    def log(self, cmd_text):
+    def log(self):
         session = self._session()  # resolve back reference
-        if not session.ui.is_gui:
+        cmd_text = self.current_text[self.start:self.amount_parsed]
+        if session is None:
+            # for testing purposes
+            print("Executing: %s" % cmd_text)
+        elif not session.ui.is_gui:
             session.logger.info("Executing: %s" % cmd_text)
         else:
-            ci = self._ci
             from html import escape
+            ci = self._ci
+            msg = '<div class="cxcmd">'
             if ci is None or ci.url is None:
-                msg = '<div class="cxcmd">%s</div>' % escape(cmd_text)
+                msg += escape(cmd_text)
             else:
                 cargs = cmd_text[len(self.command_name):]
-                msg = '<div class="cxcmd"><a href="%s">%s</a>%s</div>' % (
+                msg += '<a href="%s">%s</a>%s' % (
                     ci.url, escape(self.command_name), escape(cargs))
+            msg += '</div>'
             session.logger.info(msg, is_html=True, add_newline=False)
+
+    def log_error(self, msg):
+        session = self._session()  # resolve back reference
+        if not session.ui.is_gui:
+            session.logger.error(msg)
+        else:
+            from html import escape
+            err_color = 'crimson'
+            msg = '<span style="color:%s;font-weight:bold">%s</span>\n' % (
+                err_color, escape(msg))
+            session.logger.info(msg, is_html=True)
+
+    def log_parse_error(self):
+        session = self._session()  # resolve back reference
+        rest = self.current_text[self.amount_parsed:]
+        spaces = len(rest) - len(rest.lstrip())
+        error_at = self.amount_parsed + spaces
+        syntax_error = error_at < len(self.current_text)
+        if session is None:
+            # for testing purposes
+            print(self.current_text[self.start:])
+            if syntax_error:
+                error_at -= self.start
+                if error_at:
+                    print("%s^" % ('.' * error_at))
+            print(self._error)
+        elif not session.ui.is_gui:
+            session.logger.error(self.current_text[self.start:])
+            if syntax_error:
+                error_at -= self.start
+                if error_at:
+                    session.logger.error("%s^" % ('.' * error_at))
+            session.logger.error(self._error)
+        else:
+            from html import escape
+            ci = self._ci
+            err_color = 'crimson'
+            msg = '<div class="cxcmd">'
+            if ci is None or ci.url is None:
+                offset = 0
+            else:
+                offset = len(self.command_name)
+                msg += '<a href="%s">%s</a>' % (
+                    ci.url, escape(self.command_name))
+            if not syntax_error:
+                msg += escape(self.current_text[self.start + offset:self.amount_parsed])
+            else:
+                msg += '%s<span style="color:white; background-color:%s;">%s</span>' % (
+                    escape(self.current_text[self.start + offset:error_at]),
+                    err_color,
+                    escape(self.current_text[error_at:]))
+            msg += '</div>\n<span style="color:%s;font-weight:bold">%s</span>\n' % (
+                err_color, escape(self._error))
+            session.logger.info(msg, is_html=True)
 
 
 def command_function(name, no_aliases=False):
@@ -2663,7 +2739,7 @@ def expand_alias(name):
     return cmd.word_info.alias().original_text
 
 
-def create_alias(name, text, *, user=False, logger=None):
+def create_alias(name, text, *, user=False, logger=None, url=None):
     """Create command alias
 
     :param name: name of the alias
@@ -2674,7 +2750,7 @@ def create_alias(name, text, *, user=False, logger=None):
     name = ' '.join(name.split())   # canonicalize
     alias = Alias(text, user=user)
     try:
-        register(name, alias.cmd_desc(synopsis='alias of %r' % text),
+        register(name, alias.cmd_desc(synopsis='alias of "%s"' % text, url=url),
                  alias, logger=logger)
     except:
         raise
@@ -2698,11 +2774,11 @@ def remove_alias(name=None, user=False):
 if __name__ == '__main__':
     from ..utils import flattened
 
-    alias_desc = CmdDesc(required=[('name', StringArg), ('text', WholeRestOfLine)])
+    alias_desc = CmdDesc(required=[('name', StringArg), ('text', WholeRestOfLine)], url='skip')
 
     @register('alias', alias_desc)
     def alias(session, name, text):
-        create_alias(name, text)
+        create_alias(name, text, url='skip')
 
     class ColorArg(Annotation):
         name = 'a color'
@@ -2731,7 +2807,7 @@ if __name__ == '__main__':
                 names = [n for n in ColorArg.Builtin_Colors
                          if n.startswith(color_name)]
                 if len(names) == 0:
-                    raise ValueError("Invalid color name: %r" % color_name)
+                    raise ValueError('Invalid color name: "%s"' % color_name)
                 suffix = names[0][len(color_name):]
                 if ' ' not in suffix:
                     color_name = names[0]
@@ -2749,7 +2825,8 @@ if __name__ == '__main__':
 
     test1_desc = CmdDesc(
         required=[('a', IntArg), ('b', FloatArg)],
-        keyword=[('color', ColorArg)]
+        keyword=[('color', ColorArg)],
+        url='skip'
     )
 
     @register('test1', test1_desc)
@@ -2759,7 +2836,8 @@ if __name__ == '__main__':
         print('test1 color: %s %s' % (type(color), color))
 
     test2_desc = CmdDesc(
-        keyword=[('color', ColorArg), ('radius', FloatArg)]
+        keyword=[('color', ColorArg), ('radius', FloatArg)],
+        url='skip'
     )
 
     @register('test2', test2_desc)
@@ -2772,7 +2850,8 @@ if __name__ == '__main__':
 
     test3_desc = CmdDesc(
         required=[('name', StringArg)],
-        optional=[('value', FloatArg)]
+        optional=[('value', FloatArg)],
+        url='skip'
     )
 
     @register('test3', test3_desc)
@@ -2781,7 +2860,8 @@ if __name__ == '__main__':
         print('test3 value: %s %s' % (type(value), value))
 
     test4_desc = CmdDesc(
-        optional=[('draw', PositiveIntArg)]
+        optional=[('draw', PositiveIntArg)],
+        url='skip'
     )
 
     @register('test4', test4_desc)
@@ -2790,7 +2870,8 @@ if __name__ == '__main__':
 
     test4b_desc = CmdDesc(
         optional=[('draw', IntArg)],
-        postconditions=[Limited('draw', min=1)]
+        postconditions=[Limited('draw', min=1)],
+        url='skip'
     )
 
     @register('test4b', test4b_desc)
@@ -2798,7 +2879,8 @@ if __name__ == '__main__':
         print('test4b draw: %s %s' % (type(draw), draw))
 
     test5_desc = CmdDesc(
-        optional=[('ints', IntsArg)]
+        optional=[('ints', IntsArg)],
+        url='skip'
     )
 
     @register('test5', test5_desc)
@@ -2806,7 +2888,8 @@ if __name__ == '__main__':
         print('test5 ints: %s %s' % (type(ints), ints))
 
     test6_desc = CmdDesc(
-        required=[('center', Float3Arg)]
+        required=[('center', Float3Arg)],
+        url='skip'
     )
 
     @register('test6', test6_desc)
@@ -2814,7 +2897,8 @@ if __name__ == '__main__':
         print('test6 center:', center)
 
     test7_desc = CmdDesc(
-        optional=[('center', Float3Arg)]
+        optional=[('center', Float3Arg)],
+        url='skip'
     )
 
     @register('test7', test7_desc)
@@ -2827,6 +2911,7 @@ if __name__ == '__main__':
             ('target', StringArg),
             ('names', ListOf(StringArg)),
         ],
+        url='skip'
     )
 
     @register('test8', test8_desc)
@@ -2838,7 +2923,8 @@ if __name__ == '__main__':
             ("target", StringArg),
             ("names", ListOf(StringArg))
         ),
-        keyword=(("full", BoolArg),)
+        keyword=(("full", BoolArg),),
+        url='skip'
     )
 
     @register('test9', test9_desc)
@@ -2853,7 +2939,8 @@ if __name__ == '__main__':
         required_arguments=("colors", "offsets"),
         postconditions=(
             SameSize('colors', 'offsets'),
-        )
+        ),
+        url='skip'
     )
 
     @register('test10', test10_desc)
@@ -2861,14 +2948,14 @@ if __name__ == '__main__':
         print('test10 colors, offsets:', colors, offsets)
 
     def lazy_reg():
-        test11_desc = CmdDesc()
+        test11_desc = CmdDesc(url='skip')
 
         def test11(session):
             print('delayed')
         register('xyzzy subcmd', test11_desc, test11)
     delay_registration('xyzzy', lazy_reg)
 
-    @register('echo', CmdDesc(optional=[('text', RestOfLine)]))
+    @register('echo', CmdDesc(optional=[('text', RestOfLine)], url='skip'))
     def echo(session, text=''):
         return text
 
@@ -2879,9 +2966,9 @@ if __name__ == '__main__':
         def exit(session):
             raise SystemExit(0)
 
-        register('usage', CmdDesc(required=[('name', RestOfLine)]), usage)
+        register('usage', CmdDesc(required=[('name', RestOfLine)], url='skip'), usage)
 
-        register('html_usage', CmdDesc(required=[('name', RestOfLine)]),
+        register('html_usage', CmdDesc(required=[('name', RestOfLine)], url='skip'),
                  html_usage)
         prompt = 'cmd> '
         cmd = Command(None)
@@ -2928,7 +3015,7 @@ if __name__ == '__main__':
         (True, False, 'test4b draw -34'),
         (False, True, 'test5'),
         (False, True, 'test5 ints 55'),
-        (False, True, 'test5 ints 5 ints 6'),
+        (True, True, 'test5 ints 5 ints 6'),
         (False, True, 'test5 ints 5, 6, -7, 8, 9'),
         (True, True, 'mw test1 color red 12 3.5'),
         (True, True, 'mw test1 color red 12 3.5'),
@@ -2974,7 +3061,7 @@ if __name__ == '__main__':
         fail, final, text = t
         try:
             print("\nTEST: '%s'" % text)
-            wesults = cmd.run(text)
+            results = cmd.run(text)
             if results:
                 for result in flattened(results):
                     if result is not None:
@@ -2987,11 +3074,6 @@ if __name__ == '__main__':
                 successes += 1
                 print('SUCCESS')
         except UserError as err:
-            rest = cmd.current_text[cmd.amount_parsed:]
-            spaces = len(rest) - len(rest.lstrip())
-            error_at = cmd.amount_parsed + spaces
-            print(cmd.current_text)
-            print("%s^" % ('.' * error_at))
             if fail:
                 successes += 1
                 print('SUCCESS:', err)
