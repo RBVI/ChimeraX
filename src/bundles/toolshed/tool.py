@@ -153,11 +153,11 @@ class ToolshedUI(ToolInstance):
             filename = item.path()
             filenames.append(filename)
         install_cmd.extend(filenames)
-        return value", pip.main(install_cmd)
-        self.session.toolshed.reload(self.session.logger,
-                                     session=self.session,
-                                     rebuild_cache=True,
-                                     check_remote=False)
+        if pip.main(install_cmd) == 0:
+            self.session.toolshed.reload(self.session.logger,
+                                         session=self.session,
+                                         rebuild_cache=True,
+                                         check_remote=False)
 
     def _navigate(self, qurl):
         session = self.session

@@ -47,9 +47,10 @@ class ColorButton(QPushButton):
         from PyQt5.QtWidgets import QColorDialog
         cd = QColorDialog(self)
         cd.setOption(cd.ShowAlphaChannel, self._has_alpha_channel)
+        cd.setOption(cd.NoButtons, True)
         if self._color is not None:
             cd.setCurrentColor(QColor(*tuple(self._color)))
-        cd.colorSelected.connect(self._color_changed_cb)
+        cd.currentColorChanged.connect(self._color_changed_cb)
         cd.show()
 
     def _color_changed_cb(self, color):
