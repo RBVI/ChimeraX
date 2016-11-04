@@ -131,6 +131,7 @@ class CommandLine(ToolInstance):
             self.history_dialog.populate()
 
     def execute(self):
+        self.text.lineEdit().blockSignals(True)
         session = self.session
         logger = session.logger
         text = self.text.lineEdit().text()
@@ -170,6 +171,7 @@ class CommandLine(ToolInstance):
                 import traceback
                 session.logger.error(traceback.format_exc())
         self.set_focus()
+        self.text.lineEdit().blockSignals(False)
         self.text.lineEdit().setText(cmd_text)
         self.text.lineEdit().selectAll()
 
