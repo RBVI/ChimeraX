@@ -132,8 +132,9 @@ class ModelPanel(ToolInstance):
             if bg_color is None:
                 bg.setStyle(Qt.NoBrush)
             else:
-
-                self.tree.itemWidget(item, 1).set_color(bg_color)
+                but = self.tree.itemWidget(item, 1)
+                if but is not None:
+                    but.set_color(bg_color)
             item.setBackground(1, bg)
             if display is not None:
                 item.setCheckState(2, Qt.Checked if display else Qt.Unchecked)

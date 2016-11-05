@@ -135,15 +135,17 @@ class MapSeries(ToolInstance):
             self.play()
 
     def play(self):
-        if self.series is None:
+        ser = self.series
+        if ser is None:
             return
-        s0 = self.series[0]
+        s0 = ser[0]
+        ns = len(ser)
         t = s0.last_shown_time
         n = s0.number_of_times()
         if t >= n - 1:
             t = 0
         from chimerax.core.map.series.vseries_command import vseries_play
-        p = vseries_play(self.session, self.series, start=t, loop=True, cache_frames=n)
+        p = vseries_play(self.session, self.series, start=t, loop=True, cache_frames=n*ns)
 
         def update_slider(t, self=self):
             self.update_slider_range()
