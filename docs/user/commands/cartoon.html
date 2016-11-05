@@ -142,10 +142,9 @@ A vertical bar &ldquo;|&rdquo; designates mutually exclusive values.
 [&nbsp;<b>sides</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>barSides</b>&nbsp;&nbsp;<i>N<font size="-1"><sub>b</sub></font></i>&nbsp;]
 [&nbsp;<b>ssEnds</b></a>&nbsp;&nbsp;short&nbsp;|&nbsp;long&nbsp;]
-<!--
-[&nbsp;<b>cylinders</b>&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-&nbsp;&nbsp;<i>cylinder-options</i>
--->
+<font color="brown">
+[&nbsp;<b>modeHelix</b>&nbsp;tube&nbsp;|&nbsp;default&nbsp;]
+</font>
 <blockquote>
 <p>
 </p><p>
@@ -214,11 +213,14 @@ for <b>short</b>) but ends in the middle of its following peptide bond
 </ul>
 The remainder of the peptide chain is shown as coil-like segments.
 Currently, the initial default is <b>short</b> for both strands and helices.
-<!--
 </p><p>
-The <b>cylinders</b> option specifies whether to show peptide helices as
-cylinders instead of as ribbons spiraling along the backbone atoms.
--->
+<font color="brown">
+The <b>modeHelix</b> option (syntax is likely to change)
+</font>
+allows showing peptide helices as tubes (curved cylinders)
+rather than as ribbons spiraling along the backbone atoms.
+Other helix settings such as width, height, and cross-section do not apply
+when helices are shown as tubes.
 </p>
 </blockquote>
 
@@ -255,5 +257,5 @@ The tether color tracks the color of the corresponding &alpha;-carbon.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2016</address>
+November 2016</address>
 </body></html>
