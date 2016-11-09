@@ -185,16 +185,8 @@ class _Input(Task):
         try:
             self._cmd.run(text)
         except errors.UserError as err:
-            rest = self._cmd.current_text[self._cmd.amount_parsed:]
-            spaces = len(rest) - len(rest.lstrip())
-            error_at = self._cmd.amount_parsed + spaces
-            syntax_error = error_at < len(self._cmd.current_text)
-            if syntax_error:
-                error_at -= self._cmd.start
-                logger.error(self._cmd.current_text[self._cmd.start:])
-                if error_at:
-                    logger.error("%s^" % ('.' * error_at))
-            logger.error(str(err))
+            # UserErrors are already logged
+            pass
         except Exception:
             logger.error("\nUnexpected exception, save your work and exit:\n")
             import traceback

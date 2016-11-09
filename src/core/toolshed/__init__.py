@@ -1019,7 +1019,7 @@ class Toolshed:
                 is_default = parts[3]
                 try:
                     fi = [fi for fi in bi.formats if fi.name == name][0]
-                except KeyError:
+                except (KeyError, IndexError):
                     logger.warning("Unknown format name: %r." % name)
                     continue
                 fi.has_open = True
@@ -1032,7 +1032,7 @@ class Toolshed:
                 is_default = parts[3]
                 try:
                     fi = [fi for fi in bi.formats if fi.name == name][0]
-                except KeyError:
+                except (KeyError, IndexError):
                     logger.warning("Unknown format name: %r." % name)
                     continue
                 fi.has_save = True
