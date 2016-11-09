@@ -16,7 +16,7 @@
 #ifndef align_algs
 #define align_algs
 
-#include <Python.h>
+//#include <Python.h>
 #include <map>
 #include <utility>
 
@@ -25,8 +25,8 @@ namespace align_algs {
 typedef std::pair<char, char> Pair;
 typedef std::map<Pair, double> Similarity;
 
-extern int make_matrix(PyObject *dict, Similarity &matrix);
-extern Similarity::const_iterator matrix_lookup(const Similarity &matrix, char c1, char c2);
+// int make_matrix(PyObject *dict, Similarity &matrix);
+Similarity::const_iterator matrix_lookup(const Similarity &matrix, char c1, char c2);
 
 }  // namespace align_algs
 
