@@ -26,7 +26,7 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="../index.html#commands">Command</a>: open</h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <BR><b>open</b> &nbsp;<i>filename</i> 
-[&nbsp;format&nbsp;&nbsp;<a href="#local"><i>file-format</i></a>&nbsp;]
+[&nbsp;format&nbsp;&nbsp;<a href="#local"><i>format-name</i></a>&nbsp;]
 [&nbsp;name&nbsp;&nbsp;<i>model-name</i>&nbsp;]
 [&nbsp;explode&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;smartInitialDisplay&nbsp;true&nbsp;|&nbsp;false&nbsp;]
@@ -35,7 +35,7 @@ class="clRight" title="User Guide Index"/></a>
 <BR><b>open</b> 
 [&nbsp;<a href="#fetch"><i>prefix</i></a>:]<i>identifier</i>&nbsp;
 [&nbsp;fromDatabase&nbsp;&nbsp;<a href="#fetch"><i>source</i></a>&nbsp;]
-[&nbsp;format&nbsp;&nbsp;<a href="#fetch"><i>file-format</i></a>&nbsp;]
+[&nbsp;format&nbsp;&nbsp;<a href="#fetch"><i>format-name</i></a>&nbsp;]
 [&nbsp;ignoreCache&nbsp;]
 [&nbsp;name&nbsp;&nbsp;<i>model-name</i>&nbsp;]
 [&nbsp;smartInitialDisplay&nbsp;true&nbsp;|&nbsp;false&nbsp;]
@@ -106,26 +106,44 @@ home directory. One or more files can be specified at a time by including
 and/or square-bracketed character ranges in the <i>filename</i>
 (Unix-style pathname expansion or <b><i>globbing</i></b>).
 </p><p>
-The file format can be indicated with either the
-<i>filename</i> suffix or the <b>format</b> option:
+The file format can be indicated with either <b>format <i>format-name</i></b>
+in the <a href="#top"><b>open</b></a> command (where <b><i>format-name</i></b>
+can be truncated) or the <i>filename</i> suffix.
+Files that are gzipped, as indicated by their additional .gz suffix, 
+can also be read.
 </p>
-<table border cellpadding="4" cellspacing="0"><tr>
+<table border cellpadding="4" cellspacing="0">
+<tr>
+<td colspan=4 align="center" style="background-color:#eaeaea">
+<b>Atomic Structures and Related Data</b></a>
+<tr><tr>
 <td align="center"><b>format</b></td>
+<td align="center"><b><i>format-name</i></b></td>
 <td align="center"><b>suffix</b></td>
-<td align="center"><b><i>file-format</i></b></td>
-<td align="center"><b>data type</b></td>
+<td align="center"><b>description</b></td>
 </tr><tr>
 <td align="center"><a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/tutorials/framepdbintro.html" 
 target="_blank">Protein Data Bank</a></td>
-<td align="center"><b>.pdb<br>.pdb1<br>.ent<br>.pqr</b></td>
 <td align="center"><b>pdb</b></td>
+<td align="center">.pdb<br>.pdb1<br>.ent<br>.pqr</td>
 <td align="center">atomic coordinates and associated annotations</td>
 </tr><tr>
 <td align="center"><a href="http://mmcif.wwpdb.org/docs/faqs/pdbx-mmcif-faq-general.html"
 target="_blank">PDBx/mmCIF</a></td>
-<td align="center"><b>.cif</b></td>
 <td align="center"><b>mmcif</b></td>
+<td align="center">.cif</td>
 <td align="center">atomic coordinates and associated annotations</td>
+</tr><tr>
+<td align="center"><a href="../pseudobonds.html">Pseudobond</a> file</td>
+<td align="center"><b>pseudobonds</b></td>
+<td align="center">.pb</td>
+<td align="center">
+plain text file with each line <a href="atomspec.html">specifying</a>
+<br>a pair of atoms (already open in ChimeraX)
+<br>to connect with <a href="../pseudobonds.html">pseudobonds</a></td>
+<tr><tr>
+<td colspan=4 align="center" style="background-color:#eaeaea">
+<b>Volume Data</b></a>
 </tr><tr>
 <td align="center">
 <a href="http://www.poissonboltzmann.org/docs/file-format-info/"
@@ -135,99 +153,135 @@ target="_blank">Adaptive Poisson-Boltzmann Solver (APBS) potential</a>
 target="_blank"><b>APBS</b></a> interface in 
 <a href="http://www.rbvi.ucsf.edu/chimera/"
 target="_blank"><b>UCSF Chimera</b></a>)</td>
-<td align="center"><b>.dx</b></td>
 <td align="center"><b>apbs</b></td>
+<td align="center">.dx</td>
 <td align="center">electrostatic potential map</td>
 </tr><tr>
-<td align="center">BRIX</td>
-<td align="center"><b>.brix</b></td>
+<td align="center">BRIX density map</td>
 <td align="center"><b>dsn6</b></td>
+<td align="center">.brix</td>
 <td align="center">density map</td>
 </tr><tr>
 <td align="center">
-<a href="http://www.ccp4.ac.uk/html/maplib.html" target="_blank">CCP4</a></td>
-<td align="center"><b>.ccp4<br>.map</b></td>
+<a href="http://www.ccp4.ac.uk/html/maplib.html" target="_blank">CCP4</a>
+density map</td>
 <td align="center"><b>ccp4</b></td>
+<td align="center">.ccp4<br>.map</td>
 <td align="center">density map</td>
 </tr><tr>
 <td align="center">Chimera/ChimeraX map
 <br>(based on the hierarchical data format
 <a href="http://www.hdfgroup.org/HDF5/" target="_blank">HDF5</a>)</td>
-<td align="center"><b>.cmp<br>.cmap</b></td>
 <td align="center"><b>cmap</b></td>
+<td align="center">.cmp<br>.cmap</td>
 <td align="center">density map</td>
 </tr><tr>
 <td align="center">DSN6</td>
-<td align="center"><b>.omap</b></td>
 <td align="center"><b>dsn6</b></td>
 <!-- dsn6 format name is shared, program figures out which variant -->
+<td align="center">.omap</td>
 <td align="center">density map</td>
 </tr><tr>
 <td align="center">Image stack
 <br>(grayscale image series in multiple files or a single multipage file,
 <br>in formats supported by
 <a href="http://www.pythonware.com/products/pil/" target="_blank">PIL</a>)</td>
-<td align="center"><b>.tif<br>.tiff<br>.png</b><br>(<i>etc.</i>)</td>
 <td align="center"><b>images</b></td>
+<td align="center">.bmp<br>.gif<br>.jpg, .jpeg<br>.png<br>.ppm<br>.tif, .tiff</td>
 <td align="center">density map</td>
 </tr><tr>
 <td align="center">
 <a href="http://www2.mrc-lmb.cam.ac.uk/research/locally-developed-software/image-processing-software/#image"
 target="_blank">MRC</a></td>
-<td align="center"><b>.mrc</b></td>
 <td align="center"><b>mrc</b></td>
+<td align="center">.mrc</td>
 <td align="center">density map</td>
+<tr><tr>
+<td align="center">STORM</td>
+<td align="center"><b>storm</b></td>
+<td align="center">.storm</td>
+<td align="center">STORM optical microscopy data</td>
+<tr><tr>
+<td align="center">Raw binary coordinates</td>
+<td align="center"><b>crd</b></td>
+<td align="center">.crd</td>
+<td align="center">??</td>
+<tr><tr>
+<td colspan=4 align="center" style="background-color:#eaeaea">
+<b>Other 3D Objects</b></a>
 </tr><tr>
 <td align="center"><a href="https://www.khronos.org/collada/"
 target="_blank">COLLADA</a></td>
-<td align="center"><b>.dae</b></td>
 <td align="center"><b>collada</b></td>
+<td align="center">.dae</td>
 <td align="center">graphical objects<br>(geometry nodes define surfaces)</td>
 </tr><tr>
 <td align="center"><a href="https://en.wikipedia.org/wiki/STL_%28file_format%29#Binary_STL"
-target="_blank">STL (binary)</a></td>
-<td align="center"><b>.stl</b></td>
-<td align="center"><b>stl</b></td>
+target="_blank">STereoLithography (binary)</a></td>
+<td align="center"><b>stereolithography</b></td>
+<td align="center">.stl</td>
 <td align="center">triangulated surfaces</td>
+<tr><tr>
+<td align="center">VTK PolyData</td>
+<td align="center"><b>vtk polydata</b></td>
+<td align="center">.vtk</td>
+<td align="center">lines, polygons</td>
+<tr><tr>
+<td align="center">X3D</td>
+<td align="center"><b>x3d</b></td>
+<td align="center">.x3d</td>
+<td align="center">graphical scene</td>
+<tr><tr>
+<td colspan=4 align="center" style="background-color:#eaeaea">
+<b>Sequences</b></a>
+<tr><tr>
+<td align="center">FASTA, aligned FASTA</td>
+<td align="center"><b>fasta</b></td>
+<td align="center">.fa, .fasta</td>
+<td align="center">individual sequence or sequence alignment</td>
+<tr><tr>
+<td align="center">MSF</a></td>
+<td align="center"><b>msf</b></td>
+<td align="center">.msf</td>
+<td align="center">sequence alignment</td>
+<tr><tr>
+<td colspan=4 align="center" style="background-color:#eaeaea">
+<b>Composite</b></a>
+</tr><tr>
+<td align="center"><a href="save.html">ChimeraX session file</a></td>
+<td align="center"><b>ses</b></td>
+<td align="center">.cxs</td>
+<td align="center">ChimeraX session</td>
+</tr><tr>
+<td align="center">Integrative Hybrid Model</td>
+<td align="center"><b>ihm</b></td>
+<td align="center">.ihm</td>
+<td align="center">integrative hybrid model, potentially including
+<br>atomic and coarse-grained representations, crosslinks, <i>etc.</i></td>
+<tr><tr>
+<td colspan=4 align="center" style="background-color:#eaeaea">
+<b>Miscellaneous</b></a>
 </tr><tr>
 <td align="center"><a href="usageconventions.html#cxc-files">ChimeraX
 command file</a></td>
-<td align="center"><b>.cxc</b></td>
 <td align="center"><b>cmd</b></td>
+<td align="center">.cxc</td>
 <td align="center">
 <a href="../index.html#commands">ChimeraX commands</a></td>
-<!-- hide PBReader Lite for now
-</tr><tr>
-<td align="center">pseudobond input file</td>
-<td align="center"><b>.pb</b></td>
-<td align="center"><b>pseudobonds</b></td>
-<td align="center">
-text file <a href="atomspec.html">specifying</a> pairs of atoms
-in ChimeraX to connect with pseudobonds</td>
--->
-</tr><tr>
-<td align="center"><a href="save.html">ChimeraX session file</a></td>
-<td align="center"><b>.cxs</b></td>
-<td align="center"><b>ses</b></td>
-<td align="center">ChimeraX session</td>
 </tr><tr>
 <td align="center">Python</td>
-<td align="center"><b>.py<br>.pyc<br>.pyo</b></td>
 <td align="center"><b>py</b></td>
+<td align="center">.py<br>.pyc<br>.pyo</td>
 <td align="center">Python code</td>
 </tr><tr>
 <td align="center">HTML</td>
-<td align="center"><b>.html</b></td>
 <td align="center"></td>
+<td align="center">.html</td>
 <td align="center">HTML local file
 <br>(to show in the <a href="../window.html#browser">ChimeraX browser</a>);
-<br>to specify a URL, 
+<br>to specify by URL, 
 use <a href="help.html"><b>help</b></a> instead of <b>open</b></td>
 </tr></table>
-<p>
-Files that are gzipped, as indicated by their additional .gz suffix, 
-can also be read.
-</p>
 
 <p class="nav">
 [<a href="#top">back to top</a>]
@@ -250,8 +304,8 @@ of format and no reason to use the <b>format</b> option.
 <td align="center"><b>database</b></td>
 <td align="center"><b><i>prefix</i></b></td>
 <td align="center"><b><i>source</i></b></td>
-<td align="center"><b>data type</b></td>
-<td align="center"><b><i>file-format</i></b></td>
+<td align="center"><b>description</b></td>
+<td align="center"><b><i>format-name</i></b></td>
 </tr><tr>
 <td align="center"><a href="http://www.rcsb.org/"
 target="_blank">RCSB Protein Data Bank</a></td>
@@ -297,5 +351,5 @@ If the data file is not found locally or the user has specified
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2016</address>
+November 2016</address>
 </body></html>
