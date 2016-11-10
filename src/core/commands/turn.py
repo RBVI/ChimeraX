@@ -52,7 +52,7 @@ def turn(session, axis=Axis((0,1,0)), angle=90, frames=None, rock=None,
             rp = _rock_phase(rock, frame)
             if rp != 0:
                 turn(session, axis=axis, angle=rp*angle, frames=None, rock=None, center=center,
-                     coordinate_system=coordinate_system, models=models)
+                     coordinate_system=coordinate_system, models=models, atoms=atoms)
         from . import motion
         motion.CallForNFrames(turn_step, frames, session)
         return
