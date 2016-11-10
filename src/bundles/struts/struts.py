@@ -159,13 +159,14 @@ def connections(ai, dmax, log):
             d = adist[a2]
             for b in a2.bonds:
                 an = b.other_atom(a2) 
-                dn = d + b.length
-                if dn <= dmax and (an not in adist or dn < adist[an]):
-                    adist[an] = dn
-                    if an in ai:
-                        acon.append(an)
-                    else:
-                        bndry.add(an)
+                if b.display and a2.display and an.display:
+                    dn = d + b.length
+                    if dn <= dmax and (an not in adist or dn < adist[an]):
+                        adist[an] = dn
+                        if an in ai:
+                            acon.append(an)
+                        else:
+                            bndry.add(an)
         for a2 in acon:
             con.append((ai[a], ai[a2], adist[a2]))
     return con
