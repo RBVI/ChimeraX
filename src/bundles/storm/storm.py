@@ -73,7 +73,6 @@ def read_storm(session, filename, name, *args, **kw):
         fwhm_sdev = 2 * sqrt(2*log(2))	# Convert full width half max to standard deviations
         sdev = xyzhwb[:,4] / fwhm_sdev
         sdev /= 20	# TODO: Seems the width column is not FWHM.
-#        (sdev * cutoff_range / step) ** 3
         add_gaussians(grid, xyz, weights, sdev, cutoff_range, normalize=False)
         v = volume_from_grid_data(grid, session, representation = 'solid', open_model = False)
         maps.append(v)
