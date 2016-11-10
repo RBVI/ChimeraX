@@ -18,8 +18,8 @@ DIRNAME := $(DIRNAME:support_cpp=align_algs)
 
 SRCS	= $(wildcard *.cpp)
 OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
-#INCS	+= $(PYTHON_INCLUDE_DIRS)
-#LIBS	+= $(PYTHON_LIB)
+INCS	+= $(PYTHON_INCLUDE_DIRS)
+LIBS	+= $(PYTHON_LIB)
 
 $(LIBRARY): $(OBJS)
 	$(LIB_LINK)

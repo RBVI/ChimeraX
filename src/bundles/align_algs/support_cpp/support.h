@@ -13,10 +13,10 @@
  * === UCSF ChimeraX Copyright ===
  */
 
-#ifndef align_algs
-#define align_algs
+#ifndef align_algs_support
+#define align_algs_support
 
-//#include <Python.h>
+#include <Python.h>
 #include <map>
 #include <utility>
 
@@ -25,9 +25,9 @@ namespace align_algs {
 typedef std::pair<char, char> Pair;
 typedef std::map<Pair, double> Similarity;
 
-// int make_matrix(PyObject *dict, Similarity &matrix);
+int make_matrix(PyObject *dict, Similarity &matrix);
 Similarity::const_iterator matrix_lookup(const Similarity &matrix, char c1, char c2);
 
 }  // namespace align_algs
 
-#endif  // align_algs
+#endif  // align_algs_support

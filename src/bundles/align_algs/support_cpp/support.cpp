@@ -21,12 +21,7 @@
 namespace align_algs {
 
 static const char *BadKey = "dictionary key must be tuple of two characters";
-static const char *MissingKey = "no score for '%c' vs. '%c'";
-static const char *MissingSSKey = "no score for gap open between '%c' and '%c'";
-static const char *SeqLenMismatch = "sequence lengths don't match their secondary"
-					" structure strings";
 
-#if 0
 //
 // make_matrix
 //	Convert a Python similarity dictionary into a C++ similarity map
@@ -95,7 +90,6 @@ make_matrix(PyObject *dict, Similarity &matrix)
 	}
 	return 0;
 }
-#endif
 
 //
 // matrix_lookup
