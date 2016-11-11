@@ -197,6 +197,8 @@ Categories = [
     VOLUME,
 ]
 
+_TIMESTAMP = 'install-timestamp'
+
 
 def _hack_distlib(f):
     from functools import wraps
@@ -433,6 +435,44 @@ class Toolshed:
                 # XXX: do we want to register commands so that we can
                 # ask user whether to install bundle when invoked?
         self.triggers.activate_trigger(TOOLSHED_BUNDLE_INFO_RELOADED, self)
+
+    def set_install_timestamp(self, per_user=False):
+        """Set last installed timestamp."""
+        _debug("set_install_timestamp")
+        import os
+        if per_user:
+            from chimerax import app_dirs
+            directory = app_dirs.user_data_dir
+        else:
+            from chimerax import app_data_dir as directory
+        timestamp_file = os.path.join(directory, _TIMESTAMP)
+        with open(timestamp_file, 'w') as f:
+            # Contents of file are never read, see _is_cache_current()
+            import time
+            print(time.ctime(), file=f)
+
+    def _is_cache_current(self, cache_file):
+        """Check if cache is up to date."""
+        _debug("_is_cache_current")
+        from chimerax import app_dirs, app_data_dir
+        import os
+        files = (
+            (os.path.join(app_data_dir, _TIMESTAMP), True),
+            (os.path.join(app_dirs.user_data_dir, _TIMESTAMP), False),
+        )
+        try:
+            cache_time = os.path.getmtime(cache_file)
+        except FileNotFoundError:
+            return False
+        for filename, required in files:
+            try:
+                time = os.path.getmtime(filename)
+                if time > cache_time:
+                    return False
+            except FileNotFoundError:
+                if required:
+                    return False
+        return True
 
     def bundle_info(self, installed=True, available=False):
         """Return list of bundle info.
@@ -756,13 +796,29 @@ class Toolshed:
         _debug("_read_cache")
         import filelock
         import json
+        import os
+        import sys
         cache_file = self._bundle_cache(False)
         try:
             lock = filelock.FileLock(cache_file + '.lock')
             with lock.acquire():
+                if not self._is_cache_current(cache_file):
+                    return None
                 f = open(cache_file, "r", encoding='utf-8')
                 try:
                     with f:
+                        data = f.readline()
+                        data = json.loads(data)
+                        if not isinstance(data[0], str):
+                            _debug("_read_cache obsolete cache", cache_file)
+                            return None  # obsolete cache format
+                        executable, mtime = data
+                        if executable != sys.executable:
+                            _debug("_read_cache changed executable", cache_file)
+                            return None
+                        if mtime != os.path.getmtime(executable):
+                            _debug("_read_cache different executable", cache_file)
+                            return None
                         data = json.load(f)
                     bundles = [BundleInfo.from_cache_data(x) for x in data]
                     _debug("_read_cache succeeded", len(bundles))
@@ -779,6 +835,8 @@ class Toolshed:
         _debug("_write_cache", bundle_info)
         import filelock
         import json
+        import os
+        import sys
         cache_file = self._bundle_cache(True)
         lock = filelock.FileLock(cache_file + '.lock')
         with lock.acquire():
@@ -788,6 +846,9 @@ class Toolshed:
                 logger.error("\"%s\": %s" % (cache_file, str(e)))
             else:
                 with f:
+                    data = [sys.executable, os.path.getmtime(sys.executable)]
+                    json.dump(data, f, ensure_ascii=False)
+                    print(file=f)
                     json.dump([bi.cache_data() for bi in bundle_info], f,
                               ensure_ascii=False, check_circular=False)
 
@@ -1456,6 +1517,7 @@ class CommandInfo(ToolInfo):
     """Metadata about a command"""
     pass
 
+
 class SelectorInfo(ToolInfo):
     """Metadata about a selector
 
@@ -1824,6 +1886,7 @@ class BundleInfo:
         for (database_name, format_name, prefixes, example_id, is_default) in self.fetches:
             if io.format_from_name(format_name) is None:
                 print('warning: unknown format %r given for database %r' % (format_name, database_name))
+
             def fetch_cb(session, identifier, database_name=database_name, format_name=format_name, **kw):
                 try:
                     f = self._get_api().fetch_url
@@ -1834,6 +1897,7 @@ class BundleInfo:
                 if f == BundleAPI.save_file:
                     raise ToolshedError("bundle \"%s\"'s API forgot to override fetch_url()" % self.name)
                 # optimize by replacing fetch_url for (database, format)
+
                 def fetch_shim(session, identifier, f=f, database_name=database_name, format_name=format_name, **kw):
                     return f(session, identifier, database_name=database_name, format_name=format_name, **kw)
                 fetch.register_fetch(database_name, fetch_shim, format_name)
