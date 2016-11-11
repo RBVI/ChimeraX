@@ -129,13 +129,13 @@ class ContactPlot(Graph):
             explode = self._explode_all
             ewhat = 'all'
         add('Explode ' + ewhat, explode, *eargs)
-        add('Unxplode ' + ewhat, self._unexplode_all)
+        add('Unexplode ' + ewhat, self._unexplode_all)
 
         menu.addSeparator()
 
         if item is None:
-            add('Layout matching structure', self.draw_graph)
-            add('Orient structure', self._orient)
+            add('Lay out to match structure', self.draw_graph)
+            add('Orient structure to match layout', self._orient)
                     
     def _select_nodes(self, nodes):
         self._clear_selection()
