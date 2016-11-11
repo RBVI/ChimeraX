@@ -161,11 +161,16 @@ class PseudobondGroup(PseudobondGroupData, Model):
 def all_pseudobond_groups(models):
     return [m for m in models.list() if isinstance(m, PseudobondGroup)]
 
-def interatom_pseudobonds(atoms, session, group_name = None):
+def interatom_pseudobonds(atoms, group_name = None):
+    structures = atoms.unique_structures
+    if len(structures) == 0:
+        from . import Pseudobonds
+        return Pseudobonds()
     # Inter-model pseudobond groups
+    session = structures[0].session
     pbgs = set(session.models.list(type = PseudobondGroup))
     # Intra-model pseudobond groups
-    for m in atoms.unique_structures:
+    for m in structures:
         for pbg in m.pbg_map.values():
             pbgs.add(pbg)
     # Collect bonds

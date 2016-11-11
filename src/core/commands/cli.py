@@ -937,7 +937,7 @@ class PseudobondsArg(Annotation):
     def parse(text, session):
         objects, used, rest = ObjectsArg.parse(text, session)
         from ..atomic import PseudobondGroup, interatom_pseudobonds
-        pb = interatom_pseudobonds(objects.atoms, session)
+        pb = interatom_pseudobonds(objects.atoms)
         pbgs = set(pb.groups.unique())
         pblist = [m.pseudobonds for m in objects.models
                   if isinstance(m, PseudobondGroup) and m not in pbgs]
