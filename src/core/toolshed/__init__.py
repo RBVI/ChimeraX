@@ -447,13 +447,13 @@ class Toolshed:
             from chimerax import app_data_dir as directory
         timestamp_file = os.path.join(directory, _TIMESTAMP)
         with open(timestamp_file, 'w') as f:
-            # Contents of file are never read, see _is_cache_current()
+            # Contents of file are never read, see _is_cache_newer()
             import time
             print(time.ctime(), file=f)
 
-    def _is_cache_current(self, cache_file):
-        """Check if cache is up to date."""
-        _debug("_is_cache_current")
+    def _is_cache_newer(self, cache_file):
+        """Check if cache is newer than timestamps."""
+        _debug("_is_cache_newer")
         from chimerax import app_dirs, app_data_dir
         import os
         files = (
@@ -802,8 +802,6 @@ class Toolshed:
         try:
             lock = filelock.FileLock(cache_file + '.lock')
             with lock.acquire():
-                if not self._is_cache_current(cache_file):
-                    return None
                 f = open(cache_file, "r", encoding='utf-8')
                 try:
                     with f:
@@ -814,10 +812,12 @@ class Toolshed:
                             return None  # obsolete cache format
                         executable, mtime = data
                         if executable != sys.executable:
-                            _debug("_read_cache changed executable", cache_file)
+                            _debug("_read_cache different executable", cache_file)
                             return None
                         if mtime != os.path.getmtime(executable):
-                            _debug("_read_cache different executable", cache_file)
+                            _debug("_read_cache changed executable", cache_file)
+                            return None
+                        if not self._is_cache_newer(cache_file):
                             return None
                         data = json.load(f)
                     bundles = [BundleInfo.from_cache_data(x) for x in data]
