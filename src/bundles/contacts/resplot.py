@@ -15,6 +15,8 @@
 #
 from .graph import Graph
 class ResiduePlot(Graph):
+
+    help = 'help:user/commands/contacts.html#residue-plot'
     
     def __init__(self, session, contact):
 

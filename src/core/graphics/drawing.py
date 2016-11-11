@@ -1395,7 +1395,8 @@ class _DrawShape:
             if ta.shape[1] == 2:
                 pass    # Triangles array already contains edges.
             elif edge_mask is None:
-                ta = masked_edges(ta)
+                kw = {} if tmask is None else {'triangle_mask': tmask}
+                ta = masked_edges(ta, **kw)
             else:
                 # TODO: Need to reset masked_edges if edge_mask changed.
                 me = self.masked_edges
