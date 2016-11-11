@@ -18,14 +18,15 @@ class ResiduePlot(Graph):
 
     help = 'help:user/commands/contacts.html#residue-plot'
     
-    def __init__(self, session, contact):
+    def __init__(self, session, contact, interface_residue_area_cutoff = 15):
 
         self.contact = c = contact
 
         # Interface residues
         g1, g2 = c.group1, c.group2
-        self.residues1 = r1 = c.contact_residues(g1)
-        self.residues2 = r2 = c.contact_residues(g2)
+        min_area = interface_residue_area_cutoff
+        self.residues1 = r1 = c.contact_residues(g1, min_area)
+        self.residues2 = r2 = c.contact_residues(g2, min_area)
         from chimerax.core.atomic import concatenate
         self.residues = res = concatenate((r1, r2))
 

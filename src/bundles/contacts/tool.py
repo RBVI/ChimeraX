@@ -18,7 +18,7 @@ class ContactPlot(Graph):
 
     help = 'help:user/commands/contacts.html#diagram'
     
-    def __init__(self, session, groups, contacts):
+    def __init__(self, session, groups, contacts, interface_residue_area_cutoff = 5):
 
         # Create matplotlib panel
         title = '%d Chains %d Contacts' % (len(groups), len(contacts))
@@ -27,6 +27,7 @@ class ContactPlot(Graph):
 
         self.groups = groups
         self.contacts = contacts
+        self.interface_residue_area_cutoff = interface_residue_area_cutoff
 
         # Show contact areas less than half maximum as dotted lines.
         small_area = 0.5*max(c.buried_area for c in contacts)
@@ -143,8 +144,9 @@ class ContactPlot(Graph):
         for n in neighbors(g, self.contacts):
             n.atoms.selected = True
 
-    def _select_contact_residues(self, contacts, group = None, min_area = 1):
-        self._clear_selection()        
+    def _select_contact_residues(self, contacts, group = None):
+        self._clear_selection()
+        min_area = self.interface_residue_area_cutoff
         for c in contacts:
             for g in (c.group1, c.group2):
                 if g is group or group is None:
@@ -171,9 +173,10 @@ class ContactPlot(Graph):
         for h in self.groups:
             h.atoms.displays = (h in ng)
 
-    def _show_contact_residues(self, g, min_area = 5, color = (180,180,180,255)):
+    def _show_contact_residues(self, g, color = (180,180,180,255)):
         from .cmd import neighbors
         ng = neighbors(g, self.contacts)	# Map neighbor node to Contact
+        min_area = self.interface_residue_area_cutoff
         for h in self.groups:
             if h in ng:
                 c = ng[h]
@@ -187,12 +190,13 @@ class ContactPlot(Graph):
             else:
                 h.atoms.displays = (h is g)
 
-    def _show_interface_residues(self, c, g, min_area = 5, color = (180,180,180,255)):
+    def _show_interface_residues(self, c, g, color = (180,180,180,255)):
         for go in self.groups:
             go.atoms.displays = False
             
         g1, g2 = c.group1, c.group2
         gf, gb = (g1,g2) if g is g1 else (g2,g1)
+        min_area = self.interface_residue_area_cutoff
         af = c.contact_residue_atoms(gf, min_area)
         ab = c.contact_residue_atoms(gb, min_area)
 
@@ -215,7 +219,7 @@ class ContactPlot(Graph):
 
     def _show_residue_plot(self, c):
         from .resplot import ResiduePlot
-        ResiduePlot(self._session(), c)
+        ResiduePlot(self._session(), c, self.interface_residue_area_cutoffy)
         
     def _explode_all(self, scale = 2):
         gc = [(g,g.centroid()) for g in self.groups if g.shown()]
