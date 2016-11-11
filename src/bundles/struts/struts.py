@@ -108,8 +108,7 @@ def brace(atoms, max_length, max_loop_length, model, log):
 
     # Map atom index to list of connected (atom index, distance)
     sc = {}
-    ai = {a:i for i,a in enumerate(atoms)}	# Map atom to index
-    con = connections(ai, max_loop_length, log)
+    con, ai = connections(atoms, max_loop_length, log)
     for i1,i2,d in con:
         sc.setdefault(i1,[]).append((i2,d))
         
@@ -145,10 +144,13 @@ def brace(atoms, max_length, max_loop_length, model, log):
                 a.hide = 0
                 a.draw_mode = a1.BALL_STYLE
 
-def connections(ai, dmax, log):
+def connections(atoms, dmax, log):
 
     con = []
-    for i,a in enumerate(ai.keys()):
+    ai = {a:i for i,a in enumerate(atoms)}	# Map atom to index
+    # Include pseudobond connections.
+    pcon = pseudobond_connections(atoms.unique_structures)
+    for i,a in enumerate(atoms):
         if log and i % 500 == 0 and i > 0:
             log.status('Finding connections %d of %d atoms' % (i, len(ai)))
         adist = {a:0}
@@ -156,20 +158,26 @@ def connections(ai, dmax, log):
         acon = []
         while bndry:
             a2 = bndry.pop()
+            if not a2.display and not a2.hide:
+                continue
             d = adist[a2]
+            a2con = []
             for b in a2.bonds:
                 an = b.other_atom(a2) 
-                if b.display and a2.display and an.display:
-                    dn = d + b.length
-                    if dn <= dmax and (an not in adist or dn < adist[an]):
-                        adist[an] = dn
-                        if an in ai:
-                            acon.append(an)
-                        else:
-                            bndry.add(an)
+                if b.display and (an.display or an.hide):
+                    a2con.append((an,b.length))
+            a2con.extend(pcon.get(a2,[]))
+            for an, dan in a2con:
+                dn = d + dan
+                if dn <= dmax and (an not in adist or dn < adist[an]):
+                    adist[an] = dn
+                    if an in ai:
+                        acon.append(an)
+                    else:
+                        bndry.add(an)
         for a2 in acon:
             con.append((ai[a], ai[a2], adist[a2]))
-    return con
+    return con, ai
 
 def short_connection(i1, i2, dmax, strut_connections):
 
@@ -189,6 +197,19 @@ def short_connection(i1, i2, dmax, strut_connections):
                     adist[n] = dn
                     bndry.add(n)
     return False
+
+def pseudobond_connections(structures):
+    pcon = {}
+    from chimerax.core.atomic import concatenate, Atoms, interatom_pseudobonds
+    from chimerax.core.geometry import distance
+    satoms = concatenate([s.atoms for s in structures], Atoms)
+    for pb in interatom_pseudobonds(satoms):
+        a1, a2 = pb.atoms
+        if pb.display and a1.display and a2.display and pb.group.display:
+            d12 = distance(a1.scene_coord, a2.scene_coord)
+            pcon.setdefault(a1, []).append((a2,d12))
+            pcon.setdefault(a2, []).append((a1,d12))
+    return pcon
 
 def thick_ribbon(atoms):
     tw,th = .75,.75
