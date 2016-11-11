@@ -82,8 +82,9 @@ class ContactPlot(Graph):
                 self._show_interface_residues, c, c.group1)
             add('Show %s contact residues' % c.group2.name,
                 self._show_interface_residues, c, c.group2)
-        
-        add('Show all atoms', self._show_all_atoms)
+
+        if item is None:
+            add('Show all atoms', self._show_all_atoms)
 
         if isinstance(item, Contact):
             add('Residue plot', self._show_residue_plot, item)
@@ -112,26 +113,31 @@ class ContactPlot(Graph):
             add('Select %s contact residues' % c.group2.name,
                 self._select_contact_residues, clist, c.group2)
 
-        add('Select all', self._select_nodes, self.groups)
-        add('Clear selection', self._clear_selection)
+        if item is None:
+            add('Select all', self._select_nodes, self.groups)
+            add('Clear selection', self._clear_selection)
 
         menu.addSeparator()
 
         eargs = ()
         if isinstance(item, Contact):
             explode = item.explode_contact
+            ewhat = node_names
         elif isinstance(item, SphereGroup):
             explode = self._explode_neighbors
             eargs = (item,)
+            ewhat = 'neighbors of %s' % node_names
         else:
             explode = self._explode_all
-        add('Explode', explode, *eargs)
-        add('Unxplode', self._unexplode_all)
+            ewhat = 'all'
+        add('Explode ' + ewhat, explode, *eargs)
+        add('Unxplode ' + ewhat, self._unexplode_all)
 
         menu.addSeparator()
 
-        add('Layout matching structure', self.draw_graph)
-        add('Orient structure', self._orient)
+        if item is None:
+            add('Layout matching structure', self.draw_graph)
+            add('Orient structure', self._orient)
                     
     def _select_nodes(self, nodes):
         self._clear_selection()
