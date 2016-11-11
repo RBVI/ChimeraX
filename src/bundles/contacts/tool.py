@@ -52,11 +52,9 @@ class ContactPlot(Graph):
             self._select_nodes(nodes)
         else:
             n = len(nodes)
-            if n == 0:
-                self._show_all_atoms()
-            elif n == 1:
+            if n == 1:
                 self._show_neighbors(nodes[0])
-            else:
+            elif n > 1:
                 # Edge clicked, pair of nodes
                 self._show_node_atoms(nodes)
 
