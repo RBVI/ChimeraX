@@ -42,7 +42,7 @@ that consists of the following fields separated by double colons (``::``).
     Comma-separated list of categories in which the bundle belongs.
 3. ``session_versions`` : two comma-separated integers
     Minimum and maximum session version that the bundle can read.
-4. ``aliases`` : str
+4. ``supercedes`` : str
    Comma-separated list of superceded bundle names.
 5. ``custom_init`` : str
     Whether bundle has initialization code that must be called when
@@ -422,7 +422,7 @@ class Toolshed:
         self._installed_bundle_info = []
         inst_bi_list = self._load_bundle_infos(logger, rebuild_cache=rebuild_cache)
         for bi in inst_bi_list:
-            self.add_bundle_info(bi)
+            self.add_bundle_info(bi, logger)
             bi.register()
             if session is not None:
                 bi.initialize(session)
@@ -431,7 +431,7 @@ class Toolshed:
             self._repo_locator = None
             remote_bi_list = self.check_remote(logger)
             for bi in remote_bi_list:
-                self.add_bundle_info(bi)
+                self.add_bundle_info(bi, logger)
                 # XXX: do we want to register commands so that we can
                 # ask user whether to install bundle when invoked?
         self.triggers.activate_trigger(TOOLSHED_BUNDLE_INFO_RELOADED, self)
@@ -501,7 +501,7 @@ class Toolshed:
         else:
             return []
 
-    def add_bundle_info(self, bi):
+    def add_bundle_info(self, bi, logger):
         """Add metadata for a bundle.
 
         Parameters
@@ -509,6 +509,8 @@ class Toolshed:
         bi : :py:class:`BundleInfo` instance
             Must be a constructed instance, *i.e.*, not an existing instance
             returned by :py:func:`bundle_info`.
+        logger : :py:class:`~chimerax.core.logger.Logger` instance
+            Logging object where warning and error messages are sent.
 
         Notes
         -----
@@ -520,8 +522,8 @@ class Toolshed:
             for p in bi.packages:
                 if p in self._installed_packages:
                     bi2 = self._installed_packages[p]
-                    print('warning: both %s and %s supply package %s' % (
-                          bi.name, bi2.name, '.'.join(p)))
+                    logger.warning('both %s and %s supply package %s' % (
+                                   bi.name, bi2.name, '.'.join(p)))
                 self._installed_packages[p] = bi
         else:
             container = self._available_bundle_info
@@ -614,7 +616,7 @@ class Toolshed:
         best_bi = None
         best_version = None
         for bi in container:
-            if bi.name != name and name not in bi.aliases:
+            if bi.name != name and name not in bi.supercedes:
                 continue
             if version == bi.version:
                 return bi
@@ -933,7 +935,7 @@ class Toolshed:
         for classifier in md["classifiers"]:
             parts = [v.strip() for v in classifier.split("::")]
             if parts[0] == "ChimeraX-Bundle":
-                # 'ChimeraX-Bundle' :: categories :: session_versions :: module_name :: aliases :: custom_init
+                # 'ChimeraX-Bundle' :: categories :: session_versions :: module_name :: supercedes :: custom_init
                 if len(parts) == 10:
                     bi = self._old_bundle_info(parts, kw, installed, logger, bi)
                     continue
@@ -976,7 +978,7 @@ class Toolshed:
                 else:
                     # Are there bundle name aliases?
                     if parts[4]:
-                        kw['aliases'] = [v.strip() for v in parts[4].split(',')]
+                        kw['supercedes'] = [v.strip() for v in parts[4].split(',')]
                     # Does bundle have custom initialization code?
                     custom_init = parts[5]
                     if custom_init:
@@ -1145,7 +1147,7 @@ class Toolshed:
                            if bi.distribution() in updated]
         for bi in newly_installed:
             bi.installed = True
-            self.add_bundle_info(bi)
+            self.add_bundle_info(bi, logger)
             bi.register()
             if session is not None:
                 bi.initialize(session)
@@ -1667,7 +1669,7 @@ class BundleInfo:
                  description="Unknown",
                  session_versions=range(1, 1 + 1),
                  custom_init=False,
-                 packages=[], aliases=[]):
+                 packages=[], supercedes=[]):
         """Initialize instance.
 
         Parameters
@@ -1702,7 +1704,7 @@ class BundleInfo:
         self.selectors = []
         self.fetches = []
         self.description = description
-        self.aliases = aliases
+        self.supercedes = supercedes
 
         # Private attributes
         self._name = name
@@ -1761,7 +1763,7 @@ class BundleInfo:
             "api_package_name": self._api_package_name,
             "packages": self.packages,
             "description": self.description,
-            "aliases": self.aliases,
+            "supercedes": self.supercedes,
         }
         more = {
             'tools': [ti.cache_data() for ti in self.tools],
