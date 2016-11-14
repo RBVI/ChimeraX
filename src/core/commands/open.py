@@ -36,7 +36,7 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
     smart_initial_display : bool
         Whether to display molecules with rich styles and colors.
     trajectory : bool
-        Whether to read a PDB format multimodel file as a coordinate set (true)
+        Whether to read a PDB format multimodel file as coordinate sets (true)
         or as multiple models (false, default).
     '''
 
@@ -77,6 +77,8 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
             session.models.add(models)
         remember_file(session, filename, format, models, database=from_database)
         session.logger.status(status, log=True)
+        if trajectory:
+            report_trajectories(models, session.logger)
         return models
 
     if format is not None:
@@ -100,11 +102,18 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
         from ..errors import UserError
         raise UserError(e)
 
+    if trajectory:
+        report_trajectories(models, session.logger)
+    
     # Remember in file history
     remember_file(session, filename, format, models or 'all models')
 
     return models
 
+def report_trajectories(models, log):
+    for m in models:
+        if hasattr(m, 'num_coord_sets'):
+            log.info('%s has %d coordinate sets' % (m.name, m.num_coord_sets))
 
 def format_from_name(name, open=True, save=False):
     from .. import io
