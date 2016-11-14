@@ -12,9 +12,14 @@
 # === UCSF ChimeraX Copyright ===
 
 
-def cd(session, directory):
+def cd(session, directory=None):
     '''Change working directory.'''
     import os
+    if directory is None:
+        directory = os.path.expanduser('~')
+        if directory == '~':
+            from ..errors import UserError
+            raise UserError('Unable to figure out home directory')
     try:
         os.chdir(directory)
         session.logger.info('Current directory is now: %s' % directory)
@@ -26,6 +31,6 @@ def cd(session, directory):
 def register_command(session):
     from . import register, CmdDesc, FileNameArg
     desc = CmdDesc(
-        required=[('directory', FileNameArg)],
+        optional=[('directory', FileNameArg)],
         synopsis='Change the current working directory')
     register('cd', desc, cd)
