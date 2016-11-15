@@ -1847,9 +1847,13 @@ class BundleInfo:
             raise ToolshedError(
                 "no register_command function found for bundle \"%s\""
                 % self.name)
-        if f == BundleAPI.register_command:
-            raise ToolshedError("bundle \"%s\"'s API forgot to override register_command()" % self.name)
-        f(command_name)
+        try:
+            if f == BundleAPI.register_command:
+                raise ToolshedError("bundle \"%s\"'s API forgot to override register_command()" % self.name)
+            f(command_name)
+        except Exception as e:
+            raise ToolshedError(
+                "register_command() failed for command %s:\n%s" % (command_name, str(e)))
 
     def _deregister_commands(self):
         """Deregister commands with cli."""
