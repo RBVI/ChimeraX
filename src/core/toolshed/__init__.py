@@ -533,6 +533,7 @@ class Toolshed:
                         skip = bi2
                     if remove and hasattr(remove, 'path'):
                         logger.warning('removing %s' % remove.path)
+                        import shutil
                         shutil.rmtree(remove.path, ignore_errors=True)
                     else:
                         logger.warning('skipping %s' % skip.name)
@@ -1908,14 +1909,14 @@ class BundleInfo:
 
             def fetch_cb(session, identifier, database_name=database_name, format_name=format_name, **kw):
                 try:
-                    f = self._get_api().fetch_url
+                    f = self._get_api().fetch_from_database
                 except AttributeError:
                     raise ToolshedError(
-                        "no fetch_url function found for bundle \"%s\""
+                        "no fetch_from_database function found for bundle \"%s\""
                         % self.name)
                 if f == BundleAPI.save_file:
-                    raise ToolshedError("bundle \"%s\"'s API forgot to override fetch_url()" % self.name)
-                # optimize by replacing fetch_url for (database, format)
+                    raise ToolshedError("bundle \"%s\"'s API forgot to override fetch_from_database()" % self.name)
+                # optimize by replacing fetch_from_database for (database, format)
 
                 def fetch_shim(session, identifier, f=f, database_name=database_name, format_name=format_name, **kw):
                     return f(session, identifier, database_name=database_name, format_name=format_name, **kw)
