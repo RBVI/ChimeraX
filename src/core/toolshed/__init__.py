@@ -524,6 +524,20 @@ class Toolshed:
                     bi2 = self._installed_packages[p]
                     logger.warning('both %s and %s supply package %s' % (
                                    bi.name, bi2.name, '.'.join(p)))
+                    if bi.name in bi2.supercedes:
+                        remove = skip = bi
+                    elif bi2.name in bi.supercedes:
+                        remove = skip = bi2
+                    else:
+                        remove = None
+                        skip = bi2
+                    if remove and hasattr(remove, 'path'):
+                        logger.warning('removing %s' % remove.path)
+                        shutil.rmtree(remove.path, ignore_errors=True)
+                    else:
+                        logger.warning('skipping %s' % skip.name)
+                    if skip == bi:
+                        continue
                 self._installed_packages[p] = bi
         else:
             container = self._available_bundle_info
@@ -938,6 +952,8 @@ class Toolshed:
                 # 'ChimeraX-Bundle' :: categories :: session_versions :: module_name :: supercedes :: custom_init
                 if len(parts) == 10:
                     bi = self._old_bundle_info(parts, kw, installed, logger, bi)
+                    if bi:
+                        bi.path = d.path
                     continue
                 elif bi is not None:
                     logger.warning("Second ChimeraX-Bundle line ignored.")
@@ -984,6 +1000,7 @@ class Toolshed:
                     if custom_init:
                         kw["custom_init"] = (custom_init == "true")
                 bi = BundleInfo(installed=installed, **kw)
+                bi.path = d.path
             elif parts[0] == "ChimeraX-Tool":
                 # 'ChimeraX-Tool' :: tool_name :: categories :: synopsis
                 if bi is None:
