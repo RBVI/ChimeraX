@@ -195,16 +195,19 @@ def register_command(session):
         required=file_arg,
         synopsis='save session'
     )
-    def save_no_model(session, filename, **kw):
-        save(session, None, filename, **kw)
-    register('save session', desc, save_no_model)
+    def save_session(session, filename, **kw):
+        kw['format'] = 'ses'
+        save(session, filename, **kw)
+    register('save session', desc, save_session)
 
     desc = CmdDesc(
         required=file_arg,
         keyword=image_format_args + image_args,
         synopsis='save image'
     )
-    register('save image', desc, save_no_model)
+    def save_image(session, filename, **kw):
+        save(session, filename, **kw)
+    register('save image', desc, save_image)
 
     desc = CmdDesc(
         required=file_arg,
