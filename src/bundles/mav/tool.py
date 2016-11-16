@@ -399,7 +399,7 @@ class MultalignViewer(ToolInstance):
         self.tool_window.manage('side' if self.seq_canvas.should_wrap() else 'top')
 
     def alignment_notification(self, note_name, note_data):
-        if note_name == "mod assoc":
+        if note_name == "modify association":
             for match_map in note_data[-1]:
                 self.seq_canvas.assoc_mod(match_map.align_seq)
 
