@@ -465,6 +465,21 @@ class Drawing:
     (attribute color) is used for the object.
     '''
 
+    def set_transparency(self, alpha):
+        '''
+        Set transparency to alpha (0-255). Applies to per-vertex colors if
+        currently showing per-vertex colors otherwise single color.
+        Does not effect child drawings.
+        '''
+        vcolors = self.vertex_colors
+        if vcolors is None:
+            c = self.colors
+            c[:, 3] = alpha
+            self.colors = c
+        else:
+            vcolors[:, 3] = alpha
+            self.vertex_colors = vcolors
+
     def _transparency(self):
         if self.texture is not None:
             any_opaque = self.opaque_texture

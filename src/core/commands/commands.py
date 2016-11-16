@@ -19,7 +19,7 @@ def register_core_commands(session):
     # the first in alphabetical order.
     modules = [
         'alias', 'align', 'buriedarea',
-        'camera', 'clip', 'close', 'cofr', 'color', 'colorname',
+        'camera', 'cd', 'clip', 'close', 'cofr', 'color', 'colorname',
         'coordset', 'crossfade',
         'delete', 'dssp', 'exit', 'hide', 'info',
         'lighting', 'list', 'material', 'mousemode', 'move',

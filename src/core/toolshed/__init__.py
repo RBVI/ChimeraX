@@ -524,6 +524,21 @@ class Toolshed:
                     bi2 = self._installed_packages[p]
                     logger.warning('both %s and %s supply package %s' % (
                                    bi.name, bi2.name, '.'.join(p)))
+                    if bi.name in bi2.supercedes:
+                        remove = skip = bi
+                    elif bi2.name in bi.supercedes:
+                        remove = skip = bi2
+                    else:
+                        remove = None
+                        skip = bi2
+                    if remove and hasattr(remove, 'path'):
+                        logger.warning('removing %s' % remove.path)
+                        import shutil
+                        shutil.rmtree(remove.path, ignore_errors=True)
+                    else:
+                        logger.warning('skipping %s' % skip.name)
+                    if skip == bi:
+                        continue
                 self._installed_packages[p] = bi
         else:
             container = self._available_bundle_info
@@ -938,6 +953,8 @@ class Toolshed:
                 # 'ChimeraX-Bundle' :: categories :: session_versions :: module_name :: supercedes :: custom_init
                 if len(parts) == 10:
                     bi = self._old_bundle_info(parts, kw, installed, logger, bi)
+                    if bi:
+                        bi.path = d.path
                     continue
                 elif bi is not None:
                     logger.warning("Second ChimeraX-Bundle line ignored.")
@@ -984,6 +1001,7 @@ class Toolshed:
                     if custom_init:
                         kw["custom_init"] = (custom_init == "true")
                 bi = BundleInfo(installed=installed, **kw)
+                bi.path = d.path
             elif parts[0] == "ChimeraX-Tool":
                 # 'ChimeraX-Tool' :: tool_name :: categories :: synopsis
                 if bi is None:
@@ -1829,9 +1847,13 @@ class BundleInfo:
             raise ToolshedError(
                 "no register_command function found for bundle \"%s\""
                 % self.name)
-        if f == BundleAPI.register_command:
-            raise ToolshedError("bundle \"%s\"'s API forgot to override register_command()" % self.name)
-        f(command_name)
+        try:
+            if f == BundleAPI.register_command:
+                raise ToolshedError("bundle \"%s\"'s API forgot to override register_command()" % self.name)
+            f(command_name)
+        except Exception as e:
+            raise ToolshedError(
+                "register_command() failed for command %s:\n%s" % (command_name, str(e)))
 
     def _deregister_commands(self):
         """Deregister commands with cli."""
@@ -1891,14 +1913,14 @@ class BundleInfo:
 
             def fetch_cb(session, identifier, database_name=database_name, format_name=format_name, **kw):
                 try:
-                    f = self._get_api().fetch_url
+                    f = self._get_api().fetch_from_database
                 except AttributeError:
                     raise ToolshedError(
-                        "no fetch_url function found for bundle \"%s\""
+                        "no fetch_from_database function found for bundle \"%s\""
                         % self.name)
                 if f == BundleAPI.save_file:
-                    raise ToolshedError("bundle \"%s\"'s API forgot to override fetch_url()" % self.name)
-                # optimize by replacing fetch_url for (database, format)
+                    raise ToolshedError("bundle \"%s\"'s API forgot to override fetch_from_database()" % self.name)
+                # optimize by replacing fetch_from_database for (database, format)
 
                 def fetch_shim(session, identifier, f=f, database_name=database_name, format_name=format_name, **kw):
                     return f(session, identifier, database_name=database_name, format_name=format_name, **kw)

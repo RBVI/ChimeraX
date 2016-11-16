@@ -60,7 +60,7 @@ class ContactPlot(Graph):
 
     def fill_context_menu(self, menu, item):
         nodes = self.item_nodes(item)
-        node_names = ','.join(n.name for n in nodes)
+        node_names = ' and '.join(n.name for n in nodes)
         nn = len(nodes)
 
         add = lambda *args: self.add_menu_entry(menu, *args)
@@ -71,14 +71,16 @@ class ContactPlot(Graph):
 
         if len(nodes) == 1:
             add('Show %s and neighbors' % node_names, self._show_neighbors, nodes[0])
-            add('Show contact residues', self._show_contact_residues, nodes[0])
+            add('Show contact residues of neighbors with %s' % node_names,
+                self._show_contact_residues, nodes[0])
 
         from .cmd import Contact, SphereGroup
         if isinstance(item, Contact):
             c = item
-            add('Show %s contact residues' % c.group1.name,
+            n1, n2 = (c.group1.name, c.group2.name)
+            add('Show contact residues of %s with %s' % (n1,n2),
                 self._show_interface_residues, c, c.group1)
-            add('Show %s contact residues' % c.group2.name,
+            add('Show contact residues of %s with %s' % (n2,n1),
                 self._show_interface_residues, c, c.group2)
 
         if item is None:
@@ -94,21 +96,25 @@ class ContactPlot(Graph):
             add('Select %s' % node_names, self._select_nodes, nodes)
 
         if nn == 1:
-            add('Select neighbors', self._select_neighbors, nodes[0])
+            add('Select neighbors of %s' % node_names, self._select_neighbors, nodes[0])
 
         if nn == 0:
             clist = self.contacts
+            stext = 'Select all contact residues'
         elif nn == 1:
             clist = self._node_contacts(nodes[0])
+            stext = 'Select contact residues of %s and neighbors' % node_names
         elif nn == 2:
             clist = [item]
-        add('Select contact residues', self._select_contact_residues, clist)
+            stext = 'Select contact residues of %s' % node_names
+        add(stext, self._select_contact_residues, clist)
 
         if isinstance(item, Contact):
             c = item
-            add('Select %s contact residues' % c.group1.name,
+            n1, n2 = (c.group1.name, c.group2.name)
+            add('Select contact residues of %s with %s' % (n1,n2),
                 self._select_contact_residues, clist, c.group1)
-            add('Select %s contact residues' % c.group2.name,
+            add('Select contact residues of %s with %s' % (n2,n1),
                 self._select_contact_residues, clist, c.group2)
 
         if item is None:
