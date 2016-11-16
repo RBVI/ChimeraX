@@ -39,6 +39,10 @@ src/apps/ChimeraX/icon.rc
 src/core/buildinfo.py
 src/core/commands/_atomspec.py
 src/wheelhouse/Makefile.wheelhouse
+src/core/commands/_atomspec.py
+src/core/atomic/mmcif_cpp/_mmcif.cpp
+src/core/atomic/mmcif_cpp/_mmcif.h
+src/core/atomic/mmcif_cpp/wrappy
 src/core/ui/about.html
 src/bundles/rest_server/server.pem
 prereqs/PyQt/*commercial*
