@@ -43,19 +43,19 @@ class _MyAPI(BundleAPI):
         raise NotImplementedError  # FIXME: remove method if unneeded
 
     @staticmethod
-    def open_file(session, f, name, filespec=None, **kw):
+    def open_file(session, f, name, filespec=None, format_name=None, **kw):
         # 'open_file' is called by session code to open a file
         # returns (list of models, status message)
         raise NotImplementedError     # FIXME: remove method if unneeded
 
     @staticmethod
-    def save_file(session, name, **kw):
+    def save_file(session, name, format_name=None, **kw):
         # 'save_file' is called by session code to save a file
         raise NotImplementedError     # FIXME: remove method if unneeded
 
     @staticmethod
-    def fetch_url(session, identifier, ignore_cache=False, database_name=None, format_name=None, **kw):
-        # 'fetch_url' is called by session code to fetch data from a URL
+    def fetch_from_database(session, identifier, ignore_cache=False, database_name=None, format_name=None, **kw):
+        # 'fetch_from_database' is called by session code to fetch data with give identifier
         raise NotImplementedError     # FIXME: remove method if unneeded
 
     @staticmethod
@@ -67,20 +67,5 @@ class _MyAPI(BundleAPI):
     def finish(session, bi):
         # deinitialize bundle in session (causes import)
         raise NotImplementedError
-
-    @staticmethod
-    def fetch_data(format, database, ident):
-        # return function capable of fetching data format
-        raise NotImplementedError     # FIXME: remove method if unneeded
-
-    @staticmethod
-    def open_data(format, tag):
-        # return function capable of opening data format
-        raise NotImplementedError  # FIXME: remove method if unneeded
-
-    @staticmethod
-    def save_data(format, tag):
-        # return function capable of saving data format
-        raise NotImplementedError  # FIXME: remove method if unneeded
 
 bundle_api = _MyAPI()

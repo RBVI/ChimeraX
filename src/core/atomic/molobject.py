@@ -616,6 +616,8 @@ class Residue:
     ''':class:`.Chain` that this residue belongs to, if any. Read only.'''
     chain_id = c_property('residue_chain_id', string, read_only = True)
     '''Protein Data Bank chain identifier. Limited to 4 characters. Read only string.'''
+    mmcif_chain_id = c_property('residue_mmcif_chain_id', string, read_only = True)
+    '''mmCIF chain identifier. Limited to 4 characters. Read only string.'''
     @property
     def description(self):
         '''Description of residue (if available) from HETNAM/HETSYN records or equivalent'''
@@ -890,6 +892,10 @@ class StructureSeq(Sequence):
                 args = (ctypes.c_char_p, ctypes.c_void_p), ret = ctypes.c_void_p)(
                     chain_id.encode('utf-8'), structure._c_pointer)
         super().__init__(sseq_pointer)
+        from ..triggerset import TriggerSet
+        self.triggers = TriggerSet()
+        self.triggers.add_trigger('delete')
+        self.triggers.add_trigger('modify')
         # description derived from PDB/mmCIF info and set by AtomicStructure constructor
         self.description = None
 
@@ -1018,6 +1024,13 @@ class StructureSeq(Sequence):
             'structure': self.structure
         }
         return data
+
+    def _cpp_demotion(self):
+        # called from C++ layer when this should be demoted to Sequence
+        numbering_start = self.numbering_start
+        self.__class__ = Sequence
+        self.triggers.activate_trigger('delete', self)
+        self.numbering_start = numbering_start
 
 # sequence-structure association functions that work on StructureSeqs...
 
@@ -1152,6 +1165,8 @@ class StructureData:
     ''':class:`.Chains` collection containing all chains of the structure.'''
     coordset_ids = c_property('structure_coordset_ids', int32, 'num_coord_sets', read_only = True)
     '''Return array of ids of all coordinate sets.'''
+    lower_case_chains = c_property('structure_lower_case_chains', npy_bool, read_only = True)
+    '''Structure has lower case chain ids. Boolean'''
     name = c_property('structure_name', string)
     '''Structure name, a string.'''
     num_atoms = c_property('structure_num_atoms', size_t, read_only = True)

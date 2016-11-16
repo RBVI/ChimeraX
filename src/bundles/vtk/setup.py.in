@@ -61,7 +61,7 @@ setup(
         "Topic :: Scientific/Engineering :: Visualization",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
-        "ChimeraX-Bundle :: Generic 3D objects :: 1,1 :: PKG_NAME :: ",
+        "ChimeraX-Bundle :: Generic 3D objects :: 1,1 :: PKG_NAME :: :: ",
         "ChimeraX-DataFormat :: VTK PolyData :: :: Generic 3D objects :: .vtk :: :: http://www.vtk.org/wp-content/uploads/2015/04/file-formats.pdf :: :: :: VTK ",
         "ChimeraX-Open :: VTK PolyData :: vtk :: ",
     ],

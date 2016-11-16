@@ -44,9 +44,6 @@ class Ribbon:
         elif orient == Structure.RIBBON_ORIENT_CURVATURE:
             self.normals = self._compute_normals_from_curvature(coords)
             self.ignore_flip_mode = True
-        elif orient == Structure.RIBBON_ORIENT_PEPTIDE:
-            self.normals = self._compute_normals_from_guides(coords, guides)
-            self.ignore_flip_mode = False
         else:
             # RIBBON_ORIENT_GUIDES, RIBBON_ORIENT_PEPTIDE and default case
             if guides is None or len(coords) != len(guides):

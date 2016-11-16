@@ -131,6 +131,7 @@ class CommandLine(ToolInstance):
             self.history_dialog.populate()
 
     def execute(self):
+        self.text.lineEdit().blockSignals(True)
         session = self.session
         logger = session.logger
         text = self.text.lineEdit().text()
@@ -149,27 +150,12 @@ class CommandLine(ToolInstance):
                 # TODO: somehow quit application
                 raise
             except errors.UserError as err:
-                rest = cmd.current_text[cmd.amount_parsed:]
-                spaces = len(rest) - len(rest.lstrip())
-                error_at = cmd.amount_parsed + spaces
-                syntax_error = error_at < len(cmd.current_text)
-                # error message in red text
-                err_color = 'crimson'
-                if not syntax_error:
-                    msg = ''
-                else:
-                    msg = '<div class="cxcmd">%s<span style="color:white; background-color:%s;">%s</span>' % (
-                        escape(cmd.current_text[cmd.start:error_at]),
-                        err_color,
-                        escape(cmd.current_text[error_at:]))
-                msg += '</div>\n<span style="color:%s;font-weight:bold">%s</span>\n' % (
-                    err_color, escape(str(err)))
-                logger.info(msg, is_html=True)
-                logger.status(str(err), color="red")
+                logger.status(str(err), color="crimson")
             except:
                 import traceback
                 session.logger.error(traceback.format_exc())
         self.set_focus()
+        self.text.lineEdit().blockSignals(False)
         self.text.lineEdit().setText(cmd_text)
         self.text.lineEdit().selectAll()
 

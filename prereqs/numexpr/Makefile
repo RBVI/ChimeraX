@@ -26,7 +26,7 @@ all:
 
 install: $(SOURCE)
 ifdef WIN32
-	$(PIP) install -U $(WHEEL)
+	$(PIP) install $(WHEEL)
 else
 	cd $(SOURCE) &&	$(PYTHON_EXE) setup.py build $(SETUP_BUILD) install
 endif

@@ -3,24 +3,25 @@
 # ToolUI classes may also override
 #   "delete" - called to clean up before instance is deleted
 #
-from chimerax.core.tools import ToolInstance, State
+from chimerax.core.tools import ToolInstance
 
 _EmptyPage = "<h2>Please select a chain and press <b>BLAST</b></h2>"
 _InProgressPage = "<h2>BLAST search in progress&hellip;</h2>"
 
 
-class ToolUI(ToolInstance, State):
+class ToolUI(ToolInstance):
 
     SESSION_ENDURING = False
     # For now, no session saving
     SESSION_SKIP = True
-    CUSTOM_SCHEME = "blastpdb"
-    REF_ID_URL = "https://www.ncbi.nlm.nih.gov/gquery/?term=%s"
+    CUSTOM_SCHEME = "blastprotein"
+    REF_ID_URL = "https://www.ncbi.nlm.nih.gov/protein/%s"
+    KNOWN_IDS = ["ref","gi"]
 
     def __init__(self, session, tool_name, blast_results=None, atomspec=None):
         # Standard template stuff
         ToolInstance.__init__(self, session, tool_name)
-        self.display_name = "Blast PDB"
+        self.display_name = "Blast Protein"
         from chimerax.core.ui.gui import MainToolWindow
         self.tool_window = MainToolWindow(self)
         self.tool_window.manage(placement="side")
@@ -62,13 +63,13 @@ class ToolUI(ToolInstance, State):
         self._update_blast_results(blast_results, atomspec)
 
     def _blast_cb(self, _):
-        from .job import BlastPDBJob
+        from .job import BlastProteinJob
         n = self.chain_combobox.currentIndex()
         if n < 0:
             return
         chain = self.chain_combobox.itemData(n)
-        BlastPDBJob(self.session, chain.characters, chain.atomspec(),
-                    finish_callback=self._blast_job_finished)
+        ProteinstPDBJob(self.session, chain.characters, chain.atomspec(),
+                        finish_callback=self._blast_job_finished)
         self.results_view.setHtml(_InProgressPage)
 
     def _update_chains(self, trigger=None, trigger_data=None):
@@ -103,7 +104,7 @@ class ToolUI(ToolInstance, State):
         if blast_results is None:
             self.results_view.setHtml(_EmptyPage)
         else:
-            html = ["<h2>BlastPDB ",
+            html = ["<h2>Blast Protein ",
                     "<small>(an <a href=\"http://www.rbvi.ucsf.edu\">RBVI</a> "
                     "web service)</small> Results</h2>",
                     "<table><tr>"
@@ -118,13 +119,19 @@ class ToolUI(ToolInstance, State):
                                                          m.pdb, m.pdb)
                 else:
                     import re
-                    match = re.search(r"\|ref\|([^|]+)\|", m.name)
+                    mdb = None
+                    mid = None
+                    for known in self.KNOWN_IDS:
+                        match = re.search(r"\b%s\|([^|]+)\|" % known, m.name)
+                        if match is not None:
+                            mdb = known
+                            mid = match.group(1)
+                            break
                     if match is None:
                         name = m.name
                     else:
-                        ref_id = match.group(1)
-                        ref_url = self.REF_ID_URL % ref_id
-                        name = "<a href=\"%s\">%s</a>" % (ref_url, ref_id)
+                        url = self.REF_ID_URL % mid
+                        name = "<a href=\"%s\">%s (%s)</a>" % (url, mid, mdb)
                 html.append("<tr><td>%s</td><td>%s</td>"
                             "<td>%s</td><td>%s</td></tr>" %
                             (name, "%.3g" % m.evalue,
@@ -168,6 +175,7 @@ class ToolUI(ToolInstance, State):
         t = self.session.triggers
         t.remove_handler(self._add_handler)
         t.remove_handler(self._remove_handler)
+        super().delete()
 
     def take_snapshot(self, session, flags):
         # For now, do not save anything in session.

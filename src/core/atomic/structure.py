@@ -153,7 +153,7 @@ class Structure(Model, StructureData):
                     # CA only?
                     atoms.draw_modes = Atom.BALL_STYLE
             elif self.num_chains < 250:
-                lighting = "full"
+                lighting = "full" if self.num_atoms < 300000 else "full multiShadow 16"
                 from .colors import chain_colors, element_colors
                 residues = self.residues
                 residues.ribbon_colors = chain_colors(residues.chain_ids)
@@ -1599,13 +1599,7 @@ class Structure(Model, StructureData):
 
     def _atomspec_filter_chain(self, atoms, num_atoms, parts, attrs):
         chain_ids = atoms.residues.chain_ids
-        try:
-            case_insensitive = self._atomspec_chain_ci
-        except AttributeError:
-            any_upper = any([c.isupper() for c in chain_ids])
-            any_lower = any([c.islower() for c in chain_ids])
-            case_insensitive = not any_upper or not any_lower
-            self._atomspec_chain_ci = case_insensitive
+        case_insensitive = not self.lower_case_chains
         import numpy
         selected = numpy.zeros(num_atoms)
         # TODO: account for attrs in addition to parts
@@ -1791,29 +1785,22 @@ class AtomicStructure(Structure):
 
     def _set_chain_descriptions(self, session):
         chain_to_desc = {}
-        if 'pdbx_poly_seq_scheme' in self.metadata:
-            scheme = self.metadata.get('pdbx_poly_seq_scheme', [])
-            id_to_index = {}
-            for sch in scheme:
-                id_to_index[sch['pdb_strand_id']] = int(sch['entity_id']) - 1
-            entity = self.metadata.get('entity', [])
-            entity_name_com = self.metadata.get('entity_name_com', [])
-            name_com_lookup = {}
-            for enc in entity_name_com:
-                name_com_lookup[int(enc['entity_id'])-1] = enc['name']
-            for chain_id, index in id_to_index.items():
-                description = None
-                # try SYNONYM equivalent first
-                if index in name_com_lookup:
-                    syn = name_com_lookup[index]
-                    if syn != '?':
-                        description = syn
-                        synonym = True
-                if not description and len(entity) > index:
-                    description = entity[index]['pdbx_description']
-                    synonym = False
-                if description:
-                    chain_to_desc[chain_id] = (description, synonym)
+        if 'chain_entity_map' in self.metadata:
+            cem = self.metadata['chain_entity_map']
+            mmcif_chain_to_entity = { cem[i]: cem[i+1] for i in range(0, len(cem), 2) }
+            if 'entity' not in self.metadata:
+                # bad mmCIF file
+                return
+            entity_fields = self.metadata['entity']
+            id_index = entity_fields.index('id')
+            desc_index = entity_fields.index('pdbx_description')
+            data = self.metadata['entity data']
+            entity_to_description = { data[i+id_index]: data[i+desc_index]
+                for i in range(0, len(data), len(entity_fields)) }
+            for ch in self.chains:
+                mmcif_cid = ch.existing_residues.mmcif_chain_ids[0]
+                chain_to_desc[ch.chain_id] = (
+                    entity_to_description[mmcif_chain_to_entity[mmcif_cid]], False)
         elif 'COMPND' in self.metadata and self.pdb_version > 1:
             compnd_recs = self.metadata['COMPND']
             compnd_chain_ids = None

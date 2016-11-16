@@ -28,7 +28,7 @@ def open_pdb(session, filename, name, *args, **kw):
         input = open(filename, 'rb')
         path = filename
 
-    explode = kw.get('explode', True)
+    explode = not kw.get('trajectory', False)
     from . import pdbio
     pointers = pdbio.read_pdb_file(input, log=session.logger, explode=explode)
     if input != filename:
@@ -84,24 +84,38 @@ def register_pdb_fetch():
     fetch.register_fetch('pdb', fetch_pdb, 'pdb', prefixes = [])
 
 def process_chem_name(name, use_greek=True, probable_abbrs=False):
-    text = ""
-    word = ""
-    for c in name.strip().lower():
-        if c.isalpha():
-            word += c
-            continue
+    if name.isupper() and (" " in name or len(name) > 5):
+        # probable non-abbreviation all uppercase:  need to downcase as appropriate
+        text = ""
+        word = ""
+        for c in name.strip().lower():
+            if c.isalpha():
+                word += c
+                continue
+            if word:
+                if c.isdigit() or (text and text[-1].isdigit()):
+                    text += _process_chem_word(word, use_greek, probable_abbrs).upper()
+                else:
+                    text += _process_chem_word(word, use_greek, probable_abbrs)
+                word = ""
+            text += c
         if word:
             if c.isdigit() or (text and text[-1].isdigit()):
                 text += _process_chem_word(word, use_greek, probable_abbrs).upper()
             else:
                 text += _process_chem_word(word, use_greek, probable_abbrs)
-            word = ""
-        text += c
-    if word:
-        if c.isdigit() or (text and text[-1].isdigit()):
-            text += _process_chem_word(word, use_greek, probable_abbrs).upper()
+    else:
+        # already mixed case; just substitute greek letters as appropriate
+        if use_greek:
+            processed_words = []
+            for word in name.split():
+                if word.lower() in greek_letters:
+                    processed_words.append(greek_letters[word.lower()])
+                else:
+                    processed_words.append(word)
+            text = " ".join(processed_words)
         else:
-            text += _process_chem_word(word, use_greek, probable_abbrs)
+            text = name
     return text
 
 greek_letters = {

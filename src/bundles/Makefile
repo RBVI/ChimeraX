@@ -12,13 +12,14 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
-SUBDIRS = add_missing_atoms align_algs alignments blastpdb \
+SUBDIRS = add_missing_atoms align_algs alignments blastprotein \
 	  cage_builder cellpack cmd_line contacts crosslinks \
+		cytoscape \
 	  exp_cmd file_history help_viewer ihm label list_info \
-	  log map_series_gui match_maker mav mlp model_panel \
+	  log map_series_gui match_maker mav mlp mmtf model_panel \
 	  mouse_modes movie oculus remote_control rest_server \
 	  residue_fit sim_matrices shell shortcuts sideview \
-	  smooth_lines spacenavigator stl storm struts \
+	  smooth_lines spacenavigator stl storm stringdb struts \
 	  test toolshed tug vive volume_viewer vtk
 
 include $(TOP)/mk/subdir.make

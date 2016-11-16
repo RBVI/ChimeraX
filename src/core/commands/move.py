@@ -11,9 +11,11 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def move(session, axis, distance=None, frames=None, coordinate_system=None, models=None):
+def move(session, axis, distance=None, frames=None, coordinate_system=None,
+         models=None, atoms=None):
     '''Shift the scene.  Actually the camera is shifted and the models stay fixed
-    unless the models option is specified.
+    unless the models option is specified in which case the model coordinate systems
+    are moved, or if atoms is specifed the atom coordinates are moved.
 
     Parameters
     ----------
@@ -27,7 +29,9 @@ def move(session, axis, distance=None, frames=None, coordinate_system=None, mode
        The coordinate system for the axis.
        If no coordinate system is specified then scene coordinates are used.
     models : list of Models
-       Only these models are moved.  If not specified, then the camera is moved.
+       Move the coordinate systems of these models.  Camera is not moved.
+    atoms : Atoms
+       Change the coordinates of these atoms.  Camera is not moved.
     '''
     if frames is not None:
         def move_step(session, frame):
@@ -45,21 +49,24 @@ def move(session, axis, distance=None, frames=None, coordinate_system=None, mode
     d = -distance if models is None else distance
     from ..geometry import translation
     t = translation(saxis * d)
-    if models is None:
-        c.position = t * c.position
-    else:
+    if models is not None:
         for m in models:
             m.positions = t * m.positions
+    if atoms is not None:
+        atoms.scene_coords = t.inverse() * atoms.scene_coords
+    if models is None and atoms is None:
+        c.position = t * c.position
 
 def register_command(session):
     from .cli import CmdDesc, register, AxisArg, FloatArg, PositiveIntArg
-    from .cli import CoordSysArg, TopModelsArg
+    from .cli import CoordSysArg, TopModelsArg, AtomsArg
     desc = CmdDesc(
         required = [('axis', AxisArg)],
         optional = [('distance', FloatArg),
                     ('frames', PositiveIntArg)],
         keyword = [('coordinate_system', CoordSysArg),
-                   ('models', TopModelsArg)],
-        synopsis='translate models'
+                   ('models', TopModelsArg),
+                   ('atoms', AtomsArg)],
+        synopsis='move camera, models, or atoms'
     )
     register('move', desc, move)

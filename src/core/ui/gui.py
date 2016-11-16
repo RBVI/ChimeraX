@@ -158,6 +158,17 @@ class UI(QApplication):
         mw.graphics_window.keyPressEvent = self.forward_keystroke
         mw.show()
         self.splash.finish(mw)
+        # Register for tool installation/deinstallation so that
+        # we can update the Tools menu
+        from ..toolshed import (TOOLSHED_BUNDLE_INSTALLED,
+                                TOOLSHED_BUNDLE_UNINSTALLED,
+                                TOOLSHED_BUNDLE_INFO_RELOADED)
+        def handler(*args, mw=self.main_window, ses=self.session, **kw):
+            mw.update_tools_menu(ses)
+        triggers = self.session.toolshed.triggers
+        triggers.add_handler(TOOLSHED_BUNDLE_INSTALLED, handler)
+        triggers.add_handler(TOOLSHED_BUNDLE_UNINSTALLED, handler)
+        triggers.add_handler(TOOLSHED_BUNDLE_INFO_RELOADED, handler)
 
     def deregister_for_keystrokes(self, sink, notfound_okay=False):
         """'undo' of register_for_keystrokes().  Use the same argument.
@@ -358,17 +369,6 @@ class MainWindow(QMainWindow, PlainTextLog):
     def file_quit_cb(self, session):
         session.ui.quit()
 
-    def hide_other_tools(self, tool_instance):
-        for ti, tool_windows in self.tool_instance_to_windows.items():
-            if ti == tool_instance:
-                continue
-            for tw in tool_windows:
-                if tw.title == "Command Line Interface":
-                    # leave the command line as is
-                    continue
-                if tw.shown:
-                    tw._mw_set_shown(False)
-        
     def _get_hide_tools(self):
         return self._hide_tools
 
@@ -507,26 +507,8 @@ class MainWindow(QMainWindow, PlainTextLog):
         quit_action.triggered.connect(lambda arg, s=self, sess=session: s.file_quit_cb(sess))
         file_menu.addAction(quit_action)
 
-        tools_menu = mb.addMenu("&Tools")
-        categories = {}
-        for bi in session.toolshed.bundle_info():
-            for tool in bi.tools:
-                for cat in tool.categories:
-                    categories.setdefault(cat, {})[tool.name] = (bi, tool)
-        cat_keys = sorted(categories.keys())
-        one_menu = len(cat_keys) == 1
-        for cat in cat_keys:
-            if one_menu:
-                cat_menu = tools_menu
-            else:
-                cat_menu = tools_menu.addMenu(cat)
-            cat_info = categories[cat]
-            for tool_name in sorted(cat_info.keys()):
-                bi, tool = cat_info[tool_name]
-                tool_action = QAction(tool_name, self)
-                tool_action.setStatusTip(tool.synopsis)
-                tool_action.triggered.connect(lambda arg, ses=session, bi=bi: bi.start_tool(ses, tool_name))
-                cat_menu.addAction(tool_action)
+        self.tools_menu = mb.addMenu("&Tools")
+        self.update_tools_menu(session)
 
         help_menu = mb.addMenu("&Help")
         for entry, topic in (('User Guide', 'user'),
@@ -545,6 +527,34 @@ class MainWindow(QMainWindow, PlainTextLog):
         about_action = QAction("About %s %s" % (ad.appauthor, ad.appname), self)
         about_action.triggered.connect(self._about)
         help_menu.addAction(about_action)
+
+    def update_tools_menu(self, session):
+        from PyQt5.QtWidgets import QMenu, QAction
+        tools_menu = QMenu("&Tools")
+        categories = {}
+        for bi in session.toolshed.bundle_info():
+            for tool in bi.tools:
+                for cat in tool.categories:
+                    categories.setdefault(cat, {})[tool.name] = (bi, tool)
+        cat_keys = sorted(categories.keys())
+        one_menu = len(cat_keys) == 1
+        for cat in cat_keys:
+            if one_menu:
+                cat_menu = tools_menu
+            else:
+                cat_menu = tools_menu.addMenu(cat)
+            cat_info = categories[cat]
+            for tool_name in sorted(cat_info.keys()):
+                bi, tool = cat_info[tool_name]
+                tool_action = QAction(tool_name, self)
+                tool_action.setStatusTip(tool.synopsis)
+                tool_action.triggered.connect(lambda arg, ses=session, bi=bi, tool_name=tool_name: bi.start_tool(ses, tool_name))
+                cat_menu.addAction(tool_action)
+        mb = self.menuBar()
+        old_action = self.tools_menu.menuAction()
+        mb.insertMenu(old_action, tools_menu)
+        mb.removeAction(old_action)
+        self.tools_menu = tools_menu
 
     def add_custom_menu_entry(self, menu_name, entry_name, callback):
         '''
@@ -761,7 +771,6 @@ class _Qt:
         from PyQt5.QtWidgets import QDockWidget, QWidget
         self.dock_widget = dw = QDockWidget(title, mw)
         dw.closeEvent = lambda e, tw=tool_window, mw=mw: mw.close_request(tw, e)
-        dw.setAttribute(Qt.WA_MacAlwaysShowToolWindow)
         self.ui_area = QWidget(dw)
         self.ui_area.contextMenuEvent = lambda e, self=self: self.show_context_menu(e)
         self.dock_widget.setWidget(self.ui_area)
@@ -812,10 +821,6 @@ class _Qt:
         hide_tool_action = QAction("Hide this tool", self.ui_area)
         hide_tool_action.triggered.connect(lambda arg, ti=ti: ti.display(False))
         menu.addAction(hide_tool_action)
-        hide_other_tools_action = QAction("Hide other tools", self.ui_area)
-        hide_other_tools_action.triggered.connect(
-            lambda arg, ti=ti, ho=self.main_window.hide_other_tools: ho(ti))
-        menu.addAction(hide_other_tools_action)
         if ti.help is not None:
             help_action = QAction("Help", self.ui_area)
             help_action.setStatusTip("Show tool help")

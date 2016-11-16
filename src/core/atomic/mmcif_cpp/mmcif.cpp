@@ -61,11 +61,28 @@ using element::Element;
 using atomstruct::MolResId;
 using atomstruct::Coord;
 
-namespace mmcif {
-
 using atomstruct::AtomName;
 using atomstruct::ChainID;
 using atomstruct::ResName;
+
+namespace {
+
+inline void
+canonicalize_atom_name(AtomName* aname, bool* asterisks_translated)
+{
+    for (int i = aname->length(); i > 0; ) {
+        --i;
+        // use prime instead of asterisk
+        if ((*aname)[i] == '*') {
+            (*aname)[i] = '\'';
+            *asterisks_translated = true;
+        }
+    }
+}
+
+} // namespace
+
+namespace mmcif {
 
 typedef vector<string> StringVector;
 typedef vector<unsigned> UIntVector;
@@ -316,6 +333,7 @@ ExtractMolecule::reset_parse()
     chain_entity_map.clear();
     all_residues.clear();
     entry_id.clear();
+    generic_tables.clear();
     if (my_templates) {
         delete my_templates;
         my_templates = nullptr;
@@ -385,6 +403,8 @@ copy_nmr_info(Structure* from, Structure* to, PyObject* _logger)
     // copy bonds, pseudobonds, secondary structure
     // -- Assumes atoms were added in the exact same order
 
+    to->metadata = from->metadata;
+
     // Bonds:
     auto& bonds = from->bonds();
     auto& to_atoms = to->atoms();
@@ -431,7 +451,15 @@ copy_nmr_info(Structure* from, Structure* to, PyObject* _logger)
     for (auto& i: info)
         to->set_input_seq_info(i.first, i.second);
 
-    // Secondary Structure: TODO
+    // Secondary Structure:
+    auto& residues = from->residues();
+    auto& to_residues = to->residues();
+    size_t num_residues = std::min(residues.size(), to_residues.size());
+    for (size_t i = 0; i < num_residues; ++i) {
+        to_residues[i]->set_is_strand(residues[i]->is_strand());
+        to_residues[i]->set_is_helix(residues[i]->is_helix());
+        to_residues[i]->set_ss_id(residues[i]->ss_id());
+    }
 }
 
 void
@@ -439,6 +467,7 @@ ExtractMolecule::finished_parse()
 {
     if (molecules.empty())
         return;
+
     // connect residues in molecule with all_residues information
     auto mol = all_residues.begin()->second.begin()->second->structure();
     for (auto&& r : mol->residues()) {
@@ -449,6 +478,7 @@ ExtractMolecule::finished_parse()
             connect_residue_by_template(r, tr);
         }
     }
+
     // Connect residues in entity_poly_seq.
     // Because some positions are heterogeneous, delay connecting
     // until next group of residues is found.
@@ -517,11 +547,22 @@ ExtractMolecule::finished_parse()
             mol->input_seq_source = "mmCIF entity_poly_seq table";
     }
     find_and_add_metal_coordination_bonds(mol);
+
+    // export mapping of label chain ids to entity ids.
+    StringVector chain_mapping;
+    chain_mapping.reserve(chain_entity_map.size() * 2);
+    for (auto i: chain_entity_map) {
+        chain_mapping.emplace_back(i.first);
+        chain_mapping.emplace_back(i.second);
+    }
+    generic_tables["chain_entity_map"] = chain_mapping;
+
     // multiple molecules means there were multiple models,
     // so copy per-model information
     for (auto& im: molecules) {
         auto m = im.second;
         all_molecules.push_back(m);
+        m->metadata = generic_tables;
         if (m != mol) {
             copy_nmr_info(mol, m, _logger);
         }
@@ -759,7 +800,9 @@ ExtractMolecule::parse_atom_site()
     char ins_code = ' ';          // pdbx_PDB_ins_code
     char alt_id = '\0';           // label_alt_id
     AtomName atom_name;           // label_atom_id
+#if 0
     AtomName auth_atom_name;      // auth_atom_id
+#endif
     ResName residue_name;         // label_comp_id
     ResName auth_residue_name;    // auth_comp_id
     char symbol[3];               // type_symbol
@@ -842,12 +885,14 @@ ExtractMolecule::parse_atom_site()
                     --end;
                 atom_name = AtomName(start, end - start);
             });
+#if 0
         pv.emplace_back(get_column("auth_atom_id"), true,
             [&] (const char* start, const char* end) {
                 auth_atom_name = AtomName(start, end - start);
                 if (auth_atom_name == "." || auth_atom_name == "?")
                     auth_atom_name.clear();
             });
+#endif
         pv.emplace_back(get_column("label_comp_id", true), true,
             [&] (const char* start, const char* end) {
                 residue_name = ResName(start, end - start);
@@ -932,11 +977,20 @@ ExtractMolecule::parse_atom_site()
                 cid = auth_chain_id;
             else
                 cid = chain_id;
+            if (!mol->lower_case_chains) {
+                for (const char *cp = cid.c_str(); *cp != '\0'; ++cp) {
+                    if (islower(*cp)) {
+                        mol->lower_case_chains = true;
+                        break;
+                    }
+                }
+            }
             if (auth_position != INT_MAX)
                 pos = auth_position;
             else
                 pos = position;
             cur_residue = mol->new_residue(rname, cid, pos, ins_code);
+            cur_residue->set_mmcif_chain_id(chain_id);
             cur_entity_id = entity_id;
             cur_seq_id = position;
             cur_auth_seq_id = auth_position;
@@ -961,6 +1015,7 @@ ExtractMolecule::parse_atom_site()
                             ": missing coordinates");
             continue;
         }
+        canonicalize_atom_name(&atom_name, &mol->asterisks_translated);
 
         Atom* a;
         if (alt_id && cur_residue->count_atom(atom_name) == 1) {
@@ -1173,14 +1228,14 @@ ExtractMolecule::parse_struct_conn()
             if (metal_pbg == nullptr)
                 metal_pbg = mol->pb_mgr().get_group(mol->PBG_METAL_COORDINATION,
                     atomstruct::AS_PBManager::GRP_PER_CS);
-                metal_pbg->new_pseudobond(a1, a2);
+            metal_pbg->new_pseudobond(a1, a2);
             continue;
         }
         if (hydro) {
             if (hydro_pbg == nullptr)
                 hydro_pbg = mol->pb_mgr().get_group(mol->PBG_HYDROGEN_BONDS,
                     atomstruct::AS_PBManager::GRP_PER_CS);
-                hydro_pbg->new_pseudobond(a1, a2);
+            hydro_pbg->new_pseudobond(a1, a2);
             continue;
         }
         float idealBL = Element::bond_length(a1->element(), a2->element());
@@ -1563,12 +1618,12 @@ static PyObject*
 structure_pointers(ExtractMolecule &e, const char *filename)
 {
     int count = 0;
-    for (auto m: e.all_molecules)
+    for (auto m: e.all_molecules) {
         if (m->atoms().size() > 0) {
-	    m->set_name(filename);
-	    count += 1;
-        m->metadata = e.generic_tables;
-	}
+            m->set_name(filename);
+            count += 1;
+        }
+    }
 
     void **sa;
     PyObject *s_array = python_voidp_array(count, &sa);
@@ -1755,6 +1810,8 @@ extract_mmCIF_tables(const char* filename,
     } catch (ExtractTables::Done&) {
         // normal early termination
     }
+    if (extract.data == nullptr)
+        Py_RETURN_NONE;
     return extract.data;
 }
 

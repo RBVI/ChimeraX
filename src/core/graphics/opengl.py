@@ -1227,7 +1227,7 @@ class Lighting:
 
         self.set_default_parameters()
 
-    def set_default_parameters(self):
+    def set_default_parameters(self, background_color = None):
         '''
         Reset the lighting parameters to default values.
         '''
@@ -1267,7 +1267,7 @@ class Lighting:
         self.depth_cue_end = 1.0
         "Fraction of distance from near to far clip plane where dimming ends."
 
-        self.depth_cue_color = (0, 0, 0)
+        self.depth_cue_color = (0, 0, 0) if background_color is None else tuple(background_color[:3])
         "Color to fade towards."
 
         self.move_lights_with_camera = True

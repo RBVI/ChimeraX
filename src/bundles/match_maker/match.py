@@ -1,6 +1,6 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
-from . import CP_SPECIFIC_SPECIFIC, CP_SPECIFIC_BEST, CP_BEST
+from . import CP_SPECIFIC_SPECIFIC, CP_SPECIFIC_BEST, CP_BEST_BEST
 from . import AA_NEEDLEMAN_WUNSCH, AA_SMITH_WATERMAN
 
 from .settings import defaults
@@ -165,7 +165,7 @@ def align(session, ref, match, matrix_name, algorithm, gap_open, gap_extend, dss
     return score, gapped_ref, gapped_match
 
 def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend, iterate=None,
-        show_alignment=False, align=align, domain_residues=(None, None), 
+        show_alignment=False, align=align, domain_residues=(None, None), bring=None,
         verbose=False, **align_kw):
     """Superimpose structures based on sequence alignment
 
@@ -178,7 +178,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
        Single reference chain is paired with best seq-aligning
        chain from one or more structures
 
-       CP_BEST --
+       CP_BEST_BEST --
        Best seq-aligning pair of chains from reference structure and
        match structure(s) is used
     """
@@ -269,7 +269,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                 raise LimitationError(small_mol_err_msg)
             pairings[match]= [pairing]
 
-    elif chain_pairing == CP_BEST:
+    elif chain_pairing == CP_BEST_BEST:
         # best seq-aligning pair of chains between
         # reference and match structure(s)
         ref, matches = match_items
@@ -490,6 +490,10 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                 " satisfying iteration threshold."
                 % (s1.name, s2.name))
             continue
+        if bring is not None:
+            xf = ret_vals[-1][-1]
+            for m in bring:
+                m.scene_position = xf * m.scene_position
         logger.info("") # separate matches with whitespace
         """TODO
         if region_info:
@@ -511,7 +515,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
             for s1, s2 in seq_pairings:
                 logger.info("Sequences:")
                 for s in [s1,s2]:
-                    logger.info(s.name + "\t" + str(s))
+                    logger.info(s.name + "\t" + s.characters)
                 logger.info("Residues:")
                 for s in [s1, s2]:
                     logger.info(", ".join([str(r) for r in s.residues]))
@@ -528,7 +532,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
     return ret_vals
 
 def cmd_match(session, match_atoms, to=None, pairing=defaults["chain_pairing"],
-        alg=defaults["alignment_algorithm"], verbose=False,
+        alg=defaults["alignment_algorithm"], verbose=False, bring=None,
         ss_fraction=defaults["ss_mixture"], matrix=defaults["matrix"],
         gap_open=defaults["gap_open"], hgap=defaults["helix_open"],
         sgap=defaults["strand_open"], ogap=defaults["other_open"],
@@ -569,9 +573,23 @@ def cmd_match(session, match_atoms, to=None, pairing=defaults["chain_pairing"],
         matches = match_atoms.structures.unique()
     if not matches:
         raise UserError("No molecules/chains to match specified")
-    refs = refs.subtract(matches)
+    # the .subtract() method of Collections does not preserve order (as of 10/28/16),
+    # so "subtract" by hand...
+    refs = [r for r in refs if r not in matches]
     if not matches:
         raise UserError("Must use different reference and match structures")
+    if bring is not None:
+        bring = bring.structures.unique()
+        match_structures = matches if pairing != CP_SPECIFIC_SPECIFIC \
+            else matches.structures.unique()
+        if len(match_structures) > 1:
+            raise UserError("'bring' option can only be used when exactly one structure is being"
+                " matched")
+        ref_structures = refs if pairing == CP_BEST_BEST else set([r.structure for r in refs])
+        bring = [s for s in bring if s not in match_structures and s not in ref_structures]
+        if len(bring) == 0:
+            session.logger.warning("'bring' arg specifies no non-match/ref structures")
+            bring = None
     if pairing == CP_SPECIFIC_SPECIFIC:
         if len(refs) != len(matches):
             raise UserError("Different number of reference/match"
@@ -590,7 +608,7 @@ def cmd_match(session, match_atoms, to=None, pairing=defaults["chain_pairing"],
         iterate = None
     ret_vals = match(session, pairing, match_items, matrix, alg, gap_open, gap_extend,
         ss_fraction=ss_fraction, ss_matrix=ss_matrix,
-        iterate=iterate, show_alignment=show_alignment,
+        iterate=iterate, show_alignment=show_alignment, bring=bring,
         domain_residues=(ref_atoms.residues.unique(), match_atoms.residues.unique()),
         gap_open_helix=hgap, gap_open_strand=sgap,
         gap_open_other=ogap, compute_ss=compute_ss, verbose=verbose)
@@ -644,7 +662,7 @@ def register_command():
         keyword = [('to', AtomsArg), ('pairing', StringArg), ('alg', StringArg),
             ('verbose', BoolArg), ('ss_fraction', Or(FloatArg, BoolArg)), ('matrix', StringArg),
             ('gap_open', FloatArg), ('hgap', FloatArg), ('sgap', FloatArg), ('ogap', FloatArg),
-            ('iterate', Or(FloatArg, BoolArg)), ('gap_extend', FloatArg),
+            ('iterate', Or(FloatArg, BoolArg)), ('gap_extend', FloatArg), ('bring', AtomsArg),
             ('show_alignment', BoolArg), ('compute_ss', BoolArg), ('mat_hh', FloatArg),
             ('mat_ss', FloatArg), ('mat_oo', FloatArg), ('mat_hs', FloatArg),
             ('mat_ho', FloatArg), ('mat_so', FloatArg)]

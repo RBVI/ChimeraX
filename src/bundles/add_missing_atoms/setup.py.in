@@ -63,7 +63,7 @@ setup(
         "Topic :: Scientific/Engineering :: Visualization",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
-        "ChimeraX-Bundle :: Molecular structure :: :: chimerax.addmissingatoms :: ",
+        "ChimeraX-Bundle :: Molecular structure :: :: chimerax.addmissingatoms :: :: ",
         "ChimeraX-Command :: addmissingatoms :: Molecular structure :: Add missing atoms",
     ],
 )

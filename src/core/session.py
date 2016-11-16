@@ -31,7 +31,7 @@ Session data, ie., data that is archived, uses the :py:class:`State` API.
 """
 
 from .state import RestoreError, State, copy_state, dereference_state
-from .commands import CmdDesc, OpenFileNameArg, SaveFileNameArg, register, commas
+from .commands import CmdDesc, OpenFileNameArg, SaveFileNameArg, register, commas, plural_form
 
 _builtin_open = open
 #: session file suffix
@@ -46,7 +46,7 @@ CORE_SESSION_VERSION = 1
 class _UniqueName:
     # uids are (class_name, ordinal)
     # The class_name is either the name of a core class
-    # or a tuple (tool name, class name)
+    # or a tuple (bundle name, class name)
 
     _cls_ordinals = {}  # {class: ordinal}
     _uid_to_obj = {}    # {uid: obj}
@@ -86,7 +86,7 @@ class _UniqueName:
         ----------
         obj : any object
         bundle_info : optional :py:class:`~chimerax.core.toolshed.BundleInfo` instance
-            Explicitly denote which tool object comes from.
+            Explicitly denote which bundle object comes from.
         """
 
         uid = cls._obj_to_uid.get(id(obj), None)
@@ -95,9 +95,9 @@ class _UniqueName:
         obj_cls = obj.__class__
         bundle_info = toolshed.find_bundle_for_class(obj_cls)
         if bundle_info is None:
-            # no tool info, must be in core
+            # no bundle info, must be in core
             if not obj_cls.__module__.startswith('chimerax.core.'):
-                raise RuntimeError('No tool information for %s.%s' % (
+                raise RuntimeError('No bundle information for %s.%s' % (
                     obj_cls.__module__, obj_cls.__name__))
             class_name = obj_cls.__name__
             # double check that class will be able to be restored
@@ -109,7 +109,7 @@ class _UniqueName:
             # double check that class will be able to be restored
             if obj_cls != bundle_info.get_class(obj_cls.__name__):
                 raise RuntimeError(
-                    'unable to restore objects of %s class in %s tool' %
+                    'unable to restore objects of %s class in %s bundle' %
                     (class_name, bundle_info.name))
 
         ordinal = cls._cls_ordinals.get(class_name, 0)
@@ -138,7 +138,7 @@ class _UniqueName:
         class_name = self.uid[0]
         if isinstance(class_name, str):
             return "Core's %s" % class_name
-        return "Tool %s's %s" % class_name
+        return "Bundle %s's %s" % class_name
 
     def class_of(self, session):
         """Return class associated with unique id
@@ -151,8 +151,8 @@ class _UniqueName:
             from chimerax.core import get_class
             cls = get_class(class_name)
         else:
-            tool_name, class_name = class_name
-            bundle_info = session.toolshed.find_bundle(tool_name)
+            bundle_name, class_name = class_name
+            bundle_info = session.toolshed.find_bundle(bundle_name)
             if bundle_info is None:
                 cls = None
             else:
@@ -249,7 +249,7 @@ class _RestoreManager:
 
     #: common exception for needing a newer version of the application
     NeedNewerError = RestoreError(
-        "Need newer version of tool to restore session")
+        "Need newer version of bundle to restore session")
 
     def __init__(self):
         _UniqueName.reset()
@@ -258,20 +258,24 @@ class _RestoreManager:
     def check_bundles(self, session, bundle_infos):
         missing_bundles = []
         out_of_date_bundles = []
-        for tool_name, (tool_version, tool_state_version) in bundle_infos.items():
-            t = session.toolshed.find_bundle(tool_name)
-            if t is None:
-                missing_bundles.append(tool_name)
+        for bundle_name, (bundle_version, bundle_state_version) in bundle_infos.items():
+            bi = session.toolshed.find_bundle(bundle_name)
+            if bi is None:
+                missing_bundles.append(bundle_name)
                 continue
             # check if installed bundles can restore data
-            if tool_state_version not in t.session_versions:
-                out_of_date_bundles.append(t)
+            if bundle_state_version not in bi.session_versions:
+                out_of_date_bundles.append(bi)
         if missing_bundles or out_of_date_bundles:
-            msg = "Unable to restore session"
+            msg = "Unable to restore all of session"
             if missing_bundles:
-                msg += "; missing bundles: " + commas(missing_bundles, ' and')
+                msg += "; missing %s: %s" % (
+                    plural_form(missing_bundles, 'bundle'),
+                    commas(missing_bundles, ' and'))
             if out_of_date_bundles:
-                msg += "; out of date bundles: " + commas(out_of_date_bundles, ' and')
+                msg += "; out of date %s: %s" % (
+                    plural_form(out_of_date_bundles, 'bundle'),
+                    commas(out_of_date_bundles, ' and'))
             raise RestoreError(msg)
         self.bundle_infos = bundle_infos
 
@@ -444,7 +448,10 @@ class Session:
             metadata = None
         mgr = _RestoreManager()
         bundle_infos = serialize.deserialize(stream)
-        mgr.check_bundles(self, bundle_infos)
+        try:
+            mgr.check_bundles(self, bundle_infos)
+        except RestoreError as e:
+            self.logger.warning(str(e))
 
         self.triggers.activate_trigger("begin restore session", self)
         try:

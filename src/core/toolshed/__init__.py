@@ -42,7 +42,9 @@ that consists of the following fields separated by double colons (``::``).
     Comma-separated list of categories in which the bundle belongs.
 3. ``session_versions`` : two comma-separated integers
     Minimum and maximum session version that the bundle can read.
-4. ``custom_init`` : str
+4. ``supercedes`` : str
+   Comma-separated list of superceded bundle names.
+5. ``custom_init`` : str
     Whether bundle has initialization code that must be called when
     ChimeraX starts.  Either 'true' or 'false'.  If 'true', the bundle
     must override the BundleAPI's 'initialize' and 'finish' functions.
@@ -155,6 +157,9 @@ TOOLSHED_BUNDLE_INSTALLED : str
 TOOLSHED_BUNDLE_UNINSTALLED : str
     Name of trigger fired when an installed bundle is removed.
     The trigger data is a :py:class:`BundleInfo` instance.
+TOOLSHED_BUNDLE_INFO_RELOADED : str
+    Name of trigger fired when bundle metadata is reloaded.
+    The trigger data is a :py:class:`BundleInfo` instance.
 
 Notes
 -----
@@ -170,6 +175,7 @@ from ..orderedset import OrderedSet
 TOOLSHED_BUNDLE_INFO_ADDED = "bundle info added"
 TOOLSHED_BUNDLE_INSTALLED = "bundle installed"
 TOOLSHED_BUNDLE_UNINSTALLED = "bundle uninstalled"
+TOOLSHED_BUNDLE_INFO_RELOADED = "bundle info reloaded"
 
 # Known bundle catagories
 DYNAMICS = "Molecular trajectory"
@@ -190,6 +196,8 @@ Categories = [
     SURFACE,
     VOLUME,
 ]
+
+_TIMESTAMP = 'install-timestamp'
 
 
 def _hack_distlib(f):
@@ -350,6 +358,7 @@ class Toolshed:
         self.triggers.add_trigger(TOOLSHED_BUNDLE_INFO_ADDED)
         self.triggers.add_trigger(TOOLSHED_BUNDLE_INSTALLED)
         self.triggers.add_trigger(TOOLSHED_BUNDLE_UNINSTALLED)
+        self.triggers.add_trigger(TOOLSHED_BUNDLE_INFO_RELOADED)
 
         # Reload the bundle info list
         _debug("loading bundles")
@@ -413,7 +422,7 @@ class Toolshed:
         self._installed_bundle_info = []
         inst_bi_list = self._load_bundle_infos(logger, rebuild_cache=rebuild_cache)
         for bi in inst_bi_list:
-            self.add_bundle_info(bi)
+            self.add_bundle_info(bi, logger)
             bi.register()
             if session is not None:
                 bi.initialize(session)
@@ -422,9 +431,48 @@ class Toolshed:
             self._repo_locator = None
             remote_bi_list = self.check_remote(logger)
             for bi in remote_bi_list:
-                self.add_bundle_info(bi)
+                self.add_bundle_info(bi, logger)
                 # XXX: do we want to register commands so that we can
                 # ask user whether to install bundle when invoked?
+        self.triggers.activate_trigger(TOOLSHED_BUNDLE_INFO_RELOADED, self)
+
+    def set_install_timestamp(self, per_user=False):
+        """Set last installed timestamp."""
+        _debug("set_install_timestamp")
+        import os
+        if per_user:
+            from chimerax import app_dirs
+            directory = app_dirs.user_data_dir
+        else:
+            from chimerax import app_data_dir as directory
+        timestamp_file = os.path.join(directory, _TIMESTAMP)
+        with open(timestamp_file, 'w') as f:
+            # Contents of file are never read, see _is_cache_newer()
+            import time
+            print(time.ctime(), file=f)
+
+    def _is_cache_newer(self, cache_file):
+        """Check if cache is newer than timestamps."""
+        _debug("_is_cache_newer")
+        from chimerax import app_dirs, app_data_dir
+        import os
+        files = (
+            (os.path.join(app_data_dir, _TIMESTAMP), True),
+            (os.path.join(app_dirs.user_data_dir, _TIMESTAMP), False),
+        )
+        try:
+            cache_time = os.path.getmtime(cache_file)
+        except FileNotFoundError:
+            return False
+        for filename, required in files:
+            try:
+                time = os.path.getmtime(filename)
+                if time > cache_time:
+                    return False
+            except FileNotFoundError:
+                if required:
+                    return False
+        return True
 
     def bundle_info(self, installed=True, available=False):
         """Return list of bundle info.
@@ -453,7 +501,7 @@ class Toolshed:
         else:
             return []
 
-    def add_bundle_info(self, bi):
+    def add_bundle_info(self, bi, logger):
         """Add metadata for a bundle.
 
         Parameters
@@ -461,6 +509,8 @@ class Toolshed:
         bi : :py:class:`BundleInfo` instance
             Must be a constructed instance, *i.e.*, not an existing instance
             returned by :py:func:`bundle_info`.
+        logger : :py:class:`~chimerax.core.logger.Logger` instance
+            Logging object where warning and error messages are sent.
 
         Notes
         -----
@@ -472,8 +522,23 @@ class Toolshed:
             for p in bi.packages:
                 if p in self._installed_packages:
                     bi2 = self._installed_packages[p]
-                    print('warning: both %s and %s supply package %s' % (
-                          bi.name, bi2.name, '.'.join(p)))
+                    logger.warning('both %s and %s supply package %s' % (
+                                   bi.name, bi2.name, '.'.join(p)))
+                    if bi.name in bi2.supercedes:
+                        remove = skip = bi
+                    elif bi2.name in bi.supercedes:
+                        remove = skip = bi2
+                    else:
+                        remove = None
+                        skip = bi2
+                    if remove and hasattr(remove, 'path'):
+                        logger.warning('removing %s' % remove.path)
+                        import shutil
+                        shutil.rmtree(remove.path, ignore_errors=True)
+                    else:
+                        logger.warning('skipping %s' % skip.name)
+                    if skip == bi:
+                        continue
                 self._installed_packages[p] = bi
         else:
             container = self._available_bundle_info
@@ -566,7 +631,7 @@ class Toolshed:
         best_bi = None
         best_version = None
         for bi in container:
-            if bi.name != name:
+            if bi.name != name and name not in bi.supercedes:
                 continue
             if version == bi.version:
                 return bi
@@ -661,7 +726,11 @@ class Toolshed:
 
         # Initialize distlib paths and locators
         _debug("_scan_installed")
-        if self._inst_locator is None:
+        if self._inst_locator is not None:
+            self._inst_locator.clear_cache()
+            self._inst_path.clear_cache()
+            _debug("_inst_path cleared cache")
+        else:
             from distlib.database import DistributionPath
             self._inst_path = DistributionPath()
             _debug("_inst_path", self._inst_path)
@@ -744,6 +813,8 @@ class Toolshed:
         _debug("_read_cache")
         import filelock
         import json
+        import os
+        import sys
         cache_file = self._bundle_cache(False)
         try:
             lock = filelock.FileLock(cache_file + '.lock')
@@ -751,11 +822,29 @@ class Toolshed:
                 f = open(cache_file, "r", encoding='utf-8')
                 try:
                     with f:
+                        data = f.readline()
+                        data = json.loads(data)
+                        if not isinstance(data[0], str):
+                            _debug("_read_cache obsolete cache", cache_file)
+                            return None  # obsolete cache format
+                        executable, mtime = data
+                        if executable != sys.executable:
+                            _debug("_read_cache different executable", cache_file)
+                            return None
+                        if mtime != os.path.getmtime(executable):
+                            _debug("_read_cache changed executable", cache_file)
+                            return None
+                        if not self._is_cache_newer(cache_file):
+                            return None
                         data = json.load(f)
-                    return [BundleInfo.from_cache_data(x) for x in data]
-                except:
+                    bundles = [BundleInfo.from_cache_data(x) for x in data]
+                    _debug("_read_cache succeeded", len(bundles))
+                    return bundles
+                except Exception as e:
+                    _debug("_read_cache failed", cache_file, e)
                     return None
-        except OSError:
+        except OSError as e:
+            _debug("_read_cache failed os", str(e))
             return None
 
     def _write_cache(self, bundle_info, logger):
@@ -763,6 +852,8 @@ class Toolshed:
         _debug("_write_cache", bundle_info)
         import filelock
         import json
+        import os
+        import sys
         cache_file = self._bundle_cache(True)
         lock = filelock.FileLock(cache_file + '.lock')
         with lock.acquire():
@@ -772,6 +863,9 @@ class Toolshed:
                 logger.error("\"%s\": %s" % (cache_file, str(e)))
             else:
                 with f:
+                    data = [sys.executable, os.path.getmtime(sys.executable)]
+                    json.dump(data, f, ensure_ascii=False)
+                    print(file=f)
                     json.dump([bi.cache_data() for bi in bundle_info], f,
                               ensure_ascii=False, check_circular=False)
 
@@ -856,16 +950,18 @@ class Toolshed:
         for classifier in md["classifiers"]:
             parts = [v.strip() for v in classifier.split("::")]
             if parts[0] == "ChimeraX-Bundle":
-                # 'ChimeraX-Bundle' :: categories :: session_versions :: module_name :: custom_init
+                # 'ChimeraX-Bundle' :: categories :: session_versions :: module_name :: supercedes :: custom_init
                 if len(parts) == 10:
                     bi = self._old_bundle_info(parts, kw, installed, logger, bi)
+                    if bi:
+                        bi.path = d.path
                     continue
                 elif bi is not None:
                     logger.warning("Second ChimeraX-Bundle line ignored.")
                     break
-                elif len(parts) != 5:
+                elif len(parts) not in [5, 6]:
                     logger.warning("Malformed ChimeraX-Bundle line in %s skipped." % name)
-                    logger.warning("Expected 5 fields and got %d." % len(parts))
+                    logger.warning("Expected 6 fields and got %d." % len(parts))
                     continue
                 # Categories in which bundle should appear
                 categories = parts[1]
@@ -891,11 +987,21 @@ class Toolshed:
                     kw["session_versions"] = range(lo, hi + 1)
                 # Name of package implementing bundle API
                 kw["api_package_name"] = parts[3]
-                # Does bundle have custom initialization code?
-                custom_init = parts[4]
-                if custom_init:
-                    kw["custom_init"] = (custom_init == "true")
+                if len(parts) == 5:
+                    # Does bundle have custom initialization code?
+                    custom_init = parts[4]
+                    if custom_init:
+                        kw["custom_init"] = (custom_init == "true")
+                else:
+                    # Are there bundle name aliases?
+                    if parts[4]:
+                        kw['supercedes'] = [v.strip() for v in parts[4].split(',')]
+                    # Does bundle have custom initialization code?
+                    custom_init = parts[5]
+                    if custom_init:
+                        kw["custom_init"] = (custom_init == "true")
                 bi = BundleInfo(installed=installed, **kw)
+                bi.path = d.path
             elif parts[0] == "ChimeraX-Tool":
                 # 'ChimeraX-Tool' :: tool_name :: categories :: synopsis
                 if bi is None:
@@ -994,7 +1100,7 @@ class Toolshed:
                 is_default = parts[3]
                 try:
                     fi = [fi for fi in bi.formats if fi.name == name][0]
-                except KeyError:
+                except (KeyError, IndexError):
                     logger.warning("Unknown format name: %r." % name)
                     continue
                 fi.has_open = True
@@ -1007,7 +1113,7 @@ class Toolshed:
                 is_default = parts[3]
                 try:
                     fi = [fi for fi in bi.formats if fi.name == name][0]
-                except KeyError:
+                except (KeyError, IndexError):
                     logger.warning("Unknown format name: %r." % name)
                     continue
                 fi.has_save = True
@@ -1059,7 +1165,7 @@ class Toolshed:
                            if bi.distribution() in updated]
         for bi in newly_installed:
             bi.installed = True
-            self.add_bundle_info(bi)
+            self.add_bundle_info(bi, logger)
             bi.register()
             if session is not None:
                 bi.initialize(session)
@@ -1384,7 +1490,7 @@ class Toolshed:
                 bi.deregister()
                 if session is not None:
                     bi.finish(session)
-        self._installed_bundle_info = reversed(keep)
+        self._installed_bundle_info = list(reversed(keep))
         # TODO: update _installed_packages
         self._remove_distribution(d, logger)
 
@@ -1430,6 +1536,7 @@ class ToolInfo:
 class CommandInfo(ToolInfo):
     """Metadata about a command"""
     pass
+
 
 class SelectorInfo(ToolInfo):
     """Metadata about a selector
@@ -1492,7 +1599,7 @@ class FormatInfo:
                  dangerous=None, icon=None,
                  has_open=False, has_save=False):
         self.name = name
-        self.alternatives = alternates
+        self.alternates = alternates
         self.category = category
         self.suffixes = suffixes
         self.mime_types = mime_types
@@ -1531,7 +1638,7 @@ class FormatInfo:
             'dangerous': self.dangerous,
             'icon': self.icon,
             'synopsis': self.synopsis,
-            'alternatives': self.alternatives,
+            'alternates': self.alternates,
             'has_open': self.has_open,
             'has_save': self.has_save,
         }
@@ -1580,7 +1687,7 @@ class BundleInfo:
                  description="Unknown",
                  session_versions=range(1, 1 + 1),
                  custom_init=False,
-                 packages=[]):
+                 packages=[], supercedes=[]):
         """Initialize instance.
 
         Parameters
@@ -1615,6 +1722,7 @@ class BundleInfo:
         self.selectors = []
         self.fetches = []
         self.description = description
+        self.supercedes = supercedes
 
         # Private attributes
         self._name = name
@@ -1673,6 +1781,7 @@ class BundleInfo:
             "api_package_name": self._api_package_name,
             "packages": self.packages,
             "description": self.description,
+            "supercedes": self.supercedes,
         }
         more = {
             'tools': [ti.cache_data() for ti in self.tools],
@@ -1687,6 +1796,7 @@ class BundleInfo:
     def from_cache_data(cls, data):
         args, kw, more = data
         kw['session_versions'] = range(*kw['session_versions'])
+        kw['packages'] = [tuple(x) for x in kw['packages']]
         tools = [ToolInfo.from_cache_data(d) for d in more['tools']]
         commands = [CommandInfo.from_cache_data(d) for d in more['commands']]
         formats = [FormatInfo.from_cache_data(d) for d in more['formats']]
@@ -1737,9 +1847,13 @@ class BundleInfo:
             raise ToolshedError(
                 "no register_command function found for bundle \"%s\""
                 % self.name)
-        if f == BundleAPI.register_command:
-            raise ToolshedError("bundle \"%s\"'s API forgot to override register_command()" % self.name)
-        f(command_name)
+        try:
+            if f == BundleAPI.register_command:
+                raise ToolshedError("bundle \"%s\"'s API forgot to override register_command()" % self.name)
+            f(command_name)
+        except Exception as e:
+            raise ToolshedError(
+                "register_command() failed for command %s:\n%s" % (command_name, str(e)))
 
     def _deregister_commands(self):
         """Deregister commands with cli."""
@@ -1796,16 +1910,18 @@ class BundleInfo:
         for (database_name, format_name, prefixes, example_id, is_default) in self.fetches:
             if io.format_from_name(format_name) is None:
                 print('warning: unknown format %r given for database %r' % (format_name, database_name))
+
             def fetch_cb(session, identifier, database_name=database_name, format_name=format_name, **kw):
                 try:
-                    f = self._get_api().fetch_url
+                    f = self._get_api().fetch_from_database
                 except AttributeError:
                     raise ToolshedError(
-                        "no fetch_url function found for bundle \"%s\""
+                        "no fetch_from_database function found for bundle \"%s\""
                         % self.name)
                 if f == BundleAPI.save_file:
-                    raise ToolshedError("bundle \"%s\"'s API forgot to override fetch_url()" % self.name)
-                # optimize by replacing fetch_url for (database, format)
+                    raise ToolshedError("bundle \"%s\"'s API forgot to override fetch_from_database()" % self.name)
+                # optimize by replacing fetch_from_database for (database, format)
+
                 def fetch_shim(session, identifier, f=f, database_name=database_name, format_name=format_name, **kw):
                     return f(session, identifier, database_name=database_name, format_name=format_name, **kw)
                 fetch.register_fetch(database_name, fetch_shim, format_name)

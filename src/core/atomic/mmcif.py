@@ -27,8 +27,9 @@ _additional_categories = (
     #    'pdbx_struct_assembly',
     #    'pdbx_struct_assembly_gen',
     #    'pdbx_struct_oper_list',
-    #    'pdbx_poly_seq_scheme',
-    #    'pdbx_nonpoly_scheme'
+    "entity",
+    "entity_src_gen",
+    "entity_src_nat",
 )
 
 

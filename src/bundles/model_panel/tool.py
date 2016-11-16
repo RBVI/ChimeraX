@@ -95,7 +95,7 @@ class ModelPanel(ToolInstance):
                                 for i in self._items if hasattr(i, '_model')}
             self.tree.clear()
             self._items = []
-        from PyQt5.QtWidgets import QTreeWidgetItem
+        from PyQt5.QtWidgets import QTreeWidgetItem, QPushButton
         from PyQt5.QtCore import Qt
         from PyQt5.QtGui import QColor
         item_stack = [self.tree.invisibleRootItem()]
@@ -118,13 +118,23 @@ class ModelPanel(ToolInstance):
                 item._model = model
                 item_stack[len_id:] = [item]
                 self._items.append(item)
+                if bg_color is not None:
+                    from chimerax.core.ui.widgets import ColorButton
+                    but = ColorButton(has_alpha_channel=True, max_size=(16,16))
+                    def set_single_color(rgba, m=model):
+                        for cm in m.all_models():
+                            cm.single_color = rgba
+                    but.color_changed.connect(set_single_color)
+                    but.set_color(bg_color)
+                    self.tree.setItemWidget(item, 1, but)
             item.setText(0, model_id_string)
             bg = item.background(1)
             if bg_color is None:
                 bg.setStyle(Qt.NoBrush)
             else:
-                bg.setStyle(Qt.SolidPattern)
-                bg.setColor(QColor(*bg_color))
+                but = self.tree.itemWidget(item, 1)
+                if but is not None:
+                    but.set_color(bg_color)
             item.setBackground(1, bg)
             if display is not None:
                 item.setCheckState(2, Qt.Checked if display else Qt.Unchecked)

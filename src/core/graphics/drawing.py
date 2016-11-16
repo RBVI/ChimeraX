@@ -175,10 +175,9 @@ class Drawing:
             self.redraw_needed()
         if key in self._effects_buffers:
             self._attribute_changes.add(key)
-            gc = key in ('vertices', 'triangles', '_triangle_mask')
-            if gc:
+            sc = key in ('vertices', 'triangles', '_triangle_mask', '_displayed_positions', '_positions')
+            if sc:
                 self._cached_bounds = None
-            sc = (gc or (key in ('_displayed_positions', '_positions')))
             self.redraw_needed(shape_changed=sc)
 
         super(Drawing, self).__setattr__(key, value)
@@ -465,6 +464,21 @@ class Drawing:
     4 array of uint8 values, can be None in which case a single color
     (attribute color) is used for the object.
     '''
+
+    def set_transparency(self, alpha):
+        '''
+        Set transparency to alpha (0-255). Applies to per-vertex colors if
+        currently showing per-vertex colors otherwise single color.
+        Does not effect child drawings.
+        '''
+        vcolors = self.vertex_colors
+        if vcolors is None:
+            c = self.colors
+            c[:, 3] = alpha
+            self.colors = c
+        else:
+            vcolors[:, 3] = alpha
+            self.vertex_colors = vcolors
 
     def _transparency(self):
         if self.texture is not None:
@@ -1396,7 +1410,8 @@ class _DrawShape:
             if ta.shape[1] == 2:
                 pass    # Triangles array already contains edges.
             elif edge_mask is None:
-                ta = masked_edges(ta)
+                kw = {} if tmask is None else {'triangle_mask': tmask}
+                ta = masked_edges(ta, **kw)
             else:
                 # TODO: Need to reset masked_edges if edge_mask changed.
                 me = self.masked_edges

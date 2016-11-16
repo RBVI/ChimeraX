@@ -14,10 +14,11 @@
 from .cli import Axis
 
 def turn(session, axis=Axis((0,1,0)), angle=90, frames=None, rock=None,
-         center=None, coordinate_system=None, models=None):
+         center=None, coordinate_system=None, models=None, atoms=None):
     '''
     Rotate the scene.  Actually the camera is rotated about the scene center of rotation
-    unless the models argument is specified.
+    unless the models argument is specified in which case the model coordinate systems
+    are moved, or if atoms is specifed the atom coordinates are moved.
 
     Parameters
     ----------
@@ -38,7 +39,9 @@ def turn(session, axis=Axis((0,1,0)), angle=90, frames=None, rock=None,
        The coordinate system for the axis and optional center point.
        If no coordinate system is specified then scene coordinates are used.
     models : list of Models
-       Only these models are moved.  If not specified, then the camera is moved.
+       Move the coordinate systems of these models.  Camera is not moved.
+    atoms : Atoms
+       Change the coordinates of these atoms.  Camera is not moved.
     '''
 
     if rock is not None and frames is None:
@@ -49,7 +52,7 @@ def turn(session, axis=Axis((0,1,0)), angle=90, frames=None, rock=None,
             rp = _rock_phase(rock, frame)
             if rp != 0:
                 turn(session, axis=axis, angle=rp*angle, frames=None, rock=None, center=center,
-                     coordinate_system=coordinate_system, models=models)
+                     coordinate_system=coordinate_system, models=models, atoms=atoms)
         from . import motion
         motion.CallForNFrames(turn_step, frames, session)
         return
@@ -65,11 +68,13 @@ def turn(session, axis=Axis((0,1,0)), angle=90, frames=None, rock=None,
     a = -angle if models is None else angle
     from ..geometry import rotation
     r = rotation(saxis, a, c0)
-    if models is None:
-        c.position = r * c.position
-    else:
+    if models is not None:
         for m in models:
             m.positions = r * m.positions
+    if atoms is not None:
+        atoms.scene_coords = r.inverse() * atoms.scene_coords
+    if models is None and atoms is None:
+        c.position = r * c.position
 
 def _rock_phase(rock, frame):
     if rock is None:
@@ -84,7 +89,7 @@ def _rock_phase(rock, frame):
 
 def register_command(session):
     from .cli import CmdDesc, register, AxisArg, FloatArg, PositiveIntArg
-    from .cli import CenterArg, CoordSysArg, TopModelsArg
+    from .cli import CenterArg, CoordSysArg, TopModelsArg, AtomsArg
     desc = CmdDesc(
         optional= [('axis', AxisArg),
                    ('angle', FloatArg),
@@ -92,7 +97,8 @@ def register_command(session):
         keyword = [('center', CenterArg),
                    ('coordinate_system', CoordSysArg),
                    ('rock', PositiveIntArg),
-                   ('models', TopModelsArg)],
+                   ('models', TopModelsArg),
+                   ('atoms', AtomsArg)],
         synopsis='rotate models'
     )
     register('turn', desc, turn)

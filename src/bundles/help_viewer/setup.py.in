@@ -64,7 +64,7 @@ setup(
         "Topic :: Scientific/Engineering :: Visualization",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
-        "ChimeraX-Bundle :: Documentation :: 1,1 :: PKG_NAME :: ",
+        "ChimeraX-Bundle :: Documentation :: 1,1 :: PKG_NAME :: :: ",
         "ChimeraX-Command :: help :: Documentation :: Display ChimeraX help",
         "ChimeraX-DataFormat :: HTML :: :: Documentation :: .html,.htm :: text/html :: http://en.wikipedia.org/wiki/Html :: :: :: HyperText Markup Language (HTML)",
         "ChimeraX-Open :: HTML :: help :: ",

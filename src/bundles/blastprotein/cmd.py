@@ -7,9 +7,9 @@ DBs = ["pdb", "nr"]
 Matrices = ["BLOSUM45", "BLOSUM62", "BLOSUM80", "BLOSUM90", "BLOSUM100",
             "PAM30", "PAM70"]
 
-def blastpdb(session, spec=None, database="pdb", cutoff=1.0e-3,
-             matrix="BLOSUM62", max_hits=500, log=None):
-    from .job import BlastPDBJob
+def blastprotein(session, spec=None, database="pdb", cutoff=1.0e-3,
+                 matrix="BLOSUM62", max_hits=500, log=None):
+    from .job import BlastProteinJob
     if spec is None:
         spec = atomspec.everything(session)
     results = spec.evaluate(session)
@@ -21,9 +21,9 @@ def blastpdb(session, spec=None, database="pdb", cutoff=1.0e-3,
         from chimerax.core.errors import UserError
         raise UserError("please choose exactly one chain (%d were specified)" %
                         len(chains))
-    BlastPDBJob(session, chains[0].characters, chains[0].atomspec(),
-                database, cutoff, matrix, max_hits, log)
-blastpdb_desc = CmdDesc(required=[("spec", AtomSpecArg),],
+    BlastProteinJob(session, chains[0].characters, chains[0].atomspec(),
+                    database, cutoff, matrix, max_hits, log)
+blastprotein_desc = CmdDesc(required=[("spec", AtomSpecArg),],
                         keyword=[("database", EnumOf(DBs)),
                                  ("cutoff", FloatArg),
                                  ("matrix", EnumOf(Matrices)),

@@ -28,6 +28,7 @@ class="clRight" title="User Guide Index"/></a>
 <br>(&nbsp;<b>matchmaker</b>&nbsp;|&nbsp;<b>mmaker</b>&nbsp;)
 &nbsp;<a href="atomspec.html"><i>matchstruct</i></a>&nbsp; <b>to</b> 
 &nbsp;<a href="atomspec.html"><i>refstruct</i></a>&nbsp;
+[&nbsp;bring&nbsp;<a href="atomspec.html"><i>other-models</i></a>&nbsp;]
 &nbsp;<a href="#options"><i>options</i></a></h3>
 <p>
 The <b>matchmaker</b> (or <b>mmaker</b>) command
@@ -64,6 +65,9 @@ The <a href="#pairing"><b>pairing</b> mode</a> determines
 whether chains or models should be specified.
 On occasion, it may be useful to <a href="#restrict">restrict</a>
 the calculation to certain residues.
+When <i>matchstruct</i> includes only a single model, 
+one or more additional atomic models to move along with it 
+can be specified with the <b>bring</b> option. 
 </p><p>
 Sequence alignment scores,
 parameter values, and final match RMSDs are reported in the
@@ -74,9 +78,11 @@ will be reported along with the RMSD over the pruned set of pairs.
 </p><p>
 <a name="examples">Examples</a>:
 <blockquote>
-<b>match #2 to #1</b>
+<b>match #2 to #1 bring #3</b>
 </blockquote>
-&ndash; superimpose model 2 onto model 1 using default settings.
+&ndash; superimpose model 2 onto model 1 using default settings,
+and move model 3 along with model 2 as if they were a single rigid
+body (retaining the current spatial relationship between models 2 and 3).
 Default settings are to recalculate secondary structure assignments 
 with <a href="dssp.html"><b>dssp</b></a>, generate sequence alignments
 using the Needleman-Wunsch <a href="#algorithm">algorithm</a>
@@ -146,9 +152,12 @@ specified residues.
 -->
 </p>
 
-<a name="options">
-<h4>Options</h4>
-</a><p>
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<a name="options"></a>
+<h3>Options</h3>
+<p>
 Option keywords and Boolean (truth) values can be truncated, with
 synonyms for true: True, 1, and synonyms for false: False, 0.
 A vertical bar &ldquo;|&rdquo; designates mutually exclusive values, and
@@ -267,8 +276,11 @@ in the sequence alignment.
   </ul>
 </blockquote>
 
-<a name="scoring">
-<h4>Alignment Scoring Options</h4></a>
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<a name="scoring"></a>
+<h3>Alignment Scoring Options</h3>
 <p>
 Sequence alignment scores can include a residue similarity term,
 a secondary structure term (if protein), and gap penalties.
@@ -421,5 +433,5 @@ a secondary structure term (if protein), and gap penalties.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2016</address>
+November 2016</address>
 </body></html>

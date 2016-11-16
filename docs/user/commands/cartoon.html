@@ -61,8 +61,11 @@ See also:
 Protein helix and strand assignments are read from the input structure file
 or calculated with <a href="dssp.html"><b>dssp</b></a>.
 The cartoon path is guided by CA atoms (&alpha;-carbons) in peptides 
-and C5' in nucleic acids. The orientation is guided by CA&rarr;O (carbonyl
+and C5' in nucleic acids. 
+<!--
+The orientation is guided by CA&rarr;O (carbonyl
 oxygen) vectors in peptides and C5'&rarr;C1' vectors in nucleic acids.
+-->
 The <b>smooth</b> <i>factor</i> sets the balance between smoothing peptide 
 strands versus following the exact positions of the &alpha;-carbons (0.0 
 unsmoothed, default <b>1.0</b> maximally smoothed).
@@ -107,6 +110,9 @@ cartoon style <a href="atomspec.html#builtin">helix</a> width 1.5 thick 0.3
 <br>
 car style <a href="atomspec.html#builtin">strand</a> xsection rect width 2
 <br>
+cartoon style <a href="atomspec.html#builtin">nucleic</a> 
+width 2 thickness 2 xsection round
+<br>
 rib style x rect
 <br>
 rib style (#1 & <a href="atomspec.html#builtin">coil</a>) x round
@@ -136,10 +142,9 @@ A vertical bar &ldquo;|&rdquo; designates mutually exclusive values.
 [&nbsp;<b>sides</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>barSides</b>&nbsp;&nbsp;<i>N<font size="-1"><sub>b</sub></font></i>&nbsp;]
 [&nbsp;<b>ssEnds</b></a>&nbsp;&nbsp;short&nbsp;|&nbsp;long&nbsp;]
-<!--
-[&nbsp;<b>cylinders</b>&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-&nbsp;&nbsp;<i>cylinder-options</i>
--->
+<font color="brown">
+[&nbsp;<b>modeHelix</b>&nbsp;tube&nbsp;|&nbsp;default&nbsp;]
+</font>
 <blockquote>
 <p>
 </p><p>
@@ -208,11 +213,14 @@ for <b>short</b>) but ends in the middle of its following peptide bond
 </ul>
 The remainder of the peptide chain is shown as coil-like segments.
 Currently, the initial default is <b>short</b> for both strands and helices.
-<!--
 </p><p>
-The <b>cylinders</b> option specifies whether to show peptide helices as
-cylinders instead of as ribbons spiraling along the backbone atoms.
--->
+<font color="brown">
+The <b>modeHelix</b> option (syntax is likely to change)
+</font>
+allows showing peptide helices as tubes (curved cylinders)
+rather than as ribbons spiraling along the backbone atoms.
+Other helix settings such as width, height, and cross-section do not apply
+when helices are shown as tubes.
 </p>
 </blockquote>
 
@@ -249,5 +257,5 @@ The tether color tracks the color of the corresponding &alpha;-carbon.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2016</address>
+November 2016</address>
 </body></html>

@@ -124,7 +124,8 @@ def parse_arguments(argv):
         arguments += ["--console", "--noconsole"]
     usage = '[' + "] [".join(arguments) + ']'
     usage += " or -m module_name [args]"
-    usage += " or -c command"
+    usage += " or -c command [args]"
+    usage += " or -u -c command [args]"
     # add in default argument values
     arguments += [
         "--nodebug",
@@ -149,6 +150,17 @@ def parse_arguments(argv):
         opts.silent = True
         opts.cmd = sys.argv[2]
         return opts, sys.argv[2:]
+    if len(sys.argv) > 2 and sys.argv[1:3] == ['-u', '-c']:
+        # treat like Python's -c argument
+        import io
+        sys.stdout = io.TextIOWrapper(os.fdopen(sys.stdout.fileno(), 'wb'),
+                                      write_through=True)
+        sys.stderr = io.TextIOWrapper(os.fdopen(sys.stderr.fileno(), 'wb'),
+                                      write_through=True)
+        opts.gui = False
+        opts.silent = True
+        opts.cmd = sys.argv[3]
+        return opts, sys.argv[3:]
     try:
         shortopts = ""
         longopts = []
@@ -480,6 +492,9 @@ def init(argv, event_loop=True):
         import runpy
         import warnings
         sys.argv[:] = args  # runpy will insert appropriate argv[0]
+        has_install = 'install' in sys.argv
+        has_uninstall = 'uninstall' in sys.argv
+        per_user = '-user' in sys.argv
         exit = SystemExit(os.EX_OK)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=BytesWarning)
@@ -492,15 +507,21 @@ def init(argv, event_loop=True):
             except SystemExit as e:
                 exit = e
         if opts.module == 'pip' and exit.code == os.EX_OK:
-            sess.toolshed.reload(sess.logger, rebuild_cache=True)
-            remove_python_scripts(chimerax.app_bin_dir)
+            if has_install or has_uninstall:
+                sess.toolshed.reload(sess.logger, rebuild_cache=True)
+                sess.toolshed.set_install_timestamp(per_user)
+            if has_install:
+                remove_python_scripts(chimerax.app_bin_dir)
         return exit.code
 
     from chimerax.core import startup
     startup.run_user_startup_scripts(sess)
 
     if opts.cmd:
+        # Emulated Python's -c option.
         # This is needed for -m pip to work in some cases.
+        sys.argv = args
+        sys.argv[0] = '-c'
         global_dict = {
             'session': sess
         }

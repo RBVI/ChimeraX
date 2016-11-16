@@ -64,17 +64,20 @@ def sym(session, molecules,
         return
             
     for m in molecules:
-        assem = pdb_assemblies(m)
         if clear:
             from ..geometry import Places
             m.positions = Places([m.position])	# Keep only first position.
             for s in m.surfaces():
                 s.positions = Places([s.position])
-        elif assembly is None:
+            continue
+        assem = pdb_assemblies(m)
+        if assembly is None:
             ainfo = '\n'.join(' %s = %s (%s)' % (a.id,a.description,a.copy_description(m))
                               for a in assem)
             anames = ainfo if assem else "no assemblies"
             session.logger.info('Assemblies for %s:\n%s' % (m.name, anames))
+            for a in assem:
+                a.create_selector(m)
         else:
             amap = dict((a.id, a) for a in assem)
             if not assembly in amap:
@@ -318,6 +321,37 @@ class Assembly:
             copy = 'copy' if len(ops) == 1 else 'copies'
             groups.append('%d %s of chains %s' % (len(ops), copy, author_cids))
         return ', '.join(groups)
+
+    def create_selector(self, mol):
+        if self._is_subassembly():
+            name = self.id
+            sel_name = ('A' + name) if is_integer(name) else name
+            def _selector(session, models, results, self=self, mol=mol):
+                atoms = self._subassembly_atoms(mol)
+                results.add_atoms(atoms)
+            from . import register_selector
+            register_selector(sel_name, _selector)
+
+    def _is_subassembly(self):
+        cops = self.chain_ops
+        if len(cops) != 1:
+            return False
+        chain_ids, op_expr, ops = cops[0]
+        if len(ops) != 1:
+            return False
+        return True
+        
+    def _subassembly_atoms(self, mol):
+        chain_ids = self.chain_ops[0][0]
+        included_atoms, excluded_atoms = self._partition_atoms(mol.atoms, chain_ids)
+        return included_atoms
+
+def is_integer(s):
+    try:
+        int(s)
+    except:
+        return False
+    return True
 
 def mmcif_chain_ids(atoms, chain_map):
     if len(chain_map) == 0:

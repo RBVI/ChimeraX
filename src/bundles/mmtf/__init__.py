@@ -11,13 +11,8 @@ STRAND = 'strand'
 class _MyAPI(BundleAPI):
 
     @staticmethod
-    def get_class(class_name):
-        return None
-
-    @staticmethod
-    def fetch_url(session, identifier, ignore_cache=False, database_name=None, format_name=None, **kw):
-        # 'fetch_from_database' is called by session code to fetch from
-        # a database
+    def fetch_from_database(session, identifier, ignore_cache=False, database_name=None, format_name=None, **kw):
+        # 'fetch_from_database' is called by session code to fetch data with give identifier
         # returns (list of models, status message)
         return fetch_mmtf(session, identifier)
 
@@ -168,7 +163,6 @@ def fetch_mmtf(session, pdb_id):
                         a.occupancy = occupancy
 
                 # connect bonds in residue
-                debug = group_name == 'HEM'
                 for i in range(0, len(bond_atom_list), 2):
                     # bond_order = bond_order_list[i // 2]  # TODO
                     a0 = atoms[start_atom + bond_atom_list[i]]
@@ -177,8 +171,6 @@ def fetch_mmtf(session, pdb_id):
                         # ignore bonds for alternate atoms
                         # assumes that all 'A' atoms were created first
                         continue
-                    if debug and a0.name == 'FE' or a1.name == 'FE':
-                        print('bonding', a0.name, 'and', a1.name)
                     m.new_bond(a0, a1)
             # TODO:
             # create gap bonds
@@ -212,4 +204,6 @@ def fetch_mmtf(session, pdb_id):
     # for m in models:
     #     find_and_add_metal_coordination_bonds(m)
 
-    return models, "opened MMTF %s" % pdb_id
+    return models, ("Opened MMTF data containing %d atoms and %d bonds"
+                    % (sum(m.num_atoms for m in models),
+                       sum(m.num_bonds for m in models)))

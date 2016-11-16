@@ -15,7 +15,7 @@ class ViewState:
 
     version = 1
     save_attrs = ['camera', 'lighting', 'material',
-                  'center_of_rotation', 'background_color',
+                  'center_of_rotation', 'center_of_rotation_method', 'background_color',
                   'silhouettes', 'silhouette_thickness', 'silhouette_color',
                   'silhouette_depth_jump']
 

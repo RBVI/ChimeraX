@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def open(session, filename, format=None, name=None, from_database=None, ignore_cache=False,
-         smart_initial_display = True, explode = True):
+         smart_initial_display = True, trajectory = False):
     '''Open a file.
 
     Parameters
@@ -35,22 +35,19 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
         to cache.
     smart_initial_display : bool
         Whether to display molecules with rich styles and colors.
-    explode : bool
-        Whether to read PDB format multimodel files as multiple models (true)
-        or as coordinate sets (false).
+    trajectory : bool
+        Whether to read a PDB format multimodel file as coordinate sets (true)
+        or as multiple models (false, default).
     '''
 
     if ':' in filename:
         prefix, fname = filename.split(':', maxsplit=1)
         from .. import fetch
         from_database, default_format = fetch.fetch_from_prefix(prefix)
-        if from_database is None:
-            from ..errors import UserError
-            raise UserError('Unknown database prefix "%s" must be one of %s'
-                            % (prefix, fetch.prefixes()))
-        if format is None:
-            format = default_format
-        filename = fname
+        if from_database is not None:
+            if format is None:
+                format = default_format
+            filename = fname
     elif from_database is None:
         # Accept 4 character filename without prefix as pdb id.
         from os.path import splitext
@@ -61,7 +58,7 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
                 format = 'mmcif'
 
     kw = {'smart_initial_display': smart_initial_display,
-          'explode': explode}
+          'trajectory': trajectory}
 
     from ..filehistory import remember_file
     if from_database is not None:
@@ -80,6 +77,8 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
             session.models.add(models)
         remember_file(session, filename, format, models, database=from_database)
         session.logger.status(status, log=True)
+        if trajectory:
+            report_trajectories(models, session.logger)
         return models
 
     if format is not None:
@@ -103,11 +102,18 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
         from ..errors import UserError
         raise UserError(e)
 
+    if trajectory:
+        report_trajectories(models, session.logger)
+    
     # Remember in file history
     remember_file(session, filename, format, models or 'all models')
 
     return models
 
+def report_trajectories(models, log):
+    for m in models:
+        if hasattr(m, 'num_coord_sets'):
+            log.info('%s has %d coordinate sets' % (m.name, m.num_coord_sets))
 
 def format_from_name(name, open=True, save=False):
     from .. import io
@@ -186,7 +192,7 @@ def register_command(session):
             ('from_database', DynamicEnum(db_formats)),
             ('ignore_cache', NoArg),
             ('smart_initial_display', BoolArg),
-            ('explode', BoolArg),
+            ('trajectory', BoolArg),
             # ('id', ModelIdArg),
         ],
         synopsis='read and display data')

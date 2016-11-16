@@ -3,7 +3,7 @@
 #--- public API ---
 CP_SPECIFIC_SPECIFIC = "ss"
 CP_SPECIFIC_BEST = "bs"
-CP_BEST = "bb"
+CP_BEST_BEST = "bb"
 
 AA_NEEDLEMAN_WUNSCH = "Needleman-Wunsch"
 AA_SMITH_WATERMAN = "Smith-Waterman"

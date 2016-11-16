@@ -1,7 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 from chimerax.core.toolshed import BundleAPI
-from .job import BlastPDBJob
+from .job import BlastProteinJob
 
 
 class _MyAPI(BundleAPI):
@@ -20,10 +20,11 @@ class _MyAPI(BundleAPI):
     @staticmethod
     def register_command(command_name):
         from . import cmd
-        from chimerax.core.commands import register
-        if command_name == "blastpdb":
-            register(command_name, cmd.blastpdb_desc, cmd.blastpdb)
-        elif command_name == "ccd":
-            register(command_name, cmd.ccd_desc, cmd.ccd)
+        if command_name == "blastprotein":
+            from chimerax.core.commands import register
+            register(command_name, cmd.blastprotein_desc, cmd.blastprotein)
+        elif command_name == "blastpdb":
+            from chimerax.core.commands import create_alias
+            create_alias(command_name, "blastprotein $*")
 
 bundle_api = _MyAPI()

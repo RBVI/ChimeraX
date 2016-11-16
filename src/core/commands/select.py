@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def select(session, objects=None, add=None, subtract=None, intersect=None, clear=False):
+def select(session, objects=None, add=None, subtract=None, intersect=None, sequence=None, clear=False):
     '''Select specified objects.
 
     Parameters
@@ -25,6 +25,9 @@ def select(session, objects=None, add=None, subtract=None, intersect=None, clear
       Modify the current selection by unselecting the specified objects.
     intersect : Objects
       Modify the current selection keeping only those among the specified objects selected.
+    sequence : Atoms
+      Reduce the selection to include only atoms belonging to chains having a sequence that is the
+      same as one of the sequences specified by the sequence option.
     clear : no value
       Clear the selection.
     '''
@@ -50,6 +53,9 @@ def select(session, objects=None, add=None, subtract=None, intersect=None, clear
     if intersect is not None:
         intersect_selection(intersect, session)
 
+    if sequence is not None:
+        sequence_selection(sequence, session)
+        
     report_selection(session)
 
 def select_add(session, objects=None):
@@ -72,6 +78,24 @@ def select_intersect(session, objects=None):
     '''Reduce the selection by intersecting with specified objects.'''
     intersect_selection(objects, session)
 
+def sequence_selection(seq_atoms, session):
+    '''
+    Reduce the current selected atoms to include only those that belong to a chain
+    having the same sequence string as one of seq_atoms.
+    '''
+    s = session.selection
+    atoms_list = s.items('atoms')
+    s.clear()
+    if atoms_list:
+        sseqs, sseq_ids = seq_atoms.residues.unique_sequences
+        sset = set(sseqs)
+        for atoms in atoms_list:
+            seqs, seq_ids = atoms.residues.unique_sequences
+            from numpy import array, bool
+            smask = array([(seq in sset) for seq in seqs], bool)
+            satoms = atoms.filter(smask[seq_ids])
+            satoms.selected = True
+    
 def select_clear(session, objects=None):
     '''Clear the selection.'''
     session.selection.clear()
@@ -129,11 +153,12 @@ def _atoms_and_models(objects):
     return atoms, models
 
 def register_command(session):
-    from . import CmdDesc, register, ObjectsArg, NoArg, create_alias
+    from . import CmdDesc, register, ObjectsArg, NoArg, create_alias, AtomsArg
     desc = CmdDesc(optional=[('objects', ObjectsArg)],
                    keyword=[('add', ObjectsArg),
                             ('subtract', ObjectsArg),
                             ('intersect', ObjectsArg),
+                            ('sequence', AtomsArg),
                             ('clear', NoArg),],
                    synopsis='select specified objects')
     register('select', desc, select)

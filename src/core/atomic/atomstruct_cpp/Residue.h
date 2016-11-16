@@ -62,6 +62,7 @@ private:
     Atoms  _atoms;
     Chain*  _chain;
     ChainID  _chain_id;
+    ChainID  _mmcif_chain_id;
     char  _insertion_code;
     bool  _is_helix;
     bool  _is_het;
@@ -86,6 +87,7 @@ public:
     const ChainID&  chain_id() const;
     int  count_atom(const AtomName&) const;
     Atom *  find_atom(const AtomName&) const;
+    const ChainID&  mmcif_chain_id() const { return _mmcif_chain_id; }
     char  insertion_code() const { return _insertion_code; }
     bool  is_helix() const { return _is_helix; }
     bool  is_het() const { return _is_het; }
@@ -105,6 +107,7 @@ public:
     void  session_restore(int, int**, float**);
     void  session_save(int**, float**) const;
     void  set_alt_loc(char alt_loc);
+    void  set_mmcif_chain_id(const ChainID &cid) { _mmcif_chain_id = cid; }
     void  set_insertion_code(char ic) { _insertion_code = ic; }
     void  set_is_helix(bool ih);
     void  set_is_het(bool ih);

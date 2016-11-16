@@ -25,29 +25,33 @@ def rename(session, models, name = None, id = None):
         from ..errors import UserError
         raise UserError('No name or id option specified for renaming')
         
-    if name is not None:
+    if name is not None and (id is None or len(models) == 1):
         for m in models:
             m.name = name
 
     if id is not None and models:
-        if len(models) > 1:
-            from ..errors import UserError
-            raise UserError('Cannot change multiple models (%d) to have same id'
-                            % len(models))
-        change_model_id(models[0], id)
+        nname = 'group' if name is None else name
+        change_model_id(session, models, id, new_name = nname)
 
-def change_model_id(m, id):
+def change_model_id(session, models, id, new_name = 'group'):
+    '''
+    If multiple models or specified id already exists, then make models submodels
+    of the specified id, otherwise give this model the specified id.  Missing parent
+    models are created.
+    '''
+    p = _find_model(session, id, create = (len(models) > 1), new_name = new_name)
+    if p:
+        next_id = max([c.id[-1] for c in p.child_models()], default = 0) + 1
+        for m in models:
+            _reparent_model(session, m, id + (next_id,), p)
+            next_id += 1
+    else:
+        p = _find_model(session, id[:-1], create = True, new_name = new_name)
+        _reparent_model(session, models[0], id, p)
 
-    # Check if model id already exists.
-    ml = m.session.models
-    mid = ml.list(model_id = id)
-    if len(mid) > 0:
-        from ..errors import UserError
-        raise UserError('An existing model already has id #%s'
-                        % '.'.join(str(i) for i in id))
-
-    # Record new ids and parents for model and children since remove sets them all to None.
-    mids = _new_model_ids(m, id, _parent_model(m.session, id, m.name))
+def _reparent_model(session, m, id, p):
+    mids = _new_model_ids(m, id, p)
+    ml = session.models
     ml.remove([m])
     for model, new_id, parent in mids:
         model.id = new_id
@@ -62,19 +66,21 @@ def _new_model_ids(model, id, parent):
 
 # Find parent of model with given id or create a new model or models
 # extending up to an existing model.
-def _parent_model(session, id, new_name):
-    if len(id) == 1:
+def _find_model(session, id, create = False, new_name = 'group'):
+    if len(id) == 0:
         return None
     ml = session.models
-    pl = ml.list(model_id = id[:-1])
+    pl = ml.list(model_id = id)
     if pl:
         p = pl[0]
-    else:
+    elif create:
         from ..models import Model
         p = Model(new_name, session)
-        p.id = id[:-1]
-        pp = _parent_model(session, p.id, new_name)
+        p.id = id
+        pp = _find_model(session, id[:-1], True, new_name)
         ml.add([p], parent = pp)
+    else:
+        p = None
 
     return p
     

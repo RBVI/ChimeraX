@@ -31,7 +31,12 @@ def read_storm(session, filename, name, *args, **kw):
 
     f.readline()	# Column headers
 
+    # Old data:
     # Columns: Channel	Xc	Yc	Zc	Height	Area	Width	Phi	Ax	BG
+    
+    # New data:
+    # Columns channel	Xc	Yc	Zc	h	Width	BG
+    # h = Gaussian height, width = FWHM, BG = background.
     points = {}
     while True:
         line = f.readline()
@@ -43,8 +48,8 @@ def read_storm(session, filename, name, *args, **kw):
         points.setdefault(channel, []).append(xyzhaw)
 
     maps = []
-    step = 0.1		# TODO: Don't know units in file x,y. nm?
-    pad = 1
+    step = 10		# TODO: Should adjust step based on data extent
+    pad = 10*step
     cutoff_range = 5	# Standard deviations
     grid = None
     from chimerax.core.map.molmap import bounding_grid, add_gaussians
@@ -52,9 +57,8 @@ def read_storm(session, filename, name, *args, **kw):
     for channel in sorted(points.keys()):
         plist = points[channel]
         from numpy import array, float32, sqrt
-        xyzhaw = array(plist, float32)
-        xyz = xyzhaw[:,:3].copy()
-        xyz[:,2] /= 100			# TODO: Why is z range 100 times bigger than x,y? Need file format docs.
+        xyzhwb = array(plist, float32)
+        xyz = xyzhwb[:,:3].copy()
         if grid is None:
             grid = bounding_grid(xyz, step, pad)
         else:
@@ -64,8 +68,11 @@ def read_storm(session, filename, name, *args, **kw):
             grid.rgba = (0, 1.0, 0, 1.0)
         elif channel == 2:
             grid.rgba = (1.0, 0, 1.0, 1.0)
-        weights = xyzhaw[:,3]		# TODO: Don't know how points are weighted
-        sdev = sqrt(xyzhaw[:,4])/1000.0	# TODO: Don't know how sdev is expressed in file
+        weights = xyzhwb[:,3]
+        from math import sqrt, log
+        fwhm_sdev = 2 * sqrt(2*log(2))	# Convert full width half max to standard deviations
+        sdev = xyzhwb[:,4] / fwhm_sdev
+        sdev /= 20	# TODO: Seems the width column is not FWHM.
         add_gaussians(grid, xyz, weights, sdev, cutoff_range, normalize=False)
         v = volume_from_grid_data(grid, session, representation = 'solid', open_model = False)
         maps.append(v)
