@@ -251,6 +251,7 @@ class ImageSaver(ImageSaverBase):
         # so that command logging happens automatically
         from ..image import save_image
         save_image(session, filename, width=w, height=h, supersample=ss)
+        session.logger.info("File \"%s\" saved." % filename)
 
     def update(self, session, save_dialog):
         gw = session.ui.main_window.graphics_window
