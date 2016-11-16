@@ -112,25 +112,16 @@ def _set_surface_transparency(atoms, objects, session, alpha):
 
     # Handle surface models specified without specifying atoms
     from ..atomic import MolecularSurface, Structure
+    from ..map import Volume
     osurfs = []
     for s in objects.models:
         if isinstance(s, MolecularSurface):
             if not s in surfs:
                 osurfs.append(s)
-        elif not isinstance(s, Structure):
-            if hasattr(s, 'surface_drawings_for_vertex_coloring'):
-                osurfs.extend(s.surface_drawings_for_vertex_coloring())
-            elif not s.empty_drawing():
-                osurfs.append(s)
+        elif isinstance(s, Volume) or (not isinstance(s, Structure) and not s.empty_drawing()):
+            osurfs.append(s)
     for s in osurfs:
-        vcolors = s.vertex_colors
-        if vcolors is None:
-            c = s.colors
-            c[:, 3] = alpha
-            s.colors = c
-        else:
-            vcolors[:, 3] = alpha
-            s.vertex_colors = vcolors
+        s.set_transparency(alpha)
     surfs.extend(osurfs)
             
     return surfs
