@@ -105,9 +105,10 @@ Bundles that provide data formats need:
     Field identifying entry as data format metadata.
 2. ``data_name`` : str
     The name of the data format.
-3. ``alternate_names`` : str
+3. ``nicknames`` : str
     An optional comma-separated list of alternative names.
-    Often a short name is provided.
+    Often a short name is provided.  If not provided,
+    it defaults to the lowercase version of the data format name.
 4. ``category`` : str
     The toolshed category.
 5. ``suffixes`` : str
@@ -1053,7 +1054,7 @@ class Toolshed:
                 si = SelectorInfo(name, synopsis)
                 bi.selectors.append(si)
             elif parts[0] == "ChimeraX-DataFormat":
-                # ChimeraX-DataFormat :: format_name :: alternate_names :: category :: suffixes :: mime_types :: url :: dangerous :: icon :: synopsis
+                # ChimeraX-DataFormat :: format_name :: nicknames :: category :: suffixes :: mime_types :: url :: dangerous :: icon :: synopsis
                 if bi is None:
                     logger.warning('ChimeraX-Bundle entry must be first')
                     return None
@@ -1062,7 +1063,7 @@ class Toolshed:
                     logger.warning("Expected 3 fields and got %d." % len(parts))
                     continue
                 name = parts[1]
-                alternates = [v.strip() for v in parts[2].split(',')] if parts[2] else None
+                nicknames = [v.strip() for v in parts[2].split(',')] if parts[2] else None
                 category = parts[3]
                 suffixes = [v.strip() for v in parts[4].split(',')] if parts[4] else None
                 mime_types = [v.strip() for v in parts[5].split(',')] if parts[5] else None
@@ -1070,7 +1071,7 @@ class Toolshed:
                 dangerous = parts[7]
                 icon = parts[8]
                 synopsis = parts[9]
-                fi = FormatInfo(name=name, alternates=alternates,
+                fi = FormatInfo(name=name, nicknames=nicknames,
                                 category=category, suffixes=suffixes,
                                 mime_types=mime_types, url=url, icon=icon,
                                 dangerous=dangerous, synopsis=synopsis)
@@ -1594,12 +1595,12 @@ class FormatInfo:
         filename in bundle of icon for data format
     """
 
-    def __init__(self, name, category, alternates=None, suffixes=None,
+    def __init__(self, name, category, nicknames=None, suffixes=None,
                  mime_types=None, url=None, synopsis=None,
                  dangerous=None, icon=None,
                  has_open=False, has_save=False):
         self.name = name
-        self.alternates = alternates
+        self.nicknames = nicknames
         self.category = category
         self.suffixes = suffixes
         self.mime_types = mime_types
@@ -1638,7 +1639,7 @@ class FormatInfo:
             'dangerous': self.dangerous,
             'icon': self.icon,
             'synopsis': self.synopsis,
-            'alternates': self.alternates,
+            'nicknames': self.nicknames,
             'has_open': self.has_open,
             'has_save': self.has_save,
         }
@@ -1870,7 +1871,11 @@ class BundleInfo:
         from chimerax.core import io, fetch
         for fi in self.formats:
             _debug("register_file_type", fi.name)
-            format = io.register_format(fi.name, fi.category, fi.suffixes)
+            format = io.register_format(
+                fi.name, fi.category, fi.suffixes, fi.nicknames,
+                mime=fi.mime_types, reference=fi.documentation_url,
+                dangerous=fi.dangerous, icon=fi.icon, encoding=None
+            )
             if fi.has_open:
                 def open_cb(*args, format_name=fi.name, **kw):
                     try:

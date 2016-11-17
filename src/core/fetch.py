@@ -293,7 +293,13 @@ class DatabaseFetch:
 
     def add_format(self, format_name, fetch_function):
         # fetch_function() takes session and database id arguments, returns model list.
-        self.fetch_function[format_name] = fetch_function
+        from . import io
+        f = io.format_from_name(format_name)
+        if f is None:
+            self.fetch_function[format_name] = fetch_function
+        else:
+            for name in f.nicknames:
+                self.fetch_function[name] = fetch_function
 
     def fetch(self, session, database_id, format=None, ignore_cache=False, **kw):
         f = self.default_format if format is None else format
