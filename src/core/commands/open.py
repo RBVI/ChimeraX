@@ -67,8 +67,11 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
             db_formats = fetch.database_formats(from_database)
             if format not in db_formats:
                 from ..errors import UserError
-                raise UserError('Only formats %s can be fetched from database %s'
-                                % (', '.join(db_formats), from_database))
+                from . import commas, plural_form
+                raise UserError(
+                    'Only %s %s can be fetched from %s database'
+                    % (commas(['"%s"' % f for f in db_formats], ' and '),
+                       plural_form(db_formats, "format"), from_database))
         models, status = fetch.fetch_from_database(session, from_database, filename,
                                                    format=format, name=name, ignore_cache=ignore_cache, **kw)
         if len(models) > 1:
@@ -118,7 +121,7 @@ def report_trajectories(models, log):
 def format_from_name(name, open=True, save=False):
     from .. import io
     formats = [f for f in io.formats()
-               if (name in f.short_names or name == f.name) and
+               if (name in f.nicknames or name == f.name) and
                ((open and f.open_func) or (save and f.export_func))]
     if formats:
         return formats[0]
@@ -138,10 +141,10 @@ def open_formats(session):
     for f in formats:
         if session.ui.is_gui:
             lines.append('<tr><td>%s<td>%s<td>%s' % (f.name,
-                commas(f.short_names), ', '.join(f.extensions)))
+                commas(f.nicknames), ', '.join(f.extensions)))
         else:
             session.logger.info('    %s: %s: %s' % (f.name,
-                commas(f.short_names), ', '.join(f.extensions)))
+                commas(f.nicknames), ', '.join(f.extensions)))
     if session.ui.is_gui:
         lines.append('</table>')
         lines.append('<p></p>')
@@ -178,7 +181,7 @@ def register_command(session):
 
     def formats():
         from .. import io
-        names = sum((tuple(f.short_names) for f in io.formats()), ())
+        names = sum((tuple(f.nicknames) for f in io.formats()), ())
         return names
 
     def db_formats():

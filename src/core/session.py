@@ -713,7 +713,7 @@ def save_x3d(session, filename, **kw):
 def _initialize():
     from . import io, toolshed
     io.register_format(
-        "ChimeraX session", toolshed.SESSION, SESSION_SUFFIX, ("ses",),
+        "ChimeraX session", toolshed.SESSION, SESSION_SUFFIX, ("session",),
         mime="application/x-chimerax-session",
         reference="http://www.rbvi.ucsf.edu/chimerax/",
         open_func=open, export_func=save)

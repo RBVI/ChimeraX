@@ -3013,8 +3013,8 @@ def register_map_file_formats():
     from .. import io, toolshed
     from .data.fileformats import file_types, file_writers
     fwriters = set(fw[0] for fw in file_writers)
-    for d,t,short_names,suffixes,batch in file_types:
+    for d,t,nicknames,suffixes,batch in file_types:
       suf = tuple('.' + s for s in suffixes)
       save_func = save_map if d in fwriters else None
-      io.register_format(d, toolshed.VOLUME, suf, short_names=short_names,
+      io.register_format(d, toolshed.VOLUME, suf, nicknames=nicknames,
                          open_func=open_map, batch=batch, export_func=save_func)

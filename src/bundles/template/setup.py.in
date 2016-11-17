@@ -150,10 +150,11 @@ setup(
         # Data Format Metadata:
         # ---------------------
         #
-        "ChimeraX-DataFormat :: format_name :: alternate_names :: category :: suffixes :: mime_types :: url :: dangerous :: icon :: synopsis",
+        "ChimeraX-DataFormat :: format_name :: nicknames :: category :: suffixes :: mime_types :: url :: dangerous :: icon :: synopsis",
         #
-        # 'data_name' is a string.
-        # 'alternate_names' is an optional comma-separated list of strings.
+        # 'format_name' is a string.
+        # 'nicknames' is an optional comma-separated list of strings.
+        # If no nickname is given, it defaults to the lowercased format_name.
         # 'category' is a toolshed category.
         # 'suffixes' is an optional comma-separated list of strings with
         # leading periods, i.e., '.pdb'.

@@ -46,7 +46,7 @@ Collections are immutable so can be hashed.  The only case in which their conten
 can be altered is if C++ objects they hold are deleted in which case those objects
 are automatically removed from the collection.
 '''
-from numpy import uint8, int32, uint32, float64, float32, uintp, byte, bool as npy_bool, integer, empty, unique, array
+from numpy import uint8, int32, uint32, float64, float32, uintp, byte, bool as npy_bool, integer, empty, array
 from .molc import string, cptr, pyobject, cvec_property, set_cvec_pointer, c_function, c_array_function, pointer, ctype_type_to_numpy
 from . import molobject
 import ctypes
@@ -237,6 +237,7 @@ class Collection(State):
         return self._objects_class(numpy.setdiff1d(self._pointers, objects._pointers))
     def unique(self):
         '''Return a new collection containing the unique elements from this one, preserving order.'''
+        from numpy import unique
         indices = unique(self._pointers, return_index = True)[1]
         indices.sort()
         return self.objects_class(self._pointers[indices])
@@ -463,15 +464,16 @@ class Atoms(Collection):
     @property
     def unique_residues(self):
         '''The unique :class:`.Residues` for these atoms.'''
-        return _residues(unique(self.residues._pointers))
+        return self.residues.unique()
     @property
     def unique_chain_ids(self):
         '''The unique chain IDs as a numpy array of strings.'''
+        from numpy import unique
         return unique(self.chain_ids)
     @property
     def unique_structures(self):
         "The unique structures as an :class:`.AtomicStructures` collection"
-        return _atomic_structures(unique(self.structures._pointers))
+        return self.structures.unique()
     @property
     def single_structure(self):
         "Do all atoms belong to a single :class:`.Structure`"
@@ -829,17 +831,18 @@ class Residues(Collection):
     @property
     def unique_structures(self):
         '''The unique structures as a :class:`.StructureDatas` collection'''
-        return StructureDatas(unique(self.structures._pointers))
+        return self.structures.unique()
 
     @property
     def unique_chain_ids(self):
         '''The unique chain IDs as a numpy array of strings.'''
+        from numpy import unique
         return unique(self.chain_ids)
 
     @property
     def unique_chains(self):
         '''The unique chains as a :class:`.Chains` collection'''
-        return _chains(unique(self.chains._pointers))
+        return self.chains.unique()
 
     @property
     def by_structure(self):

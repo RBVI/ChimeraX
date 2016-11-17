@@ -1105,7 +1105,9 @@ class EnumOf(Annotation):
             if len(self.ids) == 1:
                 self.name = "'%s'" % self.ids[0]
             else:
-                self.name = "one of %s" % commas(["'%s'" % i for i in self.ids])
+                ids = list(self.ids)
+                ids.sort()
+                self.name = "one of %s" % commas(["'%s'" % i for i in ids])
         if abbreviations is not None:
             self.allow_truncated = abbreviations
 
@@ -1135,7 +1137,9 @@ class DynamicEnum(Annotation):
 
     @property
     def name(self):
-        return 'one of ' + ', '.join("'%s'" % str(v) for v in self.values_func())
+        values = list[self.values_func()]
+        values.sort()
+        return 'one of ' + ', '.join("'%s'" % str(v) for v in values)
 
 
 class Or(Annotation):
