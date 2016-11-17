@@ -96,4 +96,5 @@ def register_image_save():
         register_format("%s image" % format.name,
                         category = 'Image',
                         extensions = ['.%s' % s for s in format.suffixes],
+                        nicknames=[format.name.casefold()],
                         export_func=save_image)
