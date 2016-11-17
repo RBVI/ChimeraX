@@ -25,7 +25,9 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: select</h3>
 <h3><a href="usageconventions.html">Usage</a>:
-<BR><b>select</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a></h3>
+<BR><b>select</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+[&nbsp;seq&nbsp;<a href="atomspec.html"><i>chain-spec</i></a>&nbsp;]
+</h3>
 
 <h3><a href="usageconventions.html">Usage</a>:
 <BR><b>select</b> (&nbsp;add&nbsp;|&nbsp;subtract&nbsp;|&nbsp;intersect&nbsp;) 
@@ -65,9 +67,11 @@ A <a name="seldef"><b><i>selection</i></b></a>:
   </ul>
 </ul>
 <p>
-If no keyword option is used, <b>select</b> creates a new selection 
-containing the <a href="atomspec.html">specified</a> items,
-replacing any previous selection.
+If used without an <b>add</b>, <b>subtract</b>, or <b>intersect</b> keyword,
+the <b>select</b> command replaces any previous selection with a new selection 
+containing the <a href="atomspec.html">specified</a> items.
+The <b>seq</b> option restricts that selection to only the biopolymer chains 
+with the same sequences (the same molecular entities) as the specified chain(s).
 </p><p>
 Otherwise, <b>select</b> can be used to <b>add</b>, <b>subtract</b>, 
 or <b>intersect</b> the <a href="atomspec.html">specified</a> items
@@ -88,5 +92,5 @@ only the atom(s) directly contributing to that patch are selected.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2016</address>
+November 2016</address>
 </body></html>
