@@ -14,6 +14,10 @@
  */
 
 #include <algorithm>
+#include <Python.h>
+#include <sstream>
+
+#include <logger/logger.h>
 
 #define ATOMSTRUCT_EXPORT
 #include "Chain.h"
@@ -71,6 +75,7 @@ StructureSeq::clear_residues() {
     _res_map.clear();
     _structure->change_tracker()->add_modified(dynamic_cast<Chain*>(this),
         ChangeTracker::REASON_RESIDUES);
+    demote_to_sequence();
 }
 
 StructureSeq*
@@ -84,9 +89,15 @@ StructureSeq::copy() const
 void
 StructureSeq::demote_to_sequence()
 {
-    _structure = nullptr;
     if (_python_obj) {
-        //TODO
+        auto logger = _structure->logger();
+        _structure = nullptr;
+        auto ret = PyObject_CallMethod(_python_obj, "_cpp_demotion", nullptr);
+        if (ret == nullptr) {
+            logger::error(logger, "Calling StructureSeq _cpp_demotion method failed.");
+            throw std::runtime_error("Calling StructureSeq _cpp_demotion method failed.");
+        }
+        Py_DECREF(ret);
     } else
         // no one cares
         delete this;

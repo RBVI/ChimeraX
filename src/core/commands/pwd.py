@@ -14,7 +14,8 @@
 def pwd(session):
     '''Report the current directory to the log.'''
     import os
-    session.logger.info('current working directory: %s' % os.getcwd())
+    directory = os.getcwd()
+    session.logger.info('Current working directory is: %s' % directory)
 
 
 def register_command(session):

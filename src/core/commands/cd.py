@@ -22,10 +22,11 @@ def cd(session, directory=None):
             raise UserError('Unable to figure out home directory')
     try:
         os.chdir(directory)
-        session.logger.info('Current directory is now: %s' % directory)
     except OSError as e:
         from ..errors import UserError
         raise UserError(e)
+    from . import pwd
+    pwd.pwd(session)
 
 
 def register_command(session):

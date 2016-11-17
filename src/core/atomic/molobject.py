@@ -892,6 +892,10 @@ class StructureSeq(Sequence):
                 args = (ctypes.c_char_p, ctypes.c_void_p), ret = ctypes.c_void_p)(
                     chain_id.encode('utf-8'), structure._c_pointer)
         super().__init__(sseq_pointer)
+        from ..triggerset import TriggerSet
+        self.triggers = TriggerSet()
+        self.triggers.add_trigger('delete')
+        self.triggers.add_trigger('modify')
         # description derived from PDB/mmCIF info and set by AtomicStructure constructor
         self.description = None
 
@@ -1020,6 +1024,13 @@ class StructureSeq(Sequence):
             'structure': self.structure
         }
         return data
+
+    def _cpp_demotion(self):
+        # called from C++ layer when this should be demoted to Sequence
+        numbering_start = self.numbering_start
+        self.__class__ = Sequence
+        self.triggers.activate_trigger('delete', self)
+        self.numbering_start = numbering_start
 
 # sequence-structure association functions that work on StructureSeqs...
 
