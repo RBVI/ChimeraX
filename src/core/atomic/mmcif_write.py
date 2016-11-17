@@ -47,12 +47,14 @@ def write_mmcif(session, path, models, **kw):
         sclines.extend(struct_conf_lines(res, len(sclines), cid_suffix))
         srlines.extend(struct_sheet_range_lines(res, len(sclines), cid_suffix))
 
-    text = (
-        data_header + '\n#\n' +
-        atom_site_header + '\n'.join(alines) + '\n#\n' +
-        struct_conf_header + '\n'.join(sclines) + '\n#\n' +
-        struct_sheet_range_header + '\n'.join(srlines) + '\n#\n'
-        )
+    lines = [data_header + '\n#\n']
+    if alines:
+        lines.append(atom_site_header + '\n'.join(alines) + '\n#\n')
+    if sclines:
+        lines.append(struct_conf_header + '\n'.join(sclines) + '\n#\n')
+    if srlines:
+        lines.append(struct_sheet_range_header + '\n'.join(srlines) + '\n#\n')
+    text = ''.join(lines)
     
     f = open(path, 'w')
     f.write(text)
@@ -62,6 +64,7 @@ atom_site_header = '''loop_
 _atom_site.id 
 _atom_site.type_symbol 
 _atom_site.label_atom_id 
+_atom_site.label_alt_id 
 _atom_site.label_comp_id 
 _atom_site.label_asym_id 
 _atom_site.label_entity_id 
@@ -80,6 +83,7 @@ def atom_site_lines(m, anum_offset, cid_suffix, entities):
     n = len(xyz)
     elem = atoms.element_names
     aname = atoms.names
+    aloc = atoms.alt_locs
     occ = atoms.occupancy
     bfact = atoms.bfactors
     res = atoms.residues
@@ -88,12 +92,16 @@ def atom_site_lines(m, anum_offset, cid_suffix, entities):
     rnum = res.numbers
     eid = entity_ids(atoms, res, rname, entities)
 
-    lines = [('%s %s %s %s %s %d %d %.3f %.3f %.3f %.2f %.2f' %
-             (a+1+anum_offset, elem[a], aname[a], rname[a], cid[a] + cid_suffix, eid[a], rnum[a],
+    
+    lines = [('%s %s %s %s %s %s %d %d %.3f %.3f %.3f %.2f %.2f' %
+             (a+1+anum_offset, elem[a], aname[a], alt_loc_text(aloc[a]), rname[a], cid[a] + cid_suffix, eid[a], rnum[a],
               xyz[a,0], xyz[a,1], xyz[a,2], occ[a], bfact[a]))
              for a in range(n)]
         
     return lines
+
+def alt_loc_text(i):
+    return '.' if i == 32 else chr(i)
 
 #
 # To determine entity id, use residue name if in_chain is false, use sequence if in_chain is true.
