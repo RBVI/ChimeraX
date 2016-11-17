@@ -352,7 +352,9 @@ class Structure(Model, StructureData):
         dm = atoms.draw_modes
         from .molobject import Atom
         r[dm == Atom.BALL_STYLE] *= self.ball_scale
-        r[dm == Atom.STICK_STYLE] = self.bond_radius
+        smask = (dm == Atom.STICK_STYLE)
+        if smask.any():
+            r[smask] = atoms.filter(smask).maximum_bond_radii(self.bond_radius)
         return r
 
     def _update_bond_graphics(self, changes = StructureData._ALL_CHANGE):
