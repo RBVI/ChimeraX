@@ -75,7 +75,7 @@ def show_bonds(session, objects, only):
 def show_pseudobonds(session, objects, only):
     atoms = objects.atoms
     from .. import atomic
-    pbonds = atomic.interatom_pseudobonds(atoms, session)
+    pbonds = atomic.interatom_pseudobonds(atoms)
     pbonds.displays = True
     a1, a2 = pbonds.atoms
     a1.displays = True	   # Atoms need to be displayed for bond to appear

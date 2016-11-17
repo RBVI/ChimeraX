@@ -46,7 +46,7 @@ Collections are immutable so can be hashed.  The only case in which their conten
 can be altered is if C++ objects they hold are deleted in which case those objects
 are automatically removed from the collection.
 '''
-from numpy import uint8, int32, uint32, float64, float32, uintp, byte, bool as npy_bool, integer, empty, unique, array
+from numpy import uint8, int32, uint32, float64, float32, uintp, byte, bool as npy_bool, integer, empty, array
 from .molc import string, cptr, pyobject, cvec_property, set_cvec_pointer, c_function, c_array_function, pointer, ctype_type_to_numpy
 from . import molobject
 import ctypes
@@ -237,6 +237,7 @@ class Collection(State):
         return self._objects_class(numpy.setdiff1d(self._pointers, objects._pointers))
     def unique(self):
         '''Return a new collection containing the unique elements from this one, preserving order.'''
+        from numpy import unique
         indices = unique(self._pointers, return_index = True)[1]
         indices.sort()
         return self.objects_class(self._pointers[indices])
@@ -390,6 +391,15 @@ class Atoms(Collection):
     radii = cvec_property('atom_radius', float32,
         doc="Returns a :mod:`numpy` array of radii.  Can be set with such an array (or equivalent "
         "sequence), or with a single floating-point number.")
+    default_radii = cvec_property('atom_default_radius', float32, read_only = True,
+        doc="Returns a :mod:`numpy` array of default radii.")
+    def maximum_bond_radii(self, default_radius = 0.2):
+        "Return maximum bond radius for each atom.  Used for stick style atom display."
+        f = c_function('atom_maximum_bond_radius', args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_float, ctypes.c_void_p])
+        n = len(self)
+        r = empty((n,), float32)
+        f(self._c_pointers, n, default_radius, pointer(r))
+        return r
     residues = cvec_property('atom_residue', cptr, astype = _residues, read_only = True,
         doc="Returns a :class:`Residues` whose data items correspond in a 1-to-1 fashion with the "
         "items in the Atoms.  Read only.")
@@ -454,15 +464,16 @@ class Atoms(Collection):
     @property
     def unique_residues(self):
         '''The unique :class:`.Residues` for these atoms.'''
-        return _residues(unique(self.residues._pointers))
+        return self.residues.unique()
     @property
     def unique_chain_ids(self):
         '''The unique chain IDs as a numpy array of strings.'''
+        from numpy import unique
         return unique(self.chain_ids)
     @property
     def unique_structures(self):
         "The unique structures as an :class:`.AtomicStructures` collection"
-        return _atomic_structures(unique(self.structures._pointers))
+        return self.structures.unique()
     @property
     def single_structure(self):
         "Do all atoms belong to a single :class:`.Structure`"
@@ -820,17 +831,18 @@ class Residues(Collection):
     @property
     def unique_structures(self):
         '''The unique structures as a :class:`.StructureDatas` collection'''
-        return StructureDatas(unique(self.structures._pointers))
+        return self.structures.unique()
 
     @property
     def unique_chain_ids(self):
         '''The unique chain IDs as a numpy array of strings.'''
+        from numpy import unique
         return unique(self.chain_ids)
 
     @property
     def unique_chains(self):
         '''The unique chains as a :class:`.Chains` collection'''
-        return _chains(unique(self.chains._pointers))
+        return self.chains.unique()
 
     @property
     def by_structure(self):

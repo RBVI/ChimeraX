@@ -148,7 +148,7 @@ def _polymer_selector(models, results, protein):
 def _pbonds_selector(session, models, results):
     from ..atomic import Structure, structure_atoms, interatom_pseudobonds
     atoms = structure_atoms([m for m in models if isinstance(m, Structure)])
-    pbonds = interatom_pseudobonds(atoms, session)
+    pbonds = interatom_pseudobonds(atoms)
     a1, a2 = pbonds.atoms
     atoms = a1 | a2
     for m in atoms.unique_structures:
@@ -158,7 +158,7 @@ def _pbonds_selector(session, models, results):
 def _hbonds_selector(session, models, results):
     from ..atomic import Structure, structure_atoms, interatom_pseudobonds
     atoms = structure_atoms([m for m in models if isinstance(m, Structure)])
-    pbonds = interatom_pseudobonds(atoms, session, group_name = 'hydrogen bonds')
+    pbonds = interatom_pseudobonds(atoms, group_name = 'hydrogen bonds')
     a1, a2 = pbonds.atoms
     atoms = a1 | a2
     for m in atoms.unique_structures:

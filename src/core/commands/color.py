@@ -142,7 +142,7 @@ def color(session, objects, color=None, what=None,
     if 'p' in target:
         if atoms is not None:
             from .. import atomic
-            bonds = atomic.interatom_pseudobonds(atoms, session)
+            bonds = atomic.interatom_pseudobonds(atoms)
             if len(bonds) > 0:
                 if color not in _SpecialColors and color is not None:
                     bonds.colors = color.uint8x4()

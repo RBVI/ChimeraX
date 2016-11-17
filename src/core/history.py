@@ -69,7 +69,7 @@ class ObjectCache:
         import os
         if not os.path.exists(self.filename):
             return None
-        with open(self.filename) as f:
+        with open(self.filename, encoding='utf-8') as f:
             return json.load(f)
 
     def save(self, obj):

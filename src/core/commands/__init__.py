@@ -26,7 +26,7 @@ from .cli import ModelIdArg, AtomsArg, AtomicStructuresArg
 from .cli import StructureArg, StructuresArg, SurfacesArg
 from .cli import PseudobondsArg, PseudobondGroupsArg
 from .cli import ModelArg, ModelsArg, TopModelsArg, ObjectsArg, RestOfLine
-from .cli import OpenFileNameArg, SaveFileNameArg, OpenFolderNameArg, SaveFolderNameArg
+from .cli import OpenFileNameArg, SaveFileNameArg, OpenFolderNameArg, SaveFolderNameArg, FileNameArg
 
 from .colorarg import ColorArg, ColormapArg, ColormapRangeArg
 from .symarg import SymmetryArg

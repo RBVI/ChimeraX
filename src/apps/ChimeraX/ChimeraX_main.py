@@ -492,6 +492,9 @@ def init(argv, event_loop=True):
         import runpy
         import warnings
         sys.argv[:] = args  # runpy will insert appropriate argv[0]
+        has_install = 'install' in sys.argv
+        has_uninstall = 'uninstall' in sys.argv
+        per_user = '-user' in sys.argv
         exit = SystemExit(os.EX_OK)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=BytesWarning)
@@ -504,8 +507,11 @@ def init(argv, event_loop=True):
             except SystemExit as e:
                 exit = e
         if opts.module == 'pip' and exit.code == os.EX_OK:
-            sess.toolshed.reload(sess.logger, rebuild_cache=True)
-            remove_python_scripts(chimerax.app_bin_dir)
+            if has_install or has_uninstall:
+                sess.toolshed.reload(sess.logger, rebuild_cache=True)
+                sess.toolshed.set_install_timestamp(per_user)
+            if has_install:
+                remove_python_scripts(chimerax.app_bin_dir)
         return exit.code
 
     from chimerax.core import startup

@@ -67,7 +67,7 @@ def save(session, filename, models=None, format=None,
         from .open import format_from_name
         fmt = format_from_name(format, save=True, open=False)
         if fmt is None:
-            fnames = sum([tuple(f.short_names) for f in io.formats()], ())
+            fnames = sum([tuple(f.nicknames) for f in io.formats()], ())
             from ..errors import UserError
             raise UserError("Unrecognized format '%s', must be one of %s" %
                             (format, ', '.join(fnames)))
@@ -114,7 +114,7 @@ def save(session, filename, models=None, format=None,
     if fmt.open_func and not fmt.name.endswith('image'):
         # Remember in file history
         from ..filehistory import remember_file
-        remember_file(session, filename, fmt.short_names[0], models or 'all models', file_saved = True)
+        remember_file(session, filename, fmt.nicknames[0], models or 'all models', file_saved = True)
 
 
 def save_formats(session):
@@ -130,10 +130,10 @@ def save_formats(session):
     for f in formats:
         if session.ui.is_gui:
             lines.append('<tr><td>%s<td>%s<td>%s' % (f.name,
-                commas(f.short_names), ', '.join(f.extensions)))
+                commas(f.nicknames), ', '.join(f.extensions)))
         else:
             session.logger.info('    %s: %s: %s' % (f.name,
-                commas(f.short_names), ', '.join(f.extensions)))
+                commas(f.nicknames), ', '.join(f.extensions)))
     if session.ui.is_gui:
         lines.append('</table>')
         msg = '\n'.join(lines)
@@ -147,7 +147,7 @@ class FileFormatArg(DynamicEnum):
     def formats(self):
         cat = self.category
         from .. import io
-        names = sum((tuple(f.short_names) for f in io.formats()
+        names = sum((tuple(f.nicknames) for f in io.formats()
                      if f.export_func and (cat is None or f.category == cat)),
                     ())
         return names
@@ -195,16 +195,19 @@ def register_command(session):
         required=file_arg,
         synopsis='save session'
     )
-    def save_no_model(session, filename, **kw):
-        save(session, None, filename, **kw)
-    register('save session', desc, save_no_model)
+    def save_session(session, filename, **kw):
+        kw['format'] = 'ses'
+        save(session, filename, **kw)
+    register('save session', desc, save_session)
 
     desc = CmdDesc(
         required=file_arg,
         keyword=image_format_args + image_args,
         synopsis='save image'
     )
-    register('save image', desc, save_no_model)
+    def save_image(session, filename, **kw):
+        save(session, filename, **kw)
+    register('save image', desc, save_image)
 
     desc = CmdDesc(
         required=file_arg,

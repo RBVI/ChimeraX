@@ -329,6 +329,18 @@ class Volume(Model):
     self.set_color(rgba8_to_rgba(color))
   single_color = property(_get_single_color, _set_single_color)
 
+  
+  # ---------------------------------------------------------------------------
+  #
+  def set_transparency(self, alpha):
+    '''Alpha values in range 0-255. Only changes current style (surface/mesh or solid).'''
+    a1 = alpha/255
+    if self.representation in ('surface', 'mesh'):
+      self.set_parameters(surface_colors = [(r,g,b,a1) for r,g,b,a in self.surface_colors])
+    else:
+      self.set_parameters(solid_colors = [(r,g,b,a1) for r,g,b,a in self.solid_colors])
+    self.update_display()
+    
   # ---------------------------------------------------------------------------
   #
   def new_region(self, ijk_min = None, ijk_max = None, ijk_step = None,
@@ -3001,8 +3013,8 @@ def register_map_file_formats():
     from .. import io, toolshed
     from .data.fileformats import file_types, file_writers
     fwriters = set(fw[0] for fw in file_writers)
-    for d,t,short_names,suffixes,batch in file_types:
+    for d,t,nicknames,suffixes,batch in file_types:
       suf = tuple('.' + s for s in suffixes)
       save_func = save_map if d in fwriters else None
-      io.register_format(d, toolshed.VOLUME, suf, short_names=short_names,
+      io.register_format(d, toolshed.VOLUME, suf, nicknames=nicknames,
                          open_func=open_map, batch=batch, export_func=save_func)

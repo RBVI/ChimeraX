@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def open(session, filename, format=None, name=None, from_database=None, ignore_cache=False,
-         smart_initial_display = True, explode = True):
+         smart_initial_display = True, trajectory = False):
     '''Open a file.
 
     Parameters
@@ -35,9 +35,9 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
         to cache.
     smart_initial_display : bool
         Whether to display molecules with rich styles and colors.
-    explode : bool
-        Whether to read PDB format multimodel files as multiple models (true)
-        or as coordinate sets (false).
+    trajectory : bool
+        Whether to read a PDB format multimodel file as coordinate sets (true)
+        or as multiple models (false, default).
     '''
 
     if ':' in filename:
@@ -58,7 +58,7 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
                 format = 'mmcif'
 
     kw = {'smart_initial_display': smart_initial_display,
-          'explode': explode}
+          'trajectory': trajectory}
 
     from ..filehistory import remember_file
     if from_database is not None:
@@ -67,8 +67,11 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
             db_formats = fetch.database_formats(from_database)
             if format not in db_formats:
                 from ..errors import UserError
-                raise UserError('Only formats %s can be fetched from database %s'
-                                % (', '.join(db_formats), from_database))
+                from . import commas, plural_form
+                raise UserError(
+                    'Only %s %s can be fetched from %s database'
+                    % (commas(['"%s"' % f for f in db_formats], ' and '),
+                       plural_form(db_formats, "format"), from_database))
         models, status = fetch.fetch_from_database(session, from_database, filename,
                                                    format=format, name=name, ignore_cache=ignore_cache, **kw)
         if len(models) > 1:
@@ -77,6 +80,8 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
             session.models.add(models)
         remember_file(session, filename, format, models, database=from_database)
         session.logger.status(status, log=True)
+        if trajectory:
+            report_trajectories(models, session.logger)
         return models
 
     if format is not None:
@@ -100,16 +105,23 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
         from ..errors import UserError
         raise UserError(e)
 
+    if trajectory:
+        report_trajectories(models, session.logger)
+    
     # Remember in file history
     remember_file(session, filename, format, models or 'all models')
 
     return models
 
+def report_trajectories(models, log):
+    for m in models:
+        if hasattr(m, 'num_coord_sets'):
+            log.info('%s has %d coordinate sets' % (m.name, m.num_coord_sets))
 
 def format_from_name(name, open=True, save=False):
     from .. import io
     formats = [f for f in io.formats()
-               if (name in f.short_names or name == f.name) and
+               if (name in f.nicknames or name == f.name) and
                ((open and f.open_func) or (save and f.export_func))]
     if formats:
         return formats[0]
@@ -129,10 +141,10 @@ def open_formats(session):
     for f in formats:
         if session.ui.is_gui:
             lines.append('<tr><td>%s<td>%s<td>%s' % (f.name,
-                commas(f.short_names), ', '.join(f.extensions)))
+                commas(f.nicknames), ', '.join(f.extensions)))
         else:
             session.logger.info('    %s: %s: %s' % (f.name,
-                commas(f.short_names), ', '.join(f.extensions)))
+                commas(f.nicknames), ', '.join(f.extensions)))
     if session.ui.is_gui:
         lines.append('</table>')
         lines.append('<p></p>')
@@ -169,7 +181,7 @@ def register_command(session):
 
     def formats():
         from .. import io
-        names = sum((tuple(f.short_names) for f in io.formats()), ())
+        names = sum((tuple(f.nicknames) for f in io.formats()), ())
         return names
 
     def db_formats():
@@ -183,7 +195,7 @@ def register_command(session):
             ('from_database', DynamicEnum(db_formats)),
             ('ignore_cache', NoArg),
             ('smart_initial_display', BoolArg),
-            ('explode', BoolArg),
+            ('trajectory', BoolArg),
             # ('id', ModelIdArg),
         ],
         synopsis='read and display data')

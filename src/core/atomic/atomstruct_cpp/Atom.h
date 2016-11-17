@@ -153,6 +153,7 @@ public:
             return _radius;
         return default_radius();
     }
+    float maximum_bond_radius(float default_radius) const;
     void  register_field(std::string /*name*/, int /*value*/) {}
     void  register_field(std::string /*name*/, double /*value*/) {}
     void  register_field(std::string /*name*/, const std::string &/*value*/) {}

@@ -16,7 +16,7 @@ from .motion import CallForNFrames
 from .cli import Axis
 
 def roll(session, axis=Axis((0,1,0)), angle=1, frames=CallForNFrames.Infinite, rock=None,
-         center=None, coordinate_system=None, models=None):
+         center=None, coordinate_system=None, models=None, atoms=None):
     '''Rotate the scene.  Same as the turn command with infinite frames argument and angle step 1 degree.
 
     Parameters
@@ -37,16 +37,18 @@ def roll(session, axis=Axis((0,1,0)), angle=1, frames=CallForNFrames.Infinite, r
        The coordinate system for the axis and optional center point.
        If no coordinate system is specified then scene coordinates are used.
     models : list of Models
-       Only these models are moved.  If not specified, then the camera is moved.
+       Move the coordinate systems of these models.  Camera is not moved.
+    atoms : Atoms
+       Change the coordinates of these atoms.  Camera is not moved.
     '''
     from .turn import turn
     turn(session, axis=axis, angle=angle, frames=frames, rock=rock, center=center,
-         coordinate_system=coordinate_system, models=models)
+         coordinate_system=coordinate_system, models=models, atoms=atoms)
 
 
 def register_command(session):
     from .cli import CmdDesc, register, AxisArg, FloatArg, PositiveIntArg
-    from .cli import CenterArg, CoordSysArg, TopModelsArg
+    from .cli import CenterArg, CoordSysArg, TopModelsArg, AtomsArg
     desc = CmdDesc(
         optional= [('axis', AxisArg),
                    ('angle', FloatArg),
@@ -54,7 +56,8 @@ def register_command(session):
         keyword = [('center', CenterArg),
                    ('coordinate_system', CoordSysArg),
                    ('rock', PositiveIntArg),
-                   ('models', TopModelsArg)],
+                   ('models', TopModelsArg),
+                   ('atoms', AtomsArg)],
         synopsis='rotate models continuously'
     )
     register('roll', desc, roll)

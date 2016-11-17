@@ -875,6 +875,19 @@ Atom::is_sidechain() const {
 }
 
 float
+Atom::maximum_bond_radius(float default_radius) const {
+    int bcount = 0;
+    float rmax = 0.0;
+    for (auto &b : bonds()) {
+        float r = b->radius();
+	if (r > rmax)
+	    rmax = r;
+	bcount += 1;
+    }
+    return (bcount > 0 ? rmax : default_radius);
+}
+
+float
 Atom::occupancy() const
 {
     if (_alt_loc != ' ') {
