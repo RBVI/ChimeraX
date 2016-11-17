@@ -32,6 +32,10 @@ def write_mmcif(session, path, models, **kw):
     if nm > 1:
         session.logger.info('Writing %d models to mmCIF file by appending model number to chain ids' % nm)
 
+    name = ''.join(models[0].name.split())				# Remove all whitespace from name
+    name = name.encode('ascii', errors='ignore').decode('ascii')	# Drop non-ascii characters
+    data_header = 'data_%s' % name
+    
     alines = []
     entities = {}
     sclines = []
@@ -44,6 +48,7 @@ def write_mmcif(session, path, models, **kw):
         srlines.extend(struct_sheet_range_lines(res, len(sclines), cid_suffix))
 
     text = (
+        data_header + '\n#\n' +
         atom_site_header + '\n'.join(alines) + '\n#\n' +
         struct_conf_header + '\n'.join(sclines) + '\n#\n' +
         struct_sheet_range_header + '\n'.join(srlines) + '\n#\n'
