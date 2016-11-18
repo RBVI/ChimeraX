@@ -31,6 +31,8 @@ private:
 public:
     AtomicStructure(PyObject* logger = nullptr) : Structure(logger) {}
 
+    void  compute_secondary_structure(float energy_cutoff = -0.5, int min_helix_length = 3,
+        int min_strand_length = 3, bool report = false);
     AtomicStructure*  copy() const;
     void  make_chains() const;
     std::vector<Chain::Residues>  polymers(bool consider_missing_structure = true,
