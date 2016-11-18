@@ -74,6 +74,7 @@ _atom_site.Cartn_y
 _atom_site.Cartn_z 
 _atom_site.occupancy 
 _atom_site.B_iso_or_equiv 
+_atom_site.pdbx_PDB_model_num
 '''
 
 def atom_site_lines(m, anum_offset, cid_suffix, entities):
@@ -91,11 +92,11 @@ def atom_site_lines(m, anum_offset, cid_suffix, entities):
     cid = res.chain_ids  # string fields need "." if blank.
     rnum = res.numbers
     eid = entity_ids(atoms, res, rname, entities)
-
+    model_num = 1
     
-    lines = [('%s %s %s %s %s %s %d %d %.3f %.3f %.3f %.2f %.2f' %
+    lines = [('%s %s %s %s %s %s %d %d %.3f %.3f %.3f %.2f %.2f %d' %
              (a+1+anum_offset, elem[a], aname[a], alt_loc_text(aloc[a]), rname[a], cid[a] + cid_suffix, eid[a], rnum[a],
-              xyz[a,0], xyz[a,1], xyz[a,2], occ[a], bfact[a]))
+              xyz[a,0], xyz[a,1], xyz[a,2], occ[a], bfact[a], model_num))
              for a in range(n)]
         
     return lines
