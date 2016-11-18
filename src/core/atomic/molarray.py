@@ -391,6 +391,15 @@ class Atoms(Collection):
     radii = cvec_property('atom_radius', float32,
         doc="Returns a :mod:`numpy` array of radii.  Can be set with such an array (or equivalent "
         "sequence), or with a single floating-point number.")
+    default_radii = cvec_property('atom_default_radius', float32, read_only = True,
+        doc="Returns a :mod:`numpy` array of default radii.")
+    def maximum_bond_radii(self, default_radius = 0.2):
+        "Return maximum bond radius for each atom.  Used for stick style atom display."
+        f = c_function('atom_maximum_bond_radius', args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_float, ctypes.c_void_p])
+        n = len(self)
+        r = empty((n,), float32)
+        f(self._c_pointers, n, default_radius, pointer(r))
+        return r
     residues = cvec_property('atom_residue', cptr, astype = _residues, read_only = True,
         doc="Returns a :class:`Residues` whose data items correspond in a 1-to-1 fashion with the "
         "items in the Atoms.  Read only.")

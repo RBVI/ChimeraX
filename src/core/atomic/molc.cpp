@@ -704,6 +704,23 @@ extern "C" EXPORT void set_atom_radius(void *atoms, size_t n, float32_t *radii)
     error_wrap_array_set(a, n, &Atom::set_radius, radii);
 }
 
+extern "C" EXPORT void atom_default_radius(void *atoms, size_t n, float32_t *radii)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    error_wrap_array_get(a, n, &Atom::default_radius, radii);
+}
+
+extern "C" EXPORT void atom_maximum_bond_radius(void *atoms, size_t n, float32_t default_radius, float32_t *radii)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i)
+	  radii[i] = a[i]->maximum_bond_radius(default_radius);
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void atom_residue(void *atoms, size_t n, pyobject_t *resp)
 {
     Atom **a = static_cast<Atom **>(atoms);

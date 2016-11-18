@@ -66,6 +66,7 @@ and their code location is described with the function descriptions.
 | `select`_ - Select objects
 | `set`_ - Set rendering effects (background color, silhouettes)
 | `show`_ - Show atoms, ribbons, models
+| `size`_ - Change atom or bond radii
 | `smoothlines`_ * - Smooth paths in line drawings
 | `snav`_ * - Enable space navigator input device
 | `sop`_ - Surface operations
@@ -303,6 +304,10 @@ set
 show
 ====
 .. autofunction:: chimerax.core.commands.show.show
+
+size
+====
+.. autofunction:: chimerax.core.commands.size.size
 
 snav
 ====
