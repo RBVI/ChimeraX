@@ -23,7 +23,7 @@ else:
 rel_inst_data_dir = os.path.basename(data_dir)
 
 description = """
-Provide support for the HTC Vive headset and its controllers.
+Provide support for the HTC Vive VR headset and its controllers.
 """
 
 setup(
