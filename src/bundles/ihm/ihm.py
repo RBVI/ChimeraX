@@ -940,14 +940,6 @@ def ensemble_sphere_lookup(emodel, aindex):
         i = aindex.get((asym_id, res_num))
         return None if i is None else atoms[i]
     return lookup
-    
-# -----------------------------------------------------------------------------
-#
-def register():
-    from chimerax.core import io
-    from chimerax.core.atomic import structure
-    io.register_format("Integrative Hybrid Model", structure.CATEGORY, (".ihm",), ("ihm",),
-                       open_func=read_ihm)
 
 
 # -----------------------------------------------------------------------------

@@ -51,7 +51,7 @@ setup(
     ],
     classifiers=[
         # From https://pypi.python.org/pypi?%3Aaction=list_classifiers
-        # and our own ChimeraX-* classifiers.
+        # and our own ChimeraX classifiers.
         "Environment :: MacOS X :: Aqua",
         "Environment :: Win32 (MS Windows)",
         "Environment :: X11 Applications",
@@ -67,9 +67,9 @@ setup(
         "Topic :: Scientific/Engineering :: Bio-Informatics",
 
         "Development Status :: 2 - Pre-Alpha",
-        "ChimeraX-Bundle :: General :: 1,1 :: PKG_NAME :: :: ",
-        "ChimeraX-Tool :: Blast Protein :: General :: Search PDB/NR using BLAST",
-        "ChimeraX-Command :: blastprotein :: General :: Search PDB/NR using BLAST",
-        "ChimeraX-Command :: blastpdb :: General :: Search PDB/NR using BLAST",
+        "ChimeraX :: Bundle :: General :: 1,1 :: PKG_NAME :: chimerax.blastprotein :: ",
+        "ChimeraX :: Tool :: Blast Protein :: General :: Search PDB/NR using BLAST",
+        "ChimeraX :: Command :: blastprotein :: General :: Search PDB/NR using BLAST",
+        "ChimeraX :: Command :: blastpdb :: General :: Search PDB/NR using BLAST",
     ],
 )
