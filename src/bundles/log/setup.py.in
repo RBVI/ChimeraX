@@ -47,7 +47,7 @@ setup(
     ],
     classifiers=[
         # From https://pypi.python.org/pypi?%3Aaction=list_classifiers
-        # and our own ChimeraX-* classifiers.
+        # and our own ChimeraX classifiers.
         "Development Status :: 5 - Production/Stable",
         "Environment :: MacOS X :: Aqua",
         "Environment :: Win32 (MS Windows)",
@@ -62,9 +62,9 @@ setup(
         "Topic :: Scientific/Engineering :: Visualization",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
-        "ChimeraX-Bundle :: General :: 1,1 :: PKG_NAME :: chimerax.log :: ",
-        "ChimeraX-Tool :: Log :: General :: Log of information and output",
-        "ChimeraX-Command :: echo :: General :: Log a line of text",
-        "ChimeraX-Command :: log :: General :: manipulate the Log tool",
+        "ChimeraX :: Bundle :: General :: 1,1 :: PKG_NAME :: chimerax.log :: ",
+        "ChimeraX :: Tool :: Log :: General :: Log of information and output",
+        "ChimeraX :: Command :: echo :: General :: Log a line of text",
+        "ChimeraX :: Command :: log :: General :: manipulate the Log tool",
     ],
 )

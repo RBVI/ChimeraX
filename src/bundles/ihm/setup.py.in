@@ -1,45 +1,54 @@
 # vim: set expandtab ts=4 sw=4:
 
-# === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
-# === UCSF ChimeraX Copyright ===
-
 # import distutils.core
 # distutils.core.DEBUG = True
+# TODO: remove distlib monkey patch when the wheel package
+# implements PEP 426's pydist.json
 from distlib import metadata
-print(metadata.METADATA_FILENAME)
 metadata.METADATA_FILENAME = "metadata.json"
 from setuptools import setup
+import os
+import sys
 
-shlib_dir = "SHLIB_DIR"
-pkg_dir = "PKG_DIR"
+pkg_dir = "PKG_DIR"  # DO NOT CHANGE
+shlib_dir = "SHLIB_DIR"  # DO NOT CHANGE
+data_dir = "DATA_DIR"  # DO NOT CHANGE
+if sys.platform.startswith('win'):
+    # shared libraries are relative to bindir
+    rel_inst_shlib_dir = ""  # shlib_dir == bindir
+else:
+    # shared libraries are relative to rootdir
+    rel_inst_shlib_dir = os.path.basename(shlib_dir)
+# data files are relative to rootdir
+rel_inst_data_dir = os.path.basename(data_dir)
+
+description = """
+Support Integrative Hybrid Models
+"""
 
 setup(
-    name="PKG_NAME",
-    version="PKG_VERSION",
-    description="PKG_DESCRIPTION",
+    name="BUNDLE_NAME",
+    version="BUNDLE_VERSION",  # PEP 440, should match Development Status below
+    description="Integrative Hybrid Models file reader",  # one line synopsis
+    long_description=description,  # see above
     author="UCSF RBVI",
     author_email="chimerax@cgl.ucsf.edu",
     url="https://www.rbvi.ucsf.edu/chimerax/",
+    python_requires=">= 3.5",
     package_dir={
-        "PKG_NAME": pkg_dir,
+        "PKG_NAME": pkg_dir,    # directory package's source files are in
     },
     packages=[
         "PKG_NAME",
-        # Add subpackage names here
     ],
     install_requires=[
         "ChimeraX-Core >= 0.1",
+        # TODO: numpy
     ],
     classifiers=[
-        "Development Status :: 2 - Pre-Alpha",
+        # From https://pypi.python.org/pypi?%3Aaction=list_classifiers
+        # and our own ChimeraX classifiers.
+        "Development Status :: 2 - Pre-Alpha",  # TODO: update as appropriate
         "Environment :: MacOS X :: Aqua",
         "Environment :: Win32 (MS Windows)",
         "Environment :: X11 Applications",
@@ -53,29 +62,10 @@ setup(
         "Topic :: Scientific/Engineering :: Visualization",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
-        # Each tool should have a single line with up to seven fields:
-        #
-        # 'ChimeraX-Bundle' :: tool_name :: module_name
-        # :: display_name :: commands :: categories
-        # :: synopsis
-        #
-        # 'tool_name', 'module_name' and 'display_name' are strings.
-        # 'commands' and 'categories' are comma separated strings.
-        # Note that TOOL_PKG_NAME does not need to match the install
-        # package name; in particular, it may be a subpackage.
-        # TOOL_DISPLAY_NAME is distinct from PKG_DESCRIPTION because
-        # a single package may provide multiple tools.
-        # 'synopsis' is a short description of the tool.  It is here
-        # because it needs to be part of the metadata available for
-        # uninstalled tools, so that users can get more than just a
-        # name for deciding whether they want the tool or not.
-        #
-        # Example:
-        # "ChimeraX-Bundle :: cmd_line :: chimerax.cmd_line "
-        # ":: Command Line Interface :: command_line :: General"
-        "ChimeraX-Bundle :: TOOL_NAME :: TOOL_PKG_NAME "
-        ":: TOOL_DISPLAY_NAME :: COMMAND_NAME :: TOOL_CATEGORY "
-        ":: TOOL_FILE_TYPES :: TOOL_SESSION_VERSIONS :: TOOL_CUSTOM_INIT "
-        ":: TOOL_SYNOPSIS",
+        "ChimeraX :: Bundle :: Higher-Order Structure :: 1,1 :: PKG_NAME :: chimerax.ihm :: ",
+        "ChimeraX :: DataFormat :: IHM :: :: Higher-Order Structure :: .ihm :: :: http://salilab.org/ :: :: :: Integrative Hybrid Models data",
+        "ChimeraX :: Open :: IHM :: ihm :: true",
+        # "ChimeraX :: DataFormat :: Binary Coordinates :: :: Molecular structure :: .crd :: :: :: :: :: Raw binary coordinates",
+        # "ChimeraX :: Save :: Binary Coordinates :: crd :: true",
     ],
 )

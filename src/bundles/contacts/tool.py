@@ -229,7 +229,7 @@ class ContactPlot(Graph):
 
     def _show_residue_plot(self, c):
         from .resplot import ResiduePlot
-        ResiduePlot(self._session(), c, self.interface_residue_area_cutoffy)
+        ResiduePlot(self._session(), c, self.interface_residue_area_cutoff)
         
     def _explode_all(self, scale = 2):
         gc = [(g,g.centroid()) for g in self.groups if g.shown()]

@@ -48,7 +48,7 @@ setup(
     ],
     classifiers=[
         # From https://pypi.python.org/pypi?%3Aaction=list_classifiers
-        # and our own ChimeraX-* classifiers.
+        # and our own ChimeraX classifiers.
         "Development Status :: 5 - Production/Stable",
         "Environment :: MacOS X :: Aqua",
         "Environment :: Win32 (MS Windows)",
@@ -63,8 +63,8 @@ setup(
         "Topic :: Scientific/Engineering :: Visualization",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
-        "ChimeraX-Bundle :: Molecular structure :: 1,1 :: PKG_NAME :: :: ",
-        "ChimeraX-DataFormat :: cellpack :: :: Molecular structure :: :: :: http://www.cellpack.org/ :: :: :: cellpack data",
-        "ChimeraX-Fetch :: cellpack :: cellpack :: cellpack :: HIV-1_0.1.6 :: true",
+        "ChimeraX :: Bundle :: Molecular structure :: 1,1 :: PKG_NAME :: chimerax.cellpack :: ",
+        "ChimeraX :: DataFormat :: cellpack :: :: Molecular structure :: :: :: http://www.cellpack.org/ :: :: :: cellpack data",
+        "ChimeraX :: Fetch :: cellpack :: cellpack :: cellpack :: HIV-1_0.1.6 :: true",
     ],
 )

@@ -48,7 +48,7 @@ setup(
     ],
     classifiers=[
         # From https://pypi.python.org/pypi?%3Aaction=list_classifiers
-        # and our own ChimeraX-* classifiers.
+        # and our own ChimeraX classifiers.
         "Development Status :: 2 - Pre-Alpha",  # FIXME: update as appropriate
         "Environment :: MacOS X :: Aqua",
         "Environment :: Win32 (MS Windows)",
@@ -63,10 +63,10 @@ setup(
         "Topic :: Scientific/Engineering :: Visualization",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
-        "ChimeraX-Bundle :: Sequence alignment :: 1,1 :: PKG_NAME :: chimerax.seqalign :: true",
-        "ChimeraX-DataFormat :: FASTA :: :: Sequence alignment :: .fa,.fasta,.afasta,.afa :: :: https://en.wikipedia.org/wiki/FASTA_format :: :: :: FASTA format",
-        "ChimeraX-DataFormat :: MSF :: :: Sequence alignment :: .msf :: :: :: :: :: GCG MSF (multiple sequence file) format",
-        "ChimeraX-Open :: FASTA :: fasta :: true",
-        "ChimeraX-Open :: MSF :: msf :: true",
+        "ChimeraX :: Bundle :: Sequence alignment :: 1,1 :: PKG_NAME :: chimerax.seqalign :: true",
+        "ChimeraX :: DataFormat :: FASTA :: :: Sequence alignment :: .fa,.fasta,.afasta,.afa :: :: https://en.wikipedia.org/wiki/FASTA_format :: :: :: FASTA format",
+        "ChimeraX :: DataFormat :: MSF :: :: Sequence alignment :: .msf :: :: :: :: :: GCG MSF (multiple sequence file) format",
+        "ChimeraX :: Open :: FASTA :: fasta :: true",
+        "ChimeraX :: Open :: MSF :: msf :: true",
     ],
 )

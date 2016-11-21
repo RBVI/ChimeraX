@@ -89,6 +89,7 @@ def sequence_selection(seq_atoms, session):
     if atoms_list:
         sseqs, sseq_ids = seq_atoms.residues.unique_sequences
         sset = set(sseqs)
+        sset.discard('')	# Don't include non-polymers.
         for atoms in atoms_list:
             seqs, seq_ids = atoms.residues.unique_sequences
             from numpy import array, bool

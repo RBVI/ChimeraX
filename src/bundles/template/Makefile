@@ -3,9 +3,9 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-BUNDLE_NAME = FIXME Replace with legal package name (PEP 426)
 # By convention, ChimeraX bundles start with "ChimeraX-" to avoid naming
 # conflicts with Python packages in pypi.
+BUNDLE_NAME = FIXME Replace with legal package name (PEP 426)
 BUNDLE_VERSION = FIXME Replace with package version number (PEP 440 style)
 PKG_NAME = FIXME Replace with fully qualified Python package name
 

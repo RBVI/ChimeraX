@@ -862,7 +862,7 @@ class Residues(Collection):
     @property
     def unique_sequences(self):
         '''
-        Return :mod:`numpy` array giving an integer index for each residue and a list of sequence strings.
+        Return a list of sequence strings and a :mod:`numpy` array giving an integer index for each residue.
         Index 0 is for residues that are not part of a chain (empty string).
         '''
         from numpy import empty, int32
