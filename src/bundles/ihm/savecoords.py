@@ -15,11 +15,3 @@ def save_binary_coordinates(session, filename, models, **kw):
                             % ', '.join('%d' % m.num_atoms for m in mlist))
     from chimerax.ihm import coordsets
     coordsets.write_coordinate_sets(filename, mlist)
-    
-# -----------------------------------------------------------------------------
-#
-def register_coord_format():
-    from chimerax.core import io
-    from chimerax.core.atomic import structure
-    io.register_format("Raw binary coordinates", structure.CATEGORY, (".crd",), ("crd",),
-                       export_func=save_binary_coordinates)

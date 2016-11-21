@@ -21,6 +21,11 @@ class _MyAPI(BundleAPI):
         settings.init(session)
 
     @staticmethod
+    def finish(session, bi):
+        # deinitialize bundle in session (causes import)
+        pass
+
+    @staticmethod
     def register_command(command_name):
         from . import match
         match.register_command()

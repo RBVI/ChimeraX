@@ -49,7 +49,7 @@ setup(
     ],
     classifiers=[
         # From https://pypi.python.org/pypi?%3Aaction=list_classifiers
-        # and our own ChimeraX-* classifiers.
+        # and our own ChimeraX classifiers.
         "Development Status :: 4 - Beta",
         "Environment :: MacOS X :: Aqua",
         "Environment :: Win32 (MS Windows)",
@@ -64,13 +64,13 @@ setup(
         "Topic :: Scientific/Engineering :: Visualization",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
-        "ChimeraX-Bundle :: Toolbar :: 1,1 :: PKG_NAME :: chimerax.shortcuts :: ",
-        "ChimeraX-Tool :: Molecule Display Toolbar :: Toolbar :: button shortcuts for molecular structure",
-        "ChimeraX-Tool :: Graphics Toolbar :: Toolbar :: button shortcuts for graphics",
-        "ChimeraX-Tool :: Density Map Toolbar :: Toolbar :: button shortcuts for density maps",
-        "ChimeraX-Command :: ks :: Toolbar :: keyboard shortcuts",
-        "ChimeraX-Selector :: selAtoms :: Selected atoms, or if none selected then all atoms.",
-        "ChimeraX-Selector :: selMaps :: Selected maps, or if none selected then displayed maps.",
-        "ChimeraX-Selector :: selModels :: Selected models, or if none selected then all models.",
+        "ChimeraX :: Bundle :: Toolbar :: 1,1 :: PKG_NAME :: chimerax.shortcuts :: ",
+        "ChimeraX :: Tool :: Molecule Display Toolbar :: Toolbar :: button shortcuts for molecular structure",
+        "ChimeraX :: Tool :: Graphics Toolbar :: Toolbar :: button shortcuts for graphics",
+        "ChimeraX :: Tool :: Density Map Toolbar :: Toolbar :: button shortcuts for density maps",
+        "ChimeraX :: Command :: ks :: Toolbar :: keyboard shortcuts",
+        "ChimeraX :: Selector :: selAtoms :: Selected atoms, or if none selected then all atoms.",
+        "ChimeraX :: Selector :: selMaps :: Selected maps, or if none selected then displayed maps.",
+        "ChimeraX :: Selector :: selModels :: Selected models, or if none selected then all models.",
     ],
 )

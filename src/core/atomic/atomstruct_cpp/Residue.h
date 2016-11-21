@@ -89,9 +89,17 @@ public:
     Atom *  find_atom(const AtomName&) const;
     const ChainID&  mmcif_chain_id() const { return _mmcif_chain_id; }
     char  insertion_code() const { return _insertion_code; }
-    bool  is_helix() const { return _is_helix; }
+    bool  is_helix() const {
+        if (!structure()->ss_assigned())
+            structure()->compute_secondary_structure();
+        return _is_helix;
+    }
     bool  is_het() const { return _is_het; }
-    bool  is_strand() const { return _is_strand; }
+    bool  is_strand() const {
+        if (!structure()->ss_assigned())
+            structure()->compute_secondary_structure();
+        return _is_strand;
+    }
     const ResName&  name() const { return _name; }
     PolymerType  polymer_type() const { return _polymer_type; }
     int  position() const { return _position; }
@@ -113,7 +121,11 @@ public:
     void  set_is_het(bool ih);
     void  set_is_strand(bool is);
     void  set_ss_id(int ssid);
-    int  ss_id() const { return _ss_id; }
+    int  ss_id() const {
+        if (!structure()->ss_assigned())
+            structure()->compute_secondary_structure();
+        return _ss_id;
+    }
     std::string  str() const;
     Structure*  structure() const { return _structure; }
     std::vector<Atom*>  template_assign(

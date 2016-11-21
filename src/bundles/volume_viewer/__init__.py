@@ -16,11 +16,6 @@ from chimerax.core.toolshed import BundleAPI
 class _MyAPI(BundleAPI):
 
     @staticmethod
-    def start_tool(session, tool_name):
-        from . import tool
-        return tool.show_volume_dialog(session)
-
-    @staticmethod
     def get_class(class_name):
         # 'get_class' is called by session code to get class saved in a session
         if class_name == 'VolumeViewer':

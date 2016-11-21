@@ -23,4 +23,9 @@ class _TugAPI(BundleAPI):
         from . import tugatoms
         tugatoms.register_mousemode(session)
 
+    @staticmethod
+    def finish(session, bundle_info):
+        # TODO: remove mouse mode
+        pass
+
 bundle_api = _TugAPI()

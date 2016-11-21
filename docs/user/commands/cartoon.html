@@ -24,8 +24,7 @@ or derivations thereof.
 class="clRight" title="User Guide Index"/></a>
 
 <font color="brown">
-Note: Command in progress;
-default values and behaviors described below are not yet fully implemented.
+* command in progress; syntax and options very likely to change *
 </font>
 
 <h3><a href="../index.html#commands">Command</a>: cartoon, ribbon</h3>
@@ -62,10 +61,6 @@ Protein helix and strand assignments are read from the input structure file
 or calculated with <a href="dssp.html"><b>dssp</b></a>.
 The cartoon path is guided by CA atoms (&alpha;-carbons) in peptides 
 and C5' in nucleic acids. 
-<!--
-The orientation is guided by CA&rarr;O (carbonyl
-oxygen) vectors in peptides and C5'&rarr;C1' vectors in nucleic acids.
--->
 The <b>smooth</b> <i>factor</i> sets the balance between smoothing peptide 
 strands versus following the exact positions of the &alpha;-carbons (0.0 
 unsmoothed, default <b>1.0</b> maximally smoothed).
@@ -113,6 +108,8 @@ car style <a href="atomspec.html#builtin">strand</a> xsection rect width 2
 cartoon style <a href="atomspec.html#builtin">nucleic</a> 
 width 2 thickness 2 xsection round
 <br>
+ribbon style modeh tube
+<br>
 rib style x rect
 <br>
 rib style (#1 & <a href="atomspec.html#builtin">coil</a>) x round
@@ -135,67 +132,53 @@ A vertical bar &ldquo;|&rdquo; designates mutually exclusive values.
 [&nbsp;<b>width</b></a>&nbsp;&nbsp;<i>w</i>&nbsp;]
 [&nbsp;<b>thickness</b></a>&nbsp;&nbsp;<i>t</i>&nbsp;]
 [&nbsp;<b>xsection</b>&nbsp;&nbsp;oval&nbsp;|&nbsp;rectangle&nbsp;|&nbsp;barbell&nbsp;]
-[&nbsp;<b>barScale</b>&nbsp;&nbsp;<i>factor</i>&nbsp;]
+[&nbsp;<b>ssEnds</b></a>&nbsp;&nbsp;short&nbsp;|&nbsp;long&nbsp;]
+&nbsp;<a href="#style-model-options"><i>model-options</i></a>&nbsp;
+<!--
 [&nbsp;<b>arrows</b>&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>arrowsHelix</b>&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>arrowScale</b>&nbsp;&nbsp;<i>factor</i>&nbsp;]
+[&nbsp;<b>barScale</b>&nbsp;&nbsp;<i>factor</i>&nbsp;]
 [&nbsp;<b>sides</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>barSides</b>&nbsp;&nbsp;<i>N<font size="-1"><sub>b</sub></font></i>&nbsp;]
-[&nbsp;<b>ssEnds</b></a>&nbsp;&nbsp;short&nbsp;|&nbsp;long&nbsp;]
-<font color="brown">
 [&nbsp;<b>modeHelix</b>&nbsp;tube&nbsp;|&nbsp;default&nbsp;]
-</font>
+-->
 <blockquote>
+<p>
+<font color="brown">
+* <b>cartoon style</b> syntax and options are likely to change, 
+and the settings are not yet saved in sessions *
+</font>
+</p>
 <p>
 </p><p>
 Given without options, <b>cartoon style</b> reports the current settings
-for each atomic model.
-</p><p>
+for each atomic model. The following may be set separately for
+peptide helix, strand, coil, and nucleic acid
+(see <a href="atomspec.html#builtin"><i>atom-spec</i> terms</a>),
+even within the same model:
+</p>
+<blockquote>
 The <b>width</b> <i>w</i> and <b>thickness</b> <i>t</i> are given
-in &Aring;, and different values may be used for peptide helix, strand, coil,
-and nucleic acids
-(see <a href="atomspec.html#builtin"><i>atom-spec</i> terms</a>)
-even within the same model. 
-The <b>width</b> setting does not affect coil,
+in &Aring;. The <b>width</b> setting does not affect coil,
 however, as only its <b>thickness</b> is used in both dimensions.
 The initial default width and thickness are
 <b>2.0</b> and <b>0.4</b> &Aring;, respectively.
 </p><p>
+<a name="xsection"></a>
 The <b>xsection</b> or cross-sectional shape of the cartoon can be
 <b>oval</b> (synonym <b>round</b>), <b>rectangle</b> (synonym <b>square</b>),
 or <b>barbell</b> with rounded edges and a thinner middle
 (synonym <b>piping</b>).
-The shape can be set separately for peptide helix, strand, coil, and nucleic 
-acids (see <a href="atomspec.html#builtin"><i>atom-spec</i> terms</a>),
-except that <b>barbell</b> does not apply to coil or to arrowheads.
+The <b>barbell</b> cross-section does not apply to coil and does not
+affect arrowheads.
 The initial default cross-section is <b>oval</b> for helix and coil,
 <b>rectangle</b> for strand and nucleic.
-The <b>barScale</b> <i>factor</i> (range 0.2&ndash;1.0,
-initial default <b>0.5</b>) is multiplied by the thickness to give
-the central &ldquo;bar&rdquo; thickness of <b>barbell</b> cartoon
-relative to the edges, where the nominal value applies.
-</p><p>
-The <b>arrows</b> option specifies whether to show arrowheads at the 
-C-terminal ends of peptide strands (initial default <b>true</b>),
-whereas <b>arrowsHelix</b> is the analogous setting for peptide helices
-(initial default <b>false</b>).
-The <b>arrowScale</b> <i>factor</i> (initial default <b>2.0</b>)
-is multiplied by the width of helix or strand to give the arrowhead width.
-</p><p>
-The number of <b>sides</b> <i>N</i> is the number of straight-line segments
-used to draw an <b>oval</b> cross-section, with higher numbers 
-corresponding to finer subdivisions (initial default <b>12</b>);
-<b>barSides</b> <i>N<font size="-1"><sub>b</sub></font></i>
-is the analogous parameter for the <b>barbell</b> cross-section
-(initial default <b>18</b>). Odd values
-of <b>barSides</b> <i>N<font size="-1"><sub>b</sub></font></i>
-are automatically rounded up to the next even number.
-Shading is used to give a smooth, rounded appearance despite
-this approximation of the shape with facets.
 </p><p>
 The <b>ssEnds</b> <i>type</i> specifies the length and register of 
 peptide helix and/or strand representations 
 relative to the backbone atoms, with possible values:
+</p>
 <table class="clRight" cellpadding="0px" cellspacing="0px">
 <tr>
 <td><img class="outline" width="150px" src="carlink-short.png"></td>
@@ -211,17 +194,82 @@ and ends at the C&alpha; of its last (C-terminal) residue
 - depiction of the SSE starts at the C&alpha; of its first residue (same as 
 for <b>short</b>) but ends in the middle of its following peptide bond
 </ul>
+<p>
 The remainder of the peptide chain is shown as coil-like segments.
 Currently, the initial default is <b>short</b> for both strands and helices.
-</p><p>
-<font color="brown">
-The <b>modeHelix</b> option (syntax is likely to change)
-</font>
-allows showing peptide helices as tubes (curved cylinders)
-rather than as ribbons spiraling along the backbone atoms.
-Other helix settings such as width, height, and cross-section do not apply
-when helices are shown as tubes.
+<font color="brown">(Due to a bug, this is mostly but not always true; 
+enforce short ends with command <b>cartoon style ssEnds short</b>.)</font>
 </p>
+</blockquote>
+<p>
+<a name="style-model-options"></a>
+The following <b>cartoon style</b> options have only a single value per model:
+</p>
+<blockquote>
+<a name="hmode"></a>
+<b>modeHelix</b>&nbsp;&nbsp;tube&nbsp;|&nbsp;default
+<br>The <b>modeHelix</b> option
+allows showing peptide helices as tubes (curved cylinders)
+rather than as ribbons spiraling along the backbone atoms (initial default).
+Other than <a href="#sides"><b>sides</b></a>,
+most helix settings such as width, height, cross-section, and arrows
+do not apply to helices in the tube mode.
+  </blockquote><blockquote>
+<b>arrows</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
+<br>Whether to show arrowheads at the 
+C-terminal ends of peptide strands (initial default <b>true</b>).
+  </blockquote><blockquote>
+<b>arrowsHelix</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
+<br>Whether to show arrowheads at the 
+C-terminal ends of peptide helices (initial default <b>false</b>).
+  </blockquote><blockquote>
+<b>arrowScale</b>&nbsp;&nbsp;<i>factor</i>
+<br>The <i>factor</i> (initial default <b>2.0</b>)
+is multiplied by the width of helix or strand to give the arrowhead width.
+  </blockquote><blockquote>
+<a name="sides"></a>
+<b>sides</b>&nbsp;&nbsp;<i>N</i>
+<br>The number of straight-line segments
+used to draw an <a href="#xsection"><b>oval</b> cross-section</a> or 
+<a href="#hmode"><b>tube</b> helix</a>, with higher numbers 
+corresponding to finer subdivisions (initial default <b>12</b>).
+Shading is used to give a smooth, rounded appearance despite
+this approximation of the shape with facets.
+  </blockquote><blockquote>
+<b>barSides</b>&nbsp;&nbsp;<i>N<font size="-1"><sub>b</sub></font></i>
+<br>The number of straight-line segments
+used to draw a <a href="#xsection"><b>barbell</b> cross-section</a>
+(initial default <b>18</b>). Odd values
+of <b>barSides</b> <i>N<font size="-1"><sub>b</sub></font></i>
+are automatically rounded up to the next even number.
+  </blockquote><blockquote>
+<b>barScale</b>&nbsp;&nbsp;<i>factor</i> 
+<br>
+The <i>factor</i> (range 0.2&ndash;1.0,
+initial default <b>0.5</b>) is multiplied by the thickness to give
+the central &ldquo;bar&rdquo; thickness of <b>barbell</b> cross-section
+relative to the edges, where the nominal value applies.
+  </blockquote><blockquote>
+<b>orient</b></a>&nbsp;&nbsp;peptide&nbsp;|&nbsp;atoms&nbsp;|&nbsp;curvature&nbsp;|&nbsp;guides
+<br>
+The <b>orient</b> option specifies how to determine the crosswise orientation
+of the ribbon at the primary atoms, CA in peptides and C5' in nucleic acids:
+  <ul>
+  <li><b>peptide</b> (initial default) - using the peptide planes
+  in proteins (generally best for strands)
+  and the <b>guides</b> method in nucleic acids
+  <li><b>atoms</b> - generally best for peptide helices 
+  <li><b>curvature</b> - similar to <b>atoms</b>
+  <li><b>guides</b> - using the CA&rarr;O (carbonyl oxygen) vectors in 
+  peptides and C5'&rarr;C1' vectors in nucleic acids
+  </ul>
+<font color="brown">Currently only a single value for <b>orient</b> is
+allowed per model, but we plan to allow different values for peptide
+helices, peptide strands, and nucleic acids within a model.
+The often poor appearance of helices in the <b>peptide</b> orientation 
+(preferred for the strands) can be circumvented by showing helices as 
+<a href="#hmode">tubes</a> instead.</font>
+</blockquote>
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>

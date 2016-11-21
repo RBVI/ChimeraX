@@ -33,10 +33,10 @@ In addition to the normal Python package metadta,
 The 'ChimeraX-*' classifier entries give additional information.
 Depending on the values of 'ChimeraX-*' metadata fields,
 modules need to override methods of the :py:class:`BundleAPI` class.
-Each bundle needs a 'ChimeraX-Bundle' entry
+Each bundle needs a 'ChimeraX :: Bundle' entry
 that consists of the following fields separated by double colons (``::``).
 
-1. ``ChimeraX-Bundle`` : str constant
+1. ``ChimeraX :: Bundle`` : str constant
     Field identifying entry as bundle metadata.
 2. ``categories`` : str
     Comma-separated list of categories in which the bundle belongs.
@@ -51,7 +51,7 @@ that consists of the following fields separated by double colons (``::``).
 
 Bundles that provide tools need:
 
-1. ``ChimeraX-Tool`` : str constant
+1. ``ChimeraX :: Tool`` : str constant
     Field identifying entry as tool metadata.
 2. ``tool_name`` : str
     The globally unique name of the tool (also shown on title bar).
@@ -68,7 +68,7 @@ Bundles may provide more than one tool.
 
 Bundles that provide commands need:
 
-1. ``ChimeraX-Command`` : str constant
+1. ``ChimeraX :: Command`` : str constant
     Field identifying entry as command metadata.
 2. ``command name`` : str
     The (sub)command name.  Subcommand names have spaces in them.
@@ -86,7 +86,7 @@ Bundles may provide more than one command.
 
 Bundles that provide selectors need:
 
-1. ``ChimeraX-Selector`` : str constant
+1. ``ChimeraX :: Selector`` : str constant
     Field identifying entry as command metadata.
 2. ``selector name`` : str
     The selector's name.
@@ -101,7 +101,7 @@ Bundles may provide more than one command.
 
 Bundles that provide data formats need:
 
-1. ``ChimeraX-DataFormat`` : str constant
+1. ``ChimeraX :: DataFormat`` : str constant
     Field identifying entry as data format metadata.
 2. ``data_name`` : str
     The name of the data format.
@@ -137,15 +137,15 @@ application property list.
 
 Data formats that can be fetched:
 
-# ChimeraX-Fetch :: database_name :: format_name :: prefixes :: example_id :: is_default
+# ChimeraX :: Fetch :: database_name :: format_name :: prefixes :: example_id :: is_default
 
 Data formats that can be opened:
 
-# ChimeraX-Open :: format_name :: tag :: is_default
+# ChimeraX :: Open :: format_name :: tag :: is_default
 
 Data formats that can be saved:
 
-# ChimeraX-Save :: format_name :: tag :: is_default
+# ChimeraX :: Save :: format_name :: tag :: is_default
 
 Attributes
 ----------
@@ -950,36 +950,37 @@ class Toolshed:
         kw['packages'] = _get_installed_packages(d)
         for classifier in md["classifiers"]:
             parts = [v.strip() for v in classifier.split("::")]
-            if parts[0] == "ChimeraX-Bundle":
-                # 'ChimeraX-Bundle' :: categories :: session_versions :: module_name :: supercedes :: custom_init
+            if parts[0] == "ChimeraX-Bundle" or (parts[0] == 'ChimeraX' and parts[1] == 'Bundle'):
+                # ChimeraX :: Bundle :: categories :: session_versions :: module_name :: supercedes :: custom_init
+                offset = int(parts[0] == 'ChimeraX')
                 if len(parts) == 10:
                     bi = self._old_bundle_info(parts, kw, installed, logger, bi)
                     if bi:
                         bi.path = d.path
                     continue
                 elif bi is not None:
-                    logger.warning("Second ChimeraX-Bundle line ignored.")
+                    logger.warning("Second ChimeraX :: Bundle line ignored.")
                     break
-                elif len(parts) not in [5, 6]:
-                    logger.warning("Malformed ChimeraX-Bundle line in %s skipped." % name)
-                    logger.warning("Expected 6 fields and got %d." % len(parts))
+                elif len(parts) not in [5 + offset, 6 + offset]:
+                    logger.warning("Malformed ChimeraX :: Bundle line in %s skipped." % name)
+                    logger.warning("Expected %d fields and got %d." % (6 + offset, len(parts)))
                     continue
                 # Categories in which bundle should appear
-                categories = parts[1]
+                categories = parts[1 + offset]
                 kw["categories"] = [v.strip() for v in categories.split(',')]
                 # Session version numbers
-                session_versions = parts[2]
+                session_versions = parts[2 + offset]
                 if session_versions:
                     vs = [v.strip() for v in session_versions.split(',')]
                     if len(vs) != 2:
-                        logger.warning("Malformed ChimeraX-Bundle line in %s skipped." % name)
+                        logger.warning("Malformed ChimeraX :: Bundle line in %s skipped." % name)
                         logger.warning("Expected 2 version numbers and got %d." % len(vs))
                         return None
                     try:
                         lo = int(vs[0])
                         hi = int(vs[1])
                     except ValueError:
-                        logger.warning("Malformed ChimeraX-Bundle line in %s skipped." % name)
+                        logger.warning("Malformed ChimeraX :: Bundle line in %s skipped." % name)
                         logger.warning("Found non-integer version numbers.")
                         return kw
                     if lo > hi:
@@ -987,131 +988,145 @@ class Toolshed:
                         hi = lo
                     kw["session_versions"] = range(lo, hi + 1)
                 # Name of package implementing bundle API
-                kw["api_package_name"] = parts[3]
-                if len(parts) == 5:
+                kw["api_package_name"] = parts[3 + offset]
+                if len(parts) == 5 + offset:
                     # Does bundle have custom initialization code?
-                    custom_init = parts[4]
+                    custom_init = parts[4 + offset]
                     if custom_init:
                         kw["custom_init"] = (custom_init == "true")
                 else:
                     # Are there bundle name aliases?
-                    if parts[4]:
-                        kw['supercedes'] = [v.strip() for v in parts[4].split(',')]
+                    if parts[4 + offset]:
+                        kw['supercedes'] = [v.strip() for v in parts[4 + offset].split(',')]
                     # Does bundle have custom initialization code?
-                    custom_init = parts[5]
+                    custom_init = parts[5 + offset]
                     if custom_init:
                         kw["custom_init"] = (custom_init == "true")
                 bi = BundleInfo(installed=installed, **kw)
                 bi.path = d.path
-            elif parts[0] == "ChimeraX-Tool":
-                # 'ChimeraX-Tool' :: tool_name :: categories :: synopsis
+            elif parts[0] == "ChimeraX-Tool" or (parts[0] == 'ChimeraX' and parts[1] == 'Tool'):
+                # ChimeraX :: Tool :: tool_name :: categories :: synopsis
                 if bi is None:
-                    logger.warning('ChimeraX-Bundle entry must be first')
+                    logger.warning('ChimeraX :: Bundle entry must be first')
                     return None
-                if len(parts) != 4:
-                    logger.warning("Malformed ChimeraX-Tool line in %s skipped." % name)
-                    logger.warning("Expected 4 fields and got %d." % len(parts))
+                if len(parts) != 4 + offset:
+                    logger.warning("Malformed ChimeraX :: Tool line in %s skipped." % name)
+                    logger.warning("Expected %d fields and got %d." % (4 + offset, len(parts)))
                     continue
                 # Menu categories in which tool should appear
-                name = parts[1]
-                categories = parts[2]
+                name = parts[1 + offset]
+                categories = parts[2 + offset]
                 if not categories:
                     logger.warning("Missing tool categories")
                     continue
                 categories = [v.strip() for v in categories.split(',')]
-                synopsis = parts[3]
+                synopsis = parts[3 + offset]
                 ti = ToolInfo(name, categories, synopsis)
                 bi.tools.append(ti)
-            elif parts[0] == "ChimeraX-Command":
-                # 'ChimeraX-Command' :: name :: categories :: synopsis
+            elif parts[0] == "ChimeraX-Command" or (parts[0] == 'ChimeraX' and parts[1] == 'Command'):
+                # ChimeraX :: Command :: name :: categories :: synopsis
                 if bi is None:
-                    logger.warning('ChimeraX-Bundle entry must be first')
+                    logger.warning('ChimeraX :: Bundle entry must be first')
                     return None
-                if len(parts) != 4:
-                    logger.warning("Malformed ChimeraX-Command line in %s skipped." % name)
-                    logger.warning("Expected 4 fields and got %d." % len(parts))
+                offset = int(parts[0] == 'ChimeraX')
+                if len(parts) != 4 + offset:
+                    logger.warning("Malformed ChimeraX :: Command line in %s skipped." % name)
+                    logger.warning("Expected %d fields and got %d." % (4 + offset, len(parts)))
                     continue
-                name = parts[1]
-                categories = parts[2]
+                name = parts[1 + offset]
+                categories = parts[2 + offset]
                 if not categories:
                     logger.warning("Missing command categories")
                     continue
                 categories = [v.strip() for v in categories.split(',')]
-                synopsis = parts[3]
+                synopsis = parts[3 + offset]
                 ci = CommandInfo(name, categories, synopsis)
                 bi.commands.append(ci)
-            elif parts[0] == "ChimeraX-Selector":
-                # 'ChimeraX-Selector' :: name :: synopsis
+            elif parts[0] == "ChimeraX-Selector" or (parts[0] == 'ChimeraX' and parts[1] == 'Selector'):
+                # ChimeraX :: Selector :: name :: synopsis
                 if bi is None:
-                    logger.warning('ChimeraX-Bundle entry must be first')
+                    logger.warning('ChimeraX :: Bundle entry must be first')
                     return None
-                if len(parts) != 3:
-                    logger.warning("Malformed ChimeraX-Selector line in %s skipped." % name)
-                    logger.warning("Expected 3 fields and got %d." % len(parts))
+                offset = int(parts[0] == 'ChimeraX')
+                if len(parts) != 3 + offset:
+                    logger.warning("Malformed ChimeraX :: Selector line in %s skipped." % name)
+                    logger.warning("Expected %d fields and got %d." % (3 + offset, len(parts)))
                     continue
-                name = parts[1]
-                synopsis = parts[2]
+                name = parts[1 + offset]
+                synopsis = parts[2 + offset]
                 si = SelectorInfo(name, synopsis)
                 bi.selectors.append(si)
-            elif parts[0] == "ChimeraX-DataFormat":
-                # ChimeraX-DataFormat :: format_name :: nicknames :: category :: suffixes :: mime_types :: url :: dangerous :: icon :: synopsis
+            elif parts[0] == "ChimeraX-DataFormat" or (parts[0] == 'ChimeraX' and parts[1] == 'DataFormat'):
+                # ChimeraX :: DataFormat :: format_name :: nicknames :: category :: suffixes :: mime_types :: url :: dangerous :: icon :: synopsis
                 if bi is None:
-                    logger.warning('ChimeraX-Bundle entry must be first')
+                    logger.warning('ChimeraX :: Bundle entry must be first')
                     return None
-                if len(parts) != 10:
-                    logger.warning("Malformed ChimeraX-DataFormat line in %s skipped." % name)
-                    logger.warning("Expected 3 fields and got %d." % len(parts))
+                offset = int(parts[0] == 'ChimeraX')
+                if len(parts) != 10 + offset:
+                    logger.warning("Malformed ChimeraX :: DataFormat line in %s skipped." % name)
+                    logger.warning("Expected %d fields and got %d." % (10 + offset, len(parts)))
                     continue
-                name = parts[1]
-                nicknames = [v.strip() for v in parts[2].split(',')] if parts[2] else None
-                category = parts[3]
-                suffixes = [v.strip() for v in parts[4].split(',')] if parts[4] else None
-                mime_types = [v.strip() for v in parts[5].split(',')] if parts[5] else None
-                url = parts[6]
-                dangerous = parts[7]
-                icon = parts[8]
-                synopsis = parts[9]
+                name = parts[1 + offset]
+                nicknames = [v.strip() for v in parts[2 + offset].split(',')] if parts[2 + offset] else None
+                category = parts[3 + offset]
+                suffixes = [v.strip() for v in parts[4 + offset].split(',')] if parts[4 + offset] else None
+                mime_types = [v.strip() for v in parts[5 + offset].split(',')] if parts[5 + offset] else None
+                url = parts[6 + offset]
+                dangerous = parts[7 + offset]
+                icon = parts[8 + offset]
+                synopsis = parts[9 + offset]
                 fi = FormatInfo(name=name, nicknames=nicknames,
                                 category=category, suffixes=suffixes,
                                 mime_types=mime_types, url=url, icon=icon,
                                 dangerous=dangerous, synopsis=synopsis)
                 bi.formats.append(fi)
-            elif parts[0] == "ChimeraX-Fetch":
-                # ChimeraX-Fetch :: database_name :: format_name :: prefixes :: example_id :: is_default
+            elif parts[0] == "ChimeraX-Fetch" or (parts[0] == 'ChimeraX' and parts[1] == 'Fetch'):
+                # ChimeraX :: Fetch :: database_name :: format_name :: prefixes :: example_id :: is_default
                 if bi is None:
-                    logger.warning('ChimeraX-Bundle entry must be first')
+                    logger.warning('ChimeraX :: Bundle entry must be first')
                     return None
-                database_name = parts[1]
-                format_name = parts[2]
-                prefixes = [v.strip() for v in parts[3].split(',')] if parts[3] else ()
-                example_id = parts[4]
-                is_default = (parts[5] == 'true')
-                bi.fetches.append((database_name, format_name, prefixes, example_id, is_default))
-            elif parts[0] == "ChimeraX-Open":
-                # ChimeraX-Open :: format_name :: tag :: is_default
-                if bi is None:
-                    logger.warning('ChimeraX-Bundle entry must be first')
-                    return None
-                if len(parts) != 4:
-                    logger.warning("Malformed ChimeraX-Open line in %s skipped." % name)
-                    logger.warning("Expected 4 fields and got %d." % len(parts))
+                offset = int(parts[0] == 'ChimeraX')
+                if len(parts) != 6 + offset:
+                    logger.warning("Malformed ChimeraX :: DataFormat line in %s skipped." % name)
+                    logger.warning("Expected %d fields and got %d." % (6 + offset, len(parts)))
                     continue
-                name = parts[1]
-                tag = parts[2]
-                is_default = parts[3]
+                database_name = parts[1 + offset]
+                format_name = parts[2 + offset]
+                prefixes = [v.strip() for v in parts[3 + offset].split(',')] if parts[3 + offset] else ()
+                example_id = parts[4 + offset]
+                is_default = (parts[5 + offset] == 'true')
+                bi.fetches.append((database_name, format_name, prefixes, example_id, is_default))
+            elif parts[0] == "ChimeraX-Open" or (parts[0] == 'ChimeraX' and parts[1] == 'Open'):
+                # ChimeraX :: Open :: format_name :: tag :: is_default
+                if bi is None:
+                    logger.warning('ChimeraX :: Bundle entry must be first')
+                    return None
+                offset = int(parts[0] == 'ChimeraX')
+                if len(parts) != 4 + offset:
+                    logger.warning("Malformed ChimeraX :: Open line in %s skipped." % name)
+                    logger.warning("Expected %d fields and got %d." % (4 + offset, len(parts)))
+                    continue
+                name = parts[1 + offset]
+                tag = parts[2 + offset]
+                is_default = parts[3 + offset]
                 try:
                     fi = [fi for fi in bi.formats if fi.name == name][0]
                 except (KeyError, IndexError):
                     logger.warning("Unknown format name: %r." % name)
                     continue
                 fi.has_open = True
-            elif parts[0] == "ChimeraX-Save":
+            elif parts[0] == "ChimeraX-Save" or (parts[0] == 'ChimeraX' and parts[1] == 'Save'):
                 if bi is None:
-                    logger.warning('ChimeraX-Bundle entry must be first')
+                    logger.warning('ChimeraX :: Bundle entry must be first')
                     return None
-                name = parts[1]
-                tag = parts[2]
-                is_default = parts[3]
+                offset = int(parts[0] == 'ChimeraX')
+                if len(parts) != 4 + offset:
+                    logger.warning("Malformed ChimeraX :: Save line in %s skipped." % name)
+                    logger.warning("Expected %d fields and got %d." % (4 + offset, len(parts)))
+                    continue
+                name = parts[1 + offset]
+                tag = parts[2 + offset]
+                is_default = parts[3 + offset]
                 try:
                     fi = [fi for fi in bi.formats if fi.name == name][0]
                 except (KeyError, IndexError):
