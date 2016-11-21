@@ -317,14 +317,14 @@ def vector_rotation_transform_old(u, v):
     from math import atan2, pi
     angle = atan2(norm(cuv), inner_product(u, v)) * 180 / pi
     r = rotation_transform(axis, angle, (0, 0, 0))
-    return r
-
 
 # -----------------------------------------------------------------------------
 # Return 3x4 rotation matrix (zero translation) taking unit vector n0 to
 # unit vector n1.
 #
 def vector_rotation_transform(n0, n1):
+    n0 = normalize_vector(n0)
+    n1 = normalize_vector(n1)
     w = cross_product(n0, n1)
     c = inner_product(n0, n1)
     if c <= -1:
