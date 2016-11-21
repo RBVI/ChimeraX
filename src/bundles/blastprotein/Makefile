@@ -2,7 +2,6 @@ TOP = ../../..
 include $(TOP)/mk/config.make
 
 BUNDLE_NAME = ChimeraX-BlastProtein
-# By convention, UCSF RBVI bundles start with "ChimeraX-"
 BUNDLE_VERSION = 0.1
 PKG_NAME = chimerax.blastprotein
 
