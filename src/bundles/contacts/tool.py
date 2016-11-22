@@ -48,7 +48,7 @@ class ContactPlot(Graph):
 
     def mouse_click(self, item, event):
         nodes = self.item_nodes(item)
-        if self.is_shift_key_pressed(event):
+        if self.is_alt_key_pressed(event):
             self._select_nodes(nodes)
         else:
             n = len(nodes)

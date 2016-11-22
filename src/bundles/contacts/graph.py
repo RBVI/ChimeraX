@@ -270,9 +270,11 @@ class Graph(Plot):
         self._labels = labels	# Dictionary mapping node to matplotlib Text objects.
             
     def _mouse_press(self, event):
+        b = event.button()
         from PyQt5.QtCore import Qt
-        if (event.button() == Qt.MiddleButton or
-            self._clicked_item(event.x(), event.y()) is None):
+        if (b == Qt.MiddleButton or	# pan
+            (b == Qt.LeftButton and event.modifiers() & Qt.ShiftModifier) or # zoom
+            self._clicked_item(event.x(), event.y()) is None): # pan on background click
             self._mouse_press_pan(event)
 
     def _mouse_move(self, event):
@@ -291,9 +293,9 @@ class Graph(Plot):
     def mouse_click(self, node_or_edge, event):
         pass
 
-    def is_shift_key_pressed(self, event):
+    def is_alt_key_pressed(self, event):
         from PyQt5.QtCore import Qt
-        return event.modifiers() & Qt.ShiftModifier
+        return event.modifiers() & Qt.AltModifier
 
     def _clicked_item(self, x, y):
         # Check for node click
