@@ -2,7 +2,6 @@ TOP = ../../..
 include $(TOP)/mk/config.make
 
 BUNDLE_NAME = ChimeraX-Label
-# By convention, UCSF RBVI bundles start with "ChimeraX-"
 BUNDLE_VERSION = 1.0
 PKG_NAME = chimerax.label
 

@@ -30,8 +30,8 @@ may contain multiple tools, commands, data formats, and specifiers,
 with metadata entries for each deliverable.
 
 In addition to the normal Python package metadta,
-The 'ChimeraX-*' classifier entries give additional information.
-Depending on the values of 'ChimeraX-*' metadata fields,
+The 'ChimeraX' classifier entries give additional information.
+Depending on the values of 'ChimeraX' metadata fields,
 modules need to override methods of the :py:class:`BundleAPI` class.
 Each bundle needs a 'ChimeraX :: Bundle' entry
 that consists of the following fields separated by double colons (``::``).
@@ -870,68 +870,6 @@ class Toolshed:
                     json.dump([bi.cache_data() for bi in bundle_info], f,
                               ensure_ascii=False, check_circular=False)
 
-    def _old_bundle_info(self, parts, kw, installed, logger, bi):
-        name = kw['name']
-        # Name of bundle
-        bundle_name = parts[1]  # not used
-        # Synopsis of bundle/tool/command/format
-        synopsis = parts[9]
-        # Name of module implementing bundle API
-        kw["api_package_name"] = parts[2]
-        # Display name of tool
-        tool_name = parts[3]
-        # Menu categories in which tool should appear
-        categories = [v.strip() for v in parts[5].split(',')]
-        # CLI command names (just the first word)
-        commands = []
-        if parts[4]:
-            commands = [CommandInfo(v.strip(), categories, synopsis) for v in parts[4].split(',')]
-        # File types that bundle can open
-        file_types = parts[6]
-        types = []
-        if file_types:
-            for t in file_types.split(','):
-                spec = [v.strip() for v in t.split(':')]
-                if len(spec) < 3:
-                    logger.warning("Malformed ChimeraX-Bundle line in %s skipped." % name)
-                    logger.warning("File type has fewer than three fields.")
-                    return None
-                format_name, format_category, suffix = spec
-                format = FormatInfo(format_name, format_category, suffixes=[suffix])
-                format.has_open = True
-                types.append(format)
-        # Session version numbers
-        session_versions = parts[7]
-        if session_versions:
-            vs = [v.strip() for v in session_versions.split(',')]
-            if len(vs) != 2:
-                logger.warning("Malformed ChimeraX-Bundle line in %s skipped." % name)
-                logger.warning("Expected 2 version numbers and got %d." % len(vs))
-                return None
-            try:
-                lo = int(vs[0])
-                hi = int(vs[1])
-            except ValueError:
-                logger.warning("Malformed ChimeraX-Bundle line in %s skipped." % name)
-                logger.warning("Found non-integer version numbers.")
-                return kw
-            if lo > hi:
-                logger.warning("Minimum version is greater than maximium.")
-                hi = lo
-            kw["session_versions"] = range(lo, hi + 1)
-        # Does bundle have custom initialization code?
-        custom_init = parts[8]
-        if custom_init:
-            kw["custom_init"] = (custom_init == "true")
-        if not bi:
-            bi = BundleInfo(installed=installed, **kw)
-        if 'Hidden' not in categories:
-            ti = ToolInfo(tool_name, categories, synopsis)
-            bi.tools.append(ti)
-        bi.formats.extend(types)
-        bi.commands.extend(commands)
-        return bi
-
     def _make_bundle_info(self, d, installed, logger):
         """Convert distribution into a list of :py:class:`BundleInfo` instances."""
         name = d.name
@@ -950,189 +888,170 @@ class Toolshed:
         kw['packages'] = _get_installed_packages(d)
         for classifier in md["classifiers"]:
             parts = [v.strip() for v in classifier.split("::")]
-            if parts[0] == "ChimeraX-Bundle" or (parts[0] == 'ChimeraX' and parts[1] == 'Bundle'):
+            if parts[0] != 'ChimeraX':
+                continue
+            if parts[1] == 'Bundle':
                 # ChimeraX :: Bundle :: categories :: session_versions :: module_name :: supercedes :: custom_init
-                offset = int(parts[0] == 'ChimeraX')
-                if len(parts) == 10:
-                    bi = self._old_bundle_info(parts, kw, installed, logger, bi)
-                    if bi:
-                        bi.path = d.path
-                    continue
-                elif bi is not None:
+                if bi is not None:
                     logger.warning("Second ChimeraX :: Bundle line ignored.")
                     break
-                elif len(parts) not in [5 + offset, 6 + offset]:
+                elif len(parts) != 7:
                     logger.warning("Malformed ChimeraX :: Bundle line in %s skipped." % name)
-                    logger.warning("Expected %d fields and got %d." % (6 + offset, len(parts)))
+                    logger.warning("Expected 7 fields and got %d." % len(parts))
                     continue
-                # Categories in which bundle should appear
-                categories = parts[1 + offset]
+                categories, session_versions, module_name, supercedes, custom_init = parts[2:]
                 kw["categories"] = [v.strip() for v in categories.split(',')]
-                # Session version numbers
-                session_versions = parts[2 + offset]
                 if session_versions:
                     vs = [v.strip() for v in session_versions.split(',')]
                     if len(vs) != 2:
                         logger.warning("Malformed ChimeraX :: Bundle line in %s skipped." % name)
                         logger.warning("Expected 2 version numbers and got %d." % len(vs))
-                        return None
+                        continue
                     try:
                         lo = int(vs[0])
                         hi = int(vs[1])
                     except ValueError:
                         logger.warning("Malformed ChimeraX :: Bundle line in %s skipped." % name)
                         logger.warning("Found non-integer version numbers.")
-                        return kw
+                        continue
                     if lo > hi:
                         logger.warning("Minimum version is greater than maximium.")
                         hi = lo
                     kw["session_versions"] = range(lo, hi + 1)
-                # Name of package implementing bundle API
-                kw["api_package_name"] = parts[3 + offset]
-                if len(parts) == 5 + offset:
-                    # Does bundle have custom initialization code?
-                    custom_init = parts[4 + offset]
-                    if custom_init:
-                        kw["custom_init"] = (custom_init == "true")
-                else:
-                    # Are there bundle name aliases?
-                    if parts[4 + offset]:
-                        kw['supercedes'] = [v.strip() for v in parts[4 + offset].split(',')]
-                    # Does bundle have custom initialization code?
-                    custom_init = parts[5 + offset]
-                    if custom_init:
-                        kw["custom_init"] = (custom_init == "true")
+                kw["api_package_name"] = module_name
+                if supercedes:
+                    kw['supercedes'] = [v.strip() for v in supercedes.split(',')]
+                if custom_init:
+                    kw["custom_init"] = (custom_init == "true")
                 bi = BundleInfo(installed=installed, **kw)
                 bi.path = d.path
-            elif parts[0] == "ChimeraX-Tool" or (parts[0] == 'ChimeraX' and parts[1] == 'Tool'):
+            elif parts[1] == 'Tool':
                 # ChimeraX :: Tool :: tool_name :: categories :: synopsis
                 if bi is None:
                     logger.warning('ChimeraX :: Bundle entry must be first')
                     return None
-                if len(parts) != 4 + offset:
+                if len(parts) != 5:
                     logger.warning("Malformed ChimeraX :: Tool line in %s skipped." % name)
-                    logger.warning("Expected %d fields and got %d." % (4 + offset, len(parts)))
+                    logger.warning("Expected 5 fields and got %d." % len(parts))
                     continue
                 # Menu categories in which tool should appear
-                name = parts[1 + offset]
-                categories = parts[2 + offset]
+                name, categories, synopsis = parts[2:]
                 if not categories:
                     logger.warning("Missing tool categories")
                     continue
                 categories = [v.strip() for v in categories.split(',')]
-                synopsis = parts[3 + offset]
                 ti = ToolInfo(name, categories, synopsis)
                 bi.tools.append(ti)
-            elif parts[0] == "ChimeraX-Command" or (parts[0] == 'ChimeraX' and parts[1] == 'Command'):
+            elif parts[1] == 'Command':
                 # ChimeraX :: Command :: name :: categories :: synopsis
                 if bi is None:
                     logger.warning('ChimeraX :: Bundle entry must be first')
                     return None
-                offset = int(parts[0] == 'ChimeraX')
-                if len(parts) != 4 + offset:
+                if len(parts) != 5:
                     logger.warning("Malformed ChimeraX :: Command line in %s skipped." % name)
-                    logger.warning("Expected %d fields and got %d." % (4 + offset, len(parts)))
+                    logger.warning("Expected 5 fields and got %d." % len(parts))
                     continue
-                name = parts[1 + offset]
-                categories = parts[2 + offset]
+                name, categories, synopsis = parts[2:]
                 if not categories:
                     logger.warning("Missing command categories")
                     continue
                 categories = [v.strip() for v in categories.split(',')]
-                synopsis = parts[3 + offset]
                 ci = CommandInfo(name, categories, synopsis)
                 bi.commands.append(ci)
-            elif parts[0] == "ChimeraX-Selector" or (parts[0] == 'ChimeraX' and parts[1] == 'Selector'):
+            elif parts[1] == 'Selector':
                 # ChimeraX :: Selector :: name :: synopsis
                 if bi is None:
                     logger.warning('ChimeraX :: Bundle entry must be first')
                     return None
-                offset = int(parts[0] == 'ChimeraX')
-                if len(parts) != 3 + offset:
+                if len(parts) != 4:
                     logger.warning("Malformed ChimeraX :: Selector line in %s skipped." % name)
-                    logger.warning("Expected %d fields and got %d." % (3 + offset, len(parts)))
+                    logger.warning("Expected 4 fields and got %d." % len(parts))
                     continue
-                name = parts[1 + offset]
-                synopsis = parts[2 + offset]
+                name, synopsis = parts[2:]
                 si = SelectorInfo(name, synopsis)
                 bi.selectors.append(si)
-            elif parts[0] == "ChimeraX-DataFormat" or (parts[0] == 'ChimeraX' and parts[1] == 'DataFormat'):
-                # ChimeraX :: DataFormat :: format_name :: nicknames :: category :: suffixes :: mime_types :: url :: dangerous :: icon :: synopsis
+            elif parts[1] == 'DataFormat':
+                # ChimeraX :: DataFormat :: format_name :: nicknames :: category :: suffixes :: mime_types :: url :: dangerous :: icon :: synopsis :: encoding
                 if bi is None:
                     logger.warning('ChimeraX :: Bundle entry must be first')
                     return None
-                offset = int(parts[0] == 'ChimeraX')
-                if len(parts) != 10 + offset:
+                if len(parts) not in [11, 12]:
                     logger.warning("Malformed ChimeraX :: DataFormat line in %s skipped." % name)
-                    logger.warning("Expected %d fields and got %d." % (10 + offset, len(parts)))
+                    logger.warning("Expected 11 or 12 fields and got %d." % len(parts))
                     continue
-                name = parts[1 + offset]
-                nicknames = [v.strip() for v in parts[2 + offset].split(',')] if parts[2 + offset] else None
-                category = parts[3 + offset]
-                suffixes = [v.strip() for v in parts[4 + offset].split(',')] if parts[4 + offset] else None
-                mime_types = [v.strip() for v in parts[5 + offset].split(',')] if parts[5 + offset] else None
-                url = parts[6 + offset]
-                dangerous = parts[7 + offset]
-                icon = parts[8 + offset]
-                synopsis = parts[9 + offset]
+                if len(parts) == 12:
+                    name, nicknames, category, suffixes, mime_types, url, dangerous, icon, synopsis, encoding = parts[2:]
+                else:
+                    encoding = None
+                    name, nicknames, category, suffixes, mime_types, url, dangerous, icon, synopsis = parts[2:]
+                nicknames = [v.strip() for v in nicknames.split(',')] if nicknames else None
+                suffixes = [v.strip() for v in suffixes.split(',')] if suffixes else None
+                mime_types = [v.strip() for v in mime_types.split(',')] if mime_types else None
                 fi = FormatInfo(name=name, nicknames=nicknames,
                                 category=category, suffixes=suffixes,
                                 mime_types=mime_types, url=url, icon=icon,
-                                dangerous=dangerous, synopsis=synopsis)
+                                dangerous=dangerous, synopsis=synopsis,
+                                encoding=encoding)
                 bi.formats.append(fi)
-            elif parts[0] == "ChimeraX-Fetch" or (parts[0] == 'ChimeraX' and parts[1] == 'Fetch'):
+            elif parts[1] == 'Fetch':
                 # ChimeraX :: Fetch :: database_name :: format_name :: prefixes :: example_id :: is_default
                 if bi is None:
                     logger.warning('ChimeraX :: Bundle entry must be first')
                     return None
-                offset = int(parts[0] == 'ChimeraX')
-                if len(parts) != 6 + offset:
+                if len(parts) != 7:
                     logger.warning("Malformed ChimeraX :: DataFormat line in %s skipped." % name)
-                    logger.warning("Expected %d fields and got %d." % (6 + offset, len(parts)))
+                    logger.warning("Expected 7 fields and got %d." % len(parts))
                     continue
-                database_name = parts[1 + offset]
-                format_name = parts[2 + offset]
-                prefixes = [v.strip() for v in parts[3 + offset].split(',')] if parts[3 + offset] else ()
-                example_id = parts[4 + offset]
-                is_default = (parts[5 + offset] == 'true')
+                database_name, format_name, prefixes, example_id, is_default = parts[2:]
+                prefixes = [v.strip() for v in prefixes.split(',')] if prefixes else ()
+                is_default = (is_default == 'true')
                 bi.fetches.append((database_name, format_name, prefixes, example_id, is_default))
-            elif parts[0] == "ChimeraX-Open" or (parts[0] == 'ChimeraX' and parts[1] == 'Open'):
-                # ChimeraX :: Open :: format_name :: tag :: is_default
+            elif parts[1] == 'Open':
+                # ChimeraX :: Open :: format_name :: tag :: is_default :: keyword_arguments
                 if bi is None:
                     logger.warning('ChimeraX :: Bundle entry must be first')
                     return None
-                offset = int(parts[0] == 'ChimeraX')
-                if len(parts) != 4 + offset:
+                if len(parts) not in [5, 6]:
                     logger.warning("Malformed ChimeraX :: Open line in %s skipped." % name)
-                    logger.warning("Expected %d fields and got %d." % (4 + offset, len(parts)))
+                    logger.warning("Expected 5 or 6 fields and got %d." % len(parts))
                     continue
-                name = parts[1 + offset]
-                tag = parts[2 + offset]
-                is_default = parts[3 + offset]
+                if len(parts) == 6:
+                    name, tag, is_default, kwds = parts[2:]
+                    kwds = _extract_extra_keywords(kwds)
+                else:
+                    name, tag, is_default = parts[2:]
+                    kwds = None
+                is_default = (is_default == 'true')
                 try:
                     fi = [fi for fi in bi.formats if fi.name == name][0]
                 except (KeyError, IndexError):
                     logger.warning("Unknown format name: %r." % name)
                     continue
                 fi.has_open = True
-            elif parts[0] == "ChimeraX-Save" or (parts[0] == 'ChimeraX' and parts[1] == 'Save'):
+                fi.open_kwds = kwds
+            elif parts[1] == 'Save':
+                # ChimeraX :: Save :: format_name :: tag :: is_default :: keyword_arguments
                 if bi is None:
                     logger.warning('ChimeraX :: Bundle entry must be first')
                     return None
-                offset = int(parts[0] == 'ChimeraX')
-                if len(parts) != 4 + offset:
+                if len(parts) not in [5, 6]:
                     logger.warning("Malformed ChimeraX :: Save line in %s skipped." % name)
-                    logger.warning("Expected %d fields and got %d." % (4 + offset, len(parts)))
+                    logger.warning("Expected 5 or 6 fields and got %d." % len(parts))
                     continue
-                name = parts[1 + offset]
-                tag = parts[2 + offset]
-                is_default = parts[3 + offset]
+                if len(parts) == 6:
+                    name, tag, is_default, kwds = parts[2:]
+                    kwds = _extract_extra_keywords(kwds)
+                else:
+                    name, tag, is_default = parts[2:]
+                    kwds = None
+                is_default = (is_default == 'true')
                 try:
                     fi = [fi for fi in bi.formats if fi.name == name][0]
                 except (KeyError, IndexError):
                     logger.warning("Unknown format name: %r." % name)
                     continue
                 fi.has_save = True
+                fi.save_kwds = kwds
         if bi is None:
             return None
         try:
@@ -1513,6 +1432,51 @@ class Toolshed:
     # End methods for installing and removing distributions
 
 
+def _extract_extra_keywords(kwds):
+    result = {}
+    all_kwds = [k.strip() for k in kwds.split(',')]
+    for k in all_kwds:
+        temp = [t.strip() for t in k.split(':', maxsplit=1)]
+        if len(temp) == 1:
+            result[temp[0]] = 'String'
+        else:
+            result[temp[0]] = temp[1]
+    return result
+
+
+def _convert_keyword_types(kwds, bi):
+    from .. import commands
+    bundle_api = None
+    arg_cache = {}
+
+    def get_arg(arg_name):
+        nonlocal bundle_api
+        a = arg_cache.get(arg_name, None)
+        if a is not None:
+            return a
+        full_arg_name = arg_name + 'Arg'
+        if hasattr(commands, full_arg_name):
+            a = getattr(commands, full_arg_name)
+        else:
+            if bundle_api is None:
+                bundle_api = bi._get_api()
+            if hasattr(bundle_api, full_arg_name):
+                a = getattr(bundle_api, full_arg_name)
+            else:
+                print('unable to find %s argument type in bundle %s' % (arg_name, bi.name))
+                return None
+        arg_cache[arg_name] = a
+        return a
+
+    result = {}
+    for kw in kwds:
+        arg_type = get_arg(kwds[kw])
+        if arg_type is None:
+            continue
+        result[kw] = arg_type
+    return result
+
+
 class ToolInfo:
     """Metadata about a tool
 
@@ -1610,9 +1574,10 @@ class FormatInfo:
         filename in bundle of icon for data format
     """
 
-    def __init__(self, name, category, nicknames=None, suffixes=None,
+    def __init__(self, name, category, *, nicknames=None, suffixes=None,
                  mime_types=None, url=None, synopsis=None,
-                 dangerous=None, icon=None,
+                 dangerous=None, icon=None, encoding=None,
+                 open_kwds=None, save_kwds=None,
                  has_open=False, has_save=False):
         self.name = name
         self.nicknames = nicknames
@@ -1621,11 +1586,13 @@ class FormatInfo:
         self.mime_types = mime_types
         self.documentation_url = url
         self.dangerous = dangerous
-        # self.encoding = encoding
+        self.encoding = encoding
         self.icon = icon
         self.synopsis = synopsis
         self.has_open = has_open
+        self.open_kwds = open_kwds
         self.has_save = has_save
+        self.save_kwds = save_kwds
 
     def __repr__(self):
         s = self.name
@@ -1638,8 +1605,8 @@ class FormatInfo:
             s += " [url: %s]" % self.documentation_url
         if self.dangerous:
             s += " (dangerous)"
-        # if self.encoding:
-        #     s += " [encoding: %s]" % self.encoding
+        if self.encoding:
+            s += " [encoding: %s]" % self.encoding
         if self.synopsis:
             s += " [synopsis: %s]" % self.synopsis
         return s
@@ -1657,6 +1624,8 @@ class FormatInfo:
             'nicknames': self.nicknames,
             'has_open': self.has_open,
             'has_save': self.has_save,
+            'open_kwds': self.open_kwds,
+            'save_kwds': self.save_kwds,
         }
 
     @classmethod
@@ -1889,7 +1858,7 @@ class BundleInfo:
             format = io.register_format(
                 fi.name, fi.category, fi.suffixes, fi.nicknames,
                 mime=fi.mime_types, reference=fi.documentation_url,
-                dangerous=fi.dangerous, icon=fi.icon, encoding=None
+                dangerous=fi.dangerous, icon=fi.icon, encoding=fi.encoding
             )
             if fi.has_open:
                 def open_cb(*args, format_name=fi.name, **kw):
@@ -1909,6 +1878,10 @@ class BundleInfo:
                     format.open_func = open_shim
                     return open_shim(*args, **kw)
                 format.open_func = open_cb
+                if fi.open_kwds:
+                    from ..commands import cli
+                    cli.add_keyword_arguments('open', _convert_keyword_types(
+                        fi.open_kwds, self))
             if fi.has_save:
                 def save_cb(*args, format_name=fi.name, **kw):
                     try:
@@ -1927,6 +1900,10 @@ class BundleInfo:
                     format.export_func = save_shim
                     return save_shim(*args, format_name=format_name, **kw)
                 format.export_func = save_cb
+                if fi.save_kwds:
+                    from ..commands import cli
+                    cli.add_keyword_arguments('save', _convert_keyword_types(
+                        fi.save_kwds, self))
         for (database_name, format_name, prefixes, example_id, is_default) in self.fetches:
             if io.format_from_name(format_name) is None:
                 print('warning: unknown format %r given for database %r' % (format_name, database_name))

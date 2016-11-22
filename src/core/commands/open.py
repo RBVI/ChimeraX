@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def open(session, filename, format=None, name=None, from_database=None, ignore_cache=False,
-         smart_initial_display = True, trajectory = False):
+         smart_initial_display = True, trajectory = False, **kw):
     '''Open a file.
 
     Parameters
@@ -57,8 +57,8 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
             if format is None:
                 format = 'mmcif'
 
-    kw = {'smart_initial_display': smart_initial_display,
-          'trajectory': trajectory}
+    kw.update({'smart_initial_display': smart_initial_display,
+          'trajectory': trajectory})
 
     from ..filehistory import remember_file
     if from_database is not None:
