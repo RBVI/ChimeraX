@@ -971,22 +971,27 @@ class Toolshed:
                 si = SelectorInfo(name, synopsis)
                 bi.selectors.append(si)
             elif parts[1] == 'DataFormat':
-                # ChimeraX :: DataFormat :: format_name :: nicknames :: category :: suffixes :: mime_types :: url :: dangerous :: icon :: synopsis
+                # ChimeraX :: DataFormat :: format_name :: nicknames :: category :: suffixes :: mime_types :: url :: dangerous :: icon :: synopsis :: encoding
                 if bi is None:
                     logger.warning('ChimeraX :: Bundle entry must be first')
                     return None
-                if len(parts) != 11:
+                if len(parts) not in [11, 12]:
                     logger.warning("Malformed ChimeraX :: DataFormat line in %s skipped." % name)
-                    logger.warning("Expected 11 fields and got %d." % len(parts))
+                    logger.warning("Expected 11 or 12 fields and got %d." % len(parts))
                     continue
-                name, nicknames, category, suffixes, mime_types, url, dangerous, icon, synopsis = parts[2:]
+                if len(parts) == 12:
+                    name, nicknames, category, suffixes, mime_types, url, dangerous, icon, synopsis, encoding = parts[2:]
+                else:
+                    encoding = None
+                    name, nicknames, category, suffixes, mime_types, url, dangerous, icon, synopsis = parts[2:]
                 nicknames = [v.strip() for v in nicknames.split(',')] if nicknames else None
                 suffixes = [v.strip() for v in suffixes.split(',')] if suffixes else None
                 mime_types = [v.strip() for v in mime_types.split(',')] if mime_types else None
                 fi = FormatInfo(name=name, nicknames=nicknames,
                                 category=category, suffixes=suffixes,
                                 mime_types=mime_types, url=url, icon=icon,
-                                dangerous=dangerous, synopsis=synopsis)
+                                dangerous=dangerous, synopsis=synopsis,
+                                encoding=encoding)
                 bi.formats.append(fi)
             elif parts[1] == 'Fetch':
                 # ChimeraX :: Fetch :: database_name :: format_name :: prefixes :: example_id :: is_default
@@ -1002,15 +1007,20 @@ class Toolshed:
                 is_default = (is_default == 'true')
                 bi.fetches.append((database_name, format_name, prefixes, example_id, is_default))
             elif parts[1] == 'Open':
-                # ChimeraX :: Open :: format_name :: tag :: is_default
+                # ChimeraX :: Open :: format_name :: tag :: is_default :: keyword_arguments
                 if bi is None:
                     logger.warning('ChimeraX :: Bundle entry must be first')
                     return None
-                if len(parts) != 5:
+                if len(parts) not in [5, 6]:
                     logger.warning("Malformed ChimeraX :: Open line in %s skipped." % name)
-                    logger.warning("Expected 5 fields and got %d." % len(parts))
+                    logger.warning("Expected 5 or 6 fields and got %d." % len(parts))
                     continue
-                name, tag, is_default = parts[2:]
+                if len(parts) == 6:
+                    name, tag, is_default, kwds = parts[2:]
+                    kwds = _extract_extra_keywords(kwds)
+                else:
+                    name, tag, is_default = parts[2:]
+                    kwds = None
                 is_default = (is_default == 'true')
                 try:
                     fi = [fi for fi in bi.formats if fi.name == name][0]
@@ -1018,15 +1028,22 @@ class Toolshed:
                     logger.warning("Unknown format name: %r." % name)
                     continue
                 fi.has_open = True
+                fi.open_kwds = kwds
             elif parts[1] == 'Save':
+                # ChimeraX :: Save :: format_name :: tag :: is_default :: keyword_arguments
                 if bi is None:
                     logger.warning('ChimeraX :: Bundle entry must be first')
                     return None
-                if len(parts) != 5:
+                if len(parts) not in [5, 6]:
                     logger.warning("Malformed ChimeraX :: Save line in %s skipped." % name)
-                    logger.warning("Expected 5 fields and got %d." % len(parts))
+                    logger.warning("Expected 5 or 6 fields and got %d." % len(parts))
                     continue
-                name, tag, is_default = parts[2:]
+                if len(parts) == 6:
+                    name, tag, is_default, kwds = parts[2:]
+                    kwds = _extract_extra_keywords(kwds)
+                else:
+                    name, tag, is_default = parts[2:]
+                    kwds = None
                 is_default = (is_default == 'true')
                 try:
                     fi = [fi for fi in bi.formats if fi.name == name][0]
@@ -1034,6 +1051,7 @@ class Toolshed:
                     logger.warning("Unknown format name: %r." % name)
                     continue
                 fi.has_save = True
+                fi.save_kwds = kwds
         if bi is None:
             return None
         try:
@@ -1414,6 +1432,51 @@ class Toolshed:
     # End methods for installing and removing distributions
 
 
+def _extract_extra_keywords(kwds):
+    result = {}
+    all_kwds = [k.strip() for k in kwds.split(',')]
+    for k in all_kwds:
+        temp = [t.strip() for t in k.split(':', maxsplit=1)]
+        if len(temp) == 1:
+            result[temp[0]] = 'String'
+        else:
+            result[temp[0]] = temp[1]
+    return result
+
+
+def _convert_keyword_types(kwds, bi):
+    from .. import commands
+    bundle_api = None
+    arg_cache = {}
+
+    def get_arg(arg_name):
+        nonlocal bundle_api
+        a = arg_cache.get(arg_name, None)
+        if a is not None:
+            return a
+        full_arg_name = arg_name + 'Arg'
+        if hasattr(commands, full_arg_name):
+            a = getattr(commands, full_arg_name)
+        else:
+            if bundle_api is None:
+                bundle_api = bi._get_api()
+            if hasattr(bundle_api, full_arg_name):
+                a = getattr(bundle_api, full_arg_name)
+            else:
+                print('unable to find %s argument type in bundle %s' % (arg_name, bi.name))
+                return None
+        arg_cache[arg_name] = a
+        return a
+
+    result = {}
+    for kw in kwds:
+        arg_type = get_arg(kwds[kw])
+        if arg_type is None:
+            continue
+        result[kw] = arg_type
+    return result
+
+
 class ToolInfo:
     """Metadata about a tool
 
@@ -1511,9 +1574,10 @@ class FormatInfo:
         filename in bundle of icon for data format
     """
 
-    def __init__(self, name, category, nicknames=None, suffixes=None,
+    def __init__(self, name, category, *, nicknames=None, suffixes=None,
                  mime_types=None, url=None, synopsis=None,
-                 dangerous=None, icon=None,
+                 dangerous=None, icon=None, encoding=None,
+                 open_kwds=None, save_kwds=None,
                  has_open=False, has_save=False):
         self.name = name
         self.nicknames = nicknames
@@ -1522,11 +1586,13 @@ class FormatInfo:
         self.mime_types = mime_types
         self.documentation_url = url
         self.dangerous = dangerous
-        # self.encoding = encoding
+        self.encoding = encoding
         self.icon = icon
         self.synopsis = synopsis
         self.has_open = has_open
+        self.open_kwds = open_kwds
         self.has_save = has_save
+        self.save_kwds = save_kwds
 
     def __repr__(self):
         s = self.name
@@ -1539,8 +1605,8 @@ class FormatInfo:
             s += " [url: %s]" % self.documentation_url
         if self.dangerous:
             s += " (dangerous)"
-        # if self.encoding:
-        #     s += " [encoding: %s]" % self.encoding
+        if self.encoding:
+            s += " [encoding: %s]" % self.encoding
         if self.synopsis:
             s += " [synopsis: %s]" % self.synopsis
         return s
@@ -1558,6 +1624,8 @@ class FormatInfo:
             'nicknames': self.nicknames,
             'has_open': self.has_open,
             'has_save': self.has_save,
+            'open_kwds': self.open_kwds,
+            'save_kwds': self.save_kwds,
         }
 
     @classmethod
@@ -1790,7 +1858,7 @@ class BundleInfo:
             format = io.register_format(
                 fi.name, fi.category, fi.suffixes, fi.nicknames,
                 mime=fi.mime_types, reference=fi.documentation_url,
-                dangerous=fi.dangerous, icon=fi.icon, encoding=None
+                dangerous=fi.dangerous, icon=fi.icon, encoding=fi.encoding
             )
             if fi.has_open:
                 def open_cb(*args, format_name=fi.name, **kw):
@@ -1810,6 +1878,10 @@ class BundleInfo:
                     format.open_func = open_shim
                     return open_shim(*args, **kw)
                 format.open_func = open_cb
+                if fi.open_kwds:
+                    from ..commands import cli
+                    cli.add_keyword_arguments('open', _convert_keyword_types(
+                        fi.open_kwds, self))
             if fi.has_save:
                 def save_cb(*args, format_name=fi.name, **kw):
                     try:
@@ -1828,6 +1900,10 @@ class BundleInfo:
                     format.export_func = save_shim
                     return save_shim(*args, format_name=format_name, **kw)
                 format.export_func = save_cb
+                if fi.save_kwds:
+                    from ..commands import cli
+                    cli.add_keyword_arguments('save', _convert_keyword_types(
+                        fi.save_kwds, self))
         for (database_name, format_name, prefixes, example_id, is_default) in self.fetches:
             if io.format_from_name(format_name) is None:
                 print('warning: unknown format %r given for database %r' % (format_name, database_name))
