@@ -87,7 +87,9 @@ class ContactPlot(Graph):
             add('Show all atoms', self._show_all_atoms)
 
         if isinstance(item, Contact):
-            add('Residue plot', self._show_residue_plot, item)
+            flip = True
+            add('Residue plot %s with %s' % (n1,n2), self._show_residue_plot, item, flip)
+            add('Residue plot %s with %s' % (n2,n1), self._show_residue_plot, item)
         
         menu.addSeparator()
         
@@ -227,9 +229,9 @@ class ContactPlot(Graph):
         for g in self.groups:
             g.atoms.displays = True
 
-    def _show_residue_plot(self, c):
+    def _show_residue_plot(self, c, flip=False):
         from .resplot import ResiduePlot
-        ResiduePlot(self._session(), c, self.interface_residue_area_cutoff)
+        ResiduePlot(self._session(), c, flip, self.interface_residue_area_cutoff)
         
     def _explode_all(self, scale = 2):
         gc = [(g,g.centroid()) for g in self.groups if g.shown()]

@@ -18,12 +18,12 @@ class ResiduePlot(Graph):
 
     help = 'help:user/commands/contacts.html#residue-plot'
     
-    def __init__(self, session, contact, interface_residue_area_cutoff = 15):
+    def __init__(self, session, contact, flip = False, interface_residue_area_cutoff = 15):
 
         self.contact = c = contact
 
         # Interface residues
-        g1, g2 = c.group1, c.group2
+        g1, g2 = (c.group2, c.group1) if flip else (c.group1, c.group2)
         min_area = interface_residue_area_cutoff
         self.residues1 = r1 = c.contact_residues(g1, min_area)
         self.residues2 = r2 = c.contact_residues(g2, min_area)
@@ -31,9 +31,10 @@ class ResiduePlot(Graph):
         self.residues = res = concatenate((r1, r2))
 
         # Non-interface residues
-        self.noninterface_residues1 = g1.atoms.unique_residues.subtract(r1)
-        self.noninterface_residues2 = g2.atoms.unique_residues.subtract(r2)
-        allres = concatenate((g1.atoms, g2.atoms)).unique_residues
+        self.atoms1, self.atoms2 = a1, a2 = g1.atoms, g2.atoms
+        self.noninterface_residues1 = a1.unique_residues.subtract(r1)
+        self.noninterface_residues2 = a2.unique_residues.subtract(r2)
+        allres = concatenate((a1,a2)).unique_residues
         self.noninterface_residues = allres.subtract(res)
         
         # Create matplotlib panel
@@ -76,8 +77,7 @@ class ResiduePlot(Graph):
         return '%s %d' % (r.name, r.number)
     
     def _show_interface(self):
-        c = self.contact
-        aa1 = c.group1.atoms
+        aa1 = self.atoms1
         aa1.displays = True
         gray = (180,180,180,255)
         self.noninterface_residues1.atoms.colors = gray
