@@ -66,8 +66,9 @@ class Plot(ToolInstance):
         self.axes.set_aspect('equal', adjustable='datalim')
 
     def _mouse_press_pan(self, event):
+        b = event.button()
         from PyQt5.QtCore import Qt
-        if event.button() == Qt.LeftButton:
+        if b == Qt.LeftButton or b == Qt.MiddleButton:
             # Initiate pan and zoom for left click on background
             h = self.tool_window.ui_area.height()
             x, y = event.x(), h-event.y()
@@ -269,7 +270,9 @@ class Graph(Plot):
         self._labels = labels	# Dictionary mapping node to matplotlib Text objects.
             
     def _mouse_press(self, event):
-        if self._clicked_item(event.x(), event.y()) is None:
+        from PyQt5.QtCore import Qt
+        if (event.button() == Qt.MiddleButton or
+            self._clicked_item(event.x(), event.y()) is None):
             self._mouse_press_pan(event)
 
     def _mouse_move(self, event):
