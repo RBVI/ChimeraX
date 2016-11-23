@@ -57,28 +57,31 @@ class AlignmentsManager(State):
             is the same as False except that any StructureSeqs in the alignment will be associated
             with their structures.
         """
-        if len(seqs) > 1:
-            viewer = align_viewer
-            attr = 'align_viewer'
-            text = "alignment"
-        else:
-            viewer = seq_viewer
-            attr = 'seq_viewer'
-            text = "sequence"
-        if viewer is None:
-            from .settings import settings
-            viewer = getattr(settings, attr)
-        if viewer:
-            for tool_name, info in self.viewer_info[text].items():
-                viewer_startup_cb, syms = info
-                if tool_name == viewer:
-                    break
-                if viewer in syms:
-                    break
+        if self.session.ui.is_gui:
+            if len(seqs) > 1:
+                viewer = align_viewer
+                attr = 'align_viewer'
+                text = "alignment"
             else:
-                self.session.logger.warning("No registered %s viewer corresponds to '%s'"
-                    % (text, viewer))
-                viewer = False
+                viewer = seq_viewer
+                attr = 'seq_viewer'
+                text = "sequence"
+            if viewer is None:
+                from .settings import settings
+                viewer = getattr(settings, attr)
+            if viewer:
+                for tool_name, info in self.viewer_info[text].items():
+                    viewer_startup_cb, syms = info
+                    if tool_name == viewer:
+                        break
+                    if viewer in syms:
+                        break
+                else:
+                    self.session.logger.warning("No registered %s viewer corresponds to '%s'"
+                        % (text, viewer))
+                    viewer = False
+        else:
+            viewer = False
 
         from .alignment import Alignment
         i = 1
