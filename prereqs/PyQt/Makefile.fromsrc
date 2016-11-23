@@ -30,13 +30,13 @@ RELPATH = $(shell $(PYTHON_EXE) -c 'import os; print(os.path.relpath("$(framewor
 all:
 
 install: $(SOURCE)
-	$(MAKE) -f sip/Makefile install
-	$(MAKE) -f qt/Makefile VERSION=$(VERSION) MINOR_VERSION=$(MINOR_VERSION) install
+	$(MAKE) -C sip install
+	$(MAKE) -C qt VERSION=$(VERSION) MINOR_VERSION=$(MINOR_VERSION) install
 	cd $(SOURCE) && $(PYTHON_EXE) configure.py $(CONFIG_ARGS) && $(MAKE) && $(MAKE) install
 
 app-install:
-	$(MAKE) -f sip/Makefile app-install
-	$(MAKE) -f qt/Makefile app-install
+	$(MAKE) -C sip app-install
+	$(MAKE) -C qt app-install
 	$(RSYNC) $(PYSITEDIR)/PyQt5 $(APP_PYSITEDIR)
 
 distribution: $(DISTRIBUTION)
@@ -44,6 +44,7 @@ distribution: $(DISTRIBUTION)
 $(DISTRIBUTION):
 ifeq ($(PYQT_LICENSE),commercial)
 	rsync -a $(REMOTE_DIR)/*commercial* .
+	rsync -a $(REMOTE_DIR)/$(VERSION)/*.tar.gz .
 endif
 
 $(SOURCE): $(DISTRIBUTION)
