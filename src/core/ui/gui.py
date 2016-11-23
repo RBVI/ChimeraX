@@ -548,7 +548,8 @@ class MainWindow(QMainWindow, PlainTextLog):
             for tool_name in sorted(cat_info.keys()):
                 tool_action = QAction(tool_name, self)
                 tool_action.setStatusTip(tool.synopsis)
-                tool_action.triggered.connect(lambda arg, ses=session, run=run, tool_name=tool_name: run(ses, "toolshed show %s" % tool_name))
+                tool_action.triggered.connect(lambda arg, ses=session, run=run, tool_name=tool_name:
+                    run(ses, "toolshed show '%s'" % tool_name))
                 cat_menu.addAction(tool_action)
         mb = self.menuBar()
         old_action = self.tools_menu.menuAction()
