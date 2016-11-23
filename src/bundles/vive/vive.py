@@ -48,6 +48,12 @@ def start_vive(session):
     if isinstance(v.camera, ViveCamera):
         return
 
+    try:
+        import openvr
+    except Exception as e:
+        from chimerax.core.errors import UserError
+        raise UserError('Failed to importing OpenVR module: %s' % str(e))
+    
     v.camera = ViveCamera(session)
     # Set redraw timer for 1 msec to minimize dropped frames.
     session.ui.main_window.graphics_window.set_redraw_interval(1)
