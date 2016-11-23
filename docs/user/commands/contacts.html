@@ -23,6 +23,11 @@ or derivations thereof.
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
 class="clRight" title="User Guide Index"/></a>
 
+<font color="brown">
+* this is an experimental feature, with many deficiencies we hope 
+to address in the future *
+</font>
+
 <h3><a href="../index.html#commands">Command</a>: contacts</h3>
 <h3><a href="usageconventions.html">Usage</a>:
  <BR><b>contacts</b>
@@ -62,10 +67,10 @@ Residues with at least <i>res-area</i> buried
 <a name="interface-residues"><b><i>interface residues</i></b></a>.
 </p>
 
+<a name="diagram"></a>
 <p class="nav">
 [<a href="#top">back to top</a>]
 </p>
-<a name="diagram"></a>
 <h3>Chain-Chain Network Diagram</h3>
 <p>
 <table class="clRight">
@@ -87,11 +92,11 @@ in the structure) are indicated with dashed lines.
 </p><p>
 Clicking a node shows the atoms of the corresponding chain and any
 interacting chains; other nodes are grayed out and their atoms hidden.
-Shift-clicking a node <a href="select.html">selects</a>
+Alt-clicking a node <a href="select.html">selects</a>
 the atoms of the corresponding chain.
 Similarly, clicking an edge shows the atoms of the two connected nodes
 and grays out other nodes and hides their atoms, 
-while Shift-clicking an edge <a href="select.html">selects</a>
+while Alt-clicking an edge <a href="select.html">selects</a>
 the atoms of the two nodes.
 Clicking the background of the diagram shows all of the chains.
 Only atoms included in the calculation are affected by these actions; 
@@ -105,8 +110,8 @@ displays.
 <a href="cartoon.html"><b>cartoon hide false</b></a> has been used)
 -->
 </p><p>
-The diagram can be moved as a whole with left mouse drag 
-(initially clicking on the background, not on a node or edge)
+The diagram can be moved as a whole with 
+left or middle mouse drag (initially clicking on the background)
 and expanded/contracted with Shift-left mouse drag. 
 Expansion/contraction is about the point initially clicked
 and does not affect node sizes, only their spacing.
@@ -173,7 +178,7 @@ from its contacting chains
 with other chains)
 <li><b>Select [<i>chain</i>]</b>
 - <a href="select.html">select</a> the corresponding chain
-(same as Shift-clicking the node)
+(same as Alt-clicking the node)
 <li><b>Select neighbors of [<i>chain</i>]</b>
 - <a href="select.html">select</a> 
 chains contacting the corresponding chain
@@ -218,16 +223,23 @@ from <i>chain2</i>; adjust view to interface, orient towards <i>chain1</i>
 alt="1i50 C-J residue plot"
 title="1i50 C-J residue plot"></td></tr>
 </table>
-<li><b>Residue plot</b>
+<li><b>Residue plot [<i>chain1</i>] with [<i>chain2</i>]</b> 
 - create an <a href="#residue-plot">interface residue plot</a>, essentially
-a 2D representation of what would be obtained in 3D with the menu item
+a 2D representation of what would be obtained in 3D with
+<b>Show contact residues of [<i>chain1</i>] with [<i>chain2</i>]</b> (above):
+colored circles for individual
+<i>chain1-chain2</i> <a href="#interface-residues">interface residues</a>
+superimposed on a gray silhouette of the remaining residues of <i>chain2</i>
+<li><b>Residue plot [<i>chain2</i>] with [<i>chain1</i>]</b> 
+- create an <a href="#residue-plot">interface residue plot</a>, essentially
+a 2D representation of what would be obtained in 3D with
 <b>Show contact residues of [<i>chain2</i>] with [<i>chain1</i>]</b> (above):
 colored circles for individual
 <i>chain1-chain2</i> <a href="#interface-residues">interface residues</a>
 superimposed on a gray silhouette of the remaining residues of <i>chain1</i>
 <li><b>Select [<i>chain1</i>] and [<i>chain2</i>]</b>
 - <a href="select.html">select</a> the corresponding chains
-(same as Shift-clicking the edge)
+(same as Alt-clicking the edge)
 <li><b>Select contact residues of [<i>chain1</i>] and [<i>chain2</i>]</b>
 - <a href="select.html">select</a> the
 <i>chain1-chain2</i> <a href="#interface-residues">interface residues</a>
@@ -250,10 +262,10 @@ of <i>chain2</i>
   </ul>
 </ul>
 
+<a name="residue-plot"></a>
 <p class="nav">
 [<a href="#top">back to top</a>]
 </p>
-<a name="residue-plot"></a>
 <h3>Interface Residue Plot</h3>
 <p>
 A plot of the chain-chain interface residues 
@@ -270,8 +282,8 @@ labeled by residue number.
 Clicking a node <a href="select.html">selects</a> the corresponding
 residue in the structure.
 </p><p>
-The plot can be moved as a whole with left mouse drag 
-(initially clicking the background, not on a node)
+The plot can be moved as a whole with
+left or middle mouse drag (initially clicking on the background)
 and expanded/contracted with Shift-left mouse drag. 
 Expansion/contraction is about the point initially clicked
 and does not affect node sizes, only their spacing.

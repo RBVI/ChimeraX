@@ -39,11 +39,10 @@ class="clRight" title="User Guide Index"/></a>
 <p>
 <b>Coordset</b> displays the frames of a trajectory, which can be read from
 a multi-model PDB file by using <a href="open.html"><b>open</b></a>
-with <b>explode false</b>. The number of frames in a trajectory can be
+with <b>trajectory true</b>. The number of frames in a trajectory can be
 reported with the command <a href="info.html"><b>info</b></a>.
 See also: <a href="../movies.html">making movies</a>
 </p>
-<!-- playing trajectory as ribbon doesn't work anyway, ticket #461
 <blockquote>
 **&nbsp;Protein secondary structure assignments are not recomputed automatically
 over the course of a trajectory.
@@ -51,7 +50,6 @@ If a protein is displayed as a <a href="cartoon.html">cartoon</a> (ribbon),
 users may want to reassign secondary structure at each frame,
 as described <a href="#ssnote">below</a>.&nbsp;**
 </blockquote>
--->
 <p>
 The <i>model-spec</i> is the model number of the trajectory, preceded by #.
 A comma-separated list or range of model numbers can be used
@@ -99,11 +97,10 @@ Examples:
 - play from the last frame to the first, every 10th frame, backwards
 </blockquote>
 
-<!--
+<a name="ssnote"></a>
 <p class="nav">
 [<a href="#top">back to top</a>]
 </p>
-<a name="ssnote"></a>
 <h3>Recomputing Secondary Structure</h3>
 <p>
 If a protein is displayed as a <a href="cartoon.html">cartoon</a> (ribbon)
@@ -114,10 +111,11 @@ in combination with <a href="dssp.html"><b>dssp</b></a>, for example:
 </p>
 <blockquote>
 <b>perframe dssp; coordset #2 1,21; wait 21; ~perframe</b>
+<br>
+<b><a href="movie.html">movie record</a>; perf dssp; coord #1 1,18; wait 18; ~perf; <a href="movie.html">movie encode</a> ~/Desktop/test.mov</b>
 </blockquote>
--->
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-October 2016</address>
+November 2016</address>
 </body></html>
