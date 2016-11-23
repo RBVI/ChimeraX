@@ -22,19 +22,15 @@ def open_file(session, stream, fname, format_name="FASTA", return_vals=None,
     except ImportError:
         raise ValueError("No file parser installed for %s files" % format_name)
     if stream is None:
-        path = fname
         import os.path
+        from chimerax.core.io import open_filename
+        path = fname
         fname = os.path.basename(path)
-    else:
-        # don't want the binary stream (e.g. "line[0] == '>'" is always False(!))
-        path = stream.name
-        stream.close()
-    from chimerax.core.io import open_filename
-    with open_filename(path) as f:
-        try:
-            seqs, file_attrs, file_markups = ns['read'](f)
-        except FormatSyntaxError as err:
-            raise IOError("Syntax error in %s file '%s': %s" % (format_name, fname, err))
+        stream = open_filename(path)
+    try:
+        seqs, file_attrs, file_markups = ns['read'](stream)
+    except FormatSyntaxError as err:
+        raise IOError("Syntax error in %s file '%s': %s" % (format_name, fname, err))
     if not seqs:
         raise ValueError("No sequences found in %s file '%s'!" % (format_name, fname))
     uniform_length = True

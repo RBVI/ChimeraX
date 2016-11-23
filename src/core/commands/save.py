@@ -15,7 +15,7 @@ def save(session, filename, models=None, format=None,
          width=None, height=None, supersample=3,
          pixel_size=None, transparent_background=False, quality=95,
          region = None, step = (1,1,1), mask_zone = True, chunk_shapes = None,
-         append = None, compress = None, base_index = 1):
+         append = None, compress = None, base_index = 1, **kw):
     '''Save data, sessions, images.
 
     Parameters
@@ -91,7 +91,7 @@ def save(session, filename, models=None, format=None,
             msg = 'Unrecognized file suffix "%s", require one of %s' % (suffix, suffixes)
         raise UserError(msg)
 
-    kw = {
+    kw.update({
         'models': models,
         'format': format,
         'width': width,
@@ -107,7 +107,7 @@ def save(session, filename, models=None, format=None,
         'append': append,
         'compress': compress,
         'base_index': base_index,
-    }
+    })
     
     save_func(session, filename, **kw)
 
