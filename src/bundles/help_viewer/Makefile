@@ -25,7 +25,7 @@ endif
 WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
 
 PYSRCS = $(filter-out setup.py,$(wildcard *.py))
-DATAFILES = home.png zoom-plus.png zoom-minus.png
+DATAFILES = $(wildcard *.png)
 WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-py3-none-any.whl
 
 all: $(PYOBJS)
