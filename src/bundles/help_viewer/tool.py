@@ -70,16 +70,20 @@ class HelpUI(ToolInstance):
         tb.addWidget(self.search)
 
         from PyQt5.QtWebEngineWidgets import QWebEngineView
-        class HelpWebView(QWebEngineView):
-            def __init__(self, ses=session):
+        from chimerax.core.ui.widgets import HtmlView
+        class HelpWebView(HtmlView):
+
+            def __init__(self, link_clicked, ses=session):
+                super().__init__(
+                    schemes=['help', 'cxcmd'],
+                    interceptor=link_clicked)
                 self.session = ses
-                QWebEngineView.__init__(self)
 
             def createWindow(self, win_type):
                 # win_type is window, tab, dialog, backgroundtab
                 help_ui = HelpUI.get_viewer(self.session)  # TODO: target
                 return help_ui.help_window
-        self.help_window = HelpWebView()
+        self.help_window = HelpWebView(self.link_clicked)
         layout.addWidget(self.help_window)
         self.help_window.loadFinished.connect(self.page_loaded)
         self.help_window.titleChanged.connect(self.title_changed)
@@ -100,8 +104,6 @@ class HelpUI(ToolInstance):
             self.forward.setEnabled(False)
         from PyQt5.QtCore import QUrl
         self.help_window.setUrl(QUrl(url))
-
-    # wx event handling
 
     def page_back(self, checked):
         self.help_window.history().back()
@@ -136,6 +138,20 @@ class HelpUI(ToolInstance):
 
     def title_changed(self, title):
         self.tool_window.title = title
+
+    def link_clicked(self, request_info, *args):
+        session = self.session
+        qurl = request_info.requestUrl()
+        scheme = qurl.scheme()
+        if scheme in ('http', 'file'):
+            return
+        if scheme in ('cxcmd', 'help'):
+            from .cmd import help
+            #help(session, topic=qurl.url(), target=self.target)
+            session.ui.thread_safe(help, session, topic=qurl.url(), target=self.target)
+            return
+        # unknown scheme
+        session.logger.error("Unknown URL scheme: '%s'" % scheme)
 
     @classmethod
     def get_viewer(cls, session, target=None):

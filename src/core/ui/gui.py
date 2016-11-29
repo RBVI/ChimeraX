@@ -77,29 +77,6 @@ class UI(QApplication):
         from .mousemodes import MouseModes
         self.mouse_modes = MouseModes(session)
 
-        from PyQt5.QtCore import QObject, pyqtSlot
-        class CxUrlHandler(QObject):
-            def __init__(self, session):
-                QObject.__init__(self)
-                self.session = session
-
-            @pyqtSlot("QUrl")
-            def handle_help_schema(self, qurl):
-                from ..commands import run
-                run(self.session, "help %s" % qurl.toString(), log=False)
-
-            @pyqtSlot("QUrl")
-            def handle_cxcmd_schema(self, qurl):
-                from ..commands import run
-                from PyQt5.QtCore import QUrl
-                cmd = qurl.toString(QUrl.RemoveScheme)
-                run(self.session, cmd, log=True)
-
-        self.cxUrlHandler = CxUrlHandler(session)
-        from PyQt5.QtGui import QDesktopServices
-        QDesktopServices.setUrlHandler("cxcmd", self.cxUrlHandler.handle_cxcmd_schema)
-        QDesktopServices.setUrlHandler("help", self.cxUrlHandler.handle_help_schema)
-
         # for whatever reason, QtWebEngineWidgets has to be imported before a
         # QtCoreApplication is created...
         import PyQt5.QtWebEngineWidgets
