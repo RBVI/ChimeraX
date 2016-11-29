@@ -1,5 +1,7 @@
 # vim: set expandtab ts=4 sw=4:
 
+from .settings import settings, SINGLE_PREFIX
+
 """TODO
 from Consensus import Consensus
 from Conservation import Conservation
@@ -187,7 +189,7 @@ class SeqCanvas:
 
     """TODO
     def activeNode(self):
-        return self.leadBlock.treeNodeMap['active']
+        return self.lead_block.treeNodeMap['active']
 
     def _addDelSeqsCB(self, trigName, myData, trigData):
         self._clustalXcache = {}
@@ -210,7 +212,7 @@ class SeqCanvas:
                 '<Double-Button>': lambda e, s=seq: self.mav._editSeqName(s)
             }
         self.mav.regionBrowser._preAddLines(seqs)
-        self.leadBlock.addSeqs(seqs)
+        self.lead_block.addSeqs(seqs)
         self.mav.regionBrowser.redrawRegions()
 
     def adjustScrolling(self):
@@ -369,15 +371,14 @@ class SeqCanvas:
         '''alignment sequence has gained or lost associated structure'''
         self.lead_block.assoc_mod(aseq)
 
-    """TODO
-    def bboxList(self, line1, line2, pos1, pos2, coverGaps=True):
+    def bbox_list(self, line1, line2, pos1, pos2, cover_gaps=True):
         '''return coords that bound given lines and positions'''
-        return self.leadBlock.bboxList(line1, line2, pos1, pos2,
-                                coverGaps)
+        return self.lead_block.bbox_list(line1, line2, pos1, pos2, cover_gaps)
 
+    """TODO
     def boundedBy(self, x1, y1, x2, y2):
         '''return lines and offsets bounded by given coords'''
-        return self.leadBlock.boundedBy(x1, y1, x2, y2)
+        return self.lead_block.boundedBy(x1, y1, x2, y2)
 
     def _attrsUpdateCB(self):
         self._delayedAttrsHandler = None
@@ -454,7 +455,7 @@ class SeqCanvas:
             self.mav.status("Region copied")
 
     def dehighlightName(self):
-        self.leadBlock.dehighlightName()
+        self.lead_block.dehighlightName()
 
     def deleteHeaders(self, headers):
         if not headers:
@@ -487,7 +488,7 @@ class SeqCanvas:
                         self._residueHandlers[1])
         for header in self.headers:
             header.destroy()
-        self.leadBlock.destroy()
+        self.lead_block.destroy()
         
     def _editHdrCB(self):
         left, right = self._editBounds
@@ -548,7 +549,7 @@ class SeqCanvas:
             self._undoRedo(True)
 
     def headerDisplayOrder(self):
-        return self.leadBlock.lines[:-len(self.alignment.seqs)]
+        return self.lead_block.lines[:-len(self.alignment.seqs)]
 
     def hideHeaders(self, headers, fromMenu=False):
         headers = [hd for hd in headers if self.displayHeader[hd]]
@@ -558,10 +559,10 @@ class SeqCanvas:
         # only handle headers in continuous blocks...
         if len(headers) > 1:
             continuous = True
-            li = self.leadBlock.lineIndex[headers[0]]
+            li = self.lead_block.line_index[headers[0]]
             for header in headers[1:]:
                 li += 1
-                if self.leadBlock.lineIndex[header] != li:
+                if self.lead_block.line_index[header] != li:
                     continuous = False
                     break
             if not continuous:
@@ -577,7 +578,7 @@ class SeqCanvas:
             self.mav.prefs[STARTUP_HEADERS] = startHeaders
         self.displayHeader.update({}.fromkeys(headers, False))
         self.mav.regionBrowser._preDelLines(headers)
-        self.leadBlock.hideHeaders(headers)
+        self.lead_block.hideHeaders(headers)
         self.mav.regionBrowser.redrawRegions(cullEmpty=True)
         self.mav.triggers.activateTrigger(HIDE_HEADERS, headers)
         """
@@ -672,7 +673,7 @@ class SeqCanvas:
                         and not singleSequence
         self.showNumberings = [self.mav.leftNumberingVar.get(),
                     self.mav.rightNumberingVar.get()]
-        self.leadBlock = SeqBlock(self._labelCanvas(), self.mainCanvas,
+        self.lead_block = SeqBlock(self._labelCanvas(), self.mainCanvas,
             None, self.font, 0, initialHeaders, self.alignment.seqs,
             self.lineWidth, self.labelBindings, lambda *args, **kw:
             self.mav.status(secondary=True, *args, **kw),
@@ -709,7 +710,7 @@ class SeqCanvas:
             if seq not in assocSeqs:
                 assocSeqs.append(seq)
         if assocSeqs:
-            self.leadBlock._molChange(assocSeqs)
+            self.lead_block._molChange(assocSeqs)
 
     def _multiScroll(self, *args):
         self.labelCanvas.yview(*args)
@@ -725,7 +726,7 @@ class SeqCanvas:
         self.font = tkFont.Font(self.mainCanvas, (fontname, fontsize))
         self.mav.status("Changing to %d point %s"
                     % (fontsize, fontname), blankAfter=0)
-        self.leadBlock.fontChange(self.font)
+        self.lead_block.fontChange(self.font)
         self.refreshTree()
         self.mav.regionBrowser.redrawRegions()
         self.mav.status("Font changed")
@@ -739,7 +740,7 @@ class SeqCanvas:
         self._reformat()
 
     def _pageDownCB(self, event):
-        numBlocks = self.leadBlock.numBlocks()
+        numBlocks = self.lead_block.numBlocks()
         v1, v2 = self.mainCanvas.yview()
         for i in range(numBlocks-1):
             if (i + 0.1) / numBlocks > v1:
@@ -752,7 +753,7 @@ class SeqCanvas:
         self.labelCanvas.yview_moveto(float(numBlocks - 1) / numBlocks)
 
     def _pageUpCB(self, event):
-        numBlocks = self.leadBlock.numBlocks()
+        numBlocks = self.lead_block.numBlocks()
         v1, v2 = self.mainCanvas.yview()
         for i in range(numBlocks):
             if (i + 0.1) / numBlocks >= v1:
@@ -813,7 +814,7 @@ class SeqCanvas:
         for header in self.headers:
             header.reevaluate()
         self._clustalXcache = {}
-        self.leadBlock.realign(prevLen)
+        self.lead_block.realign(prevLen)
         if savedSNs[0]:
             self.setLeftNumberingDisplay(True)
         if savedSNs[1]:
@@ -830,7 +831,7 @@ class SeqCanvas:
                 region.addBlocks(blocks)
 
     def recolor(self, seq):
-        self.leadBlock.recolor(seq)
+        self.lead_block.recolor(seq)
 
     def _recomputeScrollers(self, width=None, height=None, xShowAt=None):
         if width is None:
@@ -880,10 +881,10 @@ class SeqCanvas:
                                 blankAfter=0)
         if self.tree:
             activeNode = self.activeNode()
-        self.leadBlock.destroy()
+        self.lead_block.destroy()
         initialHeaders = [hd for hd in self.headers
                         if self.displayHeader[hd]]
-        self.leadBlock = SeqBlock(self._labelCanvas(), self.mainCanvas,
+        self.lead_block = SeqBlock(self._labelCanvas(), self.mainCanvas,
             None, self.font, 0, initialHeaders, self.alignment.seqs,
             self.lineWidth, self.labelBindings, lambda *args, **kw:
             self.mav.status(secondary=True, *args, **kw),
@@ -891,11 +892,11 @@ class SeqCanvas:
             self.mav.prefs)
         if self.tree:
             if self.treeShown:
-                self.leadBlock.showTree({'tree': self.tree},
+                self.lead_block.showTree({'tree': self.tree},
                     self._treeCallback, self.nodesShown,
                     active=activeNode)
             else:
-                self.leadBlock.treeNodeMap = {'active':
+                self.lead_block.treeNodeMap = {'active':
                                 activeNode }
         self.mav.regionBrowser.redrawRegions(cullEmpty=cullEmpty)
         if len(self.alignment.seqs) != len(self._checkPoints[0]):
@@ -909,13 +910,13 @@ class SeqCanvas:
             return
         if right is None:
             right = len(self.alignment.seqs[0])-1
-        self.leadBlock.refresh(seq, left, right)
+        self.lead_block.refresh(seq, left, right)
         if updateAttrs:
             self.mav.setResidueAttrs()
 
     def refreshTree(self):
         if self.treeShown:
-            self.leadBlock.showTree({'tree': self.tree},
+            self.lead_block.showTree({'tree': self.tree},
                     self._treeCallback, self.nodesShown,
                     active=self.activeNode())
 
@@ -997,10 +998,10 @@ class SeqCanvas:
 
     def seeBlocks(self, blocks):
         '''scroll canvas to show given blocks'''
-        minx, miny, maxx, maxy = self.bboxList(coverGaps=True,
+        minx, miny, maxx, maxy = self.bbox_list(cover_gaps=True,
                                 *blocks[0])[0]
         for block in blocks:
-            for x1, y1, x2, y2 in self.bboxList(coverGaps=True,
+            for x1, y1, x2, y2 in self.bbox_list(cover_gaps=True,
                                 *block):
                 minx = min(minx, x1)
                 miny = min(miny, y1)
@@ -1010,7 +1011,7 @@ class SeqCanvas:
         viewHeight = float(self.mainCanvas.cget('height'))
         if maxx - minx > viewWidth or maxy - miny > viewHeight:
             # blocks don't fit in view; just show first block
-            minx, miny, maxx, maxy = self.bboxList(coverGaps=True,
+            minx, miny, maxx, maxy = self.bbox_list(cover_gaps=True,
                                 *blocks[0])[0]
         cx = (minx + maxx) / 2
         cy = (miny + maxy) / 2
@@ -1035,7 +1036,7 @@ class SeqCanvas:
 
     def seeSeq(self, seq, highlightName):
         '''scroll up/down to center given seq, and possibly highlight name'''
-        minx, miny, maxx, maxy = self.bboxList(seq, seq, 0, 0)[0]
+        minx, miny, maxx, maxy = self.bbox_list(seq, seq, 0, 0)[0]
         viewHeight = float(self.mainCanvas.cget('height'))
         cy = (miny + maxy) / 2
         
@@ -1051,7 +1052,7 @@ class SeqCanvas:
             self.labelCanvas.yview_moveto(starty)
         self.mainCanvas.yview_moveto(starty)
         if highlightName:
-            self.leadBlock.highlightName(seq)
+            self.lead_block.highlightName(seq)
 
     def setClustalParams(self, categories, colorings):
         self._clustalXcache = {}
@@ -1105,7 +1106,7 @@ class SeqCanvas:
         if self.showNumberings[0] == showNumbering:
             return
         self.showNumberings[0] = showNumbering
-        self.leadBlock.setLeftNumberingDisplay(showNumbering)
+        self.lead_block.setLeftNumberingDisplay(showNumbering)
         self.mav.regionBrowser.redrawRegions()
         self._resizescrollregion()
         self._recomputeScrollers()
@@ -1114,7 +1115,7 @@ class SeqCanvas:
         if self.showNumberings[1] == showNumbering:
             return
         self.showNumberings[1] = showNumbering
-        self.leadBlock.setRightNumberingDisplay(showNumbering)
+        self.lead_block.setRightNumberingDisplay(showNumbering)
         self._resizescrollregion()
         if showNumbering:
             self._recomputeScrollers(xShowAt=1.0)
@@ -1125,7 +1126,7 @@ class SeqCanvas:
         if showRuler == self.showRuler:
             return
         self.showRuler = showRuler
-        self.leadBlock.setRulerDisplay(showRuler)
+        self.lead_block.setRulerDisplay(showRuler)
         self.mav.regionBrowser.redrawRegions(cullEmpty=not showRuler)
 
     def _cfBlack(self, line, offset):
@@ -1207,7 +1208,7 @@ class SeqCanvas:
             self.mav.prefs[STARTUP_HEADERS] = startHeaders
         self.displayHeader.update({}.fromkeys(headers, True))
         self.mav.regionBrowser._preAddLines(headers)
-        self.leadBlock.showHeaders(headers)
+        self.lead_block.showHeaders(headers)
         self.mav.regionBrowser.redrawRegions()
         self.mav.setResidueAttrs()
         self.mav.triggers.activateTrigger(SHOW_HEADERS, headers)
@@ -1216,27 +1217,27 @@ class SeqCanvas:
         if show == self.nodesShown:
             return
         self.nodesShown = show
-        self.leadBlock.showNodes(show)
+        self.lead_block.showNodes(show)
 
     def showTree(self, show):
         if show == self.treeShown or not self.tree:
             return
 
         if show:
-            self.leadBlock.showTree({'tree': self.tree},
+            self.lead_block.showTree({'tree': self.tree},
                         self._treeCallback, True,
                         active=self.activeNode())
             self.mav.triggers.activateTrigger(
                             DISPLAY_TREE, self.tree)
         else:
-            self.leadBlock.showTree(None, None, None)
+            self.lead_block.showTree(None, None, None)
             self.mav.triggers.activateTrigger(DISPLAY_TREE, None)
         self._resizescrollregion()
         self._recomputeScrollers(xShowAt=0.0)
         self.treeShown = show
 
     def updateNumberings(self):
-        self.leadBlock.updateNumberings()
+        self.lead_block.updateNumberings()
         self._resizescrollregion()
 
     def usePhyloTree(self, tree, callback=None):
@@ -1246,8 +1247,8 @@ class SeqCanvas:
             tree.assignXpositions(branchStyle="weighted")
             tree.assignXdeltas()
             treeInfo['tree'] = tree
-        self.leadBlock.showTree(treeInfo, callback, True)
-        self.leadBlock.activateNode(tree)
+        self.lead_block.showTree(treeInfo, callback, True)
+        self.lead_block.activateNode(tree)
         self._resizescrollregion()
         self._recomputeScrollers(xShowAt=0.0)
         self.tree = tree
@@ -1538,17 +1539,14 @@ class SeqBlock:
         right_rect_off = self.font_pixels[0] - half_x
         return half_x, left_rect_off, right_rect_off
 
-    """TODO
-    def bboxList(self, line1, line2, pos1, pos2, coverGaps):
+    def bbox_list(self, line1, line2, pos1, pos2, cover_gaps):
         if pos1 >= self.seq_offset + self.line_width:
-            return self.next_block.bboxList(line1, line2, pos1, pos2,
-                                coverGaps)
+            return self.next_block.bbox_list(line1, line2, pos1, pos2, cover_gaps)
         left = max(pos1, self.seq_offset) - self.seq_offset
-        right = min(pos2, self.seq_offset + self.line_width - 1) \
-                            - self.seq_offset
+        right = min(pos2, self.seq_offset + self.line_width - 1) - self.seq_offset
         bboxes = []
-        if coverGaps:
-            bboxes.append(self._boxCorners(left,right,line1,line2))
+        if cover_gaps:
+            bboxes.append(self._box_corners(left,right,line1,line2))
         else:
             l1 = self.line_index[line1]
             l2 = self.line_index[line2]
@@ -1557,47 +1555,42 @@ class SeqBlock:
             for line in self.lines[l1:l2+1]:
                 l = None
                 for lo in range(left, right+1):
-                    if line.gapped2ungapped(lo +
-                            self.seq_offset) is None:
+                    if line.gapped_to_ungapped(lo + self.seq_offset) is None:
                         # gap
                         if l is not None:
-                            bboxes.append(self._boxCorners(l, lo-1, line, line))
+                            bboxes.append(self._box_corners(l, lo-1, line, line))
                             l = None
                     else:
                         # not gap
                         if l is None:
                             l = lo
                 if l is not None:
-                    bboxes.append(self._boxCorners(
-                            l, right, line, line))
-                            
+                    bboxes.append(self._box_corners(l, right, line, line))
+
         if pos2 >= self.seq_offset + self.line_width:
-            bboxes.extend(self.next_block.bboxList(
-                    line1, line2, pos1, pos2, coverGaps))
+            bboxes.extend(self.next_block.bbox_list(line1, line2, pos1, pos2, cover_gaps))
         return bboxes
 
-    def _boxCorners(self, left, right, line1, line2):
+    def _box_corners(self, left, right, line1, line2):
         ulx = self._left_seqs_edge() + left * (
-                self.letter_gaps[0] + self.font_pixels[0]) \
-                + int(left/10) * self.chunk_gap
-        uly = self.bottom_ruler_y + self.letter_gaps[1] \
-                + self.line_index[line1] * (
+                self.letter_gaps[0] + self.font_pixels[0]) + int(left/10) * self.chunk_gap
+        uly = self.bottom_ruler_y + self.letter_gaps[1] + self.line_index[line1] * (
                 self.font_pixels[1] + self.letter_gaps[1])
         lrx = self._left_seqs_edge() - self.letter_gaps[0] + (right+1) * (
-                self.letter_gaps[0] + self.font_pixels[0]) \
-                + int(right/10) * self.chunk_gap
+                self.letter_gaps[0] + self.font_pixels[0]) + int(right/10) * self.chunk_gap
         lry = self.bottom_ruler_y + (self.line_index[line2] + 1) * (
                 self.font_pixels[1] + self.letter_gaps[1])
+        sep_attr_name = "column_separation"
         if len(self.alignment.seqs) == 1:
-            prefPrefix = SINGLE_PREFIX
-        else:
-            prefPrefix = ""
-        if self.prefs[prefPrefix + COLUMN_SEP] < -1:
-            overlap = int(abs(self.prefs[prefPrefix + COLUMN_SEP]) / 2)
+            sep_attr_name = SINGLE_PREFIX + sep_attr_name
+        sep = getattr(settings, sep_attr_name)
+        if sep < -1:
+            overlap = int(abs(sep) / 2)
             ulx += overlap
             lrx -= overlap
         return ulx, uly, lrx, lry
 
+    """TODO
     def boundedBy(self, x1, y1, x2, y2):
         end = self.bottom_y + self.block_gap
         if y1 > end and y2 > end:

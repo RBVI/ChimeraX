@@ -150,8 +150,9 @@ class MultalignViewer(ToolInstance):
             for aseq in self.alignment.seqs:
                 if aseq.match_maps:
                     self.seq_canvas.assoc_mod(aseq)
+        from .region_browser import RegionBrowser
+        self.region_browser = RegionBrowser(self.seq_canvas)
         """TODO
-        self.regionBrowser = RegionBrowser(self.seq_canvas)
         if self.fileMarkups:
             from HeaderSequence import FixedHeaderSequence
             headers = []
@@ -406,6 +407,33 @@ class MultalignViewer(ToolInstance):
     def delete(self):
         self.alignment.detach_viewer(self)
         ToolInstance.delete(self)
+
+    def new_region(self, **kw):
+        if 'blocks' in kw:
+            # interpret numeric values as indices into sequences
+            blocks = kw['blocks']
+            if blocks and isinstance(blocks[0][0], int):
+                blocks = [(self.alignment.seqs[i1], self.alignment.seqs[i2], i3, i4)
+                        for i1, i2, i3, i4 in blocks]
+                kw['blocks'] = blocks
+        if 'columns' in kw:
+            # in lieu of specifying blocks, allow list of columns
+            # (implicitly all rows); list should already be in order
+            left = right = None
+            blocks = []
+            for col in kw['columns']:
+                if left is None:
+                    left = right = col
+                elif col > right + 1:
+                    blocks.append((self.alignment.seqs[0], self.alignment.seqs[-1], left, right))
+                    left = right = col
+                else:
+                    right = col
+            if left is not None:
+                blocks.append((self.alignment.seqs[0], self.alignment.seqs[-1], left, right))
+            kw['blocks'] = blocks
+            del kw['columns']
+        return self.region_browser.new_region(**kw)
 
 def _start_mav(session, tool_name, alignment=None):
     if alignment is None:

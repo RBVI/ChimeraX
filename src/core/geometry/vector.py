@@ -31,6 +31,7 @@ __all__ = [
     'inner_product_64',
     'inner_product',
     'distance',
+    'distance_squared',
 ]
 
 from .matrix import vector_sum
@@ -51,16 +52,18 @@ def inner_product(u, v):
     '''Return the inner product of two vectors.'''
     return (u * v).sum()
 
+def distance_squared(p, q):
+    '''Return the distance squared between two points.'''
+    if len(p) == 3:
+        # Much faster than using numpy operations.
+        dx,dy,dz = p[0]-q[0], p[1]-q[1], p[2]-q[2]
+        return dx*dx + dy*dy + dz*dz
+    return sum((pi-qi)*(pi-qi) for pi,qi in zip(p,q))
 
 def distance(p, q):
     '''Return the distance between two points.'''
     from math import sqrt
-    if len(p) == 3:
-        # Much faster than using numpy operations.
-        dx,dy,dz = p[0]-q[0], p[1]-q[1], p[2]-q[2]
-        return sqrt(dx*dx + dy*dy + dz*dz)
-    d = sqrt(sum((pi-qi)*(pi-qi) for pi,qi in zip(p,q)))
-    return d
+    return sqrt(distance_squared(p, q))
 
 def interpolate_points(p1, p2, f):
     '''Linearly interpolate from point p1 to p2 by fraction f (0 -> p1, 1 -> p2).'''

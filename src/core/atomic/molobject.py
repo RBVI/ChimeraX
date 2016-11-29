@@ -1659,6 +1659,11 @@ class SeqMatchMap:
         self.session = session
         self._handler = session.triggers.add_handler("atomic changes", self._atomic_changes)
 
+    def __contains__(self, i):
+        if isinstance(i, int):
+            return i in self._pos_to_res
+        return i in self._res_to_pos
+
     def __getitem__(self, i):
         if isinstance(i, int):
             return self._pos_to_res[i]
