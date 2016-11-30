@@ -27,7 +27,7 @@ class GraphicsWindow(QWindow):
         self.session = ui.session
         self.view = ui.session.main_view
 
-        self.context_created = False
+        self._context_created = False
         self.opengl_context = oc = OpenGLContext(self)
         oc.make_current = self.make_context_current
         oc.swap_buffers = self.swap_buffers
@@ -55,34 +55,32 @@ class GraphicsWindow(QWindow):
 
     def make_context_current(self):
         # creates context if needed
-        oc = self.opengl_context
-        if not self.context_created:
-            ui = self.session.ui
-            oc.setScreen(ui.primaryScreen())
-            oc.setFormat(QSurfaceFormat.defaultFormat())
-            self.setFormat(QSurfaceFormat.defaultFormat())
-            if not oc.create():
-                raise ValueError("Could not create OpenGL context")
-            self.context_created = True
-            sf = oc.format()
-            major, minor = sf.version()
-            rmajor, rminor = ui.required_opengl_version
-            if major < rmajor or (major == rmajor and minor < rminor):
-                raise ValueError("Available OpenGL version ({}.{}) less than required ({}.{})"
-                    .format(major, minor, rmajor, rminor))
-            if ui.required_opengl_core_profile:
-                if sf.profile() != sf.CoreProfile:
-                    raise ValueError("Required OpenGL Core Profile not available")
-        if not oc.makeCurrent(self):
+        if not self._context_created:
+            self._create_context()
+            self._context_created = True
+
+        if not self.opengl_context.makeCurrent(self):
             raise RuntimeError("Could not make graphics context current")
 
-        if self.timer is None:
-            from PyQt5.QtCore import QTimer, Qt
-            self.timer = t = QTimer(self)
-            t.timerType = Qt.PreciseTimer
-            t.timeout.connect(self._redraw_timer_callback)
-            t.start(self.redraw_interval)
-        self.opengl_context.makeCurrent(self)
+    def _create_context(self):
+        ui = self.session.ui
+        oc = self.opengl_context
+        oc.setScreen(ui.primaryScreen())
+        from PyQt5.QtGui import QSurfaceFormat
+        fmt = QSurfaceFormat.defaultFormat()
+        oc.setFormat(fmt)
+        self.setFormat(fmt)
+        if not oc.create():
+            raise ValueError("Could not create OpenGL context")
+        sf = oc.format()
+        major, minor = sf.version()
+        rmajor, rminor = ui.required_opengl_version
+        if major < rmajor or (major == rmajor and minor < rminor):
+            raise ValueError("Available OpenGL version ({}.{}) less than required ({}.{})"
+                .format(major, minor, rmajor, rminor))
+        if ui.required_opengl_core_profile:
+            if sf.profile() != sf.CoreProfile:
+                raise ValueError("Required OpenGL Core Profile not available")
 
     def resizeEvent(self, event):
         s = event.size()
@@ -102,6 +100,15 @@ class GraphicsWindow(QWindow):
     def pixel_scale(self):
         # Ratio Qt pixel size to OpenGL pixel size.  Usually 1, but 2 for Mac retina displays.
         return self.devicePixelRatio()
+
+    def start_redraw_timer(self):
+        if self.timer is not None:
+            return
+        from PyQt5.QtCore import QTimer, Qt
+        self.timer = t = QTimer(self)
+        t.timerType = Qt.PreciseTimer
+        t.timeout.connect(self._redraw_timer_callback)
+        t.start(self.redraw_interval)
 
     def _redraw_timer_callback(self):
         import time
@@ -131,7 +138,7 @@ class Popup(QLabel):
         self.move(self.graphics_window.mapToGlobal(QPoint(*position)))
         self.show()
 
-from PyQt5.QtGui import QOpenGLContext, QSurfaceFormat
+from PyQt5.QtGui import QOpenGLContext
 class OpenGLContext(QOpenGLContext):
     def __init__(self, graphics_window):
         QOpenGLContext.__init__(self, graphics_window)
