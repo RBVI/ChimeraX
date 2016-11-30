@@ -2080,14 +2080,14 @@ class Command:
                         arg_name = ordinal(kw_name)
                     else:
                         arg_name = '"%s"' % kw_name
-                    self._error = 'Invalid %s argument: %s' % (arg_name, err)
+                    self._error = 'Missing or invalid %s argument: %s' % (arg_name, err)
                     return None, None
                 if kw_name in self._ci._required:
                     if isinstance(kw_name, int):
                         arg_name = ordinal(kw_name)
                     else:
                         arg_name = '"%s"' % kw_name
-                    self._error = 'Invalid %s argument: %s' % (arg_name, err)
+                    self._error = 'Missing or invalid %s argument: %s' % (arg_name, err)
                     return None, None
                 # optional and wrong type, try as keyword
                 return last_anno, anno
