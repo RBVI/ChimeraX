@@ -219,7 +219,7 @@ class ContactPlot(Graph):
         allb = gb.atoms
         allb.displays = True
         allb.draw_modes = allb.SPHERE_STYLE
-        gb.color_atoms(ab, color)
+        gb.color_atoms(allb - ab, color)
 
         v = self._session().main_view
         v.camera.position = c.interface_frame(gb)
@@ -230,6 +230,8 @@ class ContactPlot(Graph):
             g.atoms.displays = True
 
     def _show_residue_plot(self, c, flip=False):
+        g = c.group1 if flip else c.group2
+        self._show_interface_residues(c, g)
         from .resplot import ResiduePlot
         ResiduePlot(self._session(), c, flip, self.interface_residue_area_cutoff)
         

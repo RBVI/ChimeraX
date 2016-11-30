@@ -42,7 +42,7 @@ class ResiduePlot(Graph):
         bnodes = tuple(ResidueNode(r, size=800, color=(.7,.7,.7,1), background=True)
                        for r in self.noninterface_residues1)
         edges = ()
-        title = '%s %d residues and %s %d residues' % (g1.name, len(r1), g2.name, len(r2))
+        title = '%s %d residues with %s %d residues' % (g2.name, len(r2), g1.name, len(r1))
         Graph.__init__(self, session, nodes+bnodes, edges, "Chain Contacts", title = title)
         self.font_size = 8
 
@@ -79,6 +79,7 @@ class ResiduePlot(Graph):
     def _show_interface(self):
         aa1 = self.atoms1
         aa1.displays = True
+        aa1.draw_modes = aa1.SPHERE_STYLE
         gray = (180,180,180,255)
         self.noninterface_residues1.atoms.colors = gray
         self.noninterface_residues2.atoms.displays = False
