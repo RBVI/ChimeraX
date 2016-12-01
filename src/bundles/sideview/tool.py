@@ -134,9 +134,6 @@ class SideViewCanvas(QWindow):
             return
         from math import tan, atan, radians
         from numpy import array, float32, uint8, int32
-        self.view._render.shader_programs = \
-            self.main_view._render.shader_programs
-        self.view._render.current_shader_program = None
         # self.view.set_background_color((.3, .3, .3, 1))  # DEBUG
         opengl_context = self.view.render.opengl_context
         gw = opengl_context.window
@@ -287,7 +284,6 @@ class SideViewCanvas(QWindow):
                 string_marker.glStringMarkerGREMEDY(len(text), text)
         finally:
             opengl_context.window = gw	# Reset opengl target to main graphics window
-            self.main_view._render.current_shader_program = None
             # Since we brorrowed the main window's OpenGL context,
             # restore the viewport when done
             from OpenGL import GL
