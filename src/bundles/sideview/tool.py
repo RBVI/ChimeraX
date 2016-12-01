@@ -1,5 +1,4 @@
 # vim: set expandtab ts=4 sw=4:
-
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -135,15 +134,14 @@ class SideViewCanvas(QWindow):
         from math import tan, atan, radians
         from numpy import array, float32, uint8, int32
         # self.view.set_background_color((.3, .3, .3, 1))  # DEBUG
-        opengl_context = self.view.render.opengl_context
-        gw = opengl_context.window
-        opengl_context.window = self
+        mvwin = self.view.render.use_shared_context(self, width, height)
         try:
-            from OpenGL.GL.GREMEDY import string_marker
-            has_string_marker = string_marker.glInitStringMarkerGREMEDY()
-            if has_string_marker:
-                text = b"Start SideView"
-                string_marker.glStringMarkerGREMEDY(len(text), text)
+            # TODO: This stuff should be in graphics/opengl.py
+            # from OpenGL.GL.GREMEDY import string_marker
+            # has_string_marker = string_marker.glInitStringMarkerGREMEDY()
+            # if has_string_marker:
+            #     text = b"Start SideView"
+            #     string_marker.glStringMarkerGREMEDY(len(text), text)
             main_view = self.main_view
             main_camera = main_view.camera
             ortho = hasattr(main_camera, 'field_width')
@@ -275,21 +273,14 @@ class SideViewCanvas(QWindow):
                 [8, 10],   # left plane
                 [9, 11],   # right plane
             ], dtype=int32)
-            opengl_context.make_current()  # protect against having wrong (Qt?) context
-            from OpenGL import GL
-            GL.glViewport(0, 0, width, height)
             self.view.draw()
-            if has_string_marker:
-                text = b"End SideView"
-                string_marker.glStringMarkerGREMEDY(len(text), text)
+            # if has_string_marker:
+            #     text = b"End SideView"
+            #     string_marker.glStringMarkerGREMEDY(len(text), text)
         finally:
-            opengl_context.window = gw	# Reset opengl target to main graphics window
-            # Since we brorrowed the main window's OpenGL context,
-            # restore the viewport when done
-            from OpenGL import GL
-            GL.glViewport(0, 0, ww, wh)
-        opengl_context.done_current()
-
+            # Target opengl context back to main graphics window.
+            self.main_view.render.use_shared_context(mvwin, ww, wh)
+        self.view.render.done_current()
 
     def mousePressEvent(self, event):
         from PyQt5.QtCore import Qt

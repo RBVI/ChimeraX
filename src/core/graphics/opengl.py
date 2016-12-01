@@ -101,11 +101,11 @@ class Render:
         if not hasattr(oc, 'shader_programs'):
             oc.shader_programs = {}
             oc.current_shader_program = None
+            oc.current_viewport = None
 
         self.enable_capabilities = 0    # Bit field of SHADER_* capabilities
         self.disable_capabilities = 0
 
-        self.current_viewport = None
         self.current_projection_matrix = None   # Used when switching shaders
         self.current_model_view_matrix = None   # Used when switching shaders
         # Used for optimizing model view matrix updates:
@@ -157,12 +157,33 @@ class Render:
     def make_current(self):
         self._opengl_context.make_current()
 
+    def done_current(self):
+        self._opengl_context.done_current()
+
     def swap_buffers(self):
         self._opengl_context.swap_buffers()
+
+    def use_shared_context(self, window, width, height):
+        '''
+        Switch opengl context to use the specified target window.
+        Multiple Render instances can share the same opengl context
+        using this method.
+        '''
+        oc = self._opengl_context
+        prev_win = oc.window
+        oc.window = window
+        self.set_viewport(0,0,width,height)
+        return prev_win
 
     @property
     def current_shader_program(self):
         return self._opengl_context.current_shader_program
+
+    def _get_current_viewport(self):
+        return self._opengl_context.current_viewport
+    def _set_current_viewport(self, xywh):
+        self._opengl_context.current_viewport = xywh
+    current_viewport = property(_get_current_viewport, _set_current_viewport)
 
     def default_framebuffer(self):
         if self._default_framebuffer is None:
