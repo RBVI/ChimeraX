@@ -39,70 +39,52 @@ class HelpUI(ToolInstance):
         # UI content code
         from PyQt5.QtWidgets import QToolBar, QVBoxLayout, QAction, QLineEdit
         from PyQt5.QtGui import QIcon
+        # from PyQt5.QtCore import Qt
         self.toolbar = tb = QToolBar()
+        # tb.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         layout = QVBoxLayout()
         layout.addWidget(tb)
         parent.setLayout(layout)
-        style = tb.style()
-        self.back = QAction(style.standardIcon(style.SP_ArrowBack), "Back to previous page", tb)
-        self.back.triggered.connect(self.page_back)
-        self.back.setEnabled(False)
-        tb.addAction(self.back)
-        self.forward = QAction(style.standardIcon(style.SP_ArrowForward), "Next page", tb)
-        self.forward.triggered.connect(self.page_forward)
-        self.forward.setEnabled(False)
-        tb.addAction(self.forward)
         import os.path
-        d = os.path.dirname(__file__)
-        icon_path = os.path.join(d, "home.png")
-        self.home = QAction(QIcon(icon_path), "Home page", tb)
-        self.home.triggered.connect(self.go_home)
-        self.home.setEnabled(False)
-        tb.addAction(self.home)
-        icon_path = os.path.join(d, "zoom-plus.png")
-        self.zoom_in = QAction(QIcon(icon_path), "Zoom in", tb)
-        self.zoom_in.triggered.connect(self.page_zoom_in)
-        font = self.zoom_in.font()
-        font.setPointSize(48)
-        self.zoom_in.setFont(font)
-        tb.addAction(self.zoom_in)
-        icon_path = os.path.join(d, "zoom-minus.png")
-        self.zoom_out = QAction(QIcon(icon_path), "Zoom out", tb)
-        self.zoom_out.setFont(font)
-        self.zoom_out.triggered.connect(self.page_zoom_out)
-        tb.addAction(self.zoom_out)
+        icon_dir = os.path.dirname(__file__)
+            # attribute, text, tool tip, callback, enabled
+        buttons = (
+            ( "back", "Back", "Back to previous page", self.page_back, False ),
+            ( "forward", "Forward", "Next page", self.page_forward, False ),
+            ( "home", "Home", "Home page", self.page_home, True ),
+            ( "zoom_in", "Zoom in", "Zoom in", self.page_zoom_in, True ),
+            ( "zoom_out", "Zoom out", "Zoom out", self.page_zoom_out, True ),
+            ( "reload", "Reload", "Reload page", self.page_reload, True ),
+        )
+        for attribute, text, tooltip, callback, enabled in buttons:
+            icon_path = os.path.join(icon_dir, "%s.png" % attribute)
+            setattr(self, attribute, QAction(QIcon(icon_path), text, tb))
+            a = getattr(self, attribute)
+            a.setToolTip(tooltip)
+            a.triggered.connect(callback)
+            a.setEnabled(enabled)
+            tb.addAction(a)
+
         self.search = QLineEdit("search")
         self.search.selectAll()
         tb.addWidget(self.search)
 
-        from PyQt5.QtWebEngineWidgets import QWebEngineView
-        class HelpWebView(QWebEngineView):
-            def __init__(self, ses=session):
+        from chimerax.core.ui.widgets import HtmlView
+        class HelpWebView(HtmlView):
+
+            def __init__(self, parent, link_clicked_cb, ses=session):
+                super().__init__(parent, schemes=['help', 'cxcmd'],
+                                 interceptor=link_clicked_cb)
                 self.session = ses
-                QWebEngineView.__init__(self)
 
             def createWindow(self, win_type):
                 # win_type is window, tab, dialog, backgroundtab
                 help_ui = HelpUI.get_viewer(self.session)  # TODO: target
                 return help_ui.help_window
-        self.help_window = HelpWebView()
+        self.help_window = HelpWebView(parent, self.link_clicked)
         layout.addWidget(self.help_window)
-        def link_clicked(qurl, nav_type, is_main_frame):
-            self.link_clicked(qurl)
-            return False
-        self.help_window.page().acceptNavigationRequest = link_clicked
-        """
-        from PyQt5.QtGui import QDesktopServices
-        def t(*args):
-            import sys
-            print("url handler args", args, file=sys.__stderr__)
-        #QDesktopServices.setUrlHandler("cxcmd", t)
-        #QDesktopServices.setUrlHandler("cxcmd", self.link_clicked)
-        QDesktopServices.setUrlHandler("cxcmd", self, "link_clicked")
-        """
         self.help_window.loadFinished.connect(self.page_loaded)
-        self.help_window.titleChanged.connect(
-            lambda title: setattr(self.tool_window, 'title', title))
+        self.help_window.titleChanged.connect(self.title_changed)
         self.search.returnPressed.connect(lambda s=self.search, hw=self.help_window:
             hw.findText(s.text()))
 
@@ -116,32 +98,28 @@ class HelpUI(ToolInstance):
         if set_home or not self.home_page:
             self.help_window.history().clear()
             self.home_page = url
-            self.home.setEnabled(True)
             self.back.setEnabled(False)
             self.forward.setEnabled(False)
         from PyQt5.QtCore import QUrl
         self.help_window.setUrl(QUrl(url))
 
-    # wx event handling
-
     def page_back(self, checked):
         self.help_window.history().back()
-
-    def on_forward(self, event):
-        self.help_window.GoForward()
 
     def page_forward(self, checked):
         self.help_window.history().forward()
 
-    def on_home(self, event):
+    def page_home(self, checked):
         self.show(self.home_page)
-    go_home = on_home
 
     def page_zoom_in(self, checked):
         self.help_window.setZoomFactor(1.25 * self.help_window.zoomFactor())
 
     def page_zoom_out(self, checked):
         self.help_window.setZoomFactor(0.8 * self.help_window.zoomFactor())
+
+    def page_reload(self, checked):
+        self.help_window.reload()
 
     def delete(self):
         ToolInstance.delete(self)
@@ -150,69 +128,28 @@ class HelpUI(ToolInstance):
         except:
             pass
 
-
-    def on_navigated(self, event):
-        self.toolbar.EnableTool(self.back.GetId(),
-                                self.help_window.CanGoBack())
-        self.toolbar.EnableTool(self.forward.GetId(),
-                                self.help_window.CanGoForward())
-
     def page_loaded(self, okay):
         page = self.help_window.page()
         history = self.help_window.history()
         self.back.setEnabled(history.canGoBack())
         self.forward.setEnabled(history.canGoForward())
 
-    def on_navigating(self, event):
+    def title_changed(self, title):
+        self.tool_window.title = title
+
+    def link_clicked(self, request_info, *args):
         session = self.session
-        # Handle event
-        url = event.GetURL()
-        from urllib.parse import urlparse, urlunparse, unquote
-        parts = urlparse(url)
-        url = urlunparse(parts)  # canonicalize
-        if url == self.on_page:
-            # Do not Veto, because it stops page from being shown
+        qurl = request_info.requestUrl()
+        scheme = qurl.scheme()
+        if scheme in ('http', 'file'):
             return
-        url = unquote(url)
-        event.Veto()
-        if parts.scheme in ('cxcmd', 'help', 'file', 'http'):
+        if scheme in ('cxcmd', 'help'):
             from .cmd import help
-            help(session, topic=url, target=self.target)
+            #help(session, topic=qurl.url(), target=self.target)
+            session.ui.thread_safe(help, session, topic=qurl.url(), target=self.target)
             return
         # unknown scheme
-        session.logger.error("Unknown URL scheme: '%s'" % parts.scheme)
-
-    def link_clicked(self, qurl, *args):
-        import sys
-        print("link_clicked!", file=sys.__stderr__)
-        print("link_clicked:", repr(qurl), args, file=sys.__stderr__)
-        session = self.session
-        if qurl.scheme() in ('cxcmd', 'help', 'file', 'http'):
-            from .cmd import help
-            help(session, topic=qurl.url(), target=self.target)
-            return
-        # unknown scheme
-        session.logger.error("Unknown URL scheme: '%s'" % parts.scheme)
-
-    def on_title_change(self, event):
-        new_title = self.help_window.CurrentTitle
-        self.tool_window.set_title(new_title)
-
-    def on_new_window(self, event):
-        session = self.session
-        event.Veto()
-        url = event.GetURL()
-        target = event.GetTarget()
-        # TODO: figure out why target is always None
-        if not target:
-            target = url
-        use_help_viewer = url.startswith('help:') or target.startswith('help:')
-        if use_help_viewer:
-            from .cmd import help
-            help(session, topic=url, target=target)
-        else:
-            import webbrowser
-            webbrowser.open(url)
+        session.logger.error("Unknown URL scheme in help viewer: '%s'" % scheme)
 
     @classmethod
     def get_viewer(cls, session, target=None):
