@@ -232,20 +232,17 @@ class SideViewCanvas(QWindow):
                 loc.far = .5 * width + f / 2
                 camera.field_width = far * width / f
 
-            self.applique.vertex_colors = array([[255, 0, 0, 255]] * 12,
-                                                dtype=uint8)
+            vc = array([[255, 0, 0, 255]] * 12, dtype=uint8)
             if self.moving == self.ON_EYE:
-                colors = self.applique.vertex_colors
-                colors[0] = colors[1] = colors[2] = colors[3] = [255, 255, 0, 255]
+                vc[0] = vc[1] = vc[2] = vc[3] = [255, 255, 0, 255]
             elif self.moving == self.ON_NEAR:
-                colors = self.applique.vertex_colors
-                colors[4] = colors[5] = [255, 255, 0, 255]
+                vc[4] = vc[5] = [255, 255, 0, 255]
             elif self.moving == self.ON_FAR:
-                colors = self.applique.vertex_colors
-                colors[6] = colors[7] = [255, 255, 0, 255]
+                vc[6] = vc[7] = [255, 255, 0, 255]
+            self.applique.vertex_colors = vc
             es = self.EyeSize
             old_vertices = self.applique.vertices
-            self.applique.vertices = array([
+            v = array([
                 loc.eye + [-es, -es, 0], loc.eye + [-es, es, 0],
                 loc.eye + [es, es, 0], loc.eye + [es, -es, 0],
                 (loc.near, loc.bottom, 0), (loc.near, loc.top, 0),
@@ -254,17 +251,21 @@ class SideViewCanvas(QWindow):
                 (0, 0, 0), (0, 0, 0),
             ], dtype=float32)
             if ortho:
-                self.applique.vertices[8] = (loc.near, loc.far_top, 0)
-                self.applique.vertices[9] = (loc.near, loc.far_bottom, 0)
+                v[8] = (loc.near, loc.far_top, 0)
+                v[9] = (loc.near, loc.far_bottom, 0)
             else:
-                self.applique.vertices[8] = loc.eye
-                self.applique.vertices[9] = loc.eye
+                v[8] = loc.eye
+                v[9] = loc.eye
             if self.moving and old_vertices is not None:
-                self.applique.vertices[10] = old_vertices[10]
-                self.applique.vertices[11] = old_vertices[11]
+                ps = self.view.render.pixel_scale()
+                v[10] = old_vertices[10] / ps
+                v[11] = old_vertices[11] / ps
             else:
-                self.applique.vertices[10] = (loc.far, loc.far_top, 0)
-                self.applique.vertices[11] = (loc.far, loc.far_bottom, 0)
+                v[10] = (loc.far, loc.far_top, 0)
+                v[11] = (loc.far, loc.far_bottom, 0)
+            ps = self.view.render.pixel_scale()
+            v *= ps
+            self.applique.vertices = v
             self.applique.triangles = array([
                 [0, 1], [1, 2], [2, 3], [3, 0],  # eye box
                 [4, 5],    # near plane
