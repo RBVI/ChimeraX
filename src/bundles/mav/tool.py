@@ -151,6 +151,7 @@ class MultalignViewer(ToolInstance):
                 if aseq.match_maps:
                     self.seq_canvas.assoc_mod(aseq)
         from .region_browser import RegionBrowser
+        rb_window = self.tool_window.create_child_window(close_destroys=False)
         self.region_browser = RegionBrowser(self.seq_canvas)
         """TODO
         if self.fileMarkups:
