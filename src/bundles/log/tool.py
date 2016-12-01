@@ -14,36 +14,6 @@
 from chimerax.core.tools import ToolInstance
 from chimerax.core.logger import HtmlLog
 
-context_menu_css = """
-.context-menu {
-    display: none;
-    position: absolute;
-    z-index: 100;
-    border: solid 1px #000000;
-    box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.5);
-    cursor: pointer;
-}
-.context-menu-items {
-    list-style-type: none;
-    padding: 0;
-    margin: 0;
-}
-.context-menu-item a:link, a:visited {
-    display: block;
-    color: #000;
-    background-color: #fff;
-    opacity: 1;
-    text-decoration: none;
-    padding: 4px 8px;
-}
-.context-menu-item a:hover, a:active {
-    background-color: #cccccc;
-}
-.context-menu-active {
-    display: block;
-}
-"""
-
 cxcmd_css = """
 .cxcmd {
     display: block;
@@ -151,7 +121,7 @@ class Log(ToolInstance, HtmlLog):
         class HtmlWindow(HtmlView):
 
             def __init__(self, parent, log, link_clicked_cb):
-                super().__init__(parent, schemes=['help', 'cxcmd', 'log'],
+                super().__init__(parent, schemes=['help', 'cxcmd'],
                                  interceptor=link_clicked_cb)
                 self.log = log
                 # as of Qt 5.6.0, the keyboard shortcut for copying text
@@ -168,6 +138,42 @@ class Log(ToolInstance, HtmlLog):
             def sizeHint(self):
                 from PyQt5.QtCore import QSize
                 return QSize(575, 500)
+
+            def contextMenuEvent(self, event):
+                event.accept()
+                cm = getattr(self, 'context_menu', None)
+                if cm is None:
+                    from PyQt5.QtWidgets import QMenu
+                    cm = self.context_menu = QMenu()
+                    def save_image(self=self):
+                        from .cmd import log
+                        log(self.log.session, thumbnail=True)
+                    cm.addAction("Insert image", save_image)
+                    cm.addAction("Save", self.cm_save)
+                    cm.addAction("Clear", self.log.clear)
+                    cm.addAction("Copy selection",
+                        lambda: self.page().triggerAction(self.page().Copy))
+                    cm.addAction("Select all",
+                        lambda: self.page().triggerAction(self.page().SelectAll))
+                    cm.addAction("Help", self.log.display_help)
+                cm.popup(event.globalPos())
+
+            def cm_save(self):
+                from chimerax.core.ui.open_save import export_file_filter, SaveDialog
+                from chimerax.core.io import format_from_name
+                fmt = format_from_name("HTML")
+                ext = fmt.extensions[0]
+                save_dialog = SaveDialog(self, "Save Log",
+                                         name_filter=export_file_filter(format_name="HTML"),
+                                         add_extension=ext)
+                if not save_dialog.exec():
+                    return
+                filename = save_dialog.selectedFiles()[0]
+                if not filename:
+                    from chimerax.core.errors import UserError
+                    raise UserError("No file specified for save log contents")
+                self.log.save(filename)
+
         self.log_window = lw = HtmlWindow(parent, self, self.link_clicked)
         from PyQt5.QtWidgets import QGridLayout, QErrorMessage
         self.error_dialog = QErrorMessage(parent)
@@ -232,7 +238,6 @@ class Log(ToolInstance, HtmlLog):
         self.session.ui.thread_safe(self._show)
 
     def _show(self):
-        css = context_menu_css + cxcmd_css
         html = "<style>%s</style>\n<body onload=\"window.scrollTo(0, document.body.scrollHeight);\">%s</body>" % (cxcmd_css, self.page_source)
         lw = self.log_window
         # Disable and reenable to avoid QWebEngineView taking focus, QTBUG-52999 in Qt 5.7
@@ -274,39 +279,6 @@ class Log(ToolInstance, HtmlLog):
         if scheme in ('cxcmd', 'help'):
             from chimerax.help_viewer.cmd import help
             session.ui.thread_safe(help, session, topic=qurl.url())
-            return
-        if scheme == 'log':
-            #? qurl.setQuery(qurl.query(qurl.FullyDecoded), qurl.DecodedMode)
-            url = qurl.toString()
-            cmd = url.split(':', 1)[1]
-            if cmd == 'help':
-                self.display_help()
-            elif cmd == 'clear':
-                self.clear()
-            elif cmd == 'copy':
-                page = self.log_window.page()
-                page.triggerAction(page.Copy)
-            elif cmd == 'select-all':
-                page = self.log_window.page()
-                page.triggerAction(page.SelectAll)
-            elif cmd == 'save':
-                from chimerax.core.ui.open_save import export_file_filter, SaveDialog
-                from chimerax.core.io import format_from_name
-                fmt = format_from_name("HTML")
-                ext = fmt.extensions[0]
-                save_dialog = SaveDialog(self.log_window, "Save Log",
-                                         name_filter=export_file_filter(format_name="HTML"),
-                                         add_extension=ext)
-                if not save_dialog.exec():
-                    return
-                filename = save_dialog.selectedFiles()[0]
-                if not filename:
-                    from chimerax.core.errors import UserError
-                    raise UserError("No file specified for save log contents")
-                self.save(filename)
-            elif cmd == 'image':
-                from .cmd import log
-                log(self.session, thumbnail=True)
             return
         # unknown scheme
         session.logger.error("Unknown URL scheme in log: '%s'" % scheme)
