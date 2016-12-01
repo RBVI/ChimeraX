@@ -212,6 +212,7 @@ class View:
             if self.camera.do_swap_buffers():
                 self._render.swap_buffers()
             self.redraw_needed = False
+            self.render.done_current()
 
     def check_for_drawing_change(self):
         trig = self.triggers
