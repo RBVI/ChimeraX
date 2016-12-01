@@ -141,7 +141,7 @@ class HelpUI(ToolInstance):
         session = self.session
         qurl = request_info.requestUrl()
         scheme = qurl.scheme()
-        if scheme in ('http', 'file'):
+        if scheme in ('https', 'http', 'file'):
             return
         if scheme in ('cxcmd', 'help'):
             from .cmd import help
