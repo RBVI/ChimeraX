@@ -24,8 +24,7 @@ or derivations thereof.
 class="clRight" title="User Guide Index"/></a>
 
 <font color="brown">
-* this is an experimental feature, with many deficiencies we hope 
-to address in the future *
+* experimental feature, with deficiencies we hope to address in the future *
 </font>
 
 <h3><a href="../index.html#commands">Command</a>: contacts</h3>
@@ -98,10 +97,10 @@ Similarly, clicking an edge shows the atoms of the two connected nodes
 and grays out other nodes and hides their atoms, 
 while Alt-clicking an edge <a href="select.html">selects</a>
 the atoms of the two nodes.
-Clicking the background of the diagram shows all of the chains.
-Only atoms included in the calculation are affected by these actions; 
-other atoms are ignored. 
+Alt-clicking the background of the diagram clears any selection.
 </p><p>
+Most of these actions apply only to the atoms that were specified
+in the <b>contacts</b> command; any other atoms are ignored.
 Showing/hiding atoms by interacting with the diagram does not affect
 <a href="cartoon.html">cartoon</a> or <a href="surface.html">surface</a>
 displays.
@@ -207,34 +206,32 @@ in the <a href="#bgmenu">background context menu</a>):
 - show the corresponding chains; hide others
 (same as clicking the edge)
 <li><b>Show contact residues of [<i>chain1</i>] with [<i>chain2</i>]</b> 
-- show <i>chain2</i> as spheres with its 
+- show only the 
 <i>chain1-chain2</i> <a href="#interface-residues">interface residues</a>
-in light gray, plus only the 
-<i>chain1-chain2</i> <a href="#interface-residues">interface residues</a>
-from <i>chain1</i>; adjust view to interface, orient towards <i>chain2</i>
+of <i>chain1</i>, plus all of <i>chain2</i> as spheres 
+with its non-interface residues in light gray; orient view to face <i>chain2</i>
 <li><b>Show contact residues of [<i>chain2</i>] with [<i>chain1</i>]</b> 
-- show <i>chain1</i> as spheres with its
+- show only the
 <i>chain1-chain2</i> <a href="#interface-residues">interface residues</a>
-in light gray, plus only the 
-<i>chain1-chain2</i> <a href="#interface-residues">interface residues</a>
-from <i>chain2</i>; adjust view to interface, orient towards <i>chain1</i>
+of <i>chain2</i>, plus all of <i>chain1</i> as spheres 
+with its non-interface residues in light gray; orient view to face <i>chain1</i>
 <table class="clRight">
 <tr><td><img class="outline" src="resplot.png" width="220px"
 alt="1i50 C-J residue plot"
 title="1i50 C-J residue plot"></td></tr>
 </table>
 <li><b>Residue plot [<i>chain1</i>] with [<i>chain2</i>]</b> 
-- create an <a href="#residue-plot">interface residue plot</a>, essentially
-a 2D representation of what would be obtained in 3D with
-<b>Show contact residues of [<i>chain1</i>] with [<i>chain2</i>]</b> (above):
-colored circles for individual
+- adjust the 3D view in the same way as 
+<b>Show contact residues of [<i>chain1</i>] with [<i>chain2</i>]</b> (above)
+and create an <a href="#residue-plot">interface residue plot</a>, essentially
+a 2D representation of the 3D view: colored circles for individual
 <i>chain1-chain2</i> <a href="#interface-residues">interface residues</a>
 superimposed on a gray silhouette of the remaining residues of <i>chain2</i>
 <li><b>Residue plot [<i>chain2</i>] with [<i>chain1</i>]</b> 
-- create an <a href="#residue-plot">interface residue plot</a>, essentially
-a 2D representation of what would be obtained in 3D with
-<b>Show contact residues of [<i>chain2</i>] with [<i>chain1</i>]</b> (above):
-colored circles for individual
+- adjust the 3D view in the same way as 
+<b>Show contact residues of [<i>chain2</i>] with [<i>chain1</i>]</b> (above)
+and create an <a href="#residue-plot">interface residue plot</a>, essentially
+a 2D representation of the 3D view: colored circles for individual
 <i>chain1-chain2</i> <a href="#interface-residues">interface residues</a>
 superimposed on a gray silhouette of the remaining residues of <i>chain1</i>
 <li><b>Select [<i>chain1</i>] and [<i>chain2</i>]</b>
@@ -271,12 +268,11 @@ of <i>chain2</i>
 A plot of the chain-chain interface residues 
 can be shown using the <a href="#edgemenu">edge context menu</a>
 in a <a href="#diagram">chain-chain network diagram</a>.
-The residue plot is essentially a 2D projection of what would be
-obtained in 3D with <b>Show [<i>chain2</i>] contact residues</b>
-in the <i>chain1-chain2</i> <a href="#edgemenu">edge context menu</a>:
+The residue plot is a 2D representation of what would be
+obtained in 3D with <b>Show interface</b> (below):
 colored nodes (circles) for individual <i>chain1</i>-<i>chain2</i>
-<a href="#interface-residues">interface residues</a>
-superimposed on a gray silhouette of the remaining residues of <i>chain1</i>.
+<a href="#interface-residues">interface residues</a> superimposed on
+a gray silhouette of the remaining residues of the second chain.
 The interface-residue nodes are colored to match the structure and
 labeled by residue number.
 Clicking a node <a href="select.html">selects</a> the corresponding
@@ -295,12 +291,9 @@ The residue plot has its own context menus, with:
 </p>
 <ul>
 <li><b>Show interface</b>
-- in 3D, show the chain (gray in the plot) as spheres with its
-<a href="#interface-residues">interface residues</a> in light gray, 
-plus only the <a href="#interface-residues">interface residues</a>
-from the other chain; adjust the view to match the plot
-(same as <b>Show [<i>chain2</i>] contact residues</b>
-in the <i>chain1-chain2</i> <a href="#edgemenu">edge context menu</a>)
+- in 3D, show the <a href="#interface-residues">interface residues</a> 
+from the two chains plus the remaining residues of the second chain in 
+light gray; orient view to face the second chain, shown as spheres
 <li><b>Select residue</b> (in residue context menu)
 - <a href="select.html">select</a> the corresponding residue in the structure
 (same as clicking the node)
