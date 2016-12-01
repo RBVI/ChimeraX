@@ -27,11 +27,7 @@ class GraphicsWindow(QWindow):
         self.session = ui.session
         self.view = ui.session.main_view
 
-        self._context_created = False
-        self.opengl_context = oc = OpenGLContext(self)
-        oc.make_current = self.make_context_current
-        oc.swap_buffers = self.swap_buffers
-        oc.pixel_scale = self.pixel_scale
+        self.opengl_context = OpenGLContext(self, ui)
 
         self.redraw_interval = 16  # milliseconds
         #   perhaps redraw interval should be 10 to reduce
@@ -53,35 +49,6 @@ class GraphicsWindow(QWindow):
 
         ui.mouse_modes.set_graphics_window(self)
 
-    def make_context_current(self):
-        # creates context if needed
-        if not self._context_created:
-            self._create_context()
-            self._context_created = True
-
-        if not self.opengl_context.makeCurrent(self):
-            raise RuntimeError("Could not make graphics context current")
-
-    def _create_context(self):
-        ui = self.session.ui
-        oc = self.opengl_context
-        oc.setScreen(ui.primaryScreen())
-        from PyQt5.QtGui import QSurfaceFormat
-        fmt = QSurfaceFormat.defaultFormat()
-        oc.setFormat(fmt)
-        self.setFormat(fmt)
-        if not oc.create():
-            raise ValueError("Could not create OpenGL context")
-        sf = oc.format()
-        major, minor = sf.version()
-        rmajor, rminor = ui.required_opengl_version
-        if major < rmajor or (major == rmajor and minor < rminor):
-            raise ValueError("Available OpenGL version ({}.{}) less than required ({}.{})"
-                .format(major, minor, rmajor, rminor))
-        if ui.required_opengl_core_profile:
-            if sf.profile() != sf.CoreProfile:
-                raise ValueError("Required OpenGL Core Profile not available")
-
     def resizeEvent(self, event):
         s = event.size()
         w, h = s.width(), s.height()
@@ -93,13 +60,6 @@ class GraphicsWindow(QWindow):
         t = self.timer
         if t is not None:
             t.start(self.redraw_interval)
-
-    def swap_buffers(self):
-        self.opengl_context.swapBuffers(self)
-
-    def pixel_scale(self):
-        # Ratio Qt pixel size to OpenGL pixel size.  Usually 1, but 2 for Mac retina displays.
-        return self.devicePixelRatio()
 
     def start_redraw_timer(self):
         if self.timer is not None:
@@ -140,8 +100,53 @@ class Popup(QLabel):
 
 from PyQt5.QtGui import QOpenGLContext
 class OpenGLContext(QOpenGLContext):
-    def __init__(self, graphics_window):
+    def __init__(self, graphics_window, ui):
+        self.window = graphics_window
+        self._ui = ui
         QOpenGLContext.__init__(self, graphics_window)
+        self._context_initialized = False
 
     def __del__(self):
         self.deleteLater()
+
+    def make_current(self, window = None):
+        # creates context if needed
+        if not self._context_initialized:
+            self._initialize_context()
+            self._context_initialized = True
+
+        w = self.window if window is None else window
+        if not self.makeCurrent(w):
+            raise RuntimeError("Could not make graphics context current")
+
+    def _initialize_context(self):
+        ui = self._ui
+        self.setScreen(ui.primaryScreen())
+        from PyQt5.QtGui import QSurfaceFormat
+        fmt = QSurfaceFormat.defaultFormat()
+        self.setFormat(fmt)
+        self.window.setFormat(fmt)
+        if not self.create():
+            raise ValueError("Could not create OpenGL context")
+        sf = self.format()
+        major, minor = sf.version()
+        rmajor, rminor = ui.required_opengl_version
+        if major < rmajor or (major == rmajor and minor < rminor):
+            raise ValueError("Available OpenGL version ({}.{}) less than required ({}.{})"
+                .format(major, minor, rmajor, rminor))
+        if ui.required_opengl_core_profile:
+            if sf.profile() != sf.CoreProfile:
+                raise ValueError("Required OpenGL Core Profile not available")
+
+    def done_current(self):
+        # Makes no context current.
+        self.doneCurrent()
+
+    def swap_buffers(self, window = None):
+        w = self.window if window is None else window
+        self.swapBuffers(w)
+
+    def pixel_scale(self):
+        # Ratio Qt pixel size to OpenGL pixel size.
+        # Usually 1, but 2 for Mac retina displays.
+        return self.window.devicePixelRatio()
