@@ -22,18 +22,14 @@ class ModelPanel(ToolInstance):
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
         self.display_name = "Models"
-        from chimerax.core.ui.gui import MainToolWindow
-
-        class ModelPanelWindow(MainToolWindow):
-            close_destroys = False
-
         self.settings = ModelPanelSettings(session, "ModelPanel")
         last = self.settings.last_use
         from time import time
         now = self.settings.last_use = time()
         short_titles = last != None and now - last < 777700 # about 3 months
 
-        self.tool_window = ModelPanelWindow(self)
+        from chimerax.core.ui.gui import MainToolWindow
+        self.tool_window = MainToolWindow(self, close_destroys=False)
         parent = self.tool_window.ui_area
         from PyQt5.QtWidgets import QTreeWidget, QHBoxLayout, QVBoxLayout, QAbstractItemView, \
             QFrame, QPushButton
