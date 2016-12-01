@@ -37,12 +37,11 @@ def help(session, topic=None, *, option=None, is_query=False, target=None):
     elif topic.startswith('cxcmd:'):
         from urllib.parse import unquote
         cmd = unquote(topic.split(':', 1)[1])
-        # Insert command in command-line entry field
-        for ti in session.tools.list():
-            if ti.bundle_info.name == 'cmd_line':
-                ti.cmd_replace(cmd)
-                ti.execute()
-                break
+        from chimerax.cmd_line.tool import CommandLine
+        ti = CommandLine.get_singleton(session, create=False)
+        if ti:
+            ti.cmd_replace(cmd)
+            ti.execute()
         else:
             # no command line?!?
             run(session, cmd)

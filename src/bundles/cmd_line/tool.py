@@ -164,9 +164,9 @@ class CommandLine(ToolInstance):
         self.text.lineEdit().setFocus(Qt.OtherFocusReason)
 
     @classmethod
-    def get_singleton(cls, session):
+    def get_singleton(cls, session, **kw):
         from chimerax.core import tools
-        return tools.get_singleton(session, CommandLine, 'Command Line Interface')
+        return tools.get_singleton(session, CommandLine, 'Command Line Interface', **kw)
 
 class _HistoryDialog:
 
