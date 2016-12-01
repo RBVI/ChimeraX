@@ -669,13 +669,11 @@ def same_transform(tf1, tf2, angle_tolerance=0, shift_tolerance=0,
     if angle_tolerance == 0 and shift_tolerance == 0:
         return numpy.all(tf1 == tf2)
 
-    from chimera import Point
-    p = Point(*tuple(shift_point))
-    trans = numpy.subtract(apply_matrix(tf1, p) - apply_matrix(tf2, p))
+    trans = apply_matrix(tf1,shift_point) - apply_matrix(tf2,shift_point)
     if length(trans) > shift_tolerance:
         return False
 
-    tf = multiply_matrices(tf1, tf2)
+    tf = multiply_matrices(tf1, invert_matrix(tf2))
     axis, angle = rotation_axis_angle(tf)
     if abs(angle) > angle_tolerance:
         return False
