@@ -146,10 +146,13 @@ class Log(ToolInstance, HtmlLog):
         from chimerax.core.ui.gui import MainToolWindow
         self.tool_window = MainToolWindow(self, close_destroys = False)
         parent = self.tool_window.ui_area
-        from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEnginePage
-        class HtmlWindow(QWebEngineView):
-            def __init__(self, parent, log):
-                super().__init__(parent)
+        from chimerax.core.ui.widgets import HtmlView
+
+        class HtmlWindow(HtmlView):
+
+            def __init__(self, parent, log, link_clicked_cb):
+                super().__init__(parent, schemes=['help', 'cxcmd', 'log'],
+                                 interceptor=link_clicked_cb)
                 self.log = log
                 # as of Qt 5.6.0, the keyboard shortcut for copying text
                 # from the QWebEngineView did nothing on Mac, the below
@@ -165,42 +168,7 @@ class Log(ToolInstance, HtmlLog):
             def sizeHint(self):
                 from PyQt5.QtCore import QSize
                 return QSize(575, 500)
-
-            def contextMenuEvent(self, event):
-                event.accept()
-                cm = getattr(self, 'context_menu', None)
-                if cm is None:
-                    from PyQt5.QtWidgets import QMenu
-                    cm = self.context_menu = QMenu()
-                    def save_image(self=self):
-                        from .cmd import log
-                        log(self.log.session, thumbnail=True)
-                    cm.addAction("Insert image", save_image)
-                    cm.addAction("Save", self.cm_save)
-                    cm.addAction("Clear", self.log.clear)
-                    cm.addAction("Copy selection",
-                        lambda: self.page().triggerAction(self.page().Copy))
-                    cm.addAction("Select all",
-                        lambda: self.page().triggerAction(self.page().SelectAll))
-                    cm.addAction("Help", self.log.display_help)
-                cm.popup(event.globalPos())
-
-            def cm_save(self):
-                from chimerax.core.ui.open_save import export_file_filter, SaveDialog
-                from chimerax.core.io import format_from_name
-                fmt = format_from_name("HTML")
-                ext = fmt.extensions[0]
-                save_dialog = SaveDialog(self, "Save Log",
-                                         name_filter=export_file_filter(format_name="HTML"),
-                                         add_extension=ext)
-                if not save_dialog.exec():
-                    return
-                filename = save_dialog.selectedFiles()[0]
-                if not filename:
-                    from chimerax.core.errors import UserError
-                    raise UserError("No file specified for save log contents")
-                self.log.save(filename)
-        self.log_window = lw = HtmlWindow(parent, self)
+        self.log_window = lw = HtmlWindow(parent, self, self.link_clicked)
         from PyQt5.QtWidgets import QGridLayout, QErrorMessage
         self.error_dialog = QErrorMessage(parent)
         layout = QGridLayout(parent)
@@ -211,18 +179,6 @@ class Log(ToolInstance, HtmlLog):
         self.page_source = ""
         self.tool_window.manage(placement="side")
         session.logger.add_log(self)
-        #self.log_window.contextMenuEvent = self.contextMenuEvent
-        #from PyQt5.QtCore import Qt
-        #self.log_window.setContextMenuPolicy(Qt.CustomContextMenu)
-        #self.log_window.customContextMenuRequested.connect(self.contextMenu)
-        #import sys
-        #print("context menu policy:", self.log_window.contextMenuPolicy(), file=sys.__stderr__)
-        def link_clicked(qurl, nav_type, is_main_frame):
-            self.navigate(qurl)
-            return False
-        lw.page().acceptNavigationRequest = link_clicked
-        #self.log_window.Bind(html2.EVT_WEBVIEW_NAVIGATING, self.on_navigating,
-        #                     id=self.log_window.GetId())
         # Don't record html history as log changes.
         def clear_history(okay, lw=lw):
             lw.history().clear()
@@ -309,17 +265,19 @@ class Log(ToolInstance, HtmlLog):
             lw.load(QUrl.fromLocalFile(self._tf_name))
         lw.setEnabled(True)
 
-    def navigate(self, data):
+    def link_clicked(self, request_info, *args):
         session = self.session
-        # Handle event
-        # data is QUrl
-        url = data.toString()
-        link_handled = lambda: False
-        from urllib.parse import unquote
-        url = unquote(url)
-        link_handled()
-        if url.startswith("log:"):
-            link_handled()
+        qurl = request_info.requestUrl()
+        scheme = qurl.scheme()
+        if scheme in ('http', 'file'):
+            return
+        if scheme in ('cxcmd', 'help'):
+            from chimerax.help_viewer.cmd import help
+            session.ui.thread_safe(help, session, topic=qurl.url())
+            return
+        if scheme == 'log':
+            #? qurl.setQuery(qurl.query(qurl.FullyDecoded), qurl.DecodedMode)
+            url = qurl.toString()
             cmd = url.split(':', 1)[1]
             if cmd == 'help':
                 self.display_help()
@@ -350,14 +308,8 @@ class Log(ToolInstance, HtmlLog):
                 from .cmd import log
                 log(self.session, thumbnail=True)
             return
-        from urllib.parse import urlparse
-        parts = urlparse(url)
-        if parts.scheme in ('', 'cxcmd', 'help', 'file', 'http'):
-            from chimerax.core.commands import run
-            run(session, "help %s" % url, log=False)
-            return
         # unknown scheme
-        session.logger.error("Unknown URL scheme: '%s'" % parts.scheme)
+        session.logger.error("Unknown URL scheme in log: '%s'" % scheme)
 
     def clear(self):
         self.page_source = ""
