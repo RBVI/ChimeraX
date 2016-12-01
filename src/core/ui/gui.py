@@ -77,29 +77,6 @@ class UI(QApplication):
         from .mousemodes import MouseModes
         self.mouse_modes = MouseModes(session)
 
-        from PyQt5.QtCore import QObject, pyqtSlot
-        class CxUrlHandler(QObject):
-            def __init__(self, session):
-                QObject.__init__(self)
-                self.session = session
-
-            @pyqtSlot("QUrl")
-            def handle_help_schema(self, qurl):
-                from ..commands import run
-                run(self.session, "help %s" % qurl.toString(), log=False)
-
-            @pyqtSlot("QUrl")
-            def handle_cxcmd_schema(self, qurl):
-                from ..commands import run
-                from PyQt5.QtCore import QUrl
-                cmd = qurl.toString(QUrl.RemoveScheme)
-                run(self.session, cmd, log=True)
-
-        self.cxUrlHandler = CxUrlHandler(session)
-        from PyQt5.QtGui import QDesktopServices
-        QDesktopServices.setUrlHandler("cxcmd", self.cxUrlHandler.handle_cxcmd_schema)
-        QDesktopServices.setUrlHandler("help", self.cxUrlHandler.handle_help_schema)
-
         # for whatever reason, QtWebEngineWidgets has to be imported before a
         # QtCoreApplication is created...
         import PyQt5.QtWebEngineWidgets
@@ -622,19 +599,20 @@ class ToolWindow:
     The window's :py:attr:`ui_area` attribute is the parent to all the tool's
     widgets for this window.  Call :py:meth:`manage` once the widgets
     are set up to show the tool window in the main interface.
+
+    The :py:keyword:`close_destroys` keyword controls whether closing this window
+    destroys it or hides it.  If it destroys it and this is the main window, all
+    the child windows will also be destroyed.
+
     """
 
-    #: Where the window is placed in the main interface;
+    #: Where the window can be placed in the main interface;
     #: 'side' is either left or right, depending on user preference
     placements = ["side", "right", "left", "top", "bottom"]
 
-    #: Whether closing this window destroys it or hides it.
-    #: If it destroys it and this is the main window, all the
-    #: child windows will also be destroyed
-    close_destroys = True
-
-    def __init__(self, tool_instance, title):
+    def __init__(self, tool_instance, title, *, close_destroys=True):
         self.tool_instance = tool_instance
+        self.close_destroys = close_destroys
         mw = tool_instance.session.ui.main_window
         self.__toolkit = _Qt(self, title, mw)
         self.ui_area = self.__toolkit.ui_area
@@ -723,10 +701,10 @@ class MainToolWindow(ToolWindow):
     tool_instance : a :py:class:`~chimerax.core.tools.ToolInstance` instance
         The tool creating this window.
     """
-    def __init__(self, tool_instance):
-        super().__init__(tool_instance, tool_instance.display_name)
+    def __init__(self, tool_instance, **kw):
+        super().__init__(tool_instance, tool_instance.display_name, **kw)
 
-    def create_child_window(self, title, window_class=None):
+    def create_child_window(self, title, *, window_class=None, **kw):
         """Make additional tool window
 
         Parameters
@@ -738,6 +716,7 @@ class MainToolWindow(ToolWindow):
             Only needed if you want to override methods/attributes in
             order to change behavior.
             Defaults to :py:class:`ChildToolWindow`.
+        kw : Keywords to pass on to the tool window's constructor
         """
 
         if window_class is None:
@@ -745,7 +724,7 @@ class MainToolWindow(ToolWindow):
         elif not issubclass(window_class, ChildToolWindow):
             raise ValueError(
                 "Child window class must inherit from ChildToolWindow")
-        return window_class(self.tool_instance, title)
+        return window_class(self.tool_instance, title, **kw)
 
 class ChildToolWindow(ToolWindow):
     """Child (*i.e.* additional) tool window
@@ -753,8 +732,8 @@ class ChildToolWindow(ToolWindow):
     Only created through use of
     :py:meth:`MainToolWindow.create_child_window` method.
     """
-    def __init__(self, tool_instance, title):
-        super().__init__(tool_instance, title)
+    def __init__(self, tool_instance, title, **kw):
+        super().__init__(tool_instance, title, **kw)
 
 class _Qt:
     def __init__(self, tool_window, title, main_window):

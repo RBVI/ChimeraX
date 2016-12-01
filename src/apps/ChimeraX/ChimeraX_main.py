@@ -487,6 +487,7 @@ def init(argv, event_loop=True):
         sess.logger.info('OpenGL version: ' + r.opengl_version())
         sess.logger.info('OpenGL renderer: ' + r.opengl_renderer())
         sess.logger.info('OpenGL vendor: ' + r.opengl_vendor())
+        sess.ui.main_window.graphics_window.start_redraw_timer()
 
     if opts.module:
         import runpy
@@ -635,4 +636,5 @@ def remove_python_scripts(bin_dir):
             os.remove(path)
 
 if __name__ == '__main__':
-    raise SystemExit(init(sys.argv))
+    exit_code = init(sys.argv)
+    raise SystemExit(exit_code)

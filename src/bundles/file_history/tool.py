@@ -27,10 +27,7 @@ class FilePanel(ToolInstance):
         self._default_image_format = None
 
         from chimerax.core.ui.gui import MainToolWindow
-        class FilesWindow(MainToolWindow):
-            close_destroys = False
-
-        self.tool_window = FilesWindow(self)
+        self.tool_window = MainToolWindow(self, close_destroys = False)
         parent = self.tool_window.ui_area
 
         from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEnginePage

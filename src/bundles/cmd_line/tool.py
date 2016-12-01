@@ -26,9 +26,7 @@ class CommandLine(ToolInstance):
         ToolInstance.__init__(self, session, tool_name)
         from chimerax.core.ui.gui import MainToolWindow
 
-        class CmdWindow(MainToolWindow):
-            close_destroys = False
-        self.tool_window = CmdWindow(self)
+        self.tool_window = MainToolWindow(self, close_destroys=False)
         parent = self.tool_window.ui_area
         self.history_dialog = _HistoryDialog(self)
         from PyQt5.QtWidgets import QComboBox, QHBoxLayout, QLineEdit, QLabel
@@ -164,9 +162,9 @@ class CommandLine(ToolInstance):
         self.text.lineEdit().setFocus(Qt.OtherFocusReason)
 
     @classmethod
-    def get_singleton(cls, session):
+    def get_singleton(cls, session, **kw):
         from chimerax.core import tools
-        return tools.get_singleton(session, CommandLine, 'Command Line Interface')
+        return tools.get_singleton(session, CommandLine, 'Command Line Interface', **kw)
 
 class _HistoryDialog:
 
@@ -180,10 +178,8 @@ class _HistoryDialog:
         self.controller = controller
         from chimerax.core.ui.gui import ChildToolWindow
 
-        class HistoryWindow(ChildToolWindow):
-            close_destroys = False
         self.window = controller.tool_window.create_child_window(
-            "Command History", window_class=HistoryWindow)
+            "Command History", close_destroys=False)
 
         parent = self.window.ui_area
         from PyQt5.QtWidgets import QListWidget, QVBoxLayout, QFrame, QHBoxLayout, QPushButton

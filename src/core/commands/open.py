@@ -195,7 +195,7 @@ def register_command(session):
             ('from_database', DynamicEnum(db_formats)),
             ('ignore_cache', NoArg),
             ('smart_initial_display', BoolArg),
-            ('trajectory', BoolArg),
+            ('trajectory', NoArg),
             # ('id', ModelIdArg),
         ],
         synopsis='read and display data')
