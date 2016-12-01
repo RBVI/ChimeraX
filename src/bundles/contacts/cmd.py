@@ -232,8 +232,8 @@ class Contact(Edge):
         return atoms
 
     def contact_residue_atoms(self, group, min_area = 1):
-        atoms = self.contact_atoms(group, min_area)
-        return atoms.unique_residues.atoms
+        res = self.contact_residues(group, min_area)
+        return res.atoms
 
     def contact_residues(self, group, min_area = 15):
         g1, g2 = self.group1, self.group2

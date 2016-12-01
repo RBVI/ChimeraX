@@ -189,6 +189,7 @@ class ContactPlot(Graph):
         from .cmd import neighbors
         ng = neighbors(g, self.contacts)	# Map neighbor node to Contact
         min_area = self.interface_residue_area_cutoff
+        gca = []
         for h in self.groups:
             if h in ng:
                 c = ng[h]
@@ -198,9 +199,12 @@ class ContactPlot(Graph):
                 atoms.draw_modes = atoms.STICK_STYLE
                 gatoms = c.contact_residue_atoms(g, min_area)
 #                gatoms.draw_modes = gatoms.STICK_STYLE
-                gatoms.colors = color
+                gca.append(gatoms)
             else:
                 h.atoms.displays = (h is g)
+        # Color non-contact atoms gray.
+        from chimerax.core.atomic import concatenate, Atoms
+        g.color_atoms(g.atoms - concatenate(gca,Atoms), color)
 
     def _show_interface_residues(self, c, g, color = (180,180,180,255)):
         for go in self.groups:
