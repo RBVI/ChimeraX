@@ -1,0 +1,150 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: perframe</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: perframe</h3>
+
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>perframe</b> &nbsp;<i>operation</i>&nbsp;
+[&nbsp;<b>range</b>&nbsp;&nbsp;<i>start,end</i>[<i>,step</i>]]<font size="-1"><sub>M</sub></font>&nbsp;
+[&nbsp;<b>frames</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>interval</b>&nbsp;&nbsp;<i>K</i>&nbsp;]
+[&nbsp;<b>zeroPadWidth</b>&nbsp;&nbsp;<i>width</i>]
+[&nbsp;<b>format</b>&nbsp;&nbsp;<i>string</i>]
+[&nbsp;<b>showCommands</b>&nbsp;]
+</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+ <BR><b>~perframe</b></h3>
+<p>
+The <b>perframe</b> command specifies operations to be executed
+at each subsequent display frame, until
+a specified number of frames has elapsed, 
+the end of a value range has been reached, or all per-frame operations 
+have been discontinued collectively with <b>~perframe</b>.
+Multiple per-frame operations can be active simultaneously.
+See also:
+<a href="alias.html"><b>alias</b></a>,
+<a href="coordset.html"><b>coordset</b></a>,
+<a href="../movies.html">making movies</a>
+</p><p>
+A per-frame <i>operation</i> consists of one or more
+<a href="../index.html#commands">commands</a>, optionally
+with embedded substitution arguments ($1, $2, <i>etc.</i>).
+If multiple commands are included, they should be combined into a single line
+with semicolon separators. If <i>operation</i> contains any spaces, it
+should be enclosed in double quotes.
+Alternatively, <i>operation</i> can be a single-word alias
+defined previously with the <a href="alias.html"><b>alias</b></a> command.
+During execution, substitution arguments in <i>operation</i> 
+are replaced by the values of variables described in 
+<b>range</b> specifications and/or a frame counter that starts at 1.
+</p><p>
+The number of frames <i>N</i> at which to perform <i>operation</i> 
+can be indicated
+directly with the <b>frames</b> option or indirectly with <b>range</b>,
+where the substituted value will proceed from <i>start</i> to
+<i>end</i> in increments of <i>step</i>.  If <i>step</i> is omitted, it will be
+calculated from the number of <b>frames</b> <i>N</i> (if supplied), otherwise
+assumed to be +1 if <i>start</i> &lt; <i>end</i>, or &ndash;1 if <i>start</i>
+&gt; <i>end</i>.  
+The number of frames specified directly will win if it conflicts
+with the number of frames calculated from range information.
+If the end of the range is reached before the frames are complete,
+the substituted value will stay the same (equal to <i>end</i>)
+for the remaining frames.
+A range can be given for each substitution argument in <i>operation</i>, 
+and multiple ranges will be used in order.
+If no range is given, the frame count will be substituted for $1.
+If neither <b>frames</b> nor any range is given, the perframe actions
+will continue until halted with <b>~perframe</b>.
+</p><p>
+The <b>interval</b> option allows executing <i>operation</i> 
+at every <i>K</i><sup>th</sup> frame instead of every frame.
+Execution will start at the first frame and occur <i>N</i> times 
+regardless of the interval <i>K</i> 
+(where <i>N</i> is specified directly or indirectly, as explained above), 
+but the total number of frames to elapse will vary:
+<i>K</i>(<i>N</i> &ndash; 1) + 1.
+The frame count for substitution purposes will only include frames at which
+<i>operation</i> is executed, from 1 to <i>N</i>.
+</p><p>
+The <b>zeroPadWidth</b> option allows padding the substituted value 
+with leading zeroes up to <i>width</i> digits;
+this is typically used to generate output filenames from frame counts.
+Alternatively, a printf-style format string such as <b>%d</b> or <b>%.3f</b>
+can be supplied with the <b>format</b> option.
+</p><p>
+The <b>showCommands</b> option can be used to echo each
+expanded command to the <a href="../tools/log.html"><b>Log</b></a>
+for debugging purposes.
+</p><p>
+Examples:
+</p>
+The following saves PNG files named 001.png, 002.png, ... 180.png
+as a structure is rotated in 2&deg; increments about the Y axis:
+<blockquote>
+<b>perframe "<a href="turn.html">turn</a> y 2;
+<a href="save.html">save</a> ~/Desktop/$1.png" frames 180 zero 3</b>
+<br> - OR - <br>
+<b>perframe "<a href="save.html">save</a> ~/Desktop/$1.png" zero 3;
+<a href="roll.html">roll</a> y 2 180; <a href="wait.html">wait</a> 180;
+~perframe</b>
+</blockquote>
+The following gradually changes a map contour level:
+<blockquote>
+<b>perframe "<a href="volume.html">volume</a> #2 level $1"
+range 2.5,0.5 frames 50</b>
+</blockquote>
+The following displays individual sidechains (hiding all others) along
+a protein ribbon, going to the next sidechain every 10<sup>th</sup> frame:
+<blockquote>
+<a href="cartoon.html"><b>cartoon</b></a>
+<br>
+<b>perframe "<a href="show.html">hide</a> protein;
+<a href="show.html">show</a> :$1" range 17,355 interval 10</b>
+</blockquote>
+The following plays back a trajectory, with
+protein secondary structure re-evaluated at every fifth trajectory frame:
+<blockquote>
+<b>perframe dssp interval 5; <a href="coordset.html">coordset</a> #1 1,200; <a href="wait.html">wait</a> 200; ~perframe</b>
+</blockquote>
+<!--
+The following re-evaluates hydrogen bonding between two molecules
+as they are gradually changed from a previously saved view
+named <b>undocked</b> to a previously saved view named <b>docked</b>:
+<blockquote>
+<b><a href="alias.html">alias</a>
+^evalhb <a href="hbonds.html">hb</a> intramod false line 2</b>
+<br>
+<b><a href="view.html">view</a> undocked</b>
+<br>
+<b>perframe evalhb; <a href="view.html">view</a> docked 40;
+<a href="wait.html">wait</a>; ~perf</b>
+</blockquote>
+-->
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+November 2016</address>
+</body></html>
