@@ -25,7 +25,7 @@ class _MyAPI(BundleAPI):
     def finish(session, bi):
         # deinitialize bundle in session
         from . import cmd
-        cmd.stop_server(session)
+        cmd.stop_server(session, quiet=True)
 
     @staticmethod
     def get_class(class_name):

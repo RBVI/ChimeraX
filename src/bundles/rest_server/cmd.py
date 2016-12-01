@@ -36,14 +36,17 @@ def report_port(session):
 from chimerax.core.commands import CmdDesc, IntArg
 port_desc = CmdDesc(synopsis="Report REST server port")
 
-def stop_server(session):
+def stop_server(session, quiet=False):
     global _server
     server = _get_server()
     if server is None:
-        session.logger.info("REST server is not running")
+        if not quiet:
+            session.logger.info("REST server is not running")
     else:
         server.terminate()
         _server = None
-        session.logger.info("REST server stopped")
-from chimerax.core.commands import CmdDesc, IntArg
-stop_desc = CmdDesc(synopsis="Stop REST server")
+        if not quier:
+            session.logger.info("REST server stopped")
+from chimerax.core.commands import CmdDesc, NoArg
+stop_desc = CmdDesc(synopsis="Stop REST server",
+                    keyword=[("quiet", NoArg)])
