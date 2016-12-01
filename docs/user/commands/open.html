@@ -29,7 +29,7 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;format&nbsp;&nbsp;<a href="#local"><i>format-name</i></a>&nbsp;]
 [&nbsp;name&nbsp;&nbsp;<i>model-name</i>&nbsp;]
 [&nbsp;smartInitialDisplay&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;trajectory&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;trajectory&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>open</b> 
@@ -38,7 +38,7 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;format&nbsp;&nbsp;<a href="#fetch"><i>format-name</i></a>&nbsp;]
 [&nbsp;name&nbsp;&nbsp;<i>model-name</i>&nbsp;]
 [&nbsp;smartInitialDisplay&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;trajectory&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;trajectory&nbsp;]
 [&nbsp;ignoreCache&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>: <BR><b>open formats</b>
@@ -71,9 +71,9 @@ always showing atomic models as white spheres; it may be useful in
 rare cases where generating the initial representation is slow
 (<i>e.g.</i>, drawing cartoons for very large numbers of atomic models).
 </p><p>
-A multi-model PDB file can be opened as a trajectory 
+A multi-model file in PDB format can be opened as a trajectory 
 (for sequential playback with <a href="coordset.html"><b>coordset</b></a>)
-by setting <b>trajectory</b> to true.
+with the <b>trajectory</b> option.
 </p><p>
 The <b>open formats</b> command lists the possible formats and databases
 in the <a href="../tools/log.html"><b>Log</b></a>. 
@@ -103,7 +103,7 @@ Examples:
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#local"><i>format-name</i></a>&nbsp;]
 [&nbsp;<b>name</b>&nbsp;&nbsp;<i>model-name</i>&nbsp;]
 [&nbsp;<b>smartInitialDisplay</b>&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>trajectory</b>&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>trajectory</b>&nbsp;]
 </blockquote>
 <p>
 The <i>filename</i> is generally a pathname to a local file, 
@@ -310,7 +310,7 @@ use <a href="help.html"><b>help</b></a> instead of <b>open</b></td>
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#fetch"><i>format-name</i></a>&nbsp;]
 [&nbsp;<b>name</b>&nbsp;&nbsp;<i>model-name</i>&nbsp;]
 [&nbsp;<b>smartInitialDisplay</b>&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>trajectory</b>&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>trajectory</b>&nbsp;]
 [&nbsp;<b>ignoreCache</b>&nbsp;]
 </blockquote>
 <p>

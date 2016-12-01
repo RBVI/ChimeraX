@@ -39,7 +39,7 @@ class="clRight" title="User Guide Index"/></a>
 <p>
 <b>Coordset</b> displays the frames of a trajectory, which can be read from
 a multi-model PDB file by using <a href="open.html"><b>open</b></a>
-with <b>trajectory true</b>. The number of frames in a trajectory can be
+with the <b>trajectory</b> option. The number of frames in a trajectory can be
 reported with the command <a href="info.html"><b>info</b></a>.
 See also: <a href="../movies.html">making movies</a>
 </p>
@@ -47,7 +47,7 @@ See also: <a href="../movies.html">making movies</a>
 **&nbsp;Protein secondary structure assignments are not recomputed automatically
 over the course of a trajectory.
 If a protein is displayed as a <a href="cartoon.html">cartoon</a> (ribbon),
-users may want to reassign secondary structure at each frame,
+users may want to re-evaluate secondary structure periodically
 as described <a href="#ssnote">below</a>.&nbsp;**
 </blockquote>
 <p>
@@ -105,14 +105,15 @@ Examples:
 <p>
 If a protein is displayed as a <a href="cartoon.html">cartoon</a> (ribbon)
 and significant conformational changes are occurring over the trajectory,
-users may want to reassign secondary structure at each frame.
-This can be done with the command <b>perframe</b>
-in combination with <a href="dssp.html"><b>dssp</b></a>, for example:
+users may want to re-evaluate secondary structure assignments periodically.
+This can be done with the command 
+<a href="perframe.html"><b>perframe</b></a>
+in combination with <a href="dssp.html"><b>dssp</b></a>. Examples:
 </p>
 <blockquote>
-<b>perframe dssp; coordset #2 1,21; wait 21; ~perframe</b>
+<b><a href="perframe.html">perframe</a> dssp; coordset #2 1,21; <a href="wait.html">wait</a> 21; <a href="perframe.html">~perframe</b>
 <br>
-<b><a href="movie.html">movie record</a>; perf dssp; coord #1 1,18; wait 18; ~perf; <a href="movie.html">movie encode</a> ~/Desktop/test.mov</b>
+<b><a href="perframe.html">perf</a> dssp interval 5; coord #1 1,200; <a href="wait.html">wait</a> 200; <a href="perframe.html">~perf</a></b>
 </blockquote>
 
 <hr>
