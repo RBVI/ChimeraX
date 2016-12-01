@@ -129,9 +129,8 @@ class MultalignViewer(ToolInstance):
         ModelessDialog.__init__(self)
         """
         from chimerax.core.ui.gui  import MainToolWindow
-        self.tool_window = MainToolWindow(self)
+        self.tool_window = MainToolWindow(self, close_destroys=True)
         self.tool_window._ToolWindow__toolkit.dock_widget.setMouseTracking(True)
-        self.tool_window.close_destroys = True
         parent = self.tool_window.ui_area
         parent.setMouseTracking(True)
         """TODO

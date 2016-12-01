@@ -144,10 +144,7 @@ class Log(ToolInstance, HtmlLog):
         self.warning_shows_dialog = False
         self.error_shows_dialog = True
         from chimerax.core.ui.gui import MainToolWindow
-
-        class LogWindow(MainToolWindow):
-            close_destroys = False
-        self.tool_window = LogWindow(self)
+        self.tool_window = MainToolWindow(self, close_destroys = False)
         parent = self.tool_window.ui_area
         from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEnginePage
         class HtmlWindow(QWebEngineView):
