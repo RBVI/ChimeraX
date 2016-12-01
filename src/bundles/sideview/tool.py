@@ -104,7 +104,6 @@ class SideViewCanvas(QWindow):
 
     def close(self):
         self.session.triggers.remove_handler(self.handler)
-#        import qtconsole.rich_jupyter_widget
 
     def _redraw(self, *_):
         self.render()
