@@ -69,21 +69,19 @@ class HelpUI(ToolInstance):
         self.search.selectAll()
         tb.addWidget(self.search)
 
-        from PyQt5.QtWebEngineWidgets import QWebEngineView
         from chimerax.core.ui.widgets import HtmlView
         class HelpWebView(HtmlView):
 
-            def __init__(self, link_clicked, ses=session):
-                super().__init__(
-                    schemes=['help', 'cxcmd'],
-                    interceptor=link_clicked)
+            def __init__(self, parent, link_clicked_cb, ses=session):
+                super().__init__(parent, schemes=['help', 'cxcmd'],
+                                 interceptor=link_clicked_cb)
                 self.session = ses
 
             def createWindow(self, win_type):
                 # win_type is window, tab, dialog, backgroundtab
                 help_ui = HelpUI.get_viewer(self.session)  # TODO: target
                 return help_ui.help_window
-        self.help_window = HelpWebView(self.link_clicked)
+        self.help_window = HelpWebView(parent, self.link_clicked)
         layout.addWidget(self.help_window)
         self.help_window.loadFinished.connect(self.page_loaded)
         self.help_window.titleChanged.connect(self.title_changed)
@@ -151,7 +149,7 @@ class HelpUI(ToolInstance):
             session.ui.thread_safe(help, session, topic=qurl.url(), target=self.target)
             return
         # unknown scheme
-        session.logger.error("Unknown URL scheme: '%s'" % scheme)
+        session.logger.error("Unknown URL scheme in help viewer: '%s'" % scheme)
 
     @classmethod
     def get_viewer(cls, session, target=None):
