@@ -69,19 +69,18 @@ class HelpUI(ToolInstance):
         self.search.selectAll()
         tb.addWidget(self.search)
 
-        from chimerax.core.ui.widgets import HtmlView
-        class HelpWebView(HtmlView):
+        from chimerax.core.ui.widgets import ChimeraXHtmlView
+        class HelpWebView(ChimeraXHtmlView):
 
-            def __init__(self, parent, link_clicked_cb, ses=session):
-                super().__init__(parent, schemes=['help', 'cxcmd'],
-                                 interceptor=link_clicked_cb)
-                self.session = ses
+            def __init__(self, session, parent):
+                super().__init__(session, parent)
+                self.session = session
 
             def createWindow(self, win_type):
                 # win_type is window, tab, dialog, backgroundtab
                 help_ui = HelpUI.get_viewer(self.session)  # TODO: target
                 return help_ui.help_window
-        self.help_window = HelpWebView(parent, self.link_clicked)
+        self.help_window = HelpWebView(session, parent)
         layout.addWidget(self.help_window)
         self.help_window.loadFinished.connect(self.page_loaded)
         self.help_window.titleChanged.connect(self.title_changed)
@@ -136,20 +135,6 @@ class HelpUI(ToolInstance):
 
     def title_changed(self, title):
         self.tool_window.title = title
-
-    def link_clicked(self, request_info, *args):
-        session = self.session
-        qurl = request_info.requestUrl()
-        scheme = qurl.scheme()
-        if scheme in ('https', 'http', 'file'):
-            return
-        if scheme in ('cxcmd', 'help'):
-            from .cmd import help
-            #help(session, topic=qurl.url(), target=self.target)
-            session.ui.thread_safe(help, session, topic=qurl.url(), target=self.target)
-            return
-        # unknown scheme
-        session.logger.error("Unknown URL scheme in help viewer: '%s'" % scheme)
 
     @classmethod
     def get_viewer(cls, session, target=None):

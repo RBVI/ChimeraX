@@ -116,13 +116,12 @@ class Log(ToolInstance, HtmlLog):
         from chimerax.core.ui.gui import MainToolWindow
         self.tool_window = MainToolWindow(self, close_destroys = False)
         parent = self.tool_window.ui_area
-        from chimerax.core.ui.widgets import HtmlView
+        from chimerax.core.ui.widgets import ChimeraXHtmlView
 
-        class HtmlWindow(HtmlView):
+        class HtmlWindow(ChimeraXHtmlView):
 
-            def __init__(self, parent, log, link_clicked_cb):
-                super().__init__(parent, schemes=['help', 'cxcmd'],
-                                 interceptor=link_clicked_cb)
+            def __init__(self, session, parent, log):
+                super().__init__(session, parent, size_hint=(575, 500))
                 self.log = log
                 # as of Qt 5.6.0, the keyboard shortcut for copying text
                 # from the QWebEngineView did nothing on Mac, the below
@@ -134,10 +133,6 @@ class Log(ToolInstance, HtmlLog):
                     self.copy_sc = QShortcut(QKeySequence.Copy, self)
                     self.copy_sc.activated.connect(
                         lambda: self.page().triggerAction(self.page().Copy))
-
-            def sizeHint(self):
-                from PyQt5.QtCore import QSize
-                return QSize(575, 500)
 
             def contextMenuEvent(self, event):
                 event.accept()
@@ -174,7 +169,7 @@ class Log(ToolInstance, HtmlLog):
                     raise UserError("No file specified for save log contents")
                 self.log.save(filename)
 
-        self.log_window = lw = HtmlWindow(parent, self, self.link_clicked)
+        self.log_window = lw = HtmlWindow(session, parent, self)
         from PyQt5.QtWidgets import QGridLayout, QErrorMessage
         self.error_dialog = QErrorMessage(parent)
         layout = QGridLayout(parent)
@@ -269,19 +264,6 @@ class Log(ToolInstance, HtmlLog):
             tf.close()
             lw.load(QUrl.fromLocalFile(self._tf_name))
         lw.setEnabled(True)
-
-    def link_clicked(self, request_info, *args):
-        session = self.session
-        qurl = request_info.requestUrl()
-        scheme = qurl.scheme()
-        if scheme in ('https', 'http', 'file'):
-            return
-        if scheme in ('cxcmd', 'help'):
-            from chimerax.help_viewer.cmd import help
-            session.ui.thread_safe(help, session, topic=qurl.url())
-            return
-        # unknown scheme
-        session.logger.error("Unknown URL scheme in log: '%s'" % scheme)
 
     def clear(self):
         self.page_source = ""
