@@ -1862,8 +1862,11 @@ class Histogram_Pane:
       from PyQt5.QtWidgets import QMenu, QAction
       menu = QMenu(self.frame)
       ro = v.rendering_options
-      self.add_menu_entry(menu, 'Show outline box', self.show_outline_box,
-                          checked = ro.show_outline_box)
+      add = self.add_menu_entry
+      add(menu, 'New threshold', lambda checked, e=event, self=self: self.add_threshold(e.x(), e.y()))
+      add(menu, 'Delete threshold', lambda checked, e=event, self=self: self.delete_threshold(e.x(), e.y()))
+      add(menu, 'Show outline box', self.show_outline_box, checked = ro.show_outline_box)
+
       menu.exec(event.globalPos())
 
   # ---------------------------------------------------------------------------
@@ -1884,6 +1887,28 @@ class Histogram_Pane:
       a.triggered.connect(cb)
       menu.addAction(a)
 
+  # ---------------------------------------------------------------------------
+  #
+  def add_threshold(self, x, y):
+      # Convert threshold panel x,y to histogram canvas cx,cy
+      from PyQt5.QtCore import QPoint
+      cp = self.canvas.mapFrom(self.frame, QPoint(x,y))
+      markers = self.shown_markers()
+      if markers:
+          markers.add_marker(cp.x(), cp.y())
+
+  # ---------------------------------------------------------------------------
+  #
+  def delete_threshold(self, x, y):
+      # Convert threshold panel x,y to histogram canvas cx,cy
+      from PyQt5.QtCore import QPoint
+      cp = self.canvas.mapFrom(self.frame, QPoint(x,y))
+      markers = self.shown_markers()
+      if markers:
+          m = markers.clicked_marker(cp.x(), cp.y())
+          if m:
+              markers.delete_marker(m)
+      
   # ---------------------------------------------------------------------------
   #
   def show_outline_box(self, show):
@@ -2145,14 +2170,19 @@ class Histogram_Pane:
   #
   def selected_histogram_marker(self):
 
+    markers = self.shown_markers()
+    return markers, markers.selected_marker()
+
+  # ---------------------------------------------------------------------------
+  #
+  def shown_markers(self):
     if self.solid_thresholds.shown:
       markers = self.solid_thresholds
     elif self.surface_thresholds.shown:
       markers = self.surface_thresholds
     else:
-      return None, None
-
-    return markers, markers.selected_marker()
+      markers = None
+    return markers
 
   # ---------------------------------------------------------------------------
   #
