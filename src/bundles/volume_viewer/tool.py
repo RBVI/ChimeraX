@@ -1850,6 +1850,48 @@ class Histogram_Pane:
     h = self.make_histogram(f, histogram_height, new_marker_color = (1,1,1,1))
     flayout.addWidget(h)
 
+    f.contextMenuEvent = self.show_context_menu
+
+  # ---------------------------------------------------------------------------
+  #
+  def show_context_menu(self, event):
+      v = self.data_region
+      if v is None:
+          return
+      
+      from PyQt5.QtWidgets import QMenu, QAction
+      menu = QMenu(self.frame)
+      ro = v.rendering_options
+      self.add_menu_entry(menu, 'Show outline box', self.show_outline_box,
+                          checked = ro.show_outline_box)
+      menu.exec(event.globalPos())
+
+  # ---------------------------------------------------------------------------
+  #
+  def add_menu_entry(self, menu, text, callback, *args, checked = None):
+      '''Add menu item to context menu'''
+      from PyQt5.QtWidgets import QAction
+      a = QAction(text, self.frame)
+      if checked is not None:
+          a.setCheckable(True)
+          a.setChecked(checked)
+      def cb(checked, callback=callback, args=args):
+          if checked is None:
+              callback(*args)
+          else:
+              callback(checked, *args)
+      #a.setStatusTip("Info about this menu entry")
+      a.triggered.connect(cb)
+      menu.addAction(a)
+
+  # ---------------------------------------------------------------------------
+  #
+  def show_outline_box(self, show):
+      v = self.data_region
+      if v:
+          v.rendering_options.show_outline_box = show
+          v.show()
+    
   # ---------------------------------------------------------------------------
   #
   def set_data_region(self, volume):
