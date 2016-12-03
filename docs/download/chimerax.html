@@ -13,7 +13,46 @@ or derivations thereof.
 === UCSF ChimeraX Copyright ===
 -->
 
+<head>
 <title>UCSF ChimeraX Prerelease</title>
+<script>
+window.onload = function() {
+        var xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200)
+                        update_info(this.responseXML);
+        }
+        xhttp.open("GET", "/chimerax/cgi-bin/daily-build-info", true);
+        xhttp.send();
+}
+
+function update_info(xmldoc) {
+        var platforms = xmldoc.getElementsByTagName("platform");
+        for (var i = 0; i < platforms.length; i++) {
+                var node = platforms[i];
+                var p = node.getAttribute("name");
+                var info = [];
+                var infoList = node.getElementsByTagName("info")
+                for (var j = 0; j < infoList.length; j++) {
+                        var inf = infoList[j];
+                        var name = inf.getAttribute("name");
+                        var value = inf.childNodes[0].nodeValue;
+                        info.push(name + ": " + value);
+                }
+                var message;
+                if (info.length == 0)
+                        message = "no build information available."
+                else {
+                        message = info[0];
+                        for (var j = 1; j < info.length; j++)
+                                message += ", " + info[j];
+                }
+                var span = document.getElementById(p + "_info");
+                span.innerHTML = message;
+        }
+}
+</script>
+</head>
 <body>
 
 <img src="../quickstart/images/chimerax.png" align=right width=600px
@@ -90,21 +129,28 @@ and may not be compatible with future versions.
 <caption>Daily builds, version 0.1</caption>
 
 <tr>
-<th>Operating System
-<th>Distribution
-<th>Notes
+<th>Operating System</th>
+<th>Distribution</th>
+<th>Notes</th>
+</tr>
 <tr>
-<td>Mac OS 10.10
-<td><a href="/chimerax/cgi-bin/secure/chimerax-get.py?file=macosx/chimerax-0.1.daily.pkg">chimerax-0.1.daily.pkg</a>
+<td>Mac OS 10.10</td>
+<td><a href="/chimerax/cgi-bin/secure/chimerax-get.py?file=macosx/chimerax-0.1.daily.pkg">chimerax-0.1.daily.pkg</a></td>
 <td>Main development platform.
+<span id="macosx_info">fetching build information...</span></td>
+</tr>
 <tr>
-<td valign=top>Linux Debian 8
-<td valign=top><a href="/chimerax/cgi-bin/secure/chimerax-get.py?file=linux/chimerax-0.1.daily.tar.gz">chimerax-0.1.daily.tar.gz</a>
+<td valign=top>Linux Debian 8</td>
+<td valign=top><a href="/chimerax/cgi-bin/secure/chimerax-get.py?file=linux/chimerax-0.1.daily.tar.gz">chimerax-0.1.daily.tar.gz</a></td>
 <td>See Linux notes below.
+<span id="linux_info">fetching build information...</span></td>
+</tr>
 <tr>
-<td>Windows 10
-<td><a href="/chimerax/cgi-bin/secure/chimerax-get.py?file=windows/chimerax-0.1.daily.exe">chimerax-0.1.daily.exe</a>
+<td>Windows 10</td>
+<td><a href="/chimerax/cgi-bin/secure/chimerax-get.py?file=windows/chimerax-0.1.daily.exe">chimerax-0.1.daily.exe</a></td>
 <td>Main development platform.
+<span id="windows_info">fetching build information...</span></td>
+</tr>
 </table>
 <p><font size="-1">
 Daily builds are generated automatically each night from the 
