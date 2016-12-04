@@ -45,7 +45,7 @@ function update_info(xmldoc) {
                 else {
                         message = info[0];
                         for (var j = 1; j < info.length; j++)
-                                message += ", " + info[j];
+                                message += "<br/>" + info[j];
                 }
                 var span = document.getElementById(p + "_info");
                 span.innerHTML = message;
@@ -135,21 +135,21 @@ and may not be compatible with future versions.
 </tr>
 <tr>
 <td>Mac OS 10.10</td>
-<td><a href="/chimerax/cgi-bin/secure/chimerax-get.py?file=macosx/chimerax-0.1.daily.pkg">chimerax-0.1.daily.pkg</a></td>
-<td>Main development platform.
-<span id="macosx_info">fetching build information...</span></td>
+<td><a href="/chimerax/cgi-bin/secure/chimerax-get.py?file=macosx/chimerax-0.1.daily.pkg">chimerax-0.1.daily.pkg</a>
+<div id="macosx_info">fetching build information...</div></td>
+<td>Main development platform.</td>
 </tr>
 <tr>
 <td valign=top>Linux Debian 8</td>
-<td valign=top><a href="/chimerax/cgi-bin/secure/chimerax-get.py?file=linux/chimerax-0.1.daily.tar.gz">chimerax-0.1.daily.tar.gz</a></td>
-<td>See Linux notes below.
-<span id="linux_info">fetching build information...</span></td>
+<td valign=top><a href="/chimerax/cgi-bin/secure/chimerax-get.py?file=linux/chimerax-0.1.daily.tar.gz">chimerax-0.1.daily.tar.gz</a>
+<div id="linux_info">fetching build information...</div></td>
+<td>See Linux notes below.</td>
 </tr>
 <tr>
 <td>Windows 10</td>
-<td><a href="/chimerax/cgi-bin/secure/chimerax-get.py?file=windows/chimerax-0.1.daily.exe">chimerax-0.1.daily.exe</a></td>
-<td>Main development platform.
-<span id="windows_info">fetching build information...</span></td>
+<td><a href="/chimerax/cgi-bin/secure/chimerax-get.py?file=windows/chimerax-0.1.daily.exe">chimerax-0.1.daily.exe</a>
+<div id="windows_info">fetching build information...</div></td>
+<td>Main development platform.</td>
 </tr>
 </table>
 <p><font size="-1">
