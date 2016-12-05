@@ -172,6 +172,7 @@ class Render:
         oc = self._opengl_context
         prev_win = oc.window
         oc.window = window
+        self.make_current()
         self.set_viewport(0,0,width,height)
         return prev_win
 
