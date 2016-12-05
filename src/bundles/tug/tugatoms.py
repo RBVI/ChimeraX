@@ -400,7 +400,7 @@ def initialize_openmm():
     if not _openmm_initialized:
         _openmm_initialized = True
         from sys import platform
-        if platform == 'linux':
+        if platform == 'linux' or platform == 'darwin':
             from os import environ, path
             from chimerax import app_lib_dir
             environ['OPENMM_PLUGIN_DIR'] = path.join(app_lib_dir, 'plugins')
