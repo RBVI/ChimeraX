@@ -281,6 +281,47 @@ class Markers:
 
   # ---------------------------------------------------------------------------
   #
+  def add_marker(self, canvas_x, canvas_y):
+    sp = self.canvas.mapToScene(canvas_x, canvas_y)
+    cxy = self.clamp_canvas_xy((sp.x(), sp.y()))
+    xy = self.canvas_xy_to_user_xy(cxy)
+    sm = self.selected_marker()
+    if sm:
+      color = sm.rgba
+    else:
+      color = self.new_marker_color
+    m = Marker(xy, color)
+    self.markers.append(m)
+    self.last_mouse_xy = xy
+    self.drag_marker_index = len(self.markers) - 1
+
+    self.update_plot()
+
+    if self.callback:
+      self.callback()
+
+  # ---------------------------------------------------------------------------
+  #
+  def clicked_marker(self, canvas_x, canvas_y):
+    range = 3
+    i = self.closest_marker_index(canvas_x, canvas_y, range)
+    if i is None:
+      return None
+    return self.markers[i]
+
+  # ---------------------------------------------------------------------------
+  #
+  def delete_marker(self, m):
+    i = self.markers.index(m)
+    self.drag_marker_index = None
+    m.unplot(self.scene)
+    del self.markers[i]
+    self.update_plot()
+    if self.callback:
+      self.callback()
+
+  # ---------------------------------------------------------------------------
+  #
   def add_or_delete_marker_cb(self, event):
 
     if not self.shown:

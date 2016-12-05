@@ -56,7 +56,7 @@ def open_mmcif(session, filename, name, *args, **kw):
                        sum(m.num_bonds for m in models)))
 
 
-def fetch_mmcif(session, pdb_id, ignore_cache=False, **kw):
+def fetch_mmcif(session, pdb_id, fetch_source="rcsb", ignore_cache=False, **kw):
     if len(pdb_id) != 4:
         raise UserError('PDB identifiers are 4 characters long, got "%s"' % pdb_id)
     import os
@@ -68,7 +68,17 @@ def fetch_mmcif(session, pdb_id, ignore_cache=False, **kw):
         return sys_filename, pdb_id
 
     pdb_name = "%s.cif" % pdb_id.upper()
-    url = "http://www.pdb.org/pdb/files/%s" % pdb_name
+    if fetch_source == "rcsb":
+        url = "http://www.pdb.org/pdb/files/%s" % pdb_name
+    elif fetch_source == "pdbe":
+        url = "http://www.ebi.ac.uk/pdbe/entry-files/download/%s.cif" % lower
+    elif fetch_source == "pdbe_updated":
+        url = "http://www.ebi.ac.uk/pdbe/entry-files/download/%s_updated.cif" % lower
+    elif fetch_source == "pdbj":
+        url = "https://pdbj.org/rest/downloadPDBfile?format=mmcif&id=%s" % lower
+    else:
+        raise UserError('unrecognized mmCIF/PDB source "%s"' % fetch_source)
+    session.logger.info("Fetching mmCIF file from %s" % url)
     from ..fetch import fetch_file
     filename = fetch_file(session, url, 'mmCIF %s' % pdb_id, pdb_name, 'PDB',
                           ignore_cache=ignore_cache)
@@ -85,6 +95,18 @@ def fetch_mmcif(session, pdb_id, ignore_cache=False, **kw):
     from .. import io
     models, status = io.open_data(session, filename, format='mmcif', name=pdb_id, **kw)
     return models, status
+
+
+def fetch_mmcif_pdbe(session, pdb_id, **kw):
+    return fetch_mmcif(session, pdb_id, fetch_source="pdbe", **kw)
+
+
+def fetch_mmcif_pdbe_updated(session, pdb_id, **kw):
+    return fetch_mmcif(session, pdb_id, fetch_source="pdbe_updated", **kw)
+
+
+def fetch_mmcif_pdbj(session, pdb_id, **kw):
+    return fetch_mmcif(session, pdb_id, fetch_source="pdbj", **kw)
 
 
 def _get_template(session, name):
@@ -151,6 +173,12 @@ def register_mmcif_fetch():
     from .. import fetch
     fetch.register_fetch('pdb', fetch_mmcif, 'mmcif',
                          prefixes=['pdb'], is_default_format=True)
+    fetch.register_fetch('pdbe', fetch_mmcif_pdbe, 'mmcif',
+                         prefixes=['pdbe'], is_default_format=True)
+    fetch.register_fetch('pdbe_updated', fetch_mmcif_pdbe_updated, 'mmcif',
+                         prefixes=['pdbe_updated'], is_default_format=True)
+    fetch.register_fetch('pdbj', fetch_mmcif_pdbj, 'mmcif',
+                         prefixes=['pdbj'], is_default_format=True)
 
 
 def get_mmcif_tables(filename, table_names):
