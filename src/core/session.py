@@ -538,6 +538,7 @@ def save(session, filename, **kw):
             from .errors import UserError
             raise UserError(e)
 
+    session.logger.warning("<b><i>Session file format is not finalized, and thus might not be restorable in other versions of ChimeraX.</i></b>", is_html=True)
     # TODO: put thumbnail in session metadata
     try:
         session.save(output)
