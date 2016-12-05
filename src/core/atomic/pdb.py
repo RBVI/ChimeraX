@@ -70,7 +70,7 @@ def fetch_pdb(session, pdb_id, fetch_source="rcsb", ignore_cache=False, **kw):
     #     url = "https://pdbj.org/rest/downloadPDBfile?format=pdb&id=%s" % lower
     else:
         raise UserError('unrecognized PDB source "%s"' % fetch_source)
-    session.logger.info("Fetching PDB file from %s" % url)
+    session.logger.status("Fetching PDB %s from %s" % (pdb_id, url))
     from ..fetch import fetch_file
     filename = fetch_file(session, url, 'PDB %s' % pdb_id, pdb_name, 'PDB',
                           ignore_cache=ignore_cache)
