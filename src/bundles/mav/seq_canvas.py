@@ -244,8 +244,7 @@ class SeqCanvas:
             replyobj.error("No active region.\n")
             return
 
-        from RegionBrowser import SEL_REGION_NAME
-        if region.name == SEL_REGION_NAME:
+        if region.name == "ChimeraX selection":
             replyobj.error(
                 "Cannot edit using Chimera selection region\n")
             return

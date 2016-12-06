@@ -118,8 +118,8 @@ public:
     void  session_restore(int, int**, float**);
     void  session_save(int**, float**) const;
     void  set_circular(bool c) { _circular = c; }
-    void  set_name(std::string& name) { _name = name; }
-    void  set_name(const char* name) { _name = name; }
+    void  set_name(std::string& name);
+    void  set_name(const char* name) { std::string n(name); set_name(n); }
     void  set_python_obj(PyObject* py_obj);
     Contents::size_type  size() const { return _contents.size(); }
     void  swap(Contents& x) { _clear_cache(); _contents.swap(x); }

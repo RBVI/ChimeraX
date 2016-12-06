@@ -906,6 +906,7 @@ class StructureSeq(Sequence):
         self.triggers = TriggerSet()
         self.triggers.add_trigger('delete')
         self.triggers.add_trigger('modify')
+        self.triggers.add_trigger('rename')
         # description derived from PDB/mmCIF info and set by AtomicStructure constructor
         self.description = None
 
@@ -1041,6 +1042,10 @@ class StructureSeq(Sequence):
         self.__class__ = Sequence
         self.triggers.activate_trigger('delete', self)
         self.numbering_start = numbering_start
+
+    def _cpp_rename(self, old_name):
+        # called from C++ layer when 'name' attr changed
+        self.triggers.activate_trigger('rename', (self, old_name))
 
 # sequence-structure association functions that work on StructureSeqs...
 

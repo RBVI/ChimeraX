@@ -21,8 +21,6 @@ class MultalignViewer(ToolInstance):
 
     # so Model Loops tool can invoke it...
     MODEL_LOOPS_MENU_TEXT = "Modeller (loops/refinement)..."
-    import RegionBrowser
-    SEL_REGION_NAME = RegionBrowser.SEL_REGION_NAME
 
     def __init__(self, fileNameOrSeqs, fileType=None, autoAssociate=True,
                 title=None, quitCB=None, frame=None, numberingDisplay=None,
@@ -106,10 +104,12 @@ class MultalignViewer(ToolInstance):
                 if not numberingDisplay:
                     defaultNumbering = (False, False)
 
-        self._seqRenameHandlers = {}
+        """
+        self._seq_rename_handlers = {}
         for seq in seqs:
-            self._seqRenameHandlers[seq] = seq.triggers.addHandler(
-                seq.TRIG_RENAME, self._seqRenameCB, None)
+            self._seq_rename_handlers[seq] = seq.triggers.add_handler(
+                self.region_browser._seq_renamed_cb)
+        """
         self._defaultNumbering = defaultNumbering
         self.fileAttrs = fileAttrs
         self.fileMarkups = fileMarkups
@@ -150,8 +150,8 @@ class MultalignViewer(ToolInstance):
                 if aseq.match_maps:
                     self.seq_canvas.assoc_mod(aseq)
         from .region_browser import RegionBrowser
-        rb_window = self.tool_window.create_child_window(close_destroys=False)
-        self.region_browser = RegionBrowser(self.seq_canvas)
+        rb_window = self.tool_window.create_child_window("Regions", close_destroys=False)
+        self.region_browser = RegionBrowser(rb_window, self.seq_canvas)
         """TODO
         if self.fileMarkups:
             from HeaderSequence import FixedHeaderSequence
@@ -403,9 +403,13 @@ class MultalignViewer(ToolInstance):
         if note_name == "modify association":
             for match_map in note_data[-1]:
                 self.seq_canvas.assoc_mod(match_map.align_seq)
+        elif note_name == "pre-remove seqs":
+            self.region_browser._pre_remove_lines(note_data)
 
     def delete(self):
         self.alignment.detach_viewer(self)
+        for seq in self.alignment.seqs:
+            seq.triggers.remove_handler(self._seq_rename_handlers[seq])
         ToolInstance.delete(self)
 
     def new_region(self, **kw):
