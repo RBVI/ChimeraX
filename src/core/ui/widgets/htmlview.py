@@ -154,8 +154,29 @@ class ChimeraXHtmlView(HtmlView):
         qurl = request_info.requestUrl()
         scheme = qurl.scheme()
         if scheme in ('cxcmd', 'help'):
-            from chimerax.help_viewer.cmd import help
-            session = self.session
-            session.ui.thread_safe(help, session, topic=qurl.url())
+            originating_url = request_info.firstPartyUrl()
+            from_dir = None
+            if originating_url.isLocalFile():
+                import os
+                from_dir = os.path.dirname(originating_url.path())
+            # QT BUG: originaing_url and qurl are the same
+            # import sys
+            # print('R', type(request_info), file=sys.__stderr__)
+            # print('O: %r' % (originating_url), file=sys.__stderr__)
+            # print('U: %r' % (qurl), file=sys.__stderr__)
+
+            def defer(session, topic, from_dir):
+                from chimerax.help_viewer.cmd import help
+                prev_dir = None
+                try:
+                    if from_dir:
+                        import os
+                        prev_dir = os.getcwd()
+                        os.chdir(from_dir)
+                    help(session, topic)
+                finally:
+                    if prev_dir:
+                        os.chdir(prev_dir)
+            self.session.ui.thread_safe(defer, self.session, qurl.url(), from_dir)
             return
 _chimerax_profile = None

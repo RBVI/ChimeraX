@@ -108,10 +108,9 @@ def open_command_script(session, filename, name, *args, **kw):
 
     prev_dir = None
     if path:
-        from os.path import dirname
-        dir = dirname(path)
+        import os
+        dir = os.path.dirname(path)
         if dir:
-            import os
             prev_dir = os.getcwd()
             os.chdir(dir)
 
@@ -123,9 +122,8 @@ def open_command_script(session, filename, name, *args, **kw):
     finally:
         if input != filename:
             input.close()
-
-    if prev_dir:
-        os.chdir(prev_dir)
+        if prev_dir:
+            os.chdir(prev_dir)
 
     return [], "executed %s" % name
 

@@ -299,6 +299,8 @@ def install_icons(info, data_dir):
         icon = f.icon
         if icon is None:
             continue
+        if not os.path.exists(icon):
+            continue
         try:
             im = Image.open(icon)
         except IOError as e:
