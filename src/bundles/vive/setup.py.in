@@ -45,7 +45,7 @@ setup(
         "ChimeraX-Core >= 0.1",
         # list all dependences on non-standard Python packages incl. ChimeraX ones
         # TODO: numpy
-        "openvr >= 1.0.0201",
+        "openvr == 1.0.0201",
     ],
     classifiers=[
         # From https://pypi.python.org/pypi?%3Aaction=list_classifiers

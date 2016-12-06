@@ -337,7 +337,7 @@ class Toolshed:
         self._installed_packages = {}   # cache mapping packages to bundles
 
         # Compute base directories
-        import os.path
+        import os
         from chimerax import app_dirs
         self._cache_dir = os.path.join(app_dirs.user_cache_dir, _Toolshed)
         _debug("cache dir: %s" % self._cache_dir)
@@ -345,7 +345,6 @@ class Toolshed:
         _debug("data dir: %s" % self._data_dir)
 
         # Add directories to sys.path
-        import os.path
         self._site_dir = os.path.join(self._data_dir, "site-packages")
         _debug("site dir: %s" % self._site_dir)
         import os
@@ -575,7 +574,7 @@ class Toolshed:
         # Make sure that our install location is on chimerax module.__path__
         # so that newly installed modules may be found
         import importlib
-        import os.path
+        import os
         cx_dir = os.path.join(self._site_dir, _ChimeraNamespace)
         m = importlib.import_module(_ChimeraNamespace)
         if cx_dir not in m.__path__:
@@ -804,7 +803,7 @@ class Toolshed:
         if must_exist:
             import os
             os.makedirs(self._cache_dir, exist_ok=True)
-        import os.path
+        import os
         return os.path.join(self._cache_dir, "bundle_info.cache")
 
     def _read_cache(self):
@@ -987,6 +986,10 @@ class Toolshed:
                 nicknames = [v.strip() for v in nicknames.split(',')] if nicknames else None
                 suffixes = [v.strip() for v in suffixes.split(',')] if suffixes else None
                 mime_types = [v.strip() for v in mime_types.split(',')] if mime_types else None
+                # construct absolute path name of icon by looking
+                # in package directory
+                if icon:
+                    icon = bi.find_icon_path(icon)
                 fi = FormatInfo(name=name, nicknames=nicknames,
                                 category=category, suffixes=suffixes,
                                 mime_types=mime_types, url=url, icon=icon,
@@ -1274,9 +1277,8 @@ class Toolshed:
             old_location[d.name] = self._remove_distribution(d, logger)
 
         # Now we (re)install the needed distributions
-        import os.path
-        wheel_cache = os.path.join(self._cache_dir, "wheels.cache")
         import os
+        wheel_cache = os.path.join(self._cache_dir, "wheels.cache")
         os.makedirs(wheel_cache, exist_ok=True)
         default_paths = self._install_make_paths(system)
         from distlib.scripts import ScriptMaker
@@ -1334,7 +1336,7 @@ class Toolshed:
         _debug("_install_make_paths", system)
         import site
         import sys
-        import os.path
+        import os
         if system:
             base = sys.prefix
         else:
@@ -1378,7 +1380,7 @@ class Toolshed:
         #     directories from which we removed files
         #   try removing the directories, longest first (this will
         #     remove children directories before parents)
-        import os.path
+        import os
         basedir = os.path.dirname(d.path)
         dircache = set()
         try:
@@ -2005,6 +2007,16 @@ class BundleInfo:
             raise ToolshedError("missing bundle_api for bundle \"%s\"" % self.name)
         _debug("_get_api", self._api_package_name, m, bundle_api)
         return bundle_api
+
+    def find_icon_path(self, icon_name):
+        import importlib
+        import os
+        try:
+            m = importlib.import_module(self._api_package_name)
+        except Exception as e:
+            raise ToolshedError("Error importing bundle API \"%s\": %s" % (self.name, str(e)))
+        icon_dir = os.path.dirname(m.__file__)
+        return os.path.join(icon_dir, icon_name)
 
     def start_tool(self, session, tool_name, *args, **kw):
         """Create and return a tool instance.

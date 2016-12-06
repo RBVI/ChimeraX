@@ -115,8 +115,9 @@ def retrieve_url(request, filename, logger=None, uncompress=False,
         with urlopen(request, context=ssl_context) as response:
             compressed = (response.headers['Content-Encoding'] == 'gzip' or uncompress)
             if logger:
-                logger.status('fetching%s %s' % (
-                    " compressed" if compressed else "", name), secondary=True)
+                logger.info('Fetching%s %s from %s' % (
+                    " compressed" if compressed else "", name,
+                    request.get_full_url()))
             d = response.headers['Last-modified']
             last_modified = _convert_to_timestamp(d)
             import shutil

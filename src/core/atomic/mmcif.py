@@ -78,7 +78,7 @@ def fetch_mmcif(session, pdb_id, fetch_source="rcsb", ignore_cache=False, **kw):
         url = "https://pdbj.org/rest/downloadPDBfile?format=mmcif&id=%s" % lower
     else:
         raise UserError('unrecognized mmCIF/PDB source "%s"' % fetch_source)
-    session.logger.info("Fetching mmCIF file from %s" % url)
+    session.logger.status("Fetching mmCIF %s from %s" % (pdb_id, url))
     from ..fetch import fetch_file
     filename = fetch_file(session, url, 'mmCIF %s' % pdb_id, pdb_name, 'PDB',
                           ignore_cache=ignore_cache)
