@@ -330,7 +330,6 @@ class Toolshed:
         else:
             self.remote_url = remote_url
         self._repo_locator = None
-        self._inst_locator = None
         self._installed_bundle_info = []
         self._available_bundle_info = []
         self._all_installed_distributions = None
@@ -726,22 +725,17 @@ class Toolshed:
 
         # Initialize distlib paths and locators
         _debug("_scan_installed")
-        if self._inst_locator is not None:
-            self._inst_locator.clear_cache()
-            self._inst_path.clear_cache()
-            _debug("_inst_path cleared cache")
-        else:
-            from distlib.database import DistributionPath
-            self._inst_path = DistributionPath()
-            _debug("_inst_path", self._inst_path)
-            from distlib.locators import DistPathLocator
-            self._inst_locator = DistPathLocator(self._inst_path)
-            _debug("_inst_locator", self._inst_locator)
+        from distlib.database import DistributionPath
+        inst_path = DistributionPath()
+        _debug("inst_path", inst_path)
+        from distlib.locators import DistPathLocator
+        inst_locator = DistPathLocator(inst_path)
+        _debug("inst_locator", inst_locator)
 
         # Keep only wheels
 
         all_distributions = []
-        for d in self._inst_path.get_distributions():
+        for d in inst_path.get_distributions():
             try:
                 d.run_requires
                 _debug("_scan_installed distribution", d)
@@ -751,7 +745,7 @@ class Toolshed:
                 all_distributions.append(d)
 
         # Look for core package
-        core = self._inst_locator.locate(_ChimeraCore)
+        core = inst_locator.locate(_ChimeraCore)
         if core is None:
             self._inst_core = set()
             self._inst_tool_dists = OrderedSet()
@@ -1095,8 +1089,6 @@ class Toolshed:
         # TODO: update _installed_packages
         updated = set([(d.name, d.version) for d in need_update])
         if self._all_installed_distributions is not None:
-            self._inst_path = None
-            self._inst_locator = None
             self._all_installed_distributions = None
         import copy
         newly_installed = [copy.copy(bi) for bi in self._available_bundle_info
@@ -1136,9 +1128,8 @@ class Toolshed:
         if repo_dist is None:
             raise ToolshedUnavailableError("cannot find new distribution "
                                            "named \"%s\"" % name)
-        if self._inst_locator is None:
-            self._scan_installed(logger)
-        inst_dist = self._inst_locator.locate(name)
+        all_dists = self._get_all_installed_distributions(logger)
+        inst_dist = all_dists[name]
         if inst_dist is None:
             return repo_dist
         else:

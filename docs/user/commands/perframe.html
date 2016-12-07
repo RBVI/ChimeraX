@@ -53,12 +53,15 @@ A per-frame <i>operation</i> consists of one or more
 with embedded substitution arguments ($1, $2, <i>etc.</i>).
 If multiple commands are included, they should be combined into a single line
 with semicolon separators. If <i>operation</i> contains any spaces, it
-should be enclosed in double quotes.
+should be enclosed in quotation marks.
 Alternatively, <i>operation</i> can be a single-word alias
 defined previously with the <a href="alias.html"><b>alias</b></a> command.
 During execution, substitution arguments in <i>operation</i> 
 are replaced by the values of variables described in 
 <b>range</b> specifications and/or a frame counter that starts at 1.
+A range can be given for each substitution argument in <i>operation</i>, 
+and multiple ranges will be used in order.
+If no range is given, the frame count will be substituted for $1.
 </p><p>
 The number of frames <i>N</i> at which to perform <i>operation</i> 
 can be indicated
@@ -73,9 +76,6 @@ with the number of frames calculated from range information.
 If the end of the range is reached before the frames are complete,
 the substituted value will stay the same (equal to <i>end</i>)
 for the remaining frames.
-A range can be given for each substitution argument in <i>operation</i>, 
-and multiple ranges will be used in order.
-If no range is given, the frame count will be substituted for $1.
 If neither <b>frames</b> nor any range is given, the perframe actions
 will continue until halted with <b>~perframe</b>.
 </p><p>
@@ -93,8 +93,15 @@ The <b>zeroPadWidth</b> option allows padding the substituted value
 with leading zeroes up to <i>width</i> digits;
 this is typically used to generate output filenames from frame counts.
 Alternatively, a printf-style format string such as <b>%d</b> or <b>%.3f</b>
-can be supplied with the <b>format</b> option.
-</p><p>
+can be supplied with the <b>format</b> option. If this would generate
+filenames with embedded spaces, the filename part of <i>operation</i> 
+must be enclosed in quotation marks (possibly nested). 
+For example, the following requires both sets of quotation marks:
+</p>
+<blockquote>
+<b>perframe "<a href="turn.html">turn</a> y 10; <a href="save.html">save</a> '~/Desktop/$1.png'" frames 9 format %3d</b>
+</blockquote>
+<p>
 The <b>showCommands</b> option can be used to echo each
 expanded command to the <a href="../tools/log.html"><b>Log</b></a>
 for debugging purposes.
@@ -146,5 +153,5 @@ named <b>undocked</b> to a previously saved view named <b>docked</b>:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-November 2016</address>
+December 2016</address>
 </body></html>
