@@ -2324,8 +2324,12 @@ class Histogram_Pane:
       from PyQt5.QtCore import Qt
       cd = QColorDialog(self.frame)
       cd.setOptions(QColorDialog.ShowAlphaChannel)
-      bg_color = self.color.palette().color(QPalette.Window)
-      cd.setCurrentColor(bg_color)
+      markers, m = self.selected_histogram_marker()
+      if m:
+          color = QColor(*tuple(int(c*255) for c in m.rgba))
+      else:
+          color = self.color.palette().color(QPalette.Window)
+      cd.setCurrentColor(color)
       cd.colorSelected.connect(self.color_changed_cb)
       cd.show()
       
