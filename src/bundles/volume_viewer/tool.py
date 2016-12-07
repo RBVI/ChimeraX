@@ -1543,19 +1543,24 @@ class Thresholds_Panel(PopupPanel):
   # ---------------------------------------------------------------------------
   # Create histogram for data region if needed.
   #
-  def add_histogram_pane(self, data_region):
+  def add_histogram_pane(self, volume):
 
-    dr = data_region
+    v = volume
     hptable = self.histogram_table
-    if dr in hptable:
+    if v in hptable:
       return
 
-    same_id = [v for v in hptable.keys() if v is not None and v.id == dr.id]
-    if same_id:
+    if hasattr(v, 'series'):
+        same_series = [vp for vp in hptable.keys()
+                       if vp is not None and hasattr(vp, 'series') and vp.series == v.series]
+    else:
+        same_series = []
+        
+    if same_series:
       # Replace entry with same id number, for volume series
-      v = same_id[0]
-      hp = hptable[v]
-      del hptable[v]
+      vs = same_series[0]
+      hp = hptable[vs]
+      del hptable[vs]
     elif None in hptable:
       hp = hptable[None]                # Reuse unused histogram
       del hptable[None]
@@ -1569,8 +1574,8 @@ class Thresholds_Panel(PopupPanel):
       hl.insertWidget(hl.count()-1, hp.frame)
       self.histogram_panes.append(hp)
 
-    hp.set_data_region(dr)
-    hptable[dr] = hp
+    hp.set_data_region(v)
+    hptable[v] = hp
     self.set_active_histogram(hp)
 
     self.resize_panel()
