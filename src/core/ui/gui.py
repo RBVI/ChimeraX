@@ -398,7 +398,7 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def status(self, msg, color, secondary):
         # prevent status message causing/allowing a redraw
-        self.graphics_window.session.update_loop.block_redraw()
+#        self.graphics_window.session.update_loop.block_redraw()
         self.statusBar().clearMessage()
         if secondary:
             label = self._secondary_status_label
@@ -406,14 +406,17 @@ class MainWindow(QMainWindow, PlainTextLog):
             label = self._primary_status_label
         label.setText("<font color='" + color + "'>" + msg + "</font>")
         label.show()
-        # Make status line update during long computations where event loop is not running.
+        # TODO: Make status line update during long computations where event loop is not running.
         # Code that asks to display a status message does not expect arbitrary callbacks
         # to run.  This could cause timers and callbacks to run that could lead to errors.
         # User events are not processed since that could allow the user to delete data.
         # Ticket #407.
-        from PyQt5.QtCore import QEventLoop
-        self.graphics_window.session.ui.processEvents(QEventLoop.ExcludeUserInputEvents)
-        self.graphics_window.session.update_loop.unblock_redraw()
+        # This code causes mouse up events to be lost dragging the volume viewer contour level
+        # on histograms, and the volume series slider, causing the mouse drag to effect those
+        # even after the mouse is released, making those tools nearly unusable.
+#        from PyQt5.QtCore import QEventLoop
+#        self.graphics_window.session.ui.processEvents(QEventLoop.ExcludeUserInputEvents)
+#        self.graphics_window.session.update_loop.unblock_redraw()
 
     def _about(self, arg):
         from PyQt5.QtWebEngineWidgets import QWebEngineView
