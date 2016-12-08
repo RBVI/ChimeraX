@@ -535,9 +535,9 @@ class CollatingLog(PlainTextLog):
                 if sim_reps > self.sim_collapse_after:
                     summarized.append("{} messages similar to the above omitted\n".format(
                         sim_reps - self.sim_collapse_after))
-            summarized_msg = "".join(summarized)
+            summarized_msg = "<br>\n".join(summarized)
         else:
-            summarized_msg = "".join(msgs)
+            summarized_msg = "<br>\n".join(msgs)
         return summarized_msg
 
 
