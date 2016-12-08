@@ -3,7 +3,6 @@ beautifulsoup4==4.4.1
 colorama==0.3.7
 Cython==0.23.1
 distlib==0.2.3
-grako==3.6.3
 line_profiler==1.0
 matplotlib==1.5.1
 networkx==1.10
