@@ -226,6 +226,19 @@ class UI(QApplication):
                 self.func_info = (func, args, kw)
         self.postEvent(self.main_window, ThreadSafeGuiFuncEvent(func, args, kw))
 
+    def timer(self, millisec, callback, *args, **kw):
+        from PyQt5.QtCore import QTimer
+        t = QTimer()
+        def cb(callback=callback, args=args, kw=kw):
+            callback(*args, **kw)
+        t.timeout.connect(cb)
+        t.setSingleShot(True)
+        t.start(int(millisec))
+        return t
+
+    def cancel_timer(self, timer):
+        timer.stop()
+        
 # The surface format has to be set before QtGui is initialized
 from PyQt5.QtGui import QSurfaceFormat
 sf = QSurfaceFormat()
