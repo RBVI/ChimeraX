@@ -34,7 +34,7 @@ class Log:
     LEVEL_WARNING = 1
     LEVEL_ERROR = 2
 
-    LEVEL_DESCRIPTS = ["info", "warning", "error"]
+    LEVEL_DESCRIPTS = ["note", "warning", "error"]
 
     # if excludes_other_logs is True, then if this log consumed the
     # message (log() returned True) downstream logs will not get
@@ -459,23 +459,30 @@ class CollatingLog(PlainTextLog):
         return True
 
     def log_summary(self, logger, summary_title, collapse_similar=True):
-        title = "<i>%s</i>:" % (summary_title)
-        title_logged = False
+        # note that this handling of the summary (only calling logger,info
+        # at the end and not calling the individual log-level functions)
+        # will never raise an error dialog
+        summary = '<table style="border-style: solid; border-width: 1px">\n'
+        summary += '  <thead>\n'
+        summary += '    <tr>\n'
+        summary += '      <th colspan="2" style="border-style: solid; border-width: 1px">%s</th>\n' % summary_title
+        summary += '    </tr>\n'
+        summary += '  </thead>\n'
+        summary += '  <tbody>\n'
+        some_msgs = False
         for level, msgs in reversed(list(enumerate(self.msgs))):
             if not msgs:
                 continue
-            if not title_logged:
-                logger.info(title, is_html=True)
-                title_logged = True
-                msg = ""
-            else:
-                msg = "\n"
-            msg += "{}{}:\n".format(self.LEVEL_DESCRIPTS[level].capitalize(),
-                "s" if len(msgs) > 1 else "")
-            msg += self.summarize_msgs(msgs, collapse_similar)
-            logger.method_map[level](msg)
-        if title_logged:
-            logger.info("<i>End of summary</i>", is_html=True)
+            some_msgs = True
+            summary += '    <tr>\n'
+            summary += '      <td style="border-style: solid; border-width: 1px"><i>%s%s</i></td>' % (
+                self.LEVEL_DESCRIPTS[level], 's' if len(msgs) > 1 else '')
+            summary += '      <td style="border-style: solid; border-width: 1px">%s</td>' % self.summarize_msgs(msgs, collapse_similar)
+            summary += '    </tr>\n'
+        if some_msgs:
+            summary += '  </tbody>\n'
+            summary += '</table>'
+            logger.info(summary, is_html=True)
 
     def summarize_msgs(self, msgs, collapse_similar):
         if collapse_similar:
