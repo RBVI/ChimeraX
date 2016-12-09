@@ -101,7 +101,8 @@ class Collection(State):
         if items is None:
             # Empty Atoms
             pointers = numpy.empty((0,), cptr)
-        elif type(items) in [list, tuple]:
+        elif (type(items) in [list, tuple] or
+              isinstance(items, numpy.ndarray) and items.dtype == numpy.object):
             # presumably items of the object_class
             pointers = numpy.array([i._c_pointer.value for i in items], cptr)
         elif isinstance(items, numpy.ndarray) and items.dtype == numpy.uintp:
