@@ -322,8 +322,6 @@ The default database for a 4-character identifier without prefix is the
 target="_blank">RCSB Protein Data Bank</a>; the default format
 for that database is <b>mmcif</b>, although <b>pdb</b> or <b>mmtf</b>
 can be specified with the <b>format</b> option.
-For other databases, there is no choice of format 
-and no reason to use the <b>format</b> option.
 </p>
 <table border cellpadding="4" cellspacing="0"><tr>
 <td align="center"><b>database</b></td>
@@ -332,15 +330,14 @@ and no reason to use the <b>format</b> option.
 <td align="center"><b>description</b></td>
 <td align="center"><b><i>format-name</i></b></td>
 </tr><tr>
-<td align="center"><a href="http://www.rcsb.org/"
-target="_blank">RCSB Protein Data Bank</a></td>
-<td align="center"><b>pdb:</b></td>
-<td align="center"><b>pdb</b></td>
-<td align="center">atomic coordinates and associated annotations</td>
-<td align="center"><b>mmcif</b> (default) or  <b>pdb</b>
-<br>(see <a href="http://www.rcsb.org/pdb/static.do?p=file_formats/index.jsp"
-target="_blank">wwPDB formats</a>)
-<br>or <a href="https://mmtf.rcsb.org/"><b>mmtf</b></a></td>
+<td align="center"><a href="http://www.cellpack.org"
+target="_blank">cellPACK</a></td>
+<td align="center"><b>cellpack:</b></td>
+<td align="center"><b>cellpack</b></td>
+<td align="center">hierarchical model;
+<br>see <a href="http://www.cellpack.org/use/" target="_blank">cellPACK
+Chimera instructions</a> for available identifiers</td>
+<td align="center"><b>cellpack</b></td>
 </tr><tr>
 <td align="center"><a href="http://eds.bmc.uu.se/eds/index.html"
 target="_blank">Electron Density Server</a></td>
@@ -357,14 +354,44 @@ target="_blank">Electron Microscopy Data Bank</a></td>
 <td align="center">density map</td>
 <td align="center"><b>ccp4</b></td>
 </tr><tr>
-<td align="center"><a href="http://www.cellpack.org"
-target="_blank">cellPACK</a></td>
-<td align="center"><b>cellpack:</b></td>
-<td align="center"><b>cellpack</b></td>
-<td align="center">hierarchical model;
-<br>see <a href="http://www.cellpack.org/use/" target="_blank">cellPACK
-Chimera instructions</a> for available identifiers</td>
-<td align="center"><b>cellpack</b></td>
+<td align="center"><a href="http://www.rcsb.org/"
+target="_blank">RCSB Protein Data Bank</a></td>
+<td align="center"><b>pdb:</b></td>
+<td align="center"><b>pdb</b></td>
+<td align="center">atomic coordinates and associated annotations</td>
+<td align="center"><b>mmcif</b> (default) or  <b>pdb</b>
+<br>(see <a href="http://www.rcsb.org/pdb/static.do?p=file_formats/index.jsp"
+target="_blank">wwPDB formats</a>)
+<br>or <a href="https://mmtf.rcsb.org/"><b>mmtf</b></a></td>
+</tr><tr>
+<td align="center"><a href="https://www.ebi.ac.uk/pdbe/"
+target="_blank">Protein Data Bank <br>in Europe</a></td>
+<td align="center"><b>pdbe:</b></td>
+<td align="center"><b>pdbe</b></td>
+<td align="center">atomic coordinates and associated annotations</td>
+<td align="center"><b>mmcif</b> (default) or  <b>pdb</b></td>
+</td>
+</tr><tr>
+<td align="center"><a href="https://www.ebi.ac.uk/pdbe/"
+target="_blank">Protein Data Bank <br>in Europe</a></td>
+<td align="center"><b>pdbe_updated:</b></td>
+<td align="center"><b>pdbe_updated</b></td>
+<td align="center">atomic coordinates and associated annotations,
+<br>&nbsp;&nbsp;updated to include small-molecule connectivity 
+and binding-site information <br>as described in 
+<a href="http://nar.oxfordjournals.org/content/44/D1/D385.long"
+target="_blank">Velankar <i>et al.</i></a>,
+<i>Nucleic Acids Res</i> <b>44</b>:D385 (2016)</td>
+<td align="center"><b>mmcif</b>
+</td>
+</tr><tr>
+<td align="center"><a href="https://pdbj.org/" target="_blank">Protein 
+Data Bank Japan</a></td>
+<td align="center"><b>pdbj:</b></td>
+<td align="center"><b>pdbj</b></td>
+<td align="center">atomic coordinates and associated annotations</td>
+<td align="center"><b>mmcif</b></a>
+</td>
 </tr></table>
 <p>
 Web-fetched data are stored locally in the standard user cache directory
@@ -379,5 +406,5 @@ If the data file is not found locally or the user has specified
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2016</address>
+December 2016</address>
 </body></html>

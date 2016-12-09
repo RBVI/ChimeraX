@@ -241,12 +241,11 @@ def init(argv, event_loop=True):
     initialize_ssl_cert_dir()
 
     # use chimerax.core's version
-    from chimerax.core.toolshed import _ChimeraCore
-    core_pip_key = _ChimeraCore.casefold()
+    from chimerax.core import BUNDLE_NAME as core_bundle_name
     import pip
     dists = pip.get_installed_distributions(local_only=True)
     for d in dists:
-        if d.key == core_pip_key:
+        if d.project_name == core_bundle_name:
             version = d.version
             break
     else:
