@@ -97,16 +97,18 @@ class Collection(State):
     Collection is immutable.
     '''
     def __init__(self, items, object_class, objects_class):
+        import numpy
         if items is None:
             # Empty Atoms
-            import numpy
             pointers = numpy.empty((0,), cptr)
         elif type(items) in [list, tuple]:
             # presumably items of the object_class
-            import numpy
             pointers = numpy.array([i._c_pointer.value for i in items], cptr)
-        else:
+        elif isinstance(items, numpy.ndarray) and items.dtype == numpy.uintp:
+            # C++ pointers array
             pointers = items
+        else:
+            raise ValueError('Collection items of unrecognized type "%s"' % str(type(items)))
         self._pointers = pointers
         self._object_class = object_class
         self._objects_class = objects_class
