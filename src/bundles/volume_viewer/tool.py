@@ -1499,6 +1499,7 @@ class Thresholds_Panel(PopupPanel):
     self.active_order = []              # Histogram_Panes
     self.active_color = 'white'
     self.update_timer = None
+    self._color_dialog = None
 
     frame = self.frame
 
@@ -1542,19 +1543,24 @@ class Thresholds_Panel(PopupPanel):
   # ---------------------------------------------------------------------------
   # Create histogram for data region if needed.
   #
-  def add_histogram_pane(self, data_region):
+  def add_histogram_pane(self, volume):
 
-    dr = data_region
+    v = volume
     hptable = self.histogram_table
-    if dr in hptable:
+    if v in hptable:
       return
 
-    same_id = [v for v in hptable.keys() if v is not None and v.id == dr.id]
-    if same_id:
+    if hasattr(v, 'series'):
+        same_series = [vp for vp in hptable.keys()
+                       if vp is not None and hasattr(vp, 'series') and vp.series == v.series]
+    else:
+        same_series = []
+        
+    if same_series:
       # Replace entry with same id number, for volume series
-      v = same_id[0]
-      hp = hptable[v]
-      del hptable[v]
+      vs = same_series[0]
+      hp = hptable[vs]
+      del hptable[vs]
     elif None in hptable:
       hp = hptable[None]                # Reuse unused histogram
       del hptable[None]
@@ -1568,9 +1574,9 @@ class Thresholds_Panel(PopupPanel):
       hl.insertWidget(hl.count()-1, hp.frame)
       self.histogram_panes.append(hp)
 
-    hp.set_data_region(dr)
-    hptable[dr] = hp
-    self.set_active_data(hp)
+    hp.set_data_region(v)
+    hptable[v] = hp
+    self.set_active_histogram(hp)
 
     self.resize_panel()
 
@@ -1678,7 +1684,7 @@ class Thresholds_Panel(PopupPanel):
     hp.update_threshold_gui(message_cb = None)
 
     if activate or hp.data_region is self.dialog.active_volume:
-      self.set_active_data(hp)
+      self.set_active_histogram(hp)
 
   # ---------------------------------------------------------------------------
   #
@@ -1704,7 +1710,7 @@ class Thresholds_Panel(PopupPanel):
 
   # ---------------------------------------------------------------------------
   #
-  def set_active_data(self, hp):
+  def set_active_histogram(self, hp):
 
     a = self.active_hist
     if a and a.frame:
@@ -1716,6 +1722,8 @@ class Thresholds_Panel(PopupPanel):
       if hp in ao:
         ao.remove(hp)
       ao.insert(0, hp)
+
+    self._set_color_dialog_color()
     
   # ---------------------------------------------------------------------------
   #
@@ -1733,6 +1741,52 @@ class Thresholds_Panel(PopupPanel):
         if hp.histogram_shown:
             hp.set_threshold_parameters_from_gui()
         volume.set_representation(hp.representation)
+
+  # ---------------------------------------------------------------------------
+  #
+  def show_color_chooser(self):
+      from PyQt5.QtWidgets import QColorDialog
+      self._color_dialog = cd = QColorDialog(self.frame)
+      cd.setOptions(QColorDialog.ShowAlphaChannel)
+      self._set_color_dialog_color()
+      cd.colorSelected.connect(self.color_changed_cb)
+      cd.finished.connect(self.color_dialog_closed_cb)
+      cd.show()
+      
+  # ---------------------------------------------------------------------------
+  #
+  def _set_color_dialog_color(self):
+      hp = self.active_histogram()
+      cd = self._color_dialog
+      if hp is None or cd is None:
+          return
+      from PyQt5.QtGui import QColor, QPalette
+      markers, m = hp.selected_histogram_marker()
+      if m:
+          color = QColor(*tuple(int(c*255) for c in m.rgba))
+      else:
+          color = hp.color.palette().color(QPalette.Window)
+      cd.setCurrentColor(color)
+      
+  # ---------------------------------------------------------------------------
+  #
+  def color_changed_cb(self, color):
+      hp = self.active_histogram()
+      if hp is None:
+          return
+      markers, m = hp.selected_histogram_marker()
+      if m is None:
+          return
+      rgba = (color.redF(), color.greenF(), color.blueF(), color.alphaF())
+      m.set_color(rgba, markers.canvas)	# Set histogram marker color
+      from .histogram import hex_color_name
+      hp.color.setStyleSheet('background-color: %s' % hex_color_name(rgba[:3])) # set button color
+      hp.set_threshold_parameters_from_gui(show = True)
+      
+  # ---------------------------------------------------------------------------
+  #
+  def color_dialog_closed_cb(self, result_code):
+      self._color_dialog = None
   
 # -----------------------------------------------------------------------------
 # Manages histogram and heading with data name, step size, shown indicator,
@@ -1897,6 +1951,14 @@ class Histogram_Pane:
       #a.setStatusTip("Info about this menu entry")
       a.triggered.connect(cb)
       menu.addAction(a)
+
+  # ---------------------------------------------------------------------------
+  #
+  def show_color_chooser(self):
+      tp = self.dialog.thresholds_panel
+      if tp.active_histogram() != self:
+          tp.set_active_histogram(self)
+      tp.show_color_chooser()
       
   # ---------------------------------------------------------------------------
   #
@@ -2315,31 +2377,6 @@ class Histogram_Pane:
     else:
       markers = None
     return markers
-
-  # ---------------------------------------------------------------------------
-  #
-  def show_color_chooser(self):
-      from PyQt5.QtWidgets import QColorDialog
-      from PyQt5.QtGui import QColor, QPalette
-      from PyQt5.QtCore import Qt
-      cd = QColorDialog(self.frame)
-      cd.setOptions(QColorDialog.ShowAlphaChannel)
-      bg_color = self.color.palette().color(QPalette.Window)
-      cd.setCurrentColor(bg_color)
-      cd.colorSelected.connect(self.color_changed_cb)
-      cd.show()
-      
-  # ---------------------------------------------------------------------------
-  #
-  def color_changed_cb(self, color):
-
-    markers, m = self.selected_histogram_marker()
-    if m:
-      rgba = (color.redF(), color.greenF(), color.blueF(), color.alphaF())
-      m.set_color(rgba, markers.canvas)	# Set histogram marker color
-      from .histogram import hex_color_name
-      self.color.setStyleSheet('background-color: %s' % hex_color_name(rgba[:3])) # set button color
-      self.set_threshold_parameters_from_gui(show = True)
 
   # ---------------------------------------------------------------------------
   #

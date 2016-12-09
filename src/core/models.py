@@ -345,7 +345,8 @@ class Models(State):
         log_errors = kw.pop('log_errors', True)
         if collation_okay:
             descript = "files" if len(fns) > 1 else fns[0]
-            with Collator(session.logger, "Summary of problems opening " + descript, log_errors):
+            with Collator(session.logger,
+                    "Summary of feedbck from opening " + descript, log_errors):
                 models, status = io.open_multiple_data(
                     session, filenames, format=format, name=name, **kw)
         else:
