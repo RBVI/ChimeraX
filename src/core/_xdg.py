@@ -435,10 +435,11 @@ def get_info(session, command=None):
     info.app_author = app_dirs.appauthor
     info.name = '%s-%s' % (info.app_author, info.app_name)
     version = None
+    from . import BUNDLE_NAME as core_bundle_name
     import pip
     dists = pip.get_installed_distributions(local_only=True)
     for d in dists:
-        if d.key == 'chimerax.core':
+        if d.project_name == core_bundle_name:
             version = d.version
             break
     if version is None:

@@ -256,7 +256,7 @@ _RemoteURL = "http://localhost:8080"
 _Toolshed = "toolshed"
 # Defaults names for installed ChimeraX bundles
 _ChimeraNamespace = "chimerax"
-_ChimeraCore = "ChimeraX-Core"  # ChimeraX Core's bundle name
+from .. import BUNDLE_NAME as _core_bundle_name
 
 
 # Exceptions raised by Toolshed class
@@ -745,11 +745,11 @@ class Toolshed:
                 all_distributions.append(d)
 
         # Look for core package
-        core = inst_locator.locate(_ChimeraCore)
+        core = inst_locator.locate(_core_bundle_name)
         if core is None:
             self._inst_core = set()
             self._inst_tool_dists = OrderedSet()
-            logger.warning("\"%s\" bundle not found" % _ChimeraCore)
+            logger.warning("\"%s\" bundle not found" % _core_bundle_name)
             return
 
         # Partition packages into core and bundles
@@ -759,7 +759,7 @@ class Toolshed:
         self._inst_chimera_core = core
         self._inst_core = set([core])
         self._inst_tool_dists = OrderedSet()
-        self._all_installed_distributions = {_ChimeraCore: core}
+        self._all_installed_distributions = {_core_bundle_name: core}
         for d, label in dg.adjacency_list[core]:
             known_dists.add(d)
             self._inst_core.add(d)
@@ -1103,7 +1103,7 @@ class Toolshed:
     def _install_dist_core(self, want, logger):
         # Add ChimeraX core distribution to update list
         _debug("_install_dist_core")
-        d = self._install_distribution(_ChimeraCore, None, logger)
+        d = self._install_distribution(_core_bundle_name, None, logger)
         if d:
             want.append(d)
 
