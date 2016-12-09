@@ -156,6 +156,8 @@ class Atom:
         doc="Number of bonds connected to this atom. Read only.")
     occupancy = c_property('atom_occupancy', float32, doc = "Occupancy, floating point value.")
     radius = c_property('atom_radius', float32, doc="Radius of atom.")
+    default_radii = c_property('atom_default_radius', float32, read_only = True,
+                               doc="Default atom radius.")
     residue = c_property('atom_residue', cptr, astype = _residue, read_only = True,
         doc = ":class:`Residue` the atom belongs to.")
     selected = c_property('atom_selected', npy_bool, doc="Whether the atom is selected.")
@@ -165,6 +167,14 @@ class Atom:
         doc = "Whether atom is ligand, ion, etc.")
     visible = c_property('atom_visible', npy_bool, read_only=True,
         doc="Whether atom is displayed and not hidden.")
+
+    def maximum_bond_radius(self, default_radius = 0.2):
+        "Return maximum bond radius.  Used for stick style atom display."
+        f = c_function('atom_maximum_bond_radius',
+                       args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_float, ctypes.c_void_p])
+        r = ctypes.c_float()
+        f(ctypes.by_ref(self._c_pointer), 1, default_radius, ctypes.by_ref(r))
+        return r.value
 
     def set_alt_loc(self, loc, create):
         if isinstance(loc, str):
@@ -892,6 +902,10 @@ class StructureSeq(Sequence):
                 args = (ctypes.c_char_p, ctypes.c_void_p), ret = ctypes.c_void_p)(
                     chain_id.encode('utf-8'), structure._c_pointer)
         super().__init__(sseq_pointer)
+        from ..triggerset import TriggerSet
+        self.triggers = TriggerSet()
+        self.triggers.add_trigger('delete')
+        self.triggers.add_trigger('modify')
         # description derived from PDB/mmCIF info and set by AtomicStructure constructor
         self.description = None
 
@@ -1020,6 +1034,13 @@ class StructureSeq(Sequence):
             'structure': self.structure
         }
         return data
+
+    def _cpp_demotion(self):
+        # called from C++ layer when this should be demoted to Sequence
+        numbering_start = self.numbering_start
+        self.__class__ = Sequence
+        self.triggers.activate_trigger('delete', self)
+        self.numbering_start = numbering_start
 
 # sequence-structure association functions that work on StructureSeqs...
 

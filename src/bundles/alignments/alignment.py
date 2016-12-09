@@ -123,12 +123,9 @@ class Alignment(State):
                     old_aseq = self.associations[sseq]
                     if old_aseq == best_match_map.align_seq:
                         return
-                    #TODO
-                    #self.disassociate(sseq)
-                msg = "Associated %s %s to %s with %d error(s)" % (struct_name, sseq.name,
-                        best_match_map.align_seq.name, best_errors)
-                status(msg, log=True, follow_with= "Right-click to focus on residue\n"
-                    "Right-shift-click to focus on region", follow_log=False, blank_after=10)
+                    self.disassociate(sseq)
+                status("Associated %s %s to %s with %d error(s)" % (struct_name, sseq.name,
+                        best_match_map.align_seq.name, best_errors), log=True)
                 self.prematched_assoc_structure(best_match_map, best_errors, reassoc)
                 new_match_maps.append(best_match_map)
                 nonlocal associated
@@ -231,10 +228,10 @@ class Alignment(State):
 
         if new_match_maps:
             if reassoc:
-                note_name = "mod assoc"
-                note_data = ("add assoc", new_match_maps)
+                note_name = "modify association"
+                note_data = ("add association", new_match_maps)
             else:
-                note_name = "add assoc"
+                note_name = "add association"
                 note_data = new_match_maps
             self._notify_viewers(note_name, note_data)
 
@@ -252,6 +249,33 @@ class Alignment(State):
         self.viewers.remove(viewer)
         if not self.viewers and self.auto_destroy:
             self.session.alignments.destroy_alignment(self)
+
+    def disassociate(self, sseq, reassoc=False):
+        if sseq not in self.associations or getattr(self, '_in_destroy', False):
+            return
+
+        aseq = self.associations[sseq]
+        match_map = aseq.match_maps[sseq]
+        del aseq.match_maps[sseq]
+        del self.associations[sseq]
+        sseq.triggers.remove_handler(match_map.del_handler)
+        # delay notifying the viewers until all chain demotions/deletions have been received
+        def _delay_disassoc(_, __, match_map=match_map, reassoc=reassoc, sseq=sseq, aseq=aseq):
+            self._notify_viewers("remove association", [match_map])
+            # if the structure seq hasn't been demoted/destroyed, log the disassociation
+            from chimerax.core.atomic import StructureSeq
+            if not reassoc and isinstance(sseq, StructureSeq) and not sseq.structure.deleted:
+                struct = sseq.structure
+                struct_name = struct.name
+                if '.' in struct.id_string():
+                    # ensemble
+                    struct_name += " (" + struct.id_string() + ")"
+                self.session.logger.info("Disassociated %s %s from %s"
+                    % (struct_name, sseq.name, aseq.name))
+            from chimerax.core.triggerset import DEREGISTER
+            return DEREGISTER
+        self.session.triggers.add_handler('atomic changes', _delay_disassoc)
+
 
     def match(self, ref_chain, match_chains, *, iterate=-1, restriction=None):
         """Match the match_chains onto the ref_chain.  All chains must already be associated
@@ -339,22 +363,27 @@ class Alignment(State):
         self.associations[chain] = aseq
 
         # set up callbacks for structure changes
+        match_map.del_handler = chain.triggers.add_handler('delete',
+            lambda _, sseq: self.disassociate(sseq))
         """
-        match_map["mavDelHandler"] = mseq.notegers.addHandler(
-                mseq.TRIG_DELETE, self._mseqDelCB, match_map)
         match_map["mavModHandler"] = mseq.triggers.addHandler(
                 mseq.TRIG_MODIFY, self._mseqModCB, match_map)
         """
+
     def _destroy(self):
+        self._in_destroy = True
         for viewer in self.viewers[:]:
             viewer.alignment_notification(self, "destroyed", None)
         self.viewers = []
+        for sseq, aseq in self.associations.items():
+            mmap = aseq.match_maps[sseq]
+            seq.triggers.remove_handler(mmap.del_handler)
 
     def _notify_viewers(self, note_name, note_data):
         for viewer in self.viewers:
             viewer.alignment_notification(note_name, note_data)
-            if note_name in ["add assoc", "del assoc"]:
-                viewer.alignment_notification("mod assoc", (note_name, note_data))
+            if note_name in ["add association", "remove association"]:
+                viewer.alignment_notification("modify association", (note_name, note_data))
 
     def reset_state(self, session):
         """For when the session is closed"""

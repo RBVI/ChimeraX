@@ -11,7 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def contacts(session, atoms = None, probe_radius = 1.4, area_cutoff = 300):
+def contacts(session, atoms = None, probe_radius = 1.4, area_cutoff = 300,
+             interface_residue_area_cutoff = 15):
     '''
     Compute buried solvent accessible surface areas between chains
     and show a 2-dimensional network graph depicting the contacts.
@@ -35,9 +36,11 @@ def contacts(session, atoms = None, probe_radius = 1.4, area_cutoff = 300):
     log.info(msg)
     log.status(msg)
 
-    if session.ui.is_gui:
+    if len(ba) == 0:
+        pass
+    elif session.ui.is_gui:
         from . import tool
-        tool.ContactPlot(session, sg, ba)
+        tool.ContactPlot(session, sg, ba, interface_residue_area_cutoff)
     else:
         log.warning("unable to show graph without GUI")
 
@@ -47,7 +50,8 @@ def register_contacts():
     desc = CmdDesc(
         optional = [('atoms', AtomsArg),],
         keyword = [('probe_radius', FloatArg),
-                   ('area_cutoff', FloatArg),])
+                   ('area_cutoff', FloatArg),
+                   ('interface_residue_area_cutoff', FloatArg),])
     register('contacts', desc, contacts)
 
 from .graph import Node
@@ -228,8 +232,8 @@ class Contact(Edge):
         return atoms
 
     def contact_residue_atoms(self, group, min_area = 1):
-        atoms = self.contact_atoms(group, min_area)
-        return atoms.unique_residues.atoms
+        res = self.contact_residues(group, min_area)
+        return res.atoms
 
     def contact_residues(self, group, min_area = 15):
         g1, g2 = self.group1, self.group2

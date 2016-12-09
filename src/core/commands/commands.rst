@@ -24,6 +24,7 @@ and their code location is described with the function descriptions.
 | `cage`_ * - Place models on polygonal cages
 | `camera`_ - Change camera settings
 | `cartoon`_ * - Display atomic structure ribbons or pipes/planks
+| `cd`_ - Change working directory
 | `clip`_ - Clip models
 | `close`_ - Close models
 | `cofr`_ - Set center of rotation method
@@ -53,7 +54,7 @@ and their code location is described with the function descriptions.
 | `pdbimages`_ - Render PDB assembly images
 | `perframe`_ - Run a command for every rendered frame
 | `position`_ - Set camera and model positions
-| `pwd`_ - Present working directory
+| `pwd`_ - Print working directory
 | `rainbow`_ - Color residues and chains
 | `rename`_ - Rename models
 | `resfit`_ * - Show density around residues
@@ -66,6 +67,7 @@ and their code location is described with the function descriptions.
 | `select`_ - Select objects
 | `set`_ - Set rendering effects (background color, silhouettes)
 | `show`_ - Show atoms, ribbons, models
+| `size`_ - Change atom or bond radii
 | `smoothlines`_ * - Smooth paths in line drawings
 | `snav`_ * - Enable space navigator input device
 | `sop`_ - Surface operations
@@ -303,6 +305,10 @@ set
 show
 ====
 .. autofunction:: chimerax.core.commands.show.show
+
+size
+====
+.. autofunction:: chimerax.core.commands.size.size
 
 snav
 ====

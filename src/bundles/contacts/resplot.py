@@ -15,22 +15,26 @@
 #
 from .graph import Graph
 class ResiduePlot(Graph):
+
+    help = 'help:user/commands/contacts.html#residue-plot'
     
-    def __init__(self, session, contact):
+    def __init__(self, session, contact, flip = False, interface_residue_area_cutoff = 15):
 
         self.contact = c = contact
 
         # Interface residues
-        g1, g2 = c.group1, c.group2
-        self.residues1 = r1 = c.contact_residues(g1)
-        self.residues2 = r2 = c.contact_residues(g2)
+        g1, g2 = (c.group2, c.group1) if flip else (c.group1, c.group2)
+        min_area = interface_residue_area_cutoff
+        self.residues1 = r1 = c.contact_residues(g1, min_area)
+        self.residues2 = r2 = c.contact_residues(g2, min_area)
         from chimerax.core.atomic import concatenate
         self.residues = res = concatenate((r1, r2))
 
         # Non-interface residues
-        self.noninterface_residues1 = g1.atoms.unique_residues.subtract(r1)
-        self.noninterface_residues2 = g2.atoms.unique_residues.subtract(r2)
-        allres = concatenate((g1.atoms, g2.atoms)).unique_residues
+        self.atoms1, self.atoms2 = a1, a2 = g1.atoms, g2.atoms
+        self.noninterface_residues1 = a1.unique_residues.subtract(r1)
+        self.noninterface_residues2 = a2.unique_residues.subtract(r2)
+        allres = concatenate((a1,a2)).unique_residues
         self.noninterface_residues = allres.subtract(res)
         
         # Create matplotlib panel
@@ -38,7 +42,7 @@ class ResiduePlot(Graph):
         bnodes = tuple(ResidueNode(r, size=800, color=(.7,.7,.7,1), background=True)
                        for r in self.noninterface_residues1)
         edges = ()
-        title = '%s %d residues and %s %d residues' % (g1.name, len(r1), g2.name, len(r2))
+        title = '%s %d residues with %s %d residues' % (g2.name, len(r2), g1.name, len(r1))
         Graph.__init__(self, session, nodes+bnodes, edges, "Chain Contacts", title = title)
         self.font_size = 8
 
@@ -73,9 +77,9 @@ class ResiduePlot(Graph):
         return '%s %d' % (r.name, r.number)
     
     def _show_interface(self):
-        c = self.contact
-        aa1 = c.group1.atoms
+        aa1 = self.atoms1
         aa1.displays = True
+        aa1.draw_modes = aa1.SPHERE_STYLE
         gray = (180,180,180,255)
         self.noninterface_residues1.atoms.colors = gray
         self.noninterface_residues2.atoms.displays = False

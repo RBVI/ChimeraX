@@ -38,11 +38,7 @@ def oculus(session, enable, pan_speed = None):
             oc.panning_speed = pan_speed
 
 def start_oculus(session):
-
-    if not hasattr(session, 'oculus'):
-        session.oculus = []
-
-    if session.oculus:
+    if hasattr(session, 'oculus') and session.oculus:
         return
 
     # Create separate graphics window for rendering to Oculus Rift.
@@ -56,8 +52,6 @@ def start_oculus(session):
     win.opengl_context.make_current()
     from .track import Oculus_Rift, Oculus_Rift_Camera
     oc = Oculus_Rift(session)
-    session.oculus.append(oc)
-    oc.window = win
     if oc.connected:
         # Move window to oculus screen and switch to full screen mode.
         w,h = oc.display_size()
@@ -68,12 +62,19 @@ def start_oculus(session):
         # In Qt 5.2 interval of 5 or 10 mseconds caused dropped frames on 2 million triangle surface,
         # but 1 or 2 msec produced no dropped frames.
         session.ui.main_window.graphics_window.set_redraw_interval(1)
+        if not hasattr(session, 'oculus'):
+            session.oculus = []
+        session.oculus.append(oc)
+        oc.window = win
         # Start only after window properly sized otherwise Oculus SDK 0.4.4 doesn't draw on Mac
         oc.start_event_processing()
-    msg = 'started oculus head tracking ' if oc.connected else 'failed to start oculus head tracking'
-    log = session.logger
-    log.status(msg)
-    log.info(msg)
+        msg = 'started oculus head tracking '
+        log = session.logger
+        log.status(msg)
+        log.info(msg)
+    else:
+        win.close()
+        session.logger.error('failed to start oculus head tracking')
 
 def stop_oculus(session):
 

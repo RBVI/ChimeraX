@@ -49,7 +49,7 @@ setup(
     ],
     classifiers=[
         # From https://pypi.python.org/pypi?%3Aaction=list_classifiers
-        # and our own ChimeraX-* classifiers.
+        # and our own ChimeraX classifiers.
         "Development Status :: 3 - Alpha",
         "Environment :: MacOS X :: Aqua",
         "Environment :: Win32 (MS Windows)",
@@ -64,9 +64,9 @@ setup(
         "Topic :: Scientific/Engineering :: Visualization",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
-        "ChimeraX-Bundle :: Documentation :: 1,1 :: PKG_NAME :: :: ",
-        "ChimeraX-Command :: help :: Documentation :: Display ChimeraX help",
-        "ChimeraX-DataFormat :: HTML :: :: Documentation :: .html,.htm :: text/html :: http://en.wikipedia.org/wiki/Html :: :: :: HyperText Markup Language (HTML)",
-        "ChimeraX-Open :: HTML :: help :: ",
+        "ChimeraX :: Bundle :: Documentation :: 1,1 :: PKG_NAME :: chimerax.help-viewer :: ",
+        "ChimeraX :: Command :: help :: Documentation :: Display ChimeraX help",
+        "ChimeraX :: DataFormat :: HTML :: :: Documentation :: .html,.htm :: text/html :: http://en.wikipedia.org/wiki/Html :: :: :: HyperText Markup Language (HTML)",
+        "ChimeraX :: Open :: HTML :: help :: ",
     ],
 )

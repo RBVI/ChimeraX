@@ -30,19 +30,19 @@ may contain multiple tools, commands, data formats, and specifiers,
 with metadata entries for each deliverable.
 
 In addition to the normal Python package metadta,
-The 'ChimeraX-*' classifier entries give additional information.
-Depending on the values of 'ChimeraX-*' metadata fields,
+The 'ChimeraX' classifier entries give additional information.
+Depending on the values of 'ChimeraX' metadata fields,
 modules need to override methods of the :py:class:`BundleAPI` class.
-Each bundle needs a 'ChimeraX-Bundle' entry
+Each bundle needs a 'ChimeraX :: Bundle' entry
 that consists of the following fields separated by double colons (``::``).
 
-1. ``ChimeraX-Bundle`` : str constant
+1. ``ChimeraX :: Bundle`` : str constant
     Field identifying entry as bundle metadata.
 2. ``categories`` : str
     Comma-separated list of categories in which the bundle belongs.
 3. ``session_versions`` : two comma-separated integers
     Minimum and maximum session version that the bundle can read.
-4. ``aliases`` : str
+4. ``supercedes`` : str
    Comma-separated list of superceded bundle names.
 5. ``custom_init`` : str
     Whether bundle has initialization code that must be called when
@@ -51,7 +51,7 @@ that consists of the following fields separated by double colons (``::``).
 
 Bundles that provide tools need:
 
-1. ``ChimeraX-Tool`` : str constant
+1. ``ChimeraX :: Tool`` : str constant
     Field identifying entry as tool metadata.
 2. ``tool_name`` : str
     The globally unique name of the tool (also shown on title bar).
@@ -68,7 +68,7 @@ Bundles may provide more than one tool.
 
 Bundles that provide commands need:
 
-1. ``ChimeraX-Command`` : str constant
+1. ``ChimeraX :: Command`` : str constant
     Field identifying entry as command metadata.
 2. ``command name`` : str
     The (sub)command name.  Subcommand names have spaces in them.
@@ -86,7 +86,7 @@ Bundles may provide more than one command.
 
 Bundles that provide selectors need:
 
-1. ``ChimeraX-Selector`` : str constant
+1. ``ChimeraX :: Selector`` : str constant
     Field identifying entry as command metadata.
 2. ``selector name`` : str
     The selector's name.
@@ -101,13 +101,14 @@ Bundles may provide more than one command.
 
 Bundles that provide data formats need:
 
-1. ``ChimeraX-DataFormat`` : str constant
+1. ``ChimeraX :: DataFormat`` : str constant
     Field identifying entry as data format metadata.
 2. ``data_name`` : str
     The name of the data format.
-3. ``alternate_names`` : str
+3. ``nicknames`` : str
     An optional comma-separated list of alternative names.
-    Often a short name is provided.
+    Often a short name is provided.  If not provided,
+    it defaults to the lowercase version of the data format name.
 4. ``category`` : str
     The toolshed category.
 5. ``suffixes`` : str
@@ -136,15 +137,15 @@ application property list.
 
 Data formats that can be fetched:
 
-# ChimeraX-Fetch :: database_name :: format_name :: prefixes :: example_id :: is_default
+# ChimeraX :: Fetch :: database_name :: format_name :: prefixes :: example_id :: is_default
 
 Data formats that can be opened:
 
-# ChimeraX-Open :: format_name :: tag :: is_default
+# ChimeraX :: Open :: format_name :: tag :: is_default
 
 Data formats that can be saved:
 
-# ChimeraX-Save :: format_name :: tag :: is_default
+# ChimeraX :: Save :: format_name :: tag :: is_default
 
 Attributes
 ----------
@@ -196,6 +197,8 @@ Categories = [
     SURFACE,
     VOLUME,
 ]
+
+_TIMESTAMP = 'install-timestamp'
 
 
 def _hack_distlib(f):
@@ -327,14 +330,13 @@ class Toolshed:
         else:
             self.remote_url = remote_url
         self._repo_locator = None
-        self._inst_locator = None
         self._installed_bundle_info = []
         self._available_bundle_info = []
         self._all_installed_distributions = None
         self._installed_packages = {}   # cache mapping packages to bundles
 
         # Compute base directories
-        import os.path
+        import os
         from chimerax import app_dirs
         self._cache_dir = os.path.join(app_dirs.user_cache_dir, _Toolshed)
         _debug("cache dir: %s" % self._cache_dir)
@@ -342,7 +344,6 @@ class Toolshed:
         _debug("data dir: %s" % self._data_dir)
 
         # Add directories to sys.path
-        import os.path
         self._site_dir = os.path.join(self._data_dir, "site-packages")
         _debug("site dir: %s" % self._site_dir)
         import os
@@ -420,7 +421,7 @@ class Toolshed:
         self._installed_bundle_info = []
         inst_bi_list = self._load_bundle_infos(logger, rebuild_cache=rebuild_cache)
         for bi in inst_bi_list:
-            self.add_bundle_info(bi)
+            self.add_bundle_info(bi, logger)
             bi.register()
             if session is not None:
                 bi.initialize(session)
@@ -429,10 +430,48 @@ class Toolshed:
             self._repo_locator = None
             remote_bi_list = self.check_remote(logger)
             for bi in remote_bi_list:
-                self.add_bundle_info(bi)
+                self.add_bundle_info(bi, logger)
                 # XXX: do we want to register commands so that we can
                 # ask user whether to install bundle when invoked?
         self.triggers.activate_trigger(TOOLSHED_BUNDLE_INFO_RELOADED, self)
+
+    def set_install_timestamp(self, per_user=False):
+        """Set last installed timestamp."""
+        _debug("set_install_timestamp")
+        import os
+        if per_user:
+            from chimerax import app_dirs
+            directory = app_dirs.user_data_dir
+        else:
+            from chimerax import app_data_dir as directory
+        timestamp_file = os.path.join(directory, _TIMESTAMP)
+        with open(timestamp_file, 'w') as f:
+            # Contents of file are never read, see _is_cache_newer()
+            import time
+            print(time.ctime(), file=f)
+
+    def _is_cache_newer(self, cache_file):
+        """Check if cache is newer than timestamps."""
+        _debug("_is_cache_newer")
+        from chimerax import app_dirs, app_data_dir
+        import os
+        files = (
+            (os.path.join(app_data_dir, _TIMESTAMP), True),
+            (os.path.join(app_dirs.user_data_dir, _TIMESTAMP), False),
+        )
+        try:
+            cache_time = os.path.getmtime(cache_file)
+        except FileNotFoundError:
+            return False
+        for filename, required in files:
+            try:
+                time = os.path.getmtime(filename)
+                if time > cache_time:
+                    return False
+            except FileNotFoundError:
+                if required:
+                    return False
+        return True
 
     def bundle_info(self, installed=True, available=False):
         """Return list of bundle info.
@@ -461,7 +500,7 @@ class Toolshed:
         else:
             return []
 
-    def add_bundle_info(self, bi):
+    def add_bundle_info(self, bi, logger):
         """Add metadata for a bundle.
 
         Parameters
@@ -469,6 +508,8 @@ class Toolshed:
         bi : :py:class:`BundleInfo` instance
             Must be a constructed instance, *i.e.*, not an existing instance
             returned by :py:func:`bundle_info`.
+        logger : :py:class:`~chimerax.core.logger.Logger` instance
+            Logging object where warning and error messages are sent.
 
         Notes
         -----
@@ -480,8 +521,23 @@ class Toolshed:
             for p in bi.packages:
                 if p in self._installed_packages:
                     bi2 = self._installed_packages[p]
-                    print('warning: both %s and %s supply package %s' % (
-                          bi.name, bi2.name, '.'.join(p)))
+                    logger.warning('both %s and %s supply package %s' % (
+                                   bi.name, bi2.name, '.'.join(p)))
+                    if bi.name in bi2.supercedes:
+                        remove = skip = bi
+                    elif bi2.name in bi.supercedes:
+                        remove = skip = bi2
+                    else:
+                        remove = None
+                        skip = bi2
+                    if remove and hasattr(remove, 'path'):
+                        logger.warning('removing %s' % remove.path)
+                        import shutil
+                        shutil.rmtree(remove.path, ignore_errors=True)
+                    else:
+                        logger.warning('skipping %s' % skip.name)
+                    if skip == bi:
+                        continue
                 self._installed_packages[p] = bi
         else:
             container = self._available_bundle_info
@@ -517,7 +573,7 @@ class Toolshed:
         # Make sure that our install location is on chimerax module.__path__
         # so that newly installed modules may be found
         import importlib
-        import os.path
+        import os
         cx_dir = os.path.join(self._site_dir, _ChimeraNamespace)
         m = importlib.import_module(_ChimeraNamespace)
         if cx_dir not in m.__path__:
@@ -574,7 +630,7 @@ class Toolshed:
         best_bi = None
         best_version = None
         for bi in container:
-            if bi.name != name and name not in bi.aliases:
+            if bi.name != name and name not in bi.supercedes:
                 continue
             if version == bi.version:
                 return bi
@@ -669,22 +725,17 @@ class Toolshed:
 
         # Initialize distlib paths and locators
         _debug("_scan_installed")
-        if self._inst_locator is not None:
-            self._inst_locator.clear_cache()
-            self._inst_path.clear_cache()
-            _debug("_inst_path cleared cache")
-        else:
-            from distlib.database import DistributionPath
-            self._inst_path = DistributionPath()
-            _debug("_inst_path", self._inst_path)
-            from distlib.locators import DistPathLocator
-            self._inst_locator = DistPathLocator(self._inst_path)
-            _debug("_inst_locator", self._inst_locator)
+        from distlib.database import DistributionPath
+        inst_path = DistributionPath()
+        _debug("inst_path", inst_path)
+        from distlib.locators import DistPathLocator
+        inst_locator = DistPathLocator(inst_path)
+        _debug("inst_locator", inst_locator)
 
         # Keep only wheels
 
         all_distributions = []
-        for d in self._inst_path.get_distributions():
+        for d in inst_path.get_distributions():
             try:
                 d.run_requires
                 _debug("_scan_installed distribution", d)
@@ -694,7 +745,7 @@ class Toolshed:
                 all_distributions.append(d)
 
         # Look for core package
-        core = self._inst_locator.locate(_ChimeraCore)
+        core = inst_locator.locate(_ChimeraCore)
         if core is None:
             self._inst_core = set()
             self._inst_tool_dists = OrderedSet()
@@ -746,7 +797,7 @@ class Toolshed:
         if must_exist:
             import os
             os.makedirs(self._cache_dir, exist_ok=True)
-        import os.path
+        import os
         return os.path.join(self._cache_dir, "bundle_info.cache")
 
     def _read_cache(self):
@@ -756,6 +807,8 @@ class Toolshed:
         _debug("_read_cache")
         import filelock
         import json
+        import os
+        import sys
         cache_file = self._bundle_cache(False)
         try:
             lock = filelock.FileLock(cache_file + '.lock')
@@ -763,6 +816,20 @@ class Toolshed:
                 f = open(cache_file, "r", encoding='utf-8')
                 try:
                     with f:
+                        data = f.readline()
+                        data = json.loads(data)
+                        if not isinstance(data[0], str):
+                            _debug("_read_cache obsolete cache", cache_file)
+                            return None  # obsolete cache format
+                        executable, mtime = data
+                        if executable != sys.executable:
+                            _debug("_read_cache different executable", cache_file)
+                            return None
+                        if mtime != os.path.getmtime(executable):
+                            _debug("_read_cache changed executable", cache_file)
+                            return None
+                        if not self._is_cache_newer(cache_file):
+                            return None
                         data = json.load(f)
                     bundles = [BundleInfo.from_cache_data(x) for x in data]
                     _debug("_read_cache succeeded", len(bundles))
@@ -779,6 +846,8 @@ class Toolshed:
         _debug("_write_cache", bundle_info)
         import filelock
         import json
+        import os
+        import sys
         cache_file = self._bundle_cache(True)
         lock = filelock.FileLock(cache_file + '.lock')
         with lock.acquire():
@@ -788,70 +857,11 @@ class Toolshed:
                 logger.error("\"%s\": %s" % (cache_file, str(e)))
             else:
                 with f:
+                    data = [sys.executable, os.path.getmtime(sys.executable)]
+                    json.dump(data, f, ensure_ascii=False)
+                    print(file=f)
                     json.dump([bi.cache_data() for bi in bundle_info], f,
                               ensure_ascii=False, check_circular=False)
-
-    def _old_bundle_info(self, parts, kw, installed, logger, bi):
-        name = kw['name']
-        # Name of bundle
-        bundle_name = parts[1]  # not used
-        # Synopsis of bundle/tool/command/format
-        synopsis = parts[9]
-        # Name of module implementing bundle API
-        kw["api_package_name"] = parts[2]
-        # Display name of tool
-        tool_name = parts[3]
-        # Menu categories in which tool should appear
-        categories = [v.strip() for v in parts[5].split(',')]
-        # CLI command names (just the first word)
-        commands = []
-        if parts[4]:
-            commands = [CommandInfo(v.strip(), categories, synopsis) for v in parts[4].split(',')]
-        # File types that bundle can open
-        file_types = parts[6]
-        types = []
-        if file_types:
-            for t in file_types.split(','):
-                spec = [v.strip() for v in t.split(':')]
-                if len(spec) < 3:
-                    logger.warning("Malformed ChimeraX-Bundle line in %s skipped." % name)
-                    logger.warning("File type has fewer than three fields.")
-                    return None
-                format_name, format_category, suffix = spec
-                format = FormatInfo(format_name, format_category, suffixes=[suffix])
-                format.has_open = True
-                types.append(format)
-        # Session version numbers
-        session_versions = parts[7]
-        if session_versions:
-            vs = [v.strip() for v in session_versions.split(',')]
-            if len(vs) != 2:
-                logger.warning("Malformed ChimeraX-Bundle line in %s skipped." % name)
-                logger.warning("Expected 2 version numbers and got %d." % len(vs))
-                return None
-            try:
-                lo = int(vs[0])
-                hi = int(vs[1])
-            except ValueError:
-                logger.warning("Malformed ChimeraX-Bundle line in %s skipped." % name)
-                logger.warning("Found non-integer version numbers.")
-                return kw
-            if lo > hi:
-                logger.warning("Minimum version is greater than maximium.")
-                hi = lo
-            kw["session_versions"] = range(lo, hi + 1)
-        # Does bundle have custom initialization code?
-        custom_init = parts[8]
-        if custom_init:
-            kw["custom_init"] = (custom_init == "true")
-        if not bi:
-            bi = BundleInfo(installed=installed, **kw)
-        if 'Hidden' not in categories:
-            ti = ToolInfo(tool_name, categories, synopsis)
-            bi.tools.append(ti)
-        bi.formats.extend(types)
-        bi.commands.extend(commands)
-        return bi
 
     def _make_bundle_info(self, d, installed, logger):
         """Convert distribution into a list of :py:class:`BundleInfo` instances."""
@@ -871,171 +881,174 @@ class Toolshed:
         kw['packages'] = _get_installed_packages(d)
         for classifier in md["classifiers"]:
             parts = [v.strip() for v in classifier.split("::")]
-            if parts[0] == "ChimeraX-Bundle":
-                # 'ChimeraX-Bundle' :: categories :: session_versions :: module_name :: aliases :: custom_init
-                if len(parts) == 10:
-                    bi = self._old_bundle_info(parts, kw, installed, logger, bi)
-                    continue
-                elif bi is not None:
-                    logger.warning("Second ChimeraX-Bundle line ignored.")
+            if parts[0] != 'ChimeraX':
+                continue
+            if parts[1] == 'Bundle':
+                # ChimeraX :: Bundle :: categories :: session_versions :: module_name :: supercedes :: custom_init
+                if bi is not None:
+                    logger.warning("Second ChimeraX :: Bundle line ignored.")
                     break
-                elif len(parts) not in [5, 6]:
-                    logger.warning("Malformed ChimeraX-Bundle line in %s skipped." % name)
-                    logger.warning("Expected 6 fields and got %d." % len(parts))
+                elif len(parts) != 7:
+                    logger.warning("Malformed ChimeraX :: Bundle line in %s skipped." % name)
+                    logger.warning("Expected 7 fields and got %d." % len(parts))
                     continue
-                # Categories in which bundle should appear
-                categories = parts[1]
+                categories, session_versions, module_name, supercedes, custom_init = parts[2:]
                 kw["categories"] = [v.strip() for v in categories.split(',')]
-                # Session version numbers
-                session_versions = parts[2]
                 if session_versions:
                     vs = [v.strip() for v in session_versions.split(',')]
                     if len(vs) != 2:
-                        logger.warning("Malformed ChimeraX-Bundle line in %s skipped." % name)
+                        logger.warning("Malformed ChimeraX :: Bundle line in %s skipped." % name)
                         logger.warning("Expected 2 version numbers and got %d." % len(vs))
-                        return None
+                        continue
                     try:
                         lo = int(vs[0])
                         hi = int(vs[1])
                     except ValueError:
-                        logger.warning("Malformed ChimeraX-Bundle line in %s skipped." % name)
+                        logger.warning("Malformed ChimeraX :: Bundle line in %s skipped." % name)
                         logger.warning("Found non-integer version numbers.")
-                        return kw
+                        continue
                     if lo > hi:
                         logger.warning("Minimum version is greater than maximium.")
                         hi = lo
                     kw["session_versions"] = range(lo, hi + 1)
-                # Name of package implementing bundle API
-                kw["api_package_name"] = parts[3]
-                if len(parts) == 5:
-                    # Does bundle have custom initialization code?
-                    custom_init = parts[4]
-                    if custom_init:
-                        kw["custom_init"] = (custom_init == "true")
-                else:
-                    # Are there bundle name aliases?
-                    if parts[4]:
-                        kw['aliases'] = [v.strip() for v in parts[4].split(',')]
-                    # Does bundle have custom initialization code?
-                    custom_init = parts[5]
-                    if custom_init:
-                        kw["custom_init"] = (custom_init == "true")
+                kw["api_package_name"] = module_name
+                if supercedes:
+                    kw['supercedes'] = [v.strip() for v in supercedes.split(',')]
+                if custom_init:
+                    kw["custom_init"] = (custom_init == "true")
                 bi = BundleInfo(installed=installed, **kw)
-            elif parts[0] == "ChimeraX-Tool":
-                # 'ChimeraX-Tool' :: tool_name :: categories :: synopsis
+                bi.path = d.path
+            elif parts[1] == 'Tool':
+                # ChimeraX :: Tool :: tool_name :: categories :: synopsis
                 if bi is None:
-                    logger.warning('ChimeraX-Bundle entry must be first')
+                    logger.warning('ChimeraX :: Bundle entry must be first')
                     return None
-                if len(parts) != 4:
-                    logger.warning("Malformed ChimeraX-Tool line in %s skipped." % name)
-                    logger.warning("Expected 4 fields and got %d." % len(parts))
+                if len(parts) != 5:
+                    logger.warning("Malformed ChimeraX :: Tool line in %s skipped." % name)
+                    logger.warning("Expected 5 fields and got %d." % len(parts))
                     continue
                 # Menu categories in which tool should appear
-                name = parts[1]
-                categories = parts[2]
+                name, categories, synopsis = parts[2:]
                 if not categories:
                     logger.warning("Missing tool categories")
                     continue
                 categories = [v.strip() for v in categories.split(',')]
-                synopsis = parts[3]
                 ti = ToolInfo(name, categories, synopsis)
                 bi.tools.append(ti)
-            elif parts[0] == "ChimeraX-Command":
-                # 'ChimeraX-Command' :: name :: categories :: synopsis
+            elif parts[1] == 'Command':
+                # ChimeraX :: Command :: name :: categories :: synopsis
                 if bi is None:
-                    logger.warning('ChimeraX-Bundle entry must be first')
+                    logger.warning('ChimeraX :: Bundle entry must be first')
                     return None
-                if len(parts) != 4:
-                    logger.warning("Malformed ChimeraX-Command line in %s skipped." % name)
-                    logger.warning("Expected 4 fields and got %d." % len(parts))
+                if len(parts) != 5:
+                    logger.warning("Malformed ChimeraX :: Command line in %s skipped." % name)
+                    logger.warning("Expected 5 fields and got %d." % len(parts))
                     continue
-                name = parts[1]
-                categories = parts[2]
+                name, categories, synopsis = parts[2:]
                 if not categories:
                     logger.warning("Missing command categories")
                     continue
                 categories = [v.strip() for v in categories.split(',')]
-                synopsis = parts[3]
                 ci = CommandInfo(name, categories, synopsis)
                 bi.commands.append(ci)
-            elif parts[0] == "ChimeraX-Selector":
-                # 'ChimeraX-Selector' :: name :: synopsis
+            elif parts[1] == 'Selector':
+                # ChimeraX :: Selector :: name :: synopsis
                 if bi is None:
-                    logger.warning('ChimeraX-Bundle entry must be first')
-                    return None
-                if len(parts) != 3:
-                    logger.warning("Malformed ChimeraX-Selector line in %s skipped." % name)
-                    logger.warning("Expected 3 fields and got %d." % len(parts))
-                    continue
-                name = parts[1]
-                synopsis = parts[2]
-                si = SelectorInfo(name, synopsis)
-                bi.selectors.append(si)
-            elif parts[0] == "ChimeraX-DataFormat":
-                # ChimeraX-DataFormat :: format_name :: alternate_names :: category :: suffixes :: mime_types :: url :: dangerous :: icon :: synopsis
-                if bi is None:
-                    logger.warning('ChimeraX-Bundle entry must be first')
-                    return None
-                if len(parts) != 10:
-                    logger.warning("Malformed ChimeraX-DataFormat line in %s skipped." % name)
-                    logger.warning("Expected 3 fields and got %d." % len(parts))
-                    continue
-                name = parts[1]
-                alternates = [v.strip() for v in parts[2].split(',')] if parts[2] else None
-                category = parts[3]
-                suffixes = [v.strip() for v in parts[4].split(',')] if parts[4] else None
-                mime_types = [v.strip() for v in parts[5].split(',')] if parts[5] else None
-                url = parts[6]
-                dangerous = parts[7]
-                icon = parts[8]
-                synopsis = parts[9]
-                fi = FormatInfo(name=name, alternates=alternates,
-                                category=category, suffixes=suffixes,
-                                mime_types=mime_types, url=url, icon=icon,
-                                dangerous=dangerous, synopsis=synopsis)
-                bi.formats.append(fi)
-            elif parts[0] == "ChimeraX-Fetch":
-                # ChimeraX-Fetch :: database_name :: format_name :: prefixes :: example_id :: is_default
-                if bi is None:
-                    logger.warning('ChimeraX-Bundle entry must be first')
-                    return None
-                database_name = parts[1]
-                format_name = parts[2]
-                prefixes = [v.strip() for v in parts[3].split(',')] if parts[3] else ()
-                example_id = parts[4]
-                is_default = (parts[5] == 'true')
-                bi.fetches.append((database_name, format_name, prefixes, example_id, is_default))
-            elif parts[0] == "ChimeraX-Open":
-                # ChimeraX-Open :: format_name :: tag :: is_default
-                if bi is None:
-                    logger.warning('ChimeraX-Bundle entry must be first')
+                    logger.warning('ChimeraX :: Bundle entry must be first')
                     return None
                 if len(parts) != 4:
-                    logger.warning("Malformed ChimeraX-Open line in %s skipped." % name)
+                    logger.warning("Malformed ChimeraX :: Selector line in %s skipped." % name)
                     logger.warning("Expected 4 fields and got %d." % len(parts))
                     continue
-                name = parts[1]
-                tag = parts[2]
-                is_default = parts[3]
+                name, synopsis = parts[2:]
+                si = SelectorInfo(name, synopsis)
+                bi.selectors.append(si)
+            elif parts[1] == 'DataFormat':
+                # ChimeraX :: DataFormat :: format_name :: nicknames :: category :: suffixes :: mime_types :: url :: dangerous :: icon :: synopsis :: encoding
+                if bi is None:
+                    logger.warning('ChimeraX :: Bundle entry must be first')
+                    return None
+                if len(parts) not in [11, 12]:
+                    logger.warning("Malformed ChimeraX :: DataFormat line in %s skipped." % name)
+                    logger.warning("Expected 11 or 12 fields and got %d." % len(parts))
+                    continue
+                if len(parts) == 12:
+                    name, nicknames, category, suffixes, mime_types, url, dangerous, icon, synopsis, encoding = parts[2:]
+                else:
+                    encoding = None
+                    name, nicknames, category, suffixes, mime_types, url, dangerous, icon, synopsis = parts[2:]
+                nicknames = [v.strip() for v in nicknames.split(',')] if nicknames else None
+                suffixes = [v.strip() for v in suffixes.split(',')] if suffixes else None
+                mime_types = [v.strip() for v in mime_types.split(',')] if mime_types else None
+                # construct absolute path name of icon by looking
+                # in package directory
+                if icon:
+                    icon = bi.find_icon_path(icon)
+                fi = FormatInfo(name=name, nicknames=nicknames,
+                                category=category, suffixes=suffixes,
+                                mime_types=mime_types, url=url, icon=icon,
+                                dangerous=dangerous, synopsis=synopsis,
+                                encoding=encoding)
+                bi.formats.append(fi)
+            elif parts[1] == 'Fetch':
+                # ChimeraX :: Fetch :: database_name :: format_name :: prefixes :: example_id :: is_default
+                if bi is None:
+                    logger.warning('ChimeraX :: Bundle entry must be first')
+                    return None
+                if len(parts) != 7:
+                    logger.warning("Malformed ChimeraX :: DataFormat line in %s skipped." % name)
+                    logger.warning("Expected 7 fields and got %d." % len(parts))
+                    continue
+                database_name, format_name, prefixes, example_id, is_default = parts[2:]
+                prefixes = [v.strip() for v in prefixes.split(',')] if prefixes else ()
+                is_default = (is_default == 'true')
+                bi.fetches.append((database_name, format_name, prefixes, example_id, is_default))
+            elif parts[1] == 'Open':
+                # ChimeraX :: Open :: format_name :: tag :: is_default :: keyword_arguments
+                if bi is None:
+                    logger.warning('ChimeraX :: Bundle entry must be first')
+                    return None
+                if len(parts) not in [5, 6]:
+                    logger.warning("Malformed ChimeraX :: Open line in %s skipped." % name)
+                    logger.warning("Expected 5 or 6 fields and got %d." % len(parts))
+                    continue
+                if len(parts) == 6:
+                    name, tag, is_default, kwds = parts[2:]
+                    kwds = _extract_extra_keywords(kwds)
+                else:
+                    name, tag, is_default = parts[2:]
+                    kwds = None
+                is_default = (is_default == 'true')
                 try:
                     fi = [fi for fi in bi.formats if fi.name == name][0]
                 except (KeyError, IndexError):
                     logger.warning("Unknown format name: %r." % name)
                     continue
                 fi.has_open = True
-            elif parts[0] == "ChimeraX-Save":
+                fi.open_kwds = kwds
+            elif parts[1] == 'Save':
+                # ChimeraX :: Save :: format_name :: tag :: is_default :: keyword_arguments
                 if bi is None:
-                    logger.warning('ChimeraX-Bundle entry must be first')
+                    logger.warning('ChimeraX :: Bundle entry must be first')
                     return None
-                name = parts[1]
-                tag = parts[2]
-                is_default = parts[3]
+                if len(parts) not in [5, 6]:
+                    logger.warning("Malformed ChimeraX :: Save line in %s skipped." % name)
+                    logger.warning("Expected 5 or 6 fields and got %d." % len(parts))
+                    continue
+                if len(parts) == 6:
+                    name, tag, is_default, kwds = parts[2:]
+                    kwds = _extract_extra_keywords(kwds)
+                else:
+                    name, tag, is_default = parts[2:]
+                    kwds = None
+                is_default = (is_default == 'true')
                 try:
                     fi = [fi for fi in bi.formats if fi.name == name][0]
                 except (KeyError, IndexError):
                     logger.warning("Unknown format name: %r." % name)
                     continue
                 fi.has_save = True
+                fi.save_kwds = kwds
         if bi is None:
             return None
         try:
@@ -1076,15 +1089,13 @@ class Toolshed:
         # TODO: update _installed_packages
         updated = set([(d.name, d.version) for d in need_update])
         if self._all_installed_distributions is not None:
-            self._inst_path = None
-            self._inst_locator = None
             self._all_installed_distributions = None
         import copy
         newly_installed = [copy.copy(bi) for bi in self._available_bundle_info
                            if bi.distribution() in updated]
         for bi in newly_installed:
             bi.installed = True
-            self.add_bundle_info(bi)
+            self.add_bundle_info(bi, logger)
             bi.register()
             if session is not None:
                 bi.initialize(session)
@@ -1117,9 +1128,8 @@ class Toolshed:
         if repo_dist is None:
             raise ToolshedUnavailableError("cannot find new distribution "
                                            "named \"%s\"" % name)
-        if self._inst_locator is None:
-            self._scan_installed(logger)
-        inst_dist = self._inst_locator.locate(name)
+        all_dists = self._get_all_installed_distributions(logger)
+        inst_dist = all_dists[name]
         if inst_dist is None:
             return repo_dist
         else:
@@ -1258,9 +1268,8 @@ class Toolshed:
             old_location[d.name] = self._remove_distribution(d, logger)
 
         # Now we (re)install the needed distributions
-        import os.path
-        wheel_cache = os.path.join(self._cache_dir, "wheels.cache")
         import os
+        wheel_cache = os.path.join(self._cache_dir, "wheels.cache")
         os.makedirs(wheel_cache, exist_ok=True)
         default_paths = self._install_make_paths(system)
         from distlib.scripts import ScriptMaker
@@ -1318,7 +1327,7 @@ class Toolshed:
         _debug("_install_make_paths", system)
         import site
         import sys
-        import os.path
+        import os
         if system:
             base = sys.prefix
         else:
@@ -1362,7 +1371,7 @@ class Toolshed:
         #     directories from which we removed files
         #   try removing the directories, longest first (this will
         #     remove children directories before parents)
-        import os.path
+        import os
         basedir = os.path.dirname(d.path)
         dircache = set()
         try:
@@ -1416,6 +1425,51 @@ class Toolshed:
     # End methods for installing and removing distributions
 
 
+def _extract_extra_keywords(kwds):
+    result = {}
+    all_kwds = [k.strip() for k in kwds.split(',')]
+    for k in all_kwds:
+        temp = [t.strip() for t in k.split(':', maxsplit=1)]
+        if len(temp) == 1:
+            result[temp[0]] = 'String'
+        else:
+            result[temp[0]] = temp[1]
+    return result
+
+
+def _convert_keyword_types(kwds, bi):
+    from .. import commands
+    bundle_api = None
+    arg_cache = {}
+
+    def get_arg(arg_name):
+        nonlocal bundle_api
+        a = arg_cache.get(arg_name, None)
+        if a is not None:
+            return a
+        full_arg_name = arg_name + 'Arg'
+        if hasattr(commands, full_arg_name):
+            a = getattr(commands, full_arg_name)
+        else:
+            if bundle_api is None:
+                bundle_api = bi._get_api()
+            if hasattr(bundle_api, full_arg_name):
+                a = getattr(bundle_api, full_arg_name)
+            else:
+                print('unable to find %s argument type in bundle %s' % (arg_name, bi.name))
+                return None
+        arg_cache[arg_name] = a
+        return a
+
+    result = {}
+    for kw in kwds:
+        arg_type = get_arg(kwds[kw])
+        if arg_type is None:
+            continue
+        result[kw] = arg_type
+    return result
+
+
 class ToolInfo:
     """Metadata about a tool
 
@@ -1455,6 +1509,7 @@ class ToolInfo:
 class CommandInfo(ToolInfo):
     """Metadata about a command"""
     pass
+
 
 class SelectorInfo(ToolInfo):
     """Metadata about a selector
@@ -1512,22 +1567,25 @@ class FormatInfo:
         filename in bundle of icon for data format
     """
 
-    def __init__(self, name, category, alternates=None, suffixes=None,
+    def __init__(self, name, category, *, nicknames=None, suffixes=None,
                  mime_types=None, url=None, synopsis=None,
-                 dangerous=None, icon=None,
+                 dangerous=None, icon=None, encoding=None,
+                 open_kwds=None, save_kwds=None,
                  has_open=False, has_save=False):
         self.name = name
-        self.alternates = alternates
+        self.nicknames = nicknames
         self.category = category
         self.suffixes = suffixes
         self.mime_types = mime_types
         self.documentation_url = url
         self.dangerous = dangerous
-        # self.encoding = encoding
+        self.encoding = encoding
         self.icon = icon
         self.synopsis = synopsis
         self.has_open = has_open
+        self.open_kwds = open_kwds
         self.has_save = has_save
+        self.save_kwds = save_kwds
 
     def __repr__(self):
         s = self.name
@@ -1540,8 +1598,8 @@ class FormatInfo:
             s += " [url: %s]" % self.documentation_url
         if self.dangerous:
             s += " (dangerous)"
-        # if self.encoding:
-        #     s += " [encoding: %s]" % self.encoding
+        if self.encoding:
+            s += " [encoding: %s]" % self.encoding
         if self.synopsis:
             s += " [synopsis: %s]" % self.synopsis
         return s
@@ -1556,9 +1614,11 @@ class FormatInfo:
             'dangerous': self.dangerous,
             'icon': self.icon,
             'synopsis': self.synopsis,
-            'alternates': self.alternates,
+            'nicknames': self.nicknames,
             'has_open': self.has_open,
             'has_save': self.has_save,
+            'open_kwds': self.open_kwds,
+            'save_kwds': self.save_kwds,
         }
 
     @classmethod
@@ -1605,7 +1665,7 @@ class BundleInfo:
                  description="Unknown",
                  session_versions=range(1, 1 + 1),
                  custom_init=False,
-                 packages=[], aliases=[]):
+                 packages=[], supercedes=[]):
         """Initialize instance.
 
         Parameters
@@ -1640,7 +1700,7 @@ class BundleInfo:
         self.selectors = []
         self.fetches = []
         self.description = description
-        self.aliases = aliases
+        self.supercedes = supercedes
 
         # Private attributes
         self._name = name
@@ -1699,7 +1759,7 @@ class BundleInfo:
             "api_package_name": self._api_package_name,
             "packages": self.packages,
             "description": self.description,
-            "aliases": self.aliases,
+            "supercedes": self.supercedes,
         }
         more = {
             'tools': [ti.cache_data() for ti in self.tools],
@@ -1765,9 +1825,13 @@ class BundleInfo:
             raise ToolshedError(
                 "no register_command function found for bundle \"%s\""
                 % self.name)
-        if f == BundleAPI.register_command:
-            raise ToolshedError("bundle \"%s\"'s API forgot to override register_command()" % self.name)
-        f(command_name)
+        try:
+            if f == BundleAPI.register_command:
+                raise ToolshedError("bundle \"%s\"'s API forgot to override register_command()" % self.name)
+            f(command_name)
+        except Exception as e:
+            raise ToolshedError(
+                "register_command() failed for command %s:\n%s" % (command_name, str(e)))
 
     def _deregister_commands(self):
         """Deregister commands with cli."""
@@ -1784,7 +1848,11 @@ class BundleInfo:
         from chimerax.core import io, fetch
         for fi in self.formats:
             _debug("register_file_type", fi.name)
-            format = io.register_format(fi.name, fi.category, fi.suffixes)
+            format = io.register_format(
+                fi.name, fi.category, fi.suffixes, fi.nicknames,
+                mime=fi.mime_types, reference=fi.documentation_url,
+                dangerous=fi.dangerous, icon=fi.icon, encoding=fi.encoding
+            )
             if fi.has_open:
                 def open_cb(*args, format_name=fi.name, **kw):
                     try:
@@ -1803,6 +1871,10 @@ class BundleInfo:
                     format.open_func = open_shim
                     return open_shim(*args, **kw)
                 format.open_func = open_cb
+                if fi.open_kwds:
+                    from ..commands import cli
+                    cli.add_keyword_arguments('open', _convert_keyword_types(
+                        fi.open_kwds, self))
             if fi.has_save:
                 def save_cb(*args, format_name=fi.name, **kw):
                     try:
@@ -1821,19 +1893,25 @@ class BundleInfo:
                     format.export_func = save_shim
                     return save_shim(*args, format_name=format_name, **kw)
                 format.export_func = save_cb
+                if fi.save_kwds:
+                    from ..commands import cli
+                    cli.add_keyword_arguments('save', _convert_keyword_types(
+                        fi.save_kwds, self))
         for (database_name, format_name, prefixes, example_id, is_default) in self.fetches:
             if io.format_from_name(format_name) is None:
                 print('warning: unknown format %r given for database %r' % (format_name, database_name))
+
             def fetch_cb(session, identifier, database_name=database_name, format_name=format_name, **kw):
                 try:
-                    f = self._get_api().fetch_url
+                    f = self._get_api().fetch_from_database
                 except AttributeError:
                     raise ToolshedError(
-                        "no fetch_url function found for bundle \"%s\""
+                        "no fetch_from_database function found for bundle \"%s\""
                         % self.name)
                 if f == BundleAPI.save_file:
-                    raise ToolshedError("bundle \"%s\"'s API forgot to override fetch_url()" % self.name)
-                # optimize by replacing fetch_url for (database, format)
+                    raise ToolshedError("bundle \"%s\"'s API forgot to override fetch_from_database()" % self.name)
+                # optimize by replacing fetch_from_database for (database, format)
+
                 def fetch_shim(session, identifier, f=f, database_name=database_name, format_name=format_name, **kw):
                     return f(session, identifier, database_name=database_name, format_name=format_name, **kw)
                 fetch.register_fetch(database_name, fetch_shim, format_name)
@@ -1920,6 +1998,16 @@ class BundleInfo:
             raise ToolshedError("missing bundle_api for bundle \"%s\"" % self.name)
         _debug("_get_api", self._api_package_name, m, bundle_api)
         return bundle_api
+
+    def find_icon_path(self, icon_name):
+        import importlib
+        import os
+        try:
+            m = importlib.import_module(self._api_package_name)
+        except Exception as e:
+            raise ToolshedError("Error importing bundle API \"%s\": %s" % (self.name, str(e)))
+        icon_dir = os.path.dirname(m.__file__)
+        return os.path.join(icon_dir, icon_name)
 
     def start_tool(self, session, tool_name, *args, **kw):
         """Create and return a tool instance.

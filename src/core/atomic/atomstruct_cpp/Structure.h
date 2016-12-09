@@ -194,6 +194,7 @@ public:
     const Bonds&  bonds() const { return _bonds; }
     const Chains&  chains() const { if (_chains == nullptr) make_chains(); return *_chains; }
     ChangeTracker*  change_tracker() { return _change_tracker; }
+    virtual void  compute_secondary_structure(float = -0.5, int = 3, int = 3, bool = false) {}
     const CoordSets&  coord_sets() const { return _coord_sets; }
     virtual Structure*  copy() const;
     void  delete_atom(Atom* a);

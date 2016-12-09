@@ -63,6 +63,7 @@ AtomTypes.o: AtomicStructure.h Bond.h Coord.h Residue.h tmpl/TAexcept.h
 Bond.o: Atom.h Bond.h Chain.h Connection.h Structure.h Residue.h Sequence.h
 Chain.o: Chain.h StructureSeq.h
 ChangeTracker.o: ChangeTracker.h
+CompSS.o: Atom.h AtomicStructure.h Coord.h Residue.h Structure.h
 connect.o: Atom.h Bond.h connect.h Coord.h destruct.h Structure.h MolResId.h PBGroup.h \
 	Residue.h string_types.h tmpl/Residue.h tmpl/Atom.h tmpl/residues.h
 CoordSet.o: Atom.h Structure.h CoordSet.h destruct.h

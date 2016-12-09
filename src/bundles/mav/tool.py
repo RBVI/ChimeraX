@@ -129,9 +129,8 @@ class MultalignViewer(ToolInstance):
         ModelessDialog.__init__(self)
         """
         from chimerax.core.ui.gui  import MainToolWindow
-        self.tool_window = MainToolWindow(self)
+        self.tool_window = MainToolWindow(self, close_destroys=True)
         self.tool_window._ToolWindow__toolkit.dock_widget.setMouseTracking(True)
-        self.tool_window.close_destroys = True
         parent = self.tool_window.ui_area
         parent.setMouseTracking(True)
         """TODO
@@ -399,7 +398,7 @@ class MultalignViewer(ToolInstance):
         self.tool_window.manage('side' if self.seq_canvas.should_wrap() else 'top')
 
     def alignment_notification(self, note_name, note_data):
-        if note_name == "mod assoc":
+        if note_name == "modify association":
             for match_map in note_data[-1]:
                 self.seq_canvas.assoc_mod(match_map.align_seq)
 

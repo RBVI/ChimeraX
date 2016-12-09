@@ -25,20 +25,21 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: open</h3>
 <h3><a href="usageconventions.html">Usage</a>:
-<BR><b>open</b> &nbsp;<i>filename</i> 
+<br><b>open</b> &nbsp;<i>filename</i> 
 [&nbsp;format&nbsp;&nbsp;<a href="#local"><i>format-name</i></a>&nbsp;]
 [&nbsp;name&nbsp;&nbsp;<i>model-name</i>&nbsp;]
-[&nbsp;explode&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;smartInitialDisplay&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;trajectory&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
-<BR><b>open</b> 
+<br><b>open</b> 
 [&nbsp;<a href="#fetch"><i>prefix</i></a>:]<i>identifier</i>&nbsp;
 [&nbsp;fromDatabase&nbsp;&nbsp;<a href="#fetch"><i>source</i></a>&nbsp;]
 [&nbsp;format&nbsp;&nbsp;<a href="#fetch"><i>format-name</i></a>&nbsp;]
-[&nbsp;ignoreCache&nbsp;]
 [&nbsp;name&nbsp;&nbsp;<i>model-name</i>&nbsp;]
 [&nbsp;smartInitialDisplay&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;trajectory&nbsp;]
+[&nbsp;ignoreCache&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>: <BR><b>open formats</b>
 </h3>
@@ -47,10 +48,6 @@ The command <b>open</b> reads <a href="#local">local files</a> and
 fetches <a href="#fetch">data from the Web</a>.
 Input files may contain 3D data to be displayed, 
 or commands or code to be executed.
-A multi-model PDB file can be opened as a trajectory 
-(for sequential playback with <a href="coordset.html"><b>coordset</b></a>)
-by setting <b>explode</b> to false.
-</p><p>
 Alternatively, local files can be browsed/opened with 
 <b>File... Open</b> in the menu,
 in which case the proper filename <a href="#local">suffix</a> is required.
@@ -62,7 +59,7 @@ See also:
 <a href="sym.html"><b>sym</b></a>,
 <a href="colortables.html#autocolors">initial colors</a>
 </p><p>
-Any resulting model in ChimeraX is automatically assigned a model ID number,
+Any resulting model(s) in ChimeraX are automatically assigned a model ID number,
 starting with #1. The name of the model (shown in the <b>Model Panel</b>)
 will be generated from the <i>filename</i> or database <i>identifier</i>
 unless another name is given with the <b>name</b> option.
@@ -73,6 +70,10 @@ and rule-based changes in lighting, coloring, and representation, instead
 always showing atomic models as white spheres; it may be useful in 
 rare cases where generating the initial representation is slow
 (<i>e.g.</i>, drawing cartoons for very large numbers of atomic models).
+</p><p>
+A multi-model file in PDB format can be opened as a trajectory 
+(for sequential playback with <a href="coordset.html"><b>coordset</b></a>)
+with the <b>trajectory</b> option.
 </p><p>
 The <b>open formats</b> command lists the possible formats and databases
 in the <a href="../tools/log.html"><b>Log</b></a>. 
@@ -91,31 +92,40 @@ Examples:
 </blockquote>
 </p>
 
+<a name="local"></a>
 <p class="nav">
 [<a href="#top">back to top</a>]
 </p>
-<a name="local"></a>
 <h3>Local Files</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>open</b> &nbsp;<i>filename</i> 
+[&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#local"><i>format-name</i></a>&nbsp;]
+[&nbsp;<b>name</b>&nbsp;&nbsp;<i>model-name</i>&nbsp;]
+[&nbsp;<b>smartInitialDisplay</b>&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>trajectory</b>&nbsp;]
+</blockquote>
 <p>
 The <i>filename</i> is generally a pathname to a local file, 
 either absolute or relative to the current working directory as
-reported by the command <a href="pwd.html"><b>pwd</b></a>.
+reported by <a href="pwd.html"><b>pwd</b></a>.
+The working directory can be changed with <a href="cd.html"><b>cd</b></a>.
 A pathname may start with &ldquo;<b>~</b>&rdquo; to indicate the user's 
 home directory. One or more files can be specified at a time by including 
 <b>*</b> (wild card), <b>?</b> (single-character wild card), 
 and/or square-bracketed character ranges in the <i>filename</i>
 (Unix-style pathname expansion or <b><i>globbing</i></b>).
 </p><p>
-The file format can be indicated with either <b>format <i>format-name</i></b>
-in the <a href="#top"><b>open</b></a> command (where <b><i>format-name</i></b>
-can be truncated) or the <i>filename</i> suffix.
+The file format can be indicated with either the <i>filename</i> suffix or
+the <b>format</b> option (where <i>format-name</i> can be truncated).
 Files that are gzipped, as indicated by their additional .gz suffix, 
 can also be read.
 </p>
 <table border cellpadding="4" cellspacing="0">
 <tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
-<b>Atomic Structures and Related Data</b></a>
+<a name="atomic"></a>
+<b>Atomic Structures and Related Data</b></td>
 <tr><tr>
 <td align="center"><b>format</b></td>
 <td align="center"><b><i>format-name</i></b></td>
@@ -143,7 +153,8 @@ plain text file with each line <a href="atomspec.html">specifying</a>
 <br>to connect with <a href="../pseudobonds.html">pseudobonds</a></td>
 <tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
-<b>Volume Data</b></a>
+<a name="volume"></a>
+<b>Volume Data</b></td>
 </tr><tr>
 <td align="center">
 <a href="http://www.poissonboltzmann.org/docs/file-format-info/"
@@ -197,18 +208,15 @@ target="_blank">MRC</a></td>
 <td align="center">.mrc</td>
 <td align="center">density map</td>
 <tr><tr>
-<td align="center">STORM</td>
+<td align="center"><a href="http://huanglab.ucsf.edu/STORM.html"
+target="_blank">STochastic Optical Reconstruction Microscopy (STORM)</a></td>
 <td align="center"><b>storm</b></td>
 <td align="center">.storm</td>
-<td align="center">STORM optical microscopy data</td>
-<tr><tr>
-<td align="center">Raw binary coordinates</td>
-<td align="center"><b>crd</b></td>
-<td align="center">.crd</td>
-<td align="center">??</td>
+<td align="center">super-resolution optical microscopy data</td>
 <tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
-<b>Other 3D Objects</b></a>
+<a name="object"></a>
+<b>Other 3D Objects</b></td>
 </tr><tr>
 <td align="center"><a href="https://www.khronos.org/collada/"
 target="_blank">COLLADA</a></td>
@@ -218,22 +226,26 @@ target="_blank">COLLADA</a></td>
 </tr><tr>
 <td align="center"><a href="https://en.wikipedia.org/wiki/STL_%28file_format%29#Binary_STL"
 target="_blank">STereoLithography (binary)</a></td>
-<td align="center"><b>stereolithography</b></td>
+<td align="center"><b>stl</b></td>
 <td align="center">.stl</td>
-<td align="center">triangulated surfaces</td>
+<td align="center">triangle-based format (binary)
+native to stereolithography CAD software
 <tr><tr>
-<td align="center">VTK PolyData</td>
-<td align="center"><b>vtk polydata</b></td>
+<td align="center"><a href="http://vtk.org/" 
+target="_blank">Visualization Toolkit (VTK) PolyData</a></td>
+<td align="center"><b>vtk</b></td>
 <td align="center">.vtk</td>
 <td align="center">lines, polygons</td>
 <tr><tr>
-<td align="center">X3D</td>
+<td align="center"><a href="http://www.web3d.org/x3d/" 
+target="_blank">X3D</a></td>
 <td align="center"><b>x3d</b></td>
 <td align="center">.x3d</td>
 <td align="center">graphical scene</td>
 <tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
-<b>Sequences</b></a>
+<a name="sequence"></a>
+<b>Sequences</b></td>
 <tr><tr>
 <td align="center">FASTA, aligned FASTA</td>
 <td align="center"><b>fasta</b></td>
@@ -246,7 +258,8 @@ target="_blank">STereoLithography (binary)</a></td>
 <td align="center">sequence alignment</td>
 <tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
-<b>Composite</b></a>
+<a name="composite"></a>
+<b>Composite</b></td>
 </tr><tr>
 <td align="center"><a href="save.html">ChimeraX session file</a></td>
 <td align="center"><b>ses</b></td>
@@ -260,7 +273,8 @@ target="_blank">STereoLithography (binary)</a></td>
 <br>atomic and coarse-grained representations, crosslinks, <i>etc.</i></td>
 <tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
-<b>Miscellaneous</b></a>
+<a name="miscellaneous"></a>
+<b>Miscellaneous</b></td>
 </tr><tr>
 <td align="center"><a href="usageconventions.html#cxc-files">ChimeraX
 command file</a></td>
@@ -283,22 +297,33 @@ command file</a></td>
 use <a href="help.html"><b>help</b></a> instead of <b>open</b></td>
 </tr></table>
 
+<a name="fetch"></a>
 <p class="nav">
 [<a href="#top">back to top</a>]
 </p>
-<a name="fetch"></a>
 <h3>Web Fetch</h3>
+
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>: <b>open</b> 
+[&nbsp;<a href="#fetch"><i>prefix</i></a>:]<i>identifier</i>&nbsp;
+[&nbsp;<b>fromDatabase</b>&nbsp;&nbsp;<a href="#fetch"><i>source</i></a>&nbsp;]
+[&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#fetch"><i>format-name</i></a>&nbsp;]
+[&nbsp;<b>name</b>&nbsp;&nbsp;<i>model-name</i>&nbsp;]
+[&nbsp;<b>smartInitialDisplay</b>&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>trajectory</b>&nbsp;]
+[&nbsp;<b>ignoreCache</b>&nbsp;]
+</blockquote>
 <p>
-Alternatively, an entry can be fetched from a database
-if its <i>identifier</i> is supplied.
+An entry can be fetched from a database if its <i>identifier</i> is supplied.
 The source database can be indicated with either a <i>prefix</i>
 before the identifier or the <b>fromDatabase</b> option.
 The default database for a 4-character identifier without prefix is the
 <td align="center"><a href="http://www.rcsb.org/"
 target="_blank">RCSB Protein Data Bank</a>; the default format
-for that database is <b>mmcif</b>, although <b>pdb</b> can be specified
-with the <b>format</b> option.  For other databases, there is no choice
-of format and no reason to use the <b>format</b> option.
+for that database is <b>mmcif</b>, although <b>pdb</b> or <b>mmtf</b>
+can be specified with the <b>format</b> option.
+For other databases, there is no choice of format 
+and no reason to use the <b>format</b> option.
 </p>
 <table border cellpadding="4" cellspacing="0"><tr>
 <td align="center"><b>database</b></td>
@@ -312,7 +337,10 @@ target="_blank">RCSB Protein Data Bank</a></td>
 <td align="center"><b>pdb:</b></td>
 <td align="center"><b>pdb</b></td>
 <td align="center">atomic coordinates and associated annotations</td>
-<td align="center"><b>mmcif</b> (default) or <b>pdb</b></td>
+<td align="center"><b>mmcif</b> (default) or  <b>pdb</b>
+<br>(see <a href="http://www.rcsb.org/pdb/static.do?p=file_formats/index.jsp"
+target="_blank">wwPDB formats</a>)
+<br>or <a href="https://mmtf.rcsb.org/"><b>mmtf</b></a></td>
 </tr><tr>
 <td align="center"><a href="http://eds.bmc.uu.se/eds/index.html"
 target="_blank">Electron Density Server</a></td>

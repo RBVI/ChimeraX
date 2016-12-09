@@ -115,8 +115,9 @@ def retrieve_url(request, filename, logger=None, uncompress=False,
         with urlopen(request, context=ssl_context) as response:
             compressed = (response.headers['Content-Encoding'] == 'gzip' or uncompress)
             if logger:
-                logger.status('fetching%s %s' % (
-                    " compressed" if compressed else "", name), secondary=True)
+                logger.info('Fetching%s %s from %s' % (
+                    " compressed" if compressed else "", name,
+                    request.get_full_url()))
             d = response.headers['Last-modified']
             last_modified = _convert_to_timestamp(d)
             import shutil
@@ -256,7 +257,7 @@ def fetch_from_database(session, from_database, id, format=None, name=None, igno
     d = fetch_databases()
     df = d[from_database]
     from .logger import Collator
-    with Collator(session.logger, "Summary of problems opening %s fetched from %s" % (id, from_database)):
+    with Collator(session.logger, "Summary of feedback from opening %s fetched from %s" % (id, from_database)):
         models, status = df.fetch(session, id, format=format, ignore_cache=ignore_cache, **kw)
     if name is not None:
         for m in models:
@@ -293,7 +294,13 @@ class DatabaseFetch:
 
     def add_format(self, format_name, fetch_function):
         # fetch_function() takes session and database id arguments, returns model list.
-        self.fetch_function[format_name] = fetch_function
+        from . import io
+        f = io.format_from_name(format_name)
+        if f is None:
+            self.fetch_function[format_name] = fetch_function
+        else:
+            for name in f.nicknames:
+                self.fetch_function[name] = fetch_function
 
     def fetch(self, session, database_id, format=None, ignore_cache=False, **kw):
         f = self.default_format if format is None else format

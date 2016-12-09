@@ -1,53 +1,27 @@
-# === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
-# === UCSF ChimeraX Copyright ===
-
 TOP = ../../..
 include $(TOP)/mk/config.make
 
+BUNDLE_NAME = ChimeraX-Crosslinks
+BUNDLE_VERSION = 1.0
 PKG_NAME = chimerax.crosslinks
-PKG_VERSION = 1.0
-PKG_DESCRIPTION = Analyze crosslinks
-# Example:
-# PKG_NAME = chimerax.cmd_line
-# PKG_VERSION = 1.0
-# PKG_DESCRIPTION = ChimeraX command line interface
 
-# For many cases, only a single tool and a single command
-# is provided by a package.  Variables below are designed
-# for this case.  If you have multiple tools or commands,
-# you need manually edit all the files.
-TOOL_NAME = crosslinks
-TOOL_PKG_NAME = chimerax.crosslinks
-TOOL_DISPLAY_NAME = Crosslinks
-TOOL_CATEGORY = Hidden
-TOOL_FILE_TYPES =
-TOOL_SESSION_VERSIONS = 1,1
-TOOL_CUSTOM_INIT = false
-TOOL_SYNOPSIS = Analyze crosslinks
-COMMAND_NAME = crosslinks
-
-PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,')
+PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,'g)
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
 ifdef WIN32
 PKG_DIR := $(shell cygpath -m '$(PKG_DIR)' | sed 's,/,\\\\\\\\,g')
 shlibdir := $(shell cygpath -m '$(shlibdir)' | sed 's,/,\\\\\\\\,g')
+datadir := $(shell cygpath -m '$(datadir)' | sed 's,/,\\\\\\\\,g')
 endif
+WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
 
 PYSRCS = $(filter-out setup.py,$(wildcard *.py))
-WHEEL = dist/$(PKG_NAME)-$(PKG_VERSION)-py3-none-any.whl
+DATAFILES = 
+WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-py3-none-any.whl
 
 all: $(PYOBJS)
 
-install: dir
-	$(RSYNC) $(PYSRCS) $(PKG_DIR)
+install: dir all
+	$(RSYNC) $(PYSRCS) $(DATAFILES) $(PKG_DIR)
 	if [ -d "$(app_prefix)" ]; then \
 		$(MAKE) app-install ;\
 	fi
@@ -58,26 +32,20 @@ app-install: wheel
 
 wheel: setup.py
 	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel
-	rm -rf $(TOOL_NAME).egg-info
+	rm -rf $(WHL_BNDL_NAME).egg-info
 
 setup.py: setup.py.in Makefile
-	# "TOOL_PKG_NAME" includes "PKG_NAME" so must be replaced first
 	sed -e 's,PKG_DIR,$(PKG_DIR),' \
 		-e 's,SHLIB_DIR,$(shlibdir),' \
+		-e 's,DATA_DIR,$(datadir),' \
 		-e 's,PYMOD_EXT,$(PYMOD_EXT),' \
 		-e 's,SHLIB_EXT,$(SHLIB_EXT),' \
-		-e 's,TOOL_NAME,$(TOOL_NAME),' \
-		-e 's,TOOL_PKG_NAME,$(TOOL_PKG_NAME),' \
-		-e 's,TOOL_DISPLAY_NAME,$(TOOL_DISPLAY_NAME),' \
-		-e 's/TOOL_CATEGORY/$(TOOL_CATEGORY)/' \
-		-e 's/TOOL_FILE_TYPES/$(TOOL_FILE_TYPES)/' \
-		-e 's/TOOL_SESSION_VERSIONS/$(TOOL_SESSION_VERSIONS)/' \
-		-e 's/TOOL_CUSTOM_INIT/$(TOOL_CUSTOM_INIT)/' \
-		-e 's/TOOL_SYNOPSIS/$(TOOL_SYNOPSIS)/' \
-		-e 's/COMMAND_NAME/$(COMMAND_NAME)/' \
+		-e 's,#$(OS)#,,' \
+		-e 's,#$(OSARCH)#,,' \
+		-e 's,BUNDLE_NAME,$(BUNDLE_NAME),' \
+		-e 's,BUNDLE_VERSION,$(BUNDLE_VERSION),' \
 		-e 's,PKG_NAME,$(PKG_NAME),' \
-		-e 's,PKG_VERSION,$(PKG_VERSION),' \
-		-e 's,PKG_DESCRIPTION,$(PKG_DESCRIPTION),' \
+		-e 's,PKG_DIR,$(PKG_DIR),' \
 		< setup.py.in > setup.py
 
 dir:
@@ -88,4 +56,4 @@ lint:
 	$(PYLINT) $(PYSRCS)
 
 clean:
-	rm -rf __pycache__ build dist $(PKG_NAME).egg-info setup.py
+	rm -rf __pycache__ build dist $(WHL_BNDL_NAME).egg-info setup.py

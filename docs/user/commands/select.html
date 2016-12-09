@@ -25,7 +25,9 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: select</h3>
 <h3><a href="usageconventions.html">Usage</a>:
-<BR><b>select</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a></h3>
+<br><b>select</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+[&nbsp;sequence&nbsp;&nbsp;<a href="atomspec.html"><i>chain-spec</i></a>&nbsp;]
+</h3>
 
 <h3><a href="usageconventions.html">Usage</a>:
 <BR><b>select</b> (&nbsp;add&nbsp;|&nbsp;subtract&nbsp;|&nbsp;intersect&nbsp;) 
@@ -65,16 +67,26 @@ A <a name="seldef"><b><i>selection</i></b></a>:
   </ul>
 </ul>
 <p>
-If no keyword option is used, <b>select</b> creates a new selection 
-containing the <a href="atomspec.html">specified</a> items,
-replacing any previous selection.
-</p><p>
+If used without an <b>add</b>, <b>subtract</b>, or <b>intersect</b> keyword,
+the <b>select</b> command replaces any previous selection with a new selection 
+containing the items in <a href="atomspec.html"><i>atom-spec</i></a>.
+The <b>sequence</b> option restricts that selection to only the 
+biopolymer chains with the same sequences (the same molecular entities) 
+as the chains in <a href="atomspec.html"><i>chain-spec</i></a>.
+Examples:
+</p>
+<blockquote>
+<b>select #1 sequence /a</b>
+<br>
+<b>select seq /d</b>
+</blockquote>
+<p>
 Otherwise, <b>select</b> can be used to <b>add</b>, <b>subtract</b>, 
 or <b>intersect</b> the <a href="atomspec.html">specified</a> items
 with the current selection, or to <b>clear</b> it by deselecting everything.
 The <b>~select</b> command can be used to deselect specified items
 (like <b>select subtract</b>) or with a blank specification
-to deselect everything.
+to deselect everything (like <b>select clear</b>).
 </p><p>
 Selecting a <a href="surface.html">molecular surface</a>
 automatically also selects the atoms used to define it.
@@ -88,5 +100,5 @@ only the atom(s) directly contributing to that patch are selected.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2016</address>
+November 2016</address>
 </body></html>

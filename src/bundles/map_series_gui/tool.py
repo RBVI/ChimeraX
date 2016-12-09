@@ -29,11 +29,7 @@ class MapSeries(ToolInstance):
         
         self.display_name = "Map series %s" % ', '.join(s.name for s in series)
         from chimerax.core.ui.gui import MainToolWindow
-
-        class MapSeriesWindow(MainToolWindow):
-            close_destroys = False
-
-        tw = MapSeriesWindow(self)
+        tw = MainToolWindow(self, close_destroys = False)
         self.tool_window = tw
         parent = tw.ui_area
 
