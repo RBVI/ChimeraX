@@ -2166,6 +2166,7 @@ class Histogram_Pane:
             QGraphicsView.__init__(self, parent)
             self.click_callbacks = []
             self.drag_callbacks = []
+            self._last_frame_number = 0
         def resizeEvent(self, event):
             # Rescale histogram when window resizes
             self.fitInView(self.sceneRect())
@@ -2174,10 +2175,15 @@ class Histogram_Pane:
             for cb in self.click_callbacks:
                 cb(event)
         def mouseMoveEvent(self, event):
-            for cb in self.drag_callbacks:
-                cb(event)
+#            for cb in self.drag_callbacks:
+#                cb(event)
+            if self._view.frame_number > self._last_frame_number:
+                for cb in self.drag_callbacks:
+                    cb(event)
+                self._last_frame_number = self._view.frame_number
 
     self.canvas = gv = Canvas(frame)
+    gv._view = self.dialog.session.main_view
     gv.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
     gv.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
     gv.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
