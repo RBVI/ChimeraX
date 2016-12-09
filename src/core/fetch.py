@@ -26,6 +26,7 @@ def fetch_file(session, url, name, save_name, save_dir, *,
         for d in cache_dirs:
             filename = path.join(d, save_dir, save_name)
             if path.exists(filename):
+                session.logger.info('Fetching %s from local cache' % name)
                 return filename
 
     if save_dir is None:
