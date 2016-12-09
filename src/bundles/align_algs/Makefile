@@ -1,7 +1,7 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-SUBDIRS = NeedlemanWunsch _sw
+SUBDIRS = NeedlemanWunsch _sw support_cpp
 
 include $(TOP)/mk/subdir.make
 
@@ -61,3 +61,5 @@ lint:
 
 clean:
 	rm -rf __pycache__ build dist $(WHL_BNDL_NAME).egg-info setup.py
+
+_sw.install: support_cpp.install
