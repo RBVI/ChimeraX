@@ -1928,7 +1928,7 @@ class Histogram_Pane:
       ro = v.rendering_options
       add = self.add_menu_entry
       add(menu, 'Show outline box', self.show_outline_box, checked = ro.show_outline_box)
-      add(menu, 'Show one plane', self.show_one_plane, checked = self._planes_slider_shown)
+      add(menu, 'Show one plane', self.show_plane_slider, checked = self._planes_slider_shown)
       add(menu, 'New threshold', lambda checked, e=event, self=self: self.add_threshold(e.x(), e.y()))
       add(menu, 'Delete threshold', lambda checked, e=event, self=self: self.delete_threshold(e.x(), e.y()))
 
@@ -1971,7 +1971,7 @@ class Histogram_Pane:
   # ---------------------------------------------------------------------------
   # Show slider below histogram to control which plane of data is shown.
   #
-  def show_one_plane(self, show):
+  def show_plane_slider(self, show):
       v = self.data_region
       if v is None:
           return
@@ -2055,7 +2055,7 @@ class Histogram_Pane:
       cbpix = QPixmap(join(dirname(__file__), 'x.png'))
       cb.setIcon(QIcon(cbpix))
       cb.setIconSize(QSize(20,20))
-      cb.clicked.connect(lambda event, self=self: self.show_one_plane(False))
+      cb.clicked.connect(lambda event, self=self: self.show_plane_slider(False))
       cb.setToolTip('Close plane slider')
 
       return f
@@ -2133,7 +2133,7 @@ class Histogram_Pane:
 
     ijk_min, ijk_max, ijk_step = volume.region
     if ijk_max[2]//ijk_step[2] == ijk_min[2]//ijk_step[2] and volume.data.size[2] > 1:
-        self.show_one_plane(True)
+        self.show_plane_slider(True)
 
   # ---------------------------------------------------------------------------
   #
@@ -2166,6 +2166,7 @@ class Histogram_Pane:
             QGraphicsView.__init__(self, parent)
             self.click_callbacks = []
             self.drag_callbacks = []
+            self._last_frame_number = 0
         def resizeEvent(self, event):
             # Rescale histogram when window resizes
             self.fitInView(self.sceneRect())
@@ -2174,10 +2175,15 @@ class Histogram_Pane:
             for cb in self.click_callbacks:
                 cb(event)
         def mouseMoveEvent(self, event):
-            for cb in self.drag_callbacks:
-                cb(event)
+#            for cb in self.drag_callbacks:
+#                cb(event)
+            if self._view.frame_number > self._last_frame_number:
+                for cb in self.drag_callbacks:
+                    cb(event)
+                self._last_frame_number = self._view.frame_number
 
     self.canvas = gv = Canvas(frame)
+    gv._view = self.dialog.session.main_view
     gv.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
     gv.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
     gv.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)

@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def select(session, objects=None, add=None, subtract=None, intersect=None, sequence=None, clear=False):
+def select(session, objects=None, add=None, subtract=None, intersect=None, entity=None, clear=False):
     '''Select specified objects.
 
     Parameters
@@ -25,9 +25,9 @@ def select(session, objects=None, add=None, subtract=None, intersect=None, seque
       Modify the current selection by unselecting the specified objects.
     intersect : Objects
       Modify the current selection keeping only those among the specified objects selected.
-    sequence : Atoms
+    entity : Atoms
       Reduce the selection to include only atoms belonging to chains having a sequence that is the
-      same as one of the sequences specified by the sequence option.
+      same as one of the sequences specified by the entity option.
     clear : no value
       Clear the selection.
     '''
@@ -53,8 +53,8 @@ def select(session, objects=None, add=None, subtract=None, intersect=None, seque
     if intersect is not None:
         intersect_selection(intersect, session)
 
-    if sequence is not None:
-        sequence_selection(sequence, session)
+    if entity is not None:
+        entity_selection(entity, session)
         
     report_selection(session)
 
@@ -78,7 +78,7 @@ def select_intersect(session, objects=None):
     '''Reduce the selection by intersecting with specified objects.'''
     intersect_selection(objects, session)
 
-def sequence_selection(seq_atoms, session):
+def entity_selection(seq_atoms, session):
     '''
     Reduce the current selected atoms to include only those that belong to a chain
     having the same sequence string as one of seq_atoms.
@@ -159,7 +159,7 @@ def register_command(session):
                    keyword=[('add', ObjectsArg),
                             ('subtract', ObjectsArg),
                             ('intersect', ObjectsArg),
-                            ('sequence', AtomsArg),
+                            ('entity', AtomsArg),
                             ('clear', NoArg),],
                    synopsis='select specified objects')
     register('select', desc, select)
