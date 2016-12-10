@@ -29,6 +29,8 @@ class VolumeViewer(ToolInstance):
 
         self.active_volume = None
         self.redisplay_in_progress = False
+        self._redisplay_handler = None
+        self._last_redisplay_frame_number = None
 
         from chimerax.core.ui.gui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self)
@@ -296,12 +298,20 @@ class VolumeViewer(ToolInstance):
           p.representation_changed(representation)
 
     # ---------------------------------------------------------------------------
-    # Update display if immediate redisplay mode is on.
     #
     def redisplay_needed_cb(self, event = None):
+        self.redisplay_needed()
 
-      if self.active_volume == None:
+    # ---------------------------------------------------------------------------
+    # Update active volume using gui settings if immediate redisplay mode is on.
+    #
+    def redisplay_needed(self):
+
+      if self.active_volume is None:
         return
+
+      if self._postpone_redisplay():
+          return
 
       #
       # While in this routine another redisplay may be requested.
@@ -326,6 +336,28 @@ class VolumeViewer(ToolInstance):
           self.redisplay_in_progress = False
           raise
         self.redisplay_in_progress = False
+
+    # ---------------------------------------------------------------------------
+    #
+    def _postpone_redisplay(self):
+      return False
+      # TODO: This is an experiment to try to obtain best interactive graphics
+      # update speed during mouse drags that change thresholds, plane shown, time series time.
+      # Postpone redisplay if one has already been done this frame, to avoid doing
+      # multiple contour calculations without showing results as user changes threshold.
+      ses = self.session
+      fn = ses.main_view.frame_number
+      rh = self._redisplay_handler
+      if fn == self._last_redisplay_frame_number:
+          if rh is None:
+              h = ses.triggers.add_handler('frame drawn', lambda *_: self.redisplay_needed())
+              self._redisplay_handler = h
+          return
+      if rh:
+          ses.triggers.remove_handler(rh)
+          self._redisplay_handler = None
+      self._last_redisplay_frame_number = fn
+#      print ('drawing frame', fn)
     
     # ---------------------------------------------------------------------------
     # Update display even if immediate redisplay mode is off.
@@ -1748,6 +1780,8 @@ class Thresholds_Panel(PopupPanel):
       from PyQt5.QtWidgets import QColorDialog
       self._color_dialog = cd = QColorDialog(self.frame)
       cd.setOptions(QColorDialog.ShowAlphaChannel)
+# Following hiding of buttons avoids crash on exit on Mac Sierra, Qt bug 56448
+#      cd.setOption(QColorDialog.NoButtons, True)
       self._set_color_dialog_color()
       cd.colorSelected.connect(self.color_changed_cb)
       cd.finished.connect(self.color_dialog_closed_cb)
@@ -2094,6 +2128,7 @@ class Histogram_Pane:
       markers = self.shown_markers()
       if markers:
           markers.add_marker(cp.x(), cp.y())
+          self.dialog.redisplay_needed_cb()
 
   # ---------------------------------------------------------------------------
   #
@@ -2106,6 +2141,7 @@ class Histogram_Pane:
           m = markers.clicked_marker(cp.x(), cp.y())
           if m:
               markers.delete_marker(m)
+              self.dialog.redisplay_needed_cb()
     
   # ---------------------------------------------------------------------------
   #
@@ -2162,11 +2198,11 @@ class Histogram_Pane:
     from PyQt5.QtCore import Qt
 
     class Canvas(QGraphicsView):
-        def __init__(self, parent):
+        def __init__(self, parent, new_frame_checker):
             QGraphicsView.__init__(self, parent)
             self.click_callbacks = []
             self.drag_callbacks = []
-            self._last_frame_number = 0
+            self._new_frame = new_frame_checker
         def resizeEvent(self, event):
             # Rescale histogram when window resizes
             self.fitInView(self.sceneRect())
@@ -2175,15 +2211,13 @@ class Histogram_Pane:
             for cb in self.click_callbacks:
                 cb(event)
         def mouseMoveEvent(self, event):
-#            for cb in self.drag_callbacks:
-#                cb(event)
-            if self._view.frame_number > self._last_frame_number:
+            if self._new_frame():
+                # Only process mouse move once per graphics frame.
                 for cb in self.drag_callbacks:
                     cb(event)
-                self._last_frame_number = self._view.frame_number
 
-    self.canvas = gv = Canvas(frame)
-    gv._view = self.dialog.session.main_view
+    nfc = self.dialog.session.main_view.new_frame_checker()
+    self.canvas = gv = Canvas(frame, nfc)
     gv.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
     gv.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
     gv.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
@@ -2200,11 +2234,13 @@ class Histogram_Pane:
     self.histogram = Histogram(gv, gs)
     self.histogram_shown = False
 
-    st = Markers(gv, gs, 'line', new_marker_color, 0, self.select_marker_cb)
+    st = Markers(gv, gs, 'line', new_marker_color, 0,
+                 self.selected_marker_cb, self.moved_marker_cb)
     self.surface_thresholds = st
 
     new_solid_marker_color = saturate_rgba(new_marker_color)
-    sdt = Markers(gv, gs, 'box', new_solid_marker_color, 1, self.select_marker_cb)
+    sdt = Markers(gv, gs, 'box', new_solid_marker_color, 1,
+                  self.selected_marker_cb, self.moved_marker_cb)
     self.solid_thresholds = sdt
 
     gv.click_callbacks.append(self.select_data_cb)
@@ -2237,7 +2273,14 @@ class Histogram_Pane:
 
   # ---------------------------------------------------------------------------
   #
-  def select_marker_cb(self):
+  def selected_marker_cb(self, marker):
+
+    self.select_data_cb()
+    self.set_threshold_and_color_widgets()
+
+  # ---------------------------------------------------------------------------
+  #
+  def moved_marker_cb(self, marker):
 
     self.select_data_cb()
     self.set_threshold_and_color_widgets()
