@@ -2820,7 +2820,7 @@ def volume_from_grid_data(grid_data, session, representation = None,
   return v
 
 def show_volume_dialog(session):
-  from chimerax.volume_viewer.tool import show_volume_dialog
+  from chimerax.volume_viewer.volumedialog import show_volume_dialog
   show_volume_dialog(session)
 
 # -----------------------------------------------------------------------------

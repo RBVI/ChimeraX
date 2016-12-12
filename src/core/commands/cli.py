@@ -1093,21 +1093,22 @@ class EnumOf(Annotation):
                 raise ValueError("Must have an identifier for "
                                  "each and every value")
         Annotation.__init__(self, name, url)
-        self.values = values
+        # We make sure the ids are sorted so that even if we are given
+        # values=["abc", "ab"], an input of "ab" will still match
+        # "ab", not "abc".
         if ids is not None:
             assert(all([isinstance(x, str) for x in ids]))
-            self.ids = ids
+            pairs = sorted(zip(self.ids, self.values))
+            self.ids = [p[0] for p in pairs]
+            self.values = [p[1] for p in pairs]
         else:
             assert(all([isinstance(x, str) for x in values]))
-            self.ids = values
-        self.values = values
+            self.ids = self.values = sorted(values)
         if name is None:
             if len(self.ids) == 1:
                 self.name = "'%s'" % self.ids[0]
             else:
-                ids = list(self.ids)
-                ids.sort()
-                self.name = "one of %s" % commas(["'%s'" % i for i in ids])
+                self.name = "one of %s" % commas(["'%s'" % i for i in self.ids])
         if abbreviations is not None:
             self.allow_truncated = abbreviations
 
@@ -1137,9 +1138,8 @@ class DynamicEnum(Annotation):
 
     @property
     def name(self):
-        values = list[self.values_func()]
-        values.sort()
-        return 'one of ' + ', '.join("'%s'" % str(v) for v in values)
+        return 'one of ' + ', '.join("'%s'" % str(v)
+                                     for v in sorted(self.values_func()))
 
 
 class Or(Annotation):
@@ -2076,12 +2076,18 @@ class Command:
                     # argument was partially matched, so assume that is the
                     # error the user wants to see.
                     self.amount_parsed += err.offset
-                    self._error = 'Invalid "%s" argument: %s' % (
-                        _user_kw(kw_name), err)
+                    if isinstance(kw_name, int):
+                        arg_name = ordinal(kw_name)
+                    else:
+                        arg_name = '"%s"' % kw_name
+                    self._error = 'Missing or invalid %s argument: %s' % (arg_name, err)
                     return None, None
                 if kw_name in self._ci._required:
-                    self._error = 'Invalid "%s" argument: %s' % (
-                        _user_kw(kw_name), err)
+                    if isinstance(kw_name, int):
+                        arg_name = ordinal(kw_name)
+                    else:
+                        arg_name = '"%s"' % kw_name
+                    self._error = 'Missing or invalid %s argument: %s' % (arg_name, err)
                     return None, None
                 # optional and wrong type, try as keyword
                 return last_anno, anno

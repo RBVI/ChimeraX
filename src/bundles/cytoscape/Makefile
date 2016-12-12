@@ -4,11 +4,8 @@ TOP = ../../..
 include $(TOP)/mk/config.make
 
 BUNDLE_NAME = ChimeraX-Cytoscape
-# By convention, UCSF RBVI bundles start with "ChimeraX-"
 BUNDLE_VERSION = 0.1
 PKG_NAME = chimerax.cytoscape
-PKG_VERSION = 0.1
-PKG_DESCRIPTION = ChimeraX interface to Cytoscape
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,'g)
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)

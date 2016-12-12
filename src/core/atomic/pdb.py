@@ -48,7 +48,7 @@ def open_pdb(session, filename, name, *args, **kw):
                        sum(m.num_bonds for m in models)))
 
 
-def fetch_pdb(session, pdb_id, ignore_cache=False, **kw):
+def fetch_pdb(session, pdb_id, fetch_source="rcsb", ignore_cache=False, **kw):
     if len(pdb_id) != 4:
         from ..errors import UserError
         raise UserError('PDB identifiers are 4 characters long, got "%s"' % pdb_id)
@@ -61,7 +61,16 @@ def fetch_pdb(session, pdb_id, ignore_cache=False, **kw):
         return sys_filename, pdb_id
 
     pdb_name = "%s.pdb" % pdb_id.upper()
-    url = "http://www.pdb.org/pdb/files/%s" % pdb_name
+    if fetch_source == "rcsb":
+        # Most common case
+        url = "http://www.pdb.org/pdb/files/%s" % pdb_name
+    elif fetch_source == "pdbe":
+        url = "http://www.ebi.ac.uk/pdbe/entry-files/download/pdb%s.ent" % lower
+    # elif fetch_source == "pdbj":
+    #     url = "https://pdbj.org/rest/downloadPDBfile?format=pdb&id=%s" % lower
+    else:
+        raise UserError('unrecognized PDB source "%s"' % fetch_source)
+    session.logger.status("Fetching PDB %s from %s" % (pdb_id, url))
     from ..fetch import fetch_file
     filename = fetch_file(session, url, 'PDB %s' % pdb_id, pdb_name, 'PDB',
                           ignore_cache=ignore_cache)
@@ -69,6 +78,16 @@ def fetch_pdb(session, pdb_id, ignore_cache=False, **kw):
     from .. import io
     models, status = io.open_data(session, filename, format = 'pdb', name = pdb_id, **kw)
     return models, status
+
+
+
+def fetch_pdb_pdbe(session, pdb_id, **kw):
+    return fetch_pdb(session, pdb_id, fetch_source="pdbe", **kw)
+
+
+def fetch_pdb_pdbj(session, pdb_id, **kw):
+    return fetch_pdb(session, pdb_id, fetch_source="pdbj", **kw)
+
 
 def register_pdb_format():
     from .. import io
@@ -79,9 +98,14 @@ def register_pdb_format():
         reference="http://wwpdb.org/docs.html#format",
         open_func=open_pdb)
 
+
 def register_pdb_fetch():
     from .. import fetch
     fetch.register_fetch('pdb', fetch_pdb, 'pdb', prefixes = [])
+    fetch.register_fetch('pdbe', fetch_pdb_pdbe, 'pdb', prefixes = [])
+    # PDBj is unreliable for PDB format, mmCIF seemed okay - CH 2dec16
+    # fetch.register_fetch('pdbj', fetch_pdb_pdbj, 'pdb', prefixes = [])
+
 
 def process_chem_name(name, use_greek=True, probable_abbrs=False):
     if name.isupper() and (" " in name or len(name) > 5):

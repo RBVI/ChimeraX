@@ -48,7 +48,7 @@ setup(
     ],
     classifiers=[
         # From https://pypi.python.org/pypi?%3Aaction=list_classifiers
-        # and our own ChimeraX-* classifiers.
+        # and our own ChimeraX classifiers.
         "Development Status :: 4 - Beta",
         "Environment :: MacOS X :: Aqua",
         "Environment :: Win32 (MS Windows)",
@@ -63,7 +63,7 @@ setup(
         "Topic :: Scientific/Engineering :: Visualization",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
-        "ChimeraX-Bundle :: Molecular structure :: :: chimerax.addmissingatoms :: :: ",
-        "ChimeraX-Command :: addmissingatoms :: Molecular structure :: Add missing atoms",
+        "ChimeraX :: Bundle :: Molecular structure :: :: chimerax.addmissingatoms :: :: ",
+        "ChimeraX :: Command :: addmissingatoms :: Molecular structure :: Add missing atoms",
     ],
 )

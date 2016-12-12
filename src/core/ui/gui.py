@@ -77,29 +77,6 @@ class UI(QApplication):
         from .mousemodes import MouseModes
         self.mouse_modes = MouseModes(session)
 
-        from PyQt5.QtCore import QObject, pyqtSlot
-        class CxUrlHandler(QObject):
-            def __init__(self, session):
-                QObject.__init__(self)
-                self.session = session
-
-            @pyqtSlot("QUrl")
-            def handle_help_schema(self, qurl):
-                from ..commands import run
-                run(self.session, "help %s" % qurl.toString(), log=False)
-
-            @pyqtSlot("QUrl")
-            def handle_cxcmd_schema(self, qurl):
-                from ..commands import run
-                from PyQt5.QtCore import QUrl
-                cmd = qurl.toString(QUrl.RemoveScheme)
-                run(self.session, cmd, log=True)
-
-        self.cxUrlHandler = CxUrlHandler(session)
-        from PyQt5.QtGui import QDesktopServices
-        QDesktopServices.setUrlHandler("cxcmd", self.cxUrlHandler.handle_cxcmd_schema)
-        QDesktopServices.setUrlHandler("help", self.cxUrlHandler.handle_help_schema)
-
         # for whatever reason, QtWebEngineWidgets has to be imported before a
         # QtCoreApplication is created...
         import PyQt5.QtWebEngineWidgets
@@ -249,6 +226,19 @@ class UI(QApplication):
                 self.func_info = (func, args, kw)
         self.postEvent(self.main_window, ThreadSafeGuiFuncEvent(func, args, kw))
 
+    def timer(self, millisec, callback, *args, **kw):
+        from PyQt5.QtCore import QTimer
+        t = QTimer()
+        def cb(callback=callback, args=args, kw=kw):
+            callback(*args, **kw)
+        t.timeout.connect(cb)
+        t.setSingleShot(True)
+        t.start(int(millisec))
+        return t
+
+    def cancel_timer(self, timer):
+        timer.stop()
+        
 # The surface format has to be set before QtGui is initialized
 from PyQt5.QtGui import QSurfaceFormat
 sf = QSurfaceFormat()
@@ -421,7 +411,7 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def status(self, msg, color, secondary):
         # prevent status message causing/allowing a redraw
-        self.graphics_window.session.update_loop.block_redraw()
+#        self.graphics_window.session.update_loop.block_redraw()
         self.statusBar().clearMessage()
         if secondary:
             label = self._secondary_status_label
@@ -429,14 +419,17 @@ class MainWindow(QMainWindow, PlainTextLog):
             label = self._primary_status_label
         label.setText("<font color='" + color + "'>" + msg + "</font>")
         label.show()
-        # Make status line update during long computations where event loop is not running.
+        # TODO: Make status line update during long computations where event loop is not running.
         # Code that asks to display a status message does not expect arbitrary callbacks
         # to run.  This could cause timers and callbacks to run that could lead to errors.
         # User events are not processed since that could allow the user to delete data.
         # Ticket #407.
-        from PyQt5.QtCore import QEventLoop
-        self.graphics_window.session.ui.processEvents(QEventLoop.ExcludeUserInputEvents)
-        self.graphics_window.session.update_loop.unblock_redraw()
+        # This code causes mouse up events to be lost dragging the volume viewer contour level
+        # on histograms, and the volume series slider, causing the mouse drag to effect those
+        # even after the mouse is released, making those tools nearly unusable.
+#        from PyQt5.QtCore import QEventLoop
+#        self.graphics_window.session.ui.processEvents(QEventLoop.ExcludeUserInputEvents)
+#        self.graphics_window.session.update_loop.unblock_redraw()
 
     def _about(self, arg):
         from PyQt5.QtWebEngineWidgets import QWebEngineView
@@ -538,6 +531,7 @@ class MainWindow(QMainWindow, PlainTextLog):
                     categories.setdefault(cat, {})[tool.name] = (bi, tool)
         cat_keys = sorted(categories.keys())
         one_menu = len(cat_keys) == 1
+        from ..commands import run
         for cat in cat_keys:
             if one_menu:
                 cat_menu = tools_menu
@@ -545,10 +539,10 @@ class MainWindow(QMainWindow, PlainTextLog):
                 cat_menu = tools_menu.addMenu(cat)
             cat_info = categories[cat]
             for tool_name in sorted(cat_info.keys()):
-                bi, tool = cat_info[tool_name]
                 tool_action = QAction(tool_name, self)
                 tool_action.setStatusTip(tool.synopsis)
-                tool_action.triggered.connect(lambda arg, ses=session, bi=bi, tool_name=tool_name: bi.start_tool(ses, tool_name))
+                tool_action.triggered.connect(lambda arg, ses=session, run=run, tool_name=tool_name:
+                    run(ses, "toolshed show '%s'" % tool_name))
                 cat_menu.addAction(tool_action)
         mb = self.menuBar()
         old_action = self.tools_menu.menuAction()
@@ -621,19 +615,20 @@ class ToolWindow:
     The window's :py:attr:`ui_area` attribute is the parent to all the tool's
     widgets for this window.  Call :py:meth:`manage` once the widgets
     are set up to show the tool window in the main interface.
+
+    The :py:keyword:`close_destroys` keyword controls whether closing this window
+    destroys it or hides it.  If it destroys it and this is the main window, all
+    the child windows will also be destroyed.
+
     """
 
-    #: Where the window is placed in the main interface;
+    #: Where the window can be placed in the main interface;
     #: 'side' is either left or right, depending on user preference
     placements = ["side", "right", "left", "top", "bottom"]
 
-    #: Whether closing this window destroys it or hides it.
-    #: If it destroys it and this is the main window, all the
-    #: child windows will also be destroyed
-    close_destroys = True
-
-    def __init__(self, tool_instance, title):
+    def __init__(self, tool_instance, title, *, close_destroys=True):
         self.tool_instance = tool_instance
+        self.close_destroys = close_destroys
         mw = tool_instance.session.ui.main_window
         self.__toolkit = _Qt(self, title, mw)
         self.ui_area = self.__toolkit.ui_area
@@ -722,10 +717,10 @@ class MainToolWindow(ToolWindow):
     tool_instance : a :py:class:`~chimerax.core.tools.ToolInstance` instance
         The tool creating this window.
     """
-    def __init__(self, tool_instance):
-        super().__init__(tool_instance, tool_instance.display_name)
+    def __init__(self, tool_instance, **kw):
+        super().__init__(tool_instance, tool_instance.display_name, **kw)
 
-    def create_child_window(self, title, window_class=None):
+    def create_child_window(self, title, *, window_class=None, **kw):
         """Make additional tool window
 
         Parameters
@@ -737,6 +732,7 @@ class MainToolWindow(ToolWindow):
             Only needed if you want to override methods/attributes in
             order to change behavior.
             Defaults to :py:class:`ChildToolWindow`.
+        kw : Keywords to pass on to the tool window's constructor
         """
 
         if window_class is None:
@@ -744,7 +740,7 @@ class MainToolWindow(ToolWindow):
         elif not issubclass(window_class, ChildToolWindow):
             raise ValueError(
                 "Child window class must inherit from ChildToolWindow")
-        return window_class(self.tool_instance, title)
+        return window_class(self.tool_instance, title, **kw)
 
 class ChildToolWindow(ToolWindow):
     """Child (*i.e.* additional) tool window
@@ -752,8 +748,8 @@ class ChildToolWindow(ToolWindow):
     Only created through use of
     :py:meth:`MainToolWindow.create_child_window` method.
     """
-    def __init__(self, tool_instance, title):
-        super().__init__(tool_instance, title)
+    def __init__(self, tool_instance, title, **kw):
+        super().__init__(tool_instance, title, **kw)
 
 class _Qt:
     def __init__(self, tool_window, title, main_window):

@@ -48,6 +48,12 @@ def start_vive(session):
     if isinstance(v.camera, ViveCamera):
         return
 
+    try:
+        import openvr
+    except Exception as e:
+        from chimerax.core.errors import UserError
+        raise UserError('Failed to importing OpenVR module: %s' % str(e))
+    
     v.camera = ViveCamera(session)
     # Set redraw timer for 1 msec to minimize dropped frames.
     session.ui.main_window.graphics_window.set_redraw_interval(1)
@@ -62,14 +68,16 @@ def start_vive(session):
 def stop_vive(session):
 
     v = session.main_view
-    if not isinstance(v.camera, ViveCamera):
-        return
-    
     c = v.camera
-    from chimerax.core.graphics import MonoCamera
-    v.camera = MonoCamera()
-    c.close()
-    session.ui.main_window.graphics_window.set_redraw_interval(10)
+    if isinstance(c, ViveCamera):
+        # Have to delay shutdown of Vive OpenVR until draw callback
+        # otherwise it clobbers the Qt OpenGL context making entire gui black.
+        def replace_camera(s = session):
+            from chimerax.core.graphics import MonoCamera
+            s.main_view.camera = MonoCamera()
+            s.ui.main_window.graphics_window.set_redraw_interval(10)
+        c.close(replace_camera)
+    
 
 # -----------------------------------------------------------------------------
 #
@@ -152,8 +160,9 @@ class ViveCamera(Camera):
                               scale(scene_size/room_scene_size) *
                               translation(-array(room_center, float32)))
 
-    def close(self):
+    def close(self, close_cb = None):
         self._close = True
+        self._close_cb = close_cb
         
     def _delayed_close(self):
         # Apparently OpenVR doesn't make its OpenGL context current
@@ -166,6 +175,8 @@ class ViveCamera(Camera):
         openvr.shutdown()
         self.vr_system = None
         self.compositor = None
+        if self._close_cb:
+            self._close_cb()	# Replaces the main view camera and resets redraw rate.
         
     def name(self):
         '''Name of camera.'''

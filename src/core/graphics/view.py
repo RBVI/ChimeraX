@@ -212,6 +212,7 @@ class View:
             if self.camera.do_swap_buffers():
                 self._render.swap_buffers()
             self.redraw_needed = False
+            self.render.done_current()
 
     def check_for_drawing_change(self):
         trig = self.triggers
@@ -242,6 +243,9 @@ class View:
 
         return True
 
+    def new_frame_checker(self):
+        return NewFrameChecker(self)
+
     def draw_xor_rectangle(self, x1, y1, x2, y2, color):
         self._use_opengl()
         d = getattr(self, '_rectangle_drawing', None)
@@ -262,7 +266,7 @@ class View:
         r = self._render
         if r:
             lp = r.lighting
-            if lp.depth_cue_color == tuple(self._background_rgba[:3]):
+            if tuple(lp.depth_cue_color) == tuple(self._background_rgba[:3]):
                 # Make depth cue color follow background color if they are the same.
                 lp.depth_cue_color = tuple(color[:3])
         self._background_rgba = color
@@ -1018,3 +1022,19 @@ def _drawing_bounds(drawings, open_drawing):
     center = None if b is None else b.center()
     radius = None if b is None else b.radius()
     return center, radius, bdrawings
+
+class NewFrameChecker:
+    '''
+    When called reports whether a new graphics frame has been drawn since the
+    last time this object was called.  Instances are used by code that wants to only
+    trigger once per graphics frame.
+    '''
+    def __init__(self, view):
+        self._view = view
+        self._last_frame_number = None
+    def __call__(self):
+        f = self._view.frame_number
+        if f == self._last_frame_number:
+            return False
+        self._last_frame_number = f
+        return True

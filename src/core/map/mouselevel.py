@@ -17,14 +17,12 @@ class ContourLevelMouseMode(MouseMode):
     def __init__(self, session):
 
         MouseMode.__init__(self, session)
-        self.last_frame = None
+        self._new_frame = self.view.new_frame_checker()
 
     def mouse_drag(self, event):
 
-        f = self.view.frame_number
-        if f == self.last_frame:
-            return # Handle only one recontour event per frame
-        self.last_frame = f
+        if not self._new_frame():
+            return	 # Handle only one recontour event per graphics redraw
 
         dx, dy = self.mouse_motion(event)
         f = -0.001*dy

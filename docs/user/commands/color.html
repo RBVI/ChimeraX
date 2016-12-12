@@ -103,11 +103,12 @@ atomic representations and per-atom patches of molecular surfaces
 <a href="surface.html">molecular surfaces</a>
 <li><a name="bymodel"><b>bymodel</b></a>
 - the <a href="colortables.html#autocolors">initial colors</a> of atomic models
-<li><a name="byseq"><b>bysequence</b> or <b>byseq</b></a>
-- random colors per unique chain or molecular entity;
-biopolymer chain sequences are used to initialize the random number
+<li><a name="byentity"><b>byentity</b></a>
+- a random color per unique biopolymer chain
+or <b><i>macromolecular entity</i></b>;
+the chain sequence is used to initialize the random number
 generator for choosing red, green, and blue color components,
-so the same sequence always gets the same color
+so the same sequence will always give the same color
 <!-- 
 using sequence 1-letter codes, rgb values chosen in range 128-255, opacity 255
 -->
@@ -125,8 +126,8 @@ at the specified <i>level</i>:
 such as <a href="atomspec.html#builtin"><b>ligand</b></a> are not affected
 <li><b>chains</b> - a different color for each biopolymer chain in an 
 atomic model; non-biopolymer residues are not affected
-<li><b>sequences</b> - a different color for each unique biopolymer chain 
-(molecular entity) in an atomic model, based on sequence; 
+<li><b>entities</b> - a different color for each unique biopolymer chain 
+(macromolecular entity) in an atomic model, based on sequence; 
 non-biopolymer residues are not affected
 <li><b>molmodels</b> - a different color for each atomic model
 </ul>
@@ -153,10 +154,10 @@ An offset of 1.4 &Aring; approximates the <b><i>solvent-accessible</i></b>
 surface, about as close as the probe center can get to the molecule.
 </p>
 
+<a name="general-options"></a>
 <p class="nav">
 [<a href="#top">back to top</a>]
 </p>
-<a name="general-options"></a>
 <h3>General Options</h3>
 <p>
 Keywords can be truncated to unique strings.
@@ -242,10 +243,10 @@ Note that the <a href="transparency.html"><b>transparency</b></a> command
 can be used to set transparency apart from color.
 </blockquote>
 
+<a name="palette-options"></a>
 <p class="nav">
 [<a href="#top">back to top</a>]
 </p>
-<a name="palette-options"></a>
 <h3>Palette Options</h3>
 <p>
 A <b><i>palette</i></b> is an ordered list of 
@@ -346,10 +347,10 @@ When multiple models are colored in a single command,
 the <b>full</b> range is determined separately for each model.
 </blockquote>
 
+<a name="examples"></a>
 <p class="nav">
 [<a href="#top">back to top</a>]
 </p>
-<a name="examples"></a>
 <h3>Examples</h3>
 <p>
 Example <a href="#top"><b>color</b></a> commands:
@@ -418,13 +419,13 @@ surface-only), create new atom attribute named <b>esp</b>
 -->
 <hr>
 
-<p class="nav">
-[<a href="#top">back to top</a>]
-</p>
 <a name="name"></a>
 <a name="delete"></a>
 <a name="list"></a>
 <a name="show"></a>
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
 <h3>Defining and Listing Colors</h3>
 
 <h3><a href="usageconventions.html">Usage</a>:
@@ -473,5 +474,5 @@ named <i>cname</i>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2016</address>
+December 2016</address>
 </body></html>

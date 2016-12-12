@@ -48,7 +48,7 @@ class ContactPlot(Graph):
 
     def mouse_click(self, item, event):
         nodes = self.item_nodes(item)
-        if self.is_shift_key_pressed(event):
+        if self.is_alt_key_pressed(event):
             self._select_nodes(nodes)
         else:
             n = len(nodes)
@@ -87,7 +87,9 @@ class ContactPlot(Graph):
             add('Show all atoms', self._show_all_atoms)
 
         if isinstance(item, Contact):
-            add('Residue plot', self._show_residue_plot, item)
+            flip = True
+            add('Residue plot %s with %s' % (n1,n2), self._show_residue_plot, item, flip)
+            add('Residue plot %s with %s' % (n2,n1), self._show_residue_plot, item)
         
         menu.addSeparator()
         
@@ -187,6 +189,7 @@ class ContactPlot(Graph):
         from .cmd import neighbors
         ng = neighbors(g, self.contacts)	# Map neighbor node to Contact
         min_area = self.interface_residue_area_cutoff
+        gca = []
         for h in self.groups:
             if h in ng:
                 c = ng[h]
@@ -196,9 +199,12 @@ class ContactPlot(Graph):
                 atoms.draw_modes = atoms.STICK_STYLE
                 gatoms = c.contact_residue_atoms(g, min_area)
 #                gatoms.draw_modes = gatoms.STICK_STYLE
-                gatoms.colors = color
+                gca.append(gatoms)
             else:
                 h.atoms.displays = (h is g)
+        # Color non-contact atoms gray.
+        from chimerax.core.atomic import concatenate, Atoms
+        g.color_atoms(g.atoms - concatenate(gca,Atoms), color)
 
     def _show_interface_residues(self, c, g, color = (180,180,180,255)):
         for go in self.groups:
@@ -217,7 +223,7 @@ class ContactPlot(Graph):
         allb = gb.atoms
         allb.displays = True
         allb.draw_modes = allb.SPHERE_STYLE
-        gb.color_atoms(ab, color)
+        gb.color_atoms(allb - ab, color)
 
         v = self._session().main_view
         v.camera.position = c.interface_frame(gb)
@@ -227,9 +233,11 @@ class ContactPlot(Graph):
         for g in self.groups:
             g.atoms.displays = True
 
-    def _show_residue_plot(self, c):
+    def _show_residue_plot(self, c, flip=False):
+        g = c.group1 if flip else c.group2
+        self._show_interface_residues(c, g)
         from .resplot import ResiduePlot
-        ResiduePlot(self._session(), c, self.interface_residue_area_cutoffy)
+        ResiduePlot(self._session(), c, flip, self.interface_residue_area_cutoff)
         
     def _explode_all(self, scale = 2):
         gc = [(g,g.centroid()) for g in self.groups if g.shown()]

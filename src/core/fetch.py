@@ -26,6 +26,7 @@ def fetch_file(session, url, name, save_name, save_dir, *,
         for d in cache_dirs:
             filename = path.join(d, save_dir, save_name)
             if path.exists(filename):
+                session.logger.info('Fetching %s from local cache' % name)
                 return filename
 
     if save_dir is None:
@@ -115,8 +116,9 @@ def retrieve_url(request, filename, logger=None, uncompress=False,
         with urlopen(request, context=ssl_context) as response:
             compressed = (response.headers['Content-Encoding'] == 'gzip' or uncompress)
             if logger:
-                logger.status('fetching%s %s' % (
-                    " compressed" if compressed else "", name), secondary=True)
+                logger.info('Fetching%s %s from %s' % (
+                    " compressed" if compressed else "", name,
+                    request.get_full_url()))
             d = response.headers['Last-modified']
             last_modified = _convert_to_timestamp(d)
             import shutil
@@ -256,7 +258,7 @@ def fetch_from_database(session, from_database, id, format=None, name=None, igno
     d = fetch_databases()
     df = d[from_database]
     from .logger import Collator
-    with Collator(session.logger, "Summary of problems opening %s fetched from %s" % (id, from_database)):
+    with Collator(session.logger, "Summary of feedback from opening %s fetched from %s" % (id, from_database)):
         models, status = df.fetch(session, id, format=format, ignore_cache=ignore_cache, **kw)
     if name is not None:
         for m in models:

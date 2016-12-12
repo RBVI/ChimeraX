@@ -128,7 +128,7 @@ class AtomSpecArg(Annotation):
             from .cli import AnnotationError
             # Add one to offset for leading quote
             offset = index_map[e.pos]
-            raise AnnotationError(str(e), offset=offset)
+            raise AnnotationError(e.message, offset=offset)
         # Must consume everything inside quotes
         if ast.parseinfo.endpos != len(token):
             from .cli import AnnotationError
@@ -153,7 +153,7 @@ class AtomSpecArg(Annotation):
             raise AnnotationError(str(e), offset=e.pos)
         except FailedParse as e:
             from .cli import AnnotationError
-            raise AnnotationError(str(e), offset=e.pos)
+            raise AnnotationError(e.message, offset=e.pos)
 
         end = ast.parseinfo.endpos
         if end == 0:

@@ -11,11 +11,11 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-_SpecialColors = ["byatom", "byelement", "byhetero", "bychain", "bysequence", "bymodel",
+_SpecialColors = ["byatom", "byelement", "byhetero", "bychain", "byentity", "bymodel",
                   "fromatoms", "random"]
 
 _SequentialLevels = ["residues", "helix", "helices", "strands",
-                     "SSEs", "chains", "sequences", "molmodels",
+                     "SSEs", "chains", "entities", "molmodels",
                      "volmodels", "allmodels"]
 
 def color(session, objects, color=None, what=None,
@@ -29,7 +29,7 @@ def color(session, objects, color=None, what=None,
     objects : Objects
       Which objects to color.
     color : Color
-      Color can be a standard color name or "byatom", "byelement", "byhetero", "bychain", "bysequence", "bymodel".
+      Color can be a standard color name or "byatom", "byelement", "byhetero", "bychain", "byentity", "bymodel".
     what :  'atoms', 'cartoons', 'ribbons', 'surfaces', 'bonds', 'pseudobonds' or None
       What to color. Everything is colored if option is not specified.
     target : string
@@ -39,7 +39,7 @@ def color(session, objects, color=None, what=None,
       Everything is colored if no target is specified.
     transparency : float
       Percent transparency to use.  If not specified current transparency is preserved.
-    sequential : "residues", "chains", "sequences", "molmodels"
+    sequential : "residues", "chains", "entities", "molmodels"
       Assigns each object a color from a color map.
     palette : :class:`.Colormap`
       Color map to use with sequential coloring.
@@ -166,10 +166,10 @@ def _computed_atom_colors(atoms, color, opacity, bgcolor):
         from ..atomic.colors import chain_colors
         c = chain_colors(atoms.residues.chain_ids)
         c[:, 3] = atoms.colors[:, 3] if opacity is None else opacity
-    elif color == "bysequence":
-        from ..atomic.colors import sequence_colors
+    elif color == "byentity":
+        from ..atomic.colors import entity_colors
         c = atoms.colors.copy()
-        sc,amask = sequence_colors(atoms.residues)
+        sc,amask = entity_colors(atoms.residues)
         c[amask,:] = sc[amask,:]
         c[amask, 3] = atoms.colors[amask, 3] if opacity is None else opacity
     elif color == "bymodel":
@@ -222,9 +222,9 @@ def _set_ribbon_colors(residues, color, opacity, bgcolor=None):
         c = chain_colors(residues.chain_ids)
         c[:, 3] = residues.ribbon_colors[:, 3] if opacity is None else opacity
         residues.ribbon_colors = c
-    elif color == "bysequence":
-        from ..atomic.colors import sequence_colors
-        c,rmask = sequence_colors(residues)
+    elif color == "byentity":
+        from ..atomic.colors import entity_colors
+        c,rmask = entity_colors(residues)
         c[rmask, 3] = residues.ribbon_colors[rmask, 3] if opacity is None else opacity
         residues.filter(rmask).ribbon_colors = c[rmask,:]
     elif color == 'bymodel':
@@ -312,10 +312,11 @@ def _set_sequential_chain(session, selected, cmap, opacity, target):
                 _set_surface_colors(session, atoms, c, opacity)
 
 # ----------------------------------------------------------------------------------
-# Sequences in each structure are colored from color map ordered by sequence length.
+# Entities (unique sequences) in each structure are colored from color map ordered
+# by entity polymer length.
 #
-def _set_sequential_sequence(session, objects, cmap, opacity, target):
-    # Organize atoms by structure and then sequence
+def _set_sequential_entity(session, objects, cmap, opacity, target):
+    # Organize atoms by structure and then entity sequence
     uc = objects.atoms.residues.chains.unique()
     seq_atoms = {}
     for c in uc:
@@ -405,7 +406,7 @@ def _set_sequential_structures(session, selected, cmap, opacity, target):
             ns = scolor(session, m.atoms, c)
 
 _SequentialColor = {
-    "sequences": _set_sequential_sequence,
+    "entities": _set_sequential_entity,
     "chains": _set_sequential_chain,
     "residues": _set_sequential_residue,
     "molmodels": _set_sequential_structures,

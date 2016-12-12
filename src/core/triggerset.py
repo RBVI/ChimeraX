@@ -135,7 +135,8 @@ class _Trigger:
 
     def __init__(self, name, usage_cb, default_one_time, remove_bad_handlers):
         self._name = name
-        self._handlers = set()
+        from .orderedset import OrderedSet
+        self._handlers = OrderedSet()	# Fire handlers in order they were registered.
         self._pending_add = set()
         self._pending_del = set()
         self._locked = 0
