@@ -77,7 +77,7 @@ _RUNNING_ROW = (
 class ToolshedUI(ToolInstance):
 
     SESSION_ENDURING = True
-    TOOLSHED_URL = "https://chi2ti-preview.rbvi.ucsf.edu"
+    TOOLSHED_URL = "https://cxtoolshed.rbvi.ucsf.edu"
     # TOOLSHED_URL = "https://www.rbvi.ucsf.edu"
 
     def __init__(self, session, tool_name):
