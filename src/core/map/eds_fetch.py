@@ -13,33 +13,30 @@
 #
 def fetch_eds_map(session, id, type = '2fofc', ignore_cache=False, **kw):
   '''
-  Fetch crystallographic density maps from the Upsalla Electron Density Server.
-  
-   2fofc:    http://eds.bmc.uu.se/eds/sfd/1cbs/1cbs.omap
-    fofc:    http://eds.bmc.uu.se/eds/sfd/1cbs/1cbs_diff.omap
-    Info:    http://eds.bmc.uu.se/cgi-bin/eds/uusfs?pdbCode=1cbs
-  Holdings:  http://eds.bmc.uu.se/eds/eds_holdings.txt
+  Fetch crystallographic density maps from PDBe (formerly the Upsalla Electron Density Server).
+
+  2fofc: http://www.ebi.ac.uk/pdbe/coordinates/files/1cbs.ccp4
+   fofc: http://www.ebi.ac.uk/pdbe/coordinates/files/1cbs_diff.ccp4
   '''
 
-  site = 'eds.bmc.uu.se'
-  url_pattern = 'http://%s/eds/dfs/%s/%s/%s'
-
+  url_pattern = 'http://www.ebi.ac.uk/pdbe/coordinates/files/%s'
+  
   # Fetch map.
   log = session.logger
-  log.status('Fetching %s from web site %s...' % (id,site))
+  log.status('Fetching %s from PDBe...' % (id,))
 
   if type == 'fofc':
-    map_name = id + '_diff.omap'
+    map_name = id.lower() + '_diff.ccp4'
   elif type == '2fofc':
-    map_name = id + '.omap'
-  map_url = url_pattern % (site, id[1:3], id, map_name)
+    map_name = id.lower() + '.ccp4'
+  map_url = url_pattern % map_name
 
   from ..fetch import fetch_file
   filename = fetch_file(session, map_url, 'map %s' % id, map_name, 'EDS',
                         ignore_cache=ignore_cache)
 
   from .. import io
-  models, status = io.open_data(session, filename, format = 'dsn6', name = id, **kw)
+  models, status = io.open_data(session, filename, format = 'ccp4', name = id, **kw)
   return models, status
 
 # -----------------------------------------------------------------------------
@@ -47,6 +44,4 @@ def fetch_eds_map(session, id, type = '2fofc', ignore_cache=False, **kw):
 #
 def register_eds_fetch():
     from .. import fetch
-    fetch.register_fetch('eds', fetch_eds_map, 'dsn6', prefixes = ['eds'])
-#    reg('EDS', fetch_eds_map, '1A0M', 'eds.bmc.uu.se/eds',
-#        'http://eds.bmc.uu.se/cgi-bin/eds/uusfs?pdbCode=%s', session)
+    fetch.register_fetch('eds', fetch_eds_map, 'ccp4', prefixes = ['eds'])
