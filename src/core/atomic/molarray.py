@@ -153,6 +153,14 @@ class Collection(State):
                        ret = ctypes.c_ssize_t)
         i = f(self._c_pointers, len(self), object._c_pointer)
         return i
+    def indices(self, objects):
+        '''Return int32 array indicating for each element in objects its index of the
+        first occurence in the collection, or -1 if it does not occur in the collection.'''
+        f = c_function('pointer_indices', args = [ctypes.c_void_p, ctypes.c_size_t,
+                                               ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p])
+        ind = empty((len(objects),), int32)
+        f(objects._c_pointers, len(objects), self._c_pointers, len(self), pointer(ind))
+        return ind
 
     @property
     def object_class(self):
@@ -220,14 +228,6 @@ class Collection(State):
         mask = empty((len(self),), npy_bool)
         f(self._c_pointers, len(self), objects._c_pointers, len(objects), pointer(mask))
         return mask
-    def indices(self, objects):
-        '''Return int32 array indicating for each object in current set the index of
-        that object in the argument objects, or -1 if it does not occur in objects.'''
-        f = c_function('pointer_indices', args = [ctypes.c_void_p, ctypes.c_size_t,
-                                               ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p])
-        ind = empty((len(self),), int32)
-        f(self._c_pointers, len(self), objects._c_pointers, len(objects), pointer(ind))
-        return ind
     def merge(self, objects):
         '''Return a new collection combining this one with the *objects* :class:`.Collection`.
         All duplicates are removed.'''
