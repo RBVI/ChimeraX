@@ -591,7 +591,7 @@ class _Invert:
 
 def _add_model_parts(session, model, sub_parts, results):
     if not model.atomspec_has_atoms():
-        if not self.sub_parts:
+        if not sub_parts:
             results.add_model(model)
         return
     atoms = model.atomspec_atoms()
