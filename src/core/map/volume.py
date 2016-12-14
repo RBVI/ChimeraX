@@ -2908,6 +2908,13 @@ def open_map(session, stream, *args, **kw):
     maps = []
     from . import data
     grids = data.open_file(map_path)
+
+    if kw.get('polar_values', False):
+      for g in grids:
+        g.polar_values = True
+        if g.rgba is None:
+          g.rgba = (0,1,0,1) # Green
+
     show = kw.get('show', True)
     show_dialog = kw.get('show_dialog', True)
     for i,d in enumerate(grids):

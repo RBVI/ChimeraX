@@ -36,8 +36,14 @@ def fetch_eds_map(session, id, type = '2fofc', ignore_cache=False, **kw):
                         ignore_cache=ignore_cache)
 
   from .. import io
-  models, status = io.open_data(session, filename, format = 'ccp4', name = id, **kw)
+  models, status = io.open_data(session, filename, format = 'ccp4', name = id,
+                                polar_values = (type == 'fofc'), **kw)
   return models, status
+
+# -----------------------------------------------------------------------------
+#
+def fetch_edsdiff_map(session, id, ignore_cache=False, **kw):
+  return fetch_eds_map(session, id, type = 'fofc', ignore_cache=False, **kw)
 
 # -----------------------------------------------------------------------------
 # Register to fetch EMDB maps with open command.
@@ -45,3 +51,4 @@ def fetch_eds_map(session, id, type = '2fofc', ignore_cache=False, **kw):
 def register_eds_fetch():
     from .. import fetch
     fetch.register_fetch('eds', fetch_eds_map, 'ccp4', prefixes = ['eds'])
+    fetch.register_fetch('edsdiff', fetch_edsdiff_map, 'ccp4', prefixes = ['edsdiff'])
