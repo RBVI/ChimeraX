@@ -38,6 +38,10 @@ def fetch_eds_map(session, id, type = '2fofc', ignore_cache=False, **kw):
   from .. import io
   models, status = io.open_data(session, filename, format = 'ccp4', name = id,
                                 polar_values = (type == 'fofc'), **kw)
+  for v in models:
+    v.set_representation('mesh')
+    v.show()
+    
   return models, status
 
 # -----------------------------------------------------------------------------
