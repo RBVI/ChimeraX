@@ -321,9 +321,9 @@ ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_c
 ExtractMolecule::~ExtractMolecule()
 {
     if (PDB_style())
-        logger::info(_logger, "Used mmCIF/PDBx format styling to speed up reading mmCIF file.");
+        logger::info(_logger, "Used mmCIF/PDBx format styling to speed up reading mmCIF file");
     else
-        logger::info(_logger, "Unable to take advantage of mmCIF/PDBx format styling.");
+        logger::info(_logger, "Unable to take advantage of mmCIF/PDBx format styling");
     if (my_templates)
         delete my_templates;
 }

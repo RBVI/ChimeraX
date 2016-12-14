@@ -78,8 +78,11 @@ _atom_site.pdbx_PDB_model_num
 '''
 
 def atom_site_lines(m, anum_offset, cid_suffix, entities):
-    
-    atoms = m.atoms
+
+    # Atoms of a residue need to be contiguous for the ChimeraX mmCIF reader to recognize
+    # them as one residue.  Also the Phenix mmCIF reader seems to require residue atoms to be contiguous.
+    # So output atoms in order of m.residues.
+    atoms = m.residues.atoms
     xyz = atoms.scene_coords
     n = len(xyz)
     elem = atoms.element_names

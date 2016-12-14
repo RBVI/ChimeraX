@@ -26,7 +26,8 @@ def fetch_file(session, url, name, save_name, save_dir, *,
         for d in cache_dirs:
             filename = path.join(d, save_dir, save_name)
             if path.exists(filename):
-                session.logger.info('Fetching %s from local cache' % name)
+                session.logger.info('Fetching %s from local cache: %s' % (
+                    name, filename))
                 return filename
 
     if save_dir is None:
@@ -56,13 +57,11 @@ def fetch_file(session, url, name, save_name, save_dir, *,
 #
 def cache_directories():
     from os import path
-    from chimerax import app_dirs_unversioned
+    from chimerax import app_dirs
     if len(_cache_dirs) == 0:
-        _cache_dirs.append(app_dirs_unversioned.user_cache_dir)
-        old_cache_dir = path.join('~', 'Downloads', 'Chimera')
-        old_cache_dir = path.expanduser(old_cache_dir)
-        if path.isdir(old_cache_dir):
-            _cache_dirs.append(old_cache_dir)
+        cache_dir = path.join('~', 'Downloads', app_dirs.appname)
+        cache_dir = path.expanduser(cache_dir)
+        _cache_dirs.append(cache_dir)
     return _cache_dirs
 
 
@@ -114,7 +113,15 @@ def retrieve_url(request, filename, logger=None, uncompress=False,
             ssl_context.check_hostname = False
             ssl_context.verify_mode = ssl.CERT_NONE
         with urlopen(request, context=ssl_context) as response:
-            compressed = (response.headers['Content-Encoding'] == 'gzip' or uncompress)
+            compressed = uncompress
+            if not compressed:
+                ce = response.headers['Content-Encoding']
+                if ce:
+                    compressed = ce.casefold() in ('gzip', 'x-gzip')
+                ct = response.headers['Content-Type']
+                if ct:
+                    compressed = compressed or ct.casefold() in (
+                            'application/gzip', 'application/x-gzip')
             if logger:
                 logger.info('Fetching%s %s from %s' % (
                     " compressed" if compressed else "", name,

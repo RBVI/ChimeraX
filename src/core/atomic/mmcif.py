@@ -56,41 +56,45 @@ def open_mmcif(session, filename, name, *args, **kw):
                        sum(m.num_bonds for m in models)))
 
 
+_mmcif_sources = {
+    "rcsb": "http://www.pdb.org/pdb/files/%s.cif",
+    "pdbe": "http://www.ebi.ac.uk/pdbe/entry-files/download/%s.cif",
+    "pdbe_updated": "http://www.ebi.ac.uk/pdbe/entry-files/download/%s_updated.cif",
+    "pdbj": "https://pdbj.org/rest/downloadPDBfile?format=mmcif&id=%s",
+}
+
+
 def fetch_mmcif(session, pdb_id, fetch_source="rcsb", ignore_cache=False, **kw):
     if len(pdb_id) != 4:
         raise UserError('PDB identifiers are 4 characters long, got "%s"' % pdb_id)
     import os
-    # check on local system -- TODO: configure location
-    lower = pdb_id.lower()
-    subdir = lower[1:3]
-    sys_filename = "/databases/mol/mmCIF/%s/%s.cif" % (subdir, lower)
-    if os.path.exists(sys_filename):
-        return sys_filename, pdb_id
-
-    pdb_name = "%s.cif" % pdb_id.upper()
-    if fetch_source == "rcsb":
-        url = "http://www.pdb.org/pdb/files/%s" % pdb_name
-    elif fetch_source == "pdbe":
-        url = "http://www.ebi.ac.uk/pdbe/entry-files/download/%s.cif" % lower
-    elif fetch_source == "pdbe_updated":
-        url = "http://www.ebi.ac.uk/pdbe/entry-files/download/%s_updated.cif" % lower
-    elif fetch_source == "pdbj":
-        url = "https://pdbj.org/rest/downloadPDBfile?format=mmcif&id=%s" % lower
-    else:
-        raise UserError('unrecognized mmCIF/PDB source "%s"' % fetch_source)
-    session.logger.status("Fetching mmCIF %s from %s" % (pdb_id, url))
-    from ..fetch import fetch_file
-    filename = fetch_file(session, url, 'mmCIF %s' % pdb_id, pdb_name, 'PDB',
-                          ignore_cache=ignore_cache)
-    # double check that a mmCIF file was downloaded instead of an
-    # HTML error message saying the ID does not exist
-    with open(filename, 'U') as f:
-        line = f.readline()
-        if not line.startswith(('data_', '#')):
-            f.close()
-            import os
-            os.remove(filename)
-            raise UserError("Invalid mmCIF identifier")
+    pdb_id = pdb_id.lower()
+    filename = None
+    if not fetch_source.endswith('updated'):
+        # check on local system -- TODO: configure location
+        subdir = pdb_id[1:3]
+        filename = "/databases/mol/mmCIF/%s/%s.cif" % (subdir, pdb_id)
+        if not os.path.exists(filename):
+            filename = None
+    if filename is None:
+        base_url = _mmcif_sources.get(fetch_source, None)
+        if base_url is None:
+            raise UserError('unrecognized mmCIF/PDB source "%s"' % fetch_source)
+        url = base_url % pdb_id
+        pdb_name = "%s.cif" % pdb_id
+        session.logger.status("Fetching mmCIF %s from %s" % (pdb_id, url))
+        from ..fetch import fetch_file
+        filename = fetch_file(session, url, 'mmCIF %s' % pdb_id, pdb_name, 'PDB',
+                              ignore_cache=ignore_cache)
+        # double check that a mmCIF file was downloaded instead of an
+        # HTML error message saying the ID does not exist
+        with open(filename, 'U') as f:
+            line = f.readline()
+            if not line.startswith(('data_', '#')):
+                f.close()
+                import os
+                os.remove(filename)
+                raise UserError("Invalid mmCIF identifier")
 
     from .. import io
     models, status = io.open_data(session, filename, format='mmcif', name=pdb_id, **kw)
@@ -111,40 +115,17 @@ def fetch_mmcif_pdbj(session, pdb_id, **kw):
 
 def _get_template(session, name):
     """Get Chemical Component Dictionary (CCD) entry"""
-    import os
-    from chimerax import app_dirs, app_dirs_unversioned
-    # check in local cache
-    if len(_cache_dirs) == 0:
-        _cache_dirs.append(os.path.join(
-            app_dirs_unversioned.user_cache_dir, 'CCD'))
-        old_cache_dir = os.path.join('~', 'Downloads', 'Chimera', 'CCD')
-        old_cache_dir = os.path.expanduser(old_cache_dir)
-        if os.path.isdir(old_cache_dir):
-            _cache_dirs.append(old_cache_dir)
-
+    from ..fetch import fetch_file
     filename = '%s.cif' % name
-    for d in _cache_dirs:
-        path = os.path.join(d, filename)
-        if os.path.exists(path):
-            return path  # TODO: check if cache needs updating
-
-    path = os.path.join(_cache_dirs[0], filename)
-    os.makedirs(_cache_dirs[0], exist_ok=True)
-
-    from urllib.request import URLError, Request
-    from .. import fetch
     url = "http://ligand-expo.rcsb.org/reports/%s/%s/%s.cif" % (name[0], name,
                                                                 name)
-    request = Request(url, unverifiable=True, headers={
-        "User-Agent": fetch.html_user_agent(app_dirs),
-    })
     try:
-        return fetch.retrieve_url(request, path, session.logger)
-    except URLError:
+        return fetch_file(session, url, 'CCD %s' % name, filename, 'CCD')
+    except UserError:
         session.logger.warning(
             "Unable to fetch template for '%s': might be missing bonds"
             % name)
-_cache_dirs = []
+        return None
 
 
 def register_mmcif_format():

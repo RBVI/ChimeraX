@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def size(session, objects, atom_radius=None, bond_radius=None):
+def size(session, objects=None, atom_radius=None, stick_radius=None):
     '''
     Adjust atom or bond radii.
 
@@ -21,9 +21,13 @@ def size(session, objects, atom_radius=None, bond_radius=None):
       Atoms or bonds whose size should be changed
     atom_radius : float or "default"
       New radius value for atoms.
-    bond_radius : float
-      New radius value for bonds.
+    stick_radius : float
+      New radius value for bonds shown in stick style.
     '''
+    if objects is None:
+        from . import atomspec
+        objects = atomspec.all_objects(session)
+
     what = []
     if atom_radius is not None:
         a = objects.atoms
@@ -33,10 +37,10 @@ def size(session, objects, atom_radius=None, bond_radius=None):
             a.radii = atom_radius
         what.append('%d atom radii' % len(a))
 
-    if bond_radius is not None:
+    if stick_radius is not None:
         a = objects.atoms
         b = a.inter_bonds
-        b.radii = bond_radius
+        b.radii = stick_radius
         what.append('%d bond radii' % len(b))
 
     if what:
@@ -48,8 +52,8 @@ def size(session, objects, atom_radius=None, bond_radius=None):
 def register_command(session):
     from . import CmdDesc, register, ObjectsArg, FloatArg, EnumOf, Or
     desc = CmdDesc(
-        required = [('objects', ObjectsArg)],
+        optional = [('objects', ObjectsArg)],
         keyword=[('atom_radius', Or(EnumOf(['default']), FloatArg)),
-                 ('bond_radius', FloatArg)],
+                 ('stick_radius', FloatArg)],
         synopsis='change atom or bond radii')
     register('size', desc, size)
