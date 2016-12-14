@@ -11,9 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.atomic.ribbon import XSectionManager
-from chimerax.core.atomic import Residue, Structure
-from chimerax.core.commands import Annotation, AnnotationError
+from ..atomic.ribbon import XSectionManager
+from ..atomic import Residue, Structure
+from ..commands import Annotation, AnnotationError
 
 _StyleMap = {
     "ribbon": Residue.RIBBON,
@@ -74,7 +74,7 @@ def cartoon(session, spec=None, smooth=None, style=None, hide_backbone=None, sho
         sets it for the entire structure.
     '''
     if spec is None:
-        from chimerax.core.commands import atomspec
+        from . import atomspec
         spec = atomspec.everything(session)
     results = spec.evaluate(session)
     residues = results.atoms.residues
@@ -97,7 +97,7 @@ def cartoon(session, spec=None, smooth=None, style=None, hide_backbone=None, sho
 def _get_structures(session, structures):
     if structures is None or structures is True:
         # True is the NoArg case
-        from chimerax.core.commands import atomspec
+        from . import atomspec
         results = atomspec.everything(session).evaluate(session)
         structures = results.atoms.unique_structures
     return structures
@@ -188,7 +188,7 @@ def cartoon_style(session, spec=None, width=None, thickness=None, arrows=None, a
         Same argument values are mode_helix.
     '''
     if spec is None:
-        from chimerax.core.commands import atomspec
+        from . import atomspec
         spec = atomspec.everything(session)
     results = spec.evaluate(session)
     structures = results.atoms.unique_structures
@@ -580,7 +580,7 @@ def cartoon_linker(session, structures, classes, linker):
     RIBBON_SHEET = XSectionManager.RIBBON_SHEET
     RIBBON_SHEET_ARROW = XSectionManager.RIBBON_SHEET_ARROW
     RIBBON_COIL = XSectionManager.RIBBON_COIL
-    from chimerax.core.errors import UserError
+    from ..errors import UserError
     if classes[0] == "helix":
         if classes[1] == "helix":
             rc_list = [[(RC_HELIX_MIDDLE, RC_HELIX_END, RC_HELIX_START),
@@ -784,7 +784,7 @@ def uncartoon(session, spec=None):
         Hide ribbons for the specified residues. If no atom specifier is given then all ribbons are hidden.
     '''
     if spec is None:
-        from chimerax.core.commands import atomspec
+        from . import atomspec
         spec = atomspec.everything(session)
     results = spec.evaluate(session)
     results.atoms.residues.ribbon_displays = False
@@ -796,7 +796,7 @@ class EvenIntArg(Annotation):
 
     @classmethod
     def parse(cls, text, session):
-        from chimerax.core.commands import IntArg
+        from . import IntArg
         try:
             token, text, rest = IntArg.parse(text, session)
         except AnnotationError:
@@ -806,102 +806,100 @@ class EvenIntArg(Annotation):
         return token, text, rest
 
 
-def initialize(command_name):
-    from chimerax.core.commands import register
-    from chimerax.core.commands import CmdDesc, AtomSpecArg, AtomicStructuresArg
-    if command_name.startswith('~'):
-        desc = CmdDesc(optional=[("spec", AtomSpecArg)],
-                       synopsis='undisplay cartoon for specified residues')
-        register(command_name, desc, uncartoon)
-    else:
-        from chimerax.core.commands import Or, Bounded, FloatArg, EnumOf, BoolArg, IntArg, TupleOf, NoArg
-        desc = CmdDesc(optional=[("spec", AtomSpecArg)],
-                       keyword=[("smooth", Or(Bounded(FloatArg, 0.0, 1.0),
-                                              EnumOf(["default"]))),
-                                ("style", EnumOf(list(_StyleMap.keys()))),
-                                ("hide_backbone", BoolArg),
-                                ("show_spine", BoolArg),
-                                ],
-                       synopsis='display cartoon for specified residues')
-        register(command_name, desc, cartoon)
+def register_command(session):
+    command_name = "cartoon"
+    from . import register, CmdDesc, AtomSpecArg, AtomicStructuresArg
+    desc = CmdDesc(optional=[("spec", AtomSpecArg)],
+                   synopsis='undisplay cartoon for specified residues')
+    register("~" + command_name, desc, uncartoon)
+    from . import Or, Bounded, FloatArg, EnumOf, BoolArg, IntArg, TupleOf, NoArg
+    desc = CmdDesc(optional=[("spec", AtomSpecArg)],
+                   keyword=[("smooth", Or(Bounded(FloatArg, 0.0, 1.0),
+                                          EnumOf(["default"]))),
+                            ("style", EnumOf(list(_StyleMap.keys()))),
+                            ("hide_backbone", BoolArg),
+                            ("show_spine", BoolArg),
+                            ],
+                   synopsis='display cartoon for specified residues')
+    register(command_name, desc, cartoon)
 
-        desc = CmdDesc(optional=[("structures", AtomicStructuresArg)],
-                       keyword=[("scale", Bounded(FloatArg, 0.0, 1.0)),
-                                ("shape", EnumOf(_TetherShapeMap.keys())),
-                                ("sides", Bounded(IntArg, 3, 24)),
-                                ("opacity", Bounded(FloatArg, 0.0, 1.0)),
-                                ],
-                       synopsis='set cartoon tether options for specified structures')
-        register(command_name + " tether", desc, cartoon_tether)
+    desc = CmdDesc(optional=[("structures", AtomicStructuresArg)],
+                   keyword=[("scale", Bounded(FloatArg, 0.0, 1.0)),
+                            ("shape", EnumOf(_TetherShapeMap.keys())),
+                            ("sides", Bounded(IntArg, 3, 24)),
+                            ("opacity", Bounded(FloatArg, 0.0, 1.0)),
+                            ],
+                   synopsis='set cartoon tether options for specified structures')
+    register(command_name + " tether", desc, cartoon_tether)
 
-        desc = CmdDesc(optional=[("spec", AtomSpecArg)],
-                       keyword=[("width", FloatArg),
-                                ("thickness", FloatArg),
-                                ("arrows", BoolArg),
-                                ("arrows_helix", BoolArg),
-                                ("arrow_scale", Bounded(FloatArg, 1.0, 3.0)),
-                                ("xsection", EnumOf(_XSectionMap.keys())),
-                                ("sides", Bounded(EvenIntArg, 3, 24)),
-                                ("bar_scale", FloatArg),
-                                ("bar_sides", Bounded(EvenIntArg, 3, 24)),
-                                ("ss_ends", EnumOf(["default", "short", "long"])),
-                                ("orient", EnumOf(list(_OrientMap.keys()))),
-                                ("mode_helix", EnumOf(list(_ModeMap.keys()))),
-                                ("mode_strand", EnumOf(list(_ModeMap.keys()))),
-                                ],
-                       synopsis='set cartoon style for secondary structures in specified models')
-        register(command_name + " style", desc, cartoon_style)
+    desc = CmdDesc(optional=[("spec", AtomSpecArg)],
+                   keyword=[("width", FloatArg),
+                            ("thickness", FloatArg),
+                            ("arrows", BoolArg),
+                            ("arrows_helix", BoolArg),
+                            ("arrow_scale", Bounded(FloatArg, 1.0, 3.0)),
+                            ("xsection", EnumOf(_XSectionMap.keys())),
+                            ("sides", Bounded(EvenIntArg, 3, 24)),
+                            ("bar_scale", FloatArg),
+                            ("bar_sides", Bounded(EvenIntArg, 3, 24)),
+                            ("ss_ends", EnumOf(["default", "short", "long"])),
+                            ("orient", EnumOf(list(_OrientMap.keys()))),
+                            ("mode_helix", EnumOf(list(_ModeMap.keys()))),
+                            ("mode_strand", EnumOf(list(_ModeMap.keys()))),
+                            ],
+                   synopsis='set cartoon style for secondary structures in specified models')
+    register(command_name + " style", desc, cartoon_style)
 
-        # Other command registrations (to be removed)
+    # Other command registrations (to be removed)
 
-        xs = EnumOf(_XSectionMap.keys())
-        desc = CmdDesc(optional=[("structures", AtomicStructuresArg)],
-                       keyword=[("helix", xs),
-                                ("strand", xs),
-                                ("coil", xs),
-                                ("nucleic", xs),
-                                ],
-                       synopsis='set cartoon cross section options for specified structures')
-        register(command_name + " xsection", desc, cartoon_xsection)
+    xs = EnumOf(_XSectionMap.keys())
+    desc = CmdDesc(optional=[("structures", AtomicStructuresArg)],
+                   keyword=[("helix", xs),
+                            ("strand", xs),
+                            ("coil", xs),
+                            ("nucleic", xs),
+                            ],
+                   synopsis='set cartoon cross section options for specified structures')
+    register(command_name + " xsection", desc, cartoon_xsection)
 
-        desc = CmdDesc(optional=[("structures", AtomicStructuresArg)],
-                       keyword=[("helix", TupleOf(FloatArg, 2)),
-                                ("arrow_helix", TupleOf(FloatArg, 4)),
-                                ("strand", TupleOf(FloatArg, 2)),
-                                ("arrow_strand", TupleOf(FloatArg, 4)),
-                                ("coil", TupleOf(FloatArg, 2)),
-                                ("nucleic", TupleOf(FloatArg, 2)),
-                                ],
-                       synopsis='set cartoon scale options for specified structures')
-        register(command_name + " scale", desc, cartoon_scale)
+    desc = CmdDesc(optional=[("structures", AtomicStructuresArg)],
+                   keyword=[("helix", TupleOf(FloatArg, 2)),
+                            ("arrow_helix", TupleOf(FloatArg, 4)),
+                            ("strand", TupleOf(FloatArg, 2)),
+                            ("arrow_strand", TupleOf(FloatArg, 4)),
+                            ("coil", TupleOf(FloatArg, 2)),
+                            ("nucleic", TupleOf(FloatArg, 2)),
+                            ],
+                   synopsis='set cartoon scale options for specified structures')
+    register(command_name + " scale", desc, cartoon_scale)
 
-        classes = EnumOf(["helix", "strand", "coil"])
-        linker = EnumOf(["none", "short", "short2", "long"])
-        desc = CmdDesc(required=[("structures", Or(AtomicStructuresArg, NoArg)),
-                                 ("linker", linker),
-                                 ("classes", TupleOf(classes, 2)),
-                                 ],
-                       synopsis='set cartoon linker options for specified structures')
-        register(command_name + " linker", desc, cartoon_linker)
+    classes = EnumOf(["helix", "strand", "coil"])
+    linker = EnumOf(["none", "short", "short2", "long"])
+    desc = CmdDesc(required=[("structures", Or(AtomicStructuresArg, NoArg)),
+                             ("linker", linker),
+                             ("classes", TupleOf(classes, 2)),
+                             ],
+                   synopsis='set cartoon linker options for specified structures')
+    register(command_name + " linker", desc, cartoon_linker)
 
-        desc = CmdDesc(optional=[("structures", AtomicStructuresArg)],
-                       keyword=[("helix", BoolArg),
-                                ("strand", BoolArg),
-                                ],
-                       synopsis='set cartoon arrow options for specified structures')
-        register(command_name + " arrow", desc, cartoon_arrow)
+    desc = CmdDesc(optional=[("structures", AtomicStructuresArg)],
+                   keyword=[("helix", BoolArg),
+                            ("strand", BoolArg),
+                            ],
+                   synopsis='set cartoon arrow options for specified structures')
+    register(command_name + " arrow", desc, cartoon_arrow)
 
-        desc = CmdDesc(optional=[("structures", AtomicStructuresArg)],
-                       keyword=[("sides", Bounded(IntArg, 3)),
-                                ("faceted", BoolArg),
-                                ],
-                       synopsis='set cartoon round ribbon options for specified structures')
-        register(command_name + " param round", desc, cartoon_param_round)
+    desc = CmdDesc(optional=[("structures", AtomicStructuresArg)],
+                   keyword=[("sides", Bounded(IntArg, 3)),
+                            ("faceted", BoolArg),
+                            ],
+                   synopsis='set cartoon round ribbon options for specified structures')
+    register(command_name + " param round", desc, cartoon_param_round)
 
-        desc = CmdDesc(optional=[("structures", AtomicStructuresArg)],
-                       keyword=[("sides", Bounded(IntArg, 3)),
-                                ("faceted", BoolArg),
-                                ("ratio", Bounded(FloatArg, 0.2, 1.0)),
-                                ],
-                       synopsis='set cartoon piping ribbon options for specified structures')
-        register(command_name + " param piping", desc, cartoon_param_piping)
+    desc = CmdDesc(optional=[("structures", AtomicStructuresArg)],
+                   keyword=[("sides", Bounded(IntArg, 3)),
+                            ("faceted", BoolArg),
+                            ("ratio", Bounded(FloatArg, 0.2, 1.0)),
+                            ],
+                   synopsis='set cartoon piping ribbon options for specified structures')
+    register(command_name + " param piping", desc, cartoon_param_piping)
