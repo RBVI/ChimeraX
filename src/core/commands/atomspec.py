@@ -306,9 +306,8 @@ class _ModelList(list):
 
     def find_matches(self, session, model_list, results):
         for model_spec in self:
-            for m in model_list:
-                if model_spec.matches(session, m):
-                    model_spec.find_sub_parts(session, m, results)
+            # "model_spec" should be an _Model instance
+            model_spec.find_matches(session, model_list, results)
 
 
 class _ModelHierarchy(list):
@@ -322,15 +321,28 @@ class _ModelHierarchy(list):
             return "[empty]"
         return ".".join(str(mr) for mr in self)
 
-    def matches(self, session, model):
-        for i, mrl in enumerate(self):
-            try:
-                mid = model.id[i]
-            except IndexError:
-                return False
-            if not mrl.matches(mid):
-                return False
-        return True
+    def find_matches(self, session, model_list, sub_parts, results):
+        self._check(session, model_list, sub_parts, results, 0)
+
+    def _check(self, session, model_list, sub_parts, results, i):
+        if i >= len(self):
+            # Hit end of list.  Match
+            for model in model_list:
+                _add_model_parts(session, model, sub_parts, results)
+            return
+        match_list = []
+        # "self[i]" is a _ModelRangeList instance
+        # "mr" is a _ModelRange instance
+        for mr in self[i]:
+            for model in model_list:
+                try:
+                    mid = model.id[i]
+                except IndexError:
+                    continue
+                if mr.matches(mid):
+                    match_list.append(model)
+        if match_list:
+            self._check(session, match_list, sub_parts, results, i + 1)
 
 
 class _ModelRangeList(list):
@@ -343,12 +355,6 @@ class _ModelRangeList(list):
         if not self:
             return "[empty]"
         return ",".join(str(mr) for mr in self)
-
-    def matches(self, mid):
-        for mr in self:
-            if mr.matches(mid):
-                return True
-        return False
 
 
 class _ModelRange:
@@ -431,30 +437,13 @@ class _Model(_SubPart):
     """Stores model part list and atom spec."""
     Symbol = '#'
 
-    def matches(self, session, model):
-        # TODO: account for my_attrs in addition to my_parts
-        if self.my_parts is None:
-            return True
-        return self.my_parts.matches(session, model)
-
-    def find_sub_parts(self, session, model, results):
-        if not model.atomspec_has_atoms():
-            if not self.sub_parts:
-                results.add_model(model)
-            return
-        atoms = model.atomspec_atoms()
-        if self.sub_parts:
-            # Has sub-model selector, filter atoms
-            import numpy
-            num_atoms = len(atoms)
-            selected = numpy.zeros(num_atoms)
-            for chain_spec in self.sub_parts:
-                s = chain_spec.find_selected_parts(model, atoms, num_atoms)
-                selected = numpy.logical_or(selected, s)
-            atoms = atoms.filter(selected)
-        if len(atoms) > 0:
-            results.add_model(model)
-            results.add_atoms(atoms)
+    def find_matches(self, session, model_list, results):
+        if self.my_parts:
+            self.my_parts.find_matches(session, model_list, self.sub_parts, results)
+        else:
+            # No model spec given, everything matches
+            for model in model_list:
+                _add_model_parts(session, model, self.sub_parts, results)
 
 
 class _Chain(_SubPart):
@@ -600,6 +589,26 @@ class _Invert:
         return results
 
 
+def _add_model_parts(session, model, sub_parts, results):
+    if not model.atomspec_has_atoms():
+        if not self.sub_parts:
+            results.add_model(model)
+        return
+    atoms = model.atomspec_atoms()
+    if sub_parts:
+        # Has sub-model selector, filter atoms
+        import numpy
+        num_atoms = len(atoms)
+        selected = numpy.zeros(num_atoms)
+        for chain_spec in sub_parts:
+            s = chain_spec.find_selected_parts(model, atoms, num_atoms)
+            selected = numpy.logical_or(selected, s)
+        atoms = atoms.filter(selected)
+    if len(atoms) > 0:
+        results.add_model(model)
+        results.add_atoms(atoms)
+
+
 class AtomSpec:
     """AtomSpec instances store and evaluate atom specifiers.
 
@@ -642,6 +651,7 @@ class AtomSpec:
         # print("evaluate:", str(self))
         if models is None:
             models = session.models.list(**kw)
+            models.sort(key=lambda m: m.id)
         if self._operator is None:
             results = self._left_spec.evaluate(session, models)
         elif self._operator == '|':
