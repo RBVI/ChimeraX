@@ -310,9 +310,6 @@ class VolumeViewer(ToolInstance):
       if self.active_volume is None:
         return
 
-      if self._postpone_redisplay():
-          return
-
       #
       # While in this routine another redisplay may be requested.
       # Remember so we can keep redisplaying until everything is up to date.
@@ -336,28 +333,6 @@ class VolumeViewer(ToolInstance):
           self.redisplay_in_progress = False
           raise
         self.redisplay_in_progress = False
-
-    # ---------------------------------------------------------------------------
-    #
-    def _postpone_redisplay(self):
-      return False
-      # TODO: This is an experiment to try to obtain best interactive graphics
-      # update speed during mouse drags that change thresholds, plane shown, time series time.
-      # Postpone redisplay if one has already been done this frame, to avoid doing
-      # multiple contour calculations without showing results as user changes threshold.
-      ses = self.session
-      fn = ses.main_view.frame_number
-      rh = self._redisplay_handler
-      if fn == self._last_redisplay_frame_number:
-          if rh is None:
-              h = ses.triggers.add_handler('frame drawn', lambda *_: self.redisplay_needed())
-              self._redisplay_handler = h
-          return
-      if rh:
-          ses.triggers.remove_handler(rh)
-          self._redisplay_handler = None
-      self._last_redisplay_frame_number = fn
-#      print ('drawing frame', fn)
     
     # ---------------------------------------------------------------------------
     # Update display even if immediate redisplay mode is off.
@@ -2113,11 +2088,15 @@ class Histogram_Pane:
       self._planes_slider.setValue(k)
       v = self.data_region
       ijk_min, ijk_max, ijk_step = v.region
+      if ijk_min[2] == k and ijk_max[2] == k:
+          return	# Already showing this plane.
       nijk_min = list(ijk_min)
       nijk_min[2] = k
       nijk_max = list(ijk_max)
       nijk_max[2] = k
       v.new_region(nijk_min, nijk_max, ijk_step)
+      # Make sure this plane is shown before we show another plane.
+      self.dialog.session.ui.request_graphics_redraw()
 
   # ---------------------------------------------------------------------------
   #
@@ -2198,11 +2177,10 @@ class Histogram_Pane:
     from PyQt5.QtCore import Qt
 
     class Canvas(QGraphicsView):
-        def __init__(self, parent, new_frame_checker):
+        def __init__(self, parent):
             QGraphicsView.__init__(self, parent)
             self.click_callbacks = []
             self.drag_callbacks = []
-            self._new_frame = new_frame_checker
         def resizeEvent(self, event):
             # Rescale histogram when window resizes
             self.fitInView(self.sceneRect())
@@ -2211,13 +2189,11 @@ class Histogram_Pane:
             for cb in self.click_callbacks:
                 cb(event)
         def mouseMoveEvent(self, event):
-            if self._new_frame():
-                # Only process mouse move once per graphics frame.
-                for cb in self.drag_callbacks:
-                    cb(event)
+            # Only process mouse move once per graphics frame.
+            for cb in self.drag_callbacks:
+                cb(event)
 
-    nfc = self.dialog.session.main_view.new_frame_checker()
-    self.canvas = gv = Canvas(frame, nfc)
+    self.canvas = gv = Canvas(frame)
     gv.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
     gv.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
     gv.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
@@ -2284,6 +2260,8 @@ class Histogram_Pane:
 
     self.select_data_cb()
     self.set_threshold_and_color_widgets()
+    # Request graphics redraw before more mouse drag events occur.
+    self.dialog.session.ui.request_graphics_redraw()
 
   # ---------------------------------------------------------------------------
   #

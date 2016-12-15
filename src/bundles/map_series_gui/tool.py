@@ -123,6 +123,8 @@ class MapSeries(ToolInstance):
             if lt is not None and lt != t:
                 s.copy_display_parameters(lt, t)
             s.show_time(t)
+        # Make sure this time is shown before we draw the next time.
+        self.session.ui.request_graphics_redraw()
 
     def play_cb(self, event):
         if self.playing:
