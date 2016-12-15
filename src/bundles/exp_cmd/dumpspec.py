@@ -23,7 +23,8 @@ def dumpspec(session, spec=None):
     msgs = []
 
     models = session.models.list()
-    msgs.append("Session model order:")
+    models.sort(key=lambda m: m.id)
+    msgs.append("Sorted session model order:")
     for m in models:
         msgs.append("  %s" % m)
 
