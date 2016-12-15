@@ -1509,27 +1509,22 @@ class Thresholds_Panel(PopupPanel):
     self._color_dialog = None
 
     frame = self.frame
-
-    from PyQt5.QtWidgets import QVBoxLayout, QFrame, QSizePolicy, QLabel
-    from PyQt5.QtCore import Qt
-
-#    layout = QVBoxLayout(frame)
-#    layout.setContentsMargins(0,0,0,0)
-#    layout.setSpacing(0)
+    frame.resizeEvent = lambda e, self=self: self.panel_resized(e)
     
+    from PyQt5.QtWidgets import QVBoxLayout, QFrame, QSizePolicy, QLabel
+    from PyQt5.QtCore import Qt, QSize
+
     # Histograms frame
     self.histograms_frame = hf = QFrame(frame)
-#    layout.addWidget(hf, stretch=1)
+    hf.resizeEvent = lambda e, self=self: self.resize_panel()
+
     self.histograms_layout = hl = QVBoxLayout(hf)
-#    hl.setSizeConstraint(QVBoxLayout.SetFixedSize)
     hl.setSizeConstraint(QVBoxLayout.SetMinAndMaxSize)
     hl.setContentsMargins(0,0,0,0)
     hl.setSpacing(0)
     hl.addStretch(1)
-#    frame.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
     frame.setWidget(hf)	# Set scrollable child.
-    frame.setWidgetResizable(True)	# Resize child to fit in scroll area -- really only want width resized.
-    hf.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+    hf.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
     
 #    b = self.make_close_button(frame)
 #    b.grid(row = row, column = 1, sticky = 'e')
@@ -1588,6 +1583,16 @@ class Thresholds_Panel(PopupPanel):
     self.resize_panel()
 
   # ---------------------------------------------------------------------------
+  # The scrolled area containing the histograms resized, so resize the histograms
+  # to match the width of the scrolled area.
+  #
+  def panel_resized(self, e):
+      f = self.frame
+      hf = self.histograms_frame
+      w = f.width() - 2*hf.lineWidth()
+      hf.resize(w, hf.height())
+      
+  # ---------------------------------------------------------------------------
   # Resize thresholds panel to fit up to 3 histograms before scrolling.
   #
   def resize_panel(self, nhist = 3):
@@ -1597,14 +1602,13 @@ class Thresholds_Panel(PopupPanel):
     if n == 0 or n > nhist:
         return
 
-    h = 0
-    for p in hpanes:
-        hf = p.frame
-        hf.adjustSize()		# Get correct size for histogram pane
-        h += hf.height()
-
+    hf = self.histograms_frame
+    h = hf.height() + 2*hf.lineWidth()
     f = self.frame
-    f.setMinimumHeight(h)	# Resize to exactly fit n histograms
+    if f.height() < h:
+        # This is the only way I could find to convince a QDockWidget to
+        # resize to a size I request.
+        f.setMinimumHeight(h)
 
     # Allow resizing panel smaller with mouse
     from PyQt5.QtCore import QTimer
@@ -1989,23 +1993,6 @@ class Histogram_Pane:
           if not self._planes_slider_shown:
               f = self._create_planes_slider()
               self._layout.addWidget(f)
-
-              # Expand volume viewer panel so slider is visible.
-
-              # Apparently the new size cannot be determined until the relayout is done.
-              # Probably the way to handle this is look for resize events on frame and
-              # then call my resize adjustment.  The problem with that is it may interfere
-              # with user manual resizing.
-              # print ('height after slider', self.frame.height())
-              # f.adjustSize()
-              # self.frame.adjustSize()
-              # print ('height after slider and adjust size', self.frame.height())
-              # self.dialog.thresholds_panel.resize_panel()
-
-              # Allow resizing panel smaller with mouse
-              # Hack.
-              from PyQt5.QtCore import QTimer
-              QTimer.singleShot(200, lambda self=self: self.dialog.thresholds_panel.resize_panel())
       else:
           if self._planes_slider_shown:
               f = self._create_planes_slider()
