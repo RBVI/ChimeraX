@@ -407,7 +407,7 @@ class _SubPart:
         else:
             self.sub_parts.append(subpart)
 
-    def find_selected_parts(self, model, atoms, num_atoms):
+    def find_selected_parts(self, model, atoms, num_atoms, results):
         # Only filter if a spec for this level is present
         # TODO: account for my_attrs in addition to my_parts
         if self.my_attrs is not None:
@@ -415,22 +415,36 @@ class _SubPart:
             # avoid generating traceback in log
             from ..errors import UserError
             raise UserError("Atomspec attributes not supported yet")
-        import numpy
         if self.my_parts is not None:
-            my_selected = self._filter_parts(model, atoms, num_atoms)
-        else:
-            my_selected = numpy.ones(num_atoms)
+            atoms = self._filter_parts(model, atoms, num_atoms)
+            num_atoms = len(atoms)
+        if len(atoms) == 0:
+            return
         if self.sub_parts is None:
-            return my_selected
-        sub_selected = numpy.zeros(num_atoms)
+            results.add_model(model)
+            results.add_atoms(atoms)
+            return
+        from ..objects import Objects
+        sub_results = Objects()
         for subpart in self.sub_parts:
-            s = subpart.find_selected_parts(model, atoms, num_atoms)
-            sub_selected = numpy.logical_or(sub_selected, s)
-        return numpy.logical_and(my_selected, sub_selected)
+            subpart.find_selected_parts(model, atoms, num_atoms, sub_results)
+        if sub_results.num_atoms > 0:
+            results.add_model(model)
+            results.add_atoms(sub_results.atoms)
 
     def _filter_parts(self, model, atoms, num_atoms):
-        return model.atomspec_filter(self.Symbol, atoms, num_atoms,
-                                     self.my_parts, self.my_attrs)
+        if not self.my_parts:
+            return atoms
+        from ..objects import Objects
+        results = Objects()
+        for part in self.my_parts:
+            my_part = self.my_parts.__class__(part)
+            mask = model.atomspec_filter(self.Symbol, atoms, num_atoms,
+                                         my_part, self.my_attrs)
+            sub_atoms = atoms.filter(mask)
+            if len(sub_atoms) > 0:
+                results.add_atoms(sub_atoms)
+        return results.atoms
 
 
 class _Model(_SubPart):
@@ -444,6 +458,27 @@ class _Model(_SubPart):
             # No model spec given, everything matches
             for model in model_list:
                 _add_model_parts(session, model, self.sub_parts, results)
+
+
+def _add_model_parts(session, model, sub_parts, results):
+    if not model.atomspec_has_atoms():
+        if not sub_parts:
+            results.add_model(model)
+        return
+    atoms = model.atomspec_atoms()
+    if not sub_parts:
+        results.add_model(model)
+        results.add_atoms(atoms)
+    else:
+        # Has sub-model selector, filter atoms
+        from ..objects import Objects
+        my_results = Objects()
+        num_atoms = len(atoms)
+        for chain_spec in sub_parts:
+            chain_spec.find_selected_parts(model, atoms, num_atoms, my_results)
+        if my_results.num_atoms > 0:
+            results.add_model(model)
+            results.add_atoms(my_results.atoms)
 
 
 class _Chain(_SubPart):
@@ -587,26 +622,6 @@ class _Invert:
         results = self._atomspec.evaluate(session, models)
         results.invert(session, models)
         return results
-
-
-def _add_model_parts(session, model, sub_parts, results):
-    if not model.atomspec_has_atoms():
-        if not sub_parts:
-            results.add_model(model)
-        return
-    atoms = model.atomspec_atoms()
-    if sub_parts:
-        # Has sub-model selector, filter atoms
-        import numpy
-        num_atoms = len(atoms)
-        selected = numpy.zeros(num_atoms)
-        for chain_spec in sub_parts:
-            s = chain_spec.find_selected_parts(model, atoms, num_atoms)
-            selected = numpy.logical_or(selected, s)
-        atoms = atoms.filter(selected)
-    if len(atoms) > 0:
-        results.add_model(model)
-        results.add_atoms(atoms)
 
 
 class AtomSpec:
