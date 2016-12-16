@@ -538,6 +538,7 @@ def save(session, filename, **kw):
             from .errors import UserError
             raise UserError(e)
 
+    session.logger.warning("<b><i>Session file format is not finalized, and thus might not be restorable in other versions of ChimeraX.</i></b>", is_html=True)
     # TODO: put thumbnail in session metadata
     try:
         session.save(output)
@@ -713,7 +714,7 @@ def save_x3d(session, filename, **kw):
 def _initialize():
     from . import io, toolshed
     io.register_format(
-        "ChimeraX session", toolshed.SESSION, SESSION_SUFFIX, ("ses",),
+        "ChimeraX session", toolshed.SESSION, SESSION_SUFFIX, ("session",),
         mime="application/x-chimerax-session",
         reference="http://www.rbvi.ucsf.edu/chimerax/",
         open_func=open, export_func=save)

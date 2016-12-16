@@ -69,18 +69,11 @@ def parse_arguments(argv):
     import getopt
 
     if sys.platform.startswith('darwin'):
-        # skip extra -psn_ argument on Mac OS X 10.8 and earlier
-        import platform
-        release = platform.mac_ver()[0]
-        if release:
-            release = [int(x) for x in release.split('.')]
-            if release < [10, 9]:
-                for i, arg in enumerate(argv):
-                    if i == 0:
-                        continue
-                    if arg.startswith('-psn_'):
-                        del argv[i]
-                        break
+        # skip extra -psn_ argument on Mac OS X 10.8 and earlier and Mac OS X 10.12 on first launch
+        for i, arg in enumerate(argv):
+            if i > 0 and arg.startswith('-psn_'):
+                del argv[i]
+                break
 
     class Opts:
         pass
@@ -241,12 +234,11 @@ def init(argv, event_loop=True):
     initialize_ssl_cert_dir()
 
     # use chimerax.core's version
-    from chimerax.core.toolshed import _ChimeraCore
-    core_pip_key = _ChimeraCore.casefold()
+    from chimerax.core import BUNDLE_NAME as core_bundle_name
     import pip
     dists = pip.get_installed_distributions(local_only=True)
     for d in dists:
-        if d.key == core_pip_key:
+        if d.project_name == core_bundle_name:
             version = d.version
             break
     else:
@@ -487,6 +479,7 @@ def init(argv, event_loop=True):
         sess.logger.info('OpenGL version: ' + r.opengl_version())
         sess.logger.info('OpenGL renderer: ' + r.opengl_renderer())
         sess.logger.info('OpenGL vendor: ' + r.opengl_vendor())
+        sess.ui.main_window.graphics_window.start_redraw_timer()
 
     if opts.module:
         import runpy
@@ -635,4 +628,5 @@ def remove_python_scripts(bin_dir):
             os.remove(path)
 
 if __name__ == '__main__':
-    raise SystemExit(init(sys.argv))
+    exit_code = init(sys.argv)
+    raise SystemExit(exit_code)

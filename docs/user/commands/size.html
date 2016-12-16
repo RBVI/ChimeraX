@@ -1,0 +1,72 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: size</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: size</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>size</b> 
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
+[&nbsp;atomRadius&nbsp;&nbsp;<i>r<sub><font size=-1>a</font></sub></i>&nbsp;|&nbsp;default&nbsp;]
+[&nbsp;stickRadius&nbsp;&nbsp;<i>r<sub><font size=-1>b</font></sub></i>&nbsp;]
+<!--
+[&nbsp;ballScale&nbsp;&nbsp;<i>b</i>&nbsp;]
+-->
+</h3>
+<p>
+The <b>size</b> command adjusts the radii of
+<a href="atomspec.html">specified</a> atoms and/or bonds:
+<ul>
+<li>atomic <a href="../radii.html">VDW radii</a>,
+used directly for <a href="style.html">sphere display</a> and
+scaled by a factor of 0.3 for <a href="style.html">ball display</a>
+(the <a href="../radii.html"><b>default</b> radii</a> are
+assigned by <a href="../atomtypes.html">atom type</a>)
+<li>bond <a href="style.html">stick</a> radii
+(default <b>0.2</b> &Aring;)
+</ul>
+Atomic <a href="../radii.html">VDW radii</a> are also used to calculate
+<!-- contacts, -->
+<a href="surface.html">molecular surfaces</a> and surface areas.
+</p><p>
+See also: <a href="style.html"><b>style</b></a>,
+<a href="cartoon.html#style"><b>cartoon style</b></a>,
+<a href="surface.html"><b>surface</b></a>,
+<a href="sasa.html"><b>sasa</b></a>,
+<a href="buriedarea.html"><b>buriedarea</b></a>,
+<a href="contacts.html"><b>contacts</b></a>
+</p><p>
+Examples:
+<blockquote>
+<b>size F atomRadius 1.5</b>
+<br>
+<b>size #1 atom default</b>
+<br>
+<b>size stick 0.4</b>
+</blockquote>
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+December 2016</address>
+</body></html>

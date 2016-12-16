@@ -2,7 +2,6 @@ TOP = ../../..
 include $(TOP)/mk/config.make
 
 BUNDLE_NAME = ChimeraX-Log
-# By convention, UCSF RBVI bundles start with "ChimeraX-"
 BUNDLE_VERSION = 1.0
 PKG_NAME = chimerax.log
 
@@ -27,7 +26,7 @@ install: dir all
 	fi
 
 app-install: wheel
-	$(APP_PIP) install -U $(WHEEL)
+	$(APP_PIP) install -U --upgrade-strategy only-if-needed $(WHEEL)
 	$(RSYNC) $(WHEEL) $(wheelhouse) && cd $(wheelhouse) && make update
 
 wheel: setup.py

@@ -1,104 +1,75 @@
-# === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
-# === UCSF ChimeraX Copyright ===
-
+# Fix all parts that say FIXME
+#
 TOP = ../../..
 include $(TOP)/mk/config.make
 
+BUNDLE_NAME = ChimeraX-SpaceNavigator
+BUNDLE_VERSION = 1.0
 PKG_NAME = chimerax.spacenavigator
-PKG_VERSION = 1.0
-PKG_DESCRIPTION = Space Navigator input device
-
-TOOL_NAME = spacenavigator
-TOOL_PKG_NAME = chimerax.spacenavigator
-TOOL_DISPLAY_NAME = Space Navigator
-TOOL_CATEGORY = Hidden
-TOOL_FILE_TYPES =
-TOOL_SESSION_VERSIONS = 1,1
-TOOL_CUSTOM_INIT = false
-TOOL_SYNOPSIS = Move models with Space Navigator device
-COMMAND_NAME = snav
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,'g)
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
 ifdef WIN32
 PKG_DIR := $(shell cygpath -m '$(PKG_DIR)' | sed 's,/,\\\\\\\\,g')
 shlibdir := $(shell cygpath -m '$(shlibdir)' | sed 's,/,\\\\\\\\,g')
+datadir := $(shell cygpath -m '$(datadir)' | sed 's,/,\\\\\\\\,g')
 endif
+WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
 
-PYSRCS = __init__.py snav.py snavmac.py
-DATAFILES =
-WHEEL = dist/$(PKG_NAME)-$(PKG_VERSION)-py3-none-$(BIN_PLATFORM).whl
+PYSRCS = $(filter-out setup.py,$(wildcard *.py))
+DATAFILES = 
+WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-py3-none-$(BIN_PLATFORM).whl
 
+ifeq ($(OS),Darwin)
+SNFW = $(wildcard /Library/Frameworks/3DconnexionClient.framework)
+
+ifneq (,$(SNFW))
+HAVE_PYMOD = 1
 PYMOD_NAME = _spacenavigator
 SRCS	= spacenav.cpp
 OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
-SNFW = /Library/Frameworks/3DconnexionClient.framework
-SNINC = -I$(SNFW)/Versions/Current/Headers
-DEFS += $(PYDEF)
-INCS += $(PYTHON_INCLUDE_DIRS) $(SNINC)
-LIBS += $(PYTHON_LIB) -F/Library/Frameworks -framework 3DconnexionClient
-PY_LIB = $(frameworkdir)/Python.framework/Versions/$(PYTHON_VERSION)/Python
-
-ifeq ($(shell test -e $(SNFW) && echo found),found)
-	HAVE_SNAV_SDK = 1
-else
-	PYMOD = 
-	PYOBJS = 
+SNINC	= -I$(SNFW)/Versions/Current/Headers
+DEFS	+= $(PYDEF)
+INCS	+= $(PYTHON_INCLUDE_DIRS) $(SNINC)
+LIBS	+= $(PYTHON_LIB) -F/Library/Frameworks -framework 3DconnexionClient
+PY_LIB	= $(frameworkdir)/Python.framework/Versions/$(PYTHON_VERSION)/Python
+endif
 endif
 
-all: $(PYMOD) $(PYOBJS)
+ifdef HAVE_PYMOD
+DATAFILES += $(PYMOD)
+
+all: $(PYMOD)
+endif
+
+all: $(PYOBJS)
 
 install: dir all
-	$(RSYNC) $(PYSRCS) $(PYMOD) $(DATAFILES) $(PKG_DIR)
+	$(RSYNC) $(PYSRCS) $(DATAFILES) $(PKG_DIR)
 	if [ -d "$(app_prefix)" ]; then \
 		$(MAKE) app-install ;\
 	fi
 
 app-install: wheel
-	$(APP_PIP) install -U $(WHEEL)
+	$(APP_PIP) install -U --upgrade-strategy only-if-needed $(WHEEL)
 	$(RSYNC) $(WHEEL) $(wheelhouse) && cd $(wheelhouse) && make update
 
 wheel: setup.py
 	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel --plat-name $(BIN_PLATFORM)
-	rm -rf $(PKG_NAME).egg-info
-
-ifdef HAVE_SNAV_SDK
-
-$(PYMOD): $(OBJS)
-	$(PYMOD_LINK)
-ifeq ($(OS),Darwin)
-# Fix _spacenavigator.so to use relative path to Python framework library.
-	install_name_tool -change $(PY_LIB) @loader_path/../../../../../Python $(PYMOD)
-endif
-
-endif
+	rm -rf $(WHL_BNDL_NAME).egg-info
 
 setup.py: setup.py.in Makefile
-	# "TOOL_PKG_NAME" includes "PKG_NAME" so must be replaced first
 	sed -e 's,PKG_DIR,$(PKG_DIR),' \
 		-e 's,SHLIB_DIR,$(shlibdir),' \
+		-e 's,DATA_DIR,$(datadir),' \
 		-e 's,PYMOD_EXT,$(PYMOD_EXT),' \
 		-e 's,SHLIB_EXT,$(SHLIB_EXT),' \
-		-e 's,TOOL_NAME,$(TOOL_NAME),' \
-		-e 's,TOOL_PKG_NAME,$(TOOL_PKG_NAME),' \
-		-e 's,TOOL_DISPLAY_NAME,$(TOOL_DISPLAY_NAME),' \
-		-e 's/TOOL_CATEGORY/$(TOOL_CATEGORY)/' \
-		-e 's/TOOL_FILE_TYPES/$(TOOL_FILE_TYPES)/' \
-		-e 's/TOOL_SESSION_VERSIONS/$(TOOL_SESSION_VERSIONS)/' \
-		-e 's/TOOL_CUSTOM_INIT/$(TOOL_CUSTOM_INIT)/' \
-		-e 's/TOOL_SYNOPSIS/$(TOOL_SYNOPSIS)/' \
-		-e 's/COMMAND_NAME/$(COMMAND_NAME)/' \
+		-e 's,#$(OS)#,,' \
+		-e 's,#$(OSARCH)#,,' \
+		-e 's,BUNDLE_NAME,$(BUNDLE_NAME),' \
+		-e 's,BUNDLE_VERSION,$(BUNDLE_VERSION),' \
 		-e 's,PKG_NAME,$(PKG_NAME),' \
-		-e 's,PKG_VERSION,$(PKG_VERSION),' \
-		-e 's,PKG_DESCRIPTION,$(PKG_DESCRIPTION),' \
+		-e 's,PKG_DIR,$(PKG_DIR),' \
 		< setup.py.in > setup.py
 
 dir:
@@ -109,4 +80,15 @@ lint:
 	$(PYLINT) $(PYSRCS)
 
 clean:
-	rm -rf __pycache__ build dist $(PKG_NAME).egg-info setup.py $(PYMOD) $(OBJS)
+	rm -rf __pycache__ build dist $(WHL_BNDL_NAME).egg-info setup.py
+
+ifdef HAVE_PYMOD
+
+$(PYMOD): $(OBJS)
+	$(PYMOD_LINK)
+ifeq ($(OS),Darwin)
+	# Fix _spacenavigator.so to use relative path to Python framework library.
+	install_name_tool -change $(PY_LIB) @loader_path/../../../../../Python $(PYMOD)
+endif
+
+endif

@@ -299,6 +299,8 @@ def install_icons(info, data_dir):
         icon = f.icon
         if icon is None:
             continue
+        if not os.path.exists(icon):
+            continue
         try:
             im = Image.open(icon)
         except IOError as e:
@@ -433,10 +435,11 @@ def get_info(session, command=None):
     info.app_author = app_dirs.appauthor
     info.name = '%s-%s' % (info.app_author, info.app_name)
     version = None
+    from . import BUNDLE_NAME as core_bundle_name
     import pip
     dists = pip.get_installed_distributions(local_only=True)
     for d in dists:
-        if d.key == 'chimerax.core':
+        if d.project_name == core_bundle_name:
             version = d.version
             break
     if version is None:

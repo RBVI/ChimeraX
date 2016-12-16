@@ -386,7 +386,7 @@ def openmm_topology_and_coordinates(mol):
         element = Element.getBySymbol(ename[i])
         atoms[i] = top.addAtom(aname[i], element, rmap[rid])
     a1, a2 = mol.bonds.atoms
-    for i1, i2 in zip(a1.indices(a), a2.indices(a)):
+    for i1, i2 in zip(a.indices(a1), a.indices(a2)):
         top.addBond(atoms[i1], atoms[i2])
     from simtk.openmm import Vec3
     pos = a.coords
@@ -400,7 +400,7 @@ def initialize_openmm():
     if not _openmm_initialized:
         _openmm_initialized = True
         from sys import platform
-        if platform == 'linux':
+        if platform == 'linux' or platform == 'darwin':
             from os import environ, path
             from chimerax import app_lib_dir
             environ['OPENMM_PLUGIN_DIR'] = path.join(app_lib_dir, 'plugins')

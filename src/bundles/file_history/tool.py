@@ -27,18 +27,12 @@ class FilePanel(ToolInstance):
         self._default_image_format = None
 
         from chimerax.core.ui.gui import MainToolWindow
-        class FilesWindow(MainToolWindow):
-            close_destroys = False
-
-        self.tool_window = FilesWindow(self)
+        self.tool_window = MainToolWindow(self, close_destroys = False)
         parent = self.tool_window.ui_area
 
-        from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEnginePage
-        class HtmlWindow(QWebEngineView):
-            def sizeHint(self):
-                from PyQt5.QtCore import QSize
-                return QSize(575, 200)
-        self.file_history_window = fhw = HtmlWindow(parent)
+        from chimerax.core.ui.widgets import ChimeraXHtmlView
+        self.file_history_window = fhw = ChimeraXHtmlView(
+            session, parent, size_hint=(575, 200))
         # TODO: Don't take focus away from command-line.  This doesn't work with QWebEngineView, QT bug 52999.
         # from PyQt5.QtCore import Qt
         # fhw.setFocusPolicy(Qt.NoFocus)
@@ -54,13 +48,6 @@ class FilePanel(ToolInstance):
         layout.addWidget(self.file_history_window, 0, 0)
         parent.setLayout(layout)
         self.tool_window.manage(placement="side")
-
-        # TODO: The following link click binding is not working in Qt 5.6.
-        # Instead the link dispatching is going through core/ui/gui.py handling href="cxcmd:<command>".
-        def link_clicked(qurl, nav_type, is_main_frame):
-            self.navigate(qurl.toString())
-            return False
-        fhw.page().acceptNavigationRequest = link_clicked
 
         from chimerax.core.filehistory import file_history
         file_history(session).remove_missing_files()
@@ -121,34 +108,6 @@ class FilePanel(ToolInstance):
     def file_history_changed_cb(self, name, data):
         # TODO: Only update if window shown.
         self.update_html()
-
-    # wx event handling
-
-    def on_close(self, event):
-        pass
-
-    def on_load(self, event):
-        pass
-
-    def on_navigating(self, event):
-
-        url = event.GetURL()
-        if url == 'file:///':
-            # show_page_source() causes this in wx
-            return
-        event.Veto()
-        self.navigate(url)
-
-    def navigate(self, url):
-        from urllib.parse import unquote
-        url = unquote(url)
-        if url.startswith("cxcmd:"):
-            cmd = url.split(':', 1)[1]
-            from chimerax.core.commands import run
-            run(self.session, cmd)
-        else:
-            # unknown scheme
-            self.session.logger.error("Unknown URL scheme: '%s'" % url)
 
 def image_jpeg_to_png(image_jpeg_base64, size = None):
     '''Convert base64 encoded jpeg image to base64 encode PNG image.'''

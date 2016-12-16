@@ -1,5 +1,4 @@
 # vim: set expandtab ts=4 sw=4:
-
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -87,26 +86,6 @@ class SideViewCanvas(QWindow):
         # self.side = self.TOP_SIDE  # DEBUG
         self.moving = self.ON_NOTHING
 
-        class SideViewContext:
-
-            def __init__(self, window, opengl_context):
-                # opengl_context uses QOpenGLContext API
-                self.window = window
-                self.opengl_context = opengl_context
-
-            def make_current(self):
-                if not self.opengl_context.makeCurrent(self.window):
-                    raise RuntimeError('Could not make graphics context current in Side View')
-
-            def done_current(self):
-                self.opengl_context.doneCurrent()
-
-            def swap_buffers(self):
-                self.opengl_context.swapBuffers(self.window)
-
-        self.primary_opengl_context = poc = view.render._opengl_context
-        self.opengl_context = SideViewContext(self, poc)
-
         self.locations = loc = _PixelLocations()
         loc.eye = 0, 0, 0   # x, y coordinates of eye
         loc.near = 0        # X coordinate of near plane
@@ -124,7 +103,6 @@ class SideViewCanvas(QWindow):
         self.handler = session.triggers.add_handler('frame drawn', self._redraw)
 
     def close(self):
-        self.opengl_context = None
         self.session.triggers.remove_handler(self.handler)
 
     def _redraw(self, *_):
@@ -145,15 +123,6 @@ class SideViewCanvas(QWindow):
         # until rendering
         self.view.resize(width, height)
 
-    def make_current(self):
-        self.opengl_context.make_current()
-
-    def done_current(self):
-        self.opengl_context.done_current()
-
-    def swap_buffers(self):
-        self.opengl_context.swap_buffers()
-
     def render(self):
         ww, wh = self.main_view.window_size
         if ww <= 0 or wh <= 0:
@@ -163,21 +132,15 @@ class SideViewCanvas(QWindow):
             return
         from math import tan, atan, radians
         from numpy import array, float32, uint8, int32
-        self.view._render.shader_programs = \
-            self.main_view._render.shader_programs
-        self.view._render.current_shader_program = None
         # self.view.set_background_color((.3, .3, .3, 1))  # DEBUG
-        opengl_context = self.view.render.opengl_context
-        save_make_current = opengl_context.make_current
-        save_swap_buffers = opengl_context.swap_buffers
-        opengl_context.make_current = self.make_current
-        opengl_context.swap_buffers = self.swap_buffers
+        mvwin = self.view.render.use_shared_context(self, width, height)
         try:
-            from OpenGL.GL.GREMEDY import string_marker
-            has_string_marker = string_marker.glInitStringMarkerGREMEDY()
-            if has_string_marker:
-                text = b"Start SideView"
-                string_marker.glStringMarkerGREMEDY(len(text), text)
+            # TODO: This stuff should be in graphics/opengl.py
+            # from OpenGL.GL.GREMEDY import string_marker
+            # has_string_marker = string_marker.glInitStringMarkerGREMEDY()
+            # if has_string_marker:
+            #     text = b"Start SideView"
+            #     string_marker.glStringMarkerGREMEDY(len(text), text)
             main_view = self.main_view
             main_camera = main_view.camera
             ortho = hasattr(main_camera, 'field_width')
@@ -269,20 +232,17 @@ class SideViewCanvas(QWindow):
                 loc.far = .5 * width + f / 2
                 camera.field_width = far * width / f
 
-            self.applique.vertex_colors = array([[255, 0, 0, 255]] * 12,
-                                                dtype=uint8)
+            vc = array([[255, 0, 0, 255]] * 12, dtype=uint8)
             if self.moving == self.ON_EYE:
-                colors = self.applique.vertex_colors
-                colors[0] = colors[1] = colors[2] = colors[3] = [255, 255, 0, 255]
+                vc[0] = vc[1] = vc[2] = vc[3] = [255, 255, 0, 255]
             elif self.moving == self.ON_NEAR:
-                colors = self.applique.vertex_colors
-                colors[4] = colors[5] = [255, 255, 0, 255]
+                vc[4] = vc[5] = [255, 255, 0, 255]
             elif self.moving == self.ON_FAR:
-                colors = self.applique.vertex_colors
-                colors[6] = colors[7] = [255, 255, 0, 255]
+                vc[6] = vc[7] = [255, 255, 0, 255]
+            self.applique.vertex_colors = vc
             es = self.EyeSize
             old_vertices = self.applique.vertices
-            self.applique.vertices = array([
+            v = array([
                 loc.eye + [-es, -es, 0], loc.eye + [-es, es, 0],
                 loc.eye + [es, es, 0], loc.eye + [es, -es, 0],
                 (loc.near, loc.bottom, 0), (loc.near, loc.top, 0),
@@ -291,17 +251,21 @@ class SideViewCanvas(QWindow):
                 (0, 0, 0), (0, 0, 0),
             ], dtype=float32)
             if ortho:
-                self.applique.vertices[8] = (loc.near, loc.far_top, 0)
-                self.applique.vertices[9] = (loc.near, loc.far_bottom, 0)
+                v[8] = (loc.near, loc.far_top, 0)
+                v[9] = (loc.near, loc.far_bottom, 0)
             else:
-                self.applique.vertices[8] = loc.eye
-                self.applique.vertices[9] = loc.eye
+                v[8] = loc.eye
+                v[9] = loc.eye
             if self.moving and old_vertices is not None:
-                self.applique.vertices[10] = old_vertices[10]
-                self.applique.vertices[11] = old_vertices[11]
+                ps = self.view.render.pixel_scale()
+                v[10] = old_vertices[10] / ps
+                v[11] = old_vertices[11] / ps
             else:
-                self.applique.vertices[10] = (loc.far, loc.far_top, 0)
-                self.applique.vertices[11] = (loc.far, loc.far_bottom, 0)
+                v[10] = (loc.far, loc.far_top, 0)
+                v[11] = (loc.far, loc.far_bottom, 0)
+            ps = self.view.render.pixel_scale()
+            v *= ps
+            self.applique.vertices = v
             self.applique.triangles = array([
                 [0, 1], [1, 2], [2, 3], [3, 0],  # eye box
                 [4, 5],    # near plane
@@ -309,23 +273,14 @@ class SideViewCanvas(QWindow):
                 [8, 10],   # left plane
                 [9, 11],   # right plane
             ], dtype=int32)
-            self.make_current()  # protect against having wrong (Qt?) context
-            from OpenGL import GL
-            GL.glViewport(0, 0, width, height)
             self.view.draw()
-            if has_string_marker:
-                text = b"End SideView"
-                string_marker.glStringMarkerGREMEDY(len(text), text)
+            # if has_string_marker:
+            #     text = b"End SideView"
+            #     string_marker.glStringMarkerGREMEDY(len(text), text)
         finally:
-            opengl_context.make_current = save_make_current
-            opengl_context.swap_buffers = save_swap_buffers
-            self.main_view._render.current_shader_program = None
-            # Since we brorrowed the main window's OpenGL context,
-            # restore the viewport when done
-            from OpenGL import GL
-            GL.glViewport(0, 0, ww, wh)
-        self.done_current()
-
+            # Target opengl context back to main graphics window.
+            self.main_view.render.use_shared_context(mvwin, ww, wh)
+        self.view.render.done_current()
 
     def mousePressEvent(self, event):
         from PyQt5.QtCore import Qt

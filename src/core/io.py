@@ -82,7 +82,7 @@ class FileFormat:
         Sequence of filename extensions in lowercase
         starting with period (or empty)
 
-    ..attribute:: short_names
+    ..attribute:: nicknames
 
         Alternative names for format, usually includes a short abbreviation.
 
@@ -123,12 +123,12 @@ class FileFormat:
         Additional information to show in export dialogs
     """
 
-    def __init__(self, format_name, category, extensions, short_names, mime, reference,
+    def __init__(self, format_name, category, extensions, nicknames, mime, reference,
                  dangerous, icon, encoding):
         self.name = format_name
         self.category = category
         self.extensions = extensions
-        self.short_names = short_names
+        self.nicknames = nicknames
         self.mime_types = mime
         self.reference = reference
         self.dangerous = dangerous
@@ -144,7 +144,7 @@ class FileFormat:
 _file_formats = {}
 
 
-def register_format(format_name, category, extensions, short_names=None,
+def register_format(format_name, category, extensions, nicknames=None,
                     *, mime=(), reference=None, dangerous=None, icon=None,
                     encoding=None, **kw):
     """Register file format's I/O functions and meta-data
@@ -154,7 +154,7 @@ def register_format(format_name, category, extensions, short_names=None,
     :param extensions: is a sequence of filename suffixes starting
        with a period.  If the format doesn't open from a filename
        (*e.g.*, PDB ID code), then extensions should be an empty sequence.
-    :param short_names: abbreviated names for the format.  If not given,
+    :param nicknames: abbreviated names for the format.  If not given,
        it defaults to a lowercase version of the format name.
     :param mime: is a sequence of mime types, possibly empty.
     :param reference: a URL link to the specification.
@@ -173,16 +173,16 @@ def register_format(format_name, category, extensions, short_names=None,
         exts = [s.lower() for s in extensions]
     else:
         exts = ()
-    if short_names is None:
-        short_names = (format_name.casefold(),)
-    elif isinstance(short_names, str):
-        short_names = [short_names]
+    if nicknames is None:
+        nicknames = (format_name.casefold(),)
+    elif isinstance(nicknames, str):
+        nicknames = [nicknames]
     if mime is None:
         mime = ()
     elif isinstance(mime, str):
         mime = [mime]
     ff = _file_formats[format_name] = FileFormat(format_name,
-        category, exts, short_names, mime, reference, dangerous, icon, encoding)
+        category, exts, nicknames, mime, reference, dangerous, icon, encoding)
     other_kws = set(['open_func', 'requires_filename',
                      'export_func', 'export_notes', 'batch'])
     for attr in kw:
@@ -200,7 +200,8 @@ def formats(open=True, export=True, source_is_file=False):
     for f in _file_formats.values():
         if source_is_file and not f.extensions:
             continue
-        if (open and f.open_func) or (export and f.export_func):
+        # if (open and f.open_func) or (export and f.export_func):
+        if 1:
             fmts.append(f)
     return fmts
 
@@ -227,7 +228,7 @@ def deduce_format(filename, has_format=None, open=True, save=False):
         fmt = _file_formats.get(has_format, None)
         if fmt is None:
             for f in _file_formats.values():
-                if has_format in f.short_names and (not open or f.open_func) and (not save or f.export_func):
+                if has_format in f.nicknames and (not open or f.open_func) and (not save or f.export_func):
                     fmt = f
                     break
         stripped, compression = determine_compression(filename)

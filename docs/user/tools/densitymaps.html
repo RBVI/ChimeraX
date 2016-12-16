@@ -53,19 +53,19 @@ Note there may be alternative commands for performing the same action.
 <td align="center"><img src="shortcut-icons/showmap.png" width="35px"></td>
 <td align="center">show map</td>
 <td align="center">
-<b>volume
+<b><a href="../commands/volume.html#general">volume</a>
 <a href="../commands/atomspec.html#builtin">selMaps</a> show</b></td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/hidemap.png" width="35px"></td>
 <td align="center">hide map</td>
 <td align="center">
-<b>volume
+<b><a href="../commands/volume.html#general">volume</a>
 <a href="../commands/atomspec.html#builtin">selMaps</a> hide</b></td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/mapsurf.png" width="35px"></td>
 <td align="center">solid isosurface</td>
 <td align="center">
-<b>volume
+<b><a href="../commands/volume.html#general">volume</a>
 <a href="../commands/atomspec.html#builtin">selMaps</a> style surface</b></td>
 </p>
 </td>
@@ -73,7 +73,7 @@ Note there may be alternative commands for performing the same action.
 <td align="center"><img src="shortcut-icons/mesh.png" width="35px"></td>
 <td align="center">mesh isosurface</td>
 <td align="center">
-<b>volume
+<b><a href="../commands/volume.html#general">volume</a>
 <a href="../commands/atomspec.html#builtin">selMaps</a> style mesh</b></td>
 </p>
 </td>
@@ -81,27 +81,27 @@ Note there may be alternative commands for performing the same action.
 <td align="center"><img src="shortcut-icons/mapimage.png" width="35px"></td>
 <td align="center">map as image</td>
 <td align="center">
-<b>volume
+<b><a href="../commands/volume.html#general">volume</a>
 <a href="../commands/atomspec.html#builtin">selMaps</a> style solid</b></td>
 </td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/step1.png" width="35px"></td>
 <td align="center">step 1<br>(not subsampled, every point)</td>
 <td align="center">
-<b>volume
+<b><a href="../commands/volume.html#sampling">volume</a>
 <a href="../commands/atomspec.html#builtin">selMaps</a> step 1</b></td>
 </td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/step2.png" width="35px"></td>
 <td align="center">step 2<br>(subsampled at every other point)</td>
 <td align="center">
-<b>volume
+<b><a href="../commands/volume.html#sampling">volume</a>
 <a href="../commands/atomspec.html#builtin">selMaps</a> step 2</b></td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/fitmap.png" width="35px"></td>
 <td align="center">fit map in map</td>
 <td align="center">
-<b>fitmap #<i>N</i> inMap #<i>M</i></b>
+<b><a href="../commands/fitmap.html">fitmap</a> #<i>N</i> inMap #<i>M</i></b>
 <p style="margin-top:2px;margin-bottom:3px">
 (fitting the lower-model-number of two maps total or
 <a href="../commands/select.html">selected</a> into the other)</td>
@@ -109,7 +109,8 @@ Note there may be alternative commands for performing the same action.
 <td align="center"><img src="shortcut-icons/diffmap.png" width="35px"></td>
 <td align="center">difference map</td>
 <td align="center">
-<b>vop subtract #<i>N</i> #<i>M</i> minRms</b>
+<b><a href="../commands/vop.html#subtract">vop subtract</a>
+#<i>N</i> #<i>M</i> minRms</b>
 <p style="margin-top:2px;margin-bottom:3px">
 (subtracting the higher-model-number of two maps total or
 <a href="../commands/select.html">selected</a> from the other)</td>
@@ -117,7 +118,7 @@ Note there may be alternative commands for performing the same action.
 <td align="center"><img src="shortcut-icons/smooth.png" width="35px"></td>
 <td align="center">smooth by Gaussian filtering</td>
 <td align="center">
-<b>vop gaussian #<i>N</i> sDev 6</b>
+<b><a href="../commands/vop.html#gaussian">vop gaussian</a> #<i>N</i> sDev 6</b>
 <p style="margin-top:2px;margin-bottom:3px">
 (where <i>N</i> is the model number of a single 
 <a href="../commands/select.html">selected</a> map)</td>
@@ -135,5 +136,5 @@ Note there may be alternative commands for performing the same action.
 </table>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2016</address>
+December 2016</address>
 </body></html>

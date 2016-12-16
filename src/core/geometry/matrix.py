@@ -317,14 +317,14 @@ def vector_rotation_transform_old(u, v):
     from math import atan2, pi
     angle = atan2(norm(cuv), inner_product(u, v)) * 180 / pi
     r = rotation_transform(axis, angle, (0, 0, 0))
-    return r
-
 
 # -----------------------------------------------------------------------------
 # Return 3x4 rotation matrix (zero translation) taking unit vector n0 to
 # unit vector n1.
 #
 def vector_rotation_transform(n0, n1):
+    n0 = normalize_vector(n0)
+    n1 = normalize_vector(n1)
     w = cross_product(n0, n1)
     c = inner_product(n0, n1)
     if c <= -1:
@@ -669,13 +669,11 @@ def same_transform(tf1, tf2, angle_tolerance=0, shift_tolerance=0,
     if angle_tolerance == 0 and shift_tolerance == 0:
         return numpy.all(tf1 == tf2)
 
-    from chimera import Point
-    p = Point(*tuple(shift_point))
-    trans = numpy.subtract(apply_matrix(tf1, p) - apply_matrix(tf2, p))
+    trans = apply_matrix(tf1,shift_point) - apply_matrix(tf2,shift_point)
     if length(trans) > shift_tolerance:
         return False
 
-    tf = multiply_matrices(tf1, tf2)
+    tf = multiply_matrices(tf1, invert_matrix(tf2))
     axis, angle = rotation_axis_angle(tf)
     if abs(angle) > angle_tolerance:
         return False

@@ -48,6 +48,12 @@ def start_vive(session):
     if isinstance(v.camera, ViveCamera):
         return
 
+    try:
+        import openvr
+    except Exception as e:
+        from chimerax.core.errors import UserError
+        raise UserError('Failed to importing OpenVR module: %s' % str(e))
+    
     v.camera = ViveCamera(session)
     # Set redraw timer for 1 msec to minimize dropped frames.
     session.ui.main_window.graphics_window.set_redraw_interval(1)
@@ -62,14 +68,16 @@ def start_vive(session):
 def stop_vive(session):
 
     v = session.main_view
-    if not isinstance(v.camera, ViveCamera):
-        return
-    
     c = v.camera
-    from chimerax.core.graphics import MonoCamera
-    v.camera = MonoCamera()
-    c.close()
-    session.ui.main_window.graphics_window.set_redraw_interval(10)
+    if isinstance(c, ViveCamera):
+        # Have to delay shutdown of Vive OpenVR until draw callback
+        # otherwise it clobbers the Qt OpenGL context making entire gui black.
+        def replace_camera(s = session):
+            from chimerax.core.graphics import MonoCamera
+            s.main_view.camera = MonoCamera()
+            s.ui.main_window.graphics_window.set_redraw_interval(10)
+        c.close(replace_camera)
+    
 
 # -----------------------------------------------------------------------------
 #
@@ -115,8 +123,21 @@ class ViveCamera(Camera):
         self.eye_shift_right = hmd34_to_position(vr)
 
         # Map ChimeraX scene coordinates to OpenVR room coordinates
-        from numpy import array, zeros, float32
-        room_scene_size = 2 		# Initial virtual model size in meters
+        bounds = session.main_view.drawing_bounds()
+        self.fit_scene_to_room(bounds)
+        
+        # Update camera position every frame.
+        poses_t = openvr.TrackedDevicePose_t * openvr.k_unMaxTrackedDeviceCount
+        self._poses = poses_t()
+        h = session.triggers.add_handler('new frame', self.next_frame)
+        self._new_frame_handler = h
+
+    def fit_scene_to_room(self,
+                          scene_bounds,
+                          room_scene_size = 2, 		# Initial virtual model size in meters
+                          room_center = (0,1,0),
+                          ):
+        '''Set transform relating scene coordinates and room coordinates.'''
 # Chaperone bounds reported as -2 to 2 in x, -1.2 to 1.2 in z, 0 in y (floor).
 # x is -2 near vive computer, +2 near vizvault door.
 # z is 1.2 near door and vive computer, and -1.2 on opposite wall.
@@ -125,8 +146,8 @@ class ViveCamera(Camera):
 #        result, rect = chaperone.getPlayAreaRect()
 #        for c in rect.vCorners:
 #            print('corners', tuple(c.v))
-        room_center = array((0,1,0), float32)
-        b = session.main_view.drawing_bounds()
+        from numpy import array, zeros, float32
+        b = scene_bounds
         if b:
             scene_size = b.width()
             scene_center = b.center()
@@ -137,16 +158,11 @@ class ViveCamera(Camera):
         from chimerax.core.geometry import translation, scale
         self.room_to_scene = (translation(scene_center) *
                               scale(scene_size/room_scene_size) *
-                              translation(-room_center))
-        
-        # Update camera position every frame.
-        poses_t = openvr.TrackedDevicePose_t * openvr.k_unMaxTrackedDeviceCount
-        self._poses = poses_t()
-        h = session.triggers.add_handler('new frame', self.next_frame)
-        self._new_frame_handler = h
+                              translation(-array(room_center, float32)))
 
-    def close(self):
+    def close(self, close_cb = None):
         self._close = True
+        self._close_cb = close_cb
         
     def _delayed_close(self):
         # Apparently OpenVR doesn't make its OpenGL context current
@@ -159,6 +175,8 @@ class ViveCamera(Camera):
         openvr.shutdown()
         self.vr_system = None
         self.compositor = None
+        if self._close_cb:
+            self._close_cb()	# Replaces the main view camera and resets redraw rate.
         
     def name(self):
         '''Name of camera.'''
@@ -290,6 +308,9 @@ class ViveCamera(Camera):
         fov = 100	# Effective field of view, degrees
         from chimerax.core.graphics.camera import perspective_view_all
         self.position = perspective_view_all(bounds, self.position, fov, aspect, pad)
+        self._last_position = None
+        self._last_h = None
+        self.fit_scene_to_room(bounds)
 
     def projection_matrix(self, near_far_clip, view_num, window_size):
         '''The 4 by 4 OpenGL projection matrix for rendering the scene.'''

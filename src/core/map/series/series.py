@@ -29,6 +29,11 @@ class Map_Series(Model):
     self.surface_level_ranks = []  # Cached for normalization calculation
     self.solid_level_ranks = []  # Cached for normalization calculation
 
+    for m in maps:
+      m.series = self
+
+    self._timer = None		# Timer for updating volume viewer dialog
+    
   # ---------------------------------------------------------------------------
   #
   def number_of_times(self):
@@ -81,6 +86,8 @@ class Map_Series(Model):
 
     self.last_shown_time = time
 
+    self.update_volume_dialog()
+
   # ---------------------------------------------------------------------------
   #
   def unshow_time(self, time, cache_rendering = True):
@@ -115,6 +122,33 @@ class Map_Series(Model):
   def surface_model(self, time):
 
     return self.maps[time]
+      
+  # ---------------------------------------------------------------------------
+  #
+  def update_volume_dialog(self, delay_seconds = 1):
+
+    ui = self.session.ui
+    if ui.is_gui:
+      delay_msec = int(1000 * delay_seconds)
+      t = self._timer
+      if t is None:
+        self._timer = t = ui.timer(delay_msec, self.show_time_in_volume_dialog)
+      else:
+        t.start(delay_msec)
+
+  # ---------------------------------------------------------------------------
+  #
+  def show_time_in_volume_dialog(self):
+
+    self._timer = None
+
+    i = self.last_shown_time
+    v = self.maps[i] if i < len(self.maps) else None
+    if v is None:
+      return
+
+    from chimerax.volume_viewer.volumedialog import set_active_volume
+    set_active_volume(self.session, v)
 
   # ---------------------------------------------------------------------------
   #

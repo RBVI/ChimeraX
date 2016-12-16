@@ -1,0 +1,159 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Volume Viewer</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Volume Viewer</h3>
+<p>
+<table class="clRight">
+<tr><td>
+<img class="outline" src="3eebB-dx-screenshot.png"
+alt="3eebB ESP isosurfaces" width="800px"></td></tr>
+</table>
+<p>
+<b><i>Volume data</i></b> is a broad term for
+density maps, electrostatic potential maps, 3D imaging data, and other 
+data sets with numerical values associated with points on a 3D grid.
+</p><p>
+<b>Volume Viewer</b> is a graphical interface for adjusting contour levels
+and other aspects of volume data display.
+Alternatively, these settings and more can be adjusted with the 
+<a href="../commands/volume.html"><b>volume</b></a> command.
+Volume data can be opened with the command
+<a href="../commands/open.html"><b>open</b></a>
+(which automatically starts <b>Volume Viewer</b>) and saved to a file with 
+<a href="../commands/save.html"><b>save</b></a>.
+See also: 
+<a href="densitymaps.html"><b>Density Map Toolbar</b></a>,
+<a href="../commands/show.html"><b>show</b></a>,
+<a href="../commands/color.html"><b>color</b></a>,
+<a href="../commands/transparency.html"><b>transparency</b></a>,
+<a href="../commands/vop.html"><b>vop</b></a>,
+<b>vseries</b>,
+<a href="../commands/molmap.html"><b>molmap</b></a>,
+<a href="../commands/fitmap.html"><b>fitmap</b></a>,
+<a href="../commands/sop.html"><b>sop</b></a>
+</p><p>
+The <b>Volume Viewer</b> window can be manipulated
+like other panels in ChimeraX (<a href="../window.html">more...</a>).
+</p><p>
+By default, a data set will be displayed automatically if it does not
+exceed a certain size
+(see <a href="../commands/volume.html"><b>volume</b></a> command option
+<a href="../commands/volume.html#dispopen"><b>showOnOpen</b></a>), 
+although it may be subsampled
+(see <a href="../commands/volume.html"><b>volume</b></a> command option
+<a href="../commands/volume.html#autostep"><b>limitVoxelCount</b></a>).
+</ul>
+<p>
+A histogram of values is shown for each data set.
+Above the histogram (from left to right) are:
+</p>
+<ul>
+<li>the model name and number
+<li>dimensions in grid units of the <a href="#region">display region</a>
+<li>the <a href="#step">step size</a> (subsampling)
+<li>an <b>eye icon</b> for showing/hiding the model
+<li> color and level of the <a href="#threshold">threshold</a>
+most recently moved or clicked
+<li>the range of values in the <a href="#region">display region</a>
+<li>a pulldown menu with display styles:
+  <ul>
+  <li><b>surface</b> (default) - solid isosurfaces
+  <li><b>mesh</b> - mesh isosurfaces
+  <li><b>image</b> - cloudlike with varying intensity and opacity
+  </ul>
+<li>a <b>minus-sign button</b> for closing the model
+</ul>
+<p>
+<a name="step"></a>
+The <b>step</b> setting controls <b><i>subsampling</i></b>;
+a value  of <b>1</b> means all the data points are used
+to generate the display, while <b>2</b>
+means every other data point is taken along each axis,
+reducing the number of points used by a factor of eight.
+Step sizes can be different in the X, Y, and Z directions,
+although this can only be set with the 
+<a href="../commands/volume.html"><b>volume</b></a> command
+<a href="../commands/volume.html#sampling"><b>step</b></a> option
+(not with the graphical interface).
+</p><p>
+<a name="region"></a>
+The <b><i>display region</i></b> is not necessarily the full extent
+of the data grid; it can be limited with the
+<a href="../commands/volume.html"><b>volume</b></a> command
+<a href="../commands/volume.html#dimensions"><b>region</b></a> option.
+</p><p>
+<a name="threshold"></a>
+The <b><i>thresholds</i></b> on the histogram control how data values 
+are mapped to the display:
+<blockquote>
+<b>surface</b> or <b>mesh</b><br>
+Each threshold (contour level) is shown on the histogram as a vertical bar
+that can be moved horizontally.
+For unsigned data types, an initial threshold is set so that 1% of voxels
+(1% of the volume encompassed by the data region) lie above it;
+for signed data types, positive and negative thresholds are placed
+symmetrically about zero.
+</blockquote>
+<blockquote>
+<b>image</b><br>
+Each threshold is shown as a small square that can be moved horizontally
+and/or vertically.
+For unsigned data types, initial thresholds are set to give zero intensity
+for the 10% of voxels (in the data region) with the lowest values,
+scaling up to 0.99 intensity for the 1% of voxels
+with the highest values;
+for signed data types, positive and negative thresholds are placed
+symmetrically about zero.
+The thresholds and connecting lines on each histogram define a 
+<a href="../commands/volume.html#transferfunction">transfer function</a>
+that maps data values to colors and intensities.
+The rightmost threshold does not have to be at the far right of the histogram,
+and a threshold at a lower data value can be higher (vertically)
+than a threshold at a higher data value.
+</blockquote>
+</ul>
+<p>
+Thresholds can be added or deleted using the context menu from 
+right-clicking<a href="../window.html#mac-context">*</a> on the histogram.
+Each threshold is shown in the same color as its display.
+The color and level shown above the histogram apply
+to the threshold most recently moved or clicked.
+The color, including opacity, can be changed by clicking the 
+color square and using the resulting color chooser.
+The level can be changed by entering a different value 
+or by dragging the threshold.
+Holding the Shift key down reduces the speed (mouse sensitivity) of threshold
+dragging tenfold, allowing finer control.
+</p><p>
+Histogram ranges and threshold levels are given in the same units as the
+data. The <a href="../commands/volume.html"><b>volume</b></a>
+command also allows specifying threshold levels in units of
+root-mean-square deviations from zero or standard deviations from the mean.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+December 2016</address>
+</body></html>

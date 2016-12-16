@@ -27,11 +27,7 @@ class GraphicsWindow(QWindow):
         self.session = ui.session
         self.view = ui.session.main_view
 
-        self.context_created = False
-        self.opengl_context = oc = OpenGLContext(self)
-        oc.make_current = self.make_context_current
-        oc.swap_buffers = self.swap_buffers
-        oc.pixel_scale = self.pixel_scale
+        self.opengl_context = OpenGLContext(self, ui)
 
         self.redraw_interval = 16  # milliseconds
         #   perhaps redraw interval should be 10 to reduce
@@ -39,7 +35,8 @@ class GraphicsWindow(QWindow):
         self.minimum_event_processing_ratio = 0.1 # Event processing time as a fraction
         # of time since start of last drawing
         self.last_redraw_start_time = self.last_redraw_finish_time = 0
-
+        self._redraw_graphics_object = None	# Used for high priority redraw requests
+        
         ui.have_stereo = False
         if hasattr(ui, 'stereo') and ui.stereo:
             sf = self.opengl_context.format()
@@ -53,37 +50,6 @@ class GraphicsWindow(QWindow):
 
         ui.mouse_modes.set_graphics_window(self)
 
-    def make_context_current(self):
-        # creates context if needed
-        oc = self.opengl_context
-        if not self.context_created:
-            ui = self.session.ui
-            oc.setScreen(ui.primaryScreen())
-            oc.setFormat(QSurfaceFormat.defaultFormat())
-            self.setFormat(QSurfaceFormat.defaultFormat())
-            if not oc.create():
-                raise ValueError("Could not create OpenGL context")
-            self.context_created = True
-            sf = oc.format()
-            major, minor = sf.version()
-            rmajor, rminor = ui.required_opengl_version
-            if major < rmajor or (major == rmajor and minor < rminor):
-                raise ValueError("Available OpenGL version ({}.{}) less than required ({}.{})"
-                    .format(major, minor, rmajor, rminor))
-            if ui.required_opengl_core_profile:
-                if sf.profile() != sf.CoreProfile:
-                    raise ValueError("Required OpenGL Core Profile not available")
-        if not oc.makeCurrent(self):
-            raise RuntimeError("Could not make graphics context current")
-
-        if self.timer is None:
-            from PyQt5.QtCore import QTimer, Qt
-            self.timer = t = QTimer(self)
-            t.timerType = Qt.PreciseTimer
-            t.timeout.connect(self._redraw_timer_callback)
-            t.start(self.redraw_interval)
-        self.opengl_context.makeCurrent(self)
-
     def resizeEvent(self, event):
         s = event.size()
         w, h = s.width(), s.height()
@@ -96,12 +62,14 @@ class GraphicsWindow(QWindow):
         if t is not None:
             t.start(self.redraw_interval)
 
-    def swap_buffers(self):
-        self.opengl_context.swapBuffers(self)
-
-    def pixel_scale(self):
-        # Ratio Qt pixel size to OpenGL pixel size.  Usually 1, but 2 for Mac retina displays.
-        return self.devicePixelRatio()
+    def start_redraw_timer(self):
+        if self.timer is not None:
+            return
+        from PyQt5.QtCore import QTimer, Qt
+        self.timer = t = QTimer(self)
+        t.timerType = Qt.PreciseTimer
+        t.timeout.connect(self._redraw_timer_callback)
+        t.start(self.redraw_interval)
 
     def _redraw_timer_callback(self):
         import time
@@ -116,6 +84,28 @@ class GraphicsWindow(QWindow):
                 s.ui.mouse_modes.mouse_pause_tracking()
             self.last_redraw_finish_time = time.perf_counter()
 
+    def request_graphics_redraw(self):
+        '''
+        Put a high priority event on the event queue to cause a graphics redraw.
+        This is used to request a graphics redraw before additional mouse and keyboard events
+        are processed for fastest visual feedback.  It is typically used during a mouse drag
+        event to update a graphics change resulting from the mouse drag.
+        '''
+        from PyQt5.QtCore import QTimerEvent, Qt, QObject
+        rg = self._redraw_graphics_object
+        if rg is None:
+            class RedrawGraphics(QObject):
+                def __init__(self, callback):
+                    QObject.__init__(self)
+                    self._callback = callback
+                def timerEvent(self, e):
+                    self._callback()
+            self._redraw_graphics_object = rg = RedrawGraphics(self._redraw_timer_callback)
+        timer_id = 0
+        e = QTimerEvent(timer_id)
+        ui = self.session.ui
+        ui.postEvent(rg, e, Qt.HighEventPriority)
+            
 from PyQt5.QtWidgets import QLabel
 class Popup(QLabel):
 
@@ -131,10 +121,55 @@ class Popup(QLabel):
         self.move(self.graphics_window.mapToGlobal(QPoint(*position)))
         self.show()
 
-from PyQt5.QtGui import QOpenGLContext, QSurfaceFormat
+from PyQt5.QtGui import QOpenGLContext
 class OpenGLContext(QOpenGLContext):
-    def __init__(self, graphics_window):
+    def __init__(self, graphics_window, ui):
+        self.window = graphics_window
+        self._ui = ui
         QOpenGLContext.__init__(self, graphics_window)
+        self._context_initialized = False
 
     def __del__(self):
         self.deleteLater()
+
+    def make_current(self, window = None):
+        # creates context if needed
+        if not self._context_initialized:
+            self._initialize_context()
+            self._context_initialized = True
+
+        w = self.window if window is None else window
+        if not self.makeCurrent(w):
+            raise RuntimeError("Could not make graphics context current")
+
+    def _initialize_context(self):
+        ui = self._ui
+        self.setScreen(ui.primaryScreen())
+        from PyQt5.QtGui import QSurfaceFormat
+        fmt = QSurfaceFormat.defaultFormat()
+        self.setFormat(fmt)
+        self.window.setFormat(fmt)
+        if not self.create():
+            raise ValueError("Could not create OpenGL context")
+        sf = self.format()
+        major, minor = sf.version()
+        rmajor, rminor = ui.required_opengl_version
+        if major < rmajor or (major == rmajor and minor < rminor):
+            raise ValueError("Available OpenGL version ({}.{}) less than required ({}.{})"
+                .format(major, minor, rmajor, rminor))
+        if ui.required_opengl_core_profile:
+            if sf.profile() != sf.CoreProfile:
+                raise ValueError("Required OpenGL Core Profile not available")
+
+    def done_current(self):
+        # Makes no context current.
+        self.doneCurrent()
+
+    def swap_buffers(self, window = None):
+        w = self.window if window is None else window
+        self.swapBuffers(w)
+
+    def pixel_scale(self):
+        # Ratio Qt pixel size to OpenGL pixel size.
+        # Usually 1, but 2 for Mac retina displays.
+        return self.window.devicePixelRatio()

@@ -16,6 +16,8 @@ chimerax.core: collection of base ChimeraX functionality
 ========================================================
 
 """
+BUNDLE_NAME = 'ChimeraX-Core'
+
 _class_cache = {}
 # list modules classes are found in used by session restore to recreate objects.
 _class_class_init = {

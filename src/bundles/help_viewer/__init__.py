@@ -26,8 +26,10 @@ class _MyAPI(BundleAPI):
     def open_file(session, f, name, filespec=None, **kw):
         # 'open_file' is called by session code to open a file
         from . import cmd
-        import os.path
-        cmd.help(session, "file:" + os.path.realpath(filespec))
+        from urllib.parse import urlunparse
+        from urllib.request import pathname2url
+        url = urlunparse(('file', '', pathname2url(filespec), '', '', ''))
+        cmd.help(session, url)
         return [], "Opened %s" % name
 
     @staticmethod

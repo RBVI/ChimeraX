@@ -29,6 +29,8 @@ class VolumeViewer(ToolInstance):
 
         self.active_volume = None
         self.redisplay_in_progress = False
+        self._redisplay_handler = None
+        self._last_redisplay_frame_number = None
 
         from chimerax.core.ui.gui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self)
@@ -296,11 +298,16 @@ class VolumeViewer(ToolInstance):
           p.representation_changed(representation)
 
     # ---------------------------------------------------------------------------
-    # Update display if immediate redisplay mode is on.
     #
     def redisplay_needed_cb(self, event = None):
+        self.redisplay_needed()
 
-      if self.active_volume == None:
+    # ---------------------------------------------------------------------------
+    # Update active volume using gui settings if immediate redisplay mode is on.
+    #
+    def redisplay_needed(self):
+
+      if self.active_volume is None:
         return
 
       #
@@ -1499,29 +1506,25 @@ class Thresholds_Panel(PopupPanel):
     self.active_order = []              # Histogram_Panes
     self.active_color = 'white'
     self.update_timer = None
+    self._color_dialog = None
 
     frame = self.frame
-
-    from PyQt5.QtWidgets import QVBoxLayout, QFrame, QSizePolicy, QLabel
-    from PyQt5.QtCore import Qt
-
-#    layout = QVBoxLayout(frame)
-#    layout.setContentsMargins(0,0,0,0)
-#    layout.setSpacing(0)
+    frame.resizeEvent = lambda e, self=self: self.panel_resized(e)
     
+    from PyQt5.QtWidgets import QVBoxLayout, QFrame, QSizePolicy, QLabel
+    from PyQt5.QtCore import Qt, QSize
+
     # Histograms frame
     self.histograms_frame = hf = QFrame(frame)
-#    layout.addWidget(hf, stretch=1)
+    hf.resizeEvent = lambda e, self=self: self.resize_panel()
+
     self.histograms_layout = hl = QVBoxLayout(hf)
-#    hl.setSizeConstraint(QVBoxLayout.SetFixedSize)
     hl.setSizeConstraint(QVBoxLayout.SetMinAndMaxSize)
     hl.setContentsMargins(0,0,0,0)
     hl.setSpacing(0)
     hl.addStretch(1)
-#    frame.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
     frame.setWidget(hf)	# Set scrollable child.
-    frame.setWidgetResizable(True)	# Resize child to fit in scroll area -- really only want width resized.
-    hf.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+    hf.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
     
 #    b = self.make_close_button(frame)
 #    b.grid(row = row, column = 1, sticky = 'e')
@@ -1542,19 +1545,24 @@ class Thresholds_Panel(PopupPanel):
   # ---------------------------------------------------------------------------
   # Create histogram for data region if needed.
   #
-  def add_histogram_pane(self, data_region):
+  def add_histogram_pane(self, volume):
 
-    dr = data_region
+    v = volume
     hptable = self.histogram_table
-    if dr in hptable:
+    if v in hptable:
       return
 
-    same_id = [v for v in hptable.keys() if v is not None and v.id == dr.id]
-    if same_id:
+    if hasattr(v, 'series'):
+        same_series = [vp for vp in hptable.keys()
+                       if vp is not None and hasattr(vp, 'series') and vp.series == v.series]
+    else:
+        same_series = []
+        
+    if same_series:
       # Replace entry with same id number, for volume series
-      v = same_id[0]
-      hp = hptable[v]
-      del hptable[v]
+      vs = same_series[0]
+      hp = hptable[vs]
+      del hptable[vs]
     elif None in hptable:
       hp = hptable[None]                # Reuse unused histogram
       del hptable[None]
@@ -1568,12 +1576,22 @@ class Thresholds_Panel(PopupPanel):
       hl.insertWidget(hl.count()-1, hp.frame)
       self.histogram_panes.append(hp)
 
-    hp.set_data_region(dr)
-    hptable[dr] = hp
-    self.set_active_data(hp)
+    hp.set_data_region(v)
+    hptable[v] = hp
+    self.set_active_histogram(hp)
 
     self.resize_panel()
 
+  # ---------------------------------------------------------------------------
+  # The scrolled area containing the histograms resized, so resize the histograms
+  # to match the width of the scrolled area.
+  #
+  def panel_resized(self, e):
+      f = self.frame
+      hf = self.histograms_frame
+      w = f.width() - 2*hf.lineWidth()
+      hf.resize(w, hf.height())
+      
   # ---------------------------------------------------------------------------
   # Resize thresholds panel to fit up to 3 histograms before scrolling.
   #
@@ -1584,14 +1602,17 @@ class Thresholds_Panel(PopupPanel):
     if n == 0 or n > nhist:
         return
 
-    hf = hpanes[0].frame
-    hf.adjustSize()		# Get correct size for histogram pane
+    hf = self.histograms_frame
+    h = hf.height() + 2*hf.lineWidth()
     f = self.frame
-    f.setMinimumHeight(n*hf.height())	# Resize to exactly fit n histograms
+    if f.height() < h:
+        # This is the only way I could find to convince a QDockWidget to
+        # resize to a size I request.
+        f.setMinimumHeight(h)
 
     # Allow resizing panel smaller with mouse
     from PyQt5.QtCore import QTimer
-    QTimer.singleShot(1, lambda f=f: f.setMinimumHeight(50))
+    QTimer.singleShot(200, lambda f=f: f.setMinimumHeight(50))
 
   # ---------------------------------------------------------------------------
   # Switch histogram threshold markers between vertical
@@ -1674,7 +1695,7 @@ class Thresholds_Panel(PopupPanel):
     hp.update_threshold_gui(message_cb = None)
 
     if activate or hp.data_region is self.dialog.active_volume:
-      self.set_active_data(hp)
+      self.set_active_histogram(hp)
 
   # ---------------------------------------------------------------------------
   #
@@ -1700,7 +1721,7 @@ class Thresholds_Panel(PopupPanel):
 
   # ---------------------------------------------------------------------------
   #
-  def set_active_data(self, hp):
+  def set_active_histogram(self, hp):
 
     a = self.active_hist
     if a and a.frame:
@@ -1712,6 +1733,8 @@ class Thresholds_Panel(PopupPanel):
       if hp in ao:
         ao.remove(hp)
       ao.insert(0, hp)
+
+    self._set_color_dialog_color()
     
   # ---------------------------------------------------------------------------
   #
@@ -1729,6 +1752,54 @@ class Thresholds_Panel(PopupPanel):
         if hp.histogram_shown:
             hp.set_threshold_parameters_from_gui()
         volume.set_representation(hp.representation)
+
+  # ---------------------------------------------------------------------------
+  #
+  def show_color_chooser(self):
+      from PyQt5.QtWidgets import QColorDialog
+      self._color_dialog = cd = QColorDialog(self.frame)
+      cd.setOptions(QColorDialog.ShowAlphaChannel)
+# Following hiding of buttons avoids crash on exit on Mac Sierra, Qt bug 56448
+#      cd.setOption(QColorDialog.NoButtons, True)
+      self._set_color_dialog_color()
+      cd.colorSelected.connect(self.color_changed_cb)
+      cd.finished.connect(self.color_dialog_closed_cb)
+      cd.show()
+      
+  # ---------------------------------------------------------------------------
+  #
+  def _set_color_dialog_color(self):
+      hp = self.active_histogram()
+      cd = self._color_dialog
+      if hp is None or cd is None:
+          return
+      from PyQt5.QtGui import QColor, QPalette
+      markers, m = hp.selected_histogram_marker()
+      if m:
+          color = QColor(*tuple(int(c*255) for c in m.rgba))
+      else:
+          color = hp.color.palette().color(QPalette.Window)
+      cd.setCurrentColor(color)
+      
+  # ---------------------------------------------------------------------------
+  #
+  def color_changed_cb(self, color):
+      hp = self.active_histogram()
+      if hp is None:
+          return
+      markers, m = hp.selected_histogram_marker()
+      if m is None:
+          return
+      rgba = (color.redF(), color.greenF(), color.blueF(), color.alphaF())
+      m.set_color(rgba, markers.canvas)	# Set histogram marker color
+      from .histogram import hex_color_name
+      hp.color.setStyleSheet('background-color: %s' % hex_color_name(rgba[:3])) # set button color
+      hp.set_threshold_parameters_from_gui(show = True)
+      
+  # ---------------------------------------------------------------------------
+  #
+  def color_dialog_closed_cb(self, result_code):
+      self._color_dialog = None
   
 # -----------------------------------------------------------------------------
 # Manages histogram and heading with data name, step size, shown indicator,
@@ -1750,10 +1821,11 @@ class Histogram_Pane:
 
     self.frame = f = QFrame(parent)
     f.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
-    flayout = QVBoxLayout(f)
+    self._layout = flayout = QVBoxLayout(f)
     flayout.setContentsMargins(0,0,0,0)
     flayout.setSpacing(0)
-    
+
+    # Create frame for step, color, level controls.
     df = QFrame(f)
     df.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
 #    df.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Minimum)
@@ -1847,9 +1919,196 @@ class Histogram_Pane:
     cb.clicked.connect(self.close_map_cb)
     cb.setToolTip('Close data set')
 
+    # Add histogram below row of controls
     h = self.make_histogram(f, histogram_height, new_marker_color = (1,1,1,1))
     flayout.addWidget(h)
 
+    # Create planes slider below histogram if requested.
+    self._planes_slider_shown = False
+    self._planes_slider_frame = None
+    
+    f.contextMenuEvent = self.show_context_menu
+
+  # ---------------------------------------------------------------------------
+  #
+  def show_context_menu(self, event):
+      v = self.data_region
+      if v is None:
+          return
+      
+      from PyQt5.QtWidgets import QMenu, QAction
+      menu = QMenu(self.frame)
+      ro = v.rendering_options
+      add = self.add_menu_entry
+      add(menu, 'Show outline box', self.show_outline_box, checked = ro.show_outline_box)
+      add(menu, 'Show one plane', self.show_plane_slider, checked = self._planes_slider_shown)
+      add(menu, 'New threshold', lambda checked, e=event, self=self: self.add_threshold(e.x(), e.y()))
+      add(menu, 'Delete threshold', lambda checked, e=event, self=self: self.delete_threshold(e.x(), e.y()))
+
+      menu.exec(event.globalPos())
+
+  # ---------------------------------------------------------------------------
+  #
+  def add_menu_entry(self, menu, text, callback, *args, checked = None):
+      '''Add menu item to context menu'''
+      from PyQt5.QtWidgets import QAction
+      a = QAction(text, self.frame)
+      if checked is not None:
+          a.setCheckable(True)
+          a.setChecked(checked)
+      def cb(checked, callback=callback, args=args):
+          if checked is None:
+              callback(*args)
+          else:
+              callback(checked, *args)
+      #a.setStatusTip("Info about this menu entry")
+      a.triggered.connect(cb)
+      menu.addAction(a)
+
+  # ---------------------------------------------------------------------------
+  #
+  def show_color_chooser(self):
+      tp = self.dialog.thresholds_panel
+      if tp.active_histogram() != self:
+          tp.set_active_histogram(self)
+      tp.show_color_chooser()
+      
+  # ---------------------------------------------------------------------------
+  #
+  def show_outline_box(self, show):
+      v = self.data_region
+      if v:
+          v.rendering_options.show_outline_box = show
+          v.show()
+      
+  # ---------------------------------------------------------------------------
+  # Show slider below histogram to control which plane of data is shown.
+  #
+  def show_plane_slider(self, show):
+      v = self.data_region
+      if v is None:
+          return
+
+      if show:
+          if not self._planes_slider_shown:
+              f = self._create_planes_slider()
+              self._layout.addWidget(f)
+      else:
+          if self._planes_slider_shown:
+              f = self._create_planes_slider()
+              self._layout.removeWidget(f)
+      self._planes_slider_shown = show
+
+      if show:
+          # Switch to showing a single plane
+          ijk_min, ijk_max, ijk_step = v.region
+          s = ijk_step[2]
+          k = ((ijk_min[2] + ijk_max[2])//(2*s))*s
+          self._update_plane(k)
+          v.set_representation('solid')
+          v.show()
+      else:
+          # Show all planes
+          from chimerax.core.map.volume import full_region
+          r = full_region(v.data.size)
+          v.new_region(*r)
+          
+  # ---------------------------------------------------------------------------
+  #
+  def _create_planes_slider(self):
+
+      psf = self._planes_slider_frame
+      if psf is not None:
+          return psf
+      from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QSpinBox, QSlider
+      from PyQt5.QtCore import Qt
+      self._planes_slider_frame = f = QFrame(self.frame)
+      layout = QHBoxLayout(f)
+      layout.setContentsMargins(0,0,0,0)
+      layout.setSpacing(4)
+      pl = QLabel('Plane', f)
+      layout.addWidget(pl)
+      self._planes_spinbox = pv = QSpinBox(f)
+      nz = self.data_region.data.size[2]
+      pv.setMaximum(nz-1)
+      pv.valueChanged.connect(self._plane_changed_cb)
+      layout.addWidget(pv)
+      self._planes_slider = ps = QSlider(Qt.Horizontal, f)
+      ps.setRange(0,nz-1)
+      ps.valueChanged.connect(self._planes_slider_moved_cb)
+      layout.addWidget(ps)
+      
+      # Close plane slider
+      from PyQt5.QtWidgets import QPushButton
+      from PyQt5.QtGui import QPixmap, QIcon
+      from PyQt5.QtCore import Qt, QSize
+      cb = QPushButton(f)
+      cb.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
+      cb.setMaximumSize(20,20)
+      cb.setFlat(True)
+      layout.addWidget(cb)
+      from os.path import join, dirname
+      cbpix = QPixmap(join(dirname(__file__), 'x.png'))
+      cb.setIcon(QIcon(cbpix))
+      cb.setIconSize(QSize(20,20))
+      cb.clicked.connect(lambda event, self=self: self.show_plane_slider(False))
+      cb.setToolTip('Close plane slider')
+
+      return f
+
+  # ---------------------------------------------------------------------------
+  #
+  def _plane_changed_cb(self, event):
+      k = self._planes_spinbox.value()
+      self._update_plane(k)
+      
+  # ---------------------------------------------------------------------------
+  #
+  def _planes_slider_moved_cb(self, event):
+      k = self._planes_slider.value()
+      self._update_plane(k)
+
+  # ---------------------------------------------------------------------------
+  #
+  def _update_plane(self, k):
+      self._planes_spinbox.setValue(k)
+      self._planes_slider.setValue(k)
+      v = self.data_region
+      ijk_min, ijk_max, ijk_step = v.region
+      if ijk_min[2] == k and ijk_max[2] == k:
+          return	# Already showing this plane.
+      nijk_min = list(ijk_min)
+      nijk_min[2] = k
+      nijk_max = list(ijk_max)
+      nijk_max[2] = k
+      v.new_region(nijk_min, nijk_max, ijk_step)
+      # Make sure this plane is shown before we show another plane.
+      self.dialog.session.ui.request_graphics_redraw()
+
+  # ---------------------------------------------------------------------------
+  #
+  def add_threshold(self, x, y):
+      # Convert threshold panel x,y to histogram canvas cx,cy
+      from PyQt5.QtCore import QPoint
+      cp = self.canvas.mapFrom(self.frame, QPoint(x,y))
+      markers = self.shown_markers()
+      if markers:
+          markers.add_marker(cp.x(), cp.y())
+          self.dialog.redisplay_needed_cb()
+
+  # ---------------------------------------------------------------------------
+  #
+  def delete_threshold(self, x, y):
+      # Convert threshold panel x,y to histogram canvas cx,cy
+      from PyQt5.QtCore import QPoint
+      cp = self.canvas.mapFrom(self.frame, QPoint(x,y))
+      markers = self.shown_markers()
+      if markers:
+          m = markers.clicked_marker(cp.x(), cp.y())
+          if m:
+              markers.delete_marker(m)
+              self.dialog.redisplay_needed_cb()
+    
   # ---------------------------------------------------------------------------
   #
   def set_data_region(self, volume):
@@ -1873,6 +2132,10 @@ class Histogram_Pane:
     self.surface_thresholds.new_marker_color = new_marker_color
     self.solid_thresholds.new_marker_color = saturate_rgba(new_marker_color)
     self.update_threshold_gui()
+
+    ijk_min, ijk_max, ijk_step = volume.region
+    if ijk_max[2]//ijk_step[2] == ijk_min[2]//ijk_step[2] and volume.data.size[2] > 1:
+        self.show_plane_slider(True)
 
   # ---------------------------------------------------------------------------
   #
@@ -1913,6 +2176,7 @@ class Histogram_Pane:
             for cb in self.click_callbacks:
                 cb(event)
         def mouseMoveEvent(self, event):
+            # Only process mouse move once per graphics frame.
             for cb in self.drag_callbacks:
                 cb(event)
 
@@ -1933,11 +2197,13 @@ class Histogram_Pane:
     self.histogram = Histogram(gv, gs)
     self.histogram_shown = False
 
-    st = Markers(gv, gs, 'line', new_marker_color, 0, self.select_marker_cb)
+    st = Markers(gv, gs, 'line', new_marker_color, 0,
+                 self.selected_marker_cb, self.moved_marker_cb)
     self.surface_thresholds = st
 
     new_solid_marker_color = saturate_rgba(new_marker_color)
-    sdt = Markers(gv, gs, 'box', new_solid_marker_color, 1, self.select_marker_cb)
+    sdt = Markers(gv, gs, 'box', new_solid_marker_color, 1,
+                  self.selected_marker_cb, self.moved_marker_cb)
     self.solid_thresholds = sdt
 
     gv.click_callbacks.append(self.select_data_cb)
@@ -1970,10 +2236,19 @@ class Histogram_Pane:
 
   # ---------------------------------------------------------------------------
   #
-  def select_marker_cb(self):
+  def selected_marker_cb(self, marker):
 
     self.select_data_cb()
     self.set_threshold_and_color_widgets()
+
+  # ---------------------------------------------------------------------------
+  #
+  def moved_marker_cb(self, marker):
+
+    self.select_data_cb()
+    self.set_threshold_and_color_widgets()
+    # Request graphics redraw before more mouse drag events occur.
+    self.dialog.session.ui.request_graphics_redraw()
 
   # ---------------------------------------------------------------------------
   #
@@ -2103,39 +2378,19 @@ class Histogram_Pane:
   #
   def selected_histogram_marker(self):
 
+    markers = self.shown_markers()
+    return markers, markers.selected_marker()
+
+  # ---------------------------------------------------------------------------
+  #
+  def shown_markers(self):
     if self.solid_thresholds.shown:
       markers = self.solid_thresholds
     elif self.surface_thresholds.shown:
       markers = self.surface_thresholds
     else:
-      return None, None
-
-    return markers, markers.selected_marker()
-
-  # ---------------------------------------------------------------------------
-  #
-  def show_color_chooser(self):
-      from PyQt5.QtWidgets import QColorDialog
-      from PyQt5.QtGui import QColor, QPalette
-      from PyQt5.QtCore import Qt
-      cd = QColorDialog(self.frame)
-      cd.setOptions(QColorDialog.ShowAlphaChannel)
-      bg_color = self.color.palette().color(QPalette.Window)
-      cd.setCurrentColor(bg_color)
-      cd.colorSelected.connect(self.color_changed_cb)
-      cd.show()
-      
-  # ---------------------------------------------------------------------------
-  #
-  def color_changed_cb(self, color):
-
-    markers, m = self.selected_histogram_marker()
-    if m:
-      rgba = (color.redF(), color.greenF(), color.blueF(), color.alphaF())
-      m.set_color(rgba, markers.canvas)	# Set histogram marker color
-      from .histogram import hex_color_name
-      self.color.setStyleSheet('background-color: %s' % hex_color_name(rgba[:3])) # set button color
-      self.set_threshold_parameters_from_gui(show = True)
+      markers = None
+    return markers
 
   # ---------------------------------------------------------------------------
   #

@@ -80,12 +80,12 @@ def register_vseries_command():
 # -----------------------------------------------------------------------------
 #
 def vseries_play(session, series, direction = 'forward', loop = False, max_frame_rate = None, pause_frames = 0,
-            jump_to = None, range = None, start = None, normalize = False, markers = None,
+            jump_to = None, range = None, start_time = None, normalize = False, markers = None,
             preceding_marker_frames = 0, following_marker_frames = 0,
             color_range = None, cache_frames = 1):
     '''Show a sequence of maps from a volume series.'''
     from . import play
-    p = play.Play_Series(series, session, range = range, start_time = start,
+    p = play.Play_Series(series, session, range = range, start_time = start_time,
                          play_direction = direction,
                          loop = loop,
                          max_frame_rate = max_frame_rate,
@@ -365,9 +365,9 @@ def release_stopped_players():
 #
 def vseries_slider(session, series):
     '''Display a graphical user interface slider to play through frames of a map series.'''
-    bundle_info = session.toolshed.find_bundle('map_series_gui')
+    bundle_info = session.toolshed.find_bundle('ChimeraX-MapSeriesGUI')
     if bundle_info:
-        from chimerax.map_series_gui.gui import MapSeries
+        from chimerax.map_series_gui.tool import MapSeries
         MapSeries(session, bundle_info, series = series).show()
 
 # -----------------------------------------------------------------------------

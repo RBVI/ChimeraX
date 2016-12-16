@@ -46,7 +46,7 @@ Collections are immutable so can be hashed.  The only case in which their conten
 can be altered is if C++ objects they hold are deleted in which case those objects
 are automatically removed from the collection.
 '''
-from numpy import uint8, int32, uint32, float64, float32, uintp, byte, bool as npy_bool, integer, empty, unique, array
+from numpy import uint8, int32, uint32, float64, float32, uintp, byte, bool as npy_bool, integer, empty, array
 from .molc import string, cptr, pyobject, cvec_property, set_cvec_pointer, c_function, c_array_function, pointer, ctype_type_to_numpy
 from . import molobject
 import ctypes
@@ -97,16 +97,22 @@ class Collection(State):
     Collection is immutable.
     '''
     def __init__(self, items, object_class, objects_class):
+        import numpy
         if items is None:
             # Empty Atoms
-            import numpy
             pointers = numpy.empty((0,), cptr)
-        elif type(items) in [list, tuple]:
+        elif (type(items) in [list, tuple] or
+              isinstance(items, numpy.ndarray) and items.dtype == numpy.object):
             # presumably items of the object_class
-            import numpy
             pointers = numpy.array([i._c_pointer.value for i in items], cptr)
-        else:
+        elif isinstance(items, numpy.ndarray) and items.dtype == numpy.uintp:
+            # C++ pointers array
             pointers = items
+        else:
+            t = str(type(items))
+            if isinstance(items, numpy.ndarray):
+                t += ' type %s' % str(items.dtype)
+            raise ValueError('Collection items of unrecognized type "%s"' % t)
         self._pointers = pointers
         self._object_class = object_class
         self._objects_class = objects_class
@@ -150,6 +156,14 @@ class Collection(State):
                        ret = ctypes.c_ssize_t)
         i = f(self._c_pointers, len(self), object._c_pointer)
         return i
+    def indices(self, objects):
+        '''Return int32 array indicating for each element in objects its index of the
+        first occurence in the collection, or -1 if it does not occur in the collection.'''
+        f = c_function('pointer_indices', args = [ctypes.c_void_p, ctypes.c_size_t,
+                                               ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p])
+        ind = empty((len(objects),), int32)
+        f(objects._c_pointers, len(objects), self._c_pointers, len(self), pointer(ind))
+        return ind
 
     @property
     def object_class(self):
@@ -217,14 +231,6 @@ class Collection(State):
         mask = empty((len(self),), npy_bool)
         f(self._c_pointers, len(self), objects._c_pointers, len(objects), pointer(mask))
         return mask
-    def indices(self, objects):
-        '''Return int32 array indicating for each object in current set the index of
-        that object in the argument objects, or -1 if it does not occur in objects.'''
-        f = c_function('pointer_indices', args = [ctypes.c_void_p, ctypes.c_size_t,
-                                               ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p])
-        ind = empty((len(self),), int32)
-        f(self._c_pointers, len(self), objects._c_pointers, len(objects), pointer(ind))
-        return ind
     def merge(self, objects):
         '''Return a new collection combining this one with the *objects* :class:`.Collection`.
         All duplicates are removed.'''
@@ -237,6 +243,7 @@ class Collection(State):
         return self._objects_class(numpy.setdiff1d(self._pointers, objects._pointers))
     def unique(self):
         '''Return a new collection containing the unique elements from this one, preserving order.'''
+        from numpy import unique
         indices = unique(self._pointers, return_index = True)[1]
         indices.sort()
         return self.objects_class(self._pointers[indices])
@@ -390,6 +397,15 @@ class Atoms(Collection):
     radii = cvec_property('atom_radius', float32,
         doc="Returns a :mod:`numpy` array of radii.  Can be set with such an array (or equivalent "
         "sequence), or with a single floating-point number.")
+    default_radii = cvec_property('atom_default_radius', float32, read_only = True,
+        doc="Returns a :mod:`numpy` array of default radii.")
+    def maximum_bond_radii(self, default_radius = 0.2):
+        "Return maximum bond radius for each atom.  Used for stick style atom display."
+        f = c_function('atom_maximum_bond_radius', args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_float, ctypes.c_void_p])
+        n = len(self)
+        r = empty((n,), float32)
+        f(self._c_pointers, n, default_radius, pointer(r))
+        return r
     residues = cvec_property('atom_residue', cptr, astype = _residues, read_only = True,
         doc="Returns a :class:`Residues` whose data items correspond in a 1-to-1 fashion with the "
         "items in the Atoms.  Read only.")
@@ -454,15 +470,16 @@ class Atoms(Collection):
     @property
     def unique_residues(self):
         '''The unique :class:`.Residues` for these atoms.'''
-        return _residues(unique(self.residues._pointers))
+        return self.residues.unique()
     @property
     def unique_chain_ids(self):
         '''The unique chain IDs as a numpy array of strings.'''
+        from numpy import unique
         return unique(self.chain_ids)
     @property
     def unique_structures(self):
         "The unique structures as an :class:`.AtomicStructures` collection"
-        return _atomic_structures(unique(self.structures._pointers))
+        return self.structures.unique()
     @property
     def single_structure(self):
         "Do all atoms belong to a single :class:`.Structure`"
@@ -508,7 +525,7 @@ class Atoms(Collection):
     @classmethod
     def session_restore_pointers(cls, session, data):
         structures, atom_ids = data
-        return array([s.session_id_to_atom(i) for s, i in zip(structures, atom_ids)])
+        return array([s.session_id_to_atom(i) for s, i in zip(structures, atom_ids)], dtype=cptr)
     def session_save_pointers(self, session):
         structures = self.structures
         atom_ids = [s.session_atom_to_id(ptr) for s, ptr in zip(structures, self._c_pointers)]
@@ -588,7 +605,7 @@ class Bonds(Collection):
     @classmethod
     def session_restore_pointers(cls, session, data):
         structures, bond_ids = data
-        return array([s.session_id_to_bond(i) for s, i in zip(structures, bond_ids)])
+        return array([s.session_id_to_bond(i) for s, i in zip(structures, bond_ids)], dtype=cptr)
     def session_save_pointers(self, session):
         structures = self.structures
         bond_ids = [s.session_bond_to_id(ptr) for s, ptr in zip(structures, self._c_pointers)]
@@ -632,9 +649,8 @@ class Elements(Collection):
     @classmethod
     def session_restore_pointers(cls, session, data):
         f = c_function('element_number_get_element', args = (ctypes.c_int,), ret = ctypes.c_void_p)
-        return [f(en) for en in data]
+        return array([f(en) for en in data], dtype=cptr)
     def session_save_pointers(self, session):
-        structures = self.structures
         return self.numbers
 
 # -----------------------------------------------------------------------------
@@ -725,8 +741,8 @@ class Pseudobonds(Collection):
         groups, ids = data
         f = c_function('pseudobond_group_resolve_session_id',
             args = [ctypes.c_void_p, ctypes.c_int], ret = ctypes.c_void_p)
-        ptrs = [f(grp_ptr, id) for grp_ptr, id in zip(groups._c_pointers, ids)]
-        return Pseudobonds(array(ptrs))
+        ptrs = array([f(grp_ptr, id) for grp_ptr, id in zip(groups._c_pointers, ids)], dtype=cptr)
+        return ptrs
     def session_save_pointers(self, session):
         return [self.groups, self._ses_ids]
 
@@ -820,17 +836,18 @@ class Residues(Collection):
     @property
     def unique_structures(self):
         '''The unique structures as a :class:`.StructureDatas` collection'''
-        return StructureDatas(unique(self.structures._pointers))
+        return self.structures.unique()
 
     @property
     def unique_chain_ids(self):
         '''The unique chain IDs as a numpy array of strings.'''
+        from numpy import unique
         return unique(self.chain_ids)
 
     @property
     def unique_chains(self):
         '''The unique chains as a :class:`.Chains` collection'''
-        return _chains(unique(self.chains._pointers))
+        return self.chains.unique()
 
     @property
     def by_structure(self):
@@ -850,7 +867,7 @@ class Residues(Collection):
     @property
     def unique_sequences(self):
         '''
-        Return :mod:`numpy` array giving an integer index for each residue and a list of sequence strings.
+        Return a list of sequence strings and a :mod:`numpy` array giving an integer index for each residue.
         Index 0 is for residues that are not part of a chain (empty string).
         '''
         from numpy import empty, int32
@@ -925,7 +942,7 @@ class Chains(Collection):
     @classmethod
     def session_restore_pointers(cls, session, data):
         structures, chain_ses_ids = data
-        return array([s.session_id_to_chain(i) for s, i in zip(structures, chain_ses_ids)])
+        return array([s.session_id_to_chain(i) for s, i in zip(structures, chain_ses_ids)], dtype=cptr)
     def session_save_pointers(self, session):
         structures = self.structures
         chain_ses_ids = [s.session_chain_to_id(ptr) for s, ptr in zip(structures, self._c_pointers)]
@@ -1009,7 +1026,7 @@ class AtomicStructures(StructureDatas):
 
     @classmethod
     def session_restore_pointers(cls, session, data):
-        return array([s._c_pointer.value for s in data])
+        return array([s._c_pointer.value for s in data], dtype=cptr)
     def session_save_pointers(self, session):
         return [s for s in self]
 
@@ -1047,7 +1064,7 @@ class PseudobondGroups(PseudobondGroupDatas):
 
     @classmethod
     def session_restore_pointers(cls, session, data):
-        return array([s._c_pointer.value for s in data])
+        return array([s._c_pointer.value for s in data], dtype=cptr)
     def session_save_pointers(self, session):
         return [s for s in self]
 

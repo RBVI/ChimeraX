@@ -19,13 +19,13 @@ def register_core_commands(session):
     # the first in alphabetical order.
     modules = [
         'alias', 'align', 'buriedarea',
-        'camera', 'cd', 'clip', 'close', 'cofr', 'color', 'colorname',
+        'camera', 'cartoon', 'cd', 'clip', 'close', 'cofr', 'color', 'colorname',
         'coordset', 'crossfade',
         'delete', 'dssp', 'exit', 'hide', 'info',
         'lighting', 'list', 'material', 'mousemode', 'move',
         'open', 'pdbimages', 'perframe', 'position', 'pwd',
         'rainbow', 'rename', 'roll', 'run', 'rungs',
-        'save', 'sasa', 'scolor', 'select', 'set', 'show', 'sop', 'split',
+        'save', 'sasa', 'scolor', 'select', 'set', 'show', 'size', 'sop', 'split',
         'stop', 'style', 'surface', 'sym',
         'time', 'toolshed', 'transparency', 'turn',
         'usage', 'view', 'version', 'wait', 'windowsize', 'zoom'

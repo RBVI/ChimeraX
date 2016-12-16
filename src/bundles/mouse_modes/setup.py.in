@@ -50,7 +50,7 @@ setup(
     ],
     classifiers=[
         # From https://pypi.python.org/pypi?%3Aaction=list_classifiers
-        # and our own ChimeraX-* classifiers.
+        # and our own ChimeraX classifiers.
         "Development Status :: 4 - Beta",
         "Environment :: MacOS X :: Aqua",
         "Environment :: Win32 (MS Windows)",
@@ -65,7 +65,7 @@ setup(
         "Topic :: Scientific/Engineering :: Visualization",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
-        "ChimeraX-Bundle :: Toolbar :: 1,1 :: PKG_NAME :: chimerax.mouse-modes :: ",
-        "ChimeraX-Tool :: Mouse Modes for Right Button :: Toolbar :: Choose mouse right button mode",
+        "ChimeraX :: Bundle :: Toolbar :: 1,1 :: PKG_NAME :: chimerax.mouse-modes :: ",
+        "ChimeraX :: Tool :: Mouse Modes for Right Button :: Toolbar :: Choose mouse right button mode",
     ],
 )

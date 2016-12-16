@@ -47,7 +47,7 @@ setup(
     ],
     classifiers=[
         # From https://pypi.python.org/pypi?%3Aaction=list_classifiers
-        # and our own ChimeraX-* classifiers.
+        # and our own ChimeraX classifiers.
         "Development Status :: 2 - Pre-Alpha",  # FIXME: update as appropriate
         "Environment :: MacOS X :: Aqua",
         "Environment :: Win32 (MS Windows)",
@@ -62,7 +62,7 @@ setup(
         "Topic :: Scientific/Engineering :: Visualization",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
-        "ChimeraX-Bundle :: Sequence :: 1,1 :: PKG_NAME :: :: true",
-        "ChimeraX-Tool :: Multalign Viewer :: Sequence :: Sequence alignment viewer",
+        "ChimeraX :: Bundle :: Sequence :: 1,1 :: PKG_NAME :: chimerax.mav :: true",
+        "ChimeraX :: Tool :: Multalign Viewer :: Sequence :: Sequence alignment viewer",
     ],
 )

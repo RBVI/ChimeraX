@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from . import CmdDesc, EnumOf, StringArg, BoolArg, plural_form
+from . import CmdDesc, EnumOf, StringArg, BoolArg, plural_form, commas
 
 _bundle_types = EnumOf(["all", "installed", "available"])
 
@@ -36,9 +36,15 @@ th.bundle {
         """
         info += "<dl>\n"
         for bi in sorted(bi_list, key=bundle_key):
-            info += "<dt><b>%s</b> (%s) [%s]: <i>%s</i>\n" % (
-                bi.name, bi.version, ', '.join(bi.categories), escape(bi.synopsis))
+            name = bi.name
+            if name.startswith('ChimeraX-'):
+                name = name[len('ChimeraX-'):]
+            info += "<dt><b>%s</b> (%s): <i>%s</i>\n" % (
+                name, bi.version, escape(bi.synopsis))
             info += "<dd>\n"
+            info += "%s: %s<p>" % (
+                plural_form(bi.categories, "Category"),
+                commas(bi.categories, ' and '))
             # TODO: convert description's rst text to HTML
             info += escape(bi.description).replace('\n\n', '<p>\n')
             if bi.tools or bi.commands or bi.formats:
@@ -67,22 +73,25 @@ th.bundle {
         info += "</dl>\n"
     else:
         for bi in sorted(bi_list, key=bundle_key):
+            name = bi.name
+            if name.startswith('ChimeraX-'):
+                name = name[len('ChimeraX-'):]
             info += "%s (%s) [%s]: %s\n" % (
-                bi.name, bi.version, ', '.join(bi.categories), bi.synopsis)
+                name, bi.version, ', '.join(bi.categories), bi.synopsis)
             if bi.tools:
-                info += "   %s:\n" % plural_form(bi.tools, "Tool")
+                info += "  %s:\n" % plural_form(bi.tools, "Tool")
             for t in bi.tools:
                 info += "    %s: %s\n" % (t.name, t.synopsis)
             if bi.commands:
-                info += "   %s:\n" % plural_form(bi.commands, "Command")
+                info += "  %s:\n" % plural_form(bi.commands, "Command")
             for c in bi.commands:
                 info += "    %s: %s\n" % (c.name, c.synopsis)
             if bi.selectors:
-                info += "   %s:\n" % plural_form(bi.selectors, "Selector")
+                info += "  %s:\n" % plural_form(bi.selectors, "Selector")
             for s in bi.selectors:
                 info += "    %s: %s\n" % (s.name, s.synopsis)
             if bi.formats:
-                info += "   %s:\n" % plural_form(bi.formats, "Format")
+                info += "  %s:\n" % plural_form(bi.formats, "Format")
             for f in bi.formats:
                 can_open = ' open' if f.has_open else ''
                 can_save = ' save' if f.has_save else ''

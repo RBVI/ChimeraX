@@ -2820,7 +2820,7 @@ def volume_from_grid_data(grid_data, session, representation = None,
   return v
 
 def show_volume_dialog(session):
-  from chimerax.volume_viewer.tool import show_volume_dialog
+  from chimerax.volume_viewer.volumedialog import show_volume_dialog
   show_volume_dialog(session)
 
 # -----------------------------------------------------------------------------
@@ -2908,6 +2908,13 @@ def open_map(session, stream, *args, **kw):
     maps = []
     from . import data
     grids = data.open_file(map_path)
+
+    if kw.get('polar_values', False):
+      for g in grids:
+        g.polar_values = True
+        if g.rgba is None:
+          g.rgba = (0,1,0,1) # Green
+
     show = kw.get('show', True)
     show_dialog = kw.get('show_dialog', True)
     for i,d in enumerate(grids):
@@ -3013,8 +3020,8 @@ def register_map_file_formats():
     from .. import io, toolshed
     from .data.fileformats import file_types, file_writers
     fwriters = set(fw[0] for fw in file_writers)
-    for d,t,short_names,suffixes,batch in file_types:
+    for d,t,nicknames,suffixes,batch in file_types:
       suf = tuple('.' + s for s in suffixes)
       save_func = save_map if d in fwriters else None
-      io.register_format(d, toolshed.VOLUME, suf, short_names=short_names,
+      io.register_format(d, toolshed.VOLUME, suf, nicknames=nicknames,
                          open_func=open_map, batch=batch, export_func=save_func)

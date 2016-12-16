@@ -29,11 +29,7 @@ class MapSeries(ToolInstance):
         
         self.display_name = "Map series %s" % ', '.join(s.name for s in series)
         from chimerax.core.ui.gui import MainToolWindow
-
-        class MapSeriesWindow(MainToolWindow):
-            close_destroys = False
-
-        tw = MapSeriesWindow(self)
+        tw = MainToolWindow(self, close_destroys = False)
         self.tool_window = tw
         parent = tw.ui_area
 
@@ -127,6 +123,8 @@ class MapSeries(ToolInstance):
             if lt is not None and lt != t:
                 s.copy_display_parameters(lt, t)
             s.show_time(t)
+        # Make sure this time is shown before we draw the next time.
+        self.session.ui.request_graphics_redraw()
 
     def play_cb(self, event):
         if self.playing:

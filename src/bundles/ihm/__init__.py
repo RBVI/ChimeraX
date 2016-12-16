@@ -13,14 +13,28 @@
 
 from chimerax.core.toolshed import BundleAPI
 
-class _MyAPI(BundleAPI):
+class _IHMAPI(BundleAPI):
 
     @staticmethod
-    def initialize(session, bundle_info):
-        """Register IHM file format."""
-        from . import ihm
-        ihm.register()
-#        from . import savecoords
-#        savecoords.register_coord_format()
+    def open_file(session, f, name, filespec=None, format_name=None, **kw):
+        # 'open_file' is called by session code to open a file
+        # returns (list of models, status message)
+        if format_name == 'IHM':
+            from . import ihm
+            return ihm.read_ihm(session, filespec, name, **kw)
+        elif format_name == 'Binary Coordinates':
+            if 'model' not in kw:
+                from chimerax.core.errors import UserError
+                raise UserError('Must specify model option to open command to load binary coordinates')
+            from . import coordsets
+            coordsets.read_coordinate_sets(filespec, kw['model'])
+            return [], 'Read coordinate set %s' % name
+        raise ValueError('Attempt to open unrecognized format "%s"' % format_name)
 
-bundle_api = _MyAPI()
+    @staticmethod
+    def save_file(session, name, format_name=None, **kw):
+        # 'save_file' is called by session code to save a file
+        from . import savecoords
+        return savecoords.save_binary_coordinates(session, name, **kw)
+
+bundle_api = _IHMAPI()

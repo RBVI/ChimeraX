@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def perframe(session, command, frames = None, interval = 1, format = None,
-             zero_pad_width = None, range = None, show_commands = False):
+             zero_pad_width = None, ranges = None, show_commands = False):
     '''Execute specified command each frame, typically used during movie recording.
 
     Parameters
@@ -28,7 +28,7 @@ def perframe(session, command, frames = None, interval = 1, format = None,
       Printf style format (e.g. %d, %.3f) for substituting value in for $1.
     zero_pad_width : int
       Field width in characters used when substituting $1 left padded with zeros.
-    range : 2 or 3 int
+    ranges : list of tuples of 2 or 3 int
       start,end[,step] integer or float range of values to substitute for $1 instead of frame number.
     show_commands : bool
       Whether to echo commands to log.
@@ -44,7 +44,7 @@ def perframe(session, command, frames = None, interval = 1, format = None,
         'frames': frames,
         'interval': interval,
         'skip': 0,
-        'ranges': [] if range is None else [range],
+        'ranges': [] if range is None else ranges,
         'format': format,
         'zero_pad_width': zero_pad_width,
         'show_commands': show_commands,
@@ -59,9 +59,9 @@ def perframe(session, command, frames = None, interval = 1, format = None,
 
 def register_command(session):
 
-    from .cli import CmdDesc, register, IntArg, StringArg, NoArg
+    from .cli import CmdDesc, register, IntArg, StringArg, NoArg, RepeatOf
     desc = CmdDesc(required = [('command', StringArg)],
-                   keyword = [('range', RangeArg),      # TODO: Allow multiple range arguments.
+                   keyword = [('ranges', RepeatOf(RangeArg)),      # TODO: Allow multiple range arguments.
                               ('frames', IntArg),
                               ('interval', IntArg),
                               ('format', StringArg),    # TODO: Allow multiple format arguments.

@@ -352,11 +352,14 @@ class Drawing:
                 return True
         return False
 
-    def clear_selection(self):
-        '''Unselect this drawing. Child drawings may remain selected.'''
+    def clear_selection(self, include_children=True):
+        '''Unselect this drawing and child drawings in if include_children is True.'''
         self.selected = False
         self.selected_triangles_mask = None
         self.redraw_needed(selection_changed=True)
+        if include_children:
+            for d in self.child_drawings():
+                d.clear_selection()
 
     def get_position(self):
         return self._positions[0]

@@ -82,25 +82,19 @@ and <a href="commands/save.html"><b>save</b></a>
 src="triangled.png" width=10 height=10/>&nbsp;<b>Tools</b></li>
 <div id="tlist" class="expanded">
 <ul>
-<li><a href="tools/cli.html"><b>Command Line Interface</b></a>
-</li>
+<li><a href="tools/cli.html"><b>Command Line Interface</b></a></li>
 <li><a href="tools/densitymaps.html"><b>Density Map Toolbar</b></a>
-<img class="iconbar" src="density-icons.png">
-</li>
+<img class="iconbar" src="density-icons.png"></li>
 <li><a href="tools/graphics.html"><b>Graphics Toolbar</b></a>
-<img class="iconbar" src="graphics-icons.png">
-</li>
-<li><a href="tools/log.html"><b>Log</b></a>
-</li>
+<img class="iconbar" src="graphics-icons.png"></li>
+<li><a href="tools/log.html"><b>Log</b></a></li>
 <li><a href="tools/moldisplay.html"><b>Molecule Display Toolbar</b></a>
-<img class="iconbar" src="molecule-icons.png">
-</li>
+<img class="iconbar" src="molecule-icons.png"></li>
 <li><a href="tools/mousemodes.html"><b>Mouse Modes for Right Button</b></a>
-<img class="iconbar" src="mouse-icons.png">
-</li>
+<img class="iconbar" src="mouse-icons.png"></li>
 <li><a href="tools/sideview.html"><b>Side View</b></a>
-- intuitive zooming and clipping
-</li>
+- intuitive zooming and clipping</li>
+<li><a href="tools/volumeviewer.html"><b>Volume Viewer</b></a></li>
 </ul>
 </div>
 
@@ -127,6 +121,8 @@ src="triangled.png" width=10 height=10/>&nbsp;<b>Commands</b></li>
 - set mono or stereo viewing and related parameters</li>
 <li><a href="commands/cartoon.html"><b>cartoon</b> or <b>ribbon</b></a>
 - create cartoons, set cartoon parameters</li>
+<li><a href="commands/cd.html"><b>cd</b></a>
+- change the working directory</li>
 <li><a href="commands/clip.html"><b>clip</b></a>
 - control clipping planes</li>
 <li><a href="commands/close.html"><b>close</b></a>
@@ -175,7 +171,11 @@ color surfaces</li>
 <li><a href="commands/movie.html"><b>movie</b></a>
 - record image frames and assemble them into a movie file</li>
 <li><a href="commands/open.html"><b>open</b></a>
- - open local file or fetch from repository</li> 
+ - open <a href="commands/open.html#local">local file</a>
+or <a href="commands/open.html#fetch">fetch</a> from repository</li> 
+<li><a href="commands/perframe.html"><b>perframe</b></a>
+- specify operations to execute at every (or every N<sup>th</sup>)
+display frame</li>
 <li><a href="commands/position.html"><b>position</b></a>
 - set location and orientation of camera, models by input matrices</li>
 <li><a href="commands/pwd.html"><b>pwd</b></a>
@@ -196,6 +196,10 @@ color surfaces</li>
 - set background color, silhouette parameters, subdivision level</li>
 <li><a href="commands/show.html"><b>show</b>, <b>hide</b></a>
 - show/hide atoms, bonds, cartoons, models</li>
+<li><a href="commands/size.html"><b>size</b></a>
+- adjust stick radii and atomic <a href="radii.html">VDW radii</a></li>
+<li><a href="commands/smoothlines.html"><b>smoothlines</b></a>
+- smooth paths in line models</li>
 <li><a href="commands/sop.html"><b>sop</b></a>
 - hide small surface blobs, only show surface near specified atoms</li>
 <li><a href="commands/stop.html"><b>stop</b></a>
@@ -219,7 +223,7 @@ color surfaces</li>
 <li><a href="commands/view.html"><b>view</b></a>
 - adjust the view to specified items; save/restore named views</li>
 <li><a href="commands/volume.html"><b>volume</b></a>
-- volume data (density maps, <i>etc.</i>) display and output</li>
+- display of volume data (density maps, <i>etc.</i>)</li>
 <li><a href="commands/vop.html"><b>vop</b></a>
 - volume data processing</li>
 <li><a href="commands/wait.html"><b>wait</b></a>
@@ -238,19 +242,19 @@ to show a brief description in the <a href="tools/log.html"><b>Log</b></a>.
 <ul>
 <li><b>align</b>
 - superimpose sets of atoms</li>
+<li><b>blastprotein</b>
+- BLAST search for similar protein sequences in PDB or NR</li>
+<!--
 <li><b>findclash</b>
 - find atomic clashes or contacts; similar to Chimera
 <a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/findclash.html"
 target="_blank"><b>findclash</b></a></li>
+-->
 <li><b>vseries</b>
 - similar to Chimera
 <a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/vseries.html"
 target="_blank"><b>vseries</b></a></li>
 <li><b>crossfade</b></li>
-<li><b>perframe</b>
-- similar to Chimera
-<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/perframe.html"
-target="_blank"><b>perframe</b></a></li>
 <li><b>toolshed</b> or <b>ts</b>
 - start, show/hide, and otherwise manage ChimeraX Tools</li>
 <li><b>listinfo</b>

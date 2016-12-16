@@ -54,8 +54,8 @@ class Histogram:
 # Draw a set of movable markers on a canvas.  The markers can be moved with
 # the mouse.  They can be drawn as vertical lines ('line' type) or as small
 # boxes ('box' type).  Each marker has a color.  Markers can be added or
-# deleted with ctrl-button-1.  A callback is invoked with no arguments when
-# user mouse interaction selects, moves, adds or removes a marker.
+# deleted with ctrl-button-1.  A callback is invoked when user mouse
+# interaction selects or moves a marker and takes one argument that is the marker.
 #
 # This was designed for display and control of theshold levels shown on a
 # histogram.
@@ -63,7 +63,7 @@ class Histogram:
 class Markers:
 
   def __init__(self, canvas, scene, marker_type, new_marker_color,
-               connect_markers, callback):
+               connect_markers, selected_marker_callback, moved_marker_callback):
 
     self.canvas = canvas
     sr = scene.sceneRect()
@@ -77,7 +77,8 @@ class Markers:
     self.connect_color = 'yellow'
     self.connect_graphics_items = []
 
-    self.callback = callback
+    self.selected_marker_callback = selected_marker_callback
+    self.moved_marker_callback = moved_marker_callback
 
     self.markers = []
 
@@ -93,8 +94,6 @@ class Markers:
     canvas.click_callbacks.append(self.select_marker_cb)
     canvas.drag_callbacks.append(self.move_marker_cb)
     
-#    canvas.bind("<Control-ButtonPress-1>", self.add_or_delete_marker_cb, add = 1)
-
   # ---------------------------------------------------------------------------
   #
   def show(self, show):
@@ -281,35 +280,40 @@ class Markers:
 
   # ---------------------------------------------------------------------------
   #
-  def add_or_delete_marker_cb(self, event):
-
-    if not self.shown:
-      return
-
-    range = 3
-    i = self.closest_marker_index(event.x, event.y, range)
-
-    if i == None:
-      cxy = self.clamp_canvas_xy((event.x, event.y))
-      xy = self.canvas_xy_to_user_xy(cxy)
-      sm = self.selected_marker()
-      if sm:
-        color = sm.rgba
-      else:
-        color = self.new_marker_color
-      m = Marker(xy, color)
-      self.markers.append(m)
-      self.last_mouse_xy = xy
-      self.drag_marker_index = len(self.markers) - 1
+  def add_marker(self, canvas_x, canvas_y):
+    sp = self.canvas.mapToScene(canvas_x, canvas_y)
+    cxy = self.clamp_canvas_xy((sp.x(), sp.y()))
+    xy = self.canvas_xy_to_user_xy(cxy)
+    sm = self.selected_marker()
+    if sm:
+      color = sm.rgba
     else:
-      self.drag_marker_index = None
-      self.markers[i].unplot(self.scene)
-      del self.markers[i]
+      color = self.new_marker_color
+    m = Marker(xy, color)
+    self.markers.append(m)
+    self.last_mouse_xy = xy
+    self.drag_marker_index = len(self.markers) - 1
 
     self.update_plot()
 
-    if self.callback:
-      self.callback()
+  # ---------------------------------------------------------------------------
+  #
+  def clicked_marker(self, canvas_x, canvas_y):
+    range = 3
+    i = self.closest_marker_index(canvas_x, canvas_y, range)
+    if i is None:
+      return None
+    return self.markers[i]
+
+  # ---------------------------------------------------------------------------
+  #
+  def delete_marker(self, m):
+    i = self.markers.index(m)
+    self.drag_marker_index = None
+    m.unplot(self.scene)
+    del self.markers[i]
+
+    self.update_plot()
 
   # ---------------------------------------------------------------------------
   #
@@ -328,8 +332,9 @@ class Markers:
     p = self.canvas.mapToScene(event.x(), event.y())
     self.last_mouse_xy = self.canvas_xy_to_user_xy((p.x(), p.y()))
 
-    if self.callback:
-      self.callback()
+    cb = self.selected_marker_callback
+    if cb:
+      cb(self.markers[i])
 
   # ---------------------------------------------------------------------------
   #
@@ -376,8 +381,9 @@ class Markers:
 
     self.update_plot()
 
-    if self.callback:
-      self.callback()
+    cb = self.moved_marker_callback
+    if cb:
+      cb(m)
     
   # ---------------------------------------------------------------------------
   #

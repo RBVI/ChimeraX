@@ -30,22 +30,30 @@ class="clRight" title="User Guide Index"/></a>
 &nbsp;<a href="#options"><i>options</i></a></h3>
 <p>
 The <b>volume</b> command controls the display of density maps and
-other volume data, <i>i.e.</i>, values associated with points on a 3D grid.
+other <a href="../tools/volumeviewer.html">volume data</a>, 
+<i>i.e.</i>, values associated with points on a 3D grid.
 The <a href="atomspec.html"><i>model-spec</i></a> can be a specific model
 number or range of model numbers (preceded by #),
 or the word <b>all</b> to indicate all volume models.
-Volume data can be saved to a file with the 
-command <a href="save.html"><b>save</b></a>.
+</p><p>
+The corresponding graphical interface,
+<a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>,
+allows adjusting contour levels and some of the other settings
+interactively.  Volume data can be opened with the command
+<a href="open.html"><b>open</b></a> (which automatically starts 
+<a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>)
+and saved to a file with <a href="save.html"><b>save</b></a>.
 See also:
-<a href="open.html"><b>open</b></a>,
 <a href="show.html"><b>show</b></a>,
 <a href="color.html"><b>color</b></a>,
+<a href="transparency.html"><b>transparency</b></a>,
 <a href="vop.html"><b>vop</b></a>,
 <b>vseries</b>,
 <a href="molmap.html"><b>molmap</b></a>,
 <a href="fitmap.html"><b>fitmap</b></a>,
 <a href="sop.html"><b>sop</b></a>,
-<a href="sym.html"><b>sym</b></a>
+<a href="sym.html"><b>sym</b></a>,
+<a href="smoothlines.html"><b>smoothlines</b></a>
 </p>
 <a name="examples">Examples</a>:
 <blockquote>
@@ -873,10 +881,10 @@ both depict isosurfaces.
   but speed up rendering, depending on the graphics hardware.
 </blockquote>
 
+<a name="notes"></a>
 <p class="nav">
 [<a href="#top">back to top</a>]
 </p>
-<a name="notes"></a>
 <h3>Technical Notes</h3>
 
 <p><a name="transferfunction"><b>Transfer function</b></a>.
@@ -939,5 +947,5 @@ then perform byte-swapping if necessary.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2016</address>
+December 2016</address>
 </body></html>

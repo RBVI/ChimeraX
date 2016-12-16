@@ -138,11 +138,6 @@ def brace(atoms, max_length, max_loop_length, model, log):
         b = model.new_pseudobond(a1, a2)
         for a in (a1, a2):
             a.display = True
-            r = a.residue
-            if r.ribbon_display:
-                r.ribbon_hide_backbone = False
-                a.hide = 0
-                a.draw_mode = a1.BALL_STYLE
 
 def connections(atoms, dmax, log):
 
@@ -205,7 +200,7 @@ def pseudobond_connections(structures):
     satoms = concatenate([s.atoms for s in structures], Atoms)
     for pb in interatom_pseudobonds(satoms):
         a1, a2 = pb.atoms
-        if pb.display and a1.display and a2.display and pb.group.display:
+        if pb.shown and pb.group.display:
             d12 = distance(a1.scene_coord, a2.scene_coord)
             pcon.setdefault(a1, []).append((a2,d12))
             pcon.setdefault(a2, []).append((a1,d12))

@@ -50,7 +50,7 @@ setup(
     ],
     classifiers=[
         # From https://pypi.python.org/pypi?%3Aaction=list_classifiers
-        # and our own ChimeraX-* classifiers.
+        # and our own ChimeraX classifiers.
         "Development Status :: 5 - Stable",
         "Environment :: MacOS X :: Aqua",
         "Environment :: Win32 (MS Windows)",
@@ -65,9 +65,9 @@ setup(
         "Topic :: Scientific/Engineering :: Visualization",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
-        "ChimeraX-Bundle :: Generic 3D objects :: 1,1 :: chimerax.stl :: :: ",
-        "ChimeraX-DataFormat :: StereoLithography :: STL :: Generic 3D objects :: .stl :: :: http://en.wikipedia.org/wiki/STL_%28file_format%29 :: :: :: Simple triangle format used by 3D printers",
-        "ChimeraX-Open :: StereoLithography :: :: ",
-        "ChimeraX-Save :: StereoLithography :: :: ",
+        "ChimeraX :: Bundle :: Generic 3D objects :: 1,1 :: chimerax.stl :: :: ",
+        "ChimeraX :: DataFormat :: StereoLithography :: stl :: Generic 3D objects :: .stl :: :: http://en.wikipedia.org/wiki/STL_%28file_format%29 :: :: :: Simple triangle format used by 3D printers",
+        "ChimeraX :: Open :: StereoLithography :: :: ",
+        "ChimeraX :: Save :: StereoLithography :: :: ",
     ],
 )

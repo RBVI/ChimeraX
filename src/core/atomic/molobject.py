@@ -156,6 +156,8 @@ class Atom:
         doc="Number of bonds connected to this atom. Read only.")
     occupancy = c_property('atom_occupancy', float32, doc = "Occupancy, floating point value.")
     radius = c_property('atom_radius', float32, doc="Radius of atom.")
+    default_radii = c_property('atom_default_radius', float32, read_only = True,
+                               doc="Default atom radius.")
     residue = c_property('atom_residue', cptr, astype = _residue, read_only = True,
         doc = ":class:`Residue` the atom belongs to.")
     selected = c_property('atom_selected', npy_bool, doc="Whether the atom is selected.")
@@ -165,6 +167,14 @@ class Atom:
         doc = "Whether atom is ligand, ion, etc.")
     visible = c_property('atom_visible', npy_bool, read_only=True,
         doc="Whether atom is displayed and not hidden.")
+
+    def maximum_bond_radius(self, default_radius = 0.2):
+        "Return maximum bond radius.  Used for stick style atom display."
+        f = c_function('atom_maximum_bond_radius',
+                       args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_float, ctypes.c_void_p])
+        r = ctypes.c_float()
+        f(ctypes.by_ref(self._c_pointer), 1, default_radius, ctypes.by_ref(r))
+        return r.value
 
     def set_alt_loc(self, loc, create):
         if isinstance(loc, str):

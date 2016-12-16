@@ -23,15 +23,17 @@ or derivations thereof.
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
 class="clRight" title="User Guide Index"/></a>
 
+<font color="brown">
+* experimental feature, with deficiencies we hope to address in the future *
+</font>
+
 <h3><a href="../index.html#commands">Command</a>: contacts</h3>
 <h3><a href="usageconventions.html">Usage</a>:
  <BR><b>contacts</b>
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 [&nbsp;probeRadius&nbsp;&nbsp;<i>rad</i>&nbsp;]
-[&nbsp;areaCutoff&nbsp;&nbsp;<i>area</i>&nbsp;] 
-<!--
-[&nbsp;cutoffArea&nbsp;&nbsp;<i>area</i>&nbsp;] 
--->
+[&nbsp;areaCutoff&nbsp;&nbsp;<i>interface-area</i>&nbsp;] 
+[&nbsp;interfaceResidueAreaCutoff&nbsp;&nbsp;<i>res-area</i>&nbsp;] 
 </h3>
 <p>
 The <b>contacts</b> command calculates the buried solvent-accessible
@@ -54,15 +56,20 @@ is traced out by the center of the probe sphere and is not displayed.
 The <b>probeRadius</b> <i>rad</i> is the radius of this 
 &ldquo;rolling sphere&rdquo; probe (default <b>1.4</b> &Aring;, 
 the value often used to approximate a water molecule).
-Interfaces with at least <i>area</i> buried
-(default <b>300</b> &Aring;<sup>2</sup>) are counted as contacts
+Interfaces with at least <i>interface-area</i> buried
+(default <b>300</b> &Aring;<sup>2</sup>, can be changed with the
+<b>areaCutoff</b> option) are counted as contacts
 and shown as lines in the <a href="#diagram">diagram</a>.
+Residues with at least <i>res-area</i> buried
+(default <b>15</b> &Aring;<sup>2</sup>, can be changed with the
+<b>interfaceResidueAreaCutoff</b> option) are considered to be
+<a name="interface-residues"><b><i>interface residues</i></b></a>.
 </p>
 
+<a name="diagram"></a>
 <p class="nav">
 [<a href="#top">back to top</a>]
 </p>
-<a name="diagram"></a>
 <h3>Chain-Chain Network Diagram</h3>
 <p>
 <table class="clRight">
@@ -79,21 +86,21 @@ Node colors match the predominant colors of the chains when the
 diagram is created, but will toggle between that initial color when
 a chain is shown and gray when it is hidden.
 Node sizes are proportional to chain surface areas.
-Smaller interfaces (buried area less than half that of the largest interface 
+Smaller interfaces (buried SASA less than half that of the largest interface 
 in the structure) are indicated with dashed lines.
 </p><p>
 Clicking a node shows the atoms of the corresponding chain and any
 interacting chains; other nodes are grayed out and their atoms hidden.
-Shift-clicking a node <a href="select.html">selects</a>
+Alt-clicking a node <a href="select.html">selects</a>
 the atoms of the corresponding chain.
 Similarly, clicking an edge shows the atoms of the two connected nodes
 and grays out other nodes and hides their atoms, 
-while Shift-clicking an edge <a href="select.html">selects</a>
+while Alt-clicking an edge <a href="select.html">selects</a>
 the atoms of the two nodes.
-Clicking the background of the diagram shows all of the chains.
-Only atoms included in the calculation are affected by these actions; 
-other atoms are ignored. 
+Alt-clicking the background of the diagram clears any selection.
 </p><p>
+Most of these actions apply only to the atoms that were specified
+in the <b>contacts</b> command; any other atoms are ignored.
 Showing/hiding atoms by interacting with the diagram does not affect
 <a href="cartoon.html">cartoon</a> or <a href="surface.html">surface</a>
 displays.
@@ -102,10 +109,11 @@ displays.
 <a href="cartoon.html"><b>cartoon hide false</b></a> has been used)
 -->
 </p><p>
-The diagram can be moved as a whole with left mouse drag 
-(initially clicking on the background, not on a node or edge)
-and scaled with Shift-left mouse drag. 
-Scaling does not affect node sizes, only their spacing.
+The diagram can be moved as a whole with 
+left or middle mouse drag (initially clicking on the background)
+and expanded/contracted with Shift-left mouse drag. 
+Expansion/contraction is about the point initially clicked
+and does not affect node sizes, only their spacing.
 The panel containing the diagram can be 
 <a href="../window.html#panelcontrol">manipulated</a>
 like other ChimeraX panels.
@@ -124,27 +132,29 @@ The <b>background</b> context menu includes:
 <li><b>Show all atoms</b>
 - display all atoms used in the calculation 
 (same as clicking the diagram background)
-<li><b>Select contact residues</b>
+<li><b>Select all contact residues</b>
 - <a href="select.html">select</a>
-only the <a name="interface-residues"><b><i>interface residues</i></b></a>
-(with 
-<!-- &ge; ?? &Aring;<sup>2</sup> -->
-SASA buried in an interface)
-from all chains
+only the <a href="#interface-residues">interface residues</a> from all chains
 <li><b>Select all</b>
 - <a href="select.html">select</a> all atoms used in the calculation
 <li><b>Clear selection</b>
 - clear the current selection 
-<li><b>Explode</b>
-- move chains apart to separate the interfaces
-<li><b>Unexplode</b>
-- move atoms back together to restore the original structure
-<li><b>Layout matching structure</b>
+<li><b>Explode all</b>
+- move chains apart to separate the interfaces; exploding an interface
+moves two chains in opposite directions along the line connecting the 
+geometric centers of the two sets of 
+<a href="#interface-residues">interface residues</a>
+<li><b>Unexplode all</b>
+- move chains back together to restore the original structure
+<li><b>Lay out to match structure</b>
 - redraw diagram with orientation similar to the current 3D structure
-<li><b>Orient structure</b>
+(including repulsion to prevent node overlaps in the diagram)
+<li><b>Orient structure to match layout</b>
 - rotate the structure to an orientation similar to the 2D diagram
 <li><b>Hide this tool</b>
 - hide the panel (can be <a href="../window.html#panelcontrol">reshown</a>)
+<li><b>Help</b>
+- show help in the <a href="../window.html#browser">ChimeraX browser</a>
 </ul>
 
 <a name="nodemenu"></a>
@@ -157,7 +167,7 @@ in the <a href="#bgmenu">background context menu</a>):
 <li><b>Show [<i>chain</i>] and neighbors</b> 
 - show only the corresponding chain and its contacting chains
 (same as clicking the node)
-<li><b>Show contact residues</b>
+<li><b>Show contact residues of neighbors with [<i>chain</i>]</b>
 - show the corresponding chain with its 
 <a href="#interface-residues">interface residues</a>
 in light gray, plus only the relevant
@@ -165,35 +175,24 @@ in light gray, plus only the relevant
 from its contacting chains
 (not their <a href="#interface-residues">interface residues</a>
 with other chains)
-  <ul><li> <b>Show all atoms</b>
-  - display all atoms used in the calculation 
-  (same as clicking the diagram background)
-  </ul>
 <li><b>Select [<i>chain</i>]</b>
 - <a href="select.html">select</a> the corresponding chain
-(same as Shift-clicking the node)
-<li><b>Select neighbors</b>
+(same as Alt-clicking the node)
+<li><b>Select neighbors of [<i>chain</i>]</b>
 - <a href="select.html">select</a> 
 chains contacting the corresponding chain
-<li><b>Select contact residues</b>
+<li><b>Select contact residues of [<i>chain</i>] and neighbors</b>
 - <a href="select.html">select</a> the
 <a href="#interface-residues">interface residues</a>
 on both sides of all interfaces 
 of the corresponding chain
-  <ul><li><b>Select all</b>
-  - <a href="select.html">select</a> all atoms used in the calculation
-  <li><b>Clear selection</b>
-  - clear the current selection 
-  <li><b>Explode</b>
-  - move chains apart to separate the interfaces
-  <li><b>Unexplode</b>
-  - move atoms back together to restore the original structure
-  <li><b>Layout matching structure</b>
-  - redraw diagram with orientation similar to the current 3D structure
-  <li><b>Orient structure</b>
-  - rotate the structure to an orientation similar to the 2D diagram
+<li><b>Explode neighbors of [<i>chain</i>]</b>
+- move chains apart to separate the interfaces
+<li><b>Unexplode neighbors of [<i>chain</i>]</b>
+- move chains back together
+  <ul>
   <li><b>Hide this tool</b>
-  - hide the panel (can be <a href="../window.html#panelcontrol">reshown</a>)
+  <li><b>Help</b>
   </ul>
 </ul>
 <p>
@@ -203,93 +202,87 @@ The <b>edge</b> context menu includes
 in the <a href="#bgmenu">background context menu</a>):
 </p>
 <ul>
-<li><b>Show only [<i>chain1</i>,<i>chain2</i>]</b>
+<li><b>Show only [<i>chain1</i>] and [<i>chain2</i>]</b>
 - show the corresponding chains; hide others
 (same as clicking the edge)
-<li><b>Show [<i>chain1</i>] contact residues</b> 
-- show <i>chain2</i> as spheres with its 
+<li><b>Show contact residues of [<i>chain1</i>] with [<i>chain2</i>]</b> 
+- show only the 
 <i>chain1-chain2</i> <a href="#interface-residues">interface residues</a>
-in light gray, plus only the 
+of <i>chain1</i>, plus all of <i>chain2</i> as spheres 
+with its non-interface residues in light gray; orient view to face <i>chain2</i>
+<li><b>Show contact residues of [<i>chain2</i>] with [<i>chain1</i>]</b> 
+- show only the
 <i>chain1-chain2</i> <a href="#interface-residues">interface residues</a>
-from <i>chain1</i>; adjust view to interface, orient towards <i>chain2</i>
-<li><b>Show [<i>chain2</i>] contact residues</b> 
-- show <i>chain1</i> as spheres with its
-<i>chain1-chain2</i> <a href="#interface-residues">interface residues</a>
-in light gray, plus only the 
-<i>chain1-chain2</i> <a href="#interface-residues">interface residues</a>
-from <i>chain2</i>; adjust view to interface, orient towards <i>chain1</i>
-  <ul><li> <b>Show all atoms</b>
-  - display all atoms used in the calculation 
-  (same as clicking the diagram background)
-  </ul>
+of <i>chain2</i>, plus all of <i>chain1</i> as spheres 
+with its non-interface residues in light gray; orient view to face <i>chain1</i>
 <table class="clRight">
 <tr><td><img class="outline" src="resplot.png" width="220px"
 alt="1i50 C-J residue plot"
 title="1i50 C-J residue plot"></td></tr>
 </table>
-<li><b>Residue plot</b>
-- create an <a href="#residue-plot">interface residue plot</a>, essentially
-a 2D representation of what would be obtained in 3D with the menu item
-<b>Show [<i>chain2</i>] contact residues</b> (above):
-colored circles for individual
+<li><b>Residue plot [<i>chain1</i>] with [<i>chain2</i>]</b> 
+- adjust the 3D view in the same way as 
+<b>Show contact residues of [<i>chain1</i>] with [<i>chain2</i>]</b> (above)
+and create an <a href="#residue-plot">interface residue plot</a>, essentially
+a 2D representation of the 3D view: colored circles for individual
+<i>chain1-chain2</i> <a href="#interface-residues">interface residues</a>
+superimposed on a gray silhouette of the remaining residues of <i>chain2</i>
+<li><b>Residue plot [<i>chain2</i>] with [<i>chain1</i>]</b> 
+- adjust the 3D view in the same way as 
+<b>Show contact residues of [<i>chain2</i>] with [<i>chain1</i>]</b> (above)
+and create an <a href="#residue-plot">interface residue plot</a>, essentially
+a 2D representation of the 3D view: colored circles for individual
 <i>chain1-chain2</i> <a href="#interface-residues">interface residues</a>
 superimposed on a gray silhouette of the remaining residues of <i>chain1</i>
-<li><b>Select [<i>chain1</i>,<i>chain2</i>]</b>
+<li><b>Select [<i>chain1</i>] and [<i>chain2</i>]</b>
 - <a href="select.html">select</a> the corresponding chains
-(same as Shift-clicking the edge)
-<li><b>Select contact residues</b>
+(same as Alt-clicking the edge)
+<li><b>Select contact residues of [<i>chain1</i>] and [<i>chain2</i>]</b>
 - <a href="select.html">select</a> the
 <i>chain1-chain2</i> <a href="#interface-residues">interface residues</a>
 of both chains
-<li><b>Select [<i>chain1</i>] contact residues</b> 
+<li><b>Select contact residues of [<i>chain1</i>] with [<i>chain2</i>]</b> 
 - <a href="select.html">select</a> the
 <i>chain1-chain2</i> <a href="#interface-residues">interface residues</a>
 of <i>chain1</i>
-<li><b>Select [<i>chain2</i>] contact residues</b> 
+<li><b>Select contact residues of [<i>chain2</i>] with [<i>chain1</i>]</b> 
 - <a href="select.html">select</a> the
 <i>chain1-chain2</i> <a href="#interface-residues">interface residues</a>
 of <i>chain2</i>
-  <ul><li><b>Select all</b>
-  - <a href="select.html">select</a> all atoms used in the calculation
-  <li><b>Clear selection</b>
-  - clear the current selection 
-  <li><b>Explode</b>
-  - move chains apart to separate the interfaces
-  <li><b>Unexplode</b>
-  - move atoms back together to restore the original structure
-  <li><b>Layout matching structure</b>
-  - redraw diagram with orientation similar to the current 3D structure
-  <li><b>Orient structure</b>
-  - rotate the structure to an orientation similar to the 2D diagram
+<li><b>Explode [<i>chain1</i>] and [<i>chain2</i>]</b>
+- move chains apart to separate the interfaces
+<li><b>Unexplode [<i>chain1</i>] and [<i>chain2</i>]</b>
+- move chains back together
+  <ul>
   <li><b>Hide this tool</b>
-  - hide the panel (can be <a href="../window.html#panelcontrol">reshown</a>)
+  <li><b>Help</b>
   </ul>
 </ul>
 
+<a name="residue-plot"></a>
 <p class="nav">
 [<a href="#top">back to top</a>]
 </p>
-<a name="residue-plot"></a>
 <h3>Interface Residue Plot</h3>
 <p>
 A plot of the chain-chain interface residues 
 can be shown using the <a href="#edgemenu">edge context menu</a>
 in a <a href="#diagram">chain-chain network diagram</a>.
-The residue plot is essentially a 2D projection of what would be
-obtained in 3D with <b>Show [<i>chain2</i>] contact residues</b>
-in the <i>chain1-chain2</i> <a href="#edgemenu">edge context menu</a>:
+The residue plot is a 2D representation of what would be
+obtained in 3D with <b>Show interface</b> (below):
 colored nodes (circles) for individual <i>chain1</i>-<i>chain2</i>
-<a href="#interface-residues">interface residues</a>
-superimposed on a gray silhouette of the remaining residues of <i>chain1</i>.
+<a href="#interface-residues">interface residues</a> superimposed on
+a gray silhouette of the remaining residues of the second chain.
 The interface-residue nodes are colored to match the structure and
 labeled by residue number.
 Clicking a node <a href="select.html">selects</a> the corresponding
 residue in the structure.
 </p><p>
-The plot can be moved as a whole with left mouse drag 
-(initially clicking the background, not on a node)
-and scaled with Shift-left mouse drag. 
-Scaling does not affect node sizes, only their spacing.
+The plot can be moved as a whole with
+left or middle mouse drag (initially clicking on the background)
+and expanded/contracted with Shift-left mouse drag. 
+Expansion/contraction is about the point initially clicked
+and does not affect node sizes, only their spacing.
 The panel containing the plot can be 
 <a href="../window.html#panelcontrol">manipulated</a>
 like other ChimeraX panels.
@@ -298,12 +291,9 @@ The residue plot has its own context menus, with:
 </p>
 <ul>
 <li><b>Show interface</b>
-- in 3D, show the chain (gray in the plot) as spheres with its
-<a href="#interface-residues">interface residues</a> in light gray, 
-plus only the <a href="#interface-residues">interface residues</a>
-from the other chain; adjust the view to match the plot
-(same as <b>Show [<i>chain2</i>] contact residues</b>
-in the <i>chain1-chain2</i> <a href="#edgemenu">edge context menu</a>)
+- in 3D, show the <a href="#interface-residues">interface residues</a> 
+from the two chains plus the remaining residues of the second chain in 
+light gray; orient view to face the second chain, shown as spheres
 <li><b>Select residue</b> (in residue context menu)
 - <a href="select.html">select</a> the corresponding residue in the structure
 (same as clicking the node)
@@ -313,5 +303,5 @@ in the <i>chain1-chain2</i> <a href="#edgemenu">edge context menu</a>)
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2016</address>
+November 2016</address>
 </body></html>
