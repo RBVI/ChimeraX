@@ -15,6 +15,7 @@
 #include <algorithm>  // std::find
 #include <atomstruct/Atom.h>
 #include <atomstruct/AtomicStructure.h>
+#include <element/Element.h>
 #include <functional>
 #include <map>
 #include <mutex>
@@ -26,28 +27,30 @@
 using atomstruct::Atom;
 using atomstruct::AtomicStructure;
 using atomstruct::AtomType;
+using element::Element;
 
 typedef std::vector<const Atom*> Group;
 
-class Atom_Condition
+class AtomCondition
 {
 public:
-	virtual  ~Atom_Condition() {}
+	virtual  ~AtomCondition() {}
 	virtual bool  atom_matches(const Atom* a) const = 0;
-	virtual bool  operator==(const Atom_Condition& other) const = 0;
+	virtual bool  operator==(const AtomCondition& other) const = 0;
 	virtual bool  possibly_matches_H() const = 0;
 	virtual std::vector<Group>  trace_group(const Atom* a, const Atom* parent = nullptr) = 0;
 };
 
-class Atom_Idatm_Condition: public Atom_Condition
+class AtomIdatmCondition: public AtomCondition
+// Python equivalent:  string
 {
 	AtomType  _idatm_type;
 public:
-	Atom_Idatm_Condition(const char *idatm_type): _idatm_type(idatm_type) {}
-	virtual  ~Atom_Idatm_Condition() {}
+	AtomIdatmCondition(const char *idatm_type): _idatm_type(idatm_type) {}
+	virtual  ~AtomIdatmCondition() {}
 	bool  atom_matches(const Atom* a) const { return a->idatm_type() == _idatm_type; }
-	bool  operator==(const Atom_Condition& other) const {
-		auto casted = dynamic_cast<const Atom_Idatm_Condition*>(&other);
+	bool  operator==(const AtomCondition& other) const {
+		auto casted = dynamic_cast<const AtomIdatmCondition*>(&other);
 		if (casted == nullptr)
 			return false;
 		return casted->_idatm_type == _idatm_type;
@@ -63,15 +66,41 @@ public:
 	}
 };
 
-class CG_Condition: public Atom_Condition
+class AtomElementCondition: public AtomCondition
+// Python equivalent:  int
+{
+	int  _element_num;
+public:
+	AtomElementCondition(int element_num): _element_num(element_num) {}
+	virtual  ~AtomElementCondition() {}
+	bool  atom_matches(const Atom* a) const { return a->element().number() == _element_num; }
+	bool  operator==(const AtomCondition& other) const {
+		auto casted = dynamic_cast<const AtomElementCondition*>(&other);
+		if (casted == nullptr)
+			return false;
+		return casted->_element_num == _element_num;
+	}
+	bool  possibly_matches_H() const { return _element_num == 1; }
+	std::vector<Group>  trace_group(const Atom* a, const Atom* = nullptr) {
+		std::vector<Group> traced_groups;
+		if (atom_matches(a)) {
+			traced_groups.emplace_back();
+			traced_groups.back().push_back(a);
+		}
+		return traced_groups;
+	}
+};
+
+class CG_Condition: public AtomCondition
+// Python equivalent:  list
 {
 public:
-	Atom_Condition*  atom_cond;
-	std::vector<Atom_Condition*>  bonded; // may actually also hold CG_Conditions
+	AtomCondition*  atom_cond;
+	std::vector<AtomCondition*>  bonded; // may actually also hold CG_Conditions
 
 	virtual  ~CG_Condition() { delete atom_cond; for (auto cond: bonded) delete cond; }
 	bool  atom_matches(const Atom* a) const { return atom_cond->atom_matches(a); }
-	bool  operator==(const Atom_Condition& other) const {
+	bool  operator==(const AtomCondition& other) const {
 		auto casted = dynamic_cast<const CG_Condition*>(&other);
 		if (casted == nullptr)
 			return false;
@@ -90,7 +119,7 @@ public:
 };
 
 inline unsigned int
-count_possible_Hs(std::vector<Atom_Condition*>& conditions)
+count_possible_Hs(std::vector<AtomCondition*>& conditions)
 {
 	unsigned int possible_Hs = 0;
 	for (auto cond: conditions)
@@ -100,24 +129,24 @@ count_possible_Hs(std::vector<Atom_Condition*>& conditions)
 }
 
 bool
-condition_compare(Atom_Condition* c1, Atom_Condition* c2)
+condition_compare(AtomCondition* c1, AtomCondition* c2)
 {
-	//TODO
+	//TODO: finish when enough types implemented (Python equivalent: _fragCompare)
 	return *c1 == *c2;
 }
 
-typedef std::map<Atom*, std::vector<Atom_Condition*>> Assignments;
+typedef std::map<Atom*, std::vector<AtomCondition*>> Assignments;
 
 std::vector<Group>
 match_descendents(const Atom* a, const Atom::Neighbors& neighbors, const Atom* parent,
-	std::vector<Atom_Condition*>& descendents, Assignments prev_assigned = Assignments())
+	std::vector<AtomCondition*>& descendents, Assignments prev_assigned = Assignments())
 {
 	// prev_assigned notes what atom->condition assignments have occurred and is
 	// used to try to avoid multiply matching indistinguishable fragments with the
 	// same set of atoms
 	std::vector<Group> matches;
 	auto target = descendents[0];
-	std::vector<Atom_Condition*> alternatives(descendents.begin()+1, descendents.end());
+	std::vector<AtomCondition*> alternatives(descendents.begin()+1, descendents.end());
 	unsigned int bonds_to_match = neighbors.size() - (parent != nullptr);
 
 	if (descendents.size() < bonds_to_match
@@ -162,7 +191,7 @@ match_descendents(const Atom* a, const Atom::Neighbors& neighbors, const Atom* p
 				}
 			}
 			// don't modify the value of prev_assigned in place, since it may be in use elsewhere
-			std::vector<Atom_Condition*> new_assigned;
+			std::vector<AtomCondition*> new_assigned;
 			if (prev_assigned.find(other_atom) != prev_assigned.end())
 				new_assigned = prev_assigned[other_atom];
 			new_assigned.push_back(target);
@@ -205,19 +234,25 @@ CG_Condition::trace_group(const Atom* a, const Atom* parent)
 		// due to preceeding test, bonds_to_match must also be 0
 		traced_groups.emplace_back();
 		traced_groups.back().push_back(a);
-		return traced_groups;
+	} else { 
+		auto matches = match_descendents(a, a->neighbors(), parent, bonded);
+		for (auto& match: matches) {
+			traced_groups.emplace_back();
+			auto& back = traced_groups.back();
+			back.push_back(a);
+			back.insert(back.end(), match.begin(), match.end());
+		}
 	}
-
-	//TODO: evaluate bonded
-	auto matches = match_descendents(a, a->neighbors(), parent, bonded);
+	return traced_groups;
 }
 
-Atom_Condition*
+AtomCondition*
 make_atom_condition(PyObject* atom_rep)
 {
-	if (PyUnicode_Check(atom_rep)) {
-		return new Atom_Idatm_Condition(PyUnicode_AsUTF8(atom_rep));
-	}
+	if (PyUnicode_Check(atom_rep))
+		return new AtomIdatmCondition(PyUnicode_AsUTF8(atom_rep));
+	if (PyLong_Check(atom_rep)) 
+		return new AtomElementCondition((int)PyLong_AsLong(atom_rep));
 	//TODO: remainder of types
 }
 
@@ -256,9 +291,9 @@ make_condition(PyObject* group_rep)
 	auto list_size = PyList_GET_SIZE(bonded);
 	for (Py_ssize_t i = 0; i < list_size; ++i) {
 		PyObject* b = PyList_GET_ITEM(bonded, i);
-		Atom_Condition* bcond;
+		AtomCondition* bcond;
 		if (PyList_Check(b))
-			bcond = static_cast<Atom_Condition*>(make_condition(b));
+			bcond = static_cast<AtomCondition*>(make_condition(b));
 		else
 			bcond = make_atom_condition(b);
 		if (bcond == nullptr) {
