@@ -18,16 +18,19 @@ _cache_dirs = []
 # -----------------------------------------------------------------------------
 #
 def fetch_file(session, url, name, save_name, save_dir, *,
-               uncompress=False, ignore_cache=False, check_certificates=True):
-
+               uncompress=False, ignore_cache=False, check_certificates=True,
+               log='info'):
     from os import path, makedirs
     cache_dirs = cache_directories()
     if not ignore_cache and save_dir is not None:
         for d in cache_dirs:
             filename = path.join(d, save_dir, save_name)
             if path.exists(filename):
-                session.logger.info('Fetching %s from local cache: %s' % (
-                    name, filename))
+                msg = 'Fetching %s from local cache: %s' % (name, filename)
+                if log == 'info':
+                    session.logger.info(msg)
+                elif log == 'status':
+                    session.logger.status(msg)
                 return filename
 
     if save_dir is None:

@@ -120,7 +120,7 @@ def _get_template(session, name):
     url = "http://ligand-expo.rcsb.org/reports/%s/%s/%s.cif" % (name[0], name,
                                                                 name)
     try:
-        return fetch_file(session, url, 'CCD %s' % name, filename, 'CCD')
+        return fetch_file(session, url, 'CCD %s' % name, filename, 'CCD', log='status')
     except UserError:
         session.logger.warning(
             "Unable to fetch template for '%s': might be missing bonds"

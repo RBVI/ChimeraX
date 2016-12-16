@@ -346,7 +346,7 @@ class Models(State):
         if collation_okay:
             descript = "files" if len(fns) > 1 else fns[0]
             with Collator(session.logger,
-                    "Summary of feedbck from opening " + descript, log_errors):
+                    "Summary of feedback from opening " + descript, log_errors):
                 models, status = io.open_multiple_data(
                     session, filenames, format=format, name=name, **kw)
         else:
