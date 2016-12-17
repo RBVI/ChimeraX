@@ -47,6 +47,7 @@ class AtomIdatmCondition: public AtomCondition
 	AtomType  _idatm_type;
 public:
 	AtomIdatmCondition(const char *idatm_type): _idatm_type(idatm_type) {}
+	AtomIdtamCondition(const AtomType& idatm_type): _idatm_type(idatm_type) {}
 	virtual  ~AtomIdatmCondition() {}
 	bool  atom_matches(const Atom* a) const { return a->idatm_type() == _idatm_type; }
 	bool  operator==(const AtomCondition& other) const {
@@ -90,6 +91,133 @@ public:
 		return traced_groups;
 	}
 };
+
+class AtomAlternativesCondition: public AtomCondition
+// Python equivalent:  tuple
+{
+public:
+	std::vector<AtomCondition*>  alternatives;
+
+	virtual  ~AtomAlternativesCondition() { for (auto cond: alternatives) delete cond; }
+	bool  atom_matches(const Atom* a) const {
+		for (auto cond: alternatives)
+			if (cond->atom_matches(a)) return true;
+		return false;
+	}
+	bool  operator==(const AtomCondition& other) const {
+		auto casted = dynamic_cast<const AtomAlternativesCondition*>(&other);
+		if (casted == nullptr)
+			return false;
+		for (auto cond1: alternatives) {
+			bool matched_any = false;
+			for (auto cond2: casted->alternatives) {
+				if (cond1 == cond2) {
+					matched_any = true;
+					break;
+				}
+			}
+			if (!matched_any)
+				return false;
+		}
+		return true;
+	}
+	bool  possibly_matches_H() const {
+		for (auto cond: alternatives)
+			if (cond->possibly_matches_H()) return true;
+		return false;
+	}
+	std::vector<Group>  trace_group(const Atom* a, const Atom* parent = nullptr) {
+		std::vector<Group> traced_groups;
+		for (auto cond: alternatives) {
+			traced_groups = cond->trace_group(a, parent);
+			if (traced_groups.size() > 0)
+				break;
+		}
+		return traced_groups;
+	}
+};
+
+class IdatmPropertyCondition: public AtomCondition
+// Python equivalent:  dict
+{
+public:
+	bool  has_default = false;
+	bool  default_val;
+	std::vector<AtomIdatmCondition*>  not_type;
+	bool  has_geometry = false;
+	Atom::IdatmGeometry  geometry;
+	int  substituents = -1;
+
+	virtual  ~IdatmPropertyCondition() { for (auto cond: not_type) delete cond; }
+	bool  atom_matches(const Atom* a) const;
+	bool  atom_matches(const IdatmType& idatm_type) const;
+	//TODO: atom_matches for idatm type instead of Atom*
+	bool  operator==(const AtomCondition& other) const {
+		auto casted = dynamic_cast<const IdatmPropertyCondition*>(&other);
+		if (casted == nullptr)
+			return false;
+		if (has_default != casted->has_default)
+			return false;
+		if (has_default && default_val != casted->default_val)
+			return false;
+		if (has_geometry != casted->has_geometry)
+			return false;
+		if (has_geometry && geometry != casted->geometry)
+			return false;
+		if (substituents != casted->substituents)
+			return false;
+		for (auto cond1: not_type) {
+			bool matched_any = false;
+			for (auto cond2: casted->not_type) {
+				if (cond1 == cond2) {
+					matched_any = true;
+					break;
+				}
+			}
+			if (!matched_any)
+				return false;
+		}
+		return true;
+	}
+	//TODO
+	bool  possibly_matches_H() const {
+		for (auto cond: alternatives)
+			if (cond->possibly_matches_H()) return true;
+		return false;
+	}
+	std::vector<Group>  trace_group(const Atom* a, const Atom* parent = nullptr) {
+		std::vector<Group> traced_groups;
+		for (auto cond: alternatives) {
+			traced_groups = cond->trace_group(a, parent);
+			if (traced_groups.size() > 0)
+				break;
+		}
+		return traced_groups;
+	}
+};
+
+bool
+IdatmPropertCondition::atom_matches(const Atom* a) const
+{
+	auto idatm_info_map = Atom::get_idatm_info_map();
+	auto mi = idatm_info_map.find(a->idatm_type());
+	if (mi == idatm_info_map.end()) {
+		// uncommon type
+		if (has_default)
+			return default_val;
+		return false;
+	}
+	if (not_type.size() > 0) {
+		for (auto cond: not_type)
+			if (cond->atom_matches(a))
+				return false;;
+	}
+	if (has_geometry && mi->geometry != geometry)
+		return false;
+	if (substituents >= 0 && mi->substituents != substituents)
+		return false;
+	return true;
+}
 
 class CG_Condition: public AtomCondition
 // Python equivalent:  list
@@ -246,6 +374,12 @@ CG_Condition::trace_group(const Atom* a, const Atom* parent)
 	return traced_groups;
 }
 
+IdatmPropertyCondition*
+make_idatm_property_condition(PyObject* dict)
+{
+	
+}
+
 AtomCondition*
 make_atom_condition(PyObject* atom_rep)
 {
@@ -253,7 +387,54 @@ make_atom_condition(PyObject* atom_rep)
 		return new AtomIdatmCondition(PyUnicode_AsUTF8(atom_rep));
 	if (PyLong_Check(atom_rep)) 
 		return new AtomElementCondition((int)PyLong_AsLong(atom_rep));
+	if (PyTuple_Check(atom_rep)) {
+		auto cond = new AtomAlternativesCondition;
+		auto num_conds = PyTuple_GET_SIZE(atom_rep);
+		for (decltype(num_conds) i = 0; i < num_conds; ++i) {
+			auto sub_cond = make_atom_condition(PyTuple_GET_ITEM(atom_rep, i));
+			if (sub_cond == nullptr) {
+				for (decltype(i) j = 0; j < i; ++j)
+					delete cond->alternatives[j];
+				delete cond;
+				return nullptr;
+			}
+			cond->alternatives.push_back(make_atom_condition(PyTuple_GET_ITEM(atom_rep, i)));
+		}
+		return cond;
+	}
+	if (PyDict_Check(atom_rep))
+		return make_idatm_property_condition(atom_rep);
 	//TODO: remainder of types
+
+	auto py_type = PyObject_Type(atom_rep);
+	if (py_type == nullptr) {
+		PyErr_SetString(PyExc_ValueError, "Could not get type() of chem group fragment");
+		return nullptr;
+	}
+	auto py_type_string = PyObject_ASCII(py_type);
+	if (py_type_string == nullptr) {
+		PyErr_SetString(PyExc_ValueError,
+			"Could not convert type to ASCII string for chem group fragment");
+		Py_DECREF(py_type);
+		return nullptr;
+	}
+	PyObject* repr = PyObject_ASCII(atom_rep);
+	if (repr == nullptr)
+		PyErr_SetString(PyExc_ValueError,
+			"Could not compute repr() of chem group test-condition representation");
+		Py_DECREF(py_type);
+		Py_DECREF(py_type_string);
+		return nullptr;
+	std::ostringstream err_msg;
+	err_msg << "Unexpected type (";
+	err_msg << PyUnicode_AsUTF8(py_type_string);
+	err_msg << ") for chem group component: ";
+	err_msg << PyUnicode_AsUTF8(repr);
+	PyErr_SetString(PyExc_ValueError, err_msg.str().c_str());
+	Py_DECREF(py_type);
+	Py_DECREF(py_type_string);
+	Py_DECREF(repr);
+	return nullptr;
 }
 
 CG_Condition*
