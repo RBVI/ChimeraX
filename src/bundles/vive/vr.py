@@ -10,42 +10,43 @@
 # === UCSF ChimeraX Copyright ===
 
 # -----------------------------------------------------------------------------
-# Command to view models in HTC Vive for ChimeraX.
+# Command to view models in HTC Vive or Oculus Rift for ChimeraX.
 #
-def vive(session, enable):
-    '''Enable stereo viewing and head motion tracking with an HTC Vive headset.
+def vr(session, enable):
+    '''Enable stereo viewing and head motion tracking with virtual reality headsets using SteamVR.
 
     Parameters
     ----------
     enable : bool
-      Enable or disable use of an HTC Vive headset.  The device must be connected
+      Enable or disable use of an HTC Vive headset or Oculus Rift headset using SteamVR.
+      The device must be connected
       and powered on to enable it. Graphics will not be updated in the main
-      ChimeraX window because the different rendering rates of the HTC Vive and a
-      conventional display will cause stuttering of the Vive graphics.
+      ChimeraX window because the different rendering rates of the headset and a
+      conventional display will cause stuttering of the headset graphics.
       Also the Side View panel in the main ChimeraX window should be closed to avoid
       stuttering.
     '''
     
     if enable:
-        start_vive(session)
+        start_vr(session)
     else:
-        stop_vive(session)
+        stop_vr(session)
 
 # -----------------------------------------------------------------------------
 # Register the oculus command for ChimeraX.
 #
-def register_vive_command():
+def register_vr_command():
     from chimerax.core.commands import CmdDesc, BoolArg, FloatArg, register
     desc = CmdDesc(required = [('enable', BoolArg)],
-                   synopsis = 'Start / stop HTC Vive rendering')
-    register('vive', desc, vive)
+                   synopsis = 'Start SteamVR virtual reality rendering')
+    register('vr', desc, vr)
 
 # -----------------------------------------------------------------------------
 #
-def start_vive(session):
+def start_vr(session):
 
     v = session.main_view
-    if isinstance(v.camera, ViveCamera):
+    if isinstance(v.camera, SteamVRCamera):
         return
 
     try:
@@ -54,23 +55,23 @@ def start_vive(session):
         from chimerax.core.errors import UserError
         raise UserError('Failed to importing OpenVR module: %s' % str(e))
     
-    v.camera = ViveCamera(session)
+    v.camera = SteamVRCamera(session)
     # Set redraw timer for 1 msec to minimize dropped frames.
     session.ui.main_window.graphics_window.set_redraw_interval(1)
 
-    msg = 'started HTC Vive rendering'
+    msg = 'started SteamVR rendering'
     log = session.logger
     log.status(msg)
     log.info(msg)
 
 # -----------------------------------------------------------------------------
 #
-def stop_vive(session):
+def stop_vr(session):
 
     v = session.main_view
     c = v.camera
-    if isinstance(c, ViveCamera):
-        # Have to delay shutdown of Vive OpenVR until draw callback
+    if isinstance(c, SteamVRCamera):
+        # Have to delay shutdown of SteamVR connection until draw callback
         # otherwise it clobbers the Qt OpenGL context making entire gui black.
         def replace_camera(s = session):
             from chimerax.core.graphics import MonoCamera
@@ -82,7 +83,7 @@ def stop_vive(session):
 # -----------------------------------------------------------------------------
 #
 from chimerax.core.graphics import Camera
-class ViveCamera(Camera):
+class SteamVRCamera(Camera):
 
     def __init__(self, session):
 
@@ -180,7 +181,7 @@ class ViveCamera(Camera):
         
     def name(self):
         '''Name of camera.'''
-        return 'vive'
+        return 'vr'
 
     def next_frame(self, *_):
         c = self.compositor
