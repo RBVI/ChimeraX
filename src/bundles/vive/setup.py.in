@@ -65,6 +65,7 @@ setup(
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
         "ChimeraX :: Bundle :: General :: 1,1 :: PKG_NAME :: chimerax.vive :: ",
+        "ChimeraX :: Command :: vr :: General :: View models on VR headset using SteamVR",
         "ChimeraX :: Command :: vive :: General :: View models on VR headset using SteamVR",
     ],
 )

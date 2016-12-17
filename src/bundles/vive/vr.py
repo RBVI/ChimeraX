@@ -40,6 +40,9 @@ def register_vr_command():
     desc = CmdDesc(required = [('enable', BoolArg)],
                    synopsis = 'Start SteamVR virtual reality rendering')
     register('vr', desc, vr)
+    desc = CmdDesc(required = [('enable', BoolArg)],
+                   synopsis = 'Start SteamVR virtual reality rendering')
+    register('vive', desc, vr)	# Former command name.
 
 # -----------------------------------------------------------------------------
 #
