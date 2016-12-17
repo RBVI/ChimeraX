@@ -65,6 +65,9 @@ UCSF ChimeraX is the next-generation visualization program from the
 <a href="http://www.rbvi.ucsf.edu/">Resource for Biocomputing, Visualization, 
 and Informatics</a> at UC San Francisco, following Midas, MidasPlus, and
 <a href="http://www.rbvi.ucsf.edu/chimera/">Chimera</a>.
+Development is funded by the <a href="http://www.nih.gov/" 
+target="_blank">National Institutes of Health</a>
+(NIGMS P41-GM103311).
 </p>
 
 <h2>
@@ -120,8 +123,11 @@ Prerelease Daily Build Downloads
 <font color=red>
 <ul>
 <li>ChimeraX commands and their syntax are subject to change.
-<li>ChimeraX sessions are only guaranteed to be restorable using 
+<li>ChimeraX sessions may only be restorable using 
 the same daily version and may not be compatible with future versions.
+<li>Download is free for academic,
+government, non-profit, and personal use; commercial users, see
+<a href="../licensing.html">licensing</a>.
 </ul>
 </font>
 
@@ -135,10 +141,12 @@ the same daily version and may not be compatible with future versions.
 <th>Notes</th>
 </tr>
 <tr>
-<td>Mac OS 10.10</td>
+<td>Mac OS X 10.10</td>
 <td><a href="/chimerax/cgi-bin/secure/chimerax-get.py?file=macosx/chimerax-0.1.daily.pkg">chimerax-0.1.daily.pkg</a>
 <div id="macosx_info">fetching build information...</div></td>
-<td>Main development platform.</td>
+<td>Main development platform.
+<br>For OS X 10.10 and later; earlier may work (tried 10.9.5).
+</td>
 </tr>
 <tr>
 <td valign=top>Linux Debian 8</td>
@@ -157,24 +165,19 @@ See Linux notes <a href="#linux">below</a>.
 </table>
 <p><font size="-1">
 Daily builds are generated automatically each night from the 
-development source code. Thus the software will change from day to day,
-and while a given build may have unforeseen problems, these are often
+development source code. 
+While a given build may have unforeseen problems, these are often
 fixed by the next day.
 </font></p>
 
-<h2>
-Documentation
-</h2>
-<ul>
-<li><a href="../user/index.html">User Guide</a>
-<li><a href="../quickstart/index.html">Quick Start Guide</a>
-<li><a href="../devel/index.html">Programming Manual</a>
-</ul>
+<h3>
+<a href="../index.html">Documentation</a>
+</h3>
 
 <a name="linux"></a>
-<h2>
+<h3>
 Linux Notes
-</h2>
+</h3>
 <p>
 The Linux download will not work on Linux distributions besides Debian 8 
 because of many missing system libraries. 
