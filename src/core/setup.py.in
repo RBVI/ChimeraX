@@ -50,7 +50,7 @@ setup(
         # "PyQt5_commercial == 5.7",  # TODO: how are we going to handle this?
         # "scipy == 0.18",  # TODO: breaks on Windows
         "setuptools == 27",
-        "sortedcontainers == 1.4",
+        "sortedcontainers == 1.4.4",
         "suds_jurko == 0.6",
     ],
     packages=[
