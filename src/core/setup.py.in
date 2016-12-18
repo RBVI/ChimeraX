@@ -39,7 +39,7 @@ setup(
         "PKG_NAME": pkg_dir,
     },
     install_requires=[
-        "beautifulsoup4 == 4",
+        "beautifulsoup4 == 4.5.1",
         "colorama == 0.3",
         # "filelock == 2",  # TODO: breaks on Windows
         "grako == 3.16.5",
