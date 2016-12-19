@@ -39,7 +39,7 @@ setup(
         "PKG_NAME": pkg_dir,
     },
     install_requires=[
-        "beautifulsoup4 == 4",
+        "beautifulsoup4 == 4.5.1",
         "colorama == 0.3",
         # "filelock == 2",  # TODO: breaks on Windows
         "grako == 3.16.5",
@@ -50,7 +50,7 @@ setup(
         # "PyQt5_commercial == 5.7",  # TODO: how are we going to handle this?
         # "scipy == 0.18",  # TODO: breaks on Windows
         "setuptools == 27",
-        "sortedcontainers == 1.4",
+        "sortedcontainers == 1.4.4",
         "suds_jurko == 0.6",
     ],
     packages=[

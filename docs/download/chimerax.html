@@ -52,16 +52,25 @@ function update_info(xmldoc) {
         }
 }
 </script>
+<link rel="stylesheet" type="text/css" href="../user/userdocs.css" />
 </head>
 <body>
 
-<img src="../quickstart/images/chimerax.png" align=right width=600px
+<img src="../quickstart/images/chimerax.png" align=right width=500px
 style="margin:4px 4px 4px 12px; border:1px solid black">
 
-<h1>UCSF ChimeraX Prerelease</h1>
+<h2>UCSF ChimeraX Prerelease
+<a href="../user/index.html">
+<img width="60px" src="../user/ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+title="User Guide Index"/></a>
+<a href="http://www.rbvi.ucsf.edu/chimerax/">
+<img width="50px" src="../user/ChimeraX-home-icon.svg" alt="ChimeraX home icon"
+title="ChimeraX Home"/></a>
+</h2>
 
 <p>
-UCSF ChimeraX is the next-generation visualization program from the 
+<a href="http://www.rbvi.ucsf.edu/chimerax/">UCSF ChimeraX</a>
+is the next-generation visualization program from the 
 <a href="http://www.rbvi.ucsf.edu/">Resource for Biocomputing, Visualization, 
 and Informatics</a> at UC San Francisco, following Midas, MidasPlus, and
 <a href="http://www.rbvi.ucsf.edu/chimera/">Chimera</a>.
@@ -141,7 +150,7 @@ government, non-profit, and personal use; commercial users, see
 <th>Notes</th>
 </tr>
 <tr>
-<td>Mac OS X 10.10</td>
+<td>Mac OS X 10.10 64-bit</td>
 <td><a href="/chimerax/cgi-bin/secure/chimerax-get.py?file=macosx/chimerax-0.1.daily.pkg">chimerax-0.1.daily.pkg</a>
 <div id="macosx_info">fetching build information...</div></td>
 <td>Main development platform.
@@ -149,7 +158,7 @@ government, non-profit, and personal use; commercial users, see
 </td>
 </tr>
 <tr>
-<td valign=top>Linux Debian 8</td>
+<td valign=top>Linux 64-bit</td>
 <td valign=top><a href="/chimerax/cgi-bin/secure/chimerax-get.py?file=linux/chimerax-0.1.daily.tar.gz">chimerax-0.1.daily.tar.gz</a>
 <div id="linux_info">fetching build information...</div></td>
 <td>
@@ -157,7 +166,7 @@ See Linux notes <a href="#linux">below</a>.
 </td>
 </tr>
 <tr>
-<td>Windows 10</td>
+<td>Windows 10 64-bit</td>
 <td><a href="/chimerax/cgi-bin/secure/chimerax-get.py?file=windows/chimerax-0.1.daily.exe">chimerax-0.1.daily.exe</a>
 <div id="windows_info">fetching build information...</div></td>
 <td>Main development platform.</td>
@@ -179,10 +188,17 @@ fixed by the next day.
 Linux Notes
 </h3>
 <p>
-The Linux download will not work on Linux distributions besides Debian 8 
-because of many missing system libraries. 
-It is possible to install all the needed libraries. We have used it 
-on Ubuntu 15.04 after installing a handful of missing libraries.
+The Linux download is compiled with gcc 4.9 on Debian 8.
+It also runs on Ubuntu 16.04 and 16.10.
+It does not run on RHEL/CentOS 7 as is.
+To get it to run on RHEL/CentOS 7,
+a user reported that he compiled and installed gcc 4.9
+&mdash; we have not yet verified that fact.
+The gcc 4.9 runtime should also be in the
+<a href="https://developers.redhat.com/products/developertoolset/overview/">Red Hat Developer Toolset</a>,
+but that has not been confirmed.
+Other Linux distributions have not been tested
+and might require additional libraries to be installed.
 </p>
 
 </body>
