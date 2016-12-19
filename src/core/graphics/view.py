@@ -243,9 +243,6 @@ class View:
 
         return True
 
-    def new_frame_checker(self):
-        return NewFrameChecker(self)
-
     def draw_xor_rectangle(self, x1, y1, x2, y2, color):
         self._use_opengl()
         d = getattr(self, '_rectangle_drawing', None)
@@ -1022,19 +1019,3 @@ def _drawing_bounds(drawings, open_drawing):
     center = None if b is None else b.center()
     radius = None if b is None else b.radius()
     return center, radius, bdrawings
-
-class NewFrameChecker:
-    '''
-    When called reports whether a new graphics frame has been drawn since the
-    last time this object was called.  Instances are used by code that wants to only
-    trigger once per graphics frame.
-    '''
-    def __init__(self, view):
-        self._view = view
-        self._last_frame_number = None
-    def __call__(self):
-        f = self._view.frame_number
-        if f == self._last_frame_number:
-            return False
-        self._last_frame_number = f
-        return True

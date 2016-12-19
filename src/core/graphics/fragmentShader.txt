@@ -60,6 +60,10 @@ uniform vec3 ambient_color;
 in vec3 N;
 in vec3 v;
 
+#ifdef USE_STEREO_360
+in vec3 vshadow;
+#endif
+
 #ifdef USE_DEPTH_CUE
 uniform float depth_cue_start;
 uniform float depth_cue_end;
@@ -158,7 +162,11 @@ void main (void)
   for (int i = 0 ; i < shadow_count ; ++i)
     {
       mat4 stf = shadow_transforms[i];
-      vec3 shadow_tex_coord = (stf*vec4(v,1)).stp;
+      #ifdef USE_STEREO_360
+        vec3 shadow_tex_coord = (stf*vec4(vshadow,1)).stp;
+      #else
+        vec3 shadow_tex_coord = (stf*vec4(v,1)).stp;
+      #endif
 //      vec3 shadow_tex_coord = (stf*vec4(vscene,1)).stp;
       vec3 light_direction = shadow_depth * vec3(stf[0][2], stf[1][2], stf[2][2]);
       float diffuse = max(-dot(N1,light_direction),0.0);

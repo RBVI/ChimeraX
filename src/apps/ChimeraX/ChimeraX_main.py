@@ -69,18 +69,11 @@ def parse_arguments(argv):
     import getopt
 
     if sys.platform.startswith('darwin'):
-        # skip extra -psn_ argument on Mac OS X 10.8 and earlier
-        import platform
-        release = platform.mac_ver()[0]
-        if release:
-            release = [int(x) for x in release.split('.')]
-            if release < [10, 9]:
-                for i, arg in enumerate(argv):
-                    if i == 0:
-                        continue
-                    if arg.startswith('-psn_'):
-                        del argv[i]
-                        break
+        # skip extra -psn_ argument on Mac OS X 10.8 and earlier and Mac OS X 10.12 on first launch
+        for i, arg in enumerate(argv):
+            if i > 0 and arg.startswith('-psn_'):
+                del argv[i]
+                break
 
     class Opts:
         pass

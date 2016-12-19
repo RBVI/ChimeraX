@@ -27,7 +27,7 @@ install: dir all server.pem
 	fi
 
 app-install: wheel
-	$(APP_PIP) install -U $(WHEEL)
+	$(APP_PIP) install -U --upgrade-strategy only-if-needed $(WHEEL)
 	$(RSYNC) $(WHEEL) $(wheelhouse) && cd $(wheelhouse) && make update
 
 wheel: setup.py
