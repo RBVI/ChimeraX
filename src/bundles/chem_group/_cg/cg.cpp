@@ -47,9 +47,10 @@ class AtomIdatmCondition: public AtomCondition
 	AtomType  _idatm_type;
 public:
 	AtomIdatmCondition(const char *idatm_type): _idatm_type(idatm_type) {}
-	AtomIdtamCondition(const AtomType& idatm_type): _idatm_type(idatm_type) {}
+	AtomIdatmCondition(const AtomType& idatm_type): _idatm_type(idatm_type) {}
 	virtual  ~AtomIdatmCondition() {}
 	bool  atom_matches(const Atom* a) const { return a->idatm_type() == _idatm_type; }
+	bool  atom_matches(const AtomType& idatm_type) const { return idatm_type == _idatm_type; }
 	bool  operator==(const AtomCondition& other) const {
 		auto casted = dynamic_cast<const AtomIdatmCondition*>(&other);
 		if (casted == nullptr)
@@ -149,9 +150,8 @@ public:
 	int  substituents = -1;
 
 	virtual  ~IdatmPropertyCondition() { for (auto cond: not_type) delete cond; }
-	bool  atom_matches(const Atom* a) const;
-	bool  atom_matches(const IdatmType& idatm_type) const;
-	//TODO: atom_matches for idatm type instead of Atom*
+	bool  atom_matches(const AtomType& idatm_type) const;
+	bool  atom_matches(const Atom* a) const { return atom_matches(a->idatm_type()); }
 	bool  operator==(const AtomCondition& other) const {
 		auto casted = dynamic_cast<const IdatmPropertyCondition*>(&other);
 		if (casted == nullptr)
@@ -179,28 +179,25 @@ public:
 		}
 		return true;
 	}
-	//TODO
 	bool  possibly_matches_H() const {
-		for (auto cond: alternatives)
-			if (cond->possibly_matches_H()) return true;
-		return false;
+		AtomType h("H"), hc("HC");
+		return atom_matches(h) || atom_matches(hc);
 	}
 	std::vector<Group>  trace_group(const Atom* a, const Atom* parent = nullptr) {
 		std::vector<Group> traced_groups;
-		for (auto cond: alternatives) {
-			traced_groups = cond->trace_group(a, parent);
-			if (traced_groups.size() > 0)
-				break;
+		if (atom_matches(a)) {
+			traced_groups.emplace_back();
+			traced_groups.back().push_back(a);
 		}
 		return traced_groups;
 	}
 };
 
 bool
-IdatmPropertCondition::atom_matches(const Atom* a) const
+IdatmPropertyCondition::atom_matches(const AtomType& idatm_type) const
 {
 	auto idatm_info_map = Atom::get_idatm_info_map();
-	auto mi = idatm_info_map.find(a->idatm_type());
+	auto mi = idatm_info_map.find(idatm_type);
 	if (mi == idatm_info_map.end()) {
 		// uncommon type
 		if (has_default)
@@ -209,12 +206,12 @@ IdatmPropertCondition::atom_matches(const Atom* a) const
 	}
 	if (not_type.size() > 0) {
 		for (auto cond: not_type)
-			if (cond->atom_matches(a))
+			if (cond->atom_matches(idatm_type))
 				return false;;
 	}
-	if (has_geometry && mi->geometry != geometry)
+	if (has_geometry && mi->second.geometry != geometry)
 		return false;
-	if (substituents >= 0 && mi->substituents != substituents)
+	if (substituents >= 0 && (int)mi->second.substituents != substituents)
 		return false;
 	return true;
 }
