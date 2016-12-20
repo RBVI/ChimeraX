@@ -78,6 +78,7 @@ ifneq (,$(PATCHES))
 	for p in $(PATCHES); do \
 		(cd $(SOURCE) && patch -f -p1) < $$p ; \
 	done
+	touch $(SOURCE)
 endif
 
 clean:
