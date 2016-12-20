@@ -143,7 +143,7 @@ class MapSeries(ToolInstance):
         if t >= n - 1:
             t = 0
         from chimerax.core.map.series.vseries_command import vseries_play
-        p = vseries_play(self.session, self.series, start=t, loop=True, cache_frames=n*ns)
+        p = vseries_play(self.session, self.series, start_time=t, loop=True, cache_frames=n*ns)
 
         def update_slider(t, self=self):
             self.update_slider_range()
