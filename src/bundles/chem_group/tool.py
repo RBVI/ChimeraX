@@ -168,7 +168,8 @@ def find_group(group_desc, structures):
 	from chimerax.core.atomic import Atoms
 	groups = []
 	for structure in structures:
-		groups.extend(Atoms(fg(structure.cpp_pointer, group_rep, group_principals, num_cpus)))
+		groups.extend(Atoms(
+			fg(structure.cpp_pointer, group_rep, group_principals, RingAtom, num_cpus)))
 	return groups
 '''
 	groups = []

@@ -15,6 +15,7 @@
 #include <algorithm>  // std::find
 #include <atomstruct/Atom.h>
 #include <atomstruct/AtomicStructure.h>
+#include <cstring>
 #include <element/Element.h>
 #include <functional>
 #include <map>
@@ -22,6 +23,7 @@
 #include <pysupport/convert.h>
 #include <sstream>
 #include <thread>
+#include <typeinfo>
 #include <vector>
 
 using atomstruct::Atom;
@@ -30,6 +32,8 @@ using atomstruct::AtomType;
 using element::Element;
 
 typedef std::vector<const Atom*> Group;
+
+static PyObject*  py_ring_atom_class;
 
 class AtomCondition
 {
@@ -216,6 +220,34 @@ IdatmPropertyCondition::atom_matches(const AtomType& idatm_type) const
 	return true;
 }
 
+class RingAtomCondition: public AtomCondition
+// Python equivalent:  RingAtom instance
+{
+	AtomCondition*  _cond;
+	int  _num_rings;
+public:
+	RingAtomCondition(AtomCondition* ac, int num_rings): _cond(ac), _num_rings(num_rings) {}
+	virtual  ~RingAtomCondition() {}
+	bool  atom_matches(const Atom* a) const {
+		return _cond->atom_matches(a) && a->rings().size() == _num_rings;
+	}
+	bool  operator==(const AtomCondition& other) const {
+		auto casted = dynamic_cast<const RingAtomCondition*>(&other);
+		if (casted == nullptr)
+			return false;
+		return casted->_num_rings == _num_rings && casted->_cond == _cond;
+	}
+	bool  possibly_matches_H() const { return false; }
+	std::vector<Group>  trace_group(const Atom* a, const Atom* = nullptr) {
+		std::vector<Group> traced_groups;
+		if (atom_matches(a)) {
+			traced_groups.emplace_back();
+			traced_groups.back().push_back(a);
+		}
+		return traced_groups;
+	}
+};
+
 class CG_Condition: public AtomCondition
 // Python equivalent:  list
 {
@@ -256,7 +288,22 @@ count_possible_Hs(std::vector<AtomCondition*>& conditions)
 bool
 condition_compare(AtomCondition* c1, AtomCondition* c2)
 {
-	//TODO: finish when enough types implemented (Python equivalent: _fragCompare)
+	if (typeid(*c1) != typeid(*c2)) {
+		auto ac1 = dynamic_cast<AtomAlternativesCondition*>(c1);
+		if (ac1 != nullptr) {
+			for (auto alt: ac1->alternatives)
+				if (alt == c2)
+					return true;
+		}
+		auto ac2 = dynamic_cast<AtomAlternativesCondition*>(c2);
+		if (ac2 != nullptr) {
+			for (auto alt: ac2->alternatives)
+				if (alt == c1)
+					return true;
+		}
+		return false;
+	}
+	//TODO (from _fragCompare)
 	return *c1 == *c2;
 }
 
@@ -374,11 +421,123 @@ CG_Condition::trace_group(const Atom* a, const Atom* parent)
 IdatmPropertyCondition*
 make_idatm_property_condition(PyObject* dict)
 {
-	
+	auto cond = new IdatmPropertyCondition;
+	PyObject* key;
+	PyObject* value;
+	Py_ssize_t pos = 0;
+	while (PyDict_Next(dict, &pos, &key, &value)) {
+		if (!PyUnicode_Check(key)) {
+			delete cond;
+			PyObject* repr = PyObject_ASCII(key);
+			if (repr == nullptr) {
+				PyErr_SetString(PyExc_ValueError, "Could not compute repr() of"
+					" chem group IDATM-property test-condition dictionary key");
+				return nullptr;
+			}
+			std::ostringstream err_msg;
+			err_msg << "Unexpected IDATM-property condition dictionary key: ";
+			err_msg << PyUnicode_AsUTF8(repr);
+			PyErr_SetString(PyExc_ValueError, err_msg.str().c_str());
+			Py_DECREF(repr);
+			return nullptr;
+		}
+		auto str_key = PyUnicode_AsUTF8(key);
+		if (str_key == nullptr) {
+			delete cond;
+			PyObject* repr = PyObject_ASCII(key);
+			if (repr == nullptr) {
+				PyErr_SetString(PyExc_ValueError, "Could not convert"
+					" chem group IDATM-property test-condition dictionary key to UTF8");
+				return nullptr;
+			}
+			std::ostringstream err_msg;
+			err_msg << "Unexpected IDATM-property condition dictionary key: ";
+			err_msg << repr;
+			PyErr_SetString(PyExc_ValueError, err_msg.str().c_str());
+			Py_DECREF(repr);
+			return nullptr;
+		}
+		if (strcmp(str_key, "default") == 0) {
+			if (!PyBool_Check(value)) {
+				delete cond;
+				std::ostringstream err_msg;
+				err_msg << "Value for chem group IDATM-property test-condition dictionary key";
+				err_msg << " 'default' is not boolean";
+				PyErr_SetString(PyExc_ValueError, err_msg.str().c_str());
+				return nullptr;
+			}
+			cond->has_default = true;
+			cond->default_val = value == Py_True;
+			continue;
+		}
+		if (strcmp(str_key, "notType") == 0) {
+			if (!PyList_Check(value)) {
+				delete cond;
+				std::ostringstream err_msg;
+				err_msg << "Value for chem group IDATM-property test-condition dictionary key";
+				err_msg << " 'notType' is not a list";
+				PyErr_SetString(PyExc_ValueError, err_msg.str().c_str());
+				return nullptr;
+			}
+			auto size = PyList_Size(value);
+			for (decltype(size) i = 0; i < size; ++i) {
+				auto item = PyList_GET_ITEM(value, i);
+				if (!PyUnicode_Check(item)) {
+					delete cond;
+					std::ostringstream err_msg;
+					err_msg << "Item in chem group IDATM-property test-condition dictionary";
+					err_msg << " 'notType' list is not a string";
+					PyErr_SetString(PyExc_ValueError, err_msg.str().c_str());
+					return nullptr;
+				}
+				cond->not_type.push_back(new AtomIdatmCondition(PyUnicode_AsUTF8(item)));
+			}
+			continue;
+		}
+		if (strcmp(str_key, "geometry") == 0) {
+			if (!PyLong_Check(value)) {
+				delete cond;
+				std::ostringstream err_msg;
+				err_msg << "Value for chem group IDATM-property test-condition dictionary key";
+				err_msg << " 'geometry' is not an integer";
+				PyErr_SetString(PyExc_ValueError, err_msg.str().c_str());
+				return nullptr;
+			}
+			cond->has_geometry = true;
+			cond->geometry = static_cast<Atom::IdatmGeometry>(PyLong_AsLong(value));
+			continue;
+		}
+		if (strcmp(str_key, "substituents") == 0) {
+			if (!PyLong_Check(value)) {
+				delete cond;
+				std::ostringstream err_msg;
+				err_msg << "Value for chem group IDATM-property test-condition dictionary key";
+				err_msg << " 'substituents' is not an integer";
+				PyErr_SetString(PyExc_ValueError, err_msg.str().c_str());
+				return nullptr;
+			}
+			cond->substituents = static_cast<int>(PyLong_AsLong(value));
+			continue;
+		}
+		delete cond;
+		PyObject* repr = PyObject_ASCII(key);
+		if (repr == nullptr) {
+			PyErr_SetString(PyExc_ValueError, "Could not compute repr() of"
+				" chem group IDATM-property test-condition dictionary key");
+			return nullptr;
+		}
+		std::ostringstream err_msg;
+		err_msg << "Unexpected IDATM-property condition dictionary key: ";
+		err_msg << PyUnicode_AsUTF8(repr);
+		PyErr_SetString(PyExc_ValueError, err_msg.str().c_str());
+		Py_DECREF(repr);
+		return nullptr;
+	}
+	return cond;
 }
 
 AtomCondition*
-make_atom_condition(PyObject* atom_rep)
+make_simple_atom_condition(PyObject* atom_rep)
 {
 	if (PyUnicode_Check(atom_rep))
 		return new AtomIdatmCondition(PyUnicode_AsUTF8(atom_rep));
@@ -388,20 +547,19 @@ make_atom_condition(PyObject* atom_rep)
 		auto cond = new AtomAlternativesCondition;
 		auto num_conds = PyTuple_GET_SIZE(atom_rep);
 		for (decltype(num_conds) i = 0; i < num_conds; ++i) {
-			auto sub_cond = make_atom_condition(PyTuple_GET_ITEM(atom_rep, i));
+			auto sub_cond = make_simple_atom_condition(PyTuple_GET_ITEM(atom_rep, i));
 			if (sub_cond == nullptr) {
 				for (decltype(i) j = 0; j < i; ++j)
 					delete cond->alternatives[j];
 				delete cond;
 				return nullptr;
 			}
-			cond->alternatives.push_back(make_atom_condition(PyTuple_GET_ITEM(atom_rep, i)));
+			cond->alternatives.push_back(make_simple_atom_condition(PyTuple_GET_ITEM(atom_rep, i)));
 		}
 		return cond;
 	}
 	if (PyDict_Check(atom_rep))
 		return make_idatm_property_condition(atom_rep);
-	//TODO: remainder of types
 
 	auto py_type = PyObject_Type(atom_rep);
 	if (py_type == nullptr) {
@@ -416,12 +574,13 @@ make_atom_condition(PyObject* atom_rep)
 		return nullptr;
 	}
 	PyObject* repr = PyObject_ASCII(atom_rep);
-	if (repr == nullptr)
+	if (repr == nullptr) {
 		PyErr_SetString(PyExc_ValueError,
 			"Could not compute repr() of chem group test-condition representation");
 		Py_DECREF(py_type);
 		Py_DECREF(py_type_string);
 		return nullptr;
+	}
 	std::ostringstream err_msg;
 	err_msg << "Unexpected type (";
 	err_msg << PyUnicode_AsUTF8(py_type_string);
@@ -432,6 +591,39 @@ make_atom_condition(PyObject* atom_rep)
 	Py_DECREF(py_type_string);
 	Py_DECREF(repr);
 	return nullptr;
+}
+
+AtomCondition*
+make_atom_condition(PyObject* atom_rep)
+{
+	if (PyObject_IsInstance(atom_rep, py_ring_atom_class)) {
+		auto atom_desc = PyObject_GetAttrString(atom_rep, "atom_desc");
+		if (atom_desc == nullptr) {
+			PyErr_SetString(PyExc_AttributeError, "RingAtom instance has no 'atom_desc' attribute");
+			return nullptr;
+		}
+		auto cond = make_simple_atom_condition(atom_desc);
+		if (cond == nullptr) {
+			Py_DECREF(atom_desc);
+			return nullptr;
+		}
+		auto num_rings = PyObject_GetAttrString(atom_rep, "num_rings");
+		if (atom_desc == nullptr) {
+			delete cond;
+			Py_DECREF(atom_desc);
+			PyErr_SetString(PyExc_AttributeError, "RingAtom instance has no 'num_rings' attribute");
+			return nullptr;
+		}
+		if (!PyLong_Check(num_rings)) {
+			delete cond;
+			Py_DECREF(atom_desc);
+			Py_DECREF(num_rings);
+			PyErr_SetString(PyExc_AttributeError, "RingAtom 'num_rings' attribute is not an int");
+			return nullptr;
+		}
+		return new RingAtomCondition(cond, static_cast<int>(PyLong_AsLong(num_rings)));
+	}
+	return make_simple_atom_condition(atom_rep);
 }
 
 CG_Condition*
@@ -518,8 +710,8 @@ find_group(PyObject *, PyObject *args)
 	PyObject*  py_group_rep;
 	PyObject*  py_group_principals;
 	unsigned int  num_cpus;
-	if (!PyArg_ParseTuple(args, PY_STUPID "OOOI", &py_struct_ptr, &py_group_rep,
-			&py_group_principals, &num_cpus))
+	if (!PyArg_ParseTuple(args, PY_STUPID "OOOOI", &py_struct_ptr, &py_group_rep,
+			&py_group_principals, &py_ring_atom_class, &num_cpus))
 		return nullptr;
 	if (!PyLong_Check(py_struct_ptr)) {
 		PyErr_SetString(PyExc_TypeError, "Structure pointer value must be int!");
@@ -530,6 +722,17 @@ find_group(PyObject *, PyObject *args)
 		PyErr_SetString(PyExc_TypeError, "group_principals must be a list!");
 		return nullptr;
 	}
+	if (!PyType_Check(py_ring_atom_class)) {
+		PyErr_SetString(PyExc_TypeError, "4th argument must be a class (RingAtom)");
+		return nullptr;
+	}
+	auto type_name = ((PyTypeObject*)py_ring_atom_class)->tp_name;
+	auto subloc = strstr(type_name, "RingAtom");
+	if (subloc == nullptr || (strlen(type_name) - (subloc - type_name) != strlen("RingAtom"))) {
+		PyErr_SetString(PyExc_TypeError, "4th argument is not the RingAtom class");
+		return nullptr;
+	}
+
 
 	std::vector<long>  group_principals;
 	try {
