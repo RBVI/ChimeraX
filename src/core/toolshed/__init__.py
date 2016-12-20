@@ -344,11 +344,11 @@ class Toolshed:
         _debug("data dir: %s" % self._data_dir)
 
         # Add directories to sys.path
-        self._site_dir = os.path.join(self._data_dir, "site-packages")
+        import site
+        self._site_dir = site.USER_SITE
         _debug("site dir: %s" % self._site_dir)
         import os
         os.makedirs(self._site_dir, exist_ok=True)
-        import site
         site.addsitedir(self._site_dir)
 
         # Create triggers
