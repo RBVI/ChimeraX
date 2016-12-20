@@ -63,7 +63,7 @@ class MapSeries(ToolInstance):
         layout.addWidget(pb)
         self.subsample_button = x2 = QPushButton()
         x2.setCheckable(True)
-        x2icon = join(dirname(__file__), 'half.png')
+        x2icon = join(dirname(__file__), 'icons', 'half.png')
         x2pix = QPixmap(x2icon)
         x2i = QIcon(x2pix)
         x2.setIcon(x2i)
@@ -165,7 +165,7 @@ class MapSeries(ToolInstance):
 
     def set_play_button_icon(self, play):
         from os.path import dirname, join
-        bitmap_path = join(dirname(__file__), ('play.png' if play else 'pause.png'))
+        bitmap_path = join(dirname(__file__), 'icons', ('play.png' if play else 'pause.png'))
         pb = self.play_button
         from PyQt5.QtGui import QPixmap, QIcon
         ppix = QPixmap(bitmap_path)
