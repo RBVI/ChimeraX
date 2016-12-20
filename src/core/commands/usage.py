@@ -41,13 +41,13 @@ def usage(session, command_name=None):
         if not session.ui.is_gui:
             for name in cmds:
                 try:
-                    info(cli.usage(name, no_subcommands=True))
+                    info(cli.usage(name, no_subcommands=True, expand_alias=False))
                 except:
                     info('%s -- no documentation' % name)
             return
         for name in cmds:
             try:
-                info(cli.html_usage(name, no_subcommands=True), is_html=True)
+                info(cli.html_usage(name, no_subcommands=True, expand_alias=False), is_html=True)
             except:
                 from html import escape
                 info('<b>%s</b> &mdash; no documentation' % escape(name),
@@ -57,8 +57,8 @@ def usage(session, command_name=None):
     try:
         usage = cli.usage(command_name)
     except ValueError as e:
-        status(str(e))
-        return
+        from ..errors import UserError
+        raise UserError(str(e))
     if session.ui.is_gui:
         info(cli.html_usage(command_name), is_html=True)
     else:
