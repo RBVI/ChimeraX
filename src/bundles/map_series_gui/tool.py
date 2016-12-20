@@ -165,8 +165,7 @@ class MapSeries(ToolInstance):
 
     def set_play_button_icon(self, play):
         from os.path import dirname, join
-        bitmap_path = (join(dirname(__file__),
-                       'play.png' if play else 'pause.png'))
+        bitmap_path = join(dirname(__file__), ('play.png' if play else 'pause.png'))
         pb = self.play_button
         from PyQt5.QtGui import QPixmap, QIcon
         ppix = QPixmap(bitmap_path)
