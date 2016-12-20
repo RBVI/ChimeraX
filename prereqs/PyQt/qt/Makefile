@@ -6,6 +6,8 @@ PREREQ_MAKE = 1
 TOP	= ../../..
 include $(TOP)/mk/config.make
 
+VERSION = 5.7
+MINOR_VERSION = 0
 FULL_VERSION = $(VERSION).$(MINOR_VERSION)
 DISTRIBUTION = qt-everywhere-opensource-src-$(FULL_VERSION).tar.7z
 SOURCE = $(tmpdir)/qt-everywhere-opensource-src-$(FULL_VERSION)
