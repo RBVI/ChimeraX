@@ -636,13 +636,19 @@ class ToolWindow:
     destroys it or hides it.  If it destroys it and this is the main window, all
     the child windows will also be destroyed.
 
+    The :py:keyword:`statusbar` keyword controls whether the tool will display
+    status messages via an in-window statusbar, or via the main ChimeraX statusbar.
+    In either case, the :py:method:`status` method can be used to issue status
+    messages.  It accepts the exact same arguments/keywords as the
+    :py:method:`~..logger.Logger.status` method in the :py:class:`~..logger.Logger` class.
+
     """
 
     #: Where the window can be placed in the main interface;
     #: 'side' is either left or right, depending on user preference
     placements = ["side", "right", "left", "top", "bottom"]
 
-    def __init__(self, tool_instance, title, *, close_destroys=True):
+    def __init__(self, tool_instance, title, *, close_destroys=True, statusbar=False):
         self.tool_instance = tool_instance
         self.close_destroys = close_destroys
         mw = tool_instance.session.ui.main_window
