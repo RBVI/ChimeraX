@@ -179,8 +179,14 @@ class SteamVRCamera(Camera):
         openvr.shutdown()
         self.vr_system = None
         self.compositor = None
+        fb = self._framebuffer
+        if fb is not None:
+            self._session.main_view.render.make_current()
+            fb.delete()
+            self._framebuffer = None
         if self._close_cb:
             self._close_cb()	# Replaces the main view camera and resets redraw rate.
+
         
     def name(self):
         '''Name of camera.'''

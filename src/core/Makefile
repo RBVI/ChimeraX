@@ -94,7 +94,7 @@ clean:
 
 buildinfo.py: buildinfo.py.in mkbuildinfo
 	rm -f buildinfo.py
-	$(PYTHON_EXE) mkbuildinfo $(TOP) > buildinfo.py || rm -f buildinfo.py
+	$(PYTHON_EXE) mkbuildinfo $(TOP) $(BUNDLE_VERSION) > buildinfo.py || rm -f buildinfo.py
 
 _appdirs.install: appdirs_cpp.install
 atomic.install: arrays_cpp.install chutil_cpp.install ioutil_cpp.install \
