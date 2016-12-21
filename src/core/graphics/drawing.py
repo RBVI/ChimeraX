@@ -1531,8 +1531,11 @@ class Pick:
         '''Text description of the picked object.'''
         return None
 
-    def select(self, toggle=False):
-        '''Cause this picked object to be marked as selected.'''
+    def select(self, mode = 'add'):
+        '''
+        Cause this picked object to be selected ('add' mode), unselected ('subtract' mode)
+        or toggle selected ('toggle' mode).
+        '''
         pass
 
 class TrianglePick(Pick):
@@ -1580,14 +1583,20 @@ class TrianglePick(Pick):
     def drawing(self):
         return self._drawing
 
-    def select(self, toggle=False):
+    def select(self, mode = 'add'):
         d = self.drawing()
         pmask = d.selected_positions
         if pmask is None:
             from numpy import zeros, bool
             pmask = zeros((len(d.positions),), bool)
         c = self._copy
-        pmask[c] = not pmask[c] if toggle else 1
+        if mode == 'add':
+            s = 1
+        elif mode == 'subtract':
+            s = 0
+        elif mode == 'toggle':
+            s = not pmask[c]
+        pmask[c] = s
         d.selected_positions = pmask
 
 class TrianglesPick(Pick):
@@ -1614,9 +1623,15 @@ class TrianglesPick(Pick):
     def drawing(self):
         return self._drawing
 
-    def select(self, toggle=False):
+    def select(self, mode = 'add'):
         d = self.drawing()
-        d.selected = (not d.selected) if toggle else True
+        if mode == 'add':
+            s = True
+        elif mode == 'subtract':
+            s = False
+        elif mode == 'toggle':
+            s = (not d.selected)
+        d.selected = s
 
 
 class InstancePick(Pick):
@@ -1643,17 +1658,21 @@ class InstancePick(Pick):
     def drawing(self):
         return self._drawing
 
-    def select(self, toggle=False):
+    def select(self, mode = 'add'):
         d = self.drawing()
-        pmask = d.selected_positions
         pm = self._positions_mask
-        if pmask is None:
-            pmask = pm
-        elif toggle:
+        pmask = d.selected_positions
+        if pmask is None and mode != 'subtract':
+            pmask = pm.copy()
+            pmask[:] = d.selected
+        if mode == 'add':
+            pmask[pm] = 1
+        elif mode == 'subtract':
+            if pmask is not None:
+                pmask[pm] = 0
+        elif mode == 'toggle':
             from numpy import logical_xor
             logical_xor(pmask, pm, pmask)
-        else:
-            pmask = pm
         d.selected_positions = pmask
 
 

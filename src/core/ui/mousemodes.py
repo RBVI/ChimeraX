@@ -459,11 +459,12 @@ def select_pick(session, pick, toggle):
     else:
         if not toggle:
             sel.clear()
+        mode = 'toggle' if toggle else 'add'
         if isinstance(pick, list):
             for p in pick:
-                p.select(toggle)
+                p.select(mode)
         else:
-            pick.select(toggle)
+            pick.select(mode)
     sel.clear_promotion_history()
 
 class RotateMouseMode(MouseMode):

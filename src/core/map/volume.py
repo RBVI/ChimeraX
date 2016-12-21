@@ -1926,12 +1926,17 @@ class PickedMap(Pick):
     self.detail = detail
   def description(self):
     return '%s %s %s' % (self.map.id_string(), self.map.name, self.detail)
-  def select(self, toggle = False):
+  def select(self, mode = 'add'):
     m = self.map
-    sel = not m.selected if toggle else True
-    m.selected = sel
+    if mode == 'add':
+      s = True
+    elif mode == 'subtract':
+      s = False
+    elif mode == 'toggle':
+      s = not m.selected
+    m.selected = s
     for d in m.surface_drawings:
-      d.selected = sel
+      d.selected = s
     
 # -----------------------------------------------------------------------------
 #

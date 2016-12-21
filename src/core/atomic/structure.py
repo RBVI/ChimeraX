@@ -2057,9 +2057,19 @@ class PickedAtom(Pick):
     @property
     def residue(self):
         return self.atom.residue
-    def select(self, toggle = False):
-        a = self.atom
-        a.selected = (not a.selected) if toggle else True
+    def select(self, mode = 'add'):
+        select_atom(self.atom, mode)
+
+# -----------------------------------------------------------------------------
+#
+def select_atom(a, mode = 'add'):
+    if mode == 'add':
+        s = True
+    elif mode == 'subtract':
+        s = False
+    elif mode == 'toggle':
+        s = not a.selected
+    a.selected = s
 
 # -----------------------------------------------------------------------------
 #
@@ -2076,13 +2086,19 @@ class PickedAtoms(Pick):
             for res in residues:
                 return res
         return None
-    def select(self, toggle = False):
-        a = self.atoms
-        if toggle:
-            from numpy import logical_not
-            a.selected = logical_not(a.selected)
-        else:
-            a.selected = True
+    def select(self, mode = 'add'):
+        select_atoms(self.atoms, mode)
+
+# -----------------------------------------------------------------------------
+#
+def select_atoms(a, mode = 'add'):
+    if mode == 'add':
+        a.selected = True
+    elif mode == 'subtract':
+        a.selected = False
+    elif mode == 'toggle':
+        from numpy import logical_not
+        a.selected = logical_not(a.selected)
 
 # -----------------------------------------------------------------------------
 # Handles bonds and pseudobonds.
@@ -2120,9 +2136,9 @@ class PickedBond(Pick):
         if a1.residue == a2.residue:
             return a1.residue
         return None
-    def select(self, toggle = False):
+    def select(self, mode = 'add'):
         for a in self.bond.atoms:
-            a.selected = (not a.selected) if toggle else True
+            select_atom(a, mode)
 
 # -----------------------------------------------------------------------------
 #
@@ -2138,9 +2154,9 @@ class PickedPseudobond(Pick):
         if a1.residue == a2.residue:
             return a1.residue
         return None
-    def select(self, toggle = False):
+    def select(self, mode = 'add'):
         for a in self.pbond.atoms:
-            a.selected = (not a.selected) if toggle else True
+            select_atom(a, mode)
 
 # -----------------------------------------------------------------------------
 #
@@ -2151,9 +2167,14 @@ class PickedResidue(Pick):
         self.residue = residue
     def description(self):
         return str(self.residue)
-    def select(self, toggle=False):
-        atoms = self.residue.atoms
-        atoms.selected = (not atoms.selected.any()) if toggle else True
+    def select(self, mode = 'add'):
+        a = self.residue.atoms
+        if mode == 'add':
+            a.selected = True
+        elif mode == 'subtract':
+            a.selected = False
+        elif mode == 'toggle':
+            a.selected = not a.selected.any()
 
 # -----------------------------------------------------------------------------
 #
@@ -2169,13 +2190,8 @@ class PickedResidues(Pick):
             for res in self.residues:
                 return res
         return None
-    def select(self, toggle = False):
-        a = self.residues.atoms
-        if toggle:
-            from numpy import logical_not
-            a.selected = logical_not(a.selected)
-        else:
-            a.selected = True
+    def select(self, mode = 'add'):
+        select_atoms(self.residues.atoms, mode)
 
 # -----------------------------------------------------------------------------
 #
