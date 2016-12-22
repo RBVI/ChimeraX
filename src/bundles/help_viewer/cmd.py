@@ -131,8 +131,8 @@ def help(session, topic=None, *, option=None, is_query=False, target=None):
 
 help_desc = CmdDesc(
     optional=[
-        ('option',
-         Or(EnumOf(['new_viewer'], abbreviations=False), EmptyArg)),
+        #('option',
+        # Or(EnumOf(['new_viewer'], abbreviations=False), EmptyArg)),
         ('topic', RestOfLine)
     ],
     non_keyword=('option', 'topic'),
