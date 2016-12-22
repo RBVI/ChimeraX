@@ -45,8 +45,8 @@ clean:
 	rm -f pip.log
 
 outdated:
-	$(PIP) list --outdated --pre
+	$(PIP) list --outdated
 
 app-outdated:
-	$(APP_PIP) list --outdated --pre
+	$(APP_PIP) list --outdated
 
