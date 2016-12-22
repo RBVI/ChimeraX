@@ -45,8 +45,8 @@ clean:
 	rm -f pip.log
 
 outdated:
-	$(PIP) list --outdated
+	$(PIP) list --outdated --format=columns
 
 app-outdated:
-	$(APP_PIP) list --outdated
+	$(APP_PIP) list --outdated --format=columns
 
