@@ -50,20 +50,18 @@ sys.stdout = FlushFile(sys.stdout)
 def bonds(atoms):
     a0s, a1s = atoms
     bonds = set()
-    for rstr0, aname0, rstr1, aname1 in zip(
-            a0s.residues.strs, a0s.names, a1s.residues.strs,
-            a1s.names):
-        id0 = (rstr0, aname0)
-        id1 = (rstr1, aname1)
-        if id0 > id1:
+    for r0, aname0, r1, aname1 in zip(
+            a0s.residues, a0s.names, a1s.residues, a1s.names):
+        id0 = (str(r0), aname0)
+        id1 = (str(r1), aname1)
+        if r0.number > r1.number or (r0.number == r1.number and aname0 > aname1):
             id0, id1 = id1, id0
-        bonds.add("%s@%s/%s@%s" % (id0 + id1))
+        bonds.add("%s@%s--%s@%s" % (id0 + id1))
     return bonds
 
 
 def compare(session, pdb_id, pdb_path, mmcif_path):
     # return True if they differ
-    session.logger.info('Comparing %s' % pdb_id)
     from chimerax.core import io, fetch
     try:
         if os.path.isabs(pdb_path):
@@ -99,10 +97,10 @@ def compare(session, pdb_id, pdb_path, mmcif_path):
                 i += 1
                 pdb_id = "%s#%d" % (save_pdb_id, i)
             # atoms
-            pdb_atoms = ['%s@%s' % (r, a) for r, a in zip(
-                p.atoms.residues.strs, p.atoms.names)]
-            mmcif_atoms = ['%s@%s' % (r, a) for r, a in zip(
-                m.atoms.residues.strs, m.atoms.names)]
+            pdb_atoms = ['%s@%s' % (str(r), a) for r, a in zip(
+                p.atoms.residues, p.atoms.names)]
+            mmcif_atoms = ['%s@%s' % (str(r), a) for r, a in zip(
+                m.atoms.residues, m.atoms.names)]
             pdb_tmp = set(pdb_atoms)
             mmcif_tmp = set(mmcif_atoms)
             common = pdb_tmp & mmcif_tmp
@@ -141,8 +139,8 @@ def compare(session, pdb_id, pdb_path, mmcif_path):
                 same = False
 
             # residues
-            pdb_residues = set(p.residues.strs)
-            mmcif_residues = set(m.residues.strs)
+            pdb_residues = set([str(r) for r in p.residues])
+            mmcif_residues = set([str(r) for r in m.residues])
             common = pdb_residues & mmcif_residues
             extra = pdb_residues - common
             if extra:
@@ -165,20 +163,20 @@ def compare(session, pdb_id, pdb_path, mmcif_path):
                     continue
                 same = False
                 if ph:
-                    session.logger.info('pdb %s is a helix, and mmcif %s is not' % (pr, mr))
+                    session.logger.warning('%s: pdb %s is a helix, and mmcif %s is not' % (pdb_id, pr, mr))
                 if mh:
-                    session.logger.info('mmcif %s is a helix, and pdb %s is not' % (mr, pr))
+                    session.logger.warning('%s: mmcif %s is a helix, and pdb %s is not' % (pdb_id, mr, pr))
 
-            pdb_sheet = p.residues.is_sheet
-            mmcif_sheet = m.residues.is_sheet
+            pdb_sheet = p.residues.is_strand
+            mmcif_sheet = m.residues.is_strand
             for (pr, ps, mr, ms) in zip(pdb_residues, pdb_sheet, mmcif_residues, mmcif_sheet):
                 if ps == ms:
                     continue
                 same = False
                 if ps:
-                    session.logger.info('pdb %s is a sheet, and mmcif %s is not' % (pr, mr))
+                    session.logger.warning('%s: pdb %s is a sheet, and mmcif %s is not' % (pdb_id, pr, mr))
                 if ms:
-                    session.logger.info('mmcif %s is a sheet, and pdb %s is not' % (mr, pr))
+                    session.logger.warning('%s: mmcif %s is a sheet, and pdb %s is not' % (pdb_id, mr, pr))
 
             # chains
             diff = p.num_chains - m.num_chains
@@ -251,10 +249,12 @@ def compare(session, pdb_id, pdb_path, mmcif_path):
             all_same = all_same and same
         pdb_id = save_pdb_id
     if all_same:
-        session.logger.info('same: %s' % pdb_id)
-    for m in pdb_models:
+        print('same: %s' % pdb_id)
+    while pdb_models:
+        m = pdb_models.pop()
         m.delete()
-    for m in mmcif_models:
+    while mmcif_models:
+        m = mmcif_models.pop()
         m.delete()
     return all_same
 
@@ -320,14 +320,14 @@ def compare_all(session):
                 (pdb_dir == mmcif_dir and
                  (pid is not None and mid is not None and pid < mid) or
                  ((pid is None or mid is None) and pdb_file < mmcif_file))):
-            session.logger.info('Skipping pdb: %s' % os.path.join(pdb_dir, pdb_file))
+            session.logger.warning('Skipping pdb: %s' % os.path.join(pdb_dir, pdb_file))
             pdb_info = next_info(pdb_files)
             continue
         if (mmcif_dir < pdb_dir or
                 (pdb_dir == mmcif_dir and
                  (pid is not None and mid is not None and mid < pid) or
                  ((pid is None or mid is None) and mmcif_file < pdb_file))):
-            session.logger.info('Skipping mmcif: %s' % os.path.join(mmcif_dir, mmcif_file))
+            session.logger.warning('Skipping mmcif: %s' % os.path.join(mmcif_dir, mmcif_file))
             mmcif_info = next_info(mmcif_files)
             continue
         assert(pid == mid)
@@ -347,8 +347,8 @@ def compare_all(session):
     seconds = delta // timedelta(seconds=1)
     delta -= seconds * timedelta(seconds=1)
     microseconds = delta // timedelta(microseconds=1)
-    session.logger.info('Total time: %d days, %d hours, %d minutes, %d seconds, %d microseconds' % (days, hours, minutes, seconds, microseconds))
-    session.logger.info('Total time: %s' % (end_time - start_time))
+    print('Total time: %d days, %d hours, %d minutes, %d seconds, %d microseconds' % (days, hours, minutes, seconds, microseconds))
+    print('Total time: %s' % (end_time - start_time))
     raise SystemExit(os.EX_OK if all_same else os.EX_DATAERR)
 
 
