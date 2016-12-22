@@ -74,7 +74,9 @@ def fetch_mmcif(session, pdb_id, fetch_source="rcsb", ignore_cache=False, **kw):
         # check on local system -- TODO: configure location
         subdir = pdb_id[1:3]
         filename = "/databases/mol/mmCIF/%s/%s.cif" % (subdir, pdb_id)
-        if not os.path.exists(filename):
+        if os.path.exists(filename):
+            session.logger.info("Fetching mmCIF %s from system cache: %s" % (pdb_id, filename))
+        else:
             filename = None
     if filename is None:
         base_url = _mmcif_sources.get(fetch_source, None)

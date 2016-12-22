@@ -234,12 +234,12 @@ class SteamVRCamera(Camera):
         
         # Check for button press
         vrs = self.vr_system
-        have_event, e = vrs.pollNextEvent()
-        if not have_event:
+        import openvr
+        e = openvr.VREvent_t()
+        if not vrs.pollNextEvent(e):
             return
         
         t = e.eventType
-        import openvr
         if t == openvr.VREvent_ButtonPress or t == openvr.VREvent_ButtonUnpress:
             pressed = (t == openvr.VREvent_ButtonPress)
             d = e.trackedDeviceIndex
@@ -248,7 +248,7 @@ class SteamVRCamera(Camera):
                 cp = self._controller_poses
                 if pressed:
                     cp[d] = None
-                else:
+                elif d in cp:
                     del cp[d]
 #            press = 'press' if pressed else 'unpress'
 #            print('Controller button %s, device %d, button %d'
