@@ -1,0 +1,59 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="userdocs.css" />
+<title>Selection</title>
+</head><body>
+
+<a name="top"></a>
+<a href="index.html">
+<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3>Selection</h3>
+<p>
+A <b><i>selection</i></b> is a set of items (atoms, residues, models)
+chosen by the user:
+<ul>
+<li>shown with green outlines in the graphics window
+<li>marks the items for subsequent operations:
+  <ul>
+  <li>can be <a href="commands/atomspec.html#builtin">specified</a> 
+  as <b>sel</b> in many commands, for example: 
+  <b><a href="commands/style.html">style</a> sel stick</b>
+  <li>indicates scope of action of
+  <a href="tools/moldisplay.html"><b>Molecule Display</b></a> icons
+  and <a href="tools/densitymaps.html"><b>Density Maps</b></a> icons
+  </ul>
+<li>can be created:
+  <ul>
+  <li>by <b>Ctrl</b>-clicking on items in the graphics window
+  (default; see <a href="commands/mousemode.html"><b>mousemode</b></a>)
+  <li>by using <a href="commands/select.html"><b>select</b></a>
+  or various other commands and tools
+  </ul>
+<li>can be broadened with the up arrow key, narrowed with the down arrow key,
+within selection cascade:
+  <ul>
+  <li>
+   atom &harr; residue &harr; all atoms with same chain ID &harr; atomic model
+  </ul>
+</ul>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+December 2016</address>
+</body></html>
