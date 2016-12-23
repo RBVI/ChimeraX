@@ -592,7 +592,7 @@ class Residue:
         '''Has the C++ side been deleted?'''
         return not hasattr(self, '_c_pointer')
 
-    def __str__(self, residue_only = False):
+    def __str__(self, residue_only = False, omit_structure = False):
         from ..core_settings import settings
         cmd_style = settings.atomspec_contents == "command-line specifier"
         ic = self.insertion_code
@@ -603,6 +603,8 @@ class Residue:
         if residue_only:
             return res_str
         chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
+        if omit_structure:
+            return '%s %s' % (chain_str, res_str)
         from .structure import Structure
         if len([s for s in self.structure.session.models.list() if isinstance(s, Structure)]) > 1:
             struct_string = str(self.structure)
