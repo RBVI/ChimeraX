@@ -52,8 +52,8 @@ def bonds(atoms):
     bonds = set()
     for r0, aname0, r1, aname1 in zip(
             a0s.residues, a0s.names, a1s.residues, a1s.names):
-        id0 = (str(r0), aname0)
-        id1 = (str(r1), aname1)
+        id0 = (r0.__str__(omit_structure=True), aname0)
+        id1 = (r1.__str__(omit_structure=True), aname1)
         if r0.number > r1.number or (r0.number == r1.number and aname0 > aname1):
             id0, id1 = id1, id0
         bonds.add("%s@%s--%s@%s" % (id0 + id1))
@@ -62,24 +62,16 @@ def bonds(atoms):
 
 def compare(session, pdb_id, pdb_path, mmcif_path):
     # return True if they differ
-    from chimerax.core import io, fetch
+    from chimerax.core.commands.open import open
     try:
-        if os.path.isabs(pdb_path):
-            pdb_models = io.open_data(session, pdb_path)[0]
-        else:
-            pdb_models = fetch.fetch_from_database(
-                session, 'pdb', pdb_path, format='pdb')[0]
+        pdb_models = open(session, pdb_id, format='pdb')
     except Exception as e:
-        session.logger.error("%s: unable to open pdb file: %s" % (pdb_id, e))
+        session.logger.error("%s: unable to open pdb format %s" % (pdb_id, e))
         return True
     try:
-        if os.path.isabs(mmcif_path):
-            mmcif_models = io.open_data(session, mmcif_path)[0]
-        else:
-            mmcif_models = fetch.fetch_from_database(
-                session, 'pdb', mmcif_path, format='mmcif')[0]
+        mmcif_models = open(session, pdb_id, format='mmcif')
     except Exception as e:
-        session.logger.error("%s: unable to open mmcif file: %s" % (pdb_id, e))
+        session.logger.error("%s: unable to open mmcif format %s" % (pdb_id, e))
         return
 
     if len(pdb_models) != len(mmcif_models):
@@ -97,9 +89,9 @@ def compare(session, pdb_id, pdb_path, mmcif_path):
                 i += 1
                 pdb_id = "%s#%d" % (save_pdb_id, i)
             # atoms
-            pdb_atoms = ['%s@%s' % (str(r), a) for r, a in zip(
+            pdb_atoms = ['%s@%s' % (r.__str__(omit_structure=True), a) for r, a in zip(
                 p.atoms.residues, p.atoms.names)]
-            mmcif_atoms = ['%s@%s' % (str(r), a) for r, a in zip(
+            mmcif_atoms = ['%s@%s' % (r.__str__(omit_structure=True), a) for r, a in zip(
                 m.atoms.residues, m.atoms.names)]
             pdb_tmp = set(pdb_atoms)
             mmcif_tmp = set(mmcif_atoms)
@@ -139,8 +131,8 @@ def compare(session, pdb_id, pdb_path, mmcif_path):
                 same = False
 
             # residues
-            pdb_residues = set([str(r) for r in p.residues])
-            mmcif_residues = set([str(r) for r in m.residues])
+            pdb_residues = set([r.__str__(omit_structure=True) for r in p.residues])
+            mmcif_residues = set([r.__str__(omit_structure=True) for r in m.residues])
             common = pdb_residues & mmcif_residues
             extra = pdb_residues - common
             if extra:
@@ -250,12 +242,9 @@ def compare(session, pdb_id, pdb_path, mmcif_path):
         pdb_id = save_pdb_id
     if all_same:
         print('same: %s' % pdb_id)
-    while pdb_models:
-        m = pdb_models.pop()
-        m.delete()
-    while mmcif_models:
-        m = mmcif_models.pop()
-        m.delete()
+    from chimerax.core.commands.close import close
+    close(session, pdb_models)
+    close(session, mmcif_models)
     return all_same
 
 
