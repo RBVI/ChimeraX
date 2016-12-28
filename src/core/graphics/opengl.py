@@ -1230,6 +1230,13 @@ class Framebuffer:
         GL.glDeleteFramebuffers(1, (self.fbo,))
         self.color_rb = self.depth_rb = self.fbo = None
 
+        ct = self.color_texture
+        dt = self.depth_texture
+        if ct is not None:
+            ct.delete_texture()
+        if dt is not None:
+            dt.delete_texture()
+        self.color_texture = self.depth_texture = None
 
 class Lighting:
     '''

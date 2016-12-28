@@ -30,6 +30,7 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;name&nbsp;&nbsp;<i>model-name</i>&nbsp;]
 [&nbsp;smartInitialDisplay&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;trajectory&nbsp;]
+[&nbsp;series&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>open</b> 
@@ -104,6 +105,7 @@ Examples:
 [&nbsp;<b>name</b>&nbsp;&nbsp;<i>model-name</i>&nbsp;]
 [&nbsp;<b>smartInitialDisplay</b>&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>trajectory</b>&nbsp;]
+[&nbsp;<b>series</b>&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 </blockquote>
 <p>
 The <i>filename</i> is generally a pathname to a local file, 
@@ -120,6 +122,16 @@ The file format can be indicated with either the <i>filename</i> suffix or
 the <b>format</b> option (where <i>format-name</i> can be truncated).
 Files that are gzipped, as indicated by their additional .gz suffix, 
 can also be read.
+</p><p>
+When multiple maps with the same grid dimensions are opened 
+in a single command (multiple files specified with wild cards or globbing, 
+or a single multi-map file), the <b>series</b> option can be used to enforce 
+loading them as a series for playback with 
+<a href="vseries.html"><b>vseries</b></a>
+or the associated slider (if true), or as independent models (if false).
+If the option is not used, 3D TIFF images and
+<a href="save.html#chimap">Chimera map</a> files containing five or more
+same-sized maps are automatically interpreted as series, if possible.
 </p>
 <table border cellpadding="4" cellspacing="0">
 <tr>
@@ -251,7 +263,7 @@ target="_blank">X3D</a></td>
 <td align="center">FASTA, aligned FASTA</td>
 <td align="center"><b>fasta</b></td>
 <td align="center">.fa, .fasta</td>
-<td align="center">individual sequence or sequence alignment</td>
+<td align="center">individual sequence(s) or sequence alignment</td>
 <tr><tr>
 <td align="center">MSF</a></td>
 <td align="center"><b>msf</b></td>

@@ -13,5 +13,4 @@
 
 from .mousemodes import MouseMode, SelectMouseMode, RotateMouseMode, TranslateMouseMode, \
                         RotateSelectedMouseMode, TranslateSelectedMouseMode, ZoomMouseMode
-
-from .gui import MainToolWindow, ChildToolWindow
+# Do not import anything from .gui so nogui mode works when UI toolkit can't be imported
