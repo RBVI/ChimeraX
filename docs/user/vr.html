@@ -26,11 +26,8 @@ class="clRight" title="User Guide Index"/></a>
 
 <h2>ChimeraX Virtual Reality</h2>
 <a href="vive.jpg">
-<img class="outlineCR" width="300px" src="vive.jpg" 
+<img class="outlineCR" width="250px" src="vive.jpg" 
 alt="using HTC Vive VR system" title="click for larger..."></a>
-<p>
-Tom Goddard<br>
-December 16, 2016
 <p>
 To use an HTC Vive or Oculus Rift virtual reality (VR) system with ChimeraX:
 <ol>
@@ -44,7 +41,7 @@ target="_blank">SteamVR</a>
 (for Oculus headsets, start the Oculus runtime first)
 <li>enter the ChimeraX command: 
 <blockquote>
-<b>vr on</b>
+<a href="commands/vr.html"><b>vr on</b></a>
 </blockquote>
 </ol>
 <p>
@@ -57,17 +54,39 @@ moving or rotating either controller while squeezing its trigger
 triggers of both controllers and moving them farther apart 
 or closer together, respectively
 </ul>
+<p>
 Oculus Touch hand controllers may also work, although we have not tried them.
 </p><p>
-To turn off rendering in the VR headset and reenable rendering on the 
+The physical room bounds are shown
+as a blue mesh when the headset or a hand controller 
+comes close to a physical wall (within about a meter).
+Models can be scaled to sizes larger than the physical room.
+</p><p>
+To turn off rendering in the VR headset and re-enable rendering on the 
 desktop display, use the ChimeraX command:
-<p>
+</p>
 <blockquote>
-<b>vr off</b>
+<a href="commands/vr.html"><b>vr off</b></a>
 </blockquote>
-
-<h3>Motion sickness warning</h3>
 <p>
+The following sections go into more detail:
+</p>
+<ul>
+<li><a href="#interactive">Limitations of Interactive Viewing</a>
+<li><a href="#movies">Recording Movies for VR</a>
+<li><a href="#movie-details">Movie Details</a>
+</ul>
+
+<a name="interactive"></a>
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<h3>Limitations of Interactive Viewing</h3>
+<p>
+<!--
+<b>Motion sickness</b>.
+-->
+<font color="red" size="+1"><b>Motion sickness warning</b></font>:
 If the model is stuttering or flickering in the headset
 (due to insufficient rendering speed), then you should stop viewing it,
 as this can easily and suddenly induce nausea that could last as long as
@@ -75,16 +94,6 @@ as this can easily and suddenly induce nausea that could last as long as
 if you feel any motion sickness, stop using the headset.
 Progression from slight nausea to needing to throw up can happen quickly.
 </p>
-
-<h3>Room bounds</h3>
-<p>
-SteamVR shows the physical room bounds as a blue mesh 
-when the headset or a hand controller gets
-close to a physical wall (within about 2-3 feet, or 1 meter).
-Models can be scaled to sizes larger than the physical room.
-</p>
-
-<h3>Interactive viewing limitations</h3>
 <p>
 <b>Small models only</b>.
 Large molecular structures (more than a few thousand atoms) render too slowly
@@ -114,9 +123,8 @@ should be closed during VR viewing.
 </p><p>
 <b>Windows 10 only</b>. 
 We have tested ChimeraX VR on Windows 10 with an Nvidia Geforce GTX 1080 
-graphics card and with an AMD Radeon RX 480 graphics card.
-At this time (December 2016), SteamVR is only available on
-Windows, not Mac OS or Linux.
+graphics card and with an AMD Radeon RX 480 graphics card. At this time
+(December 2016), SteamVR is only available on Windows, not Mac OS or Linux.
 </p><p>
 <b>Difficult to change model display</b>.
 Changing molecule or map display is inconvenient in that it
@@ -171,7 +179,11 @@ the <a href="commands/coordset.html"><b>coordset</b></a> command,
 which lacks a caching option.
 </p>
 
-<h3>Movie recording</h3>
+<a name="movies"></a>
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<h3>Recording Movies for VR</h3>
 <p>
 ChimeraX can record 360&deg; immersive movies that can be played back on 
 virtual reality headsets. An advantage of movies is that they can be
@@ -239,7 +251,11 @@ towards the pore in increments of 1 &Aring;.
       movie encode ~/Desktop/flypore.mp4 framerate 90
 </pre>
 
-<h3>Movie details</h3>
+<a name="movie-details"></a>
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<h3>Movie Details</h3>
 <p>
 Movie file (click the link to view the movie):
 <a href="http://www.rbvi.ucsf.edu/chimera/data/vr-dec2016/images/flypore.mp4"
@@ -317,7 +333,7 @@ will not provide good stereoscopic depth perception.
 </p><p>
 <b>Movie frame rate</b>.
 To minimize flickering during fast object motion,
-it is best to encode the movie for playback at a frame rate at least
+it is best to encode the movie for playback at a frame rate matching
 that of the headset, 90 frames per second with current VR headsets.
 </p>
 
