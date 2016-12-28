@@ -19,7 +19,7 @@ def initialize(command_name):
 
 def findclash(session, spec=None, make_pseudobonds=False, log=True,
               naming_style="command", overlap_cutoff=0.6,
-              hbond_allowance=0.4, bond_separation=4, test="self",
+              hbond_allowance=0.4, bond_separation=4, test="other",
               intra_residue=False):
     from chimerax.core.errors import LimitationError
     from chimerax.core.atomic import Atoms
@@ -27,6 +27,10 @@ def findclash(session, spec=None, make_pseudobonds=False, log=True,
     from chimerax.core.core_settings import settings
     if test != "self":
         raise LimitationError("findclash test \"%s\" not implemented" % test)
+    if hbond_allowance != 0:
+        session.logger.warning("Hydrogen bond finding is not implemented.  "
+                               "Setting hbond_allowance to 0.0.")
+        hbond_allowance = 0
     if naming_style != "command" and naming_style != "command-line":
         raise LimitationError("findclash naming style \"%s\" not implemented" %
                               naming_style)

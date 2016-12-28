@@ -26,7 +26,7 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="../index.html#commands">Command</a>: select</h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>select</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
-[&nbsp;sequence&nbsp;&nbsp;<a href="atomspec.html"><i>chain-spec</i></a>&nbsp;]
+[&nbsp;entity&nbsp;&nbsp;<a href="atomspec.html"><i>chain-spec</i></a>&nbsp;]
 </h3>
 
 <h3><a href="usageconventions.html">Usage</a>:
@@ -40,45 +40,24 @@ class="clRight" title="User Guide Index"/></a>
 <BR><b>select</b> clear
 </h3>
 <p>
+A <a href="../selection.html">selection</a>
+specifies items (models or their parts) for subsequent operations
+and is shown with green outlines in the graphics window.
 The <b>select</b> command makes a new selection or modifies
-an existing selection. 
-A <a name="seldef"><b><i>selection</i></b></a>:
-</p>
-<ul>
-<li>is shown with green outlines in the graphics window
-<li>specifies items (models or their parts) for subsequent operations:
-  <ul>
-  <li>indicates scope of action of
-  <a href="../tools/moldisplay.html"><b>Molecule Display</b></a> icons
-  <li>can be <a href="atomspec.html#builtin">specified</a> as <b>sel</b>
-  or <b>selAtoms</b> in other commands, for example: 
-    <b><a href="style.html">style</a> sel stick</b>
-  </ul>
-<li>can be created 
-  <ul>
-  <li>by <b>Ctrl</b>-clicking on items in the graphics window 
-  (default; see <a href="mousemode.html"><b>mousemode</b></a>)
-  <li>by using <b>select</b> or various other commands and tools
-  </ul>
-<li>can be broadened with the up arrow key, narrowed with the down arrow key
-  <ul>
-  <li> selection cascade: 
-   atom &harr; residue &harr; all atoms with same chain ID &harr; atomic model
-  </ul>
-</ul>
+an existing selection. See also: <a href="mousemode.html"><b>mousemode</b></a>
 <p>
 If used without an <b>add</b>, <b>subtract</b>, or <b>intersect</b> keyword,
 the <b>select</b> command replaces any previous selection with a new selection 
 containing the items in <a href="atomspec.html"><i>atom-spec</i></a>.
-The <b>sequence</b> option restricts that selection to only the 
-biopolymer chains with the same sequences (the same molecular entities) 
+The <b>entity</b> option restricts that selection to only the 
+biopolymer chains with the same sequences (the same macromolecular entities) 
 as the chains in <a href="atomspec.html"><i>chain-spec</i></a>.
 Examples:
 </p>
 <blockquote>
-<b>select #1 sequence /a</b>
+<b>select #1 entity /a</b>
 <br>
-<b>select seq /d</b>
+<b>select ent /d</b>
 </blockquote>
 <p>
 Otherwise, <b>select</b> can be used to <b>add</b>, <b>subtract</b>, 
@@ -100,5 +79,5 @@ only the atom(s) directly contributing to that patch are selected.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2016</address>
+December 2016</address>
 </body></html>

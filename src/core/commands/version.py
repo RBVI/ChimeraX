@@ -50,15 +50,15 @@ def version(session, format=None):
         def escape(txt):
             return txt
     for d in dists:
-        key = d.key
+        name = d.project_name
         if format == 'bundles':
-            if not key.startswith('chimerax.'):
+            if not name.startswith('ChimeraX-'):
                 continue
-            key = key[len('chimerax.'):]
+            name = name[len('ChimeraX-'):]
         if d.has_version():
-            info += "\n%s %s: %s" % (sep, escape(key), escape(d.version))
+            info += "\n%s %s: %s" % (sep, escape(name), escape(d.version))
         else:
-            info += "\n%s %s: unknown" % (sep, escape(key))
+            info += "\n%s %s: unknown" % (sep, escape(name))
     if session.ui.is_gui:
         info += "\n</ul>"
     session.logger.info(info, is_html=session.ui.is_gui)

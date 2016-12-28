@@ -238,6 +238,15 @@ class UI(QApplication):
 
     def cancel_timer(self, timer):
         timer.stop()
+
+    def request_graphics_redraw(self):
+        '''
+        Put a high priority event on the event queue to cause a graphics redraw.
+        This is used to request a graphics redraw before additional mouse and keyboard events
+        are processed for fastest visual feedback.  It is typically used during a mouse drag
+        event to update a graphics change resulting from the mouse drag.
+        '''
+        self.main_window.graphics_window.request_graphics_redraw()
         
 # The surface format has to be set before QtGui is initialized
 from PyQt5.QtGui import QSurfaceFormat
@@ -468,7 +477,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         but_action.setIcon(self._expand_icon)
         ghb.setDefaultAction(but_action)
         sb.addPermanentWidget(ghb)
-        sb.showMessage("Welcome to Chimera X")
+        sb.showMessage("Welcome to ChimeraX")
         self.setStatusBar(sb)
 
     def _new_tool_window(self, tw):
@@ -504,18 +513,25 @@ class MainWindow(QMainWindow, PlainTextLog):
         self.update_tools_menu(session)
 
         help_menu = mb.addMenu("&Help")
-        for entry, topic in (('User Guide', 'user'),
-                           ('Quick Start Guide', 'quickstart'),
-                           ('Programming Manual', 'devel'),
-                           ('Documentation Index', 'index.html'),
-                           ):
+        for entry, topic, tooltip in (
+                ('User Guide', 'user', 'Tutorials and user documentation'),
+                ('Quick Start Guide', 'quickstart', 'Interactive ChimeraX basics'),
+                ('Programming Manual', 'devel', 'How to develop ChimeraX tools'),
+                ('Documentation Index', 'index.html', 'Access all documentarion'),
+                ('Contact Us', 'contact_us.html', 'Report problems/issues; ask questions')):
             help_action = QAction(entry, self)
-            help_action.setStatusTip("Show " + entry)
+            help_action.setToolTip(tooltip)
             def cb(arg, ses=session, t=topic):
                 from chimerax.core.commands import run
-                run(ses, 'help new_viewer help:%s' % t)
+                run(ses, 'help help:%s' % t)
             help_action.triggered.connect(cb)
             help_menu.addAction(help_action)
+        def forceMenuToolTip(action):
+            from PyQt5.QtGui import QCursor
+            from PyQt5.QtWidgets import QToolTip
+            QToolTip.showText(QCursor.pos(), action.toolTip(), help_menu,
+                help_menu.actionGeometry(action))
+        help_menu.hovered.connect(forceMenuToolTip)
         from chimerax import app_dirs as ad
         about_action = QAction("About %s %s" % (ad.appauthor, ad.appname), self)
         about_action.triggered.connect(self._about)

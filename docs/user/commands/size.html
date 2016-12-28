@@ -28,7 +28,10 @@ class="clRight" title="User Guide Index"/></a>
 <BR><b>size</b> 
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
 [&nbsp;atomRadius&nbsp;&nbsp;<i>r<sub><font size=-1>a</font></sub></i>&nbsp;|&nbsp;default&nbsp;]
-[&nbsp;bondRadius&nbsp;&nbsp;<i>r<sub><font size=-1>b</font></sub></i>&nbsp;]
+[&nbsp;stickRadius&nbsp;&nbsp;<i>r<sub><font size=-1>b</font></sub></i>&nbsp;]
+<!--
+[&nbsp;ballScale&nbsp;&nbsp;<i>b</i>&nbsp;]
+-->
 </h3>
 <p>
 The <b>size</b> command adjusts the radii of
@@ -37,9 +40,9 @@ The <b>size</b> command adjusts the radii of
 <li>atomic <a href="../radii.html">VDW radii</a>,
 used directly for <a href="style.html">sphere display</a> and
 scaled by a factor of 0.3 for <a href="style.html">ball display</a>
-(<a href="../radii.html">default radii</a>
+(the <a href="../radii.html"><b>default</b> radii</a> are
 assigned by <a href="../atomtypes.html">atom type</a>)
-<li>bond radii for <a href="style.html">stick display</a>
+<li>bond <a href="style.html">stick</a> radii
 (default <b>0.2</b> &Aring;)
 </ul>
 Atomic <a href="../radii.html">VDW radii</a> are also used to calculate
@@ -47,6 +50,7 @@ Atomic <a href="../radii.html">VDW radii</a> are also used to calculate
 <a href="surface.html">molecular surfaces</a> and surface areas.
 </p><p>
 See also: <a href="style.html"><b>style</b></a>,
+<a href="cartoon.html#style"><b>cartoon style</b></a>,
 <a href="surface.html"><b>surface</b></a>,
 <a href="sasa.html"><b>sasa</b></a>,
 <a href="buriedarea.html"><b>buriedarea</b></a>,
@@ -58,7 +62,7 @@ Examples:
 <br>
 <b>size #1 atom default</b>
 <br>
-<b>size bond 0.4</b>
+<b>size stick 0.4</b>
 </blockquote>
 </p>
 

@@ -82,6 +82,7 @@ uniform float frame_number;
 #endif
 
 #ifdef USE_STEREO_360
+out vec3 vshadow;
 uniform vec4 camera_origin_and_shift;
 uniform vec4 camera_vertical;
 #endif
@@ -105,18 +106,23 @@ void main(void)
   #endif
 #endif
 
-#ifdef USE_STEREO_360
-  vec3 eye_axis = normalize(cross((vi.xyz - camera_origin_and_shift.xyz), camera_vertical.xyz));
-  vi = vec4(vi.xyz - camera_origin_and_shift.w * eye_axis, 1);
-#endif
-
 #ifdef USE_CLIP_PLANES
   vec4 vscene = model_matrix * vi;
   for (int i = 0 ; i < num_clip_planes ; ++i)
     gl_ClipDistance[i] = dot(vscene, clip_planes[i]);
 #endif
 
+#ifdef USE_STEREO_360
+// TODO: This is wrong if model matrix is not identity.  Need to subtract vertex scene position
+// from camera scene origin, but this code subtracts vertex model position.  Will need separate
+// model and view matrices to do this correctly.
+  vec3 eye_axis = normalize(cross((vi.xyz - camera_origin_and_shift.xyz), camera_vertical.xyz));
+  vec4 vioffset = vec4(vi.xyz - camera_origin_and_shift.w * eye_axis, 1);
+  vec4 veye = model_view_matrix * vioffset;
+  vshadow = (model_view_matrix * vi).xyz;
+#else
   vec4 veye = model_view_matrix * vi;
+#endif
 
 #ifdef USE_LIGHTING
   v = veye.xyz;
@@ -127,13 +133,18 @@ void main(void)
   #endif
   N = normalize((model_view_matrix * vec4(ni,0)).xyz);
   #ifdef USE_SHADOWS
-    shadow_tex_coord = (shadow_transform * veye).stp;
+    #ifdef USE_STEREO_360
+      shadow_tex_coord = (shadow_transform * vec4(vshadow,1)).stp;
+    #else
+      shadow_tex_coord = (shadow_transform * veye).stp;
+    #endif
   #endif
   #ifdef USE_MULTISHADOW
 //    vscene = (model_matrix * vi).xyz;
 //    nscene = (model_matrix * vec4(ni,0)).xyz;
   #endif
   #ifdef USE_TEXTURE_3D_AMBIENT
+  // TODO: This should use vertex scene coords, not vertex model coordinates
     ambient_tex_coord = (ambient_tex3d_transform * vi).xyz;
   #endif
 #endif	// end USE_LIGHTING

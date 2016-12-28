@@ -69,18 +69,11 @@ def parse_arguments(argv):
     import getopt
 
     if sys.platform.startswith('darwin'):
-        # skip extra -psn_ argument on Mac OS X 10.8 and earlier
-        import platform
-        release = platform.mac_ver()[0]
-        if release:
-            release = [int(x) for x in release.split('.')]
-            if release < [10, 9]:
-                for i, arg in enumerate(argv):
-                    if i == 0:
-                        continue
-                    if arg.startswith('-psn_'):
-                        del argv[i]
-                        break
+        # skip extra -psn_ argument on Mac OS X 10.8 and earlier and Mac OS X 10.12 on first launch
+        for i, arg in enumerate(argv):
+            if i > 0 and arg.startswith('-psn_'):
+                del argv[i]
+                break
 
     class Opts:
         pass
@@ -229,6 +222,7 @@ def parse_arguments(argv):
 
 
 def init(argv, event_loop=True):
+    import site, sys
     if sys.platform.startswith('darwin'):
         paths = os.environ['PATH'].split(':')
         if '/usr/sbin' not in paths:
@@ -240,16 +234,13 @@ def init(argv, event_loop=True):
     from chimerax.core.utils import initialize_ssl_cert_dir
     initialize_ssl_cert_dir()
 
-    # use chimerax.core's version
-    from chimerax.core.toolshed import _ChimeraCore
-    core_pip_key = _ChimeraCore.casefold()
-    import pip
-    dists = pip.get_installed_distributions(local_only=True)
-    for d in dists:
-        if d.key == core_pip_key:
-            version = d.version
-            break
-    else:
+    # find chimerax.core's version
+    # we cannot use pip for this because we want to update
+    # site.USER_SITE before importing pip, and site.USER_SITE
+    # depends on the version
+    try:
+        from chimerax.core import version
+    except ImportError:
         print("error: unable to figure out %s's version" % app_name)
         return os.EX_SOFTWARE
 
@@ -339,6 +330,14 @@ def init(argv, event_loop=True):
     # open in any version
     # app_dirs_unversioned.user_* directories are parents of those in app_dirs
     chimerax.app_dirs_unversioned = adu = appdirs.AppDirs(app_name, appauthor=app_author)
+
+    # update "site" user variables to use ChimeraX instead of Python paths
+    # NB: USER_SITE is used by both pip and the toolshed, so
+    # this must happen before pip is imported so that "--user" installs
+    # will go in the right place.
+    import site
+    site.USER_BASE = adu.user_data_dir
+    site.USER_SITE = os.path.join(ad.user_data_dir, "site-packages")
 
     # Find the location of "share" directory so that we can inform
     # the C++ layer.  Assume it's a sibling of the directory that

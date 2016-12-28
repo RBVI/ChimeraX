@@ -52,19 +52,30 @@ function update_info(xmldoc) {
         }
 }
 </script>
+<link rel="stylesheet" type="text/css" href="../user/userdocs.css" />
 </head>
 <body>
 
-<img src="../quickstart/images/chimerax.png" align=right width=600px
+<img src="../quickstart/images/chimerax.png" align=right width=500px
 style="margin:4px 4px 4px 12px; border:1px solid black">
 
-<h1>UCSF ChimeraX Prerelease</h1>
+<h2>UCSF ChimeraX Prerelease
+<a href="../user/index.html">
+<img width="60px" src="../user/ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+title="User Guide Index"/></a>
+<a href="http://www.rbvi.ucsf.edu/chimerax/">
+<img width="50px" src="../user/ChimeraX-home-icon.svg" alt="ChimeraX home icon"
+title="ChimeraX Home"/></a>
+</h2>
 
 <p>
 UCSF ChimeraX is the next-generation visualization program from the 
 <a href="http://www.rbvi.ucsf.edu/">Resource for Biocomputing, Visualization, 
 and Informatics</a> at UC San Francisco, following Midas, MidasPlus, and
 <a href="http://www.rbvi.ucsf.edu/chimera/">Chimera</a>.
+Development is funded by the <a href="http://www.nih.gov/" 
+target="_blank">National Institutes of Health</a>
+(NIGMS P41-GM103311).
 </p>
 
 <h2>
@@ -120,8 +131,11 @@ Prerelease Daily Build Downloads
 <font color=red>
 <ul>
 <li>ChimeraX commands and their syntax are subject to change.
-<li>ChimeraX sessions are only guaranteed to be restorable using 
+<li>ChimeraX sessions may only be restorable using 
 the same daily version and may not be compatible with future versions.
+<li>Download is free for academic,
+government, nonprofit, and personal use; commercial users, please see
+<a href="../licensing.html">licensing</a>.
 </ul>
 </font>
 
@@ -135,13 +149,15 @@ the same daily version and may not be compatible with future versions.
 <th>Notes</th>
 </tr>
 <tr>
-<td>Mac OS 10.10</td>
-<td><a href="/chimerax/cgi-bin/secure/chimerax-get.py?file=macosx/chimerax-0.1.daily.pkg">chimerax-0.1.daily.pkg</a>
+<td>Mac OS X 10.10 64-bit</td>
+<td><a href="/chimerax/cgi-bin/secure/chimerax-get.py?file=macosx/chimerax-0.1.daily.dmg">chimerax-0.1.daily.dmg</a>
 <div id="macosx_info">fetching build information...</div></td>
-<td>Main development platform.</td>
+<td>Main development platform.
+<br>For OS X 10.9.5 and later.
+</td>
 </tr>
 <tr>
-<td valign=top>Linux Debian 8</td>
+<td valign=top>Linux 64-bit</td>
 <td valign=top><a href="/chimerax/cgi-bin/secure/chimerax-get.py?file=linux/chimerax-0.1.daily.tar.gz">chimerax-0.1.daily.tar.gz</a>
 <div id="linux_info">fetching build information...</div></td>
 <td>
@@ -149,7 +165,7 @@ See Linux notes <a href="#linux">below</a>.
 </td>
 </tr>
 <tr>
-<td>Windows 10</td>
+<td>Windows 10 64-bit</td>
 <td><a href="/chimerax/cgi-bin/secure/chimerax-get.py?file=windows/chimerax-0.1.daily.exe">chimerax-0.1.daily.exe</a>
 <div id="windows_info">fetching build information...</div></td>
 <td>Main development platform.</td>
@@ -157,29 +173,31 @@ See Linux notes <a href="#linux">below</a>.
 </table>
 <p><font size="-1">
 Daily builds are generated automatically each night from the 
-development source code. Thus the software will change from day to day,
-and while a given build may have unforeseen problems, these are often
+development source code. 
+While a given build may have unforeseen problems, these are often
 fixed by the next day.
 </font></p>
 
-<h2>
-Documentation
-</h2>
-<ul>
-<li><a href="../user/index.html">User Guide</a>
-<li><a href="../quickstart/index.html">Quick Start Guide</a>
-<li><a href="../devel/index.html">Programming Manual</a>
-</ul>
+<h3>
+<a href="../index.html">Documentation</a>
+</h3>
 
 <a name="linux"></a>
-<h2>
+<h3>
 Linux Notes
-</h2>
+</h3>
 <p>
-The Linux download will not work on Linux distributions besides Debian 8 
-because of many missing system libraries. 
-It is possible to install all the needed libraries. We have used it 
-on Ubuntu 15.04 after installing a handful of missing libraries.
+The Linux download is compiled with gcc 4.9 on Debian 8.
+It also runs on Ubuntu 16.04 and 16.10.
+It does not run on RHEL/CentOS 7 as is.
+To get it to run on RHEL/CentOS 7,
+a user reported that he compiled and installed gcc 4.9
+&mdash; we have not yet verified that fact.
+The gcc 4.9 runtime should also be in the
+<a href="https://developers.redhat.com/products/developertoolset/overview/">Red Hat Developer Toolset</a>,
+but that has not been confirmed.
+Other Linux distributions have not been tested
+and might require additional libraries to be installed.
 </p>
 
 </body>

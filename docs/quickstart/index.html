@@ -15,8 +15,36 @@ or derivations thereof.
 
 <head>
 <title>ChimeraX Quick Start Guide</title>
+<script type="text/javascript">
+cxlinks_base="http://www.rbvi.ucsf.edu/chimerax/docs/"
+cxlinks_init = function() {
+  if(!window.navigator.userAgent.includes("ChimeraX")){
+    window.onclick = function(e){
+      if(e.target.tagName.toLowerCase()!="a")
+	return true;
+      var url=e.target.getAttribute("href").toLowerCase();
+      if(url.startsWith("help:")){
+	window.location.href = cxlinks_base + url.substring(5);
+	return false;
+      }
+      if(url.startsWith("cxcmd:")){
+	alert("This link only works in a ChimeraX browser and would execute a command.");
+	return false;
+      }
+      return true;
+    }
+    var ls=document.links;
+    for(var i=0;i<ls.length;i++){
+      var link=ls[i];
+      var url=link.getAttribute("href").toLowerCase();
+      if(url.startsWith("cxcmd:"))
+	link.style.color="darkred";
+    }
+  }
+}
+</script>
 </head>
-<body>
+<body onload="cxlinks_init()">
 
 <h2>ChimeraX Quick Start Guide
 <a href="../user/index.html">
@@ -33,30 +61,17 @@ style="margin:4px 4px 4px 12px; border:1px solid black">
 <p>
 ChimeraX is the next-generation visualization program from the 
 <a href="http://www.rbvi.ucsf.edu/">Resource for Biocomputing, Visualization,
-and Informatics</a>
-at UC San Francisco, following 
+and Informatics</a> at UC San Francisco, following 
 <a href="http://www.rbvi.ucsf.edu/chimera/" target="_blank">Chimera</a>.
-</p>
-
-<h3>
-Features
-</h3>
-<p>
+</p><p>
 Compared to Chimera,
-ChimeraX has better graphics (e.g. interactive ambient shadows), handles
-large structures (millions of atoms) much faster, and has a modern 
-single-window user interface;
+ChimeraX has better graphics (<i>e.g.</i>, interactive ambient shadows), 
+handles large structures (millions of atoms) much faster, 
+and has a more modern user interface;
 see the <a href="../user/advantages.html">short list of advantages</a>.
-<!--
-ChimeraX will have a web site of available extensions written by others 
-using documented programming interfaces.
--->
-</p>
-<p>
-ChimeraX is <i>not</i> backward compatible with Chimera, 
-although many aspects will be similar.
-</p>
-<p>
+ChimeraX is not backward compatible with Chimera, although many
+aspects will be similar.
+</p><p>
 Currently, ChimeraX is mostly controlled by typed commands.
 Most commands are covered in the
 <a href="../user/index.html">User Guide</a>,
@@ -64,7 +79,7 @@ and the details for a specific command can be shown with the
 <b><a href="../user/commands/help.html">help</a></b> command
 (for example, <b>help style</b>).
 <font color=red>
-Warning: Commands and their syntax may change.
+Commands and their syntax may change.
 </font>
 
 <h3>
@@ -188,7 +203,7 @@ show thin black outlines. Save PNG image file to Desktop.</i>
 <table cellpadding=5>
 <tr>
 <td width=256 align=center><a href="cxcmd:buriedarea /a with /b; sasa #1 & ~solvent">buriedarea /a with /b<br>sasa #1 & ~solvent</a>
-<td width=256 align=center><a href="cxcmd:contacts #1">contacts #1</a>
+<td width=256 align=center><a href="cxcmd:contacts #1 & protein">contacts #1 & protein</a>
 <td width=256 align=center><a href="cxcmd:close; set bg black; set silhouettes false">close<br>set bg black<br>set silhouettes false</a>
 <tr>
 <td>

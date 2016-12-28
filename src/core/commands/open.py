@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def open(session, filename, format=None, name=None, from_database=None, ignore_cache=False,
-         smart_initial_display = True, trajectory = False, **kw):
+         smart_initial_display = True, trajectory = False, series = None, **kw):
     '''Open a file.
 
     Parameters
@@ -38,6 +38,10 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
     trajectory : bool
         Whether to read a PDB format multimodel file as coordinate sets (true)
         or as multiple models (false, default).
+    series : bool or None
+        Whether to read a maps as a series, or as separate maps. The default None
+        means to use default rules: 3d TIFF images are series and Chimera map files
+        containing 5 or more maps of equal size.
     '''
 
     if ':' in filename:
@@ -58,7 +62,8 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
                 format = 'mmcif'
 
     kw.update({'smart_initial_display': smart_initial_display,
-          'trajectory': trajectory})
+               'trajectory': trajectory,
+               'series': series})
 
     from ..filehistory import remember_file
     if from_database is not None:
@@ -137,7 +142,7 @@ def open_formats(session):
     from .. import io
     from . import commas
     formats = list(io.formats())
-    formats.sort(key = lambda f: f.name)
+    formats.sort(key = lambda f: f.name.lower())
     for f in formats:
         if session.ui.is_gui:
             lines.append('<tr><td>%s<td>%s<td>%s' % (f.name,
@@ -196,6 +201,7 @@ def register_command(session):
             ('ignore_cache', NoArg),
             ('smart_initial_display', BoolArg),
             ('trajectory', NoArg),
+            ('series', BoolArg),
             # ('id', ModelIdArg),
         ],
         synopsis='read and display data')

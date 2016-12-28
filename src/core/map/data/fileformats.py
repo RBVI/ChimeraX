@@ -112,21 +112,27 @@ def suffix_warning(paths):
 #
 def open_file(path, file_type = None):
 
-  if file_type == None:
+  if file_type is None:
     p = path if isinstance(path, str) else path[0]
     file_type = file_type_from_suffix(p)
-    if file_type == None:
+    if file_type is None:
       file_type, path = file_type_from_colon_specifier(p)
-      if file_type == None:
+      if file_type is None:
         raise Unknown_File_Type(p)
 
   module_name = file_type
   module = __import__(module_name, globals(), level = 1)
+  batched = file_type_is_batched(file_type)
 
   apath = absolute_path(path) if isinstance(path,str) else [absolute_path(p) for p in path]
 
   try:
-    data = module.open(apath)
+    if batched or isinstance(apath,str):
+      data = module.open(apath)
+    else:
+      data = []
+      for p in apath:
+        data.extend(module.open(p))
   except SyntaxError as value:
     raise File_Format_Error(value)
   
@@ -159,6 +165,14 @@ def file_type_from_colon_specifier(path):
     return last_part, first_part
 
   return None, path
+
+# -----------------------------------------------------------------------------
+#
+def file_type_is_batched(file_type):
+  for descrip, mname, prefix_list, suffix_list, batch in file_types:
+    if mname == file_type:
+      return batch
+  raise ValueError('Unknown file type %s' % file_type)
 
 # -----------------------------------------------------------------------------
 #

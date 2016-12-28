@@ -29,6 +29,8 @@ class VolumeViewer(ToolInstance):
 
         self.active_volume = None
         self.redisplay_in_progress = False
+        self._redisplay_handler = None
+        self._last_redisplay_frame_number = None
 
         from chimerax.core.ui.gui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self)
@@ -296,11 +298,16 @@ class VolumeViewer(ToolInstance):
           p.representation_changed(representation)
 
     # ---------------------------------------------------------------------------
-    # Update display if immediate redisplay mode is on.
     #
     def redisplay_needed_cb(self, event = None):
+        self.redisplay_needed()
 
-      if self.active_volume == None:
+    # ---------------------------------------------------------------------------
+    # Update active volume using gui settings if immediate redisplay mode is on.
+    #
+    def redisplay_needed(self):
+
+      if self.active_volume is None:
         return
 
       #
@@ -1502,27 +1509,22 @@ class Thresholds_Panel(PopupPanel):
     self._color_dialog = None
 
     frame = self.frame
-
-    from PyQt5.QtWidgets import QVBoxLayout, QFrame, QSizePolicy, QLabel
-    from PyQt5.QtCore import Qt
-
-#    layout = QVBoxLayout(frame)
-#    layout.setContentsMargins(0,0,0,0)
-#    layout.setSpacing(0)
+    frame.resizeEvent = lambda e, self=self: self.panel_resized(e)
     
+    from PyQt5.QtWidgets import QVBoxLayout, QFrame, QSizePolicy, QLabel
+    from PyQt5.QtCore import Qt, QSize
+
     # Histograms frame
     self.histograms_frame = hf = QFrame(frame)
-#    layout.addWidget(hf, stretch=1)
+    hf.resizeEvent = lambda e, self=self: self.resize_panel()
+
     self.histograms_layout = hl = QVBoxLayout(hf)
-#    hl.setSizeConstraint(QVBoxLayout.SetFixedSize)
     hl.setSizeConstraint(QVBoxLayout.SetMinAndMaxSize)
     hl.setContentsMargins(0,0,0,0)
     hl.setSpacing(0)
     hl.addStretch(1)
-#    frame.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
     frame.setWidget(hf)	# Set scrollable child.
-    frame.setWidgetResizable(True)	# Resize child to fit in scroll area -- really only want width resized.
-    hf.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+    hf.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
     
 #    b = self.make_close_button(frame)
 #    b.grid(row = row, column = 1, sticky = 'e')
@@ -1581,6 +1583,16 @@ class Thresholds_Panel(PopupPanel):
     self.resize_panel()
 
   # ---------------------------------------------------------------------------
+  # The scrolled area containing the histograms resized, so resize the histograms
+  # to match the width of the scrolled area.
+  #
+  def panel_resized(self, e):
+      f = self.frame
+      hf = self.histograms_frame
+      w = f.width() - 2*hf.lineWidth()
+      hf.resize(w, hf.height())
+      
+  # ---------------------------------------------------------------------------
   # Resize thresholds panel to fit up to 3 histograms before scrolling.
   #
   def resize_panel(self, nhist = 3):
@@ -1590,14 +1602,13 @@ class Thresholds_Panel(PopupPanel):
     if n == 0 or n > nhist:
         return
 
-    h = 0
-    for p in hpanes:
-        hf = p.frame
-        hf.adjustSize()		# Get correct size for histogram pane
-        h += hf.height()
-
+    hf = self.histograms_frame
+    h = hf.height() + 2*hf.lineWidth()
     f = self.frame
-    f.setMinimumHeight(h)	# Resize to exactly fit n histograms
+    if f.height() < h:
+        # This is the only way I could find to convince a QDockWidget to
+        # resize to a size I request.
+        f.setMinimumHeight(h)
 
     # Allow resizing panel smaller with mouse
     from PyQt5.QtCore import QTimer
@@ -1748,6 +1759,8 @@ class Thresholds_Panel(PopupPanel):
       from PyQt5.QtWidgets import QColorDialog
       self._color_dialog = cd = QColorDialog(self.frame)
       cd.setOptions(QColorDialog.ShowAlphaChannel)
+# Following hiding of buttons avoids crash on exit on Mac Sierra, Qt bug 56448
+#      cd.setOption(QColorDialog.NoButtons, True)
       self._set_color_dialog_color()
       cd.colorSelected.connect(self.color_changed_cb)
       cd.finished.connect(self.color_dialog_closed_cb)
@@ -1928,7 +1941,7 @@ class Histogram_Pane:
       ro = v.rendering_options
       add = self.add_menu_entry
       add(menu, 'Show outline box', self.show_outline_box, checked = ro.show_outline_box)
-      add(menu, 'Show one plane', self.show_one_plane, checked = self._planes_slider_shown)
+      add(menu, 'Show one plane', self.show_plane_slider, checked = self._planes_slider_shown)
       add(menu, 'New threshold', lambda checked, e=event, self=self: self.add_threshold(e.x(), e.y()))
       add(menu, 'Delete threshold', lambda checked, e=event, self=self: self.delete_threshold(e.x(), e.y()))
 
@@ -1971,7 +1984,7 @@ class Histogram_Pane:
   # ---------------------------------------------------------------------------
   # Show slider below histogram to control which plane of data is shown.
   #
-  def show_one_plane(self, show):
+  def show_plane_slider(self, show):
       v = self.data_region
       if v is None:
           return
@@ -1980,23 +1993,6 @@ class Histogram_Pane:
           if not self._planes_slider_shown:
               f = self._create_planes_slider()
               self._layout.addWidget(f)
-
-              # Expand volume viewer panel so slider is visible.
-
-              # Apparently the new size cannot be determined until the relayout is done.
-              # Probably the way to handle this is look for resize events on frame and
-              # then call my resize adjustment.  The problem with that is it may interfere
-              # with user manual resizing.
-              # print ('height after slider', self.frame.height())
-              # f.adjustSize()
-              # self.frame.adjustSize()
-              # print ('height after slider and adjust size', self.frame.height())
-              # self.dialog.thresholds_panel.resize_panel()
-
-              # Allow resizing panel smaller with mouse
-              # Hack.
-              from PyQt5.QtCore import QTimer
-              QTimer.singleShot(200, lambda self=self: self.dialog.thresholds_panel.resize_panel())
       else:
           if self._planes_slider_shown:
               f = self._create_planes_slider()
@@ -2055,7 +2051,7 @@ class Histogram_Pane:
       cbpix = QPixmap(join(dirname(__file__), 'x.png'))
       cb.setIcon(QIcon(cbpix))
       cb.setIconSize(QSize(20,20))
-      cb.clicked.connect(lambda event, self=self: self.show_one_plane(False))
+      cb.clicked.connect(lambda event, self=self: self.show_plane_slider(False))
       cb.setToolTip('Close plane slider')
 
       return f
@@ -2079,11 +2075,15 @@ class Histogram_Pane:
       self._planes_slider.setValue(k)
       v = self.data_region
       ijk_min, ijk_max, ijk_step = v.region
+      if ijk_min[2] == k and ijk_max[2] == k:
+          return	# Already showing this plane.
       nijk_min = list(ijk_min)
       nijk_min[2] = k
       nijk_max = list(ijk_max)
       nijk_max[2] = k
       v.new_region(nijk_min, nijk_max, ijk_step)
+      # Make sure this plane is shown before we show another plane.
+      self.dialog.session.ui.request_graphics_redraw()
 
   # ---------------------------------------------------------------------------
   #
@@ -2094,6 +2094,7 @@ class Histogram_Pane:
       markers = self.shown_markers()
       if markers:
           markers.add_marker(cp.x(), cp.y())
+          self.dialog.redisplay_needed_cb()
 
   # ---------------------------------------------------------------------------
   #
@@ -2106,6 +2107,7 @@ class Histogram_Pane:
           m = markers.clicked_marker(cp.x(), cp.y())
           if m:
               markers.delete_marker(m)
+              self.dialog.redisplay_needed_cb()
     
   # ---------------------------------------------------------------------------
   #
@@ -2133,7 +2135,7 @@ class Histogram_Pane:
 
     ijk_min, ijk_max, ijk_step = volume.region
     if ijk_max[2]//ijk_step[2] == ijk_min[2]//ijk_step[2] and volume.data.size[2] > 1:
-        self.show_one_plane(True)
+        self.show_plane_slider(True)
 
   # ---------------------------------------------------------------------------
   #
@@ -2174,6 +2176,7 @@ class Histogram_Pane:
             for cb in self.click_callbacks:
                 cb(event)
         def mouseMoveEvent(self, event):
+            # Only process mouse move once per graphics frame.
             for cb in self.drag_callbacks:
                 cb(event)
 
@@ -2194,11 +2197,13 @@ class Histogram_Pane:
     self.histogram = Histogram(gv, gs)
     self.histogram_shown = False
 
-    st = Markers(gv, gs, 'line', new_marker_color, 0, self.select_marker_cb)
+    st = Markers(gv, gs, 'line', new_marker_color, 0,
+                 self.selected_marker_cb, self.moved_marker_cb)
     self.surface_thresholds = st
 
     new_solid_marker_color = saturate_rgba(new_marker_color)
-    sdt = Markers(gv, gs, 'box', new_solid_marker_color, 1, self.select_marker_cb)
+    sdt = Markers(gv, gs, 'box', new_solid_marker_color, 1,
+                  self.selected_marker_cb, self.moved_marker_cb)
     self.solid_thresholds = sdt
 
     gv.click_callbacks.append(self.select_data_cb)
@@ -2231,10 +2236,19 @@ class Histogram_Pane:
 
   # ---------------------------------------------------------------------------
   #
-  def select_marker_cb(self):
+  def selected_marker_cb(self, marker):
 
     self.select_data_cb()
     self.set_threshold_and_color_widgets()
+
+  # ---------------------------------------------------------------------------
+  #
+  def moved_marker_cb(self, marker):
+
+    self.select_data_cb()
+    self.set_threshold_and_color_widgets()
+    # Request graphics redraw before more mouse drag events occur.
+    self.dialog.session.ui.request_graphics_redraw()
 
   # ---------------------------------------------------------------------------
   #

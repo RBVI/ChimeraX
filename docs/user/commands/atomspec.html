@@ -19,7 +19,7 @@ or derivations thereof.
 </head><body>
 <p>
 <font color="brown">
-** This page includes examples that don't yet work because they use categories 
+** This page includes examples that do not work because they use categories 
 or attribute names from Chimera that are not defined in ChimeraX. **
 </font>
 </p>
@@ -37,11 +37,12 @@ can be specified in <a href="../index.html#commands">commands</a> using:
 <ul>
 <li><a href="#hierarchy">hierarchical specifiers</a>
 - model number, chain, residue, atom name
-<li><a href="#builtin">built-in classifications, user-defined targets</a>
-- <b>sel</b> (current <a href="select.html#seldef">selection</a>), 
+<li><a href="#builtin">built-in classifications</a>
+- <b>sel</b> (current <a href="../selection.html">selection</a>), 
 <b>protein</b>, <b>helix</b>, <b>strand</b>, 
 <b>solvent</b>, element symbols, <i>etc.</i>
-<font color="brown">(user-defined targets not yet implemented)</font> 
+<li><a href="#user">user-defined targets</a>
+<font color="brown">(not yet implemented)</font> 
 <li><a href="#zones">zones</a> - by distance from other items
 <font color="brown">(not yet implemented)</font>
 <li><a href="#descriptors">attribute</a> names and values
@@ -49,7 +50,7 @@ can be specified in <a href="../index.html#commands">commands</a> using:
 </ul>
 or <a href="#combinations">combinations</a> of these.
 In addition, some commands accept or require specifying
-<a href="#othermodels">non-atomic models</a> such as surfaces.
+<a href="#othermodels">non-atomic models</a> such as surfaces or maps.
 Specification strings may contain embedded spaces, and
 a blank specification (where allowed) means &ldquo;all.&rdquo;
 </p><p>
@@ -276,7 +277,7 @@ Examples:
 <hr>
 <a name="builtin"></a>
 <h2><a href="#top" class="nounder"><b>&larr;</b></a>
-Built-in Classifications and User-Defined Targets</h2>
+Built-in Classifications</h2>
 <p>
 Built-in classifications include:
 <ul>
@@ -299,17 +300,16 @@ and their subparts:
 <b>Car</b>, <b>N3+</b>, <b>O2</b>, <i>etc.</i>
 (<b>H</b> is both an element symbol and an 
 <a href="../atomtypes.html">atom type</a>, but element &ldquo;wins&rdquo;)
-<li><b>sel</b> - the current <a href="select.html#seldef">selection</a>
-<li><b>selAtoms</b> - the current atomic model
-<a href="select.html#seldef">selection</a>,
+<li><b>sel</b> - the current <a href="../selection.html">selection</a>
+<li><b>selAtoms</b> - the current atomic
+<a href="../selection.html">selection</a>,
 or if nothing is selected, all atomic models
 <li><b>pbonds</b> - all <a href="../pseudobonds.html">pseudobonds</a>
 and their flanking atoms
 <li><b>hbonds</b> - all H-bond <a href="../pseudobonds.html">pseudobonds</a>
 and their flanking atoms
-<li><b>selMaps</b> - the current volume model
-<a href="select.html#seldef">selection</a>,
-or if nothing is selected, all volume models
+<li><b>selMaps</b> - the currently <a href="../selection.html">selected</a>
+volume model(s), or if none are selected, all volume models
 </ul>
 <p>
 Built-in classifications cannot be redefined by the user.
@@ -355,10 +355,6 @@ all remaining atoms
 </td>
 </table>
 <p>
-<font color="brown">
-User-defined targets are not yet implemented.
-</font>
-</p>
 <!--
 any of the terminal entries in the following sections of the
 <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide//menu.html#menuselect"><b>Select</b> menu</a>:
@@ -368,33 +364,17 @@ any of the terminal entries in the following sections of the
    <li><b>Structure</b>
    </ul>
 <blockquote>
-For example, <b>Structure</b> includes
-  <ul>
-  <li>type of molecule: <b>protein</b>, <b>nucleic acid</b>,
-  <a href="http://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/volumepathtracer/framevolpath.html"
-  target="_top"><b>markers</b></a>
-  <li>protein secondary structure: <b>helix</b>, <b>strand</b>, <b>coil</b>
-  <li><a href="#surfcats">automatic categories</a>:
-  <b>main</b>, <b>ligand</b>, <b>solvent</b>, <b>ions</b>
-  </ul>
-... whereas <b>Chemistry</b> includes 
+For example, <b>Chemistry</b> includes 
 all of the element symbols (<b>C</b>, <b>Fe</b>, <i>etc.</i>)
 and many functional groups (<b>disulfide</b>, <b>phosphate</b>, 
 <b>ether O</b>, <i>etc.</i>).
-The same pattern of capitalization and spaces, if any, as shown in the
-<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/menu.html#menuselect"><b>Select</b> menu</a> should be used. 
+The same pattern of capitalization and spaces, if any, as shown in the menu
+should be used. 
 Where there is ambiguity, the parent menu should be included in the
 specification, for example, &ldquo;IDATM type.H&rdquo; or 
 &ldquo;element.H&rdquo; instead of &ldquo;H&rdquo; alone.
 The parent menu can be included in this manner even when not necessary.
 </blockquote>
-User-defined targets include:
-  <ul>
-  <li>target names defined with <b>namespec</b>
-  <li>custom entries in the sections of the
-  <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/menu.html#menuselect"><b>Select</b> menu</a>
-  mentioned <a href="#builtin">above</a> 
-</ul>
 </p>
 -->
 <p>Examples:</p>
@@ -424,8 +404,26 @@ see <a href="#combinations">combinations</a>)
 -->
 
 <hr>
+<a name="user"></a>
+<h2><a href="#top" class="nounder"><b>&larr;</b></a>
+User-Defined Targets
+<font color="brown">(not yet implemented)</font></h2>
+<!--
+<p>
+User-defined targets include:
+  <ul>
+  <li>target names defined with <b>namespec</b>
+  <li>custom entries in the sections of the
+  <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/menu.html#menuselect"><b>Select</b> menu</a>
+  mentioned <a href="#builtin">above</a> 
+</ul>
+</p>
+-->
+
+<hr>
 <a name="zones"></a>
-<h2><a href="#top" class="nounder"><b>&larr;</b></a> Zones
+<h2><a href="#top" class="nounder"><b>&larr;</b></a>
+Zones
 <font color="brown">(not yet implemented)</font></h2>
 <p>
 Atoms, residues or atomic models within or beyond some distance of a 
@@ -904,10 +902,15 @@ Some commands can apply to things other than atomic models
 To handle such cases, &ldquo;atom specification&rdquo;
 has been extended as follows:
 <ul>
-<li>a surface model can be specified by model number preceded by #,
-or by <a href="select.html#seldef">selection</a> and
-using the word <b>sel</b>
-<li>other types of models can be specified by model number preceded by #
+<li>like atomic models, other types of models can be specified 
+by model number or comma-separated list or range of model numbers
+preceded by #
+<li>the word <b>sel</b> specifies 
+the current <a href="../selection.html">selection</a>,
+which may include surface and/or volume model(s)
+<li>the word <b>selMaps</b> specifies the currently
+<a href="../selection.html">selected</a> volume model(s), 
+or if none are selected, all volume models
 </ul>
 Which of these can be used and whether they can be
 <a href="#combinations">combined</a> with atom specifications
@@ -916,5 +919,5 @@ depends on the command.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2016</address>
+December 2016</address>
 </body></html> 

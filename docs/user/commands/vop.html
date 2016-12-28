@@ -216,7 +216,9 @@ If the new map is large, for example a whole tomogram, the command may
 -->
 <blockquote>
 For each marker or atom in <a href="atomspec.html"><i>atom-spec</i></a>,
-extract a surrounding cube of data. If <b>useMarkerSize</b> is <b>false</b>
+extract a surrounding cube of data. Markers can be created with the mouse
+(see <a href="mousemode.html"><b>mousemode</b></a>).
+If <b>useMarkerSize</b> is <b>false</b>
 (default), the edge length of each cube must be specified in physical units
 of length with <b>size</b> or in grid units with <b>isize</b>.
 If <b>useMarkerSize</b> is true,
@@ -227,6 +229,8 @@ each marker, except where a marker is too close to the edge
 of the density map to obtain a cube of the requested size.
 If <b>size</b> is used instead, rounding may yield edges
 that differ slightly in grid dimensions.
+Marker/atom size can be changed with the 
+top-level <a href="size.html"><b>size</b></a> command.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -550,7 +554,7 @@ The morph is created as a new map (volume) model. However, if the
 the existing morph will be used instead of a new one being calculated.
 </p><p>
   See also: 
-  <b>vseries</b>,
+  <a href="vseries.html"><b>vseries</b></a>,
 <a href="../movies.html">making movies</a>
 </p>
 </blockquote>
@@ -836,8 +840,9 @@ option of <b>fitmap</b></a>
 keywords in Chimera</font>
 -->
 <blockquote>
-Unbend a map near a path formed by
-markers/links or (equivalently) atoms/bonds.
+Unbend a map near a path formed by markers/links or (equivalently) atoms/bonds.
+Markers and links can be created with the mouse
+(see <a href="mousemode.html"><b>mousemode</b></a>).
 The <i>path-spec</i> should be an
 <a href="atomspec.html"><i>atom-spec</i></a> that specifies
 a single chain of atoms (markers) connected by bonds (links).
@@ -853,7 +858,7 @@ volume should be mapped to the Y axis of the result, and can be given as:
 <li>an <a href="atomspec.html"><i>atom-spec</i></a> of 
 exactly two atoms (not necessarily bonded or in the same model) 
 <!-- or one bond.
-A bond can only be specified by <a href="select.html">selecting</a> 
+A bond can only be specified by <a href="../selection.html">selecting</a> 
 it and using the word <b>sel</b>;
 any atoms also selected at the time will be ignored.
 -->
@@ -889,7 +894,7 @@ The cylinder <b>axis</b> can be given as:
 <li>an <a href="atomspec.html"><i>atom-spec</i></a> of 
 exactly two atoms (not necessarily bonded or in the same model) 
 <!-- or one bond.
-A bond can only be specified by <a href="select.html">selecting</a> 
+A bond can only be specified by <a href="../selection.html">selecting</a> 
 it and using the word <b>sel</b>;
 any atoms also selected at the time will be ignored.
 -->
@@ -1044,5 +1049,5 @@ caused by nonperiodicity of the original data.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2016</address>
+December 2016</address>
 </body></html>

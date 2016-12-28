@@ -29,7 +29,6 @@ class PlanesMouseMode(MouseMode):
         self.xy_last = None
         self.drag = None
         self.frac_istep = 0
-        self.frame_number = None
         
     def mouse_down(self, event):
         self.xy_last = (x,y) = event.position()
@@ -46,11 +45,6 @@ class PlanesMouseMode(MouseMode):
         if v is None or self.xy_last is None:
             self.mouse_down(event)
             return
-#        from chimera.update import _frameNumber
-#        if _frameNumber == self.frame_number:
-            # Avoid slow interaction caused by updating planes more than
-            # once between redraw.
-#            return
 
         xl, yl = self.xy_last
         x,y = event.position()
@@ -69,7 +63,8 @@ class PlanesMouseMode(MouseMode):
             # Remember fractional grid step for next move.
             self.frac_istep = istep - int(istep)
             move_plane(v, self.axis, self.side, int(istep))
-#            self.frame_number = _frameNumber
+            # Make sure new plane is shown before another mouse event shows another plane.
+            self.session.ui.request_graphics_redraw()
 
     def wheel(self, event):
         self.mouse_down(event)
@@ -77,6 +72,8 @@ class PlanesMouseMode(MouseMode):
         if v:
             d = event.wheel_value()
             move_plane(v, self.axis, self.side, d)
+            # Make sure new plane is shown before another mouse event shows another plane.
+            self.session.ui.request_graphics_redraw()
 
     def mouse_up(self, event):
         self.map = None

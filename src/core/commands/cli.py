@@ -2403,7 +2403,7 @@ def command_url(name, no_aliases=False):
     return cmd._ci.url if cmd._ci else None
 
 
-def usage(name, no_aliases=False, no_subcommands=False):
+def usage(name, no_aliases=False, no_subcommands=False, expand_alias=True):
     """Return usage string for given command name
 
     :param name: the name of the command
@@ -2445,9 +2445,11 @@ def usage(name, no_aliases=False, no_subcommands=False):
                 syntax += ' [%s _%s_]' % (uarg_name, arg_type.name)
         if ci.synopsis:
             syntax += ' -- %s' % ci.synopsis
+        else:
+            syntax += ' -- no synopsis available'
         if arg_syntax:
             syntax += '\n%s' % '\n'.join(arg_syntax)
-        if ci.is_alias():
+        if expand_alias and ci.is_alias():
             alias = ci.function
             arg_text = cmd.current_text[cmd.amount_parsed:]
             args = arg_text.split(maxsplit=alias.num_args)
@@ -2475,7 +2477,7 @@ def usage(name, no_aliases=False, no_subcommands=False):
     return syntax
 
 
-def html_usage(name, no_aliases=False, no_subcommands=False):
+def html_usage(name, no_aliases=False, no_subcommands=False, expand_alias=True):
     """Return usage string in HTML for given command name
 
     :param name: the name of the command
@@ -2496,6 +2498,8 @@ def html_usage(name, no_aliases=False, no_subcommands=False):
         arg_syntax = []
         if ci.synopsis:
             syntax += "<i>%s</i><br>\n" % escape(ci.synopsis)
+        else:
+            syntax += "<i>[no synopsis available]</i><br>\n"
         if cmd._ci.url is None:
             syntax += '<b>%s</b>' % escape(cmd.command_name)
         else:
@@ -2540,7 +2544,7 @@ def html_usage(name, no_aliases=False, no_subcommands=False):
                 syntax += ' <nobr>[<b>%s</b>%s]</nobr>' % (escape(uarg_name), type)
         if arg_syntax:
             syntax += '<br>\n&nbsp;&nbsp;%s' % '<br>\n&nbsp;&nbsp;'.join(arg_syntax)
-        if ci.is_alias():
+        if expand_alias and ci.is_alias():
             alias = ci.function
             arg_text = cmd.current_text[cmd.amount_parsed:]
             args = arg_text.split(maxsplit=alias.num_args)
@@ -2601,7 +2605,7 @@ def registered_commands(multiword=False, _start=None):
             if word_info.is_deferred():
                 word_info.lazy_register()
         words = list(parent_info.subcommands.keys())
-        words.sort(key=lambda x: x[x[0] == '~':])
+        words.sort(key=lambda x: x[x[0] == '~':].lower())
         for word in words:
             word_info = parent_info.subcommands[word]
             if word_info.is_deferred():

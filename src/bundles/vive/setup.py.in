@@ -45,7 +45,7 @@ setup(
         "ChimeraX-Core >= 0.1",
         # list all dependences on non-standard Python packages incl. ChimeraX ones
         # TODO: numpy
-        "openvr == 1.0.0201",
+        "openvr == 1.0.0401",
     ],
     classifiers=[
         # From https://pypi.python.org/pypi?%3Aaction=list_classifiers
@@ -65,6 +65,7 @@ setup(
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
         "ChimeraX :: Bundle :: General :: 1,1 :: PKG_NAME :: chimerax.vive :: ",
-        "ChimeraX :: Command :: vive :: General :: View models on the HTC Vive",
+        "ChimeraX :: Command :: vr :: General :: View models on VR headset using SteamVR",
+        "ChimeraX :: Command :: vive :: General :: View models on VR headset using SteamVR",
     ],
 )

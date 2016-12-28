@@ -30,18 +30,25 @@ class="clRight" title="User Guide Index"/></a>
 &nbsp;<a href="#options"><i>options</i></a></h3>
 <p>
 The <b>volume</b> command controls the display of density maps and
-other volume data, <i>i.e.</i>, values associated with points on a 3D grid.
+other <a href="../tools/volumeviewer.html">volume data</a>, 
+<i>i.e.</i>, values associated with points on a 3D grid.
 The <a href="atomspec.html"><i>model-spec</i></a> can be a specific model
 number or range of model numbers (preceded by #),
 or the word <b>all</b> to indicate all volume models.
-Volume data can be saved to a file with the 
-command <a href="save.html"><b>save</b></a>.
+</p><p>
+The corresponding graphical interface,
+<a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>,
+allows adjusting contour levels and some of the other settings
+interactively.  Volume data can be opened with the command
+<a href="open.html"><b>open</b></a> (which automatically starts 
+<a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>)
+and saved to a file with <a href="save.html"><b>save</b></a>.
 See also:
-<a href="open.html"><b>open</b></a>,
 <a href="show.html"><b>show</b></a>,
 <a href="color.html"><b>color</b></a>,
+<a href="transparency.html"><b>transparency</b></a>,
 <a href="vop.html"><b>vop</b></a>,
-<b>vseries</b>,
+<a href="vseries.html"><b>vseries</b></a>,
 <a href="molmap.html"><b>molmap</b></a>,
 <a href="fitmap.html"><b>fitmap</b></a>,
 <a href="sop.html"><b>sop</b></a>,
@@ -95,6 +102,7 @@ default settings are indicated with <b>bold</b>.
   show those that are hidden and hide those that are shown.
 </blockquote>
 <blockquote>
+<!-- need to change section heading and vseries docs if solid becomes image -->
   <a href="#top" class="nounder">&bull;</a>
   <a name="style"><b>style</b> surface | mesh | solid</a>
   <br>Designate the style of display:
@@ -192,9 +200,10 @@ is significant.
   0.001 of the target or 30 iterations have been performed.
   The <a href="#fastEncloseVolume"><b>fastEncloseVolume</b></a> option
   is similar but uses a noniterative approximation.
+  See also: 
+  <a href="vseries.html#align"><b>vseries align</b></a>
 <!--
-  See also: <a href="measure.html#volume"><b>measure volume</b></a>,
-  <a href="vseries.html#align-options"><b>vseries align</b></a>
+<a href="measure.html#volume"><b>measure volume</b></a>,
 -->
 </blockquote>
 <blockquote>
@@ -214,9 +223,10 @@ is significant.
   The <a href="#encloseVolume"><b>encloseVolume</b></a> option
   is similar but uses an iterative procedure with increased accuracy
   at the cost of increased computation time.
+  See also: 
+  <a href="vseries.html#align"><b>vseries align</b></a>
 <!--
-  See also: <a href="measure.html#volume"><b>measure volume</b></a>,
-  <a href="vseries.html#align-options"><b>vseries align</b></a>
+<a href="measure.html#volume"><b>measure volume</b></a>,
 -->
 </blockquote>
 <blockquote>
@@ -510,7 +520,7 @@ regardless of which are specified:
   <li>an <a href="atomspec.html"><i>atom-spec</i></a> of
    exactly two atoms (not necessarily bonded or in the same model) 
 <!-- or one bond.
-   A bond can only be specified by <a href="select.html">selecting</a>
+   A bond can only be specified by <a href="../selection.html">selecting</a>
    it and using the word <b>sel</b>;
    any atoms also selected at the time will be ignored.
 -->
@@ -940,5 +950,5 @@ then perform byte-swapping if necessary.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2016</address>
+December 2016</address>
 </body></html>

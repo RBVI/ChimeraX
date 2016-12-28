@@ -103,11 +103,12 @@ atomic representations and per-atom patches of molecular surfaces
 <a href="surface.html">molecular surfaces</a>
 <li><a name="bymodel"><b>bymodel</b></a>
 - the <a href="colortables.html#autocolors">initial colors</a> of atomic models
-<li><a name="byseq"><b>bysequence</b> or <b>byseq</b></a>
-- random colors per unique chain or molecular entity;
-biopolymer chain sequences are used to initialize the random number
+<li><a name="byentity"><b>byentity</b></a>
+- a random color per unique biopolymer chain
+or <b><i>macromolecular entity</i></b>;
+the chain sequence is used to initialize the random number
 generator for choosing red, green, and blue color components,
-so the same sequence always gets the same color
+so the same sequence will always give the same color
 <!-- 
 using sequence 1-letter codes, rgb values chosen in range 128-255, opacity 255
 -->
@@ -125,8 +126,8 @@ at the specified <i>level</i>:
 such as <a href="atomspec.html#builtin"><b>ligand</b></a> are not affected
 <li><b>chains</b> - a different color for each biopolymer chain in an 
 atomic model; non-biopolymer residues are not affected
-<li><b>sequences</b> - a different color for each unique biopolymer chain 
-(molecular entity) in an atomic model, based on sequence; 
+<li><b>entities</b> - a different color for each unique biopolymer chain 
+(macromolecular entity) in an atomic model, based on sequence; 
 non-biopolymer residues are not affected
 <li><b>molmodels</b> - a different color for each atomic model
 </ul>
@@ -390,14 +391,15 @@ Example <a href="#top"><b>color</b></a> commands:
 </blockquote>
 - color the chains in model 3 from a medium cyan through white to dark maroon
 <blockquote>
-<b>color seq chain &nbsp;targ c
+<b>color seq entities &nbsp;targ c
 &nbsp;palette cornflowerblue:red:gold</b>
 <br>&ndash; or &ndash;<br>
-<b>rainbow chain &nbsp;targ c
+<b>rainbow entities &nbsp;targ c
 &nbsp;palette cornflowerblue:red:gold</b>
 </blockquote>
-- color the chains in each atomic model, cartoons only,
+- color the unique biopolymers in each atomic model, cartoons only,
 along the range cornflower blue &rarr; red &rarr; gold
+(chains that are the same biopolymer will be the same color) 
 <!--
 <blockquote>
 <b>color /A &nbsp;attribute bfactor &nbsp;target ac &nbsp;residueVal max</b>
@@ -473,5 +475,5 @@ named <i>cname</i>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2016</address>
+December 2016</address>
 </body></html>

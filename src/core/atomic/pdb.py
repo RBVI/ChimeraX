@@ -48,35 +48,37 @@ def open_pdb(session, filename, name, *args, **kw):
                        sum(m.num_bonds for m in models)))
 
 
+_pdb_sources = {
+    "rcsb": "http://www.pdb.org/pdb/files/pdb%s.ent",
+    "pdbe": "http://www.ebi.ac.uk/pdbe/entry-files/download/pdb%s.ent",
+    # "pdbj": "https://pdbj.org/rest/downloadPDBfile?format=pdb&id=%s",
+}
+
+
 def fetch_pdb(session, pdb_id, fetch_source="rcsb", ignore_cache=False, **kw):
     if len(pdb_id) != 4:
         from ..errors import UserError
         raise UserError('PDB identifiers are 4 characters long, got "%s"' % pdb_id)
     import os
+    pdb_id = pdb_id.lower()
     # check on local system -- TODO: configure location
-    lower = pdb_id.lower()
-    subdir = lower[1:3]
-    sys_filename = "/databases/mol/pdb/%s/pdb%s.ent" % (subdir, lower)
-    if os.path.exists(sys_filename):
-        return sys_filename, pdb_id
-
-    pdb_name = "%s.pdb" % pdb_id.upper()
-    if fetch_source == "rcsb":
-        # Most common case
-        url = "http://www.pdb.org/pdb/files/%s" % pdb_name
-    elif fetch_source == "pdbe":
-        url = "http://www.ebi.ac.uk/pdbe/entry-files/download/pdb%s.ent" % lower
-    # elif fetch_source == "pdbj":
-    #     url = "https://pdbj.org/rest/downloadPDBfile?format=pdb&id=%s" % lower
+    subdir = pdb_id[1:3]
+    filename = "/databases/mol/pdb/%s/pdb%s.ent" % (subdir, pdb_id)
+    if os.path.exists(filename):
+        session.logger.info("Fetching PDB %s from system cache: %s" % (pdb_id, filename))
     else:
-        raise UserError('unrecognized PDB source "%s"' % fetch_source)
-    session.logger.status("Fetching PDB %s from %s" % (pdb_id, url))
-    from ..fetch import fetch_file
-    filename = fetch_file(session, url, 'PDB %s' % pdb_id, pdb_name, 'PDB',
-                          ignore_cache=ignore_cache)
+        base_url = _pdb_sources.get(fetch_source, None)
+        if base_url is None:
+            raise UserError('unrecognized PDB source "%s"' % fetch_source)
+        url = base_url % pdb_id
+        pdb_name = "%s.pdb" % pdb_id
+        session.logger.status("Fetching PDB %s from %s" % (pdb_id, url))
+        from ..fetch import fetch_file
+        filename = fetch_file(session, url, 'PDB %s' % pdb_id, pdb_name, 'PDB',
+                              ignore_cache=ignore_cache)
 
     from .. import io
-    models, status = io.open_data(session, filename, format = 'pdb', name = pdb_id, **kw)
+    models, status = io.open_data(session, filename, format='pdb', name=pdb_id, **kw)
     return models, status
 
 
