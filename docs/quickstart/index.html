@@ -15,8 +15,36 @@ or derivations thereof.
 
 <head>
 <title>ChimeraX Quick Start Guide</title>
+<script type="text/javascript">
+cxlinks_base="http://www.rbvi.ucsf.edu/chimerax/docs/"
+cxlinks_init = function() {
+  if(!window.navigator.userAgent.includes("ChimeraX")){
+    window.onclick = function(e){
+      if(e.target.tagName.toLowerCase()!="a")
+	return true;
+      var url=e.target.getAttribute("href").toLowerCase();
+      if(url.startsWith("help:")){
+	window.location.href = cxlinks_base + url.substring(5);
+	return false;
+      }
+      if(url.startsWith("cxcmd:")){
+	alert("This link only works in a ChimeraX browser and would execute a command.");
+	return false;
+      }
+      return true;
+    }
+    var ls=document.links;
+    for(var i=0;i<ls.length;i++){
+      var link=ls[i];
+      var url=link.getAttribute("href").toLowerCase();
+      if(url.startsWith("cxcmd:"))
+	link.style.color="darkred";
+    }
+  }
+}
+</script>
 </head>
-<body>
+<body onload="cxlinks_init()">
 
 <h2>ChimeraX Quick Start Guide
 <a href="../user/index.html">
@@ -175,7 +203,7 @@ show thin black outlines. Save PNG image file to Desktop.</i>
 <table cellpadding=5>
 <tr>
 <td width=256 align=center><a href="cxcmd:buriedarea /a with /b; sasa #1 & ~solvent">buriedarea /a with /b<br>sasa #1 & ~solvent</a>
-<td width=256 align=center><a href="cxcmd:contacts #1">contacts #1</a>
+<td width=256 align=center><a href="cxcmd:contacts #1 & protein">contacts #1 & protein</a>
 <td width=256 align=center><a href="cxcmd:close; set bg black; set silhouettes false">close<br>set bg black<br>set silhouettes false</a>
 <tr>
 <td>
@@ -319,28 +347,3 @@ Make map 50% transparent.</i>
 
 </body>
 </html>
-<script type="text/javascript">
-if(!window.navigator.userAgent.includes("ChimeraX")){
-  window.onclick = function(e){
-    if(e.target.tagName.toLowerCase()!="a")
-      return true;
-    var url=e.target.getAttribute("href").toLowerCase();
-    if(url.startsWith("help:")){
-      window.location.href = "http://www.rbvi.ucsf.edu/chimerax/docs/" + url.substring(5);
-      return false;
-    }
-    if(url.startsWith("cxcmd:")){
-      alert("This link only works in a ChimeraX browser and would execute a command.");
-      return false;
-    }
-    return true;
-  }
-  var ls=document.links;
-  for(var i=0;i<ls.length;i++){
-    var link=ls[i];
-    var url=link.getAttribute("href").toLowerCase();
-    if(url.startsWith("cxcmd:"))
-      link.style.color="darkred";
-  }
-}
-</script>
