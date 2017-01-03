@@ -46,6 +46,21 @@ clicking any buttons. See also:
 <a href="../tools/mousemodes.html"><b>Mouse Modes for Right Button</b></a>
 toolbar, <a href="../window.html">ChimeraX window</a>
 </p><p>
+Given without arguments, the <b>mousemode</b> command reports the current
+assignments in the <a href="../tools/log.html"><b>Log</b></a>. 
+Initial defaults include:
+</p>
+<ul>
+<li>left: rotate
+<li>middle: translate
+<li>right: zoom
+<li>wheel (scrolling): zoom
+<li>Ctrl-left: new <a href="../selection.html">selection</a>
+<li>Shift-Ctrl-left: toggle <a href="../selection.html">selection</a>
+</ul>
+A touchpad or single-button mouse can be used with modifier keys
+to emulate middle and right mouse buttons (<a href="#emulation">more...</a>).
+<p>
 Possible values of <i>function</i> are listed in the table 
 <a href="#functions">below</a>. They can be truncated to unique strings.
 If <i>function</i> contains spaces, it should be enclosed in quotation marks.
@@ -64,17 +79,7 @@ two commands rather than one would be needed to assign functions to
 <br>
 <b>mousemode alt wheel contour</b>
 </blockquote>
-<p>
-In the case of a touchpad or single-button mouse, 
-middle- and right-button clicks can be emulated with modifier keys;
-on a Mac, these are <b>alt</b> and <b>command</b> 
-<img src="../icon-clover.png" width="12px">, respectively. 
-In other words, leaving <b>alt left</b> and <b>command left</b>
-unassigned allows them to serve the middle- and right-button functions.
-</p><p>
-The <b>mousemode</b> command without arguments reports the current
-assignments in the <a href="../tools/log.html"><b>Log</b></a>.
-</p>
+
 <a name="functions"></a>
 <table border cellpadding="4" cellspacing="0">
 <tr>
@@ -209,6 +214,19 @@ successively clicked markers (atoms)</td>
 </tr>
 </table>
 
+<a name="emulation"></a>
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<h3>Touchpad or Single-Button Mouse</h3>
+<p>
+Middle- and right-button clicks can be emulated 
+by combining touchpad or single-button mouse clicks with modifier keys;
+on a Mac, these are <b>alt</b> and <b>command</b> 
+<img src="../icon-clover.png" width="12px">, respectively.
+In other words, leaving <b>alt left</b> and <b>command left</b>
+unassigned allows them to serve the middle- and right-button functions.
+</p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 December 2016</address>
