@@ -23,16 +23,13 @@
 # define PY_STUPID (char *)
 #endif
 
-typedef std::pair<char, char> Pair;
-typedef std::map<Pair, double> Similarity;
-
-const char *BadKey = "dictionary key must be tuple of two characters";
 const char *MissingKey = "no score for '%c' vs. '%c'";
 const char *MissingSSKey = "no score for gap open between '%c' and '%c'";
 const char *SeqLenMismatch = "sequence lengths don't match their secondary structure strings";
 
 using align_algs::make_matrix;
 using align_algs::matrix_lookup;
+using align_algs::Similarity;
 
 //
 // score
@@ -370,16 +367,6 @@ align(PyObject *, PyObject *args, PyObject *kwdict)
 }
 
 
-#define MATRIX_EXPLAIN \
-"\n\nThe keys in the similarity dictionary must be 2-tuples of\n" \
-"single character strings, each representing a residue type.\n" \
-"This routine does not automatically generate the inverse\n" \
-"pair (i.e., does not generate (b,a) when given (a,b) so\n" \
-"the caller must provide the full matrix instead of just\n" \
-"the upper or lower half.  The values in the dictionary\n" \
-"must be floating point numbers.  The '*' character is\n" \
-"a wildcard."
-
 static const char* docstr_score =
 "score\n"
 "Compute the score of the best Smith-Waterman alignment\n"
@@ -391,8 +378,8 @@ static const char* docstr_score =
 "	gap_open		gap opening penalty\n"
 "	gap_extend	gap extension penalty\n"
 "and returns the best score.  This function is mostly\n"
-"useful for optimizing similarity matrices."
-MATRIX_EXPLAIN;
+"useful for optimizing similarity matrices.\n\n"
+SIM_MATRIX_EXPLAIN;
 
 static const char* docstr_align =
 "align\n"
@@ -401,7 +388,7 @@ static const char* docstr_align =
 "The function takes five mandatory arguments:\n"
 "	seq1		first sequence\n"
 "	seq2		second sequence\n"
-"	matrix		similarity dictionary (see above)\n"
+"	matrix		similarity dictionary (see below)\n"
 "	gap_open		gap opening penalty\n"
 "	gap_extend	gap extension penalty\n"
 "and the following optional keyword arguments:\n"
@@ -422,8 +409,8 @@ static const char* docstr_align =
 "is provided and is not None.  In that case the ss_gap_open penalties are\n"
 "used and gap_open is ignored.  The residue-matching score is a\n"
 "combination of the secondary-structure and similarity scores, weighted\n"
-"by the ss_fraction."
-MATRIX_EXPLAIN;
+"by the ss_fraction.\n\n"
+SIM_MATRIX_EXPLAIN;
 
 static PyMethodDef sw_methods[] = {
 	{ PY_STUPID "score", score,	METH_VARARGS, PY_STUPID docstr_score	},

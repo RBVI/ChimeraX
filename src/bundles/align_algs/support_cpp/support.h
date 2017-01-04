@@ -28,6 +28,16 @@ typedef std::map<Pair, double> Similarity;
 int make_matrix(PyObject *dict, Similarity &matrix);
 Similarity::const_iterator matrix_lookup(const Similarity &matrix, char c1, char c2);
 
+#define SIM_MATRIX_EXPLAIN \
+"The keys in the similarity dictionary must be 2-tuples of\n" \
+"single character strings, each representing a residue type.\n" \
+"This routine does not automatically generate the inverse\n" \
+"pair (i.e., does not generate (b,a) when given (a,b) so\n" \
+"the caller must provide the full matrix instead of just\n" \
+"the upper or lower half.  The values in the dictionary\n" \
+"must be floating point numbers.  The '*' character is\n" \
+"a wildcard."
+
 }  // namespace align_algs
 
 #endif  // align_algs_support
