@@ -14,6 +14,7 @@ FULL_VERSION = $(VERSION).$(MINOR_VERSION)
 # use local directory for the wheel, so we don't have to convert it
 # to a Windows path when installing
 WHEEL = PyQt5_$(PYQT_LICENSE)-$(VERSION)-$(WHEEL_PLATFORM).whl
+SIP_VERSION = 4.18
 
 ifeq ($(OS),Darwin)
 PLATFORM = osx
@@ -38,10 +39,10 @@ endif
 all:
 
 install: $(WHEEL)
-	$(PIP) install -U $(WHEEL)
+	$(PIP) install -U $(WHEEL) sip==$(SIP_VERSION)
 
 app-install: $(WHEEL)
-	$(APP_PIP) install $(WHEEL)
+	$(APP_PIP) install sip==$(SIP_VERSION) $(WHEEL)
 
 $(WHEEL) prefetch:
 ifneq ($(PYQT_LICENSE),gpl)
