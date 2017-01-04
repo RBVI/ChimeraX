@@ -39,7 +39,7 @@ endif
 all:
 
 install: $(WHEEL)
-	$(PIP) install -U $(WHEEL) sip
+	$(PIP) install -U $(WHEEL) sip==$(SIP_VERSION)
 
 app-install: $(WHEEL)
 	$(APP_PIP) install sip==$(SIP_VERSION) $(WHEEL)
