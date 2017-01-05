@@ -195,6 +195,18 @@ class Atom:
         f(a_ref, 1, loc, v_ref)
         return v.value
 
+    @property
+    def aniso_u(self):
+        '''Anisotropic temperature factors, returns 3x3 array of numpy float32 or None.  Read only.'''
+        f = c_function('atom_aniso_u', args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p))
+        from numpy import empty, float32
+        ai = empty((3,3), float32)
+        try:
+            f(self._c_pointer_ref, 1, pointer(ai))
+        except ValueError:
+            ai = None
+        return ai
+        
     def delete(self):
         '''Delete this Atom from it's Structure'''
         f = c_function('atom_delete', args = (ctypes.c_void_p, ctypes.c_size_t))

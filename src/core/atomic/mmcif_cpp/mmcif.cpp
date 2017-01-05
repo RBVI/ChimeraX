@@ -129,6 +129,7 @@ struct ExtractMolecule: public readcif::CIFFile
     const tmpl::Residue* find_template_residue(const ResName& name);
     void parse_audit_conform();
     void parse_atom_site();
+    void parse_atom_site_anisotrop();
     void parse_struct_conn();
     void parse_struct_conf();
     void parse_struct_sheet_range();
@@ -285,6 +286,10 @@ ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_c
         [this] () {
             parse_atom_site();
         }, { "entity_poly_seq" });
+    register_category("atom_site_anisotrop",
+        [this] () {
+            parse_atom_site_anisotrop();
+        }, { "atom_site" });
     register_category("struct_conn",
         [this] () {
             parse_struct_conn();
@@ -811,9 +816,9 @@ ExtractMolecule::parse_atom_site()
     ResName auth_residue_name;    // auth_comp_id
     char symbol[3];               // type_symbol
     long serial_num = 0;          // id
-    double x, y, z;                // Cartn_[xyz]
-    double occupancy = DBL_MAX;    // occupancy
-    double b_factor = DBL_MAX;     // B_iso_or_equiv
+    double x, y, z;               // Cartn_[xyz]
+    double occupancy = DBL_MAX;   // occupancy
+    double b_factor = DBL_MAX;    // B_iso_or_equiv
     int model_num = 0;            // pdbx_PDB_model_num
 
     bool missing_poly_seq = poly_seq.empty();
@@ -1050,6 +1055,66 @@ ExtractMolecule::parse_atom_site()
         if (occupancy != DBL_MAX)
             a->set_occupancy(occupancy);
 
+    }
+}
+
+void
+ExtractMolecule::parse_atom_site_anisotrop()
+{
+    readcif::CIFFile::ParseValues pv;
+    pv.reserve(20);
+
+    long serial_num = 0;          // id
+    float u11, u12, u13, u22, u23, u33;
+
+    try {
+        pv.emplace_back(get_column("id", true), false,
+            [&] (const char* start, const char*) {
+                serial_num = readcif::str_to_int(start);
+            });
+        pv.emplace_back(get_column("U[1][1]", true), false,
+            [&] (const char* start, const char*) {
+                u11 = readcif::str_to_float(start);
+            });
+        pv.emplace_back(get_column("U[1][2]", true), false,
+            [&] (const char* start, const char*) {
+                u12 = readcif::str_to_float(start);
+            });
+        pv.emplace_back(get_column("U[1][3]", true), false,
+            [&] (const char* start, const char*) {
+                u13 = readcif::str_to_float(start);
+            });
+        pv.emplace_back(get_column("U[2][2]", true), false,
+            [&] (const char* start, const char*) {
+                u22 = readcif::str_to_float(start);
+            });
+        pv.emplace_back(get_column("U[2][3]", true), false,
+            [&] (const char* start, const char*) {
+                u23 = readcif::str_to_float(start);
+            });
+        pv.emplace_back(get_column("U[3][3]", true), false,
+            [&] (const char* start, const char*) {
+                u33 = readcif::str_to_float(start);
+            });
+    } catch (std::runtime_error& e) {
+        logger::warning(_logger, "skipping atom_site_anistrop category: ", e.what());
+        return;
+    }
+
+    if (PDB_style())
+        set_PDB_fixed_columns(true);
+    auto mol = all_residues.begin()->second.begin()->second->structure();
+    auto& atoms = mol->atoms();
+    std::map <long, Atom*> atom_lookup;
+    for (auto&& a: atoms) {
+        atom_lookup[a->serial_number()] = a;
+    }
+    while (parse_row(pv)) {
+        const auto& ai = atom_lookup.find(serial_num);
+        if (ai == atom_lookup.end())
+            continue;
+        Atom *a = ai->second;
+        a->set_aniso_u(u11, u12, u13, u22, u23, u33);
     }
 }
 

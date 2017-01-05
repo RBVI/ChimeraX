@@ -56,7 +56,7 @@ def start_vr(session):
         import openvr
     except Exception as e:
         from chimerax.core.errors import UserError
-        raise UserError('Failed to importing OpenVR module: %s' % str(e))
+        raise UserError('Failed to import OpenVR module: %s' % str(e))
     
     v.camera = SteamVRCamera(session)
     # Set redraw timer for 1 msec to minimize dropped frames.
