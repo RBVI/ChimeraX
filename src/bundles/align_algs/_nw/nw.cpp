@@ -27,12 +27,6 @@
 # define PY_STUPID (char *)
 #endif
 
-#if 0
-const char *MissingKey = "no score for '%c' vs. '%c'";
-const char *MissingSSKey = "no score for gap open between '%c' and '%c'";
-const char *SeqLenMismatch = "sequence lengths don't match their secondary structure strings";
-#endif
-
 using align_algs::make_matrix;
 using align_algs::matrix_lookup;
 using align_algs::Similarity;
@@ -219,12 +213,14 @@ match(PyObject *, PyObject *args)
 	PyObject* gap_freqs2;
 	char *ss_types1, *ss_types2;
 	PyObject *ss_freqs_val1, *ss_freqs_val2;
-	if (!PyArg_ParseTuple(args, PY_STUPID "ssddddpOOOOOpdddOOssOO", &seq1, &seq2,
+	PyObject *occupancies_val1, *occupancies_val2;
+	if (!PyArg_ParseTuple(args, PY_STUPID "ssddddpOOOOOpdddOOssOOOO", &seq1, &seq2,
 			&score_match, &score_mismatch, &gap_open, &gap_extend, &ends_are_gaps,
 			&sim_m, &score_m, &freq_m, &ss_m, &ss_fract,
 			&ss_specific_gaps, &gap_open_helix, &gap_open_strand, &gap_open_other,
 			&gap_freqs1, &gap_freqs2,
-			&ss_types1, &ss_types2, &ss_freqs_val1, &ss_freqs_val2))
+			&ss_types1, &ss_types2, &ss_freqs_val1, &ss_freqs_val2,
+			&occupancies_val1, &occupancies_val2))
 		return nullptr;
 
 	size_t rows = strlen(seq1) + 1;
@@ -377,6 +373,34 @@ match(PyObject *, PyObject *args)
 		}
 	}
 
+	// extract Python occupancy info
+	bool has_occ1, has_occ2;
+	std::vector<double> occ1, occ2;
+	if (occupancies_val1 == Py_None) {
+		has_occ1 = false;
+	} else {
+		has_occ1 = true;
+		try {
+			pysupport::pylist_of_float_to_cvec(occupancies_val1, occ1, "seq1 occupancy");
+		} catch (pysupport::PySupportError& e) {
+			PyErr_SetString(PyExc_ValueError, e.what());
+			delete eval;
+			return nullptr;
+		}
+	}
+	if (occupancies_val2 == Py_None) {
+		has_occ2 = false;
+	} else {
+		has_occ2 = true;
+		try {
+			pysupport::pylist_of_float_to_cvec(occupancies_val2, occ2, "seq2 occupancy");
+		} catch (pysupport::PySupportError& e) {
+			PyErr_SetString(PyExc_ValueError, e.what());
+			delete eval;
+			return nullptr;
+		}
+	}
+
 	//
 	// Allocate space for the score matrix and the backtracking matrix
 	//
@@ -400,22 +424,124 @@ match(PyObject *, PyObject *args)
 	}
 
 	// fill matrix [dynamic programming]
-	std::vector<size_t> col_gap_starts(0, cols-1); // don't care about column zero
+	std::vector<size_t> col_gap_starts(cols-1, 0); // don't care about column zero
+	double base_col_gap_val, base_row_gap_val, skip;
 	for (size_t i1 = 0; i1 < rows-1; ++i1) {
 		size_t row_gap_pos = 0;
 		size_t i2_end = cols-1;
 		for (size_t i2 = 0; i2 < i2_end; ++i2) {
 			auto best = m[i1][i2] + eval->score(i1, i2);
-			int bt_type = 0;
+			int bt_type = 0, skip_size;
+			double col_skip_val, row_skip_val;
 			if (i2 + 1 < cols-1 || ends_are_gaps) {
 				auto col_gap_pos = col_gap_starts[i2];
-				int skip_size = i1 + 1 - col_gap_pos;
-				//TODO: occupancy
-			} //TODO
+				skip_size = i1 + 1 - col_gap_pos;
+				if (has_occ1) {
+					double tot_occ = 0.0;
+					for (auto i = col_gap_pos; i < i1+1; ++i) {
+						tot_occ += occ1[i];
+					}
+					col_skip_val = tot_occ * gap_extend;
+				} else {
+					col_skip_val = skip_size * gap_extend;
+				}
+				base_col_gap_val = m[col_gap_pos][i2+1] + col_skip_val;
+				skip = base_col_gap_val + gap_open_2[i2+1];
+			} else {
+				skip_size = 1;
+				col_skip_val = 0.0;
+				skip = m[i1][i2+1];
+			}
+			if (skip > best) {
+				best = skip;
+				bt_type = skip_size;
+			}
+			if (i1 + 1 < rows-1 || ends_are_gaps) {
+				skip_size = i2 + 1 - row_gap_pos;
+				if (has_occ2) {
+					double tot_occ = 0.0;
+					for (auto i = row_gap_pos; i < i2+1; ++i) {
+						tot_occ += occ2[i];
+					}
+					row_skip_val = tot_occ * gap_extend;
+				} else {
+					row_skip_val = skip_size * gap_extend;
+				}
+				base_row_gap_val = m[i1+1][row_gap_pos] + row_skip_val;
+				skip = base_row_gap_val + gap_open_1[i1+1];
+			} else {
+				skip_size = 1;
+				row_skip_val = 0.0;
+				skip = m[i1+1][i2];
+			}
+			if (skip > best) {
+				best = skip;
+				bt_type = 0 - skip_size;
+			}
+
+			m[i1+1][i2+1] = best;
+			bt[i1+1][i2+1] = bt_type;
+			if (bt_type >= 0) {
+				// not gapping the row
+				if (best > base_row_gap_val)
+					row_gap_pos = i2 + 1;
+			}
+			if (bt_type <= 0) {
+				// not gapping the column
+				if (best > base_col_gap_val)
+					col_gap_starts[i2] = i1 + 1;
+			}
 		}
 	}
 
-	//TODO: dynamic programming; create match list; complete module; test; add doc strings to Python layer
+	// create match list
+	bool py_error_happened = false;
+	PyObject* match_list = PyList_New(0);
+	if (match_list == nullptr) {
+		py_error_happened = true;
+	} else {
+		auto i1 = rows - 1;
+		auto i2 = cols - 1;
+		while (i1 > 0 && i2 > 0) {
+			auto bt_type = bt[i1][i2];
+			if (bt_type == 0) {
+				PyObject* tuple = PyTuple_New(2);
+				if (tuple == nullptr) {
+					py_error_happened = true;
+					Py_DECREF(match_list);
+					break;
+				}
+				if (PyList_Append(match_list, tuple) < 0) {
+					py_error_happened = true;
+					Py_DECREF(tuple);
+					Py_DECREF(match_list);
+					break;
+				}
+				PyObject* py_i1 = PyLong_FromSize_t(i1-1);
+				if (py_i1 == nullptr) {
+					py_error_happened = true;
+					Py_DECREF(match_list);
+					break;
+				}
+				PyTuple_SET_ITEM(tuple, 0, py_i1);
+				PyObject* py_i2 = PyLong_FromSize_t(i2-1);
+				if (py_i2 == nullptr) {
+					py_error_happened = true;
+					Py_DECREF(match_list);
+					break;
+				}
+				PyTuple_SET_ITEM(tuple, 1, py_i2);
+				i1--;
+				i2--;
+			} else if (bt_type > 0) {
+				i1 -= bt_type;
+			} else {
+				i2 += bt_type;
+			}
+		}
+	}
+
+	auto best_score = m[rows-1][cols-1];
 
 	//
 	// Release the score and backtrack matrix memory
@@ -427,450 +553,18 @@ match(PyObject *, PyObject *args)
 	delete [] m;
 	delete [] bt;
 	delete eval;
-#if 0
-    //# if 'score_matrix', 'similarity_matrix', or 'frequency_matrix' is
-    //# provided, then 'score_match' and 'score_mismatch' are ignored and
-    //# the matrix is used to evaluate matching between the sequences.
-    //# 'score_matrix' should be a two-dimensional array of size
-    //# len(s1) x len(s2).  'similarity_matrix' should be a dictionary
-    //# keyed with two-tuples of residue types.  'frequency_matrix' should
-    //# be a list of length s2 of dictionaries, keyed by residue type.
-    //#
-    //# if 'ss_fraction' is not None/False, then 'ss_matrix' should be a 3x3
-    //# matrix keyed with 2-tuples of secondary structure types ('H': helix,
-    //# 'S': strand, 'O': other).  The score will be a mixture of the
-    //# ss/similarity matrix scores weighted by the ss_fraction
-    //# [ss_fraction * ss score + (1 - ss_fraction) * similarity score]
-    //#
-    //# if 'gap_open_helix/Strand/Other' is not None and 'ss_fraction' is not
-    //# None/False, then score_gap_open is ignored when an intra-helix/
-    //# intra-strand/other gap is opened and the appropriate penalty
-    //# is applied instead
-    //#
-    //# if 'return_seqs' is True, then instead of returning a match list
-    //# (a list of two-tuples) as the second value, a two-tuple of gapped
-    //# Sequences will be returned.  In both cases, the first return value
-    //# is the match score.
-    m = []
-    bt = []
-    for i1 in range(len(s1) + 1):
-        m.append((len(s2) + 1) * [ 0 ])
-        bt.append((len(s2) + 1) * [None])
-        bt[i1][0] = 1
-        if ends_are_gaps and i1 > 0:
-            m[i1][0] = score_gap_open + i1 * score_gap
-    for i2 in range(len(s2) + 1):
-        bt[0][i2] = 2
-        if ends_are_gaps and i2 > 0:
-            m[0][i2] = score_gap_open * i2 * score_gap
 
-    if similarity_matrix is not None:
-        evaluate = lambda i1, i2: similarity_matrix[(s1[i1], s2[i2])]
-    elif score_matrix is not None:
-        evaluate = lambda i1, i2: score_matrix[i1][i2]
-    elif frequency_matrix is not None:
-        evaluate = lambda i1, i2: frequency_matrix[i2][s1[i1]]
-    else:
-        def evaluate(i1, i2):
-            if s1[i1] == s2[i2]:
-                return score_match
-            return score_mismatch
-    doing_ss =  ss_fraction is not None and ss_fraction is not False and ss_matrix is not None
-    if doing_ss:
-        prev_eval = evaluate
-        sim_fraction = 1.0 - ss_fraction
-        # prevent slow ss_type() call in inner loop...
-        ss_types1 = [ s1.ss_type(i) for i in range(len(s1))]
-        ss_types2 = [ s2.ss_type(i) for i in range(len(s2))]
-        def ss_eval(i1, i2):
-            if hasattr(s1, 'ss_freqs'):
-                freqs1 = s1.ss_freqs[i1]
-            else:
-                freqs1 = {ss_types1[i1]: 1.0}
-            if hasattr(s2, 'ss_freqs'):
-                freqs2 = s2.ss_freqs[i2]
-            else:
-                freqs2 = {ss_types2[i2]: 1.0}
-            val = 0.0
-            for ss1, freq1 in freqs1.items():
-                if ss1 == None:
-                    continue
-                for ss2, freq2 in freqs2.items():
-                    if ss2 == None:
-                        continue
-                    val += freq1 * freq2 * ss_matrix[(ss1, ss2)]
-            return val
-        evaluate = lambda i1, i2: ss_fraction * ss_eval(i1, i2) + sim_fraction * prev_eval(i1, i2)
-
-    # precompute appropriate gap-open penalties
-    gap_open_1 = [score_gap_open] * (len(s1)+1)
-    gap_open_2 = [score_gap_open] * (len(s2)+1)
-    if ends_are_gaps:
-        if gap_open_other is not None:
-            gap_open_1[0] = gap_open_2[0] = gap_open_other
-    else:
-            gap_open_1[0] = gap_open_2[0] = 0
-    if doing_ss and gap_open_other != None:
-        for seq, gap_opens in [(s1, gap_open_1), (s2, gap_open_2)]:
-            if hasattr(seq, 'gap_freqs'):
-                for i, gap_freq in enumerate(seq.gap_freqs):
-                    gap_opens[i+1] = \
-                        gap_freq['H'] * gap_open_helix + \
-                        gap_freq['S'] * gap_open_strand + \
-                        gap_freq['O'] * gap_open_other
-            else:
-                ss_type = [seq.ss_type(i)
-                        for i in range(len(seq))]
-                for i, ss in enumerate(ss_type[:-1]):
-                    nextSS = ss_type[i+1]
-                    if ss == nextSS and ss == 'H':
-                        gap_opens[i+1] = gap_open_helix
-                    elif ss == nextSS and ss == 'S':
-                        gap_opens[i+1] = gap_open_strand
-                    else:
-                        gap_opens[i+1] = gap_open_other
-
-    col_gap_starts = [0] * len(s2) # don't care about column zero
-    for i1 in range(len(s1)):
-        row_gap_pos = 0
-        for i2 in range(len(s2)):
-            best = m[i1][i2] + evaluate(i1, i2)
-            bt_type = 0
-            if i2 + 1 < len(s2) or ends_are_gaps:
-                col_gap_pos = col_gap_starts[i2]
-                skip_size = i1 + 1 - col_gap_pos
-                if hasattr(s1, "occupancy"):
-                    tot_occ = 0.0
-                    for i in range(col_gap_pos, i1+1):
-                        tot_occ += s1.occupancy[i]
-                    col_skip_val = tot_occ * score_gap
-                else:
-                    col_skip_val = skip_size * score_gap
-                base_col_gap_val = m[col_gap_pos][i2+1] + col_skip_val
-                skip = base_col_gap_val + gap_open_2[i2+1]
-            else:
-                skip_size = 1
-                col_skip_val = 0
-                skip = m[i1][i2+1]
-            if skip > best:
-                best = skip
-                bt_type = skip_size
-            if i1 + 1 < len(s1) or ends_are_gaps:
-                skip_size = i2 + 1 - row_gap_pos
-                if hasattr(s2, "occupancy"):
-                    tot_occ = 0.0
-                    for i in range(row_gap_pos, i2+1):
-                        tot_occ += s2.occupancy[i]
-                    row_skip_val = tot_occ * score_gap
-                else:
-                    row_skip_val = skip_size * score_gap
-                base_row_gap_val = m[i1+1][row_gap_pos] + row_skip_val
-                skip = base_row_gap_val + gap_open_1[i1+1]
-            else:
-                skip_size = 1
-                row_skip_val = 0
-                skip = m[i1+1][i2]
-            if skip > best:
-                best = skip
-                bt_type = 0 - skip_size
-            m[i1+1][i2+1] = best
-            bt[i1+1][i2+1] = bt_type
-            if bt_type >= 0:
-                # not gapping the row
-                if best > base_row_gap_val:
-                    row_gap_pos = i2 + 1
-            if bt_type <= 0:
-                # not gapping the column
-                if best > base_col_gap_val:
-                    col_gap_starts[i2] = i1 + 1
-    """
-    if debug:
-        from chimera.selection import currentResidues
-        cr = currentResidues(asDict=True)
-        if cr:
-            for fileName, matrix in [("scores", m), ("trace", bt)]:
-                out = open("/home/socr/a/pett/rm/" + fileName,
-                                    "w")
-                print>>out, "    ",
-                for i2, r2 in enumerate(s2.residues):
-                    if r2 not in cr:
-                        continue
-                    print>>out, "%5d" % i2,
-                print>>out
-                print>>out, "    ",
-                for i2, r2 in enumerate(s2.residues):
-                    if r2 not in cr:
-                        continue
-                    print>>out, "%5s" % s2[i2],
-                print>>out
-                for i1, r1 in enumerate(s1.residues):
-                    if r1 not in cr:
-                        continue
-                    print>>out, "%3d" % i1, s1[i1],
-                    for i2, r2 in enumerate(s2.residues):
-                        if r2 not in cr:
-                            continue
-                        print>>out, "%5g" % (
-                            matrix[i1+1][i2+1]),
-                    print>>out
-                out.close()
-    """
-    i1 = len(s1)
-    i2 = len(s2)
-    match_list = []
-    while i1 > 0 and i2 > 0:
-        bt_type = bt[i1][i2]
-        if bt_type == 0:
-            match_list.append((i1-1, i2-1))
-            i1 = i1 - 1
-            i2 = i2 - 1
-        elif bt_type > 0:
-            i1 = i1 - bt_type
-        else:
-            i2 = i2 + bt_type
---- end Python ---
-	//
-	// Convert Python similarity dictionary into C++ similarity map
-	//
-	Similarity matrix, ss_matrix;
-	if (make_matrix(m, matrix) < 0)
+	if (py_error_happened)
 		return nullptr;
-	size_t rows = strlen(seq1) + 1;
-	size_t cols = strlen(seq2) + 1;
 
-	// handle secondary-structure setup if appropriate
-	double *row_gap_opens = new double[rows];
-	double *col_gap_opens = new double[cols];
-	bool doing_ss = ss_m != nullptr && ss1 != nullptr && ss2 != nullptr && ss_m != Py_None;
-	row_gap_opens[0] = col_gap_opens[0] = 0;
-	if (doing_ss) {
-		if (strlen(ss1) + 1 != rows || strlen(ss2) + 1 != cols) {
-			PyErr_SetString(PyExc_ValueError, SeqLenMismatch);
-			return nullptr;
-		}
-		if (make_matrix(ss_m, ss_matrix) < 0)
-			return nullptr;
-		size_t r, c;
-		for (r = 1; r < rows; ++r) {
-			char ssl = ss1[r-1];
-			char ssr = ss1[r];
-			if (ssl == 'H' && ssr == 'H')
-				row_gap_opens[r] = gap_open_helix;
-			else if (ssl == 'S' && ssr == 'S')
-				row_gap_opens[r] = gap_open_strand;
-			else
-				row_gap_opens[r] = gap_open_other;
-		}
-		for (c = 1; c < cols; ++c) {
-			char ssl = ss2[c-1];
-			char ssr = ss2[c];
-			if (ssl == 'H' && ssr == 'H')
-				col_gap_opens[c] = gap_open_helix;
-			else if (ssl == 'S' && ssr == 'S')
-				col_gap_opens[c] = gap_open_strand;
-			else
-				col_gap_opens[c] = gap_open_other;
-		}
-	} else {
-		size_t r, c;
-		for (r = 1; r < rows; ++r)
-			row_gap_opens[r] = gap_open;
-		for (c = 1; c < cols; ++c)
-			col_gap_opens[c] = gap_open;
-		
-	}
-
-	//
-	// Allocate space for the score matrix and the backtracking matrix
-	//
-	double **H = new double *[rows];
-	int **bt = new int *[rows];
-	for (size_t i = 0; i < rows; ++i) {
-		H[i] = new double[cols];
-		bt[i] = new int[cols];
-		for (size_t j = 0; j < cols; ++j) {
-			H[i][j] = 0;
-			bt[i][j] = 0;
-		}
-	}
-
-	//
-	// Fill in all cells of the score matrix
-	//
-	double best_score = 0;
-	int best_row = 0, best_column = 0;
-	for (size_t i = 1; i < rows; ++i) {
-		for (size_t j = 1; j < cols; ++j) {
-			//
-			// Start with the matching score
-			//
-			Similarity::const_iterator it = matrix_lookup(matrix, seq1[i - 1], seq2[j - 1]);
-			if (it == matrix.end()) {
-				char buf[80];
-				(void) sprintf(buf, MissingKey, seq1[i - 1], seq2[j - 1]);
-				PyErr_SetString(PyExc_KeyError, buf);
-				return nullptr;
-			}
-			double match_score = (*it).second;
-			if (doing_ss) {
-				Similarity::const_iterator it = matrix_lookup(ss_matrix, ss1[i - 1], ss2[j - 1]);
-				if (it == ss_matrix.end()) {
-					char buf[80];
-					(void) sprintf(buf, MissingSSKey, ss1[i - 1], ss2[j - 1]);
-					PyErr_SetString(PyExc_KeyError, buf);
-					return nullptr;
-				}
-				match_score = (1.0 - ss_fraction) * match_score + ss_fraction * (*it).second;
-			}
-			double best = H[i - 1][j - 1] + match_score;
-			int op = 0;
-
-			//
-			// Check if insertion is better
-			//
-			double go = col_gap_opens[j];
-			for (size_t k = 1; k < i; ++k) {
-				double score = H[i - k][j] - go - k * gap_extend;
-				if (score > best) {
-					best = score;
-					op = k;
-				}
-			}
-
-			//
-			// Check if deletion is better
-			//
-			go = row_gap_opens[i];
-			for (size_t l = 1; l < j; ++l) {
-				double score = H[i][j - l] - go - l * gap_extend;
-				if (score > best) {
-					best = score;
-					op = -l;
-				}
-			}
-
-			//
-			// Check if this is just a bad place
-			// to start/end an alignment
-			//
-			if (best < 0) {
-				best = 0;
-				op = 0;
-			}
-
-			//
-			// Save the best score in the score Matrix
-			//
-			H[i][j] = best;
-			bt[i][j] = op;
-			if (best > best_score) {
-				best_score = best;
-				best_row = i;
-				best_column = j;
-			}
-		}
-	}
-
-	//
-	// Use the backtrack matrix to create the best alignment
-	//
-	std::string a1, a2;
-	while (H[best_row][best_column] > 0) {
-		int op = bt[best_row][best_column];
-		if (op > 0) {
-			for (int k = 0; k < op; ++k) {
-				--best_row;
-				a1.append(1, seq1[best_row]);
-				a2.append(1, gap_char);
-			}
-		}
-		else if (op == 0) {
-			--best_row;
-			--best_column;
-			a1.append(1, seq1[best_row]);
-			a2.append(1, seq2[best_column]);
-		}
-		else {
-			op = -op;
-			for (int k = 0; k < op; ++k) {
-				--best_column;
-				a1.append(1, gap_char);
-				a2.append(1, seq2[best_column]);
-			}
-		}
-	}
-	std::reverse(a1.begin(), a1.end());
-	std::reverse(a2.begin(), a2.end());
-	PyObject *alignment = PyTuple_New(2);
-	PyTuple_SetItem(alignment, 0, PyUnicode_FromString(a1.c_str()));
-	PyTuple_SetItem(alignment, 1, PyUnicode_FromString(a2.c_str()));
-
-	//
-	// Release the score and backtrack matrix memory
-	//
-	for (size_t i = 0; i < rows; ++i) {
-		delete [] H[i];
-		delete [] bt[i];
-	}
-	delete [] H;
-	delete [] bt;
-	delete [] row_gap_opens;
-	delete [] col_gap_opens;
-
-	//
-	// Return our results
-	//
-	return Py_BuildValue(PY_STUPID "fO", best_score, alignment);
-#endif
+	return Py_BuildValue(PY_STUPID "fO", best_score, match_list);
 }
 
 }
 
-#if 0
-static const char* docstr_score =
-"score\n"
-"Compute the score of the best Smith-Waterman alignment\n"
-"\n"
-"The function takes five arguments:\n"
-"	seq1		first sequence\n"
-"	seq2		second sequence\n"
-"	matrix		similarity dictionary (see below)\n"
-"	gap_open		gap opening penalty\n"
-"	gap_extend	gap extension penalty\n"
-"and returns the best score.  This function is mostly\n"
-"useful for optimizing similarity matrices.\n\n"
-SIM_MATRIX_EXPLAIN;
-
-static const char* docstr_align =
-"align\n"
-"Compute the best Smith-Waterman score and alignment\n"
-"\n"
-"The function takes five mandatory arguments:\n"
-"	seq1		first sequence\n"
-"	seq2		second sequence\n"
-"	matrix		similarity dictionary (see below)\n"
-"	gap_open		gap opening penalty\n"
-"	gap_extend	gap extension penalty\n"
-"and the following optional keyword arguments:\n"
-"	gap_char		character used in gaps (default: '-')\n"
-"	ss_matrix	secondary-structure scoring dictionary (nullptr)\n"
-"	ss_fraction	fraction of weight given to SS scoring (0.3)\n"
-"	gap_open_helix	intra-helix gap opening penalty (18)\n"
-"	gap_open_strand	intra-strand gap opening penalty (18)\n"
-"	gap_open_other	other gap opening penalty (6)\n"
-"	ss1		first SS \"sequence\" (i.e. composed of H/S/O)\n"
-"	ss2		second SS \"sequence\" (i.e. composed of H/S/O)\n"
-"and returns the best score and the alignment.\n"
-"The alignment is represented by a 2-tuple of strings,\n"
-"where the first and second elements of the tuple\n"
-"represent bases (and gaps) from seq1 and seq2 respectively.\n"
-"\n"
-"Secondary-structure features are only enabled if the ss_matrix dictionary\n"
-"is provided and is not None.  In that case the ss_gap_open penalties are\n"
-"used and gap_open is ignored.  The residue-matching score is a\n"
-"combination of the secondary-structure and similarity scores, weighted\n"
-"by the ss_fraction.\n\n"
-SIM_MATRIX_EXPLAIN;
+static const char* docstr_match =
+"Private function for computing Needleman-Wunsch score and matching.\n"
+"Use the chimerax.seqalign.align_algs.NeedlemanWunsch.nw method, which uses this as a backend.";
 
 static PyMethodDef nw_methods[] = {
 	{ PY_STUPID "match", match,	METH_VARARGS, PY_STUPID docstr_match	},
@@ -895,4 +589,3 @@ PyInit__nw()
 {
 	return PyModule_Create(&nw_def);
 }
-#endif
