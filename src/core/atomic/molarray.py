@@ -515,6 +515,20 @@ class Atoms(Collection):
         f(self._c_pointers, n, loc, pointer(values))
         return values
 
+    @property
+    def aniso_u(self):
+        '''Anisotropic temperature factors, returns Nx3x3 array of numpy float32 or None
+        if any of the atoms does not have temperature factors.  Read only.'''
+        f = c_function('atom_aniso_u', args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p))
+        from numpy import empty, float32
+        n = len(self)
+        ai = empty((n,3,3), float32)
+        try:
+            f(self._c_pointers, n, pointer(ai))
+        except ValueError:
+            ai = None
+        return ai
+
     def residue_sums(self, atom_values):
         '''Compute per-residue sum of atom float values.  Return unique residues and array of residue sums.'''
         f = c_function('atom_residue_sums', args=(ctypes.c_void_p, ctypes.c_int, ctypes.POINTER(ctypes.c_double)),
