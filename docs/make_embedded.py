@@ -28,10 +28,9 @@ def get_packages_info():
     for key, name in KEY_MAP.items():
         empty_info[name] = ""
 
-    packages = pkg_resources.working_set.by_key
     infos = []
-    for pkg_name, pkg in packages.items():
-        if pkg_name.startswith('chimerax.'):
+    for pkg in pkg_resources.working_set:
+        if pkg.project_name.startswith('ChimeraX-'):
             continue
         info = copy.deepcopy(empty_info)
         try:
