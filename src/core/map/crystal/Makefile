@@ -9,32 +9,20 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-TOP = ../../..
+TOP = ../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimerax/core/map
-APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/map
+PKG_DIR = $(PYSITEDIR)/chimerax/core/map/crystal
 
-SUBDIRS	= _map crystal data filter fit series
-
-PYSRCS = __init__.py defaultsettings.py eds_fetch.py emdb_fetch.py grayscale.py \
-	mapargs.py measure.py molmap.py mouselevel.py \
-	moveplanes.py session.py slice.py solid.py volume.py volumecommand.py
-
-# All needed subdirectories must be set by now.
-include $(TOP)/mk/subdir.make
+PYSRCS = __init__.py space_groups.py unit_cell.py
 
 all: $(PYOBJS)
 
-install: all dir
+install: all $(PKG_DIR)
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 
-dir:
+$(PKG_DIR):
 	if [ ! -d "$(PKG_DIR)" ]; then mkdir $(PKG_DIR); fi
-	if [ -d "$(app_prefix)" ]; then mkdir -p $(APP_PKG_DIR); fi
 
 clean:
 	rm -rf __pycache__
-
-lint:
-	$(PYLINT) $(PYSRCS)
