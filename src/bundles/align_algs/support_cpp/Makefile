@@ -9,33 +9,28 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-TOP = ../../../..
+TOP= ../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR		= $(PYSITEDIR)/chimerax/seqalign/align_algs
+LIBNAME = align_algs
+DIRNAME = $(shell basename `pwd`)
+DIRNAME := $(DIRNAME:support_cpp=align_algs)
 
-PYMOD_NAME	= _sw
-SRCS		= sw.cpp
-OBJS		= $(SRCS:.cpp=.$(OBJ_EXT))
-DEFS		+= $(PYDEF)
-INCS 		+= $(PYTHON_INCLUDE_DIRS)
-LIBS		+= $(PYTHON_LIB) -lalign_algs
+SRCS	= $(wildcard *.cpp)
+OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
+INCS	+= $(PYTHON_INCLUDE_DIRS)
+LIBS	+= $(PYTHON_LIB)
 
-all: $(PYMOD)
+$(LIBRARY): $(OBJS)
+	$(LIB_LINK)
 
-install: all
-	$(RSYNC) $(PYMOD) $(PKG_DIR)
-ifdef WIN32
-ifdef DEBUG
-	$(RSYNC) $(PYMOD_NAME).pdb $(PKG_DIR)
-endif
-endif
-
-$(PYMOD): $(OBJS)
-	$(PYMOD_LINK)
+install: $(LIBRARY)
+	$(RSYNC) $(LIBRARY) $(libdir)
+	-mkdir $(includedir)/$(DIRNAME)
+	$(RSYNC) $(wildcard *.h) $(includedir)/$(DIRNAME)
 
 clean:
-	rm -f $(PYMOD) $(OBJS)
+	rm -f $(OBJS) $(LIBRARY)
 ifdef WIN32
-	rm -f $(PYMOD_NAME).exp $(PYMOD_NAME).lib
+	rm -f lib$(LIBNAME).pdb vc*.pdb
 endif

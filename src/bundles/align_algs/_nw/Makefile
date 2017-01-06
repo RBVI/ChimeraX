@@ -14,12 +14,17 @@ include $(TOP)/mk/config.make
 
 PKG_DIR		= $(PYSITEDIR)/chimerax/seqalign/align_algs
 
-PYMOD_NAME	= _sw
-SRCS		= sw.cpp
+PYMOD_NAME	= _nw
+SRCS		= nw.cpp
 OBJS		= $(SRCS:.cpp=.$(OBJ_EXT))
 DEFS		+= $(PYDEF)
-INCS 		+= $(PYTHON_INCLUDE_DIRS)
-LIBS		+= $(PYTHON_LIB) -lalign_algs
+INCS 		+= $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
+LIBS		+= $(PYTHON_LIB)
+ifeq ($(WIN32),msvc)
+LIBS		+= libalign_algs.lib libarrays.lib
+else
+LIBS		+= -lalign_algs -larrays
+endif
 
 all: $(PYMOD)
 
