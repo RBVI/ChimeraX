@@ -29,8 +29,8 @@ class ModelPanel(ToolInstance):
         short_titles = last != None and now - last < 777700 # about 3 months
 
         from chimerax.core.ui.gui import MainToolWindow
-        self.tool_window = MainToolWindow(self, close_destroys=False)
-        parent = self.tool_window.ui_area
+        self.tool_window = tw = MainToolWindow(self, close_destroys=False)
+        parent = tw.ui_area
         from PyQt5.QtWidgets import QTreeWidget, QHBoxLayout, QVBoxLayout, QAbstractItemView, \
             QFrame, QPushButton
         self.tree = QTreeWidget()
@@ -59,13 +59,18 @@ class ModelPanel(ToolInstance):
                     for i in self.tree.selectedItems()]] or self.models, ses))
         from chimerax.core.models import MODEL_DISPLAY_CHANGED
         session.triggers.add_handler(MODEL_DISPLAY_CHANGED, self._initiate_fill_tree)
-        self._fill_tree()
         from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
         self.session.triggers.add_handler(ADD_MODELS, self._initiate_fill_tree)
         self.session.triggers.add_handler(REMOVE_MODELS, self._initiate_fill_tree)
         self.session.triggers.add_handler("atomic changes", self._changes_cb)
         self._frame_drawn_handler = None
-        self.tool_window.manage(placement="side")
+        tw.manage(placement="side")
+        tw.shown_changed = self._shown_changed
+
+    def _shown_changed(self, shown):
+        if shown:
+            # Update panel when it is shown.
+            self._fill_tree()
 
     @classmethod
     def get_singleton(self, session):
@@ -85,6 +90,9 @@ class ModelPanel(ToolInstance):
                 "frame drawn", self._fill_tree)
 
     def _fill_tree(self, *args):
+        if not self.displayed():
+            # Don't update panel when it is hidden.
+            return
         update = self._process_models()
         if not update:
             expanded_models = { i._model : i.isExpanded()
