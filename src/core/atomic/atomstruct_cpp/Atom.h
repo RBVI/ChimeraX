@@ -84,13 +84,23 @@ private:
     virtual ~Atom();
 
     char  _alt_loc;
-    typedef struct {
-        std::vector<float> *  aniso_u;
+    class _Alt_loc_info {
+      public:
+    _Alt_loc_info() : aniso_u(NULL), serial_number(0) {}
+        ~_Alt_loc_info() { if (aniso_u) { delete aniso_u; aniso_u = NULL; } }
+	std::vector<float> *create_aniso_u() {
+	  if (aniso_u == NULL)
+	    aniso_u = new std::vector<float>(6);
+	  return aniso_u;
+	}
+	std::vector<float> *aniso_u;
         float  bfactor;
         Point  coord;
         float  occupancy;
         int  serial_number;
-    } _Alt_loc_info;
+    private:
+	_Alt_loc_info(const _Alt_loc_info &);	// Don't allow copying since _aniso_u is deleted by this copy.
+    };
     typedef std::map<unsigned char, _Alt_loc_info>  _Alt_loc_map;
     _Alt_loc_map  _alt_loc_map;
     std::vector<float> *  _aniso_u;
@@ -125,6 +135,7 @@ public:
     void  add_bond(Bond *b);
     char  alt_loc() const { return _alt_loc; }
     std::set<char>  alt_locs() const;
+    const std::vector<float> *aniso_u() const;
     float  bfactor() const;
     const Bonds&  bonds() const { return _bonds; }
     bool  connects_to(const Atom* other) const {

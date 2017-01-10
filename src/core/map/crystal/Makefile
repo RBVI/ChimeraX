@@ -12,30 +12,17 @@
 TOP = ../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR		= $(PYSITEDIR)/chimerax/seqalign/align_algs
+PKG_DIR = $(PYSITEDIR)/chimerax/core/map/crystal
 
-PYMOD_NAME	= _sw
-SRCS		= sw.cpp
-OBJS		= $(SRCS:.cpp=.$(OBJ_EXT))
-DEFS		+= $(PYDEF)
-INCS 		+= $(PYTHON_INCLUDE_DIRS)
-LIBS		+= $(PYTHON_LIB) -lalign_algs
+PYSRCS = __init__.py space_groups.py unit_cell.py
 
-all: $(PYMOD)
+all: $(PYOBJS)
 
-install: all
-	$(RSYNC) $(PYMOD) $(PKG_DIR)
-ifdef WIN32
-ifdef DEBUG
-	$(RSYNC) $(PYMOD_NAME).pdb $(PKG_DIR)
-endif
-endif
+install: all $(PKG_DIR)
+	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 
-$(PYMOD): $(OBJS)
-	$(PYMOD_LINK)
+$(PKG_DIR):
+	if [ ! -d "$(PKG_DIR)" ]; then mkdir $(PKG_DIR); fi
 
 clean:
-	rm -f $(PYMOD) $(OBJS)
-ifdef WIN32
-	rm -f $(PYMOD_NAME).exp $(PYMOD_NAME).lib
-endif
+	rm -rf __pycache__

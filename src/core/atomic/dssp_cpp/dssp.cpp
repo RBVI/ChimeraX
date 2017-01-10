@@ -75,6 +75,7 @@ compute_ss(PyObject *, PyObject *args)
 			min_strand_length, static_cast<bool>(report));
     } catch (std::exception& e) {
         PyErr_SetString(PyExc_RuntimeError, e.what());
+		return nullptr;
     }
 	Py_INCREF(Py_None);
     return Py_None;

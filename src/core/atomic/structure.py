@@ -2157,6 +2157,8 @@ class PickedPseudobond(Pick):
     def select(self, mode = 'add'):
         for a in self.pbond.atoms:
             select_atom(a, mode)
+        pbg = self.pbond.group
+        pbg._graphics_changed |= pbg._SELECT_CHANGE
 
 # -----------------------------------------------------------------------------
 #
