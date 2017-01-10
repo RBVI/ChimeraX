@@ -21,7 +21,8 @@ class ModelPanel(ToolInstance):
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
-        self.display_name = "Models"
+# TODO: Changing display_name to be different from tool_name breaks toolshed hide command.
+#        self.display_name = "Models"
         self.settings = ModelPanelSettings(session, "ModelPanel")
         last = self.settings.last_use
         from time import time
