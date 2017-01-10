@@ -15,7 +15,7 @@
 ihm: Integrative Hybrid Model file format support
 =================================================
 """
-def read_ihm(session, filename, name, *args, load_linked_files = True, fetch_templates = False,
+def read_ihm(session, filename, name, *args, load_linked_files = True,
              show_sphere_crosslinks = True, show_atom_crosslinks = False, **kw):
     """Read an integrative hybrid models file creating sphere models and restraint models
 
@@ -32,7 +32,6 @@ def read_ihm(session, filename, name, *args, load_linked_files = True, fetch_tem
 
     m = IHMModel(session, filename,
                  load_linked_files = load_linked_files,
-                 fetch_templates = fetch_templates,
                  show_sphere_crosslinks = show_sphere_crosslinks,
                  show_atom_crosslinks = show_atom_crosslinks)
 
@@ -44,7 +43,6 @@ from chimerax.core.models import Model
 class IHMModel(Model):
     def __init__(self, session, filename,
                  load_linked_files = True,
-                 fetch_templates = False,
                  show_sphere_crosslinks = True,
                  show_atom_crosslinks = False):
     
@@ -61,7 +59,7 @@ class IHMModel(Model):
         acomp = self.assembly_components()
 
         # Starting atomic models, including experimental and comparative structures and templates.
-        stmodels, seqmodels = self.create_starting_models(acomp, load_linked_files, fetch_templates)
+        stmodels, seqmodels = self.create_starting_models(acomp, load_linked_files)
         self.starting_models = stmodels
         self.sequence_alignment_models = seqmodels
 
@@ -122,12 +120,11 @@ class IHMModel(Model):
 
     # -----------------------------------------------------------------------------
     #
-    def create_starting_models(self, acomp, load_linked_files, fetch_templates):
+    def create_starting_models(self, acomp, load_linked_files):
 
         # Experimental starting models.
         # Comparative model templates.
-        dataset_entities, xmodels, tmodels, seqmodels = \
-            self.read_starting_models(fetch_templates)
+        dataset_entities, xmodels, tmodels, seqmodels = self.read_starting_models()
         if xmodels:
             am_group = Model('Experimental models', self.session)
             am_group.add(xmodels)
@@ -143,25 +140,20 @@ class IHMModel(Model):
         else:
             cmodels = []
 
-        # Align templates with comparative models
-        if tmodels and cmodels:
-            # Group templates with grouping name matching comparative model name.
-            tg = group_template_models(self.session, tmodels, cmodels)
-            self.add([tg])
-            # Align templates to comparative models using matchmaker.
-            align_template_models(self.session, cmodels)
-
         if seqmodels:
             sa_group = Model('Sequence Alignments', self.session)
             sa_group.add(seqmodels)
             self.add([sa_group])
             assign_comparative_models_to_sequences(cmodels, seqmodels)
+            if tmodels:
+                # Group templates under sequence alignment model
+                group_template_models(self.session, tmodels, seqmodels, sa_group)
 
         return xmodels+cmodels, seqmodels
 
     # -----------------------------------------------------------------------------
     #
-    def read_starting_models(self, fetch_templates):
+    def read_starting_models(self):
         dataset_entities = {}
         xmodels = []
         tmodels = []
@@ -177,45 +169,45 @@ class IHMModel(Model):
                   'dataset_list_id', 'alignment_file']
         rows = starting_models.fields(fields, allow_missing_fields = True)
 
-        seqpaths = []	# Sequence alignment files for comparative model templates
+        from collections import OrderedDict
+        alignments = OrderedDict()  # Sequence alignments for comparative models
         for eid, asym_id, seq_beg, seq_end, source, db_name, db_code, db_asym_id, did, seqfile in rows:
             # TODO: a data list id (did) and appear in multiple entries with different asym ids (mediator.cif)
             dataset_entities[did] = (eid, asym_id)
             if (source in ('experimental model', 'comparative model') and
                 db_name == 'PDB' and db_code != '?'):
-                if source == 'comparative model' and not fetch_templates:
-                    models = []
-                else:
+                if source == 'comparative model':
+                    # Template for a comparative model.
+                    tm = TemplateModel(self.session, db_name, db_code, db_asym_id)
+                    models = [tm]
+                    tmodels.extend(models)
+                    if seqfile:
+                        from os.path import join, isfile
+                        p = join(self.ihm_directory, seqfile)
+                        if isfile(p):
+                            a = (p, asym_id, did)
+                            sam = alignments.get(a)
+                            if sam is None:
+                                # Make sequence alignment model for comparative model
+                                alignments[a] = sam = SequenceAlignmentModel(self.session, p, asym_id, did)
+                            sam.add_template_model(tm)
+                elif source == 'experimental model':
                     from chimerax.core.atomic.mmcif import fetch_mmcif
                     models, msg = fetch_mmcif(self.session, db_code, smart_initial_display = False)
                     name = '%s %s' % (db_code, db_asym_id)
                     for m in models:
                         keep_one_chain(m, db_asym_id)
                         m.name = name
-                        m.entity_id = eid
-                        m.asym_id = asym_id
-                        m.seq_begin, m.seq_end = int(seq_beg), int(seq_end)
-                        m.dataset_id = did
-                        m.comparative_model = (source == 'comparative model')
                         show_colored_ribbon(m, asym_id)
-                if source == 'experimental model':
                     xmodels.extend(models)
-                elif source == 'comparative model':
-                    tmodels.extend(models)
-                    if seqfile:
-                        from os.path import join, isfile
-                        p = join(self.ihm_directory, seqfile)
-                        if isfile(p):
-                            seqpaths.append(((p, asym_id, did), (db_name, db_code, db_asym_id)))
+                for m in models:
+                    m.entity_id = eid
+                    m.asym_id = asym_id
+                    m.seq_begin, m.seq_end = int(seq_beg), int(seq_end)
+                    m.dataset_id = did
+                    m.comparative_model = (source == 'comparative model')
 
-        # Make models for comparative model template alignments
-        from collections import OrderedDict
-        alignments = OrderedDict()
-        for a,db in seqpaths:
-            alignments.setdefault(a, []).append(db)
-        seqmodels = [SequenceAlignmentModel(self.session, alignment_file, asym_id, dataset_id, db_templates)
-                     for (alignment_file, asym_id, dataset_id), db_templates in alignments.items()]
-
+        seqmodels = list(alignments.values())
         return dataset_entities, xmodels, tmodels, seqmodels
     
     # -----------------------------------------------------------------------------
@@ -586,7 +578,7 @@ class IHMModel(Model):
         nc = len([m for m in self.starting_models if m.comparative_model])
         nx = len([m for m in self.starting_models if not m.comparative_model])
         nsa = len(self.sequence_alignment_models)
-        nt = sum([len(sqm.db_templates) for sqm in self.sequence_alignment_models], 0)
+        nt = sum([len(sqm.template_models) for sqm in self.sequence_alignment_models], 0)
         nem = len(self.em2d_models)
         ns = len(self.sphere_models)
         nse = len(self.ensemble_sphere_models)
@@ -600,7 +592,7 @@ class IHMModel(Model):
                ' %d sphere models, %d ensembles with %s models, %d localization maps' %
                (self.filename, nx, nc, nsa, nt, xldesc, nem, ns, nse, esizes, nl))
         return msg
-
+        
 # -----------------------------------------------------------------------------
 #
 class Assembly:
@@ -738,15 +730,59 @@ def covariance_sum(cinv, center, s, array):
                 array[k,j,i] += s*exp(-0.5*dot(v, dot(cinv, v)))
 
 from chimerax.core.map import covariance_sum
+        
+# -----------------------------------------------------------------------------
+#
+class TemplateModel(Model):
+    def __init__(self, session, db_name, db_code, db_asym_id):
+        name = '%s %s' % (db_code, db_asym_id)
+        Model.__init__(self, name, session)
+        self.db_name = db_name
+        self.db_code = db_code
+        self.db_asym_id = db_asym_id
+        self.sequence_alignment_model = None
+        
+    def _get_display(self):
+        return False
+    def _set_display(self, display):
+        if display:
+            self.fetch_model()
+    display = property(_get_display, _set_display)
 
+    def fetch_model(self):
+        if self.db_name != 'PDB' or len(self.db_code) != 4:
+            return
+
+        from chimerax.core.atomic.mmcif import fetch_mmcif
+        models, msg = fetch_mmcif(self.session, self.db_code, smart_initial_display = False)
+        name = '%s %s' % (self.db_code, self.db_asym_id)
+        for i,m in enumerate(models):
+            m.name = self.name
+            m.pdb_id = self.db_code
+            m.pdb_chain_id = self.db_asym_id
+            m.asym_id = self.asym_id
+            m.dataset_id = self.dataset_id	# For locating comparative model
+            keep_one_chain(m, self.db_asym_id)
+            show_colored_ribbon(m, self.asym_id, color_offset = 80)
+            if i == 0:
+                m.id = self.id
+
+        # Replace TemplateModel with AtomicStructure
+        p = self.parent
+        self.session.models.remove([self])
+        p.add(models)
+
+        sam = self.sequence_alignment_model
+        sam.associate_structures(models)
+        sam.align_structures(models)
+        
 # -----------------------------------------------------------------------------
 #
 class SequenceAlignmentModel(Model):
-    def __init__(self, session, alignment_file, asym_id, dataset_id, db_templates):
+    def __init__(self, session, alignment_file, asym_id, dataset_id):
         self.alignment_file = alignment_file
         self.asym_id = asym_id			# Identifies comparative model
         self.dataset_id = dataset_id		# Identifies comparative model
-        self.db_templates = db_templates	# List of (db_name, db_code, db_asym_id), e.g. ('PDB', '1xyz', 'B')
         self.template_models = []		# Filled in after templates fetched.
         self.comparative_model = None
         self.alignment = None
@@ -754,6 +790,10 @@ class SequenceAlignmentModel(Model):
         Model.__init__(self, basename(alignment_file), session)
         self.display = False
 
+    def add_template_model(self, model):
+        self.template_models.append(model)
+        model.sequence_alignment_model = self
+        
     def _get_display(self):
         a = self.alignment
         if a is not None:
@@ -764,12 +804,7 @@ class SequenceAlignmentModel(Model):
     def _set_display(self, display):
         a = self.alignment
         if display:
-            if a is None and len(self.template_models) == 0:
-                self.fetch_template_models()
             self.show_alignment()
-            if a is None:
-                self.align_templates()
-
         elif a:
             for v in a.viewers:
                 v.display(False)
@@ -782,15 +817,7 @@ class SequenceAlignmentModel(Model):
             a = open_file(self.session, None, self.alignment_file,
                           auto_associate=False, return_vals='alignments')[0]
             self.alignment = a
-            # Associate templates with sequences in alignment.
-            tmap = {'%s%s' % (tm.pdb_id.lower(), tm.pdb_chain_id) : tm
-                    for tm in self.template_models}
-            if tmap:
-                for seq in a.seqs:
-                    tm = tmap.get(seq.name)
-                    if tm:
-                        a.associate(tm.chains[0], seq, force = True)
-                        tm._associated_sequence = seq
+            self.associate_structures(self.template_models)
             cm = self.comparative_model
             if cm:
                 a.associate(cm.chains[0], a.seqs[-1], force = True)
@@ -799,36 +826,37 @@ class SequenceAlignmentModel(Model):
                 v.display(True)
         return a
 
-    def align_templates(self):
+    def associate_structures(self, models):
+        # Associate templates with sequences in alignment.
         a = self.alignment
+        if a is None:
+            a = self.show_alignment()
+        from chimerax.core.atomic import AtomicStructure
+        tmap = {'%s%s' % (tm.pdb_id.lower(), tm.pdb_chain_id) : tm
+                for tm in models if isinstance(tm, AtomicStructure)}
+        if tmap:
+            for seq in a.seqs:
+                tm = tmap.get(seq.name)
+                if tm:
+                    a.associate(tm.chains[0], seq, force = True)
+                    tm._associated_sequence = seq
+
+    def align_structures(self, models):
+        a = self.alignment
+        if a is None:
+            a = self.show_alignment()
         cm = self.comparative_model
         if a and cm:
-            for tm in self.template_models:
-                if tm._associated_sequence:
-                    results = a.match(cm.chains[0], [tm.chains[0]], iterate=None)
+            for m in models:
+                if m._associated_sequence:
+                    results = a.match(cm.chains[0], [m.chains[0]], iterate=None)
                     if results:
                         # Show only matched residues
                         # TODO: Might show full interval of residues with unused
                         #       insertions colored gray
-                        tmatoms = results[0][0]
-                        tm.residues.ribbon_displays = False
-                        tmatoms.unique_residues.ribbon_displays = True
-
-    def fetch_template_models(self):
-        for db_name, db_code, db_asym_id in self.db_templates:
-            if db_name == 'PDB' and len(db_code) == 4:
-                from chimerax.core.atomic.mmcif import fetch_mmcif
-                models, msg = fetch_mmcif(self.session, db_code, smart_initial_display = False)
-                name = '%s %s' % (db_code, db_asym_id)
-                for m in models:
-                    m.pdb_id = db_code
-                    m.pdb_chain_id = db_asym_id
-                    m.asym_id = self.asym_id
-                    m.dataset_id = self.dataset_id	# For locating comparative model
-                    keep_one_chain(m, db_asym_id)
-                    show_colored_ribbon(m, self.asym_id, color_offset = 80)
-                self.add(models)
-                self.template_models.extend(models)
+                        matoms = results[0][0]
+                        m.residues.ribbon_displays = False
+                        matoms.unique_residues.ribbon_displays = True
                 
 # -----------------------------------------------------------------------------
 #
@@ -852,27 +880,15 @@ def keep_one_chain(s, chain_id):
 
 # -----------------------------------------------------------------------------
 #
-def group_template_models(session, template_models, comparative_models):
-    '''Place template models in groups named after their comparative model.'''
-    mm = []
-    tmodels = template_models
-    for cm in comparative_models:
-        did = cm.dataset_id
-        templates = [tm for tm in tmodels if tm.dataset_id == did]
-        if templates:
-            tm_group = Model(cm.name, session)
-            tm_group.add(templates)
-            cm.template_models = templates
-            mm.append(tm_group)
-            tmodels = [tm for tm in tmodels if tm.dataset_id != did]
+def group_template_models(session, template_models, seq_alignment_models, sa_group):
+    '''Place template models in groups under their sequence alignment model.'''
+    for sam in seq_alignment_models:
+        sam.add(sam.template_models)
+    tmodels = [tm for tm in template_models if tm.sequence_alignment_model is None]
     if tmodels:
-        tm_group = Model('extra templates', session)
-        tm_group.add(tmodels)
-        mm.append(tm_group)
-    tg = Model('Template models', session)
-    tg.display = False
-    tg.add(mm)
-    return tg
+        et_group = Model('extra templates', session)
+        et_group.add(tmodels)
+        sa_group.add(et_group)
 
 # -----------------------------------------------------------------------------
 #
