@@ -61,11 +61,9 @@ class IHMModel(Model):
         acomp = self.assembly_components()
 
         # Starting atomic models, including experimental and comparative structures and templates.
-        xmodels, cmodels, seqmodels = \
-            self.create_starting_models(acomp, load_linked_files, fetch_templates)
-        self.experimental_models = xmodels
-        self.comparative_models = cmodels
-        self.sequence_models = seqmodels
+        stmodels, seqmodels = self.create_starting_models(acomp, load_linked_files, fetch_templates)
+        self.starting_models = stmodels
+        self.sequence_alignment_models = seqmodels
 
         # Sphere models, ensemble models, groups
         smodels, emodels, gmodels = self.create_sphere_models(acomp)
@@ -73,14 +71,11 @@ class IHMModel(Model):
         self.ensemble_sphere_models = emodels
     
         # Align starting models to first sphere model
-        if xmodels:
-            align_atomic_models_to_spheres(xmodels, smodels)
-        if cmodels:
-            align_atomic_models_to_spheres(cmodels, smodels)
+        align_atomic_models_to_spheres(stmodels, smodels)
 
         # Crosslinks
         xlinks = self.create_crosslinks(show_sphere_crosslinks, smodels, emodels,
-                                        show_atom_crosslinks, xmodels+cmodels)
+                                        show_atom_crosslinks, stmodels)
         self.crosslink_models = xlinks
 
         # 2D electron microscopy projections
@@ -162,7 +157,7 @@ class IHMModel(Model):
             self.add([sa_group])
             assign_comparative_models_to_sequences(cmodels, seqmodels)
 
-        return xmodels, cmodels, seqmodels
+        return xmodels+cmodels, seqmodels
 
     # -----------------------------------------------------------------------------
     #
@@ -184,6 +179,7 @@ class IHMModel(Model):
 
         seqpaths = []	# Sequence alignment files for comparative model templates
         for eid, asym_id, seq_beg, seq_end, source, db_name, db_code, db_asym_id, did, seqfile in rows:
+            # TODO: a data list id (did) and appear in multiple entries with different asym ids (mediator.cif)
             dataset_entities[did] = (eid, asym_id)
             if (source in ('experimental model', 'comparative model') and
                 db_name == 'PDB' and db_code != '?'):
@@ -200,6 +196,7 @@ class IHMModel(Model):
                         m.asym_id = asym_id
                         m.seq_begin, m.seq_end = int(seq_beg), int(seq_end)
                         m.dataset_id = did
+                        m.comparative_model = (source == 'comparative model')
                         show_colored_ribbon(m, asym_id)
                 if source == 'experimental model':
                     xmodels.extend(models)
@@ -251,8 +248,10 @@ class IHMModel(Model):
                     m.dataset_id = did
                     m.entity_id = eid
                     m.asym_id = asym_id
+                    m.comparative_model = True
                     show_colored_ribbon(m, asym_id)
                 lmodels.extend(models)
+        
       
         return lmodels
 
@@ -584,18 +583,22 @@ class IHMModel(Model):
     @property
     def description(self):
         # Report what was read in
+        nc = len([m for m in self.starting_models if m.comparative_model])
+        nx = len([m for m in self.starting_models if not m.comparative_model])
+        nsa = len(self.sequence_alignment_models)
+        nt = sum([len(sqm.db_templates) for sqm in self.sequence_alignment_models], 0)
+        nem = len(self.em2d_models)
+        ns = len(self.sphere_models)
+        nse = len(self.ensemble_sphere_models)
+        nl = sum([len(lm.child_models()) for lm in self.localization_models], 0)
         xldesc = ', '.join('%d %s crosslinks' % (len(xls),type)
                            for type,xls in self.crosslink_models.items())
+        esizes = ' and '.join('%d'%em.num_coord_sets for em in self.ensemble_sphere_models)
         msg = ('Opened IHM file %s\n'
                ' %d xray/nmr models, %d comparative models, %d sequence alignments, %d templates\n'
                ' %s, %d 2D electron microscopy images\n'
                ' %d sphere models, %d ensembles with %s models, %d localization maps' %
-           (self.filename, len(self.experimental_models), len(self.comparative_models),
-            len(self.sequence_models), sum([len(sqm.db_templates) for sqm in self.sequence_models], 0),
-            xldesc, len(self.em2d_models), len(self.sphere_models),
-            len(self.ensemble_sphere_models),
-            ' and '.join('%d'%em.num_coord_sets for em in self.ensemble_sphere_models),
-            sum([len(pg.child_models()) for pg in self.localization_models], 0)))
+               (self.filename, nx, nc, nsa, nt, xldesc, nem, ns, nse, esizes, nl))
         return msg
 
 # -----------------------------------------------------------------------------
@@ -924,6 +927,8 @@ def show_colored_ribbon(m, asym_id, color_offset = None):
 # -----------------------------------------------------------------------------
 #
 def align_atomic_models_to_spheres(amodels, smodels):
+    if len(amodels) == 0:
+        return
     asmodels = smodels[0].asym_model_map()
     for m in amodels:
         sm = asmodels.get(m.asym_id)
