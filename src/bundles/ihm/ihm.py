@@ -66,7 +66,8 @@ class IHMModel(Model):
         self.ensemble_sphere_models = emodels
     
         # Align starting models to first sphere model
-        align_starting_models_to_spheres(stmodels, smodels)
+        if smodels:
+            align_starting_models_to_spheres(stmodels, smodels[0])
 
         # Crosslinks
         xlinks = self.read_crosslinks(show_sphere_crosslinks, smodels, emodels,
@@ -305,17 +306,10 @@ class IHMModel(Model):
             sb, se = int(seq_beg), int(seq_end)
             xyz = float(x), float(y), float(z)
             r = float(radius)
-            mspheres.setdefault(model_id, {}).setdefault(asym_id, []).append((sb,se,xyz,r))
+            mspheres.setdefault(model_id, []).append((asym_id,sb,se,xyz,r))
 
-        smodels = []
-        anames = self.asym_id_names()
-        for mid, asym_spheres in mspheres.items():
-            sm = SphereModel(mnames[mid], mid, self.session)
-            smodels.append(sm)
-            models = [SphereAsymModel(self.session, anames[asym_id], asym_id, mid, slist)
-                      for asym_id, slist in asym_spheres.items()]
-            models.sort(key = lambda m: m.asym_id)
-            sm.add_asym_models(models)
+        smodels = [SphereModel(self.session, mnames[mid], mid, slist)
+                   for mid, slist in mspheres.items()]
         smodels.sort(key = lambda m: m.ihm_model_id)
 
         # Add sphere models to group
@@ -356,9 +350,7 @@ class IHMModel(Model):
 
         # Copy bead radii from best score model to ensemble models
         if smodels and emodels:
-            sams = smodels[0].child_models()
-            from numpy import concatenate
-            r = concatenate([sm.atoms.radii for sm in sams])
+            r = smodels[0].atoms.radii
             for em in emodels:
                 em.atoms.radii = r
 
@@ -385,10 +377,9 @@ class IHMModel(Model):
                                                   name = smodel.ihm_model_id)
                 if i == 0:
                     # Show only multi-residue spheres and crosslink end-point spheres
-                    for sm in smodel.child_models():
-                        satoms = sm.atoms
-                        satoms.displays = False
-                        satoms.filter(satoms.residues.names != '1').displays = True
+                    satoms = smodel.atoms
+                    satoms.displays = False
+                    satoms.filter(satoms.residues.names != '1').displays = True
                     for pbg in pbgs:
                         a1,a2 = pbg.pseudobonds.atoms
                         a1.displays = True
@@ -400,10 +391,9 @@ class IHMModel(Model):
                 xpbgs.extend(pbgs)
 
             if emodels and smodels:
-                sindex = smodels[0].sphere_index
                 for emodel in emodels:
                     make_crosslink_pseudobonds(self.session, xlinks,
-                                               ensemble_sphere_lookup(emodel, sindex),
+                                               ensemble_sphere_lookup(emodel, smodels[0]),
                                                parent = emodel)
         if show_atom_crosslinks:
             # Create cross links for starting atomic models.
@@ -940,14 +930,10 @@ def show_colored_ribbon(m, asym_id, color_offset = None):
 
 # -----------------------------------------------------------------------------
 #
-def align_starting_models_to_spheres(amodels, smodels):
+def align_starting_models_to_spheres(amodels, smodel):
     if len(amodels) == 0:
         return
-    asmodels = smodels[0].asym_model_map()
     for m in amodels:
-        sm = asmodels.get(m.asym_id)
-        if sm is None:
-            continue
         # Align comparative model residue centers to sphere centers
         res = m.residues
         rnums = res.numbers
@@ -955,7 +941,7 @@ def align_starting_models_to_spheres(amodels, smodels):
         mxyz = []
         sxyz = []
         for rn, c in zip(rnums, rc):
-            s = sm.residue_sphere(rn)
+            s = smodel.residue_sphere(m.asym_id, rn)
             if s:
                 mxyz.append(c)
                 sxyz.append(s.coord)
@@ -981,83 +967,38 @@ def atom_lookup(models):
     
 # -----------------------------------------------------------------------------
 #
-def ensemble_sphere_lookup(emodel, aindex):
-    def lookup(asym_id, res_num, atoms=emodel.atoms, aindex=aindex):
-        i = aindex.get((asym_id, res_num))
-        return None if i is None else atoms[i]
+def ensemble_sphere_lookup(emodel, smodel):
+    def lookup(asym_id, res_num, atoms=emodel.atoms, smodel=smodel):
+        a = smodel.residue_sphere(asym_id, res_num)
+        return None if a is None else atoms[a.coord_index]
     return lookup
 
-
-# -----------------------------------------------------------------------------
-#
-class SphereModel(Model):
-    def __init__(self, name, ihm_model_id, session):
-        Model.__init__(self, name, session)
-        self.ihm_model_id = ihm_model_id
-        self._asym_models = {}
-        self.sphere_index = {}	# Map chain_id, res_num to ensemble sphere index
-
-    def add_asym_models(self, models):
-        Model.add(self, models)
-        am = self._asym_models
-        for m in models:
-            am[m.asym_id] = m
-
-        si = self.sphere_index
-        io = 0
-        for m in models:
-            for res_num, a in m._res_sphere.items():
-                si[(m.asym_id, res_num)] = a.coord_index+io
-            io += m.num_atoms
-            
-    def asym_model(self, asym_id):
-        return self._asym_models.get(asym_id)
-
-    def asym_model_map(self):
-        return self._asym_models
-
-    def residue_sphere(self, asym_id, res_num):
-        return self.asym_model(asym_id).residue_sphere(res_num)
-    
-# -----------------------------------------------------------------------------
-# Map chain id, res number to atom index for ensemble sphere models.
-#
-def ensemble_sphere_map(smodel):
-    sindex = {}
-    io = 0
-    for smodel in smodels:
-                    sindex.update({cr:i+io for cr,i in smodel.index_map.items()})
-                    io += smodel.num_atoms
-    
 # -----------------------------------------------------------------------------
 #
 from chimerax.core.atomic import Structure
-class SphereAsymModel(Structure):
-    def __init__(self, session, name, asym_id, model_id, sphere_list):
+class SphereModel(Structure):
+    def __init__(self, session, name, ihm_model_id, sphere_list):
         Structure.__init__(self, session, name = name, smart_initial_display = False)
-
-        self.ihm_model_id = model_id
-        self.asym_id = asym_id
-        self._res_sphere = rs = {}	# res_num -> sphere atom
+        self.ihm_model_id = ihm_model_id
+        self._asym_models = {}
+        self._sphere_atom = sa = {}	# (asym_id, res_num) -> sphere atom
         
         from chimerax.core.atomic.colors import chain_rgba8
-        color = chain_rgba8(asym_id)
-        for (sb,se,xyz,r) in sphere_list:
+        for (asym_id, sb,se,xyz,r) in sphere_list:
             aname = 'CA'
             a = self.new_atom(aname, 'C')
             a.coord = xyz
             a.radius = r
             a.draw_mode = a.SPHERE_STYLE
-            a.color = color
+            a.color = chain_rgba8(asym_id)
             rname = '%d' % (se-sb+1)
             # Convention on ensemble PDB files is beads get middle residue number of range
             rnum = sb + (sb-se+1)//2
             r = self.new_residue(rname, asym_id, rnum)
             r.add_atom(a)
             for s in range(sb, se+1):
-                rs[s] = a
+                sa[(asym_id,s)] = a
         self.new_atoms()
 
-    def residue_sphere(self, res_num):
-        return self._res_sphere.get(res_num)
-    
+    def residue_sphere(self, asym_id, res_num):
+        return self._sphere_atom.get((asym_id,res_num))
