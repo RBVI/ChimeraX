@@ -75,7 +75,7 @@ class IHMModel(Model):
             self.add([r_group])
 
         # Sphere models, ensemble models, groups
-        smodels, emodels = self.read_sphere_models()
+        smodels, emodels, gmodels = self.read_sphere_models()
         self.sphere_models = smodels
         self.ensemble_sphere_models = emodels
 
@@ -90,7 +90,19 @@ class IHMModel(Model):
             align_starting_models_to_spheres(stmodels, smodels[0])
     
         # Ensemble localization
-        self.localization_models = self.read_localization_maps()
+        self.localization_models = lmaps = self.read_localization_maps()
+        for gm in gmodels:
+            gm.add([lmap for lmap in lmaps if lmap.group_id == gm.group_id])
+
+        # Create results model group
+        if gmodels:
+            if len(gmodels) == 1:
+                gmodels[0].name = 'Result sphere models'
+                self.add(gmodels)
+            else:
+                rs_group = Model('Result sphere models', self.session)
+                rs_group.add(gmodels)
+                self.add([rs_group])
 
     def read_tables(self, filename):
         # Read ihm tables
@@ -265,7 +277,7 @@ class IHMModel(Model):
         self.add(gmodels)
 
         smodels, emodels = self.make_sphere_models(gmodels)
-        return smodels, emodels
+        return smodels, emodels, gmodels
 
     # -----------------------------------------------------------------------------
     #
@@ -282,10 +294,10 @@ class IHMModel(Model):
         models = []
         for (gid, gname), mid_list in gm.items():
             m = Model(gname, self.session)
-            m.ihm_group_id = gid
+            m.group_id = gid
             m.ihm_model_ids = mid_list
             models.append(m)
-        models.sort(key = lambda m: m.ihm_group_id)
+        models.sort(key = lambda m: m.group_id)
         return models
 
     # -----------------------------------------------------------------------------
@@ -355,6 +367,7 @@ class IHMModel(Model):
                 if isfile(path + '.crd'):
                     from .coordsets import read_coordinate_sets
                     read_coordinate_sets(path + '.crd', sm)
+                sm.name += ' %d models' % sm.num_coord_sets
                 gmodel[gid].add([sm])
                 emodels.append(sm)
 
@@ -463,18 +476,13 @@ class IHMModel(Model):
     #
     def read_localization_maps(self):
 
-        pgrids = self.read_ensemble_localization_maps()
-        if len(pgrids) == 0:
-            pgrids = self.read_gaussian_localization_maps()
-        if pgrids:
-            for g in pgrids[1:]:
+        lmaps = self.read_ensemble_localization_maps()
+        if len(lmaps) == 0:
+            lmaps = self.read_gaussian_localization_maps()
+        if lmaps:
+            for g in lmaps[1:]:
                 g.display = False	# Only show first ensemble
-            el_group = Model('Ensemble localization', self.session)
-            el_group.display = False
-            el_group.add(pgrids)
-            self.add([el_group])
-
-        return pgrids
+        return lmaps
 
     # -----------------------------------------------------------------------------
     #
@@ -503,7 +511,9 @@ class IHMModel(Model):
         for ensemble_id in sorted(ens.keys()):
             asym_loc = ens[ensemble_id]
             gid, n = ens_group[ensemble_id]
-            m = Model('Ensemble %s of %d models' % (ensemble_id, n), self.session)
+            name = 'Localization map ensemble %s' % ensemble_id
+            m = Model(name, self.session)
+            m.group_id = gid
             pmods.append(m)
             for asym_id, filename in sorted(asym_loc):
                 map_path = join(self.ihm_directory, filename)
@@ -568,6 +578,7 @@ class IHMModel(Model):
             asym_gaussians = cov[ensemble_id]
             gid, n = ens_group[ensemble_id]
             m = Model('Ensemble %s of %d models' % (ensemble_id, n), self.session)
+            m.group_id = gid
             pmods.append(m)
             for asym_id in sorted(asym_gaussians.keys()):
                 g = probability_grid(asym_gaussians[asym_id])
