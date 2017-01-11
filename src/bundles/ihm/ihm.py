@@ -60,25 +60,34 @@ class IHMModel(Model):
         self.starting_models = stmodels
         self.sequence_alignment_models = seqmodels
 
-        # Sphere models, ensemble models, groups
-        smodels, emodels, gmodels = self.read_sphere_models()
-        self.sphere_models = smodels
-        self.ensemble_sphere_models = emodels
-    
-        # Align starting models to first sphere model
-        if smodels:
-            align_starting_models_to_spheres(stmodels, smodels[0])
-
         # Crosslinks
-        xlinks = self.read_crosslinks(show_sphere_crosslinks, smodels, emodels,
-                                      show_atom_crosslinks, stmodels)
+        xlinks, xlmodels = self.read_crosslinks()
         self.crosslink_models = xlinks
 
         # 2D electron microscopy projections
         self.em2d_models = self.read_2dem_images()
 
-        # Added sphere models
-        self.add(gmodels)
+        # Make restraint model groupsy
+        rmodels = xlmodels + self.em2d_models
+        if rmodels:
+            r_group = Model('Restraints', self.session)
+            r_group.add(rmodels)
+            self.add([r_group])
+
+        # Sphere models, ensemble models, groups
+        smodels, emodels = self.read_sphere_models()
+        self.sphere_models = smodels
+        self.ensemble_sphere_models = emodels
+
+        # Add crosslinks to sphere models
+        if show_sphere_crosslinks:
+            self.create_sphere_model_crosslinks(xlinks, smodels, emodels, xlmodels)
+        if show_atom_crosslinks:
+            self.create_starting_model_crosslinks(xlinks, stmodels, xlmodels)
+    
+        # Align starting models to first sphere model
+        if smodels:
+            align_starting_models_to_spheres(stmodels, smodels[0])
     
         # Ensemble localization
         self.localization_models = self.read_localization_maps()
@@ -129,7 +138,7 @@ class IHMModel(Model):
         # Group starting models, sequence alignment and templates by asym id.
         models = xmodels + cmodels + seqmodels + tmodels
         if models:
-            sm_group = Model('Starting Models', self.session)
+            sm_group = Model('Starting models', self.session)
             sma = {}
             for m in models:
                 sma.setdefault(m.asym_id, []).append(m)
@@ -253,9 +262,10 @@ class IHMModel(Model):
         gmodels = self.make_sphere_model_groups()
         for g in gmodels[1:]:
             g.display = False	# Only show first group.
+        self.add(gmodels)
 
         smodels, emodels = self.make_sphere_models(gmodels)
-        return smodels, emodels, gmodels
+        return smodels, emodels
 
     # -----------------------------------------------------------------------------
     #
@@ -358,55 +368,76 @@ class IHMModel(Model):
 
     # -----------------------------------------------------------------------------
     #
-    def read_crosslinks(self, show_sphere_crosslinks, smodels, emodels,
-                        show_atom_crosslinks, amodels):
+    def read_crosslinks(self):
         clrt = self.tables['ihm_cross_link_restraint']
         if clrt is None:
-            return []
+            return [], []
 
-        # Crosslinks
-        xlinks = crosslinks(clrt)
-        if len(xlinks) == 0:
-            return xlinks
+        clrt_fields = [
+            'asym_id_1',
+            'seq_id_1',
+            'asym_id_2',
+            'seq_id_2',
+            'type',
+            'distance_threshold'
+            ]
+        clrt_rows = clrt.fields(clrt_fields)
+        xlinks = {}
+        for asym_id_1, seq_id_1, asym_id_2, seq_id_2, type, distance_threshold in clrt_rows:
+            xl = Crosslink(asym_id_1, int(seq_id_1), asym_id_2, int(seq_id_2),
+                           float(distance_threshold))
+            xlinks.setdefault(type, []).append(xl)
 
+        xlmodels = [CrossLinkModel(self.session, xltype, len(xllist))
+                    for xltype, xllist in xlinks.items()]
+
+        return xlinks, xlmodels
+
+    # -----------------------------------------------------------------------------
+    #
+    def create_sphere_model_crosslinks(self, xlinks, smodels, emodels, xlmodels):
         xpbgs = []
-        if show_sphere_crosslinks:
-            # Create cross links for sphere models
-            for i,smodel in enumerate(smodels):
-                pbgs = make_crosslink_pseudobonds(self.session, xlinks, smodel.residue_sphere,
-                                                  name = smodel.ihm_model_id)
-                if i == 0:
-                    # Show only multi-residue spheres and crosslink end-point spheres
-                    satoms = smodel.atoms
-                    satoms.displays = False
-                    satoms.filter(satoms.residues.names != '1').displays = True
-                    for pbg in pbgs:
-                        a1,a2 = pbg.pseudobonds.atoms
-                        a1.displays = True
-                        a2.displays = True
-                else:
-                    # Hide crosslinks for all but first sphere model
-                    for pbg in pbgs:
-                        pbg.display = False
+        # Create cross links for sphere models
+        for i,smodel in enumerate(smodels):
+            pbgs = make_crosslink_pseudobonds(self.session, xlinks, smodel.residue_sphere,
+                                              name = smodel.ihm_model_id,
+                                              parent = smodel)
+            if i == 0:
+                # Show only multi-residue spheres and crosslink end-point spheres
+                satoms = smodel.atoms
+                satoms.displays = False
+                satoms.filter(satoms.residues.names != '1').displays = True
+                for pbg in pbgs:
+                    a1,a2 = pbg.pseudobonds.atoms
+                    a1.displays = True
+                    a2.displays = True
+            else:
+                # Hide crosslinks for all but first sphere model
+                for pbg in pbgs:
+                    pbg.display = False
+            xpbgs.extend(pbgs)
+
+        if emodels and smodels:
+            for emodel in emodels:
+                pbgs = make_crosslink_pseudobonds(self.session, xlinks,
+                                                  ensemble_sphere_lookup(emodel, smodels[0]),
+                                                  parent = emodel)
                 xpbgs.extend(pbgs)
 
-            if emodels and smodels:
-                for emodel in emodels:
-                    make_crosslink_pseudobonds(self.session, xlinks,
-                                               ensemble_sphere_lookup(emodel, smodels[0]),
-                                               parent = emodel)
-        if show_atom_crosslinks:
-            # Create cross links for starting atomic models.
-            if amodels:
-                # These are usually missing disordered regions.
-                pbgs = make_crosslink_pseudobonds(self.session, xlinks, atom_lookup(amodels))
-                xpbgs.extend(pbgs)
-        if pbgs:
-            xl_group = Model('Crosslinks', self.session)
-            xl_group.add(xpbgs)
-            self.add([xl_group])
+        for xlm in xlmodels:
+            pbgs = [pbg for pbg in xpbgs if pbg.crosslink_type == xlm.crosslink_type]
+            xlm.add_pseudobond_models(pbgs)
 
-        return xlinks
+    # -----------------------------------------------------------------------------
+    # Create cross links for starting atomic models.
+    #
+    def create_starting_model_crosslinks(self, xlinks, amodels, xlmodels):
+        if amodels:
+            # Starting models may not have disordered regions, so crosslinks will be omitted.
+            pbgs = make_crosslink_pseudobonds(self.session, xlinks, atom_lookup(amodels))
+            for xlm in xlmodels:
+                pbgs = [pbg for pbg in xpbgs if pbg.crosslink_type == xlm.crosslink_type]
+                xlm.add_pseudobond_models(pbgs)
 
     # -----------------------------------------------------------------------------
     #
@@ -422,14 +453,10 @@ class IHMModel(Model):
                     from chimerax.core.map.volume import open_map
                     maps,msg = open_map(self.session, image_path)
                     v = maps[0]
+                    v.name += ' 2D electron microscopy'
                     v.initialize_thresholds(vfrac = (0.01,1), replace = True)
                     v.show()
                     em2d.append(v)
-        if em2d:
-            em_group = Model('2D electron microscopy', self.session)
-            em_group.add(em2d)
-            self.add([em_group])
-
         return em2d
 
     # -----------------------------------------------------------------------------
@@ -592,24 +619,28 @@ class Crosslink:
         self.distance = dist
 
 # -----------------------------------------------------------------------------
+# Crosslink model controls display of pseudobond groups but does not display
+# anything itself.  The controlled pseudobond groups are not generally child models.
 #
-def crosslinks(xlink_restraint_table):
+class CrossLinkModel(Model):
+    def __init__(self, session, crosslink_type, count):
+        name = '%d %s crosslinks' % (count, crosslink_type)
+        Model.__init__(self, name, session)
+        self.crosslink_type = crosslink_type
+        self._pseudobond_groups = []
 
-    xlink_fields = [
-        'asym_id_1',
-        'seq_id_1',
-        'asym_id_2',
-        'seq_id_2',
-        'type',
-        'distance_threshold'
-        ]
-    xlink_rows = xlink_restraint_table.fields(xlink_fields)
-    xlinks = {}
-    for asym_id_1, seq_id_1, asym_id_2, seq_id_2, type, distance_threshold in xlink_rows:
-        xl = Crosslink(asym_id_1, int(seq_id_1), asym_id_2, int(seq_id_2), float(distance_threshold))
-        xlinks.setdefault(type, []).append(xl)
-
-    return xlinks
+    def add_pseudobond_models(self, pbgs):
+        self._pseudobond_groups.extend(pbgs)
+        
+    def _get_display(self):
+        for pbg in self._pseudobond_groups:
+            if pbg.display:
+                return True
+        return False
+    def _set_display(self, display):
+        for pbg in self._pseudobond_groups:
+            pbg.display = display
+    display = property(_get_display, _set_display)
 
 # -----------------------------------------------------------------------------
 #
@@ -627,6 +658,7 @@ def make_crosslink_pseudobonds(session, xlinks, atom_lookup,
         if name is not None:
             xname += ' ' + name
         g = new_pbgroup(xname)
+        g.crosslink_type = type
         pbgs.append(g)
         missing = []
         apairs = {}
