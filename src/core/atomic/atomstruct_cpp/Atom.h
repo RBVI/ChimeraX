@@ -136,6 +136,7 @@ public:
     char  alt_loc() const { return _alt_loc; }
     std::set<char>  alt_locs() const;
     const std::vector<float> *aniso_u() const;
+    bool has_aniso_u() const { return aniso_u() != NULL; }
     float  bfactor() const;
     const Bonds&  bonds() const { return _bonds; }
     bool  connects_to(const Atom* other) const {

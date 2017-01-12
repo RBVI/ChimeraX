@@ -34,7 +34,6 @@ class MRC_Grid(Grid_Data):
 
     # Crystal symmetry operators.
     syms = d.symmetry_matrices()
-    print ('got %d symmetries' % len(syms))
     if syms:
       self.symmetries = syms
   

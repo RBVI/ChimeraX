@@ -248,15 +248,6 @@ def make_mime_file(name):
                         mi.glob(e)
 
 
-def add_xdg_utils_to_path(data_dir):
-    if verbose:
-        print("adding xdg scripts to end of path")
-    old_path = os.getenv("PATH")
-    path = old_path + ":%s/xdg-utils" % data_dir
-    os.environ["PATH"] = path
-    return old_path
-
-
 def install_icons(info, data_dir):
     if verbose:
         print("installing icons")
@@ -278,7 +269,10 @@ def install_icons(info, data_dir):
         ]
         if size != sizes[-1]:
             cmd[2:2] = ['--noupdate']
-        subprocess.call(cmd)
+        try:
+            subprocess.call(cmd)
+        except OSError as e:
+            print("Unable to install %sx%s icon: %s" % (size, size, e), file=sys.stderr)
     # scalable application icon
     if os.path.exists('/usr/share/icons/hicolor/scalable'):
         path = '%s/%s-icon.svg' % (image_dir, info.app_name)
@@ -290,7 +284,10 @@ def install_icons(info, data_dir):
             'xdg-icon-resource', 'forceupdate',
             '--mode', 'user',
         ]
-        subprocess.call(cmd)
+        try:
+            subprocess.call(cmd)
+        except OSError as e:
+            print("Unable to install SVG icon: %s" % e, file=sys.stderr)
 
     # install icons for file formats
     from . import io
@@ -320,49 +317,70 @@ def install_icons(info, data_dir):
                 '--mode', 'user',
                 icon, mt
             ]
-            subprocess.call(cmd)
+            try:
+                subprocess.call(cmd)
+            except OSError as e:
+                print("Unable to install %s icon: %s" % (f.name, e), file=sys.stderr)
 
 
 def install_desktop_menu(desktop):
     if verbose:
         print("installing desktop menu")
     cmd = ['xdg-desktop-menu', 'install', desktop]
-    subprocess.call(cmd)
+    try:
+        subprocess.call(cmd)
+    except OSError as e:
+        print("Unable to install desktop menu: %s" % e, file=sys.stderr)
 
 
 def install_desktop_icon(desktop):
     if verbose:
         print("installing desktop icon")
     cmd = ['xdg-desktop-icon', 'install', desktop]
-    subprocess.call(cmd)
+    try:
+        subprocess.call(cmd)
+    except OSError as e:
+        print("Unable to install desktop icon: %s" % e, file=sys.stderr)
 
 
 def uninstall_desktop_menu(desktop):
     if verbose:
         print("uninstalling desktop menu")
     cmd = ['xdg-desktop-menu', 'uninstall', desktop]
-    subprocess.call(cmd)
+    try:
+        subprocess.call(cmd)
+    except OSError as e:
+        print("Unable to uninstall desktop menu: %s" % e, file=sys.stderr)
 
 
 def uninstall_desktop_icon(desktop):
     if verbose:
         print("uninstalling desktop icon")
     cmd = ['xdg-desktop-icon', 'uninstall', desktop]
-    subprocess.call(cmd)
+    try:
+        subprocess.call(cmd)
+    except OSError as e:
+        print("Unable to uninstall desktop icon: %s" % e, file=sys.stderr)
 
 
 def install_mime_file(mimetypes):
     if verbose:
         print("installing MIME info")
     cmd = ['xdg-mime', 'install', mimetypes]
-    subprocess.call(cmd)
+    try:
+        subprocess.call(cmd)
+    except OSError as e:
+        print("Unable to install mime types: %s" % e, file=sys.stderr)
 
 
 def uninstall_mime_file(mimetypes):
     if verbose:
         print("uninstalling MIME info")
     cmd = ['xdg-mime', 'uninstall', mimetypes]
-    subprocess.call(cmd)
+    try:
+        subprocess.call(cmd)
+    except OSError as e:
+        print("Unable to uninstall mime types: %s" % e, file=sys.stderr)
 
 
 def generate(session, localized_app_name):
@@ -382,26 +400,21 @@ def install(session, localized_app_name, reinstall=False, info=None):
         make_desktop(info, localized_app_name)
         make_mime_file(info.mime_file)
     from chimerax import app_data_dir
-    old_path = add_xdg_utils_to_path(app_data_dir)
     if not info.already_generated or reinstall:
         install_mime_file(info.mime_file)
         install_icons(info, app_data_dir)
         install_desktop_menu(info.desktop)
         install_desktop_icon(info.desktop)
-    os.environ["PATH"] = old_path
 
 
 def uninstall(session):
     info = get_info(session)
-    from chimerax import app_data_dir
-    old_path = add_xdg_utils_to_path(app_data_dir)
     if info.already_generated:
         uninstall_desktop_icon(info.desktop)
         uninstall_desktop_menu(info.desktop)
         uninstall_mime_file(info.mime_file)
         os.remove(info.desktop)
         os.remove(info.mime_file)
-    os.environ["PATH"] = old_path
 
 
 def install_if_needed(session, localized_app_name={}, reinstall=False):
@@ -435,11 +448,11 @@ def get_info(session, command=None):
     info.app_author = app_dirs.appauthor
     info.name = '%s-%s' % (info.app_author, info.app_name)
     version = None
-    from . import BUNDLE_NAME as core_bundle_name
+    from . import BUNDLE_NAME as CORE_BUNDLE_NAME
     import pip
     dists = pip.get_installed_distributions(local_only=True)
     for d in dists:
-        if d.project_name == core_bundle_name:
+        if d.project_name == CORE_BUNDLE_NAME:
             version = d.version
             break
     if version is None:

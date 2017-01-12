@@ -515,6 +515,9 @@ class Atoms(Collection):
         f(self._c_pointers, n, loc, pointer(values))
         return values
 
+    has_aniso_u = cvec_property('atom_has_aniso_u', npy_bool, read_only=True,
+        doc='Boolean array identifying which atoms have anisotropic temperature factors.')
+
     @property
     def aniso_u(self):
         '''Anisotropic temperature factors, returns Nx3x3 array of numpy float32 or None

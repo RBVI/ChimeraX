@@ -15,7 +15,7 @@
 ihm: Integrative Hybrid Model file format support
 =================================================
 """
-def read_ihm(session, filename, name, *args, load_linked_files = True, fetch_templates = False,
+def read_ihm(session, filename, name, *args, load_linked_files = True,
              show_sphere_crosslinks = True, show_atom_crosslinks = False, **kw):
     """Read an integrative hybrid models file creating sphere models and restraint models
 
@@ -32,7 +32,6 @@ def read_ihm(session, filename, name, *args, load_linked_files = True, fetch_tem
 
     m = IHMModel(session, filename,
                  load_linked_files = load_linked_files,
-                 fetch_templates = fetch_templates,
                  show_sphere_crosslinks = show_sphere_crosslinks,
                  show_atom_crosslinks = show_atom_crosslinks)
 
@@ -44,7 +43,6 @@ from chimerax.core.models import Model
 class IHMModel(Model):
     def __init__(self, session, filename,
                  load_linked_files = True,
-                 fetch_templates = False,
                  show_sphere_crosslinks = True,
                  show_atom_crosslinks = False):
     
@@ -57,40 +55,54 @@ class IHMModel(Model):
 
         self.tables = self.read_tables(filename)
 
-        # Assembly composition
-        acomp = self.assembly_components()
-
         # Starting atomic models, including experimental and comparative structures and templates.
-        xmodels, cmodels, seqmodels = \
-            self.create_starting_models(acomp, load_linked_files, fetch_templates)
-        self.experimental_models = xmodels
-        self.comparative_models = cmodels
-        self.sequence_models = seqmodels
-
-        # Sphere models, ensemble models, groups
-        smodels, emodels, gmodels = self.create_sphere_models(acomp)
-        self.sphere_models = smodels
-        self.ensemble_sphere_models = emodels
-    
-        # Align starting models to first sphere model
-        if xmodels:
-            align_atomic_models_to_spheres(xmodels, smodels)
-        if cmodels:
-            align_atomic_models_to_spheres(cmodels, smodels)
+        stmodels, seqmodels = self.read_starting_models(load_linked_files)
+        self.starting_models = stmodels
+        self.sequence_alignment_models = seqmodels
 
         # Crosslinks
-        xlinks = self.create_crosslinks(show_sphere_crosslinks, smodels, emodels,
-                                        show_atom_crosslinks, xmodels+cmodels)
+        xlinks, xlmodels = self.read_crosslinks()
         self.crosslink_models = xlinks
 
         # 2D electron microscopy projections
-        self.em2d_models = self.create_2dem_images()
+        self.em2d_models = self.read_2dem_images()
 
-        # Added sphere models
-        self.add(gmodels)
+        # Make restraint model groupsy
+        rmodels = xlmodels + self.em2d_models
+        if rmodels:
+            r_group = Model('Restraints', self.session)
+            r_group.add(rmodels)
+            self.add([r_group])
+
+        # Sphere models, ensemble models, groups
+        smodels, emodels, gmodels = self.read_sphere_models()
+        self.sphere_models = smodels
+        self.ensemble_sphere_models = emodels
+
+        # Add crosslinks to sphere models
+        if show_sphere_crosslinks:
+            self.create_sphere_model_crosslinks(xlinks, smodels, emodels, xlmodels)
+        if show_atom_crosslinks:
+            self.create_starting_model_crosslinks(xlinks, stmodels, xlmodels)
+    
+        # Align starting models to first sphere model
+        if smodels:
+            align_starting_models_to_spheres(stmodels, smodels[0])
     
         # Ensemble localization
-        self.localization_models = self.create_localization_maps()
+        self.localization_models = lmaps = self.read_localization_maps()
+        for gm in gmodels:
+            gm.add([lmap for lmap in lmaps if lmap.group_id == gm.group_id])
+
+        # Create results model group
+        if gmodels:
+            if len(gmodels) == 1:
+                gmodels[0].name = 'Result sphere models'
+                self.add(gmodels)
+            else:
+                rs_group = Model('Result sphere models', self.session)
+                rs_group.add(gmodels)
+                self.add([rs_group])
 
     def read_tables(self, filename):
         # Read ihm tables
@@ -111,119 +123,116 @@ class IHMModel(Model):
 
     # -----------------------------------------------------------------------------
     #
-    def assembly_components(self):
+    def asym_id_names(self):
         sat = self.tables['ihm_struct_assembly']
         sa_fields = [
-            'assembly_id',
             'entity_description',
-            'entity_id',
             'asym_id',
-            'seq_id_begin',
-            'seq_id_end']
+            ]
         sa = sat.fields(sa_fields)
-        acomp = [Assembly(aid, eid, edesc, asym_id, seq_beg, seq_end)
-                 for aid, edesc, eid, asym_id, seq_beg, seq_end in sa]
-        return acomp
+        anames = {asym_id : edesc for edesc, asym_id in sa}
+        return anames
 
     # -----------------------------------------------------------------------------
     #
-    def create_starting_models(self, acomp, load_linked_files, fetch_templates):
+    def read_starting_models(self, load_linked_files):
 
-        # Experimental starting models.
-        # Comparative model templates.
-        dataset_entities, xmodels, tmodels, seqmodels = \
-            self.read_starting_models(fetch_templates)
-        if xmodels:
-            am_group = Model('Experimental models', self.session)
-            am_group.add(xmodels)
-            self.add([am_group])
+        # Read experimental starting models and comparative model templates.
+        dataset_asym_ids, xmodels, tmodels, seqmodels = self.read_starting_model_details()
 
-        # Comparative models
-        if load_linked_files:
-            cmodels = self.read_linked_datasets(acomp, dataset_entities)
-            if cmodels:
-                comp_group = Model('Comparative models', self.session)
-                comp_group.add(cmodels)
-                self.add([comp_group])
-        else:
-            cmodels = []
+        # Read comparative models
+        cmodels = self.read_linked_datasets(dataset_asym_ids) if load_linked_files else []
 
-        # Align templates with comparative models
-        if tmodels and cmodels:
-            # Group templates with grouping name matching comparative model name.
-            tg = group_template_models(self.session, tmodels, cmodels)
-            self.add([tg])
-            # Align templates to comparative models using matchmaker.
-            align_template_models(self.session, cmodels)
-
+        # Associate comparative models with sequence alignments.
         if seqmodels:
-            sa_group = Model('Sequence Alignments', self.session)
-            sa_group.add(seqmodels)
-            self.add([sa_group])
             assign_comparative_models_to_sequences(cmodels, seqmodels)
 
-        return xmodels, cmodels, seqmodels
+        # Group starting models, sequence alignment and templates by asym id.
+        models = xmodels + cmodels + seqmodels + tmodels
+        if models:
+            sm_group = Model('Starting models', self.session)
+            sma = {}
+            for m in models:
+                sma.setdefault(m.asym_id, []).append(m)
+            smg = []
+            anames = self.asym_id_names()
+            for asym_id in sorted(sma.keys()):
+                am = sma[asym_id]
+                name = '%s %s' % (anames[asym_id], asym_id)
+                a_group = Model(name, self.session)
+                a_group.add(am)
+                smg.append(a_group)
+                a_group.color = am[0].single_color	# Group color is first model color
+            sm_group.add(smg)
+            self.add([sm_group])
+
+        return xmodels+cmodels, seqmodels
 
     # -----------------------------------------------------------------------------
     #
-    def read_starting_models(self, fetch_templates):
-        dataset_entities = {}
+    def read_starting_model_details(self):
+        dataset_asym_ids = {}
         xmodels = []
         tmodels = []
         seqmodels = []
 
         starting_models = self.tables['ihm_starting_model_details']
         if not starting_models:
-            return dataset_entities, xmodels, tmodels, seqmodels
+            return dataset_asym_ids, xmodels, tmodels, seqmodels
 
-        fields = ['entity_id', 'asym_id', 'seq_id_begin', 'seq_id_end', 'starting_model_source',
+        fields = ['asym_id', 'seq_id_begin', 'seq_id_end', 'starting_model_source',
                   'starting_model_db_name', 'starting_model_db_code',
-                  'starting_model_db_pdb_auth_asym_id',
+                  'starting_model_auth_asym_id',
                   'dataset_list_id', 'alignment_file']
         rows = starting_models.fields(fields, allow_missing_fields = True)
 
-        seqpaths = []	# Sequence alignment files for comparative model templates
-        for eid, asym_id, seq_beg, seq_end, source, db_name, db_code, db_asym_id, did, seqfile in rows:
-            dataset_entities[did] = (eid, asym_id)
+        from collections import OrderedDict
+        alignments = OrderedDict()  # Sequence alignments for comparative models
+        for asym_id, seq_beg, seq_end, source, db_name, db_code, auth_asym_id, did, seqfile in rows:
+            # TODO: Probably should require comparative model asym_id to match sphere model asym_id
+            #       Currently mediator.cif has auth_asym_id identifying chain in comparative model
+            #       Corresponding to sphere model asym_id.  But that won't work if db_name/db_code
+            #       is used since then auth_asym_id is the db_asym_id.
+            cm_asym_id = auth_asym_id if db_code == '?' else asym_id
+            dataset_asym_ids.setdefault(did, set()).add((asym_id, cm_asym_id))
             if (source in ('experimental model', 'comparative model') and
                 db_name == 'PDB' and db_code != '?'):
-                if source == 'comparative model' and not fetch_templates:
-                    models = []
-                else:
-                    from chimerax.core.atomic.mmcif import fetch_mmcif
-                    models, msg = fetch_mmcif(self.session, db_code, smart_initial_display = False)
-                    name = '%s %s' % (db_code, db_asym_id)
-                    for m in models:
-                        keep_one_chain(m, db_asym_id)
-                        m.name = name
-                        m.entity_id = eid
-                        m.asym_id = asym_id
-                        m.seq_begin, m.seq_end = int(seq_beg), int(seq_end)
-                        m.dataset_id = did
-                        show_colored_ribbon(m, asym_id)
-                if source == 'experimental model':
-                    xmodels.extend(models)
-                elif source == 'comparative model':
+                if source == 'comparative model':
+                    # Template for a comparative model.
+                    tm = TemplateModel(self.session, db_name, db_code, auth_asym_id)
+                    models = [tm]
                     tmodels.extend(models)
                     if seqfile:
                         from os.path import join, isfile
                         p = join(self.ihm_directory, seqfile)
                         if isfile(p):
-                            seqpaths.append(((p, asym_id, did), (db_name, db_code, db_asym_id)))
+                            a = (p, asym_id, did)
+                            sam = alignments.get(a)
+                            if sam is None:
+                                # Make sequence alignment model for comparative model
+                                alignments[a] = sam = SequenceAlignmentModel(self.session, p, asym_id, did)
+                            sam.add_template_model(tm)
+                elif source == 'experimental model':
+                    from chimerax.core.atomic.mmcif import fetch_mmcif
+                    models, msg = fetch_mmcif(self.session, db_code, smart_initial_display = False)
+                    name = '%s %s' % (db_code, auth_asym_id)
+                    for m in models:
+                        keep_one_chain(m, auth_asym_id)
+                        m.name = name
+                        show_colored_ribbon(m, asym_id)
+                    xmodels.extend(models)
+                for m in models:
+                    m.asym_id = asym_id
+                    m.seq_begin, m.seq_end = int(seq_beg), int(seq_end)
+                    m.dataset_id = did
+                    m.comparative_model = (source == 'comparative model')
 
-        # Make models for comparative model template alignments
-        from collections import OrderedDict
-        alignments = OrderedDict()
-        for a,db in seqpaths:
-            alignments.setdefault(a, []).append(db)
-        seqmodels = [SequenceAlignmentModel(self.session, alignment_file, asym_id, dataset_id, db_templates)
-                     for (alignment_file, asym_id, dataset_id), db_templates in alignments.items()]
-
-        return dataset_entities, xmodels, tmodels, seqmodels
+        seqmodels = list(alignments.values())
+        return dataset_asym_ids, xmodels, tmodels, seqmodels
     
     # -----------------------------------------------------------------------------
     #
-    def read_linked_datasets(self, acomp, dataset_entities):
+    def read_linked_datasets(self, dataset_asym_ids):
         '''Read linked data from ihm_dataset_other table'''
         lmodels = []
         datasets_table = self.tables['ihm_dataset_other']
@@ -231,39 +240,48 @@ class IHMModel(Model):
             return lmodels
         fields = ['dataset_list_id', 'data_type', 'doi', 'content_filename', 'file']
         rows = datasets_table.fields(fields, allow_missing_fields = True)
-        for did, data_type, doi, content_filename, file in rows:
-            if data_type == 'Comparative model' and (content_filename.endswith('.pdb') or file.endswith('.cif')):
-                from os.path import basename, isfile, join
-                if file.endswith('.cif'):
-                    path = join(self.ihm_directory, file)
-                    name = basename(file)
-                    from chimerax.core.atomic.mmcif import open_mmcif
-                    models, msg = open_mmcif(self.session, path, name, smart_initial_display = False)
-                else:
+        for did, data_type, doi, archive_filename, filename in rows:
+            if data_type == 'Comparative model':
+                from os.path import basename, join
+                fopen = atomic_model_reader(filename)
+                afopen = atomic_model_reader(archive_filename)
+                if fopen:
+                    path = join(self.ihm_directory, filename)
+                    name = basename(filename)
+                    models, msg = fopen(self.session, path, name, smart_initial_display = False)
+                elif afopen:
                     from .doi_fetch import fetch_doi_archive_file
-                    pdbf = fetch_doi_archive_file(self.session, doi, content_filename)
-                    name = basename(content_filename)
-                    from chimerax.core.atomic.pdb import open_pdb
-                    models, msg = open_pdb(self.session, pdbf, name, smart_initial_display = False)
-                    pdbf.close()
-                eid, asym_id = dataset_entities[did] if did in dataset_entities else (None, None)
-                for m in models:
-                    m.dataset_id = did
-                    m.entity_id = eid
-                    m.asym_id = asym_id
-                    show_colored_ribbon(m, asym_id)
-                lmodels.extend(models)
+                    file = fetch_doi_archive_file(self.session, doi, archive_filename)
+                    name = basename(archive_filename)
+                    models, msg = afopen(self.session, file, name, smart_initial_display = False)
+                    file.close()
+                else:
+                    models = []	# Don't know how to read atomic model file
+                asym_ids = dataset_asym_ids.get(did, [])
+                na = len(asym_ids)
+                for asym_id, auth_asym_id in asym_ids:
+                    for m in models:
+                        if na > 1:
+                            m = m.copy()
+                            keep_one_chain(m, auth_asym_id)
+                            m.name += ' ' + auth_asym_id
+                        m.dataset_id = did
+                        m.asym_id = asym_id
+                        m.comparative_model = True
+                        show_colored_ribbon(m, asym_id)
+                        lmodels.append(m)
       
         return lmodels
 
     # -----------------------------------------------------------------------------
     #
-    def create_sphere_models(self, acomp):
+    def read_sphere_models(self):
         gmodels = self.make_sphere_model_groups()
         for g in gmodels[1:]:
             g.display = False	# Only show first group.
+        self.add(gmodels)
 
-        smodels, emodels = self.make_sphere_models(gmodels, acomp)
+        smodels, emodels = self.make_sphere_models(gmodels)
         return smodels, emodels, gmodels
 
     # -----------------------------------------------------------------------------
@@ -281,15 +299,15 @@ class IHMModel(Model):
         models = []
         for (gid, gname), mid_list in gm.items():
             m = Model(gname, self.session)
-            m.ihm_group_id = gid
+            m.group_id = gid
             m.ihm_model_ids = mid_list
             models.append(m)
-        models.sort(key = lambda m: m.ihm_group_id)
+        models.sort(key = lambda m: m.group_id)
         return models
 
     # -----------------------------------------------------------------------------
     #
-    def make_sphere_models(self, group_models, acomp):
+    def make_sphere_models(self, group_models):
         mlt = self.tables['ihm_model_list']
         ml_fields = [
             'model_id',
@@ -315,17 +333,10 @@ class IHMModel(Model):
             sb, se = int(seq_beg), int(seq_end)
             xyz = float(x), float(y), float(z)
             r = float(radius)
-            mspheres.setdefault(model_id, {}).setdefault(asym_id, []).append((sb,se,xyz,r))
+            mspheres.setdefault(model_id, []).append((asym_id,sb,se,xyz,r))
 
-        aname = {a.asym_id:a.entity_description for a in acomp}
-        smodels = []
-        for mid, asym_spheres in mspheres.items():
-            sm = SphereModel(mnames[mid], mid, self.session)
-            smodels.append(sm)
-            models = [SphereAsymModel(self.session, aname[asym_id], asym_id, mid, slist)
-                      for asym_id, slist in asym_spheres.items()]
-            models.sort(key = lambda m: m.asym_id)
-            sm.add_asym_models(models)
+        smodels = [SphereModel(self.session, mnames[mid], mid, slist)
+                   for mid, slist in mspheres.items()]
         smodels.sort(key = lambda m: m.ihm_model_id)
 
         # Add sphere models to group
@@ -361,14 +372,13 @@ class IHMModel(Model):
                 if isfile(path + '.crd'):
                     from .coordsets import read_coordinate_sets
                     read_coordinate_sets(path + '.crd', sm)
+                sm.name += ' %d models' % sm.num_coord_sets
                 gmodel[gid].add([sm])
                 emodels.append(sm)
 
         # Copy bead radii from best score model to ensemble models
         if smodels and emodels:
-            sams = smodels[0].child_models()
-            from numpy import concatenate
-            r = concatenate([sm.atoms.radii for sm in sams])
+            r = smodels[0].atoms.radii
             for em in emodels:
                 em.atoms.radii = r
 
@@ -376,61 +386,80 @@ class IHMModel(Model):
 
     # -----------------------------------------------------------------------------
     #
-    def create_crosslinks(self, show_sphere_crosslinks, smodels, emodels,
-                          show_atom_crosslinks, amodels):
+    def read_crosslinks(self):
         clrt = self.tables['ihm_cross_link_restraint']
         if clrt is None:
-            return []
+            return [], []
 
-        # Crosslinks
-        xlinks = crosslinks(clrt)
-        if len(xlinks) == 0:
-            return xlinks
+        clrt_fields = [
+            'asym_id_1',
+            'seq_id_1',
+            'asym_id_2',
+            'seq_id_2',
+            'type',
+            'distance_threshold'
+            ]
+        clrt_rows = clrt.fields(clrt_fields)
+        xlinks = {}
+        for asym_id_1, seq_id_1, asym_id_2, seq_id_2, type, distance_threshold in clrt_rows:
+            xl = Crosslink(asym_id_1, int(seq_id_1), asym_id_2, int(seq_id_2),
+                           float(distance_threshold))
+            xlinks.setdefault(type, []).append(xl)
 
-        xpbgs = []
-        if show_sphere_crosslinks:
-            # Create cross links for sphere models
-            for i,smodel in enumerate(smodels):
-                pbgs = make_crosslink_pseudobonds(self.session, xlinks, smodel.residue_sphere,
-                                                  name = smodel.ihm_model_id)
-                if i == 0:
-                    # Show only multi-residue spheres and crosslink end-point spheres
-                    for sm in smodel.child_models():
-                        satoms = sm.atoms
-                        satoms.displays = False
-                        satoms.filter(satoms.residues.names != '1').displays = True
-                    for pbg in pbgs:
-                        a1,a2 = pbg.pseudobonds.atoms
-                        a1.displays = True
-                        a2.displays = True
-                else:
-                    # Hide crosslinks for all but first sphere model
-                    for pbg in pbgs:
-                        pbg.display = False
-                xpbgs.extend(pbgs)
+        xlmodels = [CrossLinkModel(self.session, xltype, len(xllist))
+                    for xltype, xllist in xlinks.items()]
 
-            if emodels and smodels:
-                sindex = smodels[0].sphere_index
-                for emodel in emodels:
-                    make_crosslink_pseudobonds(self.session, xlinks,
-                                               ensemble_sphere_lookup(emodel, sindex),
-                                               parent = emodel)
-        if show_atom_crosslinks:
-            # Create cross links for starting atomic models.
-            if amodels:
-                # These are usually missing disordered regions.
-                pbgs = make_crosslink_pseudobonds(self.session, xlinks, atom_lookup(amodels))
-                xpbgs.extend(pbgs)
-        if pbgs:
-            xl_group = Model('Crosslinks', self.session)
-            xl_group.add(xpbgs)
-            self.add([xl_group])
-
-        return xlinks
+        return xlinks, xlmodels
 
     # -----------------------------------------------------------------------------
     #
-    def create_2dem_images(self):
+    def create_sphere_model_crosslinks(self, xlinks, smodels, emodels, xlmodels):
+        xpbgs = []
+        # Create cross links for sphere models
+        for i,smodel in enumerate(smodels):
+            pbgs = make_crosslink_pseudobonds(self.session, xlinks, smodel.residue_sphere,
+                                              name = smodel.ihm_model_id,
+                                              parent = smodel)
+            if i == 0:
+                # Show only multi-residue spheres and crosslink end-point spheres
+                satoms = smodel.atoms
+                satoms.displays = False
+                satoms.filter(satoms.residues.names != '1').displays = True
+                for pbg in pbgs:
+                    a1,a2 = pbg.pseudobonds.atoms
+                    a1.displays = True
+                    a2.displays = True
+            else:
+                # Hide crosslinks for all but first sphere model
+                for pbg in pbgs:
+                    pbg.display = False
+            xpbgs.extend(pbgs)
+
+        if emodels and smodels:
+            for emodel in emodels:
+                pbgs = make_crosslink_pseudobonds(self.session, xlinks,
+                                                  ensemble_sphere_lookup(emodel, smodels[0]),
+                                                  parent = emodel)
+                xpbgs.extend(pbgs)
+
+        for xlm in xlmodels:
+            pbgs = [pbg for pbg in xpbgs if pbg.crosslink_type == xlm.crosslink_type]
+            xlm.add_pseudobond_models(pbgs)
+
+    # -----------------------------------------------------------------------------
+    # Create cross links for starting atomic models.
+    #
+    def create_starting_model_crosslinks(self, xlinks, amodels, xlmodels):
+        if amodels:
+            # Starting models may not have disordered regions, so crosslinks will be omitted.
+            pbgs = make_crosslink_pseudobonds(self.session, xlinks, atom_lookup(amodels))
+            for xlm in xlmodels:
+                pbgs = [pbg for pbg in xpbgs if pbg.crosslink_type == xlm.crosslink_type]
+                xlm.add_pseudobond_models(pbgs)
+
+    # -----------------------------------------------------------------------------
+    #
+    def read_2dem_images(self):
         em2d = []
         dot = self.tables['ihm_dataset_other']
         fields = ['data_type', 'file']
@@ -442,37 +471,27 @@ class IHMModel(Model):
                     from chimerax.core.map.volume import open_map
                     maps,msg = open_map(self.session, image_path)
                     v = maps[0]
+                    v.name += ' 2D electron microscopy'
                     v.initialize_thresholds(vfrac = (0.01,1), replace = True)
                     v.show()
                     em2d.append(v)
-        if em2d:
-            em_group = Model('2D electron microscopy', self.session)
-            em_group.add(em2d)
-            self.add([em_group])
-
         return em2d
 
     # -----------------------------------------------------------------------------
     #
-    def create_localization_maps(self):
+    def read_localization_maps(self):
 
-
-        pgrids = self.read_localization_maps()
-        if len(pgrids) == 0:
-            pgrids = self.read_gaussian_localization_maps()
-        if pgrids:
-            for g in pgrids[1:]:
+        lmaps = self.read_ensemble_localization_maps()
+        if len(lmaps) == 0:
+            lmaps = self.read_gaussian_localization_maps()
+        if lmaps:
+            for g in lmaps[1:]:
                 g.display = False	# Only show first ensemble
-            el_group = Model('Ensemble localization', self.session)
-            el_group.display = False
-            el_group.add(pgrids)
-            self.add([el_group])
-
-        return pgrids
+        return lmaps
 
     # -----------------------------------------------------------------------------
     #
-    def read_localization_maps(self, level = 0.2, opacity = 0.5):
+    def read_ensemble_localization_maps(self, level = 0.2, opacity = 0.5):
         '''Level sets surface threshold so that fraction of mass is outside the surface.'''
 
         eit = self.tables['ihm_ensemble_info']
@@ -497,7 +516,9 @@ class IHMModel(Model):
         for ensemble_id in sorted(ens.keys()):
             asym_loc = ens[ensemble_id]
             gid, n = ens_group[ensemble_id]
-            m = Model('Ensemble %s of %d models' % (ensemble_id, n), self.session)
+            name = 'Localization map ensemble %s' % ensemble_id
+            m = Model(name, self.session)
+            m.group_id = gid
             pmods.append(m)
             for asym_id, filename in sorted(asym_loc):
                 map_path = join(self.ihm_directory, filename)
@@ -520,7 +541,7 @@ class IHMModel(Model):
 
         eit = self.tables['ihm_ensemble_info']
         goet = self.tables['ihm_gaussian_obj_ensemble']
-        if eit is None or elt is None:
+        if eit is None or goet is None:
             return []
 
         ensemble_fields = ['ensemble_id', 'model_group_id', 'num_ensemble_models']
@@ -561,7 +582,8 @@ class IHMModel(Model):
         for ensemble_id in sorted(cov.keys()):
             asym_gaussians = cov[ensemble_id]
             gid, n = ens_group[ensemble_id]
-            m = Model('Ensemble %s of %d models' % (ensemble_id, n), self.session)
+            m = Model('Localization map ensemble %s of %d models' % (ensemble_id, n), self.session)
+            m.group_id = gid
             pmods.append(m)
             for asym_id in sorted(asym_gaussians.keys()):
                 g = probability_grid(asym_gaussians[asym_id])
@@ -584,30 +606,23 @@ class IHMModel(Model):
     @property
     def description(self):
         # Report what was read in
+        nc = len([m for m in self.starting_models if m.comparative_model])
+        nx = len([m for m in self.starting_models if not m.comparative_model])
+        nsa = len(self.sequence_alignment_models)
+        nt = sum([len(sqm.template_models) for sqm in self.sequence_alignment_models], 0)
+        nem = len(self.em2d_models)
+        ns = len(self.sphere_models)
+        nse = len(self.ensemble_sphere_models)
+        nl = sum([len(lm.child_models()) for lm in self.localization_models], 0)
         xldesc = ', '.join('%d %s crosslinks' % (len(xls),type)
                            for type,xls in self.crosslink_models.items())
+        esizes = ' and '.join('%d'%em.num_coord_sets for em in self.ensemble_sphere_models)
         msg = ('Opened IHM file %s\n'
                ' %d xray/nmr models, %d comparative models, %d sequence alignments, %d templates\n'
                ' %s, %d 2D electron microscopy images\n'
                ' %d sphere models, %d ensembles with %s models, %d localization maps' %
-           (self.filename, len(self.experimental_models), len(self.comparative_models),
-            len(self.sequence_models), sum([len(sqm.db_templates) for sqm in self.sequence_models], 0),
-            xldesc, len(self.em2d_models), len(self.sphere_models),
-            len(self.ensemble_sphere_models),
-            ' and '.join('%d'%em.num_coord_sets for em in self.ensemble_sphere_models),
-            sum([len(pg.child_models()) for pg in self.localization_models], 0)))
+               (self.filename, nx, nc, nsa, nt, xldesc, nem, ns, nse, esizes, nl))
         return msg
-
-# -----------------------------------------------------------------------------
-#
-class Assembly:
-    def __init__(self, assembly_id, entity_id, entity_description, asym_id, seq_beg, seq_end):
-        self.assembly_id = assembly_id
-        self.entity_id = entity_id
-        self.entity_description = entity_description
-        self.asym_id = asym_id
-        self.seq_begin = seq_beg
-        self.seq_end = seq_end
 
 # -----------------------------------------------------------------------------
 #
@@ -620,24 +635,28 @@ class Crosslink:
         self.distance = dist
 
 # -----------------------------------------------------------------------------
+# Crosslink model controls display of pseudobond groups but does not display
+# anything itself.  The controlled pseudobond groups are not generally child models.
 #
-def crosslinks(xlink_restraint_table):
+class CrossLinkModel(Model):
+    def __init__(self, session, crosslink_type, count):
+        name = '%d %s crosslinks' % (count, crosslink_type)
+        Model.__init__(self, name, session)
+        self.crosslink_type = crosslink_type
+        self._pseudobond_groups = []
 
-    xlink_fields = [
-        'asym_id_1',
-        'seq_id_1',
-        'asym_id_2',
-        'seq_id_2',
-        'type',
-        'distance_threshold'
-        ]
-    xlink_rows = xlink_restraint_table.fields(xlink_fields)
-    xlinks = {}
-    for asym_id_1, seq_id_1, asym_id_2, seq_id_2, type, distance_threshold in xlink_rows:
-        xl = Crosslink(asym_id_1, int(seq_id_1), asym_id_2, int(seq_id_2), float(distance_threshold))
-        xlinks.setdefault(type, []).append(xl)
-
-    return xlinks
+    def add_pseudobond_models(self, pbgs):
+        self._pseudobond_groups.extend(pbgs)
+        
+    def _get_display(self):
+        for pbg in self._pseudobond_groups:
+            if pbg.display:
+                return True
+        return False
+    def _set_display(self, display):
+        for pbg in self._pseudobond_groups:
+            pbg.display = display
+    display = property(_get_display, _set_display)
 
 # -----------------------------------------------------------------------------
 #
@@ -655,6 +674,7 @@ def make_crosslink_pseudobonds(session, xlinks, atom_lookup,
         if name is not None:
             xname += ' ' + name
         g = new_pbgroup(xname)
+        g.crosslink_type = type
         pbgs.append(g)
         missing = []
         apairs = {}
@@ -735,22 +755,70 @@ def covariance_sum(cinv, center, s, array):
                 array[k,j,i] += s*exp(-0.5*dot(v, dot(cinv, v)))
 
 from chimerax.core.map import covariance_sum
+        
+# -----------------------------------------------------------------------------
+#
+class TemplateModel(Model):
+    def __init__(self, session, db_name, db_code, db_asym_id):
+        name = 'Template %s %s' % (db_code, db_asym_id)
+        Model.__init__(self, name, session)
+        self.db_name = db_name
+        self.db_code = db_code
+        self.db_asym_id = db_asym_id
+        self.sequence_alignment_model = None
+        
+    def _get_display(self):
+        return False
+    def _set_display(self, display):
+        if display:
+            self.fetch_model()
+    display = property(_get_display, _set_display)
 
+    def fetch_model(self):
+        if self.db_name != 'PDB' or len(self.db_code) != 4:
+            return
+
+        from chimerax.core.atomic.mmcif import fetch_mmcif
+        models, msg = fetch_mmcif(self.session, self.db_code, smart_initial_display = False)
+        name = '%s %s' % (self.db_code, self.db_asym_id)
+        for i,m in enumerate(models):
+            m.name = self.name
+            m.pdb_id = self.db_code
+            m.pdb_chain_id = self.db_asym_id
+            m.asym_id = self.asym_id
+            m.dataset_id = self.dataset_id	# For locating comparative model
+            keep_one_chain(m, self.db_asym_id)
+            show_colored_ribbon(m, self.asym_id, color_offset = 80)
+            if i == 0:
+                m.id = self.id
+
+        # Replace TemplateModel with AtomicStructure
+        p = self.parent
+        self.session.models.remove([self])
+        p.add(models)
+
+        sam = self.sequence_alignment_model
+        sam.associate_structures(models)
+        sam.align_structures(models)
+        
 # -----------------------------------------------------------------------------
 #
 class SequenceAlignmentModel(Model):
-    def __init__(self, session, alignment_file, asym_id, dataset_id, db_templates):
+    def __init__(self, session, alignment_file, asym_id, dataset_id):
         self.alignment_file = alignment_file
         self.asym_id = asym_id			# Identifies comparative model
         self.dataset_id = dataset_id		# Identifies comparative model
-        self.db_templates = db_templates	# List of (db_name, db_code, db_asym_id), e.g. ('PDB', '1xyz', 'B')
         self.template_models = []		# Filled in after templates fetched.
         self.comparative_model = None
         self.alignment = None
         from os.path import basename
-        Model.__init__(self, basename(alignment_file), session)
+        Model.__init__(self, 'Alignment ' + basename(alignment_file), session)
         self.display = False
 
+    def add_template_model(self, model):
+        self.template_models.append(model)
+        model.sequence_alignment_model = self
+        
     def _get_display(self):
         a = self.alignment
         if a is not None:
@@ -761,12 +829,7 @@ class SequenceAlignmentModel(Model):
     def _set_display(self, display):
         a = self.alignment
         if display:
-            if a is None and len(self.template_models) == 0:
-                self.fetch_template_models()
             self.show_alignment()
-            if a is None:
-                self.align_templates()
-
         elif a:
             for v in a.viewers:
                 v.display(False)
@@ -779,15 +842,7 @@ class SequenceAlignmentModel(Model):
             a = open_file(self.session, None, self.alignment_file,
                           auto_associate=False, return_vals='alignments')[0]
             self.alignment = a
-            # Associate templates with sequences in alignment.
-            tmap = {'%s%s' % (tm.pdb_id.lower(), tm.pdb_chain_id) : tm
-                    for tm in self.template_models}
-            if tmap:
-                for seq in a.seqs:
-                    tm = tmap.get(seq.name)
-                    if tm:
-                        a.associate(tm.chains[0], seq, force = True)
-                        tm._associated_sequence = seq
+            self.associate_structures(self.template_models)
             cm = self.comparative_model
             if cm:
                 a.associate(cm.chains[0], a.seqs[-1], force = True)
@@ -796,36 +851,48 @@ class SequenceAlignmentModel(Model):
                 v.display(True)
         return a
 
-    def align_templates(self):
+    def associate_structures(self, models):
+        # Associate templates with sequences in alignment.
         a = self.alignment
+        if a is None:
+            a = self.show_alignment()
+        from chimerax.core.atomic import AtomicStructure
+        tmap = {'%s%s' % (tm.pdb_id.lower(), tm.pdb_chain_id) : tm
+                for tm in models if isinstance(tm, AtomicStructure)}
+        if tmap:
+            for seq in a.seqs:
+                tm = tmap.get(seq.name)
+                if tm:
+                    a.associate(tm.chains[0], seq, force = True)
+                    tm._associated_sequence = seq
+
+    def align_structures(self, models):
+        a = self.alignment
+        if a is None:
+            a = self.show_alignment()
         cm = self.comparative_model
         if a and cm:
-            for tm in self.template_models:
-                if tm._associated_sequence:
-                    results = a.match(cm.chains[0], [tm.chains[0]], iterate=None)
+            for m in models:
+                if m._associated_sequence:
+                    results = a.match(cm.chains[0], [m.chains[0]], iterate=None)
                     if results:
                         # Show only matched residues
                         # TODO: Might show full interval of residues with unused
                         #       insertions colored gray
-                        tmatoms = results[0][0]
-                        tm.residues.ribbon_displays = False
-                        tmatoms.unique_residues.ribbon_displays = True
-
-    def fetch_template_models(self):
-        for db_name, db_code, db_asym_id in self.db_templates:
-            if db_name == 'PDB' and len(db_code) == 4:
-                from chimerax.core.atomic.mmcif import fetch_mmcif
-                models, msg = fetch_mmcif(self.session, db_code, smart_initial_display = False)
-                name = '%s %s' % (db_code, db_asym_id)
-                for m in models:
-                    m.pdb_id = db_code
-                    m.pdb_chain_id = db_asym_id
-                    m.asym_id = self.asym_id
-                    m.dataset_id = self.dataset_id	# For locating comparative model
-                    keep_one_chain(m, db_asym_id)
-                    show_colored_ribbon(m, self.asym_id, color_offset = 80)
-                self.add(models)
-                self.template_models.extend(models)
+                        matoms = results[0][0]
+                        m.residues.ribbon_displays = False
+                        matoms.unique_residues.ribbon_displays = True
+                
+# -----------------------------------------------------------------------------
+#
+def atomic_model_reader(filename):
+    if filename.endswith('.cif'):
+        from chimerax.core.atomic.mmcif import open_mmcif
+        return open_mmcif
+    elif filename.endswith('.pdb'):
+        from chimerax.core.atomic.pdb import open_pdb
+        return open_pdb
+    return None
                 
 # -----------------------------------------------------------------------------
 #
@@ -846,30 +913,20 @@ def keep_one_chain(s, chain_id):
     if dcount > 0 and dcount < len(atoms):	# Don't delete all atoms if chain id not found.
         datoms = atoms.filter(dmask)
         datoms.delete()
+    elif dcount == len(atoms):
+        print ('No chain %s in %s' % (chain_id, s.name))
 
 # -----------------------------------------------------------------------------
 #
-def group_template_models(session, template_models, comparative_models):
-    '''Place template models in groups named after their comparative model.'''
-    mm = []
-    tmodels = template_models
-    for cm in comparative_models:
-        did = cm.dataset_id
-        templates = [tm for tm in tmodels if tm.dataset_id == did]
-        if templates:
-            tm_group = Model(cm.name, session)
-            tm_group.add(templates)
-            cm.template_models = templates
-            mm.append(tm_group)
-            tmodels = [tm for tm in tmodels if tm.dataset_id != did]
+def group_template_models(session, template_models, seq_alignment_models, sa_group):
+    '''Place template models in groups under their sequence alignment model.'''
+    for sam in seq_alignment_models:
+        sam.add(sam.template_models)
+    tmodels = [tm for tm in template_models if tm.sequence_alignment_model is None]
     if tmodels:
-        tm_group = Model('extra templates', session)
-        tm_group.add(tmodels)
-        mm.append(tm_group)
-    tg = Model('Template models', session)
-    tg.display = False
-    tg.add(mm)
-    return tg
+        et_group = Model('extra templates', session)
+        et_group.add(tmodels)
+        sa_group.add(et_group)
 
 # -----------------------------------------------------------------------------
 #
@@ -923,12 +980,10 @@ def show_colored_ribbon(m, asym_id, color_offset = None):
 
 # -----------------------------------------------------------------------------
 #
-def align_atomic_models_to_spheres(amodels, smodels):
-    asmodels = smodels[0].asym_model_map()
+def align_starting_models_to_spheres(amodels, smodel):
+    if len(amodels) == 0:
+        return
     for m in amodels:
-        sm = asmodels.get(m.asym_id)
-        if sm is None:
-            continue
         # Align comparative model residue centers to sphere centers
         res = m.residues
         rnums = res.numbers
@@ -936,7 +991,7 @@ def align_atomic_models_to_spheres(amodels, smodels):
         mxyz = []
         sxyz = []
         for rn, c in zip(rnums, rc):
-            s = sm.residue_sphere(rn)
+            s = smodel.residue_sphere(m.asym_id, rn)
             if s:
                 mxyz.append(c)
                 sxyz.append(s.coord)
@@ -946,8 +1001,10 @@ def align_atomic_models_to_spheres(amodels, smodels):
             from numpy import array, float64
             p, rms = align_points(array(mxyz,float64), array(sxyz,float64))
             m.position = p
-            # print ('aligned %s, %d residues, rms %.4g' % (m.name, len(mxyz), rms))
-    
+            print ('aligned %s, %d residues, rms %.4g' % (m.name, len(mxyz), rms))
+        else:
+            print ('could not align aligned %s to spheres, %d matching residues' % (m.name, len(mxyz)))
+            
 # -----------------------------------------------------------------------------
 #
 def atom_lookup(models):
@@ -962,83 +1019,38 @@ def atom_lookup(models):
     
 # -----------------------------------------------------------------------------
 #
-def ensemble_sphere_lookup(emodel, aindex):
-    def lookup(asym_id, res_num, atoms=emodel.atoms, aindex=aindex):
-        i = aindex.get((asym_id, res_num))
-        return None if i is None else atoms[i]
+def ensemble_sphere_lookup(emodel, smodel):
+    def lookup(asym_id, res_num, atoms=emodel.atoms, smodel=smodel):
+        a = smodel.residue_sphere(asym_id, res_num)
+        return None if a is None else atoms[a.coord_index]
     return lookup
 
-
-# -----------------------------------------------------------------------------
-#
-class SphereModel(Model):
-    def __init__(self, name, ihm_model_id, session):
-        Model.__init__(self, name, session)
-        self.ihm_model_id = ihm_model_id
-        self._asym_models = {}
-        self.sphere_index = {}	# Map chain_id, res_num to ensemble sphere index
-
-    def add_asym_models(self, models):
-        Model.add(self, models)
-        am = self._asym_models
-        for m in models:
-            am[m.asym_id] = m
-
-        si = self.sphere_index
-        io = 0
-        for m in models:
-            for res_num, a in m._res_sphere.items():
-                si[(m.asym_id, res_num)] = a.coord_index+io
-            io += m.num_atoms
-            
-    def asym_model(self, asym_id):
-        return self._asym_models.get(asym_id)
-
-    def asym_model_map(self):
-        return self._asym_models
-
-    def residue_sphere(self, asym_id, res_num):
-        return self.asym_model(asym_id).residue_sphere(res_num)
-    
-# -----------------------------------------------------------------------------
-# Map chain id, res number to atom index for ensemble sphere models.
-#
-def ensemble_sphere_map(smodel):
-    sindex = {}
-    io = 0
-    for smodel in smodels:
-                    sindex.update({cr:i+io for cr,i in smodel.index_map.items()})
-                    io += smodel.num_atoms
-    
 # -----------------------------------------------------------------------------
 #
 from chimerax.core.atomic import Structure
-class SphereAsymModel(Structure):
-    def __init__(self, session, name, asym_id, model_id, sphere_list):
+class SphereModel(Structure):
+    def __init__(self, session, name, ihm_model_id, sphere_list):
         Structure.__init__(self, session, name = name, smart_initial_display = False)
-
-        self.ihm_model_id = model_id
-        self.asym_id = asym_id
-        self._res_sphere = rs = {}	# res_num -> sphere atom
+        self.ihm_model_id = ihm_model_id
+        self._asym_models = {}
+        self._sphere_atom = sa = {}	# (asym_id, res_num) -> sphere atom
         
         from chimerax.core.atomic.colors import chain_rgba8
-        color = chain_rgba8(asym_id)
-        for (sb,se,xyz,r) in sphere_list:
+        for (asym_id, sb,se,xyz,r) in sphere_list:
             aname = 'CA'
             a = self.new_atom(aname, 'C')
             a.coord = xyz
             a.radius = r
             a.draw_mode = a.SPHERE_STYLE
-            a.color = color
+            a.color = chain_rgba8(asym_id)
             rname = '%d' % (se-sb+1)
             # Convention on ensemble PDB files is beads get middle residue number of range
             rnum = sb + (sb-se+1)//2
             r = self.new_residue(rname, asym_id, rnum)
             r.add_atom(a)
             for s in range(sb, se+1):
-                rs[s] = a
+                sa[(asym_id,s)] = a
         self.new_atoms()
 
-    def residue_sphere(self, res_num):
-        return self._res_sphere.get(res_num)
-    
+    def residue_sphere(self, asym_id, res_num):
+        return self._sphere_atom.get((asym_id,res_num))
