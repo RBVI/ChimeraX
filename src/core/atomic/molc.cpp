@@ -257,6 +257,12 @@ extern "C" EXPORT void set_atom_bfactor(void *atoms, size_t n, float32_t *bfacto
     error_wrap_array_set(a, n, &Atom::set_bfactor, bfactors);
 }
 
+extern "C" EXPORT void atom_has_aniso_u(void *atoms, size_t n, npy_bool *has_aniso_u)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    error_wrap_array_get<Atom, bool, npy_bool>(a, n, &Atom::has_aniso_u, has_aniso_u);
+}
+
 extern "C" EXPORT void atom_aniso_u(void *atoms, size_t n, float32_t *aniso_u)
 {
     Atom **a = static_cast<Atom **>(atoms);
