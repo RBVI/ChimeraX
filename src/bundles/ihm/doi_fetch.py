@@ -111,7 +111,7 @@ def fetch_doi_archive_file(session, doi, archive_path, ignore_cache = False):
 
 # -----------------------------------------------------------------------------
 #
-def unzip_archive(doi, directory):
+def unzip_archive(session, doi, directory, ignore_cache = False):
     zip_path = fetch_doi(session, doi, ignore_cache = ignore_cache)
     from zipfile import ZipFile
     zf = ZipFile(zip_path, 'r')
@@ -120,6 +120,7 @@ def unzip_archive(doi, directory):
     extracted = False
     nl = zf.namelist()
     print ('zip file %s name list', nl)
+    from os.path import exists, join
     for f in nl:
         if exists(join(directory, f)):
             extracted = True

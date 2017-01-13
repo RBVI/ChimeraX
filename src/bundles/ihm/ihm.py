@@ -315,7 +315,7 @@ class IHMModel(Model):
             'model_group_id',
             'file',]
         ml = mlt.fields(ml_fields, allow_missing_fields = True)
-        mnames = {mid:mname for mid,mname,gid,file in ml}
+        mnames = {mid:mname for mid,mname,gid,file in ml if mname}
 
         sost = self.tables['ihm_sphere_obj_site']
         sos_fields = [
@@ -335,7 +335,7 @@ class IHMModel(Model):
             r = float(radius)
             mspheres.setdefault(model_id, []).append((asym_id,sb,se,xyz,r))
 
-        smodels = [SphereModel(self.session, mnames[mid], mid, slist)
+        smodels = [SphereModel(self.session, mnames.get(mid, 'sphere model'), mid, slist)
                    for mid, slist in mspheres.items()]
         smodels.sort(key = lambda m: m.ihm_model_id)
 
@@ -488,7 +488,7 @@ class IHMModel(Model):
                 image_path = join(self.ihm_directory, archive_filename)
                 if not isfile(image_path):
                     from .doi_fetch import unzip_archive
-                    unzip_archive(doi, self.ihm_directory)
+                    unzip_archive(self.session, doi, self.ihm_directory)
                     if not isfile(image_path):
                         image_path = None
         return image_path
