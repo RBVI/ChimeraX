@@ -120,7 +120,9 @@ class VolumeViewer(ToolInstance):
         self.thresholds_panel.delete()	# Remove volume close callback
         from chimerax.core.map import Volume
         for v in s.models.list(type = Volume):
-            v.remove_volume_change_callback(self.data_region_changed)
+            if getattr(v, '_volume_viewer_tracking', False):
+                v.remove_volume_change_callback(self.data_region_changed)
+                v._volume_viewer_tracking = False
         super().delete()
       
     def make_panels(self, parent):
@@ -179,6 +181,7 @@ class VolumeViewer(ToolInstance):
 
             # Add data values changed callback.
             v.add_volume_change_callback(self.data_region_changed)
+            v._volume_viewer_tracking = True
             
             if hasattr(v.data, 'series_index') and v.data.series_index > 0:
                 continue
@@ -210,8 +213,9 @@ class VolumeViewer(ToolInstance):
 
         # Remove data changed callbacks
         for v in vlist:
-            v.remove_volume_change_callback(self.data_region_changed)
-
+            if getattr(v, '_volume_viewer_tracking', False):
+                v.remove_volume_change_callback(self.data_region_changed)
+                v._volume_viewer_tracking = False
         # Update focus region.
         if self.active_volume in vlist:
             self.active_volume = None
