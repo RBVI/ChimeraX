@@ -108,3 +108,25 @@ def fetch_doi_archive_file(session, doi, archive_path, ignore_cache = False):
     zfile = full_paths[0] if len(full_paths) == 1 else archive_path
     af = zf.open(zfile)
     return af
+
+# -----------------------------------------------------------------------------
+#
+def unzip_archive(doi, directory):
+    zip_path = fetch_doi(session, doi, ignore_cache = ignore_cache)
+    from zipfile import ZipFile
+    zf = ZipFile(zip_path, 'r')
+    # Check if zip file already extracted.
+    # TODO: Should protect against absolute and relative paths in zip archive.
+    extracted = False
+    nl = zf.namelist()
+    print ('zip file %s name list', nl)
+    for f in nl:
+        if exists(join(directory, f)):
+            extracted = True
+            break
+    try:
+        if not extracted:
+            zf.extractall(path = directory)
+    finally:
+        zf.close()
+    return extracted
