@@ -27,12 +27,11 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="usageconventions.html">Usage</a>:
  <BR><b>crossfade</b> [&nbsp;<i>frames</i>&nbsp;]</h3>
 <p>
-The <b>crossfade</b> command fades
-from the current display to the next change in display
-(from the current frame to what would have been the next drawn frame)
-over a specified number of image display <i>frames</i>, default <b>30</b>.
-The subsequent command(s) can be anything that changes the display.
-However, <b>crossfade</b> simply interpolates each pixel linearly;
+The <b>crossfade</b> command fades the current display image
+over a specified number of subsequent <i>frames</i>, default <b>30</b>.
+Each pixel is simply interpolated linearly, with the fractional contribution
+from the initial image decreasing as the contribution from the other frame
+increases. Motions are not interpolated;
 gradually changing the orientation or position of some object instead
 requires using frame arguments in the commands performing those changes
 (<a href="move.html"><b>move</b></a>, <a href="turn.html"><b>turn</b></a>,
@@ -43,15 +42,15 @@ See also:
 Examples:
 </p>
 <blockquote>
-<b>crossfade; <a href="show.html">hide</a> ligand</b>
+<b>crossfade; <a href="show.html">hide</a> ligand; <a href="wait.html">wait</a> 30</b>
 <br>
-<b>crossfade; <a href="show.html">show</a> ligand</b>
+<b>crossfade; <a href="show.html">show</a> ligand; <a href="wait.html">wait</a> 30</b>
 <br>
-<b>crossfade 60; <a href="style.html">style</a> ligand sphere</b>
+<b>crossfade 60; <a href="style.html">style</a> ligand sphere; <a href="wait.html">wait</a> 60</b>
 <br>
-<b>crossfade 60; <a href="set.html">set</a> bg light blue</b>
+<b>crossfade 60; <a href="set.html">set</a> bg light blue; <a href="wait.html">wait</a> 60</b>
 <br>
-<b>crossfade 100; <a href="lighting.html">light</a> full</b>
+<b>crossfade 100; <a href="lighting.html">light</a> full; <a href="wait.html">wait</a> 100</b>
 </blockquote>
 
 <hr>
