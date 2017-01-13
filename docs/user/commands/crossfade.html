@@ -1,0 +1,60 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: crossfade</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: crossfade</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+ <BR><b>crossfade</b> [&nbsp;<i>frames</i>&nbsp;]</h3>
+<p>
+The <b>crossfade</b> command fades
+from the current display to the next change in display
+(from the current frame to what would have been the next drawn frame)
+over a specified number of image display <i>frames</i>, default <b>30</b>.
+The subsequent command(s) can be anything that changes the display.
+However, <b>crossfade</b> simply interpolates each pixel linearly;
+gradually changing the orientation or position of some object instead
+requires using frame arguments in the commands performing those changes
+(<a href="move.html"><b>move</b></a>, <a href="turn.html"><b>turn</b></a>,
+<a href="view.html"><b>view</b></a>, <i>etc.</i>).
+See also: 
+<a href="../movies.html">making movies</a>
+</p></p>
+Examples:
+</p>
+<blockquote>
+<b>crossfade; <a href="show.html">hide</a> ligand</b>
+<br>
+<b>crossfade; <a href="show.html">show</a> ligand</b>
+<br>
+<b>crossfade 60; <a href="style.html">style</a> ligand sphere</b>
+<br>
+<b>crossfade 60; <a href="set.html">set</a> bg light blue</b>
+<br>
+<b>crossfade 100; <a href="lighting.html">light</a> full</b>
+</blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+January 2017</address>
+</body></html>
