@@ -6,29 +6,32 @@ def nw(s1, s2, score_match=10, score_mismatch=-3, score_gap=0, score_gap_open=-4
             ends_are_gaps=False, ss_matrix=None, ss_fraction=0.9,
             gap_open_helix=None, gap_open_strand=None,
             gap_open_other=None, debug=False):
-    # if 'score_matrix', 'similarity_matrix', or 'frequency_matrix' is
-    # provided, then 'score_match' and 'score_mismatch' are ignored and
-    # the matrix is used to evaluate matching between the sequences.
-    # 'score_matrix' should be a two-dimensional array of size
-    # len(s1) x len(s2).  'similarity_matrix' should be a dictionary
-    # keyed with two-tuples of residue types.  'frequency_matrix' should
-    # be a list of length s2 of dictionaries, keyed by residue type.
-    #
-    # if 'ss_fraction' is not None/False, then 'ss_matrix' should be a 3x3
-    # matrix keyed with 2-tuples of secondary structure types ('H': helix,
-    # 'S': strand, 'O': other).  The score will be a mixture of the
-    # ss/similarity matrix scores weighted by the ss_fraction
-    # [ss_fraction * ss score + (1 - ss_fraction) * similarity score]
-    #
-    # if 'gap_open_helix/Strand/Other' is not None and 'ss_fraction' is not
-    # None/False, then score_gap_open is ignored when an intra-helix/
-    # intra-strand/other gap is opened and the appropriate penalty
-    # is applied instead
-    #
-    # if 'return_seqs' is True, then instead of returning a match list
-    # (a list of two-tuples) as the second value, a two-tuple of gapped
-    # Sequences will be returned.  In both cases, the first return value
-    # is the match score.
+    """Compute Needleman-Wunsch alignment
+
+    if 'score_matrix', 'similarity_matrix', or 'frequency_matrix' is
+    provided, then 'score_match' and 'score_mismatch' are ignored and
+    the matrix is used to evaluate matching between the sequences.
+    'score_matrix' should be a two-dimensional array of size
+    len(s1) x len(s2).  'similarity_matrix' should be a dictionary
+    keyed with two-tuples of residue types.  'frequency_matrix' should
+    be a list of length s2 of dictionaries, keyed by residue type.
+    
+    if 'ss_fraction' is not None/False, then 'ss_matrix' should be a 3x3
+    matrix keyed with 2-tuples of secondary structure types ('H': helix,
+    'S': strand, 'O': other).  The score will be a mixture of the
+    ss/similarity matrix scores weighted by the ss_fraction
+    [ss_fraction * ss score + (1 - ss_fraction) * similarity score]
+    
+    if 'gap_open_helix/Strand/Other' is not None and 'ss_fraction' is not
+    None/False, then score_gap_open is ignored when an intra-helix/
+    intra-strand/other gap is opened and the appropriate penalty
+    is applied instead
+    
+    if 'return_seqs' is True, then instead of returning a match list
+    (a list of two-tuples) as the second value, a two-tuple of gapped
+    Sequences will be returned.  In both cases, the first return value
+    is the match score."""
+
     from .._nw import match
     if gap_open_helix is None:
         ss_specific_gaps = False
