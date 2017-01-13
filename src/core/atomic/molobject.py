@@ -46,6 +46,8 @@ def _residues(p):
 def _non_null_residues(p):
     from .molarray import Residues
     return Residues(p[p!=0])
+def _residue_or_none(p):
+    return object_map(p, Residue) if p else None
 def _residues_or_nones(p):
     return [_residue(rptr) if rptr else None for rptr in p]
 def _chains(p):
@@ -207,10 +209,9 @@ class Atom:
             ai = None
         return ai
 
-    @property
-    def aniso_u6(self):
-        '''Anisotropic temperature factors, returns 6 element numpy float32 array
-        containing (u11, u22, u33, u12, u13, u23) or None.  Read only.'''
+    def _get_aniso_u6(self):
+        '''Get anisotropic temperature factors as a 6 element numpy float32 array
+        containing (u11, u22, u33, u12, u13, u23) or None.'''
         f = c_function('atom_aniso_u6', args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p))
         from numpy import empty, float32
         ai = empty((6,), float32)
@@ -219,6 +220,16 @@ class Atom:
         except ValueError:
             ai = None
         return ai
+    def _set_aniso_u6(self, u6):
+        '''Set anisotropic temperature factors as a 6 element numpy float32 array
+        representing the unique elements of the symmetrix matrix
+        containing (u11, u22, u33, u12, u13, u23).'''
+        f = c_function('set_atom_aniso_u6', args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p))
+        from numpy import empty, float32
+        ai = empty((6,), float32)
+        ai[:] = u6
+        f(self._c_pointer_ref, 1, pointer(ai))
+    aniso_u6 = property(_get_aniso_u6, _set_aniso_u6)
         
     def delete(self):
         '''Delete this Atom from it's Structure'''
@@ -1021,7 +1032,7 @@ class StructureSeq(Sequence):
         ''' list isn't built/destroyed.'''
         f = c_function('sseq_residue_at', args = (ctypes.c_void_p, ctypes.c_size_t),
             ret = ctypes.c_void_p)
-        return _atom_or_none(f(self._c_pointer, index))
+        return _residue_or_none(f(self._c_pointer, index))
 
     @staticmethod
     def restore_snapshot(session, data):

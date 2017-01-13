@@ -164,8 +164,9 @@ populate_freqs_dict(FreqDicts& freq_dicts, PyObject* ss_freqs_val, char* ss_type
 	freq_dicts.resize(size);
 	if (ss_freqs_val == Py_None) {
 		size_t i = 0;
-		for (char* ss_ptr = ss_types; *ss_ptr != '\0'; ++ss_ptr, ++i)
+		for (char* ss_ptr = ss_types; *ss_ptr != '\0'; ++ss_ptr, ++i) {
 			freq_dicts[i][*ss_ptr] = 1.0;
+		}
 	} else {
 		if (!PySequence_Check(ss_freqs_val)) {
 			PyErr_SetString(PyExc_ValueError, "SS frequencies is not a list/tuple or None");
