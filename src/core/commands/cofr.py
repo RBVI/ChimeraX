@@ -35,6 +35,8 @@ def cofr(session, method=None, objects=None, pivot=None, coordinate_system=None)
     if not method is None:
         if method == 'frontCenter':
             method = 'front center'
+        elif method == 'centerOfView':
+            method = 'center of view'
         v.center_of_rotation_method = method
     if not objects is None:
         if objects.empty():
@@ -66,7 +68,7 @@ def uncofr(session):
 def register_command(session):
     from . import CmdDesc, register, EnumOf, EmptyArg, ObjectsArg, Or, Float3Arg, ModelArg
     desc = CmdDesc(
-        optional=[('method', Or(EnumOf(('front center', 'frontCenter', 'fixed')), EmptyArg)),
+        optional=[('method', Or(EnumOf(('front center', 'frontCenter', 'fixed', 'centerOfView')), EmptyArg)),
                   ('objects', Or(ObjectsArg, EmptyArg)),
                   ('pivot', Float3Arg)],
         keyword=[('coordinate_system', ModelArg)],

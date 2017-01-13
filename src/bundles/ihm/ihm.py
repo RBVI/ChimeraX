@@ -182,20 +182,24 @@ class IHMModel(Model):
 
         fields = ['asym_id', 'seq_id_begin', 'seq_id_end', 'starting_model_source',
                   'starting_model_db_name', 'starting_model_db_code',
-                  'starting_model_db_pdb_auth_asym_id',
+                  'starting_model_auth_asym_id',
                   'dataset_list_id', 'alignment_file']
         rows = starting_models.fields(fields, allow_missing_fields = True)
 
         from collections import OrderedDict
         alignments = OrderedDict()  # Sequence alignments for comparative models
-        for asym_id, seq_beg, seq_end, source, db_name, db_code, db_asym_id, did, seqfile in rows:
-            # TODO: a data list id (did) and appear in multiple entries with different asym ids (mediator.cif)
-            dataset_asym_ids.setdefault(did, set()).add(asym_id)
+        for asym_id, seq_beg, seq_end, source, db_name, db_code, auth_asym_id, did, seqfile in rows:
+            # TODO: Probably should require comparative model asym_id to match sphere model asym_id
+            #       Currently mediator.cif has auth_asym_id identifying chain in comparative model
+            #       Corresponding to sphere model asym_id.  But that won't work if db_name/db_code
+            #       is used since then auth_asym_id is the db_asym_id.
+            cm_asym_id = auth_asym_id if db_code == '?' else asym_id
+            dataset_asym_ids.setdefault(did, set()).add((asym_id, cm_asym_id))
             if (source in ('experimental model', 'comparative model') and
                 db_name == 'PDB' and db_code != '?'):
                 if source == 'comparative model':
                     # Template for a comparative model.
-                    tm = TemplateModel(self.session, db_name, db_code, db_asym_id)
+                    tm = TemplateModel(self.session, db_name, db_code, auth_asym_id)
                     models = [tm]
                     tmodels.extend(models)
                     if seqfile:
@@ -211,9 +215,9 @@ class IHMModel(Model):
                 elif source == 'experimental model':
                     from chimerax.core.atomic.mmcif import fetch_mmcif
                     models, msg = fetch_mmcif(self.session, db_code, smart_initial_display = False)
-                    name = '%s %s' % (db_code, db_asym_id)
+                    name = '%s %s' % (db_code, auth_asym_id)
                     for m in models:
-                        keep_one_chain(m, db_asym_id)
+                        keep_one_chain(m, auth_asym_id)
                         m.name = name
                         show_colored_ribbon(m, asym_id)
                     xmodels.extend(models)
@@ -255,11 +259,12 @@ class IHMModel(Model):
                     models = []	# Don't know how to read atomic model file
                 asym_ids = dataset_asym_ids.get(did, [])
                 na = len(asym_ids)
-                for asym_id in asym_ids:
+                for asym_id, auth_asym_id in asym_ids:
                     for m in models:
                         if na > 1:
                             m = m.copy()
-                            keep_one_chain(m, asym_id)
+                            keep_one_chain(m, auth_asym_id)
+                            m.name += ' ' + auth_asym_id
                         m.dataset_id = did
                         m.asym_id = asym_id
                         m.comparative_model = True
@@ -536,7 +541,7 @@ class IHMModel(Model):
 
         eit = self.tables['ihm_ensemble_info']
         goet = self.tables['ihm_gaussian_obj_ensemble']
-        if eit is None or elt is None:
+        if eit is None or goet is None:
             return []
 
         ensemble_fields = ['ensemble_id', 'model_group_id', 'num_ensemble_models']
@@ -577,7 +582,7 @@ class IHMModel(Model):
         for ensemble_id in sorted(cov.keys()):
             asym_gaussians = cov[ensemble_id]
             gid, n = ens_group[ensemble_id]
-            m = Model('Ensemble %s of %d models' % (ensemble_id, n), self.session)
+            m = Model('Localization map ensemble %s of %d models' % (ensemble_id, n), self.session)
             m.group_id = gid
             pmods.append(m)
             for asym_id in sorted(asym_gaussians.keys()):
@@ -908,6 +913,8 @@ def keep_one_chain(s, chain_id):
     if dcount > 0 and dcount < len(atoms):	# Don't delete all atoms if chain id not found.
         datoms = atoms.filter(dmask)
         datoms.delete()
+    elif dcount == len(atoms):
+        print ('No chain %s in %s' % (chain_id, s.name))
 
 # -----------------------------------------------------------------------------
 #
@@ -994,8 +1001,10 @@ def align_starting_models_to_spheres(amodels, smodel):
             from numpy import array, float64
             p, rms = align_points(array(mxyz,float64), array(sxyz,float64))
             m.position = p
-            # print ('aligned %s, %d residues, rms %.4g' % (m.name, len(mxyz), rms))
-    
+            print ('aligned %s, %d residues, rms %.4g' % (m.name, len(mxyz), rms))
+        else:
+            print ('could not align aligned %s to spheres, %d matching residues' % (m.name, len(mxyz)))
+            
 # -----------------------------------------------------------------------------
 #
 def atom_lookup(models):

@@ -42,7 +42,8 @@ class ModelPanel(ToolInstance):
         layout.setStretchFactor(self.tree, 1)
         parent.setLayout(layout)
         title = "S" if short_titles else "Shown"
-        self.tree.setHeaderLabels(["ID", " ", title, "Name"])
+        self.tree.setHeaderLabels(["Name", "ID", " ", title])
+        self.tree.setColumnWidth(self.NAME_COLUMN, 200)
         self.tree.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.tree.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.tree.setAnimated(True)
@@ -68,6 +69,11 @@ class ModelPanel(ToolInstance):
         tw.manage(placement="side")
         tw.shown_changed = self._shown_changed
 
+    NAME_COLUMN = 0
+    ID_COLUMN = 1
+    COLOR_COLUMN = 2
+    SHOWN_COLUMN = 3
+    
     def _shown_changed(self, shown):
         if shown:
             # Update panel when it is shown.
@@ -131,19 +137,19 @@ class ModelPanel(ToolInstance):
                             cm.single_color = rgba
                     but.color_changed.connect(set_single_color)
                     but.set_color(bg_color)
-                    self.tree.setItemWidget(item, 1, but)
-            item.setText(0, model_id_string)
-            bg = item.background(1)
+                    self.tree.setItemWidget(item, self.COLOR_COLUMN, but)
+            item.setText(self.ID_COLUMN, model_id_string)
+            bg = item.background(self.ID_COLUMN)
             if bg_color is None:
                 bg.setStyle(Qt.NoBrush)
             else:
-                but = self.tree.itemWidget(item, 1)
+                but = self.tree.itemWidget(item, self.COLOR_COLUMN)
                 if but is not None:
                     but.set_color(bg_color)
-            item.setBackground(1, bg)
+            item.setBackground(self.COLOR_COLUMN, bg)
             if display is not None:
-                item.setCheckState(2, Qt.Checked if display else Qt.Unchecked)
-            item.setText(3, name)
+                item.setCheckState(self.SHOWN_COLUMN, Qt.Checked if display else Qt.Unchecked)
+            item.setText(self.NAME_COLUMN, name)
             if not update:
                 # Expand new top-level displayed models, or if previously expanded
                 expand = expanded_models.get(model, (model.display and len(model.id) <= 1))
@@ -172,13 +178,13 @@ class ModelPanel(ToolInstance):
             self._fill_tree()
 
     def _left_click(self, event):
-        if event.Col == 2:
+        if event.Col == self.SHOWN_COLUMN:
             model = self.models[event.Row]
             model.display = not model.display
         event.Skip()
 
     def _label_click(self, event):
-        if event.Col == 0:
+        if event.Col == self.ID_COLUMN:
             # ID label clicked.
             # Toggle sort order.
             self._sort_breadth_first = not self._sort_breadth_first
@@ -201,11 +207,11 @@ class ModelPanel(ToolInstance):
         return update
 
     def _tree_change_cb(self, item, column):
-        if column != 2:
+        if column != self.SHOWN_COLUMN:
             # not the shown check box
             return
         from PyQt5.QtCore import Qt
-        self.models[self._items.index(item)].display = item.checkState(2) == Qt.Checked
+        self.models[self._items.index(item)].display = item.checkState(self.SHOWN_COLUMN) == Qt.Checked
 
 from chimerax.core.settings import Settings
 class ModelPanelSettings(Settings):
