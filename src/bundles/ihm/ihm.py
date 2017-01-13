@@ -65,10 +65,10 @@ class IHMModel(Model):
         self.crosslink_models = xlinks
 
         # 2D electron microscopy projections
-        self.em2d_models = self.read_2dem_images()
+        self.electron_microscopy_models = emmodels = self.read_electron_microscopy_maps()
 
         # Make restraint model groupsy
-        rmodels = xlmodels + self.em2d_models
+        rmodels = xlmodels + emmodels
         if rmodels:
             r_group = Model('Restraints', self.session)
             r_group.add(rmodels)
@@ -141,7 +141,7 @@ class IHMModel(Model):
         dataset_asym_ids, xmodels, tmodels, seqmodels = self.read_starting_model_details()
 
         # Read comparative models
-        cmodels = self.read_linked_datasets(dataset_asym_ids) if load_linked_files else []
+        cmodels = self.read_comparative_models(dataset_asym_ids) if load_linked_files else []
 
         # Associate comparative models with sequence alignments.
         if seqmodels:
@@ -232,8 +232,8 @@ class IHMModel(Model):
     
     # -----------------------------------------------------------------------------
     #
-    def read_linked_datasets(self, dataset_asym_ids):
-        '''Read linked data from ihm_dataset_other table'''
+    def read_comparative_models(self, dataset_asym_ids):
+        '''Read comparative models from the ihm_dataset_other table'''
         lmodels = []
         datasets_table = self.tables['ihm_dataset_other']
         if not datasets_table:
@@ -459,23 +459,39 @@ class IHMModel(Model):
 
     # -----------------------------------------------------------------------------
     #
-    def read_2dem_images(self):
-        em2d = []
+    def read_electron_microscopy_maps(self):
+        emmodels = []
         dot = self.tables['ihm_dataset_other']
-        fields = ['data_type', 'file']
-        for data_type, filename in dot.fields(fields, allow_missing_fields = True):
-            if data_type == '2DEM class average' and filename.endswith('.mrc'):
-                from os.path import join, isfile
-                image_path = join(self.ihm_directory, filename)
-                if isfile(image_path):
-                    from chimerax.core.map.volume import open_map
-                    maps,msg = open_map(self.session, image_path)
-                    v = maps[0]
-                    v.name += ' 2D electron microscopy'
-                    v.initialize_thresholds(vfrac = (0.01,1), replace = True)
-                    v.show()
-                    em2d.append(v)
-        return em2d
+        fields = ['data_type', 'doi', 'content_filename', 'file']
+        rows = dot.fields(fields, allow_missing_fields = True)
+        for data_type, doi, archive_filename, filename in rows:
+            if data_type in ('3DEM volume', '2DEM class average'):
+                if filename.endswith('.mrc') or archive_filename.endswith('.mrc'):
+                    image_path = self.map_path(filename, doi, archive_filename)
+                    if image_path:
+                        from chimerax.core.map.volume import open_map
+                        maps,msg = open_map(self.session, image_path)
+                        v = maps[0]
+                        v.name += ' %dD electron microscopy' % (3 if v.data.size[2] > 1 else 2)
+                        v.initialize_thresholds(vfrac = (0.01,1), replace = True)
+                        v.show()
+                        emmodels.append(v)
+        return emmodels
+
+    # -----------------------------------------------------------------------------
+    #
+    def map_path(self, filename, doi, archive_filename):
+        from os.path import join, isfile
+        image_path = join(self.ihm_directory, filename)
+        if not isfile(image_path):
+            if doi and archive_filename:
+                image_path = join(self.ihm_directory, archive_filename)
+                if not isfile(image_path):
+                    from .doi_fetch import unzip_archive
+                    unzip_archive(doi, self.ihm_directory)
+                    if not isfile(image_path):
+                        image_path = None
+        return image_path
 
     # -----------------------------------------------------------------------------
     #
@@ -610,7 +626,7 @@ class IHMModel(Model):
         nx = len([m for m in self.starting_models if not m.comparative_model])
         nsa = len(self.sequence_alignment_models)
         nt = sum([len(sqm.template_models) for sqm in self.sequence_alignment_models], 0)
-        nem = len(self.em2d_models)
+        nem = len(self.electron_microscopy_models)
         ns = len(self.sphere_models)
         nse = len(self.ensemble_sphere_models)
         nl = sum([len(lm.child_models()) for lm in self.localization_models], 0)
@@ -619,7 +635,7 @@ class IHMModel(Model):
         esizes = ' and '.join('%d'%em.num_coord_sets for em in self.ensemble_sphere_models)
         msg = ('Opened IHM file %s\n'
                ' %d xray/nmr models, %d comparative models, %d sequence alignments, %d templates\n'
-               ' %s, %d 2D electron microscopy images\n'
+               ' %s, %d electron microscopy images\n'
                ' %d sphere models, %d ensembles with %s models, %d localization maps' %
                (self.filename, nx, nc, nsa, nt, xldesc, nem, ns, nse, esizes, nl))
         return msg
