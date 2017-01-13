@@ -46,6 +46,8 @@ def _residues(p):
 def _non_null_residues(p):
     from .molarray import Residues
     return Residues(p[p!=0])
+def _residue_or_none(p):
+    return object_map(p, Residue) if p else None
 def _residues_or_nones(p):
     return [_residue(rptr) if rptr else None for rptr in p]
 def _chains(p):
@@ -1021,7 +1023,7 @@ class StructureSeq(Sequence):
         ''' list isn't built/destroyed.'''
         f = c_function('sseq_residue_at', args = (ctypes.c_void_p, ctypes.c_size_t),
             ret = ctypes.c_void_p)
-        return _atom_or_none(f(self._c_pointer, index))
+        return _residue_or_none(f(self._c_pointer, index))
 
     @staticmethod
     def restore_snapshot(session, data):
