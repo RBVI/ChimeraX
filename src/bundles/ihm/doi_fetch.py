@@ -119,7 +119,6 @@ def unzip_archive(session, doi, directory, ignore_cache = False):
     # TODO: Should protect against absolute and relative paths in zip archive.
     extracted = False
     nl = zf.namelist()
-    print ('zip file %s name list', nl)
     from os.path import exists, join
     for f in nl:
         if exists(join(directory, f)):
