@@ -132,7 +132,7 @@ class AlignmentsManager(State):
 
     def reset_state(self, session):
         for alignment in self.alignments.values():
-            alignment._close()
+            alignment._destroy()
         self.alignments.clear()
 
     @staticmethod
