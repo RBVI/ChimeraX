@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def zoom(session, factor, frames=None):
+def zoom(session, factor=None, frames=None, pixel_size=None):
     '''
     Move the camera toward or away from the center of rotation
     to make the objects appear bigger by a specified factor.
@@ -22,9 +22,22 @@ def zoom(session, factor, frames=None):
        Factor by which to change apparent object size.
     frames : integer
        Repeat the zoom N times over N frames.
+    pixel_size : float or None
+       Zoom so that the pixel size in physical units (Angstroms) is this value.
+       For perspective camera modes the pixel size is set at the center of rotation depth.
+       If factor is also given then it multiplies pixel size.
     '''
     v = session.main_view
     cofr = v.center_of_rotation
+    if pixel_size is not None:
+        f = v.pixel_size(cofr) / pixel_size
+        factor = f if factor is None else f*factor
+    elif factor is None:
+        msg = 'Pixel size at center of rotation is %.3g' % v.pixel_size(cofr)
+        log = session.logger
+        log.status(msg)
+        log.info(msg)
+        return
     c = v.camera
     if frames is None:
         zoom_camera(c, cofr, factor)
@@ -51,8 +64,9 @@ def zoom_camera(c, point, factor):
 def register_command(session):
     from .cli import CmdDesc, register, FloatArg, PositiveIntArg
     desc = CmdDesc(
-        required=[('factor', FloatArg)],
-        optional=[('frames', PositiveIntArg)],
+        optional=[('factor', FloatArg),
+                  ('frames', PositiveIntArg)],
+        keyword=[('pixel_size', FloatArg)],
         synopsis='zoom models'
     )
     register('zoom', desc, zoom)
