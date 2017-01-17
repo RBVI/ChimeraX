@@ -21,7 +21,7 @@ def zoom(session, factor=None, frames=None, pixel_size=None):
     factor : float
        Factor by which to change apparent object size.
     frames : integer
-       Repeat the zoom N times over N frames.
+       Perform the specified zoom over N frames.
     pixel_size : float or None
        Zoom so that the pixel size in physical units (Angstroms) is this value.
        For perspective camera modes the pixel size is set at the center of rotation depth.
@@ -39,10 +39,12 @@ def zoom(session, factor=None, frames=None, pixel_size=None):
         log.info(msg)
         return
     c = v.camera
-    if frames is None:
+    if frames is None or frames <= 0:
         zoom_camera(c, cofr, factor)
     else:
-        def zoom_cb(session, frame, c=c, p=cofr, f=factor):
+        import math
+        ff = math.pow(factor, 1/frames)
+        def zoom_cb(session, frame, c=c, p=cofr, f=ff):
             zoom_camera(c,p,f)
         from . import motion
         motion.CallForNFrames(zoom_cb, frames, session)
