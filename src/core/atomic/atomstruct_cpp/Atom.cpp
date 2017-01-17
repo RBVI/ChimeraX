@@ -45,6 +45,11 @@ Atom::Atom(Structure* as, const char* name, const Element& e):
 
 Atom::~Atom()
 {
+    // Delete aniso vector for blank alt loc
+    if (_aniso_u) {
+        delete _aniso_u;
+	_aniso_u = NULL;
+    }
     DestructionUser(this);
     structure()->change_tracker()->add_deleted(this);
 }
@@ -76,6 +81,17 @@ Atom::bfactor() const
         return (*i).second.bfactor;
     }
     return structure()->active_coord_set()->get_bfactor(this);
+}
+
+const std::vector<float> *
+Atom::aniso_u() const
+{
+    if (_alt_loc != ' ') {
+        _Alt_loc_map::const_iterator i = _alt_loc_map.find(_alt_loc);
+	assert(i != _alt_loc_map.end());
+        return (*i).second.aniso_u;
+    }
+    return _aniso_u;
 }
 
 void
@@ -920,7 +936,7 @@ Atom::session_num_floats(int version) const
     int num_floats = SESSION_NUM_FLOATS(version) + Rgba::session_num_floats()
         + _alt_loc_map.size() * SESSION_ALTLOC_FLOATS(version) +
         (_aniso_u == nullptr ? 0 : _aniso_u->size());
-    for (auto altloc_info : _alt_loc_map) {
+    for (auto &altloc_info : _alt_loc_map) {
         auto& info = altloc_info.second;
         if (info.aniso_u != nullptr)
             num_floats += info.aniso_u->size();
@@ -1026,7 +1042,7 @@ Atom::session_save(int** ints, float** floats, PyObject* misc) const
         }
     }
 
-    for (auto altloc_info : _alt_loc_map) {
+    for (auto &altloc_info : _alt_loc_map) {
         auto alt_loc = altloc_info.first;
         auto& info = altloc_info.second;
         int_ptr[0] = alt_loc;
@@ -1062,7 +1078,7 @@ Atom::set_alt_loc(char alt_loc, bool create, bool _from_residue)
             set_alt_loc(alt_loc, create=false);
             return;
         }
-        _alt_loc_map.insert(std::pair<char, _Alt_loc_info>(alt_loc, _Alt_loc_info()));
+	_alt_loc_map[alt_loc];	// Create map entry.
         _alt_loc = alt_loc;
         return;
     }
@@ -1077,7 +1093,6 @@ Atom::set_alt_loc(char alt_loc, bool create, bool _from_residue)
     }
     if (_from_residue) {
         _Alt_loc_info &info = (*i).second;
-        _aniso_u = info.aniso_u;
         _serial_number = info.serial_number;
         _alt_loc = alt_loc;
         structure()->change_tracker()->add_modified(this, ChangeTracker::REASON_COORD);
@@ -1089,20 +1104,22 @@ Atom::set_alt_loc(char alt_loc, bool create, bool _from_residue)
 void
 Atom::set_aniso_u(float u11, float u12, float u13, float u22, float u23, float u33)
 {
-    if (_aniso_u == NULL) {
-        _aniso_u = new std::vector<float>;
-        _aniso_u->reserve(6);
-        if (_alt_loc != ' ') {
-            _Alt_loc_map::iterator i = _alt_loc_map.find(_alt_loc);
-            (*i).second.aniso_u = _aniso_u;
-        }
+    std::vector<float> *a;
+    if (_alt_loc == ' ') {
+        if (_aniso_u == NULL)
+  	    _aniso_u = new std::vector<float>(6);
+	a = _aniso_u;
+    } else {
+        _Alt_loc_map::iterator i = _alt_loc_map.find(_alt_loc);
+	assert(i != _alt_loc_map.end());
+	a = (*i).second.create_aniso_u();
     }
-    (*_aniso_u)[0] = u11;
-    (*_aniso_u)[1] = u12;
-    (*_aniso_u)[2] = u13;
-    (*_aniso_u)[3] = u22;
-    (*_aniso_u)[4] = u23;
-    (*_aniso_u)[5] = u33;
+    (*a)[0] = u11;
+    (*a)[1] = u12;
+    (*a)[2] = u13;
+    (*a)[3] = u22;
+    (*a)[4] = u23;
+    (*a)[5] = u33;
     structure()->change_tracker()->add_modified(this, ChangeTracker::REASON_ANISO_U);
 }
 

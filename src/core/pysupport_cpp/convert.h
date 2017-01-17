@@ -87,6 +87,12 @@ public:
         PySupportError(_make_msg({item_description, " is not an int"})) {}
 };
 
+class ErrListItemNotFloat : public PySupportError {
+public:
+    ErrListItemNotFloat(const char* item_description) :
+        PySupportError(_make_msg({item_description, " is not a float"})) {}
+};
+
 template <class Str>
 PyObject* cchar_to_pystring(Str& cchar, const char* item_description) {
     auto pyobj = PyUnicode_FromString(cchar.c_str());
@@ -204,6 +210,12 @@ inline long pyint_to_clong(PyObject* pyint, const char* item_description) {
     return PyLong_AsLong(pyint);
 }
 
+inline long pyfloat_to_cdouble(PyObject* pyfloat, const char* item_description) {
+    if (!PyFloat_Check(pyfloat))
+        throw ErrListItemNotFloat(item_description);
+    return PyFloat_AS_DOUBLE(pyfloat);
+}
+
 template <class Contained>
 void pylist_of_string_to_cvec(PyObject* pylist, std::vector<Contained>& cvec,
         const char* item_description) {
@@ -240,6 +252,19 @@ void pylist_of_int_to_cvec(PyObject* pylist, std::vector<Int>& cvec, const char*
     for (decltype(num_items) i = 0; i < num_items; ++i) {
         PyObject* item = PyList_GET_ITEM(pylist, i);
         cvec[i] = static_cast<int>(pyint_to_clong(item, item_description));
+    }
+}
+
+template <class Float>
+void pylist_of_float_to_cvec(PyObject* pylist, std::vector<Float>& cvec,
+        const char* item_description) {
+    if (!PyList_Check(pylist))
+        throw ErrNotList(item_description);
+    auto num_items = PyList_GET_SIZE(pylist);
+    cvec.resize(num_items);
+    for (decltype(num_items) i = 0; i < num_items; ++i) {
+        PyObject* item = PyList_GET_ITEM(pylist, i);
+        cvec[i] = static_cast<int>(pyfloat_to_cdouble(item, item_description));
     }
 }
 

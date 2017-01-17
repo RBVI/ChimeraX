@@ -523,7 +523,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             help_action.setToolTip(tooltip)
             def cb(arg, ses=session, t=topic):
                 from chimerax.core.commands import run
-                run(ses, 'help new_viewer help:%s' % t)
+                run(ses, 'help help:%s' % t)
             help_action.triggered.connect(cb)
             help_menu.addAction(help_action)
         def forceMenuToolTip(action):

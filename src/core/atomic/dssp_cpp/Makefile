@@ -25,9 +25,9 @@ OBJS		= $(SRCS:.cpp=.$(OBJ_EXT))
 DEFS		+= $(PYDEF)
 INCS 		+= $(PYTHON_INCLUDE_DIRS)
 ifdef WIN32
-LIBS		+= $(PYTHON_LIB) libatomstruct.lib liblogger.lib
+LIBS		+= $(PYTHON_LIB) libatomstruct.lib libelement.lib libarrays.lib liblogger.lib libappdirs.lib
 else
-LIBS		+= $(PYTHON_LIB) -latomstruct -llogger
+LIBS		+= $(PYTHON_LIB) -latomstruct -lelement -larrays -llogger -lappdirs
 endif
 
 all: $(PYMOD)

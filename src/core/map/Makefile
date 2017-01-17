@@ -15,7 +15,7 @@ include $(TOP)/mk/config.make
 PKG_DIR = $(PYSITEDIR)/chimerax/core/map
 APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/map
 
-SUBDIRS	= _map data filter fit series
+SUBDIRS	= _map crystal data filter fit series
 
 PYSRCS = __init__.py defaultsettings.py eds_fetch.py emdb_fetch.py grayscale.py \
 	mapargs.py measure.py molmap.py mouselevel.py \

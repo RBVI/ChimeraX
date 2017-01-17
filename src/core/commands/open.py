@@ -142,7 +142,7 @@ def open_formats(session):
     from .. import io
     from . import commas
     formats = list(io.formats())
-    formats.sort(key = lambda f: f.name)
+    formats.sort(key = lambda f: f.name.lower())
     for f in formats:
         if session.ui.is_gui:
             lines.append('<tr><td>%s<td>%s<td>%s' % (f.name,

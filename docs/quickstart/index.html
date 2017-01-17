@@ -15,8 +15,36 @@ or derivations thereof.
 
 <head>
 <title>ChimeraX Quick Start Guide</title>
+<script type="text/javascript">
+cxlinks_base="http://www.rbvi.ucsf.edu/chimerax/docs/"
+cxlinks_init = function() {
+  if(!window.navigator.userAgent.includes("ChimeraX")){
+    window.onclick = function(e){
+      if(e.target.tagName.toLowerCase()!="a")
+	return true;
+      var url=e.target.getAttribute("href").toLowerCase();
+      if(url.startsWith("help:")){
+	window.location.href = cxlinks_base + url.substring(5);
+	return false;
+      }
+      if(url.startsWith("cxcmd:")){
+	alert("This link only works in a ChimeraX browser and would execute a command.");
+	return false;
+      }
+      return true;
+    }
+    var ls=document.links;
+    for(var i=0;i<ls.length;i++){
+      var link=ls[i];
+      var url=link.getAttribute("href").toLowerCase();
+      if(url.startsWith("cxcmd:"))
+	link.style.color="darkred";
+    }
+  }
+}
+</script>
 </head>
-<body>
+<body onload="cxlinks_init()">
 
 <h2>ChimeraX Quick Start Guide
 <a href="../user/index.html">
@@ -27,27 +55,26 @@ title="User Guide Index"/></a>
 title="ChimeraX Home"/></a>
 </h2>
 
-<img src="images/chimerax.png" align=right width=600px
+<a href="images/chimerax.png"><img src="images/chimerax.png" 
+align="right" width="400px" title="click to enlarge..."
 style="margin:4px 4px 4px 12px; border:1px solid black">
+</a>
 
 <p>
-ChimeraX is the next-generation visualization program from the 
-<a href="http://www.rbvi.ucsf.edu/">Resource for Biocomputing, Visualization,
-and Informatics</a> at UC San Francisco, following 
+<a href="http://www.rbvi.ucsf.edu/chimerax/" target="_blank">
+ChimeraX</a> is the next-generation visualization program from the 
+<a href="http://www.rbvi.ucsf.edu/" target="_blank">Resource for Biocomputing,
+Visualization, and Informatics</a> at UC San Francisco, following 
 <a href="http://www.rbvi.ucsf.edu/chimera/" target="_blank">Chimera</a>.
 </p><p>
-Compared to Chimera,
-ChimeraX has better graphics (<i>e.g.</i>, interactive ambient shadows), 
-handles large structures (millions of atoms) much faster, 
-and has a more modern user interface;
+Compared to Chimera, ChimeraX has better graphics,
+handles large structures much faster, and has a more modern user interface;
 see the <a href="../user/advantages.html">short list of advantages</a>.
 ChimeraX is not backward compatible with Chimera, although many
 aspects will be similar.
 </p><p>
 Currently, ChimeraX is mostly controlled by typed commands.
-Most commands are covered in the
-<a href="../user/index.html">User Guide</a>,
-and the details for a specific command can be shown with the
+The help for a specific command can be shown with the
 <b><a href="../user/commands/help.html">help</a></b> command
 (for example, <b>help style</b>).
 <font color=red>
@@ -151,7 +178,7 @@ change other atoms from sphere to stick.</i>
 <td width=256 align=center><a href="cxcmd:set bg white; set silhouettes true; save ~/Desktop/2bbv.png">set bg white<br>set silhouettes true<br>save ~/Desktop/2bbv.png</a>
 <td width=256>
   <a href="cxcmd:ks vd"><img src="images/video.png" height=40 align=left></a>
-  Press the video camera icon to record a spin movie.
+  Click the video camera icon to record a spin movie.
 <tr>
 <td><img src="images/assembly3.png">
 <td><img src="images/view3.png">
@@ -175,7 +202,7 @@ show thin black outlines. Save PNG image file to Desktop.</i>
 <table cellpadding=5>
 <tr>
 <td width=256 align=center><a href="cxcmd:buriedarea /a with /b; sasa #1 & ~solvent">buriedarea /a with /b<br>sasa #1 & ~solvent</a>
-<td width=256 align=center><a href="cxcmd:contacts #1">contacts #1</a>
+<td width=256 align=center><a href="cxcmd:contacts #1 & protein">contacts #1 & protein</a>
 <td width=256 align=center><a href="cxcmd:close; set bg black; set silhouettes false">close<br>set bg black<br>set silhouettes false</a>
 <tr>
 <td>
@@ -187,9 +214,9 @@ Solvent accessible area for #1 & ~solvent = 34093
 </pre>
 <td><img src="images/contacts.png">
 <pre>
-8 buried areas:
-  B A 1900, C A 1865, C B 1836, C F 766,
-  A D 738, B E 709, C N 211, N F 93
+6 buried areas: 
+  C A 1675, C B 1671, A B 1663,
+  C F 739, A D 714, B E 699
 </pre>
 <tr>
 <td width=256 valign=top><i>Compute solvent accessible buried surface area between chains A and B.

@@ -64,7 +64,9 @@ def fetch_pdb(session, pdb_id, fetch_source="rcsb", ignore_cache=False, **kw):
     # check on local system -- TODO: configure location
     subdir = pdb_id[1:3]
     filename = "/databases/mol/pdb/%s/pdb%s.ent" % (subdir, pdb_id)
-    if not os.path.exists(filename):
+    if os.path.exists(filename):
+        session.logger.info("Fetching PDB %s from system cache: %s" % (pdb_id, filename))
+    else:
         base_url = _pdb_sources.get(fetch_source, None)
         if base_url is None:
             raise UserError('unrecognized PDB source "%s"' % fetch_source)

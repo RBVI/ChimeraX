@@ -48,12 +48,13 @@ See also:
 <a href="color.html"><b>color</b></a>,
 <a href="transparency.html"><b>transparency</b></a>,
 <a href="vop.html"><b>vop</b></a>,
-<b>vseries</b>,
+<a href="vseries.html"><b>vseries</b></a>,
 <a href="molmap.html"><b>molmap</b></a>,
 <a href="fitmap.html"><b>fitmap</b></a>,
 <a href="sop.html"><b>sop</b></a>,
 <a href="sym.html"><b>sym</b></a>,
-<a href="smoothlines.html"><b>smoothlines</b></a>
+<a href="smoothlines.html"><b>smoothlines</b></a>,
+<a href="../tools/densitymaps.html"><b>Density Map Toolbar</b></a>
 </p>
 <a name="examples">Examples</a>:
 <blockquote>
@@ -67,7 +68,21 @@ See also:
 The <b>volume</b> command has many options, here grouped into categories:
 <blockquote>
 <a href="#general">General Display Options</a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/showmap.png"></a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/hidemap.png"></a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/mapsurf.png"></a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/mesh.png"></a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/mapimage.png"></a>
 <br><a href="#sampling">Sampling and Size Options</a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/step1.png"></a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/step2.png"></a>
 <br><a href="#dimensions">Dimension and Scale Options</a>
 <br><a href="#planes">Planes Options</a>
 <br><a href="#dispsurf">Surface and Mesh Display Options</a>
@@ -200,9 +215,10 @@ is significant.
   0.001 of the target or 30 iterations have been performed.
   The <a href="#fastEncloseVolume"><b>fastEncloseVolume</b></a> option
   is similar but uses a noniterative approximation.
+  See also: 
+  <a href="vseries.html#align"><b>vseries align</b></a>
 <!--
-  See also: <a href="measure.html#volume"><b>measure volume</b></a>,
-  <a href="vseries.html#align-options"><b>vseries align</b></a>
+<a href="measure.html#volume"><b>measure volume</b></a>,
 -->
 </blockquote>
 <blockquote>
@@ -222,9 +238,10 @@ is significant.
   The <a href="#encloseVolume"><b>encloseVolume</b></a> option
   is similar but uses an iterative procedure with increased accuracy
   at the cost of increased computation time.
+  See also: 
+  <a href="vseries.html#align"><b>vseries align</b></a>
 <!--
-  See also: <a href="measure.html#volume"><b>measure volume</b></a>,
-  <a href="vseries.html#align-options"><b>vseries align</b></a>
+<a href="measure.html#volume"><b>measure volume</b></a>,
 -->
 </blockquote>
 <blockquote>
@@ -518,7 +535,7 @@ regardless of which are specified:
   <li>an <a href="atomspec.html"><i>atom-spec</i></a> of
    exactly two atoms (not necessarily bonded or in the same model) 
 <!-- or one bond.
-   A bond can only be specified by <a href="select.html">selecting</a>
+   A bond can only be specified by <a href="../selection.html">selecting</a>
    it and using the word <b>sel</b>;
    any atoms also selected at the time will be ignored.
 -->

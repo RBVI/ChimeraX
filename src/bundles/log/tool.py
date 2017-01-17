@@ -277,16 +277,30 @@ class Log(ToolInstance, HtmlLog):
                 "<html>\n"
                 "<head>\n"
                 "<title> ChimeraX Log </title>\n"
+                '<script type="text/javascript">\n'
+                "%s"
+                "</script>\n"
                 "</head>\n"
-                "<body>\n"
+                '<body onload="cxlinks_init()">\n'
                 "<h1> ChimeraX Log </h1>\n"
                 "<style>\n"
                 "%s"
-                "</style>\n" % cxcmd_css)
+                "</style>\n" % (self._get_cxcmd_script(), cxcmd_css))
         f.write(self.page_source)
         f.write("</body>\n"
                 "</html>\n")
         f.close()
+
+    def _get_cxcmd_script(self):
+        try:
+            return self._cxcmd_script
+        except AttributeError:
+            import chimerax, os.path
+            fname = os.path.join(chimerax.app_data_dir, "docs", "js",
+                                 "cxlinks.js")
+            with open(fname) as f:
+                self._cxcmd_script = f.read()
+            return self._cxcmd_script
 
     #
     # Override ToolInstance methods
