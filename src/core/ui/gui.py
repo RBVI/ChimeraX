@@ -641,6 +641,9 @@ class ToolWindow:
     In either case, the :py:method:`status` method can be used to issue status
     messages.  It accepts the exact same arguments/keywords as the
     :py:method:`~..logger.Logger.status` method in the :py:class:`~..logger.Logger` class.
+    The resulting QStatusBar widget (or None if statusbar was False) will be
+    available from the ToolWindow's "statusbar" in case you need to add widgets to it
+    or otherwise customize it.
 
     """
 
@@ -652,7 +655,7 @@ class ToolWindow:
         self.tool_instance = tool_instance
         self.close_destroys = close_destroys
         mw = tool_instance.session.ui.main_window
-        self.__toolkit = _Qt(self, title, mw)
+        self.__toolkit = _Qt(self, title, statusbar, mw)
         self.ui_area = self.__toolkit.ui_area
         mw._new_tool_window(self)
 
@@ -704,6 +707,11 @@ class ToolWindow:
         Override to perform any actions you want done when the window
         is hidden (\ `shown` = False) or shown (\ `shown` = True)"""
         pass
+
+    @property
+    def statusbar(self):
+        """This window's QStatusBar widget"""
+        return self.__toolkit.statusbar
 
     def _get_title(self):
         if self.__toolkit is None:
@@ -774,7 +782,7 @@ class ChildToolWindow(ToolWindow):
         super().__init__(tool_instance, title, **kw)
 
 class _Qt:
-    def __init__(self, tool_window, title, main_window):
+    def __init__(self, tool_window, title, has_statusbar, main_window):
         self.tool_window = tool_window
         self.title = title
         self.main_window = mw = main_window
@@ -786,12 +794,23 @@ class _Qt:
         if not mw:
             raise RuntimeError("No main window or main window dead")
 
-        from PyQt5.QtWidgets import QDockWidget, QWidget
+        from PyQt5.QtWidgets import QDockWidget, QWidget, QVBoxLayout
         self.dock_widget = dw = QDockWidget(title, mw)
         dw.closeEvent = lambda e, tw=tool_window, mw=mw: mw.close_request(tw, e)
-        self.ui_area = QWidget(dw)
+        container = QWidget()
+        layout = QVBoxLayout()
+        layout.setSpacing(0)
+        layout.setContentsMargins(0, 1, 0, 0) # all zeros produces a complaint about -1 height
+        self.ui_area = QWidget()
         self.ui_area.contextMenuEvent = lambda e, self=self: self.show_context_menu(e)
-        self.dock_widget.setWidget(self.ui_area)
+        layout.addWidget(self.ui_area)
+        if has_statusbar:
+            self.statusbar = QStatusBar()
+            layout.addWidget(self.statusbar)
+        else:
+            self.statusbar = None
+        container.setLayout(layout)
+        self.dock_widget.setWidget(container)
 
     def destroy(self):
         if not self.tool_window:

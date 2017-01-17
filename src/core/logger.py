@@ -317,7 +317,7 @@ class Logger:
         if log:
             self.info(msg)
 
-        # "highest prority" log is last added, so:
+        # "highest priority" log is last added, so:
         for l in reversed(list(self.logs)):
             if l.status(msg, color, secondary) and l.excludes_other_logs:
                 break
