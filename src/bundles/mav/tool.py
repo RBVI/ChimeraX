@@ -131,6 +131,7 @@ class MultalignViewer(ToolInstance):
         from chimerax.core.ui.gui  import MainToolWindow
         self.tool_window = MainToolWindow(self, close_destroys=True, statusbar=True)
         self.tool_window._ToolWindow__toolkit.dock_widget.setMouseTracking(True)
+        self.status = self.tool_window.status
         parent = self.tool_window.ui_area
         parent.setMouseTracking(True)
         """TODO
