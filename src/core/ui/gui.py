@@ -258,7 +258,7 @@ if UI.required_opengl_core_profile:
 sf.setRenderableType(QSurfaceFormat.OpenGL)
 QSurfaceFormat.setDefaultFormat(sf)
 
-from PyQt5.QtWidgets import QMainWindow, QStatusBar, QStackedWidget, QLabel, QDesktopWidget, \
+from PyQt5.QtWidgets import QMainWindow, QStackedWidget, QLabel, QDesktopWidget, \
     QToolButton
 class MainWindow(QMainWindow, PlainTextLog):
 
@@ -421,11 +421,12 @@ class MainWindow(QMainWindow, PlainTextLog):
     def status(self, msg, color, secondary):
         # prevent status message causing/allowing a redraw
 #        self.graphics_window.session.update_loop.block_redraw()
-        self.statusBar().clearMessage()
+        sb = self.statusBar()
+        sb.clearMessage()
         if secondary:
-            label = self._secondary_status_label
+            label = sb._secondary_status_label
         else:
-            label = self._primary_status_label
+            label = sb._primary_status_label
         label.setText("<font color='" + color + "'>" + msg + "</font>")
         label.show()
         # TODO: Make status line update during long computations where event loop is not running.
@@ -455,13 +456,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         self._about_dialog.show()
 
     def _build_status(self):
-        sb = QStatusBar(self)
-        from PyQt5.QtWidgets import QSizePolicy
-        sb.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
-        self._primary_status_label = QLabel(sb)
-        self._secondary_status_label = QLabel(sb)
-        sb.addWidget(self._primary_status_label)
-        sb.addPermanentWidget(self._secondary_status_label)
+        sb = build_statusbar()
         self._global_hide_button = ghb = QToolButton(sb)
         from PyQt5.QtGui import QIcon
         import os.path
@@ -523,7 +518,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             help_action.setToolTip(tooltip)
             def cb(arg, ses=session, t=topic):
                 from chimerax.core.commands import run
-                run(ses, 'help new_viewer help:%s' % t)
+                run(ses, 'help help:%s' % t)
             help_action.triggered.connect(cb)
             help_menu.addAction(help_action)
         def forceMenuToolTip(action):
@@ -620,7 +615,8 @@ class MainWindow(QMainWindow, PlainTextLog):
                 else:
                     set_shown(window, False)
 
-class ToolWindow:
+from ..logger import StatusLogger
+class ToolWindow(StatusLogger):
     """An area that a tool can populate with widgets.
 
     This class is not used directly.  Instead, a tool makes its main
@@ -636,17 +632,27 @@ class ToolWindow:
     destroys it or hides it.  If it destroys it and this is the main window, all
     the child windows will also be destroyed.
 
+    The :py:keyword:`statusbar` keyword controls whether the tool will display
+    status messages via an in-window statusbar, or via the main ChimeraX statusbar.
+    In either case, the :py:method:`status` method can be used to issue status
+    messages.  It accepts the exact same arguments/keywords as the
+    :py:method:`~..logger.Logger.status` method in the :py:class:`~..logger.Logger` class.
+    The resulting QStatusBar widget (or None if statusbar was False) will be
+    available from the ToolWindow's "statusbar" in case you need to add widgets to it
+    or otherwise customize it.
+
     """
 
     #: Where the window can be placed in the main interface;
     #: 'side' is either left or right, depending on user preference
     placements = ["side", "right", "left", "top", "bottom"]
 
-    def __init__(self, tool_instance, title, *, close_destroys=True):
+    def __init__(self, tool_instance, title, *, close_destroys=True, statusbar=False):
+        StatusLogger.__init__(self, tool_instance.session)
         self.tool_instance = tool_instance
         self.close_destroys = close_destroys
         mw = tool_instance.session.ui.main_window
-        self.__toolkit = _Qt(self, title, mw)
+        self.__toolkit = _Qt(self, title, statusbar, mw)
         self.ui_area = self.__toolkit.ui_area
         mw._new_tool_window(self)
 
@@ -663,7 +669,7 @@ class ToolWindow:
            Destroying a tool's main window will also destroy all its
            child windows.
         """
-        self.tool_instance.session.ui.main_window._tool_window_destroy(self)
+        self.session.ui.main_window._tool_window_destroy(self)
 
     def fill_context_menu(self, menu, x, y):
         """Add items to this tool window's context menu,
@@ -687,8 +693,7 @@ class ToolWindow:
         return self.__toolkit.shown
 
     def _set_shown(self, shown):
-        self.tool_instance.session.ui.main_window._tool_window_request_shown(
-            self, shown)
+        self.session.ui.main_window._tool_window_request_shown(self, shown)
 
     shown = property(_get_shown, _set_shown)
 
@@ -698,6 +703,17 @@ class ToolWindow:
         Override to perform any actions you want done when the window
         is hidden (\ `shown` = False) or shown (\ `shown` = True)"""
         pass
+
+    def status(self, *args, **kw):
+        if self.statusbar:
+            StatusLogger.status(self, *args, **kw)
+        else:
+            self.session.logger.status(*args, **kw)
+
+    @property
+    def statusbar(self):
+        """This window's QStatusBar widget"""
+        return self.__toolkit.statusbar
 
     def _get_title(self):
         if self.__toolkit is None:
@@ -720,6 +736,9 @@ class ToolWindow:
     def _mw_set_shown(self, shown):
         self.__toolkit.shown = shown
         self.shown_changed(shown)
+
+    def _prioritized_logs(self):
+        return [self.__toolkit.status_log]
 
 class MainToolWindow(ToolWindow):
     """Class used to generate tool's main UI window.
@@ -768,7 +787,7 @@ class ChildToolWindow(ToolWindow):
         super().__init__(tool_instance, title, **kw)
 
 class _Qt:
-    def __init__(self, tool_window, title, main_window):
+    def __init__(self, tool_window, title, has_statusbar, main_window):
         self.tool_window = tool_window
         self.title = title
         self.main_window = mw = main_window
@@ -780,12 +799,36 @@ class _Qt:
         if not mw:
             raise RuntimeError("No main window or main window dead")
 
-        from PyQt5.QtWidgets import QDockWidget, QWidget
+        from PyQt5.QtWidgets import QDockWidget, QWidget, QVBoxLayout
         self.dock_widget = dw = QDockWidget(title, mw)
         dw.closeEvent = lambda e, tw=tool_window, mw=mw: mw.close_request(tw, e)
-        self.ui_area = QWidget(dw)
+        container = QWidget()
+        layout = QVBoxLayout()
+        layout.setSpacing(0)
+        layout.setContentsMargins(0, 1, 0, 0) # all zeros produces a complaint about -1 height
+        self.ui_area = QWidget()
         self.ui_area.contextMenuEvent = lambda e, self=self: self.show_context_menu(e)
-        self.dock_widget.setWidget(self.ui_area)
+        layout.addWidget(self.ui_area)
+        if has_statusbar:
+            self.statusbar = build_statusbar()
+            layout.addWidget(self.statusbar)
+            class _StatusLog:
+                def __init__(s, statusbar):
+                    s.statusbar = statusbar
+                def status(s, msg, color, secondary):
+                    sb = s.statusbar
+                    sb.clearMessage()
+                    if secondary:
+                        label = sb._secondary_status_label
+                    else:
+                        label = sb._primary_status_label
+                    label.setText("<font color='" + color + "'>" + msg + "</font>")
+                    label.show()
+            self.status_log = _StatusLog(self.statusbar)
+        else:
+            self.statusbar = None
+        container.setLayout(layout)
+        self.dock_widget.setWidget(container)
 
     def destroy(self):
         if not self.tool_window:
@@ -871,6 +914,16 @@ class _Qt:
 
     def set_title(self, title):
         self.dock_widget.setWindowTitle(title)
+
+def build_statusbar():
+    from PyQt5.QtWidgets import QStatusBar, QSizePolicy
+    sb = QStatusBar()
+    sb.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+    sb._primary_status_label = QLabel()
+    sb._secondary_status_label = QLabel()
+    sb.addWidget(sb._primary_status_label)
+    sb.addPermanentWidget(sb._secondary_status_label)
+    return sb
 
 def redirect_stdio_to_logger(logger):
     # Redirect stderr to log

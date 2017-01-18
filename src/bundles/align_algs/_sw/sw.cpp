@@ -16,114 +16,20 @@
 #include <string>
 #include <map>
 
+#include "align_algs/support.h"
+
 #ifndef PY_STUPID
 // workaround for Python API missing const's.
 # define PY_STUPID (char *)
 #endif
 
-typedef std::pair<char, char> Pair;
-typedef std::map<Pair, double> Similarity;
-
-const char *BadKey = "dictionary key must be tuple of two characters";
 const char *MissingKey = "no score for '%c' vs. '%c'";
 const char *MissingSSKey = "no score for gap open between '%c' and '%c'";
-const char *SeqLenMismatch = "sequence lengths don't match their secondary"
-					" structure strings";
+const char *SeqLenMismatch = "sequence lengths don't match their secondary structure strings";
 
-//
-// make_matrix
-//	Convert a Python similarity dictionary into a C++ similarity map
-//
-//	The keys in the Python dictionary must be 2-tuples of
-//	single character strings, each representing a base type.
-//	This routine does not automatically generate the inverse
-//	pair (i.e., does not generate (b,a) when given (a,b) so
-//	the caller must provide the full matrix instead of just
-//	the upper or lower half.  The values in the dictionary
-//	must be floating point numbers.  The '*' character is
-//	a wildcard.
-//
-static
-int
-make_matrix(PyObject *dict, Similarity &matrix)
-{
-	if (!PyDict_Check(dict)) {
-		PyErr_SetString(PyExc_TypeError, "matrix must be a dictionary");
-		return -1;
-	}
-	PyObject *key, *value;
-	Py_ssize_t pos = 0;
-	while (PyDict_Next(dict, &pos, &key, &value)) {
-		//
-		// Verify key type
-		//
-		if (!PyTuple_Check(key) || PyTuple_Size(key) != 2) {
-			PyErr_SetString(PyExc_TypeError, BadKey);
-			return -1;
-		}
-		PyObject *pk0 = PyTuple_GetItem(key, 0);
-		if (!PyUnicode_Check(pk0)) {
-			PyErr_SetString(PyExc_TypeError, BadKey);
-			return -1;
-		}
-		char *k0 = PyUnicode_AsUTF8(pk0);
-		if (strlen(k0) != 1) {
-			PyErr_SetString(PyExc_TypeError, BadKey);
-			return -1;
-		}
-		PyObject *pk1 = PyTuple_GetItem(key, 1);
-		if (!PyUnicode_Check(pk1)) {
-			PyErr_SetString(PyExc_TypeError, BadKey);
-			return -1;
-		}
-		char *k1 = PyUnicode_AsUTF8(pk1);
-		if (strlen(k1) != 1) {
-			PyErr_SetString(PyExc_TypeError, BadKey);
-			return -1;
-		}
-
-		//
-		// Verify value type
-		//
-		if (!PyFloat_Check(value)) {
-			PyErr_SetString(PyExc_TypeError,
-				"dictionary value must be float");
-			return -1;
-		}
-		double v = PyFloat_AsDouble(value);
-
-		//
-		// Store in C++ map
-		//
-		matrix[Pair(*k0, *k1)] = v;
-	}
-	return 0;
-}
-
-//
-// matrix_lookup
-//	Look up the matrix value for the given characters
-//
-//	Uses wildcards if the characters are not found directly.
-//
-static
-Similarity::const_iterator
-matrix_lookup(const Similarity &matrix, char c1, char c2)
-{
-	Similarity::const_iterator it = matrix.find(Pair(c1, c2));
-	if (it != matrix.end())
-		return it;
-	
-	it = matrix.find(Pair('*', c2));
-	if (it != matrix.end())
-		return it;
-	
-	it = matrix.find(Pair(c1, '*'));
-	if (it != matrix.end())
-		return it;
-	
-	return matrix.find(Pair('*', '*'));
-}
+using align_algs::make_matrix;
+using align_algs::matrix_lookup;
+using align_algs::Similarity;
 
 //
 // score
@@ -461,16 +367,6 @@ align(PyObject *, PyObject *args, PyObject *kwdict)
 }
 
 
-#define MATRIX_EXPLAIN \
-"\n\nThe keys in the similarity dictionary must be 2-tuples of\n" \
-"single character strings, each representing a residue type.\n" \
-"This routine does not automatically generate the inverse\n" \
-"pair (i.e., does not generate (b,a) when given (a,b) so\n" \
-"the caller must provide the full matrix instead of just\n" \
-"the upper or lower half.  The values in the dictionary\n" \
-"must be floating point numbers.  The '*' character is\n" \
-"a wildcard."
-
 static const char* docstr_score =
 "score\n"
 "Compute the score of the best Smith-Waterman alignment\n"
@@ -482,8 +378,8 @@ static const char* docstr_score =
 "	gap_open		gap opening penalty\n"
 "	gap_extend	gap extension penalty\n"
 "and returns the best score.  This function is mostly\n"
-"useful for optimizing similarity matrices."
-MATRIX_EXPLAIN;
+"useful for optimizing similarity matrices.\n\n"
+SIM_MATRIX_EXPLAIN;
 
 static const char* docstr_align =
 "align\n"
@@ -492,7 +388,7 @@ static const char* docstr_align =
 "The function takes five mandatory arguments:\n"
 "	seq1		first sequence\n"
 "	seq2		second sequence\n"
-"	matrix		similarity dictionary (see above)\n"
+"	matrix		similarity dictionary (see below)\n"
 "	gap_open		gap opening penalty\n"
 "	gap_extend	gap extension penalty\n"
 "and the following optional keyword arguments:\n"
@@ -513,8 +409,8 @@ static const char* docstr_align =
 "is provided and is not None.  In that case the ss_gap_open penalties are\n"
 "used and gap_open is ignored.  The residue-matching score is a\n"
 "combination of the secondary-structure and similarity scores, weighted\n"
-"by the ss_fraction."
-MATRIX_EXPLAIN;
+"by the ss_fraction.\n\n"
+SIM_MATRIX_EXPLAIN;
 
 static PyMethodDef sw_methods[] = {
 	{ PY_STUPID "score", score,	METH_VARARGS, PY_STUPID docstr_score	},

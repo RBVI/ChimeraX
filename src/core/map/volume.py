@@ -1926,12 +1926,17 @@ class PickedMap(Pick):
     self.detail = detail
   def description(self):
     return '%s %s %s' % (self.map.id_string(), self.map.name, self.detail)
-  def select(self, toggle = False):
+  def select(self, mode = 'add'):
     m = self.map
-    sel = not m.selected if toggle else True
-    m.selected = sel
+    if mode == 'add':
+      s = True
+    elif mode == 'subtract':
+      s = False
+    elif mode == 'toggle':
+      s = not m.selected
+    m.selected = s
     for d in m.surface_drawings:
-      d.selected = sel
+      d.selected = s
     
 # -----------------------------------------------------------------------------
 #
@@ -2915,6 +2920,19 @@ def open_map(session, stream, *args, **kw):
         if g.rgba is None:
           g.rgba = (0,1,0,1) # Green
 
+    series = kw.get('series')
+    if series is not None:
+      if series:
+        for i,g in enumerate(grids):
+          if tuple(g.size) != tuple(grids[0].size):
+            gsizes = '\n'.join((g.name + (' %d %d %d' % g.size)) for g in grids)
+            raise UserError('Cannot make series from volumes with different sizes:\n%s' % gsizes)
+          g.series_index = i
+      else:
+        for g in grids:
+          if hasattr(g, 'series_index'):
+            delattr(g, 'series_index')
+          
     show = kw.get('show', True)
     show_dialog = kw.get('show_dialog', True)
     for i,d in enumerate(grids):
@@ -3024,4 +3042,4 @@ def register_map_file_formats():
       suf = tuple('.' + s for s in suffixes)
       save_func = save_map if d in fwriters else None
       io.register_format(d, toolshed.VOLUME, suf, nicknames=nicknames,
-                         open_func=open_map, batch=batch, export_func=save_func)
+                         open_func=open_map, batch=True, export_func=save_func)

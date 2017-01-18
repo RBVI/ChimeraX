@@ -30,9 +30,9 @@ OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
 HDRS 	= 
 INCS	+= $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
 ifeq ($(WIN32),msvc)
-LIBS	+= libatomstruct.lib libelement.lib libarrays.lib $(PYTHON_LIB)
+LIBS	+= libatomstruct.lib libelement.lib libarrays.lib liblogger.lib libappdirs.lib $(PYTHON_LIB)
 else
-LIBS	+= -latomstruct -lelement -larrays $(PYTHON_LIB)
+LIBS	+= -latomstruct -lelement -larrays -llogger -lappdirs $(PYTHON_LIB)
 endif
 
 all: $(PYOBJS) $(SHLIB)

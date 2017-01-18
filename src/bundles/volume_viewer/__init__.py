@@ -13,7 +13,13 @@
 
 from chimerax.core.toolshed import BundleAPI
 
-class _MyAPI(BundleAPI):
+class _VolumeViewerAPI(BundleAPI):
+
+    @staticmethod
+    def start_tool(session, tool_name):
+        # 'start_tool' is called to start an instance of the tool
+        from . import volumedialog
+        return volumedialog.show_volume_dialog(session)
 
     @staticmethod
     def get_class(class_name):
@@ -22,3 +28,5 @@ class _MyAPI(BundleAPI):
             from .volumedialog import VolumeViewer
             return VolumeViewer
         return None
+
+bundle_api = _VolumeViewerAPI()

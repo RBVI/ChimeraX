@@ -56,7 +56,7 @@ def start_vr(session):
         import openvr
     except Exception as e:
         from chimerax.core.errors import UserError
-        raise UserError('Failed to importing OpenVR module: %s' % str(e))
+        raise UserError('Failed to import OpenVR module: %s' % str(e))
     
     v.camera = SteamVRCamera(session)
     # Set redraw timer for 1 msec to minimize dropped frames.
@@ -179,8 +179,14 @@ class SteamVRCamera(Camera):
         openvr.shutdown()
         self.vr_system = None
         self.compositor = None
+        fb = self._framebuffer
+        if fb is not None:
+            self._session.main_view.render.make_current()
+            fb.delete()
+            self._framebuffer = None
         if self._close_cb:
             self._close_cb()	# Replaces the main view camera and resets redraw rate.
+
         
     def name(self):
         '''Name of camera.'''
@@ -228,12 +234,12 @@ class SteamVRCamera(Camera):
         
         # Check for button press
         vrs = self.vr_system
-        have_event, e = vrs.pollNextEvent()
-        if not have_event:
+        import openvr
+        e = openvr.VREvent_t()
+        if not vrs.pollNextEvent(e):
             return
         
         t = e.eventType
-        import openvr
         if t == openvr.VREvent_ButtonPress or t == openvr.VREvent_ButtonUnpress:
             pressed = (t == openvr.VREvent_ButtonPress)
             d = e.trackedDeviceIndex
@@ -242,7 +248,7 @@ class SteamVRCamera(Camera):
                 cp = self._controller_poses
                 if pressed:
                     cp[d] = None
-                else:
+                elif d in cp:
                     del cp[d]
 #            press = 'press' if pressed else 'unpress'
 #            print('Controller button %s, device %d, button %d'

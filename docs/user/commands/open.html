@@ -24,24 +24,25 @@ or derivations thereof.
 class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: open</h3>
+
+<h3><a href="usageconventions.html">Usage</a>: <BR><b>open formats</b>
+</h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>open</b> &nbsp;<i>filename</i> 
 [&nbsp;format&nbsp;&nbsp;<a href="#local"><i>format-name</i></a>&nbsp;]
-[&nbsp;name&nbsp;&nbsp;<i>model-name</i>&nbsp;]
-[&nbsp;smartInitialDisplay&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;trajectory&nbsp;]
+[&nbsp;series&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>oneAlignment</b>&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+&nbsp;<a href="#options"><i>general-options</i></a>
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>open</b> 
 [&nbsp;<a href="#fetch"><i>prefix</i></a>:]<i>identifier</i>&nbsp;
 [&nbsp;fromDatabase&nbsp;&nbsp;<a href="#fetch"><i>source</i></a>&nbsp;]
 [&nbsp;format&nbsp;&nbsp;<a href="#fetch"><i>format-name</i></a>&nbsp;]
-[&nbsp;name&nbsp;&nbsp;<i>model-name</i>&nbsp;]
-[&nbsp;smartInitialDisplay&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;trajectory&nbsp;]
 [&nbsp;ignoreCache&nbsp;]
-</h3>
-<h3><a href="usageconventions.html">Usage</a>: <BR><b>open formats</b>
+&nbsp;<a href="#options"><i>general-options</i></a>
 </h3>
 <p>
 The command <b>open</b> reads <a href="#local">local files</a> and
@@ -59,24 +60,14 @@ See also:
 <a href="sym.html"><b>sym</b></a>,
 <a href="colortables.html#autocolors">initial colors</a>
 </p><p>
-Any resulting model(s) in ChimeraX are automatically assigned a model ID number,
-starting with #1. The name of the model (shown in the <b>Model Panel</b>)
-will be generated from the <i>filename</i> or database <i>identifier</i>
-unless another name is given with the <b>name</b> option.
-If <i>model-name</i> contains spaces, it should be enclosed in quotation marks.
-</p><p>
-Setting <b>smartInitialDisplay</b> to false bypasses chemical perception
-and rule-based changes in lighting, coloring, and representation, instead
-always showing atomic models as white spheres; it may be useful in 
-rare cases where generating the initial representation is slow
-(<i>e.g.</i>, drawing cartoons for very large numbers of atomic models).
-</p><p>
-A multi-model file in PDB format can be opened as a trajectory 
-(for sequential playback with <a href="coordset.html"><b>coordset</b></a>)
-with the <b>trajectory</b> option.
-</p><p>
 The <b>open formats</b> command lists the possible formats and databases
 in the <a href="../tools/log.html"><b>Log</b></a>. 
+</p><p>
+Any model that results from opening data is automatically
+assigned a model ID number, starting with #1. 
+The name of the model (shown in the <b>Model Panel</b>)
+will be generated automatically unless specified by the user with the
+<a href="#options"><b>name</b></a> option.
 </p><p>
 Examples:
 <blockquote>
@@ -84,7 +75,7 @@ Examples:
 <br>
 <b>open 2gbp</b>
 <br>
-<b>open 1zik format pdb</b>
+<b>open 1plx format pdb traj</b>
 <br>
 <b>open emdb:3087</b>
 <br>
@@ -101,9 +92,10 @@ Examples:
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>open</b> &nbsp;<i>filename</i> 
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#local"><i>format-name</i></a>&nbsp;]
-[&nbsp;<b>name</b>&nbsp;&nbsp;<i>model-name</i>&nbsp;]
-[&nbsp;<b>smartInitialDisplay</b>&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>trajectory</b>&nbsp;]
+[&nbsp;<b>series</b>&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>oneAlignment</b>&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+&nbsp;<a href="#options"><i>general-options</i></a>
 </blockquote>
 <p>
 The <i>filename</i> is generally a pathname to a local file, 
@@ -120,6 +112,27 @@ The file format can be indicated with either the <i>filename</i> suffix or
 the <b>format</b> option (where <i>format-name</i> can be truncated).
 Files that are gzipped, as indicated by their additional .gz suffix, 
 can also be read.
+</p><p>
+A multi-model file in PDB format can be opened as a trajectory 
+(for sequential playback with <a href="coordset.html"><b>coordset</b></a>)
+with the <b>trajectory</b> option.
+</p><p>
+When multiple maps with the same grid dimensions are opened 
+in a single command (multiple files specified with wild cards or globbing, 
+or a single multi-map file), the <b>series</b> option can be used to enforce 
+loading them as a series for playback with 
+<a href="vseries.html"><b>vseries</b></a> or the associated slider
+(if <b>true</b>), or as independent models (if <b>false</b>).
+If the option is not used, 3D TIFF images and
+<a href="save.html#chimap">Chimera map</a> files containing five or more
+same-sized maps are automatically interpreted as series, if possible.
+</p><p>
+When a multiple-sequence file is opened, the <b>oneAlignment</b> option 
+indicates whether it should be interpreted as an alignment 
+(default <b>true</b>, all sequences in one <b>Multalign Viewer</b> window).
+Otherwise, each sequence will be opened in a separate window. 
+If the sequences (including any gap characters) are of differing lengths,
+the option must be set to <b>false</b>. 
 </p>
 <table border cellpadding="4" cellspacing="0">
 <tr>
@@ -251,7 +264,7 @@ target="_blank">X3D</a></td>
 <td align="center">FASTA, aligned FASTA</td>
 <td align="center"><b>fasta</b></td>
 <td align="center">.fa, .fasta</td>
-<td align="center">individual sequence or sequence alignment</td>
+<td align="center">individual sequence(s) or sequence alignment</td>
 <tr><tr>
 <td align="center">MSF</a></td>
 <td align="center"><b>msf</b></td>
@@ -309,10 +322,9 @@ use <a href="help.html"><b>help</b></a> instead of <b>open</b></td>
 [&nbsp;<a href="#fetch"><i>prefix</i></a>:]<i>identifier</i>&nbsp;
 [&nbsp;<b>fromDatabase</b>&nbsp;&nbsp;<a href="#fetch"><i>source</i></a>&nbsp;]
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#fetch"><i>format-name</i></a>&nbsp;]
-[&nbsp;<b>name</b>&nbsp;&nbsp;<i>model-name</i>&nbsp;]
-[&nbsp;<b>smartInitialDisplay</b>&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>trajectory</b>&nbsp;]
 [&nbsp;<b>ignoreCache</b>&nbsp;]
+&nbsp;<a href="#options"><i>general-options</i></a>
 </blockquote>
 <p>
 An entry can be fetched from a database if its <i>identifier</i> is supplied.
@@ -323,6 +335,27 @@ The default database for a 4-character identifier without prefix is the
 target="_blank">RCSB Protein Data Bank</a>; the default format
 for that database is <b>mmcif</b>, although <b>pdb</b> or <b>mmtf</b>
 can be specified with the <b>format</b> option.
+</p><p>
+A multi-model file in PDB format can be opened as a trajectory 
+(for sequential playback with <a href="coordset.html"><b>coordset</b></a>)
+with the <b>trajectory</b> option.
+</p><p>
+Web-fetched data are stored locally in <b>~/Downloads/ChimeraX/</b> 
+(where ~ indicates a user's home directory), with subdirectories
+<b>PDB</b> for atomic coordinates from the Protein Data Bank,
+<b>EMDB</b> for density maps from the
+<td align="center"><a href="http://www.ebi.ac.uk/pdbe/emdb/"
+target="_blank">Electron Microscopy Data Bank</a>, <i>etc.</i>
+For caching, no distinction is made among the different Protein Data Bank sites.
+If a data file specified for opening is not found in this local cache
+or <b>ignoreCache</b> is used, the file will be fetched and cached. 
+<!--
+ChimeraX preferences, command history, file history, and package installation 
+files are stored in a standard platform-dependent location
+(for example, <b>~/Library/Caches/ChimeraX</b> on a Mac;
+see <a href="http://pypi.python.org/pypi/appdirs" 
+target="_blank">python appdirs</a>). 
+-->
 </p>
 <table border cellpadding="4" cellspacing="0"><tr>
 <td align="center"><b>database</b></td>
@@ -400,27 +433,57 @@ Data Bank Japan (PDBj)</a></td>
 <td align="center"><b>mmcif</b></a>
 </td>
 </tr></table>
-<p>
-Web-fetched data are stored locally in <b>~/Downloads/ChimeraX/</b> 
-(where ~ indicates a user's home directory), with subdirectories
-<b>PDB</b> for atomic coordinates from the Protein Data Bank,
-<b>EMDB</b> for density maps from the
-<td align="center"><a href="http://www.ebi.ac.uk/pdbe/emdb/"
-target="_blank">Electron Microscopy Data Bank</a>, <i>etc.</i>
-For caching, no distinction is made among the different Protein Data Bank sites.
-If a data file specified for opening is not found in this local cache
-or <b>ignoreCache</b> is used, the file will be fetched and cached. 
+
+<a name="options"></a>
+<p class="nav">
+[<a href="#top">back to top</a>]
 </p>
-<!--
-ChimeraX
-preferences, command history, file history, and package installation files
-are stored in a standard platform-dependent location
-(for example <b>~/Library/Caches/ChimeraX</b> on a Mac;
-see <a href="http://pypi.python.org/pypi/appdirs" 
-target="_blank">python appdirs</a>). 
--->
+<h3>General Options</h3>
+
+<blockquote>
+<b>name</b>&nbsp;&nbsp;<i>model-name</i>
+<br>
+The name of the model (shown in the <b>Model Panel</b>) will be generated 
+automatically from the input <i>filename</i> or database <i>identifier</i>
+unless another name is given with the <b>name</b> option.
+If <i>model-name</i> contains spaces, it should be enclosed in quotation marks.
+</blockquote>
+<blockquote>
+<b>smartInitialDisplay</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Setting <b>smartInitialDisplay</b> to <b>false</b> bypasses chemical perception
+and rule-based changes in lighting, coloring, and representation, instead
+always showing atomic models as white spheres; it may be useful in 
+rare cases where generating the initial representation is slow
+(<i>e.g.</i>, drawing cartoons for very large numbers of atomic models).
+</blockquote>
+<blockquote>
+<b>autoAssociate</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
+<br>
+Whether structure-chain sequences should be compared to sequences in 
+<b>Multalign Viewer</b> and automatically associated if the number of
+mismatches is no more than 1/10 the number of residues in the structure chain.
+Unlike the other options of <b>open</b>, this sets a state that persists 
+within the ChimeraX session unless explicitly changed. 
+The initial setting is <b>true</b>.
+<p>
+For automatic association, the sequence and structure files
+can be opened in either order.
+Gaps in the structure sequence relative to the sequence in the alignment file 
+can only occur where residues are missing from the structure (for example, 
+a flexible loop with insufficient density to determine coordinates).
+<!-- check the following -->
+Associations are reported in the <a href="../window.html">status line</a>
+and the <a href="../tools/log.html"><b>Log</b></a>.
+A structure (even if it has multiple chains) cannot be associated with more
+than one sequence, but a single sequence can be associated with
+more than one structure.
+If more than one sequence matches a given structure chain,
+the single best-matching sequence is associated. 
+</p>
+</blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2016</address>
+January 2017</address>
 </body></html>

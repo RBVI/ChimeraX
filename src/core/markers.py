@@ -117,7 +117,7 @@ class ConnectMouseMode(MouseMode):
         from .atomic import selected_atoms
         atoms1 = selected_atoms(s)
         from .ui.mousemodes import mouse_select
-        mouse_select(event, s, self.view)
+        mouse_select(event, 'replace', s, self.view)
         atoms2 = selected_atoms(s)
         if len(atoms1) == 1 and len(atoms2) == 1:
             a1, a2 = atoms1[0], atoms2[0]

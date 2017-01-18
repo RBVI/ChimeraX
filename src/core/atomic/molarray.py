@@ -515,6 +515,48 @@ class Atoms(Collection):
         f(self._c_pointers, n, loc, pointer(values))
         return values
 
+    has_aniso_u = cvec_property('atom_has_aniso_u', npy_bool, read_only=True,
+        doc='Boolean array identifying which atoms have anisotropic temperature factors.')
+
+    @property
+    def aniso_u(self):
+        '''Anisotropic temperature factors, returns Nx3x3 array of numpy float32 or None
+        if any of the atoms does not have temperature factors.  Read only.'''
+        f = c_function('atom_aniso_u', args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p))
+        from numpy import empty, float32
+        n = len(self)
+        ai = empty((n,3,3), float32)
+        try:
+            f(self._c_pointers, n, pointer(ai))
+        except ValueError:
+            ai = None
+        return ai
+
+    def _get_aniso_u6(self):
+        '''Get anisotropic temperature factors as a Nx6 array of numpy float32 containing
+        (u11,u22,u33,u12,u13,u23) for each atom or None if any of the atoms does not have
+        temperature factors.'''
+        f = c_function('atom_aniso_u6', args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p))
+        from numpy import empty, float32
+        n = len(self)
+        ai = empty((n,6), float32)
+        try:
+            f(self._c_pointers, n, pointer(ai))
+        except ValueError:
+            ai = None
+        return ai
+    def _set_aniso_u6(self, u6):
+        '''Set anisotropic temperature factors as a Nx6 element numpy float32 array
+        representing the unique elements of the symmetrix matrix
+        containing (u11, u22, u33, u12, u13, u23) for each atom.'''
+        f = c_function('set_atom_aniso_u6', args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p))
+        n = len(self)
+        from numpy import empty, float32
+        ai = empty((n,6), float32)
+        ai[:] = u6
+        f(self._c_pointers, n, pointer(ai))
+    aniso_u6 = property(_get_aniso_u6, _set_aniso_u6)
+
     def residue_sums(self, atom_values):
         '''Compute per-residue sum of atom float values.  Return unique residues and array of residue sums.'''
         f = c_function('atom_residue_sums', args=(ctypes.c_void_p, ctypes.c_int, ctypes.POINTER(ctypes.c_double)),

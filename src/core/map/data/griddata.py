@@ -50,7 +50,7 @@ class Grid_Data:
                step = (1,1,1),
                cell_angles = (90,90,90),
                rotation = ((1,0,0),(0,1,0),(0,0,1)),
-               symmetries = (),
+               symmetries = None,
                name = '',
                path = '',       # Can be list of paths
                file_type = '',
@@ -80,7 +80,7 @@ class Grid_Data:
     self.original_step = self.step
     self.cell_angles = tuple(cell_angles)
     self.rotation = tuple(tuple(row) for row in rotation)
-    self.symmetries = symmetries
+    self.symmetries = symmetries	# Places object or None
     self.ijk_to_xyz_transform = None
     self.xyz_to_ijk_transform = None
 

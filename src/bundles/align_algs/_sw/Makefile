@@ -21,6 +21,12 @@ DEFS		+= $(PYDEF)
 INCS 		+= $(PYTHON_INCLUDE_DIRS)
 LIBS		+= $(PYTHON_LIB)
 
+ifdef WIN32
+LIBS		+= libalign_algs.lib
+else
+LIBS		+= -lalign_algs
+endif
+
 all: $(PYMOD)
 
 install: all

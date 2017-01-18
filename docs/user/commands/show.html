@@ -43,6 +43,7 @@ The commands <b>show</b> and <b>hide</b> display and undisplay the
 atoms, bonds, <a href="../pseudobonds.html">pseudobonds</a>,
 cartoons, molecular surfaces, and entire models.
 Following the usual convention, a blank specification means &ldquo;all.&rdquo;
+</p><p>
 See also: <a href="style.html"><b>style</b></a>,
 <a href="cartoon.html"><b>cartoon</b></a>,
 <a href="surface.html"><b>surface</b></a>,
@@ -77,7 +78,12 @@ the <b>target</b> option:
 <td align="center"><b>target a</b></td>
 <td align="left">specified atoms;
 bonds and <a href="../pseudobonds.html">pseudobonds</a> with
-both end atoms hidden are also hidden automatically</td>
+both end atoms hidden are also hidden automatically
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/atomshow.png"></a>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/atomhide.png"></a>
+</td>
 </tr><tr>
 <td align="center"><b>bonds</b></td>
 <td align="center"><b>target b</b></td>
@@ -94,20 +100,31 @@ see <a href="../hierarchy.html">hierarchy</a>) but not for <b>hide</b></td>
 </tr><tr>
 <td align="center"><b>cartoons</b> <br>or<br> <b>ribbons</b> </td>
 <td align="center"><b>target c</b> <br>or<br> <b>target r</b></td>
-<td align="left">cartoon (ribbon) segments of the specified residues</td>
+<td align="left">cartoon (ribbon) segments of the specified residues
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/ribshow.png"></a>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/ribhide.png"></a>
+</td>
 </tr><tr>
 <td align="center"><b>surfaces</b></td>
 <td align="center"><b>target s</b></td>
 <td align="left"><a href="surface.html">molecular surface</a> patches of the specified atoms;
 <b>show</b> will use an existing surface, if any, otherwise generate
-it with default <a href="surface.html"><b>surface</b></a> parameters</td>
+it with default <a href="surface.html"><b>surface</b></a> parameters
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/surfshow.png"></a>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/surfhide.png"></a>
+</td>
 </tr><tr>
 <td align="center"><b>models</b></td>
 <td align="center"><b>target m</b></td>
 <td align="left">entire models, 
 without affecting the display status of their subparts
 (for example, which atoms are shown; 
-see <a href="../hierarchy.html">hierarchy</a>)</td>
+see <a href="../hierarchy.html">hierarchy</a>)
+</td>
 </tr>
 </table>
 <p>
@@ -136,5 +153,5 @@ the <b>only</b> keyword must be given last.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2016</address>
+December 2016</address>
 </body></html>

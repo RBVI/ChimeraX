@@ -314,12 +314,13 @@ class MRC_Data:
 
     # Read space group symmetries in fractional coordinates
     s = h['symop']
-    nsym = len(s)/80
-    from Crystal.space_groups import parse_symop
+    nsym = len(s)//80
+    from ...crystal import parse_symop
     try:
-      usyms = [parse_symop(s[80*i:80*(i+1)].replace(' ', ''))
+      usyms = [parse_symop(s[80*i:80*(i+1)].decode('utf-8').replace(' ', ''))
                for i in range(nsym)]
     except:
+      raise
       try:
         msg = 'Unable to parse symmetry operators of %s\n%s\n' % (self.name, s)
       except:
@@ -335,12 +336,12 @@ class MRC_Data:
     alpha, beta, gamma = [d*pi/180 for d in self.cell_angles]
 
     # Convert symmetries to unit cell coordinates
-    import Crystal
-    u2r = Crystal.unit_cell_to_xyz_matrix(a, b, c, alpha, beta, gamma)
+    from ...crystal import unit_cell_to_xyz_matrix
+    u2r = unit_cell_to_xyz_matrix(a, b, c, alpha, beta, gamma)
 
-    from ....geometry.matrix import invert_matrix, multiply_matrices
-    r2u = invert_matrix(u2r)
-    syms = [multiply_matrices(u2r, u2u, r2u) for u2u in usyms]
+    r2u = u2r.inverse()
+    from ....geometry import Places
+    syms = Places([u2r*u2u*r2u for u2u in usyms])
   
     return syms
 

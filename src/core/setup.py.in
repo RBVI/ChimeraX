@@ -60,6 +60,7 @@ setup(
         "PKG_NAME.geometry",
         "PKG_NAME.graphics",
         "PKG_NAME.map",
+        "PKG_NAME.map.crystal",
         "PKG_NAME.map.data",
         "PKG_NAME.map.data.apbs",
         "PKG_NAME.map.data.ccp4",

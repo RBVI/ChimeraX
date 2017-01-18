@@ -257,6 +257,69 @@ extern "C" EXPORT void set_atom_bfactor(void *atoms, size_t n, float32_t *bfacto
     error_wrap_array_set(a, n, &Atom::set_bfactor, bfactors);
 }
 
+extern "C" EXPORT void atom_has_aniso_u(void *atoms, size_t n, npy_bool *has_aniso_u)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    error_wrap_array_get<Atom, bool, npy_bool>(a, n, &Atom::has_aniso_u, has_aniso_u);
+}
+
+extern "C" EXPORT void atom_aniso_u(void *atoms, size_t n, float32_t *aniso_u)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+	    const std::vector<float> *ai = a[i]->aniso_u();
+	    if (ai) {
+	        // Copy 6 values of symmetric matrix to 3x3 matrix.
+	        float32_t *ani = aniso_u + 9*i;
+		float32_t a00 = (*ai)[0], a01 = (*ai)[1], a02 = (*ai)[2];
+		float32_t a11 = (*ai)[3], a12 = (*ai)[4], a22 = (*ai)[5];
+		ani[0] = a00; ani[1] = a01; ani[2] = a02;
+		ani[3] = a01; ani[4] = a11; ani[5] = a12;
+		ani[6] = a02; ani[7] = a12; ani[8] = a22;
+	    } else {
+		PyErr_SetString(PyExc_ValueError, "Atom has no aniso_u value.");
+		break;
+	    }
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void atom_aniso_u6(void *atoms, size_t n, float32_t *aniso_u)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+	    const std::vector<float> *ai = a[i]->aniso_u();
+	    if (ai) {
+	        float32_t *ani = aniso_u + 6*i;
+		ani[0] = (*ai)[0]; ani[1] = (*ai)[3]; ani[2] = (*ai)[5];
+		ani[3] = (*ai)[1]; ani[4] = (*ai)[2]; ani[5] = (*ai)[4];
+	    } else {
+		PyErr_SetString(PyExc_ValueError, "Atom has no aniso_u value.");
+		break;
+	    }
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void set_atom_aniso_u6(void *atoms, size_t n, float32_t *aniso_u)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+	  float32_t *ani = aniso_u + 6*i;
+	  a[i]->set_aniso_u(ani[0],ani[3],ani[4],ani[1],ani[5],ani[2]);
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void atom_occupancy(void *atoms, size_t n, float32_t *occupancies)
 {
     Atom **a = static_cast<Atom **>(atoms);

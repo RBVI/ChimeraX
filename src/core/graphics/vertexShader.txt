@@ -82,13 +82,17 @@ uniform float frame_number;
 #endif
 
 #ifdef USE_STEREO_360
+uniform mat4 model_matrix;	// Map model coordinates to scene coordinates
+uniform mat4 view_matrix;	// Map scene coordinates to camera coordinates
 out vec3 vshadow;
 uniform vec4 camera_origin_and_shift;
 uniform vec4 camera_vertical;
 #endif
 
 #ifdef USE_CLIP_PLANES
+#ifndef USE_STEREO_360
 uniform mat4 model_matrix;	// Map model coordinates to scene coordinates
+#endif
 uniform int num_clip_planes;
 uniform vec4 clip_planes[8];	// Normal in scene coordinates and offset
 out float gl_ClipDistance[8];
@@ -116,9 +120,10 @@ void main(void)
 // TODO: This is wrong if model matrix is not identity.  Need to subtract vertex scene position
 // from camera scene origin, but this code subtracts vertex model position.  Will need separate
 // model and view matrices to do this correctly.
-  vec3 eye_axis = normalize(cross((vi.xyz - camera_origin_and_shift.xyz), camera_vertical.xyz));
-  vec4 vioffset = vec4(vi.xyz - camera_origin_and_shift.w * eye_axis, 1);
-  vec4 veye = model_view_matrix * vioffset;
+  vec4 vscene = model_matrix * vi;
+  vec3 eye_axis = normalize(cross((vscene.xyz - camera_origin_and_shift.xyz), camera_vertical.xyz));
+  vec4 vsoffset = vec4(vscene.xyz - camera_origin_and_shift.w * eye_axis, 1);
+  vec4 veye = view_matrix * vsoffset;
   vshadow = (model_view_matrix * vi).xyz;
 #else
   vec4 veye = model_view_matrix * vi;

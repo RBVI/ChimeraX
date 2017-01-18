@@ -361,7 +361,7 @@ def open_multiple_data(session, filespecs, format=None, name=None, **kw):
     for fmt, paths in batch.items():
         name = os.path.basename(paths[0]) if name is None else name
         open_func = fmt.open_func
-        models, status = open_func(session, paths, name)
+        models, status = open_func(session, paths, name, **kw)
         mlist.extend(models)
         status_lines.append(status)
     for fspec in unbatched:

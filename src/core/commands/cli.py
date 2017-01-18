@@ -2605,7 +2605,7 @@ def registered_commands(multiword=False, _start=None):
             if word_info.is_deferred():
                 word_info.lazy_register()
         words = list(parent_info.subcommands.keys())
-        words.sort(key=lambda x: x[x[0] == '~':])
+        words.sort(key=lambda x: x[x[0] == '~':].lower())
         for word in words:
             word_info = parent_info.subcommands[word]
             if word_info.is_deferred():
