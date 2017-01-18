@@ -362,6 +362,13 @@ class Render:
                 cmm = self.current_model_matrix
                 if cmm:
                     p.set_matrix('model_matrix', cmm.opengl_matrix())
+            if self.SHADER_STEREO_360 & p.capabilities:
+                cmm = self.current_model_matrix
+                cvm = self.current_view_matrix
+                if cmm:
+                    p.set_matrix('model_matrix', cmm.opengl_matrix())
+                if cvm:
+                    p.set_matrix('view_matrix', cvm.opengl_matrix())
 #            if p.capabilities & self.SHADER_MULTISHADOW:
 #                m4 = self.current_model_matrix.opengl_matrix()
 #                p.set_matrix('model_matrix', m4)
