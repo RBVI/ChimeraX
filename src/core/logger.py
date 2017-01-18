@@ -137,7 +137,96 @@ class PlainTextLog(Log):
         return False
 
 
-class Logger:
+class StatusLogger:
+    """Base class for classes that offer 'status' method."""
+
+    def __init__(self, session):
+        self.session = session
+        self._status_timer1 = self._status_timer2 = None
+        self._follow_timer1 = self._follow_timer2 = None
+
+    def clear(self):
+        if self._status_timer1:
+            self._status_timer1.cancel()
+            self._status_timer1 = None
+        if self._status_timer2:
+            self._status_timer2.cancel()
+            self._status_timer2 = None
+        if self._follow_timer1:
+            self._follow_timer1.cancel()
+            self._follow_timer1 = None
+        if self._follow_timer2:
+            self._follow_timer2.cancel()
+            self._follow_timer2 = None
+
+    def status(self, msg, color="black", log=False, secondary=False,
+               blank_after=None, follow_with="", follow_time=20, follow_log=None):
+        """Show status."""
+        if log:
+            self.session.logger.info(msg)
+
+        for l in self._prioritized_logs():
+            if l.status(msg, color, secondary) and getattr(l, "excludes_other_logs", True):
+                break
+        if secondary:
+            status_timer = self._status_timer2
+            follow_timer = self._follow_timer2
+            blank_default = 0
+        else:
+            status_timer = self._status_timer1
+            follow_timer = self._follow_timer1
+            blank_default = 15
+
+        if status_timer:
+            status_timer.cancel()
+            status_timer = None
+        if follow_timer:
+            follow_timer.cancel()
+            follow_timer = None
+
+        from threading import Timer
+        if follow_with:
+            follow_timer = Timer(follow_time,
+                lambda fw=follow_with, clr=color, log=log, sec=secondary,
+                fl=follow_log: self._follow_timeout(fw, clr, log, sec, fl))
+            follow_timer.daemon = True
+            follow_timer.start()
+        elif msg:
+            if blank_after is None:
+                blank_after = blank_default
+            if blank_after:
+                from threading import Timer
+                status_timer = Timer(blank_after, lambda sec=secondary:
+                                     self._status_timeout(sec))
+                status_timer.daemon = True
+                status_timer.start()
+
+        if secondary:
+            self._status_timer2 = status_timer
+            self._follow_timer2 = follow_timer
+        else:
+            self._status_timer1 = status_timer
+            self._follow_timer1 = follow_timer
+
+    def _follow_timeout(self, follow_with, color, log, secondary, follow_log):
+        if secondary:
+            self._follow_timer2 = None
+        else:
+            self._follow_timer1 = None
+        if follow_log is None:
+            follow_log = log
+        self.session.ui.thread_safe(self.status, follow_with, color=color,
+                                    log=follow_log, secondary=secondary)
+
+    def _status_timeout(self, secondary):
+        if secondary:
+            self._status_timer2 = None
+        else:
+            self._status_timer1 = None
+        self.session.ui.thread_safe(self.status, "", secondary=secondary)
+
+
+class Logger(StatusLogger):
     """Log/status message dispatcher
 
     Log/status message producers use the
@@ -160,12 +249,10 @@ class Logger:
     """
 
     def __init__(self, session):
+        StatusLogger.__init__(self, session)
         from .orderedset import OrderedSet
-        self.logs = OrderedSet()
-        self.session = session
         self._prev_newline = True
-        self._status_timer1 = self._status_timer2 = None
-        self._follow_timer1 = self._follow_timer2 = None
+        self.logs = OrderedSet()
         self.method_map = {
             Log.LEVEL_ERROR: self.error,
             Log.LEVEL_WARNING: self.warning,
@@ -216,19 +303,8 @@ class Logger:
 
     def clear(self):
         """clear all loggers"""
+        StatusLogger.clear(self)
         self.logs.clear()
-        if self._status_timer1:
-            self._status_timer1.cancel()
-            self._status_timer1 = None
-        if self._status_timer2:
-            self._status_timer2.cancel()
-            self._status_timer2 = None
-        if self._follow_timer1:
-            self._follow_timer1.cancel()
-            self._follow_timer1 = None
-        if self._follow_timer2:
-            self._follow_timer2.cancel()
-            self._follow_timer2 = None
 
     def error(self, msg, add_newline=True, image=None, is_html=False):
         """Log an error message
@@ -308,59 +384,11 @@ class Logger:
             self.error("%s%s\n%s" % (preface, err, loc)
                 + "See log for Python traceback.\n")
 
-    def status(self, msg, color="black", log=False, secondary=False,
-               blank_after=None, follow_with="", follow_time=20,
-               follow_log=None):
+    def status(self, msg, **kw):
         """Show status."""
         if self.session.silent:
             return
-        if log:
-            self.info(msg)
-
-        # "highest prority" log is last added, so:
-        for l in reversed(list(self.logs)):
-            if l.status(msg, color, secondary) and l.excludes_other_logs:
-                break
-        if secondary:
-            status_timer = self._status_timer2
-            follow_timer = self._follow_timer2
-            blank_default = 0
-        else:
-            status_timer = self._status_timer1
-            follow_timer = self._follow_timer1
-            blank_default = 15
-
-        if status_timer:
-            status_timer.cancel()
-            status_timer = None
-        if follow_timer:
-            follow_timer.cancel()
-            follow_timer = None
-
-        from threading import Timer
-        if follow_with:
-            follow_timer = Timer(
-                follow_time,
-                lambda fw=follow_with, clr=color, log=log, sec=secondary,
-                fl=follow_log: self._follow_timeout(fw, clr, log, sec, fl))
-            follow_timer.daemon = True
-            follow_timer.start()
-        elif msg:
-            if blank_after is None:
-                blank_after = blank_default
-            if blank_after:
-                from threading import Timer
-                status_timer = Timer(blank_after, lambda sec=secondary:
-                                     self._status_timeout(sec))
-                status_timer.daemon = True
-                status_timer.start()
-
-        if secondary:
-            self._status_timer2 = status_timer
-            self._follow_timer2 = follow_timer
-        else:
-            self._status_timer1 = status_timer
-            self._follow_timer1 = follow_timer
+        StatusLogger.status(self, msg, **kw)
 
     def warning(self, msg, add_newline=True, image=None, is_html=False):
         """Log a warning message
@@ -372,16 +400,6 @@ class Logger:
         import sys
         self._log(Log.LEVEL_WARNING, msg, add_newline, image, is_html,
                   last_resort=sys.__stderr__)
-
-    def _follow_timeout(self, follow_with, color, log, secondary, follow_log):
-        if secondary:
-            self._follow_timer2 = None
-        else:
-            self._follow_timer1 = None
-        if follow_log is None:
-            follow_log = log
-        self.session.ui.thread_safe(self.status, follow_with, color=color,
-                                    log=follow_log, secondary=secondary)
 
     def _html_to_plain(self, msg, image, is_html):
         if image:
@@ -428,12 +446,9 @@ class Logger:
                     output = msg
                 print(output, end="", file=last_resort)
 
-    def _status_timeout(self, secondary):
-        if secondary:
-            self._status_timer2 = None
-        else:
-            self._status_timer1 = None
-        self.session.ui.thread_safe(self.status, "", secondary=secondary)
+    def _prioritized_logs(self):
+        # "highest priority" log is last added, so:
+        return reversed(list(self.logs))
 
 
 class CollatingLog(PlainTextLog):

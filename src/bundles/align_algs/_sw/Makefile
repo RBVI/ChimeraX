@@ -19,7 +19,13 @@ SRCS		= sw.cpp
 OBJS		= $(SRCS:.cpp=.$(OBJ_EXT))
 DEFS		+= $(PYDEF)
 INCS 		+= $(PYTHON_INCLUDE_DIRS)
-LIBS		+= $(PYTHON_LIB) -lalign_algs
+LIBS		+= $(PYTHON_LIB)
+
+ifdef WIN32
+LIBS		+= libalign_algs.lib
+else
+LIBS		+= -lalign_algs
+endif
 
 all: $(PYMOD)
 
