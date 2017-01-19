@@ -41,6 +41,7 @@ public:
 	virtual  ~AtomCondition() {}
 	virtual bool  atom_matches(const Atom* a) const = 0;
 	virtual bool  operator==(const AtomCondition& other) const = 0;
+	bool  operator!=(const AtomCondition& other) const { return !(*this == other); }
 	virtual bool  possibly_matches_H() const = 0;
 	virtual std::vector<Group>  trace_group(const Atom* a, const Atom* parent = nullptr) = 0;
 };
@@ -187,7 +188,7 @@ public:
 		AtomType h("H"), hc("HC");
 		return atom_matches(h) || atom_matches(hc);
 	}
-	std::vector<Group>  trace_group(const Atom* a, const Atom* parent = nullptr) {
+	std::vector<Group>  trace_group(const Atom* a, const Atom* /*parent*/ = nullptr) {
 		std::vector<Group> traced_groups;
 		if (atom_matches(a)) {
 			traced_groups.emplace_back();
@@ -224,7 +225,7 @@ class RingAtomCondition: public AtomCondition
 // Python equivalent:  RingAtom instance
 {
 	AtomCondition*  _cond;
-	int  _num_rings;
+	Atom::Rings::size_type  _num_rings;
 public:
 	RingAtomCondition(AtomCondition* ac, int num_rings): _cond(ac), _num_rings(num_rings) {}
 	virtual  ~RingAtomCondition() {}
@@ -289,21 +290,54 @@ bool
 condition_compare(AtomCondition* c1, AtomCondition* c2)
 {
 	if (typeid(*c1) != typeid(*c2)) {
-		auto ac1 = dynamic_cast<AtomAlternativesCondition*>(c1);
-		if (ac1 != nullptr) {
-			for (auto alt: ac1->alternatives)
+		auto aac1 = dynamic_cast<AtomAlternativesCondition*>(c1);
+		if (aac1 != nullptr) {
+			for (auto alt: aac1->alternatives)
 				if (alt == c2)
 					return true;
 		}
-		auto ac2 = dynamic_cast<AtomAlternativesCondition*>(c2);
-		if (ac2 != nullptr) {
-			for (auto alt: ac2->alternatives)
+		auto aac2 = dynamic_cast<AtomAlternativesCondition*>(c2);
+		if (aac2 != nullptr) {
+			for (auto alt: aac2->alternatives)
 				if (alt == c1)
 					return true;
 		}
 		return false;
 	}
-	//TODO (from _fragCompare)
+	// condition types now known to be the same
+	auto cgc1 = dynamic_cast<CG_Condition*>(c1);
+	auto aac1 = dynamic_cast<AtomAlternativesCondition*>(c1);
+	if (cgc1 != nullptr || aac1 != nullptr) {
+		std::vector<AtomCondition*> conditions1, conditions2;
+		if (cgc1 != nullptr) {
+			auto cgc2 = dynamic_cast<CG_Condition*>(c2);
+			conditions1.push_back(cgc1->atom_cond);
+			conditions1.insert(conditions1.end(), cgc1->bonded.begin(), cgc1->bonded.end());
+			conditions2.push_back(cgc2->atom_cond);
+			conditions2.insert(conditions2.end(), cgc2->bonded.begin(), cgc2->bonded.end());
+		} else {
+			auto aac2 = dynamic_cast<AtomAlternativesCondition*>(c2);
+			conditions1.insert(conditions1.end(),
+				aac1->alternatives.begin(), aac1->alternatives.end());
+			conditions2.insert(conditions2.end(),
+				aac2->alternatives.begin(), aac2->alternatives.end());
+		}
+		if (conditions1.size() != conditions2.size())
+			return false;
+		for (decltype(conditions1)::size_type i = 0; i < conditions1.size(); ++i) {
+			auto cond1 = conditions1[i];
+			auto cond2 = conditions2[i];
+			if (dynamic_cast<AtomAlternativesCondition*>(cond1) != nullptr
+			|| dynamic_cast<CG_Condition*>(cond1) != nullptr) {
+				if (!condition_compare(cond1, cond2))
+					return false;
+			} else {
+				if (*cond1 != *cond2)
+					return false;
+			}
+		}
+		return true;
+	}
 	return *c1 == *c2;
 }
 
@@ -687,7 +721,35 @@ initiate_find_group(CG_Condition* group_rep, std::vector<long>* group_principals
 		atoms_mutex->unlock();
 
 		for (auto raw_group: group_rep->trace_group(a)) {
-			//TODO: check rings, reduce to principals, and add group with locking
+			// check rings, reduce to principals, and add group with locking
+			std::map<long, const Atom*> ring_atom_map;
+			Group pruned;
+			bool rings_okay = true;
+			auto group_size = raw_group.size();
+			for (Group::size_type i = 0; i < group_size; ++i) {
+				auto principal = (*group_principals)[i];
+				auto group_atom = raw_group[i];
+				if (principal != 0) {
+					if (ring_atom_map.find(principal) != ring_atom_map.end()) {
+						if (ring_atom_map[principal] != group_atom) {
+							rings_okay = false;
+							break;
+						}
+						// don't add a second instance of this atom
+						continue;
+					}
+					if (principal != 1)
+						ring_atom_map[principal] = group_atom;
+					pruned.push_back(group_atom);
+				}
+			}
+			if (rings_okay) {
+				groups_mutex->lock();
+				groups->emplace_back();
+				auto& back = groups->back();
+				back.swap(pruned);
+				groups_mutex->unlock();
+			}
 		}
 
 		atoms_mutex->lock();
@@ -761,10 +823,19 @@ find_group(PyObject *, PyObject *args)
 
 	delete group_rep;
 
-	// return some Python form of the groups
-	return Py_None;
-	//return groups;
-
+	PyObject* py_grp_list;
+	try {
+		auto num_groups = groups.size();
+		py_grp_list = PyList_New(num_groups);
+		if (py_grp_list == nullptr)
+			throw pysupport::PySupportError("Cannot create Python group list");
+		for (decltype(num_groups) i = 0; i < num_groups; ++i)
+			PyList_SET_ITEM(py_grp_list, i, pysupport::cvec_of_ptr_to_pylist(groups[i], "atom"));
+	} catch (pysupport::PySupportError& pse) {
+		PyErr_SetString(PyExc_TypeError, pse.what());
+		return nullptr;
+	}
+	return py_grp_list;
 }
 
 }

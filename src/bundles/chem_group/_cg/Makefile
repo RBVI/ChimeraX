@@ -20,6 +20,11 @@ OBJS		= $(SRCS:.cpp=.$(OBJ_EXT))
 DEFS		+= $(PYDEF)
 INCS 		+= $(PYTHON_INCLUDE_DIRS)
 LIBS		+= $(PYTHON_LIB)
+ifeq ($(WIN32),msvc)
+LIBS		+= libatomstruct.lib
+else
+LIBS		+= -latomstruct
+endif
 
 all: $(PYMOD)
 
