@@ -13,6 +13,7 @@
 
 #include <Python.h>
 #include <algorithm>  // std::find
+#include <arrays/pythonarray.h>
 #include <atomstruct/Atom.h>
 #include <atomstruct/AtomicStructure.h>
 #include <cstring>
@@ -829,8 +830,13 @@ find_group(PyObject *, PyObject *args)
 		py_grp_list = PyList_New(num_groups);
 		if (py_grp_list == nullptr)
 			throw pysupport::PySupportError("Cannot create Python group list");
-		for (decltype(num_groups) i = 0; i < num_groups; ++i)
-			PyList_SET_ITEM(py_grp_list, i, pysupport::cvec_of_ptr_to_pylist(groups[i], "atom"));
+		for (decltype(num_groups) i = 0; i < num_groups; ++i) {
+			auto& grp = groups[i];
+			void** data_ptr;
+			PyObject* ptr_array = python_voidp_array(grp.size(), &data_ptr);
+			std::memcpy(data_ptr, grp.data(), sizeof(void*) * grp.size());
+			PyList_SET_ITEM(py_grp_list, i, ptr_array);
+		}
 	} catch (pysupport::PySupportError& pse) {
 		PyErr_SetString(PyExc_TypeError, pse.what());
 		return nullptr;
