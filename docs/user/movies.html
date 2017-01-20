@@ -60,7 +60,8 @@ For general appearance, see also:
 - set center of rotation</li> 
 <li><a href="commands/coordset.html"><b>coordset</b></a>
 - play through frames of a trajectory</li>
-<li><b>crossfade</b></li>
+<li><a href="commands/crossfade.html"><b>crossfade</b></a>
+- interpolate between image frames</li>
 <li><a href="commands/move.html"><b>move</b></a>
 - translate</li>
 <li><a href="commands/movie.html"><b>movie</b></a>
@@ -88,7 +89,19 @@ display frame</li>
 - change the apparent size of the view</li>
 </ul>
 
+<a name="framerate"></a>
+<h3>Frame Rate</h3>
+<p>
+In ChimeraX, the target or intended graphics frame rate during 
+interactive use is 60 fps (default). The actual frame rate may be lower,
+depending on computer performance and the complexity of the display,
+and recording a movie generally slows the process further.
+However, movie file playback may be faster or slower than the 
+original process, because the playback frame rate is specified independently
+when the file is <a href="commands/movie.html#encode">encoded</a>.
+</p>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-December 2016</address>
+January 2017</address>
 </body></html> 

@@ -69,6 +69,7 @@ setup(
         "Topic :: Scientific/Engineering :: Visualization",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
-        "ChimeraX :: Bundle :: Volume data :: 1,1 :: PKG_NAME :: chimerax.volume-viewer :: ",
+        "ChimeraX :: Bundle :: Volume Data :: 1,1 :: PKG_NAME :: chimerax.volume-viewer :: ",
+        "ChimeraX :: Tool :: Volume Viewer :: Volume Data :: Show density maps info",
     ],
 )

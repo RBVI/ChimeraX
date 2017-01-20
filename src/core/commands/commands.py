@@ -28,7 +28,7 @@ def register_core_commands(session):
         'save', 'sasa', 'scolor', 'select', 'set', 'show', 'size', 'sop', 'split',
         'stop', 'style', 'surface', 'sym',
         'time', 'toolshed', 'transparency', 'turn',
-        'usage', 'view', 'version', 'wait', 'windowsize', 'zoom'
+        'usage', 'view', 'version', 'wait', 'windowsize', 'zonesel', 'zoom'
     ]
     for mod in modules:
         m = import_module(".%s" % mod, __package__)
