@@ -852,6 +852,11 @@ class _Qt:
             else:
                 side = self.placement_map[placement]
 
+        # With in-window status bar support now creating an additional layer
+        # of containing widgets, the following updateGeometry call now seems
+        # to be necessary to get the outermost widget to request the right size
+        # (most noticeable for initially-undocked tools)
+        self.ui_area.updateGeometry()
         mw = self.main_window
         mw.addDockWidget(side, self.dock_widget)
         if placement is None:
