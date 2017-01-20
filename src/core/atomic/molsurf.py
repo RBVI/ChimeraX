@@ -420,8 +420,10 @@ def hide_surfaces(atoms, models):
         s.hide(atoms & s.atoms)
     return surfs
 
-def close_surfaces(atoms, models):
-    surfs = surfaces_with_atoms(atoms, models)
+def close_surfaces(atoms_or_surfs, models):
+    from . import Atoms
+    surfs = (surfaces_with_atoms(atoms_or_surfs, models)
+             if isinstance(atoms_or_surfs, Atoms) else atoms_or_surfs)
     if surfs:
         models.close(surfs)
 

@@ -18,6 +18,10 @@
 def zonesel(session, near, range, find = None, extend = False):
     '''
     Select atoms or surfaces near other atoms or surfaces.
+    The distance from a point to a surface is the minimum distance to
+    all surface vertices.  Target molecular surfaces are not considered
+    because the selection of molecular surfaces mirrors the selection
+    of associated atoms and that would produce a confusing result.
 
     Parameters
     ----------
@@ -32,9 +36,7 @@ def zonesel(session, near, range, find = None, extend = False):
     '''
 
     na = near.atoms
-    from ..atomic import Structure
-    # TODO: Include volume models as surfaces.
-    ns = [s for s in near.models if not isinstance(s, Structure) and not s.empty_drawing()]
+    ns = surfaces(near.models)
     if len(na) == 0 and len(ns) == 0:
         from ..errors import UserError
         raise UserError('No atoms or surfaces specified')
@@ -44,7 +46,7 @@ def zonesel(session, near, range, find = None, extend = False):
         find = all_objects(session)
 
     fa = find.atoms
-    fs = [s for s in find.models if not isinstance(s, Structure) and not s.empty_drawing()]
+    fs = surfaces(find.models, exclude_molecular_surfaces = True)
     if len(fa) == 0 and len(fs) == 0:
         from ..errors import UserError
         raise UserError('No target atoms or surfaces')
@@ -55,6 +57,29 @@ def zonesel(session, near, range, find = None, extend = False):
     if ns:
       fs = list(set(fs).difference(ns))
 
+    sa, ss = zone_items(na, ns, range, fa, fs, extend)
+    select_items(session, sa, ss)
+    report_selected(session.logger, sa, ss)
+
+# -----------------------------------------------------------------------------
+#
+def surfaces(models, exclude_molecular_surfaces = False):
+    surfs = []
+    from ..atomic import Structure, MolecularSurface
+    for s in models:
+        if isinstance(s, Structure):
+            continue
+        if exclude_molecular_surfaces and isinstance(s, MolecularSurface):
+            continue
+        if hasattr(s, 'surface_drawings_for_vertex_coloring'):
+            surfs.extend(s.surface_drawings_for_vertex_coloring())
+        elif not s.empty_drawing():
+            surfs.append(s)
+    return surfs
+
+# -----------------------------------------------------------------------------
+#
+def zone_items(na, ns, range, fa, fs, extend = False):
     # TODO: Use double precision coordinates and transforms.
     from numpy import float32
     naxyz = na.scene_coords.astype(float32)
@@ -79,12 +104,33 @@ def zonesel(session, near, range, find = None, extend = False):
         sa = sa.merge(na)
         ss.update(ns)
 
+    return sa, ss
+
+# -----------------------------------------------------------------------------
+#
+def select_items(session, sa, ss):
     sel = session.selection
     sel.clear()
     sa.selected = True
     for s in ss:
         s.selected = True
-                    
+
+# -----------------------------------------------------------------------------
+#
+def report_selected(log, sa, ss):
+    nsa, nss = len(sa), len(ss)
+    if nsa == 0 and nss == 0:
+        msg = 'Nothing selected'
+    else:
+        items = []
+        if nsa:
+            items.append('%d atoms' % nsa)
+        if nss:
+            items.append('%d surfaces' % nss)
+        msg = 'Selected %s' % ', '.join(items)
+    log.status(msg)
+    log.info(msg)
+
 # -----------------------------------------------------------------------------
 #
 def register_command(session):

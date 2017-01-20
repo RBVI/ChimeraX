@@ -64,7 +64,7 @@ setup(
         "ChimeraX :: Bundle :: General :: 1,1 :: PKG_NAME :: chimerax.exp-cmd :: ",
         "ChimeraX :: Command :: ribbon :: General :: show cartoon for selected residues",
         "ChimeraX :: Command :: ~ribbon :: General :: hide cartoon for selected residues",
-        "ChimeraX :: Command :: findclash :: General :: find clashes between atom pairs",
+        # "ChimeraX :: Command :: findclash :: General :: find clashes between atom pairs",
         "ChimeraX :: Command :: getcrd :: General :: report atomic coordinates",
         "ChimeraX :: Command :: dumpspec :: General :: report what a specifier matches",
     ],

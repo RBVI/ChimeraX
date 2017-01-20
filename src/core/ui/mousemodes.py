@@ -691,8 +691,8 @@ class ObjectIdMouseMode(MouseMode):
                 chain = res.chain
                 if chain and chain.description:
                     self.session.logger.status("chain %s: %s" % (chain.chain_id, chain.description))
-                elif res.description:
-                    self.session.logger.status(res.description)
+                elif res.name in getattr(res.structure, "_hetnam_descriptions", {}):
+                    self.session.logger.status(res.structure._hetnam_descriptions[res.name])
         else:
             pu.hide()
 
