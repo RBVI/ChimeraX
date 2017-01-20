@@ -23,7 +23,7 @@ def surface(session, atoms = None, enclose = None, include = None,
 
     Parameters
     ----------
-    atoms : Atoms
+    atoms : Objects
       Atoms controlling which surface patch is shown.
       Surfaces are computed for each chain these atoms belong to and patches
       of these surfaces near the specifed atoms are shown.  Solvent, ligands
@@ -69,12 +69,20 @@ def surface(session, atoms = None, enclose = None, include = None,
 
     '''
 
+    # "atoms" argument can be a surface model if close option given.
+    objects = atoms
+    atoms = objects.atoms if objects else None
+
     from ..atomic.molsurf import close_surfaces, show_surfaces, hide_surfaces, remove_solvent_ligands_ions
     from ..atomic.molsurf import surface_rgba, MolecularSurface, update_color, surfaces_overlapping_atoms
 
     if close:
-        atoms = check_atoms(atoms, session) # Warn if no atoms specifed
-        close_surfaces(atoms, session.models)
+        if objects:
+            surfs = [s for s in objects.models if isinstance(s, MolecularSurface)]
+            close_surfaces(surfs, session.models)
+        if objects is None or len(atoms) > 0:
+            atoms = check_atoms(atoms, session) # Warn if no atoms specifed
+            close_surfaces(atoms, session.models)
         return []
 
     # Show surface patches for existing surfaces.
@@ -193,9 +201,10 @@ def unsurface(session, atoms = None):
     surface(session, atoms, hide = True)
 
 def register_command(session):
-    from . import CmdDesc, register, AtomsArg, FloatArg, IntArg, ColorArg, BoolArg, NoArg, create_alias
+    from . import CmdDesc, register, ObjectsArg, AtomsArg
+    from . import FloatArg, IntArg, ColorArg, BoolArg, NoArg, create_alias
     _surface_desc = CmdDesc(
-        optional = [('atoms', AtomsArg)],
+        optional = [('atoms', ObjectsArg)],
         keyword = [('enclose', AtomsArg),
                    ('include', AtomsArg),
                    ('probe_radius', FloatArg),
