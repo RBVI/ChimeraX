@@ -834,7 +834,6 @@ class Drawing:
         if ta.shape[1] != 3:
             # TODO: Intercept only for triangles, not lines or points.
             return None
-        # TODO: Check intercept of bounding box as optimization
         p = None
         from ..geometry import closest_triangle_intercept
         if self.positions.is_identity():
@@ -842,26 +841,34 @@ class Drawing:
             if fmin is not None:
                 p = TrianglePick(fmin, tmin, 0, self)
         else:
-            # Only check objects with bounding box close to line. 
-            b = self._geometry_bounds()
-            if b is None:
-                return None
-            c, r = b.center(), b.radius()
-            pos = self.positions
-            pc = pos * c
-            from ..geometry import segment_intercepts_spheres
-            bi = segment_intercepts_spheres(pc, r, mxyz1, mxyz2)
-            dp = self._displayed_positions
-            if dp is not None:
-                from numpy import logical_and
-                logical_and(bi, dp, bi)
-
-            for i in bi.nonzero()[0]:
-                cxyz1, cxyz2 = pos[i].inverse() * (mxyz1, mxyz2)
+            pos_nums = self.bounds_intercept_copies(self._geometry_bounds(), mxyz1, mxyz2)
+            for i in pos_nums:
+                cxyz1, cxyz2 = self.positions[i].inverse() * (mxyz1, mxyz2)
                 fmin, tmin = closest_triangle_intercept(va, ta, cxyz1, cxyz2)
                 if fmin is not None and (p is None or fmin < p.distance):
                     p = TrianglePick(fmin, tmin, i, self)
         return p
+
+    def bounds_intercept_copies(self, bounds, mxyz1, mxyz2):
+        '''
+        Return indices of positions where line segment intercepts displayed bounds.
+        This is to optimize picking so that positions where no intercept occurs do not
+        need to be checked to see what is picked.
+        '''
+        # Only check objects with bounding box close to line. 
+        b = bounds
+        if b is None:
+            return []
+        c, r = b.center(), b.radius()
+        pc = self.positions * c
+        from ..geometry import segment_intercepts_spheres
+        bi = segment_intercepts_spheres(pc, r, mxyz1, mxyz2)
+        dp = self._displayed_positions
+        if dp is not None:
+            from numpy import logical_and
+            logical_and(bi, dp, bi)
+        pos_nums = bi.nonzero()[0]
+        return pos_nums
 
     def planes_pick(self, planes, exclude=None):
         '''

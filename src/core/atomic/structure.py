@@ -1368,12 +1368,21 @@ class Structure(Model, StructureData):
             return None
 
         picks = []
-        for p in self.positions:
-            picks.extend(self._position_intercepts(p, mxyz1, mxyz2))
+        np = len(self.positions)
+        if np > 1:
+            pos_nums = self.bounds_intercept_copies(self.bounds(positions = False), mxyz1, mxyz2)
+        else:
+            # Don't do bounds check for single copy because bounds are not cached.
+            pos_nums = range(np)
+        for pn in pos_nums:
+            ppicks = self._position_intercepts(self.positions[pn], mxyz1, mxyz2)
+            picks.extend(ppicks)
+            for p in ppicks:
+                p.copy_number = pn
 
         pclosest = None
         for p in picks:
-            if p and (pclosest is None or p.distance < pclosest.distance):
+            if pclosest is None or p.distance < pclosest.distance:
                 pclosest = p
         return pclosest
 
@@ -1390,7 +1399,7 @@ class Structure(Model, StructureData):
         pr = self._ribbon_first_intercept(xyz1, xyz2)
         # Handle molecular surfaces
         ps = self.first_intercept_children(self.child_models(), mxyz1, mxyz2, exclude)
-        picks = [pa, pb, ppb, pr, ps]
+        picks = [p for p in [pa, pb, ppb, pr, ps] if p]
 
         # TODO: for now, tethers pick nothing, but it should either pick
         #       the residue or the guide atom.
