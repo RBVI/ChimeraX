@@ -1366,9 +1366,20 @@ class Structure(Model, StructureData):
     def first_intercept(self, mxyz1, mxyz2, exclude=None):
         if not self.display or (exclude and hasattr(self, exclude)):
             return None
+
+        picks = []
+        for p in self.positions:
+            picks.extend(self._position_intercepts(p, mxyz1, mxyz2))
+
+        pclosest = None
+        for p in picks:
+            if p and (pclosest is None or p.distance < pclosest.distance):
+                pclosest = p
+        return pclosest
+
+    def _position_intercepts(self, place, mxyz1, mxyz2, exclude=None):
         # TODO: check intercept of bounding box as optimization
-        # TODO: Handle molecule placed at multiple positions
-        xyz1, xyz2 = self.position.inverse() * (mxyz1, mxyz2)
+        xyz1, xyz2 = place.inverse() * (mxyz1, mxyz2)
         pa = self._atom_first_intercept(xyz1, xyz2)
         pb = self._bond_first_intercept(xyz1, xyz2)
         if pb and pa:
@@ -1383,12 +1394,7 @@ class Structure(Model, StructureData):
 
         # TODO: for now, tethers pick nothing, but it should either pick
         #       the residue or the guide atom.
-
-        pclosest = None
-        for p in picks:
-            if p and (pclosest is None or p.distance < pclosest.distance):
-                pclosest = p
-        return pclosest
+        return picks
 
     def _atom_first_intercept(self, mxyz1, mxyz2):
         d = self._atoms_drawing
