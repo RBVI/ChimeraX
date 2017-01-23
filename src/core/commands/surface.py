@@ -217,7 +217,7 @@ def unsurface(session, atoms = None):
     '''
     Hide surface for specified atoms.  Same as command "surface <spec> hide".
     '''
-    surface(session, atoms, hide = True)
+    surface_hide(session, atoms)
 
 # -------------------------------------------------------------------------------------
 #
