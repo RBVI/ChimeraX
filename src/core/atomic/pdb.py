@@ -28,7 +28,7 @@ def open_pdb(session, filename, name, *args, **kw):
         input = open(filename, 'rb')
         path = filename
 
-    explode = not kw.get('trajectory', False)
+    explode = not kw.get('coordset', False)
     from . import pdbio
     pointers = pdbio.read_pdb_file(input, log=session.logger, explode=explode)
     if input != filename:

@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def open(session, filename, format=None, name=None, from_database=None, ignore_cache=False,
-         autostyle = True, trajectory = False, series = None, **kw):
+         autostyle = True, coordset = False, series = None, **kw):
     '''Open a file.
 
     Parameters
@@ -35,7 +35,7 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
         to cache.
     autostyle : bool
         Whether to display molecules with rich styles and colors.
-    trajectory : bool
+    coordset : bool
         Whether to read a PDB format multimodel file as coordinate sets (true)
         or as multiple models (false, default).
     series : bool or None
@@ -62,7 +62,7 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
                 format = 'mmcif'
 
     kw.update({'autostyle': autostyle,
-               'trajectory': trajectory,
+               'coordset': coordset,
                'series': series})
 
     from ..filehistory import remember_file
@@ -85,8 +85,8 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
             session.models.add(models)
         remember_file(session, filename, format, models, database=from_database)
         session.logger.status(status, log=True)
-        if trajectory:
-            report_trajectories(models, session.logger)
+        if coordset:
+            report_coordsets(models, session.logger)
         return models
 
     if format is not None:
@@ -110,15 +110,15 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
         from ..errors import UserError
         raise UserError(e)
 
-    if trajectory:
-        report_trajectories(models, session.logger)
+    if coordset:
+        report_coordsets(models, session.logger)
     
     # Remember in file history
     remember_file(session, filename, format, models or 'all models')
 
     return models
 
-def report_trajectories(models, log):
+def report_coordsets(models, log):
     for m in models:
         if hasattr(m, 'num_coord_sets'):
             log.info('%s has %d coordinate sets' % (m.name, m.num_coord_sets))
@@ -200,7 +200,7 @@ def register_command(session):
             ('from_database', DynamicEnum(db_formats)),
             ('ignore_cache', NoArg),
             ('autostyle', BoolArg),
-            ('trajectory', NoArg),
+            ('coordset', BoolArg),
             ('series', BoolArg),
             # ('id', ModelIdArg),
         ],
