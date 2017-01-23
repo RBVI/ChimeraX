@@ -21,6 +21,6 @@ class _MyAPI(BundleAPI):
     @staticmethod
     def register_command(command_name):
         from . import remotecmd
-        remotecmd.register_remote_control_command()
+        remotecmd.register_remote_control_command(command_name)
 
 bundle_api = _MyAPI()
