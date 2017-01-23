@@ -74,6 +74,6 @@ setup(
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
         "ChimeraX :: Bundle :: General :: 1,1 :: PKG_NAME :: chimerax.rest-server :: true",
-        "ChimeraX :: Command :: rest_server :: General :: Control REST server",
+        "ChimeraX :: Command :: remotecontrol rest :: General :: Control REST server",
     ],
 )

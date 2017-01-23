@@ -1607,17 +1607,18 @@ class FormatInfo:
     def cache_data(self):
         return {
             'name': self.name,
+            'nicknames': self.nicknames,
             'category': self.category,
             'suffixes': self.suffixes,
             'mime_types': self.mime_types,
             'url': self.documentation_url,
             'dangerous': self.dangerous,
+            'encoding': self.encoding,
             'icon': self.icon,
             'synopsis': self.synopsis,
-            'nicknames': self.nicknames,
             'has_open': self.has_open,
-            'has_save': self.has_save,
             'open_kwds': self.open_kwds,
+            'has_save': self.has_save,
             'save_kwds': self.save_kwds,
         }
 

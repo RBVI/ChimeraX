@@ -284,5 +284,3 @@ def register_command(session):
     # register("toolshed update", ts_update_desc, ts_update)
     register("toolshed show", ts_show_desc, ts_show)
     register("toolshed hide", ts_hide_desc, ts_hide)
-
-    create_alias("ts", "toolshed $*")

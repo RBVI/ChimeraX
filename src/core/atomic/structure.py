@@ -21,7 +21,7 @@ CATEGORY = toolshed.STRUCTURE
 class Structure(Model, StructureData):
 
     def __init__(self, session, *, name = "structure", c_pointer = None, restore_data = None,
-                 smart_initial_display = True):
+                 autostyle = True):
         # Cross section coordinates are 2D and counterclockwise
         # Use C++ version of XSection instead of Python version
         from .molobject import RibbonXSection as XSection
@@ -41,7 +41,7 @@ class Structure(Model, StructureData):
         for attr_name, val in self._session_attrs.items():
             setattr(self, attr_name, val)
         Model.__init__(self, name, session)
-        self._smart_initial_display = smart_initial_display
+        self._autostyle = autostyle
 
         # for now, restore attrs to default initial values even for sessions...
         self._atoms_drawing = None
@@ -96,12 +96,12 @@ class Structure(Model, StructureData):
         if name is None:
             name = self.name
         m = self.__class__(self.session, name = name, c_pointer = StructureData._copy(self),
-                           smart_initial_display = False)
+                           autostyle = False)
         m.positions = self.positions
         return m
 
     def added_to_session(self, session):
-        if self._smart_initial_display:
+        if self._autostyle:
             color = self.initial_color(session.main_view.background_color)
             self.set_color(color)
 
@@ -194,7 +194,7 @@ class Structure(Model, StructureData):
 
     @staticmethod
     def restore_snapshot(session, data):
-        s = Structure(session, smart_initial_display = False)
+        s = Structure(session, autostyle = False)
         s.set_state_from_snapshot(session, data)
         return s
 
@@ -1366,9 +1366,29 @@ class Structure(Model, StructureData):
     def first_intercept(self, mxyz1, mxyz2, exclude=None):
         if not self.display or (exclude and hasattr(self, exclude)):
             return None
+
+        picks = []
+        np = len(self.positions)
+        if np > 1:
+            pos_nums = self.bounds_intercept_copies(self.bounds(positions = False), mxyz1, mxyz2)
+        else:
+            # Don't do bounds check for single copy because bounds are not cached.
+            pos_nums = range(np)
+        for pn in pos_nums:
+            ppicks = self._position_intercepts(self.positions[pn], mxyz1, mxyz2)
+            picks.extend(ppicks)
+            for p in ppicks:
+                p.copy_number = pn
+
+        pclosest = None
+        for p in picks:
+            if pclosest is None or p.distance < pclosest.distance:
+                pclosest = p
+        return pclosest
+
+    def _position_intercepts(self, place, mxyz1, mxyz2, exclude=None):
         # TODO: check intercept of bounding box as optimization
-        # TODO: Handle molecule placed at multiple positions
-        xyz1, xyz2 = self.position.inverse() * (mxyz1, mxyz2)
+        xyz1, xyz2 = place.inverse() * (mxyz1, mxyz2)
         pa = self._atom_first_intercept(xyz1, xyz2)
         pb = self._bond_first_intercept(xyz1, xyz2)
         if pb and pa:
@@ -1379,16 +1399,11 @@ class Structure(Model, StructureData):
         pr = self._ribbon_first_intercept(xyz1, xyz2)
         # Handle molecular surfaces
         ps = self.first_intercept_children(self.child_models(), mxyz1, mxyz2, exclude)
-        picks = [pa, pb, ppb, pr, ps]
+        picks = [p for p in [pa, pb, ppb, pr, ps] if p]
 
         # TODO: for now, tethers pick nothing, but it should either pick
         #       the residue or the guide atom.
-
-        pclosest = None
-        for p in picks:
-            if p and (pclosest is None or p.distance < pclosest.distance):
-                pclosest = p
-        return pclosest
+        return picks
 
     def _atom_first_intercept(self, mxyz1, mxyz2):
         d = self._atoms_drawing
@@ -1731,7 +1746,7 @@ class AtomicStructure(Structure):
 
     @staticmethod
     def restore_snapshot(session, data):
-        s = AtomicStructure(session, smart_initial_display = False)
+        s = AtomicStructure(session, autostyle = False)
         Structure.set_state_from_snapshot(s, session, data)
         return s
 
