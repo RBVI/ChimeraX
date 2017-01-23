@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def open(session, filename, format=None, name=None, from_database=None, ignore_cache=False,
-         smart_initial_display = True, trajectory = False, series = None, **kw):
+         autostyle = True, trajectory = False, series = None, **kw):
     '''Open a file.
 
     Parameters
@@ -33,7 +33,7 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
     ignore_cache : bool
         Whether to fetch files from cache.  Fetched files are always written
         to cache.
-    smart_initial_display : bool
+    autostyle : bool
         Whether to display molecules with rich styles and colors.
     trajectory : bool
         Whether to read a PDB format multimodel file as coordinate sets (true)
@@ -61,7 +61,7 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
             if format is None:
                 format = 'mmcif'
 
-    kw.update({'smart_initial_display': smart_initial_display,
+    kw.update({'autostyle': autostyle,
                'trajectory': trajectory,
                'series': series})
 
@@ -199,7 +199,7 @@ def register_command(session):
             ('name', StringArg),
             ('from_database', DynamicEnum(db_formats)),
             ('ignore_cache', NoArg),
-            ('smart_initial_display', BoolArg),
+            ('autostyle', BoolArg),
             ('trajectory', NoArg),
             ('series', BoolArg),
             # ('id', ModelIdArg),
