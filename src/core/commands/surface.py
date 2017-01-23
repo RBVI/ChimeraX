@@ -272,7 +272,7 @@ def check_atoms(atoms, session):
     elif len(atoms) == 0:
         msg = 'No atoms specified'
         if hasattr(atoms, 'spec'):
-            msg += 'by %s' % atoms.spec
+            msg += ' by %s' % atoms.spec
         from ..errors import UserError
         raise UserError(msg)
     return atoms
