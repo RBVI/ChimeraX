@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def open(session, filename, format=None, name=None, from_database=None, ignore_cache=False,
-         autostyle = True, coordset = False, series = None, **kw):
+         autostyle = True, coordset = False, vseries = None, **kw):
     '''Open a file.
 
     Parameters
@@ -38,7 +38,7 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
     coordset : bool
         Whether to read a PDB format multimodel file as coordinate sets (true)
         or as multiple models (false, default).
-    series : bool or None
+    vseries : bool or None
         Whether to read a maps as a series, or as separate maps. The default None
         means to use default rules: 3d TIFF images are series and Chimera map files
         containing 5 or more maps of equal size.
@@ -63,7 +63,7 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
 
     kw.update({'autostyle': autostyle,
                'coordset': coordset,
-               'series': series})
+               'vseries': vseries})
 
     from ..filehistory import remember_file
     if from_database is not None:
@@ -201,7 +201,7 @@ def register_command(session):
             ('ignore_cache', NoArg),
             ('autostyle', BoolArg),
             ('coordset', BoolArg),
-            ('series', BoolArg),
+            ('vseries', BoolArg),
             # ('id', ModelIdArg),
         ],
         synopsis='read and display data')
