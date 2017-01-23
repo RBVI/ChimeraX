@@ -1580,11 +1580,13 @@ class Element:
         '''Get the Element that corresponds to an atomic name or number'''
         if type(name_or_number) == type(1):
             f = c_function('element_number_get_element', args = (ctypes.c_int,), ret = ctypes.c_void_p)
+            f_arg = name_or_number
         elif type(name_or_number) == type(""):
             f = c_function('element_name_get_element', args = (ctypes.c_char_p,), ret = ctypes.c_void_p)
+            f_arg = name_or_number.encode('utf-8')
         else:
             raise ValueError("'get_element' arg must be string or int")
-        return _element(f(name_or_number))
+        return _element(f(f_arg))
 
 # -----------------------------------------------------------------------------
 #

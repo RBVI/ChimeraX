@@ -88,6 +88,8 @@ def _pseudobond_group_map(a):
 
 # -----------------------------------------------------------------------------
 #
+instrument_collection = False
+accum_t = [0] * 6
 from ..state import State
 class Collection(State):
     '''
@@ -98,6 +100,9 @@ class Collection(State):
     '''
     def __init__(self, items, object_class, objects_class):
         import numpy
+        from time import time
+        if instrument_collection:
+            t0 = time()
         if items is None:
             # Empty Atoms
             pointers = numpy.empty((0,), cptr)
@@ -113,11 +118,29 @@ class Collection(State):
             if isinstance(items, numpy.ndarray):
                 t += ' type %s' % str(items.dtype)
             raise ValueError('Collection items of unrecognized type "%s"' % t)
+        if instrument_collection:
+            t1 = time()
         self._pointers = pointers
+        if instrument_collection:
+            t2 = time()
         self._object_class = object_class
+        if instrument_collection:
+            t3 = time()
         self._objects_class = objects_class
+        if instrument_collection:
+            t4 = time()
         set_cvec_pointer(self, pointers)
+        if instrument_collection:
+            t5 = time()
         remove_deleted_pointers(pointers)
+        if instrument_collection:
+            t6 = time()
+            accum_t[0] += t1 - t0
+            accum_t[1] += t2 - t1
+            accum_t[2] += t3 - t2
+            accum_t[3] += t4 - t3
+            accum_t[4] += t5 - t4
+            accum_t[5] += t6 - t5
 
     def __eq__(self, atoms):
         import numpy
@@ -491,7 +514,7 @@ class Atoms(Collection):
     alt_locs = cvec_property('atom_alt_loc', byte, astype=bytearray,
                          doc='Returns current alternate location indicators')
 
-    def __init__(self, c_pointers = None):
+    def __init__(self, c_pointers = None, guaranteed_live_pointers = False):
         Collection.__init__(self, c_pointers, molobject.Atom, Atoms)
 
     def delete(self):

@@ -165,11 +165,35 @@ def find_group(group_desc, structures):
 	import os
 	num_cpus = os.cpu_count() if not None else 1
 	from ._chem_group import find_group as fg
-	from chimerax.core.atomic import Atoms
+	from chimerax.core.atomic import Atoms, AtomicStructure
 	groups = []
 	for structure in structures:
+		if not isinstance(structure, AtomicStructure):
+			continue
+		"""
 		groups.extend([Atoms(atom_ptrs) for atom_ptrs in
 			fg(structure.cpp_pointer, group_rep, group_principals, RingAtom, num_cpus)])
+		"""
+		from time import time
+		t0 = time()
+		grps = fg(structure.cpp_pointer, group_rep, group_principals, RingAtom, num_cpus)
+		t1 = time()
+		from chimerax.core.atomic import molarray
+		molarray.instrument_collection = True
+		collections = [Atoms(atom_ptrs, guaranteed_live_pointers = True) for atom_ptrs in grps]
+		molarray.instrument_collection = False
+		t2 = time()
+		groups.extend(collections)
+		t3 = time()
+		print("Call C++:", t1-t0)
+		print("Form collections:", t2-t1)
+		print(" 1:", molarray.accum_t[0])
+		print(" 2:", molarray.accum_t[1])
+		print(" 3:", molarray.accum_t[2])
+		print(" 4:", molarray.accum_t[3])
+		print(" 5:", molarray.accum_t[4])
+		print(" 6:", molarray.accum_t[5])
+		print("Extend groups:", t3-t2)
 	return groups
 '''
 	groups = []

@@ -12,7 +12,7 @@
  */
 
 #include <Python.h>
-#include <algorithm>  // std::find
+#include <algorithm>  // std::find, std::min
 #include <arrays/pythonarray.h>
 #include <atomstruct/Atom.h>
 #include <atomstruct/AtomicStructure.h>
@@ -712,14 +712,11 @@ make_condition(PyObject* group_rep)
 
 void
 initiate_find_group(CG_Condition* group_rep, std::vector<long>* group_principals,
-	const std::vector<Atom*>& atoms, std::mutex* atoms_mutex, size_t* atom_index,
+	AtomicStructure::Atoms::const_iterator start, AtomicStructure::Atoms::const_iterator end,
 	std::vector<Group>* groups, std::mutex* groups_mutex)
 {
-	atoms_mutex->lock();
-	while (*atom_index < atoms.size()) {
-		auto a = atoms[*atom_index];
-		(*atom_index)++;
-		atoms_mutex->unlock();
+	for (auto i = start; i != end; ++i) {
+		auto a = *i;
 
 		for (auto raw_group: group_rep->trace_group(a)) {
 			// check rings, reduce to principals, and add group with locking
@@ -752,10 +749,7 @@ initiate_find_group(CG_Condition* group_rep, std::vector<long>* group_principals
 				groups_mutex->unlock();
 			}
 		}
-
-		atoms_mutex->lock();
 	}
-	atoms_mutex->unlock();
 }
 
 extern "C" {
@@ -811,16 +805,29 @@ find_group(PyObject *, PyObject *args)
 
 	auto& atoms = s->atoms();
 	std::vector<Group> groups;
-	std::mutex atoms_mtx, groups_mtx;
+	std::mutex groups_mtx;
 
-	int num_threads = num_cpus > 1 ? num_cpus : 1;
-	size_t atom_index = 0;
-	std::vector<std::thread> threads;
-	for (int i = 0; i < num_threads; ++i)
-		threads.push_back(std::thread(initiate_find_group, group_rep, &group_principals,
-			std::ref(atoms), &atoms_mtx, &atom_index, &groups, &groups_mtx));
-	for (auto& th: threads)
-		th.join();
+	size_t num_threads = num_cpus > 1 ? num_cpus : 1;
+	// divvy up the atoms among the threads;
+	// letting the threads take atoms from a global pool
+	// results in too much lock contention since many
+	// of the atoms fail to form a group quickly
+	num_threads = std::min(num_threads, atoms.size());
+	if (num_threads > 0) {
+		float per_thread = atoms.size() / (float) num_threads;
+		auto start = atoms.begin();
+		std::vector<std::thread> threads;
+		for (size_t i = 0; i < num_threads; ++i) {
+			decltype(start) end = start + (int)(i * per_thread + 0.5);
+			if (i == num_threads - 1) // an overabundance of caution
+				end = atoms.end();
+			threads.push_back(std::thread(initiate_find_group, group_rep, &group_principals,
+				start, end, &groups, &groups_mtx));
+			start = end;
+		}
+		for (auto& th: threads)
+			th.join();
+	}
 
 	delete group_rep;
 
@@ -857,7 +864,7 @@ static PyMethodDef cg_methods[] = {
 static struct PyModuleDef cg_def =
 {
 	PyModuleDef_HEAD_INIT,
-	"_cg",
+	"_chem_group",
 	"Chemical group finding",
 	-1,
 	cg_methods,
@@ -868,7 +875,7 @@ static struct PyModuleDef cg_def =
 };
 
 PyMODINIT_FUNC
-PyInit__cg()
+PyInit__chem_group()
 {
 	return PyModule_Create(&cg_def);
 }
