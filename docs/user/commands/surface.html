@@ -25,7 +25,7 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: surface</h3>
 <h3><a href="usageconventions.html">Usage</a>:
- <BR><b>surface</b>
+ <br><b>surface</b>
 &nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>&nbsp;
 [&nbsp;enclose
 &nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>&nbsp;]
@@ -34,18 +34,17 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;replace&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;probeRadius&nbsp;<i>rad</i>&nbsp;]
 [&nbsp;gridSpacing&nbsp;<i>s</i>&nbsp;]
-[&nbsp;resolution&nbsp;<i>r</i>&nbsp; [&nbsp;level&nbsp;<i>l</i>&nbsp;]]
 [&nbsp;sharpBoundaries&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;visiblePatches&nbsp;<i>N</i>&nbsp;] 
+[&nbsp;resolution&nbsp;<i>r</i>&nbsp; [&nbsp;level&nbsp;<i>l</i>&nbsp;]]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
- <BR><b>surface</b>
-&nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>&nbsp;
-(&nbsp;<b>hide</b>&nbsp;|&nbsp;<b>show</b>&nbsp;)
- <BR><b>surface</b>
-&nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>&nbsp;
-<b>close</b>
- <BR><b>surface</b> &nbsp;<i>surf-model</i>&nbsp; <b>close</b>
+ <br><b>surface</b> (&nbsp;<b>hide</b>&nbsp;|&nbsp;<b>show</b>&nbsp;)
+&nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>
+ <br><b>surface</b> <b>close</b>
+&nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>
+ <br><b>surface</b> <b>close</b> 
+&nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>
 </h3>
 <p>
 The <b>surface</b> command creates and displays molecular surfaces,
@@ -90,6 +89,12 @@ in <i>pre-existing</i> surfaces only.
 The command <b>surface</b> with the <b>close</b> keyword removes all surface
 models that enclose any of the specified atoms, 
 or removes the specified <i>surf-model</i>.
+<!--
+The <b>surface</b> command (without <b>show</b>) will also use a pre-existing
+surface, if available, unless different calculation parameters are specified;
+thus any pre-existing surface for the same set of atoms should be closed first
+if the goal is to generate a new surface with default parameters.
+-->
 </p><p>
 <a name="modelnumbers"></a>
 By default, each biopolymer chain in an atomic model
