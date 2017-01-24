@@ -81,8 +81,8 @@ and their code location is described with the function descriptions.
 | `transparency`_ - Set transparency of atoms, ribbons and surfaces
 | `turn`_ - Rotate models
 | `view`_ - Move camera to view specified objects
-| `vive`_ * - Enable HTC Vive virtual reality headset
 | `volume`_ - Change density map settings and filter maps
+| `vr`_ * - Enable virtual reality headset using SteamVR
 | `vseries`_ - Play density map time series
 | `wait`_ - Wait before executing next command
 | `windowsize`_ - Set or report graphics window size
@@ -361,9 +361,9 @@ view
 ====
 .. autofunction:: chimerax.core.commands.view.view
 
-vive
-====
-.. autofunction:: chimerax.vive.vive.vive
+vr
+==
+.. autofunction:: chimerax.vive.vr.vr
 
 volume
 ======
