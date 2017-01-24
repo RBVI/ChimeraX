@@ -408,7 +408,7 @@ def surfaces_with_atoms(atoms, models):
                     surfs.append(s)
     return surfs
 
-def show_atom_surface_patches(atoms, models, only = False):
+def show_surface_atom_patches(atoms, models, only = False):
     surfs = surfaces_with_atoms(atoms, models)
     for s in surfs:
         s.show(atoms & s.atoms, only = only)
@@ -418,7 +418,7 @@ def show_surface_patches(surf_models, only = False):
     for s in surf_models:
         s.show(s.atoms, only = only)
 
-def hide_atom_surface_patches(atoms, models):
+def hide_surface_atom_patches(atoms, models):
     surfs = surfaces_with_atoms(atoms, models)
     for s in surfs:
         s.hide(atoms & s.atoms)

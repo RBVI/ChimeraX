@@ -173,9 +173,11 @@ def surface_show(session, objects = None):
       Show atom patches for existing specified molecular surfaces or for specified atoms.
     '''
     from ..atomic import molsurf
-    sma = molsurf.show_atom_surface_patches(objects.atoms, session.models) if objects else []
+    sma = molsurf.show_surface_atom_patches(objects.atoms, session.models) if objects else []
     sm = _molecular_surfaces(session, objects)
-    molsurf.show_surface_patches(sm)
+    for s in sm:
+        s.display = True
+#    molsurf.show_surface_patches(sm)
     return sma + sm
 
 # -------------------------------------------------------------------------------------
@@ -190,9 +192,11 @@ def surface_hide(session, objects = None):
       Hide atom patches for specified molecular surfaces or for specified atoms.
     '''
     from ..atomic import molsurf
-    sma = molsurf.hide_atom_surface_patches(objects.atoms, session.models) if objects else []
+    sma = molsurf.hide_surface_atom_patches(objects.atoms, session.models) if objects else []
     sm = _molecular_surfaces(session, objects)
-    molsurf.hide_surface_patches(sm)
+    for s in sm:
+        s.display = False
+#    molsurf.hide_surface_patches(sm)
     return sma + sm
 
 # -------------------------------------------------------------------------------------

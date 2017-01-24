@@ -47,7 +47,7 @@ def hide(session, objects=None, what=None, target=None):
         res.ribbon_displays = False
     if 'surfaces' in what_to_hide:
         from ..atomic import molsurf
-        molsurf.hide_atom_surface_patches(objects.atoms, session.models)
+        molsurf.hide_surface_atom_patches(objects.atoms, session.models)
     if 'models' in what_to_hide:
         hide_models(objects)
 
