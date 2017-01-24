@@ -32,7 +32,7 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;format&nbsp;&nbsp;<a href="#local"><i>format-name</i></a>&nbsp;]
 [&nbsp;trajectory&nbsp;]
 [&nbsp;series&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>oneAlignment</b>&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>alignment</b>&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#options"><i>general-options</i></a>
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
@@ -94,7 +94,7 @@ Examples:
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#local"><i>format-name</i></a>&nbsp;]
 [&nbsp;<b>trajectory</b>&nbsp;]
 [&nbsp;<b>series</b>&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>oneAlignment</b>&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>alignment</b>&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#options"><i>general-options</i></a>
 </blockquote>
 <p>
@@ -127,7 +127,7 @@ If the option is not used, 3D TIFF images and
 <a href="save.html#chimap">Chimera map</a> files containing five or more
 same-sized maps are automatically interpreted as series, if possible.
 </p><p>
-When a multiple-sequence file is opened, the <b>oneAlignment</b> option 
+When a multiple-sequence file is opened, the <b>alignment</b> option 
 indicates whether it should be interpreted as an alignment 
 (default <b>true</b>, all sequences in one <b>Multalign Viewer</b> window).
 Otherwise, each sequence will be opened in a separate window. 
@@ -449,9 +449,9 @@ unless another name is given with the <b>name</b> option.
 If <i>model-name</i> contains spaces, it should be enclosed in quotation marks.
 </blockquote>
 <blockquote>
-<b>smartInitialDisplay</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<b>autoStyle</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
-Setting <b>smartInitialDisplay</b> to <b>false</b> bypasses chemical perception
+Setting <b>autoStyle</b> to <b>false</b> bypasses chemical perception
 and rule-based changes in lighting, coloring, and representation, instead
 always showing atomic models as white spheres; it may be useful in 
 rare cases where generating the initial representation is slow

@@ -1,0 +1,71 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: zonesel</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: zonesel</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>zonesel</b> &nbsp;<a href="atomspec.html"><i>ref-spec</i></a>
+&nbsp;<i>cutoff</i>&nbsp;
+[&nbsp;<a href="atomspec.html"><i>other-spec</i></a>&nbsp;]
+[&nbsp;<b>extend</b>&nbsp;]
+</h3>
+<p>
+The <b>zonesel</b> command <a href="../selection.html">selects</a> atoms
+and/or surfaces in <a href="atomspec.html"><i>other-spec</i></a> that are
+within a &nbsp;<i>cutoff</i>&nbsp; distance of the atoms and/or surfaces in 
+<a href="atomspec.html"><i>ref-spec</i></a>. A blank (omitted)
+<a href="atomspec.html"><i>other-spec</i></a> indicates &ldquo;all.&rdquo;
+Surface models can be specified by model number
+or as a <a href="../selection.html">selection</a> 
+(<a href="atomspec.html#othermodels">details...</a>).
+Although <a href="surface.html">molecular surfaces</a> can be included
+in the reference items (<a href="atomspec.html"><i>ref-spec</i></a>),
+their membership in the resulting zone is not evaluated directly,
+because patches in a solvent-excluded surface are only 
+<a href="../selection.html">selected</a> if the
+corresponding atoms are <a href="../selection.html">selected</a>.
+The <b>extend</b> keyword indicates that the reference items
+should also be selected.
+See also:
+<a href="select.html#newer"><b>select</b></a>,
+<a href="sop.html#zone"><b>sop zone</b></a>
+<!--
+<a href="atom_spec.html#zones">zone specifiers</a>,
+<a href="measure.html#distance"><b>measure distance</b></a>
+-->
+</p><p>
+Examples:
+</p>
+<blockquote><b>
+zonesel ligand 4.5 protein
+<br>
+zonesel #1.2 8
+<br>
+zonesel sel 5 extend
+</b></blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+January 2017</address>
+</body></html>

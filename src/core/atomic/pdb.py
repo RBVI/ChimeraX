@@ -28,16 +28,16 @@ def open_pdb(session, filename, name, *args, **kw):
         input = open(filename, 'rb')
         path = filename
 
-    explode = not kw.get('trajectory', False)
+    explode = not kw.get('coordset', False)
     from . import pdbio
     pointers = pdbio.read_pdb_file(input, log=session.logger, explode=explode)
     if input != filename:
         input.close()
 
-    smid = kw.get('autostyle', True)
+    smid = kw.get('auto_style', True)
     
     from .structure import AtomicStructure
-    models = [AtomicStructure(session, name = name, c_pointer = p, autostyle = smid) for p in pointers]
+    models = [AtomicStructure(session, name = name, c_pointer = p, auto_style = smid) for p in pointers]
 
     if path:
         for m in models:

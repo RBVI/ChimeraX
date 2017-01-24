@@ -66,6 +66,6 @@ setup(
         "ChimeraX :: Command :: ~ribbon :: General :: hide cartoon for selected residues",
         # "ChimeraX :: Command :: findclash :: General :: find clashes between atom pairs",
         "ChimeraX :: Command :: getcrd :: General :: report atomic coordinates",
-        "ChimeraX :: Command :: dumpspec :: General :: report what a specifier matches",
+        "ChimeraX :: Command :: debug :: General :: report what a specifier matches",
     ],
 )

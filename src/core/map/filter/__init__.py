@@ -9,7 +9,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .vopcommand import register_vop_command
+from .vopcommand import register_volume_filtering_subcommands
 from .gaussian import gaussian_convolve
 from .laplace import laplacian
 from .fourier import fourier_transform

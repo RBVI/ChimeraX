@@ -21,7 +21,7 @@ CATEGORY = toolshed.STRUCTURE
 class Structure(Model, StructureData):
 
     def __init__(self, session, *, name = "structure", c_pointer = None, restore_data = None,
-                 autostyle = True):
+                 auto_style = True):
         # Cross section coordinates are 2D and counterclockwise
         # Use C++ version of XSection instead of Python version
         from .molobject import RibbonXSection as XSection
@@ -31,9 +31,9 @@ class Structure(Model, StructureData):
        
         # attrs that should be saved in sessions, along with their initial values...
         self._session_attrs = {
-            'ball_scale': 0.3,		# Scales sphere radius in ball and stick style
-            'bond_radius': 0.2,
-            'pseudobond_radius': 0.05,
+            '_ball_scale': 0.3,		# Scales sphere radius in ball and stick style
+            '_bond_radius': 0.2,
+            '_pseudobond_radius': 0.05,
             #'_ribbon_selected_residues': Residues(),
         }
 
@@ -41,7 +41,7 @@ class Structure(Model, StructureData):
         for attr_name, val in self._session_attrs.items():
             setattr(self, attr_name, val)
         Model.__init__(self, name, session)
-        self._autostyle = autostyle
+        self._auto_style = auto_style
 
         # for now, restore attrs to default initial values even for sessions...
         self._atoms_drawing = None
@@ -85,7 +85,10 @@ class Structure(Model, StructureData):
         for handler in self._ses_handlers:
             t.remove_handler(handler)
         Model.delete(self)	# Delete children (pseudobond groups) before deleting structure
-        StructureData.delete(self)
+        if not self.deleted:
+            StructureData.delete(self)
+
+    deleted = StructureData.deleted
 
     def copy(self, name = None):
         '''
@@ -96,12 +99,12 @@ class Structure(Model, StructureData):
         if name is None:
             name = self.name
         m = self.__class__(self.session, name = name, c_pointer = StructureData._copy(self),
-                           autostyle = False)
+                           auto_style = False)
         m.positions = self.positions
         return m
 
     def added_to_session(self, session):
-        if self._autostyle:
+        if self._auto_style:
             color = self.initial_color(session.main_view.background_color)
             self.set_color(color)
 
@@ -194,7 +197,7 @@ class Structure(Model, StructureData):
 
     @staticmethod
     def restore_snapshot(session, data):
-        s = Structure(session, autostyle = False)
+        s = Structure(session, auto_style = False)
         s.set_state_from_snapshot(session, data)
         return s
 
@@ -217,6 +220,27 @@ class Structure(Model, StructureData):
     def reset_state(self, session):
         pass
 
+    def _get_ball_scale(self):
+        return self._ball_scale
+    def _set_ball_scale(self, scale):
+        self._ball_scale = scale
+        self._graphics_changed |= self._SHAPE_CHANGE
+    ball_scale = property(_get_ball_scale, _set_ball_scale)
+
+    def _get_bond_radius(self):
+        return self._bond_radius
+    def _set_bond_radius(self, radius):
+        self._bond_radius = radius
+        self._graphics_changed |= self._SHAPE_CHANGE
+    bond_radius = property(_get_bond_radius, _set_bond_radius)
+
+    def _get_pseudobond_radius(self):
+        return self._pseudobond_radius
+    def _set_pseudobond_radius(self, radius):
+        self._pseudobond_radius = radius
+        self._graphics_changed |= self._SHAPE_CHANGE
+    pseudobond_radius = property(_get_pseudobond_radius, _set_pseudobond_radius)
+    
     def initial_color(self, bg_color):
         from .colors import structure_color
         return structure_color(self.id, bg_color)
@@ -1746,7 +1770,7 @@ class AtomicStructure(Structure):
 
     @staticmethod
     def restore_snapshot(session, data):
-        s = AtomicStructure(session, autostyle = False)
+        s = AtomicStructure(session, auto_style = False)
         Structure.set_state_from_snapshot(s, session, data)
         return s
 

@@ -67,14 +67,13 @@ and their code location is described with the function descriptions.
 | `select`_ - Select objects
 | `set`_ - Set rendering effects (background color, silhouettes)
 | `show`_ - Show atoms, ribbons, models
-| `size`_ - Change atom or bond radii
 | `smoothlines`_ * - Smooth paths in line drawings
 | `snav`_ * - Enable space navigator input device
 | `sop`_ - Surface operations
 | `split`_ - Split atomic structures into pieces
 | `stop`_ - Stop motion
 | `struts`_ * - Add struts between atoms for 3d printing
-| `style`_ - Change atom display style
+| `style`_ - Change atom display style and sizes
 | `surface`_ - Compute a molecular surface
 | `sym`_ - Show molecular assemblies involving symmetry
 | `time`_ - Time a command
@@ -82,13 +81,11 @@ and their code location is described with the function descriptions.
 | `transparency`_ - Set transparency of atoms, ribbons and surfaces
 | `turn`_ - Rotate models
 | `view`_ - Move camera to view specified objects
-| `vive`_ * - Enable HTC Vive virtual reality headset
-| `volume`_ - Change density map display settings
-| `vop`_ - Filter density maps
+| `volume`_ - Change density map settings and filter maps
+| `vr`_ * - Enable virtual reality headset using SteamVR
 | `vseries`_ - Play density map time series
 | `wait`_ - Wait before executing next command
 | `windowsize`_ - Set or report graphics window size
-| `zonesel`_ - Select atoms or surfaces near other atoms or surfaces
 | `zoom`_ - Zoom in or out
 
 2dlabels
@@ -307,10 +304,6 @@ show
 ====
 .. autofunction:: chimerax.core.commands.show.show
 
-size
-====
-.. autofunction:: chimerax.core.commands.size.size
-
 snav
 ====
 .. autofunction:: chimerax.spacenavigator.snav.snav
@@ -318,11 +311,6 @@ snav
 smoothlines
 ===========
 .. autofunction:: chimerax.smooth_lines.smoothlines.smoothlines
-
-sop
-===
-.. automodule:: chimerax.core.commands.sop
-  :members:		
 
 split
 =====
@@ -372,18 +360,13 @@ view
 ====
 .. autofunction:: chimerax.core.commands.view.view
 
-vive
-====
-.. autofunction:: chimerax.vive.vive.vive
+vr
+==
+.. autofunction:: chimerax.vive.vr.vr
 
 volume
 ======
 .. autofunction:: chimerax.core.map.volumecommand.volume
-
-vop
-===
-.. automodule:: chimerax.core.map.filter.vopcommand
-  :members:		
 
 vseries
 =======
@@ -397,10 +380,6 @@ wait
 windowsize
 ==========
 .. autofunction:: chimerax.core.commands.windowsize.window_size
-
-zonesel
-=======
-.. autofunction:: chimerax.core.commands.zonesel.zonesel
 
 zoom
 ====

@@ -25,10 +25,10 @@ def register_core_commands(session):
         'lighting', 'list', 'material', 'mousemode', 'move',
         'open', 'pdbimages', 'perframe', 'position', 'pwd',
         'rainbow', 'rename', 'roll', 'run', 'rungs',
-        'save', 'sasa', 'scolor', 'select', 'set', 'show', 'size', 'sop', 'split',
+        'save', 'sasa', 'scolor', 'select', 'set', 'show', 'split',
         'stop', 'style', 'surface', 'sym',
         'time', 'toolshed', 'transparency', 'turn',
-        'usage', 'view', 'version', 'wait', 'windowsize', 'zonesel', 'zoom'
+        'usage', 'view', 'version', 'wait', 'windowsize', 'zoom'
     ]
     for mod in modules:
         m = import_module(".%s" % mod, __package__)
@@ -37,8 +37,6 @@ def register_core_commands(session):
     from .. import map
     map.register_volume_command()
     map.register_molmap_command()
-    from ..map import filter
-    filter.register_vop_command()
     from ..map import fit
     fit.register_fitmap_command()
     from ..map import series

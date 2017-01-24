@@ -180,3 +180,7 @@ def register_command(session):
     register('select clear', desc, select_clear)
 
     create_alias('~select', 'select subtract $*')
+
+    # Register "select zone" subcommand
+    from . import zonesel
+    zonesel.register_command(session)

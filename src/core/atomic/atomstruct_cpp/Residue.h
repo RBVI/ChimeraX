@@ -62,11 +62,11 @@ private:
     Atoms  _atoms;
     Chain*  _chain;
     ChainID  _chain_id;
-    ChainID  _mmcif_chain_id;
     char  _insertion_code;
     bool  _is_helix;
     bool  _is_het;
     bool  _is_strand;
+    ChainID  _mmcif_chain_id;
     ResName  _name;
     PolymerType  _polymer_type;
     int  _position;

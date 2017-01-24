@@ -14,7 +14,7 @@
 from chimerax.core.commands import register, CmdDesc, EnumOf, AtomSpecArg
 
 def initialize(command_name):
-    register("dumpspec", dumpspec_desc, dumpspec)
+    register(command_name, dumpspec_desc, dumpspec)
 
 def dumpspec(session, spec=None):
     if spec is None:

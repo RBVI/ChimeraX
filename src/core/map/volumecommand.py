@@ -91,6 +91,10 @@ def register_volume_command():
         ])
     register('volume', volume_desc, volume)
 
+    # Register volume subcommands for filtering operations.
+    from . import filter
+    filter.register_volume_filtering_subcommands()
+    
 # -----------------------------------------------------------------------------
 #
 def volume(session,
