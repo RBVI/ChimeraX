@@ -756,7 +756,7 @@ def common_startup(sess):
     commands.register_core_selectors(sess)
 
     register(
-        'sdump',
+        'debug sdump',
         CmdDesc(required=[('session_file', OpenFileNameArg)],
                 optional=[('output', SaveFileNameArg)],
                 synopsis="create human-readable session"),
