@@ -31,9 +31,9 @@ class Structure(Model, StructureData):
        
         # attrs that should be saved in sessions, along with their initial values...
         self._session_attrs = {
-            'ball_scale': 0.3,		# Scales sphere radius in ball and stick style
-            'bond_radius': 0.2,
-            'pseudobond_radius': 0.05,
+            '_ball_scale': 0.3,		# Scales sphere radius in ball and stick style
+            '_bond_radius': 0.2,
+            '_pseudobond_radius': 0.05,
             #'_ribbon_selected_residues': Residues(),
         }
 
@@ -217,6 +217,27 @@ class Structure(Model, StructureData):
     def reset_state(self, session):
         pass
 
+    def _get_ball_scale(self):
+        return self._ball_scale
+    def _set_ball_scale(self, scale):
+        self._ball_scale = scale
+        self._graphics_changed |= self._SHAPE_CHANGE
+    ball_scale = property(_get_ball_scale, _set_ball_scale)
+
+    def _get_bond_radius(self):
+        return self._bond_radius
+    def _set_bond_radius(self, radius):
+        self._bond_radius = radius
+        self._graphics_changed |= self._SHAPE_CHANGE
+    bond_radius = property(_get_bond_radius, _set_bond_radius)
+
+    def _get_pseudobond_radius(self):
+        return self._pseudobond_radius
+    def _set_pseudobond_radius(self, radius):
+        self._pseudobond_radius = radius
+        self._graphics_changed |= self._SHAPE_CHANGE
+    pseudobond_radius = property(_get_pseudobond_radius, _set_pseudobond_radius)
+    
     def initial_color(self, bg_color):
         from .colors import structure_color
         return structure_color(self.id, bg_color)
