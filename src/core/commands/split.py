@@ -191,7 +191,7 @@ def molecule_from_atoms(m, atoms, name = None):
 
     from ..atomic import AtomicStructure, Structure
     structure_class = AtomicStructure if isinstance(m, AtomicStructure) else Structure
-    cm = structure_class(m.session, name = (name or m.name), autostyle = False)
+    cm = structure_class(m.session, name = (name or m.name), auto_style = False)
     cm.ss_assigned = True
 #    cm.color = m.color
     cm.display = m.display
