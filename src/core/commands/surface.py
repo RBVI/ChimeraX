@@ -163,32 +163,37 @@ def surface(session, atoms = None, enclose = None, include = None,
 
 # -------------------------------------------------------------------------------------
 #
-def surface_show(session, atoms = None):
+def surface_show(session, objects = None):
     '''
     Show surface patches for atoms of existing surfaces.
 
     Parameters
     ----------
-    atoms : Atoms
-      Show surface patches for existing surfaces.
+    objects : Objects
+      Show atom patches for existing specified molecular surfaces or for specified atoms.
     '''
-    from ..atomic.molsurf import show_surfaces
-    atoms = check_atoms(atoms, session) # Warn if no atoms specifed
-    return show_surfaces(atoms, session.models)
+    from ..atomic import molsurf
+    sma = molsurf.show_atom_surface_patches(objects.atoms, session.models) if objects else []
+    sm = _molecular_surfaces(session, objects)
+    molsurf.show_surface_patches(sm)
+    return sma + sm
 
 # -------------------------------------------------------------------------------------
 #
-def surface_hide(session, atoms = None):
+def surface_hide(session, objects = None):
     '''
     Hide patches of existing surfaces for specified atoms.
 
     Parameters
     ----------
-    atoms : Atoms
+    objects : Objects
+      Hide atom patches for specified molecular surfaces or for specified atoms.
     '''
-    from ..atomic.molsurf import hide_surfaces
-    atoms = check_atoms(atoms, session) # Warn if no atoms specifed
-    return hide_surfaces(atoms, session.models)
+    from ..atomic import molsurf
+    sma = molsurf.hide_atom_surface_patches(objects.atoms, session.models) if objects else []
+    sm = _molecular_surfaces(session, objects)
+    molsurf.hide_surface_patches(sm)
+    return sma + sm
 
 # -------------------------------------------------------------------------------------
 #
@@ -199,18 +204,23 @@ def surface_close(session, objects = None):
     Parameters
     ----------
     objects : Objects
-      Close specified molecular surfaces including any surfaces computed using specified atoms.
+      Close specified molecular surfaces and surfaces for specified atoms.
     '''
-    from ..atomic.molsurf import close_surfaces, MolecularSurface
+    from ..atomic.molsurf import close_surfaces
+    close_surfaces(_molecular_surfaces(session, objects), session.models)
+    if objects:
+        close_surfaces(objects.atoms, session.models)
+        
+# -------------------------------------------------------------------------------------
+#
+def _molecular_surfaces(session, objects):
+    from ..atomic.molsurf import MolecularSurface
     if objects is None:
         surfs = session.models.list(type = MolecularSurface)
     else:
         surfs = [s for s in objects.models if isinstance(s, MolecularSurface)]
-    close_surfaces(surfs, session.models)
-
-    if objects:
-        close_surfaces(objects.atoms, session.models)
-
+    return surfs
+    
 # -------------------------------------------------------------------------------------
 #
 def unsurface(session, atoms = None):
@@ -242,12 +252,12 @@ def register_command(session):
     register('surface', surface_desc, surface)
 
     show_desc = CmdDesc(
-        optional = [('atoms', AtomsArg)],
+        optional = [('objects', ObjectsArg)],
         synopsis = 'Show patches of molecular surfaces')
     register('surface show', show_desc, surface_show)
 
     hide_desc = CmdDesc(
-        optional = [('atoms', AtomsArg)],
+        optional = [('objects', ObjectsArg)],
         synopsis = 'Hide patches of molecular surfaces')
     register('surface hide', hide_desc, surface_hide)
 
