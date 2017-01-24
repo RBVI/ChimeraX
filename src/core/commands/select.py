@@ -145,7 +145,10 @@ def _atoms_and_models(objects):
     from ..atomic import MolecularSurface, Structure
     for m in objects.models:
         if isinstance(m, MolecularSurface):
-            satoms.append(m.atoms)
+            if m.has_atom_patches():
+                satoms.append(m.atoms)
+            else:
+                models.append(m)
         elif not isinstance(m, Structure):
             models.append(m)
     if satoms:
