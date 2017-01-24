@@ -67,14 +67,13 @@ and their code location is described with the function descriptions.
 | `select`_ - Select objects
 | `set`_ - Set rendering effects (background color, silhouettes)
 | `show`_ - Show atoms, ribbons, models
-| `size`_ - Change atom or bond radii
 | `smoothlines`_ * - Smooth paths in line drawings
 | `snav`_ * - Enable space navigator input device
 | `sop`_ - Surface operations
 | `split`_ - Split atomic structures into pieces
 | `stop`_ - Stop motion
 | `struts`_ * - Add struts between atoms for 3d printing
-| `style`_ - Change atom display style
+| `style`_ - Change atom display style and sizes
 | `surface`_ - Compute a molecular surface
 | `sym`_ - Show molecular assemblies involving symmetry
 | `time`_ - Time a command
@@ -305,10 +304,6 @@ set
 show
 ====
 .. autofunction:: chimerax.core.commands.show.show
-
-size
-====
-.. autofunction:: chimerax.core.commands.size.size
 
 snav
 ====
