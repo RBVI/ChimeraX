@@ -25,7 +25,7 @@ def register_core_commands(session):
         'lighting', 'list', 'material', 'mousemode', 'move',
         'open', 'pdbimages', 'perframe', 'position', 'pwd',
         'rainbow', 'rename', 'roll', 'run', 'rungs',
-        'save', 'sasa', 'scolor', 'select', 'set', 'show', 'size', 'sop', 'split',
+        'save', 'sasa', 'scolor', 'select', 'set', 'show', 'size', 'split',
         'stop', 'style', 'surface', 'sym',
         'time', 'toolshed', 'transparency', 'turn',
         'usage', 'view', 'version', 'wait', 'windowsize', 'zonesel', 'zoom'

@@ -83,8 +83,7 @@ and their code location is described with the function descriptions.
 | `turn`_ - Rotate models
 | `view`_ - Move camera to view specified objects
 | `vive`_ * - Enable HTC Vive virtual reality headset
-| `volume`_ - Change density map display settings
-| `vop`_ - Filter density maps
+| `volume`_ - Change density map settings and filter maps
 | `vseries`_ - Play density map time series
 | `wait`_ - Wait before executing next command
 | `windowsize`_ - Set or report graphics window size
@@ -319,11 +318,6 @@ smoothlines
 ===========
 .. autofunction:: chimerax.smooth_lines.smoothlines.smoothlines
 
-sop
-===
-.. automodule:: chimerax.core.commands.sop
-  :members:		
-
 split
 =====
 .. autofunction:: chimerax.core.commands.split.split
@@ -379,11 +373,6 @@ vive
 volume
 ======
 .. autofunction:: chimerax.core.map.volumecommand.volume
-
-vop
-===
-.. automodule:: chimerax.core.map.filter.vopcommand
-  :members:		
 
 vseries
 =======

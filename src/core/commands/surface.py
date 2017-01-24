@@ -261,6 +261,10 @@ def register_command(session):
         synopsis = 'hide molecular surface')
     register('~surface', unsurface_desc, unsurface)
 
+    # Register surface operation subcommands.
+    from . import sop
+    sop.register_surface_subcommands(session)
+    
 def check_atoms(atoms, session):
     if atoms is None:
         from ..atomic import all_atoms
