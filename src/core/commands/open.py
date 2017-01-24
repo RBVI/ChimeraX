@@ -182,7 +182,7 @@ def open_formats(session):
 
 
 def register_command(session):
-    from . import CmdDesc, register, DynamicEnum, StringArg, BoolArg, OpenFileNameArg, NoArg
+    from . import CmdDesc, register, DynamicEnum, StringArg, BoolArg, OpenFileNameArg
 
     def formats():
         from .. import io
@@ -198,7 +198,7 @@ def register_command(session):
             ('format', DynamicEnum(formats)),
             ('name', StringArg),
             ('from_database', DynamicEnum(db_formats)),
-            ('ignore_cache', NoArg),
+            ('ignore_cache', BoolArg),
             ('autostyle', BoolArg),
             ('coordset', BoolArg),
             ('vseries', BoolArg),
