@@ -91,7 +91,7 @@ class ModelPlacesArg(Annotation):
         return mp, text, rest
 
 def register_command(session):
-    from . import CmdDesc, register, PlaceArg, ModelsArg, Or, NoArg, CoordSysArg
+    from . import CmdDesc, register, PlaceArg, ModelsArg, Or, CoordSysArg
     desc = CmdDesc(
         keyword=[('camera', PlaceArg),
                  ('models', ModelPlacesArg),
