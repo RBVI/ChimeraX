@@ -86,7 +86,6 @@ and their code location is described with the function descriptions.
 | `vseries`_ - Play density map time series
 | `wait`_ - Wait before executing next command
 | `windowsize`_ - Set or report graphics window size
-| `zonesel`_ - Select atoms or surfaces near other atoms or surfaces
 | `zoom`_ - Zoom in or out
 
 2dlabels
@@ -381,10 +380,6 @@ wait
 windowsize
 ==========
 .. autofunction:: chimerax.core.commands.windowsize.window_size
-
-zonesel
-=======
-.. autofunction:: chimerax.core.commands.zonesel.zonesel
 
 zoom
 ====

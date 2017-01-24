@@ -12,10 +12,10 @@
 # === UCSF ChimeraX Copyright ===
 
 # -----------------------------------------------------------------------------
-# Implementation of command "zonesel" that selects atoms or surfaces near
+# Implementation of select zone subcommand that selects atoms or surfaces near
 # other atoms or surfaces.
 #
-def zonesel(session, near, range, find = None, extend = False):
+def select_zone(session, near, range, find = None, extend = False):
     '''
     Select atoms or surfaces near other atoms or surfaces.
     The distance from a point to a surface is the minimum distance to
@@ -142,4 +142,4 @@ def register_command(session):
         keyword=[('extend', NoArg)],
         synopsis='Select atoms or surfaces near other atoms and surfaces'
     )
-    register('zonesel', desc, zonesel)
+    register('select zone', desc, select_zone)
