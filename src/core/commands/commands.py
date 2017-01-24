@@ -37,8 +37,6 @@ def register_core_commands(session):
     from .. import map
     map.register_volume_command()
     map.register_molmap_command()
-    from ..map import filter
-    filter.register_vop_command()
     from ..map import fit
     fit.register_fitmap_command()
     from ..map import series
