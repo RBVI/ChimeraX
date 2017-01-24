@@ -85,7 +85,10 @@ class Structure(Model, StructureData):
         for handler in self._ses_handlers:
             t.remove_handler(handler)
         Model.delete(self)	# Delete children (pseudobond groups) before deleting structure
-        StructureData.delete(self)
+        if not self.deleted:
+            StructureData.delete(self)
+
+    deleted = StructureData.deleted
 
     def copy(self, name = None):
         '''

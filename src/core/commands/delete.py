@@ -20,6 +20,7 @@ def delete(session, atoms):
         Delete these atoms.  If all atoms of a model are closed then the model is closed.
     '''
     atoms.delete()
+    session.models.close([s for s in session.models if s.deleted])
 
 
 def register_command(session):
