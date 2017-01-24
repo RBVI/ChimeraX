@@ -149,7 +149,7 @@ group_info = {
 }
 
 
-def find_group(group_desc, structures):
+def find_group(group_desc, structures, return_collection=False):
 	
 	if isinstance(group_desc, str):
 		try:
@@ -160,40 +160,36 @@ def find_group(group_desc, structures):
 		group_rep, group_principals = group_desc
 	
 	if callable(group_rep):
-		return group_rep(structures)
+		return group_rep(structures, return_collection)
 	
 	import os
 	num_cpus = os.cpu_count() if not None else 1
 	from ._chem_group import find_group as fg
-	from chimerax.core.atomic import Atoms, AtomicStructure
+	from chimerax.core.atomic import Atom, Atoms, AtomicStructure
 	groups = []
 	for structure in structures:
 		if not isinstance(structure, AtomicStructure):
 			continue
-		"""
-		groups.extend([Atoms(atom_ptrs) for atom_ptrs in
-			fg(structure.cpp_pointer, group_rep, group_principals, RingAtom, num_cpus)])
-		"""
 		from time import time
 		t0 = time()
-		grps = fg(structure.cpp_pointer, group_rep, group_principals, RingAtom, num_cpus)
+		grps = fg(structure.cpp_pointer, group_rep, group_principals, RingAtom, num_cpus,
+			return_collection)
 		t1 = time()
-		from chimerax.core.atomic import molarray
-		molarray.instrument_collection = True
-		collections = [Atoms(atom_ptrs, guaranteed_live_pointers = True) for atom_ptrs in grps]
-		molarray.instrument_collection = False
+		if return_collection:
+			# accumulate the numpy arrays to later be concatenated and turned into a Collection
+			groups.append(grps)
+		else:
+			from chimerax.core.atomic.molobject import object_map
+			groups.extend([[object_map(ptr, Atom) for ptr in ptrs] for ptrs in grps])
 		t2 = time()
-		groups.extend(collections)
-		t3 = time()
-		print("Call C++:", t1-t0)
-		print("Form collections:", t2-t1)
-		print(" 1:", molarray.accum_t[0])
-		print(" 2:", molarray.accum_t[1])
-		print(" 3:", molarray.accum_t[2])
-		print(" 4:", molarray.accum_t[3])
-		print(" 5:", molarray.accum_t[4])
-		print(" 6:", molarray.accum_t[5])
-		print("Extend groups:", t3-t2)
+	if return_collection:
+		import numpy
+		groups = Atoms(numpy.concatenate(groups))
+	t3 = time()
+	print("Call C++:", t1-t0)
+	print("Extend groups:", t2-t1)
+	print("Form collection if necesary:", t3-t2)
+	print("Overall:", t3-t0)
 	return groups
 '''
 	groups = []
