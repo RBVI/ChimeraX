@@ -42,7 +42,7 @@ def surface(session, atoms = None, enclose = None, include = None,
       Specifying a resolution value (Angstroms) causes the surface calculation
       to use a contour surface of a 3-d grid of a sum of Gaussians one centered
       at each atom instead of a solvent excluded surface.  See the molmap command
-      for details.
+      for details.  A resolution of 0 computes an SES surface.
     level : float
       Contour level for Gaussian surface in atomic number units.  Each Gaussian has
       height scaled by the atom atomic number.
@@ -73,9 +73,10 @@ def surface(session, atoms = None, enclose = None, include = None,
     probe = 1.4 if probe_radius is None else probe_radius
         
     if grid_spacing is None:
-        grid = 0.5 if resolution is None else 0.1 * resolution
+        grid = 0.5 if resolution is None or resolution <= 0 else 0.1 * resolution
     else:
         grid = grid_spacing
+    gridsp = grid_spacing if resolution is None else grid
 
     if sharp_boundaries is None:
         sharp = True if resolution is None else False
@@ -104,7 +105,7 @@ def surface(session, atoms = None, enclose = None, include = None,
                                      name, rgba, visible_patches, sharp)
                 new_surfs.append((s,m))
             else:
-                s.new_parameters(show_atoms, probe_radius, grid_spacing,
+                s.new_parameters(show_atoms, probe_radius, gridsp,
                                  resolution, level, visible_patches, sharp_boundaries)
                 update_color(s, color, transparency)
             surfs.append(s)
@@ -125,7 +126,7 @@ def surface(session, atoms = None, enclose = None, include = None,
                                  name, rgba, visible_patches, sharp)
             new_surfs.append((s,parent))
         else:
-            s.new_parameters(show_atoms, probe_radius, grid_spacing,
+            s.new_parameters(show_atoms, probe_radius, gridsp,
                              resolution, level, visible_patches, sharp_boundaries)
             update_color(s, color, transparency)
         surfs.append(s)
@@ -149,9 +150,9 @@ def surface(session, atoms = None, enclose = None, include = None,
     # TODO: Any Python error in the threaded call causes a crash when it tries
     #       to write an error message to the log, not in the main thread.
 
-    if not resolution is None and level is None:
+    if not resolution is None and resolution > 0 and level is None:
         log = session.logger
-        log.info('\n'.join('%s contour level %.1f' % (s.name, s.gaussian_level)
+        log.info('\n'.join('%s contour level %.3f' % (s.name, s.gaussian_level)
                            for s in surfs))
             
     # Add new surfaces to open models list.

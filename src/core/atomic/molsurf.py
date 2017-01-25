@@ -107,7 +107,7 @@ class MolecularSurface(Model):
             self.grid_spacing = grid_spacing
             shape_change = True
         if resolution is not None and resolution != self.resolution:
-            self.resolution = resolution
+            self.resolution = None if resolution <= 0 else resolution
             shape_change = True
         if level is not None and level != self.level:
             self.level = level
