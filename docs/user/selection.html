@@ -47,7 +47,6 @@ chosen by the user:
     <li>Shift-Ctrl-click to add/subtract (toggle)
     </ul>
   <li>with the <a href="commands/select.html"><b>select</b></a> command
-  <li>with the <a href="commands/zonesel.html"><b>zonesel</b></a> command
   <li>with various other commands and tools
   </ul>
 <li>can be broadened with the up arrow key, narrowed with the down arrow key,
@@ -57,6 +56,19 @@ within selection cascade:
    atom &harr; residue &harr; all atoms with same chain ID &harr; atomic model
   </ul>
 </ul>
+<p>
+Selecting a standard <a href="commands/surface.html">molecular surface</a>
+automatically also selects the atoms used to define it.
+If the whole surface model is selected, all of the atoms used to define
+that surface are selected, even atoms that are completely buried.
+Typically all of the atoms in a biopolymer chain are used
+to define a surface, but other sets of atoms can be specified with the
+<a href="commands/surface.html"><b>surface</b></a> command.
+If a surface patch is selected 
+<a href="commands/mousemode.html">with the mouse</a>,
+only the atom(s) directly contributing to that patch are selected.
+Conversely, selecting an atom selects its surface patch(es).
+</p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /

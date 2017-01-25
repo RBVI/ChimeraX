@@ -30,8 +30,8 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>open</b> &nbsp;<i>filename</i> 
 [&nbsp;format&nbsp;&nbsp;<a href="#local"><i>format-name</i></a>&nbsp;]
-[&nbsp;trajectory&nbsp;]
-[&nbsp;series&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;coordset&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;vseries&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>alignment</b>&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#options"><i>general-options</i></a>
 </h3>
@@ -40,8 +40,8 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<a href="#fetch"><i>prefix</i></a>:]<i>identifier</i>&nbsp;
 [&nbsp;fromDatabase&nbsp;&nbsp;<a href="#fetch"><i>source</i></a>&nbsp;]
 [&nbsp;format&nbsp;&nbsp;<a href="#fetch"><i>format-name</i></a>&nbsp;]
-[&nbsp;trajectory&nbsp;]
-[&nbsp;ignoreCache&nbsp;]
+[&nbsp;coordset&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;ignoreCache&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#options"><i>general-options</i></a>
 </h3>
 <p>
@@ -70,17 +70,22 @@ will be generated automatically unless specified by the user with the
 <a href="#options"><b>name</b></a> option.
 </p><p>
 Examples:
+</p>
 <blockquote>
 <b>open ~/Desktop/maps/myfile.mrc name refined3</b>
 <br>
 <b>open 2gbp</b>
 <br>
-<b>open 1plx format pdb traj</b>
+<b>open 1plx format pdb coordset T</b>
 <br>
 <b>open emdb:3087</b>
 <br>
 <b>open 3237 from emdb name "gamma-secretase complex"</b>
 </blockquote>
+<p>
+Option keywords and Boolean (truth) values can be truncated, with
+synonyms for true: True, 1, and synonyms for false: False, 0.
+A vertical bar &ldquo;|&rdquo; designates mutually exclusive values.
 </p>
 
 <a name="local"></a>
@@ -92,8 +97,8 @@ Examples:
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>open</b> &nbsp;<i>filename</i> 
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#local"><i>format-name</i></a>&nbsp;]
-[&nbsp;<b>trajectory</b>&nbsp;]
-[&nbsp;<b>series</b>&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>coordset</b>&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>vseries</b>&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>alignment</b>&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#options"><i>general-options</i></a>
 </blockquote>
@@ -113,13 +118,14 @@ the <b>format</b> option (where <i>format-name</i> can be truncated).
 Files that are gzipped, as indicated by their additional .gz suffix, 
 can also be read.
 </p><p>
-A multi-model file in PDB format can be opened as a trajectory 
-(for sequential playback with <a href="coordset.html"><b>coordset</b></a>)
-with the <b>trajectory</b> option.
+A multi-model file in PDB format can be opened as a trajectory with 
+<b>coordset true</b> (default <b>false</b>). Only one frame of a trajectory
+is shown at a time, and different frames can be shown or played back 
+sequentially with the <a href="coordset.html"><b>coordset</b></a> command.
 </p><p>
 When multiple maps with the same grid dimensions are opened 
 in a single command (multiple files specified with wild cards or globbing, 
-or a single multi-map file), the <b>series</b> option can be used to enforce 
+or a single multi-map file), the <b>vseries</b> option can be used to enforce 
 loading them as a series for playback with 
 <a href="vseries.html"><b>vseries</b></a> or the associated slider
 (if <b>true</b>), or as independent models (if <b>false</b>).
@@ -322,8 +328,8 @@ use <a href="help.html"><b>help</b></a> instead of <b>open</b></td>
 [&nbsp;<a href="#fetch"><i>prefix</i></a>:]<i>identifier</i>&nbsp;
 [&nbsp;<b>fromDatabase</b>&nbsp;&nbsp;<a href="#fetch"><i>source</i></a>&nbsp;]
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#fetch"><i>format-name</i></a>&nbsp;]
-[&nbsp;<b>trajectory</b>&nbsp;]
-[&nbsp;<b>ignoreCache</b>&nbsp;]
+[&nbsp;<b>coordset</b>&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>ignoreCache</b>&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<a href="#options"><i>general-options</i></a>
 </blockquote>
 <p>
@@ -336,9 +342,10 @@ target="_blank">RCSB Protein Data Bank</a>; the default format
 for that database is <b>mmcif</b>, although <b>pdb</b> or <b>mmtf</b>
 can be specified with the <b>format</b> option.
 </p><p>
-A multi-model file in PDB format can be opened as a trajectory 
-(for sequential playback with <a href="coordset.html"><b>coordset</b></a>)
-with the <b>trajectory</b> option.
+A multi-model file in PDB format can be opened as a trajectory with 
+<b>coordset true</b> (default <b>false</b>). Only one frame of a trajectory
+is shown at a time, and different frames can be shown or played back 
+sequentially with the <a href="coordset.html"><b>coordset</b></a> command.
 </p><p>
 Web-fetched data are stored locally in <b>~/Downloads/ChimeraX/</b> 
 (where ~ indicates a user's home directory), with subdirectories
@@ -347,8 +354,8 @@ Web-fetched data are stored locally in <b>~/Downloads/ChimeraX/</b>
 <td align="center"><a href="http://www.ebi.ac.uk/pdbe/emdb/"
 target="_blank">Electron Microscopy Data Bank</a>, <i>etc.</i>
 For caching, no distinction is made among the different Protein Data Bank sites.
-If a data file specified for opening is not found in this local cache
-or <b>ignoreCache</b> is used, the file will be fetched and cached. 
+If a data file specified for opening is not found in this local cache or 
+<b>ignoreCache</b> is set to <b>true</b>, the file will be fetched and cached. 
 <!--
 ChimeraX preferences, command history, file history, and package installation 
 files are stored in a standard platform-dependent location
