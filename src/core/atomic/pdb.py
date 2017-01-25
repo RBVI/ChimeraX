@@ -34,10 +34,10 @@ def open_pdb(session, filename, name, *args, **kw):
     if input != filename:
         input.close()
 
-    smid = kw.get('autostyle', True)
+    smid = kw.get('auto_style', True)
     
     from .structure import AtomicStructure
-    models = [AtomicStructure(session, name = name, c_pointer = p, autostyle = smid) for p in pointers]
+    models = [AtomicStructure(session, name = name, c_pointer = p, auto_style = smid) for p in pointers]
 
     if path:
         for m in models:

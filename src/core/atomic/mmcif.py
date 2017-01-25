@@ -44,10 +44,10 @@ def open_mmcif(session, filename, name, *args, **kw):
         lambda name, session=session: _get_template(session, name))
     pointers = _mmcif.parse_mmCIF_file(filename, _additional_categories, session.logger)
 
-    smid = kw.get('autostyle', True)
+    smid = kw.get('auto_style', True)
 
     from .structure import AtomicStructure
-    models = [AtomicStructure(session, name = name, c_pointer = p, autostyle = smid) for p in pointers]
+    models = [AtomicStructure(session, name = name, c_pointer = p, auto_style = smid) for p in pointers]
     for m in models:
         m.filename = filename
 

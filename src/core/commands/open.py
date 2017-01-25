@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def open(session, filename, format=None, name=None, from_database=None, ignore_cache=False,
-         autostyle = True, coordset = False, vseries = None, **kw):
+         auto_style = True, coordset = False, vseries = None, **kw):
     '''Open a file.
 
     Parameters
@@ -33,7 +33,7 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
     ignore_cache : bool
         Whether to fetch files from cache.  Fetched files are always written
         to cache.
-    autostyle : bool
+    auto_style : bool
         Whether to display molecules with rich styles and colors.
     coordset : bool
         Whether to read a PDB format multimodel file as coordinate sets (true)
@@ -61,7 +61,7 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
             if format is None:
                 format = 'mmcif'
 
-    kw.update({'autostyle': autostyle,
+    kw.update({'auto_style': auto_style,
                'coordset': coordset,
                'vseries': vseries})
 
@@ -199,7 +199,7 @@ def register_command(session):
             ('name', StringArg),
             ('from_database', DynamicEnum(db_formats)),
             ('ignore_cache', BoolArg),
-            ('autostyle', BoolArg),
+            ('auto_style', BoolArg),
             ('coordset', BoolArg),
             ('vseries', BoolArg),
             # ('id', ModelIdArg),

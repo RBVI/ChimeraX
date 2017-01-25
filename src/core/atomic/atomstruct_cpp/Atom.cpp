@@ -126,11 +126,11 @@ Atom::_coordset_set_coord(const Point &coord, CoordSet *cs)
         }
         cs->add_coord(coord);
         graphics_container()->set_gc_shape();
-	graphics_container()->set_gc_ribbon();
+        graphics_container()->set_gc_ribbon();
     } else {
         cs->_coords[_coord_index] = coord;
         graphics_container()->set_gc_shape();
-	graphics_container()->set_gc_ribbon();
+        graphics_container()->set_gc_ribbon();
     }
 }
 
