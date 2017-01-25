@@ -18,14 +18,15 @@ def register_core_commands(session):
     # abbreviated, the first one registered that matches wins, not
     # the first in alphabetical order.
     modules = [
-        'alias', 'align', 'buriedarea',
+        'alias', 'align',
         'camera', 'cartoon', 'cd', 'clip', 'close', 'cofr', 'color', 'colorname',
         'coordset', 'crossfade',
         'delete', 'dssp', 'exit', 'hide', 'info',
-        'lighting', 'list', 'material', 'mousemode', 'move',
+        'lighting', 'list',
+        'material', 'measure_buriedarea', 'measure_sasa', 'mousemode', 'move',
         'open', 'pdbimages', 'perframe', 'position', 'pwd',
         'rainbow', 'rename', 'roll', 'run', 'rungs',
-        'save', 'sasa', 'scolor', 'select', 'set', 'show', 'split',
+        'save', 'scolor', 'select', 'set', 'show', 'split',
         'stop', 'style', 'surface', 'sym',
         'time', 'toolshed', 'transparency', 'turn',
         'usage', 'view', 'version', 'wait', 'windowsize', 'zoom'

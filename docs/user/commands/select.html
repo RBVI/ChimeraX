@@ -19,6 +19,8 @@ or derivations thereof.
 </head><body>
 
 <a name="top"></a>
+<a name="clear"></a>
+<a name="zone"></a>
 <a href="../index.html">
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
 class="clRight" title="User Guide Index"/></a>
@@ -30,14 +32,22 @@ class="clRight" title="User Guide Index"/></a>
 </h3>
 
 <h3><a href="usageconventions.html">Usage</a>:
-<BR><b>select</b> (&nbsp;add&nbsp;|&nbsp;subtract&nbsp;|&nbsp;intersect&nbsp;) 
+<br><b>select</b> (&nbsp;add&nbsp;|&nbsp;subtract&nbsp;|&nbsp;intersect&nbsp;) 
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a></h3>
 
 <h3><a href="usageconventions.html">Usage</a>:
-<BR><b>~select</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a></h3>
+<br><b>~select</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a></h3>
 
 <h3><a href="usageconventions.html">Usage</a>:
-<BR><b>select</b> clear
+<br><b>select clear</b>
+</h3>
+
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>select zone</b>
+&nbsp;<a href="atomspec.html"><i>ref-spec</i></a>
+&nbsp;<i>cutoff</i>&nbsp;
+[&nbsp;<a href="atomspec.html"><i>other-spec</i></a>&nbsp;]
+[&nbsp;<b>extend</b>&nbsp;]
 </h3>
 <p>
 A <a href="../selection.html">selection</a>
@@ -45,8 +55,8 @@ specifies items (models or their parts) for subsequent operations
 and is shown with green outlines in the graphics window.
 The <b>select</b> command makes a new selection or modifies
 an existing selection. See also: 
-<a href="zonesel.html"><b>zonesel</b></a>,
-<a href="mousemode.html"><b>mousemode</b></a>
+<a href="mousemode.html"><b>mousemode</b></a>,
+<a href="surface.html#zone"><b>surface zone</b></a>
 <p>
 If used without an <b>add</b>, <b>subtract</b>, or <b>intersect</b> keyword,
 the <b>select</b> command replaces any previous selection with a new selection 
@@ -69,17 +79,30 @@ The <b>~select</b> command can be used to deselect specified items
 (like <b>select subtract</b>) or with a blank specification
 to deselect everything (like <b>select clear</b>).
 </p><p>
-Selecting a <a href="surface.html">molecular surface</a>
-automatically also selects the atoms used to define it.
-If the whole surface model is selected, all of the atoms used to define
-that surface are selected, even atoms that are completely buried.
-Typically all of the atoms in a biopolymer chain are used to define a surface,
-but other sets of atoms can be <a href="surface.html#grouping">specified</a>.
-If a surface patch is selected <a href="mousemode.html">with the mouse</a>,
-only the atom(s) directly contributing to that patch are selected.
+The <b>select zone</b> command selects atoms
+and/or surfaces in <a href="atomspec.html"><i>other-spec</i></a> that are
+within a &nbsp;<i>cutoff</i>&nbsp; distance of the atoms and/or surfaces in 
+<a href="atomspec.html"><i>ref-spec</i></a>. A blank (omitted)
+<a href="atomspec.html"><i>other-spec</i></a> indicates &ldquo;all.&rdquo;
+Surface models can be specified by model number or as a selection
+(<a href="atomspec.html#othermodels">details...</a>).
+Although <a href="surface.html">molecular surfaces</a> can be included
+in the reference items (<a href="atomspec.html"><i>ref-spec</i></a>),
+their membership in the resulting zone is not evaluated directly
+because their <a href="../selection.html">selection</a>
+is tied to that of the corresponding atoms.
+The <b>extend</b> keyword indicates that the reference items
+should also be selected. Examples:
 </p>
+<blockquote><b>
+select zone ligand 4.5 protein
+<br>
+sel zone #1.2 8
+<br>
+sel zone sel 5 extend
+</b></blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2016</address>
+January 2017</address>
 </body></html>

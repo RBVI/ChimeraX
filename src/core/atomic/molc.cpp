@@ -1836,6 +1836,33 @@ extern "C" EXPORT void set_residue_ribbon_adjust(void *residues, size_t n, float
     error_wrap_array_set(r, n, &Residue::set_ribbon_adjust, ribbon_adjust);
 }
 
+extern "C" EXPORT void residue_ribbon_selected(void *residues, size_t n, npy_bool *sel)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_get<Residue, bool, npy_bool>(r, n, &Residue::ribbon_selected, sel);
+}
+
+extern "C" EXPORT void set_residue_ribbon_selected(void *residues, size_t n, npy_bool *sel)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_set<Residue, bool, npy_bool>(r, n, &Residue::set_ribbon_selected, sel);
+}
+
+extern "C" EXPORT size_t residue_ribbon_num_selected(void *residues, size_t n)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    size_t s = 0;
+    try {
+        for (size_t i = 0; i != n; ++i)
+            if (r[i]->ribbon_selected())
+                s += 1;
+        return s;
+    } catch (...) {
+        molc_error();
+        return 0;
+    }
+}
+
 extern "C" EXPORT void residue_structure(void *residues, size_t n, pyobject_t *molp)
 {
     Residue **r = static_cast<Residue **>(residues);

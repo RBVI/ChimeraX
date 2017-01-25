@@ -146,6 +146,7 @@ class HelixCylinder:
         self.coords = coords
         self.maxiter = maxiter
         self._centers = None
+        self._directions = None
         self._normals = None
         self._surface = None
         if len(coords) < self.MIN_CURVE_LENGTH:
@@ -194,6 +195,23 @@ class HelixCylinder:
             self._centers = self.centroid + outer(d, self.axis)
         return self._centers
 
+    def cylinder_directions(self):
+        """Return array for the direction vectors.
+
+        The returned array are the direction of the cylinder
+        corresponding to the given atomic coordinates."""
+        if self._directions is not None:
+            return self._directions
+        from numpy import tile, cross, newaxis
+        from numpy.linalg import norm
+        if self.curved:
+            centers = self.cylinder_centers()
+            dv = cross(centers - self.center, self.axis)
+            self._directions = dv / norm(dv, axis=1)[:, newaxis]
+        else:
+            self._directions = tile(self.axis, (len(self.coords), 1))
+        return self._directions
+
     def cylinder_normals(self):
         """Return tuple of two arrays for the normals and binormals.
 
@@ -218,19 +236,16 @@ class HelixCylinder:
         return self._normals
 
     def cylinder_surface(self):
-        """Return (array of points, array of normals) on cylinder surface.
+        """Return array of points on cylinder surface.
         
         The returned points are the nearest points on the cylinder
-        surface nearest the given atomic coordinates.
-        The returned normals are perpendicular to both the cylinder
-        center and the line of projection from the atomic coordinates
-        to the cylinder center line."""
+        surface nearest the given atomic coordinates."""
         if self._surface is not None:
             return self._surface
         from numpy import newaxis
         from numpy.linalg import norm
         centers = self.cylinder_centers()
-        deltas = self.coords - centers
+        delta = self.coords - centers
         uv = delta / norm(delta, axis=1)[:, newaxis]
         if self.curved:
             self._surface = centers + uv * self.minor_radius

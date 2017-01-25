@@ -32,11 +32,11 @@ class _MyAPI(BundleAPI):
     @staticmethod
     def register_command(command_name):
         # 'register_command' is lazily called when command is referenced
-        from . import cmd
-        from chimerax.core.commands import register, create_alias
         if command_name == "echo":
+            from chimerax.core.commands import create_alias
             create_alias("echo", "log text $*")
-            return
-        register(command_name, cmd.log_desc, cmd.log)
+        elif command_name == "log":
+            from . import cmd
+            cmd.register_log_command()
 
 bundle_api = _MyAPI()

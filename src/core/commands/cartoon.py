@@ -44,6 +44,7 @@ _XSectionMap = {
 _ModeMap = {
     "default": Structure.RIBBON_MODE_DEFAULT,
     "tube": Structure.RIBBON_MODE_ARC,
+    "wrap": Structure.RIBBON_MODE_WRAP,
 }
 _XSInverseMap = dict([(v, k) for k, v in _XSectionMap.items()])
 

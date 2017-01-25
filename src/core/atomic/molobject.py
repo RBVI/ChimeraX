@@ -232,7 +232,7 @@ class Atom:
         ai[:] = u6
         f(self._c_pointer_ref, 1, pointer(ai))
     aniso_u6 = property(_get_aniso_u6, _set_aniso_u6)
-        
+
     def delete(self):
         '''Delete this Atom from it's Structure'''
         f = c_function('atom_delete', args = (ctypes.c_void_p, ctypes.c_size_t))
@@ -346,7 +346,7 @@ class Bond:
     '''Whether bond is display and not hidden. Read only.'''
     length = c_property('bond_length', float32, read_only = True)
     '''Bond length. Read only.'''
-    
+
     def other_atom(self, atom):
         '''Return the :class:`Atom` at the other end of this bond opposite
         the specified atom.'''
@@ -425,7 +425,7 @@ class Pseudobond:
         v = a1.scene_coord - a2.scene_coord
         from math import sqrt
         return sqrt((v*v).sum())
-    
+
     def other_atom(self, atom):
         '''Return the :class:`Atom` at the other end of this bond opposite
         the specified atom.'''
@@ -1110,7 +1110,7 @@ def try_assoc(session, seq, sseq, assoc_params, *, max_errors = 6):
 
        The return value is a 2-tuple, consisting of a :py:class:`SeqMatchMap` instance describing
        the association, and the number of errors encountered.
-       
+
        An unsuccessful association throws StructAssocError.
     '''
     f = c_function('sseq_try_assoc', args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t,
@@ -1276,6 +1276,8 @@ class StructureData:
     '''Default ribbon mode showing secondary structure with ribbons.'''
     RIBBON_MODE_ARC = 1
     '''Ribbon mode showing secondary structure as an arc (tube or plank).'''
+    RIBBON_MODE_WRAP = 2
+    '''Ribbon mode showing helix as ribbon wrapped around tube.'''
     ss_assigned = c_property('structure_ss_assigned', npy_bool, doc =
         "Has secondary structure been assigned, either by data in original structure file "
         "or by some algorithm (e.g. dssp command)")
@@ -1687,7 +1689,7 @@ class RibbonXSection:
 # they have no persistence in the C++ layer
 class SeqMatchMap:
     """Class to track the matching between an alignment sequence and a structure sequence
-    
+
        The match map can be indexed by either an integer (ungapped) sequence position,
        or by a Residue, which will return a Residue or a sequence position, respectively.
        The pos_to_res and res_to_pos attributes return dictionaries of the corresponding

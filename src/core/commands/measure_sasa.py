@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def sasa(session, atoms = None, probe_radius = 1.4, sum = None):
+def measure_sasa(session, atoms = None, probe_radius = 1.4, sum = None):
     '''
     Compute solvent accessible surface area.
 
@@ -51,4 +51,4 @@ def register_command(session):
         keyword = [('probe_radius', FloatArg),
                    ('sum', AtomsArg)],
         synopsis = 'compute solvent accessible surface area')
-    register('sasa', _sasa_desc, sasa)
+    register('measure sasa', _sasa_desc, measure_sasa)

@@ -44,6 +44,7 @@ and their code location is described with the function descriptions.
 | `list`_ - List open models
 | `log`_ * - Clear or save the log
 | `material`_ - Change surface material light reflection properties
+| `measure`_ - Calculate properties of models
 | `mlp`_ * - Color surfaces by molecular lipophilicity
 | `molmap`_ - Calculate a density map from atoms
 | `mousemode`_ - Set mouse modes
@@ -61,7 +62,6 @@ and their code location is described with the function descriptions.
 | `roll`_ - Rotate models
 | `run`_ - Run a user command string
 | `rungs`_ - Display nucleotides as cylinders
-| `sasa`_ - Compute solvent accessible surface area
 | `save`_ - Save sessions, images, density maps...
 | `scolor`_ - Color surfaces
 | `select`_ - Select objects
@@ -203,6 +203,10 @@ material
 ========
 .. autofunction:: chimerax.core.commands.material.material
 
+sasa
+====
+.. autofunction:: chimerax.core.commands.measure_sasa.measure_sasa
+
 mlp
 ===
 Function found in *chimerax.mlp.mlp*
@@ -279,10 +283,6 @@ run
 rungs
 =====
 .. autofunction:: chimerax.core.commands.rungs.rungs
-
-sasa
-====
-.. autofunction:: chimerax.core.commands.sasa.sasa
 
 save
 ====

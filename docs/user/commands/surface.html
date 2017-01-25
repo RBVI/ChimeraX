@@ -33,34 +33,35 @@ class="clRight" title="User Guide Index"/></a>
 &nbsp;<a href="atomspec.html"><i>atom-spec3</i></a>&nbsp;]
 [&nbsp;replace&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;probeRadius&nbsp;<i>rad</i>&nbsp;]
+[&nbsp;resolution&nbsp;<i>r</i>&nbsp; [&nbsp;level&nbsp;<i>l</i>&nbsp;]]
 [&nbsp;gridSpacing&nbsp;<i>s</i>&nbsp;]
 [&nbsp;sharpBoundaries&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;visiblePatches&nbsp;<i>N</i>&nbsp;] 
-[&nbsp;resolution&nbsp;<i>r</i>&nbsp; [&nbsp;level&nbsp;<i>l</i>&nbsp;]]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
- <br><b>surface</b> (&nbsp;<b>hide</b>&nbsp;|&nbsp;<b>show</b>&nbsp;)
+<br><b>surface</b> (&nbsp;<b>hide</b>&nbsp;|&nbsp;<b>show</b>&nbsp;|&nbsp;<b>close</b>&nbsp;)
 &nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>
- <br><b>surface</b> <b>close</b>
-&nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>
- <br><b>surface</b> <b>close</b> 
+</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>surface</b> (&nbsp;<b>hide</b>&nbsp;|&nbsp;<b>show</b>&nbsp;|&nbsp;<b>close</b>&nbsp;)
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>
 </h3>
 <p>
 The <b>surface</b> command creates and displays molecular surfaces,
-either atomically detailed solvent-excluded surfaces (default) or
-lower-resolution Gaussian surfaces specified with the 
-<a href="#parameters"><b>resolution</b></a> option.
-A <b><i>solvent-excluded</i></b> surface (SES) is
+either atomically detailed solvent-excluded surfaces (SES, default) or
+lower-resolution Gaussian surfaces (GS).
+A <b><i>solvent-excluded surface</i></b> is
 composed of the contact, toroidal, and reentrant surfaces of a probe sphere 
 rolled over the atomic <a href="../radii.html">VDW spheres</a>. By contrast,
-a <b><i>solvent-accessible</i></b> surface (SAS, not shown by ChimeraX)
-is the surface traced out by the center of the probe sphere.
+a <b><i>solvent-accessible surface</i></b> (not shown by ChimeraX)
+is the surface traced out by the center of the probe sphere. 
+<!--
 See below for <a href="#options">surface creation options</a> and
-<a href="#examples">examples</a>. See also:
+<a href="#examples">examples</a>.
+-->
+See also:
 <a href="show.html"><b>show</b></a>,
 <a href="color.html"><b>color</b></a>,
-<a href="sop.html"><b>sop</b></a>,
 <a href="sasa.html"><b>sasa</b></a>,
 <a href="buriedarea.html"><b>buriedarea</b></a>,
 <a href="sym.html"><b>sym</b></a>,
@@ -71,49 +72,71 @@ See below for <a href="#options">surface creation options</a> and
 <img class="icon" border=1 src="../tools/shortcut-icons/surfshow.png"></a>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/surfhide.png"></a>
+
+<ul>
+<li>A solvent-excluded surface consists of atomic patches
+that can be controlled (hidden, shown, <i>etc.</i>) independently
+by specifying the corresponding atoms.
+An SES can also be specified by its model number to enable/disable display
+as a whole without changing the display of its atomic patches
+(see <a href="../hierarchy.html">hierarchy</a>). 
+SES <a href="../selection.html">selection</a>
+is tied to that of the corresponding atoms.
+<li>A Gaussian surface
+is indicated with the <a href="#parameters"><b>resolution</b></a> option
+and can only be controlled as a whole, by specifying 
+either the atoms used in its calculation or its own model number.
+<!-- don't bake this distinction in too much as it may change; 
+ currently can get GS patches by replacing SES with GS -->
+<!-- confusing that 1gcn GS can be displayed with surf :tyr, show :tyr targ s,
+but not surf show :tyr, only surf show or surf show protein -->
+</ul>
+<p>
+By default, the surfaces are made to <a href="#grouping">enclose</a>
+only the residues in biopolymer chains, grouped by chain ID. 
+Typically, this gives a separate molecular surface for each peptide
+or nucleic acid chain, and specifying a subset of the atoms in the chain
+will show/hide SES patches within the context of
+the entire chain; for example, no patches will be shown
+for atoms that are completely buried inside the chain.
 </p><p>
-With <a href="atomspec.html"><i>atom-spec1</i></a>,
-display can be controlled for entire molecular surfaces on down to
-individual atom or residue patches within a molecular surface;
-see the <a href="#examples">examples</a>.
-By default, molecular surfaces are generated to enclose only the residues
-in biopolymer chains, grouped by chain ID.
-Typically, this gives a separate 
-molecular surface for each peptide or nucleic acid chain.
-If only a subset of the atoms in a chain is specified, only the 
-surface patches for those atoms in the context of the chain will be shown.
-The command <b>surface</b> with the <b>hide</b> keyword
-undisplays molecular surface patches for the specified atoms;
-the <b>show</b> keyword indicates displaying patches for the specified atoms
-in <i>pre-existing</i> surfaces only.
-The command <b>surface</b> with the <b>close</b> keyword removes all surface
-models that enclose any of the specified atoms, 
-or removes the specified <i>surf-model</i>.
-<!--
-The <b>surface</b> command (without <b>show</b>) will also use a pre-existing
-surface, if available, unless different calculation parameters are specified;
-thus any pre-existing surface for the same set of atoms should be closed first
-if the goal is to generate a new surface with default parameters.
--->
-</p><p>
-<a name="modelnumbers"></a>
-By default, each biopolymer chain in an atomic model
-will give rise to a separate surface model.
-Molecular surface models are treated as &ldquo;children&rdquo; 
-of the corresponding atomic model.
-For example, surface models based on atoms in model #1 
-will be numbered #1.1, 1.2, <i>etc.</i>, 
-and closing #1 will also close those surface models.
-However, if a single surface model is based on atoms from more than one model
-(for example, generated with <b>surf enclose #1,2</b>), it will be assigned 
-a number at the same level as the atomic models (for example, #3).
+The <b>surface show</b> command applies to <i>pre-existing</i> surfaces only,
+whereas <b>surface</b> (without <b>show</b>) creates a new surface as needed.
+<!-- still unclear to me exactly what this entails -->
+However, if the intent is to switch between surface types (SES and GS)
+or to create a new surface with default parameters, 
+closing an existing surface first is recommended, otherwise
+some of its settings may be retained.
+The <b>surface close</b> command removes the surface models specified directly,
+or all surface models that enclose any of the specified atoms.
 </p>
+
+<ul class="none">
+<li><a href="#options">Surface Creation Options</a>
+<li><a href="#examples">Examples</a>
+<li><a href="#sop">Surface Operations</a>
+<li><a href="#notes">Technical Notes</a>
+</ul>
 
 <a name="options"></a>
 <p class="nav">
 [<a href="#top">back to top</a>]
 </p>
 <h3>Surface Creation Options</h3>
+
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>surface</b>
+&nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>&nbsp;
+[&nbsp;<b>enclose</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>&nbsp;]
+[&nbsp;<b>include</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec3</i></a>&nbsp;]
+[&nbsp;<b>replace</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>probeRadius</b>&nbsp;&nbsp;<i>rad</i>&nbsp;]
+[&nbsp;<b>resolution</b>&nbsp;&nbsp;<i>r</i>&nbsp;[&nbsp;<b>level</b>&nbsp;<i>l</i>&nbsp;]]
+[&nbsp;<b>gridSpacing</b>&nbsp;&nbsp;<i>s</i>&nbsp;]
+[&nbsp;<b>sharpBoundaries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>visiblePatches</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+</blockquote>
 <p>
 Option keywords for <a href="#top"><b>surface</b></a>
 can be truncated to unique strings.
@@ -150,7 +173,7 @@ that enclose any of the same atoms as the current surface.
 Successive uses of the <b>surface</b> command with <b>replace false</b>
 can produce multiple surface models that enclose the same set of atoms
 or different but overlapping sets of atoms. Surface model number assignments
-are discussed <a href="#modelnumbers">above</a>.
+are discussed <a href="#notes">below</a>.
 </p>
 
 <a name="parameters"></a>
@@ -162,8 +185,8 @@ parameters can be specified with the following options:
 </p>
 <ul>
 <li>The <b>resolution</b> option
-indicates creating a low-resolution surface instead of a solvent-excluded
-surface (SES).
+indicates creating a low-resolution Gaussian surface 
+instead of a solvent-excluded surface (SES).
 A pseudo-density map is generated by summing over atoms, where each atom is
 described as a 3D Gaussian distribution of width proportional to the
 <b>resolution</b> <i>r</i> and amplitude (height) equal to the atomic number.
@@ -189,6 +212,11 @@ for a Gaussian surface.
 A smaller spacing gives a smoother, more finely triangulated surface,
 but uses more memory.
 </ul>
+<p>
+The default values apply to the initial creation of a surface,
+but when the <b>surface</b> command acts on an existing surface,
+only the parameters explicitly specified are changed.
+</p>
 
 <a name="appearance"></a>
 <h4><a href="#options" class="nounder"><b>&larr;</b></a>
@@ -216,76 +244,135 @@ any portions hidden by clipping.
 [<a href="#top">back to top</a>]
 </p>
 <h3>Examples</h3>
-<p>
-Example <a href="#top"><b>surface</b></a> commands:
-</p>
 <blockquote>
 <b>surface</b>
-</blockquote>
+<br>
 - display the surface of each biopolymer chain in each model
-<blockquote>
+<br><br>
 <b>surface #1</b>
-</blockquote>
+<br>
 - display the surface of each biopolymer chain in model 1
-<blockquote>
+<br><br>
 <b>surface #1:5-38</b>
-</blockquote>
+<br>
 - display the surface patch(es) for residues 5-38 in each chain of model 1
-<blockquote>
-<b>surface #1/A:5-38 hide</b>
-</blockquote>
+<br><br>
+<b>surface hide #1/A:5-38</b>
+<br>
 - hide the surface patch(es) for residues 5-38 in chain A of model 1
-<blockquote>
+<br><br>
 <b>surface :10-20 visible 1</b>
-</blockquote>
+<br>
 - display the largest surface patch for residues 10-20 in each chain
-<blockquote>
-<b>surface /b close</b>
-</blockquote>
+<br><br>
+<b>surface close /b</b>
+<br>
 - close (delete) the surface model for chain B
-<blockquote>
-<b>surface #1.2 close</b>
-</blockquote>
+<br><br>
+<b>surface close #1.2</b>
+<br>
 - close (delete) the surface with model number 1.2
+<br><br>
 <!-- zones not yet implemented
-<blockquote>
 <b>surface ligand @<=5 visible 1</b>
-</blockquote>
 - display the largest surface patch per biopolymer chain for
 atoms within 5&Aring; of <a href="atomspec.html#surfcats"><b>ligand</b></a>
 -->
-<blockquote>
 <b>surface ligand</b>
-</blockquote>
+<br>
 - display surface(s) for <a href="atomspec.html#surfcats"><b>ligand</b></a>
 (divided up by chain ID)
-<blockquote>
+<br><br>
 <b>surface #1-3</b>
-</blockquote>
+<br>
 - display the surface of each biopolymer chain in models 1-3
-<blockquote>
+<br><br>
 <b>surface #1-3 enclose #1-3</b>
-</blockquote>
+<br>
 - display a single surface enclosing all biopolymer chains in models 1-3;
 the first <b>#1-3</b> could be omitted,
 as a blank specification there is interpreted as &ldquo;all&rdquo; 
-<blockquote>
+<br><br>
 <b>surface :10-20 enclose /a-c</b>
-</blockquote>
+<br>
 - display the surface patch(es) for residues 10-20 within a single surface
 that encloses chains A-C
-<blockquote>
+<br><br>
 <b>surface #1 include :hem</b>
-</blockquote>
+<br>
 - display a surface that encloses each biopolymer chain in model 1 along
 with its respective HEM residue (for example, in PDB
 <a href="http://www.rcsb.org/pdb/explore/explore.do?structureId=4hhb"
 target="_blank">4HHB</a>)
-<blockquote>
+<br><br>
 <b>surface enclose #1 include :hem</b>
-</blockquote>
+<br>
 - display a single surface that encloses all the biopolymer chains 
 and HEM residues in model 1
+</blockquote>
+
+<a name="sop"></a>
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<h3>Surface Operations</h3>
+<p>
+Surface operations include:
+<ul>
+<li><a href="#dust"><b>surface dust</b></a>
+- hide small blobs (disconnected parts)
+<li><a href="#zone"><b>surface zone</b></a>
+- show only surface parts within a cutoff distance of specified atoms
+</ul>
+
+<a href="#sop" class="nounder">&bull;</a>
+  <a name="dust"><b>surface dust</b></a> &nbsp;<i>surf-model(s)</i>&nbsp;
+  <b>size</b>&nbsp;<i>s</i>&nbsp;
+[&nbsp;<b>metric</b>&nbsp;&nbsp;<b>size</b>&nbsp;|&nbsp;area&nbsp;|&nbsp;volume&nbsp;|&nbsp;&lsquo;size&nbsp;rank&rsquo;&nbsp;|&nbsp;&lsquo;area&nbsp;rank&rsquo;&nbsp;|&nbsp;&lsquo;volume&nbsp;rank&rsquo;&nbsp;]
+<blockquote>
+Hide smaller blobs (disconnected parts) of a surface, 
+such as to simplify the display of noisy density.
+The cutoff <b>size</b> for hiding must be specified; blobs smaller
+than <i>s</i> will be hidden, where the units depend on the <b>metric</b>:
+  <ul>
+  <li><b>size</b> (default) - bounding box dimension (largest of X, Y, Z)
+  <li><b>area</b> - surface area
+  <li><b>volume</b> - enclosed volume
+  <li><b>size rank</b> - rank by largest <b>size</b> 
+  (a value of <i>N</i> indicates
+  showing the <i>N</i> largest blobs by the <b>size</b> criterion)
+  <li><b>area rank</b> - rank by largest <b>area</b> 
+  <li><b>volume rank</b> - rank by largest <b>volume</b> 
+  </ul>
+Size measurements will include any blob parts that have been undisplayed
+or hidden by <a href="#zone">zoning</a> or <a href="clip.html">clipping</a>,
+and blobs at or above the cutoff size will be displayed completely
+(although possibly still clipped) even if they had been hidden beforehand.
+</blockquote>
+
+<a href="#sop" class="nounder">&bull;</a>
+<a name="zone"><b>surface zone</b></a> &nbsp;<i>surf-model(s)</i>&nbsp;
+  <b>nearAtoms</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+  [&nbsp;<b>range</b>&nbsp;<i>radius</i>&nbsp;]
+  [&nbsp;<b>maxComponents</b>&nbsp;<i>N</i>&nbsp;]
+  [&nbsp;<b>bondPointSpacing</b>&nbsp;<i>s</i>&nbsp;]
+<blockquote>
+Show only parts of the surface(s) within <i>radius</i> 
+(default <b>2.0</b> &Aring;) of
+any atom in <a href="atomspec.html"><i>atom-spec</i></a>.
+If <b>bondPointSpacing</b> is specified, use points 
+spaced <i>s</i> &Aring; apart along bonds
+in addition to the atoms to define the zone.
+The <b>maxComponents</b> option indicates hiding all but
+the <i>N</i> largest connected surface patches in the zone; 
+by removing the visual clutter of small patches,
+this can significantly enhance viewing of pocket surfaces.
+Ranking to determine the largest is based on maximum dimension 
+(along X, Y, or Z for a given patch), <i>including</i> any portions
+within the zone that are hidden by <a href="clip.html">clipping</a>.
+If <b>maxComponents</b> is not supplied, all patches within the zone
+will be shown. See also: <a href="select.html#zone"><b>select zone</b></a>
+</blockquote>
 
 <a name="notes"></a>
 <p class="nav">
@@ -293,6 +380,16 @@ and HEM residues in model 1
 </p>
 <h3>Technical Notes</h3>
 <p>
+<b>Model numbers</b>.
+Molecular surface models are treated as &ldquo;children&rdquo; 
+of the corresponding atomic model.
+For example, surface models based on atoms in model #1 
+will be numbered #1.1, 1.2, <i>etc.</i>, 
+and closing #1 will also close those surface models.
+However, if a single surface model is based on atoms from more than one model
+(for example, generated with <b>surf enclose #1,2</b>), it will be assigned 
+a number at the same level as the atomic models (for example, #3).
+</p><p>
 <b>Patch boundaries</b>. 
 Per-atom surface patch boundaries are defined by associating each 
 surface point with an atom.

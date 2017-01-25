@@ -11,8 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def buriedarea(session, atoms1, with_atoms2 = None, probe_radius = 1.4,
-               list_residues = False, cutoff_area = 1, color = None, select = False):
+def measure_buriedarea(session, atoms1, with_atoms2 = None, probe_radius = 1.4,
+                       list_residues = False, cutoff_area = 1, color = None, select = False):
     '''
     Compute buried solvent accessible surface (SAS) area between two sets of atoms.
     This is the sum of the SAS area of each set of atoms minus the SAS area of the
@@ -79,15 +79,15 @@ def buriedarea(session, atoms1, with_atoms2 = None, probe_radius = 1.4,
             log.info('%d contacting residues\n%s' % (len(res1) + len(res2), '\n'.join(lines)))
             
 def register_command(session):
-    from . import CmdDesc, register, AtomsArg, FloatArg, NoArg, ColorArg
-    _buriedarea_desc = CmdDesc(
+    from . import CmdDesc, register, AtomsArg, FloatArg, BoolArg, ColorArg
+    desc = CmdDesc(
         required = [('atoms1', AtomsArg)],
         keyword = [('with_atoms2', AtomsArg),
                    ('probe_radius', FloatArg),
-                   ('list_residues', NoArg),
+                   ('list_residues', BoolArg),
                    ('cutoff_area', FloatArg),
                    ('color', ColorArg),
-                   ('select', NoArg),],
+                   ('select', BoolArg),],
         required_arguments = ['with_atoms2'],
         synopsis = 'compute buried area')
-    register('buriedarea', _buriedarea_desc, buriedarea)
+    register('measure buriedarea', desc, measure_buriedarea)

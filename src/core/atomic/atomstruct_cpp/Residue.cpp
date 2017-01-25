@@ -337,4 +337,14 @@ Residue::template_assign(void (Atom::*assign_func)(const char*),
     return assigned;
 }
 
+void
+Residue::set_ribbon_selected(bool s)
+{
+    if (s == _ribbon_selected)
+        return;
+    _structure->set_gc_select();
+    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_SELECTED);
+    _ribbon_selected = s;
+}
+
 }  // namespace atomstruct

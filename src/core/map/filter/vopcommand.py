@@ -45,7 +45,7 @@ from ...errors import UserError as CommandError
 
 def register_volume_filtering_subcommands():
 
-    from ...commands import CmdDesc, register, BoolArg, NoArg, StringArg, EnumOf, IntArg, Int3Arg
+    from ...commands import CmdDesc, register, BoolArg, StringArg, EnumOf, IntArg, Int3Arg
     from ...commands import FloatArg, Float3Arg, FloatsArg, ModelIdArg, AtomsArg
     from ...commands import AxisArg, CenterArg, CoordSysArg
     from ..mapargs import MapsArg, MapStepArg, MapRegionArg, Int1or3Arg, Float1or3Arg, ValueTypeArg
@@ -117,7 +117,7 @@ def register_volume_filtering_subcommands():
     register('volume fourier', fourier_desc, volume_fourier)
 
     gaussian_desc = CmdDesc(required = varg,
-        keyword = [('s_dev', Float1or3Arg), ('value_type', ValueTypeArg), ('invert', NoArg)] + ssm_kw
+        keyword = [('s_dev', Float1or3Arg), ('value_type', ValueTypeArg), ('invert', BoolArg)] + ssm_kw
     )
     register('volume gaussian', gaussian_desc, volume_gaussian)
 
@@ -126,7 +126,7 @@ def register_volume_filtering_subcommands():
 
     localcorr_desc = CmdDesc(required = varg,
                              keyword = [('window_size', IntArg),
-                                        ('subtract_mean', NoArg),
+                                        ('subtract_mean', BoolArg),
                                         ('model_id', ModelIdArg)])
     register('volume localCorrelation', localcorr_desc, volume_local_correlation)
 
@@ -202,7 +202,7 @@ def register_volume_filtering_subcommands():
     register('volume scale', scale_desc, volume_scale)
 
     subtract_desc = CmdDesc(required = varg,
-                            keyword = add_kw + [('min_rms', NoArg)])
+                            keyword = add_kw + [('min_rms', BoolArg)])
     register('volume subtract', subtract_desc, volume_subtract)
 
     threshold_desc = CmdDesc(required = varg,
@@ -246,8 +246,8 @@ def register_volume_filtering_subcommands():
                         keyword = [('near_atoms', AtomsArg),
                                    ('range', FloatArg),
                                    ('bond_point_spacing', FloatArg),
-                                   ('minimal_bounds', NoArg),
-                                   ('invert', NoArg)] + ssm_kw,
+                                   ('minimal_bounds', BoolArg),
+                                   ('invert', BoolArg)] + ssm_kw,
                         required_arguments=('near_atoms', 'range'))
     register('volume zone', zone_desc, volume_zone)
 

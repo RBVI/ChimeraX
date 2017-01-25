@@ -134,12 +134,12 @@ def report_selected(log, sa, ss):
 # -----------------------------------------------------------------------------
 #
 def register_command(session):
-    from .cli import CmdDesc, register, ObjectsArg, FloatArg, NoArg
+    from .cli import CmdDesc, register, ObjectsArg, FloatArg, BoolArg
     desc = CmdDesc(
         required=[('near', ObjectsArg),
                   ('range', FloatArg)],
         optional=[('find', ObjectsArg)],
-        keyword=[('extend', NoArg)],
+        keyword=[('extend', BoolArg)],
         synopsis='Select atoms or surfaces near other atoms and surfaces'
     )
     register('select zone', desc, select_zone)
