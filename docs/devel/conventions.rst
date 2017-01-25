@@ -31,15 +31,11 @@ Here are a minimal set of commands to get started using git:
             git config --global user.name "Your Name"
             git config --global user.email you@example.com
 
-    #. Make local copy of repository::
+    #. Make local copy of repository (currently we only use the develop branch)::
 
-        git clone ssh://plato.cgl.ucsf.edu/usr/local/projects/chimerax/git/chimerax.git
+        git clone --depth 1 --single-branch --branch develop plato.cgl.ucsf.edu:/usr/local/projects/chimerax/git/chimerax.git
 
-    #. Work on development branch::
-
-        git checkout develop
-
-    #. Update repository to latest version::
+    #. To update repository to latest version::
 
         git pull
 
@@ -66,9 +62,9 @@ Here are a minimal set of commands to get started using git:
 Coding Style
 ------------
 
-Python code should follow the Python Style Guide: :pep:`8`.
+ChimeraX uses Python 3.
 
-Use new-style classes.
+Python code should follow the Python Style Guide: :pep:`8`.
 
 Documentation Strings should follow Python's documentation style
 given in `Chapter 7 <http://docs.python.org/devguide/documenting.html>`_
