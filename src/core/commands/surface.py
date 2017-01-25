@@ -14,7 +14,7 @@
 # -------------------------------------------------------------------------------------
 #
 def surface(session, atoms = None, enclose = None, include = None,
-            probe_radius = 1.4, grid_spacing = None, resolution = None, level = None,
+            probe_radius = None, grid_spacing = None, resolution = None, level = None,
             color = None, transparency = None, visible_patches = None,
             sharp_boundaries = None, nthread = None, replace = True):
     '''
@@ -34,7 +34,7 @@ def surface(session, atoms = None, enclose = None, include = None,
       Solvent, ligands or ions to include in the surface.
     probe_radius : float
       Radius of probe sphere rolled over atoms to produce surface.
-      Only used for solvent excluded surfaces.
+      Only used for solvent excluded surfaces.  Default is 1.4 Angstroms.
     grid_spacing : float
       Surface is computed on 3-dimensional grid with this spacing
       between grid points along each axis.
@@ -69,6 +69,9 @@ def surface(session, atoms = None, enclose = None, include = None,
     else:
         all_surfs = {}
 
+    # Set default parameters for new molecular surfaces for probe radius, grid spacing, and sharp boundaries.
+    probe = 1.4 if probe_radius is None else probe_radius
+        
     if grid_spacing is None:
         grid = 0.5 if resolution is None else 0.1 * resolution
     else:
@@ -97,7 +100,7 @@ def surface(session, atoms = None, enclose = None, include = None,
                 name = '%s_%s %s surface' % (m.name, chain_id, stype)
                 rgba = surface_rgba(color, transparency, chain_id)
                 s = MolecularSurface(session, enclose_atoms, show_atoms,
-                                     probe_radius, grid, resolution, level,
+                                     probe, grid, resolution, level,
                                      name, rgba, visible_patches, sharp)
                 new_surfs.append((s,m))
             else:
@@ -118,7 +121,7 @@ def surface(session, atoms = None, enclose = None, include = None,
             name = 'Surface %s' % enclose.spec
             rgba = surface_rgba(color, transparency)
             s = MolecularSurface(session, enclose_atoms, show_atoms,
-                                 probe_radius, grid, resolution, level,
+                                 probe, grid, resolution, level,
                                  name, rgba, visible_patches, sharp)
             new_surfs.append((s,parent))
         else:
