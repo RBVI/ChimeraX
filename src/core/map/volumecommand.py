@@ -46,7 +46,7 @@ def register_volume_command():
                ('origin_index', Float1or3Arg),
                ('voxel_size', Float1or3Arg),
                ('planes', PlanesArg),
-               ('dump_header', NoArg),
+               ('dump_header', BoolArg),
 # Symmetry assignment.
                ('symmetry', SymmetryArg),
                ('center', CenterArg),
