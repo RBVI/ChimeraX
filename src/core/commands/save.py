@@ -154,7 +154,7 @@ class FileFormatArg(DynamicEnum):
         
 def register_command(session):
     from . import CmdDesc, register, EnumOf, SaveFileNameArg
-    from . import IntArg, PositiveIntArg, Bounded, FloatArg, NoArg
+    from . import IntArg, PositiveIntArg, Bounded, FloatArg, BoolArg
     from . import ModelsArg, ListOf
     from ..map.mapargs import MapRegionArg, Int1or3Arg
 
@@ -171,16 +171,16 @@ def register_command(session):
         ('height', PositiveIntArg),
         ('supersample', PositiveIntArg),
         ('pixel_size', FloatArg),
-        ('transparent_background', NoArg),
+        ('transparent_background', BoolArg),
         ('quality', Bounded(IntArg, min=0, max=100))]
 
     map_args = [
         ('region', MapRegionArg),
         ('step', Int1or3Arg),
-        ('mask_zone', NoArg),
+        ('mask_zone', BoolArg),
         ('chunk_shapes', ListOf(EnumOf(('zyx','zxy','yxz','yzx','xzy','xyz')))),
-        ('append', NoArg),
-        ('compress', NoArg),
+        ('append', BoolArg),
+        ('compress', BoolArg),
         ('base_index', IntArg)]
 
     desc = CmdDesc(
