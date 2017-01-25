@@ -59,14 +59,14 @@ def perframe(session, command, frames = None, interval = 1, format = None,
 
 def register_command(session):
 
-    from .cli import CmdDesc, register, IntArg, StringArg, NoArg, RepeatOf
+    from .cli import CmdDesc, register, IntArg, StringArg, BoolArg, RepeatOf
     desc = CmdDesc(required = [('command', StringArg)],
                    keyword = [('ranges', RepeatOf(RangeArg)),      # TODO: Allow multiple range arguments.
                               ('frames', IntArg),
                               ('interval', IntArg),
                               ('format', StringArg),    # TODO: Allow multiple format arguments.
                               ('zero_pad_width', IntArg),
-                              ('show_commands', NoArg)])
+                              ('show_commands', BoolArg)])
     register('perframe', desc, perframe)
     register('~perframe', CmdDesc(), stop_perframe_callbacks)
 
