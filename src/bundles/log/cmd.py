@@ -18,19 +18,13 @@ def get_singleton(session, create=False):
     from .tool import Log
     return tools.get_singleton(session, Log, 'Log', create=create)
 
-def log(session, show = False, hide = False, clear = False, save_path = None,
+def log(session, save_path = None,
         thumbnail = False, text = None, html = None, width = 100, height = 100,
         warning_dialog = None, error_dialog = None):
     '''Operations on the Log window.
 
     Parameters
     ----------
-    show : bool
-      Show the log panel.
-    hide : bool
-      Hide the log panel.
-    clear : bool
-      Erase the log contents.
     save_path : string
       Save log contents as html to a file.
     thumbnail : bool
@@ -46,15 +40,8 @@ def log(session, show = False, hide = False, clear = False, save_path = None,
       If true, errors popup a separate dialog, if false no error dialog is shown.
       In either case the errors appears in the log text.
     '''
-    create = show
-    log = get_singleton(session, create = create)
+    log = get_singleton(session, create = False)
     if log is not None:
-        if hide:
-            log.display(False)
-        if show:
-            log.display(True)
-        if clear:
-            log.clear()
         if not save_path is None:
             log.save(save_path)
         if thumbnail:
@@ -70,12 +57,6 @@ def log(session, show = False, hide = False, clear = False, save_path = None,
             log.error_shows_dialog = error_dialog
     else:
         log = session.logger
-        if hide:
-            log.warning("no log tool to hide")
-        if show:
-            log.warning("no log tool to show")
-        if clear:
-            log.warning("no log tool to clear")
         if not save_path is None:
             log.warning("no log tool to save")
         if thumbnail:
@@ -89,11 +70,26 @@ def log(session, show = False, hide = False, clear = False, save_path = None,
         if not error_dialog is None:
             pass
 
-from chimerax.core.commands import CmdDesc, NoArg, BoolArg, IntArg, RestOfLine, SaveFileNameArg
-log_desc = CmdDesc(keyword = [('show', NoArg),
-                              ('hide', NoArg),
-                              ('clear', NoArg),
-                              ('thumbnail', NoArg),
+def log_show(session):
+    '''Show the log window.'''
+    log = get_singleton(session, create = True)
+    log.display(True)
+
+def log_hide(session):
+    '''Hide the log window.'''
+    log = get_singleton(session, create = False)
+    if log:
+        log.display(False)
+
+def log_clear(session):
+    '''Clear the log window.'''
+    log = get_singleton(session, create = False)
+    if log:
+        log.clear()
+
+def register_log_command():
+    from chimerax.core.commands import register, CmdDesc, NoArg, BoolArg, IntArg, RestOfLine, SaveFileNameArg
+    log_desc = CmdDesc(keyword = [('thumbnail', NoArg),
                               ('text', RestOfLine),
                               ('html', RestOfLine),
                               ('width', IntArg),
@@ -101,3 +97,7 @@ log_desc = CmdDesc(keyword = [('show', NoArg),
                               ('save_path', SaveFileNameArg),
                               ('warning_dialog', BoolArg),
                               ('error_dialog', BoolArg)])
+    register('log', log_desc, log)
+    register('log show', CmdDesc(synopsis = 'Show log panel'), log_show)
+    register('log hide', CmdDesc(synopsis = 'Hide log panel'), log_hide)
+    register('log clear', CmdDesc(synopsis = 'Clear log panel'), log_clear)
