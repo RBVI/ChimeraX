@@ -776,6 +776,13 @@ class Pseudobonds(Collection):
         a1, a2 = self.atoms
         return a1.mask(atoms) & a2.mask(atoms)
 
+    @property
+    def unique_structures(self):
+        '''The unique structures as a :class:`.StructureDatas` collection'''
+        a1, a2 = self.atoms
+        s = concatenate((a1.unique_structures, a2.unique_structures), AtomicStructures, remove_duplicates = True)
+        return s
+
     _ses_ids = cvec_property('pseudobond_get_session_id', int32, read_only = True,
         doc="Used internally to save/restore in sessions")
     @staticmethod
