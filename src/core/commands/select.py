@@ -11,47 +11,26 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def select(session, objects=None, add=None, subtract=None, intersect=None, entity=None, clear=False):
+def select(session, objects=None, entity=None):
     '''Select specified objects.
 
     Parameters
     ----------
     objects : Objects
-      Select the specified objects (typically atoms). If no specifier is given then everything is selected.
-      The current selection is replaced.
-    add : Objects
-      Modify the current selection by adding the specified objects.
-    subtract : Objects
-      Modify the current selection by unselecting the specified objects.
-    intersect : Objects
-      Modify the current selection keeping only those among the specified objects selected.
+      Replace the current selection with the specified objects (typically atoms).
+      If no objects are specified then everything is selected.
     entity : Atoms
       Reduce the selection to include only atoms belonging to chains having a sequence that is the
       same as one of the sequences specified by the entity option.
-    clear : no value
-      Clear the selection.
     '''
-    if clear:
-        session.selection.clear()
-        if objects is None:
-            return
 
-    if objects is None and add is None and subtract is None and intersect is None:
+    if objects is None:
         from . import all_objects
         objects = all_objects(session)
 
     if objects is not None:
         session.selection.clear()
         modify_selection(objects, 'add')
-
-    if add is not None:
-        modify_selection(add, 'add')
-
-    if subtract is not None:
-        modify_selection(subtract, 'subtract')
-
-    if intersect is not None:
-        intersect_selection(intersect, session)
 
     if entity is not None:
         entity_selection(entity, session)
@@ -159,11 +138,7 @@ def _atoms_and_models(objects):
 def register_command(session):
     from . import CmdDesc, register, ObjectsArg, NoArg, create_alias, AtomsArg
     desc = CmdDesc(optional=[('objects', ObjectsArg)],
-                   keyword=[('add', ObjectsArg),
-                            ('subtract', ObjectsArg),
-                            ('intersect', ObjectsArg),
-                            ('entity', AtomsArg),
-                            ('clear', NoArg),],
+                   keyword=[('entity', AtomsArg)],
                    synopsis='select specified objects')
     register('select', desc, select)
 
