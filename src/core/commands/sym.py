@@ -13,7 +13,7 @@
 
 def sym(session, molecules,
         symmetry = None, center = None, axis = None, coordinate_system = None, assembly = None,
-        copies = False, clear = False, surface_only = False, resolution = None, grid_spacing = None):
+        copies = False, surface_only = False, resolution = None, grid_spacing = None):
     '''
     Show molecular assemblies of molecular models defined in mmCIF files.
     These can be subassemblies or symmetrical copies with individual chains 
@@ -39,8 +39,6 @@ def sym(session, molecules,
       then clones of the original molecule.  Copies are needed to give different
       colors or styles to each copy.  When copies are made a new model with
       submodels are created, one submode for each copy.
-    clear : bool
-      Revert to displaying no assembly, resets the use of any symmetry matrices.
     surface_only : bool
       Instead of showing instances of the molecule, show instances
       of surfaces of each chain.  The chain surfaces are computed if
@@ -58,20 +56,11 @@ def sym(session, molecules,
         if assembly is not None:
             from ..errors import UserError
             raise UserError('Cannot specify explicit symmetry and the assembly option.')
-        if clear:
-            from ..errors import UserError
-            raise UserError('Cannot specify explicit symmetry and the clear option.')
         transforms = symmetry.positions(center, axis, coordinate_system, molecules[0])
         show_symmetry(molecules, transforms, copies, surface_only, resolution, grid_spacing, session)
         return
             
     for m in molecules:
-        if clear:
-            from ..geometry import Places
-            m.positions = Places([m.position])	# Keep only first position.
-            for s in m.surfaces():
-                s.positions = Places([s.position])
-            continue
         assem = pdb_assemblies(m)
         if assembly is None:
             ainfo = '\n'.join(' %s = %s (%s)' % (a.id,a.description,a.copy_description(m))
@@ -94,23 +83,41 @@ def sym(session, molecules,
             else:
                 a.show(m, session)
 
+def sym_clear(session, molecules):
+    '''
+    Remove copies of molecules that were made with sym command.
+
+    Parameters
+    ----------
+    molecules : list of AtomicStructure
+      List of molecules to for which to remove copies.
+    '''
+    for m in molecules:
+        from ..geometry import Places
+        m.positions = Places([m.position])	# Keep only first position.
+        for s in m.surfaces():
+            s.positions = Places([s.position])
+
 def register_command(session):
-    from . import CmdDesc, register, AtomicStructuresArg, StringArg, NoArg, FloatArg
-    from . import CenterArg, AxisArg, SymmetryArg, CoordSysArg
-    _sym_desc = CmdDesc(
+    from . import CmdDesc, register, AtomicStructuresArg, StringArg, FloatArg
+    from . import CenterArg, AxisArg, SymmetryArg, CoordSysArg, BoolArg
+    desc = CmdDesc(
         required = [('molecules', AtomicStructuresArg)],
         optional = [('symmetry', SymmetryArg)],
         keyword = [('center', CenterArg),
                    ('axis', AxisArg),
                    ('coordinate_system', CoordSysArg),
                    ('assembly', StringArg),
-                   ('copies', NoArg),
-                   ('clear', NoArg),
-                   ('surface_only', NoArg),
+                   ('copies', BoolArg),
+                   ('surface_only', BoolArg),
                    ('resolution', FloatArg),
                    ('grid_spacing', FloatArg)],
         synopsis = 'create model copies')
-    register('sym', _sym_desc, sym)
+    register('sym', desc, sym)
+    desc = CmdDesc(
+        required = [('molecules', AtomicStructuresArg)],
+        synopsis = 'Remove model copies')
+    register('sym clear', desc, sym_clear)
 
 def show_symmetry(molecules, transforms, copies, surface_only, resolution, grid_spacing, session):
     if copies:

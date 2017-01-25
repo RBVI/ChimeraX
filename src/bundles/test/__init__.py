@@ -19,6 +19,6 @@ class _MyAPI(BundleAPI):
         from . import test
         from chimerax.core.commands import register, CmdDesc
         desc = CmdDesc(synopsis = 'Run through test sequence of commands to check for errors')
-        register('test', desc, test.run_commands)
+        register(command_name, desc, test.run_commands)
 
 bundle_api = _MyAPI()

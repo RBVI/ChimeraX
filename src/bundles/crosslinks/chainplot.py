@@ -54,7 +54,7 @@ class ChainNode(Node):
         cids = satoms.chain_ids
         self.atoms = satoms.filter(cids == asym_id)
         self.name = asym_id
-        self.color = satoms.colors.mean(axis=0)/255
+        self.color = self.atoms.colors.mean(axis=0)/255
         self.num_intralinks = 0
     @property
     def position(self):
@@ -88,7 +88,7 @@ class ChainCrosslinks(Edge):
 #
 def chains_and_edges(pseudobonds):
 
-    # Group pseudobonds by the chains the join
+    # Group pseudobonds by the pair of chains they join
     chain_xlinks = {}
     for pb in pseudobonds:
         chains = [(a.structure, a.chain_id) for a in pb.atoms]

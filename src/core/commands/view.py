@@ -30,7 +30,7 @@ def view(session, objects=None, frames=None, clip=True, cofr=True, orient=False,
       Turn on clip planes in front and behind objects.
     cofr : bool
       Set center of rotation to center of objects.
-    orient : no value
+    orient : bool
       Specifying the orient keyword moves the camera view point to
       look down the scene z axis with the x-axis horizontal and y-axis
       vertical.
@@ -366,14 +366,14 @@ class NamedViewArg(Annotation):
 
 
 def register_command(session):
-    from . import CmdDesc, register, ObjectsArg, NoArg, FloatArg
+    from . import CmdDesc, register, ObjectsArg, FloatArg
     from . import StringArg, PositiveIntArg, Or, BoolArg
     desc = CmdDesc(
         optional=[('objects', Or(ObjectsArg, NamedViewArg)),
                   ('frames', PositiveIntArg)],
         keyword=[('clip', BoolArg),
                  ('cofr', BoolArg),
-                 ('orient', NoArg),
+                 ('orient', BoolArg),
                  ('pad', FloatArg)],
         synopsis='adjust camera so everything is visible')
     register('view', desc, view)

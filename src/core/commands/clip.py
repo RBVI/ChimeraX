@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def clip(session, near=None, far=None, front=None, back=None, slab=None, list=None, off=None,
+def clip(session, near=None, far=None, front=None, back=None, slab=None,
          position=None, axis=None, coordinate_system=None, cap=None):
     '''
     Enable or disable clip planes.
@@ -24,10 +24,6 @@ def clip(session, near=None, far=None, front=None, back=None, slab=None, list=No
        Front and back planes rotate with models.  If a plane is not currently
        enabled then the offset value is from the center of rotation.
        Positive distances are further away, negative are closer.
-    list : bool
-       Report info about the current clip planes.
-    off : bool
-       Turn off clipping (all planes).
     position : Center
        Plane offsets are relative to this point.  If not give then offsets are
        relative to current plane positions.  If plane is not enabled then offset
@@ -40,20 +36,14 @@ def clip(session, near=None, far=None, front=None, back=None, slab=None, list=No
 
     v = session.main_view
     planes = v.clip_planes
-    if list:
-        report_clip_info(v, session.logger)
-        return
 
     have_offset = not (near is None and far is None and front is None and back is None)
-    if not have_offset and off is None:
+    if not have_offset:
         if planes.find_plane('front'):
             return
         else:
             front = 0
             have_offset = True
-
-    if off:
-        planes.clear()
 
     if have_offset:
         pos = None
@@ -81,6 +71,20 @@ def clip(session, near=None, far=None, front=None, back=None, slab=None, list=No
             planes.remove_plane('back')
         elif back is not None:
             adjust_plane('back', -back, pos, normal, planes, v)
+
+def clip_off(session):
+    '''
+    Turn off all clip planes.
+    '''
+    v = session.main_view
+    planes = v.clip_planes
+    planes.clear()
+
+def clip_list(session):
+    '''
+    List active clip planes.
+    '''
+    report_clip_info(session.main_view, session.logger)
 
 def plane_origin(view):
     b = view.drawing_bounds()
@@ -161,7 +165,7 @@ def report_clip_info(viewer, log):
     log.status(msg)
 
 def register_command(session):
-    from .cli import CmdDesc, register, FloatArg, NoArg, AxisArg
+    from .cli import CmdDesc, register, FloatArg, AxisArg
     from .cli import CenterArg, CoordSysArg, Or, EnumOf, create_alias
     offset_arg = Or(EnumOf(['off']), FloatArg)
     desc = CmdDesc(
@@ -170,12 +174,12 @@ def register_command(session):
                  ('far', offset_arg),
                  ('front', offset_arg),
                  ('back', offset_arg),
-                 ('list', NoArg),
-                 ('off', NoArg),
                  ('position', CenterArg),
                  ('axis', AxisArg),
                  ('coordinate_system', CoordSysArg)],
         synopsis='set clip planes'
     )
     register('clip', desc, clip)
+    register('clip off', CmdDesc(synopsis = 'Turn off all clip planes'), clip_off)
+    register('clip list', CmdDesc(synopsis = 'List active clip planes'), clip_list)
     create_alias('~clip', 'clip off')

@@ -34,11 +34,11 @@ def cage(session, cage, place_model = None, polygon_sides = 6,
     from chimerax.core.commands import AnnotationError
     if place_model is None:
         raise AnnotationError('Cage command requires "place_model" argument')
-    if not hasattr(cage, 'cage_placements'):
+    if not hasattr(cage, 'placements'):
         raise AnnotationError('Model %s is not a cage model.' % cage.name)
 
     n = polygon_sides
-    p = cage.cage_placements(n)
+    p = cage.placements('p%d' % n)
     if len(p) == 0:
         raise AnnotationError('Cage %s has no %d-gons.' % (cage.name, n))
     c = place_model.bounds().center()
@@ -77,11 +77,11 @@ def make_closest_placement_identity(tflist, center):
     return rtflist
 
 def register_cage_command():
-    from chimerax.core.commands import CmdDesc, register, ModelArg, IntArg, NoArg, FloatArg
+    from chimerax.core.commands import CmdDesc, register, ModelArg, IntArg, BoolArg, FloatArg
     desc = CmdDesc(required = [('cage', ModelArg)],
                    keyword = [('place_model', ModelArg),
                               ('polygon_sides', IntArg),
-                              ('surface_only', NoArg),
+                              ('surface_only', BoolArg),
                               ('resolution', FloatArg)],
                    synopsis = 'Place copies of model on polygons of cage.')
     register('cage', desc, cage)

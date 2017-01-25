@@ -36,13 +36,11 @@ def vr(session, enable):
 # Register the oculus command for ChimeraX.
 #
 def register_vr_command():
-    from chimerax.core.commands import CmdDesc, BoolArg, FloatArg, register
+    from chimerax.core.commands import CmdDesc, BoolArg, FloatArg, register, create_alias
     desc = CmdDesc(required = [('enable', BoolArg)],
                    synopsis = 'Start SteamVR virtual reality rendering')
-    register('vr', desc, vr)
-    desc = CmdDesc(required = [('enable', BoolArg)],
-                   synopsis = 'Start SteamVR virtual reality rendering')
-    register('vive', desc, vr)	# Former command name.
+    register('device vr', desc, vr)
+    create_alias('vr', 'device vr $*')
 
 # -----------------------------------------------------------------------------
 #

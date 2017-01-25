@@ -62,6 +62,6 @@ setup(
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
         "ChimeraX :: Bundle :: General :: 1,1 :: PKG_NAME :: chimerax.test :: ",
-        "ChimeraX :: Command :: test :: General :: simple regiession test",
+        "ChimeraX :: Command :: debug test :: General :: simple regiession test",
     ],
 )

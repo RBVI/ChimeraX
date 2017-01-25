@@ -2920,7 +2920,7 @@ def open_map(session, stream, *args, **kw):
         if g.rgba is None:
           g.rgba = (0,1,0,1) # Green
 
-    series = kw.get('series')
+    series = kw.get('vseries')
     if series is not None:
       if series:
         for i,g in enumerate(grids):

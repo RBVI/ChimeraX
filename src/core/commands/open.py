@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def open(session, filename, format=None, name=None, from_database=None, ignore_cache=False,
-         autostyle = True, trajectory = False, series = None, **kw):
+         auto_style = True, coordset = False, vseries = None, **kw):
     '''Open a file.
 
     Parameters
@@ -33,12 +33,12 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
     ignore_cache : bool
         Whether to fetch files from cache.  Fetched files are always written
         to cache.
-    autostyle : bool
+    auto_style : bool
         Whether to display molecules with rich styles and colors.
-    trajectory : bool
+    coordset : bool
         Whether to read a PDB format multimodel file as coordinate sets (true)
         or as multiple models (false, default).
-    series : bool or None
+    vseries : bool or None
         Whether to read a maps as a series, or as separate maps. The default None
         means to use default rules: 3d TIFF images are series and Chimera map files
         containing 5 or more maps of equal size.
@@ -61,9 +61,9 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
             if format is None:
                 format = 'mmcif'
 
-    kw.update({'autostyle': autostyle,
-               'trajectory': trajectory,
-               'series': series})
+    kw.update({'auto_style': auto_style,
+               'coordset': coordset,
+               'vseries': vseries})
 
     from ..filehistory import remember_file
     if from_database is not None:
@@ -85,8 +85,8 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
             session.models.add(models)
         remember_file(session, filename, format, models, database=from_database)
         session.logger.status(status, log=True)
-        if trajectory:
-            report_trajectories(models, session.logger)
+        if coordset:
+            report_coordsets(models, session.logger)
         return models
 
     if format is not None:
@@ -110,15 +110,15 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
         from ..errors import UserError
         raise UserError(e)
 
-    if trajectory:
-        report_trajectories(models, session.logger)
+    if coordset:
+        report_coordsets(models, session.logger)
     
     # Remember in file history
     remember_file(session, filename, format, models or 'all models')
 
     return models
 
-def report_trajectories(models, log):
+def report_coordsets(models, log):
     for m in models:
         if hasattr(m, 'num_coord_sets'):
             log.info('%s has %d coordinate sets' % (m.name, m.num_coord_sets))
@@ -182,7 +182,7 @@ def open_formats(session):
 
 
 def register_command(session):
-    from . import CmdDesc, register, DynamicEnum, StringArg, BoolArg, OpenFileNameArg, NoArg
+    from . import CmdDesc, register, DynamicEnum, StringArg, BoolArg, OpenFileNameArg
 
     def formats():
         from .. import io
@@ -198,10 +198,10 @@ def register_command(session):
             ('format', DynamicEnum(formats)),
             ('name', StringArg),
             ('from_database', DynamicEnum(db_formats)),
-            ('ignore_cache', NoArg),
-            ('autostyle', BoolArg),
-            ('trajectory', NoArg),
-            ('series', BoolArg),
+            ('ignore_cache', BoolArg),
+            ('auto_style', BoolArg),
+            ('coordset', BoolArg),
+            ('vseries', BoolArg),
             # ('id', ModelIdArg),
         ],
         synopsis='read and display data')

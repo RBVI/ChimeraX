@@ -107,7 +107,7 @@ class MolecularSurface(Model):
             self.grid_spacing = grid_spacing
             shape_change = True
         if resolution is not None and resolution != self.resolution:
-            self.resolution = resolution
+            self.resolution = None if resolution <= 0 else resolution
             shape_change = True
         if level is not None and level != self.level:
             self.level = level
@@ -408,17 +408,25 @@ def surfaces_with_atoms(atoms, models):
                     surfs.append(s)
     return surfs
 
-def show_surfaces(atoms, models, only = False):
+def show_surface_atom_patches(atoms, models, only = False):
     surfs = surfaces_with_atoms(atoms, models)
     for s in surfs:
         s.show(atoms & s.atoms, only = only)
     return surfs
 
-def hide_surfaces(atoms, models):
+def show_surface_patches(surf_models, only = False):
+    for s in surf_models:
+        s.show(s.atoms, only = only)
+
+def hide_surface_atom_patches(atoms, models):
     surfs = surfaces_with_atoms(atoms, models)
     for s in surfs:
         s.hide(atoms & s.atoms)
     return surfs
+
+def hide_surface_patches(surf_models):
+    for s in surf_models:
+        s.hide(s.atoms)
 
 def close_surfaces(atoms_or_surfs, models):
     from . import Atoms
