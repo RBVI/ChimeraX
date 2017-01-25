@@ -442,6 +442,10 @@ CG_Condition::trace_group(const Atom* a, const Atom* parent)
 		traced_groups.emplace_back();
 		traced_groups.back().push_back(a);
 	} else { 
+		if (a->has_missing_structure_pseudobond()) {
+			// the unknown bond partner on the opposite side can't match
+			return traced_groups;
+		}
 		auto matches = match_descendents(a, a->neighbors(), parent, bonded);
 		for (auto& match: matches) {
 			traced_groups.emplace_back();

@@ -156,6 +156,8 @@ class Atom:
         doc=":class:`.Atom`\\ s connnected to this atom directly by one bond. Read only.")
     num_bonds = c_property("atom_num_bonds", size_t, read_only=True,
         doc="Number of bonds connected to this atom. Read only.")
+    num_explicit_bonds = c_property("atom_num_explicit_bonds", size_t, read_only=True,
+        doc="Number of bonds and missing-structure pseudobonds connected to this atom. Read only.")
     occupancy = c_property('atom_occupancy', float32, doc = "Occupancy, floating point value.")
     radius = c_property('atom_radius', float32, doc="Radius of atom.")
     default_radii = c_property('atom_default_radius', float32, read_only = True,

@@ -755,6 +755,17 @@ extern "C" EXPORT void atom_num_bonds(void *atoms, size_t n, size_t *nbonds)
     }
 }
 
+extern "C" EXPORT void atom_num_explicit_bonds(void *atoms, size_t n, size_t *nbonds)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            nbonds[i] = a[i]->num_explicit_bonds();
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void atom_radius(void *atoms, size_t n, float32_t *radii)
 {
     Atom **a = static_cast<Atom **>(atoms);

@@ -160,6 +160,7 @@ public:
     static const IdatmInfoMap&  get_idatm_info_map();
     bool  has_alt_loc(char al) const
       { return _alt_loc_map.find(al) != _alt_loc_map.end(); }
+    bool has_missing_structure_pseudobond() const;
     bool  idatm_is_explicit() const { return _explicit_idatm_type[0] != '\0'; }
     const AtomType&  idatm_type() const;
     bool  is_backbone(BackboneExtent bbe) const;
@@ -167,6 +168,7 @@ public:
     bool  is_sidechain() const;
     const AtomName&  name() const { return _name; }
     const Neighbors&  neighbors() const { return _neighbors; }
+    Bonds::size_type  num_explicit_bonds() const; // includes missing-structure bonds
     float  occupancy() const;
     int  serial_number() const { return _serial_number; }
     float radius() const {
