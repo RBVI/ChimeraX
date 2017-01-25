@@ -67,6 +67,6 @@ setup(
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
         "ChimeraX :: Bundle :: General :: 1,1 :: PKG_NAME :: chimerax.spacenavigator :: ",
-        "ChimeraX :: Command :: snav :: General :: control SpaceNavigator device",
+        "ChimeraX :: Command :: device snav :: General :: control SpaceNavigator device",
     ],
 )
