@@ -1274,6 +1274,8 @@ class StructureData:
     '''Default ribbon mode showing secondary structure with ribbons.'''
     RIBBON_MODE_ARC = 1
     '''Ribbon mode showing secondary structure as an arc (tube or plank).'''
+    RIBBON_MODE_WRAP = 2
+    '''Ribbon mode showing helix as ribbon wrapped around tube.'''
     ss_assigned = c_property('structure_ss_assigned', npy_bool, doc =
         "Has secondary structure been assigned, either by data in original structure file "
         "or by some algorithm (e.g. dssp command)")

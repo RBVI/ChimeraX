@@ -862,6 +862,10 @@ class Structure(Model, StructureData):
             for start, end in helix_ranges:
                 self._arc_helix(rlist, coords, guides, ssids, tethered, xs_front, xs_back,
                                 ribbon_adjusts, start, end, p)
+        elif self.ribbon_mode_helix == self.RIBBON_MODE_WRAP:
+            for start, end in helix_ranges:
+                self._wrap_helix(rlist, coords, guides, ssids, tethered, xs_front, xs_back,
+                                 ribbon_adjusts, start, end, p)
         if self.ribbon_mode_strand == self.RIBBON_MODE_DEFAULT:
             # Smooth strands
             for start, end in sheet_ranges:
@@ -1194,6 +1198,24 @@ class Structure(Model, StructureData):
             t2r.append(triangle_range)
             self._ribbon_r2t[res] = triangle_range
         self._ribbon_t2r[ssp] = t2r
+
+    def _wrap_helix(self, rlist, coords, guides, ssids, tethered, xs_front, xs_back,
+                    ribbon_adjusts, start, end, p):
+        # Only bother if at least one residue is displayed
+        displays = rlist.ribbon_displays
+        if not any(displays[start:end]):
+            return
+
+        from .sse import HelixCylinder
+        hc = HelixCylinder(coords[start:end])
+        directions = hc.cylinder_directions()
+        coords[start:end] = hc.cylinder_surface()
+        guides[start:end] = coords[start:end] + directions
+        if True:
+            # Debugging code to display guides of secondary structure
+            self._ss_guide_display(p, str(self) + " helix guide " + str(start),
+                                   coords[start:end], guides[start:end])
+    
 
     def _smooth_strand(self, rlist, coords, guides, tethered, xs_front, xs_back,
                        ribbon_adjusts, start, end, p):
