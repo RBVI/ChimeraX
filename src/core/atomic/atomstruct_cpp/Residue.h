@@ -75,6 +75,7 @@ private:
     bool  _ribbon_hide_backbone;
     Rgba  _ribbon_rgba;
     Style  _ribbon_style;
+    bool  _ribbon_selected = false;
     int  _ss_id;
     Structure *  _structure;
 public:
@@ -150,11 +151,13 @@ public:
     bool  ribbon_display() const { return _ribbon_display; }
     bool  ribbon_hide_backbone() const { return _ribbon_hide_backbone; }
     Style  ribbon_style() const { return _ribbon_style; }
+    bool  ribbon_selected() const { return _ribbon_selected; }
     void  set_ribbon_adjust(float a);
     void  set_ribbon_color(const Rgba& rgba);
     void  set_ribbon_display(bool d);
     void  set_ribbon_hide_backbone(bool d);
     void  set_ribbon_style(Style s);
+    void  set_ribbon_selected(bool s);
     void  ribbon_clear_hide();
 };
 

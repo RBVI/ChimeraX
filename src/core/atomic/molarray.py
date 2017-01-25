@@ -62,9 +62,9 @@ def _non_null_atoms(p):
 def _bonds(p):
     return Bonds(p)
 def _pseudobond_groups(p):
-	return PseudobondGroups(p)
+    return PseudobondGroups(p)
 def _pseudobonds(p):
-	return Pseudobonds(p)
+    return Pseudobonds(p)
 def _elements(p):
     return Elements(p)
 def _residues(p):
@@ -273,7 +273,7 @@ class Collection(State):
 def concatenate(collections, object_class = None, remove_duplicates = False):
     '''Concatenate any number of collections returning a new collection.
     All collections must have the same type.
-    
+
     Parameters
     ----------
     collections : sequence of :class:`.Collection` objects
@@ -286,7 +286,7 @@ def concatenate(collections, object_class = None, remove_duplicates = False):
         p = numpy.concatenate([a._pointers for a in collections])
         if remove_duplicates:
             pu, i = numpy.unique(p, return_index = True)
-            p = p[numpy.sort(i)]	# Preserve order when duplicates are removed.
+            p = p[numpy.sort(i)]    # Preserve order when duplicates are removed.
         c = cl(p)
     return c
 
@@ -563,7 +563,7 @@ class Atoms(Collection):
                        ret=ctypes.py_object)
         rp, rsums = f(self._c_pointers, len(self), pointer(atom_values))
         return Residues(rp), rsums
-        
+
     @classmethod
     def session_restore_pointers(cls, session, data):
         structures, atom_ids = data
@@ -588,7 +588,7 @@ class Bonds(Collection):
     '''
     Returns a two-tuple of :class:`Atoms` objects.
     For each bond, its endpoint atoms are in the matching
-    position in the two :class:`Atoms` collections. Read only.  
+    position in the two :class:`Atoms` collections. Read only.
     '''
     colors = cvec_property('bond_color', uint8, 4)
     '''
@@ -712,7 +712,7 @@ class Pseudobonds(Collection):
     '''
     Returns a two-tuple of :class:`Atoms` objects.
     For each bond, its endpoint atoms are in the matching
-    position in the two :class:`Atoms` collections. Read only.  
+    position in the two :class:`Atoms` collections. Read only.
     '''
     colors = cvec_property('pseudobond_color', uint8, 4)
     '''
@@ -922,11 +922,11 @@ class Residues(Collection):
 
     def get_polymer_spline(self, orient):
         '''Return a tuple of spline center and guide coordinates for a
-	polymer chain.  Residues in the chain that do not have a center
-	atom will have their display bit turned off.  Center coordinates
-	are returned as a numpy array.  Guide coordinates are only returned
-	if all spline atoms have matching guide atoms; otherwise, None is
-	returned for guide coordinates.'''
+        polymer chain.  Residues in the chain that do not have a center
+        atom will have their display bit turned off.  Center coordinates
+        are returned as a numpy array.  Guide coordinates are only returned
+        if all spline atoms have matching guide atoms; otherwise, None is
+        returned for guide coordinates.'''
         f = c_function('residue_polymer_spline',
                        args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_int],
                        ret = ctypes.py_object)
@@ -943,6 +943,16 @@ class Residues(Collection):
                        args = [ctypes.c_void_p, ctypes.c_size_t])
         f(self._c_pointers, len(self))
 
+    @property
+    def ribbon_num_selected(self):
+        "Number of selected residue ribbons."
+        f = c_function('residue_ribbon_num_selected',
+                       args = [ctypes.c_void_p, ctypes.c_size_t],
+                       ret = ctypes.c_size_t)
+        return f(self._c_pointers, len(self))
+    ribbon_selected = cvec_property('residue_ribbon_selected', npy_bool,
+        doc="numpy bool array whether each Residue ribbon is selected.")
+
     def set_alt_locs(self, loc):
         if isinstance(loc, str):
             loc = loc.encode('utf-8')
@@ -956,6 +966,15 @@ class Residues(Collection):
         else:
             f = c_array_function('residue_set_ss_sheet', args=(npy_bool,), per_object=False)
         f(self._c_pointers, len(self), value)
+
+    @classmethod
+    def session_restore_pointers(cls, session, data):
+        structures, residue_ids = data
+        return array([s.session_id_to_residue(i) for s, i in zip(structures, residue_ids)], dtype=cptr)
+    def session_save_pointers(self, session):
+        structures = self.structures
+        residue_ids = [s.session_residue_to_id(ptr) for s, ptr in zip(structures, self._c_pointers)]
+        return [structures, array(residue_ids)]
 
 # -----------------------------------------------------------------------------
 #
@@ -1053,7 +1072,7 @@ class StructureDatas(Collection):
 
     # Graphics changed flags used by rendering code.  Private.
     _graphics_changeds = cvec_property('structure_graphics_change', int32)
-    
+
 # -----------------------------------------------------------------------------
 #
 class AtomicStructures(StructureDatas):
@@ -1082,10 +1101,10 @@ class PseudobondGroupDatas(Collection):
     '''
     def __init__(self, pbg_pointers):
         Collection.__init__(self, pbg_pointers, molobject.PseudobondGroupData,
-			PseudobondGroupDatas)
+                            PseudobondGroupDatas)
 
     pseudobonds = cvec_property('pseudobond_group_pseudobonds', cptr, 'num_pseudobonds',
-		astype = _pseudobonds, read_only = True, per_object = False)
+                                astype = _pseudobonds, read_only = True, per_object = False)
     '''A single :class:`.Pseudobonds` object containing pseudobonds for all groups. Read only.'''
     names = cvec_property('pseudobond_group_category', string, read_only = True)
     '''A numpy string array of categories of each group.'''

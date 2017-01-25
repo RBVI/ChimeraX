@@ -28,13 +28,12 @@ class Structure(Model, StructureData):
         from .molarray import Residues
         from numpy import array
         from .ribbon import XSectionManager
-       
+
         # attrs that should be saved in sessions, along with their initial values...
         self._session_attrs = {
             '_ball_scale': 0.3,		# Scales sphere radius in ball and stick style
             '_bond_radius': 0.2,
             '_pseudobond_radius': 0.05,
-            #'_ribbon_selected_residues': Residues(),
         }
 
         StructureData.__init__(self, c_pointer)
@@ -53,9 +52,6 @@ class Structure(Model, StructureData):
         self._ribbon_r2t = {}         # ribbon residue-to-triangles map
         self._ribbon_tether = []      # ribbon tethers from ribbon to floating atoms
         self.ribbon_xs_mgr = XSectionManager(self)
-        # TODO: move back into _session_attrs when Collection instances
-        # handle session saving/restoring
-        self._ribbon_selected_residues = Residues()
 
         from . import molobject
         molobject.add_to_object_map(self)
@@ -240,7 +236,7 @@ class Structure(Model, StructureData):
         self._pseudobond_radius = radius
         self._graphics_changed |= self._SHAPE_CHANGE
     pseudobond_radius = property(_get_pseudobond_radius, _set_pseudobond_radius)
-    
+
     def initial_color(self, bg_color):
         from .colors import structure_color
         return structure_color(self.id, bg_color)
@@ -291,12 +287,12 @@ class Structure(Model, StructureData):
         gc = self._graphics_changed
         if gc == 0:
             return
-        
+
         if gc & self._RIBBON_CHANGE:
             self._create_ribbon_graphics()
             # Displaying ribbon can set backbone atom hide bits producing shape change.
             gc |= self._graphics_changed
-        
+
         # Update graphics
         self._graphics_changed = 0
         s = (gc & self._SHAPE_CHANGE)
@@ -850,8 +846,7 @@ class Structure(Model, StructureData):
                 sp.positions = _tether_placements(spine_xyz1, spine_xyz2, spine_radii, self.TETHER_CYLINDER)
                 sp.colors = spine_colors
         self._graphics_changed |= self._SHAPE_CHANGE
-        from .molarray import Residues
-        self._ribbon_selected_residues = Residues()
+        self.residues.ribbon_selected = False
 
     def _smooth_ribbon(self, rlist, coords, guides, atoms, ssids, tethered,
                        xs_front, xs_back, p, helix_ranges, sheet_ranges):
@@ -1309,10 +1304,13 @@ class Structure(Model, StructureData):
             rsel = residues.filter(mask)
         else:
             rsel = Residues()
-        hide = self._ribbon_selected_residues - rsel
-        keep = self._ribbon_selected_residues & rsel
-        show = rsel - self._ribbon_selected_residues
-        self._ribbon_selected_residues = keep | show
+        residues = self.residues
+        selected_residues = residues.filter(residues.ribbon_selected)
+        hide = selected_residues - rsel
+        keep = selected_residues & rsel
+        show = rsel - selected_residues
+        selected_residues.ribbon_selected = False
+        (keep | show).ribbon_selected = True
         # Change the selected triangles in drawings
         da = {}         # actions - 0=hide, 1=keep, 2=show
         residues = [hide, keep, show]
@@ -1471,7 +1469,7 @@ class Structure(Model, StructureData):
                 if f is not None and (fc is None or f < fc):
                     fc = f
                     bc = b
-                    
+
         p = PickedPseudobond(bc, fc) if bc else None
         return p
 
@@ -1567,7 +1565,7 @@ class Structure(Model, StructureData):
             if c.any_part_selected():
                 return True
         return False
-        
+
     def clear_selection(self):
         self.selected = False
         self.atoms.selected = False
@@ -1883,7 +1881,7 @@ class AtomicStructure(Structure):
 # checks the C++ graphics changed flags for all structures, updating the graphics
 # drawings for those structures if needed.  Also it updates the level of detail
 # for atom spheres and bond cylinders.
-# 
+#
 class StructureGraphicsChangeManager:
     def __init__(self, session):
         self.session = session
@@ -1896,7 +1894,7 @@ class StructureGraphicsChangeManager:
         from ..models import MODEL_DISPLAY_CHANGED
         self._display_handler = t.add_handler(MODEL_DISPLAY_CHANGED, self._model_display_changed)
         self._need_update = False
-        
+
     def __del__(self):
         self.session.triggers.remove_handler(self._handler)
         self.session.triggers.remove_handler(self._display_handler)
@@ -1913,7 +1911,7 @@ class StructureGraphicsChangeManager:
     def _model_display_changed(self, tname, model):
         if isinstance(model, Structure) or _has_structure_descendant(model):
             self._need_update = True
-        
+
     def _update_graphics_if_needed(self, *_):
         s = self._array()
         gc = s._graphics_changeds	# Includes pseudobond group changes.
@@ -1931,7 +1929,7 @@ class StructureGraphicsChangeManager:
                 from ..selection import SELECTION_CHANGED
                 self.session.triggers.activate_trigger(SELECTION_CHANGED, None)
                 # XXX: No data for now.  What should be passed?
-            
+
     def _update_level_of_detail(self):
         n = self.num_atoms_shown
         for m in self._structures:
@@ -2276,7 +2274,7 @@ def _halfbond_cylinder_placements(axyz0, axyz1, radii):
   n = len(axyz0)
   from numpy import empty, float32
   p = empty((2*n,4,4), float32)
-  
+
   from ..geometry import cylinder_rotations
   cylinder_rotations(axyz0, axyz1, radii, p[:n,:,:])
   p[n:,:,:] = p[:n,:,:]
@@ -2298,7 +2296,7 @@ def _halfbond_cylinder_x3d(axyz0, axyz1, radii):
   n = len(axyz0)
   from numpy import empty, float32
   ci = empty((2 * n, 9), float32)
-  
+
   from ..geometry import cylinder_rotations_x3d
   cylinder_rotations_x3d(axyz0, axyz1, radii, ci[:n])
   ci[n:, :] = ci[:n, :]
