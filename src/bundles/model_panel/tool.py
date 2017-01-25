@@ -35,6 +35,7 @@ class ModelPanel(ToolInstance):
         from PyQt5.QtWidgets import QTreeWidget, QHBoxLayout, QVBoxLayout, QAbstractItemView, \
             QFrame, QPushButton
         self.tree = QTreeWidget()
+        self.tree.expanded.connect(self._ensure_id_width)
         layout = QHBoxLayout()
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
@@ -88,6 +89,10 @@ class ModelPanel(ToolInstance):
         reasons = changes.atom_reasons()
         if "color changed" in reasons or 'display changed' in reasons:
             self._initiate_fill_tree()
+
+    def _ensure_id_width(self, *args):
+        # ensure that the newly visible model id isn't just "..."
+        self.tree.resizeColumnToContents(self.ID_COLUMN)
 
     def _initiate_fill_tree(self, *args):
         # in order to allow molecules to be drawn as quickly as possible,
