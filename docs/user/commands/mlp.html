@@ -26,11 +26,11 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="../index.html#commands">Command</a>: mlp</h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>mlp</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
-[&nbsp;method&nbsp;&nbsp;fauchere&nbsp;|&nbsp;brasseur&nbsp;|&nbsp;type5&nbsp;|&nbsp;dubost&nbsp;|&nbsp;buckingham&nbsp;[&nbsp;nexp&nbsp;<i>n</i>&nbsp;]]
-[&nbsp;maxDistance&nbsp;<i>D</i>&nbsp;]
-[&nbsp;spacing&nbsp;<i>s</i>&nbsp;]
-[&nbsp;<b>map</b>&nbsp;]
-[&nbsp;<b>color</b>&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;method&nbsp;&nbsp;fauchere&nbsp;|&nbsp;brasseur&nbsp;|&nbsp;type5&nbsp;|&nbsp;dubost&nbsp;|&nbsp;buckingham&nbsp;[&nbsp;nexp&nbsp;&nbsp;<i>n</i>&nbsp;]]
+[&nbsp;maxDistance&nbsp;&nbsp;<i>D</i>&nbsp;]
+[&nbsp;spacing&nbsp;&nbsp;<i>s</i>&nbsp;]
+[&nbsp;<b>map</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<i><a href="#palette-options">palette-options</a></i>&nbsp;
 </h3>
 <p>
@@ -120,14 +120,14 @@ The <b>spacing</b> <i>s</i> of the map grid can be
 specified in the range 0.1&ndash;10.0 &Aring; (default <b>1.0</b>).
 Decreasing the spacing increases map size and calculation time.
 </p><p>
-If the <b>map</b> keyword is given, the map(s) will be
-opened as volume models; this allows subsequently 
-recoloring the surfaces by MLP map (without recalculation)
+With <b>map true</b> (default <b>false</b>), MLP maps will be
+opened as volume models. This allows subsequently recoloring surfaces 
+by the map values (without having to recalculate them on the fly) 
 using <a href="color.html"><b>color</b></a>,
 and/or <a href="save.html">saving</a> the maps to file.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2016</address>
+January 2017</address>
 </body></html>
