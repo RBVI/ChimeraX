@@ -41,10 +41,14 @@ _XSectionMap = {
     "round": XSectionManager.STYLE_ROUND,
     "piping": XSectionManager.STYLE_PIPING,
 }
-_ModeMap = {
+_ModeHelixMap = {
     "default": Structure.RIBBON_MODE_DEFAULT,
     "tube": Structure.RIBBON_MODE_ARC,
     "wrap": Structure.RIBBON_MODE_WRAP,
+}
+_ModeStrandMap = {
+    "default": Structure.RIBBON_MODE_DEFAULT,
+    "plank": Structure.RIBBON_MODE_ARC,
 }
 _XSInverseMap = dict([(v, k) for k, v in _XSectionMap.items()])
 
@@ -460,11 +464,11 @@ def cartoon_style(session, spec=None, width=None, thickness=None, arrows=None, a
         for m in structures:
             m.ribbon_orientation = o
     if mode_helix is not None:
-        mode = _ModeMap.get(mode_helix, None)
+        mode = _ModeHelixMap.get(mode_helix, None)
         for m in structures:
             m.ribbon_mode_helix = mode
     if mode_strand is not None:
-        mode = _ModeMap.get(mode_strand, None)
+        mode = _ModeStrandMap.get(mode_strand, None)
         for m in structures:
             m.ribbon_mode_strand = mode
 
@@ -845,8 +849,8 @@ def register_command(session):
                             ("bar_sides", Bounded(EvenIntArg, 3, 24)),
                             ("ss_ends", EnumOf(["default", "short", "long"])),
                             ("orient", EnumOf(list(_OrientMap.keys()))),
-                            ("mode_helix", EnumOf(list(_ModeMap.keys()))),
-                            ("mode_strand", EnumOf(list(_ModeMap.keys()))),
+                            ("mode_helix", EnumOf(list(_ModeHelixMap.keys()))),
+                            ("mode_strand", EnumOf(list(_ModeStrandMap.keys()))),
                             ],
                    synopsis='set cartoon style for secondary structures in specified models')
     register(command_name + " style", desc, cartoon_style)
