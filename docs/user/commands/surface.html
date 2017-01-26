@@ -50,6 +50,7 @@ class="clRight" title="User Guide Index"/></a>
 The <b>surface</b> command creates and displays molecular surfaces,
 either atomically detailed solvent-excluded surfaces (SES, default) or
 lower-resolution Gaussian surfaces (GS).
+<a name="surfdefs"></a>
 A <b><i>solvent-excluded surface</i></b> is
 composed of the contact, toroidal, and reentrant surfaces of a probe sphere 
 rolled over the atomic <a href="../radii.html">VDW spheres</a>. By contrast,
@@ -62,8 +63,7 @@ See below for <a href="#options">surface creation options</a> and
 See also:
 <a href="show.html"><b>show</b></a>,
 <a href="color.html"><b>color</b></a>,
-<a href="sasa.html"><b>sasa</b></a>,
-<a href="buriedarea.html"><b>buriedarea</b></a>,
+<a href="measure.html"><b>measure</b></a>,
 <a href="sym.html"><b>sym</b></a>,
 <a href="volume.html"><b>volume</b></a>,
 <a href="colortables.html#autocolors">chain colors</a>,
@@ -114,7 +114,9 @@ or all surface models that enclose any of the specified atoms.
 <ul class="none">
 <li><a href="#options">Surface Creation Options</a>
 <li><a href="#examples">Examples</a>
-<li><a href="#sop">Surface Operations</a>
+<li><a href="#sop">Surface Operations</a> 
+(for surface models in general,
+including <a href="../tools/volumeviewer.html">volume</a> isosurfaces)
 <li><a href="#notes">Technical Notes</a>
 </ul>
 
@@ -317,7 +319,9 @@ and HEM residues in model 1
 </p>
 <h3>Surface Operations</h3>
 <p>
-Surface operations include:
+Surface operations apply to surface models in general, including
+<a href="../tools/volumeviewer.html">volume</a> isosurfaces.
+The operations include:
 <ul>
 <li><a href="#dust"><b>surface dust</b></a>
 - hide small blobs (disconnected parts)
@@ -371,7 +375,7 @@ Ranking to determine the largest is based on maximum dimension
 (along X, Y, or Z for a given patch), <i>including</i> any portions
 within the zone that are hidden by <a href="clip.html">clipping</a>.
 If <b>maxComponents</b> is not supplied, all patches within the zone
-will be shown. See also: <a href="select.html#zone"><b>select zone</b></a>
+will be shown. See also: <a href="select.html"><b>select zone</b></a>
 </blockquote>
 
 <a name="notes"></a>
@@ -404,5 +408,5 @@ atomic center.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2016</address>
+January 2017</address>
 </body></html>
