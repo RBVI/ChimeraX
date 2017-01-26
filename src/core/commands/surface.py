@@ -228,14 +228,6 @@ def _molecular_surfaces(session, objects):
     else:
         surfs = [s for s in objects.models if isinstance(s, MolecularSurface)]
     return surfs
-    
-# -------------------------------------------------------------------------------------
-#
-def unsurface(session, atoms = None):
-    '''
-    Hide surface for specified atoms.  Same as command "surface <spec> hide".
-    '''
-    surface_hide(session, atoms)
 
 # -------------------------------------------------------------------------------------
 #
@@ -268,16 +260,12 @@ def register_command(session):
         optional = [('objects', ObjectsArg)],
         synopsis = 'Hide patches of molecular surfaces')
     register('surface hide', hide_desc, surface_hide)
+    create_alias('~surface', 'surface hide $*')
 
     close_desc = CmdDesc(
         optional = [('objects', ObjectsArg)],
         synopsis = 'close molecular surfaces')
     register('surface close', close_desc, surface_close)
-    
-    unsurface_desc = CmdDesc(
-        optional = [('atoms', AtomsArg)],
-        synopsis = 'hide molecular surface')
-    register('~surface', unsurface_desc, unsurface)
 
     # Register surface operation subcommands.
     from . import sop
