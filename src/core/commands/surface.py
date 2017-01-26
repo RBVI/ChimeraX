@@ -176,8 +176,9 @@ def surface_show(session, objects = None):
     objects : Objects
       Show atom patches for existing specified molecular surfaces or for specified atoms.
     '''
-    from ..atomic import molsurf
-    sma = molsurf.show_surface_atom_patches(objects.atoms, session.models) if objects else []
+    from ..atomic import all_atoms, molsurf
+    atoms = objects.atoms if objects else all_atoms(session)
+    sma = molsurf.show_surface_atom_patches(atoms, session.models)
     sm = _molecular_surfaces(session, objects)
     for s in sm:
         s.display = True
