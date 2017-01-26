@@ -113,7 +113,8 @@ public:
                              RIBBON_ORIENT_CURVATURE = 3,
                              RIBBON_ORIENT_PEPTIDE = 4 };
     enum RibbonMode { RIBBON_MODE_DEFAULT = 0,
-                      RIBBON_MODE_ARC = 1 };
+                      RIBBON_MODE_ARC = 1,
+                      RIBBON_MODE_WRAP = 2 };
 protected:
     const int  CURRENT_SESSION_VERSION = 4;
 

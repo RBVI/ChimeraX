@@ -196,7 +196,7 @@ def register_command(session):
         synopsis='save session'
     )
     def save_session(session, filename, **kw):
-        kw['format'] = 'ses'
+        kw['format'] = 'session'
         save(session, filename, **kw)
     register('save session', desc, save_session)
 

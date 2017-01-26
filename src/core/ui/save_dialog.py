@@ -66,6 +66,23 @@ def _session_wildcard():
     return export_file_filter(toolshed.SESSION)
 
 
+def quote_if_necessary(fn):
+    if ' ' not in fn:
+        return fn
+    
+    if '"' not in  fn:
+        return '"' + fn + '"'
+
+    if "'" not in fn:
+        return "'" + fn + "'"
+
+    escaped = ""
+    for c in fn:
+        if c == ' ':
+            escaped += '\\'
+        escaped += c
+    return escaped
+
 def _session_save(session, filename):
     import os.path
     ext = os.path.splitext(filename)[1]
@@ -74,11 +91,8 @@ def _session_save(session, filename):
     exts = fmt.extensions
     if exts and ext not in exts:
         filename += exts[0]
-    # TODO: generate text command instead of calling function directly
-    # so that command logging happens automatically
-    from ..commands import save
-    save.save(session, filename)
-    session.logger.info("File \"%s\" saved." % filename)
+    from ..commands import run
+    run(session, "save session %s" % quote_if_necessary(filename))
 
 
 class ImageSaverBase:
@@ -247,11 +261,11 @@ class ImageSaver(ImageSaverBase):
             from ..errors import UserError
             raise UserError("width/height must be positive integers")
         ss = self.SUPERSAMPLE_OPTIONS[self._supersample.currentIndex()][1]
-        # TODO: generate text command instead of calling function directly
-        # so that command logging happens automatically
-        from ..image import save_image
-        save_image(session, filename, width=w, height=h, supersample=ss)
-        session.logger.info("File \"%s\" saved." % filename)
+        from ..commands import run
+        cmd = "save image %s width %g height %g" % (quote_if_necessary(filename), w, h)
+        if ss is not None:
+            cmd += " supersample %g" % ss
+        run(session, cmd)
 
     def update(self, session, save_dialog):
         gw = session.ui.main_window.graphics_window

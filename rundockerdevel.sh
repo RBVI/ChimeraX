@@ -8,15 +8,20 @@ IMAGE_NAME="${user}-chimera-image"
 CONTAINER_NAME="${user}-chimera"
 
 usage() {
-	echo "usage: $0 [-s]"
-	echo "  -s  setup docker image, '$IMAGE_NAME', for later use"
+	echo "usage: $0 [-i] [-s]"
+	echo "  -i  just initialize docker image only, '$IMAGE_NAME', for later use"
+	echo "  -s  skip cloning chimerax repository"
 	exit 2
 }
 
-while getopts s opt
+while getopts is opt
 do
 	case $opt in
-		s) SETUP_ONLY=true
+	i)
+		INIT_ONLY=true
+		;;
+	s)
+		SKIP_CLONE=true
 		;;
 	*)
 		usage
@@ -26,7 +31,7 @@ done
 
 if docker info > /dev/null 2>&1
 then
-	if [ -z "$SETUP_ONLY" ]
+	if [ -z "$INIT_ONLY" ]
 	then
 		echo "Building interactive docker setup for one-time use"
 		echo ""
@@ -47,7 +52,7 @@ cleanup_on_exit() {
 		echo "Removing temporary directory"
 		rm -rf $SETUP_DIR
 	fi
-	if [ -n "$SETUP_ONLY" ]
+	if [ -n "$INIT_ONLY" ]
 	then
 		echo "Run 'docker run -it --name $CONTAINER_NAME $IMAGE_NAME bash' to build/debug chimera"
 		echo "Remember to remove the container and image when done:"
@@ -69,9 +74,12 @@ cd $SETUP_DIR
 echo "Copying ~/.ssh"
 cp -rp ~/.ssh .
 
-# svn checkout in advance in case ssh credentials need a password
-echo "Checking out ChimeraX"
-git clone --depth 1 --single-branch --branch develop plato.cgl.ucsf.edu:/usr/local/projects/chimerax/git/chimerax.git
+if [ -z "$SKIP_CLONE" ]
+then
+	# git clone in advance in case ssh credentials need a password
+	echo "Checking out ChimeraX"
+	git clone --depth 1 --single-branch --branch develop plato.cgl.ucsf.edu:/usr/local/projects/chimerax/git/chimerax.git
+fi
 
 cat > Dockerfile << EOF
 # Use ChimeraX Linux development environment
@@ -90,7 +98,7 @@ EOF
 echo "Building docker image"
 docker build -q --force-rm -f Dockerfile -t $IMAGE_NAME .
 
-if [ -z "$SETUP_ONLY" ]
+if [ -z "$INIT_ONLY" ]
 then
 	echo "Docker container and image will be removed when done.  So"
 	echo "remember to commit results, and/or scp them back before exiting."
