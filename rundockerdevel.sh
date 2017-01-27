@@ -90,7 +90,7 @@ cat > Dockerfile << EOF
 # Use ChimeraX Linux development environment
 FROM rbvi/chimerax-devel:1.0
 # create root password so su will work, and create non-root user
-RUN echo root:chimerax | chpasswd && useradd -m ${user}
+RUN echo root:chimerax | chpasswd && useradd -m ${user} && apt-get install git vim
 WORKDIR /home/${user}
 # copy build context into user's home directory
 COPY . ./
