@@ -100,19 +100,13 @@ class OptArc:
         y = dot(rel_coords, axis)
         # Get projection of atom onto plane of torus (vector Nx3)
         in_plane = rel_coords - outer(y, axis)
-        # Get distance from circle in plane of torus (vector N)
-        # and then atom distance from circle (vector N)
-        x = norm(in_plane, axis=1) - radius
-        delta = norm(stack([x, y], axis=1), axis=1)
-        # Alternate computation for verification
-        # uv = in_plane / norm(in_plane, axis=1)[:, newaxis]
-        # centers = center + uv * radius
-        # radii = norm(self.coords - centers, axis=1)
-        # Get difference from ideal (vector N)
-        # delta = radii - minor_radius
-        # res = norm(delta)
-        res = var(delta)
-        # print("residual", res)
+        # Get vector from circle center to projected atom
+        uv = in_plane / norm(in_plane, axis=1)[:, newaxis]
+        # Get positions on circle in direction of atoms
+        centers = center + uv * radius
+        # Residual minimizes total distance from atom to ideal
+        res = norm(centers - self.coords)
+        #print("residual", res)
         return res
 
 
@@ -363,23 +357,18 @@ class StrandPlank:
     width parallel to the orientation axis, and thickness perpendicular
     to the orientation axis.  We do not define the ends of the plank.
 
-    A curved cylinder is actually a section of a torus and is
-    described by four parameters: center, orientation axis,
-    major radius (radius of the torus center-line circle) and
-    minor radius (radius of the circular cross section).
-    Again, we do not define the ends of the cylinder.
+    A curved plank described by six parameters: circle center,
+    orientation axis, circle radius, angle of plank relative
+    to plane of circle, width of plank along the angle, height
+    of plank perpendicular to the angle.
 
-    A straight cylinder is used for fewer than 13 residues
-    because that is roughly 3 turns of an alpha helix.
-    Using curved cylinders for shorter helices often result
-    in cylinders that minimize the atom-to-cylinder-surface
-    distances but look wrong.
+    A straight cylinder is used for short strands
+    because there is not enough data for good averaging.
     """
 
-    MIN_CURVE_LENGTH = 9
-    DEFAULT_MAX_ITERATIONS = 5
+    MIN_CURVE_LENGTH = 7
 
-    def __init__(self, coords, maxiter=DEFAULT_MAX_ITERATIONS):
+    def __init__(self, coords, maxiter=None):
         self.coords = coords
         self.maxiter = maxiter
         self._centers = None
@@ -388,8 +377,7 @@ class StrandPlank:
         if len(coords) < self.MIN_CURVE_LENGTH:
             self._straight_optimize()
         else:
-            self._straight_optimize()
-            # self._try_curved()
+            self._try_curved()
 
     def plank_centers(self):
         """Return array of points on center line of plank.
@@ -402,17 +390,17 @@ class StrandPlank:
             return self._centers
         if self.curved:
             # TODO: verify this works
-            # Calculate the vector from atom to torus center (vector Nx3)
+            # Calculate the vector from atom to circle center (vector Nx3)
             rel_coords = self.coords - self.center
-            # Get distance of atom from plane of torus (vector N)
+            # Get distance of atom from plane of circle (vector N)
             y = dot(rel_coords, self.axis)
-            # Get projection of atom onto plane of torus (vector Nx3)
+            # Get projection of atom onto plane of circle (vector Nx3)
             in_plane = rel_coords - outer(y, self.axis)
-            # Get unit vector from torus center
+            # Get unit vector from circle center
             # to in_plane position (vector Nx3)
             uv = in_plane / norm(in_plane, axis=1)[:, newaxis]
             # Get centers by projecting along unit vectors
-            self._centers = self.center + uv * self.major_radius
+            self._centers = self.center + uv * self.radius
         else:
             # Get distance of each atomic coordinate
             # from centroid along the center line
@@ -427,14 +415,19 @@ class StrandPlank:
     def plank_normals(self):
         if self._normals is not None:
             return self._normals
+        from numpy import cross, tile
+        from numpy.linalg import norm
         if self.curved:
+            # TODO: more here
             raise ValueError("unimplemented")
         else:
-            # TODO: more here
-            from numpy import cross, tile
             bn = cross(self.width_vector, self.axis)
             shape = (len(self.coords), 1)
-            self._normals = tile(self.width_vector, shape), tile(bn, shape)
+            normals = tile(self.width_vector, shape), tile(bn, shape)
+        directions = self.plank_directions()
+        binormals = cross(directions, normals)
+        binormals /= norm(binormals, axis=1)
+        self._normals = normals, binormals
         return self._normals
 
     def _straight_optimize(self):
@@ -497,3 +490,57 @@ class StrandPlank:
         axis = vecs[order[-1]]
         width_vector = vecs[order[-2]]
         return centroid, axis, width_vector
+
+    def _try_curved(self):
+        from numpy import mean, cross, sum, vdot
+        from numpy.linalg import norm
+        from math import sqrt
+        # First we compute three centroids at the
+        # front, middle and end of the helix.
+        # We assume all three points are on (or at least
+        # near) the center line of the torus.  We can then
+        # estimate the torus center, orientation and major
+        # radius.  The minor radius is estimated from the
+        # distance of atoms to the torus center line.
+        # We do not use the first or last coordinates
+        # because they tend to deviate from the
+        # cylinder surface more than the middle ones.
+        p1 = mean(self.coords[1:4], axis=0)
+        mid = len(self.coords) // 2
+        p2 = mean(self.coords[mid - 1: mid + 2], axis=0)
+        p3 = mean(self.coords[-4:-1], axis=0)
+        t = p2 - p1
+        u = p3 - p1
+        v = p3 - p2
+        w = cross(t, u)        # triangle normal
+        wsl = sum(w * w)    # square of length of w
+        if wsl < 1e-8:
+            # Strand does not curve
+            # print("strand straight")
+            self._straight_optimize()
+        else:
+            iwsl2 = 1.0 / (2 * wsl)
+            tt = vdot(t, t)
+            uu = vdot(u, u)
+            c_center = p1 + (u * tt * vdot(u, v) - t * uu * vdot(t, v)) * iwsl2
+            c_radius = sqrt(tt * uu * vdot(v, v) * iwsl2 * 0.5)
+            c_axis = w / sqrt(wsl)
+            # print("strand curved: center", c_center, "radius", c_radius,
+            #     "axis", c_axis)
+            self._curved_optimize(c_center, c_axis, c_radius)
+
+    def _curved_optimize(self, center, axis, radius):
+        from numpy.linalg import norm
+        from numpy import mean
+        opt = OptArc(self.coords, center, axis, radius)
+        self.curved = True
+        self.center = opt.center
+        self.axis = opt.axis
+        self.radius = opt.radius
+        # TODO: need to compute angle, width and thickness
+        # self.angle = XXX
+        # self.width = XXX
+        # self.thickness = XXX
+        self.angle = 0
+        self.width = 2.0
+        self.thickness = 0.5

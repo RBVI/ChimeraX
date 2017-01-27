@@ -15,7 +15,7 @@
 # Implementation of select zone subcommand that selects atoms or surfaces near
 # other atoms or surfaces.
 #
-def select_zone(session, near, range, find = None, extend = False):
+def select_zone(session, near, range, find = None, extend = False, residues = False):
     '''
     Select atoms or surfaces near other atoms or surfaces.
     The distance from a point to a surface is the minimum distance to
@@ -33,6 +33,9 @@ def select_zone(session, near, range, find = None, extend = False):
        Target objects to select if they are in range of any reference object.
     extend : bool
        Whether to include all the reference objects in the selection.
+    residues : bool
+       Whether to select full residues that have an in range atom,
+       or just the individual atoms that are in range.
     '''
 
     na = near.atoms
@@ -57,7 +60,7 @@ def select_zone(session, near, range, find = None, extend = False):
     if ns:
       fs = list(set(fs).difference(ns))
 
-    sa, ss = zone_items(na, ns, range, fa, fs, extend)
+    sa, ss = zone_items(na, ns, range, fa, fs, extend, residues)
     select_items(session, sa, ss)
     report_selected(session.logger, sa, ss)
 
@@ -79,7 +82,7 @@ def surfaces(models, exclude_molecular_surfaces = False):
 
 # -----------------------------------------------------------------------------
 #
-def zone_items(na, ns, range, fa, fs, extend = False):
+def zone_items(na, ns, range, fa, fs, extend = False, residues = False):
     # TODO: Use double precision coordinates and transforms.
     from numpy import float32
     naxyz = na.scene_coords.astype(float32)
@@ -103,6 +106,9 @@ def zone_items(na, ns, range, fa, fs, extend = False):
     if extend:
         sa = sa.merge(na)
         ss.update(ns)
+
+    if residues:
+        sa = sa.unique_residues.atoms
 
     return sa, ss
 
@@ -139,7 +145,8 @@ def register_command(session):
         required=[('near', ObjectsArg),
                   ('range', FloatArg)],
         optional=[('find', ObjectsArg)],
-        keyword=[('extend', BoolArg)],
+        keyword=[('extend', BoolArg),
+                 ('residues', BoolArg)],
         synopsis='Select atoms or surfaces near other atoms and surfaces'
     )
     register('select zone', desc, select_zone)

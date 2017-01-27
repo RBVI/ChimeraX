@@ -6,17 +6,22 @@ user=$(id -n -u)
 # Docker image and container names
 IMAGE_NAME="${user}-chimera-image"
 CONTAINER_NAME="${user}-chimera"
+BRANCH=develop
 
 usage() {
-	echo "usage: $0 [-i] [-s]"
-	echo "  -i  just initialize docker image only, '$IMAGE_NAME', for later use"
-	echo "  -s  skip cloning chimerax repository"
+	echo "usage: $0 [-b branch] [-i] [-s]"
+	echo "  -b BRANCH  use given BRANCH (default 'develop')"
+	echo "  -i         just initialize docker image only, '$IMAGE_NAME', for later use"
+	echo "  -s         skip cloning chimerax repository"
 	exit 2
 }
 
-while getopts is opt
+while getopts b:is opt
 do
 	case $opt in
+	b)
+		BRANCH=$OPTARG
+		;;
 	i)
 		INIT_ONLY=true
 		;;
@@ -78,14 +83,14 @@ if [ -z "$SKIP_CLONE" ]
 then
 	# git clone in advance in case ssh credentials need a password
 	echo "Checking out ChimeraX"
-	git clone --depth 1 --single-branch --branch develop plato.cgl.ucsf.edu:/usr/local/projects/chimerax/git/chimerax.git
+	git clone --depth 1 --single-branch --branch $BRANCH plato.cgl.ucsf.edu:/usr/local/projects/chimerax/git/chimerax.git
 fi
 
 cat > Dockerfile << EOF
 # Use ChimeraX Linux development environment
 FROM rbvi/chimerax-devel:1.0
 # create root password so su will work, and create non-root user
-RUN echo root:chimerax | chpasswd && useradd -m ${user}
+RUN echo root:chimerax | chpasswd && useradd -m ${user} && apt-get install git vim
 WORKDIR /home/${user}
 # copy build context into user's home directory
 COPY . ./

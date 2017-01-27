@@ -45,8 +45,9 @@ def info(session, models=None):
             line += ', %d selected instances' % spos.sum()
         from ..atomic import Structure
         if isinstance(m, Structure):
-            line += ('\n%d atoms, %d bonds, %d residues, %d chains'
-                    % (m.num_atoms, m.num_bonds, m.num_residues, m.num_chains))
+            line += ('\n%d atoms, %d bonds, %d residues, %d chains (%s)'
+                    % (m.num_atoms, m.num_bonds, m.num_residues, m.num_chains,
+                       ','.join(m.residues.unique_chain_ids)))
             ncs = m.num_coord_sets
             if ncs > 1:
                 line += ', %d coordsets' % ncs
