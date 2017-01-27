@@ -47,8 +47,8 @@ non_oxygen_single_bond = (H, {'geometry':tetrahedral, 'not_type': ['O', 'O3', 'O
 # the following applies:
 #
 #	Atoms are indicated as either strings [idatm types] or numbers/
-#	symbolic constants [element number].  Tuples indicate the atom
-#	can be any one of the alternatives in the tuple.
+#	symbolic constants [element number], or None [any atom].  Tuples indicate
+#	the atom can be any one of the alternatives in the tuple.
 #
 #	A list where an atom is expected is always two elements:  an atom,
 #	and a list of what is bonded to that atom.
@@ -170,26 +170,29 @@ def find_group(group_desc, structures, return_collection=False):
 	for structure in structures:
 		if not isinstance(structure, AtomicStructure):
 			continue
-		from time import time
-		t0 = time()
+		#from time import time
+		#t0 = time()
 		grps = fg(structure.cpp_pointer, group_rep, group_principals, RingAtom, num_cpus,
 			return_collection)
-		t1 = time()
+		#t1 = time()
 		if return_collection:
 			# accumulate the numpy arrays to later be concatenated and turned into a Collection
 			groups.append(grps)
 		else:
 			from chimerax.core.atomic.molobject import object_map
 			groups.extend([[object_map(ptr, Atom) for ptr in ptrs] for ptrs in grps])
-		t2 = time()
+		#t2 = time()
 	if return_collection:
-		import numpy
-		groups = Atoms(numpy.concatenate(groups))
-	t3 = time()
-	print("Call C++:", t1-t0)
-	print("Extend groups:", t2-t1)
-	print("Form collection if necesary:", t3-t2)
-	print("Overall:", t3-t0)
+		if groups:
+			import numpy
+			groups = Atoms(numpy.concatenate(groups))
+		else:
+			groups = Atoms()
+	#t3 = time()
+	#print("Call C++:", t1-t0)
+	#print("Extend groups:", t2-t1)
+	#print("Form collection if necesary:", t3-t2)
+	#print("Overall:", t3-t0)
 	return groups
 '''
 	groups = []

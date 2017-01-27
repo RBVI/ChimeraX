@@ -144,6 +144,28 @@ public:
 	}
 };
 
+class AnyAtomCondition: public AtomCondition
+// Python equivalent:  None
+{
+public:
+	AnyAtomCondition() {}
+	virtual  ~AnyAtomCondition() {}
+	bool  atom_matches(const Atom*) const { return true; }
+	bool  operator==(const AtomCondition& other) const {
+		auto casted = dynamic_cast<const AnyAtomCondition*>(&other);
+		return (casted != nullptr);
+	}
+	bool  possibly_matches_H() const { return true; }
+	std::vector<Group>  trace_group(const Atom* a, const Atom* = nullptr) {
+		std::vector<Group> traced_groups;
+		if (atom_matches(a)) {
+			traced_groups.emplace_back();
+			traced_groups.back().push_back(a);
+		}
+		return traced_groups;
+	}
+};
+
 class IdatmPropertyCondition: public AtomCondition
 // Python equivalent:  dict
 {
@@ -202,7 +224,7 @@ public:
 bool
 IdatmPropertyCondition::atom_matches(const AtomType& idatm_type) const
 {
-	auto idatm_info_map = Atom::get_idatm_info_map();
+	auto& idatm_info_map = Atom::get_idatm_info_map();
 	auto mi = idatm_info_map.find(idatm_type);
 	if (mi == idatm_info_map.end()) {
 		// uncommon type
@@ -599,6 +621,8 @@ make_simple_atom_condition(PyObject* atom_rep)
 	}
 	if (PyDict_Check(atom_rep))
 		return make_idatm_property_condition(atom_rep);
+	if (atom_rep == Py_None)
+		return new AnyAtomCondition();
 
 	auto py_type = PyObject_Type(atom_rep);
 	if (py_type == nullptr) {
