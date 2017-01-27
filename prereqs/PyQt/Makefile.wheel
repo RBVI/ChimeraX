@@ -10,8 +10,7 @@ REMOTE_DIR = $(REMOTE_HOST)/usr/local/src/PyQt5
 
 # VERSION is overriden by Makefile
 VERSION = 5.7
-MINOR_VERSION = 0
-#5.7.1 MINOR_VERSION = 1
+MINOR_VERSION = 1
 FULL_VERSION = $(VERSION).$(MINOR_VERSION)
 ifeq ($(MINOR_VERSION),0)
 PYQT_VERSION = $(VERSION)
@@ -24,23 +23,19 @@ WHEEL = PyQt5_$(PYQT_LICENSE)-$(PYQT_VERSION)-$(WHEEL_PLATFORM).whl
 # Explicitly choose sip version that works -- depends how unlicensed wheel
 # from Riverbank Computing Limited was built and presumably matches the gpl
 # wheel in PyPI.
-SIP_VERSION = 4.18
-#5.7.1 SIP_VERSION = 4.19
+SIP_VERSION = 4.19
 
 ifeq ($(OS),Darwin)
 PLATFORM = osx
-WHEEL_PLATFORM = cp35-cp35m-macosx_10_6_intel
-#5.7.1 WHEEL_PLATFORM = 5.7.1-cp34.cp35.cp36-abi3-macosx_10_6_intel
+WHEEL_PLATFORM = 5.7.1-cp34.cp35.cp36-abi3-macosx_10_6_intel
 QTDIR = $(HOME)/Qt$(FULL_VERSION)/$(VERSION)/clang_64
 else ifeq ($(OS),Linux)
 PLATFORM = linux
-WHEEL_PLATFORM = cp35-cp35m-manylinux1_x86_64
-#5.7.1 WHEEL_PLATFORM = 5.7.1-cp34.cp35.cp36-abi3-manylinux1_x86_64
+WHEEL_PLATFORM = 5.7.1-cp34.cp35.cp36-abi3-manylinux1_x86_64
 QTDIR = $(HOME)/Qt$(FULL_VERSION)/$(VERSION)/gcc_64
 else ifeq ($(OS),Windows)
 PLATFORM = win
-WHEEL_PLATFORM = cp35-none-win_amd64
-#5.7.1 WHEEL_PLATFORM = 5.7.1-cp34.cp35.cp36-none-win_amd64
+WHEEL_PLATFORM = 5.7.1-cp34.cp35.cp36-none-win_amd64
 QTDIR = c:\\Qt\\Qt$(FULL_VERSION)\\$(VERSION)\\msvc2015_64
 endif
 
