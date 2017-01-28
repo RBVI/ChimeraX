@@ -15,8 +15,8 @@
 
 import chimerax
 from chimerax.core.atomic.idatm import type_info, tetrahedral, planar, linear, single
-#TODO: from miscFind import findAromatics, findAliAmines, findAroAmines
-findAromatics = findAliAmines = findAroAmines = None
+#TODO: from miscFind import find_aromatics, find_ali_amines, find_aro_amines
+find_aromatics = find_ali_amines = find_aro_amines = None
 
 # R is a shorthand for alkyl group
 # X is a shorthand for 'any halide'
@@ -29,8 +29,8 @@ H = Element.get_element('H').number
 R = (C, H)
 X = ('F', 'Cl', 'Br', 'I')
 single_bond = (H, {'geometry':tetrahedral}, {'geometry':single})
-heavy =	{'not_type': ['H', 'HC', 'D', 'DC']}
-non_oxygen_single_bond = (H, {'geometry':tetrahedral, 'not_type': ['O', 'O3', 'O2', 'O3-', 'O2-', 'Oar', 'Oar+']}, {'geometry':single})
+heavy =	{'not type': ['H', 'HC', 'D', 'DC']}
+non_oxygen_single_bond = (H, {'geometry':tetrahedral, 'not type': ['O', 'O3', 'O2', 'O3-', 'O2-', 'Oar', 'Oar+']}, {'geometry':single})
 
 # 'R'/None and H must be found only in a list of descendents (not as the key
 # element of a group or subgroup) and they must be arranged to be trailing
@@ -60,7 +60,7 @@ non_oxygen_single_bond = (H, {'geometry':tetrahedral, 'not_type': ['O', 'O3', 'O
 #	have a special key named 'default'.  The value of True for 'default'
 #	means that atom types not in the type_info dictionary will match,
 #	False means they won't.  The default for 'default' [urg] is False.  The
-#	dictionary can also have a special 'not_type' key, whose value is a
+#	dictionary can also have a special 'not type' key, whose value is a
 #	list of idatm types that aren't allowed to match.
 #
 #	Lastly, an "atom" can be an instance of RingAtom, which is initialized
@@ -95,17 +95,17 @@ group_info = {
 					[1,1,2,1,1,1,1,2,1,0,1,1,2,1,1,1,1]),
 	"aldehyde":	("R(C=O)H",	['C2', ['O2', single_bond, H]], [1,1,0,1]),
 	"amide":	("R(C=O)NR2",	['C2', ['O2', 'Npl', None]], [1,1,1,0]),
-	"amine":	("RxNHy",	lambda m: findAliAmines(m) + findAroAmines(m, 0), None),
-	"aliphatic amine": ("RxNHy",	findAliAmines, None),
+	"amine":	("RxNHy",	lambda m: find_ali_amines(m) + find_aro_amines(m, 0), None),
+	"aliphatic amine": ("RxNHy",	find_ali_amines, None),
 	"aliphatic primary amine": ("RNH2",	[('N3','N3+'), ['C3', H, H, H]], [1,0,1,1,1]),
 	"aliphatic secondary amine": ("R2NH",	[('N3','N3+'), ['C3', 'C3', H, H]], [1,0,0,1,1]),
 	"aliphatic tertiary amine": ("R3N",		[('N3','N3+'), ['C3', 'C3', 'C3', H]], [1,0,0,0,1]),
 	"aliphatic quaternary amine": ("R4N+",	['N3+', ['C3', 'C3', 'C3', 'C3']], [1,0,0,0,0]),
-	"aromatic amine": ("RxNHy",	lambda m: findAroAmines(m, 0), None),
-	"aromatic primary amine": ("RNH2",	lambda m: findAroAmines(m, 1), None),
-	"aromatic secondary amine": ("R2NH",	lambda m: findAroAmines(m, 2), None),
-	"aromatic tertiary amine": ("R3N",		lambda m: findAroAmines(m, 3), None),
-	"aromatic ring":("aromatic",	findAromatics, None),
+	"aromatic amine": ("RxNHy",	lambda m: find_aro_amines(m, 0), None),
+	"aromatic primary amine": ("RNH2",	lambda m: find_aro_amines(m, 1), None),
+	"aromatic secondary amine": ("R2NH",	lambda m: find_aro_amines(m, 2), None),
+	"aromatic tertiary amine": ("R3N",		lambda m: find_aro_amines(m, 3), None),
+	"aromatic ring":("aromatic",	find_aromatics, None),
 	"carbonyl":	("R2C=O",		['O2', [C]], [1,1]),
 	"carboxylate":	("RCOO-",	['Cac', [['O2-', []], ['O2-', []], single_bond]], [1,1,1,0]),
 	"cytosine":	("2-oxy-4-aminopyrimidine",
@@ -292,12 +292,12 @@ def _simple_match(atom, target):
 			if target.has_key('default'):
 				return target['default']
 			return False
-		if 'not_type' in target:
-			if idatm_type in target['not_type']:
+		if 'not type' in target:
+			if idatm_type in target['not type']:
 				return False
 		info = type_info[idatm_type]
 		for key, value in target.items():
-			if key == 'default' or key == 'not_type':
+			if key == 'default' or key == 'not type':
 				continue
 			if getattr(info, key) != value:
 				return False

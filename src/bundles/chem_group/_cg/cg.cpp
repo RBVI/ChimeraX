@@ -44,8 +44,17 @@ public:
 	virtual bool  operator==(const AtomCondition& other) const = 0;
 	bool  operator!=(const AtomCondition& other) const { return !(*this == other); }
 	virtual bool  possibly_matches_H() const = 0;
-	virtual std::vector<Group>  trace_group(const Atom* a, const Atom* parent = nullptr) = 0;
+	virtual std::vector<Group>  trace_group(const Atom* a, const Atom* = nullptr) {
+		std::vector<Group> traced_groups;
+		if (atom_matches(a)) {
+			traced_groups.emplace_back();
+			traced_groups.back().push_back(a);
+		}
+		return traced_groups;
+	}
 };
+
+static std::vector<AtomType> hydrogen_types = { "H", "HC", "D", "DC" };
 
 class AtomIdatmCondition: public AtomCondition
 // Python equivalent:  string
@@ -55,8 +64,14 @@ public:
 	AtomIdatmCondition(const char *idatm_type): _idatm_type(idatm_type) {}
 	AtomIdatmCondition(const AtomType& idatm_type): _idatm_type(idatm_type) {}
 	virtual  ~AtomIdatmCondition() {}
-	bool  atom_matches(const Atom* a) const { return a->idatm_type() == _idatm_type; }
+	bool  atom_matches(const Atom* a) const {
+		return a != nullptr && a->idatm_type() == _idatm_type;
+	}
 	bool  atom_matches(const AtomType& idatm_type) const { return idatm_type == _idatm_type; }
+	bool  is_heavy_atom_type() const {
+		return std::find(hydrogen_types.begin(), hydrogen_types.end(), _idatm_type)
+			== hydrogen_types.end();
+	}
 	bool  operator==(const AtomCondition& other) const {
 		auto casted = dynamic_cast<const AtomIdatmCondition*>(&other);
 		if (casted == nullptr)
@@ -64,14 +79,6 @@ public:
 		return casted->_idatm_type == _idatm_type;
 	}
 	bool  possibly_matches_H() const { return _idatm_type == "H" || _idatm_type == "HC"; }
-	std::vector<Group>  trace_group(const Atom* a, const Atom* = nullptr) {
-		std::vector<Group> traced_groups;
-		if (atom_matches(a)) {
-			traced_groups.emplace_back();
-			traced_groups.back().push_back(a);
-		}
-		return traced_groups;
-	}
 };
 
 class AtomElementCondition: public AtomCondition
@@ -81,7 +88,9 @@ class AtomElementCondition: public AtomCondition
 public:
 	AtomElementCondition(int element_num): _element_num(element_num) {}
 	virtual  ~AtomElementCondition() {}
-	bool  atom_matches(const Atom* a) const { return a->element().number() == _element_num; }
+	bool  atom_matches(const Atom* a) const {
+		return a != nullptr && a->element().number() == _element_num;
+	}
 	bool  operator==(const AtomCondition& other) const {
 		auto casted = dynamic_cast<const AtomElementCondition*>(&other);
 		if (casted == nullptr)
@@ -89,14 +98,6 @@ public:
 		return casted->_element_num == _element_num;
 	}
 	bool  possibly_matches_H() const { return _element_num == 1; }
-	std::vector<Group>  trace_group(const Atom* a, const Atom* = nullptr) {
-		std::vector<Group> traced_groups;
-		if (atom_matches(a)) {
-			traced_groups.emplace_back();
-			traced_groups.back().push_back(a);
-		}
-		return traced_groups;
-	}
 };
 
 class AtomAlternativesCondition: public AtomCondition
@@ -156,14 +157,6 @@ public:
 		return (casted != nullptr);
 	}
 	bool  possibly_matches_H() const { return true; }
-	std::vector<Group>  trace_group(const Atom* a, const Atom* = nullptr) {
-		std::vector<Group> traced_groups;
-		if (atom_matches(a)) {
-			traced_groups.emplace_back();
-			traced_groups.back().push_back(a);
-		}
-		return traced_groups;
-	}
 };
 
 class IdatmPropertyCondition: public AtomCondition
@@ -179,7 +172,12 @@ public:
 
 	virtual  ~IdatmPropertyCondition() { for (auto cond: not_type) delete cond; }
 	bool  atom_matches(const AtomType& idatm_type) const;
-	bool  atom_matches(const Atom* a) const { return atom_matches(a->idatm_type()); }
+	bool  atom_matches(const Atom* a) const {
+		if (a == nullptr)
+			return matches_missing_structure();
+		return atom_matches(a->idatm_type());
+	}
+	bool  matches_missing_structure() const;
 	bool  operator==(const AtomCondition& other) const {
 		auto casted = dynamic_cast<const IdatmPropertyCondition*>(&other);
 		if (casted == nullptr)
@@ -211,14 +209,6 @@ public:
 		AtomType h("H"), hc("HC");
 		return atom_matches(h) || atom_matches(hc);
 	}
-	std::vector<Group>  trace_group(const Atom* a, const Atom* /*parent*/ = nullptr) {
-		std::vector<Group> traced_groups;
-		if (atom_matches(a)) {
-			traced_groups.emplace_back();
-			traced_groups.back().push_back(a);
-		}
-		return traced_groups;
-	}
 };
 
 bool
@@ -244,6 +234,20 @@ IdatmPropertyCondition::atom_matches(const AtomType& idatm_type) const
 	return true;
 }
 
+bool
+IdatmPropertyCondition::matches_missing_structure() const
+{
+	// only thing missing structure matches is a generic heavy atom...
+	if (has_geometry || substituents >= 0)
+		return false;
+
+	for (auto cond: not_type) {
+		if (cond->is_heavy_atom_type())
+			return false;
+	}
+	return true;
+}
+
 class RingAtomCondition: public AtomCondition
 // Python equivalent:  RingAtom instance
 {
@@ -253,7 +257,7 @@ public:
 	RingAtomCondition(AtomCondition* ac, int num_rings): _cond(ac), _num_rings(num_rings) {}
 	virtual  ~RingAtomCondition() {}
 	bool  atom_matches(const Atom* a) const {
-		return _cond->atom_matches(a) && a->rings().size() == _num_rings;
+		return _cond->atom_matches(a) && a != nullptr && a->rings().size() == _num_rings;
 	}
 	bool  operator==(const AtomCondition& other) const {
 		auto casted = dynamic_cast<const RingAtomCondition*>(&other);
@@ -448,13 +452,19 @@ std::vector<Group>
 CG_Condition::trace_group(const Atom* a, const Atom* parent)
 {
 	std::vector<Group> traced_groups;
-	if (!atom_matches(a))
+	if (!atom_matches(a) || a == nullptr)
 		return traced_groups;
+
+	// Use nullptrs for missing-structure "neighbors"
+	auto neighbors = a->neighbors();
+	auto nulls_to_add = a->num_explicit_bonds() - neighbors.size();
+	for (decltype(nulls_to_add) i = 0; i < nulls_to_add; ++i)
+		neighbors.push_back(nullptr);
 
 	// for efficiency, don't check the bonded atoms in detail if they can't
 	// possibly match because the number is wrong (accounting for hydrogens
 	// being allowed to match nothing)
-	unsigned int bonds_to_match = a->bonds().size() - (parent != nullptr);
+	unsigned int bonds_to_match = neighbors.size() - (parent != nullptr);
 	if (bonded.size() < bonds_to_match
 	|| bonded.size() - count_possible_Hs(bonded) > bonds_to_match)
 		return traced_groups;
@@ -464,11 +474,7 @@ CG_Condition::trace_group(const Atom* a, const Atom* parent)
 		traced_groups.emplace_back();
 		traced_groups.back().push_back(a);
 	} else { 
-		if (a->has_missing_structure_pseudobond()) {
-			// the unknown bond partner on the opposite side can't match
-			return traced_groups;
-		}
-		auto matches = match_descendents(a, a->neighbors(), parent, bonded);
+		auto matches = match_descendents(a, neighbors, parent, bonded);
 		for (auto& match: matches) {
 			traced_groups.emplace_back();
 			auto& back = traced_groups.back();
@@ -531,7 +537,7 @@ make_idatm_property_condition(PyObject* dict)
 			cond->default_val = value == Py_True;
 			continue;
 		}
-		if (strcmp(str_key, "notType") == 0) {
+		if (strcmp(str_key, "not type") == 0) {
 			if (!PyList_Check(value)) {
 				delete cond;
 				std::ostringstream err_msg;
@@ -547,7 +553,7 @@ make_idatm_property_condition(PyObject* dict)
 					delete cond;
 					std::ostringstream err_msg;
 					err_msg << "Item in chem group IDATM-property test-condition dictionary";
-					err_msg << " 'notType' list is not a string";
+					err_msg << " 'not type' list is not a string";
 					PyErr_SetString(PyExc_ValueError, err_msg.str().c_str());
 					return nullptr;
 				}
@@ -756,6 +762,12 @@ initiate_find_group(CG_Condition* group_rep, std::vector<long>* group_principals
 				auto principal = (*group_principals)[i];
 				auto group_atom = raw_group[i];
 				if (principal != 0) {
+					if (group_atom == nullptr) {
+						// missing-structure can't actually be part of returned
+						// group; disallow/abort by setting rings_okay false
+						rings_okay = false;
+						break;
+					}
 					if (ring_atom_map.find(principal) != ring_atom_map.end()) {
 						if (ring_atom_map[principal] != group_atom) {
 							rings_okay = false;
