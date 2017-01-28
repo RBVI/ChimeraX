@@ -36,26 +36,21 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;interfaceResidueAreaCutoff&nbsp;&nbsp;<i>res-area</i>&nbsp;] 
 </h3>
 <p>
-The <b>contacts</b> command calculates the buried solvent-accessible
-surface area (SASA) for each pair of chains in the
+The <b>contacts</b> command calculates the buried 
+<a href="surface.html#surfdefs">solvent-accessible surface</a>
+area (SASA) for each pair of chains in the
 <a href="atomspec.html">specified</a> set of atoms, based on chain IDs,
 and generates a <a href="#diagram">network diagram</a>
 of the interchain contacts. Unspecified atoms are ignored, but
 solvent, ions, and ligand residues are <i>not</i> excluded automatically.
 The buried SASA is calculated as described for
-<a href="buriedarea.html"><b>buriedarea</b></a>, and the measured 
-interface areas are reported in the <a href="../tools/log.html"><b>Log</b></a>.
-See also: <a href="sasa.html"><b>sasa</b></a>
+<a href="measure.html#buriedArea"><b>measure buriedArea</b></a>,
+and results are reported in the <a href="../tools/log.html"><b>Log</b></a>.
+See also:
+<a href="../radii.html">VDW radii</a>
 </p><p>
-Whereas the <a href="surface.html"><b>surface</b></a> command shows
-<b><i>solvent-excluded</i></b> surfaces (SES) defined by the closest
-approach of the surface of a probe sphere rolled over the
-atomic <a href="../radii.html">VDW spheres</a>,
-the <b><i>solvent-accessible</i></b> surface (SAS) 
-is traced out by the center of the probe sphere and is not displayed.
-The <b>probeRadius</b> <i>rad</i> is the radius of this 
-&ldquo;rolling sphere&rdquo; probe (default <b>1.4</b> &Aring;, 
-the value often used to approximate a water molecule).
+The default <b>probeRadius</b> <i>rad</i> for calculating each SAS
+is <b>1.4</b> &Aring;, often used to approximate a water molecule.
 Interfaces with at least <i>interface-area</i> buried
 (default <b>300</b> &Aring;<sup>2</sup>, can be changed with the
 <b>areaCutoff</b> option) are counted as contacts
@@ -303,5 +298,5 @@ the corresponding residue in the structure (same as clicking the node)
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2016</address>
+January 2017</address>
 </body></html>

@@ -25,36 +25,35 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: sym</h3>
 <h3><a href="usageconventions.html">Usage</a>:
-<BR><b>sym</b> &nbsp;<a href="atomspec.html"><i>model-spec</i></a></h3>
+<br><b>sym</b> &nbsp;<a href="atomspec.html"><i>model-spec</i></a></h3>
 
 <h3><a href="usageconventions.html">Usage</a>:
-<BR><b>sym</b> &nbsp;<a href="atomspec.html"><i>model-spec</i></a>
+<br><b>sym</b> &nbsp;<a href="atomspec.html"><i>model-spec</i></a>
 &nbsp;&nbsp;assembly&nbsp;&nbsp;<i>identifier</i>&nbsp;
-[&nbsp;copies&nbsp;]
-[&nbsp;surfaceOnly&nbsp;[&nbsp;resolution&nbsp;&nbsp;<i>r</i>&nbsp;]
-[&nbsp;gridSpacing&nbsp;<i>s</i>&nbsp;]]
+[&nbsp;copies&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;surfaceOnly&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp]
+[&nbsp;resolution&nbsp;&nbsp;<i>r</i>&nbsp;]
+[&nbsp;gridSpacing&nbsp;&nbsp;<i>s</i>&nbsp;]
 </h3>
 
 <h3><a href="usageconventions.html">Usage</a>:
-<BR><b>sym</b> &nbsp;<a href="atomspec.html"><i>model-spec</i></a>
+<br><b>sym</b> &nbsp;<a href="atomspec.html"><i>model-spec</i></a>
 &nbsp;&nbsp;<i>sym-type</i>
 [&nbsp;axis&nbsp;&nbsp;<i>axis</i>&nbsp;]
 [&nbsp;center&nbsp;&nbsp;<i>center</i>&nbsp;]
 [&nbsp;coordinateSystem&nbsp;&nbsp;<i>N</i>&nbsp;]
-[&nbsp;copies&nbsp;]
-[&nbsp;surfaceOnly&nbsp;[&nbsp;resolution&nbsp;&nbsp;<i>r</i>&nbsp;]
-[&nbsp;gridSpacing&nbsp;<i>s</i>&nbsp;]]
+[&nbsp;copies&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;surfaceOnly&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp]
+[&nbsp;resolution&nbsp;&nbsp;<i>r</i>&nbsp;]
+[&nbsp;gridSpacing&nbsp;&nbsp;<i>s</i>&nbsp;]
 </h3>
 
 <h3><a href="usageconventions.html">Usage</a>:
-<BR><b>sym</b> &nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp; clear
+<br><b>sym clear</b> &nbsp;<a href="atomspec.html"><i>model-spec</i></a>
 </h3>
 
 <p>
-The <b>sym</b> command generates symmetry copies of an atomic model
-according to either <a href="#assembly">mmCIF assembly</a> information
-or <a href="#symmetry">user-specified symmetry</a>, 
-with options for <a href="#copies">how to represent copies</a>.
+The <b>sym</b> command generates symmetry copies of an atomic model.
 See also:
 <a href="open.html"><b>open</b></a>,
 <a href="close.html"><b>close</b></a>,
@@ -62,7 +61,14 @@ See also:
 <a href="position.html"><b>position</b></a>,
 <a href="surface.html"><b>surface</b></a>,
 <b>Cage Builder</b>
+</p><p>
+Command options are explained in the following sections:
 </p>
+<blockquote>
+<a href="#assembly">Assemblies from mmCIF</a>
+<br><a href="#symmetry">User-Specified Symmetry</a>
+<br><a href="#copies">How to Represent Copies</a>
+</blockquote>
 
 <a name="assembly"></a>
 <h4><a href="#top" class="nounder"><b>&larr;</b></a>
@@ -237,8 +243,8 @@ By default, the added copies are simply graphical clones of
 the original structure, and cannot be displayed in different styles and
 structures from the original.
 </p><p>
-With the <b>copies</b> option, the assembly is instead added as a
-separate model in which each submodel 
+With <b>copies true</b> (default <b>false</b>),
+the assembly is instead added as a separate model in which each submodel 
 can be displayed and colored independently of the others.
 Adding all copies as independent (sub)models rather than as graphical clones
 requires more memory and may not be practical for larger assemblies.
@@ -246,7 +252,7 @@ The original atomic model is hidden but not closed automatically,
 even though the same parts of the assembly are also included in the new model.
 </p><p>
 For a simple appearance and economical use of memory,
-the <b>surfaceOnly</b> option indicates calculating per-chain 
+<b>surfaceOnly true</b> (default <b>false</b>) indicates calculating per-chain 
 surfaces for the original structure and then showing only surfaces
 for the copies. The surfaces can be created as graphical clones, 
 or if <b>copies</b> is also used, as molecular surface models 
@@ -256,7 +262,8 @@ The surface calculation is the same as for the
 <a href="surface.html"><b>surface</b></a> command
 with default <a href="surface.html#parameters">parameters</a>:
 <ul>
-<li>If <b>resolution</b> is not specified, solvent-excluded surfaces (SES)
+<li>If <b>resolution</b> is not specified, 
+<a href="surface.html#surfdefs">solvent-excluded surfaces</a> (SES)
 will be calculated (probe radius 1.4 &Aring;).
 <li>If <b>resolution</b> is specified, low-resolution Gaussian surfaces
 will be calculated instead.  For each biopolymer chain,
@@ -273,20 +280,20 @@ A smaller spacing gives a smoother, more finely triangulated surface,
 but uses more memory.
 </ul>
 <p>
-The <b>clear</b> keyword indicates removing all graphical clones
-of the specified model(s). 
-Additional models such as from using the <b>copies</b> option are not removed.
+The command <b>sym clear</b> removes all graphical clones of the 
+<a href="atomspec.html">specified</a> model(s). Other models, 
+including those from using the <b>copies</b> option, are not removed.
 </p><p>
-Even when <b>copies</b> is not used,
+Even when <b>copies</b> is <b>false</b> (default),
 one or more copies of the full atomic model may be added, namely
 when the assembly specifies different sets of matrices for different chains.
 In that case, restoring the original state may require not only using 
-<b>clear</b> but also <a href="close.html">closing</a> the added model(s) and 
-<a href="show.html">showing</a> all chains of the original copy
+<b>sym clear</b> but also <a href="close.html">closing</a> the added model(s)
+and <a href="show.html">showing</a> all chains of the original copy
 (some chains may have been hidden when the assembly was shown).
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2016</address>
+January 2017</address>
 </body></html>

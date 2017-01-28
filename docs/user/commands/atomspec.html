@@ -19,8 +19,9 @@ or derivations thereof.
 </head><body>
 <p>
 <font color="brown">
-** This page includes examples that do not work because they use categories 
-or attribute names from Chimera that are not defined in ChimeraX. **
+** Some of the examples in this page don't work &ndash; zone and attribute 
+specifications are not yet implemented, and attribute examples/tables
+show names from Chimera that may not exist in ChimeraX. **
 </font>
 </p>
 <hr>
@@ -45,7 +46,8 @@ can be specified in <a href="../index.html#commands">commands</a> using:
 <font color="brown">(not yet implemented)</font> 
 <li><a href="#zones">zones</a> - by distance from other items
 <font color="brown">(not yet implemented, but see
-<a href="select.html#zone"><b>select zone</b></a>)</font>
+<a href="select.html"><b>select zone</b></a>
+and <a href="surface.html#zone"><b>surface zone</b></a>)</font>
 <li><a href="#descriptors">attribute</a> names and values
 <font color="brown">(not yet implemented)</font>
 </ul>
@@ -382,7 +384,7 @@ The parent menu can be included in this manner even when not necessary.
 <blockquote>
 <b>helix &amp; :arg,lys</b>
 </blockquote>
-- arginine and lysine residues in protein &alpha;-helices
+- arginine and lysine residues in &alpha;-helices
 (using <b>&amp;</b> for intersection, 
 see <a href="#combinations">combinations</a>)
 <blockquote>
@@ -426,7 +428,9 @@ User-defined targets include:
 <h2><a href="#top" class="nounder"><b>&larr;</b></a>
 Zones
 <font color="brown">(not yet implemented, but see
-<a href="select.html#zone"><b>select zone</b></a>)</font></h2>
+<a href="select.html"><b>select zone</b></a>
+and <a href="surface.html#zone"><b>surface zone</b></a>)</font>
+</h2>
 <p>
 Atoms, residues or atomic models within or beyond some distance of a 
 reference set of atoms can be specified as a zone.
@@ -467,8 +471,7 @@ in GTP residue(s) of model 1
 <h2><a href="#top" class="nounder"><b>&larr;</b></a> Attributes
 <font color="brown">(not yet implemented)</font></h2>
 <p>
-<a href="http://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/defineattrib/defineattrib.html#attribdef">
-Attributes</a> are properties of atoms, residues and models,
+Attributes are properties of atoms, residues and models,
 specified by <a href="#attrnames">attribute name</a> and value
 and indicated with symbols:
 <b>@@</b> for <a href="#atprops">atom attributes</a>,
@@ -530,33 +533,30 @@ surface area of the atom (available when a
 has been computed)
 </tr> <tr>
 <td align=center><b>bfactor=</b><i>bfactor</i></td>
-<td><i>bfactor</i> is the B-factor value of the atom (see also 
-<a href="http://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/thermal/thermal.html"><b>Thermal
-Ellipsoids</b></a>)</td>
+<td><i>bfactor</i> is the B-factor value of the atom</td>
 </tr> <tr>
 <td align=center><b>color=</b><i>color</i></td>
-<td><i>color</i> is the color of the atom (assigned on a per-atom basis;
-see <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/hierarchy.html">coloring hierarchy</a>)</td>
+<td><i>color</i> is the color of the atom (assigned on a per-atom basis)</td>
 </tr> <tr>
 <td align=center><b>defaultRadius=</b><i>rad</i></td>
-<td><i>rad</i> is the <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/vdwrad.html">default VDW radius</a>
+<td><i>rad</i> is the <a href="../radii.html">default VDW radius</a>
 of the atom in &Aring;</td>
 </tr> <tr>
 <td align=center><b>display</b></td>
 <td>whether display is enabled at the atom level
-(see <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/hierarchy.html#displevels">display hierarchy</a>)</td>
+(see <a href="../hierarchy.html">display hierarchy</a>)</td>
 </tr> <tr>
 <td align=center><b>drawMode=</b><i>mode</i></td>
 <td><i>mode</i> can be 0 (synonyms: dot, wire, wireframe), 1 (sphere, cpk,
 space-filling), 2 (endcap, stick), or 3 (ball, ball and stick, ball-and-stick,
-ball+stick, bs, b+s); see <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/drawmode.html">draw mode</a>
+ball+stick, bs, b+s)
 </td>
 </tr> <tr>
 <td align=center><b>element=</b><i>atno</i></td>
 <td><i>atno</i> is the atomic number or the element symbol</td>
 </tr> <tr>
 <td align=center><b>idatmType=</b><i>type</i></td>
-<td><i>type</i> is the <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/idatm.html">atom type</a></td>
+<td><i>type</i> is the <a href="../atomtypes.html">atom type</a></td>
 </tr> <tr>
 <td align=center><b>label</b></td>
 <td>whether the atom is labeled</td>
@@ -612,7 +612,8 @@ see <a href="#combinations">combinations</a>):
 <blockquote>
 <b>C & ~ @@idatmType=Car</b>
 </blockquote>
-- non-aromatic carbon atoms (see <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/idatm.html">atom types</a>)
+- non-aromatic carbon atoms
+(see <a href="../atomtypes.html">atom types</a>)
 <blockquote>
 <b>N & @@drawMode=1 & @@label</b>
 </blockquote>
@@ -670,16 +671,15 @@ hydrophobicity</a> of the amino acid residue</td>
 <td><i>N</i> is the total number of atoms in the residue</td>
 </tr> <tr>
 <td align=center><b>phi=</b><i>angle</i></td>
-<td><i>angle</i> is the protein/peptide backbone &phi; dihedral angle
+<td><i>angle</i> is the peptide backbone &phi; dihedral angle
 (C<sub><i>i-1</i></sub>-N-CA-C)</td>
 </tr> <tr>
 <td align=center><b>psi=</b><i>angle</i></td>
-<td><i>angle</i> is the protein/peptide backbone &psi; dihedral angle
+<td><i>angle</i> is the peptide backbone &psi; dihedral angle
 (N-CA-C-N<sub><i>i+1</i></sub>)</td>
 </tr> <tr>
 <td align=center><b>ribbonColor=</b><i>ribcolor</i></td>
-<td><i>ribcolor</i> is the color of the residue's ribbon segment
-(see <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/hierarchy.html">coloring hierarchy</a>)</td>
+<td><i>ribcolor</i> is the color of the residue's ribbon segment</td>
 </tr> <tr>
 <td align=center><b>ribbonDisplay</b></td>
 <td>whether ribbon display is turned on for the residue
@@ -706,11 +706,9 @@ structure PDB file using a web service provided by the
 <p>
 Helix and strand assignments are taken from the input structure file.
 When the input file lacks secondary structure information, 
-<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/ksdssp.html"><b>ksdssp</b></a> is called automatically to 
+<a href="dssp.html"><b>dssp</b></a> is called automatically to 
 generate helix and strand assignments.  
-The <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/ksdssp.html"><b>ksdssp</b></a> command (or
-<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/modelpanel.html#computess"><b>compute SS</b></a>
-in the <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/modelpanel.html"><b>Model Panel</b></a>)
+The <a href="dssp.html"><b>dssp</b></a> command
 can also be used to recompute assignments.
 </p><p>
 Examples:
@@ -729,16 +727,14 @@ Examples:
 <td><i>factor</i> is ball radius relative to VDW radius</td>
 </tr> <tr>
 <td align=center><b>color=</b><i>color</i></td>
-<td><i>color</i> is the color assigned on a per-model basis
-(see <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/hierarchy.html">coloring hierarchy</a>)</td>
+<td><i>color</i> is the color assigned on a per-model basis</td>
 </tr> <tr>
 <td align=center><b>display</b></td>
 <td>whether display is enabled at the model level
-(see <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/hierarchy.html#displevels">display hierarchy</a>)</td>
+(see <a href="../hierarchy.html">display hierarchy</a>)</td>
 </tr> <tr>
 <td align=center><b>lineWidth=</b><i>width</i></td>
-<td><i>width</i> is the linewidth of bonds in the model in the wire
-<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/representation.html">representation</a></td>
+<td><i>width</i> is the linewidth of bonds in the model in wire style</td>
 </tr> <tr>
 <td align=center><b>name=</b><i>name</i></td>
 <td><i>name</i> is the name of the model</td>
@@ -761,7 +757,8 @@ of peptide/protein helix ribbon segments</td>
 <p>
 <sup><a name="note">**</a></sup>Additional 
 <a href="http://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/defineattrib/defineattrib.html#attribdef">attributes</a>
-can be created:
+can be created
+<!--
 <ul>
 <li> arbitrarily with 
 <a href="http://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/defineattrib/defineattrib.html"><b>Define
@@ -781,6 +778,7 @@ at Atom Positions</b></a>, and
 <a href="http://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/multalignviewer/framemav.html"
 target="_top"><b>Multalign Viewer</b></a>
 </ul>
+-->
 
 <a name="attrnames"></a>
 <h3>Attribute Names</h3>
@@ -793,8 +791,9 @@ attributes</a>. Additional attributes are listed in
 <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/modelattrib.html">attribute inspector</a> dialogs,
 and yet others may be generated only when a particular tool is used, 
 or created arbitrarily by the user.
+<!--
 </p><p>
-Attribute name lookup in ChimeraX:
+Attribute name lookup:
 <ul>
 <li>attribute names are shown in the <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/help.html#balloon">balloon 
 help</a> of <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/modelattrib.html">attribute inspector</a> dialogs
@@ -820,6 +819,7 @@ This approach also works for <b>Bond</b>, <b>PseudoBond</b>, and
 <b>PseudoBondGroup</b>. 
 Attributes defined in the Python layer will not be included, however.
 </ul>
+-->
 <p>
 
 <hr>
@@ -875,13 +875,16 @@ that are within 10 &Aring; of model 2
 <b>Ng+ | N3+</b>
 </blockquote>
 - guanidinium nitrogens and <i>sp</i><sup>3</sup>-hybridized, 
-formally positive nitrogens (see <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/idatm.html">atom types</a>)
+formally positive nitrogens
+(see <a href="../atomtypes.html">atom types</a>)
+<!-- no functional group specs yet
 <blockquote>
 <b>:cys@sg &amp; ~disulfide</b>
 <br>- or -<br>
 <b>:cys &amp; S &amp; ~disulfide</b>
 </blockquote>
 - cysteine sulfur atoms not participating in a disulfide bond
+-->
 <blockquote>
 <b>(ions @&lt;= 4) &amp; ~ions</b>
 </blockquote>
