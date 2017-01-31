@@ -36,12 +36,12 @@ def version(session, format=None):
     if format == 'bundles':
         dists = session.toolshed.bundle_info(installed=True, available=False)
         dists = list(dists)
-        dists.sort(key=lambda d: d.name)
+        dists.sort(key=lambda d: d.name.casefold())
     else:
         import pip
         dists = pip.get_installed_distributions(local_only=True)
         dists = list(dists)
-        dists.sort(key=lambda d: d.project_name)
+        dists.sort(key=lambda d: d.project_name.casefold())
     if not dists:
         session.logger.error("no version information available")
         return os.EX_SOFTWARE

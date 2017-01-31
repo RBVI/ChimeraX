@@ -77,6 +77,7 @@ public:
     Residue*  get(unsigned i) const { return _residues[i]; }
     virtual bool  is_chain() const { return false; }
     bool  is_sequence() const { return _structure == nullptr; }
+    const std::string&  name() const { return Sequence::name(); }
     StructureSeq&  operator+=(StructureSeq&);
     void  pop_back();
     void  pop_front();
