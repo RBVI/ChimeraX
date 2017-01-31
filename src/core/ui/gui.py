@@ -36,14 +36,22 @@ if mac:
     # - if we built Qt and PyQt from source: Contents/lib/plugins
     # - if we used a wheel built using standard Qt: C/l/python3.5/site-packages/PyQt5/Qt/plugins
     # If the former, we need to set some environment variables so
-    # that Qt can find itself.  If the latter, it "just works".
+    # that Qt can find itself.  If the latter, it "just works",
+    # though if there is a comma in the app name, the magic gets
+    # screwed up, so explicitly set the path in that case too
     import os.path
     from ... import app_lib_dir
     plugins = os.path.join(os.path.dirname(app_lib_dir), "plugins")
+    if not os.path.exists(plugins) and "," in app_lib_dir:
+        # The comma character screws up the magic Qt plugin-finding code;
+        # supply an explicit path in this case
+        # To find site-packages look above __file__...
+        dn = os.path.dirname
+        plugins = os.path.join(dn(dn(dn(dn(__file__)))), "PyQt5/Qt/plugins")
     if os.path.exists(plugins):
         from PyQt5.QtCore import QCoreApplication
         qlib_paths = [p for p in QCoreApplication.libraryPaths() if not str(p).endswith('plugins')]
-        qlib_paths.append(os.path.join(os.path.dirname(app_lib_dir), "plugins"))
+        qlib_paths.append(plugins)
         QCoreApplication.setLibraryPaths(qlib_paths)
         import os
         fw_path = os.environ.get("DYLD_FRAMEWORK_PATH", None)

@@ -64,21 +64,27 @@ find_gaps(StructureSeq& sseq)
                             gap = insert - prev_insert;
                     }
                 }
-                if (gap < 1)
-                    // Instead of jamming everything together and hoping,
-                    //   use 1 as the gap size, since the association
-                    //   algorithm doesn't actually care about the size of
-                    //   the gap except in tie-breaking cases (where placing
-                    //   a segment in two different places would otherwise
-                    //   have the same score).  Using 1 instead of jamming
-                    //   allows 3oe0 chain A to work, where the gap is
-                    //   between a normal-numbered segment and a long
-                    //   insertion that was numbered much higher [well,
-                    //   really between the insertion and the following
-                    //   normal numbering]
-                    gap = 1;
-                ap.gaps.push_back(gap);
-                ap.est_len += gap;
+                // CA/P-only structures have different "connectivity" criteria
+                bool ca_only = (res->atoms().size() == 1 && prev_res->atoms().size() == 1);
+                if (!(gap == 0 && ca_only && res->atoms()[0]->coord().sqdistance(
+                prev_res->atoms()[0]->coord()) < 45.0)) {
+                    // 3ixy chain B has 6.602 CA-CA length between residues 131 and 132
+                    if (gap < 1)
+                        // Instead of jamming everything together and hoping,
+                        //   use 1 as the gap size, since the association
+                        //   algorithm doesn't actually care about the size of
+                        //   the gap except in tie-breaking cases (where placing
+                        //   a segment in two different places would otherwise
+                        //   have the same score).  Using 1 instead of jamming
+                        //   allows 3oe0 chain A to work, where the gap is
+                        //   between a normal-numbered segment and a long
+                        //   insertion that was numbered much higher [well,
+                        //   really between the insertion and the following
+                        //   normal numbering]
+                        gap = 1;
+                    ap.gaps.push_back(gap);
+                    ap.est_len += gap;
+                }
             }
         }
         if (prev_res == nullptr || gap > 0) {
