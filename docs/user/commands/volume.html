@@ -274,7 +274,7 @@ is significant.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="outline"><b>showOutlineBox</b> true | <b>false</b></a>
+  <a name="outline"><b>showOutlineBox</b> &nbsp;true | <b>false</b></a>
   <br>Outline the bounding box of the 
   <a href="#dimensions">current display region</a>.
 </blockquote>
@@ -307,7 +307,7 @@ is significant.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="autostep"><b>limitVoxelCount</b> <b>true</b> | false</a>
+  <a name="autostep"><b>limitVoxelCount</b> &nbsp;<b>true</b> | false</a>
   <br>Automatically adjust <a href="#step">step size</a> so that no more
   than the <a href="#voxmax">specified voxel limit</a> is displayed.
 </blockquote>
@@ -321,7 +321,7 @@ The remaining options in this section apply to all volume models,
 regardless of which are specified:
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="dispopen"><b>showOnOpen</b> <b>true</b> | false</a>
+  <a name="dispopen"><b>showOnOpen</b> &nbsp;<b>true</b> | false</a>
   <br>Automatically display a data set when it is opened if it does not
   exceed a <a href="#dispsize">specified size</a>.
 </blockquote>
@@ -334,7 +334,7 @@ regardless of which are specified:
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="dispplane"><b>showPlane</b> <b>true</b> | false</a>
+  <a name="dispplane"><b>showPlane</b> &nbsp;<b>true</b> | false</a>
   <br>Initially display just a single plane (normal to the Z axis) 
   of a data set if it exceeds a <a href="#planesize">specified size</a>.
 </blockquote>
@@ -578,12 +578,9 @@ regardless of which are specified:
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="dump"><b>dumpHeader</b></a>
+  <a name="dump"><b>dumpHeader</b> &nbsp;true | <b>false</b></a>
   <br>Write the file header contents (if any) of a map read from 
   MRC or CCP4 format to the <a href="../tools/log.html"><b>Log</b></a>.
-<!--
-takes true/false in Chimera
--->
 </blockquote>
 
 <h4><a href="#top" class="nounder"><b>&larr;</b></a>
@@ -622,7 +619,7 @@ takes true/false in Chimera
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="expandSinglePlane"><b>expandSinglePlane</b>&nbsp;true&nbsp;|&nbsp;false</a>
+  <a name="expandSinglePlane"><b>expandSinglePlane</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false</a>
   <br>
   Expand a single-plane display
   along its perpendicular axis to the full thickness of the data.
@@ -650,7 +647,7 @@ takes true/false in Chimera
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <b>boxFaces</b>&nbsp;true&nbsp;|&nbsp;false
+  <b>boxFaces</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
   <br>Display orthogonal planes as the six box faces of the
   <a href="#dimensions">current region</a>.
   If only a single plane is shown beforehand, it will be
@@ -674,7 +671,7 @@ both depict isosurfaces.
 </p>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="smoothing"><b>surfaceSmoothing</b> true | <b>false</b></a>
+  <a name="smoothing"><b>surfaceSmoothing</b> &nbsp;true | <b>false</b></a>
   <br>Whether to smooth surface and mesh displays.
   Smoothing entails moving each vertex
   a <a href="#smoothfact">specified fraction</a> 
@@ -700,7 +697,7 @@ both depict isosurfaces.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="subdivide"><b>subdivideSurface</b> true | <b>false</b></a>
+  <a name="subdivide"><b>subdivideSurface</b> &nbsp;true | <b>false</b></a>
   <br>Whether to subdivide each triangle in surface and mesh displays
   into four smaller triangles a
   <a href="#sublevels">specified number</a> of times.
@@ -720,7 +717,7 @@ both depict isosurfaces.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <b>smoothLines</b> true | <b>false</b>
+  <b>smoothLines</b> &nbsp;true | <b>false</b>
   <br>Turn on anti-aliasing to smooth lines in mesh displays.
   Mesh lines with <a href="#transparency">transparency</a> &gt; 0.0 can 
   only be smoothed when <a href="#dim"><b>dimTransparency</b></a> is true.
@@ -730,7 +727,7 @@ both depict isosurfaces.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <b>squareMesh</b> <b>true</b> | false
+  <b>squareMesh</b> &nbsp;<b>true</b> | false
   <br>Display only a subset of the lines in the triangular mesh.  
   Lines in the square mesh show the intersection of the 
   XY, YZ, and XZ grid planes with the contour surface.
@@ -743,7 +740,7 @@ both depict isosurfaces.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="dim"><b>dimTransparency</b> <b>true</b> | false</a>
+  <a name="dim"><b>dimTransparency</b> &nbsp;<b>true</b> | false</a>
   <br>Decrease the brightness of surface and mesh displays as their
   <a href="#transparency">transparency</a> is increased.
   When dimming is on, OpenGL (alpha,1&ndash;alpha)
@@ -751,7 +748,7 @@ both depict isosurfaces.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="meshlight"><b>meshLighting</b> <b>true</b> | false</a>
+  <a name="meshlight"><b>meshLighting</b> &nbsp;<b>true</b> | false</a>
   <br>Make the inside of a mesh-enclosed volume dimmer than the outside
   by varying the brightness according to the angle
   between each surface point normal and the line of sight.
@@ -764,7 +761,7 @@ both depict isosurfaces.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="two-sided"><b>twoSidedLighting</b> <b>true</b> | false</a>
+  <a name="two-sided"><b>twoSidedLighting</b> &nbsp;<b>true</b> | false</a>
   <br>Light both sides of surface displays.
   Otherwise, only the outside of a surface-enclosed volume will be lit
   (see more on the definition of &ldquo;outside&rdquo; under 
@@ -775,7 +772,7 @@ both depict isosurfaces.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="flip"><b>flipNormals</b> <b>true</b> | false</a>
+  <a name="flip"><b>flipNormals</b> &nbsp;<b>true</b> | false</a>
   <br>Affects surface displays when 
   <a href="#two-sided"><b>twoSidedLighting</b></a> is set to false,
   mesh displays when
@@ -793,7 +790,7 @@ both depict isosurfaces.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <b>capFaces</b> <b>true</b> | false
+  <b>capFaces</b> &nbsp;<b>true</b> | false
   <br>Cover the faces of the volume data box where high values would be exposed.
 </blockquote>
 
@@ -848,7 +845,7 @@ both depict isosurfaces.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <b>maximumIntensityProjection</b> true | <b>false</b>
+  <b>maximumIntensityProjection</b> &nbsp;true | <b>false</b>
   <br>At each pixel, display the the most intense color value 
   underlying the pixel along the line of sight.
   The maximum intensities of the red, green, and blue color components are
@@ -861,7 +858,7 @@ both depict isosurfaces.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="dimvox"><b>dimTransparentVoxels</b> <b>true</b> | false</a>
+  <a name="dimvox"><b>dimTransparentVoxels</b> &nbsp;<b>true</b> | false</a>
   <br>Scale voxel brightness in solid displays
   by a factor of (1&ndash;transparency).
   Otherwise, increasing the transparency also makes a volume
@@ -869,7 +866,7 @@ both depict isosurfaces.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <b>btCorrection</b> true | <b>false</b>
+  <b>btCorrection</b> &nbsp;true | <b>false</b>
   <br>Correct brightness and transparency for the viewing angle.
   Without this correction, the apparent brightness and transparency
   of solid displays (in <a href="#pmode">projection modes</a> other than 3d)
@@ -882,7 +879,7 @@ both depict isosurfaces.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <b>minimalTextureMemory</b> true | <b>false</b>
+  <b>minimalTextureMemory</b> &nbsp;true | <b>false</b>
   <br>Reuse a single 2D texture for solid displays 
   (in <a href="#pmode">projection modes</a> other than 3d)
   instead of allocating
@@ -892,7 +889,7 @@ both depict isosurfaces.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <b>linearInterpolation</b> <b>true</b> | false
+  <b>linearInterpolation</b> &nbsp;<b>true</b> | false
   <br>Linearly interpolate brightness and transparency
   between voxels in solid displays.
   Turning interpolation off may yield a pixelated appearance

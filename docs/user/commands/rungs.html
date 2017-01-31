@@ -28,10 +28,10 @@ class="clRight" title="User Guide Index"/></a>
 <br><b>rungs</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 [&nbsp;radius&nbsp;<i>r</i>&nbsp;]
 [&nbsp;color&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;] 
-[&nbsp;halfbond&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;hideAtoms&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;showRibbon&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;hideHbonds&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;halfbond&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;hideAtoms&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;showRibbon&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;hideHbonds&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>rungs hide</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
@@ -44,8 +44,7 @@ or if nothing is specified, all nucleic acid residues.
 The rung representation for a nucleic acid residue is a cylinder 
 from the ribose C3' to N1 (if purine) or N3 (if pyrimidine),
 implemented as a <a href="../pseudobonds.html">pseudobond</a>.
-Using <b>rungs</b> with the <b>hide</b> keyword hides
-any rungs of the specified residues.
+The command <b>rungs hide</b> undisplays any rungs of the specified residues.
 See also: 
 <a href="show.html"><b>show</b></a>,
 <a href="color.html"><b>color</b></a>,
