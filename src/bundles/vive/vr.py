@@ -12,7 +12,7 @@
 # -----------------------------------------------------------------------------
 # Command to view models in HTC Vive or Oculus Rift for ChimeraX.
 #
-def vr(session, enable):
+def vr(session, enable = None, room_position = None):
     '''Enable stereo viewing and head motion tracking with virtual reality headsets using SteamVR.
 
     Parameters
@@ -25,19 +25,40 @@ def vr(session, enable):
       conventional display will cause stuttering of the headset graphics.
       Also the Side View panel in the main ChimeraX window should be closed to avoid
       stuttering.
+    room_position : Place or "report"
+      Maps physical room coordinates to molecular scene coordinates.
+      Room coordinates have origin at center of room and units are meters.
     '''
     
-    if enable:
-        start_vr(session)
-    else:
-        stop_vr(session)
+    if enable is None and room_position is None:
+        enable = True
+
+    if enable is not None:
+        if enable:
+            start_vr(session)
+        else:
+            stop_vr(session)
+
+    if room_position is not None:
+        c = session.main_view.camera
+        if not isinstance(c, SteamVRCamera):
+            from chimerax.core.errors import UserError
+            raise UserError('Cannot use vr roomPosition unless vr enabled.')
+        if isinstance(room_position, str) and room_position == 'report':
+            p = ','.join('%.5g' % x for x in tuple(c.room_to_scene.matrix.flat))
+            session.logger.info(p)
+        else:
+            c.room_to_scene = room_position
+            c._last_position = c.position
 
 # -----------------------------------------------------------------------------
 # Register the oculus command for ChimeraX.
 #
 def register_vr_command():
-    from chimerax.core.commands import CmdDesc, BoolArg, FloatArg, register, create_alias
-    desc = CmdDesc(required = [('enable', BoolArg)],
+    from chimerax.core.commands import CmdDesc, BoolArg, FloatArg, PlaceArg, Or, EnumOf
+    from chimerax.core.commands import register, create_alias
+    desc = CmdDesc(optional = [('enable', BoolArg)],
+                   keyword = [('room_position', Or(EnumOf(['report']), PlaceArg))],
                    synopsis = 'Start SteamVR virtual reality rendering')
     register('device vr', desc, vr)
     create_alias('vr', 'device vr $*')

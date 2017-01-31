@@ -45,7 +45,8 @@ class="clRight" title="User Guide Index"/></a>
 &nbsp;<a href="atomspec.html"><i>ref-spec</i></a>
 &nbsp;<i>cutoff</i>&nbsp;
 [&nbsp;<a href="atomspec.html"><i>other-spec</i></a>&nbsp;]
-[&nbsp;<b>extend</b>&nbsp;]
+[&nbsp;<b>extend</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>residues</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 </h3>
 <p>
 A <a href="../selection.html">selection</a>
@@ -89,15 +90,18 @@ in the reference items (<a href="atomspec.html"><i>ref-spec</i></a>),
 their membership in the resulting zone is not evaluated directly
 because their <a href="../selection.html">selection</a>
 is tied to that of the corresponding atoms.
-The <b>extend</b> keyword indicates that the reference items
-should also be selected. Examples:
+The <b>extend</b> option (default <b>false</b>)
+indicates whether the reference items should also be selected.
+The <b>residues</b> option (default <b>false</b>) indicates whether to 
+select all atoms of a residue if any atom in the residue is within the zone.
+Examples:
 </p>
 <blockquote><b>
-select zone ligand 4.5 protein
+select zone ligand 4.5 protein res t
 <br>
 sel zone #1.2 8
 <br>
-sel zone sel 5 extend
+sel zone sel 5 extend t
 </b></blockquote>
 
 <hr>

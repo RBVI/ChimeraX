@@ -25,7 +25,10 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: vr</h3>
 <h3><a href="usageconventions.html">Usage</a>:
-<BR><b>vr</b> (&nbsp;on&nbsp;|&nbsp;off&nbsp;)
+<br><b>vr</b> (&nbsp;on&nbsp;|&nbsp;off&nbsp;)
+</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>vr</b> &nbsp;roomPosition (&nbsp;report&nbsp;|&nbsp;<i>matrix</i>&nbsp;)
 </h3>
 <p>
 The <b>vr</b> command enables a virtual reality mode 
@@ -38,9 +41,24 @@ before starting SteamVR.
 Synonyms for <b>on</b>: true, True, 1.
 Synonyms for <b>off</b>: false, False, 0.
 </p><p>
+The transformation between room coordinates
+(in meters, with origin at room center) and scene coordinates
+(typically in &Aring;) can be specified or reported with
+<b>vr roomPosition</b>. The transformation <i>matrix</i> is given as
+12 numbers separated by commas only, corresponding to a 3x3 matrix 
+for rotation and scaling, with a translation vector in the fourth column.
+Ordering is row-by-row, such that the translation vector is given as 
+the fourth, eighth, and twelfth numbers. Example:
+</p>
+<blockquote>
+<b>vr &nbsp;room &nbsp;20,0,0,0,0,20,0,0,0,0,20,0</b>
+</blockquote>
+<p>
 For details and related issues, 
 see <a href="../vr.html">ChimeraX virtual reality</a>.
 See also: <a href="camera.html"><b>camera</b></a>,
+<a href="view.html"><b>view</b></a>,
+<a href="position.html"><b>position</b></a>,
 <a href="../movies.html">making movies</a>
 </p>
 
