@@ -1353,8 +1353,8 @@ class Structure(Model, StructureData):
         hide = selected_residues - rsel
         keep = selected_residues & rsel
         show = rsel - selected_residues
-        selected_residues.ribbon_selected = False
-        (keep | show).ribbon_selected = True
+        hide.ribbon_selected = False
+        show.ribbon_selected = True
         # Change the selected triangles in drawings
         da = {}         # actions - 0=hide, 1=keep, 2=show
         residues = [hide, keep, show]
