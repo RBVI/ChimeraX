@@ -28,8 +28,8 @@ def split(session, molecules = None, chains = None, ligands = False, connected =
       Split each ligand into a separate atomic structure.
     connected : bool
       Split each connected set of atoms into a separate atomic structure.
-    atoms : Atoms
-      Split the specified atoms into a separate atomic structure.
+    atoms : list of Atoms
+      Split the specified atoms into a separate atomic structures.
     '''
     if molecules is None:
         from .. import atomic
@@ -75,12 +75,12 @@ def split_molecule(m, chains, ligands, connected, atoms):
     if connected:
         pieces = split_pieces(pieces, split_connected)
     if atoms:
-        pieces = split_pieces(pieces, lambda a,atoms=atoms: split_atoms(a,[atoms]))
+        pieces = split_pieces(pieces, lambda a,atoms=atoms: split_atoms(a,atoms))
     
     if len(pieces) == 1:
         return []
     
-    mlist = [molecule_from_atoms(m, atoms, name) for name, atoms in pieces]
+    mlist = [molecule_from_atoms(m, patoms, name) for name, patoms in pieces]
     return mlist
     
 # -----------------------------------------------------------------------------
@@ -293,15 +293,14 @@ def atom_bonds(atoms):
 #
 def register_command(session):
 
-    from . import cli, atomspec, color
-    desc = cli.CmdDesc(
-        optional = [('molecules', cli.StructuresArg)],
-        keyword = [('chains', cli.NoArg),
-                   ('ligands', cli.NoArg),
-                   ('connected', cli.NoArg),
-                   ('atoms', cli.AtomsArg)],
+    from .cli import CmdDesc, register, StructuresArg, NoArg, AtomsArg, RepeatOf
+    desc = CmdDesc(
+        optional = [('molecules', StructuresArg)],
+        keyword = [('chains', NoArg),
+                   ('ligands', NoArg),
+                   ('connected', NoArg),
+                   ('atoms', RepeatOf(AtomsArg))],
         synopsis = 'split molecule into multiple molecules'
         )
-    # TODO: Allow repeating atoms keyword.
 
-    cli.register('split', desc, split)
+    register('split', desc, split)
