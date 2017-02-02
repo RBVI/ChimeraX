@@ -2249,7 +2249,7 @@ class Histogram_Pane:
   #
   def moved_marker_cb(self, marker):
 
-    self.select_data_cb()
+    self.select_data_cb()	# Causes redisplay using GUI settings
     self.set_threshold_and_color_widgets()
     # Request graphics redraw before more mouse drag events occur.
     self.dialog.session.ui.request_graphics_redraw()
