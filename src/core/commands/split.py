@@ -14,36 +14,38 @@
 # -----------------------------------------------------------------------------
 # Command to split molecules so that each chain is in a separate molecule.
 #
-def split(session, molecules = None, chains = None, ligands = False, connected = False, atoms = None):
+def split(session, structures = None, chains = None, ligands = False, connected = False, atoms = None):
     '''
-    Split an atomic structure into separate structures, for example one for each chain.
+    Partition atoms into separate structures. If only the first argument is given then those
+    structures are split into a separate structure for each chain.  If chains, ligands, connected,
+    or atoms keywords are given then additional partitioning into smaller subsets is performed.
 
     Parameters
     ----------
-    molecules : Structures
-      Structures to split.
+    Structures : Structures or None
+      Structures to split.  If no structures specified then all are used.
     chains : bool
-      Split each chain into a separate atomic structure.
+      Split each chain into into a separate atomic structure.
     ligands : bool
-      Split each ligand into a separate atomic structure.
+      Split each connected ligand into a separate atomic structure.
     connected : bool
-      Split each connected set of atoms into a separate atomic structure.
+      Split each connected subset of atoms into a separate atomic structure.
     atoms : list of Atoms
-      Split the specified atoms into a separate atomic structures.
+      Split specified atoms into separate atomic structures.  This option
+      can be specified multiple times.
     '''
-    if molecules is None:
+    if structures is None:
         from .. import atomic
-        molecules = atomic.all_atomic_structures(session)
-
+        structures = atomic.all_atomic_structures(session)
+        
     if chains is None and not ligands and not connected and atoms is None:
         chains = True
 
     slist = []
     olist = []
     log = session.logger
-    models = session.models
     from ..models import Model
-    for m in molecules:
+    for m in structures:
         clist = split_molecule(m, chains, ligands, connected, atoms)
         if clist:
             parent = Model(m.name, session)
@@ -60,6 +62,7 @@ def split(session, molecules = None, chains = None, ligands = False, connected =
         log.status(msg)
         log.info(msg)
 
+    models = session.models
     models.close(slist)
     models.add(olist)
     
@@ -275,7 +278,7 @@ def register_command(session):
 
     from .cli import CmdDesc, register, StructuresArg, NoArg, AtomsArg, RepeatOf
     desc = CmdDesc(
-        optional = [('molecules', StructuresArg)],
+        optional = [('structures', StructuresArg)],
         keyword = [('chains', NoArg),
                    ('ligands', NoArg),
                    ('connected', NoArg),
