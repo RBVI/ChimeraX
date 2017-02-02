@@ -13,8 +13,6 @@
 
 # $Id: __init__.py 41155 2016-06-30 23:18:29Z pett $
 
-"""Find chemical groups in a structure"""
-
 from chimerax.core.atomic.idatm import type_info, tetrahedral, planar, linear, single
 
 # R is a shorthand for alkyl group
@@ -104,8 +102,6 @@ class RingAtom:
         self.atom_desc = atom_desc
         self.num_rings = num_rings
 
-# if a group is added here, or the synonyms just below group_info, it also has to be added
-# to setup.py.in
 group_info = {
     "acyl halide":    ("R(C=O)X",    ['C2', [X, 'O2', single_bond]], [1,1,1,0]),
     "adenine":    ("6-aminopurine",
@@ -171,24 +167,6 @@ for group_name in group_info.keys():
     if group_name.startswith("sulf"):
         group_info["sulph" + group_name[4:]] = group_info[group_name]
 group_info["aromatic"] = group_info["aromatic ring"]
-
-def find_group(group_desc, structures, return_collection=False):
-    
-    if isinstance(group_desc, str):
-        try:
-            group_formula, group_rep, group_principals = group_info[group_desc]
-        except:
-            raise KeyError("No known chemical group named '%s'" % group_desc)
-    else:
-        group_rep, group_principals = group_desc
-    
-    if callable(group_rep):
-        return group_rep(structures, return_collection)
-    
-    from ._chem_group import find_group as fg
-    from .support import call_c_plus_plus
-    return call_c_plus_plus(fg, structures, return_collection,
-        group_rep, group_principals, RingAtom)
 
 def register_selectors():
     def select(results, models, group):

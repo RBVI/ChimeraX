@@ -16,3 +16,15 @@ from .chem_group import find_group
 # the below in case you want to add your own custom group to group_info...
 from .chem_group import group_info, N, C, O, H, R, X, \
     single_bond, heavy, non_oxygen_single_bond, RingAtom
+
+from chimerax.core.toolshed import BundleAPI
+
+class ChemGroupAPI(BundleAPI):
+
+    @staticmethod
+    def register_selector(selector_name):
+        # 'register_selector' is lazily called when selector is referenced
+        from . import data
+        data.register_selectors()
+
+bundle_api = ChemGroupAPI()
