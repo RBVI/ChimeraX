@@ -100,39 +100,21 @@ def split_pieces(pieces, split_function):
 #
 def split_by_chain(atoms):
 
-    ca = list(atoms_by_chain(atoms).items())
+    ca = [(cid, atoms) for m, cid, atoms in atoms.by_chain]
     ca.sort()
     return ca
     
 # -----------------------------------------------------------------------------
 #
-def atoms_by_chain(atoms):
-
-    ct = {}
-    for a in atoms:
-        cid = a.residue.chain_id
-        if cid in ct:
-            ct[cid].append(a)
-        else:
-            ct[cid] = [a]
-    return ct
-    
-# -----------------------------------------------------------------------------
-#
 def split_by_ligand(atoms):
 
-    latoms = []
-    oatoms = []
-# TODO: identify ligands
-    # for a in atoms:
-    #     if a.surfaceCategory == 'ligand':
-    #         latoms.append(a)
-    #     else:
-    #         oatoms.append(a)
-    pieces = [('', oatoms)] if oatoms else []
-    if latoms:
+    ligmask = (atoms.structure_categories == 'ligand')
+    latoms = atoms.filter(ligmask)
+    oatoms = atoms.filter(~ligmask)
+    pieces = [('', oatoms)] if len(oatoms) else []
+    if len(latoms) > 0:
         for n,a in split_pieces([('', latoms)], split_connected):
-            pieces.append((a[0].residue.type, a))
+            pieces.append((a[0].residue.name, a))
     return pieces
     
 # -----------------------------------------------------------------------------
@@ -153,8 +135,9 @@ def split_connected(atoms):
     cats = list(set(reached.values()))
     cats.sort(key = lambda cat: len(cat))
     cats.reverse()                              # Number largest to smallest
-    pieces = ([('', cats)] if len(cats) == 1
-              else [('%d' % (i+1,), cat) for i,cat in enumerate(cats)])
+    from ..atomic import Atoms
+    pieces = ([('', Atoms(cats[0]))] if len(cats) == 1
+              else [('%d' % (i+1,), Atoms(cat)) for i,cat in enumerate(cats)])
     return pieces
     
 # -----------------------------------------------------------------------------
@@ -162,17 +145,14 @@ def split_connected(atoms):
 def split_atoms(atoms, asubsets):
 
     # Eliminate subset atoms not in atoms
-    aset = set(atoms)
-    asubsets = [tuple(a for a in asub if a in aset) for asub in asubsets]
+    asubsets = [asub.intersect(atoms) for asub in asubsets]
 
     # Remove empty subsets
     asubsets = [asub for asub in asubsets if len(asub) > 0]
 
     # Find atoms not in any subset
-    for asub in asubsets:
-        for a in asub:
-            aset.discard(a)
-    a0 = [a for a in atoms if a in aset]
+    from ..atomic import concatenate
+    a0 = atoms.subtract(concatenate(asubsets, Atoms))
 
     # Return groups of atoms
     if len(a0) == len(atoms):
@@ -180,7 +160,7 @@ def split_atoms(atoms, asubsets):
     elif len(a0) == 0 and len(asubsets) == 1:
         pieces = [('',atoms)]
     else:
-        alists = (asubsets + [a0]) if a0 else asubsets
+        alists = (asubsets + [a0]) if len(a0) > 0 else asubsets
         pieces = [(str(i+1),a) for i,a in enumerate(alists)]
 
     return pieces
