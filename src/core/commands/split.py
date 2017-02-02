@@ -75,7 +75,7 @@ def split_molecule(m, chains, ligands, connected, atoms):
     if connected:
         pieces = split_pieces(pieces, split_connected)
     if atoms:
-        pieces = split_pieces(pieces, lambda a,atoms=atoms: split_atoms(a,atoms))
+        pieces = split_pieces(pieces, lambda a,atoms=atoms: split_atoms(a,[atoms]))
     
     if len(pieces) == 1:
         return []
