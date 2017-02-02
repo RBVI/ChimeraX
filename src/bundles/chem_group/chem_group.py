@@ -15,8 +15,6 @@
 
 import chimerax
 from chimerax.core.atomic.idatm import type_info, tetrahedral, planar, linear, single
-#TODO: from miscFind import find_aromatics, find_ali_amines, find_aro_amines
-find_aromatics = find_ali_amines = find_aro_amines = None
 
 # R is a shorthand for alkyl group
 # X is a shorthand for 'any halide'
@@ -83,6 +81,20 @@ non_oxygen_single_bond = (H, {'geometry':tetrahedral, 'not type': ['O', 'O3', 'O
 # atoms but the first with that value will be pruned from the returned group.
 #
 
+def find_ali_amines(structures, return_collection):
+	results = [find_group("aliphatic " + order + " amine", structures, return_collection)
+		for order in ("primary", "secondary", "tertiary", "quaternary")]
+	return collate_results(results, return_collection)
+
+def find_aro_amines(structures, return_collection, order=0):
+	# if order == 0, return all aromatic amines
+	from ._chem_group import find_aro_amines as faa
+	return call_c_plus_plus(faa, structures, return_collection, order)
+
+def find_aromatics(structures, return_collection):
+	from ._chem_group import find_aromatics as fa
+	return call_c_plus_plus(fa, structures, return_collection)
+
 class RingAtom:
 	def __init__(self, atom_desc, num_rings):
 		self.atom_desc = atom_desc
@@ -95,21 +107,21 @@ group_info = {
 					[1,1,2,1,1,1,1,2,1,0,1,1,2,1,1,1,1]),
 	"aldehyde":	("R(C=O)H",	['C2', ['O2', single_bond, H]], [1,1,0,1]),
 	"amide":	("R(C=O)NR2",	['C2', ['O2', 'Npl', None]], [1,1,1,0]),
-	"amine":	("RxNHy",	lambda m: find_ali_amines(m) + find_aro_amines(m, 0), None),
+	"amine":	("RxNHy",	lambda s, rc: collate_results((find_ali_amines(s, rc), find_aro_amines(s, rc)), rc), None),
 	"aliphatic amine": ("RxNHy",	find_ali_amines, None),
 	"aliphatic primary amine": ("RNH2",	[('N3','N3+'), ['C3', H, H, H]], [1,0,1,1,1]),
 	"aliphatic secondary amine": ("R2NH",	[('N3','N3+'), ['C3', 'C3', H, H]], [1,0,0,1,1]),
 	"aliphatic tertiary amine": ("R3N",		[('N3','N3+'), ['C3', 'C3', 'C3', H]], [1,0,0,0,1]),
 	"aliphatic quaternary amine": ("R4N+",	['N3+', ['C3', 'C3', 'C3', 'C3']], [1,0,0,0,0]),
-	"aromatic amine": ("RxNHy",	lambda m: find_aro_amines(m, 0), None),
-	"aromatic primary amine": ("RNH2",	lambda m: find_aro_amines(m, 1), None),
-	"aromatic secondary amine": ("R2NH",	lambda m: find_aro_amines(m, 2), None),
-	"aromatic tertiary amine": ("R3N",		lambda m: find_aro_amines(m, 3), None),
+	"aromatic amine": ("RxNHy",	find_aro_amines, None),
+	"aromatic primary amine": ("RNH2",	lambda s, rc: find_aro_amines(s, rc, 1), None),
+	"aromatic secondary amine": ("R2NH",	lambda s, rc: find_aro_amines(s, rc, 2), None),
+	"aromatic tertiary amine": ("R3N",		lambda s, rc: find_aro_amines(s, rc, 3), None),
 	"aromatic ring":("aromatic",	find_aromatics, None),
 	"carbonyl":	("R2C=O",		['O2', [C]], [1,1]),
 	"carboxylate":	("RCOO-",	['Cac', [['O2-', []], ['O2-', []], single_bond]], [1,1,1,0]),
 	"cytosine":	("2-oxy-4-aminopyrimidine",
-					['Npl', [['C2', ['N2', ['C2', [['C2', [['Npl', ['C3', ['C2', ['N2', 'O2']]]], H]], H]]]]], H, H],
+					['Npl', [['C2', ['N2', ['C2', [['C2', [['Npl', ['C3', ['C2', ['N2', 'O2']]]], H]], H]]]], H, H]],
 					[1,1,2,1,1,1,0,1,2,1,1,1,1,1]),
 	"disulfide":	("RSSR",	['S3', [['S3', [single_bond]], single_bond]], [1,1,0,0]),
 	"ester":	("R(C=O)OR",	['C2', ['O2', [O, [C]], single_bond]], [1,1,1,0,0]),
@@ -162,38 +174,44 @@ def find_group(group_desc, structures, return_collection=False):
 	if callable(group_rep):
 		return group_rep(structures, return_collection)
 	
+	from ._chem_group import find_group as fg
+	return call_c_plus_plus(fg, structures, return_collection,
+		group_rep, group_principals, RingAtom)
+
+def call_c_plus_plus(cpp_func, structures, return_collection, *args):
 	import os
 	num_cpus = os.cpu_count() if not None else 1
-	from ._chem_group import find_group as fg
+
 	from chimerax.core.atomic import Atom, Atoms, AtomicStructure
 	groups = []
 	for structure in structures:
 		if not isinstance(structure, AtomicStructure):
 			continue
-		#from time import time
-		#t0 = time()
-		grps = fg(structure.cpp_pointer, group_rep, group_principals, RingAtom, num_cpus,
-			return_collection)
-		#t1 = time()
+		cpp_args = args + (num_cpus, return_collection)
+		grps = cpp_func(structure.cpp_pointer, *cpp_args)
 		if return_collection:
 			# accumulate the numpy arrays to later be concatenated and turned into a Collection
 			groups.append(grps)
 		else:
 			from chimerax.core.atomic.molobject import object_map
 			groups.extend([[object_map(ptr, Atom) for ptr in ptrs] for ptrs in grps])
-		#t2 = time()
 	if return_collection:
 		if groups:
 			import numpy
 			groups = Atoms(numpy.concatenate(groups))
 		else:
 			groups = Atoms()
-	#t3 = time()
-	#print("Call C++:", t1-t0)
-	#print("Extend groups:", t2-t1)
-	#print("Form collection if necesary:", t3-t2)
-	#print("Overall:", t3-t0)
 	return groups
+
+def collate_results(results, return_collection):
+	if return_collection:
+		from chimerax.core.atomic.molarray import concatenate
+		return concatenate(results)
+	ret_val = []
+	for result in results:
+		ret_val.extend(result)
+	return ret_val
+
 '''
 	groups = []
 	for structure in structures:

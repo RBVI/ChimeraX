@@ -11,7 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .tool import find_group
+from .chem_group import find_group
 
 # the below in case you want to add your own custom group to group_info...
-from .tool import group_info, N, C, O, H, R, X, single_bond, heavy, non_oxygen_single_bond, RingAtom
+from .chem_group import group_info, N, C, O, H, R, X, \
+    single_bond, heavy, non_oxygen_single_bond, RingAtom
