@@ -156,6 +156,8 @@ class Atom:
         doc=":class:`.Atom`\\ s connnected to this atom directly by one bond. Read only.")
     num_bonds = c_property("atom_num_bonds", size_t, read_only=True,
         doc="Number of bonds connected to this atom. Read only.")
+    num_explicit_bonds = c_property("atom_num_explicit_bonds", size_t, read_only=True,
+        doc="Number of bonds and missing-structure pseudobonds connected to this atom. Read only.")
     occupancy = c_property('atom_occupancy', float32, doc = "Occupancy, floating point value.")
     radius = c_property('atom_radius', float32, doc="Radius of atom.")
     default_radii = c_property('atom_default_radius', float32, read_only = True,
@@ -1582,11 +1584,13 @@ class Element:
         '''Get the Element that corresponds to an atomic name or number'''
         if type(name_or_number) == type(1):
             f = c_function('element_number_get_element', args = (ctypes.c_int,), ret = ctypes.c_void_p)
+            f_arg = name_or_number
         elif type(name_or_number) == type(""):
             f = c_function('element_name_get_element', args = (ctypes.c_char_p,), ret = ctypes.c_void_p)
+            f_arg = name_or_number.encode('utf-8')
         else:
             raise ValueError("'get_element' arg must be string or int")
-        return _element(f(name_or_number))
+        return _element(f(f_arg))
 
 # -----------------------------------------------------------------------------
 #

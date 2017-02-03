@@ -88,16 +88,19 @@ residue name (case-insensitive)</td>
 </table>
 <p>
 Each set of atomic coordinates is a <b><i>model</i></b> with an associated 
-model identification (ID) number.  Three-dimensional datasets 
+model identification (ID) number. Three-dimensional datasets 
 other than atomic coordinates are also assigned model ID numbers.
 Models can be opened from a file, 
 or derived from another model or created from scratch in Chimera.
 </p><p>
 Model numbers are either assigned automatically or specified by the user.
 They are hierarchical, with any number of levels 
-(positive integers N, N.N, <i>etc.</i>); a model at a lower level 
-is still an entire model, but the hierarchy allows grouping. 
-For example, #1.1, #1.2, ... #1.10 could be 10 structures in an NMR ensemble.
+(positive integers N, N.N, <i>etc.</i>); for example, 
+#1.1, #1.2, ... #1.10 could be 10 structures in an NMR ensemble.
+A <b><i>submodel</i></b> (model at a lower level) is still an entire model, 
+but the hierarchy allows grouping. 
+That is, submodels at any level can be specified individually 
+by their own numbers, or collectively by their parent model number.
 </p><p>
 A molecular model contains one or more <b><i>chains</i></b>, 
 each chain contains one or more <b><i>residues</i></b>, and each residue

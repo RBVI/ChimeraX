@@ -27,11 +27,13 @@ _OrientMap = {
     "curvature": Structure.RIBBON_ORIENT_CURVATURE,
     "peptide": Structure.RIBBON_ORIENT_PEPTIDE,
 }
+_OrientInverseMap = dict([(v, k) for k, v in _OrientMap.items()])
 _TetherShapeMap = {
     "cone": Structure.TETHER_CONE,
     "cylinder": Structure.TETHER_CYLINDER,
     "steeple": Structure.TETHER_REVERSE_CONE,
 }
+_TetherShapeInverseMap = dict([(v, k) for k, v in _TetherShapeMap.items()])
 _XSectionMap = {
     "rectangle": XSectionManager.STYLE_SQUARE,
     "oval": XSectionManager.STYLE_ROUND,
@@ -41,16 +43,18 @@ _XSectionMap = {
     "round": XSectionManager.STYLE_ROUND,
     "piping": XSectionManager.STYLE_PIPING,
 }
+_XSectionInverseMap = dict([(v, k) for k, v in _XSectionMap.items()])
 _ModeHelixMap = {
     "default": Structure.RIBBON_MODE_DEFAULT,
     "tube": Structure.RIBBON_MODE_ARC,
     "wrap": Structure.RIBBON_MODE_WRAP,
 }
+_ModeHelixInverseMap = dict([(v, k) for k, v in _ModeHelixMap.items()])
 _ModeStrandMap = {
     "default": Structure.RIBBON_MODE_DEFAULT,
     "plank": Structure.RIBBON_MODE_ARC,
 }
-_XSInverseMap = dict([(v, k) for k, v in _XSectionMap.items()])
+_ModeStrandInverseMap = dict([(v, k) for k, v in _ModeStrandMap.items()])
 
 
 def cartoon(session, spec=None, smooth=None, style=None, hide_backbone=None, show_spine=False):
@@ -135,6 +139,15 @@ def cartoon_tether(session, structures=None, scale=None, shape=None, sides=None,
         sets it for the entire structure.
     '''
     structures = _get_structures(session, structures)
+    if scale is None and shape is None and sides is None and opacity is None:
+        indent = "  -"
+        for m in structures:
+            print(m)
+            print(indent, "scales", m.ribbon_tether_scale)
+            print(indent, "shapes", _TetherShapeInverseMap[m.ribbon_tether_shape])
+            print(indent, "sides", m.ribbon_tether_sides)
+            print(indent, "opacity", m.ribbon_tether_opacity)
+        return
     if scale is not None:
         structures.ribbon_tether_scales = scale
     if shape is not None:
@@ -207,23 +220,26 @@ def cartoon_style(session, spec=None, width=None, thickness=None, arrows=None, a
         for m in structures:
             mgr = m.ribbon_xs_mgr
             print(m)
+            print(indent, "orientation %s" % _OrientInverseMap[m.ribbon_orientation])
             print(indent, "helix",
-                  "style=%s" % _XSInverseMap[mgr.style_helix],
+                  "mode=%s" % _ModeHelixInverseMap[mgr.style_helix],
+                  "style=%s" % _XSectionInverseMap[mgr.style_helix],
                   "size=%.2g,%.2g" % mgr.scale_helix,
                   "arrow=%s" % mgr.arrow_helix,
                   "arrow size=%.2g,%.2g,%.2g,%.2g" % (mgr.scale_helix_arrow[0] +
                                                        mgr.scale_helix_arrow[1]))
             print(indent, "strand",
-                  "style=%s" % _XSInverseMap[mgr.style_sheet],
+                  "mode=%s" % _ModeStrandInverseMap[mgr.style_helix],
+                  "style=%s" % _XSectionInverseMap[mgr.style_sheet],
                   "size=%.2g,%.2g" % mgr.scale_sheet,
                   "arrow=%s" % mgr.arrow_sheet,
                   "arrow size=%.2g,%.2g,%.2g,%.2g" % (mgr.scale_sheet_arrow[0] +
                                                         mgr.scale_sheet_arrow[1]))
             print(indent, "coil",
-                  "style=%s" % _XSInverseMap[mgr.style_coil],
+                  "style=%s" % _XSectionInverseMap[mgr.style_coil],
                   "size=%.2g,%.2g" % mgr.scale_coil)
             print(indent, "nucleic",
-                  "style=%s" % _XSInverseMap[mgr.style_nucleic],
+                  "style=%s" % _XSectionInverseMap[mgr.style_nucleic],
                   "size=%.2g,%.2g" % mgr.scale_nucleic)
             param = mgr.params[XSectionManager.STYLE_ROUND]
             print(indent,
@@ -471,313 +487,6 @@ def cartoon_style(session, spec=None, width=None, thickness=None, arrows=None, a
         mode = _ModeStrandMap.get(mode_strand, None)
         for m in structures:
             m.ribbon_mode_strand = mode
-
-
-# Other command functions (to be removed)
-
-
-def cartoon_xsection(session, structures=None, helix=None, strand=None, coil=None, nucleic=None):
-    '''Set cartoon ribbon cross section style for specified structures.
-
-    Parameters
-    ----------
-    structures : atomic structures
-        Set options for selected atomic structures.
-    helix : style
-        Set helix cross section to style
-    strand : style
-        Set strand cross section to style
-    coil : style
-        Set coil cross section to style
-    nucleic : style
-        Set nucleic cross section to style
-    '''
-    if helix is None and strand is None and coil is None and nucleic is None:
-        for m in _get_structures(session, structures):
-            mgr = m.ribbon_xs_mgr
-            print("%s: helix=%s strand=%s coil=%s nucleic=%s" % (m, _XSInverseMap[mgr.style_helix],
-                                                                 _XSInverseMap[mgr.style_sheet],
-                                                                 _XSInverseMap[mgr.style_coil],
-                                                                 _XSInverseMap[mgr.style_nucleic]))
-        return
-    for m in _get_structures(session, structures):
-        if helix is not None:
-            m.ribbon_xs_mgr.set_helix_style(_XSectionMap[helix])
-        if strand is not None:
-            m.ribbon_xs_mgr.set_sheet_style(_XSectionMap[strand])
-        if coil is not None:
-            m.ribbon_xs_mgr.set_coil_style(_XSectionMap[coil])
-        if nucleic is not None:
-            m.ribbon_xs_mgr.set_nucleic_style(_XSectionMap[nucleic])
-
-
-def cartoon_scale(session, structures=None, helix=None, arrow_helix=None,
-                  strand=None, arrow_strand=None, coil=None, nucleic=None):
-    '''Set cartoon ribbon scale factors for specified structures.
-
-    Parameters
-    ----------
-    structures : atomic structures
-        Set options for selected atomic structures.
-    helix : style
-        Set helix cross section scale to 2-tuple of float
-    arrow_helix : style
-        Set helix arrow cross section scale to 4-tuple of float
-    strand : style
-        Set strand cross section scale to 2-tuple of float
-    arrow_strand : style
-        Set strand arrow cross section scale to 4-tuple of float
-    coil : style
-        Set coil cross section scale to 2-tuple of float
-    nucleic : style
-        Set nucleic cross section scale to 2-tuple of float
-    '''
-    if (helix is None and arrow_helix is None and strand is None and arrow_strand is None
-        and coil is None and nucleic is None):
-        for m in _get_structures(session, structures):
-            mgr = m.ribbon_xs_mgr
-            print("%s:" % m,
-                  "helix=%.2g,%.2g" % mgr.scale_helix,
-                  "arrow_helix=%.2g,%.2g,%.2g,%.2g" % (mgr.scale_helix_arrow[0] +
-                                                       mgr.scale_helix_arrow[1]),
-                  "strand=%.2g,%.2g" % mgr.scale_sheet,
-                  "arrow_strand=%.2g,%.2g,%.2g,%.2g" % (mgr.scale_sheet_arrow[0] +
-                                                        mgr.scale_sheet_arrow[1]),
-                  "coil=%.2g,%.2g" % mgr.scale_coil,
-                  "nucleic=%.2g,%.2g" % mgr.scale_nucleic)
-        return
-    for m in _get_structures(session, structures):
-        if helix is not None:
-            m.ribbon_xs_mgr.set_helix_scale(*helix)
-        if arrow_helix is not None:
-            m.ribbon_xs_mgr.set_helix_arrow_scale(*arrow_helix)
-        if strand is not None:
-            m.ribbon_xs_mgr.set_sheet_scale(*strand)
-        if arrow_strand is not None:
-            m.ribbon_xs_mgr.set_sheet_arrow_scale(*arrow_strand)
-        if coil is not None:
-            m.ribbon_xs_mgr.set_coil_scale(*coil)
-        if nucleic is not None:
-            m.ribbon_xs_mgr.set_nucleic_scale(*nucleic)
-
-
-def cartoon_linker(session, structures, classes, linker):
-    '''Set cartoon ribbon transitions for specified structures.
-
-    Parameters
-    ----------
-    structures : atomic structures
-        Set options for selected atomic structures.
-    classes : 2-tuple of residue classes (strings)
-        Set linker mode from one type of secondary structure to another
-    linker : string
-        Type of linker to use between secondary structures
-    '''
-    RC_HELIX_START = XSectionManager.RC_HELIX_START
-    RC_HELIX_MIDDLE = XSectionManager.RC_HELIX_MIDDLE
-    RC_HELIX_END = XSectionManager.RC_HELIX_END
-    RC_SHEET_START = XSectionManager.RC_SHEET_START
-    RC_SHEET_MIDDLE = XSectionManager.RC_SHEET_MIDDLE
-    RC_SHEET_END = XSectionManager.RC_SHEET_END
-    RC_COIL = XSectionManager.RC_COIL
-    RIBBON_HELIX = XSectionManager.RIBBON_HELIX
-    RIBBON_HELIX_ARROW = XSectionManager.RIBBON_HELIX_ARROW
-    RIBBON_SHEET = XSectionManager.RIBBON_SHEET
-    RIBBON_SHEET_ARROW = XSectionManager.RIBBON_SHEET_ARROW
-    RIBBON_COIL = XSectionManager.RIBBON_COIL
-    from ..errors import UserError
-    if classes[0] == "helix":
-        if classes[1] == "helix":
-            rc_list = [[(RC_HELIX_MIDDLE, RC_HELIX_END, RC_HELIX_START),
-                        (RC_HELIX_START, RC_HELIX_END, RC_HELIX_START)],
-                       [(RC_HELIX_END, RC_HELIX_START, RC_HELIX_MIDDLE),
-                        (RC_HELIX_END, RC_HELIX_START, RC_HELIX_END)]]
-        elif classes[1] == "strand":
-            rc_list = [[(RC_HELIX_MIDDLE, RC_HELIX_END, RC_SHEET_START),
-                        (RC_HELIX_START, RC_HELIX_END, RC_SHEET_START)],
-                       [(RC_HELIX_END, RC_SHEET_START, RC_SHEET_MIDDLE),
-                        (RC_HELIX_END, RC_SHEET_START, RC_SHEET_END)]]
-        elif classes[1] == "coil":
-            rc_list = [[(RC_HELIX_MIDDLE, RC_HELIX_END, RC_COIL),
-                        (RC_HELIX_START, RC_HELIX_END, RC_COIL)],
-                       []]
-        else:
-            raise UserError("unsupported linker %s-%s" % classes)
-    elif classes[0] == "strand":
-        if classes[1] == "helix":
-            rc_list = [[(RC_SHEET_MIDDLE, RC_SHEET_END, RC_HELIX_START),
-                        (RC_SHEET_START, RC_SHEET_END, RC_HELIX_START)],
-                       [(RC_SHEET_END, RC_HELIX_START, RC_HELIX_MIDDLE),
-                        (RC_SHEET_END, RC_HELIX_START, RC_HELIX_END)]]
-        elif classes[1] == "strand":
-            rc_list = [[(RC_SHEET_MIDDLE, RC_SHEET_END, RC_SHEET_START),
-                        (RC_SHEET_START, RC_SHEET_END, RC_SHEET_START)],
-                       [(RC_SHEET_END, RC_SHEET_START, RC_SHEET_MIDDLE),
-                        (RC_SHEET_END, RC_SHEET_START, RC_SHEET_END)]]
-        elif classes[1] == "coil":
-            rc_list = [[(RC_SHEET_MIDDLE, RC_SHEET_END, RC_COIL),
-                        (RC_SHEET_START, RC_SHEET_END, RC_COIL)],
-                       []]
-        else:
-            raise UserError("unsupported linker %s-%s" % classes)
-    elif classes[0] == "coil":
-        if classes[1] == "helix":
-            rc_list = [[],
-                       [(RC_COIL, RC_HELIX_START, RC_HELIX_MIDDLE),
-                        (RC_COIL, RC_HELIX_START, RC_HELIX_END)]]
-        elif classes[1] == "strand":
-            rc_list = [[],
-                       [(RC_COIL, RC_SHEET_START, RC_SHEET_MIDDLE),
-                        (RC_COIL, RC_SHEET_START, RC_SHEET_END)]]
-        else:
-            raise UserError("unsupported linker %s-%s" % classes)
-    if linker == "long":
-        if classes[0] == "helix":
-            transition_list = [(RIBBON_HELIX_ARROW, RIBBON_COIL)]
-        elif classes[0] == "strand":
-            transition_list = [(RIBBON_SHEET_ARROW, RIBBON_COIL)]
-        else:
-            transition_list = [None]
-        if classes[1] == "helix":
-            transition_list.append((RIBBON_COIL, RIBBON_HELIX))
-        elif classes[1] == "strand":
-            transition_list.append((RIBBON_COIL, RIBBON_SHEET))
-        else:
-            transition_list.append(None)
-    elif linker == "short":
-        if classes[0] == "helix":
-            transition_list = [(RIBBON_HELIX_ARROW, RIBBON_COIL)]
-        elif classes[0] == "strand":
-            transition_list = [(RIBBON_SHEET_ARROW, RIBBON_COIL)]
-        else:
-            transition_list = [None]
-        if classes[1] == "helix":
-            transition_list.append((RIBBON_HELIX, RIBBON_HELIX))
-        elif classes[1] == "strand":
-            transition_list.append((RIBBON_SHEET, RIBBON_SHEET))
-        else:
-            transition_list.append(None)
-    elif linker == "short2":
-        if classes[0] == "helix":
-            transition_list = [(RIBBON_HELIX, RIBBON_HELIX_ARROW)]
-        elif classes[0] == "strand":
-            transition_list = [(RIBBON_SHEET, RIBBON_SHEET_ARROW)]
-        else:
-            transition_list = [None]
-        if classes[1] == "helix":
-            transition_list.append((RIBBON_COIL, RIBBON_HELIX))
-        elif classes[1] == "strand":
-            transition_list.append((RIBBON_COIL, RIBBON_SHEET))
-        else:
-            transition_list.append(None)
-    elif linker == "none":
-        if classes[0] == "helix":
-            transition_list = [(RIBBON_HELIX, RIBBON_HELIX_ARROW)]
-        elif classes[0] == "strand":
-            transition_list = [(RIBBON_SHEET, RIBBON_SHEET_ARROW)]
-        else:
-            transition_list = [None]
-        if classes[1] == "helix":
-            transition_list.append((RIBBON_HELIX, RIBBON_HELIX))
-        elif classes[1] == "strand":
-            transition_list.append((RIBBON_SHEET, RIBBON_SHEET))
-        else:
-            transition_list.append(None)
-    else:
-        raise UserError("unknown linker %s" % linker)
-    for m in _get_structures(session, structures):
-        try:
-            for rcs, links in zip(rc_list, transition_list):
-                if links is not None:
-                    for rc in rcs:
-                        m.ribbon_xs_mgr.set_transition(*rc, *links)
-        except ValueError as e:
-            raise UserError(str(e))
-
-
-def cartoon_arrow(session, structures=None, helix=None, strand=None):
-    '''Set cartoon ribbon arrow display for specified structures.
-
-    Parameters
-    ----------
-    structures : atomic structures
-        Set options for selected atomic structures.
-    helix : boolean
-        Set helix cross section scale to 2-tuple of float
-    strand : boolean
-        Set strand cross section scale to 2-tuple of float
-    '''
-    if helix is None and strand is None:
-        for m in _get_structures(session, structures):
-            mgr = m.ribbon_xs_mgr
-            print("%s: helix arrow=%s strand arrow=%s" % (m, mgr.arrow_helix,
-                                                             mgr.arrow_sheet))
-        return
-    for m in _get_structures(session, structures):
-        if helix is not None:
-            m.ribbon_xs_mgr.set_helix_end_arrow(helix)
-        if strand is not None:
-            m.ribbon_xs_mgr.set_sheet_end_arrow(strand)
-
-
-def cartoon_param_round(session, structures=None, faceted=None, sides=None):
-    '''Set cartoon round ribbon parameters for specified structures.
-
-    Parameters
-    ----------
-    structures : atomic structures
-        Set options for selected atomic structures.
-    faceted : boolean
-        Set whether highlights are per-vertex or per-face.
-    sides : integer
-        Set number of sides in cross section.
-    '''
-    if faceted is None and sides is None:
-        for m in _get_structures(session, structures):
-            mgr = m.ribbon_xs_mgr
-            param = mgr.params[XSectionManager.STYLE_ROUND]
-            print("%s: %s" % (m, ", ".join("%s: %s" % item for item in param.items())))
-        return
-    params = {}
-    if faceted is not None:
-        params["faceted"] = faceted
-    if sides is not None:
-        params["sides"] = sides
-    if params:
-        for m in _get_structures(session, structures):
-            m.ribbon_xs_mgr.set_params(XSectionManager.STYLE_ROUND, **params)
-
-
-def cartoon_param_piping(session, structures=None, faceted=None, sides=None, ratio=None):
-    '''Set cartoon piping ribbon parameters for specified structures.
-
-    Parameters
-    ----------
-    structures : atomic structures
-        Set options for selected atomic structures.
-    faceted : boolean
-        Set whether highlights are per-vertex or per-face.
-    sides : integer
-        Set number of sides in cross section.
-    ratio : real number
-        Set thickness ratio between flat center and piping.
-    '''
-    if faceted is None and sides is None and ratio is None:
-        for m in _get_structures(session, structures):
-            mgr = m.ribbon_xs_mgr
-            param = mgr.params[XSectionManager.STYLE_PIPING]
-            print("%s: %s" % (m, ", ".join("%s: %s" % item for item in param.items())))
-        return
-    params = {}
-    if faceted is not None:
-        params["faceted"] = faceted
-    if sides is not None:
-        params["sides"] = sides
-    if ratio is not None:
-        params["ratio"] = ratio
-    if params:
-        for m in _get_structures(session, structures):
-            m.ribbon_xs_mgr.set_params(XSectionManager.STYLE_PIPING, **params)
 
 
 def uncartoon(session, spec=None):

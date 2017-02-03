@@ -30,7 +30,7 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;supersample&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>quality</b>&nbsp;<i>M</i>&nbsp;]
 [[&nbsp;<b>width</b>&nbsp;&nbsp;<i>w</i>&nbsp;][&nbsp;<b>height</b>&nbsp;&nbsp;<i>h</i>&nbsp;]&nbsp|&nbsp;<b>pixelSize</b>&nbsp;&nbsp;<i>p</i>&nbsp;]
-[&nbsp;<b>transparentBackground</b>&nbsp;]
+[&nbsp;<b>transparentBackground</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>save</b> [&nbsp;<b>map</b>&nbsp;] 
@@ -39,10 +39,10 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>format</b>&nbsp;&nbsp;<i>file-format</i>&nbsp;]
 [&nbsp;<b>step</b>&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
 [&nbsp;<b>region</b>&nbsp;all&nbsp;|&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;]
-[&nbsp;<b>maskZone</b>&nbsp;]
+[&nbsp;<b>maskZone</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>baseIndex</b>&nbsp;<i>M</i>&nbsp;]
-[&nbsp;<b>append</b>&nbsp;]
-[&nbsp;<b>compress</b>&nbsp;]
+[&nbsp;<b>append</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>compress</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>chunkShapes</b>&nbsp;&nbsp;<i>order</i>&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
@@ -57,7 +57,8 @@ class="clRight" title="User Guide Index"/></a>
 <br><b>save</b> <b>formats</b>
 </h3>
 <p>
-The command <b>save</b> saves an image, map (volume data), ChimeraX session,
+The command <b>save</b> saves an image, 
+map (<a href="../tools/volumeviewer.html">volume data</a>), ChimeraX session,
 or other data to <i>filename</i>, 
 which can be a pathname (including directory location).
 The pathname can be absolute or relative to the current working directory as
@@ -191,8 +192,8 @@ For example, if at half-depth the graphics window encloses
 a 400-&Aring by 300-&Aring; rectangle,
 <b>pixelSize 0.4</b> specifies image pixel dimensions of 1000 by 750.
 </p><p>
-The <b>transparentBackground</b> option indicates
-including opacity values (alpha) in an output PNG or TIFF file. 
+The <b>transparentBackground</b> option (default <b>false</b>) indicates
+whether to include opacity values (alpha) in an output PNG or TIFF file. 
 With background transparency, the background
 will be completely invisible in the saved images.
 This facilitates combining the image 
@@ -249,13 +250,15 @@ If the <b>region</b> option is not supplied, the currently displayed
 subregion will be written.
 In this context, a zone is not considered a subregion.
 </p><p>
-If <b>maskZone</b> is specified and zoning is in effect
+If zoning is in effect
 (see <a href="surface.html#zone"><b>surface zone</b></a>),
 <!--
 and the <b>Zone</b></a> feature in <b>Volume Viewer</b>
 -->
-data will be written
-out for a region enclosing the zone, with values outside the zone set to zero.
+the <b>maskZone</b> option (default <b>false</b>)
+indicates writing out data for a region enclosing the zone,
+with values outside the zone set to zero.
+See also: <a href="volume.html#zone"><b>volume zone</b></a>
 </p><p>
 MRC files written by ChimeraX
 are in the MRC 2000 format. Older MRC-reading programs or
@@ -267,13 +270,13 @@ If <a name="chimap"><b><i>Chimera map</i></b></a> format is saved:
  <ul>
  <li>multiple data sets can be saved to a single file
  (multiple volume models can be specified)
- <li><b>append</b> can be used to append the data to an 
- existing file instead of overwriting the file
+ <li>the <b>append</b> option (default <b>false</b>) indicates whether to
+ append the data to an existing file instead of overwriting the file
  <li>the file will include symmetry (if any) previously 
  <a href="volume.html#dimensions">assigned</a> with 
  <a href="volume.html"><b>volume</b></a>
- <li>the file can be compressed with <b>compress</b></a>
- <li>the data layout can be controlled with <b>chunkShapes</b></a>
+ <li>the file can be compressed with <b>compress true</b> (default <b>false</b>)
+ <li>the data layout can be controlled with <b>chunkShapes</b>
  </ul>
 <p>
 Compression is most useful for volume masks (values 0/1),
@@ -306,5 +309,5 @@ because one Z-plane is written at a time.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2016</address>
+January 2017</address>
 </body></html>

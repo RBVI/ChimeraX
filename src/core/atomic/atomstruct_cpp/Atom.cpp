@@ -840,6 +840,20 @@ Atom::get_idatm_info_map()
 }
 
 bool
+Atom::has_missing_structure_pseudobond() const
+{
+    auto pbg = structure()->pb_mgr().get_group(
+        Structure::PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NONE);
+    if (pbg != nullptr) {
+        for (auto& pb: pbg->pseudobonds()) {
+            if (pb->atoms()[0] == this || pb->atoms()[1] == this)
+                return true;
+        }
+    }
+    return false;
+}
+
+bool
 Atom::is_backbone(BackboneExtent bbe) const {
     // hydrogens depend on the heavy atom they're attached to
     if (element().number() == 1) {
@@ -901,6 +915,23 @@ Atom::maximum_bond_radius(float default_radius) const {
 	bcount += 1;
     }
     return (bcount > 0 ? rmax : default_radius);
+}
+
+Atom::Bonds::size_type
+Atom::num_explicit_bonds() const // includes missing-structure bonds
+{
+    auto count = bonds().size();
+    auto pbg = structure()->pb_mgr().get_group(
+        Structure::PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NONE);
+    if (pbg != nullptr) {
+        for (auto& pb: pbg->pseudobonds()) {
+            if (pb->atoms()[0] == this)
+                ++count;
+            if (pb->atoms()[1] == this)
+                ++count;
+        }
+    }
+    return count;
 }
 
 float
