@@ -24,7 +24,7 @@ class ChemGroupAPI(BundleAPI):
     @staticmethod
     def register_selector(selector_name):
         # 'register_selector' is lazily called when selector is referenced
-        from . import data
-        data.register_selectors()
+        from . import chem_group
+        chem_group.register_selectors()
 
 bundle_api = ChemGroupAPI()

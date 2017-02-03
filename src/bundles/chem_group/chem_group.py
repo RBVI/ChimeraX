@@ -167,7 +167,7 @@ group_info = {
 }
 
 # synonyms
-for group_name in group_info.keys():
+for group_name in list(group_info.keys()):
     if group_name.startswith("sulf"):
         group_info["sulph" + group_name[4:]] = group_info[group_name]
 group_info["aromatic"] = group_info["aromatic ring"]
@@ -200,5 +200,5 @@ def register_selectors():
     from chimerax.core.commands import register_selector
     for group_name in group_info.keys():
         register_selector(group_name.replace(' ', '-'),
-            lambda ses, models, results, gn=group_name: select(result, models, gn))
+            lambda ses, models, results, gn=group_name: select(results, models, gn))
 
