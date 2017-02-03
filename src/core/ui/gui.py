@@ -247,14 +247,14 @@ class UI(QApplication):
     def cancel_timer(self, timer):
         timer.stop()
 
-    def request_graphics_redraw(self):
+    def update_graphics_now(self):
         '''
-        Put a high priority event on the event queue to cause a graphics redraw.
-        This is used to request a graphics redraw before additional mouse and keyboard events
-        are processed for fastest visual feedback.  It is typically used during a mouse drag
-        event to update a graphics change resulting from the mouse drag.
+        Redraw graphics now if there are any changes.  This is typically only used by
+        mouse drag code that wants to update the graphics as responsively as possible,
+        particularly when a mouse step may take significant computation, such as contour
+        surface level change.  After each mouse event this is called to force a redraw.
         '''
-        self.main_window.graphics_window.request_graphics_redraw()
+        self.main_window.graphics_window.update_graphics_now()
         
 # The surface format has to be set before QtGui is initialized
 from PyQt5.QtGui import QSurfaceFormat

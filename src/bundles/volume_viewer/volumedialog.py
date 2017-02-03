@@ -2087,7 +2087,7 @@ class Histogram_Pane:
       nijk_max[2] = k
       v.new_region(nijk_min, nijk_max, ijk_step)
       # Make sure this plane is shown before we show another plane.
-      self.dialog.session.ui.request_graphics_redraw()
+      self.dialog.session.ui.update_graphics_now()
 
   # ---------------------------------------------------------------------------
   #
@@ -2251,8 +2251,8 @@ class Histogram_Pane:
 
     self.select_data_cb()	# Causes redisplay using GUI settings
     self.set_threshold_and_color_widgets()
-    # Request graphics redraw before more mouse drag events occur.
-    self.dialog.session.ui.request_graphics_redraw()
+    # Redraw graphics before more mouse drag events occur.
+    self.dialog.session.ui.update_graphics_now()
 
   # ---------------------------------------------------------------------------
   #

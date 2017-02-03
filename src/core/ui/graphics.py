@@ -35,7 +35,6 @@ class GraphicsWindow(QWindow):
         self.minimum_event_processing_ratio = 0.1 # Event processing time as a fraction
         # of time since start of last drawing
         self.last_redraw_start_time = self.last_redraw_finish_time = 0
-        self._redraw_graphics_object = None	# Used for high priority redraw requests
         
         ui.have_stereo = False
         if hasattr(ui, 'stereo') and ui.stereo:
@@ -84,27 +83,15 @@ class GraphicsWindow(QWindow):
                 s.ui.mouse_modes.mouse_pause_tracking()
             self.last_redraw_finish_time = time.perf_counter()
 
-    def request_graphics_redraw(self):
+    def update_graphics_now(self):
         '''
-        Put a high priority event on the event queue to cause a graphics redraw.
-        This is used to request a graphics redraw before additional mouse and keyboard events
-        are processed for fastest visual feedback.  It is typically used during a mouse drag
-        event to update a graphics change resulting from the mouse drag.
+        Redraw graphics now if there are any changes.  This is typically only used by
+        mouse drag code that wants to update the graphics as responsively as possible,
+        particularly when a mouse step may take significant computation, such as contour
+        surface level change.  After each mouse event this is called to force a redraw.
         '''
-        from PyQt5.QtCore import QTimerEvent, Qt, QObject
-        rg = self._redraw_graphics_object
-        if rg is None:
-            class RedrawGraphics(QObject):
-                def __init__(self, callback):
-                    QObject.__init__(self)
-                    self._callback = callback
-                def timerEvent(self, e):
-                    self._callback()
-            self._redraw_graphics_object = rg = RedrawGraphics(self._redraw_timer_callback)
-        timer_id = 0
-        e = QTimerEvent(timer_id)
-        ui = self.session.ui
-        ui.postEvent(rg, e, Qt.HighEventPriority)
+        s = self.session
+        s.update_loop.draw_new_frame(s)
             
 from PyQt5.QtWidgets import QLabel
 class Popup(QLabel):
