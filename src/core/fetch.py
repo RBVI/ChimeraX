@@ -131,17 +131,14 @@ def retrieve_url(request, filename, logger=None, uncompress=False,
                     request.get_full_url()))
             d = response.headers['Last-modified']
             last_modified = _convert_to_timestamp(d)
-            import shutil
+            content_length = response.headers['Content-Length']
+            if content_length is not None:
+                content_length = int(content_length)
             with open(filename, 'wb') as f:
-                # TODO: Put code in here that uses response.read(num_bytes) to read
-                # the fetched file a chunk at a time and output status messages about
-                # the progress.
                 if compressed:
-                    import gzip
-                    with gzip.GzipFile(fileobj=response) as uncompressed:
-                        shutil.copyfileobj(uncompressed, f)
+                    read_and_uncompress(response, f, name, content_length, logger)
                 else:
-                        shutil.copyfileobj(response, f)
+                    read_and_report_progress(response, f, name, content_length, logger)
         if last_modified is not None:
             os.utime(filename, (last_modified, last_modified))
         if logger:
@@ -154,6 +151,37 @@ def retrieve_url(request, filename, logger=None, uncompress=False,
             logger.status('Error fetching %s' % name, secondary=True, blank_after=15)
         raise
 
+# -----------------------------------------------------------------------------
+#
+def read_and_uncompress(file_in, file_out, name, content_length, logger, chunk_size = 1048576):
+
+    # Read compressed data into buffer reporting progress.
+    from io import BytesIO
+    cdata = BytesIO()
+    read_and_report_progress(file_in, cdata, name, content_length, logger, chunk_size)
+    cdata.seek(0)
+    
+    # Decompress data to file.
+    import gzip, shutil
+    with gzip.GzipFile(fileobj=cdata) as uncompressed:
+        shutil.copyfileobj(uncompressed, file_out)
+
+# -----------------------------------------------------------------------------
+#
+def read_and_report_progress(file_in, file_out, name, content_length, logger, chunk_size = 1048576):
+    tb = 0
+    while True:
+        bytes = file_in.read(chunk_size)
+        if bytes:
+            file_out.write(bytes)
+        else:
+            break
+        tb += len(bytes)
+        if content_length:
+            msg = 'Fetching %s, %.3g of %.3g Mbytes received' % (name, tb/1048576, content_length/1048576)
+        else:
+            msg = 'Fetching %s, %.3g Mbytes received' % (name, tb/1048576)
+        logger.status(msg)
 
 # -----------------------------------------------------------------------------
 #
