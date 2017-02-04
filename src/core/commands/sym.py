@@ -83,7 +83,7 @@ def sym(session, molecules,
             else:
                 a.show(m, session)
 
-def sym_clear(session, molecules):
+def sym_clear(session, molecules = None):
     '''
     Remove copies of molecules that were made with sym command.
 
@@ -92,6 +92,9 @@ def sym_clear(session, molecules):
     molecules : list of AtomicStructure
       List of molecules to for which to remove copies.
     '''
+    if molecules is None:
+        from ..atomic import all_structures
+        molecules = all_structures(session)
     for m in molecules:
         from ..geometry import Places
         m.positions = Places([m.position])	# Keep only first position.
@@ -115,7 +118,7 @@ def register_command(session):
         synopsis = 'create model copies')
     register('sym', desc, sym)
     desc = CmdDesc(
-        required = [('molecules', AtomicStructuresArg)],
+        optional = [('molecules', AtomicStructuresArg)],
         synopsis = 'Remove model copies')
     register('sym clear', desc, sym_clear)
 
