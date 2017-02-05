@@ -14,20 +14,22 @@ from chimerax.core.commands import Annotation, AnnotationError, next_token
 
 class NameArg(Annotation):
 
-    name = 'a label identifier'
+    name = "a label identifier or 'all'"
 
     @staticmethod
     def parse(text, session):
         if not text:
             raise AnnotationError("Expected %s" % NameArg.name)
+        token, text, rest = next_token(text)
+        if token == 'all':
+            return token, token, rest
         lmap = getattr(session, 'labels', None)
         if lmap is None:
-            raise AnnotationError("Unknown label identifier")
-        token, text, rest = next_token(text)
+            raise AnnotationError("Unknown label identifier: '%s'" % token)
         if token not in lmap:
             possible = [name for name in lmap if name.startswith(token)]
             if not possible:
-                raise AnnotationError("Unknown label identifier")
+                raise AnnotationError("Unknown label identifier: '%s'" % token)
             possible.sort(key=len)
             token = possible[0]
         return token, token, rest
