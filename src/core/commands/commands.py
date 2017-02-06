@@ -24,7 +24,7 @@ def register_core_commands(session):
         'delete', 'dssp', 'exit', 'hide', 'info',
         'lighting', 'list',
         'material', 'measure_buriedarea', 'measure_sasa', 'mousemode', 'move',
-        'open', 'pdbimages', 'perframe', 'position', 'pwd',
+        'open', 'pdbimages', 'perframe', 'pwd',
         'rainbow', 'rename', 'roll', 'run', 'rungs',
         'save', 'scolor', 'select', 'set', 'show', 'split',
         'stop', 'style', 'surface', 'sym',

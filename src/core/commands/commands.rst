@@ -54,7 +54,6 @@ and their code location is described with the function descriptions.
 | `open`_ - Open data files
 | `pdbimages`_ - Render PDB assembly images
 | `perframe`_ - Run a command for every rendered frame
-| `position`_ - Set camera and model positions
 | `pwd`_ - Print working directory
 | `rainbow`_ - Color residues and chains
 | `rename`_ - Rename models
@@ -251,11 +250,6 @@ perframe
 ========
 .. autofunction:: chimerax.core.commands.perframe.perframe
 
-position
-========
-.. autofunction:: chimerax.core.commands.position.position
-.. autofunction:: chimerax.core.commands.position.position_initial
-
 pwd
 ===
 .. autofunction:: chimerax.core.commands.pwd.pwd
@@ -359,6 +353,11 @@ turn
 view
 ====
 .. autofunction:: chimerax.core.commands.view.view
+.. autofunction:: chimerax.core.commands.view.view_delete
+.. autofunction:: chimerax.core.commands.view.view_initial
+.. autofunction:: chimerax.core.commands.view.view_list
+.. autofunction:: chimerax.core.commands.view.view_matrix
+.. autofunction:: chimerax.core.commands.view.view_name
 
 vr
 ==
