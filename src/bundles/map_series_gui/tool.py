@@ -124,7 +124,7 @@ class MapSeries(ToolInstance):
                 s.copy_display_parameters(lt, t)
             s.show_time(t)
         # Make sure this time is shown before we draw the next time.
-        self.session.ui.request_graphics_redraw()
+        self.session.ui.update_graphics_now()
 
     def play_cb(self, event):
         if self.playing:

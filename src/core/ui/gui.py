@@ -247,14 +247,14 @@ class UI(QApplication):
     def cancel_timer(self, timer):
         timer.stop()
 
-    def request_graphics_redraw(self):
+    def update_graphics_now(self):
         '''
-        Put a high priority event on the event queue to cause a graphics redraw.
-        This is used to request a graphics redraw before additional mouse and keyboard events
-        are processed for fastest visual feedback.  It is typically used during a mouse drag
-        event to update a graphics change resulting from the mouse drag.
+        Redraw graphics now if there are any changes.  This is typically only used by
+        mouse drag code that wants to update the graphics as responsively as possible,
+        particularly when a mouse step may take significant computation, such as contour
+        surface level change.  After each mouse event this is called to force a redraw.
         '''
-        self.main_window.graphics_window.request_graphics_redraw()
+        self.main_window.graphics_window.update_graphics_now()
         
 # The surface format has to be set before QtGui is initialized
 from PyQt5.QtGui import QSurfaceFormat
@@ -427,8 +427,6 @@ class MainWindow(QMainWindow, PlainTextLog):
             tool_windows[0].shown = shown
 
     def status(self, msg, color, secondary):
-        # prevent status message causing/allowing a redraw
-#        self.graphics_window.session.update_loop.block_redraw()
         sb = self.statusBar()
         sb.clearMessage()
         if secondary:
@@ -437,17 +435,57 @@ class MainWindow(QMainWindow, PlainTextLog):
             label = sb._primary_status_label
         label.setText("<font color='" + color + "'>" + msg + "</font>")
         label.show()
-        # TODO: Make status line update during long computations where event loop is not running.
-        # Code that asks to display a status message does not expect arbitrary callbacks
-        # to run.  This could cause timers and callbacks to run that could lead to errors.
-        # User events are not processed since that could allow the user to delete data.
-        # Ticket #407.
-        # This code causes mouse up events to be lost dragging the volume viewer contour level
-        # on histograms, and the volume series slider, causing the mouse drag to effect those
-        # even after the mouse is released, making those tools nearly unusable.
-#        from PyQt5.QtCore import QEventLoop
-#        self.graphics_window.session.ui.processEvents(QEventLoop.ExcludeUserInputEvents)
-#        self.graphics_window.session.update_loop.unblock_redraw()
+
+        self._show_status_now()
+
+    def _show_status_now(self):
+        # In Qt 5.7.1 there is no way to for the status line to redraw without running the event loop.
+        # But we don't want requesting a status message to have any side effects, such as dispatching
+        # mouse events.  This could cause havoc in the code writing the status message which does not
+        # expect any side effects.
+
+        # The only viable solution seems to be to process Qt events but exclude mouse and key events.
+        # The unprocessed mouse/key events are kept and supposed to be processed later but due to
+        # Qt bugs (57718 and 53126), those events don't get processed and mouse up events are lost
+        # during mouse drags, causing the mouse to still drag controls even after the button is released.
+        # This is seen in volume viewer when dragging the level bar on the histogram making the tool
+        # very annoying to use. Some work-around code suggested in Qt bug 57718 of calling processEvents()
+        # to send those deferred events is used below.
+
+        if getattr(self, '_processing_deferred_events', False):
+            return
+
+        s = self.graphics_window.session
+        ul = s.update_loop
+        ul.block_redraw()	# Prevent graphics redraw. Qt timers can fire.
+        self._in_status_event_processing = True
+        from PyQt5.QtCore import QEventLoop
+        s.ui.processEvents(QEventLoop.ExcludeUserInputEvents)
+        self._in_status_event_processing = False
+        ul.unblock_redraw()
+        self._process_deferred_events()
+
+    def _process_deferred_events(self):
+        # Handle bug where deferred mouse/key events are never processed on Mac Qt 5.7.1.
+        from sys import platform
+        if platform != 'darwin':
+            return
+        if getattr(self, '_flush_timer_queued', False):
+            return
+
+        def flush_pending_user_events(self=self):
+            self._flush_timer_queued = False
+            if getattr(self, '_in_status_event_processing', False):
+                # Avoid processing deferred events if timer goes off during status message.
+                self._process_deferred_events()
+            else:
+                self._processing_deferred_events = True
+                self.graphics_window.session.ui.processEvents()
+                self._processing_deferred_events = False
+
+        self._flush_timer_queued = True
+        from PyQt5.QtCore import QTimer
+        QTimer.singleShot(0, flush_pending_user_events)
 
     def _about(self, arg):
         from PyQt5.QtWebEngineWidgets import QWebEngineView

@@ -530,6 +530,8 @@ class Volume(Model):
   # ---------------------------------------------------------------------------
   #
   def _set_display(self, display):
+    if display == self.display:
+      return
     Model._set_display(self, display)
     self.call_change_callbacks('displayed')
   display = Model.display.setter(_set_display)

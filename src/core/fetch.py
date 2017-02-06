@@ -133,6 +133,9 @@ def retrieve_url(request, filename, logger=None, uncompress=False,
             last_modified = _convert_to_timestamp(d)
             import shutil
             with open(filename, 'wb') as f:
+                # TODO: Put code in here that uses response.read(num_bytes) to read
+                # the fetched file a chunk at a time and output status messages about
+                # the progress.
                 if compressed:
                     import gzip
                     with gzip.GzipFile(fileobj=response) as uncompressed:
