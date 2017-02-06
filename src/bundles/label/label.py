@@ -14,20 +14,22 @@ from chimerax.core.commands import Annotation, AnnotationError, next_token
 
 class NameArg(Annotation):
 
-    name = 'a label identifier'
+    name = "a label identifier or 'all'"
 
     @staticmethod
     def parse(text, session):
         if not text:
             raise AnnotationError("Expected %s" % NameArg.name)
-        lmap = getattr(session, 'labels', None)
-        if lmap is None:
-            raise AnnotationError("Unknown label identifier")
+        lmap = getattr(session, 'labels', {})
+        if len(lmap) == 0:
+            raise AnnotationError("No labels exist")
         token, text, rest = next_token(text)
         if token not in lmap:
             possible = [name for name in lmap if name.startswith(token)]
+            if 'all'.startswith(token):
+                possible.append('all')
             if not possible:
-                raise AnnotationError("Unknown label identifier")
+                raise AnnotationError("Unknown label identifier: '%s'" % token)
             possible.sort(key=len)
             token = possible[0]
         return token, token, rest
@@ -181,6 +183,8 @@ def label_create(session, name, text = '', color = None, size = 24, typeface = '
     visibility : bool
       Whether or not to display the label.
     '''
+    if name == 'all':
+        raise CommandError("'all' is reserved to refer to all labels")
     return Label(**locals())
 
 def label_change(session, name, text = None, color = None, size = None, typeface = None,
