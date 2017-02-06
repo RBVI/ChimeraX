@@ -25,7 +25,6 @@ def usage(session, command_name=None, option=None):
     from . import cli
     status = session.logger.status
     info = session.logger.info
-    print('OPTION:', option)
     show_hidden = option == 'show_hidden'
     if command_name is None:
         info("Use 'usage <command>' for a command synopsis.")

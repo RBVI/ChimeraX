@@ -2421,7 +2421,6 @@ def usage(name, no_aliases=False, show_subcommands=True, expand_alias=True,
     cmd._find_command_name(no_aliases=no_aliases)
     if cmd.amount_parsed == 0:
         raise ValueError('"%s" is not a command name' % name)
-    print('USAGE:', show_hidden)
 
     syntax = ''
     ci = cmd._ci
