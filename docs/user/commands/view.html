@@ -24,38 +24,27 @@ or derivations thereof.
 class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: view</h3>
-<h3><a href="usageconventions.html">Usage</a>:
-<br><b>view</b> 
-&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
-[&nbsp;orient&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;pad&nbsp;&nbsp;<i>fraction</i>&nbsp;]
-</h3>
-<h3><a href="usageconventions.html">Usage</a>:
-<br><b>view</b> &nbsp;<b>name</b> &nbsp;<i>view-name</i>
-</h3>
-<h3><a href="usageconventions.html">Usage</a>:
-<br><b>view</b> &nbsp;<i>view-name</i> [&nbsp;<i>frames</i>&nbsp;]
-</h3>
-<h3><a href="usageconventions.html">Usage</a>:
-<br><b>view</b> &nbsp;<b>delete</b> 
-(&nbsp;<i>view-name</i>&nbsp;|&nbsp;<b>all</b>&nbsp;)
-</h3>
-<h3><a href="usageconventions.html">Usage</a>:
-<br><b>view</b> &nbsp;<b>list</b>
-</h3>
 <p>
-The <b>view</b> command adjusts the view to make the
-<a href="atomspec.html">specified</a> items fill the graphics window.
-It also allows naming and later restoring the view, including the
-positions of any models that have been moved separately.
+The <b>view</b> command can:
+</p>
+<ul>
+<li><a href="#initial">focus the view</a> on specified items
+<li>save and restore <a href="#name">named views</a>,
+including the positions of any models that have been moved separately
+<li>set camera and model positions <a href="#matrix">using matrices</a>
+</ul>
+<p>
 See also: <a href="cofr.html"><b>cofr</b></a>,
-<a href="position.html"><b>position</b></a>,
 <a href="getcrd.html"><b>getcrd</b></a>,
 <a href="zoom.html"><b>zoom</b></a>,
 <a href="camera.html"><b>camera</b></a>,
 <a href="clip.html"><b>clip</b></a>,
 <a href="windowsize.html"><b>windowsize</b></a>,
 <a href="save.html"><b>save</b></a>,
+<a href="matchmaker.html"><b>matchmaker</b></a>,
+<b>align</b>,
+<a href="fitmap.html"><b>fitmap</b></a>,
+<a href="sym.html"><b>sym</b></a>,
 <a href="../images.html">making images</a>,
 <a href="../movies.html">making movies</a>,
 <a href="../tools/graphics.html"><b>Graphics Toolbar</b></a>
@@ -63,48 +52,96 @@ See also: <a href="cofr.html"><b>cofr</b></a>,
 <img class="icon" border=1 src="../tools/shortcut-icons/viewall.png"></a>
 <a href="../tools/graphics.html" title="Graphics icons...">
 <img class="icon" border=1 src="../tools/shortcut-icons/orient.png"></a>
-</p><p>
-The <b>view</b> command translates the scene, zooms in or out,
+</p>
+
+<a name="initial"></a>
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<h3>Focusing and Reorienting the View</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>view</b> &nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
+[&nbsp;<b>pad</b>&nbsp;&nbsp;<i>fraction</i>&nbsp;]
+[&nbsp;<b>orient</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>view</b> &nbsp;<b>initial</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+</blockquote>
+<p>
+The <b>view</b> <a href="atomspec.html"><i>spec</i></a>
+command translates the scene, zooms in or out,
 and places the <a href="clip.html">near/far clipping planes</a>
 to bracket the displayed parts of the specified items.
 If nothing is specified, all displayed items will be included
 and near/far clipping deactivated.
+The zoom level is adjusted to make the bounding box of the relevant items
+abut the edges of the graphics window minus a <b>pad</b> <i>fraction</i> 
+(allowed values &lt; 1.0, default <b>0.05</b> of the window width and height)
+The desired <i>fraction</i> will usually be positive,
+but negative values can be used to zoom in further.
+The center of rotation is set to <a href="cofr.html#method">fixed</a> at the 
+center of the bounding box of the relevant items,
+or if nothing is specified, allowed to vary according to the
+<a href="cofr.html#method">front center method</a>.
+</p><p>
 Using <b>orient true</b> (default <b>false</b>)
 additionally rotates the scene to a standard orientation with 
 X-axis horizontal increasing rightward, Y-axis vertical increasing upward,
 and Z-axis perpendicular to the screen increasing toward the viewer;
 in other words, it aligns <a href="#scenecoords">scene coordinates</a> with
 <a href="#screencoords">screen coordinates</a>.
-The zoom level is adjusted to make the bounding box of the relevant items
-abut the edges of the graphics window minus a <b>pad</b> <i>fraction</i> 
-(allowed values &lt; 1.0, default <b>0.05</b> of the window width and height)
-The desired <i>fraction</i> will usually be positive,
-but negative values can be used to zoom in further.
-The center of rotation is <a href="cofr.html#method">fixed</a> at the 
-center of the bounding box of the relevant items,
-or if nothing is specified, allowed to vary according to the
-<a href="cofr.html#method">front center method</a>.
 </p><p>
+The <b>view initial</b> command removes rotations and translations of
+models relative to the scene (aligns individual model coordinates with
+<a href="#scenecoords">scene coordinates</a>).
+An overall reset can be achieved with:
+</p>
+<blockquote>
+<b>view orient true; view initial</b>
+</blockquote>
+<p>
+...where the second command only has an effect if a model has been
+moved separately, as in matching or fitting.
+</p>
+
+<a name="name"></a>
+<a name="delete"></a>
+<a name="list"></a>
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<h3>Named Views and Transitions</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>view</b> &nbsp;<b>name</b> &nbsp;<i>view-name</i>
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>view</b> &nbsp;<i>view-name</i> [&nbsp;<i>frames</i>&nbsp;]
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>view</b> &nbsp;<b>delete</b> 
+(&nbsp;<i>view-name</i>&nbsp;|&nbsp;<b>all</b>&nbsp;)
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>view</b> &nbsp;<b>list</b>
+</blockquote>
+<p>
 The <b>name</b> option assigns <i>view-name</i> to the current view,
 including the positions of any models that have been moved separately.
-Subsequently, that view can be <a href="#note">restored</a>
-over a specified number of image update <i>frames</i> (default <b>1</b> frame).
+Subsequently, that view can be restored over a specified number of 
+image update <i>frames</i> (default <b>1</b> frame).
 The <b>delete</b> option can be used to &ldquo;forget&rdquo; a specific
 view or <b>all</b> views. 
 The <b>list</b> option reports the names of all currently saved 
 views in the <a href="../tools/log.html"><b>Log</b></a>,
 and clicking a name therein restores the corresponding view.
-</p>
-
-<a name="note"></a>
-<p class="nav">
-[<a href="#top">back to top</a>]
-</p>
-<h3>Transition between Views</h3>
-<p>
+</p><p>
 Rotations and translations of the scene as a whole 
 can be described as motions of the viewer or &ldquo;camera.&rdquo;
-The camera is rotated with a linear change in angle
+For gradual changes between views (<i>frames</i> &gt; 1),
+the camera is rotated with a linear change in angle
 from its orientation in the first view to its orientation in the second view,
 and simultaneously translated so that
 the center of rotation in the first view moves in a straight line
@@ -135,7 +172,44 @@ The <b><i>screen coordinate system</i></b> has:
 <li>Z-axis perpendicular to the screen increasing toward the viewer
 </ul>
 
+<a name="matrix"></a>
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<h3>Using Transformation Matrices</h3>
+
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>view matrix</b>
+[&nbsp;<b>camera</b>&nbsp;&nbsp;<i>matrix<sub><font size="-1">C</font></sub></i>&nbsp;]
+[&nbsp;<b>models</b>&nbsp;&nbsp;<i>#N,matrix<sub><font size="-1">N</font></sub>,#M,matrix<sub><font size="-1">M</font></sub>,</i>&nbsp;...&nbsp;]
+</blockquote>
+<p>
+The <b>view matrix</b> command uses input rotation-translation matrices
+to position the camera (thus the global scene)
+and/or individual models relative to the scene.
+</p><p>
+Without arguments, <b>view matrix</b> shows the current rotation and
+translation of the camera and of each model relative to the scene
+as matrices in the <a href="../tools/log.html"><b>Log</b></a>.
+Each matrix is reported as 12 comma-separated numbers, 
+corresponding to a 3x3 rotation matrix and a translation vector 
+in the fourth column. Ordering is row-by-row, such that the 
+translation vector is given as the fourth, eighth, and twelfth numbers.
+The same format of each <i>matrix</i> as 12 comma-separated numbers is required
+to set the position of the <b>camera</b> and/or individually specified
+<b>models</b> <i>#N</i>, <i>#M</i>, <i>etc.</i>
+The numbers should be separated by commas only (no spaces).
+</p><p>
+The following commands are equivalent:
+</p>
+<blockquote>
+<b>view matrix mod #1,1,0,0,0,0,1,0,0,0,0,1,0</b>
+<br>
+<b><a href="#initial">view initial</a> #1</b>
+</blockquote>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2017</address>
+February 2017</address>
 </body></html>
