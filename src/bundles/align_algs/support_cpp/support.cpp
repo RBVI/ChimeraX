@@ -76,12 +76,16 @@ make_matrix(PyObject *dict, Similarity &matrix)
 		//
 		// Verify value type
 		//
-		if (!PyFloat_Check(value)) {
+		double v = PyFloat_AsDouble(value);
+		if (PyFloat_Check(value)) {
+            v = PyFloat_AsDouble(value);
+        } else if (PyLong_Check(value)) {
+            v = PyLong_AsDouble(value);
+        } else {
 			PyErr_SetString(PyExc_TypeError,
-				"dictionary value must be float");
+				"matrix dictionary value must be float or int");
 			return -1;
 		}
-		double v = PyFloat_AsDouble(value);
 
 		//
 		// Store in C++ map
