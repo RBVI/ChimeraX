@@ -80,7 +80,12 @@ class Gaussian_Cube:
     grid_axes = []
     for axis in range(3):
       sa = read_line_values(f.readline(), if3_line, 'grid size / axis')
-      grid_size.append(sa[0])
+      # Gaussian cube dimension can be negative.  Some documentation says negative
+      # indicates distance units in Angstrom while positive indicates distance units
+      # are Bohr.  Other documentation says units are always Bohr.  This reader
+      # will assume the units match your other open molecular models and so does
+      # not do any unit conversions.  Chimera ticket #15339.
+      grid_size.append(abs(sa[0]))
       axis = sa[1:]
       n = norm(axis)
       step.append(n)
