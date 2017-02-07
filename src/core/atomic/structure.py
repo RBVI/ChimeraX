@@ -1820,6 +1820,7 @@ class AtomicStructure(Structure):
         super().added_to_session(session)
         self._set_chain_descriptions(session)
         self._determine_het_res_descriptions(session)
+        self._report_assemblies(session)
 
     def _determine_het_res_descriptions(self, session):
         # Don't actually set the description in the residue in order to avoid having
@@ -1918,6 +1919,25 @@ class AtomicStructure(Structure):
                 if chain.description:
                     session.logger.info("%s, chain %s: %s" % (self, chain.chain_id,
                         chain.description))
+
+    def _report_assemblies(self, session):
+        from . import mmcif 
+        sat = mmcif.get_mmcif_tables_from_metadata(self, ['pdbx_struct_assembly'])[0]
+        if sat:
+            try:
+                rows = sat.fields(('id', 'details'))
+            except ValueError:
+                return	# Table does not have required fields
+            if len(rows) == 1 and rows[0][1].startswith('author'):
+                return	# Don't report the identity assembly
+            lines = ['<table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0">',
+                     '<tr><th colspan=2>%s mmCIF Assemblies' % self.name]
+            for id, details in rows:
+                lines.append('<tr><td><a href="cxcmd:sym #%s assembly %s ; view #%s clip false">%s</a><td>%s'
+                             % (self.id_string(), id, self.id_string(), id, details))
+            lines.append('</table>')
+            html = '\n'.join(lines)
+            session.logger.info(html, is_html=True)
 
 
 # -----------------------------------------------------------------------------

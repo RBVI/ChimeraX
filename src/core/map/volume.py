@@ -96,10 +96,10 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
-  def message(self, text):
+  def message(self, text, **kw):
 
     if self.message_cb:
-      self.message_cb(text)
+      self.message_cb(text, **kw)
     
   # ---------------------------------------------------------------------------
   #
@@ -530,6 +530,8 @@ class Volume(Model):
   # ---------------------------------------------------------------------------
   #
   def _set_display(self, display):
+    if display == self.display:
+      return
     Model._set_display(self, display)
     self.call_change_callbacks('displayed')
   display = Model.display.setter(_set_display)
@@ -756,7 +758,8 @@ class Volume(Model):
     from ..geometry import vector
     vector.normalize_vectors(narray)
 
-    self.message('Making %s surface with %d triangles' % (name, len(tarray)))
+    self.message('Calculated %s surface, level %.3g, with %d triangles'
+                 % (name, level, len(tarray)), blank_after = 3.0)
 
     p = piece
     p.geometry = varray, tarray
@@ -766,8 +769,6 @@ class Volume(Model):
     p.clip_cap = True
     # TODO: Clip cap offset for different contour levels is not related to voxel size.
     p.clip_offset = .002* len([l for l in self.surface_levels if level < l])
-
-    self.message('')
 
     return True
     
@@ -1112,7 +1113,7 @@ class Volume(Model):
     pd = Drawing.first_intercept(self, mxyz1, mxyz2, exclude)
     if pd:
       d = pd.drawing()
-      detail = '%s triangles %d' % (d.name, len(d.triangles))
+      detail = d.name
       p = PickedMap(self, pd.distance, detail)
       p.triangle_pick = pd
     else:

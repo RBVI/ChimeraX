@@ -120,7 +120,9 @@ void main(void)
 // TODO: This is wrong if model matrix is not identity.  Need to subtract vertex scene position
 // from camera scene origin, but this code subtracts vertex model position.  Will need separate
 // model and view matrices to do this correctly.
+#ifndef USE_CLIP_PLANES
   vec4 vscene = model_matrix * vi;
+#endif
   vec3 eye_axis = normalize(cross((vscene.xyz - camera_origin_and_shift.xyz), camera_vertical.xyz));
   vec4 vsoffset = vec4(vscene.xyz - camera_origin_and_shift.w * eye_axis, 1);
   vec4 veye = view_matrix * vsoffset;

@@ -18,8 +18,6 @@ bond_geom: bond geometry utilities and info relevant to bond geometry
 TODO
 """
 
-from .atomic import Atom
-
 import numpy
 from numpy.linalg import norm
 normalize = lambda v: v/norm(v)

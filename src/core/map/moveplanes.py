@@ -64,7 +64,7 @@ class PlanesMouseMode(MouseMode):
             self.frac_istep = istep - int(istep)
             move_plane(v, self.axis, self.side, int(istep))
             # Make sure new plane is shown before another mouse event shows another plane.
-            self.session.ui.request_graphics_redraw()
+            self.session.ui.update_graphics_now()
 
     def wheel(self, event):
         self.mouse_down(event)
@@ -73,7 +73,7 @@ class PlanesMouseMode(MouseMode):
             d = event.wheel_value()
             move_plane(v, self.axis, self.side, d)
             # Make sure new plane is shown before another mouse event shows another plane.
-            self.session.ui.request_graphics_redraw()
+            self.session.ui.update_graphics_now()
 
     def mouse_up(self, event):
         self.map = None

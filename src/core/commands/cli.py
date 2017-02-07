@@ -1506,6 +1506,7 @@ class CmdDesc:
     :param keyword: keyword arguments sequence
     :param required_arguments: sequence of argument names that must be given
     :param non_keyword: sequence of optional arguments that cannot be keywords
+    :param hidden: sequence of keyword arguments that should be omitted from usage
     :param url: URL to help page
     :param synopsis: one line description
 
@@ -1525,18 +1526,19 @@ class CmdDesc:
     __slots__ = [
         '_required', '_optional', '_keyword', '_keyword_map',
         '_required_arguments', '_postconditions', '_function',
-        'url', 'synopsis'
+        '_hidden', 'url', 'synopsis'
     ]
 
     def __init__(self, required=(), optional=(), keyword=(),
                  postconditions=(), required_arguments=(),
-                 non_keyword=(), url=None, synopsis=None):
+                 non_keyword=(), hidden=(), url=None, synopsis=None):
         self._required = OrderedDict(required)
         self._optional = OrderedDict(optional)
         self._keyword = OrderedDict(keyword)
         optional_keywords = [i for i in self._optional.items()
                              if i[0] not in non_keyword]
         self._keyword.update(optional_keywords)
+        self._hidden = set(hidden)
         # keyword_map is what would user would type
         self._keyword_map = OrderedDict([(_user_kw(n), n) for n in self._keyword])
         self._postconditions = postconditions
@@ -2403,11 +2405,14 @@ def command_url(name, no_aliases=False):
     return cmd._ci.url if cmd._ci else None
 
 
-def usage(name, no_aliases=False, no_subcommands=False, expand_alias=True):
+def usage(name, no_aliases=False, show_subcommands=True, expand_alias=True,
+          show_hidden=False):
     """Return usage string for given command name
 
     :param name: the name of the command
     :param no_aliases: True if aliases should not be considered.
+    :param show_subcommands: True if subcommands should be shown.
+    :param show_hidden: True if hidden keywords should be shown.
     :returns: a usage string for the command
     """
     name = name.strip()
@@ -2428,12 +2433,16 @@ def usage(name, no_aliases=False, no_subcommands=False, expand_alias=True):
             arg_syntax.append('  %s: %s' % (arg_name, type))
         num_opt = 0
         for arg_name in ci._optional:
+            if not show_hidden and arg_name in ci._hidden:
+                continue
             type = ci._optional[arg_name].name
             syntax += ' [%s' % arg_name
             arg_syntax.append('  %s: %s' % (arg_name, type))
             num_opt += 1
         syntax += ']' * num_opt
         for arg_name in ci._keyword:
+            if not show_hidden and arg_name in ci._hidden:
+                continue
             arg_type = ci._keyword[arg_name]
             uarg_name = _user_kw(arg_name)
             if arg_type is NoArg:
@@ -2465,7 +2474,7 @@ def usage(name, no_aliases=False, no_subcommands=False, expand_alias=True):
                 print(e)
                 pass
 
-    if (not no_subcommands and cmd.word_info is not None and
+    if (show_subcommands and cmd.word_info is not None and
             cmd.word_info.has_subcommands()):
         name = cmd.command_name
         sub_cmds = registered_commands(multiword=True, _start=cmd.word_info)
@@ -2477,12 +2486,14 @@ def usage(name, no_aliases=False, no_subcommands=False, expand_alias=True):
     return syntax
 
 
-def html_usage(name, no_aliases=False, no_subcommands=False, expand_alias=True):
+def html_usage(name, no_aliases=False, show_subcommands=True, expand_alias=True,
+               show_hidden=False):
     """Return usage string in HTML for given command name
 
     :param name: the name of the command
     :param no_aliases: True if aliases should not be considered.
-    :param no_subcommands: True if subcommands should not be considered.
+    :param show_subcommands: True if subcommands should be shown.
+    :param show_hidden: True if hidden keywords should be shown.
     :returns: a HTML usage string for the command
     """
     cmd = Command(None)
@@ -2517,6 +2528,8 @@ def html_usage(name, no_aliases=False, no_subcommands=False, expand_alias=True):
             arg_syntax.append('<i>%s</i>: %s' % (name, escape(type)))
         num_opt = 0
         for arg_name in ci._optional:
+            if not show_hidden and arg_name in ci._hidden:
+                continue
             num_opt += 1
             arg_type = ci._optional[arg_name]
             arg_name = _user_kw(arg_name)
@@ -2529,6 +2542,8 @@ def html_usage(name, no_aliases=False, no_subcommands=False, expand_alias=True):
             arg_syntax.append('<i>%s</i>: %s' % (name, escape(type)))
         syntax += ']' * num_opt
         for arg_name in ci._keyword:
+            if not show_hidden and arg_name in ci._hidden:
+                continue
             arg_type = ci._keyword[arg_name]
             uarg_name = _user_kw(arg_name)
             if arg_type is NoArg:
@@ -2559,7 +2574,7 @@ def html_usage(name, no_aliases=False, no_subcommands=False, expand_alias=True):
             except:
                 pass
 
-    if (not no_subcommands and cmd.word_info is not None and
+    if (show_subcommands and cmd.word_info is not None and
             cmd.word_info.has_subcommands()):
         name = cmd.command_name
         if syntax:
@@ -2726,6 +2741,8 @@ def list_aliases(all=False):
     """
     def find_aliases(partial_name, parent_info):
         for word, word_info in parent_info.subcommands.items():
+            if word_info.is_deferred():
+                word_info.lazy_register()
             if partial_name:
                 yield from find_aliases('%s %s' % (partial_name, word), word_info)
             else:

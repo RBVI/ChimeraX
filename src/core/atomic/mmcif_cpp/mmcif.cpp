@@ -249,6 +249,7 @@ struct ExtractMolecule: public readcif::CIFFile
     int first_model_num;
     string entry_id;
     tmpl::Molecule* my_templates;
+    bool missing_poly_seq;
 };
 
 const char* ExtractMolecule::builtin_categories[] = {
@@ -264,7 +265,8 @@ std::ostream& operator<<(std::ostream& out, const ExtractMolecule::AtomKey& k) {
 }
 
 ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_categories):
-    _logger(logger), first_model_num(INT_MAX), my_templates(nullptr)
+    _logger(logger), first_model_num(INT_MAX), my_templates(nullptr),
+    missing_poly_seq(false)
 {
     register_category("audit_conform",
         [this] () {
@@ -556,6 +558,8 @@ ExtractMolecule::finished_parse()
             mol->input_seq_source = "mmCIF entity_poly_seq table";
     }
     find_and_add_metal_coordination_bonds(mol);
+    if (missing_poly_seq)
+        find_missing_structure_bonds(mol);
 
     // export mapping of label chain ids to entity ids.
     StringVector chain_mapping;
@@ -821,7 +825,7 @@ ExtractMolecule::parse_atom_site()
     double b_factor = DBL_MAX;    // B_iso_or_equiv
     int model_num = 0;            // pdbx_PDB_model_num
 
-    bool missing_poly_seq = poly_seq.empty();
+    missing_poly_seq = poly_seq.empty();
 
     try {
         pv.emplace_back(get_column("id"), false,

@@ -14,36 +14,38 @@
 # -----------------------------------------------------------------------------
 # Command to split molecules so that each chain is in a separate molecule.
 #
-def split(session, molecules = None, chains = None, ligands = False, connected = False, atoms = None):
+def split(session, structures = None, chains = None, ligands = False, connected = False, atoms = None):
     '''
-    Split an atomic structure into separate structures, for example one for each chain.
+    Partition atoms into separate structures. If only the first argument is given then those
+    structures are split into a separate structure for each chain.  If chains, ligands, connected,
+    or atoms keywords are given then additional partitioning into smaller subsets is performed.
 
     Parameters
     ----------
-    molecules : Structures
-      Structures to split.
+    Structures : Structures or None
+      Structures to split.  If no structures specified then all are used.
     chains : bool
-      Split each chain into a separate atomic structure.
+      Split each chain into into a separate atomic structure.
     ligands : bool
-      Split each ligand into a separate atomic structure.
+      Split each connected ligand into a separate atomic structure.
     connected : bool
-      Split each connected set of atoms into a separate atomic structure.
-    atoms : Atoms
-      Split the specified atoms into a separate atomic structure.
+      Split each connected subset of atoms into a separate atomic structure.
+    atoms : list of Atoms
+      Split specified atoms into separate atomic structures.  This option
+      can be specified multiple times.
     '''
-    if molecules is None:
+    if structures is None:
         from .. import atomic
-        molecules = atomic.all_atomic_structures(session)
-
+        structures = atomic.all_atomic_structures(session)
+        
     if chains is None and not ligands and not connected and atoms is None:
         chains = True
 
     slist = []
     olist = []
     log = session.logger
-    models = session.models
     from ..models import Model
-    for m in molecules:
+    for m in structures:
         clist = split_molecule(m, chains, ligands, connected, atoms)
         if clist:
             parent = Model(m.name, session)
@@ -60,6 +62,7 @@ def split(session, molecules = None, chains = None, ligands = False, connected =
         log.status(msg)
         log.info(msg)
 
+    models = session.models
     models.close(slist)
     models.add(olist)
     
@@ -80,7 +83,7 @@ def split_molecule(m, chains, ligands, connected, atoms):
     if len(pieces) == 1:
         return []
     
-    mlist = [molecule_from_atoms(m, atoms, name) for name, atoms in pieces]
+    mlist = [molecule_from_atoms(m, patoms, name) for name, patoms in pieces]
     return mlist
     
 # -----------------------------------------------------------------------------
@@ -100,39 +103,21 @@ def split_pieces(pieces, split_function):
 #
 def split_by_chain(atoms):
 
-    ca = list(atoms_by_chain(atoms).items())
+    ca = [(cid, atoms) for m, cid, atoms in atoms.by_chain]
     ca.sort()
     return ca
     
 # -----------------------------------------------------------------------------
 #
-def atoms_by_chain(atoms):
-
-    ct = {}
-    for a in atoms:
-        cid = a.residue.chain_id
-        if cid in ct:
-            ct[cid].append(a)
-        else:
-            ct[cid] = [a]
-    return ct
-    
-# -----------------------------------------------------------------------------
-#
 def split_by_ligand(atoms):
 
-    latoms = []
-    oatoms = []
-# TODO: identify ligands
-    # for a in atoms:
-    #     if a.surfaceCategory == 'ligand':
-    #         latoms.append(a)
-    #     else:
-    #         oatoms.append(a)
-    pieces = [('', oatoms)] if oatoms else []
-    if latoms:
+    ligmask = (atoms.structure_categories == 'ligand')
+    latoms = atoms.filter(ligmask)
+    oatoms = atoms.filter(~ligmask)
+    pieces = [('', oatoms)] if len(oatoms) else []
+    if len(latoms) > 0:
         for n,a in split_pieces([('', latoms)], split_connected):
-            pieces.append((a[0].residue.type, a))
+            pieces.append((a[0].residue.name, a))
     return pieces
     
 # -----------------------------------------------------------------------------
@@ -153,8 +138,9 @@ def split_connected(atoms):
     cats = list(set(reached.values()))
     cats.sort(key = lambda cat: len(cat))
     cats.reverse()                              # Number largest to smallest
-    pieces = ([('', cats)] if len(cats) == 1
-              else [('%d' % (i+1,), cat) for i,cat in enumerate(cats)])
+    from ..atomic import Atoms
+    pieces = ([('', Atoms(cats[0]))] if len(cats) == 1
+              else [('%d' % (i+1,), Atoms(cat)) for i,cat in enumerate(cats)])
     return pieces
     
 # -----------------------------------------------------------------------------
@@ -162,17 +148,14 @@ def split_connected(atoms):
 def split_atoms(atoms, asubsets):
 
     # Eliminate subset atoms not in atoms
-    aset = set(atoms)
-    asubsets = [tuple(a for a in asub if a in aset) for asub in asubsets]
+    asubsets = [asub.intersect(atoms) for asub in asubsets]
 
     # Remove empty subsets
     asubsets = [asub for asub in asubsets if len(asub) > 0]
 
     # Find atoms not in any subset
-    for asub in asubsets:
-        for a in asub:
-            aset.discard(a)
-    a0 = [a for a in atoms if a in aset]
+    from ..atomic import concatenate
+    a0 = atoms.subtract(concatenate(asubsets, Atoms))
 
     # Return groups of atoms
     if len(a0) == len(atoms):
@@ -180,7 +163,7 @@ def split_atoms(atoms, asubsets):
     elif len(a0) == 0 and len(asubsets) == 1:
         pieces = [('',atoms)]
     else:
-        alists = (asubsets + [a0]) if a0 else asubsets
+        alists = (asubsets + [a0]) if len(a0) > 0 else asubsets
         pieces = [(str(i+1),a) for i,a in enumerate(alists)]
 
     return pieces
@@ -293,15 +276,14 @@ def atom_bonds(atoms):
 #
 def register_command(session):
 
-    from . import cli, atomspec, color
-    desc = cli.CmdDesc(
-        optional = [('molecules', cli.StructuresArg)],
-        keyword = [('chains', cli.NoArg),
-                   ('ligands', cli.NoArg),
-                   ('connected', cli.NoArg),
-                   ('atoms', cli.AtomsArg)],
+    from .cli import CmdDesc, register, StructuresArg, NoArg, AtomsArg, RepeatOf
+    desc = CmdDesc(
+        optional = [('structures', StructuresArg)],
+        keyword = [('chains', NoArg),
+                   ('ligands', NoArg),
+                   ('connected', NoArg),
+                   ('atoms', RepeatOf(AtomsArg))],
         synopsis = 'split molecule into multiple molecules'
         )
-    # TODO: Allow repeating atoms keyword.
 
-    cli.register('split', desc, split)
+    register('split', desc, split)

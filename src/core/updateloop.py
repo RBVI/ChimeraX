@@ -64,3 +64,6 @@ class UpdateLoop:
 
     def unblock_redraw(self):
         self._block_redraw_count -= 1
+
+    def blocked(self):
+        return self._block_redraw_count > 0

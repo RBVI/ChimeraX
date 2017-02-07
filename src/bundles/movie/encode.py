@@ -28,7 +28,7 @@ class ffmpeg_encoder:
                  status = None,
                  verbose = False,
                  session = None,
-                 ffmpeg_cmd = 'ffmpeg'):
+                 ffmpeg_cmd = None):
 
         self.session = session
         self.image_directory = image_directory
@@ -38,6 +38,16 @@ class ffmpeg_encoder:
         self.verbose = verbose
         import os.path
         self.output_file = os.path.expanduser(output_file)
+        if ffmpeg_cmd is None:
+            import sys
+            if sys.platform == 'win32':
+                ffmpeg_cmd = 'ffmpeg.exe'
+            else:
+                ffmpeg_cmd = 'ffmpeg'
+        import os
+        if not os.path.isabs(ffmpeg_cmd):
+            from chimerax import app_bin_dir
+            ffmpeg_cmd = os.path.join(app_bin_dir, ffmpeg_cmd)
         self.ffmpeg_cmd = ffmpeg_cmd
 
         self.arg_list = self._buildArgList(output_file, output_format, output_size, video_codec, pixel_format,
@@ -54,7 +64,7 @@ class ffmpeg_encoder:
     def _buildArgList(self, output_file, output_format, output_size, video_codec, pixel_format,
                       size_restriction, framerate, bit_rate, quality):
 
-        arg_list = []
+        arg_list = [self.ffmpeg_cmd]
 
         # Frame rate command-line option must appear before input files
         # command-line option because the rate describes the input sequence.
@@ -69,7 +79,7 @@ class ffmpeg_encoder:
         arg_list.append (os.path.join(self.image_directory, self.image_file_pattern))
 
         r = size_restriction
-        if not r is None:
+        if r is not None:
             arg_list.append('-vf')
             wd,hd = r
             arg_list.append('crop=floor(in_w/%d)*%d:floor(in_h/%d)*%d:0:0' % (wd,wd,hd,hd))
@@ -102,15 +112,11 @@ class ffmpeg_encoder:
         from os.path import dirname, isdir, join
         d = dirname(path)
         if d == '':
-            path = os.path.join(os.getcwd(), path)
+            path = join(os.getcwd(), path)
         elif not isdir(d):
             from .movie import MovieError
             raise MovieError('Output directory does not exist: %s' % d)
         arg_list.append(path)
-
-        from chimerax import app_bin_dir
-        ffmpeg_exe = join(app_bin_dir, self.ffmpeg_cmd)
-        arg_list.insert(0, ffmpeg_exe)
 
         return arg_list
 

@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def usage(session, command_name=None):
+def usage(session, command_name=None, option=None):
     '''Display command usage.
 
     Parameters
@@ -25,6 +25,7 @@ def usage(session, command_name=None):
     from . import cli
     status = session.logger.status
     info = session.logger.info
+    show_hidden = option == 'show_hidden'
     if command_name is None:
         info("Use 'usage <command>' for a command synopsis.")
         info("Use 'help <command>' to learn more about a command.")
@@ -41,13 +42,15 @@ def usage(session, command_name=None):
         if not session.ui.is_gui:
             for name in cmds:
                 try:
-                    info(cli.usage(name, no_subcommands=True, expand_alias=False))
+                    info(cli.usage(name, show_subcommands=False, expand_alias=False,
+                                   show_hidden=show_hidden))
                 except:
                     info('%s -- no documentation' % name)
             return
         for name in cmds:
             try:
-                info(cli.html_usage(name, no_subcommands=True, expand_alias=False), is_html=True)
+                info(cli.html_usage(name, show_subcommands=False, expand_alias=False,
+                                    show_hidden=show_hidden), is_html=True)
             except:
                 from html import escape
                 info('<b>%s</b> &mdash; no documentation' % escape(name),
@@ -55,19 +58,26 @@ def usage(session, command_name=None):
         return
 
     try:
-        usage = cli.usage(command_name)
+        usage = cli.usage(command_name, show_hidden=show_hidden)
     except ValueError as e:
         from ..errors import UserError
         raise UserError(str(e))
     if session.ui.is_gui:
-        info(cli.html_usage(command_name), is_html=True)
+        info(cli.html_usage(command_name, show_hidden=show_hidden), is_html=True)
     else:
         info(usage)
 
 
 def register_command(session):
     from . import cli
-    desc = cli.CmdDesc(optional=[('command_name', cli.RestOfLine)],
-                       non_keyword=['command_name'],
-                       synopsis='show command usage')
+    desc = cli.CmdDesc(
+        optional=[
+            ('option',
+                    cli.Or(cli.EnumOf(['show_hidden'], abbreviations=False),
+                           cli.EmptyArg)),
+            ('command_name', cli.RestOfLine)
+        ],
+       non_keyword=['command_name', 'option'],
+       hidden=['option'],
+       synopsis='show command usage')
     cli.register('usage', desc, usage)

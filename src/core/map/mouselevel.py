@@ -28,7 +28,7 @@ class ContourLevelMouseMode(MouseMode):
             m.show()
 
         # Make sure new level is shown before another mouse event causes another level change.
-        self.session.ui.request_graphics_redraw()
+        self.session.ui.update_graphics_now()
     
     def wheel(self, event):
         d = event.wheel_value()
@@ -38,7 +38,7 @@ class ContourLevelMouseMode(MouseMode):
             m.show()
 
         # Make sure new level is shown before another mouse event causes another level change.
-        self.session.ui.request_graphics_redraw()
+        self.session.ui.update_graphics_now()
 
 def mouse_maps(models):    
     mall = models.list()
