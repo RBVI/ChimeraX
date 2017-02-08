@@ -63,6 +63,6 @@ setup(
         "Topic :: Scientific/Engineering :: Bio-Informatics",
         "ChimeraX :: Bundle :: General :: 1,1 :: PKG_NAME :: chimerax.remote-control :: ",
         "ChimeraX :: Tool :: Remote Control :: General :: Send commands to ChimeraX from other apps",
-        "ChimeraX :: Command :: remotecontrol :: General :: synopsis",
+        "ChimeraX :: Command :: remotecontrol xmlrpc :: General :: synopsis",
     ],
 )

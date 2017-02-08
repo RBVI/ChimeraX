@@ -13,12 +13,12 @@
 
 from chimerax.core.toolshed import BundleAPI
 
-class _MyAPI(BundleAPI):
+class _VRAPI(BundleAPI):
 
     @staticmethod
     def register_command(command_name):
         # 'register_command' is lazily called when the command is referenced
-        from . import vive
-        vive.register_vive_command()
+        from . import vr
+        vr.register_vr_command()
 
-bundle_api = _MyAPI()
+bundle_api = _VRAPI()

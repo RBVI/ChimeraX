@@ -38,11 +38,10 @@ def save_image(session, filename, format=None, width=None, height=None,
     path = expanduser(filename)         # Tilde expansion
     dir = dirname(path)
     if dir and not exists(dir):
-        from ..errors import UserError
+        from .errors import UserError
         raise UserError('Directory "%s" does not exist' % dir)
 
     if pixel_size is not None:
-        from ..errors import UserError
         if width is not None or height is not None:
             from .errors import UserError
             raise UserError('Cannot specify width or height if pixel_size is given')

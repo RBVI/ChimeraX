@@ -1,0 +1,67 @@
+# vim: set expandtab ts=4 sw=4:
+
+# import distutils.core
+# distutils.core.DEBUG = True
+# TODO: remove distlib monkey patch when the wheel package
+# implements PEP 426's pydist.json
+from distlib import metadata
+metadata.METADATA_FILENAME = "metadata.json"
+from setuptools import setup
+import os
+import sys
+
+pkg_dir = "PKG_DIR"  # DO NOT CHANGE
+shlib_dir = "SHLIB_DIR"  # DO NOT CHANGE
+data_dir = "DATA_DIR"  # DO NOT CHANGE
+if sys.platform.startswith('win'):
+    # shared libraries are relative to bindir
+    rel_inst_shlib_dir = ""  # shlib_dir == bindir
+else:
+    # shared libraries are relative to rootdir
+    rel_inst_shlib_dir = os.path.basename(shlib_dir)
+# data files are relative to rootdir
+rel_inst_data_dir = os.path.basename(data_dir)
+
+description = """
+Add bonds between atoms of a molecule to strengthen it for 3-d printing.
+"""
+
+setup(
+    name="BUNDLE_NAME",
+    version="BUNDLE_VERSION",  # PEP 440, should match Development Status below
+    description="Morph atomic structures",  # one line synopsis
+    long_description=description,  # see above
+    author="UCSF RBVI",
+    author_email="chimerax@cgl.ucsf.edu",
+    url="https://www.rbvi.ucsf.edu/chimerax/",
+    python_requires=">= 3.5",
+    package_dir={
+        "PKG_NAME": pkg_dir,    # directory package's source files are in
+    },
+    packages=[
+        "PKG_NAME",
+    ],
+    install_requires=[
+        "ChimeraX-Core >= 0.1",
+    ],
+    classifiers=[
+        # From https://pypi.python.org/pypi?%3Aaction=list_classifiers
+        # and our own ChimeraX classifiers.
+        "Development Status :: 2 - Pre-Alpha",  # TODO: update as appropriate
+        "Environment :: MacOS X :: Aqua",
+        "Environment :: Win32 (MS Windows)",
+        "Environment :: X11 Applications",
+        "Framework :: ChimeraX",
+        "Intended Audience :: Science/Research",
+        "License :: Free for non-commercial use",
+        "Operating System :: MacOS :: MacOS X",
+        "Operating System :: Microsoft :: Windows :: Windows 10",
+        "Operating System :: POSIX :: Linux",
+        "Programming Language :: Python :: 3",
+        "Topic :: Scientific/Engineering :: Visualization",
+        "Topic :: Scientific/Engineering :: Chemistry",
+        "Topic :: Scientific/Engineering :: Bio-Informatics",
+        "ChimeraX :: Bundle :: Molecular structure :: 1,1 :: PKG_NAME :: chimerax.morph :: ",
+        "ChimeraX :: Command :: morph :: Molecular structure :: morph atomic structures",
+    ],
+)

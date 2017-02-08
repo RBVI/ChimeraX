@@ -13,7 +13,7 @@
 
 def sym(session, molecules,
         symmetry = None, center = None, axis = None, coordinate_system = None, assembly = None,
-        copies = False, clear = False, surface_only = False, resolution = None):
+        copies = False, surface_only = False, resolution = None, grid_spacing = None):
     '''
     Show molecular assemblies of molecular models defined in mmCIF files.
     These can be subassemblies or symmetrical copies with individual chains 
@@ -39,14 +39,14 @@ def sym(session, molecules,
       then clones of the original molecule.  Copies are needed to give different
       colors or styles to each copy.  When copies are made a new model with
       submodels are created, one submode for each copy.
-    clear : bool
-      Revert to displaying no assembly, resets the use of any symmetry matrices.
     surface_only : bool
       Instead of showing instances of the molecule, show instances
       of surfaces of each chain.  The chain surfaces are computed if
       they do not already exist.
     resolution : float
       Resolution for computing surfaces when surface_only is true.
+    grid_spacing : float
+      Grid spacing for computing surfaces when surface_only is true.
     '''
     if len(molecules) == 0:
         from ..errors import UserError
@@ -56,20 +56,11 @@ def sym(session, molecules,
         if assembly is not None:
             from ..errors import UserError
             raise UserError('Cannot specify explicit symmetry and the assembly option.')
-        if clear:
-            from ..errors import UserError
-            raise UserError('Cannot specify explicit symmetry and the clear option.')
         transforms = symmetry.positions(center, axis, coordinate_system, molecules[0])
-        show_symmetry(molecules, transforms, copies, surface_only, resolution, session)
+        show_symmetry(molecules, transforms, copies, surface_only, resolution, grid_spacing, session)
         return
             
     for m in molecules:
-        if clear:
-            from ..geometry import Places
-            m.positions = Places([m.position])	# Keep only first position.
-            for s in m.surfaces():
-                s.positions = Places([s.position])
-            continue
         assem = pdb_assemblies(m)
         if assembly is None:
             ainfo = '\n'.join(' %s = %s (%s)' % (a.id,a.description,a.copy_description(m))
@@ -86,30 +77,52 @@ def sym(session, molecules,
                                 % (assembly, ', '.join(a.id for a in assem)))
             a = amap[assembly]
             if copies:
-                a.show_copies(m, surface_only, resolution, session)
+                a.show_copies(m, surface_only, resolution, grid_spacing, session)
             elif surface_only:
-               a.show_surfaces(m, resolution, session)
+               a.show_surfaces(m, resolution, grid_spacing, session)
             else:
                 a.show(m, session)
 
+def sym_clear(session, molecules = None):
+    '''
+    Remove copies of molecules that were made with sym command.
+
+    Parameters
+    ----------
+    molecules : list of AtomicStructure
+      List of molecules to for which to remove copies.
+    '''
+    if molecules is None:
+        from ..atomic import all_structures
+        molecules = all_structures(session)
+    for m in molecules:
+        from ..geometry import Places
+        m.positions = Places([m.position])	# Keep only first position.
+        for s in m.surfaces():
+            s.positions = Places([s.position])
+
 def register_command(session):
-    from . import CmdDesc, register, AtomicStructuresArg, StringArg, NoArg, FloatArg
-    from . import CenterArg, AxisArg, SymmetryArg, CoordSysArg
-    _sym_desc = CmdDesc(
+    from . import CmdDesc, register, AtomicStructuresArg, StringArg, FloatArg
+    from . import CenterArg, AxisArg, SymmetryArg, CoordSysArg, BoolArg
+    desc = CmdDesc(
         required = [('molecules', AtomicStructuresArg)],
         optional = [('symmetry', SymmetryArg)],
         keyword = [('center', CenterArg),
                    ('axis', AxisArg),
                    ('coordinate_system', CoordSysArg),
                    ('assembly', StringArg),
-                   ('copies', NoArg),
-                   ('clear', NoArg),
-                   ('surface_only', NoArg),
-                   ('resolution', FloatArg)],
+                   ('copies', BoolArg),
+                   ('surface_only', BoolArg),
+                   ('resolution', FloatArg),
+                   ('grid_spacing', FloatArg)],
         synopsis = 'create model copies')
-    register('sym', _sym_desc, sym)
+    register('sym', desc, sym)
+    desc = CmdDesc(
+        optional = [('molecules', AtomicStructuresArg)],
+        synopsis = 'Remove model copies')
+    register('sym clear', desc, sym_clear)
 
-def show_symmetry(molecules, transforms, copies, surface_only, resolution, session):
+def show_symmetry(molecules, transforms, copies, surface_only, resolution, grid_spacing, session):
     if copies:
         from ..models import Model
         g = Model('%d copies' % len(transforms), session)
@@ -137,7 +150,7 @@ def show_symmetry(molecules, transforms, copies, surface_only, resolution, sessi
             symops = transforms if spos.is_identity() else transforms.transform_coordinates(spos)
             if surface_only:
                 from .surface import surface
-                surfs = surface(session, m.atoms, resolution = resolution)
+                surfs = surface(session, m.atoms, grid_spacing = grid_spacing, resolution = resolution)
                 for s in surfs:
                     s.positions =  s.positions * symops
             else:
@@ -241,17 +254,17 @@ class Assembly:
                 if not catoms.displays.any() and not catoms.residues.ribbon_displays.any():
                     catoms.displays = True
 
-    def show_surfaces(self, mol, res, session):
+    def show_surfaces(self, mol, res, grid_spacing, session):
         included_atoms, excluded_atoms = self._partition_atoms(mol.atoms, self._chain_ids())
         from .surface import surface
-        surfs = surface(session, included_atoms, resolution = res)
+        surfs = surface(session, included_atoms, grid_spacing = grid_spacing, resolution = res)
         if len(excluded_atoms) > 0:
             surface(session, excluded_atoms, hide = True)
         for s in surfs:
             mmcif_cid = mmcif_chain_ids(s.atoms[:1], self.chain_map)[0]
             s.positions = self._chain_operators(mmcif_cid)
 
-    def show_copies(self, mol, surface_only, resolution, session):
+    def show_copies(self, mol, surface_only, resolution, grid_spacing, session):
         mlist = []
         for chain_ids, op_expr, ops in self.chain_ops:
             for pos in ops:
@@ -269,7 +282,7 @@ class Assembly:
         if surface_only:
             from .surface import surface
             for m in mlist:
-                surface(session, m.atoms, resolution = resolution)
+                surface(session, m.atoms, grid_spacing = grid_spacing, resolution = resolution)
 
         mol.display = False
 

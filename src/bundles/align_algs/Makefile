@@ -1,7 +1,7 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-SUBDIRS = NeedlemanWunsch _sw
+SUBDIRS = NeedlemanWunsch _sw support_cpp _nw
 
 include $(TOP)/mk/subdir.make
 
@@ -31,7 +31,7 @@ install: dir all
 	fi
 
 app-install: wheel
-	$(APP_PIP) install -U $(WHEEL)
+	$(APP_PIP) install -U --upgrade-strategy only-if-needed $(WHEEL)
 	$(RSYNC) $(WHEEL) $(wheelhouse) && cd $(wheelhouse) && make update
 
 wheel: setup.py
@@ -61,3 +61,6 @@ lint:
 
 clean:
 	rm -rf __pycache__ build dist $(WHL_BNDL_NAME).egg-info setup.py
+
+_sw.install: support_cpp.install
+_nw.install: support_cpp.install

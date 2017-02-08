@@ -99,3 +99,59 @@ def planes_as_4_vectors(triangles):
         p[i,:3] = n
         p[i,3] = -inner_product(n,a)
     return p
+
+def angle(p0, p1, p2 = None):
+    v0,v1 = (p0,p1) if p2 is None else (p0-p1,p2-p1)
+    acc = inner_product(v0, v1)
+    d0 = norm(v0)
+    d1 = norm(v1)
+    if d0 <= 0 or d1 <= 0:
+        return 0
+    acc /= (d0 * d1);
+    if acc > 1:
+        acc = 1
+    elif acc < -1:
+        acc = -1
+    from math import acos, degrees
+    return degrees(acos(acc))
+
+def dihedral(p0, p1, p2, p3):
+    v10 = p1 - p0
+    v12 = p1 - p2
+    v23 = p2 - p3
+    t = cross_product(v10, v12)
+    u = cross_product(v23, v12)
+    v = cross_product(u, t);
+    w = inner_product(v, v12)
+    acc = angle(u, t)
+    if w < 0:
+        acc = -acc
+    return acc
+
+def dihedral_point(n1, n2, n3, dist, angle, dihed):
+    '''Find dihedral point n0 with specified n0 to n1 distance,
+    n0,n1,n2 angle, and n0,n1,n2,n3 dihedral (angles in degrees).'''
+
+    v12 = n2 - n1
+    v13 = n3 - n1
+    v12 = normalize_vector(v12)
+    x = normalize_vector(cross_product(v13, v12))
+    y = normalize_vector(cross_product(v12, x))
+
+    from numpy import empty, float64
+    mat = empty((3,4), float64)
+    for i in range(3):
+        mat[i,0] = x[i]
+        mat[i,1] = y[i]
+        mat[i,2] = v12[i]
+        mat[i,3] = n1[i]
+
+    from . import Place
+    xform = Place(mat)
+
+    from math import radians, sin, cos
+    radAngle = radians(angle)
+    tmp = dist * sin(radAngle)
+    radDihed = radians(dihed)
+    pt = (tmp*sin(radDihed), tmp*cos(radDihed), dist*cos(radAngle))
+    return xform * pt

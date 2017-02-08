@@ -28,16 +28,16 @@ def open_pdb(session, filename, name, *args, **kw):
         input = open(filename, 'rb')
         path = filename
 
-    explode = not kw.get('trajectory', False)
+    explode = not kw.get('coordset', False)
     from . import pdbio
     pointers = pdbio.read_pdb_file(input, log=session.logger, explode=explode)
     if input != filename:
         input.close()
 
-    smid = kw.get('smart_initial_display', True)
+    smid = kw.get('auto_style', True)
     
     from .structure import AtomicStructure
-    models = [AtomicStructure(session, name = name, c_pointer = p, smart_initial_display = smid) for p in pointers]
+    models = [AtomicStructure(session, name = name, c_pointer = p, auto_style = smid) for p in pointers]
 
     if path:
         for m in models:
@@ -48,27 +48,48 @@ def open_pdb(session, filename, name, *args, **kw):
                        sum(m.num_bonds for m in models)))
 
 
-def fetch_pdb(session, pdb_id, ignore_cache=False, **kw):
+_pdb_sources = {
+    "rcsb": "http://www.pdb.org/pdb/files/pdb%s.ent",
+    "pdbe": "http://www.ebi.ac.uk/pdbe/entry-files/download/pdb%s.ent",
+    # "pdbj": "https://pdbj.org/rest/downloadPDBfile?format=pdb&id=%s",
+}
+
+
+def fetch_pdb(session, pdb_id, fetch_source="rcsb", ignore_cache=False, **kw):
     if len(pdb_id) != 4:
         from ..errors import UserError
         raise UserError('PDB identifiers are 4 characters long, got "%s"' % pdb_id)
     import os
+    pdb_id = pdb_id.lower()
     # check on local system -- TODO: configure location
-    lower = pdb_id.lower()
-    subdir = lower[1:3]
-    sys_filename = "/databases/mol/pdb/%s/pdb%s.ent" % (subdir, lower)
-    if os.path.exists(sys_filename):
-        return sys_filename, pdb_id
-
-    pdb_name = "%s.pdb" % pdb_id.upper()
-    url = "http://www.pdb.org/pdb/files/%s" % pdb_name
-    from ..fetch import fetch_file
-    filename = fetch_file(session, url, 'PDB %s' % pdb_id, pdb_name, 'PDB',
-                          ignore_cache=ignore_cache)
+    subdir = pdb_id[1:3]
+    filename = "/databases/mol/pdb/%s/pdb%s.ent" % (subdir, pdb_id)
+    if os.path.exists(filename):
+        session.logger.info("Fetching PDB %s from system cache: %s" % (pdb_id, filename))
+    else:
+        base_url = _pdb_sources.get(fetch_source, None)
+        if base_url is None:
+            raise UserError('unrecognized PDB source "%s"' % fetch_source)
+        url = base_url % pdb_id
+        pdb_name = "%s.pdb" % pdb_id
+        session.logger.status("Fetching PDB %s from %s" % (pdb_id, url))
+        from ..fetch import fetch_file
+        filename = fetch_file(session, url, 'PDB %s' % pdb_id, pdb_name, 'PDB',
+                              ignore_cache=ignore_cache)
 
     from .. import io
-    models, status = io.open_data(session, filename, format = 'pdb', name = pdb_id, **kw)
+    models, status = io.open_data(session, filename, format='pdb', name=pdb_id, **kw)
     return models, status
+
+
+
+def fetch_pdb_pdbe(session, pdb_id, **kw):
+    return fetch_pdb(session, pdb_id, fetch_source="pdbe", **kw)
+
+
+def fetch_pdb_pdbj(session, pdb_id, **kw):
+    return fetch_pdb(session, pdb_id, fetch_source="pdbj", **kw)
+
 
 def register_pdb_format():
     from .. import io
@@ -79,9 +100,14 @@ def register_pdb_format():
         reference="http://wwpdb.org/docs.html#format",
         open_func=open_pdb)
 
+
 def register_pdb_fetch():
     from .. import fetch
     fetch.register_fetch('pdb', fetch_pdb, 'pdb', prefixes = [])
+    fetch.register_fetch('pdbe', fetch_pdb_pdbe, 'pdb', prefixes = [])
+    # PDBj is unreliable for PDB format, mmCIF seemed okay - CH 2dec16
+    # fetch.register_fetch('pdbj', fetch_pdb_pdbj, 'pdb', prefixes = [])
+
 
 def process_chem_name(name, use_greek=True, probable_abbrs=False):
     if name.isupper() and (" " in name or len(name) > 5):

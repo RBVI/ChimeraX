@@ -13,7 +13,7 @@
 # Command to perform volume operations that create a new volume, such as
 # erasing an octant, Gaussian filtering, adding maps, ....
 #
-#   Syntax: vop <operation> <volumeSpec>
+#   Syntax: volume <operation> <volumeSpec>
 #               [radius <r>]
 #               [center <x,y,z>]
 #               [i_center <i,j,k>]
@@ -43,9 +43,9 @@
 #
 from ...errors import UserError as CommandError
 
-def register_vop_command():
+def register_volume_filtering_subcommands():
 
-    from ...commands import CmdDesc, register, BoolArg, NoArg, StringArg, EnumOf, IntArg, Int3Arg
+    from ...commands import CmdDesc, register, BoolArg, StringArg, EnumOf, IntArg, Int3Arg
     from ...commands import FloatArg, Float3Arg, FloatsArg, ModelIdArg, AtomsArg
     from ...commands import AxisArg, CenterArg, CoordSysArg
     from ..mapargs import MapsArg, MapStepArg, MapRegionArg, Int1or3Arg, Float1or3Arg, ValueTypeArg
@@ -69,12 +69,12 @@ def register_vop_command():
         ('scale_factors', FloatsArg),
     ]
     add_desc = CmdDesc(required = varg, keyword = add_kw)
-    register('vop add', add_desc, vop_add)
+    register('volume add', add_desc, volume_add)
 
     bin_desc = CmdDesc(required = varg,
                        keyword = [('bin_size', MapStepArg)] + ssm_kw
     )
-    register('vop bin', bin_desc, vop_bin)
+    register('volume bin', bin_desc, volume_bin)
 
     boxes_desc = CmdDesc(required = varg,
                          keyword = [('centers', AtomsArg),
@@ -82,7 +82,7 @@ def register_vop_command():
                                     ('isize', IntArg),
                                     ('use_marker_size', BoolArg)] + ssm_kw,
                          required_arguments = ['centers'])
-    register('vop boxes', boxes_desc, vop_boxes)
+    register('volume boxes', boxes_desc, volume_boxes)
 
     cover_desc = CmdDesc(required = varg,
         keyword = [('atom_box', AtomsArg),
@@ -95,51 +95,51 @@ def register_vop_command():
                    ('step', MapStepArg),
                    ('model_id', ModelIdArg)]
     )
-    register('vop cover', cover_desc, vop_cover)
+    register('volume cover', cover_desc, volume_cover)
 
     falloff_desc = CmdDesc(required = varg,
         keyword = [('iterations', IntArg), ('in_place', BoolArg)] + ssm_kw
     )
-    register('vop falloff', falloff_desc, vop_falloff)
+    register('volume falloff', falloff_desc, volume_falloff)
 
     flatten_desc = CmdDesc(required = varg,
                            keyword = [('method', EnumOf(('multiplyLinear', 'divideLinear'))),
                                       ('fitregion', MapRegionArg)] + ssm_kw)
-    register('vop flatten', flatten_desc, vop_flatten)
+    register('volume flatten', flatten_desc, volume_flatten)
 
     flip_desc = CmdDesc(required = varg,
                         keyword = [('axis', EnumOf(('x','y','z','xy', 'yz','xyz'))),
                                    ('in_place', BoolArg)] + ssm_kw)
-    register('vop flip', flip_desc, vop_flip)
+    register('volume flip', flip_desc, volume_flip)
 
     fourier_desc = CmdDesc(required = varg,
                            keyword = [('phase', BoolArg)] + ssm_kw)
-    register('vop fourier', fourier_desc, vop_fourier)
+    register('volume fourier', fourier_desc, volume_fourier)
 
     gaussian_desc = CmdDesc(required = varg,
-        keyword = [('s_dev', Float1or3Arg), ('value_type', ValueTypeArg), ('invert', NoArg)] + ssm_kw
+        keyword = [('s_dev', Float1or3Arg), ('value_type', ValueTypeArg), ('invert', BoolArg)] + ssm_kw
     )
-    register('vop gaussian', gaussian_desc, vop_gaussian)
+    register('volume gaussian', gaussian_desc, volume_gaussian)
 
     laplacian_desc = CmdDesc(required = varg, keyword = ssm_kw)
-    register('vop laplacian', laplacian_desc, vop_laplacian)
+    register('volume laplacian', laplacian_desc, volume_laplacian)
 
     localcorr_desc = CmdDesc(required = varg,
                              keyword = [('window_size', IntArg),
-                                        ('subtract_mean', NoArg),
+                                        ('subtract_mean', BoolArg),
                                         ('model_id', ModelIdArg)])
-    register('vop localCorrelation', localcorr_desc, vop_local_correlation)
+    register('volume localCorrelation', localcorr_desc, volume_local_correlation)
 
     maximum_desc = CmdDesc(required = varg, keyword = add_kw)
-    register('vop maximum', maximum_desc, vop_maximum)
+    register('volume maximum', maximum_desc, volume_maximum)
 
     minimum_desc = CmdDesc(required = varg, keyword = add_kw)
-    register('vop minimum', minimum_desc, vop_minimum)
+    register('volume minimum', minimum_desc, volume_minimum)
 
     median_desc = CmdDesc(required = varg,
                           keyword = [('bin_size', MapStepArg),
                                      ('iterations', IntArg)] + ssm_kw)
-    register('vop median', median_desc, vop_median)
+    register('volume median', median_desc, volume_median)
 
     morph_desc = CmdDesc(required = varg,
                          keyword = [('frames', IntArg),
@@ -152,10 +152,10 @@ def register_vop_command():
                                     ('scale_factors', FloatsArg),
                                     ('hide_original_maps', BoolArg),
                                     ('interpolate_colors', BoolArg)] + ssm_kw)
-    register('vop morph', morph_desc, vop_morph)
+    register('volume morph', morph_desc, volume_morph)
 
     multiply_desc = CmdDesc(required = varg, keyword = add_kw)
-    register('vop multiply', multiply_desc, vop_multiply)
+    register('volume multiply', multiply_desc, volume_multiply)
 
     new_opt = [('name', StringArg),]
     new_kw = [('size', Int1or3Arg),
@@ -165,7 +165,7 @@ def register_vop_command():
               ('value_type', ValueTypeArg),
               ('model_id', ModelIdArg)]
     new_desc = CmdDesc(optional = new_opt, keyword = new_kw)
-    register('vop new', new_desc, vop_new)
+    register('volume new', new_desc, volume_new)
 
     oct_kw = [('center', Float3Arg),
               ('i_center', Int3Arg),
@@ -173,24 +173,24 @@ def register_vop_command():
               ('in_place', BoolArg)]
     octant_desc = CmdDesc(required = varg,
                           keyword = oct_kw + ssm_kw)
-    register('vop octant', octant_desc, vop_octant)
+    register('volume octant', octant_desc, volume_octant)
 
     unoctant_desc = CmdDesc(required = varg,
                             keyword = oct_kw + ssm_kw)
-    register('vop ~octant', unoctant_desc, vop_octant_complement)
+    register('volume ~octant', unoctant_desc, volume_octant_complement)
 
     aoarg = [('axis_order', EnumOf(('xyz', 'xzy', 'yxz', 'yzx', 'zxy', 'zyx')))]
     permuteaxes_desc = CmdDesc(required = varg + aoarg,
                                keyword = ssm_kw)
-    register('vop permuteAxes', permuteaxes_desc, vop_permute_axes)
+    register('volume permuteAxes', permuteaxes_desc, volume_permute_axes)
 
     resample_desc = CmdDesc(required = varg, keyword = resample_kw,
                             required_arguments = ['on_grid'])
-    register('vop resample', resample_desc, vop_resample)
+    register('volume resample', resample_desc, volume_resample)
 
     ridges_desc = CmdDesc(required = varg,
                           keyword = [('level', FloatArg)] + ssm_kw)
-    register('vop ridges', ridges_desc, vop_ridges)
+    register('volume ridges', ridges_desc, volume_ridges)
 
     scale_desc = CmdDesc(required = varg,
                          keyword = [('shift', FloatArg),
@@ -199,17 +199,17 @@ def register_vop_command():
                                     ('rms', FloatArg),
                                     ('value_type', ValueTypeArg),
                                     ] + ssm_kw)
-    register('vop scale', scale_desc, vop_scale)
+    register('volume scale', scale_desc, volume_scale)
 
     subtract_desc = CmdDesc(required = varg,
-                            keyword = add_kw + [('min_rms', NoArg)])
-    register('vop subtract', subtract_desc, vop_subtract)
+                            keyword = add_kw + [('min_rms', BoolArg)])
+    register('volume subtract', subtract_desc, volume_subtract)
 
     threshold_desc = CmdDesc(required = varg,
         keyword = [('minimum', FloatArg), ('set', FloatArg),
                    ('maximum', FloatArg), ('set_maximum', FloatArg)] + ssm_kw
     )
-    register('vop threshold', threshold_desc, vop_threshold)
+    register('volume threshold', threshold_desc, volume_threshold)
 
     orders = ('ulh', 'ulv', 'urh', 'urv', 'llh', 'llv', 'lrh', 'lrv',
               'ulhr', 'ulvr', 'urhr', 'urvr', 'llhr', 'llvr', 'lrhr', 'lrvr')
@@ -220,7 +220,7 @@ def register_vop_command():
                                    ('columns', IntArg),
                                    ('rows', IntArg),
                                    ('fill_order', EnumOf(orders))] + ssm_kw)
-    register('vop tile', tile_desc, vop_tile)
+    register('volume tile', tile_desc, volume_tile)
 
     unbend_desc = CmdDesc(required = varg,
                           keyword = [('path', AtomsArg),
@@ -230,7 +230,7 @@ def register_vop_command():
                                      ('grid_spacing', FloatArg)] + ssm_kw,
                           required_arguments = ['path']
     )
-    register('vop unbend', unbend_desc, vop_unbend)
+    register('volume unbend', unbend_desc, volume_unbend)
 
     unroll_desc = CmdDesc(required = varg,
                           keyword = [('inner_radius', FloatArg),
@@ -240,20 +240,23 @@ def register_vop_command():
                                      ('axis', AxisArg),
                                      ('center', CenterArg),
                                      ('coordinate_system', CoordSysArg)] + ssm_kw)
-    register('vop unroll', unroll_desc, vop_unroll)
+    register('volume unroll', unroll_desc, volume_unroll)
 
     zone_desc = CmdDesc(required = varg,
                         keyword = [('near_atoms', AtomsArg),
                                    ('range', FloatArg),
                                    ('bond_point_spacing', FloatArg),
-                                   ('minimal_bounds', NoArg),
-                                   ('invert', NoArg)] + ssm_kw,
+                                   ('minimal_bounds', BoolArg),
+                                   ('invert', BoolArg)] + ssm_kw,
                         required_arguments=('near_atoms', 'range'))
-    register('vop zone', zone_desc, vop_zone)
+    register('volume zone', zone_desc, volume_zone)
 
+    from ...commands import create_alias
+    create_alias('vop', 'volume $*')
+    
 # -----------------------------------------------------------------------------
 #
-def vop_add(session, volumes, on_grid = None, bounding_grid = None,
+def volume_add(session, volumes, on_grid = None, bounding_grid = None,
             subregion = 'all', step = 1,
             grid_subregion = 'all', grid_step = 1, value_type = None,
             in_place = False, scale_factors = None, model_id = None):
@@ -263,7 +266,7 @@ def vop_add(session, volumes, on_grid = None, bounding_grid = None,
 
 # -----------------------------------------------------------------------------
 #
-def vop_maximum(session, volumes, on_grid = None, bounding_grid = None,
+def volume_maximum(session, volumes, on_grid = None, bounding_grid = None,
                 subregion = 'all', step = 1,
                 grid_subregion = 'all', grid_step = 1, value_type = None,
                 in_place = False, scale_factors = None, model_id = None):
@@ -273,7 +276,7 @@ def vop_maximum(session, volumes, on_grid = None, bounding_grid = None,
 
 # -----------------------------------------------------------------------------
 #
-def vop_minimum(session, volumes, on_grid = None, bounding_grid = None,
+def volume_minimum(session, volumes, on_grid = None, bounding_grid = None,
                 subregion = 'all', step = 1,
                 grid_subregion = 'all', grid_step = 1, value_type = None,
                 in_place = False, scale_factors = None, model_id = None):
@@ -283,7 +286,7 @@ def vop_minimum(session, volumes, on_grid = None, bounding_grid = None,
 
 # -----------------------------------------------------------------------------
 #
-def vop_multiply(session, volumes, on_grid = None, bounding_grid = None,
+def volume_multiply(session, volumes, on_grid = None, bounding_grid = None,
                  subregion = 'all', step = 1,
                  grid_subregion = 'all', grid_step = 1, value_type = None,
                  in_place = False, scale_factors = None, model_id = None):
@@ -405,7 +408,7 @@ def volume_corners(volumes, subregion, step, place):
 
 # -----------------------------------------------------------------------------
 #
-def vop_bin(session, volumes, subregion = 'all', step = 1,
+def volume_bin(session, volumes, subregion = 'all', step = 1,
            bin_size = (2,2,2), model_id = None):
     '''Reduce map by averaging over rectangular bins.'''
     from .bin import bin
@@ -414,7 +417,7 @@ def vop_bin(session, volumes, subregion = 'all', step = 1,
 
 # -----------------------------------------------------------------------------
 #
-def vop_boxes(session, volumes, centers, size = 0, isize = None, use_marker_size = False,
+def volume_boxes(session, volumes, centers, size = 0, isize = None, use_marker_size = False,
              subregion = 'all', step = 1, model_id = None):
     '''Extract boxes centered at marker positions.'''
     if size <= 0 and isize is None and not use_marker_size:
@@ -426,7 +429,7 @@ def vop_boxes(session, volumes, centers, size = 0, isize = None, use_marker_size
 
 # -----------------------------------------------------------------------------
 #
-def vop_cover(session, volumes, atom_box = None, pad = 5.0, 
+def volume_cover(session, volumes, atom_box = None, pad = 5.0, 
              box = None, x = None, y = None, z = None,
              f_box = None, fx = None, fy = None, fz = None,
              i_box = None, ix = None, iy = None, iz = None,
@@ -475,7 +478,7 @@ def parse_box(box, x, y, z, bname, xname, yname, zname):
 
 # -----------------------------------------------------------------------------
 #
-def vop_falloff(session, volumes, iterations = 10, in_place = False,
+def volume_falloff(session, volumes, iterations = 10, in_place = False,
                subregion = 'all', step = 1, model_id = None):
     '''Smooth edges of a masked map.'''
     if in_place:
@@ -494,7 +497,7 @@ def vop_falloff(session, volumes, iterations = 10, in_place = False,
 
 # -----------------------------------------------------------------------------
 #
-def vop_flatten(session, volumes, method = 'multiplyLinear',
+def volume_flatten(session, volumes, method = 'multiplyLinear',
                fitregion = None, subregion = 'all', step = 1, model_id = None):
     '''Make map background flat.'''
     if fitregion is None:
@@ -508,7 +511,7 @@ def vop_flatten(session, volumes, method = 'multiplyLinear',
 
 # -----------------------------------------------------------------------------
 #
-def vop_fourier(session, volumes, subregion = 'all', step = 1, model_id = None, phase = False):
+def volume_fourier(session, volumes, subregion = 'all', step = 1, model_id = None, phase = False):
     '''Fourier transform a map'''
     from .fourier import fourier_transform
     for v in volumes:
@@ -516,7 +519,7 @@ def vop_fourier(session, volumes, subregion = 'all', step = 1, model_id = None, 
 
 # -----------------------------------------------------------------------------
 #
-def vop_gaussian(session, volumes, s_dev = (1.0,1.0,1.0),
+def volume_gaussian(session, volumes, s_dev = (1.0,1.0,1.0),
                  subregion = 'all', step = 1, value_type = None, invert = False,
                  model_id = None):
     '''Smooth maps by Gaussian convolution.'''
@@ -526,7 +529,7 @@ def vop_gaussian(session, volumes, s_dev = (1.0,1.0,1.0),
 
 # -----------------------------------------------------------------------------
 #
-def vop_laplacian(session, volumes, subregion = 'all', step = 1, model_id = None):
+def volume_laplacian(session, volumes, subregion = 'all', step = 1, model_id = None):
     '''Detect map edges with Laplacian filter.'''
     from .laplace import laplacian
     for v in volumes:
@@ -534,17 +537,17 @@ def vop_laplacian(session, volumes, subregion = 'all', step = 1, model_id = None
 
 # -----------------------------------------------------------------------------
 #
-def vop_local_correlation(session, volumes, window_size = 5, subtract_mean = False, model_id = None):
+def volume_local_correlation(session, volumes, window_size = 5, subtract_mean = False, model_id = None):
     '''Compute correlation between two maps over a sliding window.'''
     if len(volumes) != 2:
-        raise CommandError('vop local_correlation operation requires '
+        raise CommandError('volume local_correlation operation requires '
                            'exactly two map arguments')
     v1, v2 = volumes
     if window_size < 2:
-        raise CommandError('vop local_correlation window_size must be '
+        raise CommandError('volume local_correlation window_size must be '
                            'an integer >= 2')
     if window_size > min(v1.data.size):
-        raise CommandError('vop local_correlation window_size must be '
+        raise CommandError('volume local_correlation window_size must be '
                            'smaller than map size')
 
     from .localcorr import local_correlation
@@ -553,7 +556,7 @@ def vop_local_correlation(session, volumes, window_size = 5, subtract_mean = Fal
 
 # -----------------------------------------------------------------------------
 #
-def vop_median(session, volumes, bin_size = (3,3,3), iterations = 1,
+def volume_median(session, volumes, bin_size = (3,3,3), iterations = 1,
               subregion = 'all', step = 1, model_id = None):
     '''Replace map values with median of neighboring values.'''
     for b in bin_size:
@@ -566,7 +569,7 @@ def vop_median(session, volumes, bin_size = (3,3,3), iterations = 1,
 
 # -----------------------------------------------------------------------------
 #
-def vop_morph(session, volumes, frames = 25, start = 0, play_step = 0.04,
+def volume_morph(session, volumes, frames = 25, start = 0, play_step = 0.04,
              play_direction = 1, play_range = None, add_mode = False,
              constant_volume = False, scale_factors = None,
              hide_original_maps = True, interpolate_colors = True,
@@ -595,7 +598,7 @@ def vop_morph(session, volumes, frames = 25, start = 0, play_step = 0.04,
 
 # -----------------------------------------------------------------------------
 #
-def vop_new(session, name = 'new', size = (100,100,100), grid_spacing = (1.0,1.0,1.0),
+def volume_new(session, name = 'new', size = (100,100,100), grid_spacing = (1.0,1.0,1.0),
             origin = (0.0,0.0,0.0), cell_angles = (90,90,90),
             value_type = None, model_id = None):
 
@@ -627,7 +630,7 @@ def check_in_place(in_place, volumes):
         
 # -----------------------------------------------------------------------------
 #
-def vop_octant(session, volumes, center = None, i_center = None,
+def volume_octant(session, volumes, center = None, i_center = None,
               subregion = 'all', step = 1, in_place = False,
               fill_value = 0, model_id = None):
     '''Extract an octant from a map.'''
@@ -639,7 +642,7 @@ def vop_octant(session, volumes, center = None, i_center = None,
 
 # -----------------------------------------------------------------------------
 #
-def vop_octant_complement(session, volumes, center = None, i_center = None,
+def volume_octant_complement(session, volumes, center = None, i_center = None,
                          subregion = 'all', step = 1, in_place = False,
                          fill_value = 0, model_id = None):
     '''Zero an octant of a map.'''
@@ -697,7 +700,7 @@ def set_value_outside_box(data, value, ijk_min, ijk_max):
 
 # -----------------------------------------------------------------------------
 #
-def vop_permute_axes(session, volumes, axis_order = 'xyz',
+def volume_permute_axes(session, volumes, axis_order = 'xyz',
                     subregion = 'all', step = 1, model_id = None):
     '''Permute map axes.'''
     ao = {'xyz':(0,1,2), 'xzy':(0,2,1), 'yxz':(1,0,2), 
@@ -708,7 +711,7 @@ def vop_permute_axes(session, volumes, axis_order = 'xyz',
 
 # -----------------------------------------------------------------------------
 #
-def vop_resample(session, volumes, on_grid = None, bounding_grid = False,
+def volume_resample(session, volumes, on_grid = None, bounding_grid = False,
                  subregion = 'all', step = 1,
                  grid_subregion = 'all', grid_step = 1, value_type = None,
                  model_id = None):
@@ -721,7 +724,7 @@ def vop_resample(session, volumes, on_grid = None, bounding_grid = False,
 
 # -----------------------------------------------------------------------------
 #
-def vop_ridges(session, volumes, level = None, subregion = 'all', step = 1, model_id = None):
+def volume_ridges(session, volumes, level = None, subregion = 'all', step = 1, model_id = None):
     '''Find ridges in a map.'''
     from .ridges import ridges
     for v in volumes:
@@ -729,11 +732,11 @@ def vop_ridges(session, volumes, level = None, subregion = 'all', step = 1, mode
 
 # -----------------------------------------------------------------------------
 #
-def vop_scale(session, volumes, shift = 0, factor = 1, sd = None, rms = None,
+def volume_scale(session, volumes, shift = 0, factor = 1, sd = None, rms = None,
              value_type = None, subregion = 'all', step = 1, model_id = None):
     '''Scale, shift and convert number type of map values.'''
     if not sd is None and not rms is None:
-        raise CommandError('vop scale: Cannot specify both sd and rms options')
+        raise CommandError('volume scale: Cannot specify both sd and rms options')
 
     from .scale import scaled_volume
     for v in volumes:
@@ -742,16 +745,16 @@ def vop_scale(session, volumes, shift = 0, factor = 1, sd = None, rms = None,
 
 # -----------------------------------------------------------------------------
 #
-def vop_subtract(session, volumes, on_grid = None, bounding_grid = False,
+def volume_subtract(session, volumes, on_grid = None, bounding_grid = False,
                  subregion = 'all', step = 1,
                  grid_subregion = 'all', grid_step = 1, value_type = None,
                  in_place = False, scale_factors = None, min_rms = False,
                  model_id = None):
     '''Subtract two maps.'''
     if len(volumes) != 2:
-        raise CommandError('vop subtract operation requires exactly two volumes')
+        raise CommandError('volume subtract operation requires exactly two volumes')
     if min_rms and scale_factors:
-        raise CommandError('vop subtract cannot specify both minRMS and scaleFactors options.')
+        raise CommandError('volume subtract cannot specify both minRMS and scaleFactors options.')
     mult = (1,'minrms') if min_rms else scale_factors
 
     combine_op(volumes, 'subtract', on_grid, bounding_grid, subregion, step,
@@ -759,7 +762,7 @@ def vop_subtract(session, volumes, on_grid = None, bounding_grid = False,
 
 # -----------------------------------------------------------------------------
 #
-def vop_threshold(session, volumes, minimum = None, set = None,
+def volume_threshold(session, volumes, minimum = None, set = None,
                  maximum = None, set_maximum = None,
                  subregion = 'all', step = 1, model_id = None):
     '''Set map values below or above a threshold to a constant.'''
@@ -770,7 +773,7 @@ def vop_threshold(session, volumes, minimum = None, set = None,
 
 # -----------------------------------------------------------------------------
 #
-def vop_tile(session, volumes, axis = 'z', pstep = 1, trim = 0,
+def volume_tile(session, volumes, axis = 'z', pstep = 1, trim = 0,
             columns = None, rows = None, fill_order = 'ulh',
             subregion = 'shown', step = 1, model_id = None):
     '''Concatenate maps along an axis.'''
@@ -779,15 +782,15 @@ def vop_tile(session, volumes, axis = 'z', pstep = 1, trim = 0,
         t = tile_planes(v, axis, pstep, trim, rows, columns, fill_order,
                         step, subregion, model_id)
         if t is None:
-            raise CommandError('vop tile: no planes')
+            raise CommandError('volume tile: no planes')
 
 # -----------------------------------------------------------------------------
 #
-def vop_unbend(session, volumes, path, yaxis = None, xsize = None, ysize = None, grid_spacing = None,
+def volume_unbend(session, volumes, path, yaxis = None, xsize = None, ysize = None, grid_spacing = None,
               subregion = 'all', step = 1, model_id = None):
     '''Unbend a map near a smooth splined path.'''
     if len(path) < 2:
-        raise CommandError('vop unbend path must have 2 or more nodes')
+        raise CommandError('volume unbend path must have 2 or more nodes')
     if yaxis is None:
         from ...commands import Axis
         yaxis = Axis((0,1,0))
@@ -802,7 +805,7 @@ def vop_unbend(session, volumes, path, yaxis = None, xsize = None, ysize = None,
 
 # -----------------------------------------------------------------------------
 #
-def vop_unroll(session, volumes, inner_radius = None, outer_radius = None, length = None,
+def volume_unroll(session, volumes, inner_radius = None, outer_radius = None, length = None,
               grid_spacing = None, axis = None, center = None, coordinate_system = None,
               subregion = 'all', step = (1,1,1), model_id = None):
     '''Flatten a cylindrical shell within a map.'''
@@ -871,7 +874,7 @@ def parse_grid_spacing(grid_spacing, v, step):
 
 # -----------------------------------------------------------------------------
 #
-def vop_flip(session, volumes, axis = 'z', subregion = 'all', step = 1,
+def volume_flip(session, volumes, axis = 'z', subregion = 'all', step = 1,
             in_place = False, model_id = None):
     '''Flip a map axis reversing the hand.'''
     for v in volumes:
@@ -916,7 +919,7 @@ def submatrix_center(v, xyz_center, index_center, subregion, step):
 
 # -----------------------------------------------------------------------------
 #
-def vop_zone(session, volumes, near_atoms = None, range = None, bond_point_spacing = None,
+def volume_zone(session, volumes, near_atoms = None, range = None, bond_point_spacing = None,
             minimal_bounds = False, invert = False,
             subregion = 'all', step = 1, model_id = None):
 

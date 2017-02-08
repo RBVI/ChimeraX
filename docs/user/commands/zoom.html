@@ -25,18 +25,40 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: zoom</h3>
 <h3><a href="usageconventions.html">Usage</a>:
-<BR><b>zoom</b> 
-&nbsp;<i>factor</i> [&nbsp;<i>frames</i>&nbsp;]</h3>
+<br><b>zoom</b> [&nbsp;<i>factor</i>&nbsp;]
+[&nbsp;<b>frames</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>pixelSize</b>&nbsp;&nbsp;<i>size</i>&nbsp;]
+</h3>
 <p>
-The <b>zoom</b> command adjusts the apparent size of viewed items
-by <i>factor</i> at each of a specified number of image update <i>frames</i>
-(default <b>1</b> frame). The <i>factor</i> must be positive: 
+The <b>zoom</b> command adjusts the apparent size of viewed items by 
+<i>factor</i> relative to the current display.
+The <i>factor</i> must be positive: 
+</p>
  <ul>
  <li>values &gt; 1 enlarge the view
  <li>values &lt; 1 shrink the view
  </ul>
+<p>
+The change is spread out over a specified number of image update 
+<b>frames</b> <i>N</i> (default <b>1</b>). The apparent size is multiplied
+by an equal value at each frame as needed to achieve the final result.
+</p><p>
+Alternatively or in addition to <i>factor</i>, the <b>pixelSize</b> option
+can be used to specify the absolute scale in length per pixel
+at the current <a href="cofr.html">center of rotation</a>
+(in data coordinate units, typically &Aring;).
+The depth of this point matters when <a href="camera.html">perspective</a>
+is used, because nearby objects appear larger than faraway objects.
+A constant pixel size is useful for making multiple images at the same scale.
+If <i>factor</i> is also given, it is applied after the pixel size
+to calculate the overall (final) amount of zoom.
+</p><p>
+Given without argments, <b>zoom</b> reports the absolute scale
+at the current <a href="cofr.html">center of rotation</a>.
+</p><p>
 Zooming moves the camera toward or away from the scene.
 It does not change model coordinates.
+</p><p>
 See also: <a href="view.html"><b>view</b></a>, 
 <a href="camera.html"><b>camera</b></a>, 
 <a href="mousemode.html"><b>mousemode</b></a>,
@@ -46,5 +68,5 @@ See also: <a href="view.html"><b>view</b></a>,
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2016</address>
+January 2017</address>
 </body></html>

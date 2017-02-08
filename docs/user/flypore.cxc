@@ -1,0 +1,21 @@
+# Open human nuclear pore density map.
+open 3103 from emdb
+
+# Set contour level for density map surface
+vol #1 level 2.5
+
+# Move 1500 Angstroms closer before starting movie
+move z 1500
+
+# Set stereoscopic side-by-side 360 degree camera mode with eye separation to 25 Angstroms
+camera 360sbs eyeSeparation 25
+
+# Start capturing movie frames 4800 by 1200 pixels
+movie record size 4800,1200
+
+# Move into pore with 2000 steps each 1 Angstrom
+move z 1 2000
+wait 2000
+
+# Write H.264 encoded movie
+movie encode ~/Desktop/flypore.mp4 framerate 90

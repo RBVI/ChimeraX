@@ -25,7 +25,7 @@ def show(session, objects=None, what=None, target=None, only=False):
         Alternative to the "what" option for specifying what to show.
     only : bool
         Show only the specified atoms/bonds/residues in each specified molecule.
-        If what is models then only show then hide models that are not specified.
+        If what is models then hide models that are not specified.
     '''
     if objects is None:
         from . import atomspec
@@ -105,7 +105,7 @@ def show_surfaces(session, objects, only):
 
     # Show existing surfaces
     from ..atomic import molsurf, concatenate, Atoms
-    surfs = molsurf.show_surfaces(atoms, session.models, only = only)
+    surfs = molsurf.show_surface_atom_patches(atoms, session.models, only = only)
 
     # Create new surfaces if they don't yet exist.
     if surfs:

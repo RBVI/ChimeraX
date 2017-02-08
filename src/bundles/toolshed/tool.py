@@ -77,7 +77,7 @@ _RUNNING_ROW = (
 class ToolshedUI(ToolInstance):
 
     SESSION_ENDURING = True
-    TOOLSHED_URL = "https://chi2ti-preview.rbvi.ucsf.edu"
+    TOOLSHED_URL = "https://cxtoolshed.rbvi.ucsf.edu"
     # TOOLSHED_URL = "https://www.rbvi.ucsf.edu"
 
     def __init__(self, session, tool_name):
@@ -132,6 +132,7 @@ class ToolshedUI(ToolInstance):
             except OSError:
                 pass
             self._pending_downloads.append(item)
+            self.session.logger.info("Downloading bundle %s" % urlFile)
             item.accept()
         else:
             item.cancel()
@@ -147,13 +148,28 @@ class ToolshedUI(ToolInstance):
                 finished.append(item)
         self._pending_downloads = pending
         install_cmd = ["install", "--quiet"]
-        filenames = []
+        need_reload = False
         for item in finished:
             item.finished.disconnect()
             filename = item.path()
-            filenames.append(filename)
-        install_cmd.extend(filenames)
-        if pip.main(install_cmd) == 0:
+            from chimerax.core.ui.ask import ask
+            how = ask(self.session,
+                      "Install %s for:" % filename,
+                      ["all users", "just me", "cancel"],
+                      title="Toolshed")
+            if how == "cancel":
+                self.session.logger.info("Bundle installation canceled")
+                continue
+            elif how == "just me":
+                target = ["--user"]
+            else:
+                target = []
+            cmd = install_cmd + target + [filename]
+            self.session.logger.info("Installing bundle %s" % filename)
+            if pip.main(cmd) == 0:
+                self.session.logger.info("Bundle %s installed" % filename)
+                need_reload = True
+        if need_reload:
             self.session.toolshed.reload(self.session.logger,
                                          session=self.session,
                                          rebuild_cache=True,

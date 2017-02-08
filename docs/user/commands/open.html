@@ -24,24 +24,25 @@ or derivations thereof.
 class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: open</h3>
+
+<h3><a href="usageconventions.html">Usage</a>: <br><b>open formats</b>
+</h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>open</b> &nbsp;<i>filename</i> 
 [&nbsp;format&nbsp;&nbsp;<a href="#local"><i>format-name</i></a>&nbsp;]
-[&nbsp;name&nbsp;&nbsp;<i>model-name</i>&nbsp;]
-[&nbsp;smartInitialDisplay&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;trajectory&nbsp;]
+[&nbsp;coordset&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;vseries&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>alignment</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+&nbsp;<a href="#options"><i>general-options</i></a>
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>open</b> 
 [&nbsp;<a href="#fetch"><i>prefix</i></a>:]<i>identifier</i>&nbsp;
 [&nbsp;fromDatabase&nbsp;&nbsp;<a href="#fetch"><i>source</i></a>&nbsp;]
 [&nbsp;format&nbsp;&nbsp;<a href="#fetch"><i>format-name</i></a>&nbsp;]
-[&nbsp;name&nbsp;&nbsp;<i>model-name</i>&nbsp;]
-[&nbsp;smartInitialDisplay&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;trajectory&nbsp;]
-[&nbsp;ignoreCache&nbsp;]
-</h3>
-<h3><a href="usageconventions.html">Usage</a>: <BR><b>open formats</b>
+[&nbsp;coordset&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;ignoreCache&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+&nbsp;<a href="#options"><i>general-options</i></a>
 </h3>
 <p>
 The command <b>open</b> reads <a href="#local">local files</a> and
@@ -59,37 +60,32 @@ See also:
 <a href="sym.html"><b>sym</b></a>,
 <a href="colortables.html#autocolors">initial colors</a>
 </p><p>
-Any resulting model(s) in ChimeraX are automatically assigned a model ID number,
-starting with #1. The name of the model (shown in the <b>Model Panel</b>)
-will be generated from the <i>filename</i> or database <i>identifier</i>
-unless another name is given with the <b>name</b> option.
-If <i>model-name</i> contains spaces, it should be enclosed in quotation marks.
-</p><p>
-Setting <b>smartInitialDisplay</b> to false bypasses chemical perception
-and rule-based changes in lighting, coloring, and representation, instead
-always showing atomic models as white spheres; it may be useful in 
-rare cases where generating the initial representation is slow
-(<i>e.g.</i>, drawing cartoons for very large numbers of atomic models).
-</p><p>
-A multi-model file in PDB format can be opened as a trajectory 
-(for sequential playback with <a href="coordset.html"><b>coordset</b></a>)
-with the <b>trajectory</b> option.
-</p><p>
 The <b>open formats</b> command lists the possible formats and databases
 in the <a href="../tools/log.html"><b>Log</b></a>. 
 </p><p>
+Any model that results from opening data is automatically
+assigned a model ID number, starting with #1. 
+The name of the model (shown in the <b>Model Panel</b>)
+will be generated automatically unless specified by the user with the
+<a href="#options"><b>name</b></a> option.
+</p><p>
 Examples:
+</p>
 <blockquote>
 <b>open ~/Desktop/maps/myfile.mrc name refined3</b>
 <br>
 <b>open 2gbp</b>
 <br>
-<b>open 1zik format pdb</b>
+<b>open 1plx format pdb coordset T</b>
 <br>
 <b>open emdb:3087</b>
 <br>
 <b>open 3237 from emdb name "gamma-secretase complex"</b>
 </blockquote>
+<p>
+Option keywords and Boolean (truth) values can be truncated, with
+synonyms for true: True, 1, and synonyms for false: False, 0.
+A vertical bar &ldquo;|&rdquo; designates mutually exclusive values.
 </p>
 
 <a name="local"></a>
@@ -101,9 +97,10 @@ Examples:
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>open</b> &nbsp;<i>filename</i> 
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#local"><i>format-name</i></a>&nbsp;]
-[&nbsp;<b>name</b>&nbsp;&nbsp;<i>model-name</i>&nbsp;]
-[&nbsp;<b>smartInitialDisplay</b>&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>trajectory</b>&nbsp;]
+[&nbsp;<b>coordset</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>vseries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>alignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+&nbsp;<a href="#options"><i>general-options</i></a>
 </blockquote>
 <p>
 The <i>filename</i> is generally a pathname to a local file, 
@@ -120,6 +117,28 @@ The file format can be indicated with either the <i>filename</i> suffix or
 the <b>format</b> option (where <i>format-name</i> can be truncated).
 Files that are gzipped, as indicated by their additional .gz suffix, 
 can also be read.
+</p><p>
+A multi-model file in PDB format can be opened as a trajectory with 
+<b>coordset true</b> (default <b>false</b>). Only one frame of a trajectory
+is shown at a time, and different frames can be shown or played back 
+sequentially with the <a href="coordset.html"><b>coordset</b></a> command.
+</p><p>
+When multiple maps with the same grid dimensions are opened 
+in a single command (multiple files specified with wild cards or globbing, 
+or a single multi-map file), the <b>vseries</b> option can be used to enforce 
+loading them as a series for playback with 
+<a href="vseries.html"><b>vseries</b></a> or the associated slider
+(if <b>true</b>), or as independent models (if <b>false</b>).
+If the option is not used, 3D TIFF images and
+<a href="save.html#chimap">Chimera map</a> files containing five or more
+same-sized maps are automatically interpreted as series, if possible.
+</p><p>
+When a multiple-sequence file is opened, the <b>alignment</b> option 
+indicates whether it should be interpreted as an alignment 
+(default <b>true</b>, all sequences in one <b>Multalign Viewer</b> window).
+Otherwise, each sequence will be opened in a separate window. 
+If the sequences (including any gap characters) are of differing lengths,
+the option must be set to <b>false</b>. 
 </p>
 <table border cellpadding="4" cellspacing="0">
 <tr>
@@ -154,7 +173,8 @@ plain text file with each line <a href="atomspec.html">specifying</a>
 <tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
 <a name="volume"></a>
-<b>Volume Data</b></td>
+<b>Volume Data</b> (associated tool: 
+<a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>)</td>
 </tr><tr>
 <td align="center">
 <a href="http://www.poissonboltzmann.org/docs/file-format-info/"
@@ -218,13 +238,13 @@ target="_blank">STochastic Optical Reconstruction Microscopy (STORM)</a></td>
 <a name="object"></a>
 <b>Other 3D Objects</b></td>
 </tr><tr>
-<td align="center"><a href="https://www.khronos.org/collada/"
+<td align="center"><a href="http://www.khronos.org/collada/"
 target="_blank">COLLADA</a></td>
 <td align="center"><b>collada</b></td>
 <td align="center">.dae</td>
 <td align="center">graphical objects<br>(geometry nodes define surfaces)</td>
 </tr><tr>
-<td align="center"><a href="https://en.wikipedia.org/wiki/STL_%28file_format%29#Binary_STL"
+<td align="center"><a href="http://en.wikipedia.org/wiki/STL_%28file_format%29#Binary_STL"
 target="_blank">STereoLithography (binary)</a></td>
 <td align="center"><b>stl</b></td>
 <td align="center">.stl</td>
@@ -245,12 +265,12 @@ target="_blank">X3D</a></td>
 <tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
 <a name="sequence"></a>
-<b>Sequences</b></td>
+<b>Sequences</b> (associated tool: <b>Multalign Viewer</b>)</td>
 <tr><tr>
 <td align="center">FASTA, aligned FASTA</td>
 <td align="center"><b>fasta</b></td>
 <td align="center">.fa, .fasta</td>
-<td align="center">individual sequence or sequence alignment</td>
+<td align="center">individual sequence(s) or sequence alignment</td>
 <tr><tr>
 <td align="center">MSF</a></td>
 <td align="center"><b>msf</b></td>
@@ -308,10 +328,9 @@ use <a href="help.html"><b>help</b></a> instead of <b>open</b></td>
 [&nbsp;<a href="#fetch"><i>prefix</i></a>:]<i>identifier</i>&nbsp;
 [&nbsp;<b>fromDatabase</b>&nbsp;&nbsp;<a href="#fetch"><i>source</i></a>&nbsp;]
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#fetch"><i>format-name</i></a>&nbsp;]
-[&nbsp;<b>name</b>&nbsp;&nbsp;<i>model-name</i>&nbsp;]
-[&nbsp;<b>smartInitialDisplay</b>&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>trajectory</b>&nbsp;]
-[&nbsp;<b>ignoreCache</b>&nbsp;]
+[&nbsp;<b>coordset</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>ignoreCache</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+&nbsp;<a href="#options"><i>general-options</i></a>
 </blockquote>
 <p>
 An entry can be fetched from a database if its <i>identifier</i> is supplied.
@@ -322,8 +341,28 @@ The default database for a 4-character identifier without prefix is the
 target="_blank">RCSB Protein Data Bank</a>; the default format
 for that database is <b>mmcif</b>, although <b>pdb</b> or <b>mmtf</b>
 can be specified with the <b>format</b> option.
-For other databases, there is no choice of format 
-and no reason to use the <b>format</b> option.
+</p><p>
+A multi-model file in PDB format can be opened as a trajectory with 
+<b>coordset true</b> (default <b>false</b>). Only one frame of a trajectory
+is shown at a time, and different frames can be shown or played back 
+sequentially with the <a href="coordset.html"><b>coordset</b></a> command.
+</p><p>
+Web-fetched data are stored locally in <b>~/Downloads/ChimeraX/</b> 
+(where ~ indicates a user's home directory), with subdirectories
+<b>PDB</b> for atomic coordinates from the Protein Data Bank,
+<b>EMDB</b> for density maps from the
+<td align="center"><a href="http://www.ebi.ac.uk/pdbe/emdb/"
+target="_blank">Electron Microscopy Data Bank</a>, <i>etc.</i>
+For caching, no distinction is made among the different Protein Data Bank sites.
+If a data file specified for opening is not found in this local cache or 
+<b>ignoreCache</b> is set to <b>true</b>, the file will be fetched and cached. 
+<!--
+ChimeraX preferences, command history, file history, and package installation 
+files are stored in a standard platform-dependent location
+(for example, <b>~/Library/Caches/ChimeraX</b> on a Mac;
+see <a href="http://pypi.python.org/pypi/appdirs" 
+target="_blank">python appdirs</a>). 
+-->
 </p>
 <table border cellpadding="4" cellspacing="0"><tr>
 <td align="center"><b>database</b></td>
@@ -331,31 +370,6 @@ and no reason to use the <b>format</b> option.
 <td align="center"><b><i>source</i></b></td>
 <td align="center"><b>description</b></td>
 <td align="center"><b><i>format-name</i></b></td>
-</tr><tr>
-<td align="center"><a href="http://www.rcsb.org/"
-target="_blank">RCSB Protein Data Bank</a></td>
-<td align="center"><b>pdb:</b></td>
-<td align="center"><b>pdb</b></td>
-<td align="center">atomic coordinates and associated annotations</td>
-<td align="center"><b>mmcif</b> (default) or  <b>pdb</b>
-<br>(see <a href="http://www.rcsb.org/pdb/static.do?p=file_formats/index.jsp"
-target="_blank">wwPDB formats</a>)
-<br>or <a href="https://mmtf.rcsb.org/"><b>mmtf</b></a></td>
-</tr><tr>
-<td align="center"><a href="http://eds.bmc.uu.se/eds/index.html"
-target="_blank">Electron Density Server</a></td>
-<td align="center"><b>eds:</b></td>
-<td align="center"><b>eds</b></td>
-<td align="center">(2Fo-Fc) electron density map for a PDB entry;
-<br>not available for all PDB entries</td>
-<td align="center"><b>dsn6</b></td>
-</tr><tr>
-<td align="center"><a href="http://www.ebi.ac.uk/pdbe/emdb/"
-target="_blank">Electron Microscopy Data Bank</a></td>
-<td align="center"><b>emdb:</b></td>
-<td align="center"><b>emdb</b></td>
-<td align="center">density map</td>
-<td align="center"><b>ccp4</b></td>
 </tr><tr>
 <td align="center"><a href="http://www.cellpack.org"
 target="_blank">cellPACK</a></td>
@@ -365,19 +379,118 @@ target="_blank">cellPACK</a></td>
 <br>see <a href="http://www.cellpack.org/use/" target="_blank">cellPACK
 Chimera instructions</a> for available identifiers</td>
 <td align="center"><b>cellpack</b></td>
+</tr><tr>
+<td align="center"><a href="http://www.ebi.ac.uk/pdbe/eds/"
+target="_blank">Electron Density Server <br>at PDBe</a>
+</td>
+<td align="center"><b>eds:</b></td>
+<td align="center"><b>eds</b></td>
+<td align="center">(2Fo-Fc) electron density map for a PDB entry;
+<br>not available for all PDB entries</td>
+<td align="center"><b>ccp4</b></td>
+</tr><tr>
+<td align="center"><a href="http://www.ebi.ac.uk/pdbe/emdb/"
+target="_blank">Electron Microscopy Data Bank</a>
+<br>
+&nbsp;&nbsp;(<a href="ftp://ftp.wwpdb.org/pub/emdb/README"
+target="_blank">ftp</a> from wwpdb.org to .edu/.gov hosts,
+<br>otherwise from ebi.ac.uk)&nbsp;
+</td>
+<td align="center"><b>emdb:</b></td>
+<td align="center"><b>emdb</b></td>
+<td align="center">density map</td>
+<td align="center"><b>ccp4</b></td>
+</tr><tr>
+<td align="center"><a href="http://www.rcsb.org/"
+target="_blank">RCSB Protein Data Bank</a></td>
+<td align="center"><b>pdb:</b></td>
+<td align="center"><b>pdb</b></td>
+<td align="center">atomic coordinates and associated annotations</td>
+<td align="center"><b>mmcif</b> (default) or  <b>pdb</b>
+<br>(see <a href="http://www.rcsb.org/pdb/static.do?p=file_formats/index.jsp"
+target="_blank">wwPDB formats</a>)
+<br>or <a href="http://mmtf.rcsb.org/" target="_blank"><b>mmtf</b></a></td>
+</tr><tr>
+<td align="center"><a href="http://www.ebi.ac.uk/pdbe/"
+target="_blank">Protein Data Bank <br>in Europe (PDBe)</a></td>
+<td align="center"><b>pdbe:</b></td>
+<td align="center"><b>pdbe</b></td>
+<td align="center">atomic coordinates and associated annotations</td>
+<td align="center"><b>mmcif</b> (default) or  <b>pdb</b></td>
+</td>
+</tr><tr>
+<td align="center"><a href="http://www.ebi.ac.uk/pdbe/"
+target="_blank">PDBe</a></td>
+<td align="center"><b>pdbe_updated:</b></td>
+<td align="center"><b>pdbe_updated</b></td>
+<td align="center">atomic coordinates and associated annotations,
+<br>&nbsp;&nbsp;updated to include small-molecule connectivity 
+and binding-site information <br>as described in 
+<a href="http://nar.oxfordjournals.org/content/44/D1/D385.long"
+target="_blank">Velankar <i>et al.</i></a>,
+<i>Nucleic Acids Res</i> <b>44</b>:D385 (2016)</td>
+<td align="center"><b>mmcif</b>
+</td>
+</tr><tr>
+<td align="center"><a href="http://pdbj.org/" target="_blank">Protein 
+Data Bank Japan (PDBj)</a></td>
+<td align="center"><b>pdbj:</b></td>
+<td align="center"><b>pdbj</b></td>
+<td align="center">atomic coordinates and associated annotations</td>
+<td align="center"><b>mmcif</b></a>
+</td>
 </tr></table>
-<p>
-Web-fetched data are stored locally in the standard user cache directory
-(platform-dependent, for example <b>~/Library/Caches/ChimeraX</b> on a Mac;
-see <a href="https://pypi.python.org/pypi/appdirs" 
-target="_blank">python appdirs</a>). The default download
-location for Chimera (for example, <b>~/Downloads/Chimera</b> on a Mac) 
-is checked first, and then this standard ChimeraX location. 
-If the data file is not found locally or the user has specified
-<b>ignoreCache</b>, the file will be fetched and cached. 
+
+<a name="options"></a>
+<p class="nav">
+[<a href="#top">back to top</a>]
 </p>
+<h3>General Options</h3>
+
+<blockquote>
+<b>name</b>&nbsp;&nbsp;<i>model-name</i>
+<br>
+The name of the model (shown in the <b>Model Panel</b>) will be generated 
+automatically from the input <i>filename</i> or database <i>identifier</i>
+unless another name is given with the <b>name</b> option.
+If <i>model-name</i> contains spaces, it should be enclosed in quotation marks.
+</blockquote>
+<blockquote>
+<b>autoStyle</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Setting <b>autoStyle</b> to <b>false</b> bypasses chemical perception
+and rule-based changes in lighting, coloring, and representation, instead
+always showing atomic models as white spheres; it may be useful in 
+rare cases where generating the initial representation is slow
+(<i>e.g.</i>, drawing cartoons for very large numbers of atomic models).
+</blockquote>
+<blockquote>
+<b>autoAssociate</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
+<br>
+Whether structure-chain sequences should be compared to sequences in 
+<b>Multalign Viewer</b> and automatically associated if the number of
+mismatches is no more than 1/10 the number of residues in the structure chain.
+Unlike the other options of <b>open</b>, this sets a state that persists 
+within the ChimeraX session unless explicitly changed. 
+The initial setting is <b>true</b>.
+<p>
+For automatic association, the sequence and structure files
+can be opened in either order.
+Gaps in the structure sequence relative to the sequence in the alignment file 
+can only occur where residues are missing from the structure (for example, 
+a flexible loop with insufficient density to determine coordinates).
+<!-- check the following -->
+Associations are reported in the <a href="../window.html">status line</a>
+and the <a href="../tools/log.html"><b>Log</b></a>.
+A structure (even if it has multiple chains) cannot be associated with more
+than one sequence, but a single sequence can be associated with
+more than one structure.
+If more than one sequence matches a given structure chain,
+the single best-matching sequence is associated. 
+</p>
+</blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2016</address>
+January 2017</address>
 </body></html>

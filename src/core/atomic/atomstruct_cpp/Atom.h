@@ -84,13 +84,32 @@ private:
     virtual ~Atom();
 
     char  _alt_loc;
-    typedef struct {
-        std::vector<float> *  aniso_u;
+    class _Alt_loc_info {
+      public:
+    _Alt_loc_info() : aniso_u(NULL), serial_number(0) {}
+        ~_Alt_loc_info() { if (aniso_u) { delete aniso_u; aniso_u = NULL; } }
+	_Alt_loc_info(const _Alt_loc_info &ali) {
+	  // Copy aniso_u vector.
+	  if (ali.aniso_u) {
+	    create_aniso_u();
+	    for (int i = 0 ; i < 6 ; ++i)
+	      aniso_u[i] = ali.aniso_u[i];
+	  } else if (aniso_u) {
+	    delete aniso_u;
+	    aniso_u = NULL;
+	  }
+	}
+	std::vector<float> *create_aniso_u() {
+	  if (aniso_u == NULL)
+	    aniso_u = new std::vector<float>(6);
+	  return aniso_u;
+	}
+	std::vector<float> *aniso_u;
         float  bfactor;
         Point  coord;
         float  occupancy;
         int  serial_number;
-    } _Alt_loc_info;
+    };
     typedef std::map<unsigned char, _Alt_loc_info>  _Alt_loc_map;
     _Alt_loc_map  _alt_loc_map;
     std::vector<float> *  _aniso_u;
@@ -125,6 +144,7 @@ public:
     void  add_bond(Bond *b);
     char  alt_loc() const { return _alt_loc; }
     std::set<char>  alt_locs() const;
+    const std::vector<float> *aniso_u() const;
     float  bfactor() const;
     const Bonds&  bonds() const { return _bonds; }
     bool  connects_to(const Atom* other) const {
@@ -139,6 +159,8 @@ public:
     static const IdatmInfoMap&  get_idatm_info_map();
     bool  has_alt_loc(char al) const
       { return _alt_loc_map.find(al) != _alt_loc_map.end(); }
+    bool  has_aniso_u() const { return aniso_u() != NULL; }
+    bool  has_missing_structure_pseudobond() const;
     bool  idatm_is_explicit() const { return _explicit_idatm_type[0] != '\0'; }
     const AtomType&  idatm_type() const;
     bool  is_backbone(BackboneExtent bbe) const;
@@ -146,6 +168,7 @@ public:
     bool  is_sidechain() const;
     const AtomName&  name() const { return _name; }
     const Neighbors&  neighbors() const { return _neighbors; }
+    Bonds::size_type  num_explicit_bonds() const; // includes missing-structure bonds
     float  occupancy() const;
     int  serial_number() const { return _serial_number; }
     float radius() const {

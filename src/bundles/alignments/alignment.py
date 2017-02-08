@@ -406,7 +406,7 @@ class Alignment(State):
 
 
 def nw_assoc(session, align_seq, struct_seq):
-    '''Wrapper around Needle-Wunch matching, to make it return the same kinds of values
+    '''Wrapper around Needleman-Wunsch matching, to make it return the same kinds of values
        that try_assoc returns'''
 
     from chimerax.core.atomic import Sequence, SeqMatchMap

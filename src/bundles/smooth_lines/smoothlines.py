@@ -56,13 +56,13 @@ def smoothlines(session, models, step_factor = 0.1, iterations = 10, replace = F
 
 def register_smoothlines_command():
 
-    from chimerax.core.commands import CmdDesc, register, ModelsArg, FloatArg, IntArg, NoArg
+    from chimerax.core.commands import CmdDesc, register, ModelsArg, FloatArg, IntArg, BoolArg
 
     desc = CmdDesc(
         required = [('models', ModelsArg)],
         keyword = [('step_factor', FloatArg),
                    ('iterations', IntArg),
-                   ('replace', NoArg)]
+                   ('replace', BoolArg)]
     )
     register('smoothlines', desc, smoothlines)
 

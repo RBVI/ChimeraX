@@ -30,7 +30,7 @@ def view(session, objects=None, frames=None, clip=True, cofr=True, orient=False,
       Turn on clip planes in front and behind objects.
     cofr : bool
       Set center of rotation to center of objects.
-    orient : no value
+    orient : bool
       Specifying the orient keyword moves the camera view point to
       look down the scene z axis with the x-axis horizontal and y-axis
       vertical.
@@ -75,7 +75,7 @@ def view_objects(objects, v, clip, cofr, pad):
         cp.set_clip_position('far', c + r * vd, cam)
 
 
-def save_view(session, name):
+def view_name(session, name):
     """Save current view as given name.
 
     Parameters
@@ -90,7 +90,7 @@ def save_view(session, name):
     nv[name] = NamedView(v, v.center_of_rotation, models)
 
 
-def delete_view(session, name):
+def view_delete(session, name):
     """Delete named saved view.
 
     Parameters
@@ -123,7 +123,7 @@ def show_view(session, v2, frames=None):
     _InterpolateViews(v1, v2, frames, session)
 
 
-def list_views(session):
+def view_list(session):
     """Print the named camera views in the log.
 
     The names are links and clicking them show the corresponding view.
@@ -364,27 +364,116 @@ class NamedViewArg(Annotation):
             return nv[token], text, rest
         raise AnnotationError("Expected a view name")
 
+def view_initial(session, models=None):
+    '''
+    Set models to initial positions.
+
+    Parameters
+    ----------
+    models : Models
+      Set model positions to no rotation, no shift.
+    '''
+
+    if models is None:
+        models = session.models.list()
+    from ..geometry import Place
+    for m in models:
+        m.position = Place()
+
+def view_matrix(session, camera=None, models=None, coordinate_system=None):
+    '''
+    Set model and camera positions. With no options positions are reported
+    for the camera and all models. Positions are specified as 12-numbers,
+    the rows of a 3-row, 4-column matrix where the first 3 columns are a
+    rotation matrix and the last column is a translation applied after the rotation.
+
+    Parameters
+    ----------
+    camera : Place
+      Set the camera position.
+    models : list of (Model, Place)
+      Set model positions.
+    coordinate_system : Place
+      Treat camera and model positions relative to this coordinate system.
+      If none, then positions are in scene coordinates.
+    '''
+    v = session.main_view
+    csys = coordinate_system
+    if camera is not None:
+        v.camera.position = camera if csys is None else csys*camera
+    if models is not None:
+        for m,p in models:
+            m.position = p if csys is None else csys*p
+
+    if camera is None and models is None:
+        report_positions(session)
+
+def report_positions(session):
+    c = session.main_view.camera
+    lines = ['camera position: %s' % _position_string(c.position)]
+    mlist = session.models.list()
+    if mlist:
+        mpos = ','.join('#%s,%s' % (m.id_string(), _position_string(m.position)) for m in mlist)
+        lines.append('model positions: %s\n' % mpos)
+    session.logger.info('\n'.join(lines))
+
+def _position_string(p):
+    return ','.join('%.5g' % x for x in tuple(p.matrix.flat))
+
+from . import Annotation, AnnotationError
+class ModelPlacesArg(Annotation):
+    """Annotation for model id and positioning matrix as 12 floats."""
+    name = "model positions"
+
+    @staticmethod
+    def parse(text, session):
+        from . import cli
+        token, text, rest = cli.next_token(text)
+        fields = token.split(',')
+        if len(fields) % 13:
+            raise AnnotationError("Expected model id and 12 comma-separated numbers")
+        mp = []
+        while fields:
+            tm, mtext, mrest = cli.TopModelsArg.parse(fields[0], session)
+            if len(tm) == 0:
+                raise AnnotationError('No models specified by "%s"' % fields[0])
+            p = cli.PlaceArg.parse_place(fields[1:13])
+            for m in tm:
+                mp.append((m,p))
+            fields = fields[13:]
+        return mp, text, rest
 
 def register_command(session):
-    from . import CmdDesc, register, ObjectsArg, NoArg, FloatArg
+    from . import CmdDesc, register, ObjectsArg, FloatArg
     from . import StringArg, PositiveIntArg, Or, BoolArg
+    from . import PlaceArg, ModelsArg, Or, CoordSysArg
     desc = CmdDesc(
         optional=[('objects', Or(ObjectsArg, NamedViewArg)),
                   ('frames', PositiveIntArg)],
         keyword=[('clip', BoolArg),
                  ('cofr', BoolArg),
-                 ('orient', NoArg),
+                 ('orient', BoolArg),
                  ('pad', FloatArg)],
         synopsis='adjust camera so everything is visible')
     register('view', desc, view)
     desc = CmdDesc(
         synopsis='list named views')
-    register('view list', desc, list_views)
+    register('view list', desc, view_list)
     desc = CmdDesc(
         required=[('name', StringArg)],
         synopsis='delete named view')
-    register('view delete', desc, delete_view)
+    register('view delete', desc, view_delete)
     desc = CmdDesc(
         required=[('name', StringArg)],
         synopsis='save view with name')
-    register('view name', desc, save_view)
+    register('view name', desc, view_name)
+    desc = CmdDesc(
+        optional=[('models', ModelsArg)],
+        synopsis='set models to initial positions')
+    register('view initial', desc, view_initial)
+    desc = CmdDesc(
+        keyword=[('camera', PlaceArg),
+                 ('models', ModelPlacesArg),
+                 ('coordinate_system', CoordSysArg)],
+        synopsis='set camera and model positions')
+    register('view matrix', desc, view_matrix)

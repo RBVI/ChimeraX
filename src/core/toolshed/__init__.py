@@ -256,7 +256,7 @@ _RemoteURL = "http://localhost:8080"
 _Toolshed = "toolshed"
 # Defaults names for installed ChimeraX bundles
 _ChimeraNamespace = "chimerax"
-_ChimeraCore = "ChimeraX-Core"  # ChimeraX Core's bundle name
+from .. import BUNDLE_NAME as _core_bundle_name
 
 
 # Exceptions raised by Toolshed class
@@ -330,14 +330,13 @@ class Toolshed:
         else:
             self.remote_url = remote_url
         self._repo_locator = None
-        self._inst_locator = None
         self._installed_bundle_info = []
         self._available_bundle_info = []
         self._all_installed_distributions = None
         self._installed_packages = {}   # cache mapping packages to bundles
 
         # Compute base directories
-        import os.path
+        import os
         from chimerax import app_dirs
         self._cache_dir = os.path.join(app_dirs.user_cache_dir, _Toolshed)
         _debug("cache dir: %s" % self._cache_dir)
@@ -345,12 +344,11 @@ class Toolshed:
         _debug("data dir: %s" % self._data_dir)
 
         # Add directories to sys.path
-        import os.path
-        self._site_dir = os.path.join(self._data_dir, "site-packages")
+        import site
+        self._site_dir = site.USER_SITE
         _debug("site dir: %s" % self._site_dir)
         import os
         os.makedirs(self._site_dir, exist_ok=True)
-        import site
         site.addsitedir(self._site_dir)
 
         # Create triggers
@@ -575,7 +573,7 @@ class Toolshed:
         # Make sure that our install location is on chimerax module.__path__
         # so that newly installed modules may be found
         import importlib
-        import os.path
+        import os
         cx_dir = os.path.join(self._site_dir, _ChimeraNamespace)
         m = importlib.import_module(_ChimeraNamespace)
         if cx_dir not in m.__path__:
@@ -727,22 +725,17 @@ class Toolshed:
 
         # Initialize distlib paths and locators
         _debug("_scan_installed")
-        if self._inst_locator is not None:
-            self._inst_locator.clear_cache()
-            self._inst_path.clear_cache()
-            _debug("_inst_path cleared cache")
-        else:
-            from distlib.database import DistributionPath
-            self._inst_path = DistributionPath()
-            _debug("_inst_path", self._inst_path)
-            from distlib.locators import DistPathLocator
-            self._inst_locator = DistPathLocator(self._inst_path)
-            _debug("_inst_locator", self._inst_locator)
+        from distlib.database import DistributionPath
+        inst_path = DistributionPath()
+        _debug("inst_path", inst_path)
+        from distlib.locators import DistPathLocator
+        inst_locator = DistPathLocator(inst_path)
+        _debug("inst_locator", inst_locator)
 
         # Keep only wheels
 
         all_distributions = []
-        for d in self._inst_path.get_distributions():
+        for d in inst_path.get_distributions():
             try:
                 d.run_requires
                 _debug("_scan_installed distribution", d)
@@ -752,11 +745,11 @@ class Toolshed:
                 all_distributions.append(d)
 
         # Look for core package
-        core = self._inst_locator.locate(_ChimeraCore)
+        core = inst_locator.locate(_core_bundle_name)
         if core is None:
             self._inst_core = set()
             self._inst_tool_dists = OrderedSet()
-            logger.warning("\"%s\" bundle not found" % _ChimeraCore)
+            logger.warning("\"%s\" bundle not found" % _core_bundle_name)
             return
 
         # Partition packages into core and bundles
@@ -766,7 +759,7 @@ class Toolshed:
         self._inst_chimera_core = core
         self._inst_core = set([core])
         self._inst_tool_dists = OrderedSet()
-        self._all_installed_distributions = {_ChimeraCore: core}
+        self._all_installed_distributions = {_core_bundle_name: core}
         for d, label in dg.adjacency_list[core]:
             known_dists.add(d)
             self._inst_core.add(d)
@@ -804,7 +797,7 @@ class Toolshed:
         if must_exist:
             import os
             os.makedirs(self._cache_dir, exist_ok=True)
-        import os.path
+        import os
         return os.path.join(self._cache_dir, "bundle_info.cache")
 
     def _read_cache(self):
@@ -987,6 +980,10 @@ class Toolshed:
                 nicknames = [v.strip() for v in nicknames.split(',')] if nicknames else None
                 suffixes = [v.strip() for v in suffixes.split(',')] if suffixes else None
                 mime_types = [v.strip() for v in mime_types.split(',')] if mime_types else None
+                # construct absolute path name of icon by looking
+                # in package directory
+                if icon:
+                    icon = bi.find_icon_path(icon)
                 fi = FormatInfo(name=name, nicknames=nicknames,
                                 category=category, suffixes=suffixes,
                                 mime_types=mime_types, url=url, icon=icon,
@@ -1092,8 +1089,6 @@ class Toolshed:
         # TODO: update _installed_packages
         updated = set([(d.name, d.version) for d in need_update])
         if self._all_installed_distributions is not None:
-            self._inst_path = None
-            self._inst_locator = None
             self._all_installed_distributions = None
         import copy
         newly_installed = [copy.copy(bi) for bi in self._available_bundle_info
@@ -1108,7 +1103,7 @@ class Toolshed:
     def _install_dist_core(self, want, logger):
         # Add ChimeraX core distribution to update list
         _debug("_install_dist_core")
-        d = self._install_distribution(_ChimeraCore, None, logger)
+        d = self._install_distribution(_core_bundle_name, None, logger)
         if d:
             want.append(d)
 
@@ -1133,9 +1128,8 @@ class Toolshed:
         if repo_dist is None:
             raise ToolshedUnavailableError("cannot find new distribution "
                                            "named \"%s\"" % name)
-        if self._inst_locator is None:
-            self._scan_installed(logger)
-        inst_dist = self._inst_locator.locate(name)
+        all_dists = self._get_all_installed_distributions(logger)
+        inst_dist = all_dists[name]
         if inst_dist is None:
             return repo_dist
         else:
@@ -1274,9 +1268,8 @@ class Toolshed:
             old_location[d.name] = self._remove_distribution(d, logger)
 
         # Now we (re)install the needed distributions
-        import os.path
-        wheel_cache = os.path.join(self._cache_dir, "wheels.cache")
         import os
+        wheel_cache = os.path.join(self._cache_dir, "wheels.cache")
         os.makedirs(wheel_cache, exist_ok=True)
         default_paths = self._install_make_paths(system)
         from distlib.scripts import ScriptMaker
@@ -1334,7 +1327,7 @@ class Toolshed:
         _debug("_install_make_paths", system)
         import site
         import sys
-        import os.path
+        import os
         if system:
             base = sys.prefix
         else:
@@ -1378,7 +1371,7 @@ class Toolshed:
         #     directories from which we removed files
         #   try removing the directories, longest first (this will
         #     remove children directories before parents)
-        import os.path
+        import os
         basedir = os.path.dirname(d.path)
         dircache = set()
         try:
@@ -1614,17 +1607,18 @@ class FormatInfo:
     def cache_data(self):
         return {
             'name': self.name,
+            'nicknames': self.nicknames,
             'category': self.category,
             'suffixes': self.suffixes,
             'mime_types': self.mime_types,
             'url': self.documentation_url,
             'dangerous': self.dangerous,
+            'encoding': self.encoding,
             'icon': self.icon,
             'synopsis': self.synopsis,
-            'nicknames': self.nicknames,
             'has_open': self.has_open,
-            'has_save': self.has_save,
             'open_kwds': self.open_kwds,
+            'has_save': self.has_save,
             'save_kwds': self.save_kwds,
         }
 
@@ -2005,6 +1999,16 @@ class BundleInfo:
             raise ToolshedError("missing bundle_api for bundle \"%s\"" % self.name)
         _debug("_get_api", self._api_package_name, m, bundle_api)
         return bundle_api
+
+    def find_icon_path(self, icon_name):
+        import importlib
+        import os
+        try:
+            m = importlib.import_module(self._api_package_name)
+        except Exception as e:
+            raise ToolshedError("Error importing bundle API \"%s\": %s" % (self.name, str(e)))
+        icon_dir = os.path.dirname(m.__file__)
+        return os.path.join(icon_dir, icon_name)
 
     def start_tool(self, session, tool_name, *args, **kw):
         """Create and return a tool instance.

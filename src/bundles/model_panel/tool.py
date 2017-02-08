@@ -21,6 +21,7 @@ class ModelPanel(ToolInstance):
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
+# TODO: Changing display_name to be different from tool_name breaks toolshed hide command.
         self.display_name = "Models"
         self.settings = ModelPanelSettings(session, "ModelPanel")
         last = self.settings.last_use
@@ -29,11 +30,12 @@ class ModelPanel(ToolInstance):
         short_titles = last != None and now - last < 777700 # about 3 months
 
         from chimerax.core.ui.gui import MainToolWindow
-        self.tool_window = MainToolWindow(self, close_destroys=False)
-        parent = self.tool_window.ui_area
+        self.tool_window = tw = MainToolWindow(self, close_destroys=False)
+        parent = tw.ui_area
         from PyQt5.QtWidgets import QTreeWidget, QHBoxLayout, QVBoxLayout, QAbstractItemView, \
             QFrame, QPushButton
         self.tree = QTreeWidget()
+        self.tree.expanded.connect(self._ensure_id_width)
         layout = QHBoxLayout()
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
@@ -41,7 +43,8 @@ class ModelPanel(ToolInstance):
         layout.setStretchFactor(self.tree, 1)
         parent.setLayout(layout)
         title = "S" if short_titles else "Shown"
-        self.tree.setHeaderLabels(["ID", " ", title, "Name"])
+        self.tree.setHeaderLabels(["Name", "ID", " ", title])
+        self.tree.setColumnWidth(self.NAME_COLUMN, 200)
         self.tree.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.tree.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.tree.setAnimated(True)
@@ -59,13 +62,23 @@ class ModelPanel(ToolInstance):
                     for i in self.tree.selectedItems()]] or self.models, ses))
         from chimerax.core.models import MODEL_DISPLAY_CHANGED
         session.triggers.add_handler(MODEL_DISPLAY_CHANGED, self._initiate_fill_tree)
-        self._fill_tree()
         from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
         self.session.triggers.add_handler(ADD_MODELS, self._initiate_fill_tree)
         self.session.triggers.add_handler(REMOVE_MODELS, self._initiate_fill_tree)
         self.session.triggers.add_handler("atomic changes", self._changes_cb)
         self._frame_drawn_handler = None
-        self.tool_window.manage(placement="side")
+        tw.manage(placement="side")
+        tw.shown_changed = self._shown_changed
+
+    NAME_COLUMN = 0
+    ID_COLUMN = 1
+    COLOR_COLUMN = 2
+    SHOWN_COLUMN = 3
+    
+    def _shown_changed(self, shown):
+        if shown:
+            # Update panel when it is shown.
+            self._fill_tree()
 
     @classmethod
     def get_singleton(self, session):
@@ -77,6 +90,10 @@ class ModelPanel(ToolInstance):
         if "color changed" in reasons or 'display changed' in reasons:
             self._initiate_fill_tree()
 
+    def _ensure_id_width(self, *args):
+        # ensure that the newly visible model id isn't just "..."
+        self.tree.resizeColumnToContents(self.ID_COLUMN)
+
     def _initiate_fill_tree(self, *args):
         # in order to allow molecules to be drawn as quickly as possible,
         # delay the update of the tree until the 'frame drawn' trigger fires
@@ -85,6 +102,9 @@ class ModelPanel(ToolInstance):
                 "frame drawn", self._fill_tree)
 
     def _fill_tree(self, *args):
+        if not self.displayed():
+            # Don't update panel when it is hidden.
+            return
         update = self._process_models()
         if not update:
             expanded_models = { i._model : i.isExpanded()
@@ -122,19 +142,19 @@ class ModelPanel(ToolInstance):
                             cm.single_color = rgba
                     but.color_changed.connect(set_single_color)
                     but.set_color(bg_color)
-                    self.tree.setItemWidget(item, 1, but)
-            item.setText(0, model_id_string)
-            bg = item.background(1)
+                    self.tree.setItemWidget(item, self.COLOR_COLUMN, but)
+            item.setText(self.ID_COLUMN, model_id_string)
+            bg = item.background(self.ID_COLUMN)
             if bg_color is None:
                 bg.setStyle(Qt.NoBrush)
             else:
-                but = self.tree.itemWidget(item, 1)
+                but = self.tree.itemWidget(item, self.COLOR_COLUMN)
                 if but is not None:
                     but.set_color(bg_color)
-            item.setBackground(1, bg)
+            item.setBackground(self.COLOR_COLUMN, bg)
             if display is not None:
-                item.setCheckState(2, Qt.Checked if display else Qt.Unchecked)
-            item.setText(3, name)
+                item.setCheckState(self.SHOWN_COLUMN, Qt.Checked if display else Qt.Unchecked)
+            item.setText(self.NAME_COLUMN, name)
             if not update:
                 # Expand new top-level displayed models, or if previously expanded
                 expand = expanded_models.get(model, (model.display and len(model.id) <= 1))
@@ -163,13 +183,13 @@ class ModelPanel(ToolInstance):
             self._fill_tree()
 
     def _left_click(self, event):
-        if event.Col == 2:
+        if event.Col == self.SHOWN_COLUMN:
             model = self.models[event.Row]
             model.display = not model.display
         event.Skip()
 
     def _label_click(self, event):
-        if event.Col == 0:
+        if event.Col == self.ID_COLUMN:
             # ID label clicked.
             # Toggle sort order.
             self._sort_breadth_first = not self._sort_breadth_first
@@ -192,11 +212,11 @@ class ModelPanel(ToolInstance):
         return update
 
     def _tree_change_cb(self, item, column):
-        if column != 2:
+        if column != self.SHOWN_COLUMN:
             # not the shown check box
             return
         from PyQt5.QtCore import Qt
-        self.models[self._items.index(item)].display = item.checkState(2) == Qt.Checked
+        self.models[self._items.index(item)].display = item.checkState(self.SHOWN_COLUMN) == Qt.Checked
 
 from chimerax.core.settings import Settings
 class ModelPanelSettings(Settings):
@@ -204,13 +224,14 @@ class ModelPanelSettings(Settings):
         'last_use': None
     }
 
+from chimerax.core.commands import run, concise_model_spec
 def close(models, session):
     from chimerax.core.models import Model
-    session.models.close([m for m in models if isinstance(m, Model)])
+    run(session, "close %s" %
+        concise_model_spec(session, [m for m in models if isinstance(m, Model)]))
 
 def hide(models, session):
-    for m in models:
-        m.display = False
+    run(session, "hide %s target m" % concise_model_spec(session, models))
 
 _mp = None
 def model_panel(session, tool_name):
@@ -220,17 +241,10 @@ def model_panel(session, tool_name):
     return _mp
 
 def show(models, session):
-    for m in models:
-        m.display = True
+    run(session, "show %s target m" % concise_model_spec(session, models))
 
 def view(objs, session):
     from chimerax.core.models import Model
     models = [o for o in objs if isinstance(o, Model)]
-    from chimerax.core.objects import Objects
-    view_objects = Objects(models=models)
-    for model in models:
-        if getattr(model, 'atoms', None):
-            view_objects.add_atoms(model.atoms)
-    from chimerax.core.commands.view import view
-    view(session, view_objects)
+    run(session, "view %s clip false" % concise_model_spec(session, models))
 

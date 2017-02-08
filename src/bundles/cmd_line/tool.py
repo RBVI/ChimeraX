@@ -36,8 +36,10 @@ class CommandLine(ToolInstance):
             def __init__(self, parent, tool):
                 self.tool = tool
                 QComboBox.__init__(self, parent)
+                self._processing_forwarded_key = False
 
             def keyPressEvent(self, event):
+                self._processing_forwarded_key = True
                 from PyQt5.QtCore import Qt
                 import sys
                 control_key = Qt.MetaModifier if sys.platform == "darwin" else Qt.ControlModifier
@@ -59,9 +61,17 @@ class CommandLine(ToolInstance):
                         QComboBox.keyPressEvent(self, event)
                 else:
                     QComboBox.keyPressEvent(self, event)
+                self._processing_forwarded_key = False
+
+            def retain_selection_on_focus_out(self):
+                # prevent de-selection of text when focus lost
+                if self._processing_forwarded_key:
+                    return
+                le = self.lineEdit()
+                if not le.hasFocus() and not le.selectedText() and le.text():
+                    le.selectAll()
 
         self.text = CmdText(parent, self)
-        #self.text = QComboBox(parent)
         self.text.setEditable(True)
         self.text.setCompleter(None)
         layout = QHBoxLayout(parent)
@@ -72,6 +82,8 @@ class CommandLine(ToolInstance):
         parent.setLayout(layout)
         self.text.lineEdit().returnPressed.connect(self.execute)
         self.text.lineEdit().editingFinished.connect(self.text.lineEdit().selectAll)
+        # lineEdit() seems to be None during entire CmdText constructor, so connect here...
+        self.text.lineEdit().selectionChanged.connect(self.text.retain_selection_on_focus_out)
         self.text.currentTextChanged.connect(self.text_changed)
         self.text.forwarded_keystroke = lambda e: self.text.keyPressEvent(e)
         session.ui.register_for_keystrokes(self.text)

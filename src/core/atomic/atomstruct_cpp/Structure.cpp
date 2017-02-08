@@ -129,7 +129,7 @@ Structure::best_alt_locs() const
                         break;
                     }
                     occurances[alt_loc] += 1;
-                    Atom::_Alt_loc_info info = a->_alt_loc_map[alt_loc];
+                    Atom::_Alt_loc_info &info = a->_alt_loc_map[alt_loc];
                     occupancies[alt_loc] += info.occupancy;
                     bfactors[alt_loc] += info.bfactor;
                 }

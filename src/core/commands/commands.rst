@@ -44,6 +44,7 @@ and their code location is described with the function descriptions.
 | `list`_ - List open models
 | `log`_ * - Clear or save the log
 | `material`_ - Change surface material light reflection properties
+| `measure`_ - Calculate properties of models
 | `mlp`_ * - Color surfaces by molecular lipophilicity
 | `molmap`_ - Calculate a density map from atoms
 | `mousemode`_ - Set mouse modes
@@ -53,7 +54,6 @@ and their code location is described with the function descriptions.
 | `open`_ - Open data files
 | `pdbimages`_ - Render PDB assembly images
 | `perframe`_ - Run a command for every rendered frame
-| `position`_ - Set camera and model positions
 | `pwd`_ - Print working directory
 | `rainbow`_ - Color residues and chains
 | `rename`_ - Rename models
@@ -61,20 +61,18 @@ and their code location is described with the function descriptions.
 | `roll`_ - Rotate models
 | `run`_ - Run a user command string
 | `rungs`_ - Display nucleotides as cylinders
-| `sasa`_ - Compute solvent accessible surface area
 | `save`_ - Save sessions, images, density maps...
 | `scolor`_ - Color surfaces
 | `select`_ - Select objects
 | `set`_ - Set rendering effects (background color, silhouettes)
 | `show`_ - Show atoms, ribbons, models
-| `size`_ - Change atom or bond radii
 | `smoothlines`_ * - Smooth paths in line drawings
 | `snav`_ * - Enable space navigator input device
 | `sop`_ - Surface operations
 | `split`_ - Split atomic structures into pieces
 | `stop`_ - Stop motion
 | `struts`_ * - Add struts between atoms for 3d printing
-| `style`_ - Change atom display style
+| `style`_ - Change atom display style and sizes
 | `surface`_ - Compute a molecular surface
 | `sym`_ - Show molecular assemblies involving symmetry
 | `time`_ - Time a command
@@ -82,9 +80,8 @@ and their code location is described with the function descriptions.
 | `transparency`_ - Set transparency of atoms, ribbons and surfaces
 | `turn`_ - Rotate models
 | `view`_ - Move camera to view specified objects
-| `vive`_ * - Enable HTC Vive virtual reality headset
-| `volume`_ - Change density map display settings
-| `vop`_ - Filter density maps
+| `volume`_ - Change density map settings and filter maps
+| `vr`_ * - Enable virtual reality headset using SteamVR
 | `vseries`_ - Play density map time series
 | `wait`_ - Wait before executing next command
 | `windowsize`_ - Set or report graphics window size
@@ -205,6 +202,10 @@ material
 ========
 .. autofunction:: chimerax.core.commands.material.material
 
+sasa
+====
+.. autofunction:: chimerax.core.commands.measure_sasa.measure_sasa
+
 mlp
 ===
 Function found in *chimerax.mlp.mlp*
@@ -249,11 +250,6 @@ perframe
 ========
 .. autofunction:: chimerax.core.commands.perframe.perframe
 
-position
-========
-.. autofunction:: chimerax.core.commands.position.position
-.. autofunction:: chimerax.core.commands.position.position_initial
-
 pwd
 ===
 .. autofunction:: chimerax.core.commands.pwd.pwd
@@ -282,10 +278,6 @@ rungs
 =====
 .. autofunction:: chimerax.core.commands.rungs.rungs
 
-sasa
-====
-.. autofunction:: chimerax.core.commands.sasa.sasa
-
 save
 ====
 .. autofunction:: chimerax.core.commands.save.save
@@ -306,10 +298,6 @@ show
 ====
 .. autofunction:: chimerax.core.commands.show.show
 
-size
-====
-.. autofunction:: chimerax.core.commands.size.size
-
 snav
 ====
 .. autofunction:: chimerax.spacenavigator.snav.snav
@@ -317,11 +305,6 @@ snav
 smoothlines
 ===========
 .. autofunction:: chimerax.smooth_lines.smoothlines.smoothlines
-
-sop
-===
-.. automodule:: chimerax.core.commands.sop
-  :members:		
 
 split
 =====
@@ -370,19 +353,19 @@ turn
 view
 ====
 .. autofunction:: chimerax.core.commands.view.view
+.. autofunction:: chimerax.core.commands.view.view_delete
+.. autofunction:: chimerax.core.commands.view.view_initial
+.. autofunction:: chimerax.core.commands.view.view_list
+.. autofunction:: chimerax.core.commands.view.view_matrix
+.. autofunction:: chimerax.core.commands.view.view_name
 
-vive
-====
-.. autofunction:: chimerax.vive.vive.vive
+vr
+==
+.. autofunction:: chimerax.vive.vr.vr
 
 volume
 ======
 .. autofunction:: chimerax.core.map.volumecommand.volume
-
-vop
-===
-.. automodule:: chimerax.core.map.filter.vopcommand
-  :members:		
 
 vseries
 =======

@@ -15,7 +15,7 @@ class FormatSyntaxError(Exception):
     pass
 
 def open_file(session, stream, fname, format_name="FASTA", return_vals=None,
-        one_alignment=True, identify_as=None, auto_associate=True, **kw):
+        alignment=True, identify_as=None, auto_associate=True, **kw):
     ns = {}
     try:
         exec("from .io.read%s import read" % format_name.replace(' ', '_'), globals(), ns)
@@ -47,7 +47,7 @@ def open_file(session, stream, fname, format_name="FASTA", return_vals=None,
     if return_vals == "seqs":
         return seqs
     from chimerax.core.errors import UserError
-    if one_alignment:
+    if alignment:
         if not uniform_length:
             raise UserError("Sequence '%s' differs in length from preceding sequences, and"
                 " it is therefore impossible to open these sequences as an alignment.  If"

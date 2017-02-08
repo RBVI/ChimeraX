@@ -352,11 +352,14 @@ class Drawing:
                 return True
         return False
 
-    def clear_selection(self):
-        '''Unselect this drawing. Child drawings may remain selected.'''
+    def clear_selection(self, include_children=True):
+        '''Unselect this drawing and child drawings in if include_children is True.'''
         self.selected = False
         self.selected_triangles_mask = None
         self.redraw_needed(selection_changed=True)
+        if include_children:
+            for d in self.child_drawings():
+                d.clear_selection()
 
     def get_position(self):
         return self._positions[0]
@@ -831,7 +834,6 @@ class Drawing:
         if ta.shape[1] != 3:
             # TODO: Intercept only for triangles, not lines or points.
             return None
-        # TODO: Check intercept of bounding box as optimization
         p = None
         from ..geometry import closest_triangle_intercept
         if self.positions.is_identity():
@@ -839,26 +841,34 @@ class Drawing:
             if fmin is not None:
                 p = TrianglePick(fmin, tmin, 0, self)
         else:
-            # Only check objects with bounding box close to line. 
-            b = self._geometry_bounds()
-            if b is None:
-                return None
-            c, r = b.center(), b.radius()
-            pos = self.positions
-            pc = pos * c
-            from ..geometry import segment_intercepts_spheres
-            bi = segment_intercepts_spheres(pc, r, mxyz1, mxyz2)
-            dp = self._displayed_positions
-            if dp is not None:
-                from numpy import logical_and
-                logical_and(bi, dp, bi)
-
-            for i in bi.nonzero()[0]:
-                cxyz1, cxyz2 = pos[i].inverse() * (mxyz1, mxyz2)
+            pos_nums = self.bounds_intercept_copies(self._geometry_bounds(), mxyz1, mxyz2)
+            for i in pos_nums:
+                cxyz1, cxyz2 = self.positions[i].inverse() * (mxyz1, mxyz2)
                 fmin, tmin = closest_triangle_intercept(va, ta, cxyz1, cxyz2)
                 if fmin is not None and (p is None or fmin < p.distance):
                     p = TrianglePick(fmin, tmin, i, self)
         return p
+
+    def bounds_intercept_copies(self, bounds, mxyz1, mxyz2):
+        '''
+        Return indices of positions where line segment intercepts displayed bounds.
+        This is to optimize picking so that positions where no intercept occurs do not
+        need to be checked to see what is picked.
+        '''
+        # Only check objects with bounding box close to line. 
+        b = bounds
+        if b is None:
+            return []
+        c, r = b.center(), b.radius()
+        pc = self.positions * c
+        from ..geometry import segment_intercepts_spheres
+        bi = segment_intercepts_spheres(pc, r, mxyz1, mxyz2)
+        dp = self._displayed_positions
+        if dp is not None:
+            from numpy import logical_and
+            logical_and(bi, dp, bi)
+        pos_nums = bi.nonzero()[0]
+        return pos_nums
 
     def planes_pick(self, planes, exclude=None):
         '''
@@ -1528,8 +1538,11 @@ class Pick:
         '''Text description of the picked object.'''
         return None
 
-    def select(self, toggle=False):
-        '''Cause this picked object to be marked as selected.'''
+    def select(self, mode = 'add'):
+        '''
+        Cause this picked object to be selected ('add' mode), unselected ('subtract' mode)
+        or toggle selected ('toggle' mode).
+        '''
         pass
 
 class TrianglePick(Pick):
@@ -1577,14 +1590,20 @@ class TrianglePick(Pick):
     def drawing(self):
         return self._drawing
 
-    def select(self, toggle=False):
+    def select(self, mode = 'add'):
         d = self.drawing()
         pmask = d.selected_positions
         if pmask is None:
             from numpy import zeros, bool
             pmask = zeros((len(d.positions),), bool)
         c = self._copy
-        pmask[c] = not pmask[c] if toggle else 1
+        if mode == 'add':
+            s = 1
+        elif mode == 'subtract':
+            s = 0
+        elif mode == 'toggle':
+            s = not pmask[c]
+        pmask[c] = s
         d.selected_positions = pmask
 
 class TrianglesPick(Pick):
@@ -1611,9 +1630,15 @@ class TrianglesPick(Pick):
     def drawing(self):
         return self._drawing
 
-    def select(self, toggle=False):
+    def select(self, mode = 'add'):
         d = self.drawing()
-        d.selected = (not d.selected) if toggle else True
+        if mode == 'add':
+            s = True
+        elif mode == 'subtract':
+            s = False
+        elif mode == 'toggle':
+            s = (not d.selected)
+        d.selected = s
 
 
 class InstancePick(Pick):
@@ -1640,17 +1665,21 @@ class InstancePick(Pick):
     def drawing(self):
         return self._drawing
 
-    def select(self, toggle=False):
+    def select(self, mode = 'add'):
         d = self.drawing()
-        pmask = d.selected_positions
         pm = self._positions_mask
-        if pmask is None:
-            pmask = pm
-        elif toggle:
+        pmask = d.selected_positions
+        if pmask is None and mode != 'subtract':
+            pmask = pm.copy()
+            pmask[:] = d.selected
+        if mode == 'add':
+            pmask[pm] = 1
+        elif mode == 'subtract':
+            if pmask is not None:
+                pmask[pm] = 0
+        elif mode == 'toggle':
             from numpy import logical_xor
             logical_xor(pmask, pm, pmask)
-        else:
-            pmask = pm
         d.selected_positions = pmask
 
 

@@ -11,6 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+
 def version(session, format=None):
     '''Show version information.
 
@@ -27,38 +28,50 @@ def version(session, format=None):
     session.logger.info("date: %s" % buildinfo.date)
     session.logger.info("branch: %s" % buildinfo.branch)
     session.logger.info("commit: %s" % buildinfo.commit)
+    import sys
+    session.logger.info("Python: %s" % sys.version.split(maxsplit=1)[0])
     if format == 'verbose':
         return
     import os
-    import pip
-    dists = pip.get_installed_distributions(local_only=True)
+    if format == 'bundles':
+        dists = session.toolshed.bundle_info(installed=True, available=False)
+        dists = list(dists)
+        dists.sort(key=lambda d: d.name.casefold())
+    else:
+        import pip
+        dists = pip.get_installed_distributions(local_only=True)
+        dists = list(dists)
+        dists.sort(key=lambda d: d.project_name.casefold())
     if not dists:
         session.logger.error("no version information available")
         return os.EX_SOFTWARE
-    dists = list(dists)
-    dists.sort(key=lambda d: d.key)
     if format == 'bundles':
         info = "Installed bundles:"
     else:
-        info ="Installed packages:"
+        info = "Installed packages:"
     if session.ui.is_gui:
         info += "\n<ul>"
         sep = "<li>"
         from html import escape
     else:
         sep = '  '
+
         def escape(txt):
             return txt
+
     for d in dists:
-        key = d.key
         if format == 'bundles':
-            if not key.startswith('chimerax.'):
-                continue
-            key = key[len('chimerax.'):]
-        if d.has_version():
-            info += "\n%s %s: %s" % (sep, escape(key), escape(d.version))
+            name = d.name
+            version = d.version
+            if name.startswith('ChimeraX-'):
+                name = name[len('ChimeraX-'):]
         else:
-            info += "\n%s %s: unknown" % (sep, escape(key))
+            name = d.project_name
+            if d.has_version():
+                version = d.version
+            else:
+                version = "unknown"
+        info += "\n%s %s: %s" % (sep, escape(name), escape(version))
     if session.ui.is_gui:
         info += "\n</ul>"
     session.logger.info(info, is_html=session.ui.is_gui)

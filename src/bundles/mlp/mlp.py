@@ -66,7 +66,7 @@ def mlp(session, atoms=None, method="fauchere", spacing=1.0, max_distance=5.0, n
             
 
 def register_mlp_command():
-    from chimerax.core.commands import register, CmdDesc, AtomsArg, SaveFileNameArg, FloatArg, EnumOf, NoArg, BoolArg, ColormapArg, ColormapRangeArg
+    from chimerax.core.commands import register, CmdDesc, AtomsArg, SaveFileNameArg, FloatArg, EnumOf, BoolArg, ColormapArg, ColormapRangeArg
     desc = CmdDesc(optional=[('atoms', AtomsArg)],
                    keyword=[('spacing', FloatArg),
                             ('max_distance', FloatArg),
@@ -75,7 +75,7 @@ def register_mlp_command():
                             ('color', BoolArg),
                             ('palette', ColormapArg),
                             ('range', ColormapRangeArg),
-                            ('map', NoArg),
+                            ('map', BoolArg),
                             ],
                    synopsis='display molecular lipophilic potential for selected models')
     register('mlp', desc, mlp)

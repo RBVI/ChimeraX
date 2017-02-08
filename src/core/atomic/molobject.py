@@ -46,6 +46,8 @@ def _residues(p):
 def _non_null_residues(p):
     from .molarray import Residues
     return Residues(p[p!=0])
+def _residue_or_none(p):
+    return object_map(p, Residue) if p else None
 def _residues_or_nones(p):
     return [_residue(rptr) if rptr else None for rptr in p]
 def _chains(p):
@@ -154,6 +156,8 @@ class Atom:
         doc=":class:`.Atom`\\ s connnected to this atom directly by one bond. Read only.")
     num_bonds = c_property("atom_num_bonds", size_t, read_only=True,
         doc="Number of bonds connected to this atom. Read only.")
+    num_explicit_bonds = c_property("atom_num_explicit_bonds", size_t, read_only=True,
+        doc="Number of bonds and missing-structure pseudobonds connected to this atom. Read only.")
     occupancy = c_property('atom_occupancy', float32, doc = "Occupancy, floating point value.")
     radius = c_property('atom_radius', float32, doc="Radius of atom.")
     default_radii = c_property('atom_default_radius', float32, read_only = True,
@@ -194,6 +198,40 @@ class Atom:
         a_ref = ctypes.byref(self._c_pointer)
         f(a_ref, 1, loc, v_ref)
         return v.value
+
+    @property
+    def aniso_u(self):
+        '''Anisotropic temperature factors, returns 3x3 array of numpy float32 or None.  Read only.'''
+        f = c_function('atom_aniso_u', args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p))
+        from numpy import empty, float32
+        ai = empty((3,3), float32)
+        try:
+            f(self._c_pointer_ref, 1, pointer(ai))
+        except ValueError:
+            ai = None
+        return ai
+
+    def _get_aniso_u6(self):
+        '''Get anisotropic temperature factors as a 6 element numpy float32 array
+        containing (u11, u22, u33, u12, u13, u23) or None.'''
+        f = c_function('atom_aniso_u6', args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p))
+        from numpy import empty, float32
+        ai = empty((6,), float32)
+        try:
+            f(self._c_pointer_ref, 1, pointer(ai))
+        except ValueError:
+            ai = None
+        return ai
+    def _set_aniso_u6(self, u6):
+        '''Set anisotropic temperature factors as a 6 element numpy float32 array
+        representing the unique elements of the symmetrix matrix
+        containing (u11, u22, u33, u12, u13, u23).'''
+        f = c_function('set_atom_aniso_u6', args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p))
+        from numpy import empty, float32
+        ai = empty((6,), float32)
+        ai[:] = u6
+        f(self._c_pointer_ref, 1, pointer(ai))
+    aniso_u6 = property(_get_aniso_u6, _set_aniso_u6)
 
     def delete(self):
         '''Delete this Atom from it's Structure'''
@@ -308,7 +346,7 @@ class Bond:
     '''Whether bond is display and not hidden. Read only.'''
     length = c_property('bond_length', float32, read_only = True)
     '''Bond length. Read only.'''
-    
+
     def other_atom(self, atom):
         '''Return the :class:`Atom` at the other end of this bond opposite
         the specified atom.'''
@@ -387,7 +425,7 @@ class Pseudobond:
         v = a1.scene_coord - a2.scene_coord
         from math import sqrt
         return sqrt((v*v).sum())
-    
+
     def other_atom(self, atom):
         '''Return the :class:`Atom` at the other end of this bond opposite
         the specified atom.'''
@@ -587,12 +625,17 @@ class Residue:
         '''Value that can be passed to C++ layer to be used as pointer (Python int)'''
         return self._c_pointer.value
 
+    def delete(self):
+        '''Delete this Residue from it's Structure'''
+        f = c_function('residue_delete', args = (ctypes.c_void_p, ctypes.c_size_t))
+        c = f(self._c_pointer_ref, 1)
+
     @property
     def deleted(self):
         '''Has the C++ side been deleted?'''
         return not hasattr(self, '_c_pointer')
 
-    def __str__(self, residue_only = False):
+    def __str__(self, residue_only = False, omit_structure = False):
         from ..core_settings import settings
         cmd_style = settings.atomspec_contents == "command-line specifier"
         ic = self.insertion_code
@@ -603,6 +646,8 @@ class Residue:
         if residue_only:
             return res_str
         chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
+        if omit_structure:
+            return '%s %s' % (chain_str, res_str)
         from .structure import Structure
         if len([s for s in self.structure.session.models.list() if isinstance(s, Structure)]) > 1:
             struct_string = str(self.structure)
@@ -995,8 +1040,20 @@ class StructureSeq(Sequence):
         ''' list isn't built/destroyed.'''
         f = c_function('sseq_residue_at', args = (ctypes.c_void_p, ctypes.c_size_t),
             ret = ctypes.c_void_p)
-        return _atom_or_none(f(self._c_pointer, index))
+        return _residue_or_none(f(self._c_pointer, index))
 
+    def residue_before(self, r):
+        '''Return the residue at index one less than the given residue,
+        or None if no such residue exists.'''
+        pos = self.res_map[r]
+        return self.residue_at(pos-1)
+
+    def residue_after(self, r):
+        '''Return the residue at index one more than the given residue,
+        or None if no such residue exists.'''
+        pos = self.res_map[r]
+        return self.residue_at(pos+1)
+    
     @staticmethod
     def restore_snapshot(session, data):
         sseq = StructureSequence(chain_id=data['chain_id'], structure=data['structure'])
@@ -1075,7 +1132,7 @@ def try_assoc(session, seq, sseq, assoc_params, *, max_errors = 6):
 
        The return value is a 2-tuple, consisting of a :py:class:`SeqMatchMap` instance describing
        the association, and the number of errors encountered.
-       
+
        An unsuccessful association throws StructAssocError.
     '''
     f = c_function('sseq_try_assoc', args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t,
@@ -1241,6 +1298,8 @@ class StructureData:
     '''Default ribbon mode showing secondary structure with ribbons.'''
     RIBBON_MODE_ARC = 1
     '''Ribbon mode showing secondary structure as an arc (tube or plank).'''
+    RIBBON_MODE_WRAP = 2
+    '''Ribbon mode showing helix as ribbon wrapped around tube.'''
     ss_assigned = c_property('structure_ss_assigned', npy_bool, doc =
         "Has secondary structure been assigned, either by data in original structure file "
         "or by some algorithm (e.g. dssp command)")
@@ -1547,11 +1606,13 @@ class Element:
         '''Get the Element that corresponds to an atomic name or number'''
         if type(name_or_number) == type(1):
             f = c_function('element_number_get_element', args = (ctypes.c_int,), ret = ctypes.c_void_p)
+            f_arg = name_or_number
         elif type(name_or_number) == type(""):
             f = c_function('element_name_get_element', args = (ctypes.c_char_p,), ret = ctypes.c_void_p)
+            f_arg = name_or_number.encode('utf-8')
         else:
             raise ValueError("'get_element' arg must be string or int")
-        return _element(f(name_or_number))
+        return _element(f(f_arg))
 
 # -----------------------------------------------------------------------------
 #
@@ -1650,7 +1711,7 @@ class RibbonXSection:
 # they have no persistence in the C++ layer
 class SeqMatchMap:
     """Class to track the matching between an alignment sequence and a structure sequence
-    
+
        The match map can be indexed by either an integer (ungapped) sequence position,
        or by a Residue, which will return a Residue or a sequence position, respectively.
        The pos_to_res and res_to_pos attributes return dictionaries of the corresponding

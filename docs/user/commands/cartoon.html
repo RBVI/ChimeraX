@@ -24,19 +24,19 @@ or derivations thereof.
 class="clRight" title="User Guide Index"/></a>
 
 <font color="brown">
-* command in progress; syntax and options very likely to change *
+* command in progress; syntax and options likely to change *
 </font>
 
 <h3><a href="../index.html#commands">Command</a>: cartoon, ribbon</h3>
 
 <h3><a href="usageconventions.html">Usage</a>:
-<BR>(&nbsp;<b>cartoon</b>&nbsp;|&nbsp;<b>ribbon</b>&nbsp;)
+<br>(&nbsp;<b>cartoon</b>&nbsp;|&nbsp;<b>ribbon</b>&nbsp;)
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 [&nbsp;smooth&nbsp;&nbsp;<i>factor</i>&nbsp;|&nbsp;default&nbsp;]
-[&nbsp;hideBackbone&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;suppressBackboneDisplay&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
-<BR>(&nbsp;<b>~cartoon</b>&nbsp;|&nbsp;<b>~ribbon</b>&nbsp;)
+<br>(&nbsp;<b>cartoon hide</b>&nbsp;|&nbsp;<b>ribbon hide</b>&nbsp;)
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 </h3>
 <p>
@@ -48,7 +48,7 @@ These settings can be different for different residues.
 Changes in settings apply only to the atomic models already present, 
 not subsequently opened models. 
 </p><p>
-The command <b>~cartoon</b> (or <b>~ribbon</b>) hides cartoon
+The command <b>cartoon hide</b> (or <b>ribbon hide</b>) hides cartoon
 for the <a href="atomspec.html">specified</a> residues.
 The commands <a href="show.html"><b>hide</b></a> and 
 <a href="show.html"><b>show</b></a> can also be used to control cartoon display.
@@ -56,6 +56,10 @@ See also:
 <a href="rungs.html"><b>rungs</b></a>,
 <a href="struts.html"><b>struts</b></a>,
 <a href="../tools/moldisplay.html"><b>Molecule Display Toolbar</b></a>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/ribshow.png"></a>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/ribhide.png"></a>
 </p><p>
 Protein helix and strand assignments are read from the input structure file
 or calculated with <a href="dssp.html"><b>dssp</b></a>.
@@ -73,7 +77,7 @@ to preclude showing <a href="#tether">tethers</a>.
 </p><p>
 By default, showing the cartoon for a residue suppresses the display of
 its backbone atoms. Simultaneous display can be enabled with 
-<b>hideBackbone false</b>; otherwise,
+<b>suppressBackboneDisplay false</b>; otherwise,
 the backbone atoms hidden by cartoons are N, C, and O in amino acids
 and the phosphate moieties including  O5' in nucleic acids.
 </p><p>
@@ -135,8 +139,8 @@ A vertical bar &ldquo;|&rdquo; designates mutually exclusive values.
 [&nbsp;<b>ssEnds</b></a>&nbsp;&nbsp;short&nbsp;|&nbsp;long&nbsp;]
 &nbsp;<a href="#style-model-options"><i>model-options</i></a>&nbsp;
 <!--
-[&nbsp;<b>arrows</b>&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>arrowsHelix</b>&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>arrows</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>arrowsHelix</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>arrowScale</b>&nbsp;&nbsp;<i>factor</i>&nbsp;]
 [&nbsp;<b>barScale</b>&nbsp;&nbsp;<i>factor</i>&nbsp;]
 [&nbsp;<b>sides</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
@@ -305,5 +309,5 @@ The tether color tracks the color of the corresponding &alpha;-carbon.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2016</address>
+February 2017</address>
 </body></html>

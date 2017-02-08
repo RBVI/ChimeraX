@@ -25,16 +25,16 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: cofr</h3>
 <h3><a href="usageconventions.html">Usage</a>:
-<BR><b>cofr</b> [&nbsp;<b>frontCenter</b>&nbsp;|&nbsp;<b>fixed</b>&nbsp;]
+<br><b>cofr</b> [&nbsp;<b>frontCenter</b>&nbsp;|&nbsp;<b>centerOfView</b>&nbsp;|&nbsp;<b>fixed</b>&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
-<BR><b>~cofr</b>
+<br><b>~cofr</b>
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
-<BR><b>cofr</b>
+<br><b>cofr</b>
 [&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;|&nbsp;<i>x,y,z</i>&nbsp;]
 [&nbsp;<b>coordinateSystem</b> 
-&nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;]
+&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 </h3>
 <p>
 The <b>cofr</b> command sets the center of rotation and/or changes how it
@@ -58,6 +58,11 @@ near the center of the graphics window.
 This center of rotation is only updated 
 when motions other than rotations are performed.
 <br><br>
+<li><b>centerOfView</b> - keep updating the center of rotation to the
+current center of view, in the middle of the graphics window horizontally
+and vertically; the depth is chosen to remain fixed relative to the scene
+during zooming without translation
+<br><br>
 <li><b>fixed</b> - use a fixed point relative to the model(s);
 giving this option changes only the method, retaining the current center
 </ul>
@@ -75,5 +80,5 @@ will be used.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2016</address>
+January 2017</address>
 </body></html>

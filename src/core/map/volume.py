@@ -96,10 +96,10 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
-  def message(self, text):
+  def message(self, text, **kw):
 
     if self.message_cb:
-      self.message_cb(text)
+      self.message_cb(text, **kw)
     
   # ---------------------------------------------------------------------------
   #
@@ -530,6 +530,8 @@ class Volume(Model):
   # ---------------------------------------------------------------------------
   #
   def _set_display(self, display):
+    if display == self.display:
+      return
     Model._set_display(self, display)
     self.call_change_callbacks('displayed')
   display = Model.display.setter(_set_display)
@@ -756,7 +758,8 @@ class Volume(Model):
     from ..geometry import vector
     vector.normalize_vectors(narray)
 
-    self.message('Making %s surface with %d triangles' % (name, len(tarray)))
+    self.message('Calculated %s surface, level %.3g, with %d triangles'
+                 % (name, level, len(tarray)), blank_after = 3.0)
 
     p = piece
     p.geometry = varray, tarray
@@ -766,8 +769,6 @@ class Volume(Model):
     p.clip_cap = True
     # TODO: Clip cap offset for different contour levels is not related to voxel size.
     p.clip_offset = .002* len([l for l in self.surface_levels if level < l])
-
-    self.message('')
 
     return True
     
@@ -1112,7 +1113,7 @@ class Volume(Model):
     pd = Drawing.first_intercept(self, mxyz1, mxyz2, exclude)
     if pd:
       d = pd.drawing()
-      detail = '%s triangles %d' % (d.name, len(d.triangles))
+      detail = d.name
       p = PickedMap(self, pd.distance, detail)
       p.triangle_pick = pd
     else:
@@ -1926,12 +1927,17 @@ class PickedMap(Pick):
     self.detail = detail
   def description(self):
     return '%s %s %s' % (self.map.id_string(), self.map.name, self.detail)
-  def select(self, toggle = False):
+  def select(self, mode = 'add'):
     m = self.map
-    sel = not m.selected if toggle else True
-    m.selected = sel
+    if mode == 'add':
+      s = True
+    elif mode == 'subtract':
+      s = False
+    elif mode == 'toggle':
+      s = not m.selected
+    m.selected = s
     for d in m.surface_drawings:
-      d.selected = sel
+      d.selected = s
     
 # -----------------------------------------------------------------------------
 #
@@ -2820,7 +2826,7 @@ def volume_from_grid_data(grid_data, session, representation = None,
   return v
 
 def show_volume_dialog(session):
-  from chimerax.volume_viewer.tool import show_volume_dialog
+  from chimerax.volume_viewer.volumedialog import show_volume_dialog
   show_volume_dialog(session)
 
 # -----------------------------------------------------------------------------
@@ -2908,6 +2914,26 @@ def open_map(session, stream, *args, **kw):
     maps = []
     from . import data
     grids = data.open_file(map_path)
+
+    if kw.get('polar_values', False):
+      for g in grids:
+        g.polar_values = True
+        if g.rgba is None:
+          g.rgba = (0,1,0,1) # Green
+
+    series = kw.get('vseries')
+    if series is not None:
+      if series:
+        for i,g in enumerate(grids):
+          if tuple(g.size) != tuple(grids[0].size):
+            gsizes = '\n'.join((g.name + (' %d %d %d' % g.size)) for g in grids)
+            raise UserError('Cannot make series from volumes with different sizes:\n%s' % gsizes)
+          g.series_index = i
+      else:
+        for g in grids:
+          if hasattr(g, 'series_index'):
+            delattr(g, 'series_index')
+          
     show = kw.get('show', True)
     show_dialog = kw.get('show_dialog', True)
     for i,d in enumerate(grids):
@@ -3017,4 +3043,4 @@ def register_map_file_formats():
       suf = tuple('.' + s for s in suffixes)
       save_func = save_map if d in fwriters else None
       io.register_format(d, toolshed.VOLUME, suf, nicknames=nicknames,
-                         open_func=open_map, batch=batch, export_func=save_func)
+                         open_func=open_map, batch=True, export_func=save_func)

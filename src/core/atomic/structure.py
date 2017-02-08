@@ -21,27 +21,26 @@ CATEGORY = toolshed.STRUCTURE
 class Structure(Model, StructureData):
 
     def __init__(self, session, *, name = "structure", c_pointer = None, restore_data = None,
-                 smart_initial_display = True):
+                 auto_style = True):
         # Cross section coordinates are 2D and counterclockwise
         # Use C++ version of XSection instead of Python version
         from .molobject import RibbonXSection as XSection
         from .molarray import Residues
         from numpy import array
         from .ribbon import XSectionManager
-       
+
         # attrs that should be saved in sessions, along with their initial values...
         self._session_attrs = {
-            'ball_scale': 0.3,		# Scales sphere radius in ball and stick style
-            'bond_radius': 0.2,
-            'pseudobond_radius': 0.05,
-            #'_ribbon_selected_residues': Residues(),
+            '_ball_scale': 0.3,		# Scales sphere radius in ball and stick style
+            '_bond_radius': 0.2,
+            '_pseudobond_radius': 0.05,
         }
 
         StructureData.__init__(self, c_pointer)
         for attr_name, val in self._session_attrs.items():
             setattr(self, attr_name, val)
         Model.__init__(self, name, session)
-        self._smart_initial_display = smart_initial_display
+        self._auto_style = auto_style
 
         # for now, restore attrs to default initial values even for sessions...
         self._atoms_drawing = None
@@ -53,9 +52,6 @@ class Structure(Model, StructureData):
         self._ribbon_r2t = {}         # ribbon residue-to-triangles map
         self._ribbon_tether = []      # ribbon tethers from ribbon to floating atoms
         self.ribbon_xs_mgr = XSectionManager(self)
-        # TODO: move back into _session_attrs when Collection instances
-        # handle session saving/restoring
-        self._ribbon_selected_residues = Residues()
 
         from . import molobject
         molobject.add_to_object_map(self)
@@ -85,7 +81,10 @@ class Structure(Model, StructureData):
         for handler in self._ses_handlers:
             t.remove_handler(handler)
         Model.delete(self)	# Delete children (pseudobond groups) before deleting structure
-        StructureData.delete(self)
+        if not self.deleted:
+            StructureData.delete(self)
+
+    deleted = StructureData.deleted
 
     def copy(self, name = None):
         '''
@@ -96,12 +95,12 @@ class Structure(Model, StructureData):
         if name is None:
             name = self.name
         m = self.__class__(self.session, name = name, c_pointer = StructureData._copy(self),
-                           smart_initial_display = False)
+                           auto_style = False)
         m.positions = self.positions
         return m
 
     def added_to_session(self, session):
-        if self._smart_initial_display:
+        if self._auto_style:
             color = self.initial_color(session.main_view.background_color)
             self.set_color(color)
 
@@ -194,7 +193,7 @@ class Structure(Model, StructureData):
 
     @staticmethod
     def restore_snapshot(session, data):
-        s = Structure(session, smart_initial_display = False)
+        s = Structure(session, auto_style = False)
         s.set_state_from_snapshot(session, data)
         return s
 
@@ -216,6 +215,27 @@ class Structure(Model, StructureData):
 
     def reset_state(self, session):
         pass
+
+    def _get_ball_scale(self):
+        return self._ball_scale
+    def _set_ball_scale(self, scale):
+        self._ball_scale = scale
+        self._graphics_changed |= self._SHAPE_CHANGE
+    ball_scale = property(_get_ball_scale, _set_ball_scale)
+
+    def _get_bond_radius(self):
+        return self._bond_radius
+    def _set_bond_radius(self, radius):
+        self._bond_radius = radius
+        self._graphics_changed |= self._SHAPE_CHANGE
+    bond_radius = property(_get_bond_radius, _set_bond_radius)
+
+    def _get_pseudobond_radius(self):
+        return self._pseudobond_radius
+    def _set_pseudobond_radius(self, radius):
+        self._pseudobond_radius = radius
+        self._graphics_changed |= self._SHAPE_CHANGE
+    pseudobond_radius = property(_get_pseudobond_radius, _set_pseudobond_radius)
 
     def initial_color(self, bg_color):
         from .colors import structure_color
@@ -267,12 +287,12 @@ class Structure(Model, StructureData):
         gc = self._graphics_changed
         if gc == 0:
             return
-        
+
         if gc & self._RIBBON_CHANGE:
             self._create_ribbon_graphics()
             # Displaying ribbon can set backbone atom hide bits producing shape change.
             gc |= self._graphics_changed
-        
+
         # Update graphics
         self._graphics_changed = 0
         s = (gc & self._SHAPE_CHANGE)
@@ -826,8 +846,7 @@ class Structure(Model, StructureData):
                 sp.positions = _tether_placements(spine_xyz1, spine_xyz2, spine_radii, self.TETHER_CYLINDER)
                 sp.colors = spine_colors
         self._graphics_changed |= self._SHAPE_CHANGE
-        from .molarray import Residues
-        self._ribbon_selected_residues = Residues()
+        self.residues.ribbon_selected = False
 
     def _smooth_ribbon(self, rlist, coords, guides, atoms, ssids, tethered,
                        xs_front, xs_back, p, helix_ranges, sheet_ranges):
@@ -843,17 +862,19 @@ class Structure(Model, StructureData):
             for start, end in helix_ranges:
                 self._arc_helix(rlist, coords, guides, ssids, tethered, xs_front, xs_back,
                                 ribbon_adjusts, start, end, p)
+        elif self.ribbon_mode_helix == self.RIBBON_MODE_WRAP:
+            for start, end in helix_ranges:
+                self._wrap_helix(rlist, coords, guides, ssids, tethered, xs_front, xs_back,
+                                 ribbon_adjusts, start, end, p)
         if self.ribbon_mode_strand == self.RIBBON_MODE_DEFAULT:
             # Smooth strands
             for start, end in sheet_ranges:
                 self._smooth_strand(rlist, coords, guides, tethered, xs_front, xs_back,
                                     ribbon_adjusts, start, end, p)
         elif self.ribbon_mode_strand == self.RIBBON_MODE_ARC:
-            # TODO: not implemented yet
-            pass
-            # for start, end in sheet_ranges:
-            #     self._arc_strand(coords, guides, tethered, xs_front, xs_back,
-            #                      ribbon_adjusts, start, end, p)
+            for start, end in sheet_ranges:
+                self._arc_strand(rlist, coords, guides, tethered, xs_front, xs_back,
+                                 ribbon_adjusts, start, end, p)
 
     def _smooth_helix(self, rlist, coords, guides, tethered, xs_front, xs_back,
                       ribbon_adjusts, start, end, p):
@@ -1176,6 +1197,24 @@ class Structure(Model, StructureData):
             self._ribbon_r2t[res] = triangle_range
         self._ribbon_t2r[ssp] = t2r
 
+    def _wrap_helix(self, rlist, coords, guides, ssids, tethered, xs_front, xs_back,
+                    ribbon_adjusts, start, end, p):
+        # Only bother if at least one residue is displayed
+        displays = rlist.ribbon_displays
+        if not any(displays[start:end]):
+            return
+
+        from .sse import HelixCylinder
+        hc = HelixCylinder(coords[start:end])
+        directions = hc.cylinder_directions()
+        coords[start:end] = hc.cylinder_surface()
+        guides[start:end] = coords[start:end] + directions
+        if False:
+            # Debugging code to display guides of secondary structure
+            self._ss_guide_display(p, str(self) + " helix guide " + str(start),
+                                   coords[start:end], guides[start:end])
+    
+
     def _smooth_strand(self, rlist, coords, guides, tethered, xs_front, xs_back,
                        ribbon_adjusts, start, end, p):
         if (end - start + 1) <= 2:
@@ -1210,6 +1249,30 @@ class Structure(Model, StructureData):
                                    coords[start:end], guides[start:end])
         # Update the tethered array
         tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
+
+    def _arc_strand(self, rlist, coords, guides, tethered, xs_front, xs_back,
+                       ribbon_adjusts, start, end, p):
+        if (end - start + 1) <= 2:
+            # Short strands do not need to be shown as planks
+            return
+        # Only bother if at least one residue is displayed
+        displays = rlist.ribbon_displays
+        if not any(displays[start:end]):
+            return
+
+        from .sse import StrandPlank
+        from numpy import linspace, cos, sin
+        from math import pi
+        from numpy import empty, tile
+
+        sp = StrandPlank(coords[start:end])
+        centers = sp.plank_centers()
+        #width, height = sp.plank_size()
+        #normals, binormals = sp.plank_normals()
+        delta = guides[start:end] - coords[start:end]
+        coords[start:end] = centers
+        guides[start:end] = coords[start:end] + delta
+        tethered[start:end] = True
 
     def _ss_axes(self, ss_coords):
         from numpy import mean, argmax
@@ -1285,10 +1348,13 @@ class Structure(Model, StructureData):
             rsel = residues.filter(mask)
         else:
             rsel = Residues()
-        hide = self._ribbon_selected_residues - rsel
-        keep = self._ribbon_selected_residues & rsel
-        show = rsel - self._ribbon_selected_residues
-        self._ribbon_selected_residues = keep | show
+        residues = self.residues
+        selected_residues = residues.filter(residues.ribbon_selected)
+        hide = selected_residues - rsel
+        keep = selected_residues & rsel
+        show = rsel - selected_residues
+        hide.ribbon_selected = False
+        show.ribbon_selected = True
         # Change the selected triangles in drawings
         da = {}         # actions - 0=hide, 1=keep, 2=show
         residues = [hide, keep, show]
@@ -1366,9 +1432,29 @@ class Structure(Model, StructureData):
     def first_intercept(self, mxyz1, mxyz2, exclude=None):
         if not self.display or (exclude and hasattr(self, exclude)):
             return None
+
+        picks = []
+        np = len(self.positions)
+        if np > 1:
+            pos_nums = self.bounds_intercept_copies(self.bounds(positions = False), mxyz1, mxyz2)
+        else:
+            # Don't do bounds check for single copy because bounds are not cached.
+            pos_nums = range(np)
+        for pn in pos_nums:
+            ppicks = self._position_intercepts(self.positions[pn], mxyz1, mxyz2)
+            picks.extend(ppicks)
+            for p in ppicks:
+                p.copy_number = pn
+
+        pclosest = None
+        for p in picks:
+            if pclosest is None or p.distance < pclosest.distance:
+                pclosest = p
+        return pclosest
+
+    def _position_intercepts(self, place, mxyz1, mxyz2, exclude=None):
         # TODO: check intercept of bounding box as optimization
-        # TODO: Handle molecule placed at multiple positions
-        xyz1, xyz2 = self.position.inverse() * (mxyz1, mxyz2)
+        xyz1, xyz2 = place.inverse() * (mxyz1, mxyz2)
         pa = self._atom_first_intercept(xyz1, xyz2)
         pb = self._bond_first_intercept(xyz1, xyz2)
         if pb and pa:
@@ -1379,16 +1465,11 @@ class Structure(Model, StructureData):
         pr = self._ribbon_first_intercept(xyz1, xyz2)
         # Handle molecular surfaces
         ps = self.first_intercept_children(self.child_models(), mxyz1, mxyz2, exclude)
-        picks = [pa, pb, ppb, pr, ps]
+        picks = [p for p in [pa, pb, ppb, pr, ps] if p]
 
         # TODO: for now, tethers pick nothing, but it should either pick
         #       the residue or the guide atom.
-
-        pclosest = None
-        for p in picks:
-            if p and (pclosest is None or p.distance < pclosest.distance):
-                pclosest = p
-        return pclosest
+        return picks
 
     def _atom_first_intercept(self, mxyz1, mxyz2):
         d = self._atoms_drawing
@@ -1432,7 +1513,7 @@ class Structure(Model, StructureData):
                 if f is not None and (fc is None or f < fc):
                     fc = f
                     bc = b
-                    
+
         p = PickedPseudobond(bc, fc) if bc else None
         return p
 
@@ -1528,7 +1609,7 @@ class Structure(Model, StructureData):
             if c.any_part_selected():
                 return True
         return False
-        
+
     def clear_selection(self):
         self.selected = False
         self.atoms.selected = False
@@ -1731,7 +1812,7 @@ class AtomicStructure(Structure):
 
     @staticmethod
     def restore_snapshot(session, data):
-        s = AtomicStructure(session, smart_initial_display = False)
+        s = AtomicStructure(session, auto_style = False)
         Structure.set_state_from_snapshot(s, session, data)
         return s
 
@@ -1739,6 +1820,7 @@ class AtomicStructure(Structure):
         super().added_to_session(session)
         self._set_chain_descriptions(session)
         self._determine_het_res_descriptions(session)
+        self._report_assemblies(session)
 
     def _determine_het_res_descriptions(self, session):
         # Don't actually set the description in the residue in order to avoid having
@@ -1838,13 +1920,32 @@ class AtomicStructure(Structure):
                     session.logger.info("%s, chain %s: %s" % (self, chain.chain_id,
                         chain.description))
 
+    def _report_assemblies(self, session):
+        from . import mmcif 
+        sat = mmcif.get_mmcif_tables_from_metadata(self, ['pdbx_struct_assembly'])[0]
+        if sat:
+            try:
+                rows = sat.fields(('id', 'details'))
+            except ValueError:
+                return	# Table does not have required fields
+            if len(rows) == 1 and rows[0][1].startswith('author'):
+                return	# Don't report the identity assembly
+            lines = ['<table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0">',
+                     '<tr><th colspan=2>%s mmCIF Assemblies' % self.name]
+            for id, details in rows:
+                lines.append('<tr><td><a href="cxcmd:sym #%s assembly %s ; view #%s clip false">%s</a><td>%s'
+                             % (self.id_string(), id, self.id_string(), id, details))
+            lines.append('</table>')
+            html = '\n'.join(lines)
+            session.logger.info(html, is_html=True)
+
 
 # -----------------------------------------------------------------------------
 # Before each redraw this singleton object gets a graphics update trigger and
 # checks the C++ graphics changed flags for all structures, updating the graphics
 # drawings for those structures if needed.  Also it updates the level of detail
 # for atom spheres and bond cylinders.
-# 
+#
 class StructureGraphicsChangeManager:
     def __init__(self, session):
         self.session = session
@@ -1857,7 +1958,7 @@ class StructureGraphicsChangeManager:
         from ..models import MODEL_DISPLAY_CHANGED
         self._display_handler = t.add_handler(MODEL_DISPLAY_CHANGED, self._model_display_changed)
         self._need_update = False
-        
+
     def __del__(self):
         self.session.triggers.remove_handler(self._handler)
         self.session.triggers.remove_handler(self._display_handler)
@@ -1874,7 +1975,7 @@ class StructureGraphicsChangeManager:
     def _model_display_changed(self, tname, model):
         if isinstance(model, Structure) or _has_structure_descendant(model):
             self._need_update = True
-        
+
     def _update_graphics_if_needed(self, *_):
         s = self._array()
         gc = s._graphics_changeds	# Includes pseudobond group changes.
@@ -1892,7 +1993,7 @@ class StructureGraphicsChangeManager:
                 from ..selection import SELECTION_CHANGED
                 self.session.triggers.activate_trigger(SELECTION_CHANGED, None)
                 # XXX: No data for now.  What should be passed?
-            
+
     def _update_level_of_detail(self):
         n = self.num_atoms_shown
         for m in self._structures:
@@ -2057,9 +2158,19 @@ class PickedAtom(Pick):
     @property
     def residue(self):
         return self.atom.residue
-    def select(self, toggle = False):
-        a = self.atom
-        a.selected = (not a.selected) if toggle else True
+    def select(self, mode = 'add'):
+        select_atom(self.atom, mode)
+
+# -----------------------------------------------------------------------------
+#
+def select_atom(a, mode = 'add'):
+    if mode == 'add':
+        s = True
+    elif mode == 'subtract':
+        s = False
+    elif mode == 'toggle':
+        s = not a.selected
+    a.selected = s
 
 # -----------------------------------------------------------------------------
 #
@@ -2076,13 +2187,19 @@ class PickedAtoms(Pick):
             for res in residues:
                 return res
         return None
-    def select(self, toggle = False):
-        a = self.atoms
-        if toggle:
-            from numpy import logical_not
-            a.selected = logical_not(a.selected)
-        else:
-            a.selected = True
+    def select(self, mode = 'add'):
+        select_atoms(self.atoms, mode)
+
+# -----------------------------------------------------------------------------
+#
+def select_atoms(a, mode = 'add'):
+    if mode == 'add':
+        a.selected = True
+    elif mode == 'subtract':
+        a.selected = False
+    elif mode == 'toggle':
+        from numpy import logical_not
+        a.selected = logical_not(a.selected)
 
 # -----------------------------------------------------------------------------
 # Handles bonds and pseudobonds.
@@ -2120,9 +2237,9 @@ class PickedBond(Pick):
         if a1.residue == a2.residue:
             return a1.residue
         return None
-    def select(self, toggle = False):
+    def select(self, mode = 'add'):
         for a in self.bond.atoms:
-            a.selected = (not a.selected) if toggle else True
+            select_atom(a, mode)
 
 # -----------------------------------------------------------------------------
 #
@@ -2138,9 +2255,11 @@ class PickedPseudobond(Pick):
         if a1.residue == a2.residue:
             return a1.residue
         return None
-    def select(self, toggle = False):
+    def select(self, mode = 'add'):
         for a in self.pbond.atoms:
-            a.selected = (not a.selected) if toggle else True
+            select_atom(a, mode)
+        pbg = self.pbond.group
+        pbg._graphics_changed |= pbg._SELECT_CHANGE
 
 # -----------------------------------------------------------------------------
 #
@@ -2151,9 +2270,14 @@ class PickedResidue(Pick):
         self.residue = residue
     def description(self):
         return str(self.residue)
-    def select(self, toggle=False):
-        atoms = self.residue.atoms
-        atoms.selected = (not atoms.selected.any()) if toggle else True
+    def select(self, mode = 'add'):
+        a = self.residue.atoms
+        if mode == 'add':
+            a.selected = True
+        elif mode == 'subtract':
+            a.selected = False
+        elif mode == 'toggle':
+            a.selected = not a.selected.any()
 
 # -----------------------------------------------------------------------------
 #
@@ -2169,13 +2293,8 @@ class PickedResidues(Pick):
             for res in self.residues:
                 return res
         return None
-    def select(self, toggle = False):
-        a = self.residues.atoms
-        if toggle:
-            from numpy import logical_not
-            a.selected = logical_not(a.selected)
-        else:
-            a.selected = True
+    def select(self, mode = 'add'):
+        select_atoms(self.residues.atoms, mode)
 
 # -----------------------------------------------------------------------------
 #
@@ -2219,7 +2338,7 @@ def _halfbond_cylinder_placements(axyz0, axyz1, radii):
   n = len(axyz0)
   from numpy import empty, float32
   p = empty((2*n,4,4), float32)
-  
+
   from ..geometry import cylinder_rotations
   cylinder_rotations(axyz0, axyz1, radii, p[:n,:,:])
   p[n:,:,:] = p[:n,:,:]
@@ -2241,7 +2360,7 @@ def _halfbond_cylinder_x3d(axyz0, axyz1, radii):
   n = len(axyz0)
   from numpy import empty, float32
   ci = empty((2 * n, 9), float32)
-  
+
   from ..geometry import cylinder_rotations_x3d
   cylinder_rotations_x3d(axyz0, axyz1, radii, ci[:n])
   ci[n:, :] = ci[:n, :]

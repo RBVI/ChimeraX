@@ -35,7 +35,7 @@ class GraphicsWindow(QWindow):
         self.minimum_event_processing_ratio = 0.1 # Event processing time as a fraction
         # of time since start of last drawing
         self.last_redraw_start_time = self.last_redraw_finish_time = 0
-
+        
         ui.have_stereo = False
         if hasattr(ui, 'stereo') and ui.stereo:
             sf = self.opengl_context.format()
@@ -83,6 +83,16 @@ class GraphicsWindow(QWindow):
                 s.ui.mouse_modes.mouse_pause_tracking()
             self.last_redraw_finish_time = time.perf_counter()
 
+    def update_graphics_now(self):
+        '''
+        Redraw graphics now if there are any changes.  This is typically only used by
+        mouse drag code that wants to update the graphics as responsively as possible,
+        particularly when a mouse step may take significant computation, such as contour
+        surface level change.  After each mouse event this is called to force a redraw.
+        '''
+        s = self.session
+        s.update_loop.draw_new_frame(s)
+            
 from PyQt5.QtWidgets import QLabel
 class Popup(QLabel):
 

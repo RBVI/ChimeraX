@@ -26,27 +26,34 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="../index.html#commands">Command</a>: volume</h3>
 
 <h3><a href="usageconventions.html">Usage</a>:
-<br><b>volume</b> &nbsp;<a href="atomspec.html"><i>model-spec</i></a>
+<br><b>volume</b> &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
 &nbsp;<a href="#options"><i>options</i></a></h3>
 <p>
 The <b>volume</b> command controls the display of density maps and
-other volume data, <i>i.e.</i>, values associated with points on a 3D grid.
-The <a href="atomspec.html"><i>model-spec</i></a> can be a specific model
-number or range of model numbers (preceded by #),
+other <a href="../tools/volumeviewer.html">volume data</a>, 
+<i>i.e.</i>, values associated with points on a 3D grid.
+The <a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+can be a specific model number or range of model numbers (preceded by #),
 or the word <b>all</b> to indicate all volume models.
-Volume data can be saved to a file with the 
-command <a href="save.html"><b>save</b></a>.
+</p><p>
+The corresponding graphical interface,
+<a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>,
+allows adjusting contour levels and some of the other settings
+interactively.  Volume data can be opened with the command
+<a href="open.html"><b>open</b></a> (which automatically starts 
+<a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>)
+and saved to a file with <a href="save.html"><b>save</b></a>.
 See also:
-<a href="open.html"><b>open</b></a>,
 <a href="show.html"><b>show</b></a>,
 <a href="color.html"><b>color</b></a>,
-<a href="vop.html"><b>vop</b></a>,
-<b>vseries</b>,
+<a href="transparency.html"><b>transparency</b></a>,
+<a href="vseries.html"><b>vseries</b></a>,
 <a href="molmap.html"><b>molmap</b></a>,
 <a href="fitmap.html"><b>fitmap</b></a>,
-<a href="sop.html"><b>sop</b></a>,
+<a href="surface.html#sop"><b>surface</b> operations</a>,
 <a href="sym.html"><b>sym</b></a>,
-<a href="smoothlines.html"><b>smoothlines</b></a>
+<a href="smoothlines.html"><b>smoothlines</b></a>,
+<a href="../tools/densitymaps.html"><b>Density Map Toolbar</b></a>
 </p>
 <a name="examples">Examples</a>:
 <blockquote>
@@ -58,14 +65,33 @@ See also:
 </blockquote>
 <a name="options"></a>
 The <b>volume</b> command has many options, here grouped into categories:
-<blockquote>
+<blockquote><b>
 <a href="#general">General Display Options</a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/showmap.png"></a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/hidemap.png"></a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/mapsurf.png"></a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/mesh.png"></a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/mapimage.png"></a>
 <br><a href="#sampling">Sampling and Size Options</a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/step1.png"></a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/step2.png"></a>
 <br><a href="#dimensions">Dimension and Scale Options</a>
 <br><a href="#planes">Planes Options</a>
 <br><a href="#dispsurf">Surface and Mesh Display Options</a>
 <br><a href="#dispsolid">Solid Display Options</a>
-</blockquote>
+<br><a href="#vop">Volume Operations (Map Editing)</a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/smooth.png"></a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/diffmap.png"></a>
+</b></blockquote>
 <p>
 Option keywords and Boolean (truth) values can be truncated, with
 synonyms for true: True, 1, and synonyms for false: False, 0.
@@ -95,8 +121,9 @@ default settings are indicated with <b>bold</b>.
   show those that are hidden and hide those that are shown.
 </blockquote>
 <blockquote>
+<!-- need to change section heading and vseries docs if solid becomes image -->
   <a href="#top" class="nounder">&bull;</a>
-  <a name="style"><b>style</b> surface | mesh | solid</a>
+  <a name="style"><b>style</b> &nbsp;surface | mesh | solid</a>
   <br>Designate the style of display:
   the <b>surface</b> and <b>mesh</b> modes
   depict isosurfaces (contour surfaces), while the <b>solid</b> mode
@@ -112,7 +139,7 @@ See also: <a href="#dispsurf">surface and mesh display options</a>,
 <a href="#dispsolid">solid display options</a>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="level"><b>level</b> <i>threshold-level</i></a>
+  <a name="level"><b>level</b> &nbsp;<i>threshold-level</i></a>
   <br>Place a <b><i>threshold</i></b>
   for mapping data values to the display. Can be given multiple times
   in the same command for multiple contour levels on the same volume data.
@@ -134,24 +161,24 @@ See also: <a href="#dispsurf">surface and mesh display options</a>,
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="rmsLevel"><b>rmsLevel</b> <i>threshold-level</i></a>
+  <a name="rmsLevel"><b>rmsLevel</b> &nbsp;<i>threshold-level</i></a>
   <br>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="sdLevel"><b>sdLevel</b> <i>threshold-level</i></a>
+  <a name="sdLevel"><b>sdLevel</b> &nbsp;<i>threshold-level</i></a>
   <br>
   Same as <a href="#level"><i>level</i></a>, except with <i>threshold-level</i>
   specified in units of root-mean-square (RMS) deviations from zero
   or standard deviations (SD) from the mean, respectively, 
   calculated for the <a href="#dimensions">current display region</a>
   and <a href="#sampling">step size</a>.
-  See also: <a href="vop.html#scale"><b>vop scale</b></a>
+  See also: <a href="#scale"><b>volume scale</b></a>
 <!--
   <a href="measure.html#mapStats"><b>measure mapStats</b></a>
 -->
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="color"><b>color</b> <i>threshold-color</i></a>
+  <a name="color"><b>color</b> &nbsp;<i>threshold-color</i></a>
   <br>Assign <a href="#level">threshold</a> color. Can be given multiple times
   in the same command if multiple <a href="#level">threshold levels</a> 
   are also specified.
@@ -175,7 +202,7 @@ only the ordering of each type of specification (levels or colors)
 is significant.
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="encloseVolume"><b>encloseVolume</b> <i>volume</i></a>
+  <a name="encloseVolume"><b>encloseVolume</b> &nbsp;<i>volume</i></a>
   <br>Automatically set <b>surface</b> or <b>mesh</b>
   <a href="#level">threshold level</a> to enclose
   the specified <i>volume</i> in distance units cubed (<i>e.g.</i>, 
@@ -192,14 +219,15 @@ is significant.
   0.001 of the target or 30 iterations have been performed.
   The <a href="#fastEncloseVolume"><b>fastEncloseVolume</b></a> option
   is similar but uses a noniterative approximation.
+  See also: 
+  <a href="vseries.html#align"><b>vseries align</b></a>
 <!--
-  See also: <a href="measure.html#volume"><b>measure volume</b></a>,
-  <a href="vseries.html#align-options"><b>vseries align</b></a>
+<a href="measure.html#volume"><b>measure volume</b></a>,
 -->
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="fastEncloseVolume"><b>fastEncloseVolume</b> <i>volume</i></a>
+  <a name="fastEncloseVolume"><b>fastEncloseVolume</b> &nbsp;<i>volume</i></a>
   <br>Automatically set <b>surface</b> or <b>mesh</b>
   <a href="#level">threshold level</a> to enclose
   the specified <i>volume</i> in distance units cubed (<i>e.g.</i>, 
@@ -214,21 +242,22 @@ is significant.
   The <a href="#encloseVolume"><b>encloseVolume</b></a> option
   is similar but uses an iterative procedure with increased accuracy
   at the cost of increased computation time.
+  See also: 
+  <a href="vseries.html#align"><b>vseries align</b></a>
 <!--
-  See also: <a href="measure.html#volume"><b>measure volume</b></a>,
-  <a href="vseries.html#align-options"><b>vseries align</b></a>
+<a href="measure.html#volume"><b>measure volume</b></a>,
 -->
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="brightness"><b>brightness</b> <i>value</i></a> 
+  <a name="brightness"><b>brightness</b> &nbsp;<i>value</i></a> 
   <br>Brightness scales the intensity of the color of the display.  Values
   can range from 0.01 to 10.0, where <b>1.0</b> (the default) produces no change
   relative to the <a href="#color">specified colors</a>.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="transparency"><b>transparency</b> <i>value</i></a>
+  <a name="transparency"><b>transparency</b> &nbsp;<i>value</i></a>
   <br>Transparency values range from 0.0 (fully opaque) 
   to 1.0 (fully transparent).
   <ul class="circle">
@@ -249,13 +278,13 @@ is significant.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="outline"><b>showOutlineBox</b> true | <b>false</b></a>
+  <a name="outline"><b>showOutlineBox</b> &nbsp;true | <b>false</b></a>
   <br>Outline the bounding box of the 
   <a href="#dimensions">current display region</a>.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <b>outlineBoxRgb</b> <i>outline-color</i>
+  <b>outlineBoxRgb</b> &nbsp;<i>outline-color</i>
   <br>Assign a color to the <a href="#outline">outline box</a>.
   The <i>outline-color</i> can be any
   <a href="colornames.html">color name</a> that specifies a single color.
@@ -269,7 +298,7 @@ is significant.
 (Usage:&nbsp;<a href="#top">volume</a>&nbsp;&nbsp;<i>model-spec</i>&nbsp;&nbsp;<i>options</i>)</h4>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="step"><b>step</b> <i>N</i> | <i>Nx,Ny,Nz</i></a>
+  <b>step</b> &nbsp;<i>N</i> | <i>Nx,Ny,Nz</i>
   <br>Step values indicate sampling density; a step of 1 
   means all data points are used to generate the display, 
   while 2 means every other data point is taken along each axis.
@@ -282,13 +311,13 @@ is significant.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="autostep"><b>limitVoxelCount</b> <b>true</b> | false</a>
-  <br>Automatically adjust <a href="#step">step size</a> so that no more
+  <a name="autostep"><b>limitVoxelCount</b> &nbsp;<b>true</b> | false</a>
+  <br>Automatically adjust <a href="#sampling">step size</a> so that no more
   than the <a href="#voxmax">specified voxel limit</a> is displayed.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="voxmax"><b>voxelLimit</b> <i>limit</i></a>
+  <a name="voxmax"><b>voxelLimit</b> &nbsp;<i>limit</i></a>
   <br>Set the maximum number of Mvoxels to be displayed (default <b>1.0</b>)
   when <a href="#autostep"><b>limitVoxelCount</b></a> is set to true.
 </blockquote>
@@ -296,33 +325,33 @@ The remaining options in this section apply to all volume models,
 regardless of which are specified:
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="dispopen"><b>showOnOpen</b> <b>true</b> | false</a>
+  <a name="dispopen"><b>showOnOpen</b> &nbsp;<b>true</b> | false</a>
   <br>Automatically display a data set when it is opened if it does not
   exceed a <a href="#dispsize">specified size</a>.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="dispsize"><b>voxelLimitForOpen</b> <i>size</i></a> 
+  <a name="dispsize"><b>voxelLimitForOpen</b> &nbsp;<i>size</i></a> 
   <br>Set the data size limit in Mvoxels below which data should be
   automatically displayed when opened (default <b>256.0</b>) when
   <a href="#dispopen"><b>showOnOpen</b></a> is set to true.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="dispplane"><b>showPlane</b> <b>true</b> | false</a>
+  <a name="dispplane"><b>showPlane</b> &nbsp;<b>true</b> | false</a>
   <br>Initially display just a single plane (normal to the Z axis) 
   of a data set if it exceeds a <a href="#planesize">specified size</a>.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="planesize"><b>voxelLimitForPlane</b> <i>size</i></a>
+  <a name="planesize"><b>voxelLimitForPlane</b> &nbsp;<i>size</i></a>
   <br>Set the data size limit in Mvoxels above which a single plane of
   the data should be initially displayed (default <b>256.0</b>) when
   <a href="#dispplane"><b>showPlane</b></a> is set to true.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <b>dataCacheSize</b> <i>size</i>
+  <b>dataCacheSize</b> &nbsp;<i>size</i>
   <br>Set how much memory in Mb should be dedicated to volume data 
   (default <b>512</b>).  A cache can improve performance, since accessing 
   cached data is faster than reading it from disk. 
@@ -338,7 +367,7 @@ regardless of which are specified:
 (Usage:&nbsp;<a href="#top">volume</a>&nbsp;&nbsp;<i>model-spec</i>&nbsp;&nbsp;<i>options</i>)</h4>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <b>region</b> all | <i>name</i> | <i>i1,j1,k1,i2,j2,k2</i>
+  <b>region</b> &nbsp;all | <i>name</i> | <i>i1,j1,k1,i2,j2,k2</i>
   <br>Show the full data set (specified with <b>all</b>), 
   or the data region previously <a href="#name">assigned</a>
   <i>name</i>, or the data region with grid indices 
@@ -349,18 +378,18 @@ regardless of which are specified:
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="name"><b>nameRegion</b> <i>name</i></a>
+  <a name="name"><b>nameRegion</b> &nbsp;<i>name</i></a>
   <br>Assign <i>name</i> to the currently displayed region.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="origin"><b>origin</b> <i>x,y,z</i></a>
+  <a name="origin"><b>origin</b> &nbsp;<i>x,y,z</i></a>
   <br>Place the grid origin at coordinates <i>x,y,z</i> (numbers separated
   by commas but not spaces).
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="originIndex"><b>originIndex</b> <i>i,j,k</i></a>
+  <a name="originIndex"><b>originIndex</b> &nbsp;<i>i,j,k</i></a>
   <br>Place the coordinate origin (0,0,0)
    at grid indices <i>i,j,k</i> (numbers separated by commas but not spaces).
    Fractional and negative values are allowed, as the origin is not 
@@ -368,7 +397,7 @@ regardless of which are specified:
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="scale"><b>voxelSize</b> <i>S</i> | <i>Sx,Sy,Sz</i></a>
+  <b>voxelSize</b> &nbsp;<i>S</i> | <i>Sx,Sy,Sz</i>
   <br>Voxel size indicates the scale of the data set, the spacing of
   points in units of distance.  If a single number is supplied, it is
   used in all three directions; if three numbers are supplied 
@@ -380,7 +409,7 @@ regardless of which are specified:
 
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="symmetry"><b>symmetry</b> <i>sym-type</i></a>
+  <a name="symmetry"><b>symmetry</b> &nbsp;<i>sym-type</i></a>
   <br>Assign the specified symmetry to the volume data set.
   This information is retained in files <a href="save.html">saved</a> 
   in <a href="save.html#chimap">Chimera map</a> format and can be used by 
@@ -497,7 +526,7 @@ regardless of which are specified:
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="axis"><b>axis</b> <i>axis</i></a>
+  <a name="axis"><b>axis</b> &nbsp;<i>axis</i></a>
   <br>
   Specify axis of symmetry (default <b>z</b>), where <i>axis</i> can be:
    <ul>
@@ -510,7 +539,7 @@ regardless of which are specified:
   <li>an <a href="atomspec.html"><i>atom-spec</i></a> of
    exactly two atoms (not necessarily bonded or in the same model) 
 <!-- or one bond.
-   A bond can only be specified by <a href="select.html">selecting</a>
+   A bond can only be specified by <a href="../selection.html">selecting</a>
    it and using the word <b>sel</b>;
    any atoms also selected at the time will be ignored.
 -->
@@ -518,7 +547,7 @@ regardless of which are specified:
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="center"><b>center</b> <i>center</i></a>
+  <a name="center"><b>center</b> &nbsp;<i>center</i></a>
   <br>
   Specify center of symmetry in physical coordinates (default <b>0,0,0</b>),
   where <i>center</i> can be:
@@ -545,7 +574,7 @@ regardless of which are specified:
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="coordinateSystem"><b>coordinateSystem</b> <i>N</i></a>
+  <a name="coordinateSystem"><b>coordinateSystem</b> &nbsp;<i>N</i></a>
   <br>
   Specify a reference model by model number <i>N</i> preceded by #.
   The reference coordinate system is used for interpreting specifications of
@@ -553,12 +582,9 @@ regardless of which are specified:
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="dump"><b>dumpHeader</b></a>
-  <br>Write the file header contents (if any) of a map read from 
+  <a name="dump"><b>dumpHeader</b> &nbsp;true | <b>false</b></a>
+  <br>Whether to write the file header contents (if any) of a map read from 
   MRC or CCP4 format to the <a href="../tools/log.html"><b>Log</b></a>.
-<!--
-takes true/false in Chimera
--->
 </blockquote>
 
 <h4><a href="#top" class="nounder"><b>&larr;</b></a>
@@ -567,7 +593,7 @@ takes true/false in Chimera
 (Usage:&nbsp;<a href="#top">volume</a>&nbsp;&nbsp;<i>model-spec</i>&nbsp;&nbsp;<i>options</i>)</h4>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <b>planes</b> <i>axis</i>,<i>start</i>[,<i>end</i>[,<i>increment</i>[,<i>depth</i>]]]
+  <b>planes</b> &nbsp;<i>axis</i>,<i>start</i>[,<i>end</i>[,<i>increment</i>[,<i>depth</i>]]]
   <br>Sequentially display slabs <i>depth</i> planes thick along the
   specified data <i>axis</i> (<b>x</b>,<b>y</b>, or <b>z</b>) starting from
   index <i>start</i> and repositioning the slab by <i>increment</i> 
@@ -576,7 +602,7 @@ takes true/false in Chimera
   The indices refer to the first displayed plane along the axis.
   If no <i>end</i> is supplied, only a single slab will be shown.  
   The default <i>increment</i> and <i>depth</i> are both <b>1</b>.
-  Only planes that are multiples of the <a href="#step">step size</a>
+  Only planes that are multiples of the <a href="#sampling">step size</a>
   will be shown, and the <i>depth</i> refers to the number of planes
   shown rather than a grid index range.
   Although an <i>increment</i> smaller than the step size can be specified, 
@@ -588,16 +614,16 @@ takes true/false in Chimera
   <i>increment</i>, and <i>depth</i> parameters can be floating-point numbers.
   For example, an <i>increment</i> of 0.25 with step size 1 will show each
   plane for 4 frames.
+  See also: <a href="#tile"><b>volume tile</b></a>
 <!--
   See the
   <a href="http://www.cgl.ucsf.edu/chimera/data/movie-howto-mar2012/movie_examples.html#planes"
   target="_blank">video mini-example</a>.
-  See also: <a href="vop.html#tile"><b>vop tile</b></a>
 -->
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="expandSinglePlane"><b>expandSinglePlane</b>&nbsp;true&nbsp;|&nbsp;false</a>
+  <a name="expandSinglePlane"><b>expandSinglePlane</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false</a>
   <br>
   Expand a single-plane display
   along its perpendicular axis to the full thickness of the data.
@@ -606,8 +632,8 @@ takes true/false in Chimera
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
   <a name="orthoplanes"><b>orthoplanes</b></a>
-  xyz&nbsp;|&nbsp;xy&nbsp;|&nbsp;yz&nbsp;|&nbsp;xz&nbsp;|&nbsp;off
-  [&nbsp;<b>positionPlanes</b>&nbsp;<i>i,j,k</i>&nbsp;]
+  &nbsp;xyz&nbsp;|&nbsp;xy&nbsp;|&nbsp;yz&nbsp;|&nbsp;xz&nbsp;|&nbsp;off
+  [&nbsp;<b>positionPlanes</b>&nbsp;&nbsp;<i>i,j,k</i>&nbsp;]
   <br>Display planes perpendicular to the X, Y, and/or Z data axes
   within the <a href="#dimensions">current region</a>.
   If only a single plane is shown beforehand, it will be
@@ -625,7 +651,7 @@ takes true/false in Chimera
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <b>boxFaces</b>&nbsp;true&nbsp;|&nbsp;false
+  <b>boxFaces</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
   <br>Display orthogonal planes as the six box faces of the
   <a href="#dimensions">current region</a>.
   If only a single plane is shown beforehand, it will be
@@ -649,7 +675,7 @@ both depict isosurfaces.
 </p>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="smoothing"><b>surfaceSmoothing</b> true | <b>false</b></a>
+  <a name="smoothing"><b>surfaceSmoothing</b> &nbsp;true | <b>false</b></a>
   <br>Whether to smooth surface and mesh displays.
   Smoothing entails moving each vertex
   a <a href="#smoothfact">specified fraction</a> 
@@ -658,14 +684,14 @@ both depict isosurfaces.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="smoothiter"><b>smoothingIterations</b> <i>N</i></a>
+  <a name="smoothiter"><b>smoothingIterations</b> &nbsp;<i>N</i></a>
   <br>How many iterations of smoothing to perform (default <b>2</b>)
   when <a href="#smoothing"><b>surfaceSmoothing</b></a> is set to true.
   Each vertex is moved once per iteration.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="smoothfact"><b>smoothingFactor</b> <i>f</i></a>
+  <a name="smoothfact"><b>smoothingFactor</b> &nbsp;<i>f</i></a>
   <br>How far to move each vertex 
   when <a href="#smoothing"><b>surfaceSmoothing</b></a> is set to true.
   In each <a href="#smoothiter">iteration</a>, each vertex
@@ -675,7 +701,7 @@ both depict isosurfaces.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="subdivide"><b>subdivideSurface</b> true | <b>false</b></a>
+  <a name="subdivide"><b>subdivideSurface</b> &nbsp;true | <b>false</b></a>
   <br>Whether to subdivide each triangle in surface and mesh displays
   into four smaller triangles a
   <a href="#sublevels">specified number</a> of times.
@@ -686,7 +712,7 @@ both depict isosurfaces.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="sublevels"><b>subdivisionLevels</b> <i>j</i></a>
+  <a name="sublevels"><b>subdivisionLevels</b> &nbsp;<i>j</i></a>
   <br>How many times to subdivide triangles when
   <a href="#subdivide"><b>subdivideSurface</b></a> is set to true.
   The number of triangles is increased by a factor of 
@@ -695,7 +721,7 @@ both depict isosurfaces.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <b>smoothLines</b> true | <b>false</b>
+  <b>smoothLines</b> &nbsp;true | <b>false</b>
   <br>Turn on anti-aliasing to smooth lines in mesh displays.
   Mesh lines with <a href="#transparency">transparency</a> &gt; 0.0 can 
   only be smoothed when <a href="#dim"><b>dimTransparency</b></a> is true.
@@ -705,20 +731,20 @@ both depict isosurfaces.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <b>squareMesh</b> <b>true</b> | false
+  <b>squareMesh</b> &nbsp;<b>true</b> | false
   <br>Display only a subset of the lines in the triangular mesh.  
   Lines in the square mesh show the intersection of the 
   XY, YZ, and XZ grid planes with the contour surface.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
- <b>lineThickness</b> <i>width</i>
+ <b>lineThickness</b> &nbsp;<i>width</i>
  <br>Set pixel linewidth used in mesh displays. The <i>width</i>
  must be a positive integer (default <b>1</b>).
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="dim"><b>dimTransparency</b> <b>true</b> | false</a>
+  <a name="dim"><b>dimTransparency</b> &nbsp;<b>true</b> | false</a>
   <br>Decrease the brightness of surface and mesh displays as their
   <a href="#transparency">transparency</a> is increased.
   When dimming is on, OpenGL (alpha,1&ndash;alpha)
@@ -726,31 +752,31 @@ both depict isosurfaces.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="meshlight"><b>meshLighting</b> <b>true</b> | false</a>
+  <a name="meshlight"><b>meshLighting</b> &nbsp;<b>true</b> | false</a>
   <br>Make the inside of a mesh-enclosed volume dimmer than the outside
   by varying the brightness according to the angle
   between each surface point normal and the line of sight.
   Brightness is maximal when the outward-facing normal
   is parallel to the line of sight and pointing at the user
   (see more on the definition of &ldquo;outward&rdquo; under 
-  <a href="#flip"><b>flipNormals</b></a>).
+  <a href="#flipNormals"><b>flipNormals</b></a>).
   When this option is off, brightness is uniform regardless of
   the angle between the normal and the line of sight.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="two-sided"><b>twoSidedLighting</b> <b>true</b> | false</a>
+  <a name="two-sided"><b>twoSidedLighting</b> &nbsp;<b>true</b> | false</a>
   <br>Light both sides of surface displays.
   Otherwise, only the outside of a surface-enclosed volume will be lit
   (see more on the definition of &ldquo;outside&rdquo; under 
-  <a href="#flip"><b>flipNormals</b></a>).
+  <a href="#flipNormals"><b>flipNormals</b></a>).
   The brightness of each lit side varies according to the angle between a
   surface point normal and the line of sight;
   brightness is maximal when the normal is parallel to the line of sight.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="flip"><b>flipNormals</b> <b>true</b> | false</a>
+  <a name="flipNormals"><b>flipNormals</b> &nbsp;<b>true</b> | false</a>
   <br>Affects surface displays when 
   <a href="#two-sided"><b>twoSidedLighting</b></a> is set to false,
   mesh displays when
@@ -768,7 +794,7 @@ both depict isosurfaces.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <b>capFaces</b> <b>true</b> | false
+  <b>capFaces</b> &nbsp;<b>true</b> | false
   <br>Cover the faces of the volume data box where high values would be exposed.
 </blockquote>
 
@@ -782,7 +808,7 @@ both depict isosurfaces.
 </p>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <b>colorMode</b> <i>cmode</i>
+  <b>colorMode</b> &nbsp;<i>cmode</i>
   <br>Specify color pixel format (OpenGL texture format).
   Possible values of <i>cmode</i> combine 
   a string describing the types of information:
@@ -799,7 +825,7 @@ both depict isosurfaces.
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
   <a name="pmode">
-  <b>projectionMode</b> <i>pmode</i></a>
+  <b>projectionMode</b> &nbsp;<i>pmode</i></a>
   <br>Specify projection mode for memory-efficient display of 
   large data sets such as tomograms.  Possible values of <i>pmode</i>:
   <ul class="circle">
@@ -823,7 +849,7 @@ both depict isosurfaces.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <b>maximumIntensityProjection</b> true | <b>false</b>
+  <b>maximumIntensityProjection</b> &nbsp;true | <b>false</b>
   <br>At each pixel, display the the most intense color value 
   underlying the pixel along the line of sight.
   The maximum intensities of the red, green, and blue color components are
@@ -836,7 +862,7 @@ both depict isosurfaces.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="dimvox"><b>dimTransparentVoxels</b> <b>true</b> | false</a>
+  <a name="dimvox"><b>dimTransparentVoxels</b> &nbsp;<b>true</b> | false</a>
   <br>Scale voxel brightness in solid displays
   by a factor of (1&ndash;transparency).
   Otherwise, increasing the transparency also makes a volume
@@ -844,7 +870,7 @@ both depict isosurfaces.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <b>btCorrection</b> true | <b>false</b>
+  <b>btCorrection</b> &nbsp;true | <b>false</b>
   <br>Correct brightness and transparency for the viewing angle.
   Without this correction, the apparent brightness and transparency
   of solid displays (in <a href="#pmode">projection modes</a> other than 3d)
@@ -857,7 +883,7 @@ both depict isosurfaces.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <b>minimalTextureMemory</b> true | <b>false</b>
+  <b>minimalTextureMemory</b> &nbsp;true | <b>false</b>
   <br>Reuse a single 2D texture for solid displays 
   (in <a href="#pmode">projection modes</a> other than 3d)
   instead of allocating
@@ -867,20 +893,970 @@ both depict isosurfaces.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <b>linearInterpolation</b> <b>true</b> | false
+  <b>linearInterpolation</b> &nbsp;<b>true</b> | false
   <br>Linearly interpolate brightness and transparency
   between voxels in solid displays.
   Turning interpolation off may yield a pixelated appearance
   but speed up rendering, depending on the graphics hardware.
 </blockquote>
 
+<h4><a href="#top" class="nounder"><b>&larr;</b></a>
+<a name="vop">Volume Operations (Map Editing)</a></h4>
+<p>
+A volume operation edits density maps or other
+<a href="../tools/volumeviewer.html">volume data</a>
+to create a new volume data set.
+The original map is undisplayed and the new map
+is displayed with the same threshold and color as the original.
+See also:
+<a href="surface.html#sop"><b>surface</b> operations</a>,
+<a href="smoothlines.html"><b>smoothlines</b></a>,
+<a href="../tools/densitymaps.html"><b>Density Map Toolbar</b></a>
+</p><p>
+Examples:
+</p>
+<blockquote><b>
+volume add #2-25 onGrid #1
+<br>vol add #1,2,5 onGrid #5 inPlace true
+<br>vol add #1,2 boundingGrid false
+<br>vol gaussian #3 sd 5
+<br>vol subtract #2 #4 modelId #5
+<br>vol unbend #1 path #2 yaxis z xsize 200 ysize 200
+</b></blockquote>
+<p>
+Several operations are available:
+</p>
+<ul>
+<li><a href="#add"><b>volume add</b></a> - add two or more maps
+<li><a href="#bin"><b>volume bin</b></a>
+- reduce data size by averaging over cells of multiple grid points
+<li><a href="#boxes"><b>volume boxes</b></a>
+- extract cubic regions centered on markers or atoms
+<li><a href="#cover"><b>volume cover</b></a>
+- extend map to cover specified atoms or box
+<li><a href="#falloff"><b>volume falloff</b></a>
+- smooth the boundaries of masked density
+<li><a href="#flatten"><b>volume flatten</b></a>
+- scale values to flatten map baseline
+<li><a href="#flip"><b>volume flip</b></a>
+- reverse data planes along a specified axis
+<li><a href="#fourier"><b>volume fourier</b></a> - Fourier transform
+<li><a href="#gaussian"><b>volume gaussian</b></a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/smooth.png"></a>
+- Gaussian smoothing or sharpening
+<li><a href="#laplacian"><b>volume laplacian</b></a> - Laplacian filtering
+<li><a href="#localCorrelation"><b>volume localCorrelation</b></a>
+- calculate map-map correlation over a sliding box
+<li><a href="#maximum"><b>volume maximum</b></a>
+- take the maximum values pointwise from two or more maps
+<li><a href="#median"><b>volume median</b></a>
+- set each value to the median of values in a surrounding box
+<li><a href="#minimum"><b>volume minimum</b></a>
+- take the minimum values pointwise from two or more maps
+<li><a href="#morph"><b>volume morph</b></a>
+- morph (interpolate) between two or more maps
+<li><a href="#multiply"><b>volume multiply</b></a>
+- multiply values in two or more maps
+<li><a href="#new"><b>volume new</b></a> - create empty (zero-valued) map
+<li><a href="#cutoctant"><b>volume ~octant</b></a> - erase positive octant
+<li><a href="#octant"><b>volume octant</b></a> - erase all but the positive octant
+<li><a href="#permuteAxes"><b>volume permuteAxes</b></a> - permute axes
+<li><a href="#resample"><b>volume resample</b></a>
+- resample on the grid of another map
+<li><a href="#ridges"><b>volume ridges</b></a>
+- skeletonize; emphasize ridges or filaments in the density
+<li><a href="#scale"><b>volume scale</b></a>
+- scale, shift, normalize, and/or cast to a different data value type
+<li><a href="#subtract"><b>volume subtract</b></a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/diffmap.png"></a>
+- subtract another map from the first
+<li><a href="#threshold"><b>volume threshold</b></a>
+- reassign values that are below a specified minimum
+and/or above a specified maximum
+<li><a href="#tile"><b>volume tile</b></a>
+- make a single-plane volume from tiled slices of another volume
+<li><a href="#unbend"><b>volume unbend</b></a>
+- unbend a map near a path formed by markers/links or atoms/bonds
+<li><a href="#unroll"><b>volume unroll</b></a>
+- unroll a cylindrical slab into a flat slab
+<li><a href="#zone"><b>volume zone</b></a>
+- zero the values at grid points within or beyond a cutoff distance from
+specified atoms
+</ul>
+<a href="#vop" class="nounder">&bull;</a>
+<a name="add"><b>volume add</b></a> &nbsp;<i>volume-spec</i>&nbsp;
+[&nbsp;<b>scaleFactors</b>&nbsp;&nbsp;<i>f1,f2,...</i>&nbsp;]
+[&nbsp;<b>onGrid</b>&nbsp;&nbsp;<i>gridmap</i>&nbsp;]
+[&nbsp;<b>boundingGrid</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>gridStep</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
+[&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
+[&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
+&nbsp;<a href="#vop-options"><i>new-map-options</i></a>
+<blockquote>
+Add two or more maps to create a new map.
+Option keywords are the same as for
+<a href="#minimum"><b>volume minimum</b></a>,
+<a href="#maximum"><b>volume maximum</b></a>, and
+<a href="#multiply"><b>volume multiply</b></a>:
+<p>
+The <b>scaleFactors</b> keyword specifies a multiplier
+for each map (default <b>1.0</b>); as many values as input maps
+must be supplied, separated by commas but not spaces.
+</p><p>
+The new map can be created on the grid of another map specified with
+<b>onGrid</b>, where <i>gridmap</i> is a model number preceded by #.
+If <i>gridmap</i> is not specified, it defaults to the first in
+<i>volume-spec</i> (the first of the maps being added).
+The input maps are resampled on the grid by trilinear interpolation,
+and the resulting values summed for each grid point.
+Note resampling causes some loss in resolution
+(<a href="#notes">details...</a>).
+<a name="gridmap-related">Further options related to <i>gridmap</i></a>:
+  <ul>
+  <li><b>boundingGrid</b>
+  - whether to adjust (extend or shrink) the grid of <i>gridmap</i>
+  to bound the input maps (default <b>true</b> when adding maps
+  without specifying a <i>gridmap</i>, otherwise <b>false</b>)
+  <li><b>gridStep</b>
+  - whether to use the full resolution of <i>gridmap</i>
+  (step size <b>1</b>, default) or a specified
+  subsample (step size &gt; 1).  Step sizes must be integers.
+  If a single number is supplied, it is
+  used along all three axes; if three numbers are supplied
+  (separated by commas but not spaces), they
+  are used along the X, Y, and Z axes, respectively.
+  <li><b>gridSubregion</b>
+  - whether to use the full extents of <i>gridmap</i> (<b>all</b>, default)
+  or a specified subregion.
+  A subregion can be specified by:
+   <ul>
+   <li> <i>name</i> previously assigned
+   with the <a href="#dimensions"><b>nameRegion</b> option of <b>volume</b></a>
+   <li> grid indices
+   <i>i1&ndash;i2</i> along the X axis,
+   <i>j1&ndash;j2</i> along the Y axis, and
+   <i>k1&ndash;k2</i> along the Z axis.
+   Grid indices must be integers separated by commas but not spaces.
+   </ul>
+  </ul>
+The <i>value-type</i> defaults to the current type
+of the <b>onGrid</b> map (if any), otherwise the first in <i>volume-spec</i>,
+and can be 8-, 16-, or 32-bit signed integer
+(<b>int8</b>, <b>int16</b>, or <b>int32</b>),
+8-, 16-, or 32-bit unsigned integer
+(<b>uint8</b>, <b>uint16</b>, or <b>uint32</b>),
+or 32- or 64-bit floating-point (<b>float32</b> or <b>float64</b>).
+</p><p>
+If the new map is large, for example a whole tomogram, the command may
+fail for lack of memory.  The whole new map must fit in memory.
+</p>
+</blockquote>
+
+<a href="#vop" class="nounder">&bull;</a>
+<a name="bin"><b>volume bin</b></a> &nbsp;<i>volume-spec</i>&nbsp;
+[&nbsp;<b>binSize</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>N<sub>x</sub>,N<sub>y</sub>,N<sub>z</sub></i>&nbsp;]
+&nbsp;<a href="#vop-options"><i>new-map-options</i></a>
+<blockquote>
+Average over cells of multiple grid points in the original map
+to produce a smaller map.  Supplying a single integer N (default <b>2</b>)
+indicates partitioning the map into bins of NxNxN grid points and averaging
+the N<sup>3</sup> values per bin to produce a new map with
+1/N as many points in each dimension.  Cells with different numbers of
+grid points in each dimension can be specified by supplying three integers
+<i>N<sub>x</sub>,N<sub>y</sub>,N<sub>z</sub></i> separated by commas only.
+</blockquote>
+
+<a href="#vop" class="nounder">&bull;</a>
+<a name="boxes"><b>volume boxes</b></a> &nbsp;<i>volume-spec</i>&nbsp;
+<b>centers</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+[&nbsp;<b>size</b>&nbsp;&nbsp;<i>d</i>&nbsp;|&nbsp;<b>isize</b>&nbsp;&nbsp;<i>n</i>&nbsp;]
+[&nbsp;<b>useMarkerSize</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+&nbsp;<a href="#vop-options"><i>new-map-options</i></a>
+<blockquote>
+For each marker or atom in <a href="atomspec.html"><i>atom-spec</i></a>,
+extract a surrounding cube of data. Markers can be created with the mouse
+(see <a href="mousemode.html"><b>mousemode</b></a>).
+If <b>useMarkerSize</b> is false (default),
+the edge length of each cube must be specified in physical units
+of length with <b>size</b> or in grid units with <b>isize</b>.
+If <b>useMarkerSize</b> is true,
+the diameter of its central marker or atom is used as the edge length or
+added to the <b>size</b> value if also given (default <i>d</i> = <b>0.0</b>).
+The <b>isize</b> option facilitates getting the same-sized cubes for
+each marker, except where a marker is too close to the edge
+of the density map to obtain a cube of the requested size.
+If <b>size</b> is used instead, rounding may yield edges
+that differ slightly in grid dimensions.
+Marker/atom size can be changed with the
+<a href="style.html"><b>style</b></a> command.
+</blockquote>
+
+<a href="#vop" class="nounder">&bull;</a>
+<a name="cover"><b>volume cover</b></a> &nbsp;<i>volume-spec</i>&nbsp;
+[&nbsp;<b>atomBox</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;[&nbsp;<b>pad</b>&nbsp;&nbsp;<i>d</i>&nbsp;]]
+[&nbsp;<b>box</b>&nbsp;&nbsp;<i>x1,y1,z1,x2,y2,z2</i>&nbsp;]&nbsp;[&nbsp;<b>x</b>&nbsp;&nbsp;<i>x1,x2</i>&nbsp;]&nbsp;[&nbsp;<b>y</b>&nbsp;&nbsp;<i>y1,y2</i>&nbsp;]&nbsp;[&nbsp;<b>z</b>&nbsp;&nbsp;<i>z1,z2</i>&nbsp;]
+[&nbsp;<b>fbox</b>&nbsp;&nbsp;<i>a1,b1,c1,a2,b2,c2</i>&nbsp;]&nbsp;[&nbsp;<b>fx</b>&nbsp;&nbsp;<i>a1,a2</i>&nbsp;]&nbsp;[&nbsp;<b>fy</b>&nbsp;&nbsp;<i>b1,b2</i>&nbsp;]&nbsp;[&nbsp;<b>fz</b>&nbsp;&nbsp;<i>c1,c2</i>&nbsp;]
+[&nbsp;<b>ibox</b>&nbsp;&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;]&nbsp;[&nbsp;<b>ix</b>&nbsp;&nbsp;<i>i1,i2</i>&nbsp;]&nbsp;[&nbsp;<b>iy</b>&nbsp;&nbsp;<i>j1,j2</i>&nbsp;]&nbsp;[&nbsp;<b>iz</b>&nbsp;&nbsp;<i>k1,k2</i>&nbsp;]
+[&nbsp;<b>cellSize</b>&nbsp;&nbsp;<i>nx,ny,nz</i>&nbsp;]
+[&nbsp;<b>useSymmetry</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#vop-options"><b>modelId</b></a>&nbsp;&nbsp;<i>M</i>&nbsp;]
+[&nbsp;<a href="#vop-options"><b>step</b></a>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
+<blockquote>
+Extend a map to cover specified atoms or to fill a rectangular box,
+using map symmetries and periodicity.
+The output dimensions can be specified as:
+  <ul>
+  <li><b>atomBox</b> spanning the <a href="atomspec.html">specified</a> atoms
+  plus any extra <b>pad</b> in each dimension
+  (<i>d</i> is in units of physical distance, default <b>5.0</b>)
+  <li><b>box</b> or just individual dimensions <b>x</b>, <b>y</b>, and/or <b>z</b>
+  in the X,Y,Z coordinate system of the input map
+  <li><b>fbox</b> or just individual dimensions <b>fx</b> <i>etc.</i>
+  in fractional coordinates where 0.0-1.0 spans each dimension of the input map
+  <li><b>ibox</b> or just individual dimensions <b>ix</b> <i>etc.</i>
+  in grid indices of the input map.  The input map's grid indices
+  start at 0.
+  </ul>
+Unspecified dimensions will be kept the same as the input map.
+The output grid will have the same spacing and alignment as the grid of the
+input map.  The <b>cellSize</b> option
+specifies unit cell dimensions in grid units along the X, Y, and Z axes.
+The default unit cell dimensions correspond to the full size of the map,
+or for CCP4 and MRC maps, are taken from the header.
+The <b>useSymmetry</b> option indicates whether to use any symmetries
+associated with the map (default <b>true</b>); if false,
+only unit cell periodicity will be used.
+Map symmetries are read from the CCP4 or MRC file header,
+or can be assigned manually with the
+<a href="#dimensions"><b>symmetry</b> option of <b>volume</b></a>.
+<!--
+or automatically with
+<a href="measure.html#symmetry"><b>measure symmetry</b></a>.
+-->
+</p><p>
+Values from symmetry copies are determined by trilinear interpolation
+(with potential loss in resolution, see <a href="#notes">details</a>).
+Where symmetries and periodicity give multiple copies of the input map
+overlapping a grid point, the average value will be assigned.
+The maximum difference between values from different copies at a grid point
+will be reported in the <a href="../tools/log.html"><b>Log</b></a>.
+If there are grid points not covered by symmetry or unit cell periodicity,
+a message will be sent to the <a href="../tools/log.html"><b>Log</b></a>,
+and the points will be assigned values of 0.0.
+To ensure complete coverage by symmetry copies,
+the asymmetric unit of the map should extend far enough
+that its symmetry copies overlap by a non-zero amount.
+For example, if the unit cell is 100 grid points wide and there is two-fold
+symmetry along the X axis, the asymmetric unit would need to contain
+at least 52 grid points along the X axis. If it contains only 50, the two
+symmetric copies will not overlap, and values in the space between the
+copies cannnot be determined because the current code cannot interpolate
+between different copies of the map.
+If it contains 51, the two copies will have a single plane of grid points
+in common. Although that would be sufficient with exact arithmetic,
+the copies still might not overlap given the rounding errors
+inherent in computer calculations.
+</p>
+</blockquote>
+
+<a href="#vop" class="nounder">&bull;</a>
+<a name="falloff"><b>volume falloff</b></a> &nbsp;<i>volume-spec</i>&nbsp;
+[&nbsp;<b>iterations</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
+&nbsp;<a href="#vop-options"><i>new-map-options</i></a>
+<blockquote>
+Smooth the boundaries of a masked map by replacing the value
+at each grid point outside the boundary with the average of the values
+of its six nearest neighbors, for <i>M</i> iterations (default <b>10</b>).
+All grid points with values of zero before the first iteration
+are taken to be outside the boundary,
+thus assigned a new value at each iteration.
+Thanks to Greg Pintilie for the initial implementation.
+</blockquote>
+
+<a href="#vop" class="nounder">&bull;</a>
+<a name="flatten"><b>volume flatten</b></a> &nbsp;<i>volume-spec</i>&nbsp;
+[&nbsp;<b>method</b>&nbsp;&nbsp;<b>multiply</b>&nbsp;|&nbsp;divide&nbsp;]
+[&nbsp;<b>fitregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
+&nbsp;<a href="#vop-options"><i>new-map-options</i></a>
+<blockquote>
+If the <b>method</b> is <b>multiply</b> (default),
+scale data values by factor (a*i + b*j + c*k + d)
+where i,j,k are the grid indices and a,b,c,d are calculated to
+zero out the first moments of the resulting map
+(make its mass balance at the center of the grid).  If the <b>method</b>
+is <b>divide</b>, data values are divided by the factor (a*i + b*j + c*k + d),
+which is a least-squares fit to the map data values.
+For both methods, the a,b,c,d coefficients are scaled
+to make (a*i + b*j +c*k + d) equal to 1 at the center of the map.
+If a <b>fitregion</b> is specified, the calculation of
+the a,b,c,d coefficients uses only the data values in the specified region,
+while the scaling operation applies to the entire map or the part specified
+with <a href="#vop-options"><b>subregion</b></a>.
+The <b>fitregion</b> can be the full extents of the data (<b>all</b>, default)
+or a subregion specified by:
+  <ul>
+  <li> <i>name</i> previously assigned
+  with the <a href="#dimensions"><b>nameRegion</b> option of <b>volume</b></a>
+  <li> grid indices
+  <i>i1&ndash;i2</i> along the X axis,
+  <i>j1&ndash;j2</i> along the Y axis, and
+  <i>k1&ndash;k2</i> along the Z axis.
+  Grid indices must be integers separated by commas but not spaces.
+  </ul>
+</blockquote>
+
+<a href="#vop" class="nounder">&bull;</a>
+<a name="flip"><b>volume flip</b></a> &nbsp;<i>volume-spec</i>&nbsp;
+[&nbsp;<b>axis</b>&nbsp;&nbsp;x&nbsp;|&nbsp;y&nbsp;|&nbsp;<b>z</b>&nbsp;|&nbsp;xy&nbsp;|&nbsp;yz&nbsp;|&nbsp;xyz&nbsp;]
+&nbsp;<a href="#vop-options"><i>new-map-options</i></a>
+<blockquote>
+Reverse data planes along a specified <b>axis</b> (default <b>z</b>,
+reversing the order of the Z planes).
+</blockquote>
+
+<a href="#vop" class="nounder">&bull;</a>
+<a name="fourier"><b>volume fourier</b></a> &nbsp;<i>volume-spec</i>&nbsp;
+[&nbsp;<b>phase</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+&nbsp;<a href="#vop-options"><i>new-map-options</i></a>
+<blockquote>
+Calculate the <a href="#moreft">3D Fourier transform</a>.
+If <b>phase</b> is false (default), generate a
+magnitude map; if <b>phase</b> is true, generate a map of phase
+values (&ndash;&pi; to &pi;) instead.
+</blockquote>
+
+<a href="#vop" class="nounder">&bull;</a>
+<a name="gaussian"><b>volume gaussian</b></a> &nbsp;<i>volume-spec</i>&nbsp;
+[&nbsp;<b>sDev</b>&nbsp;&nbsp;<i>&sigma;</i>&nbsp;|&nbsp;<i>&sigma;<font size="-1">x</font>,&sigma;<font size="-1">y</font>,&sigma;<font size="-1">z</font>&nbsp;</i>]
+[&nbsp;<b>invert</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
+&nbsp;<a href="#vop-options"><i>new-map-options</i></a>
+<blockquote>
+Perform Gaussian filtering,
+where <i>&sigma;</i> is one standard deviation of the 3D Gaussian function
+in physical units such as &Aring; (default <b>1.0</b>).
+Different standard deviations along X,Y,Z can be specified as
+three values separated by commas only.
+Gaussian filtering attenuates high frequencies to smooth the map; however,
+the opposite behavior (amplifying the high frequencies to sharpen the map)
+can be specified with <b>invert true</b>.
+Sharpening with <i>&sigma;</i> values smaller than the pixel size
+is most useful; larger values overemphasize high frequencies, in effect
+amplifying noise.
+The <i>value-type</i> defaults to the current type
+and can be 8-, 16-, or 32-bit signed integer
+(<b>int8</b>, <b>int16</b>, or <b>int32</b>),
+8-, 16-, or 32-bit unsigned integer
+(<b>uint8</b>, <b>uint16</b>, or <b>uint32</b>),
+or 32- or 64-bit floating-point (<b>float32</b> or <b>float64</b>).
+<p>
+Gaussian smoothing improves the ratio of signal to noise but reduces resolution.
+It is fastest for data sizes that are powers of 2, and can be very slow
+when insufficient memory is available. It may be helpful to limit
+the input to just a subsample or subregion of the original data.
+Although it uses a fast Fourier transform calculation method,
+it does not use map periodicity.
+Values outside the map boundaries are treated as zero.
+See also: <a href="../tools/densitymaps.html"><b>Density Map Toolbar</b></a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/smooth.png"></a>
+</p>
+</blockquote>
+
+<a href="#vop" class="nounder">&bull;</a>
+<a name="laplacian"><b>volume laplacian</b></a> &nbsp;<i>volume-spec</i>
+&nbsp;<a href="#vop-options"><i>new-map-options</i></a>
+<blockquote>
+Perform Laplacian filtering.
+The Laplacian operation is a sum of second derivatives.
+Laplacian filtering is useful for edge detection but
+amplifies noise, so it may be necessary to perform smoothing such as
+Gaussian filtering beforehand.
+Finite differences v(i-1)-2*v(i)+v(i+1) along each axis are used,
+and voxels at the edge of the box are set to zero.
+</blockquote>
+
+<a href="#vop" class="nounder">&bull;</a>
+<a name="localCorrelation"><b>volume localCorrelation</b></a>
+&nbsp;<i>map</i> &nbsp;<i>othermap</i>&nbsp;
+[&nbsp;<b>windowSize</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>subtractMean</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#vop-options"><b>modelId</b></a>&nbsp;&nbsp;<i>M</i>&nbsp;]
+<blockquote>
+Calculate the correlation between two maps over a sliding box of
+NxNxN grid points, generating a new map by assigning the correlation value
+to the box center.  The sliding box is based on the grid
+of the first map, and <i>N</i> = <b>5</b> grid units by default.
+If the grids of the two input maps do not coincide, the values of
+the second map will be interpolated
+(with potential loss in resolution, see <a href="#notes">details</a>).
+The <b>subtractMean</b> option specifies whether to subtract the mean
+of the values in the window from each value in the window
+before calculating the correlation.
+The output map will be <i>N</i>&ndash;1 smaller in each dimension than
+the first map.
+</blockquote>
+
+<a href="#vop" class="nounder">&bull;</a>
+<a name="maximum"><b>volume maximum</b></a> &nbsp;<i>volume-spec</i>&nbsp;
+[&nbsp;<b>scaleFactors</b>&nbsp;&nbsp;<i>f1,f2,...</i>&nbsp;]
+[&nbsp;<b>onGrid</b>&nbsp;&nbsp;<i>gridmap</i>&nbsp;]
+[&nbsp;<b>boundingGrid</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>gridStep</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
+[&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
+[&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
+&nbsp;<a href="#vop-options"><i>new-map-options</i></a>
+<blockquote>
+Set each value to the maximum at that point in two or more input maps.
+See <a href="#add"><b>volume add</b></a> for descriptions of the options.
+</blockquote>
+
+<a href="#vop" class="nounder">&bull;</a>
+<a name="median"><b>volume median</b></a> &nbsp;<i>volume-spec</i>&nbsp;
+[&nbsp;<b>binSize</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>N<sub>x</sub>,N<sub>y</sub>,N<sub>z</sub></i>&nbsp;]
+[&nbsp;<b>iterations</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
+&nbsp;<a href="#vop-options"><i>new-map-options</i></a>
+<blockquote>
+Smooth the data by setting each value to the median of the values
+in a box centered at that point.  Values at points for which
+the surrounding box extends outside the data are simply set to zero.
+Box dimensions are specified in
+grid units with <b>binSize</b> and must be odd integers.
+Supplying a single integer N (default <b>3</b>)
+indicates a box size of NxNxN grid points.
+Boxes with different numbers of grid points in each dimension
+can be specified by supplying three integers
+<i>N<sub>x</sub>,N<sub>y</sub>,N<sub>z</sub></i> separated by commas only.
+The <b>iterations</b> option indicates how many cycles of smoothing to
+perform (default <b>1</b>).
+</blockquote>
+
+<a href="#vop" class="nounder">&bull;</a>
+<a name="minimum"><b>volume minimum</b></a> &nbsp;<i>volume-spec</i>&nbsp;
+[&nbsp;<b>scaleFactors</b>&nbsp;&nbsp;<i>f1,f2,...</i>&nbsp;]
+[&nbsp;<b>onGrid</b>&nbsp;&nbsp;<i>gridmap</i>&nbsp;]
+[&nbsp;<b>boundingGrid</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>gridStep</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
+[&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
+[&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
+&nbsp;<a href="#vop-options"><i>new-map-options</i></a>
+<blockquote>
+Set each value to the minimum at that point in two or more input maps.
+See <a href="#add"><b>volume add</b></a> for descriptions of the options.
+</blockquote>
+
+<a href="#vop" class="nounder">&bull;</a>
+<a name="morph"><b>volume morph</b></a> &nbsp;<i>volume-spec</i>&nbsp;
+[&nbsp;<b>start</b>&nbsp;&nbsp;<i>start-fraction</i>&nbsp;]
+[&nbsp;<b>playStep</b>&nbsp;&nbsp;<i>increment</i>&nbsp;]
+[&nbsp;<b>frames</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>playDirection</b>&nbsp;&nbsp;<b>1</b>&nbsp;|&nbsp;&ndash;1&nbsp;]
+[&nbsp;<b>playRange</b>&nbsp;&nbsp;<i>low-fraction,high-fraction</i>&nbsp;]
+[&nbsp;<b>scaleFactors</b>&nbsp;&nbsp;<i>f1,f2,...</i>&nbsp;]
+[&nbsp;<b>constantVolume</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>addMode</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>hideOriginalMaps</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>interpolateColors</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+&nbsp;<a href="#vop-options"><i>new-map-options</i></a>
+<blockquote>
+Morph between two or more maps.
+<!--
+(this is the command-line implementation of
+<a href="../../ContributedSoftware/morphmap/morphmap.html"><b>Morph Map</b></a>,
+except that more than two maps can be handled).
+-->
+For a reasonable result, the input maps should have the same grids:
+dimensions, spacing, and numbers of points.
+Note <a href="#resample"><b>volume resample</b></a>
+can be used to make a copy of one map that has the same grid as another.
+A morphing fraction of 0.0 corresponds to the first map and a fraction of 1.0
+corresponds to the last, with intermediate maps evenly spaced within that range.
+There is smooth interpolation between each adjacent pair of maps.
+<p>
+The morph display will proceed from <i>start-fraction</i> (default <b>0.0</b>)
+in steps of <i>increment</i> (default <b>0.04</b>) for <i>N</i> <b>frames</b>
+(default <b>25</b>).  By default (<b>playDirection 1</b>),
+the initial direction of play is from low to high fractions.
+If the number of frames and step increment are more than needed to reach
+the <b>playRange</b> bounds (default is the entire range: <b>0.0,1.0</b>),
+the morph display will &ldquo;bounce&rdquo; back and forth.
+The <b>scaleFactors</b> keyword specifies a multiplier for each map
+(default <b>1.0</b>); as many values as input maps must be supplied.
+The <b>constantVolume</b> option specifies adjusting the
+<a href="#general">threshold</a> (contour level)
+automatically to keep the enclosed volume constant.
+The <b>addMode</b> option specifies treating the second map as a delta
+to be added to the first instead of linearly interpolating between the two.
+It is not recommended for inputs of &gt;2 maps.
+The <b>hideOriginalMaps</b> option specifies hiding the input maps.
+The <b>interpolateColors</b> option
+only applies when the maps have the same number of
+<a href="#general">thresholds</a>
+(contour levels for surface/mesh display,
+coloring control nodes for solid display).
+</p><p>
+The morph is created as a new map (volume) model. However, if the
+<a href="#vop-options"><b>modelId</b></a> of an existing morph map is given,
+the existing morph will be used instead of a new one being calculated.
+</p><p>
+See also:
+<a href="vseries.html"><b>vseries</b></a>,
+<a href="../movies.html">making movies</a>
+</p>
+</blockquote>
+
+<a href="#vop" class="nounder">&bull;</a>
+<a name="multiply"><b>volume multiply</b></a> &nbsp;<i>volume-spec</i>&nbsp;
+[&nbsp;<b>scaleFactors</b>&nbsp;&nbsp;<i>f1,f2,...</i>&nbsp;]
+[&nbsp;<b>onGrid</b>&nbsp;&nbsp;<i>gridmap</i>&nbsp;]
+[&nbsp;<b>boundingGrid</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>gridStep</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
+[&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
+[&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
+&nbsp;<a href="#vop-options"><i>new-map-options</i></a>
+<blockquote>
+Multiply the values pointwise in two or more maps.
+This is used to apply a mask (values 0,1) to a map.
+See <a href="#add"><b>volume add</b></a> for descriptions of the options.
+</blockquote>
+
+<a href="#vop" class="nounder">&bull;</a>
+<a name="new"><b>volume new</b></a> [&nbsp;<i>map-name</i>&nbsp;]
+[&nbsp;<b>size</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
+[&nbsp;<b>gridSpacing</b>&nbsp;&nbsp;<i>s</i>&nbsp;|&nbsp;<i>sx,sy,sz</i>&nbsp;]
+[&nbsp;<b>origin</b>&nbsp;&nbsp;<i>x,y,z</i>&nbsp;]
+[&nbsp;<b>cellAngles</b>&nbsp;&nbsp;<i>&alpha;,&beta;,&gamma;</i>&nbsp;]
+[&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
+[&nbsp;<a href="#vop-options"><b>modelId</b></a>&nbsp;&nbsp;<i>N</i>&nbsp;]
+<blockquote>
+Create an &ldquo;empty&rdquo; zero-valued map named <i>map-name</i>
+(default <b>new</b>)
+with the specified <b>size</b> (number of grid points along each axis,
+default <b>100</b>), <b>gridSpacing</b> in physical distance units
+(default <b>1.0</b> along each axis),
+<b>origin</b> coordinates (default <b>0.0,0.0,0.0</b>),
+and <b>cellAngles</b> (default <b>90,90,90</b>&deg;;
+a single value can be supplied if &alpha; = &beta; = &gamma;).
+Grid size and spacing can each be given as a single value to apply to
+all three axes or as three values separated by commas only.
+If <i>map-name</i> includes spaces, it must be enclosed in quotation marks.
+The <i>value-type</i> defaults to <b>float32</b>
+and can be 8-, 16-, or 32-bit signed integer
+(<b>int8</b>, <b>int16</b>, or <b>int32</b>),
+8-, 16-, or 32-bit unsigned integer
+(<b>uint8</b>, <b>uint16</b>, or <b>uint32</b>),
+or 32- or 64-bit floating-point (<b>float32</b> or <b>float64</b>).
+</blockquote>
+
+<a href="#vop" class="nounder">&bull;</a>
+<a name="cutoctant"><b>volume ~octant</b></a> &nbsp;<i>volume-spec</i>&nbsp;
+[&nbsp;<b>center</b>&nbsp;&nbsp;<i>x,y,z</i>&nbsp;|&nbsp;<b>iCenter</b>&nbsp;<i>i,j,k</i>&nbsp;]
+[&nbsp;<b>fillValue</b>&nbsp;&nbsp;<i>value</i>&nbsp;]
+&nbsp;<a href="#vop-options"><i>new-map-options</i></a>
+<blockquote>
+Erase values inside the positive octant
+(all grid points with X,Y,Z coordinates greater than the center).
+The center can be specified in physical units (such as &Aring;) with
+<b>center</b> or in grid units with <b>iCenter</b>.
+The default is the center of the volume data box.
+The coordinates should be separated by commas but not spaces, and the
+values can be fractional.
+<b>iCenter</b> overrides <b>center</b> if both are given.  The
+values in the erased regions will be set to <i>value</i> (default <b>0</b>).
+A different value may improve contour surface appearance;
+for example, large negative values produce flatter surfaces where an
+octant has been cut away from a map of positive values.
+</blockquote>
+
+<a href="#vop" class="nounder">&bull;</a>
+<a name="octant"><b>volume octant</b></a> &nbsp;<i>volume-spec</i>&nbsp;
+[&nbsp;<b>center</b>&nbsp;&nbsp;<i>x,y,z</i>&nbsp;|&nbsp;<b>iCenter</b>&nbsp;<i>i,j,k</i>&nbsp;]
+[&nbsp;<b>fillValue</b>&nbsp;&nbsp;<i>value</i>&nbsp;]
+&nbsp;<a href="#vop-options"><i>new-map-options</i></a>
+<blockquote>
+Erase values outside the positive octant. Options are as described for
+<a href="#cutoctant"><b>volume ~octant</b></a> above.
+</blockquote>
+
+<a href="#vop" class="nounder">&bull;</a>
+<a name="permuteAxes"><b>volume permuteAxes</b></a>
+&nbsp;<i>volume-spec</i>&nbsp;
+&nbsp;<i>axis-order</i>&nbsp;
+&nbsp;<a href="#vop-options"><i>new-map-options</i></a>
+<blockquote>
+Permute grid axes to the specified <i>axis-order</i>, which can be
+any of the 6 ordered combinations of <b>x</b>, <b>y</b>, and <b>z</b>.
+The original order is <b>xyz</b>.
+</blockquote>
+
+<a href="#vop" class="nounder">&bull;</a>
+<a name="ridges"><b>volume ridges</b></a> &nbsp;<i>volume-spec</i>&nbsp;
+[&nbsp;<b>level</b>&nbsp;&nbsp;<i>minimum</i>&nbsp;]
+&nbsp;<a href="#vop-options"><i>new-map-options</i></a>
+<blockquote>
+Skeletonize map(s) by tracing along high-density grid points to
+identify ridges or filamentous structures in the density.
+At each grid point, the value is compared to the values of all the points
+in the surrounding 3x3x3 box, and the count of how many directions (up to 13)
+along which the value is a local maximum is assigned as that point's value
+in the new map. The <b>level</b> keyword indicates a
+<i>minimum</i> value in the original map below which to
+automatically set the new value to 0, essentially ignoring those points
+in the skeletonization. The default <i>minimum</i> is the lowest display
+<a href="#general">threshold</a>
+(contour level) in the original map.
+Viewing the new skeleton map with a threshold
+of 6-10 highlights ridgelike features in the original map.
+<!--
+<p>
+See also:
+<a href="../../ContributedSoftware/volumepathtracer/framevolpath.html"
+target="_top"><b>Volume Tracer</b></a>
+-->
+</p>
+</blockquote>
+
+<a href="#vop" class="nounder">&bull;</a>
+<a name="resample"><b>volume resample</b></a> &nbsp;<i>volume-spec</i>&nbsp;
+<b>onGrid</b>&nbsp;&nbsp;<i>gridmap</i>&nbsp;
+[&nbsp;<b>boundingGrid</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>gridStep</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
+[&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
+[&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
+&nbsp;<a href="#vop-options"><i>new-map-options</i></a>
+<blockquote>
+Resample values on the grid of another map specified with <b>onGrid</b>,
+where <i>gridmap</i> is a model number preceded by #.
+Values on the grid are obtained by trilinear interpolation of the input map.
+The other arguments are as described
+<a href="#gridmap-related">above</a> for <a href="#add"><b>volume add</b></a>.
+Note resampling causes some loss in resolution
+(<a href="#notes">details...</a>).
+</blockquote>
+
+<a href="#vop" class="nounder">&bull;</a>
+<a name="scale">
+<b>volume scale</b></a> &nbsp;<i>volume-spec</i>&nbsp;
+[&nbsp;<b>shift</b>&nbsp;&nbsp;<i>constant</i>&nbsp;]
+[&nbsp;<b>factor</b>&nbsp;&nbsp;<i>f</i>&nbsp;]
+[&nbsp;<b>rms</b>&nbsp;&nbsp;<i>new-rms</i>&nbsp;|&nbsp;<b>sd</b>&nbsp;<i>new-std-dev</i>&nbsp;]
+[&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
+&nbsp;<a href="#vop-options"><i>new-map-options</i></a>
+<blockquote>
+Shift values by adding a <i>constant</i> (default <b>0.0</b>),
+scale values by a multiplicative factor <i>f</i> (default <b>1.0</b>),
+and/or cast them to a different data value type.
+When values are both shifted and scaled, the shift is applied first.
+Two normalization options calculate a scaling factor from the data:
+  <ul>
+  <li><b>rms</b> - scale values to make <i>new-rms</i> =
+  ((&sum;<i>x</i><font size="-1"><sup>2</sup></font>)/N)<sup>&frac12;</sup>
+  where <i>x</i> is each value and N is the total number of values
+  <li><b>sd</b> - first shift values so that the mean is 0.0,
+  then scale values to make <i>new-std-dev</i> =
+  ((&sum;<i>x</i><font size="-1"><sup>2</sup></font>)/N)<sup>&frac12;</sup>
+  </ul>
+If a <b>factor</b> <i>f</i> is also specified, it is applied last.
+The <i>value-type</i> defaults to the current type
+and can be 8-, 16-, or 32-bit signed integer
+(<b>int8</b>, <b>int16</b>, or <b>int32</b>),
+8-, 16-, or 32-bit unsigned integer
+<b>uint8</b>, <b>uint16</b>, or <b>uint32</b>),
+or 32- or 64-bit floating-point (<b>float32</b> or <b>float64</b>).
+<p>
+See also:
+<a href="#general"><b>rmsLevel, sdLevel</b>
+options of <b>volume</b></a>
+<!--
+<a href="measure.html#mapStats"><b>measure mapStats</b></a>
+-->
+</p>
+</blockquote>
+
+<a href="#vop" class="nounder">&bull;</a>
+<a name="subtract"><b>volume subtract</b></a>
+&nbsp;<i>map</i> &nbsp;<i>othermap</i>&nbsp;
+[&nbsp;<b>scaleFactors</b>&nbsp;&nbsp;<i>f1,f2</i>&nbsp;]
+[&nbsp;<b>minRms</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>onGrid</b>&nbsp;&nbsp;<i>gridmap</i>&nbsp;]
+[&nbsp;<b>boundingGrid</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>gridStep</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
+[&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
+[&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
+&nbsp;<a href="#vop-options"><i>new-map-options</i></a>
+</font>
+<blockquote>
+Subtract the values of <i>othermap</i> from <i>map</i>, both specified by
+model number preceded by #.
+The <b>scaleFactors</b> option specifies multipliers <i>f1</i>
+and <i>f2</i> for <i>map</i> and <i>othermap</i>, respectively;
+two values must be supplied, separated by a comma but not spaces.
+Alternatively, if <b>minRms</b> is true, <i>othermap</i> will be
+scaled automatically to minimize the root-mean-square sum
+of the resulting (subtracted) values at grid points
+within the lowest contour of <i>othermap</i>.
+<p>
+The new map can be created on the grid of another map specified with
+<b>onGrid</b>, where <i>gridmap</i> is a model number preceded by #.
+If <i>gridmap</i> is not specified, it defaults to <i>map</i>.
+The input maps are resampled on the grid by trilinear interpolation,
+and the resulting values subtracted for each grid point.
+Note resampling causes some loss in resolution
+(<a href="#notes">details...</a>).
+</p><p>
+The remaining arguments are as described
+<a href="#gridmap-related">above</a> for <a href="#add"><b>volume add</b></a>,
+except that <b>boundingGrid</b> always defaults to <b>false</b>.
+When subtraction from an unsigned-integer map could give negative numbers,
+the <b>valueType</b> option should be used to specify a signed data type
+for the result.
+</p><p>
+See also:
+<a href="fitmap.html#subtractMaps"><b>subtractMaps</b> option of <b>fitmap</b></a>,
+<a href="../tools/densitymaps.html"><b>Density Map Toolbar</b></a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/diffmap.png"></a>
+</p>
+</blockquote>
+
+<a href="#vop" class="nounder">&bull;</a>
+<a name="threshold"><b>volume threshold</b></a> &nbsp;<i>volume-spec</i>&nbsp;
+[&nbsp;<b>minimum</b>&nbsp;&nbsp;<i>min</i>&nbsp;]
+[&nbsp;<b>set</b>&nbsp;&nbsp;<i>newmin</i>&nbsp;]
+[&nbsp;<b>maximum</b>&nbsp;&nbsp;<i>max</i>&nbsp;]
+[&nbsp;<b>setMaximum</b>&nbsp;&nbsp;<i>newmax</i>&nbsp;]
+&nbsp;<a href="#vop-options"><i>new-map-options</i></a>
+<blockquote>
+Replace all values that are below a <b>mininum</b> value (<i>min</i>)
+with <i>newmin</i> (default equal to <i>min</i>),
+and/or
+replace all values that are above a <b>maximum</b> value (<i>max</i>)
+with <i>newmax</i> (default equal to <i>max</i>).
+</blockquote>
+
+<a href="#vop" class="nounder">&bull;</a>
+<a name="tile"><b>volume tile</b></a> &nbsp;<i>volume-spec</i>&nbsp;
+[&nbsp;<b>axis</b>&nbsp;&nbsp;x&nbsp;|&nbsp;y&nbsp;|&nbsp;<b>z</b>&nbsp;]
+[&nbsp;<b>pstep</b>&nbsp;&nbsp;<i>n</i>&nbsp;]
+[&nbsp;<b>trim</b>&nbsp;&nbsp;<i>i</i>&nbsp;]
+[&nbsp;<b>rows</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
+[&nbsp;<b>columns</b>&nbsp;&nbsp;<i>c</i>&nbsp;]
+[&nbsp;<b>fillOrder</b>&nbsp;&nbsp;<i>order</i>&nbsp;]
+&nbsp;<a href="#vop-options"><i>new-map-options</i></a>
+<blockquote>
+Create a single-plane volume by tiling slices
+of a specified volume perpendicular to the specified <b>axis</b>
+(default <b>z</b>).  The spacing of slices in grid units
+(default <b>1</b>) is given with the <b>pstep</b> keyword.
+The <b>trim</b> keyword indicates each slice should be trimmed
+on all four edges by <i>i</i> grid units (default <b>0</b>).
+The slices are arranged into a single plane with number of
+<b>rows</b> <i>r</i> and number of <b>columns</b> <i>c</i>.
+If neither the number of rows nor the number of columns is supplied, they
+are computed to produce as near a square tiling as possible.  If one or
+the other is supplied, the remaining parameter is adjusted to accommodate
+the total number of slices. The <b>fillOrder</b> setting
+(default <b>ulh</b>) specifies the tiling pattern,
+including the starting corner, the tiling direction (horizontal or vertical),
+and whether to reverse the order of slices.  The first two characters
+specify the corner for the first tile, the first character being <b>u</b> for
+upper or <b>l</b> for lower and the second being <b>l</b> for left or <b>r</b>
+for right. These directions are defined with the specified
+axis pointing at the viewer and the remaining two axes pointing up
+and right. The third character is <b>h</b> for horizontal tiling or <b>v</b>
+for vertical tiling. The optional fourth character <b>r</b> indicates
+that the order of the slices should be reversed. The resulting volume
+data set has the same origin and orientation of axes as the original volume,
+and grid size 1 along the specified axis.
+</blockquote>
+
+<a href="#vop" class="nounder">&bull;</a>
+<a name="unbend"><b>volume unbend</b></a> &nbsp;<i>volume-spec</i>&nbsp;
+<b>path</b>&nbsp;&nbsp;<i>path-spec</i>&nbsp;
+[&nbsp;<b>yaxis</b>&nbsp;&nbsp;x&nbsp;|&nbsp;<b>y</b>&nbsp;|&nbsp;z&nbsp;|&nbsp;<i>x,y,z</i>&nbsp;|&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
+[&nbsp;<b>xsize</b>&nbsp;&nbsp;<i>xs</i>&nbsp;]
+[&nbsp;<b>ysize</b>&nbsp;&nbsp;<i>ys</i>&nbsp;]
+[&nbsp;<b>gridSpacing</b>&nbsp;&nbsp;<i>s</i>&nbsp;]
+&nbsp;<a href="#vop-options"><i>new-map-options</i></a>
+<blockquote>
+Unbend a map near a path formed by markers/links or (equivalently) atoms/bonds.
+Markers and links can be created with the mouse
+(see <a href="mousemode.html"><b>mousemode</b></a>).
+The <i>path-spec</i> should be an
+<a href="atomspec.html"><i>atom-spec</i></a> that specifies
+a single chain of atoms (markers) connected by bonds (links).
+The path will be mapped to the Z axis of the result.
+The <b>yaxis</b> setting indicates which axis in the existing
+volume should be mapped to the Y axis of the result, and can be given as:
+<ul>
+<li><b>x</b> - X-axis
+<li><b>y</b> (default) - Y-axis
+<li><b>z</b> - Z-axis
+<li><i>x,y,z</i>
+(three values separated by commas only) - an arbitrary vector
+<li>an <a href="atomspec.html"><i>atom-spec</i></a> of
+exactly two atoms (not necessarily bonded or in the same model)
+<!-- or one bond.
+A bond can only be specified by <a href="../selection.html">selecting</a>
+it and using the word <b>sel</b>;
+any atoms also selected at the time will be ignored.
+-->
+</ul>
+The <b>gridSpacing</b> <i>s</i> is the separation between grid points in
+the new map (default is the minimum spacing along the three axes of the
+input map).  The <b>xsize</b> <i>xs</i> and <b>ysize</b> <i>ys</i> are
+the X and Y dimensions of the new map in physical units, typically &Aring;
+(default 10 times the new grid spacing).
+A cubic spline is placed through the path points and the input
+volume is interpolated on planes perpendicular to the splined path.
+</blockquote>
+
+<a href="#vop" class="nounder">&bull;</a>
+<a name="unroll"><b>volume unroll</b></a> &nbsp;<i>volume-spec</i>&nbsp;
+[&nbsp;<b>center</b>&nbsp;&nbsp;<i>x,y,z</i>&nbsp;]
+[&nbsp;<b>axis</b>&nbsp;&nbsp;x&nbsp;|&nbsp;y&nbsp;|&nbsp;<b>z</b>&nbsp;|&nbsp;<i>x,y,z</i>&nbsp;|&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
+[&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>length</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
+[&nbsp;<b>innerRadius</b>&nbsp;&nbsp;<i>r1</i>&nbsp;]
+[&nbsp;<b>outerRadius</b>&nbsp;&nbsp;<i>r2</i>&nbsp;]
+[&nbsp;<b>gridSpacing</b>&nbsp;&nbsp;<i>s</i>&nbsp;]
+&nbsp;<a href="#vop-options"><i>new-map-options</i></a>
+<blockquote>
+Unroll a hollow cylindrical section of the map into a flat slab.
+The cylinder <b>axis</b> can be given as:
+<ul>
+<li><b>x</b> - X-axis
+<li><b>y</b> - Y-axis
+<li><b>z</b> (default) - Z-axis
+<li><i>x,y,z</i>
+(three values separated by commas only) - an arbitrary vector
+<li>an <a href="atomspec.html"><i>atom-spec</i></a> of
+exactly two atoms (not necessarily bonded or in the same model)
+<!-- or one bond.
+A bond can only be specified by <a href="../selection.html">selecting</a>
+it and using the word <b>sel</b>;
+any atoms also selected at the time will be ignored.
+-->
+</ul>
+Cylinder <b>axis</b> and <b>center</b> (default <b>0,0,0</b>) coordinates
+are interpreted in the coordinate system of the input map,
+unless another reference model is specified with <b>coordinateSystem</b>.
+The dimensions of the cylindrical slab
+are given in physical units of length, typically &Aring;:
+<b>length</b> <i>d</i> (default is the map extent parallel to the cylinder axis)
+and inner and outer radii <i>r1</i> and <i>r2</i>
+(defaults are 90% of the smallest radius and 110% of the largest radius
+of the displayed isosurface, respectively, given the cylinder center and
+axis direction).
+The flattening is done by interpolating values from the original map
+on a cylindrical grid of points, then unwrapping the cylindrical grid
+into a rectangular grid.
+The cylinder radial direction becomes the X-axis of the new map,
+circumference the Y-axis, and cylinder axis direction the Z-axis.
+The <b>gridSpacing</b> <i>s</i> is the requested separation of
+grid points along each axis in the new map
+(default is the minimum spacing along the three axes of the input map).
+The actual spacing may be slightly different
+because the dimensions of the new map may not be an exact
+multiple of the requested value;
+the number of grid divisions along each axis is chosen to give spacing
+as close as possible to the requested value without being smaller.
+</blockquote>
+
+<a href="#vop" class="nounder">&bull;</a>
+<a name="zone"><b>volume zone</b></a> &nbsp;<i>volume-spec</i>&nbsp;
+<b>nearAtoms</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+<b>range</b>&nbsp;&nbsp;<i>r</i>&nbsp;
+[&nbsp;<b>invert</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>minimalBounds</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>bondPointSpacing</b>&nbsp;<i>s</i>&nbsp;]
+&nbsp;<a href="#vop-options"><i>new-map-options</i></a>
+<blockquote>
+Set the values of grid points farther than <i>r</i> &Aring; from any atom in
+<a href="atomspec.html"><i>atom-spec</i></a> (those beyond the zone) to zero,
+or if <b>invert</b> is true, set the values of grid points
+within the zone to zero.
+If <b>minimalBounds</b> is true, make the resulting map
+as small as possible while enclosing the zone; otherwise, the
+dimensions will be the same as for the input map.
+If <b>bondPointSpacing</b> is specified, use points
+spaced <i>s</i> &Aring; apart along bonds
+in addition to the atoms to define the zone.
+<p>
+See also:
+<a href="surface.html#zone"><b>surface zone</b></a>
+<!--
+the
+<a href="../../ContributedSoftware/volumeviewer/volumeviewer.html#zone"><b>Zone</b></a> feature in
+<a href="../../ContributedSoftware/volumeviewer/framevolumeviewer.html"
+target="_top"><b>Volume Viewer</b></a>
+-->
+</p>
+</blockquote>
+
+<a name="vop-options"></a>
+<h4>New-Map Options</h4>
+
+<blockquote>
+  <b>modelId</b> &nbsp;<i>N</i>
+  <br>Open the new data set as model number <i>N</i> (an integer, optionally
+  preceded by #).  The default is the lowest unused number.
+</blockquote>
+<blockquote>
+  <a name="step"><b>step</b> &nbsp;<i>N</i> | <i>Nx,Ny,Nz</i></a>
+  <br>Whether to use the full resolution of the data
+  (step size <b>1</b>, default) or a specified subsample
+  (step size &gt; 1).  Step sizes must be integers.
+  A step size of 1 indicates all data points,
+  2 indicates every other data point, 3 every third point, <i>etc.</i>
+  If a single number is supplied, it is
+  used along all three axes; if three numbers are supplied
+  (separated by commas but not spaces), they
+  are used along the X, Y, and Z axes, respectively.
+</blockquote>
+<blockquote>
+  <a name="subregion"><b>subregion</b>
+  &nbsp;<i>name</i> | <i>i1,j1,k1,i2,j2,k2</i> | <b>all</b></a>
+  <br>Whether to use the full extents of the data (<b>all</b>, default)
+  or a specified subregion.
+  A subregion can be specified by:
+  <ul>
+   <li> <i>name</i> previously assigned
+   with the <a href="#dimensions"><b>nameRegion</b> option of <b>volume</b></a>
+<!--
+   or <a href="../../ContributedSoftware/volumeviewer/framevolumeviewer.html"
+   target="_top"><b>Volume Viewer</b></a>
+   (see <a href="../../ContributedSoftware/volumeviewer/volumeviewer.html#named"><b>Named regions</b></a>)
+-->
+  <li> grid indices
+  <i>i1&ndash;i2</i> along the X axis,
+  <i>j1&ndash;j2</i> along the Y axis, and
+  <i>k1&ndash;k2</i> along the Z axis.
+  Grid indices must be integers separated by commas but not spaces.
+  </ul>
+</blockquote>
+<blockquote>
+  <b>inPlace</b> true&nbsp;|&nbsp;<b>false</b>
+  <br>Whether to overwrite the existing data set instead of
+  creating a new one.
+  *Not all <a href="#vop">volume operations</a> accept this option.*
+  Regardless of this setting, the existing data
+  will only be overwritten if it was created in ChimeraX
+  (for example, with a previous volume operation)
+  rather than read from a file.  In the case of map
+  <a href="#add">addition</a>, the model to overwrite is the <i>gridmap</i>
+  (the model whose grid will be used for the result).
+</blockquote>
+
 <a name="notes"></a>
 <p class="nav">
 [<a href="#top">back to top</a>]
 </p>
-<h3>Technical Notes</h3>
-
-<p><a name="transferfunction"><b>Transfer function</b></a>.
+<h3>Notes</h3>
+<p>
+<a name="transferfunction"><b>Transfer function</b></a>.
 The thresholds and connecting lines on each histogram define a 
 <b><i>transfer function</i></b> 
 that maps data values to colors and intensities.
@@ -894,9 +1870,8 @@ The intensity at a threshold is further scaled by its vertical position,
 where 0 is the bottom of the histogram and 1 is the top. Rendering time
 does not depend on the positions of the thresholds, but increases with
 greater numbers of thresholds.
-</p>
-
-<p><a name="soliddetails"><b>Solid transparency details</b></a>.
+</p><p>
+<a name="soliddetails"><b>Solid transparency details</b></a>.
 For <a href="#dispsolid"><b>solid</b></a> displays,
 the <a href="#transferfunction">transfer function</a> maps a
 voxel's data value to a vertical position (ranging from 0 to 1)
@@ -922,9 +1897,8 @@ are the number of X, Y, and Z data planes displayed, respectively.
 Increasing the <a href="#transparency">transparency</a>
 and/or the thickness of the displayed data will make the exponent smaller and
 (because <b>T<sub>histo</sub></b> &le; 1) individual voxels more transparent.
-</p>
-
-<p><a name="byteorder"><b>Byte order</b></a>.
+</p><p>
+<a name="byteorder"><b>Byte order</b></a>.
 Different computers store the bytes of a single numeric value in
 different orders.  PowerPC processors use one order
 (called big-endian), while Intel/AMD x86 family processors use the
@@ -936,9 +1910,37 @@ The DSN6 file reader assumes that the file was written in big-endian byte
 order.  DSN6 files can be read on big- or little-endian machines.
 All of the other file readers detect file byte order and machine byte order,
 then perform byte-swapping if necessary.
+</p><p>
+<b>Resampling and loss of resolution</b>.
+There is some loss of resolution with resampling a map on a different grid
+with trilinear interpolation. The effect is similar to smoothing.
+The amount of reduction in resolution depends on
+the initial resolution, the initial and final grid spacing,
+the &ldquo;bumpiness&rdquo; of the data, and the shift between the grids.
+For example, starting with a 6-&Aring; resolution map with 2-&Aring;
+spacing from <a href="molmap.html"><b>molmap</b></a> and resampling on
+a grid (with the same spacing) shifted by 1 &Aring; reduced resolution
+to approximately 7.7 &Aring;.  Starting with a 6-&Aring; resolution map with
+1-&Aring; spacing and resampling on a grid shifted by 0.5 &Aring; reduced
+resolution to approximately 6.4 &Aring;.
+</p><p>
+<a name="moreft"><b>Fourier transform</b>.</a>
+Only the magnitudes of the complex Fourier components are included in the
+new data set; the phases are discarded and the constant component is set to
+zero. The box containing the Fourier transform
+(with axes in units of reciprocal space) is centered on the original data
+and scaled to have the same total volume.
+Some properties of the original data are evident from the Fourier transform.
+High-frequency components are near the edges of the box,
+low-freqency components near the center.
+Volume data is typically oversampled (voxel size two to three times smaller
+than the actual data resolution) and this causes the Fourier transform
+to have nonzero values only in the middle half or third of its bounding box.
+The missing wedge in electron microscope tomograms can also be seen.
+Spikes radiating along the principal axes in the Fourier transform are
+caused by nonperiodicity of the original data.
 </p>
-
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2016</address>
+January 2017</address>
 </body></html>

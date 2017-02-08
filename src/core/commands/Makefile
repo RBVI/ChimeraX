@@ -30,7 +30,7 @@ dir:
 .SUFFIXES: .peg
 
 .peg.py:
-	$(PYTHON_EXE) -m grako -o $@ $^
+	$(PYTHON_EXE) -m grako --name $* -o $@ $^
 
 test_peg:	_atomspec.py
 	$(PYTHON_EXE) _atomspec.py --trace atomspec_test.in atom_specifier

@@ -37,9 +37,9 @@ PYMOD_NAME = _mmcif
 DEFS += $(PYDEF)
 INCS += $(PYTHON_INCLUDE_DIRS)
 ifeq ($(WIN32),msvc)
-LIBS += libatomstruct.lib libelement.lib libreadcif.lib libwrappy3.lib liblogger.lib libarrays.lib
+LIBS += libatomstruct.lib libelement.lib libreadcif.lib libwrappy3.lib liblogger.lib libarrays.lib libappdirs.lib $(PYTHON_LIB)
 else
-LIBS += -latomstruct -lelement -lreadcif -lwrappy3 -llogger -larrays
+LIBS += -latomstruct -lelement -lreadcif -lwrappy3 -llogger -larrays -lappdirs $(PYTHON_LIB)
 endif
 
 $(PYMOD): $(OBJS)

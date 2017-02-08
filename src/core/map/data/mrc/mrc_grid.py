@@ -33,9 +33,9 @@ class MRC_Grid(Grid_Data):
     self.file_header = d.header
 
     # Crystal symmetry operators.
-#    syms = d.symmetry_matrices()
-#    if syms:
-#      self.symmetries = syms
+    syms = d.symmetry_matrices()
+    if syms:
+      self.symmetries = syms
   
   # ---------------------------------------------------------------------------
   #

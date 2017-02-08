@@ -172,6 +172,7 @@ class Render:
         oc = self._opengl_context
         prev_win = oc.window
         oc.window = window
+        self.make_current()
         self.set_viewport(0,0,width,height)
         return prev_win
 
@@ -361,6 +362,13 @@ class Render:
                 cmm = self.current_model_matrix
                 if cmm:
                     p.set_matrix('model_matrix', cmm.opengl_matrix())
+            if self.SHADER_STEREO_360 & p.capabilities:
+                cmm = self.current_model_matrix
+                cvm = self.current_view_matrix
+                if cmm:
+                    p.set_matrix('model_matrix', cmm.opengl_matrix())
+                if cvm:
+                    p.set_matrix('view_matrix', cvm.opengl_matrix())
 #            if p.capabilities & self.SHADER_MULTISHADOW:
 #                m4 = self.current_model_matrix.opengl_matrix()
 #                p.set_matrix('model_matrix', m4)
@@ -1229,6 +1237,13 @@ class Framebuffer:
         GL.glDeleteFramebuffers(1, (self.fbo,))
         self.color_rb = self.depth_rb = self.fbo = None
 
+        ct = self.color_texture
+        dt = self.depth_texture
+        if ct is not None:
+            ct.delete_texture()
+        if dt is not None:
+            dt.delete_texture()
+        self.color_texture = self.depth_texture = None
 
 class Lighting:
     '''

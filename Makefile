@@ -19,7 +19,7 @@ include $(TOP)/mk/config.make
 include $(TOP)/mk/subdir.make
 
 all:
-	@echo "'make install' to build everything"
+	@echo "'make install' to build everything" && exit 1
 
 ifdef WIN32
 install:	vsdefined

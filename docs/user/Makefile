@@ -19,13 +19,14 @@ SUBDIRS = tools
 DOCDIR = $(app_datadir)/docs/user
 
 SRCS = $(wildcard *.html) userdocs.css commands
-IMAGES = $(wildcard *.png) $(wildcard *.svg)
+IMAGES = $(wildcard *.png) $(wildcard *.svg) $(wildcard *.jpg)
+OTHER = $(wildcard *.cxc)
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
 
 install:
 	if [ ! -d "$(DOCDIR)" ]; then mkdir -p $(DOCDIR); fi
-	$(RSYNC) $(SRCS) $(IMAGES) $(DOCDIR)
+	$(RSYNC) $(SRCS) $(IMAGES) $(OTHER) $(DOCDIR)
 
 clean:

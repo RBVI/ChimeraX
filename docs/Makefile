@@ -20,7 +20,7 @@ else
 RST2HTML = $(bindir)/rst2html.py
 endif
 
-SUBDIRS = devel pdbimages quickstart user download
+SUBDIRS = devel pdbimages quickstart user download js
 
 DOCDIR = $(app_datadir)/docs
 

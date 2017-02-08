@@ -18,14 +18,19 @@ _cache_dirs = []
 # -----------------------------------------------------------------------------
 #
 def fetch_file(session, url, name, save_name, save_dir, *,
-               uncompress=False, ignore_cache=False, check_certificates=True):
-
+               uncompress=False, ignore_cache=False, check_certificates=True,
+               log='info'):
     from os import path, makedirs
     cache_dirs = cache_directories()
     if not ignore_cache and save_dir is not None:
         for d in cache_dirs:
             filename = path.join(d, save_dir, save_name)
             if path.exists(filename):
+                msg = 'Fetching %s from local cache: %s' % (name, filename)
+                if log == 'info':
+                    session.logger.info(msg)
+                elif log == 'status':
+                    session.logger.status(msg)
                 return filename
 
     if save_dir is None:
@@ -55,13 +60,11 @@ def fetch_file(session, url, name, save_name, save_dir, *,
 #
 def cache_directories():
     from os import path
-    from chimerax import app_dirs_unversioned
+    from chimerax import app_dirs
     if len(_cache_dirs) == 0:
-        _cache_dirs.append(app_dirs_unversioned.user_cache_dir)
-        old_cache_dir = path.join('~', 'Downloads', 'Chimera')
-        old_cache_dir = path.expanduser(old_cache_dir)
-        if path.isdir(old_cache_dir):
-            _cache_dirs.append(old_cache_dir)
+        cache_dir = path.join('~', 'Downloads', app_dirs.appname)
+        cache_dir = path.expanduser(cache_dir)
+        _cache_dirs.append(cache_dir)
     return _cache_dirs
 
 
@@ -113,20 +116,29 @@ def retrieve_url(request, filename, logger=None, uncompress=False,
             ssl_context.check_hostname = False
             ssl_context.verify_mode = ssl.CERT_NONE
         with urlopen(request, context=ssl_context) as response:
-            compressed = (response.headers['Content-Encoding'] == 'gzip' or uncompress)
+            compressed = uncompress
+            if not compressed:
+                ce = response.headers['Content-Encoding']
+                if ce:
+                    compressed = ce.casefold() in ('gzip', 'x-gzip')
+                ct = response.headers['Content-Type']
+                if ct:
+                    compressed = compressed or ct.casefold() in (
+                            'application/gzip', 'application/x-gzip')
             if logger:
-                logger.status('fetching%s %s' % (
-                    " compressed" if compressed else "", name), secondary=True)
+                logger.info('Fetching%s %s from %s' % (
+                    " compressed" if compressed else "", name,
+                    request.get_full_url()))
             d = response.headers['Last-modified']
             last_modified = _convert_to_timestamp(d)
-            import shutil
+            content_length = response.headers['Content-Length']
+            if content_length is not None:
+                content_length = int(content_length)
             with open(filename, 'wb') as f:
                 if compressed:
-                    import gzip
-                    with gzip.GzipFile(fileobj=response) as uncompressed:
-                        shutil.copyfileobj(uncompressed, f)
+                    read_and_uncompress(response, f, name, content_length, logger)
                 else:
-                        shutil.copyfileobj(response, f)
+                    read_and_report_progress(response, f, name, content_length, logger)
         if last_modified is not None:
             os.utime(filename, (last_modified, last_modified))
         if logger:
@@ -139,6 +151,37 @@ def retrieve_url(request, filename, logger=None, uncompress=False,
             logger.status('Error fetching %s' % name, secondary=True, blank_after=15)
         raise
 
+# -----------------------------------------------------------------------------
+#
+def read_and_uncompress(file_in, file_out, name, content_length, logger, chunk_size = 1048576):
+
+    # Read compressed data into buffer reporting progress.
+    from io import BytesIO
+    cdata = BytesIO()
+    read_and_report_progress(file_in, cdata, name, content_length, logger, chunk_size)
+    cdata.seek(0)
+    
+    # Decompress data to file.
+    import gzip, shutil
+    with gzip.GzipFile(fileobj=cdata) as uncompressed:
+        shutil.copyfileobj(uncompressed, file_out)
+
+# -----------------------------------------------------------------------------
+#
+def read_and_report_progress(file_in, file_out, name, content_length, logger, chunk_size = 1048576):
+    tb = 0
+    while True:
+        bytes = file_in.read(chunk_size)
+        if bytes:
+            file_out.write(bytes)
+        else:
+            break
+        tb += len(bytes)
+        if content_length:
+            msg = 'Fetching %s, %.3g of %.3g Mbytes received' % (name, tb/1048576, content_length/1048576)
+        else:
+            msg = 'Fetching %s, %.3g Mbytes received' % (name, tb/1048576)
+        logger.status(msg)
 
 # -----------------------------------------------------------------------------
 #
@@ -256,7 +299,7 @@ def fetch_from_database(session, from_database, id, format=None, name=None, igno
     d = fetch_databases()
     df = d[from_database]
     from .logger import Collator
-    with Collator(session.logger, "Summary of problems opening %s fetched from %s" % (id, from_database)):
+    with Collator(session.logger, "Summary of feedback from opening %s fetched from %s" % (id, from_database)):
         models, status = df.fetch(session, id, format=format, ignore_cache=ignore_cache, **kw)
     if name is not None:
         for m in models:

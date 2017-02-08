@@ -187,6 +187,7 @@ class MouseModes:
         '''
         standard_modes = (
             ('left', ['control'], 'select'),
+            ('left', ['control', 'shift'], 'select toggle'),
             ('left', [], 'rotate'),
             ('middle', [], 'translate'),
             ('right', [], 'zoom'),
@@ -389,6 +390,10 @@ class SelectMouseMode(MouseMode):
     def __init__(self, session):
         MouseMode.__init__(self, session)
 
+        self.mode = {'select': 'replace',
+                     'select add': 'add',
+                     'select subtract': 'subtract',
+                     'select toggle': 'toggle'}[self.name]
         self.minimum_drag_pixels = 5
         self.drag_color = (0,255,0,255)	# Green
         self._drawn_rectangle = None
@@ -405,10 +410,10 @@ class SelectMouseMode(MouseMode):
         self._undraw_drag_rectangle()
         if self._is_drag(event):
             # Select objects in rectangle
-            mouse_drag_select(self.mouse_down_position, event, self.session, self.view)
+            mouse_drag_select(self.mouse_down_position, event, self.mode, self.session, self.view)
         else:
             # Select object under pointer
-            mouse_select(event, self.session, self.view)
+            mouse_select(event, self.mode, self.session, self.view)
         MouseMode.mouse_up(self, event)
 
     def _is_drag(self, event):
@@ -437,33 +442,47 @@ class SelectMouseMode(MouseMode):
             v.draw_xor_rectangle(dx, h-dy, x, h-y, self.drag_color)
             self._drawn_rectangle = None
 
-def mouse_select(event, session, view):
+class SelectAddMouseMode(SelectMouseMode):
+    '''Mouse mode to add objects to selection by clicking on them.'''
+    name = 'select add'
+    icon_file = None
+
+class SelectSubtractMouseMode(SelectMouseMode):
+    '''Mouse mode to subtract objects from selection by clicking on them.'''
+    name = 'select subtract'
+    icon_file = None
+    
+class SelectToggleMouseMode(SelectMouseMode):
+    '''Mouse mode to toggle selected objects by clicking on them.'''
+    name = 'select toggle'
+    icon_file = None
+
+def mouse_select(event, mode, session, view):
     x,y = event.position()
     pick = view.first_intercept(x,y)
-    toggle = event.shift_down()
-    select_pick(session, pick, toggle)
+    select_pick(session, pick, mode)
 
-def mouse_drag_select(start_xy, event, session, view):
+def mouse_drag_select(start_xy, event, mode, session, view):
     sx, sy = start_xy
     x,y = event.position()
     pick = view.rectangle_intercept(sx,sy,x,y)
-    toggle = event.shift_down()
-    select_pick(session, pick, toggle)
+    select_pick(session, pick, mode)
 
-def select_pick(session, pick, toggle):
+def select_pick(session, pick, mode = 'replace'):
     sel = session.selection
     if pick is None:
-        if not toggle:
+        if mode == 'replace':
             sel.clear()
             session.logger.status('cleared selection')
     else:
-        if not toggle:
+        if mode == 'replace':
             sel.clear()
+            mode = 'add'
         if isinstance(pick, list):
             for p in pick:
-                p.select(toggle)
+                p.select(mode)
         else:
-            pick.select(toggle)
+            pick.select(mode)
     sel.clear_promotion_history()
 
 class RotateMouseMode(MouseMode):
@@ -494,7 +513,8 @@ class RotateMouseMode(MouseMode):
     def mouse_up(self, event):
         if self.click_to_select:
             if event.position() == self.mouse_down_position:
-                mouse_select(event, self.session, self.view)
+                mode = 'toggle' if event.shift_down() else 'replace'
+                mouse_select(event, mode, self.session, self.view)
         MouseMode.mouse_up(self, event)
 
     def mouse_drag(self, event):
@@ -671,8 +691,8 @@ class ObjectIdMouseMode(MouseMode):
                 chain = res.chain
                 if chain and chain.description:
                     self.session.logger.status("chain %s: %s" % (chain.chain_id, chain.description))
-                elif res.description:
-                    self.session.logger.status(res.description)
+                elif res.name in getattr(res.structure, "_hetnam_descriptions", {}):
+                    self.session.logger.status(res.structure._hetnam_descriptions[res.name])
         else:
             pu.hide()
 
@@ -866,6 +886,9 @@ def standard_mouse_mode_classes():
     from ..map import series, mouselevel, moveplanes
     mode_classes = [
         SelectMouseMode,
+        SelectAddMouseMode,
+        SelectSubtractMouseMode,
+        SelectToggleMouseMode,
         RotateMouseMode,
         TranslateMouseMode,
         ZoomMouseMode,

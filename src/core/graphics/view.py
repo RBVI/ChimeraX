@@ -258,12 +258,12 @@ class View:
 
     def set_background_color(self, rgba):
         import numpy
-        color = numpy.asarray(rgba, dtype=numpy.float32)
+        color = numpy.array(rgba, dtype=numpy.float32)
         color[3] = 0	# For transparent background images.
         r = self._render
         if r:
             lp = r.lighting
-            if lp.depth_cue_color == tuple(self._background_rgba[:3]):
+            if tuple(lp.depth_cue_color) == tuple(self._background_rgba[:3]):
                 # Make depth cue color follow background color if they are the same.
                 lp.depth_cue_color = tuple(color[:3])
         self._background_rgba = color
@@ -635,7 +635,7 @@ class View:
                 return
         w,h = self.window_size
         self.camera.view_all(bounds, aspect = h/w, pad = pad)
-        if self._center_of_rotation_method == 'front center':
+        if self._center_of_rotation_method in ('front center', 'center of view'):
             self._update_center_of_rotation = True
 
     def _get_cofr(self):
@@ -669,8 +669,25 @@ class View:
             p = self._front_center_cofr()
         elif m == 'fixed':
             p = self._center_of_rotation
+        elif m == 'center of view':
+            p = self._center_of_view_cofr()
         return p
 
+    def _center_of_view_cofr(self):
+        '''
+        Keep the center of rotation in the middle of the view at a depth
+        such that the new and previous center of rotation are in the same
+        plane perpendicular to the camera view direction.
+        '''
+        cam_pos = self.camera.position.origin()
+        vd = self.camera.view_direction()
+        old_cofr = self._center_of_rotation
+        hyp = old_cofr - cam_pos
+        from numpy import dot
+        distance = dot(hyp, vd)
+        cr = cam_pos + vd*dot(hyp, vd)
+        return cr
+    
     def _front_center_cofr(self):
         '''
         Compute the center of rotation of displayed drawings.
@@ -842,7 +859,7 @@ class View:
         is in scene coordinates.'''
         if shift[0] == 0 and shift[1] == 0 and shift[2] == 0:
             return
-        if self._center_of_rotation_method == 'front center':
+        if self._center_of_rotation_method in ('front center', 'center of view'):
             self._update_center_of_rotation = True
         from ..geometry import place
         t = place.translation(shift)
