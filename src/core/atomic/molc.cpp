@@ -2060,11 +2060,10 @@ static void residue_update_hide(Residue *r, Atom *center)
     }
 }
 
-extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int orient)
+extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
 {
-    bool want_peptide = (orient == Structure::RIBBON_ORIENT_PEPTIDE);
-    bool want_guides = (orient != Structure::RIBBON_ORIENT_ATOMS &&
-                        orient != Structure::RIBBON_ORIENT_CURVATURE);
+    bool want_peptide = true;
+    bool want_guides = true;
     Residue **res_array = static_cast<Residue **>(residues);
     try {
         // If no ribbon is displayed for any residue, return Nones
@@ -2179,48 +2178,88 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int
             *data++ = c[2];
         }
         PyTuple_SetItem(o, 2, ca);
-        float *gdata;
-        if (want_peptide && peptide_planes.size() > 0) {
-            // For orienting using peptide planes, we need to process some more
+
+        if (!has_guides) {
+            Py_INCREF(Py_None);
+            PyTuple_SetItem(o, 3, Py_None);
+        }
+        else {
+            float *gdata;
             PyObject *ga = python_float_array(centers.size(), 3, &gdata);
-            // The peptide_planes vector is one shorter than the number
-            // of centers because the peptide plane is defined relative
-            // to the _previous_ residue.  So the first residue does not have
-            // a peptide plane vector.
-            // To get the "guide" vector for a residue, we find the cross
-            // product of the peptide planes formed with the previous and
-            // next residues.  This will give us a vector that is in both
-            // peptide planes and should define the ribbon orientations.
-            for (size_t i = 0; i != peptide_planes.size() - 1; ++i) {
-                const float* prev_pp = peptide_planes[i].normal;
-                const float* this_pp = peptide_planes[i + 1].normal;
-                float* guide = gdata + (i+1)*3;
-                cross(prev_pp, this_pp, guide);
-                if (!normalize(guide))
+            //
+            // For all but the first and last residues, compute the orientation.
+            // First and last are different if they use peptide orientation
+            //
+            for (size_t i = 1; i != centers.size() - 1; ++i) {
+                Residue* r = res_array[i];
+                float* center = cdata + i*3;
+                float* guide = gdata + i*3;
+                if (want_peptide && r->structure()->ribbon_orient(r) == Structure::RIBBON_ORIENT_PEPTIDE) {
+                    // "peptide_planes" are relative to the previous
+                    // residue, so the i'th element is the peptide
+                    // plane between centers[i] and centers[i+1].
+                    // We want to average (i-1,i) and (i,i+1).
+                    const float* prev_pp = peptide_planes[i-1].normal;
+                    const float* this_pp = peptide_planes[i].normal;
+                    cross(prev_pp, this_pp, guide);
+                    if (normalize(guide)) {
+                        guide[0] += center[0];
+                        guide[1] += center[1];
+                        guide[2] += center[2];
+                        continue;
+                    }
                     std::cerr << "normalization error\n";
+                }
+                // Either peptide calculation failed or we want guides
+                const Coord &c = guides[i]->coord();
+                guide[0] = c[0];
+                guide[1] = c[1];
+                guide[2] = c[2];
             }
-            // We double the first and last guides because the first and
-            // last residues only have one defined peptide plane to use.
-            int last = centers.size() * 3 - 3;
-            for (int j = 0; j != 3; ++j) {
-                gdata[j] = gdata[3 + j];
-                gdata[last + j] = gdata[last - 3 + j];
+            //
+            // Handle first residue
+            //
+            {
+                Residue* r = res_array[0];
+                float* guide = gdata;
+                float* source;
+                if (want_peptide && r->structure()->ribbon_orient(r) == Structure::RIBBON_ORIENT_PEPTIDE) {
+                    // Want peptide.  Copy from second residue.
+                    source = gdata + 3;
+                    guide[0] = source[0];
+                    guide[1] = source[1];
+                    guide[2] = source[2];
+                }
+                else {
+                    const Coord &c = guides[0]->coord();
+                    guide[0] = c[0];
+                    guide[1] = c[1];
+                    guide[2] = c[2];
+                }
             }
-            // Make sure that each guide is positioned on the same
-            // side as the carbonyl oxygen (guide ATOM) so that
-            // ribbon orientation flipping can be enforced
-            float cg[3];
-            for (size_t i = 0; i != centers.size(); ++i) {
-                atom_vector(centers[i], guides[i], cg);
-                int offset = i * 3;
-                if (inner(cg, gdata + offset))
-                    for (int j = 0; j != 3; ++j)
-                        gdata[offset + j] = -gdata[offset + j];
+            //
+            // Handle last residue
+            //
+            {
+                int last = n - 1;
+                Residue* r = res_array[last];
+                float* guide = gdata;
+                float* source;
+                if (want_peptide && r->structure()->ribbon_orient(r) == Structure::RIBBON_ORIENT_PEPTIDE) {
+                    // Want peptide.  Copy from next to last residue.
+                    source = gdata + (last-1)*3;
+                    guide[0] = source[0];
+                    guide[1] = source[1];
+                    guide[2] = source[2];
+                }
+                else {
+                    const Coord &c = guides[last]->coord();
+                    guide[0] = c[0];
+                    guide[1] = c[1];
+                    guide[2] = c[2];
+                }
             }
-            // Finally, we add back the center coordinates to move
-            // back to the same coordinate system
-            for (size_t i = 0; i != centers.size() * 3; ++i)
-                gdata[i] += cdata[i];
+            PyTuple_SetItem(o, 3, ga);
 #if 0
             for (int i = 0; i != centers.size(); ++i) {
                 float *c = cdata + i*3;
@@ -2229,22 +2268,6 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int
                 std::cerr << ".d " << *(g+0) << ' ' << *(g+1) << ' ' << *(g+2) << '\n';
             }
 #endif
-            PyTuple_SetItem(o, 3, ga);
-        }
-        else if (has_guides) {
-            PyObject *ga = python_float_array(guides.size(), 3, &gdata);
-            data = gdata;
-            for (auto atom : guides) {
-                const Coord &c = atom->coord();
-                *data++ = c[0];
-                *data++ = c[1];
-                *data++ = c[2];
-            }
-            PyTuple_SetItem(o, 3, ga);
-        }
-        else {
-            Py_INCREF(Py_None);
-            PyTuple_SetItem(o, 3, Py_None);
         }
         return o;
     } catch (...) {
@@ -3144,6 +3167,20 @@ extern "C" EXPORT void structure_add_coordset(void *mol, int id, void *xyz)
     try {
         CoordSet *cs = m->new_coord_set(id);
 	cs->set_coords((float *)xyz, m->num_atoms());
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT PyObject *structure_ribbon_orient(void *mol, void *residues, size_t n)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    Residue **r = static_cast<Residue **>(residues);
+    try {
+        std::vector<int> orients;
+        for (size_t i = 0; i != n; ++i)
+            orients.push_back(m->ribbon_orient(r[i]));
+        return c_array_to_python(orients);
     } catch (...) {
         molc_error();
     }

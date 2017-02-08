@@ -478,7 +478,7 @@ class Structure(Model, StructureData):
             t2r = []
             # Always call get_polymer_spline to make sure hide bits are
             # properly set when ribbons are completely undisplayed
-            any_display, atoms, coords, guides = rlist.get_polymer_spline(self.ribbon_orientation)
+            any_display, atoms, coords, guides = rlist.get_polymer_spline()
             if not any_display:
                 continue
             residues = atoms.residues
@@ -631,7 +631,7 @@ class Structure(Model, StructureData):
 
             # Generate ribbon
             any_ribbon = True
-            ribbon = Ribbon(coords, guides, self.ribbon_orientation)
+            ribbon = Ribbon(coords, guides, self.ribbon_orients(residues))
             v_start = 0         # for tracking starting vertex index for each residue
             t_start = 0         # for tracking starting triangle index for each residue
             vertex_list = []
@@ -1209,6 +1209,7 @@ class Structure(Model, StructureData):
         directions = hc.cylinder_directions()
         coords[start:end] = hc.cylinder_surface()
         guides[start:end] = coords[start:end] + directions
+        tethered[start:end] = True
         if False:
             # Debugging code to display guides of secondary structure
             self._ss_guide_display(p, str(self) + " helix guide " + str(start),
@@ -1259,20 +1260,29 @@ class Structure(Model, StructureData):
         displays = rlist.ribbon_displays
         if not any(displays[start:end]):
             return
-
         from .sse import StrandPlank
-        from numpy import linspace, cos, sin
-        from math import pi
-        from numpy import empty, tile
-
-        sp = StrandPlank(coords[start:end])
+        from numpy.linalg import norm
+        atoms = rlist[start:end].atoms
+        oxygens = atoms.filter(atoms.names == 'O')
+        print(len(oxygens), "oxygens of", len(atoms), "atoms in", end - start, "residues")
+        sp = StrandPlank(coords[start:end], oxygens.coords)
         centers = sp.plank_centers()
-        #width, height = sp.plank_size()
-        #normals, binormals = sp.plank_normals()
-        delta = guides[start:end] - coords[start:end]
+        normals, binormals = sp.plank_normals()
+        if True:
+            # Debugging code to display guides of secondary structure
+            from numpy import newaxis
+            g = sp.tilt_centers + sp.tilt_x[:,newaxis] * normals + sp.tilt_y[:,newaxis] * binormals
+            self._ss_guide_display(p, str(self) + " strand guide " + str(start),
+                                   sp.tilt_centers, g)
         coords[start:end] = centers
-        guides[start:end] = coords[start:end] + delta
-        tethered[start:end] = True
+        #delta = guides[start:end] - coords[start:end]
+        #guides[start:end] = coords[start:end] + delta
+        guides[start:end] = coords[start:end] + binormals
+        offsets = coords[start:end] - centers
+        tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
+        if True:
+            # Debugging code to display center of secondary structure
+            self._ss_display(p, str(self) + " strand " + str(start), centers)
 
     def _ss_axes(self, ss_coords):
         from numpy import mean, argmax
@@ -1284,12 +1294,12 @@ class Structure(Model, StructureData):
         return axes, centroid, rel_coords
 
     def _ss_display(self, p, name, centers):
-        ssp = p.new_drawing(name)
         from .. import surface
+        from numpy import empty, float32
+        ssp = p.new_drawing(name)
         va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=False)
         ssp.geometry = va, ta
         ssp.normals = na
-        from numpy import empty, float32
         ss_radii = empty(len(centers) - 1, float32)
         ss_radii.fill(0.2)
         ssp.positions = _tether_placements(centers[:-1], centers[1:], ss_radii, self.TETHER_CYLINDER)
@@ -1298,14 +1308,14 @@ class Structure(Model, StructureData):
         ssp.colors = ss_colors
 
     def _ss_guide_display(self, p, name, centers, guides):
-        ssp = p.new_drawing(name)
         from .. import surface
+        from numpy import empty, float32
+        ssp = p.new_drawing(name)
         va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=False)
         ssp.geometry = va, ta
         ssp.normals = na
-        from numpy import empty, float32
         ss_radii = empty(len(centers), float32)
-        ss_radii.fill(0.4)
+        ss_radii.fill(0.2)
         ssp.positions = _tether_placements(centers, guides, ss_radii, self.TETHER_CYLINDER)
         ss_colors = empty((len(ss_radii), 4), float32)
         ss_colors[:] = (255,255,0,255)

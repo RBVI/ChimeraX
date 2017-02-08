@@ -23,13 +23,13 @@ class Ribbon:
     FRONT = 1
     BACK = 2
 
-    def __init__(self, coords, guides, orient):
+    def __init__(self, coords, guides, orients):
         # Extend the coordinates at start and end to make sure the
         # ribbon is straight on either end.  Compute the spline
         # coefficients for each axis.  Then throw away the
         # coefficients for the fake ends.
         from .structure import Structure
-        from numpy import empty, zeros
+        from numpy import empty, zeros, ones
         c = empty((len(coords) + 2, 3), float)
         c[0] = coords[0] + (coords[0] - coords[1])
         c[1:-1] = coords
@@ -38,20 +38,43 @@ class Ribbon:
         for i in range(3):
             self._compute_coefficients(c, i)
         self.flipped = zeros(len(coords), bool)
-        if orient == Structure.RIBBON_ORIENT_ATOMS:
-            self.normals = self._compute_normals_from_control_points(coords)
-            self.ignore_flip_mode = True
-        elif orient == Structure.RIBBON_ORIENT_CURVATURE:
-            self.normals = self._compute_normals_from_curvature(coords)
-            self.ignore_flip_mode = True
-        else:
-            # RIBBON_ORIENT_GUIDES, RIBBON_ORIENT_PEPTIDE and default case
+        atoms_normals = None
+        atoms_mask = (orients == Structure.RIBBON_ORIENT_ATOMS)
+        curvature_normals = None
+        curvature_mask = (orients == Structure.RIBBON_ORIENT_CURVATURE)
+        guides_normals = None
+        guides_mask = ((orients == Structure.RIBBON_ORIENT_GUIDES) |
+                       (orients == Structure.RIBBON_ORIENT_PEPTIDE))
+        if atoms_mask.any():
+            atoms_normals = self._compute_normals_from_control_points(coords)
+        if curvature_mask.any():
+            curvature_normals = self._compute_normals_from_curvature(coords)
+        if guides_mask.any():
             if guides is None or len(coords) != len(guides):
-                self.normals = self._compute_normals_from_control_points(coords)
-                self.ignore_flip_mode = True
+                if atoms_normals is None:
+                    guide_normals = self._compute_normals_from_control_points(coords)
+                else:
+                    guide_normals = atoms_normals
+                guide_flip = False
             else:
-                self.normals = self._compute_normals_from_guides(coords, guides)
-                self.ignore_flip_mode = False
+                guide_normals = self._compute_normals_from_guides(coords, guides)
+                guide_flip = True
+        self.normals = None
+        if atoms_normals is not None:
+            self.normals = atoms_normals
+        if curvature_normals is not None:
+            if self.normals is None:
+                self.normals = curvature_normals
+            else:
+                self.normals[curvature_mask] = curvature_normals[curvature_mask]
+        if guide_normals is not None:
+            if self.normals is None:
+                self.normals = guide_normals
+            else:
+                self.normals[guides_mask] = guide_normals[guides_mask]
+        self.ignore_flip_mode = ones(len(self.normals))
+        if guide_normals is not None and not guide_flip:
+            self.ignore_flip_mode[guides_mask] = False
         # Initialize segment cache
         self._seg_cache = {}
 
@@ -324,7 +347,7 @@ class Ribbon:
             ne = self.normals[seg + 1]
             # import sys
             # print("ns, ne", ns, ne, file=sys.__stderr__); sys.__stderr__.flush()
-            if self.ignore_flip_mode:
+            if self.ignore_flip_mode[seg]:
                 flip_mode = FLIP_MINIMIZE
             normals, flipped = constrained_normals(tangents, ns, ne, flip_mode,
                                                    self.flipped[seg], self.flipped[seg + 1], no_twist)
