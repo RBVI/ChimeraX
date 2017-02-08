@@ -15,6 +15,7 @@ from .place import Place, Places, identity, rotation, vector_rotation, translati
 from .place import product, orthonormal_frame, interpolate_rotation
 from .vector import interpolate_points, inner_product, normalize_vector, ray_segment
 from .vector import planes_as_4_vectors, distance, cross_product, norm
+from .vector import angle, dihedral, dihedral_point
 from .matrix import linear_combination
 from .bounds import sphere_bounds, union_bounds, Bounds, point_bounds
 from .bounds import copies_bounding_box, copy_tree_bounds, clip_bounds
