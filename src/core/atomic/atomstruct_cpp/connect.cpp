@@ -411,6 +411,39 @@ find_and_add_metal_coordination_bonds(Structure* as)
     }
 }
 
+void
+find_missing_structure_bonds(Structure *as)
+{
+    std::vector<Bond*> long_bonds;
+    for (auto& b: as->bonds()) {
+        Atom* a1 = b->atoms()[0];
+        Atom* a2 = b->atoms()[1];
+        Residue* r1 = a1->residue();
+        Residue* r2 = a2->residue();
+        if (r1 == r2)
+            continue;
+        if (r1->chain_id() == r2->chain_id()
+        && abs(r1->position() - r2->position()) < 2
+        && b->polymeric_start_atom() != nullptr) // CA/P-only should use missing structure
+            continue;
+        auto idealBL = Element::bond_length(a1->element(), a2->element());
+        if (b->sqlength() >= 3.0625 * idealBL * idealBL)
+            // 3.0625 == 1.75 squared
+            // (allows ASP 223.A OD2 <-> PLP 409.A N1 bond in 1aam
+            // and SER 233.A OG <-> NDP 300.A O1X bond in 1a80
+            // to not be classified as missing seqments)
+            long_bonds.push_back(b);
+    }
+    if (long_bonds.size() > 0) {
+        auto pbg = as->pb_mgr().get_group(as->PBG_MISSING_STRUCTURE,
+            AS_PBManager::GRP_NORMAL);
+        for (auto lb: long_bonds) {
+            pbg->new_pseudobond(lb->atoms());
+            as->delete_bond(lb);
+        }
+    }
+}
+
 // connect_structure:
 //    Connect atoms in structure by template if one is found, or by distance.
 //    Adjacent residues are connected if appropriate.
@@ -592,34 +625,7 @@ connect_structure(Structure* as, std::vector<Residue *>* start_residues,
     } else {
         // turn long inter-residue bonds into "missing structure" pseudobonds
         find_and_add_metal_coordination_bonds(as);
-        std::vector<Bond*> long_bonds;
-        for (auto& b: as->bonds()) {
-            Atom* a1 = b->atoms()[0];
-            Atom* a2 = b->atoms()[1];
-            Residue* r1 = a1->residue();
-            Residue* r2 = a2->residue();
-            if (r1 == r2)
-                continue;
-            if (r1->chain_id() == r2->chain_id()
-            && abs(r1->position() - r2->position()) < 2
-            && b->polymeric_start_atom() != nullptr) // CA/P-only should use missing structure
-                continue;
-            auto idealBL = Element::bond_length(a1->element(), a2->element());
-            if (b->sqlength() >= 3.0625 * idealBL * idealBL)
-                // 3.0625 == 1.75 squared
-                // (allows ASP 223.A OD2 <-> PLP 409.A N1 bond in 1aam
-                // and SER 233.A OG <-> NDP 300.A O1X bond in 1a80
-                // to not be classified as missing seqments)
-                long_bonds.push_back(b);
-        }
-        if (long_bonds.size() > 0) {
-            auto pbg = as->pb_mgr().get_group(as->PBG_MISSING_STRUCTURE,
-                AS_PBManager::GRP_NORMAL);
-            for (auto lb: long_bonds) {
-                pbg->new_pseudobond(lb->atoms());
-                as->delete_bond(lb);
-            }
-        }
+        find_missing_structure_bonds(as);
     }
 }
 

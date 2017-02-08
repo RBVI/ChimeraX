@@ -44,6 +44,7 @@ ATOMSTRUCT_IMEX Atom* find_closest(Atom* a, Residue* r, float* ret_dist_sq,
 ATOMSTRUCT_IMEX void  find_nearest_pair(Residue* from, Residue* to,
         Atom** ret_from_atom, Atom** ret_to_atom, float* ret_dist_sq = nullptr);
 ATOMSTRUCT_IMEX void  find_and_add_metal_coordination_bonds(Structure* as);
+ATOMSTRUCT_IMEX void  find_missing_structure_bonds(Structure* as);
 
 }  // namespace atomstruct
 

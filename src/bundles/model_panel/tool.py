@@ -224,13 +224,14 @@ class ModelPanelSettings(Settings):
         'last_use': None
     }
 
+from chimerax.core.commands import run, concise_model_spec
 def close(models, session):
     from chimerax.core.models import Model
-    session.models.close([m for m in models if isinstance(m, Model)])
+    run(session, "close %s" %
+        concise_model_spec(session, [m for m in models if isinstance(m, Model)]))
 
 def hide(models, session):
-    for m in models:
-        m.display = False
+    run(session, "hide %s target m" % concise_model_spec(session, models))
 
 _mp = None
 def model_panel(session, tool_name):
@@ -240,17 +241,10 @@ def model_panel(session, tool_name):
     return _mp
 
 def show(models, session):
-    for m in models:
-        m.display = True
+    run(session, "show %s target m" % concise_model_spec(session, models))
 
 def view(objs, session):
     from chimerax.core.models import Model
     models = [o for o in objs if isinstance(o, Model)]
-    from chimerax.core.objects import Objects
-    view_objects = Objects(models=models)
-    for model in models:
-        if getattr(model, 'atoms', None):
-            view_objects.add_atoms(model.atoms)
-    from chimerax.core.commands.view import view
-    view(session, view_objects)
+    run(session, "view %s clip false" % concise_model_spec(session, models))
 

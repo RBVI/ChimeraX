@@ -1,0 +1,96 @@
+From 57dfeea75bc5300d5ac75bbd4c29e754aadf8a00 Mon Sep 17 00:00:00 2001
+From: Samuel Gaist <samuel.gaist@edeltech.ch>
+Date: Sun, 2 Oct 2016 21:19:39 +0200
+Subject: [PATCH] Fixed build with MaxOSX10.12 SDK
+
+This patch adds missing includes that allows to build the module with
+the 10.12 SDK and Xcode 8.
+
+Change-Id: Ieab48f6a0582b916ceecbbb9a01a4169d6ba53f5
+---
+ src/bluetooth/osx/osxbtcentralmanager_p.h | 8 ++++++++
+ src/bluetooth/osx/osxbtledeviceinquiry.mm | 5 +++++
+ src/bluetooth/osx/osxbtutility.mm         | 3 +++
+ 3 files changed, 16 insertions(+)
+
+diff --git a/qtconnectivity/src/bluetooth/osx/osxbtcentralmanager_p.h b/qtconnectivity/src/bluetooth/osx/osxbtcentralmanager_p.h
+index e64e5ba..81c5e8d 100644
+--- a/qtconnectivity/src/bluetooth/osx/osxbtcentralmanager_p.h
++++ b/qtconnectivity/src/bluetooth/osx/osxbtcentralmanager_p.h
+@@ -67,6 +67,14 @@
+ 
+ #include "corebluetoothwrapper_p.h"
+ 
++#if QT_MAC_PLATFORM_SDK_EQUAL_OR_ABOVE(__MAC_10_12, __IPHONE_NA)
++#include <CoreBluetooth/CBService.h>
++#include <CoreBluetooth/CBCharacteristic.h>
++#include <CoreBluetooth/CBDescriptor.h>
++#include <CoreBluetooth/CBCentralManager.h>
++#include <CoreBluetooth/CBPeripheral.h>
++#endif
++
+ @class QT_MANGLE_NAMESPACE(OSXBTCentralManager);
+ 
+ QT_BEGIN_NAMESPACE
+diff --git a/qtconnectivity/src/bluetooth/osx/osxbtledeviceinquiry.mm b/qtconnectivity/src/bluetooth/osx/osxbtledeviceinquiry.mm
+index 88370fa..143a12b 100644
+--- a/qtconnectivity/src/bluetooth/osx/osxbtledeviceinquiry.mm
++++ b/qtconnectivity/src/bluetooth/osx/osxbtledeviceinquiry.mm
+@@ -48,6 +48,11 @@
+ 
+ #include "corebluetoothwrapper_p.h"
+ 
++#if QT_MAC_PLATFORM_SDK_EQUAL_OR_ABOVE(__MAC_10_12, __IPHONE_NA)
++#import <CoreBluetooth/CBCentralManager.h>
++#import <CoreBluetooth/CBPeripheral.h>
++#endif
++
+ QT_BEGIN_NAMESPACE
+ 
+ namespace OSXBluetooth {
+diff --git a/qtconnectivity/src/bluetooth/osx/osxbtutility.mm b/qtconnectivity/src/bluetooth/osx/osxbtutility.mm
+index ef34b63..942fed1 100644
+--- a/qtconnectivity/src/bluetooth/osx/osxbtutility.mm
++++ b/qtconnectivity/src/bluetooth/osx/osxbtutility.mm
+@@ -47,6 +47,9 @@
+ #ifndef QT_IOS_BLUETOOTH
+ 
+ #import <IOBluetooth/objc/IOBluetoothSDPUUID.h>
++#if QT_MAC_PLATFORM_SDK_EQUAL_OR_ABOVE(__MAC_10_12, __IPHONE_NA)
++#import <CoreBluetooth/CBUUID.h>
++#endif
+ 
+ #endif
+ 
+diff --git a/qtwebengine/src/3rdparty/chromium/base/mac/sdk_forward_declarations.h b/qtwebengine/src/3rdparty/chromium/base/mac/sdk_forward_declarations.h
+index 88370fa..143a12b 100644
+--- a/qtwebengine/src/3rdparty/chromium/base/mac/sdk_forward_declarations.h
++++ b/qtwebengine/src/3rdparty/chromium/base/mac/sdk_forward_declarations.h
+@@ -17,6 +17,12 @@
+ #import <IOBluetooth/IOBluetooth.h>
+ #include <stdint.h>
+ 
++//#if QT_MAC_PLATFORM_SDK_EQUAL_OR_ABOVE(__MAC_10_12, __IPHONE_NA)
++#import <CoreBluetooth/CoreBluetooth.h>
++#import <CoreBluetooth/CBCentralManager.h>
++#import <CoreBluetooth/CBPeripheral.h>
++//#endif
++
+ #include "base/base_export.h"
+ 
+ // ----------------------------------------------------------------------------
+diff --git a/qtwebengine/src/3rdparty/chromium/printing/backend/print_backend_cups.cc b/qtwebengine/src/3rdparty/chromium/printing/backend/print_backend_cups.cc
+index 8bacfd7..b469a1c 100644
+--- a/qtwebengine/src/3rdparty/chromium/printing/backend/print_backend_cups.cc
++++ b/qtwebengine/src/3rdparty/chromium/printing/backend/print_backend_cups.cc
+@@ -4,6 +4,7 @@
+ 
+ #include "printing/backend/print_backend_cups.h"
+ 
++#include <cups/ppd.h>
+ #include <dlfcn.h>
+ #include <errno.h>
+ #include <pthread.h>
+-- 
+2.8.2
+
