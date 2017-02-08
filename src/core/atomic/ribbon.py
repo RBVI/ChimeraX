@@ -38,30 +38,30 @@ class Ribbon:
         for i in range(3):
             self._compute_coefficients(c, i)
         self.flipped = zeros(len(coords), bool)
-        atoms_normals = None
-        atoms_mask = (orients == Structure.RIBBON_ORIENT_ATOMS)
+        atom_normals = None
+        atom_mask = (orients == Structure.RIBBON_ORIENT_ATOMS)
         curvature_normals = None
         curvature_mask = (orients == Structure.RIBBON_ORIENT_CURVATURE)
-        guides_normals = None
-        guides_mask = ((orients == Structure.RIBBON_ORIENT_GUIDES) |
+        guide_normals = None
+        guide_mask = ((orients == Structure.RIBBON_ORIENT_GUIDES) |
                        (orients == Structure.RIBBON_ORIENT_PEPTIDE))
-        if atoms_mask.any():
-            atoms_normals = self._compute_normals_from_control_points(coords)
+        if atom_mask.any():
+            atom_normals = self._compute_normals_from_control_points(coords)
         if curvature_mask.any():
             curvature_normals = self._compute_normals_from_curvature(coords)
-        if guides_mask.any():
+        if guide_mask.any():
             if guides is None or len(coords) != len(guides):
-                if atoms_normals is None:
+                if atom_normals is None:
                     guide_normals = self._compute_normals_from_control_points(coords)
                 else:
-                    guide_normals = atoms_normals
+                    guide_normals = atom_normals
                 guide_flip = False
             else:
                 guide_normals = self._compute_normals_from_guides(coords, guides)
                 guide_flip = True
         self.normals = None
-        if atoms_normals is not None:
-            self.normals = atoms_normals
+        if atom_normals is not None:
+            self.normals = atom_normals
         if curvature_normals is not None:
             if self.normals is None:
                 self.normals = curvature_normals
@@ -71,10 +71,10 @@ class Ribbon:
             if self.normals is None:
                 self.normals = guide_normals
             else:
-                self.normals[guides_mask] = guide_normals[guides_mask]
+                self.normals[guide_mask] = guide_normals[guide_mask]
         self.ignore_flip_mode = ones(len(self.normals))
         if guide_normals is not None and not guide_flip:
-            self.ignore_flip_mode[guides_mask] = False
+            self.ignore_flip_mode[guide_mask] = False
         # Initialize segment cache
         self._seg_cache = {}
 
