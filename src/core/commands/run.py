@@ -50,7 +50,7 @@ def concise_model_spec(session, models):
     all_ids = _form_id_dict(session.models)
     _compact_fully_selected(model_ids, all_ids)
     _compact_identical_partials(model_ids)
-    return '#' + _range_strings(model_ids, joiner='#')
+    return '#' + _range_strings(model_ids, joiner=' #')
 
 def _form_id_dict(models):
     ids = {}
