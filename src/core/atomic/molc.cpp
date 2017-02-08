@@ -1666,6 +1666,21 @@ extern "C" EXPORT void residue_mmcif_chain_id(void *residues, size_t n, pyobject
     }
 }
 
+extern "C" EXPORT void residue_delete(void *residues, size_t n)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    try {
+        Residue::Atoms atoms;
+        for (size_t i = 0; i != n; ++i) {
+	  const Residue::Atoms &ratoms = r[i]->atoms();
+	  atoms.insert(atoms.end(), ratoms.begin(), ratoms.end());
+	}
+	atom_delete(atoms.data(), atoms.size());
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void* residue_find_atom(void *residue, char *atom_name)
 {
     Residue *r = static_cast<Residue*>(residue);

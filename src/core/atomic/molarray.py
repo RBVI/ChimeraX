@@ -905,6 +905,11 @@ class Residues(Collection):
         read_only = True, doc =
     '''Returns :class:`.StructureDatas` collection containing structures for each residue.''')
 
+    def delete(self):
+        '''Delete the C++ Residue objects'''
+        c_function('residue_delete',
+            args = [ctypes.c_void_p, ctypes.c_size_t])(self._c_pointers, len(self))
+
     @property
     def unique_structures(self):
         '''The unique structures as a :class:`.StructureDatas` collection'''

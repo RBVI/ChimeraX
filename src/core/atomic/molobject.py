@@ -625,6 +625,11 @@ class Residue:
         '''Value that can be passed to C++ layer to be used as pointer (Python int)'''
         return self._c_pointer.value
 
+    def delete(self):
+        '''Delete this Residue from it's Structure'''
+        f = c_function('residue_delete', args = (ctypes.c_void_p, ctypes.c_size_t))
+        c = f(self._c_pointer_ref, 1)
+
     @property
     def deleted(self):
         '''Has the C++ side been deleted?'''
@@ -1036,6 +1041,18 @@ class StructureSeq(Sequence):
             ret = ctypes.c_void_p)
         return _residue_or_none(f(self._c_pointer, index))
 
+    def residue_before(self, r):
+        '''Return the residue at index one less than the given residue,
+        or None if no such residue exists.'''
+        pos = self.res_map[r]
+        return self.residue_at(pos-1)
+
+    def residue_after(self, r):
+        '''Return the residue at index one more than the given residue,
+        or None if no such residue exists.'''
+        pos = self.res_map[r]
+        return self.residue_at(pos+1)
+    
     @staticmethod
     def restore_snapshot(session, data):
         sseq = StructureSequence(chain_id=data['chain_id'], structure=data['structure'])
