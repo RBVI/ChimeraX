@@ -338,7 +338,6 @@ ExtractMolecule::~ExtractMolecule()
 void
 ExtractMolecule::reset_parse()
 {
-    all_molecules.clear();
     molecules.clear();
     atom_map.clear();
     chain_entity_map.clear();
@@ -582,9 +581,7 @@ ExtractMolecule::finished_parse()
         m->use_best_alt_locs();
     }
     vector<AtomicStructure*> save_molecules;
-    save_molecules.swap(all_molecules);
     reset_parse();
-    save_molecules.swap(all_molecules);
 }
 
 void
