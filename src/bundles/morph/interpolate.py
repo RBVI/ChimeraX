@@ -1,3 +1,5 @@
+spt = rit = 0
+from time import time
 def interpolate(mol, to_mol_xform, segments, equiv_atoms, method, rate_method,
                         frames, cartesian, cb):
         # mol                molecule where new coordinate sets are added
@@ -32,6 +34,7 @@ def interpolate(mol, to_mol_xform, segments, equiv_atoms, method, rate_method,
         baseCS = max(mol.coordset_ids) + 1
         seg_info = []
         plan = {}
+        t0 = time()
         for seg in segments:
                 rList0, rList1 = seg
                 aList0 = Atoms(getAtomList(rList0))
@@ -39,11 +42,14 @@ def interpolate(mol, to_mol_xform, segments, equiv_atoms, method, rate_method,
                 c0 = cList0.mean(axis = 0)
                 aList1 = Atoms([ equiv_atoms[a0] for a0 in aList0 ])
                 cList1 = to_mol_xform * aList1.coords
-                c1 = aList1.coords.mean(axis = 0)
+                c1 = cList1.mean(axis = 0)
                 xform, rmsd = align_points(cList0, cList1)
                 seg_info.append((rList0, rList1, c0, c1, xform))
                 for r in rList0:
                         plan[r] = planFunction(r)
+        t1 = time()
+        global spt
+        spt += t1-t0
 
         lo = 0.0
         interval = 1.0
@@ -54,7 +60,12 @@ def interpolate(mol, to_mol_xform, segments, equiv_atoms, method, rate_method,
                 from numpy import zeros, float32
                 cs = zeros((csSize,3), float32)
                 for rList0, rList1, c0, c1, xform in seg_info:
+                        t0 = time()
                         xf0, xf1 = interpolateFunction(xform, c0, c1, f)
+                        t1 = time()
+                        global rit
+                        rit += t1-t0
+
                         c0map, c1map = atom_coords(rList0.atoms, equiv_atoms, xf0, xf1 * to_mol_xform)
                         for r in rList0:
                                 interp_residue.applyPlan(plan[r], r, cs, f, c0map, c1map)
@@ -65,8 +76,10 @@ def interpolate(mol, to_mol_xform, segments, equiv_atoms, method, rate_method,
                         cb(mol)
         from numpy import zeros, float32
         cs = zeros((csSize,3), float32)
-        for a0, a1 in equiv_atoms.items():
-                cs[a0.coord_index] = to_mol_xform * a1.coord
+        from chimerax.core.atomic import Atoms
+        aList0 = Atoms([a0 for a0, a1 in equiv_atoms.items()])
+        aList1 = Atoms([a1 for a0, a1 in equiv_atoms.items()])
+        cs[aList0.coord_indices] = to_mol_xform * aList1.coords
         cs_id = baseCS + len(rate)
         mol.add_coordset(cs_id, cs)
         mol.active_coordset_id = cs_id

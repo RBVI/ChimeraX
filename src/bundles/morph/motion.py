@@ -6,6 +6,7 @@ def compute_morph(mols, log, method = 'corkscrew', rate = 'linear', frames = 20,
         traj = motion.trajectory()
         return traj
 
+ht = it = 0
 class MolecularMotion:
 
         def __init__(self, m, method = "corkscrew", rate = "linear", frames = 20, cartesian = False):
@@ -51,10 +52,15 @@ class MolecularMotion:
                 #
                 from . import segment
                 sm = self.mol
+                from time import time
+                t0 = time()
                 try:
                         results = segment.segmentHingeExact(sm, m)
                 except ValueError:
                         results = segment.segmentHingeApproximate(sm, m)
+                t1 = time()
+                global ht
+                ht += t1-t0
                 segments, atomMap, unusedResidues, unusedAtoms = results
                 from chimerax.core.atomic import Residues
                 segments = [(Residues(r0), Residues(r1)) for r0,r1 in segments]
@@ -71,10 +77,14 @@ class MolecularMotion:
                 sm.active_coordset_id = max(sm.coordset_ids)
                 from .interpolate import interpolate
                 combinedXform = sm.scene_position.inverse() * m.scene_position
+                t0 = time()
                 interpolate(sm, combinedXform,
                                 segments, atomMap, self.method,
                                 self.rate, self.frames,
                                 self.cartesian, self.report_progress)
+                t1 = time()
+                global it
+                it += t1-t0
 
         def report_progress(self, mol):
                 log = mol.session.logger

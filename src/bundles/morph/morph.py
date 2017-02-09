@@ -40,8 +40,10 @@ def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew
 
     session.logger.info('Computed %d frame morph #%s' % (traj.num_coord_sets, traj.id_string()))
     from .interp_residue import iit, dpt
-    from .interpolate import smt
-    print ('interpInternal time', iit, 'dihedral point time', dpt, 'segment motion time', smt)
+    from .interpolate import smt, spt, rit
+    from .sieve_fit import svt
+    from .motion import ht,it
+#    print ('interpInternal time', iit, 'segment motion time', smt, 'sieve time', svt, 'hinge time', ht, 'interpolate time', it, 'segment plan time', spt, 'rigid interp time', rit)
 
 # -----------------------------------------------------------------------------------------
 #
