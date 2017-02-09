@@ -23,13 +23,13 @@ else:
 rel_inst_data_dir = os.path.basename(data_dir)
 
 description = """
-A collection of commands that might become a standard part of ChimeraX.
+Add bonds between atoms of a molecule to strengthen it for 3-d printing.
 """
 
 setup(
     name="BUNDLE_NAME",
     version="BUNDLE_VERSION",  # PEP 440, should match Development Status below
-    description="Expermental commands",  # one line synopsis
+    description="Morph atomic structures",  # one line synopsis
     long_description=description,  # see above
     author="UCSF RBVI",
     author_email="chimerax@cgl.ucsf.edu",
@@ -41,13 +41,16 @@ setup(
     packages=[
         "PKG_NAME",
     ],
+    package_data={
+        "PKG_NAME": ["*.PYMOD_EXT"]
+    },
     install_requires=[
         "ChimeraX-Core >= 0.1",
     ],
     classifiers=[
         # From https://pypi.python.org/pypi?%3Aaction=list_classifiers
         # and our own ChimeraX classifiers.
-        "Development Status :: 2 - Pre-Alpha",  # TDDO: update as appropriate
+        "Development Status :: 2 - Pre-Alpha",  # TODO: update as appropriate
         "Environment :: MacOS X :: Aqua",
         "Environment :: Win32 (MS Windows)",
         "Environment :: X11 Applications",
@@ -61,12 +64,7 @@ setup(
         "Topic :: Scientific/Engineering :: Visualization",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
-        "ChimeraX :: Bundle :: General :: 1,1 :: PKG_NAME :: chimerax.exp-cmd :: ",
-        "ChimeraX :: Command :: ribbon :: General :: show cartoon for selected residues",
-        "ChimeraX :: Command :: ribbon hide :: General :: hide cartoon for selected residues",
-        "ChimeraX :: Command :: ~ribbon :: General :: hide cartoon for selected residues",
-        # "ChimeraX :: Command :: findclash :: General :: find clashes between atom pairs",
-        "ChimeraX :: Command :: getcrd :: General :: report atomic coordinates",
-        "ChimeraX :: Command :: debug :: General :: report what a specifier matches",
+        "ChimeraX :: Bundle :: Molecular structure :: 1,1 :: PKG_NAME :: chimerax.morph :: ",
+        "ChimeraX :: Command :: morph :: Molecular structure :: morph atomic structures",
     ],
 )

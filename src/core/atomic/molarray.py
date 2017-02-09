@@ -905,6 +905,11 @@ class Residues(Collection):
         read_only = True, doc =
     '''Returns :class:`.StructureDatas` collection containing structures for each residue.''')
 
+    def delete(self):
+        '''Delete the C++ Residue objects'''
+        c_function('residue_delete',
+            args = [ctypes.c_void_p, ctypes.c_size_t])(self._c_pointers, len(self))
+
     @property
     def unique_structures(self):
         '''The unique structures as a :class:`.StructureDatas` collection'''
@@ -950,7 +955,7 @@ class Residues(Collection):
         seqs = f(self._c_pointers, len(self), pointer(seq_ids))
         return seqs, seq_ids
 
-    def get_polymer_spline(self, orient):
+    def get_polymer_spline(self):
         '''Return a tuple of spline center and guide coordinates for a
         polymer chain.  Residues in the chain that do not have a center
         atom will have their display bit turned off.  Center coordinates
@@ -958,9 +963,9 @@ class Residues(Collection):
         if all spline atoms have matching guide atoms; otherwise, None is
         returned for guide coordinates.'''
         f = c_function('residue_polymer_spline',
-                       args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_int],
+                       args = [ctypes.c_void_p, ctypes.c_size_t],
                        ret = ctypes.py_object)
-        any_display, atom_pointers, centers, guides = f(self._c_pointers, len(self), orient)
+        any_display, atom_pointers, centers, guides = f(self._c_pointers, len(self))
         if atom_pointers is None:
             atoms = None
         else:

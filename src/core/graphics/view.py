@@ -258,7 +258,7 @@ class View:
 
     def set_background_color(self, rgba):
         import numpy
-        color = numpy.asarray(rgba, dtype=numpy.float32)
+        color = numpy.array(rgba, dtype=numpy.float32)
         color[3] = 0	# For transparent background images.
         r = self._render
         if r:

@@ -154,7 +154,7 @@ def split_atoms(atoms, asubsets):
     asubsets = [asub for asub in asubsets if len(asub) > 0]
 
     # Find atoms not in any subset
-    from ..atomic import concatenate
+    from ..atomic import concatenate, Atoms
     a0 = atoms.subtract(concatenate(asubsets, Atoms))
 
     # Return groups of atoms

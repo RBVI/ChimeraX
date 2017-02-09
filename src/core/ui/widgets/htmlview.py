@@ -10,6 +10,13 @@ from PyQt5.QtWebEngineCore import QWebEngineUrlRequestInterceptor
 from PyQt5.QtWebEngineCore import QWebEngineUrlSchemeHandler
 
 
+def set_user_agent(profile):
+    """Set profile's user agent"""
+    from chimerax.core.fetch import html_user_agent
+    from chimerax import app_dirs
+    profile.setHttpUserAgent('%s %s' % (profile.httpUserAgent(), html_user_agent(app_dirs)))
+
+
 class HtmlView(QWebEngineView):
     """
     HtmlView is a derived class from PyQt5.QtWebEngineWidgets.QWebEngineView
@@ -48,10 +55,8 @@ class HtmlView(QWebEngineView):
         if profile is not None:
             self._profile = profile
         else:
-            from chimerax.core.fetch import html_user_agent
-            from chimerax import app_dirs
             p = self._profile = QWebEngineProfile(self)
-            p.setHttpUserAgent('%s %s' % (p.httpUserAgent(), html_user_agent(app_dirs)))
+            set_user_agent(p)
             if interceptor is not None:
                 self._intercept = _RequestInterceptor(callback=interceptor)
                 p.setRequestInterceptor(self._intercept)
@@ -138,32 +143,24 @@ class ChimeraXHtmlView(HtmlView):
     """
 
     def __init__(self, session, *args, **kw):
-        global _chimerax_profile
         self.session = session
         for k in ('schemes', 'interceptor', 'download', 'profile'):
             if k in kw:
                 raise ValueError("Can not override HtmlView's %s" % k)
-        if _chimerax_profile is not None:
-            super().__init__(*args, profile=_chimerax_profile, **kw)
-        else:
-            super().__init__(*args, schemes=('cxcmd', 'help'),
-                             interceptor=self.link_clicked, **kw)
-            _chimerax_profile = self.profile
+        # don't share profiles, so interceptor is bound to this instance
+        super().__init__(*args, schemes=('cxcmd', 'help'),
+                         interceptor=self.link_clicked, **kw)
 
     def link_clicked(self, request_info, *args):
         qurl = request_info.requestUrl()
         scheme = qurl.scheme()
         if scheme in ('cxcmd', 'help'):
-            originating_url = request_info.firstPartyUrl()
+            # originating_url = request_info.firstPartyUrl()  # doesn't work
+            originating_url = self.url()
             from_dir = None
             if originating_url.isLocalFile():
                 import os
-                from_dir = os.path.dirname(originating_url.path())
-            # QT BUG: originaing_url and qurl are the same
-            # import sys
-            # print('R', type(request_info), file=sys.__stderr__)
-            # print('O: %r' % (originating_url), file=sys.__stderr__)
-            # print('U: %r' % (qurl), file=sys.__stderr__)
+                from_dir = os.path.dirname(originating_url.toLocalFile())
 
             def defer(session, topic, from_dir):
                 from chimerax.help_viewer.cmd import help
@@ -172,11 +169,15 @@ class ChimeraXHtmlView(HtmlView):
                     if from_dir:
                         import os
                         prev_dir = os.getcwd()
-                        os.chdir(from_dir)
+                        try:
+                            os.chdir(from_dir)
+                        except OSError as e:
+                            prev_dir = None
+                            session.logger.warning(
+                                'Unable to change working directory: %s' % e)
                     help(session, topic)
                 finally:
                     if prev_dir:
                         os.chdir(prev_dir)
             self.session.ui.thread_safe(defer, self.session, qurl.url(), from_dir)
             return
-_chimerax_profile = None

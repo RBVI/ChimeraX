@@ -1,10 +1,10 @@
 PREREQ_MAKE = 1
-TOP	= ../..
+TOP	= ../../..
 include $(TOP)/mk/config.make
 
-VERSION = 4.18
-DISTRIBUTION = sip-$(VERSION).tar.gz
-SOURCE = $(tmpdir)/sip-$(VERSION)
+SIP_VERSION = 4.18.1
+DISTRIBUTION = sip-$(SIP_VERSION).tar.gz
+SOURCE = $(tmpdir)/sip-$(SIP_VERSION)
 
 ifdef WIN32
 MAKE = nmake

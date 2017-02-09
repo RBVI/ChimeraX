@@ -30,7 +30,7 @@ def help(session, topic=None, *, option=None, is_query=False, target=None):
         if is_query:
             return True
         topic = 'help:user'
-    if topic.startswith(('file:', 'http:')):
+    if topic.startswith(('file:', 'http:', 'https:')):
         if is_query:
             return False
         url = topic

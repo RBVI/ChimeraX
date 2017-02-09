@@ -4,6 +4,10 @@ PREREQ_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
+SUBDIRS = qt sip
+
+include $(TOP)/mk/subdir.make
+
 PYQT_LICENSE = commercial
 REMOTE_DIR = plato.cgl.ucsf.edu:/usr/local/src/PyQt5
 
@@ -30,13 +34,9 @@ RELPATH = $(shell $(PYTHON_EXE) -c 'import os; print(os.path.relpath("$(framewor
 all:
 
 install: $(SOURCE)
-	$(MAKE) -f sip/Makefile install
-	$(MAKE) -f qt/Makefile VERSION=$(VERSION) MINOR_VERSION=$(MINOR_VERSION) install
 	cd $(SOURCE) && $(PYTHON_EXE) configure.py $(CONFIG_ARGS) && $(MAKE) && $(MAKE) install
 
 app-install:
-	$(MAKE) -f sip/Makefile app-install
-	$(MAKE) -f qt/Makefile app-install
 	$(RSYNC) $(PYSITEDIR)/PyQt5 $(APP_PYSITEDIR)
 
 distribution: $(DISTRIBUTION)
@@ -44,6 +44,7 @@ distribution: $(DISTRIBUTION)
 $(DISTRIBUTION):
 ifeq ($(PYQT_LICENSE),commercial)
 	rsync -a $(REMOTE_DIR)/*commercial* .
+	rsync -a $(REMOTE_DIR)/$(VERSION)/*.tar.gz .
 endif
 
 $(SOURCE): $(DISTRIBUTION)
@@ -62,3 +63,5 @@ clean:
 
 distclean: clean
 	rm -f *commercial*
+
+sip.install: qt.install

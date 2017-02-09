@@ -57,7 +57,7 @@ _ModeStrandMap = {
 _ModeStrandInverseMap = dict([(v, k) for k, v in _ModeStrandMap.items()])
 
 
-def cartoon(session, spec=None, smooth=None, style=None, hide_backbone=None, show_spine=False):
+def cartoon(session, spec=None, smooth=None, style=None, suppress_backbone_display=None, spine=False):
     '''Display cartoon for specified residues.
 
     Parameters
@@ -74,10 +74,10 @@ def cartoon(session, spec=None, smooth=None, style=None, hide_backbone=None, sho
     style : string
         Set "Ribbon" style.  Value may be "ribbon" for normal ribbons, or one of "pipe",
         "plank", or "pandp" to display residues as pipes and planks.
-    hide_backbone : boolean
+    suppress_backbone_display : boolean
         Set whether displaying a ribbon hides the sphere/ball/stick representation of
         backbone atoms.
-    show_spine : boolean
+    spine : boolean
         Display ribbon "spine" (horizontal lines across center of ribbon).
         This parameter applies at the atomic structure level, so setting it for any residue
         sets it for the entire structure.
@@ -96,10 +96,10 @@ def cartoon(session, spec=None, smooth=None, style=None, hide_backbone=None, sho
     if style is not None:
         s = _StyleMap.get(style, Residue.RIBBON)
         residues.ribbon_styles = s
-    if hide_backbone is not None:
-        residues.ribbon_hide_backbones = hide_backbone
-    if show_spine is not None:
-        residues.unique_structures.ribbon_show_spines = show_spine
+    if suppress_backbone_display is not None:
+        residues.ribbon_hide_backbones = suppress_backbone_display
+    if spine is not None:
+        residues.unique_structures.ribbon_show_spines = spine
     residues.atoms.update_ribbon_visibility()
 
 
@@ -521,21 +521,18 @@ class EvenIntArg(Annotation):
 
 
 def register_command(session):
-    command_name = "cartoon"
     from . import register, CmdDesc, AtomSpecArg, AtomicStructuresArg
-    desc = CmdDesc(optional=[("spec", AtomSpecArg)],
-                   synopsis='undisplay cartoon for specified residues')
-    register("~" + command_name, desc, uncartoon)
     from . import Or, Bounded, FloatArg, EnumOf, BoolArg, IntArg, TupleOf, NoArg
     desc = CmdDesc(optional=[("spec", AtomSpecArg)],
                    keyword=[("smooth", Or(Bounded(FloatArg, 0.0, 1.0),
                                           EnumOf(["default"]))),
                             ("style", EnumOf(list(_StyleMap.keys()))),
-                            ("hide_backbone", BoolArg),
-                            ("show_spine", BoolArg),
+                            ("suppress_backbone_display", BoolArg),
+                            ("spine", BoolArg),
                             ],
+                   hidden=["spine", "orient", "mode_helix", "mode_strand"],
                    synopsis='display cartoon for specified residues')
-    register(command_name, desc, cartoon)
+    register("cartoon", desc, cartoon)
 
     desc = CmdDesc(optional=[("structures", AtomicStructuresArg)],
                    keyword=[("scale", Bounded(FloatArg, 0.0, 1.0)),
@@ -544,7 +541,7 @@ def register_command(session):
                             ("opacity", Bounded(FloatArg, 0.0, 1.0)),
                             ],
                    synopsis='set cartoon tether options for specified structures')
-    register(command_name + " tether", desc, cartoon_tether)
+    register("cartoon tether", desc, cartoon_tether)
 
     desc = CmdDesc(optional=[("spec", AtomSpecArg)],
                    keyword=[("width", FloatArg),
@@ -562,4 +559,9 @@ def register_command(session):
                             ("mode_strand", EnumOf(list(_ModeStrandMap.keys()))),
                             ],
                    synopsis='set cartoon style for secondary structures in specified models')
-    register(command_name + " style", desc, cartoon_style)
+    register("cartoon style", desc, cartoon_style)
+    desc = CmdDesc(optional=[("spec", AtomSpecArg)],
+                   synopsis='undisplay cartoon for specified residues')
+    register("cartoon hide", desc, uncartoon)
+    from . import create_alias
+    create_alias("~cartoon", "cartoon hide $*")

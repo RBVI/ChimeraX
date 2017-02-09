@@ -289,6 +289,11 @@ def init(argv, event_loop=True):
         os.environ['XDG_CONFIG_DIRS'] = rootdir
 
     if sys.platform.startswith('win'):
+        if 'HOME' in os.environ:
+            # Windows uses HOMEPATH and HOMEDRIVE, so HOME's presence indicates
+            # a non-standard startup environment.  So remove HOME to make
+            # sure the the correct application paths are figured out.
+            del os.environ['HOME']
         import ctypes
         # getpn = ctypes.pythonapi.Py_GetProgramName
         # getpn.restype = ctypes.c_wchar_p
