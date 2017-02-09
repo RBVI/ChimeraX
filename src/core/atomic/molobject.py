@@ -1295,6 +1295,14 @@ class StructureData:
     '''Ribbon mode showing secondary structure as an arc (tube or plank).'''
     RIBBON_MODE_WRAP = 2
     '''Ribbon mode showing helix as ribbon wrapped around tube.'''
+
+    def ribbon_orients(self, residues=None):
+        '''Return array of orientation values for given residues.'''
+        if residues is None:
+            residues = self.residues
+        f = c_function('structure_ribbon_orient', args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t), ret = ctypes.py_object)
+        return f(self._c_pointer, residues._c_pointers, len(residues))
+
     ss_assigned = c_property('structure_ss_assigned', npy_bool, doc =
         "Has secondary structure been assigned, either by data in original structure file "
         "or by some algorithm (e.g. dssp command)")
