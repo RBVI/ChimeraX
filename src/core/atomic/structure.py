@@ -1866,14 +1866,19 @@ class AtomicStructure(Structure):
                 return
             entity_fields = self.metadata['entity']
             id_index = entity_fields.index('id')
-            desc_index = entity_fields.index('pdbx_description')
-            data = self.metadata['entity data']
-            entity_to_description = { data[i+id_index]: data[i+desc_index]
-                for i in range(0, len(data), len(entity_fields)) }
-            for ch in self.chains:
-                mmcif_cid = ch.existing_residues.mmcif_chain_ids[0]
-                chain_to_desc[ch.chain_id] = (
-                    entity_to_description[mmcif_chain_to_entity[mmcif_cid]], False)
+            try:
+                # pdbx_description is only in files from wwpdb
+                desc_index = entity_fields.index('pdbx_description')
+            except ValueError:
+                pass
+            else:
+                data = self.metadata['entity data']
+                entity_to_description = { data[i+id_index]: data[i+desc_index]
+                    for i in range(0, len(data), len(entity_fields)) }
+                for ch in self.chains:
+                    mmcif_cid = ch.existing_residues.mmcif_chain_ids[0]
+                    chain_to_desc[ch.chain_id] = (
+                        entity_to_description[mmcif_chain_to_entity[mmcif_cid]], False)
         elif 'COMPND' in self.metadata and self.pdb_version > 1:
             compnd_recs = self.metadata['COMPND']
             compnd_chain_ids = None
