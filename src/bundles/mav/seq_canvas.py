@@ -374,11 +374,11 @@ class SeqCanvas:
         '''return coords that bound given lines and positions'''
         return self.lead_block.bbox_list(line1, line2, pos1, pos2, cover_gaps)
 
-    """TODO
-    def boundedBy(self, x1, y1, x2, y2):
+    def bounded_by(self, x1, y1, x2, y2):
         '''return lines and offsets bounded by given coords'''
-        return self.lead_block.boundedBy(x1, y1, x2, y2)
+        return self.lead_block.bounded_by(x1, y1, x2, y2)
 
+    """TODO
     def _attrsUpdateCB(self):
         self._delayedAttrsHandler = None
         self.mav.status("Updating residue attributes")
@@ -1589,23 +1589,22 @@ class SeqBlock:
             lrx -= overlap
         return ulx, uly, lrx, lry
 
-    """TODO
-    def boundedBy(self, x1, y1, x2, y2):
+    def bounded_by(self, x1, y1, x2, y2):
         end = self.bottom_y + self.block_gap
         if y1 > end and y2 > end:
             if self.next_block:
-                return self.next_block.boundedBy(x1, y1, x2, y2)
+                return self.next_block.bounded_by(x1, y1, x2, y2)
             else:
                 return (None, None, None, None)
-        relY1 = self.relativeY(y1)
-        relY2 = self.relativeY(y2)
-        if relY1 < relY2:
-            hiRow = self.rowIndex(relY1, bound="top")
-            lowRow = self.rowIndex(relY2, bound="bottom")
+        rel_y1 = self.relative_y(y1)
+        rel_y2 = self.relative_y(y2)
+        if rel_y1 < rel_y2:
+            hi_row = self.row_index(rel_y1, bound="top")
+            low_row = self.row_index(rel_y2, bound="bottom")
         else:
-            hiRow = self.rowIndex(relY2, bound="top")
-            lowRow = self.rowIndex(relY1, bound="bottom")
-        if hiRow is None or lowRow is None:
+            hi_row = self.row_index(rel_y2, bound="top")
+            low_row = self.row_index(rel_y1, bound="bottom")
+        if hi_row is None or low_row is None:
             return (None, None, None, None)
 
         if y1 <= end and y2 <= end:
@@ -1614,28 +1613,25 @@ class SeqBlock:
                 # entirely in the same block gap or ruler
                 return (None, None, None, None)
             # both on this block; determine right and left...
-            leftX = min(x1, x2)
-            rightX = max(x1, x2)
-            leftPos = self.pos(leftX, bound="left")
-            rightPos = self.pos(rightX, bound="right")
+            left_x = min(x1, x2)
+            right_x = max(x1, x2)
+            left_pos = self.pos(left_x, bound="left")
+            right_pos = self.pos(right_x, bound="right")
         else:
             # the one on this block is left...
             if y1 <= end:
-                leftX, rightX, lowY = x1, x2, y2
+                left_x, right_x, lowY = x1, x2, y2
             else:
-                leftX, rightX, lowY = x2, x1, y1
-            leftPos = self.pos(leftX, bound="left")
+                left_x, right_x, lowY = x2, x1, y1
+            left_pos = self.pos(left_x, bound="left")
             if self.next_block:
-                rightPos = self.next_block.pos(rightX,
-                            bound="right", y=lowY)
+                right_pos = self.next_block.pos(right_x, bound="right", y=lowY)
             else:
-                rightPos = self.pos(rightX, bound="right")
-        if leftPos is None or rightPos is None or leftPos > rightPos:
+                right_pos = self.pos(right_x, bound="right")
+        if left_pos is None or right_pos is None or left_pos > right_pos:
             return (None, None, None, None)
-        return (self.lines[hiRow], self.lines[lowRow],
-                            leftPos, rightPos)
+        return (self.lines[hi_row], self.lines[low_row], left_pos, right_pos)
 
-    """
 
     def _brush(self, color):
         try:
@@ -2226,11 +2222,11 @@ class SeqBlock:
         if self.next_block:
             return self.next_block.numBlocks() + 1
         return 1
+    """
 
     def pos(self, x, bound=None, y=None):
         '''return 'sequence' position of x'''
-        if y is not None and self.next_block \
-        and y > self.bottom_y + self.block_gap:
+        if y is not None and self.next_block and y > self.bottom_y + self.block_gap:
             return self.next_block.pos(x, bound, y)
         if x < self._left_seqs_edge():
             if bound == "left":
@@ -2243,31 +2239,25 @@ class SeqBlock:
             else:
                 return None
         chunk = int((x - self._left_seqs_edge()) /
-            (10 * (self.font_pixels[0] + self.letter_gaps[0])
-            + self.chunk_gap))
-        chunkX = x - self._left_seqs_edge() - chunk * (
-            10 * (self.font_pixels[0] + self.letter_gaps[0])
-            + self.chunk_gap)
-        chunkOffset = int(chunkX / (self.font_pixels[0]
-                            + self.letter_gaps[0]))
-        offset = 10 * chunk + min(chunkOffset, 10)
-        myLineWidth = min(self.line_width,
-                    len(self.alignment.seqs[0]) - self.seq_offset)
-        if offset >= myLineWidth:
+            (10 * (self.font_pixels[0] + self.letter_gaps[0]) + self.chunk_gap))
+        chunk_x = x - self._left_seqs_edge() - chunk * (
+            10 * (self.font_pixels[0] + self.letter_gaps[0]) + self.chunk_gap)
+        chunk_offset = int(chunk_x / (self.font_pixels[0] + self.letter_gaps[0]))
+        offset = 10 * chunk + min(chunk_offset, 10)
+        my_line_width = min(self.line_width, len(self.alignment.seqs[0]) - self.seq_offset)
+        if offset >= my_line_width:
             if bound == "left":
                 if self.next_block:
-                    return self.seq_offset + myLineWidth
+                    return self.seq_offset + my_line_width
                 return None
             elif bound == "right":
-                return self.seq_offset + myLineWidth - 1
+                return self.seq_offset + my_line_width - 1
             return None
-        offset = 10 * chunk + min(chunkOffset, 9)
-        rightEdge = self._left_seqs_edge() + \
-            chunk * (10 * (self.font_pixels[0]
-                + self.letter_gaps[0]) + self.chunk_gap) + \
-            (chunkOffset + 1) * (self.font_pixels[0] +
-                    self.letter_gaps[0])
-        if chunkOffset >= 10 or rightEdge - x < self.letter_gaps[0]:
+        offset = 10 * chunk + min(chunk_offset, 9)
+        right_edge = self._left_seqs_edge() + \
+            chunk * (10 * (self.font_pixels[0] + self.letter_gaps[0]) + self.chunk_gap) + \
+            (chunk_offset + 1) * (self.font_pixels[0] + self.letter_gaps[0])
+        if chunk_offset >= 10 or right_edge - x < self.letter_gaps[0]:
             # in gap
             if bound == "left":
                 return self.seq_offset + offset + 1
@@ -2277,6 +2267,7 @@ class SeqBlock:
         # on letter
         return self.seq_offset + offset
 
+    """TODO
     def recolor(self, seq):
         if self.next_block:
             self.next_block.recolor(seq)
@@ -2322,21 +2313,23 @@ class SeqBlock:
                     and myRight == self.line_width - 1:
             self.main_scene.delete(self.numbering_texts[seq][1])
             self.numbering_texts[seq][1] = self._makeNumbering(seq,1)
+    """
         
-    def relativeY(self, rawY):
+    def relative_y(self, rawY):
         '''return the y relative to the block the y is in'''
         if rawY < self.top_y:
             if not self.prev_block:
                 return 0
             else:
-                return self.prev_block.relativeY(rawY)
+                return self.prev_block.relative_y(rawY)
         if rawY > self.bottom_y + self.block_gap:
             if not self.next_block:
                 return self.bottom_y - self.top_y
             else:
-                return self.next_block.relativeY(rawY)
+                return self.next_block.relative_y(rawY)
         return min(rawY - self.top_y, self.bottom_y - self.top_y)
             
+    """TODO
     def realign(self, prevLen):
         '''sequences globally realigned'''
 
@@ -2426,11 +2419,12 @@ class SeqBlock:
                     self.label_bindings, self.status_func,
                     self.show_ruler, self.tree_balloon,
                     self.show_numberings, self.prefs)
+    """
 
-    def rowIndex(self, y, bound=None):
+    def row_index(self, y, bound=None):
         '''Given a relative y, return the row index'''
-        relRulerBottom = self.bottom_ruler_y - self.top_y
-        if y <= relRulerBottom:
+        rel_ruler_bottom = self.bottom_ruler_y - self.top_y
+        if y <= rel_ruler_bottom:
             # in header
             if bound == "top":
                 return 0
@@ -2439,8 +2433,7 @@ class SeqBlock:
                     return len(self.lines) - 1
                 return None
             return None
-        row = int((y - relRulerBottom) /
-                (self.font_pixels[1] + self.letter_gaps[1]))
+        row = int((y - rel_ruler_bottom) / (self.font_pixels[1] + self.letter_gaps[1]))
         if row >= len(self.lines):
             # off bottom
             if bound == "top":
@@ -2450,9 +2443,8 @@ class SeqBlock:
             elif bound == "bottom":
                 return len(self.lines) - 1
             return None
-                    
-        top_y = relRulerBottom + row * (
-                    self.font_pixels[1] + self.letter_gaps[1])
+
+        top_y = rel_ruler_bottom + row * (self.font_pixels[1] + self.letter_gaps[1])
         if y - top_y < self.letter_gaps[1]:
             # in gap
             if bound == "top":
@@ -2464,7 +2456,8 @@ class SeqBlock:
             return None
         # on letter
         return row
-    
+
+    """TODO
     def setLeftNumberingDisplay(self, showNumbering):
         if showNumbering == self.show_numberings[0]:
             return

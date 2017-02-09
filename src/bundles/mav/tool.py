@@ -104,12 +104,6 @@ class MultalignViewer(ToolInstance):
                 if not numberingDisplay:
                     defaultNumbering = (False, False)
 
-        """
-        self._seq_rename_handlers = {}
-        for seq in seqs:
-            self._seq_rename_handlers[seq] = seq.triggers.add_handler(
-                self.region_browser._seq_renamed_cb)
-        """
         self._defaultNumbering = defaultNumbering
         self.fileAttrs = fileAttrs
         self.fileMarkups = fileMarkups
@@ -153,6 +147,10 @@ class MultalignViewer(ToolInstance):
         from .region_browser import RegionBrowser
         rb_window = self.tool_window.create_child_window("Regions", close_destroys=False)
         self.region_browser = RegionBrowser(rb_window, self.seq_canvas)
+        self._seq_rename_handlers = {}
+        for seq in self.alignment.seqs:
+            self._seq_rename_handlers[seq] = seq.triggers.add_handler("rename",
+                self.region_browser._seq_renamed_cb)
         """TODO
         if self.fileMarkups:
             from HeaderSequence import FixedHeaderSequence
