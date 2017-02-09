@@ -192,32 +192,38 @@ _molc_lib = None
 def c_function(func_name, lib_name = 'libmolc', args = None, ret = None):
     global _molc_lib
     if _molc_lib is None:
-        import os
-        import sys
-        if sys.platform.startswith('darwin'):
-            exts = ['.dylib', '.so']
-        elif sys.platform.startswith('linux'):
-            exts = ['.so']
-        else: # Windows
-            exts = ['.pyd', '.dll']
-        for ext in exts:
-            if os.path.isabs(lib_name):
-                lib_path = lib_name
-            else:
-                lib_path = os.path.join(os.path.dirname(__file__), lib_name)
-            lib_path += ext
-            if not os.path.exists(lib_path):
-                continue
-            _molc_lib = ctypes.PyDLL(lib_path)
-            break
-        else:
-            raise RuntimeError("Unable to find '%s' shared library" % lib_name)
+        _molc_lib = ctypes_open(lib_name)
     f = getattr(_molc_lib, func_name)
     if args is not None and f.argtypes is None:
         f.argtypes = args
     if ret is not None:
         f.restype = ret
     return f
+
+# -----------------------------------------------------------------------------
+#
+def ctypes_open(lib_name):
+    import os
+    import sys
+    if sys.platform.startswith('darwin'):
+        exts = ['.dylib', '.so']
+    elif sys.platform.startswith('linux'):
+        exts = ['.so']
+    else: # Windows
+        exts = ['.pyd', '.dll']
+    for ext in exts:
+        if os.path.isabs(lib_name):
+            lib_path = lib_name
+        else:
+            lib_path = os.path.join(os.path.dirname(__file__), lib_name)
+        lib_path += ext
+        if not os.path.exists(lib_path):
+            continue
+        lib = ctypes.PyDLL(lib_path)
+        break
+    else:
+        raise RuntimeError("Unable to find '%s' shared library" % lib_name)
+    return lib
 
 # -----------------------------------------------------------------------------
 # Map numpy array value types (numpy.dtype) to ctypes value types.
