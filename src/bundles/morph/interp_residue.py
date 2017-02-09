@@ -10,33 +10,34 @@ class InterpCartesian:
                 self.a0 = a0
         def interpolate(self, c0map, c1map, f, coord_set):
                 "Interpolate Cartesian position between start and end position."
-                a0 = self.a0
-                c0 = c0map[a0]
-                c1 = c1map[a0]
+                i0 = self.a0.coord_index
+                c0 = c0map[i0]
+                c1 = c1map[i0]
                 c = c0 + (c1 - c0) * f
-                coord_set[a0.coord_index,:] = c
+                coord_set[i0,:] = c
 
 iit = dpt = 0
 class InterpInternal:
         def __init__(self, a0, a1, a2, a3):
                 self.atoms = (a0,a1,a2,a3)
+                self.atom_indices = [a.coord_index for a in self.atoms]
         def interpolate_py(self, c0map, c1map, f, coord_set):
                 """Computer coordinate of atom a0 by interpolating dihedral angle
                 defined by atoms (a0, a1, a2, a3)"""
                 t0 = time()
-                a0,a1,a2,a3 = self.atoms
+                i0,i1,i2,i3 = self.atom_indices
                 from chimerax.core.geometry import distance, angle, dihedral, dihedral_point
-                c00 = c0map[a0]
-                c01 = c0map[a1]
-                c02 = c0map[a2]
-                c03 = c0map[a3]
+                c00 = c0map[i0]
+                c01 = c0map[i1]
+                c02 = c0map[i2]
+                c03 = c0map[i3]
                 length0 = distance(c00, c01)
                 angle0 = angle(c00, c01, c02)
                 dihed0 = dihedral(c00, c01, c02, c03)
-                c10 = c1map[a0]
-                c11 = c1map[a1]
-                c12 = c1map[a2]
-                c13 = c1map[a3]
+                c10 = c1map[i0]
+                c11 = c1map[i1]
+                c12 = c1map[i2]
+                c13 = c1map[i3]
                 length1 = distance(c10, c11)
                 angle1 = angle(c10, c11, c12)
                 dihed1 = dihedral(c10, c11, c12, c13)
@@ -54,7 +55,7 @@ class InterpInternal:
                 t2 = time()
                 c0 = dihedral_point(c1, c2, c3, length, angle, dihed)
                 t3 = time()
-                coord_set[a0.coord_index,:] = c0
+                coord_set[i0:] = c0
                 t1 = time()
                 global iit, dpt
                 iit += t1-t0
@@ -64,21 +65,21 @@ class InterpInternal:
                 """Computer coordinate of atom a0 by interpolating dihedral angle
                 defined by atoms (a0, a1, a2, a3)"""
                 t0 = time()
-                a0,a1,a2,a3 = self.atoms
-                c00 = c0map[a0]
-                c01 = c0map[a1]
-                c02 = c0map[a2]
-                c03 = c0map[a3]
-                c10 = c1map[a0]
-                c11 = c1map[a1]
-                c12 = c1map[a2]
-                c13 = c1map[a3]
-                c1 = coord_set[a1.coord_index,:]
-                c2 = coord_set[a2.coord_index,:]
-                c3 = coord_set[a3.coord_index,:]
+                i0,i1,i2,i3 = self.atom_indices
+                c00 = c0map[i0]
+                c01 = c0map[i1]
+                c02 = c0map[i2]
+                c03 = c0map[i3]
+                c10 = c1map[i0]
+                c11 = c1map[i1]
+                c12 = c1map[i2]
+                c13 = c1map[i3]
+                c1 = coord_set[i1,:]
+                c2 = coord_set[i2,:]
+                c3 = coord_set[i3,:]
                 from ._morph import interpolate_dihedral
                 c0 = interpolate_dihedral(c00, c01, c02, c03, c10, c11, c12, c13, f, c1, c2, c3)
-                coord_set[a0.coord_index,:] = c0
+                coord_set[i0,:] = c0
                 t1 = time()
                 global iit
                 iit += t1-t0

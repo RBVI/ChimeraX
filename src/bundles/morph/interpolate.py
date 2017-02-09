@@ -30,7 +30,7 @@ def interpolate(mol, to_mol_xform, segments, equiv_atoms, method, rate_method,
         numFrames = len(rate) + 1
         csSize = mol.coordset_size
         baseCS = max(mol.coordset_ids) + 1
-        segMap = {}
+        seg_info = []
         plan = {}
         for seg in segments:
                 rList0, rList1 = seg
@@ -41,7 +41,7 @@ def interpolate(mol, to_mol_xform, segments, equiv_atoms, method, rate_method,
                 cList1 = to_mol_xform * aList1.coords
                 c1 = aList1.coords.mean(axis = 0)
                 xform, rmsd = align_points(cList0, cList1)
-                segMap[seg] = (c0, c1, xform)
+                seg_info.append((rList0, rList1, c0, c1, xform))
                 for r in rList0:
                         plan[r] = planFunction(r)
 
@@ -53,12 +53,10 @@ def interpolate(mol, to_mol_xform, segments, equiv_atoms, method, rate_method,
                 interval = 1.0 - lo
                 from numpy import zeros, float32
                 cs = zeros((csSize,3), float32)
-                for seg in segments:
-                        c0, c1, xform = segMap[seg]
+                for rList0, rList1, c0, c1, xform in seg_info:
                         xf0, xf1 = interpolateFunction(xform, c0, c1, f)
-                        rList0, rList1 = seg
+                        c0map, c1map = atom_coords(rList0.atoms, equiv_atoms, xf0, xf1 * to_mol_xform)
                         for r in rList0:
-                                c0map, c1map = residue_coords(r, equiv_atoms, xf0, xf1 * to_mol_xform)
                                 interp_residue.applyPlan(plan[r], r, cs, f, c0map, c1map)
                 cs_id = baseCS + i
                 mol.add_coordset(cs_id, cs)
@@ -75,14 +73,18 @@ def interpolate(mol, to_mol_xform, segments, equiv_atoms, method, rate_method,
 
 from time import time
 smt = 0
-def residue_coords(r, equiv_atoms, xf0, xf1):
+def atom_coords(atoms, equiv_atoms, xf0, xf1):
         # Starting and ending residue atom coordinates after rigid segment motion.
         t0 = time()
-        c0map = {}
-        c1map = {}
-        for a0 in r.atoms:
-                c0map[a0] = xf0 * a0.coord
-                c1map[a0] = xf1 * equiv_atoms[a0].coord
+        i = atoms.coord_indices
+        nc = i.max() + 1
+        from numpy import empty, float64
+        c0map = empty((nc,3), float64)
+        c0map[i] = xf0 * atoms.coords
+        c1map = empty((nc,3), float64)
+        from chimerax.core.atomic import Atoms
+        atoms1 = Atoms([equiv_atoms[a] for a in atoms])
+        c1map[i] = xf1 * atoms1.coords
         t1 = time()
         global smt
         smt += t1 - t0

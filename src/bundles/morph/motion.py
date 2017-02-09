@@ -56,6 +56,8 @@ class MolecularMotion:
                 except ValueError:
                         results = segment.segmentHingeApproximate(sm, m)
                 segments, atomMap, unusedResidues, unusedAtoms = results
+                from chimerax.core.atomic import Residues
+                segments = [(Residues(r0), Residues(r1)) for r0,r1 in segments]
                 unusedResidues.delete()
                 unusedAtoms.delete()
 
