@@ -1325,4 +1325,15 @@ Structure::set_all_graphics_changes(int changes)
     g.second->set_graphics_changes(changes);
 }
 
+Structure::RibbonOrientation
+Structure::ribbon_orient(const Residue *r) const
+{
+    if (r->is_helix())
+        return Structure::RIBBON_ORIENT_ATOMS;
+    if (r->is_strand())
+        return Structure::RIBBON_ORIENT_PEPTIDE;
+    return Structure::RIBBON_ORIENT_ATOMS;
+    // return _ribbon_orientation;
+}
+
 } //  namespace atomstruct

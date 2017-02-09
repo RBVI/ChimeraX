@@ -1300,7 +1300,11 @@ CIFFile::parse_whole_category(ParseValue func)
 void
 CIFFile::process_stash()
 {
+	const char* last_pos = pos;
 	Token last_token = current_token;
+	const char* last_value_start = current_value_start;
+	const char* last_value_end = current_value_end;
+	std::string last_value_tmp = current_value_tmp;
 	size_t last_lineno = lineno;
 	auto save_stash = std::move(stash);
 	stash.clear();
@@ -1317,7 +1321,11 @@ CIFFile::process_stash()
 		current_token = T_SOI;	// make sure next_token returns values
 		internal_parse(true);
 	}
+	pos = last_pos;
 	current_token = last_token;
+	current_value_start = last_value_start;
+	current_value_end = last_value_end;
+	current_value_tmp = last_value_tmp;
 	lineno = last_lineno;
 }
 

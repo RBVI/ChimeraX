@@ -280,6 +280,7 @@ public:
     bool  ribbon_show_spine() const { return _ribbon_show_spine; }
     int  ribbon_display_count() const { return _ribbon_display_count; }
     RibbonOrientation  ribbon_orientation() const { return _ribbon_orientation; }
+    RibbonOrientation  ribbon_orient(const Residue *r) const;
     RibbonMode  ribbon_mode_helix() const { return _ribbon_mode_helix; }
     RibbonMode  ribbon_mode_strand() const { return _ribbon_mode_strand; }
     void  set_ribbon_tether_scale(float s);
