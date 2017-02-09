@@ -3161,6 +3161,17 @@ extern "C" EXPORT void structure_coordset_ids(void *mols, size_t n, int32_t *coo
     }
 }
 
+extern "C" EXPORT void structure_coordset_size(void *mols, size_t n, int32_t *coordset_size)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    try {
+        for (size_t i = 0; i != n; ++i)
+	  *coordset_size++ = m[i]->active_coord_set()->coords().size();
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void structure_num_coord_sets(void *mols, size_t n, size_t *ncoord_sets)
 {
     Structure **m = static_cast<Structure **>(mols);
