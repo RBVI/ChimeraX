@@ -20,7 +20,7 @@ iit = dpt = 0
 class InterpInternal:
         def __init__(self, a0, a1, a2, a3):
                 self.atoms = (a0,a1,a2,a3)
-        def interpolate(self, c0map, c1map, f, coord_set):
+        def interpolate_py(self, c0map, c1map, f, coord_set):
                 """Computer coordinate of atom a0 by interpolating dihedral angle
                 defined by atoms (a0, a1, a2, a3)"""
                 t0 = time()
@@ -59,7 +59,8 @@ class InterpInternal:
                 global iit, dpt
                 iit += t1-t0
                 dpt += t3-t2
-        def interpolate_cpp(self, c0map, c1map, f, coord_set):
+
+        def interpolate(self, c0map, c1map, f, coord_set):
                 """Computer coordinate of atom a0 by interpolating dihedral angle
                 defined by atoms (a0, a1, a2, a3)"""
                 t0 = time()
@@ -76,7 +77,7 @@ class InterpInternal:
                 c2 = coord_set[a2.coord_index,:]
                 c3 = coord_set[a3.coord_index,:]
                 from ._morph import interpolate_dihedral
-                c0 = interpolate_dihedral(c00, c01, c02, c03, c1, c11, c12, c13, f, c1, c2, c3)
+                c0 = interpolate_dihedral(c00, c01, c02, c03, c10, c11, c12, c13, f, c1, c2, c3)
                 coord_set[a0.coord_index,:] = c0
                 t1 = time()
                 global iit

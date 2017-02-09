@@ -59,7 +59,7 @@ static double angle(double *p0, double *p1, double *p2)
 {
   double v0[3], v1[3];
   subtract(p0,p1,v0);
-  subtract(p2,p1,v0);
+  subtract(p2,p1,v1);
   double acc = inner_product(v0, v1);
   double d0 = norm(v0);
   double d1 = norm(v1);
@@ -157,7 +157,7 @@ interpolate_dihedral(PyObject *, PyObject *args, PyObject *keywds)
   double c00[3], c01[3], c02[3], c03[3], c10[3], c11[3], c12[3], c13[3], f, c1[3], c2[3], c3[3], c0[3];
   const char *kwlist[] = {"c00", "c01", "c02", "c03", "c10", "c11", "c12", "c13", "f",
 			  "c1", "c2", "c3", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&O&O&O&O&O&O&OO&O&O&"),
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&O&O&O&O&O&O&dO&O&O&"),
 				   (char **)kwlist,
 				   parse_double_3_array, &c00[0],
 				   parse_double_3_array, &c01[0],
