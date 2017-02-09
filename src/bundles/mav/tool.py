@@ -60,8 +60,9 @@ class MultalignViewer(ToolInstance):
         """
         self.alignment = alignment
         alignment.attach_viewer(self)
+        from . import settings
+        self.settings = settings.init(session)
         """
-        self.prefs = prefs
         from SeqCanvas import shouldWrap
         if numberingDisplay:
             defaultNumbering = numberingDisplay

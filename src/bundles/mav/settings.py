@@ -14,8 +14,10 @@
 SINGLE_PREFIX = "single_seq_"
 
 defaults = {
-	'column_separation': 0,
-    SINGLE_PREFIX + 'column_separation': -2,
+	"column_separation": 0,
+    SINGLE_PREFIX + "column_separation": -2,
+    "new_region_border": None,
+    "new_region_interior": "white",
 }
 
 from  chimerax.core.settings import Settings
@@ -24,10 +26,6 @@ from copy import deepcopy
 class _MAVSettings(Settings):
 	EXPLICIT_SAVE = deepcopy(defaults)
 
-settings = None
 def init(session):
-    global settings
-    # don't initialize a zillion times, which would also overwrite any changed but not
-    # saved settings
-    if settings is None:
-        settings = _MAVSettings(session, "Multalign Viewer")
+    # each MAV instance has its own settings instance
+    return _MAVSettings(session, "Multalign Viewer")

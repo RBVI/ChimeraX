@@ -888,8 +888,8 @@ class RegionBrowser:
             else:
                 self.seq_canvas.mav.status(
                   "Use delete/backspace key to remove regions")
-        interior = self._getRGBA(fill)
-        border = self._getRGBA(outline)
+        interior = self._get_rgba(fill)
+        border = self._get_rgba(outline)
         region = Region(self, init_blocks=blocks, name=name,
                 name_prefix=name_prefix, shown=shown,
                 border_rgba=border, interior_rgba=interior,
@@ -1236,10 +1236,9 @@ class RegionBrowser:
         window(sel)
         cofr(sel)
 
-    def _getRGBA(self, specified=None):
+    def _get_rgba(self, specified=None):
         if isinstance(specified, basestring):
-            return map(lambda v: v/255.0,
-                        colorTable.colors[specified])
+            return map(lambda v: v/255.0, colorTable.colors[specified])
         return specified
     
     def _listingCB(self, val=None):
@@ -1285,6 +1284,7 @@ class RegionBrowser:
     def _mouse_drag_cb(self, event=None):
         if not hasattr(self, '_start_x') or self._start_x is None:
             return
+        """
         canvas = self.seq_canvas.main_view
         if not event:
             # callback from over-edge mouse drag
@@ -1340,25 +1340,26 @@ class RegionBrowser:
                 if self._after_id:
                     canvas.after_cancel(self._after_id)
                     self._after_id = None
+        """
 
-        canvasX = canvas.canvasx(x)
-        canvasY = canvas.canvasy(y)
-        if abs(canvasX - self._start_x) > 1 \
-        or abs(canvasY - self._start_y) > 1:
-            block = self.seq_canvas.boundedBy(canvasX, canvasY,
-                        self._start_x, self._start_y)
+        control_down = event.modifiers() | Qt.ControlModifier
+        pos = event.scenePos()
+        canvas_x, canvas_y = pos.x(), pos.y()
+        if abs(canvas_x - self._start_x) > 1 or abs(canvas_y - self._start_y) > 1:
+            block = self.seq_canvas.bounded_by(canvas_x, canvas_y, self._start_x, self._start_y)
             if block[0] is None:
                 self._clear_drag()
                 return
             if not self._drag_region:
-                prefs = self.seq_canvas.mav.prefs
+                rebuild_table = True
+                """TODO
                 rebuild_table = self.seqRegionMenu.index(Pmw.SELECT) == 0
-                self._drag_region = self.new_region(
-                    blocks=[block], select=True,
-                    outline=prefs[NEW_REGION_BORDER],
-                    fill=prefs[NEW_REGION_INTERIOR],
+                """
+                settings = self.seq_canvas.mav.settings
+                self._drag_region = self.new_region(blocks=[block], select=True,
+                    outline=settings.new_region_border, fill=settings.new_region_interior,
                     cover_gaps=True, rebuild_table=rebuild_table)
-                if not controlDown and self._prev_drag:
+                if not control_down and self._prev_drag:
                     self._prev_drag.destroy(rebuild_table=rebuild_table)
                     self._prev_drag = None
             elif not self._drag_lines:
@@ -1368,45 +1369,44 @@ class RegionBrowser:
 
             bboxes = []
             for block in self._drag_region.blocks:
-                bboxes.extend(self.seq_canvas.bbox_list(
-                            cover_gaps=True, *block))
+                bboxes.extend(self.seq_canvas.bbox_list(cover_gaps=True, *block))
             for i in range(len(bboxes)):
-                curBBox = bboxes[i]
+                cur_bbox = bboxes[i]
                 try:
-                    prevBBox = self._bboxes[i]
+                    prev_bbox = self._bboxes[i]
                 except IndexError:
-                    prevBBox = None
-                if curBBox == prevBBox:
+                    prev_bbox = None
+                if cur_bbox == prev_bbox:
                     continue
-                ulX, ulY, lrX, lrY = curBBox
-                ulX -= 1
-                ulY -= 1
-                lrX += 1
-                lrY += 1
-                if not prevBBox:
-                    create_line = self.seq_canvas.main_view\
-                                .create_line
+                ul_x, ul_y, lr_x, lr_y = cur_bbox
+                ul_x -= 1
+                ul_y -= 1
+                lr_x += 1
+                lr_y += 1
+                if not prev_bbox:
+                    create_line = self.seq_canvas.main_scene.addLine
+                    #TODO
                     drag_lines = []
-                    drag_lines.append(create_line(ulX, ulY,
-                        ulX, lrY, stipple="gray50"))
-                    drag_lines.append(create_line(ulX, lrY,
-                        lrX, lrY, stipple="gray50"))
-                    drag_lines.append(create_line(lrX, lrY,
-                        lrX, ulY, stipple="gray50"))
-                    drag_lines.append(create_line(lrX, ulY,
-                        ulX, ulY, stipple="gray50"))
+                    drag_lines.append(create_line(ul_x, ul_y,
+                        ul_x, lr_y, stipple="gray50"))
+                    drag_lines.append(create_line(ul_x, lr_y,
+                        lr_x, lr_y, stipple="gray50"))
+                    drag_lines.append(create_line(lr_x, lr_y,
+                        lr_x, ul_y, stipple="gray50"))
+                    drag_lines.append(create_line(lr_x, ul_y,
+                        ul_x, ul_y, stipple="gray50"))
                     self._drag_lines.append(drag_lines)
                 else:
                     coords = self.seq_canvas.main_view.coords
                     drag_lines = self._drag_lines[i]
-                    coords(drag_lines[0], ulX, ulY,
-                                ulX, lrY)
-                    coords(drag_lines[1], ulX, lrY,
-                                lrX, lrY)
-                    coords(drag_lines[2], lrX, lrY,
-                                lrX, ulY)
-                    coords(drag_lines[3], lrX, ulY,
-                                ulX, ulY)
+                    coords(drag_lines[0], ul_x, ul_y,
+                                ul_x, lr_y)
+                    coords(drag_lines[1], ul_x, lr_y,
+                                lr_x, lr_y)
+                    coords(drag_lines[2], lr_x, lr_y,
+                                lr_x, ul_y)
+                    coords(drag_lines[3], lr_x, ul_y,
+                                ul_x, ul_y)
             for i in range(len(bboxes), len(self._bboxes)):
                 self.seq_canvas.main_view.delete(
                             *self._drag_lines[i])
@@ -1564,7 +1564,7 @@ class RegionBrowser:
         canvas = self.seq_canvas.main_view
         canvasX = canvas.canvasx(event.x)
         canvasY = canvas.canvasy(event.y)
-        block = self.seq_canvas.boundedBy(canvasX, canvasY,
+        block = self.seq_canvas.bounded_by(canvasX, canvasY,
                             canvasX, canvasY)
         if block[0] is None:
             return None

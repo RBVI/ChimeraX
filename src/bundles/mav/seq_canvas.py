@@ -1,12 +1,11 @@
 # vim: set expandtab ts=4 sw=4:
 
-from .settings import settings, SINGLE_PREFIX
+from .settings import SINGLE_PREFIX
 
 """TODO
 from Consensus import Consensus
 from Conservation import Conservation
 import string
-from prefs import SINGLE_PREFIX
 from prefs import WRAP_IF, WRAP_THRESHOLD, WRAP, LINE_WIDTH, BLOCK_SPACE
 from prefs import FONT_NAME, FONT_SIZE, BOLD_ALIGNMENT
 from prefs import LINE_SEP, COLUMN_SEP, TEN_RES_GAP
@@ -677,7 +676,7 @@ class SeqCanvas:
             self.lineWidth, self.labelBindings, lambda *args, **kw:
             self.mav.status(secondary=True, *args, **kw),
             self.showRuler, self.treeBalloon, self.showNumberings,
-            self.mav.prefs)
+            self.mav.settings)
         self._resizescrollregion()
         """
         self.lead_block = SeqBlock(self._label_scene(), self.main_scene,
@@ -888,7 +887,7 @@ class SeqCanvas:
             self.lineWidth, self.labelBindings, lambda *args, **kw:
             self.mav.status(secondary=True, *args, **kw),
             self.showRuler, self.treeBalloon, self.showNumberings,
-            self.mav.prefs)
+            self.mav.settings)
         if self.tree:
             if self.treeShown:
                 self.lead_block.showTree({'tree': self.tree},
@@ -1315,7 +1314,7 @@ class SeqBlock:
 
     def __init__(self, label_scene, main_scene, prev_block, font, seq_offset,
             headers, alignment, line_width, label_bindings, status_func,
-            show_ruler, tree_balloon, show_numberings, prefs):
+            show_ruler, tree_balloon, show_numberings, settings):
         self.label_scene = label_scene
         self.main_scene = main_scene
         self.prev_block = prev_block
@@ -1350,7 +1349,7 @@ class SeqBlock:
         self.show_ruler = show_ruler
         self.tree_balloon = tree_balloon
         self.show_numberings = show_numberings[:]
-        self.prefs = prefs
+        self.settings = settings
         self.seq_offset = seq_offset
         self.line_width = line_width
 
@@ -1428,7 +1427,7 @@ class SeqBlock:
                 self, self.font, seq_offset + line_width, headers,
                 alignment, line_width, label_bindings, status_func,
                 show_ruler, tree_balloon, show_numberings,
-                self.prefs)
+                self.settings)
 
     """TODO
     def activateNode(self, node, callback=None,
@@ -1496,7 +1495,7 @@ class SeqBlock:
 
     def assoc_mod(self, aseq):
         label_text = self.label_texts[aseq]
-        name = seq_name(aseq, self.prefs)
+        name = seq_name(aseq, self.settings)
         from PyQt5.QtGui import QFontMetrics
         first_width = QFontMetrics(label_text.font()).width(name)
         label_text.setFont(self._label_font(aseq))
@@ -1731,7 +1730,7 @@ class SeqBlock:
     def find_label_width(self, font_metrics, emphasis_font_metrics):
         label_width = 0
         for seq in self.lines:
-            name = seq_name(seq, self.prefs)
+            name = seq_name(seq, self.settings)
             label_width = max(label_width, font_metrics.width(name))
             label_width = max(label_width, emphasis_font_metrics.width(name))
         label_width += self.label_pad
@@ -1998,7 +1997,7 @@ class SeqBlock:
         else:
             y = self.bottom_ruler_y + (line_index+1) * (self.font_pixels[1] + self.letter_gaps[1])
 
-        text = self.label_scene.addSimpleText(seq_name(line, self.prefs),
+        text = self.label_scene.addSimpleText(seq_name(line, self.settings),
             font=self._label_font(line))
         text.setBrush(self._brush(label_color))
         # anchor='sw': subtract the height
@@ -2333,7 +2332,7 @@ class SeqBlock:
     def realign(self, prevLen):
         '''sequences globally realigned'''
 
-        if shouldWrap(len(self.alignment.seqs), self.prefs):
+        if shouldWrap(len(self.alignment.seqs), self.settings):
             blockEnd = self.seq_offset + self.line_width
             prev_blockLen = min(prevLen, blockEnd)
             curBlockLen = min(len(self.alignment.seqs[0]), blockEnd)
@@ -2418,7 +2417,7 @@ class SeqBlock:
                     self.alignment.seqs, self.line_width,
                     self.label_bindings, self.status_func,
                     self.show_ruler, self.tree_balloon,
-                    self.show_numberings, self.prefs)
+                    self.show_numberings, self.settings)
     """
 
     def row_index(self, y, bound=None):
@@ -2627,7 +2626,7 @@ def shouldWrap(numSeqs, prefs):
     return 0
 """
 
-def seq_name(seq, prefs):
+def seq_name(seq, settings):
     """TODO
     return ellipsis_name(seq.name, prefs[SEQ_NAME_ELLIPSIS])
     """
