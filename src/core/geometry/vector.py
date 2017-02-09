@@ -135,20 +135,10 @@ def dihedral_point(n1, n2, n3, dist, angle, dihed):
     x = normalize_vector(cross_product(v13, v12))
     y = normalize_vector(cross_product(v12, x))
 
-    from numpy import empty, float64
-    mat = empty((3,4), float64)
-    for i in range(3):
-        mat[i,0] = x[i]
-        mat[i,1] = y[i]
-        mat[i,2] = v12[i]
-        mat[i,3] = n1[i]
-
-    from . import Place
-    xform = Place(mat)
-
     from math import radians, sin, cos
     radAngle = radians(angle)
     tmp = dist * sin(radAngle)
     radDihed = radians(dihed)
     pt = (tmp*sin(radDihed), tmp*cos(radDihed), dist*cos(radAngle))
-    return xform * pt
+    dp = pt[0]*x + pt[1]*y + pt[2]*v12 + n1
+    return dp
