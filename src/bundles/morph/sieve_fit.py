@@ -26,7 +26,10 @@ def fitResidues(rList0, rList1, fraction=0.5, maxrmsd=0.1):
                         break
         return ([ a.residue for a in aList0 ], [ a.residue for a in aList1 ])
 
+svt = 0
 def sieve(aList0, aList1, maxrmsd):
+        from time import time
+        t0 = time()
         from numpy import array, subtract, inner, add, argmax, transpose, multiply
         position0 = array([a.coord for a in aList0])        # fixed
         position1 = array([a.coord for a in aList1])        # movable
@@ -43,4 +46,7 @@ def sieve(aList0, aList1, maxrmsd):
         worst = argmax(dsq)
         del aList0[worst]
         del aList1[worst]
+        t1 = time()
+        global svt
+        svt += t1-t0
         return True

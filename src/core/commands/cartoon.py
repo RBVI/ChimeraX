@@ -530,7 +530,7 @@ def register_command(session):
                             ("suppress_backbone_display", BoolArg),
                             ("spine", BoolArg),
                             ],
-                   hidden=["spine"],
+                   hidden=["spine", "orient", "mode_helix", "mode_strand"],
                    synopsis='display cartoon for specified residues')
     register("cartoon", desc, cartoon)
 

@@ -34,11 +34,16 @@ def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew
         from chimerax.core.errors import UserError
         raise UserError('Require at least 2 structures for morph')
 
-    from .base import Morph
-    ms = Morph(structures, session.logger, method=method, rate=rate, frames=frames, cartesian=cartesian)
-
-    traj, xform = ms.makeTrajectory()
+    from .motion import compute_morph
+    traj = compute_morph(structures, session.logger, method=method, rate=rate, frames=frames, cartesian=cartesian)
     session.models.add([traj])
+
+    session.logger.info('Computed %d frame morph #%s' % (traj.num_coord_sets, traj.id_string()))
+    from .interp_residue import iit, dpt
+    from .interpolate import smt, spt, rit
+    from .sieve_fit import svt
+    from .motion import ht,it
+#    print ('interpInternal time', iit, 'segment motion time', smt, 'sieve time', svt, 'hinge time', ht, 'interpolate time', it, 'segment plan time', spt, 'rigid interp time', rit)
 
 # -----------------------------------------------------------------------------------------
 #

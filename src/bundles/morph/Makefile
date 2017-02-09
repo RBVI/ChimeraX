@@ -1,6 +1,10 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
+SUBDIRS = _morph
+
+include $(TOP)/mk/subdir.make
+
 # By convention, ChimeraX bundles start with "ChimeraX-" to avoid naming
 # conflicts with Python packages in pypi.
 BUNDLE_NAME = ChimeraX-Morph
