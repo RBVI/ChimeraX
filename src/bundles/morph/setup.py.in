@@ -41,6 +41,9 @@ setup(
     packages=[
         "PKG_NAME",
     ],
+    package_data={
+        "PKG_NAME": ["*.PYMOD_EXT"]
+    },
     install_requires=[
         "ChimeraX-Core >= 0.1",
     ],

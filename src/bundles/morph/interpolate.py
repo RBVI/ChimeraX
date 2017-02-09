@@ -1,17 +1,14 @@
-def interpolate(mol, molXform, segments, equivAtoms, method, rMethod,
+def interpolate(mol, to_mol_xform, segments, equiv_atoms, method, rate_method,
                         frames, cartesian, cb):
         # mol                molecule where new coordinate sets are added
         #                should already have first frame in place
-        # molXform        transform to convert atoms from their own
-        #                local coordinate system into "mol" local coordinates
-        #                (usually [inverse transform of trajectory model] x
-        #                [transform of target model])
+        # to_mol_xform        transform to convert target atom local coordinates
+        #                into "mol" local coordinates.
         # segments        list of 2-tuples of matching residue lists
-        # equivAtoms        dictionary of equivalent atoms
-        #                key is atom from first frame
-        #                value is 2-tuple of atoms from last frame and "mol"
+        # equiv_atoms        dictionary of equivalent atoms
+        #                key is atom from mol and value is target atom
         # method        interpolation method name
-        # rMethod        rate profile, e.g., "linear"
+        # rate_method        rate profile, e.g., "linear"
         # frames        number of frames to generate in trajectory
         # cartesian        use cartesian coordinate interpolation?
         # cb                function called for every frame generated 
@@ -23,7 +20,7 @@ def interpolate(mol, molXform, segments, equivAtoms, method, rMethod,
         from chimerax.core.atomic import Atoms
 
         interpolateFunction = InterpolationMap[method]
-        rateFunction = RateMap[rMethod]
+        rateFunction = RateMap[rate_method]
         if cartesian:
                 planFunction = interp_residue.planCartesian
         else:
@@ -31,16 +28,20 @@ def interpolate(mol, molXform, segments, equivAtoms, method, rMethod,
 
         rate = rateFunction(frames)
         numFrames = len(rate) + 1
-        csSize = mol.num_atoms
+        csSize = mol.coordset_size
         baseCS = max(mol.coordset_ids) + 1
         segMap = {}
         plan = {}
         for seg in segments:
                 rList0, rList1 = seg
                 aList0 = Atoms(getAtomList(rList0))
-                aList1 = Atoms([ equivAtoms[a0] for a0 in aList0 ])
+                cList0 = aList0.coords
+                c0 = cList0.mean(axis = 0)
+                aList1 = Atoms([ equiv_atoms[a0] for a0 in aList0 ])
+                cList1 = to_mol_xform * aList1.coords
                 c1 = aList1.coords.mean(axis = 0)
-                segMap[seg] = (aList0, aList1, molXform * c1)
+                xform, rmsd = align_points(cList0, cList1)
+                segMap[seg] = (c0, c1, xform)
                 for r in rList0:
                         plan[r] = planFunction(r)
 
@@ -53,16 +54,12 @@ def interpolate(mol, molXform, segments, equivAtoms, method, rMethod,
                 from numpy import zeros, float32
                 cs = zeros((csSize,3), float32)
                 for seg in segments:
-                        aList0, aList1, c1 = segMap[seg]
-                        cList0 = aList0.coords
-                        c = cList0.mean(axis = 0)
-                        cList1 = molXform * aList1.coords
-                        xform, rmsd = align_points(cList0, cList1)
-                        xf, xf1 = interpolateFunction(xform, c, c1, f)
+                        c0, c1, xform = segMap[seg]
+                        xf0, xf1 = interpolateFunction(xform, c0, c1, f)
                         rList0, rList1 = seg
                         for r in rList0:
-                                interp_residue.applyPlan(plan[r], r, cs, f,
-                                                equivAtoms, xf, xf1 * molXform)
+                                c0map, c1map = residue_coords(r, equiv_atoms, xf0, xf1 * to_mol_xform)
+                                interp_residue.applyPlan(plan[r], r, cs, f, c0map, c1map)
                 cs_id = baseCS + i
                 mol.add_coordset(cs_id, cs)
                 mol.active_coordset_id = cs_id
@@ -70,11 +67,26 @@ def interpolate(mol, molXform, segments, equivAtoms, method, rMethod,
                         cb(mol)
         from numpy import zeros, float32
         cs = zeros((csSize,3), float32)
-        for a0, a1 in equivAtoms.items():
-                cs[a0.coord_index] = molXform * a1.coord
+        for a0, a1 in equiv_atoms.items():
+                cs[a0.coord_index] = to_mol_xform * a1.coord
         cs_id = baseCS + len(rate)
         mol.add_coordset(cs_id, cs)
         mol.active_coordset_id = cs_id
+
+from time import time
+smt = 0
+def residue_coords(r, equiv_atoms, xf0, xf1):
+        # Starting and ending residue atom coordinates after rigid segment motion.
+        t0 = time()
+        c0map = {}
+        c1map = {}
+        for a0 in r.atoms:
+                c0map[a0] = xf0 * a0.coord
+                c1map[a0] = xf1 * equiv_atoms[a0].coord
+        t1 = time()
+        global smt
+        smt += t1 - t0
+        return c0map, c1map
 
 def interpolateCorkscrew(xf, c0, c1, f):
         """Interpolate by splitting the transformation into a rotation
