@@ -315,10 +315,8 @@ def shareAtoms(r0, r1, atomMap, unusedAtoms):
         c0 = r0.chain
         before = c0.residue_before(r0) if c0 else None
         after = c0.residue_after(r0) if c0 else None
-        r0atoms, r1atoms = r0.atoms, r1.atoms
-        a0set, a1set = set(r0atoms), set(r1atoms)
+        r0atoms = r0.atoms
         neighbors = {a:a.neighbors for a in r0atoms}
-        neighbors.update({a:a.neighbors for a in r1atoms})
         startAtom = None
         for a0 in r0atoms:
                 if startAtom is None:
@@ -343,7 +341,7 @@ def shareAtoms(r0, r1, atomMap, unusedAtoms):
                         # No match, so we put all our neighboring
                         # atoms on the search list
                         for na in neighbors[a0]:
-                                if na not in visited and na in a0set:
+                                if na not in visited and na in neighbors:
                                         todo.append(na)
                         visited.add(a0)
                 else:
@@ -359,15 +357,12 @@ def shareAtoms(r0, r1, atomMap, unusedAtoms):
                 # a0 and a1 are matched, now we want to see
                 # if any of their neighbors match
                 for na0 in neighbors[a0]:
-                        if na0 in visited or na0 not in a0set:
-                                continue
-                        for na1 in neighbors[a1]:
-                                if na1 in paired or na1.name != na0.name or na1 not in a1set:
-                                        continue
-                                matched[na0] = na1
-                                expand.append((na0, na1))
-                                paired.add(na1)
-                                break
+                        if na0 not in visited and na0 in neighbors:
+                                na1 = r1.find_atom(na0.name)
+                                if na1.connects_to(a1) and na1 not in paired:
+                                        matched[na0] = na1
+                                        expand.append((na0, na1))
+                                        paired.add(na1)
         # Now we look at our results
         if not matched:
                 # Note that we do not update unusedAtoms since
@@ -378,19 +373,22 @@ def shareAtoms(r0, r1, atomMap, unusedAtoms):
                 satt += t1-t0
                 return False
 
-        # Next we check for atoms we have not visited and see if
-        # we can pair them
-        for a0 in r0atoms:
-                if a0 in visited:
-                        continue
-                a1 = r1.find_atom(a0.name)
-                if a1 is not None and a1 not in paired:
-                        matched[a0] = a1
-                        paired.add(a1)
+        if len(matched) < len(r0atoms):
+                # Next we check for atoms we have not visited and see if
+                # we can pair them
+                for a0 in r0atoms:
+                        if a0 in visited:
+                                continue
+                        a1 = r1.find_atom(a0.name)
+                        if a1 is not None and a1 not in paired:
+                                matched[a0] = a1
+                                paired.add(a1)
+
+        if len(matched) < len(r0atoms):
+                unmatched = [ a0 for a0 in r0atoms if a0 not in matched ]
+                unusedAtoms.extend(unmatched)
 
         atomMap.update(matched)
-        unmatched = [ a0 for a0 in r0atoms if a0 not in matched ]
-        unusedAtoms.extend(unmatched)
         t1 = time()
         global satt
         satt += t1-t0
