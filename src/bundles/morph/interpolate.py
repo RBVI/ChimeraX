@@ -12,8 +12,6 @@ def interpolate(coordset0, coordset1, residue_groups, residue_interpolators,
         # frames        number of frames to generate in trajectory
         # log           Logger for reporting progress messages
 
-        from numpy import mean, zeros, array, float64, empty
-
         # Get transform for each rigid segment
         t0 = time()
         seg_info = []
@@ -38,10 +36,10 @@ def interpolate(coordset0, coordset1, residue_groups, residue_interpolators,
         rateFunction = RateMap[rate_method]
         rate = rateFunction(frames)  # Compute fractional steps controlling speed of motion.
         nc = len(coordset0)
-        c0s = empty((nc,3), float64)
-        c1s = empty((nc,3), float64)
+        c0s = coordset0.copy()
+        c1s = coordset1.copy()
         for i, f in enumerate(rate):
-                coordset = zeros((nc,3), float64)
+                coordset = coordset0.copy()
                 for rList, atom_indices, c0, c1, xform in seg_info:
                         t0 = time()
                         xf0, xf1 = segment_motion(xform, c0, c1, f)
