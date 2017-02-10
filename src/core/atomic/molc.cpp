@@ -2186,11 +2186,12 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
         else {
             float *gdata;
             PyObject *ga = python_float_array(centers.size(), 3, &gdata);
+            int last = centers.size() - 1;
             //
             // For all but the first and last residues, compute the orientation.
             // First and last are different if they use peptide orientation
             //
-            for (size_t i = 1; i != centers.size() - 1; ++i) {
+            for (size_t i = 1; i != last; ++i) {
                 Residue* r = res_array[i];
                 float* center = cdata + i*3;
                 float* guide = gdata + i*3;
@@ -2241,7 +2242,6 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
             // Handle last residue
             //
             {
-                int last = n - 1;
                 Residue* r = res_array[last];
                 float* guide = gdata;
                 float* source;

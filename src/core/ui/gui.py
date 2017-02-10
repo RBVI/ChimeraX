@@ -357,11 +357,9 @@ class MainWindow(QMainWindow, PlainTextLog):
             return
 
         def _qt_safe(session=session, paths=paths):
-            models = session.models.open(paths)
-            if models and len(paths) == 1:
-                # Remember in file history
-                from ..filehistory import remember_file
-                remember_file(session, paths[0], format=None, models=models)
+            from ..commands import run, quote_if_necessary
+            run(session, "; ".join(["open " + quote_if_necessary(p) for p in paths]))
+
         # Opening the model directly adversely affects Qt interfaces that show
         # as a result.  In particular, Multalign Viewer no longer gets hover
         # events correctly, nor tool tips.

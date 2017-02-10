@@ -66,23 +66,6 @@ def _session_wildcard():
     return export_file_filter(toolshed.SESSION)
 
 
-def quote_if_necessary(fn):
-    if ' ' not in fn:
-        return fn
-    
-    if '"' not in  fn:
-        return '"' + fn + '"'
-
-    if "'" not in fn:
-        return "'" + fn + "'"
-
-    escaped = ""
-    for c in fn:
-        if c == ' ':
-            escaped += '\\'
-        escaped += c
-    return escaped
-
 def _session_save(session, filename):
     import os.path
     ext = os.path.splitext(filename)[1]
@@ -91,7 +74,7 @@ def _session_save(session, filename):
     exts = fmt.extensions
     if exts and ext not in exts:
         filename += exts[0]
-    from ..commands import run
+    from ..commands import run, quote_if_necessary
     run(session, "save session %s" % quote_if_necessary(filename))
 
 
