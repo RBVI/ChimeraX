@@ -80,7 +80,7 @@ class MolecularMotion:
                 nc = sm.coordset_size
                 matoms = sm.atoms
                 maindices = matoms.coord_indices
-                from numpy import float64, empty, array
+                from numpy import float64, empty
                 coords0 = empty((nc,3), float64)
                 coords0[maindices] = matoms.coords
                 coords1 = empty((nc,3), float64)
