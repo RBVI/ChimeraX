@@ -3166,7 +3166,7 @@ extern "C" EXPORT void structure_add_coordset(void *mol, int id, void *xyz)
     Structure *m = static_cast<Structure *>(mol);
     try {
         CoordSet *cs = m->new_coord_set(id);
-	cs->set_coords((float *)xyz, m->num_atoms());
+	cs->set_coords((double *)xyz, m->num_atoms());
     } catch (...) {
         molc_error();
     }
@@ -3176,14 +3176,16 @@ extern "C" EXPORT PyObject *structure_ribbon_orient(void *mol, void *residues, s
 {
     Structure *m = static_cast<Structure *>(mol);
     Residue **r = static_cast<Residue **>(residues);
+    PyObject *o = NULL;
     try {
         std::vector<int> orients;
         for (size_t i = 0; i != n; ++i)
             orients.push_back(m->ribbon_orient(r[i]));
-        return c_array_to_python(orients);
+        o = c_array_to_python(orients);
     } catch (...) {
         molc_error();
     }
+    return o;
 }
 
 extern "C" EXPORT void structure_coordset_ids(void *mols, size_t n, int32_t *coordset_ids)

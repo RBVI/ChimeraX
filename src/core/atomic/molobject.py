@@ -1316,6 +1316,8 @@ class StructureData:
 
     def add_coordset(self, id, xyz):
         '''Add a coordinate set with the given id.'''
+        if xyz.dtype != float64:
+            raise ValueError('add_coordset(): array must be float64, got %s' % xyz.dtype.name)
         f = c_function('structure_add_coordset',
                        args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p))
         f(self._c_pointer, id, pointer(xyz))
