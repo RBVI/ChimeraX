@@ -72,32 +72,33 @@ def interpolate(coordset0, coordset1, residue_groups, residue_interpolators,
 def interpolateCorkscrew(xf, c0, c1, f):
         """Interpolate by splitting the transformation into a rotation
         and a translation along the axis of rotation."""
-        from chimerax.core import geometry
+        from chimerax.core.geometry import inner_product, cross_product, identity, norm
+        from chimerax.core.geometry import normalize_vector, rotation, translation
         dc = c1 - c0
         vr, a = xf.rotation_axis_and_angle()        # a is in degrees
-        tra = dc * vr                                # magnitude of translation
+        tra = inner_product(dc, vr)                                # magnitude of translation
                                                 # along rotation axis
         vt = dc - tra * vr                        # where c1 would end up if
                                                 # only rotation is used
         cm = c0 + vt / 2
-        v0 = geometry.cross_product(vr, vt)
-        if geometry.norm(v0) <= 0.0:
-                ident = geometry.identity()
+        v0 = cross_product(vr, vt)
+        if norm(v0) <= 0.0:
+                ident = identity()
                 return ident, ident
-        v0 = geometry.normalize_vector(v0)
+        v0 = normalize_vector(v0)
         if a != 0.0:
                 import math
-                l = geometry.norm(vt) / 2 / math.tan(math.radians(a / 2))
+                l = norm(vt) / 2 / math.tan(math.radians(a / 2))
                 cr = cm + v0 * l
         else:
                 import numpy
                 cr = numpy.array((0.0, 0.0, 0.0))
 
-        Tinv = geometry.translation(-cr)
-        R0 = geometry.rotation(vr, a * f)
-        R1 = geometry.rotation(vr, -a * (1 - f))
-        X0 = geometry.translation(cr + vr * (f * tra)) * R0 * Tinv
-        X1 = geometry.translation(cr - vr * ((1 - f) * tra)) * R1 * Tinv
+        Tinv = translation(-cr)
+        R0 = rotation(vr, a * f)
+        R1 = rotation(vr, -a * (1 - f))
+        X0 = translation(cr + vr * (f * tra)) * R0 * Tinv
+        X1 = translation(cr - vr * ((1 - f) * tra)) * R1 * Tinv
         return X0, X1
 
 def interpolateIndependent(xf, c0, c1, f):
