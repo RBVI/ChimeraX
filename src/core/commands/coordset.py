@@ -33,7 +33,7 @@ def coordset(session, molecules, index_range, hold_steady = None, loop = 1):
 
   if len(molecules) == 0:
     from ..errors import UserError
-    raise UseError('No molecules specified')
+    raise UserError('No molecules specified')
 
   for m in molecules:
     s,e,step = parse_index_range(index_range, m)

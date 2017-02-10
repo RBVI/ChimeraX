@@ -41,7 +41,7 @@ CoordSet::~CoordSet()
 }
 
 void
-CoordSet::set_coords(float *xyz, size_t n)
+CoordSet::set_coords(Real *xyz, size_t n)
 {
   size_t nc = _coords.size();
   size_t c = 0;

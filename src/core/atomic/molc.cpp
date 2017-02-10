@@ -2186,11 +2186,12 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
         else {
             float *gdata;
             PyObject *ga = python_float_array(centers.size(), 3, &gdata);
+            size_t last = centers.size() - 1;
             //
             // For all but the first and last residues, compute the orientation.
             // First and last are different if they use peptide orientation
             //
-            for (size_t i = 1; i != centers.size() - 1; ++i) {
+            for (size_t i = 1; i != last; ++i) {
                 Residue* r = res_array[i];
                 float* center = cdata + i*3;
                 float* guide = gdata + i*3;
@@ -2241,7 +2242,6 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
             // Handle last residue
             //
             {
-                int last = n - 1;
                 Residue* r = res_array[last];
                 float* guide = gdata;
                 float* source;
@@ -3161,12 +3161,12 @@ extern "C" EXPORT void set_structure_active_coordset_id(void *mols, size_t n, in
     }
 }
 
-extern "C" EXPORT void structure_add_coordset(void *mol, int id, void *xyz)
+extern "C" EXPORT void structure_add_coordset(void *mol, int id, void *xyz, size_t n)
 {
     Structure *m = static_cast<Structure *>(mol);
     try {
         CoordSet *cs = m->new_coord_set(id);
-	cs->set_coords((float *)xyz, m->num_atoms());
+	cs->set_coords((double *)xyz, n);
     } catch (...) {
         molc_error();
     }
@@ -3176,14 +3176,16 @@ extern "C" EXPORT PyObject *structure_ribbon_orient(void *mol, void *residues, s
 {
     Structure *m = static_cast<Structure *>(mol);
     Residue **r = static_cast<Residue **>(residues);
+    PyObject *o = NULL;
     try {
         std::vector<int> orients;
         for (size_t i = 0; i != n; ++i)
             orients.push_back(m->ribbon_orient(r[i]));
-        return c_array_to_python(orients);
+        o = c_array_to_python(orients);
     } catch (...) {
         molc_error();
     }
+    return o;
 }
 
 extern "C" EXPORT void structure_coordset_ids(void *mols, size_t n, int32_t *coordset_ids)

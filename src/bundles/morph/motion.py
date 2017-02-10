@@ -1,15 +1,17 @@
 def compute_morph(mols, log, method = 'corkscrew', rate = 'linear', frames = 20, cartesian = False):
-        motion = MolecularMotion(mols[0], method = method, rate = rate, frames = frames, cartesian = cartesian)
+        motion = MolecularMotion(mols[0], method = method, rate = rate, frames = frames)
+        from .interpolate import residue_interpolators
+        res_interp = residue_interpolators(motion.trajectory().residues, cartesian)
         for i, mol in enumerate(mols[1:]):
                 log.status("Computing interpolation %d\n" % (i+1))
-                motion.interpolate(mol)
+                motion.interpolate(mol, res_interp)
         traj = motion.trajectory()
         return traj
 
 ht = it = 0
 class MolecularMotion:
 
-        def __init__(self, m, method = "corkscrew", rate = "linear", frames = 20, cartesian = False):
+        def __init__(self, m, method = "corkscrew", rate = "linear", frames = 20):
                 """
                 Compute a trajectory that starting from molecule m conformation.
                 Subsequent calls to interpolate must supply molecules
@@ -40,9 +42,8 @@ class MolecularMotion:
                 self.method = method
                 self.rate = rate
                 self.frames = frames
-                self.cartesian = cartesian
 
-        def interpolate(self, m):
+        def interpolate(self, m, res_interp):
                 """Interpolate to new conformation 'm'."""
 
                 #
@@ -62,8 +63,8 @@ class MolecularMotion:
                 global ht
                 ht += t1-t0
                 segments, atomMap, unusedResidues, unusedAtoms = results
-                from chimerax.core.atomic import Residues
-                segments = [(Residues(r0), Residues(r1)) for r0,r1 in segments]
+                from chimerax.core.atomic import Residues, Atoms
+                res_groups = [Residues(r0) for r0,r1 in segments]
                 unusedResidues.delete()
                 unusedAtoms.delete()
 
@@ -71,24 +72,32 @@ class MolecularMotion:
                         from chimerax.core.errors import UserError
                         raise UserError('No atoms matched')
                 #
-                # Interpolate between last conformation in trajectory
-                # and new conformations
+                # Interpolate between current conformation in trajectory
+                # and new conformation
                 #
-                sm.active_coordset_id = max(sm.coordset_ids)
-                from .interpolate import interpolate
-                combinedXform = sm.scene_position.inverse() * m.scene_position
                 t0 = time()
-                interpolate(sm, combinedXform,
-                                segments, atomMap, self.method,
-                                self.rate, self.frames,
-                                self.cartesian, self.report_progress)
+                # Make coordinate set arrays for starting and final coordinates
+                nc = sm.coordset_size
+                matoms = sm.atoms
+                maindices = matoms.coord_indices
+                from numpy import float64, empty
+                coords0 = empty((nc,3), float64)
+                coords0[maindices] = matoms.coords
+                coords1 = empty((nc,3), float64)
+                # Convert to trajectory local coordinates.
+                xform = sm.scene_position.inverse() * m.scene_position
+                coords1[maindices] = xform * Atoms([atomMap[a] for a in matoms]).coords
+                from .interpolate import interpolate
+                coordsets = interpolate(coords0, coords1, res_groups, res_interp,
+                                        self.method, self.rate, self.frames,
+                                        sm.session.logger)
+                base_id = max(sm.coordset_ids) + 1
+                for i, cs in enumerate(coordsets):
+                        sm.add_coordset(base_id + i, cs)
+                sm.active_coordset_id = base_id + i
                 t1 = time()
                 global it
                 it += t1-t0
-
-        def report_progress(self, mol):
-                log = mol.session.logger
-                log.status("Trajectory frame %d generated" % mol.num_coord_sets)
 
         def trajectory(self):
                 return self.mol
