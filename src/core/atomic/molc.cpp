@@ -2186,7 +2186,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
         else {
             float *gdata;
             PyObject *ga = python_float_array(centers.size(), 3, &gdata);
-            int last = centers.size() - 1;
+            size_t last = centers.size() - 1;
             //
             // For all but the first and last residues, compute the orientation.
             // First and last are different if they use peptide orientation
@@ -3161,12 +3161,12 @@ extern "C" EXPORT void set_structure_active_coordset_id(void *mols, size_t n, in
     }
 }
 
-extern "C" EXPORT void structure_add_coordset(void *mol, int id, void *xyz)
+extern "C" EXPORT void structure_add_coordset(void *mol, int id, void *xyz, size_t n)
 {
     Structure *m = static_cast<Structure *>(mol);
     try {
         CoordSet *cs = m->new_coord_set(id);
-	cs->set_coords((double *)xyz, m->num_atoms());
+	cs->set_coords((double *)xyz, n);
     } catch (...) {
         molc_error();
     }

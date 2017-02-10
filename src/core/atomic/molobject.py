@@ -1319,8 +1319,8 @@ class StructureData:
         if xyz.dtype != float64:
             raise ValueError('add_coordset(): array must be float64, got %s' % xyz.dtype.name)
         f = c_function('structure_add_coordset',
-                       args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p))
-        f(self._c_pointer, id, pointer(xyz))
+                       args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_size_t))
+        f(self._c_pointer, id, pointer(xyz), len(xyz))
     def new_atom(self, atom_name, element_name):
         '''Create a new :class:`.Atom` object. It must be added to a :class:`.Residue` object
         belonging to this structure before being used.'''
