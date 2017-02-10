@@ -2,6 +2,11 @@
 #include <math.h>	// use sqrt()
 #include <arrays/pythonarray.h>		// use parse_double_3_array()
 
+#ifndef M_PI
+// M_PI is not part of ANSI C and Windows does not define it
+#define M_PI 3.14159265358979323846
+#endif
+
 static double distance(double *u, double *v)
 {
   double x = u[0]-v[0], y = u[1]-v[1], z = u[2]-v[2];
