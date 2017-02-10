@@ -127,11 +127,14 @@ static void dihedral_point(double *n1, double *n2, double *n3, double dist, doub
     dp[a] = xc*x[a] + yc*y[a] + zc*v12[a] + n1[a];
 }
 
-static void interp_dihedral(double *c00, double *c01, double *c02, double *c03,
-			    double *c10, double *c11, double *c12, double *c13,
-			    double f,
-			    double *c1, double *c2, double *c3, double *c0)
+static void interp_dihedral(int i0, int i1, int i2, int i3,
+                            const DArray &coords0, const DArray &coords1, double f,
+                            DArray &coords)
 {
+  double *ca0 = coords0.values(), *ca1 = coords1.values(), *ca = coords.values();
+  double *c00 = &ca0[3*i0], *c01 = &ca0[3*i1], *c02 = &ca0[3*i2], *c03 = &ca0[3*i3];
+  double *c10 = &ca1[3*i0], *c11 = &ca1[3*i1], *c12 = &ca1[3*i2], *c13 = &ca1[3*i3];
+  double *c0 = &ca[3*i0], *c1 = &ca[3*i1], *c2 = &ca[3*i2], *c3 = &ca[3*i3];
   double length0 = distance(c00, c01);
   double angle0 = angle(c00, c01, c02);
   double dihed0 = dihedral(c00, c01, c02, c03);
@@ -154,28 +157,66 @@ static void interp_dihedral(double *c00, double *c01, double *c02, double *c03,
 extern "C" PyObject *
 interpolate_dihedral(PyObject *, PyObject *args, PyObject *keywds)
 {
-  double c00[3], c01[3], c02[3], c03[3], c10[3], c11[3], c12[3], c13[3], f, c1[3], c2[3], c3[3], c0[3];
-  const char *kwlist[] = {"c00", "c01", "c02", "c03", "c10", "c11", "c12", "c13", "f",
-			  "c1", "c2", "c3", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&O&O&O&O&O&O&dO&O&O&"),
+  int i0, i1, i2, i3;
+  double f;
+  DArray coords0, coords1, coords;
+  const char *kwlist[] = {"i0", "i1", "i2", "i3", "coords0", "coords1", "f", "coords", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("iiiiO&O&dO&"),
 				   (char **)kwlist,
-				   parse_double_3_array, &c00[0],
-				   parse_double_3_array, &c01[0],
-				   parse_double_3_array, &c02[0],
-				   parse_double_3_array, &c03[0],
-				   parse_double_3_array, &c10[0],
-				   parse_double_3_array, &c11[0],
-				   parse_double_3_array, &c12[0],
-				   parse_double_3_array, &c13[0],
+                                   &i0, &i1, &i2, &i3,
+				   parse_double_n3_array, &coords0,
+				   parse_double_n3_array, &coords1,
 				   &f,
-				   parse_double_3_array, &c1[0],
-				   parse_double_3_array, &c2[0],
-				   parse_double_3_array, &c3[0]))
+				   parse_writable_double_n3_array, &coords))
     return NULL;
+  if (!coords0.is_contiguous() || !coords.is_contiguous() || !coords.is_contiguous())
+    {
+      PyErr_SetString(PyExc_TypeError, "Arrays must be contiguous");
+      return NULL;
+    }
 
-  interp_dihedral(c00, c01, c02, c03, c10, c11, c12, c13, f, c1, c2, c3, c0);
+  interp_dihedral(i0, i1, i2, i3, coords0, coords1, f, coords);
   
-  return c_array_to_python(&c0[0], 3);
+  return python_none();
+}
+
+// ----------------------------------------------------------------------------
+//
+static void interp_linear(int i, const DArray &coords0, const DArray &coords1, double f, DArray &coords)
+{
+  int i3 = 3*i;
+  double *ca0 = coords0.values()+i3, *ca1 = coords1.values()+i3, *ca = coords.values()+i3;
+  double f0 = 1-f;
+  for (int a = 0 ; a < 3 ; ++a)
+    ca[a] = ca0[a]*f0 + ca1[a]*f;
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" PyObject *
+interpolate_linear(PyObject *, PyObject *args, PyObject *keywds)
+{
+  int i;
+  double f;
+  DArray coords0, coords1, coords;
+  const char *kwlist[] = {"i", "coords0", "coords1", "f", "coords", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("iO&O&dO&"),
+				   (char **)kwlist,
+                                   &i,
+				   parse_double_n3_array, &coords0,
+				   parse_double_n3_array, &coords1,
+				   &f,
+				   parse_writable_double_n3_array, &coords))
+    return NULL;
+  if (!coords0.is_contiguous() || !coords.is_contiguous() || !coords.is_contiguous())
+    {
+      PyErr_SetString(PyExc_TypeError, "Arrays must be contiguous");
+      return NULL;
+    }
+
+  interp_linear(i, coords0, coords1, f, coords);
+  
+  return python_none();
 }
 
 // ----------------------------------------------------------------------------
@@ -184,6 +225,12 @@ static PyMethodDef morph_methods[] = {
   {const_cast<char*>("interpolate_dihedral"), (PyCFunction)interpolate_dihedral,
    METH_VARARGS|METH_KEYWORDS,
    "interplate_dihedral(...)\n"
+   "\n"
+   "Implemented in C++.\n"
+  },
+  {const_cast<char*>("interpolate_linear"), (PyCFunction)interpolate_linear,
+   METH_VARARGS|METH_KEYWORDS,
+   "interplate_linear(...)\n"
    "\n"
    "Implemented in C++.\n"
   },

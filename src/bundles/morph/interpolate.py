@@ -1,107 +1,75 @@
-spt = rit = 0
 from time import time
-def interpolate(mol, to_mol_xform, segments, equiv_atoms, method, rate_method,
-                        frames, cartesian, cb):
-        # mol                molecule where new coordinate sets are added
-        #                should already have first frame in place
-        # to_mol_xform        transform to convert target atom local coordinates
-        #                into "mol" local coordinates.
-        # segments        list of 2-tuples of matching residue lists
-        # equiv_atoms        dictionary of equivalent atoms
-        #                key is atom from mol and value is target atom
+smt = stt = rit = rst = rsit = 0
+from time import time
+def interpolate(coordset0, coordset1, residue_groups, residue_interpolators,
+                method, rate_method, frames, log):
+        # coordset0     initial coordinates indexed by atom index
+        # coordset1     final coordinates indexed by atom index
+        # residue_groups      list of collections of residues defining groups moved semi-rigidly
+        # residue_interpolators   maps residue to an interpolator instance
         # method        interpolation method name
-        # rate_method        rate profile, e.g., "linear"
+        # rate_method   spacing method for interpolation steps: "linear", "sinusoidal", "ramp up", "ramp down"
         # frames        number of frames to generate in trajectory
-        # cartesian        use cartesian coordinate interpolation?
-        # cb                function called for every frame generated 
+        # log           Logger for reporting progress messages
 
-        from . import interp_residue
-        from .util import getAtomList
-        from numpy import mean
+        from numpy import mean, zeros, array, float64, empty
+
+        # Get transform for each rigid segment
+        t0 = time()
+        seg_info = []
+        from .util import segment_alignment_atoms
         from chimerax.core.geometry import align_points
         from chimerax.core.atomic import Atoms
-
-        interpolateFunction = InterpolationMap[method]
-        rateFunction = RateMap[rate_method]
-        if cartesian:
-                planFunction = interp_residue.planCartesian
-        else:
-                planFunction = interp_residue.planInternal
-
-        rate = rateFunction(frames)
-        numFrames = len(rate) + 1
-        csSize = mol.coordset_size
-        baseCS = max(mol.coordset_ids) + 1
-        seg_info = []
-        plan = {}
-        t0 = time()
-        for seg in segments:
-                rList0, rList1 = seg
-                aList0 = Atoms(getAtomList(rList0))
-                cList0 = aList0.coords
+        for rList in residue_groups:
+                raindices = Atoms(segment_alignment_atoms(rList)).coord_indices
+                cList0 = coordset0[raindices]
                 c0 = cList0.mean(axis = 0)
-                aList1 = Atoms([ equiv_atoms[a0] for a0 in aList0 ])
-                cList1 = to_mol_xform * aList1.coords
+                cList1 = coordset1[raindices]
                 c1 = cList1.mean(axis = 0)
                 xform, rmsd = align_points(cList0, cList1)
-                seg_info.append((rList0, rList1, c0, c1, xform))
-                for r in rList0:
-                        plan[r] = planFunction(r)
+                seg_info.append((rList, rList.atoms.coord_indices, c0, c1, xform))
         t1 = time()
-        global spt
-        spt += t1-t0
+        global stt
+        stt += t1-t0
 
-        lo = 0.0
-        interval = 1.0
-        for i in range(len(rate)):
-                f = (rate[i] - lo) / interval
-                lo = rate[i]
-                interval = 1.0 - lo
-                from numpy import zeros, float32
-                cs = zeros((csSize,3), float32)
-                for rList0, rList1, c0, c1, xform in seg_info:
+        # Calculate interpolated coordinates for each frame.
+        coordsets = []
+        segment_motion = SegmentMotionMethods[method]
+        rateFunction = RateMap[rate_method]
+        rate = rateFunction(frames)  # Compute fractional steps controlling speed of motion.
+        nc = len(coordset0)
+        c0s = empty((nc,3), float64)
+        c1s = empty((nc,3), float64)
+        for i, f in enumerate(rate):
+                coordset = zeros((nc,3), float64)
+                for rList, atom_indices, c0, c1, xform in seg_info:
                         t0 = time()
-                        xf0, xf1 = interpolateFunction(xform, c0, c1, f)
+                        xf0, xf1 = segment_motion(xform, c0, c1, f)
                         t1 = time()
                         global rit
                         rit += t1-t0
+                        t0 = time()
+                        # Apply rigid segment motion
+                        c0s[atom_indices] = xf0 * coordset0[atom_indices]
+                        c1s[atom_indices] = xf1 * coordset1[atom_indices]
+                        t1 = time()
+                        global smt
+                        smt += t1 - t0
+                        t0 = time()
+                        for r in rList:
+                                residue_interpolators[r](c0s, c1s, f, coordset)
+                        t1 = time()
+                        global rst
+                        rst += t1-t0
 
-                        c0map, c1map = atom_coords(rList0.atoms, equiv_atoms, xf0, xf1 * to_mol_xform)
-                        for r in rList0:
-                                interp_residue.applyPlan(plan[r], r, cs, f, c0map, c1map)
-                cs_id = baseCS + i
-                mol.add_coordset(cs_id, cs)
-                mol.active_coordset_id = cs_id
-                if cb:
-                        cb(mol)
-        from numpy import zeros, float32
-        cs = zeros((csSize,3), float32)
-        from chimerax.core.atomic import Atoms
-        aList0 = Atoms([a0 for a0, a1 in equiv_atoms.items()])
-        aList1 = Atoms([a1 for a0, a1 in equiv_atoms.items()])
-        cs[aList0.coord_indices] = to_mol_xform * aList1.coords
-        cs_id = baseCS + len(rate)
-        mol.add_coordset(cs_id, cs)
-        mol.active_coordset_id = cs_id
+                coordsets.append(coordset)
+                if log and False:
+                        log.status("Trajectory frame %d generated" % i)
 
-from time import time
-smt = 0
-def atom_coords(atoms, equiv_atoms, xf0, xf1):
-        # Starting and ending residue atom coordinates after rigid segment motion.
-        t0 = time()
-        i = atoms.coord_indices
-        nc = i.max() + 1
-        from numpy import empty, float64
-        c0map = empty((nc,3), float64)
-        c0map[i] = xf0 * atoms.coords
-        c1map = empty((nc,3), float64)
-        from chimerax.core.atomic import Atoms
-        atoms1 = Atoms([equiv_atoms[a] for a in atoms])
-        c1map[i] = xf1 * atoms1.coords
-        t1 = time()
-        global smt
-        smt += t1 - t0
-        return c0map, c1map
+        # Add last frame with coordinates equal to final position.
+        coordsets.append(coordset1.copy())
+
+        return coordsets
 
 def interpolateCorkscrew(xf, c0, c1, f):
         """Interpolate by splitting the transformation into a rotation
@@ -161,7 +129,7 @@ def interpolateLinear(xf, c0, c1, f):
         X1 = T * R1 * Tinv1
         return X0, X1
 
-InterpolationMap = {
+SegmentMotionMethods = {
         "corkscrew": interpolateCorkscrew,
         "independent": interpolateIndependent,
         "linear": interpolateLinear,
@@ -215,3 +183,16 @@ RateMap = {
         "ramp up": rateRampUp,
         "ramp down": rateRampDown,
 }
+
+def residue_interpolators(residues, cartesian):
+        # Create interpolation function for each residue.
+        from .interp_residue import internal_residue_interpolator, cartesian_residue_interpolator
+        residue_interpolator = cartesian_residue_interpolator if cartesian else internal_residue_interpolator
+        res_interp = {}
+        t0 = time()
+        for r in residues:
+                res_interp[r] = residue_interpolator(r)
+        t1 = time()
+        global rsit
+        rsit += t1-t0
+        return res_interp
