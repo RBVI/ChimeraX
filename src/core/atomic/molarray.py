@@ -266,11 +266,7 @@ class Collection(State):
         return self._objects_class(numpy.setdiff1d(self._pointers, objects._pointers))
     def unique(self):
         '''Return a new collection containing the unique elements from this one, preserving order.'''
-        from numpy import unique
-        indices = unique(self._pointers, return_index = True)[1]
-        indices.sort()
-        return self.objects_class(self._pointers[indices])
-
+        return self.objects_class(unique_ordered(self._pointers))
     STATE_VERSION = 1
     def take_snapshot(self, session, flags):
         return {'version': self.STATE_VERSION,
@@ -308,10 +304,16 @@ def concatenate(collections, object_class = None, remove_duplicates = False):
         import numpy
         p = numpy.concatenate([a._pointers for a in collections])
         if remove_duplicates:
-            pu, i = numpy.unique(p, return_index = True)
-            p = p[numpy.sort(i)]    # Preserve order when duplicates are removed.
+            p = unique_ordered(p)    # Preserve order when duplicates are removed.
         c = cl(p)
     return c
+
+def unique_ordered(a):
+    '''Return unique elements of numpy array a preserving order.'''
+    from numpy import unique
+    indices = unique(a, return_index = True)[1]
+    indices.sort()
+    return a[indices]
 
 def depluralize(word):
     if word.endswith('ii'):
@@ -344,7 +346,7 @@ class Atoms(Collection):
         for m, atoms in self.by_structure:
             r = atoms.residues
             cids = r.chain_ids
-            for cid in r.unique_chain_ids:
+            for cid in unique_ordered(cids):
                 chains.append((m, cid, atoms.filter(cids == cid)))
         return chains
     @property
@@ -498,7 +500,7 @@ class Atoms(Collection):
     def unique_chain_ids(self):
         '''The unique chain IDs as a numpy array of strings.'''
         from numpy import unique
-        return unique(self.chain_ids)
+        return unique_ordered(self.chain_ids)
     @property
     def unique_structures(self):
         "The unique structures as an :class:`.AtomicStructures` collection"
@@ -919,12 +921,22 @@ class Residues(Collection):
     def unique_chain_ids(self):
         '''The unique chain IDs as a numpy array of strings.'''
         from numpy import unique
-        return unique(self.chain_ids)
+        return unique_ordered(self.chain_ids)
 
     @property
     def unique_chains(self):
         '''The unique chains as a :class:`.Chains` collection'''
         return self.chains.unique()
+
+    @property
+    def by_chain(self):
+        '''Return list of structure, chain id, and Residues for each chain.'''
+        chains = []
+        for m, residues in self.by_structure:
+            cids = residues.chain_ids
+            for cid in unique_ordered(cids):
+                chains.append((m, cid, residues.filter(cids == cid)))
+        return chains
 
     @property
     def by_structure(self):
