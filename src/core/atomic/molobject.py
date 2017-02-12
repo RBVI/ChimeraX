@@ -712,12 +712,6 @@ class Residue:
     '''Whether a ribbon automatically hides the residue backbone atoms. Boolean value.'''
     ribbon_color = c_property('residue_ribbon_color', uint8, 4)
     '''Ribbon color RGBA length 4 numpy uint8 array.'''
-    ribbon_style = c_property('residue_ribbon_style', int32)
-    '''Whether the residue is displayed as a ribbon or a pipe/plank. Integer value.'''
-    RIBBON = 0
-    '''Ribbon style = ribbon.'''
-    PIPE = 1
-    '''Ribbon style = pipe/plank.'''
     ribbon_adjust = c_property('residue_ribbon_adjust', float32)
     '''Smoothness adjustment factor (no adjustment = 0 <= factor <= 1 = idealized).'''
     ss_id = c_property('residue_ss_id', int32)

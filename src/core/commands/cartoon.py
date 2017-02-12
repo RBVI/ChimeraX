@@ -15,12 +15,6 @@ from ..atomic.ribbon import XSectionManager
 from ..atomic import Residue, Structure
 from ..commands import Annotation, AnnotationError
 
-_StyleMap = {
-    "ribbon": Residue.RIBBON,
-    "pipe": Residue.PIPE,
-    "plank": Residue.PIPE,
-    "pandp": Residue.PIPE,
-}
 _OrientMap = {
     "guides": Structure.RIBBON_ORIENT_GUIDES,
     "atoms": Structure.RIBBON_ORIENT_ATOMS,
@@ -57,7 +51,7 @@ _ModeStrandMap = {
 _ModeStrandInverseMap = dict([(v, k) for k, v in _ModeStrandMap.items()])
 
 
-def cartoon(session, spec=None, smooth=None, style=None, suppress_backbone_display=None, spine=False):
+def cartoon(session, spec=None, smooth=None, suppress_backbone_display=None, spine=False):
     '''Display cartoon for specified residues.
 
     Parameters
@@ -71,9 +65,6 @@ def cartoon(session, spec=None, smooth=None, style=None, suppress_backbone_displ
         will pass through the "ideal" position, e.g., center of the cylinder that best
         fits a helix.  A factor of "default" means to return to default (0.7 for strands
         and 0 for everything else).
-    style : string
-        Set "Ribbon" style.  Value may be "ribbon" for normal ribbons, or one of "pipe",
-        "plank", or "pandp" to display residues as pipes and planks.
     suppress_backbone_display : boolean
         Set whether displaying a ribbon hides the sphere/ball/stick representation of
         backbone atoms.
@@ -93,9 +84,6 @@ def cartoon(session, spec=None, smooth=None, style=None, suppress_backbone_displ
             # Convert to C++ default value
             smooth = -1.0
         residues.ribbon_adjusts = smooth
-    if style is not None:
-        s = _StyleMap.get(style, Residue.RIBBON)
-        residues.ribbon_styles = s
     if suppress_backbone_display is not None:
         residues.ribbon_hide_backbones = suppress_backbone_display
     if spine is not None:
@@ -223,23 +211,23 @@ def cartoon_style(session, spec=None, width=None, thickness=None, arrows=None, a
             print(indent, "orientation %s" % _OrientInverseMap[m.ribbon_orientation])
             print(indent, "helix",
                   "mode=%s" % _ModeHelixInverseMap[mgr.style_helix],
-                  "style=%s" % _XSectionInverseMap[mgr.style_helix],
+                  "xsection=%s" % _XSectionInverseMap[mgr.style_helix],
                   "size=%.2g,%.2g" % mgr.scale_helix,
                   "arrow=%s" % mgr.arrow_helix,
                   "arrow size=%.2g,%.2g,%.2g,%.2g" % (mgr.scale_helix_arrow[0] +
                                                        mgr.scale_helix_arrow[1]))
             print(indent, "strand",
                   "mode=%s" % _ModeStrandInverseMap[mgr.style_helix],
-                  "style=%s" % _XSectionInverseMap[mgr.style_sheet],
+                  "xsection=%s" % _XSectionInverseMap[mgr.style_sheet],
                   "size=%.2g,%.2g" % mgr.scale_sheet,
                   "arrow=%s" % mgr.arrow_sheet,
                   "arrow size=%.2g,%.2g,%.2g,%.2g" % (mgr.scale_sheet_arrow[0] +
                                                         mgr.scale_sheet_arrow[1]))
             print(indent, "coil",
-                  "style=%s" % _XSectionInverseMap[mgr.style_coil],
+                  "xsection=%s" % _XSectionInverseMap[mgr.style_coil],
                   "size=%.2g,%.2g" % mgr.scale_coil)
             print(indent, "nucleic",
-                  "style=%s" % _XSectionInverseMap[mgr.style_nucleic],
+                  "xsection=%s" % _XSectionInverseMap[mgr.style_nucleic],
                   "size=%.2g,%.2g" % mgr.scale_nucleic)
             param = mgr.params[XSectionManager.STYLE_ROUND]
             print(indent,
@@ -526,11 +514,10 @@ def register_command(session):
     desc = CmdDesc(optional=[("spec", AtomSpecArg)],
                    keyword=[("smooth", Or(Bounded(FloatArg, 0.0, 1.0),
                                           EnumOf(["default"]))),
-                            ("style", EnumOf(list(_StyleMap.keys()))),
                             ("suppress_backbone_display", BoolArg),
                             ("spine", BoolArg),
                             ],
-                   hidden=["spine", "orient", "mode_helix", "mode_strand"],
+                   hidden=["spine"],
                    synopsis='display cartoon for specified residues')
     register("cartoon", desc, cartoon)
 
@@ -558,6 +545,7 @@ def register_command(session):
                             ("mode_helix", EnumOf(list(_ModeHelixMap.keys()))),
                             ("mode_strand", EnumOf(list(_ModeStrandMap.keys()))),
                             ],
+                   hidden=["ss_ends", "orient", "mode_strand"],
                    synopsis='set cartoon style for secondary structures in specified models')
     register("cartoon style", desc, cartoon_style)
     desc = CmdDesc(optional=[("spec", AtomSpecArg)],

@@ -1822,23 +1822,6 @@ extern "C" EXPORT void set_residue_ribbon_hide_backbone(void *residues, size_t n
     error_wrap_array_set(r, n, &Residue::set_ribbon_hide_backbone, ribbon_hide_backbone);
 }
 
-extern "C" EXPORT void residue_ribbon_style(void *residues, size_t n, int32_t *ribbon_style)
-{
-    Residue **r = static_cast<Residue **>(residues);
-    error_wrap_array_get(r, n, &Residue::ribbon_style, ribbon_style);
-}
-
-extern "C" EXPORT void set_residue_ribbon_style(void *residues, size_t n, int32_t *ribbon_style)
-{
-    Residue **r = static_cast<Residue **>(residues);
-    try {
-        for (size_t i = 0; i < n; ++i)
-            r[i]->set_ribbon_style(static_cast<Residue::Style>(ribbon_style[i]));
-    } catch (...) {
-        molc_error();
-    }
-}
-
 extern "C" EXPORT void residue_ribbon_adjust(void *residues, size_t n, float32_t *ribbon_adjust)
 {
     Residue **r = static_cast<Residue **>(residues);

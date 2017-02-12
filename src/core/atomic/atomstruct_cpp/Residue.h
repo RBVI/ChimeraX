@@ -38,8 +38,6 @@ class ATOMSTRUCT_IMEX Residue {
 public:
     typedef std::vector<Atom *>  Atoms;
     typedef std::multimap<AtomName, Atom *>  AtomsMap;
-    enum Style { RIBBON_RIBBON = 0,
-                 RIBBON_PIPE = 1 };
     enum PolymerType { PT_NONE = 0, PT_AMINO = 1, PT_NUCLEIC = 2 };
 private:
     friend class Structure;
@@ -74,7 +72,6 @@ private:
     bool  _ribbon_display;
     bool  _ribbon_hide_backbone;
     Rgba  _ribbon_rgba;
-    Style  _ribbon_style;
     bool  _ribbon_selected = false;
     int  _ss_id;
     Structure *  _structure;
@@ -150,13 +147,11 @@ public:
     const Rgba&  ribbon_color() const { return _ribbon_rgba; }
     bool  ribbon_display() const { return _ribbon_display; }
     bool  ribbon_hide_backbone() const { return _ribbon_hide_backbone; }
-    Style  ribbon_style() const { return _ribbon_style; }
     bool  ribbon_selected() const { return _ribbon_selected; }
     void  set_ribbon_adjust(float a);
     void  set_ribbon_color(const Rgba& rgba);
     void  set_ribbon_display(bool d);
     void  set_ribbon_hide_backbone(bool d);
-    void  set_ribbon_style(Style s);
     void  set_ribbon_selected(bool s);
     void  ribbon_clear_hide();
 };
@@ -290,15 +285,6 @@ Residue::set_ribbon_hide_backbone(bool d) {
     _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_HIDE_BACKBONE);
     _structure->set_gc_ribbon();
     _ribbon_hide_backbone = d;
-}
-
-inline void
-Residue::set_ribbon_style(Style s) {
-    if (s == _ribbon_style)
-        return;
-    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_STYLE);
-    _structure->set_gc_ribbon();
-    _ribbon_style = s;
 }
 
 inline void
