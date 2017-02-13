@@ -337,7 +337,7 @@ inline void
 Structure::set_ribbon_show_spine(bool ss) {
     if (ss == _ribbon_show_spine)
         return;
-    change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_STYLE);
+    change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_DISPLAY);
     set_gc_ribbon();
     _ribbon_show_spine = ss;
 }
