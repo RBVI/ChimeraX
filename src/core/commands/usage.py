@@ -25,7 +25,7 @@ def usage(session, command_name=None, option=None):
     from . import cli
     status = session.logger.status
     info = session.logger.info
-    show_hidden = option == 'show_hidden'
+    show_hidden = option == 'allOptions'
     if command_name is None:
         info("Use 'usage <command>' for a command synopsis.")
         info("Use 'help <command>' to learn more about a command.")
@@ -43,14 +43,14 @@ def usage(session, command_name=None, option=None):
             for name in cmds:
                 try:
                     info(cli.usage(name, show_subcommands=False, expand_alias=False,
-                                   show_hidden=show_hidden))
+                                   show_hidden=allOptions))
                 except:
                     info('%s -- no documentation' % name)
             return
         for name in cmds:
             try:
                 info(cli.html_usage(name, show_subcommands=False, expand_alias=False,
-                                    show_hidden=show_hidden), is_html=True)
+                                    show_hidden=allOptions), is_html=True)
             except:
                 from html import escape
                 info('<b>%s</b> &mdash; no documentation' % escape(name),
@@ -73,7 +73,7 @@ def register_command(session):
     desc = cli.CmdDesc(
         optional=[
             ('option',
-                    cli.Or(cli.EnumOf(['show_hidden'], abbreviations=False),
+                    cli.Or(cli.EnumOf(['allOptions'], abbreviations=False),
                            cli.EmptyArg)),
             ('command_name', cli.RestOfLine)
         ],
