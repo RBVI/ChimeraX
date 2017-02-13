@@ -16,8 +16,9 @@
 #ifndef atomstruct_Pseudobond
 #define atomstruct_Pseudobond
 
-#include "imex.h"
 #include "Connection.h"
+#include "imex.h"
+#include "session.h"
 
 // "forward declare" PyObject, which is a typedef of a struct,
 // as per the python mailing list:
@@ -52,9 +53,8 @@ protected:
 
     // convert a global pb_manager version# to version# for Connection base class
     static int  session_base_version(int /*version*/) { return 1; }
-    // version "0" means latest version
-    static int  SESSION_NUM_INTS(int /*version*/=0) { return 1; }
-    static int  SESSION_NUM_FLOATS(int /*version*/=0) { return 0; }
+    static int  SESSION_NUM_INTS(int /*version*/=CURRENT_SESSION_VERSION) { return 1; }
+    static int  SESSION_NUM_FLOATS(int /*version*/=CURRENT_SESSION_VERSION) { return 0; }
     const char*  err_msg_loop() const
         { return "Can't form pseudobond to itself"; }
     const char*  err_msg_not_end() const

@@ -34,14 +34,6 @@ class Structure(Model, StructureData):
             '_ball_scale': 0.3,		# Scales sphere radius in ball and stick style
             '_bond_radius': 0.2,
             '_pseudobond_radius': 0.05,
-            'ribbon_orientation': StructureData.RIBBON_ORIENT_PEPTIDE,
-            'ribbon_show_spine': False,
-            'ribbon_tether_scale': 1.0,
-            'ribbon_tether_shape': StructureData.TETHER_CONE,
-            'ribbon_tether_sides': 4,
-            'ribbon_tether_opacity': 0.5,
-            'ribbon_mode_helix': StructureData.RIBBON_MODE_DEFAULT,
-            'ribbon_mode_strand': StructureData.RIBBON_MODE_DEFAULT,
         }
 
         StructureData.__init__(self, c_pointer)

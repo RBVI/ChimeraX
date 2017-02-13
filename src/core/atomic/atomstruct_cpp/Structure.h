@@ -31,6 +31,7 @@
 #include "PBManager.h"
 #include "Rgba.h"
 #include "Ring.h"
+#include "session.h"
 #include "string_types.h"
 
 // "forward declare" PyObject, which is a typedef of a struct,
@@ -105,9 +106,6 @@ public:
     // The MSR-finding step of ring perception depends on the iteration
     // being in ascending order (which std::set guarantees), so use std::set
     typedef std::set<Ring> Rings;
-    enum TetherShape { RIBBON_TETHER_CONE = 0,
-                       RIBBON_TETHER_REVERSE_CONE = 1,
-                       RIBBON_TETHER_CYLINDER = 2 };
     enum RibbonOrientation { RIBBON_ORIENT_GUIDES = 1,
                              RIBBON_ORIENT_ATOMS = 2,
                              RIBBON_ORIENT_CURVATURE = 3,
@@ -115,9 +113,10 @@ public:
     enum RibbonMode { RIBBON_MODE_DEFAULT = 0,
                       RIBBON_MODE_ARC = 1,
                       RIBBON_MODE_WRAP = 2 };
+    enum TetherShape { RIBBON_TETHER_CONE = 0,
+                       RIBBON_TETHER_REVERSE_CONE = 1,
+                       RIBBON_TETHER_CYLINDER = 2 };
 protected:
-    const int  CURRENT_SESSION_VERSION = 4;
-
     CoordSet *  _active_coord_set;
     Atoms  _atoms;
     float  _ball_scale = 0.25;
@@ -137,13 +136,13 @@ protected:
     Residues  _residues;
     int _ribbon_display_count = 0;
     RibbonOrientation _ribbon_orientation = RIBBON_ORIENT_PEPTIDE;
+    RibbonMode  _ribbon_mode_helix = RIBBON_MODE_DEFAULT;
+    RibbonMode  _ribbon_mode_strand = RIBBON_MODE_DEFAULT;
     bool  _ribbon_show_spine = false;
+    float  _ribbon_tether_opacity = 0.5;
     float  _ribbon_tether_scale = 1.0;
     TetherShape  _ribbon_tether_shape = RIBBON_TETHER_CONE;
     int  _ribbon_tether_sides = 4;
-    float  _ribbon_tether_opacity = 0.5;
-    RibbonMode  _ribbon_mode_helix = RIBBON_MODE_DEFAULT;
-    RibbonMode  _ribbon_mode_strand = RIBBON_MODE_DEFAULT;
     mutable Rings  _rings;
     mutable unsigned int  _rings_last_all_size_threshold;
     mutable bool  _rings_last_cross_residues;
@@ -176,10 +175,13 @@ protected:
     }
     bool  _rings_cached (bool cross_residues, unsigned int all_size_threshold,
         std::set<const Residue *>* ignore = nullptr) const;
-    // in the SESSION* functions, a version of "0" means the latest version
-    static int  SESSION_NUM_FLOATS(int /*version*/=0) { return 1; }
-    static int  SESSION_NUM_INTS(int version=0) { return version == 1 ? 9 : 10; }
-    static int  SESSION_NUM_MISC(int /*version*/=0) { return 4; }
+    static int  SESSION_NUM_FLOATS(int version=CURRENT_SESSION_VERSION) {
+        return version < 5 ? 1 : 3;
+    }
+    static int  SESSION_NUM_INTS(int version=CURRENT_SESSION_VERSION) {
+        return version == 1 ? 9 : (version < 5 ? 10 : 16);
+    }
+    static int  SESSION_NUM_MISC(int /*version*/=CURRENT_SESSION_VERSION) { return 4; }
 
 public:
     Structure(PyObject* logger = nullptr);

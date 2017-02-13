@@ -23,6 +23,7 @@
 
 #include "backbone.h"
 #include "imex.h"
+#include "session.h"
 #include "string_types.h"
 #include "ChangeTracker.h"
 #include "Rgba.h"
@@ -53,8 +54,8 @@ private:
     friend class Bond;
     void  set_polymer_type(PolymerType pt) { _polymer_type = pt; }
 
-    static int  SESSION_NUM_INTS(int /*version*/=0) { return 10; }
-    static int  SESSION_NUM_FLOATS(int /*version*/=0) { return 1; }
+    static int  SESSION_NUM_INTS(int /*version*/=CURRENT_SESSION_VERSION) { return 10; }
+    static int  SESSION_NUM_FLOATS(int /*version*/=CURRENT_SESSION_VERSION) { return 1; }
 
     char  _alt_loc;
     Atoms  _atoms;
