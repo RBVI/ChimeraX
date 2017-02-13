@@ -72,11 +72,13 @@ class Region:
                     x1 -= 1
                     y1 -= 1
                 """
-                self._items.append(self.scene.addRect(x1, y2, x2-x1, y2-y1, **kw))
+                print("Added rect at", x1, y2, x2-x1, y2-1, "with kw", kw)
+                #self._items.append(self.scene.addRect(x1, y2, x2-x1, y2-y1, **kw))
+                self._items.append(self.scene.addRect(x1, y2, x2-x1, y2-y1))
                 if self.name:
-                    self.items[-1].setToolTip(str(self))
+                    self._items[-1].setToolTip(str(self))
                 if len(self._items) > 1:
-                    self.items[-1].setZValue(self._items[-2].zValue()-0.001)
+                    self._items[-1].setZValue(self._items[-2].zValue()-0.001)
                     continue
 
                 regions = self.region_browser.regions
@@ -99,11 +101,11 @@ class Region:
                             above = r
                             break
                 if above:
-                    self.items[-1].setZValue(above._items[0].zValue()+1)
+                    self._items[-1].setZValue(above._items[0].zValue()+1)
                 elif below:
-                    self.items[-1].setZValue(below._items[0].zValue()-1)
+                    self._items[-1].setZValue(below._items[0].zValue()-1)
                 else:
-                    self.items[-1].setZValue(-100000000)
+                    self._items[-1].setZValue(-100000000)
 
     def _addLines(self, lines):
         pass
@@ -141,8 +143,10 @@ class Region:
             return
         self.highlighted = False
         self.redraw()
+        """TODO
         rb = self.region_browser
         rb.update_table_cell(self, rb.active_column, contents=False)
+        """
 
     def _del_lines(self, lines):
         blocks = self.blocks
@@ -181,8 +185,10 @@ class Region:
             return
         self.highlighted = True
         self.redraw()
+        """TODO
         rb = self.region_browser
         rb.update_table_cell(self, rb.active_column, contents=True)
+        """
 
     def get_interior_rgba(self):
         return self._interior_rgba
@@ -242,13 +248,13 @@ class Region:
         kw['pen'] = pen = QPen()
         kw['brush'] = brush = QBrush()
         from PyQt5.QtCore import Qt
-        if self.interior_rgba:
-            brush.setColor(*self._interior_rgba)
+        if self.interior_rgba is not None:
+            brush.setColor(QColor(*self._interior_rgba))
             brush.setStyle(Qt.SolidPattern)
         else:
             brush.setStyle(Qt.NoBrush)
         if self._disp_border_rgba():
-            pen.setColor(*self._disp_border_rgba())
+            pen.setColor(QColor(*self._disp_border_rgba()))
             if self.highlighted:
                 pen.setStyle(Qt.DashLine)
             else:
@@ -279,7 +285,7 @@ class Region:
 
     def get_rmsd(self):
         num_d = sum_d2 = 0
-        from chimerax.core.geometry import distance
+        from chimerax.core.geometry import distance_squared
         for block in self.blocks:
             line1, line2, pos1, pos2 = block
             all_seqs = self.seq_canvas.alignment.seqs
@@ -449,7 +455,7 @@ class RegionBrowser:
             for r in region:
                 self.deleteRegion(r, rebuild_table=(r == region[-1]))
             return
-        if region == self.getRegion("ChimeraX selection"):
+        if region == self.get_region("ChimeraX selection"):
             self.seq_canvas.mav.status(
                 "Cannot delete ChimeraX selection region",
                 color="red")
@@ -596,7 +602,7 @@ class RegionBrowser:
         self.cover_gapsOption = CoverGapsOption(f, 0,
             "Include gaps", None, self._cover_gapsCB)
 
-        self._selChangeFromSelf = False
+        self._sel_change_from_self = False
         self._firstChimeraShow = True
         if self.seq_canvas.mav.prefs[SHOW_SEL]:
             self._showSelCB()
@@ -608,7 +614,7 @@ class RegionBrowser:
         self._delAssocHandlerID = self.seq_canvas.mav.triggers.addHandler(
                     DEL_ASSOC, self._delAssocCB, None)
 
-    def getRegion(self, name, sequence=False, **kw):
+    def get_region(self, name, sequence=False, **kw):
         try:
             create = kw['create']
             del kw['create']
@@ -629,13 +635,13 @@ class RegionBrowser:
             kw['cover_gaps'] = False
         return self.new_region(name=name, **kw)
 
-    def highlight(self, region, selectOnStructures=True):
+    def highlight(self, region, select_on_structures=True):
         if self._highlighted_region:
             self._highlighted_region.dehighlight()
         if region:
             region.highlight()
-            if selectOnStructures and region != self.getRegion("ChimeraX selection"):
-                self._selectOnStructures(region)
+            if select_on_structures and region != self.get_region("ChimeraX selection"):
+                self._select_on_structures(region)
         self._highlighted_region = region
 
     def infoRegion(self, region):
@@ -822,7 +828,7 @@ class RegionBrowser:
             if not colorStructures:
                 continue
             c = chimera.MaterialColor(*rgb)
-            for res in self.regionResidues(region):
+            for res in self.region_residues(region):
                 res.ribbonColor = c
                 for a in res.atoms:
                     a.color = c
@@ -878,7 +884,6 @@ class RegionBrowser:
             name_prefix="", select=False, assoc_with=None, shown=True,
             cover_gaps=True, after="ChimeraX selection", rebuild_table=True,
             session_restore=False, sequence=None, source=None):
-        #TODO
         if not name and not name_prefix:
             # possibly first user-dragged region
             for reg in self.regions:
@@ -886,37 +891,37 @@ class RegionBrowser:
                     # another user region
                     break
             else:
-                self.seq_canvas.mav.status(
-                  "Use delete/backspace key to remove regions")
+                self.seq_canvas.mav.status("Use delete/backspace key to remove regions")
         interior = self._get_rgba(fill)
         border = self._get_rgba(outline)
-        region = Region(self, init_blocks=blocks, name=name,
-                name_prefix=name_prefix, shown=shown,
-                border_rgba=border, interior_rgba=interior,
-                cover_gaps=cover_gaps, source=source)
+        region = Region(self, init_blocks=blocks, name=name, name_prefix=name_prefix, shown=shown,
+                border_rgba=border, interior_rgba=interior, cover_gaps=cover_gaps, source=source)
         if isinstance(after, Region):
-            insertIndex = self.regions.index(after) + 1
-        elif isinstance(after, basestring):
+            insert_index = self.regions.index(after) + 1
+        elif isinstance(after, str):
             try:
-                insertIndex = [r.name for r in self.regions
-                            ].index(after) + 1
+                insert_index = [r.name for r in self.regions].index(after) + 1
             except ValueError:
-                insertIndex = 0
+                insert_index = 0
         else:
-            insertIndex = 0
-        self.regions.insert(insertIndex, region)
+            insert_index = 0
+        self.regions.insert(insert_index, region)
         if sequence not in self.sequence_regions:
             self.sequence_regions[sequence] = set([region])
+            """TODO
             index = self.seqRegionMenu.index(Pmw.SELECT)
             self.seqRegionMenu.setitems(self._regMenuOrder(), index=index)
+            """
         else:
             self.sequence_regions[sequence].add(region)
         region.sequence = sequence
 
+        """TODO
         if rebuild_table:
             self._rebuildListing()
+        """
         if select:
-            self._toggle_active(region, selectOnStructures=not session_restore)
+            self._toggle_active(region, select_on_structures=not session_restore)
         if assoc_with:
             try:
                 self.associated_regions[assoc_with].append(region)
@@ -952,19 +957,19 @@ class RegionBrowser:
                 continue
             region.redraw()
             if cullEmpty and not region.blocks \
-            and region != self.getRegion("ChimeraX selection"):
+            and region != self.get_region("ChimeraX selection"):
                 region.destroy()
         self.seq_canvas.adjustScrolling()
         
-    def regionResidues(self, region=None):
+    def region_residues(self, region=None):
         if not region:
             region = self._drag_region
             if not region:
                 return []
-        selResidues = []
+        sel_residues = []
         for block in region.blocks:
-            selResidues.extend(self._residuesInBlock(block))
-        return selResidues
+            sel_residues.extend(self._residues_in_block(block))
+        return sel_residues
 
     def renameRegion(self, region, name=None):
         if not region:
@@ -975,7 +980,7 @@ class RegionBrowser:
             for r in region:
                 self.renameRegion(r)
             return
-        if region == self.getRegion("ChimeraX selection"):
+        if region == self.get_region("ChimeraX selection"):
             self.seq_canvas.mav.status(
                 "Cannot rename ChimeraX selection region",
                 color="red")
@@ -1002,7 +1007,7 @@ class RegionBrowser:
                 return
         if isinstance(region, basestring):
             region_name = region
-            region = self.getRegion(region_name)
+            region = self.get_region(region_name)
             if not region:
                 replyobj.error("No region named '%s'\n" %
                                 region_name)
@@ -1015,7 +1020,7 @@ class RegionBrowser:
         return self.regionListing.selected()
 
     def showChimeraSelection(self):
-        selRegion = self.getRegion("ChimeraX selection", create=1,
+        selRegion = self.get_region("ChimeraX selection", create=1,
             fill=self.seq_canvas.mav.prefs[SEL_REGION_INTERIOR],
             outline=self.seq_canvas.mav.prefs[SEL_REGION_BORDER])
         selRegion.clear()
@@ -1063,11 +1068,11 @@ class RegionBrowser:
         """show predicted secondary structure"""
         from gor import gorI
         from chimera.Sequence import defHelixColor, defStrandColor
-        helixReg = self.getRegion(self.PRED_HELICES_REG_NAME, create=show,
+        helixReg = self.get_region(self.PRED_HELICES_REG_NAME, create=show,
                             outline=defHelixColor)
         if not helixReg:
             return
-        strandReg = self.getRegion(self.PRED_STRANDS_REG_NAME, create=show,
+        strandReg = self.get_region(self.PRED_STRANDS_REG_NAME, create=show,
                             outline=defStrandColor)
         helixReg.shown = show
         strandReg.shown = show
@@ -1118,9 +1123,9 @@ class RegionBrowser:
     def showSS(self, show):
         """show actual secondary structure"""
         from chimera.Sequence import defHelixColor, defStrandColor
-        helixReg = self.getRegion(self.ACTUAL_HELICES_REG_NAME, create=show,
+        helixReg = self.get_region(self.ACTUAL_HELICES_REG_NAME, create=show,
                 fill=(1.0, 1.0, 0.8), outline=defHelixColor)
-        strandReg = self.getRegion(self.ACTUAL_STRANDS_REG_NAME, create=show,
+        strandReg = self.get_region(self.ACTUAL_STRANDS_REG_NAME, create=show,
                 fill=(0.8, 1.0, 0.8), outline=defStrandColor)
         if helixReg:
             helixReg.shown = show
@@ -1190,7 +1195,7 @@ class RegionBrowser:
         if self._drag_lines:
             for box in self._drag_lines:
                 for line in box:
-                    self.seq_canvas.main_view.delete(line)
+                    self.seq_canvas.main_scene.removeItem(line)
             self._drag_lines = []
             self._bboxes = []
             if self._drag_region:
@@ -1237,8 +1242,9 @@ class RegionBrowser:
         cofr(sel)
 
     def _get_rgba(self, specified=None):
-        if isinstance(specified, basestring):
-            return map(lambda v: v/255.0, colorTable.colors[specified])
+        if isinstance(specified, str):
+            from chimerax.core.colors import BuiltinColors
+            return BuiltinColors[specified].rgba
         return specified
     
     def _listingCB(self, val=None):
@@ -1255,13 +1261,13 @@ class RegionBrowser:
                         if hr not in regions \
                         and hr.name and not (
                         hr.name.startswith(self.seq_canvas.mav.GAP_REG_NAME_START)
-                        or hr == self.getRegion("ChimeraX selection")):
+                        or hr == self.get_region("ChimeraX selection")):
                             hr.shown = False
 
     def _mouse_down_cb(self, event):
         from PyQt5.QtCore import Qt
         if event.button() == Qt.RightButton:
-            if event.modifiers() | Qt.ShiftModifier:
+            if event.modifiers() & Qt.ShiftModifier:
                 self._focus_cb(event, pref="region")
             else:
                 self._focus_cb(event, pref="residue")
@@ -1276,7 +1282,7 @@ class RegionBrowser:
         self._clear_drag()
 
         self._drag_region = None
-        if event.modifiers() | Qt.ShiftModifier:
+        if event.modifiers() & Qt.ShiftModifier:
             self._drag_region = self.cur_region()
         else:
             self._drag_region = None
@@ -1342,7 +1348,8 @@ class RegionBrowser:
                     self._after_id = None
         """
 
-        control_down = event.modifiers() | Qt.ControlModifier
+        from PyQt5.QtCore import Qt
+        control_down = event.modifiers() & Qt.ControlModifier
         pos = event.scenePos()
         canvas_x, canvas_y = pos.x(), pos.y()
         if abs(canvas_x - self._start_x) > 1 or abs(canvas_y - self._start_y) > 1:
@@ -1385,31 +1392,24 @@ class RegionBrowser:
                 lr_y += 1
                 if not prev_bbox:
                     create_line = self.seq_canvas.main_scene.addLine
-                    #TODO
+                    from PyQt5.QtGui import QPen
+                    pen = QPen(Qt.DotLine)
                     drag_lines = []
-                    drag_lines.append(create_line(ul_x, ul_y,
-                        ul_x, lr_y, stipple="gray50"))
-                    drag_lines.append(create_line(ul_x, lr_y,
-                        lr_x, lr_y, stipple="gray50"))
-                    drag_lines.append(create_line(lr_x, lr_y,
-                        lr_x, ul_y, stipple="gray50"))
-                    drag_lines.append(create_line(lr_x, ul_y,
-                        ul_x, ul_y, stipple="gray50"))
+                    drag_lines.append(create_line(ul_x, ul_y, ul_x, lr_y, pen))
+                    drag_lines.append(create_line(ul_x, lr_y, lr_x, lr_y, pen))
+                    drag_lines.append(create_line(lr_x, lr_y, lr_x, ul_y, pen))
+                    drag_lines.append(create_line(lr_x, ul_y, ul_x, ul_y, pen))
                     self._drag_lines.append(drag_lines)
                 else:
-                    coords = self.seq_canvas.main_view.coords
                     drag_lines = self._drag_lines[i]
-                    coords(drag_lines[0], ul_x, ul_y,
-                                ul_x, lr_y)
-                    coords(drag_lines[1], ul_x, lr_y,
-                                lr_x, lr_y)
-                    coords(drag_lines[2], lr_x, lr_y,
-                                lr_x, ul_y)
-                    coords(drag_lines[3], lr_x, ul_y,
-                                ul_x, ul_y)
+                    drag_lines[0].setLine(ul_x, ul_y, ul_x, lr_y)
+                    drag_lines[1].setLine(ul_x, lr_y, lr_x, lr_y)
+                    drag_lines[2].setLine(lr_x, lr_y, lr_x, ul_y)
+                    drag_lines[3].setLine(lr_x, ul_y, ul_x, ul_y)
             for i in range(len(bboxes), len(self._bboxes)):
-                self.seq_canvas.main_view.delete(
-                            *self._drag_lines[i])
+                rm  = self.seq_canvas.main_scene.removeItem
+                for line in self._drag_lines[i]:
+                    rm(line)
             self._drag_lines = self._drag_lines[:len(bboxes)]
             self._bboxes = bboxes
         else:
@@ -1429,15 +1429,13 @@ class RegionBrowser:
                 # maybe a column pick
                 col = self._column_pick(event)
                 if col is not None:
-                    residues = self._residuesInBlock((
-                        self.seq_canvas.seqs[0],
-                        self.seq_canvas.seqs[-1],
-                        col, col))
+                    residues = self._residues_in_block((
+                        self.seq_canvas.seqs[0], self.seq_canvas.seqs[-1], col, col))
                     sel = ItemizedSelection()
                     sel.add(residues)
                     selectionOperation(sel)
         else:
-            self._selectOnStructures()
+            self._select_on_structures()
             self._prev_drag = self._drag_region
             rmsd = self._drag_region.rmsd
             if rmsd == None:
@@ -1448,8 +1446,9 @@ class RegionBrowser:
                     "control left/right arrow to realign region",
                     blankAfter=120)
             else:
-                self.seq_canvas.mav.status("Region RMSD: %.3f" % rmsd)
-                replyobj.info("%s RMSD: %.3f\n" % (self._drag_region, rmsd))
+                mav = self.seq_canvas.mav
+                mav.status("Region RMSD: %.3f" % rmsd)
+                mav.session.logger.info("%s RMSD: %.3f\n" % (self._drag_region, rmsd))
         self._start_x, self._start_y = None, None
         if self._after_id:
             canvas.after_cancel(self._after_id)
@@ -1524,8 +1523,10 @@ class RegionBrowser:
         if region == self._cur_region:
             self._toggle_active(region)
         self.regions.remove(region)
+        """TODO
         if rebuild_table:
             self._rebuildListing()
+        """
         if region == self._prev_drag:
             self._prev_drag = None
         if region == self._drag_region:
@@ -1542,12 +1543,14 @@ class RegionBrowser:
             return None
         residues = []
         for block in region.blocks:
-            residues.extend(self._residuesInBlock(block))
+            residues.extend(self._residues_in_block(block))
         return residues
 
     def _region_size_changed_cb(self, region):
+        """TODO
         if region.name is None and self.seqRegionMenu.index(Pmw.SELECT) == 0:
             self._rebuildListing()
+        """
 
     def _regMenuOrder(self, retVal="text"):
         seqs = self.sequence_regions.keys()
@@ -1568,13 +1571,13 @@ class RegionBrowser:
                             canvasX, canvasY)
         if block[0] is None:
             return None
-        return self._residuesInBlock(block)
+        return self._residues_in_block(block)
 
-    def _residuesInBlock(self, block):
+    def _residues_in_block(self, block):
         line1, line2, pos1, pos2 = block
 
         residues = []
-        seqs = self.seq_canvas.seqs
+        seqs = self.seq_canvas.alignment.seqs
         try:
             index1 = seqs.index(line1)
         except ValueError:
@@ -1585,36 +1588,34 @@ class RegionBrowser:
             index2 = 0
         for aseq in seqs[index1:index2]:
             try:
-                matchMaps = aseq.matchMaps
+                match_maps = aseq.match_maps
             except AttributeError:
                 continue
-            for matchMap in matchMaps.values():
+            for match_map in match_maps.values():
                 for gapped in range(pos1, pos2+1):
-                    ungapped = aseq.gapped2ungapped(gapped)
+                    ungapped = aseq.gapped_to_ungapped(gapped)
                     if ungapped is None:
                         continue
                     try:
-                        res = matchMap[ungapped]
+                        res = match_map[ungapped]
                     except KeyError:
                         continue
                     residues.append(res)
         return residues
 
-    def _selectOnStructures(self, region=None):
-        # highlight on chimera structures
-        from chimera import getSelMode
-        self._selChangeFromSelf = getSelMode() == "replace"
-        sel = ItemizedSelection()
-        sel.add(self.regionResidues(region))
-        sel.addImplied(vertices=False)
-        selectionOperation(sel)
-        self._selChangeFromSelf = False
+    def _select_on_structures(self, region=None):
+        # highlight on chimerax structures
+        self._sel_change_from_self = True
+        self.seq_canvas.mav.session.selection.clear()
+        from chimerax.core.atomic import Residues
+        Residues(self.region_residues(region)).atoms.selected = True
+        self._sel_change_from_self = False
 
     def _selChangeCB(self, trigName, myData, trigData):
-        selRegion = self.getRegion("ChimeraX selection", create=1,
+        selRegion = self.get_region("ChimeraX selection", create=1,
             fill=self.seq_canvas.mav.prefs[SEL_REGION_INTERIOR],
             outline=self.seq_canvas.mav.prefs[SEL_REGION_BORDER])
-        if self._selChangeFromSelf:
+        if self._sel_change_from_self:
             selRegion.clear()
         else:
             self.showChimeraSelection()
@@ -1642,17 +1643,17 @@ class RegionBrowser:
             chimera.triggers.deleteHandler("selection changed",
                         self._selChangeHandler)
             self._selChangeHandler = None
-            selRegion = self.getRegion("ChimeraX selection")
+            selRegion = self.get_region("ChimeraX selection")
             if selRegion:
                 selRegion.destroy()
 
-    def _toggle_active(self, region, selectOnStructures=True):
+    def _toggle_active(self, region, select_on_structures=True):
         if self._cur_region is not None and self._cur_region == region:
             region.dehighlight()
             self._cur_region = None
         else:
             self._cur_region = region
-            self.highlight(region, selectOnStructures=selectOnStructures)
+            self.highlight(region, select_on_structures=select_on_structures)
 
 """
 from OpenSave import OpenModeless

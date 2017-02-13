@@ -17,7 +17,7 @@ defaults = {
 	"column_separation": 0,
     SINGLE_PREFIX + "column_separation": -2,
     "new_region_border": None,
-    "new_region_interior": "white",
+    "new_region_interior": "tan",
 }
 
 from  chimerax.core.settings import Settings

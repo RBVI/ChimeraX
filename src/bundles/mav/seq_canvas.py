@@ -682,7 +682,7 @@ class SeqCanvas:
         self.lead_block = SeqBlock(self._label_scene(), self.main_scene,
             None, self.font, 0, [], self.alignment,
             50, {}, lambda *args, **kw: self.mav.status(secondary=True, *args, **kw),
-            True, None, [False, False], None)
+            True, None, [False, False], self.mav.settings)
 
     """TODO
     def lineWidthFromPrefs(self):
@@ -1581,7 +1581,7 @@ class SeqBlock:
         sep_attr_name = "column_separation"
         if len(self.alignment.seqs) == 1:
             sep_attr_name = SINGLE_PREFIX + sep_attr_name
-        sep = getattr(settings, sep_attr_name)
+        sep = getattr(self.settings, sep_attr_name)
         if sep < -1:
             overlap = int(abs(sep) / 2)
             ulx += overlap
