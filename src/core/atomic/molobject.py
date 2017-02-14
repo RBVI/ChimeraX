@@ -1220,6 +1220,8 @@ class StructureData:
     '''Index of the active coordinate set.'''
     atoms = c_property('structure_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True)
     ''':class:`.Atoms` collection containing all atoms of the structure.'''
+    ball_scale = c_property('structure_ball_scale', float32,
+        doc = "Scales sphere radius in ball-and-stick style.")
     bonds = c_property('structure_bonds', cptr, 'num_bonds', astype = _bonds, read_only = True)
     ''':class:`.Bonds` collection containing all bonds of the structure.'''
     chains = c_property('structure_chains', cptr, 'num_chains', astype = _chains, read_only = True)

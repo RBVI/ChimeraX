@@ -3077,6 +3077,17 @@ extern "C" EXPORT void structure_atoms(void *mols, size_t n, pyobject_t *atoms)
     }
 }
 
+extern "C" EXPORT void structure_ball_scale(void *mols, size_t n, float32_t *bscales)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_get(m, n, &Structure::ball_scale, bscales);
+}
+
+extern "C" EXPORT void set_structure_ball_scale(void *mols, size_t n, float32_t *bscales)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_set(m, n, &Structure::set_ball_scale, bscales);
+}
 extern "C" EXPORT void structure_num_bonds(void *mols, size_t n, size_t *nbonds)
 {
     Structure **m = static_cast<Structure **>(mols);
