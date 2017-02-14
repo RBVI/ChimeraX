@@ -185,7 +185,7 @@ def ts_install(session, bundle_name, user_only=True, version=None):
 ts_install_desc = CmdDesc(required=[("bundle_name", StringArg)],
                           optional=[("user_only", BoolArg),
                                     ("version", StringArg)],
-                          synopsys='Install a bundle')
+                          synopsis='Install a bundle')
 
 
 def ts_remove(session, bundle_name):
@@ -234,7 +234,7 @@ def ts_update(session, bundle_name, version=None):
     ts.install_bundle(new_bi, logger)
 ts_update_desc = CmdDesc(required=[("bundle_name", StringArg)],
                          optional=[("version", StringArg)],
-                         synopsys='Update a bundle to (latest) version')
+                         synopsis='Update a bundle to (latest) version')
 
 
 #
