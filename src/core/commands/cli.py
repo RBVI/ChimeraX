@@ -1012,6 +1012,7 @@ class TopModelsArg(Annotation):
 class ObjectsArg(Annotation):
     """Parse command objects specifier"""
     name = "objects"
+    url = "help:user/commands/atomspec.html"
 
     @staticmethod
     def parse(text, session):
@@ -2447,7 +2448,7 @@ def usage(name, no_aliases=False, show_subcommands=True, expand_alias=True,
             num_opt += 1
         syntax += ']' * num_opt
         for arg_name in ci._keyword:
-            if not show_hidden and arg_name in ci._hidden:
+            if not show_hidden and (arg_name in ci._hidden or arg_name in ci._optional):
                 continue
             arg_type = ci._keyword[arg_name]
             uarg_name = _user_kw(arg_name)
@@ -2548,7 +2549,7 @@ def html_usage(name, no_aliases=False, show_subcommands=True, expand_alias=True,
             arg_syntax.append('<i>%s</i>: %s' % (name, escape(type)))
         syntax += ']' * num_opt
         for arg_name in ci._keyword:
-            if not show_hidden and arg_name in ci._hidden:
+            if not show_hidden and (arg_name in ci._hidden or arg_name in ci._optional):
                 continue
             arg_type = ci._keyword[arg_name]
             uarg_name = _user_kw(arg_name)
