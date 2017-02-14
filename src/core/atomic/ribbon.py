@@ -502,52 +502,52 @@ class XSectionManager:
             (self.RC_COIL, self.RC_SHEET_START, self.RC_SHEET_END):
                 (self.RIBBON_COIL, self.RIBBON_SHEET),
             (self.RC_HELIX_END, self.RC_SHEET_START, self.RC_SHEET_MIDDLE):
-                (self.RIBBON_SHEET, self.RIBBON_SHEET),
+                (self.RIBBON_COIL, self.RIBBON_SHEET),
             (self.RC_HELIX_END, self.RC_SHEET_START, self.RC_SHEET_END):
-                (self.RIBBON_SHEET, self.RIBBON_SHEET),
+                (self.RIBBON_COIL, self.RIBBON_SHEET),
             (self.RC_SHEET_END, self.RC_SHEET_START, self.RC_SHEET_MIDDLE):
-                (self.RIBBON_SHEET, self.RIBBON_SHEET),
+                (self.RIBBON_COIL, self.RIBBON_SHEET),
             (self.RC_SHEET_END, self.RC_SHEET_START, self.RC_SHEET_END):
-                (self.RIBBON_SHEET, self.RIBBON_SHEET),
+                (self.RIBBON_COIL, self.RIBBON_SHEET),
             # SHEET_END in the middle
             (self.RC_SHEET_START, self.RC_SHEET_END, self.RC_COIL):
                 (self.RIBBON_SHEET_ARROW, self.RIBBON_COIL),
             (self.RC_SHEET_MIDDLE, self.RC_SHEET_END, self.RC_COIL):
                 (self.RIBBON_SHEET_ARROW, self.RIBBON_COIL),
             (self.RC_SHEET_START, self.RC_SHEET_END, self.RC_HELIX_START):
-                (self.RIBBON_SHEET, self.RIBBON_SHEET_ARROW),
+                (self.RIBBON_SHEET_ARROW, self.RIBBON_COIL),
             (self.RC_SHEET_MIDDLE, self.RC_SHEET_END, self.RC_HELIX_START):
-                (self.RIBBON_SHEET, self.RIBBON_SHEET_ARROW),
+                (self.RIBBON_SHEET_ARROW, self.RIBBON_COIL),
             (self.RC_SHEET_START, self.RC_SHEET_END, self.RC_SHEET_START):
-                (self.RIBBON_SHEET, self.RIBBON_SHEET_ARROW),
+                (self.RIBBON_SHEET_ARROW, self.RIBBON_COIL),
             (self.RC_SHEET_MIDDLE, self.RC_SHEET_END, self.RC_SHEET_START):
-                (self.RIBBON_SHEET, self.RIBBON_SHEET_ARROW),
+                (self.RIBBON_SHEET_ARROW, self.RIBBON_COIL),
             # HELIX_START in the middle
             (self.RC_COIL, self.RC_HELIX_START, self.RC_HELIX_MIDDLE):
                 (self.RIBBON_COIL, self.RIBBON_HELIX),
             (self.RC_COIL, self.RC_HELIX_START, self.RC_HELIX_END):
                 (self.RIBBON_COIL, self.RIBBON_HELIX),
             (self.RC_HELIX_END, self.RC_HELIX_START, self.RC_HELIX_MIDDLE):
-                (self.RIBBON_HELIX, self.RIBBON_HELIX),
+                (self.RIBBON_COIL, self.RIBBON_HELIX),
             (self.RC_HELIX_END, self.RC_HELIX_START, self.RC_HELIX_END):
-                (self.RIBBON_HELIX, self.RIBBON_HELIX),
+                (self.RIBBON_COIL, self.RIBBON_HELIX),
             (self.RC_SHEET_END, self.RC_HELIX_START, self.RC_HELIX_MIDDLE):
-                (self.RIBBON_HELIX, self.RIBBON_HELIX),
+                (self.RIBBON_COIL, self.RIBBON_HELIX),
             (self.RC_SHEET_END, self.RC_HELIX_START, self.RC_HELIX_END):
-                (self.RIBBON_HELIX, self.RIBBON_HELIX),
+                (self.RIBBON_COIL, self.RIBBON_HELIX),
             # HELIX_END in the middle
             (self.RC_HELIX_START, self.RC_HELIX_END, self.RC_COIL):
                 (self.RIBBON_HELIX_ARROW, self.RIBBON_COIL),
             (self.RC_HELIX_MIDDLE, self.RC_HELIX_END, self.RC_COIL):
                 (self.RIBBON_HELIX_ARROW, self.RIBBON_COIL),
             (self.RC_HELIX_START, self.RC_HELIX_END, self.RC_HELIX_START):
-                (self.RIBBON_HELIX, self.RIBBON_HELIX_ARROW),
+                (self.RIBBON_HELIX_ARROW, self.RIBBON_COIL),
             (self.RC_HELIX_MIDDLE, self.RC_HELIX_END, self.RC_HELIX_START):
-                (self.RIBBON_HELIX, self.RIBBON_HELIX_ARROW),
+                (self.RIBBON_HELIX_ARROW, self.RIBBON_COIL),
             (self.RC_HELIX_START, self.RC_HELIX_END, self.RC_SHEET_START):
-                (self.RIBBON_HELIX, self.RIBBON_HELIX_ARROW),
+                (self.RIBBON_HELIX_ARROW, self.RIBBON_COIL),
             (self.RC_HELIX_MIDDLE, self.RC_HELIX_END, self.RC_SHEET_START):
-                (self.RIBBON_HELIX, self.RIBBON_HELIX_ARROW),
+                (self.RIBBON_HELIX_ARROW, self.RIBBON_COIL),
         }
 
         self._xs_helix = None

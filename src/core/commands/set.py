@@ -84,4 +84,4 @@ def register_command(session):
                  ('subdivision', FloatArg)],
         synopsis="set preferences"
     )
-    register('set', desc, set)
+    register('set', desc, set, logger=session.logger)

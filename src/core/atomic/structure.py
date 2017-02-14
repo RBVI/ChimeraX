@@ -31,7 +31,6 @@ class Structure(Model, StructureData):
 
         # attrs that should be saved in sessions, along with their initial values...
         self._session_attrs = {
-            '_ball_scale': 0.3,		# Scales sphere radius in ball and stick style
             '_bond_radius': 0.2,
             '_pseudobond_radius': 0.05,
         }
@@ -215,13 +214,6 @@ class Structure(Model, StructureData):
 
     def reset_state(self, session):
         pass
-
-    def _get_ball_scale(self):
-        return self._ball_scale
-    def _set_ball_scale(self, scale):
-        self._ball_scale = scale
-        self._graphics_changed |= self._SHAPE_CHANGE
-    ball_scale = property(_get_ball_scale, _set_ball_scale)
 
     def _get_bond_radius(self):
         return self._bond_radius

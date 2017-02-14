@@ -140,24 +140,24 @@ def register_command(session):
     desc = CmdDesc(optional=[('objects', ObjectsArg)],
                    keyword=[('entity', AtomsArg)],
                    synopsis='select specified objects')
-    register('select', desc, select)
+    register('select', desc, select, logger=session.logger)
 
     desc = CmdDesc(optional=[('objects', ObjectsArg)],
                    synopsis='add objects to selection')
-    register('select add', desc, select_add)
+    register('select add', desc, select_add, logger=session.logger)
 
     desc = CmdDesc(optional=[('objects', ObjectsArg)],
                    synopsis='subtract objects from selection')
-    register('select subtract', desc, select_subtract)
+    register('select subtract', desc, select_subtract, logger=session.logger)
 
     desc = CmdDesc(required=[('objects', ObjectsArg)],
                    synopsis='intersect objects with selection')
-    register('select intersect', desc, select_intersect)
+    register('select intersect', desc, select_intersect, logger=session.logger)
 
     desc = CmdDesc(synopsis='clear the selection')
-    register('select clear', desc, select_clear)
+    register('select clear', desc, select_clear, logger=session.logger)
 
-    create_alias('~select', 'select subtract $*')
+    create_alias('~select', 'select subtract $*', logger=session.logger)
 
     # Register "select zone" subcommand
     from . import zonesel

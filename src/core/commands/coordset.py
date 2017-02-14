@@ -33,7 +33,7 @@ def coordset(session, structures, index_range, hold_steady = None, loop = 1):
 
   if len(structures) == 0:
     from ..errors import UserError
-    raise UseError('No structures specified')
+    raise UserError('No structures specified')
 
   for m in structures:
     s,e,step = parse_index_range(index_range, m)
@@ -50,7 +50,7 @@ def register_command(session):
         keyword = [('hold_steady', AtomsArg),
                    ('loop', IntArg)],
         synopsis = 'show coordinate sets')
-    register('coordset', desc, coordset)
+    register('coordset', desc, coordset, logger=session.logger)
 
 # -----------------------------------------------------------------------------
 #

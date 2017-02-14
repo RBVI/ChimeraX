@@ -1,122 +1,104 @@
-def interpolate(mol, to_mol_xform, segments, equiv_atoms, method, rate_method,
-                        frames, cartesian, cb):
-        # mol                molecule where new coordinate sets are added
-        #                should already have first frame in place
-        # to_mol_xform        transform to convert target atom local coordinates
-        #                into "mol" local coordinates.
-        # segments        list of 2-tuples of matching residue lists
-        # equiv_atoms        dictionary of equivalent atoms
-        #                key is atom from mol and value is target atom
+from time import time
+smt = stt = rit = rst = rsit = 0
+from time import time
+def interpolate(coordset0, coordset1, residue_groups, residue_interpolators,
+                method, rate_method, frames, log):
+        # coordset0     initial coordinates indexed by atom index
+        # coordset1     final coordinates indexed by atom index
+        # residue_groups      list of collections of residues defining groups moved semi-rigidly
+        # residue_interpolators   maps residue to an interpolator instance
         # method        interpolation method name
-        # rate_method        rate profile, e.g., "linear"
+        # rate_method   spacing method for interpolation steps: "linear", "sinusoidal", "ramp up", "ramp down"
         # frames        number of frames to generate in trajectory
-        # cartesian        use cartesian coordinate interpolation?
-        # cb                function called for every frame generated 
+        # log           Logger for reporting progress messages
 
-        from . import interp_residue
-        from .util import getAtomList
-        from numpy import mean
+        # Get transform for each rigid segment
+        t0 = time()
+        seg_info = []
+        from .util import segment_alignment_atoms
         from chimerax.core.geometry import align_points
         from chimerax.core.atomic import Atoms
-
-        interpolateFunction = InterpolationMap[method]
-        rateFunction = RateMap[rate_method]
-        if cartesian:
-                planFunction = interp_residue.planCartesian
-        else:
-                planFunction = interp_residue.planInternal
-
-        rate = rateFunction(frames)
-        numFrames = len(rate) + 1
-        csSize = mol.coordset_size
-        baseCS = max(mol.coordset_ids) + 1
-        segMap = {}
-        plan = {}
-        for seg in segments:
-                rList0, rList1 = seg
-                aList0 = Atoms(getAtomList(rList0))
-                cList0 = aList0.coords
+        for rList in residue_groups:
+                raindices = Atoms(segment_alignment_atoms(rList)).coord_indices
+                cList0 = coordset0[raindices]
                 c0 = cList0.mean(axis = 0)
-                aList1 = Atoms([ equiv_atoms[a0] for a0 in aList0 ])
-                cList1 = to_mol_xform * aList1.coords
-                c1 = aList1.coords.mean(axis = 0)
+                cList1 = coordset1[raindices]
+                c1 = cList1.mean(axis = 0)
                 xform, rmsd = align_points(cList0, cList1)
-                segMap[seg] = (c0, c1, xform)
-                for r in rList0:
-                        plan[r] = planFunction(r)
-
-        lo = 0.0
-        interval = 1.0
-        for i in range(len(rate)):
-                f = (rate[i] - lo) / interval
-                lo = rate[i]
-                interval = 1.0 - lo
-                from numpy import zeros, float32
-                cs = zeros((csSize,3), float32)
-                for seg in segments:
-                        c0, c1, xform = segMap[seg]
-                        xf0, xf1 = interpolateFunction(xform, c0, c1, f)
-                        rList0, rList1 = seg
-                        for r in rList0:
-                                c0map, c1map = residue_coords(r, equiv_atoms, xf0, xf1 * to_mol_xform)
-                                interp_residue.applyPlan(plan[r], r, cs, f, c0map, c1map)
-                cs_id = baseCS + i
-                mol.add_coordset(cs_id, cs)
-                mol.active_coordset_id = cs_id
-                if cb:
-                        cb(mol)
-        from numpy import zeros, float32
-        cs = zeros((csSize,3), float32)
-        for a0, a1 in equiv_atoms.items():
-                cs[a0.coord_index] = to_mol_xform * a1.coord
-        cs_id = baseCS + len(rate)
-        mol.add_coordset(cs_id, cs)
-        mol.active_coordset_id = cs_id
-
-from time import time
-smt = 0
-def residue_coords(r, equiv_atoms, xf0, xf1):
-        # Starting and ending residue atom coordinates after rigid segment motion.
-        t0 = time()
-        c0map = {}
-        c1map = {}
-        for a0 in r.atoms:
-                c0map[a0] = xf0 * a0.coord
-                c1map[a0] = xf1 * equiv_atoms[a0].coord
+                seg_info.append((rList, rList.atoms.coord_indices, c0, c1, xform))
         t1 = time()
-        global smt
-        smt += t1 - t0
-        return c0map, c1map
+        global stt
+        stt += t1-t0
+
+        # Calculate interpolated coordinates for each frame.
+        coordsets = []
+        segment_motion = SegmentMotionMethods[method]
+        rateFunction = RateMap[rate_method]
+        rate = rateFunction(frames)  # Compute fractional steps controlling speed of motion.
+        nc = len(coordset0)
+        c0s = coordset0.copy()
+        c1s = coordset1.copy()
+        for i, f in enumerate(rate):
+                coordset = coordset0.copy()
+                for rList, atom_indices, c0, c1, xform in seg_info:
+                        t0 = time()
+                        xf0, xf1 = segment_motion(xform, c0, c1, f)
+                        t1 = time()
+                        global rit
+                        rit += t1-t0
+                        t0 = time()
+                        # Apply rigid segment motion
+                        c0s[atom_indices] = xf0 * coordset0[atom_indices]
+                        c1s[atom_indices] = xf1 * coordset1[atom_indices]
+                        t1 = time()
+                        global smt
+                        smt += t1 - t0
+                        t0 = time()
+                        for r in rList:
+                                residue_interpolators[r](c0s, c1s, f, coordset)
+                        t1 = time()
+                        global rst
+                        rst += t1-t0
+
+                coordsets.append(coordset)
+                if log and False:
+                        log.status("Trajectory frame %d generated" % i)
+
+        # Add last frame with coordinates equal to final position.
+        coordsets.append(coordset1.copy())
+
+        return coordsets
 
 def interpolateCorkscrew(xf, c0, c1, f):
         """Interpolate by splitting the transformation into a rotation
         and a translation along the axis of rotation."""
-        from chimerax.core import geometry
+        from chimerax.core.geometry import inner_product, cross_product, identity, norm
+        from chimerax.core.geometry import normalize_vector, rotation, translation
         dc = c1 - c0
         vr, a = xf.rotation_axis_and_angle()        # a is in degrees
-        tra = dc * vr                                # magnitude of translation
+        tra = inner_product(dc, vr)                                # magnitude of translation
                                                 # along rotation axis
         vt = dc - tra * vr                        # where c1 would end up if
                                                 # only rotation is used
         cm = c0 + vt / 2
-        v0 = geometry.cross_product(vr, vt)
-        if geometry.norm(v0) <= 0.0:
-                ident = geometry.identity()
+        v0 = cross_product(vr, vt)
+        if norm(v0) <= 0.0:
+                ident = identity()
                 return ident, ident
-        v0 = geometry.normalize_vector(v0)
+        v0 = normalize_vector(v0)
         if a != 0.0:
                 import math
-                l = geometry.norm(vt) / 2 / math.tan(math.radians(a / 2))
+                l = norm(vt) / 2 / math.tan(math.radians(a / 2))
                 cr = cm + v0 * l
         else:
                 import numpy
                 cr = numpy.array((0.0, 0.0, 0.0))
 
-        Tinv = geometry.translation(-cr)
-        R0 = geometry.rotation(vr, a * f)
-        R1 = geometry.rotation(vr, -a * (1 - f))
-        X0 = geometry.translation(cr + vr * (f * tra)) * R0 * Tinv
-        X1 = geometry.translation(cr - vr * ((1 - f) * tra)) * R1 * Tinv
+        Tinv = translation(-cr)
+        R0 = rotation(vr, a * f)
+        R1 = rotation(vr, -a * (1 - f))
+        X0 = translation(cr + vr * (f * tra)) * R0 * Tinv
+        X1 = translation(cr - vr * ((1 - f) * tra)) * R1 * Tinv
         return X0, X1
 
 def interpolateIndependent(xf, c0, c1, f):
@@ -146,7 +128,7 @@ def interpolateLinear(xf, c0, c1, f):
         X1 = T * R1 * Tinv1
         return X0, X1
 
-InterpolationMap = {
+SegmentMotionMethods = {
         "corkscrew": interpolateCorkscrew,
         "independent": interpolateIndependent,
         "linear": interpolateLinear,
@@ -200,3 +182,16 @@ RateMap = {
         "ramp up": rateRampUp,
         "ramp down": rateRampDown,
 }
+
+def residue_interpolators(residues, cartesian):
+        # Create interpolation function for each residue.
+        from .interp_residue import internal_residue_interpolator, cartesian_residue_interpolator
+        residue_interpolator = cartesian_residue_interpolator if cartesian else internal_residue_interpolator
+        res_interp = {}
+        t0 = time()
+        for r in residues:
+                res_interp[r] = residue_interpolator(r)
+        t1 = time()
+        global rsit
+        rsit += t1-t0
+        return res_interp

@@ -49,7 +49,7 @@ Residue::Residue(Structure *as, const ResName& name, const ChainID& chain, int p
     _is_helix(false), _is_het(false), _is_strand(false), _mmcif_chain_id(chain),
     _name(name), _polymer_type(PT_NONE), _position(pos), _ribbon_adjust(-1.0),
     _ribbon_display(false), _ribbon_hide_backbone(true), _ribbon_rgba({160,160,0,255}),
-    _ribbon_style(RIBBON_RIBBON), _ss_id(-1), _structure(as)
+    _ss_id(-1), _structure(as)
 {
     _structure->change_tracker()->add_created(this);
 }
@@ -174,7 +174,7 @@ Residue::session_restore(int version, int** ints, float** floats)
     _polymer_type = (PolymerType)int_ptr[4];
     _ribbon_display = int_ptr[5];
     _ribbon_hide_backbone = int_ptr[6];
-    _ribbon_style = (Style)int_ptr[7];
+    _ribbon_selected = int_ptr[7];
     _ss_id = int_ptr[8];
     auto num_atoms = int_ptr[9];
     int_ptr += SESSION_NUM_INTS(version);
@@ -203,7 +203,7 @@ Residue::session_save(int** ints, float** floats) const
     int_ptr[4] = (int)_polymer_type;
     int_ptr[5] = (int)_ribbon_display;
     int_ptr[6] = (int)_ribbon_hide_backbone;
-    int_ptr[7] = (int)_ribbon_style;
+    int_ptr[7] = (int) _ribbon_selected;
     int_ptr[8] = (int)_ss_id;
     int_ptr[9] = atoms().size();
     int_ptr += SESSION_NUM_INTS();

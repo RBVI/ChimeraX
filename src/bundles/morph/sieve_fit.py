@@ -1,12 +1,3 @@
-def fitModels(m0, m1, fraction=0.5):
-        """sieveFitModels takes two conformers and identifies the
-        fraction of the residues that produce the minimum RMSD."""
-
-        rList0 = m0.residues
-        rList1 = m1.residues
-
-        return fitResidues(rList0, rList1, fraction)
-
 def fitResidues(rList0, rList1, fraction=0.5, maxrmsd=0.1):
         """sieveFitModels takes two lists of corresponding residues
         and identifies the fraction of the residues that produce
@@ -17,16 +8,19 @@ def fitResidues(rList0, rList1, fraction=0.5, maxrmsd=0.1):
         #for r0, r1 in zip(rList0, rList1):
         #        if r0.type != r1.type:
         #                raise ValueError("matching residues of different types")
-        from .util import getAtomList
-        aList0 = getAtomList(rList0)
-        aList1 = getAtomList(rList1)
+        from .util import segment_alignment_atoms
+        aList0 = segment_alignment_atoms(rList0)
+        aList1 = segment_alignment_atoms(rList1)
         keep = int(len(rList0) * fraction)
         while len(aList0) > keep:
                 if not sieve(aList0, aList1, maxrmsd):
                         break
         return ([ a.residue for a in aList0 ], [ a.residue for a in aList1 ])
 
+svt = 0
 def sieve(aList0, aList1, maxrmsd):
+        from time import time
+        t0 = time()
         from numpy import array, subtract, inner, add, argmax, transpose, multiply
         position0 = array([a.coord for a in aList0])        # fixed
         position1 = array([a.coord for a in aList1])        # movable
@@ -43,4 +37,7 @@ def sieve(aList0, aList1, maxrmsd):
         worst = argmax(dsq)
         del aList0[worst]
         del aList1[worst]
+        t1 = time()
+        global svt
+        svt += t1-t0
         return True

@@ -534,7 +534,7 @@ def report_status(log):
 
 # -----------------------------------------------------------------------------
 #
-def register_fitmap_command():
+def register_fitmap_command(logger):
 
     from ...commands import CmdDesc, register, BoolArg, IntArg, FloatArg, EnumOf, AtomsArg, ObjectsArg
     from ..mapargs import MapArg
@@ -578,4 +578,4 @@ def register_fitmap_command():
         required_arguments = ['in_map'],
         synopsis = 'Optimize positions of atomic models or maps in maps'
     )
-    register('fitmap', fitmap_desc, fitmap)
+    register('fitmap', fitmap_desc, fitmap, logger=logger)

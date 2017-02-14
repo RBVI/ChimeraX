@@ -250,23 +250,23 @@ def register_command(session):
                    ('nthread', IntArg),
                    ('replace', BoolArg)],
         synopsis = 'create molecular surface')
-    register('surface', surface_desc, surface)
+    register('surface', surface_desc, surface, logger=session.logger)
 
     show_desc = CmdDesc(
         optional = [('objects', ObjectsArg)],
         synopsis = 'Show patches of molecular surfaces')
-    register('surface show', show_desc, surface_show)
+    register('surface show', show_desc, surface_show, logger=session.logger)
 
     hide_desc = CmdDesc(
         optional = [('objects', ObjectsArg)],
         synopsis = 'Hide patches of molecular surfaces')
-    register('surface hide', hide_desc, surface_hide)
-    create_alias('~surface', 'surface hide $*')
+    register('surface hide', hide_desc, surface_hide, logger=session.logger)
+    create_alias('~surface', 'surface hide $*', logger=session.logger)
 
     close_desc = CmdDesc(
         optional = [('objects', ObjectsArg)],
         synopsis = 'close molecular surfaces')
-    register('surface close', close_desc, surface_close)
+    register('surface close', close_desc, surface_close, logger=session.logger)
 
     # Register surface operation subcommands.
     from . import sop

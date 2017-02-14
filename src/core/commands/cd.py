@@ -34,4 +34,4 @@ def register_command(session):
     desc = CmdDesc(
         optional=[('directory', FileNameArg)],
         synopsis='Change the current working directory')
-    register('cd', desc, cd)
+    register('cd', desc, cd, logger=session.logger)

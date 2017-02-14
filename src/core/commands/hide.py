@@ -76,6 +76,6 @@ def register_command(session):
         keyword=[('target', TargetArg)],
         url='help:user/commands/show.html#hide',
         synopsis='hide specified objects')
-    register('hide', desc, hide)
-    create_alias('~show', 'hide $*')
-    create_alias('~display', 'hide $*')
+    register('hide', desc, hide, logger=session.logger)
+    create_alias('~show', 'hide $*', logger=session.logger)
+    create_alias('~display', 'hide $*', logger=session.logger)

@@ -22,6 +22,7 @@
 
 #include "imex.h"
 #include "Sequence.h"
+#include "session.h"
 #include "string_types.h"
 
 namespace atomstruct {
@@ -48,8 +49,8 @@ protected:
     Residues  _residues;
     Structure*  _structure;
 
-    static int  SESSION_NUM_INTS(int /*version*/=0) { return 3; }
-    static int  SESSION_NUM_FLOATS(int /*version*/=0) { return 0; }
+    static int  SESSION_NUM_INTS(int /*version*/=CURRENT_SESSION_VERSION) { return 3; }
+    static int  SESSION_NUM_FLOATS(int /*version*/=CURRENT_SESSION_VERSION) { return 0; }
 
     void  demote_to_sequence();
     bool  no_structure_left() const {

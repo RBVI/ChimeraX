@@ -60,4 +60,4 @@ def register_command(session):
                    ('atoms', AtomsArg)],
         synopsis='rotate models continuously'
     )
-    register('roll', desc, roll)
+    register('roll', desc, roll, logger=session.logger)

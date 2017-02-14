@@ -71,7 +71,7 @@ class _RestrictTable(dict):
         return dict.__getitem__(self, cls)
 
 
-def serialize(stream, obj):
+def pickle_serialize(stream, obj):
     """Put object in to a binary stream"""
     pickler = pickle.Pickler(stream, protocol=_PICKLE_PROTOCOL)
     pickler.fast = True     # no recursive lists/dicts/sets
@@ -100,10 +100,18 @@ class _RestrictedUnpickler(pickle.Unpickler):
         raise pickle.UnpicklingError("global '%s' is forbidden" % fullname)
 
 
-def deserialize(stream):
+def pickle_deserialize(stream):
     """Recover object from a binary stream"""
     unpickler = _RestrictedUnpickler(stream)
     return unpickler.load()
+
+# will always use pickle for the version number
+version_serialize = pickle_serialize
+version_deserialize = pickle_deserialize
+
+# might use a different serialization technique in the future
+serialize = pickle_serialize
+deserialize = pickle_deserialize
 
 if __name__ == '__main__':
     import io

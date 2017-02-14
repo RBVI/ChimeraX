@@ -43,7 +43,24 @@ def register_command(session):
                              ('downgrade_errors', BoolArg),
                          ],
                    synopsis='indirectly run a command')
-    register('run', desc, run)
+    register('run', desc, run, logger=session.logger)
+
+def quote_if_necessary(fn):
+    if ' ' not in fn:
+        return fn
+    
+    if '"' not in  fn:
+        return '"' + fn + '"'
+
+    if "'" not in fn:
+        return "'" + fn + "'"
+
+    escaped = ""
+    for c in fn:
+        if c == ' ':
+            escaped += '\\'
+        escaped += c
+    return escaped
 
 def concise_model_spec(session, models):
     model_ids = _form_id_dict(models)

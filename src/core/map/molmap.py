@@ -16,7 +16,7 @@
 # resolution.  The simulated map is useful for fitting the model into
 # an experimental map using correlation coefficient as a goodness of fit.
 #
-def register_molmap_command():
+def register_molmap_command(logger):
 
     from ..commands import CmdDesc, register, AtomsArg, BoolArg, FloatArg
     from ..commands import CenterArg, AxisArg, SymmetryArg, CoordSysArg
@@ -44,7 +44,7 @@ def register_molmap_command():
         ],
         synopsis = 'Compute a map by placing Gaussians at atom positions'
     )
-    register('molmap', molmap_desc, molmap)
+    register('molmap', molmap_desc, molmap, logger=logger)
 
 # -----------------------------------------------------------------------------
 #

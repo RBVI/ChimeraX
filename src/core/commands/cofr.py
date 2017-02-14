@@ -66,5 +66,5 @@ def register_command(session):
                   ('pivot', Float3Arg)],
         keyword=[('coordinate_system', ModelArg)],
         synopsis='set center of rotation method')
-    register('cofr', desc, cofr)
+    register('cofr', desc, cofr, logger=session.logger)
     create_alias('~cofr', 'cofr frontCenter')

@@ -36,9 +36,9 @@ def register_core_commands(session):
         m.register_command(session)
 
     from .. import map
-    map.register_volume_command()
-    map.register_molmap_command()
+    map.register_volume_command(session.logger)
+    map.register_molmap_command(session.logger)
     from ..map import fit
-    fit.register_fitmap_command()
+    fit.register_fitmap_command(session.logger)
     from ..map import series
-    series.register_vseries_command()
+    series.register_vseries_command(session.logger)

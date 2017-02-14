@@ -7,7 +7,7 @@ PreferredAtoms = [
         "O3'",
 ]
 
-def getAtomList(rList):
+def segment_alignment_atoms(rList):
         """Construct a list of CA/P atoms from residue list (ignoring
         residues that do not have either atom)"""
         aList = []

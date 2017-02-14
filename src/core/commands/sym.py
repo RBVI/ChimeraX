@@ -116,11 +116,11 @@ def register_command(session):
                    ('resolution', FloatArg),
                    ('grid_spacing', FloatArg)],
         synopsis = 'create model copies')
-    register('sym', desc, sym)
+    register('sym', desc, sym, logger=session.logger)
     desc = CmdDesc(
         optional = [('structures', AtomicStructuresArg)],
         synopsis = 'Remove model copies')
-    register('sym clear', desc, sym_clear)
+    register('sym clear', desc, sym_clear, logger=session.logger)
 
 def show_symmetry(structures, transforms, copies, surface_only, resolution, grid_spacing, session):
     if copies:

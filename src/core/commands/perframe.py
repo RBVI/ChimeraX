@@ -68,9 +68,9 @@ def register_command(session):
                               ('zero_pad_width', IntArg),
                               ('show_commands', BoolArg)],
                    synopsis = 'Run a command before each graphics frame is drawn')
-    register('perframe', desc, perframe)
+    register('perframe', desc, perframe, logger=session.logger)
     desc = CmdDesc(synopsis = 'Stop all perframe commands')
-    register('perframe stop', desc, stop_perframe_callbacks)
+    register('perframe stop', desc, stop_perframe_callbacks, logger=session.logger)
     create_alias('~perframe', 'perframe stop')
 
 def _perframe_callback(data, session):

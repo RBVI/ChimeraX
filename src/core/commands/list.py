@@ -34,4 +34,4 @@ def list(session):
 def register_command(session):
     from . import cli
     desc = cli.CmdDesc(synopsis='list open model ids')
-    cli.register('list', desc, list)
+    cli.register('list', desc, list, logger=session.logger)
