@@ -52,8 +52,12 @@ class GraphicsWindow(QWindow):
     def resizeEvent(self, event):
         s = event.size()
         w, h = s.width(), s.height()
-        self.view.resize(w, h)
-        self.view.redraw_needed = True
+        v = self.view
+        v.resize(w, h)
+        v.redraw_needed = True
+        if self.isExposed():
+            # Avoid flickering when resizing by drawing immediately.
+            v.draw(check_for_changes = False)
 
     def set_redraw_interval(self, msec):
         self.redraw_interval = msec  # milliseconds
