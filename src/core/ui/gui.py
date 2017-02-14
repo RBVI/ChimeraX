@@ -218,6 +218,7 @@ class UI(QApplication):
         self.session.logger.status("Exiting ...", blank_after=0)
         self.session.logger.clear()    # clear logging timers
         self.closeAllWindows()
+        QApplication.quit()
 
     def thread_safe(self, func, *args, **kw):
         """Call function 'func' in a thread-safe manner
