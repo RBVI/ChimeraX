@@ -43,7 +43,7 @@ def register_command(session):
                              ('downgrade_errors', BoolArg),
                          ],
                    synopsis='indirectly run a command')
-    register('run', desc, run)
+    register('run', desc, run, logger=session.logger)
 
 def quote_if_necessary(fn):
     if ' ' not in fn:

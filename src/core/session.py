@@ -760,7 +760,8 @@ def common_startup(sess):
         CmdDesc(required=[('session_file', OpenFileNameArg)],
                 optional=[('output', SaveFileNameArg)],
                 synopsis="create human-readable session"),
-        sdump
+        sdump,
+        logger=sess.logger
     )
 
     _register_core_file_formats()

@@ -67,8 +67,8 @@ def register_command(session):
                               ('format', StringArg),    # TODO: Allow multiple format arguments.
                               ('zero_pad_width', IntArg),
                               ('show_commands', BoolArg)])
-    register('perframe', desc, perframe)
-    register('~perframe', CmdDesc(), stop_perframe_callbacks)
+    register('perframe', desc, perframe, logger=session.logger)
+    register('~perframe', CmdDesc(), stop_perframe_callbacks, logger=session.logger)
 
 def _perframe_callback(data, session):
     d = data

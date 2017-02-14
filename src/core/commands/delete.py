@@ -27,4 +27,4 @@ def register_command(session):
     from . import cli
     desc = cli.CmdDesc(required=[('atoms', cli.AtomsArg)],
                        synopsis='delete atoms')
-    cli.register('delete', desc, delete)
+    cli.register('delete', desc, delete, logger=session.logger)

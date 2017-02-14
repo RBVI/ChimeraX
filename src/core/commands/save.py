@@ -189,7 +189,7 @@ def register_command(session):
         keyword=format_args + image_args + map_args,
         synopsis='save session or image'
     )
-    register('save', desc, save)
+    register('save', desc, save, logger=session.logger)
 
     desc = CmdDesc(
         required=file_arg,
@@ -198,7 +198,7 @@ def register_command(session):
     def save_session(session, filename, **kw):
         kw['format'] = 'session'
         save(session, filename, **kw)
-    register('save session', desc, save_session)
+    register('save session', desc, save_session, logger=session.logger)
 
     desc = CmdDesc(
         required=file_arg,
@@ -207,7 +207,7 @@ def register_command(session):
     )
     def save_image(session, filename, **kw):
         save(session, filename, **kw)
-    register('save image', desc, save_image)
+    register('save image', desc, save_image, logger=session.logger)
 
     desc = CmdDesc(
         required=file_arg,
@@ -215,7 +215,7 @@ def register_command(session):
         keyword=map_format_args + map_args,
         synopsis='save map'
     )
-    register('save map', desc, save)
+    register('save map', desc, save, logger=session.logger)
 
     sf_desc = CmdDesc(synopsis='report formats that can be saved')
-    register('save formats', sf_desc, save_formats)
+    register('save formats', sf_desc, save_formats, logger=session.logger)

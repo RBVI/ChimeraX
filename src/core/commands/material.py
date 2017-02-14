@@ -94,4 +94,4 @@ def register_command(session):
             ('transparent_cast_shadows', BoolArg),
         ],
         synopsis="report or alter material parameters")
-    register('material', _material_desc, material)
+    register('material', _material_desc, material, logger=session.logger)

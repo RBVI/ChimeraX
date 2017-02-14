@@ -1720,7 +1720,7 @@ _commands = _WordInfo()
 _aliased_commands = {}  # { name: _WordInfo instance }
 
 
-def register(name, cmd_desc=(), function=None, logger=None):
+def register(name, cmd_desc=(), function=None, *, logger=None):
     """register function that implements command
 
     :param name: the name of the command and may include spaces.
@@ -1782,6 +1782,12 @@ def register(name, cmd_desc=(), function=None, logger=None):
         cmd_desc = function
     else:
         cmd_desc.function = function
+        if cmd_desc.synopsis is None:
+            msg = 'Command "%s" is missing a synopsis' % name
+            if logger is None:
+                print(msg)
+            else:
+                logger.warning(msg)
     parent_info.add_subcommand(words[-1], name, cmd_desc)
     return function     # needed when used as a decorator
 

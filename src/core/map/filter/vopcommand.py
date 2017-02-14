@@ -43,7 +43,7 @@
 #
 from ...errors import UserError as CommandError
 
-def register_volume_filtering_subcommands():
+def register_volume_filtering_subcommands(logger):
 
     from ...commands import CmdDesc, register, BoolArg, StringArg, EnumOf, IntArg, Int3Arg
     from ...commands import FloatArg, Float3Arg, FloatsArg, ModelIdArg, AtomsArg
@@ -69,12 +69,12 @@ def register_volume_filtering_subcommands():
         ('scale_factors', FloatsArg),
     ]
     add_desc = CmdDesc(required = varg, keyword = add_kw)
-    register('volume add', add_desc, volume_add)
+    register('volume add', add_desc, volume_add, logger=logger)
 
     bin_desc = CmdDesc(required = varg,
                        keyword = [('bin_size', MapStepArg)] + ssm_kw
     )
-    register('volume bin', bin_desc, volume_bin)
+    register('volume bin', bin_desc, volume_bin, logger=logger)
 
     boxes_desc = CmdDesc(required = varg,
                          keyword = [('centers', AtomsArg),
@@ -82,7 +82,7 @@ def register_volume_filtering_subcommands():
                                     ('isize', IntArg),
                                     ('use_marker_size', BoolArg)] + ssm_kw,
                          required_arguments = ['centers'])
-    register('volume boxes', boxes_desc, volume_boxes)
+    register('volume boxes', boxes_desc, volume_boxes, logger=logger)
 
     cover_desc = CmdDesc(required = varg,
         keyword = [('atom_box', AtomsArg),
@@ -95,51 +95,51 @@ def register_volume_filtering_subcommands():
                    ('step', MapStepArg),
                    ('model_id', ModelIdArg)]
     )
-    register('volume cover', cover_desc, volume_cover)
+    register('volume cover', cover_desc, volume_cover, logger=logger)
 
     falloff_desc = CmdDesc(required = varg,
         keyword = [('iterations', IntArg), ('in_place', BoolArg)] + ssm_kw
     )
-    register('volume falloff', falloff_desc, volume_falloff)
+    register('volume falloff', falloff_desc, volume_falloff, logger=logger)
 
     flatten_desc = CmdDesc(required = varg,
                            keyword = [('method', EnumOf(('multiplyLinear', 'divideLinear'))),
                                       ('fitregion', MapRegionArg)] + ssm_kw)
-    register('volume flatten', flatten_desc, volume_flatten)
+    register('volume flatten', flatten_desc, volume_flatten, logger=logger)
 
     flip_desc = CmdDesc(required = varg,
                         keyword = [('axis', EnumOf(('x','y','z','xy', 'yz','xyz'))),
                                    ('in_place', BoolArg)] + ssm_kw)
-    register('volume flip', flip_desc, volume_flip)
+    register('volume flip', flip_desc, volume_flip, logger=logger)
 
     fourier_desc = CmdDesc(required = varg,
                            keyword = [('phase', BoolArg)] + ssm_kw)
-    register('volume fourier', fourier_desc, volume_fourier)
+    register('volume fourier', fourier_desc, volume_fourier, logger=logger)
 
     gaussian_desc = CmdDesc(required = varg,
         keyword = [('s_dev', Float1or3Arg), ('value_type', ValueTypeArg), ('invert', BoolArg)] + ssm_kw
     )
-    register('volume gaussian', gaussian_desc, volume_gaussian)
+    register('volume gaussian', gaussian_desc, volume_gaussian, logger=logger)
 
     laplacian_desc = CmdDesc(required = varg, keyword = ssm_kw)
-    register('volume laplacian', laplacian_desc, volume_laplacian)
+    register('volume laplacian', laplacian_desc, volume_laplacian, logger=logger)
 
     localcorr_desc = CmdDesc(required = varg,
                              keyword = [('window_size', IntArg),
                                         ('subtract_mean', BoolArg),
                                         ('model_id', ModelIdArg)])
-    register('volume localCorrelation', localcorr_desc, volume_local_correlation)
+    register('volume localCorrelation', localcorr_desc, volume_local_correlation, logger=logger)
 
     maximum_desc = CmdDesc(required = varg, keyword = add_kw)
-    register('volume maximum', maximum_desc, volume_maximum)
+    register('volume maximum', maximum_desc, volume_maximum, logger=logger)
 
     minimum_desc = CmdDesc(required = varg, keyword = add_kw)
-    register('volume minimum', minimum_desc, volume_minimum)
+    register('volume minimum', minimum_desc, volume_minimum, logger=logger)
 
     median_desc = CmdDesc(required = varg,
                           keyword = [('bin_size', MapStepArg),
                                      ('iterations', IntArg)] + ssm_kw)
-    register('volume median', median_desc, volume_median)
+    register('volume median', median_desc, volume_median, logger=logger)
 
     morph_desc = CmdDesc(required = varg,
                          keyword = [('frames', IntArg),
@@ -152,10 +152,10 @@ def register_volume_filtering_subcommands():
                                     ('scale_factors', FloatsArg),
                                     ('hide_original_maps', BoolArg),
                                     ('interpolate_colors', BoolArg)] + ssm_kw)
-    register('volume morph', morph_desc, volume_morph)
+    register('volume morph', morph_desc, volume_morph, logger=logger)
 
     multiply_desc = CmdDesc(required = varg, keyword = add_kw)
-    register('volume multiply', multiply_desc, volume_multiply)
+    register('volume multiply', multiply_desc, volume_multiply, logger=logger)
 
     new_opt = [('name', StringArg),]
     new_kw = [('size', Int1or3Arg),
@@ -165,7 +165,7 @@ def register_volume_filtering_subcommands():
               ('value_type', ValueTypeArg),
               ('model_id', ModelIdArg)]
     new_desc = CmdDesc(optional = new_opt, keyword = new_kw)
-    register('volume new', new_desc, volume_new)
+    register('volume new', new_desc, volume_new, logger=logger)
 
     oct_kw = [('center', Float3Arg),
               ('i_center', Int3Arg),
@@ -173,24 +173,24 @@ def register_volume_filtering_subcommands():
               ('in_place', BoolArg)]
     octant_desc = CmdDesc(required = varg,
                           keyword = oct_kw + ssm_kw)
-    register('volume octant', octant_desc, volume_octant)
+    register('volume octant', octant_desc, volume_octant, logger=logger)
 
     unoctant_desc = CmdDesc(required = varg,
                             keyword = oct_kw + ssm_kw)
-    register('volume ~octant', unoctant_desc, volume_octant_complement)
+    register('volume ~octant', unoctant_desc, volume_octant_complement, logger=logger)
 
     aoarg = [('axis_order', EnumOf(('xyz', 'xzy', 'yxz', 'yzx', 'zxy', 'zyx')))]
     permuteaxes_desc = CmdDesc(required = varg + aoarg,
                                keyword = ssm_kw)
-    register('volume permuteAxes', permuteaxes_desc, volume_permute_axes)
+    register('volume permuteAxes', permuteaxes_desc, volume_permute_axes, logger=logger)
 
     resample_desc = CmdDesc(required = varg, keyword = resample_kw,
                             required_arguments = ['on_grid'])
-    register('volume resample', resample_desc, volume_resample)
+    register('volume resample', resample_desc, volume_resample, logger=logger)
 
     ridges_desc = CmdDesc(required = varg,
                           keyword = [('level', FloatArg)] + ssm_kw)
-    register('volume ridges', ridges_desc, volume_ridges)
+    register('volume ridges', ridges_desc, volume_ridges, logger=logger)
 
     scale_desc = CmdDesc(required = varg,
                          keyword = [('shift', FloatArg),
@@ -199,17 +199,17 @@ def register_volume_filtering_subcommands():
                                     ('rms', FloatArg),
                                     ('value_type', ValueTypeArg),
                                     ] + ssm_kw)
-    register('volume scale', scale_desc, volume_scale)
+    register('volume scale', scale_desc, volume_scale, logger=logger)
 
     subtract_desc = CmdDesc(required = varg,
                             keyword = add_kw + [('min_rms', BoolArg)])
-    register('volume subtract', subtract_desc, volume_subtract)
+    register('volume subtract', subtract_desc, volume_subtract, logger=logger)
 
     threshold_desc = CmdDesc(required = varg,
         keyword = [('minimum', FloatArg), ('set', FloatArg),
                    ('maximum', FloatArg), ('set_maximum', FloatArg)] + ssm_kw
     )
-    register('volume threshold', threshold_desc, volume_threshold)
+    register('volume threshold', threshold_desc, volume_threshold, logger=logger)
 
     orders = ('ulh', 'ulv', 'urh', 'urv', 'llh', 'llv', 'lrh', 'lrv',
               'ulhr', 'ulvr', 'urhr', 'urvr', 'llhr', 'llvr', 'lrhr', 'lrvr')
@@ -220,7 +220,7 @@ def register_volume_filtering_subcommands():
                                    ('columns', IntArg),
                                    ('rows', IntArg),
                                    ('fill_order', EnumOf(orders))] + ssm_kw)
-    register('volume tile', tile_desc, volume_tile)
+    register('volume tile', tile_desc, volume_tile, logger=logger)
 
     unbend_desc = CmdDesc(required = varg,
                           keyword = [('path', AtomsArg),
@@ -230,7 +230,7 @@ def register_volume_filtering_subcommands():
                                      ('grid_spacing', FloatArg)] + ssm_kw,
                           required_arguments = ['path']
     )
-    register('volume unbend', unbend_desc, volume_unbend)
+    register('volume unbend', unbend_desc, volume_unbend, logger=logger)
 
     unroll_desc = CmdDesc(required = varg,
                           keyword = [('inner_radius', FloatArg),
@@ -240,7 +240,7 @@ def register_volume_filtering_subcommands():
                                      ('axis', AxisArg),
                                      ('center', CenterArg),
                                      ('coordinate_system', CoordSysArg)] + ssm_kw)
-    register('volume unroll', unroll_desc, volume_unroll)
+    register('volume unroll', unroll_desc, volume_unroll, logger=logger)
 
     zone_desc = CmdDesc(required = varg,
                         keyword = [('near_atoms', AtomsArg),
@@ -249,10 +249,10 @@ def register_volume_filtering_subcommands():
                                    ('minimal_bounds', BoolArg),
                                    ('invert', BoolArg)] + ssm_kw,
                         required_arguments=('near_atoms', 'range'))
-    register('volume zone', zone_desc, volume_zone)
+    register('volume zone', zone_desc, volume_zone, logger=logger)
 
     from ...commands import create_alias
-    create_alias('vop', 'volume $*')
+    create_alias('vop', 'volume $*', logger=logger)
     
 # -----------------------------------------------------------------------------
 #

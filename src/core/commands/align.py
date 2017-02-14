@@ -318,4 +318,4 @@ def register_command(session):
                               ('report_matrix', BoolArg)],
                    required_arguments = ['to_atoms'],
                    synopsis = 'Align one set of atoms to another')
-    register('align', desc, align)
+    register('align', desc, align, logger=session.logger)

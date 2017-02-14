@@ -177,5 +177,5 @@ def register_command(session):
                    keyword=[('target', TargetArg),
                             ('only', NoArg)],
                    synopsis='show specified objects')
-    register('show', desc, show)
-    create_alias('display', 'show $*')
+    register('show', desc, show, logger=session.logger)
+    create_alias('display', 'show $*', logger=session.logger)

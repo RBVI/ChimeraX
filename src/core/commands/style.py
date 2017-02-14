@@ -102,4 +102,4 @@ def register_command(session):
                               ('ball_scale', FloatArg),
                               ('dashes', IntArg)],
                    synopsis='change atom and bond depiction')
-    register('style', desc, style)
+    register('style', desc, style, logger=session.logger)

@@ -18,7 +18,7 @@
 #
 players = set()         # Active players.
 
-def register_vseries_command():
+def register_vseries_command(logger):
 
     from ...commands import CmdDesc, register, BoolArg, EnumOf, IntArg, StringArg, FloatArg, AtomsArg, ColorArg
     from ..mapargs import MapArg, MapStepArg, MapRegionArg, ValueTypeArg, IntRangeArg
@@ -28,7 +28,7 @@ def register_vseries_command():
     align_desc = CmdDesc(required = sarg,
                          keyword = [('enclose_volume', FloatArg),
                                     ('fast_enclose_volume', FloatArg)])
-    register('vseries align', align_desc, vseries_align)
+    register('vseries align', align_desc, vseries_align, logger=logger)
 
     save_desc = CmdDesc(required = sarg + [('path', StringArg)],
                          keyword = [
@@ -46,14 +46,14 @@ def register_vseries_command():
                              ('mask', MapArg),
                              ('final_value_type', ValueTypeArg),
                              ('compress', BoolArg),])
-    register('vseries save', save_desc, vseries_save)
+    register('vseries save', save_desc, vseries_save, logger=logger)
 
     measure_desc = CmdDesc(required = sarg,
                            keyword = [('output', StringArg),
                                       ('centroids', BoolArg),
                                       ('color', ColorArg),
                                       ('radius', FloatArg),])
-    register('vseries measure', measure_desc, vseries_measure)
+    register('vseries measure', measure_desc, vseries_measure, logger=logger)
 
     play_desc = CmdDesc(required = sarg,
                         keyword = [('loop', BoolArg),
@@ -69,13 +69,13 @@ def register_vseries_command():
                                    ('jump_to', IntArg),
                                    ('range', IntRangeArg),
                                    ('start_time', IntArg),])
-    register('vseries play', play_desc, vseries_play)
+    register('vseries play', play_desc, vseries_play, logger=logger)
 
     stop_desc = CmdDesc(required = sarg)
-    register('vseries stop', stop_desc, vseries_stop)
+    register('vseries stop', stop_desc, vseries_stop, logger=logger)
 
     slider_desc = CmdDesc(required = sarg)
-    register('vseries slider', slider_desc, vseries_slider)
+    register('vseries slider', slider_desc, vseries_slider, logger=logger)
 
 # -----------------------------------------------------------------------------
 #

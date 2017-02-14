@@ -80,4 +80,4 @@ def register_command(session):
        non_keyword=['command_name', 'option'],
        hidden=['option'],
        synopsis='show command usage')
-    cli.register('usage', desc, usage)
+    cli.register('usage', desc, usage, logger=session.logger)

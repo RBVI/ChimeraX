@@ -179,7 +179,7 @@ def register_command(session):
                  ('coordinate_system', CoordSysArg)],
         synopsis='set clip planes'
     )
-    register('clip', desc, clip)
-    register('clip off', CmdDesc(synopsis = 'Turn off all clip planes'), clip_off)
-    register('clip list', CmdDesc(synopsis = 'List active clip planes'), clip_list)
-    create_alias('~clip', 'clip off')
+    register('clip', desc, clip, logger=session.logger)
+    register('clip off', CmdDesc(synopsis = 'Turn off all clip planes'), clip_off, logger=session.logger)
+    register('clip list', CmdDesc(synopsis = 'List active clip planes'), clip_list, logger=session.logger)
+    create_alias('~clip', 'clip off', logger=session.logger)

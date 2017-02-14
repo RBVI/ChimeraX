@@ -193,26 +193,26 @@ def register_command(session):
         CmdDesc(
             keyword=[('all', NoArg)],
             synopsis='list colors'),
-        list_colors
+        list_colors, logger=session.logger
     )
 
     register(
         'color show',
         CmdDesc(required=[('name', RestOfLine)],
                 synopsis="show color"),
-        show_color
+        show_color, logger=session.logger
     )
     register(
         'color name',
         CmdDesc(required=[('name', StringArg), ('color', ColorArg)],
                 synopsis="name a custom color"),
-        name_color
+        name_color, logger=session.logger
     )
     register(
         'color delete',
         CmdDesc(required=[('name', Or(EnumOf(['all']), StringArg))],
                 synopsis="remove color definition"),
-        delete_color
+        delete_color, logger=session.logger
     )
-    create_alias('colordef', 'color name $*')
-    create_alias('~colordef', 'color delete $*')
+    create_alias('colordef', 'color name $*', logger=session.logger)
+    create_alias('~colordef', 'color delete $*', logger=session.logger)

@@ -519,7 +519,7 @@ def register_command(session):
                             ],
                    hidden=["spine"],
                    synopsis='display cartoon for specified residues')
-    register("cartoon", desc, cartoon)
+    register("cartoon", desc, cartoon, logger=session.logger)
 
     desc = CmdDesc(optional=[("structures", AtomicStructuresArg)],
                    keyword=[("scale", Bounded(FloatArg, 0.0, 1.0)),
@@ -528,7 +528,7 @@ def register_command(session):
                             ("opacity", Bounded(FloatArg, 0.0, 1.0)),
                             ],
                    synopsis='set cartoon tether options for specified structures')
-    register("cartoon tether", desc, cartoon_tether)
+    register("cartoon tether", desc, cartoon_tether, logger=session.logger)
 
     desc = CmdDesc(optional=[("spec", AtomSpecArg)],
                    keyword=[("width", FloatArg),
@@ -547,9 +547,9 @@ def register_command(session):
                             ],
                    hidden=["ss_ends", "orient", "mode_strand"],
                    synopsis='set cartoon style for secondary structures in specified models')
-    register("cartoon style", desc, cartoon_style)
+    register("cartoon style", desc, cartoon_style, logger=session.logger)
     desc = CmdDesc(optional=[("spec", AtomSpecArg)],
                    synopsis='undisplay cartoon for specified residues')
-    register("cartoon hide", desc, uncartoon)
+    register("cartoon hide", desc, uncartoon, logger=session.logger)
     from . import create_alias
-    create_alias("~cartoon", "cartoon hide $*")
+    create_alias("~cartoon", "cartoon hide $*", logger=session.logger)
