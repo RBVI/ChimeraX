@@ -15,13 +15,6 @@ from ..atomic.ribbon import XSectionManager
 from ..atomic import Residue, Structure
 from ..commands import Annotation, AnnotationError
 
-_OrientMap = {
-    "guides": Structure.RIBBON_ORIENT_GUIDES,
-    "atoms": Structure.RIBBON_ORIENT_ATOMS,
-    "curvature": Structure.RIBBON_ORIENT_CURVATURE,
-    "peptide": Structure.RIBBON_ORIENT_PEPTIDE,
-}
-_OrientInverseMap = dict([(v, k) for k, v in _OrientMap.items()])
 _TetherShapeMap = {
     "cone": Structure.TETHER_CONE,
     "cylinder": Structure.TETHER_CYLINDER,
@@ -150,7 +143,7 @@ def cartoon_tether(session, structures=None, scale=None, shape=None, sides=None,
 def cartoon_style(session, spec=None, width=None, thickness=None, arrows=None, arrows_helix=None,
                   arrow_scale=None, xsection=None, sides=None,
                   bar_scale=None, bar_sides=None, ss_ends=None,
-                  orient=None, mode_helix=None, mode_strand=None):
+                  mode_helix=None, mode_strand=None):
     '''Set cartoon style options for secondary structures in specified structures.
 
     Parameters
@@ -179,13 +172,6 @@ def cartoon_style(session, spec=None, width=None, thickness=None, arrows=None, a
     ss_ends : string
         Length of helix/strand representation relative to backbone atoms.
         One of "default", "short" or "long".
-    orient : string
-        Choose which method to use for determining ribbon orientation FOR THE ENTIRE STRUCTURE.
-        "guides" uses "guide" atoms like the carbonyl oxygens.
-        "atoms" generates orientation from ribbon atoms like alpha carbons.
-        "curvature" orients ribbon to be perpendicular to maximum curvature direction.
-        "peptide" orients ribbon to be perpendicular to peptide planes.
-        "default" is to use "guides" if guide atoms are all present or "atoms" if not.
     mode_helix : string
         Choose how helices are rendered.
         "default" uses ribbons through the alpha carbons.
@@ -201,14 +187,12 @@ def cartoon_style(session, spec=None, width=None, thickness=None, arrows=None, a
     if (width is None and thickness is None and arrows is None and
         arrows_helix is None and arrow_scale is None and xsection is None and
         sides is None and bar_scale is None and bar_sides is None and
-        ss_ends is None and orient is None and
-        mode_helix is None and mode_strand is None):
+        ss_ends is None and mode_helix is None and mode_strand is None):
         # No options, report current state and return
         indent = "  -"
         for m in structures:
             mgr = m.ribbon_xs_mgr
             print(m)
-            print(indent, "orientation %s" % _OrientInverseMap[m.ribbon_orientation])
             print(indent, "helix",
                   "mode=%s" % _ModeHelixInverseMap[mgr.style_helix],
                   "xsection=%s" % _XSectionInverseMap[mgr.style_helix],
@@ -463,10 +447,6 @@ def cartoon_style(session, spec=None, width=None, thickness=None, arrows=None, a
     if bar_params:
         for m in structures:
             m.ribbon_xs_mgr.set_params(XSectionManager.STYLE_PIPING, **bar_params)
-    if orient is not None:
-        o = _OrientMap.get(orient, None)
-        for m in structures:
-            m.ribbon_orientation = o
     if mode_helix is not None:
         mode = _ModeHelixMap.get(mode_helix, None)
         for m in structures:
@@ -541,11 +521,10 @@ def register_command(session):
                             ("bar_scale", FloatArg),
                             ("bar_sides", Bounded(EvenIntArg, 3, 24)),
                             ("ss_ends", EnumOf(["default", "short", "long"])),
-                            ("orient", EnumOf(list(_OrientMap.keys()))),
                             ("mode_helix", EnumOf(list(_ModeHelixMap.keys()))),
                             ("mode_strand", EnumOf(list(_ModeStrandMap.keys()))),
                             ],
-                   hidden=["ss_ends", "orient", "mode_strand"],
+                   hidden=["ss_ends", "mode_strand"],
                    synopsis='set cartoon style for secondary structures in specified models')
     register("cartoon style", desc, cartoon_style, logger=session.logger)
     desc = CmdDesc(optional=[("spec", AtomSpecArg)],

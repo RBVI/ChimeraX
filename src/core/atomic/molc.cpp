@@ -2178,7 +2178,9 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
                 Residue* r = res_array[i];
                 float* center = cdata + i*3;
                 float* guide = gdata + i*3;
-                if (want_peptide && r->structure()->ribbon_orient(r) == Structure::RIBBON_ORIENT_PEPTIDE) {
+                if (want_peptide
+                && r->polymer_type() == Residue::PT_AMINO
+                && r->structure()->ribbon_orient(r) == Structure::RIBBON_ORIENT_PEPTIDE) {
                     // "peptide_planes" are relative to the previous
                     // residue, so the i'th element is the peptide
                     // plane between centers[i] and centers[i+1].
