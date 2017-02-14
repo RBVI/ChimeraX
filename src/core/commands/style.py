@@ -47,7 +47,7 @@ def style(session, objects=None, atom_style=None, atom_radius=None, stick_radius
             atoms.radii = atoms.default_radii
         else:
             atoms.radii = atom_radius
-        what.append('%d atom radii' % len(a))
+        what.append('%d atom radii' % len(atoms))
 
     if stick_radius is not None:
         b = atoms.inter_bonds
