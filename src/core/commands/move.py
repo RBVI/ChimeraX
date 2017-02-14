@@ -69,4 +69,4 @@ def register_command(session):
                    ('atoms', AtomsArg)],
         synopsis='move camera, models, or atoms'
     )
-    register('move', desc, move)
+    register('move', desc, move, logger=session.logger)

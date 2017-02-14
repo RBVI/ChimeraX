@@ -124,8 +124,7 @@ def register_command(session):
                    ('exclude', ListOf(StringArg)),
                    ('log_file', StringArg)],
         synopsis = 'Render mmCIF assembly images')
-    register('pdbimages', desc, pdbimages)
+    register('pdbimages', desc, pdbimages, logger=session.logger)
 
 # To make a tiled array of images with filename labels:
 # /opt/ImageMagick/bin/montage -label "%t" *.png -geometry "400x400+0+0" tiled.jpg
-

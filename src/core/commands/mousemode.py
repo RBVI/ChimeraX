@@ -95,4 +95,4 @@ def register_command(session):
         ],
         synopsis='set mouse mode'
     )
-    register('mousemode', desc, mousemode)
+    register('mousemode', desc, mousemode, logger=session.logger)

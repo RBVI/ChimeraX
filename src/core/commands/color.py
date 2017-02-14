@@ -433,5 +433,5 @@ def register_command(session):
                             ('offset', FloatArg),
                    ],
                    synopsis="color objects")
-    register('color', desc, color)
-    create_alias('colour', 'color $*')
+    register('color', desc, color, logger=session.logger)
+    create_alias('colour', 'color $*', logger=session.logger)

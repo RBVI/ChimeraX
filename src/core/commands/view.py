@@ -455,25 +455,25 @@ def register_command(session):
                  ('orient', BoolArg),
                  ('pad', FloatArg)],
         synopsis='adjust camera so everything is visible')
-    register('view', desc, view)
+    register('view', desc, view, logger=session.logger)
     desc = CmdDesc(
         synopsis='list named views')
-    register('view list', desc, view_list)
+    register('view list', desc, view_list, logger=session.logger)
     desc = CmdDesc(
         required=[('name', StringArg)],
         synopsis='delete named view')
-    register('view delete', desc, view_delete)
+    register('view delete', desc, view_delete, logger=session.logger)
     desc = CmdDesc(
         required=[('name', StringArg)],
         synopsis='save view with name')
-    register('view name', desc, view_name)
+    register('view name', desc, view_name, logger=session.logger)
     desc = CmdDesc(
         optional=[('models', ModelsArg)],
         synopsis='set models to initial positions')
-    register('view initial', desc, view_initial)
+    register('view initial', desc, view_initial, logger=session.logger)
     desc = CmdDesc(
         keyword=[('camera', PlaceArg),
                  ('models', ModelPlacesArg),
                  ('coordinate_system', CoordSysArg)],
         synopsis='set camera and model positions')
-    register('view matrix', desc, view_matrix)
+    register('view matrix', desc, view_matrix, logger=session.logger)

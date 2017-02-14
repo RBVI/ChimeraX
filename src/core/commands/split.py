@@ -286,4 +286,4 @@ def register_command(session):
         synopsis = 'split molecule into multiple molecules'
         )
 
-    register('split', desc, split)
+    register('split', desc, split, logger=session.logger)

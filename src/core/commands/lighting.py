@@ -231,4 +231,4 @@ def register_command(session):
         ],
         synopsis="report or alter lighting parameters")
 
-    register('lighting', _lighting_desc, lighting)
+    register('lighting', _lighting_desc, lighting, logger=session.logger)

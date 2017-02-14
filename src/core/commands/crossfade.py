@@ -28,4 +28,4 @@ def register_command(session):
     desc = cli.CmdDesc(
         optional=[('frames', cli.PositiveIntArg)],
         synopsis='Fade between one rendered scene and the next scene.')
-    cli.register('crossfade', desc, crossfade)
+    cli.register('crossfade', desc, crossfade, logger=session.logger)

@@ -50,7 +50,7 @@ def register_command(session):
         keyword = [('hold_steady', AtomsArg),
                    ('loop', IntArg)],
         synopsis = 'show coordinate sets')
-    register('coordset', desc, coordset)
+    register('coordset', desc, coordset, logger=session.logger)
 
 # -----------------------------------------------------------------------------
 #

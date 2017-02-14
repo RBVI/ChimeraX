@@ -38,4 +38,4 @@ def register_command(session):
     desc = CmdDesc(optional=[('width', PositiveIntArg),
                              ('height', PositiveIntArg)],
                    synopsis='report or set window size')
-    register('windowsize', desc, window_size)
+    register('windowsize', desc, window_size, logger=session.logger)

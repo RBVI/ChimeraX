@@ -71,4 +71,4 @@ def register_command(session):
         keyword=[('pixel_size', FloatArg)],
         synopsis='zoom models'
     )
-    register('zoom', desc, zoom)
+    register('zoom', desc, zoom, logger=session.logger)

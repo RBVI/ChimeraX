@@ -73,6 +73,6 @@ def register_command(session):
                   ('pivot', Float3Arg)],
         keyword=[('coordinate_system', ModelArg)],
         synopsis='set center of rotation method')
-    register('cofr', desc, cofr)
+    register('cofr', desc, cofr, logger=session.logger)
     udesc = CmdDesc(synopsis='set center of rotation method to front center')
-    register('~cofr', udesc, uncofr)
+    register('~cofr', udesc, uncofr, logger=session.logger)

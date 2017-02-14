@@ -19,5 +19,5 @@ def exit(session):
 def register_command(session):
     from . import cli
     desc = cli.CmdDesc(synopsis='exit application')
-    cli.register('exit', desc, exit)
-    cli.create_alias("quit", "exit $*")
+    cli.register('exit', desc, exit, logger=session.logger)
+    cli.create_alias("quit", "exit $*", logger=session.logger)

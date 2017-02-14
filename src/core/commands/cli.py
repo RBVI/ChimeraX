@@ -1012,6 +1012,7 @@ class TopModelsArg(Annotation):
 class ObjectsArg(Annotation):
     """Parse command objects specifier"""
     name = "objects"
+    url = "help:user/commands/atomspec.html"
 
     @staticmethod
     def parse(text, session):
@@ -1720,7 +1721,7 @@ _commands = _WordInfo()
 _aliased_commands = {}  # { name: _WordInfo instance }
 
 
-def register(name, cmd_desc=(), function=None, logger=None):
+def register(name, cmd_desc=(), function=None, *, logger=None):
     """register function that implements command
 
     :param name: the name of the command and may include spaces.
@@ -1782,6 +1783,12 @@ def register(name, cmd_desc=(), function=None, logger=None):
         cmd_desc = function
     else:
         cmd_desc.function = function
+        if cmd_desc.synopsis is None:
+            msg = 'Command "%s" is missing a synopsis' % name
+            if logger is None:
+                print(msg)
+            else:
+                logger.warning(msg)
     parent_info.add_subcommand(words[-1], name, cmd_desc)
     return function     # needed when used as a decorator
 
@@ -2441,7 +2448,7 @@ def usage(name, no_aliases=False, show_subcommands=True, expand_alias=True,
             num_opt += 1
         syntax += ']' * num_opt
         for arg_name in ci._keyword:
-            if not show_hidden and arg_name in ci._hidden:
+            if not show_hidden and (arg_name in ci._hidden or arg_name in ci._optional):
                 continue
             arg_type = ci._keyword[arg_name]
             uarg_name = _user_kw(arg_name)
@@ -2542,7 +2549,7 @@ def html_usage(name, no_aliases=False, show_subcommands=True, expand_alias=True,
             arg_syntax.append('<i>%s</i>: %s' % (name, escape(type)))
         syntax += ']' * num_opt
         for arg_name in ci._keyword:
-            if not show_hidden and arg_name in ci._hidden:
+            if not show_hidden and (arg_name in ci._hidden or arg_name in ci._optional):
                 continue
             arg_type = ci._keyword[arg_name]
             uarg_name = _user_kw(arg_name)
