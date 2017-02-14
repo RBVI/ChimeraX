@@ -252,5 +252,6 @@ def device_snav(session, enable = None, fly = None):
 def register_snav_command():
     from chimerax.core.commands import CmdDesc, BoolArg, register
     desc = CmdDesc(optional = [('enable', BoolArg)],
-                   keyword = [('fly', BoolArg)])
+                   keyword = [('fly', BoolArg)],
+                   synopsis = 'Turn on Space Navigator input device')
     register('device snav', desc, device_snav)

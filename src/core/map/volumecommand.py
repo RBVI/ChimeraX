@@ -88,7 +88,8 @@ def register_volume_command():
                ('box_faces', BoolArg),
                ('orthoplanes', EnumOf(('xyz', 'xy', 'xz', 'yz', 'off'))),
                ('position_planes', Int3Arg),
-        ])
+        ],
+        synopsis = 'set volume model parameters, display style and colors')
     register('volume', volume_desc, volume)
 
     # Register volume subcommands for filtering operations.

@@ -68,11 +68,13 @@ def register_volume_filtering_subcommands():
         ('in_place', BoolArg),
         ('scale_factors', FloatsArg),
     ]
-    add_desc = CmdDesc(required = varg, keyword = add_kw)
+    add_desc = CmdDesc(required = varg, keyword = add_kw,
+                       synopsis = 'Add two or more maps')
     register('volume add', add_desc, volume_add)
 
     bin_desc = CmdDesc(required = varg,
-                       keyword = [('bin_size', MapStepArg)] + ssm_kw
+                       keyword = [('bin_size', MapStepArg)] + ssm_kw,
+                       synopsis = 'Average map values over bins to reduce map size'
     )
     register('volume bin', bin_desc, volume_bin)
 
@@ -81,7 +83,8 @@ def register_volume_filtering_subcommands():
                                     ('size', FloatArg),
                                     ('isize', IntArg),
                                     ('use_marker_size', BoolArg)] + ssm_kw,
-                         required_arguments = ['centers'])
+                         required_arguments = ['centers'],
+                         synopsis = 'Extract maps for boxes around selected atoms')
     register('volume boxes', boxes_desc, volume_boxes)
 
     cover_desc = CmdDesc(required = varg,
@@ -93,52 +96,65 @@ def register_volume_filtering_subcommands():
                    ('use_symmetry', BoolArg),
                    ('cell_size', Int3Arg),
                    ('step', MapStepArg),
-                   ('model_id', ModelIdArg)]
+                   ('model_id', ModelIdArg)],
+                         synopsis = 'Use symmetry to extend a map to cover a region'
     )
     register('volume cover', cover_desc, volume_cover)
 
     falloff_desc = CmdDesc(required = varg,
-        keyword = [('iterations', IntArg), ('in_place', BoolArg)] + ssm_kw
+                           keyword = [('iterations', IntArg), ('in_place', BoolArg)] + ssm_kw,
+                           synopsis = 'Smooth map values where map falls to zero'
     )
     register('volume falloff', falloff_desc, volume_falloff)
 
     flatten_desc = CmdDesc(required = varg,
                            keyword = [('method', EnumOf(('multiplyLinear', 'divideLinear'))),
-                                      ('fitregion', MapRegionArg)] + ssm_kw)
+                                      ('fitregion', MapRegionArg)] + ssm_kw,
+                           synopsis = 'Flatten map gradients')
     register('volume flatten', flatten_desc, volume_flatten)
 
     flip_desc = CmdDesc(required = varg,
                         keyword = [('axis', EnumOf(('x','y','z','xy', 'yz','xyz'))),
-                                   ('in_place', BoolArg)] + ssm_kw)
+                                   ('in_place', BoolArg)] + ssm_kw,
+                        synopsis = 'Reverse axis directions')
     register('volume flip', flip_desc, volume_flip)
 
     fourier_desc = CmdDesc(required = varg,
-                           keyword = [('phase', BoolArg)] + ssm_kw)
+                           keyword = [('phase', BoolArg)] + ssm_kw,
+                           synopsis = 'Fourier transform a map')
     register('volume fourier', fourier_desc, volume_fourier)
 
     gaussian_desc = CmdDesc(required = varg,
-        keyword = [('s_dev', Float1or3Arg), ('value_type', ValueTypeArg), ('invert', BoolArg)] + ssm_kw
+                            keyword = [('s_dev', Float1or3Arg),
+                                       ('value_type', ValueTypeArg),
+                                       ('invert', BoolArg)] + ssm_kw,
+                            synopsis = 'Convolve map with a Gaussian for smoothing'
     )
     register('volume gaussian', gaussian_desc, volume_gaussian)
 
-    laplacian_desc = CmdDesc(required = varg, keyword = ssm_kw)
+    laplacian_desc = CmdDesc(required = varg, keyword = ssm_kw,
+                             synopsis = 'Laplace filter a map to enhance edges')
     register('volume laplacian', laplacian_desc, volume_laplacian)
 
     localcorr_desc = CmdDesc(required = varg,
                              keyword = [('window_size', IntArg),
                                         ('subtract_mean', BoolArg),
-                                        ('model_id', ModelIdArg)])
+                                        ('model_id', ModelIdArg)],
+                             synopsis = 'Compute correlation between maps over a sliding window')
     register('volume localCorrelation', localcorr_desc, volume_local_correlation)
 
-    maximum_desc = CmdDesc(required = varg, keyword = add_kw)
+    maximum_desc = CmdDesc(required = varg, keyword = add_kw,
+                           synopsis = 'Maximum pointwise values of 2 or more maps')
     register('volume maximum', maximum_desc, volume_maximum)
 
-    minimum_desc = CmdDesc(required = varg, keyword = add_kw)
+    minimum_desc = CmdDesc(required = varg, keyword = add_kw,
+                           synopsis = 'Minimum pointwise values of 2 or more maps')
     register('volume minimum', minimum_desc, volume_minimum)
 
     median_desc = CmdDesc(required = varg,
                           keyword = [('bin_size', MapStepArg),
-                                     ('iterations', IntArg)] + ssm_kw)
+                                     ('iterations', IntArg)] + ssm_kw,
+                          synopsis = 'Median map value over a sliding window')
     register('volume median', median_desc, volume_median)
 
     morph_desc = CmdDesc(required = varg,
@@ -151,10 +167,12 @@ def register_volume_filtering_subcommands():
                                     ('constant_volume', BoolArg),
                                     ('scale_factors', FloatsArg),
                                     ('hide_original_maps', BoolArg),
-                                    ('interpolate_colors', BoolArg)] + ssm_kw)
+                                    ('interpolate_colors', BoolArg)] + ssm_kw,
+                         synopsis = 'Linearly interpolate maps')
     register('volume morph', morph_desc, volume_morph)
 
-    multiply_desc = CmdDesc(required = varg, keyword = add_kw)
+    multiply_desc = CmdDesc(required = varg, keyword = add_kw,
+                            synopsis = 'Multiply maps pointwise')
     register('volume multiply', multiply_desc, volume_multiply)
 
     new_opt = [('name', StringArg),]
@@ -164,7 +182,8 @@ def register_volume_filtering_subcommands():
               ('cell_angles', Float1or3Arg),
               ('value_type', ValueTypeArg),
               ('model_id', ModelIdArg)]
-    new_desc = CmdDesc(optional = new_opt, keyword = new_kw)
+    new_desc = CmdDesc(optional = new_opt, keyword = new_kw,
+                       synopsis = 'Create a new map with zero values')
     register('volume new', new_desc, volume_new)
 
     oct_kw = [('center', Float3Arg),
@@ -172,24 +191,29 @@ def register_volume_filtering_subcommands():
               ('fill_value', FloatArg),
               ('in_place', BoolArg)]
     octant_desc = CmdDesc(required = varg,
-                          keyword = oct_kw + ssm_kw)
+                          keyword = oct_kw + ssm_kw,
+                          synopsis = 'Zero all but an octant of a map')
     register('volume octant', octant_desc, volume_octant)
 
     unoctant_desc = CmdDesc(required = varg,
-                            keyword = oct_kw + ssm_kw)
+                            keyword = oct_kw + ssm_kw,
+                            synopsis = 'Zero an octant of a map')
     register('volume ~octant', unoctant_desc, volume_octant_complement)
 
     aoarg = [('axis_order', EnumOf(('xyz', 'xzy', 'yxz', 'yzx', 'zxy', 'zyx')))]
     permuteaxes_desc = CmdDesc(required = varg + aoarg,
-                               keyword = ssm_kw)
+                               keyword = ssm_kw,
+                               synopsis = 'Permute map axes')
     register('volume permuteAxes', permuteaxes_desc, volume_permute_axes)
 
     resample_desc = CmdDesc(required = varg, keyword = resample_kw,
-                            required_arguments = ['on_grid'])
+                            required_arguments = ['on_grid'],
+                            synopsis = 'Resample a map on the grid of another map')
     register('volume resample', resample_desc, volume_resample)
 
     ridges_desc = CmdDesc(required = varg,
-                          keyword = [('level', FloatArg)] + ssm_kw)
+                          keyword = [('level', FloatArg)] + ssm_kw,
+                          synopsis = 'Filter to detect map ridges')
     register('volume ridges', ridges_desc, volume_ridges)
 
     scale_desc = CmdDesc(required = varg,
@@ -198,16 +222,21 @@ def register_volume_filtering_subcommands():
                                     ('sd', FloatArg),
                                     ('rms', FloatArg),
                                     ('value_type', ValueTypeArg),
-                                    ] + ssm_kw)
+                                    ] + ssm_kw,
+                         synopsis = 'Scale and shift map values')
     register('volume scale', scale_desc, volume_scale)
 
     subtract_desc = CmdDesc(required = varg,
-                            keyword = add_kw + [('min_rms', BoolArg)])
+                            keyword = add_kw + [('min_rms', BoolArg)],
+                            synopsis = 'Subtract maps pointwise')
     register('volume subtract', subtract_desc, volume_subtract)
 
     threshold_desc = CmdDesc(required = varg,
-        keyword = [('minimum', FloatArg), ('set', FloatArg),
-                   ('maximum', FloatArg), ('set_maximum', FloatArg)] + ssm_kw
+                             keyword = [('minimum', FloatArg),
+                                        ('set', FloatArg),
+                                        ('maximum', FloatArg),
+                                        ('set_maximum', FloatArg)] + ssm_kw,
+                             synopsis = 'Set map values below a threshold to zero'
     )
     register('volume threshold', threshold_desc, volume_threshold)
 
@@ -219,7 +248,8 @@ def register_volume_filtering_subcommands():
                                    ('trim', IntArg),
                                    ('columns', IntArg),
                                    ('rows', IntArg),
-                                   ('fill_order', EnumOf(orders))] + ssm_kw)
+                                   ('fill_order', EnumOf(orders))] + ssm_kw,
+                        synopsis = 'Create a single plane map by tiling planes of a map')
     register('volume tile', tile_desc, volume_tile)
 
     unbend_desc = CmdDesc(required = varg,
@@ -228,7 +258,8 @@ def register_volume_filtering_subcommands():
                                      ('xsize', FloatArg),
                                      ('ysize', FloatArg),
                                      ('grid_spacing', FloatArg)] + ssm_kw,
-                          required_arguments = ['path']
+                          required_arguments = ['path'],
+                          synopsis = 'Unwarp a map along a curved rectangular tube'
     )
     register('volume unbend', unbend_desc, volume_unbend)
 
@@ -239,7 +270,8 @@ def register_volume_filtering_subcommands():
                                      ('grid_spacing', FloatArg),
                                      ('axis', AxisArg),
                                      ('center', CenterArg),
-                                     ('coordinate_system', CoordSysArg)] + ssm_kw)
+                                     ('coordinate_system', CoordSysArg)] + ssm_kw,
+                          synopsis = 'Unroll a cylindrical shell to form a new map')
     register('volume unroll', unroll_desc, volume_unroll)
 
     zone_desc = CmdDesc(required = varg,
@@ -248,7 +280,8 @@ def register_volume_filtering_subcommands():
                                    ('bond_point_spacing', FloatArg),
                                    ('minimal_bounds', BoolArg),
                                    ('invert', BoolArg)] + ssm_kw,
-                        required_arguments=('near_atoms', 'range'))
+                        required_arguments=('near_atoms', 'range'),
+                        synopsis = 'Zero map values beyond a distance range from atoms')
     register('volume zone', zone_desc, volume_zone)
 
     from ...commands import create_alias

@@ -41,7 +41,8 @@ def register_molmap_command():
 #            ('modelId', model_id_arg),
             ('replace', BoolArg),
             ('show_dialog', BoolArg),
-        ]
+        ],
+        synopsis = 'Compute a map by placing Gaussians at atom positions'
     )
     register('molmap', molmap_desc, molmap)
 

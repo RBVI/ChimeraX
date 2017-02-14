@@ -51,7 +51,8 @@ def register_contacts():
         optional = [('atoms', AtomsArg),],
         keyword = [('probe_radius', FloatArg),
                    ('area_cutoff', FloatArg),
-                   ('interface_residue_area_cutoff', FloatArg),])
+                   ('interface_residue_area_cutoff', FloatArg),],
+        synopsis = 'Display network of contacting molecular chains')
     register('contacts', desc, contacts)
 
 from .graph import Node

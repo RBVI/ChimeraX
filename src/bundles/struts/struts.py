@@ -83,11 +83,13 @@ def register_struts_command():
                    ('fatten_ribbon', BoolArg),
                    ('replace', BoolArg),
                    ('name', StringArg),
-                   ('model_id', ModelIdArg)]
+                   ('model_id', ModelIdArg)],
+        synopsis = 'Add bonds to atomic models to make them rigid for 3d printing'
     )
     register('struts', desc, struts)
 
-    desc = CmdDesc(optional = [('atoms', AtomsArg)])
+    desc = CmdDesc(optional = [('atoms', AtomsArg)],
+                   synopsis = 'Delete bonds created with the struts command')
     register('struts delete', desc, struts_delete)
 
 def brace(atoms, max_length, max_loop_length, model, log):

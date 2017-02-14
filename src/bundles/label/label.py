@@ -49,11 +49,14 @@ def register_label_command():
              ('xpos', FloatArg),
              ('ypos', FloatArg),
              ('visibility', BoolArg)]
-    create_desc = CmdDesc(required = rargs, keyword = cargs)
+    create_desc = CmdDesc(required = rargs, keyword = cargs,
+                          synopsis = 'Create a 2d label')
     register('2dlabels create', create_desc, label_create)
-    change_desc = CmdDesc(required = existing_arg, keyword = cargs)
+    change_desc = CmdDesc(required = existing_arg, keyword = cargs,
+                          synopsis = 'Change an existing 2d label')
     register('2dlabels change', change_desc, label_change)
-    delete_desc = CmdDesc(required = existing_arg)
+    delete_desc = CmdDesc(required = existing_arg,
+                          synopsis = 'Delete a 2d label')
     register('2dlabels delete', delete_desc, label_delete)
 
 class Label:

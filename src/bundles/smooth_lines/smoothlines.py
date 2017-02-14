@@ -62,7 +62,8 @@ def register_smoothlines_command():
         required = [('models', ModelsArg)],
         keyword = [('step_factor', FloatArg),
                    ('iterations', IntArg),
-                   ('replace', BoolArg)]
+                   ('replace', BoolArg)],
+        synopsis = 'Smooth lines (chains of connected vertices) in a line model'
     )
     register('smoothlines', desc, smoothlines)
 

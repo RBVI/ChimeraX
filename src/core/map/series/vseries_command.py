@@ -27,7 +27,8 @@ def register_vseries_command():
 
     align_desc = CmdDesc(required = sarg,
                          keyword = [('enclose_volume', FloatArg),
-                                    ('fast_enclose_volume', FloatArg)])
+                                    ('fast_enclose_volume', FloatArg)],
+                         synopsis = 'Align map to preceding map in series')
     register('vseries align', align_desc, vseries_align)
 
     save_desc = CmdDesc(required = sarg + [('path', StringArg)],
@@ -45,14 +46,16 @@ def register_vseries_command():
                              ('on_grid', MapArg),
                              ('mask', MapArg),
                              ('final_value_type', ValueTypeArg),
-                             ('compress', BoolArg),])
+                             ('compress', BoolArg),],
+                        synopsis = 'Process and save a map series')
     register('vseries save', save_desc, vseries_save)
 
     measure_desc = CmdDesc(required = sarg,
                            keyword = [('output', StringArg),
                                       ('centroids', BoolArg),
                                       ('color', ColorArg),
-                                      ('radius', FloatArg),])
+                                      ('radius', FloatArg),],
+                           synopsis = 'Measure centroids for each map in series')
     register('vseries measure', measure_desc, vseries_measure)
 
     play_desc = CmdDesc(required = sarg,
@@ -68,13 +71,16 @@ def register_vseries_command():
                                    ('cache_frames', IntArg),
                                    ('jump_to', IntArg),
                                    ('range', IntRangeArg),
-                                   ('start_time', IntArg),])
+                                   ('start_time', IntArg),],
+                        synopsis = 'Draw each map in a series in order')
     register('vseries play', play_desc, vseries_play)
 
-    stop_desc = CmdDesc(required = sarg)
+    stop_desc = CmdDesc(required = sarg,
+                        synopsis = 'Stop playing map series')
     register('vseries stop', stop_desc, vseries_stop)
 
-    slider_desc = CmdDesc(required = sarg)
+    slider_desc = CmdDesc(required = sarg,
+                          synopsis = 'Display a slider to control which map in a series is displayed')
     register('vseries slider', slider_desc, vseries_slider)
 
 # -----------------------------------------------------------------------------

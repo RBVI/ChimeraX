@@ -98,6 +98,7 @@ def register_addmissingatoms_command():
     desc = CmdDesc(
         required = [('structures', AtomicStructuresArg)],
         keyword = [('minimization_steps', IntArg),
-                   ('keep_waters', BoolArg)]
+                   ('keep_waters', BoolArg)],
+        synopsis = 'Add missing heavy atoms and hydrogens to proteins using PDBFixer'
         )
     register('addmissingatoms', desc, addmissingatoms)
