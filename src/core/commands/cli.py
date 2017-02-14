@@ -998,7 +998,7 @@ class ModelsArg(Annotation):
 
 class TopModelsArg(Annotation):
     """Parse command models specifier"""
-    name = "top models"
+    name = "models"
 
     @staticmethod
     def parse(text, session):
