@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def sym(session, molecules,
+def sym(session, structures,
         symmetry = None, center = None, axis = None, coordinate_system = None, assembly = None,
         copies = False, surface_only = False, resolution = None, grid_spacing = None):
     '''
@@ -21,8 +21,8 @@ def sym(session, molecules,
 
     Parameters
     ----------
-    molecules : list of AtomicStructure
-      List of molecules to show as assemblies.
+    structures : list of AtomicStructure
+      List of structures to show as assemblies.
     symmetry : cli.Symmetry
       Desired symmetry to display
     center : cli.Center
@@ -48,19 +48,19 @@ def sym(session, molecules,
     grid_spacing : float
       Grid spacing for computing surfaces when surface_only is true.
     '''
-    if len(molecules) == 0:
+    if len(structures) == 0:
         from ..errors import UserError
-        raise UserError('No molecules specified.')
+        raise UserError('No structures specified.')
 
     if symmetry is not None:
         if assembly is not None:
             from ..errors import UserError
             raise UserError('Cannot specify explicit symmetry and the assembly option.')
-        transforms = symmetry.positions(center, axis, coordinate_system, molecules[0])
-        show_symmetry(molecules, transforms, copies, surface_only, resolution, grid_spacing, session)
+        transforms = symmetry.positions(center, axis, coordinate_system, structures[0])
+        show_symmetry(structures, transforms, copies, surface_only, resolution, grid_spacing, session)
         return
             
-    for m in molecules:
+    for m in structures:
         assem = pdb_assemblies(m)
         if assembly is None:
             ainfo = '\n'.join(' %s = %s (%s)' % (a.id,a.description,a.copy_description(m))
@@ -83,19 +83,19 @@ def sym(session, molecules,
             else:
                 a.show(m, session)
 
-def sym_clear(session, molecules = None):
+def sym_clear(session, structures = None):
     '''
-    Remove copies of molecules that were made with sym command.
+    Remove copies of structures that were made with sym command.
 
     Parameters
     ----------
-    molecules : list of AtomicStructure
-      List of molecules to for which to remove copies.
+    structures : list of AtomicStructure
+      List of structures to for which to remove copies.
     '''
-    if molecules is None:
+    if structures is None:
         from ..atomic import all_structures
-        molecules = all_structures(session)
-    for m in molecules:
+        structures = all_structures(session)
+    for m in structures:
         from ..geometry import Places
         m.positions = Places([m.position])	# Keep only first position.
         for s in m.surfaces():
@@ -105,7 +105,7 @@ def register_command(session):
     from . import CmdDesc, register, AtomicStructuresArg, StringArg, FloatArg
     from . import CenterArg, AxisArg, SymmetryArg, CoordSysArg, BoolArg
     desc = CmdDesc(
-        required = [('molecules', AtomicStructuresArg)],
+        required = [('structures', AtomicStructuresArg)],
         optional = [('symmetry', SymmetryArg)],
         keyword = [('center', CenterArg),
                    ('axis', AxisArg),
@@ -118,33 +118,33 @@ def register_command(session):
         synopsis = 'create model copies')
     register('sym', desc, sym)
     desc = CmdDesc(
-        optional = [('molecules', AtomicStructuresArg)],
+        optional = [('structures', AtomicStructuresArg)],
         synopsis = 'Remove model copies')
     register('sym clear', desc, sym_clear)
 
-def show_symmetry(molecules, transforms, copies, surface_only, resolution, grid_spacing, session):
+def show_symmetry(structures, transforms, copies, surface_only, resolution, grid_spacing, session):
     if copies:
         from ..models import Model
         g = Model('%d copies' % len(transforms), session)
         for i, tf in enumerate(transforms):
-            if len(molecules) > 1:
+            if len(structures) > 1:
                 # Add grouping model if more the one model is being copied
                 ci = Model('copy %d' % (i+1), session)
                 ci.position = tf
                 g.add([ci])
-                copies = [m.copy() for m in molecules]
-                for c,m in zip(copies, molecules):
+                copies = [m.copy() for m in structures]
+                for c,m in zip(copies, structures):
                     c.position = m.scene_position
                 ci.add(copies)
             else:
-                m0 = molecules[0]
+                m0 = structures[0]
                 c = m0.copy()
                 c.position = tf * m0.scene_position
                 g.add([c])
         session.models.add([g])
     else:
         # Instancing    
-        for m in molecules:
+        for m in structures:
             # Transforms are in scene coordinates, so convert to molecule coordinates
             spos = m.scene_position
             symops = transforms if spos.is_identity() else transforms.transform_coordinates(spos)

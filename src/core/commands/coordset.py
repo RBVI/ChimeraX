@@ -9,15 +9,15 @@
 # Unspecified step is 1 or -1 depending on if end > start.
 # Can use -1 for last frame.  Frame numbers start at 1.
 #
-def coordset(session, molecules, index_range, hold_steady = None, loop = 1):
+def coordset(session, structures, index_range, hold_steady = None, loop = 1):
   '''
   Change which coordinate set is shown for a structure.  Can play through
   a range of coordinate sets.  
 
   Parameters
   ----------
-  molecules : list of AtomicStructure
-    List of molecules to show as assemblies.
+  structures : list of AtomicStructure
+    List of structures to show as assemblies.
   index_range : list of 1 to 3 integers
     Starting, ending and step coordinate set ids.  If only one value is given that
     coordinate set becomes the active coordinate set.  If two values are given then
@@ -31,11 +31,11 @@ def coordset(session, molecules, index_range, hold_steady = None, loop = 1):
     How many times to repeat playing through the coordinates in the specified range.
   '''
 
-  if len(molecules) == 0:
+  if len(structures) == 0:
     from ..errors import UserError
-    raise UseError('No molecules specified')
+    raise UseError('No structures specified')
 
-  for m in molecules:
+  for m in structures:
     s,e,step = parse_index_range(index_range, m)
     hold = hold_steady.intersect(m.atoms) if hold_steady else None
     Coordinate_Set_Player(m, s, e, step, hold, loop).start()
@@ -45,7 +45,7 @@ def coordset(session, molecules, index_range, hold_steady = None, loop = 1):
 def register_command(session):
     from . import CmdDesc, register, AtomicStructuresArg, ListOf, IntArg, AtomsArg
     desc = CmdDesc(
-        required = [('molecules', AtomicStructuresArg),
+        required = [('structures', AtomicStructuresArg),
                     ('index_range', ListOf(IntArg,1,3))],
         keyword = [('hold_steady', AtomsArg),
                    ('loop', IntArg)],
