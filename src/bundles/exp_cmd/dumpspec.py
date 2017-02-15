@@ -16,10 +16,10 @@ from chimerax.core.commands import register, CmdDesc, EnumOf, AtomSpecArg
 def initialize(command_name):
     register(command_name, dumpspec_desc, dumpspec)
 
-def dumpspec(session, spec=None):
-    if spec is None:
-        spec = atomspec.everything(session)
-    results = spec.evaluate(session)
+def dumpspec(session, atoms=None):
+    if atoms is None:
+        atoms = atomspec.everything(session)
+    results = atoms.evaluate(session)
     msgs = []
 
     models = session.models.list()
@@ -28,7 +28,7 @@ def dumpspec(session, spec=None):
     for m in models:
         msgs.append("  %s" % m)
 
-    msgs.append("\"%s\" matches:" % spec)
+    msgs.append("\"%s\" matches:" % atoms)
     models = results.models
     msgs.append("  %d models" % len(models))
     for m in models:
@@ -44,5 +44,5 @@ def dumpspec(session, spec=None):
     for a in atoms:
         msgs.append("    %s" % a)
     session.logger.info('\n'.join(msgs))
-dumpspec_desc = CmdDesc(required=[("spec", AtomSpecArg),],
+dumpspec_desc = CmdDesc(required=[("atoms", AtomSpecArg),],
                         synopsis='report what an atom specifier matches')

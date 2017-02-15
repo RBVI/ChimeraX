@@ -43,15 +43,17 @@ def usage(session, command_name=None, option=None):
             for name in cmds:
                 try:
                     info(cli.usage(name, show_subcommands=False, expand_alias=False,
-                                   show_hidden=allOptions))
+                                   show_hidden=show_hidden))
                 except:
                     info('%s -- no documentation' % name)
             return
         for name in cmds:
             try:
                 info(cli.html_usage(name, show_subcommands=False, expand_alias=False,
-                                    show_hidden=allOptions), is_html=True)
+                                    show_hidden=show_hidden), is_html=True)
             except:
+                import traceback
+                traceback.print_exc()
                 from html import escape
                 info('<b>%s</b> &mdash; no documentation' % escape(name),
                      is_html=True)
