@@ -50,3 +50,5 @@ outdated:
 app-outdated:
 	$(APP_PIP) list --outdated --format=columns
 
+src-outdated:
+	$(PYTHON_EXE) -m package_checker ../../src
