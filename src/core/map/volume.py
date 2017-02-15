@@ -1121,6 +1121,15 @@ class Volume(Model):
 
     return p
 
+
+  # ---------------------------------------------------------------------------
+  #
+  def _set_selected(self, sel):
+    Model.set_selected(self, sel)
+    for d in self.surface_drawings:
+      d.set_selected(sel)
+  selected = property(Model.get_selected, _set_selected)
+
   # ---------------------------------------------------------------------------
   #
   def clear_selection(self):
