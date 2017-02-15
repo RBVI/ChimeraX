@@ -30,7 +30,8 @@ The command <b>usage</b> shows a brief description of the specified
 <a href="../index.html#commands">command</a> and its options in the 
 <a href="../tools/log.html"><b>Log</b></a>. See also:
 <a href="help.html"><b>help</b></a>,
-<a href="log.html"><b>log</b></a>
+<a href="log.html"><b>log</b></a>,
+<a href="usageconventions.html">command usage conventions</a>
 </p><p>
 Examples: 
 </p>
@@ -39,8 +40,44 @@ Examples:
 <br>
 <b>usage volume gaussian</b>
 </blockquote>
+<p>
+The descriptions in the <a href="../tools/log.html"><b>Log</b></a>
+include the following terms for commonly used
+<a href="atomspec.html">target specifications</a>:
+</p>
+<ul>
+<li><i>atoms</i>
+- atomic models and/or their subparts (atoms, residues, chains, <i>etc.</i>)
+<li><i>objects</i> 
+- could include atomic models, parts of atomic models, or other kinds of models
+<li><i>models</i> - models of various types
+<li><i>structures</i> - atomic models
+<li><i>surfaces</i> - surface models
+<li><i>volumes</i>
+- <a href="../tools/volumeviewer.html">volume data</a> models</li>
+</ul>
+<p>
+Arguments shown in the descriptions as
+optional non-keyword arguments can be specified with keywords instead,
+which gives more flexibility as to their placement in the command.
+For example, the description from <b>usage turn</b> starts with:
+<blockquote>
+<a href="turn.html"><b>turn</b></a>
+[<i>axis</i> [<i>angle</i> [<i>frames</i>]]] ...
+</blockquote>
+<p>
+... in which <i>axis</i>, <i>angle</i>, and <i>frames</i> are
+optional non-keyword arguments. Alternatively, any of them could
+be given instead as a keyword option anywhere in the command.
+For example, the following two commands are equivalent:
+</p>
+<blockquote>
+<a href="turn.html"><b>turn</b></a> <b>y 90 model #4</b>
+<br>
+<a href="turn.html"><b>turn</b></a> <b>model #4 axis y angle 90</b>
+</blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2016</address>
+February 2017</address>
 </body></html>
