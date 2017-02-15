@@ -122,12 +122,15 @@ def _atoms_and_models(objects):
     satoms = []
     models = []
     from ..atomic import MolecularSurface, Structure
+    from ..map import Volume
     for m in objects.models:
         if isinstance(m, MolecularSurface):
             if m.has_atom_patches():
                 satoms.append(m.atoms)
             else:
                 models.append(m)
+        elif isinstance(m, Volume):
+            models.extend(m.surface_drawings)
         elif not isinstance(m, Structure):
             models.append(m)
     if satoms:
