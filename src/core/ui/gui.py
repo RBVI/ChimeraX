@@ -74,9 +74,6 @@ class UI(QApplication):
         To execute a function in a thread-safe manner
        """
 
-    required_opengl_version = (3, 3)
-    required_opengl_core_profile = True
-
     def __init__(self, session):
         self.is_gui = True
         self.already_quit = False
@@ -218,6 +215,7 @@ class UI(QApplication):
         self.session.logger.status("Exiting ...", blank_after=0)
         self.session.logger.clear()    # clear logging timers
         self.closeAllWindows()
+        QApplication.quit()
 
     def thread_safe(self, func, *args, **kw):
         """Call function 'func' in a thread-safe manner
@@ -256,16 +254,6 @@ class UI(QApplication):
         '''
         self.main_window.graphics_window.update_graphics_now()
         
-# The surface format has to be set before QtGui is initialized
-from PyQt5.QtGui import QSurfaceFormat
-sf = QSurfaceFormat()
-sf.setVersion(*UI.required_opengl_version)
-sf.setDepthBufferSize(24)
-if UI.required_opengl_core_profile:
-    sf.setProfile(QSurfaceFormat.CoreProfile)
-sf.setRenderableType(QSurfaceFormat.OpenGL)
-QSurfaceFormat.setDefaultFormat(sf)
-
 from PyQt5.QtWidgets import QMainWindow, QStackedWidget, QLabel, QDesktopWidget, \
     QToolButton
 class MainWindow(QMainWindow, PlainTextLog):

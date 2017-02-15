@@ -1,101 +1,82 @@
 from time import time
 iit = dpt = 0
 
-from ._morph import interpolate_linear, interpolate_dihedral
-
-class InterpCartesian:
-        def __init__(self, a0):
-                self.a0 = a0
-                self.i0 = a0.coord_index
-        def interpolate(self, coords0, coords1, f, coord_set):
-                "Interpolate Cartesian position between start and end position."
-                interpolate_linear(self.i0, coords0, coords1, f, coord_set)
-
-        def interpolate_py(self, coords0, coords1, f, coord_set):
-                "Interpolate Cartesian position between start and end position."
-                t0 = time()
-                i0 = self.i0
+def interpolate_linear(indices, coords0, coords1, f, coord_set):
+        "Interpolate Cartesian position between start and end position."
+        t0 = time()
+        for i0 in indices:
                 c0 = coords0[i0]
                 c1 = coords1[i0]
                 c = c0 + (c1 - c0) * f
                 coord_set[i0,:] = c
-                t1 = time()
-                global iit
-                iit += t1-t0
+        t1 = time()
+        global iit
+        iit += t1-t0
 
-class InterpInternal:
-        def __init__(self, a0, a1, a2, a3):
-                self.atoms = (a0,a1,a2,a3)
-                self.atom_indices = [a.coord_index for a in self.atoms]
-
-        def interpolate(self, coords0, coords1, f, coord_set):
-                """Computer coordinate of atom a0 by interpolating dihedral angle
-                defined by atoms (a0, a1, a2, a3)"""
-                #t0 = time()
-                i0,i1,i2,i3 = self.atom_indices
+def interpolate_dihedrals(indices, coords0, coords1, f, coord_set):
+        """
+        Computer coordinate of atom a0 by interpolating dihedral angle
+        defined by atoms (a0, a1, a2, a3).  Every 4 atom indices in indices
+        array are used.
+        """
+        for i in range(0, len(indices), 4):
+                i0,i1,i2,i3 = indices[i,i+4]
                 interpolate_dihedral(i0, i1, i2, i3, coords0, coords1, f, coord_set)
-                #t1 = time()
-                #global iit
-                #iit += t1-t0
 
-        def interpolate_py(self, coords0, coords1, f, coord_set):
-                """Computer coordinate of atom a0 by interpolating dihedral angle
-                defined by atoms (a0, a1, a2, a3)"""
-                t0 = time()
-                i0,i1,i2,i3 = self.atom_indices
-                from chimerax.core.geometry import distance, angle, dihedral, dihedral_point
-                c00 = coords0[i0]
-                c01 = coords0[i1]
-                c02 = coords0[i2]
-                c03 = coords0[i3]
-                length0 = distance(c00, c01)
-                angle0 = angle(c00, c01, c02)
-                dihed0 = dihedral(c00, c01, c02, c03)
-                c10 = coords1[i0]
-                c11 = coords1[i1]
-                c12 = coords1[i2]
-                c13 = coords1[i3]
-                length1 = distance(c10, c11)
-                angle1 = angle(c10, c11, c12)
-                dihed1 = dihedral(c10, c11, c12, c13)
-                length = length0 + (length1 - length0) * f
-                angle = angle0 + (angle1 - angle0) * f
-                ddihed = dihed1 - dihed0
-                if ddihed > 180:
-                        ddihed -= 360
-                elif ddihed < -180:
-                        ddihed += 360
-                dihed = dihed0 + ddihed * f
-                c1 = coord_set[a1.coord_index,:]
-                c2 = coord_set[a2.coord_index,:]
-                c3 = coord_set[a3.coord_index,:]
-                t2 = time()
-                c0 = dihedral_point(c1, c2, c3, length, angle, dihed)
-                t3 = time()
-                coord_set[i0:] = c0
-                t1 = time()
-                global iit, dpt
-                iit += t1-t0
-                dpt += t3-t2
+# C++ optimized versions for interpolating.
+from ._morph import interpolate_linear, interpolate_dihedrals
 
-class AtomsInterpolator:
-        def __init__(self, atom_interpolators):
-                self.atom_interpolators = atom_interpolators
-        def __call__(self, coords0, coords1, f, coord_set):
-                for ai in self.atom_interpolators:
-                        ai.interpolate(coords0, coords1, f, coord_set)
+def interpolate_dihedral(i0, i1, i2, i3, coords0, coords1, f, coord_set):
+        """
+        Computer coordinate of atom a0 by interpolating dihedral angle
+        defined by atoms (a0, a1, a2, a3).
+        """
+        t0 = time()
+        from chimerax.core.geometry import distance, angle, dihedral, dihedral_point
+        c00 = coords0[i0]
+        c01 = coords0[i1]
+        c02 = coords0[i2]
+        c03 = coords0[i3]
+        length0 = distance(c00, c01)
+        angle0 = angle(c00, c01, c02)
+        dihed0 = dihedral(c00, c01, c02, c03)
+        c10 = coords1[i0]
+        c11 = coords1[i1]
+        c12 = coords1[i2]
+        c13 = coords1[i3]
+        length1 = distance(c10, c11)
+        angle1 = angle(c10, c11, c12)
+        dihed1 = dihedral(c10, c11, c12, c13)
+        length = length0 + (length1 - length0) * f
+        angle = angle0 + (angle1 - angle0) * f
+        ddihed = dihed1 - dihed0
+        if ddihed > 180:
+                ddihed -= 360
+        elif ddihed < -180:
+                ddihed += 360
+        dihed = dihed0 + ddihed * f
+        c1 = coord_set[i1,:]
+        c2 = coord_set[i2,:]
+        c3 = coord_set[i3,:]
+        t2 = time()
+        c0 = dihedral_point(c1, c2, c3, length, angle, dihed)
+        t3 = time()
+        coord_set[i0:] = c0
+        t1 = time()
+        global iit, dpt
+        iit += t1-t0
+        dpt += t3-t2
 
-def cartesian_residue_interpolator(r):
+def cartesian_residue_interpolator(r, cartesion_atoms, dihedral_atoms):
         "Create a plan for Cartesian interpolation for all atoms."
-        return AtomsInterpolator([InterpCartesian(a0) for a0 in r.atoms])
+        cartesian_atoms.extend(r.atoms)
 
-def internal_residue_interpolator(r):
+def internal_residue_interpolator(r, cartesian_atoms, dihedral_atoms):
         """Create a plan for dihedral interpolation when possible,
         and Cartesian interpolation otherwise."""
         # First find the atoms that are connected to preceding
         # or succeeding residues.  If none, pick an arbitrary atom.
         # These atoms are always interpolated in Cartesian space.
-        atom_interpolators = []
         done = set()
         todo = []
         ratoms = r.atoms
@@ -116,7 +97,7 @@ def internal_residue_interpolator(r):
         if not fixed:
                 fixed.add(ratoms[0])
         for a0 in fixed:
-                atom_interpolators.append(InterpCartesian(a0))
+                cartesian_atoms.append(a0)
                 _finished(a0, done, todo, neighbor_atoms)
 
         # Now we look for atoms that are connected to those in
@@ -136,7 +117,7 @@ def internal_residue_interpolator(r):
                         # Found two anchor atoms connected to the
                         # fixed atom, we can use them for defining
                         # the dihedral
-                        atom_interpolators.append(InterpInternal(na, a, anchors[0], anchors[1]))
+                        dihedral_atoms.extend((na, a, anchors[0], anchors[1]))
                         _finished(na, done, todo, neighbor_atoms)
                         continue
                 if len(anchors) == 1:
@@ -146,19 +127,18 @@ def internal_residue_interpolator(r):
                         # (but is not our original fixed atom)
                         anchors2 = _findAnchor(anchors[0], done, neighbor_atoms, a)
                         if len(anchors2) >= 1:
-                                atom_interpolators.append(InterpInternal(na, a, anchors[0], anchors2[0]))
+                                dihedral_atoms.extend((na, a, anchors[0], anchors2[0]))
                                 _finished(na, done, todo, neighbor_atoms)
                                 continue
                 # Cannot find three fixed atoms to define dihedral.
                 # Use Cartesian interpolation for this atom.
-                atom_interpolators.append(InterpCartesian(na))
+                cartesian_atoms.append(na)
                 _finished(na, done, todo, neighbor_atoms)
 
         # Any left over atoms (usually disconnected) uses Cartesian interp
         for a0 in ratoms:
                 if a0 not in done:
-                        atom_interpolators.append(InterpCartesian(a0))
-        return AtomsInterpolator(atom_interpolators)
+                        cartesian_atoms.append(a0)
 
 def _finished(a, done, todo, neighbor_atoms):
         done.add(a)

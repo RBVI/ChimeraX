@@ -1,11 +1,12 @@
 def compute_morph(mols, log, method = 'corkscrew', rate = 'linear', frames = 20, cartesian = False):
         motion = MolecularMotion(mols[0], method = method, rate = rate, frames = frames)
-        from .interpolate import residue_interpolators
-        res_interp = residue_interpolators(motion.trajectory().residues, cartesian)
+        from .interpolate import ResidueInterpolator
+        res_interp = ResidueInterpolator(motion.trajectory().residues, cartesian)
         for i, mol in enumerate(mols[1:]):
                 log.status("Computing interpolation %d\n" % (i+1))
                 motion.interpolate(mol, res_interp)
         traj = motion.trajectory()
+        traj.active_coordset_id = 0	# Start at initial trajectory frame.
         return traj
 
 ht = it = 0
@@ -87,10 +88,12 @@ class MolecularMotion:
                 # Convert to trajectory local coordinates.
                 xform = sm.scene_position.inverse() * m.scene_position
                 coords1[maindices] = xform * Atoms([atomMap[a] for a in matoms]).coords
+                from .interpolate import SegmentInterpolator
+                seg_interp = SegmentInterpolator(res_groups, self.method, coords0, coords1)
+
                 from .interpolate import interpolate
-                coordsets = interpolate(coords0, coords1, res_groups, res_interp,
-                                        self.method, self.rate, self.frames,
-                                        sm.session.logger)
+                coordsets = interpolate(coords0, coords1, seg_interp, res_interp,
+                                        self.rate, self.frames, sm.session.logger)
                 base_id = max(sm.coordset_ids) + 1
                 for i, cs in enumerate(coordsets):
                         sm.add_coordset(base_id + i, cs)
