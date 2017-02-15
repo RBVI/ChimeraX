@@ -23,7 +23,8 @@ def register_movie_command():
                    ('format', EnumOf(ifmts)),
                    ('size', Int2Arg),
                    ('supersample', IntArg),
-                   ('limit', IntArg)])
+                   ('limit', IntArg)],
+        synopsis = 'Start saving frames of a movie to image files')
     register('movie record', record_desc, movie_record)
 
     from .movie import RESET_CLEAR, RESET_KEEP, RESET_NONE
@@ -39,31 +40,36 @@ def register_movie_command():
                    ('round_trip', BoolArg),
                    ('wait', BoolArg),
                    ('verbose', BoolArg),
-               ])
+               ],
+        synopsis = 'Convert image files into a video file')
     register('movie encode', encode_desc, movie_encode)
 
-    crossfade_desc = CmdDesc(optional = [('frames', IntArg)])
+    crossfade_desc = CmdDesc(optional = [('frames', IntArg)],
+                             synopsis = 'Add images to crossfade between current and next frame')
     register('movie crossfade', crossfade_desc, movie_crossfade)
 
-    duplicate_desc = CmdDesc(optional = [('frames', IntArg)])
+    duplicate_desc = CmdDesc(optional = [('frames', IntArg)],
+                             synopsis = 'Duplicate the last frame to create a pause in a movie')
     register('movie duplicate', duplicate_desc, movie_duplicate)
 
-    stop_desc = CmdDesc()
+    stop_desc = CmdDesc(synopsis = 'Pause movie recording')
     register('movie stop', stop_desc, movie_stop)
 
-    abort_desc = CmdDesc()
+    abort_desc = CmdDesc(synopsis = 'Stop movie recording and delete saved image files')
     register('movie abort', abort_desc, movie_abort)
 
-    reset_desc = CmdDesc(optional = [('reset_mode', EnumOf(reset_modes))])
+    reset_desc = CmdDesc(optional = [('reset_mode', EnumOf(reset_modes))],
+                         synopsis = 'Specify whether to save image files after movie encoding')
     register('movie reset', reset_desc, movie_reset)
 
-    status_desc = CmdDesc()
+    status_desc = CmdDesc(synopsis = 'Report recording status such as number of frames saved to the log')
     register('movie status', status_desc, movie_status)
 
-    formats_desc = CmdDesc()
+    formats_desc = CmdDesc(synopsis = 'Report the available video formats to the log')
     register('movie formats', formats_desc, movie_formats)
 
-    ignore_desc = CmdDesc(optional = [('ignore', BoolArg)])
+    ignore_desc = CmdDesc(optional = [('ignore', BoolArg)],
+                          synopsis = 'Ignore subsequent movie commands')
     register('movie ignore', ignore_desc, movie_ignore)
 
 from .movie import RESET_CLEAR

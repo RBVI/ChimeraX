@@ -57,22 +57,14 @@ def cofr(session, method=None, objects=None, pivot=None, coordinate_system=None)
         log = session.logger
         log.status(msg)
         log.info(msg)
-
-def uncofr(session):
-    '''
-    Set center of rotation method to the default "front center" method.
-    '''
-    v = session.main_view
-    v.center_of_rotation_method = 'front center'
         
 def register_command(session):
-    from . import CmdDesc, register, EnumOf, EmptyArg, ObjectsArg, Or, Float3Arg, ModelArg
+    from . import CmdDesc, register, EnumOf, EmptyArg, ObjectsArg, Or, Float3Arg, ModelArg, create_alias
     desc = CmdDesc(
         optional=[('method', Or(EnumOf(('front center', 'frontCenter', 'fixed', 'centerOfView')), EmptyArg)),
                   ('objects', Or(ObjectsArg, EmptyArg)),
                   ('pivot', Float3Arg)],
         keyword=[('coordinate_system', ModelArg)],
         synopsis='set center of rotation method')
-    register('cofr', desc, cofr)
-    udesc = CmdDesc(synopsis='set center of rotation method to front center')
-    register('~cofr', udesc, uncofr)
+    register('cofr', desc, cofr, logger=session.logger)
+    create_alias('~cofr', 'cofr frontCenter')

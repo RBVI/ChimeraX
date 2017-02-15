@@ -27,11 +27,12 @@
 #include "backbone.h"
 #include "ChangeTracker.h"
 #include "Coord.h"
-#include "Structure.h"
 #include "imex.h"
 #include "Point.h"
 #include "Rgba.h"
+#include "session.h"
 #include "string_types.h"
+#include "Structure.h"
 
 // "forward declare" PyObject, which is a typedef of a struct,
 // as per the python mailing list:
@@ -47,7 +48,6 @@ namespace atomstruct {
 
 class Bond;
 class CoordSet;
-class Structure;
 class Residue;
 class Ring;
 
@@ -73,11 +73,10 @@ public:
     typedef std::vector<const Ring*>  Rings;
     enum class StructCat { Unassigned, Main, Ligand, Ions, Solvent };
 
-    // in the SESSION* functions, a version of "0" means the latest version
-    static int  SESSION_NUM_INTS(int /*version*/=0) { return 10; };
-    static int  SESSION_NUM_FLOATS(int /*version*/=0) { return 1; };
-    static int  SESSION_ALTLOC_INTS(int /*version*/=0) { return 3; };
-    static int  SESSION_ALTLOC_FLOATS(int /*version*/=0) { return 5; };
+    static int  SESSION_NUM_INTS(int /*version*/=CURRENT_SESSION_VERSION) { return 10; };
+    static int  SESSION_NUM_FLOATS(int /*version*/=CURRENT_SESSION_VERSION) { return 1; };
+    static int  SESSION_ALTLOC_INTS(int /*version*/=CURRENT_SESSION_VERSION) { return 3; };
+    static int  SESSION_ALTLOC_FLOATS(int /*version*/=CURRENT_SESSION_VERSION) { return 5; };
 private:
     static const unsigned int  COORD_UNASSIGNED = ~0u;
     Atom(Structure *as, const char* name, const Element& e);

@@ -1,7 +1,10 @@
+from time import time
+ssvt = 0
 def segmentSieve(rList0, rList1, fraction=0.5):
         """MolMovDB style segmenting.  Use sieve fit to find core.
         Everything else is in the second segment."""
         # sieve_fit checks that the two molecule have equivalent residues
+        t0 = time()
         from . import sieve_fit
         coreList0, coreList1 = sieve_fit.fitResidues(rList0, rList1, fraction)
         def splitCore(rList, coreSet):
@@ -34,24 +37,27 @@ def segmentSieve(rList0, rList1, fraction=0.5):
                 core1, others1 = splitCore(rList1[start:], coreSet1)
                 segments.append((core0, core1))
                 segments.append((others0, others1))
+        t1 = time()
+        global ssvt
+        ssvt += t1-t0
         return segments
 
 def segmentHingeExact(m0, m1, fraction=0.5):
 
         # Split by chain
-        cr0, cr1 = residuesByChain(m0.residues), residuesByChain(m1.residues)
+        cr0, cr1 = m0.residues.by_chain, m1.residues.by_chain
         if len(cr0) != len(cr1):
                 raise ValueError("models have different number of chains")
 
         # If chain ids all match then pair same ids, otherwise use order from file.
-        if set(cid for cid, rlist in cr0) == set(cid for cid, rlist in cr1):
-                cr0.sort()
-                cr1.sort()
+        if set(cid for s,cid,rlist in cr0) == set(cid for s,cid, rlist in cr1):
+                cr0.sort(key = lambda scr: scr[1])
+                cr1.sort(key = lambda scr: scr[1])
 
         parts = []
         atomMap = {}
         unusedAtoms = []
-        for (cid0,r0list), (cid1,r1list) in zip(cr0, cr1):
+        for (s0,cid0,r0list), (s1,cid1,r1list) in zip(cr0, cr1):
                 if len(r0list) != len(r1list):
                         raise ValueError("Chains %s and %s have different number of residues" % (cid0, cid1))
                 curCat = None
@@ -83,6 +89,7 @@ def segmentHingeExact(m0, m1, fraction=0.5):
         return segments, atomMap, Residues([]), Atoms(unusedAtoms)
 
 def residuesByChain(residues):
+        residues.by_chain
         cres = {}
         cids = []
         for r in residues:
@@ -297,8 +304,10 @@ def shareAtomsDumb(r0, r1, atomMap, unusedAtoms):
                 else:
                         unusedAtoms.append(a)
         return matched
-                        
+
+satt = 0                        
 def shareAtoms(r0, r1, atomMap, unusedAtoms):
+        t0 = time()
         # We start by finding the atom connected to the
         # previous residue.  Failing that, we want the
         # atom connected to the next residue.  Failing that,
@@ -307,11 +316,12 @@ def shareAtoms(r0, r1, atomMap, unusedAtoms):
         before = c0.residue_before(r0) if c0 else None
         after = c0.residue_after(r0) if c0 else None
         r0atoms = r0.atoms
+        neighbors = {a:a.neighbors for a in r0atoms}
         startAtom = None
         for a0 in r0atoms:
                 if startAtom is None:
                         startAtom = a0
-                for na in a0.neighbors:
+                for na in neighbors[a0]:
                         if na.residue is before:
                                 startAtom = a0
                                 break
@@ -330,9 +340,8 @@ def shareAtoms(r0, r1, atomMap, unusedAtoms):
                 if a1 is None:
                         # No match, so we put all our neighboring
                         # atoms on the search list
-                        for na in a0.neighbors:
-                                if (na not in visited
-                                and na.residue is a0.residue):
+                        for na in neighbors[a0]:
+                                if na not in visited and na in neighbors:
                                         todo.append(na)
                         visited.add(a0)
                 else:
@@ -347,36 +356,42 @@ def shareAtoms(r0, r1, atomMap, unusedAtoms):
                 visited.add(a0)
                 # a0 and a1 are matched, now we want to see
                 # if any of their neighbors match
-                for na0 in a0.neighbors:
-                        if na0 in visited or na0.residue is not a0.residue:
-                                continue
-                        for na1 in a1.neighbors:
-                                if na1 in paired or na1.name != na0.name:
-                                        continue
-                                matched[na0] = na1
-                                expand.append((na0, na1))
-                                paired.add(na1)
-                                break
+                for na0 in neighbors[a0]:
+                        if na0 not in visited and na0 in neighbors:
+                                na1 = r1.find_atom(na0.name)
+                                if na1.connects_to(a1) and na1 not in paired:
+                                        matched[na0] = na1
+                                        expand.append((na0, na1))
+                                        paired.add(na1)
         # Now we look at our results
         if not matched:
                 # Note that we do not update unusedAtoms since
                 # the residues do not match and will be deleted
                 # as a whole.
+                t1 = time()
+                global satt
+                satt += t1-t0
                 return False
 
-        # Next we check for atoms we have not visited and see if
-        # we can pair them
-        for a0 in r0atoms:
-                if a0 in visited:
-                        continue
-                a1 = r1.find_atom(a0.name)
-                if a1 is not None and a1 not in paired:
-                        matched[a0] = a1
-                        paired.add(a1)
+        if len(matched) < len(r0atoms):
+                # Next we check for atoms we have not visited and see if
+                # we can pair them
+                for a0 in r0atoms:
+                        if a0 in visited:
+                                continue
+                        a1 = r1.find_atom(a0.name)
+                        if a1 is not None and a1 not in paired:
+                                matched[a0] = a1
+                                paired.add(a1)
+
+        if len(matched) < len(r0atoms):
+                unmatched = [ a0 for a0 in r0atoms if a0 not in matched ]
+                unusedAtoms.extend(unmatched)
 
         atomMap.update(matched)
-        unmatched = [ a0 for a0 in r0atoms if a0 not in matched ]
-        unusedAtoms.extend(unmatched)
+        t1 = time()
+        global satt
+        satt += t1-t0
         return True
 
 def _getConnectedResidues(r):

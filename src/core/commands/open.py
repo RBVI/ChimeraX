@@ -205,6 +205,6 @@ def register_command(session):
             # ('id', ModelIdArg),
         ],
         synopsis='read and display data')
-    register('open', desc, open)
+    register('open', desc, open, logger=session.logger)
     of_desc = CmdDesc(synopsis='report formats that can be opened')
-    register('open formats', of_desc, open_formats)
+    register('open formats', of_desc, open_formats, logger=session.logger)

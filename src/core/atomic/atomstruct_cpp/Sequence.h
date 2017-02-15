@@ -22,6 +22,7 @@
 #include <string>
 
 #include "imex.h"
+#include "session.h"
 #include "string_types.h"
 
 // "forward declare" PyObject, which is a typedef of a struct,
@@ -61,10 +62,10 @@ protected:
     PyObject*  _python_obj;
 
 private:
-    static int  SESSION_NUM_INTS(int version=0) {
-        return (version == 1 || version == 2) ? 1 : 2;
+    static int  SESSION_NUM_INTS(int version=CURRENT_SESSION_VERSION) {
+        return (version < 3) ? 1 : 2;
     }
-    static int  SESSION_NUM_FLOATS(int /*version*/=0) { return 0; }
+    static int  SESSION_NUM_FLOATS(int /*version*/=CURRENT_SESSION_VERSION) { return 0; }
 
 public:
     static void  assign_rname3to1(const ResName& rname, char let,

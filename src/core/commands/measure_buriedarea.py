@@ -90,4 +90,4 @@ def register_command(session):
                    ('select', BoolArg),],
         required_arguments = ['with_atoms2'],
         synopsis = 'compute buried area')
-    register('measure buriedarea', desc, measure_buriedarea)
+    register('measure buriedarea', desc, measure_buriedarea, logger=session.logger)

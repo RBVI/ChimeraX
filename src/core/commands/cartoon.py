@@ -15,19 +15,6 @@ from ..atomic.ribbon import XSectionManager
 from ..atomic import Residue, Structure
 from ..commands import Annotation, AnnotationError
 
-_StyleMap = {
-    "ribbon": Residue.RIBBON,
-    "pipe": Residue.PIPE,
-    "plank": Residue.PIPE,
-    "pandp": Residue.PIPE,
-}
-_OrientMap = {
-    "guides": Structure.RIBBON_ORIENT_GUIDES,
-    "atoms": Structure.RIBBON_ORIENT_ATOMS,
-    "curvature": Structure.RIBBON_ORIENT_CURVATURE,
-    "peptide": Structure.RIBBON_ORIENT_PEPTIDE,
-}
-_OrientInverseMap = dict([(v, k) for k, v in _OrientMap.items()])
 _TetherShapeMap = {
     "cone": Structure.TETHER_CONE,
     "cylinder": Structure.TETHER_CYLINDER,
@@ -57,12 +44,12 @@ _ModeStrandMap = {
 _ModeStrandInverseMap = dict([(v, k) for k, v in _ModeStrandMap.items()])
 
 
-def cartoon(session, spec=None, smooth=None, style=None, suppress_backbone_display=None, spine=False):
+def cartoon(session, atoms=None, smooth=None, suppress_backbone_display=None, spine=False):
     '''Display cartoon for specified residues.
 
     Parameters
     ----------
-    spec : atom specifier
+    atoms : atom specifier
         Show ribbons for the specified residues. If no atom specifier is given then ribbons are shown
         for all residues.  Residues that are already shown as ribbons remain shown as ribbons.
     smooth : floating point number
@@ -71,9 +58,6 @@ def cartoon(session, spec=None, smooth=None, style=None, suppress_backbone_displ
         will pass through the "ideal" position, e.g., center of the cylinder that best
         fits a helix.  A factor of "default" means to return to default (0.7 for strands
         and 0 for everything else).
-    style : string
-        Set "Ribbon" style.  Value may be "ribbon" for normal ribbons, or one of "pipe",
-        "plank", or "pandp" to display residues as pipes and planks.
     suppress_backbone_display : boolean
         Set whether displaying a ribbon hides the sphere/ball/stick representation of
         backbone atoms.
@@ -82,10 +66,10 @@ def cartoon(session, spec=None, smooth=None, style=None, suppress_backbone_displ
         This parameter applies at the atomic structure level, so setting it for any residue
         sets it for the entire structure.
     '''
-    if spec is None:
+    if atoms is None:
         from . import atomspec
-        spec = atomspec.everything(session)
-    results = spec.evaluate(session)
+        atoms = atomspec.everything(session)
+    results = atoms.evaluate(session)
     residues = results.atoms.residues
     residues.ribbon_displays = True
     if smooth is not None:
@@ -93,9 +77,6 @@ def cartoon(session, spec=None, smooth=None, style=None, suppress_backbone_displ
             # Convert to C++ default value
             smooth = -1.0
         residues.ribbon_adjusts = smooth
-    if style is not None:
-        s = _StyleMap.get(style, Residue.RIBBON)
-        residues.ribbon_styles = s
     if suppress_backbone_display is not None:
         residues.ribbon_hide_backbones = suppress_backbone_display
     if spine is not None:
@@ -159,15 +140,15 @@ def cartoon_tether(session, structures=None, scale=None, shape=None, sides=None,
         structures.ribbon_tether_opacities = opacity
 
 
-def cartoon_style(session, spec=None, width=None, thickness=None, arrows=None, arrows_helix=None,
+def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, arrows_helix=None,
                   arrow_scale=None, xsection=None, sides=None,
                   bar_scale=None, bar_sides=None, ss_ends=None,
-                  orient=None, mode_helix=None, mode_strand=None):
+                  mode_helix=None, mode_strand=None):
     '''Set cartoon style options for secondary structures in specified structures.
 
     Parameters
     ----------
-    spec : atom specifier
+    atoms : atom specifier
         Set style for all secondary structure types that include the specified residues.
         If no atom specifier is given then style is set for all secondary structure types.
     width : floating point number
@@ -191,13 +172,6 @@ def cartoon_style(session, spec=None, width=None, thickness=None, arrows=None, a
     ss_ends : string
         Length of helix/strand representation relative to backbone atoms.
         One of "default", "short" or "long".
-    orient : string
-        Choose which method to use for determining ribbon orientation FOR THE ENTIRE STRUCTURE.
-        "guides" uses "guide" atoms like the carbonyl oxygens.
-        "atoms" generates orientation from ribbon atoms like alpha carbons.
-        "curvature" orients ribbon to be perpendicular to maximum curvature direction.
-        "peptide" orients ribbon to be perpendicular to peptide planes.
-        "default" is to use "guides" if guide atoms are all present or "atoms" if not.
     mode_helix : string
         Choose how helices are rendered.
         "default" uses ribbons through the alpha carbons.
@@ -205,41 +179,39 @@ def cartoon_style(session, spec=None, width=None, thickness=None, arrows=None, a
     mode_strand : string
         Same argument values are mode_helix.
     '''
-    if spec is None:
+    if atoms is None:
         from . import atomspec
-        spec = atomspec.everything(session)
-    results = spec.evaluate(session)
+        atoms = atomspec.everything(session)
+    results = atoms.evaluate(session)
     structures = results.atoms.unique_structures
     if (width is None and thickness is None and arrows is None and
         arrows_helix is None and arrow_scale is None and xsection is None and
         sides is None and bar_scale is None and bar_sides is None and
-        ss_ends is None and orient is None and
-        mode_helix is None and mode_strand is None):
+        ss_ends is None and mode_helix is None and mode_strand is None):
         # No options, report current state and return
         indent = "  -"
         for m in structures:
             mgr = m.ribbon_xs_mgr
             print(m)
-            print(indent, "orientation %s" % _OrientInverseMap[m.ribbon_orientation])
             print(indent, "helix",
                   "mode=%s" % _ModeHelixInverseMap[mgr.style_helix],
-                  "style=%s" % _XSectionInverseMap[mgr.style_helix],
+                  "xsection=%s" % _XSectionInverseMap[mgr.style_helix],
                   "size=%.2g,%.2g" % mgr.scale_helix,
                   "arrow=%s" % mgr.arrow_helix,
                   "arrow size=%.2g,%.2g,%.2g,%.2g" % (mgr.scale_helix_arrow[0] +
                                                        mgr.scale_helix_arrow[1]))
             print(indent, "strand",
                   "mode=%s" % _ModeStrandInverseMap[mgr.style_helix],
-                  "style=%s" % _XSectionInverseMap[mgr.style_sheet],
+                  "xsection=%s" % _XSectionInverseMap[mgr.style_sheet],
                   "size=%.2g,%.2g" % mgr.scale_sheet,
                   "arrow=%s" % mgr.arrow_sheet,
                   "arrow size=%.2g,%.2g,%.2g,%.2g" % (mgr.scale_sheet_arrow[0] +
                                                         mgr.scale_sheet_arrow[1]))
             print(indent, "coil",
-                  "style=%s" % _XSectionInverseMap[mgr.style_coil],
+                  "xsection=%s" % _XSectionInverseMap[mgr.style_coil],
                   "size=%.2g,%.2g" % mgr.scale_coil)
             print(indent, "nucleic",
-                  "style=%s" % _XSectionInverseMap[mgr.style_nucleic],
+                  "xsection=%s" % _XSectionInverseMap[mgr.style_nucleic],
                   "size=%.2g,%.2g" % mgr.scale_nucleic)
             param = mgr.params[XSectionManager.STYLE_ROUND]
             print(indent,
@@ -475,10 +447,6 @@ def cartoon_style(session, spec=None, width=None, thickness=None, arrows=None, a
     if bar_params:
         for m in structures:
             m.ribbon_xs_mgr.set_params(XSectionManager.STYLE_PIPING, **bar_params)
-    if orient is not None:
-        o = _OrientMap.get(orient, None)
-        for m in structures:
-            m.ribbon_orientation = o
     if mode_helix is not None:
         mode = _ModeHelixMap.get(mode_helix, None)
         for m in structures:
@@ -489,18 +457,18 @@ def cartoon_style(session, spec=None, width=None, thickness=None, arrows=None, a
             m.ribbon_mode_strand = mode
 
 
-def uncartoon(session, spec=None):
+def uncartoon(session, atoms=None):
     '''Undisplay ribbons for specified residues.
 
     Parameters
     ----------
-    spec : atom specifier
+    atoms : atom specifier
         Hide ribbons for the specified residues. If no atom specifier is given then all ribbons are hidden.
     '''
-    if spec is None:
+    if atoms is None:
         from . import atomspec
-        spec = atomspec.everything(session)
-    results = spec.evaluate(session)
+        atoms = atomspec.everything(session)
+    results = atoms.evaluate(session)
     results.atoms.residues.ribbon_displays = False
 
 
@@ -523,16 +491,15 @@ class EvenIntArg(Annotation):
 def register_command(session):
     from . import register, CmdDesc, AtomSpecArg, AtomicStructuresArg
     from . import Or, Bounded, FloatArg, EnumOf, BoolArg, IntArg, TupleOf, NoArg
-    desc = CmdDesc(optional=[("spec", AtomSpecArg)],
+    desc = CmdDesc(optional=[("atoms", AtomSpecArg)],
                    keyword=[("smooth", Or(Bounded(FloatArg, 0.0, 1.0),
                                           EnumOf(["default"]))),
-                            ("style", EnumOf(list(_StyleMap.keys()))),
                             ("suppress_backbone_display", BoolArg),
                             ("spine", BoolArg),
                             ],
-                   hidden=["spine", "orient", "mode_helix", "mode_strand"],
+                   hidden=["spine"],
                    synopsis='display cartoon for specified residues')
-    register("cartoon", desc, cartoon)
+    register("cartoon", desc, cartoon, logger=session.logger)
 
     desc = CmdDesc(optional=[("structures", AtomicStructuresArg)],
                    keyword=[("scale", Bounded(FloatArg, 0.0, 1.0)),
@@ -541,9 +508,9 @@ def register_command(session):
                             ("opacity", Bounded(FloatArg, 0.0, 1.0)),
                             ],
                    synopsis='set cartoon tether options for specified structures')
-    register("cartoon tether", desc, cartoon_tether)
+    register("cartoon tether", desc, cartoon_tether, logger=session.logger)
 
-    desc = CmdDesc(optional=[("spec", AtomSpecArg)],
+    desc = CmdDesc(optional=[("atoms", AtomSpecArg)],
                    keyword=[("width", FloatArg),
                             ("thickness", FloatArg),
                             ("arrows", BoolArg),
@@ -554,14 +521,14 @@ def register_command(session):
                             ("bar_scale", FloatArg),
                             ("bar_sides", Bounded(EvenIntArg, 3, 24)),
                             ("ss_ends", EnumOf(["default", "short", "long"])),
-                            ("orient", EnumOf(list(_OrientMap.keys()))),
                             ("mode_helix", EnumOf(list(_ModeHelixMap.keys()))),
                             ("mode_strand", EnumOf(list(_ModeStrandMap.keys()))),
                             ],
+                   hidden=["ss_ends", "mode_strand"],
                    synopsis='set cartoon style for secondary structures in specified models')
-    register("cartoon style", desc, cartoon_style)
-    desc = CmdDesc(optional=[("spec", AtomSpecArg)],
+    register("cartoon style", desc, cartoon_style, logger=session.logger)
+    desc = CmdDesc(optional=[("atoms", AtomSpecArg)],
                    synopsis='undisplay cartoon for specified residues')
-    register("cartoon hide", desc, uncartoon)
+    register("cartoon hide", desc, uncartoon, logger=session.logger)
     from . import create_alias
-    create_alias("~cartoon", "cartoon hide $*")
+    create_alias("~cartoon", "cartoon hide $*", logger=session.logger)

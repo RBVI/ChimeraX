@@ -24,7 +24,6 @@
 
 #include "imex.h"
 #include "destruct.h"
-#include "Structure.h"
 #include "PBManager.h"
 #include "Rgba.h"
 
@@ -40,17 +39,16 @@ namespace atomstruct {
 
 class Atom;
 class CoordSet;
-class Structure;
 class Pseudobond;
 class Proxy_PBGroup;
+class Structure;
 
 class ATOMSTRUCT_IMEX PBGroup: public DestructionObserver, public GraphicsContainer {
 public:
     typedef std::set<Pseudobond*>  Pseudobonds;
 
-    // version "0" means latest version
-    static int  SESSION_NUM_INTS(int /*version*/=0) { return 1; }
-    static int  SESSION_NUM_FLOATS(int /*version*/=0) { return 0; }
+    static int  SESSION_NUM_INTS(int /*version*/=CURRENT_SESSION_VERSION) { return 1; }
+    static int  SESSION_NUM_FLOATS(int /*version*/=CURRENT_SESSION_VERSION) { return 0; }
 protected:
     std::string  _category;
     Rgba  _default_color = {255,255,0,255}; // yellow

@@ -41,7 +41,6 @@ const std::string ChangeTracker::REASON_RESIDUES("residues changed");
 const std::string ChangeTracker::REASON_RIBBON_ADJUST("ribbon_adjust changed");
 const std::string ChangeTracker::REASON_RIBBON_COLOR("ribbon_color changed");
 const std::string ChangeTracker::REASON_RIBBON_DISPLAY("ribbon_display changed");
-const std::string ChangeTracker::REASON_RIBBON_STYLE("ribbon_style changed");
 const std::string ChangeTracker::REASON_RIBBON_HIDE_BACKBONE("ribbon_hide_backbone changed");
 const std::string ChangeTracker::REASON_RIBBON_TETHER("ribbon_tether_* changed");
 const std::string ChangeTracker::REASON_RIBBON_ORIENTATION("ribbon_orientation changed");

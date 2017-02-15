@@ -14,7 +14,7 @@
 # -----------------------------------------------------------------------------
 # Implementation of "volume" command.
 #
-def register_volume_command():
+def register_volume_command(logger):
 
     from ..commands import CmdDesc, register
     from ..commands import BoolArg, IntArg, StringArg, FloatArg, FloatsArg, NoArg, ListOf, EnumOf, Int3Arg, ColorArg, CenterArg, AxisArg, CoordSysArg, SymmetryArg, RepeatOf
@@ -88,12 +88,13 @@ def register_volume_command():
                ('box_faces', BoolArg),
                ('orthoplanes', EnumOf(('xyz', 'xy', 'xz', 'yz', 'off'))),
                ('position_planes', Int3Arg),
-        ])
-    register('volume', volume_desc, volume)
+        ],
+        synopsis = 'set volume model parameters, display style and colors')
+    register('volume', volume_desc, volume, logger=logger)
 
     # Register volume subcommands for filtering operations.
     from . import filter
-    filter.register_volume_filtering_subcommands()
+    filter.register_volume_filtering_subcommands(logger)
     
 # -----------------------------------------------------------------------------
 #

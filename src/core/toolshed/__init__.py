@@ -422,7 +422,7 @@ class Toolshed:
         inst_bi_list = self._load_bundle_infos(logger, rebuild_cache=rebuild_cache)
         for bi in inst_bi_list:
             self.add_bundle_info(bi, logger)
-            bi.register()
+            bi.register(logger)
             if session is not None:
                 bi.initialize(session)
         if check_remote:
@@ -1799,24 +1799,24 @@ class BundleInfo:
         """
         return self._name, self._version
 
-    def register(self):
-        self._register_commands()
-        self._register_file_types()
-        self._register_selectors()
+    def register(self, logger):
+        self._register_commands(logger)
+        self._register_file_types(logger)
+        self._register_selectors(logger)
 
     def deregister(self):
         self._deregister_selectors()
         self._deregister_file_types()
         self._deregister_commands()
 
-    def _register_commands(self):
+    def _register_commands(self, logger):
         """Register commands with cli."""
         from chimerax.core.commands import cli
         for ci in self.commands:
             def cb(s=self, n=ci.name):
                 s._register_cmd(n)
             _debug("delay_registration", ci.name)
-            cli.delay_registration(ci.name, cb)
+            cli.delay_registration(ci.name, cb, logger=logger)
 
     def _register_cmd(self, command_name):
         """Called when commands need to be really registered."""
@@ -1844,7 +1844,7 @@ class BundleInfo:
             except RuntimeError:
                 pass  # don't care if command was already missing
 
-    def _register_file_types(self):
+    def _register_file_types(self, logger):
         """Register file types."""
         from chimerax.core import io, fetch
         for fi in self.formats:
@@ -1926,7 +1926,7 @@ class BundleInfo:
         # TODO: implement
         pass
 
-    def _register_selectors(self):
+    def _register_selectors(self, logger):
         from ..commands import register_selector
         for si in self.selectors:
             def selector_cb(session, models, results, _name=si.name):

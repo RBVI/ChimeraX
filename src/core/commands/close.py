@@ -60,4 +60,4 @@ def register_command(session):
     from . import CmdDesc, register, ModelsArg
     desc = CmdDesc(optional=[('models', ModelsArg)],
                    synopsis='close models')
-    register('close', desc, close)
+    register('close', desc, close, logger=session.logger)

@@ -106,7 +106,7 @@ def register_command(session):
                    ('range', ColormapRangeArg),
                    ('offset', FloatArg)],
         synopsis = 'color surfaces')
-    cli.register('scolor', _scolor_desc, scolor)
+    cli.register('scolor', _scolor_desc, scolor, logger=session.logger)
 
 def scolor_command(cmdname, args):
     from Commands import doExtensionFunc, parse_enumeration, CommandError

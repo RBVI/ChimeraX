@@ -47,7 +47,7 @@ def style(session, objects=None, atom_style=None, atom_radius=None, stick_radius
             atoms.radii = atoms.default_radii
         else:
             atoms.radii = atom_radius
-        what.append('%d atom radii' % len(a))
+        what.append('%d atom radii' % len(atoms))
 
     if stick_radius is not None:
         b = atoms.inter_bonds
@@ -102,4 +102,4 @@ def register_command(session):
                               ('ball_scale', FloatArg),
                               ('dashes', IntArg)],
                    synopsis='change atom and bond depiction')
-    register('style', desc, style)
+    register('style', desc, style, logger=session.logger)

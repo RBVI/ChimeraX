@@ -122,7 +122,7 @@ def register_command(session):
                                ('show_ribbon', BoolArg),
                                ('hide_hbonds', BoolArg)],
                    synopsis='depict nucleic acid residues as cylinders')
-    register('rungs', desc, rungs)
+    register('rungs', desc, rungs, logger=session.logger)
     desc = CmdDesc(optional = [('atoms', AtomsArg)],
                    synopsis='Hide rungs for specified residues')
-    register('rungs hide', desc, rungs_hide)
+    register('rungs hide', desc, rungs_hide, logger=session.logger)

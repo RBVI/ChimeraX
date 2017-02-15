@@ -4,27 +4,27 @@ from chimerax.core.commands import CmdDesc, EmptyArg, EnumOf, Or, StringArg, Ato
 from .util import report_models, report_chains, report_polymers, report_residues
 from .util import report_residues, report_atoms, report_resattr, report_distmat
 
-def listinfo_models(session, spec=None, type_=None, attribute="name"):
-    if spec is None:
+def listinfo_models(session, atoms=None, type_=None, attribute="name"):
+    if atoms is None:
         from chimerax.core.commands import atomspec
-        spec = atomspec.everything(session)
-    results = spec.evaluate(session)
+        atoms = atomspec.everything(session)
+    results = atoms.evaluate(session)
     if type_ is not None:
         type_ = type_.lower()
     models = [m for m in results.models
               if type_ is None or type(m).__name__.lower() == type_]
     report_models(session.logger, models, attribute)
-listinfo_models_desc = CmdDesc(required=[("spec", Or(AtomSpecArg, EmptyArg))],
+listinfo_models_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg, EmptyArg))],
                                keyword=[("type_", StringArg),
                                         ("attribute", StringArg),],
                                synopsis="Report model information")
 
 
-def listinfo_chains(session, spec=None, attribute="chain_id"):
-    if spec is None:
+def listinfo_chains(session, atoms=None, attribute="chain_id"):
+    if atoms is None:
         from chimerax.core.commands import atomspec
-        spec = atomspec.everything(session)
-    results = spec.evaluate(session)
+        atoms = atomspec.everything(session)
+    results = atoms.evaluate(session)
     chains = []
     for m in results.models:
         try:
@@ -33,16 +33,16 @@ def listinfo_chains(session, spec=None, attribute="chain_id"):
             # No chains, no problem
             pass
     report_chains(session.logger, chains, attribute)
-listinfo_chains_desc = CmdDesc(required=[("spec", Or(AtomSpecArg, EmptyArg))],
+listinfo_chains_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg, EmptyArg))],
                                keyword=[("attribute", StringArg),],
                                synopsis="Report chain information")
 
 
-def listinfo_polymers(session, spec=None):
-    if spec is None:
+def listinfo_polymers(session, atoms=None):
+    if atoms is None:
         from chimerax.core.commands import atomspec
-        spec = atomspec.everything(session)
-    results = spec.evaluate(session)
+        atoms = atomspec.everything(session)
+    results = atoms.evaluate(session)
     polymers = []
     residues = results.atoms.unique_residues
     for m in results.atoms.unique_structures:
@@ -54,30 +54,30 @@ def listinfo_polymers(session, spec=None):
             # No chains, no problem
             pass
     report_polymers(session.logger, polymers)
-listinfo_polymers_desc = CmdDesc(required=[("spec", Or(AtomSpecArg, EmptyArg))],
+listinfo_polymers_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg, EmptyArg))],
                                  synopsis="Report polymer information")
 
 
-def listinfo_residues(session, spec=None, attribute="name"):
-    if spec is None:
+def listinfo_residues(session, atoms=None, attribute="name"):
+    if atoms is None:
         from chimerax.core.commands import atomspec
-        spec = atomspec.everything(session)
-    results = spec.evaluate(session)
+        atoms = atomspec.everything(session)
+    results = atoms.evaluate(session)
     residues = results.atoms.unique_residues
     report_residues(session.logger, residues, attribute)
-listinfo_residues_desc = CmdDesc(required=[("spec", Or(AtomSpecArg, EmptyArg))],
+listinfo_residues_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg, EmptyArg))],
                                  keyword=[("attribute", StringArg),],
                                  synopsis="Report residue information")
 
 
-def listinfo_atoms(session, spec=None, attribute="idatm_type"):
-    if spec is None:
+def listinfo_atoms(session, atoms=None, attribute="idatm_type"):
+    if atoms is None:
         from chimerax.core.commands import atomspec
-        spec = atomspec.everything(session)
-    results = spec.evaluate(session)
+        atoms = atomspec.everything(session)
+    results = atoms.evaluate(session)
     residues = results.atoms.unique_residues
     report_atoms(session.logger, results.atoms, attribute)
-listinfo_atoms_desc = CmdDesc(required=[("spec", Or(AtomSpecArg, EmptyArg))],
+listinfo_atoms_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg, EmptyArg))],
                               keyword=[("attribute", StringArg),],
                               synopsis="Report atom information")
 
@@ -144,17 +144,17 @@ _ResidueAttributes = [
 ]
 
 
-def listinfo_distmat(session, spec):
+def listinfo_distmat(session, atoms):
     from scipy.spatial.distance import pdist, squareform
-    if spec is None:
+    if atoms is None:
         from chimerax.core.commands import atomspec
-        spec = atomspec.everything(session)
-    results = spec.evaluate(session)
+        atoms = atomspec.everything(session)
+    results = atoms.evaluate(session)
     atoms = results.atoms
     coords = atoms.scene_coords
     distmat = pdist(coords, "euclidean")
     report_distmat(session.logger, atoms, distmat)
-listinfo_distmat_desc = CmdDesc(required=([("spec", Or(AtomSpecArg, EmptyArg))]),
+listinfo_distmat_desc = CmdDesc(required=([("atoms", Or(AtomSpecArg, EmptyArg))]),
                                 synopsis="Report distance matrix information")
 
 from .util import Notifier

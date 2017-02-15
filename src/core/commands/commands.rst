@@ -34,6 +34,7 @@ and their code location is described with the function descriptions.
 | `crossfade`_ - Fade between scenes for movie making
 | `crosslinks`_ * - Move atomic structures to minimize crosslinks
 | `delete`_ - Delete models
+| `device`_ * - Enable devices such virtual reality headsets and space navigator
 | `echo`_ - Write message to log
 | `exit`_ - Quit
 | `fitmap`_ - fit atomic structures in density maps
@@ -67,7 +68,6 @@ and their code location is described with the function descriptions.
 | `set`_ - Set rendering effects (background color, silhouettes)
 | `show`_ - Show atoms, ribbons, models
 | `smoothlines`_ * - Smooth paths in line drawings
-| `snav`_ * - Enable space navigator input device
 | `sop`_ - Surface operations
 | `split`_ - Split atomic structures into pieces
 | `stop`_ - Stop motion
@@ -81,7 +81,6 @@ and their code location is described with the function descriptions.
 | `turn`_ - Rotate models
 | `view`_ - Move camera to view specified objects
 | `volume`_ - Change density map settings and filter maps
-| `vr`_ * - Enable virtual reality headset using SteamVR
 | `vseries`_ - Play density map time series
 | `wait`_ - Wait before executing next command
 | `windowsize`_ - Set or report graphics window size
@@ -159,6 +158,11 @@ Function found in *chimerax.crosslinks.crosslinks*
 delete
 ======
 .. autofunction:: chimerax.core.commands.delete.delete
+
+device
+======
+.. autofunction:: chimerax.spacenavigator.snav.device_snav
+.. autofunction:: chimerax.vive.vr.vr
 
 echo
 ====
@@ -298,10 +302,6 @@ show
 ====
 .. autofunction:: chimerax.core.commands.show.show
 
-snav
-====
-.. autofunction:: chimerax.spacenavigator.snav.snav
-
 smoothlines
 ===========
 .. autofunction:: chimerax.smooth_lines.smoothlines.smoothlines
@@ -358,10 +358,6 @@ view
 .. autofunction:: chimerax.core.commands.view.view_list
 .. autofunction:: chimerax.core.commands.view.view_matrix
 .. autofunction:: chimerax.core.commands.view.view_name
-
-vr
-==
-.. autofunction:: chimerax.vive.vr.vr
 
 volume
 ======
