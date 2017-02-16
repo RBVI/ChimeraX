@@ -2435,17 +2435,25 @@ def usage(name, no_aliases=False, show_subcommands=True, expand_alias=True,
         arg_syntax = []
         syntax = cmd.command_name
         for arg_name in ci._required:
-            type = ci._required[arg_name].name
-            syntax += ' %s' % arg_name
+            arg = ci._required[arg_name]
+            type = arg.name
+            if can_be_empty_arg(arg):
+                syntax += ' [%s]' % arg_name
+            else:
+                syntax += ' %s' % arg_name
             arg_syntax.append('  %s: %s' % (arg_name, type))
         num_opt = 0
         for arg_name in ci._optional:
             if not show_hidden and arg_name in ci._hidden:
                 continue
-            type = ci._optional[arg_name].name
-            syntax += ' [%s' % arg_name
+            arg = ci._optional[arg_name]
+            type = arg.name
+            if can_be_empty_arg(arg):
+                syntax += ' [%s]' % arg_name
+            else:
+                syntax += ' [%s' % arg_name
+                num_opt += 1
             arg_syntax.append('  %s: %s' % (arg_name, type))
-            num_opt += 1
         syntax += ']' * num_opt
         for arg_name in ci._keyword:
             if not show_hidden and (arg_name in ci._hidden or arg_name in ci._optional):
@@ -2492,6 +2500,8 @@ def usage(name, no_aliases=False, show_subcommands=True, expand_alias=True,
 
     return syntax
 
+def can_be_empty_arg(arg):
+    return isinstance(arg, Or) and EmptyArg in arg.annotations
 
 def html_usage(name, no_aliases=False, show_subcommands=True, expand_alias=True,
                show_hidden=False):
@@ -2531,13 +2541,15 @@ def html_usage(name, no_aliases=False, show_subcommands=True, expand_alias=True,
                 name = escape(arg_name)
             else:
                 name = '<a href="%s">%s</a>' % (arg_type.url, escape(arg_name))
-            syntax += ' <i>%s</i>' % name
+            if can_be_empty_arg(arg_type):
+                syntax += ' [<i>%s</i>]' % name
+            else:
+                syntax += ' <i>%s</i>' % name
             arg_syntax.append('<i>%s</i>: %s' % (name, escape(type)))
         num_opt = 0
         for arg_name in ci._optional:
             if not show_hidden and arg_name in ci._hidden:
                 continue
-            num_opt += 1
             arg_type = ci._optional[arg_name]
             arg_name = _user_kw(arg_name)
             type = arg_type.name
@@ -2545,7 +2557,11 @@ def html_usage(name, no_aliases=False, show_subcommands=True, expand_alias=True,
                 name = escape(arg_name)
             else:
                 name = '<a href="%s">%s</a>' % (arg_type.url, escape(arg_name))
-            syntax += ' [<i>%s</i>' % name
+            if can_be_empty_arg(arg_type):
+                syntax += ' [<i>%s</i>]' % name
+            else:
+                syntax += ' [<i>%s</i>' % name
+                num_opt += 1
             arg_syntax.append('<i>%s</i>: %s' % (name, escape(type)))
         syntax += ']' * num_opt
         for arg_name in ci._keyword:

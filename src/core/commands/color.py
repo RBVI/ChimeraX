@@ -14,9 +14,8 @@
 _SpecialColors = ["byatom", "byelement", "byhetero", "bychain", "byentity", "bymodel",
                   "fromatoms", "random"]
 
-_SequentialLevels = ["residues", "helix", "helices", "strands",
-                     "SSEs", "chains", "entities", "molmodels",
-                     "volmodels", "allmodels"]
+_SequentialLevels = ["residues", "chains", "entities", "molmodels"]
+# More possible sequential levels: "helix", "helices", "strands", "SSEs", "volmodels", "allmodels"
 
 def color(session, objects, color=None, what=None,
           target=None, transparency=None,
@@ -405,13 +404,14 @@ def _set_sequential_structures(session, selected, cmap, opacity, target):
             from .scolor import scolor
             ns = scolor(session, m.atoms, c)
 
+# -----------------------------------------------------------------------------
+#
 _SequentialColor = {
     "entities": _set_sequential_entity,
     "chains": _set_sequential_chain,
     "residues": _set_sequential_residue,
     "molmodels": _set_sequential_structures,
 }
-
 
 # -----------------------------------------------------------------------------
 #

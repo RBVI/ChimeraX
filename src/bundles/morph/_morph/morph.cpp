@@ -132,68 +132,81 @@ static void dihedral_point(double *n1, double *n2, double *n3, double dist, doub
     dp[a] = xc*x[a] + yc*y[a] + zc*v12[a] + n1[a];
 }
 
-static void interp_dihedral(int i0, int i1, int i2, int i3,
-                            const DArray &coords0, const DArray &coords1, double f,
-                            DArray &coords)
+// Every 4 indices in array i define a dihedral.
+static void interp_dihedrals(const IArray &i, const DArray &coords0, const DArray &coords1,
+			     double f, DArray &coords)
 {
+  long n = i.size();
+  int *ia = i.values();
   double *ca0 = coords0.values(), *ca1 = coords1.values(), *ca = coords.values();
-  double *c00 = &ca0[3*i0], *c01 = &ca0[3*i1], *c02 = &ca0[3*i2], *c03 = &ca0[3*i3];
-  double *c10 = &ca1[3*i0], *c11 = &ca1[3*i1], *c12 = &ca1[3*i2], *c13 = &ca1[3*i3];
-  double *c0 = &ca[3*i0], *c1 = &ca[3*i1], *c2 = &ca[3*i2], *c3 = &ca[3*i3];
-  double length0 = distance(c00, c01);
-  double angle0 = angle(c00, c01, c02);
-  double dihed0 = dihedral(c00, c01, c02, c03);
-  double length1 = distance(c10, c11);
-  double angle1 = angle(c10, c11, c12);
-  double dihed1 = dihedral(c10, c11, c12, c13);
-  double length = length0 + (length1 - length0) * f;
-  double angle = angle0 + (angle1 - angle0) * f;
-  double ddihed = dihed1 - dihed0;
-  if (ddihed > 180)
-    ddihed -= 360;
-  else if (ddihed < -180)
-    ddihed += 360;
-  double dihed = dihed0 + ddihed * f;
-  dihedral_point(c1, c2, c3, length, angle, dihed, c0);
+  for (long j = 0 ; j < n ; j += 4)
+    {
+      int i0 = 3*ia[j], i1 = 3*ia[j+1], i2 = 3*ia[j+2], i3 = 3*ia[j+3];
+      double *c00 = &ca0[i0], *c01 = &ca0[i1], *c02 = &ca0[i2], *c03 = &ca0[i3];
+      double *c10 = &ca1[i0], *c11 = &ca1[i1], *c12 = &ca1[i2], *c13 = &ca1[i3];
+      double *c0 = &ca[i0], *c1 = &ca[i1], *c2 = &ca[i2], *c3 = &ca[i3];
+      double length0 = distance(c00, c01);
+      double angle0 = angle(c00, c01, c02);
+      double dihed0 = dihedral(c00, c01, c02, c03);
+      double length1 = distance(c10, c11);
+      double angle1 = angle(c10, c11, c12);
+      double dihed1 = dihedral(c10, c11, c12, c13);
+      double length = length0 + (length1 - length0) * f;
+      double angle = angle0 + (angle1 - angle0) * f;
+      double ddihed = dihed1 - dihed0;
+      if (ddihed > 180)
+	ddihed -= 360;
+      else if (ddihed < -180)
+	ddihed += 360;
+      double dihed = dihed0 + ddihed * f;
+      dihedral_point(c1, c2, c3, length, angle, dihed, c0);
+    }
 }
 
 // ----------------------------------------------------------------------------
 //
 extern "C" PyObject *
-interpolate_dihedral(PyObject *, PyObject *args, PyObject *keywds)
+interpolate_dihedrals(PyObject *, PyObject *args, PyObject *keywds)
 {
-  int i0, i1, i2, i3;
+  IArray i;
   double f;
   DArray coords0, coords1, coords;
-  const char *kwlist[] = {"i0", "i1", "i2", "i3", "coords0", "coords1", "f", "coords", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("iiiiO&O&dO&"),
+  const char *kwlist[] = {"i", "coords0", "coords1", "f", "coords", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&O&dO&"),
 				   (char **)kwlist,
-                                   &i0, &i1, &i2, &i3,
+                                   parse_int_n_array, &i,
 				   parse_double_n3_array, &coords0,
 				   parse_double_n3_array, &coords1,
 				   &f,
 				   parse_writable_double_n3_array, &coords))
     return NULL;
-  if (!coords0.is_contiguous() || !coords.is_contiguous() || !coords.is_contiguous())
+  if (!i.is_contiguous() || !coords0.is_contiguous() || !coords.is_contiguous() || !coords.is_contiguous())
     {
       PyErr_SetString(PyExc_TypeError, "Arrays must be contiguous");
       return NULL;
     }
 
-  interp_dihedral(i0, i1, i2, i3, coords0, coords1, f, coords);
+  interp_dihedrals(i, coords0, coords1, f, coords);
   
   return python_none();
 }
 
 // ----------------------------------------------------------------------------
 //
-static void interp_linear(int i, const DArray &coords0, const DArray &coords1, double f, DArray &coords)
+static void interp_linear(const IArray &i, const DArray &coords0, const DArray &coords1,
+			  double f, DArray &coords)
 {
-  int i3 = 3*i;
-  double *ca0 = coords0.values()+i3, *ca1 = coords1.values()+i3, *ca = coords.values()+i3;
+  long n = i.size();
+  int *ia = i.values();
   double f0 = 1-f;
-  for (int a = 0 ; a < 3 ; ++a)
-    ca[a] = ca0[a]*f0 + ca1[a]*f;
+  double *ca0 = coords0.values(), *ca1 = coords1.values(), *ca = coords.values();
+  for (long j = 0 ; j < n ; ++j)
+    {
+      int i3 = 3*ia[j];
+      double *ca0i = ca0+i3, *ca1i = ca1+i3, *cai = ca+i3;
+      for (int a = 0 ; a < 3 ; ++a)
+	cai[a] = ca0i[a]*f0 + ca1i[a]*f;
+    }
 }
 
 // ----------------------------------------------------------------------------
@@ -201,19 +214,19 @@ static void interp_linear(int i, const DArray &coords0, const DArray &coords1, d
 extern "C" PyObject *
 interpolate_linear(PyObject *, PyObject *args, PyObject *keywds)
 {
-  int i;
+  IArray i;
   double f;
   DArray coords0, coords1, coords;
   const char *kwlist[] = {"i", "coords0", "coords1", "f", "coords", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("iO&O&dO&"),
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&O&dO&"),
 				   (char **)kwlist,
-                                   &i,
+                                   parse_int_n_array, &i,
 				   parse_double_n3_array, &coords0,
 				   parse_double_n3_array, &coords1,
 				   &f,
 				   parse_writable_double_n3_array, &coords))
     return NULL;
-  if (!coords0.is_contiguous() || !coords.is_contiguous() || !coords.is_contiguous())
+  if (!i.is_contiguous() || !coords0.is_contiguous() || !coords.is_contiguous() || !coords.is_contiguous())
     {
       PyErr_SetString(PyExc_TypeError, "Arrays must be contiguous");
       return NULL;
@@ -227,9 +240,9 @@ interpolate_linear(PyObject *, PyObject *args, PyObject *keywds)
 // ----------------------------------------------------------------------------
 //
 static PyMethodDef morph_methods[] = {
-  {const_cast<char*>("interpolate_dihedral"), (PyCFunction)interpolate_dihedral,
+  {const_cast<char*>("interpolate_dihedrals"), (PyCFunction)interpolate_dihedrals,
    METH_VARARGS|METH_KEYWORDS,
-   "interplate_dihedral(...)\n"
+   "interplate_dihedrals(...)\n"
    "\n"
    "Implemented in C++.\n"
   },

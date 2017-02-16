@@ -25,7 +25,7 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: style</h3>
 <h3><a href="usageconventions.html">Usage</a>:
-<br><b>style</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+<br><b>style</b> &nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
 [&nbsp;sphere&nbsp;|&nbsp;stick&nbsp;|&nbsp;ball&nbsp;]
 [&nbsp;atomRadius&nbsp;&nbsp;<i>r<sub><font size=-1>a</font></sub></i>&nbsp;|&nbsp;default&nbsp;]
 [&nbsp;stickRadius&nbsp;&nbsp;<i>r<sub><font size=-1>b</font></sub></i>&nbsp;]
@@ -69,7 +69,9 @@ The <b>style</b> command can also set the number of <b>dashes</b> per
 <a href="../pseudobonds.html">pseudobond</a>. Bonds and pseudobonds
 are considered as specified when both flanking atoms are specified,
 and all of the pseudobonds in a <a href="../pseudobonds.html">group</a>
-will be affected in parallel. Only whole numbers are accepted, with 0
+will be affected in parallel. 
+Pseudobonds can also be specified by pseudobond-group model number.
+Only whole numbers of dashes are accepted, with 0
 indicating solid sticks. Currently, odd numbers are rounded down 
 to give an even number of dashes.
 </p><p>
@@ -84,5 +86,5 @@ See also:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2017</address>
+February 2017</address>
 </body></html>

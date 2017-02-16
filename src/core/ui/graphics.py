@@ -52,8 +52,12 @@ class GraphicsWindow(QWindow):
     def resizeEvent(self, event):
         s = event.size()
         w, h = s.width(), s.height()
-        self.view.resize(w, h)
-        self.view.redraw_needed = True
+        v = self.view
+        v.resize(w, h)
+        v.redraw_needed = True
+        if self.isExposed():
+            # Avoid flickering when resizing by drawing immediately.
+            v.draw(check_for_changes = False)
 
     def set_redraw_interval(self, msec):
         self.redraw_interval = msec  # milliseconds
@@ -110,6 +114,10 @@ class Popup(QLabel):
 
 from PyQt5.QtGui import QOpenGLContext
 class OpenGLContext(QOpenGLContext):
+    
+    required_opengl_version = (3, 3)
+    required_opengl_core_profile = True
+
     def __init__(self, graphics_window, ui):
         self.window = graphics_window
         self._ui = ui
@@ -133,18 +141,23 @@ class OpenGLContext(QOpenGLContext):
         ui = self._ui
         self.setScreen(ui.primaryScreen())
         from PyQt5.QtGui import QSurfaceFormat
-        fmt = QSurfaceFormat.defaultFormat()
+        fmt = QSurfaceFormat()
+        fmt.setVersion(*self.required_opengl_version)
+        fmt.setDepthBufferSize(24)
+        if self.required_opengl_core_profile:
+            fmt.setProfile(QSurfaceFormat.CoreProfile)
+        fmt.setRenderableType(QSurfaceFormat.OpenGL)
         self.setFormat(fmt)
         self.window.setFormat(fmt)
         if not self.create():
             raise ValueError("Could not create OpenGL context")
         sf = self.format()
         major, minor = sf.version()
-        rmajor, rminor = ui.required_opengl_version
+        rmajor, rminor = self.required_opengl_version
         if major < rmajor or (major == rmajor and minor < rminor):
             raise ValueError("Available OpenGL version ({}.{}) less than required ({}.{})"
                 .format(major, minor, rmajor, rminor))
-        if ui.required_opengl_core_profile:
+        if self.required_opengl_core_profile:
             if sf.profile() != sf.CoreProfile:
                 raise ValueError("Required OpenGL Core Profile not available")
 
