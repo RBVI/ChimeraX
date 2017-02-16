@@ -33,32 +33,49 @@ class="clRight" title="User Guide Index"/></a>
 
 <h2>Command-Line Target Specification</h2>
 <p>
-Atomic models and atoms and residues within those models
-can be specified in <a href="../index.html#commands">commands</a> using:
+Most <a href="../index.html#commands">commands</a>
+require or allow specifying which items they should affect.
+Which types of items are accepted depends on the specific command.
+</p>
 <ul>
-<li><a href="#hierarchy">hierarchical specifiers</a>
-- model number, chain, residue, atom name
-<li><a href="#builtin">built-in classifications</a>
-- <b>sel</b> (current <a href="../selection.html">selection</a>), 
-<b>protein</b>, <b>helix</b>, <b>strand</b>, 
-<b>solvent</b>, element symbols, functional groups, <i>etc.</i>
-<li><a href="#user">user-defined targets</a>
-<font color="brown">(not yet implemented)</font> 
-<li><a href="#zones">zones</a> - by distance from other items
-<font color="brown">(not yet implemented, but see
-<a href="select.html"><b>select zone</b></a>
-and <a href="surface.html#zone"><b>surface zone</b></a>)</font>
-<li><a href="#descriptors">attribute</a> names and values
-<font color="brown">(not yet implemented)</font>
+<li><a name="atomspec"></a>
+Atomic models and their parts (atoms/bonds, residues, chains) and
+associated <a href="surface.html">molecular surfaces</a> can be specified using:
+  <ul>
+  <li><a href="#hierarchy">hierarchical specifiers</a>
+  - model number, chain ID, residue name or number, atom name
+  <li><a href="#builtin">built-in classifications</a>
+  - <b>sel</b> (current <a href="../selection.html">selection</a>),
+  <b>protein</b>, <b>helix</b>, <b>strand</b>, 
+  <b>solvent</b>, element symbols, functional groups, <i>etc.</i>
+  <li><a href="#user">user-defined targets</a>
+  <font color="brown">(not yet implemented)</font> 
+  <li><a href="#zones">zones</a> - by distance from other items
+  <font color="brown">(not yet implemented, but see
+  <a href="select.html"><b>select zone</b></a>
+  and <a href="surface.html#zone"><b>surface zone</b></a>)</font>
+  <li><a href="#descriptors">attribute</a> names and values
+  <font color="brown">(not yet implemented)</font>
+  <li><a href="#combinations">combinations</a> of the above
+  </ul>
+<li><a name="othermodels"></a>
+Nonatomic models such as nonmolecular surfaces or maps 
+(<a href="../tools/volumeviewer.html">volume</a> models) can be specified
+in a more limited set of ways, namely:
+  <ul>
+  <li><a href="#hierarchy">hierarchical specifiers</a> - model number
+  <li><a href="#builtin">built-in classifications</a>
+  - <b>sel</b> (the current <a href="../selection.html">selection</a>, 
+  which could include nonatomic models), <b>selMaps</b> (the currently
+  <a href="../selection.html">selected</a> volume models, 
+  or if none are selected, all volume models)
+  </ul>
 </ul>
-or <a href="#combinations">combinations</a> of these.
-In addition, some commands accept or require specifying
-<a href="#othermodels">non-atomic models</a> such as surfaces or maps.
+<p>
 Specification strings may contain embedded spaces, and
 a blank specification (where allowed) means &ldquo;all.&rdquo;
-</p><p>
-The summary of <a href="atomspec-diffsum.html">differences
-in command-line specification</a> relative to Chimera may be useful.
+Specification in ChimeraX is generally similar to that in Chimera,
+but there are <a href="atomspec-diffsum.html">differences</a>.
 </p>
 
 <a name="hierarchy"></a>
@@ -322,7 +339,7 @@ and their flanking atoms
 <li><b>hbonds</b> - all H-bond <a href="../pseudobonds.html">pseudobonds</a>
 and their flanking atoms
 <li><b>selMaps</b> - the currently <a href="../selection.html">selected</a>
-volume model(s), or if none are selected, all volume models
+volume models, or if none are selected, all volume models
 </ul>
 <p>
 Built-in classifications cannot be redefined by the user.
@@ -894,31 +911,6 @@ formally positive nitrogens
 </blockquote>
 - atoms within 4 &Aring; of <a href="#surfcats">ions</a>,
 excluding the ions themselves
-</p>
-
-<hr>
-<a name="othermodels"></a>
-<h2><a href="#top" class="nounder"><b>&larr;</b></a>
-Surfaces, Maps (Volume Data), Other Model Types</h2>
-<p>
-Some commands can apply to things other than atomic models 
-(atomic coordinates) and <a href="surface.html">molecular surfaces</a>. 
-To handle such cases, &ldquo;atom specification&rdquo;
-has been extended as follows:
-<ul>
-<li>like atomic models, other types of models can be specified 
-by model number or comma-separated list or range of model numbers
-preceded by #
-<li>the word <b>sel</b> specifies 
-the current <a href="../selection.html">selection</a>,
-which may include surface and/or volume model(s)
-<li>the word <b>selMaps</b> specifies the currently
-<a href="../selection.html">selected</a> volume model(s), 
-or if none are selected, all volume models
-</ul>
-Which of these can be used and whether they can be
-<a href="#combinations">combined</a> with atom specifications
-depends on the command.
 </p>
 
 <hr>
