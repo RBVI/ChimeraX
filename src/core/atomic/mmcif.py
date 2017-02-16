@@ -25,7 +25,7 @@ _initialized = False
 
 _additional_categories = (
     'pdbx_struct_assembly',
-    #    'pdbx_struct_assembly_gen',
+    'pdbx_struct_assembly_gen',
     #    'pdbx_struct_oper_list',
     "entity",
     "entity_src_gen",
