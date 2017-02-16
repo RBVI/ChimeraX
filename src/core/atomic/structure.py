@@ -1928,6 +1928,8 @@ class AtomicStructure(Structure):
                         chain.description))
 
     def _report_assemblies(self, session):
+        if getattr(self, 'ignore_assemblies', False):
+            return
         from . import mmcif 
         sat = mmcif.get_mmcif_tables_from_metadata(self, ['pdbx_struct_assembly'])[0]
         sagt = mmcif.get_mmcif_tables_from_metadata(self, ['pdbx_struct_assembly_gen'])[0]
@@ -1949,8 +1951,8 @@ class AtomicStructure(Structure):
         lines = ['<table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0">',
                  '<tr><th colspan=2>%s mmCIF Assemblies' % self.name]
         for id, details in sa:
-            lines.append('<tr><td><a href="cxcmd:sym #%s assembly %s ; view #%s clip false">%s</a><td>%s'
-                         % (self.id_string(), id, self.id_string(), id, details))
+            lines.append('<tr><td><a href="cxcmd:sym #%s assembly %s ; view clip false">%s</a><td>%s'
+                         % (self.id_string(), id, id, details))
         lines.append('</table>')
         html = '\n'.join(lines)
         session.logger.info(html, is_html=True)
