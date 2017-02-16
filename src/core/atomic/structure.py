@@ -1930,21 +1930,30 @@ class AtomicStructure(Structure):
     def _report_assemblies(self, session):
         from . import mmcif 
         sat = mmcif.get_mmcif_tables_from_metadata(self, ['pdbx_struct_assembly'])[0]
-        if sat:
-            try:
-                rows = sat.fields(('id', 'details'))
-            except ValueError:
-                return	# Table does not have required fields
-            if len(rows) == 1 and rows[0][1].startswith('author'):
-                return	# Don't report the identity assembly
-            lines = ['<table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0">',
-                     '<tr><th colspan=2>%s mmCIF Assemblies' % self.name]
-            for id, details in rows:
-                lines.append('<tr><td><a href="cxcmd:sym #%s assembly %s ; view #%s clip false">%s</a><td>%s'
-                             % (self.id_string(), id, self.id_string(), id, details))
-            lines.append('</table>')
-            html = '\n'.join(lines)
-            session.logger.info(html, is_html=True)
+        sagt = mmcif.get_mmcif_tables_from_metadata(self, ['pdbx_struct_assembly_gen'])[0]
+        if not sat or not sagt:
+            return
+
+        try:
+            sa = sat.fields(('id', 'details'))
+            sag = sagt.mapping('assembly_id', 'oper_expression')
+        except ValueError:
+            return	# Tables do not have required fields
+
+        if len(sa) == 1 and sag.get(sa[0][0]) == '1':
+            # Probably just have the identity assembly, so don't show table.
+            # Should check that it is the identity operator and all
+            # chains are transformed. Requires reading more tables.
+            return
+
+        lines = ['<table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0">',
+                 '<tr><th colspan=2>%s mmCIF Assemblies' % self.name]
+        for id, details in sa:
+            lines.append('<tr><td><a href="cxcmd:sym #%s assembly %s ; view #%s clip false">%s</a><td>%s'
+                         % (self.id_string(), id, self.id_string(), id, details))
+        lines.append('</table>')
+        html = '\n'.join(lines)
+        session.logger.info(html, is_html=True)
 
 
 # -----------------------------------------------------------------------------
