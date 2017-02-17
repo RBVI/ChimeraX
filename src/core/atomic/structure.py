@@ -40,6 +40,7 @@ class Structure(Model, StructureData):
             setattr(self, attr_name, val)
         Model.__init__(self, name, session)
         self._auto_style = auto_style
+        self._log_info = True
 
         # for now, restore attrs to default initial values even for sessions...
         self._atoms_drawing = None
@@ -96,6 +97,7 @@ class Structure(Model, StructureData):
         m = self.__class__(self.session, name = name, c_pointer = StructureData._copy(self),
                            auto_style = False)
         m.positions = self.positions
+        m._log_info = False
         return m
 
     def added_to_session(self, session):
@@ -1822,7 +1824,9 @@ class AtomicStructure(Structure):
         super().added_to_session(session)
         self._set_chain_descriptions(session)
         self._determine_het_res_descriptions(session)
-        self._report_assemblies(session)
+        if self._log_info:
+            self._report_chain_descriptions(session)
+            self._report_assemblies(session)
 
     def _determine_het_res_descriptions(self, session):
         # Don't actually set the description in the residue in order to avoid having
@@ -1923,9 +1927,13 @@ class AtomicStructure(Structure):
             chains = sorted(self.chains, key=lambda c: c.chain_id)
             for chain in chains:
                 chain.description = chain_to_desc.get(chain.chain_id, None)
-                if chain.description:
-                    session.logger.info("%s, chain %s: %s" % (self, chain.chain_id,
-                        chain.description))
+
+    def _report_chain_descriptions(self, session):
+        chains = sorted(self.chains, key=lambda c: c.chain_id)
+        for chain in chains:
+            if chain.description:
+                session.logger.info("%s, chain %s: %s" %
+                                    (self, chain.chain_id, chain.description))
 
     def _report_assemblies(self, session):
         if getattr(self, 'ignore_assemblies', False):
