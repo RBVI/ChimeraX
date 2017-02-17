@@ -63,11 +63,13 @@ class MolecularMotion:
                 t1 = time()
                 global ht
                 ht += t1-t0
-                segments, atomMap, unusedResidues, unusedAtoms = results
+                segments, atomMap = results
                 from chimerax.core.atomic import Residues, Atoms
                 res_groups = [Residues(r0) for r0,r1 in segments]
-                unusedResidues.delete()
-                unusedAtoms.delete()
+                if len(atomMap) < sm.num_atoms:
+                        paired_atoms = Atoms(tuple(atomMap.keys()))
+                        unpaired_atoms = sm.atoms.subtract(paired_atoms)
+                        unpaired_atoms.delete()
 
                 if sm.deleted:
                         from chimerax.core.errors import UserError
