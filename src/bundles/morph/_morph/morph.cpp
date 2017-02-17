@@ -239,6 +239,73 @@ interpolate_linear(PyObject *, PyObject *args, PyObject *keywds)
 
 // ----------------------------------------------------------------------------
 //
+static void  rigid_motion(DArray &coords, const IArray &i,
+                          double *axis, double angle, double *center, double *shift, double f)
+{
+  double arad = f * angle * M_PI / 180.0;
+  double sa = sin(arad), ca = cos(arad);
+  double k = 1 - ca;
+  double ax = axis[0], ay = axis[1], az = axis[2];
+  double r00 = 1 + k * (ax * ax - 1);
+  double r01 = -az * sa + k * ax * ay;
+  double r02 = ay * sa + k * ax * az;
+  double r10 = az * sa + k * ax * ay;
+  double r11 = 1 + k * (ay * ay - 1);
+  double r12 = -ax * sa + k * ay * az;
+  double r20 = -ay * sa + k * ax * az;
+  double r21 = ax * sa + k * ay * az;
+  double r22 = 1 + k * (az * az - 1);
+  double cx = center[0], cy = center[1], cz = center[2];
+  double rcx = r00*cx + r01*cy + r02*cz;
+  double rcy = r10*cx + r11*cy + r12*cz;
+  double rcz = r20*cx + r21*cy + r22*cz;
+  double sx = cx - rcx + f*shift[0], sy = cy - rcy + f*shift[1], sz = cz - rcz + f*shift[2];
+
+  long n = i.size();
+  int *ia = i.values();
+  double *crd = coords.values();
+  for (long j = 0 ; j < n ; ++j)
+    {
+      double *ci = crd + 3*ia[j];
+      double x = ci[0], y = ci[1], z = ci[2];
+      ci[0] = r00*x + r01*y + r02*z + sx;
+      ci[1] = r10*x + r11*y + r12*z + sy;
+      ci[2] = r20*x + r21*y + r22*z + sz;
+    }
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" PyObject *
+apply_rigid_motion(PyObject *, PyObject *args, PyObject *keywds)
+{
+  DArray coords;
+  IArray i;
+  double axis[3], angle, center[3], shift[3], f;
+  const char *kwlist[] = {"coords", "i", "axis", "angle", "center", "shift", "f", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&O&dO&O&d"),
+				   (char **)kwlist,
+				   parse_writable_double_n3_array, &coords,
+                                   parse_int_n_array, &i,
+				   parse_double_3_array, &axis[0],
+                                   &angle,
+				   parse_double_3_array, &center[0],
+				   parse_double_3_array, &shift[0],
+				   &f))
+    return NULL;
+  if (!i.is_contiguous() || !coords.is_contiguous())
+    {
+      PyErr_SetString(PyExc_TypeError, "Arrays must be contiguous");
+      return NULL;
+    }
+
+  rigid_motion(coords, i, axis, angle, center, shift, f);
+  
+  return python_none();
+}
+
+// ----------------------------------------------------------------------------
+//
 static PyMethodDef morph_methods[] = {
   {const_cast<char*>("interpolate_dihedrals"), (PyCFunction)interpolate_dihedrals,
    METH_VARARGS|METH_KEYWORDS,
@@ -249,6 +316,12 @@ static PyMethodDef morph_methods[] = {
   {const_cast<char*>("interpolate_linear"), (PyCFunction)interpolate_linear,
    METH_VARARGS|METH_KEYWORDS,
    "interplate_linear(...)\n"
+   "\n"
+   "Implemented in C++.\n"
+  },
+  {const_cast<char*>("apply_rigid_motion"), (PyCFunction)apply_rigid_motion,
+   METH_VARARGS|METH_KEYWORDS,
+   "apply_rigid_motion(...)\n"
    "\n"
    "Implemented in C++.\n"
   },

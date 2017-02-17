@@ -1,14 +1,18 @@
 from time import time
-smt = stt = rit = rst = rsit = 0
+stt = rit = rst = rsit = 0
 from time import time
-def interpolate(coordset0, coordset1, segment_interpolator, residue_interpolator, rate_method, frames, log):
-        # coordset0     initial coordinates indexed by atom index
-        # coordset1     final coordinates indexed by atom index
-        # segment_interpolator   function to interpolate groups of residues rigidly
-        # residue_interpolator   function to interpolate residue conformations
-        # rate_method   spacing method for interpolation steps: "linear", "sinusoidal", "ramp up", "ramp down"
-        # frames        number of frames to generate in trajectory
-        # log           Logger for reporting progress messages
+def interpolate(coordset0, coordset1, segment_interpolator, residue_interpolator,
+                rate_method, frames, log):
+        '''
+        coordset0              initial coordinates indexed by atom index
+        coordset1              final coordinates indexed by atom index
+        segment_interpolator   function to interpolate groups of residues rigidly
+        residue_interpolator   function to interpolate residue conformations
+        rate_method            spacing method for interpolation steps:
+                                 "linear", "sinusoidal", "ramp up", "ramp down"
+        frames                 number of frames to generate in trajectory
+        log                    Logger for reporting progress messages
+        '''
 
         # Calculate interpolated coordinates for each frame.
         coordsets = []
@@ -138,22 +142,26 @@ class SegmentInterpolator:
 
         def reverse_motion(self, coordset):
                 for atom_indices, xform in self.motion_transforms:
-                        xform.inverse().move(coordset[atom_indices])
-                
+                        ca = coordset[atom_indices]	# Copies array
+                        xform.inverse().move(ca)
+                        coordset[atom_indices] = ca
+
         def interpolate(self, f, coordset):
-                from chimerax.core.geometry import rotation, translation
+                global rit
+                t0 = time()
                 for atom_indices, axis, angle, center, shift in self.motion_parameters:
-                        t0 = time()
-                        xf = translation(f*shift) * rotation(axis, f*angle, center)
-                        t1 = time()
-                        global rit
-                        rit += t1-t0
-                        t0 = time()
-                        # Apply rigid segment motion
-                        xf.move(coordset[atom_indices])
-                        t1 = time()
-                        global smt
-                        smt += t1 - t0
+                        apply_rigid_motion(coordset, atom_indices, axis, angle, center, shift, f)
+                t1 = time()
+                rit += t1-t0
+
+def apply_rigid_motion_py(coordset, atom_indices, axis, angle, center, shift, f):
+        from chimerax.core.geometry import rotation, translation
+        xf = translation(f*shift) * rotation(axis, f*angle, center)
+        ca = coordset[atom_indices]	# Copies array
+        xf.move(ca)  # Apply rigid segment motion
+        coordset[atom_indices] = ca
+# Use C++ optimized version
+from ._morph import apply_rigid_motion
 
 def interpolate_corkscrew(xf, c0, c1):
         'Decompose transform as a rotation about an axis and shift along that axis.'
