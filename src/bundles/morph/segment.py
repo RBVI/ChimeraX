@@ -56,7 +56,6 @@ def segmentHingeExact(m0, m1, fraction=0.5):
 
         parts = []
         atomMap = {}
-        unusedAtoms = []
         for (s0,cid0,r0list), (s1,cid1,r1list) in zip(cr0, cr1):
                 if len(r0list) != len(r1list):
                         raise ValueError("Chains %s and %s have different number of residues" % (cid0, cid1))
@@ -64,7 +63,7 @@ def segmentHingeExact(m0, m1, fraction=0.5):
                 curRList0 = None
                 curRList1 = None
                 for r0, r1 in zip(r0list, r1list):
-                        if not shareAtoms(r0, r1, atomMap, unusedAtoms):
+                        if not shareAtoms(r0, r1, atomMap):
                                 raise ValueError("residues do not share atoms")
                         #
                         # Split residues based on surface category (in m0)
@@ -85,8 +84,7 @@ def segmentHingeExact(m0, m1, fraction=0.5):
         segments = []
         for rList0, rList1 in parts:
                 segments.extend(segmentHingeResidues(rList0, rList1, fraction))
-        from chimerax.core.atomic import Residues, Atoms
-        return segments, atomMap, Residues([]), Atoms(unusedAtoms)
+        return segments, atomMap
 
 def residuesByChain(residues):
         residues.by_chain
@@ -125,14 +123,6 @@ def segmentHingeApproximate(m0, m1, fraction=0.5, matrix="BLOSUM-62"):
                         matchCount1, resCount1, m1.name))
 
         #
-        # Any residue that does not appear in chains are unused
-        #
-        maybe = set()
-        for seq0 in m0seqs:
-                maybe.update(seq0.residues)
-        unusedResidues = [ r0 for r0 in m0.residues if r0 not in maybe ]
-
-        #
         # Try to find the best matches for sequences.
         # If both models have chains with the same ids, assume that
         # chains with the same ids match.  Otherwise, assume the chains
@@ -155,7 +145,6 @@ def segmentHingeApproximate(m0, m1, fraction=0.5, matrix="BLOSUM-62"):
         ksdsspCache = set([m0, m1])
         parts = []
         atomMap = {}
-        unusedAtoms = []
         matched = 0
         matrices = [
                 defaults['matrix'],
@@ -185,14 +174,11 @@ def segmentHingeApproximate(m0, m1, fraction=0.5, matrix="BLOSUM-62"):
                                 continue
                         i1 = gapped1.gapped_to_ungapped(pos)
                         if i1 is None:
-                                unusedResidues.append(r0)
                                 continue
                         r1 = gapped1.residues[i1]
                         if r1 is None:
-                                unusedResidues.append(r0)
                                 continue
-                        if not shareAtoms(r0, r1, atomMap, unusedAtoms):
-                                unusedResidues.append(r0)
+                        if not shareAtoms(r0, r1, atomMap):
                                 continue
                         rList0.append(r0)
                         rList1.append(r1)
@@ -251,19 +237,16 @@ def segmentHingeApproximate(m0, m1, fraction=0.5, matrix="BLOSUM-62"):
                         except KeyError:
                                 pass
                         else:
-                                if shareAtoms(r0, r1, atomMap, unusedAtoms):
+                                if shareAtoms(r0, r1, atomMap):
                                         s0, s1 = segments[sIndex]
-                                        segments[sIndex] = (s0 + (r0,),
-                                                                s1 + (r1,))
-                                        unusedResidues.remove(r0)
+                                        segments[sIndex] = (s0 + (r0,), s1 + (r1,))
                                         matched += 1
 
         #
         # Finally, finished
         #
         print ("Matched %d residues in %d segments" % (matched, len(segments)))
-        from chimerax.core.atomic import Residues, Atoms
-        return segments, atomMap, Residues(unusedResidues), Atoms(unusedAtoms)
+        return segments, atomMap
 
 def segmentHingeResidues(rList0, rList1, fraction):
         #
@@ -286,27 +269,35 @@ def segmentHingeResidues(rList0, rList1, fraction):
         segments = zip(segmentsStart, segmentsEnd)
         return segments
 
+#
 # Match atoms in r0 to atoms with the same name in r1 starting at
-# the r0 atom that connects to the previous residue (or lacking such an
+# the r0 atom that connects to the previous residue or lacking such an
 # atom to the r0 atom that connects to the next residue, or lacking that
-# atom start with a random r0 atom).  Expand out along bonds from that
-# starting atom.  So we match a bonded subgraph with same atom names.
-# Unused atoms in r0 are also added to a list.
-# TODO: New version does not worry about connectivity.  This may break
-# internal coordinate interpolation.
-def shareAtomsDumb(r0, r1, atomMap, unusedAtoms):
-        a1 = {a.name: a for a in r1.atoms}
-        matched = False
-        for a in r0.atoms:
-                if a.name in a1:
-                        atomMap[a] = a1[a.name]
-                        matched = True
-                else:
-                        unusedAtoms.append(a)
-        return matched
-
+# atom start with the first r0 atom that has an atom of the same name in r1.
+# Expand out along bonds from that starting atom matching atoms in r1 with
+# same name and same bond to the base atom. This produces a matched
+# subgraph with same atom names.  Then match any atoms that were not
+# paired by name only.
+#
+# If a residue has more than one atom with the same name, the behavior
+# of this matching will depend on the order of the atoms.  Actually
+# it depends on the order of atoms in any case if bond patterns don't
+# match.
+#
+# Only atoms with the same name will be matched, and some bonds must
+# also match.
+#
+# Since we are primarily iterested in proteins and nucleic acids where
+# all atoms have unique names, maybe we should just exclude pairing any
+# atoms which have other atoms in the residue of the same name.  Will
+# pairing everything else exactly by name cause problems?  Do we need
+# to try to impose similar connectivity requirements?  I think standard
+# amino acid and nucleic acid atom names imply connectivity.  So
+# connectivity requirements get us nothing.  Might be different with
+# small molecule ligands.
+# 
 satt = 0                        
-def shareAtoms(r0, r1, atomMap, unusedAtoms):
+def shareAtoms(r0, r1, atomMap):
         t0 = time()
         # We start by finding the atom connected to the
         # previous residue.  Failing that, we want the
@@ -329,70 +320,74 @@ def shareAtoms(r0, r1, atomMap, unusedAtoms):
                                 startAtom = a0
         # From this starting atom, we do a breadth-first
         # search for an atom with a matching atom name in r1
-        matched = {}
-        visited = set()
         todo = [ startAtom ]
-        paired = set()
-        expand = []
+        visited = set()
+        a0 = a1 = None
         while todo:
                 a0 = todo.pop(0)
                 a1 = r1.find_atom(a0.name)
-                if a1 is None:
+                if a1:
+                        break
+                else:
                         # No match, so we put all our neighboring
                         # atoms on the search list
+                        visited.add(a0)
                         for na in neighbors[a0]:
                                 if na not in visited and na in neighbors:
                                         todo.append(na)
-                        visited.add(a0)
-                else:
-                        # Found a starter atom pair
-                        matched[a0] = a1
-                        expand.append((a0, a1))
-                        break
-        while expand:
-                a0, a1 = expand.pop(0)
-                if a0 in visited:
-                        continue
-                visited.add(a0)
+        if a0 is None:
+                return False
+
+        matched = [(a0,a1)]
+        paired = set((a0,a1))
+        c = 0 
+        while c < len(matched):
+                a0, a1 = matched[c]
+                c += 1
                 # a0 and a1 are matched, now we want to see
                 # if any of their neighbors match
                 for na0 in neighbors[a0]:
-                        if na0 not in visited and na0 in neighbors:
+                        if na0 not in paired and na0 in neighbors:
+                                # Original Chimera 1 code checks all neighbors of na1.
+                                # That allows for residues having atoms with the same name.
+                                # If atoms have same name we pair with one that may be wrong
+                                # and that will mess up all subsequent pairing.  But if we
+                                # never find two atoms with same name attached then choice
+                                # is unique.  For instance, long linear chain of connected carbons
+                                # all named C could be handled.
                                 na1 = r1.find_atom(na0.name)
-                                if na1.connects_to(a1) and na1 not in paired:
-                                        matched[na0] = na1
-                                        expand.append((na0, na1))
+                                if na1 and na1.connects_to(a1) and na1 not in paired:
+                                        matched.append((na0, na1))
+                                        paired.add(na0)
                                         paired.add(na1)
-        # Now we look at our results
-        if not matched:
-                # Note that we do not update unusedAtoms since
-                # the residues do not match and will be deleted
-                # as a whole.
-                t1 = time()
-                global satt
-                satt += t1-t0
-                return False
 
+        # Next we check for atoms we have not visited and see if
+        # we can pair them
         if len(matched) < len(r0atoms):
-                # Next we check for atoms we have not visited and see if
-                # we can pair them
                 for a0 in r0atoms:
-                        if a0 in visited:
+                        if a0 in paired:
                                 continue
                         a1 = r1.find_atom(a0.name)
                         if a1 is not None and a1 not in paired:
-                                matched[a0] = a1
+                                matched.append((a0, a1))
                                 paired.add(a1)
 
-        if len(matched) < len(r0atoms):
-                unmatched = [ a0 for a0 in r0atoms if a0 not in matched ]
-                unusedAtoms.extend(unmatched)
-
-        atomMap.update(matched)
+        for a0,a1 in matched:
+                atomMap[a0] = a1
         t1 = time()
         global satt
         satt += t1-t0
         return True
+
+def shareAtomsDumb(r0, r1, atomMap):
+        a1 = {a.name: a for a in r1.atoms}
+        matched = False
+        for a in r0.atoms:
+                if a.name in a1:
+                        atomMap[a] = a1[a.name]
+                        matched = True
+        return matched
+
 
 def _getConnectedResidues(r):
         neighborResidues = set()

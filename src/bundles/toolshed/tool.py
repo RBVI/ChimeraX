@@ -111,11 +111,16 @@ class ToolshedUI(ToolInstance):
 
     def _download(self, item):
         # "item" is an instance of QWebEngineDownloadItem
+        # print("ToolshedUI._download", item)
         import os.path, os
         urlFile = item.url().fileName()
         base, extension = os.path.splitext(urlFile)
         item.finished.connect(self._download_finished)
-        if item.mimeType() == "application/zip" and extension == ".whl":
+        # print("ToolshedUI._download connect", item.mimeType(), extension)
+        # Normally, we would look at the download type or MIME type,
+        # but since neither one is set by the server, we look at the
+        # download extension instead
+        if extension == ".whl":
             # Since the file name encodes the package name and version
             # number, we make sure that we are using the right name
             # instead of whatever QWebEngine may want to use.
@@ -126,6 +131,7 @@ class ToolshedUI(ToolInstance):
                 urlFile = parts[0] + extension
             filePath = os.path.join(os.path.dirname(item.path()), urlFile)
             item.setPath(filePath)
+            # print("ToolshedUI._download clean")
             try:
                 # Guarantee that file name is available
                 os.remove(filePath)
@@ -133,11 +139,14 @@ class ToolshedUI(ToolInstance):
                 pass
             self._pending_downloads.append(item)
             self.session.logger.info("Downloading bundle %s" % urlFile)
+            # print("ToolshedUI._download accept")
             item.accept()
         else:
+            # print("ToolshedUI._download cancel")
             item.cancel()
 
     def _download_finished(self, *args, **kw):
+        # print("ToolshedUI._download_finished", args, kw)
         import pip
         finished = []
         pending = []
