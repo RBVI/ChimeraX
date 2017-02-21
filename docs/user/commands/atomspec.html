@@ -33,37 +33,54 @@ class="clRight" title="User Guide Index"/></a>
 
 <h2>Command-Line Target Specification</h2>
 <p>
-Atomic models and atoms and residues within those models
-can be specified in <a href="../index.html#commands">commands</a> using:
+Most <a href="../index.html#commands">commands</a>
+require or allow specifying which items they should affect.
+Which types of items are accepted depends on the specific command.
+</p>
 <ul>
-<li><a href="#hierarchy">hierarchical specifiers</a>
-- model number, chain, residue, atom name
-<li><a href="#builtin">built-in classifications</a>
-- <b>sel</b> (current <a href="../selection.html">selection</a>), 
-<b>protein</b>, <b>helix</b>, <b>strand</b>, 
-<b>solvent</b>, element symbols, functional groups, <i>etc.</i>
-<li><a href="#user">user-defined targets</a>
-<font color="brown">(not yet implemented)</font> 
-<li><a href="#zones">zones</a> - by distance from other items
-<font color="brown">(not yet implemented, but see
-<a href="select.html"><b>select zone</b></a>
-and <a href="surface.html#zone"><b>surface zone</b></a>)</font>
-<li><a href="#descriptors">attribute</a> names and values
-<font color="brown">(not yet implemented)</font>
+<li><a name="atomspec"></a>
+Atomic models and their parts (atoms/bonds, residues, chains) and
+associated <a href="surface.html">molecular surfaces</a> can be specified using:
+  <ul>
+  <li><a href="#hierarchy">hierarchical specifiers</a>
+  - model number, chain ID, residue name or number, atom name
+  <li><a href="#builtin">built-in classifications</a>
+  - <b>sel</b> (current <a href="../selection.html">selection</a>),
+  <b>protein</b>, <b>helix</b>, <b>strand</b>, 
+  <b>solvent</b>, element symbols, functional groups, <i>etc.</i>
+  <li><a href="#user">user-defined targets</a>
+  <font color="brown">(not yet implemented)</font> 
+  <li><a href="#zones">zones</a> - by distance from other items
+  <font color="brown">(not yet implemented, but see
+  <a href="select.html"><b>select zone</b></a>
+  and <a href="surface.html#zone"><b>surface zone</b></a>)</font>
+  <li><a href="#descriptors">attribute</a> names and values
+  <font color="brown">(not yet implemented)</font>
+  <li><a href="#combinations">combinations</a> of the above
+  </ul>
+<li><a name="othermodels"></a>
+Nonatomic models such as nonmolecular surfaces or maps 
+(<a href="../tools/volumeviewer.html">volume</a> models) can be specified
+in a more limited set of ways, namely:
+  <ul>
+  <li><a href="#hierarchy">hierarchical specifiers</a> - model number
+  <li><a href="#builtin">built-in classifications</a>
+  - <b>sel</b> (the current <a href="../selection.html">selection</a>, 
+  which could include nonatomic models), <b>selMaps</b> (the currently
+  <a href="../selection.html">selected</a> volume models, 
+  or if none are selected, all volume models)
+  </ul>
 </ul>
-or <a href="#combinations">combinations</a> of these.
-In addition, some commands accept or require specifying
-<a href="#othermodels">non-atomic models</a> such as surfaces or maps.
+<p>
 Specification strings may contain embedded spaces, and
 a blank specification (where allowed) means &ldquo;all.&rdquo;
-</p><p>
-The summary of <a href="atomspec-diffsum.html">differences
-in command-line specification</a> relative to Chimera may be useful.
+Specification in ChimeraX is generally similar to that in Chimera,
+but there are <a href="atomspec-diffsum.html">differences</a>.
 </p>
 
 <a name="hierarchy"></a>
-<h2><a href="#top" class="nounder"><b>&larr;</b></a>
-Hierarchical Specifiers</h2>
+<h3><a href="#top" class="nounder"><b>&larr;</b></a>
+Hierarchical Specifiers</h3>
 
 <table border width="95%" cellpadding="10" cellspacing="0">
 <tr>
@@ -160,23 +177,13 @@ Examples:
 </blockquote>
 - atoms named CA in residues 50 and 70-85 in models 1 and 2
 <blockquote>
-<b>#3/A:*-83,90-*</b>
-</blockquote>
-- residues start-83 and 90-end in chain A of model 3
-<font color="brown">(not yet implemented)</font>
-<blockquote>
-<b>/A,D-F:43-256</b>
+<b>/a,d-f:43-256</b>
 </blockquote>
 - residues 43-256 in chains A, D, E, and F
 <blockquote>
 <b>:12-25,48@ca,n</b>
 </blockquote>
 - atoms named CA and N in residues 12-25 and 48
-<blockquote>
-<b>/:12-15</b>
-</blockquote>
-- residues 12-15 in no-ID chains only 
-<font color="brown">(not yet implemented)</font>
 <blockquote>
 <b>:lys,arg</b>
 </blockquote>
@@ -193,6 +200,7 @@ Examples:
 <b>/A:195,221@n,ca,c,o</b>
 </blockquote>
 - atoms named N, CA, C, O in residues 195 and 221 of chain A
+<!--
 </p><p>
 <b>In model lists, commas are used only to separate values at the 
 main model level, not the sublevels.</b> For example,
@@ -206,6 +214,7 @@ is interpreted as submodels 1-3 of model 2 and all of model 5, while
 <b>#2.1-3,.5</b>
 </blockquote>
 indicates submodels 1-3 of model 2 and submodel 5 of all models.
+-->
 </p>
 
 <a name="implicit"></a>
@@ -286,8 +295,8 @@ Examples:
 
 <hr>
 <a name="builtin"></a>
-<h2><a href="#top" class="nounder"><b>&larr;</b></a>
-Built-in Classifications</h2>
+<h3><a href="#top" class="nounder"><b>&larr;</b></a>
+Built-in Classifications</h3>
 <p>
 Built-in classifications include:
 <ul>
@@ -317,12 +326,12 @@ and many others (as listed in Chimera's <b>Select... Chemistry</b> menu)
 <li><b>selAtoms</b> - the current atomic
 <a href="../selection.html">selection</a>,
 or if nothing is selected, all atomic models
+<li><b>selMaps</b> - the currently <a href="../selection.html">selected</a>
+volume models, or if none are selected, all volume models
 <li><b>pbonds</b> - all <a href="../pseudobonds.html">pseudobonds</a>
 and their flanking atoms
 <li><b>hbonds</b> - all H-bond <a href="../pseudobonds.html">pseudobonds</a>
 and their flanking atoms
-<li><b>selMaps</b> - the currently <a href="../selection.html">selected</a>
-volume model(s), or if none are selected, all volume models
 </ul>
 <p>
 Built-in classifications cannot be redefined by the user.
@@ -414,9 +423,9 @@ see <a href="#combinations">combinations</a>)
 
 <hr>
 <a name="user"></a>
-<h2><a href="#top" class="nounder"><b>&larr;</b></a>
+<h3><a href="#top" class="nounder"><b>&larr;</b></a>
 User-Defined Targets
-<font color="brown">(not yet implemented)</font></h2>
+<font color="brown">(not yet implemented)</font></h3>
 <!--
 <p>
 User-defined targets include:
@@ -431,12 +440,12 @@ User-defined targets include:
 
 <hr>
 <a name="zones"></a>
-<h2><a href="#top" class="nounder"><b>&larr;</b></a>
+<h3><a href="#top" class="nounder"><b>&larr;</b></a>
 Zones
 <font color="brown">(not yet implemented, but see
 <a href="select.html"><b>select zone</b></a>
 and <a href="surface.html#zone"><b>surface zone</b></a>)</font>
-</h2>
+</h3>
 <p>
 Atoms, residues or atomic models within or beyond some distance of a 
 reference set of atoms can be specified as a zone.
@@ -474,8 +483,8 @@ in GTP residue(s) of model 1
 
 <hr>
 <a name="descriptors"></a>
-<h2><a href="#top" class="nounder"><b>&larr;</b></a> Attributes
-<font color="brown">(not yet implemented)</font></h2>
+<h3><a href="#top" class="nounder"><b>&larr;</b></a> Attributes
+<font color="brown">(not yet implemented)</font></h3>
 <p>
 Attributes are properties of atoms, residues and models,
 specified by <a href="#attrnames">attribute name</a> and value
@@ -483,60 +492,51 @@ and indicated with symbols:
 <b>@@</b> for <a href="#atprops">atom attributes</a>,
 <b>::</b> for <a href="#resprops">residue attributes</a>, and
 <b>##</b> for <a href="#modprops">atomic-model attributes</a>.
-</p><p>
 Attribute <i>names</i> are case-sensitive, attribute <i>values</i> are not.
-Attribute values containing spaces (some color names, for example) 
-must be enclosed in double quote marks.
+Attribute values containing spaces must be enclosed in double quotation marks.
+<!--
+Color values can be specified by <a href="colornames.html">color name</a>
+or as a comma-separated list of component values
+<i>red,green,blue,alpha</i> where
+each value can range from zero to 1 and specification of <i>alpha</i>
+(1 &ndash; transparency) is optional.
+-->
 </p><p>
+<b>Evaluation Symbols</b><br>
 Besides <b>=</b> (equals), attributes with numerical values can also be used 
 with <b>&gt;</b> (greater than), <b>&lt;</b> (less than), <b>&gt;=</b>
 (greater than or equal to), and <b>&lt;=</b> (less than or equal to).
-</p><p>
 For negation, <b>~</b> can be used outside of the attribute specification
 (see <a href="#combinations">combinations</a> and
 <a href="#attr-examples">examples</a>).
-</p><p>
 When placed before an attribute name,
 the <b>caret ^</b> indicates that the atoms, residues, or models have
-not been assigned any value for the attribute. For example,
-<b>:/^kdHydrophobicity</b> designates residues 
+not been assigned any value for the attribute.
+<!--
+For example, <b>::^kdHydrophobicity</b> designates residues 
 (such as water or nucleic acids) that lack a 
 <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/hydrophob.html">Kyte-Doolittle hydrophobicity</a> assignment.
-</font>
-</p><p>
-Color values can be specified:
+-->
 </p>
-<ul>
-<li> by <a href="colornames.html">color name</a>
-<li> as a comma-separated list of component values
-<i>red,green,blue,alpha</i> where
-each value can range from zero to 1 and specification of <i>alpha</i>
-(1 &ndash; transparency) is optional
-</ul>
 
 <table border width="95%" cellpadding="4" cellspacing="0">
-<tr><th colspan="2"><a name="atprops">SELECTED ATOM ATTRIBUTES</a>
+<tr><th colspan="2"><a name="atprops">Selected Atom Attributes</a>
 <sup><a href="#note">**</a></sup/></th></tr>
-<tr><th>Atomspec Usage</th> <th>Explanation</th>
+<tr>
 <!--
-</tr><tr>
 <td align=center><b>altLoc=</b><i>altloc</i></td>
 <td><i>altloc</i> is the alternate location identifier of the atom</td>
--->
 </tr><tr>
+-->
 <td align=center><b>areaSAS=</b><i>sasa</i></td>
-<td><i>sasa</i> is the
-<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/representation.html#surfaces">solvent-accessible</a>
+<td><i>sasa</i> is the solvent-accessible
 surface area of the atom (available when a
-<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/representation.html#surfaces">molecular surface</a>
-has been computed)
+<a href="surface.html">molecular surface</a> has been computed)
 </tr><tr>
 <td align=center><b>areaSES=</b><i>sesa</i></td>
-<td><i>sesa</i> is the
-<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/representation.html#surfaces">solvent-excluded</a>
+<td><i>sesa</i> is the solvent-excluded
 surface area of the atom (available when a
-<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/representation.html#surfaces">molecular surface</a>
-has been computed)
+<a href="surface.html">molecular surface</a> has been computed)
 </tr> <tr>
 <td align=center><b>bfactor=</b><i>bfactor</i></td>
 <td><i>bfactor</i> is the B-factor value of the atom</td>
@@ -583,9 +583,9 @@ ball+stick, bs, b+s)
 <td><i>segid</i> is the segment identifier of the atom</a>
 </tr> <tr>
 <td align=center><b>radius=</b><i>radius</i></td>
-<td><i>radius</i> is the current VDW radius of the atom in &Aring;
-(may have been changed by the user from the
-<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/vdwrad.html">default VDW radius</a>)</td>
+<td><i>radius</i> is the current <a href="../radii.html">VDW radius</a>
+of the atom in &Aring; (may have been changed by the user from the
+<a href="../radii.html">default VDW radius</a>)</td>
 </tr> <tr>
 <td align=center><b>serialNumber=</b><i>n</i></td>
 <td><i>n</i> is the atom serial number in the input file</td>
@@ -640,23 +640,18 @@ being blue, and <i>vice versa</i>
 </p>
 
 <table border width="95%" cellpadding="4" cellspacing="0">
-<tr><th colspan="2"><a name="resprops">SELECTED RESIDUE ATTRIBUTES</a>
+<tr><th colspan="2"><a name="resprops">Selected Residue Attributes</a>
 <sup><a href="#note">**</a></sup/></th></tr>
-<tr><th>Atomspec Usage</th> <th>Explanation</th>
-</tr><tr>
+<tr>
 <td align=center><b>areaSAS=</b><i>sasa</i></td>
-<td><i>sasa</i> is the
-<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/representation.html#surfaces">solvent-accessible</a>
+<td><i>sasa</i> is the solvent-accessible
 surface area of the residue (available when a
-<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/representation.html#surfaces">molecular surface</a>
-has been computed)
+<a href="surface.html">molecular surface</a> has been computed)
 </tr><tr>
 <td align=center><b>areaSES=</b><i>sesa</i></td>
-<td><i>sesa</i> is the
-<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/representation.html#surfaces">solvent-excluded</a>
+<td><i>sesa</i> is the solvent-excluded
 surface area of the residue (available when a
-<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/representation.html#surfaces">molecular surface</a>
-has been computed)
+<a href="surface.html">molecular surface</a> has been computed)
 </tr><tr>
 <td align=center><b>isHelix</b></td>
 <td>whether the residue is in a helix (true is only possible for
@@ -725,12 +720,12 @@ Examples:
 - residues with 10 or more atoms
 <br><br>
 <table border width="95%" cellpadding="4" cellspacing="0">
-<tr><th colspan="2"><a name="modprops">SELECTED ATOMIC-MODEL ATTRIBUTES</a>
+<tr><th colspan="2"><a name="modprops">Selected Atomic-Model Attributes</a>
 <sup><a href="#note">**</a></sup/></th></tr>
-<tr><th>Atomspec Usage</th> <th>Explanation</th>
-</tr><tr>
+<tr>
 <td align=center><b>ballScale=</b><i>factor</i></td>
-<td><i>factor</i> is ball radius relative to VDW radius</td>
+<td><i>factor</i> is ball radius relative to
+<a href="../radii.html">VDW radius</a></td>
 </tr> <tr>
 <td align=center><b>color=</b><i>color</i></td>
 <td><i>color</i> is the color assigned on a per-model basis</td>
@@ -761,9 +756,7 @@ of peptide/protein helix ribbon segments</td>
 </tr>
 </table>
 <p>
-<sup><a name="note">**</a></sup>Additional 
-<a href="http://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/defineattrib/defineattrib.html#attribdef">attributes</a>
-can be created
+<sup><a name="note">**</a></sup>Additional attributes can be created
 <!--
 <ul>
 <li> arbitrarily with 
@@ -789,17 +782,16 @@ target="_top"><b>Multalign Viewer</b></a>
 <a name="attrnames"></a>
 <h3>Attribute Names</h3>
 <p>
-The preceding tables [<a href="#atprops">atoms</a>] 
-[<a href="#resprops">residues</a>] [<a href="#modprops">atomic models</a>] 
-include the names of some commonly used
-<a href="http://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/defineattrib/defineattrib.html#attribdef">
-attributes</a>. Additional attributes are listed in
-<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/modelattrib.html">attribute inspector</a> dialogs,
+<!--
+The preceding lists of attributes are not exhaustive.
+Additional attributes are listed in attribute inspector dialogs,
 and yet others may be generated only when a particular tool is used, 
 or created arbitrarily by the user.
-<!--
 </p><p>
+-->
 Attribute name lookup:
+<font color="brown">TBD</font>
+<!--
 <ul>
 <li>attribute names are shown in the <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/help.html#balloon">balloon 
 help</a> of <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/modelattrib.html">attribute inspector</a> dialogs
@@ -830,8 +822,8 @@ Attributes defined in the Python layer will not be included, however.
 
 <hr>
 <a name="combinations"></a>
-<h2><a href="#top" class="nounder"><b>&larr;</b></a>
-Combinations</h2>
+<h3><a href="#top" class="nounder"><b>&larr;</b></a>
+Combinations</h3>
 <p>
 Atom specifications can be combined with the operators:
 <ul>
@@ -894,31 +886,6 @@ formally positive nitrogens
 </blockquote>
 - atoms within 4 &Aring; of <a href="#surfcats">ions</a>,
 excluding the ions themselves
-</p>
-
-<hr>
-<a name="othermodels"></a>
-<h2><a href="#top" class="nounder"><b>&larr;</b></a>
-Surfaces, Maps (Volume Data), Other Model Types</h2>
-<p>
-Some commands can apply to things other than atomic models 
-(atomic coordinates) and <a href="surface.html">molecular surfaces</a>. 
-To handle such cases, &ldquo;atom specification&rdquo;
-has been extended as follows:
-<ul>
-<li>like atomic models, other types of models can be specified 
-by model number or comma-separated list or range of model numbers
-preceded by #
-<li>the word <b>sel</b> specifies 
-the current <a href="../selection.html">selection</a>,
-which may include surface and/or volume model(s)
-<li>the word <b>selMaps</b> specifies the currently
-<a href="../selection.html">selected</a> volume model(s), 
-or if none are selected, all volume models
-</ul>
-Which of these can be used and whether they can be
-<a href="#combinations">combined</a> with atom specifications
-depends on the command.
 </p>
 
 <hr>

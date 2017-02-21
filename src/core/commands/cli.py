@@ -2524,10 +2524,6 @@ def html_usage(name, no_aliases=False, show_subcommands=True, expand_alias=True,
     ci = cmd._ci
     if ci:
         arg_syntax = []
-        if ci.synopsis:
-            syntax += "<i>%s</i><br>\n" % escape(ci.synopsis)
-        else:
-            syntax += "<i>[no synopsis available]</i><br>\n"
         if cmd._ci.url is None:
             syntax += '<b>%s</b>' % escape(cmd.command_name)
         else:
@@ -2596,6 +2592,10 @@ def html_usage(name, no_aliases=False, show_subcommands=True, expand_alias=True,
                 syntax += '<br>' + html_usage(name)
             except:
                 pass
+        if ci.synopsis:
+            syntax += "<br>&mdash; <i>%s</i>\n" % escape(ci.synopsis)
+        else:
+            syntax += "&mdash; <i>[no synopsis available]</i>\n"
 
     if (show_subcommands and cmd.word_info is not None and
             cmd.word_info.has_subcommands()):

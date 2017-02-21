@@ -682,6 +682,12 @@ class Render:
         'Enable or disable writing to depth buffer.'
         GL.glDepthMask(write)
 
+    def enable_backface_culling(self, enable):
+        if enable:
+            GL.glEnable(GL.GL_CULL_FACE)
+        else:
+            GL.glDisable(GL.GL_CULL_FACE)
+
     def enable_blending(self, enable):
         'Enable OpenGL alpha blending.'
         if enable:

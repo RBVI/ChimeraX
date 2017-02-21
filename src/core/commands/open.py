@@ -93,6 +93,9 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
         fmt = format_from_name(format)
         if fmt:
             format = fmt.name
+        else:
+            from ..errors import UserError
+            raise UserError('Unknown format "%s", or no support for opening this format.' % format)
 
     from os.path import exists
     if exists(filename):
@@ -141,7 +144,7 @@ def open_formats(session):
         session.logger.info('File format, Short name(s), Suffixes:')
     from .. import io
     from . import commas
-    formats = list(io.formats())
+    formats = list(f for f in io.formats() if f.open_func is not None)
     formats.sort(key = lambda f: f.name.lower())
     for f in formats:
         if session.ui.is_gui:
