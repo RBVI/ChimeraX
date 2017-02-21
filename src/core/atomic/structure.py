@@ -1814,19 +1814,22 @@ class AtomicStructure(Structure):
     which provides access to the C++ structures.
     """
 
+    def __init__(self, *args, **kw):
+        super().__init__(*args, **kw)
+        self._set_chain_descriptions(self.session)
+        self._determine_het_res_descriptions(self.session)
+
+    def added_to_session(self, session):
+        super().added_to_session(session)
+        if self._log_info:
+            self._report_chain_descriptions(session)
+            self._report_assemblies(session)
+
     @staticmethod
     def restore_snapshot(session, data):
         s = AtomicStructure(session, auto_style = False)
         Structure.set_state_from_snapshot(s, session, data)
         return s
-
-    def added_to_session(self, session):
-        super().added_to_session(session)
-        self._set_chain_descriptions(session)
-        self._determine_het_res_descriptions(session)
-        if self._log_info:
-            self._report_chain_descriptions(session)
-            self._report_assemblies(session)
 
     def _determine_het_res_descriptions(self, session):
         # Don't actually set the description in the residue in order to avoid having
