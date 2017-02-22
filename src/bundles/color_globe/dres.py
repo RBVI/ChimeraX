@@ -132,7 +132,6 @@ class ColorGlobe(Drawing):
         return ca
 
     def draw(self, renderer, place, draw_pass, selected_only=False):
-        # TODO: Globe is squished by aspect ratio of window.
         # TODO: Should not show shadows on globe, coordinate space is different from models.
         # TODO: Overlay drawing sets projection to identity which will defeat supersample
         #       image capture using pixel shifts that go into the projection matrix from the camera.
@@ -146,12 +145,20 @@ class ColorGlobe(Drawing):
         # Enable depth test so overlapped discs don't look like fish scales dependent
         # on order of drawing of discs.
         r.enable_depth_test(True)
+        ox, oy, oz = self.offset
+        w, h = r.render_size()
+        whmax = max(w,h)
+        sx, sy = h/whmax, w/whmax
+        r.set_projection_matrix(((sx, 0, 0, 0), (0, sy, 0, 0), (0, 0, 1, 0),
+                                 (ox, oy, oz, 1)))
         rot = self.session.main_view.camera.position.zero_translation()
-        from chimerax.core.geometry import identity, translation
-        r.set_view_matrix(translation(self.offset) * rot.inverse())
+        r.set_view_matrix(rot.inverse())
         Drawing.draw(self, renderer, place, draw_pass, selected_only)
         # Restore drawing settings so other overlays get expected state.
+        from chimerax.core.geometry import identity
         r.set_view_matrix(identity())
+        r.set_projection_matrix(((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0),
+                                 (0, 0, 0, 1)))
         r.enable_depth_test(False)
         r.enable_backface_culling(False)
 
