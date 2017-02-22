@@ -63,7 +63,7 @@ setup(
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
         "ChimeraX :: Bundle :: General :: 1,1 :: chimerax.color_globe :: :: ",
-        "ChimeraX :: DataFormat :: Directional FSC :: dres :: Generic 3D objects :: .dres :: ::  :: :: :: Direction dependent resolution values",
+        "ChimeraX :: DataFormat :: Directional FSC :: dres :: Generic 3D objects :: .dres :: ::  :: :: :: Direction dependent resolution values :: utf-8",
         "ChimeraX :: Open :: Directional FSC :: :: ",
     ],
 )
