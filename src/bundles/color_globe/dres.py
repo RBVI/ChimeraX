@@ -19,13 +19,21 @@ def read_directional_resolution(session, filename, name, *args, **kw):
         input = open(filename, 'r')
     lines = input.readlines()
     input.close()
-    xyzres = [[float(v) for v in line.split()] for line in lines]
+    xyzres = [[float(v) for v in line.split()] for line in lines if not line.startswith('#')]
     xyz = [(x,y,z) for x,y,z,r in xyzres]
     res = [r for x,y,z,r in xyzres]
+
+    # Figure out colormap from argument, file comment, or default colors
     colormap = kw.get('colormap')
     if colormap is None:
-        from chimerax.core.colors import BuiltinColormaps
-        colormap = BuiltinColormaps['rainbow']
+        if lines:
+            colormap = colormap_from_comment_line(lines[0])
+        if colormap is None:
+            from chimerax.core.colors import BuiltinColormaps
+            colormap = BuiltinColormaps['rainbow']
+    if not colormap.values_specified:
+        colormap = colormap.rescale_range(min(res), max(res))
+
 
     cg = ColorGlobe(session, xyz, res, colormap,
                     sphere_radius = 0.2,
@@ -33,13 +41,13 @@ def read_directional_resolution(session, filename, name, *args, **kw):
     session.main_view.add_overlay(cg)
 
     ck = ColorKey(colormap, length = 0.3, thickness = 0.05, vertical = True,
-                  offset = (-0.9, -0.85, -0.7))
+                  offset = (-0.9, -0.85, -0.99))
     session.main_view.add_overlay(ck)
 
-    rmin, rmax = min(res), max(res)
+    rmin, rmax = colormap.value_range()
     from chimerax.label import label_create
-    label_create(session, 'resmin', text = '%.1f' % rmin, xpos = .04, ypos = .04, size = 20)
-    label_create(session, 'resmax', text = '%.1f' % rmax, xpos = .03, ypos = .23, size = 20)
+    label_create(session, 'resmin', text = '%.1f' % rmin, xpos = .05, ypos = .05, size = 20)
+    label_create(session, 'resmax', text = '%.1f' % rmax, xpos = .05, ypos = .23, size = 20)
 
     # TODO: Make this a real model so shown in model panel, can be closed, hidden, ...
     #       Also 2d labels should be real models.  Need support for real models to
@@ -48,6 +56,30 @@ def read_directional_resolution(session, filename, name, *args, **kw):
     # TODO: Currently no way to close globe once it is displayed.
 
     return [], 'Read %d resolution values' % len(xyzres)
+
+def colormap_from_comment_line(line):
+    if not line.startswith('# Colormap '):
+        return None
+    cf = line[11:].split(',')
+    if len(cf) < 2:
+        return None
+    res = []
+    colors = []
+    from chimerax.core.colors import BuiltinColors, Colormap
+    for c in cf:
+        ca = c.split('=')
+        if len(ca) != 2:
+            return None
+        try:
+            res.append(float(ca[0].strip()))
+        except ValueError:
+            return None
+        colorname = ca[1].strip()
+        if colorname not in BuiltinColors:
+            return None
+        colors.append(BuiltinColors[colorname])
+    cmap = Colormap(res, colors)
+    return cmap
 
 from chimerax.core.graphics.drawing import Drawing
 class ColorGlobe(Drawing):
@@ -58,7 +90,7 @@ class ColorGlobe(Drawing):
     It is intended to be placed in the corner and show directional information
     such as anisotropic density map resolution.
     '''
-    def __init__(self, session, sphere_points, values, colormap = None,
+    def __init__(self, session, sphere_points, values, colormap,
                  sphere_radius = 0.5,       # In screen [-1,1] units
                  offset = (0,0,0),          # In [-1,1] screen space
                  num_disc_points = 8,       # points on circumference of disc
@@ -76,9 +108,6 @@ class ColorGlobe(Drawing):
 
         va, na, ta = self.sphere_geometry(sphere_points, sphere_radius,
                                           disc_radius, num_disc_points)
-        if colormap is None:
-            from chimerax.core.colors import BuiltinColormaps
-            colormap = BuiltinColormaps['rainbow']
         vc = self.sphere_colors(values, colormap, num_disc_points)
 
         self.vertices = va
@@ -119,10 +148,8 @@ class ColorGlobe(Drawing):
 
     def sphere_colors(self, values, colormap, num_disc_points):
         'Place a disc tangent to a sphere centered at each point'
-        vmin, vmax = min(values), max(values)
         # Colors for disc vertices
-        cmap = colormap.rescale_range(vmin, vmax)
-        rgba = cmap.interpolated_rgba8(values)
+        rgba = colormap.interpolated_rgba8(values)
         np = len(values)
         nd = num_disc_points+1
         from numpy import empty, uint8
@@ -132,7 +159,6 @@ class ColorGlobe(Drawing):
         return ca
 
     def draw(self, renderer, place, draw_pass, selected_only=False):
-        # TODO: Should not show shadows on globe, coordinate space is different from models.
         # TODO: Overlay drawing sets projection to identity which will defeat supersample
         #       image capture using pixel shifts that go into the projection matrix from the camera.
         r = renderer
@@ -205,7 +231,7 @@ class ColorKey(Drawing):
             t1 = ta[:,1].copy()
             ta[:,1] = ta[:,2]
             ta[:,2] = t1
-        cmap = colormap.rescale_range(0,1)
-        rgba = cmap.interpolated_rgba8(linspace(0,1,n))
+        vmin, vmax = colormap.value_range()
+        rgba = colormap.interpolated_rgba8(linspace(vmin,vmax,n))
         ca = concatenate((rgba, rgba))
         return va, na, ca, ta
