@@ -499,6 +499,11 @@ class CollatingLog(PlainTextLog):
             logger.info(summary, is_html=True)
 
     def summarize_msgs(self, msgs, collapse_similar):
+        # Each message is plain text so escape < and > otherwise <stuff between angle brackets>
+        # disappears in html output.
+        import html
+        msgs = [html.escape(m) for m in msgs]
+        
         if collapse_similar:
             summarized = []
             prev_msg = sim_info = None
