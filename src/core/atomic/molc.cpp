@@ -1822,23 +1822,6 @@ extern "C" EXPORT void set_residue_ribbon_hide_backbone(void *residues, size_t n
     error_wrap_array_set(r, n, &Residue::set_ribbon_hide_backbone, ribbon_hide_backbone);
 }
 
-extern "C" EXPORT void residue_ribbon_style(void *residues, size_t n, int32_t *ribbon_style)
-{
-    Residue **r = static_cast<Residue **>(residues);
-    error_wrap_array_get(r, n, &Residue::ribbon_style, ribbon_style);
-}
-
-extern "C" EXPORT void set_residue_ribbon_style(void *residues, size_t n, int32_t *ribbon_style)
-{
-    Residue **r = static_cast<Residue **>(residues);
-    try {
-        for (size_t i = 0; i < n; ++i)
-            r[i]->set_ribbon_style(static_cast<Residue::Style>(ribbon_style[i]));
-    } catch (...) {
-        molc_error();
-    }
-}
-
 extern "C" EXPORT void residue_ribbon_adjust(void *residues, size_t n, float32_t *ribbon_adjust)
 {
     Residue **r = static_cast<Residue **>(residues);
@@ -2195,7 +2178,9 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
                 Residue* r = res_array[i];
                 float* center = cdata + i*3;
                 float* guide = gdata + i*3;
-                if (want_peptide && r->structure()->ribbon_orient(r) == Structure::RIBBON_ORIENT_PEPTIDE) {
+                if (want_peptide
+                && r->polymer_type() == Residue::PT_AMINO
+                && r->structure()->ribbon_orient(r) == Structure::RIBBON_ORIENT_PEPTIDE) {
                     // "peptide_planes" are relative to the previous
                     // residue, so the i'th element is the peptide
                     // plane between centers[i] and centers[i+1].
@@ -2224,7 +2209,9 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
                 Residue* r = res_array[0];
                 float* guide = gdata;
                 float* source;
-                if (want_peptide && r->structure()->ribbon_orient(r) == Structure::RIBBON_ORIENT_PEPTIDE) {
+                if (want_peptide
+                && r->polymer_type() == Residue::PT_AMINO
+                && r->structure()->ribbon_orient(r) == Structure::RIBBON_ORIENT_PEPTIDE) {
                     // Want peptide.  Copy from second residue.
                     source = gdata + 3;
                     guide[0] = source[0];
@@ -2245,7 +2232,9 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
                 Residue* r = res_array[last];
                 float* guide = gdata;
                 float* source;
-                if (want_peptide && r->structure()->ribbon_orient(r) == Structure::RIBBON_ORIENT_PEPTIDE) {
+                if (want_peptide
+                && r->polymer_type() == Residue::PT_AMINO
+                && r->structure()->ribbon_orient(r) == Structure::RIBBON_ORIENT_PEPTIDE) {
                     // Want peptide.  Copy from next to last residue.
                     source = gdata + (last-1)*3;
                     guide[0] = source[0];
@@ -3094,6 +3083,17 @@ extern "C" EXPORT void structure_atoms(void *mols, size_t n, pyobject_t *atoms)
     }
 }
 
+extern "C" EXPORT void structure_ball_scale(void *mols, size_t n, float32_t *bscales)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_get(m, n, &Structure::ball_scale, bscales);
+}
+
+extern "C" EXPORT void set_structure_ball_scale(void *mols, size_t n, float32_t *bscales)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_set(m, n, &Structure::set_ball_scale, bscales);
+}
 extern "C" EXPORT void structure_num_bonds(void *mols, size_t n, size_t *nbonds)
 {
     Structure **m = static_cast<Structure **>(mols);

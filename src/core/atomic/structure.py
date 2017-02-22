@@ -31,16 +31,18 @@ class Structure(Model, StructureData):
 
         # attrs that should be saved in sessions, along with their initial values...
         self._session_attrs = {
-            '_ball_scale': 0.3,		# Scales sphere radius in ball and stick style
             '_bond_radius': 0.2,
             '_pseudobond_radius': 0.05,
+            'ribbon_xs_mgr': XSectionManager(),
         }
 
         StructureData.__init__(self, c_pointer)
         for attr_name, val in self._session_attrs.items():
             setattr(self, attr_name, val)
+        self.ribbon_xs_mgr.set_structure(self)
         Model.__init__(self, name, session)
         self._auto_style = auto_style
+        self._log_info = True
 
         # for now, restore attrs to default initial values even for sessions...
         self._atoms_drawing = None
@@ -51,7 +53,6 @@ class Structure(Model, StructureData):
         self._ribbon_t2r = {}         # ribbon triangles-to-residue map
         self._ribbon_r2t = {}         # ribbon residue-to-triangles map
         self._ribbon_tether = []      # ribbon tethers from ribbon to floating atoms
-        self.ribbon_xs_mgr = XSectionManager(self)
 
         from . import molobject
         molobject.add_to_object_map(self)
@@ -97,6 +98,7 @@ class Structure(Model, StructureData):
         m = self.__class__(self.session, name = name, c_pointer = StructureData._copy(self),
                            auto_style = False)
         m.positions = self.positions
+        m._log_info = False
         return m
 
     def added_to_session(self, session):
@@ -205,6 +207,7 @@ class Structure(Model, StructureData):
 
         for attr_name, default_val in self._session_attrs.items():
             setattr(self, attr_name, data.get(attr_name, default_val))
+        self.ribbon_xs_mgr.set_structure(self)
 
         # Create Python pseudobond group models so they are added as children.
         list(self.pbg_map.values())
@@ -215,13 +218,6 @@ class Structure(Model, StructureData):
 
     def reset_state(self, session):
         pass
-
-    def _get_ball_scale(self):
-        return self._ball_scale
-    def _set_ball_scale(self, scale):
-        self._ball_scale = scale
-        self._graphics_changed |= self._SHAPE_CHANGE
-    ball_scale = property(_get_ball_scale, _set_ball_scale)
 
     def _get_bond_radius(self):
         return self._bond_radius
@@ -1820,17 +1816,22 @@ class AtomicStructure(Structure):
     which provides access to the C++ structures.
     """
 
+    def __init__(self, *args, **kw):
+        super().__init__(*args, **kw)
+        self._set_chain_descriptions(self.session)
+        self._determine_het_res_descriptions(self.session)
+
+    def added_to_session(self, session):
+        super().added_to_session(session)
+        if self._log_info:
+            self._report_chain_descriptions(session)
+            self._report_assemblies(session)
+
     @staticmethod
     def restore_snapshot(session, data):
         s = AtomicStructure(session, auto_style = False)
         Structure.set_state_from_snapshot(s, session, data)
         return s
-
-    def added_to_session(self, session):
-        super().added_to_session(session)
-        self._set_chain_descriptions(session)
-        self._determine_het_res_descriptions(session)
-        self._report_assemblies(session)
 
     def _determine_het_res_descriptions(self, session):
         # Don't actually set the description in the residue in order to avoid having
@@ -1931,28 +1932,43 @@ class AtomicStructure(Structure):
             chains = sorted(self.chains, key=lambda c: c.chain_id)
             for chain in chains:
                 chain.description = chain_to_desc.get(chain.chain_id, None)
-                if chain.description:
-                    session.logger.info("%s, chain %s: %s" % (self, chain.chain_id,
-                        chain.description))
+
+    def _report_chain_descriptions(self, session):
+        chains = sorted(self.chains, key=lambda c: c.chain_id)
+        for chain in chains:
+            if chain.description:
+                session.logger.info("%s, chain %s: %s" %
+                                    (self, chain.chain_id, chain.description))
 
     def _report_assemblies(self, session):
+        if getattr(self, 'ignore_assemblies', False):
+            return
         from . import mmcif 
         sat = mmcif.get_mmcif_tables_from_metadata(self, ['pdbx_struct_assembly'])[0]
-        if sat:
-            try:
-                rows = sat.fields(('id', 'details'))
-            except ValueError:
-                return	# Table does not have required fields
-            if len(rows) == 1 and rows[0][1].startswith('author'):
-                return	# Don't report the identity assembly
-            lines = ['<table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0">',
-                     '<tr><th colspan=2>%s mmCIF Assemblies' % self.name]
-            for id, details in rows:
-                lines.append('<tr><td><a href="cxcmd:sym #%s assembly %s ; view #%s clip false">%s</a><td>%s'
-                             % (self.id_string(), id, self.id_string(), id, details))
-            lines.append('</table>')
-            html = '\n'.join(lines)
-            session.logger.info(html, is_html=True)
+        sagt = mmcif.get_mmcif_tables_from_metadata(self, ['pdbx_struct_assembly_gen'])[0]
+        if not sat or not sagt:
+            return
+
+        try:
+            sa = sat.fields(('id', 'details'))
+            sag = sagt.mapping('assembly_id', 'oper_expression')
+        except ValueError:
+            return	# Tables do not have required fields
+
+        if len(sa) == 1 and sag.get(sa[0][0]) == '1':
+            # Probably just have the identity assembly, so don't show table.
+            # Should check that it is the identity operator and all
+            # chains are transformed. Requires reading more tables.
+            return
+
+        lines = ['<table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0">',
+                 '<tr><th colspan=2>%s mmCIF Assemblies' % self.name]
+        for id, details in sa:
+            lines.append('<tr><td><a href="cxcmd:sym #%s assembly %s ; view clip false">%s</a><td>%s'
+                         % (self.id_string(), id, id, details))
+        lines.append('</table>')
+        html = '\n'.join(lines)
+        session.logger.info(html, is_html=True)
 
 
 # -----------------------------------------------------------------------------

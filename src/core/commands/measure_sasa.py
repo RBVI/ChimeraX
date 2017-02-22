@@ -51,4 +51,4 @@ def register_command(session):
         keyword = [('probe_radius', FloatArg),
                    ('sum', AtomsArg)],
         synopsis = 'compute solvent accessible surface area')
-    register('measure sasa', _sasa_desc, measure_sasa)
+    register('measure sasa', _sasa_desc, measure_sasa, logger=session.logger)

@@ -1,6 +1,10 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
+SUBDIRS = _mlp
+
+include $(TOP)/mk/subdir.make
+
 BUNDLE_NAME = ChimeraX-MLP
 BUNDLE_VERSION = 1.0
 PKG_NAME = chimerax.mlp

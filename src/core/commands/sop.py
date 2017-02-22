@@ -91,7 +91,7 @@ def register_surface_subcommands(session):
                                    ('size', FloatArg),
                                    ('update', BoolArg)],
                         synopsis = 'hide small connected surface patches')
-    register('surface dust', dust_desc, surface_dust)
+    register('surface dust', dust_desc, surface_dust, logger=session.logger)
 
     zone_desc = CmdDesc(required = [('surfaces', SurfacesArg)],
                         keyword = [('near_atoms', AtomsArg),
@@ -101,10 +101,10 @@ def register_surface_subcommands(session):
                                    ('update', BoolArg)],
                         required_arguments = ['near_atoms'],
                         synopsis = 'show surface near atoms')
-    register('surface zone', zone_desc, surface_zone)
+    register('surface zone', zone_desc, surface_zone, logger=session.logger)
 
     from . import create_alias
-    create_alias('sop', 'surface $*')
+    create_alias('sop', 'surface $*', logger=session.logger)
 
 # -----------------------------------------------------------------------------
 #

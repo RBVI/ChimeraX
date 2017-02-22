@@ -1,64 +1,38 @@
 from time import time
-smt = stt = rit = rst = rsit = 0
+stt = rit = rst = rsit = 0
 from time import time
-def interpolate(coordset0, coordset1, residue_groups, residue_interpolators,
-                method, rate_method, frames, log):
-        # coordset0     initial coordinates indexed by atom index
-        # coordset1     final coordinates indexed by atom index
-        # residue_groups      list of collections of residues defining groups moved semi-rigidly
-        # residue_interpolators   maps residue to an interpolator instance
-        # method        interpolation method name
-        # rate_method   spacing method for interpolation steps: "linear", "sinusoidal", "ramp up", "ramp down"
-        # frames        number of frames to generate in trajectory
-        # log           Logger for reporting progress messages
-
-        # Get transform for each rigid segment
-        t0 = time()
-        seg_info = []
-        from .util import segment_alignment_atoms
-        from chimerax.core.geometry import align_points
-        from chimerax.core.atomic import Atoms
-        for rList in residue_groups:
-                raindices = Atoms(segment_alignment_atoms(rList)).coord_indices
-                cList0 = coordset0[raindices]
-                c0 = cList0.mean(axis = 0)
-                cList1 = coordset1[raindices]
-                c1 = cList1.mean(axis = 0)
-                xform, rmsd = align_points(cList0, cList1)
-                seg_info.append((rList, rList.atoms.coord_indices, c0, c1, xform))
-        t1 = time()
-        global stt
-        stt += t1-t0
+def interpolate(coordset0, coordset1, segment_interpolator, residue_interpolator,
+                rate_method, frames, log):
+        '''
+        coordset0              initial coordinates indexed by atom index
+        coordset1              final coordinates indexed by atom index
+        segment_interpolator   function to interpolate groups of residues rigidly
+        residue_interpolator   function to interpolate residue conformations
+        rate_method            spacing method for interpolation steps:
+                                 "linear", "sinusoidal", "ramp up", "ramp down"
+        frames                 number of frames to generate in trajectory
+        log                    Logger for reporting progress messages
+        '''
 
         # Calculate interpolated coordinates for each frame.
         coordsets = []
-        segment_motion = SegmentMotionMethods[method]
         rateFunction = RateMap[rate_method]
         rate = rateFunction(frames)  # Compute fractional steps controlling speed of motion.
-        nc = len(coordset0)
-        c0s = coordset0.copy()
+
         c1s = coordset1.copy()
+        segment_interpolator.reverse_motion(c1s)
+
         for i, f in enumerate(rate):
                 coordset = coordset0.copy()
-                for rList, atom_indices, c0, c1, xform in seg_info:
-                        t0 = time()
-                        xf0, xf1 = segment_motion(xform, c0, c1, f)
-                        t1 = time()
-                        global rit
-                        rit += t1-t0
-                        t0 = time()
-                        # Apply rigid segment motion
-                        c0s[atom_indices] = xf0 * coordset0[atom_indices]
-                        c1s[atom_indices] = xf1 * coordset1[atom_indices]
-                        t1 = time()
-                        global smt
-                        smt += t1 - t0
-                        t0 = time()
-                        for r in rList:
-                                residue_interpolators[r](c0s, c1s, f, coordset)
-                        t1 = time()
-                        global rst
-                        rst += t1-t0
+                # Interpolate residue conformations
+                t0 = time()
+                residue_interpolator.interpolate(coordset0, c1s, f, coordset)
+                t1 = time()
+                global rst
+                rst += t1-t0
+
+                # Interplate segment motions
+                segment_interpolator.interpolate(f, coordset)
 
                 coordsets.append(coordset)
                 if log and False:
@@ -68,71 +42,6 @@ def interpolate(coordset0, coordset1, residue_groups, residue_interpolators,
         coordsets.append(coordset1.copy())
 
         return coordsets
-
-def interpolateCorkscrew(xf, c0, c1, f):
-        """Interpolate by splitting the transformation into a rotation
-        and a translation along the axis of rotation."""
-        from chimerax.core.geometry import inner_product, cross_product, identity, norm
-        from chimerax.core.geometry import normalize_vector, rotation, translation
-        dc = c1 - c0
-        vr, a = xf.rotation_axis_and_angle()        # a is in degrees
-        tra = inner_product(dc, vr)                                # magnitude of translation
-                                                # along rotation axis
-        vt = dc - tra * vr                        # where c1 would end up if
-                                                # only rotation is used
-        cm = c0 + vt / 2
-        v0 = cross_product(vr, vt)
-        if norm(v0) <= 0.0:
-                ident = identity()
-                return ident, ident
-        v0 = normalize_vector(v0)
-        if a != 0.0:
-                import math
-                l = norm(vt) / 2 / math.tan(math.radians(a / 2))
-                cr = cm + v0 * l
-        else:
-                import numpy
-                cr = numpy.array((0.0, 0.0, 0.0))
-
-        Tinv = translation(-cr)
-        R0 = rotation(vr, a * f)
-        R1 = rotation(vr, -a * (1 - f))
-        X0 = translation(cr + vr * (f * tra)) * R0 * Tinv
-        X1 = translation(cr - vr * ((1 - f) * tra)) * R1 * Tinv
-        return X0, X1
-
-def interpolateIndependent(xf, c0, c1, f):
-        """Interpolate by splitting the transformation into a rotation
-        and a translation."""
-        from chimerax.core import geometry
-        vr, a = xf.rotation_axis_and_angle()                # a is in degrees
-        xt = xf.translation()
-        Tinv = geometry.translation(-xt)
-        T = geometry.translation(xt * f)
-        X0 = T * geometry.rotation(vr, a * f)
-        X1 = T * geometry.rotation(vr, -a * (1 - f)) * Tinv
-        return X0, X1
-
-def interpolateLinear(xf, c0, c1, f):
-        """Interpolate by translating c1 to c0 linearly along with
-        rotation about translation point."""
-        from chimerax.core import geometry
-        vr, a = xf.rotation_axis_and_angle()                # a is in degrees
-        Tinv0 = geometry.translation(-c0)
-        Tinv1 = geometry.translation(-c1)
-        dt = c1 - c0
-        R0 = geometry.rotation(vr, a * f)
-        R1 = geometry.rotation(vr, -a * (1 - f))
-        T = geometry.translation(c0v + dt * f)
-        X0 = T * R0 * Tinv0
-        X1 = T * R1 * Tinv1
-        return X0, X1
-
-SegmentMotionMethods = {
-        "corkscrew": interpolateCorkscrew,
-        "independent": interpolateIndependent,
-        "linear": interpolateLinear,
-}
 
 def rateLinear(frames):
         "Generate fractions from 0 to 1 linearly (excluding start/end)"
@@ -183,15 +92,118 @@ RateMap = {
         "ramp down": rateRampDown,
 }
 
-def residue_interpolators(residues, cartesian):
-        # Create interpolation function for each residue.
-        from .interp_residue import internal_residue_interpolator, cartesian_residue_interpolator
-        residue_interpolator = cartesian_residue_interpolator if cartesian else internal_residue_interpolator
-        res_interp = {}
-        t0 = time()
-        for r in residues:
-                res_interp[r] = residue_interpolator(r)
-        t1 = time()
-        global rsit
-        rsit += t1-t0
-        return res_interp
+class ResidueInterpolator:
+        def __init__(self, residues, cartesian):
+                # Create interpolation function for each residue.
+                from .interp_residue import internal_residue_interpolator, cartesian_residue_interpolator
+                residue_interpolator = cartesian_residue_interpolator if cartesian else internal_residue_interpolator
+                res_interp = {}
+                t0 = time()
+                cartesian_atoms = []
+                dihedral_atoms = []
+                for r in residues:
+                        residue_interpolator(r, cartesian_atoms, dihedral_atoms)
+                t1 = time()
+                global rsit
+                rsit += t1-t0
+                from chimerax.core.atomic import Atoms
+                self.cartesian_atom_indices = Atoms(cartesian_atoms).coord_indices
+                self.dihedral_atom_indices = Atoms(dihedral_atoms).coord_indices
+                
+        def interpolate(self,coords0, coords1, f, coord_set):
+                from .interp_residue import interpolate_linear, interpolate_dihedrals
+                interpolate_linear(self.cartesian_atom_indices, coords0, coords1, f, coord_set)
+                interpolate_dihedrals(self.dihedral_atom_indices, coords0, coords1, f, coord_set)
+
+class SegmentInterpolator:
+        def __init__(self, residue_groups, method, coordset0, coordset1):
+                # Get transform for each rigid segment
+                t0 = time()
+                calc_motion_parameters = segment_motion_methods[method]
+                self.motion_parameters = motion_params = []
+                self.motion_transforms = motion_transforms = []
+                from .util import segment_alignment_atoms
+                from chimerax.core.geometry import align_points
+                from chimerax.core.atomic import Atoms
+                for rList in residue_groups:
+                        raindices = Atoms(segment_alignment_atoms(rList)).coord_indices
+                        cList0 = coordset0[raindices]
+                        c0 = cList0.mean(axis = 0)
+                        cList1 = coordset1[raindices]
+                        c1 = cList1.mean(axis = 0)
+                        xform, rmsd = align_points(cList0, cList1)
+                        atom_indices = rList.atoms.coord_indices
+                        motion_transforms.append((atom_indices, xform))
+                        axis, angle, center, shift = calc_motion_parameters(xform, c0, c1)
+                        motion_params.append((atom_indices, axis, angle, center, shift))
+                t1 = time()
+                global stt
+                stt += t1-t0
+
+        def reverse_motion(self, coordset):
+                for atom_indices, xform in self.motion_transforms:
+                        ca = coordset[atom_indices]	# Copies array
+                        xform.inverse().move(ca)
+                        coordset[atom_indices] = ca
+
+        def interpolate(self, f, coordset):
+                global rit
+                t0 = time()
+                for atom_indices, axis, angle, center, shift in self.motion_parameters:
+                        apply_rigid_motion(coordset, atom_indices, axis, angle, center, shift, f)
+                t1 = time()
+                rit += t1-t0
+
+def apply_rigid_motion_py(coordset, atom_indices, axis, angle, center, shift, f):
+        from chimerax.core.geometry import rotation, translation
+        xf = translation(f*shift) * rotation(axis, f*angle, center)
+        ca = coordset[atom_indices]	# Copies array
+        xf.move(ca)  # Apply rigid segment motion
+        coordset[atom_indices] = ca
+# Use C++ optimized version
+from ._morph import apply_rigid_motion
+
+def interpolate_corkscrew(xf, c0, c1):
+        'Decompose transform as a rotation about an axis and shift along that axis.'
+        from chimerax.core.geometry import inner_product, cross_product, identity, norm
+        from chimerax.core.geometry import normalize_vector
+        dc = c1 - c0
+        vr, a = xf.rotation_axis_and_angle()        # a is in degrees
+        tra = inner_product(dc, vr)                                # magnitude of translation
+                                                # along rotation axis
+        vt = dc - tra * vr                        # where c1 would end up if
+                                                # only rotation is used
+        cm = c0 + vt / 2
+        v0 = cross_product(vr, vt)
+        if norm(v0) <= 0.0:
+                ident = identity()
+                return ident, ident
+        v0 = normalize_vector(v0)
+        if a != 0.0:
+                import math
+                l = norm(vt) / 2 / math.tan(math.radians(a / 2))
+                cr = cm + v0 * l
+        else:
+                import numpy
+                cr = numpy.array((0.0, 0.0, 0.0))
+
+        return vr, a, cr, tra*vr
+
+def interpolate_linear(xf, c0, c1):
+        'Rotate about center c0 and translate c0 linearly to c1.'
+        vr, a = xf.rotation_axis_and_angle()                # a is in degrees
+        return vr, a, c0, c1-c0
+
+def interpolate_independent(xf, c0, c1):
+        'Rotate about 0,0,0 and translate that point linearly to destination.'
+        vr, a = xf.rotation_axis_and_angle()                # a is in degrees
+        shift = xf.translation()
+        from numpy import zeros, float64
+        center = zeros((3,), float64)
+        return vr, a, center, shift
+
+segment_motion_methods = {
+        "corkscrew": interpolate_corkscrew,
+        "independent": interpolate_independent,
+        "linear": interpolate_linear,
+        }

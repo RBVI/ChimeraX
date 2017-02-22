@@ -119,4 +119,4 @@ def register_command(session):
                    ('pixel_eye_separation', FloatArg)],
         synopsis='adjust camera parameters'
     )
-    register('camera', desc, camera)
+    register('camera', desc, camera, logger=session.logger)

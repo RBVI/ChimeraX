@@ -878,8 +878,6 @@ class Residues(Collection):
     set with such an array (or equivalent sequence), or with a single
     RGBA value.
     ''')
-    ribbon_styles = cvec_property('residue_ribbon_style', int32, doc =
-    '''A numpy int array of cartoon styles.  See constants in :class:Ribbon.''')
     ribbon_adjusts = cvec_property('residue_ribbon_adjust', float32, doc =
     '''A numpy float array of adjustment factors for the position of ribbon
     control points.  Factors range from zero to one, with zero being using the

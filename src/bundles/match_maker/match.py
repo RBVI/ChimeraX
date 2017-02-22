@@ -665,7 +665,8 @@ def register_command():
             ('iterate', Or(FloatArg, BoolArg)), ('gap_extend', FloatArg), ('bring', AtomsArg),
             ('show_alignment', BoolArg), ('compute_ss', BoolArg), ('mat_hh', FloatArg),
             ('mat_ss', FloatArg), ('mat_oo', FloatArg), ('mat_hs', FloatArg),
-            ('mat_ho', FloatArg), ('mat_so', FloatArg)]
+            ('mat_ho', FloatArg), ('mat_so', FloatArg)],
+        synopsis = 'Align atomic structures using sequence alignment'
     )
     register('matchmaker', desc, cmd_match)
     create_alias('mmaker', "%s $*" % 'matchmaker')

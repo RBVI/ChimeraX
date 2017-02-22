@@ -83,4 +83,4 @@ def register_command(session):
         optional=[('format', cli.EnumOf(['verbose', 'bundles', 'packages']))],
         non_keyword=['format'],
         synopsis='show version information')
-    cli.register('version', desc, version)
+    cli.register('version', desc, version, logger=session.logger)

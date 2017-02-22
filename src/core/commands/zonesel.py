@@ -149,4 +149,4 @@ def register_command(session):
                  ('residues', BoolArg)],
         synopsis='Select atoms or surfaces near other atoms and surfaces'
     )
-    register('select zone', desc, select_zone)
+    register('select zone', desc, select_zone, logger=session.logger)

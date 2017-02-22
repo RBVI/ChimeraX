@@ -37,8 +37,6 @@ static bool aromatic_geometry(const Ring&);
 static void make_assignments(std::set<Bond*>&,
     std::map<Bond*, BondOrder>&, std::map<Bond*, int>&,
     std::vector<std::map<Bond*, int>>*, bool allow_charged=false);
-static std::map<Bond*, int>* find_best_assignment(
-                std::vector<std::map<Bond*, int>>&, std::vector<Ring*>&);
 static bool is_N2plus(std::map<Bond*, int>*, const Atom::Bonds&);
 static bool is_N3plus_okay(const std::vector<Atom*>&);
 static void invert_uncertains(std::vector<Atom*>& uncertain,

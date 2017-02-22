@@ -65,17 +65,17 @@ def register_command(session):
         optional=[('text', cli.WholeRestOfLine)],
         non_keyword=['text'],
         synopsis='define or show a command alias')
-    cli.register('alias', desc, alias)
+    cli.register('alias', desc, alias, logger=session.logger)
 
     desc = cli.CmdDesc(
         keyword=[('internal', cli.NoArg)],
         synopsis='list aliases')
-    cli.register('alias list', desc, list_aliases)
+    cli.register('alias list', desc, list_aliases, logger=session.logger)
 
     desc = cli.CmdDesc(
         required=[('name', cli.Or(cli.EnumOf(['all']), cli.StringArg))],
         non_keyword=['name'],
         synopsis='remove a command alias')
-    cli.register('alias delete', desc, unalias)
+    cli.register('alias delete', desc, unalias, logger=session.logger)
 
-    cli.create_alias('~alias', 'alias delete $*')
+    cli.create_alias('~alias', 'alias delete $*', logger=session.logger)

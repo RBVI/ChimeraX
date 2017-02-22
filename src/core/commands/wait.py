@@ -39,4 +39,4 @@ def register_command(session):
         optional=[('frames', cli.PositiveIntArg)],
         synopsis='suspend command processing for a specified number of frames'
         ' or until finite motions have stopped ')
-    cli.register('wait', desc, wait)
+    cli.register('wait', desc, wait, logger=session.logger)

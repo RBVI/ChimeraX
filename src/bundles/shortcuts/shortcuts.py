@@ -1058,5 +1058,6 @@ def ks(session, shortcut = None):
 
 def register_shortcut_command():
     from chimerax.core.commands import CmdDesc, StringArg, register
-    desc = CmdDesc(optional = [('shortcut', StringArg)])
+    desc = CmdDesc(optional = [('shortcut', StringArg)],
+                   synopsis = 'Run keyboard a shortcut')
     register('ks', desc, ks)

@@ -26,4 +26,4 @@ def stop(session):
 def register_command(session):
     from . import cli
     desc = cli.CmdDesc(synopsis='stop all motion')
-    cli.register('stop', desc, stop)
+    cli.register('stop', desc, stop, logger=session.logger)

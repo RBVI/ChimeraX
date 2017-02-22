@@ -25,16 +25,16 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: select</h3>
 <h3><a href="usageconventions.html">Usage</a>:
-<br><b>select</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+<br><b>select</b>&nbsp;&nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
 [&nbsp;entity&nbsp;&nbsp;<a href="atomspec.html"><i>chain-spec</i></a>&nbsp;]
 </h3>
 
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>select</b> (&nbsp;add&nbsp;|&nbsp;subtract&nbsp;|&nbsp;intersect&nbsp;) 
-&nbsp;<a href="atomspec.html"><i>atom-spec</i></a></h3>
+&nbsp;<a href="atomspec.html"><i>spec</i></a></h3>
 
 <h3><a href="usageconventions.html">Usage</a>:
-<br><b>~select</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a></h3>
+<br><b>~select</b> &nbsp;<a href="atomspec.html"><i>spec</i></a></h3>
 
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>select clear</b>
@@ -59,7 +59,7 @@ an existing selection. See also:
 <p>
 If used without an <b>add</b>, <b>subtract</b>, or <b>intersect</b> keyword,
 the <b>select</b> command replaces any previous selection with a new selection 
-containing the items in <a href="atomspec.html"><i>atom-spec</i></a>.
+containing the items in <a href="atomspec.html"><i>spec</i></a>.
 The <b>entity</b> option restricts that selection to only the 
 biopolymer chains with the same sequences (the same macromolecular entities) 
 as the chains in <a href="atomspec.html"><i>chain-spec</i></a>.
@@ -83,8 +83,6 @@ and/or surfaces in <a href="atomspec.html"><i>other-spec</i></a> that are
 within a &nbsp;<i>cutoff</i>&nbsp; distance of the atoms and/or surfaces in 
 <a href="atomspec.html"><i>ref-spec</i></a>. A blank (omitted)
 <a href="atomspec.html"><i>other-spec</i></a> indicates &ldquo;all.&rdquo;
-Surface models can be specified by model number or as a selection
-(<a href="atomspec.html#othermodels">details...</a>).
 Although <a href="surface.html">molecular surfaces</a> can be included
 in the reference items (<a href="atomspec.html"><i>ref-spec</i></a>),
 their membership in the resulting zone is not evaluated directly
@@ -106,5 +104,5 @@ sel zone sel 5 extend t
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2017</address>
+February 2017</address>
 </body></html>

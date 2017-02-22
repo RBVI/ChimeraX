@@ -244,7 +244,7 @@ class ImageSaver(ImageSaverBase):
             from ..errors import UserError
             raise UserError("width/height must be positive integers")
         ss = self.SUPERSAMPLE_OPTIONS[self._supersample.currentIndex()][1]
-        from ..commands import run
+        from ..commands import run, quote_if_necessary
         cmd = "save image %s width %g height %g" % (quote_if_necessary(filename), w, h)
         if ss is not None:
             cmd += " supersample %g" % ss

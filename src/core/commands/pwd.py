@@ -21,4 +21,4 @@ def pwd(session):
 def register_command(session):
     from . import cli
     desc = cli.CmdDesc(synopsis='print current working directory')
-    cli.register('pwd', desc, pwd)
+    cli.register('pwd', desc, pwd, logger=session.logger)

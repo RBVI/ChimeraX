@@ -135,4 +135,4 @@ def register_command(session):
                              ('percent', FloatArg)],
                    keyword=[('target', StringArg)],
                    synopsis="change object transparency")
-    register('transparency', desc, transparency)
+    register('transparency', desc, transparency, logger=session.logger)

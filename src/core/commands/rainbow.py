@@ -33,4 +33,4 @@ def register_command(session):
                             ('halfbond', BoolArg)],
                    url='help:user/commands/color.html#rainbow',
                    synopsis="color residues and chains sequentially")
-    register('rainbow', desc, rainbow)
+    register('rainbow', desc, rainbow, logger=session.logger)

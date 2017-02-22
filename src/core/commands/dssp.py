@@ -40,4 +40,4 @@ def register_command(session):
                    ('report', BoolArg)],
         synopsis="compute/assign secondary structure using Kabsch & Sander DSSP algorithm"
     )
-    register('dssp', desc, compute_ss)
+    register('dssp', desc, compute_ss, logger=session.logger)

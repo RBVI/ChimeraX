@@ -11,9 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def sym(session, molecules,
+def sym(session, structures,
         symmetry = None, center = None, axis = None, coordinate_system = None, assembly = None,
-        copies = False, surface_only = False, resolution = None, grid_spacing = None):
+        copies = False, new_model = None, surface_only = False, resolution = None, grid_spacing = None):
     '''
     Show molecular assemblies of molecular models defined in mmCIF files.
     These can be subassemblies or symmetrical copies with individual chains 
@@ -21,8 +21,8 @@ def sym(session, molecules,
 
     Parameters
     ----------
-    molecules : list of AtomicStructure
-      List of molecules to show as assemblies.
+    structures : list of AtomicStructure
+      List of structures to show as assemblies.
     symmetry : cli.Symmetry
       Desired symmetry to display
     center : cli.Center
@@ -36,31 +36,51 @@ def sym(session, molecules,
       then the names of available assemblies are printed in log.
     copies : bool
       Whether to make copies of the molecule chains.  If copies are not made
-      then clones of the original molecule.  Copies are needed to give different
-      colors or styles to each copy.  When copies are made a new model with
-      submodels are created, one submode for each copy.
+      then graphical instances of the original molecule are used.  Copies are needed
+      to give different colors or styles to each copy.  When copies are made a new model
+      with submodels for each copy are created.
+    new_model : bool
+      Copy the structure to create the assembly.  Default is True if an assembly is specified
+      and false if the symmetry option is given.  If the copies option is true then
+      new_model is automatically true.  If copies is false and new_model is true then
+      one copy of the structure for each set of position matrices is used, and additional
+      copies use graphical instances.  If copies is false and new_model is false then
+      instances of the original structure is used.  If there is more than one set of
+      position matrices, then copies are required and an error message is given.
     surface_only : bool
       Instead of showing instances of the molecule, show instances
       of surfaces of each chain.  The chain surfaces are computed if
-      they do not already exist.
+      they do not already exist.  It is an error to request surfaces only
+      and to request copies.
     resolution : float
       Resolution for computing surfaces when surface_only is true.
     grid_spacing : float
       Grid spacing for computing surfaces when surface_only is true.
     '''
-    if len(molecules) == 0:
+    if len(structures) == 0:
         from ..errors import UserError
-        raise UserError('No molecules specified.')
+        raise UserError('No structures specified.')
 
+    if surface_only and copies:
+        from ..errors import UserError
+        raise UserError('Cannot use both copies and surfacesOnly.')
+
+    if new_model is None:
+        if assembly is not None:
+            new_model = True
+        elif symmetry is not None:
+            new_model = False
+            
     if symmetry is not None:
         if assembly is not None:
             from ..errors import UserError
             raise UserError('Cannot specify explicit symmetry and the assembly option.')
-        transforms = symmetry.positions(center, axis, coordinate_system, molecules[0])
-        show_symmetry(molecules, transforms, copies, surface_only, resolution, grid_spacing, session)
+        transforms = symmetry.positions(center, axis, coordinate_system, structures[0])
+        show_symmetry(structures, symmetry.group, transforms, copies, new_model, surface_only,
+                      resolution, grid_spacing, session)
         return
             
-    for m in molecules:
+    for m in structures:
         assem = pdb_assemblies(m)
         if assembly is None:
             ainfo = '\n'.join(' %s = %s (%s)' % (a.id,a.description,a.copy_description(m))
@@ -79,23 +99,25 @@ def sym(session, molecules,
             if copies:
                 a.show_copies(m, surface_only, resolution, grid_spacing, session)
             elif surface_only:
-               a.show_surfaces(m, resolution, grid_spacing, session)
+                a.show_surfaces(m, resolution, grid_spacing, new_model, session)
             else:
-                a.show(m, session)
+                a.show(m, new_model, session)
+            if new_model:
+                m.display = False
 
-def sym_clear(session, molecules = None):
+def sym_clear(session, structures = None):
     '''
-    Remove copies of molecules that were made with sym command.
+    Remove copies of structures that were made with sym command.
 
     Parameters
     ----------
-    molecules : list of AtomicStructure
-      List of molecules to for which to remove copies.
+    structures : list of AtomicStructure
+      List of structures to for which to remove copies.
     '''
-    if molecules is None:
+    if structures is None:
         from ..atomic import all_structures
-        molecules = all_structures(session)
-    for m in molecules:
+        structures = all_structures(session)
+    for m in structures:
         from ..geometry import Places
         m.positions = Places([m.position])	# Keep only first position.
         for s in m.surfaces():
@@ -105,46 +127,57 @@ def register_command(session):
     from . import CmdDesc, register, AtomicStructuresArg, StringArg, FloatArg
     from . import CenterArg, AxisArg, SymmetryArg, CoordSysArg, BoolArg
     desc = CmdDesc(
-        required = [('molecules', AtomicStructuresArg)],
+        required = [('structures', AtomicStructuresArg)],
         optional = [('symmetry', SymmetryArg)],
         keyword = [('center', CenterArg),
                    ('axis', AxisArg),
                    ('coordinate_system', CoordSysArg),
                    ('assembly', StringArg),
                    ('copies', BoolArg),
+                   ('new_model', BoolArg),
                    ('surface_only', BoolArg),
                    ('resolution', FloatArg),
                    ('grid_spacing', FloatArg)],
         synopsis = 'create model copies')
-    register('sym', desc, sym)
+    register('sym', desc, sym, logger=session.logger)
     desc = CmdDesc(
-        optional = [('molecules', AtomicStructuresArg)],
+        optional = [('structures', AtomicStructuresArg)],
         synopsis = 'Remove model copies')
-    register('sym clear', desc, sym_clear)
+    register('sym clear', desc, sym_clear, logger=session.logger)
 
-def show_symmetry(molecules, transforms, copies, surface_only, resolution, grid_spacing, session):
-    if copies:
+def show_symmetry(structures, sym_name, transforms, copies, new_model, surface_only,
+                  resolution, grid_spacing, session):
+    name = '%s %s' % (','.join(s.name for s in structures), sym_name)
+    if copies and not new_model:
         from ..models import Model
-        g = Model('%d copies' % len(transforms), session)
+        g = Model(name, session)
         for i, tf in enumerate(transforms):
-            if len(molecules) > 1:
+            if len(structures) > 1:
                 # Add grouping model if more the one model is being copied
                 ci = Model('copy %d' % (i+1), session)
                 ci.position = tf
                 g.add([ci])
-                copies = [m.copy() for m in molecules]
-                for c,m in zip(copies, molecules):
+                copies = [m.copy() for m in structures]
+                for c,m in zip(copies, structures):
                     c.position = m.scene_position
                 ci.add(copies)
             else:
-                m0 = molecules[0]
+                m0 = structures[0]
                 c = m0.copy()
                 c.position = tf * m0.scene_position
                 g.add([c])
         session.models.add([g])
     else:
-        # Instancing    
-        for m in molecules:
+        if new_model:
+            from ..models import Model
+            group = Model(name, session)
+            mols = [m.copy() for m in structures]
+            group.add(mols)
+            session.models.add([group])
+        else:
+            mols = structures
+        # Instancing
+        for m in mols:
             # Transforms are in scene coordinates, so convert to molecule coordinates
             spos = m.scene_position
             symops = transforms if spos.is_identity() else transforms.transform_coordinates(spos)
@@ -156,6 +189,10 @@ def show_symmetry(molecules, transforms, copies, surface_only, resolution, grid_
             else:
                 m.positions = m.positions * symops
 
+    if copies or new_model:
+        for s in structures:
+            s.display = False
+            
 def pdb_assemblies(m):
     if not hasattr(m, 'filename') or not m.filename.endswith('.cif'):
         return []
@@ -236,14 +273,17 @@ class Assembly:
         # Chain map maps ChimeraX (chain id, res number) to mmcif chain id used in chain_ids
         self.chain_map = chain_map
 
-    def show(self, mol, session):
-        mols = self._molecule_copies(mol, session)
+    def show(self, mol, new_model, session):
+        mols = self._molecule_copies(mol, new_model, session)
         for (chain_ids, op_expr, ops), m in zip(self.chain_ops, mols):
             included_atoms, excluded_atoms = self._partition_atoms(m.atoms, chain_ids)
             if len(excluded_atoms) > 0:
-                # Hide chains that are not part of assembly
-                excluded_atoms.displays = False
-                excluded_atoms.unique_residues.ribbon_displays = False
+                if new_model:
+                    excluded_atoms.delete()
+                else:
+                    # Hide chains that are not part of assembly
+                    excluded_atoms.displays = False
+                    excluded_atoms.unique_residues.ribbon_displays = False
             self._show_atoms(included_atoms)
             m.positions = ops
 
@@ -254,12 +294,21 @@ class Assembly:
                 if not catoms.displays.any() and not catoms.residues.ribbon_displays.any():
                     catoms.displays = True
 
-    def show_surfaces(self, mol, res, grid_spacing, session):
-        included_atoms, excluded_atoms = self._partition_atoms(mol.atoms, self._chain_ids())
-        from .surface import surface
+    def show_surfaces(self, mol, res, grid_spacing, new_model, session):
+        if new_model:
+            m = mol.copy('%s assembly %s' % (mol.name, self.id))
+            m.ignore_assemblies = True
+            session.models.add([m])
+        else:
+            m = mol
+        included_atoms, excluded_atoms = self._partition_atoms(m.atoms, self._chain_ids())
+        if new_model:
+            excluded_atoms.delete()
+        from .surface import surface, surface_hide
         surfs = surface(session, included_atoms, grid_spacing = grid_spacing, resolution = res)
-        if len(excluded_atoms) > 0:
-            surface(session, excluded_atoms, hide = True)
+        if not new_model and len(excluded_atoms) > 0:
+            from ..objects import Objects
+            surface_hide(session, Objects(atoms = excluded_atoms))
         for s in surfs:
             mmcif_cid = mmcif_chain_ids(s.atoms[:1], self.chain_map)[0]
             s.positions = self._chain_operators(mmcif_cid)
@@ -269,6 +318,7 @@ class Assembly:
         for chain_ids, op_expr, ops in self.chain_ops:
             for pos in ops:
                 m = mol.copy()
+                m.ignore_assemblies = True
                 mlist.append(m)
                 m.position = pos
                 included_atoms, excluded_atoms = self._partition_atoms(m.atoms, chain_ids)
@@ -306,23 +356,29 @@ class Assembly:
         from ..geometry import Places
         return Places(cops)
 
-    def _molecule_copies(self, mol, session):
-        copies = [m for m in getattr(mol, '_sym_copies', []) if not m.deleted]
-        nm = 1 + len(copies)
+    def _molecule_copies(self, mol, new_model, session):
         n = len(self.chain_ops)
-        if nm < n:
-            # Create new copies
-            mnew = [mol.copy('%s %d' % (mol.name,i)) for i in range(nm,n)]
-            session.models.add(mnew)
-            copies.extend(mnew)
-            mol._sym_copies = copies
-        elif nm > n:
-            # Close extra copies
-            session.models.close(copies[nm-n-1:])
-            copies = copies[:nm-n-1]
-            mol._sym_copies = copies
-        mols = [mol] + copies
-        return mols
+        if not new_model:
+            if n > 1:
+                from ..errors import UserError
+                raise UserError('Assembly requires new model because'
+                                'it uses more than one set of positioning matrices.')
+            else:
+                return [mol]
+        # Create copies
+        name = '%s assembly %s' % (mol.name, self.id)
+        if n > 1:
+            from ..models import Model
+            group = Model(name, session)
+            mcopies = [mol.copy('%s %d' % (mol.name,i+1)) for i in range(n)]
+            group.add(mcopies)
+            addm = [group]
+        else:
+            mcopies = addm = [mol.copy(name)]
+        for m in mcopies:
+            m.ignore_assemblies = True
+        session.models.add(addm)
+        return mcopies
 
     def copy_description(self, mol):
         atoms = mol.atoms

@@ -15,6 +15,7 @@
 # Fetch density maps from the Electron Microscopy Data Bank
 #
 #       ftp://ftp.wwpdb.org/pub/emdb/structures/EMD-5582/map/emd_5582.map.gz
+#	https://files.rcsb.org/pub/emdb/structures/EMD-1013/map/emd_1013.map.gz
 #       ftp://ftp.ebi.ac.uk/pub/databases/emdb/structures/EMD-5680/map/emd_5680.map.gz
 #
 def fetch_emdb(session, emdb_id, ignore_cache=False, **kw):
@@ -24,6 +25,8 @@ def fetch_emdb(session, emdb_id, ignore_cache=False, **kw):
 
     import socket
     hname = socket.gethostname()
+# TODO: RCSB https is 20x slower than ftp. Cole Christie looking into it.
+#    url_pattern = ('https://files.rcsb.org/pub/emdb/structures/EMD-%s/map/%s.gz'
     url_pattern = ('ftp://ftp.wwpdb.org/pub/emdb/structures/EMD-%s/map/%s.gz'
                    if hname.endswith('.edu') or hname.endswith('.gov') else
                    'ftp://ftp.ebi.ac.uk/pub/databases/emdb/structures/EMD-%s/map/%s.gz')

@@ -40,63 +40,62 @@ class="clRight" title="User Guide Index"/></a>
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>surface</b> (&nbsp;<b>hide</b>&nbsp;|&nbsp;<b>show</b>&nbsp;|&nbsp;<b>close</b>&nbsp;)
-&nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>surface</b> (&nbsp;<b>hide</b>&nbsp;|&nbsp;<b>show</b>&nbsp;|&nbsp;<b>close</b>&nbsp;)
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>
 </h3>
 <p>
-The <b>surface</b> command creates and displays molecular surfaces,
+The <b>surface</b> command creates and displays <b><i>molecular surfaces</i></b>,
 either atomically detailed solvent-excluded surfaces (SES, default) or
 lower-resolution Gaussian surfaces (GS).
-<a name="surfdefs"></a>
-A <b><i>solvent-excluded surface</i></b> is
-composed of the contact, toroidal, and reentrant surfaces of a probe sphere 
-rolled over the atomic <a href="../radii.html">VDW spheres</a>. By contrast,
-a <b><i>solvent-accessible surface</i></b> (not shown by ChimeraX)
-is the surface traced out by the center of the probe sphere. 
-<!--
-See below for <a href="#options">surface creation options</a> and
-<a href="#examples">examples</a>.
--->
 See also:
+<a href="#sop"><b>surface</b> operations</a>,
 <a href="show.html"><b>show</b></a>,
 <a href="color.html"><b>color</b></a>,
 <a href="measure.html"><b>measure</b></a>,
 <a href="sym.html"><b>sym</b></a>,
 <a href="volume.html"><b>volume</b></a>,
+<a href="volume.html#vop"><b>volume</b> operations</a>,
 <a href="colortables.html#autocolors">chain colors</a>,
 <a href="../tools/moldisplay.html"><b>Molecule Display Toolbar</b></a>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/surfshow.png"></a>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/surfhide.png"></a>
-
+</p>
+<a name="surfdefs"></a>
 <ul>
-<li>A solvent-excluded surface consists of atomic patches
-that can be controlled (hidden, shown, <i>etc.</i>) independently
-by specifying the corresponding atoms.
-An SES can also be specified by its model number to enable/disable display
+<li>A <b><i>solvent-excluded surface</i></b> is
+composed of the contact, toroidal, and reentrant surfaces of a probe sphere 
+rolled over the atomic <a href="../radii.html">VDW spheres</a>.
+Atomic patches in an SES can be controlled 
+(hidden, shown, <i>etc.</i>) independently by specifying the corresponding atoms,
+and their <a href="../selection.html">selection</a>
+is tied to that of the corresponding atoms.
+An SES can also be specified by its own model number to enable/disable display
 as a whole without changing the display of its atomic patches
 (see <a href="../hierarchy.html">hierarchy</a>). 
-SES <a href="../selection.html">selection</a>
-is tied to that of the corresponding atoms.
-<li>A Gaussian surface
+<li>A <b><i>solvent-accessible surface</i></b> (not shown by ChimeraX)
+is the surface traced out by the center of the probe sphere
+rolled over the atomic <a href="../radii.html">VDW spheres</a>.
+<li>A <b><i>Gaussian surface</i></b>
 is indicated with the <a href="#parameters"><b>resolution</b></a> option
-and can only be controlled as a whole, by specifying 
-either the atoms used in its calculation or its own model number.
-<!-- don't bake this distinction in too much as it may change; 
- currently can get GS patches by replacing SES with GS -->
-<!-- confusing that 1gcn GS can be displayed with surf :tyr, show :tyr targ s,
-but not surf show :tyr, only surf show or surf show protein -->
+and will not retain atomic associations 
+unless <a href="#sharpBoundaries">sharp boundaries</a> are used.
+A surface without atomic associations can only be controlled as a whole,
+by specifying its own model number or the atoms used in its calculation.
+<!-- can get GS patches by replacing SES with GS since sharp stays true -->
+<!-- confusing that 1gcn GS w/o sharp boundaries can be displayed with surf :tyr,
+show :tyr targ s, but not surf show :tyr, only surf show or surf show protein -->
 </ul>
 <p>
 By default, the surfaces are made to <a href="#grouping">enclose</a>
 only the residues in biopolymer chains, grouped by chain ID. 
 Typically, this gives a separate molecular surface for each peptide
 or nucleic acid chain, and specifying a subset of the atoms in the chain
-will show/hide SES patches within the context of
+will show/hide their patches within the context of
 the entire chain; for example, no patches will be shown
 for atoms that are completely buried inside the chain.
 </p><p>
@@ -114,9 +113,11 @@ or all surface models that enclose any of the specified atoms.
 <ul class="none">
 <li><a href="#options"><b>Surface Creation Options</b></a>
 <li><a href="#examples"><b>Examples</b></a>
-<li><a href="#sop"><b>Surface Operations</b></a> 
-(for surface models in general,
-including <a href="../tools/volumeviewer.html">volume</a> isosurfaces)
+<li><a href="#sop"><b>Surface Operations (Editing)</b></a> 
+  <ul>
+  <li><a href="#dust"><b>surface dust</b></a>
+  <li><a href="#zone"><b>surface zone</b></a>
+  </ul>
 <li><a href="#notes"><b>Technical Notes</b></a>
 </ul>
 
@@ -140,9 +141,8 @@ including <a href="../tools/volumeviewer.html">volume</a> isosurfaces)
 [&nbsp;<b>visiblePatches</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 </blockquote>
 <p>
-Option keywords for <a href="#top"><b>surface</b></a>
-can be truncated to unique strings.
-Synonyms for true: True, 1. Synonyms for false: False, 0.
+Options for surface creation can be categorized as:
+</p>
 <ul>
 <li><a href="#grouping">Grouping Atoms into Surfaces</a>
 <li><a href="#parameters">Calculation Parameters</a>
@@ -239,6 +239,7 @@ the specified atoms; by removing the visual clutter of small patches,
 this can significantly enhance viewing of pocket surfaces.
 Ranking to determine the largest is based on surface area, <i>including</i>
 any portions hidden by clipping.
+See also: <a href="#dust"><b>surface dust</b></a>
 </p>
 
 <a name="examples"></a>
@@ -317,12 +318,11 @@ and HEM residues in model 1
 <p class="nav">
 [<a href="#top">back to top</a>]
 </p>
-<h3>Surface Operations</h3>
+<h3>Surface Operations (Editing)</h3>
 <p>
 Surface operations apply to surface models in general, including
 <a href="../tools/volumeviewer.html">volume</a> isosurfaces.
-See also: <a href="volume.html"><b>volume</b></a>,
-<a href="volume.html#vop"><b>volume</b> operations</a>
+See also: <a href="volume.html#vop"><b>volume</b> operations</a>
 </p>
 <ul>
 <li><a href="#dust"><b>surface dust</b></a>
@@ -410,5 +410,5 @@ atomic center.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2017</address>
+February 2017</address>
 </body></html>
