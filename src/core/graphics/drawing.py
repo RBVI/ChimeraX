@@ -1221,7 +1221,11 @@ def draw_overlays(drawings, renderer):
     '''Render drawings using an identity projection matrix with no
     depth test.'''
     r = renderer
-    r.disable_shader_capabilities(r.SHADER_STEREO_360)	# Avoid geometry shift
+    r.disable_shader_capabilities(r.SHADER_STEREO_360 |	# Avoid geometry shift
+                                  r.SHADER_DEPTH_CUE |
+                                  r.SHADER_SHADOWS |
+                                  r.SHADER_MULTISHADOW |
+                                  r.SHADER_CLIP_PLANES)
     r.set_projection_matrix(((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0),
                              (0, 0, 0, 1)))
     from ..geometry import place
