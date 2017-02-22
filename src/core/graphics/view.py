@@ -340,11 +340,11 @@ class View:
     def remove_2d_overlays(self, overlays=None):
         '''Remove the specified overlay Drawings.'''
         if overlays is None:
-            overlays = self._2d_overlays
+            overlays = tuple(self._2d_overlays)
         for o in overlays:
             o.delete()
         oset = set(overlays)
-        self._2d_overlays = [o for o in self._overlays if o not in oset]
+        self._2d_overlays = [o for o in self._2d_overlays if o not in oset]
         self.redraw_needed = True
 
     def image(self, width=None, height=None, supersample=None,
