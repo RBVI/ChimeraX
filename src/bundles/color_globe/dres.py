@@ -197,6 +197,7 @@ class ColorKey(Drawing):
                  vertical = True,
                  length = 1, thickness = 0.1, # In screen [-1,1] units
                  offset = (-0.05,-.7,-.7),    # In [-1,1] screen space
+                 divisions = 50,
                  ):
 
         Drawing.__init__(self, 'Color key')
@@ -205,7 +206,7 @@ class ColorKey(Drawing):
             from chimerax.core.colors import BuiltinColormaps
             colormap = BuiltinColormaps['rainbow']
 
-        va, na, vc, ta = self.rectangle_geometry(length, thickness, vertical, offset, colormap)
+        va, na, vc, ta = self.rectangle_geometry(length, thickness, vertical, offset, colormap, divisions)
         self.vertices = va
         self.normals = na
         self.triangles = ta
@@ -220,6 +221,7 @@ class ColorKey(Drawing):
         va[:n,al] = va[n:2*n,al] = linspace(0,length,n)
         va[:n,at] = 0
         va[n:2*n,at] = thickness
+        va[:,2] = 0
         va[:,:] += offset
         na = zeros((2*n,3), float32)
         na[:,2] = 1
