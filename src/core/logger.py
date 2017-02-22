@@ -476,22 +476,23 @@ class CollatingLog(PlainTextLog):
         # note that this handling of the summary (only calling logger,info
         # at the end and not calling the individual log-level functions)
         # will never raise an error dialog
-        summary = '<table style="border-style: solid; border-width: 1px">\n'
+        summary = '<table border=1 cellspacing=0>\n'
         summary += '  <thead>\n'
         summary += '    <tr>\n'
-        summary += '      <th colspan="2" style="border-style: solid; border-width: 1px">%s</th>\n' % summary_title
+        summary += '      <th colspan="2">%s</th>\n' % summary_title
         summary += '    </tr>\n'
         summary += '  </thead>\n'
         summary += '  <tbody>\n'
         some_msgs = False
+        colors = ["#ffffff", "#ffb961", "#ff7882"]
         for level, msgs in reversed(list(enumerate(self.msgs))):
             if not msgs:
                 continue
             some_msgs = True
             summary += '    <tr>\n'
-            summary += '      <td style="border-style: solid; border-width: 1px"><i>%s%s</i></td>' % (
+            summary += '      <td><i>%s%s</i></td>' % (
                 self.LEVEL_DESCRIPTS[level], 's' if len(msgs) > 1 else '')
-            summary += '      <td style="border-style: solid; border-width: 1px">%s</td>' % self.summarize_msgs(msgs, collapse_similar)
+            summary += '      <td style="background-color:%s">%s</td>' % (colors[level], self.summarize_msgs(msgs, collapse_similar))
             summary += '    </tr>\n'
         if some_msgs:
             summary += '  </tbody>\n'
