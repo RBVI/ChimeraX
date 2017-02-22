@@ -54,7 +54,7 @@ _class_class_init = {
     'Pseudobonds': '.atomic',
     'Residue': '.atomic',
     'Residues': '.atomic',
-	'SeqMatchMap': '.atomic',
+    'SeqMatchMap': '.atomic',
     'Sequence': '.atomic',
     'Structure': '.atomic',
     'Tasks': '.tasks',
@@ -64,6 +64,7 @@ _class_class_init = {
     'UserColormaps': '.colors',
     'View': '.graphics',
     'Volume': '.map',
+    'XSectionManager': '.atomic.ribbon',
     '_Input': '.ui.nogui',
 }
 

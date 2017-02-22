@@ -33,11 +33,13 @@ class Structure(Model, StructureData):
         self._session_attrs = {
             '_bond_radius': 0.2,
             '_pseudobond_radius': 0.05,
+            'ribbon_xs_mgr': XSectionManager(),
         }
 
         StructureData.__init__(self, c_pointer)
         for attr_name, val in self._session_attrs.items():
             setattr(self, attr_name, val)
+        self.ribbon_xs_mgr.set_structure(self)
         Model.__init__(self, name, session)
         self._auto_style = auto_style
         self._log_info = True
@@ -51,7 +53,6 @@ class Structure(Model, StructureData):
         self._ribbon_t2r = {}         # ribbon triangles-to-residue map
         self._ribbon_r2t = {}         # ribbon residue-to-triangles map
         self._ribbon_tether = []      # ribbon tethers from ribbon to floating atoms
-        self.ribbon_xs_mgr = XSectionManager(self)
 
         from . import molobject
         molobject.add_to_object_map(self)
@@ -206,6 +207,7 @@ class Structure(Model, StructureData):
 
         for attr_name, default_val in self._session_attrs.items():
             setattr(self, attr_name, data.get(attr_name, default_val))
+        self.ribbon_xs_mgr.set_structure(self)
 
         # Create Python pseudobond group models so they are added as children.
         list(self.pbg_map.values())
