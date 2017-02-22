@@ -1126,8 +1126,11 @@ CIFFile::parse_row(ParseValues& pv)
 		for (; pvi != pve; ++pvi) {
 			const char* buf = values[pvi->column].c_str();
 			current_value_start = buf;
-			current_value_end = buf + values[pvi->column].size();
-			pvi->func(current_value_start, current_value_end);
+			if (pvi->need_end) {
+				current_value_end = buf + values[pvi->column].size();
+				pvi->func2(current_value_start, current_value_end);
+			} else
+				pvi->func1(current_value_start);
 		}
 		current_tags.clear();
 		values.clear();
@@ -1206,7 +1209,10 @@ CIFFile::parse_row(ParseValues& pv)
 					--current_value_end;
 				++current_value_end;
 			}
-			pvi->func(current_value_start, current_value_end);
+			if (pvi->need_end)
+				pvi->func2(current_value_start, current_value_end);
+			else
+				pvi->func1(current_value_start);
 		}
 #ifdef FIXED_LENGTH_ROWS
 		pos = start + columns[columns.size() - 1] + 1;
@@ -1226,7 +1232,10 @@ CIFFile::parse_row(ParseValues& pv)
 		if (current_token != T_VALUE)
 			throw error("not enough data values");
 		if (i == pvi->column) {
-			pvi->func(current_value_start, current_value_end);
+			if (pvi->need_end)
+				pvi->func2(current_value_start, current_value_end);
+			else
+				pvi->func1(current_value_start);
 			++pvi;
 			if (pvi == pve) {
 				// make (i == pvi->column) false
@@ -1269,7 +1278,7 @@ CIFFile::parse_whole_category()
 }
 
 void
-CIFFile::parse_whole_category(ParseValue func)
+CIFFile::parse_whole_category(ParseValue2 func)
 {
 	if (current_category.empty())
 		// not category or exhausted values

@@ -136,7 +136,7 @@ inline double str_to_float(const char* s)
         case 3: fv = iv * 1e3; break;
         case 2: fv = iv * 1e2; break;
         case 1: fv = iv * 1e1; break;
-        case 0: fv = iv; break;
+        case 0: fv = iv * 1e0; break;
         case -1: fv = iv * 1e-1; break;
         case -2: fv = iv * 1e-2; break;
         case -3: fv = iv * 1e-3; break;
@@ -221,14 +221,19 @@ public:
     // to parse the values for columns it is interested in.  If in a loop,
     // parse_row() should be called until it returns false, or to skip the
     // rest of the values, just return from the category callback.
+    typedef std::function<void (const char* start)>
+        ParseValue1;
     typedef std::function<void (const char* start, const char* end)>
-        ParseValue;
+        ParseValue2;
     struct ParseColumn {
         int column;
         bool need_end;
-        ParseValue func;
-        ParseColumn(int c, bool n, ParseValue f):
-            column(c), need_end(n), func(f) {}
+        ParseValue1 func1;
+        ParseValue2 func2;
+        ParseColumn(int c, ParseValue1 f):
+            column(c), need_end(false), func1(f) {}
+        ParseColumn(int c, ParseValue2 f):
+            column(c), need_end(true), func2(f) {}
     };
     typedef std::vector<ParseColumn> ParseValues;
     // ParseValues will be sorted in ascending order, the first time
@@ -240,7 +245,7 @@ public:
     StringVector& parse_whole_category();
 
     // Tokenize complete contents of category and Call func for each item in it
-    void parse_whole_category(ParseValue func);
+    void parse_whole_category(ParseValue2 func);
 
     // Return current category.
     const std::string& category() const;

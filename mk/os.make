@@ -125,7 +125,9 @@ else
 	OPT = /Ox /W2
 endif
 	CC = cl /nologo /EHa /GR /GF /MD
-	CXX = $(CC) /Zc:inline,rvalueCast,strictStrings
+	# Suppress warning, 4251, about "needs to have dll-interface to be used by clients of class"
+	# since we can't fix it for standard container classes
+	CXX = $(CC) /Zc:inline,rvalueCast,strictStrings /wd4251
 
 	PYDEF =
 	PYTHON_LIB = python$(PYVER_NODOT).$(LIB_EXT)
