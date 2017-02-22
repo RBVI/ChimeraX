@@ -307,6 +307,10 @@ class Colormap:
         from numpy import uint8
         c8 = c.astype(uint8)
         return c8
+
+    def value_range(self):
+        v = self.data_values
+        return (v[0], v[-1])
     
     def linear_range(self, min_value, max_value):
         import numpy
