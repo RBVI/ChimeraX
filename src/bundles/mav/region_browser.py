@@ -72,9 +72,7 @@ class Region:
                     x1 -= 1
                     y1 -= 1
                 """
-                print("Added rect at", x1, y2, x2-x1, y2-1, "with kw", kw)
-                #self._items.append(self.scene.addRect(x1, y2, x2-x1, y2-y1, **kw))
-                self._items.append(self.scene.addRect(x1, y2, x2-x1, y2-y1))
+                self._items.append(self.scene.addRect(x1, y2, x2-x1, y1-y2, **kw))
                 if self.name:
                     self._items[-1].setToolTip(str(self))
                 if len(self._items) > 1:
@@ -249,12 +247,12 @@ class Region:
         kw['brush'] = brush = QBrush()
         from PyQt5.QtCore import Qt
         if self.interior_rgba is not None:
-            brush.setColor(QColor(*self._interior_rgba))
+            brush.setColor(rgba_to_qcolor(self.interior_rgba))
             brush.setStyle(Qt.SolidPattern)
         else:
             brush.setStyle(Qt.NoBrush)
         if self._disp_border_rgba():
-            pen.setColor(QColor(*self._disp_border_rgba()))
+            pen.setColor(rgba_to_qcolor(self._disp_border_rgba()))
             if self.highlighted:
                 pen.setStyle(Qt.DashLine)
             else:
@@ -1414,6 +1412,8 @@ class RegionBrowser:
             self._bboxes = bboxes
         else:
             self._clear_drag()
+        scene = self.seq_canvas.main_scene
+        scene.update(scene.sceneRect())
 
     def _mouse_up_cb(self, event, double=False):
         canvas = self.seq_canvas.main_view
@@ -1444,7 +1444,7 @@ class RegionBrowser:
                     "control-drag to add new region\n"
                     "Tools->Region Browser to change colors; "
                     "control left/right arrow to realign region",
-                    blankAfter=120)
+                    blank_after=120)
             else:
                 mav = self.seq_canvas.mav
                 mav.status("Region RMSD: %.3f" % rmsd)
@@ -1714,3 +1714,7 @@ def region_name(region, prefs):
         return unicode(region)
     return ellipsisName(unicode(region), prefs[REGION_NAME_ELLIPSIS])
 """
+
+def rgba_to_qcolor(rgba):
+    from PyQt5.QtGui import QBrush, QPen, QColor
+    return QColor(*[int(255*chan + 0.5) for chan in rgba])
