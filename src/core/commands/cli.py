@@ -1754,20 +1754,9 @@ def register(name, cmd_desc=(), function=None, *, logger=None):
     words = name.split()
     name = ' '.join(words)  # canonicalize
     if cmd_desc is not None and cmd_desc.url is None:
-        import chimerax
-        import os
-        cname = words[0]
-        if cname.startswith('~'):
-            cname = cname[1:]
-            frag = ' '.join(words)
-        else:
-            frag = ' '.join(words[1:])
-        cpath = os.path.join(chimerax.app_data_dir, 'docs', 'user', 'commands',
-                             '%s.html' % cname)
-        if frag:
-            frag = '#' + frag
-        if os.path.exists(cpath):
-            cmd_desc.url = "help:user/commands/%s.html%s" % (cname, frag)
+        url = _get_help_url(words)
+        if url is not None:
+            cmd_desc.url = url
     parent_info = _commands
     for word in words[:-1]:
         if not parent_info.has_subcommands():
@@ -1791,6 +1780,24 @@ def register(name, cmd_desc=(), function=None, *, logger=None):
                 logger.warning(msg)
     parent_info.add_subcommand(words[-1], name, cmd_desc)
     return function     # needed when used as a decorator
+
+
+def _get_help_url(words):
+    import chimerax
+    import os
+    cname = words[0]
+    if cname.startswith('~'):
+        cname = cname[1:]
+        frag = ' '.join(words)
+    else:
+        frag = ' '.join(words[1:])
+    cpath = os.path.join(chimerax.app_data_dir, 'docs', 'user', 'commands',
+                         '%s.html' % cname)
+    if frag:
+        frag = '#' + frag
+    if os.path.exists(cpath):
+        return "help:user/commands/%s.html%s" % (cname, frag)
+    return None
 
 
 def deregister(name, *, is_user_alias=False):
@@ -2409,7 +2416,10 @@ def command_url(name, no_aliases=False):
     cmd._find_command_name(no_aliases=no_aliases)
     if cmd.amount_parsed == 0:
         raise ValueError('"%s" is not a command name' % name)
-    return cmd._ci.url if cmd._ci else None
+    if cmd._ci:
+        return cmd._ci.url
+    else:
+        return _get_help_url(name.split())
 
 
 def usage(name, no_aliases=False, show_subcommands=True, expand_alias=True,

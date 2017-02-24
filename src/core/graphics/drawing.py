@@ -915,6 +915,11 @@ class Drawing:
             picks.extend(d.planes_pick(planes, exclude))
         return picks
 
+    def __del__(self):
+        if not self.was_deleted:
+            # Release opengl resources.
+            self.delete()
+            
     def delete(self):
         '''
         Delete drawing and all child drawings.
