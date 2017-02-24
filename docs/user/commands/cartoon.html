@@ -23,10 +23,6 @@ or derivations thereof.
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
 class="clRight" title="User Guide Index"/></a>
 
-<font color="brown">
-* command in progress; syntax and options likely to change *
-</font>
-
 <h3><a href="../index.html#commands">Command</a>: cartoon, ribbon</h3>
 
 <h3><a href="usageconventions.html">Usage</a>:
@@ -109,6 +105,8 @@ both the preceding and following peptide planes
 </ul>
 Peptide residues at the beginning or end of an SSE are given
 the same orientation as the adjacent residue in that SSE.
+The depiction of a peptide helix or strand starts at the CA atom of its first 
+(N-terminal) residue and ends at the CA atom of its last (C-terminal) residue.
 </blockquote>
 </p>
 
@@ -145,9 +143,6 @@ not those opened later.
 The <b>cartoon style</b> command controls 
 secondary structure representations, width, thickness, and shape.
 Given without options, it reports the current settings for each atomic model. 
-<font color="brown">
-* these settings are not yet saved in sessions *
-</font>
 </p><p>
 The following options can have different values for
 different types of secondary structure even within the same model;

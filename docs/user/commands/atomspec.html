@@ -200,21 +200,20 @@ Examples:
 <b>/A:195,221@n,ca,c,o</b>
 </blockquote>
 - atoms named N, CA, C, O in residues 195 and 221 of chain A
-<!--
-</p><p>
-<b>In model lists, commas are used only to separate values at the 
-main model level, not the sublevels.</b> For example,
-<font color="brown">(neither of the following works yet)</font>
-</p>
 <blockquote>
 <b>#2.1-3,5</b>
 </blockquote>
-is interpreted as submodels 1-3 of model 2 and all of model 5, while
+- models 2.1, 2.2, 2.3, and 2.5 (submodels 1-3 and 5 of model 2)
 <blockquote>
-<b>#2.1-3,.5</b>
+<b>#5,2.1-3</b>
 </blockquote>
-indicates submodels 1-3 of model 2 and submodel 5 of all models.
--->
+- models 5.1, 5.2, 5.3, 2.1, 2.2, and 2.3 (submodels 1-3 of models 5 and 2)
+<blockquote>
+<b>#*.1-3</b>
+</blockquote>
+- submodels 1-3 of all models that have them
+<font color="brown">
+(this is the only type of wildcard currently implemented)</font>
 </p>
 
 <a name="implicit"></a>
@@ -253,6 +252,14 @@ atoms named N, CA, C, O in chain B residues 52-62 and 69
 and in chain B residues 52-62, 69; intersection <b>&amp;</b>
 (see <a href="#combinations">combinations</a>) is needed to specify
 only the named atoms in both chains
+<blockquote>
+<b>#1,2.1</b>
+</blockquote>
+- models 1.1 and 2.1
+<blockquote>
+<b>#1#2.1</b>
+</blockquote>
+- models 1 (including any submodels) and 2.1
 </p>
 
 <a name="wildcards"></a>
