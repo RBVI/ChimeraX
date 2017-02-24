@@ -32,10 +32,7 @@ class="clRight" title="User Guide Index"/></a>
 <br><b>sym</b>
 &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
 &nbsp;&nbsp;assembly&nbsp;&nbsp;<i>identifier</i>&nbsp;
-[&nbsp;copies&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;surfaceOnly&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp]
-[&nbsp;resolution&nbsp;&nbsp;<i>r</i>&nbsp;]
-[&nbsp;gridSpacing&nbsp;&nbsp;<i>s</i>&nbsp;]
+&nbsp;<a href="#copies"><i>copy-options</i></a>
 </h3>
 
 <h3><a href="usageconventions.html">Usage</a>:
@@ -45,14 +42,11 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;axis&nbsp;&nbsp;<i>axis</i>&nbsp;]
 [&nbsp;center&nbsp;&nbsp;<i>center</i>&nbsp;]
 [&nbsp;coordinateSystem&nbsp;&nbsp;<i>N</i>&nbsp;]
-[&nbsp;copies&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;surfaceOnly&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp]
-[&nbsp;resolution&nbsp;&nbsp;<i>r</i>&nbsp;]
-[&nbsp;gridSpacing&nbsp;&nbsp;<i>s</i>&nbsp;]
+&nbsp;<a href="#copies"><i>copy-options</i></a>
 </h3>
 
 <h3><a href="usageconventions.html">Usage</a>:
-<br><b>sym clear</b>
+<br><a href="#copies"><b>sym clear</b></a>
 &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
 </h3>
 
@@ -65,18 +59,30 @@ See also:
 <a href="view.html"><b>view</b></a>,
 <a href="surface.html"><b>surface</b></a>,
 <b>Cage Builder</b>
-</p><p>
-Command options are explained in the following sections:
 </p>
-<blockquote>
+
+<blockquote><b>
 <a href="#assembly">Assemblies from mmCIF</a>
 <br><a href="#symmetry">User-Specified Symmetry</a>
-<br><a href="#copies">How to Represent Copies</a>
-</blockquote>
+<br><a href="#copies">Copy Representation Options</a>
+</b></blockquote>
 
 <a name="assembly"></a>
-<h4><a href="#top" class="nounder"><b>&larr;</b></a>
-Assemblies from mmCIF</h4>
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<h3>Assemblies from mmCIF</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>sym</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>sym</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+&nbsp;&nbsp;<b>assembly</b>&nbsp;&nbsp;<i>identifier</i>&nbsp;
+&nbsp;<a href="#copies"><i>copy-options</i></a>
+</blockquote>
 <p>
 Given without options, <b>sym</b> lists any assemblies read from
 <a href="http://mmcif.wwpdb.org/docs/faqs/pdbx-mmcif-faq-general.html"
@@ -87,8 +93,20 @@ can then be used with the <b>assembly</b> keyword to specify that assembly.
 </p>
 
 <a name="symmetry"></a>
-<h4><a href="#top" class="nounder"><b>&larr;</b></a>
-User-Specified Symmetry</h4>
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<h3>User-Specified Symmetry</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>sym</b> 
+&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+&nbsp;&nbsp;<i>sym-type</i>
+[&nbsp;<b>axis</b>&nbsp;&nbsp;<i>axis</i>&nbsp;]
+[&nbsp;<b>center</b>&nbsp;&nbsp;<i>center</i>&nbsp;]
+[&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+&nbsp;<a href="#copies"><i>copy-options</i></a>
+</blockquote>
 <p>
 Alternatively, symmetry information can specified explicitly in the command.
 The <i>sym-type</i> can be:
@@ -240,21 +258,54 @@ The <i>sym-type</i> can be:
 </p>
 
 <a name="copies"></a>
-<h4><a href="#top" class="nounder"><b>&larr;</b></a>
-How to Represent Copies</h4>
-<p>
-By default, the added copies are simply graphical clones of
-the original structure, and cannot be displayed in different styles and
-structures from the original.
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<h3>Copy Representation Options</h3>
+
+<b>newModel</b> &nbsp;true&nbsp;|&nbsp;false
+<blockquote>
+The <b>newModel</b> option indicates whether to open the assembly as
+a new model (default <b>true</b> for <a href="#assembly">assemblies from mmCIF</a>,
+default <b>false</b> for <a href="#symmetry">user-specified symmetry</a>).
+In addition, <b>copies true</b> automatically sets <b>newModel true</b>.
+When an assembly is opened as a new model, the original atomic model is hidden 
+but not closed; the original state can be restored by closing the new model
+and <a href="show.html">showing</a> (with <b>target m</b>) the original model.
+An advantage of opening the assembly as a new model is that any parts
+of the original asymmetric unit that are not part of the specified assembly
+will be deleted from that model, not merely hidden as they would be
+with <b>newModel false</b>. Parts that are merely hidden could be 
+displayed inadvertently and cause confusion later.
+</blockquote>
+<b>copies</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+<blockquote>
+The <b>copies</b> option indicates whether the additional copies needed
+to reconstitute the assembly should be opened as full atomic models (<b>true</b>)
+or as graphical clones (<b>false</b>, default).
+Graphical clones of an atomic model cannot be displayed in 
+different styles and colors than the original. 
+Generating full atomic models instead of graphical clones
+allows their independent control, 
+but requires more memory and may not be practical for larger assemblies.
 </p><p>
-With <b>copies true</b> (default <b>false</b>),
-the assembly is instead added as a separate model in which each submodel 
-can be displayed and colored independently of the others.
-Adding all copies as independent (sub)models rather than as graphical clones
-requires more memory and may not be practical for larger assemblies.
-The original atomic model is hidden but not closed automatically,
-even though the same parts of the assembly are also included in the new model.
+The <b>sym clear</b> command removes all graphical clones of the 
+<a href="atomspec.html">specified</a> model(s), but not any copies
+that were opened as full atomic models. With <b>newModel true</b>
+but <b>copies false</b>, the new model will contain at least one full
+atomic copy, but the remainder will be graphical clones.
 </p><p>
+Even when both <b>copies</b> and <b>newModel</b> are <b>false</b>,
+one or more copies of the full atomic model may be added, namely
+when the assembly specifies different sets of matrices for different chains.
+In that case, restoring the original state may require not only using 
+<b>sym clear</b> but also <a href="close.html">closing</a> the added model(s)
+and <a href="show.html">showing</a> all chains of the original copy
+(some chains may have been hidden when the assembly was shown).
+</p>
+</blockquote>
+<b>surfaceOnly</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+<blockquote>
 For a simple appearance and economical use of memory,
 <b>surfaceOnly true</b> (default <b>false</b>) indicates calculating per-chain 
 surfaces for the original structure and then showing only surfaces
@@ -283,21 +334,9 @@ for a Gaussian surface.
 A smaller spacing gives a smoother, more finely triangulated surface,
 but uses more memory.
 </ul>
-<p>
-The command <b>sym clear</b> removes all graphical clones of the 
-<a href="atomspec.html">specified</a> model(s). Other models, 
-including those from using the <b>copies</b> option, are not removed.
-</p><p>
-Even when <b>copies</b> is <b>false</b> (default),
-one or more copies of the full atomic model may be added, namely
-when the assembly specifies different sets of matrices for different chains.
-In that case, restoring the original state may require not only using 
-<b>sym clear</b> but also <a href="close.html">closing</a> the added model(s)
-and <a href="show.html">showing</a> all chains of the original copy
-(some chains may have been hidden when the assembly was shown).
-</p>
+</blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2017</address>
+February 2017</address>
 </body></html>
