@@ -90,7 +90,7 @@ def surface(session, atoms = None, enclose = None, include = None,
         atoms, all_small = remove_solvent_ligands_ions(atoms, include)
         for m, chain_id, show_atoms in atoms.by_chain:
             if all_small:
-                enclose_atoms = atoms.filter(atoms.chain_ids == chain_id)
+                enclose_atoms = show_atoms
             else:
                 matoms = m.atoms
                 chain_atoms = matoms.filter(matoms.chain_ids == chain_id)

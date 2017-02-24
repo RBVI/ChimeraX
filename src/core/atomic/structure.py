@@ -33,11 +33,13 @@ class Structure(Model, StructureData):
         self._session_attrs = {
             '_bond_radius': 0.2,
             '_pseudobond_radius': 0.05,
+            'ribbon_xs_mgr': XSectionManager(),
         }
 
         StructureData.__init__(self, c_pointer)
         for attr_name, val in self._session_attrs.items():
             setattr(self, attr_name, val)
+        self.ribbon_xs_mgr.set_structure(self)
         Model.__init__(self, name, session)
         self._auto_style = auto_style
         self._log_info = True
@@ -51,7 +53,6 @@ class Structure(Model, StructureData):
         self._ribbon_t2r = {}         # ribbon triangles-to-residue map
         self._ribbon_r2t = {}         # ribbon residue-to-triangles map
         self._ribbon_tether = []      # ribbon tethers from ribbon to floating atoms
-        self.ribbon_xs_mgr = XSectionManager(self)
 
         from . import molobject
         molobject.add_to_object_map(self)
@@ -206,6 +207,7 @@ class Structure(Model, StructureData):
 
         for attr_name, default_val in self._session_attrs.items():
             setattr(self, attr_name, data.get(attr_name, default_val))
+        self.ribbon_xs_mgr.set_structure(self)
 
         # Create Python pseudobond group models so they are added as children.
         list(self.pbg_map.values())
@@ -1814,19 +1816,22 @@ class AtomicStructure(Structure):
     which provides access to the C++ structures.
     """
 
+    def __init__(self, *args, **kw):
+        super().__init__(*args, **kw)
+        self._set_chain_descriptions(self.session)
+        self._determine_het_res_descriptions(self.session)
+
+    def added_to_session(self, session):
+        super().added_to_session(session)
+        if self._log_info:
+            self._report_chain_descriptions(session)
+            self._report_assemblies(session)
+
     @staticmethod
     def restore_snapshot(session, data):
         s = AtomicStructure(session, auto_style = False)
         Structure.set_state_from_snapshot(s, session, data)
         return s
-
-    def added_to_session(self, session):
-        super().added_to_session(session)
-        self._set_chain_descriptions(session)
-        self._determine_het_res_descriptions(session)
-        if self._log_info:
-            self._report_chain_descriptions(session)
-            self._report_assemblies(session)
 
     def _determine_het_res_descriptions(self, session):
         # Don't actually set the description in the residue in order to avoid having

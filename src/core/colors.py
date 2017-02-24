@@ -274,9 +274,9 @@ class Colormap:
         self.colors = c[order]
 
         if color_above_value_range is None:
-            color_above_value_range = colors[-1]
+            color_above_value_range = self.colors[-1]
         if color_below_value_range is None:
-            color_below_value_range = colors[0]
+            color_below_value_range = self.colors[0]
         if color_no_value is None:
             color_no_value = (.5, .5, .5, 1)
 
@@ -307,6 +307,10 @@ class Colormap:
         from numpy import uint8
         c8 = c.astype(uint8)
         return c8
+
+    def value_range(self):
+        v = self.data_values
+        return (v[0], v[-1])
     
     def linear_range(self, min_value, max_value):
         import numpy

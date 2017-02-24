@@ -129,7 +129,7 @@ class ModelPanel(ToolInstance):
                     item = parent.child(parent.indexOfChild(previous_child)+1)
                     item_stack[len_id:] = [item]
             else:
-                parent = item_stack[len_id-1]
+                parent = item_stack[0] if len(item_stack) == 1 else item_stack[len_id-1]
                 item = QTreeWidgetItem(parent)
                 item._model = model
                 item_stack[len_id:] = [item]

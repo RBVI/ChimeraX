@@ -14,6 +14,8 @@ using namespace readcif;
 #define MAX_CHAR_RES_NAME 4
 #define MAX_CHAR_CHAIN_ID 4
 
+static const bool Required = true;
+
 struct Atom
 {
 	Atom() {
@@ -73,12 +75,12 @@ ExtractCIF::parse_audit_conform(bool in_loop)
 
 	CIFFile::ParseValues pv;
 	pv.reserve(2);
-	pv.emplace_back(get_column("dict_name", true), true,
+	pv.emplace_back(get_column("dict_name", Required),
 		[&dict_name] (const char* start, const char* end) {
 			dict_name = string(start, end - start);
 		});
-	pv.emplace_back(get_column("dict_version"), false,
-		[&dict_version] (const char* start, const char*) {
+	pv.emplace_back(get_column("dict_version"),
+		[&dict_version] (const char* start) {
 			dict_version = atof(start);
 		});
 	parse_row(pv);
@@ -94,46 +96,46 @@ ExtractCIF::parse_atom_site(bool in_loop)
 	CIFFile::ParseValues pv;
 	pv.reserve(10);
 	Atom atom;
-	pv.emplace_back(get_column("type_symbol", true), false,
-			[&atom] (const char* start, const char*) {
+	pv.emplace_back(get_column("type_symbol", Required),
+			[&atom] (const char* start) {
 				atom.element = *start;
 			});
-	pv.emplace_back(get_column("label_atom_id", true), true,
+	pv.emplace_back(get_column("label_atom_id", Required),
 			[&atom] (const char* start, const char* end) {
 				size_t count = end - start;
 				if (count > MAX_CHAR_ATOM_NAME)
 					count = MAX_CHAR_ATOM_NAME;
 				strncpy(atom.atom_name, start, count);
 			});
-	pv.emplace_back(get_column("label_comp_id", true), true,
+	pv.emplace_back(get_column("label_comp_id", Required),
 			[&atom] (const char* start, const char* end) {
 				size_t count = end - start;
 				if (count > MAX_CHAR_RES_NAME)
 					count = MAX_CHAR_RES_NAME;
 				strncpy(atom.residue_name, start, count);
 			});
-	pv.emplace_back(get_column("label_asym_id", false), true,
+	pv.emplace_back(get_column("label_asym_id"),
 			[&atom] (const char* start, const char* end) {
 				size_t count = end - start;
 				if (count > MAX_CHAR_CHAIN_ID)
 					count = MAX_CHAR_CHAIN_ID;
 				strncpy(atom.chain_id, start, count);
 			});
-	pv.emplace_back(get_column("label_seq_id", true), false,
-			[&atom] (const char* start, const char*) {
+	pv.emplace_back(get_column("label_seq_id", Required),
+			[&atom] (const char* start) {
 				atom.residue_num = readcif::str_to_int(start);
 			});
 	// x, y, z are not required by mmCIF, but are by us
-	pv.emplace_back(get_column("Cartn_x", true), false,
-			[&atom] (const char* start, const char*) {
+	pv.emplace_back(get_column("Cartn_x", Required),
+			[&atom] (const char* start) {
 				atom.x = readcif::str_to_float(start);
 			});
-	pv.emplace_back(get_column("Cartn_y", true), false,
-			[&atom] (const char* start, const char*) {
+	pv.emplace_back(get_column("Cartn_y", Required),
+			[&atom] (const char* start) {
 				atom.y = readcif::str_to_float(start);
 			});
-	pv.emplace_back(get_column("Cartn_z", true), false,
-			[&atom] (const char* start, const char*) {
+	pv.emplace_back(get_column("Cartn_z", Required),
+			[&atom] (const char* start) {
 				atom.z = readcif::str_to_float(start);
 			});
 	while (parse_row(pv)) {
