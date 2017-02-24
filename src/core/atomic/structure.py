@@ -1943,32 +1943,10 @@ class AtomicStructure(Structure):
     def _report_assemblies(self, session):
         if getattr(self, 'ignore_assemblies', False):
             return
-        from . import mmcif 
-        sat = mmcif.get_mmcif_tables_from_metadata(self, ['pdbx_struct_assembly'])[0]
-        sagt = mmcif.get_mmcif_tables_from_metadata(self, ['pdbx_struct_assembly_gen'])[0]
-        if not sat or not sagt:
-            return
-
-        try:
-            sa = sat.fields(('id', 'details'))
-            sag = sagt.mapping('assembly_id', 'oper_expression')
-        except ValueError:
-            return	# Tables do not have required fields
-
-        if len(sa) == 1 and sag.get(sa[0][0]) == '1':
-            # Probably just have the identity assembly, so don't show table.
-            # Should check that it is the identity operator and all
-            # chains are transformed. Requires reading more tables.
-            return
-
-        lines = ['<table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0">',
-                 '<tr><th colspan=2>%s mmCIF Assemblies' % self.name]
-        for id, details in sa:
-            lines.append('<tr><td><a href="cxcmd:sym #%s assembly %s ; view clip false">%s</a><td>%s'
-                         % (self.id_string(), id, id, details))
-        lines.append('</table>')
-        html = '\n'.join(lines)
-        session.logger.info(html, is_html=True)
+        from ..commands import sym
+        html = sym.assembly_html_table(self)
+        if html:
+            session.logger.info(html, is_html=True)
 
 
 # -----------------------------------------------------------------------------
