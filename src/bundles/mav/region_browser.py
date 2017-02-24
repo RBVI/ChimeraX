@@ -72,7 +72,7 @@ class Region:
                     x1 -= 1
                     y1 -= 1
                 """
-                self._items.append(self.scene.addRect(x1, y2, x2-x1, y1-y2, **kw))
+                self._items.append(self.scene.addRect(x1, y1, x2-x1, y2-y1, **kw))
                 if self.name:
                     self._items[-1].setToolTip(str(self))
                 if len(self._items) > 1:
@@ -297,9 +297,16 @@ class Region:
                 continue
             match_info = []
             seqs = all_seqs[si1:si2+1]
+            structs = set()
             for seq in seqs:
                 for match_map in seq.match_maps.values():
                     match_info.append((seq, match_map))
+                    struct = match_map.struct_seq.structure
+                    if struct in structs:
+                        # Don't want RMSD involving different
+                        # chains of same structure...
+                        return None
+                    structs.add(struct)
             if len(match_info) < 2:
                 continue
             for pos in range(pos1, pos2+1):
@@ -402,6 +409,7 @@ class RegionBrowser:
         """
         ModelessDialog.__init__(self)
         """
+        seq_canvas.main_scene.keyPressEvent = self._key_press_cb
 
     def clearRegions(self, doSingleSeqRegions=True):
         if doSingleSeqRegions:
@@ -444,19 +452,16 @@ class RegionBrowser:
     def cur_region(self):
         return self._cur_region
 
-    def deleteRegion(self, region, rebuild_table=True):
+    def delete_region(self, region, rebuild_table=True):
         if not region:
-            self.seq_canvas.mav.status("No active region",
-                                color="red")
+            self.seq_canvas.mav.status("No active region", color="red")
             return
         if not isinstance(region, Region):
             for r in region:
-                self.deleteRegion(r, rebuild_table=(r == region[-1]))
+                self.delete_region(r, rebuild_table=(r == region[-1]))
             return
         if region == self.get_region("ChimeraX selection"):
-            self.seq_canvas.mav.status(
-                "Cannot delete ChimeraX selection region",
-                color="red")
+            self.seq_canvas.mav.status("Cannot delete ChimeraX selection region", color="red")
         else:
             assoc = region.associated_with
             if assoc:
@@ -470,9 +475,11 @@ class RegionBrowser:
             region.destroy(rebuild_table=rebuild_table)
             if seq and not regions:
                 del self.sequence_regions[seq]
+                """
                 self.seqRegionMenu.setitems(self._regMenuOrder())
                 if rebuild_table:
                     self.seqRegionMenu.invoke(0)
+                """
 
     def destroy(self):
         self.regionListing.destroy()
@@ -499,6 +506,7 @@ class RegionBrowser:
         self.rename_dialogs.clear()
         ModelessDialog.destroy(self)
 
+    """TODO
     def fillInUI(self, parent):
         self.Close()
         row = 0
@@ -611,6 +619,7 @@ class RegionBrowser:
 
         self._delAssocHandlerID = self.seq_canvas.mav.triggers.addHandler(
                     DEL_ASSOC, self._delAssocCB, None)
+    """
 
     def get_region(self, name, sequence=False, **kw):
         try:
@@ -1015,7 +1024,12 @@ class RegionBrowser:
 
     def selected(self):
         """Return a list of selected regions"""
+        if self._cur_region:
+            return [self._cur_region]
+        return []
+        """TODO
         return self.regionListing.selected()
+        """
 
     def showChimeraSelection(self):
         selRegion = self.get_region("ChimeraX selection", create=1,
@@ -1245,6 +1259,13 @@ class RegionBrowser:
             return BuiltinColors[specified].rgba
         return specified
     
+    def _key_press_cb(self, event):
+        from PyQt5.QtCore import Qt
+        if event.key() == Qt.Key_Delete or event.key() == Qt.Key_Backspace:
+            self.delete_region(self.selected())
+            scene = self.seq_canvas.main_scene
+            scene.update(scene.sceneRect())
+
     def _listingCB(self, val=None):
         regions = self.selected()
         self.cover_gapsOption.display(regions)
@@ -1439,16 +1460,19 @@ class RegionBrowser:
             self._prev_drag = self._drag_region
             rmsd = self._drag_region.rmsd
             if rmsd == None:
+                from chimerax.core.ui import mod_key_info
+                shift_name = mod_key_info("shift")[1]
+                control_name = mod_key_info("control")[1]
                 self.seq_canvas.mav.status(
-                    "Shift-drag to add to region; "
-                    "control-drag to add new region\n"
-                    "Tools->Region Browser to change colors; "
-                    "control left/right arrow to realign region",
-                    blank_after=120)
+                    "%s-drag to add to region; "
+                    "%s-drag to start new region" % (shift_name.capitalize(), control_name),
+                    follow_with="Tools->Region Browser to change region colors; "
+                    "%s left/right arrow to realign region" % control_name, follow_time=15)
             else:
                 mav = self.seq_canvas.mav
                 mav.status("Region RMSD: %.3f" % rmsd)
-                mav.session.logger.info("%s RMSD: %.3f\n" % (self._drag_region, rmsd))
+                mav.session.logger.info("%s region %s RMSD: %.3f\n"
+                    % (mav.name ,self._drag_region, rmsd))
         self._start_x, self._start_y = None, None
         if self._after_id:
             canvas.after_cancel(self._after_id)
@@ -1521,7 +1545,7 @@ class RegionBrowser:
 
     def _region_destroyed_cb(self, region, rebuild_table=True):
         if region == self._cur_region:
-            self._toggle_active(region)
+            self._toggle_active(region, destroyed=True)
         self.regions.remove(region)
         """TODO
         if rebuild_table:
@@ -1647,13 +1671,15 @@ class RegionBrowser:
             if selRegion:
                 selRegion.destroy()
 
-    def _toggle_active(self, region, select_on_structures=True):
+    def _toggle_active(self, region, select_on_structures=True, destroyed=False):
         if self._cur_region is not None and self._cur_region == region:
-            region.dehighlight()
+            if not destroyed:
+                region.dehighlight()
             self._cur_region = None
         else:
             self._cur_region = region
-            self.highlight(region, select_on_structures=select_on_structures)
+            if not destroyed:
+                self.highlight(region, select_on_structures=select_on_structures)
 
 """
 from OpenSave import OpenModeless

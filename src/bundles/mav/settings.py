@@ -17,7 +17,7 @@ defaults = {
 	"column_separation": 0,
     SINGLE_PREFIX + "column_separation": -2,
     "new_region_border": None,
-    "new_region_interior": [chan/255.0 for chan in (221, 254, 255, 255)],
+    "new_region_interior": [chan/255.0 for chan in (233, 218, 198, 255)],
 }
 
 from  chimerax.core.settings import Settings
