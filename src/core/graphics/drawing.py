@@ -1233,6 +1233,7 @@ def draw_overlays(drawings, renderer):
                                   r.SHADER_CLIP_PLANES)
     r.set_projection_matrix(((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0),
                              (0, 0, 0, 1)))
+
     from ..geometry import place
     p0 = place.identity()
     r.set_view_matrix(p0)
@@ -1245,26 +1246,6 @@ def draw_overlays(drawings, renderer):
     r.enable_blending(False)
     r.enable_depth_test(True)
     r.disable_shader_capabilities(0)
-
-
-def draw_2d_overlays(drawings, renderer):
-    '''Render drawings using an identity projection matrix with no
-    depth test.'''
-    r = renderer
-    ww, wh = r.render_size()
-    from .camera import ortho
-    projection = ortho(0, ww, 0, wh, -1, 1)
-    r.set_projection_matrix(projection)
-    from ..geometry import place
-    p0 = place.identity()
-    r.set_view_matrix(p0)
-    r.set_model_matrix(p0)
-    r.enable_depth_test(False)
-    _draw_multiple(drawings, r, p0, Drawing.OPAQUE_DRAW_PASS)
-    r.enable_blending(True)
-    _draw_multiple(drawings, r, p0, Drawing.TRANSPARENT_DRAW_PASS)
-    r.enable_blending(False)
-    r.enable_depth_test(True)
 
 
 def draw_outline(renderer, cvinv, drawings):
