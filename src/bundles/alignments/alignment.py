@@ -364,7 +364,7 @@ class Alignment(State):
 
         # set up callbacks for structure changes
         match_map.del_handler = chain.triggers.add_handler('delete',
-            lambda _, sseq: self.disassociate(sseq))
+            lambda _1, sseq: self.disassociate(sseq))
         """
         match_map["mavModHandler"] = mseq.triggers.addHandler(
                 mseq.TRIG_MODIFY, self._mseqModCB, match_map)

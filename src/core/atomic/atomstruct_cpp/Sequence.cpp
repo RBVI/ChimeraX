@@ -14,10 +14,13 @@
  */
 
 #include <cctype>
+#include <exception>
+#include <iostream>
+#include <Python.h>
+
 #define ATOMSTRUCT_EXPORT
 #include "Chain.h"
 
-#include <iostream>
 namespace atomstruct {
 
 Sequence::_1Letter_Map Sequence::_nucleic3to1 = {
@@ -204,6 +207,21 @@ Sequence::session_save(int** ints, float**) const
     for (auto c: _contents)
         *int_ptr++ = c;
 }
+
+void
+Sequence::set_name(std::string& name)
+{
+    auto old_name = _name;
+    _name = name;
+    if (_python_obj) {
+        auto ret = PyObject_CallMethod(_python_obj, "_cpp_rename", "s", old_name.c_str());
+        if (ret == nullptr) {
+            throw std::runtime_error("Calling Sequence _cpp_rename method failed.");
+        }
+        Py_DECREF(ret);
+    }
+}
+
 void
 Sequence::set_python_obj(PyObject* py_obj)
 {

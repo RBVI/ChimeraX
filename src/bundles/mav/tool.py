@@ -21,8 +21,6 @@ class MultalignViewer(ToolInstance):
 
     # so Model Loops tool can invoke it...
     MODEL_LOOPS_MENU_TEXT = "Modeller (loops/refinement)..."
-    import RegionBrowser
-    SEL_REGION_NAME = RegionBrowser.SEL_REGION_NAME
 
     def __init__(self, fileNameOrSeqs, fileType=None, autoAssociate=True,
                 title=None, quitCB=None, frame=None, numberingDisplay=None,
@@ -62,8 +60,9 @@ class MultalignViewer(ToolInstance):
         """
         self.alignment = alignment
         alignment.attach_viewer(self)
+        from . import settings
+        self.settings = settings.init(session)
         """
-        self.prefs = prefs
         from SeqCanvas import shouldWrap
         if numberingDisplay:
             defaultNumbering = numberingDisplay
@@ -106,10 +105,6 @@ class MultalignViewer(ToolInstance):
                 if not numberingDisplay:
                     defaultNumbering = (False, False)
 
-        self._seqRenameHandlers = {}
-        for seq in seqs:
-            self._seqRenameHandlers[seq] = seq.triggers.addHandler(
-                seq.TRIG_RENAME, self._seqRenameCB, None)
         self._defaultNumbering = defaultNumbering
         self.fileAttrs = fileAttrs
         self.fileMarkups = fileMarkups
@@ -150,8 +145,14 @@ class MultalignViewer(ToolInstance):
             for aseq in self.alignment.seqs:
                 if aseq.match_maps:
                     self.seq_canvas.assoc_mod(aseq)
+        from .region_browser import RegionBrowser
+        rb_window = self.tool_window.create_child_window("Regions", close_destroys=False)
+        self.region_browser = RegionBrowser(rb_window, self.seq_canvas)
+        self._seq_rename_handlers = {}
+        for seq in self.alignment.seqs:
+            self._seq_rename_handlers[seq] = seq.triggers.add_handler("rename",
+                self.region_browser._seq_renamed_cb)
         """TODO
-        self.regionBrowser = RegionBrowser(self.seq_canvas)
         if self.fileMarkups:
             from HeaderSequence import FixedHeaderSequence
             headers = []
@@ -402,10 +403,41 @@ class MultalignViewer(ToolInstance):
         if note_name == "modify association":
             for match_map in note_data[-1]:
                 self.seq_canvas.assoc_mod(match_map.align_seq)
+        elif note_name == "pre-remove seqs":
+            self.region_browser._pre_remove_lines(note_data)
 
     def delete(self):
         self.alignment.detach_viewer(self)
+        for seq in self.alignment.seqs:
+            seq.triggers.remove_handler(self._seq_rename_handlers[seq])
         ToolInstance.delete(self)
+
+    def new_region(self, **kw):
+        if 'blocks' in kw:
+            # interpret numeric values as indices into sequences
+            blocks = kw['blocks']
+            if blocks and isinstance(blocks[0][0], int):
+                blocks = [(self.alignment.seqs[i1], self.alignment.seqs[i2], i3, i4)
+                        for i1, i2, i3, i4 in blocks]
+                kw['blocks'] = blocks
+        if 'columns' in kw:
+            # in lieu of specifying blocks, allow list of columns
+            # (implicitly all rows); list should already be in order
+            left = right = None
+            blocks = []
+            for col in kw['columns']:
+                if left is None:
+                    left = right = col
+                elif col > right + 1:
+                    blocks.append((self.alignment.seqs[0], self.alignment.seqs[-1], left, right))
+                    left = right = col
+                else:
+                    right = col
+            if left is not None:
+                blocks.append((self.alignment.seqs[0], self.alignment.seqs[-1], left, right))
+            kw['blocks'] = blocks
+            del kw['columns']
+        return self.region_browser.new_region(**kw)
 
 def _start_mav(session, tool_name, alignment=None):
     if alignment is None:
