@@ -37,7 +37,7 @@ class HelpUI(ToolInstance):
         self.on_page = None
         self.home_page = None
         # UI content code
-        from PyQt5.QtWidgets import QToolBar, QVBoxLayout, QAction, QLineEdit
+        from PyQt5.QtWidgets import QToolBar, QVBoxLayout, QAction, QLabel, QLineEdit
         from PyQt5.QtGui import QIcon
         # from PyQt5.QtCore import Qt
         self.toolbar = tb = QToolBar()
@@ -65,8 +65,15 @@ class HelpUI(ToolInstance):
             a.setEnabled(enabled)
             tb.addAction(a)
 
-        self.search = QLineEdit("search")
-        self.search.selectAll()
+        label = QLabel("  Search:")
+        font = label.font()
+        font.setPointSize(font.pointSize() + 2)
+        font.setBold(True)
+        label.setFont(font)
+        tb.addWidget(label)
+        self.search = QLineEdit()
+        self.search.setClearButtonEnabled(True)
+        self.search.setPlaceholderText("search terms")
         tb.addWidget(self.search)
 
         from chimerax.core.ui.widgets import ChimeraXHtmlView
