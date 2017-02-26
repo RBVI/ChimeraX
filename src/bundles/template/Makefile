@@ -23,7 +23,8 @@ DATAFILES =
 WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-py3-none-any.whl
 # FIXME WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-py3-none-$(BIN_PLATFORM).whl
 
-all: $(PYOBJS)
+all: $(PYSRCS)
+	$(PYTHON_EXE) -B -m py_compile $?
 
 install: dir all
 	$(RSYNC) $(PYSRCS) $(DATAFILES) $(PKG_DIR)
