@@ -1610,6 +1610,31 @@ class Element:
     valence = c_property('element_valence', uint8, read_only = True)
     '''Element valence number, for example 7 for chlorine. Read only.'''
 
+    @staticmethod
+    def bond_length(e1, e2):
+        """Standard single-bond length between two elements
+        
+        Arguments can be element instances, atomic numbers, or element names"""
+        if not isinstance(e1, Element):
+            e1 = Element.get_element(e1)
+        if not isinstance(e2, Element):
+            e2 = Element.get_element(e2)
+        f = c_function('element_bond_length', args = (ctypes.c_void_p, ctypes.c_void_p),
+            ret = ctypes.c_float)
+        return f(e1._c_pointer, e2._c_pointer)
+
+    @staticmethod
+    def bond_radius(e):
+        """Standard single-bond 'radius'
+        (the amount this element would contribute to bond length)
+        
+        Argument can be an element instance, atomic number, or element name"""
+        if not isinstance(e, Element):
+            e = Element.get_element(e)
+        f = c_function('element_bond_radius', args = (ctypes.c_void_p,), ret = ctypes.c_float)
+        return f(e._c_pointer)
+
+    @staticmethod
     def get_element(name_or_number):
         '''Get the Element that corresponds to an atomic name or number'''
         if type(name_or_number) == type(1):
