@@ -115,7 +115,6 @@ class HelpUI(ToolInstance):
                 self.help_window.history().clear()
                 self.back.setEnabled(False)
                 self.forward.setEnabled(False)
-        self.url.setText(url)
         from PyQt5.QtCore import QUrl
         self.help_window.setUrl(QUrl(url))
 
@@ -152,6 +151,7 @@ class HelpUI(ToolInstance):
         history = self.help_window.history()
         self.back.setEnabled(history.canGoBack())
         self.forward.setEnabled(history.canGoForward())
+        self.url.setText(self.help_window.url().url())
 
     def title_changed(self, title):
         self.tool_window.title = title
