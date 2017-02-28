@@ -28,6 +28,10 @@ def collect(directory, single=False):
                 errors.append(msg)
             else:
                 collectors.append(c)
+    # import sys, pprint
+    # for c in collectors:
+    #     print(c.filename, file=sys.stderr)
+    #     pprint.pprint(c.module_names, stream=sys.stderr)
     return collectors, errors
 
 import ast

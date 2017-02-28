@@ -2,9 +2,21 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 Comments = {
-    "Sphinx": "used by docs",
-    "sip": "used by PyQt",
+    "blockdiag": "required by Sphinx",
+    "Cython": "required by pytables",
+    "docutils": "required by Sphinx",
+    "filelock": "",
+    "flake8": "used for Python lint",
+    "Jinja2": "required by Sphinx",
+    "mccabe": "required by flake8",
+    "numpydoc": "required for Sphinx",
+    "pep8-naming": "required by flake8",
+    "pyflakes": "required by flake8",
+    "Pygments": "required by Sphinx",
     "python-dateutil": "required by pycollada",
+    "sip": "used by PyQt",
+    "Sphinx": "used by docs",
+    "webcolors": "required by blockdiag",
 }
 
 def main():
@@ -57,8 +69,11 @@ def main():
     from pkg_resources import get_distribution
     print("\nImported by:")
     for pkg in packages:
+        import_names = list(get_distribution(pkg)._get_metadata('top_level.txt'))
+        if len(import_names) == 0:
+            import_names = [pkg]
         importers = []
-        for mod in get_distribution(pkg)._get_metadata('top_level.txt'):
+        for mod in import_names:
             importers.extend(filter_collectors(collectors, mod))
         report_importers(importers, pkg, Comments.get(pkg, None))
 
