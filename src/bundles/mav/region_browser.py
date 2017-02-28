@@ -406,10 +406,16 @@ class RegionBrowser:
         self._mod_assoc_handler_id = self._motion_stop_handler_id = None
         self.sequence_regions = { None: set() }
         self._cur_region = None
+        self._sel_change_handler = None
         """
         ModelessDialog.__init__(self)
         """
         seq_canvas.main_scene.keyPressEvent = self._key_press_cb
+        settings = seq_canvas.mav.settings
+        self._sel_change_from_self = False
+        self._first_sel_region_show = True
+        if settings.show_sel:
+            self._show_sel_cb()
 
     def clearRegions(self, doSingleSeqRegions=True):
         if doSingleSeqRegions:
@@ -495,9 +501,8 @@ class RegionBrowser:
             self._pre_del_seqs_handler_id)
         self.seq_canvas.mav.triggers.deleteHandler(SEQ_RENAMED,
                             self._seqRenamedHandlerID)
-        if hasattr(self,'_selChangeHandler') and self._selChangeHandler:
-            chimera.triggers.deleteHandler("selection changed",
-                            self._selChangeHandler)
+        if self._sel_change_handler:
+            self.tool_window.session.triggers.remove_handler(self._sel_change_handler)
         if self._scf_dialog:
             self._scf_dialog.destroy()
             self._scf_dialog = None
@@ -609,9 +614,9 @@ class RegionBrowser:
             "Include gaps", None, self._cover_gapsCB)
 
         self._sel_change_from_self = False
-        self._firstChimeraShow = True
+        self._first_sel_region_show = True
         if self.seq_canvas.mav.prefs[SHOW_SEL]:
-            self._showSelCB()
+            self._show_sel_cb()
 
         cb = lambda e, s=self: s.deleteRegion(s.selected())
         parent.winfo_toplevel().bind('<Delete>', cb)
@@ -937,26 +942,27 @@ class RegionBrowser:
             region.associated_with = assoc_with
         return region
 
-    def raiseRegion(self, region, rebuild_table=True):
+    def raise_region(self, region, rebuild_table=True):
         if not region:
-            self.seq_canvas.mav.status("No active region",
-                                color="red")
+            self.seq_canvas.mav.status("No active region", color="red")
             return
         if not isinstance(region, Region):
             for r in region[::-1]:
-                self.raiseRegion(r)
+                self.raise_region(r)
             return
         index = self.regions.index(region)
         if index == 0:
             return
         self.regions.remove(region)
         self.regions.insert(0, region)
-        for lowerRegion in self.regions[1:]:
-            if lowerRegion.blocks and lowerRegion.shown:
-                region.raise_above(lowerRegion)
+        for lower_region in self.regions[1:]:
+            if lower_region.blocks and lower_region.shown:
+                region.raise_above(lower_region)
                 break
+        """TODO
         if rebuild_table:
             self._rebuildListing()
+        """
 
     def redrawRegions(self, justGapping=False, cullEmpty=False):
         for region in self.regions[:]:
@@ -1031,50 +1037,39 @@ class RegionBrowser:
         return self.regionListing.selected()
         """
 
-    def showChimeraSelection(self):
-        selRegion = self.get_region("ChimeraX selection", create=1,
-            fill=self.seq_canvas.mav.prefs[SEL_REGION_INTERIOR],
-            outline=self.seq_canvas.mav.prefs[SEL_REGION_BORDER])
-        selRegion.clear()
+    def show_chimerax_selection(self):
+        mav = self.seq_canvas.mav
+        sel_region = self.get_region("ChimeraX selection", create=True,
+            fill=mav.settings.sel_region_interior, outline=mav.settings.sel_region_border)
+        sel_region.clear()
 
-        resDict = {}
-        for res in currentResidues():
-            resDict[res] = 1
+        from chimerax.core.atomic import selected_atoms
+        sel_residues = set(selected_atoms(self.tool_window.session).residues)
         blocks = []
-        for aseq in self.seq_canvas.seqs:
-            try:
-                matchMaps = aseq.matchMaps
-            except AttributeError:
-                continue
-            for matchMap in matchMaps.values():
+        for aseq in self.seq_canvas.alignment.seqs:
+            for match_map in aseq.match_maps.values():
                 start = None
                 end = None
                 for i in range(len(aseq.ungapped())):
-                    if i in matchMap \
-                    and matchMap[i] in resDict:
+                    if i in match_map and match_map[i] in sel_residues:
                         if start is not None:
                             end = i
                         else:
                             end = start = i
                     else:
                         if start is not None:
-                            blocks.append([aseq, 
-                             aseq, aseq. \
-                             ungapped2gapped(start
-                             ), aseq. \
-                             ungapped2gapped(end)])
+                            blocks.append([aseq, aseq, aseq.ungapped_to_gapped(start),
+                                aseq.ungapped_to_gapped(end)])
                             start = end = None
                 if start is not None:
-                    blocks.append([aseq, aseq,
-                        aseq.ungapped2gapped(start),
-                        aseq.ungapped2gapped(end)])
-        if blocks and self._firstChimeraShow:
-            self._firstChimeraShow = False
-            self.seq_canvas.mav.status(
-                "ChimeraX selection region displayed.\n"
-                "Preferences..Regions controls this display.\n")
-        selRegion.add_blocks(blocks)
-        self.raiseRegion(selRegion)
+                    blocks.append([aseq, aseq, aseq.ungapped_to_gapped(start),
+                        aseq.ungapped_to_gapped(end)])
+        if blocks and self._first_sel_region_show:
+            self._first_sel_region_show = False
+            mav.status("ChimeraX selection region displayed.",
+                follow_with="Settings..Regions controls this display.")
+        sel_region.add_blocks(blocks)
+        self.raise_region(sel_region)
 
     def showPredictedSS(self, show):
         """show predicted secondary structure"""
@@ -1630,19 +1625,21 @@ class RegionBrowser:
     def _select_on_structures(self, region=None):
         # highlight on chimerax structures
         self._sel_change_from_self = True
-        self.seq_canvas.mav.session.selection.clear()
+        self.tool_window.session.selection.clear()
         from chimerax.core.atomic import Residues
         Residues(self.region_residues(region)).atoms.selected = True
         self._sel_change_from_self = False
 
-    def _selChangeCB(self, trigName, myData, trigData):
-        selRegion = self.get_region("ChimeraX selection", create=1,
-            fill=self.seq_canvas.mav.prefs[SEL_REGION_INTERIOR],
-            outline=self.seq_canvas.mav.prefs[SEL_REGION_BORDER])
+    def _sel_change_cb(self, _, changes):
+        if "selected changed" not in changes.atom_reasons():
+            return
+        settings = self.seq_canvas.mav.settings
+        sel_region = self.get_region("ChimeraX selection", create=True,
+            fill=settings.sel_region_interior, outline=settings.sel_region_border)
         if self._sel_change_from_self:
-            selRegion.clear()
+            sel_region.clear()
         else:
-            self.showChimeraSelection()
+            self.show_chimerax_selection()
 
     def _seq_renamed_cb(self, _1, trig_data):
         seq, old_name = trig_data
@@ -1657,19 +1654,18 @@ class RegionBrowser:
         self.seqRegionMenu.setitems(self._regMenuOrder(), index=newItem)
         """
 
-    def _showSelCB(self):
-        # also called from PrefDialog.py
-        if self.seq_canvas.mav.prefs[SHOW_SEL]:
-            self.showChimeraSelection()
-            self._selChangeHandler = chimera.triggers.addHandler(
-                "selection changed", self._selChangeCB, None)
+    def _show_sel_cb(self):
+        # also called from settings dialog
+        if self.seq_canvas.mav.settings.show_sel:
+            self.show_chimerax_selection()
+            self._sel_change_handler = self.tool_window.session.triggers.add_handler(
+                "atomic changes", self._sel_change_cb)
         else:
-            chimera.triggers.deleteHandler("selection changed",
-                        self._selChangeHandler)
-            self._selChangeHandler = None
-            selRegion = self.get_region("ChimeraX selection")
-            if selRegion:
-                selRegion.destroy()
+            self.tool_window.session.triggers.remove_handler(self._sel_change_handler)
+            self._sel_change_handler = None
+            sel_region = self.get_region("ChimeraX selection")
+            if sel_region:
+                sel_region.destroy()
 
     def _toggle_active(self, region, select_on_structures=True, destroyed=False):
         if self._cur_region is not None and self._cur_region == region:
