@@ -545,7 +545,7 @@ class MainWindow(QMainWindow, PlainTextLog):
                 ('Quick Start Guide', 'quickstart', 'Interactive ChimeraX basics'),
                 ('Programming Manual', 'devel', 'How to develop ChimeraX tools'),
                 ('Documentation Index', 'index.html', 'Access all documentarion'),
-                ('Contact Us', 'contact_us.html', 'Report problems/issues; ask questions')):
+                ('Contact Us', 'contact.html', 'Report problems/issues; ask questions')):
             help_action = QAction(entry, self)
             help_action.setToolTip(tooltip)
             def cb(arg, ses=session, t=topic):

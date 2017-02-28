@@ -95,11 +95,10 @@ class SideViewCanvas(QWindow):
         loc.far_bottom = 0  # right clip intersect far
         loc.far_top = 0     # left clip intersect far
 
-        from chimerax.core.graphics import Drawing
-        self.applique = Drawing('sideview')
+        self.applique = OrthoOverlay('sideview')
         self.applique.display_style = Drawing.Mesh
         self.applique.use_lighting = False
-        self.view.add_2d_overlay(self.applique)
+        self.view.add_overlay(self.applique)
         self.handler = session.triggers.add_handler('frame drawn', self._redraw)
 
     def close(self):
@@ -463,3 +462,18 @@ class SideViewUI(ToolInstance):
         vd = v.camera.view_direction()
         plane_point = camera_pos + far * vd
         planes.set_clip_position('far', plane_point, v.camera)
+
+
+from chimerax.core.graphics import Drawing
+class OrthoOverlay(Drawing):
+    '''Overlay drawing that uses orthographic projection in window pixel units.'''
+    def draw(self, renderer, place, draw_pass, selected_only=False):
+        r = renderer
+        ww, wh = r.render_size()
+        from chimerax.core.graphics.camera import ortho
+        projection = ortho(0, ww, 0, wh, -1, 1)
+        r.set_projection_matrix(projection)
+        Drawing.draw(self, renderer, place, draw_pass, selected_only)
+        r.set_projection_matrix(((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0),
+                                 (0, 0, 0, 1)))
+

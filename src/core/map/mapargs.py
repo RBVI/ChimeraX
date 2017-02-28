@@ -16,6 +16,7 @@ from ..errors import UserError
 
 class MapsArg(Annotation):
     name = 'density maps'
+    url = "help:user/commands/atomspec.html"
     @staticmethod
     def parse(text, session):
         from ..commands import ModelsArg
@@ -26,6 +27,7 @@ class MapsArg(Annotation):
 
 class MapArg(Annotation):
     name = 'density map'
+    url = "help:user/commands/atomspec.html"
     @staticmethod
     def parse(text, session):
         from ..commands import ModelsArg

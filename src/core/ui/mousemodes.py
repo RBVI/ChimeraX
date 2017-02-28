@@ -152,15 +152,9 @@ class MouseModes:
 
         from PyQt5.QtCore import Qt
         # Qt maps control to meta on Mac...
-        import sys
-        if sys.platform == "darwin":
-            control_mod, command_mod = Qt.MetaModifier, Qt.ControlModifier
-        else:
-            control_mod, command_mod =  Qt.ControlModifier, Qt.MetaModifier
-        self._modifier_bits = [(Qt.AltModifier, 'alt'),
-                        (control_mod, 'control'),
-                        (command_mod, 'command'),
-                        (Qt.ShiftModifier, 'shift')]
+        self._modifier_bits = []
+        for keyfunc in ["alt", "control", "command", "shift"]:
+            self._modifier_bits.append((mod_key_info(keyfunc)[0], keyfunc))
 
         # Mouse pause parameters
         self._last_mouse_time = None
@@ -908,3 +902,30 @@ def standard_mouse_mode_classes():
         NullMouseMode,
     ]
     return mode_classes
+
+def mod_key_info(key_function):
+    """Qt swaps control/meta on Mac, so centralize that knowledge here.
+    The possible "key_functions" are: alt, control, command, and shift
+
+    Returns the Qt modifier bit (e.g. Qt.AltModifier) and name of the actual key
+    """
+    from PyQt5.QtCore import Qt
+    import sys
+    if sys.platform == "win32" or sys.platform == "linux":
+        command_name = "windows"
+        alt_name = "alt"
+    elif sys.platform == "darwin":
+        command_name = "command"
+        alt_name = "option"
+    if key_function == "shift":
+        return Qt.ShiftModifier, "shift"
+    elif key_function == "alt":
+        return Qt.AltModifier, alt_name
+    elif key_function == "control":
+        if sys.platform == "darwin":
+            return Qt.MetaModifier, command_name
+        return Qt.ControlModifier, "control"
+    elif key_function == "command":
+        if sys.platform == "darwin":
+            return Qt.ControlModifier, "control"
+        return Qt.MetaModifier, command_name

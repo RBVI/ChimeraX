@@ -786,6 +786,9 @@ class Sequence:
         self.attrs = {} # miscellaneous attributes
         self.markups = {} # per-residue (strings or lists)
         self.numbering_start = None
+        from ..triggerset import TriggerSet
+        self.triggers = TriggerSet()
+        self.triggers.add_trigger('rename')
         set_pyobj_f = c_function('sequence_set_pyobj', args = (ctypes.c_void_p, ctypes.py_object))
         if seq_pointer:
             set_c_pointer(self, seq_pointer)
@@ -921,6 +924,10 @@ class Sequence:
             ret = ctypes.c_int)
         return f(self._c_pointer, index)
 
+    def _cpp_rename(self, old_name):
+        # called from C++ layer when 'name' attr changed
+        self.triggers.activate_trigger('rename', (self, old_name))
+
     @atexit.register
     def _exiting():
         Sequence.chimera_exiting = True
@@ -941,8 +948,6 @@ class StructureSeq(Sequence):
                 args = (ctypes.c_char_p, ctypes.c_void_p), ret = ctypes.c_void_p)(
                     chain_id.encode('utf-8'), structure._c_pointer)
         super().__init__(sseq_pointer)
-        from ..triggerset import TriggerSet
-        self.triggers = TriggerSet()
         self.triggers.add_trigger('delete')
         self.triggers.add_trigger('modify')
         # description derived from PDB/mmCIF info and set by AtomicStructure constructor
@@ -1605,6 +1610,31 @@ class Element:
     valence = c_property('element_valence', uint8, read_only = True)
     '''Element valence number, for example 7 for chlorine. Read only.'''
 
+    @staticmethod
+    def bond_length(e1, e2):
+        """Standard single-bond length between two elements
+        
+        Arguments can be element instances, atomic numbers, or element names"""
+        if not isinstance(e1, Element):
+            e1 = Element.get_element(e1)
+        if not isinstance(e2, Element):
+            e2 = Element.get_element(e2)
+        f = c_function('element_bond_length', args = (ctypes.c_void_p, ctypes.c_void_p),
+            ret = ctypes.c_float)
+        return f(e1._c_pointer, e2._c_pointer)
+
+    @staticmethod
+    def bond_radius(e):
+        """Standard single-bond 'radius'
+        (the amount this element would contribute to bond length)
+        
+        Argument can be an element instance, atomic number, or element name"""
+        if not isinstance(e, Element):
+            e = Element.get_element(e)
+        f = c_function('element_bond_radius', args = (ctypes.c_void_p,), ret = ctypes.c_float)
+        return f(e._c_pointer)
+
+    @staticmethod
     def get_element(name_or_number):
         '''Get the Element that corresponds to an atomic name or number'''
         if type(name_or_number) == type(1):
@@ -1727,6 +1757,11 @@ class SeqMatchMap:
         self._struct_seq = struct_seq
         self.session = session
         self._handler = session.triggers.add_handler("atomic changes", self._atomic_changes)
+
+    def __contains__(self, i):
+        if isinstance(i, int):
+            return i in self._pos_to_res
+        return i in self._res_to_pos
 
     def __getitem__(self, i):
         if isinstance(i, int):

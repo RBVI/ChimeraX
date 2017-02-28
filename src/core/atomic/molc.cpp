@@ -3725,6 +3725,29 @@ extern "C" EXPORT void set_pdb_version(void *mols, size_t n, int32_t *version)
 // -------------------------------------------------------------------------
 // element functions
 //
+extern "C" EXPORT float element_bond_length(void *element1, void *element2)
+{
+    Element *e1 = static_cast<Element *>(element1);
+    Element *e2 = static_cast<Element *>(element2);
+    try {
+        return Element::bond_length(*e1, *e2);
+    } catch (...) {
+        molc_error();
+        return 0.0;
+    }
+}
+
+extern "C" EXPORT float element_bond_radius(void *element)
+{
+    Element *e = static_cast<Element *>(element);
+    try {
+        return Element::bond_radius(*e);
+    } catch (...) {
+        molc_error();
+        return 0.0;
+    }
+}
+
 extern "C" EXPORT void element_name(void *elements, size_t n, pyobject_t *names)
 {
     Element **e = static_cast<Element **>(elements);

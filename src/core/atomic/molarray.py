@@ -42,9 +42,10 @@ Collections have base class :class:`.Collection` which provides many standard me
 such as length, iteration, indexing with square brackets, index of an element,
 intersections, unions, subtraction, filtering....
 
-Collections are immutable so can be hashed.  The only case in which their contents
+Collections are mostly immutable.  The only case in which their contents
 can be altered is if C++ objects they hold are deleted in which case those objects
-are automatically removed from the collection.
+are automatically removed from the collection.  Because they are mutable they
+cannot be used as keys in dictionary or added to sets.
 '''
 from numpy import uint8, int32, uint32, float64, float32, uintp, byte, bool as npy_bool, integer, empty, array
 from .molc import string, cptr, pyobject, cvec_property, set_cvec_pointer, c_function, c_array_function, pointer, ctype_type_to_numpy
@@ -146,6 +147,13 @@ class Collection(State):
         import numpy
         return numpy.array_equal(atoms._pointers, self._pointers)
     def hash(self):
+        '''
+        Can be used for quickly determining if collections have the same elements in the same order.
+        Objects are automatically deleted from the collection when the C++ object is deleted.
+        So this hash value will not be valid if the collection changes.  This is not the __hash__
+        special Python method and it is not supported to use collections as keys of dictionaries
+        or elements of sets since they are mutable.
+        '''
         from hashlib import sha1
         return sha1(self._pointers.view(uint8)).digest()
     def __len__(self):

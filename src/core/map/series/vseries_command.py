@@ -381,6 +381,7 @@ def vseries_slider(session, series):
 from ...commands import Annotation
 class SeriesArg(Annotation):
     name = 'map series'
+    url = "help:user/commands/atomspec.html"
     @staticmethod
     def parse(text, session):
         from ...commands import AtomSpecArg

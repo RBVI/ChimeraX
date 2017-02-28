@@ -83,10 +83,8 @@ def sym(session, structures,
     for m in structures:
         assem = pdb_assemblies(m)
         if assembly is None:
-            ainfo = '\n'.join(' %s = %s (%s)' % (a.id,a.description,a.copy_description(m))
-                              for a in assem)
-            anames = ainfo if assem else "no assemblies"
-            session.logger.info('Assemblies for %s:\n%s' % (m.name, anames))
+            html = assembly_info(m, assem)
+            session.logger.info(html, is_html = True)
             for a in assem:
                 a.create_selector(m)
         else:
@@ -386,9 +384,11 @@ class Assembly:
         for cids, expr, ops in self.chain_ops:
             # Convert mmcif chain ids to author chain ids
             incl_atoms, excl_atoms = self._partition_atoms(atoms, cids)
-            author_cids = ','.join(incl_atoms.unique_chain_ids)
+            cids = collapse_chain_id_intervals(tuple(sorted(incl_atoms.unique_chain_ids)))
+            author_cids = ','.join(cids)
             copy = 'copy' if len(ops) == 1 else 'copies'
-            groups.append('%d %s of chains %s' % (len(ops), copy, author_cids))
+            chain = 'chains' if len(cids) > 1 else 'chain'
+            groups.append('%d %s of %s %s' % (len(ops), copy, chain, author_cids))
         return ', '.join(groups)
 
     def create_selector(self, mol):
@@ -422,6 +422,27 @@ def is_integer(s):
         return False
     return True
 
+def collapse_chain_id_intervals(cids):
+    ccids = []
+    nc = len(cids)
+    i = 0
+    while i < nc:
+        j = i+1
+        while j < nc and cids[j] == next_chain_id(cids[j-1]):
+            j += 1
+        if j-i > 3:
+            ccids.append('%s-%s' % (cids[i], cids[j-1]))
+        else:
+            ccids.extend(cids[i:j])
+        i = j
+    return ccids
+
+def next_chain_id(cid):
+    c = cid[-1:]
+    if c in ('9', 'z', 'Z'):
+        return None
+    return cid[:-1] + chr(ord(c)+1)
+
 def mmcif_chain_ids(atoms, chain_map):
     if len(chain_map) == 0:
         cids = atoms.residues.chain_ids
@@ -454,3 +475,42 @@ def parse_operator_expression(expr):
                 elem.append(t)
         product.append(elem)
     return product
+
+def assembly_info(mol, assemblies):
+    lines = ['<table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0">',
+             '<tr><th colspan=3>%s mmCIF Assemblies' % mol.name]
+    for a in assemblies:
+        lines.append('<tr><td><a href="cxcmd:sym #%s assembly %s ; view clip false">%s</a><td>%s<td>%s'
+                     % (mol.id_string(), a.id, a.id, a.description, a.copy_description(mol)))
+    lines.append('</table>')
+    html = '\n'.join(lines)
+    return html
+
+def assembly_html_table(mol):
+    '''HTML table listing assemblies using info from metadata instead of reparsing mmCIF file.'''
+    from ..atomic import mmcif 
+    sat = mmcif.get_mmcif_tables_from_metadata(mol, ['pdbx_struct_assembly'])[0]
+    sagt = mmcif.get_mmcif_tables_from_metadata(mol, ['pdbx_struct_assembly_gen'])[0]
+    if not sat or not sagt:
+        return None
+
+    try:
+        sa = sat.fields(('id', 'details'))
+        sag = sagt.mapping('assembly_id', 'oper_expression')
+    except ValueError:
+        return	None # Tables do not have required fields
+
+    if len(sa) == 1 and sag.get(sa[0][0]) == '1':
+        # Probably just have the identity assembly, so don't show table.
+        # Should check that it is the identity operator and all
+        # chains are transformed. Requires reading more tables.
+        return
+
+    lines = ['<table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0">',
+             '<tr><th colspan=2>%s mmCIF Assemblies' % mol.name]
+    for id, details in sa:
+        lines.append('<tr><td><a href="cxcmd:sym #%s assembly %s ; view clip false">%s</a><td>%s'
+                     % (mol.id_string(), id, id, details))
+    lines.append('</table>')
+    html = '\n'.join(lines)
+    return html
