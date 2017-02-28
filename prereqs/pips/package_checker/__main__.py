@@ -1,6 +1,12 @@
 #!/usr/bin/python3
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
+Comments = {
+    "Sphinx": "used by docs",
+    "sip": "used by PyQt",
+    "python-dateutil": "required by pycollada",
+}
+
 def main():
     # Process arguments
     import getopt, sys
@@ -39,16 +45,27 @@ def main():
     # Collect import information from Python source files
     from . import collect
     collectors = []
+    errors = []
     single = len(args) == 1
     for directory in args:
-        collectors.extend(collect(directory, quiet, single))
+        cols, errs = collect(directory, single)
+        collectors.extend(cols)
+        errors.extend(errs)
 
     # Identify which files imported which packages
     from . import filter_collectors, report_importers
+    from pkg_resources import get_distribution
     print("\nImported by:")
     for pkg in packages:
-        importers = filter_collectors(collectors, pkg)
-        report_importers(importers, pkg)
+        importers = []
+        for mod in get_distribution(pkg)._get_metadata('top_level.txt'):
+            importers.extend(filter_collectors(collectors, mod))
+        report_importers(importers, pkg, Comments.get(pkg, None))
+
+    if errors and not quiet:
+        print("\nErrors:")
+        for msg in errors:
+            print(" ", msg)
 
 def print_help(f):
     import sys, os.path
