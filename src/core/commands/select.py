@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def select(session, objects=None, entity=None):
+def select(session, objects=None, polymer=None):
     '''Select specified objects.
 
     Parameters
@@ -19,9 +19,9 @@ def select(session, objects=None, entity=None):
     objects : Objects
       Replace the current selection with the specified objects (typically atoms).
       If no objects are specified then everything is selected.
-    entity : Atoms
+    polymer : Atoms
       Reduce the selection to include only atoms belonging to chains having a sequence that is the
-      same as one of the sequences specified by the entity option.
+      same as one of the sequences specified by the polymer option.
     '''
 
     if objects is None:
@@ -32,8 +32,8 @@ def select(session, objects=None, entity=None):
         session.selection.clear()
         modify_selection(objects, 'add')
 
-    if entity is not None:
-        entity_selection(entity, session)
+    if polymer is not None:
+        polymer_selection(polymer, session)
         
     report_selection(session)
 
@@ -57,7 +57,7 @@ def select_intersect(session, objects=None):
     '''Reduce the selection by intersecting with specified objects.'''
     intersect_selection(objects, session)
 
-def entity_selection(seq_atoms, session):
+def polymer_selection(seq_atoms, session):
     '''
     Reduce the current selected atoms to include only those that belong to a chain
     having the same sequence string as one of seq_atoms.
@@ -138,7 +138,7 @@ def _atoms_and_models(objects):
 def register_command(session):
     from . import CmdDesc, register, ObjectsArg, NoArg, create_alias, AtomsArg
     desc = CmdDesc(optional=[('objects', ObjectsArg)],
-                   keyword=[('entity', AtomsArg)],
+                   keyword=[('polymer', AtomsArg)],
                    synopsis='select specified objects')
     register('select', desc, select, logger=session.logger)
 
