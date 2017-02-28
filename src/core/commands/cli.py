@@ -2655,7 +2655,8 @@ def html_usage(name, no_aliases=False, show_subcommands=True, expand_alias=True,
                 type_info = " <i>%s</i>" % arg_type.html_name()
             else:
                 type_info = " <i>%s</i>" % uarg_name
-                arg_syntax.append('<i>%s</i>: %s' % (uarg_name, arg_type.html_name()))
+                if arg_name not in ci._optional:
+                    arg_syntax.append('<i>%s</i>: %s' % (uarg_name, arg_type.html_name()))
             if arg_name in ci._required_arguments:
                 syntax += ' <nobr><b>%s</b>%s</nobr>' % (uarg_name, type_info)
             else:
