@@ -22,7 +22,7 @@ def register_core_commands(session):
         'camera', 'cartoon', 'cd', 'clip', 'close', 'cofr', 'color', 'colorname',
         'coordset', 'crossfade',
         'delete', 'dssp', 'exit', 'hide', 'info',
-        'lighting', 'list',
+        'lighting',
         'material', 'measure_buriedarea', 'measure_sasa', 'mousemode', 'move',
         'open', 'pdbimages', 'perframe', 'pwd',
         'rainbow', 'rename', 'roll', 'run', 'rungs',
