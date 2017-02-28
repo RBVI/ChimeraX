@@ -1,5 +1,5 @@
 appdirs==1.4.0
-beautifulsoup4==4.4.1
+beautifulsoup4==4.5.3
 colorama==0.3.7
 Cython==0.23.1
 distlib==0.2.3
