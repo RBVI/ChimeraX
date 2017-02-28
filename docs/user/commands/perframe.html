@@ -35,13 +35,15 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>showCommands</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
+<br><b>perframe stop</b></h3>
+<h3><a href="usageconventions.html">Usage</a>:
 <br><b>~perframe</b></h3>
 <p>
 The <b>perframe</b> command specifies operations to be executed
 at each subsequent display frame, until
 a specified number of frames has elapsed, 
 the end of a value range has been reached, or all per-frame operations 
-have been discontinued collectively with <b>~perframe</b>.
+have been discontinued collectively with <b>perframe stop</b> or <b>~perframe</b>.
 Multiple per-frame operations can be active simultaneously.
 See also:
 <a href="alias.html"><b>alias</b></a>,
@@ -77,7 +79,7 @@ If the end of the range is reached before the frames are complete,
 the substituted value will stay the same (equal to <i>end</i>)
 for the remaining frames.
 If neither <b>frames</b> nor any range is given, the perframe actions
-will continue until halted with <b>~perframe</b>.
+will continue until halted with <b>perframe stop</b> or <b>~perframe</b>.
 </p><p>
 The <b>interval</b> option allows executing <i>operation</i> 
 at every <i>K</i><sup>th</sup> frame instead of every frame.
@@ -153,5 +155,5 @@ named <b>undocked</b> to a previously saved view named <b>docked</b>:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-January 2017</address>
+February 2017</address>
 </body></html>

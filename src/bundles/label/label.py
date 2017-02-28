@@ -14,7 +14,8 @@ from chimerax.core.commands import Annotation, AnnotationError, next_token
 
 class NameArg(Annotation):
 
-    name = "a label identifier or 'all'"
+    name = "'all' or a label identifier"
+    _html_name = "<b>all</b> or a label identifier"
 
     @staticmethod
     def parse(text, session):
