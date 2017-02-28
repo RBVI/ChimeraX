@@ -451,6 +451,8 @@ class Logger(StatusLogger):
         return reversed(list(self.logs))
 
 
+html_table_params = 'border=1 cellpadding=4 cellspacing=0'
+
 class CollatingLog(PlainTextLog):
     """Collates log messages
 
@@ -476,7 +478,7 @@ class CollatingLog(PlainTextLog):
         # note that this handling of the summary (only calling logger,info
         # at the end and not calling the individual log-level functions)
         # will never raise an error dialog
-        summary = '\n<table border=1 cellpadding=4 cellspacing=0>\n'
+        summary = '\n<table %s>\n' % html_table_params
         summary += '  <thead>\n'
         summary += '    <tr>\n'
         summary += '      <th colspan="2">%s</th>\n' % summary_title
