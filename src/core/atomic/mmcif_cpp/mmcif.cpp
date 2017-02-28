@@ -119,6 +119,22 @@ public:
 
 void connect_residue_by_template(Residue* r, const tmpl::Residue* tr);
 
+bool reasonable_bond_length(Atom* a1, Atom* a2, float distance = 0)
+{
+    float idealBL = Element::bond_length(a1->element(), a2->element());
+    float sqlength;
+    if (distance > 0)
+        sqlength = distance * distance;
+    else
+        sqlength = a1->coord().sqdistance(a2->coord());
+    // 3.0625 == 1.75 squared
+    // (allows ASP 223.A OD2 <-> PLP 409.A N1 bond in 1aam
+    // and SER 233.A OG <-> NDP 300.A O1X bond in 1a80
+    // to not be classified as missing seqments)
+    return (sqlength < 3.0625f * idealBL * idealBL);
+}
+
+
 struct ExtractMolecule: public readcif::CIFFile
 {
     static const char* builtin_categories[];
@@ -408,6 +424,8 @@ ExtractMolecule::connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, b
                 a1 = find_closest(a0, r1, nullptr, true);
             if (a1 == nullptr)
                 continue;
+            if (gap && reasonable_bond_length(a0, a1))
+                gap = false;    // bad data
             if (gap || !Bond::polymer_bond_atoms(a0, a1)) {
                 auto as = r0->structure();
                 auto pbg = as->pb_mgr().get_group(as->PBG_MISSING_STRUCTURE,
@@ -1362,18 +1380,7 @@ ExtractMolecule::parse_struct_conn()
             hydro_pbg->new_pseudobond(a1, a2);
             continue;
         }
-        float idealBL = Element::bond_length(a1->element(), a2->element());
-        float sqlength;
-        if (distance > 0)
-            sqlength = distance * distance;
-        else {
-            sqlength = a1->coord().sqdistance(a2->coord());
-        }
-        if (sqlength >= 3.0625f * idealBL * idealBL) {
-            // 3.0625 == 1.75 squared
-            // (allows ASP 223.A OD2 <-> PLP 409.A N1 bond in 1aam
-            // and SER 233.A OG <-> NDP 300.A O1X bond in 1a80
-            // to not be classified as missing seqments)
+        if (!reasonable_bond_length(a1, a2, distance)) {
             if (missing_pbg == nullptr)
                 missing_pbg = mol->pb_mgr().get_group(
                     mol->PBG_MISSING_STRUCTURE,
