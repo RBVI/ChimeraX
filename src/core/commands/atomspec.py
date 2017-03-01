@@ -160,8 +160,25 @@ class AtomSpecArg(Annotation):
             from .cli import AnnotationError
             raise AnnotationError("not an atom specifier")
         if end < len(text) and _terminator.match(text[end]) is None:
-            from .cli import AnnotationError
-            raise AnnotationError('only initial part "%s" of atom specifier valid' % text[:end])
+            # We got an error in the middle of a string (no whitespace or
+            # semicolon).  We check if there IS whitespace between the
+            # start of the string and the error location.  If so, we
+            # assume that the atomspec successfully ended at the whitespace
+            # and leave the rest as unconsumed input.
+            blank = end
+            while blank > 0:
+                if text[blank].isspace():
+                    break
+                else:
+                    blank -= 1
+            if blank == 0:
+                # No whitespace found
+                from .cli import AnnotationError
+                raise AnnotationError('only initial part "%s" of atom specifier valid' % text[:end])
+            else:
+                ast, used, rem = AtomSpecArg._parse_unquoted(text[:blank],
+                                                             session)
+                return ast, used, rem + text[blank:]
         # Consume what we used and return the remainder
         return ast, text[:end], text[end:]
 
