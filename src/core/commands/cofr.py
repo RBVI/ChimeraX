@@ -67,7 +67,7 @@ def cofr(session, method=None, objects=None, pivot=None, coordinate_system=None,
         else:
             show_cofr_indicator(session, show_pivot)
 
-    if method is None and objects is None and pivot is None:
+    if method is None and objects is None and pivot is None and show_pivot is None:
         msg = 'Center of rotation: %.5g %.5g %.5g  %s' % (tuple(v.center_of_rotation) + (v.center_of_rotation_method,))
         log = session.logger
         log.status(msg)
@@ -108,6 +108,7 @@ class PivotIndicator(Drawing):
         self._session = session
         self._center = None
         Drawing.__init__(self, 'Pivot indicator')
+        self.pickable = False    # Don't set depth in frontCenter mode.
         self._create_geometry(axis_length, axis_radius, axis_colors)
         h = session.triggers.add_handler('graphics update', self._update_position)
         self._update_handler = h
@@ -126,10 +127,6 @@ class PivotIndicator(Drawing):
             self._center = center
             from ..geometry import Place
             self.position = Place(origin = center)
-
-    def first_intercept(self, mxyz1, mxyz2, exclude=None):
-        # Avoid using the pivot indicator to set depth in frontCenter mode.
-        return None
 
     def _create_geometry(self, axis_length, axis_radius, axis_colors):
         self.set_size(axis_length, axis_radius)
