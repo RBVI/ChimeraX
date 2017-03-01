@@ -217,6 +217,7 @@ Function found in *chimerax.mlp.mlp*
 .. automodule:: chimerax.mlp.mlp
   :members:
   :member-order: bysource
+  :show-inheritance:
 
 molmap
 ======
@@ -237,6 +238,7 @@ Functions defined in *chimerax.movie.moviecmd*
 .. automodule:: chimerax.movie.moviecmd
   :members:
   :member-order: bysource
+  :show-inheritance:
 
 oculus
 ======
@@ -341,6 +343,7 @@ Function defined in *chimerax.toolshed.cmd*
 .. automodule:: chimerax.toolshed.cmd
   :members:
   :member-order: bysource
+  :show-inheritance:
 
 transparency
 ============
@@ -367,6 +370,7 @@ vseries
 =======
 .. automodule:: chimerax.core.map.series.vseries_command
   :members:
+  :show-inheritance:
 
 wait
 ====

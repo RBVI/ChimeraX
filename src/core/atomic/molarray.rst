@@ -16,3 +16,4 @@
     :members:
     :member-order: bysource
     :special-members: __len__, __iter__, __getitem__, __or__, __and__, __sub__
+    :show-inheritance:
