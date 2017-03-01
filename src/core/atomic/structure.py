@@ -1542,11 +1542,14 @@ class Structure(Model, StructureData):
         if exclude is not None and hasattr(self, exclude):
             return []
 
-        p = self._atoms_planes_pick(planes)
-        rp = self._ribbon_planes_pick(planes)
-        if rp:
-            p.extend(rp)
-        return p
+        picks = []
+        from ..geometry import transform_planes
+        for p in self.positions:
+            pplanes = transform_planes(p, planes)
+            picks.extend(self._atoms_planes_pick(pplanes))
+            picks.extend(self._ribbon_planes_pick(pplanes))
+
+        return picks
 
     def _atoms_planes_pick(self, planes):
         d = self._atoms_drawing
