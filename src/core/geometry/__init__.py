@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from .place import Place, Places, identity, rotation, vector_rotation, translation, scale
-from .place import product, orthonormal_frame, interpolate_rotation
+from .place import product, orthonormal_frame, interpolate_rotation, transform_planes
 from .vector import interpolate_points, inner_product, normalize_vector, ray_segment
 from .vector import planes_as_4_vectors, distance, cross_product, norm, distance_squared
 from .vector import angle, dihedral, dihedral_point

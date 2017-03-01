@@ -873,7 +873,13 @@ class Drawing:
     def planes_pick(self, planes, exclude=None):
         '''
         Find the displayed drawing instances bounded by the specified planes
-        for this drawing and its children.  Each plane is a 4-vector.
+        for this drawing and its children.  Each plane is a 4-vector v with
+        points in the pick region v0*x + v1*y + v2*z + v3 >= 0 using coordinate
+        system of the parent drawing.  If a drawing has instances then only
+        the center of each instance is considered and the whole instance is
+        picked if the center is within the planes.  If a drawing has only one
+        instance (self.positions has length 1) then the pick lists the individual
+        triangles which have at least one vertex within all of the planes.
         Return a list of Pick objects for the contained items.
         This routine is used for selecting objects in a frustum.
         '''
@@ -900,7 +906,9 @@ class Drawing:
                         picks.append(InstancePick(pmask, self))
             else:
                 # For non-instances pick using all vertices.
-                vmask = points_within_planes(self.vertices, planes)
+                from ..geometry import transform_planes
+                pplanes = transform_planes(self.position, planes)
+                vmask = points_within_planes(self.vertices, pplanes)
                 if vmask.sum() > 0:
                     t = self.triangles
                     from numpy import logical_or, logical_and
@@ -911,8 +919,11 @@ class Drawing:
                         logical_and(tmask, tm, tmask)
                     if tmask.sum() > 0:
                         picks.append(TrianglesPick(tmask, self))
+        from ..geometry import transform_planes
         for d in self.child_drawings():
-            picks.extend(d.planes_pick(planes, exclude))
+            for p in self.positions:
+                pplanes = transform_planes(p, planes)
+                picks.extend(d.planes_pick(pplanes, exclude))
         return picks
 
     def __del__(self):
