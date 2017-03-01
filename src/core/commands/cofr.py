@@ -11,7 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def cofr(session, method=None, objects=None, pivot=None, coordinate_system=None):
+def cofr(session, method=None, objects=None, pivot=None, coordinate_system=None,
+         show_pivot=None):
     '''
     Set center of rotation method to "front center" or "fixed".  For fixed can
     specify the pivot point as the center of specified displayed objects,
@@ -30,6 +31,10 @@ def cofr(session, method=None, objects=None, pivot=None, coordinate_system=None)
     coordinate_system : Model
       The pivot argument is given in the coordinate system of this model.  If this
       option is not specified then the pivot is in scene coordinates.
+    show_pivot : bool or 2 floats
+      Whether to draw the center of rotation point in the scene as 3 colored axes.
+      If two floats are given, they are axes length and radius of the pivot point indicator
+      and the pivot is shown.
     '''
     v = session.main_view
     if not method is None:
@@ -38,6 +43,7 @@ def cofr(session, method=None, objects=None, pivot=None, coordinate_system=None)
         elif method == 'centerOfView':
             method = 'center of view'
         v.center_of_rotation_method = method
+
     if not objects is None:
         if objects.empty():
             from ..errors import UserError
@@ -48,10 +54,19 @@ def cofr(session, method=None, objects=None, pivot=None, coordinate_system=None)
             from ..errors import UserError
             raise UserError('No displayed objects specified.')
         v.center_of_rotation = b.center()
+
     if not pivot is None:
         p = pivot if coordinate_system is None else coordinate_system.scene_position * pivot
         from numpy import array, float32
         v.center_of_rotation = array(p, float32)
+
+    if show_pivot is not None:
+        if isinstance(show_pivot, tuple):
+            axis_length, axis_radius = show_pivot
+            show_cofr_indicator(session, True, axis_length, axis_radius)
+        else:
+            show_cofr_indicator(session, show_pivot)
+
     if method is None and objects is None and pivot is None:
         msg = 'Center of rotation: %.5g %.5g %.5g  %s' % (tuple(v.center_of_rotation) + (v.center_of_rotation_method,))
         log = session.logger
@@ -59,12 +74,86 @@ def cofr(session, method=None, objects=None, pivot=None, coordinate_system=None)
         log.info(msg)
         
 def register_command(session):
-    from . import CmdDesc, register, EnumOf, EmptyArg, ObjectsArg, Or, Float3Arg, ModelArg, create_alias
+    from . import CmdDesc, register, EnumOf, EmptyArg, ObjectsArg, Or
+    from . import BoolArg, Float2Arg, Float3Arg, ModelArg, create_alias
+    methods = ('front center', 'frontCenter', 'fixed', 'centerOfView')
     desc = CmdDesc(
-        optional=[('method', Or(EnumOf(('front center', 'frontCenter', 'fixed', 'centerOfView')), EmptyArg)),
+        optional=[('method', Or(EnumOf(methods), EmptyArg)),
                   ('objects', Or(ObjectsArg, EmptyArg)),
                   ('pivot', Float3Arg)],
-        keyword=[('coordinate_system', ModelArg)],
+        keyword=[('coordinate_system', ModelArg),
+                 ('show_pivot', Or(Float2Arg, BoolArg))],
         synopsis='set center of rotation method')
     register('cofr', desc, cofr, logger=session.logger)
     create_alias('~cofr', 'cofr frontCenter')
+
+def show_cofr_indicator(session, show = True, axis_length = 2.0, axis_radius = 0.05):
+    v = session.main_view
+    i = [d for d in v.drawing.child_drawings() if isinstance(d, PivotIndicator)]
+    if show:
+        if len(i) == 0:
+            pi = PivotIndicator(session, axis_length, axis_radius)
+            v.drawing.add_drawing(pi)
+        else:
+            for pi in i:
+                pi.set_size(axis_length, axis_radius)
+    else:
+        for pi in i:
+            v.drawing.remove_drawing(pi)
+
+from ..graphics import Drawing
+class PivotIndicator(Drawing):
+    def __init__(self, session, axis_length = 2.0, axis_radius = 0.05,
+                 axis_colors = [(255,0,0,255),(0,255,0,255),(0,0,255,255)]):
+        self._session = session
+        self._center = None
+        Drawing.__init__(self, 'Pivot indicator')
+        self._create_geometry(axis_length, axis_radius, axis_colors)
+        h = session.triggers.add_handler('graphics update', self._update_position)
+        self._update_handler = h
+
+    def delete(self):
+        self._session.triggers.remove_handler(self._update_handler)
+
+    def _update_position(self, *_):
+        v = self._session.main_view
+        if v.center_of_rotation_method == 'front center':
+            # Don't recompute front center rotation point, expensive, distracting.
+            center = tuple(v._center_of_rotation)
+        else:
+            center = tuple(v.center_of_rotation)
+        if center != self._center:
+            self._center = center
+            from ..geometry import Place
+            self.position = Place(origin = center)
+
+    def first_intercept(self, mxyz1, mxyz2, exclude=None):
+        # Avoid using the pivot indicator to set depth in frontCenter mode.
+        return None
+
+    def _create_geometry(self, axis_length, axis_radius, axis_colors):
+        self.set_size(axis_length, axis_radius)
+        self.set_colors(axis_colors)
+
+    def set_size(self, axis_length, axis_radius):
+        from ..surface.shapes import cylinder_geometry
+        vaz, naz, taz = cylinder_geometry(radius = axis_radius, height = axis_length)
+        nv = len(vaz)
+        from ..geometry import Place
+        tx = Place(axes = [[0,0,1],[0,-1,0],[1,0,0]])
+        vax, nax, tax = tx.moved(vaz), tx.apply_without_translation(naz), taz.copy() + nv
+        ty = Place(axes = [[1,0,0],[0,0,-1],[0,1,0]])
+        vay, nay, tay = ty.moved(vaz), ty.apply_without_translation(naz), taz.copy() + 2*nv
+
+        from numpy import concatenate
+        self.vertices = concatenate((vax,vay,vaz))
+        self.normals = concatenate((nax,nay,naz))
+        self.triangles = concatenate((tax,tay,taz))
+
+    def set_colors(self, axis_colors):
+        # Axis colors red = x, green = y, blue = z
+        from numpy import concatenate, empty, uint8
+        nv = len(self.vertices)//3
+        cax, cay, caz = empty((nv,4), uint8), empty((nv,4), uint8), empty((nv,4), uint8)
+        cax[:], cay[:], caz[:] = axis_colors
+        self.vertex_colors = concatenate((cax,cay,caz))
