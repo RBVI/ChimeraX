@@ -407,6 +407,8 @@ class MultalignViewer(ToolInstance):
             self.region_browser._pre_remove_lines(note_data)
 
     def delete(self):
+        self.region_browser.destroy()
+        self.seq_canvas.destroy()
         self.alignment.detach_viewer(self)
         for seq in self.alignment.seqs:
             seq.triggers.remove_handler(self._seq_rename_handlers[seq])
