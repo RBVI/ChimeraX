@@ -488,6 +488,7 @@ class RegionBrowser:
                 """
 
     def destroy(self):
+        """
         self.regionListing.destroy()
         self.seq_canvas.mav.triggers.deleteHandler(DEL_ASSOC,
                             self._delAssocHandlerID)
@@ -501,8 +502,10 @@ class RegionBrowser:
             self._pre_del_seqs_handler_id)
         self.seq_canvas.mav.triggers.deleteHandler(SEQ_RENAMED,
                             self._seqRenamedHandlerID)
+        """
         if self._sel_change_handler:
             self.tool_window.session.triggers.remove_handler(self._sel_change_handler)
+        """
         if self._scf_dialog:
             self._scf_dialog.destroy()
             self._scf_dialog = None
@@ -510,6 +513,7 @@ class RegionBrowser:
             rd.destroy()
         self.rename_dialogs.clear()
         ModelessDialog.destroy(self)
+        """
 
     """TODO
     def fillInUI(self, parent):
