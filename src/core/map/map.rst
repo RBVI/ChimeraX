@@ -17,6 +17,8 @@ map: Density maps
 
 .. automodule:: chimerax.core.map.volume
     :members:
+    :show-inheritance:
 
 .. automodule:: chimerax.core.map.data.griddata
     :members:
+    :show-inheritance:
