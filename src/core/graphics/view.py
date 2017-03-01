@@ -592,8 +592,10 @@ class View:
         c.position = identity()
         w,h = self.window_size
         c.view_all(b, aspect = h/w, pad = pad)
-        self._center_of_rotation = b.center()
-        self._update_center_of_rotation = True
+        if self.center_of_rotation_method == 'fixed':
+            self.center_of_rotation = b.center()
+        else:
+            self._update_center_of_rotation = True
 
     def view_all(self, bounds = None, pad = 0):
         '''Adjust the camera to show all displayed drawings using the
