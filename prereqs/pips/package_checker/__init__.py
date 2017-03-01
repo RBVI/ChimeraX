@@ -1,9 +1,10 @@
 #!/usr/bin/python3
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
-def collect(directory, quiet=False, single=False):
+def collect(directory, single=False):
     import os, os.path, sys
     collectors = []
+    errors = []
     for dirpath, dirnames, filenames in os.walk(directory):
         for skip in ["build", "unused", "wsgi", "llgr", "hydra"]:
             try:
@@ -23,12 +24,15 @@ def collect(directory, quiet=False, single=False):
             try:
                 c = Collector(path, report_path)
             except Exception as e:
-                if not quiet:
-                    print("Error: %s: %s" % (report_path, str(e)),
-                          file=sys.stderr)
+                msg = "%s: %s" % (report_path, str(e))
+                errors.append(msg)
             else:
                 collectors.append(c)
-    return collectors
+    # import sys, pprint
+    # for c in collectors:
+    #     print(c.filename, file=sys.stderr)
+    #     pprint.pprint(c.module_names, stream=sys.stderr)
+    return collectors, errors
 
 import ast
 class Collector(ast.NodeVisitor):
@@ -67,11 +71,14 @@ class Collector(ast.NodeVisitor):
 def filter_collectors(collectors, pkg):
     return [c for c in collectors if pkg in c.module_names]
 
-def report_importers(importers, pkg, f=None):
+def report_importers(importers, pkg, comment=None, f=None):
     if f is None:
         import sys
         f = sys.stdout
-    print("%s:" % pkg, file=f)
+    if comment:
+        print("%s (%s):" % (pkg, comment), file=f)
+    else:
+        print("%s:" % pkg, file=f)
     if importers:
         for c in sorted(importers, key=lambda c: c.report_name):
             print("\t%s" % c.report_name, file=f)

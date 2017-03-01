@@ -2494,13 +2494,13 @@ def command_url(name, no_aliases=False):
         return _get_help_url(name.split())
 
 
-def usage(name, no_aliases=False, show_subcommands=True, expand_alias=True,
+def usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
           show_hidden=False):
     """Return usage string for given command name
 
     :param name: the name of the command
     :param no_aliases: True if aliases should not be considered.
-    :param show_subcommands: True if subcommands should be shown.
+    :param show_subcommands: number of subcommands that should be shown.
     :param show_hidden: True if hidden keywords should be shown.
     :returns: a usage string for the command
     """
@@ -2573,12 +2573,16 @@ def usage(name, no_aliases=False, show_subcommands=True, expand_alias=True,
 
     if (show_subcommands and cmd.word_info is not None and
             cmd.word_info.has_subcommands()):
-        name = cmd.command_name
         sub_cmds = registered_commands(multiword=True, _start=cmd.word_info)
-        if syntax:
-            syntax += '\n'
-        syntax += 'Subcommands are:\n' + '\n'.join(
-            '  %s %s' % (name, w) for w in sub_cmds)
+        if len(sub_cmds) <= show_subcommands:
+            for w in sub_cmds:
+                syntax += '\n\n' + usage('%s %s' % (name, w), show_subcommands=0)
+        else:
+            name = cmd.command_name
+            if syntax:
+                syntax += '\n'
+            syntax += 'Subcommands are:\n' + '\n'.join(
+                '  %s %s' % (name, w) for w in sub_cmds)
 
     return syntax
 
@@ -2587,13 +2591,13 @@ def can_be_empty_arg(arg):
     return isinstance(arg, Or) and EmptyArg in arg.annotations
 
 
-def html_usage(name, no_aliases=False, show_subcommands=True, expand_alias=True,
+def html_usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
                show_hidden=False):
     """Return usage string in HTML for given command name
 
     :param name: the name of the command
     :param no_aliases: True if aliases should not be considered.
-    :param show_subcommands: True if subcommands should be shown.
+    :param show_subcommands: number of subcommands that should be shown.
     :param show_hidden: True if hidden keywords should be shown.
     :returns: a HTML usage string for the command
     """
@@ -2685,28 +2689,32 @@ def html_usage(name, no_aliases=False, show_subcommands=True, expand_alias=True,
 
     if (show_subcommands and cmd.word_info is not None and
             cmd.word_info.has_subcommands()):
-        name = cmd.command_name
-        if syntax:
-            syntax += '<br>\n'
-        syntax += 'Subcommands are:\n<ul>'
         sub_cmds = registered_commands(multiword=True, _start=cmd.word_info)
-        for word in sub_cmds:
-            subcmd = '%s %s' % (name, word)
-            cmd = Command(None)
-            cmd.current_text = subcmd
-            cmd._find_command_name(no_aliases=no_aliases)
-            if cmd.amount_parsed != len(cmd.current_text):
-                url = None
-            elif cmd._ci is None or cmd._ci.url is None:
-                url = None
-            else:
-                url = cmd._ci.url
-            if url is not None:
-                syntax += '<li> <b><a href="%s">%s</a></b>\n' % (
-                    url, escape(subcmd))
-            else:
-                syntax += '<li> <b>%s</b>\n' % escape(subcmd)
-        syntax += '</ul>\n'
+        if len(sub_cmds) <= show_subcommands:
+            for w in sub_cmds:
+                syntax += '<p>\n' + html_usage('%s %s' % (name, w), show_subcommands=0)
+        else:
+            name = cmd.command_name
+            if syntax:
+                syntax += '<br>\n'
+            syntax += 'Subcommands are:\n<ul>'
+            for word in sub_cmds:
+                subcmd = '%s %s' % (name, word)
+                cmd = Command(None)
+                cmd.current_text = subcmd
+                cmd._find_command_name(no_aliases=no_aliases)
+                if cmd.amount_parsed != len(cmd.current_text):
+                    url = None
+                elif cmd._ci is None or cmd._ci.url is None:
+                    url = None
+                else:
+                    url = cmd._ci.url
+                if url is not None:
+                    syntax += '<li> <b><a href="%s">%s</a></b>\n' % (
+                        url, escape(subcmd))
+                else:
+                    syntax += '<li> <b>%s</b>\n' % escape(subcmd)
+            syntax += '</ul>\n'
 
     return syntax
 

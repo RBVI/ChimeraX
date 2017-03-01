@@ -470,8 +470,11 @@ class SeqCanvas:
             del self.displayHeader[hd]
             self.headers.remove(hd)
         self.mav.triggers.activateTrigger(DEL_HEADERS, headers)
+    """
 
     def destroy(self):
+        pass
+    """
         chimera.triggers.deleteHandler('Molecule', self._trigID)
         from MAViewer import ADDDEL_SEQS, SEQ_RENAMED
         self.mav.triggers.deleteHandler(ADDDEL_SEQS,

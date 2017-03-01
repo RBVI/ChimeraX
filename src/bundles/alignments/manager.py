@@ -82,6 +82,8 @@ class AlignmentsManager(State):
                     viewer = False
         else:
             viewer = False
+        if auto_destroy is None and viewer:
+            auto_destroy = True
 
         from .alignment import Alignment
         i = 1

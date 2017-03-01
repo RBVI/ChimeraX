@@ -16,15 +16,18 @@ graphics: Rendering using OpenGL
 .. automodule:: chimerax.core.graphics.view
     :members:
     :member-order: bysource
+    :show-inheritance:
 
 .. automodule:: chimerax.core.graphics.camera
     :members:
     :member-order: bysource
+    :show-inheritance:
 
 .. automodule:: chimerax.core.graphics.drawing
     :members:
     :member-order: bysource
     :exclude-members: Pick
+    :show-inheritance:
 
 Pick
 ----

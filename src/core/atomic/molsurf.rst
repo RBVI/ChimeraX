@@ -14,3 +14,4 @@
 
 .. automodule:: chimerax.core.atomic.molsurf
     :members:
+    :show-inheritance:

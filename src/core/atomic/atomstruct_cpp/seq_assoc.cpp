@@ -21,6 +21,7 @@
 #include "Structure.h"
 #include "StructureSeq.h"
 #include "Residue.h"
+#include "connect.h"
 #include "seq_assoc.h"
 
 namespace atomstruct {
@@ -65,10 +66,24 @@ find_gaps(StructureSeq& sseq)
                     }
                 }
                 // CA/P-only structures have different "connectivity" criteria
+                bool no_gap = false;
                 bool ca_only = (res->atoms().size() == 1 && prev_res->atoms().size() == 1);
-                if (!(gap == 0 && ca_only && res->atoms()[0]->coord().sqdistance(
-                prev_res->atoms()[0]->coord()) < 45.0)) {
+                if (gap == 0) {
+                    Atom* a1;
+                    Atom* a2;
+                    if (ca_only) {
+                        a1 = res->atoms()[0];
+                        a2 = prev_res->atoms()[0];
+                    } else {
+                        // 2a06 has just a missing backbone nitrogen between residues 20 and 21
+                        // on chains B and O; we will co-op the CA-CA criteria...
+                        float pair_dist_sq;
+                        find_nearest_pair(prev_res, res, &a1, &a2, &pair_dist_sq);
+                    }
                     // 3ixy chain B has 6.602 CA-CA length between residues 131 and 132
+                    no_gap = a1->coord().sqdistance(a2->coord()) < 45.0;
+                }
+                if (!no_gap) {
                     if (gap < 1)
                         // Instead of jamming everything together and hoping,
                         //   use 1 as the gap size, since the association

@@ -22,11 +22,13 @@ geometry: Points and coordinate systems
 
 .. automodule:: chimerax.core.geometry.place
     :members:
+    :show-inheritance:
 
 .. _vector-anchor:
 
 .. automodule:: chimerax.core.geometry.vector
     :members:  distance, norm, normalize_vector, normalize_vectors, vector_sum, cross_product, inner_product
+    :show-inheritance:
 
 .. autofunction:: chimerax.core.geometry._geometry.inner_product_64
 
@@ -34,6 +36,7 @@ geometry: Points and coordinate systems
 
 .. automodule:: chimerax.core.geometry.bounds
     :members:
+    :show-inheritance:
 
 .. _misc-geom-anchor:
 
@@ -44,3 +47,4 @@ Miscellaneous Routines
 
 .. automodule:: chimerax.core.geometry._geometry
     :members: closest_cylinder_intercept, closest_sphere_intercept, closest_triangle_intercept, find_close_points, find_closest_points, find_close_points_sets, natural_cubic_spline
+    :show-inheritance:

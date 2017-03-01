@@ -399,6 +399,20 @@ def z_align(pt1, pt2):
     xlate = numpy.negative(numpy.dot(numpy.transpose(xf), pt1))
     return Place(axes=xf, origin=xlate)
 
+def transform_planes(coord_sys, planes):
+    '''Planes are given by 4 vectors v defining plane v0*x + v1*y + v2*z + v3 = 0.
+    Returns planes in new coordinate system.'''
+    if coord_sys.is_identity(tolerance = 0):
+        return planes
+    cp = planes.copy()
+    ct = coord_sys.transpose()
+    t = coord_sys.translation()
+    for p in range(len(planes)):
+        v = planes[p,:3]
+        cp[p,:3] = ct.apply_without_translation(v)
+        cp[p,3] = planes[p,3] + (t * v).sum()
+    return cp
+
 class Places:
     ''' The Places class represents a list of 0 or more Place objects.
     The advantage of Places over using a list of Place objects is that

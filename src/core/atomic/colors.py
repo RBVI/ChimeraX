@@ -240,9 +240,9 @@ def chain_rgba8(cid):
 
 
 # -----------------------------------------------------------------------------
-# An entity is a polymer with a unique sequence.
+# Unique color for each unique polymer sequence.
 #
-def entity_colors(residues):
+def polymer_colors(residues):
     seqs, seq_ids = residues.unique_sequences	# id = 0 for non-chain residues (e.g. solvent).
     nc = len(seqs)
     from random import seed, randint

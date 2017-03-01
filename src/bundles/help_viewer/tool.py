@@ -24,7 +24,8 @@ _targets = weakref.WeakValueDictionary()
 
 class HelpUI(ToolInstance):
 
-    SESSION_ENDURING = False    # default
+    SESSION_ENDURING = True     # do not close when opening session (especially
+                                # if web page asked to open session)
 
     def __init__(self, session, target):
         tool_name = "Help Viewer"
@@ -115,7 +116,6 @@ class HelpUI(ToolInstance):
                 self.help_window.history().clear()
                 self.back.setEnabled(False)
                 self.forward.setEnabled(False)
-        self.url.setText(url)
         from PyQt5.QtCore import QUrl
         self.help_window.setUrl(QUrl(url))
 
@@ -152,6 +152,7 @@ class HelpUI(ToolInstance):
         history = self.help_window.history()
         self.back.setEnabled(history.canGoBack())
         self.forward.setEnabled(history.canGoForward())
+        self.url.setText(self.help_window.url().url())
 
     def title_changed(self, title):
         self.tool_window.title = title
