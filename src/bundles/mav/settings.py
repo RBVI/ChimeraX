@@ -18,6 +18,9 @@ defaults = {
     SINGLE_PREFIX + "column_separation": -2,
     "new_region_border": None,
     "new_region_interior": [chan/255.0 for chan in (233, 218, 198, 255)],
+    "sel_region_border": None,
+    "sel_region_interior": "light green",
+    "show_sel": True
 }
 
 from  chimerax.core.settings import Settings

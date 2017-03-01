@@ -870,6 +870,9 @@ class _Qt:
         self.tool_window = None
         self.main_window = None
         self.ui_area.destroy()
+        if self.statusbar:
+            self.statusbar.destroy()
+            self.statusbar = None
         self.dock_widget.destroy()
 
     def manage(self, placement, fixed_size=False):

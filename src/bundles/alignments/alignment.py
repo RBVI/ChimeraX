@@ -377,7 +377,7 @@ class Alignment(State):
         self.viewers = []
         for sseq, aseq in self.associations.items():
             mmap = aseq.match_maps[sseq]
-            seq.triggers.remove_handler(mmap.del_handler)
+            sseq.triggers.remove_handler(mmap.del_handler)
 
     def _notify_viewers(self, note_name, note_data):
         for viewer in self.viewers:
