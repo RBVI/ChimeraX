@@ -611,8 +611,9 @@ class Residue:
     To create a Residue use the :class:`.AtomicStructure` new_residue() method.
     '''
 
-    SS_HELIX = 0
-    SS_SHEET = SS_STRAND = 1
+    SS_COIL = 0
+    SS_HELIX = 1
+    SS_SHEET = SS_STRAND = 2
 
     def __init__(self, residue_pointer):
         set_c_pointer(self, residue_pointer)
@@ -751,6 +752,22 @@ class Residue:
         else:
             f = c_array_function('residue_set_ss_strand', args=(npy_bool,), per_object=False)
         f(self._c_pointer_ref, 1, value)
+
+    def ss_type(self, disjoint = True):
+        '''Return the secondary structure type for this residue.
+
+        If 'disjoint' is True then if somehow both is_helix and is_strand is True,
+        Residue.SS_HELIX will be returned.  If 'disjoint' is False in that situation then
+        Residue.SS_HELIX | Residue.SS_STRAND will be returned.
+        '''
+        if disjoint:
+            if self.is_helix:
+                return Residue.SS_HELIX
+            if self.is_strand:
+                return Residue.SS_STRAND
+            return Residue.SS_COIL
+        return (Residue.SS_HELIX if self.is_helix else 0) | (
+            Residue.SS_STRAND if self.is_strand else 0)
 
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
