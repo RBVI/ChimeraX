@@ -592,7 +592,7 @@ class View:
         c.position = identity()
         w,h = self.window_size
         c.view_all(b, aspect = h/w, pad = pad)
-        self.center_of_rotation = b.center()
+        self._center_of_rotation = b.center()
         self._update_center_of_rotation = True
 
     def view_all(self, bounds = None, pad = 0):
