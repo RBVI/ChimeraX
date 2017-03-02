@@ -63,6 +63,6 @@ setup(
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
         "ChimeraX :: Bundle :: Molecular structure :: 1,1 :: PKG_NAME :: chimerax.list-info :: ",
-        "ChimeraX :: Command :: listinfo :: Molecular structure :: Report attributes for selected atomic data",
+        "ChimeraX :: Command :: info :: Molecular structure :: Report attributes for models and atomic data",
     ],
 )
