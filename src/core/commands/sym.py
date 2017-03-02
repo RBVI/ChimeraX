@@ -192,7 +192,7 @@ def show_symmetry(structures, sym_name, transforms, copies, new_model, surface_o
             s.display = False
             
 def pdb_assemblies(m):
-    if not hasattr(m, 'filename') or not m.filename.endswith('.cif'):
+    if getattr(m, 'filename', None)  is None or not m.filename.endswith('.cif'):
         return []
     if hasattr(m, 'assemblies'):
         return m.assemblies

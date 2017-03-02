@@ -34,6 +34,7 @@ class Structure(Model, StructureData):
             '_bond_radius': 0.2,
             '_pseudobond_radius': 0.05,
             'ribbon_xs_mgr': XSectionManager(),
+            'filename': None,
         }
 
         StructureData.__init__(self, c_pointer)
