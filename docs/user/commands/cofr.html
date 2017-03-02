@@ -26,6 +26,7 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="../index.html#commands">Command</a>: cofr</h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>cofr</b> [&nbsp;<b>frontCenter</b>&nbsp;|&nbsp;<b>centerOfView</b>&nbsp;|&nbsp;<b>fixed</b>&nbsp;]
+[&nbsp;showPivot&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;|&nbsp;<i>length,radius</i>&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>~cofr</b>
@@ -35,6 +36,7 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;|&nbsp;<i>x,y,z</i>&nbsp;]
 [&nbsp;<b>coordinateSystem</b> 
 &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;showPivot&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;|&nbsp;<i>length,radius</i>&nbsp;]
 </h3>
 <p>
 The <b>cofr</b> command sets the center of rotation and/or changes how it
@@ -76,9 +78,16 @@ The <b>coordinateSystem</b> can be <a href="atomspec.html">specified</a>
 by reference model number N preceded by #. 
 Otherwise, the <a href="view.html#scenecoords">scene coordinate system</a>
 will be used.
+</p><p>
+The <b>showPivot</b> option toggles showing a crosshair representation of
+the center of rotation, or adjusts the length and radius of the crosshair
+axis cylinders. The initial default cylinder length and radius are 
+<b>2</b> and <b>0.05</b> in data coordinate units, typically &Aring;.
+The red, green, and blue axes are aligned with X, Y, and Z in the
+<a href="view.html#scenecoords">scene coordinate</a> system.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2017</address>
+March 2017</address>
 </body></html>
