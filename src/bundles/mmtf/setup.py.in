@@ -61,7 +61,7 @@ setup(
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
         "ChimeraX :: Bundle :: Molecular structure :: 1,1 :: PKG_NAME :: :: ",
-        "ChimeraX :: DataFormat :: MMTF :: :: Molecular structure :: .mmtf :: application/octet-stream :: http://mmtf.rcsb.org/ :: :: :: A compact binary format to transmit and store biomolecular structural data.",
+        "ChimeraX :: DataFormat :: MMTF :: :: Molecular structure :: .mmtf :: :: http://mmtf.rcsb.org/ :: :: :: A compact binary format to transmit and store biomolecular structural data.",
         "ChimeraX :: Fetch :: pdb :: MMTF :: :: 1a0m :: ",
     ],
 )
