@@ -1076,8 +1076,6 @@ find_aro_amines(PyObject *, PyObject *args)
 	return py_grp_list;
 }
 
-}
-
 static
 PyObject *
 find_aromatics(PyObject *, PyObject *args)
@@ -1145,6 +1143,108 @@ find_aromatics(PyObject *, PyObject *args)
 	return py_grp_list;
 }
 
+static
+PyObject *
+find_ring_planar_NHR2(PyObject *, PyObject *args)
+{
+	PyObject*  py_struct_ptr;
+	unsigned int  num_cpus;
+	int	return_collection, aromatic_only;
+	if (!PyArg_ParseTuple(args, PY_STUPID "OpIp", &py_struct_ptr, &aromatic_only,
+			&num_cpus, &return_collection))
+		return nullptr;
+	if (!PyLong_Check(py_struct_ptr)) {
+		PyErr_SetString(PyExc_TypeError, "Structure pointer value must be int!");
+		return nullptr;
+	}
+	auto s = static_cast<AtomicStructure*>(PyLong_AsVoidPtr(py_struct_ptr));
+
+	// Compute the set of Npls in aromatic rings, which will be needed for elimination
+	// purposes in the aromatic amine code
+	std::set<const Atom*> aro_ring_npls;
+	for (auto& ring: s->rings()) {
+		if (!ring.aromatic())
+			continue;
+		for (auto a: ring.atoms()) {
+			if (a->idatm_type() == "Npl")
+				aro_ring_npls.insert(a);
+		}
+	}
+
+	auto& atoms = s->atoms();
+	std::vector<Group> groups;
+	std::mutex groups_mtx;
+
+	size_t num_threads = num_cpus > 1 ? num_cpus : 1;
+	// divvy up the atoms among the threads;
+	// letting the threads take atoms from a global pool
+	// results in too much lock contention since many
+	// of the atoms fail to form a group quickly
+	num_threads = std::min(num_threads, atoms.size());
+	if (num_threads > 0) {
+		float per_thread = atoms.size() / (float) num_threads;
+		auto start = atoms.begin();
+		std::vector<std::thread> threads;
+		for (size_t i = 0; i < num_threads; ++i) {
+			decltype(start) end = start + (int)(i * per_thread + 0.5);
+			if (i == num_threads - 1) // an overabundance of caution
+				end = atoms.end();
+			threads.push_back(std::thread(initiate_find_aro_amines, start, end,
+				order, &aro_ring_npls, &groups, &groups_mtx));
+			start = end;
+		}
+		for (auto& th: threads)
+			th.join();
+	}
+
+	PyObject* py_grp_list;
+	try {
+		if (return_collection) {
+			// just return a simple list of pointers that will be turned into
+			// a single Collection on the Python side
+
+			// first, convert the vector-of-vectors into a simple vector
+			std::vector<const Atom*> all_group_atoms;
+			for (auto grp: groups)
+				all_group_atoms.insert(all_group_atoms.end(), grp.begin(), grp.end());
+			// put into numpy array
+			void** data_ptr;
+			auto num_atoms = all_group_atoms.size();
+			py_grp_list = python_voidp_array(num_atoms, &data_ptr);
+			if (py_grp_list == nullptr)
+				throw pysupport::PySupportError("Cannot create overall group list");
+			std::memcpy(data_ptr, all_group_atoms.data(), sizeof(void*) * num_atoms);
+		} else {
+			// return a list of lists of individual Atom pointers
+			auto num_groups = groups.size();
+			py_grp_list = PyList_New(num_groups);
+			if (py_grp_list == nullptr)
+				throw pysupport::PySupportError("Cannot create overall group list");
+			for (decltype(num_groups) i = 0; i < num_groups; ++i) {
+				auto& grp = groups[i];
+				auto num_atoms = grp.size();
+				PyObject* py_grp = PyList_New(num_atoms);
+				if (py_grp == nullptr)
+					throw pysupport::PySupportError("Cannot create group atom list");
+				for (decltype(num_atoms) j = 0; j < num_atoms; ++j) {
+					PyObject* py_ptr =  PyLong_FromVoidPtr(
+						const_cast<void*>(static_cast<const void*>(grp[j])));
+					if (py_ptr == nullptr)
+						throw pysupport::PySupportError("Cannot create group atom ptr");
+					PyList_SET_ITEM(py_grp, j, py_ptr);
+				}
+				PyList_SET_ITEM(py_grp_list, i, py_grp);
+			}
+		}
+	} catch (pysupport::PySupportError& pse) {
+		PyErr_SetString(PyExc_TypeError, pse.what());
+		return nullptr;
+	}
+	return py_grp_list;
+}
+
+}
+
 static const char* docstr_find_group = "find_group\n"
 "Find a chemical group (documented in Python layer)";
 
@@ -1154,10 +1254,14 @@ static const char* docstr_find_aro_amines = "find_aro_amines\n"
 static const char* docstr_find_aromatics = "find_aromatics\n"
 "Find atoms in aromatic rings; used internally by find_group";
 
+static const char* docstr_find_ring_planar_NHR2 = "find_ring_planar_NHR2\n"
+"Find planar ring nitrogens that have a hydrogen bound (and the two non-H bond partners)";
+
 static PyMethodDef cg_methods[] = {
 	{ PY_STUPID "find_group", find_group,	METH_VARARGS, PY_STUPID docstr_find_group	},
 	{ PY_STUPID "find_aro_amines", find_aro_amines,	METH_VARARGS, PY_STUPID docstr_find_aro_amines	},
 	{ PY_STUPID "find_aromatics", find_aromatics,	METH_VARARGS, PY_STUPID docstr_find_aromatics	},
+	{ PY_STUPID "find_ring_planar_NHR2", find_ring_planar_NHR2,	METH_VARARGS, PY_STUPID docstr_find_ring_planar_NHR2	},
 	{ nullptr, nullptr, 0, nullptr }
 };
 
