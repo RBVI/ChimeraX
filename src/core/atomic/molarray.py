@@ -909,6 +909,8 @@ class Residues(Collection):
     it starts as 1 for the strand nearest the N terminus, and increments for each strand
     out to the C terminus.
     ''')
+    ss_types = cvec_property('residue_ss_type', int32, doc =
+    '''Returns a numpy integer array of secondary structure types (one of: Residue.SS_COIL, Residue.SS_HELIX, Residue.SS_STRAND [or SS_SHEET])''')
     structures = cvec_property('residue_structure', cptr, astype = _atomic_structures,
         read_only = True, doc =
     '''Returns :class:`.StructureDatas` collection containing structures for each residue.''')
@@ -1011,14 +1013,6 @@ class Residues(Collection):
             loc = loc.encode('utf-8')
         f = c_array_function('residue_set_alt_loc', args=(byte,), per_object=False)
         f(self._c_pointers, len(self), loc)
-
-    def set_secondary_structures(self, ss_type, value):
-        '''See Residue.set_secondary_structure()'''
-        if value == molobject.Residue.SS_HELIX:
-            f = c_array_function('residue_set_ss_helix', args=(npy_bool,), per_object=False)
-        else:
-            f = c_array_function('residue_set_ss_sheet', args=(npy_bool,), per_object=False)
-        f(self._c_pointers, len(self), value)
 
     @classmethod
     def session_restore_pointers(cls, session, data):
