@@ -20,6 +20,20 @@ _cache_dirs = []
 def fetch_file(session, url, name, save_name, save_dir, *,
                uncompress=False, ignore_cache=False, check_certificates=True,
                log='info'):
+    """fetch file from URL
+
+    :param session: a ChimeraX :py:class:`~chimerax.core.session.Session`
+    :param url: the URL to fetch
+    :param name: string to use to identify the data in status messages
+    :param save_name: where to save the contents of the URL
+    :param save_dir: the cache subdirectory or None for a temporary file
+    :param uncompress: contents are compressed (False)
+    :param ignore_cache: skip checking for cached file (False)
+    :param check_certificates: confirm https certificate (True)
+    :param log: 'info' or 'status' logging ('info')
+    :returns: the filename
+    :raises UserError: if unsuccessful
+    """
     from os import path, makedirs
     cache_dirs = cache_directories()
     if not ignore_cache and save_dir is not None:
@@ -43,12 +57,9 @@ def fetch_file(session, url, name, save_name, save_dir, *,
         filename = path.join(dirname, save_name)
         makedirs(dirname, exist_ok=True)
 
-    from urllib.request import URLError, Request
-    from chimerax import app_dirs
-    headers = {"User-Agent": html_user_agent(app_dirs)}
-    request = Request(url, unverifiable=True, headers=headers)
+    from urllib.request import URLError
     try:
-        retrieve_url(request, filename, uncompress=uncompress, logger=session.logger,
+        retrieve_url(url, filename, uncompress=uncompress, logger=session.logger,
                      check_certificates=check_certificates, name=name)
     except URLError as e:
         from .errors import UserError
@@ -70,19 +81,23 @@ def cache_directories():
 
 # -----------------------------------------------------------------------------
 #
-def retrieve_url(request, filename, logger=None, uncompress=False,
+def retrieve_url(url, filename, *, logger=None, uncompress=False,
                  update=False, check_certificates=True, name=None):
     """Return requested URL in filename
 
-    :param request: a :py:class:`urlib.request.Request`
+    :param url: the URL to retrive
     :param filename: where to save the contents of the URL
     :param name: string to use to identify the data in status messages
-    :returns: the filename if successful
+    :param logger: logger instance to use for status and warning messages
+    :param uncompress: if true, then uncompress the content
+    :param update: if true, then existing file is okay if newer than web version
+    :param check_certificates: if true
+    :returns: None if an existing file, otherwise the content type
     :raises urllib.request.URLError: if unsuccessful
 
 
-    If the filename already exists, fetch the HTTP headers for the
-    URL and check the last modified date to see if there is a newer
+    If 'update' and the filename already exists, fetch the HTTP headers for
+    the URL and check the last modified date to see if there is a newer
     version or not.  If there isn't a newer version, return the filename.
     If there is a newer version, or if the filename does not exist,
     save the URL in the filename, and set the file's modified date to
@@ -91,7 +106,10 @@ def retrieve_url(request, filename, logger=None, uncompress=False,
     import os
     if name is None:
         name = os.path.basename(filename)
-    from urllib.request import urlopen
+    from urllib.request import Request, urlopen
+    from chimerax import app_dirs
+    headers = {"User-Agent": html_user_agent(app_dirs)}
+    request = Request(url, unverifiable=True, headers=headers)
     last_modified = None
     if update and os.path.exists(filename):
         if logger:
@@ -104,7 +122,7 @@ def retrieve_url(request, filename, logger=None, uncompress=False,
         if last_modified is None and logger:
             logger.warning('Invalid date "%s" for %s' % (d, request.full_url))
         if last_modified is None or last_modified <= info.st_mtime:
-            return filename
+            return
         request.method = 'GET'
     try:
         request.headers['Accept-encoding'] = 'gzip, identity'
@@ -117,14 +135,15 @@ def retrieve_url(request, filename, logger=None, uncompress=False,
             ssl_context.verify_mode = ssl.CERT_NONE
         with urlopen(request, context=ssl_context) as response:
             compressed = uncompress
+            ct = response.headers['Content-Type']
             if not compressed:
                 ce = response.headers['Content-Encoding']
                 if ce:
                     compressed = ce.casefold() in ('gzip', 'x-gzip')
-                ct = response.headers['Content-Type']
                 if ct:
                     compressed = compressed or ct.casefold() in (
-                            'application/gzip', 'application/x-gzip')
+                        'application/gzip', 'application/x-gzip')
+                    ct = 'application/octet-stream'
             if logger:
                 logger.info('Fetching%s %s from %s' % (
                     " compressed" if compressed else "", name,
@@ -143,7 +162,7 @@ def retrieve_url(request, filename, logger=None, uncompress=False,
             os.utime(filename, (last_modified, last_modified))
         if logger:
             logger.status('%s fetched' % name, secondary=True, blank_after=5)
-        return filename
+        return ct
     except:
         if os.path.exists(filename):
             os.remove(filename)
@@ -151,24 +170,27 @@ def retrieve_url(request, filename, logger=None, uncompress=False,
             logger.status('Error fetching %s' % name, secondary=True, blank_after=15)
         raise
 
+
 # -----------------------------------------------------------------------------
 #
-def read_and_uncompress(file_in, file_out, name, content_length, logger, chunk_size = 1048576):
+def read_and_uncompress(file_in, file_out, name, content_length, logger, chunk_size=1048576):
 
     # Read compressed data into buffer reporting progress.
     from io import BytesIO
     cdata = BytesIO()
     read_and_report_progress(file_in, cdata, name, content_length, logger, chunk_size)
     cdata.seek(0)
-    
+
     # Decompress data to file.
-    import gzip, shutil
+    import gzip
+    import shutil
     with gzip.GzipFile(fileobj=cdata) as uncompressed:
         shutil.copyfileobj(uncompressed, file_out)
 
+
 # -----------------------------------------------------------------------------
 #
-def read_and_report_progress(file_in, file_out, name, content_length, logger, chunk_size = 1048576):
+def read_and_report_progress(file_in, file_out, name, content_length, logger, chunk_size=1048576):
     tb = 0
     while True:
         bytes = file_in.read(chunk_size)
@@ -178,10 +200,11 @@ def read_and_report_progress(file_in, file_out, name, content_length, logger, ch
             break
         tb += len(bytes)
         if content_length:
-            msg = 'Fetching %s, %.3g of %.3g Mbytes received' % (name, tb/1048576, content_length/1048576)
+            msg = 'Fetching %s, %.3g of %.3g Mbytes received' % (name, tb / 1048576, content_length / 1048576)
         else:
-            msg = 'Fetching %s, %.3g Mbytes received' % (name, tb/1048576)
+            msg = 'Fetching %s, %.3g Mbytes received' % (name, tb / 1048576)
         logger.status(msg)
+
 
 # -----------------------------------------------------------------------------
 #
@@ -204,7 +227,7 @@ def html_user_agent(app_dirs):
             "User-Agent": html_user_agent(chimerax.app_dirs),
         })
         try:
-            retrieve_url(request, filename, session.logger)
+            retrieve_url(request, filename, logger=session.logger)
         except URLError as e:
             from chimerax.core.errors import UsereError
             raise UserError(str(e))
@@ -251,6 +274,76 @@ def html_user_agent(app_dirs):
     if system:
         user_agent += " (%s)" % comment(system)
     return user_agent
+
+
+# -----------------------------------------------------------------------------
+#
+def fetch_web(session, url, **kw):
+    import os
+    from urllib import parse
+    from . import io
+    cache_dir = os.path.expanduser(os.path.join('~', 'Downloads'))
+    o = parse.urlparse(url)
+    path = parse.unquote(o.path)
+    basename = os.path.basename(path)
+    nominal_format, basename, compression_ext = io.deduce_format(basename, no_raise=True)
+    if nominal_format is not None and nominal_format.name == 'HTML':
+        # Let the help viewer fetch it's own files
+        try:
+            import chimerax.help_viewer as browser
+        except ImportError:
+            from .errors import UserError
+            raise UserError('Help viewer is not installed')
+        browser.show_url(session, url)
+        return [], "Opened %s" % url
+    base, ext = os.path.splitext(basename)
+    filename = os.path.join(cache_dir, '%s%s' % (base, ext))
+    count = 0
+    while os.path.exists(filename):
+        count += 1
+        filename = os.path.join(cache_dir, '%s(%d)%s' % (base, count, ext))
+    uncompress = compression_ext is not None
+    content_type = retrieve_url(url, filename, logger=session.logger, uncompress=uncompress)
+    session.logger.info('Downloaded %s to %s' % (basename, filename))
+    for mime_format in io.formats():
+        if content_type in mime_format.mime_types:
+            break
+    else:
+        if content_type != 'application/octet-stream':
+            session.logger.info('Unrecognized mime type: %s' % content_type)
+        mime_format = nominal_format
+    if mime_format is None:
+        from .errors import UserError
+        raise UserError('Unable to deduce format of %s' % url)
+    if mime_format != nominal_format:
+        session.logger.info('mime type (%s), does not match file name extension (%s)' % (content_type, ext))
+        new_ext = mime_format.extensions[0]
+        new_filename = os.path.join(cache_dir, '%s%s' % (base, new_ext))
+        count = 0
+        while os.path.exists(new_filename):
+            count += 1
+            new_filename = os.path.join(cache_dir, '%s(%d)%s' % (base, count, new_ext))
+        session.logger.info('renaming "%s" to "%s"' % (filename, new_filename))
+        os.rename(filename, new_filename)
+        nominal_format = mime_format
+        filename = new_filename
+    return io.open_data(session, filename, format=nominal_format.name)
+
+
+# -----------------------------------------------------------------------------
+#
+def register_web_fetch():
+    def fetch_http(session, scheme_specific_part, **kw):
+        return fetch_web(session, 'http:' + scheme_specific_part, **kw)
+    register_fetch('http', fetch_http, None, prefixes=['http'])
+
+    def fetch_https(session, scheme_specific_part, **kw):
+        return fetch_web(session, 'https:' + scheme_specific_part, **kw)
+    register_fetch('https', fetch_https, None, prefixes=['https'])
+
+    def fetch_ftp(session, scheme_specific_part, **kw):
+        return fetch_web(session, 'ftp:' + scheme_specific_part, **kw)
+    register_fetch('ftp', fetch_ftp, None, prefixes=['ftp'])
 
 
 # -----------------------------------------------------------------------------
