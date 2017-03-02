@@ -1159,17 +1159,9 @@ find_ring_planar_NHR2(PyObject *, PyObject *args)
 	}
 	auto s = static_cast<AtomicStructure*>(PyLong_AsVoidPtr(py_struct_ptr));
 
-	// Compute the set of Npls in aromatic rings, which will be needed for elimination
-	// purposes in the aromatic amine code
-	std::set<const Atom*> aro_ring_npls;
-	for (auto& ring: s->rings()) {
-		if (!ring.aromatic())
-			continue;
-		for (auto a: ring.atoms()) {
-			if (a->idatm_type() == "Npl")
-				aro_ring_npls.insert(a);
-		}
-	}
+	// ensure the rings are computed (once) here, rather than possibly multiple
+	// times in the threads (and computation is not thread safe)
+	(void)s->rings();
 
 	auto& atoms = s->atoms();
 	std::vector<Group> groups;
@@ -1189,8 +1181,8 @@ find_ring_planar_NHR2(PyObject *, PyObject *args)
 			decltype(start) end = start + (int)(i * per_thread + 0.5);
 			if (i == num_threads - 1) // an overabundance of caution
 				end = atoms.end();
-			threads.push_back(std::thread(initiate_find_aro_amines, start, end,
-				order, &aro_ring_npls, &groups, &groups_mtx));
+			threads.push_back(std::thread(initiate_find_ring_planar_NHR2, start, end,
+				(bool)aromatic_only, &groups, &groups_mtx));
 			start = end;
 		}
 		for (auto& th: threads)
