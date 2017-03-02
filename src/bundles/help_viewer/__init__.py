@@ -43,4 +43,8 @@ class _MyAPI(BundleAPI):
             return tool.HelpUI
         return None
 
+def show_url(session, url):
+    from . import cmd
+    cmd.help(session, url)
+
 bundle_api = _MyAPI()
