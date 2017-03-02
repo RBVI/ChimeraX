@@ -254,9 +254,9 @@ void Structure::_copy(Structure* g) const
         cr->set_mmcif_chain_id(r->mmcif_chain_id());
         cr->set_ribbon_display(r->ribbon_display());
         cr->set_ribbon_color(r->ribbon_color());
-        cr->set_is_helix(r->is_helix());
-        cr->set_is_strand(r->is_strand());
         cr->set_is_het(r->is_het());
+        cr->set_ss_id(r->ss_id());
+        cr->set_ss_type(r->ss_type());
         rmap[r] = cr;
 	// TODO: Copy all ribbon display style attributes.
     }

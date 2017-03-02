@@ -338,7 +338,9 @@ class Models(State):
             fns = filenames
         for fn in fns:
             fmt = io.deduce_format(fn, has_format=format)[0]
-            if fmt and fmt.category == toolshed.SCRIPT:
+            # don't collate session so that assemblies and chain descriptions
+            # are not "summarized"
+            if fmt and fmt.category in (toolshed.SCRIPT, toolshed.SESSION):
                 collation_okay = False
                 break
         from .logger import Collator

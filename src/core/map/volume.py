@@ -34,6 +34,8 @@ class Volume(Model):
     if not model_id is None:
       self.id = model_id
 
+    self.pickable = getattr(session, '_maps_pickable', True)
+
     self.change_callbacks = []
 
     self.data = data
@@ -1097,6 +1099,9 @@ class Volume(Model):
   #
   def first_intercept(self, mxyz1, mxyz2, exclude = None):
 
+    if not self.pickable:
+      return False
+
     if self.representation == 'solid':
       ro = self.rendering_options
       if not ro.box_faces and ro.orthoplanes_shown == (False,False,False):
@@ -1926,6 +1931,13 @@ class Volume(Model):
   def reset_state(self, session):
     pass
     
+# -----------------------------------------------------------------------------
+#
+def maps_pickable(session, pickable):
+  for m in session.models.list(type = Volume):
+    m.pickable = pickable
+  session._maps_pickable = pickable
+
 # -----------------------------------------------------------------------------
 #
 from ..graphics import Pick

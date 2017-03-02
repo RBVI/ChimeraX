@@ -24,7 +24,8 @@ _targets = weakref.WeakValueDictionary()
 
 class HelpUI(ToolInstance):
 
-    SESSION_ENDURING = False    # default
+    SESSION_ENDURING = True     # do not close when opening session (especially
+                                # if web page asked to open session)
 
     def __init__(self, session, target):
         tool_name = "Help Viewer"

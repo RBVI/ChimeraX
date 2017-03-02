@@ -24,7 +24,7 @@ def register_volume_command(logger):
     ro = Rendering_Options()
 
     volume_desc = CmdDesc(
-        required = [('volumes', MapsArg)],
+        optional = [('volumes', MapsArg)],
         keyword = [
                ('style', EnumOf(('surface', 'mesh', 'solid'))),
                ('show', NoArg),
@@ -47,6 +47,7 @@ def register_volume_command(logger):
                ('voxel_size', Float1or3Arg),
                ('planes', PlanesArg),
                ('dump_header', BoolArg),
+               ('pickable', BoolArg),
 # Symmetry assignment.
                ('symmetry', SymmetryArg),
                ('center', CenterArg),
@@ -99,7 +100,7 @@ def register_volume_command(logger):
 # -----------------------------------------------------------------------------
 #
 def volume(session,
-           volumes,
+           volumes = None,
            style = None,
            show = None,
            hide = None,
@@ -121,6 +122,7 @@ def volume(session,
            voxel_size = None,
            planes = None,
            dump_header = None,
+           pickable = None,
 # Symmetry assignment.
            symmetry = None,
            center = None,
@@ -257,7 +259,11 @@ def volume(session,
     position_planes : sequence of 3 integers
       Intersection grid point of orthoplanes display
     '''
-    vlist = volumes
+    if volumes is None:
+        from . import Volume
+        vlist = session.models.list(type = Volume)
+    else:
+        vlist = volumes
 
     # Special defaults
     if not box_faces is None:
@@ -294,7 +300,7 @@ def volume(session,
             'color', 'brightness', 'transparency',
             'step', 'region', 'name_region', 'expand_single_plane', 'origin',
             'origin_index', 'voxel_size', 'planes',
-            'symmetry', 'center', 'center_index', 'axis', 'coordinate_system', 'dump_header')
+            'symmetry', 'center', 'center_index', 'axis', 'coordinate_system', 'dump_header', 'pickable')
     dsettings = dict((n,loc[n]) for n in dopt if not loc[n] is None)
     ropt = (
         'show_outline_box', 'outline_box_rgb', 'outline_box_linewidth',
@@ -318,7 +324,10 @@ def volume(session,
     for v in vlist:
         apply_volume_options(v, dsettings, rsettings, session)
 
-    
+    if pickable is not None and volumes is None:
+        from . import maps_pickable
+        maps_pickable(session, pickable)
+
 # -----------------------------------------------------------------------------
 #
 def apply_global_settings(session, gsettings):
@@ -425,6 +434,9 @@ def apply_volume_options(v, doptions, roptions, session):
 
     if 'dump_header' in doptions and doptions['dump_header']:
         show_file_header(v.data, session.logger)
+
+    if 'pickable' in doptions:
+        v.pickable = doptions['pickable']
 
 
 # TODO:
