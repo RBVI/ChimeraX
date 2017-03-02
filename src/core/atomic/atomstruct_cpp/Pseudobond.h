@@ -67,11 +67,10 @@ public:
     { return (visible() &&
 	      (atoms()[0]->display() || atoms()[0]->hide()) &&
 	      (atoms()[1]->display() || atoms()[1]->hide())); }
-    // version "0" means latest version
-    static int  session_num_floats(int version=0) {
+    static int  session_num_floats(int version=CURRENT_SESSION_VERSION) {
         return SESSION_NUM_FLOATS(version) + Connection::session_num_floats(version);
     }
-    static int  session_num_ints(int version=0) {
+    static int  session_num_ints(int version=CURRENT_SESSION_VERSION) {
         return SESSION_NUM_INTS(version) + Connection::session_num_ints(version);
     }
     void  session_restore(int version, int** ints, float** floats);

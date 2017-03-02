@@ -681,13 +681,9 @@ class Residue:
     insertion_code = c_property('residue_insertion_code', string)
     '''Protein Data Bank residue insertion code. 1 character or empty string.'''
     is_helix = c_property('residue_is_helix', npy_bool, doc=
-        "Whether this residue belongs to a protein alpha helix. Boolean value. "
-        "If set to True, also sets is_strand to False. "
-        "Use set_secondary_structure() if this behavior is undesired.")
+        "Whether this residue belongs to a protein alpha helix. Boolean value. ")
     is_strand = c_property('residue_is_strand', npy_bool, doc=
-        "Whether this residue belongs to a protein beta sheet. Boolean value. "
-        "If set to True, also sets is_helix to False. "
-        "Use set_secondary_structure() if this behavior is undesired.")
+        "Whether this residue belongs to a protein beta sheet. Boolean value. ")
     PT_NONE = 0
     '''Residue polymer type = none.'''
     PT_AMINO = 1
@@ -717,6 +713,8 @@ class Residue:
     '''Smoothness adjustment factor (no adjustment = 0 <= factor <= 1 = idealized).'''
     ss_id = c_property('residue_ss_id', int32)
     '''Secondary structure id number. Integer value.'''
+    ss_type = c_property('residue_ss_type', int32, doc=
+        "Secondary structure type of residue.  Integer value.  One of Residue.SS_COIL, Residue.SS_HELIX, Residue.SS_SHEET (a.k.a. SS_STRAND)")
     structure = c_property('residue_structure', cptr, astype = _atomic_structure, read_only = True)
     ''':class:`.AtomicStructure` that this residue belongs to. Read only.'''
 
@@ -741,17 +739,6 @@ class Residue:
         f = c_array_function('residue_set_alt_loc', args=(byte,), per_object=False)
         r_ref = ctypes.byref(self._c_pointer)
         f(r_ref, 1, loc)
-
-    def set_secondary_structure(self, ss_type, value):
-        '''Set helix/strand to True/False
-        Unlike is_helix/is_strand attrs, this function only sets the value requested,
-        it will not unset any other types as a side effect.
-        'ss_type' should be one of Residue.SS_HELIX or RESIDUE.SS_STRAND'''
-        if ss_type == Residue.SS_HELIX:
-            f = c_array_function('residue_set_ss_helix', args=(npy_bool,), per_object=False)
-        else:
-            f = c_array_function('residue_set_ss_strand', args=(npy_bool,), per_object=False)
-        f(self._c_pointer_ref, 1, value)
 
     def ss_type(self, disjoint = True):
         '''Return the secondary structure type for this residue.
