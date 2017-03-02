@@ -1098,11 +1098,11 @@ class Bounded(Annotation):
                 self.name = annotation.name
         if html_name is None:
             if min is not None and max is not None:
-                self._html_name = "%s >= %s and <= %s" % (annotation.html_name(), min, max)
+                self._html_name = "%s &ge; %s and &le; %s" % (annotation.html_name(), min, max)
             elif min is not None:
-                self._html_name = "%s >= %s" % (annotation.html_name(), min)
+                self._html_name = "%s &ge; %s" % (annotation.html_name(), min)
             elif max is not None:
-                self._html_name = "%s <= %s" % (annotation.html_name(), max)
+                self._html_name = "%s &le; %s" % (annotation.html_name(), max)
             else:
                 self._html_name = annotation.html_name()
 

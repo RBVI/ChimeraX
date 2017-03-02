@@ -327,7 +327,13 @@ def fetch_web(session, url, **kw):
         os.rename(filename, new_filename)
         nominal_format = mime_format
         filename = new_filename
-    return io.open_data(session, filename, format=nominal_format.name)
+    if 'format' in kw:
+        format_name = kw['format']
+        del kw['format']
+        f = io.format_from_name(format_name)
+        if f is not None:
+            nominal_format = f
+    return io.open_data(session, filename, format=nominal_format.name, **kw)
 
 
 # -----------------------------------------------------------------------------
