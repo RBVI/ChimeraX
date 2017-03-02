@@ -96,11 +96,10 @@ public:
     int  position() const { return _position; }
     Atom*  principal_atom() const;
     void  remove_atom(Atom*);
-    // version "0" indicates latest version
-    int  session_num_floats(int version=0) const {
+    int  session_num_floats(int version=CURRENT_SESSION_VERSION) const {
         return SESSION_NUM_FLOATS(version) + Rgba::session_num_floats();
     }
-    int  session_num_ints(int version=0) const {
+    int  session_num_ints(int version=CURRENT_SESSION_VERSION) const {
         return SESSION_NUM_INTS(version) + Rgba::session_num_ints() + atoms().size();
     }
     void  session_restore(int, int**, float**);

@@ -24,6 +24,7 @@
 
 #include "imex.h"
 #include "destruct.h"
+#include "session.h"
 #include "PBManager.h"
 #include "Rgba.h"
 
@@ -86,11 +87,10 @@ public:
     virtual Pseudobond*  new_pseudobond(Atom* e1, Atom* e2) = 0;
     Proxy_PBGroup*  proxy() const { return _proxy; }
     virtual const Pseudobonds&  pseudobonds() const = 0;
-    // version "0" means latest version
-    static int  session_num_floats(int version=0) {
+    static int  session_num_floats(int version=CURRENT_SESSION_VERSION) {
         return SESSION_NUM_FLOATS(version) + Rgba::session_num_floats();
     }
-    static int  session_num_ints(int version=0) {
+    static int  session_num_ints(int version=CURRENT_SESSION_VERSION) {
         return SESSION_NUM_INTS(version) + Rgba::session_num_ints();
     }
     virtual void  session_restore(int version, int**, float**);
@@ -105,8 +105,8 @@ public:
 // and overall groups...
 class ATOMSTRUCT_IMEX StructurePBGroupBase: public PBGroup {
 public:
-    static int  SESSION_NUM_INTS(int /*version*/=0) { return 0; }
-    static int  SESSION_NUM_FLOATS(int /*version*/=0) { return 0; }
+    static int  SESSION_NUM_INTS(int /*version*/=CURRENT_SESSION_VERSION) { return 0; }
+    static int  SESSION_NUM_FLOATS(int /*version*/=CURRENT_SESSION_VERSION) { return 0; }
 protected:
     friend class AS_PBManager;
     void  _check_structure(Atom* a1, Atom* a2);
@@ -118,10 +118,10 @@ public:
     virtual Pseudobond*  new_pseudobond(Atom* e1, Atom* e2) = 0;
     std::pair<Atom*, Atom*> session_get_pb_ctor_info(int** ints) const;
     void  session_note_pb_ctor_info(Pseudobond* pb, int** ints) const;
-    static int  session_num_floats(int version=0) {
+    static int  session_num_floats(int version=CURRENT_SESSION_VERSION) {
         return SESSION_NUM_FLOATS(version) + PBGroup::session_num_floats();
     }
-    static int  session_num_ints(int version=0) {
+    static int  session_num_ints(int version=CURRENT_SESSION_VERSION) {
         return SESSION_NUM_INTS(version) + PBGroup::session_num_ints();
     }
     virtual void  session_restore(int version, int** ints, float** floats) {
@@ -135,8 +135,8 @@ public:
 
 class ATOMSTRUCT_IMEX StructurePBGroup: public StructurePBGroupBase {
 public:
-    static int  SESSION_NUM_INTS(int /*version*/=0) { return 1; }
-    static int  SESSION_NUM_FLOATS(int /*version*/=0) { return 0; }
+    static int  SESSION_NUM_INTS(int /*version*/=CURRENT_SESSION_VERSION) { return 1; }
+    static int  SESSION_NUM_FLOATS(int /*version*/=CURRENT_SESSION_VERSION) { return 0; }
 private:
     friend class Proxy_PBGroup;
     Pseudobonds  _pbonds;
@@ -164,8 +164,8 @@ public:
 class ATOMSTRUCT_IMEX CS_PBGroup: public StructurePBGroupBase
 {
 public:
-    static int  SESSION_NUM_INTS(int /*version*/=0) { return 1; }
-    static int  SESSION_NUM_FLOATS(int /*version*/=0) { return 0; }
+    static int  SESSION_NUM_INTS(int /*version*/=CURRENT_SESSION_VERSION) { return 1; }
+    static int  SESSION_NUM_FLOATS(int /*version*/=CURRENT_SESSION_VERSION) { return 0; }
 private:
     friend class Proxy_PBGroup;
     mutable std::unordered_map<const CoordSet*, Pseudobonds>  _pbonds;
@@ -186,8 +186,8 @@ public:
     Pseudobond*  new_pseudobond(Atom* a1, Atom* a2, CoordSet* cs);
     const Pseudobonds&  pseudobonds() const;
     const Pseudobonds&  pseudobonds(const CoordSet* cs) const { return _pbonds[cs]; }
-    int  session_num_ints(int version=0) const;
-    int  session_num_floats(int version=0) const;
+    int  session_num_ints(int version=CURRENT_SESSION_VERSION) const;
+    int  session_num_floats(int version=CURRENT_SESSION_VERSION) const;
     void  session_restore(int, int** , float**);
     void  session_save(int** , float**) const;
     mutable std::unordered_map<const Pseudobond*, size_t>  *session_save_pbs;

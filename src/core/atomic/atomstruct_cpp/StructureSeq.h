@@ -86,10 +86,10 @@ public:
     void  push_front(Residue* r);
     const ResMap&  res_map() const { return _res_map; }
     const Residues&  residues() const { return _residues; }
-    int  session_num_floats(int version=0) const {
+    int  session_num_floats(int version=CURRENT_SESSION_VERSION) const {
         return Sequence::session_num_floats(version) + SESSION_NUM_FLOATS(version);
     }
-    int  session_num_ints(int version=0) const {
+    int  session_num_ints(int version=CURRENT_SESSION_VERSION) const {
         return Sequence::session_num_ints(version) + SESSION_NUM_INTS(version)
             + 2 * _res_map.size() + _residues.size();
     }
