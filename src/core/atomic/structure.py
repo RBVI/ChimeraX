@@ -21,7 +21,7 @@ CATEGORY = toolshed.STRUCTURE
 class Structure(Model, StructureData):
 
     def __init__(self, session, *, name = "structure", c_pointer = None, restore_data = None,
-                 auto_style = True):
+                 auto_style = True, log_info = True):
         # Cross section coordinates are 2D and counterclockwise
         # Use C++ version of XSection instead of Python version
         from .molobject import RibbonXSection as XSection
@@ -34,6 +34,7 @@ class Structure(Model, StructureData):
             '_bond_radius': 0.2,
             '_pseudobond_radius': 0.05,
             'ribbon_xs_mgr': XSectionManager(),
+            'filename': None,
         }
 
         StructureData.__init__(self, c_pointer)
@@ -42,7 +43,7 @@ class Structure(Model, StructureData):
         self.ribbon_xs_mgr.set_structure(self)
         Model.__init__(self, name, session)
         self._auto_style = auto_style
-        self._log_info = True
+        self._log_info = log_info
 
         # for now, restore attrs to default initial values even for sessions...
         self._atoms_drawing = None
@@ -96,9 +97,8 @@ class Structure(Model, StructureData):
         if name is None:
             name = self.name
         m = self.__class__(self.session, name = name, c_pointer = StructureData._copy(self),
-                           auto_style = False)
+                           auto_style = False, log_info = False)
         m.positions = self.positions
-        m._log_info = False
         return m
 
     def added_to_session(self, session):
@@ -195,7 +195,7 @@ class Structure(Model, StructureData):
 
     @staticmethod
     def restore_snapshot(session, data):
-        s = Structure(session, auto_style = False)
+        s = Structure(session, auto_style = False, log_info = False)
         s.set_state_from_snapshot(session, data)
         return s
 
@@ -1832,7 +1832,7 @@ class AtomicStructure(Structure):
 
     @staticmethod
     def restore_snapshot(session, data):
-        s = AtomicStructure(session, auto_style = False)
+        s = AtomicStructure(session, auto_style = False, log_info = False)
         Structure.set_state_from_snapshot(s, session, data)
         return s
 

@@ -183,12 +183,11 @@ public:
     Residue *  residue() const { return _residue; }
     const Rings&  rings(bool cross_residues = false, int all_size_threshold = 0,
             std::set<const Residue*>* ignore = nullptr) const;
-    // version "0" means latest version
-    int  session_num_ints(int version=0) const {
+    int  session_num_ints(int version=CURRENT_SESSION_VERSION) const {
         return SESSION_NUM_INTS(version) + Rgba::session_num_ints()
             + _alt_loc_map.size() * SESSION_ALTLOC_INTS(version);
     }
-    int  session_num_floats(int version=0) const;
+    int  session_num_floats(int version=CURRENT_SESSION_VERSION) const;
     void  session_restore(int version, int** ints, float** floats, PyObject* misc);
     void  session_save(int** ints, float** floats, PyObject* misc) const;
     void  set_alt_loc(char alt_loc, bool create=false, bool _from_residue=false);
