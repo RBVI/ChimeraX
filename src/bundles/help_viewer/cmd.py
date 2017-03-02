@@ -30,11 +30,7 @@ def help(session, topic=None, *, option=None, is_query=False, target=None):
         if is_query:
             return True
         topic = 'help:user'
-    if topic.startswith(('file:', 'http:', 'https:', 'ftp:')):
-        if is_query:
-            return False
-        url = topic
-    elif topic.startswith('cxcmd:'):
+    if topic.startswith('cxcmd:'):
         from urllib.parse import unquote
         cmd = unquote(topic.split(':', 1)[1])
         from chimerax.cmd_line.tool import CommandLine
@@ -76,18 +72,6 @@ def help(session, topic=None, *, option=None, is_query=False, target=None):
         if os.path.isdir(path):
             path += '/index.html'
         url = urlunparse(('file', '', pathname2url(path), '', '', fragment))
-    elif '/' in topic:
-        import os
-        path = os.path.expanduser(topic)
-        path = os.path.abspath(path)
-        if not os.path.exists(path):
-            if is_query:
-                return False
-            session.logger.error("Help file not found: '%s'" % path)
-            return
-        from urllib.parse import urlunparse
-        from urllib.request import pathname2url
-        url = urlunparse(('file', '', pathname2url(path), '', '', ''))
     else:
         cmd_name = topic
         while 1:
@@ -117,17 +101,8 @@ def help(session, topic=None, *, option=None, is_query=False, target=None):
             return False
         run(session, "usage %s" % topic, log=False)
         return
-
-    if session.ui.is_gui:
-        new = option == 'new_viewer'
-        from .tool import HelpUI
-        if new:
-            target = topic
-        help_viewer = HelpUI.get_viewer(session, target)
-        help_viewer.show(url)
-    else:
-        import webbrowser
-        webbrowser.open(url)
+    from . import show_url
+    show_url(session, url)
 
 help_desc = CmdDesc(
     optional=[
