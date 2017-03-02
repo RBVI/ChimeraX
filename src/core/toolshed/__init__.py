@@ -1984,15 +1984,20 @@ class BundleInfo:
                                 % self.name)
         return f(class_name)
 
-    def _get_api(self):
-        """Return BundleAPI instance for this bundle."""
+    def get_module(self):
+        """Return module that has bundle's code"""
         if not self._api_package_name:
-            raise ToolshedError("no API package specified for bundle \"%s\"" % self.name)
+            raise ToolshedError("Bundle %s has no module" % self.name)
         import importlib
         try:
             m = importlib.import_module(self._api_package_name)
         except Exception as e:
-            raise ToolshedError("Error importing bundle API \"%s\": %s" % (self.name, str(e)))
+            raise ToolshedError("Error importing bundle %s's module: %s" % (self.name, str(e)))
+        return m
+
+    def _get_api(self):
+        """Return BundleAPI instance for this bundle."""
+        m = self.get_module()
         try:
             bundle_api = getattr(m, 'bundle_api')
         except AttributeError:
@@ -2001,12 +2006,8 @@ class BundleInfo:
         return bundle_api
 
     def find_icon_path(self, icon_name):
-        import importlib
         import os
-        try:
-            m = importlib.import_module(self._api_package_name)
-        except Exception as e:
-            raise ToolshedError("Error importing bundle API \"%s\": %s" % (self.name, str(e)))
+        m = self.get_module()
         icon_dir = os.path.dirname(m.__file__)
         return os.path.join(icon_dir, icon_name)
 
