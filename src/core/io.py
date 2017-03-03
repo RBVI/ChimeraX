@@ -213,7 +213,7 @@ def format_from_name(name):
         return None
 
 
-def deduce_format(filename, has_format=None, open=True, save=False):
+def deduce_format(filename, has_format=None, open=True, save=False, no_raise=False):
     """Figure out named format associated with filename.
     If open is True then the format must have an open method.
     If save is True then the format must have a save method.
@@ -246,6 +246,8 @@ def deduce_format(filename, has_format=None, open=True, save=False):
                 fmt = f
                 break
         if fmt is None:
+            if no_raise:
+                return None, filename, compression
             from .errors import UserError
             raise UserError("Unrecognized file suffix '%s'" % ext)
     return fmt, filename, compression

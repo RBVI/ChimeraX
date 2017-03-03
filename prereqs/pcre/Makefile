@@ -27,7 +27,10 @@ endif
 endif # UNIX
 
 ifeq ($(OS),Windows)
-CMAKE =  '/cygdrive/c/Program Files (x86)/CMake/bin/cmake'
+CMAKE =  /cygdrive/c/Program\ Files/CMake/bin/cmake.exe
+ifeq (,$(wildcard $(CMAKE)))
+CMAKE :=  /cygdrive/c/Program\ Files\ \(x86\)/CMake/bin/cmake.exe
+endif
 CMAKE_OPTS = -DCMAKE_INSTALL_PREFIX=$(build_prefix) \
 	-DCMAKE_PREFIX_PATH=$(build_prefix) \
 	-DBUILD_SHARED_LIBS=1 \
