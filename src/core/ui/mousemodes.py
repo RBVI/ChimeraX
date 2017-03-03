@@ -453,13 +453,16 @@ class SelectToggleMouseMode(SelectMouseMode):
 
 def mouse_select(event, mode, session, view):
     x,y = event.position()
-    pick = view.first_intercept(x,y)
+    pick = view.first_intercept(x,y,exclude=unpickable)
     select_pick(session, pick, mode)
+
+def unpickable(drawing):
+    return not getattr(drawing, 'pickable', True)
 
 def mouse_drag_select(start_xy, event, mode, session, view):
     sx, sy = start_xy
     x,y = event.position()
-    pick = view.rectangle_intercept(sx,sy,x,y)
+    pick = view.rectangle_intercept(sx,sy,x,y,exclude=unpickable)
     select_pick(session, pick, mode)
 
 def select_pick(session, pick, mode = 'replace'):
@@ -703,7 +706,7 @@ class AtomCenterOfRotationMode(MouseMode):
         MouseMode.mouse_down(self, event)
         x,y = event.position()
         view = self.session.main_view
-        pick = view.first_intercept(x,y)
+        pick = view.first_intercept(x,y,exclude=unpickable)
         if hasattr(pick, 'atom'):
             from chimerax.core.commands import cofr
             xyz = pick.atom.scene_coord

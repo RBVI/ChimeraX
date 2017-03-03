@@ -158,7 +158,6 @@ class Drawing:
         self._vertex_buffers = []               # Buffers used by both drawing and selection
         self._opengl_context = None		# For deleting buffers, to make context current
 
-        self.pickable = True	# Whether first_intercept() and planes_pick() will consider this drawing
         self.was_deleted = False
         "Indicates whether this Drawing has been deleted."
 
@@ -791,6 +790,8 @@ class Drawing:
         Find the first intercept of a line segment with the displayed part
         of this drawing and its children.  The end points are in the parent
         drawing coordinates and do not take account of this Drawings positions.
+        If the exclude option is given it is a function that takes a drawing
+        and returns true if this drawing and its children should be excluded.
         Return a Pick object for the intercepted item.
         The Pick object has a distance attribute giving the fraction (0-1)
         along the segment where the intersection occurs.
@@ -799,15 +800,19 @@ class Drawing:
         to determine the front-most point in the center of view to be used
         as the interactive center of rotation.
         '''
+        if not self.display:
+            return None
+        if exclude is not None and exclude(self):
+            return None
+
         pclosest = None
-        if self.display and (exclude is None or not hasattr(self, exclude)):
-            if not self.empty_drawing():
-                p = self._first_intercept_excluding_children(mxyz1, mxyz2)
-                if p and (pclosest is None or p.distance < pclosest.distance):
-                    pclosest = p
-            p = self.first_intercept_children(self.child_drawings(), mxyz1, mxyz2, exclude)
+        if not self.empty_drawing():
+            p = self._first_intercept_excluding_children(mxyz1, mxyz2)
             if p and (pclosest is None or p.distance < pclosest.distance):
                 pclosest = p
+        p = self.first_intercept_children(self.child_drawings(), mxyz1, mxyz2, exclude)
+        if p and (pclosest is None or p.distance < pclosest.distance):
+            pclosest = p
         return pclosest
 
     def first_intercept_children(self, child_drawings, mxyz1, mxyz2, exclude=None):
@@ -819,7 +824,7 @@ class Drawing:
         pclosest = None
         pos = [p.inverse() * (mxyz1, mxyz2) for p in self.positions]
         for d in child_drawings:
-            if d.display and (exclude is None or not hasattr(d, exclude)):
+            if d.display and (exclude is None or not exclude(d)):
                 for cxyz1, cxyz2 in pos:
                     p = d.first_intercept(cxyz1, cxyz2, exclude)
                     if p and (pclosest is None or p.distance < pclosest.distance):
@@ -827,7 +832,7 @@ class Drawing:
         return pclosest
 
     def _first_intercept_excluding_children(self, mxyz1, mxyz2):
-        if self.empty_drawing() or not self.pickable:
+        if self.empty_drawing():
             return None
         va = self.vertices
         ta = self.masked_triangles
@@ -880,16 +885,19 @@ class Drawing:
         picked if the center is within the planes.  If a drawing has only one
         instance (self.positions has length 1) then the pick lists the individual
         triangles which have at least one vertex within all of the planes.
+        If exclude is not None then it is a function called with a Drawing argument
+        that returns true if this drawing and its children should be excluded
+        from the pick.
         Return a list of Pick objects for the contained items.
         This routine is used for selecting objects in a frustum.
         '''
         if not self.display:
             return []
-        if exclude is not None and hasattr(self, exclude):
+        if exclude is not None and exclude(self):
             return []
 
         picks = []
-        if not self.empty_drawing() and self.pickable:
+        if not self.empty_drawing():
             from ..geometry import points_within_planes
             if len(self.positions) > 1:
                 # Use center of instances.
