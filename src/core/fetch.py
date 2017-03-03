@@ -279,6 +279,7 @@ def html_user_agent(app_dirs):
 # -----------------------------------------------------------------------------
 #
 def fetch_web(session, url, **kw):
+    # TODO: deal with content encoding for text formats
     import os
     from urllib import parse
     from . import io
@@ -305,13 +306,19 @@ def fetch_web(session, url, **kw):
     uncompress = compression_ext is not None
     content_type = retrieve_url(url, filename, logger=session.logger, uncompress=uncompress)
     session.logger.info('Downloaded %s to %s' % (basename, filename))
-    for mime_format in io.formats():
-        if content_type in mime_format.mime_types:
-            break
-    else:
-        if content_type != 'application/octet-stream':
-            session.logger.info('Unrecognized mime type: %s' % content_type)
-        mime_format = nominal_format
+    mime_format = None
+    if 'format' in kw:
+        format_name = kw['format']
+        del kw['format']
+        mime_format = io.format_from_name(format_name)
+    if mime_format is None:
+        for mime_format in io.formats():
+            if content_type in mime_format.mime_types:
+                break
+        else:
+            if content_type != 'application/octet-stream':
+                session.logger.info('Unrecognized mime type: %s' % content_type)
+            mime_format = nominal_format
     if mime_format is None:
         from .errors import UserError
         raise UserError('Unable to deduce format of %s' % url)
@@ -327,12 +334,6 @@ def fetch_web(session, url, **kw):
         os.rename(filename, new_filename)
         nominal_format = mime_format
         filename = new_filename
-    if 'format' in kw:
-        format_name = kw['format']
-        del kw['format']
-        f = io.format_from_name(format_name)
-        if f is not None:
-            nominal_format = f
     return io.open_data(session, filename, format=nominal_format.name, **kw)
 
 
