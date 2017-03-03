@@ -121,6 +121,9 @@ void main (void)
   vec4 fcolor = texture(texcube, tex_coord_cubemap) * color;
 #else
   vec4 fcolor = color;
+#ifdef USE_ALL_WHITE
+  fcolor.rgba = vec4(1,1,1,1);
+#endif
 #endif
 #endif
 

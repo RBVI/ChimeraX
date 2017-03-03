@@ -227,7 +227,7 @@ class Render:
         SHADER_SHIFT_AND_SCALE, SHADER_INSTANCING, SHADER_TEXTURE_MASK,
         SHADER_DEPTH_OUTLINE, SHADER_VERTEX_COLORS,
         SHADER_TRANSPARENT_ONLY, SHADER_OPAQUE_ONLY, SHADER_STEREO_360
-        SHADER_CLIP_PLANES
+        SHADER_CLIP_PLANES, SHADER_ALL_WHITE
         '''
         options |= self.enable_capabilities
         options &= ~self.disable_capabilities
@@ -876,13 +876,13 @@ class Render:
         self.push_framebuffer(mfb)
         self.set_background_color((0, 0, 0, 0))
         self.draw_background()
-        # Use unlit single color for drawing mask.
+        # Use unlit all white color for drawing mask.
         # Outline code requires non-zero red component.
-        self.set_single_color((1,0,0,1))	
         self.disable_shader_capabilities(self.SHADER_VERTEX_COLORS
                                          | self.SHADER_TEXTURE_2D
                                          | self.SHADER_TEXTURE_CUBEMAP
                                          | self.SHADER_LIGHTING)
+        self.enable_capabilities |= self.SHADER_ALL_WHITE
         # Depth test GL_LEQUAL results in z-fighting:
         self.set_depth_range(0, 0.999999)
         # Copy depth to outline framebuffer:
@@ -892,6 +892,7 @@ class Render:
 
         self.pop_framebuffer()
         self.disable_shader_capabilities(0)
+        self.enable_capabilities &= ~self.SHADER_ALL_WHITE
         self.set_depth_range(0, 1)
         t = self.mask_framebuffer.color_texture
         self.draw_texture_mask_outline(t)
@@ -1098,6 +1099,7 @@ shader_options = (
     'SHADER_OPAQUE_ONLY',
     'SHADER_STEREO_360',
     'SHADER_CLIP_PLANES',
+    'SHADER_ALL_WHITE',
 )
 for i, sopt in enumerate(shader_options):
     setattr(Render, sopt, 1 << i)
