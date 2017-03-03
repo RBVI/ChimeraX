@@ -40,7 +40,8 @@ static void min_and_max(const Reference_Counted_Array::Array<T> &seq,
   double maximum = minimum;
 
   int dim = seq.dimension();
-  int m0 = 1, m1 = 1, m2 = 1, s0 = 0, s1 = 0, s2 = 0;
+  int m0 = 1, m1 = 1, m2 = 1;
+  long s0 = 0, s1 = 0, s2 = 0;
   if (dim == 1)
     { m2 = seq.size(0); s2 = seq.stride(0); }
   else if (dim == 2)
@@ -50,7 +51,7 @@ static void min_and_max(const Reference_Counted_Array::Array<T> &seq,
     { s0 = seq.stride(0); s1 = seq.stride(1); s2 = seq.stride(2);
       m0 = seq.size(0); m1 = seq.size(1); m2 = seq.size(2); }
 
-  int i = 0;
+  long i = 0;
   for (int i0 = 0 ; i0 < m0 ; ++i0, i += s0 - m1*s1)
     for (int i1 = 0 ; i1 < m1 ; ++i1, i += s1 - m2*s2)
       for (int i2 = 0 ; i2 < m2 ; ++i2, i += s2)
@@ -111,7 +112,8 @@ static void bin_counts(const Reference_Counted_Array::Array<T> &seq,
   float scale = bins / range;
 
   int dim = seq.dimension();
-  int m0 = 1, m1 = 1, m2 = 1, s0 = 0, s1 = 0, s2 = 0;
+  int m0 = 1, m1 = 1, m2 = 1;
+  long s0 = 0, s1 = 0, s2 = 0;
   if (dim == 1)
     { m2 = seq.size(0); s2 = seq.stride(0); }
   else if (dim == 2)
@@ -121,7 +123,7 @@ static void bin_counts(const Reference_Counted_Array::Array<T> &seq,
     { s0 = seq.stride(0); s1 = seq.stride(1); s2 = seq.stride(2);
       m0 = seq.size(0); m1 = seq.size(1); m2 = seq.size(2); }
 
-  int i = 0;
+  long i = 0;
   for (int i0 = 0 ; i0 < m0 ; ++i0, i += s0 - m1*s1)
     for (int i1 = 0 ; i1 < m1 ; ++i1, i += s1 - m2*s2)
       for (int i2 = 0 ; i2 < m2 ; ++i2, i += s2)
@@ -177,9 +179,9 @@ static void high_count(const Reference_Counted_Array::Array<T> &d,
 		       float level, int *n)
 {
   T *data = d.values();
-  int s0 = d.stride(0), s1 = d.stride(1), s2 = d.stride(2);
+  long s0 = d.stride(0), s1 = d.stride(1), s2 = d.stride(2);
   int m0 = d.size(0), m1 = d.size(1), m2 = d.size(2);
-  int i = 0, c = 0;
+  long i = 0, c = 0;
   for (int i0 = 0 ; i0 < m0 ; ++i0, i += s0 - m1*s1)
     for (int i1 = 0 ; i1 < m1 ; ++i1, i += s1 - m2*s2)
       for (int i2 = 0 ; i2 < m2 ; ++i2, i += s2)
@@ -216,9 +218,9 @@ static void high_indices(const Reference_Counted_Array::Array<T> &d,
 			 float level, int *ijk)
 {
   T *data = d.values();
-  int s0 = d.stride(0), s1 = d.stride(1), s2 = d.stride(2);
+  long s0 = d.stride(0), s1 = d.stride(1), s2 = d.stride(2);
   int m0 = d.size(0), m1 = d.size(1), m2 = d.size(2);
-  int i = 0, c = 0;
+  long i = 0, c = 0;
   for (int i0 = 0 ; i0 < m0 ; ++i0, i += s0 - m1*s1)
     for (int i1 = 0 ; i1 < m1 ; ++i1, i += s1 - m2*s2)
       for (int i2 = 0 ; i2 < m2 ; ++i2, i += s2)

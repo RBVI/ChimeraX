@@ -28,6 +28,10 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>volume</b> &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
 &nbsp;<a href="#options"><i>options</i></a></h3>
+<!--
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>volume</b> &nbsp;<i>global-options</i></h3>
+-->
 <p>
 The <b>volume</b> command controls the display of density maps and
 other <a href="../tools/volumeviewer.html">volume data</a>, 
@@ -35,6 +39,10 @@ other <a href="../tools/volumeviewer.html">volume data</a>,
 The <a href="atomspec.html#hierarchy"><i>model-spec</i></a>
 can be a specific model number or range of model numbers (preceded by #),
 or the word <b>all</b> to indicate all volume models.
+The <a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+can be omitted for certain options that can or must apply globally,
+namely <a href="#pickable"><b>pickable</b></a> and several of the
+<a href="#sampling">sampling and size options</a>.
 </p><p>
 The corresponding graphical interface,
 <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>,
@@ -128,6 +136,16 @@ default settings are indicated with <b>bold</b>.
   the <b>surface</b> and <b>mesh</b> modes
   depict isosurfaces (contour surfaces), while the <b>solid</b> mode
   shows data as a semitransparent solid.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="pickable"><b>pickable</b></a> &nbsp;true | false
+<br>
+Whether a volume model should be <a href="../selection.html">selectable</a>
+with the mouse (initial default <b>true</b>).
+This setting can be applied to individual models, but if the model
+specification is omitted, the setting is global and applies to all 
+volume models, including those opened later within the same session.
 </blockquote>
 Separate sets of <a href="#level">level</a>, <a href="#color">color</a>,
 <a href="#brightness">brightness</a>, and 
@@ -321,7 +339,7 @@ is significant.
   <br>Set the maximum number of Mvoxels to be displayed (default <b>1.0</b>)
   when <a href="#autostep"><b>limitVoxelCount</b></a> is set to true.
 </blockquote>
-The remaining options in this section apply to all volume models, 
+The remaining options in this section are global and apply to all volume models, 
 regardless of which are specified:
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
@@ -353,7 +371,7 @@ regardless of which are specified:
   <a href="#top" class="nounder">&bull;</a>
   <b>dataCacheSize</b> &nbsp;<i>size</i>
   <br>Set how much memory in Mb should be dedicated to volume data 
-  (default <b>512</b>).  A cache can improve performance, since accessing 
+  (default <b>512</b>). A cache can improve performance, since accessing 
   cached data is faster than reading it from disk. 
   The least recently displayed data values are purged to maintain the specified
   <i>size</i>. The data cache only accounts for approximately 1/3 to 1/2
@@ -1942,5 +1960,5 @@ caused by nonperiodicity of the original data.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2017</address>
+March 2017</address>
 </body></html>
