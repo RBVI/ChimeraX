@@ -1982,17 +1982,12 @@ class Command:
         self._kw_args = {}
 
     def _replace(self, chars, replacement):
-        # insert replacement taking into account quotes
+        # insert replacement (quotes are already in replacement text)
         i = len(chars)
-        c = chars[0] if i > 0 else ''
-        if i < 2 or c != '"' or chars[-1] != c:
-            completion = replacement
-        else:
-            completion = c + replacement + c
         j = self.amount_parsed
         t = self.current_text
-        self.current_text = t[0:j] + completion + t[i + j:]
-        return len(completion)
+        self.current_text = t[0:j] + replacement + t[i + j:]
+        return len(replacement)
 
     def _parse_arg(self, annotation, text, session, final):
         m = _whitespace.match(text)
