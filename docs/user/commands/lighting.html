@@ -72,6 +72,9 @@ ambient shadowing from 64 directions
 <img class="icon" border=1 src="../tools/shortcut-icons/softlight.png"></a>
 <li><b>gentle</b> - ambient lighting only,
 ambient shadowing from 64 directions tuned to emphasize larger indentations
+<br>(same as <b>soft</b> except with
+<a href="#msMapSize"><b>msMapSize</b></a> 128 instead of 1024 and
+<a href="#msDepthBias"><b>msDepthBias</b></a> 0.05 instead of 0.01)
 <li><b>flat</b> - ambient lighting only, no shadows, silhouettes on
 <a href="../tools/graphics.html" title="Graphics icons...">
 <img class="icon" border=1 src="../tools/shortcut-icons/flat.png"></a>
@@ -83,6 +86,8 @@ ambient shadowing from 64 directions tuned to emphasize larger indentations
 <img class="icon" border=1 src="../tools/shortcut-icons/silhouette.png"></a>
 </ul>
 <p>
+The detailed settings within a preset can be listed by applying the preset
+and then using the <b>lighting</b> command without arguments.
 Although there is a preset named <b>default</b>, different settings
 may be applied automatically. Lighting parameters are adjusted
 automatically based on the size of the first atomic model opened at a time.
@@ -209,13 +214,13 @@ How many directions should be used to generate ambient shadows
 (default <b>0</b>, no ambient shadows; maximum 1024).
 </blockquote>
 <blockquote>
-<b>msMapSize</b> &nbsp;<i>M<sub>a</sub></i>
+<a name="msMapSize"><b>msMapSize</b></a> &nbsp;<i>M<sub>a</sub></i>
 <br>
 Set the size of the depth map
 for rendering ambient shadows (integer-valued, default <b>1024</b>).
 </blockquote>
 <blockquote>
-<b>msDepthBias</b> &nbsp;<i>b<sub>a</sub></i>
+<a name="msDepthBias"><b>msDepthBias</b></a> &nbsp;<i>b<sub>a</sub></i>
 <br>
 Set the bias distance for ambient shadows,
 used to avoid a surface shadowing itself due to rounding errors
@@ -234,5 +239,5 @@ or to the <a href="view.html#scenecoords">scene coordinate system</a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2016</address>
+March 2017</address>
 </body></html>
