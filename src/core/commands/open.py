@@ -165,6 +165,8 @@ def open_formats(session):
     databases = list(fetch_databases().values())
     databases.sort(key=lambda k: k.database_name)
     for db in databases:
+        if db.default_format is None:
+            continue
         formats = list(db.fetch_function.keys())
         formats.sort()
         formats.remove(db.default_format)

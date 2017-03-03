@@ -67,11 +67,11 @@ public:
     // sqlength() inherited from UniqueConnection
 
     // session related
-    static int  session_num_floats(int version=0) {
+    static int  session_num_floats(int version=CURRENT_SESSION_VERSION) {
         return SESSION_NUM_FLOATS(version)
             + UniqueConnection::session_num_floats(session_base_version(version));
     }
-    static int  session_num_ints(int version=0) {
+    static int  session_num_ints(int version=CURRENT_SESSION_VERSION) {
         return SESSION_NUM_INTS(version)
             + UniqueConnection::session_num_ints(session_base_version(version));
     }

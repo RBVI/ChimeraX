@@ -793,3 +793,5 @@ def _register_core_database_fetch():
     from . import map
     map.register_eds_fetch()
     map.register_emdb_fetch()
+    from . import fetch
+    fetch.register_web_fetch()

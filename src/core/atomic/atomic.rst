@@ -44,9 +44,12 @@ Atomic data classes
 
 .. automodule:: chimerax.core.atomic.structure
     :members:
+    :show-inheritance:
 
 .. automodule:: chimerax.core.atomic.molobject
     :members:
+    :show-inheritance:
 
 .. automodule:: chimerax.core.atomic.pbgroup
     :members:
+    :show-inheritance:

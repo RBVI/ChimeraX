@@ -1,10 +1,62 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
-from chimerax.core.commands import CmdDesc, EmptyArg, EnumOf, Or, StringArg, AtomSpecArg, StructuresArg
+from chimerax.core.commands import CmdDesc, EmptyArg, EnumOf, Or, StringArg, AtomSpecArg, StructuresArg, ModelsArg
 from .util import report_models, report_chains, report_polymers, report_residues
 from .util import report_residues, report_atoms, report_resattr, report_distmat
 
-def listinfo_models(session, atoms=None, type_=None, attribute="name"):
+
+def info(session, models=None):
+    '''
+    Report state of models, such as whether they are displayed, color, number of children,
+    number of instances...
+
+    Parameters
+    ----------
+    models : list of models
+    '''
+    m = session.models
+    if models is None:
+        models = m.list()
+    
+    lines = []
+    from . import util
+    for m in sorted(models, key = lambda m: m.id):
+        line = (util.model_info(m) +
+                util.structure_info(m) +
+                util.pseudobond_group_info(m) +
+                util.volume_info(m))
+        lines.append(line)
+    msg = '%d models\n' % len(models) + '\n'.join(lines)
+    session.logger.info(msg)
+
+info_desc = CmdDesc(optional=[('models', ModelsArg)],
+                    synopsis='Report info about models')
+
+
+def info_bounds(session, models=None):
+    '''
+    Report bounds of displayed parts of models in scene coordinates.
+    If not models are given the bounds for the entire scene is reported.
+
+    Parameters
+    ----------
+    models : list of models
+    '''
+    from .util import bounds_description
+    if models is None:
+        b = session.main_view.drawing_bounds()
+        msg = 'Scene bounds %s' % bounds_description(b)
+    else:
+        lines = ['#%s, %s, %s' % (m.id_string(), m.name, bounds_description(m.bounds()))
+                 for m in sorted(models, key = lambda m: m.id)]
+        msg = '\n'.join(lines)
+    session.logger.info(msg)
+
+info_bounds_desc = CmdDesc(optional=[('models', ModelsArg)],
+                           synopsis='Report scene bounding boxes for models')
+
+
+def info_models(session, atoms=None, type_=None, attribute="name"):
     if atoms is None:
         from chimerax.core.commands import atomspec
         atoms = atomspec.everything(session)
@@ -14,13 +66,13 @@ def listinfo_models(session, atoms=None, type_=None, attribute="name"):
     models = [m for m in results.models
               if type_ is None or type(m).__name__.lower() == type_]
     report_models(session.logger, models, attribute)
-listinfo_models_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg, EmptyArg))],
-                               keyword=[("type_", StringArg),
-                                        ("attribute", StringArg),],
-                               synopsis="Report model information")
+info_models_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg, EmptyArg))],
+                           keyword=[("type_", StringArg),
+                                    ("attribute", StringArg),],
+                           synopsis="Report model information")
 
 
-def listinfo_chains(session, atoms=None, attribute="chain_id"):
+def info_chains(session, atoms=None, attribute="chain_id"):
     if atoms is None:
         from chimerax.core.commands import atomspec
         atoms = atomspec.everything(session)
@@ -33,12 +85,12 @@ def listinfo_chains(session, atoms=None, attribute="chain_id"):
             # No chains, no problem
             pass
     report_chains(session.logger, chains, attribute)
-listinfo_chains_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg, EmptyArg))],
-                               keyword=[("attribute", StringArg),],
-                               synopsis="Report chain information")
+info_chains_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg, EmptyArg))],
+                           keyword=[("attribute", StringArg),],
+                           synopsis="Report chain information")
 
 
-def listinfo_polymers(session, atoms=None):
+def info_polymers(session, atoms=None):
     if atoms is None:
         from chimerax.core.commands import atomspec
         atoms = atomspec.everything(session)
@@ -54,35 +106,35 @@ def listinfo_polymers(session, atoms=None):
             # No chains, no problem
             pass
     report_polymers(session.logger, polymers)
-listinfo_polymers_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg, EmptyArg))],
-                                 synopsis="Report polymer information")
+info_polymers_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg, EmptyArg))],
+                             synopsis="Report polymer information")
 
 
-def listinfo_residues(session, atoms=None, attribute="name"):
+def info_residues(session, atoms=None, attribute="name"):
     if atoms is None:
         from chimerax.core.commands import atomspec
         atoms = atomspec.everything(session)
     results = atoms.evaluate(session)
     residues = results.atoms.unique_residues
     report_residues(session.logger, residues, attribute)
-listinfo_residues_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg, EmptyArg))],
-                                 keyword=[("attribute", StringArg),],
-                                 synopsis="Report residue information")
+info_residues_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg, EmptyArg))],
+                             keyword=[("attribute", StringArg),],
+                             synopsis="Report residue information")
 
 
-def listinfo_atoms(session, atoms=None, attribute="idatm_type"):
+def info_atoms(session, atoms=None, attribute="idatm_type"):
     if atoms is None:
         from chimerax.core.commands import atomspec
         atoms = atomspec.everything(session)
     results = atoms.evaluate(session)
     residues = results.atoms.unique_residues
     report_atoms(session.logger, results.atoms, attribute)
-listinfo_atoms_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg, EmptyArg))],
-                              keyword=[("attribute", StringArg),],
-                              synopsis="Report atom information")
+info_atoms_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg, EmptyArg))],
+                          keyword=[("attribute", StringArg),],
+                          synopsis="Report atom information")
 
 
-def listinfo_selection(session, level=None, mode=None, attribute=None):
+def info_selection(session, level=None, mode=None, attribute=None):
     if level is None or level == "atom":
         if attribute is None:
             attribute = "idatm_type"
@@ -112,20 +164,20 @@ def listinfo_selection(session, level=None, mode=None, attribute=None):
         if attribute is None:
             attribute = "name"
         report_models(session.logger, session.selection.all_models(), attribute)
-listinfo_selection_desc = CmdDesc(keyword=[("level", EnumOf(["atom",
-                                                             "residue",
-                                                             "chain",
-                                                             "molecule",
-                                                             "model"])),
-                                           ("mode", EnumOf(["any", "all"])),
-                                           ("attribute", StringArg),],
-                                  synopsis="Report selection information")
+info_selection_desc = CmdDesc(keyword=[("level", EnumOf(["atom",
+                                                         "residue",
+                                                         "chain",
+                                                         "molecule",
+                                                         "model"])),
+                                       ("mode", EnumOf(["any", "all"])),
+                                       ("attribute", StringArg),],
+                              synopsis="Report selection information")
 
 
-def listinfo_resattr(session):
+def info_resattr(session):
     for a in _ResidueAttributes:
         report_resattr(session.logger, a)
-listinfo_resattr_desc = CmdDesc(synopsis="Report residue attribute information")
+info_resattr_desc = CmdDesc(synopsis="Report residue attribute information")
 _ResidueAttributes = [
     "chain_id",
     "description",
@@ -144,7 +196,7 @@ _ResidueAttributes = [
 ]
 
 
-def listinfo_distmat(session, atoms):
+def info_distmat(session, atoms):
     from scipy.spatial.distance import pdist, squareform
     if atoms is None:
         from chimerax.core.commands import atomspec
@@ -154,37 +206,37 @@ def listinfo_distmat(session, atoms):
     coords = atoms.scene_coords
     distmat = pdist(coords, "euclidean")
     report_distmat(session.logger, atoms, distmat)
-listinfo_distmat_desc = CmdDesc(required=([("atoms", Or(AtomSpecArg, EmptyArg))]),
-                                synopsis="Report distance matrix information")
+info_distmat_desc = CmdDesc(required=([("atoms", Or(AtomSpecArg, EmptyArg))]),
+                            synopsis="Report distance matrix information")
 
 from .util import Notifier
 _WhatArg = EnumOf(Notifier.SupportedTypes)
 
-def listinfo_notify_start(session, what, client_id, prefix="", url=None):
+def info_notify_start(session, what, client_id, prefix="", url=None):
     Notifier.Find(what, client_id, session, prefix, url).start()
-listinfo_notify_start_desc = CmdDesc(required=[("what", _WhatArg),
-                                               ("client_id", StringArg),],
-                                     keyword=[("prefix", StringArg),
-                                              ("url", StringArg),],
-                                     synopsis="Start notifications for events")
+info_notify_start_desc = CmdDesc(required=[("what", _WhatArg),
+                                           ("client_id", StringArg),],
+                                 keyword=[("prefix", StringArg),
+                                          ("url", StringArg),],
+                                 synopsis="Start notifications for events")
 
 
-def listinfo_notify_stop(session, what, client_id):
+def info_notify_stop(session, what, client_id):
     Notifier.Find(what, client_id).stop()
-listinfo_notify_stop_desc = CmdDesc(required=[("what", _WhatArg),
-                                              ("client_id", StringArg),],
-                                    synopsis="Stop notifications for events")
+info_notify_stop_desc = CmdDesc(required=[("what", _WhatArg),
+                                          ("client_id", StringArg),],
+                                synopsis="Stop notifications for events")
 
 
-def listinfo_notify_suspend(session, what, client_id):
+def info_notify_suspend(session, what, client_id):
     Notifier.Find(what, client_id).suspend()
-listinfo_notify_suspend_desc = CmdDesc(required=[("what", _WhatArg),
-                                                 ("client_id", StringArg),],
-                                       synopsis="Suspend notifications")
+info_notify_suspend_desc = CmdDesc(required=[("what", _WhatArg),
+                                             ("client_id", StringArg),],
+                                   synopsis="Suspend notifications")
 
 
-def listinfo_notify_resume(session, what, client_id):
+def info_notify_resume(session, what, client_id):
     Notifier.Find(what, client_id).resume()
-listinfo_notify_resume_desc = CmdDesc(required=[("what", _WhatArg),
-                                                ("client_id", StringArg),],
-                                      synopsis="Resume notifications")
+info_notify_resume_desc = CmdDesc(required=[("what", _WhatArg),
+                                            ("client_id", StringArg),],
+                                  synopsis="Resume notifications")

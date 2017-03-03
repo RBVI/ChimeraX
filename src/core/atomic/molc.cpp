@@ -1798,6 +1798,24 @@ extern "C" EXPORT void set_residue_ss_id(void *residues, size_t n, int32_t *ss_i
     error_wrap_array_set(r, n, &Residue::set_ss_id, ss_id);
 }
 
+extern "C" EXPORT void residue_ss_type(void *residues, size_t n, int32_t *ss_type)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_get(r, n, &Residue::ss_type, ss_type);
+}
+
+extern "C" EXPORT void set_residue_ss_type(void *residues, size_t n, int32_t *ss_type)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            r[i]->set_ss_type(static_cast<Residue::SSType>(ss_type[i]));
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void residue_ribbon_display(void *residues, size_t n, npy_bool *ribbon_display)
 {
     Residue **r = static_cast<Residue **>(residues);
@@ -3725,6 +3743,29 @@ extern "C" EXPORT void set_pdb_version(void *mols, size_t n, int32_t *version)
 // -------------------------------------------------------------------------
 // element functions
 //
+extern "C" EXPORT float element_bond_length(void *element1, void *element2)
+{
+    Element *e1 = static_cast<Element *>(element1);
+    Element *e2 = static_cast<Element *>(element2);
+    try {
+        return Element::bond_length(*e1, *e2);
+    } catch (...) {
+        molc_error();
+        return 0.0;
+    }
+}
+
+extern "C" EXPORT float element_bond_radius(void *element)
+{
+    Element *e = static_cast<Element *>(element);
+    try {
+        return Element::bond_radius(*e);
+    } catch (...) {
+        molc_error();
+        return 0.0;
+    }
+}
+
 extern "C" EXPORT void element_name(void *elements, size_t n, pyobject_t *names)
 {
     Element **e = static_cast<Element **>(elements);

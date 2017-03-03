@@ -26,7 +26,7 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="../index.html#commands">Command</a>: select</h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>select</b>&nbsp;&nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
-[&nbsp;entity&nbsp;&nbsp;<a href="atomspec.html"><i>chain-spec</i></a>&nbsp;]
+[&nbsp;polymer&nbsp;&nbsp;<a href="atomspec.html"><i>chain-spec</i></a>&nbsp;]
 </h3>
 
 <h3><a href="usageconventions.html">Usage</a>:
@@ -60,13 +60,13 @@ an existing selection. See also:
 If used without an <b>add</b>, <b>subtract</b>, or <b>intersect</b> keyword,
 the <b>select</b> command replaces any previous selection with a new selection 
 containing the items in <a href="atomspec.html"><i>spec</i></a>.
-The <b>entity</b> option restricts that selection to only the 
+The <b>polymer</b> option restricts that selection to only the 
 biopolymer chains with the same sequences (the same macromolecular entities) 
 as the chains in <a href="atomspec.html"><i>chain-spec</i></a>.
 Examples:
 </p>
 <blockquote>
-<b>select #1 entity /a</b>
+<b>select #1 polymer /a</b>
 <br>
 <b>select ent /d</b>
 </blockquote>

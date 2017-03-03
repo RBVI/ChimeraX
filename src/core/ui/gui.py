@@ -574,7 +574,7 @@ class MainWindow(QMainWindow, PlainTextLog):
                     categories.setdefault(cat, {})[tool.name] = (bi, tool)
         cat_keys = sorted(categories.keys())
         one_menu = len(cat_keys) == 1
-        from ..commands import run
+        from ..commands import run, quote_if_necessary
         for cat in cat_keys:
             if one_menu:
                 cat_menu = tools_menu
@@ -585,7 +585,7 @@ class MainWindow(QMainWindow, PlainTextLog):
                 tool_action = QAction(tool_name, self)
                 tool_action.setStatusTip(tool.synopsis)
                 tool_action.triggered.connect(lambda arg, ses=session, run=run, tool_name=tool_name:
-                    run(ses, "toolshed show '%s'" % tool_name))
+                    run(ses, "toolshed show %s" % quote_if_necessary(tool_name)))
                 cat_menu.addAction(tool_action)
         mb = self.menuBar()
         old_action = self.tools_menu.menuAction()
@@ -870,6 +870,9 @@ class _Qt:
         self.tool_window = None
         self.main_window = None
         self.ui_area.destroy()
+        if self.statusbar:
+            self.statusbar.destroy()
+            self.statusbar = None
         self.dock_widget.destroy()
 
     def manage(self, placement, fixed_size=False):

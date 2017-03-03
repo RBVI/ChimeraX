@@ -62,6 +62,22 @@ class MouseModeArg(Annotation):
         Annotation.__init__(self)
         self._session = session
 
+    @property
+    def name(self):
+        if not self._session.ui.is_gui:
+            return 'a mouse mode'
+        from html import escape
+        modes = self._session.ui.mouse_modes.modes
+        return 'one of ' + ', '.join("'%s'" % escape(m.name) for m in modes)
+
+    @property
+    def _html_name(self):
+        if not self._session.ui.is_gui:
+            return 'a mouse mode'
+        from html import escape
+        modes = self._session.ui.mouse_modes.modes
+        return 'one of ' + ', '.join("<b>%s</b>" % escape(m.name) for m in modes)
+
     def parse(self, text, session):
         from ..ui import mousemodes
         modes = session.ui.mouse_modes.modes
@@ -70,13 +86,6 @@ class MouseModeArg(Annotation):
         value, used, rest = mode_arg.parse(text, session)
         mmap = {m.name:m for m in modes}
         return mmap[value], used, rest
-
-    @property
-    def name(self):
-        if not self._session.ui.is_gui:
-            return 'a mouse mode'
-        modes = self._session.ui.mouse_modes.modes
-        return 'one of ' + ', '.join("'%s'" % m.name for m in modes)
 
 def register_command(session):
     from .cli import CmdDesc, register, StringArg, NoArg

@@ -165,8 +165,12 @@ def register_mmcif_fetch():
 
 
 def get_mmcif_tables(filename, table_names):
-    from . import _mmcif
-    data = _mmcif.extract_mmCIF_tables(filename, table_names)
+    from os import path
+    if path.exists(filename):
+        from . import _mmcif
+        data = _mmcif.extract_mmCIF_tables(filename, table_names)
+    else:
+        data = {}
     tlist = []
     for name in table_names:
         if name not in data:

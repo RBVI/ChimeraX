@@ -40,6 +40,7 @@ and their code location is described with the function descriptions.
 | `fitmap`_ - fit atomic structures in density maps
 | `help`_ - Show documentation
 | `hide`_ - Hide atoms, ribbons, models
+| `info`_ * - Report model info
 | `ks`_ * - Enable keyboard shortcuts
 | `lighting`_ - Change lighting parameters
 | `list`_ - List open models
@@ -68,7 +69,6 @@ and their code location is described with the function descriptions.
 | `set`_ - Set rendering effects (background color, silhouettes)
 | `show`_ - Show atoms, ribbons, models
 | `smoothlines`_ * - Smooth paths in line drawings
-| `sop`_ - Surface operations
 | `split`_ - Split atomic structures into pieces
 | `stop`_ - Stop motion
 | `struts`_ * - Add struts between atoms for 3d printing
@@ -102,10 +102,6 @@ align
 =====
 .. autofunction:: chimerax.core.commands.align.align
 
-buriedarea
-==========
-.. autofunction:: chimerax.core.commands.buriedarea.buriedarea
-
 cage
 ====
 .. autofunction:: chimerax.cage_builder.cmd.cage
@@ -118,6 +114,10 @@ cartoon
 =======
 .. autofunction:: chimerax.exp_cmd.cartoon.cartoon
 .. autofunction:: chimerax.exp_cmd.cartoon.uncartoon
+
+cd
+=====
+.. autofunction:: chimerax.core.commands.cd.cd
 
 clip
 =====
@@ -153,7 +153,7 @@ crosslinks
 ==========
 Function found in *chimerax.crosslinks.crosslinks*
 
-.. autofunction:: chimerax.crosslinks.crosslinks
+.. autofunction:: chimerax.crosslinks.crosslinks.crosslinks
 
 delete
 ======
@@ -184,6 +184,12 @@ hide
 ====
 .. autofunction:: chimerax.core.commands.hide.hide
 
+info
+====
+.. automodule:: chimerax.list_info.cmd
+  :members:
+  :member-order: bysource
+
 ks
 ==
 .. autofunction:: chimerax.shortcuts.shortcuts.ks
@@ -206,8 +212,9 @@ material
 ========
 .. autofunction:: chimerax.core.commands.material.material
 
-sasa
-====
+measure
+=======
+.. autofunction:: chimerax.core.commands.measure_buriedarea.measure_buriedarea
 .. autofunction:: chimerax.core.commands.measure_sasa.measure_sasa
 
 mlp
@@ -217,6 +224,7 @@ Function found in *chimerax.mlp.mlp*
 .. automodule:: chimerax.mlp.mlp
   :members:
   :member-order: bysource
+  :show-inheritance:
 
 molmap
 ======
@@ -237,6 +245,7 @@ Functions defined in *chimerax.movie.moviecmd*
 .. automodule:: chimerax.movie.moviecmd
   :members:
   :member-order: bysource
+  :show-inheritance:
 
 oculus
 ======
@@ -341,6 +350,7 @@ Function defined in *chimerax.toolshed.cmd*
 .. automodule:: chimerax.toolshed.cmd
   :members:
   :member-order: bysource
+  :show-inheritance:
 
 transparency
 ============
@@ -367,6 +377,7 @@ vseries
 =======
 .. automodule:: chimerax.core.map.series.vseries_command
   :members:
+  :show-inheritance:
 
 wait
 ====

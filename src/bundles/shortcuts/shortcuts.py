@@ -66,7 +66,7 @@ def standard_shortcuts(session):
 
         # Scene
         ('va', 'view', 'View all', gcat, noarg, smenu),
-        ('dv', 'view orient', 'Default orientation', gcat, noarg, smenu),
+        ('dv', 'view orient true', 'Default orientation', gcat, noarg, smenu),
 #        ('Sp', save_position, 'Save position, restore it with pp', gcat, sesarg, smenu),
 #        ('pp', restore_position, 'Restore previous position saved with Sp', gcat, sesarg, smenu, sep),
 

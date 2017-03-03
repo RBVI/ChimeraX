@@ -31,8 +31,7 @@ class _MyAPI(BundleAPI):
         from urllib.parse import urlunparse
         from urllib.request import pathname2url
         url = urlunparse(('file', '', pathname2url(path), '', '', ''))
-        from . import cmd
-        cmd.help(session, url)
+        show_url(session, url)
         return [], "Opened %s" % name
 
     @staticmethod
@@ -42,5 +41,14 @@ class _MyAPI(BundleAPI):
             from . import tool
             return tool.HelpUI
         return None
+
+def show_url(session, url):
+    if session.ui.is_gui:
+        from .tool import HelpUI
+        help_viewer = HelpUI.get_viewer(session)
+        help_viewer.show(url)
+    else:
+        import webbrowser
+        webbrowser.open(url)
 
 bundle_api = _MyAPI()

@@ -19,3 +19,4 @@ Classes to create mouse modes and assign mouse buttons and modifier keys to spec
 
 .. automodule:: chimerax.core.ui.mousemodes
     :members:
+    :show-inheritance:

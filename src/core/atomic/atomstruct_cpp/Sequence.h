@@ -114,8 +114,8 @@ public:
     Contents::const_reverse_iterator  rbegin() const
         { return _contents.rbegin(); }
     Contents::const_reverse_iterator  rend() const { return _contents.rend(); }
-    int  session_num_floats(int version=0) const { return SESSION_NUM_FLOATS(version); }
-    int  session_num_ints(int version=0) const { return SESSION_NUM_INTS(version) + _contents.size(); }
+    int  session_num_floats(int version=CURRENT_SESSION_VERSION) const { return SESSION_NUM_FLOATS(version); }
+    int  session_num_ints(int version=CURRENT_SESSION_VERSION) const { return SESSION_NUM_INTS(version) + _contents.size(); }
     void  session_restore(int, int**, float**);
     void  session_save(int**, float**) const;
     void  set_circular(bool c) { _circular = c; }

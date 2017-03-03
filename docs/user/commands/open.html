@@ -28,8 +28,16 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="usageconventions.html">Usage</a>: <br><b>open formats</b>
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
-<br><b>open</b> &nbsp;<i>filename</i> 
-[&nbsp;format&nbsp;&nbsp;<a href="#local"><i>format-name</i></a>&nbsp;]
+<br><b>open</b> &nbsp;<i>filename</i>&nbsp;
+[&nbsp;format&nbsp;&nbsp;<a href="#file-table"><i>format-name</i></a>&nbsp;]
+[&nbsp;coordset&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;vseries&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>alignment</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+&nbsp;<a href="#options"><i>general-options</i></a>
+</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>open</b> &nbsp;<i>URL</i>&nbsp;
+[&nbsp;format&nbsp;&nbsp;<a href="#file-table"><i>format-name</i></a>&nbsp;]
 [&nbsp;coordset&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;vseries&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>alignment</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
@@ -37,23 +45,24 @@ class="clRight" title="User Guide Index"/></a>
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>open</b> 
-[&nbsp;<a href="#fetch"><i>prefix</i></a>:]<i>identifier</i>&nbsp;
-[&nbsp;fromDatabase&nbsp;&nbsp;<a href="#fetch"><i>source</i></a>&nbsp;]
-[&nbsp;format&nbsp;&nbsp;<a href="#fetch"><i>format-name</i></a>&nbsp;]
+[&nbsp;<a href="#fetch-table"><i>prefix</i></a>:]<i>identifier</i>&nbsp;
+[&nbsp;fromDatabase&nbsp;&nbsp;<a href="#fetch-table"><i>source</i></a>&nbsp;]
+[&nbsp;format&nbsp;&nbsp;<a href="#fetch-table"><i>format-name</i></a>&nbsp;]
 [&nbsp;coordset&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;ignoreCache&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#options"><i>general-options</i></a>
 </h3>
 <p>
-The command <b>open</b> reads <a href="#local">local files</a> and
-fetches <a href="#fetch">data from the Web</a>.
-Input files may contain 3D data to be displayed, 
-or commands or code to be executed.
-Alternatively, local files can be browsed/opened with 
-<b>File... Open</b> in the menu,
+The command <b>open</b> reads data from:
+<ul>
+<li><a href="#local">local files</a>
+<li><a href="#url">URLs</a>
+<li><a href="#fetch">online databases</a>
+</ul>
+Input files may contain data to be displayed or commands or code to be executed.
+Local files can also be browsed/opened with <b>File... Open</b> in the menu,
 in which case the proper filename <a href="#local">suffix</a> is required.
 See also: 
-<a href="rename.html"><b>rename</b></a>,
 <a href="close.html"><b>close</b></a>,
 <a href="save.html"><b>save</b></a>,
 <a href="help.html"><b>help</b></a>,
@@ -62,12 +71,6 @@ See also:
 </p><p>
 The <b>open formats</b> command lists the possible formats and databases
 in the <a href="../tools/log.html"><b>Log</b></a>. 
-</p><p>
-Any model that results from opening data is automatically
-assigned a model ID number, starting with #1. 
-The name of the model (shown in the <b>Model Panel</b>)
-will be generated automatically unless specified by the user with the
-<a href="#options"><b>name</b></a> option.
 </p><p>
 Examples:
 </p>
@@ -81,12 +84,9 @@ Examples:
 <b>open emdb:3087</b>
 <br>
 <b>open 3237 from emdb name "gamma-secretase complex"</b>
+<br>
+<b>open http://www.rbvi.ucsf.edu/chimerax/features.html</b>
 </blockquote>
-<p>
-Option keywords and Boolean (truth) values can be truncated, with
-synonyms for true: True, 1, and synonyms for false: False, 0.
-A vertical bar &ldquo;|&rdquo; designates mutually exclusive values.
-</p>
 
 <a name="local"></a>
 <p class="nav">
@@ -95,13 +95,24 @@ A vertical bar &ldquo;|&rdquo; designates mutually exclusive values.
 <h3>Local Files</h3>
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
-<b>open</b> &nbsp;<i>filename</i> 
-[&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#local"><i>format-name</i></a>&nbsp;]
+<b>open</b> &nbsp;<i>filename</i>&nbsp;
+[&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#file-table"><i>format-name</i></a>&nbsp;]
 [&nbsp;<b>coordset</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>vseries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>alignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#options"><i>general-options</i></a>
 </blockquote>
+<p>
+File types can be categorized as:
+</p>
+<ul>
+<li><a href="#atomic">Atomic Structures and Related Data</a>
+<li><a href="#volume">Volume Data</a>
+<li><a href="#object">Other 3D Objects</a>
+<li><a href="#sequence">Sequences</a>
+<li><a href="#composite">Composite</a>
+<li><a href="#miscellaneous">Miscellaneous</a>
+</ul>
 <p>
 The <i>filename</i> is generally a pathname to a local file, 
 either absolute or relative to the current working directory as
@@ -140,16 +151,19 @@ Otherwise, each sequence will be opened in a separate window.
 If the sequences (including any gap characters) are of differing lengths,
 the option must be set to <b>false</b>. 
 </p>
+<center>
+<a name="file-table"><font size="+1"><b>File Types</b></font></a>
+</center>
 <table border cellpadding="4" cellspacing="0">
 <tr>
+<td align="center" style="background-color:#cccccc"><b>format</b></td>
+<td align="center" style="background-color:#cccccc"><b><i>format-name</i></b></td>
+<td align="center" style="background-color:#cccccc"><b>suffix</b></td>
+<td align="center" style="background-color:#cccccc"><b>description</b></td>
+<tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
 <a name="atomic"></a>
 <b>Atomic Structures and Related Data</b></td>
-<tr><tr>
-<td align="center"><b>format</b></td>
-<td align="center"><b><i>format-name</i></b></td>
-<td align="center"><b>suffix</b></td>
-<td align="center"><b>description</b></td>
 </tr><tr>
 <td align="center"><a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/tutorials/framepdbintro.html" 
 target="_blank">Protein Data Bank</a></td>
@@ -280,11 +294,15 @@ target="_blank">Visualization Toolkit (VTK) PolyData</a></td>
 <td align="center">.cxs</td>
 <td align="center">ChimeraX session</td>
 </tr><tr>
-<td align="center">Integrative Hybrid Model</td>
+<td align="center"><a href="https://pdb-dev.rcsb.rutgers.edu/about/"
+target="_blank">Integrative Hybrid Model</a> 
+</td>
 <td align="center"><b>ihm</b></td>
 <td align="center">.ihm</td>
 <td align="center">integrative hybrid model, potentially including
-<br>atomic and coarse-grained representations, crosslinks, <i>etc.</i></td>
+<br>atomic and coarse-grained representations, crosslinks, <i>etc.</i>
+<br>(examples can be downloaded from the
+<a href="https://pdb-dev.rcsb.rutgers.edu/" target="_blank">archive</a>)</td>
 <tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
 <a name="miscellaneous"></a>
@@ -302,26 +320,52 @@ command file</a></td>
 <td align="center">.py<br>.pyc<br>.pyo</td>
 <td align="center">Python code</td>
 </tr><tr>
-<td align="center">HTML</td>
+<td align="center">HTML, XHTML</td>
 <td align="center"></td>
-<td align="center">.html</td>
-<td align="center">HTML local file
-<br>(to show in the <a href="../window.html#browser">ChimeraX browser</a>);
-<br>to specify by URL, 
-use <a href="help.html"><b>help</b></a> instead of <b>open</b></td>
+<td align="center">.html, .htm<br>.xhtml, .xth, .xml</td>
+<td align="center">
+hypertext to render in the 
+<a href="../window.html#browser">ChimeraX browser</a>
 </tr></table>
+
+<a name="url"></a>
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<h3>URLs</h3>
+
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>open</b> &nbsp;<i>URL</i>&nbsp;
+[&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#file-table"><i>format-name</i></a>&nbsp;]
+[&nbsp;<b>coordset</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>vseries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>alignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+&nbsp;<a href="#options"><i>general-options</i></a>
+</blockquote>
+<p>
+Uniform Resource Locators (URLs) starting with
+<b>http:</b>, <b>https:</b>, and <b>ftp:</b> are handled.
+File types and command options are as described for 
+<a href="#local">local files</a>.
+The file type can be indicated by suffix, MIME type, or the <b>format</b> option.
+</p><p>
+Web-fetched data other than those handled by the
+<a href="../window.html#browser">ChimeraX browser</a>
+are stored locally as described <a href="#fetch">below</a>.
+</p>
 
 <a name="fetch"></a>
 <p class="nav">
 [<a href="#top">back to top</a>]
 </p>
-<h3>Web Fetch</h3>
+<h3>Fetch from Online Databases</h3>
 
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>: <b>open</b> 
-[&nbsp;<a href="#fetch"><i>prefix</i></a>:]<i>identifier</i>&nbsp;
-[&nbsp;<b>fromDatabase</b>&nbsp;&nbsp;<a href="#fetch"><i>source</i></a>&nbsp;]
-[&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#fetch"><i>format-name</i></a>&nbsp;]
+[&nbsp;<a href="#fetch-table"><i>prefix</i></a>:]<i>identifier</i>&nbsp;
+[&nbsp;<b>fromDatabase</b>&nbsp;&nbsp;<a href="#fetch-table"><i>source</i></a>&nbsp;]
+[&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#fetch-table"><i>format-name</i></a>&nbsp;]
 [&nbsp;<b>coordset</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>ignoreCache</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<a href="#options"><i>general-options</i></a>
@@ -358,42 +402,15 @@ see <a href="http://pypi.python.org/pypi/appdirs"
 target="_blank">python appdirs</a>). 
 -->
 </p>
+<center>
+<a name="fetch-table"><font size="+1"><b>Fetch Sources</b></font></a>
+</center>
 <table border cellpadding="4" cellspacing="0"><tr>
-<td align="center"><b>database</b></td>
-<td align="center"><b><i>prefix</i></b></td>
-<td align="center"><b><i>source</i></b></td>
-<td align="center"><b>description</b></td>
-<td align="center"><b><i>format-name</i></b></td>
-</tr><tr>
-<td align="center"><a href="http://www.cellpack.org"
-target="_blank">cellPACK</a></td>
-<td align="center"><b>cellpack:</b></td>
-<td align="center"><b>cellpack</b></td>
-<td align="center">hierarchical model;
-<br>see <a href="http://www.cellpack.org/use/" target="_blank">cellPACK
-Chimera instructions</a> for available identifiers</td>
-<td align="center"><b>cellpack</b></td>
-</tr><tr>
-<td align="center"><a href="http://www.ebi.ac.uk/pdbe/eds/"
-target="_blank">Electron Density Server <br>at PDBe</a>
-</td>
-<td align="center"><b>eds:</b></td>
-<td align="center"><b>eds</b></td>
-<td align="center">(2Fo-Fc) electron density map for a PDB entry;
-<br>not available for all PDB entries</td>
-<td align="center"><b>ccp4</b></td>
-</tr><tr>
-<td align="center"><a href="http://www.ebi.ac.uk/pdbe/emdb/"
-target="_blank">Electron Microscopy Data Bank</a>
-<br>
-&nbsp;&nbsp;(<a href="ftp://ftp.wwpdb.org/pub/emdb/README"
-target="_blank">ftp</a> from wwpdb.org to .edu/.gov hosts,
-<br>otherwise from ebi.ac.uk)&nbsp;
-</td>
-<td align="center"><b>emdb:</b></td>
-<td align="center"><b>emdb</b></td>
-<td align="center">density map</td>
-<td align="center"><b>ccp4</b></td>
+<td align="center" style="background-color:#cccccc"><b>database</b></td>
+<td align="center" style="background-color:#cccccc"><b><i>prefix</i></b></td>
+<td align="center" style="background-color:#cccccc"><b><i>source</i></b></td>
+<td align="center" style="background-color:#cccccc"><b>description</b></td>
+<td align="center" style="background-color:#cccccc"><b><i>format-name</i></b></td>
 </tr><tr>
 <td align="center"><a href="http://www.rcsb.org/"
 target="_blank">RCSB Protein Data Bank</a></td>
@@ -433,6 +450,36 @@ Data Bank Japan (PDBj)</a></td>
 <td align="center">atomic coordinates and associated annotations</td>
 <td align="center"><b>mmcif</b></a>
 </td>
+</tr><tr>
+<td align="center"><a href="http://www.ebi.ac.uk/pdbe/eds/"
+target="_blank">Electron Density Server <br>at PDBe</a>
+</td>
+<td align="center"><b>eds:</b></td>
+<td align="center"><b>eds</b></td>
+<td align="center">(2Fo-Fc) electron density map for a PDB entry;
+<br>not available for all PDB entries</td>
+<td align="center"><b>ccp4</b></td>
+</tr><tr>
+<td align="center"><a href="http://www.ebi.ac.uk/pdbe/emdb/"
+target="_blank">Electron Microscopy Data Bank</a>
+<br>
+&nbsp;&nbsp;(<a href="ftp://ftp.wwpdb.org/pub/emdb/README"
+target="_blank">ftp</a> from wwpdb.org to .edu/.gov hosts,
+<br>otherwise from ebi.ac.uk)&nbsp;
+</td>
+<td align="center"><b>emdb:</b></td>
+<td align="center"><b>emdb</b></td>
+<td align="center">density map</td>
+<td align="center"><b>ccp4</b></td>
+</tr><tr>
+<td align="center"><a href="http://www.cellpack.org"
+target="_blank">cellPACK</a></td>
+<td align="center"><b>cellpack:</b></td>
+<td align="center"><b>cellpack</b></td>
+<td align="center">hierarchical model;
+<br>see <a href="http://www.cellpack.org/use/" target="_blank">cellPACK
+Chimera instructions</a> for available identifiers</td>
+<td align="center"><b>cellpack</b></td>
 </tr></table>
 
 <a name="options"></a>
@@ -448,6 +495,9 @@ The name of the model (shown in the <b>Model Panel</b>) will be generated
 automatically from the input <i>filename</i> or database <i>identifier</i>
 unless another name is given with the <b>name</b> option.
 If <i>model-name</i> contains spaces, it should be enclosed in quotation marks.
+Model number is also assigned automatically, starting with the lowest available
+number. Model name and number can be changed with the
+<a href="rename.html"><b>rename</b></a> command.
 </blockquote>
 <blockquote>
 <b>autoStyle</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
@@ -486,5 +536,5 @@ the single best-matching sequence is associated.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2017</address>
+March 2017</address>
 </body></html>

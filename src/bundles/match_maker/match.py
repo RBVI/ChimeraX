@@ -382,15 +382,16 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                                 </table>
                             </td>
                         </tr>
-                    """ % (ss_fraction, gh, gs, go, gap_extend, ss_matrix[('H','H')],
-                        ss_matrix[('H','S')], ss_matrix[('H','O')], ss_matrix[('S','S')],
-                        ss_matrix[('S','O')], ss_matrix[('O','O')])
+                    """ % (ss_fraction, gh, gs, go, gap_extend,
+                        ss_matrix[('H','H')], ss_matrix[('H','S')], ss_matrix[('H','O')],
+                        ss_matrix[('S','S')], ss_matrix[('S','O')], ss_matrix[('O','O')])
                 if iterate is None:
                     iterate_row = """<tr> <td colspan="2" align="center">No iteration</td> </tr>"""
                 else:
                     iterate_row = """<tr> <td>Iteration cutoff</td> <td>%g</td></tr>""" % iterate
+                from chimerax.core.logger import html_table_params
                 param_table = """
-                    <table border="1">
+                    <table %s>
                         <tr>
                             <th colspan="2">Parameters</th>
                         </tr>
@@ -409,7 +410,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                         %s
                         %s
                     </table>
-                """ % (chain_pairing, alg_name, matrix, ss_rows, iterate_row)
+                """ % (html_table_params, chain_pairing, alg_name, matrix, ss_rows, iterate_row)
                 logger.info(param_table, is_html=True)
                 logged_params = True
             logger.status("Matchmaker %s (#%s) with %s (#%s),"
