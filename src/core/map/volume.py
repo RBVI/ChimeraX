@@ -1126,6 +1126,13 @@ class Volume(Model):
 
     return p
 
+  # ---------------------------------------------------------------------------
+  #
+  def planes_pick(self, planes, exclude=None):
+    picks = Model.planes_pick(self, planes, exclude)
+    if picks:
+      picks = [PickedMap(self)]
+    return picks
 
   # ---------------------------------------------------------------------------
   #
@@ -1942,7 +1949,7 @@ def maps_pickable(session, pickable):
 #
 from ..graphics import Pick
 class PickedMap(Pick):
-  def __init__(self, v, distance, detail = ''):
+  def __init__(self, v, distance = None, detail = ''):
     Pick.__init__(self, distance)
     self.map = v
     self.detail = detail
