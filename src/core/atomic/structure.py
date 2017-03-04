@@ -1436,7 +1436,7 @@ class Structure(Model, StructureData):
         return rd.bounds()
 
     def first_intercept(self, mxyz1, mxyz2, exclude=None):
-        if not self.display or (exclude and hasattr(self, exclude)):
+        if not self.display or (exclude and exclude(self)):
             return None
 
         picks = []
