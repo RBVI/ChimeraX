@@ -120,9 +120,10 @@ void main (void)
 #ifdef USE_TEXTURE_CUBEMAP
   vec4 fcolor = texture(texcube, tex_coord_cubemap) * color;
 #else
-  vec4 fcolor = color;
 #ifdef USE_ALL_WHITE
-  fcolor.rgba = vec4(1,1,1,1);
+  vec4 fcolor = vec4(1,1,1,1);
+#else
+  vec4 fcolor = color;
 #endif
 #endif
 #endif

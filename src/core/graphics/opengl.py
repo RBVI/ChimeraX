@@ -503,8 +503,9 @@ class Render:
         if color is not None:
             self.single_color = color
         p = self.current_shader_program
-        if p is not None and not (self.SHADER_VERTEX_COLORS & p.capabilities):
-            p.set_rgba("color", self.single_color)
+        if p is not None:
+            if not ((self.SHADER_VERTEX_COLORS | self.SHADER_ALL_WHITE) & p.capabilities):
+                p.set_rgba("color", self.single_color)
 
     def set_ambient_texture_transform(self, tf):
         # Transform from model coordinates to ambient texture coordinates.
