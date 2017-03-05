@@ -9,7 +9,7 @@
 # Unspecified step is 1 or -1 depending on if end > start.
 # Can use -1 for last frame.  Frame numbers start at 1.
 #
-def coordset(session, structures, index_range, hold_steady = None, loop = 1):
+def coordset(session, structures, index_range, hold_steady = None, pause = 1, loop = 1):
   '''
   Change which coordinate set is shown for a structure.  Can play through
   a range of coordinate sets.  
@@ -28,6 +28,9 @@ def coordset(session, structures, index_range, hold_steady = None, loop = 1):
   hold_steady : Atoms
     Collection of atoms to hold steady while changing coordinate set.
     The atomic structure is repositioned to minimize change in RMSD of these atoms.
+  pause : int
+     Stay at each coordset for this number of graphics frames.  This is to slow
+     down playback.  Default 1.
   loop : integer
     How many times to repeat playing through the coordinates in the specified range.
   '''
@@ -39,7 +42,7 @@ def coordset(session, structures, index_range, hold_steady = None, loop = 1):
   for m in structures:
     s,e,step = absolute_index_range(index_range, m)
     hold = hold_steady.intersect(m.atoms) if hold_steady else None
-    Coordinate_Set_Player(m, s, e, step, hold, loop).start()
+    Coordinate_Set_Player(m, s, e, step, hold, pause, loop).start()
 
 # -----------------------------------------------------------------------------
 #
@@ -49,6 +52,7 @@ def register_command(session):
         required = [('structures', AtomicStructuresArg),
                     ('index_range', IndexRangeArg)],
         keyword = [('hold_steady', AtomsArg),
+                   ('pause', IntArg),
                    ('loop', IntArg)],
         synopsis = 'show coordinate sets')
     register('coordset', desc, coordset, logger=session.logger)
@@ -117,7 +121,8 @@ def absolute_index_range(index_range, mol):
 #
 class Coordinate_Set_Player:
 
-  def __init__(self, molecule, istart, iend, istep, steady_atoms = None, loop = 1):
+  def __init__(self, molecule, istart, iend, istep,
+               steady_atoms = None, pause = 1, loop = 1):
 
     self.molecule = molecule
     self.istart = istart
@@ -125,7 +130,9 @@ class Coordinate_Set_Player:
     self.istep = istep
     self.inext = None
     self.steady_atoms = steady_atoms
+    self.pause = pause
     self.loop = loop
+    self._pause_count = 0
     self._steady_coords = None
     self._steady_transforms = {}
     self._handler = None
@@ -150,6 +157,10 @@ class Coordinate_Set_Player:
     m = self.molecule
     if m.deleted:
       self.stop()
+      return
+    pc = self._pause_count
+    self._pause_count = (pc + 1) % self.pause
+    if pc > 0:
       return
     i = self.inext
     last_cs = m.active_coordset_id
