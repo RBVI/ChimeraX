@@ -18,12 +18,13 @@ def coordset(session, structures, index_range, hold_steady = None, loop = 1):
   ----------
   structures : list of AtomicStructure
     List of structures to show as assemblies.
-  index_range : list of 1 to 3 integers
-    Starting, ending and step coordinate set ids.  If only one value is given that
-    coordinate set becomes the active coordinate set.  If two values are given then
-    the coordinate set is change from the start id to the end id incrementing or
-    decrementing the id by 1 each frame.  If the third value is given the id is
-    incremented by this value each frame.
+  index_range : 3-tuple with integer or None elements
+    Starting, ending and step coordinate set ids.  If starting id is None start with
+    the currently shown coordinate set.  If ending id is None treat it as the last
+    coordset.  If step id is None use step 1 if start < end else step -1.  Otherwise
+    coordinate set is changed from start to end incrementing by step with one step
+    taken per graphics frame.  Negative start / end ids are relative to the (one past)
+    the last coordinate set, so -1 refers to the last coordinate set.
   hold_steady : Atoms
     Collection of atoms to hold steady while changing coordinate set.
     The atomic structure is repositioned to minimize change in RMSD of these atoms.
@@ -36,7 +37,7 @@ def coordset(session, structures, index_range, hold_steady = None, loop = 1):
     raise UserError('No structures specified')
 
   for m in structures:
-    s,e,step = parse_index_range(index_range, m)
+    s,e,step = absolute_index_range(index_range, m)
     hold = hold_steady.intersect(m.atoms) if hold_steady else None
     Coordinate_Set_Player(m, s, e, step, hold, loop).start()
 
@@ -46,7 +47,7 @@ def register_command(session):
     from . import CmdDesc, register, AtomicStructuresArg, ListOf, IntArg, AtomsArg
     desc = CmdDesc(
         required = [('structures', AtomicStructuresArg),
-                    ('index_range', ListOf(IntArg,1,3))],
+                    ('index_range', IndexRangeArg)],
         keyword = [('hold_steady', AtomsArg),
                    ('loop', IntArg)],
         synopsis = 'show coordinate sets')
@@ -54,28 +55,63 @@ def register_command(session):
 
 # -----------------------------------------------------------------------------
 #
-def parse_index_range(index_range, mol):
+from . import Annotation
+class IndexRangeArg(Annotation):
+    """Start, end, step index range"""
+    name = "index range"
 
-  irange = list(index_range)
-  if len(irange) == 1:
-    irange += [irange[0]]
+    @staticmethod
+    def parse(text, session):
+        from . import next_token, AnnotationError
+        if not text:
+            raise AnnotationError('Missing index range argument')
+        token, text, rest = next_token(text)
+        fields = token.split(',')
+        if len(fields) > 3:
+          raise AnnotationError("Index range has at most 3 comma-separated value")
+        try:
+            ses = [(None if f in ('', '.') else int(f)) for f in fields]
+        except ValueError:
+            raise AnnotationError("Index range values must be integers")
+        if len(ses) == 1:
+          ses.extend((ses[0],None))
+        elif len(ses) == 2:
+          ses.append(None)
+        return ses, text, rest
 
-  # Convert negative indices as relative to imax
-  for a in (0,1):
-    if irange[a] < 0:
-      irange[a] += imax + 1
+# -----------------------------------------------------------------------------
+#
+def absolute_index_range(index_range, mol):
 
-  # Clamp ranges to available coordsets.
+  # Find available coordsets
   ids = mol.coordset_ids
   imin, imax = min(ids), max(ids)
-  for a in (0,1):  
-      irange[a] = min(max(irange[a], imin), imax)    # clamp to [imin,imax]
 
-  if len(irange) == 2:
-    step = 1 if irange[1] >= irange[0] else -1
-    irange += [step]
+  s,e,st = index_range
+  if s is None:
+    si = mol.active_coordset_id
+  elif s < 0:
+    si = s + imax + 1
+  else:
+    si = s
+  si = max(si, imin)
+  si = min(si, imax)
 
-  return irange
+  if e is None:
+    ei = imax
+  elif e < 0:
+    ei = e + imax + 1
+  else:
+    ei = e
+  ei = max(ei, imin)
+  ei = min(ei, imax)
+
+  if st is None:
+    sti = 1 if ei >= si else -1
+  else:
+    sti = st
+
+  return (si,ei,sti)
 
 # -----------------------------------------------------------------------------
 #
