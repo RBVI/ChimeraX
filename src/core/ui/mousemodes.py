@@ -879,7 +879,7 @@ class ClipRotateMouseMode(MouseMode):
 
 def standard_mouse_mode_classes():
     '''List of core MouseMode classes.'''
-    from .. import map, markers
+    from .. import markers
     from ..map import series, mouselevel, moveplanes
     mode_classes = [
         SelectMouseMode,
