@@ -19,8 +19,8 @@ ACCELERATE_SOURCE = $(tmpdir)/PyOpenGL-accelerate-$(VERSION)
 
 ifdef WIN32
 include ../pips/Makefile.pip
-WHEEL = PyOpenGL-$(VERSION)-cp35-cp35m-win_amd64.whl \
-	PyOpenGL_accelerate-$(VERSION)-cp35-cp35m-win_amd64.whl
+WHEEL = PyOpenGL-$(VERSION)-cp36-cp36m-win_amd64.whl \
+	PyOpenGL_accelerate-$(VERSION)-cp36-cp36m-win_amd64.whl
 endif
 
 ifdef DEBUG
