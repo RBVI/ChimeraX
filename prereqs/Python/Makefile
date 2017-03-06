@@ -99,9 +99,6 @@ CONFIG_OPTIONS += --with-valgrind
 endif
 endif
 
-# 64-bit Linux dies in exception handling if we don't link with the C++ compiler
-CONFIG_OPTIONS += --with-cxx-main=yes
-
 all:
 
 install: $(SOURCE)
