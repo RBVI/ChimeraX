@@ -40,7 +40,7 @@ The <a href="atomspec.html#hierarchy"><i>model-spec</i></a>
 can be a specific model number or range of model numbers (preceded by #),
 or the word <b>all</b> to indicate all volume models.
 The <a href="atomspec.html#hierarchy"><i>model-spec</i></a>
-can be omitted for certain options that always apply globally,
+can be omitted for certain options that can or must apply globally,
 namely <a href="#pickable"><b>pickable</b></a> and several of the
 <a href="#sampling">sampling and size options</a>.
 </p><p>
@@ -129,15 +129,6 @@ default settings are indicated with <b>bold</b>.
   show those that are hidden and hide those that are shown.
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
-  <a name="pickable"><b>pickable</b></a> &nbsp;true | false
-<br>
-  Whether volume models should be <a href="../selection.html">selectable</a>
-  with the mouse (initial default <b>true</b>).
-  This setting is global and applies to all volume models, 
-  including those opened later within the same session.
-</blockquote>
-<blockquote>
 <!-- need to change section heading and vseries docs if solid becomes image -->
   <a href="#top" class="nounder">&bull;</a>
   <a name="style"><b>style</b> &nbsp;surface | mesh | solid</a>
@@ -145,6 +136,16 @@ default settings are indicated with <b>bold</b>.
   the <b>surface</b> and <b>mesh</b> modes
   depict isosurfaces (contour surfaces), while the <b>solid</b> mode
   shows data as a semitransparent solid.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="pickable"><b>pickable</b></a> &nbsp;true | false
+<br>
+Whether a volume model should be <a href="../selection.html">selectable</a>
+with the mouse (initial default <b>true</b>).
+This setting can be applied to individual models, but if the model
+specification is omitted, the setting is global and applies to all 
+volume models, including those opened later within the same session.
 </blockquote>
 Separate sets of <a href="#level">level</a>, <a href="#color">color</a>,
 <a href="#brightness">brightness</a>, and 

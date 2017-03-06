@@ -8,10 +8,11 @@ class _InfoAPI(BundleAPI):
     def register_command(command_name):
         # 'register_command' is lazily called when the command is referenced
         from . import cmd
-        from chimerax.core.commands import register
+        from chimerax.core.commands import register, create_alias
         register('info',
                  cmd.info_desc,
                  cmd.info)
+        create_alias("listinfo", "info $*")
         register("info bounds",
                  cmd.info_bounds_desc,
                  cmd.info_bounds)
