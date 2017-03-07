@@ -13,8 +13,8 @@
 
 from chimerax.core.commands import register, CmdDesc, EnumOf, AtomSpecArg
 
-def initialize(command_name):
-    register("getcrd", getcrd_desc, getcrd)
+def initialize(command_name, logger):
+    register("getcrd", getcrd_desc, getcrd, logger=logger)
 
 def getcrd(session, atoms=None, coordinate_system='scene'):
     from chimerax.core.core_settings import settings

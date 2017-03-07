@@ -131,7 +131,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
             d.selected_positions = s._selected_bond_cylinders(bond_atoms)
 
     def first_intercept(self, mxyz1, mxyz2, exclude=None):
-        if not self.display or (exclude and hasattr(self, exclude)):
+        if not self.display or (exclude and exclude(self)):
             return None
         from . import structure
         b,f = structure._bond_intercept(self.pseudobonds, mxyz1, mxyz2)

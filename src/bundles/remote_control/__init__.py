@@ -19,8 +19,8 @@ class _MyAPI(BundleAPI):
         remote_control(session, enable=True)	# Start XMLRPC server
 
     @staticmethod
-    def register_command(command_name):
+    def register_command(command_name, logger):
         from . import remotecmd
-        remotecmd.register_remote_control_command(command_name)
+        remotecmd.register_remote_control_command(command_name, logger)
 
 bundle_api = _MyAPI()

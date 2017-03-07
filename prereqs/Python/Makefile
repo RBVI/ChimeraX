@@ -3,7 +3,7 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 # PYTHON_VERSION is in config.make
-PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).1
+PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).0
 DISTRIBUTION = Python-$(PYTHON_PATCH_LEVEL).tar.xz
 SOURCE = $(tmpdir)/Python-$(PYTHON_PATCH_LEVEL)
 
@@ -98,9 +98,6 @@ ifneq (,$(wildcard /usr/include/valgrind/valgrind.h))
 CONFIG_OPTIONS += --with-valgrind
 endif
 endif
-
-# 64-bit Linux dies in exception handling if we don't link with the C++ compiler
-CONFIG_OPTIONS += --with-cxx-main=yes
 
 all:
 

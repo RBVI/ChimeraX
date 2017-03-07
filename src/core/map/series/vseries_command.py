@@ -187,8 +187,8 @@ def vseries_save(session, series, path, subregion = None, step = None, value_typ
     path = os.path.expanduser(path)         # Tilde expansion
 
     maps = s.maps
-    if onGrid is None and align:
-        onGrid = maps[0]
+    if on_grid is None and align:
+        on_grid = maps[0]
 
     grid = None
     if not on_grid is None:
@@ -208,7 +208,7 @@ def vseries_save(session, series, path, subregion = None, step = None, value_typ
         cmap.write_grid_as_chimera_map(d, path, options)
 
     if grid:
-        grid.close()
+        grid.delete()
 
 # -----------------------------------------------------------------------------
 #

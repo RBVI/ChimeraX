@@ -1813,12 +1813,12 @@ class BundleInfo:
         """Register commands with cli."""
         from chimerax.core.commands import cli
         for ci in self.commands:
-            def cb(s=self, n=ci.name):
-                s._register_cmd(n)
+            def cb(s=self, n=ci.name, l=logger):
+                s._register_cmd(n, l)
             _debug("delay_registration", ci.name)
             cli.delay_registration(ci.name, cb, logger=logger)
 
-    def _register_cmd(self, command_name):
+    def _register_cmd(self, command_name, logger):
         """Called when commands need to be really registered."""
         try:
             f = self._get_api().register_command
@@ -1829,7 +1829,7 @@ class BundleInfo:
         try:
             if f == BundleAPI.register_command:
                 raise ToolshedError("bundle \"%s\"'s API forgot to override register_command()" % self.name)
-            f(command_name)
+            f(command_name, logger)
         except Exception as e:
             raise ToolshedError(
                 "register_command() failed for command %s:\n%s" % (command_name, str(e)))
@@ -1938,10 +1938,10 @@ class BundleInfo:
                         % self.name)
                 if reg == BundleAPI.register_selector:
                     raise ToolshedError("bundle \"%s\"'s API forgot to override register_selector()" % self.name)
-                reg(_name)
+                reg(_name, session.logger)
                 from ..commands import get_selector
                 return get_selector(_name)(session, models, results)
-            register_selector(si.name, selector_cb)
+            register_selector(si.name, selector_cb, logger)
 
     def _deregister_selectors(self):
         from ..commands import deregister_selector
@@ -2091,12 +2091,13 @@ class BundleAPI:
         raise NotImplementedError
 
     @staticmethod
-    def register_command(command_name):
+    def register_command(command_name, logger):
         """Called when delayed command line registration occurs.
 
         Parameters
         ----------
         command_name : :py:class:`str`
+        logger : :py:class:`~chimerax.core.logger.Logger` instance.
 
         ``command_name`` is a string of the command to be registered.
         This function is called when the command line interface is invoked
@@ -2105,12 +2106,13 @@ class BundleAPI:
         raise NotImplementedError
 
     @staticmethod
-    def register_selector(selector_name):
+    def register_selector(selector_name, logger):
         """Called when delayed selector registration occurs.
 
         Parameters
         ----------
         selector_name : :py:class:`str`
+        logger : :py:class:`~chimerax.core.logger.Logger` instance.
 
         ``selector_name`` is the name of the selector to be registered.
         This function is called when the selector invoked with one of

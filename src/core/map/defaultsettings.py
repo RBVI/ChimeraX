@@ -65,6 +65,7 @@ class Volume_Default_Settings:
         'box_padding': 0.0,
         'zone_radius': 2.0,
         'immediate_update': True,
+        'pickable': True,
         'show_on_open': True,
         'voxel_limit_for_open': 256.0,          # Mvoxels
         'show_plane': True,

@@ -93,7 +93,7 @@ def minimize(pf, steps = 500, platform_name = 'CPU'):
     state = c.getState(getPositions = True)
     pf.positions = state.getPositions()
     
-def register_addmissingatoms_command():
+def register_addmissingatoms_command(logger):
     from chimerax.core.commands import CmdDesc, register, AtomicStructuresArg, BoolArg, IntArg
     desc = CmdDesc(
         required = [('structures', AtomicStructuresArg)],
@@ -101,4 +101,4 @@ def register_addmissingatoms_command():
                    ('keep_waters', BoolArg)],
         synopsis = 'Add missing heavy atoms and hydrogens to proteins using PDBFixer'
         )
-    register('addmissingatoms', desc, addmissingatoms)
+    register('addmissingatoms', desc, addmissingatoms, logger=logger)

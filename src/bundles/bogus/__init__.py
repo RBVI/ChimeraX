@@ -29,7 +29,7 @@ class _MyAPI(BundleAPI):
             return ui(session)
 
     @staticmethod
-    def register_command(command_name):
+    def register_command(command_name, logger):
         from . import cmd
         from chimerax.core.commands import register
         desc_suffix = "_desc"
@@ -43,10 +43,10 @@ class _MyAPI(BundleAPI):
                 print("no function for \"%s\"" % subcommand_name)
                 continue
             desc = getattr(cmd, attr_name)
-            register(command_name + ' ' + subcommand_name, desc, func)
+            register(command_name + ' ' + subcommand_name, desc, func, logger=logger)
 
         from chimerax.core.commands import atomspec
-        atomspec.register_selector(None, "odd", _odd_models)
+        atomspec.register_selector("odd", _odd_models, logger)
 
     @staticmethod
     def get_class(class_name):

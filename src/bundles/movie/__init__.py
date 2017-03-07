@@ -16,9 +16,9 @@ from chimerax.core.toolshed import BundleAPI
 class _MyAPI(BundleAPI):
 
     @staticmethod
-    def register_command(command_name):
+    def register_command(command_name, logger):
         # 'register_command' is lazily called when the command is referenced
         from .moviecmd import register_movie_command
-        register_movie_command()
+        register_movie_command(logger)
 
 bundle_api = _MyAPI()

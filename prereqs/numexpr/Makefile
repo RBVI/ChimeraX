@@ -3,7 +3,7 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 ifdef WIN32
-VERSION = 2.5.2
+VERSION = 2.6.2
 else
 VERSION = 2.4.6
 endif
@@ -12,7 +12,7 @@ SOURCE = $(tmpdir)/numexpr-$(VERSION)
 
 ifdef WIN32
 include ../pips/Makefile.pip
-WHEEL = numexpr-$(VERSION)-cp35-cp35m-win_amd64.whl
+WHEEL = numexpr-$(VERSION)-cp36-cp36m-win_amd64.whl
 endif
 
 SETUP_BUILD =

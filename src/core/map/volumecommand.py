@@ -285,6 +285,8 @@ def volume(session,
     # Adjust global settings.
     gopt = ('data_cache_size', 'show_on_open', 'voxel_limit_for_open',
             'show_plane', 'voxel_limit_for_plane')
+    if volumes is None:
+        gopt += ('pickable',)
     gsettings = dict((n,loc[n]) for n in gopt if not loc[n] is None)
     if gsettings:
         apply_global_settings(session, gsettings)
@@ -324,21 +326,21 @@ def volume(session,
     for v in vlist:
         apply_volume_options(v, dsettings, rsettings, session)
 
-    if pickable is not None and volumes is None:
-        from . import maps_pickable
-        maps_pickable(session, pickable)
-
 # -----------------------------------------------------------------------------
 #
 def apply_global_settings(session, gsettings):
 
-# TODO: Unused settings part of gui in Chimera.
-#    from .volume import default_settings
-#    default_settings.update(gsettings)
+    from .volume import default_settings
+    default_settings(session).update(gsettings)
+
     if 'data_cache_size' in gsettings:
         from .volume import data_cache
         dc = data_cache(session)
         dc.resize(gsettings['data_cache_size'] * (2**20))
+
+    if 'pickable' in gsettings:
+        from . import maps_pickable
+        maps_pickable(session, gsettings['pickable'])
     
 # -----------------------------------------------------------------------------
 #

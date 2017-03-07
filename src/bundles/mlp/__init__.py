@@ -16,9 +16,9 @@ from chimerax.core.toolshed import BundleAPI
 class _MyAPI(BundleAPI):
 
     @staticmethod
-    def register_command(command_name):
+    def register_command(command_name, logger):
         # 'register_command' is lazily called when the command is referenced
         from . import mlp
-        mlp.register_mlp_command()
+        mlp.register_mlp_command(logger)
 
 bundle_api = _MyAPI()

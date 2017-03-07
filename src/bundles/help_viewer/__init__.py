@@ -16,11 +16,11 @@ from chimerax.core.toolshed import BundleAPI
 class _MyAPI(BundleAPI):
 
     @staticmethod
-    def register_command(command_name):
+    def register_command(command_name, logger):
         # 'register_command' is lazily called when command is referenced
         from . import cmd
         from chimerax.core.commands import register
-        register(command_name, cmd.help_desc, cmd.help)
+        register(command_name, cmd.help_desc, cmd.help, logger=logger)
 
     @staticmethod
     def open_file(session, f, name, filespec=None, **kw):

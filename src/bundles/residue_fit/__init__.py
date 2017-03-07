@@ -16,8 +16,8 @@ from chimerax.core.toolshed import BundleAPI
 class _MyAPI(BundleAPI):
 
     @staticmethod
-    def register_command(command_name):
+    def register_command(command_name, logger):
         from . import cmd
-        cmd.register_resfit_command()
+        cmd.register_resfit_command(logger)
 
 bundle_api = _MyAPI()

@@ -34,7 +34,8 @@ class Volume(Model):
     if not model_id is None:
       self.id = model_id
 
-    self.pickable = getattr(session, '_maps_pickable', True)
+    ds = default_settings(session)
+    self.pickable = ds['pickable']
 
     self.change_callbacks = []
 
@@ -1099,9 +1100,9 @@ class Volume(Model):
   #
   def first_intercept(self, mxyz1, mxyz2, exclude = None):
 
-    if not self.pickable:
-      return False
-
+    if exclude is not None and exclude(self):
+      return None
+      
     if self.representation == 'solid':
       ro = self.rendering_options
       if not ro.box_faces and ro.orthoplanes_shown == (False,False,False):
@@ -1126,6 +1127,13 @@ class Volume(Model):
 
     return p
 
+  # ---------------------------------------------------------------------------
+  #
+  def planes_pick(self, planes, exclude=None):
+    picks = Model.planes_pick(self, planes, exclude)
+    if picks:
+      picks = [PickedMap(self)]
+    return picks
 
   # ---------------------------------------------------------------------------
   #
@@ -1878,15 +1886,10 @@ class Volume(Model):
       
   # ---------------------------------------------------------------------------
   #
-  def close(self):
-
-    self.close_models()
-      
-  # ---------------------------------------------------------------------------
-  #
   def delete(self):
 
-    self.close()
+    self.close_models()
+    Model.delete(self)
       
   # ---------------------------------------------------------------------------
   #
@@ -1942,7 +1945,7 @@ def maps_pickable(session, pickable):
 #
 from ..graphics import Pick
 class PickedMap(Pick):
-  def __init__(self, v, distance, detail = ''):
+  def __init__(self, v, distance = None, detail = ''):
     Pick.__init__(self, distance)
     self.map = v
     self.detail = detail
@@ -2017,7 +2020,8 @@ class Outline_Box:
     p.display_style = p.Mesh
     p.lineThickness = linewidth
     p.use_lighting = False
-    p.is_outline_box = True # Do not cap clipped outline box.
+    p.pickable = False
+    p.no_cofr = True
     # Set geometry after setting outline_box attribute to avoid undesired
     # coloring and capping of outline boxes.
     from numpy import array

@@ -76,7 +76,7 @@ def make_closest_placement_identity(tflist, center):
     rtflist = Places([Place()] + [tf*tfinv for tf in tflist[:i]+tflist[i+1:]])
     return rtflist
 
-def register_cage_command():
+def register_cage_command(logger):
     from chimerax.core.commands import CmdDesc, register, ModelArg, IntArg, BoolArg, FloatArg
     desc = CmdDesc(required = [('cage', ModelArg)],
                    keyword = [('place_model', ModelArg),
@@ -84,4 +84,4 @@ def register_cage_command():
                               ('surface_only', BoolArg),
                               ('resolution', FloatArg)],
                    synopsis = 'Place copies of model on polygons of cage.')
-    register('cage', desc, cage)
+    register('cage', desc, cage, logger=logger)

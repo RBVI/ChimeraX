@@ -30,13 +30,13 @@ class _MyAPI(BundleAPI):
         return cmd.get_singleton(session, create=True)
 
     @staticmethod
-    def register_command(command_name):
+    def register_command(command_name, logger):
         # 'register_command' is lazily called when command is referenced
         if command_name == "echo":
             from chimerax.core.commands import create_alias
-            create_alias("echo", "log text $*")
+            create_alias("echo", "log text $*", logger=logger)
         elif command_name == "log":
             from . import cmd
-            cmd.register_log_command()
+            cmd.register_log_command(logger)
 
 bundle_api = _MyAPI()

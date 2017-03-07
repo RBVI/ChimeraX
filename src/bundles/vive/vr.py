@@ -54,14 +54,14 @@ def vr(session, enable = None, room_position = None):
 # -----------------------------------------------------------------------------
 # Register the oculus command for ChimeraX.
 #
-def register_vr_command():
+def register_vr_command(logger):
     from chimerax.core.commands import CmdDesc, BoolArg, FloatArg, PlaceArg, Or, EnumOf
     from chimerax.core.commands import register, create_alias
     desc = CmdDesc(optional = [('enable', BoolArg)],
                    keyword = [('room_position', Or(EnumOf(['report']), PlaceArg))],
                    synopsis = 'Start SteamVR virtual reality rendering')
-    register('device vr', desc, vr)
-    create_alias('vr', 'device vr $*')
+    register('device vr', desc, vr, logger=logger)
+    create_alias('vr', 'device vr $*', logger=logger)
 
 # -----------------------------------------------------------------------------
 #

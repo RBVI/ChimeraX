@@ -4710,7 +4710,7 @@ def string_to_float(v, default = None):
 #
 def float_format(value, precision):
 
-  if value == None:
+  if value is None:
     return ''
   
   import math

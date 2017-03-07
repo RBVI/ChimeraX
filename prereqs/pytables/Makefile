@@ -2,7 +2,7 @@ PREREQ_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 3.2.2
+VERSION = 3.3.0
 DISTRIBUTION = tables-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/tables-$(VERSION)
 HDF_CONFIG = --hdf5='$(build_prefix)'
@@ -10,7 +10,7 @@ APP_HDF_CONFIG = --hdf5='$(app_prefix)'
 
 ifdef WIN32
 include ../pips/Makefile.pip
-WHEEL = tables-$(VERSION)-cp35-cp35m-win_amd64.whl
+WHEEL = tables-$(VERSION)-cp36-cp36m-win_amd64.whl
 endif
 
 SETUP_BUILD =
