@@ -18,13 +18,13 @@ class _MyAPI(BundleAPI):
         return ToolUI(session, tool_name, **kw)
 
     @staticmethod
-    def register_command(command_name):
+    def register_command(command_name, logger):
         from . import cmd
         if command_name == "blastprotein":
             from chimerax.core.commands import register
-            register(command_name, cmd.blastprotein_desc, cmd.blastprotein)
+            register(command_name, cmd.blastprotein_desc, cmd.blastprotein, logger=logger)
         elif command_name == "blastpdb":
             from chimerax.core.commands import create_alias
-            create_alias(command_name, "blastprotein $*")
+            create_alias(command_name, "blastprotein $*", logger=logger)
 
 bundle_api = _MyAPI()

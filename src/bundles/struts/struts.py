@@ -70,7 +70,7 @@ def struts(session, atoms, length = 7.0, loop = 30.0, radius = 0.6, color = None
 
     return pbg
 
-def register_struts_command():
+def register_struts_command(logger):
 
     from chimerax.core.commands import CmdDesc, register, AtomsArg, FloatArg, ColorArg, BoolArg, StringArg, ModelIdArg
 
@@ -86,11 +86,11 @@ def register_struts_command():
                    ('model_id', ModelIdArg)],
         synopsis = 'Add bonds to atomic models to make them rigid for 3d printing'
     )
-    register('struts', desc, struts)
+    register('struts', desc, struts, logger=logger)
 
     desc = CmdDesc(optional = [('atoms', AtomsArg)],
                    synopsis = 'Delete bonds created with the struts command')
-    register('struts delete', desc, struts_delete)
+    register('struts delete', desc, struts_delete, logger=logger)
 
 def brace(atoms, max_length, max_loop_length, model, log):
 

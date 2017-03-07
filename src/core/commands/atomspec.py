@@ -710,7 +710,7 @@ class AtomSpec:
 _selectors = {}
 
 
-def register_selector(name, func):
+def register_selector(name, func, logger):
     """Register a (name, func) pair as an atom specifier selector.
 
     Parameters
@@ -726,10 +726,12 @@ def register_selector(name, func):
 
     """
     if not name[0].isalpha():
-        raise ValueError("registering illegal selector name \"%s\"" % name)
+        logger.warning("registering illegal selector name \"%s\"" % name)
+        return
     for c in name[1:]:
         if not c.isalnum() and c not in "-+":
-            raise ValueError("registering illegal selector name \"%s\"" % name)
+            logger.warning("registering illegal selector name \"%s\"" % name)
+            return
     _selectors[name] = func
 
 

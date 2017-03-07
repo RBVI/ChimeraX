@@ -87,7 +87,7 @@ def log_clear(session):
     if log:
         log.clear()
 
-def register_log_command():
+def register_log_command(logger):
     from chimerax.core.commands import register, CmdDesc, NoArg, BoolArg, IntArg, RestOfLine, SaveFileNameArg
     log_desc = CmdDesc(keyword = [('thumbnail', NoArg),
                                   ('text', RestOfLine),
@@ -99,7 +99,7 @@ def register_log_command():
                                   ('error_dialog', BoolArg)],
                        synopsis = 'Added text or thumbnail images to the log panel'
     )
-    register('log', log_desc, log)
-    register('log show', CmdDesc(synopsis = 'Show log panel'), log_show)
-    register('log hide', CmdDesc(synopsis = 'Hide log panel'), log_hide)
-    register('log clear', CmdDesc(synopsis = 'Clear log panel'), log_clear)
+    register('log', log_desc, log, logger=logger)
+    register('log show', CmdDesc(synopsis='Show log panel'), log_show, logger=logger)
+    register('log hide', CmdDesc(synopsis='Hide log panel'), log_hide, logger=logger)
+    register('log clear', CmdDesc(synopsis='Clear log panel'), log_clear, logger=logger)

@@ -59,7 +59,7 @@ def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew
 
 # -----------------------------------------------------------------------------------------
 #
-def register_morph_command():
+def register_morph_command(logger):
     from chimerax.core.commands import CmdDesc, register, StructuresArg, IntArg, EnumOf, BoolArg
     desc = CmdDesc(
         required = [('structures', StructuresArg)],
@@ -69,4 +69,4 @@ def register_morph_command():
                    ('cartesian', BoolArg)],
         synopsis = 'morph atomic structures'
     )
-    register('morph', desc, morph)
+    register('morph', desc, morph, logger=logger)

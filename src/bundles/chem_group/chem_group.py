@@ -190,7 +190,7 @@ def find_group(group_desc, structures, return_collection=False):
     return call_c_plus_plus(fg, structures, return_collection,
         group_rep, group_principals, RingAtom)
 
-def register_selectors():
+def register_selectors(logger):
     def select(results, models, group):
         from .chem_group import find_group
         atoms = find_group(group, models, return_collection=True)
@@ -200,5 +200,6 @@ def register_selectors():
     from chimerax.core.commands import register_selector
     for group_name in group_info.keys():
         register_selector(group_name.replace(' ', '-'),
-            lambda ses, models, results, gn=group_name: select(results, models, gn))
+            lambda ses, models, results, gn=group_name: select(results, models, gn),
+            logger)
 
