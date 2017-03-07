@@ -655,9 +655,12 @@ class View:
         vd = self.camera.view_direction()
         old_cofr = self._center_of_rotation
         hyp = old_cofr - cam_pos
-        from numpy import dot
-        distance = dot(hyp, vd)
-        cr = cam_pos + vd*dot(hyp, vd)
+        from ..geometry import inner_product, norm
+        distance = inner_product(hyp, vd)
+        cr = cam_pos + distance*vd
+        if norm(cr - old_cofr) < 1e-6 * distance:
+            # Avoid jitter if camera has not moved
+            cr = old_cofr
         return cr
     
     def _front_center_cofr(self):
