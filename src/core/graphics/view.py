@@ -227,7 +227,8 @@ class View:
                 trig.activate_trigger('shape changed', self)	# Used for updating pseudobond graphics
 
         if dm.shape_changed or cp.changed:
-            self._update_center_of_rotation = True
+            if self.center_of_rotation_method == 'front center':
+                self._update_center_of_rotation = True
             # TODO: If model transparency effects multishadows, will need to detect those changes.
             self._multishadow_update_needed = True
 
