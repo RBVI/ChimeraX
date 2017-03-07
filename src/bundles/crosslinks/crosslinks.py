@@ -192,27 +192,27 @@ class interpolate_position:
             m.position = translation(f*(self.c1-self.c0)) * rotation(self.axis, f*self.angle, self.c0) * self.pos0
             self.frame += 1
 
-def register_command():
+def register_command(logger):
     from chimerax.core.commands import register, CmdDesc, ColorArg, FloatArg, IntArg
     from chimerax.core.commands import PseudobondsArg, StructureArg, StructuresArg
     desc = CmdDesc(required = [('pbonds', PseudobondsArg)],
                    keyword = [('color', ColorArg),
                               ('radius', FloatArg),],
                    synopsis = 'Set crosslink colors and radii')
-    register('crosslinks', desc, crosslinks)
+    register('crosslinks', desc, crosslinks, logger=logger)
 
     desc = CmdDesc(required = [('pbonds', PseudobondsArg)],
                    synopsis = 'Plot graph of crosslink connections between chains')
-    register('crosslinks network', desc, crosslinks_network)
+    register('crosslinks network', desc, crosslinks_network, logger=logger)
 
     desc = CmdDesc(required = [('pbonds', PseudobondsArg)],
                    keyword = [('ensemble', StructureArg)],
                    synopsis = 'Show histogram of crosslink lengths')
-    register('crosslinks histogram', desc, crosslinks_histogram)
+    register('crosslinks histogram', desc, crosslinks_histogram, logger=logger)
 
     desc = CmdDesc(required = [('pbonds', PseudobondsArg)],
                    keyword = [('structures', StructuresArg),
                               ('iterations', IntArg),
                               ('frames', IntArg),],
                    synopsis = 'Minimize crosslink lengths')
-    register('crosslinks minimize', desc, crosslinks_minimize)
+    register('crosslinks minimize', desc, crosslinks_minimize, logger=logger)

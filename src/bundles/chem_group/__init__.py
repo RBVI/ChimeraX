@@ -22,9 +22,9 @@ from chimerax.core.toolshed import BundleAPI
 class ChemGroupAPI(BundleAPI):
 
     @staticmethod
-    def register_selector(selector_name):
+    def register_selector(selector_name, logger):
         # 'register_selector' is lazily called when selector is referenced
         from . import chem_group
-        chem_group.register_selectors()
+        chem_group.register_selectors(logger)
 
 bundle_api = ChemGroupAPI()

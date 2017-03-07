@@ -11,27 +11,25 @@
 
 # -----------------------------------------------------------------------------
 #
-from ..commands import Annotation, next_token
+from ..commands import Annotation, ModelsArg, next_token
 from ..errors import UserError
 
-class MapsArg(Annotation):
-    name = 'density maps'
-    url = "help:user/commands/atomspec.html"
-    @staticmethod
-    def parse(text, session):
-        from ..commands import ModelsArg
-        models, used, rest = ModelsArg.parse(text, session)
+class MapsArg(ModelsArg):
+    name = 'a density maps specifier'
+
+    @classmethod
+    def parse(cls, text, session):
+        models, used, rest = super().parse(text, session)
         from .volume import Volume
         maps = [m for m in models if isinstance(m, Volume)]
         return maps, used, rest
 
-class MapArg(Annotation):
-    name = 'density map'
-    url = "help:user/commands/atomspec.html"
-    @staticmethod
-    def parse(text, session):
-        from ..commands import ModelsArg
-        models, used, rest = ModelsArg.parse(text, session)
+class MapArg(ModelsArg):
+    name = 'a density map specifier'
+
+    @classmethod
+    def parse(cls, text, session):
+        models, used, rest = super().parse(text, session)
         from .volume import Volume
         maps = [m for m in models if isinstance(m, Volume)]
         if len(maps) != 1:

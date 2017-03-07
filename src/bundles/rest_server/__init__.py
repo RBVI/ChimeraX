@@ -5,16 +5,16 @@ from chimerax.core.toolshed import BundleAPI
 class _MyAPI(BundleAPI):
 
     @staticmethod
-    def register_command(command_name):
+    def register_command(command_name, logger):
         # 'register_command' is lazily called when the command is referenced
         from . import cmd
         from chimerax.core.commands import register
         register(command_name + " start",
-                 cmd.start_desc, cmd.start_server)
+                 cmd.start_desc, cmd.start_server, logger=logger)
         register(command_name + " port",
-                 cmd.port_desc, cmd.report_port)
+                 cmd.port_desc, cmd.report_port, logger=logger)
         register(command_name + " stop",
-                 cmd.stop_desc, cmd.stop_server)
+                 cmd.stop_desc, cmd.stop_server, logger=logger)
 
     @staticmethod
     def initialize(session, bi):

@@ -16,8 +16,8 @@ from chimerax.core.toolshed import BundleAPI
 class _CrosslinksAPI(BundleAPI):
 
     @staticmethod
-    def register_command(command_name):
+    def register_command(command_name, logger):
         from . import crosslinks
-        crosslinks.register_command()
+        crosslinks.register_command(logger)
 
 bundle_api = _CrosslinksAPI()

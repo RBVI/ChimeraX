@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def initialize(command_name):
+def initialize(command_name, logger):
     from . import dumpspec
-    dumpspec.initialize(command_name + " dumpspec")
+    dumpspec.initialize(command_name + " dumpspec", logger)
 

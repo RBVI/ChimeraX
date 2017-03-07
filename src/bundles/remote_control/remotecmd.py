@@ -9,7 +9,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def register_remote_control_command(command_name):
+def register_remote_control_command(command_name, logger):
 
     from chimerax.core.commands import CmdDesc, register, BoolArg, StringArg, IntArg, FloatArg
     desc = CmdDesc(
@@ -18,7 +18,7 @@ def register_remote_control_command(command_name):
                    ('port', IntArg),
                    ('timeout', FloatArg)],
         synopsis = 'Allow other processes to send XMLRPC commands to ChimeraX')
-    register(command_name, desc, remote_control)
+    register(command_name, desc, remote_control, logger=logger)
 
 def remote_control(session, enable, address = '127.0.0.1', port = 42184, timeout = 0.1):
     '''
