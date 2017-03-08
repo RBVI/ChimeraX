@@ -78,6 +78,7 @@ run:
 run-nogui:
 	$(PYTHON_EXE) $(PY_MAIN) --nogui
 
+# 64-bit Linux dies in exception handling if we don't link with the C++ compiler
 $(PROG): $(OBJS)
 	$(PROG_LINK)
 

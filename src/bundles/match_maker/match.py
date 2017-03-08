@@ -649,7 +649,7 @@ def check_domain_matching(chains, sel_residues):
     return chains
 
 _registered = False
-def register_command():
+def register_command(logger):
     global _registered
     if _registered:
         # registration can be called for both main command and alias, so only do once...
@@ -669,5 +669,5 @@ def register_command():
             ('mat_ho', FloatArg), ('mat_so', FloatArg)],
         synopsis = 'Align atomic structures using sequence alignment'
     )
-    register('matchmaker', desc, cmd_match)
-    create_alias('mmaker', "%s $*" % 'matchmaker')
+    register('matchmaker', desc, cmd_match, logger=logger)
+    create_alias('mmaker', "%s $*" % 'matchmaker', logger=logger)

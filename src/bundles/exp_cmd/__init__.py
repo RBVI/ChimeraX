@@ -16,7 +16,7 @@ from chimerax.core.toolshed import BundleAPI
 class _MyAPI(BundleAPI):
 
     @staticmethod
-    def register_command(command_name):
+    def register_command(command_name, logger):
         # 'register_command' is lazily called when the command is referenced
         from importlib import import_module
         command_word = command_name.split()[0]
@@ -29,6 +29,6 @@ class _MyAPI(BundleAPI):
         except ImportError:
             print("cannot import %s from %s" % (module_name, __package__))
         else:
-            m.initialize(command_name)
+            m.initialize(command_name, logger)
 
 bundle_api = _MyAPI()

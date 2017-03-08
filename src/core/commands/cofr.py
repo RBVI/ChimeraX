@@ -109,6 +109,7 @@ class PivotIndicator(Drawing):
         self._center = None
         Drawing.__init__(self, 'Pivot indicator')
         self.pickable = False    # Don't set depth in frontCenter mode.
+        self.no_cofr = True	# Don't include in cofr calculation.
         self._create_geometry(axis_length, axis_radius, axis_colors)
         h = session.triggers.add_handler('graphics update', self._update_position)
         self._update_handler = h

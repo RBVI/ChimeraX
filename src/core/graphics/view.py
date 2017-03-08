@@ -227,7 +227,8 @@ class View:
                 trig.activate_trigger('shape changed', self)	# Used for updating pseudobond graphics
 
         if dm.shape_changed or cp.changed:
-            self._update_center_of_rotation = True
+            if self.center_of_rotation_method == 'front center':
+                self._update_center_of_rotation = True
             # TODO: If model transparency effects multishadows, will need to detect those changes.
             self._multishadow_update_needed = True
 
@@ -655,9 +656,12 @@ class View:
         vd = self.camera.view_direction()
         old_cofr = self._center_of_rotation
         hyp = old_cofr - cam_pos
-        from numpy import dot
-        distance = dot(hyp, vd)
-        cr = cam_pos + vd*dot(hyp, vd)
+        from ..geometry import inner_product, norm
+        distance = inner_product(hyp, vd)
+        cr = cam_pos + distance*vd
+        if norm(cr - old_cofr) < 1e-6 * distance:
+            # Avoid jitter if camera has not moved
+            cr = old_cofr
         return cr
     
     def _front_center_cofr(self):
@@ -680,10 +684,11 @@ class View:
 
     def _front_center_point(self):
         w, h = self.window_size
-        p = self.first_intercept(0.5 * w, 0.5 * h)
+        p = self.first_intercept(0.5 * w, 0.5 * h,
+                                 exclude=lambda d: hasattr(d, 'no_cofr') and d.no_cofr)
         return p.position if p else None
 
-    def first_intercept(self, win_x, win_y):
+    def first_intercept(self, win_x, win_y, exclude=None):
         '''
         Return a Pick object for the front-most object below the given
         screen window position (specified in pixels).  This Pick object will
@@ -694,20 +699,21 @@ class View:
         xyz1, xyz2 = self.clip_plane_points(win_x, win_y)
         if xyz1 is None or xyz2 is None:
             return None
-        p = self.drawing.first_intercept(xyz1, xyz2, exclude='is_outline_box')
+        p = self.drawing.first_intercept(xyz1, xyz2, exclude=exclude)
         if p is None:
             return None
         f = p.distance
         p.position = (1.0 - f) * xyz1 + f * xyz2
         return p
 
-    def rectangle_intercept(self, win_x1, win_y1, win_x2, win_y2):
+    def rectangle_intercept(self, win_x1, win_y1, win_x2, win_y2, exclude=None):
         '''
         Return a Pick object for the objects in the rectangle having
         corners at the given screen window position (specified in pixels).
         '''
         # Compute planes bounding view through rectangle.
-        planes = self.camera.rectangle_bounding_planes((win_x1, win_y1), (win_x2, win_y2), self.window_size)
+        planes = self.camera.rectangle_bounding_planes((win_x1, win_y1), (win_x2, win_y2),
+                                                       self.window_size)
         if len(planes) == 0:
             return []	# Camera does not support computation of bounding planes.
 
@@ -717,7 +723,7 @@ class View:
             from numpy import concatenate, array, float32
             planes = concatenate((planes, array([cp.opengl_vec4() for cp in cplanes], float32)))
 
-        picks = self.drawing.planes_pick(planes, exclude='is_outline_box')
+        picks = self.drawing.planes_pick(planes, exclude=exclude)
         return picks
 
     def _update_projection(self, view_num=None, camera=None):

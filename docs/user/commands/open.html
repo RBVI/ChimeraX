@@ -107,7 +107,7 @@ File types can be categorized as:
 </p>
 <ul>
 <li><a href="#atomic">Atomic Structures and Related Data</a>
-<li><a href="#volume">Volume Data</a>
+<li><a href="#volume">Volume Data and Related</a>
 <li><a href="#object">Other 3D Objects</a>
 <li><a href="#sequence">Sequences</a>
 <li><a href="#composite">Composite</a>
@@ -166,7 +166,7 @@ the option must be set to <b>false</b>.
 <b>Atomic Structures and Related Data</b></td>
 </tr><tr>
 <td align="center"><a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/tutorials/framepdbintro.html" 
-target="_blank">Protein Data Bank</a></td>
+target="_blank">Protein Data Bank (PDB)</a></td>
 <td align="center"><b>pdb</b></td>
 <td align="center">.pdb<br>.pdb1<br>.ent<br>.pqr</td>
 <td align="center">atomic coordinates and associated annotations</td>
@@ -187,7 +187,7 @@ plain text file with each line <a href="atomspec.html">specifying</a>
 <tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
 <a name="volume"></a>
-<b>Volume Data</b> (associated tool: 
+<b>Volume Data and Related</b> (associated tool: 
 <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>)</td>
 </tr><tr>
 <td align="center">
@@ -221,7 +221,15 @@ density map</td>
 <td align="center">.cmp<br>.cmap</td>
 <td align="center">density map</td>
 </tr><tr>
-<td align="center">DSN6</td>
+<td align="center">Directional FSC (Fourier shell correlation)</td>
+<td align="center"><b>dres</b></td>
+<td align="center">.dres</td>
+<td align="center">directional resolution to show with a colored globe
+<br>(plain text file with four whitespace-separated columns of numbers,
+<br>an XYZ vector and a resolution or other value
+<br>to colormap onto the globe)</td>
+</tr><tr>
+<td align="center">DSN6 density map</td>
 <td align="center"><b>dsn6</b></td>
 <!-- dsn6 format name is shared, program figures out which variant -->
 <td align="center">.omap</td>
@@ -237,7 +245,7 @@ density map</td>
 </tr><tr>
 <td align="center">
 <a href="http://www2.mrc-lmb.cam.ac.uk/research/locally-developed-software/image-processing-software/#image"
-target="_blank">MRC</a></td>
+target="_blank">MRC</a> density map</td>
 <td align="center"><b>mrc</b></td>
 <td align="center">.mrc</td>
 <td align="center">density map</td>
@@ -280,7 +288,7 @@ target="_blank">Visualization Toolkit (VTK) PolyData</a></td>
 <td align="center">.fa, .fasta</td>
 <td align="center">individual sequence(s) or sequence alignment</td>
 <tr><tr>
-<td align="center">MSF</a></td>
+<td align="center">Multiple Sequence Format (MSF)</a></td>
 <td align="center"><b>msf</b></td>
 <td align="center">.msf</td>
 <td align="center">sequence alignment</td>
@@ -295,7 +303,7 @@ target="_blank">Visualization Toolkit (VTK) PolyData</a></td>
 <td align="center">ChimeraX session</td>
 </tr><tr>
 <td align="center"><a href="https://pdb-dev.rcsb.rutgers.edu/about/"
-target="_blank">Integrative Hybrid Model</a> 
+target="_blank">Integrative Hybrid Model (IHM)</a>
 </td>
 <td align="center"><b>ihm</b></td>
 <td align="center">.ihm</td>
@@ -417,7 +425,7 @@ target="_blank">RCSB Protein Data Bank</a></td>
 <td align="center"><b>pdb:</b></td>
 <td align="center"><b>pdb</b></td>
 <td align="center">atomic coordinates and associated annotations</td>
-<td align="center"><b>mmcif</b> (default) or  <b>pdb</b>
+<td align="center"><b>mmcif</b> (default) or <b>pdb</b>
 <br>(see <a href="http://www.rcsb.org/pdb/static.do?p=file_formats/index.jsp"
 target="_blank">wwPDB formats</a>)
 <br>or <a href="http://mmtf.rcsb.org/" target="_blank"><b>mmtf</b></a></td>
@@ -452,11 +460,20 @@ Data Bank Japan (PDBj)</a></td>
 </td>
 </tr><tr>
 <td align="center"><a href="http://www.ebi.ac.uk/pdbe/eds/"
-target="_blank">Electron Density Server <br>at PDBe</a>
+target="_blank">PDBe Electron Density Server (EDS)</a>
 </td>
 <td align="center"><b>eds:</b></td>
 <td align="center"><b>eds</b></td>
 <td align="center">(2Fo-Fc) electron density map for a PDB entry;
+<br>not available for all PDB entries</td>
+<td align="center"><b>ccp4</b></td>
+</tr><tr>
+<td align="center"><a href="http://www.ebi.ac.uk/pdbe/eds/"
+target="_blank">PDBe EDS</a>
+</td>
+<td align="center"><b>edsdiff:</b></td>
+<td align="center"><b>edsdiff</b></td>
+<td align="center">(Fo-Fc) electron density difference map for a PDB entry;
 <br>not available for all PDB entries</td>
 <td align="center"><b>ccp4</b></td>
 </tr><tr>

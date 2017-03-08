@@ -17,14 +17,14 @@ class _MyAPI(BundleAPI):
         return ToolUI(session, tool_name)
 
     @staticmethod
-    def register_command(command_name):
+    def register_command(command_name, logger):
         # 'register_command' is lazily called when the command is referenced
         from . import cmd
         from chimerax.core.commands import register
         register(command_name + " connect",
-                 cmd.connect_desc, cmd.connect_cyto)
+                 cmd.connect_desc, cmd.connect_cyto, logger=logger)
         register(command_name + " send",
-                 cmd.send_desc, cmd.send_cyto)
+                 cmd.send_desc, cmd.send_cyto, logger=logger)
         # TODO: Register more subcommands here
 
 bundle_api = _MyAPI()

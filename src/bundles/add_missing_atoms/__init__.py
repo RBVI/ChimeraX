@@ -16,9 +16,9 @@ from chimerax.core.toolshed import BundleAPI
 class _AddMissingAtomsAPI(BundleAPI):
 
     @staticmethod
-    def register_command(command_name):
+    def register_command(command_name, logger):
         # 'register_command' is lazily called when the command is referenced
         from . import addmissingatoms
-        addmissingatoms.register_addmissingatoms_command()
+        addmissingatoms.register_addmissingatoms_command(logger)
 
 bundle_api = _AddMissingAtomsAPI()

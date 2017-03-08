@@ -16,9 +16,9 @@ from chimerax.core.toolshed import BundleAPI
 class _VRAPI(BundleAPI):
 
     @staticmethod
-    def register_command(command_name):
+    def register_command(command_name, logger):
         # 'register_command' is lazily called when the command is referenced
         from . import vr
-        vr.register_vr_command()
+        vr.register_vr_command(logger)
 
 bundle_api = _VRAPI()

@@ -14,9 +14,9 @@
 from chimerax.core.commands import register, CmdDesc, AtomSpecArg
 from chimerax.core.commands import BoolArg, FloatArg, IntArg, EnumOf, Or
 
-def initialize(command_name):
+def initialize(command_name, logger):
     # Reregister when command works
-    # register("findclash", findclash_desc, findclash)
+    # register("findclash", findclash_desc, findclash, logger=logger)
     pass
 
 def findclash(session, spec=None, make_pseudobonds=False, log=True,

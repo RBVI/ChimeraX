@@ -26,8 +26,8 @@ class _MyAPI(BundleAPI):
         pass
 
     @staticmethod
-    def register_command(command_name):
+    def register_command(command_name, logger):
         from . import match
-        match.register_command()
+        match.register_command(logger)
 
 bundle_api = _MyAPI()

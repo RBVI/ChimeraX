@@ -13,8 +13,8 @@
 
 from chimerax.core.commands import register, CmdDesc, EnumOf, AtomSpecArg
 
-def initialize(command_name):
-    register(command_name, dumpspec_desc, dumpspec)
+def initialize(command_name, logger):
+    register(command_name, dumpspec_desc, dumpspec, logger=logger)
 
 def dumpspec(session, atoms=None):
     if atoms is None:

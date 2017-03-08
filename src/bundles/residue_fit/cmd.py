@@ -51,7 +51,7 @@ def residues_with_backbone(residues):
             rb.append(i)
     return residues.filter(rb)
 
-def register_resfit_command():
+def register_resfit_command(logger):
     from chimerax.core.commands import CmdDesc, register, AtomsArg, IntArg, Int2Arg
     from chimerax.core.map import MapArg
     desc = CmdDesc(required = [('atoms', AtomsArg)],
@@ -61,4 +61,4 @@ def register_resfit_command():
                               ('pause_frames', IntArg),
                               ('movie_framerate', IntArg)],
                    synopsis = 'Display slider to show fit of each residue in density map')
-    register('resfit', desc, resfit)
+    register('resfit', desc, resfit, logger=logger)
