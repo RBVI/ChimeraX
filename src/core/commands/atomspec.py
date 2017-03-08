@@ -85,19 +85,19 @@ class AtomSpecArg(Annotation):
     name = "an atom specifier"
     url = "help:user/commands/atomspec.html"
 
-    @staticmethod
-    def parse(text, session):
+    @classmethod
+    def parse(cls, text, session):
         """Parse text and return an atomspec parse tree"""
         if not text or _terminator.match(text[0]) is not None:
             from .cli import AnnotationError
             raise AnnotationError("empty atom specifier")
         if text[0] == '"':
-            return AtomSpecArg._parse_quoted(text, session)
+            return cls._parse_quoted(text, session)
         else:
-            return AtomSpecArg._parse_unquoted(text, session)
+            return cls._parse_unquoted(text, session)
 
-    @staticmethod
-    def _parse_quoted(text, session):
+    @classmethod
+    def _parse_quoted(cls, text, session):
         # Split out quoted argument
         start = 0
         m = _double_quote.match(text, start)
@@ -125,10 +125,13 @@ class AtomSpecArg(Annotation):
             from .cli import AnnotationError
             raise AnnotationError(str(e), offset=e.pos)
         except FailedParse as e:
-            from .cli import AnnotationError
+            from .cli import AnnotationError, discard_article
             # Add one to offset for leading quote
             offset = index_map[e.pos]
-            raise AnnotationError(e.message, offset=offset)
+            message = 'invalid ' + discard_article(cls.name)
+            if str(e.message) != 'no available options':
+                message = '%s: %s' % (message, e.message)
+            raise AnnotationError(message, offset=offset)
         # Must consume everything inside quotes
         if ast.parseinfo.endpos != len(token):
             from .cli import AnnotationError
@@ -137,8 +140,8 @@ class AtomSpecArg(Annotation):
         # Success!
         return ast, consumed, rest
 
-    @staticmethod
-    def _parse_unquoted(text, session):
+    @classmethod
+    def _parse_unquoted(cls, text, session):
         # Try to parse the entire line.
         # If we get nothing, then raise AnnotationError.
         # Otherwise, consume what we can use and call it a success.
@@ -152,8 +155,11 @@ class AtomSpecArg(Annotation):
             from .cli import AnnotationError
             raise AnnotationError(str(e), offset=e.pos)
         except FailedParse as e:
-            from .cli import AnnotationError
-            raise AnnotationError(e.message, offset=e.pos)
+            from .cli import AnnotationError, discard_article
+            message = 'invalid ' + discard_article(cls.name)
+            if str(e.message) != 'no available options':
+                message = '%s: %s' % (message, e.message)
+            raise AnnotationError(message, offset=e.pos)
 
         end = ast.parseinfo.endpos
         if end == 0:
@@ -699,6 +705,7 @@ class AtomSpec:
         else:
             raise RuntimeError("unknown operator: %s" % repr(self._operator))
         return results
+
 
 #
 # Selector registration and use

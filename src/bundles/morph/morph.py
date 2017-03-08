@@ -40,22 +40,22 @@ def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew
 
     session.logger.info('Computed %d frame morph #%s' % (traj.num_coord_sets, traj.id_string()))
 
-    # from .interp_residue import iit, dpt
     # from .interpolate import smt, stt, rit, rst, rsit
     # from .sieve_fit import svt
     # from .motion import ht,it
     # from .segment import ssvt, satt
-    # print('interpInternal time', iit)
-    # print('segment atom move time', smt)
-    # print('sieve time', svt)
-    # print('hinge time', ht)
+
     # print('interpolate time', it)
     # print('calc segment transform time', stt)
+    # print('make residue interpolators time', rsit)
     # print('rigid interp time', rit)
     # print('residue interp time', rst)
-    # print('make residue interpolators time', rsit)
-    # print('segment sieve time', ssvt)
+    # print('segment atom move time', smt)
+
+    # print('hinge time', ht)
     # print('shared atoms time', satt)
+    # print('sieve time', svt)
+    # print('segment sieve time', ssvt)
 
 # -----------------------------------------------------------------------------------------
 #
