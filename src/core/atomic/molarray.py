@@ -485,6 +485,7 @@ class Atoms(Collection):
     of models each atom belongs to.'''
     selected = cvec_property('atom_selected', npy_bool,
         doc="numpy bool array whether each Atom is selected.")
+    selecteds = selected
     @property
     def shown_atoms(self):
         '''
