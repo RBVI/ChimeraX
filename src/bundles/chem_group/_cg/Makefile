@@ -21,9 +21,9 @@ DEFS		+= $(PYDEF)
 INCS 		+= $(PYTHON_INCLUDE_DIRS)
 LIBS		+= $(PYTHON_LIB)
 ifeq ($(WIN32),msvc)
-LIBS		+= libatomstruct.lib libarrays.lib
+LIBS		+= libatomstruct.lib libelement.lib libarrays.lib
 else
-LIBS		+= -latomstruct -larrays
+LIBS		+= -latomstruct -lelement -larrays
 endif
 
 all: $(PYMOD)

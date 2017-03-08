@@ -449,7 +449,7 @@ match_descendents(const Atom* a, const Atom::Neighbors& neighbors, const Atom* p
 	return matches;
 }
 
-static std::vector<Group>
+std::vector<Group>
 CG_Condition::trace_group(const Atom* a, const Atom* parent)
 {
 	std::vector<Group> traced_groups;
@@ -850,12 +850,350 @@ initiate_find_aro_amines(AtomicStructure::Atoms::const_iterator start,
 	}
 }
 
+static Group
+find_ring_planar_NHR2(const Atom* a, unsigned int ring_size, bool aromatic_only)
+{
+	// already checked to be an Npl or N2+ participating in one ring
+	if (a->has_missing_structure_pseudobond())
+		return Group();
+	Group nhr2 = { a };
+	auto& neighbors = a->neighbors();
+	if (neighbors.size() == 3) {
+		bool h_bound = false;
+		for (auto nb: neighbors) {
+			if (nb->element().number() == 1) {
+				h_bound = true;
+				break;
+			}
+		}
+		if (!h_bound)
+			return Group();
+	}
+
+	auto ring = a->rings()[0];
+	if (ring->size() != ring_size)
+		return Group();
+
+	if (aromatic_only && !ring->aromatic())
+		return Group();
+
+	auto& ring_atoms = ring->atoms();
+	for (auto nb: neighbors) {
+		if (ring_atoms.find(nb) != ring_atoms.end())
+			nhr2.push_back(nb);
+	}
+	return nhr2;
+}
+
+static Group
+find_5ring_planar_NR2(const Atom* a, bool symmetric)
+{
+	// already checked to be an N2 or two-bond Npl or N2+ participating in one 5-member ring
+	if (a->has_missing_structure_pseudobond())
+		return Group();
+	Group nr2 = { a };
+
+	auto& N = Element::get_element("N");
+	auto ring = a->rings()[0];
+	auto& ring_atoms = ring->atoms();
+	// only consider Npl/N2+ ambiguous if multiple nitrogens in ring
+	if (a->idatm_type() != "N2") {
+		bool other_N = false;
+		for (auto ra: ring_atoms) {
+			if (ra != a && ra->element() == N) {
+				other_N = true;
+				break;
+			}
+		}
+		if (!other_N)
+			return Group();
+	}
+
+	// check symmetry
+	bool asymmetric = false;
+	auto& neighbors = a->neighbors();
+	auto bonded1 = neighbors[0];
+	auto bonded2 = neighbors[1];
+	nr2.push_back(bonded1);
+	nr2.push_back(bonded2);
+	if (symmetric) {
+		if (bonded1->element() != bonded2->element())
+			return Group();
+	} else {
+		if (bonded1->element() != bonded2->element())
+			asymmetric = true;
+	}
+	Atom* rem1 = nullptr;
+	Atom* rem2 = nullptr;
+	for (auto ra: ring_atoms) {
+		if (ra != a && ra != bonded1 && ra != bonded2) {
+			if (rem1) {
+				rem2 = ra;
+				break;
+			}
+			rem1 = ra;
+		}
+	}
+	if (symmetric) {
+		if (rem1->element() != rem2->element())
+			return Group();
+	} else if (!asymmetric && rem1->element() == rem2->element())
+		return Group();
+	return nr2;
+}
+
+static Group
+find_6ring_planar_NR2(const Atom* a, bool symmetric)
+{
+	// already checked to be an N2 participating in one 6-member ring
+	if (a->has_missing_structure_pseudobond())
+		return Group();
+	Group nr2 = { a };
+
+	auto ring = a->rings()[0];
+	auto& ring_atoms = ring->atoms();
+
+	// check symmetry
+	bool asymmetric = false;
+	auto& neighbors = a->neighbors();
+	auto bonded1 = neighbors[0];
+	auto bonded2 = neighbors[1];
+	nr2.push_back(bonded1);
+	nr2.push_back(bonded2);
+	if (symmetric) {
+		if (bonded1->element() != bonded2->element())
+			return Group();
+	} else {
+		if (bonded1->element() != bonded2->element())
+			asymmetric = true;
+	}
+	Atom* next_to_1 = nullptr;
+	Atom* next_to_2 = nullptr;
+	auto& nbs1 = bonded1->neighbors();
+	auto& nbs2 = bonded2->neighbors();
+	for (auto ra: ring_atoms) {
+		if (ra != a && ra != bonded1 && ra != bonded2) {
+			if (!next_to_1
+			&& std::find(nbs1.begin(), nbs1.end(), ra) != nbs1.end())
+				next_to_1 = ra;
+			else if (!next_to_2
+			&& std::find(nbs2.begin(), nbs2.end(), ra) != nbs2.end())
+				next_to_2 = ra;
+		}
+	}
+	if (symmetric) {
+		if (next_to_1->element() != next_to_2->element())
+			return Group();
+	} else if (!asymmetric && next_to_1->element() == next_to_2->element())
+		return Group();
+	return nr2;
+}
+
+static Group
+find_nonring_NR2(const Atom* a)
+{
+	// already checked to be an N2 not in a ring
+	if (a->has_missing_structure_pseudobond())
+		return Group();
+	Group nr2 = { a };
+
+	auto& bonded = a->neighbors();
+	if (bonded.size() != 2)
+		return Group();
+
+	auto& C = Element::get_element("C");
+	if (bonded[0]->element() != C || bonded[1]->element() != C)
+		return Group();
+	nr2.push_back(bonded[0]);
+	nr2.push_back(bonded[1]);
+	return nr2;
+}
+
+static Group
+find_nonring_ether(const Atom* a)
+{
+	// already checked to be an O3 not in a ring
+	if (a->has_missing_structure_pseudobond())
+		return Group();
+	Group ether = { a };
+
+	auto& bonded = a->neighbors();
+	if (bonded.size() != 2)
+		return Group();
+	std::vector<const Atom*> bonded_carbons;
+	auto& C = Element::get_element("C");
+	for (auto nb: a->neighbors()) {
+		if (nb->element() == C)
+			bonded_carbons.push_back(nb);
+	}
+	if (bonded_carbons.size() != 2)
+		return Group();
+
+	ether.push_back(bonded[0]);
+	ether.push_back(bonded[1]);
+	return ether;
+}
+
 static void
 initiate_find_ring_planar_NHR2(AtomicStructure::Atoms::const_iterator start,
-	AtomicStructure::Atoms::const_iterator end,
+	AtomicStructure::Atoms::const_iterator end, unsigned int ring_size,
 	bool aromatic_only, std::vector<Group>* groups, std::mutex* groups_mutex)
 {
-	//TODO
+	for (auto i = start; i != end; ++i) {
+		auto a = *i;
+		if (a->idatm_type() != "Npl" && a->idatm_type() != "N2+")
+			continue;
+
+		// caller already computed rings
+		if (a->rings().size() != 1)
+			continue;
+
+		auto nhr2 = find_ring_planar_NHR2(a, ring_size, aromatic_only);
+		if (nhr2.size() > 0) {
+			// add group with locking
+			groups_mutex->lock();
+			groups->emplace_back();
+			auto& back = groups->back();
+			back.swap(nhr2);
+			groups_mutex->unlock();
+		}
+	}
+}
+
+static void
+initiate_find_5ring_planar_NR2(AtomicStructure::Atoms::const_iterator start,
+	AtomicStructure::Atoms::const_iterator end,
+	bool symmetric, std::vector<Group>* groups, std::mutex* groups_mutex)
+{
+	for (auto i = start; i != end; ++i) {
+		auto a = *i;
+		if (!(a->idatm_type() == "N2" || ((a->idatm_type() == "Npl" || a->idatm_type() == "N2+")
+				&& a->neighbors().size() == 2)))
+			continue;
+
+		// caller already computed rings
+		if (a->rings().size() != 1 || a->rings()[0]->size() != 5)
+			continue;
+
+		auto nr2 = find_5ring_planar_NR2(a, symmetric);
+		if (nr2.size() > 0) {
+			// add group with locking
+			groups_mutex->lock();
+			groups->emplace_back();
+			auto& back = groups->back();
+			back.swap(nr2);
+			groups_mutex->unlock();
+		}
+	}
+}
+
+static void
+initiate_find_6ring_planar_NR2(AtomicStructure::Atoms::const_iterator start,
+	AtomicStructure::Atoms::const_iterator end,
+	bool symmetric, std::vector<Group>* groups, std::mutex* groups_mutex)
+{
+	for (auto i = start; i != end; ++i) {
+		auto a = *i;
+		if (a->idatm_type() != "N2")
+			continue;
+
+		// caller already computed rings
+		if (a->rings().size() != 1 || a->rings()[0]->size() != 6)
+			continue;
+
+		auto nr2 = find_6ring_planar_NR2(a, symmetric);
+		if (nr2.size() > 0) {
+			// add group with locking
+			groups_mutex->lock();
+			groups->emplace_back();
+			auto& back = groups->back();
+			back.swap(nr2);
+			groups_mutex->unlock();
+		}
+	}
+}
+
+static void
+initiate_find_5ring_OR2(AtomicStructure::Atoms::const_iterator start,
+	AtomicStructure::Atoms::const_iterator end,
+	std::vector<Group>* groups, std::mutex* groups_mutex)
+{
+	auto& O = Element::get_element("O");
+	for (auto i = start; i != end; ++i) {
+		auto a = *i;
+		if (a->element() != O)
+			continue;
+
+		if (a->has_missing_structure_pseudobond())
+			continue;
+
+		// caller already computed rings
+		for (auto ring: a->rings()) {
+			if (ring->size() != 5)
+				continue;
+
+			// add group with locking
+			groups_mutex->lock();
+			groups->emplace_back();
+			auto& back = groups->back();
+			groups_mutex->unlock();
+			back.push_back(a);
+			for (auto nb: a->neighbors())
+				back.push_back(nb);
+		}
+	}
+}
+
+static void
+initiate_find_nonring_ether(AtomicStructure::Atoms::const_iterator start,
+	AtomicStructure::Atoms::const_iterator end,
+	std::vector<Group>* groups, std::mutex* groups_mutex)
+{
+	for (auto i = start; i != end; ++i) {
+		auto a = *i;
+		if (a->idatm_type() != "O3")
+			continue;
+
+		// caller already computed rings
+		if (a->rings().size() > 0)
+			continue;
+
+		auto ether = find_nonring_ether(a);
+		if (ether.size() > 0) {
+			// add group with locking
+			groups_mutex->lock();
+			groups->emplace_back();
+			auto& back = groups->back();
+			back.swap(ether);
+			groups_mutex->unlock();
+		}
+	}
+}
+
+static void
+initiate_find_nonring_NR2(AtomicStructure::Atoms::const_iterator start,
+	AtomicStructure::Atoms::const_iterator end,
+	std::vector<Group>* groups, std::mutex* groups_mutex)
+{
+	for (auto i = start; i != end; ++i) {
+		auto a = *i;
+		if (a->idatm_type() != "N2")
+			continue;
+
+		// caller already computed rings
+		if (a->rings().size() > 0)
+			continue;
+
+		auto nr2 = find_nonring_NR2(a);
+		if (nr2.size() > 0) {
+			// add group with locking
+			groups_mutex->lock();
+			groups->emplace_back();
+			auto& back = groups->back();
+			back.swap(nr2);
+			groups_mutex->unlock();
+		}
+	}
 }
 
 static PyObject*
@@ -1076,9 +1414,9 @@ PyObject *
 find_ring_planar_NHR2(PyObject *, PyObject *args)
 {
 	PyObject*  py_struct_ptr;
-	unsigned int  num_cpus;
+	unsigned int  num_cpus, ring_size;
 	int	return_collection, aromatic_only;
-	if (!PyArg_ParseTuple(args, PY_STUPID "OpIp", &py_struct_ptr, &aromatic_only,
+	if (!PyArg_ParseTuple(args, PY_STUPID "OIpIp", &py_struct_ptr, &ring_size, &aromatic_only,
 			&num_cpus, &return_collection))
 		return nullptr;
 	if (!PyLong_Check(py_struct_ptr)) {
@@ -1088,7 +1426,7 @@ find_ring_planar_NHR2(PyObject *, PyObject *args)
 	auto s = static_cast<AtomicStructure*>(PyLong_AsVoidPtr(py_struct_ptr));
 
 	// ensure the rings are computed (once) here, rather than possibly multiple
-	// times in the threads (and computation is not thread safe)
+	// times in the threads (besides, computation is not thread safe)
 	(void)s->rings();
 
 	auto& atoms = s->atoms();
@@ -1110,7 +1448,251 @@ find_ring_planar_NHR2(PyObject *, PyObject *args)
 			if (i == num_threads - 1) // an overabundance of caution
 				end = atoms.end();
 			threads.push_back(std::thread(initiate_find_ring_planar_NHR2, start, end,
-				(bool)aromatic_only, &groups, &groups_mtx));
+				ring_size, (bool)aromatic_only, &groups, &groups_mtx));
+			start = end;
+		}
+		for (auto& th: threads)
+			th.join();
+	}
+
+	return make_group_list(groups, return_collection);
+}
+
+static
+PyObject *
+find_5ring_planar_NR2(PyObject *, PyObject *args)
+{
+	PyObject*  py_struct_ptr;
+	unsigned int  num_cpus;
+	int	return_collection;
+	int symmetric = (int)false;
+	if (!PyArg_ParseTuple(args, PY_STUPID "OpIp", &py_struct_ptr, &symmetric,
+			&num_cpus, &return_collection))
+		return nullptr;
+	if (!PyLong_Check(py_struct_ptr)) {
+		PyErr_SetString(PyExc_TypeError, "Structure pointer value must be int!");
+		return nullptr;
+	}
+	auto s = static_cast<AtomicStructure*>(PyLong_AsVoidPtr(py_struct_ptr));
+
+	// ensure the rings are computed (once) here, rather than possibly multiple
+	// times in the threads (besides, computation is not thread safe)
+	(void)s->rings();
+
+	auto& atoms = s->atoms();
+	std::vector<Group> groups;
+	std::mutex groups_mtx;
+
+	size_t num_threads = num_cpus > 1 ? num_cpus : 1;
+	// divvy up the atoms among the threads;
+	// letting the threads take atoms from a global pool
+	// results in too much lock contention since many
+	// of the atoms fail to form a group quickly
+	num_threads = std::min(num_threads, atoms.size());
+	if (num_threads > 0) {
+		float per_thread = atoms.size() / (float) num_threads;
+		auto start = atoms.begin();
+		std::vector<std::thread> threads;
+		for (size_t i = 0; i < num_threads; ++i) {
+			decltype(start) end = start + (int)(i * per_thread + 0.5);
+			if (i == num_threads - 1) // an overabundance of caution
+				end = atoms.end();
+			threads.push_back(std::thread(initiate_find_5ring_planar_NR2,
+				start, end, (bool)symmetric, &groups, &groups_mtx));
+			start = end;
+		}
+		for (auto& th: threads)
+			th.join();
+	}
+
+	return make_group_list(groups, return_collection);
+}
+
+static
+PyObject *
+find_6ring_planar_NR2(PyObject *, PyObject *args)
+{
+	PyObject*  py_struct_ptr;
+	unsigned int  num_cpus;
+	int	return_collection;
+	int symmetric = (int)false;
+	if (!PyArg_ParseTuple(args, PY_STUPID "OpIp", &py_struct_ptr, &symmetric,
+			&num_cpus, &return_collection))
+		return nullptr;
+	if (!PyLong_Check(py_struct_ptr)) {
+		PyErr_SetString(PyExc_TypeError, "Structure pointer value must be int!");
+		return nullptr;
+	}
+	auto s = static_cast<AtomicStructure*>(PyLong_AsVoidPtr(py_struct_ptr));
+
+	// ensure the rings are computed (once) here, rather than possibly multiple
+	// times in the threads (besides, computation is not thread safe)
+	(void)s->rings();
+
+	auto& atoms = s->atoms();
+	std::vector<Group> groups;
+	std::mutex groups_mtx;
+
+	size_t num_threads = num_cpus > 1 ? num_cpus : 1;
+	// divvy up the atoms among the threads;
+	// letting the threads take atoms from a global pool
+	// results in too much lock contention since many
+	// of the atoms fail to form a group quickly
+	num_threads = std::min(num_threads, atoms.size());
+	if (num_threads > 0) {
+		float per_thread = atoms.size() / (float) num_threads;
+		auto start = atoms.begin();
+		std::vector<std::thread> threads;
+		for (size_t i = 0; i < num_threads; ++i) {
+			decltype(start) end = start + (int)(i * per_thread + 0.5);
+			if (i == num_threads - 1) // an overabundance of caution
+				end = atoms.end();
+			threads.push_back(std::thread(initiate_find_6ring_planar_NR2,
+				start, end, (bool)symmetric, &groups, &groups_mtx));
+			start = end;
+		}
+		for (auto& th: threads)
+			th.join();
+	}
+
+	return make_group_list(groups, return_collection);
+}
+
+static
+PyObject *
+find_5ring_OR2(PyObject *, PyObject *args)
+{
+	PyObject*  py_struct_ptr;
+	unsigned int  num_cpus;
+	int	return_collection;
+	if (!PyArg_ParseTuple(args, PY_STUPID "OIp", &py_struct_ptr, &num_cpus, &return_collection))
+		return nullptr;
+	if (!PyLong_Check(py_struct_ptr)) {
+		PyErr_SetString(PyExc_TypeError, "Structure pointer value must be int!");
+		return nullptr;
+	}
+	auto s = static_cast<AtomicStructure*>(PyLong_AsVoidPtr(py_struct_ptr));
+
+	// ensure the rings are computed (once) here, rather than possibly multiple
+	// times in the threads (besides, computation is not thread safe)
+	(void)s->rings();
+
+	auto& atoms = s->atoms();
+	std::vector<Group> groups;
+	std::mutex groups_mtx;
+
+	size_t num_threads = num_cpus > 1 ? num_cpus : 1;
+	// divvy up the atoms among the threads;
+	// letting the threads take atoms from a global pool
+	// results in too much lock contention since many
+	// of the atoms fail to form a group quickly
+	num_threads = std::min(num_threads, atoms.size());
+	if (num_threads > 0) {
+		float per_thread = atoms.size() / (float) num_threads;
+		auto start = atoms.begin();
+		std::vector<std::thread> threads;
+		for (size_t i = 0; i < num_threads; ++i) {
+			decltype(start) end = start + (int)(i * per_thread + 0.5);
+			if (i == num_threads - 1) // an overabundance of caution
+				end = atoms.end();
+			threads.push_back(std::thread(initiate_find_5ring_OR2,
+				start, end, &groups, &groups_mtx));
+			start = end;
+		}
+		for (auto& th: threads)
+			th.join();
+	}
+
+	return make_group_list(groups, return_collection);
+}
+
+static
+PyObject *
+find_nonring_NR2(PyObject *, PyObject *args)
+{
+	PyObject*  py_struct_ptr;
+	unsigned int  num_cpus;
+	int	return_collection;
+	if (!PyArg_ParseTuple(args, PY_STUPID "OIp", &py_struct_ptr, &num_cpus, &return_collection))
+		return nullptr;
+	if (!PyLong_Check(py_struct_ptr)) {
+		PyErr_SetString(PyExc_TypeError, "Structure pointer value must be int!");
+		return nullptr;
+	}
+	auto s = static_cast<AtomicStructure*>(PyLong_AsVoidPtr(py_struct_ptr));
+
+	// ensure the rings are computed (once) here, rather than possibly multiple
+	// times in the threads (besides, computation is not thread safe)
+	(void)s->rings();
+
+	auto& atoms = s->atoms();
+	std::vector<Group> groups;
+	std::mutex groups_mtx;
+
+	size_t num_threads = num_cpus > 1 ? num_cpus : 1;
+	// divvy up the atoms among the threads;
+	// letting the threads take atoms from a global pool
+	// results in too much lock contention since many
+	// of the atoms fail to form a group quickly
+	num_threads = std::min(num_threads, atoms.size());
+	if (num_threads > 0) {
+		float per_thread = atoms.size() / (float) num_threads;
+		auto start = atoms.begin();
+		std::vector<std::thread> threads;
+		for (size_t i = 0; i < num_threads; ++i) {
+			decltype(start) end = start + (int)(i * per_thread + 0.5);
+			if (i == num_threads - 1) // an overabundance of caution
+				end = atoms.end();
+			threads.push_back(std::thread(initiate_find_nonring_NR2,
+				start, end, &groups, &groups_mtx));
+			start = end;
+		}
+		for (auto& th: threads)
+			th.join();
+	}
+
+	return make_group_list(groups, return_collection);
+}
+
+static
+PyObject *
+find_nonring_ether(PyObject *, PyObject *args)
+{
+	PyObject*  py_struct_ptr;
+	unsigned int  num_cpus;
+	int	return_collection;
+	if (!PyArg_ParseTuple(args, PY_STUPID "OIp", &py_struct_ptr, &num_cpus, &return_collection))
+		return nullptr;
+	if (!PyLong_Check(py_struct_ptr)) {
+		PyErr_SetString(PyExc_TypeError, "Structure pointer value must be int!");
+		return nullptr;
+	}
+	auto s = static_cast<AtomicStructure*>(PyLong_AsVoidPtr(py_struct_ptr));
+
+	// ensure the rings are computed (once) here, rather than possibly multiple
+	// times in the threads (besides, computation is not thread safe)
+	(void)s->rings();
+
+	auto& atoms = s->atoms();
+	std::vector<Group> groups;
+	std::mutex groups_mtx;
+
+	size_t num_threads = num_cpus > 1 ? num_cpus : 1;
+	// divvy up the atoms among the threads;
+	// letting the threads take atoms from a global pool
+	// results in too much lock contention since many
+	// of the atoms fail to form a group quickly
+	num_threads = std::min(num_threads, atoms.size());
+	if (num_threads > 0) {
+		float per_thread = atoms.size() / (float) num_threads;
+		auto start = atoms.begin();
+		std::vector<std::thread> threads;
+		for (size_t i = 0; i < num_threads; ++i) {
+			decltype(start) end = start + (int)(i * per_thread + 0.5);
+			if (i == num_threads - 1) // an overabundance of caution
+				end = atoms.end();
+			threads.push_back(std::thread(initiate_find_nonring_ether,
+				start, end, &groups, &groups_mtx));
 			start = end;
 		}
 		for (auto& th: threads)
@@ -1134,11 +1716,31 @@ static const char* docstr_find_aromatics = "find_aromatics\n"
 static const char* docstr_find_ring_planar_NHR2 = "find_ring_planar_NHR2\n"
 "Find planar ring nitrogens that have a hydrogen bound (and the two non-H bond partners)";
 
+static const char* docstr_find_5ring_planar_NR2 = "find_5ring_planar_NR2\n"
+"Find planar nitrogens in a 5-member ring (and the two non-H bond partners)\nIf optional 'symmetric' keyword is True (default False) then the ring must be symmetric.";
+
+static const char* docstr_find_6ring_planar_NR2 = "find_6ring_planar_NR2\n"
+"Find planar nitrogens in a 6-member ring (and the two non-H bond partners)\nIf optional 'symmetric' keyword is True (default False) then the ring must be symmetric.";
+
+static const char* docstr_find_5ring_OR2 = "find_5ring_OR2\n"
+"Find oxygens in a 5-member ring (and their two non-H bond partners)";
+
+static const char* docstr_find_nonring_NR2 = "find_nonring_NR2\n"
+"Find non-ring nitrogens with two bonds, both to carbons (which are included in the returned group)";
+
+static const char* docstr_find_nonring_ether = "find_nonring_ether\n"
+"Find ether not in a ring system; returns the oxygen and both bonded carbons";
+
 static PyMethodDef cg_methods[] = {
 	{ PY_STUPID "find_group", find_group,	METH_VARARGS, PY_STUPID docstr_find_group	},
 	{ PY_STUPID "find_aro_amines", find_aro_amines,	METH_VARARGS, PY_STUPID docstr_find_aro_amines	},
 	{ PY_STUPID "find_aromatics", find_aromatics,	METH_VARARGS, PY_STUPID docstr_find_aromatics	},
 	{ PY_STUPID "find_ring_planar_NHR2", find_ring_planar_NHR2,	METH_VARARGS, PY_STUPID docstr_find_ring_planar_NHR2	},
+	{ PY_STUPID "find_5ring_planar_NR2", find_5ring_planar_NR2,	METH_VARARGS, PY_STUPID docstr_find_5ring_planar_NR2	},
+	{ PY_STUPID "find_6ring_planar_NR2", find_6ring_planar_NR2,	METH_VARARGS, PY_STUPID docstr_find_6ring_planar_NR2	},
+	{ PY_STUPID "find_5ring_OR2", find_5ring_OR2,	METH_VARARGS, PY_STUPID docstr_find_5ring_OR2	},
+	{ PY_STUPID "find_nonring_NR2", find_nonring_NR2,	METH_VARARGS, PY_STUPID docstr_find_nonring_NR2	},
+	{ PY_STUPID "find_nonring_ether", find_nonring_ether,	METH_VARARGS, PY_STUPID docstr_find_nonring_ether	},
 	{ nullptr, nullptr, 0, nullptr }
 };
 

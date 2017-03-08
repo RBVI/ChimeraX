@@ -103,27 +103,17 @@ def find_aromatics(structures, return_collection):
 def find_ring_planar_NHR2(structures, return_collection, ring_size, aromatic_only=False):
     from ._chem_group import find_ring_planar_NHR2 as fr_pnhr2
     from .support import call_c_plus_plus
-    return call_c_plus_plus(fr_pnhr2, structures, return_collection, aromatic_only)
+    return call_c_plus_plus(fr_pnhr2, structures, return_collection, ring_size, aromatic_only)
 
-def find_symmetric_5ring_planar_NR2(structures, return_collection):
-    from ._chem_group import find_symmetric_5ring_planar_NR2 as fs5r_pnr2
+def find_5ring_planar_NR2(structures, return_collection, symmetric=False):
+    from ._chem_group import find_5ring_planar_NR2 as f5r_pnr2
     from .support import call_c_plus_plus
-    return call_c_plus_plus(fs5r_pnr2, structures, return_collection)
+    return call_c_plus_plus(f5r_pnr2, structures, return_collection, symmetric)
 
-def find_symmetric_6ring_planar_NR2(structures, return_collection):
-    from ._chem_group import find_symmetric_6ring_planar_NR2 as fs6r_pnr2
+def find_6ring_planar_NR2(structures, return_collection, symmetric=False):
+    from ._chem_group import find_6ring_planar_NR2 as f6r_pnr2
     from .support import call_c_plus_plus
-    return call_c_plus_plus(fs6r_pnr2, structures, return_collection)
-
-def find_asymmetric_5ring_planar_NR2(structures, return_collection):
-    from ._chem_group import find_asymmetric_5ring_planar_NR2 as fa5r_pnr2
-    from .support import call_c_plus_plus
-    return call_c_plus_plus(fa5r_pnr2, structures, return_collection)
-
-def find_asymmetric_6ring_planar_NR2(structures, return_collection):
-    from ._chem_group import find_asymmetric_6ring_planar_NR2 as fa6r_pnr2
-    from .support import call_c_plus_plus
-    return call_c_plus_plus(fa6r_pnr2, structures, return_collection)
+    return call_c_plus_plus(f6r_pnr2, structures, return_collection, symmetric)
 
 def find_5ring_OR2(structures, return_collection):
     from ._chem_group import find_5ring_OR2 as f5r_or2
