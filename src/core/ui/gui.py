@@ -581,8 +581,11 @@ class MainWindow(QMainWindow, PlainTextLog):
             else:
                 cat_menu = tools_menu.addMenu(cat)
             cat_info = categories[cat]
+            use_checkbuttons = cat == "Toolbars"
             for tool_name in sorted(cat_info.keys()):
                 tool_action = QAction(tool_name, self)
+                if use_checkbuttons:
+                    tool_action.setCheckable(True)
                 tool_action.setStatusTip(tool.synopsis)
                 tool_action.triggered.connect(lambda arg, ses=session, run=run, tool_name=tool_name:
                     run(ses, "toolshed show %s" % quote_if_necessary(tool_name)))
