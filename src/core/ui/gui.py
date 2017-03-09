@@ -124,7 +124,8 @@ class UI(QApplication):
         self._keystroke_sinks = []
 
     def close_splash(self):
-        pass
+        if hasattr(self, 'main_window'):
+            self.main_window._set_tool_checkbuttons(self.session)
 
     def build(self):
         self.main_window = mw = MainWindow(self, self.session)
@@ -565,6 +566,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         help_menu.addAction(about_action)
 
     def update_tools_menu(self, session):
+        self._checkbutton_tools = {}
         from PyQt5.QtWidgets import QMenu, QAction
         tools_menu = QMenu("&Tools")
         categories = {}
@@ -575,26 +577,40 @@ class MainWindow(QMainWindow, PlainTextLog):
         cat_keys = sorted(categories.keys())
         one_menu = len(cat_keys) == 1
         from ..commands import run, quote_if_necessary
+        active_tool_names = set([tool.display_name for tool in session.tools.list()])
         for cat in cat_keys:
             if one_menu:
                 cat_menu = tools_menu
             else:
                 cat_menu = tools_menu.addMenu(cat)
             cat_info = categories[cat]
-            use_checkbuttons = cat == "Toolbars"
+            use_checkbuttons = cat == "Toolbar"
             for tool_name in sorted(cat_info.keys()):
                 tool_action = QAction(tool_name, self)
+                tool_action.setStatusTip(tool.synopsis)
                 if use_checkbuttons:
                     tool_action.setCheckable(True)
-                tool_action.setStatusTip(tool.synopsis)
-                tool_action.triggered.connect(lambda arg, ses=session, run=run, tool_name=tool_name:
-                    run(ses, "toolshed show %s" % quote_if_necessary(tool_name)))
+                    tool_action.setChecked(tool_name in active_tool_names)
+                    tool_action.triggered.connect(
+                        lambda arg, ses=session, run=run, tool_name=tool_name:
+                        run(ses, "toolshed %s %s" % (("show" if arg else "hide"),
+                        quote_if_necessary(tool_name))))
+                    self._checkbutton_tools[tool_name] = tool_action
+                else:
+                    tool_action.triggered.connect(
+                        lambda arg, ses=session, run=run, tool_name=tool_name:
+                        run(ses, "toolshed show %s" % quote_if_necessary(tool_name)))
                 cat_menu.addAction(tool_action)
         mb = self.menuBar()
         old_action = self.tools_menu.menuAction()
         mb.insertMenu(old_action, tools_menu)
         mb.removeAction(old_action)
         self.tools_menu = tools_menu
+
+    def _set_tool_checkbuttons(self, session):
+        for tool in session.tools.list():
+            if tool.display_name in self._checkbutton_tools:
+                self._checkbutton_tools[tool.display_name].setChecked(True)
 
     def add_custom_menu_entry(self, menu_name, entry_name, callback):
         '''

@@ -146,6 +146,8 @@ class ToolInstance(State):
     def displayed(self):
         if hasattr(self, 'tool_window'):
             return self.tool_window.shown
+        raise NotImplementedError(
+            "%s tool has not implemented 'displayed' method" % self.display_name)
         
     def display(self, b):
         """Show or hide this tool instance in the user interface.
