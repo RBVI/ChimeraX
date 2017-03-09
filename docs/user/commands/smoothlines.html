@@ -26,10 +26,11 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="../index.html#commands">Command</a>: smoothlines</h3>
 
 <h3><a href="usageconventions.html">Usage</a>:
-<br><b>smoothlines</b> &nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;
+<br><b>smoothlines</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
 [&nbsp;<b>stepFactor</b>&nbsp;&nbsp;<i>fraction</i>&nbsp;]
 [&nbsp;<b>iterations</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
-[&nbsp;<b>replace</b>&nbsp;]
+[&nbsp;<b>replace</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 </h3>
 <p>
 The <b>smoothlines</b> command smooths jagged paths within line-segment models 
@@ -38,14 +39,14 @@ each vertex a &nbsp;<i>fraction</i> (default <b>0.1</b>) of the distance
 toward the average position of itself and its connected neighbors.
 A single pass through all of the vertices is one iteration, and the default
 number of <b>iterations</b> <i>N</i> is <b>10</b>.
-The <b>replace</b> keyword indicates overwriting the original model
-instead of creating a new model.
+Overwriting the original model instead of creating a new model is indicated
+with <b>replace true</b> (default <b>false</b>)
 </p><p>
 See also: 
 <a href="volume.html"><b>volume</b></a>,
-<a href="vop.html"><b>vop</b></a>
+<a href="volume.html#vop"><b>volume</b> operations</a>
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-November 2016</address>
+January 2017</address>
 </body></html>

@@ -77,7 +77,7 @@ _RUNNING_ROW = (
 class ToolshedUI(ToolInstance):
 
     SESSION_ENDURING = True
-    TOOLSHED_URL = "https://chi2ti-preview.rbvi.ucsf.edu"
+    TOOLSHED_URL = "https://cxtoolshed.rbvi.ucsf.edu"
     # TOOLSHED_URL = "https://www.rbvi.ucsf.edu"
 
     def __init__(self, session, tool_name):
@@ -111,11 +111,16 @@ class ToolshedUI(ToolInstance):
 
     def _download(self, item):
         # "item" is an instance of QWebEngineDownloadItem
+        # print("ToolshedUI._download", item)
         import os.path, os
         urlFile = item.url().fileName()
         base, extension = os.path.splitext(urlFile)
         item.finished.connect(self._download_finished)
-        if item.mimeType() == "application/zip" and extension == ".whl":
+        # print("ToolshedUI._download connect", item.mimeType(), extension)
+        # Normally, we would look at the download type or MIME type,
+        # but since neither one is set by the server, we look at the
+        # download extension instead
+        if extension == ".whl":
             # Since the file name encodes the package name and version
             # number, we make sure that we are using the right name
             # instead of whatever QWebEngine may want to use.
@@ -126,17 +131,22 @@ class ToolshedUI(ToolInstance):
                 urlFile = parts[0] + extension
             filePath = os.path.join(os.path.dirname(item.path()), urlFile)
             item.setPath(filePath)
+            # print("ToolshedUI._download clean")
             try:
                 # Guarantee that file name is available
                 os.remove(filePath)
             except OSError:
                 pass
             self._pending_downloads.append(item)
+            self.session.logger.info("Downloading bundle %s" % urlFile)
+            # print("ToolshedUI._download accept")
             item.accept()
         else:
+            # print("ToolshedUI._download cancel")
             item.cancel()
 
     def _download_finished(self, *args, **kw):
+        # print("ToolshedUI._download_finished", args, kw)
         import pip
         finished = []
         pending = []
@@ -147,13 +157,28 @@ class ToolshedUI(ToolInstance):
                 finished.append(item)
         self._pending_downloads = pending
         install_cmd = ["install", "--quiet"]
-        filenames = []
+        need_reload = False
         for item in finished:
             item.finished.disconnect()
             filename = item.path()
-            filenames.append(filename)
-        install_cmd.extend(filenames)
-        if pip.main(install_cmd) == 0:
+            from chimerax.core.ui.ask import ask
+            how = ask(self.session,
+                      "Install %s for:" % filename,
+                      ["all users", "just me", "cancel"],
+                      title="Toolshed")
+            if how == "cancel":
+                self.session.logger.info("Bundle installation canceled")
+                continue
+            elif how == "just me":
+                target = ["--user"]
+            else:
+                target = []
+            cmd = install_cmd + target + [filename]
+            self.session.logger.info("Installing bundle %s" % filename)
+            if pip.main(cmd) == 0:
+                self.session.logger.info("Bundle %s installed" % filename)
+                need_reload = True
+        if need_reload:
             self.session.toolshed.reload(self.session.logger,
                                          session=self.session,
                                          rebuild_cache=True,

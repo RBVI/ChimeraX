@@ -1,0 +1,146 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: measure</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: measure</h3>
+
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>measure</b> &nbsp;<i>property</i> &nbsp;<i>arguments</i></h3>
+<p>
+The <b>measure</b> command performs various calculations
+and sends results to the <a href="../tools/log.html"><b>Log</b></a>.
+Possible values of <i>property</i>:
+</p>
+<ul>
+<li><a href="#buriedArea"><b>buriedArea</b></a> 
+- calculate <a href="surface.html#surfdefs">solvent-accessible surface</a>
+area buried between two sets of atoms
+<li><a href="#sasa"><b>sasa</b></a>
+- calculate <a href="surface.html#surfdefs">solvent-accessible surface</a>
+area
+</ul>
+See also: <a href="contacts.html"><b>contacts</b></a>,
+<a href="surface.html"><b>surface</b></a>,
+<a href="surface.html#zone"><b>surface zone</b></a>,
+<a href="../radii.html">VDW radii</a>
+<p>
+Each property keyword has different arguments, described below.  
+Models are specified by model number preceded by #.
+Keywords and Boolean (truth) values can be truncated, with
+synonyms for true: True, 1, and synonyms for false: False, 0.
+A vertical bar &ldquo;|&rdquo; designates mutually exclusive options,
+and default settings are indicated with <b>bold</b>.
+</p>
+<a href="#top" class="nounder">&bull;</a>
+<a name="buriedArea"><b>measure buriedArea</b></a>
+&nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>&nbsp; <b>withAtoms2</b>
+&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>&nbsp;
+[&nbsp;<b>probeRadius</b>&nbsp;&nbsp;<i>rad</i>&nbsp;]
+[&nbsp;<b>listResidues</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>cutoffArea</b>&nbsp;&nbsp;<i>area</i>&nbsp;] 
+[&nbsp;<b>select</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+</h3>
+<p>
+Calculate the <a href="surface.html#surfdefs">solvent-accessible surface</a>
+(SAS) area buried between two sets of atoms, defined as:
+<blockquote>
+&frac12;
+(<i>sasa1</i>&nbsp;+&nbsp;<i>sasa2</i>&nbsp;&ndash;&nbsp;<i>sasa12</i>)
+</blockquote>
+where &nbsp;<i>sasa1</i> is the area of the SAS
+enclosing the atoms in &nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>,
+&nbsp;<i>sasa2</i> is the area of the SAS 
+enclosing the atoms in &nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>,
+and &nbsp;<i>sasa12</i> is the area of the SAS enclosing both sets of atoms
+together. 
+The sets of atoms should be specified with care; they should not overlap,
+and solvent, ions, and ligand residues are not excluded automatically.
+Unspecified atoms are ignored.
+The default <b>probeRadius</b> <i>rad</i> for calculating each SAS
+is <b>1.4</b> &Aring;, often used to approximate a water molecule.
+Residues with at least <b>cutoffArea</b> <i>area</i> buried
+(default <b>1.0</b> &Aring;<sup>2</sup>) can be:
+</p>
+<ul>
+<li>listed along with their buried areas
+in the <a href="../tools/log.html"><b>Log</b></a> 
+using the <b>listResidues</b> option
+<li><a href="../selection.html">selected</a> with the <b>select</b> option
+<li>colored using <b>color</b> <a href="colornames.html"><i>color-spec</i></a>
+</ul>
+<p>
+The buried area of a residue is its SAS area in the individual set minus
+that in the combined set.
+Examples:
+</p>
+<blockquote>
+<b>measure buriedarea /c & protein with /d & protein</b>
+<br>
+&ndash; calculate buried surface area between the
+<a href="atomspec.html#builtin">protein</a> parts only of chains C and D
+<br><br>
+<b>measure buried ligand with protein list T sel T</b>
+<br>
+&ndash; select and list residues with &ge; 1.0 &Aring;<sup>2</sup> area
+buried between <a href="atomspec.html#builtin">ligand</a> and
+<a href="atomspec.html#builtin">protein</a>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="sasa"><b>measure sasa</b></a>
+&nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>&nbsp;
+[&nbsp;<b>probeRadius</b>&nbsp;&nbsp;<i>rad</i>&nbsp;]
+[&nbsp;<b>sum</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>&nbsp;]
+</h3>
+<p>
+Calculate a <a href="surface.html#surfdefs">solvent-accessible surface</a>
+(SAS) enclosing the atoms in &nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>
+and report the total surface area
+in the <a href="../tools/log.html"><b>Log</b></a>.
+In addition, the area contribution from some subset of the atoms
+(given as &nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>)
+can be obtained with the <b>sum</b> option.
+The surface is not displayed. The atoms should be specified with care;
+solvent, ions, and ligand residues are not excluded automatically.
+Unspecified atoms are ignored, as are atoms in 
+&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a> 
+that are not also in &nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>.
+The default <b>probeRadius</b> <i>rad</i> for calculating the SAS
+is <b>1.4</b> &Aring;, often used to approximate a water molecule.
+Example:
+</p>
+<blockquote>
+<b>measure sasa #1/a & protein sum :phe,tyr,trp</b>
+<br>
+&ndash; calculate the SAS of the
+<a href="atomspec.html#builtin">protein</a> in model #1 chain A
+and report both the total area and the contribution from
+phenylalanine, tyrosine, and tryptophan residues
+</blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+January 2017</address>
+</body></html>

@@ -47,7 +47,7 @@ def hide(session, objects=None, what=None, target=None):
         res.ribbon_displays = False
     if 'surfaces' in what_to_hide:
         from ..atomic import molsurf
-        molsurf.hide_surfaces(objects.atoms, session.models)
+        molsurf.hide_surface_atom_patches(objects.atoms, session.models)
     if 'models' in what_to_hide:
         hide_models(objects)
 
@@ -76,6 +76,6 @@ def register_command(session):
         keyword=[('target', TargetArg)],
         url='help:user/commands/show.html#hide',
         synopsis='hide specified objects')
-    register('hide', desc, hide)
-    create_alias('~show', 'hide $*')
-    create_alias('~display', 'hide $*')
+    register('hide', desc, hide, logger=session.logger)
+    create_alias('~show', 'hide $*', logger=session.logger)
+    create_alias('~display', 'hide $*', logger=session.logger)

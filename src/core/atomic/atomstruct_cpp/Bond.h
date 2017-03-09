@@ -21,14 +21,15 @@
 
 #include "Connection.h"
 #include "imex.h"
+#include "session.h"
 
 namespace atomstruct {
 
 class Atom;
 class ChangeTracker;
-class Structure;
 class Residue;
 class Ring;
+class Structure;
 
 class ATOMSTRUCT_IMEX Bond: public UniqueConnection {
     friend class Structure;
@@ -46,8 +47,8 @@ private:
     mutable Rings  _rings;
 
     static int  session_base_version(int /*version*/) { return 1; }
-    static int  SESSION_NUM_INTS(int /*version*/=0) { return 0; }
-    static int  SESSION_NUM_FLOATS(int /*version*/=0) { return 0; }
+    static int  SESSION_NUM_INTS(int /*version*/=CURRENT_SESSION_VERSION) { return 0; }
+    static int  SESSION_NUM_FLOATS(int /*version*/=CURRENT_SESSION_VERSION) { return 0; }
 public:
     virtual ~Bond() {}
     virtual bool shown() const;
@@ -66,11 +67,11 @@ public:
     // sqlength() inherited from UniqueConnection
 
     // session related
-    static int  session_num_floats(int version=0) {
+    static int  session_num_floats(int version=CURRENT_SESSION_VERSION) {
         return SESSION_NUM_FLOATS(version)
             + UniqueConnection::session_num_floats(session_base_version(version));
     }
-    static int  session_num_ints(int version=0) {
+    static int  session_num_ints(int version=CURRENT_SESSION_VERSION) {
         return SESSION_NUM_INTS(version)
             + UniqueConnection::session_num_ints(session_base_version(version));
     }

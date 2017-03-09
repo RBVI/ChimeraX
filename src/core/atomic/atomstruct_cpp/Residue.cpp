@@ -46,10 +46,10 @@ const std::set<ResName> Residue::std_solvent_names = { "HOH", "WAT", "DOD" };
 
 Residue::Residue(Structure *as, const ResName& name, const ChainID& chain, int pos, char insert):
     _alt_loc(' '), _chain(nullptr), _chain_id(chain), _insertion_code(insert),
-    _is_helix(false), _is_het(false), _is_strand(false), _mmcif_chain_id(chain),
-    _name(name), _polymer_type(PT_NONE), _position(pos), _ribbon_adjust(-1.0),
-    _ribbon_display(false), _ribbon_hide_backbone(true), _ribbon_rgba({160,160,0,255}),
-    _ribbon_style(RIBBON_RIBBON), _ss_id(-1), _structure(as)
+    _is_het(false), _mmcif_chain_id(chain), _name(name), _polymer_type(PT_NONE),
+    _position(pos), _ribbon_adjust(-1.0), _ribbon_display(false),
+    _ribbon_hide_backbone(true), _ribbon_rgba({160,160,0,255}),
+    _ss_id(-1), _ss_type(SS_COIL), _structure(as)
 {
     _structure->change_tracker()->add_created(this);
 }
@@ -167,16 +167,31 @@ Residue::session_restore(int version, int** ints, float** floats)
     auto& int_ptr = *ints;
     auto& float_ptr = *floats;
 
-    _alt_loc = int_ptr[0];
-    _is_helix = int_ptr[1];
-    _is_het = int_ptr[2];
-    _is_strand = int_ptr[3];
-    _polymer_type = (PolymerType)int_ptr[4];
-    _ribbon_display = int_ptr[5];
-    _ribbon_hide_backbone = int_ptr[6];
-    _ribbon_style = (Style)int_ptr[7];
-    _ss_id = int_ptr[8];
-    auto num_atoms = int_ptr[9];
+    int num_atoms;
+    if (version < 6) {
+        _alt_loc = int_ptr[0];
+        if (int_ptr[1]) // is_helix
+            _ss_type = SS_HELIX;
+        _is_het = int_ptr[2];
+        if (int_ptr[3]) // is_strand
+            _ss_type = SS_STRAND;
+        _polymer_type = (PolymerType)int_ptr[4];
+        _ribbon_display = int_ptr[5];
+        _ribbon_hide_backbone = int_ptr[6];
+        _ribbon_selected = int_ptr[7];
+        _ss_id = int_ptr[8];
+        num_atoms = int_ptr[9];
+    } else {
+        _alt_loc = int_ptr[0];
+        _is_het = int_ptr[1];
+        _polymer_type = (PolymerType)int_ptr[2];
+        _ribbon_display = int_ptr[3];
+        _ribbon_hide_backbone = int_ptr[4];
+        _ribbon_selected = int_ptr[5];
+        _ss_id = int_ptr[6];
+        _ss_type = (SSType)int_ptr[7];
+        num_atoms = int_ptr[8];
+    }
     int_ptr += SESSION_NUM_INTS(version);
 
     _ribbon_adjust = float_ptr[0];
@@ -197,15 +212,14 @@ Residue::session_save(int** ints, float** floats) const
     auto& float_ptr = *floats;
 
     int_ptr[0] = (int)_alt_loc;
-    int_ptr[1] = (int)_is_helix;
-    int_ptr[2] = (int)_is_het;
-    int_ptr[3] = (int)_is_strand;
-    int_ptr[4] = (int)_polymer_type;
-    int_ptr[5] = (int)_ribbon_display;
-    int_ptr[6] = (int)_ribbon_hide_backbone;
-    int_ptr[7] = (int)_ribbon_style;
-    int_ptr[8] = (int)_ss_id;
-    int_ptr[9] = atoms().size();
+    int_ptr[1] = (int)_is_het;
+    int_ptr[2] = (int)_polymer_type;
+    int_ptr[3] = (int)_ribbon_display;
+    int_ptr[4] = (int)_ribbon_hide_backbone;
+    int_ptr[5] = (int) _ribbon_selected;
+    int_ptr[6] = (int)_ss_id;
+    int_ptr[7] = (int)_ss_type;
+    int_ptr[8] = atoms().size();
     int_ptr += SESSION_NUM_INTS();
 
     float_ptr[0] = _ribbon_adjust;
@@ -335,6 +349,16 @@ Residue::template_assign(void (Atom::*assign_func)(const char*),
         }
     }
     return assigned;
+}
+
+void
+Residue::set_ribbon_selected(bool s)
+{
+    if (s == _ribbon_selected)
+        return;
+    _structure->set_gc_select();
+    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_SELECTED);
+    _ribbon_selected = s;
 }
 
 }  // namespace atomstruct

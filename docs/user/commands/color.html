@@ -35,28 +35,28 @@ class="clRight" title="User Guide Index"/></a>
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 &nbsp;<b>sequential</b>
 &nbsp;<a href="#level"><i>level</i></a>&nbsp;
-[&nbsp;palette&nbsp;&nbsp;<a href="#palette"><i>palette</i></a>&nbsp;]
+[&nbsp;<a href="#palette">palette</a>&nbsp;&nbsp;<i>palette</i>&nbsp;]
 &nbsp;<a href="#general-options"><i>general-options</i></a>
 <br>&ndash; or &ndash;<br>
 <b>rainbow</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 [&nbsp;<a href="#level"><i>level</i></a>&nbsp;]
-[&nbsp;palette&nbsp;&nbsp;<a href="#palette"><i>palette</i></a>&nbsp;]
+[&nbsp;<a href="#palette">palette</a>&nbsp;&nbsp;<i>palette</i>&nbsp;]
 &nbsp;<a href="#general-options"><i>general-options</i></a>
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>color</b>
 &nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
-&nbsp;map&nbsp;&nbsp;<a href="atomspec.html"><i>map-model</i></a>&nbsp;
-[&nbsp;<a href="#offset"><b>offset</b>&nbsp;&nbsp;<i>d</i></a>&nbsp;]
+map&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>map-model</i></a>&nbsp;
+[&nbsp;<a href="#offset"><b>offset</b></a>&nbsp;&nbsp;<i>d</i>&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
 &nbsp;<a href="#general-options"><i>general-options</i></a>
 </h3>
 <p>
 The <b>color</b> command colors atomic models, including
 cartoon and molecular surface representations. 
-Simple coloring also applies to volume model (map) isosurfaces
-and semitransparent solid displays, and coloring by map value applies
-to both molecular and nonmolecular surfaces.
+Simple coloring also applies to volume
+model (map) isosurfaces and semitransparent solid displays, 
+and coloring by map value applies to both molecular and nonmolecular surfaces.
 The absence of an atom or model specifier implies &ldquo;all&rdquo;
 applicable items.
 Bonds and <a href="../pseudobonds.html">pseudobonds</a>
@@ -94,6 +94,8 @@ hexadecimal color code, or component values
 atomic representations and per-atom patches of molecular surfaces
 <li><a name="byhet"><b>byhet</b> or <b>byhetero</b></a>
 - same as <b>byelement</b>, except leaving carbon atoms unchanged
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/colorbyelement.png"></a>
 <li><b>fromatoms</b>
 - color other <a href="#target">targets</a>
 (molecular surface patches, <i>etc.</i>) to match the corresponding atoms
@@ -101,18 +103,22 @@ atomic representations and per-atom patches of molecular surfaces
 - a stereotyped scheme for coloring by chain ID, also used for the
 <a href="colortables.html#autocolors">initial colors</a> of per-chain
 <a href="surface.html">molecular surfaces</a>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/colorbychain.png"></a>
 <li><a name="bymodel"><b>bymodel</b></a>
 - the <a href="colortables.html#autocolors">initial colors</a> of atomic models
-<li><a name="byseq"><b>bysequence</b> or <b>byseq</b></a>
-- random colors per unique chain or molecular entity;
-biopolymer chain sequences are used to initialize the random number
+<li><a name="bypolymer"><b>bypolymer</b></a>
+- a random color per unique biopolymer chain (macromolecular entity);
+the chain sequence is used to initialize the random number
 generator for choosing red, green, and blue color components,
-so the same sequence always gets the same color
+so the same sequence will always give the same color
 <!-- 
 using sequence 1-letter codes, rgb values chosen in range 128-255, opacity 255
 -->
 <li><a name="random"><b>random</b></a>
-- random color per atom
+- random color per atom and residue
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/colorrandom.png"></a>
 </ul>
 <a name="level"></a>
 The <b>sequential</b> coloring method 
@@ -121,12 +127,13 @@ applies a <a href="#palette-options">series of colors</a>
 at the specified <i>level</i>:
 <ul>
 <li><b>residues</b> - a different color for each residue in a biopolymer chain
-(always applies to entire chains); non-biopolymer residues 
+(always applies to entire chains); other residues
 such as <a href="atomspec.html#builtin"><b>ligand</b></a> are not affected
+<!-- 4hvp is example where ligand is also protein, but is not rainbowed -->
 <li><b>chains</b> - a different color for each biopolymer chain in an 
 atomic model; non-biopolymer residues are not affected
-<li><b>sequences</b> - a different color for each unique biopolymer chain 
-(molecular entity) in an atomic model, based on sequence; 
+<li><b>polymers</b> - a different color for each unique biopolymer chain 
+(macromolecular entity) in an atomic model, based on sequence; 
 non-biopolymer residues are not affected
 <li><b>molmodels</b> - a different color for each atomic model
 </ul>
@@ -219,7 +226,7 @@ or <b>target r</b>
 </ul>
 </blockquote>
 <blockquote>
-<a name="halfbond"><b>halfbond</b></a>&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<a name="halfbond"><b>halfbond</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
 By default, bonds are shown in <b><i>halfbond mode</i></b>,
 with color and transparency settings from the flanking atoms.
@@ -370,7 +377,12 @@ Example <a href="#top"><b>color</b></a> commands:
 <b>color <a href="atomspec.html#builtin">pbonds</a> &nbsp;yellow
 &nbsp;targ p</b>
 </blockquote>
-- color all pseudobonds yellow, but not their flanking atoms
+- color all <a href="../pseudobonds">pseudobonds</a>
+yellow, but not their flanking atoms
+<blockquote>
+<b>color C &nbsp;bymodel &nbsp;targ a</b>
+</blockquote>
+- restore original model coloring to all carbon atoms
 <blockquote>
 <b>color seq res</b>
 <br>&ndash; or &ndash;<br>
@@ -390,14 +402,15 @@ Example <a href="#top"><b>color</b></a> commands:
 </blockquote>
 - color the chains in model 3 from a medium cyan through white to dark maroon
 <blockquote>
-<b>color seq chain &nbsp;targ c
+<b>color seq polymers &nbsp;targ c
 &nbsp;palette cornflowerblue:red:gold</b>
 <br>&ndash; or &ndash;<br>
-<b>rainbow chain &nbsp;targ c
+<b>rainbow polymers &nbsp;targ c
 &nbsp;palette cornflowerblue:red:gold</b>
 </blockquote>
-- color the chains in each atomic model, cartoons only,
+- color the unique biopolymers in each atomic model, cartoons only,
 along the range cornflower blue &rarr; red &rarr; gold
+(chains that are the same biopolymer will be the same color) 
 <!--
 <blockquote>
 <b>color /A &nbsp;attribute bfactor &nbsp;target ac &nbsp;residueVal max</b>
@@ -428,18 +441,18 @@ surface-only), create new atom attribute named <b>esp</b>
 <h3>Defining and Listing Colors</h3>
 
 <h3><a href="usageconventions.html">Usage</a>:
-<BR><b>color name</b> &nbsp;<i>cname</i>
+<br><b>color name</b> &nbsp;<i>cname</i>
 &nbsp;<a href="colornames.html"><i>color-spec</i></a>
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
-<BR><b>color delete</b>
+<br><b>color delete</b>
 (&nbsp;<i>cname</i>&nbsp;|&nbsp;all&nbsp;)
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
-<BR><b>color list</b> [&nbsp;all&nbsp;]
+<br><b>color list</b> [&nbsp;all&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
-<BR><b>color show</b> &nbsp;<i>cname</i>
+<br><b>color show</b> &nbsp;<i>cname</i>
 </h3>
 <p>
 The command <b>color name</b> assigns <i>cname</i> as the name of the
@@ -473,5 +486,5 @@ named <i>cname</i>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2016</address>
+March 2017</address>
 </body></html>

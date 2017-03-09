@@ -126,7 +126,7 @@ public:
     bool  visible() const { return _hide ? false : _display; }
 };
 
-class UniqueConnection: public Connection {
+class ATOMSTRUCT_IMEX UniqueConnection: public Connection {
 protected:
     virtual const char*  err_msg_exists() const
         { return "Connection already exists between atoms"; }

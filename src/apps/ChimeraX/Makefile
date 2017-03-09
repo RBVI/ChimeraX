@@ -78,6 +78,7 @@ run:
 run-nogui:
 	$(PYTHON_EXE) $(PY_MAIN) --nogui
 
+# 64-bit Linux dies in exception handling if we don't link with the C++ compiler
 $(PROG): $(OBJS)
 	$(PROG_LINK)
 
@@ -130,7 +131,13 @@ ChimeraX-icon16.png:
 YEAR = $(shell $(PYTHON_EXE) geticoninfo.py -y)
 VER = $(shell $(PYTHON_EXE) geticoninfo.py -v)
 PRODVER = $(shell $(PYTHON_EXE) geticoninfo.py -p)
-FLAGS = $(shell git show --summary > /dev/null && echo VS_FF_PRERELEASE || echo 0)
+ifeq (,$(wildcard $(TOP)/last-commit))
+FLAGS = VS_FF_PRERELEASE
+else ifeq (master,$(shell awk '$$1 == "branch:" { print $$2; }' $(TOP)/last-commit))
+FLAGS = 0
+else
+FLAGS = VS_FF_PRERELEASE
+endif
 
 $(APP_NAME).ico: $(APP_NAME)-icon512.png
 	convert $(APP_NAME)-icon512.png -resize 256x256 \

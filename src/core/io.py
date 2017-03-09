@@ -213,7 +213,7 @@ def format_from_name(name):
         return None
 
 
-def deduce_format(filename, has_format=None, open=True, save=False):
+def deduce_format(filename, has_format=None, open=True, save=False, no_raise=False):
     """Figure out named format associated with filename.
     If open is True then the format must have an open method.
     If save is True then the format must have a save method.
@@ -246,6 +246,8 @@ def deduce_format(filename, has_format=None, open=True, save=False):
                 fmt = f
                 break
         if fmt is None:
+            if no_raise:
+                return None, filename, compression
             from .errors import UserError
             raise UserError("Unrecognized file suffix '%s'" % ext)
     return fmt, filename, compression
@@ -361,7 +363,7 @@ def open_multiple_data(session, filespecs, format=None, name=None, **kw):
     for fmt, paths in batch.items():
         name = os.path.basename(paths[0]) if name is None else name
         open_func = fmt.open_func
-        models, status = open_func(session, paths, name)
+        models, status = open_func(session, paths, name, **kw)
         mlist.extend(models)
         status_lines.append(status)
     for fspec in unbatched:

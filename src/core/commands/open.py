@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def open(session, filename, format=None, name=None, from_database=None, ignore_cache=False,
-         smart_initial_display = True, trajectory = False, **kw):
+         auto_style = True, coordset = False, vseries = None, **kw):
     '''Open a file.
 
     Parameters
@@ -33,11 +33,15 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
     ignore_cache : bool
         Whether to fetch files from cache.  Fetched files are always written
         to cache.
-    smart_initial_display : bool
+    auto_style : bool
         Whether to display molecules with rich styles and colors.
-    trajectory : bool
+    coordset : bool
         Whether to read a PDB format multimodel file as coordinate sets (true)
         or as multiple models (false, default).
+    vseries : bool or None
+        Whether to read a maps as a series, or as separate maps. The default None
+        means to use default rules: 3d TIFF images are series and Chimera map files
+        containing 5 or more maps of equal size.
     '''
 
     if ':' in filename:
@@ -57,8 +61,9 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
             if format is None:
                 format = 'mmcif'
 
-    kw.update({'smart_initial_display': smart_initial_display,
-          'trajectory': trajectory})
+    kw.update({'auto_style': auto_style,
+               'coordset': coordset,
+               'vseries': vseries})
 
     from ..filehistory import remember_file
     if from_database is not None:
@@ -80,14 +85,17 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
             session.models.add(models)
         remember_file(session, filename, format, models, database=from_database)
         session.logger.status(status, log=True)
-        if trajectory:
-            report_trajectories(models, session.logger)
+        if coordset:
+            report_coordsets(models, session.logger)
         return models
 
     if format is not None:
         fmt = format_from_name(format)
         if fmt:
             format = fmt.name
+        else:
+            from ..errors import UserError
+            raise UserError('Unknown format "%s", or no support for opening this format.' % format)
 
     from os.path import exists
     if exists(filename):
@@ -105,15 +113,15 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
         from ..errors import UserError
         raise UserError(e)
 
-    if trajectory:
-        report_trajectories(models, session.logger)
+    if coordset:
+        report_coordsets(models, session.logger)
     
     # Remember in file history
     remember_file(session, filename, format, models or 'all models')
 
     return models
 
-def report_trajectories(models, log):
+def report_coordsets(models, log):
     for m in models:
         if hasattr(m, 'num_coord_sets'):
             log.info('%s has %d coordinate sets' % (m.name, m.num_coord_sets))
@@ -136,8 +144,8 @@ def open_formats(session):
         session.logger.info('File format, Short name(s), Suffixes:')
     from .. import io
     from . import commas
-    formats = list(io.formats())
-    formats.sort(key = lambda f: f.name)
+    formats = list(f for f in io.formats() if f.open_func is not None)
+    formats.sort(key = lambda f: f.name.lower())
     for f in formats:
         if session.ui.is_gui:
             lines.append('<tr><td>%s<td>%s<td>%s' % (f.name,
@@ -157,6 +165,8 @@ def open_formats(session):
     databases = list(fetch_databases().values())
     databases.sort(key=lambda k: k.database_name)
     for db in databases:
+        if db.default_format is None:
+            continue
         formats = list(db.fetch_function.keys())
         formats.sort()
         formats.remove(db.default_format)
@@ -177,7 +187,7 @@ def open_formats(session):
 
 
 def register_command(session):
-    from . import CmdDesc, register, DynamicEnum, StringArg, BoolArg, OpenFileNameArg, NoArg
+    from . import CmdDesc, register, DynamicEnum, StringArg, BoolArg, OpenFileNameArg
 
     def formats():
         from .. import io
@@ -193,12 +203,13 @@ def register_command(session):
             ('format', DynamicEnum(formats)),
             ('name', StringArg),
             ('from_database', DynamicEnum(db_formats)),
-            ('ignore_cache', NoArg),
-            ('smart_initial_display', BoolArg),
-            ('trajectory', NoArg),
+            ('ignore_cache', BoolArg),
+            ('auto_style', BoolArg),
+            ('coordset', BoolArg),
+            ('vseries', BoolArg),
             # ('id', ModelIdArg),
         ],
         synopsis='read and display data')
-    register('open', desc, open)
+    register('open', desc, open, logger=session.logger)
     of_desc = CmdDesc(synopsis='report formats that can be opened')
-    register('open formats', of_desc, open_formats)
+    register('open formats', of_desc, open_formats, logger=session.logger)

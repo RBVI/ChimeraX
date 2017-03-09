@@ -71,8 +71,10 @@ src="triangled.png" width=10 height=10/>&nbsp;<b>General</b></li>
 <li><a href="window.html">ChimeraX Window</a></li>
 <li>Data Formats: see <a href="commands/open.html"><b>open</b></a>
 and <a href="commands/save.html"><b>save</b></a>
+<li>Manipulation: see <a href="commands/mousemode.html"><b>mousemode</b></a></li>
 <li><a href="images.html">Making Images</a></li>
 <li><a href="movies.html">Making Movies</a></li>
+<li><a href="vr.html">Virtual Reality</a></li>
 <li><a href="../credits.html">Citing ChimeraX</a></li>
 </ul>
 </div>
@@ -82,25 +84,19 @@ and <a href="commands/save.html"><b>save</b></a>
 src="triangled.png" width=10 height=10/>&nbsp;<b>Tools</b></li>
 <div id="tlist" class="expanded">
 <ul>
-<li><a href="tools/cli.html"><b>Command Line Interface</b></a>
-</li>
+<li><a href="tools/cli.html"><b>Command Line Interface</b></a></li>
 <li><a href="tools/densitymaps.html"><b>Density Map Toolbar</b></a>
-<img class="iconbar" src="density-icons.png">
-</li>
+<img class="iconbar" src="density-icons.png"></li>
 <li><a href="tools/graphics.html"><b>Graphics Toolbar</b></a>
-<img class="iconbar" src="graphics-icons.png">
-</li>
-<li><a href="tools/log.html"><b>Log</b></a>
-</li>
+<img class="iconbar" src="graphics-icons.png"></li>
+<li><a href="tools/log.html"><b>Log</b></a></li>
 <li><a href="tools/moldisplay.html"><b>Molecule Display Toolbar</b></a>
-<img class="iconbar" src="molecule-icons.png">
-</li>
+<img class="iconbar" src="molecule-icons.png"></li>
 <li><a href="tools/mousemodes.html"><b>Mouse Modes for Right Button</b></a>
-<img class="iconbar" src="mouse-icons.png">
-</li>
+<img class="iconbar" src="mouse-icons.png"></li>
 <li><a href="tools/sideview.html"><b>Side View</b></a>
-- intuitive zooming and clipping
-</li>
+- intuitive zooming and clipping</li>
+<li><a href="tools/volumeviewer.html"><b>Volume Viewer</b></a></li>
 </ul>
 </div>
 
@@ -109,20 +105,16 @@ src="triangled.png" width=10 height=10/>&nbsp;<b>Tools</b></li>
 src="triangled.png" width=10 height=10/>&nbsp;<b>Commands</b></li>
 <div id="clist" class="expanded">
 <ul>
-<li>command <a href="commands/usageconventions.html">usage conventions</a></li>
-<li>command-line <a href="commands/atomspec.html">target specification</a></li>
+<li><a href="commands/usageconventions.html">Usage Conventions</a></li>
   <ul>
-  <li><a href="commands/atomspec-diffsum.html">differences 
-  <i>vs.</i> Chimera</a></li>
+  <li><a href="commands/atomspec.html">Target Specification</a></li>
+  <li><a href="commands/colornames.html">Color Specification</a></li>
   </ul>
-<li>command-line <a href="commands/colornames.html">color specification</a></li>
 <li><a href="commands/2dlabels.html"><b>2dlabels</b></a>
 - static annotation with 2D text and 
 <a href="commands/symbols.html">symbols</a></li>
 <li><a href="commands/alias.html"><b>alias</b></a>
 - define a command alias (shortcut or composite action)</li>
-<li><a href="commands/buriedarea.html"><b>buriedarea</b></a>
-- calculate buried solvent-accessible surface area</li>
 <li><a href="commands/camera.html"><b>camera</b></a>
 - set mono or stereo viewing and related parameters</li>
 <li><a href="commands/cartoon.html"><b>cartoon</b> or <b>ribbon</b></a>
@@ -141,8 +133,12 @@ src="triangled.png" width=10 height=10/>&nbsp;<b>Commands</b></li>
 - draw chain-chain network diagram based on buried surface areas</li>
 <li><a href="commands/coordset.html"><b>coordset</b></a>
 - play through frames of a trajectory</li>
+<li><a href="commands/crossfade.html"><b>crossfade</b></a>
+- interpolate between image frames</li>
 <li><a href="commands/delete.html"><b>delete</b></a>
 - delete atoms</li>
+<li><a href="commands/device.html"><b>device</b>, <b>vr</b></a>
+- enable <a href="vr.html">virtual reality</a> or modes for other devices</li>
 <li><a href="commands/dssp.html"><b>dssp</b></a>
 - define secondary structure of proteins using atomic coordinates</li>
 <li><a href="commands/exit.html"><b>exit</b> or <b>quit</b></a>
@@ -152,8 +148,7 @@ src="triangled.png" width=10 height=10/>&nbsp;<b>Commands</b></li>
 <li><a href="commands/getcrd.html"><b>getcrd</b></a>
 - report atomic coordinates</li>
 <li><a href="commands/help.html"><b>help</b></a>
-- show command help, other web pages, or local HTML files 
-in the <a href="window.html#browser">ChimeraX browser</a></li>
+- show command help in the <a href="window.html#browser">ChimeraX browser</a></li>
 <li><a href="commands/info.html"><b>info</b></a>
 - report model information</li>
 <li><a href="commands/lighting.html"><b>lighting</b></a>
@@ -165,6 +160,8 @@ in the <a href="window.html#browser">ChimeraX browser</a></li>
 - superimpose proteins or nucleic acids, guided by sequence alignment</li>
 <li><a href="commands/material.html"><b>material</b></a>
 - report or adjust material properties for light reflection</li>
+<li><a href="commands/measure.html"><b>measure</b></a>
+- measure properties such as solvent-accessible surface area</li>
 <li><a href="commands/mlp.html"><b>mlp</b></a>
 - calculate molecular lipophilicity potential (MLP) for proteins,
 color surfaces</li>
@@ -177,13 +174,12 @@ color surfaces</li>
 <li><a href="commands/movie.html"><b>movie</b></a>
 - record image frames and assemble them into a movie file</li>
 <li><a href="commands/open.html"><b>open</b></a>
- - open <a href="commands/open.html#local">local file</a>
-or <a href="commands/open.html#fetch">fetch</a> from repository</li> 
+- read data from <a href="commands/open.html#local">local file</a>,
+<a href="commands/open.html#url">URL</a>, or 
+<a href="commands/open.html#fetch">database fetch</a></li> 
 <li><a href="commands/perframe.html"><b>perframe</b></a>
 - specify operations to execute at every (or every N<sup>th</sup>)
 display frame</li>
-<li><a href="commands/position.html"><b>position</b></a>
-- set location and orientation of camera, models by input matrices</li>
 <li><a href="commands/pwd.html"><b>pwd</b></a>
 - report the working directory</li>
 <li><a href="commands/rename.html"><b>rename</b></a>
@@ -192,8 +188,6 @@ display frame</li>
 - rotate continuously</li>
 <li><a href="commands/rungs.html"><b>rungs</b></a>
 - show a simple broken-ladder representation of nucleic acids</li>
-<li><a href="commands/sasa.html"><b>sasa</b></a>
-- calculate solvent-accessible surface area</li>
 <li><a href="commands/save.html"><b>save</b></a>
 - save image, map, session, or other data</li>
 <li><a href="commands/select.html"><b>select</b></a>
@@ -202,18 +196,16 @@ display frame</li>
 - set background color, silhouette parameters, subdivision level</li>
 <li><a href="commands/show.html"><b>show</b>, <b>hide</b></a>
 - show/hide atoms, bonds, cartoons, models</li>
-<li><a href="commands/size.html"><b>size</b></a>
-- adjust stick radii and atomic <a href="radii.html">VDW radii</a></li>
 <li><a href="commands/smoothlines.html"><b>smoothlines</b></a>
 - smooth paths in line models</li>
-<li><a href="commands/sop.html"><b>sop</b></a>
-- hide small surface blobs, only show surface near specified atoms</li>
+<li><a href="commands/split.html"><b>split</b></a>
+- partition an atomic model into submodels</li>
 <li><a href="commands/stop.html"><b>stop</b></a>
-- halt ongoing motions
+- halt ongoing motions</li>
 <li><a href="commands/struts.html"><b>struts</b></a>
 - add pseudobonds to a molecule to strengthen it for 3D printing 
 <li><a href="commands/style.html"><b>style</b></a>
-- set display style of atoms and bonds</li>
+- set display style and size of atoms and bonds</li>
 <li><a href="commands/surface.html"><b>surface</b></a>
 - create and show/hide molecular surfaces</li>
 <li><a href="commands/sym.html"><b>sym</b></a>
@@ -227,11 +219,13 @@ display frame</li>
 <li><a href="commands/version.html"><b>version</b></a>
 - report ChimeraX version</li>
 <li><a href="commands/view.html"><b>view</b></a>
-- adjust the view to specified items; save/restore named views</li>
+- focus the view on specified items, save/restore named views, 
+set camera and model positions with matrices</li>
 <li><a href="commands/volume.html"><b>volume</b></a>
-- volume data (density maps, <i>etc.</i>) display and output</li>
-<li><a href="commands/vop.html"><b>vop</b></a>
-- volume data processing</li>
+- display and processing of <a href="tools/volumeviewer.html">volume data</a> 
+(density maps, <i>etc.</i>)</li>
+<li><a href="commands/vseries.html"><b>vseries</b></a>
+- display, analyze, or process an ordered sequence of maps</li>
 <li><a href="commands/wait.html"><b>wait</b></a>
 - update the display and enforce ordered execution of commands in scripts</li>
 <li><a href="commands/windowsize.html"><b>windowsize</b></a>
@@ -256,19 +250,14 @@ to show a brief description in the <a href="tools/log.html"><b>Log</b></a>.
 <a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/findclash.html"
 target="_blank"><b>findclash</b></a></li>
 -->
-<li><b>vseries</b>
-- similar to Chimera
-<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/vseries.html"
-target="_blank"><b>vseries</b></a></li>
-<li><b>crossfade</b></li>
-<li><b>toolshed</b> or <b>ts</b>
+<li><b>toolshed</b>
 - start, show/hide, and otherwise manage ChimeraX Tools</li>
+<li><b>remotecontrol</b>
+- connect using REST or XML-RPC</li>
 <li><b>listinfo</b>
 - send info to other programs; similar to Chimera
 <a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/listen.html"
 target="_blank"><b>list</b></a></li>
-<li><b>oculus</b> - mode for Oculus Rift VR system</li>
-<li><b>vive</b> - mode for HTC Vive VR system</li>
 <li><b>pdbimages</b>
 - batch-render images of molecular assemblies defined in mmCIF files
 (see <a href="../pdbimages/index.html">examples</a>)</li>
@@ -279,7 +268,7 @@ target="_blank"><b>list</b></a></li>
 <hr>
 <p align="center">
 UCSF ChimeraX documentation is copyrighted &copy; by the
-Regents of the University of California, 2015-2016.
+Regents of the University of California, 2015-2017.
 All rights reserved.
 </p>
 </body></html> 

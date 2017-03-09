@@ -25,7 +25,7 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: lighting</h3>
 <h3><a href="usageconventions.html">Usage</a>:
-<BR><b>lighting</b>
+<br><b>lighting</b>
 [&nbsp;<a href="#preset"><i>preset</i></a>&nbsp;]
 &nbsp;<a href="#options"><i>options</i></a>
 </h3>
@@ -33,7 +33,6 @@ class="clRight" title="User Guide Index"/></a>
 The <b>lighting</b> command controls lighting parameters,
 through individual <a href="#options">options</a> and
 in convenient <a href="#preset">preset</a> combinations.
-Parameters that are not specified retain their current values. 
 Without arguments, <b>lighting</b> reports the current settings in the
 <a href="../tools/log.html"><b>Log</b></a>.
 Colors are reported as red, green, and blue components
@@ -72,6 +71,9 @@ ambient shadowing from 64 directions
 <img class="icon" border=1 src="../tools/shortcut-icons/softlight.png"></a>
 <li><b>gentle</b> - ambient lighting only,
 ambient shadowing from 64 directions tuned to emphasize larger indentations
+<br>(same as <b>soft</b> except with
+<a href="#msMapSize"><b>msMapSize</b></a> 128 instead of 1024 and
+<a href="#msDepthBias"><b>msDepthBias</b></a> 0.05 instead of 0.01)
 <li><b>flat</b> - ambient lighting only, no shadows, silhouettes on
 <a href="../tools/graphics.html" title="Graphics icons...">
 <img class="icon" border=1 src="../tools/shortcut-icons/flat.png"></a>
@@ -83,6 +85,10 @@ ambient shadowing from 64 directions tuned to emphasize larger indentations
 <img class="icon" border=1 src="../tools/shortcut-icons/silhouette.png"></a>
 </ul>
 <p>
+The detailed settings within a preset can be listed in the 
+<a href="../tools/log.html"><b>Log</b></a> by applying the preset
+and then using the <b>lighting</b> command without arguments.
+</p><p>
 Although there is a preset named <b>default</b>, different settings
 may be applied automatically. Lighting parameters are adjusted
 automatically based on the size of the first atomic model opened at a time.
@@ -95,11 +101,8 @@ automatically based on the size of the first atomic model opened at a time.
 </p>
 <h3>Options</h3>
 <p>
-Option keywords for <a href="#top"><b>lighting</b></a>
-can be truncated to unique strings.
-A vertical bar &ldquo;|&rdquo; designates mutually exclusive values, and
-default settings are indicated with <b>bold</b>.
-Synonyms for true: True, 1.  Synonyms for false: False, 0.
+Parameters that are not specified retain their current values. 
+Below, settings in the <b>default</b> preset are indicated with <b>bold</b>.
 </p>
 
 <blockquote>
@@ -151,7 +154,7 @@ Set ambient-light color (default <b>white</b>).
 </blockquote>
 
 <blockquote>
-<a name="depthcue"><b>depthCue</b></a> <b>true</b> | false
+<a name="depthcue"><b>depthCue</b></a> &nbsp;<b>true</b> | false
 <br>
 Whether to use depth-cueing, front-to-back shading of the scene.
 </blockquote>
@@ -175,7 +178,7 @@ See also: <a href="clip.html"><b>clip</b></a>
 </blockquote>
 
 <blockquote>
-<b>shadows</b> true | <b>false</b>
+<b>shadows</b> &nbsp;true | <b>false</b>
 <br>
 Whether the key light should cast shadows.
 </blockquote>
@@ -209,13 +212,13 @@ How many directions should be used to generate ambient shadows
 (default <b>0</b>, no ambient shadows; maximum 1024).
 </blockquote>
 <blockquote>
-<b>msMapSize</b> &nbsp;<i>M<sub>a</sub></i>
+<a name="msMapSize"><b>msMapSize</b></a> &nbsp;<i>M<sub>a</sub></i>
 <br>
 Set the size of the depth map
 for rendering ambient shadows (integer-valued, default <b>1024</b>).
 </blockquote>
 <blockquote>
-<b>msDepthBias</b> &nbsp;<i>b<sub>a</sub></i>
+<a name="msDepthBias"><b>msDepthBias</b></a> &nbsp;<i>b<sub>a</sub></i>
 <br>
 Set the bias distance for ambient shadows,
 used to avoid a surface shadowing itself due to rounding errors
@@ -225,7 +228,7 @@ because a smaller depth map is typically used.
 </blockquote>
 
 <blockquote>
-<a name="moveWithCamera"><b>moveWithCamera</b></a> <b>true</b> | false
+<a name="moveWithCamera"><b>moveWithCamera</b></a> &nbsp;<b>true</b> | false
 <br>
 Whether directional lighting should be pinned to the camera viewpoint
 (<a href="view.html#screencoords">screen coordinate system</a>, default) 
@@ -234,5 +237,5 @@ or to the <a href="view.html#scenecoords">scene coordinate system</a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2016</address>
+March 2017</address>
 </body></html>

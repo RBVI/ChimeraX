@@ -66,7 +66,7 @@ def standard_shortcuts(session):
 
         # Scene
         ('va', 'view', 'View all', gcat, noarg, smenu),
-        ('dv', 'view orient', 'Default orientation', gcat, noarg, smenu),
+        ('dv', 'view orient true', 'Default orientation', gcat, noarg, smenu),
 #        ('Sp', save_position, 'Save position, restore it with pp', gcat, sesarg, smenu),
 #        ('pp', restore_position, 'Restore previous position saved with Sp', gcat, sesarg, smenu, sep),
 
@@ -372,11 +372,11 @@ class Keyboard_Shortcuts:
         if sc is not None:
             sc.run(self.session)
 
-def register_selectors():
+def register_selectors(logger):
     from chimerax.core.commands import register_selector
-    register_selector("selAtoms", _sel_atoms_selector)
-    register_selector("selMaps", _sel_maps_selector)
-    register_selector("selModels", _sel_models_selector)
+    register_selector("selAtoms", _sel_atoms_selector, logger)
+    register_selector("selMaps", _sel_maps_selector, logger)
+    register_selector("selModels", _sel_models_selector, logger)
 
 # Selected atoms, or if none selected then all atoms.
 def _sel_atoms_selector(session, models, results):
@@ -1056,7 +1056,8 @@ def ks(session, shortcut = None):
     else:
         ks.try_shortcut(shortcut)
 
-def register_shortcut_command():
+def register_shortcut_command(logger):
     from chimerax.core.commands import CmdDesc, StringArg, register
-    desc = CmdDesc(optional = [('shortcut', StringArg)])
-    register('ks', desc, ks)
+    desc = CmdDesc(optional = [('shortcut', StringArg)],
+                   synopsis = 'Run keyboard a shortcut')
+    register('ks', desc, ks, logger=logger)

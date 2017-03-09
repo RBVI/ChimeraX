@@ -18,7 +18,7 @@
 #
 players = set()         # Active players.
 
-def register_vseries_command():
+def register_vseries_command(logger):
 
     from ...commands import CmdDesc, register, BoolArg, EnumOf, IntArg, StringArg, FloatArg, AtomsArg, ColorArg
     from ..mapargs import MapArg, MapStepArg, MapRegionArg, ValueTypeArg, IntRangeArg
@@ -27,8 +27,9 @@ def register_vseries_command():
 
     align_desc = CmdDesc(required = sarg,
                          keyword = [('enclose_volume', FloatArg),
-                                    ('fast_enclose_volume', FloatArg)])
-    register('vseries align', align_desc, vseries_align)
+                                    ('fast_enclose_volume', FloatArg)],
+                         synopsis = 'Align map to preceding map in series')
+    register('vseries align', align_desc, vseries_align, logger=logger)
 
     save_desc = CmdDesc(required = sarg + [('path', StringArg)],
                          keyword = [
@@ -45,15 +46,17 @@ def register_vseries_command():
                              ('on_grid', MapArg),
                              ('mask', MapArg),
                              ('final_value_type', ValueTypeArg),
-                             ('compress', BoolArg),])
-    register('vseries save', save_desc, vseries_save)
+                             ('compress', BoolArg),],
+                        synopsis = 'Process and save a map series')
+    register('vseries save', save_desc, vseries_save, logger=logger)
 
     measure_desc = CmdDesc(required = sarg,
                            keyword = [('output', StringArg),
                                       ('centroids', BoolArg),
                                       ('color', ColorArg),
-                                      ('radius', FloatArg),])
-    register('vseries measure', measure_desc, vseries_measure)
+                                      ('radius', FloatArg),],
+                           synopsis = 'Measure centroids for each map in series')
+    register('vseries measure', measure_desc, vseries_measure, logger=logger)
 
     play_desc = CmdDesc(required = sarg,
                         keyword = [('loop', BoolArg),
@@ -68,24 +71,27 @@ def register_vseries_command():
                                    ('cache_frames', IntArg),
                                    ('jump_to', IntArg),
                                    ('range', IntRangeArg),
-                                   ('start_time', IntArg),])
-    register('vseries play', play_desc, vseries_play)
+                                   ('start_time', IntArg),],
+                        synopsis = 'Draw each map in a series in order')
+    register('vseries play', play_desc, vseries_play, logger=logger)
 
-    stop_desc = CmdDesc(required = sarg)
-    register('vseries stop', stop_desc, vseries_stop)
+    stop_desc = CmdDesc(required = sarg,
+                        synopsis = 'Stop playing map series')
+    register('vseries stop', stop_desc, vseries_stop, logger=logger)
 
-    slider_desc = CmdDesc(required = sarg)
-    register('vseries slider', slider_desc, vseries_slider)
+    slider_desc = CmdDesc(required = sarg,
+                          synopsis = 'Display a slider to control which map in a series is displayed')
+    register('vseries slider', slider_desc, vseries_slider, logger=logger)
 
 # -----------------------------------------------------------------------------
 #
 def vseries_play(session, series, direction = 'forward', loop = False, max_frame_rate = None, pause_frames = 0,
-            jump_to = None, range = None, start = None, normalize = False, markers = None,
+            jump_to = None, range = None, start_time = None, normalize = False, markers = None,
             preceding_marker_frames = 0, following_marker_frames = 0,
             color_range = None, cache_frames = 1):
     '''Show a sequence of maps from a volume series.'''
     from . import play
-    p = play.Play_Series(series, session, range = range, start_time = start,
+    p = play.Play_Series(series, session, range = range, start_time = start_time,
                          play_direction = direction,
                          loop = loop,
                          max_frame_rate = max_frame_rate,
@@ -181,8 +187,8 @@ def vseries_save(session, series, path, subregion = None, step = None, value_typ
     path = os.path.expanduser(path)         # Tilde expansion
 
     maps = s.maps
-    if onGrid is None and align:
-        onGrid = maps[0]
+    if on_grid is None and align:
+        on_grid = maps[0]
 
     grid = None
     if not on_grid is None:
@@ -202,7 +208,7 @@ def vseries_save(session, series, path, subregion = None, step = None, value_typ
         cmap.write_grid_as_chimera_map(d, path, options)
 
     if grid:
-        grid.close()
+        grid.delete()
 
 # -----------------------------------------------------------------------------
 #
@@ -365,20 +371,21 @@ def release_stopped_players():
 #
 def vseries_slider(session, series):
     '''Display a graphical user interface slider to play through frames of a map series.'''
-    bundle_info = session.toolshed.find_bundle('map_series_gui')
+    bundle_info = session.toolshed.find_bundle('ChimeraX-MapSeriesGUI')
     if bundle_info:
-        from chimerax.map_series_gui.gui import MapSeries
+        from chimerax.map_series_gui.tool import MapSeries
         MapSeries(session, bundle_info, series = series).show()
 
 # -----------------------------------------------------------------------------
 #
-from ...commands import Annotation
-class SeriesArg(Annotation):
-    name = 'map series'
-    @staticmethod
-    def parse(text, session):
-        from ...commands import AtomSpecArg
-        value, used, rest = AtomSpecArg.parse(text, session)
+from ...commands import AtomSpecArg
+
+class SeriesArg(AtomSpecArg):
+    name = 'a map series specifier'
+
+    @classmethod
+    def parse(cls, text, session):
+        value, used, rest = super().parse(text, session)
         models = value.evaluate(session).models
         from .series import Map_Series
         ms = [m for m in models if isinstance(m, Map_Series)]

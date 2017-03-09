@@ -89,8 +89,8 @@ def stop_oculus(session):
 # -----------------------------------------------------------------------------
 # Register the oculus command for ChimeraX.
 #
-def register_oculus_command():
+def register_oculus_command(logger):
     from chimerax.core.commands import CmdDesc, BoolArg, FloatArg, register
     _oculus_desc = CmdDesc(required = [('enable', BoolArg)],
                            keyword = [('pan_speed', FloatArg)])
-    register('oculus', _oculus_desc, oculus)
+    register('oculus', _oculus_desc, oculus, logger=logger)

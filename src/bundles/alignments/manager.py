@@ -82,6 +82,8 @@ class AlignmentsManager(State):
                     viewer = False
         else:
             viewer = False
+        if auto_destroy is None and viewer:
+            auto_destroy = True
 
         from .alignment import Alignment
         i = 1
@@ -132,7 +134,7 @@ class AlignmentsManager(State):
 
     def reset_state(self, session):
         for alignment in self.alignments.values():
-            alignment._close()
+            alignment._destroy()
         self.alignments.clear()
 
     @staticmethod

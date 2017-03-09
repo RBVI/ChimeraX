@@ -38,7 +38,8 @@ and commands can be entered. However, for reproducibility and smoother results,
 often a ChimeraX 
 <a href="commands/usageconventions#cxc-files">command file</a> (script) 
 integrating <a href="commands/movie.html"><b>movie</b></a> 
-with other commands will be used instead.
+with other commands will be used instead. See also: 
+<a href="vr.html">virtual reality</a>
 </p><p>
 <a name="commands"></a>
 Below are some of the commands likely to be used for scripting
@@ -51,13 +52,16 @@ For general appearance, see also:
 <li><a href="commands/2dlabels.html"><b>2dlabels</b></a>
 - static annotation with 2D text and 
 <a href="commands/symbols.html">symbols</a></li>
+<li><a href="commands/camera.html"><b>camera</b></a>
+- set mono or stereo viewing and related parameters</li>
 <li><a href="commands/clip.html"><b>clip</b></a>
 - control clipping planes</li>
 <li><a href="commands/cofr.html"><b>cofr</b></a>
 - set center of rotation</li> 
 <li><a href="commands/coordset.html"><b>coordset</b></a>
 - play through frames of a trajectory</li>
-<li><b>crossfade</b></li>
+<li><a href="commands/crossfade.html"><b>crossfade</b></a>
+- interpolate between image frames</li>
 <li><a href="commands/move.html"><b>move</b></a>
 - translate</li>
 <li><a href="commands/movie.html"><b>movie</b></a>
@@ -73,12 +77,10 @@ display frame</li>
 - rotate</li>
 <li><a href="commands/view.html"><b>view</b></a>
 - adjust the view to specified items; save/restore named views</li>
-<li><a href="commands/vop.html#morph"><b>vop morph</b></a>
+<li><a href="commands/volume.html#morph"><b>volume morph</b></a>
 - morph (interpolate) between two or more maps</li>
-<li><b>vseries</b>
-- similar to Chimera
-<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/vseries.html"
-target="_blank"><b>vseries</b></a></li>
+<li><a href="commands/vseries.html"><b>vseries</b></a>
+- display, analyze, or process an ordered sequence of maps</li>
 <li><a href="commands/wait.html"><b>wait</b></a>
 - update the display and enforce ordered execution of commands in scripts</li>
 <li><a href="commands/windowsize.html"><b>windowsize</b></a>
@@ -87,7 +89,19 @@ target="_blank"><b>vseries</b></a></li>
 - change the apparent size of the view</li>
 </ul>
 
+<a name="framerate"></a>
+<h3>Frame Rate</h3>
+<p>
+In ChimeraX, the target or intended graphics frame rate during 
+interactive use is 60 fps (default). The actual frame rate may be lower,
+depending on computer performance and the complexity of the display,
+and recording a movie generally slows the process further.
+However, movie file playback may be faster or slower than the 
+original process, because the playback frame rate is specified independently
+when the file is <a href="commands/movie.html#encode">encoded</a>.
+</p>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-October 2016</address>
+January 2017</address>
 </body></html> 

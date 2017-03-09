@@ -45,14 +45,15 @@ def contacts(session, atoms = None, probe_radius = 1.4, area_cutoff = 300,
         log.warning("unable to show graph without GUI")
 
         
-def register_contacts():
+def register_contacts(logger):
     from chimerax.core.commands import register, CmdDesc, AtomsArg, FloatArg
     desc = CmdDesc(
         optional = [('atoms', AtomsArg),],
         keyword = [('probe_radius', FloatArg),
                    ('area_cutoff', FloatArg),
-                   ('interface_residue_area_cutoff', FloatArg),])
-    register('contacts', desc, contacts)
+                   ('interface_residue_area_cutoff', FloatArg),],
+        synopsis = 'Display network of contacting molecular chains')
+    register('contacts', desc, contacts, logger=logger)
 
 from .graph import Node
 class SphereGroup(Node):

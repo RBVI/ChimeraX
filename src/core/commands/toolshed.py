@@ -126,7 +126,8 @@ def ts_list(session, bundle_type="installed"):
         else:
             logger.info("No available bundles found.")
 ts_list_desc = CmdDesc(optional=[("bundle_type", _bundle_types)],
-                       non_keyword=['bundle_type'])
+                       non_keyword=['bundle_type'],
+                       synopsis='List installed bundles')
 
 
 def ts_refresh(session, bundle_type="installed"):
@@ -147,7 +148,8 @@ def ts_refresh(session, bundle_type="installed"):
         ts.reload(logger, session=session, rebuild_cache=False, check_remote=True)
     elif bundle_type == "all":
         ts.reload(logger, session=session, rebuild_cache=True, check_remote=True)
-ts_refresh_desc = CmdDesc(optional=[("bundle_type", _bundle_types)])
+ts_refresh_desc = CmdDesc(optional=[("bundle_type", _bundle_types)],
+                          synopsis='Refresh cached toolshed metadata')
 
 
 def _bundle_string(bundle_name, version):
@@ -182,7 +184,8 @@ def ts_install(session, bundle_name, user_only=True, version=None):
     ts.install_bundle(bi, logger, not user_only, session=session)
 ts_install_desc = CmdDesc(required=[("bundle_name", StringArg)],
                           optional=[("user_only", BoolArg),
-                                    ("version", StringArg)])
+                                    ("version", StringArg)],
+                          synopsis='Install a bundle')
 
 
 def ts_remove(session, bundle_name):
@@ -200,7 +203,8 @@ def ts_remove(session, bundle_name):
         logger.error("\"%s\" does not match any bundles" % bundle_name)
         return
     ts.uninstall_bundle(bi, logger, session=session)
-ts_remove_desc = CmdDesc(required=[("bundle_name", StringArg)])
+ts_remove_desc = CmdDesc(required=[("bundle_name", StringArg)],
+                         synopsis='Remove a bundle')
 
 
 def ts_update(session, bundle_name, version=None):
@@ -229,7 +233,8 @@ def ts_update(session, bundle_name, version=None):
         return
     ts.install_bundle(new_bi, logger)
 ts_update_desc = CmdDesc(required=[("bundle_name", StringArg)],
-                         optional=[("version", StringArg)])
+                         optional=[("version", StringArg)],
+                         synopsis='Update a bundle to (latest) version')
 
 
 #
@@ -275,14 +280,12 @@ ts_hide_desc = CmdDesc(required=[('tool_name', StringArg)],
 
 
 def register_command(session):
-    from . import register, create_alias
+    from . import register
 
-    register("toolshed list", ts_list_desc, ts_list)
-    register("toolshed refresh", ts_refresh_desc, ts_refresh)
-    register("toolshed install", ts_install_desc, ts_install)
-    register("toolshed remove", ts_remove_desc, ts_remove)
-    # register("toolshed update", ts_update_desc, ts_update)
-    register("toolshed show", ts_show_desc, ts_show)
-    register("toolshed hide", ts_hide_desc, ts_hide)
-
-    create_alias("ts", "toolshed $*")
+    register("toolshed list", ts_list_desc, ts_list, logger=session.logger)
+    register("toolshed refresh", ts_refresh_desc, ts_refresh, logger=session.logger)
+    register("toolshed install", ts_install_desc, ts_install, logger=session.logger)
+    register("toolshed remove", ts_remove_desc, ts_remove, logger=session.logger)
+    # register("toolshed update", ts_update_desc, ts_update, logger=session.logger)
+    register("toolshed show", ts_show_desc, ts_show, logger=session.logger)
+    register("toolshed hide", ts_hide_desc, ts_hide, logger=session.logger)

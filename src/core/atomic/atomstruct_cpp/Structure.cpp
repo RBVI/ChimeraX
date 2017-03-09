@@ -129,7 +129,7 @@ Structure::best_alt_locs() const
                         break;
                     }
                     occurances[alt_loc] += 1;
-                    Atom::_Alt_loc_info info = a->_alt_loc_map[alt_loc];
+                    Atom::_Alt_loc_info &info = a->_alt_loc_map[alt_loc];
                     occupancies[alt_loc] += info.occupancy;
                     bfactors[alt_loc] += info.bfactor;
                 }
@@ -238,6 +238,14 @@ void Structure::_copy(Structure* g) const
         g->metadata[h->first] = h->second;
     g->pdb_version = pdb_version;
     g->set_ss_assigned(ss_assigned());
+    g->set_ribbon_tether_scale(ribbon_tether_scale());
+    g->set_ribbon_tether_shape(ribbon_tether_shape());
+    g->set_ribbon_tether_sides(ribbon_tether_sides());
+    g->set_ribbon_tether_opacity(ribbon_tether_opacity());
+    g->set_ribbon_show_spine(ribbon_show_spine());
+    g->set_ribbon_orientation(ribbon_orientation());
+    g->set_ribbon_mode_helix(ribbon_mode_helix());
+    g->set_ribbon_mode_strand(ribbon_mode_strand());
 
     std::map<Residue*, Residue*> rmap;
     for (auto ri = residues().begin() ; ri != residues().end() ; ++ri) {
@@ -246,9 +254,9 @@ void Structure::_copy(Structure* g) const
         cr->set_mmcif_chain_id(r->mmcif_chain_id());
         cr->set_ribbon_display(r->ribbon_display());
         cr->set_ribbon_color(r->ribbon_color());
-        cr->set_is_helix(r->is_helix());
-        cr->set_is_strand(r->is_strand());
         cr->set_is_het(r->is_het());
+        cr->set_ss_id(r->ss_id());
+        cr->set_ss_type(r->ss_type());
         rmap[r] = cr;
 	// TODO: Copy all ribbon display style attributes.
     }
@@ -720,6 +728,12 @@ Structure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
     *int_array++ = pdb_version;
     *int_array++ = _ribbon_display_count;
     *int_array++ = _ss_assigned;
+    *int_array++ = _ribbon_orientation;
+    *int_array++ = _ribbon_show_spine;
+    *int_array++ = _ribbon_tether_shape;
+    *int_array++ = _ribbon_tether_sides;
+    *int_array++ = _ribbon_mode_helix;
+    *int_array++ = _ribbon_mode_strand;
     // pb manager version number remembered later
     if (PyList_Append(ints, npy_array) < 0)
         throw std::runtime_error("Couldn't append to int list");
@@ -727,7 +741,8 @@ Structure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
     float* float_array;
     npy_array = python_float_array(SESSION_NUM_FLOATS(), &float_array);
     *float_array++ = _ball_scale;
-    // if you add floats, change the allocation above
+    *float_array++ = _ribbon_tether_scale;
+    *float_array++ = _ribbon_tether_opacity;
     if (PyList_Append(floats, npy_array) < 0)
         throw std::runtime_error("Couldn't append to floats list");
 
@@ -1003,6 +1018,14 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
         _ss_assigned = true;
     else
         _ss_assigned = *int_array++;
+    if (version >= 5) {
+        _ribbon_orientation = static_cast<RibbonOrientation>(*int_array++);
+        _ribbon_show_spine = *int_array++;
+        _ribbon_tether_shape = static_cast<TetherShape>(*int_array++);
+        _ribbon_tether_sides = *int_array++;
+        _ribbon_mode_helix = static_cast<RibbonMode>(*int_array++);
+        _ribbon_mode_strand = static_cast<RibbonMode>(*int_array++);
+    }
     auto pb_manager_version = *int_array++;
     // if more added, change the array dimension check above
 
@@ -1016,6 +1039,10 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
         throw std::invalid_argument("AtomicStructure float array wrong size");
     float* float_array = static_cast<float*>(farray.values());
     _ball_scale = *float_array++;
+    if (version >= 5) {
+        _ribbon_tether_scale = *float_array++;
+        _ribbon_tether_opacity = *float_array++;
+    }
     // if more added, change the array dimension check above
 
     // AtomicStructure misc info
@@ -1323,6 +1350,18 @@ Structure::set_all_graphics_changes(int changes)
   set_graphics_changes(changes);
   for (auto g: pb_mgr().group_map())
     g.second->set_graphics_changes(changes);
+}
+
+Structure::RibbonOrientation
+Structure::ribbon_orient(const Residue *r) const
+{
+    if (r->polymer_type() == Residue::PT_NUCLEIC)
+        return Structure::RIBBON_ORIENT_GUIDES;
+    if (r->is_helix())
+        return Structure::RIBBON_ORIENT_ATOMS;
+    if (r->is_strand())
+        return Structure::RIBBON_ORIENT_PEPTIDE;
+    return Structure::RIBBON_ORIENT_ATOMS;
 }
 
 } //  namespace atomstruct

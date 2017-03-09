@@ -42,9 +42,10 @@ Collections have base class :class:`.Collection` which provides many standard me
 such as length, iteration, indexing with square brackets, index of an element,
 intersections, unions, subtraction, filtering....
 
-Collections are immutable so can be hashed.  The only case in which their contents
+Collections are mostly immutable.  The only case in which their contents
 can be altered is if C++ objects they hold are deleted in which case those objects
-are automatically removed from the collection.
+are automatically removed from the collection.  Because they are mutable they
+cannot be used as keys in dictionary or added to sets.
 '''
 from numpy import uint8, int32, uint32, float64, float32, uintp, byte, bool as npy_bool, integer, empty, array
 from .molc import string, cptr, pyobject, cvec_property, set_cvec_pointer, c_function, c_array_function, pointer, ctype_type_to_numpy
@@ -62,9 +63,9 @@ def _non_null_atoms(p):
 def _bonds(p):
     return Bonds(p)
 def _pseudobond_groups(p):
-	return PseudobondGroups(p)
+    return PseudobondGroups(p)
 def _pseudobonds(p):
-	return Pseudobonds(p)
+    return Pseudobonds(p)
 def _elements(p):
     return Elements(p)
 def _residues(p):
@@ -88,6 +89,8 @@ def _pseudobond_group_map(a):
 
 # -----------------------------------------------------------------------------
 #
+instrument_collection = False
+accum_t = [0] * 6
 from ..state import State
 class Collection(State):
     '''
@@ -97,26 +100,60 @@ class Collection(State):
     Collection is immutable.
     '''
     def __init__(self, items, object_class, objects_class):
+        import numpy
+        from time import time
+        if instrument_collection:
+            t0 = time()
         if items is None:
             # Empty Atoms
-            import numpy
             pointers = numpy.empty((0,), cptr)
-        elif type(items) in [list, tuple]:
+        elif (type(items) in [list, tuple] or
+              isinstance(items, numpy.ndarray) and items.dtype == numpy.object):
             # presumably items of the object_class
-            import numpy
             pointers = numpy.array([i._c_pointer.value for i in items], cptr)
-        else:
+        elif isinstance(items, numpy.ndarray) and items.dtype == numpy.uintp:
+            # C++ pointers array
             pointers = items
+        else:
+            t = str(type(items))
+            if isinstance(items, numpy.ndarray):
+                t += ' type %s' % str(items.dtype)
+            raise ValueError('Collection items of unrecognized type "%s"' % t)
+        if instrument_collection:
+            t1 = time()
         self._pointers = pointers
+        if instrument_collection:
+            t2 = time()
         self._object_class = object_class
+        if instrument_collection:
+            t3 = time()
         self._objects_class = objects_class
+        if instrument_collection:
+            t4 = time()
         set_cvec_pointer(self, pointers)
+        if instrument_collection:
+            t5 = time()
         remove_deleted_pointers(pointers)
+        if instrument_collection:
+            t6 = time()
+            accum_t[0] += t1 - t0
+            accum_t[1] += t2 - t1
+            accum_t[2] += t3 - t2
+            accum_t[3] += t4 - t3
+            accum_t[4] += t5 - t4
+            accum_t[5] += t6 - t5
 
     def __eq__(self, atoms):
         import numpy
         return numpy.array_equal(atoms._pointers, self._pointers)
     def hash(self):
+        '''
+        Can be used for quickly determining if collections have the same elements in the same order.
+        Objects are automatically deleted from the collection when the C++ object is deleted.
+        So this hash value will not be valid if the collection changes.  This is not the __hash__
+        special Python method and it is not supported to use collections as keys of dictionaries
+        or elements of sets since they are mutable.
+        '''
         from hashlib import sha1
         return sha1(self._pointers.view(uint8)).digest()
     def __len__(self):
@@ -150,6 +187,14 @@ class Collection(State):
                        ret = ctypes.c_ssize_t)
         i = f(self._c_pointers, len(self), object._c_pointer)
         return i
+    def indices(self, objects):
+        '''Return int32 array indicating for each element in objects its index of the
+        first occurence in the collection, or -1 if it does not occur in the collection.'''
+        f = c_function('pointer_indices', args = [ctypes.c_void_p, ctypes.c_size_t,
+                                               ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p])
+        ind = empty((len(objects),), int32)
+        f(objects._c_pointers, len(objects), self._c_pointers, len(self), pointer(ind))
+        return ind
 
     @property
     def object_class(self):
@@ -217,14 +262,6 @@ class Collection(State):
         mask = empty((len(self),), npy_bool)
         f(self._c_pointers, len(self), objects._c_pointers, len(objects), pointer(mask))
         return mask
-    def indices(self, objects):
-        '''Return int32 array indicating for each object in current set the index of
-        that object in the argument objects, or -1 if it does not occur in objects.'''
-        f = c_function('pointer_indices', args = [ctypes.c_void_p, ctypes.c_size_t,
-                                               ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p])
-        ind = empty((len(self),), int32)
-        f(self._c_pointers, len(self), objects._c_pointers, len(objects), pointer(ind))
-        return ind
     def merge(self, objects):
         '''Return a new collection combining this one with the *objects* :class:`.Collection`.
         All duplicates are removed.'''
@@ -237,11 +274,7 @@ class Collection(State):
         return self._objects_class(numpy.setdiff1d(self._pointers, objects._pointers))
     def unique(self):
         '''Return a new collection containing the unique elements from this one, preserving order.'''
-        from numpy import unique
-        indices = unique(self._pointers, return_index = True)[1]
-        indices.sort()
-        return self.objects_class(self._pointers[indices])
-
+        return self.objects_class(unique_ordered(self._pointers))
     STATE_VERSION = 1
     def take_snapshot(self, session, flags):
         return {'version': self.STATE_VERSION,
@@ -267,7 +300,7 @@ class Collection(State):
 def concatenate(collections, object_class = None, remove_duplicates = False):
     '''Concatenate any number of collections returning a new collection.
     All collections must have the same type.
-    
+
     Parameters
     ----------
     collections : sequence of :class:`.Collection` objects
@@ -279,10 +312,16 @@ def concatenate(collections, object_class = None, remove_duplicates = False):
         import numpy
         p = numpy.concatenate([a._pointers for a in collections])
         if remove_duplicates:
-            pu, i = numpy.unique(p, return_index = True)
-            p = p[numpy.sort(i)]	# Preserve order when duplicates are removed.
+            p = unique_ordered(p)    # Preserve order when duplicates are removed.
         c = cl(p)
     return c
+
+def unique_ordered(a):
+    '''Return unique elements of numpy array a preserving order.'''
+    from numpy import unique
+    indices = unique(a, return_index = True)[1]
+    indices.sort()
+    return a[indices]
 
 def depluralize(word):
     if word.endswith('ii'):
@@ -315,7 +354,7 @@ class Atoms(Collection):
         for m, atoms in self.by_structure:
             r = atoms.residues
             cids = r.chain_ids
-            for cid in r.unique_chain_ids:
+            for cid in unique_ordered(cids):
                 chains.append((m, cid, atoms.filter(cids == cid)))
         return chains
     @property
@@ -446,6 +485,7 @@ class Atoms(Collection):
     of models each atom belongs to.'''
     selected = cvec_property('atom_selected', npy_bool,
         doc="numpy bool array whether each Atom is selected.")
+    selecteds = selected
     @property
     def shown_atoms(self):
         '''
@@ -469,7 +509,7 @@ class Atoms(Collection):
     def unique_chain_ids(self):
         '''The unique chain IDs as a numpy array of strings.'''
         from numpy import unique
-        return unique(self.chain_ids)
+        return unique_ordered(self.chain_ids)
     @property
     def unique_structures(self):
         "The unique structures as an :class:`.AtomicStructures` collection"
@@ -485,7 +525,7 @@ class Atoms(Collection):
     alt_locs = cvec_property('atom_alt_loc', byte, astype=bytearray,
                          doc='Returns current alternate location indicators')
 
-    def __init__(self, c_pointers = None):
+    def __init__(self, c_pointers = None, guaranteed_live_pointers = False):
         Collection.__init__(self, c_pointers, molobject.Atom, Atoms)
 
     def delete(self):
@@ -509,17 +549,59 @@ class Atoms(Collection):
         f(self._c_pointers, n, loc, pointer(values))
         return values
 
+    has_aniso_u = cvec_property('atom_has_aniso_u', npy_bool, read_only=True,
+        doc='Boolean array identifying which atoms have anisotropic temperature factors.')
+
+    @property
+    def aniso_u(self):
+        '''Anisotropic temperature factors, returns Nx3x3 array of numpy float32 or None
+        if any of the atoms does not have temperature factors.  Read only.'''
+        f = c_function('atom_aniso_u', args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p))
+        from numpy import empty, float32
+        n = len(self)
+        ai = empty((n,3,3), float32)
+        try:
+            f(self._c_pointers, n, pointer(ai))
+        except ValueError:
+            ai = None
+        return ai
+
+    def _get_aniso_u6(self):
+        '''Get anisotropic temperature factors as a Nx6 array of numpy float32 containing
+        (u11,u22,u33,u12,u13,u23) for each atom or None if any of the atoms does not have
+        temperature factors.'''
+        f = c_function('atom_aniso_u6', args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p))
+        from numpy import empty, float32
+        n = len(self)
+        ai = empty((n,6), float32)
+        try:
+            f(self._c_pointers, n, pointer(ai))
+        except ValueError:
+            ai = None
+        return ai
+    def _set_aniso_u6(self, u6):
+        '''Set anisotropic temperature factors as a Nx6 element numpy float32 array
+        representing the unique elements of the symmetrix matrix
+        containing (u11, u22, u33, u12, u13, u23) for each atom.'''
+        f = c_function('set_atom_aniso_u6', args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p))
+        n = len(self)
+        from numpy import empty, float32
+        ai = empty((n,6), float32)
+        ai[:] = u6
+        f(self._c_pointers, n, pointer(ai))
+    aniso_u6 = property(_get_aniso_u6, _set_aniso_u6)
+
     def residue_sums(self, atom_values):
         '''Compute per-residue sum of atom float values.  Return unique residues and array of residue sums.'''
         f = c_function('atom_residue_sums', args=(ctypes.c_void_p, ctypes.c_int, ctypes.POINTER(ctypes.c_double)),
                        ret=ctypes.py_object)
         rp, rsums = f(self._c_pointers, len(self), pointer(atom_values))
         return Residues(rp), rsums
-        
+
     @classmethod
     def session_restore_pointers(cls, session, data):
         structures, atom_ids = data
-        return array([s.session_id_to_atom(i) for s, i in zip(structures, atom_ids)])
+        return array([s.session_id_to_atom(i) for s, i in zip(structures, atom_ids)], dtype=cptr)
     def session_save_pointers(self, session):
         structures = self.structures
         atom_ids = [s.session_atom_to_id(ptr) for s, ptr in zip(structures, self._c_pointers)]
@@ -540,7 +622,7 @@ class Bonds(Collection):
     '''
     Returns a two-tuple of :class:`Atoms` objects.
     For each bond, its endpoint atoms are in the matching
-    position in the two :class:`Atoms` collections. Read only.  
+    position in the two :class:`Atoms` collections. Read only.
     '''
     colors = cvec_property('bond_color', uint8, 4)
     '''
@@ -599,7 +681,7 @@ class Bonds(Collection):
     @classmethod
     def session_restore_pointers(cls, session, data):
         structures, bond_ids = data
-        return array([s.session_id_to_bond(i) for s, i in zip(structures, bond_ids)])
+        return array([s.session_id_to_bond(i) for s, i in zip(structures, bond_ids)], dtype=cptr)
     def session_save_pointers(self, session):
         structures = self.structures
         bond_ids = [s.session_bond_to_id(ptr) for s, ptr in zip(structures, self._c_pointers)]
@@ -643,9 +725,8 @@ class Elements(Collection):
     @classmethod
     def session_restore_pointers(cls, session, data):
         f = c_function('element_number_get_element', args = (ctypes.c_int,), ret = ctypes.c_void_p)
-        return [f(en) for en in data]
+        return array([f(en) for en in data], dtype=cptr)
     def session_save_pointers(self, session):
-        structures = self.structures
         return self.numbers
 
 # -----------------------------------------------------------------------------
@@ -665,7 +746,7 @@ class Pseudobonds(Collection):
     '''
     Returns a two-tuple of :class:`Atoms` objects.
     For each bond, its endpoint atoms are in the matching
-    position in the two :class:`Atoms` collections. Read only.  
+    position in the two :class:`Atoms` collections. Read only.
     '''
     colors = cvec_property('pseudobond_color', uint8, 4)
     '''
@@ -729,6 +810,13 @@ class Pseudobonds(Collection):
         a1, a2 = self.atoms
         return a1.mask(atoms) & a2.mask(atoms)
 
+    @property
+    def unique_structures(self):
+        '''The unique structures as a :class:`.StructureDatas` collection'''
+        a1, a2 = self.atoms
+        s = concatenate((a1.unique_structures, a2.unique_structures), AtomicStructures, remove_duplicates = True)
+        return s
+
     _ses_ids = cvec_property('pseudobond_get_session_id', int32, read_only = True,
         doc="Used internally to save/restore in sessions")
     @staticmethod
@@ -736,8 +824,8 @@ class Pseudobonds(Collection):
         groups, ids = data
         f = c_function('pseudobond_group_resolve_session_id',
             args = [ctypes.c_void_p, ctypes.c_int], ret = ctypes.c_void_p)
-        ptrs = [f(grp_ptr, id) for grp_ptr, id in zip(groups._c_pointers, ids)]
-        return Pseudobonds(array(ptrs))
+        ptrs = array([f(grp_ptr, id) for grp_ptr, id in zip(groups._c_pointers, ids)], dtype=cptr)
+        return ptrs
     def session_save_pointers(self, session):
         return [self.groups, self._ses_ids]
 
@@ -799,8 +887,6 @@ class Residues(Collection):
     set with such an array (or equivalent sequence), or with a single
     RGBA value.
     ''')
-    ribbon_styles = cvec_property('residue_ribbon_style', int32, doc =
-    '''A numpy int array of cartoon styles.  See constants in :class:Ribbon.''')
     ribbon_adjusts = cvec_property('residue_ribbon_adjust', float32, doc =
     '''A numpy float array of adjustment factors for the position of ribbon
     control points.  Factors range from zero to one, with zero being using the
@@ -824,9 +910,16 @@ class Residues(Collection):
     it starts as 1 for the strand nearest the N terminus, and increments for each strand
     out to the C terminus.
     ''')
+    ss_types = cvec_property('residue_ss_type', int32, doc =
+    '''Returns a numpy integer array of secondary structure types (one of: Residue.SS_COIL, Residue.SS_HELIX, Residue.SS_STRAND [or SS_SHEET])''')
     structures = cvec_property('residue_structure', cptr, astype = _atomic_structures,
         read_only = True, doc =
     '''Returns :class:`.StructureDatas` collection containing structures for each residue.''')
+
+    def delete(self):
+        '''Delete the C++ Residue objects'''
+        c_function('residue_delete',
+            args = [ctypes.c_void_p, ctypes.c_size_t])(self._c_pointers, len(self))
 
     @property
     def unique_structures(self):
@@ -837,12 +930,22 @@ class Residues(Collection):
     def unique_chain_ids(self):
         '''The unique chain IDs as a numpy array of strings.'''
         from numpy import unique
-        return unique(self.chain_ids)
+        return unique_ordered(self.chain_ids)
 
     @property
     def unique_chains(self):
         '''The unique chains as a :class:`.Chains` collection'''
         return self.chains.unique()
+
+    @property
+    def by_chain(self):
+        '''Return list of structure, chain id, and Residues for each chain.'''
+        chains = []
+        for m, residues in self.by_structure:
+            cids = residues.chain_ids
+            for cid in unique_ordered(cids):
+                chains.append((m, cid, residues.filter(cids == cid)))
+        return chains
 
     @property
     def by_structure(self):
@@ -873,17 +976,17 @@ class Residues(Collection):
         seqs = f(self._c_pointers, len(self), pointer(seq_ids))
         return seqs, seq_ids
 
-    def get_polymer_spline(self, orient):
+    def get_polymer_spline(self):
         '''Return a tuple of spline center and guide coordinates for a
-	polymer chain.  Residues in the chain that do not have a center
-	atom will have their display bit turned off.  Center coordinates
-	are returned as a numpy array.  Guide coordinates are only returned
-	if all spline atoms have matching guide atoms; otherwise, None is
-	returned for guide coordinates.'''
+        polymer chain.  Residues in the chain that do not have a center
+        atom will have their display bit turned off.  Center coordinates
+        are returned as a numpy array.  Guide coordinates are only returned
+        if all spline atoms have matching guide atoms; otherwise, None is
+        returned for guide coordinates.'''
         f = c_function('residue_polymer_spline',
-                       args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_int],
+                       args = [ctypes.c_void_p, ctypes.c_size_t],
                        ret = ctypes.py_object)
-        any_display, atom_pointers, centers, guides = f(self._c_pointers, len(self), orient)
+        any_display, atom_pointers, centers, guides = f(self._c_pointers, len(self))
         if atom_pointers is None:
             atoms = None
         else:
@@ -896,19 +999,30 @@ class Residues(Collection):
                        args = [ctypes.c_void_p, ctypes.c_size_t])
         f(self._c_pointers, len(self))
 
+    @property
+    def ribbon_num_selected(self):
+        "Number of selected residue ribbons."
+        f = c_function('residue_ribbon_num_selected',
+                       args = [ctypes.c_void_p, ctypes.c_size_t],
+                       ret = ctypes.c_size_t)
+        return f(self._c_pointers, len(self))
+    ribbon_selected = cvec_property('residue_ribbon_selected', npy_bool,
+        doc="numpy bool array whether each Residue ribbon is selected.")
+
     def set_alt_locs(self, loc):
         if isinstance(loc, str):
             loc = loc.encode('utf-8')
         f = c_array_function('residue_set_alt_loc', args=(byte,), per_object=False)
         f(self._c_pointers, len(self), loc)
 
-    def set_secondary_structures(self, ss_type, value):
-        '''See Residue.set_secondary_structure()'''
-        if value == molobject.Residue.SS_HELIX:
-            f = c_array_function('residue_set_ss_helix', args=(npy_bool,), per_object=False)
-        else:
-            f = c_array_function('residue_set_ss_sheet', args=(npy_bool,), per_object=False)
-        f(self._c_pointers, len(self), value)
+    @classmethod
+    def session_restore_pointers(cls, session, data):
+        structures, residue_ids = data
+        return array([s.session_id_to_residue(i) for s, i in zip(structures, residue_ids)], dtype=cptr)
+    def session_save_pointers(self, session):
+        structures = self.structures
+        residue_ids = [s.session_residue_to_id(ptr) for s, ptr in zip(structures, self._c_pointers)]
+        return [structures, array(residue_ids)]
 
 # -----------------------------------------------------------------------------
 #
@@ -937,7 +1051,7 @@ class Chains(Collection):
     @classmethod
     def session_restore_pointers(cls, session, data):
         structures, chain_ses_ids = data
-        return array([s.session_id_to_chain(i) for s, i in zip(structures, chain_ses_ids)])
+        return array([s.session_id_to_chain(i) for s, i in zip(structures, chain_ses_ids)], dtype=cptr)
     def session_save_pointers(self, session):
         structures = self.structures
         chain_ses_ids = [s.session_chain_to_id(ptr) for s, ptr in zip(structures, self._c_pointers)]
@@ -1006,7 +1120,7 @@ class StructureDatas(Collection):
 
     # Graphics changed flags used by rendering code.  Private.
     _graphics_changeds = cvec_property('structure_graphics_change', int32)
-    
+
 # -----------------------------------------------------------------------------
 #
 class AtomicStructures(StructureDatas):
@@ -1021,7 +1135,7 @@ class AtomicStructures(StructureDatas):
 
     @classmethod
     def session_restore_pointers(cls, session, data):
-        return array([s._c_pointer.value for s in data])
+        return array([s._c_pointer.value for s in data], dtype=cptr)
     def session_save_pointers(self, session):
         return [s for s in self]
 
@@ -1035,10 +1149,10 @@ class PseudobondGroupDatas(Collection):
     '''
     def __init__(self, pbg_pointers):
         Collection.__init__(self, pbg_pointers, molobject.PseudobondGroupData,
-			PseudobondGroupDatas)
+                            PseudobondGroupDatas)
 
     pseudobonds = cvec_property('pseudobond_group_pseudobonds', cptr, 'num_pseudobonds',
-		astype = _pseudobonds, read_only = True, per_object = False)
+                                astype = _pseudobonds, read_only = True, per_object = False)
     '''A single :class:`.Pseudobonds` object containing pseudobonds for all groups. Read only.'''
     names = cvec_property('pseudobond_group_category', string, read_only = True)
     '''A numpy string array of categories of each group.'''
@@ -1059,7 +1173,7 @@ class PseudobondGroups(PseudobondGroupDatas):
 
     @classmethod
     def session_restore_pointers(cls, session, data):
-        return array([s._c_pointer.value for s in data])
+        return array([s._c_pointer.value for s in data], dtype=cptr)
     def session_save_pointers(self, session):
         return [s for s in self]
 

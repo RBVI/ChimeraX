@@ -1,0 +1,126 @@
+# vim: set expandtab ts=4 sw=4:
+
+# import distutils.core
+# distutils.core.DEBUG = True
+# TODO: remove distlib monkey patch when the wheel package
+# implements PEP 426's pydist.json
+from distlib import metadata
+metadata.METADATA_FILENAME = "metadata.json"
+from setuptools import setup
+import os
+import sys
+
+pkg_dir = "PKG_DIR"  # DO NOT CHANGE
+shlib_dir = "SHLIB_DIR"  # DO NOT CHANGE
+data_dir = "DATA_DIR"  # DO NOT CHANGE
+if sys.platform.startswith('win'):
+    # shared libraries are relative to bindir
+    rel_inst_shlib_dir = ""  # shlib_dir == bindir
+else:
+    # shared libraries are relative to rootdir
+    rel_inst_shlib_dir = os.path.basename(shlib_dir)
+# data files are relative to rootdir
+rel_inst_data_dir = os.path.basename(data_dir)
+
+description = """
+detection of functional groups in a structure
+"""
+
+classifiers=[
+    # From https://pypi.python.org/pypi?%3Aaction=list_classifiers
+    # and our own ChimeraX classifiers.
+    "Development Status :: 4 - Beta",
+    "Environment :: MacOS X :: Aqua",
+    "Environment :: Win32 (MS Windows)",
+    "Environment :: X11 Applications",
+    "Framework :: ChimeraX",
+    "Intended Audience :: Science/Research",
+    "License :: Free for non-commercial use",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows :: Windows 10",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Topic :: Scientific/Engineering :: Chemistry",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "ChimeraX :: Bundle :: Structure Analysis :: 1,1 :: PKG_NAME :: :: ",
+]
+group_info = {
+    "acyl halide": "R(C=O)X",
+    "adenine": "6-aminopurine",
+    "aldehyde": "R(C=O)H",
+    "amide": "R(C=O)NR2",
+    "amine": "RxNHy",
+    "aliphatic amine": "RxNHy",
+    "aliphatic primary amine": "RNH2",
+    "aliphatic secondary amine": "R2NH",
+    "aliphatic tertiary amine": "R3N",
+    "aliphatic quaternary amine": "R4N+",
+    "aromatic amine": "RxNHy",
+    "aromatic primary amine": "RNH2",
+    "aromatic secondary amine": "R2NH",
+    "aromatic tertiary amine": "R3N",
+    "aromatic ring": "aromatic",
+    "carbonyl": "R2C=O",
+    "carboxylate": "RCOO-",
+    "cytosine": "2-oxy-4-aminopyrimidine",
+    "disulfide": "RSSR",
+    "ester": "R(C=O)OR",
+    "ether O": "ROR",
+    "guanine": "2-amino-6-oxypurine",
+    "halide": "RX",
+    "hydroxyl": "COH or NOH",
+    "imine": "R2C=NR",
+    "ketone": "R2C=O",
+    "methyl": "RCH3",
+    "nitrile": "RC*N",
+    "nitro": "RNO2",
+    "phosphate": "PO4",
+    "phosphinyl": "R2PO2-",
+    "phosphonate": "RPO3-",
+    "purine": "purine",
+    "pyrimidine": "pyrimidine",
+    "sulfate": "SO4",
+    "sulfonamide": "RSO2NR2",
+    "sulfonate": "RSO3-",
+    "sulfone": "R2SO2",
+    "sulfonyl": "R2SO2",
+    "thiocarbonyl": "C=S",
+    "thioether": "RSR",
+    "thiol": "RSH",
+    "thymine": "5-methyl-2,4-dioxypyrimidine",
+    "uracil": "2,4-dioxypyrimidine",
+}
+
+# synonyms
+for group_name in list(group_info.keys()):
+    if group_name.startswith("sulf"):
+        group_info["sulph" + group_name[4:]] = group_info[group_name]
+group_info["aromatic"] = group_info["aromatic ring"]
+
+for group_name, alt_name in group_info.items():
+    classifiers.append("ChimeraX :: Selector :: %s :: %s" % (group_name.replace(' ', '-'), alt_name))
+
+setup(
+    name="BUNDLE_NAME",
+    version="BUNDLE_VERSION",  # PEP 440, should match Development Status below
+    description="Detect chemically functional groups",  # one line synopsis
+    long_description=description,  # see above
+    author="UCSF RBVI",
+    author_email="chimerax@cgl.ucsf.edu",
+    url="https://www.rbvi.ucsf.edu/chimerax/",
+    python_requires=">= 3.5",
+    package_dir={
+        "PKG_NAME": pkg_dir,    # directory package's source files are in
+    },
+    packages=[
+        "PKG_NAME",
+    ],
+    package_data={
+        "PKG_NAME": [ "*.PYMOD_EXT", ]
+    },
+    install_requires=[
+        "ChimeraX-Core >= 0.1",
+    ],
+    classifiers=classifiers,
+)

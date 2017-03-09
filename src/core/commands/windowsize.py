@@ -29,11 +29,13 @@ def window_size(session, width=None, height=None):
         if not session.ui.is_gui:
             v.window_size = width, height
         elif width != w or height != h:
-            session.ui.main_window.adjust_size(width-w, height-h)
+            ui = session.ui
+            ui.main_window.adjust_size(width-w, height-h)
+            ui.processEvents()	# Make sure window resized before executing next command.
 
 def register_command(session):
     from . import CmdDesc, register, PositiveIntArg
     desc = CmdDesc(optional=[('width', PositiveIntArg),
                              ('height', PositiveIntArg)],
                    synopsis='report or set window size')
-    register('windowsize', desc, window_size)
+    register('windowsize', desc, window_size, logger=session.logger)

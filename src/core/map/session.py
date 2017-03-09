@@ -205,7 +205,7 @@ def state_from_grid_data(data):
     s['cell_angles'] = dt.cell_angles
   if dt.rotation != ((1,0,0),(0,1,0),(0,0,1)):
     s['rotation'] = dt.rotation
-  if len(dt.symmetries) > 0:
+  if dt.symmetries is not None and len(dt.symmetries) > 0:
     s['symmetries'] = dt.symmetries
 
   from .data import Subsampled_Grid

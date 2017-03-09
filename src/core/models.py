@@ -338,14 +338,15 @@ class Models(State):
             fns = filenames
         for fn in fns:
             fmt = io.deduce_format(fn, has_format=format)[0]
-            if fmt and fmt.category == toolshed.SCRIPT:
+            if fmt and fmt.category in [toolshed.SCRIPT]:
                 collation_okay = False
                 break
         from .logger import Collator
         log_errors = kw.pop('log_errors', True)
         if collation_okay:
             descript = "files" if len(fns) > 1 else fns[0]
-            with Collator(session.logger, "Summary of problems opening " + descript, log_errors):
+            with Collator(session.logger,
+                    "Summary of feedback from opening " + descript, log_errors):
                 models, status = io.open_multiple_data(
                     session, filenames, format=format, name=name, **kw)
         else:

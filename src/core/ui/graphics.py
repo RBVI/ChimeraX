@@ -35,7 +35,7 @@ class GraphicsWindow(QWindow):
         self.minimum_event_processing_ratio = 0.1 # Event processing time as a fraction
         # of time since start of last drawing
         self.last_redraw_start_time = self.last_redraw_finish_time = 0
-
+        
         ui.have_stereo = False
         if hasattr(ui, 'stereo') and ui.stereo:
             sf = self.opengl_context.format()
@@ -52,8 +52,12 @@ class GraphicsWindow(QWindow):
     def resizeEvent(self, event):
         s = event.size()
         w, h = s.width(), s.height()
-        self.view.resize(w, h)
-        self.view.redraw_needed = True
+        v = self.view
+        v.resize(w, h)
+        v.redraw_needed = True
+        if self.isExposed():
+            # Avoid flickering when resizing by drawing immediately.
+            v.draw(check_for_changes = False)
 
     def set_redraw_interval(self, msec):
         self.redraw_interval = msec  # milliseconds
@@ -83,6 +87,16 @@ class GraphicsWindow(QWindow):
                 s.ui.mouse_modes.mouse_pause_tracking()
             self.last_redraw_finish_time = time.perf_counter()
 
+    def update_graphics_now(self):
+        '''
+        Redraw graphics now if there are any changes.  This is typically only used by
+        mouse drag code that wants to update the graphics as responsively as possible,
+        particularly when a mouse step may take significant computation, such as contour
+        surface level change.  After each mouse event this is called to force a redraw.
+        '''
+        s = self.session
+        s.update_loop.draw_new_frame(s)
+            
 from PyQt5.QtWidgets import QLabel
 class Popup(QLabel):
 
@@ -100,6 +114,10 @@ class Popup(QLabel):
 
 from PyQt5.QtGui import QOpenGLContext
 class OpenGLContext(QOpenGLContext):
+    
+    required_opengl_version = (3, 3)
+    required_opengl_core_profile = True
+
     def __init__(self, graphics_window, ui):
         self.window = graphics_window
         self._ui = ui
@@ -123,18 +141,23 @@ class OpenGLContext(QOpenGLContext):
         ui = self._ui
         self.setScreen(ui.primaryScreen())
         from PyQt5.QtGui import QSurfaceFormat
-        fmt = QSurfaceFormat.defaultFormat()
+        fmt = QSurfaceFormat()
+        fmt.setVersion(*self.required_opengl_version)
+        fmt.setDepthBufferSize(24)
+        if self.required_opengl_core_profile:
+            fmt.setProfile(QSurfaceFormat.CoreProfile)
+        fmt.setRenderableType(QSurfaceFormat.OpenGL)
         self.setFormat(fmt)
         self.window.setFormat(fmt)
         if not self.create():
             raise ValueError("Could not create OpenGL context")
         sf = self.format()
         major, minor = sf.version()
-        rmajor, rminor = ui.required_opengl_version
+        rmajor, rminor = self.required_opengl_version
         if major < rmajor or (major == rmajor and minor < rminor):
             raise ValueError("Available OpenGL version ({}.{}) less than required ({}.{})"
                 .format(major, minor, rmajor, rminor))
-        if ui.required_opengl_core_profile:
+        if self.required_opengl_core_profile:
             if sf.profile() != sf.CoreProfile:
                 raise ValueError("Required OpenGL Core Profile not available")
 

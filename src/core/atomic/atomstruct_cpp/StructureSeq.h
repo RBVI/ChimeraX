@@ -22,6 +22,7 @@
 
 #include "imex.h"
 #include "Sequence.h"
+#include "session.h"
 #include "string_types.h"
 
 namespace atomstruct {
@@ -48,8 +49,8 @@ protected:
     Residues  _residues;
     Structure*  _structure;
 
-    static int  SESSION_NUM_INTS(int /*version*/=0) { return 3; }
-    static int  SESSION_NUM_FLOATS(int /*version*/=0) { return 0; }
+    static int  SESSION_NUM_INTS(int /*version*/=CURRENT_SESSION_VERSION) { return 3; }
+    static int  SESSION_NUM_FLOATS(int /*version*/=CURRENT_SESSION_VERSION) { return 0; }
 
     void  demote_to_sequence();
     bool  no_structure_left() const {
@@ -77,6 +78,7 @@ public:
     Residue*  get(unsigned i) const { return _residues[i]; }
     virtual bool  is_chain() const { return false; }
     bool  is_sequence() const { return _structure == nullptr; }
+    const std::string&  name() const { return Sequence::name(); }
     StructureSeq&  operator+=(StructureSeq&);
     void  pop_back();
     void  pop_front();
@@ -84,10 +86,10 @@ public:
     void  push_front(Residue* r);
     const ResMap&  res_map() const { return _res_map; }
     const Residues&  residues() const { return _residues; }
-    int  session_num_floats(int version=0) const {
+    int  session_num_floats(int version=CURRENT_SESSION_VERSION) const {
         return Sequence::session_num_floats(version) + SESSION_NUM_FLOATS(version);
     }
-    int  session_num_ints(int version=0) const {
+    int  session_num_ints(int version=CURRENT_SESSION_VERSION) const {
         return Sequence::session_num_ints(version) + SESSION_NUM_INTS(version)
             + 2 * _res_map.size() + _residues.size();
     }

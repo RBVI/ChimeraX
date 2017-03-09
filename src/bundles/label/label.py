@@ -14,26 +14,29 @@ from chimerax.core.commands import Annotation, AnnotationError, next_token
 
 class NameArg(Annotation):
 
-    name = 'a label identifier'
+    name = "'all' or a label identifier"
+    _html_name = "<b>all</b> or a label identifier"
 
     @staticmethod
     def parse(text, session):
         if not text:
             raise AnnotationError("Expected %s" % NameArg.name)
-        lmap = getattr(session, 'labels', None)
-        if lmap is None:
-            raise AnnotationError("Unknown label identifier")
+        lmap = getattr(session, 'labels', {})
+        if len(lmap) == 0:
+            raise AnnotationError("No labels exist")
         token, text, rest = next_token(text)
         if token not in lmap:
             possible = [name for name in lmap if name.startswith(token)]
+            if 'all'.startswith(token):
+                possible.append('all')
             if not possible:
-                raise AnnotationError("Unknown label identifier")
+                raise AnnotationError("Unknown label identifier: '%s'" % token)
             possible.sort(key=len)
             token = possible[0]
         return token, token, rest
 
 
-def register_label_command():
+def register_label_command(logger):
 
     from chimerax.core.commands import CmdDesc, register, BoolArg, IntArg, StringArg, FloatArg, ColorArg
 
@@ -47,12 +50,15 @@ def register_label_command():
              ('xpos', FloatArg),
              ('ypos', FloatArg),
              ('visibility', BoolArg)]
-    create_desc = CmdDesc(required = rargs, keyword = cargs)
-    register('2dlabels create', create_desc, label_create)
-    change_desc = CmdDesc(required = existing_arg, keyword = cargs)
-    register('2dlabels change', change_desc, label_change)
-    delete_desc = CmdDesc(required = existing_arg)
-    register('2dlabels delete', delete_desc, label_delete)
+    create_desc = CmdDesc(required = rargs, keyword = cargs,
+                          synopsis = 'Create a 2d label')
+    register('2dlabels create', create_desc, label_create, logger=logger)
+    change_desc = CmdDesc(required = existing_arg, keyword = cargs,
+                          synopsis = 'Change an existing 2d label')
+    register('2dlabels change', change_desc, label_change, logger=logger)
+    delete_desc = CmdDesc(required = existing_arg,
+                          synopsis = 'Delete a 2d label')
+    register('2dlabels delete', delete_desc, label_delete, logger=logger)
 
 class Label:
     def __init__(self, session, name, text = '', color = None, size = 24, typeface = 'Arial',
@@ -181,6 +187,8 @@ def label_create(session, name, text = '', color = None, size = 24, typeface = '
     visibility : bool
       Whether or not to display the label.
     '''
+    if name == 'all':
+        raise CommandError("'all' is reserved to refer to all labels")
     return Label(**locals())
 
 def label_change(session, name, text = None, color = None, size = None, typeface = None,

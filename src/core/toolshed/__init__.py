@@ -256,7 +256,7 @@ _RemoteURL = "http://localhost:8080"
 _Toolshed = "toolshed"
 # Defaults names for installed ChimeraX bundles
 _ChimeraNamespace = "chimerax"
-_ChimeraCore = "ChimeraX-Core"  # ChimeraX Core's bundle name
+from .. import BUNDLE_NAME as _core_bundle_name
 
 
 # Exceptions raised by Toolshed class
@@ -330,7 +330,6 @@ class Toolshed:
         else:
             self.remote_url = remote_url
         self._repo_locator = None
-        self._inst_locator = None
         self._installed_bundle_info = []
         self._available_bundle_info = []
         self._all_installed_distributions = None
@@ -345,11 +344,11 @@ class Toolshed:
         _debug("data dir: %s" % self._data_dir)
 
         # Add directories to sys.path
-        self._site_dir = os.path.join(self._data_dir, "site-packages")
+        import site
+        self._site_dir = site.USER_SITE
         _debug("site dir: %s" % self._site_dir)
         import os
         os.makedirs(self._site_dir, exist_ok=True)
-        import site
         site.addsitedir(self._site_dir)
 
         # Create triggers
@@ -423,7 +422,7 @@ class Toolshed:
         inst_bi_list = self._load_bundle_infos(logger, rebuild_cache=rebuild_cache)
         for bi in inst_bi_list:
             self.add_bundle_info(bi, logger)
-            bi.register()
+            bi.register(logger)
             if session is not None:
                 bi.initialize(session)
         if check_remote:
@@ -726,22 +725,17 @@ class Toolshed:
 
         # Initialize distlib paths and locators
         _debug("_scan_installed")
-        if self._inst_locator is not None:
-            self._inst_locator.clear_cache()
-            self._inst_path.clear_cache()
-            _debug("_inst_path cleared cache")
-        else:
-            from distlib.database import DistributionPath
-            self._inst_path = DistributionPath()
-            _debug("_inst_path", self._inst_path)
-            from distlib.locators import DistPathLocator
-            self._inst_locator = DistPathLocator(self._inst_path)
-            _debug("_inst_locator", self._inst_locator)
+        from distlib.database import DistributionPath
+        inst_path = DistributionPath()
+        _debug("inst_path", inst_path)
+        from distlib.locators import DistPathLocator
+        inst_locator = DistPathLocator(inst_path)
+        _debug("inst_locator", inst_locator)
 
         # Keep only wheels
 
         all_distributions = []
-        for d in self._inst_path.get_distributions():
+        for d in inst_path.get_distributions():
             try:
                 d.run_requires
                 _debug("_scan_installed distribution", d)
@@ -751,11 +745,11 @@ class Toolshed:
                 all_distributions.append(d)
 
         # Look for core package
-        core = self._inst_locator.locate(_ChimeraCore)
+        core = inst_locator.locate(_core_bundle_name)
         if core is None:
             self._inst_core = set()
             self._inst_tool_dists = OrderedSet()
-            logger.warning("\"%s\" bundle not found" % _ChimeraCore)
+            logger.warning("\"%s\" bundle not found" % _core_bundle_name)
             return
 
         # Partition packages into core and bundles
@@ -765,7 +759,7 @@ class Toolshed:
         self._inst_chimera_core = core
         self._inst_core = set([core])
         self._inst_tool_dists = OrderedSet()
-        self._all_installed_distributions = {_ChimeraCore: core}
+        self._all_installed_distributions = {_core_bundle_name: core}
         for d, label in dg.adjacency_list[core]:
             known_dists.add(d)
             self._inst_core.add(d)
@@ -1095,8 +1089,6 @@ class Toolshed:
         # TODO: update _installed_packages
         updated = set([(d.name, d.version) for d in need_update])
         if self._all_installed_distributions is not None:
-            self._inst_path = None
-            self._inst_locator = None
             self._all_installed_distributions = None
         import copy
         newly_installed = [copy.copy(bi) for bi in self._available_bundle_info
@@ -1111,7 +1103,7 @@ class Toolshed:
     def _install_dist_core(self, want, logger):
         # Add ChimeraX core distribution to update list
         _debug("_install_dist_core")
-        d = self._install_distribution(_ChimeraCore, None, logger)
+        d = self._install_distribution(_core_bundle_name, None, logger)
         if d:
             want.append(d)
 
@@ -1136,9 +1128,8 @@ class Toolshed:
         if repo_dist is None:
             raise ToolshedUnavailableError("cannot find new distribution "
                                            "named \"%s\"" % name)
-        if self._inst_locator is None:
-            self._scan_installed(logger)
-        inst_dist = self._inst_locator.locate(name)
+        all_dists = self._get_all_installed_distributions(logger)
+        inst_dist = all_dists[name]
         if inst_dist is None:
             return repo_dist
         else:
@@ -1616,17 +1607,18 @@ class FormatInfo:
     def cache_data(self):
         return {
             'name': self.name,
+            'nicknames': self.nicknames,
             'category': self.category,
             'suffixes': self.suffixes,
             'mime_types': self.mime_types,
             'url': self.documentation_url,
             'dangerous': self.dangerous,
+            'encoding': self.encoding,
             'icon': self.icon,
             'synopsis': self.synopsis,
-            'nicknames': self.nicknames,
             'has_open': self.has_open,
-            'has_save': self.has_save,
             'open_kwds': self.open_kwds,
+            'has_save': self.has_save,
             'save_kwds': self.save_kwds,
         }
 
@@ -1807,26 +1799,26 @@ class BundleInfo:
         """
         return self._name, self._version
 
-    def register(self):
-        self._register_commands()
-        self._register_file_types()
-        self._register_selectors()
+    def register(self, logger):
+        self._register_commands(logger)
+        self._register_file_types(logger)
+        self._register_selectors(logger)
 
     def deregister(self):
         self._deregister_selectors()
         self._deregister_file_types()
         self._deregister_commands()
 
-    def _register_commands(self):
+    def _register_commands(self, logger):
         """Register commands with cli."""
         from chimerax.core.commands import cli
         for ci in self.commands:
-            def cb(s=self, n=ci.name):
-                s._register_cmd(n)
+            def cb(s=self, n=ci.name, l=logger):
+                s._register_cmd(n, l)
             _debug("delay_registration", ci.name)
-            cli.delay_registration(ci.name, cb)
+            cli.delay_registration(ci.name, cb, logger=logger)
 
-    def _register_cmd(self, command_name):
+    def _register_cmd(self, command_name, logger):
         """Called when commands need to be really registered."""
         try:
             f = self._get_api().register_command
@@ -1837,7 +1829,7 @@ class BundleInfo:
         try:
             if f == BundleAPI.register_command:
                 raise ToolshedError("bundle \"%s\"'s API forgot to override register_command()" % self.name)
-            f(command_name)
+            f(command_name, logger)
         except Exception as e:
             raise ToolshedError(
                 "register_command() failed for command %s:\n%s" % (command_name, str(e)))
@@ -1852,7 +1844,7 @@ class BundleInfo:
             except RuntimeError:
                 pass  # don't care if command was already missing
 
-    def _register_file_types(self):
+    def _register_file_types(self, logger):
         """Register file types."""
         from chimerax.core import io, fetch
         for fi in self.formats:
@@ -1934,7 +1926,7 @@ class BundleInfo:
         # TODO: implement
         pass
 
-    def _register_selectors(self):
+    def _register_selectors(self, logger):
         from ..commands import register_selector
         for si in self.selectors:
             def selector_cb(session, models, results, _name=si.name):
@@ -1946,10 +1938,10 @@ class BundleInfo:
                         % self.name)
                 if reg == BundleAPI.register_selector:
                     raise ToolshedError("bundle \"%s\"'s API forgot to override register_selector()" % self.name)
-                reg(_name)
+                reg(_name, session.logger)
                 from ..commands import get_selector
                 return get_selector(_name)(session, models, results)
-            register_selector(si.name, selector_cb)
+            register_selector(si.name, selector_cb, logger)
 
     def _deregister_selectors(self):
         from ..commands import deregister_selector
@@ -1992,15 +1984,20 @@ class BundleInfo:
                                 % self.name)
         return f(class_name)
 
-    def _get_api(self):
-        """Return BundleAPI instance for this bundle."""
+    def get_module(self):
+        """Return module that has bundle's code"""
         if not self._api_package_name:
-            raise ToolshedError("no API package specified for bundle \"%s\"" % self.name)
+            raise ToolshedError("Bundle %s has no module" % self.name)
         import importlib
         try:
             m = importlib.import_module(self._api_package_name)
         except Exception as e:
-            raise ToolshedError("Error importing bundle API \"%s\": %s" % (self.name, str(e)))
+            raise ToolshedError("Error importing bundle %s's module: %s" % (self.name, str(e)))
+        return m
+
+    def _get_api(self):
+        """Return BundleAPI instance for this bundle."""
+        m = self.get_module()
         try:
             bundle_api = getattr(m, 'bundle_api')
         except AttributeError:
@@ -2009,12 +2006,8 @@ class BundleInfo:
         return bundle_api
 
     def find_icon_path(self, icon_name):
-        import importlib
         import os
-        try:
-            m = importlib.import_module(self._api_package_name)
-        except Exception as e:
-            raise ToolshedError("Error importing bundle API \"%s\": %s" % (self.name, str(e)))
+        m = self.get_module()
         icon_dir = os.path.dirname(m.__file__)
         return os.path.join(icon_dir, icon_name)
 
@@ -2098,12 +2091,13 @@ class BundleAPI:
         raise NotImplementedError
 
     @staticmethod
-    def register_command(command_name):
+    def register_command(command_name, logger):
         """Called when delayed command line registration occurs.
 
         Parameters
         ----------
         command_name : :py:class:`str`
+        logger : :py:class:`~chimerax.core.logger.Logger` instance.
 
         ``command_name`` is a string of the command to be registered.
         This function is called when the command line interface is invoked
@@ -2112,12 +2106,13 @@ class BundleAPI:
         raise NotImplementedError
 
     @staticmethod
-    def register_selector(selector_name):
+    def register_selector(selector_name, logger):
         """Called when delayed selector registration occurs.
 
         Parameters
         ----------
         selector_name : :py:class:`str`
+        logger : :py:class:`~chimerax.core.logger.Logger` instance.
 
         ``selector_name`` is the name of the selector to be registered.
         This function is called when the selector invoked with one of

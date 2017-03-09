@@ -257,6 +257,69 @@ extern "C" EXPORT void set_atom_bfactor(void *atoms, size_t n, float32_t *bfacto
     error_wrap_array_set(a, n, &Atom::set_bfactor, bfactors);
 }
 
+extern "C" EXPORT void atom_has_aniso_u(void *atoms, size_t n, npy_bool *has_aniso_u)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    error_wrap_array_get<Atom, bool, npy_bool>(a, n, &Atom::has_aniso_u, has_aniso_u);
+}
+
+extern "C" EXPORT void atom_aniso_u(void *atoms, size_t n, float32_t *aniso_u)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+	    const std::vector<float> *ai = a[i]->aniso_u();
+	    if (ai) {
+	        // Copy 6 values of symmetric matrix to 3x3 matrix.
+	        float32_t *ani = aniso_u + 9*i;
+		float32_t a00 = (*ai)[0], a01 = (*ai)[1], a02 = (*ai)[2];
+		float32_t a11 = (*ai)[3], a12 = (*ai)[4], a22 = (*ai)[5];
+		ani[0] = a00; ani[1] = a01; ani[2] = a02;
+		ani[3] = a01; ani[4] = a11; ani[5] = a12;
+		ani[6] = a02; ani[7] = a12; ani[8] = a22;
+	    } else {
+		PyErr_SetString(PyExc_ValueError, "Atom has no aniso_u value.");
+		break;
+	    }
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void atom_aniso_u6(void *atoms, size_t n, float32_t *aniso_u)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+	    const std::vector<float> *ai = a[i]->aniso_u();
+	    if (ai) {
+	        float32_t *ani = aniso_u + 6*i;
+		ani[0] = (*ai)[0]; ani[1] = (*ai)[3]; ani[2] = (*ai)[5];
+		ani[3] = (*ai)[1]; ani[4] = (*ai)[2]; ani[5] = (*ai)[4];
+	    } else {
+		PyErr_SetString(PyExc_ValueError, "Atom has no aniso_u value.");
+		break;
+	    }
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void set_atom_aniso_u6(void *atoms, size_t n, float32_t *aniso_u)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+	  float32_t *ani = aniso_u + 6*i;
+	  a[i]->set_aniso_u(ani[0],ani[3],ani[4],ani[1],ani[5],ani[2]);
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void atom_occupancy(void *atoms, size_t n, float32_t *occupancies)
 {
     Atom **a = static_cast<Atom **>(atoms);
@@ -687,6 +750,17 @@ extern "C" EXPORT void atom_num_bonds(void *atoms, size_t n, size_t *nbonds)
     try {
         for (size_t i = 0; i != n; ++i)
             nbonds[i] = a[i]->bonds().size();
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void atom_num_explicit_bonds(void *atoms, size_t n, size_t *nbonds)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            nbonds[i] = a[i]->num_explicit_bonds();
     } catch (...) {
         molc_error();
     }
@@ -1592,6 +1666,21 @@ extern "C" EXPORT void residue_mmcif_chain_id(void *residues, size_t n, pyobject
     }
 }
 
+extern "C" EXPORT void residue_delete(void *residues, size_t n)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    try {
+        Residue::Atoms atoms;
+        for (size_t i = 0; i != n; ++i) {
+	  const Residue::Atoms &ratoms = r[i]->atoms();
+	  atoms.insert(atoms.end(), ratoms.begin(), ratoms.end());
+	}
+	atom_delete(atoms.data(), atoms.size());
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void* residue_find_atom(void *residue, char *atom_name)
 {
     Residue *r = static_cast<Residue*>(residue);
@@ -1709,6 +1798,24 @@ extern "C" EXPORT void set_residue_ss_id(void *residues, size_t n, int32_t *ss_i
     error_wrap_array_set(r, n, &Residue::set_ss_id, ss_id);
 }
 
+extern "C" EXPORT void residue_ss_type(void *residues, size_t n, int32_t *ss_type)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_get(r, n, &Residue::ss_type, ss_type);
+}
+
+extern "C" EXPORT void set_residue_ss_type(void *residues, size_t n, int32_t *ss_type)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            r[i]->set_ss_type(static_cast<Residue::SSType>(ss_type[i]));
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void residue_ribbon_display(void *residues, size_t n, npy_bool *ribbon_display)
 {
     Residue **r = static_cast<Residue **>(residues);
@@ -1733,23 +1840,6 @@ extern "C" EXPORT void set_residue_ribbon_hide_backbone(void *residues, size_t n
     error_wrap_array_set(r, n, &Residue::set_ribbon_hide_backbone, ribbon_hide_backbone);
 }
 
-extern "C" EXPORT void residue_ribbon_style(void *residues, size_t n, int32_t *ribbon_style)
-{
-    Residue **r = static_cast<Residue **>(residues);
-    error_wrap_array_get(r, n, &Residue::ribbon_style, ribbon_style);
-}
-
-extern "C" EXPORT void set_residue_ribbon_style(void *residues, size_t n, int32_t *ribbon_style)
-{
-    Residue **r = static_cast<Residue **>(residues);
-    try {
-        for (size_t i = 0; i < n; ++i)
-            r[i]->set_ribbon_style(static_cast<Residue::Style>(ribbon_style[i]));
-    } catch (...) {
-        molc_error();
-    }
-}
-
 extern "C" EXPORT void residue_ribbon_adjust(void *residues, size_t n, float32_t *ribbon_adjust)
 {
     Residue **r = static_cast<Residue **>(residues);
@@ -1760,6 +1850,33 @@ extern "C" EXPORT void set_residue_ribbon_adjust(void *residues, size_t n, float
 {
     Residue **r = static_cast<Residue **>(residues);
     error_wrap_array_set(r, n, &Residue::set_ribbon_adjust, ribbon_adjust);
+}
+
+extern "C" EXPORT void residue_ribbon_selected(void *residues, size_t n, npy_bool *sel)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_get<Residue, bool, npy_bool>(r, n, &Residue::ribbon_selected, sel);
+}
+
+extern "C" EXPORT void set_residue_ribbon_selected(void *residues, size_t n, npy_bool *sel)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_set<Residue, bool, npy_bool>(r, n, &Residue::set_ribbon_selected, sel);
+}
+
+extern "C" EXPORT size_t residue_ribbon_num_selected(void *residues, size_t n)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    size_t s = 0;
+    try {
+        for (size_t i = 0; i != n; ++i)
+            if (r[i]->ribbon_selected())
+                s += 1;
+        return s;
+    } catch (...) {
+        molc_error();
+        return 0;
+    }
 }
 
 extern "C" EXPORT void residue_structure(void *residues, size_t n, pyobject_t *molp)
@@ -1944,11 +2061,10 @@ static void residue_update_hide(Residue *r, Atom *center)
     }
 }
 
-extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int orient)
+extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
 {
-    bool want_peptide = (orient == Structure::RIBBON_ORIENT_PEPTIDE);
-    bool want_guides = (orient != Structure::RIBBON_ORIENT_ATOMS &&
-                        orient != Structure::RIBBON_ORIENT_CURVATURE);
+    bool want_peptide = true;
+    bool want_guides = true;
     Residue **res_array = static_cast<Residue **>(residues);
     try {
         // If no ribbon is displayed for any residue, return Nones
@@ -2063,48 +2179,94 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int
             *data++ = c[2];
         }
         PyTuple_SetItem(o, 2, ca);
-        float *gdata;
-        if (want_peptide && peptide_planes.size() > 0) {
-            // For orienting using peptide planes, we need to process some more
+
+        if (!has_guides) {
+            Py_INCREF(Py_None);
+            PyTuple_SetItem(o, 3, Py_None);
+        }
+        else {
+            float *gdata;
             PyObject *ga = python_float_array(centers.size(), 3, &gdata);
-            // The peptide_planes vector is one shorter than the number
-            // of centers because the peptide plane is defined relative
-            // to the _previous_ residue.  So the first residue does not have
-            // a peptide plane vector.
-            // To get the "guide" vector for a residue, we find the cross
-            // product of the peptide planes formed with the previous and
-            // next residues.  This will give us a vector that is in both
-            // peptide planes and should define the ribbon orientations.
-            for (size_t i = 0; i != peptide_planes.size() - 1; ++i) {
-                const float* prev_pp = peptide_planes[i].normal;
-                const float* this_pp = peptide_planes[i + 1].normal;
-                float* guide = gdata + (i+1)*3;
-                cross(prev_pp, this_pp, guide);
-                if (!normalize(guide))
+            size_t last = centers.size() - 1;
+            //
+            // For all but the first and last residues, compute the orientation.
+            // First and last are different if they use peptide orientation
+            //
+            for (size_t i = 1; i != last; ++i) {
+                Residue* r = res_array[i];
+                float* center = cdata + i*3;
+                float* guide = gdata + i*3;
+                if (want_peptide
+                && r->polymer_type() == Residue::PT_AMINO
+                && r->structure()->ribbon_orient(r) == Structure::RIBBON_ORIENT_PEPTIDE) {
+                    // "peptide_planes" are relative to the previous
+                    // residue, so the i'th element is the peptide
+                    // plane between centers[i] and centers[i+1].
+                    // We want to average (i-1,i) and (i,i+1).
+                    const float* prev_pp = peptide_planes[i-1].normal;
+                    const float* this_pp = peptide_planes[i].normal;
+                    cross(prev_pp, this_pp, guide);
+                    if (normalize(guide)) {
+                        guide[0] += center[0];
+                        guide[1] += center[1];
+                        guide[2] += center[2];
+                        continue;
+                    }
                     std::cerr << "normalization error\n";
+                }
+                // Either peptide calculation failed or we want guides
+                const Coord &c = guides[i]->coord();
+                guide[0] = c[0];
+                guide[1] = c[1];
+                guide[2] = c[2];
             }
-            // We double the first and last guides because the first and
-            // last residues only have one defined peptide plane to use.
-            int last = centers.size() * 3 - 3;
-            for (int j = 0; j != 3; ++j) {
-                gdata[j] = gdata[3 + j];
-                gdata[last + j] = gdata[last - 3 + j];
+            //
+            // Handle first residue
+            //
+            {
+                Residue* r = res_array[0];
+                float* guide = gdata;
+                float* source;
+                if (want_peptide
+                && r->polymer_type() == Residue::PT_AMINO
+                && r->structure()->ribbon_orient(r) == Structure::RIBBON_ORIENT_PEPTIDE) {
+                    // Want peptide.  Copy from second residue.
+                    source = gdata + 3;
+                    guide[0] = source[0];
+                    guide[1] = source[1];
+                    guide[2] = source[2];
+                }
+                else {
+                    const Coord &c = guides[0]->coord();
+                    guide[0] = c[0];
+                    guide[1] = c[1];
+                    guide[2] = c[2];
+                }
             }
-            // Make sure that each guide is positioned on the same
-            // side as the carbonyl oxygen (guide ATOM) so that
-            // ribbon orientation flipping can be enforced
-            float cg[3];
-            for (size_t i = 0; i != centers.size(); ++i) {
-                atom_vector(centers[i], guides[i], cg);
-                int offset = i * 3;
-                if (inner(cg, gdata + offset))
-                    for (int j = 0; j != 3; ++j)
-                        gdata[offset + j] = -gdata[offset + j];
+            //
+            // Handle last residue
+            //
+            {
+                Residue* r = res_array[last];
+                float* guide = gdata;
+                float* source;
+                if (want_peptide
+                && r->polymer_type() == Residue::PT_AMINO
+                && r->structure()->ribbon_orient(r) == Structure::RIBBON_ORIENT_PEPTIDE) {
+                    // Want peptide.  Copy from next to last residue.
+                    source = gdata + (last-1)*3;
+                    guide[0] = source[0];
+                    guide[1] = source[1];
+                    guide[2] = source[2];
+                }
+                else {
+                    const Coord &c = guides[last]->coord();
+                    guide[0] = c[0];
+                    guide[1] = c[1];
+                    guide[2] = c[2];
+                }
             }
-            // Finally, we add back the center coordinates to move
-            // back to the same coordinate system
-            for (size_t i = 0; i != centers.size() * 3; ++i)
-                gdata[i] += cdata[i];
+            PyTuple_SetItem(o, 3, ga);
 #if 0
             for (int i = 0; i != centers.size(); ++i) {
                 float *c = cdata + i*3;
@@ -2113,22 +2275,6 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int
                 std::cerr << ".d " << *(g+0) << ' ' << *(g+1) << ' ' << *(g+2) << '\n';
             }
 #endif
-            PyTuple_SetItem(o, 3, ga);
-        }
-        else if (has_guides) {
-            PyObject *ga = python_float_array(guides.size(), 3, &gdata);
-            data = gdata;
-            for (auto atom : guides) {
-                const Coord &c = atom->coord();
-                *data++ = c[0];
-                *data++ = c[1];
-                *data++ = c[2];
-            }
-            PyTuple_SetItem(o, 3, ga);
-        }
-        else {
-            Py_INCREF(Py_None);
-            PyTuple_SetItem(o, 3, Py_None);
         }
         return o;
     } catch (...) {
@@ -2955,6 +3101,17 @@ extern "C" EXPORT void structure_atoms(void *mols, size_t n, pyobject_t *atoms)
     }
 }
 
+extern "C" EXPORT void structure_ball_scale(void *mols, size_t n, float32_t *bscales)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_get(m, n, &Structure::ball_scale, bscales);
+}
+
+extern "C" EXPORT void set_structure_ball_scale(void *mols, size_t n, float32_t *bscales)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_set(m, n, &Structure::set_ball_scale, bscales);
+}
 extern "C" EXPORT void structure_num_bonds(void *mols, size_t n, size_t *nbonds)
 {
     Structure **m = static_cast<Structure **>(mols);
@@ -3022,15 +3179,31 @@ extern "C" EXPORT void set_structure_active_coordset_id(void *mols, size_t n, in
     }
 }
 
-extern "C" EXPORT void structure_add_coordset(void *mol, int id, void *xyz)
+extern "C" EXPORT void structure_add_coordset(void *mol, int id, void *xyz, size_t n)
 {
     Structure *m = static_cast<Structure *>(mol);
     try {
         CoordSet *cs = m->new_coord_set(id);
-	cs->set_coords((float *)xyz, m->num_atoms());
+	cs->set_coords((double *)xyz, n);
     } catch (...) {
         molc_error();
     }
+}
+
+extern "C" EXPORT PyObject *structure_ribbon_orient(void *mol, void *residues, size_t n)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    Residue **r = static_cast<Residue **>(residues);
+    PyObject *o = NULL;
+    try {
+        std::vector<int> orients;
+        for (size_t i = 0; i != n; ++i)
+            orients.push_back(m->ribbon_orient(r[i]));
+        o = c_array_to_python(orients);
+    } catch (...) {
+        molc_error();
+    }
+    return o;
 }
 
 extern "C" EXPORT void structure_coordset_ids(void *mols, size_t n, int32_t *coordset_ids)
@@ -3040,6 +3213,17 @@ extern "C" EXPORT void structure_coordset_ids(void *mols, size_t n, int32_t *coo
         for (size_t i = 0; i != n; ++i)
 	  for (auto cs: m[i]->coord_sets())
 	    *coordset_ids++ = cs->id();
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void structure_coordset_size(void *mols, size_t n, int32_t *coordset_size)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    try {
+        for (size_t i = 0; i != n; ++i)
+	  *coordset_size++ = m[i]->active_coord_set()->coords().size();
     } catch (...) {
         molc_error();
     }
@@ -3559,6 +3743,29 @@ extern "C" EXPORT void set_pdb_version(void *mols, size_t n, int32_t *version)
 // -------------------------------------------------------------------------
 // element functions
 //
+extern "C" EXPORT float element_bond_length(void *element1, void *element2)
+{
+    Element *e1 = static_cast<Element *>(element1);
+    Element *e2 = static_cast<Element *>(element2);
+    try {
+        return Element::bond_length(*e1, *e2);
+    } catch (...) {
+        molc_error();
+        return 0.0;
+    }
+}
+
+extern "C" EXPORT float element_bond_radius(void *element)
+{
+    Element *e = static_cast<Element *>(element);
+    try {
+        return Element::bond_radius(*e);
+    } catch (...) {
+        molc_error();
+        return 0.0;
+    }
+}
+
 extern "C" EXPORT void element_name(void *elements, size_t n, pyobject_t *names)
 {
     Element **e = static_cast<Element **>(elements);

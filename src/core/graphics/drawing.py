@@ -158,7 +158,6 @@ class Drawing:
         self._vertex_buffers = []               # Buffers used by both drawing and selection
         self._opengl_context = None		# For deleting buffers, to make context current
 
-        self.pickable = True	# Whether first_intercept() and planes_pick() will consider this drawing
         self.was_deleted = False
         "Indicates whether this Drawing has been deleted."
 
@@ -352,11 +351,14 @@ class Drawing:
                 return True
         return False
 
-    def clear_selection(self):
-        '''Unselect this drawing. Child drawings may remain selected.'''
+    def clear_selection(self, include_children=True):
+        '''Unselect this drawing and child drawings in if include_children is True.'''
         self.selected = False
         self.selected_triangles_mask = None
         self.redraw_needed(selection_changed=True)
+        if include_children:
+            for d in self.child_drawings():
+                d.clear_selection()
 
     def get_position(self):
         return self._positions[0]
@@ -788,6 +790,8 @@ class Drawing:
         Find the first intercept of a line segment with the displayed part
         of this drawing and its children.  The end points are in the parent
         drawing coordinates and do not take account of this Drawings positions.
+        If the exclude option is given it is a function that takes a drawing
+        and returns true if this drawing and its children should be excluded.
         Return a Pick object for the intercepted item.
         The Pick object has a distance attribute giving the fraction (0-1)
         along the segment where the intersection occurs.
@@ -796,15 +800,19 @@ class Drawing:
         to determine the front-most point in the center of view to be used
         as the interactive center of rotation.
         '''
+        if not self.display:
+            return None
+        if exclude is not None and exclude(self):
+            return None
+
         pclosest = None
-        if self.display and (exclude is None or not hasattr(self, exclude)):
-            if not self.empty_drawing():
-                p = self._first_intercept_excluding_children(mxyz1, mxyz2)
-                if p and (pclosest is None or p.distance < pclosest.distance):
-                    pclosest = p
-            p = self.first_intercept_children(self.child_drawings(), mxyz1, mxyz2, exclude)
+        if not self.empty_drawing():
+            p = self._first_intercept_excluding_children(mxyz1, mxyz2)
             if p and (pclosest is None or p.distance < pclosest.distance):
                 pclosest = p
+        p = self.first_intercept_children(self.child_drawings(), mxyz1, mxyz2, exclude)
+        if p and (pclosest is None or p.distance < pclosest.distance):
+            pclosest = p
         return pclosest
 
     def first_intercept_children(self, child_drawings, mxyz1, mxyz2, exclude=None):
@@ -816,7 +824,7 @@ class Drawing:
         pclosest = None
         pos = [p.inverse() * (mxyz1, mxyz2) for p in self.positions]
         for d in child_drawings:
-            if d.display and (exclude is None or not hasattr(d, exclude)):
+            if d.display and (exclude is None or not exclude(d)):
                 for cxyz1, cxyz2 in pos:
                     p = d.first_intercept(cxyz1, cxyz2, exclude)
                     if p and (pclosest is None or p.distance < pclosest.distance):
@@ -824,14 +832,13 @@ class Drawing:
         return pclosest
 
     def _first_intercept_excluding_children(self, mxyz1, mxyz2):
-        if self.empty_drawing() or not self.pickable:
+        if self.empty_drawing():
             return None
         va = self.vertices
         ta = self.masked_triangles
         if ta.shape[1] != 3:
             # TODO: Intercept only for triangles, not lines or points.
             return None
-        # TODO: Check intercept of bounding box as optimization
         p = None
         from ..geometry import closest_triangle_intercept
         if self.positions.is_identity():
@@ -839,41 +846,58 @@ class Drawing:
             if fmin is not None:
                 p = TrianglePick(fmin, tmin, 0, self)
         else:
-            # Only check objects with bounding box close to line. 
-            b = self._geometry_bounds()
-            if b is None:
-                return None
-            c, r = b.center(), b.radius()
-            pos = self.positions
-            pc = pos * c
-            from ..geometry import segment_intercepts_spheres
-            bi = segment_intercepts_spheres(pc, r, mxyz1, mxyz2)
-            dp = self._displayed_positions
-            if dp is not None:
-                from numpy import logical_and
-                logical_and(bi, dp, bi)
-
-            for i in bi.nonzero()[0]:
-                cxyz1, cxyz2 = pos[i].inverse() * (mxyz1, mxyz2)
+            pos_nums = self.bounds_intercept_copies(self._geometry_bounds(), mxyz1, mxyz2)
+            for i in pos_nums:
+                cxyz1, cxyz2 = self.positions[i].inverse() * (mxyz1, mxyz2)
                 fmin, tmin = closest_triangle_intercept(va, ta, cxyz1, cxyz2)
                 if fmin is not None and (p is None or fmin < p.distance):
                     p = TrianglePick(fmin, tmin, i, self)
         return p
 
+    def bounds_intercept_copies(self, bounds, mxyz1, mxyz2):
+        '''
+        Return indices of positions where line segment intercepts displayed bounds.
+        This is to optimize picking so that positions where no intercept occurs do not
+        need to be checked to see what is picked.
+        '''
+        # Only check objects with bounding box close to line. 
+        b = bounds
+        if b is None:
+            return []
+        c, r = b.center(), b.radius()
+        pc = self.positions * c
+        from ..geometry import segment_intercepts_spheres
+        bi = segment_intercepts_spheres(pc, r, mxyz1, mxyz2)
+        dp = self._displayed_positions
+        if dp is not None:
+            from numpy import logical_and
+            logical_and(bi, dp, bi)
+        pos_nums = bi.nonzero()[0]
+        return pos_nums
+
     def planes_pick(self, planes, exclude=None):
         '''
         Find the displayed drawing instances bounded by the specified planes
-        for this drawing and its children.  Each plane is a 4-vector.
+        for this drawing and its children.  Each plane is a 4-vector v with
+        points in the pick region v0*x + v1*y + v2*z + v3 >= 0 using coordinate
+        system of the parent drawing.  If a drawing has instances then only
+        the center of each instance is considered and the whole instance is
+        picked if the center is within the planes.  If a drawing has only one
+        instance (self.positions has length 1) then the pick lists the individual
+        triangles which have at least one vertex within all of the planes.
+        If exclude is not None then it is a function called with a Drawing argument
+        that returns true if this drawing and its children should be excluded
+        from the pick.
         Return a list of Pick objects for the contained items.
         This routine is used for selecting objects in a frustum.
         '''
         if not self.display:
             return []
-        if exclude is not None and hasattr(self, exclude):
+        if exclude is not None and exclude(self):
             return []
 
         picks = []
-        if not self.empty_drawing() and self.pickable:
+        if not self.empty_drawing():
             from ..geometry import points_within_planes
             if len(self.positions) > 1:
                 # Use center of instances.
@@ -890,7 +914,9 @@ class Drawing:
                         picks.append(InstancePick(pmask, self))
             else:
                 # For non-instances pick using all vertices.
-                vmask = points_within_planes(self.vertices, planes)
+                from ..geometry import transform_planes
+                pplanes = transform_planes(self.position, planes)
+                vmask = points_within_planes(self.vertices, pplanes)
                 if vmask.sum() > 0:
                     t = self.triangles
                     from numpy import logical_or, logical_and
@@ -901,10 +927,18 @@ class Drawing:
                         logical_and(tmask, tm, tmask)
                     if tmask.sum() > 0:
                         picks.append(TrianglesPick(tmask, self))
+        from ..geometry import transform_planes
         for d in self.child_drawings():
-            picks.extend(d.planes_pick(planes, exclude))
+            for p in self.positions:
+                pplanes = transform_planes(p, planes)
+                picks.extend(d.planes_pick(pplanes, exclude))
         return picks
 
+    def __del__(self):
+        if not self.was_deleted:
+            # Release opengl resources.
+            self.delete()
+            
     def delete(self):
         '''
         Delete drawing and all child drawings.
@@ -1211,9 +1245,14 @@ def draw_overlays(drawings, renderer):
     '''Render drawings using an identity projection matrix with no
     depth test.'''
     r = renderer
-    r.disable_shader_capabilities(r.SHADER_STEREO_360)	# Avoid geometry shift
+    r.disable_shader_capabilities(r.SHADER_STEREO_360 |	# Avoid geometry shift
+                                  r.SHADER_DEPTH_CUE |
+                                  r.SHADER_SHADOWS |
+                                  r.SHADER_MULTISHADOW |
+                                  r.SHADER_CLIP_PLANES)
     r.set_projection_matrix(((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0),
                              (0, 0, 0, 1)))
+
     from ..geometry import place
     p0 = place.identity()
     r.set_view_matrix(p0)
@@ -1226,26 +1265,6 @@ def draw_overlays(drawings, renderer):
     r.enable_blending(False)
     r.enable_depth_test(True)
     r.disable_shader_capabilities(0)
-
-
-def draw_2d_overlays(drawings, renderer):
-    '''Render drawings using an identity projection matrix with no
-    depth test.'''
-    r = renderer
-    ww, wh = r.render_size()
-    from .camera import ortho
-    projection = ortho(0, ww, 0, wh, -1, 1)
-    r.set_projection_matrix(projection)
-    from ..geometry import place
-    p0 = place.identity()
-    r.set_view_matrix(p0)
-    r.set_model_matrix(p0)
-    r.enable_depth_test(False)
-    _draw_multiple(drawings, r, p0, Drawing.OPAQUE_DRAW_PASS)
-    r.enable_blending(True)
-    _draw_multiple(drawings, r, p0, Drawing.TRANSPARENT_DRAW_PASS)
-    r.enable_blending(False)
-    r.enable_depth_test(True)
 
 
 def draw_outline(renderer, cvinv, drawings):
@@ -1528,8 +1547,11 @@ class Pick:
         '''Text description of the picked object.'''
         return None
 
-    def select(self, toggle=False):
-        '''Cause this picked object to be marked as selected.'''
+    def select(self, mode = 'add'):
+        '''
+        Cause this picked object to be selected ('add' mode), unselected ('subtract' mode)
+        or toggle selected ('toggle' mode).
+        '''
         pass
 
 class TrianglePick(Pick):
@@ -1577,14 +1599,20 @@ class TrianglePick(Pick):
     def drawing(self):
         return self._drawing
 
-    def select(self, toggle=False):
+    def select(self, mode = 'add'):
         d = self.drawing()
         pmask = d.selected_positions
         if pmask is None:
             from numpy import zeros, bool
             pmask = zeros((len(d.positions),), bool)
         c = self._copy
-        pmask[c] = not pmask[c] if toggle else 1
+        if mode == 'add':
+            s = 1
+        elif mode == 'subtract':
+            s = 0
+        elif mode == 'toggle':
+            s = not pmask[c]
+        pmask[c] = s
         d.selected_positions = pmask
 
 class TrianglesPick(Pick):
@@ -1611,9 +1639,15 @@ class TrianglesPick(Pick):
     def drawing(self):
         return self._drawing
 
-    def select(self, toggle=False):
+    def select(self, mode = 'add'):
         d = self.drawing()
-        d.selected = (not d.selected) if toggle else True
+        if mode == 'add':
+            s = True
+        elif mode == 'subtract':
+            s = False
+        elif mode == 'toggle':
+            s = (not d.selected)
+        d.selected = s
 
 
 class InstancePick(Pick):
@@ -1640,17 +1674,21 @@ class InstancePick(Pick):
     def drawing(self):
         return self._drawing
 
-    def select(self, toggle=False):
+    def select(self, mode = 'add'):
         d = self.drawing()
-        pmask = d.selected_positions
         pm = self._positions_mask
-        if pmask is None:
-            pmask = pm
-        elif toggle:
+        pmask = d.selected_positions
+        if pmask is None and mode != 'subtract':
+            pmask = pm.copy()
+            pmask[:] = d.selected
+        if mode == 'add':
+            pmask[pm] = 1
+        elif mode == 'subtract':
+            if pmask is not None:
+                pmask[pm] = 0
+        elif mode == 'toggle':
             from numpy import logical_xor
             logical_xor(pmask, pm, pmask)
-        else:
-            pmask = pm
         d.selected_positions = pmask
 
 

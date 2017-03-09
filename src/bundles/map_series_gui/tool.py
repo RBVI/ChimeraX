@@ -63,7 +63,7 @@ class MapSeries(ToolInstance):
         layout.addWidget(pb)
         self.subsample_button = x2 = QPushButton()
         x2.setCheckable(True)
-        x2icon = join(dirname(__file__), 'half.png')
+        x2icon = join(dirname(__file__), 'icons', 'half.png')
         x2pix = QPixmap(x2icon)
         x2i = QIcon(x2pix)
         x2.setIcon(x2i)
@@ -123,6 +123,8 @@ class MapSeries(ToolInstance):
             if lt is not None and lt != t:
                 s.copy_display_parameters(lt, t)
             s.show_time(t)
+        # Make sure this time is shown before we draw the next time.
+        self.session.ui.update_graphics_now()
 
     def play_cb(self, event):
         if self.playing:
@@ -141,7 +143,7 @@ class MapSeries(ToolInstance):
         if t >= n - 1:
             t = 0
         from chimerax.core.map.series.vseries_command import vseries_play
-        p = vseries_play(self.session, self.series, start=t, loop=True, cache_frames=n*ns)
+        p = vseries_play(self.session, self.series, start_time=t, loop=True, cache_frames=n*ns)
 
         def update_slider(t, self=self):
             self.update_slider_range()
@@ -163,8 +165,7 @@ class MapSeries(ToolInstance):
 
     def set_play_button_icon(self, play):
         from os.path import dirname, join
-        bitmap_path = (join(dirname(__file__),
-                       'play.png' if play else 'pause.png'))
+        bitmap_path = join(dirname(__file__), 'icons', ('play.png' if play else 'pause.png'))
         pb = self.play_button
         from PyQt5.QtGui import QPixmap, QIcon
         ppix = QPixmap(bitmap_path)

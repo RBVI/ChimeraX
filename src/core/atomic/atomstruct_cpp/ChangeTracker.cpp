@@ -31,9 +31,7 @@ const std::string ChangeTracker::REASON_HALFBOND("halfbond changed");
 const std::string ChangeTracker::REASON_HIDE("hide changed");
 const std::string ChangeTracker::REASON_IDATM_TYPE("idatm_type changed");
 const std::string ChangeTracker::REASON_IS_BACKBONE("is_backbone changed");
-const std::string ChangeTracker::REASON_IS_HELIX("is_helix changed");
 const std::string ChangeTracker::REASON_IS_HET("is_het changed");
-const std::string ChangeTracker::REASON_IS_STRAND("is_strand changed");
 const std::string ChangeTracker::REASON_NAME("name changed");
 const std::string ChangeTracker::REASON_OCCUPANCY("occupancy changed");
 const std::string ChangeTracker::REASON_RADIUS("radius changed");
@@ -41,7 +39,6 @@ const std::string ChangeTracker::REASON_RESIDUES("residues changed");
 const std::string ChangeTracker::REASON_RIBBON_ADJUST("ribbon_adjust changed");
 const std::string ChangeTracker::REASON_RIBBON_COLOR("ribbon_color changed");
 const std::string ChangeTracker::REASON_RIBBON_DISPLAY("ribbon_display changed");
-const std::string ChangeTracker::REASON_RIBBON_STYLE("ribbon_style changed");
 const std::string ChangeTracker::REASON_RIBBON_HIDE_BACKBONE("ribbon_hide_backbone changed");
 const std::string ChangeTracker::REASON_RIBBON_TETHER("ribbon_tether_* changed");
 const std::string ChangeTracker::REASON_RIBBON_ORIENTATION("ribbon_orientation changed");
@@ -51,6 +48,7 @@ const std::string ChangeTracker::REASON_SEQUENCE("sequence changed");
 const std::string ChangeTracker::REASON_SERIAL_NUMBER("serial_number changed");
 const std::string ChangeTracker::REASON_STRUCTURE_CATEGORY("structure_category changed");
 const std::string ChangeTracker::REASON_SS_ID("ss_id changed");
+const std::string ChangeTracker::REASON_SS_TYPE("ss_type changed");
 
 DiscardingChangeTracker  dct;
 

@@ -54,17 +54,18 @@ def smoothlines(session, models, step_factor = 0.1, iterations = 10, replace = F
             session.models.add([m])
             model.display = False
 
-def register_smoothlines_command():
+def register_smoothlines_command(logger):
 
-    from chimerax.core.commands import CmdDesc, register, ModelsArg, FloatArg, IntArg, NoArg
+    from chimerax.core.commands import CmdDesc, register, ModelsArg, FloatArg, IntArg, BoolArg
 
     desc = CmdDesc(
         required = [('models', ModelsArg)],
         keyword = [('step_factor', FloatArg),
                    ('iterations', IntArg),
-                   ('replace', NoArg)]
+                   ('replace', BoolArg)],
+        synopsis = 'Smooth lines (chains of connected vertices) in a line model'
     )
-    register('smoothlines', desc, smoothlines)
+    register('smoothlines', desc, smoothlines, logger=logger)
 
 def smoothed_vertices(vertices, lines, step_factor, iterations):
     n = len(vertices)

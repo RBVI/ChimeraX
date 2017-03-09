@@ -16,20 +16,22 @@ from chimerax.core.toolshed import BundleAPI
 class _MyAPI(BundleAPI):
 
     @staticmethod
-    def register_command(command_name):
+    def register_command(command_name, logger):
         # 'register_command' is lazily called when command is referenced
         from . import cmd
         from chimerax.core.commands import register
-        register(command_name, cmd.help_desc, cmd.help)
+        register(command_name, cmd.help_desc, cmd.help, logger=logger)
 
     @staticmethod
     def open_file(session, f, name, filespec=None, **kw):
         # 'open_file' is called by session code to open a file
-        from . import cmd
+        import os
+        path = os.path.expanduser(filespec)
+        path = os.path.abspath(path)
         from urllib.parse import urlunparse
         from urllib.request import pathname2url
-        url = urlunparse(('file', '', pathname2url(filespec), '', '', ''))
-        cmd.help(session, url)
+        url = urlunparse(('file', '', pathname2url(path), '', '', ''))
+        show_url(session, url)
         return [], "Opened %s" % name
 
     @staticmethod
@@ -39,5 +41,14 @@ class _MyAPI(BundleAPI):
             from . import tool
             return tool.HelpUI
         return None
+
+def show_url(session, url):
+    if session.ui.is_gui:
+        from .tool import HelpUI
+        help_viewer = HelpUI.get_viewer(session)
+        help_viewer.show(url)
+    else:
+        import webbrowser
+        webbrowser.open(url)
 
 bundle_api = _MyAPI()

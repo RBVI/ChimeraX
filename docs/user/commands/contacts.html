@@ -29,33 +29,28 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: contacts</h3>
 <h3><a href="usageconventions.html">Usage</a>:
- <BR><b>contacts</b>
+<br><b>contacts</b>
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 [&nbsp;probeRadius&nbsp;&nbsp;<i>rad</i>&nbsp;]
 [&nbsp;areaCutoff&nbsp;&nbsp;<i>interface-area</i>&nbsp;] 
 [&nbsp;interfaceResidueAreaCutoff&nbsp;&nbsp;<i>res-area</i>&nbsp;] 
 </h3>
 <p>
-The <b>contacts</b> command calculates the buried solvent-accessible
-surface area (SASA) for each pair of chains in the
+The <b>contacts</b> command calculates the buried 
+<a href="surface.html#surfdefs">solvent-accessible surface</a>
+area (SASA) for each pair of chains in the
 <a href="atomspec.html">specified</a> set of atoms, based on chain IDs,
 and generates a <a href="#diagram">network diagram</a>
 of the interchain contacts. Unspecified atoms are ignored, but
 solvent, ions, and ligand residues are <i>not</i> excluded automatically.
 The buried SASA is calculated as described for
-<a href="buriedarea.html"><b>buriedarea</b></a>, and the measured 
-interface areas are reported in the <a href="../tools/log.html"><b>Log</b></a>.
-See also: <a href="sasa.html"><b>sasa</b></a>
+<a href="measure.html#buriedArea"><b>measure buriedArea</b></a>,
+and results are reported in the <a href="../tools/log.html"><b>Log</b></a>.
+See also:
+<a href="../radii.html">VDW radii</a>
 </p><p>
-Whereas the <a href="surface.html"><b>surface</b></a> command shows
-<b><i>solvent-excluded</i></b> surfaces (SES) defined by the closest
-approach of the surface of a probe sphere rolled over the
-atomic <a href="../radii.html">VDW spheres</a>,
-the <b><i>solvent-accessible</i></b> surface (SAS) 
-is traced out by the center of the probe sphere and is not displayed.
-The <b>probeRadius</b> <i>rad</i> is the radius of this 
-&ldquo;rolling sphere&rdquo; probe (default <b>1.4</b> &Aring;, 
-the value often used to approximate a water molecule).
+The default <b>probeRadius</b> <i>rad</i> for calculating each SAS
+is <b>1.4</b> &Aring;, often used to approximate a water molecule.
 Interfaces with at least <i>interface-area</i> buried
 (default <b>300</b> &Aring;<sup>2</sup>, can be changed with the
 <b>areaCutoff</b> option) are counted as contacts
@@ -91,11 +86,11 @@ in the structure) are indicated with dashed lines.
 </p><p>
 Clicking a node shows the atoms of the corresponding chain and any
 interacting chains; other nodes are grayed out and their atoms hidden.
-Alt-clicking a node <a href="select.html">selects</a>
+Alt-clicking a node <a href="../selection.html">selects</a>
 the atoms of the corresponding chain.
 Similarly, clicking an edge shows the atoms of the two connected nodes
 and grays out other nodes and hides their atoms, 
-while Alt-clicking an edge <a href="select.html">selects</a>
+while Alt-clicking an edge <a href="../selection.html">selects</a>
 the atoms of the two nodes.
 Alt-clicking the background of the diagram clears any selection.
 </p><p>
@@ -133,12 +128,12 @@ The <b>background</b> context menu includes:
 - display all atoms used in the calculation 
 (same as clicking the diagram background)
 <li><b>Select all contact residues</b>
-- <a href="select.html">select</a>
+- <a href="../selection.html">select</a>
 only the <a href="#interface-residues">interface residues</a> from all chains
 <li><b>Select all</b>
-- <a href="select.html">select</a> all atoms used in the calculation
+- <a href="../selection.html">select</a> all atoms used in the calculation
 <li><b>Clear selection</b>
-- clear the current selection 
+- clear the current <a href="../selection.html">selection</a> 
 <li><b>Explode all</b>
 - move chains apart to separate the interfaces; exploding an interface
 moves two chains in opposite directions along the line connecting the 
@@ -176,13 +171,13 @@ from its contacting chains
 (not their <a href="#interface-residues">interface residues</a>
 with other chains)
 <li><b>Select [<i>chain</i>]</b>
-- <a href="select.html">select</a> the corresponding chain
+- <a href="../selection.html">select</a> the corresponding chain
 (same as Alt-clicking the node)
 <li><b>Select neighbors of [<i>chain</i>]</b>
-- <a href="select.html">select</a> 
+- <a href="../selection.html">select</a> 
 chains contacting the corresponding chain
 <li><b>Select contact residues of [<i>chain</i>] and neighbors</b>
-- <a href="select.html">select</a> the
+- <a href="../selection.html">select</a> the
 <a href="#interface-residues">interface residues</a>
 on both sides of all interfaces 
 of the corresponding chain
@@ -235,18 +230,18 @@ a 2D representation of the 3D view: colored circles for individual
 <i>chain1-chain2</i> <a href="#interface-residues">interface residues</a>
 superimposed on a gray silhouette of the remaining residues of <i>chain1</i>
 <li><b>Select [<i>chain1</i>] and [<i>chain2</i>]</b>
-- <a href="select.html">select</a> the corresponding chains
+- <a href="../selection.html">select</a> the corresponding chains
 (same as Alt-clicking the edge)
 <li><b>Select contact residues of [<i>chain1</i>] and [<i>chain2</i>]</b>
-- <a href="select.html">select</a> the
+- <a href="../selection.html">select</a> the
 <i>chain1-chain2</i> <a href="#interface-residues">interface residues</a>
 of both chains
 <li><b>Select contact residues of [<i>chain1</i>] with [<i>chain2</i>]</b> 
-- <a href="select.html">select</a> the
+- <a href="../selection.html">select</a> the
 <i>chain1-chain2</i> <a href="#interface-residues">interface residues</a>
 of <i>chain1</i>
 <li><b>Select contact residues of [<i>chain2</i>] with [<i>chain1</i>]</b> 
-- <a href="select.html">select</a> the
+- <a href="../selection.html">select</a> the
 <i>chain1-chain2</i> <a href="#interface-residues">interface residues</a>
 of <i>chain2</i>
 <li><b>Explode [<i>chain1</i>] and [<i>chain2</i>]</b>
@@ -275,7 +270,7 @@ colored nodes (circles) for individual <i>chain1</i>-<i>chain2</i>
 a gray silhouette of the remaining residues of the second chain.
 The interface-residue nodes are colored to match the structure and
 labeled by residue number.
-Clicking a node <a href="select.html">selects</a> the corresponding
+Clicking a node <a href="../selection.html">selects</a> the corresponding
 residue in the structure.
 </p><p>
 The plot can be moved as a whole with
@@ -295,13 +290,13 @@ The residue plot has its own context menus, with:
 from the two chains plus the remaining residues of the second chain in 
 light gray; orient view to face the second chain, shown as spheres
 <li><b>Select residue</b> (in residue context menu)
-- <a href="select.html">select</a> the corresponding residue in the structure
-(same as clicking the node)
+- <a href="../selection.html">select</a> 
+the corresponding residue in the structure (same as clicking the node)
 <li><b>Hide this tool</b>
 - hide the panel (can be <a href="../window.html#panelcontrol">reshown</a>)
 </ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2016</address>
+January 2017</address>
 </body></html>

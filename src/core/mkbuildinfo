@@ -27,10 +27,11 @@ Date:   2016-01-11 19:04:43 -0800
 
 '''
 
-if len(sys.argv) != 2:
-	print("usage: %s topdir" % sys.argv[0], file=sys.stderr)
+if len(sys.argv) != 3:
+	print("usage: %s topdir version" % sys.argv[0], file=sys.stderr)
 
 directory = sys.argv[1]
+version = sys.argv[2]
 template = "buildinfo.py.in"
 result = "buildinfo.py"
 
@@ -78,6 +79,7 @@ else:
 with open(template, 'rU') as input:
 	with open(result, 'w') as output:
 		for line in input:
+			line = line.replace('VERSION', version)
 			line = line.replace('BRANCH', branch)
 			line = line.replace('COMMIT', commit)
 			line = line.replace('DAYTIME', daytime)

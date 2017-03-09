@@ -274,6 +274,7 @@ def discard_article(text):
         return text_seq[1]
     return text
 
+
 _small_ordinals = {
     1: "first",
     2: "second",
@@ -339,12 +340,21 @@ class Annotation(metaclass=abc.ABCMeta):
     """
     name = None  #: article name, *e.g.*, "an integer"
     url = None  #: URL for help information
+    _html_name = None
 
-    def __init__(self, name=None, url=None):
+    def __init__(self, name=None, url=None, html_name=None):
         if name is not None:
             self.name = name
         if url is not None:
             self.url = url
+        if html_name is not None:
+            self._html_name = html_name
+        elif name is not None:
+            from html import escape
+            self._html_name = escape(name)
+        # If __init__ is callled, then an Annotation instance is being
+        # created, and we should use the instance's HTML name
+        self.html_name = self.inst_html_name
 
     @staticmethod
     def parse(text, session):
@@ -364,6 +374,29 @@ class Annotation(metaclass=abc.ABCMeta):
         (the exceptions being NoArg and EmptyArg).
         """
         raise NotImplemented
+
+    @classmethod
+    def html_name(cls, name=None):
+        if cls._html_name is not None:
+            return cls._html_name
+        from html import escape
+        if name is None:
+            name = cls.name
+        if cls.url is None:
+            return escape(name)
+        return '<a href="%s">%s</a>' % (escape(cls.url), escape(name))
+
+    def inst_html_name(self, name=None):
+        """Subclasses that are to be used as instances, should set their
+        html_name method to be Annotation.inst_html_name"""
+        if self._html_name is not None:
+            return self._html_name
+        from html import escape
+        if name is None:
+            name = self.name
+        if self.url is None:
+            return escape(name)
+        return '<a href="%s">%s</a>' % (escape(self.url), escape(name))
 
 
 class Aggregate(Annotation):
@@ -407,8 +440,11 @@ class Aggregate(Annotation):
         if name is None:
             if ',' in annotation.name:
                 self.name = "a collection of %s" % annotation.name
+                self._html_name = "a collection of %s" % annotation.html_name()
             else:
-                self.name = "some %s" % plural_of(discard_article(annotation.name))
+                noun = plural_of(discard_article(annotation.name))
+                self.name = "some %s" % noun
+                self._html_name = "some %s" % annotation.html_name(noun)
         self.prefix = prefix
 
     def add_to(self, container, element):
@@ -546,11 +582,12 @@ class DottedTupleOf(Aggregate):
                            prefix)
         if name is None:
             if ',' in annotation.name:
-                name = "a dotted list of %s" % annotation.name
+                self.name = "a dotted list of %s" % annotation.name
+                self._html_name = "a dotted list of %s" % annotation.html_name()
             else:
                 name = discard_article(annotation.name)
-                name = "dotted %s(s)" % name
-            self.name = name
+                self.name = "dotted %s(s)" % name
+                self._html_name = "dotted %s(s)" % annotation.html_name(name)
 
     def add_to(self, container, value):
         return container + (value,)
@@ -567,8 +604,184 @@ class RepeatOf(Annotation):
     allow_repeat = True
 
     def __init__(self, annotation):
+        Annotation.__init__(self)
         self.name = annotation.name + ', repeatable'
+        self._html_name = annotation.html_name() + ', <i>repeatable</i>'
         self.parse = annotation.parse
+
+
+class Bounded(Annotation):
+    """Support bounded numerical values
+
+    Bounded(annotation, min=None, max=None, name=None, url=None) -> an Annotation
+
+    :param annotation: numerical annotation
+    :param min: optional lower bound
+    :param max: optional upper bound
+    :param name: optional explicit name for annotation
+    :param url: optionally give documentation URL.
+    """
+
+    def __init__(self, annotation, min=None, max=None, name=None, url=None, html_name=None):
+        Annotation.__init__(self, name, url)
+        self.anno = annotation
+        self.min = min
+        self.max = max
+        if name is None:
+            if min is not None and max is not None:
+                self.name = "%s >= %s and <= %s" % (annotation.name, min, max)
+            elif min is not None:
+                self.name = "%s >= %s" % (annotation.name, min)
+            elif max is not None:
+                self.name = "%s <= %s" % (annotation.name, max)
+            else:
+                self.name = annotation.name
+        if html_name is None:
+            if min is not None and max is not None:
+                self._html_name = "%s &ge; %s and &le; %s" % (annotation.html_name(), min, max)
+            elif min is not None:
+                self._html_name = "%s &ge; %s" % (annotation.html_name(), min)
+            elif max is not None:
+                self._html_name = "%s &le; %s" % (annotation.html_name(), max)
+            else:
+                self._html_name = annotation.html_name()
+
+    def parse(self, text, session):
+        value, new_text, rest = self.anno.parse(text, session)
+        if self.min is not None and value < self.min:
+            raise AnnotationError("Must be greater than or equal to %s"
+                                  % self.min, len(text) - len(rest))
+        if self.max is not None and value > self.max:
+            raise AnnotationError("Must be less than or equal to %s"
+                                  % self.max, len(text) - len(rest))
+        return value, new_text, rest
+
+
+class EnumOf(Annotation):
+    """Support enumerated types
+
+    EnumOf(values, ids=None, name=None, url=None) -> an Annotation
+
+    :param values: iterable of values
+    :param ids: optional iterable of identifiers
+    :param abbreviations: if not None, then override allow_truncated
+    :param name: optional explicit name for annotation
+    :param url: optionally give documentation URL.
+
+    .. data: allow_truncated
+
+        (Defaults to True.)  If true, then recognize truncated ids.
+
+    If the *ids* are given, then there must be one for each
+    and every value, otherwise the values are used as the identifiers.
+    The identifiers must all be strings.
+    """
+
+    allow_truncated = True
+
+    def __init__(self, values, ids=None, abbreviations=None, name=None, url=None):
+        from collections import Iterable
+        if isinstance(values, Iterable):
+            values = list(values)
+        if ids is not None:
+            if isinstance(ids, Iterable):
+                ids = list(ids)
+            if len(values) != len(ids):
+                raise ValueError("Must have an identifier for "
+                                 "each and every value")
+        Annotation.__init__(self, name, url)
+        # We make sure the ids are sorted so that even if we are given
+        # values=["abc", "ab"], an input of "ab" will still match
+        # "ab", not "abc".
+        if ids is not None:
+            assert(all([isinstance(x, str) for x in ids]))
+            pairs = sorted(zip(self.ids, self.values))
+            self.ids = [p[0] for p in pairs]
+            self.values = [p[1] for p in pairs]
+        else:
+            assert(all([isinstance(x, str) for x in values]))
+            self.ids = self.values = sorted(values)
+        if name is None:
+            from html import escape
+            if len(self.ids) == 1:
+                self.name = "'%s'" % self.ids[0]
+                self._html_name = '<b>%s</b>' % escape(self.ids[0])
+            else:
+                self.name = "one of %s" % commas(["'%s'" % i for i in self.ids])
+                self._html_name = "one of %s" % commas(["<b>%s</b>" % escape(i) for i in self.ids])
+        if abbreviations is not None:
+            self.allow_truncated = abbreviations
+
+    def parse(self, text, session):
+        if not text:
+            raise AnnotationError("Expected %s" % self.name)
+        token, text, rest = next_token(text)
+        folded = token.casefold()
+        for i, ident in enumerate(self.ids):
+            if self.allow_truncated:
+                if ident.casefold().startswith(folded):
+                    return self.values[i], ident, rest
+            else:
+                if ident.casefold() == folded:
+                    return self.values[i], ident, rest
+        raise AnnotationError("Should be %s" % self.name)
+
+
+class DynamicEnum(Annotation):
+    '''Enumerated type where enumeration values computed from a function.'''
+
+    def __init__(self, values_func):
+        Annotation.__init__(self)
+        self.values_func = values_func
+
+    def parse(self, text, session):
+        return EnumOf(self.values_func()).parse(text, session)
+
+    @property
+    def name(self):
+        return 'one of ' + ', '.join("'%s'" % str(v)
+                                     for v in sorted(self.values_func()))
+
+    @property
+    def _html_name(self):
+        from html import escape
+        return 'one of ' + ', '.join("<b>%s</b>" % escape(str(v))
+                                     for v in sorted(self.values_func()))
+
+
+class Or(Annotation):
+    """Support two or more alternative annotations
+
+    Or(annotation, annotation [, annotation]*, name=None, url=None) -> an Annotation
+
+    :param name: optional explicit name for annotation
+    :param url: optionally give documentation URL.
+    """
+
+    def __init__(self, *annotations, name=None, url=None, html_name=None):
+        if len(annotations) < 2:
+            raise ValueError("Need at least two alternative annotations")
+        Annotation.__init__(self, name, url)
+        self.annotations = annotations
+        if name is None:
+            self.name = commas([a.name for a in annotations])
+        if html_name is None:
+            from html import escape
+            if name is not None:
+                self._html_name = escape(name)
+            else:
+                self._html_name = commas([a.html_name() for a in annotations])
+
+    def parse(self, text, session):
+        for anno in self.annotations:
+            try:
+                return anno.parse(text, session)
+            except AnnotationError as err:
+                if err.offset:
+                    raise
+            except ValueError:
+                pass
+        raise AnnotationError("Expected %s" % self.name)
 
 
 class BoolArg(Annotation):
@@ -650,7 +863,7 @@ class StringArg(Annotation):
 
 class FileNameArg(Annotation):
     """Base class for Open/SaveFileNameArg"""
-    name = "file name"
+    name = "a file name"
 
     @staticmethod
     def parse(text, session):
@@ -658,10 +871,160 @@ class FileNameArg(Annotation):
         import os.path
         return os.path.expanduser(token), text, rest
 
+
 # In the future when/if "browse" is supported as a file name,
 # Open/SaveFileNameArg may be different.  If/when that time
 # comes, the "name" class attr may also be made more specfic
 OpenFileNameArg = SaveFileNameArg = OpenFolderNameArg = SaveFolderNameArg = FileNameArg
+
+
+# Atom Specifiers are used in lots of places
+# avoid circular import by importing here
+from .atomspec import AtomSpecArg  # noqa
+
+
+class ModelsArg(AtomSpecArg):
+    """Parse command models specifier"""
+    name = "a models specifier"
+
+    @classmethod
+    def parse(cls, text, session):
+        aspec, text, rest = super().parse(text, session)
+        models = aspec.evaluate(session).models
+        return models, text, rest
+
+
+class TopModelsArg(AtomSpecArg):
+    """Parse command models specifier"""
+    name = "a models specifier"
+
+    @classmethod
+    def parse(cls, text, session):
+        aspec, text, rest = super().parse(text, session)
+        models = aspec.evaluate(session).models
+        tmodels = _remove_child_models(models)
+        return tmodels, text, rest
+
+
+class ObjectsArg(AtomSpecArg):
+    """Parse command objects specifier"""
+    name = "an objects specifier"
+
+    @classmethod
+    def parse(cls, text, session):
+        aspec, text, rest = super().parse(text, session)
+        objects = aspec.evaluate(session)
+        objects.spec = str(aspec)
+        return objects, text, rest
+
+
+class AtomsArg(AtomSpecArg):
+    """Parse command atoms specifier"""
+    name = "an atoms specifier"
+
+    @classmethod
+    def parse(cls, text, session):
+        aspec, text, rest = super().parse(text, session)
+        atoms = aspec.evaluate(session).atoms
+        atoms.spec = str(aspec)
+        return atoms, text, rest
+
+
+class StructuresArg(AtomSpecArg):
+    """Parse command structures specifier"""
+    name = "a structures specifier"
+
+    @classmethod
+    def parse(cls, text, session):
+        aspec, text, rest = super().parse(text, session)
+        models = aspec.evaluate(session).models
+        from ..atomic import Structure
+        mols = [m for m in models if isinstance(m, Structure)]
+        return mols, text, rest
+
+
+class AtomicStructuresArg(AtomSpecArg):
+    """Parse command atomic structures specifier"""
+    name = "an atomic structures specifier"
+
+    @classmethod
+    def parse(cls, text, session):
+        aspec, text, rest = super().parse(text, session)
+        models = aspec.evaluate(session).models
+        from ..atomic import AtomicStructure, AtomicStructures
+        mols = [m for m in models if isinstance(m, AtomicStructure)]
+        return AtomicStructures(mols), text, rest
+
+
+class PseudobondGroupsArg(AtomSpecArg):
+    """Parse command atom specifier for pseudobond groups"""
+    name = 'a pseudobond groups specifier'
+
+    @classmethod
+    def parse(cls, text, session):
+        value, used, rest = super().parse(text, session)
+        models = value.evaluate(session).models
+        from ..atomic import PseudobondGroup
+        pbgs = [m for m in models if isinstance(m, PseudobondGroup)]
+        return pbgs, used, rest
+
+
+class PseudobondsArg(ObjectsArg):
+    """Parse command specifier for pseudobonds"""
+    name = 'a pseudobonds specifier'
+
+    @classmethod
+    def parse(cls, text, session):
+        objects, used, rest = super().parse(text, session)
+        from ..atomic import PseudobondGroup, interatom_pseudobonds
+        pb = interatom_pseudobonds(objects.atoms)
+        pbgs = set(pb.groups.unique())
+        pblist = [m.pseudobonds for m in objects.models
+                  if isinstance(m, PseudobondGroup) and m not in pbgs]
+        if len(pb) > 0:
+            pblist.append(pb)
+        from ..atomic import Pseudobonds, concatenate
+        pbonds = concatenate(pblist, Pseudobonds)
+        return pbonds, used, rest
+
+
+class SurfacesArg(AtomSpecArg):
+    """Parse command surfaces specifier"""
+    name = "a surfaces specifier"
+
+    @classmethod
+    def parse(cls, text, session):
+        aspec, text, rest = super().parse(text, session)
+        models = aspec.evaluate(session).models
+        from ..atomic import Structure
+        surfs = [m for m in models if not isinstance(m, Structure)]
+        return surfs, text, rest
+
+
+class ModelArg(AtomSpecArg):
+    """Parse command model specifier"""
+    name = "a model specifier"
+
+    @classmethod
+    def parse(cls, text, session):
+        aspec, text, rest = super().parse(text, session)
+        models = _remove_child_models(aspec.evaluate(session).models)
+        if len(models) != 1:
+            raise AnnotationError('Must specify 1 model, got %d' % len(models), len(text))
+        return tuple(models)[0], text, rest
+
+
+class StructureArg(ModelArg):
+    """Parse command structure specifier"""
+    name = "a structure specifier"
+
+    @classmethod
+    def parse(cls, text, session):
+        m, text, rest = super().parse(text, session)
+        from ..atomic import Structure
+        if not isinstance(m, Structure):
+            raise AnnotationError('Specified model is not a Structure')
+        return m, text, rest
 
 
 class AxisArg(Annotation):
@@ -817,7 +1180,7 @@ class Center:
         return c
 
 
-class CoordSysArg(Annotation):
+class CoordSysArg(ModelArg):
     """
     Annotation for coordinate system for AxisArg and CenterArg
     when specified as tuples of numbers.  Coordinate system is
@@ -827,7 +1190,7 @@ class CoordSysArg(Annotation):
 
     @staticmethod
     def parse(text, session):
-        m, text, rest = ModelArg.parse(text, session)
+        m, text, rest = super().parse(text, session)
         return m.position, text, rest
 
 
@@ -861,314 +1224,12 @@ class PlaceArg(Annotation):
         return p
 
 
-class AtomsArg(Annotation):
-    """Parse command atoms specifier"""
-    name = "atoms"
-
-    @staticmethod
-    def parse(text, session):
-        from . import atomspec
-        aspec, text, rest = atomspec.AtomSpecArg.parse(text, session)
-        atoms = aspec.evaluate(session).atoms
-        atoms.spec = str(aspec)
-        return atoms, text, rest
-
-
-class StructureArg(Annotation):
-    """Parse command structure specifier"""
-    name = "structure"
-
-    @staticmethod
-    def parse(text, session):
-        m, text, rest = ModelArg.parse(text, session)
-        from ..atomic import Structure
-        if not isinstance(m, Structure):
-            raise AnnotationError('Specified model is not a Structure')
-        return m, text, rest
-
-
-class StructuresArg(Annotation):
-    """Parse command structures specifier"""
-    name = "structures"
-
-    @staticmethod
-    def parse(text, session):
-        from . import atomspec
-        aspec, text, rest = atomspec.AtomSpecArg.parse(text, session)
-        models = aspec.evaluate(session).models
-        from ..atomic import Structure
-        mols = [m for m in models if isinstance(m, Structure)]
-        return mols, text, rest
-
-
-class AtomicStructuresArg(Annotation):
-    """Parse command atomic structures specifier"""
-    name = "atomic structures"
-
-    @staticmethod
-    def parse(text, session):
-        from . import atomspec
-        aspec, text, rest = atomspec.AtomSpecArg.parse(text, session)
-        models = aspec.evaluate(session).models
-        from ..atomic import AtomicStructure, AtomicStructures
-        mols = [m for m in models if isinstance(m, AtomicStructure)]
-        return AtomicStructures(mols), text, rest
-
-
-class PseudobondGroupsArg(Annotation):
-    """Parse command atom specifier for pseudobond groups"""
-    name = 'pseudobond groups'
-
-    @staticmethod
-    def parse(text, session):
-        from .atomspec import AtomSpecArg
-        value, used, rest = AtomSpecArg.parse(text, session)
-        models = value.evaluate(session).models
-        from ..atomic import PseudobondGroup
-        pbgs = [m for m in models if isinstance(m, PseudobondGroup)]
-        return pbgs, used, rest
-
-
-class PseudobondsArg(Annotation):
-    """Parse command specifier for pseudobonds"""
-    name = 'pseudobonds'
-
-    @staticmethod
-    def parse(text, session):
-        objects, used, rest = ObjectsArg.parse(text, session)
-        from ..atomic import PseudobondGroup, interatom_pseudobonds
-        pb = interatom_pseudobonds(objects.atoms)
-        pbgs = set(pb.groups.unique())
-        pblist = [m.pseudobonds for m in objects.models
-                  if isinstance(m, PseudobondGroup) and m not in pbgs]
-        if len(pb) > 0:
-            pblist.append(pb)
-        from ..atomic import Pseudobonds, concatenate
-        pbonds = concatenate(pblist, Pseudobonds)
-        return pbonds, used, rest
-
-
-class SurfacesArg(Annotation):
-    """Parse command surfaces specifier"""
-    name = "surfaces"
-
-    @staticmethod
-    def parse(text, session):
-        from . import atomspec
-        aspec, text, rest = atomspec.AtomSpecArg.parse(text, session)
-        models = aspec.evaluate(session).models
-        from ..atomic import Structure
-        surfs = [m for m in models if not isinstance(m, Structure)]
-        return surfs, text, rest
-
-
-class ModelArg(Annotation):
-    """Parse command model specifier"""
-    name = "model"
-
-    @staticmethod
-    def parse(text, session):
-        from .atomspec import AtomSpecArg
-        aspec, text, rest = AtomSpecArg.parse(text, session)
-        models = _remove_child_models(aspec.evaluate(session).models)
-        if len(models) != 1:
-            raise AnnotationError('Must specify 1 model, got %d' % len(models), len(text))
-        return tuple(models)[0], text, rest
-
-
 def _remove_child_models(models):
     s = set(models)
     for m in models:
         for c in m.child_models():
             s.discard(c)
     return tuple(s)
-
-
-class ModelsArg(Annotation):
-    """Parse command models specifier"""
-    name = "models"
-
-    @staticmethod
-    def parse(text, session):
-        from .atomspec import AtomSpecArg
-        aspec, text, rest = AtomSpecArg.parse(text, session)
-        models = aspec.evaluate(session).models
-        return models, text, rest
-
-
-class TopModelsArg(Annotation):
-    """Parse command models specifier"""
-    name = "top models"
-
-    @staticmethod
-    def parse(text, session):
-        from .atomspec import AtomSpecArg
-        aspec, text, rest = AtomSpecArg.parse(text, session)
-        models = aspec.evaluate(session).models
-        tmodels = _remove_child_models(models)
-        return tmodels, text, rest
-
-
-class ObjectsArg(Annotation):
-    """Parse command objects specifier"""
-    name = "objects"
-
-    @staticmethod
-    def parse(text, session):
-        from .atomspec import AtomSpecArg
-        aspec, text, rest = AtomSpecArg.parse(text, session)
-        objects = aspec.evaluate(session)
-        objects.spec = str(aspec)
-        return objects, text, rest
-
-
-class Bounded(Annotation):
-    """Support bounded numerical values
-
-    Bounded(annotation, min=None, max=None, name=None, url=None) -> an Annotation
-
-    :param annotation: numerical annotation
-    :param min: optional lower bound
-    :param max: optional upper bound
-    :param name: optional explicit name for annotation
-    :param url: optionally give documentation URL.
-    """
-
-    def __init__(self, annotation, min=None, max=None, name=None, url=None):
-        Annotation.__init__(self, name, url)
-        self.anno = annotation
-        self.min = min
-        self.max = max
-        if name is None:
-            if min is not None and max is not None:
-                self.name = "%s >= %s and <= %s" % (annotation.name, min, max)
-            elif min is not None:
-                self.name = "%s >= %s" % (annotation.name, min)
-            elif max is not None:
-                self.name = "%s <= %s" % (annotation.name, max)
-            else:
-                self.name = annotation.name
-
-    def parse(self, text, session):
-        value, new_text, rest = self.anno.parse(text, session)
-        if self.min is not None and value < self.min:
-            raise AnnotationError("Must be greater than or equal to %s"
-                                  % self.min, len(text) - len(rest))
-        if self.max is not None and value > self.max:
-            raise AnnotationError("Must be less than or equal to %s"
-                                  % self.max, len(text) - len(rest))
-        return value, new_text, rest
-
-
-class EnumOf(Annotation):
-    """Support enumerated types
-
-    EnumOf(values, ids=None, name=None, url=None) -> an Annotation
-
-    :param values: iterable of values
-    :param ids: optional iterable of identifiers
-    :param abbreviations: if not None, then override allow_truncated
-    :param name: optional explicit name for annotation
-    :param url: optionally give documentation URL.
-
-    .. data: allow_truncated
-
-        (Defaults to True.)  If true, then recognize truncated ids.
-
-    If the *ids* are given, then there must be one for each
-    and every value, otherwise the values are used as the identifiers.
-    The identifiers must all be strings.
-    """
-
-    allow_truncated = True
-
-    def __init__(self, values, ids=None, abbreviations=None, name=None, url=None):
-        from collections import Iterable
-        if isinstance(values, Iterable):
-            values = list(values)
-        if ids is not None:
-            if isinstance(ids, Iterable):
-                ids = list(ids)
-            if len(values) != len(ids):
-                raise ValueError("Must have an identifier for "
-                                 "each and every value")
-        Annotation.__init__(self, name, url)
-        # We make sure the ids are sorted so that even if we are given
-        # values=["abc", "ab"], an input of "ab" will still match
-        # "ab", not "abc".
-        if ids is not None:
-            assert(all([isinstance(x, str) for x in ids]))
-            pairs = sorted(zip(self.ids, self.values))
-            self.ids = [p[0] for p in pairs]
-            self.values = [p[1] for p in pairs]
-        else:
-            assert(all([isinstance(x, str) for x in values]))
-            self.ids = self.values = sorted(values)
-        if name is None:
-            if len(self.ids) == 1:
-                self.name = "'%s'" % self.ids[0]
-            else:
-                self.name = "one of %s" % commas(["'%s'" % i for i in self.ids])
-        if abbreviations is not None:
-            self.allow_truncated = abbreviations
-
-    def parse(self, text, session):
-        if not text:
-            raise AnnotationError("Expected %s" % self.name)
-        token, text, rest = next_token(text)
-        folded = token.casefold()
-        for i, ident in enumerate(self.ids):
-            if self.allow_truncated:
-                if ident.casefold().startswith(folded):
-                    return self.values[i], ident, rest
-            else:
-                if ident.casefold() == folded:
-                    return self.values[i], ident, rest
-        raise AnnotationError("Should be %s" % self.name)
-
-
-class DynamicEnum(Annotation):
-    '''Enumerated type where enumeration values computed from a function.'''
-
-    def __init__(self, values_func):
-        self.values_func = values_func
-
-    def parse(self, text, session):
-        return EnumOf(self.values_func()).parse(text, session)
-
-    @property
-    def name(self):
-        return 'one of ' + ', '.join("'%s'" % str(v)
-                                     for v in sorted(self.values_func()))
-
-
-class Or(Annotation):
-    """Support two or more alternative annotations
-
-    Or(annotation, annotation [, annotation]*, name=None, url=None) -> an Annotation
-
-    :param name: optional explicit name for annotation
-    :param url: optionally give documentation URL.
-    """
-
-    def __init__(self, *annotations, name=None, url=None):
-        if len(annotations) < 2:
-            raise ValueError("Need at least two alternative annotations")
-        Annotation.__init__(self, name, url)
-        self.annotations = annotations
-        if name is None:
-            self.name = commas([a.name for a in annotations])
-
-    def parse(self, text, session):
-        for anno in self.annotations:
-            try:
-                return anno.parse(text, session)
-            except AnnotationError as err:
-                if err.offset:
-                    raise
-            except ValueError:
-                pass
-        raise AnnotationError("Expected %s" % self.name)
 
 
 _escape_table = {
@@ -1381,6 +1442,7 @@ class WholeRestOfLine(Annotation):
     def parse(text, session):
         return text, text, ''
 
+
 Bool2Arg = TupleOf(BoolArg, 2)
 Bool3Arg = TupleOf(BoolArg, 3)
 IntsArg = ListOf(IntArg)
@@ -1506,6 +1568,7 @@ class CmdDesc:
     :param keyword: keyword arguments sequence
     :param required_arguments: sequence of argument names that must be given
     :param non_keyword: sequence of optional arguments that cannot be keywords
+    :param hidden: sequence of keyword arguments that should be omitted from usage
     :param url: URL to help page
     :param synopsis: one line description
 
@@ -1525,18 +1588,19 @@ class CmdDesc:
     __slots__ = [
         '_required', '_optional', '_keyword', '_keyword_map',
         '_required_arguments', '_postconditions', '_function',
-        'url', 'synopsis'
+        '_hidden', 'url', 'synopsis'
     ]
 
     def __init__(self, required=(), optional=(), keyword=(),
                  postconditions=(), required_arguments=(),
-                 non_keyword=(), url=None, synopsis=None):
+                 non_keyword=(), hidden=(), url=None, synopsis=None):
         self._required = OrderedDict(required)
         self._optional = OrderedDict(optional)
         self._keyword = OrderedDict(keyword)
         optional_keywords = [i for i in self._optional.items()
                              if i[0] not in non_keyword]
         self._keyword.update(optional_keywords)
+        self._hidden = set(hidden)
         # keyword_map is what would user would type
         self._keyword_map = OrderedDict([(_user_kw(n), n) for n in self._keyword])
         self._postconditions = postconditions
@@ -1718,7 +1782,7 @@ _commands = _WordInfo()
 _aliased_commands = {}  # { name: _WordInfo instance }
 
 
-def register(name, cmd_desc=(), function=None, logger=None):
+def register(name, cmd_desc=(), function=None, *, logger=None):
     """register function that implements command
 
     :param name: the name of the command and may include spaces.
@@ -1751,20 +1815,9 @@ def register(name, cmd_desc=(), function=None, logger=None):
     words = name.split()
     name = ' '.join(words)  # canonicalize
     if cmd_desc is not None and cmd_desc.url is None:
-        import chimerax
-        import os
-        cname = words[0]
-        if cname.startswith('~'):
-            cname = cname[1:]
-            frag = ' '.join(words)
-        else:
-            frag = ' '.join(words[1:])
-        cpath = os.path.join(chimerax.app_data_dir, 'docs', 'user', 'commands',
-                             '%s.html' % cname)
-        if frag:
-            frag = '#' + frag
-        if os.path.exists(cpath):
-            cmd_desc.url = "help:user/commands/%s.html%s" % (cname, frag)
+        url = _get_help_url(words)
+        if url is not None:
+            cmd_desc.url = url
     parent_info = _commands
     for word in words[:-1]:
         if not parent_info.has_subcommands():
@@ -1780,8 +1833,32 @@ def register(name, cmd_desc=(), function=None, logger=None):
         cmd_desc = function
     else:
         cmd_desc.function = function
+        if cmd_desc.synopsis is None:
+            msg = 'Command "%s" is missing a synopsis' % name
+            if logger is None:
+                print(msg)
+            else:
+                logger.warning(msg)
     parent_info.add_subcommand(words[-1], name, cmd_desc)
     return function     # needed when used as a decorator
+
+
+def _get_help_url(words):
+    import chimerax
+    import os
+    cname = words[0]
+    if cname.startswith('~'):
+        cname = cname[1:]
+        frag = ' '.join(words)
+    else:
+        frag = ' '.join(words[1:])
+    cpath = os.path.join(chimerax.app_data_dir, 'docs', 'user', 'commands',
+                         '%s.html' % cname)
+    if frag:
+        frag = '#' + frag
+    if os.path.exists(cpath):
+        return "help:user/commands/%s.html%s" % (cname, frag)
+    return None
 
 
 def deregister(name, *, is_user_alias=False):
@@ -1894,17 +1971,12 @@ class Command:
         self._kw_args = {}
 
     def _replace(self, chars, replacement):
-        # insert replacement taking into account quotes
+        # insert replacement (quotes are already in replacement text)
         i = len(chars)
-        c = chars[0] if i > 0 else ''
-        if i < 2 or c != '"' or chars[-1] != c:
-            completion = replacement
-        else:
-            completion = c + replacement + c
         j = self.amount_parsed
         t = self.current_text
-        self.current_text = t[0:j] + completion + t[i + j:]
-        return len(completion)
+        self.current_text = t[0:j] + replacement + t[i + j:]
+        return len(replacement)
 
     def _parse_arg(self, annotation, text, session, final):
         m = _whitespace.match(text)
@@ -2400,14 +2472,20 @@ def command_url(name, no_aliases=False):
     cmd._find_command_name(no_aliases=no_aliases)
     if cmd.amount_parsed == 0:
         raise ValueError('"%s" is not a command name' % name)
-    return cmd._ci.url if cmd._ci else None
+    if cmd._ci:
+        return cmd._ci.url
+    else:
+        return _get_help_url(name.split())
 
 
-def usage(name, no_aliases=False, no_subcommands=False):
+def usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
+          show_hidden=False):
     """Return usage string for given command name
 
     :param name: the name of the command
     :param no_aliases: True if aliases should not be considered.
+    :param show_subcommands: number of subcommands that should be shown.
+    :param show_hidden: True if hidden keywords should be shown.
     :returns: a usage string for the command
     """
     name = name.strip()
@@ -2423,17 +2501,29 @@ def usage(name, no_aliases=False, no_subcommands=False):
         arg_syntax = []
         syntax = cmd.command_name
         for arg_name in ci._required:
-            type = ci._required[arg_name].name
-            syntax += ' %s' % arg_name
+            arg = ci._required[arg_name]
+            type = arg.name
+            if can_be_empty_arg(arg):
+                syntax += ' [%s]' % arg_name
+            else:
+                syntax += ' %s' % arg_name
             arg_syntax.append('  %s: %s' % (arg_name, type))
         num_opt = 0
         for arg_name in ci._optional:
-            type = ci._optional[arg_name].name
-            syntax += ' [%s' % arg_name
+            if not show_hidden and arg_name in ci._hidden:
+                continue
+            arg = ci._optional[arg_name]
+            type = arg.name
+            if can_be_empty_arg(arg):
+                syntax += ' [%s]' % arg_name
+            else:
+                syntax += ' [%s' % arg_name
+                num_opt += 1
             arg_syntax.append('  %s: %s' % (arg_name, type))
-            num_opt += 1
         syntax += ']' * num_opt
         for arg_name in ci._keyword:
+            if not show_hidden and (arg_name in ci._hidden or arg_name in ci._optional):
+                continue
             arg_type = ci._keyword[arg_name]
             uarg_name = _user_kw(arg_name)
             if arg_type is NoArg:
@@ -2445,9 +2535,11 @@ def usage(name, no_aliases=False, no_subcommands=False):
                 syntax += ' [%s _%s_]' % (uarg_name, arg_type.name)
         if ci.synopsis:
             syntax += ' -- %s' % ci.synopsis
+        else:
+            syntax += ' -- no synopsis available'
         if arg_syntax:
             syntax += '\n%s' % '\n'.join(arg_syntax)
-        if ci.is_alias():
+        if expand_alias and ci.is_alias():
             alias = ci.function
             arg_text = cmd.current_text[cmd.amount_parsed:]
             args = arg_text.split(maxsplit=alias.num_args)
@@ -2463,24 +2555,34 @@ def usage(name, no_aliases=False, no_subcommands=False):
                 print(e)
                 pass
 
-    if (not no_subcommands and cmd.word_info is not None and
+    if (show_subcommands and cmd.word_info is not None and
             cmd.word_info.has_subcommands()):
-        name = cmd.command_name
         sub_cmds = registered_commands(multiword=True, _start=cmd.word_info)
-        if syntax:
-            syntax += '\n'
-        syntax += 'Subcommands are:\n' + '\n'.join(
-            '  %s %s' % (name, w) for w in sub_cmds)
+        if len(sub_cmds) <= show_subcommands:
+            for w in sub_cmds:
+                syntax += '\n\n' + usage('%s %s' % (name, w), show_subcommands=0)
+        else:
+            name = cmd.command_name
+            if syntax:
+                syntax += '\n'
+            syntax += 'Subcommands are:\n' + '\n'.join(
+                '  %s %s' % (name, w) for w in sub_cmds)
 
     return syntax
 
 
-def html_usage(name, no_aliases=False, no_subcommands=False):
+def can_be_empty_arg(arg):
+    return isinstance(arg, Or) and EmptyArg in arg.annotations
+
+
+def html_usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
+               show_hidden=False):
     """Return usage string in HTML for given command name
 
     :param name: the name of the command
     :param no_aliases: True if aliases should not be considered.
-    :param no_subcommands: True if subcommands should not be considered.
+    :param show_subcommands: number of subcommands that should be shown.
+    :param show_hidden: True if hidden keywords should be shown.
     :returns: a HTML usage string for the command
     """
     cmd = Command(None)
@@ -2494,8 +2596,6 @@ def html_usage(name, no_aliases=False, no_subcommands=False):
     ci = cmd._ci
     if ci:
         arg_syntax = []
-        if ci.synopsis:
-            syntax += "<i>%s</i><br>\n" % escape(ci.synopsis)
         if cmd._ci.url is None:
             syntax += '<b>%s</b>' % escape(cmd.command_name)
         else:
@@ -2504,43 +2604,59 @@ def html_usage(name, no_aliases=False, no_subcommands=False):
         for arg_name in ci._required:
             arg_type = ci._required[arg_name]
             arg_name = _user_kw(arg_name)
-            type = arg_type.name
-            if arg_type.url is None:
-                name = escape(arg_name)
+            if arg_type.url is not None:
+                arg_name = arg_type.html_name(arg_name)
             else:
-                name = '<a href="%s">%s</a>' % (arg_type.url, escape(arg_name))
-            syntax += ' <i>%s</i>' % name
-            arg_syntax.append('<i>%s</i>: %s' % (name, escape(type)))
+                arg_name = escape(arg_name)
+            if can_be_empty_arg(arg_type):
+                syntax += ' [<i>%s</i>]' % arg_name
+            else:
+                syntax += ' <i>%s</i>' % arg_name
+            if arg_type.url is None:
+                arg_syntax.append('<i>%s</i>: %s' % (arg_name, arg_type.html_name()))
         num_opt = 0
         for arg_name in ci._optional:
-            num_opt += 1
+            if not show_hidden and arg_name in ci._hidden:
+                continue
             arg_type = ci._optional[arg_name]
-            arg_name = _user_kw(arg_name)
-            type = arg_type.name
-            if arg_type.url is None:
-                name = escape(arg_name)
+            arg_name = escape(_user_kw(arg_name))
+            if arg_type.url is not None:
+                arg_name = arg_type.html_name(arg_name)
             else:
-                name = '<a href="%s">%s</a>' % (arg_type.url, escape(arg_name))
-            syntax += ' [<i>%s</i>' % name
-            arg_syntax.append('<i>%s</i>: %s' % (name, escape(type)))
+                arg_name = escape(arg_name)
+            if can_be_empty_arg(arg_type):
+                syntax += ' [<i>%s</i>]' % arg_name
+            else:
+                syntax += ' [<i>%s</i>' % arg_name
+                num_opt += 1
+            if arg_type.url is None:
+                arg_syntax.append('<i>%s</i>: %s' % (arg_name, arg_type.html_name()))
         syntax += ']' * num_opt
         for arg_name in ci._keyword:
+            if not show_hidden and (arg_name in ci._hidden or arg_name in ci._optional):
+                continue
             arg_type = ci._keyword[arg_name]
-            uarg_name = _user_kw(arg_name)
+            uarg_name = escape(_user_kw(arg_name))
             if arg_type is NoArg:
-                type = ""
+                type_info = ""
+            elif isinstance(arg_type, type):
+                type_info = " <i>%s</i>" % arg_type.html_name()
             else:
-                type = "<i>%s</i>" % escape(arg_type.name)
-                if arg_type.url is not None:
-                    type = '<a href="%s">%s</a>' % (arg_type.url, type)
-                type = ' ' + type
+                type_info = " <i>%s</i>" % uarg_name
+                if arg_name not in ci._optional:
+                    arg_syntax.append('<i>%s</i>: %s' % (uarg_name, arg_type.html_name()))
             if arg_name in ci._required_arguments:
-                syntax += ' <nobr><b>%s</b>%s</nobr>' % (escape(uarg_name), type)
+                syntax += ' <nobr><b>%s</b>%s</nobr>' % (uarg_name, type_info)
             else:
-                syntax += ' <nobr>[<b>%s</b>%s]</nobr>' % (escape(uarg_name), type)
+                syntax += ' <nobr>[<b>%s</b>%s]</nobr>' % (uarg_name, type_info)
+        syntax += "<br>\n&nbsp;&nbsp;&nbsp;&nbsp;&mdash; "  # synopsis prefix
+        if ci.synopsis:
+            syntax += "<i>%s</i>\n" % escape(ci.synopsis)
+        else:
+            syntax += "<i>[no synopsis available]</i>\n"
         if arg_syntax:
             syntax += '<br>\n&nbsp;&nbsp;%s' % '<br>\n&nbsp;&nbsp;'.join(arg_syntax)
-        if ci.is_alias():
+        if expand_alias and ci.is_alias():
             alias = ci.function
             arg_text = cmd.current_text[cmd.amount_parsed:]
             args = arg_text.split(maxsplit=alias.num_args)
@@ -2555,30 +2671,34 @@ def html_usage(name, no_aliases=False, no_subcommands=False):
             except:
                 pass
 
-    if (not no_subcommands and cmd.word_info is not None and
+    if (show_subcommands and cmd.word_info is not None and
             cmd.word_info.has_subcommands()):
-        name = cmd.command_name
-        if syntax:
-            syntax += '<br>\n'
-        syntax += 'Subcommands are:\n<ul>'
         sub_cmds = registered_commands(multiword=True, _start=cmd.word_info)
-        for word in sub_cmds:
-            subcmd = '%s %s' % (name, word)
-            cmd = Command(None)
-            cmd.current_text = subcmd
-            cmd._find_command_name(no_aliases=no_aliases)
-            if cmd.amount_parsed != len(cmd.current_text):
-                url = None
-            elif cmd._ci is None or cmd._ci.url is None:
-                url = None
-            else:
-                url = cmd._ci.url
-            if url is not None:
-                syntax += '<li> <b><a href="%s">%s</a></b>\n' % (
-                    url, escape(subcmd))
-            else:
-                syntax += '<li> <b>%s</b>\n' % escape(subcmd)
-        syntax += '</ul>\n'
+        if len(sub_cmds) <= show_subcommands:
+            for w in sub_cmds:
+                syntax += '<p>\n' + html_usage('%s %s' % (name, w), show_subcommands=0)
+        else:
+            name = cmd.command_name
+            if syntax:
+                syntax += '<br>\n'
+            syntax += 'Subcommands are:\n<ul>'
+            for word in sub_cmds:
+                subcmd = '%s %s' % (name, word)
+                cmd = Command(None)
+                cmd.current_text = subcmd
+                cmd._find_command_name(no_aliases=no_aliases)
+                if cmd.amount_parsed != len(cmd.current_text):
+                    url = None
+                elif cmd._ci is None or cmd._ci.url is None:
+                    url = None
+                else:
+                    url = cmd._ci.url
+                if url is not None:
+                    syntax += '<li> <b><a href="%s">%s</a></b>\n' % (
+                        url, escape(subcmd))
+                else:
+                    syntax += '<li> <b>%s</b>\n' % escape(subcmd)
+            syntax += '</ul>\n'
 
     return syntax
 
@@ -2601,7 +2721,7 @@ def registered_commands(multiword=False, _start=None):
             if word_info.is_deferred():
                 word_info.lazy_register()
         words = list(parent_info.subcommands.keys())
-        words.sort(key=lambda x: x[x[0] == '~':])
+        words.sort(key=lambda x: x[x[0] == '~':].lower())
         for word in words:
             word_info = parent_info.subcommands[word]
             if word_info.is_deferred():
@@ -2722,6 +2842,8 @@ def list_aliases(all=False):
     """
     def find_aliases(partial_name, parent_info):
         for word, word_info in parent_info.subcommands.items():
+            if word_info.is_deferred():
+                word_info.lazy_register()
             if partial_name:
                 yield from find_aliases('%s %s' % (partial_name, word), word_info)
             else:
@@ -2780,6 +2902,7 @@ def remove_alias(name=None, user=False):
         return
 
     deregister(name, is_user_alias=user)
+
 
 if __name__ == '__main__':
     from ..utils import flattened

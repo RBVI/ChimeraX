@@ -59,16 +59,19 @@ def perframe(session, command, frames = None, interval = 1, format = None,
 
 def register_command(session):
 
-    from .cli import CmdDesc, register, IntArg, StringArg, NoArg, RepeatOf
+    from .cli import CmdDesc, register, IntArg, StringArg, BoolArg, RepeatOf, create_alias
     desc = CmdDesc(required = [('command', StringArg)],
                    keyword = [('ranges', RepeatOf(RangeArg)),      # TODO: Allow multiple range arguments.
                               ('frames', IntArg),
                               ('interval', IntArg),
                               ('format', StringArg),    # TODO: Allow multiple format arguments.
                               ('zero_pad_width', IntArg),
-                              ('show_commands', NoArg)])
-    register('perframe', desc, perframe)
-    register('~perframe', CmdDesc(), stop_perframe_callbacks)
+                              ('show_commands', BoolArg)],
+                   synopsis = 'Run a command before each graphics frame is drawn')
+    register('perframe', desc, perframe, logger=session.logger)
+    desc = CmdDesc(synopsis = 'Stop all perframe commands')
+    register('perframe stop', desc, stop_perframe_callbacks, logger=session.logger)
+    create_alias('~perframe', 'perframe stop')
 
 def _perframe_callback(data, session):
     d = data

@@ -75,9 +75,7 @@ public:
     static const std::string  REASON_HIDE;
     static const std::string  REASON_IDATM_TYPE;
     static const std::string  REASON_IS_BACKBONE;
-    static const std::string  REASON_IS_HELIX;
     static const std::string  REASON_IS_HET;
-    static const std::string  REASON_IS_STRAND;
     static const std::string  REASON_NAME;
     static const std::string  REASON_OCCUPANCY;
     static const std::string  REASON_RADIUS;
@@ -85,7 +83,6 @@ public:
     static const std::string  REASON_RIBBON_ADJUST;
     static const std::string  REASON_RIBBON_COLOR;
     static const std::string  REASON_RIBBON_DISPLAY;
-    static const std::string  REASON_RIBBON_STYLE;
     static const std::string  REASON_RIBBON_HIDE_BACKBONE;
     static const std::string  REASON_RIBBON_TETHER;
     static const std::string  REASON_RIBBON_ORIENTATION;
@@ -95,6 +92,7 @@ public:
     static const std::string  REASON_SERIAL_NUMBER;
     static const std::string  REASON_STRUCTURE_CATEGORY;
     static const std::string  REASON_SS_ID;
+    static const std::string  REASON_SS_TYPE;
     
     template<class C>
     void  add_created(C* ptr) {

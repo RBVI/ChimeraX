@@ -26,22 +26,24 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="../index.html#commands">Command</a>: perframe</h3>
 
 <h3><a href="usageconventions.html">Usage</a>:
-<BR><b>perframe</b> &nbsp;<i>operation</i>&nbsp;
+<br><b>perframe</b> &nbsp;<i>operation</i>&nbsp;
 [&nbsp;<b>range</b>&nbsp;&nbsp;<i>start,end</i>[<i>,step</i>]]<font size="-1"><sub>M</sub></font>&nbsp;
 [&nbsp;<b>frames</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>interval</b>&nbsp;&nbsp;<i>K</i>&nbsp;]
 [&nbsp;<b>zeroPadWidth</b>&nbsp;&nbsp;<i>width</i>]
 [&nbsp;<b>format</b>&nbsp;&nbsp;<i>string</i>]
-[&nbsp;<b>showCommands</b>&nbsp;]
+[&nbsp;<b>showCommands</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
- <BR><b>~perframe</b></h3>
+<br><b>perframe stop</b></h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>~perframe</b></h3>
 <p>
 The <b>perframe</b> command specifies operations to be executed
 at each subsequent display frame, until
 a specified number of frames has elapsed, 
 the end of a value range has been reached, or all per-frame operations 
-have been discontinued collectively with <b>~perframe</b>.
+have been discontinued collectively with <b>perframe stop</b> or <b>~perframe</b>.
 Multiple per-frame operations can be active simultaneously.
 See also:
 <a href="alias.html"><b>alias</b></a>,
@@ -77,7 +79,7 @@ If the end of the range is reached before the frames are complete,
 the substituted value will stay the same (equal to <i>end</i>)
 for the remaining frames.
 If neither <b>frames</b> nor any range is given, the perframe actions
-will continue until halted with <b>~perframe</b>.
+will continue until halted with <b>perframe stop</b> or <b>~perframe</b>.
 </p><p>
 The <b>interval</b> option allows executing <i>operation</i> 
 at every <i>K</i><sup>th</sup> frame instead of every frame.
@@ -102,8 +104,8 @@ For example, the following requires both sets of quotation marks:
 <b>perframe "<a href="turn.html">turn</a> y 10; <a href="save.html">save</a> '~/Desktop/$1.png'" frames 9 format %3d</b>
 </blockquote>
 <p>
-The <b>showCommands</b> option can be used to echo each
-expanded command to the <a href="../tools/log.html"><b>Log</b></a>
+The <b>showCommands</b> option (default <b>false</b>) indicates whether to 
+echo each expanded command to the <a href="../tools/log.html"><b>Log</b></a>
 for debugging purposes.
 </p><p>
 Examples:
@@ -153,5 +155,5 @@ named <b>undocked</b> to a previously saved view named <b>docked</b>:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-December 2016</address>
+February 2017</address>
 </body></html>

@@ -68,7 +68,7 @@ class CommandLine(ToolInstance):
                 if self._processing_forwarded_key:
                     return
                 le = self.lineEdit()
-                if not le.hasFocus() and not le.selectedText() and le.text:
+                if not le.hasFocus() and not le.selectedText() and le.text():
                     le.selectAll()
 
         self.text = CmdText(parent, self)

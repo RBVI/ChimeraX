@@ -28,17 +28,17 @@ class _MyAPI(BundleAPI):
         return ToolUI(session, tool_name)
 
     @staticmethod
-    def register_command(command_name):
+    def register_command(command_name, logger):
         # 'register_command' is lazily called when the command is referenced
         raise NotImplementedError  # FIXME: remove method if unneeded
         from . import cmd
         from chimerax.core.commands import register
         register(command_name + " SUBCOMMAND_NAME",
-                 cmd.subcommand_desc, cmd.subcommand_function)
+                 cmd.subcommand_desc, cmd.subcommand_function, logger=logger)
         # TODO: Register more subcommands here
 
     @staticmethod
-    def register_selector(selector_name):
+    def register_selector(selector_name, logger):
         # 'register_selector' is lazily called when the selector is referenced
         raise NotImplementedError  # FIXME: remove method if unneeded
 

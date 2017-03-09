@@ -305,17 +305,17 @@ def extend_to_chains(atoms):
         
 def register_command(session):
 
-    from . import CmdDesc, register, AtomsArg, EnumOf, NoArg, FloatArg, IntArg
+    from . import CmdDesc, register, AtomsArg, EnumOf, BoolArg, FloatArg, IntArg
     desc = CmdDesc(required = [('atoms', AtomsArg)],
                    keyword = [('to_atoms', AtomsArg),
                               ('move', EnumOf(('atoms', 'residues', 'chains', 'molecules',
                                                'molecule atoms', 'nothing'))),
                               ('each', EnumOf(('chain', 'molecule', 'coordset'))),
-                              ('match_chain_ids', NoArg),
-                              ('match_sequence_numbers', NoArg),
-                              ('match_atom_names', NoArg),
+                              ('match_chain_ids', BoolArg),
+                              ('match_sequence_numbers', BoolArg),
+                              ('match_atom_names', BoolArg),
                               ('cutoff_distance', FloatArg),
-                              ('report_matrix', NoArg)],
+                              ('report_matrix', BoolArg)],
                    required_arguments = ['to_atoms'],
                    synopsis = 'Align one set of atoms to another')
-    register('align', desc, align)
+    register('align', desc, align, logger=session.logger)

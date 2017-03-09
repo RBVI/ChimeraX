@@ -17,14 +17,8 @@ class ContourLevelMouseMode(MouseMode):
     def __init__(self, session):
 
         MouseMode.__init__(self, session)
-        self.last_frame = None
 
     def mouse_drag(self, event):
-
-        f = self.view.frame_number
-        if f == self.last_frame:
-            return # Handle only one recontour event per frame
-        self.last_frame = f
 
         dx, dy = self.mouse_motion(event)
         f = -0.001*dy
@@ -32,6 +26,9 @@ class ContourLevelMouseMode(MouseMode):
         for m in mouse_maps(self.session.models):
             adjust_threshold_level(m, f)
             m.show()
+
+        # Make sure new level is shown before another mouse event causes another level change.
+        self.session.ui.update_graphics_now()
     
     def wheel(self, event):
         d = event.wheel_value()
@@ -39,6 +36,9 @@ class ContourLevelMouseMode(MouseMode):
         for m in mouse_maps(self.session.models):
             adjust_threshold_level(m, f)
             m.show()
+
+        # Make sure new level is shown before another mouse event causes another level change.
+        self.session.ui.update_graphics_now()
 
 def mouse_maps(models):    
     mall = models.list()

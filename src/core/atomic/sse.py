@@ -12,8 +12,6 @@ class OptLine:
     def __init__(self, coords, centroid, axis,
                  maxiter=DEFAULT_MAX_ITERATIONS, tol=0.1):
         from scipy.optimize import minimize
-        from numpy.linalg import norm
-        from numpy import mean
         self.coords = coords
         guess = self._encode(centroid, axis)
         options = {"disp":False, "maxiter":maxiter}
@@ -65,14 +63,14 @@ class OptArc:
     def __init__(self, coords, centroid, axis, radius,
                  maxiter=DEFAULT_MAX_ITERATIONS, tol=0.1):
         from scipy.optimize import minimize
-        from numpy.linalg import norm
         from numpy import mean
         self.coords = coords
         guess = self._encode(centroid, axis, radius)
         options = {"disp":False, "maxiter":maxiter}
+        # print("arc residual: initial", self._residual(guess))
         res = minimize(self._residual, guess, tol=tol, options=options)
-        # print("straight residual", self._residual(res.x),
-        #       "iterations", res.nit)
+        # print("arc residual: final", self._residual(res.x),
+        #       "after", res.nit, "iterations")
         # Even on failure, we use the last results from the optimization
         # rather than the initial guess.
         self.center, self.axis, self.radius = self._decode(res.x)
@@ -91,28 +89,22 @@ class OptArc:
         return center, axis, radius
 
     def _residual(self, params):
-        from numpy import dot, outer, stack, newaxis, var
+        from numpy import dot, outer, stack
         from numpy.linalg import norm
         center, axis, radius = self._decode(params)
-        # Calculate the vector from atom to torus center (vector Nx3)
+        # Calculate the vector from atom to arc center (vector Nx3)
         rel_coords = self.coords - center
-        # Get distance of atom from plane of torus (vector N)
+        # Get distance of atom from plane of arc (vector N)
         y = dot(rel_coords, axis)
-        # Get projection of atom onto plane of torus (vector Nx3)
+        # Get projection of atom onto plane of arc (vector Nx3)
         in_plane = rel_coords - outer(y, axis)
-        # Get distance from circle in plane of torus (vector N)
-        # and then atom distance from circle (vector N)
-        x = norm(in_plane, axis=1) - radius
-        delta = norm(stack([x, y], axis=1), axis=1)
-        # Alternate computation for verification
-        # uv = in_plane / norm(in_plane, axis=1)[:, newaxis]
-        # centers = center + uv * radius
-        # radii = norm(self.coords - centers, axis=1)
-        # Get difference from ideal (vector N)
-        # delta = radii - minor_radius
-        # res = norm(delta)
-        res = var(delta)
-        # print("residual", res)
+        # Get vector from arc center to projected atom
+        uv = _normalize_vector_array(in_plane)
+        # Get positions on circle in direction of atoms
+        centers = center + uv * radius
+        # Residual minimizes total distance from atom to ideal
+        res = norm(centers - self.coords)
+        #print("residual", res)
         return res
 
 
@@ -146,6 +138,7 @@ class HelixCylinder:
         self.coords = coords
         self.maxiter = maxiter
         self._centers = None
+        self._directions = None
         self._normals = None
         self._surface = None
         if len(coords) < self.MIN_CURVE_LENGTH:
@@ -165,7 +158,7 @@ class HelixCylinder:
         
         The returned points are the nearest points on the cylinder
         center line nearest the given atomic coordinates."""
-        from numpy import dot, outer, newaxis, cross, argsort
+        from numpy import dot, outer, cross, argsort
         from numpy.linalg import norm
         if self._centers is not None:
             return self._centers
@@ -178,7 +171,7 @@ class HelixCylinder:
             in_plane = rel_coords - outer(y, self.axis)
             # Get unit vector from torus center
             # to in_plane position (vector Nx3)
-            uv = in_plane / norm(in_plane, axis=1)[:, newaxis]
+            uv = _normalize_vector_array(in_plane)
             # Get centers by projecting along unit vectors
             centers = self.center + uv * self.major_radius
             # Sort them so that centers are always in order
@@ -194,20 +187,36 @@ class HelixCylinder:
             self._centers = self.centroid + outer(d, self.axis)
         return self._centers
 
+    def cylinder_directions(self):
+        """Return array for the direction vectors.
+
+        The returned array are the direction of the cylinder
+        corresponding to the given atomic coordinates."""
+        if self._directions is not None:
+            return self._directions
+        from numpy import tile, cross
+        if self.curved:
+            centers = self.cylinder_centers()
+            dv = cross(centers - self.center, self.axis)
+            self._directions = _normalize_vector_array(dv)
+        else:
+            self._directions = tile(self.axis, (len(self.coords), 1))
+        return self._directions
+
     def cylinder_normals(self):
         """Return tuple of two arrays for the normals and binormals.
 
         Normals and binormals are relative to the cylinder center."""
         if self._normals is not None:
             return self._normals
-        from numpy import tile, vdot, newaxis, cross
+        from numpy import tile, vdot, cross
         from numpy.linalg import norm
         tile_shape = [len(self.coords), 1]
         centers = self.cylinder_centers()
         if self.curved:
             normals = tile(self.axis, tile_shape)
             in_plane = centers - self.center
-            binormals = in_plane / norm(in_plane, axis=1)[:, newaxis]
+            binormals = _normalize_vector_array(in_plane)
             self._normals = (normals, binormals)
         else:
             normal = self.coords[1] - centers[1]
@@ -218,20 +227,15 @@ class HelixCylinder:
         return self._normals
 
     def cylinder_surface(self):
-        """Return (array of points, array of normals) on cylinder surface.
+        """Return array of points on cylinder surface.
         
         The returned points are the nearest points on the cylinder
-        surface nearest the given atomic coordinates.
-        The returned normals are perpendicular to both the cylinder
-        center and the line of projection from the atomic coordinates
-        to the cylinder center line."""
+        surface nearest the given atomic coordinates."""
         if self._surface is not None:
             return self._surface
-        from numpy import newaxis
-        from numpy.linalg import norm
         centers = self.cylinder_centers()
-        deltas = self.coords - centers
-        uv = delta / norm(delta, axis=1)[:, newaxis]
+        delta = self.coords - centers
+        uv = _normalize_vector_array(delta)
         if self.curved:
             self._surface = centers + uv * self.minor_radius
         else:
@@ -245,14 +249,13 @@ class HelixCylinder:
         by ''cylinder_center''.  These values are useful when rendering
         the cylinder such that each segment can be independently displayed
         and colored with sharp boundaries."""
-        from numpy import tile, newaxis
-        from numpy.linalg import norm
+        from numpy import tile
         centers = self.cylinder_centers()
         if self.curved:
             v = centers - self.center
             t = v[:-1] + v[1:]
             normals = tile(self.axis, [len(t), 1])
-            binormals = t / norm(t, axis=1)[:, newaxis]
+            binormals = _normalize_vector_array(t)
             ipoints = binormals * self.major_radius + self.center
         else:
             normals, binormals = self.cylinder_normals()
@@ -263,7 +266,6 @@ class HelixCylinder:
 
     def _try_curved(self):
         from numpy import mean, cross, sum, vdot
-        from numpy.linalg import norm
         from math import sqrt
         # First we compute three centroids at the
         # front, middle and end of the helix.
@@ -348,56 +350,50 @@ class StrandPlank:
     width parallel to the orientation axis, and thickness perpendicular
     to the orientation axis.  We do not define the ends of the plank.
 
-    A curved cylinder is actually a section of a torus and is
-    described by four parameters: center, orientation axis,
-    major radius (radius of the torus center-line circle) and
-    minor radius (radius of the circular cross section).
-    Again, we do not define the ends of the cylinder.
+    A curved plank described by six parameters: circle center,
+    orientation axis, circle radius, angle of plank relative
+    to plane of circle, width of plank along the angle, height
+    of plank perpendicular to the angle.
 
-    A straight cylinder is used for fewer than 13 residues
-    because that is roughly 3 turns of an alpha helix.
-    Using curved cylinders for shorter helices often result
-    in cylinders that minimize the atom-to-cylinder-surface
-    distances but look wrong.
+    A straight cylinder is used for short strands
+    because there is not enough data for good averaging.
     """
 
-    MIN_CURVE_LENGTH = 9
-    DEFAULT_MAX_ITERATIONS = 5
+    MIN_CURVE_LENGTH = 7
 
-    def __init__(self, coords, maxiter=DEFAULT_MAX_ITERATIONS):
+    def __init__(self, coords, guides, maxiter=None):
         self.coords = coords
+        self.guides = guides
         self.maxiter = maxiter
         self._centers = None
+        self._directions = None
         self._normals = None
         self._surface = None
         if len(coords) < self.MIN_CURVE_LENGTH:
             self._straight_optimize()
         else:
-            self._straight_optimize()
-            # self._try_curved()
+            self._try_curved()
 
     def plank_centers(self):
         """Return array of points on center line of plank.
         
         The returned points are the nearest points on the plank
         center line nearest the given atomic coordinates."""
-        from numpy import dot, outer, newaxis
-        from numpy.linalg import norm
+        from numpy import dot, outer
         if self._centers is not None:
             return self._centers
         if self.curved:
-            # TODO: verify this works
-            # Calculate the vector from atom to torus center (vector Nx3)
+            # Calculate the vector from atom to circle center (vector Nx3)
             rel_coords = self.coords - self.center
-            # Get distance of atom from plane of torus (vector N)
+            # Get distance of atom from plane of circle (vector N)
             y = dot(rel_coords, self.axis)
-            # Get projection of atom onto plane of torus (vector Nx3)
+            # Get projection of atom onto plane of circle (vector Nx3)
             in_plane = rel_coords - outer(y, self.axis)
-            # Get unit vector from torus center
+            # Get unit vector from circle center
             # to in_plane position (vector Nx3)
-            uv = in_plane / norm(in_plane, axis=1)[:, newaxis]
+            uv = _normalize_vector_array(in_plane)
             # Get centers by projecting along unit vectors
-            self._centers = self.center + uv * self.major_radius
+            self._centers = self.center + uv * self.radius
         else:
             # Get distance of each atomic coordinate
             # from centroid along the center line
@@ -406,20 +402,38 @@ class StrandPlank:
             self._centers = self.centroid + outer(d, self.axis)
         return self._centers
 
-    def plank_size(self):
-        return self.width, self.thickness
+    def plank_directions(self):
+        """Return array for the direction vectors.
+
+        The returned array are the direction of the plank
+        corresponding to the given atomic coordinates."""
+        if self._directions is not None:
+            return self._directions
+        from numpy import tile, cross
+        if self.curved:
+            centers = self.plank_centers()
+            dv = cross(centers - self.center, self.axis)
+            self._directions = _normalize_vector_array(dv)
+        else:
+            self._directions = tile(self.axis, (len(self.coords), 1))
+        return self._directions
 
     def plank_normals(self):
         if self._normals is not None:
             return self._normals
+        from numpy import cross, tile
         if self.curved:
-            raise ValueError("unimplemented")
+            in_plane = self.plank_centers() - self.center
+            normals = in_plane #  + self.tilt * self.axis
+            normals = _normalize_vector_array(normals)
         else:
-            # TODO: more here
-            from numpy import cross, tile
             bn = cross(self.width_vector, self.axis)
             shape = (len(self.coords), 1)
-            self._normals = tile(self.width_vector, shape), tile(bn, shape)
+            normals = tile(self.width_vector, shape), tile(bn, shape)
+        directions = self.plank_directions()
+        binormals = cross(directions, normals)
+        binormals = _normalize_vector_array(binormals)
+        self._normals = normals, binormals
         return self._normals
 
     def _straight_optimize(self):
@@ -434,6 +448,12 @@ class StrandPlank:
         p_dir = self.coords[-1] - self.coords[0]
         if vdot(self.axis, p_dir) < 0:
             self.axis = -self.axis
+        self.width_vector, self.thickness_vector = self._straight_tilt()
+
+        # TODO: Compute normals using guide positions
+
+
+
         # Get the coordinates relative to centroid
         centers = self.plank_centers()
         rel_coords = self.coords - centers
@@ -458,18 +478,14 @@ class StrandPlank:
         # back into vector
         width_vector = width_uv[0] * ref_u + width_uv[1] * ref_v
         thickness_vector = thickness_uv[0] * ref_u + thickness_uv[1] * ref_v
-        # Calculate dimensions of plank
-        width = mean(fabs(dot(uv, width_uv)))
-        thickness = mean(fabs(dot(uv, thickness_uv)))
+        return width_vector, thickness_vector
         # Save results
         self.width_vector = width_vector
         self.thickness_vector = thickness_vector
-        self.width = width
-        self.thickness = thickness
 
     def _straight_initial(self):
         from numpy import mean, argsort
-        from numpy.linalg import svd, norm
+        from numpy.linalg import svd
         centroid = mean(self.coords, axis=0)
         rel_coords = self.coords - centroid
         ignore, vals, vecs = svd(rel_coords)
@@ -482,3 +498,118 @@ class StrandPlank:
         axis = vecs[order[-1]]
         width_vector = vecs[order[-2]]
         return centroid, axis, width_vector
+
+    def _try_curved(self):
+        from numpy import mean, cross, sum, vdot
+        from math import sqrt
+        # First we compute three centroids at the
+        # front, middle and end of the helix.
+        # We assume all three points are on (or at least
+        # near) the center line of the torus.  We can then
+        # estimate the torus center, orientation and major
+        # radius.  The minor radius is estimated from the
+        # distance of atoms to the torus center line.
+        # We do not use the first or last coordinates
+        # because they tend to deviate from the
+        # cylinder surface more than the middle ones.
+        p1 = mean(self.coords[1:4], axis=0)
+        mid = len(self.coords) // 2
+        p2 = mean(self.coords[mid - 1: mid + 2], axis=0)
+        p3 = mean(self.coords[-4:-1], axis=0)
+        t = p2 - p1
+        u = p3 - p1
+        v = p3 - p2
+        w = cross(t, u)        # triangle normal
+        wsl = sum(w * w)    # square of length of w
+        if wsl < 1e-8:
+            # Strand does not curve
+            # print("strand straight")
+            self._straight_optimize()
+        else:
+            iwsl2 = 1.0 / (2 * wsl)
+            tt = vdot(t, t)
+            uu = vdot(u, u)
+            c_center = p1 + (u * tt * vdot(u, v) - t * uu * vdot(t, v)) * iwsl2
+            c_radius = sqrt(tt * uu * vdot(v, v) * iwsl2 * 0.5)
+            c_axis = w / sqrt(wsl)
+            # print("strand curved: center", c_center, "radius", c_radius,
+            #     "axis", c_axis)
+            self._curved_optimize(c_center, c_axis, c_radius)
+
+    def _curved_optimize(self, center, axis, radius):
+        opt = OptArc(self.coords, center, axis, radius)
+        self.curved = True
+        self.center = opt.center
+        self.axis = opt.axis
+        self.radius = opt.radius
+        if False:
+            from numpy import cross, dot
+            v = cross(self.coords[0] - self.center, self.coords[-1] - self.center)
+            print("axis check", v, self.axis, dot(v, self.axis))
+        self.tilt = self._curved_tilt()
+
+    def _curved_tilt(self):
+        # With center, axis and radius set, we can compute the "x" and "y"
+        # coordinates for each guide relative to the point on the circle
+        # closest to each guide ("reference").  "x" is the signed distance
+        # along the center-reference line; "y" is the signed distance
+        # perpendicular to the center-reference line.  We then fit a line
+        # through the (x, y) coordinates for all guides and the slope of
+        # the line gives us the plank angle relative to the plane of the circle.
+        from numpy import dot, outer, concatenate, polyfit, newaxis, stack
+        from numpy.linalg import norm, lstsq
+        from math import atan
+        rel_coords = self.guides - self.center
+        # y = tilt magnitudes in direction of arc normal
+        y = dot(rel_coords, self.axis)
+        # yv = tilt vectors in direction of arc normal
+        yv = outer(y, self.axis)
+        # xv = tilt vectors perpendicuar to arc normal
+        xv = rel_coords - yv
+        # x = tilt magnitudes perpendicular to arc normal
+        x = norm(xv, axis=1) - self.radius
+        # d = length of (x, y)
+        d = norm(stack([x, y], axis=1), axis=1)
+        x /= d
+        y /= d
+        # debug stuff
+        from numpy import newaxis
+        nxv = _normalize_vector_array(xv)
+        cxv = nxv * self.radius
+        dxv = xv - cxv
+        self.tilt_centers = cxv + self.center
+        self.tilt_xv = dxv
+        self.tilt_yv = yv
+        self.tilt_x = x
+        self.tilt_y = y
+        self.tilt_guides = self.guides[:]
+        # intercept, slope = best-fit line through magnitudes
+        # slope = ratio of magnitudes parallel/perpendicular to arc normal
+        intercept, slope = polyfit(x, y, 1)
+        #print("x", list(x))
+        #print("y", list(y))
+        print("slope", slope)
+        m, _, _, _ = lstsq(x[2:-2,newaxis], y[2:-2])
+        print("lstsq", m)
+        slope = m[0]
+        if True:
+            global inited
+            if not inited:
+                import matplotlib
+                matplotlib.use("qt5agg")
+                inited = True
+            import matplotlib.pyplot as plt
+            fig = plt.figure()
+            plt.axis('equal')
+            plt.axis([-1.2, 1.2, -1.2, 1.2])
+            plt.plot(x[2:-2], y[2:-2], 'o')
+            plt.xlabel("slope: %.4f" % slope)
+            plt.show()
+        return slope
+
+inited = False
+
+def _normalize_vector_array(v):
+    from numpy.linalg import norm
+    from numpy import newaxis
+    return v / norm(v, axis=1)[:, newaxis]

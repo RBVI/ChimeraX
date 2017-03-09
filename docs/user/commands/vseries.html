@@ -1,0 +1,425 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: vseries</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: vseries</h3>
+
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>vseries</b> &nbsp;<i>action</i> &nbsp;<i>arguments</i></h3>
+<p>
+The <b>vseries</b> command manipulates an ordered sequence of
+<a href="../tools/volumeviewer.html">volume data</a>
+sets such as density maps or optical microscopy data.
+Volume data can be opened as a series with
+<a href="open.html"><b>open</b></a>,
+employing filename wildcard symbols or globbing as needed to specify 
+multiple files in a single command. 
+The maps in a single series must be of the same size 
+(number of grid points in each dimension).
+3D TIFF images and
+<a href="save.html#chimap">Chimera map</a> files containing five or more
+same-sized maps are automatically treated as series, if possible,
+whereas other sets of same-sized maps can be designated as series
+with the <b>series</b> option of <a href="open.html#local"><b>open</b></a>.
+See also: 
+<a href="volume.html"><b>volume</b></a>,
+<a href="volume.html#morph"><b>volume morph</b></a>,
+<a href="mousemode.html"><b>mousemode</b></a>,
+<a href="../movies.html">making movies</a>
+</p><p>
+Examples:
+</p>
+<blockquote><b>
+vseries play #1 loop true
+<br>vseries stop #1
+<br>vseries save #1 ~/Desktop/test.cmap subregion 100,0,0,200,511,150
+threshold 140 valueType uint8</b> 
+</blockquote>
+<p>
+<a name="action">
+The <i>action</i> can be</a>:
+</p>
+<ul>
+<li><a href="#align"><b>align</b></a>
+- align the maps in the series
+<li><a href="#play"><b>play</b></a>
+- series playback
+<li><a href="#stop"><b>stop</b></a>
+- stop looping playback
+<li><a href="#slider"><b>slider</b></a>
+- show slider interface for the series 
+<li><a href="#measure"><b>measure</b></a>
+- track surface area, enclosed volume, and centroid position
+<li><a href="#save"><b>save</b></a>
+- save to <a href="save.html#chimap">Chimera map</a> format,
+optionally with cropping, normalization, alignment
+</ul>
+<p>
+Arguments for each action are described below.
+Option keywords and Boolean (truth) values can be truncated, with
+synonyms for true: True, 1, and synonyms for false: False, 0.
+A vertical bar &ldquo;|&rdquo; designates mutually exclusive values, and
+default settings are indicated with <b>bold</b>.
+</p><p>
+<a name="volume-spec"></a>
+The <i>volume-spec</i> is the model number of any member of the series.
+<a name="time"></a>
+The members of a series are indexed 0, 1, 2, ... and these indices are
+referred to as the <b><i>time</i></b>.
+Any numbers in the input filenames are not used.
+</p>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="align"><b>vseries align</b></a> &nbsp;<i>volume-spec</i>
+[&nbsp;<b>encloseVolume</b>&nbsp;&nbsp;<i>volume</i>&nbsp;|&nbsp;<b>fastEncloseVolume</b>&nbsp;&nbsp;<i>volume</i>&nbsp;]
+<blockquote>
+Align the maps in the <a href="#volume-spec">specified</a> volume series.
+(Alternatively, alignment can be done with the
+<a href="#save-align"><b>align</b></a> option of
+<a href="#save"><b>vseries save</b></a>.)
+The <b>encloseVolume</b> option indicates setting the
+<a href="volume.html#level">threshold</a> (contour level)  
+to enclose the specified <i>volume</i> in distance units cubed (<i>e.g.</i>,
+&Aring;<sup>3</sup>) before aligning the maps.
+The contour level affects alignment because
+only values above the contour level are used.
+The level is determined by an iterative procedure
+(<a href="volume.html#encloseVolume">details...</a>).
+The <b>fastEncloseVolume</b> option
+is similar but uses a faster, noniterative approximation
+(<a href="volume.html#fastEncloseVolume">details...</a>).
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="play"><b>vseries play</b></a> &nbsp;<i>volume-spec</i>
+[&nbsp;<i>play-options</i>&nbsp;]
+<blockquote>
+Play back the <a href="#volume-spec">specified</a> volume series,
+with <i>play-options</i> as follows:
+<blockquote>
+<a name="jumpTo"></a>
+<b>jumpTo</b> &nbsp;<i>time</i>
+<br>
+Go directly to the specified <a href="#time">time</a> and stop.
+See also <a href="#startTime"><b>startTime</b></a>.
+</blockquote>
+<blockquote>
+<a name="startTime"></a>
+<b>startTime</b> &nbsp;<i>time</i>
+<br>
+Go to the specified <a href="#time">time</a> and continue playback.
+See also <a href="#jumpTo"><b>jumpTo</b></a>.
+</blockquote>
+<blockquote>
+<b>range</b> &nbsp;<i>time-range</i>
+<br>
+Limit playback to the specified <a href="#time">time</a> range.
+</blockquote>
+<blockquote>
+<b>direction</b> &nbsp;<i>mode</i>
+<br>
+Specify the playback <i>mode</i>:
+<ul>
+<li><b>forward</b> (default) - in increasing order, then back to the first
+when <a href="#loop">looping</a> is on
+(01230123...)
+<li><b>backward</b> - in decreasing order, then back to the last
+when <a href="#loop">looping</a> is on
+(32103210...)
+<li><b>oscillate</b> - alternating increasing and decreasing order
+(01232101...)
+</ul>
+</blockquote>
+<blockquote>
+<a name="loop"></a>
+<b>loop</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to loop playback continuously until it is halted with
+<b>vseries stop</b>.
+</blockquote>
+<blockquote>
+<b>normalize</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to adjust the
+<a href="volume.html#level">thresholds</a>
+(contour levels) to keep the enclosed volume constant throughout the series.
+This is useful when the signal level in the data changes over time or
+between states.
+</blockquote>
+<blockquote>
+<a name="showMarkers"><b>showMarkers</b>&nbsp;&nbsp;<a href="atomspec.html"><i>marker-spec</i></a>&nbsp;&nbsp;[&nbsp;<b>precedingMarkerFrames</b>&nbsp;&nbsp;<i>N</i>&nbsp;]&nbsp;[&nbsp;<b>followingMarkerFrames</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
+<br>
+Display the <a href="atomspec.html">specified</a> markers
+to trace spatial and temporal paths. 
+(Markers are implemented as atoms and can be
+<a href="atomspec.html">specified</a> similarly by model number, <i>etc.</i>)
+The markers/atoms could have been created manually with the mouse
+(see <a href="mousemode.html"><b>mousemode</b></a>)
+or automatically with <a href="#measure"><b>vseries measure</b></a>.
+For marker display to be synchronized with playback, 
+each marker should be labeled with the <a href="#time">time</a> 
+of the data set on which it was placed.
+The labels are not shown, but used by <b>vseries</b> to limit marker display
+to the corresponding <a href="#time">time</a>. Simultaneously, markers
+can also be displayed for <i>N</i> earlier time points (default <b>0</b>)
+and <i>M</i> later time points (default <b>0</b>) using
+<b>precedingMarkerFrames</b> and <b>followingMarkerFrames</b>, respectively.
+<p>
+</blockquote>
+<blockquote>
+<font color="brown">
+<b>colorRange</b> &nbsp;<i>cutoff</i>
+<br>(not yet supported)
+<br>
+Whether to color volume contour surfaces to match markers within
+a specified distance <i>cutoff</i> (regardless of whether the markers are
+<a href="#showMarkers">shown</a>).  All of the markers associated with the
+current <a href="#time">time</a> are used to color the current surface.
+The coloring does not apply to <b>solid</b> displays.
+</font>
+</blockquote>
+<blockquote>
+<a name="maxFrameRate"></a>
+<b>maxFrameRate</b> &nbsp;<i>rate</i>
+<br>
+Specify a maximum playback <i>rate</i> in steps per second.
+By default, playback is as fast as possible, which can be fairly slow
+for large data. This option can be used to slow playback when it is too fast;
+however, the number of image frames per <a href="#time">time</a> step 
+will still depend on the speed of graphics rendering.
+The <a href="pauseFrames"><b>pauseFrames</b></a> option 
+slows playback more reproducibly and may be preferred.
+</blockquote>
+<blockquote>
+<a name="pauseFrames"></a>
+<b>pauseFrames</b> &nbsp;<i>P</i>
+<br>
+Make playback slower by updating
+the <a href="#time">time</a> only every <i>P</i> graphics redraw frames.
+Ignore <a href="#maxFrameRate"><b>maxFrameRate</b></a> if also given.
+</blockquote>
+<blockquote>
+<a name="cacheFrames"></a>
+<b>cacheFrames</b> &nbsp;<i>K</i>
+<br>
+Whether to store volume rendering (<b>surface/mesh</b> triangle 
+or <b>solid</b> voxel)
+information for the <i>K</i> most recent displays (default <b>1</b>).
+This can speed playback because less time is
+spent recalculating display information.
+There is no hard limit to the memory used to cache rendering information.
+Surface renderings use memory proportional to the number of triangles
+composing the surface. Solid renderings use memory proportional to the
+number of data voxels displayed, and it is generally
+only feasible to cache solid display information for small data sets.
+</blockquote>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="stop"><b>vseries stop</b></a> &nbsp;<i>volume-spec</i>
+<blockquote>
+Halt playback of the <a href="#volume-spec">specified</a> volume series.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="slider"><b>vseries slider</b></a> &nbsp;<i>volume-spec</i>
+<blockquote>
+Show a graphical slider interface
+for the <a href="#volume-spec">specified</a> volume series.
+Usually this is not needed, since simply opening the series will show 
+the slider; however, it allows assigning the same slider to
+two or more series (different channels/wavelengths) even if the series
+are not the same sizes. 
+<p>
+In the interface, the slider can be dragged
+or a <a href="#time">time</a> value entered directly. The interface also
+includes a play/pause button and another that toggles between the full 
+data (step 1) and every-other-point subsampling (step 2).
+</p><p>
+Volume series playback can also be assigned to
+a <a href="mousemode.html">mouse mode</a> such as scrolling.
+</p>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="measure"><b>vseries measure</b></a> &nbsp;<i>volume-spec</i>
+[&nbsp;<b>output</b>&nbsp;&nbsp;<i>filename</i>&nbsp;]
+[&nbsp;<b>centroids</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>radius</b>&nbsp;&nbsp;<i>centroid-radius</i>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<i>centroid-color</i>&nbsp;]
+<blockquote>
+For each <a href="#time">time</a> in the
+<a href="#volume-spec">specified</a> volume series,
+calculate centroid (x,y,z) coordinates, distance from the previous centroid
+(&ldquo;step&rdquo;), cumulative distance along the piecewise linear path
+from the first centroid, surface-enclosed volume, and surface area.
+The results are saved as plain text in <i>filename</i>
+specified with the <b>output</b> option, otherwise given in the
+<a href="../tools/log.html"><b>Log</b></a>.
+<p>
+The calculation uses the
+<a href="volume.html#step">step size</a> and
+<a href="volume.html#level">threshold</a> (contour level)  
+of the first map in the series for every time point; <i>i.e.</i>,
+the contour level is not adjusted to maintain a constant volume.
+The centroid is the center of mass of the density map based on map
+regions above the threshold. The surface area is a sum over
+the triangles of the contour surface. The surface-enclosed volume does not
+include interior bubbles (if any), and any holes in the surface are treated
+as if covered by planar caps.
+</p><p>
+If <b>centroids</b> is <b>true</b>,
+a marker will be placed at at each centroid, with
+radius <i>centroid-radius</i> (default is the minimum grid-spacing in
+the maps) and color <i>centroid-color</i> (default <b>gray</b>).
+The <i>centroid-color</i> can be any
+<a href="colornames.html">color name</a> that specifies a single color.
+Successive markers are linked.
+The markers can be shown during playback with the
+<a href="#showMarkers"><b>showMarkers</b></a> option of
+<a href="#play"><b>vseries play</b></a>.
+</p>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="save"><b>vseries save</b></a> &nbsp;<i>volume-spec</i> 
+&nbsp;<i>filename</i> [&nbsp;<i>save-options</i>&nbsp;]
+<blockquote>
+Save the <a href="#volume-spec">specified</a>
+series as a single file (<i>filename</i>) in 
+<a href="save.html#chimap">Chimera map format</a>, optionally
+with processing such as cropping, normalization, and alignment. The
+<i>save-options</i> are listed below in order of application when used together:
+<blockquote>
+<b>subregion</b> &nbsp;<i>i1,j1,k1,i2,j2,k2</i>
+<br>
+Instead of saving the full dimensions, save the
+subregion delimited by grid indices
+<i>i1&ndash;i2</i> along the X axis,
+<i>j1&ndash;j2</i> along the Y axis, and
+<i>k1&ndash;k2</i> along the Z axis.
+</blockquote>
+<blockquote>
+<b>step</b> &nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>
+<br>
+Specify sampling density, where a step of 1 means all data points, 
+2 means every other data point along each axis, <i>etc.</i>
+Step sizes must be integers. If a single number is supplied, it is
+used in all three directions; if three numbers are supplied
+(separated by commas but not spaces), they
+are used in the X, Y, and Z directions, respectively.
+</blockquote>
+<blockquote>
+<a name="valueType"><b>valueType</b> &nbsp;<i>value-type</i></a>
+<br>
+Change grid value type before any processing with other save options.
+The related option <a href="#finalValueType"><b>finalValueType</b></a>
+sets the value type after any processing.
+The <i>value-type</i> can be:
+<ul>
+<li><b>int8</b> - 8-bit signed integer
+<li><b>int16</b> - 16-bit signed integer
+<li><b>int32</b> - 32-bit signed integer
+<li><b>uint8</b> - 8-bit unsigned integer
+<li><b>uint16</b> - 16-bit unsigned integer
+<li><b>uint32</b> - 32-bit unsigned integer
+<li><b>float32</b> - 32-bit floating-point
+<li><b>float64</b> - 64-bit floating-point
+</ul>
+</blockquote>
+<blockquote>
+<a name="threshold"><b>threshold</b> &nbsp;<i>minimum</i></a>
+<br>
+Replace all values below the specified <i>mininum</i> with zero.
+</blockquote>
+<blockquote>
+<b>zeroMean</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Subtract the mean from each value so that the new mean will be zero.
+</blockquote>
+<blockquote>
+<a name="scaleFactor"><b>scaleFactor</b> &nbsp;<i>f</i></a>
+<br>
+Scale values by a multiplicative factor <i>f</i>.
+</blockquote>
+<blockquote>
+<a name="enclose">
+[&nbsp;<b>encloseVolume</b>&nbsp;<i>volume</i>&nbsp;|&nbsp;<b>fastEncloseVolume</b>&nbsp;<i>volume</i>&nbsp;]
+</a>
+<br>
+Set the contour level of each map to enclose a specified
+<i>volume</i> in distance units cubed.  Either of two methods can be used,
+as described <a href="#align">above</a>.
+The contour level affects <a href="#save-align">alignment</a> because
+only values above the contour level are used.
+</blockquote>
+<blockquote>
+<a name="normalizeLevel">
+<b>normalizeLevel</b> &nbsp;<i>value</i></a>
+<br>
+Scale map values so that the current
+<a href="volume.html#level">threshold</a> (contour level) 
+equals the specified <i>value</i>.
+</blockquote>
+<blockquote>
+<a name="save-align"><b>align</b> &nbsp;true&nbsp;|&nbsp;<b>false</b></a>
+<br>
+Align the maps before saving them.
+Only values above the contour level are used for alignment; contour
+levels can be set to <a href="#enclose">enclose a specified volume</a>.
+</blockquote>
+<blockquote>
+<a name="onGrid"><b>onGrid</b> &nbsp;<i>gridmap</i>&nbsp;</a>
+<br>
+Create the new map on the grid of another,
+where <i>gridmap</i> is a model number preceded by #.
+This allows using a consistent grid for maps after
+<a href="#save-align">alignment</a>.
+</blockquote>
+<blockquote>
+<a name="mask"><b>mask</b> &nbsp;<i>maskmap</i>&nbsp;</a>
+<br>
+Mask by <i>maskmap</i> (multiply by the 0,1 values within that map).
+The <i>maskmap</i> must be on the same grid and have the same dimensions
+as the series maps.
+</blockquote>
+<blockquote>
+<a name="finalValueType"><b>finalValueType</b> &nbsp;<i>value-type</i></a>
+<br>
+Set grid value type after any processing with other save options.
+Possible types are as listed for the related option
+<a href="#valueType"><b>valueType</b></a>,
+which sets the value type before processing.
+</blockquote>
+<blockquote>
+<a name="save-compress"><b>compress</b> &nbsp;true&nbsp;|&nbsp;<b>false</b></a>
+<br>
+Compress the output file (<a href="save.html#chimap">Chimera map format</a>).
+</blockquote>
+</blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+January 2017</address>
+</body></html>

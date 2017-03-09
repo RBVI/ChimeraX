@@ -45,8 +45,10 @@ clean:
 	rm -f pip.log
 
 outdated:
-	$(PIP) list --outdated --pre
+	$(PIP) list --outdated --format=columns
 
 app-outdated:
-	$(APP_PIP) list --outdated --pre
+	$(APP_PIP) list --outdated --format=columns
 
+src-outdated:
+	$(PYTHON_EXE) -m package_checker ../../src

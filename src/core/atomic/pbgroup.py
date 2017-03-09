@@ -67,6 +67,13 @@ class PseudobondGroup(PseudobondGroupData, Model):
             t.remove_handler(h.pop())
         self._handlers = []
 
+    def _set_selected(self, sel):
+        a1, a2 = self.pseudobonds.atoms
+        a1.selected = sel
+        a2.selected = sel
+        Model.set_selected(self, sel)
+    selected = property(Model.get_selected, _set_selected)
+
     def _get_dashes(self):
         return self._dashes
     def _set_dashes(self, n):
@@ -124,7 +131,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
             d.selected_positions = s._selected_bond_cylinders(bond_atoms)
 
     def first_intercept(self, mxyz1, mxyz2, exclude=None):
-        if not self.display or (exclude and hasattr(self, exclude)):
+        if not self.display or (exclude and exclude(self)):
             return None
         from . import structure
         b,f = structure._bond_intercept(self.pseudobonds, mxyz1, mxyz2)

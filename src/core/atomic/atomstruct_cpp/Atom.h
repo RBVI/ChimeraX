@@ -27,11 +27,12 @@
 #include "backbone.h"
 #include "ChangeTracker.h"
 #include "Coord.h"
-#include "Structure.h"
 #include "imex.h"
 #include "Point.h"
 #include "Rgba.h"
+#include "session.h"
 #include "string_types.h"
+#include "Structure.h"
 
 // "forward declare" PyObject, which is a typedef of a struct,
 // as per the python mailing list:
@@ -47,7 +48,6 @@ namespace atomstruct {
 
 class Bond;
 class CoordSet;
-class Structure;
 class Residue;
 class Ring;
 
@@ -73,24 +73,42 @@ public:
     typedef std::vector<const Ring*>  Rings;
     enum class StructCat { Unassigned, Main, Ligand, Ions, Solvent };
 
-    // in the SESSION* functions, a version of "0" means the latest version
-    static int  SESSION_NUM_INTS(int /*version*/=0) { return 10; };
-    static int  SESSION_NUM_FLOATS(int /*version*/=0) { return 1; };
-    static int  SESSION_ALTLOC_INTS(int /*version*/=0) { return 3; };
-    static int  SESSION_ALTLOC_FLOATS(int /*version*/=0) { return 5; };
+    static int  SESSION_NUM_INTS(int /*version*/=CURRENT_SESSION_VERSION) { return 10; };
+    static int  SESSION_NUM_FLOATS(int /*version*/=CURRENT_SESSION_VERSION) { return 1; };
+    static int  SESSION_ALTLOC_INTS(int /*version*/=CURRENT_SESSION_VERSION) { return 3; };
+    static int  SESSION_ALTLOC_FLOATS(int /*version*/=CURRENT_SESSION_VERSION) { return 5; };
 private:
     static const unsigned int  COORD_UNASSIGNED = ~0u;
     Atom(Structure *as, const char* name, const Element& e);
     virtual ~Atom();
 
     char  _alt_loc;
-    typedef struct {
-        std::vector<float> *  aniso_u;
+    class _Alt_loc_info {
+      public:
+    _Alt_loc_info() : aniso_u(NULL), serial_number(0) {}
+        ~_Alt_loc_info() { if (aniso_u) { delete aniso_u; aniso_u = NULL; } }
+	_Alt_loc_info(const _Alt_loc_info &ali) {
+	  // Copy aniso_u vector.
+	  if (ali.aniso_u) {
+	    create_aniso_u();
+	    for (int i = 0 ; i < 6 ; ++i)
+	      aniso_u[i] = ali.aniso_u[i];
+	  } else if (aniso_u) {
+	    delete aniso_u;
+	    aniso_u = NULL;
+	  }
+	}
+	std::vector<float> *create_aniso_u() {
+	  if (aniso_u == NULL)
+	    aniso_u = new std::vector<float>(6);
+	  return aniso_u;
+	}
+	std::vector<float> *aniso_u;
         float  bfactor;
         Point  coord;
         float  occupancy;
         int  serial_number;
-    } _Alt_loc_info;
+    };
     typedef std::map<unsigned char, _Alt_loc_info>  _Alt_loc_map;
     _Alt_loc_map  _alt_loc_map;
     std::vector<float> *  _aniso_u;
@@ -125,6 +143,7 @@ public:
     void  add_bond(Bond *b);
     char  alt_loc() const { return _alt_loc; }
     std::set<char>  alt_locs() const;
+    const std::vector<float> *aniso_u() const;
     float  bfactor() const;
     const Bonds&  bonds() const { return _bonds; }
     bool  connects_to(const Atom* other) const {
@@ -139,6 +158,8 @@ public:
     static const IdatmInfoMap&  get_idatm_info_map();
     bool  has_alt_loc(char al) const
       { return _alt_loc_map.find(al) != _alt_loc_map.end(); }
+    bool  has_aniso_u() const { return aniso_u() != NULL; }
+    bool  has_missing_structure_pseudobond() const;
     bool  idatm_is_explicit() const { return _explicit_idatm_type[0] != '\0'; }
     const AtomType&  idatm_type() const;
     bool  is_backbone(BackboneExtent bbe) const;
@@ -146,6 +167,7 @@ public:
     bool  is_sidechain() const;
     const AtomName&  name() const { return _name; }
     const Neighbors&  neighbors() const { return _neighbors; }
+    Bonds::size_type  num_explicit_bonds() const; // includes missing-structure bonds
     float  occupancy() const;
     int  serial_number() const { return _serial_number; }
     float radius() const {
@@ -161,12 +183,11 @@ public:
     Residue *  residue() const { return _residue; }
     const Rings&  rings(bool cross_residues = false, int all_size_threshold = 0,
             std::set<const Residue*>* ignore = nullptr) const;
-    // version "0" means latest version
-    int  session_num_ints(int version=0) const {
+    int  session_num_ints(int version=CURRENT_SESSION_VERSION) const {
         return SESSION_NUM_INTS(version) + Rgba::session_num_ints()
             + _alt_loc_map.size() * SESSION_ALTLOC_INTS(version);
     }
-    int  session_num_floats(int version=0) const;
+    int  session_num_floats(int version=CURRENT_SESSION_VERSION) const;
     void  session_restore(int version, int** ints, float** floats, PyObject* misc);
     void  session_save(int** ints, float** floats, PyObject* misc) const;
     void  set_alt_loc(char alt_loc, bool create=false, bool _from_residue=false);

@@ -3,11 +3,13 @@
 #	http://qt-project.org/wiki/Building_Qt_5_from_Git
 
 PREREQ_MAKE = 1
-TOP	= ../..
+TOP	= ../../..
 include $(TOP)/mk/config.make
 
+VERSION = 5.7
+MINOR_VERSION = 0
 FULL_VERSION = $(VERSION).$(MINOR_VERSION)
-DISTRIBUTION = qt-everywhere-opensource-src-$(FULL_VERSION).7z
+DISTRIBUTION = qt-everywhere-opensource-src-$(FULL_VERSION).tar.7z
 SOURCE = $(tmpdir)/qt-everywhere-opensource-src-$(FULL_VERSION)
 
 PATCHES	= $(wildcard qt-$(FULL_VERSION)-*.patch) $(wildcard qt-$(FULL_VERSION)_$(OS)-*.patch)
@@ -46,6 +48,9 @@ install: $(SOURCE)
 ifeq ($(OS),Windows)
 	cd $(SOURCE) && ./configure.exe $(CONFIG_OPTS) && nmake && nmake install
 else
+	# To get the below to work with Xcode 8, I had to:
+	# cd /Applications/Xcode.app/Contents/Developer/usr/bin/
+	# sudo ln -s xcodebuild xcrun
 	cd $(SOURCE) && $(ENV) ./configure $(CONFIG_OPTS) && $(MAKE) && $(MAKE) -j1 install
 endif
 	rm -f $(build_prefix)/q3porting.xml
@@ -68,10 +73,12 @@ endif
 
 $(SOURCE): $(DISTRIBUTION)
 	$(bindir)/7za x -o'$(tmpdir)' $(DISTRIBUTION)
+	(cd $(tmpdir); tar zxf $(SOURCE).tar)
 ifneq (,$(PATCHES))
 	for p in $(PATCHES); do \
-		(cd $(SOURCE) && patch -f -p0) < $$p ; \
+		(cd $(SOURCE) && patch -f -p1) < $$p ; \
 	done
+	touch $(SOURCE)
 endif
 
 clean:

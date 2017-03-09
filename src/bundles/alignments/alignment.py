@@ -364,7 +364,7 @@ class Alignment(State):
 
         # set up callbacks for structure changes
         match_map.del_handler = chain.triggers.add_handler('delete',
-            lambda _, sseq: self.disassociate(sseq))
+            lambda _1, sseq: self.disassociate(sseq))
         """
         match_map["mavModHandler"] = mseq.triggers.addHandler(
                 mseq.TRIG_MODIFY, self._mseqModCB, match_map)
@@ -377,7 +377,7 @@ class Alignment(State):
         self.viewers = []
         for sseq, aseq in self.associations.items():
             mmap = aseq.match_maps[sseq]
-            seq.triggers.remove_handler(mmap.del_handler)
+            sseq.triggers.remove_handler(mmap.del_handler)
 
     def _notify_viewers(self, note_name, note_data):
         for viewer in self.viewers:
@@ -406,7 +406,7 @@ class Alignment(State):
 
 
 def nw_assoc(session, align_seq, struct_seq):
-    '''Wrapper around Needle-Wunch matching, to make it return the same kinds of values
+    '''Wrapper around Needleman-Wunsch matching, to make it return the same kinds of values
        that try_assoc returns'''
 
     from chimerax.core.atomic import Sequence, SeqMatchMap

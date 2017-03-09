@@ -227,7 +227,7 @@ class Render:
         SHADER_SHIFT_AND_SCALE, SHADER_INSTANCING, SHADER_TEXTURE_MASK,
         SHADER_DEPTH_OUTLINE, SHADER_VERTEX_COLORS,
         SHADER_TRANSPARENT_ONLY, SHADER_OPAQUE_ONLY, SHADER_STEREO_360
-        SHADER_CLIP_PLANES
+        SHADER_CLIP_PLANES, SHADER_ALL_WHITE
         '''
         options |= self.enable_capabilities
         options &= ~self.disable_capabilities
@@ -362,6 +362,13 @@ class Render:
                 cmm = self.current_model_matrix
                 if cmm:
                     p.set_matrix('model_matrix', cmm.opengl_matrix())
+            if self.SHADER_STEREO_360 & p.capabilities:
+                cmm = self.current_model_matrix
+                cvm = self.current_view_matrix
+                if cmm:
+                    p.set_matrix('model_matrix', cmm.opengl_matrix())
+                if cvm:
+                    p.set_matrix('view_matrix', cvm.opengl_matrix())
 #            if p.capabilities & self.SHADER_MULTISHADOW:
 #                m4 = self.current_model_matrix.opengl_matrix()
 #                p.set_matrix('model_matrix', m4)
@@ -496,8 +503,9 @@ class Render:
         if color is not None:
             self.single_color = color
         p = self.current_shader_program
-        if p is not None and not (self.SHADER_VERTEX_COLORS & p.capabilities):
-            p.set_rgba("color", self.single_color)
+        if p is not None:
+            if not ((self.SHADER_VERTEX_COLORS | self.SHADER_ALL_WHITE) & p.capabilities):
+                p.set_rgba("color", self.single_color)
 
     def set_ambient_texture_transform(self, tf):
         # Transform from model coordinates to ambient texture coordinates.
@@ -674,6 +682,12 @@ class Render:
     def write_depth(self, write):
         'Enable or disable writing to depth buffer.'
         GL.glDepthMask(write)
+
+    def enable_backface_culling(self, enable):
+        if enable:
+            GL.glEnable(GL.GL_CULL_FACE)
+        else:
+            GL.glDisable(GL.GL_CULL_FACE)
 
     def enable_blending(self, enable):
         'Enable OpenGL alpha blending.'
@@ -863,13 +877,13 @@ class Render:
         self.push_framebuffer(mfb)
         self.set_background_color((0, 0, 0, 0))
         self.draw_background()
-        # Use unlit single color for drawing mask.
+        # Use unlit all white color for drawing mask.
         # Outline code requires non-zero red component.
-        self.set_single_color((1,0,0,1))	
         self.disable_shader_capabilities(self.SHADER_VERTEX_COLORS
                                          | self.SHADER_TEXTURE_2D
                                          | self.SHADER_TEXTURE_CUBEMAP
                                          | self.SHADER_LIGHTING)
+        self.enable_capabilities |= self.SHADER_ALL_WHITE
         # Depth test GL_LEQUAL results in z-fighting:
         self.set_depth_range(0, 0.999999)
         # Copy depth to outline framebuffer:
@@ -879,6 +893,7 @@ class Render:
 
         self.pop_framebuffer()
         self.disable_shader_capabilities(0)
+        self.enable_capabilities &= ~self.SHADER_ALL_WHITE
         self.set_depth_range(0, 1)
         t = self.mask_framebuffer.color_texture
         self.draw_texture_mask_outline(t)
@@ -1085,6 +1100,7 @@ shader_options = (
     'SHADER_OPAQUE_ONLY',
     'SHADER_STEREO_360',
     'SHADER_CLIP_PLANES',
+    'SHADER_ALL_WHITE',
 )
 for i, sopt in enumerate(shader_options):
     setattr(Render, sopt, 1 << i)
@@ -1230,6 +1246,13 @@ class Framebuffer:
         GL.glDeleteFramebuffers(1, (self.fbo,))
         self.color_rb = self.depth_rb = self.fbo = None
 
+        ct = self.color_texture
+        dt = self.depth_texture
+        if ct is not None:
+            ct.delete_texture()
+        if dt is not None:
+            dt.delete_texture()
+        self.color_texture = self.depth_texture = None
 
 class Lighting:
     '''

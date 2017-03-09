@@ -14,3 +14,4 @@
 
 .. automodule:: chimerax.core.models
     :members:
+    :show-inheritance:

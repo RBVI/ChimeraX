@@ -90,4 +90,4 @@ def register_command(session):
                    optional = [('name', StringArg)],
                    keyword = [('id', ModelIdArg)],
                    synopsis='rename a model or change its id number')
-    register('rename', desc, rename)
+    register('rename', desc, rename, logger=session.logger)

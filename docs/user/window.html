@@ -14,7 +14,7 @@ or derivations thereof.
 -->
 
 <head>
-<title>ChimeraX Window</title>
+<title>The ChimeraX Window</title>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <link rel="stylesheet" type="text/css" href="userdocs.css" />
 </head><body>
@@ -24,10 +24,10 @@ or derivations thereof.
 <img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
 class="clRight" title="User Guide Index"/></a>
 
-<h3>ChimeraX Window</h3>
+<h2>The ChimeraX Window</h2>
 <a href="crispr.png">
 <img class="outlineCR" width="450px" src="crispr.png" 
-alt="ChimeraX window" title="click for larger..."></a>
+alt="ChimeraX window" title="click to enlarge..."></a>
 <p>
 ChimeraX has an all-in-one window interface in which 
 <b><i>panels</i></b> can be shown, hidden, and repositioned. 
@@ -52,9 +52,12 @@ interfaces, but may also appear as the result of a
 <a href="index.html#commands">command</a> 
 (for example, <a href="commands/contacts.html"><b>contacts</b></a>
 or <a href="commands/help.html"><b>help</b></a>).
+</p><p>
+<a name="toolstart"></a>
 A tool can be started or shown using the <b>Tools</b> menu and/or
-<b>toolshed</b> command, or by opening a certain type of data
-(for example, opening a density map starts <b>Volume Viewer</b>).
+<b>toolshed</b> command, or by <a href="commands/open.html">opening</a>
+a certain type of data (for example, opening a density map starts 
+<a href="tools/volumeviewer.html"><b>Volume Viewer</b></a>).
 </p><p>
 <a name="panelcontrol"></a>
 A panel can also be:
@@ -82,7 +85,8 @@ its top bar, and an individual tabbed panel can be untabbed
 <font size="+2"><b>*</b></font>for Mac touchpad or single-button mouse,
 Ctrl-click replaces &ldquo;right-click&rdquo; for showing context menus
 <p>
-Icon toolbars and the <a href="tools/cli.html"><b>Command Line</b></a>
+<a href="index.html#tools">Icon toolbars</a>
+and the <a href="tools/cli.html"><b>Command Line</b></a>
 lack their own title bars, but the other methods of control
 are still available.
 The overall window or any undocked panel can be resized by dragging 
@@ -131,22 +135,30 @@ ChimeraX commands by clicking special links, for example:
 <b>&lt;a href="cxcmd:open 1gcn"&gt;open 1gcn&lt;/a&gt;</b>
 </blockquote>
 <p>
-The execution links will only work in the ChimeraX browser, 
-not other web browsers.
+** The execution links will only work in the ChimeraX browser, 
+not other web browsers.**
 The <a href="../quickstart/index.html">Quick Start Guide</a> includes
-many more examples of executable ChimeraX command links.
+many more examples.
 </p><p>
-Arbitrary web content and HTML files (with or without such special links)
-can be shown in the ChimeraX browser with a command:
+With this mechanism, it is easy to create web pages that use ChimeraX for
+structure display and other features, as in a scientific presentation or
+ChimeraX tutorial. Since the mechanism only works in the ChimeraX browser,
+however, ChimeraX must already be installed and used to open the web page
+of interest.
+</p><p>
+Web content and HTML files in general
+(with or without such special execution links)
+can be shown in the ChimeraX browser with commands:
 </p>
 <blockquote>
-<b><a href="commands/help.html">help</a> <i>URL</i></b>
+<b><a href="commands/open.html">open</a> &nbsp;<i>URL</i></b>
 <br>&ndash; or &ndash;<br>
-<b><a href="commands/open.html">open</a> <i>local-file.html</i></b>
+<b><a href="commands/open.html">open</a> &nbsp;<i>local-file.html</i></b>
 </blockquote>
+Local files can also be opened with <b>File... Open</b> in the menu.
 Besides the <b>Help Viewer</b>, other panels with HTML content such as the
 <a href="tools/log.html"><b>Log</b></a> are also displayed appropriately.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-November 2016</address>
+March 2017</address>
 </body></html> 

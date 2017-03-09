@@ -12,7 +12,7 @@
 # -----------------------------------------------------------------------------
 # Command to perform surface operations.
 #
-#   Syntax: sop <operation> <surfaceSpec>
+#   Syntax: surface <operation> <surfaceSpec>
 #               [spacing <d>]
 #               [modelId <n>]
 #               [inPlace true|false]
@@ -20,7 +20,7 @@
 # where allowed operations are: finerMesh
 #
 from ..errors import UserError
-def register_command(session):
+def register_surface_subcommands(session):
 
     # TODO: Port other subcommands from Chimera 1.
     old_stuff = """
@@ -91,7 +91,7 @@ def register_command(session):
                                    ('size', FloatArg),
                                    ('update', BoolArg)],
                         synopsis = 'hide small connected surface patches')
-    register('sop dust', dust_desc, sop_dust)
+    register('surface dust', dust_desc, surface_dust, logger=session.logger)
 
     zone_desc = CmdDesc(required = [('surfaces', SurfacesArg)],
                         keyword = [('near_atoms', AtomsArg),
@@ -101,8 +101,10 @@ def register_command(session):
                                    ('update', BoolArg)],
                         required_arguments = ['near_atoms'],
                         synopsis = 'show surface near atoms')
-    register('sop zone', zone_desc, sop_zone)
+    register('surface zone', zone_desc, surface_zone, logger=session.logger)
 
+    from . import create_alias
+    create_alias('sop', 'surface $*', logger=session.logger)
 
 # -----------------------------------------------------------------------------
 #
@@ -128,7 +130,7 @@ def unsop_command(cmdname, args):
 def cap_op(onoff, color = None, mesh = None, subdivision = None, offset = None):
 
     if not onoff in ('on', 'off'):
-        raise CommandError('sop cap argument must be "on" or "off", got "%s"'
+        raise CommandError('surface cap argument must be "on" or "off", got "%s"'
                            % onoff)
     
     from SurfaceCap.surfcaps import capper
@@ -157,7 +159,7 @@ def clip_op(volumes, center = None, coordinateSystem = None, radius = None,
     if not center is None:
         import Commands as C
         center, axis, csys = C.parse_center_axis(center, None, coordinateSystem,
-                                                 'sop clip')
+                                                 'surface clip')
 
     import clip
     for v in volumes:
@@ -253,7 +255,7 @@ def new_surface(name, align_to, model_id):
 
 # -----------------------------------------------------------------------------
 #
-def sop_dust(session, surfaces, metric = 'size', size = None, update = False):
+def surface_dust(session, surfaces, metric = 'size', size = None, update = False):
     '''
     Hide connected surface patchs smaller than a specified size.
 
@@ -345,7 +347,7 @@ def transform_op(surfaces, scale = None, radius = None, move = None,
     if need_center:
         if not center is None or not axis is None:
             import Commands as C
-            c, a = C.parse_center_axis(center, axis, csys, 'sop transform')[:2]
+            c, a = C.parse_center_axis(center, axis, csys, 'surface transform')[:2]
             if not c is None:
                 ctf = M.xform_matrix(csys.xform)
                 c = M.apply_matrix(ctf, c)
@@ -368,7 +370,7 @@ def transform_op(surfaces, scale = None, radius = None, move = None,
     
 # -----------------------------------------------------------------------------
 #
-def sop_zone(session, surfaces, near_atoms = None, range = 2,
+def surface_zone(session, surfaces, near_atoms = None, range = 2,
              max_components = None, bond_point_spacing = None, update = False):
     '''
     Hide parts of a surface beyond a given distance from specified atoms.

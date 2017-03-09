@@ -23,13 +23,13 @@ class Ribbon:
     FRONT = 1
     BACK = 2
 
-    def __init__(self, coords, guides, orient):
+    def __init__(self, coords, guides, orients):
         # Extend the coordinates at start and end to make sure the
         # ribbon is straight on either end.  Compute the spline
         # coefficients for each axis.  Then throw away the
         # coefficients for the fake ends.
         from .structure import Structure
-        from numpy import empty, zeros
+        from numpy import empty, zeros, ones
         c = empty((len(coords) + 2, 3), float)
         c[0] = coords[0] + (coords[0] - coords[1])
         c[1:-1] = coords
@@ -38,20 +38,43 @@ class Ribbon:
         for i in range(3):
             self._compute_coefficients(c, i)
         self.flipped = zeros(len(coords), bool)
-        if orient == Structure.RIBBON_ORIENT_ATOMS:
-            self.normals = self._compute_normals_from_control_points(coords)
-            self.ignore_flip_mode = True
-        elif orient == Structure.RIBBON_ORIENT_CURVATURE:
-            self.normals = self._compute_normals_from_curvature(coords)
-            self.ignore_flip_mode = True
-        else:
-            # RIBBON_ORIENT_GUIDES, RIBBON_ORIENT_PEPTIDE and default case
+        atom_normals = None
+        atom_mask = (orients == Structure.RIBBON_ORIENT_ATOMS)
+        curvature_normals = None
+        curvature_mask = (orients == Structure.RIBBON_ORIENT_CURVATURE)
+        guide_normals = None
+        guide_mask = ((orients == Structure.RIBBON_ORIENT_GUIDES) |
+                       (orients == Structure.RIBBON_ORIENT_PEPTIDE))
+        if atom_mask.any():
+            atom_normals = self._compute_normals_from_control_points(coords)
+        if curvature_mask.any():
+            curvature_normals = self._compute_normals_from_curvature(coords)
+        if guide_mask.any():
             if guides is None or len(coords) != len(guides):
-                self.normals = self._compute_normals_from_control_points(coords)
-                self.ignore_flip_mode = True
+                if atom_normals is None:
+                    guide_normals = self._compute_normals_from_control_points(coords)
+                else:
+                    guide_normals = atom_normals
+                guide_flip = False
             else:
-                self.normals = self._compute_normals_from_guides(coords, guides)
-                self.ignore_flip_mode = False
+                guide_normals = self._compute_normals_from_guides(coords, guides)
+                guide_flip = True
+        self.normals = None
+        if atom_normals is not None:
+            self.normals = atom_normals
+        if curvature_normals is not None:
+            if self.normals is None:
+                self.normals = curvature_normals
+            else:
+                self.normals[curvature_mask] = curvature_normals[curvature_mask]
+        if guide_normals is not None:
+            if self.normals is None:
+                self.normals = guide_normals
+            else:
+                self.normals[guide_mask] = guide_normals[guide_mask]
+        self.ignore_flip_mode = ones(len(self.normals))
+        if guide_normals is not None and not guide_flip:
+            self.ignore_flip_mode[guide_mask] = False
         # Initialize segment cache
         self._seg_cache = {}
 
@@ -324,7 +347,7 @@ class Ribbon:
             ne = self.normals[seg + 1]
             # import sys
             # print("ns, ne", ns, ne, file=sys.__stderr__); sys.__stderr__.flush()
-            if self.ignore_flip_mode:
+            if self.ignore_flip_mode[seg]:
                 flip_mode = FLIP_MINIMIZE
             normals, flipped = constrained_normals(tangents, ns, ne, flip_mode,
                                                    self.flipped[seg], self.flipped[seg + 1], no_twist)
@@ -404,7 +427,9 @@ class Ribbon:
         return coords, tangents, normals
 
 
-class XSectionManager:
+from ..state import State
+
+class XSectionManager(State):
     """XSectionManager keeps track of ribbon cross sections used in an AtomicStructure instance.
 
     Constants:
@@ -440,99 +465,16 @@ class XSectionManager:
     (RIBBON_NUCLEIC, RIBBON_SHEET, RIBBON_SHEET_ARROW,
      RIBBON_HELIX, RIBBON_HELIX_ARROW, RIBBON_COIL) = range(6)
 
-    def __init__(self, structure):
+    def __init__(self):
+        self.structure = None
+        self.reset_state(None)
+
+    def set_structure(self, structure):
         import weakref
 	# 0.21 is slightly bigger than the default stick radius
 	# so ends of stick will be completely hidden by ribbon
 	# instead of sticking out partially on the other side
         self.structure = weakref.ref(structure)
-        self.scale_helix = (1.0, 0.2)
-        self.scale_helix_arrow = ((2.0, 0.2), (0.2, 0.2))
-        self.scale_sheet = (1.0, 0.2)
-        self.scale_sheet_arrow = ((2.0, 0.2), (0.2, 0.2))
-        self.scale_coil = (0.2, 0.2)
-        self.scale_nucleic = (0.2, 1.0)
-        self.style_helix = self.STYLE_ROUND
-        self.style_sheet = self.STYLE_SQUARE
-        self.style_coil = self.STYLE_ROUND
-        self.style_nucleic = self.STYLE_SQUARE
-        self.arrow_helix = False
-        self.arrow_sheet = True
-        self.params = {
-            self.STYLE_ROUND: {
-                "sides": 12,
-                "faceted": False,
-            },
-            self.STYLE_SQUARE: {
-                # No parameters yet for square style
-            },
-            self.STYLE_PIPING: {
-                "sides": 18,
-                "ratio": 0.5,
-                "faceted": False,
-            },
-        }
-        self.transitions = {
-            # SHEET_START in the middle
-            (self.RC_COIL, self.RC_SHEET_START, self.RC_SHEET_MIDDLE):
-                (self.RIBBON_COIL, self.RIBBON_SHEET),
-            (self.RC_COIL, self.RC_SHEET_START, self.RC_SHEET_END):
-                (self.RIBBON_COIL, self.RIBBON_SHEET),
-            (self.RC_HELIX_END, self.RC_SHEET_START, self.RC_SHEET_MIDDLE):
-                (self.RIBBON_SHEET, self.RIBBON_SHEET),
-            (self.RC_HELIX_END, self.RC_SHEET_START, self.RC_SHEET_END):
-                (self.RIBBON_SHEET, self.RIBBON_SHEET),
-            (self.RC_SHEET_END, self.RC_SHEET_START, self.RC_SHEET_MIDDLE):
-                (self.RIBBON_SHEET, self.RIBBON_SHEET),
-            (self.RC_SHEET_END, self.RC_SHEET_START, self.RC_SHEET_END):
-                (self.RIBBON_SHEET, self.RIBBON_SHEET),
-            # SHEET_END in the middle
-            (self.RC_SHEET_START, self.RC_SHEET_END, self.RC_COIL):
-                (self.RIBBON_SHEET_ARROW, self.RIBBON_COIL),
-            (self.RC_SHEET_MIDDLE, self.RC_SHEET_END, self.RC_COIL):
-                (self.RIBBON_SHEET_ARROW, self.RIBBON_COIL),
-            (self.RC_SHEET_START, self.RC_SHEET_END, self.RC_HELIX_START):
-                (self.RIBBON_SHEET, self.RIBBON_SHEET_ARROW),
-            (self.RC_SHEET_MIDDLE, self.RC_SHEET_END, self.RC_HELIX_START):
-                (self.RIBBON_SHEET, self.RIBBON_SHEET_ARROW),
-            (self.RC_SHEET_START, self.RC_SHEET_END, self.RC_SHEET_START):
-                (self.RIBBON_SHEET, self.RIBBON_SHEET_ARROW),
-            (self.RC_SHEET_MIDDLE, self.RC_SHEET_END, self.RC_SHEET_START):
-                (self.RIBBON_SHEET, self.RIBBON_SHEET_ARROW),
-            # HELIX_START in the middle
-            (self.RC_COIL, self.RC_HELIX_START, self.RC_HELIX_MIDDLE):
-                (self.RIBBON_COIL, self.RIBBON_HELIX),
-            (self.RC_COIL, self.RC_HELIX_START, self.RC_HELIX_END):
-                (self.RIBBON_COIL, self.RIBBON_HELIX),
-            (self.RC_HELIX_END, self.RC_HELIX_START, self.RC_HELIX_MIDDLE):
-                (self.RIBBON_HELIX, self.RIBBON_HELIX),
-            (self.RC_HELIX_END, self.RC_HELIX_START, self.RC_HELIX_END):
-                (self.RIBBON_HELIX, self.RIBBON_HELIX),
-            (self.RC_SHEET_END, self.RC_HELIX_START, self.RC_HELIX_MIDDLE):
-                (self.RIBBON_HELIX, self.RIBBON_HELIX),
-            (self.RC_SHEET_END, self.RC_HELIX_START, self.RC_HELIX_END):
-                (self.RIBBON_HELIX, self.RIBBON_HELIX),
-            # HELIX_END in the middle
-            (self.RC_HELIX_START, self.RC_HELIX_END, self.RC_COIL):
-                (self.RIBBON_HELIX_ARROW, self.RIBBON_COIL),
-            (self.RC_HELIX_MIDDLE, self.RC_HELIX_END, self.RC_COIL):
-                (self.RIBBON_HELIX_ARROW, self.RIBBON_COIL),
-            (self.RC_HELIX_START, self.RC_HELIX_END, self.RC_HELIX_START):
-                (self.RIBBON_HELIX, self.RIBBON_HELIX_ARROW),
-            (self.RC_HELIX_MIDDLE, self.RC_HELIX_END, self.RC_HELIX_START):
-                (self.RIBBON_HELIX, self.RIBBON_HELIX_ARROW),
-            (self.RC_HELIX_START, self.RC_HELIX_END, self.RC_SHEET_START):
-                (self.RIBBON_HELIX, self.RIBBON_HELIX_ARROW),
-            (self.RC_HELIX_MIDDLE, self.RC_HELIX_END, self.RC_SHEET_START):
-                (self.RIBBON_HELIX, self.RIBBON_HELIX_ARROW),
-        }
-
-        self._xs_helix = None
-        self._xs_helix_arrow = None
-        self._xs_sheet = None
-        self._xs_sheet_arrow = None
-        self._xs_coil = None
-        self._xs_nucleic = None
 
     def assign(self, rc0, rc1, rc2):
         """Return front and back cross sections for the middle residue.
@@ -850,6 +792,129 @@ class XSectionManager:
         s = self.structure()
         if s is not None:
             s._graphics_changed |= s._RIBBON_CHANGE
+
+    # Session methods
+
+    _SessionAttrs = [
+        "scale_helix",
+        "scale_helix_arrow",
+        "scale_sheet",
+        "scale_sheet_arrow",
+        "scale_coil",
+        "scale_nucleic",
+        "style_helix",
+        "style_sheet",
+        "style_coil",
+        "style_nucleic",
+        "arrow_helix",
+        "arrow_sheet",
+        "params",
+        "transitions",
+    ]
+
+    def take_snapshot(self, session, flags):
+        data = dict([(attr, getattr(self, attr))
+                     for attr in self._SessionAttrs])
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        xs_mgr = cls()
+        xs_mgr.set_state_from_snapshot(session, data)
+        return xs_mgr
+
+    def set_state_from_snapshot(self, session, data):
+        for attr in self._SessionAttrs:
+            setattr(self, attr, data[attr])
+
+    def reset_state(self, session):
+        self.scale_helix = (1.0, 0.2)
+        self.scale_helix_arrow = ((2.0, 0.2), (0.2, 0.2))
+        self.scale_sheet = (1.0, 0.2)
+        self.scale_sheet_arrow = ((2.0, 0.2), (0.2, 0.2))
+        self.scale_coil = (0.2, 0.2)
+        self.scale_nucleic = (0.2, 1.0)
+        self.style_helix = self.STYLE_ROUND
+        self.style_sheet = self.STYLE_SQUARE
+        self.style_coil = self.STYLE_ROUND
+        self.style_nucleic = self.STYLE_SQUARE
+        self.arrow_helix = False
+        self.arrow_sheet = True
+        self.params = {
+            self.STYLE_ROUND: {
+                "sides": 12,
+                "faceted": False,
+            },
+            self.STYLE_SQUARE: {
+                # No parameters yet for square style
+            },
+            self.STYLE_PIPING: {
+                "sides": 18,
+                "ratio": 0.5,
+                "faceted": False,
+            },
+        }
+        self.transitions = {
+            # SHEET_START in the middle
+            (self.RC_COIL, self.RC_SHEET_START, self.RC_SHEET_MIDDLE):
+                (self.RIBBON_COIL, self.RIBBON_SHEET),
+            (self.RC_COIL, self.RC_SHEET_START, self.RC_SHEET_END):
+                (self.RIBBON_COIL, self.RIBBON_SHEET),
+            (self.RC_HELIX_END, self.RC_SHEET_START, self.RC_SHEET_MIDDLE):
+                (self.RIBBON_COIL, self.RIBBON_SHEET),
+            (self.RC_HELIX_END, self.RC_SHEET_START, self.RC_SHEET_END):
+                (self.RIBBON_COIL, self.RIBBON_SHEET),
+            (self.RC_SHEET_END, self.RC_SHEET_START, self.RC_SHEET_MIDDLE):
+                (self.RIBBON_COIL, self.RIBBON_SHEET),
+            (self.RC_SHEET_END, self.RC_SHEET_START, self.RC_SHEET_END):
+                (self.RIBBON_COIL, self.RIBBON_SHEET),
+            # SHEET_END in the middle
+            (self.RC_SHEET_START, self.RC_SHEET_END, self.RC_COIL):
+                (self.RIBBON_SHEET_ARROW, self.RIBBON_COIL),
+            (self.RC_SHEET_MIDDLE, self.RC_SHEET_END, self.RC_COIL):
+                (self.RIBBON_SHEET_ARROW, self.RIBBON_COIL),
+            (self.RC_SHEET_START, self.RC_SHEET_END, self.RC_HELIX_START):
+                (self.RIBBON_SHEET_ARROW, self.RIBBON_COIL),
+            (self.RC_SHEET_MIDDLE, self.RC_SHEET_END, self.RC_HELIX_START):
+                (self.RIBBON_SHEET_ARROW, self.RIBBON_COIL),
+            (self.RC_SHEET_START, self.RC_SHEET_END, self.RC_SHEET_START):
+                (self.RIBBON_SHEET_ARROW, self.RIBBON_COIL),
+            (self.RC_SHEET_MIDDLE, self.RC_SHEET_END, self.RC_SHEET_START):
+                (self.RIBBON_SHEET_ARROW, self.RIBBON_COIL),
+            # HELIX_START in the middle
+            (self.RC_COIL, self.RC_HELIX_START, self.RC_HELIX_MIDDLE):
+                (self.RIBBON_COIL, self.RIBBON_HELIX),
+            (self.RC_COIL, self.RC_HELIX_START, self.RC_HELIX_END):
+                (self.RIBBON_COIL, self.RIBBON_HELIX),
+            (self.RC_HELIX_END, self.RC_HELIX_START, self.RC_HELIX_MIDDLE):
+                (self.RIBBON_COIL, self.RIBBON_HELIX),
+            (self.RC_HELIX_END, self.RC_HELIX_START, self.RC_HELIX_END):
+                (self.RIBBON_COIL, self.RIBBON_HELIX),
+            (self.RC_SHEET_END, self.RC_HELIX_START, self.RC_HELIX_MIDDLE):
+                (self.RIBBON_COIL, self.RIBBON_HELIX),
+            (self.RC_SHEET_END, self.RC_HELIX_START, self.RC_HELIX_END):
+                (self.RIBBON_COIL, self.RIBBON_HELIX),
+            # HELIX_END in the middle
+            (self.RC_HELIX_START, self.RC_HELIX_END, self.RC_COIL):
+                (self.RIBBON_HELIX_ARROW, self.RIBBON_COIL),
+            (self.RC_HELIX_MIDDLE, self.RC_HELIX_END, self.RC_COIL):
+                (self.RIBBON_HELIX_ARROW, self.RIBBON_COIL),
+            (self.RC_HELIX_START, self.RC_HELIX_END, self.RC_HELIX_START):
+                (self.RIBBON_HELIX_ARROW, self.RIBBON_COIL),
+            (self.RC_HELIX_MIDDLE, self.RC_HELIX_END, self.RC_HELIX_START):
+                (self.RIBBON_HELIX_ARROW, self.RIBBON_COIL),
+            (self.RC_HELIX_START, self.RC_HELIX_END, self.RC_SHEET_START):
+                (self.RIBBON_HELIX_ARROW, self.RIBBON_COIL),
+            (self.RC_HELIX_MIDDLE, self.RC_HELIX_END, self.RC_SHEET_START):
+                (self.RIBBON_HELIX_ARROW, self.RIBBON_COIL),
+        }
+
+        self._xs_helix = None
+        self._xs_helix_arrow = None
+        self._xs_sheet = None
+        self._xs_sheet_arrow = None
+        self._xs_coil = None
+        self._xs_nucleic = None
 
 
 def normalize(v):

@@ -34,7 +34,7 @@ class Log:
     LEVEL_WARNING = 1
     LEVEL_ERROR = 2
 
-    LEVEL_DESCRIPTS = ["info", "warning", "error"]
+    LEVEL_DESCRIPTS = ["note", "warning", "error"]
 
     # if excludes_other_logs is True, then if this log consumed the
     # message (log() returned True) downstream logs will not get
@@ -137,7 +137,96 @@ class PlainTextLog(Log):
         return False
 
 
-class Logger:
+class StatusLogger:
+    """Base class for classes that offer 'status' method."""
+
+    def __init__(self, session):
+        self.session = session
+        self._status_timer1 = self._status_timer2 = None
+        self._follow_timer1 = self._follow_timer2 = None
+
+    def clear(self):
+        if self._status_timer1:
+            self._status_timer1.cancel()
+            self._status_timer1 = None
+        if self._status_timer2:
+            self._status_timer2.cancel()
+            self._status_timer2 = None
+        if self._follow_timer1:
+            self._follow_timer1.cancel()
+            self._follow_timer1 = None
+        if self._follow_timer2:
+            self._follow_timer2.cancel()
+            self._follow_timer2 = None
+
+    def status(self, msg, color="black", log=False, secondary=False,
+               blank_after=None, follow_with="", follow_time=20, follow_log=None):
+        """Show status."""
+        if log:
+            self.session.logger.info(msg)
+
+        for l in self._prioritized_logs():
+            if l.status(msg, color, secondary) and getattr(l, "excludes_other_logs", True):
+                break
+        if secondary:
+            status_timer = self._status_timer2
+            follow_timer = self._follow_timer2
+            blank_default = 0
+        else:
+            status_timer = self._status_timer1
+            follow_timer = self._follow_timer1
+            blank_default = 15
+
+        if status_timer:
+            status_timer.cancel()
+            status_timer = None
+        if follow_timer:
+            follow_timer.cancel()
+            follow_timer = None
+
+        from threading import Timer
+        if follow_with:
+            follow_timer = Timer(follow_time,
+                lambda fw=follow_with, clr=color, log=log, sec=secondary,
+                fl=follow_log: self._follow_timeout(fw, clr, log, sec, fl))
+            follow_timer.daemon = True
+            follow_timer.start()
+        elif msg:
+            if blank_after is None:
+                blank_after = blank_default
+            if blank_after:
+                from threading import Timer
+                status_timer = Timer(blank_after, lambda sec=secondary:
+                                     self._status_timeout(sec))
+                status_timer.daemon = True
+                status_timer.start()
+
+        if secondary:
+            self._status_timer2 = status_timer
+            self._follow_timer2 = follow_timer
+        else:
+            self._status_timer1 = status_timer
+            self._follow_timer1 = follow_timer
+
+    def _follow_timeout(self, follow_with, color, log, secondary, follow_log):
+        if secondary:
+            self._follow_timer2 = None
+        else:
+            self._follow_timer1 = None
+        if follow_log is None:
+            follow_log = log
+        self.session.ui.thread_safe(self.status, follow_with, color=color,
+                                    log=follow_log, secondary=secondary)
+
+    def _status_timeout(self, secondary):
+        if secondary:
+            self._status_timer2 = None
+        else:
+            self._status_timer1 = None
+        self.session.ui.thread_safe(self.status, "", secondary=secondary)
+
+
+class Logger(StatusLogger):
     """Log/status message dispatcher
 
     Log/status message producers use the
@@ -160,12 +249,10 @@ class Logger:
     """
 
     def __init__(self, session):
+        StatusLogger.__init__(self, session)
         from .orderedset import OrderedSet
-        self.logs = OrderedSet()
-        self.session = session
         self._prev_newline = True
-        self._status_timer1 = self._status_timer2 = None
-        self._follow_timer1 = self._follow_timer2 = None
+        self.logs = OrderedSet()
         self.method_map = {
             Log.LEVEL_ERROR: self.error,
             Log.LEVEL_WARNING: self.warning,
@@ -194,11 +281,10 @@ class Logger:
             self._early_collation = True
         elif self._early_collation:
             # main window only handles status messages, so in that case keep collating...
-            try:
-                from .ui.gui import MainWindow
-            except ImportError:
+            if not hasattr(self.session, 'ui') or not self.session.ui.is_gui:
                 log_is_main_window = False
             else:
+                from .ui.gui import MainWindow
                 log_is_main_window = isinstance(log, MainWindow)
             if not log_is_main_window:
                 self._early_collation = None
@@ -217,19 +303,8 @@ class Logger:
 
     def clear(self):
         """clear all loggers"""
+        StatusLogger.clear(self)
         self.logs.clear()
-        if self._status_timer1:
-            self._status_timer1.cancel()
-            self._status_timer1 = None
-        if self._status_timer2:
-            self._status_timer2.cancel()
-            self._status_timer2 = None
-        if self._follow_timer1:
-            self._follow_timer1.cancel()
-            self._follow_timer1 = None
-        if self._follow_timer2:
-            self._follow_timer2.cancel()
-            self._follow_timer2 = None
 
     def error(self, msg, add_newline=True, image=None, is_html=False):
         """Log an error message
@@ -309,59 +384,11 @@ class Logger:
             self.error("%s%s\n%s" % (preface, err, loc)
                 + "See log for Python traceback.\n")
 
-    def status(self, msg, color="black", log=False, secondary=False,
-               blank_after=None, follow_with="", follow_time=20,
-               follow_log=None):
+    def status(self, msg, **kw):
         """Show status."""
         if self.session.silent:
             return
-        if log:
-            self.info(msg)
-
-        # "highest prority" log is last added, so:
-        for l in reversed(list(self.logs)):
-            if l.status(msg, color, secondary) and l.excludes_other_logs:
-                break
-        if secondary:
-            status_timer = self._status_timer2
-            follow_timer = self._follow_timer2
-            blank_default = 0
-        else:
-            status_timer = self._status_timer1
-            follow_timer = self._follow_timer1
-            blank_default = 15
-
-        if status_timer:
-            status_timer.cancel()
-            status_timer = None
-        if follow_timer:
-            follow_timer.cancel()
-            follow_timer = None
-
-        from threading import Timer
-        if follow_with:
-            follow_timer = Timer(
-                follow_time,
-                lambda fw=follow_with, clr=color, log=log, sec=secondary,
-                fl=follow_log: self._follow_timeout(fw, clr, log, sec, fl))
-            follow_timer.daemon = True
-            follow_timer.start()
-        elif msg:
-            if blank_after is None:
-                blank_after = blank_default
-            if blank_after:
-                from threading import Timer
-                status_timer = Timer(blank_after, lambda sec=secondary:
-                                     self._status_timeout(sec))
-                status_timer.daemon = True
-                status_timer.start()
-
-        if secondary:
-            self._status_timer2 = status_timer
-            self._follow_timer2 = follow_timer
-        else:
-            self._status_timer1 = status_timer
-            self._follow_timer1 = follow_timer
+        StatusLogger.status(self, msg, **kw)
 
     def warning(self, msg, add_newline=True, image=None, is_html=False):
         """Log a warning message
@@ -373,16 +400,6 @@ class Logger:
         import sys
         self._log(Log.LEVEL_WARNING, msg, add_newline, image, is_html,
                   last_resort=sys.__stderr__)
-
-    def _follow_timeout(self, follow_with, color, log, secondary, follow_log):
-        if secondary:
-            self._follow_timer2 = None
-        else:
-            self._follow_timer1 = None
-        if follow_log is None:
-            follow_log = log
-        self.session.ui.thread_safe(self.status, follow_with, color=color,
-                                    log=follow_log, secondary=secondary)
 
     def _html_to_plain(self, msg, image, is_html):
         if image:
@@ -429,13 +446,12 @@ class Logger:
                     output = msg
                 print(output, end="", file=last_resort)
 
-    def _status_timeout(self, secondary):
-        if secondary:
-            self._status_timer2 = None
-        else:
-            self._status_timer1 = None
-        self.session.ui.thread_safe(self.status, "", secondary=secondary)
+    def _prioritized_logs(self):
+        # "highest priority" log is last added, so:
+        return reversed(list(self.logs))
 
+
+html_table_params = 'border=1 cellpadding=4 cellspacing=0'
 
 class CollatingLog(PlainTextLog):
     """Collates log messages
@@ -459,25 +475,38 @@ class CollatingLog(PlainTextLog):
         return True
 
     def log_summary(self, logger, summary_title, collapse_similar=True):
-        title = "<i>%s</i>:" % (summary_title)
-        title_logged = False
+        # note that this handling of the summary (only calling logger,info
+        # at the end and not calling the individual log-level functions)
+        # will never raise an error dialog
+        summary = '\n<table %s>\n' % html_table_params
+        summary += '  <thead>\n'
+        summary += '    <tr>\n'
+        summary += '      <th colspan="2">%s</th>\n' % summary_title
+        summary += '    </tr>\n'
+        summary += '  </thead>\n'
+        summary += '  <tbody>\n'
+        some_msgs = False
+        colors = ["#ffffff", "#ffb961", "#ff7882"]
         for level, msgs in reversed(list(enumerate(self.msgs))):
             if not msgs:
                 continue
-            if not title_logged:
-                logger.info(title, is_html=True)
-                title_logged = True
-                msg = ""
-            else:
-                msg = "\n"
-            msg += "{}{}:\n".format(self.LEVEL_DESCRIPTS[level].capitalize(),
-                "s" if len(msgs) > 1 else "")
-            msg += self.summarize_msgs(msgs, collapse_similar)
-            logger.method_map[level](msg)
-        if title_logged:
-            logger.info("<i>End of summary</i>", is_html=True)
+            some_msgs = True
+            summary += '    <tr>\n'
+            summary += '      <td><i>%s%s</i></td>' % (
+                self.LEVEL_DESCRIPTS[level], 's' if len(msgs) > 1 else '')
+            summary += '      <td style="background-color:%s">%s</td>' % (colors[level], self.summarize_msgs(msgs, collapse_similar))
+            summary += '    </tr>\n'
+        if some_msgs:
+            summary += '  </tbody>\n'
+            summary += '</table>'
+            logger.info(summary, is_html=True)
 
     def summarize_msgs(self, msgs, collapse_similar):
+        # Each message is plain text so escape < and > otherwise <stuff between angle brackets>
+        # disappears in html output.
+        import html
+        msgs = [html.escape(m) for m in msgs]
+        
         if collapse_similar:
             summarized = []
             prev_msg = sim_info = None
@@ -528,9 +557,9 @@ class CollatingLog(PlainTextLog):
                 if sim_reps > self.sim_collapse_after:
                     summarized.append("{} messages similar to the above omitted\n".format(
                         sim_reps - self.sim_collapse_after))
-            summarized_msg = "".join(summarized)
+            summarized_msg = "<br>\n".join(summarized)
         else:
-            summarized_msg = "".join(msgs)
+            summarized_msg = "<br>\n".join(msgs)
         return summarized_msg
 
 

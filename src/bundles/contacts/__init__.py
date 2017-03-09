@@ -23,10 +23,10 @@ class _MyAPI(BundleAPI):
         return Plot(session, tool_name)
 
     @staticmethod
-    def register_command(command_name):
+    def register_command(command_name, logger):
         # 'register_command' is called by the toolshed on start up
         from . import cmd
-        cmd.register_contacts()
+        cmd.register_contacts(logger)
 
     @staticmethod
     def get_class(class_name):

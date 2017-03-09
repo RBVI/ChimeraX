@@ -36,6 +36,11 @@ from ._map import linear_combination
 from ._map import covariance_sum
 
 # -----------------------------------------------------------------------------
+# Control whether maps are pickable with mouse.
+#
+from .volume import maps_pickable
+
+# -----------------------------------------------------------------------------
 # Mouse modes for moving planes and changing contour level
 #
 #from .moveplanes import PlanesMouseMode

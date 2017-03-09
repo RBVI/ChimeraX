@@ -18,6 +18,7 @@
 
 #include "Coord.h"
 #include "imex.h"
+#include "session.h"
 
 #include <string>
 #include <unordered_map>
@@ -44,17 +45,16 @@ private:
 public:
     void  add_coord(const Point &coord) { _coords.push_back(coord); }
     const Coords &  coords() const { return _coords; }
-    void set_coords(float *xyz, size_t n);
+    void set_coords(Real *xyz, size_t n);
     virtual  ~CoordSet();
     float  get_bfactor(const Atom *) const;
     float  get_occupancy(const Atom *) const;
     void  fill(const CoordSet *source) { _coords = source->_coords; }
     int  id() const { return _cs_id; }
-    // version "0" means latest version
-    int  session_num_floats(int /*version*/=0) const {
+    int  session_num_floats(int /*version*/=CURRENT_SESSION_VERSION) const {
         return _bfactor_map.size() + _occupancy_map.size() + 3 * _coords.size();
     }
-    int  session_num_ints(int /*version*/=0) const {
+    int  session_num_ints(int /*version*/=CURRENT_SESSION_VERSION) const {
         return _bfactor_map.size() + _occupancy_map.size() + 3;
     }
     void  session_restore(int version, int** ints, float** floats);

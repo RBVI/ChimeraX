@@ -85,19 +85,19 @@ class AtomSpecArg(Annotation):
     name = "an atom specifier"
     url = "help:user/commands/atomspec.html"
 
-    @staticmethod
-    def parse(text, session):
+    @classmethod
+    def parse(cls, text, session):
         """Parse text and return an atomspec parse tree"""
         if not text or _terminator.match(text[0]) is not None:
             from .cli import AnnotationError
             raise AnnotationError("empty atom specifier")
         if text[0] == '"':
-            return AtomSpecArg._parse_quoted(text, session)
+            return cls._parse_quoted(text, session)
         else:
-            return AtomSpecArg._parse_unquoted(text, session)
+            return cls._parse_unquoted(text, session)
 
-    @staticmethod
-    def _parse_quoted(text, session):
+    @classmethod
+    def _parse_quoted(cls, text, session):
         # Split out quoted argument
         start = 0
         m = _double_quote.match(text, start)
@@ -125,10 +125,13 @@ class AtomSpecArg(Annotation):
             from .cli import AnnotationError
             raise AnnotationError(str(e), offset=e.pos)
         except FailedParse as e:
-            from .cli import AnnotationError
+            from .cli import AnnotationError, discard_article
             # Add one to offset for leading quote
             offset = index_map[e.pos]
-            raise AnnotationError(str(e), offset=offset)
+            message = 'invalid ' + discard_article(cls.name)
+            if str(e.message) != 'no available options':
+                message = '%s: %s' % (message, e.message)
+            raise AnnotationError(message, offset=offset)
         # Must consume everything inside quotes
         if ast.parseinfo.endpos != len(token):
             from .cli import AnnotationError
@@ -137,8 +140,8 @@ class AtomSpecArg(Annotation):
         # Success!
         return ast, consumed, rest
 
-    @staticmethod
-    def _parse_unquoted(text, session):
+    @classmethod
+    def _parse_unquoted(cls, text, session):
         # Try to parse the entire line.
         # If we get nothing, then raise AnnotationError.
         # Otherwise, consume what we can use and call it a success.
@@ -152,16 +155,36 @@ class AtomSpecArg(Annotation):
             from .cli import AnnotationError
             raise AnnotationError(str(e), offset=e.pos)
         except FailedParse as e:
-            from .cli import AnnotationError
-            raise AnnotationError(str(e), offset=e.pos)
+            from .cli import AnnotationError, discard_article
+            message = 'invalid ' + discard_article(cls.name)
+            if str(e.message) != 'no available options':
+                message = '%s: %s' % (message, e.message)
+            raise AnnotationError(message, offset=e.pos)
 
         end = ast.parseinfo.endpos
         if end == 0:
             from .cli import AnnotationError
             raise AnnotationError("not an atom specifier")
         if end < len(text) and _terminator.match(text[end]) is None:
-            from .cli import AnnotationError
-            raise AnnotationError('only initial part "%s" of atom specifier valid' % text[:end])
+            # We got an error in the middle of a string (no whitespace or
+            # semicolon).  We check if there IS whitespace between the
+            # start of the string and the error location.  If so, we
+            # assume that the atomspec successfully ended at the whitespace
+            # and leave the rest as unconsumed input.
+            blank = end
+            while blank > 0:
+                if text[blank].isspace():
+                    break
+                else:
+                    blank -= 1
+            if blank == 0:
+                # No whitespace found
+                from .cli import AnnotationError
+                raise AnnotationError('only initial part "%s" of atom specifier valid' % text[:end])
+            else:
+                ast, used, rem = AtomSpecArg._parse_unquoted(text[:blank],
+                                                             session)
+                return ast, used, rem + text[blank:]
         # Consume what we used and return the remainder
         return ast, text[:end], text[end:]
 
@@ -306,9 +329,8 @@ class _ModelList(list):
 
     def find_matches(self, session, model_list, results):
         for model_spec in self:
-            for m in model_list:
-                if model_spec.matches(session, m):
-                    model_spec.find_sub_parts(session, m, results)
+            # "model_spec" should be an _Model instance
+            model_spec.find_matches(session, model_list, results)
 
 
 class _ModelHierarchy(list):
@@ -322,15 +344,28 @@ class _ModelHierarchy(list):
             return "[empty]"
         return ".".join(str(mr) for mr in self)
 
-    def matches(self, session, model):
-        for i, mrl in enumerate(self):
-            try:
-                mid = model.id[i]
-            except IndexError:
-                return False
-            if not mrl.matches(mid):
-                return False
-        return True
+    def find_matches(self, session, model_list, sub_parts, results):
+        self._check(session, model_list, sub_parts, results, 0)
+
+    def _check(self, session, model_list, sub_parts, results, i):
+        if i >= len(self):
+            # Hit end of list.  Match
+            for model in model_list:
+                _add_model_parts(session, model, sub_parts, results)
+            return
+        match_list = []
+        # "self[i]" is a _ModelRangeList instance
+        # "mr" is a _ModelRange instance
+        for mr in self[i]:
+            for model in model_list:
+                try:
+                    mid = model.id[i]
+                except IndexError:
+                    continue
+                if mr.matches(mid):
+                    match_list.append(model)
+        if match_list:
+            self._check(session, match_list, sub_parts, results, i + 1)
 
 
 class _ModelRangeList(list):
@@ -343,12 +378,6 @@ class _ModelRangeList(list):
         if not self:
             return "[empty]"
         return ",".join(str(mr) for mr in self)
-
-    def matches(self, mid):
-        for mr in self:
-            if mr.matches(mid):
-                return True
-        return False
 
 
 class _ModelRange:
@@ -401,7 +430,7 @@ class _SubPart:
         else:
             self.sub_parts.append(subpart)
 
-    def find_selected_parts(self, model, atoms, num_atoms):
+    def find_selected_parts(self, model, atoms, num_atoms, results):
         # Only filter if a spec for this level is present
         # TODO: account for my_attrs in addition to my_parts
         if self.my_attrs is not None:
@@ -409,52 +438,70 @@ class _SubPart:
             # avoid generating traceback in log
             from ..errors import UserError
             raise UserError("Atomspec attributes not supported yet")
-        import numpy
         if self.my_parts is not None:
-            my_selected = self._filter_parts(model, atoms, num_atoms)
-        else:
-            my_selected = numpy.ones(num_atoms)
+            atoms = self._filter_parts(model, atoms, num_atoms)
+            num_atoms = len(atoms)
+        if len(atoms) == 0:
+            return
         if self.sub_parts is None:
-            return my_selected
-        sub_selected = numpy.zeros(num_atoms)
+            results.add_model(model)
+            results.add_atoms(atoms)
+            return
+        from ..objects import Objects
+        sub_results = Objects()
         for subpart in self.sub_parts:
-            s = subpart.find_selected_parts(model, atoms, num_atoms)
-            sub_selected = numpy.logical_or(sub_selected, s)
-        return numpy.logical_and(my_selected, sub_selected)
+            subpart.find_selected_parts(model, atoms, num_atoms, sub_results)
+        if sub_results.num_atoms > 0:
+            results.add_model(model)
+            results.add_atoms(sub_results.atoms)
 
     def _filter_parts(self, model, atoms, num_atoms):
-        return model.atomspec_filter(self.Symbol, atoms, num_atoms,
-                                     self.my_parts, self.my_attrs)
+        if not self.my_parts:
+            return atoms
+        from ..objects import Objects
+        results = Objects()
+        for part in self.my_parts:
+            my_part = self.my_parts.__class__(part)
+            mask = model.atomspec_filter(self.Symbol, atoms, num_atoms,
+                                         my_part, self.my_attrs)
+            sub_atoms = atoms.filter(mask)
+            if len(sub_atoms) > 0:
+                results.add_atoms(sub_atoms)
+        return results.atoms
 
 
 class _Model(_SubPart):
     """Stores model part list and atom spec."""
     Symbol = '#'
 
-    def matches(self, session, model):
-        # TODO: account for my_attrs in addition to my_parts
-        if self.my_parts is None:
-            return True
-        return self.my_parts.matches(session, model)
+    def find_matches(self, session, model_list, results):
+        if self.my_parts:
+            self.my_parts.find_matches(session, model_list, self.sub_parts, results)
+        else:
+            # No model spec given, everything matches
+            for model in model_list:
+                _add_model_parts(session, model, self.sub_parts, results)
 
-    def find_sub_parts(self, session, model, results):
-        if not model.atomspec_has_atoms():
-            if not self.sub_parts:
-                results.add_model(model)
-            return
-        atoms = model.atomspec_atoms()
-        if self.sub_parts:
-            # Has sub-model selector, filter atoms
-            import numpy
-            num_atoms = len(atoms)
-            selected = numpy.zeros(num_atoms)
-            for chain_spec in self.sub_parts:
-                s = chain_spec.find_selected_parts(model, atoms, num_atoms)
-                selected = numpy.logical_or(selected, s)
-            atoms = atoms.filter(selected)
-        if len(atoms) > 0:
+
+def _add_model_parts(session, model, sub_parts, results):
+    if not model.atomspec_has_atoms():
+        if not sub_parts:
             results.add_model(model)
-            results.add_atoms(atoms)
+        return
+    atoms = model.atomspec_atoms()
+    if not sub_parts:
+        results.add_model(model)
+        results.add_atoms(atoms)
+    else:
+        # Has sub-model selector, filter atoms
+        from ..objects import Objects
+        my_results = Objects()
+        num_atoms = len(atoms)
+        for chain_spec in sub_parts:
+            chain_spec.find_selected_parts(model, atoms, num_atoms, my_results)
+        if my_results.num_atoms > 0:
+            results.add_model(model)
+            results.add_atoms(my_results.atoms)
 
 
 class _Chain(_SubPart):
@@ -642,6 +689,7 @@ class AtomSpec:
         # print("evaluate:", str(self))
         if models is None:
             models = session.models.list(**kw)
+            models.sort(key=lambda m: m.id)
         if self._operator is None:
             results = self._left_spec.evaluate(session, models)
         elif self._operator == '|':
@@ -658,6 +706,7 @@ class AtomSpec:
             raise RuntimeError("unknown operator: %s" % repr(self._operator))
         return results
 
+
 #
 # Selector registration and use
 #
@@ -668,7 +717,7 @@ class AtomSpec:
 _selectors = {}
 
 
-def register_selector(name, func):
+def register_selector(name, func, logger):
     """Register a (name, func) pair as an atom specifier selector.
 
     Parameters
@@ -684,10 +733,12 @@ def register_selector(name, func):
 
     """
     if not name[0].isalpha():
-        raise ValueError("registering illegal selector name \"%s\"" % name)
+        logger.warning("registering illegal selector name \"%s\"" % name)
+        return
     for c in name[1:]:
         if not c.isalnum() and c not in "-+":
-            raise ValueError("registering illegal selector name \"%s\"" % name)
+            logger.warning("registering illegal selector name \"%s\"" % name)
+            return
     _selectors[name] = func
 
 

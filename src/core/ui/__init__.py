@@ -12,6 +12,5 @@
 # === UCSF ChimeraX Copyright ===
 
 from .mousemodes import MouseMode, SelectMouseMode, RotateMouseMode, TranslateMouseMode, \
-                        RotateSelectedMouseMode, TranslateSelectedMouseMode, ZoomMouseMode
-
-from .gui import MainToolWindow, ChildToolWindow
+                RotateSelectedMouseMode, TranslateSelectedMouseMode, ZoomMouseMode, mod_key_info
+# Do not import anything from .gui so nogui mode works when UI toolkit can't be imported

@@ -14,10 +14,9 @@
 # -------------------------------------------------------------------------------------
 #
 def surface(session, atoms = None, enclose = None, include = None,
-            probe_radius = 1.4, grid_spacing = None, resolution = None, level = None,
+            probe_radius = None, grid_spacing = None, resolution = None, level = None,
             color = None, transparency = None, visible_patches = None,
-            sharp_boundaries = None,
-            nthread = None, replace = True, show = False, hide = False, close = False):
+            sharp_boundaries = None, nthread = None, replace = True):
     '''
     Compute and display solvent excluded molecular surfaces.
 
@@ -35,7 +34,7 @@ def surface(session, atoms = None, enclose = None, include = None,
       Solvent, ligands or ions to include in the surface.
     probe_radius : float
       Radius of probe sphere rolled over atoms to produce surface.
-      Only used for solvent excluded surfaces.
+      Only used for solvent excluded surfaces.  Default is 1.4 Angstroms.
     grid_spacing : float
       Surface is computed on 3-dimensional grid with this spacing
       between grid points along each axis.
@@ -43,7 +42,7 @@ def surface(session, atoms = None, enclose = None, include = None,
       Specifying a resolution value (Angstroms) causes the surface calculation
       to use a contour surface of a 3-d grid of a sum of Gaussians one centered
       at each atom instead of a solvent excluded surface.  See the molmap command
-      for details.
+      for details.  A resolution of 0 computes an SES surface.
     level : float
       Contour level for Gaussian surface in atomic number units.  Each Gaussian has
       height scaled by the atom atomic number.
@@ -60,42 +59,24 @@ def surface(session, atoms = None, enclose = None, include = None,
       Number of CPU threads to use in computing surfaces.
     replace : bool
       Whether to replace an existing surface for the same atoms or make a copy.
-    show : bool
-      Show patches for existing surfaces without computing any new surface.
-    hide : bool
-      Undisplay surfaces or patches of surfaces.
-    close : bool
-      Close surfaces for the specified atoms.
-
     '''
 
-    from ..atomic.molsurf import close_surfaces, show_surfaces, hide_surfaces, remove_solvent_ligands_ions
-    from ..atomic.molsurf import surface_rgba, MolecularSurface, update_color, surfaces_overlapping_atoms
-
-    if close:
-        atoms = check_atoms(atoms, session) # Warn if no atoms specifed
-        close_surfaces(atoms, session.models)
-        return []
-
-    # Show surface patches for existing surfaces.
-    if show:
-        atoms = check_atoms(atoms, session) # Warn if no atoms specifed
-        return show_surfaces(atoms, session.models)
-
-    # Hide surfaces or patches of surface for specified atoms.
-    if hide:
-        atoms = check_atoms(atoms, session) # Warn if no atoms specifed
-        return hide_surfaces(atoms, session.models)
+    from ..atomic.molsurf import MolecularSurface, remove_solvent_ligands_ions
+    from ..atomic.molsurf import surface_rgba, update_color, surfaces_overlapping_atoms
 
     if replace:
         all_surfs = dict((s.atoms.hash(), s) for s in session.models.list(type = MolecularSurface))
     else:
         all_surfs = {}
 
+    # Set default parameters for new molecular surfaces for probe radius, grid spacing, and sharp boundaries.
+    probe = 1.4 if probe_radius is None else probe_radius
+        
     if grid_spacing is None:
-        grid = 0.5 if resolution is None else 0.1 * resolution
+        grid = 0.5 if resolution is None or resolution <= 0 else 0.1 * resolution
     else:
         grid = grid_spacing
+    gridsp = grid_spacing if resolution is None else grid
 
     if sharp_boundaries is None:
         sharp = True if resolution is None else False
@@ -109,7 +90,7 @@ def surface(session, atoms = None, enclose = None, include = None,
         atoms, all_small = remove_solvent_ligands_ions(atoms, include)
         for m, chain_id, show_atoms in atoms.by_chain:
             if all_small:
-                enclose_atoms = atoms.filter(atoms.chain_ids == chain_id)
+                enclose_atoms = show_atoms
             else:
                 matoms = m.atoms
                 chain_atoms = matoms.filter(matoms.chain_ids == chain_id)
@@ -120,11 +101,11 @@ def surface(session, atoms = None, enclose = None, include = None,
                 name = '%s_%s %s surface' % (m.name, chain_id, stype)
                 rgba = surface_rgba(color, transparency, chain_id)
                 s = MolecularSurface(session, enclose_atoms, show_atoms,
-                                     probe_radius, grid, resolution, level,
+                                     probe, grid, resolution, level,
                                      name, rgba, visible_patches, sharp)
                 new_surfs.append((s,m))
             else:
-                s.new_parameters(show_atoms, probe_radius, grid_spacing,
+                s.new_parameters(show_atoms, probe_radius, gridsp,
                                  resolution, level, visible_patches, sharp_boundaries)
                 update_color(s, color, transparency)
             surfs.append(s)
@@ -141,11 +122,11 @@ def surface(session, atoms = None, enclose = None, include = None,
             name = 'Surface %s' % enclose.spec
             rgba = surface_rgba(color, transparency)
             s = MolecularSurface(session, enclose_atoms, show_atoms,
-                                 probe_radius, grid, resolution, level,
+                                 probe, grid, resolution, level,
                                  name, rgba, visible_patches, sharp)
             new_surfs.append((s,parent))
         else:
-            s.new_parameters(show_atoms, probe_radius, grid_spacing,
+            s.new_parameters(show_atoms, probe_radius, gridsp,
                              resolution, level, visible_patches, sharp_boundaries)
             update_color(s, color, transparency)
         surfs.append(s)
@@ -169,9 +150,9 @@ def surface(session, atoms = None, enclose = None, include = None,
     # TODO: Any Python error in the threaded call causes a crash when it tries
     #       to write an error message to the log, not in the main thread.
 
-    if not resolution is None and level is None:
+    if not resolution is None and resolution > 0 and level is None:
         log = session.logger
-        log.info('\n'.join('%s contour level %.1f' % (s.name, s.gaussian_level)
+        log.info('\n'.join('%s contour level %.3f' % (s.name, s.gaussian_level)
                            for s in surfs))
             
     # Add new surfaces to open models list.
@@ -186,15 +167,75 @@ def surface(session, atoms = None, enclose = None, include = None,
 
 # -------------------------------------------------------------------------------------
 #
-def unsurface(session, atoms = None):
+def surface_show(session, objects = None):
     '''
-    Hide surface for specified atoms.  Same as command "surface <spec> hide".
-    '''
-    surface(session, atoms, hide = True)
+    Show surface patches for atoms of existing surfaces.
 
+    Parameters
+    ----------
+    objects : Objects
+      Show atom patches for existing specified molecular surfaces or for specified atoms.
+    '''
+    from ..atomic import all_atoms, molsurf
+    atoms = objects.atoms if objects else all_atoms(session)
+    sma = molsurf.show_surface_atom_patches(atoms, session.models)
+    sm = _molecular_surfaces(session, objects)
+    for s in sm:
+        s.display = True
+#    molsurf.show_surface_patches(sm)
+    return sma + sm
+
+# -------------------------------------------------------------------------------------
+#
+def surface_hide(session, objects = None):
+    '''
+    Hide patches of existing surfaces for specified atoms.
+
+    Parameters
+    ----------
+    objects : Objects
+      Hide atom patches for specified molecular surfaces or for specified atoms.
+    '''
+    from ..atomic import molsurf
+    sma = molsurf.hide_surface_atom_patches(objects.atoms, session.models) if objects else []
+    sm = _molecular_surfaces(session, objects)
+    for s in sm:
+        s.display = False
+#    molsurf.hide_surface_patches(sm)
+    return sma + sm
+
+# -------------------------------------------------------------------------------------
+#
+def surface_close(session, objects = None):
+    '''
+    Close molecular surfaces.
+
+    Parameters
+    ----------
+    objects : Objects
+      Close specified molecular surfaces and surfaces for specified atoms.
+    '''
+    from ..atomic.molsurf import close_surfaces
+    close_surfaces(_molecular_surfaces(session, objects), session.models)
+    if objects:
+        close_surfaces(objects.atoms, session.models)
+        
+# -------------------------------------------------------------------------------------
+#
+def _molecular_surfaces(session, objects):
+    from ..atomic.molsurf import MolecularSurface
+    if objects is None:
+        surfs = session.models.list(type = MolecularSurface)
+    else:
+        surfs = [s for s in objects.models if isinstance(s, MolecularSurface)]
+    return surfs
+
+# -------------------------------------------------------------------------------------
+#
 def register_command(session):
-    from . import CmdDesc, register, AtomsArg, FloatArg, IntArg, ColorArg, BoolArg, NoArg, create_alias
-    _surface_desc = CmdDesc(
+    from . import CmdDesc, register, ObjectsArg, AtomsArg
+    from . import FloatArg, IntArg, ColorArg, BoolArg, NoArg, create_alias
+    surface_desc = CmdDesc(
         optional = [('atoms', AtomsArg)],
         keyword = [('enclose', AtomsArg),
                    ('include', AtomsArg),
@@ -207,18 +248,30 @@ def register_command(session):
                    ('visible_patches', IntArg),
                    ('sharp_boundaries', BoolArg),
                    ('nthread', IntArg),
-                   ('replace', BoolArg),
-                   ('show', NoArg),
-                   ('hide', NoArg),
-                   ('close', NoArg)],
+                   ('replace', BoolArg)],
         synopsis = 'create molecular surface')
-    register('surface', _surface_desc, surface)
+    register('surface', surface_desc, surface, logger=session.logger)
 
-    _unsurface_desc = CmdDesc(
-        optional = [('atoms', AtomsArg)],
-        synopsis = 'hide molecular surface')
-    register('~surface', _unsurface_desc, unsurface)
+    show_desc = CmdDesc(
+        optional = [('objects', ObjectsArg)],
+        synopsis = 'Show patches of molecular surfaces')
+    register('surface show', show_desc, surface_show, logger=session.logger)
 
+    hide_desc = CmdDesc(
+        optional = [('objects', ObjectsArg)],
+        synopsis = 'Hide patches of molecular surfaces')
+    register('surface hide', hide_desc, surface_hide, logger=session.logger)
+    create_alias('~surface', 'surface hide $*', logger=session.logger)
+
+    close_desc = CmdDesc(
+        optional = [('objects', ObjectsArg)],
+        synopsis = 'close molecular surfaces')
+    register('surface close', close_desc, surface_close, logger=session.logger)
+
+    # Register surface operation subcommands.
+    from . import sop
+    sop.register_surface_subcommands(session)
+    
 def check_atoms(atoms, session):
     if atoms is None:
         from ..atomic import all_atoms
@@ -230,7 +283,7 @@ def check_atoms(atoms, session):
     elif len(atoms) == 0:
         msg = 'No atoms specified'
         if hasattr(atoms, 'spec'):
-            msg += 'by %s' % atoms.spec
+            msg += ' by %s' % atoms.spec
         from ..errors import UserError
         raise UserError(msg)
     return atoms

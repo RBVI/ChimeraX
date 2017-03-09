@@ -222,7 +222,7 @@ def avoid_collisions(session):
 
 # -----------------------------------------------------------------------------
 #
-def snav(session, enable = None, fly = None):
+def device_snav(session, enable = None, fly = None):
     '''Enable or disable moving models with Space Navigator input device.
 
     Parameters
@@ -249,8 +249,9 @@ def snav(session, enable = None, fly = None):
 # -----------------------------------------------------------------------------
 # Register the snav command for ChimeraX.
 #
-def register_snav_command():
+def register_snav_command(logger):
     from chimerax.core.commands import CmdDesc, BoolArg, register
-    _snav_desc = CmdDesc(optional = [('enable', BoolArg)],
-                         keyword = [('fly', BoolArg)])
-    register('snav', _snav_desc, snav)
+    desc = CmdDesc(optional = [('enable', BoolArg)],
+                   keyword = [('fly', BoolArg)],
+                   synopsis = 'Turn on Space Navigator input device')
+    register('device snav', desc, device_snav, logger=logger)

@@ -154,7 +154,7 @@ class FileFormatArg(DynamicEnum):
         
 def register_command(session):
     from . import CmdDesc, register, EnumOf, SaveFileNameArg
-    from . import IntArg, PositiveIntArg, Bounded, FloatArg, NoArg
+    from . import IntArg, PositiveIntArg, Bounded, FloatArg, BoolArg
     from . import ModelsArg, ListOf
     from ..map.mapargs import MapRegionArg, Int1or3Arg
 
@@ -171,16 +171,16 @@ def register_command(session):
         ('height', PositiveIntArg),
         ('supersample', PositiveIntArg),
         ('pixel_size', FloatArg),
-        ('transparent_background', NoArg),
+        ('transparent_background', BoolArg),
         ('quality', Bounded(IntArg, min=0, max=100))]
 
     map_args = [
         ('region', MapRegionArg),
         ('step', Int1or3Arg),
-        ('mask_zone', NoArg),
+        ('mask_zone', BoolArg),
         ('chunk_shapes', ListOf(EnumOf(('zyx','zxy','yxz','yzx','xzy','xyz')))),
-        ('append', NoArg),
-        ('compress', NoArg),
+        ('append', BoolArg),
+        ('compress', BoolArg),
         ('base_index', IntArg)]
 
     desc = CmdDesc(
@@ -189,16 +189,16 @@ def register_command(session):
         keyword=format_args + image_args + map_args,
         synopsis='save session or image'
     )
-    register('save', desc, save)
+    register('save', desc, save, logger=session.logger)
 
     desc = CmdDesc(
         required=file_arg,
         synopsis='save session'
     )
     def save_session(session, filename, **kw):
-        kw['format'] = 'ses'
+        kw['format'] = 'session'
         save(session, filename, **kw)
-    register('save session', desc, save_session)
+    register('save session', desc, save_session, logger=session.logger)
 
     desc = CmdDesc(
         required=file_arg,
@@ -207,7 +207,7 @@ def register_command(session):
     )
     def save_image(session, filename, **kw):
         save(session, filename, **kw)
-    register('save image', desc, save_image)
+    register('save image', desc, save_image, logger=session.logger)
 
     desc = CmdDesc(
         required=file_arg,
@@ -215,7 +215,7 @@ def register_command(session):
         keyword=map_format_args + map_args,
         synopsis='save map'
     )
-    register('save map', desc, save)
+    register('save map', desc, save, logger=session.logger)
 
     sf_desc = CmdDesc(synopsis='report formats that can be saved')
-    register('save formats', sf_desc, save_formats)
+    register('save formats', sf_desc, save_formats, logger=session.logger)

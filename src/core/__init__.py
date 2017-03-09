@@ -16,6 +16,9 @@ chimerax.core: collection of base ChimeraX functionality
 ========================================================
 
 """
+BUNDLE_NAME = 'ChimeraX-Core'
+from .buildinfo import version
+
 _class_cache = {}
 # list modules classes are found in used by session restore to recreate objects.
 _class_class_init = {
@@ -51,7 +54,7 @@ _class_class_init = {
     'Pseudobonds': '.atomic',
     'Residue': '.atomic',
     'Residues': '.atomic',
-	'SeqMatchMap': '.atomic',
+    'SeqMatchMap': '.atomic',
     'Sequence': '.atomic',
     'Structure': '.atomic',
     'Tasks': '.tasks',
@@ -61,6 +64,7 @@ _class_class_init = {
     'UserColormaps': '.colors',
     'View': '.graphics',
     'Volume': '.map',
+    'XSectionManager': '.atomic.ribbon',
     '_Input': '.ui.nogui',
 }
 

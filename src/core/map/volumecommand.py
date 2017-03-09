@@ -14,7 +14,7 @@
 # -----------------------------------------------------------------------------
 # Implementation of "volume" command.
 #
-def register_volume_command():
+def register_volume_command(logger):
 
     from ..commands import CmdDesc, register
     from ..commands import BoolArg, IntArg, StringArg, FloatArg, FloatsArg, NoArg, ListOf, EnumOf, Int3Arg, ColorArg, CenterArg, AxisArg, CoordSysArg, SymmetryArg, RepeatOf
@@ -24,7 +24,7 @@ def register_volume_command():
     ro = Rendering_Options()
 
     volume_desc = CmdDesc(
-        required = [('volumes', MapsArg)],
+        optional = [('volumes', MapsArg)],
         keyword = [
                ('style', EnumOf(('surface', 'mesh', 'solid'))),
                ('show', NoArg),
@@ -46,7 +46,8 @@ def register_volume_command():
                ('origin_index', Float1or3Arg),
                ('voxel_size', Float1or3Arg),
                ('planes', PlanesArg),
-               ('dump_header', NoArg),
+               ('dump_header', BoolArg),
+               ('pickable', BoolArg),
 # Symmetry assignment.
                ('symmetry', SymmetryArg),
                ('center', CenterArg),
@@ -88,13 +89,18 @@ def register_volume_command():
                ('box_faces', BoolArg),
                ('orthoplanes', EnumOf(('xyz', 'xy', 'xz', 'yz', 'off'))),
                ('position_planes', Int3Arg),
-        ])
-    register('volume', volume_desc, volume)
+        ],
+        synopsis = 'set volume model parameters, display style and colors')
+    register('volume', volume_desc, volume, logger=logger)
 
+    # Register volume subcommands for filtering operations.
+    from . import filter
+    filter.register_volume_filtering_subcommands(logger)
+    
 # -----------------------------------------------------------------------------
 #
 def volume(session,
-           volumes,
+           volumes = None,
            style = None,
            show = None,
            hide = None,
@@ -116,6 +122,7 @@ def volume(session,
            voxel_size = None,
            planes = None,
            dump_header = None,
+           pickable = None,
 # Symmetry assignment.
            symmetry = None,
            center = None,
@@ -252,7 +259,11 @@ def volume(session,
     position_planes : sequence of 3 integers
       Intersection grid point of orthoplanes display
     '''
-    vlist = volumes
+    if volumes is None:
+        from . import Volume
+        vlist = session.models.list(type = Volume)
+    else:
+        vlist = volumes
 
     # Special defaults
     if not box_faces is None:
@@ -274,6 +285,8 @@ def volume(session,
     # Adjust global settings.
     gopt = ('data_cache_size', 'show_on_open', 'voxel_limit_for_open',
             'show_plane', 'voxel_limit_for_plane')
+    if volumes is None:
+        gopt += ('pickable',)
     gsettings = dict((n,loc[n]) for n in gopt if not loc[n] is None)
     if gsettings:
         apply_global_settings(session, gsettings)
@@ -289,7 +302,7 @@ def volume(session,
             'color', 'brightness', 'transparency',
             'step', 'region', 'name_region', 'expand_single_plane', 'origin',
             'origin_index', 'voxel_size', 'planes',
-            'symmetry', 'center', 'center_index', 'axis', 'coordinate_system', 'dump_header')
+            'symmetry', 'center', 'center_index', 'axis', 'coordinate_system', 'dump_header', 'pickable')
     dsettings = dict((n,loc[n]) for n in dopt if not loc[n] is None)
     ropt = (
         'show_outline_box', 'outline_box_rgb', 'outline_box_linewidth',
@@ -313,18 +326,21 @@ def volume(session,
     for v in vlist:
         apply_volume_options(v, dsettings, rsettings, session)
 
-    
 # -----------------------------------------------------------------------------
 #
 def apply_global_settings(session, gsettings):
 
-# TODO: Unused settings part of gui in Chimera.
-#    from .volume import default_settings
-#    default_settings.update(gsettings)
+    from .volume import default_settings
+    default_settings(session).update(gsettings)
+
     if 'data_cache_size' in gsettings:
         from .volume import data_cache
         dc = data_cache(session)
         dc.resize(gsettings['data_cache_size'] * (2**20))
+
+    if 'pickable' in gsettings:
+        from . import maps_pickable
+        maps_pickable(session, gsettings['pickable'])
     
 # -----------------------------------------------------------------------------
 #
@@ -420,6 +436,9 @@ def apply_volume_options(v, doptions, roptions, session):
 
     if 'dump_header' in doptions and doptions['dump_header']:
         show_file_header(v.data, session.logger)
+
+    if 'pickable' in doptions:
+        v.pickable = doptions['pickable']
 
 
 # TODO:

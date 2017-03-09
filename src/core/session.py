@@ -414,7 +414,7 @@ class Session:
         """Serialize session to stream."""
         from . import serialize
         self.triggers.activate_trigger("begin save session", self)
-        serialize.serialize(stream, CORE_SESSION_VERSION)
+        serialize.version_serialize(stream, CORE_SESSION_VERSION)
         # stash attribute info into metadata...
         attr_info = {}
         for tag, container in self._state_containers.items():
@@ -439,7 +439,7 @@ class Session:
         from . import serialize
         skip_over_metadata = version is not None
         if not skip_over_metadata:
-            version = serialize.deserialize(stream)
+            version = serialize.version_deserialize(stream)
         if version > CORE_SESSION_VERSION:
             raise State.NeedNewerError()
         if not skip_over_metadata:
@@ -590,7 +590,7 @@ def sdump(session, session_file, output=None):
     else:
         input = _builtin_open(session_file, 'rb')
     if output is not None:
-    #    output = open_filename(output, 'w')
+        # output = open_filename(output, 'w')
         output = _builtin_open(output, 'w')
     from pprint import pprint
     with input:
@@ -756,11 +756,12 @@ def common_startup(sess):
     commands.register_core_selectors(sess)
 
     register(
-        'sdump',
+        'debug sdump',
         CmdDesc(required=[('session_file', OpenFileNameArg)],
                 optional=[('output', SaveFileNameArg)],
                 synopsis="create human-readable session"),
-        sdump
+        sdump,
+        logger=sess.logger
     )
 
     _register_core_file_formats()
@@ -792,3 +793,5 @@ def _register_core_database_fetch():
     from . import map
     map.register_eds_fetch()
     map.register_emdb_fetch()
+    from . import fetch
+    fetch.register_web_fetch()

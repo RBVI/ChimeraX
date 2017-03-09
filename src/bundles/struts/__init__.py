@@ -16,9 +16,9 @@ from chimerax.core.toolshed import BundleAPI
 class _MyAPI(BundleAPI):
 
     @staticmethod
-    def register_command(command_name):
+    def register_command(command_name, logger):
         # 'register_command' is lazily called when the command is referenced
         from . import struts
-        struts.register_struts_command()
+        struts.register_struts_command(logger)
 
 bundle_api = _MyAPI()

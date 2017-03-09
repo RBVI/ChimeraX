@@ -59,7 +59,6 @@ class View:
 
         # Graphics overlays, used for example for crossfade
         self._overlays = []
-        self._2d_overlays = []
 
         # Center of rotation
         from numpy import array, float32
@@ -168,7 +167,7 @@ class View:
         r.set_frame_number(self.frame_number)
         perspective_near_far_ratio = 2
         from .drawing import (draw_depth, draw_drawings, draw_outline,
-                              draw_overlays, draw_2d_overlays)
+                              draw_overlays)
         for vnum in range(camera.number_of_views()):
             camera.set_render_target(vnum, r)
             if self.silhouettes:
@@ -205,9 +204,6 @@ class View:
         if self._overlays:
             draw_overlays(self._overlays, r)
 
-        if self._2d_overlays:
-            draw_2d_overlays(self._2d_overlays, r)
-
         if swap_buffers:
             if self.camera.do_swap_buffers():
                 self._render.swap_buffers()
@@ -231,7 +227,8 @@ class View:
                 trig.activate_trigger('shape changed', self)	# Used for updating pseudobond graphics
 
         if dm.shape_changed or cp.changed:
-            self._update_center_of_rotation = True
+            if self.center_of_rotation_method == 'front center':
+                self._update_center_of_rotation = True
             # TODO: If model transparency effects multishadows, will need to detect those changes.
             self._multishadow_update_needed = True
 
@@ -258,12 +255,12 @@ class View:
 
     def set_background_color(self, rgba):
         import numpy
-        color = numpy.asarray(rgba, dtype=numpy.float32)
+        color = numpy.array(rgba, dtype=numpy.float32)
         color[3] = 0	# For transparent background images.
         r = self._render
         if r:
             lp = r.lighting
-            if lp.depth_cue_color == tuple(self._background_rgba[:3]):
+            if tuple(lp.depth_cue_color) == tuple(self._background_rgba[:3]):
                 # Make depth cue color follow background color if they are the same.
                 lp.depth_cue_color = tuple(color[:3])
         self._background_rgba = color
@@ -321,30 +318,6 @@ class View:
             o.delete()
         oset = set(overlays)
         self._overlays = [o for o in self._overlays if o not in oset]
-        self.redraw_needed = True
-
-    def add_2d_overlay(self, overlay):
-        '''
-        Overlays are Drawings rendered after the normal scene is shown.
-        They are used for effects such as motion blur or cross fade that
-        blend the current rendered scene with a previous rendered scene.
-        '''
-        overlay.set_redraw_callback(self._drawing_manager)
-        self._2d_overlays.append(overlay)
-        self.redraw_needed = True
-
-    def twod_overlays(self):
-        '''The current list of overlay Drawings.'''
-        return self._2d_overlays
-
-    def remove_2d_overlays(self, overlays=None):
-        '''Remove the specified overlay Drawings.'''
-        if overlays is None:
-            overlays = self._2d_overlays
-        for o in overlays:
-            o.delete()
-        oset = set(overlays)
-        self._2d_overlays = [o for o in self._overlays if o not in oset]
         self.redraw_needed = True
 
     def image(self, width=None, height=None, supersample=None,
@@ -635,7 +608,7 @@ class View:
                 return
         w,h = self.window_size
         self.camera.view_all(bounds, aspect = h/w, pad = pad)
-        if self._center_of_rotation_method == 'front center':
+        if self._center_of_rotation_method in ('front center', 'center of view'):
             self._update_center_of_rotation = True
 
     def _get_cofr(self):
@@ -669,8 +642,28 @@ class View:
             p = self._front_center_cofr()
         elif m == 'fixed':
             p = self._center_of_rotation
+        elif m == 'center of view':
+            p = self._center_of_view_cofr()
         return p
 
+    def _center_of_view_cofr(self):
+        '''
+        Keep the center of rotation in the middle of the view at a depth
+        such that the new and previous center of rotation are in the same
+        plane perpendicular to the camera view direction.
+        '''
+        cam_pos = self.camera.position.origin()
+        vd = self.camera.view_direction()
+        old_cofr = self._center_of_rotation
+        hyp = old_cofr - cam_pos
+        from ..geometry import inner_product, norm
+        distance = inner_product(hyp, vd)
+        cr = cam_pos + distance*vd
+        if norm(cr - old_cofr) < 1e-6 * distance:
+            # Avoid jitter if camera has not moved
+            cr = old_cofr
+        return cr
+    
     def _front_center_cofr(self):
         '''
         Compute the center of rotation of displayed drawings.
@@ -691,10 +684,11 @@ class View:
 
     def _front_center_point(self):
         w, h = self.window_size
-        p = self.first_intercept(0.5 * w, 0.5 * h)
+        p = self.first_intercept(0.5 * w, 0.5 * h,
+                                 exclude=lambda d: hasattr(d, 'no_cofr') and d.no_cofr)
         return p.position if p else None
 
-    def first_intercept(self, win_x, win_y):
+    def first_intercept(self, win_x, win_y, exclude=None):
         '''
         Return a Pick object for the front-most object below the given
         screen window position (specified in pixels).  This Pick object will
@@ -705,20 +699,21 @@ class View:
         xyz1, xyz2 = self.clip_plane_points(win_x, win_y)
         if xyz1 is None or xyz2 is None:
             return None
-        p = self.drawing.first_intercept(xyz1, xyz2, exclude='is_outline_box')
+        p = self.drawing.first_intercept(xyz1, xyz2, exclude=exclude)
         if p is None:
             return None
         f = p.distance
         p.position = (1.0 - f) * xyz1 + f * xyz2
         return p
 
-    def rectangle_intercept(self, win_x1, win_y1, win_x2, win_y2):
+    def rectangle_intercept(self, win_x1, win_y1, win_x2, win_y2, exclude=None):
         '''
         Return a Pick object for the objects in the rectangle having
         corners at the given screen window position (specified in pixels).
         '''
         # Compute planes bounding view through rectangle.
-        planes = self.camera.rectangle_bounding_planes((win_x1, win_y1), (win_x2, win_y2), self.window_size)
+        planes = self.camera.rectangle_bounding_planes((win_x1, win_y1), (win_x2, win_y2),
+                                                       self.window_size)
         if len(planes) == 0:
             return []	# Camera does not support computation of bounding planes.
 
@@ -728,7 +723,7 @@ class View:
             from numpy import concatenate, array, float32
             planes = concatenate((planes, array([cp.opengl_vec4() for cp in cplanes], float32)))
 
-        picks = self.drawing.planes_pick(planes, exclude='is_outline_box')
+        picks = self.drawing.planes_pick(planes, exclude=exclude)
         return picks
 
     def _update_projection(self, view_num=None, camera=None):
@@ -842,7 +837,7 @@ class View:
         is in scene coordinates.'''
         if shift[0] == 0 and shift[1] == 0 and shift[2] == 0:
             return
-        if self._center_of_rotation_method == 'front center':
+        if self._center_of_rotation_method in ('front center', 'center of view'):
             self._update_center_of_rotation = True
         from ..geometry import place
         t = place.translation(shift)

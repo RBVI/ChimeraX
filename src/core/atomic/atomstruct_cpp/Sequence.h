@@ -22,6 +22,7 @@
 #include <string>
 
 #include "imex.h"
+#include "session.h"
 #include "string_types.h"
 
 // "forward declare" PyObject, which is a typedef of a struct,
@@ -61,10 +62,10 @@ protected:
     PyObject*  _python_obj;
 
 private:
-    static int  SESSION_NUM_INTS(int version=0) {
-        return (version == 1 || version == 2) ? 1 : 2;
+    static int  SESSION_NUM_INTS(int version=CURRENT_SESSION_VERSION) {
+        return (version < 3) ? 1 : 2;
     }
-    static int  SESSION_NUM_FLOATS(int /*version*/=0) { return 0; }
+    static int  SESSION_NUM_FLOATS(int /*version*/=CURRENT_SESSION_VERSION) { return 0; }
 
 public:
     static void  assign_rname3to1(const ResName& rname, char let,
@@ -113,13 +114,13 @@ public:
     Contents::const_reverse_iterator  rbegin() const
         { return _contents.rbegin(); }
     Contents::const_reverse_iterator  rend() const { return _contents.rend(); }
-    int  session_num_floats(int version=0) const { return SESSION_NUM_FLOATS(version); }
-    int  session_num_ints(int version=0) const { return SESSION_NUM_INTS(version) + _contents.size(); }
+    int  session_num_floats(int version=CURRENT_SESSION_VERSION) const { return SESSION_NUM_FLOATS(version); }
+    int  session_num_ints(int version=CURRENT_SESSION_VERSION) const { return SESSION_NUM_INTS(version) + _contents.size(); }
     void  session_restore(int, int**, float**);
     void  session_save(int**, float**) const;
     void  set_circular(bool c) { _circular = c; }
-    void  set_name(std::string& name) { _name = name; }
-    void  set_name(const char* name) { _name = name; }
+    void  set_name(std::string& name);
+    void  set_name(const char* name) { std::string n(name); set_name(n); }
     void  set_python_obj(PyObject* py_obj);
     Contents::size_type  size() const { return _contents.size(); }
     void  swap(Contents& x) { _clear_cache(); _contents.swap(x); }

@@ -24,7 +24,8 @@ _targets = weakref.WeakValueDictionary()
 
 class HelpUI(ToolInstance):
 
-    SESSION_ENDURING = False    # default
+    SESSION_ENDURING = True     # do not close when opening session (especially
+                                # if web page asked to open session)
 
     def __init__(self, session, target):
         tool_name = "Help Viewer"
@@ -37,7 +38,7 @@ class HelpUI(ToolInstance):
         self.on_page = None
         self.home_page = None
         # UI content code
-        from PyQt5.QtWidgets import QToolBar, QVBoxLayout, QAction, QLineEdit
+        from PyQt5.QtWidgets import QToolBar, QVBoxLayout, QAction, QLabel, QLineEdit
         from PyQt5.QtGui import QIcon
         # from PyQt5.QtCore import Qt
         self.toolbar = tb = QToolBar()
@@ -51,10 +52,10 @@ class HelpUI(ToolInstance):
         buttons = (
             ( "back", "Back", "Back to previous page", self.page_back, False ),
             ( "forward", "Forward", "Next page", self.page_forward, False ),
-            ( "home", "Home", "Home page", self.page_home, True ),
+            ( "reload", "Reload", "Reload page", self.page_reload, True ),
             ( "zoom_in", "Zoom in", "Zoom in", self.page_zoom_in, True ),
             ( "zoom_out", "Zoom out", "Zoom out", self.page_zoom_out, True ),
-            ( "reload", "Reload", "Reload page", self.page_reload, True ),
+            ( "home", "Home", "Home page", self.page_home, True ),
         )
         for attribute, text, tooltip, callback, enabled in buttons:
             icon_path = os.path.join(icon_dir, "%s.png" % attribute)
@@ -65,8 +66,19 @@ class HelpUI(ToolInstance):
             a.setEnabled(enabled)
             tb.addAction(a)
 
-        self.search = QLineEdit("search")
-        self.search.selectAll()
+        self.url = QLineEdit()
+        tb.insertWidget(self.reload, self.url)
+
+        label = QLabel("  Search:")
+        font = label.font()
+        font.setPointSize(font.pointSize() + 2)
+        font.setBold(True)
+        label.setFont(font)
+        tb.addWidget(label)
+        self.search = QLineEdit()
+        self.search.setClearButtonEnabled(True)
+        self.search.setPlaceholderText("search terms")
+        self.search.setMaximumWidth(200)
         tb.addWidget(self.search)
 
         from chimerax.core.ui.widgets import ChimeraXHtmlView
@@ -86,21 +98,29 @@ class HelpUI(ToolInstance):
         self.help_window.titleChanged.connect(self.title_changed)
         self.search.returnPressed.connect(lambda s=self.search, hw=self.help_window:
             hw.findText(s.text()))
+        self.url.returnPressed.connect(self.go_to)
 
         self.tool_window.manage(placement=None)
 
     def show(self, url, set_home=False):
         from urllib.parse import urlparse, urlunparse
         parts = urlparse(url)
+        if not parts.scheme:
+            parts = list(parts)
+            parts[0] = "http"
         url = urlunparse(parts)  # canonicalize
         self.on_page = url
         if set_home or not self.home_page:
-            self.help_window.history().clear()
             self.home_page = url
-            self.back.setEnabled(False)
-            self.forward.setEnabled(False)
+            if set_home:
+                self.help_window.history().clear()
+                self.back.setEnabled(False)
+                self.forward.setEnabled(False)
         from PyQt5.QtCore import QUrl
         self.help_window.setUrl(QUrl(url))
+
+    def go_to(self):
+        self.show(self.url.text())
 
     def page_back(self, checked):
         self.help_window.history().back()
@@ -132,6 +152,7 @@ class HelpUI(ToolInstance):
         history = self.help_window.history()
         self.back.setEnabled(history.canGoBack())
         self.forward.setEnabled(history.canGoForward())
+        self.url.setText(self.help_window.url().url())
 
     def title_changed(self, title):
         self.tool_window.title = title

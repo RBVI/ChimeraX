@@ -25,7 +25,7 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: fitmap</h3>
 <h3><a href="usageconventions.html">Usage</a>:
-<BR><b>fitmap</b> &nbsp;<i>fit-structure</i>&nbsp;
+<br><b>fitmap</b> &nbsp;<i>fit-structure</i>&nbsp;
 inMap&nbsp;&nbsp;<i>ref-map</i>&nbsp;
 &nbsp;<a href="#options"><i>options</i></a>&nbsp;
 &nbsp;<a href="#global"><i>global-search-options</i></a></h3>
@@ -38,13 +38,17 @@ to fit an atomic model or map into a map. Mutually exclusive modes:
 <li><a href="#symmetric">symmetric fitting</a> of copies of the same structure
 </ul>
 The maps usually represent electron density, but other types of
-volume data can also be used. See also:
+<a href="../tools/volumeviewer.html">volume data</a> can also be used.
+See also:
 <a href="volume.html"><b>volume</b></a>,
 <a href="molmap.html"><b>molmap</b></a>,
-<a href="position.html"><b>position</b></a>,
+<a href="view.html"><b>view</b></a>,
 <a href="sym.html"><b>sym</b></a>,
 <a href="matchmaker.html"><b>matchmaker</b></a>,
-<b>align</b>
+<b>align</b>,
+<a href="../tools/densitymaps.html"><b>Density Map Toolbar</b></a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/fitmap.png"></a>
 </p><p>
 The <i>fit-structure</i>, either
 <a href="atomspec.html">specified atoms</a> or a map model,
@@ -88,11 +92,11 @@ default settings are indicated with <b>bold</b>.
 </p>
 <blockquote>
 <a name="subtractMaps"><b>subtractMaps</b></a>
-&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
+&nbsp;<a href="atomspec.html"><i>spec</i></a>
 <br>
-Subtract a map generated from the <a href="atomspec.html">specified</a>
-atoms from <i>ref-map</i> before fitting. The 
-<a href="#resolution"><b>resolution</b></a> for generating the map
+Subtract the specified map (or a map generated from the specified atoms)
+from <i>ref-map</i> before fitting. If atoms are specified,
+the <a href="#resolution"><b>resolution</b></a> for generating the map
 must also be specified.
 </blockquote>
 <blockquote>
@@ -509,5 +513,5 @@ degrees of rotation, and shift parallel to the axis.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2016</address>
+February 2017</address>
 </body></html>

@@ -37,4 +37,4 @@ def register_command(session):
     from . import CmdDesc, register, RestOfLine
     desc = CmdDesc(required=[('command', RestOfLine)],
                    synopsis='time a command')
-    register('time', desc, time)
+    register('time', desc, time, logger=session.logger)

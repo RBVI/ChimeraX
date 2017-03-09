@@ -46,6 +46,8 @@ def _residues(p):
 def _non_null_residues(p):
     from .molarray import Residues
     return Residues(p[p!=0])
+def _residue_or_none(p):
+    return object_map(p, Residue) if p else None
 def _residues_or_nones(p):
     return [_residue(rptr) if rptr else None for rptr in p]
 def _chains(p):
@@ -154,6 +156,8 @@ class Atom:
         doc=":class:`.Atom`\\ s connnected to this atom directly by one bond. Read only.")
     num_bonds = c_property("atom_num_bonds", size_t, read_only=True,
         doc="Number of bonds connected to this atom. Read only.")
+    num_explicit_bonds = c_property("atom_num_explicit_bonds", size_t, read_only=True,
+        doc="Number of bonds and missing-structure pseudobonds connected to this atom. Read only.")
     occupancy = c_property('atom_occupancy', float32, doc = "Occupancy, floating point value.")
     radius = c_property('atom_radius', float32, doc="Radius of atom.")
     default_radii = c_property('atom_default_radius', float32, read_only = True,
@@ -194,6 +198,40 @@ class Atom:
         a_ref = ctypes.byref(self._c_pointer)
         f(a_ref, 1, loc, v_ref)
         return v.value
+
+    @property
+    def aniso_u(self):
+        '''Anisotropic temperature factors, returns 3x3 array of numpy float32 or None.  Read only.'''
+        f = c_function('atom_aniso_u', args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p))
+        from numpy import empty, float32
+        ai = empty((3,3), float32)
+        try:
+            f(self._c_pointer_ref, 1, pointer(ai))
+        except ValueError:
+            ai = None
+        return ai
+
+    def _get_aniso_u6(self):
+        '''Get anisotropic temperature factors as a 6 element numpy float32 array
+        containing (u11, u22, u33, u12, u13, u23) or None.'''
+        f = c_function('atom_aniso_u6', args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p))
+        from numpy import empty, float32
+        ai = empty((6,), float32)
+        try:
+            f(self._c_pointer_ref, 1, pointer(ai))
+        except ValueError:
+            ai = None
+        return ai
+    def _set_aniso_u6(self, u6):
+        '''Set anisotropic temperature factors as a 6 element numpy float32 array
+        representing the unique elements of the symmetrix matrix
+        containing (u11, u22, u33, u12, u13, u23).'''
+        f = c_function('set_atom_aniso_u6', args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p))
+        from numpy import empty, float32
+        ai = empty((6,), float32)
+        ai[:] = u6
+        f(self._c_pointer_ref, 1, pointer(ai))
+    aniso_u6 = property(_get_aniso_u6, _set_aniso_u6)
 
     def delete(self):
         '''Delete this Atom from it's Structure'''
@@ -308,7 +346,7 @@ class Bond:
     '''Whether bond is display and not hidden. Read only.'''
     length = c_property('bond_length', float32, read_only = True)
     '''Bond length. Read only.'''
-    
+
     def other_atom(self, atom):
         '''Return the :class:`Atom` at the other end of this bond opposite
         the specified atom.'''
@@ -387,7 +425,7 @@ class Pseudobond:
         v = a1.scene_coord - a2.scene_coord
         from math import sqrt
         return sqrt((v*v).sum())
-    
+
     def other_atom(self, atom):
         '''Return the :class:`Atom` at the other end of this bond opposite
         the specified atom.'''
@@ -573,8 +611,9 @@ class Residue:
     To create a Residue use the :class:`.AtomicStructure` new_residue() method.
     '''
 
-    SS_HELIX = 0
-    SS_SHEET = SS_STRAND = 1
+    SS_COIL = 0
+    SS_HELIX = 1
+    SS_SHEET = SS_STRAND = 2
 
     def __init__(self, residue_pointer):
         set_c_pointer(self, residue_pointer)
@@ -587,12 +626,17 @@ class Residue:
         '''Value that can be passed to C++ layer to be used as pointer (Python int)'''
         return self._c_pointer.value
 
+    def delete(self):
+        '''Delete this Residue from it's Structure'''
+        f = c_function('residue_delete', args = (ctypes.c_void_p, ctypes.c_size_t))
+        c = f(self._c_pointer_ref, 1)
+
     @property
     def deleted(self):
         '''Has the C++ side been deleted?'''
         return not hasattr(self, '_c_pointer')
 
-    def __str__(self, residue_only = False):
+    def __str__(self, residue_only = False, omit_structure = False):
         from ..core_settings import settings
         cmd_style = settings.atomspec_contents == "command-line specifier"
         ic = self.insertion_code
@@ -603,6 +647,8 @@ class Residue:
         if residue_only:
             return res_str
         chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
+        if omit_structure:
+            return '%s %s' % (chain_str, res_str)
         from .structure import Structure
         if len([s for s in self.structure.session.models.list() if isinstance(s, Structure)]) > 1:
             struct_string = str(self.structure)
@@ -635,13 +681,9 @@ class Residue:
     insertion_code = c_property('residue_insertion_code', string)
     '''Protein Data Bank residue insertion code. 1 character or empty string.'''
     is_helix = c_property('residue_is_helix', npy_bool, doc=
-        "Whether this residue belongs to a protein alpha helix. Boolean value. "
-        "If set to True, also sets is_strand to False. "
-        "Use set_secondary_structure() if this behavior is undesired.")
+        "Whether this residue belongs to a protein alpha helix. Boolean value. ")
     is_strand = c_property('residue_is_strand', npy_bool, doc=
-        "Whether this residue belongs to a protein beta sheet. Boolean value. "
-        "If set to True, also sets is_helix to False. "
-        "Use set_secondary_structure() if this behavior is undesired.")
+        "Whether this residue belongs to a protein beta sheet. Boolean value. ")
     PT_NONE = 0
     '''Residue polymer type = none.'''
     PT_AMINO = 1
@@ -667,16 +709,12 @@ class Residue:
     '''Whether a ribbon automatically hides the residue backbone atoms. Boolean value.'''
     ribbon_color = c_property('residue_ribbon_color', uint8, 4)
     '''Ribbon color RGBA length 4 numpy uint8 array.'''
-    ribbon_style = c_property('residue_ribbon_style', int32)
-    '''Whether the residue is displayed as a ribbon or a pipe/plank. Integer value.'''
-    RIBBON = 0
-    '''Ribbon style = ribbon.'''
-    PIPE = 1
-    '''Ribbon style = pipe/plank.'''
     ribbon_adjust = c_property('residue_ribbon_adjust', float32)
     '''Smoothness adjustment factor (no adjustment = 0 <= factor <= 1 = idealized).'''
     ss_id = c_property('residue_ss_id', int32)
     '''Secondary structure id number. Integer value.'''
+    ss_type = c_property('residue_ss_type', int32, doc=
+        "Secondary structure type of residue.  Integer value.  One of Residue.SS_COIL, Residue.SS_HELIX, Residue.SS_SHEET (a.k.a. SS_STRAND)")
     structure = c_property('residue_structure', cptr, astype = _atomic_structure, read_only = True)
     ''':class:`.AtomicStructure` that this residue belongs to. Read only.'''
 
@@ -702,16 +740,21 @@ class Residue:
         r_ref = ctypes.byref(self._c_pointer)
         f(r_ref, 1, loc)
 
-    def set_secondary_structure(self, ss_type, value):
-        '''Set helix/strand to True/False
-        Unlike is_helix/is_strand attrs, this function only sets the value requested,
-        it will not unset any other types as a side effect.
-        'ss_type' should be one of Residue.SS_HELIX or RESIDUE.SS_STRAND'''
-        if ss_type == Residue.SS_HELIX:
-            f = c_array_function('residue_set_ss_helix', args=(npy_bool,), per_object=False)
-        else:
-            f = c_array_function('residue_set_ss_strand', args=(npy_bool,), per_object=False)
-        f(self._c_pointer_ref, 1, value)
+    def ss_type(self, disjoint = True):
+        '''Return the secondary structure type for this residue.
+
+        If 'disjoint' is True then if somehow both is_helix and is_strand is True,
+        Residue.SS_HELIX will be returned.  If 'disjoint' is False in that situation then
+        Residue.SS_HELIX | Residue.SS_STRAND will be returned.
+        '''
+        if disjoint:
+            if self.is_helix:
+                return Residue.SS_HELIX
+            if self.is_strand:
+                return Residue.SS_STRAND
+            return Residue.SS_COIL
+        return (Residue.SS_HELIX if self.is_helix else 0) | (
+            Residue.SS_STRAND if self.is_strand else 0)
 
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
@@ -747,6 +790,9 @@ class Sequence:
         self.attrs = {} # miscellaneous attributes
         self.markups = {} # per-residue (strings or lists)
         self.numbering_start = None
+        from ..triggerset import TriggerSet
+        self.triggers = TriggerSet()
+        self.triggers.add_trigger('rename')
         set_pyobj_f = c_function('sequence_set_pyobj', args = (ctypes.c_void_p, ctypes.py_object))
         if seq_pointer:
             set_c_pointer(self, seq_pointer)
@@ -882,6 +928,10 @@ class Sequence:
             ret = ctypes.c_int)
         return f(self._c_pointer, index)
 
+    def _cpp_rename(self, old_name):
+        # called from C++ layer when 'name' attr changed
+        self.triggers.activate_trigger('rename', (self, old_name))
+
     @atexit.register
     def _exiting():
         Sequence.chimera_exiting = True
@@ -902,8 +952,6 @@ class StructureSeq(Sequence):
                 args = (ctypes.c_char_p, ctypes.c_void_p), ret = ctypes.c_void_p)(
                     chain_id.encode('utf-8'), structure._c_pointer)
         super().__init__(sseq_pointer)
-        from ..triggerset import TriggerSet
-        self.triggers = TriggerSet()
         self.triggers.add_trigger('delete')
         self.triggers.add_trigger('modify')
         # description derived from PDB/mmCIF info and set by AtomicStructure constructor
@@ -994,8 +1042,20 @@ class StructureSeq(Sequence):
         ''' list isn't built/destroyed.'''
         f = c_function('sseq_residue_at', args = (ctypes.c_void_p, ctypes.c_size_t),
             ret = ctypes.c_void_p)
-        return _atom_or_none(f(self._c_pointer, index))
+        return _residue_or_none(f(self._c_pointer, index))
 
+    def residue_before(self, r):
+        '''Return the residue at index one less than the given residue,
+        or None if no such residue exists.'''
+        pos = self.res_map[r]
+        return self.residue_at(pos-1)
+
+    def residue_after(self, r):
+        '''Return the residue at index one more than the given residue,
+        or None if no such residue exists.'''
+        pos = self.res_map[r]
+        return self.residue_at(pos+1)
+    
     @staticmethod
     def restore_snapshot(session, data):
         sseq = StructureSequence(chain_id=data['chain_id'], structure=data['structure'])
@@ -1070,7 +1130,7 @@ def try_assoc(session, seq, sseq, assoc_params, *, max_errors = 6):
 
        The return value is a 2-tuple, consisting of a :py:class:`SeqMatchMap` instance describing
        the association, and the number of errors encountered.
-       
+
        An unsuccessful association throws StructAssocError.
     '''
     f = c_function('sseq_try_assoc', args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t,
@@ -1169,12 +1229,16 @@ class StructureData:
     '''Index of the active coordinate set.'''
     atoms = c_property('structure_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True)
     ''':class:`.Atoms` collection containing all atoms of the structure.'''
+    ball_scale = c_property('structure_ball_scale', float32,
+        doc = "Scales sphere radius in ball-and-stick style.")
     bonds = c_property('structure_bonds', cptr, 'num_bonds', astype = _bonds, read_only = True)
     ''':class:`.Bonds` collection containing all bonds of the structure.'''
     chains = c_property('structure_chains', cptr, 'num_chains', astype = _chains, read_only = True)
     ''':class:`.Chains` collection containing all chains of the structure.'''
     coordset_ids = c_property('structure_coordset_ids', int32, 'num_coord_sets', read_only = True)
     '''Return array of ids of all coordinate sets.'''
+    coordset_size = c_property('structure_coordset_size', int32, read_only = True)
+    '''Return the size of the active coordinate set array.'''
     lower_case_chains = c_property('structure_lower_case_chains', npy_bool, read_only = True)
     '''Structure has lower case chain ids. Boolean'''
     name = c_property('structure_name', string)
@@ -1236,6 +1300,16 @@ class StructureData:
     '''Default ribbon mode showing secondary structure with ribbons.'''
     RIBBON_MODE_ARC = 1
     '''Ribbon mode showing secondary structure as an arc (tube or plank).'''
+    RIBBON_MODE_WRAP = 2
+    '''Ribbon mode showing helix as ribbon wrapped around tube.'''
+
+    def ribbon_orients(self, residues=None):
+        '''Return array of orientation values for given residues.'''
+        if residues is None:
+            residues = self.residues
+        f = c_function('structure_ribbon_orient', args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t), ret = ctypes.py_object)
+        return f(self._c_pointer, residues._c_pointers, len(residues))
+
     ss_assigned = c_property('structure_ss_assigned', npy_bool, doc =
         "Has secondary structure been assigned, either by data in original structure file "
         "or by some algorithm (e.g. dssp command)")
@@ -1247,9 +1321,11 @@ class StructureData:
 
     def add_coordset(self, id, xyz):
         '''Add a coordinate set with the given id.'''
+        if xyz.dtype != float64:
+            raise ValueError('add_coordset(): array must be float64, got %s' % xyz.dtype.name)
         f = c_function('structure_add_coordset',
-                       args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p))
-        f(self._c_pointer, id, pointer(xyz))
+                       args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_size_t))
+        f(self._c_pointer, id, pointer(xyz), len(xyz))
     def new_atom(self, atom_name, element_name):
         '''Create a new :class:`.Atom` object. It must be added to a :class:`.Residue` object
         belonging to this structure before being used.'''
@@ -1538,15 +1614,42 @@ class Element:
     valence = c_property('element_valence', uint8, read_only = True)
     '''Element valence number, for example 7 for chlorine. Read only.'''
 
+    @staticmethod
+    def bond_length(e1, e2):
+        """Standard single-bond length between two elements
+        
+        Arguments can be element instances, atomic numbers, or element names"""
+        if not isinstance(e1, Element):
+            e1 = Element.get_element(e1)
+        if not isinstance(e2, Element):
+            e2 = Element.get_element(e2)
+        f = c_function('element_bond_length', args = (ctypes.c_void_p, ctypes.c_void_p),
+            ret = ctypes.c_float)
+        return f(e1._c_pointer, e2._c_pointer)
+
+    @staticmethod
+    def bond_radius(e):
+        """Standard single-bond 'radius'
+        (the amount this element would contribute to bond length)
+        
+        Argument can be an element instance, atomic number, or element name"""
+        if not isinstance(e, Element):
+            e = Element.get_element(e)
+        f = c_function('element_bond_radius', args = (ctypes.c_void_p,), ret = ctypes.c_float)
+        return f(e._c_pointer)
+
+    @staticmethod
     def get_element(name_or_number):
         '''Get the Element that corresponds to an atomic name or number'''
         if type(name_or_number) == type(1):
             f = c_function('element_number_get_element', args = (ctypes.c_int,), ret = ctypes.c_void_p)
+            f_arg = name_or_number
         elif type(name_or_number) == type(""):
             f = c_function('element_name_get_element', args = (ctypes.c_char_p,), ret = ctypes.c_void_p)
+            f_arg = name_or_number.encode('utf-8')
         else:
             raise ValueError("'get_element' arg must be string or int")
-        return _element(f(name_or_number))
+        return _element(f(f_arg))
 
 # -----------------------------------------------------------------------------
 #
@@ -1645,7 +1748,7 @@ class RibbonXSection:
 # they have no persistence in the C++ layer
 class SeqMatchMap:
     """Class to track the matching between an alignment sequence and a structure sequence
-    
+
        The match map can be indexed by either an integer (ungapped) sequence position,
        or by a Residue, which will return a Residue or a sequence position, respectively.
        The pos_to_res and res_to_pos attributes return dictionaries of the corresponding
@@ -1658,6 +1761,11 @@ class SeqMatchMap:
         self._struct_seq = struct_seq
         self.session = session
         self._handler = session.triggers.add_handler("atomic changes", self._atomic_changes)
+
+    def __contains__(self, i):
+        if isinstance(i, int):
+            return i in self._pos_to_res
+        return i in self._res_to_pos
 
     def __getitem__(self, i):
         if isinstance(i, int):

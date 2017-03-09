@@ -81,10 +81,16 @@ public:
         PySupportError(_make_msg({item_description, " is not a Unicode string"})) {}
 };
 
-class ErrListItemNotLong : public PySupportError {
+class ErrListItemNotInt : public PySupportError {
 public:
-    ErrListItemNotLong(const char* item_description) :
-        PySupportError(_make_msg({item_description, " is not an int"})) {}
+    ErrListItemNotInt(const char* item_description) :
+        PySupportError(_make_msg({item_description, " is not an integer"})) {}
+};
+
+class ErrListItemNotFloat : public PySupportError {
+public:
+    ErrListItemNotFloat(const char* item_description) :
+        PySupportError(_make_msg({item_description, " is not a float"})) {}
 };
 
 template <class Str>
@@ -150,6 +156,19 @@ PyObject* cvec_of_int_to_pylist(std::vector<Int>& vec, const char* item_descript
     return pylist;
 }
 
+template <class Ptr>
+PyObject* cvec_of_ptr_to_pylist(std::vector<Ptr>& vec, const char* item_description) {
+    PyObject* pylist = PyList_New(vec.size());
+    if (pylist == nullptr)
+        throw ErrListCreate(item_description);
+    typename std::vector<Ptr>::size_type i = 0;
+    for (auto& c_item: vec) {
+        PyList_SET_ITEM(pylist, i++,
+            PyLong_FromVoidPtr(const_cast<void*>(static_cast<const void*>(c_item))));
+    }
+    return pylist;
+}
+
 template <class Set>
 PyObject* cset_of_chars_to_pyset(Set& cset, const char* item_description) {
     PyObject* pyset = PySet_New(nullptr);
@@ -200,8 +219,14 @@ inline char* pystring_to_cchar(PyObject* string, const char* item_description) {
 
 inline long pyint_to_clong(PyObject* pyint, const char* item_description) {
     if (!PyLong_Check(pyint))
-        throw ErrListItemNotLong(item_description);
+        throw ErrListItemNotInt(item_description);
     return PyLong_AsLong(pyint);
+}
+
+inline long pyfloat_to_cdouble(PyObject* pyfloat, const char* item_description) {
+    if (!PyFloat_Check(pyfloat))
+        throw ErrListItemNotFloat(item_description);
+    return PyFloat_AS_DOUBLE(pyfloat);
 }
 
 template <class Contained>
@@ -216,9 +241,9 @@ void pylist_of_string_to_cvec(PyObject* pylist, std::vector<Contained>& cvec,
     }
 }
 
-inline
-void pylist_of_string_to_cvec_of_cvec(PyObject* pylist,
-        std::vector<std::vector<char>>& cvec, const char* item_description) {
+inline void pylist_of_string_to_cvec_of_cvec(PyObject* pylist,
+        std::vector<std::vector<char>>& cvec, const char* item_description)
+{
     if (!PyList_Check(pylist))
         throw ErrNotList(item_description);
     auto num_items = PyList_GET_SIZE(pylist);
@@ -240,6 +265,19 @@ void pylist_of_int_to_cvec(PyObject* pylist, std::vector<Int>& cvec, const char*
     for (decltype(num_items) i = 0; i < num_items; ++i) {
         PyObject* item = PyList_GET_ITEM(pylist, i);
         cvec[i] = static_cast<int>(pyint_to_clong(item, item_description));
+    }
+}
+
+template <class Float>
+void pylist_of_float_to_cvec(PyObject* pylist, std::vector<Float>& cvec,
+        const char* item_description) {
+    if (!PyList_Check(pylist))
+        throw ErrNotList(item_description);
+    auto num_items = PyList_GET_SIZE(pylist);
+    cvec.resize(num_items);
+    for (decltype(num_items) i = 0; i < num_items; ++i) {
+        PyObject* item = PyList_GET_ITEM(pylist, i);
+        cvec[i] = static_cast<int>(pyfloat_to_cdouble(item, item_description));
     }
 }
 

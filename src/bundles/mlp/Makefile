@@ -1,6 +1,10 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
+SUBDIRS = _mlp
+
+include $(TOP)/mk/subdir.make
+
 BUNDLE_NAME = ChimeraX-MLP
 BUNDLE_VERSION = 1.0
 PKG_NAME = chimerax.mlp
@@ -27,7 +31,7 @@ install: dir all
 	fi
 
 app-install: wheel
-	$(APP_PIP) install -U $(WHEEL)
+	$(APP_PIP) install -U --upgrade-strategy only-if-needed $(WHEEL)
 	$(RSYNC) $(WHEEL) $(wheelhouse) && cd $(wheelhouse) && make update
 
 wheel: setup.py
