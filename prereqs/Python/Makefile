@@ -50,18 +50,7 @@ CONFIG_OPTIONS += --enable-shared
 else
 LDFLAGS += -Wl,-rpath,"$(libdir)"
 CONFIG_OPTIONS += --enable-framework=$(frameworkdir) --prefix=$(build_prefix)
-ifeq ($(PYTHON_VERSION).1,3.5.1)
-# until 3.5.2 is available, to get Python to find the SQL libs on the Mac
-# you have to *not* specify -isysroot (so it doesn't get confused by the new
-# .tbd library stubs in the SDK) and you have to install the headers to /usr/include
-# with "xcode-select --install"
 ENV_CONFIGURE += LDFLAGS='$(LDFLAGS) -F$(frameworkdir)'
-else
-# In order for Python's setup.py to decide that sqlite3 support is available,
-# it needs to find the include file in the SDK, and it finds the SDK location
-# by looking for a '-isysroot' flag in CFLAGS, so provide one...
-ENV_CONFIGURE += LDFLAGS='$(LDFLAGS) -F$(frameworkdir)' CFLAGS='$(CFLAGS) -isysroot $(SDK_PATH)'
-endif
 pyappdir = $(PYTHON_FRAMEWORK)/Resources/Python.app/Contents/MacOS
 endif
 endif
