@@ -124,8 +124,7 @@ class UI(QApplication):
         self._keystroke_sinks = []
 
     def close_splash(self):
-        if hasattr(self, 'main_window'):
-            self.main_window._set_tool_checkbuttons(self.session)
+        pass
 
     def build(self):
         self.main_window = mw = MainWindow(self, self.session)
@@ -301,6 +300,19 @@ class MainWindow(QMainWindow, PlainTextLog):
         session.logger.add_log(self)
 
         self.show()
+
+    def addToolBar(self, *args, **kw):
+        # need to track toolbars for checkbuttons in Tools->Toolbar
+        retval = QMainWindow.addToolBar(self, *args, **kw)
+        from PyQt5.QtWidgets import QToolBar
+        for arg in args:
+            if isinstance(arg, QToolBar):
+                tb = arg
+                break
+        else:
+            tb = retval
+        tb.visibilityChanged.connect(lambda vis, tb=tb: self._set_tool_checkbuttons(tb, vis))
+        return retval
 
     def adjust_size(self, delta_width, delta_height):
         cs = self.size()
@@ -607,10 +619,9 @@ class MainWindow(QMainWindow, PlainTextLog):
         mb.removeAction(old_action)
         self.tools_menu = tools_menu
 
-    def _set_tool_checkbuttons(self, session):
-        for tool in session.tools.list():
-            if tool.display_name in self._checkbutton_tools:
-                self._checkbutton_tools[tool.display_name].setChecked(True)
+    def _set_tool_checkbuttons(self, toolbar, visibility):
+        if toolbar.windowTitle() in self._checkbutton_tools:
+            self._checkbutton_tools[toolbar.windowTitle()].setChecked(visibility)
 
     def add_custom_menu_entry(self, menu_name, entry_name, callback):
         '''
