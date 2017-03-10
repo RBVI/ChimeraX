@@ -12,7 +12,7 @@ readcif::CIFFile extract;
 void
 counts()
 {
-    size_t num_fields = extract.tags().size();
+    size_t num_fields = extract.colnames().size();
     std::cout << extract.category() << ": " << num_fields << " field";
     if (num_fields > 1)
         std::cout << 's';
