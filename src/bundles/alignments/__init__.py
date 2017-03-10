@@ -20,6 +20,9 @@ class _AlignmentsBundleAPI(BundleAPI):
         if class_name == "AlignmentsManager":
             from . import manager
             return manager.AlignmentsManager
+        elif class_name == "Alignment":
+            from . import alignment
+            return alignment.Alignment
 
     @staticmethod
     def initialize(session, bundle_info):
