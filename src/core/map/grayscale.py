@@ -42,7 +42,7 @@ class GrayScaleDrawing(Drawing):
 
     # Use 2d textures along chosen axes or 3d textures.
     # Mode names 2d-xyz, 2d-x, 2d-y, 2d-z, 3d
-    self.projection_mode = '2d-z'
+    self._projection_mode = '2d-z'
 
     self.maximum_intensity_projection = False
 
@@ -82,6 +82,14 @@ class GrayScaleDrawing(Drawing):
     if b:
       b.update_groups()
 
+  def _get_projection_mode(self):
+    return self._projection_mode
+  def _set_projection_mode(self, mode):
+    if mode != self._projection_mode:
+      self._projection_mode = mode
+      self.remove_planes()
+  projection_mode = property(_get_projection_mode, _set_projection_mode)
+    
   def shown_orthoplanes(self):
     return self._show_ortho_planes
   def set_shown_orthoplanes(self, s):
@@ -177,11 +185,11 @@ class GrayScaleDrawing(Drawing):
     self.update_colors = False
 
     # Compare stack z axis to view direction to decide whether to reverse plane drawing order.
-    zaxis = self.ijk_to_xyz.z_axis()
     r = renderer
-    cv = r.current_view_matrix
-    czaxis = cv.apply_without_translation(zaxis) # z axis in camera coords
-    pd.multitexture_reverse_order = (czaxis[2] < 0)
+    paxis = self.ijk_to_xyz.axes()[self.projection_axis()]
+    saxis = self.scene_position.apply_without_translation(paxis) # Scene coords
+    caxis = r.current_view_matrix.apply_without_translation(saxis) # Camera coords
+    pd.multitexture_reverse_order = (caxis[2] < 0)
 
     max_proj = dtransp and self.maximum_intensity_projection
     if max_proj:
@@ -211,8 +219,13 @@ class GrayScaleDrawing(Drawing):
     elif self._show_ortho_planes:
       d = self.make_ortho_planes()
     else:
-      d = self.make_axis_planes()
+      d = self.make_axis_planes(self.projection_axis())
     return d
+
+  def projection_axis(self):
+    pmode = self.projection_mode
+    axis = {'2d-x': 0, '2d-y': 1, '2d-z': 2}.get(pmode, 2)
+    return axis
 
   def make_axis_planes(self, axis = 2):
 
