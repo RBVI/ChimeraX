@@ -29,7 +29,8 @@ class GrayScaleDrawing(Drawing):
     self._blend_manager = blend_manager	# ImageBlendManager to blend colors with other drawings,
     if blend_manager:			# is None for BlendedImage.
       blend_manager.add_drawing(self)
-    self.planes_drawing = None
+    self._planes_drawings = [None, None, None]	# For x, y, z axis projection
+    self._planes_drawing = None			# For ortho and box mode display
 
     # Mode names rgba4, rgba8, rgba12, rgba16, rgb4, rgb8, rgb12, rgb16,
     #   la4, la8, la12, la16, l4, l8, l12, l16
@@ -177,19 +178,26 @@ class GrayScaleDrawing(Drawing):
       return
 
     # Create or update the planes.
-    pd = self.planes_drawing
+    r = renderer
+    axis, rev = self.projection_axis(r.current_view_matrix)
+    pd = self._planes_drawing if axis is None else self._planes_drawings[axis]
     if pd is None:
-      self.planes_drawing = pd = self.make_planes()
+      pd = self.make_planes(axis)
+      if axis is None:
+        self._planes_drawing = pd
+      else:
+        self._planes_drawings[axis] = pd
     elif self.update_colors:
       self.reload_textures()
     self.update_colors = False
-
-    # Compare stack z axis to view direction to decide whether to reverse plane drawing order.
-    r = renderer
-    paxis = self.ijk_to_xyz.axes()[self.projection_axis()]
-    saxis = self.scene_position.apply_without_translation(paxis) # Scene coords
-    caxis = r.current_view_matrix.apply_without_translation(saxis) # Camera coords
-    pd.multitexture_reverse_order = (caxis[2] < 0)
+    if axis is not None:
+      # Reverse drawing order if needed to draw back to front
+      pd.multitexture_reverse_order = rev
+      for d in self._planes_drawings:
+        disp = (d is pd)
+        if d and d.display != disp:
+          # TODO: Make drawing not cause redraw if display value does not change.
+          d.display = disp
 
     max_proj = dtransp and self.maximum_intensity_projection
     if max_proj:
@@ -207,25 +215,51 @@ class GrayScaleDrawing(Drawing):
   def remove_planes(self):
 
     self.texture_planes = {}
-    pd = self.planes_drawing
+    pd = self._planes_drawing
     if pd:
       self.remove_drawing(pd)
-      self.planes_drawing = None
+      self._planes_drawing = None
+    for pd in self._planes_drawings:
+      if pd:
+        self.remove_drawing(pd)
+    self._planes_drawings = [None,None,None]
 
-  def make_planes(self):
+  def make_planes(self, axis):
 
-    if self._show_box_faces:
+    if axis is not None:
+      d = self.make_axis_planes(axis)
+    elif self._show_box_faces:
       d = self.make_box_faces()
     elif self._show_ortho_planes:
       d = self.make_ortho_planes()
-    else:
-      d = self.make_axis_planes(self.projection_axis())
     return d
 
-  def projection_axis(self):
+  def projection_axis(self, view_matrix):
+    if self._show_box_faces or self._show_ortho_planes:
+      return None, False
+
+    # Determine which axis has box planes with largest projected area.
+    # View matrix maps scene to camera coordinates.
+    v = -view_matrix.inverse().z_axis()	# View direction, scene coords
+    bx,by,bz = (self.scene_position * self.ijk_to_xyz).axes()	# Box axes, scene coordinates
+    # Scale axes to length of box so that plane axis chosen maximizes plane view area for box.
+    gs = self.grid_size
+    bx *= gs[0]
+    by *= gs[1]
+    bz *= gs[2]
+    from ..geometry import cross_product, inner_product
+    box_face_normals = [cross_product(by,bz), cross_product(bz,bx), cross_product(bx,by)]
     pmode = self.projection_mode
-    axis = {'2d-x': 0, '2d-y': 1, '2d-z': 2}.get(pmode, 2)
-    return axis
+    if pmode == '2d-xyz':
+      view_areas = [inner_product(v,bfn) for bfn in box_face_normals]
+      from numpy import argmax, abs
+      axis = argmax(abs(view_areas))
+      rev = (view_areas[axis] > 0)
+    else:
+      axis = {'2d-x': 0, '2d-y': 1, '2d-z': 2}.get(pmode, 2)
+      rev = (inner_product(v,box_face_normals[axis]) > 0)
+
+    return axis, rev
 
   def make_axis_planes(self, axis = 2):
 
@@ -314,11 +348,12 @@ class GrayScaleDrawing(Drawing):
 
   def reload_textures(self):
 
-    d = self.planes_drawing
-    mtex = d.multitexture
-    for t,(k,axis) in enumerate(d.planes):
-      data = self.color_plane(k,axis)
-      mtex[t].reload_texture(data)
+    for pd in self._planes_drawings + [self._planes_drawing]:
+      if pd:
+        mtex = pd.multitexture
+        for t,(k,axis) in enumerate(pd.planes):
+          data = self.color_plane(k,axis)
+          mtex[t].reload_texture(data)
 
 # ---------------------------------------------------------------------------
 #
