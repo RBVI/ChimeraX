@@ -67,7 +67,6 @@ CIF files are essentially a text version of a database.
 Each table in the database corresponds to a category,
 with named columns, and the rows contain the values.
 CIF tags are a concatenation of the category name and the column name.
-**readcif** tags refer to just the column name.
 
 **readcif** provides a base class, :cpp:class:`CIFFile`,
 that should be subclassed to implement an application's specific needs.
