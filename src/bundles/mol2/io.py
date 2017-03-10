@@ -11,10 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.atomic import Atom
+from chimerax.core.atomic import Atom, Atoms
 idatm_info = Atom.idatm_info_map
-#TODO
-from chimera.selection import Selection, ItemizedSelection
 
 MOLECULE_HEADER = "@<TRIPOS>MOLECULE"
 ATOM_HEADER     = "@<TRIPOS>ATOM"
@@ -23,9 +21,9 @@ SUBSTR_HEADER   = "@<TRIPOS>SUBSTRUCTURE"
 SET_HEADER    = "@<TRIPOS>SET"
 
 
-# The 'chimera2sybyl' dictionary is used to map Chimera atom types to Sybyl
+# The 'chimera_to_sybyl' dictionary is used to map ChimeraX atom types to Sybyl
 # atom types.
-chimera2sybyl = {
+chimera_to_sybyl = {
     'C3'  : 'C.3',
     'C2'  : 'C.2',
     'Car' : 'C.ar',
@@ -87,167 +85,160 @@ chimera2sybyl = {
 }
 
 # keep added hydrogens with their residue while keeping residues in sequence order...
-def writeMol2Sort(a1, a2, resIndices=None):
+def write_mol2_sort(a1, a2, res_indices=None):
     try:
-        ri1 = resIndices[a1.residue]
+        ri1 = res_indices[a1.residue]
     except KeyError:
-        ri1 = resIndices[a1.residue] = a1.molecule.residues.index(a1.residue)
+        ri1 = res_indices[a1.residue] = a1.structure.residues.index(a1.residue)
     try:
-        ri2 = resIndices[a2.residue]
+        ri2 = res_indices[a2.residue]
     except KeyError:
-        ri2 = resIndices[a2.residue] = a2.molecule.residues.index(a2.residue)
-    return cmp(ri1, ri2) or cmp(a1.coordIndex, a2.coordIndex)
+        ri2 = res_indices[a2.residue] = a2.structure.residues.index(a2.residue)
+    return cmp(ri1, ri2) or cmp(a1.coord_index, a2.coord_index)
 
-
-def writeMol2(models, fileName, status=None, anchor=None, relModel=None,
-        hydNamingStyle="sybyl", multimodelHandling="individual",
-        skip=None, resNum=True, gaffType=False, gaffFailError=None,
+def write_mol2(structures, file_name, status=None, anchor=None, rel_model=None,
+        hyd_naming_style="sybyl", multimodel_handling="individual",
+        skip=None, res_num=True, gaff_type=False, gaff_fail_error=None,
         temporary=False):
     """Write a Mol2 file.
 
-       'models' are the models to write out into a file named 'fileName'.
+    Parameters
+    ----------
 
-       'status', if not None, is a function that takes a string -- used
-       to report the progress of the write.
-       
-       'anchor' is a selection (i.e. instance of a subclass of
-       chimera.selection.Selection) containing atoms/bonds that should
-       be written out to the @SET section of the file as the rigid
-       framework for flexible ligand docking.
+    structures : a list/tuple/set of :py:class:`~chimerax.core.atomic.Structure`s or a single :py:class:`~chimerax.core.atomic.Structure`
+        The structure(s)s to write out.
 
-       'hydNamingStyle' controls whether hydrogen names should be
-       "Sybyl-like" (value: sybyl) or "PDB-like" (value: pdb)
-       -- e.g.  HG21 vs. 1HG2.
+    file_name : str or file object open for writing
+        Output file.
 
-       'multimodelHandling' controls whether multiple models will be
-       combined into a single @MOLECULE section (value: combined) or
-       each given its own section (value: individual).
+    status : function or None
+        If not None, a function that takes a string -- used to report the progress of the write.
 
-       'skip' is a list of atoms to not output
+    anchor : :py:class:`~chimerax.core.atomic.Atoms` collection
+        Atoms (and their implied internal bonds) that should be written out to the
+        @SET section of the file as the rigid framework for flexible ligand docking.
 
-       'resNum' controls whether residue sequence numbers are included
-       in the substructure name.  Since Sybyl Mol2 files include them,
-       this defaults to True.
+    hyd_naming_style : "sybyl" or "pdb"
+        Controls whether hydrogen names should be "Sybyl-like" (value: sybyl) or
+        "PDB-like" (value: pdb) -- e.g.  HG21 vs. 1HG2.
 
-       If 'gaffType' is True, outout GAFF atom types instead of Sybyl
-       atom types.  'gaffFailError', if specified, is the type of error
-       to throw (e.g. UserError) if there is no gaffType attribute for
-       an atom, otherwise throw the standard AttributeError.
+    multimodel_handling : "combined" or "individual"
+        Controls whether multiple structures will be combined into a single @MOLECULE
+        section (value: combined) or each given its own section (value: individual).
 
-       If 'temporary' is True, don't enter the file name into the 
-       "Recent Data Sources" list of the Rapid Access interface.
+    skip : list/set of :py:class:`~chimerax.core.atomic.Atom`s or an :py:class:`~chimerax.core.atomic.Atoms` collection or None
+       Atoms to not output
+
+    res_num : bool
+        Controls whether residue sequence numbers are included in the substructure name.
+        Since Sybyl Mol2 files include them, this defaults to True.
+
+    gaff_type : bool
+       If 'gaff_type' is True, outout GAFF atom types instead of Sybyl atom types.
+       `gaff_fail_error`, if specified, is the type of error to throw (e.g. UserError)
+       if there is no gaff_type attribute for an atom, otherwise throw the standard AttributeError.
+
+    temporary : bool
+       If 'temporary' is True, don't enter the file name into the file history.
     """
 
-    if isinstance(fileName, basestring):
-        # open the given file name for writing
-        from OpenSave import osOpen
-        f = osOpen(fileName, "w")
-        needClose = True
-    else:
-        f = fileName
-        needClose = False
+    from chimerax.core import io
+    f = io.open(file_name, "w")
 
-    sortFunc = serialSort = lambda a1, a2, ri={}: writeMol2Sort(a1, a2, resIndices=ri)
+    sort_func = serial_sort = lambda a1, a2, ri={}: write_mol2_sort(a1, a2, res_indices=ri)
 
-    if isinstance(models, chimera.Molecule):
-        models = [models]
-    elif isinstance(models, Selection):
-        # create a fictitious jumbo model
-        if isinstance(models, ItemizedSelection):
-            sel = models
-        else:
-            sel = ItemizedSelection()
-            sel.merge(models)
-        sel.addImplied()
+    from chimerax.core.atomic import Structure, Structures
+    if isinstance(structures, Structure):
+        structures = [structures]
+    elif isinstance(structures, Structures):
         class Jumbo:
-            def __init__(self, sel):
-                self.atoms = sel.atoms()
-                self.residues = sel.residues()
-                self.bonds = sel.bonds()
-                self.name = "(selection)"
-        models = [Jumbo(sel)]
-        sortFunc = lambda a1, a2: cmp(a1.molecule.id, a2.molecule.id) \
-            or cmp(a1.molecule.subid, a2.molecule.subid) \
-            or serialSort(a1, a2)
-        multimodelHandling = "individual"
+            def __init__(self, structs):
+                self.atoms = structs.atoms
+                self.residues = structs.residues
+                self.bonds = structs.inter_bonds
+                self.name = "(multiple structures)"
+        structures = [Jumbo(sel)]
+        sort_func = lambda a1, a2: cmp(a1.structure.id, a2.structure.id) or serial_sort(a1, a2)
+        multimodel_handling = "individual"
 
     # transform...
-    if relModel is None:
-        xform = chimera.Xform.identity()
+    if rel_model is None:
+        from chimerax.core.geometry import identity
+        xform = identity()
     else:
-        xform = relModel.openState.xform
-        xform.invert()
+        xform = rel_model.scene_position.inverse()
 
+    #TODO
     # need to find amide moieties since Sybyl has an explicit amide type
     if status:
         status("Finding amides")
     from ChemGroup import findGroup
-    amides = findGroup("amide", models)
+    amides = findGroup("amide", structures)
     amideNs = dict.fromkeys([amide[2] for amide in amides])
     amideCNs = dict.fromkeys([amide[0] for amide in amides])
     amideCNs.update(amideNs)
     amideOs = dict.fromkeys([amide[1] for amide in amides])
 
     substructureNames = None
-    if multimodelHandling == "combined":
+    if multimodel_handling == "combined":
         # create a fictitious jumbo model
         class Jumbo:
-            def __init__(self, models):
+            def __init__(self, structures):
                 self.atoms = []
                 self.residues = []
                 self.bonds = []
-                self.name = models[0].name + " (combined)"
-                for m in models:
+                self.name = structures[0].name + " (combined)"
+                for m in structures:
                     self.atoms.extend(m.atoms)
                     self.residues.extend(m.residues)
                     self.bonds.extend(m.bonds)
-                # if combining single-residue models,
+                # if combining single-residue structures,
                 # can be more informative to use model name
                 # instead of residue type for substructure
-                if len(models) == len(self.residues):
+                if len(structures) == len(self.residues):
                     rtypes = [r.type for r in self.residues]
                     if len(set(rtypes)) < len(rtypes):
-                        mnames = [m.name for m in models]
+                        mnames = [m.name for m in structures]
                         if len(set(mnames)) == len(mnames):
                             self.substructureNames = dict(
                                 zip(self.residues, mnames))
-        models = [Jumbo(models)]
-        if hasattr(models[-1], 'substructureNames'):
-            substructureNames = models[-1].substructureNames
-            delattr(models[-1], 'substructureNames')
-        sortFunc = lambda a1, a2: cmp(a1.molecule.id, a2.molecule.id) \
-            or cmp(a1.molecule.subid, a2.molecule.subid) \
-            or serialSort(a1, a2)
+        structures = [Jumbo(structures)]
+        if hasattr(structures[-1], 'substructureNames'):
+            substructureNames = structures[-1].substructureNames
+            delattr(structures[-1], 'substructureNames')
+        sort_func = lambda a1, a2: cmp(a1.structure.id, a2.structure.id) \
+            or cmp(a1.structure.subid, a2.structure.subid) \
+            or serial_sort(a1, a2)
 
-    # write out models
-    for mol in models:
-        if hasattr(mol, 'mol2comments'):
-            for m2c in mol.mol2comments:
+    # write out structures
+    for struct in structures:
+        if hasattr(struct, 'mol2comments'):
+            for m2c in struct.mol2comments:
                 print>>f, m2c
-        if hasattr(mol, 'solventInfo' ):
-            print>>f, mol.solventInfo
+        if hasattr(struct, 'solventInfo' ):
+            print>>f, struct.solventInfo
 
         # molecule section header
         print>>f, "%s" % MOLECULE_HEADER
 
         # molecule name
-        print>>f, "%s" % mol.name
+        print>>f, "%s" % struct.name
 
-        ATOM_LIST = mol.atoms
-        BOND_LIST = mol.bonds
+        ATOM_LIST = struct.atoms
+        BOND_LIST = struct.bonds
         if skip:
             skip = set(skip)
             ATOM_LIST = [a for a in ATOM_LIST if a not in skip]
             BOND_LIST = [b for b in BOND_LIST
                     if b.atoms[0] not in skip
                     and b.atoms[1] not in skip]
-        RES_LIST  = mol.residues
+        RES_LIST  = struct.residues
 
         # Chimera has an unusual internal order for its atoms, so
         # sort them by input order
         if status:
             status("Putting atoms in input order")
-        ATOM_LIST.sort(sortFunc)
+        ATOM_LIST.sort(sort_func)
 
         # if anchor is not None, then there will be two entries in
         # the @SET section of the file...
@@ -260,12 +251,12 @@ def writeMol2(models, fileName, status=None, anchor=None, relModel=None,
                             len(RES_LIST), sets)
 
         # type of molecule
-        if hasattr(mol, "mol2type"):
-            mtype = mol.mol2type
+        if hasattr(struct, "mol2type"):
+            mtype = struct.mol2type
         else:
             mtype = "SMALL"
             from chimera.resCode import nucleic3to1, protein3to1
-            for r in mol.residues:
+            for r in struct.residues:
                 if r.type in protein3to1:
                     mtype = "PROTEIN"
                     break
@@ -275,13 +266,13 @@ def writeMol2(models, fileName, status=None, anchor=None, relModel=None,
         print>>f, mtype
 
         # indicate type of charge information
-        if hasattr(mol, 'chargeModel'):
-            print>>f, mol.chargeModel
+        if hasattr(struct, 'chargeModel'):
+            print>>f, struct.chargeModel
         else:
             print>>f, "NO_CHARGES"
 
-        if hasattr(mol, 'mol2comment'):
-            print>>f, "\n%s" % mol.mol2comment
+        if hasattr(struct, 'mol2comment'):
+            print>>f, "\n%s" % struct.mol2comment
         else:
             print>>f, "\n"
 
@@ -293,15 +284,15 @@ def writeMol2(models, fileName, status=None, anchor=None, relModel=None,
 
         # make a dictionary of residue indices so that we can do
         # quick look ups
-        resIndices = {}
+        res_indices = {}
         for i, r in enumerate(RES_LIST):
-            resIndices[r] = i+1
+            res_indices[r] = i+1
         for i, atom in enumerate(ATOM_LIST):
             # atom ID, starting from 1
             print>>f, "%7d" % (i+1),
 
             # atom name, possibly rearranged if it's a hydrogen
-            if hydNamingStyle == "sybyl" \
+            if hyd_naming_style == "sybyl" \
                         and not atom.name[0].isalpha():
                 atomName = atom.name[1:] + atom.name[0]
             else:
@@ -314,13 +305,13 @@ def writeMol2(models, fileName, status=None, anchor=None, relModel=None,
                         coord.x, coord.y, coord.z),
 
             # atom type
-            if gaffType:
+            if gaff_type:
                 try:
-                    atomType = atom.gaffType
+                    atomType = atom.gaff_type
                 except AttributeError:
-                    if not gaffFailError:
+                    if not gaff_fail_error:
                         raise
-                    raise gaffFailError("%s has no Amber/GAFF type assigned.\n"
+                    raise gaff_fail_error("%s has no Amber/GAFF type assigned.\n"
                         "Use the AddCharge tool to assign Amber/GAFF types."
                         % atom)
             elif hasattr(atom, 'mol2type'):
@@ -342,7 +333,7 @@ def writeMol2(models, fileName, status=None, anchor=None, relModel=None,
                 atomType = "O.2"
             else:
                 try:
-                    atomType = chimera2sybyl[atom.idatmType]
+                    atomType = chimera_to_sybyl[atom.idatmType]
                 except KeyError:
                     chimera.replyobj.warning("Atom whose"
                         " IDATM type has no equivalent"
@@ -356,7 +347,7 @@ def writeMol2(models, fileName, status=None, anchor=None, relModel=None,
             res = atom.residue
 
             # residue index
-            print>>f, "%5d" % resIndices[res],
+            print>>f, "%5d" % res_indices[res],
 
             # substructure identifier and charge
             if hasattr(atom, 'charge') and atom.charge is not None:
@@ -365,7 +356,7 @@ def writeMol2(models, fileName, status=None, anchor=None, relModel=None,
                 charge = 0.0
             if substructureNames:
                 rname = substructureNames[res]
-            elif resNum:
+            elif res_num:
                 rname = "%3s%-5d" % (res.type, res.id.position)
             else:
                 rname = "%3s" % res.type
@@ -468,7 +459,7 @@ def writeMol2(models, fileName, status=None, anchor=None, relModel=None,
             # residue name field
             if substructureNames:
                 rname = substructureNames[res]
-            elif resNum:
+            elif res_num:
                 rname = "%3s%-4d" % (res.type, res.id.position)
             else:
                 rname = "%3s" % res.type
@@ -511,7 +502,7 @@ def writeMol2(models, fileName, status=None, anchor=None, relModel=None,
                             crossResBonds += 1
             print>>f, "%5d" % crossResBonds,
             # print "ROOT" if first or only residue of a chain
-            if a.molecule.rootForAtom(a, True).atom.residue == res:
+            if a.structure.rootForAtom(a, True).atom.residue == res:
                 print>>f, "ROOT"
             else:
                 print>>f
@@ -548,7 +539,7 @@ def writeMol2(models, fileName, status=None, anchor=None, relModel=None,
 
     if not temporary:
         from chimera import triggers
-        triggers.activateTrigger('file save', (fileName, 'Mol2'))
+        triggers.activateTrigger('file save', (file_name, 'Mol2'))
 
 def sulfurOxygen(atom):
     if atom.idatmType != "O3-":
