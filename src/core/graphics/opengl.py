@@ -1577,6 +1577,10 @@ class Buffer:
         barray = self.buffered_array
         return 0 if barray is None else barray.itemsize
 
+    def size(self):
+        barray = self.buffered_array
+        return 0 if barray is None else barray.size
+
     def update_buffer_data(self, data):
         '''
         Update the buffer with data supplied by a numpy array and bind it to
@@ -1616,7 +1620,7 @@ class Buffer:
     lines = GL.GL_LINES
     points = GL.GL_POINTS
 
-    def draw_elements(self, element_type=triangles, ninst=None):
+    def draw_elements(self, element_type=triangles, ninst=None, count=None, offset=None):
         '''
         Draw primitives using this buffer as the element buffer.
         All the required buffers are assumed to be already bound using a
@@ -1626,11 +1630,16 @@ class Buffer:
         # TODO: Need to bind it because change to element buffer by update_buffer_data()
         # erases the current binding and I don't have reliable code to restore that binding.
         GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, self.opengl_buffer)
-        ne = self.buffered_array.size
-        if ninst is None:
-            GL.glDrawElements(element_type, ne, GL.GL_UNSIGNED_INT, None)
+        ne = self.buffered_array.size if count is None else count
+        if offset is None:
+            eo = None
         else:
-            GL.glDrawElementsInstanced(element_type, ne, GL.GL_UNSIGNED_INT, None, ninst)
+            import ctypes
+            eo = ctypes.c_void_p(offset * self.array_element_bytes())
+        if ninst is None:
+            GL.glDrawElements(element_type, ne, GL.GL_UNSIGNED_INT, eo)
+        else:
+            GL.glDrawElementsInstanced(element_type, ne, GL.GL_UNSIGNED_INT, eo, ninst)
 
     def shader_has_required_capabilities(self, shader):
         if not self.requires_capabilities:

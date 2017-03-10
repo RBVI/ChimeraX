@@ -30,7 +30,7 @@ def fetch_file(session, url, name, save_name, save_dir, *,
     :param uncompress: contents are compressed (False)
     :param ignore_cache: skip checking for cached file (False)
     :param check_certificates: confirm https certificate (True)
-    :param log: 'info' or 'status' logging ('info')
+    :param log: 'info' log in info too
     :returns: the filename
     :raises UserError: if unsuccessful
     """
@@ -41,10 +41,9 @@ def fetch_file(session, url, name, save_name, save_dir, *,
             filename = path.join(d, save_dir, save_name)
             if path.exists(filename):
                 msg = 'Fetching %s from local cache: %s' % (name, filename)
+                session.logger.status(msg)
                 if log == 'info':
                     session.logger.info(msg)
-                elif log == 'status':
-                    session.logger.status(msg)
                 return filename
 
     if save_dir is None:

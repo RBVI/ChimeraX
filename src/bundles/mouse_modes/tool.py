@@ -98,6 +98,9 @@ class MouseModePanel(ToolInstance):
             f = self.buttons.hide
         self.session.ui.thread_safe(f)
 
+    def displayed(self):
+        return not self.buttons.isHidden()
+
     @classmethod
     def get_singleton(cls, session):
         from chimerax.core import tools

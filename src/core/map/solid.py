@@ -219,7 +219,6 @@ class Solid:
   #
   def update_coloring(self):
 
-    self.message('Setting texture colors')
     if self.use_plane_callback:
       cmap, cmap_range = self.colormap()
       def get_color_plane(axis, plane,
@@ -231,15 +230,11 @@ class Solid:
     else:
       colors = self.color_values()
       self.drawing.set_volume_colors(colors)
-    self.message('')
 
   # ---------------------------------------------------------------------------
   #
   def color_values(self, axis = None, plane = None,
                    cmap = None, cmap_range = None):
-
-    if axis is None or plane == 0:
-      self.message('Coloring %s' % self.name)
 
     if cmap is None:
       cmap, cmap_range = self.colormap()
@@ -261,9 +256,6 @@ class Solid:
       if not axis is None:
         s[2-axis] = plane
       self.mask_colors(colors, slice = s)
-
-    if axis is None or plane == self.size[axis]-1:
-      self.message('')
 
     return colors
 

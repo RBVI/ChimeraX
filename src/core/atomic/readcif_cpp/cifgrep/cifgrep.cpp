@@ -19,7 +19,7 @@ using std::unordered_map;
 using readcif::CIFFile;
 
 // global options
-bool mmCIF_style;
+bool PDBx_style;
 bool show_data_block;
 bool show_filename;
 bool list_filename_only;
@@ -50,8 +50,8 @@ Extract::Extract()
 void
 Extract::reset_parse()
 {
-	if (mmCIF_style)
-		set_PDB_style(true);
+	if (PDBx_style)
+		set_PDBx_keywords(true);
 }
 
 void
@@ -76,7 +76,7 @@ save_parse_info()
 				std::cerr << "Missing " << cat << '.' << x.first << '\n';
 			exit(EXIT_FAILURE);
 		}
-		pv.emplace_back(column, true,
+		pv.emplace_back(column,
 			[&] (const char* start, const char* end) {
 				cat_info[x.first] = string(start, end - start);
 			}); }
@@ -98,8 +98,7 @@ save_parse_info()
 			else
 				std::cout << current_filename;
 		}
-		if (list_filename_only) {
-			std::cout << '\n';
+		if (list_filename_only) { std::cout << '\n';
 			throw TerminateEarly();
 		}
                 if (show_filename)
@@ -162,10 +161,10 @@ main(int argc, char** argv)
 	int opt;
         bool set_show_filename = false;
 
-	while ((opt = getopt(argc, argv, "mdhHlv")) != -1) {
+	while ((opt = getopt(argc, argv, "pdhHlv")) != -1) {
 		switch (opt) {
-			case 'm':
-				mmCIF_style = true;
+			case 'p':
+				PDBx_style = true;
 				break;
 			case 'd':
 				show_data_block = true;
@@ -194,12 +193,12 @@ main(int argc, char** argv)
 	if (optind + 1 >= argc) {
 usage:
 		std::cerr << "Usage: " << argv[0] <<
-			" [-d] [-m] [-l] [-q] CIF_tags filename(s)\n"
+			" [-d] [-p] [-l] [-q] CIF_tags filename(s)\n"
 			"\t-d\tShow data block instead of filename.\n"
                         "\t-h\tSuppress filename.\n"
                         "\t-H\tAlways show filename.\n"
 			"\t-l\tIf a match is found, just list the filename.\n"
-			"\t-m\tmmCIF style (lowercase keyword/tags at beginning of line).\n"
+			"\t-p\tPDBx style (lowercase keyword/tags at beginning of line).\n"
 			"\tCIF tags are comma separated category.id values.\n"
 			"\t\tOnly one category is supported.  Subsequent id's\n"
 			"\t\tcan elide the category (.id is sufficient).\n"

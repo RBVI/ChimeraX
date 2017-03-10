@@ -133,7 +133,7 @@ It should be possible to speed up **readcif** a little bit more
 by exposing more of the tokenizing internals to the parsing code
 at the expense of having to write separate code for PDB mmCIF files.
 But **readcif** is already close to optimal,
-and it is unclear if any other improvements would be noticible
+and it is unclear if any other improvements would be noticeable
 once connectivity and other derived information is computed.
 
 Benefits of `PDBx/mmCIF Styling`
@@ -143,7 +143,7 @@ It is currently not possible to robustly detect if a mmCIF file is stylized
 or not.
 It is likely that it stylized if the filename looks like a PDB identifier
 followed by ``.cif``
-and the dictionary is mmcif_pdbx.dic version 4 or newer.
+and the associated dictionary is mmcif_pdbx.dic version 4 or newer.
 But that guess could be wrong, and if it is wrong,
 there is no indication of that fact that the input is corrupted.
 As of 10 June 2014,
@@ -175,35 +175,3 @@ various PDBx/mmCIF styling rules:
     +-+---------------------------------------+-----------+---------+
     | with everything                         | 0.485 sec | 3.73x   |
     +-+---------------------------------------+-----------+---------+
-
-Appendix: PDBx/mmCIF Styling
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-PDBx/mmCIF files are formatted for fast parsing.
-This can be taken advantage of for speedier extraction of needed data.
-
-    Outside of a data table:
-
-        1. CIF keywords and data tags only appear immediately
-           after an ASCII newline.
-
-        2. CIF keywords are in lowercase.
-
-        3. Data tags are case sensitive (category names and item names
-           are mixed-case as specified in mmcif_pdbx.dic).
-
-    Inside a data table:
-
-        1. If the data values for each row can't fit on one line
-           (due to a multiline string), then the first row is split
-           into multiple lines.  Needed to robustly fallback to tokenizing
-           the input.
-
-        2. All columns are left-aligned.  Needed to robustly figure out
-           column boundaries.
-
-        3. All rows have trailing spaces so they are the same length.
-           Optimization to speed up advancing to the next row.
-
-        4. Rows are terminated by a comment line.
-           Optimization to detect the end of a table.
