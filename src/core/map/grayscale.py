@@ -29,6 +29,7 @@ class GrayScaleDrawing(Drawing):
     self._blend_manager = blend_manager	# ImageBlendManager to blend colors with other drawings,
     if blend_manager:			# is None for BlendedImage.
       blend_manager.add_drawing(self)
+    self.planes_drawing = None
 
     # Mode names rgba4, rgba8, rgba12, rgba16, rgb4, rgb8, rgb12, rgb16,
     #   la4, la8, la12, la16, l4, l8, l12, l16
@@ -168,8 +169,9 @@ class GrayScaleDrawing(Drawing):
       return
 
     # Create or update the planes.
-    if len(self.child_drawings()) == 0:
-      self.make_planes()
+    pd = self.planes_drawing
+    if pd is None:
+      self.planes_drawing = pd = self.make_planes()
     elif self.update_colors:
       self.reload_textures()
     self.update_colors = False
@@ -179,7 +181,7 @@ class GrayScaleDrawing(Drawing):
     r = renderer
     cv = r.current_view_matrix
     czaxis = cv.apply_without_translation(zaxis) # z axis in camera coords
-    self.reverse_order_children = (czaxis[2] < 0)
+    pd.multitexture_reverse_order = (czaxis[2] < 0)
 
     max_proj = dtransp and self.maximum_intensity_projection
     if max_proj:
@@ -197,23 +199,26 @@ class GrayScaleDrawing(Drawing):
   def remove_planes(self):
 
     self.texture_planes = {}
-    self.remove_all_drawings()
+    pd = self.planes_drawing
+    if pd:
+      self.remove_drawing(pd)
+      self.planes_drawing = None
 
   def make_planes(self):
 
     if self._show_box_faces:
-      plist = self.make_box_faces()
+      d = self.make_box_faces()
     elif self._show_ortho_planes:
-      plist = self.make_ortho_planes()
+      d = self.make_ortho_planes()
     else:
-      plist = self.make_axis_planes()
-    return plist
+      d = self.make_axis_planes()
+    return d
 
   def make_axis_planes(self, axis = 2):
 
     planes = tuple((k, axis) for k in range(0,self.grid_size[axis]))
-    plist = self.make_plane_drawings(planes)
-    return plist
+    d = self.make_planes_drawing(planes)
+    return d
 
   def make_ortho_planes(self):
     
@@ -221,45 +226,52 @@ class GrayScaleDrawing(Drawing):
     p = self.ortho_planes_position
     show_axis = (op & 0x1, op & 0x2, op & 0x4)
     planes = tuple((p[axis], axis) for axis in (0,1,2) if show_axis[axis])
-    plist = self.make_plane_drawings(planes)
-    return plist
+    d = self.make_planes_drawing(planes)
+    return d
 
   def make_box_faces(self):
     
     gs = self.grid_size
     planes = (tuple((0,axis) for axis in (0,1,2)) +
               tuple((gs[axis]-1,axis) for axis in (0,1,2)))
-    plist = self.make_plane_drawings(planes)
-    return plist
+    d = self.make_planes_drawing(planes)
+    return d
 
   # Each plane is an index position and axis (k,axis).
-  def make_plane_drawings(self, planes):
+  def make_planes_drawing(self, planes):
 
     gs = self.grid_size
     from numpy import array, float32, int32, empty
-    ta = array(((0,1,2),(0,2,3)), int32)
-    tc = array(((0,0),(1,0),(1,1),(0,1)), float32)
-    tc1 = array(((0,0),(0,1),(1,1),(1,0)), float32)
-    plist = []
-    for k, axis in planes:
-      va = empty((4,3), float32)
-      va[:,:] = -0.5
-      va[:,axis] = k
+    tap = array(((0,1,2),(0,2,3)), int32)
+    tc1 = array(((0,0),(1,0),(1,1),(0,1)), float32)
+    tc2 = array(((0,0),(0,1),(1,1),(1,0)), float32)
+    np = len(planes)
+    va = empty((4*np,3), float32)
+    tc = empty((4*np,2), float32)
+    ta = empty((2*np,3), int32)
+    textures = []
+    for p, (k,axis) in enumerate(planes):
+      vap = va[4*p:,:]
+      vap[:,:] = -0.5
+      vap[:,axis] = k
       a0, a1 = (axis + 1) % 3, (axis + 2) % 3
-      va[1:3,a0] += gs[a0]
-      va[2:4,a1] += gs[a1]
-      self.ijk_to_xyz.move(va)
-      p = self.new_drawing()
-      p.geometry = va, ta
-      p.color = tuple(int(255*r) for r in self.modulation_rgba())
-      p.use_lighting = False
-      p.texture = self.texture_plane(k, axis)
-      p.texture_coordinates = tc1 if axis == 1 else tc
-      p.opaque_texture = (not 'a' in self.color_mode)
-      p.plane = (k,axis)
-      plist.append(p)
+      vap[1:3,a0] += gs[a0]
+      vap[2:4,a1] += gs[a1]
+      self.ijk_to_xyz.move(vap)
+      ta[2*p:2*(p+1),:] = tap + 4*p
+      textures.append(self.texture_plane(k, axis))
+      tc[4*p:4*(p+1),:] = (tc2 if axis == 1 else tc1)
 
-    return plist
+    p = self.new_drawing()
+    p.color = tuple(int(255*r) for r in self.modulation_rgba())
+    p.use_lighting = False
+    p.opaque_texture = (not 'a' in self.color_mode)
+    p.geometry = va, ta
+    p.texture_coordinates = tc
+    p.multitexture = textures
+    p.planes = planes
+
+    return p
 
   def texture_plane(self, k, axis):
 
@@ -289,12 +301,11 @@ class GrayScaleDrawing(Drawing):
 
   def reload_textures(self):
 
-    planes = self.child_drawings()
-    for p in planes:
-      t = p.texture
-      k,axis = p.plane
+    d = self.planes_drawing
+    mtex = d.multitexture
+    for t,(k,axis) in enumerate(d.planes):
       data = self.color_plane(k,axis)
-      t.reload_texture(data)
+      mtex[t].reload_texture(data)
 
 # ---------------------------------------------------------------------------
 #
