@@ -6,8 +6,8 @@ readcif -- a C++11 CIF and mmCIF parser
     :Author: Greg Couch
     :Organization: RBVI_, `University of California at San Francisco`_
     :Contact: gregc@cgl.ucsf.edu
-    :Copyright: © Copyright 2014 by the Regents of the University of California.  All Rights reserved.
-    :Last modified: 2014-6-17
+    :Copyright: © Copyright 2014-2017 by the Regents of the University of California.  All Rights reserved.
+    :Last modified: 2017-3-9
 
 .. _RBVI: http://www.rbvi.ucsf.edu/
 .. _University of California at San Francisco: http://www.ucsf.edu/
@@ -26,7 +26,7 @@ quicker parsing.
 License
 -------
 
-The readcif library is available with an open source license:
+The **readcif** library is available with an open source license:
 
     Copyright © 2014 The Regents of the University of California.
     All rights reserved.
@@ -65,18 +65,19 @@ Usage
 
 CIF files are essentially a text version of a database.
 Each table in the database corresponds to a category,
-and the columns of the table are labelled with tags,
-and the rows contain the values.
+with named columns, and the rows contain the values.
+CIF tags are a concatenation of the category name and the column name.
+**readcif** tags refer to just the column name.
 
 **readcif** provides a base class, :cpp:class:`CIFFile`,
 that should be subclassed to implement an application's specific needs.
-Virtual functions are used to support CIF keywords,
+Virtual functions are used to support CIF reserved words,
 that way the application can choose what to do if there is more than one
 data block or handle dictionaries.
 And callback functions are used to extract the data the
 application wants from a category.
 Finally, the category callback functions need to provide a set of
-callback functions to parse the value of interesting tags.
+callback functions to parse the value of interesting columns.
 
 So, in pseudo-code, an application's parser would look like::
 
@@ -86,7 +87,7 @@ So, in pseudo-code, an application's parser would look like::
             initialize category callbacks
         }
         in each category callback:
-            create parse value callback vector for interesting tags
+            create parse value callback vector for interesting columns
             while (parse_row(parse_value_callbacks))
                 continue;
     };
@@ -98,54 +99,62 @@ and be used by::
     const char* whole_file = ....
     extract.parse_file(filename)
 
-See the associated :download:`readcif_example.cpp` file for a working example
+See the associated :download:`example code <readcif_example.cpp>` file
+for a working example
 that reads a subset of the atom_site data from a PDB mmCIF file.
 
-Stylized PDBx/mmCIF files
--------------------------
-
-If a CIF file is known to use PDBx/mmCIF stylized formatting,
-then parsing can be up to 4 times faster.
-:cpp:func:`set_PDB_style` turns on and off stylized parsing,
-and is reset every time :cpp:func:`CIFFile::parse` is called.
-Stylized PDBx/mmCIF file parsing may be switched on and off at
-any time, *e.g.*, within a particular category callback function.
-
-The example code turns on stylized parsing if the **audit_conform.dict_name**
-is mmcif_pdbx.dic_ and **audit_conform.dict_version** is greater than 4.
-This is hack that is needed until the PDB adds
-an explicit tag and value near the beginning
-of a CIF file that indicates that its tables are stylized.
-
-.. _mmcif_pdbx.dic: http://mmcif.wwpdb.org/dictionaries/mmcif_pdbx.dic/Index/
-
 PDBx/mmCIF Styling
-~~~~~~~~~~~~~~~~~~
+------------------
 
-PDBx/mmCIF files are formatted for fast parsing.
-readcif expects the following syntax for stylized files:
+`PDBx/mmCIF`_ files from the World-Wide PDB are formatted for fast parsing.
+If a CIF file is known to use `PDBx/mmCIF`_ stylized formatting,
+then parsing can be up to 4 times faster.
+**readcif** supports taking advantage of the PDBx/mmCIF styling with an API
+and code.
 
-    Outside of a data table:
+PDBx/mmCIF styling constrains the CIF format by:
 
-        1. CIF keywords and data tags only appear immediately
+    Outside of a category:
+
+        1. CIF reserved words and tags only appear immediately
            after an ASCII newline.
 
-        2. CIF keywords are in lowercase.
+        2. CIF reserved words are in lowercase.
 
-        3. Data tags are case sensitive (category names and item names
-           are mixed-case as specified in mmcif_pdbx.dic_).
+        3. Tags are case sensitive (category names and item names
+           are expected to match the case given in the associated dictionary,
+           *e.g.*, mmcif_pdbx.dic_).
 
-    Inside a data table:
+        Support for this is controlled with the
+        :cpp:func:`CIFFile::set_PDBx_keywords` function.
 
-        1. If the data values for each row can't fit on one line
-           (due to a multiline string), then the first row is split
-           into multiple lines.
+    Inside a category:
 
-        2. All columns are left-aligned.
+        1. All columns are left-aligned.
+
+        2. Each row of data has all of the columns.
 
         3. All rows have trailing spaces so they are the same length.
 
-        4. Rows are terminated by a comment line.
+        4. The end of the category's data values
+           is terminated by a comment line.
+
+        Support for this is controlled with the
+        :cpp:func:`CIFFile::set_PDBx_fixed_width_columns` function.
+
+..        1. If the data values for each row can't fit on one line
+           (due to a multiline string), then the first row is split
+           into multiple lines.
+
+The :download:`example code <readcif_example.cpp>` shows how a derived class would turn on stylized parsing.
+The **audit_conform** category is examined for explicit references to **pdbx_keywords** and **pdbx_fixed_width_columns**.
+And if they are present, they control the options.
+Otherwise, a heuristic is used: if the **dict_name** is "mmcif_pdbx.dic_"
+and **dict_version** is greater than 4,
+then it is assumed that there is keyword styling and that the **atom_site** and the **atom_site_anistrop** categories have fixed width columns.
+
+.. _mmcif_pdbx.dic: http://mmcif.wwpdb.org/dictionaries/mmcif_pdbx.dic/Index/
+.. _PDBx/mmCIF: http://mmcif.wwpdb.org/docs/faqs/pdbx-mmcif-faq-general.html
 
 C++ API
 -------
@@ -169,17 +178,20 @@ C++ API
 
     See :cpp:func:`is_whitespace`.
 
-.. cpp:function:: float str_to_float(const char* s)
+.. cpp:function:: double str_to_float(const char* s)
 
     Non-error checking inline function to convert a string to a
     floating point number.  It is similar to the C/C++ standard library's
-    **strtof** function, but does not support scientific notation,
-    is about twice as fast, and returns NaN if no digits are found.
+    **atof** function, but returns NaN if no digits are found.
+    Benchmarked by itself, it is slower than **atof**,
+    but is empirically much faster when used in shared libraries.
+    This is probably due to CPU cache behavior, but needs further investigation.
 
 .. cpp:function:: int str_to_int(const char* s)
 
     Non-error inline function to convert a string to an integer.
-    It is similar to the C/C++ standard library's **atof** function.
+    It is similar to the C/C++ standard library's **atoi** function.
+    Same rational for use as :cpp:func:`str_to_float`.
     Returns zero if no digits are found.
 
 .. cpp:class:: CIFFile
@@ -209,6 +221,11 @@ C++ API
             A category callback function can find out which category
             it is processing with :cpp:func:`category`.
 
+        .. cpp:function:: void set_unregistered_callback(ParseCategory callback)
+
+            Set callback function that will be called
+            for unregistered categories.
+
         .. cpp:function:: void parse_file(const char* filename)
 
             :param filename: Name of file to be parsed
@@ -231,62 +248,66 @@ C++ API
             since data tables may appear in any order in a file.
             Stylized parsing is reset each time :cpp:func:`parse` is called.
 
-        .. cpp:function:: void set_PDB_style(bool stylized)
+        .. cpp:function:: void set_PDBx_keywords(bool stylized)
 
-            Turn on and off PDBx/mmCIF stylized parsing
+            Turn on and off PDBx/mmCIF keyword styling as described in
+            `PDBx/mmCIF Styling`.
 
-            :param stylized: true to use PDBx/mmCIF stylized parsing
+            :param stylized: if true, assume PDBx/mmCIF keyword style
 
-            Indicate that CIF file follows the PDBx/mmCIF style guide
-            and that the style can be followed to speed up lexical
-            analysis of the CIF file.
-            Specifically, that keywords are in lowercase,
-            and that all keywords and tags are at the beginning of a line.
+            This is reset every time :cpp:func:`CIFFile::parse` 
+            or :cpp:func:`CIFFile::parse_file` is called.
+            It may be switched on and off at any time,
+            *e.g.*, within a particular category callback function.
 
-        .. cpp:function:: bool PDB_style() const
+        .. cpp:function:: bool PDBx_keywords() const
 
-            Return if the PDB_style flag is set.
-            See :cpp:func:`set_PDB_style`.
+            Return if the PDBx_keywords flag is set.
+            See :cpp:func:`set_PDBx_keywords`.
 
-        .. cpp:function:: void set_PDB_fixed_columns(bool fc)
+        .. cpp:function:: void set_PDBx_fixed_width_columns(const std::string& category)
 
-            Turn on and off PDBx/mmCIF fixed column width parsing
+            Turn on `PDBx/mmCIF`_ fixed width column parsing for a given
+            category as described in `PDBx/mmCIF Styling`.
 
-            :param stylized: true to use PDBx/mmCIF stylized parsing
+            :param category: name of category
 
-            Indicate that CIF file follows the PDBx/mmCIF style guide
-            and that the style can be followed to speed up lexical
-            analysis of the CIF file.
-            Specifically, the category's data layout has each record of data
-            on a single line and the columns of data are left-justified,
-            and are of are fixed width.
             This option must be set in each category callback that is needed.
-            This option is ignored if :cpp:func:`PDB_style` is false.
+            This option is ignored if :cpp:func:`PDBx_keywords` is false.
             This is not a global option because there is no reliable way
             to detect if the preconditions are met for each record without
             losing all of the speed advantages.
 
-        .. cpp:function:: bool PDB_fixed_columns() const
+        .. cpp:function:: bool has_PDBx_fixed_width_columns() const
 
-            Return if the PDB_fixed_columns flag is set.
-            See :cpp:func:`set_PDB_fixed_columns`.
+            Return if there were any fixed width column categories specified.
+            See :cpp:func:`set_PDBx_fixed_width_columns`.
 
-        .. cpp:function:: int get_column(const char \*tag, bool required=false)
+        .. cpp:function:: bool PDBx_fixed_width_columns() const
+
+            Return if the current category has fixed width columns.
+            See :cpp:func:`set_PDBx_fixed_width_columns`.
+
+        .. cpp:function:: int get_column(const char \*name, bool required=false)
             
-            :param tag: column tag to search for
+            :param tag: column name to search for
             :param required: true if tag is required
 
             Search the current categories tags to figure out which column
-            the tag corresponds to.
-            If the tag is not present,
+            the name corresponds to.
+            If the name is not present,
             then -1 is returned unless it is required,
             then an error is thrown.
 
-        .. cpp:type:: ParseValue
+        .. cpp:type:: ParseValue1
          
-            **typedef std::function<void (const char\* start, const char\* end)> ParseValue;**
+            **typedef std::function<void (const char\* start)> ParseValue1;**
 
-        .. cpp:type: ParseColumnn
+        .. cpp:type:: ParseValue2
+         
+            **typedef std::function<void (const char\* start, const char\* end)> ParseValue2;**
+
+        .. cpp:class:: ParseColumnn
         
             .. cpp:member:: int column_offset
 
@@ -298,9 +319,21 @@ C++ API
                 **true** if the end of the column needed -- not needed for numbers,
                 since all columns are terminated by whitespace.
 
-            .. cpp:member:: ParseValue func
+            .. cpp:member:: ParseValue1 func1
 
-                The function to call.
+                The function to call if :cpp:member:`need_end` is **false**.
+
+            .. cpp:member:: ParseValue2 func2
+
+                The function to call if :cpp:member:`need_end` is **true**.
+
+            .. cpp:function:: ParseColumn(int c, ParseValue1 f)
+
+                Set :cpp:member:`column_offset` and :cpp:member:`func1`.
+
+            .. cpp:function:: ParseColumn(int c, ParseValue2 f)
+
+                Set :cpp:member:`column_offset` and :cpp:member:`func2`.
 
         .. cpp:type:: ParseValues
 
@@ -322,6 +355,19 @@ C++ API
             *pv* will be sorted in ascending order.
             Columns with negative offsets are skipped.
 
+        .. cpp:function:: StringVector& parse_whole_category()
+
+            Return complete contents of a category as a vector of strings.
+
+            :return: vector of strings
+
+        .. cpp:function:: void parse_whole_category(ParseValue2 func)
+
+            Tokenize complete contents of category
+            and call function for each item in it.
+
+            :param func: callback function
+
         .. cpp:function:: const std::string& version()
 
             :return: the version of the CIF file if it is given
@@ -341,11 +387,19 @@ C++ API
            Only valid within a :cpp:type:`ParseCategory` callback
            and :cpp:func:`finished_parse`.
 
-        .. cpp:function:: const StringVector& tags()
+        .. cpp:function:: const StringVector& colnames()
 
-           :return: the set of column tags for the current category
+           :return: the set of column names for the current category
 
            Only valid within a :cpp:type:`ParseCategory` callback.
+
+        .. cpp:function:: bool multiple_rows() const
+
+            :return: if current category may have multiple rows 
+
+        .. cpp:function:: size_t line_number() const
+
+            :return: current line number
 
         .. cpp:function:: std::runtime_error error(const std::string& text)
 
@@ -376,14 +430,14 @@ C++ API
             when a save frame header or terminator is found.
             It defaults to throwing an exception.
             It should be replaced if the application
-            were to try to parse a dictionary.
+            were to try to parse a CIF dictionary.
 
         .. cpp:function:: void global_block()
 
             **global_block** is a virtual function that is called whenever
-            the global\_ keyword is found.
+            the **global\_** reserved word is found.
             It defaults to throwing an exception.
-            In CIF files, the global\_ keyword is reserved, but unused.
+            In CIF files, **global\_** is unused.
             However, some CIF-like files, *e.g.*, the CCP4 monomer library,
             use the global\_ keyword.
 

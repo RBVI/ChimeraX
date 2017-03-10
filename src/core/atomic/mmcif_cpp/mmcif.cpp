@@ -269,17 +269,7 @@ struct ExtractMolecule: public readcif::CIFFile
     string entry_id;
     tmpl::Molecule* my_templates;
     bool missing_poly_seq;
-    vector<string> fixed_column_categories;
-    bool has_style;
-
-    void set_fixed_if_listed(const string& name)
-    {
-        auto i = std::find(
-            fixed_column_categories.begin(),
-            fixed_column_categories.end(),
-            name);
-        set_PDB_fixed_columns(i != fixed_column_categories.end());
-    }
+    bool has_pdbx;
 };
 
 const char* ExtractMolecule::builtin_categories[] = {
@@ -296,7 +286,7 @@ std::ostream& operator<<(std::ostream& out, const ExtractMolecule::AtomKey& k) {
 
 ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_categories):
     _logger(logger), first_model_num(INT_MAX), my_templates(nullptr),
-    missing_poly_seq(false), has_style(false)
+    missing_poly_seq(false), has_pdbx(false)
 {
     register_category("audit_conform",
         [this] () {
@@ -357,10 +347,14 @@ ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_c
 
 ExtractMolecule::~ExtractMolecule()
 {
-    if (PDB_style())
-        logger::info(_logger, "Used mmCIF/PDBx format styling to speed up reading mmCIF file");
+    if (has_PDBx_fixed_width_columns())
+        logger::info(_logger, "Used PDBx fixed column width tables to speed up reading mmCIF file");
     else
-        logger::info(_logger, "Unable to take advantage of mmCIF/PDBx format styling");
+        logger::info(_logger, "No PDBx fixed column width tables");
+    if (PDBx_keywords())
+        logger::info(_logger, "Used PDBx keywords to speed up reading mmCIF file");
+    else
+        logger::info(_logger, "No PDBx keywords");
     if (my_templates)
         delete my_templates;
 }
@@ -378,7 +372,7 @@ ExtractMolecule::reset_parse()
         delete my_templates;
         my_templates = nullptr;
     }
-    has_style = false;
+    has_pdbx = false;
 }
 
 const tmpl::Residue*
@@ -670,9 +664,6 @@ ExtractMolecule::parse_pdbx_database_PDB_obs_spr()
         return;
     }
 
-    if (!fixed_column_categories.empty())
-        set_fixed_if_listed("pdbx_database_PDB_obs_spr");
-
     while (parse_row(pv)) {
         if (id != "OBSLTE")
             continue;
@@ -686,10 +677,8 @@ void
 ExtractMolecule::parse_generic_category()
 {
     const string& category = this->category();
-    const StringVector& tags = this->tags();
-    generic_tables[category] = tags;
-    if (!fixed_column_categories.empty())
-        set_fixed_if_listed(category);
+    const StringVector& colnames = this->colnames();
+    generic_tables[category] = colnames;
     StringVector& data = parse_whole_category();
     generic_tables[category + " data"].swap(data);
 }
@@ -715,8 +704,7 @@ ExtractMolecule::parse_chem_comp()
         logger::warning(_logger, "skipping chem_comp category: ", e.what());
         return;
     }
-    if (!fixed_column_categories.empty())
-        set_fixed_if_listed("chem_comp");
+
     while (parse_row(pv)) {
         // convert type to lowercase
         for (auto& c: type) {
@@ -770,8 +758,6 @@ ExtractMolecule::parse_chem_comp_bond()
         logger::warning(_logger, "skipping chem_comp_bond category: ", e.what());
         return;
     }
-    if (!fixed_column_categories.empty())
-        set_fixed_if_listed("chem_comp_bond");
     // pretend all atoms are the same element, only need connectivity
     const Element& e = Element::get_element("H");
     while (parse_row(pv)) {
@@ -816,7 +802,6 @@ ExtractMolecule::parse_audit_conform()
     // is not guaranteed to work, but we'll use it for now.
     string dict_name;
     float dict_version = 0;
-    bool style = false;
 
     CIFFile::ParseValues pv;
     pv.reserve(2);
@@ -829,21 +814,21 @@ ExtractMolecule::parse_audit_conform()
             [&dict_version] (const char* start) {
                 dict_version = atof(start);
             });
-        pv.emplace_back(get_column("pdbx_style"),
+        pv.emplace_back(get_column("pdbx_keywords"),
             [&] (const char* start) {
-                has_style = true;
-                style = *start == 'Y' || *start == 'y';
+                has_pdbx = true;
+                set_PDBx_keywords(*start == 'Y' || *start == 'y');
             });
-        pv.emplace_back(get_column("pdbx_fixed_columns"),
+        pv.emplace_back(get_column("pdbx_fixed_width_columns"),
             [&] (const char* start, const char* end) {
+                has_pdbx = true;
                 for (const char *cp = start; cp < end; ++cp) {
                     if (isspace(*cp))
                         continue;
                     start = cp;
                     while (cp < end && !isspace(*cp))
                         ++cp;
-                    fixed_column_categories.emplace_back(
-                         string(start, cp - start));
+                    set_PDBx_fixed_width_columns(string(start, cp - start));
                 }
             });
     } catch (std::runtime_error& e) {
@@ -851,10 +836,11 @@ ExtractMolecule::parse_audit_conform()
         return;
     }
     parse_row(pv);
-    if (has_style)
-        set_PDB_style(style);
-    else if (dict_name == "mmcif_pdbx.dic" && dict_version > 4)
-        set_PDB_style(true);
+    if (!has_pdbx && dict_name == "mmcif_pdbx.dic" && dict_version > 4) {
+        set_PDBx_keywords(true);
+        set_PDBx_fixed_width_columns("atom_site");
+        set_PDBx_fixed_width_columns("atom_site_anisotrop");
+    }
 }
 
 void
@@ -1012,11 +998,6 @@ ExtractMolecule::parse_atom_site()
         return;
     }
 
-    if (!fixed_column_categories.empty())
-        set_fixed_if_listed("auto_site");
-    else if (!has_style && PDB_style())
-        set_PDB_fixed_columns(true);
-
     long atom_serial = 0;
     Residue* cur_residue = nullptr;
     AtomicStructure* mol = nullptr;
@@ -1167,11 +1148,6 @@ ExtractMolecule::parse_atom_site_anisotrop()
         logger::warning(_logger, "skipping atom_site_anistrop category: ", e.what());
         return;
     }
-
-    if (!fixed_column_categories.empty())
-        set_fixed_if_listed("auto_site_anisotrop");
-    else if (!has_style && PDB_style())
-        set_PDB_fixed_columns(true);
 
     auto mol = all_residues.begin()->second.begin()->second->structure();
     auto& atoms = mol->atoms();
@@ -1329,9 +1305,6 @@ ExtractMolecule::parse_struct_conn()
         return;
     }
 
-    if (!fixed_column_categories.empty())
-        set_fixed_if_listed("struct_conn");
-
     atomstruct::Proxy_PBGroup* metal_pbg = nullptr;
     atomstruct::Proxy_PBGroup* hydro_pbg = nullptr;
     atomstruct::Proxy_PBGroup* missing_pbg = nullptr;
@@ -1472,9 +1445,6 @@ ExtractMolecule::parse_struct_conf()
     #undef COMP_ID
     #undef SEQ_ID
     #undef INS_CODE
-
-    if (!fixed_column_categories.empty())
-        set_fixed_if_listed("struct_conf");
 
     int helix_id = 0;
     int strand_id = 0;
@@ -1639,9 +1609,6 @@ ExtractMolecule::parse_struct_sheet_range()
     #undef SEQ_ID
     #undef INS_CODE
 
-    if (!fixed_column_categories.empty())
-        set_fixed_if_listed("struct_sheet_range");
-
     map<ChainID, int> strand_ids;
     while (parse_row(pv)) {
         if (chain_id1 != chain_id2) {
@@ -1745,9 +1712,6 @@ ExtractMolecule::parse_entity_poly_seq()
         logger::warning(_logger, "skipping entity_poly_seq category: ", e.what());
         return;
     }
-
-    if (!fixed_column_categories.empty())
-        set_fixed_if_listed("entity_poly_seq");
 
     while (parse_row(pv)) {
         poly_seq[entity_id].emplace(seq_id, mon_id, hetero);
@@ -1889,14 +1853,14 @@ ExtractTables::parse_category()
     if (!data)
         data = PyDict_New();
     const string& category = this->category();
-    const StringVector& tags = this->tags();
-    size_t num_tags = tags.size();
+    const StringVector& colnames = this->colnames();
+    size_t num_colnames = colnames.size();
 
-    PyObject* fields = PyTuple_New(num_tags);
+    PyObject* fields = PyTuple_New(num_colnames);
     if (!fields)
         throw wrappy::PythonError();
-    for (size_t i = 0; i < num_tags; ++i) {
-        PyObject* o = wrappy::pyObject(tags[i]);
+    for (size_t i = 0; i < num_colnames; ++i) {
+        PyObject* o = wrappy::pyObject(colnames[i]);
         if (!o) {
             Py_DECREF(fields);
             throw wrappy::PythonError();
