@@ -163,25 +163,28 @@ def cone_geometry(radius = 1, height = 1, nc = 10, caps = True):
     circle[:,0] = cos(angles)
     circle[:,1] = sin(angles)
 
+
     # Create cone faces (first nc*2 vertices)
     # The normals are wrong, but let's see how they look
     nc2 = nc * 2
-    varray[:nc] = (0, 0, -0.5)      # point of cone (multiple normals)
+    varray[:nc] = (0, 0, -0.5*height)      # point of cone (multiple normals)
     narray[:nc,:2] = circle
-    narray[:nc,2] = 0
-    varray[nc:nc2,:2] = circle      # base of cone
-    varray[nc:nc2,2] = 0.5
-    narray[nc:nc2,:2] = circle      # wrong, but close (enough?)
-    narray[nc:nc2,2] = 0
+    narray[:nc,2] = radius/height
+    varray[nc:nc2,:2] = radius*circle      # base of cone
+    varray[nc:nc2,2] = 0.5*height
+    narray[nc:nc2,:2] = circle
+    narray[nc:nc2,2] = radius/height
     tarray[:nc,0] = arange(nc)
     tarray[:nc,1] = (arange(nc) + 1) % nc + nc
     tarray[:nc,2] = arange(nc) + nc
-
+    from ..geometry.vector import normalize_vectors
+    normalize_vectors(narray[:nc2])
+    
     # Create cone base (last nc+1 vertices)
     if caps:
-        varray[nc2] = (0, 0, 0.5)
-        varray[nc2+1:,:2] = circle
-        varray[nc2+1:,2] = 0.5
+        varray[nc2] = (0, 0, 0.5*height)
+        varray[nc2+1:,:2] = radius*circle
+        varray[nc2+1:,2] = 0.5*height
         narray[nc2:] = (0, 0, 1)
         tarray[nc:,0] = nc2
         tarray[nc:,1] = (arange(nc) + 1) % nc + nc2 + 1
