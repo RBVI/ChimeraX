@@ -28,10 +28,10 @@ def vr(session, enable = None, room_position = None, mirror = False):
     room_position : Place or "report"
       Maps physical room coordinates to molecular scene coordinates.
       Room coordinates have origin at center of room and units are meters.
-    mirror : Bool
-      Whether to continue updating the computer display.  This will usually cause judder
-      in the vr headset because the flat panel display running at a refresh rate of 60
-      frames per second will slow the rendering to the headset.  (May be able to turn of
+    mirror : bool
+      Whether to update the ChimeraX graphics window.  This will usually cause judder
+      in the vr headset because the computer display is running at a refresh rate of 60
+      frames per second and will slow the rendering to the headset.  (May be able to turn off
       syncing to vertical refresh to avoid this.)  It is better to use the SteamVR display
       mirror window.
     '''
