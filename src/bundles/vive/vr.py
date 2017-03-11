@@ -12,7 +12,7 @@
 # -----------------------------------------------------------------------------
 # Command to view models in HTC Vive or Oculus Rift for ChimeraX.
 #
-def vr(session, enable = None, room_position = None):
+def vr(session, enable = None, room_position = None, mirror = False):
     '''Enable stereo viewing and head motion tracking with virtual reality headsets using SteamVR.
 
     Parameters
@@ -28,6 +28,12 @@ def vr(session, enable = None, room_position = None):
     room_position : Place or "report"
       Maps physical room coordinates to molecular scene coordinates.
       Room coordinates have origin at center of room and units are meters.
+    mirror : Bool
+      Whether to continue updating the computer display.  This will usually cause judder
+      in the vr headset because the flat panel display running at a refresh rate of 60
+      frames per second will slow the rendering to the headset.  (May be able to turn of
+      syncing to vertical refresh to avoid this.)  It is better to use the SteamVR display
+      mirror window.
     '''
     
     if enable is None and room_position is None:
@@ -51,6 +57,12 @@ def vr(session, enable = None, room_position = None):
             c.room_to_scene = room_position
             c._last_position = c.position
 
+    if mirror is not None:
+        c = session.main_view.camera
+        if isinstance(c, SteamVRCamera):
+            c.mirror_display = mirror
+            
+        
 # -----------------------------------------------------------------------------
 # Register the oculus command for ChimeraX.
 #
@@ -58,7 +70,8 @@ def register_vr_command(logger):
     from chimerax.core.commands import CmdDesc, BoolArg, FloatArg, PlaceArg, Or, EnumOf
     from chimerax.core.commands import register, create_alias
     desc = CmdDesc(optional = [('enable', BoolArg)],
-                   keyword = [('room_position', Or(EnumOf(['report']), PlaceArg))],
+                   keyword = [('room_position', Or(EnumOf(['report']), PlaceArg)),
+                              ('mirror', BoolArg)],
                    synopsis = 'Start SteamVR virtual reality rendering')
     register('device vr', desc, vr, logger=logger)
     create_alias('vr', 'device vr $*', logger=logger)
@@ -113,16 +126,23 @@ class SteamVRCamera(Camera):
 
         self._session = session
         self._framebuffer = None	# For rendering each eye view to a texture
+        self._texture_drawing = None	# For mirror display
         self._last_position = None
         self._last_h = None
         self._controller_poses = {}	# Controller device pose while trigger pressed
         self._close = False
-
-        self._mirror_display = False	# Mirror right eye in ChimeraX window
+        self._controller_models = {}	# Device id to HandControllerModel
+        self._controller_colors = ((200,200,0,255), (0,200,200,255))
+        self._trigger_held = {}		# Map device id to bool
+        self._move_selected_atoms = {}	# Map device id to bool
+        self.mirror_display = False	# Mirror right eye in ChimeraX window
         				# This causes stuttering in the Vive.
         
         import openvr
         self.vr_system = vrs = openvr.init(openvr.VRApplication_Scene)
+        self._controller_ids = [d for d in range(openvr.k_unMaxTrackedDeviceCount)
+                                if vrs.getTrackedDeviceClass(d) == openvr.TrackedDeviceClass_Controller]
+
         self._render_size = self.vr_system.getRecommendedRenderTargetSize()
         self.compositor = openvr.VRCompositor()
         if self.compositor is None:
@@ -184,6 +204,10 @@ class SteamVRCamera(Camera):
                               translation(-array(room_center, float32)))
 
     def close(self, close_cb = None):
+        cm = [m for d,m in self._controller_models.items()]
+        if cm:
+            self._session.close(cm)
+            self._controller_models = {}
         self._close = True
         self._close_cb = close_cb
         
@@ -248,6 +272,7 @@ class SteamVRCamera(Camera):
 
         self.process_controller_buttons()
         self.process_controller_motion()
+        self.move_controller_models()
 
     def process_controller_buttons(self):
         
@@ -264,14 +289,49 @@ class SteamVRCamera(Camera):
             d = e.trackedDeviceIndex
             b = e.data.controller.button
             if b == openvr.k_EButton_SteamVR_Trigger:
-                cp = self._controller_poses
-                if pressed:
-                    cp[d] = None
-                elif d in cp:
-                    del cp[d]
+                self._trigger_held[d] = pressed
 #            press = 'press' if pressed else 'unpress'
 #            print('Controller button %s, device %d, button %d'
 #                      % (press, d, b))
+            elif b == openvr.k_EButton_SteamVR_Touchpad:
+                if pressed:
+                    hm = self.hand_controller_models()
+                    m = hm.get(d, None)
+                    if m:
+                        a = m.closest_atom()
+                        if a:
+                            # Select atom with bottom of touchpad,
+                            # or residue with top of touchpad
+                            xy = self.touchpad_position(d)
+                            if xy is not None:
+                                self._session.selection.clear()
+                                x,y = xy
+                                if x >= .5:
+                                    # Residue atoms not including backbone.
+                                    ratoms = a.residue.atoms
+                                    from numpy import logical_not
+                                    scatoms = ratoms.filter(logical_not(ratoms.is_backbones()))
+                                    scatoms.selected = True
+                                if y <= 0:
+                                    a.selected = True
+                                else:
+                                    a.residue.atoms.selected = True
+            elif b == openvr.k_EButton_ApplicationMenu:
+                pass
+            elif b == openvr.k_EButton_Grip:
+                self._move_selected_atoms[d] = pressed
+
+    def touchpad_position(self, device_id):
+        vrs = self.vr_system
+        from ctypes import sizeof
+        # TODO: I think pyopenvr eliminated the size arg in Feb 2017.
+        import openvr
+        size = sizeof(openvr.VRControllerState_t)
+        success, cs = vrs.getControllerState(device_id, size)
+        if success:
+            a = cs.rAxis[0]
+            return (a.x, a.y)
+        return None
 
     def process_controller_motion(self):
 
@@ -279,7 +339,8 @@ class SteamVRCamera(Camera):
         # Rotation and scaling is about controller position -- has natural feel,
         # like you grab the models where your hand is located.
         # Another idea is to instead pretend controller is at center of models.
-        cm = self.controller_motions()
+        acm = self.controller_motions()
+        cm = [acm[d] for d,h in self._trigger_held.items() if h]
         if len(cm) == 1:
             # One controller has trigger pressed, move scene.
             previous_pose, pose = cm[0]
@@ -297,18 +358,41 @@ class SteamVRCamera(Camera):
                 s = dp / d
                 scale = translation(center) * scale(s) * translation(-center)
                 self.room_to_scene = self.room_to_scene * scale
-                
+
+        # Move selected atoms
+        mam = [acm[d] for d,m in self._move_selected_atoms.items() if m]
+        if len(mam) == 1:
+            previous_pose, pose = mam[0]
+            move = pose * previous_pose.inverse()  # Room to room coords
+            rts = self.room_to_scene
+            smove = rts * move * rts.inverse()	# Scene to scene coords.
+            from chimerax.core.atomic import selected_atoms
+            atoms = selected_atoms(self._session)
+            atoms.scene_coords = smove * atoms.scene_coords
+
     def controller_motions(self):
         '''Return list of (pose, previous_pose) for controllers with trigger pressed.'''
-        cm = []
+        cm = {}
         cp = self._controller_poses
-        for d, previous_pose in tuple(cp.items()):
+        for d in self._controller_ids:
             # Pose maps controller to room coords.
             pose = hmd34_to_position(self._poses[d].mDeviceToAbsoluteTracking)
-            if previous_pose:
-                cm.append((previous_pose, pose))
+            previous_pose = cp.get(d, None)
             cp[d] = pose
+            if previous_pose:
+                cm[d] = (previous_pose, pose)
         return cm
+
+    def controller_poses(self):
+        poses = {d:hmd34_to_position(self._poses[d].mDeviceToAbsoluteTracking)
+                 for d in self._controller_ids}
+        return poses
+
+    def move_controller_models(self):
+        hm = self.hand_controller_models()
+        cp = self.controller_poses()
+        for d in self._controller_ids:
+                hm[d].update_position(cp[d], self.room_to_scene)
         
     def view(self, camera_position, view_num):
         '''
@@ -372,10 +456,10 @@ class SteamVRCamera(Camera):
         if self._close:
             self._delayed_close()
 
-        if self._mirror_display:
+        if self.mirror_display:
             # Render right eye to ChimeraX window.
             from chimerax.core.graphics.drawing import draw_overlays
-            draw_overlays([self._texture_drawing], render)
+            draw_overlays([self._mirror_drawing()], render)
 
     def _texture_framebuffer(self):
 
@@ -393,17 +477,93 @@ class SteamVRCamera(Camera):
             ovrt.handle = c_void_p(int(t.id))
             ovrt.eType = openvr.API_OpenGL
             ovrt.eColorSpace = openvr.ColorSpace_Gamma
-            if self._mirror_display:
-                # Drawing object for rendering to ChimeraX window
-                from chimerax.core.graphics.drawing import _texture_drawing
-                self._texture_drawing = d = _texture_drawing(t)
-                d.opaque_texture = True
-
         return fb
 
-    def do_swap_buffers(self):
-        return self._mirror_display
+    def _mirror_drawing(self):
+        '''Only used for mirror headset view to ChimeraX graphics window.'''
+        td = self._texture_drawing
+        if td is None:
+            # Drawing object for rendering to ChimeraX window
+            from chimerax.core.graphics.drawing import _texture_drawing
+            t = self._framebuffer.color_texture
+            self._texture_drawing = td = _texture_drawing(t)
+            td.opaque_texture = True
+        return td
 
+    def do_swap_buffers(self):
+        return self.mirror_display
+
+    def hand_controller_models(self):
+        hm = self._controller_models
+        if len(hm) == 0:
+            ses = self._session
+            cc = self._controller_colors
+            hmlist = []
+            for i, d in enumerate(self._controller_ids):
+                hm[d] = HandControllerModel('Hand %s' % (i+1), ses, cc[i%len(cc)])
+                hmlist.append(hm[d])
+            ses.models.add(hmlist)
+        return hm
+
+
+from chimerax.core.models import Model
+class HandControllerModel(Model):
+
+    def __init__(self, name, session, rgba8, size = 0.20, aspect = 0.2):
+        Model.__init__(self, name, session)
+        from chimerax.core.surface.shapes import cone_geometry
+        va, na, ta = cone_geometry(nc = 50)
+        va[:,:2] *= aspect
+        va[:,2] += 0.5		# Move tip to 0,0,0 for picking
+        va *= size
+        self.geometry = va, ta
+        self.normals = na
+        from numpy import array, uint8
+        self.color = array(rgba8, uint8)
+
+    def update_position(self, room_place, room_to_scene):
+        '''Move hand controller to new position.
+        Keep size constant in physical room units.'''
+        self.position = room_to_scene * room_place
+
+    def tip_position(self):
+        return self.scene_position.origin()
+    
+    def select_atom(self, range = 5.0):
+        a = self.closest_atom(range)
+        self.session.selection.clear()
+        if a is not None:
+            a.selected = True
+        return a
+
+    def closest_atom(self, range = 5.0):
+        atoms = self.displayed_atoms()
+        if len(atoms) == 0:
+            return None
+        xyz = atoms.scene_coords
+        tp = self.tip_position()
+        d = xyz - tp
+        d2 = (d*d).sum(axis = 1)
+        i = d2.argmin()
+        self.session.selection.clear()
+        #print ('closest atom range', d2[i], i, atoms[i], tp, xyz[i], len(atoms))
+        if d2[i] > range*range:
+            return None
+        a = atoms[i]
+        return a
+        
+    def displayed_atoms(self):
+        from chimerax.core.atomic import Structure, concatenate, Atoms
+        mlist = self.session.models.list(type = Structure)
+        matoms = []
+        for m in mlist:
+            if m.display and m.parents_displayed:
+                ma = m.atoms
+                matoms.append(ma.filter(ma.displays | (ma.hides != 0)))
+        atoms = concatenate(matoms, Atoms)
+        return atoms
+    
+    
 def hmd44_to_opengl44(hm44):
     from numpy import array, float32
     m = hm44.m
