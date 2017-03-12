@@ -275,6 +275,12 @@ CIFFile::register_category(const string& category, ParseCategory callback,
 #undef dependencies
 #endif
 
+void
+CIFFile::set_PDBx_fixed_width_columns(const std::string& category)
+{
+	use_fixed_width_columns.insert(category);
+}
+
 #ifdef _WIN32
 void
 throw_windows_error(DWORD err_num, const char* where)
@@ -512,7 +518,7 @@ CIFFile::internal_parse(bool one_table)
 				}
 			}
 			if (save_values) {
-				current_tags.push_back(cv.substr(
+				current_colnames.push_back(cv.substr(
 					current_category.size() + 1));
 			}
 			next_token();
@@ -525,20 +531,21 @@ CIFFile::internal_parse(bool one_table)
 				|| (!DDL_v2 && cv[clen] != '_'))
 					throw error("loop_ may only be for one category");
 				if (save_values)
-					current_tags.push_back(
+					current_colnames.push_back(
 							cv.substr(clen + 1));
 				next_token();
 			}
 			if (save_values) {
 				seen.insert(current_category);
+				fixed = use_fixed_width_columns.count(current_category);
 				first_row = true;
 				in_loop = true;
 				ParseCategory& pf = (cii != categories.end()) ? cii->second.func : unregistered;
 				pf();
 				first_row = false;
-				fixed_columns = false;
+				fixed = false;
 				current_category.clear();
-				current_tags.clear();
+				current_colnames.clear();
 				values.clear();
 				save_values = false;
 			}
@@ -618,14 +625,15 @@ CIFFile::internal_parse(bool one_table)
 					if (save_values) {
 						// flush current category
 						seen.insert(current_category);
+						fixed = use_fixed_width_columns.count(current_category);
 						first_row = true;
 						in_loop = false;
 						ParseCategory& pf = (cii != categories.end()) ? cii->second.func : unregistered;
 						pf();
 						first_row = false;
-						fixed_columns = false;
+						fixed = false;
 						//current_category.clear();
-						current_tags.clear();
+						current_colnames.clear();
 						values.clear();
 						save_values = false;
 					}
@@ -650,11 +658,11 @@ CIFFile::internal_parse(bool one_table)
 						}
 					}
 					if (save_values) {
-						current_tags.push_back(cv.substr(
+						current_colnames.push_back(cv.substr(
 							current_category.size() + 1));
 					}
 				} else if (save_values)
-					current_tags.push_back(cv.substr(
+					current_colnames.push_back(cv.substr(
 						current_category.size() + 1));
 				next_token();
 				if (current_token != T_VALUE)
@@ -673,14 +681,15 @@ CIFFile::internal_parse(bool one_table)
 			if (save_values) {
 				// flush current category
 				seen.insert(current_category);
+				fixed = use_fixed_width_columns.count(current_category);
 				first_row = true;
 				in_loop = false;
 				ParseCategory& pf = (cii != categories.end()) ? cii->second.func : unregistered;
 				pf();
 				first_row = false;
-				fixed_columns = false;
+				fixed = false;
 				current_category.clear();
-				current_tags.clear();
+				current_colnames.clear();
 				values.clear();
 				save_values = false;
 			}
@@ -710,10 +719,11 @@ CIFFile::internal_reset_parse()
 	version_.clear();
 	parsing = false;
 	stylized = false;
-	fixed_columns = false;
+	fixed = false;
+	use_fixed_width_columns.clear();
 	current_data_block.clear();
 	current_category.clear();
-	current_tags.clear();
+	current_colnames.clear();
 	values.clear();
 	in_loop = false;
 	first_row = false;
@@ -1041,7 +1051,7 @@ CIFFile::find_column_offsets()
 		--start;	// must have had a leading quote
 	if (is_not_eol(*(start - 1)))
 		return offsets;	// isn't at start of line, so not stylized
-	int size = current_tags.size();
+	int size = current_colnames.size();
 	offsets.reserve(size + 1);	// save one extra for end of line
 	offsets.push_back(0);	// first column starts at beginning of line
 	const char* save_pos = pos;
@@ -1078,24 +1088,24 @@ CIFFile::find_column_offsets()
 }
 
 int
-CIFFile::get_column(const char* tag, bool required)
+CIFFile::get_column(const char* name, bool required)
 {
-	if (current_tags.empty())
+	if (current_colnames.empty())
 		throw std::runtime_error("must be parsing a table before getting a column position");
-	string tagname(tag);
+	string colname(name);
 #ifdef CASE_INSENSITIVE
 	if (!stylized) {
-		for (auto& c: tagname)
+		for (auto& c: colname)
 			c = tolower(c);
 	}
 #endif
-	auto i = std::find(current_tags.begin(), current_tags.end(), tagname);
-	if (i != current_tags.end())
-		return i - current_tags.begin();
+	auto i = std::find(current_colnames.begin(), current_colnames.end(), colname);
+	if (i != current_colnames.end())
+		return i - current_colnames.begin();
 	if (!required)
 		return -1;
 	std::ostringstream err_msg;
-	err_msg << "Missing tag " << tag /*<< " in category " << current_category*/;
+	err_msg << "Missing column " << name /*<< " in category " << current_category*/;
 	throw error(err_msg.str());
 }
 
@@ -1105,7 +1115,7 @@ CIFFile::parse_row(ParseValues& pv)
 	if (current_category.empty())
 		// not category or exhausted values
 		throw error("no values available");
-	if (current_tags.empty())
+	if (current_colnames.empty())
 		return false;
 	if (first_row) {
 		first_row = false;
@@ -1114,7 +1124,7 @@ CIFFile::parse_row(ParseValues& pv)
 			[](const ParseColumn& a, const ParseColumn& b) -> bool {
 				return a.column < b.column;
 			});
-		if (fixed_columns && stylized && values.empty())
+		if (fixed && stylized && values.empty())
 			columns = find_column_offsets();
 	}
 	auto pvi = pv.begin(), pve = pv.end();
@@ -1122,7 +1132,7 @@ CIFFile::parse_row(ParseValues& pv)
 		++pvi;
 	if (!values.empty()) {
 		// values were given per-tag
-		// assert(current_tags.size() == values.size())
+		// assert(current_colnames.size() == values.size())
 		for (; pvi != pve; ++pvi) {
 			const char* buf = values[pvi->column].c_str();
 			current_value_start = buf;
@@ -1132,12 +1142,12 @@ CIFFile::parse_row(ParseValues& pv)
 			} else
 				pvi->func1(current_value_start);
 		}
-		current_tags.clear();
+		current_colnames.clear();
 		values.clear();
 		return true;
 	}
 	if (current_token != T_VALUE) {
-		current_tags.clear();
+		current_colnames.clear();
 		return false;
 	}
 	if (pvi == pve) {
@@ -1165,7 +1175,7 @@ CIFFile::parse_row(ParseValues& pv)
 #endif
 			return true;
 		}
-		for (int i = 0, e = current_tags.size(); i < e; ++i) {
+		for (int i = 0, e = current_colnames.size(); i < e; ++i) {
 			if (current_token != T_VALUE)
 				throw error("not enough data values");
 			next_token();
@@ -1228,7 +1238,7 @@ CIFFile::parse_row(ParseValues& pv)
 #endif
 		return true;
 	}
-	for (int i = 0, e = current_tags.size(); i < e; ++i) {
+	for (int i = 0, e = current_colnames.size(); i < e; ++i) {
 		if (current_token != T_VALUE)
 			throw error("not enough data values");
 		if (i == pvi->column) {
@@ -1253,17 +1263,17 @@ CIFFile::parse_whole_category()
 	if (current_category.empty())
 		// not category or exhausted values
 		throw error("no values available");
-	if (current_tags.empty())
+	if (current_colnames.empty())
 		return values;
 
 	if (!values.empty()) {
 		// values were given per-tag
-		// assert(current_tags.size() == values.size())
-		current_tags.clear();
+		// assert(current_colnames.size() == values.size())
+		current_colnames.clear();
 		return values;
 	}
 
-	//values.reserve(current_tags.size());
+	//values.reserve(current_colnames.size());
 	values.reserve(4000000);
 	while (current_token == T_VALUE) {
 		//values.push_back(current_value());
@@ -1271,9 +1281,9 @@ CIFFile::parse_whole_category()
 				  current_value_end - current_value_start);
 		next_token();
 	}
-	// assert(data.size() % current_tags.size() == 0);
+	// assert(data.size() % current_colnames.size() == 0);
 
-	current_tags.clear();
+	current_colnames.clear();
 	return values;
 }
 
@@ -1283,19 +1293,19 @@ CIFFile::parse_whole_category(ParseValue2 func)
 	if (current_category.empty())
 		// not category or exhausted values
 		throw error("no values available");
-	if (current_tags.empty())
+	if (current_colnames.empty())
 		return;
 
 
 	if (!values.empty()) {
 		// values were given per-tag
-		// assert(current_tags.size() == values.size())
+		// assert(current_colnames.size() == values.size())
 		for (auto& s: values) {
 			const char* start = &s[0];
 			const char* end = start + s.size();
 			func(start, end);
 		}
-		current_tags.clear();
+		current_colnames.clear();
 		return;
 	}
 
@@ -1303,7 +1313,7 @@ CIFFile::parse_whole_category(ParseValue2 func)
 		func(current_value_start, current_value_end);
 		next_token();
 	}
-	current_tags.clear();
+	current_colnames.clear();
 }
 
 void

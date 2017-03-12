@@ -2269,7 +2269,7 @@ class Rendering_Options:
       'l4', 'l8', 'l12', 'l16')
     self.color_mode = 'auto8'         # solid rendering pixel formats
                                       #  (auto|opaque|rgba|rgb|la|l)(4|8|12|16)
-    self.projection_modes = ('auto', '2d-xyz', '2d-x', '2d-y', '2d-z', '3d')
+    self.projection_modes = ('auto', '2d-xyz', '2d-x', '2d-y', '2d-z')
     self.projection_mode = 'auto'           # auto, 2d-xyz, 2d-x, 2d-y, 2d-z, 3d
     self.bt_correction = False              # brightness and transparency
     self.minimal_texture_memory = False
