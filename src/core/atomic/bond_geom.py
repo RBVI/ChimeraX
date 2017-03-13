@@ -235,7 +235,7 @@ def angle_pos(atom_pos, bond_pos, bond_length, degrees, coplanar=None):
             up = cpos - atom_pos
             if xforms:
                 up.negate()
-            from ..geom.place import look_at, rotation
+            from ..geometry import look_at, rotation
             # lookAt puts ref point opposite that of zAlign, so 
             # also rotate 180 degrees around y axis
             xform = rotation((0.0,1.0,0.0), 180.0) * look_at(atom_pos, bond_pos, up)

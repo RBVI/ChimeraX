@@ -1,9 +1,10 @@
 # vim: set expandtab ts=4 sw=4:
 
-"""
 verbose = False
 
-from acceptorGeom import accSynAnti, accPhiPsi, accThetaTau, accGeneric
+#TODO
+from acceptor_geom import acc_syn_anti, acc_phi_psi, acc_theta_tau, acc_generic
+"""
 from donorGeom import donThetaTau, donUpsilonTau, donGeneric, donWater
 from commonGeom import ConnectivityError, AtomTypeError
 from math import pi
@@ -20,17 +21,27 @@ import copy
 """
 
 from chimerax.chem_group import H, N, C, O, R
+from chimerax.chem_group.chem_group import find_ring_planar_NHR2, find_nonring_ether, \
+    find_nonring_NR2, find_6ring_planar_NR2, find_5ring_planar_NR2, find_5ring_OR2
+_ring5_NH = lambda structs: find_ring_planar_NHR2(structs, False, 5)
+_ring6_aro_NH = lambda structs: find_ring_planar_NHR2(structs, False, 6, aromatic_only=True)
+_ring6_sym_N = lambda structs: find_6ring_planar_NR2(structs, False, symmetric=True)
+_ring5_sym_N = lambda structs: find_5ring_planar_NR2(structs, False, symmetric=True)
+_ring6_asym_N = lambda structs: find_6ring_planar_NR2(structs, False, symmetric=False)
+_ring5_asym_N = lambda structs: find_5ring_planar_NR2(structs, False, symmetric=False)
+_ring5_O = lambda structs: find_5ring_OR2(structs, False)
 tet = {'geometry':tetrahedral}
 explicit_single_bond = ({'geometry':tetrahedral}, {'geometry':single})
-"""
-NonO3minusSB = ({'geometry':tetrahedral, 'notType': ['O3-']},
+non_O3_minus_sb = ({'geometry':tetrahedral, 'notType': ['O3-']},
                             {'geometry':single})
-NonSacPacHSB = ({'geometry':tetrahedral, 'notType': ['Sac', 'Pac']},
+non_Sac_Pac_H_sb = ({'geometry':tetrahedral, 'notType': ['Sac', 'Pac']},
                 {'geometry':single, 'notType': ['H', 'D']})
 
+"""
 # recommended distance and angle constraint relaxations for biomolecules
 recDistSlop = 0.4
 recAngleSlop = 20.0
+"""
 
 # layout of acceptor_params is:
 #     name or spec of acceptor group,
@@ -47,90 +58,92 @@ recAngleSlop = 20.0
 #             the group, and will be replaced by them.  None remains
 #             None.  '-1' means the other acceptor of the group.
 
-acceptorParams = [
+acceptor_params = [
     # phosphodiester-like (negative oxygens) [3+ O-]
     [[['Pac', ['O3-', 'O3-', 'O3-', explicit_single_bond]], [1,1,1,1,0]],
-        (1,), accSynAnti, ((2, 0), 3.03, 110, 145, 3.03, 110, 135)],
+        (1,), acc_syn_anti, ((2, 0), 3.03, 110, 145, 3.03, 110, 135)],
     # phosphodiester-like (negative oxygens) [2 O-]
-    [[['Pac', ['O3-', 'O3-', NonO3minusSB, NonO3minusSB]], [1,1,1,0,0]],
-        (1, 2), accSynAnti, ((-1, 0), 3.03, 110, 145, 3.03, 110, 135)],
+    [[['Pac', ['O3-', 'O3-', non_O3_minus_sb, non_O3_minus_sb]], [1,1,1,0,0]],
+        (1, 2), acc_syn_anti, ((-1, 0), 3.03, 110, 145, 3.03, 110, 135)],
     # carboxylate
-    [[['Cac', ['O2-', 'O2-', explicit_single_bond]], [1,1,1,0]], (1, 2), accSynAnti,
+    [[['Cac', ['O2-', 'O2-', explicit_single_bond]], [1,1,1,0]], (1, 2), acc_syn_anti,
         ((-1, 0), 3.17, 90, 145, 3.17, 110, 145)],
-    ["thiocarbonyl", (0,), accPhiPsi, ((1, None), 3.73, 90, 145)],
+    ["thiocarbonyl", (0,), acc_phi_psi, ((1, None), 3.73, 90, 145)],
     # carboxylic acid
     [[[C, [['O2', []], ['O3', [H]], explicit_single_bond]],[1,1,1,0,0]], (1,),
-        accSynAnti, ((2, 0), 3.17, 110, 130, 3.17, 110, 135)],
+        acc_syn_anti, ((2, 0), 3.17, 110, 130, 3.17, 110, 135)],
     # amide
-    [[['C2', ['O2', 'Npl',  explicit_single_bond]], [1,1,1,0]], (1,), accSynAnti,
+    [[['C2', ['O2', 'Npl',  explicit_single_bond]], [1,1,1,0]], (1,), acc_syn_anti,
         ((2, 0), 3.30, 110, 135, 3.30, 110, 130)],
     # ketone/aldehyde carbonyl
     [[['C2', ['O2', C, R]], [1,1,0,0]],
-        (1,), accPhiPsi, ((0, None), 3.30, 110, 130)],
+        (1,), acc_phi_psi, ((0, None), 3.30, 110, 130)],
     # ester carbonyl
     [[['C2', ['O2', ['O3', [tet]], C]], [1,1,0,0,0]],
-        (1,), accPhiPsi, ((0, None), 3.17, 110, 135)],
+        (1,), acc_phi_psi, ((0, None), 3.17, 110, 135)],
     # nitro group
-    [[['Ntr', ['O2-', 'O2-', explicit_single_bond]], [1,1,1,0]], (1, 2), accSynAnti,
+    [[['Ntr', ['O2-', 'O2-', explicit_single_bond]], [1,1,1,0]], (1, 2), acc_syn_anti,
         ((-1, 0), 3.42, 90, 145, 3.53, 110, 130)],
     # sulfone
-    [[['Son', ['O2', 'O2', explicit_single_bond, explicit_single_bond]], [1,1,1,0,0]], (1, 2), accSynAnti,
+    [[['Son', ['O2', 'O2', explicit_single_bond, explicit_single_bond]], [1,1,1,0,0]], (1, 2), acc_syn_anti,
         ((-1, 0), 3.30, 110, 130, 3.30, 120, 135)],
     # phosphones
     [[['Pac', ['O3', 'O3-', 'O3-', explicit_single_bond]], [1,1,0,0,0]],
-        (1,), accThetaTau, ((0,), 3.03, 103, -146, 145)],
+        (1,), acc_theta_tau, ((0,), 3.03, 103, -146, 145)],
     [[['O2', ['Pox']], [1,1]],
-        (0,), accThetaTau, ((1,), 3.03, 109, -180, 145)],
+        (0,), acc_theta_tau, ((1,), 3.03, 109, -180, 145)],
     # sulfoxide
     [[['O2', ['Sxd']], [1,1]],
-        (0,), accThetaTau, ((1,), 3.03, 100, -180, 145)],
+        (0,), acc_theta_tau, ((1,), 3.03, 100, -180, 145)],
     # non-protonated aliphatic primary amine
     [[['N3', [tet, H, H]], [1,1,0,0]],
-        (0,), accThetaTau, ((1,), 3.03, 103, -180, 155)],
+        (0,), acc_theta_tau, ((1,), 3.03, 103, -180, 155)],
     # non-phenol hydroxyl
-    [[['O3', [NonSacPacHSB, H]], [1,1,1]],
-        (0,), accThetaTau, ((1,), 3.03, 100, -161, 145)],
+    [[['O3', [non_Sac_Pac_H_sb, H]], [1,1,1]],
+        (0,), acc_theta_tau, ((1,), 3.03, 100, -161, 145)],
     [[['Sac', ['O3-', 'O3-', ['O3', [{'default': True, 'notType': ['Pac']}]], explicit_single_bond]], [1,1,1,1,0,0]],
-        (3,), accThetaTau, ((0,), 3.17, 103, -180, 150)],
+        (3,), acc_theta_tau, ((0,), 3.17, 103, -180, 150)],
     # non-protonated aliphatic tertiary amine
     [[['N3', [tet, tet, tet]], [1,1,1,1]],
-        (0,), accThetaTau, (None, 3.17, 153, -180, 145)],
+        (0,), acc_theta_tau, (None, 3.17, 153, -180, 145)],
     # nitrile
     [[['N1', ['C1']], [1,1]],
-        (0,), accThetaTau, ((1,), 3.30, 153, -180, 150)],
+        (0,), acc_theta_tau, ((1,), 3.30, 153, -180, 150)],
     # non-protonated aliphatic secondary amine
     [[['N3', [tet, tet, H]], [1,1,1,0]],
-        (0,), accThetaTau, (None, 3.30, 153, -180, 150)],
+        (0,), acc_theta_tau, (None, 3.30, 153, -180, 150)],
     # phenol
     [[['O3', ['Car', H]], [1,1,0]],
-        (0,), accThetaTau, ((1,), 3.17, 100, -153, 150)],
+        (0,), acc_theta_tau, ((1,), 3.17, 100, -153, 150)],
     # anilene
     [[[('Npl', 'N3'), ['Car', H, H]], [1,1,1,1]],
-        (0,), accThetaTau, ((1,), 3.42, 90, -137, 140)],
+        (0,), acc_theta_tau, ((1,), 3.42, 90, -137, 140)],
     # waddah
-    [[[O, [H, H]], [1,0,0]], (0,), accPhiPsi,
+    [[[O, [H, H]], [1,0,0]], (0,), acc_phi_psi,
                 ((None, None), 3.03, 120, 145)],
     # non-ring ether
-    [[acycEther, None], (0,), accPhiPsi, ((1, 2), 3.42, 140, 140)],
+    [[lambda structs: find_nonring_ether(structs False), None],
+        (0,), acc_phi_psi, ((1, 2), 3.42, 140, 140)],
     # secondary amine not in a ring system
-    [[nonringN2, None], (0,), accPhiPsi, ((1, 2), 3.42, 140, 140)],
+    [[lambda structs: find_nonring_NR2(structs, False), None],
+        (0,), acc_phi_psi, ((1, 2), 3.42, 140, 140)],
 
     # check ring systems last, since conflicts of ring systems with
     # non-ring systems are not considered to be a problem (non-ring
     # "wins") and the code that checks the conflict assumes this order
 
     # nitrogen in symmetric 6-member ring
-    [[symHet6N, None], (0,), accPhiPsi, ((1, 2), 3.17, 150, 145)],
+    [[_ring6_sym_N, None], (0,), acc_phi_psi, ((1, 2), 3.17, 150, 145)],
     # nitrogen in symmetric 5-member ring
-    [[symHet5N, None], (0,), accPhiPsi, ((1, 2), 3.30, 140, 155)],
+    [[_ring5_sym_N, None], (0,), acc_phi_psi, ((1, 2), 3.30, 140, 155)],
     # nitrogen in asymmetric 6-member ring
-    [[asymHet6N, None], (0,), accPhiPsi, ((1, 2), 3.30, 140, 140)],
+    [[_ring6_asym_N, None], (0,), acc_phi_psi, ((1, 2), 3.30, 140, 140)],
     # nitrogen in asymmetric 5-member ring
-    [[asymHet5N, None], (0,), accPhiPsi, ((1, 2), 3.30, 150, 135)],
+    [[_ring5_asym_N, None], (0,), acc_phi_psi, ((1, 2), 3.30, 150, 135)],
     # oxygen in 5-member ring
-    [[het5O, None], (0,), accPhiPsi, ((1, 2), 3.42, 150, 135)]
+    [[_ring5_O, None], (0,), acc_phi_psi, ((1, 2), 3.42, 150, 135)]
 ]
-processedAcceptorParams = {}
+processed_acceptor_params = {}
 
 # layout of donor_params somewhat similar to acceptor_params:
 #    name or spec of donor group,
@@ -145,9 +158,6 @@ processedAcceptorParams = {}
 #        integers are assumed to be angles in degrees, and will be
 #            converted to radians
 
-_het5NH = lambda mols: hetNH(mols, 5)
-_hetAro6NH = lambda mols: hetNH(mols, 6, aromaticOnly=1)
-"""
 import sys
 water = sys.intern("water")
 theta_tau = sys.intern('theta_tau')
@@ -250,12 +260,11 @@ donor_params = [
     # "wins") and the code that checks the conflict assumes this order
 
     # nitrogen in 5-member ring
-    #TODO
-    [[_het5NH, None],
+    [[_ring5_NH, None],
         0, theta_tau, 4,
         (2.09, 146, 2.09, 141, 140, 2.48, 141, 145)],
     # nitrogen in aromatic 6-member ring
-    [[_hetAro6NH, None],
+    [[_ring6_aro_NH, None],
         0, theta_tau, 2,
         (2.23, 136, 2.23, 141, 150, 2.48, 141, 145)],
     # need below to cause check for generic donors
@@ -271,8 +280,8 @@ flush_cache()
 """
 
 _problem = None
-_ringFuncs = [asymHet5N, asymHet6N, het5O, hetNH,
-                symHet5N, symHet6N, _het5NH, _hetAro6NH]
+_ringFuncs = [_ring5_asym_N, _ring6_asym_N, _ring5_O, hetNH,
+                _ring5_sym_N, _ring6_sym_N, _ring5_NH, _ring6_aro_NH]
 """
 
 def find_hbonds(models, intermodel=True, intramodel=True, donors=None, acceptors=None,
@@ -324,9 +333,10 @@ def find_hbonds(models, intermodel=True, intramodel=True, donors=None, acceptors
             _a_cache = WeakKeyDictionary()
     else:
         flush_cache()
-    global donor_params, acceptorParams
-    global processedDonorParams, processedAcceptorParams
-    global _computeCache
+    global donor_params, acceptor_params
+    global processedDonorParams, processed_acceptor_params
+    global _compute_cache
+    #TODO
     global verbose
     global _problem
     _problem = None
@@ -335,79 +345,79 @@ def find_hbonds(models, intermodel=True, intramodel=True, donors=None, acceptors
 
     # Used as necessary to cache expensive calculations (by other
     # functions also)
-    _computeCache = {}
+    _compute_cache = {}
 
     processKey = (dist_slop, angle_slop)
-    if processKey not in processedAcceptorParams:
+    if processKey not in processed_acceptor_params:
         # copy.deepcopy() refuses to copy functions (even as
         # references), so do this instead...
         aParams = []
-        for p in acceptorParams:
+        for p in acceptor_params:
             aParams.append(copy.copy(p))
 
         for i in range(len(aParams)):
             aParams[i][3] = _processArgTuple(aParams[i][3],
                             dist_slop, angle_slop)
-        processedAcceptorParams[processKey] = aParams
+        processed_acceptor_params[processKey] = aParams
     else:
-        aParams = processedAcceptorParams[processKey]
+        aParams = processed_acceptor_params[processKey]
 
     # compute some info for generic acceptors/donors
     genericAccInfo = {}
     # oxygens...
     genericOAccArgs = _processArgTuple([3.53, 90], dist_slop,
                             angle_slop)
-    genericAccInfo['miscO'] = (accGeneric, genericOAccArgs)
+    genericAccInfo['miscO'] = (acc_generic, genericOAccArgs)
     # dictionary based on bonded atom's geometry...
     genericAccInfo['O2-'] = {
-        single: (accGeneric, genericOAccArgs),
-        linear: (accGeneric, genericOAccArgs),
-        planar: (accPhiPsi, _processArgTuple([3.53, 90, 130],
+        single: (acc_generic, genericOAccArgs),
+        linear: (acc_generic, genericOAccArgs),
+        planar: (acc_phi_psi, _processArgTuple([3.53, 90, 130],
                         dist_slop, angle_slop)),
-        tetrahedral: (accGeneric, genericOAccArgs)
+        tetrahedral: (acc_generic, genericOAccArgs)
     }
     genericAccInfo['O3-'] = genericAccInfo['O2-']
     genericAccInfo['O2'] = {
-        single: (accGeneric, genericOAccArgs),
-        linear: (accGeneric, genericOAccArgs),
-        planar: (accPhiPsi, _processArgTuple([3.30, 110, 130],
+        single: (acc_generic, genericOAccArgs),
+        linear: (acc_generic, genericOAccArgs),
+        planar: (acc_phi_psi, _processArgTuple([3.30, 110, 130],
                         dist_slop, angle_slop)),
-        tetrahedral: (accThetaTau, _processArgTuple(
+        tetrahedral: (acc_theta_tau, _processArgTuple(
             [3.03, 100, -180, 145], dist_slop, angle_slop))
     }
     # list based on number of known bonded atoms...
     genericAccInfo['O3'] = [
-        (accGeneric, genericOAccArgs),
-        (accThetaTau, _processArgTuple([3.17, 100, -161, 145],
+        (acc_generic, genericOAccArgs),
+        (acc_theta_tau, _processArgTuple([3.17, 100, -161, 145],
                         dist_slop, angle_slop)),
-        (accPhiPsi, _processArgTuple([3.42, 120, 135],
+        (acc_phi_psi, _processArgTuple([3.42, 120, 135],
                         dist_slop, angle_slop))
     ]
     # nitrogens...
     genericNAccArgs = _processArgTuple([3.42, 90], dist_slop,
                             angle_slop)
-    genericAccInfo['miscN'] = (accGeneric, genericNAccArgs)
-    genericAccInfo['N2'] = (accPhiPsi, _processArgTuple([3.42, 140, 135],
+    genericAccInfo['miscN'] = (acc_generic, genericNAccArgs)
+    genericAccInfo['N2'] = (acc_phi_psi, _processArgTuple([3.42, 140, 135],
                         dist_slop, angle_slop))
     # tuple based on number of bonded heavy atoms...
     genericN3MultHeavyAccArgs = _processArgTuple([3.30, 153, -180, 145],
                         dist_slop, angle_slop)
     genericAccInfo['N3'] = (
-        (accGeneric, genericNAccArgs),
+        (acc_generic, genericNAccArgs),
         # only one example to draw from; weaken by .1A, 5 degrees
-        (accThetaTau, _processArgTuple([3.13, 98, -180, 150],
+        (acc_theta_tau, _processArgTuple([3.13, 98, -180, 150],
                         dist_slop, angle_slop)),
-        (accThetaTau, genericN3MultHeavyAccArgs),
-        (accThetaTau, genericN3MultHeavyAccArgs)
+        (acc_theta_tau, genericN3MultHeavyAccArgs),
+        (acc_theta_tau, genericN3MultHeavyAccArgs)
     )
     # one example only; weaken by .1A, 5 degrees
-    genericAccInfo['N1'] = (accThetaTau, _processArgTuple(
+    genericAccInfo['N1'] = (acc_theta_tau, _processArgTuple(
                 [3.40, 136, -180, 145], dist_slop, angle_slop))
     # sulfurs...
     # one example only; weaken by .1A, 5 degrees
-    genericAccInfo['S2'] = (accPhiPsi, _processArgTuple([3.83, 85, 140],
+    genericAccInfo['S2'] = (acc_phi_psi, _processArgTuple([3.83, 85, 140],
                         dist_slop, angle_slop))
-    genericAccInfo['Sar'] = genericAccInfo['S3-'] = (accGeneric,
+    genericAccInfo['Sar'] = genericAccInfo['S3-'] = (acc_generic,
             _processArgTuple([3.83, 85], dist_slop, angle_slop))
     # now the donors...
     
@@ -782,10 +792,10 @@ def _findAcceptors(model, aParams, limited_acceptors, genericAccInfo):
                         atom.primaryNeighbors()))]
             else:
                 accFunc, args = accInfo
-            if accFunc == accPhiPsi:
+            if accFunc == acc_phi_psi:
                 bonded = atom.primaryNeighbors()
                 args = bonded + [None] * (2-len(bonded)) + args
-            elif accFunc == accThetaTau:
+            elif accFunc == acc_theta_tau:
                 bonded = atom.primaryNeighbors()
                 if len(bonded) > 1:
                     args = [None] + args

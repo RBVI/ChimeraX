@@ -1056,6 +1056,21 @@ initiate_find_ring_planar_NHR2(AtomicStructure::Atoms::const_iterator start,
 			auto& back = groups->back();
 			back.swap(nhr2);
 			groups_mutex->unlock();
+
+			// if ring has multiple nitrogens and implicit hydrogens,
+			// then even the N2 nitrogens may be donors...
+			for (auto ra: a->rings()[0]->atoms()) {
+				if (ra->idatm_type() == "N2") {
+					// add group with locking
+					groups_mutex->lock();
+					groups->emplace_back();
+					auto& back = groups->back();
+					groups_mutex->unlock();
+					back.push_back(ra);
+					back.push_back(ra->neighbors()[0]);
+					back.push_back(ra->neighbors()[1]);
+				}
+			}
 		}
 	}
 }
