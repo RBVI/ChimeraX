@@ -1,0 +1,105 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: device, vr</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: device, vr</h3>
+
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>device</b> &nbsp;<i>device-type</i> [&nbsp;<i>status</i>&nbsp;] 
+&nbsp;<i>device-options</i>
+</h3>
+<p>
+The <b>device</b> command sets modes for certain external devices, 
+where the <i>device-type</i> can be:
+</p>
+<ul>
+<li><a href="#snav"><b>snav</b></a> 
+- SpaceNavigator<sup>&reg;</sup> 3D mouse
+<li><a href="#vr"><b>vr</b></a>
+- HTC Vive, Oculus Rift virtual reality systems
+</ul>
+<p>
+<a name="status"></a>
+The <i>status</i> of a mode can be 
+<b>on</b> (synonyms <b>true</b>, <b>True</b>, <b>1</b>)
+or <b>off</b> (synonyms <b>false</b>, <b>False</b>, <b>0</b>).
+Device-specific options are described below.
+</p>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="snav"><b>device snav</b></a>
+[&nbsp;<a href="#status"><i>status</i></a>&nbsp;]
+[&nbsp;<b>fly</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+<blockquote>
+<p>
+The command <b>device snav</b> enables manipulation 
+with a SpaceNavigator<sup>&reg;</sup> 3D mouse from
+<a href="http://www.3dconnexion.com/" target="_blank">3Dconnexion</a>.
+The <b>fly</b> option indicates whether the force applied to the device 
+should be interpreted as acting on the camera (<b>true</b>), where
+pushing forward zooms in because it moves the camera viewpoint toward the scene,
+or as acting on the models in the scene (<b>false</b>, default), where
+pushing forward zooms out because it pushes the models away.
+In either case, however, it is the camera that actually moves.
+See also: <a href="mousemode.html"><b>mousemode</b></a>
+</p>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="vr"><b>vr</b></a> [&nbsp;<a href="#status"><i>status</i></a>&nbsp;]
+[&nbsp;<b>roomPosition</b>&nbsp;&nbsp;<i>matrix</i>&nbsp;|&nbsp;<b>report</b>&nbsp;]
+<blockquote>
+<p>
+The <b>vr</b> command (same as <b>device vr</b>)
+enables a virtual reality mode for HTC Vive and Oculus Rift systems.
+The mode uses <a href="http://store.steampowered.com/about/"
+target="_blank">SteamVR</a>, which must be installed separately by the user
+and started before the mode is enabled.
+In addition, Oculus Rift users should start the Oculus runtime 
+before starting SteamVR. For details and related issues, 
+see <a href="../vr.html">ChimeraX virtual reality</a>.
+See also: <a href="camera.html"><b>camera</b></a>,
+<a href="view.html"><b>view</b></a>,
+<a href="../movies.html">making movies</a>
+</p><p>
+When the mode is enabled, the <b>roomPosition</b> option can be used to
+specify the transformation between room coordinates (in meters, 
+with origin at room center) and scene coordinates (typically in &Aring;)
+or to simply <b>report</b> the current transformation
+in the <a href="../tools/log.html"><b>Log</b></a>.
+The transformation <i>matrix</i> is given as
+12 numbers separated by commas only, corresponding to a 3x3 matrix 
+for rotation and scaling, with a translation vector in the fourth column.
+Ordering is row-by-row, such that the translation vector is given as 
+the fourth, eighth, and twelfth numbers. Example:
+</p>
+<blockquote>
+<b>vr &nbsp;room &nbsp;20,0,0,0,0,20,0,0,0,0,20,0</b>
+</blockquote>
+</blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+February 2017</address>
+</body></html>

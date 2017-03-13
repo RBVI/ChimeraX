@@ -266,7 +266,7 @@ def volume(session,
         vlist = volumes
 
     # Special defaults
-    if not box_faces is None:
+    if box_faces:
         defaults = (('style', 'solid'), ('color_mode', 'opaque8'),
                     ('show_outline_box', True), ('expand_single_plane', True),
                     ('orthoplanes', 'off'))

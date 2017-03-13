@@ -52,7 +52,6 @@ and their code location is described with the function descriptions.
 | `mousemode`_ - Set mouse modes
 | `movie`_ * - Record videos
 | `move`_ - Move camera
-| `oculus`_ * - Enable Oculus Rift headset
 | `open`_ - Open data files
 | `pdbimages`_ - Render PDB assembly images
 | `perframe`_ - Run a command for every rendered frame
@@ -246,10 +245,6 @@ Functions defined in *chimerax.movie.moviecmd*
   :members:
   :member-order: bysource
   :show-inheritance:
-
-oculus
-======
-.. autofunction:: chimerax.oculus.oculuscmd.oculus
 
 open
 ====

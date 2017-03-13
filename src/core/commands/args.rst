@@ -43,4 +43,4 @@ Color arguments
 
 Model positions
 ===============
-.. autoclass:: chimerax.core.commands.position.ModelPlacesArg
+.. autoclass:: chimerax.core.commands.view.ModelPlacesArg
