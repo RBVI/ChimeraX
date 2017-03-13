@@ -451,9 +451,11 @@ class MultalignViewer(ToolInstance):
 
     @classmethod
     def restore_snapshot(cls, session, data):
-        ti = ToolInstance.restore_snapshot(cls, session, data['ToolInstance'])
-        ti._finalize_init(session, data['alignment'])
-        return ti
+        bundle_info = session.toolshed.find_bundle_for_class(cls)
+        inst = cls(session, bundle_info.tools[0].name)
+        ToolInstance.set_state_from_snapshot(inst, session, data['ToolInstance'])
+        inst._finalize_init(session, data['alignment'])
+        return inst
 
     def take_snapshot(self, session, flags):
         data = {

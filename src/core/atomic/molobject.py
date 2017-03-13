@@ -11,6 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from ..state import State
 from numpy import uint8, int32, uint32, float64, float32, byte, bool as npy_bool
 from .molc import string, cptr, pyobject, c_property, set_c_pointer, c_function, c_array_function, ctype_type_to_numpy, pointer
 import ctypes
@@ -65,7 +66,7 @@ def _pseudobond_group_map(pbgc_map):
 
 # -----------------------------------------------------------------------------
 #
-class Atom:
+class Atom(State):
     '''
     An atom includes physical and graphical properties such as an element name,
     coordinates in space, and color and radius for rendering.
@@ -269,6 +270,10 @@ class Atom:
         '''
         return self.structure.scene_position * self.coord
 
+    def reset_state(self, session):
+        """For when the session is closed"""
+        pass
+
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
                 'ses_id': self.structure.session_atom_to_id(self._c_pointer)}
@@ -280,7 +285,7 @@ class Atom:
 
 # -----------------------------------------------------------------------------
 #
-class Bond:
+class Bond(State):
     '''
     Bond connecting two atoms.
 
@@ -354,6 +359,10 @@ class Bond:
         c = f(self._c_pointer, atom._c_pointer)
         return object_map(c, Atom)
 
+    def reset_state(self, session):
+        f = c_function('pseudobond_global_manager_clear', args = (ctypes.c_void_p,))
+        f(self._c_pointer)
+
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
                 'ses_id': self.structure.session_bond_to_id(self._c_pointer)}
@@ -365,7 +374,7 @@ class Bond:
 
 # -----------------------------------------------------------------------------
 #
-class Pseudobond:
+class Pseudobond(State):
     '''
     A Pseudobond is a graphical line between atoms for example depicting a distance
     or a gap in an amino acid chain, often shown as a dotted or dashed line.
@@ -434,6 +443,10 @@ class Pseudobond:
 
     _ses_id = c_property('pseudobond_get_session_id', int32, read_only = True,
         doc="Used by session save/restore internals")
+
+    def reset_state(self, session):
+        f = c_function('pseudobond_global_manager_clear', args = (ctypes.c_void_p,))
+        f(self._c_pointer)
 
     def take_snapshot(self, session, flags):
         return [self.group, self._ses_id]
@@ -505,7 +518,6 @@ class PseudobondGroupData:
 
 # -----------------------------------------------------------------------------
 #
-from ..state import State
 class PseudobondManager(State):
     '''Per-session singleton pseudobond manager keeps track of all
     :class:`.PseudobondGroupData` objects.'''
@@ -603,7 +615,7 @@ class PseudobondManager(State):
 
 # -----------------------------------------------------------------------------
 #
-class Residue:
+class Residue(State):
     '''
     A group of atoms such as an amino acid or nucleic acid. Every atom in
     an :class:`.AtomicStructure` belongs to a residue, including solvent and ions.
@@ -756,6 +768,10 @@ class Residue:
         return (Residue.SS_HELIX if self.is_helix else 0) | (
             Residue.SS_STRAND if self.is_strand else 0)
 
+    def reset_state(self, session):
+        f = c_function('pseudobond_global_manager_clear', args = (ctypes.c_void_p,))
+        f(self._c_pointer)
+
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
                 'ses_id': self.structure.session_residue_to_id(self._c_pointer)}
@@ -768,7 +784,7 @@ class Residue:
 import atexit
 # -----------------------------------------------------------------------------
 #
-class Sequence:
+class Sequence(State):
     '''
     A polymeric sequence.  Offers string-like interface.
     '''
@@ -873,6 +889,10 @@ class Sequence:
         f = c_function('sequence_len', args = (ctypes.c_void_p,), ret = ctypes.c_size_t)
         return f(self._c_pointer)
 
+    def reset_state(self, session):
+        """For when the session is closed"""
+        pass
+
     @staticmethod
     def restore_snapshot(session, data):
         seq = Sequence()
@@ -891,11 +911,11 @@ class Sequence:
     # no __str__, since it's confusing whether it should be self.name or self.characters
 
     def set_state_from_snapshot(self, session, data):
-        seq.name = data['name']
+        self.name = data['name']
         self.characters = data['characters']
-        seq.attrs = data.get('attrs', {})
-        seq.markups = data.get('markups', {})
-        seq.numbering_start = data.get('numbering_start', None)
+        self.attrs = data.get('attrs', {})
+        self.markups = data.get('markups', {})
+        self.numbering_start = data.get('numbering_start', None)
 
     def ss_type(self, loc, loc_is_ungapped=False):
         try:
@@ -915,7 +935,7 @@ class Sequence:
 
     def take_snapshot(self, session, flags):
         data = { 'name': self.name, 'characters': self.characters, 'attrs': self.attrs,
-            'markups': self.markups }
+            'markups': self.markups, 'numbering_start': self.numbering_start }
         return data
 
     def ungapped(self):
@@ -1746,7 +1766,7 @@ class RibbonXSection:
 
 # SeqMatchMaps are returned by C++ functions, but unlike most other classes in this file,
 # they have no persistence in the C++ layer
-class SeqMatchMap:
+class SeqMatchMap(State):
     """Class to track the matching between an alignment sequence and a structure sequence
 
        The match map can be indexed by either an integer (ungapped) sequence position,
@@ -1790,9 +1810,13 @@ class SeqMatchMap:
     def res_to_pos(self):
         return self._res_to_pos
 
+    def reset_state(self, session):
+        """For when the session is closed"""
+        pass
+
     @staticmethod
     def restore_snapshot(session, data):
-        inst = MatchMap(session, data['align seq'], data['struct seq'])
+        inst = SeqMatchMap(session, data['align seq'], data['struct seq'])
         inst._pos_to_res = data['pos to res']
         inst._res_to_pos = data['res to pos']
         return inst

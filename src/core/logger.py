@@ -511,6 +511,7 @@ class CollatingLog(PlainTextLog):
             summarized = []
             prev_msg = sim_info = None
             for msg in msgs:
+                msg = msg.replace('\n', '<br>')
                 # Judge similarity to preceding messages and perhaps collapse...
                 if sim_info:
                     sim_reps, sim_type, sim_data = sim_info
