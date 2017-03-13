@@ -241,6 +241,9 @@ class Alignment(State):
            is done with the alignment (typically at viewer exit), it should call the
            detach_viewer method (which may destroy the alignment if the alignment's
            auto_destroy attr is True).
+
+           Also needs to be called by the viewer at session restore, since the alignment doesn't
+           keep the registered viewers (to avoid a circular dependency).
         """
         self.viewers.append(viewer)
 
@@ -401,7 +404,7 @@ class Alignment(State):
     def take_snapshot(self, session, flags):
         """For session/scene saving"""
         return { 'version': 1, 'seqs': self.seqs, 'name': self.name,
-            'file attrs': self.file_atts, 'file markups': self.file_markups,
+            'file attrs': self.file_attrs, 'file markups': self.file_markups,
             'associations': self.associations, 'match maps': [s.match_maps for s in self.seqs]}
 
 
