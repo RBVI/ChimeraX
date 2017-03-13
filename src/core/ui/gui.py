@@ -321,7 +321,13 @@ class MainWindow(QMainWindow, PlainTextLog):
         wh = cwh + delta_height
         self.resize(ww, wh)
 
+    def closeEvent(self, event):
+        # the MainWindow close button has been clicked
+        event.accept()
+        self.graphics_window.session.ui.quit()
+
     def close_request(self, tool_window, close_event):
+        # closing a tool window has been requested
         tool_instance = tool_window.tool_instance
         all_windows = self.tool_instance_to_windows[tool_instance]
         is_main_window = tool_window is all_windows[0]
