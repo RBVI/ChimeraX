@@ -36,7 +36,7 @@ class NameArg(Annotation):
         return token, token, rest
 
 
-def register_label_command():
+def register_label_command(logger):
 
     from chimerax.core.commands import CmdDesc, register, BoolArg, IntArg, StringArg, FloatArg, ColorArg
 
@@ -52,13 +52,13 @@ def register_label_command():
              ('visibility', BoolArg)]
     create_desc = CmdDesc(required = rargs, keyword = cargs,
                           synopsis = 'Create a 2d label')
-    register('2dlabels create', create_desc, label_create)
+    register('2dlabels create', create_desc, label_create, logger=logger)
     change_desc = CmdDesc(required = existing_arg, keyword = cargs,
                           synopsis = 'Change an existing 2d label')
-    register('2dlabels change', change_desc, label_change)
+    register('2dlabels change', change_desc, label_change, logger=logger)
     delete_desc = CmdDesc(required = existing_arg,
                           synopsis = 'Delete a 2d label')
-    register('2dlabels delete', delete_desc, label_delete)
+    register('2dlabels delete', delete_desc, label_delete, logger=logger)
 
 class Label:
     def __init__(self, session, name, text = '', color = None, size = 24, typeface = 'Arial',

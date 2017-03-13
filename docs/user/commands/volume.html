@@ -28,10 +28,6 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>volume</b> &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
 &nbsp;<a href="#options"><i>options</i></a></h3>
-<!--
-<h3><a href="usageconventions.html">Usage</a>:
-<br><b>volume</b> &nbsp;<i>global-options</i></h3>
--->
 <p>
 The <b>volume</b> command controls the display of density maps and
 other <a href="../tools/volumeviewer.html">volume data</a>, 
@@ -85,6 +81,10 @@ The <b>volume</b> command has many options, here grouped into categories:
 <img class="icon" border=1 src="../tools/shortcut-icons/mesh.png"></a>
 <a href="../tools/densitymaps.html" title="Density Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/mapimage.png"></a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/icecube.png"></a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/outlinebox.png"></a>
 <br><a href="#sampling">Sampling and Size Options</a>
 <a href="../tools/densitymaps.html" title="Density Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/step1.png"></a>
@@ -96,9 +96,9 @@ The <b>volume</b> command has many options, here grouped into categories:
 <br><a href="#dispsolid">Solid Display Options</a>
 <br><a href="#vop">Volume Operations (Map Editing)</a>
 <a href="../tools/densitymaps.html" title="Density Map Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/smooth.png"></a>
-<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/diffmap.png"></a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/smooth.png"></a>
 </b></blockquote>
 <p>
 Option keywords and Boolean (truth) values can be truncated, with
@@ -176,6 +176,9 @@ See also: <a href="#dispsurf">surface and mesh display options</a>,
   These correspond to horizontal and vertical placement, respectively, 
   on a histogram in the graphical interface.
   </ul>
+  Threshold levels can be adjusted interactively by dragging in the
+  <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a> histogram
+  or with a <a href="mousemode.html">mouse mode</a> in the graphics window.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
@@ -632,12 +635,8 @@ regardless of which are specified:
   <i>increment</i>, and <i>depth</i> parameters can be floating-point numbers.
   For example, an <i>increment</i> of 0.25 with step size 1 will show each
   plane for 4 frames.
-  See also: <a href="#tile"><b>volume tile</b></a>
-<!--
-  See the
-  <a href="http://www.cgl.ucsf.edu/chimera/data/movie-howto-mar2012/movie_examples.html#planes"
-  target="_blank">video mini-example</a>.
--->
+  See also: <a href="#tile"><b>volume tile</b></a>,
+  <a href="mousemode.html"><b>mousemode</b></a>
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
@@ -852,18 +851,12 @@ both depict isosurfaces.
   <li><b>2d-y</b>
   <li><b>2d-z</b>
   <li><b>2d-xyz</b>
-  <li><b>3d</b>
   </ul>
   Displaying just the planes perpendicular to one data axis 
   (2d-x, 2d-y, or 2d-z) uses less memory than automatically switching
   to those along the data axis most perpendicular to the screen at a given 
   time (2d-xyz).  The auto setting uses 2d-z for volumes with X or Y dimensions
   at least 4 times greater than Z, otherwise 2d-xyz.
-  The 3d option (3D texture mapping) uses planes perpendicular
-  to the current line of sight, which may not lie along any data axis.  
-  If this option is chosen but not supported by the computer hardware, 
-  an empty red outline box will be shown; if it is supported 
-  but the texture is too large, an empty yellow outline box will be shown.  
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>

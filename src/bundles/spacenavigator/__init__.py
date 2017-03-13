@@ -16,9 +16,9 @@ from chimerax.core.toolshed import BundleAPI
 class _MyAPI(BundleAPI):
 
     @staticmethod
-    def register_command(command_name):
+    def register_command(command_name, logger):
         # 'register_command' is lazily called when the command is referenced
         from . import snav
-        snav.register_snav_command()
+        snav.register_snav_command(logger)
 
 bundle_api = _MyAPI()

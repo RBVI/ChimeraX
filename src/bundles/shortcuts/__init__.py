@@ -25,16 +25,16 @@ class _MyAPI(BundleAPI):
         return spanel
 
     @staticmethod
-    def register_command(command_name):
+    def register_command(command_name, logger):
         # 'register_command' is lazily called when command is referenced
         from . import shortcuts
-        shortcuts.register_shortcut_command()
+        shortcuts.register_shortcut_command(logger)
 
     @staticmethod
-    def register_selector(selector_name):
+    def register_selector(selector_name, logger):
         # 'register_selector' is lazily called when command is referenced
         from . import shortcuts
-        shortcuts.register_selectors()
+        shortcuts.register_selectors(logger)
 
     @staticmethod
     def get_class(class_name):

@@ -3,10 +3,10 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 include ../pips/Makefile.pip
 
-VERSION = 1.11.1
+VERSION = 1.12.0
 
 ifdef WIN32
-WHEEL = numpy-$(VERSION)+mkl-cp35-cp35m-win_amd64.whl
+WHEEL = numpy-$(VERSION)+mkl-cp36-cp36m-win_amd64.whl
 endif
 
 all:

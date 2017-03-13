@@ -274,6 +274,7 @@ def discard_article(text):
         return text_seq[1]
     return text
 
+
 _small_ordinals = {
     1: "first",
     2: "second",
@@ -609,467 +610,6 @@ class RepeatOf(Annotation):
         self.parse = annotation.parse
 
 
-class BoolArg(Annotation):
-    """Annotation for boolean literals"""
-    name = "true or false"
-
-    @staticmethod
-    def parse(text, session):
-        if not text:
-            raise AnnotationError("Expected %s" % BoolArg.name)
-        token, text, rest = next_token(text)
-        token = token.casefold()
-        if token == "0" or "false".startswith(token) or token == "off":
-            return False, "false", rest
-        if token == "1" or "true".startswith(token) or token == "on":
-            return True, "true", rest
-        raise AnnotationError("Expected true or false (or 1 or 0)")
-
-
-class NoArg(Annotation):
-    """Annotation for keyword whose presence indicates True"""
-    name = "nothing"
-
-    @staticmethod
-    def parse(text, session):
-        return True, "", text
-
-
-class EmptyArg(Annotation):
-    """Annotation for optionally missing 'required' argument"""
-    name = "nothing"
-
-    @staticmethod
-    def parse(text, session):
-        return None, "", text
-
-
-class IntArg(Annotation):
-    """Annotation for integer literals"""
-    name = "an integer"
-
-    @staticmethod
-    def parse(text, session):
-        if not text:
-            raise AnnotationError("Expected %s" % IntArg.name)
-        token, text, rest = next_token(text)
-        try:
-            return int(token), text, rest
-        except ValueError:
-            raise AnnotationError("Expected %s" % IntArg.name)
-
-
-class FloatArg(Annotation):
-    """Annotation for floating point literals"""
-    name = "a number"
-
-    @staticmethod
-    def parse(text, session):
-        if not text:
-            raise AnnotationError("Expected %s" % FloatArg.name)
-        token, text, rest = next_token(text)
-        try:
-            return float(token), text, rest
-        except ValueError:
-            raise AnnotationError("Expected %s" % FloatArg.name)
-
-
-class StringArg(Annotation):
-    """Annotation for text (a word or quoted)"""
-    name = "a text string"
-
-    @staticmethod
-    def parse(text, session):
-        if not text:
-            raise AnnotationError("Expected %s" % StringArg.name)
-        token, text, rest = next_token(text)
-        return token, text, rest
-
-
-class FileNameArg(Annotation):
-    """Base class for Open/SaveFileNameArg"""
-    name = "a file name"
-
-    @staticmethod
-    def parse(text, session):
-        token, text, rest = StringArg.parse(text, session)
-        import os.path
-        return os.path.expanduser(token), text, rest
-
-# In the future when/if "browse" is supported as a file name,
-# Open/SaveFileNameArg may be different.  If/when that time
-# comes, the "name" class attr may also be made more specfic
-OpenFileNameArg = SaveFileNameArg = OpenFolderNameArg = SaveFolderNameArg = FileNameArg
-
-
-class AxisArg(Annotation):
-    '''Annotation for axis vector that can be 3 floats or "x", or "y", or "z"
-    or two atoms.'''
-    name = 'an axis vector'
-
-    named_axes = {
-        'x': (1, 0, 0), 'X': (1, 0, 0), '-x': (-1, 0, 0), '-X': (-1, 0, 0),
-        'y': (0, 1, 0), 'Y': (0, 1, 0), '-y': (0, -1, 0), '-Y': (0, -1, 0),
-        'z': (0, 0, 1), 'Z': (0, 0, 1), '-z': (0, 0, -1), '-Z': (0, 0, -1)
-    }
-
-    @staticmethod
-    def parse(text, session):
-        if not text:
-            raise AnnotationError("Expected %s" % AxisArg.name)
-        axis = None
-
-        # "x" or "y" or "z"
-        if axis is None:
-            token, atext, rest = next_token(text)
-            try:
-                coords = AxisArg.named_axes[token]
-            except KeyError:
-                pass
-            else:
-                axis = Axis(coords)
-
-        # 3 comma-separated numbers
-        if axis is None:
-            try:
-                coords, atext, rest = Float3Arg.parse(text, session)
-            except:
-                pass
-            else:
-                axis = Axis(coords)
-
-        # Two atoms or a bond.
-        if axis is None:
-            try:
-                atoms, atext, rest = AtomsArg.parse(text, session)
-            except:
-                pass
-            else:
-                if len(atoms) == 2:
-                    axis = Axis(atoms=atoms)
-                elif len(atoms) > 0:
-                    raise AnnotationError('Axis argument requires 2 atoms, got %d atoms' % len(atoms))
-
-        if axis is None:
-            raise AnnotationError('Expected 3 floats or "x", or "y", or "z" or two atoms')
-
-        return axis, atext, rest
-
-
-class Axis:
-
-    def __init__(self, coords=None, atoms=None):
-        if coords is not None:
-            from numpy import array, float32
-            coords = array(coords, float32)
-        self.coords = coords   # Camera coordinates
-        self.atoms = atoms
-
-    def scene_coordinates(self, coordinate_system=None, camera=None, normalize=True):
-        atoms = self.atoms
-        if atoms is not None:
-            a = atoms[1].scene_coord - atoms[0].scene_coord
-        elif coordinate_system is not None:
-            # Camera coords are actually coordinate_system coords if
-            # coordinate_system is not None.
-            c = self.coords
-            a = coordinate_system.apply_without_translation(c)
-        elif camera:
-            a = camera.position.apply_without_translation(self.coords)
-        else:
-            a = self.coords
-        if normalize:
-            from .. import geometry
-            a = geometry.normalize_vector(a)
-        return a
-
-    def base_point(self):
-        a = self.atoms
-        return None if a is None else a[0].scene_coord
-
-
-class CenterArg(Annotation):
-    '''Annotation for a center point that can be 3 floats or objects.'''
-    name = 'center point'
-
-    @staticmethod
-    def parse(text, session):
-        if not text:
-            raise AnnotationError("Expected %s" % CenterArg.name)
-        c = None
-
-        # 3 comma-separated numbers
-        if c is None:
-            try:
-                coords, atext, rest = Float3Arg.parse(text, session)
-            except:
-                pass
-            else:
-                c = Center(coords)
-
-        # Center at camera
-        if c is None:
-            try:
-                cam, atext, rest = EnumOf(['camera']).parse(text, session)
-            except:
-                pass
-            else:
-                c = Center(coords=session.main_view.camera.position.origin())
-
-        # Objects
-        if c is None:
-            try:
-                obj, atext, rest = ObjectsArg.parse(text, session)
-            except:
-                pass
-            else:
-                if obj.empty():
-                    raise AnnotationError('Center argument no objects specified')
-                elif obj.bounds() is None:
-                    raise AnnotationError('Center argument objects are not displayed')
-                c = Center(objects=obj)
-
-        if c is None:
-            raise AnnotationError('Expected 3 floats or object specifier')
-
-        return c, atext, rest
-
-
-class Center:
-
-    def __init__(self, coords=None, objects=None):
-        if coords is not None:
-            from numpy import array, float32
-            coords = array(coords, float32)
-        self.coords = coords
-        self.objects = objects
-
-    def scene_coordinates(self, coordinate_system=None):
-        obj = self.objects
-        if obj is not None:
-            c = obj.bounds().center()
-        elif coordinate_system is not None:
-            c = coordinate_system * self.coords
-        else:
-            c = self.coords
-        return c
-
-
-class CoordSysArg(Annotation):
-    """
-    Annotation for coordinate system for AxisArg and CenterArg
-    when specified as tuples of numbers.  Coordinate system is
-    specified as a Model specifier.
-    """
-    name = "a coordinate-system"
-
-    @staticmethod
-    def parse(text, session):
-        m, text, rest = ModelArg.parse(text, session)
-        return m.position, text, rest
-
-
-class PlaceArg(Annotation):
-    """
-    Annotation for positioning matrix as 12 floats
-    defining a 3 row, 4 column matrix where the first
-    3 columns are x,y,z coordinate axes, and the last column
-    is the origin.
-    """
-    name = "a position"
-
-    @staticmethod
-    def parse(text, session):
-        if not text:
-            raise AnnotationError("Expected %s" % PlaceArg.name)
-        token, text, rest = next_token(text)
-        p = PlaceArg.parse_place(token.split(','))
-        return p, text, rest
-
-    @staticmethod
-    def parse_place(fields):
-        if len(fields) != 12:
-            raise AnnotationError("Expected 12 comma-separated values")
-        try:
-            values = [float(x) for x in fields]
-        except ValueError:
-            raise AnnotationError("Require numeric values")
-        from ..geometry import Place
-        p = Place(matrix=(values[0:4], values[4:8], values[8:12]))
-        return p
-
-
-class AtomsArg(Annotation):
-    """Parse command atoms specifier"""
-    name = "atoms"
-    url = "help:user/commands/atomspec.html"
-
-    @staticmethod
-    def parse(text, session):
-        from . import atomspec
-        aspec, text, rest = atomspec.AtomSpecArg.parse(text, session)
-        atoms = aspec.evaluate(session).atoms
-        atoms.spec = str(aspec)
-        return atoms, text, rest
-
-
-class StructureArg(Annotation):
-    """Parse command structure specifier"""
-    name = "structure"
-    url = "help:user/commands/atomspec.html"
-
-    @staticmethod
-    def parse(text, session):
-        m, text, rest = ModelArg.parse(text, session)
-        from ..atomic import Structure
-        if not isinstance(m, Structure):
-            raise AnnotationError('Specified model is not a Structure')
-        return m, text, rest
-
-
-class StructuresArg(Annotation):
-    """Parse command structures specifier"""
-    name = "structures"
-    url = "help:user/commands/atomspec.html"
-
-    @staticmethod
-    def parse(text, session):
-        from . import atomspec
-        aspec, text, rest = atomspec.AtomSpecArg.parse(text, session)
-        models = aspec.evaluate(session).models
-        from ..atomic import Structure
-        mols = [m for m in models if isinstance(m, Structure)]
-        return mols, text, rest
-
-
-class AtomicStructuresArg(Annotation):
-    """Parse command atomic structures specifier"""
-    name = "atomic structures"
-    url = "help:user/commands/atomspec.html"
-
-    @staticmethod
-    def parse(text, session):
-        from . import atomspec
-        aspec, text, rest = atomspec.AtomSpecArg.parse(text, session)
-        models = aspec.evaluate(session).models
-        from ..atomic import AtomicStructure, AtomicStructures
-        mols = [m for m in models if isinstance(m, AtomicStructure)]
-        return AtomicStructures(mols), text, rest
-
-
-class PseudobondGroupsArg(Annotation):
-    """Parse command atom specifier for pseudobond groups"""
-    name = 'pseudobond groups'
-    url = "help:user/commands/atomspec.html"
-
-    @staticmethod
-    def parse(text, session):
-        from .atomspec import AtomSpecArg
-        value, used, rest = AtomSpecArg.parse(text, session)
-        models = value.evaluate(session).models
-        from ..atomic import PseudobondGroup
-        pbgs = [m for m in models if isinstance(m, PseudobondGroup)]
-        return pbgs, used, rest
-
-
-class PseudobondsArg(Annotation):
-    """Parse command specifier for pseudobonds"""
-    name = 'pseudobonds'
-
-    @staticmethod
-    def parse(text, session):
-        objects, used, rest = ObjectsArg.parse(text, session)
-        from ..atomic import PseudobondGroup, interatom_pseudobonds
-        pb = interatom_pseudobonds(objects.atoms)
-        pbgs = set(pb.groups.unique())
-        pblist = [m.pseudobonds for m in objects.models
-                  if isinstance(m, PseudobondGroup) and m not in pbgs]
-        if len(pb) > 0:
-            pblist.append(pb)
-        from ..atomic import Pseudobonds, concatenate
-        pbonds = concatenate(pblist, Pseudobonds)
-        return pbonds, used, rest
-
-
-class SurfacesArg(Annotation):
-    """Parse command surfaces specifier"""
-    name = "surfaces"
-    url = "help:user/commands/atomspec.html"
-
-    @staticmethod
-    def parse(text, session):
-        from . import atomspec
-        aspec, text, rest = atomspec.AtomSpecArg.parse(text, session)
-        models = aspec.evaluate(session).models
-        from ..atomic import Structure
-        surfs = [m for m in models if not isinstance(m, Structure)]
-        return surfs, text, rest
-
-
-class ModelArg(Annotation):
-    """Parse command model specifier"""
-    name = "model"
-    url = "help:user/commands/atomspec.html"
-
-    @staticmethod
-    def parse(text, session):
-        from .atomspec import AtomSpecArg
-        aspec, text, rest = AtomSpecArg.parse(text, session)
-        models = _remove_child_models(aspec.evaluate(session).models)
-        if len(models) != 1:
-            raise AnnotationError('Must specify 1 model, got %d' % len(models), len(text))
-        return tuple(models)[0], text, rest
-
-
-def _remove_child_models(models):
-    s = set(models)
-    for m in models:
-        for c in m.child_models():
-            s.discard(c)
-    return tuple(s)
-
-
-class ModelsArg(Annotation):
-    """Parse command models specifier"""
-    name = "models"
-    url = "help:user/commands/atomspec.html"
-
-    @staticmethod
-    def parse(text, session):
-        from .atomspec import AtomSpecArg
-        aspec, text, rest = AtomSpecArg.parse(text, session)
-        models = aspec.evaluate(session).models
-        return models, text, rest
-
-
-class TopModelsArg(Annotation):
-    """Parse command models specifier"""
-    name = "models"
-    url = "help:user/commands/atomspec.html"
-
-    @staticmethod
-    def parse(text, session):
-        from .atomspec import AtomSpecArg
-        aspec, text, rest = AtomSpecArg.parse(text, session)
-        models = aspec.evaluate(session).models
-        tmodels = _remove_child_models(models)
-        return tmodels, text, rest
-
-
-class ObjectsArg(Annotation):
-    """Parse command objects specifier"""
-    name = "objects"
-    url = "help:user/commands/atomspec.html"
-
-    @staticmethod
-    def parse(text, session):
-        from .atomspec import AtomSpecArg
-        aspec, text, rest = AtomSpecArg.parse(text, session)
-        objects = aspec.evaluate(session)
-        objects.spec = str(aspec)
-        return objects, text, rest
-
-
 class Bounded(Annotation):
     """Support bounded numerical values
 
@@ -1242,6 +782,454 @@ class Or(Annotation):
             except ValueError:
                 pass
         raise AnnotationError("Expected %s" % self.name)
+
+
+class BoolArg(Annotation):
+    """Annotation for boolean literals"""
+    name = "true or false"
+
+    @staticmethod
+    def parse(text, session):
+        if not text:
+            raise AnnotationError("Expected %s" % BoolArg.name)
+        token, text, rest = next_token(text)
+        token = token.casefold()
+        if token == "0" or "false".startswith(token) or token == "off":
+            return False, "false", rest
+        if token == "1" or "true".startswith(token) or token == "on":
+            return True, "true", rest
+        raise AnnotationError("Expected true or false (or 1 or 0)")
+
+
+class NoArg(Annotation):
+    """Annotation for keyword whose presence indicates True"""
+    name = "nothing"
+
+    @staticmethod
+    def parse(text, session):
+        return True, "", text
+
+
+class EmptyArg(Annotation):
+    """Annotation for optionally missing 'required' argument"""
+    name = "nothing"
+
+    @staticmethod
+    def parse(text, session):
+        return None, "", text
+
+
+class IntArg(Annotation):
+    """Annotation for integer literals"""
+    name = "an integer"
+
+    @staticmethod
+    def parse(text, session):
+        if not text:
+            raise AnnotationError("Expected %s" % IntArg.name)
+        token, text, rest = next_token(text)
+        try:
+            return int(token), text, rest
+        except ValueError:
+            raise AnnotationError("Expected %s" % IntArg.name)
+
+
+class FloatArg(Annotation):
+    """Annotation for floating point literals"""
+    name = "a number"
+
+    @staticmethod
+    def parse(text, session):
+        if not text:
+            raise AnnotationError("Expected %s" % FloatArg.name)
+        token, text, rest = next_token(text)
+        try:
+            return float(token), text, rest
+        except ValueError:
+            raise AnnotationError("Expected %s" % FloatArg.name)
+
+
+class StringArg(Annotation):
+    """Annotation for text (a word or quoted)"""
+    name = "a text string"
+
+    @staticmethod
+    def parse(text, session):
+        if not text:
+            raise AnnotationError("Expected %s" % StringArg.name)
+        token, text, rest = next_token(text)
+        return token, text, rest
+
+
+class FileNameArg(Annotation):
+    """Base class for Open/SaveFileNameArg"""
+    name = "a file name"
+
+    @staticmethod
+    def parse(text, session):
+        token, text, rest = StringArg.parse(text, session)
+        import os.path
+        return os.path.expanduser(token), text, rest
+
+
+# In the future when/if "browse" is supported as a file name,
+# Open/SaveFileNameArg may be different.  If/when that time
+# comes, the "name" class attr may also be made more specfic
+OpenFileNameArg = SaveFileNameArg = OpenFolderNameArg = SaveFolderNameArg = FileNameArg
+
+
+# Atom Specifiers are used in lots of places
+# avoid circular import by importing here
+from .atomspec import AtomSpecArg  # noqa
+
+
+class ModelsArg(AtomSpecArg):
+    """Parse command models specifier"""
+    name = "a models specifier"
+
+    @classmethod
+    def parse(cls, text, session):
+        aspec, text, rest = super().parse(text, session)
+        models = aspec.evaluate(session).models
+        return models, text, rest
+
+
+class TopModelsArg(AtomSpecArg):
+    """Parse command models specifier"""
+    name = "a models specifier"
+
+    @classmethod
+    def parse(cls, text, session):
+        aspec, text, rest = super().parse(text, session)
+        models = aspec.evaluate(session).models
+        tmodels = _remove_child_models(models)
+        return tmodels, text, rest
+
+
+class ObjectsArg(AtomSpecArg):
+    """Parse command objects specifier"""
+    name = "an objects specifier"
+
+    @classmethod
+    def parse(cls, text, session):
+        aspec, text, rest = super().parse(text, session)
+        objects = aspec.evaluate(session)
+        objects.spec = str(aspec)
+        return objects, text, rest
+
+
+class AtomsArg(AtomSpecArg):
+    """Parse command atoms specifier"""
+    name = "an atoms specifier"
+
+    @classmethod
+    def parse(cls, text, session):
+        aspec, text, rest = super().parse(text, session)
+        atoms = aspec.evaluate(session).atoms
+        atoms.spec = str(aspec)
+        return atoms, text, rest
+
+
+class StructuresArg(AtomSpecArg):
+    """Parse command structures specifier"""
+    name = "a structures specifier"
+
+    @classmethod
+    def parse(cls, text, session):
+        aspec, text, rest = super().parse(text, session)
+        models = aspec.evaluate(session).models
+        from ..atomic import Structure
+        mols = [m for m in models if isinstance(m, Structure)]
+        return mols, text, rest
+
+
+class AtomicStructuresArg(AtomSpecArg):
+    """Parse command atomic structures specifier"""
+    name = "an atomic structures specifier"
+
+    @classmethod
+    def parse(cls, text, session):
+        aspec, text, rest = super().parse(text, session)
+        models = aspec.evaluate(session).models
+        from ..atomic import AtomicStructure, AtomicStructures
+        mols = [m for m in models if isinstance(m, AtomicStructure)]
+        return AtomicStructures(mols), text, rest
+
+
+class PseudobondGroupsArg(AtomSpecArg):
+    """Parse command atom specifier for pseudobond groups"""
+    name = 'a pseudobond groups specifier'
+
+    @classmethod
+    def parse(cls, text, session):
+        value, used, rest = super().parse(text, session)
+        models = value.evaluate(session).models
+        from ..atomic import PseudobondGroup
+        pbgs = [m for m in models if isinstance(m, PseudobondGroup)]
+        return pbgs, used, rest
+
+
+class PseudobondsArg(ObjectsArg):
+    """Parse command specifier for pseudobonds"""
+    name = 'a pseudobonds specifier'
+
+    @classmethod
+    def parse(cls, text, session):
+        objects, used, rest = super().parse(text, session)
+        from ..atomic import PseudobondGroup, interatom_pseudobonds
+        pb = interatom_pseudobonds(objects.atoms)
+        pbgs = set(pb.groups.unique())
+        pblist = [m.pseudobonds for m in objects.models
+                  if isinstance(m, PseudobondGroup) and m not in pbgs]
+        if len(pb) > 0:
+            pblist.append(pb)
+        from ..atomic import Pseudobonds, concatenate
+        pbonds = concatenate(pblist, Pseudobonds)
+        return pbonds, used, rest
+
+
+class SurfacesArg(AtomSpecArg):
+    """Parse command surfaces specifier"""
+    name = "a surfaces specifier"
+
+    @classmethod
+    def parse(cls, text, session):
+        aspec, text, rest = super().parse(text, session)
+        models = aspec.evaluate(session).models
+        from ..atomic import Structure
+        surfs = [m for m in models if not isinstance(m, Structure)]
+        return surfs, text, rest
+
+
+class ModelArg(AtomSpecArg):
+    """Parse command model specifier"""
+    name = "a model specifier"
+
+    @classmethod
+    def parse(cls, text, session):
+        aspec, text, rest = super().parse(text, session)
+        models = _remove_child_models(aspec.evaluate(session).models)
+        if len(models) != 1:
+            raise AnnotationError('Must specify 1 model, got %d' % len(models), len(text))
+        return tuple(models)[0], text, rest
+
+
+class StructureArg(ModelArg):
+    """Parse command structure specifier"""
+    name = "a structure specifier"
+
+    @classmethod
+    def parse(cls, text, session):
+        m, text, rest = super().parse(text, session)
+        from ..atomic import Structure
+        if not isinstance(m, Structure):
+            raise AnnotationError('Specified model is not a Structure')
+        return m, text, rest
+
+
+class AxisArg(Annotation):
+    '''Annotation for axis vector that can be 3 floats or "x", or "y", or "z"
+    or two atoms.'''
+    name = 'an axis vector'
+
+    named_axes = {
+        'x': (1, 0, 0), 'X': (1, 0, 0), '-x': (-1, 0, 0), '-X': (-1, 0, 0),
+        'y': (0, 1, 0), 'Y': (0, 1, 0), '-y': (0, -1, 0), '-Y': (0, -1, 0),
+        'z': (0, 0, 1), 'Z': (0, 0, 1), '-z': (0, 0, -1), '-Z': (0, 0, -1)
+    }
+
+    @staticmethod
+    def parse(text, session):
+        if not text:
+            raise AnnotationError("Expected %s" % AxisArg.name)
+        axis = None
+
+        # "x" or "y" or "z"
+        if axis is None:
+            token, atext, rest = next_token(text)
+            try:
+                coords = AxisArg.named_axes[token]
+            except KeyError:
+                pass
+            else:
+                axis = Axis(coords)
+
+        # 3 comma-separated numbers
+        if axis is None:
+            try:
+                coords, atext, rest = Float3Arg.parse(text, session)
+            except:
+                pass
+            else:
+                axis = Axis(coords)
+
+        # Two atoms or a bond.
+        if axis is None:
+            try:
+                atoms, atext, rest = AtomsArg.parse(text, session)
+            except:
+                pass
+            else:
+                if len(atoms) == 2:
+                    axis = Axis(atoms=atoms)
+                elif len(atoms) > 0:
+                    raise AnnotationError('Axis argument requires 2 atoms, got %d atoms' % len(atoms))
+
+        if axis is None:
+            raise AnnotationError('Expected 3 floats or "x", or "y", or "z" or two atoms')
+
+        return axis, atext, rest
+
+
+class Axis:
+
+    def __init__(self, coords=None, atoms=None):
+        if coords is not None:
+            from numpy import array, float32
+            coords = array(coords, float32)
+        self.coords = coords   # Camera coordinates
+        self.atoms = atoms
+
+    def scene_coordinates(self, coordinate_system=None, camera=None, normalize=True):
+        atoms = self.atoms
+        if atoms is not None:
+            a = atoms[1].scene_coord - atoms[0].scene_coord
+        elif coordinate_system is not None:
+            # Camera coords are actually coordinate_system coords if
+            # coordinate_system is not None.
+            c = self.coords
+            a = coordinate_system.apply_without_translation(c)
+        elif camera:
+            a = camera.position.apply_without_translation(self.coords)
+        else:
+            a = self.coords
+        if normalize:
+            from .. import geometry
+            a = geometry.normalize_vector(a)
+        return a
+
+    def base_point(self):
+        a = self.atoms
+        return None if a is None else a[0].scene_coord
+
+
+class CenterArg(Annotation):
+    '''Annotation for a center point that can be 3 floats or objects.'''
+    name = 'center point'
+
+    @staticmethod
+    def parse(text, session):
+        if not text:
+            raise AnnotationError("Expected %s" % CenterArg.name)
+        c = None
+
+        # 3 comma-separated numbers
+        if c is None:
+            try:
+                coords, atext, rest = Float3Arg.parse(text, session)
+            except:
+                pass
+            else:
+                c = Center(coords)
+
+        # Center at camera
+        if c is None:
+            try:
+                cam, atext, rest = EnumOf(['camera']).parse(text, session)
+            except:
+                pass
+            else:
+                c = Center(coords=session.main_view.camera.position.origin())
+
+        # Objects
+        if c is None:
+            try:
+                obj, atext, rest = ObjectsArg.parse(text, session)
+            except:
+                pass
+            else:
+                if obj.empty():
+                    raise AnnotationError('Center argument no objects specified')
+                elif obj.bounds() is None:
+                    raise AnnotationError('Center argument objects are not displayed')
+                c = Center(objects=obj)
+
+        if c is None:
+            raise AnnotationError('Expected 3 floats or object specifier')
+
+        return c, atext, rest
+
+
+class Center:
+
+    def __init__(self, coords=None, objects=None):
+        if coords is not None:
+            from numpy import array, float32
+            coords = array(coords, float32)
+        self.coords = coords
+        self.objects = objects
+
+    def scene_coordinates(self, coordinate_system=None):
+        obj = self.objects
+        if obj is not None:
+            c = obj.bounds().center()
+        elif coordinate_system is not None:
+            c = coordinate_system * self.coords
+        else:
+            c = self.coords
+        return c
+
+
+class CoordSysArg(ModelArg):
+    """
+    Annotation for coordinate system for AxisArg and CenterArg
+    when specified as tuples of numbers.  Coordinate system is
+    specified as a Model specifier.
+    """
+    name = "a coordinate-system"
+
+    @staticmethod
+    def parse(text, session):
+        m, text, rest = super().parse(text, session)
+        return m.position, text, rest
+
+
+class PlaceArg(Annotation):
+    """
+    Annotation for positioning matrix as 12 floats
+    defining a 3 row, 4 column matrix where the first
+    3 columns are x,y,z coordinate axes, and the last column
+    is the origin.
+    """
+    name = "a position"
+
+    @staticmethod
+    def parse(text, session):
+        if not text:
+            raise AnnotationError("Expected %s" % PlaceArg.name)
+        token, text, rest = next_token(text)
+        p = PlaceArg.parse_place(token.split(','))
+        return p, text, rest
+
+    @staticmethod
+    def parse_place(fields):
+        if len(fields) != 12:
+            raise AnnotationError("Expected 12 comma-separated values")
+        try:
+            values = [float(x) for x in fields]
+        except ValueError:
+            raise AnnotationError("Require numeric values")
+        from ..geometry import Place
+        p = Place(matrix=(values[0:4], values[4:8], values[8:12]))
+        return p
+
+
+def _remove_child_models(models):
+    s = set(models)
+    for m in models:
+        for c in m.child_models():
+            s.discard(c)
+    return tuple(s)
 
 
 _escape_table = {
@@ -1453,6 +1441,7 @@ class WholeRestOfLine(Annotation):
     @staticmethod
     def parse(text, session):
         return text, text, ''
+
 
 Bool2Arg = TupleOf(BoolArg, 2)
 Bool3Arg = TupleOf(BoolArg, 3)
@@ -2913,6 +2902,7 @@ def remove_alias(name=None, user=False):
         return
 
     deregister(name, is_user_alias=user)
+
 
 if __name__ == '__main__':
     from ..utils import flattened

@@ -10,7 +10,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.errors import UserError as CommandError
-def register_movie_command():
+def register_movie_command(logger):
 
     from chimerax.core.commands import CmdDesc, register, BoolArg, EnumOf, ListOf, IntArg, Int2Arg, StringArg, FloatArg, SaveFolderNameArg, SaveFileNameArg
 
@@ -25,7 +25,7 @@ def register_movie_command():
                    ('supersample', IntArg),
                    ('limit', IntArg)],
         synopsis = 'Start saving frames of a movie to image files')
-    register('movie record', record_desc, movie_record)
+    register('movie record', record_desc, movie_record, logger=logger)
 
     from .movie import RESET_CLEAR, RESET_KEEP, RESET_NONE
     reset_modes = (RESET_CLEAR, RESET_KEEP, RESET_NONE)
@@ -42,35 +42,35 @@ def register_movie_command():
                    ('verbose', BoolArg),
                ],
         synopsis = 'Convert image files into a video file')
-    register('movie encode', encode_desc, movie_encode)
+    register('movie encode', encode_desc, movie_encode, logger=logger)
 
     crossfade_desc = CmdDesc(optional = [('frames', IntArg)],
                              synopsis = 'Add images to crossfade between current and next frame')
-    register('movie crossfade', crossfade_desc, movie_crossfade)
+    register('movie crossfade', crossfade_desc, movie_crossfade, logger=logger)
 
     duplicate_desc = CmdDesc(optional = [('frames', IntArg)],
                              synopsis = 'Duplicate the last frame to create a pause in a movie')
-    register('movie duplicate', duplicate_desc, movie_duplicate)
+    register('movie duplicate', duplicate_desc, movie_duplicate, logger=logger)
 
     stop_desc = CmdDesc(synopsis = 'Pause movie recording')
-    register('movie stop', stop_desc, movie_stop)
+    register('movie stop', stop_desc, movie_stop, logger=logger)
 
     abort_desc = CmdDesc(synopsis = 'Stop movie recording and delete saved image files')
-    register('movie abort', abort_desc, movie_abort)
+    register('movie abort', abort_desc, movie_abort, logger=logger)
 
     reset_desc = CmdDesc(optional = [('reset_mode', EnumOf(reset_modes))],
                          synopsis = 'Specify whether to save image files after movie encoding')
-    register('movie reset', reset_desc, movie_reset)
+    register('movie reset', reset_desc, movie_reset, logger=logger)
 
     status_desc = CmdDesc(synopsis = 'Report recording status such as number of frames saved to the log')
-    register('movie status', status_desc, movie_status)
+    register('movie status', status_desc, movie_status, logger=logger)
 
     formats_desc = CmdDesc(synopsis = 'Report the available video formats to the log')
-    register('movie formats', formats_desc, movie_formats)
+    register('movie formats', formats_desc, movie_formats, logger=logger)
 
     ignore_desc = CmdDesc(optional = [('ignore', BoolArg)],
                           synopsis = 'Ignore subsequent movie commands')
-    register('movie ignore', ignore_desc, movie_ignore)
+    register('movie ignore', ignore_desc, movie_ignore, logger=logger)
 
 from .movie import RESET_CLEAR
 def movie_record(session, directory = None, pattern = None, format = None,

@@ -187,8 +187,8 @@ def vseries_save(session, series, path, subregion = None, step = None, value_typ
     path = os.path.expanduser(path)         # Tilde expansion
 
     maps = s.maps
-    if onGrid is None and align:
-        onGrid = maps[0]
+    if on_grid is None and align:
+        on_grid = maps[0]
 
     grid = None
     if not on_grid is None:
@@ -208,7 +208,7 @@ def vseries_save(session, series, path, subregion = None, step = None, value_typ
         cmap.write_grid_as_chimera_map(d, path, options)
 
     if grid:
-        grid.close()
+        grid.delete()
 
 # -----------------------------------------------------------------------------
 #
@@ -378,14 +378,14 @@ def vseries_slider(session, series):
 
 # -----------------------------------------------------------------------------
 #
-from ...commands import Annotation
-class SeriesArg(Annotation):
-    name = 'map series'
-    url = "help:user/commands/atomspec.html"
-    @staticmethod
-    def parse(text, session):
-        from ...commands import AtomSpecArg
-        value, used, rest = AtomSpecArg.parse(text, session)
+from ...commands import AtomSpecArg
+
+class SeriesArg(AtomSpecArg):
+    name = 'a map series specifier'
+
+    @classmethod
+    def parse(cls, text, session):
+        value, used, rest = super().parse(text, session)
         models = value.evaluate(session).models
         from .series import Map_Series
         ms = [m for m in models if isinstance(m, Map_Series)]

@@ -76,10 +76,6 @@ class Drawing:
         self._selected_triangles_mask = None  # bool numpy array
         self._child_drawings = []
 
-        # Used by grayscale rendering for depth ordering:
-        self.reverse_order_children = False
-        """Whether to render the children in reverse order for properly
-        handling transparency."""
         self._cached_bounds = None
 
         # Geometry and colors
@@ -126,6 +122,16 @@ class Drawing:
         Texture to use in coloring the surface, a graphics.Texture object.
         Only 2-dimensional textures are supported.  Can be None.
         '''
+
+        self.multitexture = None
+        '''
+        List of N textures to use, each applying to 1/N of the triangles.
+        This is used for volumetric rendering by texturing a stack of rectangles.
+        Only 2-dimensional textures are supported.  Can be None.
+        '''
+        self.multitexture_reverse_order = False
+        """Whether to draw multitextured geometry in reverse order for handling transparency.
+        Used by grayscale rendering for depth ordering."""
 
         self.texture_coordinates = None
         """Texture coordinates, an N by 2 numpy array of float32 values
@@ -483,7 +489,7 @@ class Drawing:
             self.vertex_colors = vcolors
 
     def _transparency(self):
-        if self.texture is not None:
+        if self.texture is not None or self.multitexture:
             any_opaque = self.opaque_texture
             any_transparent = not self.opaque_texture
         else:
@@ -605,8 +611,6 @@ class Drawing:
 
     def _draw_children(self, renderer, place, draw_pass, selected_only=False):
         dlist = self.child_drawings()
-        if self.reverse_order_children:
-            dlist = dlist[::-1]
         for d in dlist:
             d.draw(renderer, place, draw_pass, selected_only)
 
@@ -647,7 +651,11 @@ class Drawing:
             r.set_ambient_texture_transform(self.ambient_texture_transform)
 
         # Draw triangles
-        ds.draw(self.display_style)
+        mtex = self.multitexture
+        if mtex:
+            ds.draw_multitexture(self.display_style, mtex, self.multitexture_reverse_order)
+        else:
+            ds.draw(self.display_style)
 
         if t is not None:
             t.unbind_texture()
@@ -661,8 +669,9 @@ class Drawing:
                 sopt |= Render.SHADER_LIGHTING
             if (self.vertex_colors is not None) or len(self._colors) > 1:
                 sopt |= Render.SHADER_VERTEX_COLORS
-            if self.texture is not None:
-                if self.texture.is_cubemap:
+            t = self.texture
+            if t or self.multitexture:
+                if t and t.is_cubemap:
                     sopt |= Render.SHADER_TEXTURE_CUBEMAP
                 else:
                     sopt |= Render.SHADER_TEXTURE_2D
@@ -963,6 +972,10 @@ class Drawing:
         if self.texture:
             self.texture.delete_texture()
             self.texture = None
+        if self.multitexture:
+            for t in self.multitexture:
+                t.delete_texture()
+            self.multitexture = None
         self.texture_coordinates = None
 
         for b in self._vertex_buffers:
@@ -1076,7 +1089,7 @@ class Drawing:
         x3d_scene.need(x3d.Components.Shape, 3)  # Shaders
         # x3d_scene.need(x3d.Components.Geometry3D, 1)  # Cylinder, Sphere
         # x3d_scene.need(x3d.Components.Geometry3D, 4)  # Extrusion
-        if self.texture:
+        if self.texture or self.multitexture:
             x3d_scene.need(x3d.Components.Texturing, 1)  # PixelTexture
 
     def write_x3d(self, stream, x3d_scene, indent, place):
@@ -1086,8 +1099,6 @@ class Drawing:
         if dlist:
             for p in self.positions:
                 pp = place if p.is_identity() else place * p
-                if self.reverse_order_children:
-                    dlist = dlist[::-1]
                 for d in dlist:
                     d.write_x3d(stream, x3d_scene, indent, pp)
         if not self.empty_drawing():
@@ -1389,6 +1400,24 @@ class _DrawShape:
         ni = self.instance_count()
         if ni > 0:
             eb.draw_elements(etype, ni)
+
+    def draw_multitexture(self, display_style, textures, reverse_order):
+
+        eb = self.element_buffer
+        if eb is None:
+            return
+        etype = _element_type(display_style)
+        ni = self.instance_count()
+        if ni > 0:
+            nt = len(textures)
+            ne = eb.size() // nt
+            torder = range(nt-1,-1,-1) if reverse_order else range(nt)
+            for ti in torder:
+                textures[ti].bind_texture()
+                eb.draw_elements(etype, ni, count=ne, offset=ti*ne)
+            # TODO: I put unbind outside loop for better efficiency.  But if textures use
+            # multiple texture units, this will only unbind the last one.
+            textures[nt-1].unbind_texture()
 
     def update_vertex_buffer(self, b, data):
 

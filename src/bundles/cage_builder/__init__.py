@@ -22,9 +22,9 @@ class _MyAPI(BundleAPI):
         return p
 
     @staticmethod
-    def register_command(command_name):
+    def register_command(command_name, logger):
         # 'register_command' is lazily called when command is referenced
         from . import cmd
-        cmd.register_cage_command()
+        cmd.register_cage_command(logger)
 
 bundle_api = _MyAPI()
