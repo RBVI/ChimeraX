@@ -69,6 +69,7 @@ See also: <a href="mousemode.html"><b>mousemode</b></a>
 <a href="#top" class="nounder">&bull;</a>
 <a name="vr"><b>vr</b></a> [&nbsp;<a href="#status"><i>status</i></a>&nbsp;]
 [&nbsp;<b>roomPosition</b>&nbsp;&nbsp;<i>matrix</i>&nbsp;|&nbsp;<b>report</b>&nbsp;]
+[&nbsp;<b>mirror</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 <blockquote>
 <p>
 The <b>vr</b> command (same as <b>device vr</b>)
@@ -97,9 +98,18 @@ the fourth, eighth, and twelfth numbers. Example:
 <blockquote>
 <b>vr &nbsp;room &nbsp;20,0,0,0,0,20,0,0,0,0,20,0</b>
 </blockquote>
+<p>
+The <b>mirror</b> option (default <b>false</b>)
+indicates whether to update the ChimeraX graphics window.
+Updating the graphics window will usually cause stuttering in the VR headset
+because refreshing the computer display (nominally 60 times per second)
+slows rendering to headset.
+Although it may be possible to avoid this problem by turning off syncing to
+vertical refresh, it is better to use the SteamVR display mirror window.
+</p>
 </blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2017</address>
+March 2017</address>
 </body></html>
