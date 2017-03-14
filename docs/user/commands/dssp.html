@@ -50,7 +50,7 @@ Per-residue helix and strand assignments are used for drawing protein
 In PDB format, secondary structure assignments are described in HELIX and 
 SHEET records, and analogous information is included in mmCIF files.
 However, not all input files include this information.
-The <b>dssp</b> calculation is run automatically:
+The <b>dssp</b> calculation is run:
 </p>
 <ul>
 <li>when an atomic structure of a protein 
@@ -59,6 +59,7 @@ without secondary structure assignments is read
 (see <a href="matchmaker.html#computeSS"><b>computeSS</b></a>),
 even when the proteins being superimposed already have 
 secondary structure assignments
+<li>by <a href="coordset.html"><b>coordset</b></a> with <b>computeSS true</b> 
 </ul>
 <p>
 The calculation applies to all protein/peptide chains in models 
@@ -144,5 +145,5 @@ participates. Sheets are named sequentially from N- to C-terminus.
 </tr></table>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2016</address>
+March 2017</address>
 </body></html>
