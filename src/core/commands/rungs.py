@@ -109,7 +109,8 @@ def rungs_for_atoms(session, atoms, create = True):
                     b.color = r.ribbon_color
                     b.radius = 0.5
                     b.halfbond = False
-                rungs.append(b)
+                if b is not None:
+                    rungs.append(b)
     return rungs
 
 def register_command(session):
