@@ -919,9 +919,10 @@ class XSectionManager(State):
 
 def normalize(v):
     # normalize a single vector
+    from numpy import isnan
     from numpy.linalg import norm
     d = norm(v)
-    if d < EPSILON:
+    if isnan(d) or d < EPSILON:
         return v
     return v / d
 
@@ -930,6 +931,7 @@ def normalize_vector_array(a):
     from numpy.linalg import norm
     import numpy
     d = norm(a, axis=1)
+    d[numpy.isnan(d)] = 1
     d[d < EPSILON] = 1
     n = a / d[:, numpy.newaxis]
     return n
