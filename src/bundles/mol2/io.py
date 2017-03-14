@@ -226,6 +226,7 @@ def write_mol2(structures, file_name, status=None, anchor=None, rel_model=None,
 
         ATOM_LIST = struct.atoms
         BOND_LIST = struct.bonds
+        #TODO: add metal-coordination bonds
         if skip:
             skip = set(skip)
             ATOM_LIST = [a for a in ATOM_LIST if a not in skip]
@@ -400,6 +401,8 @@ def write_mol2(structures, file_name, status=None, anchor=None, rel_model=None,
                 continue
                 
             aromatic = False
+            #TODO: 'bond' might be a metal-coordination bond, so
+            # do an if/else to get the rings
             for ring in bond.minimumRings():
                 if ring.aromatic():
                     aromatic = True
