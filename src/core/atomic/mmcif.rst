@@ -2,7 +2,7 @@
 
 .. 
     === UCSF ChimeraX Copyright ===
-    Copyright 2016 Regents of the University of California.
+    Copyright 2017 Regents of the University of California.
     All rights reserved.  This software provided pursuant to a
     license agreement containing restrictions on its disclosure,
     duplication and use.  For details see:
@@ -12,23 +12,9 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
-============
-Applications
-============
+mmcif: mmCIF input/output
+=========================
 
-This documentation is for application APIs
-that are not in the :ref:`ChimeraX Core <core>`
-nor in the :doc:`bundles` layered on the core.
-The user interface documentation is found
-in :doc:`User's Manual </users/index>`.
-
-TODO: evaluate if this is needed.
-
-.. toctree::
-    :maxdepth: 2
-
-    apps/ChimeraX/ChimeraX.rst
-
-    apps/moduleapp/moduleapp.rst
-
-    webapp.rst
+.. automodule:: chimerax.core.atomic.mmcif
+    :members:
+    :show-inheritance:

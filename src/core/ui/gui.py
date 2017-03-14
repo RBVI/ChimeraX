@@ -696,15 +696,15 @@ class ToolWindow(StatusLogger):
     widgets for this window.  Call :py:meth:`manage` once the widgets
     are set up to show the tool window in the main interface.
 
-    The :py:keyword:`close_destroys` keyword controls whether closing this window
+    The :py:attr:`close_destroys` keyword controls whether closing this window
     destroys it or hides it.  If it destroys it and this is the main window, all
     the child windows will also be destroyed.
 
-    The :py:keyword:`statusbar` keyword controls whether the tool will display
+    The :py:attr:`statusbar` keyword controls whether the tool will display
     status messages via an in-window statusbar, or via the main ChimeraX statusbar.
-    In either case, the :py:method:`status` method can be used to issue status
+    In either case, the :py:meth:`status` method can be used to issue status
     messages.  It accepts the exact same arguments/keywords as the
-    :py:method:`~..logger.Logger.status` method in the :py:class:`~..logger.Logger` class.
+    :py:meth:`~..logger.Logger.status` method in the :py:class:`~..logger.Logger` class.
     The resulting QStatusBar widget (or None if statusbar was False) will be
     available from the ToolWindow's "statusbar" in case you need to add widgets to it
     or otherwise customize it.

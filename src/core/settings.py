@@ -35,7 +35,8 @@ allowed.
 **Example**
 
 *setup*
-::
+
+.. code-block: c++
 
     from chimerax.core.settings import Settings
     from chimerax.core.configfile import Value
@@ -57,11 +58,15 @@ allowed.
     my_settings = MyToolSettings(session, "MyToolName")
 
 *use*
-::
+
+.. code-block: c++
+
     penalty += gap_len * my_settings.gap_penalty
 
 *saving*
-::
+
+.. code-block: c++
+
     my_settings.matrix = 'BLOSUM80' # auto-saved
     ...
     my_settings.font_size = 12

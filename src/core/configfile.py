@@ -251,7 +251,6 @@ class ConfigFile:
     PROPERTY_INFO : dict of property_name: value
         ``property_name`` must be a legal Python identifier.
         ``value`` is a Python literal or an :py:class:`Item`.
-    filename : the name of the file used to store the preferences
     """
 
     PROPERTY_INFO = {}

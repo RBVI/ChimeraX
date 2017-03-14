@@ -127,11 +127,11 @@ class Atom(State):
     display = c_property('atom_display', npy_bool,
         doc="Whether to display the atom. Boolean value.")
     draw_mode = c_property('atom_draw_mode', uint8,
-        doc="Controls how the atom is depicted.\n\n|  Possible values:\n"
+        doc="Controls how the atom is depicted.\n\nPossible values:\n\n"
         "SPHERE_STYLE\n"
-        "    Use full atom radius\n"
+        "    Use full atom radius\n\n"
         "BALL_STYLE\n"
-        "    Use reduced atom radius, but larger than bond radius\n"
+        "    Use reduced atom radius, but larger than bond radius\n\n"
         "STICK_STYLE\n"
         "    Match bond radius")
     element = c_property('atom_element', cptr, astype = _element, read_only = True,
@@ -142,7 +142,7 @@ class Atom(State):
         doc = "Chemical element number. Read only.")
     hide = c_property('atom_hide', int32,
         doc="Whether atom is hidden (overrides display).  Integer bitmask."
-        "\n\n|  Possible values:\n"
+        "\n\nPossible values:\n\n"
         "HIDE_RIBBON\n"
         "    Hide mask for backbone atoms in ribbon.")
     idatm_type = c_property('atom_idatm_type', string, doc = "IDATM type")
@@ -249,11 +249,14 @@ class Atom(State):
     def is_backbone(self, bb_extent=BBE_MAX):
         '''Whether this Atom is considered backbone, given the 'extent' criteria.
 
-        |  Possible 'extent' values are:
+        Possible 'extent' values are:
+
         BBE_MIN
             Only the atoms needed to connect the residue chain (and their hydrogens)
+
         BBE_MAX
             All non-sidechain atoms
+
         BBE_RIBBON
             The backbone atoms that a ribbon depiction hides
         '''
@@ -1075,7 +1078,7 @@ class StructureSeq(Sequence):
         or None if no such residue exists.'''
         pos = self.res_map[r]
         return self.residue_at(pos+1)
-    
+
     @staticmethod
     def restore_snapshot(session, data):
         sseq = StructureSequence(chain_id=data['chain_id'], structure=data['structure'])
@@ -1637,7 +1640,7 @@ class Element:
     @staticmethod
     def bond_length(e1, e2):
         """Standard single-bond length between two elements
-        
+
         Arguments can be element instances, atomic numbers, or element names"""
         if not isinstance(e1, Element):
             e1 = Element.get_element(e1)
@@ -1651,7 +1654,7 @@ class Element:
     def bond_radius(e):
         """Standard single-bond 'radius'
         (the amount this element would contribute to bond length)
-        
+
         Argument can be an element instance, atomic number, or element name"""
         if not isinstance(e, Element):
             e = Element.get_element(e)
