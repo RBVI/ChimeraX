@@ -399,6 +399,8 @@ class MainWindow(QMainWindow, PlainTextLog):
                     if tw.title == "Command Line Interface":
                         # leave the command line as is
                         continue
+                    if tw.floating:
+                        continue
                     state = tw.shown
                     states[tw] = state
                     if state:
@@ -745,6 +747,10 @@ class ToolWindow(StatusLogger):
 
         Override to add items to any context menu popped up over this window"""
         pass
+
+    @property
+    def floating(self):
+        return self.__toolkit.dock_widget.isFloating()
 
     def manage(self, placement, fixed_size=False):
         """Show this tool window in the interface
