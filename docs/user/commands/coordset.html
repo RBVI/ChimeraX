@@ -29,12 +29,14 @@ class="clRight" title="User Guide Index"/></a>
 <br><b>coordset</b>
 &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
 &nbsp;<i>frame</i>
+[&nbsp;computeSS&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;holdSteady&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>coordset</b>
 &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
 [<i>start</i>],[<i>end</i>][,<i>step</i>]
+[&nbsp;computeSS&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;holdSteady&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
 [&nbsp;loop&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;pause&nbsp;&nbsp;<i>M</i>&nbsp;]
@@ -46,15 +48,18 @@ a multi-model PDB file by using <a href="open.html"><b>open</b></a>
 with the <b>coordset</b> option. The number of coordinate sets in a trajectory
 can be reported with the command <a href="info.html"><b>info</b></a>.
 See also: <a href="../movies.html">making movies</a>
-</p>
-<blockquote>
-**&nbsp;Protein secondary structure assignments are not recomputed automatically
-over the course of a trajectory.
-If a protein is displayed as a <a href="cartoon.html">cartoon</a> (ribbon),
-users may want to re-evaluate secondary structure periodically
-as described <a href="#ssnote">below</a>.&nbsp;**
-</blockquote>
-<p>
+</p><p>
+Protein <a href="cartoon.html">cartoon</a> (ribbon) display
+depends on which residues are in helices and strands,
+but these secondary structure assignments are not recomputed automatically
+as the coordinates change.
+The <b>computeSS</b> option (default <b>false</b>)
+can be used to update secondary structure assignments as each frame is shown.
+It runs <a href="dssp.html"><b>dssp</b></a> with default parameters;
+to use different <a href="dssp.html"><b>dssp</b></a> parameters
+or to run it less frequently than every frame shown,
+see <a href="#ssnote">below</a>.
+</p><p>
 The <i>model-spec</i> is the model number of the trajectory, preceded by #.
 A comma-separated list or range of model numbers can be used
 to specify multiple trajectories at once.
@@ -109,25 +114,6 @@ Examples:
 - play from the last frame to the first, every 10th frame, backwards
 </blockquote>
 
-<a name="ssnote"></a>
-<p class="nav">
-[<a href="#top">back to top</a>]
-</p>
-<h3>Recomputing Secondary Structure</h3>
-<p>
-If a protein is displayed as a <a href="cartoon.html">cartoon</a> (ribbon)
-and significant conformational changes are occurring over the trajectory,
-users may want to re-evaluate secondary structure assignments periodically.
-This can be done with the command 
-<a href="perframe.html"><b>perframe</b></a>
-in combination with <a href="dssp.html"><b>dssp</b></a>. Examples:
-</p>
-<blockquote>
-<b><a href="perframe.html">perframe</a> dssp; coordset #2 1,21; <a href="wait.html">wait</a> 21; <a href="perframe.html">~perframe</b>
-<br>
-<b><a href="perframe.html">perf</a> dssp interval 5; coord #1 1,200; <a href="wait.html">wait</a> 200; <a href="perframe.html">~perf</a></b>
-</blockquote>
-
 <a name="framesdef"></a>
 <p class="nav">
 [<a href="#top">back to top</a>]
@@ -148,6 +134,27 @@ Because of such broad usage, the documentation also uses &ldquo;frames&rdquo;
 in both senses, but context and wording should indicate which meaning 
 applies in a particular situation.
 </p>
+
+<a name="ssnote"></a>
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<h3>Recomputing Secondary Structure</h3>
+<p>
+If a protein is displayed as a <a href="cartoon.html">cartoon</a> (ribbon)
+and conformational changes are occurring over the trajectory,
+users may want to re-evaluate secondary structure assignments periodically.
+The <b>computeSS</b> option of <a href="#top"><b>coordset</b></a>
+already provides a convenient way to reassign secondary structure 
+at every frame shown.
+However, an alternative approach with <a href="perframe.html"><b>perframe</b></a>
+can be used to run
+<a href="dssp.html"><b>dssp</b></a> less frequently or with nondefault settings.
+For example, to reassign secondary structure at every fifth frame:
+</p>
+<blockquote>
+<b><a href="perframe.html">perframe</a> dssp interval 5; coord #1 1,200; <a href="wait.html">wait</a> 200; <a href="perframe.html">~perframe</a></b>
+</blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
