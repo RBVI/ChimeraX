@@ -56,6 +56,8 @@ Structure-related Modules
 .. toctree::
     :maxdepth: 2
 
+    core/atomic/mmcif.rst
+
     core/atomic/pdbio.rst
 
 Graphics-related Modules

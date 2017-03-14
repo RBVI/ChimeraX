@@ -241,6 +241,9 @@ class Alignment(State):
            is done with the alignment (typically at viewer exit), it should call the
            detach_viewer method (which may destroy the alignment if the alignment's
            auto_destroy attr is True).
+
+           Also needs to be called by the viewer at session restore, since the alignment doesn't
+           keep the registered viewers (to avoid a circular dependency).
         """
         self.viewers.append(viewer)
 
@@ -355,7 +358,7 @@ class Alignment(State):
 
     def prematched_assoc_structure(self, match_map, errors, reassoc):
         """If somehow you had obtained a SeqMatchMap for the align_seq<->struct_seq correspondence,
-           you would use this call instead of the more usual associate() call
+           you would use this call directly instead of the more usual associate() call
         """
         chain = match_map.struct_seq.chain
         aseq = match_map.align_seq
@@ -392,8 +395,9 @@ class Alignment(State):
     @staticmethod
     def restore_snapshot(session, data):
         """For restoring scenes/sessions"""
-        aln = Alignment(data['seqs'], data['name'], data['file attrs'], data['file markups'])
-        aln.associations = associations
+        aln = Alignment(session, data['seqs'], data['name'], data['file attrs'],
+            data['file markups'], data['auto_destroy'], data['auto_associate'])
+        aln.associations = data['associations']
         for s, mm in zip(aln.seqs, data['match maps']):
             s.match_maps = mm
         return aln
@@ -401,8 +405,9 @@ class Alignment(State):
     def take_snapshot(self, session, flags):
         """For session/scene saving"""
         return { 'version': 1, 'seqs': self.seqs, 'name': self.name,
-            'file attrs': self.file_atts, 'file markups': self.file_markups,
-            'associations': self.associations, 'match maps': [s.match_maps for s in self.seqs]}
+            'file attrs': self.file_attrs, 'file markups': self.file_markups,
+            'associations': self.associations, 'match maps': [s.match_maps for s in self.seqs],
+            'auto_destroy': self.auto_destroy, 'auto_associate': self.auto_associate }
 
 
 def nw_assoc(session, align_seq, struct_seq):

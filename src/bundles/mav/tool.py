@@ -26,13 +26,21 @@ class MultalignViewer(ToolInstance):
                 title=None, quitCB=None, frame=None, numberingDisplay=None,
                 sessionSave=True):
     """
-    def __init__(self, session, tool_name, alignment):
-        """ if 'autoAssocate' is None then it is the same as False except
+    def __init__(self, session, tool_name, alignment=None):
+        """ if 'alignment' is None, then we are being restored from a session and
+            set_state_from_snapshot will be called later.
+
+            if 'autoAssociate' is None then it is the same as False except
             that any StructureSequences in the alignment will be associated
             with their structures
         """
-        ToolInstance.__init__(self, session, tool_name)
 
+        ToolInstance.__init__(self, session, tool_name)
+        if alignment is None:
+            return
+        self._finalize_init(session, alignment)
+
+    def _finalize_init(self, session, alignment):
         """TODO
         from chimera import triggerSet
         self.triggers = triggerSet.TriggerSet()
@@ -440,6 +448,22 @@ class MultalignViewer(ToolInstance):
             kw['blocks'] = blocks
             del kw['columns']
         return self.region_browser.new_region(**kw)
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        bundle_info = session.toolshed.find_bundle_for_class(cls)
+        inst = cls(session, bundle_info.tools[0].name)
+        ToolInstance.set_state_from_snapshot(inst, session, data['ToolInstance'])
+        inst._finalize_init(session, data['alignment'])
+        return inst
+
+    def take_snapshot(self, session, flags):
+        data = {
+            'ToolInstance': ToolInstance.take_snapshot(self, session, flags),
+            'alignment': self.alignment,
+            #'region browser': self.region_browser.save_state()
+        }
+        return data
 
 def _start_mav(session, tool_name, alignment=None):
     if alignment is None:

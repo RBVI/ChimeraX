@@ -123,7 +123,9 @@ class _UniqueName:
         return cls(uid)
 
     def __repr__(self):
-        return '%s(%r)' % (self.__class__.__name__, self.uid)
+        if len(self.uid) == 1:
+            return '<%r>' % self.uid
+        return '<%r, %r>' % self.uid
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
@@ -216,14 +218,15 @@ class _SaveManager:
 
     def process(self, obj):
         self._found_objs = []
+        data = None
         sm = self.session.snapshot_methods(obj)
         if sm:
-            # TODO: if data is None or exception, log failure
-            data = sm.take_snapshot(obj, self.session, self.state_flags)
-            if data is None:
-                raise RuntimeError('take_snapshot() for "%s" instance returned None' % obj.__class__.__name__)
-        else:
-            data = obj
+            try:
+                data = sm.take_snapshot(obj, self.session, self.state_flags)
+            except:
+                pass
+        if data is None:
+            self.session.logger.warning('Unable to save "%s".  Session might not restore properly.' % obj.__class__.__name__)
         return copy_state(data, convert=self._add_obj)
 
     def walk(self):
@@ -477,8 +480,10 @@ class Session:
                         continue
                     sm = self.snapshot_methods(cls, instance=False)
                     if sm is None:
-                        print('no snapshot methods for class', cls.__name__)
-                    obj = sm.restore_snapshot(self, data)
+                        obj = None
+                        self.logger.warning('Unable to restore "%s" object' % cls.__name__)
+                    else:
+                        obj = sm.restore_snapshot(self, data)
                     mgr.add_reference(name, obj)
         except:
             import traceback

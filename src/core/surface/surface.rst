@@ -40,7 +40,7 @@ sometimes called varray, tarray, narray, and sometimes vertices, triangles, norm
     :show-inheritance:
 
 .. automodule:: chimerax.core.surface._surface
-    :members: connected_triangles, triangle_vertices, connected_pieces, enclosed_volume, surface_area, vertex_areas, boundary_edges, boundary_loops, calculate_vertex_normals, invert_vertex_normals, parse_stl, sharp_edge_patches, unique_vertex_map, surface_area_of_spheres, estimate_surface_area_of_spheres, subdivide_triangles, subdivide_mesh, tube_geometry, tube_geometry_colors, tube_triangle_mask
+    :members: connected_triangles, triangle_vertices, connected_pieces, enclosed_volume, surface_area, vertex_areas, boundary_edges, boundary_loops, calculate_vertex_normals, invert_vertex_normals, sharp_edge_patches, unique_vertex_map, surface_area_of_spheres, estimate_surface_area_of_spheres, subdivide_triangles, subdivide_mesh, tube_geometry, tube_geometry_colors, tube_triangle_mask
 
 .. automodule:: chimerax.core.surface.dust
     :members:
