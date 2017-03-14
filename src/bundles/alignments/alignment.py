@@ -277,8 +277,8 @@ class Alignment(State):
                     % (struct_name, sseq.name, aseq.name))
             from chimerax.core.triggerset import DEREGISTER
             return DEREGISTER
-        self.session.triggers.add_handler('atomic changes', _delay_disassoc)
-
+        from chimerax.core import atomic
+        atomic.get_triggers(self.session).add_handler('changes', _delay_disassoc)
 
     def match(self, ref_chain, match_chains, *, iterate=-1, restriction=None):
         """Match the match_chains onto the ref_chain.  All chains must already be associated
@@ -358,7 +358,7 @@ class Alignment(State):
 
     def prematched_assoc_structure(self, match_map, errors, reassoc):
         """If somehow you had obtained a SeqMatchMap for the align_seq<->struct_seq correspondence,
-           you would use this call instead of the more usual associate() call
+           you would use this call directly instead of the more usual associate() call
         """
         chain = match_map.struct_seq.chain
         aseq = match_map.align_seq
@@ -395,8 +395,9 @@ class Alignment(State):
     @staticmethod
     def restore_snapshot(session, data):
         """For restoring scenes/sessions"""
-        aln = Alignment(data['seqs'], data['name'], data['file attrs'], data['file markups'])
-        aln.associations = associations
+        aln = Alignment(session, data['seqs'], data['name'], data['file attrs'],
+            data['file markups'], data['auto_destroy'], data['auto_associate'])
+        aln.associations = data['associations']
         for s, mm in zip(aln.seqs, data['match maps']):
             s.match_maps = mm
         return aln
@@ -405,7 +406,8 @@ class Alignment(State):
         """For session/scene saving"""
         return { 'version': 1, 'seqs': self.seqs, 'name': self.name,
             'file attrs': self.file_attrs, 'file markups': self.file_markups,
-            'associations': self.associations, 'match maps': [s.match_maps for s in self.seqs]}
+            'associations': self.associations, 'match maps': [s.match_maps for s in self.seqs],
+            'auto_destroy': self.auto_destroy, 'auto_associate': self.auto_associate }
 
 
 def nw_assoc(session, align_seq, struct_seq):

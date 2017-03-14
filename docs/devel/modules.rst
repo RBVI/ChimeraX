@@ -50,6 +50,8 @@ Python Modules
 
     core/orderedset.rst
 
+    core/atomic/mmcif.rst
+
     core/atomic/pdbio.rst
 
     core/safesave.rst

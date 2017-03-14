@@ -125,7 +125,7 @@ Bundles that provide data formats need:
     An optional string containing the filename of the icon --
     it defaults to the default icon for the category.
     The file should be ?TODO? -- metadata dir?  package dir?
-10. ``synopsis
+10. ``synopsis`` : str
     A short description of the data format.  It is here
     because it needs to be part of the metadata available for
     uninstalled data format, so that users can get more than just a

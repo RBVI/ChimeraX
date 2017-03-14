@@ -1660,12 +1660,13 @@ class RegionBrowser:
 
     def _show_sel_cb(self):
         # also called from settings dialog
+        from chimerax.core import atomic
         if self.seq_canvas.mav.settings.show_sel:
             self.show_chimerax_selection()
-            self._sel_change_handler = self.tool_window.session.triggers.add_handler(
-                "atomic changes", self._sel_change_cb)
+            self._sel_change_handler = atomic.get_triggers(self.tool_window.session).add_handler(
+                "changes", self._sel_change_cb)
         else:
-            self.tool_window.session.triggers.remove_handler(self._sel_change_handler)
+            atomic.get_triggers(self.tool_window.session).remove_handler(self._sel_change_handler)
             self._sel_change_handler = None
             sel_region = self.get_region("ChimeraX selection")
             if sel_region:

@@ -397,9 +397,11 @@ class Atoms(Collection):
                        ret = ctypes.c_size_t)
         return f(self._c_pointers, len(self))
     hides = cvec_property('atom_hide', int32,
-        doc="Controls whether the Atom is hidden (overrides display). Returns a :mod:`numpy` "
-        "array of int32 values.  Possible values:\nHIDE_RIBBON\n    Hide mask for backbone atoms "
-        "in ribbon.\nCan be set with such an array (or equivalent sequence), or with a single "
+    doc="Whether atom is hidden (overrides display).  Returns a :mod:`numpy` array of int32 bitmask."
+        "\n\nPossible values:\n\n"
+        "HIDE_RIBBON\n"
+        "    Hide mask for backbone atoms in ribbon.\n\n"
+        "Can be set with such an array (or equivalent sequence), or with a single "
         "integer value.")
     idatm_types = cvec_property('atom_idatm_type', string,
         doc="Returns a numpy array of IDATM types.  Can be set with such an array (or equivalent "

@@ -9,7 +9,8 @@
 # Unspecified step is 1 or -1 depending on if end > start.
 # Can use -1 for last frame.  Frame numbers start at 1.
 #
-def coordset(session, structures, index_range, hold_steady = None, pause = 1, loop = 1):
+def coordset(session, structures, index_range, hold_steady = None,
+             pause = 1, loop = 1, compute_ss = False):
   '''
   Change which coordinate set is shown for a structure.  Can play through
   a range of coordinate sets.  
@@ -28,11 +29,13 @@ def coordset(session, structures, index_range, hold_steady = None, pause = 1, lo
   hold_steady : Atoms
     Collection of atoms to hold steady while changing coordinate set.
     The atomic structure is repositioned to minimize change in RMSD of these atoms.
-  pause : int
+  pause : integer
      Stay at each coordset for this number of graphics frames.  This is to slow
      down playback.  Default 1.
   loop : integer
     How many times to repeat playing through the coordinates in the specified range.
+  compute_ss : bool
+    Whether to recompute secondary structure using dssp for every new frame.  Default false.
   '''
 
   if len(structures) == 0:
@@ -42,18 +45,19 @@ def coordset(session, structures, index_range, hold_steady = None, pause = 1, lo
   for m in structures:
     s,e,step = absolute_index_range(index_range, m)
     hold = hold_steady.intersect(m.atoms) if hold_steady else None
-    Coordinate_Set_Player(m, s, e, step, hold, pause, loop).start()
+    Coordinate_Set_Player(m, s, e, step, hold, pause, loop, compute_ss).start()
 
 # -----------------------------------------------------------------------------
 #
 def register_command(session):
-    from . import CmdDesc, register, AtomicStructuresArg, ListOf, IntArg, AtomsArg
+    from . import CmdDesc, register, AtomicStructuresArg, ListOf, IntArg, AtomsArg, BoolArg
     desc = CmdDesc(
         required = [('structures', AtomicStructuresArg),
                     ('index_range', IndexRangeArg)],
         keyword = [('hold_steady', AtomsArg),
                    ('pause', IntArg),
-                   ('loop', IntArg)],
+                   ('loop', IntArg),
+                   ('compute_ss', BoolArg)],
         synopsis = 'show coordinate sets')
     register('coordset', desc, coordset, logger=session.logger)
 
@@ -122,7 +126,7 @@ def absolute_index_range(index_range, mol):
 class Coordinate_Set_Player:
 
   def __init__(self, molecule, istart, iend, istep,
-               steady_atoms = None, pause = 1, loop = 1):
+               steady_atoms = None, pause = 1, loop = 1, compute_ss = False):
 
     self.molecule = molecule
     self.istart = istart
@@ -132,6 +136,7 @@ class Coordinate_Set_Player:
     self.steady_atoms = steady_atoms
     self.pause = pause
     self.loop = loop
+    self.compute_ss = compute_ss
     self._pause_count = 0
     self._steady_coords = None
     self._steady_transforms = {}
@@ -166,9 +171,13 @@ class Coordinate_Set_Player:
     last_cs = m.active_coordset_id
     try:
       m.active_coordset_id = i
+      compute_ss = self.compute_ss
     except:
       # No such coordset.
-      pass
+      compute_ss = False
+    if compute_ss:
+      from . import dssp
+      dssp.compute_ss(m.session, m)
     else:
       if self.steady_atoms:
         self.hold_steady(last_cs)
