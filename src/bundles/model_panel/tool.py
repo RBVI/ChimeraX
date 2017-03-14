@@ -65,7 +65,8 @@ class ModelPanel(ToolInstance):
         from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
         self.session.triggers.add_handler(ADD_MODELS, self._initiate_fill_tree)
         self.session.triggers.add_handler(REMOVE_MODELS, self._initiate_fill_tree)
-        self.session.triggers.add_handler("atomic changes", self._changes_cb)
+        from chimerax.core import atomic
+        atomic.get_triggers(self.session).add_handler("changes", self._changes_cb)
         self._frame_drawn_handler = None
         tw.manage(placement="side")
         tw.shown_changed = self._shown_changed

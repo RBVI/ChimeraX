@@ -1783,7 +1783,8 @@ class SeqMatchMap(State):
         self._align_seq = align_seq
         self._struct_seq = struct_seq
         self.session = session
-        self._handler = session.triggers.add_handler("atomic changes", self._atomic_changes)
+        from . import get_triggers
+        self._handler = get_triggers(session).add_handler("changes", self._atomic_changes)
 
     def __contains__(self, i):
         if isinstance(i, int):
@@ -1851,7 +1852,8 @@ class SeqMatchMap(State):
     def __del__(self):
         self._pos_to_res.clear()
         self._res_to_pos.clear()
-        self.session.triggers.remove_handler(self._handler)
+        from . import get_triggers
+        get_triggers(self.session).remove_handler(self._handler)
 
 # -----------------------------------------------------------------------------
 #

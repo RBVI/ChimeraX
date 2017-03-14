@@ -277,8 +277,8 @@ class Alignment(State):
                     % (struct_name, sseq.name, aseq.name))
             from chimerax.core.triggerset import DEREGISTER
             return DEREGISTER
-        self.session.triggers.add_handler('atomic changes', _delay_disassoc)
-
+        from chimerax.core import atomic
+        atomic.get_triggers(self.session).add_handler('changes', _delay_disassoc)
 
     def match(self, ref_chain, match_chains, *, iterate=-1, restriction=None):
         """Match the match_chains onto the ref_chain.  All chains must already be associated
