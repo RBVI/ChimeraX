@@ -507,11 +507,11 @@ class CollatingLog(PlainTextLog):
         import html
         msgs = [html.escape(m) for m in msgs]
         
+        import sys
         if collapse_similar:
             summarized = []
             prev_msg = sim_info = None
             for msg in msgs:
-                msg = msg.replace('\n', '<br>')
                 # Judge similarity to preceding messages and perhaps collapse...
                 if sim_info:
                     sim_reps, sim_type, sim_data = sim_info
@@ -558,11 +558,9 @@ class CollatingLog(PlainTextLog):
                 if sim_reps > self.sim_collapse_after:
                     summarized.append("{} messages similar to the above omitted\n".format(
                         sim_reps - self.sim_collapse_after))
-            summarized_msg = "<br>\n".join(summarized)
         else:
-            summarized_msg = "<br>\n".join(msgs)
-        return summarized_msg
-
+            summarized = msgs
+        return "".join(summarized).strip().replace('\n', '<br>')
 
 class Collator:
     """Context manager for a CollatingLog
