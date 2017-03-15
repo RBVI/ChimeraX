@@ -448,19 +448,19 @@ class RegionBrowser:
         if settings.show_sel:
             self._show_sel_cb()
 
-    def clearRegions(self, doSingleSeqRegions=True):
-        if doSingleSeqRegions:
+    def clear_regions(self, do_single_seq_regions=True):
+        if do_single_seq_regions:
             for region in self.regions[:]:
                 region.destroy()
             self.associated_regions.clear()
             self.sequence_regions = { None: set() }
         else:
-            singleSeqRegions = set()
+            single_seq_regions = set()
             for seq, regions in self.sequence_regions.items():
                 if seq is not None:
-                    singleSeqRegions.update(regions)
+                    single_seq_regions.update(regions)
             for region in self.regions[:]:
-                if region not in singleSeqRegions:
+                if region not in single_seq_regions:
                     region.destroy()
 
     def copyRegion(self, region, name=None, **kw):
@@ -1050,18 +1050,23 @@ class RegionBrowser:
         self.rename_dialogs[region].enter()
 
     def restore_state(self, state):
+        self.clear_regions()
         for region_state in state['regions']:
             r = Region(self)
             self.regions.append(r)
             r.restore_state(region_state)
         hr = state['_highlighted_region']
         self._highlighted_region = None if hr is None else self.regions[hr]
-        self.associated_regions = { k: [self.regions(r) for r in v]
+        self.associated_regions = { k: [self.regions[ri] for ri in v]
             for k,v in state['associated_regions'].items() }
-        self.sequence_regions = { k: set([ self.regions(r) for r in v ])
+        self.sequence_regions = { k: set([ self.regions[ri] for ri in v ])
             for k,v in state['sequence_regions'].items() }
         cr = state['_cur_region']
         self._cur_region = None if cr is None else self.regions[cr]
+        dr = state['_drag_region']
+        self._drag_region = None if dr is None else self.regions[dr]
+        pd = state['_prev_drag']
+        self._prev_drag = None if pd is None else self.regions[pd]
         return state
 
     def save_state(self):
@@ -1070,13 +1075,17 @@ class RegionBrowser:
         for region in self.regions:
             region_state.append(region.save_state())
         state['_highlighted_region'] = None if self._highlighted_region is None \
-            else self.regions.index[self._highlighted_region]
+            else self.regions.index(self._highlighted_region)
         state['associated_regions'] = { k: [ self.regions.index(r) for r in v ]
             for k,v in self.associated_regions.items() }
         state['sequence_regions'] = { k: [ self.regions.index(r) for r in v ]
             for k,v in self.sequence_regions.items() }
         state['_cur_region'] = None if self._cur_region is None \
-            else self.regions.index[self._cur_region]
+            else self.regions.index(self._cur_region)
+        state['_drag_region'] = None if self._drag_region is None \
+            else self.regions.index(self._drag_region)
+        state['_prev_drag'] = None if self._prev_drag is None \
+            else self.regions.index(self._prev_drag)
         return state
 
     def seeRegion(self, region=None):
@@ -1361,7 +1370,6 @@ class RegionBrowser:
         """
         self._clear_drag()
 
-        self._drag_region = None
         if event.modifiers() & Qt.ShiftModifier:
             self._drag_region = self.cur_region()
         else:
@@ -1429,7 +1437,7 @@ class RegionBrowser:
         """
 
         from PyQt5.QtCore import Qt
-        control_down = event.modifiers() & Qt.ControlModifier
+        control_down = bool(event.modifiers() & Qt.ControlModifier)
         pos = event.scenePos()
         canvas_x, canvas_y = pos.x(), pos.y()
         if abs(canvas_x - self._start_x) > 1 or abs(canvas_y - self._start_y) > 1:
@@ -1447,7 +1455,9 @@ class RegionBrowser:
                     outline=settings.new_region_border, fill=settings.new_region_interior,
                     cover_gaps=True, rebuild_table=rebuild_table)
                 if not control_down and self._prev_drag:
-                    self._prev_drag.destroy(rebuild_table=rebuild_table)
+                    # delete_region keeps sequence_regions and associated_regions
+                    # up to date, direct destroy does not
+                    self.delete_region(self._prev_drag, rebuild_table=rebuild_table)
                     self._prev_drag = None
             elif not self._drag_lines:
                 self._drag_region.add_block(block)
