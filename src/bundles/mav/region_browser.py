@@ -281,6 +281,21 @@ class Region:
         elif make_cb:
             self.region_browser._region_size_changed_cb(self)
 
+    def restore_state(self, state):
+        self._name = state['_name']
+        self.name_prefix = state['name_prefix']
+        self._border_rgba = state['_border_rgba']
+        self._interior_rgba = state['_interior_rgba']
+        self.cover_gaps = state['cover_gaps']
+        self.source = state['source']
+        self.highlighted = state['highlighted']
+        self._shown = state['_shown']
+        self._active = state['_active']
+        self.sequence = state['sequence']
+        self.associated_with = state['associated_with']
+        self.add_blocks(state['blocks'], make_cb=False)
+        return state
+
     def get_rmsd(self):
         num_d = sum_d2 = 0
         from chimerax.core.geometry import distance_squared
@@ -329,6 +344,22 @@ class Region:
         return None
     
     rmsd = property(get_rmsd)
+
+    def save_state(self):
+        state = {}
+        state['_name'] = self._name
+        state['name_prefix'] = self.name_prefix
+        state['_border_rgba'] = self._border_rgba
+        state['_interior_rgba'] = self._interior_rgba
+        state['cover_gaps'] = self.cover_gaps
+        state['source'] = self.source
+        state['highlighted'] = self.highlighted
+        state['_shown'] = self._shown
+        state['_active'] = self._active
+        state['sequence'] = self.sequence
+        state['associated_with'] = self.associated_with
+        state['blocks'] = self.blocks
+        return state
 
     def set_cover_gaps(self, cover):
         if cover != self.cover_gaps:
@@ -1016,6 +1047,36 @@ class RegionBrowser:
         if region not in self.rename_dialogs:
             self.rename_dialogs[region] = RenameDialog(self, region)
         self.rename_dialogs[region].enter()
+
+    def restore_state(self, state):
+        for region_state in state['regions']:
+            r = Region(self)
+            self.regions.append(r)
+            r.restore_state(region_state)
+        hr = state['_highlighted_region']
+        self._highlighted_region = None if hr is None else self.regions[hr]
+        self.associated_regions = { k: [self.regions(r) for r in v]
+            for k,v in state['associated_regions'].items() }
+        self.sequence_regions = { k: set([ self.regions(r) for r in v ])
+            for k,v in state['sequence_regions'].items() }
+        cr = state['_cur_region']
+        self._cur_region = None if cr is None else self.regions[cr]
+        return state
+
+    def save_state(self):
+        state = {}
+        region_state = state['regions'] = []
+        for region in self.regions:
+            region_state.append(region.save_state())
+        state['_highlighted_region'] = None if self._highlighted_region is None \
+            else self.regions.index[self._highlighted_region]
+        state['associated_regions'] = { k: [ self.regions.index(r) for r in v ]
+            for k,v in self.associated_regions.items() }
+        state['sequence_regions'] = { k: [ self.regions.index(r) for r in v ]
+            for k,v in self.sequence_regions.items() }
+        state['_cur_region'] = None if self._cur_region is None \
+            else self.regions.index[self._cur_region]
+        return state
 
     def seeRegion(self, region=None):
         if not region:

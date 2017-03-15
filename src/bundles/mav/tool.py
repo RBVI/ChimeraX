@@ -455,13 +455,14 @@ class MultalignViewer(ToolInstance):
         inst = cls(session, bundle_info.tools[0].name)
         ToolInstance.set_state_from_snapshot(inst, session, data['ToolInstance'])
         inst._finalize_init(session, data['alignment'])
+        inst.region_browser.restore_state(data['region browser'])
         return inst
 
     def take_snapshot(self, session, flags):
         data = {
             'ToolInstance': ToolInstance.take_snapshot(self, session, flags),
             'alignment': self.alignment,
-            #'region browser': self.region_browser.save_state()
+            'region browser': self.region_browser.save_state()
         }
         return data
 
