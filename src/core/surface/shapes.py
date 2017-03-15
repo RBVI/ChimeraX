@@ -141,7 +141,7 @@ def dashed_cylinder_geometry(segments = 5, radius = 1, height = 1, nz = 2, nc = 
 
 # -----------------------------------------------------------------------------
 #
-def cone_geometry(radius = 1, height = 1, nc = 10, caps = True, points_up = True):
+def cone_geometry(radius = 1, height = 1, nc = 20, caps = True, points_up = True):
     '''
     Return vertex, normal vector and triangle arrays for cone geometry
     with specified radius and height with point of cone at origin
@@ -161,23 +161,24 @@ def cone_geometry(radius = 1, height = 1, nc = 10, caps = True, points_up = True
     import sys
     circle = empty((nc, 2), float32)
     circle[:,0] = cos(angles)
-    circle[:,1] = sin(angles)
+    circle[:,1] = sin(angles) if points_up else -sin(angles)
 
 
     # Create cone faces (first nc*2 vertices)
     # The normals are wrong, but let's see how they look
     zbase = -0.5*height if points_up else 0.5*height
+    znorm = radius/height if points_up else -radius/height
     nc2 = nc * 2
     varray[:nc] = (0, 0, -zbase)      # point of cone (multiple normals)
     narray[:nc,:2] = circle
-    narray[:nc,2] = radius/height
+    narray[:nc,2] = znorm
     varray[nc:nc2,:2] = radius*circle      # base of cone
     varray[nc:nc2,2] = zbase
     narray[nc:nc2,:2] = circle
-    narray[nc:nc2,2] = radius/height
+    narray[nc:nc2,2] = znorm
     tarray[:nc,0] = arange(nc)
-    tarray[:nc,1] = (arange(nc) + 1) % nc + nc
-    tarray[:nc,2] = arange(nc) + nc
+    tarray[:nc,1] = arange(nc) + nc
+    tarray[:nc,2] = (arange(nc) + 1) % nc + nc
     from ..geometry.vector import normalize_vectors
     normalize_vectors(narray[:nc2])
     
@@ -188,8 +189,8 @@ def cone_geometry(radius = 1, height = 1, nc = 10, caps = True, points_up = True
         varray[nc2+1:,2] = zbase
         narray[nc2:] = (0,0,-1) if points_up else (0,0,1)
         tarray[nc:,0] = nc2
-        tarray[nc:,1] = (arange(nc) + 1) % nc + nc2 + 1
-        tarray[nc:,2] = arange(nc) + nc2 + 1
+        tarray[nc:,1] = arange(nc) + nc2 + 1
+        tarray[nc:,2] = (arange(nc) + 1) % nc + nc2 + 1
 
     return varray, narray, tarray
 
