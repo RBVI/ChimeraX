@@ -504,7 +504,8 @@ class RegionBrowser:
                             self._seqRenamedHandlerID)
         """
         if self._sel_change_handler:
-            self.tool_window.session.triggers.remove_handler(self._sel_change_handler)
+            from chimerax.core import atomic
+            atomic.get_triggers(self.tool_window.session).remove_handler(self._sel_change_handler)
         """
         if self._scf_dialog:
             self._scf_dialog.destroy()
