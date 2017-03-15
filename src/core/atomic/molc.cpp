@@ -4192,7 +4192,7 @@ static void _parallel_transport_normals(int num_pts, float* tangents, float* n0,
         float *ti = ti1 + 3;
         cross(ti1, ti, b);
         float b_len = sqrtf(inner(b, b));
-        if (!std::isnan(b_len)) {
+        if (!std::isnan(b_len) && b_len > 0) {
             b_hat[0] = b[0] / b_len;
             b_hat[1] = b[1] / b_len;
             b_hat[2] = b[2] / b_len;
