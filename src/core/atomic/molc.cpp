@@ -2248,7 +2248,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
             //
             {
                 Residue* r = res_array[last];
-                float* guide = gdata;
+                float* guide = gdata + last*3;
                 float* source;
                 if (want_peptide
                 && r->polymer_type() == Residue::PT_AMINO
