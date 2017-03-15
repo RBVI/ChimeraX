@@ -512,7 +512,7 @@ class HandControllerModel(Model):
     def __init__(self, name, session, rgba8, size = 0.20, aspect = 0.2):
         Model.__init__(self, name, session)
         from chimerax.core.surface.shapes import cone_geometry
-        va, na, ta = cone_geometry(nc = 50)
+        va, na, ta = cone_geometry(nc = 50, points_up = False)
         va[:,:2] *= aspect
         va[:,2] += 0.5		# Move tip to 0,0,0 for picking
         va *= size

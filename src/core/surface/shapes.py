@@ -141,7 +141,7 @@ def dashed_cylinder_geometry(segments = 5, radius = 1, height = 1, nz = 2, nc = 
 
 # -----------------------------------------------------------------------------
 #
-def cone_geometry(radius = 1, height = 1, nc = 10, caps = True):
+def cone_geometry(radius = 1, height = 1, nc = 10, caps = True, points_up = True):
     '''
     Return vertex, normal vector and triangle arrays for cone geometry
     with specified radius and height with point of cone at origin
@@ -166,12 +166,13 @@ def cone_geometry(radius = 1, height = 1, nc = 10, caps = True):
 
     # Create cone faces (first nc*2 vertices)
     # The normals are wrong, but let's see how they look
+    zbase = -0.5*height if points_up else 0.5*height
     nc2 = nc * 2
-    varray[:nc] = (0, 0, -0.5*height)      # point of cone (multiple normals)
+    varray[:nc] = (0, 0, -zbase)      # point of cone (multiple normals)
     narray[:nc,:2] = circle
     narray[:nc,2] = radius/height
     varray[nc:nc2,:2] = radius*circle      # base of cone
-    varray[nc:nc2,2] = 0.5*height
+    varray[nc:nc2,2] = zbase
     narray[nc:nc2,:2] = circle
     narray[nc:nc2,2] = radius/height
     tarray[:nc,0] = arange(nc)
@@ -182,10 +183,10 @@ def cone_geometry(radius = 1, height = 1, nc = 10, caps = True):
     
     # Create cone base (last nc+1 vertices)
     if caps:
-        varray[nc2] = (0, 0, 0.5*height)
+        varray[nc2] = (0, 0, zbase)
         varray[nc2+1:,:2] = radius*circle
-        varray[nc2+1:,2] = 0.5*height
-        narray[nc2:] = (0, 0, 1)
+        varray[nc2+1:,2] = zbase
+        narray[nc2:] = (0,0,-1) if points_up else (0,0,1)
         tarray[nc:,0] = nc2
         tarray[nc:,1] = (arange(nc) + 1) % nc + nc2 + 1
         tarray[nc:,2] = arange(nc) + nc2 + 1
