@@ -205,13 +205,18 @@ public:
 
     // Indicate that CIF file follows the PDBx/mmCIF style guide
     // with lowercase keywords and tags at beginning of lines
-    bool PDB_style() const { return stylized; }
-    void set_PDB_style(bool stylized) { this->stylized = stylized; }
+    bool PDBx_keywords() const;
+    void set_PDBx_keywords(bool stylized);
 
-    // Indicate that the next CIF table uses PDBx/mmCIF style
-    // fixed column widths
-    bool PDB_fixed_columns() const { return fixed_columns; }
-    void set_PDB_fixed_columns(bool fc) { fixed_columns = fc; }
+    // Indicate that CIF file follows the PDBx/mmCIF style guide
+    // with fixed width columns within a category.
+    void set_PDBx_fixed_width_columns(const std::string& category);
+
+    // Return if there were any fixed width column categories specified.
+    bool has_PDBx_fixed_width_columns() const;
+
+    // Return if current category is parsed using PDBx fixed width columns.
+    bool PDBx_fixed_width_columns() const;
 
     // version() returns the version of the CIF file if it is given.
     // For mmCIF files it is typically empty.
@@ -253,8 +258,8 @@ public:
     // Return current block code
     const std::string& block_code() const;
 
-    // Return current category column tags.
-    const StringVector& tags() const;
+    // Return current category column names
+    const StringVector& colnames() const;
 
     // Return if current category has multiple rows 
     bool multiple_rows() const;
@@ -263,7 +268,7 @@ public:
     size_t line_number() const;
 
     // Convert tag to column position.
-    int get_column(const char* tag, bool required=false);
+    int get_column(const char* name, bool required=false);
 
     // return text + " on line #"
     std::runtime_error error(const std::string& text);
@@ -305,16 +310,17 @@ private:
     // parsing state
     bool        parsing;
     bool        stylized;   // true for PDBx/mmCIF keyword style
-    bool        fixed_columns;  // true for PDBx/mmCIF fixed column widths
+    bool        fixed;      // true if category has fixed width columns
     std::string version_;   // version given in CIF file
     const char* whole_file;
     std::string current_data_block;
     std::string current_category;
-    StringVector    current_tags;   // data tags without category name
+    StringVector    current_colnames;   // data tags without category name
     StringVector    values;
     bool        in_loop;
     bool        first_row;
     std::vector<int> columns;   // for stylized files
+    std::unordered_set<std::string> use_fixed_width_columns;
     // backtracking support:
     std::unordered_set<std::string> seen;
     struct StashInfo {
@@ -369,9 +375,9 @@ CIFFile::block_code() const
 }
 
 inline const StringVector&
-CIFFile::tags() const
+CIFFile::colnames() const
 {
-    return current_tags;
+    return current_colnames;
 }
 
 inline size_t
@@ -390,6 +396,30 @@ inline void
 CIFFile::set_unregistered_callback(ParseCategory callback)
 {
     unregistered = callback;
+}
+
+inline bool
+CIFFile::PDBx_keywords() const
+{
+	return stylized;
+}
+
+inline void
+CIFFile::set_PDBx_keywords(bool stylized)
+{
+	this->stylized = stylized;
+}
+
+inline bool
+CIFFile::has_PDBx_fixed_width_columns() const
+{
+    return !use_fixed_width_columns.empty();
+}
+
+inline bool
+CIFFile::PDBx_fixed_width_columns() const
+{
+	return fixed;
 }
 
 } // namespace readcif

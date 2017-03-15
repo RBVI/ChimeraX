@@ -228,14 +228,12 @@ def perspective_view_all(bounds, position, field_of_view, aspect = None, pad = 0
                              for v in ((0,cy/sy,1), (0,-cy/sy,1))]) # frustum top/bottom normals
     center = bounds.center()
     bc = bounds.box_corners() - center
-    from ..geometry import inner_product
+    from ..geometry import inner_product, Place
     d = max(inner_product(n,c) for c in bc for n in face_normals)
     d *= 1/max(0.01, 1-pad)
     view_direction = -position.z_axis()
     camera_center = center - d*view_direction
-    shift = camera_center - position.origin()
-    from ..geometry import translation
-    va_position = translation(shift) * position
+    va_position = Place(axes = position.axes(), origin = camera_center)
     return va_position
 
 def perspective_view_width(point, origin, field_of_view):

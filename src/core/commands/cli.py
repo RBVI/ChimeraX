@@ -1188,8 +1188,8 @@ class CoordSysArg(ModelArg):
     """
     name = "a coordinate-system"
 
-    @staticmethod
-    def parse(text, session):
+    @classmethod
+    def parse(cls, text, session):
         m, text, rest = super().parse(text, session)
         return m.position, text, rest
 

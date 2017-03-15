@@ -20,7 +20,6 @@ and their code location is described with the function descriptions.
 | `2dlabels`_ * - Show text labels with graphics
 | `alias`_ - Define aliases for commands
 | `align`_ - Align one set of atoms to another
-| `buriedarea`_ - Compute buried area between atomic structures
 | `cage`_ * - Place models on polygonal cages
 | `camera`_ - Change camera settings
 | `cartoon`_ * - Display atomic structure ribbons or pipes/planks
@@ -43,7 +42,6 @@ and their code location is described with the function descriptions.
 | `info`_ * - Report model info
 | `ks`_ * - Enable keyboard shortcuts
 | `lighting`_ - Change lighting parameters
-| `list`_ - List open models
 | `log`_ * - Clear or save the log
 | `material`_ - Change surface material light reflection properties
 | `measure`_ - Calculate properties of models
@@ -52,7 +50,6 @@ and their code location is described with the function descriptions.
 | `mousemode`_ - Set mouse modes
 | `movie`_ * - Record videos
 | `move`_ - Move camera
-| `oculus`_ * - Enable Oculus Rift headset
 | `open`_ - Open data files
 | `pdbimages`_ - Render PDB assembly images
 | `perframe`_ - Run a command for every rendered frame
@@ -112,8 +109,8 @@ camera
 
 cartoon
 =======
-.. autofunction:: chimerax.exp_cmd.cartoon.cartoon
-.. autofunction:: chimerax.exp_cmd.cartoon.uncartoon
+.. autofunction:: chimerax.core.commands.cartoon.cartoon
+.. autofunction:: chimerax.core.commands.cartoon.uncartoon
 
 cd
 =====
@@ -198,10 +195,6 @@ lighting
 ========
 .. autofunction:: chimerax.core.commands.lighting.lighting
 
-list
-====
-.. autofunction:: chimerax.core.commands.list.list
-
 log
 ===
 Function found in *chimerax.log.cmd*
@@ -246,10 +239,6 @@ Functions defined in *chimerax.movie.moviecmd*
   :members:
   :member-order: bysource
   :show-inheritance:
-
-oculus
-======
-.. autofunction:: chimerax.oculus.oculuscmd.oculus
 
 open
 ====
@@ -345,12 +334,12 @@ time
 
 toolshed
 ========
-Function defined in *chimerax.toolshed.cmd*
-
-.. automodule:: chimerax.toolshed.cmd
-  :members:
-  :member-order: bysource
-  :show-inheritance:
+.. autofunction:: chimerax.core.commands.toolshed.toolshed_list
+.. autofunction:: chimerax.core.commands.toolshed.toolshed_refresh
+.. autofunction:: chimerax.core.commands.toolshed.toolshed_install
+.. autofunction:: chimerax.core.commands.toolshed.toolshed_remove
+.. autofunction:: chimerax.core.commands.toolshed.toolshed_show
+.. autofunction:: chimerax.core.commands.toolshed.toolshed_hide
 
 transparency
 ============

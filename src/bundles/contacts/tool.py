@@ -39,10 +39,12 @@ class ContactPlot(Graph):
         self.draw_graph()
 
         # When group is undisplayed update its node color.
-        self._handler = session.triggers.add_handler('atomic changes', self._atom_display_change)
+        from chimerax.core import atomic
+        self._handler = atomic.get_triggers(session).add_handler('changes', self._atom_display_change)
         
     def delete(self):
-        self._session().triggers.remove_handler(self._handler)
+        from chimerax.core import atomic
+        atomic.get_triggers(self._session()).remove_handler(self._handler)
         self._handler = None
         Graph.delete(self)
 

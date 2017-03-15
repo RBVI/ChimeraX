@@ -86,7 +86,7 @@ def sym(session, structures,
             html = assembly_info(m, assem)
             session.logger.info(html, is_html = True)
             for a in assem:
-                a.create_selector(m)
+                a.create_selector(m, session.logger)
         else:
             amap = dict((a.id, a) for a in assem)
             if not assembly in amap:
@@ -391,7 +391,7 @@ class Assembly:
             groups.append('%d %s of %s %s' % (len(ops), copy, chain, author_cids))
         return ', '.join(groups)
 
-    def create_selector(self, mol):
+    def create_selector(self, mol, logger):
         if self._is_subassembly():
             name = self.id
             sel_name = ('A' + name) if is_integer(name) else name
@@ -399,7 +399,7 @@ class Assembly:
                 atoms = self._subassembly_atoms(mol)
                 results.add_atoms(atoms)
             from . import register_selector
-            register_selector(sel_name, _selector)
+            register_selector(sel_name, _selector, logger)
 
     def _is_subassembly(self):
         cops = self.chain_ops
