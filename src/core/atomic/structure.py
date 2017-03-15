@@ -470,14 +470,14 @@ class Structure(Model, StructureData):
                 return False
             return ssids[i] == ssids[j]
         for rlist in polymers:
-            rp = p.new_drawing(self.name + " ribbons")
-            t2r = []
             # Always call get_polymer_spline to make sure hide bits are
             # properly set when ribbons are completely undisplayed
             any_display, atoms, coords, guides = rlist.get_polymer_spline()
             if not any_display:
                 continue
             residues = atoms.residues
+            rp = p.new_drawing(self.name + " " + str(residues[0]) + " ribbons")
+            t2r = []
             # Always update all atom visibility so that undisplaying ribbon
             # will bring back previously hidden backbone atoms
             residues.atoms.update_ribbon_visibility()
