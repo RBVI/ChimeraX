@@ -31,9 +31,9 @@ DISPLAY_TREE = "hide/show tree"
 """
 
 class SeqCanvas:
-    """'public' methods are only public to the MultalignViewer class.
+    """'public' methods are only public to the MultAlignViewer class.
        Access to SeqCanvas functions is made through methods of the
-       MultalignViewer class.
+       MultAlignViewer class.
     """
 
     """TODO

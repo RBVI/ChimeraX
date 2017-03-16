@@ -1,7 +1,7 @@
 # vim: set expandtab ts=4 sw=4:
 
 from chimerax.core.tools import ToolInstance
-class MultalignViewer(ToolInstance):
+class MultAlignViewer(ToolInstance):
     """ Viewer displays a multiple sequence alignment """
 
     """TODO
@@ -471,4 +471,4 @@ def _start_mav(session, tool_name, alignment=None):
         from chimerax.core.errors import LimitationError
         raise LimitationError("Running MAV from tools menu not implemented; instead, open"
             " alignment using 'open' command or File->Open")
-    return MultalignViewer(session, tool_name, alignment)
+    return MultAlignViewer(session, tool_name, alignment)
