@@ -125,7 +125,9 @@ class SeqCanvas:
         parent.winfo_toplevel().bind('<Down>', self._arrowCB)
         parent.winfo_toplevel().bind('<Escape>', self._escapeCB)
         parent.winfo_toplevel().bind('<<Copy>>', self._copyCB)
-        self.lineWidth = self.lineWidthFromPrefs()
+        """
+        self.line_width = self.line_width_from_settings()
+        """
         self.font = tkFont.Font(parent,
             (self.mav.prefs[FONT_NAME], self.mav.prefs[FONT_SIZE]))
         """
@@ -158,7 +160,7 @@ class SeqCanvas:
         left, top, right, bottom = map(int,
                 self.mainCanvas.cget("scrollregion").split())
         totalWidth = right - left + 1
-        if self.shouldWrap():
+        if self.should_wrap():
             self.mainCanvas.config(width=totalWidth)
         else:
             seven = self.mainCanvas.winfo_pixels("7i")
@@ -204,6 +206,11 @@ class SeqCanvas:
                 self.recolor(seq)
         
     def addSeqs(self, seqs):
+        #TODO: need to see if adding sequences changes should_wrap;
+        # if it doesn't, does it change line_width (due to numberings
+        # possibly getting wider).  If either, then just reformat.
+        # If not, then need to pass new numbering_widths through to
+        # SeqBlock.add_seqs
         for seq in seqs:
             self.labelBindings[seq] = {
                 '<Enter>': lambda e, s=seq:
@@ -676,7 +683,7 @@ class SeqCanvas:
                     self.mav.rightNumberingVar.get()]
         self.lead_block = SeqBlock(self._labelCanvas(), self.mainCanvas,
             None, self.font, 0, initialHeaders, self.alignment.seqs,
-            self.lineWidth, self.labelBindings, lambda *args, **kw:
+            self.line_width, self.labelBindings, lambda *args, **kw:
             self.mav.status(secondary=True, *args, **kw),
             self.showRuler, self.treeBalloon, self.showNumberings,
             self.mav.settings)
@@ -684,20 +691,31 @@ class SeqCanvas:
         """
         self.lead_block = SeqBlock(self._label_scene(), self.main_scene,
             None, self.font, 0, [], self.alignment,
-            50, {}, lambda *args, **kw: self.mav.status(secondary=True, *args, **kw),
+            self.line_width, {}, lambda *args, **kw: self.mav.status(secondary=True, *args, **kw),
             True, None, [False, False], self.mav.settings)
 
-    """TODO
-    def lineWidthFromPrefs(self):
-        if self.shouldWrap():
-            if len(self.mav.seqs) == 1:
+    def line_width_from_settings(self):
+        if self.should_wrap():
+            if len(self.alignment.seqs) == 1:
                 prefix = SINGLE_PREFIX
             else:
                 prefix = ""
-            return self.mav.prefs[prefix + LINE_WIDTH]
+            lw = getattr(self.mav.settings, prefix + "line_width")
+            if lw < 0: # wrap to window size, at multiple of abs(lw) characters
+                increment = abs(lw)
+                lw = increment
+                try_lw = lw + increment
+                win_width = self.mav.tool_window.ui_area.size().width()
+                aln_len = len(self.alignment.seqs[0])
+                while try_lw - increment < aln_len \
+                and lw_fits(self.alignment, win_width, min(aln_len, try_lw)):
+                    lw = try_lw
+                    try_lw += increment
+            return lw
         # lay out entire sequence horizontally
         return 2 * len(self.alignment.seqs[0])
 
+    """TODO
     def _molChange(self, trigger, myData, changes):
         # molecule attributes changed
 
@@ -734,10 +752,10 @@ class SeqCanvas:
 
     def _newWrap(self):
         '''alignment wrapping preferences have changed'''
-        lineWidth = self.lineWidthFromPrefs()
-        if lineWidth == self.lineWidth:
+        line_width = self.line_width_from_settings()
+        if line_width == self.line_width:
             return
-        self.lineWidth = lineWidth
+        self.line_width = line_width
         self._reformat()
 
     def _pageDownCB(self, event):
@@ -872,7 +890,7 @@ class SeqCanvas:
             self.vertScroll.grid_forget()
             self._vscrollMapped = False
 
-        if not self.shouldWrap() and self._vscrollMapped:
+        if not self.should_wrap() and self._vscrollMapped:
             self._hdivider.grid(row=2, column=0, sticky="new")
         else:
             self._hdivider.grid_forget()
@@ -887,7 +905,7 @@ class SeqCanvas:
                         if self.displayHeader[hd]]
         self.lead_block = SeqBlock(self._labelCanvas(), self.mainCanvas,
             None, self.font, 0, initialHeaders, self.alignment.seqs,
-            self.lineWidth, self.labelBindings, lambda *args, **kw:
+            self.line_width, self.labelBindings, lambda *args, **kw:
             self.mav.status(secondary=True, *args, **kw),
             self.showRuler, self.treeBalloon, self.showNumberings,
             self.mav.settings)
@@ -1031,7 +1049,7 @@ class SeqCanvas:
         self.mainCanvas.xview_moveto(startx)
         starty = max(0.0, min((cy - viewHeight/2 - y1) / totalHeight,
                     (y2 - viewHeight - y1) / totalHeight))
-        if not self.shouldWrap():
+        if not self.should_wrap():
             self.labelCanvas.yview_moveto(starty)
         self.mainCanvas.yview_moveto(starty)
 
@@ -1049,7 +1067,7 @@ class SeqCanvas:
             cy = y1 + viewHeight/2
         starty = max(0.0, min((cy - viewHeight/2 - y1) / totalHeight,
                     (y2 - viewHeight - y1) / totalHeight))
-        if not self.shouldWrap():
+        if not self.should_wrap():
             self.labelCanvas.yview_moveto(starty)
         self.mainCanvas.yview_moveto(starty)
         if highlightName:
@@ -1193,10 +1211,9 @@ class SeqCanvas:
         """
 
     def should_wrap(self):
-        return True
-        """TODO
-        return shouldWrap(len(self.alignment.seqs), self.mav.prefs)
+        return should_wrap(len(self.alignment.seqs), self.mav.settings)
 
+        """TODO
     def showHeaders(self, headers, fromMenu=False):
         headers = [hd for hd in headers if not self.displayHeader[hd]]
         if not headers:
@@ -2335,7 +2352,7 @@ class SeqBlock:
     def realign(self, prevLen):
         '''sequences globally realigned'''
 
-        if shouldWrap(len(self.alignment.seqs), self.settings):
+        if should_wrap(len(self.alignment.seqs), self.settings):
             blockEnd = self.seq_offset + self.line_width
             prev_blockLen = min(prevLen, blockEnd)
             curBlockLen = min(len(self.alignment.seqs[0]), blockEnd)
@@ -2613,21 +2630,21 @@ class SeqBlock:
                         self._makeNumbering(line, i)
         if self.next_block:
             self.next_block.updateNumberings()
+"""
 
-def shouldWrap(numSeqs, prefs):
-    if numSeqs == 1:
+def should_wrap(num_seqs, settings):
+    if num_seqs == 1:
         prefix = SINGLE_PREFIX
     else:
         prefix = ""
-    if prefs[prefix + WRAP_IF]:
-        if numSeqs <= prefs[prefix + WRAP_THRESHOLD]:
-            return 1
+    if getattr(settings, prefix + 'wrap_if'):
+        if num_seqs <= getattr(settings, prefix + 'wrap_threshold'):
+            return True
         else:
-            return 0
-    elif prefs[prefix + WRAP]:
-        return 1
-    return 0
-"""
+            return False
+    elif getattr(settings, prefix + 'wrap'):
+        return True
+    return False
 
 def seq_name(seq, settings):
     """TODO
@@ -2640,3 +2657,7 @@ def ellipsis_name(name, ellipsis_threshold):
         half = int(ellipsis_threshold/2)
         return name[0:half-1] + "..." + name[len(name)-half:]
     return name
+
+def lw_fits(alignment, pixels, num_characters):
+    #TODO
+    return num_characters < 51
