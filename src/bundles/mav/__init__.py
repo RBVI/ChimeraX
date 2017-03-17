@@ -22,9 +22,9 @@ class _MavBundleAPI(BundleAPI):
 
     @staticmethod
     def get_class(class_name):
-        if class_name == "MultalignViewer":
-            from .tool import MultalignViewer
-            return MultalignViewer
+        if class_name == "MultAlignViewer":
+            from .tool import MultAlignViewer
+            return MultAlignViewer
 
     @staticmethod
     def initialize(session, bundle_info):
