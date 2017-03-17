@@ -11,7 +11,7 @@
 
 #
 def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew',
-          cartesian = False, same = False):
+          cartesian = False, same = False, core_fraction = 0.5):
     '''
     Morph between atomic models using Yale Morph Server algorithm.
 
@@ -32,6 +32,9 @@ def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew
     same : bool
         Whether to match atoms with same chain id, same residue number and same
         atom name.
+    core_fraction : float
+        Fraction of atoms of each chain that align best to moved as
+        a segment.
     '''
 
     if len(structures) < 2:
@@ -39,7 +42,8 @@ def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew
         raise UserError('Require at least 2 structures for morph')
 
     from .motion import compute_morph
-    traj = compute_morph(structures, session.logger, method=method, rate=rate, frames=frames, cartesian=cartesian, match_same=same)
+    traj = compute_morph(structures, session.logger, method=method, rate=rate, frames=frames,
+                         cartesian=cartesian, match_same=same, core_fraction = core_fraction)
     session.models.add([traj])
 
     session.logger.info('Computed %d frame morph #%s' % (traj.num_coord_sets, traj.id_string()))
@@ -64,14 +68,15 @@ def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew
 # -----------------------------------------------------------------------------------------
 #
 def register_morph_command(logger):
-    from chimerax.core.commands import CmdDesc, register, StructuresArg, IntArg, EnumOf, BoolArg
+    from chimerax.core.commands import CmdDesc, register, StructuresArg, IntArg, EnumOf, BoolArg, FloatArg
     desc = CmdDesc(
         required = [('structures', StructuresArg)],
         keyword = [('frames', IntArg),
                    ('rate', EnumOf(('linear', 'ramp up', 'ramp down', 'sinusoidal'))),
                    ('method', EnumOf(('corkscrew', 'independent', 'linear'))),
                    ('cartesian', BoolArg),
-                   ('same', BoolArg)],
+                   ('same', BoolArg),
+                   ('core_fraction', FloatArg)],
         synopsis = 'morph atomic structures'
     )
     register('morph', desc, morph, logger=logger)
