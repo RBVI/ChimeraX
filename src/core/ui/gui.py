@@ -804,6 +804,8 @@ class ToolWindow(StatusLogger):
 
     def _destroy(self):
         self.cleanup()
+        if self.statusbar:
+            self.clear()
         self.__toolkit.destroy()
         self.__toolkit = None
 

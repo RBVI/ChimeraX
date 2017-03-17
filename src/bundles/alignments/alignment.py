@@ -39,8 +39,11 @@ class Alignment(State):
             self.auto_associate = False
         elif self.auto_associate:
             from chimerax.core.atomic import AtomicStructure
-            self.associate([s for s in session.models
-                if isinstance(s, AtomicStructure)], force=False)
+            if self.auto_associate == "session":
+                self.auto_associate = True
+            else:
+                self.associate([s for s in session.models
+                    if isinstance(s, AtomicStructure)], force=False)
             from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
             self.session.triggers.add_handler(ADD_MODELS, lambda tname, models:
                 self.associate([s for s in models if isinstance(s, AtomicStructure)], force=False))
@@ -375,8 +378,7 @@ class Alignment(State):
 
     def _destroy(self):
         self._in_destroy = True
-        for viewer in self.viewers[:]:
-            viewer.alignment_notification(self, "destroyed", None)
+        self._notify_viewers("destroyed", None)
         self.viewers = []
         for sseq, aseq in self.associations.items():
             mmap = aseq.match_maps[sseq]
@@ -396,10 +398,14 @@ class Alignment(State):
     def restore_snapshot(session, data):
         """For restoring scenes/sessions"""
         aln = Alignment(session, data['seqs'], data['name'], data['file attrs'],
-            data['file markups'], data['auto_destroy'], data['auto_associate'])
+            data['file markups'], data['auto_destroy'],
+            "session" if data['auto_associate'] else False)
         aln.associations = data['associations']
         for s, mm in zip(aln.seqs, data['match maps']):
             s.match_maps = mm
+            for chain, match_map in mm.items():
+                match_map.del_handler = chain.triggers.add_handler('delete',
+                    lambda _1, sseq, aln=aln: aln.disassociate(sseq))
         return aln
 
     def take_snapshot(self, session, flags):
