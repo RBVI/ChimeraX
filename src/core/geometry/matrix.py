@@ -588,7 +588,7 @@ def R_to_axis_angle(matrix):
     # Angle.
     r = hypot(axis[0], hypot(axis[1], axis[2]))
     if r == 0:
-        return (0, 0, 1), 0
+        return array((0, 0, 1), float64), 0
 
     t = matrix[0, 0] + matrix[1, 1] + matrix[2, 2]
     theta = atan2(r, t - 1)
