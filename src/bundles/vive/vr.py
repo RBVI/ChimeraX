@@ -206,7 +206,7 @@ class SteamVRCamera(Camera):
     def close(self, close_cb = None):
         cm = [m for d,m in self._controller_models.items()]
         if cm:
-            self._session.close(cm)
+            self._session.models.close(cm)
             self._controller_models = {}
         self._close = True
         self._close_cb = close_cb
@@ -237,7 +237,7 @@ class SteamVRCamera(Camera):
 
     def next_frame(self, *_):
         c = self.compositor
-        if c is None:
+        if c is None or self._close:
             return
         import openvr
         c.waitGetPoses(self._poses, openvr.k_unMaxTrackedDeviceCount, None, 0)
@@ -453,13 +453,14 @@ class SteamVRCamera(Camera):
         fb = render.pop_framebuffer()
         import openvr
         self.compositor.submit(openvr.Eye_Right, fb.openvr_texture)
-        if self._close:
-            self._delayed_close()
 
         if self.mirror_display:
             # Render right eye to ChimeraX window.
             from chimerax.core.graphics.drawing import draw_overlays
             draw_overlays([self._mirror_drawing()], render)
+
+        if self._close:
+            self._delayed_close()
 
     def _texture_framebuffer(self):
 
