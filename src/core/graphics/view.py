@@ -500,6 +500,7 @@ class View:
         return stf      # Scene to shadow map texture coordinates
 
     def max_multishadow(self):
+        self._use_opengl()
         return self._render.max_multishadows()
 
     def _use_multishadow_map(self, light_directions, drawings):

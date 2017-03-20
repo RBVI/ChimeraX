@@ -1,0 +1,86 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="userdocs.css" />
+<title>Automatic Styling (Smart Initial Display)</title>
+</head><body>
+
+<a name="top"></a>
+<a href="index.html">
+<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3>Automatic Styling (Smart Initial Display)</h3>
+<p>
+Automatic styling or smart initial display refers to automatically adjusting
+the appearance of a newly opened atomic model based on its contents,
+as described below.
+The lighting is only adjusted if no other atomic models are already open.
+If only a volume model is opened,
+<a href="commands/lighting.html">full lighting</a> is used.
+</p><p>
+The process includes chemical perception, which can be slow
+and unnecessary for pseudoatom data not meant to be interpreted
+as atoms in molecules (<i>e.g.</i>, a SAXS bead model in PDB format).
+Generating the initial representation can also be slow, for example,
+drawing ribbons for a very large number of models.
+Automatic styling can be circumvented
+by using the <a href="commands/open.html"><b>open</b></a> command
+with <a href="commands/open.html#options"><b>autoStyle false</b></a>.
+</p>
+Automatic styling rules:
+<ul>
+<li><b>0 chains</b>:
+all atoms shown as <a href="commands/style.html">sticks</a>,
+coloring <a href="commands/colortables.html#autocolors">by model</a> for carbons
+and <a href="commands/colortables.html">by element</a> for heteroatoms,
+<a href="commands/lighting.html">simple lighting</a>
+<br><br>
+<li><b>1-4 chains</b>: <a href="commands/cartoon.html">cartoons</a>,
+coloring <a href="commands/colortables.html#autocolors">by model</a>,
+<a href="commands/lighting.html">simple lighting</a>,
+monatomic <a href="commands/atomspec.html#surfcats">ions</a>
+as <a href="commands/style.html">spheres</a>,
+atoms as <a href="commands/style.html">sticks</a>
+with <a href="commands/colortables.html">heteroatom</a> coloring
+(hydrogens on carbons hidden) for:
+  <ul>
+  <li><a href="commands/atomspec.html#surfcats">ligand</a> residues
+  <li>residues within 3.6 &Aring; of
+  <a href="commands/atomspec.html#surfcats">ligand</a>
+  or <a href="commands/atomspec.html#surfcats">ions</a>
+  <li>nucleic acids
+  </ul>
+<br>
+<li><b>5-249 chains</b>: 
+all atoms as <a href="commands/style.html">spheres</a> (space-filling)
+except sticks for <a href="commands/atomspec.html#surfcats">ligand</a> 
+and balls for <a href="commands/atomspec.html#surfcats">solvent</a>,
+coloring <a href="commands/colortables.html#autocolors">by chain</a>,
+<a href="commands/lighting.html">full lighting</a>
+(except if &ge; 300,000 atoms, ambient shadows from 16 instead of 64 directions)
+<br><br>
+<li><b>250+ chains</b>:
+all atoms as <a href="commands/style.html">spheres</a> (space-filling),
+coloring <a href="commands/colortables.html#autocolors">by model</a>,
+<a href="commands/lighting.html">soft lighting</a>
+except with ambient shadows from 16 instead of 64 directions 
+</ul>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+March 2017</address>
+</body></html>

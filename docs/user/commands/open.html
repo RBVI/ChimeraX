@@ -67,7 +67,8 @@ See also:
 <a href="save.html"><b>save</b></a>,
 <a href="help.html"><b>help</b></a>,
 <a href="sym.html"><b>sym</b></a>,
-<a href="colortables.html#autocolors">initial colors</a>
+<a href="colortables.html#autocolors">initial colors</a>,
+<a href="../autostyle.html">automatic styling</a>
 </p><p>
 The <b>open formats</b> command lists the possible formats and databases
 in the <a href="../tools/log.html"><b>Log</b></a>. 
@@ -182,8 +183,8 @@ target="_blank">PDBx/mmCIF</a></td>
 <td align="center">.pb</td>
 <td align="center">
 plain text file with each line <a href="atomspec.html">specifying</a>
-<br>a pair of atoms (already open in ChimeraX)
-<br>to connect with <a href="../pseudobonds.html">pseudobonds</a></td>
+a pair of atoms (already open in ChimeraX)
+to connect with <a href="../pseudobonds.html">pseudobonds</a></td>
 <tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
 <a name="volume"></a>
@@ -224,10 +225,10 @@ density map</td>
 <td align="center">Directional FSC (Fourier shell correlation)</td>
 <td align="center"><b>dres</b></td>
 <td align="center">.dres</td>
-<td align="center">directional resolution to show with a colored globe
+<td align="center">directional resolution to show on a colored globe
 <br>(plain text file with four whitespace-separated columns of numbers,
-<br>an XYZ vector and a resolution or other value
-<br>to colormap onto the globe)</td>
+an XYZ vector and a resolution or other value
+to colormap onto the globe)</td>
 </tr><tr>
 <td align="center">DSN6 density map</td>
 <td align="center"><b>dsn6</b></td>
@@ -237,7 +238,7 @@ density map</td>
 </tr><tr>
 <td align="center">Image stack
 <br>(grayscale image series in multiple files or a single multipage file,
-<br>in formats supported by
+in formats supported by
 <a href="http://www.pythonware.com/products/pil/" target="_blank">PIL</a>)</td>
 <td align="center"><b>images</b></td>
 <td align="center">.bmp<br>.gif<br>.jpg, .jpeg<br>.png<br>.ppm<br>.tif, .tiff</td>
@@ -308,8 +309,8 @@ target="_blank">Integrative Hybrid Model (IHM)</a>
 <td align="center"><b>ihm</b></td>
 <td align="center">.ihm</td>
 <td align="center">integrative hybrid model, potentially including
-<br>atomic and coarse-grained representations, crosslinks, <i>etc.</i>
-<br>(examples can be downloaded from the
+atomic and coarse-grained representations, crosslinks, <i>etc.</i>
+(examples can be downloaded from the
 <a href="https://pdb-dev.rcsb.rutgers.edu/" target="_blank">archive</a>)</td>
 <tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
@@ -443,8 +444,8 @@ target="_blank">PDBe</a></td>
 <td align="center"><b>pdbe_updated:</b></td>
 <td align="center"><b>pdbe_updated</b></td>
 <td align="center">atomic coordinates and associated annotations,
-<br>&nbsp;&nbsp;updated to include small-molecule connectivity 
-and binding-site information <br>as described in 
+&nbsp;&nbsp;updated to include small-molecule connectivity 
+and binding-site information as described in 
 <a href="http://nar.oxfordjournals.org/content/44/D1/D385.long"
 target="_blank">Velankar <i>et al.</i></a>,
 <i>Nucleic Acids Res</i> <b>44</b>:D385 (2016)</td>
@@ -465,7 +466,7 @@ target="_blank">PDBe Electron Density Server (EDS)</a>
 <td align="center"><b>eds:</b></td>
 <td align="center"><b>eds</b></td>
 <td align="center">(2Fo-Fc) electron density map for a PDB entry;
-<br>not available for all PDB entries</td>
+not available for all PDB entries</td>
 <td align="center"><b>ccp4</b></td>
 </tr><tr>
 <td align="center"><a href="http://www.ebi.ac.uk/pdbe/eds/"
@@ -474,7 +475,7 @@ target="_blank">PDBe EDS</a>
 <td align="center"><b>edsdiff:</b></td>
 <td align="center"><b>edsdiff</b></td>
 <td align="center">(Fo-Fc) electron density difference map for a PDB entry;
-<br>not available for all PDB entries</td>
+not available for all PDB entries</td>
 <td align="center"><b>ccp4</b></td>
 </tr><tr>
 <td align="center"><a href="http://www.ebi.ac.uk/pdbe/emdb/"
@@ -494,7 +495,7 @@ target="_blank">cellPACK</a></td>
 <td align="center"><b>cellpack:</b></td>
 <td align="center"><b>cellpack</b></td>
 <td align="center">hierarchical model;
-<br>see <a href="http://www.cellpack.org/use/" target="_blank">cellPACK
+see <a href="http://www.cellpack.org/use/" target="_blank">cellPACK
 Chimera instructions</a> for available identifiers</td>
 <td align="center"><b>cellpack</b></td>
 </tr></table>
@@ -519,11 +520,13 @@ number. Model name and number can be changed with the
 <blockquote>
 <b>autoStyle</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
-Setting <b>autoStyle</b> to <b>false</b> bypasses chemical perception
-and rule-based changes in lighting, coloring, and representation, instead
-always showing atomic models as white spheres; it may be useful in 
-rare cases where generating the initial representation is slow
-(<i>e.g.</i>, drawing cartoons for very large numbers of atomic models).
+Setting <b>autoStyle</b> to <b>false</b> bypasses 
+<a href="../autostyle.html">automatic styling</a>, <i>i.e.</i>,
+automatically adjusting the appearance of a newly opened atomic model
+based on its contents.
+Bypassing this calculation shows all atoms as white spheres, and may be 
+useful in rare cases where generating the rule-based representation is slow
+(such as drawing cartoons for very large numbers of models).
 </blockquote>
 <blockquote>
 <b>autoAssociate</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false

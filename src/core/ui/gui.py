@@ -321,7 +321,13 @@ class MainWindow(QMainWindow, PlainTextLog):
         wh = cwh + delta_height
         self.resize(ww, wh)
 
+    def closeEvent(self, event):
+        # the MainWindow close button has been clicked
+        event.accept()
+        self.graphics_window.session.ui.quit()
+
     def close_request(self, tool_window, close_event):
+        # closing a tool window has been requested
         tool_instance = tool_window.tool_instance
         all_windows = self.tool_instance_to_windows[tool_instance]
         is_main_window = tool_window is all_windows[0]
@@ -392,6 +398,8 @@ class MainWindow(QMainWindow, PlainTextLog):
                 for tw in tool_windows:
                     if tw.title == "Command Line Interface":
                         # leave the command line as is
+                        continue
+                    if tw.floating:
                         continue
                     state = tw.shown
                     states[tw] = state
@@ -690,15 +698,15 @@ class ToolWindow(StatusLogger):
     widgets for this window.  Call :py:meth:`manage` once the widgets
     are set up to show the tool window in the main interface.
 
-    The :py:keyword:`close_destroys` keyword controls whether closing this window
+    The :py:attr:`close_destroys` keyword controls whether closing this window
     destroys it or hides it.  If it destroys it and this is the main window, all
     the child windows will also be destroyed.
 
-    The :py:keyword:`statusbar` keyword controls whether the tool will display
+    The :py:attr:`statusbar` keyword controls whether the tool will display
     status messages via an in-window statusbar, or via the main ChimeraX statusbar.
-    In either case, the :py:method:`status` method can be used to issue status
+    In either case, the :py:meth:`status` method can be used to issue status
     messages.  It accepts the exact same arguments/keywords as the
-    :py:method:`~..logger.Logger.status` method in the :py:class:`~..logger.Logger` class.
+    :py:meth:`~..logger.Logger.status` method in the :py:class:`~..logger.Logger` class.
     The resulting QStatusBar widget (or None if statusbar was False) will be
     available from the ToolWindow's "statusbar" in case you need to add widgets to it
     or otherwise customize it.
@@ -739,6 +747,10 @@ class ToolWindow(StatusLogger):
 
         Override to add items to any context menu popped up over this window"""
         pass
+
+    @property
+    def floating(self):
+        return self.__toolkit.dock_widget.isFloating()
 
     def manage(self, placement, fixed_size=False):
         """Show this tool window in the interface
@@ -792,6 +804,8 @@ class ToolWindow(StatusLogger):
 
     def _destroy(self):
         self.cleanup()
+        if self.statusbar:
+            self.clear()
         self.__toolkit.destroy()
         self.__toolkit = None
 

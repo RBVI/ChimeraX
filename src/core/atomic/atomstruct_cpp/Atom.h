@@ -85,25 +85,26 @@ private:
     char  _alt_loc;
     class _Alt_loc_info {
       public:
-    _Alt_loc_info() : aniso_u(NULL), serial_number(0) {}
-        ~_Alt_loc_info() { if (aniso_u) { delete aniso_u; aniso_u = NULL; } }
-	_Alt_loc_info(const _Alt_loc_info &ali) {
-	  // Copy aniso_u vector.
-	  if (ali.aniso_u) {
-	    create_aniso_u();
-	    for (int i = 0 ; i < 6 ; ++i)
-	      aniso_u[i] = ali.aniso_u[i];
-	  } else if (aniso_u) {
-	    delete aniso_u;
-	    aniso_u = NULL;
-	  }
-	}
-	std::vector<float> *create_aniso_u() {
-	  if (aniso_u == NULL)
-	    aniso_u = new std::vector<float>(6);
-	  return aniso_u;
-	}
-	std::vector<float> *aniso_u;
+        _Alt_loc_info() : aniso_u(NULL), serial_number(0) {}
+            ~_Alt_loc_info() { if (aniso_u) { delete aniso_u; aniso_u = NULL; } }
+        _Alt_loc_info(const _Alt_loc_info &ali) {
+          // Copy aniso_u vector.
+          if (ali.aniso_u) {
+            create_aniso_u();
+            for (int i = 0 ; i < 6 ; ++i)
+              aniso_u[i] = ali.aniso_u[i];
+          } else if (aniso_u) {
+            delete aniso_u;
+            aniso_u = NULL;
+          }
+        }
+        std::vector<float> *create_aniso_u() {
+          if (aniso_u == NULL)
+            aniso_u = new std::vector<float>(6);
+          return aniso_u;
+        }
+
+        std::vector<float> *aniso_u;
         float  bfactor;
         Point  coord;
         float  occupancy;

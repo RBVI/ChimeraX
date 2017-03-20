@@ -165,6 +165,15 @@ def register_mmcif_fetch():
 
 
 def get_mmcif_tables(filename, table_names):
+    """Extract mmCIF tables from a file
+
+    Parameters
+    ----------
+    filename : str
+        The name of the file.
+    table_names : list of str
+        A list of mmCIF category names.
+    """
     from os import path
     if path.exists(filename):
         from . import _mmcif
@@ -185,6 +194,15 @@ def get_mmcif_tables(filename, table_names):
 
 
 def get_mmcif_tables_from_metadata(model, table_names):
+    """Extract mmCIF tables from previously read metadata
+
+    Parameters
+    ----------
+    model : instance of a :py:class:`~chimerax.core.atomic.AtomicStructure`
+        The model.
+    table_names : list of str
+        A list of mmCIF category names.
+    """
     raw_tables = model.metadata
     tlist = []
     for n in table_names:

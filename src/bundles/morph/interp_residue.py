@@ -67,7 +67,7 @@ def interpolate_dihedral(i0, i1, i2, i3, coords0, coords1, f, coord_set):
         iit += t1-t0
         dpt += t3-t2
 
-def cartesian_residue_interpolator(r, cartesion_atoms, dihedral_atoms):
+def cartesian_residue_interpolator(r, cartesian_atoms, dihedral_atoms):
         "Create a plan for Cartesian interpolation for all atoms."
         cartesian_atoms.extend(r.atoms)
 

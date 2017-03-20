@@ -29,30 +29,38 @@ class="clRight" title="User Guide Index"/></a>
 <br><b>coordset</b>
 &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
 &nbsp;<i>frame</i>
+[&nbsp;computeSS&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;holdSteady&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>coordset</b>
 &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
 [<i>start</i>],[<i>end</i>][,<i>step</i>]
+[&nbsp;computeSS&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;holdSteady&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
 [&nbsp;loop&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;pause&nbsp;&nbsp;<i>M</i>&nbsp;]
 </h3>
 <p>
-<b>Coordset</b> displays the frames of a trajectory, which can be read from
+<b>Coordset</b> displays the <a href="#framesdef">frames</a> (coordinate sets)
+of a trajectory, which can be read from
 a multi-model PDB file by using <a href="open.html"><b>open</b></a>
-with the <b>trajectory</b> option. The number of frames in a trajectory can be
-reported with the command <a href="info.html"><b>info</b></a>.
+with the <b>coordset</b> option. The number of coordinate sets in a trajectory
+can be reported with the command <a href="info.html"><b>info</b></a>.
 See also: <a href="../movies.html">making movies</a>
-</p>
-<blockquote>
-**&nbsp;Protein secondary structure assignments are not recomputed automatically
-over the course of a trajectory.
-If a protein is displayed as a <a href="cartoon.html">cartoon</a> (ribbon),
-users may want to re-evaluate secondary structure periodically
-as described <a href="#ssnote">below</a>.&nbsp;**
-</blockquote>
-<p>
+</p><p>
+Protein <a href="cartoon.html">cartoon</a> (ribbon) display
+depends on which residues are in helices and strands,
+but these secondary structure assignments are not recomputed automatically
+as the coordinates change.
+The <b>computeSS</b> option (default <b>false</b>)
+can be used to update secondary structure assignments as each frame is shown.
+It runs <a href="dssp.html"><b>dssp</b></a> with default parameters;
+to use different <a href="dssp.html"><b>dssp</b></a> parameters
+or to run it less frequently than every frame shown,
+see <a href="#ssnote">below</a>.
+Running the calculation may slow playback.
+</p><p>
 The <i>model-spec</i> is the model number of the trajectory, preceded by #.
 A comma-separated list or range of model numbers can be used
 to specify multiple trajectories at once.
@@ -70,25 +78,33 @@ Examples:
 <b>coordset #1 -10</b><br>
 &nbsp;&nbsp; - go to the 10th-to-last frame
 </blockquote>
-Supplying comma-separated frame numbers
-<!-- or even commas without preceding numbers -->
-indicates playing from <i>start</i> (default is the current frame)
-to <i>end</i> (default is the last frame) in increments of <i>step</i>.
+<p>
+Supplying comma-separated frame numbers indicates playing from <i>start</i>
+to <i>end</i> in increments of <i>step</i>. As shown in the examples below,
+using &ldquo;.&rdquo; for the <i>start</i> number indicates the current frame,
+and the <i>end</i> number (but not its preceding comma) can be omitted
+to indicate the last frame.
 The default <i>step</i> is <b>1</b> if <i>start</i> &lt; <i>end</i>,
 <b>&ndash;1</b> if <i>start</i> &gt; <i>end</i>, determined after
 any negative frame numbers are converted to the corresponding
-actual frame numbers. The <b>loop</b> option indicates repeating playback
+actual frame numbers. 
+<p>
+The <b>loop</b> option indicates repeating playback
 <i>N</i> times, wrapping directly from <i>end</i> to <i>start</i>.
+The <b>pause</b> option can be used to slow playback by showing each
+trajectory frame for <i>M</i> image update frames (default <b>1</b>;
+see <a href="#framesdef">frames terminology</a>).
+</p><p>
 Examples:
 <blockquote>
 <b>coordset #1 1,21 holdSteady @ca</b><br>
 &nbsp;&nbsp;
 - play from frame 1 to 21 of trajectory model #1, holding CA atoms steady<br>
-<!--
+<b>coordset #1 .,15</b><br>
+&nbsp;&nbsp; - play from the current frame to frame 15<br>
 <b>coordset #1 1,</b><br>
 &nbsp;&nbsp; - play from frame 1 to the end<br>
-<b>coordset #1 ,15</b><br>
-&nbsp;&nbsp; - play from the current frame to 15<br>
+<!--
 <b>coordset #1 ,,5</b><br>
 &nbsp;&nbsp; - play from the current frame to the end, every 5th frame<br>
 -->
@@ -99,6 +115,27 @@ Examples:
 - play from the last frame to the first, every 10th frame, backwards
 </blockquote>
 
+<a name="framesdef"></a>
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<h3>Frames Terminology</h3>
+<p>
+Note that &ldquo;frames&rdquo; is commonly used for the following 
+disparate concepts:
+</p>
+<ul>
+<li>coordinate sets from successive time points in a trajectory; 
+changes in conformation and configuration
+<li>graphics image updates, nominally 60 per second in ChimeraX, showing
+any graphical changes
+</ul>
+</p>
+Because of such broad usage, the documentation also uses &ldquo;frames&rdquo;
+in both senses, but context and wording should indicate which meaning 
+applies in a particular situation.
+</p>
+
 <a name="ssnote"></a>
 <p class="nav">
 [<a href="#top">back to top</a>]
@@ -106,19 +143,21 @@ Examples:
 <h3>Recomputing Secondary Structure</h3>
 <p>
 If a protein is displayed as a <a href="cartoon.html">cartoon</a> (ribbon)
-and significant conformational changes are occurring over the trajectory,
+and conformational changes are occurring over the trajectory,
 users may want to re-evaluate secondary structure assignments periodically.
-This can be done with the command 
-<a href="perframe.html"><b>perframe</b></a>
-in combination with <a href="dssp.html"><b>dssp</b></a>. Examples:
+The <b>computeSS</b> option of <a href="#top"><b>coordset</b></a>
+already provides a convenient way to reassign secondary structure 
+at every frame shown.
+However, an alternative approach with <a href="perframe.html"><b>perframe</b></a>
+can be used to run
+<a href="dssp.html"><b>dssp</b></a> less frequently or with nondefault settings.
+For example, to reassign secondary structure at every fifth frame:
 </p>
 <blockquote>
-<b><a href="perframe.html">perframe</a> dssp; coordset #2 1,21; <a href="wait.html">wait</a> 21; <a href="perframe.html">~perframe</b>
-<br>
-<b><a href="perframe.html">perf</a> dssp interval 5; coord #1 1,200; <a href="wait.html">wait</a> 200; <a href="perframe.html">~perf</a></b>
+<b><a href="perframe.html">perframe</a> dssp interval 5; coord #1 1,200; <a href="wait.html">wait</a> 200; <a href="perframe.html">~perframe</a></b>
 </blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-November 2016</address>
+March 2017</address>
 </body></html>

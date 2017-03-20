@@ -128,6 +128,14 @@ class Volume(Model):
 
     self.change_callbacks.remove(cb)
 
+
+  # ---------------------------------------------------------------------------
+  #
+  def added_to_session(self, session):
+    if len(session.models.list()) == 1:
+      from ..commands.lighting import lighting
+      lighting(session, 'full')	# Use full lighting for initial map display
+
   # ---------------------------------------------------------------------------
   #
   def call_change_callbacks(self, change_types):

@@ -24,7 +24,8 @@ def check_for_changes(session):
     try:
         changes = Changes(ct.changes)
         ct.clear()
-        session.triggers.activate_trigger("atomic changes", changes)
+        from . import get_triggers
+        get_triggers(session).activate_trigger("changes", changes)
     finally:
         ul.unblock_redraw()
 

@@ -281,6 +281,21 @@ class Region:
         elif make_cb:
             self.region_browser._region_size_changed_cb(self)
 
+    def restore_state(self, state):
+        self._name = state['_name']
+        self.name_prefix = state['name_prefix']
+        self._border_rgba = state['_border_rgba']
+        self._interior_rgba = state['_interior_rgba']
+        self.cover_gaps = state['cover_gaps']
+        self.source = state['source']
+        self.highlighted = state['highlighted']
+        self._shown = state['_shown']
+        self._active = state['_active']
+        self.sequence = state['sequence']
+        self.associated_with = state['associated_with']
+        self.add_blocks(state['blocks'], make_cb=False)
+        return state
+
     def get_rmsd(self):
         num_d = sum_d2 = 0
         from chimerax.core.geometry import distance_squared
@@ -329,6 +344,22 @@ class Region:
         return None
     
     rmsd = property(get_rmsd)
+
+    def save_state(self):
+        state = {}
+        state['_name'] = self._name
+        state['name_prefix'] = self.name_prefix
+        state['_border_rgba'] = self._border_rgba
+        state['_interior_rgba'] = self._interior_rgba
+        state['cover_gaps'] = self.cover_gaps
+        state['source'] = self.source
+        state['highlighted'] = self.highlighted
+        state['_shown'] = self._shown
+        state['_active'] = self._active
+        state['sequence'] = self.sequence
+        state['associated_with'] = self.associated_with
+        state['blocks'] = self.blocks
+        return state
 
     def set_cover_gaps(self, cover):
         if cover != self.cover_gaps:
@@ -417,19 +448,19 @@ class RegionBrowser:
         if settings.show_sel:
             self._show_sel_cb()
 
-    def clearRegions(self, doSingleSeqRegions=True):
-        if doSingleSeqRegions:
+    def clear_regions(self, do_single_seq_regions=True):
+        if do_single_seq_regions:
             for region in self.regions[:]:
                 region.destroy()
             self.associated_regions.clear()
             self.sequence_regions = { None: set() }
         else:
-            singleSeqRegions = set()
+            single_seq_regions = set()
             for seq, regions in self.sequence_regions.items():
                 if seq is not None:
-                    singleSeqRegions.update(regions)
+                    single_seq_regions.update(regions)
             for region in self.regions[:]:
-                if region not in singleSeqRegions:
+                if region not in single_seq_regions:
                     region.destroy()
 
     def copyRegion(self, region, name=None, **kw):
@@ -504,7 +535,8 @@ class RegionBrowser:
                             self._seqRenamedHandlerID)
         """
         if self._sel_change_handler:
-            self.tool_window.session.triggers.remove_handler(self._sel_change_handler)
+            from chimerax.core import atomic
+            atomic.get_triggers(self.tool_window.session).remove_handler(self._sel_change_handler)
         """
         if self._scf_dialog:
             self._scf_dialog.destroy()
@@ -1017,6 +1049,45 @@ class RegionBrowser:
             self.rename_dialogs[region] = RenameDialog(self, region)
         self.rename_dialogs[region].enter()
 
+    def restore_state(self, state):
+        self.clear_regions()
+        for region_state in state['regions']:
+            r = Region(self)
+            self.regions.append(r)
+            r.restore_state(region_state)
+        hr = state['_highlighted_region']
+        self._highlighted_region = None if hr is None else self.regions[hr]
+        self.associated_regions = { k: [self.regions[ri] for ri in v]
+            for k,v in state['associated_regions'].items() }
+        self.sequence_regions = { k: set([ self.regions[ri] for ri in v ])
+            for k,v in state['sequence_regions'].items() }
+        cr = state['_cur_region']
+        self._cur_region = None if cr is None else self.regions[cr]
+        dr = state['_drag_region']
+        self._drag_region = None if dr is None else self.regions[dr]
+        pd = state['_prev_drag']
+        self._prev_drag = None if pd is None else self.regions[pd]
+        return state
+
+    def save_state(self):
+        state = {}
+        region_state = state['regions'] = []
+        for region in self.regions:
+            region_state.append(region.save_state())
+        state['_highlighted_region'] = None if self._highlighted_region is None \
+            else self.regions.index(self._highlighted_region)
+        state['associated_regions'] = { k: [ self.regions.index(r) for r in v ]
+            for k,v in self.associated_regions.items() }
+        state['sequence_regions'] = { k: [ self.regions.index(r) for r in v ]
+            for k,v in self.sequence_regions.items() }
+        state['_cur_region'] = None if self._cur_region is None \
+            else self.regions.index(self._cur_region)
+        state['_drag_region'] = None if self._drag_region is None \
+            else self.regions.index(self._drag_region)
+        state['_prev_drag'] = None if self._prev_drag is None \
+            else self.regions.index(self._prev_drag)
+        return state
+
     def seeRegion(self, region=None):
         if not region:
             region = self.cur_region()
@@ -1299,7 +1370,6 @@ class RegionBrowser:
         """
         self._clear_drag()
 
-        self._drag_region = None
         if event.modifiers() & Qt.ShiftModifier:
             self._drag_region = self.cur_region()
         else:
@@ -1367,7 +1437,7 @@ class RegionBrowser:
         """
 
         from PyQt5.QtCore import Qt
-        control_down = event.modifiers() & Qt.ControlModifier
+        control_down = bool(event.modifiers() & Qt.ControlModifier)
         pos = event.scenePos()
         canvas_x, canvas_y = pos.x(), pos.y()
         if abs(canvas_x - self._start_x) > 1 or abs(canvas_y - self._start_y) > 1:
@@ -1385,7 +1455,9 @@ class RegionBrowser:
                     outline=settings.new_region_border, fill=settings.new_region_interior,
                     cover_gaps=True, rebuild_table=rebuild_table)
                 if not control_down and self._prev_drag:
-                    self._prev_drag.destroy(rebuild_table=rebuild_table)
+                    # delete_region keeps sequence_regions and associated_regions
+                    # up to date, direct destroy does not
+                    self.delete_region(self._prev_drag, rebuild_table=rebuild_table)
                     self._prev_drag = None
             elif not self._drag_lines:
                 self._drag_region.add_block(block)
@@ -1660,12 +1732,13 @@ class RegionBrowser:
 
     def _show_sel_cb(self):
         # also called from settings dialog
+        from chimerax.core import atomic
         if self.seq_canvas.mav.settings.show_sel:
             self.show_chimerax_selection()
-            self._sel_change_handler = self.tool_window.session.triggers.add_handler(
-                "atomic changes", self._sel_change_cb)
+            self._sel_change_handler = atomic.get_triggers(self.tool_window.session).add_handler(
+                "changes", self._sel_change_cb)
         else:
-            self.tool_window.session.triggers.remove_handler(self._sel_change_handler)
+            atomic.get_triggers(self.tool_window.session).remove_handler(self._sel_change_handler)
             self._sel_change_handler = None
             sel_region = self.get_region("ChimeraX selection")
             if sel_region:

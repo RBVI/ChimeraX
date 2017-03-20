@@ -21,6 +21,12 @@ class _MavBundleAPI(BundleAPI):
         session.alignments.deregister_viewer(bundle_info.tools[0].name)
 
     @staticmethod
+    def get_class(class_name):
+        if class_name == "MultAlignViewer":
+            from .tool import MultAlignViewer
+            return MultAlignViewer
+
+    @staticmethod
     def initialize(session, bundle_info):
         """Register MAV with alignments manager"""
         session.alignments.register_viewer(bundle_info.tools[0].name, _show_alignment,

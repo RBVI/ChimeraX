@@ -348,6 +348,31 @@ Structure::_delete_atom(Atom* a)
 }
 
 void
+Structure::dealtloc()
+{
+    // make current alt locs into "regular" atoms and remove other alt locs
+    for (auto a: _atoms) {
+        if (a->alt_loc() == ' ')
+            continue;
+        auto aniso_u = a->aniso_u();
+        auto bfactor = a->bfactor();
+        auto coord = a->coord();
+        auto occupancy = a->occupancy();
+        auto serial_number = a->serial_number();
+        a->_alt_loc = ' ';
+        change_tracker()->add_modified(a, ChangeTracker::REASON_ALT_LOC);
+        a->_alt_loc_map.clear();
+        if (aniso_u != nullptr)
+            a->set_aniso_u((*aniso_u)[0], (*aniso_u)[1], (*aniso_u)[2],
+                (*aniso_u)[3], (*aniso_u)[4], (*aniso_u)[5]);
+        a->set_bfactor(bfactor);
+        a->set_coord(coord);
+        a->set_occupancy(occupancy);
+        a->set_serial_number(serial_number);
+    }
+}
+
+void
 Structure::delete_atom(Atom* a)
 {
     if (a->structure() != this) {

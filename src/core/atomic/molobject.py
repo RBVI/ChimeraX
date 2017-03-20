@@ -11,6 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from ..state import State
 from numpy import uint8, int32, uint32, float64, float32, byte, bool as npy_bool
 from .molc import string, cptr, pyobject, c_property, set_c_pointer, c_function, c_array_function, ctype_type_to_numpy, pointer
 import ctypes
@@ -65,7 +66,7 @@ def _pseudobond_group_map(pbgc_map):
 
 # -----------------------------------------------------------------------------
 #
-class Atom:
+class Atom(State):
     '''
     An atom includes physical and graphical properties such as an element name,
     coordinates in space, and color and radius for rendering.
@@ -126,11 +127,11 @@ class Atom:
     display = c_property('atom_display', npy_bool,
         doc="Whether to display the atom. Boolean value.")
     draw_mode = c_property('atom_draw_mode', uint8,
-        doc="Controls how the atom is depicted.\n\n|  Possible values:\n"
+        doc="Controls how the atom is depicted.\n\nPossible values:\n\n"
         "SPHERE_STYLE\n"
-        "    Use full atom radius\n"
+        "    Use full atom radius\n\n"
         "BALL_STYLE\n"
-        "    Use reduced atom radius, but larger than bond radius\n"
+        "    Use reduced atom radius, but larger than bond radius\n\n"
         "STICK_STYLE\n"
         "    Match bond radius")
     element = c_property('atom_element', cptr, astype = _element, read_only = True,
@@ -141,7 +142,7 @@ class Atom:
         doc = "Chemical element number. Read only.")
     hide = c_property('atom_hide', int32,
         doc="Whether atom is hidden (overrides display).  Integer bitmask."
-        "\n\n|  Possible values:\n"
+        "\n\nPossible values:\n\n"
         "HIDE_RIBBON\n"
         "    Hide mask for backbone atoms in ribbon.")
     idatm_type = c_property('atom_idatm_type', string, doc = "IDATM type")
@@ -248,11 +249,14 @@ class Atom:
     def is_backbone(self, bb_extent=BBE_MAX):
         '''Whether this Atom is considered backbone, given the 'extent' criteria.
 
-        |  Possible 'extent' values are:
+        Possible 'extent' values are:
+
         BBE_MIN
             Only the atoms needed to connect the residue chain (and their hydrogens)
+
         BBE_MAX
             All non-sidechain atoms
+
         BBE_RIBBON
             The backbone atoms that a ribbon depiction hides
         '''
@@ -269,6 +273,10 @@ class Atom:
         '''
         return self.structure.scene_position * self.coord
 
+    def reset_state(self, session):
+        """For when the session is closed"""
+        pass
+
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
                 'ses_id': self.structure.session_atom_to_id(self._c_pointer)}
@@ -280,7 +288,7 @@ class Atom:
 
 # -----------------------------------------------------------------------------
 #
-class Bond:
+class Bond(State):
     '''
     Bond connecting two atoms.
 
@@ -354,6 +362,10 @@ class Bond:
         c = f(self._c_pointer, atom._c_pointer)
         return object_map(c, Atom)
 
+    def reset_state(self, session):
+        f = c_function('pseudobond_global_manager_clear', args = (ctypes.c_void_p,))
+        f(self._c_pointer)
+
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
                 'ses_id': self.structure.session_bond_to_id(self._c_pointer)}
@@ -365,7 +377,7 @@ class Bond:
 
 # -----------------------------------------------------------------------------
 #
-class Pseudobond:
+class Pseudobond(State):
     '''
     A Pseudobond is a graphical line between atoms for example depicting a distance
     or a gap in an amino acid chain, often shown as a dotted or dashed line.
@@ -434,6 +446,10 @@ class Pseudobond:
 
     _ses_id = c_property('pseudobond_get_session_id', int32, read_only = True,
         doc="Used by session save/restore internals")
+
+    def reset_state(self, session):
+        f = c_function('pseudobond_global_manager_clear', args = (ctypes.c_void_p,))
+        f(self._c_pointer)
 
     def take_snapshot(self, session, flags):
         return [self.group, self._ses_id]
@@ -505,7 +521,6 @@ class PseudobondGroupData:
 
 # -----------------------------------------------------------------------------
 #
-from ..state import State
 class PseudobondManager(State):
     '''Per-session singleton pseudobond manager keeps track of all
     :class:`.PseudobondGroupData` objects.'''
@@ -603,7 +618,7 @@ class PseudobondManager(State):
 
 # -----------------------------------------------------------------------------
 #
-class Residue:
+class Residue(State):
     '''
     A group of atoms such as an amino acid or nucleic acid. Every atom in
     an :class:`.AtomicStructure` belongs to a residue, including solvent and ions.
@@ -756,6 +771,10 @@ class Residue:
         return (Residue.SS_HELIX if self.is_helix else 0) | (
             Residue.SS_STRAND if self.is_strand else 0)
 
+    def reset_state(self, session):
+        f = c_function('pseudobond_global_manager_clear', args = (ctypes.c_void_p,))
+        f(self._c_pointer)
+
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
                 'ses_id': self.structure.session_residue_to_id(self._c_pointer)}
@@ -768,7 +787,7 @@ class Residue:
 import atexit
 # -----------------------------------------------------------------------------
 #
-class Sequence:
+class Sequence(State):
     '''
     A polymeric sequence.  Offers string-like interface.
     '''
@@ -873,6 +892,10 @@ class Sequence:
         f = c_function('sequence_len', args = (ctypes.c_void_p,), ret = ctypes.c_size_t)
         return f(self._c_pointer)
 
+    def reset_state(self, session):
+        """For when the session is closed"""
+        pass
+
     @staticmethod
     def restore_snapshot(session, data):
         seq = Sequence()
@@ -891,11 +914,11 @@ class Sequence:
     # no __str__, since it's confusing whether it should be self.name or self.characters
 
     def set_state_from_snapshot(self, session, data):
-        seq.name = data['name']
+        self.name = data['name']
         self.characters = data['characters']
-        seq.attrs = data.get('attrs', {})
-        seq.markups = data.get('markups', {})
-        seq.numbering_start = data.get('numbering_start', None)
+        self.attrs = data.get('attrs', {})
+        self.markups = data.get('markups', {})
+        self.numbering_start = data.get('numbering_start', None)
 
     def ss_type(self, loc, loc_is_ungapped=False):
         try:
@@ -915,7 +938,7 @@ class Sequence:
 
     def take_snapshot(self, session, flags):
         data = { 'name': self.name, 'characters': self.characters, 'attrs': self.attrs,
-            'markups': self.markups }
+            'markups': self.markups, 'numbering_start': self.numbering_start }
         return data
 
     def ungapped(self):
@@ -1055,7 +1078,7 @@ class StructureSeq(Sequence):
         or None if no such residue exists.'''
         pos = self.res_map[r]
         return self.residue_at(pos+1)
-    
+
     @staticmethod
     def restore_snapshot(session, data):
         sseq = StructureSequence(chain_id=data['chain_id'], structure=data['structure'])
@@ -1326,6 +1349,11 @@ class StructureData:
         f = c_function('structure_add_coordset',
                        args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_size_t))
         f(self._c_pointer, id, pointer(xyz), len(xyz))
+
+    def dealtloc(self):
+        '''Incorporate current alt locs as "regular" atoms and remove other alt locs'''
+        f = c_function('structure_dealtloc', args = (ctypes.c_void_p,))(self._c_pointer)
+
     def new_atom(self, atom_name, element_name):
         '''Create a new :class:`.Atom` object. It must be added to a :class:`.Residue` object
         belonging to this structure before being used.'''
@@ -1617,7 +1645,7 @@ class Element:
     @staticmethod
     def bond_length(e1, e2):
         """Standard single-bond length between two elements
-        
+
         Arguments can be element instances, atomic numbers, or element names"""
         if not isinstance(e1, Element):
             e1 = Element.get_element(e1)
@@ -1631,7 +1659,7 @@ class Element:
     def bond_radius(e):
         """Standard single-bond 'radius'
         (the amount this element would contribute to bond length)
-        
+
         Argument can be an element instance, atomic number, or element name"""
         if not isinstance(e, Element):
             e = Element.get_element(e)
@@ -1746,7 +1774,7 @@ class RibbonXSection:
 
 # SeqMatchMaps are returned by C++ functions, but unlike most other classes in this file,
 # they have no persistence in the C++ layer
-class SeqMatchMap:
+class SeqMatchMap(State):
     """Class to track the matching between an alignment sequence and a structure sequence
 
        The match map can be indexed by either an integer (ungapped) sequence position,
@@ -1760,7 +1788,8 @@ class SeqMatchMap:
         self._align_seq = align_seq
         self._struct_seq = struct_seq
         self.session = session
-        self._handler = session.triggers.add_handler("atomic changes", self._atomic_changes)
+        from . import get_triggers
+        self._handler = get_triggers(session).add_handler("changes", self._atomic_changes)
 
     def __contains__(self, i):
         if isinstance(i, int):
@@ -1790,9 +1819,13 @@ class SeqMatchMap:
     def res_to_pos(self):
         return self._res_to_pos
 
+    def reset_state(self, session):
+        """For when the session is closed"""
+        pass
+
     @staticmethod
     def restore_snapshot(session, data):
-        inst = MatchMap(session, data['align seq'], data['struct seq'])
+        inst = SeqMatchMap(session, data['align seq'], data['struct seq'])
         inst._pos_to_res = data['pos to res']
         inst._res_to_pos = data['res to pos']
         return inst
@@ -1824,7 +1857,8 @@ class SeqMatchMap:
     def __del__(self):
         self._pos_to_res.clear()
         self._res_to_pos.clear()
-        self.session.triggers.remove_handler(self._handler)
+        from . import get_triggers
+        get_triggers(self.session).remove_handler(self._handler)
 
 # -----------------------------------------------------------------------------
 #
