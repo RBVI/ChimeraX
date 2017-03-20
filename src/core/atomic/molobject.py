@@ -1349,6 +1349,10 @@ class StructureData:
         f = c_function('structure_add_coordset',
                        args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_size_t))
         f(self._c_pointer, id, pointer(xyz), len(xyz))
+
+    def dealtloc(self):
+        f = c_function('structure_dealtloc', args = (ctypes.c_void_p,))(self._c_pointer)
+
     def new_atom(self, atom_name, element_name):
         '''Create a new :class:`.Atom` object. It must be added to a :class:`.Residue` object
         belonging to this structure before being used.'''
