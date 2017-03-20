@@ -1351,6 +1351,7 @@ class StructureData:
         f(self._c_pointer, id, pointer(xyz), len(xyz))
 
     def dealtloc(self):
+        '''Incorporate current alt locs as "regular" atoms and remove other alt locs'''
         f = c_function('structure_dealtloc', args = (ctypes.c_void_p,))(self._c_pointer)
 
     def new_atom(self, atom_name, element_name):
