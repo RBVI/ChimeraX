@@ -105,8 +105,11 @@ def write_mol2(structures, file_name, status=None, anchor=None, rel_model=None,
     Parameters
     ----------
 
-    structures : a list/tuple/set of :py:class:`~chimerax.core.atomic.Structure`s or a single :py:class:`~chimerax.core.atomic.Structure`
-        The structure(s)s to write out.
+    structures : a list/tuple/set of :py:class:`~chimerax.core.atomic.Structure`s
+        or a single :py:class:`~chimerax.core.atomic.Structure`
+        or an :py:class:`~chimerax.core.atomic.AtomicStructures` collection
+        or an :py:class:`~chimerax.core.atomic.Atoms` colleciton.
+        The structure(s)/atoms to write out.
 
     file_name : str or file object open for writing
         Output file.
@@ -147,17 +150,32 @@ def write_mol2(structures, file_name, status=None, anchor=None, rel_model=None,
 
     sort_func = serial_sort = lambda a1, a2, ri={}: write_mol2_sort(a1, a2, res_indices=ri)
 
-    from chimerax.core.atomic import Structure, Structures
+    from chimerax.core.atomic import Structure, Atoms
+    class JPBGroup:
+        def __init__(self, atoms):
+            atom_set = set(atoms)
+            pbs = []
+            for s in atoms.unique_structures:
+                for pb in s.pbg_map[s.PBG_METAL_COORDINATION].pseudobonds:
+                    if pb.atoms[0] in atom_set and pb.atoms[1] in atom_set:
+                        pbs.append(pb)
+            self._pbs = pbs
+
+        @property
+        def pseudobonds(self):
+            return self._pbs
     if isinstance(structures, Structure):
         structures = [structures]
-    elif isinstance(structures, Structures):
+    elif isinstance(structures, Atoms):
         class Jumbo:
-            def __init__(self, structs):
-                self.atoms = structs.atoms
-                self.residues = structs.residues
-                self.bonds = structs.inter_bonds
-                self.name = "(multiple structures)"
-        structures = [Jumbo(sel)]
+            def __init__(self, atoms):
+                self.atoms = atoms
+                self.residues = atoms.residues
+                self.bonds = atoms.intra_bonds
+                self.name = "(selection)"
+                self.pbg_map = { Structure.PBG_METAL_COORDINATION: JPBGroup(atoms) }
+
+        structures = [Jumbo(structures)]
         sort_func = lambda a1, a2: cmp(a1.structure.id, a2.structure.id) or serial_sort(a1, a2)
         multimodel_handling = "individual"
 
@@ -188,6 +206,7 @@ def write_mol2(structures, file_name, status=None, anchor=None, rel_model=None,
                 self.atoms = concatenate([s.atoms for s in structures])
                 self.bonds = concatenate([s.bonds for s in structures])
                 self.residues = concatenate([s.residues for s in structures])
+                self.pbg_map = { Structure.PBG_METAL_COORDINATION: JPBGroup(self.atoms) }
                 # if combining single-residue structures,
                 # can be more informative to use model name
                 # instead of residue type for substructure
@@ -208,8 +227,8 @@ def write_mol2(structures, file_name, status=None, anchor=None, rel_model=None,
         if hasattr(struct, 'mol2_comments'):
             for m2c in struct.mol2_comments:
                 print(m2c, file=f)
-        if hasattr(struct, 'solventInfo' ):
-            print(struct.solventInfo, file=f)
+        if hasattr(struct, 'solvent_info' ):
+            print(struct.solvent_info, file=f)
 
         # molecule section header
         print("%s" % MOLECULE_HEADER, file=f)
@@ -217,13 +236,13 @@ def write_mol2(structures, file_name, status=None, anchor=None, rel_model=None,
         # molecule name
         print("%s" % struct.name, file=f)
 
-        ATOM_LIST = struct.atoms
-        BOND_LIST = struct.bonds
-        #TODO: add metal-coordination bonds (keeping in mind "Jumbo" structures (and check Chimera 1!)
+        atoms = struct.atoms
+        bonds = struct.bonds
+        #TODO: add metal-coordination bonds
         if skip:
             skip = set(skip)
-            ATOM_LIST = [a for a in ATOM_LIST if a not in skip]
-            BOND_LIST = [b for b in BOND_LIST
+            atoms = [a for a in atoms if a not in skip]
+            bonds = [b for b in bonds
                     if b.atoms[0] not in skip
                     and b.atoms[1] not in skip]
         RES_LIST  = struct.residues
@@ -232,7 +251,7 @@ def write_mol2(structures, file_name, status=None, anchor=None, rel_model=None,
         # sort them by input order
         if status:
             status("Putting atoms in input order")
-        ATOM_LIST.sort(sort_func)
+        atoms.sort(sort_func)
 
         # if anchor is not None, then there will be two entries in
         # the @SET section of the file...
@@ -241,7 +260,7 @@ def write_mol2(structures, file_name, status=None, anchor=None, rel_model=None,
         else:
             sets = 0
         # number of entries for various sections...
-        print("%d %d %d 0 %d" % (len(ATOM_LIST), len(BOND_LIST), end="", file=f)
+        print("%d %d %d 0 %d" % (len(atoms), len(bonds), end="", file=f)
                             len(RES_LIST), sets)
 
         # type of molecule
@@ -281,7 +300,7 @@ def write_mol2(structures, file_name, status=None, anchor=None, rel_model=None,
         res_indices = {}
         for i, r in enumerate(RES_LIST):
             res_indices[r] = i+1
-        for i, atom in enumerate(ATOM_LIST):
+        for i, atom in enumerate(atoms):
             # atom ID, starting from 1
             print("%7d" % (i+1), end="", file=f)
 
@@ -365,9 +384,9 @@ def write_mol2(structures, file_name, status=None, anchor=None, rel_model=None,
 
         # make an atom-index dictionary to speed lookups
         atomIndices = {}
-        for i, a in enumerate(ATOM_LIST):
+        for i, a in enumerate(atoms):
             atomIndices[a] = i+1
-        for i, bond in enumerate(BOND_LIST):
+        for i, bond in enumerate(bonds):
             a1, a2 = bond.atoms
 
             # ID
@@ -509,10 +528,10 @@ def write_mol2(structures, file_name, status=None, anchor=None, rel_model=None,
                 status("writing anchor info")
             print("%s" % SET_HEADER, file=f)
             atomIndices = {}
-            for i, a in enumerate(ATOM_LIST):
+            for i, a in enumerate(atoms):
                 atomIndices[a] = i+1
             bondIndices = {}
-            for i, b in enumerate(BOND_LIST):
+            for i, b in enumerate(bonds):
                 bondIndices[b] = i+1
             print("ANCHOR          STATIC     ATOMS    <user>   **** Anchor Atom Set", file=f)
             atoms = anchor.atoms()

@@ -964,7 +964,7 @@ extern "C" EXPORT void atom_update_ribbon_visibility(void *atoms, size_t n)
     }
 }
 
-extern "C" EXPORT PyObject *atom_inter_bonds(void *atoms, size_t n)
+extern "C" EXPORT PyObject *atom_intra_bonds(void *atoms, size_t n)
 {
     Atom **a = static_cast<Atom **>(atoms);
     std::set<Atom *> aset;
@@ -3404,6 +3404,19 @@ extern "C" EXPORT void structure_pbg_map(void *mols, size_t n, pyobject_t *pbgs)
         Py_XDECREF(pbg_map);
         molc_error();
     }
+}
+
+extern "C" EXPORT const char *structure_PBG_METAL_COORDINATION()
+{
+    return Structure::PBG_METAL_COORDINATION;
+}
+extern "C" EXPORT const char *structure_PBG_MISSING_STRUCTURE()
+{
+    return Structure::PBG_MISSING_STRUCTURE;
+}
+extern "C" EXPORT const char *structure_PBG_HYDROGEN_BONDS()
+{
+    return Structure::PBG_HYDROGEN_BONDS;
 }
 
 extern "C" EXPORT Proxy_PBGroup *structure_pseudobond_group(void *mol, const char *name, int create_type)

@@ -400,7 +400,7 @@ def surface_zone(session, surfaces, near_atoms = None, range = 2,
     if len(atoms) == 0:
         raise UserError('No atoms specified')
 
-#    bonds = atoms.inter_bonds if bond_point_spacing is not None else None
+#    bonds = atoms.intra_bonds if bond_point_spacing is not None else None
     bonds = None
 
     from ..surface import zone

@@ -1223,6 +1223,14 @@ class StructureData:
     This base class manages the data while the
     derived class handles the graphical 3-dimensional rendering using OpenGL.
     '''
+
+    PBG_METAL_COORDINATION = c_function('structure_PBG_METAL_COORDINATON', args = (),
+        ret = ctypes.c_char_p)()
+    PBG_MISSING_STRUCTURE = c_function('structure_PBG_MISSING_STRUCTURE', args = (),
+        ret = ctypes.c_char_p)()
+    PBG_HYDROGEN_BONDS = c_function('structure_PBG_HYDROGEN_BONDS', args = (),
+        ret = ctypes.c_char_p)()
+
     def __init__(self, mol_pointer=None, *, logger=None):
         if mol_pointer is None:
             # Create a new graph
@@ -1404,13 +1412,7 @@ class StructureData:
                        args = (ctypes.c_void_p, ctypes.c_void_p), ret = None)
         f(self._c_pointer, pbg._c_pointer)
 
-    @classmethod
-    def restore_snapshot(cls, session, data):
-        g = StructureData(logger=session.logger)
-        g.set_state_from_snapshot(session, data)
-        return g
-
-    def set_state_from_snapshot(self, session, data):
+    def restore_state(self, session, data):
         '''Restore from session info'''
         self._ses_call("restore_setup")
         f = c_function('structure_session_restore',
@@ -1418,6 +1420,22 @@ class StructureData:
                         ctypes.py_object, ctypes.py_object, ctypes.py_object))
         f(self._c_pointer, data['version'], data['ints'], data['floats'], data['misc'])
         session.triggers.add_handler("end restore session", self._ses_restore_teardown)
+
+    def save_state(self, session, flags):
+        '''Gather session info; return version number'''
+        # the save setup/teardown handled in Structure/AtomicStructure class, so that
+        # the trigger handlers can be deregistered when the object is deleted
+        f = c_function('structure_session_info',
+                    args = (ctypes.c_void_p, ctypes.py_object, ctypes.py_object,
+                        ctypes.py_object),
+                    ret = ctypes.c_int)
+        data = {'ints': [],
+                'floats': [],
+                'misc': []}
+        data['version'] = f(self._c_pointer, data['ints'], data['floats'], data['misc'])
+        # data is all simple Python primitives, let session saving know that...
+        from ..state import FinalizedState
+        return FinalizedState(data)
 
     def session_atom_to_id(self, ptr):
         '''Map Atom pointer to session ID'''
@@ -1472,22 +1490,6 @@ class StructureData:
         f = c_function('set_structure_color',
                     args = (ctypes.c_void_p, ctypes.c_void_p))
         return f(self._c_pointer, pointer(rgba))
-
-    def take_snapshot(self, session, flags):
-        '''Gather session info; return version number'''
-        # the save setup/teardown handled in Structure/AtomicStructure class, so that
-        # the trigger handlers can be deregistered when the object is deleted
-        f = c_function('structure_session_info',
-                    args = (ctypes.c_void_p, ctypes.py_object, ctypes.py_object,
-                        ctypes.py_object),
-                    ret = ctypes.c_int)
-        data = {'ints': [],
-                'floats': [],
-                'misc': []}
-        data['version'] = f(self._c_pointer, data['ints'], data['floats'], data['misc'])
-        # data is all simple Python primitives, let session saving know that...
-        from ..state import FinalizedState
-        return FinalizedState(data)
 
     def _ses_call(self, func_qual):
         f = c_function('structure_session_' + func_qual, args=(ctypes.c_void_p,))

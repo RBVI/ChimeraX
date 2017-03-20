@@ -186,7 +186,7 @@ class Structure(Model, StructureData):
 
     def take_snapshot(self, session, flags):
         data = {'model state': Model.take_snapshot(self, session, flags),
-                'structure state': StructureData.take_snapshot(self, session, flags)}
+                'structure state': StructureData.save_state(self, session, flags)}
         for attr_name in self._session_attrs.keys():
             data[attr_name] = getattr(self, attr_name)
         from ..state import CORE_STATE_VERSION
@@ -202,7 +202,7 @@ class Structure(Model, StructureData):
     def set_state_from_snapshot(self, session, data):
         # Model restores self.name, which is a property of the C++ StructureData
         # so initialize StructureData first.
-        StructureData.set_state_from_snapshot(self, session, data['structure state'])
+        StructureData.restore_state(self, session, data['structure state'])
         Model.set_state_from_snapshot(self, session, data['model state'])
 
         for attr_name, default_val in self._session_attrs.items():
@@ -2465,7 +2465,7 @@ def selected_bonds(session):
     blist = []
     for m in session.models.list(type = Structure):
         for a in m.selected_items('atoms'):
-            blist.append(a.inter_bonds)
+            blist.append(a.intra_bonds)
     from .molarray import concatenate, Bonds
     bonds = concatenate(blist, Bonds)
     return bonds
