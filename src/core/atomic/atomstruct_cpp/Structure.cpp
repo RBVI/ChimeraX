@@ -599,8 +599,8 @@ CoordSet *
 Structure::new_coord_set()
 {
     if (_coord_sets.empty())
-        return new_coord_set(0);
-    return new_coord_set(_coord_sets.back()->id());
+        return new_coord_set(1);
+    return new_coord_set(_coord_sets.back()->id()+1);
 }
 
 static void
