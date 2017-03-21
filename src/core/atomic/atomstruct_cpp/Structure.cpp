@@ -257,8 +257,12 @@ void Structure::_copy(Structure* g) const
         cr->set_is_het(r->is_het());
         cr->set_ss_id(r->ss_id());
         cr->set_ss_type(r->ss_type());
+        cr->_alt_loc = r->_alt_loc;
+        cr->set_polymer_type(r->polymer_type());
+        cr->_ribbon_hide_backbone = r->_ribbon_hide_backbone;
+        cr->_ribbon_selected = r->_ribbon_selected;
+        cr->_ribbon_adjust = r->_ribbon_adjust;
         rmap[r] = cr;
-	// TODO: Copy all ribbon display style attributes.
     }
     std::map<Atom*, Atom*> amap;
     for (auto ai = atoms().begin() ; ai != atoms().end() ; ++ai) {

@@ -8,7 +8,7 @@ def compute_morph(mols, log, method = 'corkscrew', rate = 'linear', frames = 20,
                 log.status("Computing interpolation %d\n" % (i+1))
                 motion.interpolate(mol, res_interp)
         traj = motion.trajectory()
-        traj.active_coordset_id = 0	# Start at initial trajectory frame.
+        traj.active_coordset_id = 1	# Start at initial trajectory frame.
         return traj
 
 ht = it = 0
