@@ -2,7 +2,6 @@
 
 verbose = False
 
-#TODO
 from acceptor_geom import acc_syn_anti, acc_phi_psi, acc_theta_tau, acc_generic
 """
 from donorGeom import donThetaTau, donUpsilonTau, donGeneric, donWater
@@ -334,9 +333,9 @@ def find_hbonds(models, intermodel=True, intramodel=True, donors=None, acceptors
     else:
         flush_cache()
     global donor_params, acceptor_params
+    #TODO
     global processedDonorParams, processed_acceptor_params
     global _compute_cache
-    #TODO
     global verbose
     global _problem
     _problem = None
