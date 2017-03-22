@@ -2,8 +2,7 @@
 
 """acceptor geometry testing functions"""
 
-from chimerax.core.geometry import look_at
-import numpy
+from chimerax.core.geometry import look_at, angle, distance_squared
 from numpy import linalg
 from chimerax.atomic.bond_geom import bond_positions
 from chimera.atomic.idatm import tetrahedral
@@ -72,7 +71,7 @@ def acc_phi_psi(donor, donor_hyds, acceptor, bonded1, bonded2, r2, phi, theta):
 def test_phi_psi(dp, donor_hyds, ap, bp, phi_plane, r2, phi, theta):
     if hbond.verbose:
         print("distance: %g, cut off: %g" % (linalg.norm(dp-ap), sqrt(r2)))
-    if numpy.sum((dp-ap)**2) > r2:
+    if distance_squared(dp, ap) > r2:
         if hbond.verbose:
             print("dist criteria failed")
         return False
@@ -95,7 +94,7 @@ def acc_theta_tau(donor, donor_hyds, acceptor, upsilon_partner, r2,
         r2 = sulphur_compensate(r2)
     if hbond.verbose:
         print("distance: %g, cut off: %g" % (linalg.norm(dp-ap), sqrt(r2)))
-    if numpy.sum((dp-ap)**2) > r2:
+    if distance_squared(dp, ap) > r2:
         if hbond.verbose:
             print("dist criteria failed")
         return False
@@ -146,7 +145,7 @@ def acc_generic(donor, donor_hyds, acceptor, r2, min_angle):
         r2 = sulphur_compensate(r2)
     if hbond.verbose:
         print("distance: %g, cut off: %g" % (linalg.norm(dp-ap), sqrt(r2)))
-    if numpy.sum((dp-ap)**2) > r2:
+    if distance_squared(dp, ap) > r2:
         if hbond.verbose:
             print("dist criteria failed")
         return False

@@ -3,11 +3,14 @@
 verbose = False
 
 from acceptor_geom import acc_syn_anti, acc_phi_psi, acc_theta_tau, acc_generic
+from donor_geom import don_theta_tau, don_upsilon_tau, don_generic, don_water
 """
-from donorGeom import donThetaTau, donUpsilonTau, donGeneric, donWater
 from commonGeom import ConnectivityError, AtomTypeError
 from math import pi
 from ChemGroup import findGroup
+"""
+#TODO
+"""
 from CGLutil.AdaptiveTree import AdaptiveTree
 from hydpos import hydPositions
 """
@@ -269,9 +272,8 @@ donor_params = [
     # need below to cause check for generic donors
     [None, 0, 'generic', 0, (3.73, 3.73, 3.73)]
 ]
-"""
-processedDonorParams = {}
-"""
+processed_donor_params = {}
+
 def flush_cache():
     global _d_cache, _a_cache, _prev_limited
     _prev_limited = _d_cache = _a_cache = None
@@ -333,114 +335,102 @@ def find_hbonds(models, intermodel=True, intramodel=True, donors=None, acceptors
     else:
         flush_cache()
     global donor_params, acceptor_params
-    #TODO
-    global processedDonorParams, processed_acceptor_params
+    global processed_donor_params, processed_acceptor_params
     global _compute_cache
     global verbose
     global _problem
     _problem = None
 
-    badConnectivities = 0
+    bad_connectivities = 0
 
-    # Used as necessary to cache expensive calculations (by other
-    # functions also)
+    # Used (as necessary) to cache expensive calculations (by other functions also)
     _compute_cache = {}
 
-    processKey = (dist_slop, angle_slop)
-    if processKey not in processed_acceptor_params:
+    process_key = (dist_slop, angle_slop)
+    if process_key not in processed_acceptor_params:
         # copy.deepcopy() refuses to copy functions (even as
         # references), so do this instead...
-        aParams = []
+        a_params = []
         for p in acceptor_params:
-            aParams.append(copy.copy(p))
+            a_params.append(copy.copy(p))
 
-        for i in range(len(aParams)):
-            aParams[i][3] = _processArgTuple(aParams[i][3],
-                            dist_slop, angle_slop)
-        processed_acceptor_params[processKey] = aParams
+        for i in range(len(a_params)):
+            a_params[i][3] = _process_arg_tuple(a_params[i][3], dist_slop, angle_slop)
+        processed_acceptor_params[process_key] = a_params
     else:
-        aParams = processed_acceptor_params[processKey]
+        a_params = processed_acceptor_params[process_key]
 
     # compute some info for generic acceptors/donors
-    genericAccInfo = {}
+    generic_acc_info = {}
     # oxygens...
-    genericOAccArgs = _processArgTuple([3.53, 90], dist_slop,
-                            angle_slop)
-    genericAccInfo['miscO'] = (acc_generic, genericOAccArgs)
+    generic_O_acc_args = _process_arg_tuple([3.53, 90], dist_slop, angle_slop)
+    generic_acc_info['miscO'] = (acc_generic, generic_O_acc_args)
     # dictionary based on bonded atom's geometry...
-    genericAccInfo['O2-'] = {
-        single: (acc_generic, genericOAccArgs),
-        linear: (acc_generic, genericOAccArgs),
-        planar: (acc_phi_psi, _processArgTuple([3.53, 90, 130],
-                        dist_slop, angle_slop)),
-        tetrahedral: (acc_generic, genericOAccArgs)
+    generic_acc_info['O2-'] = {
+        single: (acc_generic, generic_O_acc_args),
+        linear: (acc_generic, generic_O_acc_args),
+        planar: (acc_phi_psi, _process_arg_tuple([3.53, 90, 130], dist_slop, angle_slop)),
+        tetrahedral: (acc_generic, generic_O_acc_args)
     }
-    genericAccInfo['O3-'] = genericAccInfo['O2-']
-    genericAccInfo['O2'] = {
-        single: (acc_generic, genericOAccArgs),
-        linear: (acc_generic, genericOAccArgs),
-        planar: (acc_phi_psi, _processArgTuple([3.30, 110, 130],
-                        dist_slop, angle_slop)),
-        tetrahedral: (acc_theta_tau, _processArgTuple(
+    generic_acc_info['O3-'] = generic_acc_info['O2-']
+    generic_acc_info['O2'] = {
+        single: (acc_generic, generic_O_acc_args),
+        linear: (acc_generic, generic_O_acc_args),
+        planar: (acc_phi_psi, _process_arg_tuple([3.30, 110, 130], dist_slop, angle_slop)),
+        tetrahedral: (acc_theta_tau, _process_arg_tuple(
             [3.03, 100, -180, 145], dist_slop, angle_slop))
     }
     # list based on number of known bonded atoms...
-    genericAccInfo['O3'] = [
-        (acc_generic, genericOAccArgs),
-        (acc_theta_tau, _processArgTuple([3.17, 100, -161, 145],
-                        dist_slop, angle_slop)),
-        (acc_phi_psi, _processArgTuple([3.42, 120, 135],
-                        dist_slop, angle_slop))
+    generic_acc_info['O3'] = [
+        (acc_generic, generic_O_acc_args),
+        (acc_theta_tau, _process_arg_tuple([3.17, 100, -161, 145], dist_slop, angle_slop)),
+        (acc_phi_psi, _process_arg_tuple([3.42, 120, 135], dist_slop, angle_slop))
     ]
     # nitrogens...
-    genericNAccArgs = _processArgTuple([3.42, 90], dist_slop,
-                            angle_slop)
-    genericAccInfo['miscN'] = (acc_generic, genericNAccArgs)
-    genericAccInfo['N2'] = (acc_phi_psi, _processArgTuple([3.42, 140, 135],
-                        dist_slop, angle_slop))
+    generic_N_acc_args = _process_arg_tuple([3.42, 90], dist_slop, angle_slop)
+    generic_acc_info['miscN'] = (acc_generic, generic_N_acc_args)
+    generic_acc_info['N2'] = (acc_phi_psi, _process_arg_tuple([3.42, 140, 135],
+            dist_slop, angle_slop))
     # tuple based on number of bonded heavy atoms...
-    genericN3MultHeavyAccArgs = _processArgTuple([3.30, 153, -180, 145],
-                        dist_slop, angle_slop)
-    genericAccInfo['N3'] = (
-        (acc_generic, genericNAccArgs),
+    generic_N3_mult_heavy_acc_args = _process_arg_tuple([3.30, 153, -180, 145],
+            dist_slop, angle_slop)
+    generic_acc_info['N3'] = (
+        (acc_generic, generic_N_acc_args),
         # only one example to draw from; weaken by .1A, 5 degrees
-        (acc_theta_tau, _processArgTuple([3.13, 98, -180, 150],
-                        dist_slop, angle_slop)),
-        (acc_theta_tau, genericN3MultHeavyAccArgs),
-        (acc_theta_tau, genericN3MultHeavyAccArgs)
+        (acc_theta_tau, _process_arg_tuple([3.13, 98, -180, 150], dist_slop, angle_slop)),
+        (acc_theta_tau, generic_N3_mult_heavy_acc_args),
+        (acc_theta_tau, generic_N3_mult_heavy_acc_args)
     )
     # one example only; weaken by .1A, 5 degrees
-    genericAccInfo['N1'] = (acc_theta_tau, _processArgTuple(
+    generic_acc_info['N1'] = (acc_theta_tau, _process_arg_tuple(
                 [3.40, 136, -180, 145], dist_slop, angle_slop))
     # sulfurs...
     # one example only; weaken by .1A, 5 degrees
-    genericAccInfo['S2'] = (acc_phi_psi, _processArgTuple([3.83, 85, 140],
-                        dist_slop, angle_slop))
-    genericAccInfo['Sar'] = genericAccInfo['S3-'] = (acc_generic,
-            _processArgTuple([3.83, 85], dist_slop, angle_slop))
+    generic_acc_info['S2'] = (acc_phi_psi, _process_arg_tuple([3.83, 85, 140],
+            dist_slop, angle_slop))
+    generic_acc_info['Sar'] = generic_acc_info['S3-'] = (acc_generic,
+            _process_arg_tuple([3.83, 85], dist_slop, angle_slop))
     # now the donors...
-    
+
     # planar nitrogens
-    genDonNpl1HParams = (donThetaTau, _processArgTuple([2.23, 136,
+    gen_don_Npl_1h_params = (don_theta_tau, _process_arg_tuple([2.23, 136,
         2.23, 141, 140, 2.46, 136, 140], dist_slop, angle_slop))
-    genDonNpl2HParams = (donUpsilonTau, _processArgTuple([3.30, 90, -153,
-        135, -45, 3.30, 90, -146, 140, -37.5, 130, 3.40, 108, -166, 125,
-        -35, 140], dist_slop, angle_slop))
-    genDonODists = [2.41, 2.28, 2.28, 3.27, 3.14, 3.14]
-    genDonOParams = (donGeneric, _processArgTuple(
-                    genDonODists, dist_slop, angle_slop))
-    genDonNDists = [2.36, 2.48, 2.48, 3.30, 3.42, 3.42]
-    genDonNParams = (donGeneric, _processArgTuple(
-                    genDonNDists, dist_slop, angle_slop))
-    genDonSDists = [2.42, 2.42, 2.42, 3.65, 3.65, 3.65]
-    genDonSParams = (donGeneric, _processArgTuple(
-                    genDonSDists, dist_slop, angle_slop))
-    genericDonInfo = {
-        'O': genDonOParams,
-        'N': genDonNParams,
-        'S': genDonSParams
+    gen_don_Npl_2h_params = (don_upsilon_tau, _process_arg_tuple([3.30, 90, -153,
+        135, -45, 3.30, 90, -146, 140, -37.5, 130, 3.40, 108, -166, 125, -35, 140],
+        dist_slop, angle_slop))
+    gen_don_O_dists = [2.41, 2.28, 2.28, 3.27, 3.14, 3.14]
+    gen_don_O_params = (don_generic, _process_arg_tuple(gen_don_O_dists, dist_slop, angle_slop))
+    gen_don_N_dists = [2.36, 2.48, 2.48, 3.30, 3.42, 3.42]
+    gen_don_N_params = (don_generic, _process_arg_tuple(gen_don_N_dists, dist_slop, angle_slop))
+    gen_don_S_dists = [2.42, 2.42, 2.42, 3.65, 3.65, 3.65]
+    gen_don_S_params = (don_generic, _process_arg_tuple(gen_don_S_dists, dist_slop, angle_slop))
+    generic_don_info = {
+        'O': gen_don_O_params,
+        'N': gen_don_N_params,
+        'S': gen_don_S_params
     }
 
+    #TODO
     accTrees = {}
     hbonds = []
     hasSulfur = {}
@@ -458,8 +448,8 @@ def find_hbonds(models, intermodel=True, intramodel=True, donors=None, acceptors
                     accAtoms.append(accAtom)
                     accData.append(data)
         else:
-            accAtoms, accData = _findAcceptors(model, aParams,
-                    limited_acceptors, genericAccInfo)
+            accAtoms, accData = _findAcceptors(model, a_params,
+                    limited_acceptors, generic_acc_info)
             if cache_da:
                 cache = WeakKeyDictionary()
                 for i in range(len(accAtoms)):
@@ -478,7 +468,7 @@ def find_hbonds(models, intermodel=True, intramodel=True, donors=None, acceptors
                                 blankAfter=0)
         accTrees[model] = AdaptiveTree(xyz, accData, 3.0)
     
-    if processKey not in processedDonorParams:
+    if process_key not in processed_donor_params:
         # find max donor distances before they get squared..
 
         # copy.deepcopy() refuses to copy functions (even as
@@ -501,26 +491,26 @@ def find_hbonds(models, intermodel=True, intramodel=True, donors=None, acceptors
                 maxDist = max((argList[1], argList[4],
                                 argList[8]))
             else:
-                maxDist = max(genDonODists
-                        + genDonNDists + genDonSDists)
+                maxDist = max(gen_don_O_dists
+                        + gen_don_N_dists + gen_don_S_dists)
                 donRad = Element.bond_radius('S')
             dParams[di].append(maxDist + dist_slop + donRad
                 + Element.bond_radius('H'))
 
         for i in range(len(dParams)):
-            dParams[i][4] = _processArgTuple(dParams[i][4],
+            dParams[i][4] = _process_arg_tuple(dParams[i][4],
                             dist_slop, angle_slop)
-        processedDonorParams[processKey] = dParams
+        processed_donor_params[process_key] = dParams
     else:
-        dParams = processedDonorParams[processKey]
+        dParams = processed_donor_params[process_key]
         
-    genericWaterParams = _processArgTuple([2.36, 2.36 + OH_bond_dist, 146],
+    genericWaterParams = _process_arg_tuple([2.36, 2.36 + OH_bond_dist, 146],
                             dist_slop, angle_slop)
-    genericThetaTauParams = _processArgTuple([2.48, 132],
+    genericThetaTauParams = _process_arg_tuple([2.48, 132],
                             dist_slop, angle_slop)
-    genericUpsilonTauParams = _processArgTuple([3.42, 90, -161, 125],
+    genericUpsilonTauParams = _process_arg_tuple([3.42, 90, -161, 125],
                             dist_slop, angle_slop)
-    genericGenericParams = _processArgTuple([2.48, 3.42, 130, 90],
+    genericGenericParams = _process_arg_tuple([2.48, 3.42, 130, 90],
                             dist_slop, angle_slop)
     for dmi in range(len(models)):
         model = models[dmi]
@@ -538,7 +528,7 @@ def find_hbonds(models, intermodel=True, intramodel=True, donors=None, acceptors
                     donData.append(data)
         else:
             donAtoms, donData = _findDonors(model, dParams,
-                    limited_donors, genericDonInfo)
+                    limited_donors, generic_don_info)
             if cache_da:
                 cache = WeakKeyDictionary()
                 for i in range(len(donAtoms)):
@@ -590,7 +580,7 @@ def find_hbonds(models, intermodel=True, intramodel=True, donors=None, acceptors
                             continue
                     except ConnectivityError, v:
                         replyobj.message("Skipping possible acceptor with bad geometry: %s\n%s\n\n" % (accAtom.oslIdent(), v))
-                        badConnectivities += 1
+                        bad_connectivities += 1
                         continue
                     except:
                         print "donor:", donorAtom, " acceptor:", accAtom
@@ -598,13 +588,13 @@ def find_hbonds(models, intermodel=True, intramodel=True, donors=None, acceptors
                     if verbose:
                         replyobj.message("\t%s satisfies acceptor criteria\n" % accAtom.oslIdent())
                     if geomType == upsilon_tau:
-                        donorFunc = donUpsilonTau
+                        donorFunc = don_upsilon_tau
                         addArgs = genericUpsilonTauParams + [tauSym]
                     elif geomType == theta_tau:
-                        donorFunc = donThetaTau
+                        donorFunc = don_theta_tau
                         addArgs = genericThetaTauParams
                     elif geomType == water:
-                        donorFunc = donWater
+                        donorFunc = don_water
                         addArgs = genericWaterParams
                     else:
                         if donorAtom.idatmType in ["Npl", "N2+"]:
@@ -613,18 +603,18 @@ def find_hbonds(models, intermodel=True, intramodel=True, donors=None, acceptors
                                 if bonded.element.number > 1:
                                     heavys += 1
                             if heavys > 1:
-                                info = genDonNpl1HParams
+                                info = gen_don_Npl_1h_params
                             else:
-                                info = genDonNpl2HParams
+                                info = gen_don_Npl_2h_params
                         else:
-                            info = genericDonInfo[donorAtom.element.name]
+                            info = generic_don_info[donorAtom.element.name]
                         donorFunc, argList = info
                         addArgs = genericGenericParams
-                        if donorFunc == donUpsilonTau:
+                        if donorFunc == don_upsilon_tau:
                             # tack on generic
                             # tau symmetry
                             addArgs = genericUpsilonTauParams + [4]
-                        elif donorFunc == donThetaTau:
+                        elif donorFunc == don_theta_tau:
                             addArgs = genericThetaTauParams
                     try:
                         if not apply(donorFunc,
@@ -633,7 +623,7 @@ def find_hbonds(models, intermodel=True, intramodel=True, donors=None, acceptors
                             continue
                     except ConnectivityError, v:
                         replyobj.message("Skipping possible donor with bad geometry: %s\n%s\n\n" % (donorAtom.oslIdent(), v))
-                        badConnectivities += 1
+                        bad_connectivities += 1
                         continue
                     except AtomTypeError, v:
                         _problem = ("atom type",
@@ -642,8 +632,8 @@ def find_hbonds(models, intermodel=True, intramodel=True, donors=None, acceptors
                     if verbose:
                         replyobj.message("\t%s satisfies donor criteria\n" % donorAtom.oslIdent())
                     hbonds.append((donorAtom, accAtom))
-    if badConnectivities:
-        replyobj.warning("Skipped %d atom(s) with bad connectivities; see reply log for details\n" % badConnectivities);
+    if bad_connectivities:
+        replyobj.warning("Skipped %d atom(s) with bad connectivities; see reply log for details\n" % bad_connectivities);
     if _problem:
         if not chimera.nogui:
             da, atom, grp1, grp2 = _problem
@@ -688,7 +678,7 @@ descript)
     return hbonds
 
 """
-def _processArgTuple(argTuple, dist_slop, angle_slop):
+def _process_arg_tuple(argTuple, dist_slop, angle_slop):
     newArgs = []
     for arg in argTuple:
         if isinstance(arg, (int, float)):
@@ -713,12 +703,12 @@ def _processArgTuple(argTuple, dist_slop, angle_slop):
             newArgs.append(arg)
     return newArgs  # returns list
 
-def _findAcceptors(model, aParams, limited_acceptors, genericAccInfo):
+def _findAcceptors(model, a_params, limited_acceptors, generic_acc_info):
     global _problem
     accAtoms = []
     accData = []
     stdAcceptors = {}
-    for ap in aParams:
+    for ap in a_params:
         groupKey, accIndices, geomFunc, argList = ap
         groups = findGroup(groupKey, [model])
         for group in groups:
@@ -765,8 +755,8 @@ def _findAcceptors(model, aParams, limited_acceptors, genericAccInfo):
             continue
         if limited_acceptors and atom not in limited_acceptors:
             continue
-        if atom.idatmType in genericAccInfo:
-            accInfo = genericAccInfo[atom.idatmType]
+        if atom.idatmType in generic_acc_info:
+            accInfo = generic_acc_info[atom.idatmType]
             if isinstance(accInfo, dict):
                 try:
                     bondedGeom = type_info[atom
@@ -804,12 +794,12 @@ def _findAcceptors(model, aParams, limited_acceptors, genericAccInfo):
             atomicNumber = atom.element.number
             if atomicNumber == 8:
                 # oxygen
-                accFunc, args = genericAccInfo['miscO']
+                accFunc, args = generic_acc_info['miscO']
             elif atomicNumber == 7:
                 # nitrogen
                 if atom.idatmType not in ['N2', 'N3']:
                     continue
-                accFunc, args = genericAccInfo['miscN']
+                accFunc, args = generic_acc_info['miscN']
             else:
                 continue
             if verbose:
@@ -819,7 +809,7 @@ def _findAcceptors(model, aParams, limited_acceptors, genericAccInfo):
         accData.append([atom, accFunc, tuple([atom] + args)])
     return accAtoms, accData
 
-def _findDonors(model, dParams, limited_donors, genericDonInfo):
+def _findDonors(model, dParams, limited_donors, generic_don_info):
     donAtoms = []
     donData = []
     stdDonors = {}
@@ -868,7 +858,7 @@ def _findDonors(model, dParams, limited_donors, genericDonInfo):
         if groups and geomType == theta_tau:
             # extend probe distance by H-bond length
             # so that all relevant acceptors will be found
-            testDist = testDist + Element.bond_length( groups[0][donorIndex].element, 'H')
+            testDist = testDist + Element.bond_length(groups[0][donorIndex].element, 'H')
         for group in groups:
             donorAtom = group[donorIndex]
             if limited_donors \
