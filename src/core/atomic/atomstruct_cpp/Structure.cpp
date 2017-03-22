@@ -257,8 +257,12 @@ void Structure::_copy(Structure* g) const
         cr->set_is_het(r->is_het());
         cr->set_ss_id(r->ss_id());
         cr->set_ss_type(r->ss_type());
+        cr->_alt_loc = r->_alt_loc;
+        cr->set_polymer_type(r->polymer_type());
+        cr->_ribbon_hide_backbone = r->_ribbon_hide_backbone;
+        cr->_ribbon_selected = r->_ribbon_selected;
+        cr->_ribbon_adjust = r->_ribbon_adjust;
         rmap[r] = cr;
-	// TODO: Copy all ribbon display style attributes.
     }
     std::map<Atom*, Atom*> amap;
     for (auto ai = atoms().begin() ; ai != atoms().end() ; ++ai) {
@@ -333,22 +337,7 @@ Structure::copy() const
 }
 
 void
-Structure::_delete_atom(Atom* a)
-{
-    auto db = DestructionBatcher(this);
-    if (a->element().number() == 1)
-        --_num_hyds;
-    for (auto b: a->bonds())
-        b->other_atom(a)->remove_bond(b);
-    typename Atoms::iterator i = std::find_if(_atoms.begin(), _atoms.end(),
-        [&a](Atom* ua) { return ua == a; });
-    _atoms.erase(i);
-    set_gc_shape();
-    delete a;
-}
-
-void
-Structure::dealtloc()
+Structure::delete_alt_locs()
 {
     // make current alt locs into "regular" atoms and remove other alt locs
     for (auto a: _atoms) {
@@ -370,6 +359,21 @@ Structure::dealtloc()
         a->set_occupancy(occupancy);
         a->set_serial_number(serial_number);
     }
+}
+
+void
+Structure::_delete_atom(Atom* a)
+{
+    auto db = DestructionBatcher(this);
+    if (a->element().number() == 1)
+        --_num_hyds;
+    for (auto b: a->bonds())
+        b->other_atom(a)->remove_bond(b);
+    typename Atoms::iterator i = std::find_if(_atoms.begin(), _atoms.end(),
+        [&a](Atom* ua) { return ua == a; });
+    _atoms.erase(i);
+    set_gc_shape();
+    delete a;
 }
 
 void
@@ -599,8 +603,8 @@ CoordSet *
 Structure::new_coord_set()
 {
     if (_coord_sets.empty())
-        return new_coord_set(0);
-    return new_coord_set(_coord_sets.back()->id());
+        return new_coord_set(1);
+    return new_coord_set(_coord_sets.back()->id()+1);
 }
 
 static void

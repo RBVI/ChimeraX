@@ -200,7 +200,7 @@ public:
     virtual void  compute_secondary_structure(float = -0.5, int = 3, int = 3, bool = false) {}
     const CoordSets&  coord_sets() const { return _coord_sets; }
     virtual Structure*  copy() const;
-    void  dealtloc();
+    void  delete_alt_locs();
     void  delete_atom(Atom* a);
     void  delete_atoms(const std::set<Atom*>& atoms) { _delete_atoms(atoms); }
     void  delete_atoms(const std::vector<Atom*>& atoms);
