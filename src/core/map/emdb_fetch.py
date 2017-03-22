@@ -25,11 +25,16 @@ def fetch_emdb(session, emdb_id, ignore_cache=False, **kw):
 
     import socket
     hname = socket.gethostname()
-# TODO: RCSB https is 20x slower than ftp. Cole Christie looking into it.
-#    url_pattern = ('https://files.rcsb.org/pub/emdb/structures/EMD-%s/map/%s.gz'
-    url_pattern = ('ftp://ftp.wwpdb.org/pub/emdb/structures/EMD-%s/map/%s.gz'
-                   if hname.endswith('.edu') or hname.endswith('.gov') else
-                   'ftp://ftp.ebi.ac.uk/pub/databases/emdb/structures/EMD-%s/map/%s.gz')
+    if hname.endswith('.edu') or hname.endswith('.gov'):
+        # TODO: RCSB https is 20x slower than ftp. Cole Christie looking into it.
+        #    url_pattern = ('https://files.rcsb.org/pub/emdb/structures/EMD-%s/map/%s.gz'
+        # The RCSB ftp does not report file size so progress messages don't indicate how long it will take.
+        url_pattern = 'ftp://ftp.wwpdb.org/pub/emdb/structures/EMD-%s/map/%s.gz'
+    elif hname.endswith('.cn'):
+        url_pattern = 'ftp://ftp.emdb-china.org/structures/EMD-%s/map/%s.gz'
+    else:
+        url_pattern = 'ftp://ftp.ebi.ac.uk/pub/databases/emdb/structures/EMD-%s/map/%s.gz'
+        
     map_name = 'emd_%s.map' % emdb_id
     map_url = url_pattern % (emdb_id, map_name)
 
