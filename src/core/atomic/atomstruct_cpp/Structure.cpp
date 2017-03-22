@@ -337,22 +337,7 @@ Structure::copy() const
 }
 
 void
-Structure::_delete_atom(Atom* a)
-{
-    auto db = DestructionBatcher(this);
-    if (a->element().number() == 1)
-        --_num_hyds;
-    for (auto b: a->bonds())
-        b->other_atom(a)->remove_bond(b);
-    typename Atoms::iterator i = std::find_if(_atoms.begin(), _atoms.end(),
-        [&a](Atom* ua) { return ua == a; });
-    _atoms.erase(i);
-    set_gc_shape();
-    delete a;
-}
-
-void
-Structure::dealtloc()
+Structure::delete_alt_locs()
 {
     // make current alt locs into "regular" atoms and remove other alt locs
     for (auto a: _atoms) {
@@ -374,6 +359,21 @@ Structure::dealtloc()
         a->set_occupancy(occupancy);
         a->set_serial_number(serial_number);
     }
+}
+
+void
+Structure::_delete_atom(Atom* a)
+{
+    auto db = DestructionBatcher(this);
+    if (a->element().number() == 1)
+        --_num_hyds;
+    for (auto b: a->bonds())
+        b->other_atom(a)->remove_bond(b);
+    typename Atoms::iterator i = std::find_if(_atoms.begin(), _atoms.end(),
+        [&a](Atom* ua) { return ua == a; });
+    _atoms.erase(i);
+    set_gc_shape();
+    delete a;
 }
 
 void

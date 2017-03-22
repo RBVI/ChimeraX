@@ -3646,11 +3646,11 @@ extern "C" EXPORT void *atomic_structure_new(PyObject* logger)
     }
 }
 
-extern "C" EXPORT void structure_dealtloc(void *mol)
+extern "C" EXPORT void structure_delete_alt_locs(void *mol)
 {
     Structure *m = static_cast<Structure *>(mol);
     try {
-        m->dealtloc();
+        m->delete_alt_locs();
     } catch (...) {
         molc_error();
     }
