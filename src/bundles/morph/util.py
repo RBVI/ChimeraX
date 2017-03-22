@@ -45,7 +45,7 @@ def segment_alignment_atoms(rList):
 def copyMolecule(m, copyXformCoords=False, copyPBG=True):
         """Copy molecule and return both copy and map of corresponding atoms"""
         c = m.copy()
-        c.dealtloc()
+        c.delete_alt_locs()
         atomMap = {a:ca for a,ca in zip(m.atoms, c.atoms)}
         residueMap = {r:cr for r,cr in zip(m.residues, c.residues)}
         return c, atomMap, residueMap
