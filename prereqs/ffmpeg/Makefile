@@ -122,6 +122,9 @@ ifeq ($(OS),Darwin)
 	ln -sfF $(bindir)/libtool $(LIBTHEORA_SOURCE)/libtool
 endif
 	env PATH=$(bindir):$(PATH) $(MAKE) -C $(LIBTHEORA_SOURCE) install
+ifeq ($(OS),Darwin)
+	rm -f $(libdir)/libtheora*.dylib
+endif
 
 $(LIBTHEORA_SOURCE):
 	$(bindir)/7za e -so $(LIBTHEORA_DISTRIB) | tar xf - -C $(tmpdir)
