@@ -131,8 +131,12 @@ class SeqCanvas:
         self.font = tkFont.Font(parent,
             (self.mav.prefs[FONT_NAME], self.mav.prefs[FONT_SIZE]))
         """
-        from PyQt5.QtGui import QFont
+        from PyQt5.QtGui import QFont, QFontMetrics
         self.font = QFont("Helvetica")
+        self.emphasis_font = QFont(self.font)
+        self.emphasis_font.setBold(True)
+        self.font_metrics = QFontMetrics(self.font)
+        self.emphasis_font_metrics = QFontMetrics(self.emphasis_font)
         """TODO
         self.treeBalloon = Pmw.Balloon(parent)
         self.tree = self._treeCallback = None
@@ -682,7 +686,8 @@ class SeqCanvas:
         self.showNumberings = [self.mav.leftNumberingVar.get(),
                     self.mav.rightNumberingVar.get()]
         self.lead_block = SeqBlock(self._labelCanvas(), self.mainCanvas,
-            None, self.font, 0, initialHeaders, self.alignment.seqs,
+            None, self.font, self.emphasis_font, self.font_metrics, self.emphasis_font_metrics,
+            0, initialHeaders, self.alignment.seqs,
             self.line_width, self.labelBindings, lambda *args, **kw:
             self.mav.status(secondary=True, *args, **kw),
             self.showRuler, self.treeBalloon, self.showNumberings,
@@ -690,7 +695,8 @@ class SeqCanvas:
         self._resizescrollregion()
         """
         self.lead_block = SeqBlock(self._label_scene(), self.main_scene,
-            None, self.font, 0, [], self.alignment,
+            None, self.font, self.emphasis_font, self.font_metrics, self.emphasis_font_metrics,
+            0, [], self.alignment,
             self.line_width, {}, lambda *args, **kw: self.mav.status(secondary=True, *args, **kw),
             True, None, [False, False], self.mav.settings)
 
@@ -904,7 +910,8 @@ class SeqCanvas:
         initialHeaders = [hd for hd in self.headers
                         if self.displayHeader[hd]]
         self.lead_block = SeqBlock(self._labelCanvas(), self.mainCanvas,
-            None, self.font, 0, initialHeaders, self.alignment.seqs,
+            None, self.font, self.emphasis_font, self.font_metrics, self.emphasis_font_metrics,
+            0, initialHeaders, self.alignment.seqs,
             self.line_width, self.labelBindings, lambda *args, **kw:
             self.mav.status(secondary=True, *args, **kw),
             self.showRuler, self.treeBalloon, self.showNumberings,
@@ -1332,7 +1339,8 @@ class SeqBlock:
     multi_assoc_color = Qt.darkGreen
     label_pad = 3
 
-    def __init__(self, label_scene, main_scene, prev_block, font, seq_offset,
+    def __init__(self, label_scene, main_scene, prev_block, font, emphasis_font,
+            font_metrics, emphasis_font_metrics, seq_offset,
             headers, alignment, line_width, label_bindings, status_func,
             show_ruler, tree_balloon, show_numberings, settings):
         self.label_scene = label_scene
@@ -1340,6 +1348,9 @@ class SeqBlock:
         self.prev_block = prev_block
         self.alignment = alignment
         self.font = font
+        self.emphasis_font = emphasis_font
+        self.font_metrics = font_metrics
+        self.emphasis_font_metrics = emphasis_font_metrics
         self.label_bindings = label_bindings
         self.status_func = status_func
         """TODO
@@ -1379,9 +1390,6 @@ class SeqBlock:
             self.font_pixels = prev_block.font_pixels
             self.lines = prev_block.lines
             self.line_index = prev_block.line_index
-            self.emphasis_font = prev_block.emphasis_font
-            self.emphasis_font_metrics = prev_block.emphasis_font_metrics
-            self.font_metrics = prev_block.font_metrics
             self.numbering_widths = prev_block.numbering_widths
             self._brushes = prev_block._brushes
             self.multi_assoc_brush = prev_block.multi_assoc_brush
@@ -1393,15 +1401,12 @@ class SeqBlock:
             for i in range(len(lines)):
                 self.line_index[lines[i]] = i
             self.lines = lines
-            from PyQt5.QtGui import QFont, QFontMetrics, QBrush, QPen
-            self.emphasis_font = QFont(self.font)
-            self.emphasis_font.setBold(True)
+            from PyQt5.QtGui import QBrush, QPen
             """TODO
             if prefs[prefPrefix + BOLD_ALIGNMENT]:
                 self.font = self.emphasis_font
+                self.font_metrics = self.emphasis_font_metrics
             """
-            self.font_metrics = QFontMetrics(self.font)
-            self.emphasis_font_metrics = QFontMetrics(self.emphasis_font)
             self.label_width = self.find_label_width(self.font_metrics, self.emphasis_font_metrics)
             # On Windows the maxWidth() of Helvetica is 39(!), whereas the width of 'W' is 14.
             # So, I have no idea what that 39-wide character is, but I don't care -- just use
@@ -1443,11 +1448,10 @@ class SeqBlock:
         if seq_offset + line_width >= len(alignment.seqs[0]):
             self.next_block = None
         else:
-            self.next_block = SeqBlock(label_scene, main_scene,
-                self, self.font, seq_offset + line_width, headers,
-                alignment, line_width, label_bindings, status_func,
-                show_ruler, tree_balloon, show_numberings,
-                self.settings)
+            self.next_block = SeqBlock(label_scene, main_scene, self,
+                self.font, self.emphasis_font, self.font_metrics, self.emphasis_font_metrics,
+                seq_offset + line_width, headers, alignment, line_width, label_bindings,
+                status_func, show_ruler, tree_balloon, show_numberings, self.settings)
 
     """TODO
     def activateNode(self, node, callback=None,
@@ -2430,14 +2434,11 @@ class SeqBlock:
             if self.next_block:
                 self.next_block.realign(prevLen)
             else:
-                self.next_block = SeqBlock(self.label_scene,
-                    self.main_scene, self, self.font,
-                    self.seq_offset + self.line_width,
-                    self.lines[:0-len(self.alignment.seqs)],
-                    self.alignment.seqs, self.line_width,
-                    self.label_bindings, self.status_func,
-                    self.show_ruler, self.tree_balloon,
-                    self.show_numberings, self.settings)
+                self.next_block = SeqBlock(self.label_scene, self.main_scene, self, self.font,
+                    self.enphasis_font, self.font_metrics, self.emphasis_font_metrics,
+                    self.seq_offset + self.line_width, self.lines[:0-len(self.alignment.seqs)],
+                    self.alignment.seqs, self.line_width, self.label_bindings, self.status_func,
+                    self.show_ruler, self.tree_balloon, self.show_numberings, self.settings)
     """
 
     def row_index(self, y, bound=None):

@@ -1,4 +1,3 @@
-UC Medical Plan Satisfaction Survey
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
@@ -26,13 +25,14 @@ defaults = {
     "show_sel": True,
     # if 'wrap_if' is True, then alignment will be wrapped if the number of
     # sequences is at least 'wrap_threshold'.  If 'wrap_if' is false, then
-    # wrapping will occur is 'wrap' is true.  Wrapping will occur at
+    # wrapping will occur if 'wrap' is true.  Wrapping will occur at
     # 'line_width' columns, if positive.  if negative, alignment will be
     # wrapped to window size, at a multiple of abs(line_width) characters.
     "wrap": False,
     SINGLE_PREFIX + "wrap": True,
     "wrap_if": True,
     SINGLE_PREFIX + "wrap_if": False,
+    "wrap_threshold": 8,
 }
 
 from  chimerax.core.settings import Settings
