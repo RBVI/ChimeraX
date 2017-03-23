@@ -821,7 +821,7 @@ class Structure(Model, StructureData):
                     va, na, ta = surface.cylinder_geometry(nc=nc, nz=2, caps=False)
                 else:
                     # Assume it's either TETHER_CONE or TETHER_REVERSE_CONE
-                    va, na, ta = surface.cone_geometry(nc=nc, caps=False)
+                    va, na, ta = surface.cone_geometry(nc=nc, caps=False, points_up=False)
                 tp.geometry = va, ta
                 tp.normals = na
                 self._ribbon_tether.append((atoms, tp, coords[tethered], atoms.filter(tethered),
@@ -1539,7 +1539,7 @@ class Structure(Model, StructureData):
     def planes_pick(self, planes, exclude=None):
         if not self.display:
             return []
-        if exclude is not None and hasattr(self, exclude):
+        if exclude is not None and exclude(self):
             return []
 
         picks = []
@@ -1881,6 +1881,7 @@ class AtomicStructure(Structure):
                     for i in range(0, len(data), len(entity_fields)) }
                 for ch in self.chains:
                     mmcif_cid = ch.existing_residues.mmcif_chain_ids[0]
+                    print("chain ID:", ch.chain_id, " mmCIF chain ID:", mmcif_cid)
                     chain_to_desc[ch.chain_id] = (
                         entity_to_description[mmcif_chain_to_entity[mmcif_cid]], False)
         elif 'COMPND' in self.metadata and self.pdb_version > 1:

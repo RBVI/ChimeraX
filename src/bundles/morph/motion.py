@@ -1,18 +1,21 @@
-def compute_morph(mols, log, method = 'corkscrew', rate = 'linear', frames = 20, cartesian = False):
-        motion = MolecularMotion(mols[0], method = method, rate = rate, frames = frames)
+def compute_morph(mols, log, method = 'corkscrew', rate = 'linear', frames = 20,
+                  cartesian = False, match_same = False, core_fraction = 0.5):
+        motion = MolecularMotion(mols[0], method = method, rate = rate, frames = frames,
+                                 match_same = match_same, core_fraction = core_fraction)
         from .interpolate import ResidueInterpolator
         res_interp = ResidueInterpolator(motion.trajectory().residues, cartesian)
         for i, mol in enumerate(mols[1:]):
                 log.status("Computing interpolation %d\n" % (i+1))
                 motion.interpolate(mol, res_interp)
         traj = motion.trajectory()
-        traj.active_coordset_id = 0	# Start at initial trajectory frame.
+        traj.active_coordset_id = 1	# Start at initial trajectory frame.
         return traj
 
 ht = it = 0
 class MolecularMotion:
 
-        def __init__(self, m, method = "corkscrew", rate = "linear", frames = 20):
+        def __init__(self, m, method = "corkscrew", rate = "linear", frames = 20,
+                     match_same = False, core_fraction = 0.5):
                 """
                 Compute a trajectory that starting from molecule m conformation.
                 Subsequent calls to interpolate must supply molecules
@@ -32,6 +35,10 @@ class MolecularMotion:
                         frames                integer, default 20
                                         Number of intermediate frames to
                                         generate in trajectory
+                        match_same      Whether to match atoms with same chain id,
+                                        same residue number and same atom name.
+                        core_fraction   Fraction of atoms in chain that align best
+                                        to move rigidly.
                 """
 
                 # Make a copy of the molecule to hold the computed trajectory
@@ -43,6 +50,8 @@ class MolecularMotion:
                 self.method = method
                 self.rate = rate
                 self.frames = frames
+                self.match_same = match_same
+                self.core_fraction = core_fraction
 
         def interpolate(self, m, res_interp):
                 """Interpolate to new conformation 'm'."""
@@ -56,10 +65,14 @@ class MolecularMotion:
                 sm = self.mol
                 from time import time
                 t0 = time()
-                try:
-                        results = segment.segmentHingeExact(sm, m)
-                except ValueError:
-                        results = segment.segmentHingeApproximate(sm, m)
+                cf = self.core_fraction
+                if self.match_same:
+                        results = segment.segmentHingeSame(sm, m, cf)
+                else:
+                        try:
+                                results = segment.segmentHingeExact(sm, m, cf)
+                        except ValueError:
+                                results = segment.segmentHingeApproximate(sm, m, cf)
                 t1 = time()
                 global ht
                 ht += t1-t0

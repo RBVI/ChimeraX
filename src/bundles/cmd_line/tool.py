@@ -26,6 +26,7 @@ class CommandLine(ToolInstance):
         ToolInstance.__init__(self, session, tool_name)
         from chimerax.core.ui.gui import MainToolWindow
 
+        self._in_init = True
         self.tool_window = MainToolWindow(self, close_destroys=False)
         parent = self.tool_window.ui_area
         self.history_dialog = _HistoryDialog(self)
@@ -89,6 +90,7 @@ class CommandLine(ToolInstance):
         session.ui.register_for_keystrokes(self.text)
         self.history_dialog.populate()
         self.tool_window.manage(placement="bottom")
+        self._in_init = False
 
     def cmd_clear(self):
         self.text.lineEdit().clear()
@@ -128,7 +130,8 @@ class CommandLine(ToolInstance):
     def text_changed(self, text):
         if text == self.show_history_label:
             self.cmd_clear()
-            self.history_dialog.window.shown = True
+            if not self._in_init:
+                self.history_dialog.window.shown = True
         elif text == self.compact_label:
             self.cmd_clear()
             prev_cmd = None

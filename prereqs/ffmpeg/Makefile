@@ -7,6 +7,9 @@ FFMPEG_DISTRIB = ffmpeg-$(FFMPEG_VERSION).tar.bz2
 FFMPEG_SOURCE = $(tmpdir)/ffmpeg-$(FFMPEG_VERSION)
 FFMPEG_EXE = $(FFMPEG_SOURCE)/ffmpeg
 
+# Windows ffmpeg is precompiled statically linked executable from Zeranoe.
+FFMPEG_WIN_EXE = ffmpeg-3.2.4-win64.exe
+
 LIBX264_VERSION = snapshot-20140810-2245-stable
 LIBX264_DISTRIB = x264-$(LIBX264_VERSION).tar.bz2
 LIBX264_SOURCE = $(tmpdir)/x264-$(LIBX264_VERSION)
@@ -32,13 +35,25 @@ FFMPEG_OPTS	= --disable-network \
 			--extra-ldflags="$(LDFLAGS) -L$(libdir)" \
 			--extra-libs="-ldl"
 
+ifeq ($(OS),Windows)
+
+all:
+
+install:
+	$(RSYNC) $(FFMPEG_WIN_EXE) $(bindir)/ffmpeg$(PROG_EXT)
+
+app-install:
+	$(RSYNC) $(FFMPEG_WIN_EXE) $(app_bindir)/ffmpeg$(PROG_EXT)
+
+else
+
 all: $(FFMPEG_EXE)
 
 install: $(FFMPEG_EXE)
-	cp $(FFMPEG_EXE) $(bindir)
+	$(RSYNC) $(FFMPEG_EXE) $(bindir)
 
 app-install:
-	$(RSYNC) $(bindir)/ffmpeg$(PROG_EXT) $(app_bindir)
+	$(RSYNC) $(FFMPEG_EXE) $(app_bindir)
 
 clean:
 	rm -rf $(FFMPEG_SOURCE) $(YASM_SOURCE) $(LIBX264_SOURCE)
@@ -64,3 +79,5 @@ $(LIBX264): $(LIBX264_SOURCE) $(YASM_EXE)
 
 $(LIBX264_SOURCE):
 	tar jxf $(LIBX264_DISTRIB) -C $(tmpdir)
+
+endif

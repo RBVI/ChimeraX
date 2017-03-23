@@ -67,7 +67,8 @@ See also:
 <a href="save.html"><b>save</b></a>,
 <a href="help.html"><b>help</b></a>,
 <a href="sym.html"><b>sym</b></a>,
-<a href="colortables.html#autocolors">initial colors</a>
+<a href="colortables.html#autocolors">initial colors</a>,
+<a href="../autostyle.html">automatic styling</a>
 </p><p>
 The <b>open formats</b> command lists the possible formats and databases
 in the <a href="../tools/log.html"><b>Log</b></a>. 
@@ -519,11 +520,13 @@ number. Model name and number can be changed with the
 <blockquote>
 <b>autoStyle</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
-Setting <b>autoStyle</b> to <b>false</b> bypasses chemical perception
-and rule-based changes in lighting, coloring, and representation, instead
-always showing atomic models as white spheres; it may be useful in 
-rare cases where generating the initial representation is slow
-(<i>e.g.</i>, drawing cartoons for very large numbers of atomic models).
+Setting <b>autoStyle</b> to <b>false</b> bypasses 
+<a href="../autostyle.html">automatic styling</a>, <i>i.e.</i>,
+automatically adjusting the appearance of a newly opened atomic model
+based on its contents.
+Bypassing this calculation shows all atoms as white spheres, and may be 
+useful in rare cases where generating the rule-based representation is slow
+(such as drawing cartoons for very large numbers of models).
 </blockquote>
 <blockquote>
 <b>autoAssociate</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false

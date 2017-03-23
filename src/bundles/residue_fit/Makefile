@@ -15,7 +15,7 @@ endif
 WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
 
 PYSRCS = $(filter-out setup.py,$(wildcard *.py))
-DATAFILES = 
+DATAFILES = play.png pause.png record.png stop.png
 WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-py3-none-any.whl
 
 all: $(PYOBJS)

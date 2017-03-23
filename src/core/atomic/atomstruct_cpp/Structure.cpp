@@ -257,8 +257,12 @@ void Structure::_copy(Structure* g) const
         cr->set_is_het(r->is_het());
         cr->set_ss_id(r->ss_id());
         cr->set_ss_type(r->ss_type());
+        cr->_alt_loc = r->_alt_loc;
+        cr->set_polymer_type(r->polymer_type());
+        cr->_ribbon_hide_backbone = r->_ribbon_hide_backbone;
+        cr->_ribbon_selected = r->_ribbon_selected;
+        cr->_ribbon_adjust = r->_ribbon_adjust;
         rmap[r] = cr;
-	// TODO: Copy all ribbon display style attributes.
     }
     std::map<Atom*, Atom*> amap;
     for (auto ai = atoms().begin() ; ai != atoms().end() ; ++ai) {
@@ -330,6 +334,31 @@ Structure::copy() const
     Structure* g = new Structure(_logger);
     _copy(g);
     return g;
+}
+
+void
+Structure::delete_alt_locs()
+{
+    // make current alt locs into "regular" atoms and remove other alt locs
+    for (auto a: _atoms) {
+        if (a->alt_loc() == ' ')
+            continue;
+        auto aniso_u = a->aniso_u();
+        auto bfactor = a->bfactor();
+        auto coord = a->coord();
+        auto occupancy = a->occupancy();
+        auto serial_number = a->serial_number();
+        a->_alt_loc = ' ';
+        change_tracker()->add_modified(a, ChangeTracker::REASON_ALT_LOC);
+        a->_alt_loc_map.clear();
+        if (aniso_u != nullptr)
+            a->set_aniso_u((*aniso_u)[0], (*aniso_u)[1], (*aniso_u)[2],
+                (*aniso_u)[3], (*aniso_u)[4], (*aniso_u)[5]);
+        a->set_bfactor(bfactor);
+        a->set_coord(coord);
+        a->set_occupancy(occupancy);
+        a->set_serial_number(serial_number);
+    }
 }
 
 void
@@ -574,8 +603,8 @@ CoordSet *
 Structure::new_coord_set()
 {
     if (_coord_sets.empty())
-        return new_coord_set(0);
-    return new_coord_set(_coord_sets.back()->id());
+        return new_coord_set(1);
+    return new_coord_set(_coord_sets.back()->id()+1);
 }
 
 static void

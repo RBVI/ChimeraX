@@ -206,7 +206,7 @@ class SteamVRCamera(Camera):
     def close(self, close_cb = None):
         cm = [m for d,m in self._controller_models.items()]
         if cm:
-            self._session.close(cm)
+            self._session.models.close(cm)
             self._controller_models = {}
         self._close = True
         self._close_cb = close_cb
@@ -237,7 +237,7 @@ class SteamVRCamera(Camera):
 
     def next_frame(self, *_):
         c = self.compositor
-        if c is None:
+        if c is None or self._close:
             return
         import openvr
         c.waitGetPoses(self._poses, openvr.k_unMaxTrackedDeviceCount, None, 0)
@@ -453,13 +453,14 @@ class SteamVRCamera(Camera):
         fb = render.pop_framebuffer()
         import openvr
         self.compositor.submit(openvr.Eye_Right, fb.openvr_texture)
-        if self._close:
-            self._delayed_close()
 
         if self.mirror_display:
             # Render right eye to ChimeraX window.
             from chimerax.core.graphics.drawing import draw_overlays
             draw_overlays([self._mirror_drawing()], render)
+
+        if self._close:
+            self._delayed_close()
 
     def _texture_framebuffer(self):
 
@@ -512,7 +513,7 @@ class HandControllerModel(Model):
     def __init__(self, name, session, rgba8, size = 0.20, aspect = 0.2):
         Model.__init__(self, name, session)
         from chimerax.core.surface.shapes import cone_geometry
-        va, na, ta = cone_geometry(nc = 50)
+        va, na, ta = cone_geometry(nc = 50, points_up = False)
         va[:,:2] *= aspect
         va[:,2] += 0.5		# Move tip to 0,0,0 for picking
         va *= size

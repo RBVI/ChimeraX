@@ -42,6 +42,39 @@ def segmentSieve(rList0, rList1, fraction=0.5):
         ssvt += t1-t0
         return segments
 
+# Require same chain id, same residue number and same atom name for pairing.
+def segmentHingeSame(m0, m1, fraction=0.5):
+
+        # Split by chain
+        cr0, cr1 = m0.residues.by_chain, m1.residues.by_chain
+        cids = set(cid for s,cid,rlist in cr0) & set(cid for s,cid,rlist in cr1)
+        cr0 = {cid:rlist for s,cid,rlist in cr0 if cid in cids}
+        cr1 = {cid:rlist for s,cid,rlist in cr1 if cid in cids}
+
+        parts = []
+        atomMap = {}
+        for cid in cids:
+                r0list, r1list = cr0[cid], cr1[cid]
+                r0map = {r.number:r for r in r0list}
+                r1map = {r.number:r for r in r1list}
+                rnums = set(r0map.keys()) & set(r1map.keys())
+                curRList0 = []
+                curRList1 = []
+                for rnum in rnums:
+                        r0, r1 = r0map[rnum], r1map[rnum]
+                        if shareAtomsSameName(r0, r1, atomMap):
+                                curRList0.append(r0)
+                                curRList1.append(r1)
+                parts.append((curRList0, curRList1))
+
+        #
+        # Split each part on hinges and collate results
+        #
+        segments = []
+        for rList0, rList1 in parts:
+                segments.extend(segmentHingeResidues(rList0, rList1, fraction))
+        return segments, atomMap
+
 def segmentHingeExact(m0, m1, fraction=0.5):
 
         # Split by chain
@@ -85,19 +118,6 @@ def segmentHingeExact(m0, m1, fraction=0.5):
         for rList0, rList1 in parts:
                 segments.extend(segmentHingeResidues(rList0, rList1, fraction))
         return segments, atomMap
-
-def residuesByChain(residues):
-        residues.by_chain
-        cres = {}
-        cids = []
-        for r in residues:
-                cid = r.chain_id
-                if cid in cres:
-                        cres[cid].append(r)
-                else:
-                        cres[cid] = [r]
-                        cids.append(cid)
-        return [(cid, cres[cid]) for cid in cids]
 
 def segmentHingeApproximate(m0, m1, fraction=0.5, matrix="BLOSUM-62"):
         #
@@ -335,7 +355,7 @@ def shareAtoms(r0, r1, atomMap):
                         for na in neighbors[a0]:
                                 if na not in visited and na in neighbors:
                                         todo.append(na)
-        if a0 is None:
+        if a1 is None:
                 return False
 
         matched = [(a0,a1)]
@@ -379,7 +399,7 @@ def shareAtoms(r0, r1, atomMap):
         satt += t1-t0
         return True
 
-def shareAtomsDumb(r0, r1, atomMap):
+def shareAtomsSameName(r0, r1, atomMap):
         a1 = {a.name: a for a in r1.atoms}
         matched = False
         for a in r0.atoms:
