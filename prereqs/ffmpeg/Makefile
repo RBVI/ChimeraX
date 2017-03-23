@@ -45,6 +45,8 @@ install:
 app-install:
 	$(RSYNC) $(FFMPEG_WIN_EXE) $(app_bindir)/ffmpeg$(PROG_EXT)
 
+clean:
+
 else
 
 all: $(FFMPEG_EXE)
