@@ -155,7 +155,7 @@ class Render:
         return self._opengl_context
 
     def make_current(self):
-        self._opengl_context.make_current()
+        return self._opengl_context.make_current()
 
     def done_current(self):
         self._opengl_context.done_current()
