@@ -92,8 +92,8 @@ class View:
     def _use_opengl(self):
         if self._render is None:
             raise RuntimeError("running without graphics")
-        self._render.make_current()
-        self._initialize_opengl()
+        if self._render.make_current():
+            self._initialize_opengl()
 
     def _initialize_opengl(self):
 

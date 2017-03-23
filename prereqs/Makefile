@@ -29,7 +29,6 @@ NEED_P7ZIP=1
 NEED_ZLIB=1
 #SUBDIRS += leapmotion
 SUBDIRS += oculus
-SUBDIRS += ffmpeg
 endif
 
 ifeq ($(OS),Linux)
@@ -38,7 +37,6 @@ NEED_HDF5=1
 NEED_OPENSSL=1
 NEED_P7ZIP=1
 NEED_ZLIB=1
-SUBDIRS += ffmpeg
 endif
 
 ifdef NEED_OFFSCREEN
@@ -94,7 +92,7 @@ endif
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
-SUBDIRS	+= filelock fonts \
+SUBDIRS	+= ffmpeg filelock fonts \
 	   imex numexpr numpy openmm \
 	   pcre pdbfixer pips pycollada \
 	   PyOpenGL PyQt pytables Python \

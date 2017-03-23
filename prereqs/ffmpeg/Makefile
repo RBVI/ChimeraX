@@ -7,6 +7,9 @@ FFMPEG_DISTRIB = ffmpeg-$(FFMPEG_VERSION).tar.bz2
 FFMPEG_SOURCE = $(tmpdir)/ffmpeg-$(FFMPEG_VERSION)
 FFMPEG_EXE = $(FFMPEG_SOURCE)/ffmpeg
 
+# Windows ffmpeg is precompiled statically linked executable from Zeranoe.
+FFMPEG_WIN_EXE = ffmpeg-3.2.4-win64.exe
+
 LIBX264_VERSION = 20170123-90a61ec
 LIBX264_DISTRIB = x264-$(LIBX264_VERSION).tar.xz
 LIBX264_SOURCE = $(tmpdir)/x264-$(LIBX264_VERSION)
@@ -48,6 +51,20 @@ FFMPEG_OPTS	=  --prefix=$(build_prefix) \
 			--extra-cflags="-I$(includedir)" \
 			--extra-ldflags="$(LDFLAGS) -L$(libdir)" \
 			--extra-libs="-ldl"
+
+ifeq ($(OS),Windows)
+
+all:
+
+install:
+	$(RSYNC) $(FFMPEG_WIN_EXE) $(bindir)/ffmpeg$(PROG_EXT)
+
+app-install:
+	$(RSYNC) $(FFMPEG_WIN_EXE) $(app_bindir)/ffmpeg$(PROG_EXT)
+
+clean:
+
+else
 
 all: $(FFMPEG_EXE)
 
@@ -108,3 +125,5 @@ libvpx $(LIBVPX): $(LIBVPX_SOURCE)
 
 $(LIBVPX_SOURCE):
 	$(bindir)/7za e -so $(LIBVPX_DISTRIB) | tar xf - -C $(tmpdir)
+
+endif
