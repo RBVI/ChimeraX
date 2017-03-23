@@ -134,16 +134,25 @@ class PivotIndicator(Drawing):
         self.set_colors(axis_colors)
 
     def set_size(self, axis_length, axis_radius):
-        from ..surface.shapes import cylinder_geometry
+        from ..surface.shapes import cylinder_geometry, cone_geometry
         vaz, naz, taz = cylinder_geometry(radius = axis_radius, height = axis_length)
-        nv = len(vaz)
+        vcz, ncz, tcz = cone_geometry(radius = axis_radius * 2, height = axis_length * 0.2, 
+                                        caps = True)
         from ..geometry import Place
+        vct = Place(origin = (0,0,axis_length/2))
+        vcz = vct.moved(vcz)
+        nv = len(vaz)
+        tcz = tcz + nv
+        from numpy import concatenate
+        vaz = concatenate((vaz, vcz))
+        naz = concatenate((naz, ncz))
+        taz = concatenate((taz, tcz))
+        nv = len(vaz)
         tx = Place(axes = [[0,0,1],[0,-1,0],[1,0,0]])
         vax, nax, tax = tx.moved(vaz), tx.apply_without_translation(naz), taz.copy() + nv
         ty = Place(axes = [[1,0,0],[0,0,-1],[0,1,0]])
         vay, nay, tay = ty.moved(vaz), ty.apply_without_translation(naz), taz.copy() + 2*nv
 
-        from numpy import concatenate
         self.vertices = concatenate((vax,vay,vaz))
         self.normals = concatenate((nax,nay,naz))
         self.triangles = concatenate((tax,tay,taz))

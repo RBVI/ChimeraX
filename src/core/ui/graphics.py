@@ -57,7 +57,12 @@ class GraphicsWindow(QWindow):
         v.redraw_needed = True
         if self.isExposed():
             # Avoid flickering when resizing by drawing immediately.
-            v.draw(check_for_changes = False)
+            from ..graphics import OpenGLVersionError
+            try:
+                v.draw(check_for_changes = False)
+            except OpenGLVersionError as e:
+                # Inadequate OpenGL version
+                self.session.logger.error(str(e))
 
     def set_redraw_interval(self, msec):
         self.redraw_interval = msec  # milliseconds
@@ -123,6 +128,7 @@ class OpenGLContext(QOpenGLContext):
         self._ui = ui
         QOpenGLContext.__init__(self, graphics_window)
         self._context_initialized = False
+        self._initialize_failed = False
 
     def __del__(self):
         self.deleteLater()
@@ -130,13 +136,16 @@ class OpenGLContext(QOpenGLContext):
     def make_current(self, window = None):
         # creates context if needed
         if not self._context_initialized:
+            if self._initialize_failed:
+                return False # Error is raised only when initialization first fails.
             self._initialize_context()
             self._context_initialized = True
 
         w = self.window if window is None else window
         if not self.makeCurrent(w):
             raise RuntimeError("Could not make graphics context current")
-
+        return True
+    
     def _initialize_context(self):
         ui = self._ui
         self.setScreen(ui.primaryScreen())
@@ -155,11 +164,18 @@ class OpenGLContext(QOpenGLContext):
         major, minor = sf.version()
         rmajor, rminor = self.required_opengl_version
         if major < rmajor or (major == rmajor and minor < rminor):
-            raise ValueError("Available OpenGL version ({}.{}) less than required ({}.{})"
-                .format(major, minor, rmajor, rminor))
+            self._initialize_failed = True
+            from ..graphics import OpenGLVersionError
+            raise OpenGLVersionError('ChimeraX requires OpenGL graphics version %d.%d.\n' % (rmajor, rminor) +
+                                     'Your computer graphics driver provided version %d.%d\n' % (major, minor) +
+                                     'Try updating your graphics driver.')
         if self.required_opengl_core_profile:
             if sf.profile() != sf.CoreProfile:
-                raise ValueError("Required OpenGL Core Profile not available")
+                self._initialize_failed = True
+                from ..graphics import OpenGLVersionError
+                raise OpenGLVersionError('ChimeraX requires an OpenGL graphics core profile.\n' +
+                                         'Your computer graphics driver a non-core profile (version %d.%d).\n' % (major, minor) +
+                                         'Try updating your graphics driver.')
 
     def done_current(self):
         # Makes no context current.

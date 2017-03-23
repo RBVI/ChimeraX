@@ -821,7 +821,7 @@ class Structure(Model, StructureData):
                     va, na, ta = surface.cylinder_geometry(nc=nc, nz=2, caps=False)
                 else:
                     # Assume it's either TETHER_CONE or TETHER_REVERSE_CONE
-                    va, na, ta = surface.cone_geometry(nc=nc, caps=False)
+                    va, na, ta = surface.cone_geometry(nc=nc, caps=False, points_up=False)
                 tp.geometry = va, ta
                 tp.normals = na
                 self._ribbon_tether.append((atoms, tp, coords[tethered], atoms.filter(tethered),
@@ -1539,7 +1539,7 @@ class Structure(Model, StructureData):
     def planes_pick(self, planes, exclude=None):
         if not self.display:
             return []
-        if exclude is not None and hasattr(self, exclude):
+        if exclude is not None and exclude(self):
             return []
 
         picks = []

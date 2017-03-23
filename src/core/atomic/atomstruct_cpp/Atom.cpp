@@ -99,9 +99,10 @@ Atom::_coordset_set_coord(const Point &coord)
 {
     CoordSet *cs = structure()->active_coord_set();
     if (cs == NULL) {
-        cs = structure()->find_coord_set(0);
-        if (cs == NULL)
-            cs = structure()->new_coord_set(0);
+        if (structure()->coord_sets().size() > 0)
+            cs = structure()->coord_sets()[0];
+        else
+            cs = structure()->new_coord_set();
         structure()->set_active_coord_set(cs);
     }
     set_coord(coord, cs);
@@ -1182,10 +1183,10 @@ Atom::set_coord(const Coord& coord, CoordSet* cs)
     if (cs == NULL) {
         cs = structure()->active_coord_set();
         if (cs == NULL) {
-            cs = structure()->find_coord_set(0);
-            if (cs == NULL) {
-                cs = structure()->new_coord_set(0);
-            }
+            if (structure()->coord_sets().size() > 0)
+                cs = structure()->coord_sets()[0];
+            else
+                cs = structure()->new_coord_set();
             structure()->set_active_coord_set(cs);
         }
     }

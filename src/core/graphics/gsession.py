@@ -31,6 +31,7 @@ class ViewState:
             p = c.position
             c = MonoCamera()
             c.position = p
+            data['camera'] = c
 
         data['window_size'] = v.window_size
         data['clip_planes'] = v.clip_planes.planes()

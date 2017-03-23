@@ -80,7 +80,7 @@ lint:
 	$(PYLINT) $(PYSRCS)
 
 clean:
-	rm -rf __pycache__ build dist $(WHL_BNDL_NAME).egg-info setup.py
+	rm -rf __pycache__ build dist $(WHL_BNDL_NAME).egg-info setup.py $(PYMOD) $(OBJS)
 
 ifdef HAVE_PYMOD
 
