@@ -117,7 +117,9 @@ target="_blank">2BBV</a>, black beetle virus capsid
 <td width=256 valign=top><i>File is fetched from the PDB in mmCIF format 
 and cached locally. Lighting with shadows.</i>
 <td width=256 valign=top><i>Change chain b to stick style.</i>
-<td width=256 valign=top><i>Rotate by dragging mouse, translate by dragging mouse with option key pressed.</i>
+<td width=256 valign=top><i>Rotate by dragging mouse, 
+translate by dragging mouse with <b>option</b> key pressed
+(<a href="../user/commands/mousemode.html">more...</a>).</i>
 <td width=256 valign=top><i>Hide chain c atoms.</i>
 </table>
 
@@ -126,7 +128,7 @@ and cached locally. Lighting with shadows.</i>
 <table cellpadding=5>
 <tr>
 <td width=256 align=center><a href="cxcmd:ribbon /c">ribbon /c</a>
-<td width=256>Mouse click with ctrl key pressed to select an atom.
+<td width=256>Mouse click with <b>ctrl</b> key pressed to select an atom.
 <td width=256>Press up-arrow key.
 <td width=256 align=center><a href="cxcmd:color sel gold; select clear">color sel gold<br>select clear</a>
 <tr>
@@ -136,8 +138,8 @@ and cached locally. Lighting with shadows.</i>
 <td><img src="images/color.png">
 <tr>
 <td width=256 valign=top><i>Display backbone ribbon.</i>
-<td width=256 valign=top><i>Selection has green outline, shift-ctrl-click to add to selection, ctrl-click background to clear selection.</i>
-<td width=256 valign=top><i>Up arrow and down arrow keys expand and unexpand selection.</i>
+<td width=256 valign=top><i>Selection has green outline, <b>shift-ctrl</b>-click to add to selection, <b>ctrl</b>-click background to clear selection.</i>
+<td width=256 valign=top><i>Up-arrow and down-arrow keys expand and unexpand selection.</i>
 <td width=256 valign=top><i>Use &ldquo;sel&rdquo; to refer to the selected atoms
 in any command. Clear the selection.</i>
 </table>
@@ -153,27 +155,32 @@ in any command. Clear the selection.</i>
 <td><img src="images/surface.png">
 <td><img src="images/water.png">
 <td>
-<pre>
-Assemblies for 2bbv
-1 = complete icosahedral assembly (60 copies)
-2 = icosahedral asymmetric unit (1 copy)
-3 = icosahedral pentamer (5 copies)
-4 = icosahedral 23 hexamer (6 copies)
-PAU = icosahedral asymmetric unit, std point frame (1 copy)
-XAU = crystal asymmetric unit, crystal frame (5 copies)
-</pre>
+<table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0">
+<tr><th colspan=3>2bbv mmCIF Assemblies
+<tr><td>1<td>complete icosahedral assembly<td>60&nbsp;copies&nbsp;of&nbsp;chains&nbsp;A-F,N
+<tr><td>2<td>icosahedral asymmetric unit<td>1 copy of chains A-F,N
+<tr><td>3<td>icosahedral pentamer<td>5 copies of chains A-F,N
+<tr><td>4<td>icosahedral 23 hexamer<td>6 copies of chains A-F,N
+<tr><td>PAU<td>icosahedral&nbsp;asymmetric&nbsp;unit,&nbsp;std&nbsp;point&nbsp;frame<td>1 copy of chains A-F,N
+<tr><td>XAU<td>crystal asymmetric unit, crystal frame<td>5 copies of chains A-F,N
+</table>
 <tr>
 <td width=256 valign=top><i>Show the solvent-excluded surface of each chain.</i>
 <td width=256 valign=top><i>Enlarge waters to spheres (from balls) and
 change other atoms from sphere to stick.</i>
-<td width=256 valign=top><i>List mmCIF assemblies in the <b>Log</b>.</i>
+<td width=256 valign=top><i>List mmCIF assemblies in the <b>Log</b>.
+Do not click the links in the <b>Log</b> to generate an
+assembly since it will be done with the next command instead.
+(If done by mistake, however, it can be reversed with command
+<a href="cxcmd:close #2; show #1 model">close #2; show #1 model</a>)
+</i>
 </table>
 
 <hr>
 
 <table cellpadding=5>
 <tr>
-<td width=256 align=center><a href="cxcmd:sym #1 assembly 3">sym #1 assembly 3</a>
+<td width=256 align=center><a href="cxcmd:sym #1 assembly 3 newmodel f">sym #1 assembly 3 newmodel f</a>
 <td width=256 align=center><a href="cxcmd:view">view</a>
 <td width=256 align=center><a href="cxcmd:set bg white; set silhouettes true; save ~/Desktop/2bbv.png">set bg white<br>set silhouettes true<br>save ~/Desktop/2bbv.png</a>
 <td width=256>
@@ -201,7 +208,7 @@ show thin black outlines. Save PNG image file to Desktop.</i>
 
 <table cellpadding=5>
 <tr>
-<td width=256 align=center><a href="cxcmd:buriedarea /a with /b; sasa #1 & ~solvent">buriedarea /a with /b<br>sasa #1 & ~solvent</a>
+<td width=256 align=center><a href="cxcmd:measure buriedarea /a with /b; measure sasa #1 & ~solvent">measure buriedarea /a with /b<br>measure sasa #1 & ~solvent</a>
 <td width=256 align=center><a href="cxcmd:contacts #1 & protein">contacts #1 & protein</a>
 <td width=256 align=center><a href="cxcmd:close; set bg black; set silhouettes false">close<br>set bg black<br>set silhouettes false</a>
 <tr>
@@ -267,7 +274,7 @@ then drag with right mouse button.
 <tr>
 <td width=256 valign=top><i>Open EM Databank map 1080. Lighting with shadows.</i>
 <td width=256 valign=top><i>Hover mouse over map reports contour level 1.675 in status line. Then change level.</i>
-<td width=256 valign=top><i>With Mac one-button mouse drag while pressing <b>Command</b> key.</i>
+<td width=256 valign=top><i>With Mac one-button mouse drag while pressing <b>command</b> key.</i>
 <td width=256 valign=top><i>Set level to enclose 1,000,000 cubic &Aring;, show full resolution and set color.</i>
 </table>
 
@@ -279,7 +286,7 @@ then drag with right mouse button.
 <td width=256 align=center><a href="cxcmd:open 1grl; light default">open 1grl<br>light default</a>
 <td width=256 align=center>
 <img src="images/move_h2o.png" height=40 align=right>
-Click icon to move selection with the mouse. Ctrl-click atom to select.
+Click icon to move selection with the mouse. <b>Ctrl</b>-click atom to select.
 Then right-mouse drag to move molecule into map.
 <td width=256 align=center><a href="cxcmd:fit #2 in #1; volume #1 transparency 0.5">fit #2 in #1<br>volume #1 transparency 0.5</a>
 <tr>
@@ -303,7 +310,7 @@ Make map 50% transparent.</i>
 <table cellpadding=5>
 <tr>
 <td width=256 align=center><a href="cxcmd:molmap #2 10; vol #3 style mesh">molmap #2 10<br>vol #3 style mesh</a>
-<td width=256 align=center><a href="cxcmd:vop subtract #1 #3 minrms; vol #4 color pink transparency 0; hide atoms; show ribbon">vop subtract #1 #3 minrms<br>vol #4 color pink transparency 0<br>hide atoms; show ribbon</a>
+<td width=256 align=center><a href="cxcmd:vop subtract #1 #3 minrms t; vol #4 color pink transparency 0; hide atoms; show ribbon">vop subtract #1 #3 minrms t<br>vol #4 color pink transparency 0<br>hide atoms; show ribbon</a>
 <tr>
 <td><img src="images/molmap.png">
 <td><img src="images/vopsub2.png">
