@@ -112,14 +112,19 @@ $(LIBOGG_SOURCE):
 libtheora $(LIBTHEORA): $(LIBTHEORA_SOURCE) $(LIBOGG)
 ifeq ($(OS),Darwin)
 	ln -sfF $(datadir)/libtool/build-aux/ltmain.sh $(LIBTHEORA_SOURCE)/ltmain.sh
+else ifneq (,$(wildcard /usr/share/libtool/build-aux/ltmain.sh))
+	-cd $(LIBTHEORA_SOURCE) ; ./autogen.sh
 endif
 	cd $(LIBTHEORA_SOURCE) ; \
-	env PATH=$(bindir):$(PATH) ./configure --prefix=$(build_prefix) --disable-shared --with-ogg=$(LIBOGG) --disable-oggtest --disable-vorbistest --disable-sdltest --disable-examples
+	env PATH=$(bindir):$(PATH) ./configure --prefix=$(build_prefix) --disable-shared --with-ogg=$(LIBOGG) --disable-oggtest --disable-vorbistest --disable-sdltest --disable-examples --disable-spec
 ifeq ($(OS),Darwin)
 	# somehow the wrong libtool ends up in source tree, so overwrite it
 	ln -sfF $(bindir)/libtool $(LIBTHEORA_SOURCE)/libtool
 endif
 	env PATH=$(bindir):$(PATH) $(MAKE) -C $(LIBTHEORA_SOURCE) install
+ifeq ($(OS),Darwin)
+	rm -f $(libdir)/libtheora*.dylib
+endif
 
 $(LIBTHEORA_SOURCE):
 	$(bindir)/7za e -so $(LIBTHEORA_DISTRIB) | tar xf - -C $(tmpdir)

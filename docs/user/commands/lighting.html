@@ -66,15 +66,21 @@ The <a name="preset"><i>preset</i></a> can be:
 ambient shadowing from 64 directions
 <a href="../tools/graphics.html" title="Graphics icons...">
 <img class="icon" border=1 src="../tools/shortcut-icons/fulllight.png"></a>
+<br>... if this gives a smudgy appearance, try following up with:
+<b>lighting &nbsp;<a href="#msMapSize"><b>msmap</b></a> 128 
+&nbsp;<a href="#msDepthBias"><b>msdepth</b></a> 0.05</b>
 <li><b>soft</b> - ambient lighting only,
 ambient shadowing from 64 directions
 <a href="../tools/graphics.html" title="Graphics icons...">
 <img class="icon" border=1 src="../tools/shortcut-icons/softlight.png"></a>
+<br>... if this gives a smudgy appearance, try the <b>gentle</b> preset instead
 <li><b>gentle</b> - ambient lighting only,
 ambient shadowing from 64 directions tuned to emphasize larger indentations
+<!--
 <br>(same as <b>soft</b> except with
 <a href="#msMapSize"><b>msMapSize</b></a> 128 instead of 1024 and
 <a href="#msDepthBias"><b>msDepthBias</b></a> 0.05 instead of 0.01)
+-->
 <li><b>flat</b> - ambient lighting only, no shadows, silhouettes on
 <a href="../tools/graphics.html" title="Graphics icons...">
 <img class="icon" border=1 src="../tools/shortcut-icons/flat.png"></a>

@@ -46,12 +46,15 @@ class="clRight" title="User Guide Index"/></a>
 </h3>
 
 <h3><a href="usageconventions.html">Usage</a>:
-<br><a href="#copies"><b>sym clear</b></a>
+<br><b>sym clear</b>
 &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
 </h3>
 
 <p>
 The <b>sym</b> command generates symmetry copies of an atomic model.
+The command <b>sym clear</b> removes all
+<a href="#copies">graphical clones</a> of the specified model(s),
+but not any copies that were opened as full atomic models. 
 See also:
 <a href="open.html"><b>open</b></a>,
 <a href="close.html"><b>close</b></a>,
@@ -84,12 +87,21 @@ See also:
 &nbsp;<a href="#copies"><i>copy-options</i></a>
 </blockquote>
 <p>
-Given without options, <b>sym</b> lists any assemblies read from
+Given without options, <b>sym</b> reports 
+any assemblies read from
 <a href="http://mmcif.wwpdb.org/docs/faqs/pdbx-mmcif-faq-general.html"
-target="_blank">mmCIF</a> for the <a href="atomspec.html">specified</a> model.
-For each assembly, the <a href="../tools/log.html"><b>Log</b></a> shows a brief 
-description and a character-string <i>identifier</i>, usually a number, which
-can then be used with the <b>assembly</b> keyword to specify that assembly.
+target="_blank">mmCIF</a> for the specified model
+as a table in the <a href="../tools/log.html"><b>Log</b></a>.
+Similar information is shown automatically when the structure is first opened.
+The table gives a brief description of each assembly and 
+a character-string <i>identifier</i>, usually a number, 
+that can be clicked to generate the assembly (with default options)
+<!-- view clip false -->
+and adjust the view to encompass it.
+Alternatively,
+to generate the assembly with different options or without adjusting the view,
+the identifier can be given with the <b>assembly</b> keyword
+in the <b>sym</b> command.
 </p>
 
 <a name="symmetry"></a>
@@ -289,10 +301,8 @@ Generating full atomic models instead of graphical clones
 allows their independent control, 
 but requires more memory and may not be practical for larger assemblies.
 </p><p>
-The <b>sym clear</b> command removes all graphical clones of the 
-<a href="atomspec.html">specified</a> model(s), but not any copies
-that were opened as full atomic models. With <b>newModel true</b>
-but <b>copies false</b>, the new model will contain at least one full
+With <b>newModel true</b> but <b>copies false</b>,
+the new model will contain at least one full
 atomic copy, but the remainder will be graphical clones.
 </p><p>
 Even when both <b>copies</b> and <b>newModel</b> are <b>false</b>,
@@ -338,5 +348,5 @@ but uses more memory.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2017</address>
+March 2017</address>
 </body></html>
