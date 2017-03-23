@@ -17,6 +17,9 @@ all:
 #
 # Set your various NEEDs above.
 #
+
+NEED_FFMPEG=1
+
 ifdef WIN32
 SUBDIRS += win32
 endif
@@ -39,11 +42,29 @@ NEED_P7ZIP=1
 NEED_ZLIB=1
 endif
 
+ifdef NEED_FFMPEG
+SUBDIRS += ffmpeg
+ifeq ($(OS),Darwin)
+NEED_PKGCONFIG=1
+NEED_LIBTOOL=1
+endif
+else
+ffmpeg.install:
+ffmpeg.app-install:
+endif
+
 ifdef NEED_OFFSCREEN
 SUBDIRS += llvm mesa
 ifeq ($(OS),Darwin)
 NEED_PKGCONFIG=1
 endif
+endif
+
+ifdef NEED_LIBTOOL
+SUBDIRS += libtool
+else
+libtool.install:
+libtool.app-install:
 endif
 
 ifdef NEED_PKGCONFIG
@@ -92,7 +113,7 @@ endif
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
-SUBDIRS	+= ffmpeg filelock fonts \
+SUBDIRS	+= filelock fonts \
 	   imex numexpr numpy openmm \
 	   pcre pdbfixer pips pycollada \
 	   PyOpenGL PyQt pytables Python \
@@ -164,7 +185,7 @@ endif
 
 filelock.app-install: setuptools.app-install pips.app-install
 filelock.install: setuptools.install pips.install
-ffmpeg.install: p7zip.install pkgconfig.install
+ffmpeg.install: p7zip.install pkgconfig.install libtool.install
 hdf5.app-install: zlib.app-install
 hdf5.install: zlib.install
 leapmotion.app-install: setuptools.app-install

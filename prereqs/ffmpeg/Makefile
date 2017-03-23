@@ -110,15 +110,21 @@ $(LIBOGG_SOURCE):
 	$(bindir)/7za e -so $(LIBOGG_DISTRIB) | tar xf - -C $(tmpdir)
 
 libtheora $(LIBTHEORA): $(LIBTHEORA_SOURCE) $(LIBOGG)
-	-cd $(LIBTHEORA_SOURCE) ; ./autogen.sh
+ifeq ($(OS),Darwin)
+	ln -sfF $(datadir)/libtool/build-aux/ltmain.sh $(LIBTHEORA_SOURCE)/ltmain.sh
+endif
 	cd $(LIBTHEORA_SOURCE) ; \
-	env PATH=$(bindir):$(PATH) ./configure --prefix=$(build_prefix) --disable-shared --with-ogg=$(LIBOGG) --disable-oggtest --disable-vorbistest --disable-sdltest --disable-examples; \
-	env PATH=$(bindir):$(PATH) $(MAKE) install
+	env PATH=$(bindir):$(PATH) ./configure --prefix=$(build_prefix) --disable-shared --with-ogg=$(LIBOGG) --disable-oggtest --disable-vorbistest --disable-sdltest --disable-examples
+ifeq ($(OS),Darwin)
+	# somehow the wrong libtool ends up in source tree, so overwrite it
+	ln -sfF $(bindir)/libtool $(LIBTHEORA_SOURCE)/libtool
+endif
+	env PATH=$(bindir):$(PATH) $(MAKE) -C $(LIBTHEORA_SOURCE) install
 
 $(LIBTHEORA_SOURCE):
 	$(bindir)/7za e -so $(LIBTHEORA_DISTRIB) | tar xf - -C $(tmpdir)
 
-libvpx $(LIBVPX): $(LIBVPX_SOURCE)
+libvpx $(LIBVPX): $(LIBVPX_SOURCE) $(YASM_EXE)
 	cd $(LIBVPX_SOURCE) ; \
 	env PATH=$(bindir):$(PATH) ./configure --prefix=$(build_prefix) --enable-pic --disable-examples --disable-tools --disable-docs --enable-vp8 --enable-vp9 --enable-runtime-cpu-detect --disable-shared --disable-unit-tests; \
 	env PATH=$(bindir):$(PATH) $(MAKE) install
