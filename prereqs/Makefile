@@ -164,48 +164,46 @@ endif
 # All packages that have dependencies should depend on the .install
 # target of the other packages.
 
-filelock.install: setuptools.install pips.install
 filelock.app-install: setuptools.app-install pips.app-install
-hdf5.install: zlib.install
+filelock.install: setuptools.install pips.install
+ffmpeg.install: p7zip.install pkgconfig.install
 hdf5.app-install: zlib.app-install
-leapmotion.install: setuptools.install
+hdf5.install: zlib.install
 leapmotion.app-install: setuptools.app-install
+leapmotion.install: setuptools.install
 llvm.install: py7zip.install
 mesa.install: py7zip.install llvm.install pkgconfig.install
-numexpr.install: setuptools.install numpy.install pips.install
 numexpr.app-install: setuptools.app-install numpy.app-install pips.app-install
-openmm.install: Python.install numpy.install pips.install
+numexpr.install: setuptools.install numpy.install pips.install
 openmm.app-install: Python.app-install numpy.app-install pips.app-install
-pcre.install: zlib.install
+openmm.install: Python.install numpy.install pips.install
 pcre.app-install: zlib.app-install
-pdbfixer.install: Python.install openmm.install
+pcre.install: zlib.install
 pdbfixer.app-install: Python.app-install openmm.app-install
-pips.install: setuptools.install
+pdbfixer.install: Python.install openmm.install
 pips.app-install: setuptools.app-install
-pycollada.install: setuptools.install pips.install
+pips.install: setuptools.install
 pycollada.app-install: setuptools.app-install pips.app-install
-PyOpenGL.install: setuptools.install pips.install
+pycollada.install: setuptools.install pips.install
 PyOpenGL.app-install: setuptools.app-install pips.app-install
-PyQt.install: setuptools.install
-PyQt.app-install: setuptools.app-install
-# PyQt's Qt's dependencies
-PyQt.install: p7zip.install openssl.install zlib.install
-PyQt.app-install: p7zip.app-install openssl.app-install zlib.app-install
-pytables.install: hdf5.install numexpr.install pips.install setuptools.install zlib.install
+PyOpenGL.install: setuptools.install pips.install
+PyQt.app-install: setuptools.app-install openssl.app-install zlib.app-install
+PyQt.install: setuptools.install openssl.install zlib.install
 pytables.app-install: hdf5.app-install numexpr.app-install pips.app-install setuptools.app-install zlib.app-install
-pythomnic3k.install: setuptools.install
+pytables.install: hdf5.install numexpr.install pips.install setuptools.install zlib.install
 pythomnic3k.app-install: setuptools.app-install
+pythomnic3k.install: setuptools.install
+Python.app-install: zlib.app-install openssl.app-install expat.app-install
 Python.install: p7zip.install zlib.install openssl.install expat.install
-Python.app-install: p7zip.app-install zlib.app-install openssl.app-install expat.app-install
-scipy.install: setuptools.install numpy.install
 scipy.app-install: setuptools.app-install numpy.app-install
-setuptools.install: Python.install
+scipy.install: setuptools.install numpy.install
 setuptools.app-install: Python.app-install
-wrappy3.install: pcre.install setuptools.install
+setuptools.install: Python.install
 wrappy3.app-install: pcre.app-install setuptools.app-install
-wx.install: setuptools.install
+wrappy3.install: pcre.install setuptools.install
 wx.app-install: setuptools.app-install
-xml2.install: setuptools.install zlib.install
+wx.install: setuptools.install
 xml2.app-install: setuptools.app-install zlib.app-install
-xslt.install: xml2.install
+xml2.install: setuptools.install zlib.install
 xslt.app-install: xml2.app-install
+xslt.install: xml2.install
