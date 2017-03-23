@@ -1881,7 +1881,6 @@ class AtomicStructure(Structure):
                     for i in range(0, len(data), len(entity_fields)) }
                 for ch in self.chains:
                     mmcif_cid = ch.existing_residues.mmcif_chain_ids[0]
-                    print("chain ID:", ch.chain_id, " mmCIF chain ID:", mmcif_cid)
                     chain_to_desc[ch.chain_id] = (
                         entity_to_description[mmcif_chain_to_entity[mmcif_cid]], False)
         elif 'COMPND' in self.metadata and self.pdb_version > 1:

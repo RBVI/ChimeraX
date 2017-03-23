@@ -487,11 +487,11 @@ def init(argv, event_loop=True):
         vercmd.version(sess)  # report version in log
     if opts.gui or hasattr(core, 'offscreen_rendering'):
         r = sess.main_view.render
-        r.make_current()
-        sess.logger.info('OpenGL version: ' + r.opengl_version())
-        sess.logger.info('OpenGL renderer: ' + r.opengl_renderer())
-        sess.logger.info('OpenGL vendor: ' + r.opengl_vendor())
-        sess.ui.main_window.graphics_window.start_redraw_timer()
+        if r.make_current():
+            sess.logger.info('OpenGL version: ' + r.opengl_version())
+            sess.logger.info('OpenGL renderer: ' + r.opengl_renderer())
+            sess.logger.info('OpenGL vendor: ' + r.opengl_vendor())
+            sess.ui.main_window.graphics_window.start_redraw_timer()
 
     if opts.module:
         import runpy
