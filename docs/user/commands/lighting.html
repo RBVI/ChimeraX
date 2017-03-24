@@ -62,18 +62,19 @@ The <a name="preset"><i>preset</i></a> can be:
 <a href="../tools/graphics.html" title="Graphics icons...">
 <img class="icon" border=1 src="../tools/shortcut-icons/simplelight.png"></a>
 <li><b>full</b>
-- all three kinds of light, shadows from key light,
-ambient shadowing from 64 directions
+- key light with shadows, ambient lighting with shadowing from 64 directions
 <a href="../tools/graphics.html" title="Graphics icons...">
 <img class="icon" border=1 src="../tools/shortcut-icons/fulllight.png"></a>
-<br>... if this gives a smudgy appearance, try following up with:
-<b>lighting &nbsp;<a href="#msMapSize"><b>msmap</b></a> 128 
-&nbsp;<a href="#msDepthBias"><b>msdepth</b></a> 0.05</b>
+<br>... if a smudgy appearance, try following up with:
+<b>light &nbsp;<a href="#msMapSize">msmap</a> 128
+&nbsp;<a href="#msDepthBias">msdepth</a> 0.05</b>
+<br>... if shadows too dark, try setting
+<a href="#fillIntensity"><b>fillIntensity</b></a> &gt; 0.0
 <li><b>soft</b> - ambient lighting only,
 ambient shadowing from 64 directions
 <a href="../tools/graphics.html" title="Graphics icons...">
 <img class="icon" border=1 src="../tools/shortcut-icons/softlight.png"></a>
-<br>... if this gives a smudgy appearance, try the <b>gentle</b> preset instead
+<br>... if a smudgy appearance, try the <b>gentle</b> preset instead
 <li><b>gentle</b> - ambient lighting only,
 ambient shadowing from 64 directions tuned to emphasize larger indentations
 <!--
@@ -139,7 +140,7 @@ Set key-light color (default <b>white</b>).
 Set fill-light direction (default approx. <b>-0.2,-0.2,-0.959</b>).
 </blockquote>
 <blockquote>
-<b>fillIntensity</b> &nbsp;<i>I<sub>f</sub></i>
+<a name="fillIntensity"><b>fillIntensity</b></a> &nbsp;<i>I<sub>f</sub></i>
 <br>
 Set fill-light intensity (default <b>0.5</b>).
 </blockquote>
