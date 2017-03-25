@@ -214,7 +214,7 @@ class IHMModel(Model):
                             sam.add_template_model(tm)
                 elif source == 'experimental model':
                     from chimerax.core.atomic.mmcif import fetch_mmcif
-                    models, msg = fetch_mmcif(self.session, db_code, autostyle = False)
+                    models, msg = fetch_mmcif(self.session, db_code, auto_style = False)
                     name = '%s %s' % (db_code, auth_asym_id)
                     for m in models:
                         keep_one_chain(m, auth_asym_id)
@@ -248,12 +248,12 @@ class IHMModel(Model):
                 if fopen:
                     path = join(self.ihm_directory, filename)
                     name = basename(filename)
-                    models, msg = fopen(self.session, path, name, autostyle = False)
+                    models, msg = fopen(self.session, path, name, auto_style = False)
                 elif afopen:
                     from .doi_fetch import fetch_doi_archive_file
                     file = fetch_doi_archive_file(self.session, doi, archive_filename)
                     name = basename(archive_filename)
-                    models, msg = afopen(self.session, file, name, autostyle = False)
+                    models, msg = afopen(self.session, file, name, auto_style = False)
                     file.close()
                 else:
                     models = []	# Don't know how to read atomic model file
@@ -362,7 +362,7 @@ class IHMModel(Model):
             if file and isfile(path) and file.endswith('.pdb') and mid not in smids:
                 from chimerax.core.atomic.pdb import open_pdb
                 mlist,msg = open_pdb(self.session, path, mname,
-                                     autostyle = False, explode = False)
+                                     auto_style = False, explode = False)
                 sm = mlist[0]
                 sm.display = False
                 sm.ss_assigned = True	# Don't assign secondary structure to sphere model
@@ -795,7 +795,7 @@ class TemplateModel(Model):
             return
 
         from chimerax.core.atomic.mmcif import fetch_mmcif
-        models, msg = fetch_mmcif(self.session, self.db_code, autostyle = False)
+        models, msg = fetch_mmcif(self.session, self.db_code, auto_style = False)
         name = '%s %s' % (self.db_code, self.db_asym_id)
         for i,m in enumerate(models):
             m.name = self.name
@@ -1046,7 +1046,7 @@ def ensemble_sphere_lookup(emodel, smodel):
 from chimerax.core.atomic import Structure
 class SphereModel(Structure):
     def __init__(self, session, name, ihm_model_id, sphere_list):
-        Structure.__init__(self, session, name = name, autostyle = False)
+        Structure.__init__(self, session, name = name, auto_style = False)
         self.ihm_model_id = ihm_model_id
         self._asym_models = {}
         self._sphere_atom = sa = {}	# (asym_id, res_num) -> sphere atom
