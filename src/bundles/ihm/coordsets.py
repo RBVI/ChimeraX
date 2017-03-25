@@ -11,12 +11,12 @@ def read_coordinate_sets(path, mol):
         if len(coords) < 12*na:
             raise ValueError('File %s ended with a partial coordinate set, %d bytes'
                              % (path, len(coords)))
-        from numpy import frombuffer, float32
+        from numpy import frombuffer, float32, float64
         xyz = frombuffer(coords, float32).reshape((na,3))
         if id in cs_ids:
             replace_coordset(mol, id, xyz)
         else:
-            mol.add_coordset(id, xyz)
+            mol.add_coordset(id, xyz.astype(float64))
         id += 1
     f.close()
 
