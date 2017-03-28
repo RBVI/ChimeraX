@@ -3,12 +3,18 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 FFMPEG_VERSION = 3.2.4
+
+# Windows zip file is needed on all platforms because it has all of the
+# sublicences in it that are needed for the documentation.
+
+ifeq ($(OS),Windows)
+FFMPEG_DISTRIB = ffmpeg-$(FFMPEG_VERSION)-win64-static.zip
+FFMPEG_SOURCE = $(tmpdir)/ffmpeg-$(FFMPEG_VERSION)-win64-static
+FFMPEG_EXE = $(FFMPEG_SOURCE)/bin/ffmpeg.exe
+else
 FFMPEG_DISTRIB = ffmpeg-$(FFMPEG_VERSION).tar.bz2
 FFMPEG_SOURCE = $(tmpdir)/ffmpeg-$(FFMPEG_VERSION)
 FFMPEG_EXE = $(FFMPEG_SOURCE)/ffmpeg
-
-# Windows ffmpeg is precompiled statically linked executable from Zeranoe.
-FFMPEG_WIN_EXE = ffmpeg-3.2.4-win64.exe
 
 LIBX264_VERSION = 20170123-90a61ec
 LIBX264_DISTRIB = x264-$(LIBX264_VERSION).tar.xz
@@ -51,22 +57,24 @@ FFMPEG_OPTS	=  --prefix=$(build_prefix) \
 			--extra-cflags="-I$(includedir)" \
 			--extra-ldflags="$(LDFLAGS) -L$(libdir)" \
 			--extra-libs="-ldl"
+endif
+
+all: $(FFMPEG_EXE)
 
 ifeq ($(OS),Windows)
 
-all:
+install: $(FFMPEG_EXE)
+	$(RSYNC) $(FFMPEG_EXE) $(bindir)/ffmpeg$(PROG_EXT)
 
-install:
-	$(RSYNC) $(FFMPEG_WIN_EXE) $(bindir)/ffmpeg$(PROG_EXT)
-
-app-install:
-	$(RSYNC) $(FFMPEG_WIN_EXE) $(app_bindir)/ffmpeg$(PROG_EXT)
+app-install: $(FFMPEG_EXE)
+	$(RSYNC) $(FFMPEG_EXE) $(app_bindir)/ffmpeg$(PROG_EXT)
 
 clean:
 
-else
+$(FFMPEG_EXE) $(FFMPEG_SOURCE):
+	unzip $(FFMPEG_DISTRIB) -d $(tmpdir)
 
-all: $(FFMPEG_EXE)
+else
 
 install: $(FFMPEG_EXE)
 	$(MAKE) -C $(FFMPEG_SOURCE) install
