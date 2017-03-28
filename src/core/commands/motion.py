@@ -26,7 +26,7 @@ class CallForNFrames:
         self.n = n
         self.session = session
         self.frame = 0
-        if n > 0:
+        if n > 0 or n == self.Infinite:
             self.handler = session.triggers.add_handler('new frame', self)
             if not hasattr(session, self.Attribute):
                 setattr(session, self.Attribute, set([self]))

@@ -1766,7 +1766,8 @@ class Thresholds_Panel(PopupPanel):
 # Following hiding of buttons avoids crash on exit on Mac Sierra, Qt bug 56448
 #      cd.setOption(QColorDialog.NoButtons, True)
       self._set_color_dialog_color()
-      cd.colorSelected.connect(self.color_changed_cb)
+#      cd.colorSelected.connect(self.color_changed_cb) # Does not update until Ok pressed
+      cd.currentColorChanged.connect(self.color_changed_cb) # Updates whenever color in dialog changes
       cd.finished.connect(self.color_dialog_closed_cb)
       cd.show()
       

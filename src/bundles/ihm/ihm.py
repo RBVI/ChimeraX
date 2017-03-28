@@ -491,6 +491,8 @@ class IHMModel(Model):
     def read_electron_microscopy_maps(self):
         emmodels = []
         dot = self.tables['ihm_dataset_external_reference']
+        if dot is None:
+            return emmodels
         fields = ['data_type', 'file_id']
         rows = dot.fields(fields, allow_missing_fields = True)
         for data_type, file_id in rows:

@@ -92,8 +92,10 @@ class View:
     def _use_opengl(self):
         if self._render is None:
             raise RuntimeError("running without graphics")
-        if self._render.make_current():
-            self._initialize_opengl()
+        if not self._render.make_current():
+            return False
+        self._initialize_opengl()
+        return True
 
     def _initialize_opengl(self):
 
@@ -126,7 +128,8 @@ class View:
         '''
         Draw the scene.
         '''
-        self._use_opengl()
+        if not self._use_opengl():
+            return	# OpenGL not available
 
         if check_for_changes:
             self.check_for_drawing_change()
@@ -241,7 +244,8 @@ class View:
         return True
 
     def draw_xor_rectangle(self, x1, y1, x2, y2, color):
-        self._use_opengl()
+        if not self._use_opengl():
+            return	# OpenGL not available
         d = getattr(self, '_rectangle_drawing', None)
         from .drawing import draw_xor_rectangle
         self._rectangle_drawing = draw_xor_rectangle(self._render, x1, y1, x2, y2, color, d)
@@ -324,7 +328,8 @@ class View:
               transparent_background=False, camera=None, drawings=None):
         '''Capture an image of the current scene. A PIL image is returned.'''
 
-        self._use_opengl()
+        if not self._use_opengl():
+            return	# OpenGL not available
 
         w, h = self._window_size_matching_aspect(width, height)
 
@@ -475,7 +480,7 @@ class View:
 
         # Compute drawing bounds so shadow map can cover all drawings.
         center, radius, bdrawings = _drawing_bounds(drawings, self.drawing)
-        if center is None:
+        if center is None or radius == 0:
             return None
 
         # Compute shadow map depth texture
@@ -500,7 +505,8 @@ class View:
         return stf      # Scene to shadow map texture coordinates
 
     def max_multishadow(self):
-        self._use_opengl()
+        if not self._use_opengl():
+            return 0	# OpenGL not available
         return self._render.max_multishadows()
 
     def _use_multishadow_map(self, light_directions, drawings):
@@ -524,7 +530,7 @@ class View:
 
         # Compute drawing bounds so shadow map can cover all drawings.
         center, radius, bdrawings = _drawing_bounds(drawings, self.drawing)
-        if center is None:
+        if center is None or radius == 0:
             return None, None
 
         # Compute shadow map depth texture

@@ -83,7 +83,7 @@ def standard_shortcuts(session):
         ('dq', depth_cue, 'Toggle depth cue', gcat, viewarg, smenu),
         ('bl', motion_blur, 'Toggle motion blur', gcat, viewarg, smenu, sep),
 
-        ('sh', toggle_shadows, 'Toggle shadows', gcat, viewarg, smenu),
+        ('sh', toggle_shadows, 'Toggle shadows', gcat, sesarg, smenu),
         ('se', toggle_silhouettes, 'Toggle silhouette edges', gcat, sesarg, smenu),
         ('la', 'lighting soft', 'Ambient lighting', gcat, noarg, mlmenu),
         ('lf', 'lighting full', 'Full lighting', gcat, noarg, mlmenu),
@@ -744,11 +744,10 @@ def show_surface_transparent(session, alpha = 0.5):
 def show_surface_opaque(session):
     show_surface_transparent(session, alpha = 1)
 
-def toggle_shadows(viewer):
-    lp = viewer.lighting
-    lp.shadows = not lp.shadows
-    viewer.update_lighting = True
-    viewer.redraw_needed = True
+def toggle_shadows(session):
+    lp = session.main_view.lighting
+    from chimerax.core.commands import run
+    run(session, 'light shadow %s' % ('false' if lp.shadows else 'true'))
 
 def toggle_silhouettes(session):
     v = session.main_view
