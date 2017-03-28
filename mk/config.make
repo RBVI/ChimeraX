@@ -24,6 +24,8 @@ tmpdir = $(build_prefix)/tmp
 webdir = $(build_prefix)/webapp
 wheelhouse = $(build_prefix)/wheelhouse
 
+export PKG_CONFIG_PATH=$(libdir)/pkgconfig
+
 # by default, don't do anything
 all:
 

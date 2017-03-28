@@ -1009,7 +1009,7 @@ def save_image(session, basepath = '~/Desktop/image', suffix = '.png'):
     run(session, 'save %s supersample 3' % unused_file_name(basepath, suffix))
 
 def save_spin_movie(session, basepath = '~/Desktop/movie', suffix = '.mp4'):
-    cmd = 'movie record ; turn y 2 180 ; wait ; movie encode %s' % unused_file_name(basepath, suffix)
+    cmd = 'movie record ; turn y 2 180 ; wait 180 ; movie encode %s' % unused_file_name(basepath, suffix)
     from chimerax.core.commands import run
     run(session, cmd)
     

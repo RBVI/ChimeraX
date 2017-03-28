@@ -11,7 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-
 def usage(session, command_name=None, option=None):
     '''Display command usage.
 

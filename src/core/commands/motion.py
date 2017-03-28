@@ -26,19 +26,19 @@ class CallForNFrames:
         self.n = n
         self.session = session
         self.frame = 0
-        self.handler = session.triggers.add_handler('new frame', self)
-        if not hasattr(session, self.Attribute):
-            setattr(session, self.Attribute, set([self]))
-        else:
-            getattr(session, self.Attribute).add(self)
+        if n > 0:
+            self.handler = session.triggers.add_handler('new frame', self)
+            if not hasattr(session, self.Attribute):
+                setattr(session, self.Attribute, set([self]))
+            else:
+                getattr(session, self.Attribute).add(self)
 
     def __call__(self, *_):
         f = self.frame
-        if self.n != self.Infinite and f >= self.n:
+        self.func(self.session, f)
+        self.frame = f + 1
+        if self.n != self.Infinite and self.frame >= self.n:
             self.done()
-        else:
-            self.func(self.session, f)
-            self.frame = f + 1
 
     def done(self):
         s = self.session

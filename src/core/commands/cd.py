@@ -11,7 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-
 def cd(session, directory=None):
     '''Change working directory.'''
     import os

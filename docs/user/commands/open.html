@@ -67,6 +67,7 @@ See also:
 <a href="save.html"><b>save</b></a>,
 <a href="help.html"><b>help</b></a>,
 <a href="sym.html"><b>sym</b></a>,
+<a href="info.html"><b>info</b></a>,
 <a href="colortables.html#autocolors">initial colors</a>,
 <a href="../autostyle.html">automatic styling</a>
 </p><p>
@@ -176,7 +177,8 @@ target="_blank">Protein Data Bank (PDB)</a></td>
 target="_blank">PDBx/mmCIF</a></td>
 <td align="center"><b>mmcif</b></td>
 <td align="center">.cif</td>
-<td align="center">atomic coordinates and associated annotations</td>
+<td align="center">atomic coordinates and associated annotations
+<br>(see <a href="sym.html#assembly">assemblies from mmCIF</a>)</td>
 </tr><tr>
 <td align="center"><a href="../pseudobonds.html">Pseudobond</a> file</td>
 <td align="center"><b>pseudobonds</b></td>
@@ -389,6 +391,10 @@ target="_blank">RCSB Protein Data Bank</a>; the default format
 for that database is <b>mmcif</b>, although <b>pdb</b> or <b>mmtf</b>
 can be specified with the <b>format</b> option.
 </p><p>
+Opening a structure in mmCIF format automatically shows a clickable table of
+<a href="sym.html#assembly">assembly information</a>
+in the <a href="../tools/log.html"><b>Log</b></a>.
+</p><p>
 A multi-model file in PDB format can be opened as a trajectory with 
 <b>coordset true</b> (default <b>false</b>). Only one frame of a trajectory
 is shown at a time, and different frames can be shown or played back 
@@ -483,7 +489,7 @@ target="_blank">Electron Microscopy Data Bank</a>
 <br>
 &nbsp;&nbsp;(<a href="ftp://ftp.wwpdb.org/pub/emdb/README"
 target="_blank">ftp</a> from wwpdb.org to .edu/.gov hosts,
-<br>otherwise from ebi.ac.uk)&nbsp;
+Chinese mirror site to .cn hosts, otherwise from ebi.ac.uk)&nbsp;
 </td>
 <td align="center"><b>emdb:</b></td>
 <td align="center"><b>emdb</b></td>
