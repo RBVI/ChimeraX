@@ -630,6 +630,8 @@ class Residue(State):
     SS_HELIX = 1
     SS_SHEET = SS_STRAND = 2
 
+    water_res_names = set(["HOH", "WAT", "H2O", "D2O", "TIP3"])
+
     def __init__(self, residue_pointer):
         set_c_pointer(self, residue_pointer)
 
