@@ -4,7 +4,7 @@
 
 from chimerax.core.atomic.idatm import type_info, planar, tetrahedral
 from chimerax.core.geometry import angle, distance_squared
-from chimerax.atomic.bond_geom import bond_positions
+from chimerax.core.atomic.bond_geom import bond_positions
 from . import hbond
 from .common_geom import AtomTypeError, get_phi_plane_params, \
         test_phi, project, test_theta, sulphur_compensate
@@ -12,6 +12,7 @@ from .hydpos import hyd_positions
 from math import sqrt
 from numpy import linalg
 
+@line_profile
 def don_theta_tau(donor, donor_hyds, acceptor, sp2_O_rp2, sp2_O_theta, sp3_O_rp2, sp3_O_theta,
         sp3_O_phi, sp3_N_rp2, sp3_N_theta, sp3_N_upsilon, gen_rp2, gen_theta, is_water=False):
         # 'is_water' only for hydrogenless water
@@ -25,7 +26,7 @@ def don_theta_tau(donor, donor_hyds, acceptor, sp2_O_rp2, sp2_O_theta, sp3_O_rp2
     dp = donor.scene_coord
 
     acc_type = acceptor.idatm_type
-    if not type_info.has_key(acc_type):
+    if acc_type not in type_info:
         if hbond.verbose:
             print("Unknown acceptor type failure")
         return False
@@ -75,7 +76,7 @@ def don_theta_tau(donor, donor_hyds, acceptor, sp2_O_rp2, sp2_O_theta, sp3_O_rp2
         else:
             if not is_water:
                 if hbond.verbose:
-                    print("dist criteria failed (all > %g)"\ % sqrt(sp3_N_rp2))
+                    print("dist criteria failed (all > %g)" % sqrt(sp3_N_rp2))
                 return False
         theta = sp3_N_theta
 
@@ -116,6 +117,7 @@ def don_theta_tau(donor, donor_hyds, acceptor, sp2_O_rp2, sp2_O_theta, sp3_O_rp2
 
     return test_theta(dp, donor_hyds, ap, theta)
 
+@line_profile
 def don_upsilon_tau(donor, donor_hyds, acceptor,
         sp2_O_r2, sp2_O_upsilon_low, sp2_O_upsilon_high, sp2_O_theta, sp2_O_tau,
         sp3_O_r2, sp3_O_upsilon_low, sp3_O_upsilon_high, sp3_O_theta, sp3_O_tau, sp3_O_phi,
@@ -126,7 +128,7 @@ def don_upsilon_tau(donor, donor_hyds, acceptor,
         print("don_upsilon_tau")
 
     acc_type = acceptor.idatm_type
-    if not type_info.has_key(acc_type):
+    if acc_type not in type_info:
         return False
 
     geom = type_info[acc_type].geometry
@@ -179,6 +181,7 @@ def don_upsilon_tau(donor, donor_hyds, acceptor,
         print("failed criteria")
     return False
 
+@line_profile
 def test_upsion_tau_acceptor(donor, donor_hyds, acceptor, r2, upsilon_low, upsilon_high,
         theta, tau, tau_sym):
     dc = donor.scene_coord
@@ -271,6 +274,7 @@ def test_upsion_tau_acceptor(donor, donor_hyds, acceptor, r2, upsilon_low, upsil
         print("all taus acceptable (> %g)" % tau)
     return True
 
+@line_profile
 def don_generic(donor, donor_hyds, acceptor, sp2_O_rp2, sp3_O_rp2, sp3_N_rp2,
     sp2_O_r2, sp3_O_r2, sp3_N_r2, gen_rp2, gen_r2, min_hyd_angle, min_bonded_angle):
     if hbond.verbose:
@@ -279,7 +283,7 @@ def don_generic(donor, donor_hyds, acceptor, sp2_O_rp2, sp3_O_rp2, sp3_N_rp2,
     ac = acceptor.scene_coord
 
     acc_type = acceptor.idatm_type
-    if not type_info.has_key(acc_type):
+    if acc_type not in type_info:
         return False
 
     geom = type_info[acc_type].geometry
@@ -353,6 +357,7 @@ def don_generic(donor, donor_hyds, acceptor, sp2_O_rp2, sp3_O_rp2, sp3_N_rp2,
         print("hydrogen angle(s) too sharp (< %g)" % min_hyd_angle)
     return False
 
+@line_profile
 def don_water(donor, donor_hyds, acceptor, sp2_O_rp2, sp2_O_r2, sp2_O_theta,
         sp3_O_rp2, sp3_O_r2, sp3_O_theta, sp3_O_phi, sp3_N_rp2, sp3_N_r2,
         sp3_N_theta, sp3_N_upsilon, gen_rp2, gen_r2, gen_theta):
@@ -368,7 +373,7 @@ def don_water(donor, donor_hyds, acceptor, sp2_O_rp2, sp2_O_r2, sp2_O_theta,
     dp = donor.scene_coord
 
     acc_type = acceptor.idatm_type
-    if not type_info.has_key(acc_type):
+    if acc_type not in type_info:
         if hbond.verbose:
             print("Unknown acceptor type failure")
         return False

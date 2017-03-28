@@ -226,7 +226,7 @@ IdatmPropertyCondition::atom_matches(const AtomType& idatm_type) const
 	if (not_type.size() > 0) {
 		for (auto cond: not_type)
 			if (cond->atom_matches(idatm_type))
-				return false;;
+				return false;
 	}
 	if (has_geometry && mi->second.geometry != geometry)
 		return false;
@@ -1327,7 +1327,7 @@ find_group(PyObject *, PyObject *args)
 		auto start = atoms.begin();
 		std::vector<std::thread> threads;
 		for (size_t i = 0; i < num_threads; ++i) {
-			decltype(start) end = start + (int)(i * per_thread + 0.5);
+			decltype(start) end = atoms.begin() + (int)((i+1) * per_thread + 0.5);
 			if (i == num_threads - 1) // an overabundance of caution
 				end = atoms.end();
 			threads.push_back(std::thread(initiate_find_group, group_rep, &group_principals,
@@ -1386,7 +1386,7 @@ find_aro_amines(PyObject *, PyObject *args)
 		auto start = atoms.begin();
 		std::vector<std::thread> threads;
 		for (size_t i = 0; i < num_threads; ++i) {
-			decltype(start) end = start + (int)(i * per_thread + 0.5);
+			decltype(start) end = atoms.begin() + (int)((i+1) * per_thread + 0.5);
 			if (i == num_threads - 1) // an overabundance of caution
 				end = atoms.end();
 			threads.push_back(std::thread(initiate_find_aro_amines, start, end,
@@ -1459,7 +1459,7 @@ find_ring_planar_NHR2(PyObject *, PyObject *args)
 		auto start = atoms.begin();
 		std::vector<std::thread> threads;
 		for (size_t i = 0; i < num_threads; ++i) {
-			decltype(start) end = start + (int)(i * per_thread + 0.5);
+			decltype(start) end = atoms.begin() + (int)((i+1) * per_thread + 0.5);
 			if (i == num_threads - 1) // an overabundance of caution
 				end = atoms.end();
 			threads.push_back(std::thread(initiate_find_ring_planar_NHR2, start, end,
@@ -1509,7 +1509,7 @@ find_5ring_planar_NR2(PyObject *, PyObject *args)
 		auto start = atoms.begin();
 		std::vector<std::thread> threads;
 		for (size_t i = 0; i < num_threads; ++i) {
-			decltype(start) end = start + (int)(i * per_thread + 0.5);
+			decltype(start) end = atoms.begin() + (int)((i+1) * per_thread + 0.5);
 			if (i == num_threads - 1) // an overabundance of caution
 				end = atoms.end();
 			threads.push_back(std::thread(initiate_find_5ring_planar_NR2,
@@ -1559,7 +1559,7 @@ find_6ring_planar_NR2(PyObject *, PyObject *args)
 		auto start = atoms.begin();
 		std::vector<std::thread> threads;
 		for (size_t i = 0; i < num_threads; ++i) {
-			decltype(start) end = start + (int)(i * per_thread + 0.5);
+			decltype(start) end = atoms.begin() + (int)((i+1) * per_thread + 0.5);
 			if (i == num_threads - 1) // an overabundance of caution
 				end = atoms.end();
 			threads.push_back(std::thread(initiate_find_6ring_planar_NR2,
@@ -1607,7 +1607,7 @@ find_5ring_OR2(PyObject *, PyObject *args)
 		auto start = atoms.begin();
 		std::vector<std::thread> threads;
 		for (size_t i = 0; i < num_threads; ++i) {
-			decltype(start) end = start + (int)(i * per_thread + 0.5);
+			decltype(start) end = atoms.begin() + (int)((i+1) * per_thread + 0.5);
 			if (i == num_threads - 1) // an overabundance of caution
 				end = atoms.end();
 			threads.push_back(std::thread(initiate_find_5ring_OR2,
@@ -1655,7 +1655,7 @@ find_nonring_NR2(PyObject *, PyObject *args)
 		auto start = atoms.begin();
 		std::vector<std::thread> threads;
 		for (size_t i = 0; i < num_threads; ++i) {
-			decltype(start) end = start + (int)(i * per_thread + 0.5);
+			decltype(start) end = atoms.begin() + (int)((i+1) * per_thread + 0.5);
 			if (i == num_threads - 1) // an overabundance of caution
 				end = atoms.end();
 			threads.push_back(std::thread(initiate_find_nonring_NR2,
@@ -1703,7 +1703,7 @@ find_nonring_ether(PyObject *, PyObject *args)
 		auto start = atoms.begin();
 		std::vector<std::thread> threads;
 		for (size_t i = 0; i < num_threads; ++i) {
-			decltype(start) end = start + (int)(i * per_thread + 0.5);
+			decltype(start) end = atoms.begin() + (int)((i+1) * per_thread + 0.5);
 			if (i == num_threads - 1) // an overabundance of caution
 				end = atoms.end();
 			threads.push_back(std::thread(initiate_find_nonring_ether,

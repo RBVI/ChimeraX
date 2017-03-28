@@ -8,27 +8,29 @@ from .common_geom import ConnectivityError, AtomTypeError
 from chimerax.chem_group import find_group
 from chimerax.core.geometry import AdaptiveTree
 from .hydpos import hyd_positions
-from chimerax.atomic.idatm import type_info, tetrahedral, planar, linear, single
-from chimerax.atomic import Element
+from chimerax.core.atomic.idatm import type_info, tetrahedral, planar, linear, single
+from chimerax.core.atomic import Element
 from chimerax.core.errors import UserError
 import copy
 
 from chimerax.chem_group import H, N, C, O, R
 from chimerax.chem_group.chem_group import find_ring_planar_NHR2, find_nonring_ether, \
     find_nonring_NR2, find_6ring_planar_NR2, find_5ring_planar_NR2, find_5ring_OR2
-_ring5_NH = lambda structs: find_ring_planar_NHR2(structs, False, 5)
-_ring6_aro_NH = lambda structs: find_ring_planar_NHR2(structs, False, 6, aromatic_only=True)
-_ring6_sym_N = lambda structs: find_6ring_planar_NR2(structs, False, symmetric=True)
-_ring5_sym_N = lambda structs: find_5ring_planar_NR2(structs, False, symmetric=True)
-_ring6_asym_N = lambda structs: find_6ring_planar_NR2(structs, False, symmetric=False)
-_ring5_asym_N = lambda structs: find_5ring_planar_NR2(structs, False, symmetric=False)
-_ring5_O = lambda structs: find_5ring_OR2(structs, False)
+_ring5_NH = lambda structs, ret_coll: find_ring_planar_NHR2(structs, ret_coll, 5)
+_ring6_aro_NH = lambda structs, ret_coll: find_ring_planar_NHR2(structs, ret_coll, 6,
+    aromatic_only=True)
+_ring6_sym_N = lambda structs, ret_coll: find_6ring_planar_NR2(structs, ret_coll, symmetric=True)
+_ring5_sym_N = lambda structs, ret_coll: find_5ring_planar_NR2(structs, ret_coll, symmetric=True)
+_ring6_asym_N = lambda structs, ret_coll: find_6ring_planar_NR2(structs, ret_coll, symmetric=False)
+_ring5_asym_N = lambda structs, ret_coll: find_5ring_planar_NR2(structs, ret_coll, symmetric=False)
+_ring5_O = lambda structs, ret_coll: find_5ring_OR2(structs, ret_coll)
+
 tet = {'geometry':tetrahedral}
 explicit_single_bond = ({'geometry':tetrahedral}, {'geometry':single})
-non_O3_minus_sb = ({'geometry':tetrahedral, 'notType': ['O3-']},
+non_O3_minus_sb = ({'geometry':tetrahedral, 'not type': ['O3-']},
                             {'geometry':single})
-non_Sac_Pac_H_sb = ({'geometry':tetrahedral, 'notType': ['Sac', 'Pac']},
-                {'geometry':single, 'notType': ['H', 'D']})
+non_Sac_Pac_H_sb = ({'geometry':tetrahedral, 'not type': ['Sac', 'Pac']},
+                {'geometry':single, 'not type': ['H', 'HC', 'D']})
 
 """
 # recommended distance and angle constraint relaxations for biomolecules
@@ -94,7 +96,7 @@ acceptor_params = [
     # non-phenol hydroxyl
     [[['O3', [non_Sac_Pac_H_sb, H]], [1,1,1]],
         (0,), acc_theta_tau, ((1,), 3.03, 100, -161, 145)],
-    [[['Sac', ['O3-', 'O3-', ['O3', [{'default': True, 'notType': ['Pac']}]], explicit_single_bond]], [1,1,1,1,0,0]],
+    [[['Sac', ['O3-', 'O3-', ['O3', [{'default': True, 'not type': ['Pac']}]], explicit_single_bond]], [1,1,1,1,0,0]],
         (3,), acc_theta_tau, ((0,), 3.17, 103, -180, 150)],
     # non-protonated aliphatic tertiary amine
     [[['N3', [tet, tet, tet]], [1,1,1,1]],
@@ -115,10 +117,10 @@ acceptor_params = [
     [[[O, [H, H]], [1,0,0]], (0,), acc_phi_psi,
                 ((None, None), 3.03, 120, 145)],
     # non-ring ether
-    [[lambda structs: find_nonring_ether(structs False), None],
+    [[lambda structs, ret_coll: find_nonring_ether(structs, ret_coll), None],
         (0,), acc_phi_psi, ((1, 2), 3.42, 140, 140)],
     # secondary amine not in a ring system
-    [[lambda structs: find_nonring_NR2(structs, False), None],
+    [[lambda structs, ret_coll: find_nonring_NR2(structs, ret_coll), None],
         (0,), acc_phi_psi, ((1, 2), 3.42, 140, 140)],
 
     # check ring systems last, since conflicts of ring systems with
@@ -271,9 +273,10 @@ def flush_cache():
 flush_cache()
 
 _problem = None
-_ring_funcs = [_ring5_asym_N, _ring6_asym_N, _ring5_O, hetNH,
+_ring_funcs = [_ring5_asym_N, _ring6_asym_N, _ring5_O,
                 _ring5_sym_N, _ring6_sym_N, _ring5_NH, _ring6_aro_NH]
 
+@line_profile
 def find_hbonds(session, models, intermodel=True, intramodel=True, donors=None, acceptors=None,
         dist_slop=0.0, angle_slop=0.0, inter_submodel=False, cache_da=False):
     """Hydrogen bond detection based on criteria in "Three-dimensional
@@ -424,8 +427,7 @@ def find_hbonds(session, models, intermodel=True, intramodel=True, donors=None, 
     has_sulfur = {}
     for model in models:
         session.logger.status("Finding acceptors in model '%s'" % model.name, blank_after=0)
-        if cache_da and _a_cache.has_key(model) \
-        and _a_cache[model].has_key((dist_slop, angle_slop)):
+        if cache_da and model in _a_cache and (dist_slop, angle_slop) in _acache[model]:
             acc_atoms = []
             acc_data = []
             for acc_atom, data in _a_cache[model][(dist_slop, angle_slop)].items():
@@ -439,7 +441,7 @@ def find_hbonds(session, models, intermodel=True, intramodel=True, donors=None, 
                 cache = WeakKeyDictionary()
                 for i in range(len(acc_atoms)):
                     cache[acc_atoms[i]] = acc_data[i]
-                if not _a_cache.has_key(model):
+                if model not in _a_cache:
                     _a_cache[model] = {}
                 _a_cache[model][(dist_slop, angle_slop)] = cache
         xyz = []
@@ -490,8 +492,7 @@ def find_hbonds(session, models, intermodel=True, intramodel=True, donors=None, 
     for dmi in range(len(models)):
         model = models[dmi]
         session.logger.status("Finding donors in model '%s'" % model.name, blank_after=0)
-        if cache_da and _d_cache.has_key(model) \
-        and _d_cache[model].has_key((dist_slop, angle_slop)):
+        if cache_da and model in _d_cache and (dist_slop, angle_slop) in _d_cache[model]:
             don_atoms = []
             don_data = []
             for don_atom, data in _d_cache[model][(dist_slop, angle_slop)].items():
@@ -504,7 +505,7 @@ def find_hbonds(session, models, intermodel=True, intramodel=True, donors=None, 
                 cache = WeakKeyDictionary()
                 for i in range(len(don_atoms)):
                     cache[don_atoms[i]] = don_data[i]
-                if not _d_cache.has_key(model):
+                if model not in _d_cache:
                     _d_cache[model] = {}
                 _d_cache[model][(dist_slop, angle_slop)] = cache
 
@@ -518,8 +519,8 @@ def find_hbonds(session, models, intermodel=True, intramodel=True, donors=None, 
             for acc_model in models:
                 if acc_model == model and not intramodel or acc_model != model and not intermodel:
                     continue
-                if acc_model.id == model.id and not inter_submodel \
-                and acc_model.subid != model.subid:
+                if acc_model.id[0] == model.id[0] and not inter_submodel \
+                and acc_model.id[1:] != model.id[1:]:
                     continue
                 if has_sulfur[acc_model]:
                     from .common_geom import SULFUR_COMP
@@ -541,9 +542,9 @@ def find_hbonds(session, models, intermodel=True, intramodel=True, donors=None, 
                     try:
                         if not geom_func(donor_atom, donor_hyds, *args):
                             continue
-                    except ConnectivityError, v:
+                    except ConnectivityError as e:
                         session.logger.info("Skipping possible acceptor with bad geometry: %s\n%s\n"
-                            % (acc_atom, v))
+                            % (acc_atom, e))
                         bad_connectivities += 1
                         continue
                     except:
@@ -584,17 +585,18 @@ def find_hbonds(session, models, intermodel=True, intramodel=True, donors=None, 
                         if not donor_func(donor_atom, donor_hyds, acc_atom,
                                 *tuple(arg_list + add_args)):
                             continue
-                    except ConnectivityError, v:
-                        session.logger.info("Skipping possible donor with bad geometry: %s\n%s\n\n"
-                            % (donor_atom, v))
+                    except ConnectivityError as e:
+                        session.logger.info("Skipping possible donor with bad geometry: %s\n%s\n"
+                            % (donor_atom, e))
                         bad_connectivities += 1
                         continue
-                    except AtomTypeError, v:
-                        _problem = ("atom type", donor_atom, v, None)
+                    except AtomTypeError as e:
+                        _problem = ("atom type", donor_atom, str(v), None)
                         continue
                     if verbose:
                         session.logger.info("\t%s satisfies donor criteria" % donor_atom)
                     hbonds.append((donor_atom, acc_atom))
+        session.logger.status("")
     if bad_connectivities:
         session.logger.warning("Skipped %d atom(s) with bad connectivities; see log for details"
             % bad_connectivities);
@@ -733,13 +735,13 @@ def _find_acceptors(model, a_params, limited_acceptors, generic_acc_info):
                 acc_func, args = acc_info
             if acc_func == acc_phi_psi:
                 bonded = atom.neighbors
-                args = bonded + [None] * (2-len(bonded)) + args
+                args = list(bonded) + [None] * (2-len(bonded)) + args
             elif acc_func == acc_theta_tau:
                 bonded = atom.neighbors
                 if len(bonded) > 1:
                     args = [None] + args
                 else:
-                    args = bonded + args
+                    args = [nb for nb in bonded] + args
         else:
             atomic_number = atom.element.number
             if atomic_number == 8:
@@ -820,7 +822,7 @@ def _find_donors(model, d_params, limited_donors, generic_don_info):
             don_data.append((geom_type, tau_sym, arg_list, test_dist))
     return don_atoms, don_data
 
-"""
+'''
 from chimera.selection import currentAtoms, currentMolecules
 
 def createHBonds(models=None, intramodel=True, intermodel=True, relax=True,
@@ -1102,4 +1104,4 @@ def _oslSort(hb1, hb2):
     if sval == 0:
         return oslCmp(acc1.oslIdent(), acc2.oslIdent())
     return sval
-"""
+'''

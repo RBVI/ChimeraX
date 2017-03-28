@@ -8,6 +8,7 @@
 """
 from numpy import array, object_
 from operator import add
+from functools import reduce
 
 import sys
 leaf = sys.intern('leaf')
@@ -103,7 +104,7 @@ class Node:
 
             # want axis that varies most from the median rather
             # than the one that varies most from end to end
-            median = (axis_data[sort[last_index/2]] + axis_data[sort[1+last_index/2]]) / 2.0
+            median = (axis_data[sort[last_index//2]] + axis_data[sort[1+last_index//2]]) / 2.0
             var1 = median - axis_data[sort[0]]
             var2 = axis_data[sort[last_index]] - median
             if var1 > var2:
@@ -144,7 +145,7 @@ class Node:
         # less than median goes into left node, greater-than-or-
         # equal-to goes into right node
         left_index = 0
-        for index in range(last_index/2, -1, -1):
+        for index in range(last_index//2, -1, -1):
             if max_axis_data[max_sort[index]] < max_median:
                 left_index = index + 1
                 break

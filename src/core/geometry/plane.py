@@ -52,11 +52,11 @@ class Plane:
                     j = 0
                 ux, uy, uz = origin_info[i]
                 vx, vy, vz = origin_info[j]
-                A += (uy - vy) * (uz - vz)
-                B += (uz - vz) * (ux - vx)
-                C += (ux - vx) * (uy - vy)
-            self._origin = numpy.sum(origin_info) / num_pts
-            self.normal = numpy.array(A, B, C)  # uses property, and therefore calls _compute_offset
+                A += (uy - vy) * (uz + vz)
+                B += (uz - vz) * (ux + vx)
+                C += (ux - vx) * (uy + vy)
+            self._origin = numpy.sum(origin_info, axis=0) / num_pts
+            self.normal = numpy.array([A,B,C])  # uses property, and therefore calls _compute_offset
         else:
             raise ValueError(self.usage_msg)
         self._compute_offset()
@@ -71,7 +71,7 @@ class Plane:
         """Returns (origin, normal); throws PlaneNoIntersectionError if parallel"""
 
         v = numpy.cross(self._normal, plane._normal)
-        if (sqlength(v) == 0.0)
+        if sqlength(v) == 0.0:
             raise PlaneNoIntersectionError()
 
         s1 = numpy.negative(self._offset)
@@ -106,7 +106,7 @@ class Plane:
     origin = property(_get_origin, _set_origin)
 
     def _compute_offset(self):
-        self._offset = numpy.negative(numpy.dot(self.origin, self.normal))
+        self._offset = -numpy.dot(self.origin, self.normal)
 
     @staticmethod
     def restore_snapshot(session, data):

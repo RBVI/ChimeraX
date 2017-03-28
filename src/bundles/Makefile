@@ -15,7 +15,7 @@ include $(TOP)/mk/config.make
 SUBDIRS = add_missing_atoms align_algs alignments blastprotein \
 	  cage_builder cellpack chem_group cmd_line \
 	  color_globe contacts crosslinks cytoscape \
-	  exp_cmd file_history help_viewer ihm label list_info \
+	  exp_cmd file_history hbonds help_viewer ihm label list_info \
 	  log map_series_gui match_maker mav mlp mmtf model_panel \
 	  morph mouse_modes movie remote_control rest_server \
 	  residue_fit sim_matrices shell shortcuts sideview \

@@ -4,12 +4,13 @@
 
 from chimerax.core.geometry import look_at, angle, distance_squared
 from numpy import linalg
-from chimerax.atomic.bond_geom import bond_positions
-from chimera.atomic.idatm import tetrahedral
+from chimerax.core.atomic.bond_geom import bond_positions
+from chimerax.core.atomic.idatm import tetrahedral
 from . import hbond
 from .common_geom import test_phi, test_theta, sulphur_compensate, get_phi_plane_params
 from math import sqrt
 
+@line_profile
 def acc_syn_anti(donor, donor_hyds, acceptor, syn_atom, plane_atom, syn_r2, syn_phi,
         syn_theta, anti_r2, anti_phi, anti_theta):
     """'plane_atom' (in conjunction with acceptor, and with 'syn_atom'
@@ -26,7 +27,7 @@ def acc_syn_anti(donor, donor_hyds, acceptor, syn_atom, plane_atom, syn_r2, syn_
     pp = plane_atom.scene_coord
     sp = syn_atom.scene_coord
 
-    syn_xform = lookAt(ap, pp, sp - pp)
+    syn_xform = look_at(ap, pp, sp - pp)
     xdp = syn_xform * dp
 
     phi_base_pos = pp
@@ -49,6 +50,7 @@ def acc_syn_anti(donor, donor_hyds, acceptor, syn_atom, plane_atom, syn_r2, syn_
     return test_phi_psi(dp, donor_hyds, ap, phi_base_pos, phi_plane,
                         anti_r2, anti_phi, anti_theta)
 
+@line_profile
 def acc_phi_psi(donor, donor_hyds, acceptor, bonded1, bonded2, r2, phi, theta):
     if hbond.verbose:
         print("acc_phi_psi")
@@ -68,6 +70,7 @@ def acc_phi_psi(donor, donor_hyds, acceptor, bonded1, bonded2, r2, phi, theta):
     return test_phi_psi(donor.scene_coord, donor_hyds,
         acceptor.scene_coord, phi_base_pos, phi_plane, r2, phi, theta)
 
+@line_profile
 def test_phi_psi(dp, donor_hyds, ap, bp, phi_plane, r2, phi, theta):
     if hbond.verbose:
         print("distance: %g, cut off: %g" % (linalg.norm(dp-ap), sqrt(r2)))
@@ -83,6 +86,7 @@ def test_phi_psi(dp, donor_hyds, ap, bp, phi_plane, r2, phi, theta):
 
     return test_theta(dp, donor_hyds, ap, theta)
 
+@line_profile
 def acc_theta_tau(donor, donor_hyds, acceptor, upsilon_partner, r2,
                         upsilon_low, upsilon_high, theta):
     if hbond.verbose:
@@ -102,7 +106,7 @@ def acc_theta_tau(donor, donor_hyds, acceptor, upsilon_partner, r2,
         print("dist criteria okay")
     
     if upsilon_partner:
-        upPos = upsilon_partner.scene_coord
+        up_pos = upsilon_partner.scene_coord
     else:
         # upsilon measured from "lone pair" (bisector of attached
         # atoms)
@@ -121,21 +125,19 @@ def acc_theta_tau(donor, donor_hyds, acceptor, upsilon_partner, r2,
                 return True
     return test_theta_tau(dp, donor_hyds, ap, up_pos, upsilon_low, upsilon_high, theta)
 
+@line_profile
 def test_theta_tau(dp, donor_hyds, ap, pp, upsilon_low, upsilon_high, theta):
-    if pp:
-        upsilon_high = 0 - upsilon_high
-        upsilon = angle(pp, ap, dp)
-        if upsilon < upsilon_low or upsilon > upsilon_high:
-            if hbond.verbose:
-                print("upsilon (%g) failed (%g-%g)" % (upsilon, upsilon_low, upsilon_high))
-            return False
-    else:
+    upsilon_high = 0 - upsilon_high
+    upsilon = angle(pp, ap, dp)
+    if upsilon < upsilon_low or upsilon > upsilon_high:
         if hbond.verbose:
-            print("can't determine upsilon; default okay")
+            print("upsilon (%g) failed (%g-%g)" % (upsilon, upsilon_low, upsilon_high))
+        return False
     if hbond.verbose:
         print("upsilon okay")
     return test_theta(dp, donor_hyds, ap, theta)
 
+@line_profile
 def acc_generic(donor, donor_hyds, acceptor, r2, min_angle):
     if hbond.verbose:
         print("generic acceptor")
