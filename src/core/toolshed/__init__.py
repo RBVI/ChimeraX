@@ -208,20 +208,15 @@ def _debug(*args, **kw):
         print("Toolshed:", *args, file=sys.__stderr__, **kw)
 
 
-from .installed import _hack_distlib
-
-
 # Package constants
 
 
 # Default URL of remote toolshed
-_RemoteURL = "http://localhost:8080"
-# _RemoteURL = "https://chi2ti-macosx-daily.rbvi.ucsf.edu"
+_RemoteURL = "https://cxtoolshed-preview.rbvi.ucsf.edu"
 # Default name for toolshed cache and data directories
-_Toolshed = "toolshed"
+_ToolshedFolder = "toolshed"
 # Defaults names for installed ChimeraX bundles
 _ChimeraNamespace = "chimerax"
-from .. import BUNDLE_NAME as _core_bundle_name
 
 
 # Exceptions raised by Toolshed class
@@ -295,17 +290,16 @@ class Toolshed:
         else:
             self.remote_url = remote_url
         self._repo_locator = None
-        from .installed import InstalledBundleCache
-        self._installed_bundle_info = InstalledBundleCache()
-        self._available_bundle_info = []
+        self._installed_bundle_info = None
+        self._available_bundle_info = None
         self._installed_packages = {}   # cache mapping packages to bundles
 
         # Compute base directories
         import os
         from chimerax import app_dirs
-        self._cache_dir = os.path.join(app_dirs.user_cache_dir, _Toolshed)
+        self._cache_dir = os.path.join(app_dirs.user_cache_dir, _ToolshedFolder)
         _debug("cache dir: %s" % self._cache_dir)
-        self._data_dir = os.path.join(app_dirs.user_data_dir, _Toolshed)
+        self._data_dir = os.path.join(app_dirs.user_data_dir, _ToolshedFolder)
         _debug("data dir: %s" % self._data_dir)
 
         # Add directories to sys.path
@@ -326,8 +320,7 @@ class Toolshed:
 
         # Reload the bundle info list
         _debug("loading bundles")
-        self.reload(logger, check_remote=check_remote,
-                    rebuild_cache=rebuild_cache)
+        self.reload(logger, check_remote=check_remote, rebuild_cache=rebuild_cache)
         _debug("finished loading bundles")
 
     def check_remote(self, logger):
@@ -358,7 +351,8 @@ class Toolshed:
             _debug("added remote distribution:", d)
         return bi_list
 
-    def reload(self, logger, *, session=None, rebuild_cache=False, check_remote=False):
+    def reload(self, logger, *, session=None, reread_cache=True, rebuild_cache=False,
+               check_remote=False):
         """Discard and reread bundle info.
 
         Parameters
@@ -375,32 +369,33 @@ class Toolshed:
         """
 
         _debug("reload", rebuild_cache, check_remote)
-        from .installed import InstalledBundleCache
-        for bi in reversed(self._installed_bundle_info):
-            for p in bi.packages:
-                try:
-                    del self._installed_packages[p]
-                except KeyError:
-                    pass
-            if session is not None:
-                bi.finish(session)
-            bi.deregister(logger)
-        self._installed_bundle_info = InstalledBundleCache()
-        self._installed_bundle_info.load(logger,
-                  cache_file=self._bundle_cache(False, logger),
-                  rebuild_cache=rebuild_cache, write_cache=True)
-        for bi in self._installed_bundle_info:
-            bi.register(logger)
-            if session is not None:
-                bi.initialize(session)
+        if reread_cache or rebuild_cache:
+            from .installed import InstalledBundleCache
+            if self._installed_bundle_info is not None:
+                for bi in reversed(self._installed_bundle_info):
+                    for p in bi.packages:
+                        try:
+                            del self._installed_packages[p]
+                        except KeyError:
+                            pass
+                    if session is not None:
+                        bi.finish(session)
+                    bi.deregister(logger)
+            cache_file=self._bundle_cache(False, logger)
+            self._installed_bundle_info = InstalledBundleCache()
+            self._installed_bundle_info.load(logger, cache_file=cache_file,
+                                             rebuild_cache=rebuild_cache,
+                                             write_cache=True)
+            for bi in self._installed_bundle_info:
+                bi.register(logger)
+                if session is not None:
+                    bi.initialize(session)
         if check_remote:
-            self._available_bundle_info = []
-            self._repo_locator = None
-            remote_bi_list = self.check_remote(logger)
-            for bi in remote_bi_list:
-                self.add_bundle_info(bi, logger)
-                # XXX: do we want to register commands so that we can
-                # ask user whether to install bundle when invoked?
+            from .available import AvailableBundleCache
+            self._available_bundle_info = AvailableBundleCache()
+            self._available_bundle_info.load(logger, _RemoteURL)
+            # XXX: do we want to register commands so that we can
+            # ask user whether to install bundle when invoked?
         self.triggers.activate_trigger(TOOLSHED_BUNDLE_INFO_RELOADED, self)
 
     def set_install_timestamp(self, per_user=False):
@@ -408,7 +403,7 @@ class Toolshed:
         _debug("set_install_timestamp")
         self._installed_bundle_info.set_install_timestamp(per_user=per_user)
 
-    def bundle_info(self, installed=True, available=False):
+    def bundle_info(self, logger, installed=True, available=False):
         """Return list of bundle info.
 
         Parameters
@@ -425,6 +420,10 @@ class Toolshed:
         list of :py:class:`BundleInfo` instances
             Combined list of all selected types of bundle metadata.  """
 
+        # _installed_bundle_info should always be defined
+        # but _available_bundle_info may need to be initialized`
+        if available and self._available_bundle_info is None:
+            self.reload(logger, reread_cache=False, check_remote=True)
         if installed and available:
             return self._installed_bundle_info + self._available_bundle_info
         elif installed:
@@ -474,6 +473,8 @@ class Toolshed:
                         continue
                 self._installed_packages[p] = bi
         else:
+            if available and self._available_bundle_info is None:
+                self.reload(logger, reread_cache=False, check_remote=True)
             container = self._available_bundle_info
         container.append(bi)
         self.triggers.activate_trigger(TOOLSHED_BUNDLE_INFO_ADDED, bi)
@@ -544,7 +545,7 @@ class Toolshed:
         # self._write_cache(self._installed_bundle_info, logger)
         self.triggers.activate_trigger(TOOLSHED_BUNDLE_UNINSTALLED, bi)
 
-    def find_bundle(self, name, installed=True, version=None):
+    def find_bundle(self, name, logger, installed=True, version=None):
         """Return a :py:class:`BundleInfo` instance with the given name.
 
         Parameters
@@ -562,6 +563,8 @@ class Toolshed:
         if installed:
             container = self._installed_bundle_info
         else:
+            if self._available_bundle_info is None:
+                self.reload(logger, reread_cache=False, check_remote=True)
             container = self._available_bundle_info
         from distlib.version import NormalizedVersion as Version
         best_bi = None

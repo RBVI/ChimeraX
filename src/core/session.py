@@ -154,7 +154,7 @@ class _UniqueName:
             cls = get_class(class_name)
         else:
             bundle_name, class_name = class_name
-            bundle_info = session.toolshed.find_bundle(bundle_name)
+            bundle_info = session.toolshed.find_bundle(bundle_name, session.logger)
             if bundle_info is None:
                 cls = None
             else:
@@ -262,7 +262,7 @@ class _RestoreManager:
         missing_bundles = []
         out_of_date_bundles = []
         for bundle_name, (bundle_version, bundle_state_version) in bundle_infos.items():
-            bi = session.toolshed.find_bundle(bundle_name)
+            bi = session.toolshed.find_bundle(bundle_name, session.logger)
             if bi is None:
                 missing_bundles.append(bundle_name)
                 continue

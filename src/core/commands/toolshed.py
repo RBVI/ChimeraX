@@ -14,6 +14,7 @@
 from . import CmdDesc, EnumOf, StringArg, BoolArg, plural_form, commas
 
 _bundle_types = EnumOf(["all", "installed", "user", "available"])
+_reload_types = EnumOf(["all", "cache", "installed", "available"])
 
 
 def _display_bundles(bi_list, logger, use_html=False):
@@ -112,14 +113,14 @@ def toolshed_list(session, bundle_type="installed", outdated=False):
     logger = session.logger
     use_html = session.ui.is_gui
     if bundle_type == "installed" or bundle_type == "all":
-        bi_list = ts.bundle_info(installed=True, available=False)
+        bi_list = ts.bundle_info(logger, installed=True, available=False)
         if bi_list:
             logger.info("List of installed bundles:")
             _display_bundles(bi_list, logger, use_html)
         else:
             logger.info("No installed bundles found.")
     if bundle_type in ("available", "all"):
-        bi_list = ts.bundle_info(installed=False, available=True)
+        bi_list = ts.bundle_info(logger, installed=False, available=True)
         if bi_list:
             logger.info("List of available bundles:")
             _display_bundles(bi_list, logger, use_html)
@@ -127,19 +128,37 @@ def toolshed_list(session, bundle_type="installed", outdated=False):
             logger.info("No available bundles found.")
 toolshed_list_desc = CmdDesc(optional=[("bundle_type", _bundle_types),
                                        ("outdated", BoolArg),],
-                       non_keyword=['bundle_type'],
-                       synopsis='List installed bundles')
+                             non_keyword=['bundle_type'],
+                             synopsis='List installed bundles')
 
 
-def toolshed_refresh(session, bundle_type="installed"):
+def toolshed_reload(session, reload_type="installed"):
     '''
     Rebuild the bundle metadata cache using information from
     currently installed bundle.
     '''
     ts = session.toolshed
     logger = session.logger
-    ts.refresh()
-toolshed_refresh_desc = CmdDesc(synopsis='Refresh cached bundle metadata')
+    if reload_type == "installed":
+        kw = {"reread_cache":True,
+              "rebuild_cache":True,
+              "check_remote":False}
+    elif reload_type == "cache":
+        kw = {"reread_cache":True,
+              "rebuild_cache":False,
+              "check_remote":True}
+    elif reload_type == "available":
+        kw = {"reread_cache":False,
+              "rebuild_cache":False,
+              "check_remote":True}
+    elif reload_type == "all":
+        kw = {"reread_cache":True,
+              "rebuild_cache":True,
+              "check_remote":True}
+    ts.reload(**kw)
+toolshed_reload_desc = CmdDesc(optional=[("reload_type", _reload_types),],
+                               non_keyword=['reload_type'],
+                               synopsis='Refresh cached bundle metadata')
 
 
 def _bundle_string(bundle_name, version):
@@ -195,7 +214,7 @@ def toolshed_uninstall(session, bundle_name):
     '''
     ts = session.toolshed
     logger = session.logger
-    bi = ts.find_bundle(bundle_name, installed=True)
+    bi = ts.find_bundle(bundle_name, session.logger, installed=True)
     if bi is None:
         logger.error("\"%s\" does not match any bundles" % bundle_name)
         return
@@ -251,7 +270,7 @@ def register_command(session):
 
     register("toolshed list", toolshed_list_desc, toolshed_list,
              logger=session.logger)
-    register("toolshed refresh", toolshed_refresh_desc, toolshed_refresh,
+    register("toolshed reload", toolshed_reload_desc, toolshed_reload,
              logger=session.logger)
     register("toolshed install", toolshed_install_desc, toolshed_install,
              logger=session.logger)
