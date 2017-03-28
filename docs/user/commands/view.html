@@ -65,6 +65,7 @@ See also: <a href="cofr.html"><b>cofr</b></a>,
 <b>view</b> &nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
 [&nbsp;<b>pad</b>&nbsp;&nbsp;<i>fraction</i>&nbsp;]
 [&nbsp;<b>orient</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>clip</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 <br>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>view</b> &nbsp;<b>initial</b>
@@ -73,10 +74,13 @@ See also: <a href="cofr.html"><b>cofr</b></a>,
 <p>
 The <b>view</b> <a href="atomspec.html"><i>spec</i></a>
 command translates the scene, zooms in or out,
-and places the <a href="clip.html">near/far clipping planes</a>
+and (unless <b>clip</b> is <b>false</b>)
+places the <a href="clip.html">near/far clipping planes</a>
 to bracket the displayed parts of the specified items.
-If nothing is specified, all displayed items will be included
-and near/far clipping deactivated.
+Setting <b>clip false</b> will also deactivate any pre-existing near/far clipping.
+If nothing is specified
+(<a href="atomspec.html"><i>spec</i></a> is blank or omitted),
+all displayed items will be included in the view and near/far clipping deactivated.
 The zoom level is adjusted to make the bounding box of the relevant items
 abut the edges of the graphics window minus a <b>pad</b> <i>fraction</i> 
 (allowed values &lt; 1.0, default <b>0.05</b> of the window width and height)
@@ -212,5 +216,5 @@ The following commands are equivalent:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2017</address>
+March 2017</address>
 </body></html>

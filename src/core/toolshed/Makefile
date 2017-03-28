@@ -15,7 +15,6 @@ include $(TOP)/mk/config.make
 PYSRCS= $(wildcard *.py)
 PKG_DIR= $(PYSITEDIR)/chimerax/core/toolshed
 APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/toolshed
-DATA = helpdir
 
 all: $(PYOBJS)
 

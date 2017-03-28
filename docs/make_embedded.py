@@ -9,9 +9,11 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from html import escape
-import pkg_resources
 import copy
+from html import escape
+import os
+import pkg_resources
+import shutil
 
 def get_packages_info():
     # based on http://stackoverflow.com/questions/19086030/can-pip-or-setuptools-distribute-etc-list-the-license-used-by-each-install
@@ -147,15 +149,58 @@ def print_pkgs(out):
             if not lf:
                 print('License type: %s' % escape(license), file=out)
             else:
-                import os
-                import shutil
-                os.makedirs('licenses', exist_ok=True)
                 fn = 'licenses/%s-%s' % (id, os.path.basename(lf))
                 if not os.path.splitext(fn)[1]:
                     fn += '.txt'
                 shutil.copyfile(lf, fn)
                 print('License type: <a href="%s">%s</a>' % (fn, escape(license)), file=out)
     print('</dl>', file=out)
+
+def ffmpeg_licenses():
+    ffmpeg_srcdir = os.path.join('..', 'prereqs', 'ffmpeg')
+    makefile = os.path.join(ffmpeg_srcdir, 'Makefile')
+    with open(makefile) as f:
+        #FFMPEG_VERSION = 3.2.4
+        for line in f.readlines():
+            if line.startswith('FFMPEG_VERSION = '):
+                version = line.split()[2]
+                break
+        else:
+            print('Unable to find ffmpeg version')
+            return
+    import zipfile
+    windist_dir = 'ffmpeg-%s-win64-static' % version
+    zip_filename = os.path.join(ffmpeg_srcdir, '%s.zip' % windist_dir)
+    with zipfile.ZipFile(zip_filename) as zf:
+        out_dir = os.path.join('licenses', 'ffmpeg')
+        out_filename = os.path.join(out_dir, 'index.html')
+        license_prefix = '%s/licenses/' % windist_dir
+        licenses = [n for n in zf.namelist() if n.startswith(license_prefix)]
+        licenses.sort()
+        zf.extractall(path=out_dir, members=licenses)
+        with open(out_filename, 'w') as f:
+            print("""<html>
+ <head>
+  <title> FFmpeg Embedded Licenses </title>
+ </head
+ <body>
+ The FFmpeg binary incorporates some or all of the following libraries and their licenses:
+  <ul>
+""", file=f)
+            for n in licenses:
+                bn = os.path.basename(n)
+                if not bn:
+                    continue
+                library = os.path.splitext(bn)[0]
+                print('<li> <a href="%s">%s</a>' % (n, library), file=f)
+            print("""
+  </ul>
+ </body>
+</html>
+""", file=f)
+
+
+os.makedirs('licenses', exist_ok=True)
 
 with open('embedded.html.in') as src:
     with open('embedded.html', 'w') as out:
@@ -164,5 +209,10 @@ with open('embedded.html.in') as src:
                 print_pkgs(out)
             else:
                 print(line, end='', file=out)
+
+try:
+    ffmpeg_licenses()
+except:
+    pass
 
 raise SystemExit(0)

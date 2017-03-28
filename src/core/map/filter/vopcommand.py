@@ -91,8 +91,8 @@ def register_volume_filtering_subcommands(logger):
         keyword = [('atom_box', AtomsArg),
                    ('pad', FloatArg),
                    ('box', BoxArg), ('x', Float2Arg), ('y', Float2Arg), ('z', Float2Arg),
-                   ('fbox', BoxArg), ('fx', Float2Arg), ('fy', Float2Arg), ('fz', Float2Arg),
-                   ('ibox', BoxArg), ('ix', Float2Arg), ('iy', Float2Arg), ('iz', Float2Arg),
+                   ('f_box', BoxArg), ('fx', Float2Arg), ('fy', Float2Arg), ('fz', Float2Arg),
+                   ('i_box', BoxArg), ('ix', Float2Arg), ('iy', Float2Arg), ('iz', Float2Arg),
                    ('use_symmetry', BoolArg),
                    ('cell_size', Int3Arg),
                    ('step', MapStepArg),
@@ -471,9 +471,6 @@ def volume_cover(session, volumes, atom_box = None, pad = 5.0,
     '''Extend a map using symmetry to cover a specified region.'''
     if not atom_box is None and len(atom_box) == 0:
         raise CommandError('No atoms specified')
-    box = parse_box(box, x, y, z, 'box', 'x', 'y', 'z')
-    f_box = parse_box(f_box, fx, fy, fz, 'f_box', 'fx', 'fy', 'fz')
-    i_box = parse_box(i_box, ix, iy, iz, 'i_box', 'ix', 'iy', 'iz')
     bc = len([b for b in (box, f_box, i_box, atom_box) if b])
     if bc == 0:
         raise CommandError('Must specify box to cover')

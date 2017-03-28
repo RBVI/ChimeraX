@@ -67,12 +67,16 @@ def view_objects(objects, v, clip, cofr, pad):
     c, r = b.center(), b.radius()
     if cofr:
         v.center_of_rotation = c
+
+    cp = v.clip_planes
     if clip:
         cam = v.camera
         vd = cam.view_direction()
-        cp = v.clip_planes
         cp.set_clip_position('near', c - r * vd, cam)
         cp.set_clip_position('far', c + r * vd, cam)
+    else:
+        cp.remove_plane('near')
+        cp.remove_plane('far')
 
 
 def view_name(session, name):

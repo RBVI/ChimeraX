@@ -114,6 +114,7 @@ class GraphicsPanel(ShortcutPanel):
         ('gb', 'graybg.png', 'Gray background'),
         ('bk', 'blackbg.png', 'Black background'),
         ('ls', 'simplelight.png', 'Simple lighting'),
+        ('sh', 'shadow.png', 'Single shadow'),
         ('la', 'softlight.png', 'Soft lighting'),
         ('lf', 'fulllight.png', 'Full lighting'),
         ('lF', 'flat.png', 'Flat lighting'),

@@ -821,7 +821,7 @@ class Structure(Model, StructureData):
                     va, na, ta = surface.cylinder_geometry(nc=nc, nz=2, caps=False)
                 else:
                     # Assume it's either TETHER_CONE or TETHER_REVERSE_CONE
-                    va, na, ta = surface.cone_geometry(nc=nc, caps=False)
+                    va, na, ta = surface.cone_geometry(nc=nc, caps=False, points_up=False)
                 tp.geometry = va, ta
                 tp.normals = na
                 self._ribbon_tether.append((atoms, tp, coords[tethered], atoms.filter(tethered),
@@ -1539,7 +1539,7 @@ class Structure(Model, StructureData):
     def planes_pick(self, planes, exclude=None):
         if not self.display:
             return []
-        if exclude is not None and hasattr(self, exclude):
+        if exclude is not None and exclude(self):
             return []
 
         picks = []
@@ -1996,7 +1996,8 @@ class StructureGraphicsChangeManager:
                 s[i]._update_graphics_if_needed()
 
             # Update level of detail
-            n = sum(tuple(m.num_atoms_visible for m in s if m.visible))
+            n = sum(m.num_atoms_visible * m.num_displayed_positions
+                    for m in s if m.visible)
             if n > 0 and n != self.num_atoms_shown:
                 self.num_atoms_shown = n
                 self._update_level_of_detail()
@@ -2050,7 +2051,7 @@ class LevelOfDetail(State):
         self._atom_min_triangles = 10
         self._atom_max_triangles = 2000
         self._atom_default_triangles = 200
-        self._atom_max_total_triangles = 10000000
+        self._atom_max_total_triangles = 5000000
         self._step_factor = 1.2
         self._sphere_geometries = {}	# Map ntri to (va,na,ta)
 

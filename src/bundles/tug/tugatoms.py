@@ -1,3 +1,14 @@
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 # Mouse mode to drag atoms and update structure with OpenMM molecular dynamics.
 #
 # Structures need a complete set of heavy atoms and hydrogens.  OpenMM can add hydrogens but only
@@ -133,7 +144,7 @@ class TugAtomsMode(MouseMode):
             s = self.session
             self._arrow_model = a = Model('Tug arrow', s)
             from chimerax.core.surface import cone_geometry
-            a.vertices, a.normals, a.triangles  = cone_geometry()
+            a.vertices, a.normals, a.triangles  = cone_geometry(points_up = False)
             a.color = (0,255,0,255)
             s.models.add([a])
         # Scale and rotate prototype cylinder.

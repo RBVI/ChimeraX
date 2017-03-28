@@ -752,15 +752,17 @@ class ToolWindow(StatusLogger):
     def floating(self):
         return self.__toolkit.dock_widget.isFloating()
 
-    def manage(self, placement, fixed_size=False):
+    from PyQt5.QtCore import Qt
+    def manage(self, placement, fixed_size=False, allowed_areas=Qt.AllDockWidgetAreas):
         """Show this tool window in the interface
 
         Tool will be docked into main window on the side indicated by
         `placement` (which should be a value from :py:attr:`placements`
         or None).  If `placement` is None, the tool will be detached
-        from the main window.
+        from the main window.  It will be allowed to dock in the allowed_areas,
+        the value of which is a bitmask formed from Qt's Qt.DockWidgetAreas flags.
         """
-        self.__toolkit.manage(placement, fixed_size)
+        self.__toolkit.manage(placement, allowed_areas, fixed_size)
 
     def _get_shown(self):
         """Whether this window is hidden or shown"""
@@ -872,6 +874,7 @@ class _Qt:
         qt_sides = [Qt.RightDockWidgetArea, Qt.RightDockWidgetArea, Qt.LeftDockWidgetArea,
             Qt.TopDockWidgetArea, Qt.BottomDockWidgetArea]
         self.placement_map = dict(zip(self.tool_window.placements, qt_sides))
+
         if not mw:
             raise RuntimeError("No main window or main window dead")
 
@@ -919,7 +922,7 @@ class _Qt:
             self.statusbar = None
         self.dock_widget.destroy()
 
-    def manage(self, placement, fixed_size=False):
+    def manage(self, placement, allowed_areas, fixed_size=False):
         from PyQt5.QtCore import Qt
         placements = self.tool_window.placements
         if placement is None:
@@ -940,6 +943,7 @@ class _Qt:
         mw.addDockWidget(side, self.dock_widget)
         if placement is None:
             self.dock_widget.setFloating(True)
+        self.dock_widget.setAllowedAreas(allowed_areas)
 
         #QT disable: create a 'hide_title_bar' option
         if side == Qt.BottomDockWidgetArea:
