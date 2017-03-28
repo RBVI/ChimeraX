@@ -2782,7 +2782,8 @@ def default_settings(session):
 # -----------------------------------------------------------------------------
 #
 def set_data_cache(grid_data, session):
-  if not grid_data.path:
+  from .data import Array_Grid_Data
+  if isinstance(grid_data, Array_Grid_Data):
     return	# No caching for in-memory maps
 
   grid_data.data_cache = data_cache(session)
