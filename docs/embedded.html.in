@@ -45,11 +45,11 @@ License: ChimeraX is develped with a commercial license for PyQt.
 See the Riverbank <a href="https://www.riverbankcomputing.com/commercial/license-faq"> License FAQ </a> for more details.
 
 <p>
-<dt><a href="http://ffmpeg.org/"> FFmpeg </a> version 2.3.2
+<dt><a href="http://ffmpeg.org/"> FFmpeg </a> version 3.2.4
 <dd>&ldquo;A complete, cross-platform solution to record, convert and stream audio and video.&rdquo;
 <br>
-License: <a href="http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html">GNU Lesser General Public License (LGPL) version 2.1</a> (MacOS/Linux)<br>
-License: <a href="http://www.gnu.org/licenses/gpl-3.0.html">GNU General Public License v3</a> (Windows)<br>
+License: <a href="http://www.gnu.org/licenses/gpl-3.0.html">GNU General Public License v3</a><br>
+Embedded licenses: <a href="licenses/ffmpeg/index.html">FFmpeg embedded licences</a>
 <p>
 FFmpeg is bundled as a convenience for users of ChimeraX.
 It is a separate product,

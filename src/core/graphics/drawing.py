@@ -295,6 +295,12 @@ class Drawing:
     '''Mask specifying which copies are displayed. Can be None meaning all positions displayed'''
 
     @property
+    def num_displayed_positions(self):
+        dp = self.display_positions
+        ndp = dp.sum() if dp else len(self.positions)
+        return ndp
+
+    @property
     def parents_displayed(self):
         for d in self.drawing_lineage[:-1]:
             if not d.display:
