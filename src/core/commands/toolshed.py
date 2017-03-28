@@ -155,7 +155,7 @@ def toolshed_reload(session, reload_type="installed"):
         kw = {"reread_cache":True,
               "rebuild_cache":True,
               "check_remote":True}
-    ts.reload(**kw)
+    ts.reload(session.logger, **kw)
 toolshed_reload_desc = CmdDesc(optional=[("reload_type", _reload_types),],
                                non_keyword=['reload_type'],
                                synopsis='Refresh cached bundle metadata')

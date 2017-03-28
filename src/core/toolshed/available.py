@@ -63,6 +63,12 @@ def _build_bundle(d):
         kw["version"] = bundle_d["version"]
     except KeyError:
         return None
+    s = d.get("description", None)
+    if s:
+        kw["synopsis"] = s
+    s = d.get("details", None)
+    if s:
+        kw["description"] = s
     _set_value(kw, bundle_d, "categories")
     _set_value(kw, bundle_d, "session_versions", _parse_session_versions)
     _set_value(kw, bundle_d, "api_package_name")
