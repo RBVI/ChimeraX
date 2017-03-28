@@ -480,7 +480,7 @@ class View:
 
         # Compute drawing bounds so shadow map can cover all drawings.
         center, radius, bdrawings = _drawing_bounds(drawings, self.drawing)
-        if center is None:
+        if center is None or radius == 0:
             return None
 
         # Compute shadow map depth texture
@@ -530,7 +530,7 @@ class View:
 
         # Compute drawing bounds so shadow map can cover all drawings.
         center, radius, bdrawings = _drawing_bounds(drawings, self.drawing)
-        if center is None:
+        if center is None or radius == 0:
             return None, None
 
         # Compute shadow map depth texture
