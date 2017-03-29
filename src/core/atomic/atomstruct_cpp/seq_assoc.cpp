@@ -261,12 +261,12 @@ _constrained(const Sequence::Contents& aseq, AssocParams& cm_ap,
         if (base_errs >= std::min(tot_errs, max_errors+1))
             continue;
 
-        int offset = left_space = i;
+        int offset = left_space + i;
         if (offset == min_offset)
             continue;
 
         if (bsi > 0) {
-            Sequence::Contents left_aseq(aseq.begin(), aseq.begin()+offset-2);
+            Sequence::Contents left_aseq(aseq.begin(), aseq.begin()+offset-1);
             left_errors = _constrained(left_aseq, left_ap, left_offsets,
                 std::min(tot_errs, max_errors) - base_errs);
         } else {
@@ -278,8 +278,7 @@ _constrained(const Sequence::Contents& aseq, AssocParams& cm_ap,
             continue;
 
         if (bsi+1 < cm_ap.segments.size()) {
-            Sequence::Contents right_aseq(aseq.begin()+offset+longest+1,
-                aseq.end());
+            Sequence::Contents right_aseq(aseq.begin()+offset+longest+1, aseq.end());
             right_errors = _constrained(right_aseq, right_ap, right_offsets,
                 std::min(tot_errs, max_errors) - base_errs - left_errors);
         } else {
