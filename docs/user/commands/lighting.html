@@ -92,11 +92,17 @@ ambient shadowing from 64 directions tuned to emphasize larger indentations
 The detailed settings within a preset can be listed in the 
 <a href="../tools/log.html"><b>Log</b></a> by applying the preset
 and then using the <b>lighting</b> command without arguments.
-</p><p>
 Although there is a preset named <b>default</b>, different settings
 may be applied by <a href="../autostyle.html">automatic styling</a>
 based on the size of the first atomic model opened at a time.
 <!-- whenever an atomic model is opened and no others are already present -->
+</p>
+The <a href="../tools/graphics.html"><b>Graphics</b></a> icon 
+<a href="../tools/graphics.html" title="Graphics icons...">
+<img class="icon" border=1 src="../tools/shortcut-icons/shadow.png"></a>
+toggles key-light <a href="#shadows"><b>shadows</b></a>, and if the key light 
+is off, adjusts key-light <a href="#intensity"><b>intensity</b></a> 
+from 0 to 0.5 to show the shadows.
 </p>
 
 <a name="options"></a>
@@ -120,6 +126,7 @@ This is from the upper left front to the lower right back in the
 (see <a href="#moveWithCamera"><b>moveWithCamera</b></a>),
 </blockquote>
 <blockquote>
+<a name="intensity"></a>
 <b>intensity</b> &nbsp;<i>I<sub>k</sub></i>
 <br>
 Set key-light intensity (<b>1.0</b> in <b>simple</b> lighting).
@@ -137,7 +144,8 @@ Set fill-light direction
 (approx. <b>-0.2,-0.2,-0.959</b> in <b>simple</b> lighting).
 </blockquote>
 <blockquote>
-<a name="fillIntensity"><b>fillIntensity</b></a> &nbsp;<i>I<sub>f</sub></i>
+<a name="fillIntensity"></a>
+<b>fillIntensity</b> &nbsp;<i>I<sub>f</sub></i>
 <br>
 Set fill-light intensity (<b>0.5</b> in <b>simple</b> lighting).
 </blockquote>
@@ -159,7 +167,8 @@ Set ambient-light color (<b>white</b> in <b>simple</b> lighting).
 </blockquote>
 
 <blockquote>
-<a name="depthcue"><b>depthCue</b></a> &nbsp;true | false
+<a name="depthCue"></a>
+<b>depthCue</b> &nbsp;true | false
 <br>
 Whether to use depth-cueing, front-to-back shading of the scene
 (<b>true</b> in <b>simple</b> lighting).
@@ -185,10 +194,13 @@ See also: <a href="clip.html"><b>clip</b></a>
 </blockquote>
 
 <blockquote>
+<a name="shadows"></a>
 <b>shadows</b> &nbsp;true | false
 <br>
 Whether the key light should cast shadows
 (<b>false</b> in <b>simple</b> lighting).
+This will only have a visible effect when the key light is on
+(<a href="#intensity"><b>intensity</b></a> &gt; 0).
 </blockquote>
 <blockquote>
 <b>qualityOfShadows</b> &nbsp;coarse&nbsp;|&nbsp;<b>normal</b>&nbsp;|&nbsp;fine&nbsp;|&nbsp;finer&nbsp;|&nbsp;<i>M<sub>k</sub></i>
@@ -220,14 +232,16 @@ How many directions should be used to generate ambient shadows
 (<b>0</b> in <b>simple</b> lighting, meaning no ambient shadows; maximum 1024).
 </blockquote>
 <blockquote>
-<a name="msMapSize"><b>msMapSize</b></a> &nbsp;<i>M<sub>a</sub></i>
+<a name="msMapSize"></a>
+<b>msMapSize</b> &nbsp;<i>M<sub>a</sub></i>
 <br>
 Set the size of the depth map
 for rendering ambient shadows (integer-valued, 
 <b>1024</b> in <b>simple</b> lighting).
 </blockquote>
 <blockquote>
-<a name="msDepthBias"><b>msDepthBias</b></a> &nbsp;<i>b<sub>a</sub></i>
+<a name="msDepthBias"></a>
+<b>msDepthBias</b> &nbsp;<i>b<sub>a</sub></i>
 <br>
 Set the bias distance for ambient shadows,
 used to avoid a surface shadowing itself due to rounding errors
@@ -237,7 +251,8 @@ because a smaller depth map is typically used.
 </blockquote>
 
 <blockquote>
-<a name="moveWithCamera"><b>moveWithCamera</b></a> &nbsp;<b>true</b> | false
+<a name="moveWithCamera"></a>
+<b>moveWithCamera</b> &nbsp;<b>true</b> | false
 <br>
 Whether directional lighting should be pinned to the camera viewpoint
 (<a href="view.html#screencoords">screen coordinate system</a>, default) 
