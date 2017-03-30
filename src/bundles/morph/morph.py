@@ -31,10 +31,10 @@ def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew
         which preserve bond lengths.
     same : bool
         Whether to match atoms with same chain id, same residue number and same
-        atom name.
+        atom name.  Default false.
     core_fraction : float
-        Fraction of atoms of each chain that align best to moved as
-        a segment.
+        Fraction of atoms of each chain that align best to move as
+        a segment.  Default 0.5.
     '''
 
     if len(structures) < 2:
