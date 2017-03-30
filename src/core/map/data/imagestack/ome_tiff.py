@@ -104,7 +104,14 @@ def parse_ome_tiff_header(path):
     from PIL import Image
     i = Image.open(path)
 
-    desc = [d for d in i.tag[270] if d.startswith('<?xml')][0]
+    descs = [d for d in i.tag[270] if d.startswith('<?xml')]
+    if descs:
+        desc = descs[0]
+    else:
+        from os.path import basename
+        raise TypeError('OME TIFF image %s does not have an image description tag'
+                        ' starting with "<?xml" as required by the OME TIFF specification,'
+                        ' got description tags "%s"' % (basename(path), str(i.tag[270])))
 #    print 'ImageDescription for %s\n%s' % (path, desc)
 
     from xml.etree import ElementTree as ET

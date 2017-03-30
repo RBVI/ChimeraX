@@ -47,6 +47,7 @@ and their code location is described with the function descriptions.
 | `measure`_ - Calculate properties of models
 | `mlp`_ * - Color surfaces by molecular lipophilicity
 | `molmap`_ - Calculate a density map from atoms
+| `morph`_ * - Morph between atomic models
 | `mousemode`_ - Set mouse modes
 | `movie`_ * - Record videos
 | `move`_ - Move camera
@@ -214,14 +215,18 @@ mlp
 ===
 Function found in *chimerax.mlp.mlp*
 
-.. automodule:: chimerax.mlp.mlp
-  :members:
-  :member-order: bysource
-  :show-inheritance:
+.. autofunction:: chimerax.mlp.mlp.mlp
 
 molmap
 ======
 .. autofunction:: chimerax.core.map.molmap.molmap
+
+morph
+=====
+Function defined in *chimerax.morph.morph*
+
+.. autofunction:: chimerax.morph.morph.morph
+
 
 mousemode
 =========
@@ -323,6 +328,11 @@ style
 surface
 =======
 .. autofunction:: chimerax.core.commands.surface.surface
+.. autofunction:: chimerax.core.commands.surface.surface_close
+.. autofunction:: chimerax.core.commands.sop.surface_dust
+.. autofunction:: chimerax.core.commands.surface.surface_hide
+.. autofunction:: chimerax.core.commands.surface.surface_show
+.. autofunction:: chimerax.core.commands.sop.surface_zone
 
 sym
 ===
@@ -361,6 +371,33 @@ view
 volume
 ======
 .. autofunction:: chimerax.core.map.volumecommand.volume
+.. autofunction:: chimerax.core.map.filter.vopcommand.volume_add
+.. autofunction:: chimerax.core.map.filter.vopcommand.volume_bin
+.. autofunction:: chimerax.core.map.filter.vopcommand.volume_boxes
+.. autofunction:: chimerax.core.map.filter.vopcommand.volume_cover
+.. autofunction:: chimerax.core.map.filter.vopcommand.volume_falloff
+.. autofunction:: chimerax.core.map.filter.vopcommand.volume_flatten
+.. autofunction:: chimerax.core.map.filter.vopcommand.volume_flip
+.. autofunction:: chimerax.core.map.filter.vopcommand.volume_fourier
+.. autofunction:: chimerax.core.map.filter.vopcommand.volume_gaussian
+.. autofunction:: chimerax.core.map.filter.vopcommand.volume_laplacian
+.. autofunction:: chimerax.core.map.filter.vopcommand.volume_local_correlation
+.. autofunction:: chimerax.core.map.filter.vopcommand.volume_maximum
+.. autofunction:: chimerax.core.map.filter.vopcommand.volume_median
+.. autofunction:: chimerax.core.map.filter.vopcommand.volume_minimum
+.. autofunction:: chimerax.core.map.filter.vopcommand.volume_morph
+.. autofunction:: chimerax.core.map.filter.vopcommand.volume_multiply
+.. autofunction:: chimerax.core.map.filter.vopcommand.volume_octant
+.. autofunction:: chimerax.core.map.filter.vopcommand.volume_permute_axes
+.. autofunction:: chimerax.core.map.filter.vopcommand.volume_resample
+.. autofunction:: chimerax.core.map.filter.vopcommand.volume_ridges
+.. autofunction:: chimerax.core.map.filter.vopcommand.volume_scale
+.. autofunction:: chimerax.core.map.filter.vopcommand.volume_subtract
+.. autofunction:: chimerax.core.map.filter.vopcommand.volume_threshold
+.. autofunction:: chimerax.core.map.filter.vopcommand.volume_tile
+.. autofunction:: chimerax.core.map.filter.vopcommand.volume_unbend
+.. autofunction:: chimerax.core.map.filter.vopcommand.volume_unroll
+.. autofunction:: chimerax.core.map.filter.vopcommand.volume_zone
 
 vseries
 =======
