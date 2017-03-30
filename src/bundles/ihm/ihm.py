@@ -280,8 +280,8 @@ class IHMModel(Model):
         if not comp_models:
             return tmodels, seqmodels
         fields = ['starting_model_ordinal_id',
-                  'template_db_name', 'template_db_code', 'template_db_auth_asym_id',
-                  'template_db_seq_begin', 'template_db_seq_end',
+                  'template_db_name', 'template_db_code', 'template_auth_asym_id',
+                  'template_seq_begin', 'template_seq_end',
                   'alignment_file_id']
         rows = comp_models.fields(fields, allow_missing_fields = True)
 
