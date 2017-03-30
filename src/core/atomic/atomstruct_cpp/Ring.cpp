@@ -19,6 +19,7 @@
 #include "Atom.h"
 #include "Bond.h"
 #include "Coord.h"
+#include "destruct.h"
 #include "Real.h"
 #include "Ring.h"
 
@@ -243,6 +244,7 @@ Ring::Ring(std::set<Bond*>& ring_bonds)
 
 Ring::~Ring()
 {
+    DestructionUser(this);
 }
 
 } // namespace molecule

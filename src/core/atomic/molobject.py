@@ -44,6 +44,9 @@ def _residue(p):
 def _residues(p):
     from .molarray import Residues
     return Residues(p)
+def _rings(p):
+    from .molarray import Rings
+    return Rings(p)
 def _non_null_residues(p):
     from .molarray import Residues
     return Residues(p[p!=0])
@@ -263,6 +266,22 @@ class Atom(State):
         f = c_function('atom_is_backbone', args = (ctypes.c_void_p, ctypes.c_int),
                 ret = ctypes.c_bool)
         return f(self._c_pointer, bb_type)
+
+    def rings(self, cross_residues=False, all_size_threshold=0):
+        '''Return :class:`.Rings` collection of rings this Atom participates in.
+
+        If 'cross_residues' is False, then rings that cross residue boundaries are not
+        included.  If 'all_size_threshold' is zero, then return only minimal rings, of
+        any size.  If it is greater than zero, then return all rings not larger than the
+        given value.
+
+        The returned rings are quite emphemeral, and shouldn't be cached or otherwise
+        retained for long term use.  They may only live until the next call to rings()
+        [from anywhere, including C++].
+        '''
+        f = c_function('atom_rings', args = (ctypes.c_void_p, ctypes.c_bool, ctypes.c_int),
+                ret = ctypes.py_object)
+        return _rings(f(self._c_pointer, cross_residues, all_size_threshold))
 
     @property
     def scene_coord(self):
@@ -783,6 +802,72 @@ class Residue(State):
     @staticmethod
     def restore_snapshot(session, data):
         return object_map(data['structure'].session_id_to_residue(data['ses_id']), Residue)
+
+
+# -----------------------------------------------------------------------------
+#
+class Ring:
+    '''
+    A ring in the structure.
+    '''
+
+    def __init__(self, ring_pointer):
+        set_c_pointer(self, ring_pointer)
+
+    # cpp_pointer and deleted are "base class" methods, though for performance reasons
+    # we are placing them directly in each class rather than using a base class,
+    # and for readability by most programmers we avoid using metaclasses
+    @property
+    def cpp_pointer(self):
+        '''Value that can be passed to C++ layer to be used as pointer (Python int)'''
+        return self._c_pointer.value
+
+    @property
+    def deleted(self):
+        '''Has the C++ side been deleted?'''
+        return not hasattr(self, '_c_pointer')
+
+    aromatic = c_property('ring_aromatic', npy_bool, read_only=True,
+        doc="Whether the ring is aromatic. Boolean value.")
+    atoms = c_property('ring_atoms', cptr, 'size', astype = _atoms, read_only = True,
+        doc=":class:`.Atoms` collection containing the atoms of the ring, "
+        "in no particular order (see :method:`.Ring.ordered_atoms`).")
+    bonds = c_property('ring_bonds', cptr, 'size', astype = _bonds, read_only = True,
+        doc=":class:`.Bonds` collection containing the bonds of the ring, "
+        "in no particular order (see :method:`.Ring.ordered_bonds`).")
+    ordered_atoms = c_property('ring_ordered_atoms', cptr, 'size', astype=_atoms, read_only=True,
+        doc=":class:`.Atoms` collection containing the atoms of the ring, in ring order.")
+    ordered_bonds = c_property('ring_ordered_bonds', cptr, 'size', astype=_bonds, read_only=True,
+        doc=":class:`.Bonds` collection containing the bonds of the ring, in ring order.")
+    size = c_property('ring_size', size_t, read_only=True,
+        doc="Number of atoms (and bonds) in the ring. Read only.")
+
+    def __eq__(self, r):
+        if not isinstance(r, Ring):
+            return False
+        f = c_function('ring_equal', args=(ctypes.c_void_p, ctypes.c_void_p), ret=ctypes.c_bool)
+        e = f(self._c_pointer, r._c_pointer)
+        return e
+
+    def __ge__(self, r):
+        return self == r or not (self < r)
+
+    def __gt__(self, r):
+        return not (self < r or self == r)
+
+    def __le__(self, r):
+        return self < r or self == r
+
+    def __lt__(self, r):
+        if not isinstance(r, Ring):
+            return False
+        f = c_function('ring_less_than', args=(ctypes.c_void_p, ctypes.c_void_p), ret=ctypes.c_bool)
+        lt = f(self._c_pointer, r._c_pointer)
+        return lt
+
+    def __ne__(self, r):
+        return not self == r
+
 
 import atexit
 # -----------------------------------------------------------------------------
@@ -1414,6 +1499,22 @@ class StructureData:
         g = StructureData(logger=session.logger)
         g.set_state_from_snapshot(session, data)
         return g
+
+    def rings(self, cross_residues=False, all_size_threshold=0):
+        '''Return :class:`.Rings` collection of rings found in this Structure.
+
+        If 'cross_residues' is False, then rings that cross residue boundaries are not
+        included.  If 'all_size_threshold' is zero, then return only minimal rings, of
+        any size.  If it is greater than zero, then return all rings not larger than the
+        given value.
+
+        The returned rings are quite emphemeral, and shouldn't be cached or otherwise
+        retained for long term use.  They may only live until the next call to rings()
+        [from anywhere, including C++].
+        '''
+        f = c_function('structure_rings', args = (ctypes.c_void_p, ctypes.c_bool, ctypes.c_int),
+                ret = ctypes.py_object)
+        return _rings(f(self._c_pointer, cross_residues, all_size_threshold))
 
     def set_state_from_snapshot(self, session, data):
         '''Restore from session info'''

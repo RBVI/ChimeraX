@@ -17,7 +17,8 @@ APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/geometry
 
 SUBDIRS	= _geometry
 
-PYSRCS = __init__.py align.py bins.py bounds.py icosahedron.py \
+PYSRCS = __init__.py adaptive_tree.py align.py \
+	bins.py bounds.py icosahedron.py \
 	matrix.py place.py psession.py \
 	sphere.py spline.py symmetry.py vector.py
 

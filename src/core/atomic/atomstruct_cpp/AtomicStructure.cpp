@@ -368,8 +368,7 @@ AtomicStructure::make_chains() const
             for (auto gap: ap.gaps) {
                 gap_sum += gap;
             }
-            unsigned int max_errs = std::min(seq_len/2,
-                std::max(seq_len/10, gap_sum));
+            unsigned int max_errs = std::min(seq_len/2, std::max(seq_len/10, gap_sum));
             AssocRetvals retvals;
             try {
                 retvals = try_assoc(sr_seq, *chain, ap, max_errs);
