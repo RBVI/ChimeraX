@@ -175,7 +175,7 @@ class SeqCanvas:
         left, top, right, bottom = map(int,
                 self.mainCanvas.cget("scrollregion").split())
         totalWidth = right - left + 1
-        if self.should_wrap():
+        if self.wrap_okay():
             self.mainCanvas.config(width=totalWidth)
         else:
             seven = self.mainCanvas.winfo_pixels("7i")
@@ -221,7 +221,7 @@ class SeqCanvas:
                 self.recolor(seq)
         
     def addSeqs(self, seqs):
-        #TODO: need to see if adding sequences changes should_wrap;
+        #TODO: need to see if adding sequences changes wrap_okay;
         # if it doesn't, does it change line_width (due to numberings
         # possibly getting wider).  If either, then just reformat.
         # If not, then need to pass new numbering_widths through to
@@ -711,8 +711,12 @@ class SeqCanvas:
             self.line_width, {}, lambda *args, **kw: self.mav.status(secondary=True, *args, **kw),
             True, None, [False, False], self.mav.settings)
 
+    def _line_width_fits(self, pixels, num_characters):
+        #TODO
+        return num_characters < 51
+
     def line_width_from_settings(self):
-        if self.should_wrap():
+        if self.wrap_okay():
             if len(self.alignment.seqs) == 1:
                 prefix = SINGLE_PREFIX
             else:
@@ -725,7 +729,7 @@ class SeqCanvas:
                 win_width = self.mav.tool_window.ui_area.size().width()
                 aln_len = len(self.alignment.seqs[0])
                 while try_lw - increment < aln_len \
-                and lw_fits(self.alignment, win_width, min(aln_len, try_lw)):
+                and self._line_width_fits(win_width, min(aln_len, try_lw)):
                     lw = try_lw
                     try_lw += increment
             return lw
@@ -907,7 +911,7 @@ class SeqCanvas:
             self.vertScroll.grid_forget()
             self._vscrollMapped = False
 
-        if not self.should_wrap() and self._vscrollMapped:
+        if not self.wrap_okay() and self._vscrollMapped:
             self._hdivider.grid(row=2, column=0, sticky="new")
         else:
             self._hdivider.grid_forget()
@@ -1067,7 +1071,7 @@ class SeqCanvas:
         self.mainCanvas.xview_moveto(startx)
         starty = max(0.0, min((cy - viewHeight/2 - y1) / totalHeight,
                     (y2 - viewHeight - y1) / totalHeight))
-        if not self.should_wrap():
+        if not self.wrap_okay():
             self.labelCanvas.yview_moveto(starty)
         self.mainCanvas.yview_moveto(starty)
 
@@ -1085,7 +1089,7 @@ class SeqCanvas:
             cy = y1 + viewHeight/2
         starty = max(0.0, min((cy - viewHeight/2 - y1) / totalHeight,
                     (y2 - viewHeight - y1) / totalHeight))
-        if not self.should_wrap():
+        if not self.wrap_okay():
             self.labelCanvas.yview_moveto(starty)
         self.mainCanvas.yview_moveto(starty)
         if highlightName:
@@ -1108,7 +1112,7 @@ class SeqCanvas:
                 or not hasattr(aseq, 'matchMaps') or not aseq.matchMaps:
             return basicText
         return "%s%s associated with %s\n" % (basicText,
-            seq_name(aseq, self.mav.prefs),
+            _seq_name(aseq, self.mav.prefs),
             ", ".join(["%s (%s %s)" % (m.oslIdent(), m.name,
             aseq.matchMaps[m]['mseq'].name)
             for m in aseq.matchMaps.keys()]))
@@ -1228,8 +1232,8 @@ class SeqCanvas:
         return consensusChars
         """
 
-    def should_wrap(self):
-        return should_wrap(len(self.alignment.seqs), self.mav.settings)
+    def wrap_okay(self):
+        return _wrap_okay(len(self.alignment.seqs), self.mav.settings)
 
         """TODO
     def showHeaders(self, headers, fromMenu=False):
@@ -1294,7 +1298,7 @@ class SeqCanvas:
         """
 
     def _label_scene(self, grid=True):
-        if self.should_wrap():
+        if self.wrap_okay():
             label_scene = self.main_scene
             if grid:
                 self.label_view.hide()
@@ -1530,7 +1534,7 @@ class SeqBlock:
 
     def assoc_mod(self, aseq):
         label_text = self.label_texts[aseq]
-        name = seq_name(aseq, self.settings)
+        name = _seq_name(aseq, self.settings)
         from PyQt5.QtGui import QFontMetrics
         first_width = QFontMetrics(label_text.font()).width(name)
         label_text.setFont(self._label_font(aseq))
@@ -1765,7 +1769,7 @@ class SeqBlock:
     def find_label_width(self, font_metrics, emphasis_font_metrics):
         label_width = 0
         for seq in self.lines:
-            name = seq_name(seq, self.settings)
+            name = _seq_name(seq, self.settings)
             label_width = max(label_width, font_metrics.width(name))
             label_width = max(label_width, emphasis_font_metrics.width(name))
         label_width += self.label_pad
@@ -2032,7 +2036,7 @@ class SeqBlock:
         else:
             y = self.bottom_ruler_y + (line_index+1) * (self.font_pixels[1] + self.letter_gaps[1])
 
-        text = self.label_scene.addSimpleText(seq_name(line, self.settings),
+        text = self.label_scene.addSimpleText(_seq_name(line, self.settings),
             font=self._label_font(line))
         text.setBrush(self._brush(label_color))
         # anchor='sw': subtract the height
@@ -2367,7 +2371,7 @@ class SeqBlock:
     def realign(self, prevLen):
         '''sequences globally realigned'''
 
-        if should_wrap(len(self.alignment.seqs), self.settings):
+        if _wrap_okay(len(self.alignment.seqs), self.settings):
             blockEnd = self.seq_offset + self.line_width
             prev_blockLen = min(prevLen, blockEnd)
             curBlockLen = min(len(self.alignment.seqs[0]), blockEnd)
@@ -2644,7 +2648,7 @@ class SeqBlock:
             self.next_block.updateNumberings()
 """
 
-def should_wrap(num_seqs, settings):
+def _wrap_okay(num_seqs, settings):
     if num_seqs == 1:
         prefix = SINGLE_PREFIX
     else:
@@ -2658,18 +2662,14 @@ def should_wrap(num_seqs, settings):
         return True
     return False
 
-def seq_name(seq, settings):
+def _seq_name(seq, settings):
     """TODO
-    return ellipsis_name(seq.name, prefs[SEQ_NAME_ELLIPSIS])
+    return _ellipsis_name(seq.name, prefs[SEQ_NAME_ELLIPSIS])
     """
-    return ellipsis_name(seq.name, 30)
+    return _ellipsis_name(seq.name, 30)
 
-def ellipsis_name(name, ellipsis_threshold):
+def _ellipsis_name(name, ellipsis_threshold):
     if len(name) > ellipsis_threshold:
         half = int(ellipsis_threshold/2)
         return name[0:half-1] + "..." + name[len(name)-half:]
     return name
-
-def lw_fits(alignment, pixels, num_characters):
-    #TODO
-    return num_characters < 51

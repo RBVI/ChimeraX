@@ -24,7 +24,7 @@ defaults = {
     "sel_region_interior": "light green",
     "show_sel": True,
     # if 'wrap_if' is True, then alignment will be wrapped if the number of
-    # sequences is at least 'wrap_threshold'.  If 'wrap_if' is false, then
+    # sequences is no more than 'wrap_threshold'.  If 'wrap_if' is false, then
     # wrapping will occur if 'wrap' is true.  Wrapping will occur at
     # 'line_width' columns, if positive.  if negative, alignment will be
     # wrapped to window size, at a multiple of abs(line_width) characters.
