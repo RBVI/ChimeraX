@@ -89,8 +89,6 @@ def _pseudobond_group_map(a):
 
 # -----------------------------------------------------------------------------
 #
-instrument_collection = False
-accum_t = [0] * 6
 from ..state import State
 class Collection(State):
     '''
@@ -102,8 +100,6 @@ class Collection(State):
     def __init__(self, items, object_class, objects_class):
         import numpy
         from time import time
-        if instrument_collection:
-            t0 = time()
         if items is None:
             # Empty Atoms
             pointers = numpy.empty((0,), cptr)
@@ -119,29 +115,11 @@ class Collection(State):
             if isinstance(items, numpy.ndarray):
                 t += ' type %s' % str(items.dtype)
             raise ValueError('Collection items of unrecognized type "%s"' % t)
-        if instrument_collection:
-            t1 = time()
         self._pointers = pointers
-        if instrument_collection:
-            t2 = time()
         self._object_class = object_class
-        if instrument_collection:
-            t3 = time()
         self._objects_class = objects_class
-        if instrument_collection:
-            t4 = time()
         set_cvec_pointer(self, pointers)
-        if instrument_collection:
-            t5 = time()
         remove_deleted_pointers(pointers)
-        if instrument_collection:
-            t6 = time()
-            accum_t[0] += t1 - t0
-            accum_t[1] += t2 - t1
-            accum_t[2] += t3 - t2
-            accum_t[3] += t4 - t3
-            accum_t[4] += t5 - t4
-            accum_t[5] += t6 - t5
 
     def __eq__(self, atoms):
         import numpy
@@ -1025,6 +1003,31 @@ class Residues(Collection):
         structures = self.structures
         residue_ids = [s.session_residue_to_id(ptr) for s, ptr in zip(structures, self._c_pointers)]
         return [structures, array(residue_ids)]
+
+
+# -----------------------------------------------------------------------------
+#
+class Rings(Collection):
+    '''
+    Bases: :class:`.Collection`
+
+    Collection of C++ ring objects.
+    '''
+    def __init__(self, ring_pointers = None, rings = None):
+        if rings is not None:
+            # Extract C pointers from list of Python Ring objects.
+            ring_pointers = array([r._c_pointer.value for r in rings], cptr)
+        Collection.__init__(self, ring_pointers, molobject.Ring, Rings)
+
+    aromatics = cvec_property('ring_aromatic', npy_bool, read_only = True, doc =
+    '''A numpy bool array whether corresponding ring is aromatic.''')
+    atoms = cvec_property('ring_atoms', cptr, 'size', astype = _atoms, read_only = True, per_object = False, doc =
+    '''Return :class:`.Atoms` belonging to each ring all as a single collection. Read only.''')
+    bonds = cvec_property('ring_bonds', cptr, 'size', astype = _bonds, read_only = True, per_object = False, doc =
+    '''Return :class:`.Bonds` belonging to each ring all as a single collection. Read only.''')
+    sizes = cvec_property('ring_size', size_t, read_only = True, doc =
+    '''Returns a numpy integer array of the size of each ring. Read only.''')
+
 
 # -----------------------------------------------------------------------------
 #

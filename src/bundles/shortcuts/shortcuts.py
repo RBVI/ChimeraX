@@ -746,8 +746,11 @@ def show_surface_opaque(session):
 
 def toggle_shadows(session):
     lp = session.main_view.lighting
+    cmd = 'light shadow %s' % ('false' if lp.shadows else 'true')
+    if lp.key_light_intensity == 0 and not lp.shadows:
+        cmd += ' intensity 0.5'		# Make sure shadow is visible.
     from chimerax.core.commands import run
-    run(session, 'light shadow %s' % ('false' if lp.shadows else 'true'))
+    run(session, cmd)
 
 def toggle_silhouettes(session):
     v = session.main_view

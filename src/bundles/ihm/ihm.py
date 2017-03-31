@@ -117,7 +117,8 @@ class IHMModel(Model):
                        'ihm_dataset_external_reference', # Comparative models, EM data
                        'ihm_external_files',		# files in DOI archives, at URL or on local disk
                        'ihm_external_reference_info',	# DOI archive and URL external files
-                       'ihm_starting_model_details', 	# Starting models, including compararative model templates
+                       'ihm_starting_model_details', 	# Starting models
+                       'ihm_starting_comparative_models', # Compararative model templates
                        ]
         from chimerax.core.atomic import mmcif
         table_list = mmcif.get_mmcif_tables(filename, table_names)
@@ -140,11 +141,15 @@ class IHMModel(Model):
     #
     def read_starting_models(self, load_linked_files):
 
-        # Read experimental starting models and comparative model templates.
-        dataset_asym_ids, xmodels, tmodels, seqmodels = self.read_starting_model_details()
+        # Read experimental starting models
+#        dataset_asym_ids, xmodels, tmodels, seqmodels = self.read_starting_model_details()
+        dataset_asym_ids, xmodels = self.read_experimental_models()
 
         # Read comparative models
         cmodels = self.read_comparative_models(dataset_asym_ids) if load_linked_files else []
+
+        # Read comparative model templates
+        tmodels, seqmodels = self.read_template_models()
 
         # Associate comparative models with sequence alignments.
         if seqmodels:
@@ -173,15 +178,14 @@ class IHMModel(Model):
 
     # -----------------------------------------------------------------------------
     #
-    def read_starting_model_details(self):
+    def read_experimental_models(self):
+        '''Read crystallography and NMR atomic starting models.'''
         dataset_asym_ids = {}
         xmodels = []
-        tmodels = []
-        seqmodels = []
 
         starting_models = self.tables['ihm_starting_model_details']
         if not starting_models:
-            return dataset_asym_ids, xmodels, tmodels, seqmodels
+            return dataset_asym_ids, xmodels
 
         fields = ['asym_id', 'seq_id_begin', 'seq_id_end', 'starting_model_source',
                   'starting_model_db_name', 'starting_model_db_code',
@@ -189,8 +193,6 @@ class IHMModel(Model):
                   'dataset_list_id', 'alignment_file_id']
         rows = starting_models.fields(fields, allow_missing_fields = True)
 
-        from collections import OrderedDict
-        alignments = OrderedDict()  # Sequence alignments for comparative models
         for asym_id, seq_beg, seq_end, source, db_name, db_code, auth_asym_id, did, seqfile_id in rows:
             # TODO: Probably should require comparative model asym_id to match sphere model asym_id
             #       Currently mediator.cif has auth_asym_id identifying chain in comparative model
@@ -198,42 +200,22 @@ class IHMModel(Model):
             #       is used since then auth_asym_id is the db_asym_id.
             cm_asym_id = auth_asym_id if db_code == '?' else asym_id
             dataset_asym_ids.setdefault(did, set()).add((asym_id, cm_asym_id))
-            if (source in ('experimental model', 'comparative model') and
-                db_name == 'PDB' and db_code != '?'):
-                if source == 'comparative model':
-                    # Template for a comparative model.
-                    tm = TemplateModel(self.session, db_name, db_code, auth_asym_id)
-                    models = [tm]
-                    tmodels.extend(models)
-                    if seqfile_id != '.':
-                        sfinfo = self.file_info(seqfile_id)
-                        if sfinfo is not None and sfinfo.ref is None:  # TODO: Handle DOI files.
-                            from os.path import join, isfile
-                            p = join(self.ihm_directory, sfinfo.file_path)
-                            if isfile(p):
-                                a = (p, asym_id, did)
-                                sam = alignments.get(a)
-                                if sam is None:
-                                    # Make sequence alignment model for comparative model
-                                    alignments[a] = sam = SequenceAlignmentModel(self.session, p, asym_id, did)
-                                sam.add_template_model(tm)
-                elif source == 'experimental model':
-                    from chimerax.core.atomic.mmcif import fetch_mmcif
-                    models, msg = fetch_mmcif(self.session, db_code, auto_style = False)
-                    name = '%s %s' % (db_code, auth_asym_id)
-                    for m in models:
-                        keep_one_chain(m, auth_asym_id)
-                        m.name = name
-                        show_colored_ribbon(m, asym_id)
-                    xmodels.extend(models)
+            if source == 'experimental model' and db_name == 'PDB' and db_code != '?':
+                from chimerax.core.atomic.mmcif import fetch_mmcif
+                models, msg = fetch_mmcif(self.session, db_code, auto_style = False)
+                name = '%s %s' % (db_code, auth_asym_id)
+                for m in models:
+                    keep_one_chain(m, auth_asym_id)
+                    m.name = name
+                    show_colored_ribbon(m, asym_id)
+                xmodels.extend(models)
                 for m in models:
                     m.asym_id = asym_id
                     m.seq_begin, m.seq_end = int(seq_beg), int(seq_end)
                     m.dataset_id = did
-                    m.comparative_model = (source == 'comparative model')
+                    m.comparative_model = False
 
-        seqmodels = list(alignments.values())
-        return dataset_asym_ids, xmodels, tmodels, seqmodels
+        return dataset_asym_ids, xmodels
     
     # -----------------------------------------------------------------------------
     #
@@ -274,6 +256,67 @@ class IHMModel(Model):
                         lmodels.append(m)
       
         return lmodels
+
+    # -----------------------------------------------------------------------------
+    #
+    def read_template_models(self):
+        '''Read crystallography and NMR atomic starting models.'''
+        tmodels = []
+        seqmodels = []
+
+        # Get info about comparative models.
+        starting_models = self.tables['ihm_starting_model_details']
+        if not starting_models:
+            return tmodels, seqmodels
+        fields = ['ordinal_id', 'asym_id', 'seq_id_begin', 'seq_id_end',
+                  'starting_model_source', 'dataset_list_id']
+        rows = starting_models.fields(fields, allow_missing_fields = True)
+        smdetails = {sm_id:(asym_id, seq_beg, seq_end, did)
+                     for sm_id, asym_id, seq_beg, seq_end, source, did in rows
+                     if source == 'comparative model'}
+
+        # Get info about templates
+        comp_models = self.tables['ihm_starting_comparative_models']
+        if not comp_models:
+            return tmodels, seqmodels
+        fields = ['starting_model_ordinal_id',
+                  'template_db_name', 'template_db_code', 'template_auth_asym_id',
+                  'template_seq_begin', 'template_seq_end',
+                  'alignment_file_id']
+        rows = comp_models.fields(fields, allow_missing_fields = True)
+
+        from collections import OrderedDict
+        alignments = OrderedDict()  # Sequence alignments for comparative models
+        for sm_id, db_name, db_code, auth_asym_id, tseq_beg, tseq_end, alignment_file_id in rows:
+            # TODO: Probably should require comparative model asym_id to match sphere model asym_id
+            #       Currently mediator.cif has auth_asym_id identifying chain in comparative model
+            #       Corresponding to sphere model asym_id.  But that won't work if db_name/db_code
+            #       is used since then auth_asym_id is the db_asym_id.
+            if db_name == 'PDB' and db_code != '?' and sm_id in smdetails:
+                # Template for a comparative model.
+                asym_id, seq_beg, seq_end, did = smdetails[sm_id]
+                tm = TemplateModel(self.session, db_name, db_code, auth_asym_id)
+                tm.asym_id = asym_id
+                tm.template_seq_begin, tm.template_seq_end = int(tseq_beg), int(tseq_end)
+                tm.seq_begin, tm.seq_end = int(seq_beg), int(seq_end)
+                tm.dataset_id = did
+                tm.comparative_model = True
+                tmodels.append(tm)
+                if alignment_file_id != '.':
+                    sfinfo = self.file_info(alignment_file_id)
+                    if sfinfo is not None and sfinfo.ref is None:  # TODO: Handle DOI files.
+                        from os.path import join, isfile
+                        p = join(self.ihm_directory, sfinfo.file_path)
+                        if isfile(p):
+                            a = (p, asym_id, did)
+                            sam = alignments.get(a)
+                            if sam is None:
+                                # Make sequence alignment model for comparative model
+                                alignments[a] = sam = SequenceAlignmentModel(self.session, p, asym_id, did)
+                            sam.add_template_model(tm)
+
+        seqmodels = list(alignments.values())
+        return tmodels, seqmodels
 
     # -----------------------------------------------------------------------------
     #

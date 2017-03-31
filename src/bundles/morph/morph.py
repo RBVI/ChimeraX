@@ -31,10 +31,10 @@ def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew
         which preserve bond lengths.
     same : bool
         Whether to match atoms with same chain id, same residue number and same
-        atom name.
+        atom name.  Default false.
     core_fraction : float
-        Fraction of atoms of each chain that align best to moved as
-        a segment.
+        Fraction of residues of each chain that align best to move as
+        a segment.  Default 0.5.
     '''
 
     if len(structures) < 2:
@@ -45,6 +45,7 @@ def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew
     traj = compute_morph(structures, session.logger, method=method, rate=rate, frames=frames,
                          cartesian=cartesian, match_same=same, core_fraction = core_fraction)
     session.models.add([traj])
+    traj.set_initial_color()
 
     session.logger.info('Computed %d frame morph #%s' % (traj.num_coord_sets, traj.id_string()))
 
