@@ -128,15 +128,9 @@ class UI(QApplication):
 
     def build(self):
         self.main_window = mw = MainWindow(self, self.session)
-        # Clicking the graphics window sets the Qt focus to None because
-        # the graphics window is a QWindow rather than a widget.  Then clicking
-        # on other widgets can prevent the graphics window from getting key
-        # strokes even though the focus remains None.  So redirect the main
-        # main window key strokes when the focus window is None.
-        def forward_from_top(event, self=self):
-            if self.focusWidget() is None:
-                self.forward_keystroke(event)
-        mw.keyPressEvent = forward_from_top
+        # key event forwarding from the main window itself seems to have
+        # no benefit, and occasionally causes double command execution
+        # for slow commands, so only forward from graphics window
         mw.graphics_window.keyPressEvent = self.forward_keystroke
         mw.show()
         self.splash.finish(mw)
