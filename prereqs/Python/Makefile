@@ -3,7 +3,11 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 # PYTHON_VERSION is in config.make
+ifeq ($(OS),Windows)
 PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).0
+else
+PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).1
+endif
 DISTRIBUTION = Python-$(PYTHON_PATCH_LEVEL).tar.xz
 SOURCE = $(tmpdir)/Python-$(PYTHON_PATCH_LEVEL)
 
@@ -17,10 +21,9 @@ DYNLOAD_DIR = $(libdir)/python$(PYTHON_VERSION)/lib-dynload
 endif
 
 QUOTE_CC := $(subst ','\'',$(CC) $(TARGET_ARCH))
-QUOTE_CXX := $(subst ','\'',$(CXX) $(TARGET_ARCH))
 
 # Make Python use our compiler options
-ENV_CONFIGURE = env CC='$(QUOTE_CC) -I$(includedir) -L$(libdir) -DUSE_DYLD_GLOBAL_NAMESPACE' CXX='$(QUOTE_CXX) -I$(includedir) -L$(libdir)'
+ENV_CONFIGURE = env CC='$(QUOTE_CC) -I$(includedir) -L$(libdir) -DUSE_DYLD_GLOBAL_NAMESPACE'
 
 ifdef DEBUG
 ENV_CONFIGURE += OPT='$(OPT)'
@@ -34,10 +37,9 @@ PATCHES += $(wildcard Python-$(PYTHON_PATCH_LEVEL)_debug.patch)
 endif
 
 ifeq ($(OS),Linux)
-LDFLAGS += -Wl,-rpath,"$(libdir)"
+LDFLAGS += -Wl,-rpath,a-value-that-is-replaced
 ENV_CONFIGURE += LDFLAGS='$(LDFLAGS)'
-# On linux have to disable IPV6 socket support or _socket doesn't compile.
-CONFIG_OPTIONS += --disable-ipv6 --enable-shared
+CONFIG_OPTIONS += --enable-shared --enable-optimizations
 endif
 ifeq ($(OS),Darwin)
 # On Darwin, -Wl,-rpath ends up in shared libraries in addition to executables,

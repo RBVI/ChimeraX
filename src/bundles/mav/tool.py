@@ -1,5 +1,16 @@
 # vim: set expandtab ts=4 sw=4:
 
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 from chimerax.core.tools import ToolInstance
 class MultAlignViewer(ToolInstance):
     """ Viewer displays a multiple sequence alignment """
@@ -405,7 +416,7 @@ class MultAlignViewer(ToolInstance):
             # opened along with MAV a chance to load
             parent.after_idle(lambda: self._loadStructures(auto=1))
         """
-        self.tool_window.manage('side' if self.seq_canvas.should_wrap() else 'top')
+        self.tool_window.manage('side' if self.seq_canvas.wrap_okay() else 'top')
 
     def alignment_notification(self, note_name, note_data):
         if note_name == "modify association":

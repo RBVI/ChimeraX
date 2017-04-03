@@ -1008,7 +1008,10 @@ ExtractMolecule::parse_atom_site()
     int cur_auth_seq_id = INT_MAX;
     ChainID cur_chain_id;
     ResName cur_comp_id;
-    while (parse_row(pv)) {
+    for (;;) {
+        entity_id.clear();
+        if (!parse_row(pv))
+            break;
         if (model_num != cur_model_num) {
             if (first_model_num == INT_MAX)
                 first_model_num = model_num;
@@ -1054,7 +1057,8 @@ ExtractMolecule::parse_atom_site()
             cur_chain_id = chain_id;
             cur_comp_id = residue_name;
             if (missing_poly_seq) {
-                entity_id = cid.c_str();
+                if (entity_id.empty())
+                    entity_id = cid.c_str();
                 // TODO: should only save amino and nucleic acids
                 if (residue_name != "HOH")
                     poly_seq[entity_id].emplace(position, residue_name, false);

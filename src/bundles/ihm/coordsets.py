@@ -1,3 +1,14 @@
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 # Read atomic structure coordinate sets from a binary file that is 32-bit float xyz data.
 def read_coordinate_sets(path, mol):
     f = open(path, 'rb')
@@ -11,12 +22,12 @@ def read_coordinate_sets(path, mol):
         if len(coords) < 12*na:
             raise ValueError('File %s ended with a partial coordinate set, %d bytes'
                              % (path, len(coords)))
-        from numpy import frombuffer, float32
+        from numpy import frombuffer, float32, float64
         xyz = frombuffer(coords, float32).reshape((na,3))
         if id in cs_ids:
             replace_coordset(mol, id, xyz)
         else:
-            mol.add_coordset(id, xyz)
+            mol.add_coordset(id, xyz.astype(float64))
         id += 1
     f.close()
 

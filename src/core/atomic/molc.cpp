@@ -30,6 +30,7 @@
 #include <atomstruct/PBGroup.h>
 #include <atomstruct/Residue.h>
 #include <atomstruct/RibbonXSection.h>
+#include <atomstruct/Ring.h>
 #include <atomstruct/seq_assoc.h>
 #include <atomstruct/Sequence.h>
 #include <arrays/pythonarray.h>           // Use python_voidp_array()
@@ -832,6 +833,23 @@ extern "C" EXPORT PyObject *atom_residue_sums(void *atoms, size_t n, double *ato
     return result;
 }
 
+extern "C" EXPORT PyObject *atom_rings(void *atom, bool cross_residue, int all_size_threshold)
+{
+    Atom *a = static_cast<Atom *>(atom);
+    try {
+        auto& rings = a->rings(cross_residue, all_size_threshold);
+        void **ra;
+        PyObject *r_array = python_voidp_array(rings.size(), &ra);
+        size_t i = 0;
+        for (auto& r: rings)
+            ra[i++] = (void*)&r;
+        return r_array;
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
 // Apply per-structure transform to atom coordinates.
 extern "C" EXPORT void atom_scene_coords(void *atoms, size_t n, void *mols, size_t m, float64_t *mtf, float64_t *xyz)
 {
@@ -868,15 +886,15 @@ extern "C" EXPORT void atom_set_scene_coords(void *atoms, size_t n, void *mols, 
         for (size_t i = 0; i != m; ++i)
             tf[ma[i]] = mtf + 12*i;
 
-	Point p;
+        Point p;
         for (size_t i = 0; i != n; ++i, xyz += 3) {
             Structure *s = a[i]->structure();
             double *t = tf[s];
             double x = xyz[0], y = xyz[1], z = xyz[2];
             p.set_xyz(t[0]*x + t[1]*y + t[2]*z + t[3],
-		      t[4]*x + t[5]*y + t[6]*z + t[7],
-		      t[8]*x + t[9]*y + t[10]*z + t[11]);
-	    a[i]->set_coord(p);
+                      t[4]*x + t[5]*y + t[6]*z + t[7],
+                      t[8]*x + t[9]*y + t[10]*z + t[11]);
+            a[i]->set_coord(p);
         }
     } catch (...) {
         molc_error();
@@ -2457,6 +2475,106 @@ extern "C" EXPORT void residue_set_ss_strand(void *residues, size_t n, bool valu
     }
 }
 
+
+// -------------------------------------------------------------------------
+// ring functions
+//
+extern "C" EXPORT void ring_aromatic(void *rings, size_t n, npy_bool *aro)
+{
+    Ring **r = static_cast<Ring **>(rings);
+    error_wrap_array_get<Ring, bool, npy_bool>(r, n, &Ring::aromatic, aro);
+}
+
+extern "C" EXPORT void ring_atoms(void *rings, size_t n, pyobject_t *atoms)
+{
+    Ring **r = static_cast<Ring **>(rings);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            for (auto a: r[i]->atoms())
+                *atoms++ = a;
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void ring_bonds(void *rings, size_t n, pyobject_t *bonds)
+{
+    Ring **r = static_cast<Ring **>(rings);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            for (auto b: r[i]->bonds())
+                *bonds++ = b;
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void ring_ordered_atoms(void *rings, size_t n, pyobject_t *atoms)
+{
+    Ring **r = static_cast<Ring **>(rings);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            for (auto a: r[i]->ordered_atoms())
+                *atoms++ = a;
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void ring_ordered_bonds(void *rings, size_t n, pyobject_t *bonds)
+{
+    Ring **r = static_cast<Ring **>(rings);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            for (auto b: r[i]->ordered_bonds())
+                *bonds++ = b;
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void ring_size(void *rings, size_t n, size_t *sizes)
+{
+    Ring **r = static_cast<Ring **>(rings);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            sizes[i] = r[i]->size();
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT bool ring_equal(void *ring, void *other)
+{
+    Ring *r = static_cast<Ring *>(ring);
+    Ring *o = static_cast<Ring *>(other);
+    bool eq;
+    try {
+        eq = (*r == *o);
+    } catch (...) {
+        molc_error();
+    }
+    return eq;
+}
+
+extern "C" EXPORT bool ring_less_than(void *ring, void *other)
+{
+    Ring *r = static_cast<Ring *>(ring);
+    Ring *o = static_cast<Ring *>(other);
+    bool lt;
+    try {
+        lt = (*r < *o);
+    } catch (...) {
+        molc_error();
+    }
+    return lt;
+}
+
+
 // -------------------------------------------------------------------------
 // structure sequence functions
 //
@@ -3149,6 +3267,23 @@ extern "C" EXPORT void structure_residues(void *mols, size_t n, pyobject_t *res)
         }
     } catch (...) {
         molc_error();
+    }
+}
+
+extern "C" EXPORT PyObject *structure_rings(void *mol, bool cross_residue, int all_size_threshold)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        auto& rings = m->rings(cross_residue, all_size_threshold);
+        void **ra;
+        PyObject *r_array = python_voidp_array(rings.size(), &ra);
+        size_t i = 0;
+        for (auto& r: rings)
+            ra[i++] = (void*)&r;
+        return r_array;
+    } catch (...) {
+        molc_error();
+        return nullptr;
     }
 }
 

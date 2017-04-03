@@ -1,5 +1,16 @@
 # vim: set expandtab ts=4 sw=4:
 
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 from .settings import SINGLE_PREFIX
 
 """TODO
@@ -51,12 +62,14 @@ class SeqCanvas:
         self.label_view = QGraphicsView(self.label_scene)
         self.label_view.setAttribute(Qt.WA_AlwaysShowToolTips)
         #self.label_view.setMouseTracking(True)
+        """
         self._vdivider = QFrame()
         self._vdivider.setFrameStyle(QFrame.Panel | QFrame.Raised)
         self._vdivider.setLineWidth(2)
         self._hdivider = QFrame()
         self._hdivider.setFrameStyle(QFrame.HLine | QFrame.Plain)
         self._hdivider.setLineWidth(1)
+        """
         self.main_scene = QGraphicsScene()
         """if gray background desired...
         ms_brush = self.main_scene.backgroundBrush()
@@ -68,6 +81,10 @@ class SeqCanvas:
         self.main_view = QGraphicsView(self.main_scene)
         self.main_view.setAttribute(Qt.WA_AlwaysShowToolTips)
         #self.main_view.setMouseTracking(True)
+        main_vsb = self.main_view.verticalScrollBar()
+        label_vsb = self.label_view.verticalScrollBar()
+        main_vsb.valueChanged.connect(label_vsb.setValue)
+        label_vsb.valueChanged.connect(main_vsb.setValue)
         """TODO
         self.labelCanvas = Tkinter.Canvas(parent, bg="#E4E4E4")
         self._vdivider = Tkinter.Frame(parent, bd=2, relief='raised')
@@ -125,40 +142,45 @@ class SeqCanvas:
         parent.winfo_toplevel().bind('<Down>', self._arrowCB)
         parent.winfo_toplevel().bind('<Escape>', self._escapeCB)
         parent.winfo_toplevel().bind('<<Copy>>', self._copyCB)
-        self.lineWidth = self.lineWidthFromPrefs()
+        """
+        self.line_width = self.line_width_from_settings()
+        """
         self.font = tkFont.Font(parent,
             (self.mav.prefs[FONT_NAME], self.mav.prefs[FONT_SIZE]))
         """
-        from PyQt5.QtGui import QFont
+        from PyQt5.QtGui import QFont, QFontMetrics
         self.font = QFont("Helvetica")
+        self.emphasis_font = QFont(self.font)
+        self.emphasis_font.setBold(True)
+        self.font_metrics = QFontMetrics(self.font)
+        self.emphasis_font_metrics = QFontMetrics(self.emphasis_font)
         """TODO
         self.treeBalloon = Pmw.Balloon(parent)
         self.tree = self._treeCallback = None
         self.treeShown = self.nodesShown = False
         self._residueHandlers = None
         """
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(0)
+        layout.addWidget(self.label_view)
+        #layout.addWidget(self._vdivider)
+        layout.addWidget(self.main_view, stretch=1)
+        parent.setLayout(layout)
+        self.label_view.hide()
+        #self._vdivider.hide()
+        self.main_view.show()
         self.layout_alignment()
         """TODO
         self.mainCanvas.grid(row=1, column=2, sticky='nsew')
         parent.columnconfigure(2, weight=1)
         parent.rowconfigure(1, weight=1)
-        """
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0,0,0,0)
-        layout.addWidget(self.label_view)
-        layout.addWidget(self._hdivider)
-        layout.addWidget(self.main_view, stretch=1)
-        parent.setLayout(layout)
-        self.label_view.hide()
-        self._hdivider.hide()
-        self.main_view.show()
-        """TODO
 
         # make the main canvas a reasonable size
         left, top, right, bottom = map(int,
                 self.mainCanvas.cget("scrollregion").split())
         totalWidth = right - left + 1
-        if self.shouldWrap():
+        if self.wrap_okay():
             self.mainCanvas.config(width=totalWidth)
         else:
             seven = self.mainCanvas.winfo_pixels("7i")
@@ -204,6 +226,11 @@ class SeqCanvas:
                 self.recolor(seq)
         
     def addSeqs(self, seqs):
+        #TODO: need to see if adding sequences changes wrap_okay;
+        # if it doesn't, does it change line_width (due to numberings
+        # possibly getting wider).  If either, then just reformat.
+        # If not, then need to pass new numbering_widths through to
+        # SeqBlock.add_seqs
         for seq in seqs:
             self.labelBindings[seq] = {
                 '<Enter>': lambda e, s=seq:
@@ -675,29 +702,46 @@ class SeqCanvas:
         self.showNumberings = [self.mav.leftNumberingVar.get(),
                     self.mav.rightNumberingVar.get()]
         self.lead_block = SeqBlock(self._labelCanvas(), self.mainCanvas,
-            None, self.font, 0, initialHeaders, self.alignment.seqs,
-            self.lineWidth, self.labelBindings, lambda *args, **kw:
+            None, self.font, self.emphasis_font, self.font_metrics, self.emphasis_font_metrics,
+            0, initialHeaders, self.alignment.seqs,
+            self.line_width, self.labelBindings, lambda *args, **kw:
             self.mav.status(secondary=True, *args, **kw),
             self.showRuler, self.treeBalloon, self.showNumberings,
             self.mav.settings)
         self._resizescrollregion()
         """
         self.lead_block = SeqBlock(self._label_scene(), self.main_scene,
-            None, self.font, 0, [], self.alignment,
-            50, {}, lambda *args, **kw: self.mav.status(secondary=True, *args, **kw),
+            None, self.font, self.emphasis_font, self.font_metrics, self.emphasis_font_metrics,
+            0, [], self.alignment,
+            self.line_width, {}, lambda *args, **kw: self.mav.status(secondary=True, *args, **kw),
             True, None, [False, False], self.mav.settings)
 
-    """TODO
-    def lineWidthFromPrefs(self):
-        if self.shouldWrap():
-            if len(self.mav.seqs) == 1:
+    def _line_width_fits(self, pixels, num_characters):
+        #TODO
+        return num_characters < 51
+
+    def line_width_from_settings(self):
+        if self.wrap_okay():
+            if len(self.alignment.seqs) == 1:
                 prefix = SINGLE_PREFIX
             else:
                 prefix = ""
-            return self.mav.prefs[prefix + LINE_WIDTH]
+            lw = getattr(self.mav.settings, prefix + "line_width")
+            if lw < 0: # wrap to window size, at multiple of abs(lw) characters
+                increment = abs(lw)
+                lw = increment
+                try_lw = lw + increment
+                win_width = self.mav.tool_window.ui_area.size().width()
+                aln_len = len(self.alignment.seqs[0])
+                while try_lw - increment < aln_len \
+                and self._line_width_fits(win_width, min(aln_len, try_lw)):
+                    lw = try_lw
+                    try_lw += increment
+            return lw
         # lay out entire sequence horizontally
         return 2 * len(self.alignment.seqs[0])
 
+    """TODO
     def _molChange(self, trigger, myData, changes):
         # molecule attributes changed
 
@@ -734,10 +778,10 @@ class SeqCanvas:
 
     def _newWrap(self):
         '''alignment wrapping preferences have changed'''
-        lineWidth = self.lineWidthFromPrefs()
-        if lineWidth == self.lineWidth:
+        line_width = self.line_width_from_settings()
+        if line_width == self.line_width:
             return
-        self.lineWidth = lineWidth
+        self.line_width = line_width
         self._reformat()
 
     def _pageDownCB(self, event):
@@ -872,7 +916,7 @@ class SeqCanvas:
             self.vertScroll.grid_forget()
             self._vscrollMapped = False
 
-        if not self.shouldWrap() and self._vscrollMapped:
+        if not self.wrap_okay() and self._vscrollMapped:
             self._hdivider.grid(row=2, column=0, sticky="new")
         else:
             self._hdivider.grid_forget()
@@ -886,8 +930,9 @@ class SeqCanvas:
         initialHeaders = [hd for hd in self.headers
                         if self.displayHeader[hd]]
         self.lead_block = SeqBlock(self._labelCanvas(), self.mainCanvas,
-            None, self.font, 0, initialHeaders, self.alignment.seqs,
-            self.lineWidth, self.labelBindings, lambda *args, **kw:
+            None, self.font, self.emphasis_font, self.font_metrics, self.emphasis_font_metrics,
+            0, initialHeaders, self.alignment.seqs,
+            self.line_width, self.labelBindings, lambda *args, **kw:
             self.mav.status(secondary=True, *args, **kw),
             self.showRuler, self.treeBalloon, self.showNumberings,
             self.mav.settings)
@@ -1031,7 +1076,7 @@ class SeqCanvas:
         self.mainCanvas.xview_moveto(startx)
         starty = max(0.0, min((cy - viewHeight/2 - y1) / totalHeight,
                     (y2 - viewHeight - y1) / totalHeight))
-        if not self.shouldWrap():
+        if not self.wrap_okay():
             self.labelCanvas.yview_moveto(starty)
         self.mainCanvas.yview_moveto(starty)
 
@@ -1049,7 +1094,7 @@ class SeqCanvas:
             cy = y1 + viewHeight/2
         starty = max(0.0, min((cy - viewHeight/2 - y1) / totalHeight,
                     (y2 - viewHeight - y1) / totalHeight))
-        if not self.shouldWrap():
+        if not self.wrap_okay():
             self.labelCanvas.yview_moveto(starty)
         self.mainCanvas.yview_moveto(starty)
         if highlightName:
@@ -1072,7 +1117,7 @@ class SeqCanvas:
                 or not hasattr(aseq, 'matchMaps') or not aseq.matchMaps:
             return basicText
         return "%s%s associated with %s\n" % (basicText,
-            seq_name(aseq, self.mav.prefs),
+            _seq_name(aseq, self.mav.prefs),
             ", ".join(["%s (%s %s)" % (m.oslIdent(), m.name,
             aseq.matchMaps[m]['mseq'].name)
             for m in aseq.matchMaps.keys()]))
@@ -1192,11 +1237,10 @@ class SeqCanvas:
         return consensusChars
         """
 
-    def should_wrap(self):
-        return True
-        """TODO
-        return shouldWrap(len(self.alignment.seqs), self.mav.prefs)
+    def wrap_okay(self):
+        return _wrap_okay(len(self.alignment.seqs), self.mav.settings)
 
+        """TODO
     def showHeaders(self, headers, fromMenu=False):
         headers = [hd for hd in headers if not self.displayHeader[hd]]
         if not headers:
@@ -1259,16 +1303,16 @@ class SeqCanvas:
         """
 
     def _label_scene(self, grid=True):
-        if self.should_wrap():
+        if self.wrap_okay():
             label_scene = self.main_scene
             if grid:
                 self.label_view.hide()
-                self._vdivider.hide()
+                #self._vdivider.hide()
         else:
             label_scene = self.label_scene
             if grid:
                 self.label_view.show()
-                self._vdivider.show()
+                #self._vdivider.show()
         return label_scene
             
     """
@@ -1315,7 +1359,8 @@ class SeqBlock:
     multi_assoc_color = Qt.darkGreen
     label_pad = 3
 
-    def __init__(self, label_scene, main_scene, prev_block, font, seq_offset,
+    def __init__(self, label_scene, main_scene, prev_block, font, emphasis_font,
+            font_metrics, emphasis_font_metrics, seq_offset,
             headers, alignment, line_width, label_bindings, status_func,
             show_ruler, tree_balloon, show_numberings, settings):
         self.label_scene = label_scene
@@ -1323,6 +1368,9 @@ class SeqBlock:
         self.prev_block = prev_block
         self.alignment = alignment
         self.font = font
+        self.emphasis_font = emphasis_font
+        self.font_metrics = font_metrics
+        self.emphasis_font_metrics = emphasis_font_metrics
         self.label_bindings = label_bindings
         self.status_func = status_func
         """TODO
@@ -1362,9 +1410,6 @@ class SeqBlock:
             self.font_pixels = prev_block.font_pixels
             self.lines = prev_block.lines
             self.line_index = prev_block.line_index
-            self.emphasis_font = prev_block.emphasis_font
-            self.emphasis_font_metrics = prev_block.emphasis_font_metrics
-            self.font_metrics = prev_block.font_metrics
             self.numbering_widths = prev_block.numbering_widths
             self._brushes = prev_block._brushes
             self.multi_assoc_brush = prev_block.multi_assoc_brush
@@ -1376,15 +1421,12 @@ class SeqBlock:
             for i in range(len(lines)):
                 self.line_index[lines[i]] = i
             self.lines = lines
-            from PyQt5.QtGui import QFont, QFontMetrics, QBrush, QPen
-            self.emphasis_font = QFont(self.font)
-            self.emphasis_font.setBold(True)
+            from PyQt5.QtGui import QBrush, QPen
             """TODO
             if prefs[prefPrefix + BOLD_ALIGNMENT]:
                 self.font = self.emphasis_font
+                self.font_metrics = self.emphasis_font_metrics
             """
-            self.font_metrics = QFontMetrics(self.font)
-            self.emphasis_font_metrics = QFontMetrics(self.emphasis_font)
             self.label_width = self.find_label_width(self.font_metrics, self.emphasis_font_metrics)
             # On Windows the maxWidth() of Helvetica is 39(!), whereas the width of 'W' is 14.
             # So, I have no idea what that 39-wide character is, but I don't care -- just use
@@ -1425,12 +1467,17 @@ class SeqBlock:
 
         if seq_offset + line_width >= len(alignment.seqs[0]):
             self.next_block = None
+            if not prev_block and label_scene != main_scene:
+                # For scrolling to work right, ensure that vertical
+                # size of label_scene is the same as main_scene
+                mr = main_scene.sceneRect()
+                lr = label_scene.sceneRect()
+                label_scene.setSceneRect(lr.x(), mr.y(), lr.width(), mr.height())
         else:
-            self.next_block = SeqBlock(label_scene, main_scene,
-                self, self.font, seq_offset + line_width, headers,
-                alignment, line_width, label_bindings, status_func,
-                show_ruler, tree_balloon, show_numberings,
-                self.settings)
+            self.next_block = SeqBlock(label_scene, main_scene, self,
+                self.font, self.emphasis_font, self.font_metrics, self.emphasis_font_metrics,
+                seq_offset + line_width, headers, alignment, line_width, label_bindings,
+                status_func, show_ruler, tree_balloon, show_numberings, self.settings)
 
     """TODO
     def activateNode(self, node, callback=None,
@@ -1498,7 +1545,7 @@ class SeqBlock:
 
     def assoc_mod(self, aseq):
         label_text = self.label_texts[aseq]
-        name = seq_name(aseq, self.settings)
+        name = _seq_name(aseq, self.settings)
         from PyQt5.QtGui import QFontMetrics
         first_width = QFontMetrics(label_text.font()).width(name)
         label_text.setFont(self._label_font(aseq))
@@ -1733,7 +1780,7 @@ class SeqBlock:
     def find_label_width(self, font_metrics, emphasis_font_metrics):
         label_width = 0
         for seq in self.lines:
-            name = seq_name(seq, self.settings)
+            name = _seq_name(seq, self.settings)
             label_width = max(label_width, font_metrics.width(name))
             label_width = max(label_width, emphasis_font_metrics.width(name))
         label_width += self.label_pad
@@ -2000,7 +2047,7 @@ class SeqBlock:
         else:
             y = self.bottom_ruler_y + (line_index+1) * (self.font_pixels[1] + self.letter_gaps[1])
 
-        text = self.label_scene.addSimpleText(seq_name(line, self.settings),
+        text = self.label_scene.addSimpleText(_seq_name(line, self.settings),
             font=self._label_font(line))
         text.setBrush(self._brush(label_color))
         # anchor='sw': subtract the height
@@ -2335,7 +2382,7 @@ class SeqBlock:
     def realign(self, prevLen):
         '''sequences globally realigned'''
 
-        if shouldWrap(len(self.alignment.seqs), self.settings):
+        if _wrap_okay(len(self.alignment.seqs), self.settings):
             blockEnd = self.seq_offset + self.line_width
             prev_blockLen = min(prevLen, blockEnd)
             curBlockLen = min(len(self.alignment.seqs[0]), blockEnd)
@@ -2413,14 +2460,11 @@ class SeqBlock:
             if self.next_block:
                 self.next_block.realign(prevLen)
             else:
-                self.next_block = SeqBlock(self.label_scene,
-                    self.main_scene, self, self.font,
-                    self.seq_offset + self.line_width,
-                    self.lines[:0-len(self.alignment.seqs)],
-                    self.alignment.seqs, self.line_width,
-                    self.label_bindings, self.status_func,
-                    self.show_ruler, self.tree_balloon,
-                    self.show_numberings, self.settings)
+                self.next_block = SeqBlock(self.label_scene, self.main_scene, self, self.font,
+                    self.enphasis_font, self.font_metrics, self.emphasis_font_metrics,
+                    self.seq_offset + self.line_width, self.lines[:0-len(self.alignment.seqs)],
+                    self.alignment.seqs, self.line_width, self.label_bindings, self.status_func,
+                    self.show_ruler, self.tree_balloon, self.show_numberings, self.settings)
     """
 
     def row_index(self, y, bound=None):
@@ -2613,29 +2657,29 @@ class SeqBlock:
                         self._makeNumbering(line, i)
         if self.next_block:
             self.next_block.updateNumberings()
+"""
 
-def shouldWrap(numSeqs, prefs):
-    if numSeqs == 1:
+def _wrap_okay(num_seqs, settings):
+    if num_seqs == 1:
         prefix = SINGLE_PREFIX
     else:
         prefix = ""
-    if prefs[prefix + WRAP_IF]:
-        if numSeqs <= prefs[prefix + WRAP_THRESHOLD]:
-            return 1
+    if getattr(settings, prefix + 'wrap_if'):
+        if num_seqs <= getattr(settings, prefix + 'wrap_threshold'):
+            return True
         else:
-            return 0
-    elif prefs[prefix + WRAP]:
-        return 1
-    return 0
-"""
+            return False
+    elif getattr(settings, prefix + 'wrap'):
+        return True
+    return False
 
-def seq_name(seq, settings):
+def _seq_name(seq, settings):
     """TODO
-    return ellipsis_name(seq.name, prefs[SEQ_NAME_ELLIPSIS])
+    return _ellipsis_name(seq.name, prefs[SEQ_NAME_ELLIPSIS])
     """
-    return ellipsis_name(seq.name, 30)
+    return _ellipsis_name(seq.name, 30)
 
-def ellipsis_name(name, ellipsis_threshold):
+def _ellipsis_name(name, ellipsis_threshold):
     if len(name) > ellipsis_threshold:
         half = int(ellipsis_threshold/2)
         return name[0:half-1] + "..." + name[len(name)-half:]

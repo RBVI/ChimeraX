@@ -128,7 +128,7 @@ class Objects:
         d = Objects(self.atoms.shown_atoms, dmodels)
         from numpy import logical_and
         for m, minst in self.model_instances.items():
-            d.add_model_instances(m, logical_and(minst, m.displayed_positions))
+            d.add_model_instances(m, logical_and(minst, m.display_positions))
         return d
 
     def bounds(self):

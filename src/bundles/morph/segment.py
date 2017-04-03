@@ -1,3 +1,14 @@
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 from time import time
 ssvt = 0
 def segmentSieve(rList0, rList1, fraction=0.5):
@@ -133,14 +144,14 @@ def segmentHingeApproximate(m0, m1, fraction=0.5, matrix="BLOSUM-62"):
         matchCount0 = 0
         for seq0 in m0seqs:
                 matchCount0 += len(seq0.residues)
-        print ("Aligning %d of %d residues from molecule %s" % (
-                        matchCount0, resCount0, m0.name))
+#        print ("Aligning %d of %d residues from molecule %s" % (
+#                        matchCount0, resCount0, m0.name))
         resCount1 = len(m1.residues)
         matchCount1 = 0
         for seq1 in m1seqs:
                 matchCount1 += len(seq1.residues)
-        print ("Aligning %d of %d residues from molecule %s" % (
-                        matchCount1, resCount1, m1.name))
+#        print ("Aligning %d of %d residues from molecule %s" % (
+#                        matchCount1, resCount1, m1.name))
 
         #
         # Try to find the best matches for sequences.
@@ -265,7 +276,7 @@ def segmentHingeApproximate(m0, m1, fraction=0.5, matrix="BLOSUM-62"):
         #
         # Finally, finished
         #
-        print ("Matched %d residues in %d segments" % (matched, len(segments)))
+        # print ("Matched %d residues in %d segments" % (matched, len(segments)))
         return segments, atomMap
 
 def segmentHingeResidues(rList0, rList1, fraction):

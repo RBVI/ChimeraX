@@ -420,7 +420,7 @@ def coordinate_system_transform(from_cs, to_cs):
     tlist = []
     while len(transform) > len(tlist):
 
-        tlist = transform.keys()
+        tlist = tuple(transform.keys())
 
         # Add inverse transforms
         for f,t in tlist:

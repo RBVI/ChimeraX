@@ -55,7 +55,7 @@ class Movie:
 
         self.newFrameHandle = None
 
-        self.frame_count = -1
+        self.frame_number = -1		# Last captured frame
 
         self.postprocess_action = None
         self.postprocess_frames = 0
@@ -100,7 +100,7 @@ class Movie:
         self.task = None
 
     def reset(self):
-        self.frame_count = -1
+        self.frame_number = -1
         self.img_dir = None
         self.img_fmt = None
         self.input_pattern = None
@@ -123,7 +123,7 @@ class Movie:
 
 
     def getFrameCount(self):
-        return self.frame_count
+        return self.frame_number + 1
 
     def getInputPattern(self):
         return self.input_pattern
@@ -146,17 +146,18 @@ class Movie:
 
     def capture_image(self, *_):
 
-        f = self.frame_count + 1 + self.postprocess_frames
+        f = self.frame_number + 1 + self.postprocess_frames
         if not self.limit is None and f >= self.limit:
             self.stop_recording()
             return
 
-        self.frame_count += 1 + self.postprocess_frames
-        self._informFrameCount(self.frame_count)
-        if self.frame_count%10 == 0:
-            self._notifyStatus("Capturing frame #%d " % self.frame_count)
+        self.frame_number = f
+        fcount = f + 1
+        self._informFrameCount(fcount)
+        if fcount % 10 == 0:
+            self._notifyStatus("Capturing frame #%d " % fcount)
 
-        save_path = self.image_path(self.frame_count)
+        save_path = self.image_path(self.frame_number)
 
         width, height = (None,None) if self.size is None else self.size
 
@@ -184,15 +185,15 @@ class Movie:
 
         frames = self.postprocess_frames
         self.postprocess_frames = 0
-        save_path1 = self.image_path(self.frame_count - frames - 1)
-        save_path2 = self.image_path(self.frame_count)
+        save_path1 = self.image_path(self.frame_number - frames - 1)
+        save_path2 = self.image_path(self.frame_number)
         from PIL import Image
         image1 = Image.open(save_path1)
         image2 = Image.open(save_path2)
         for f in range(frames):
             imagef = Image.blend(image1, image2, float(f)/(frames-1))
             # TODO: Add save image options as in printer.saveImage()
-            pathf = self.image_path(self.frame_count - frames + f)
+            pathf = self.image_path(self.frame_number - frames + f)
             imagef.save(pathf, self.img_fmt)
             self._notifyStatus("Cross-fade frame %d " % (f+1))
 
@@ -200,11 +201,11 @@ class Movie:
 
         frames = self.postprocess_frames
         self.postprocess_frames = 0
-        save_path = self.image_path(self.frame_count - frames - 1)
+        save_path = self.image_path(self.frame_number - frames - 1)
         from PIL import Image
         image = Image.open(save_path)
         for f in range(frames):
-            pathf = self.image_path(self.frame_count - frames + f)
+            pathf = self.image_path(self.frame_number - frames + f)
             image.save(pathf, self.img_fmt)
             self._notifyStatus("Duplicate frame %d " % (f+1))
 

@@ -124,7 +124,7 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
         lp.shadows = True
         lp.multishadow = 64
         lp.key_light_intensity = 0.7
-        lp.fill_light_intensity = 0
+        lp.fill_light_intensity = 0.3
         lp.ambient_light_intensity = 1.1
         lp.multishadow_depth_bias = 0.01
         lp.multishadow_map_size = 1024
