@@ -237,6 +237,14 @@ class Structure(Model, StructureData):
         from .colors import structure_color
         return structure_color(self.id, bg_color)
 
+    def set_initial_color(self):
+        c = self.initial_color(self.session.main_view.background_color)
+        self.set_color(c)
+        from .colors import element_colors
+        atoms = self.atoms
+        het_atoms = atoms.filter(atoms.element_numbers != 6)
+        het_atoms.colors = element_colors(het_atoms.element_numbers)
+        
     def set_color(self, color):
         from ..colors import Color
         if isinstance(color, Color):
