@@ -62,12 +62,14 @@ class SeqCanvas:
         self.label_view = QGraphicsView(self.label_scene)
         self.label_view.setAttribute(Qt.WA_AlwaysShowToolTips)
         #self.label_view.setMouseTracking(True)
+        """
         self._vdivider = QFrame()
         self._vdivider.setFrameStyle(QFrame.Panel | QFrame.Raised)
         self._vdivider.setLineWidth(2)
         self._hdivider = QFrame()
         self._hdivider.setFrameStyle(QFrame.HLine | QFrame.Plain)
         self._hdivider.setLineWidth(1)
+        """
         self.main_scene = QGraphicsScene()
         """if gray background desired...
         ms_brush = self.main_scene.backgroundBrush()
@@ -79,6 +81,10 @@ class SeqCanvas:
         self.main_view = QGraphicsView(self.main_scene)
         self.main_view.setAttribute(Qt.WA_AlwaysShowToolTips)
         #self.main_view.setMouseTracking(True)
+        main_vsb = self.main_view.verticalScrollBar()
+        label_vsb = self.label_view.verticalScrollBar()
+        main_vsb.valueChanged.connect(label_vsb.setValue)
+        label_vsb.valueChanged.connect(main_vsb.setValue)
         """TODO
         self.labelCanvas = Tkinter.Canvas(parent, bg="#E4E4E4")
         self._vdivider = Tkinter.Frame(parent, bd=2, relief='raised')
@@ -154,22 +160,21 @@ class SeqCanvas:
         self.treeShown = self.nodesShown = False
         self._residueHandlers = None
         """
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(0)
+        layout.addWidget(self.label_view)
+        #layout.addWidget(self._vdivider)
+        layout.addWidget(self.main_view, stretch=1)
+        parent.setLayout(layout)
+        self.label_view.hide()
+        #self._vdivider.hide()
+        self.main_view.show()
         self.layout_alignment()
         """TODO
         self.mainCanvas.grid(row=1, column=2, sticky='nsew')
         parent.columnconfigure(2, weight=1)
         parent.rowconfigure(1, weight=1)
-        """
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0,0,0,0)
-        layout.addWidget(self.label_view)
-        layout.addWidget(self._hdivider)
-        layout.addWidget(self.main_view, stretch=1)
-        parent.setLayout(layout)
-        self.label_view.hide()
-        self._hdivider.hide()
-        self.main_view.show()
-        """TODO
 
         # make the main canvas a reasonable size
         left, top, right, bottom = map(int,
@@ -1302,12 +1307,12 @@ class SeqCanvas:
             label_scene = self.main_scene
             if grid:
                 self.label_view.hide()
-                self._vdivider.hide()
+                #self._vdivider.hide()
         else:
             label_scene = self.label_scene
             if grid:
                 self.label_view.show()
-                self._vdivider.show()
+                #self._vdivider.show()
         return label_scene
             
     """
@@ -1462,6 +1467,12 @@ class SeqBlock:
 
         if seq_offset + line_width >= len(alignment.seqs[0]):
             self.next_block = None
+            if not prev_block and label_scene != main_scene:
+                # For scrolling to work right, ensure that vertical
+                # size of label_scene is the same as main_scene
+                mr = main_scene.sceneRect()
+                lr = label_scene.sceneRect()
+                label_scene.setSceneRect(lr.x(), mr.y(), lr.width(), mr.height())
         else:
             self.next_block = SeqBlock(label_scene, main_scene, self,
                 self.font, self.emphasis_font, self.font_metrics, self.emphasis_font_metrics,
