@@ -179,24 +179,18 @@ def interpolate_corkscrew(xf, c0, c1):
         from chimerax.core.geometry import inner_product, cross_product, identity, norm
         from chimerax.core.geometry import normalize_vector
         dc = c1 - c0
-        vr, a = xf.rotation_axis_and_angle()        # a is in degrees
-        tra = inner_product(dc, vr)                                # magnitude of translation
-                                                # along rotation axis
-        vt = dc - tra * vr                        # where c1 would end up if
-                                                # only rotation is used
+        vr, a = xf.rotation_axis_and_angle()      # a is in degrees.
+        tra = inner_product(dc, vr)               # Magnitude of translation along rotation axis.
+        vt = dc - tra * vr                        # Translation perpendicular to rotation axis.
+        # where c1 would end up if only rotation is used
         cm = c0 + vt / 2
         v0 = cross_product(vr, vt)
-        if norm(v0) <= 0.0:
-                ident = identity()
-                return ident, ident
-        v0 = normalize_vector(v0)
-        if a != 0.0:
-                import math
-                l = norm(vt) / 2 / math.tan(math.radians(a / 2))
-                cr = cm + v0 * l
+        if norm(v0) == 0 or a == 0:
+                cr = c0
         else:
-                import numpy
-                cr = numpy.array((0.0, 0.0, 0.0))
+                import math
+                l = 0.5*norm(vt) / math.tan(math.radians(a / 2))
+                cr = cm + normalize_vector(v0) * l
 
         return vr, a, cr, tra*vr
 
