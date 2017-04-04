@@ -416,7 +416,7 @@ class MultAlignViewer(ToolInstance):
             # opened along with MAV a chance to load
             parent.after_idle(lambda: self._loadStructures(auto=1))
         """
-        self.tool_window.manage('side' if self.seq_canvas.should_wrap() else 'top')
+        self.tool_window.manage('side' if self.seq_canvas.wrap_okay() else 'top')
 
     def alignment_notification(self, note_name, note_data):
         if note_name == "modify association":
