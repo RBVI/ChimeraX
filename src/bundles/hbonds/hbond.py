@@ -741,6 +741,7 @@ def _find_acceptors(model, a_params, limited_acceptors, generic_acc_info):
                         "bad number of bonds (%d)" % atom.num_bonds, None)
                     continue
             elif isinstance(acc_info, tuple) and isinstance(acc_info[0], tuple):
+                import numpy
                 acc_func, args = acc_info[numpy.count_nonzero(atom.neighbors.element_numbers > 1)]
             else:
                 acc_func, args = acc_info
