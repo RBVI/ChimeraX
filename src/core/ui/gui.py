@@ -132,7 +132,9 @@ class UI(QApplication):
         # no benefit, and occasionally causes double command execution
         # for slow commands, so only forward from graphics window
         mw.graphics_window.keyPressEvent = self.forward_keystroke
+        mw.rapid_access.keyPressEvent = self.forward_keystroke
         mw.show()
+        mw.rapid_access_shown = True
         self.splash.finish(mw)
         # Register for tool installation/deinstallation so that
         # we can update the Tools menu
@@ -249,7 +251,7 @@ class UI(QApplication):
         self.main_window.graphics_window.update_graphics_now()
         
 from PyQt5.QtWidgets import QMainWindow, QStackedWidget, QLabel, QDesktopWidget, \
-    QToolButton
+    QToolButton, QWidget
 class MainWindow(QMainWindow, PlainTextLog):
 
     def __init__(self, ui, session):
@@ -270,8 +272,15 @@ class MainWindow(QMainWindow, PlainTextLog):
         from .graphics import GraphicsWindow
         self.graphics_window = g = GraphicsWindow(self._stack, ui)
         self._stack.addWidget(g.widget)
+        self.rapid_access = QWidget(self._stack)
+        from .file_history import FileHistory
+        fh = FileHistory(session, self.rapid_access, bg_color="#B8B8B8")
+        self._stack.addWidget(self.rapid_access)
         self._stack.setCurrentWidget(g.widget)
         self.setCentralWidget(self._stack)
+        from ..models import ADD_MODELS, REMOVE_MODELS
+        session.triggers.add_handler(ADD_MODELS, self._check_rapid_access)
+        session.triggers.add_handler(REMOVE_MODELS, self._check_rapid_access)
 
         from .save_dialog import MainSaveDialog, ImageSaver
         self.save_dialog = MainSaveDialog(self)
@@ -427,6 +436,22 @@ class MainWindow(QMainWindow, PlainTextLog):
         if tool_windows:
             tool_windows[0].shown = shown
 
+    def _get_rapid_access_shown(self):
+        return self._stack.currentWidget() == self.rapid_access
+
+    def _set_rapid_access_shown(self, show):
+        if show == (self._stack.currentWidget() == self.rapid_access):
+            return
+
+        if show:
+            self.graphics_window.session.update_loop.block_redraw()
+            self._stack.setCurrentWidget(self.rapid_access)
+        else:
+            self._stack.setCurrentWidget(self.graphics_window.widget)
+            self.graphics_window.session.update_loop.unblock_redraw()
+
+    rapid_access_shown = property(_get_rapid_access_shown, _set_rapid_access_shown)
+
     def status(self, msg, color, secondary):
         sb = self.statusBar()
         sb.clearMessage()
@@ -438,6 +463,9 @@ class MainWindow(QMainWindow, PlainTextLog):
         label.show()
 
         self._show_status_now()
+
+    def _check_rapid_access(self, *args):
+        self.rapid_access_shown = len(self.graphics_window.session.models) == 0
 
     def _show_status_now(self):
         # In Qt 5.7.1 there is no way to for the status line to redraw without running the event loop.
@@ -504,21 +532,34 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def _build_status(self):
         sb = build_statusbar()
-        self._global_hide_button = ghb = QToolButton(sb)
+        """
+        self._global_hide_button = ghb = QToolButton()
+        self._rapid_access_button = rab = QToolButton()
         from PyQt5.QtGui import QIcon
         import os.path
         cur_dir = os.path.dirname(__file__)
         self._expand_icon = QIcon(os.path.join(cur_dir, "expand1.png"))
         self._contract_icon = QIcon(os.path.join(cur_dir, "contract1.png"))
+        self._ra_shown_icon = QIcon(os.path.join(cur_dir, "lightning_day.png"))
+        self._ra_hidden_icon = QIcon(os.path.join(cur_dir, "lightning_night.png"))
         ghb.setIcon(self._expand_icon)
+        rab.setIcon(self._ra_shown_icon)
         ghb.setCheckable(True)
+        rab.setCheckable(True)
         from PyQt5.QtWidgets import QAction
-        but_action = QAction(ghb)
-        but_action.setCheckable(True)
-        but_action.toggled.connect(lambda checked: setattr(self, 'hide_tools', checked))
-        but_action.setIcon(self._expand_icon)
-        ghb.setDefaultAction(but_action)
-        sb.addPermanentWidget(ghb)
+        ghb_action = QAction(ghb)
+        rab_action = QAction(rab)
+        ghb_action.setCheckable(True)
+        rab_action.setCheckable(True)
+        ghb_action.toggled.connect(lambda checked: setattr(self, 'hide_tools', checked))
+        rab_action.toggled.connect(lambda checked: setattr(self, 'rapid_access_shown', checked))
+        ghb_action.setIcon(self._expand_icon)
+        rab_action.setIcon(self._ra_shown_icon)
+        ghb.setDefaultAction(ghb_action)
+        rab.setDefaultAction(rab_action)
+        #sb.addPermanentWidget(ghb)
+        #sb.addPermanentWidget(rab)
+        """
         sb.showMessage("Welcome to ChimeraX")
         self.setStatusBar(sb)
 
