@@ -12,7 +12,7 @@
 #
 def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew',
           cartesian = False, same = False, core_fraction = 0.5, min_hinge_spacing = 6,
-          hide_models = True, play = True, color_segments = False):
+          hide_models = True, play = True, color_segments = False, color_core = None):
     '''
     Morph between atomic models using Yale Morph Server algorithm.
 
@@ -50,6 +50,9 @@ def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew
         For morphing a sequence of 3 or more structures only the residues segments
         for the morph between the first two in the sequence is shown.  Segments are
         recomputed for each consecutive pair in the sequence.  Default false.
+    color_core : Color or None
+        Color the core residues the specified color.  This is to understand what residues
+        the algorithm calculates to be the core.
     '''
 
     if len(structures) < 2:
@@ -59,9 +62,10 @@ def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew
     from .motion import compute_morph
     traj = compute_morph(structures, session.logger, method=method, rate=rate, frames=frames,
                          cartesian=cartesian, match_same=same, core_fraction = core_fraction,
-                         min_hinge_spacing = min_hinge_spacing, color_segments = color_segments)
+                         min_hinge_spacing = min_hinge_spacing,
+                         color_segments = color_segments, color_core = color_core)
     session.models.add([traj])
-    if not color_segments:
+    if not color_segments and color_core is None:
         traj.set_initial_color()
 
     session.logger.info('Computed %d frame morph #%s' % (traj.num_coord_sets, traj.id_string()))
@@ -96,7 +100,7 @@ def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew
 # -----------------------------------------------------------------------------------------
 #
 def register_morph_command(logger):
-    from chimerax.core.commands import CmdDesc, register, StructuresArg, IntArg, EnumOf, BoolArg, FloatArg
+    from chimerax.core.commands import CmdDesc, register, StructuresArg, IntArg, EnumOf, BoolArg, FloatArg, ColorArg
     desc = CmdDesc(
         required = [('structures', StructuresArg)],
         keyword = [('frames', IntArg),
@@ -108,7 +112,8 @@ def register_morph_command(logger):
                    ('min_hinge_spacing', IntArg),
                    ('hide_models', BoolArg),
                    ('play', BoolArg),
-                   ('color_segments', BoolArg)],
+                   ('color_segments', BoolArg),
+                   ('color_core', ColorArg)],
         synopsis = 'morph atomic structures'
     )
     register('morph', desc, morph, logger=logger)

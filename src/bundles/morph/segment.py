@@ -24,6 +24,7 @@ def segmentSieve(rList0, rList1, fraction=0.5):
                 for r in rList:
                         if r in coreSet:
                                 core.append(r)
+                                r._in_morph_core = True  # Flag residues in core for later coloring.
                         else:
                                 others.append(r)
                 return core, others
