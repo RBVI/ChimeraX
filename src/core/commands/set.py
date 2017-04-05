@@ -13,7 +13,7 @@
 
 def set(session, bg_color=None,
         silhouettes=None, silhouette_width=None, silhouette_color=None, silhouette_depth_jump=None,
-        subdivision=None):
+        subdivision=None, max_frame_rate = None):
     '''Set global parameters.  With no options reports the current settings.
 
     Parameters
@@ -32,6 +32,9 @@ def set(session, bg_color=None,
     subdivision : float
         Controls the rendering quality of spheres and cylinders for drawing atoms and bonds.
         Default value is 1, higher values give smoother spheres and cylinders.
+    max_frame_rate : float
+        Maximum frames per second to render graphics.  The default frame rate is 60 frames per second.
+        A slower rate is sometimes useful when making movies to preview at the slower movie playback rate.
     '''
     had_arg = False
     view = session.main_view
@@ -59,17 +62,24 @@ def set(session, bg_color=None,
         had_arg = True
         from .. import atomic
         atomic.structure_graphics_updater(session).set_subdivision(subdivision)
+    if max_frame_rate is not None:
+        had_arg = True
+        msec = 1000.0 / max_frame_rate
+        session.ui.main_window.graphics_window.set_redraw_interval(msec)
 
     if not had_arg:
         from .. import atomic
         lod = atomic.level_of_detail(session)
+        msec = session.ui.main_window.graphics_window.redraw_interval
+        rate = 1000.0 / msec if msec > 0 else 1000.0
         msg = '\n'.join(('Current settings:',
                          '  Background color: %d,%d,%d' % tuple(100*r for r in view.background_color[:3]),
                          '  Silhouettes: ' + str(view.silhouettes),
                          '  Silhouette width: %.3g' % view.silhouette_thickness,
                          '  Silhouette color: %d,%d,%d' % tuple(100*r for r in view.silhouette_color[:3]),
                          '  Silhouette depth jump: %.3g' % view.silhouette_depth_jump,
-                         '  Subdivision: %.3g'  % lod.quality))
+                         '  Subdivision: %.3g'  % lod.quality,
+                         '  Max frame rate: %.3g' % rate))
         session.logger.info(msg)
 
 
@@ -81,7 +91,8 @@ def register_command(session):
                  ('silhouette_width', FloatArg),
                  ('silhouette_color', ColorArg),
                  ('silhouette_depth_jump', FloatArg),
-                 ('subdivision', FloatArg)],
+                 ('subdivision', FloatArg),
+                 ('max_frame_rate', FloatArg)],
         synopsis="set preferences"
     )
     register('set', desc, set, logger=session.logger)

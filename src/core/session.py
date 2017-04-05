@@ -107,7 +107,7 @@ class _UniqueName:
         else:
             class_name = (bundle_info.name, obj_cls.__name__)
             # double check that class will be able to be restored
-            if obj_cls != bundle_info.get_class(obj_cls.__name__):
+            if obj_cls != bundle_info.get_class(obj_cls.__name__, logger):
                 raise RuntimeError(
                     'unable to restore objects of %s class in %s bundle' %
                     (class_name, bundle_info.name))
@@ -154,11 +154,11 @@ class _UniqueName:
             cls = get_class(class_name)
         else:
             bundle_name, class_name = class_name
-            bundle_info = session.toolshed.find_bundle(bundle_name)
+            bundle_info = session.toolshed.find_bundle(bundle_name, session.logger)
             if bundle_info is None:
                 cls = None
             else:
-                cls = bundle_info.get_class(class_name)
+                cls = bundle_info.get_class(class_name, session.logger)
         return cls
 
 #    @classmethod
@@ -195,14 +195,14 @@ class _SaveManager:
                     self.graph[key] = self._found_objs
                 else:
                     self.unprocessed.append(value)
-                    uid = _UniqueName.from_obj(self.session.toolshed, value)
+                    uid = _UniqueName.from_obj(self.session.toolshed, value, self.session.logger)
                     self.processed[key] = uid
                     self.graph[key] = [uid]
             except ValueError as e:
                 raise ValueError("error processing: %r" % key)
         while self.unprocessed:
             obj = self.unprocessed.pop()
-            key = _UniqueName.from_obj(self.session.toolshed, obj)
+            key = _UniqueName.from_obj(self.session.toolshed, obj, self.session.logger)
             try:
                 self.processed[key] = self.process(obj)
             except ValueError as e:
@@ -210,7 +210,7 @@ class _SaveManager:
             self.graph[key] = self._found_objs
 
     def _add_obj(self, obj):
-        uid = _UniqueName.from_obj(self.session.toolshed, obj)
+        uid = _UniqueName.from_obj(self.session.toolshed, obj, self.session.logger)
         self._found_objs.append(uid)
         if uid not in self.processed:
             self.unprocessed.append(obj)
@@ -262,7 +262,7 @@ class _RestoreManager:
         missing_bundles = []
         out_of_date_bundles = []
         for bundle_name, (bundle_version, bundle_state_version) in bundle_infos.items():
-            bi = session.toolshed.find_bundle(bundle_name)
+            bi = session.toolshed.find_bundle(bundle_name, session.logger)
             if bi is None:
                 missing_bundles.append(bundle_name)
                 continue

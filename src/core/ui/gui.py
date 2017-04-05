@@ -625,7 +625,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         from PyQt5.QtWidgets import QMenu, QAction
         tools_menu = QMenu("&Tools")
         categories = {}
-        for bi in session.toolshed.bundle_info():
+        for bi in session.toolshed.bundle_info(session.logger):
             for tool in bi.tools:
                 for cat in tool.categories:
                     categories.setdefault(cat, {})[tool.name] = (bi, tool)

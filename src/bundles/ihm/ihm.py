@@ -51,6 +51,7 @@ class IHMModel(Model):
         self.ihm_directory = dirname(filename)
         name = splitext(basename(filename))[0]
         self._file_info = None
+        self._data_sets = None	# Map dataset_list_id to DataSet
 
         Model.__init__(self, name, session)
 
@@ -65,8 +66,10 @@ class IHMModel(Model):
         xlinks, xlmodels = self.read_crosslinks()
         self.crosslink_models = xlinks
 
-        # 2D electron microscopy projections
-        self.electron_microscopy_models = emmodels = self.read_electron_microscopy_maps()
+        # 2D and 3D electron microscopy projections
+        emmodels = (self.read_2d_electron_microscopy_maps() +
+                    self.read_3d_electron_microscopy_maps())
+        self.electron_microscopy_models = emmodels
 
         # Make restraint model groupsy
         rmodels = xlmodels + emmodels
@@ -114,11 +117,14 @@ class IHMModel(Model):
                        'ihm_ensemble_info',		# Names of ensembles, e.g. cluster 1, 2, ...
                        'ihm_gaussian_obj_ensemble',	# Distribution of ensemble models
                        'ihm_localization_density_files', # Spatial distribution of ensemble models
+                       'ihm_dataset_related_db_reference', # Starting model database ids
                        'ihm_dataset_external_reference', # Comparative models, EM data
                        'ihm_external_files',		# files in DOI archives, at URL or on local disk
                        'ihm_external_reference_info',	# DOI archive and URL external files
                        'ihm_starting_model_details', 	# Starting models
                        'ihm_starting_comparative_models', # Compararative model templates
+                       'ihm_2dem_class_average_restraint', # 2D EM constraing projectionn of atomic model
+                       'ihm_3dem_restraint',		# 3d electron microscopy
                        ]
         from chimerax.core.atomic import mmcif
         table_list = mmcif.get_mmcif_tables(filename, table_names)
@@ -142,11 +148,10 @@ class IHMModel(Model):
     def read_starting_models(self, load_linked_files):
 
         # Read experimental starting models
-#        dataset_asym_ids, xmodels, tmodels, seqmodels = self.read_starting_model_details()
-        dataset_asym_ids, xmodels = self.read_experimental_models()
+        xmodels = self.read_experimental_models()
 
         # Read comparative models
-        cmodels = self.read_comparative_models(dataset_asym_ids) if load_linked_files else []
+        cmodels = self.read_comparative_models() if load_linked_files else []
 
         # Read comparative model templates
         tmodels, seqmodels = self.read_template_models()
@@ -180,80 +185,93 @@ class IHMModel(Model):
     #
     def read_experimental_models(self):
         '''Read crystallography and NMR atomic starting models.'''
-        dataset_asym_ids = {}
         xmodels = []
 
         starting_models = self.tables['ihm_starting_model_details']
         if not starting_models:
-            return dataset_asym_ids, xmodels
+            return xmodels
 
         fields = ['asym_id', 'seq_id_begin', 'seq_id_end', 'starting_model_source',
-                  'starting_model_db_name', 'starting_model_db_code',
                   'starting_model_auth_asym_id',
                   'dataset_list_id', 'alignment_file_id']
         rows = starting_models.fields(fields, allow_missing_fields = True)
 
-        for asym_id, seq_beg, seq_end, source, db_name, db_code, auth_asym_id, did, seqfile_id in rows:
-            # TODO: Probably should require comparative model asym_id to match sphere model asym_id
-            #       Currently mediator.cif has auth_asym_id identifying chain in comparative model
-            #       Corresponding to sphere model asym_id.  But that won't work if db_name/db_code
-            #       is used since then auth_asym_id is the db_asym_id.
-            cm_asym_id = auth_asym_id if db_code == '?' else asym_id
-            dataset_asym_ids.setdefault(did, set()).add((asym_id, cm_asym_id))
-            if source == 'experimental model' and db_name == 'PDB' and db_code != '?':
-                from chimerax.core.atomic.mmcif import fetch_mmcif
-                models, msg = fetch_mmcif(self.session, db_code, auto_style = False)
-                name = '%s %s' % (db_code, auth_asym_id)
-                for m in models:
-                    keep_one_chain(m, auth_asym_id)
-                    m.name = name
-                    show_colored_ribbon(m, asym_id)
-                xmodels.extend(models)
-                for m in models:
-                    m.asym_id = asym_id
-                    m.seq_begin, m.seq_end = int(seq_beg), int(seq_end)
-                    m.dataset_id = did
-                    m.comparative_model = False
+        for asym_id, seq_beg, seq_end, source, auth_asym_id, did, seqfile_id in rows:
+            if source != 'experimental model':
+                continue
+            d = self.data_set(did, 'ihm_starting_model_details')
+            if d is None:
+                continue
+            models = d.models(self.session)
+            for m in models:
+                keep_one_chain(m, auth_asym_id)
+                m.name += ' ' + auth_asym_id
+                show_colored_ribbon(m, asym_id)
+            xmodels.extend(models)
+            for m in models:
+                m.asym_id = asym_id
+                m.seq_begin, m.seq_end = int(seq_beg), int(seq_end)
+                m.dataset_id = did
+                m.comparative_model = False
 
-        return dataset_asym_ids, xmodels
+        return xmodels
     
     # -----------------------------------------------------------------------------
     #
-    def read_comparative_models(self, dataset_asym_ids):
-        '''Read comparative models from the ihm_dataset_external_reference table'''
-        lmodels = []
-        datasets_table = self.tables['ihm_dataset_external_reference']
-        if not datasets_table:
-            return lmodels
-        fields = ['dataset_list_id', 'data_type', 'file_id']
-        rows = datasets_table.fields(fields, allow_missing_fields = True)
-        for did, data_type, file_id in rows:
-            if data_type == 'Comparative model':
+    def data_set(self, dataset_list_id, table_name):
+        ds = self._data_sets
+        if ds is None:
+            self._data_sets = ds = {}
+            dref = self.tables['ihm_dataset_related_db_reference']
+            fields = ['dataset_list_id', 'db_name', 'accession_code']
+            rows = dref.fields(fields, allow_missing_fields = True)
+            for did, db_name, db_code in rows:
+                ds[did] = DatabaseDataSet(db_name, db_code)
+            deref = self.tables['ihm_dataset_external_reference']
+            fields = ['dataset_list_id', 'file_id']
+            rows = deref.fields(fields, allow_missing_fields = True)
+            for did, file_id in rows:
                 finfo = self.file_info(file_id)
-                if finfo is None:
-                    self.session.logger.warning('File id %s in ihm_dataset_external_reference table'
-                                                'does not appear in ihm_external_files table.\n' % file_id)
-                    continue
-                open_model = atomic_model_reader(finfo.file_path)
-                if open_model:
-                    fs = finfo.stream(self.session)
-                    models, msg = open_model(self.session, fs, finfo.file_name, auto_style = False)
-                    fs.close()
-                else:
-                    models = []	# Don't know how to read atomic model file
-                asym_ids = dataset_asym_ids.get(did, [])
-                na = len(asym_ids)
-                for asym_id, auth_asym_id in asym_ids:
-                    for m in models:
-                        if na > 1:
-                            m = m.copy()
-                            keep_one_chain(m, auth_asym_id)
-                            m.name += ' ' + auth_asym_id
-                        m.dataset_id = did
-                        m.asym_id = asym_id
-                        m.comparative_model = True
-                        show_colored_ribbon(m, asym_id)
-                        lmodels.append(m)
+                if finfo:
+                    ds[did] = FileDataSet(finfo)
+        if dataset_list_id not in ds:
+            self.session.logger.warning('Data set id %s listed in table %s was not found '
+                                        'in ihm_dataset_external_reference or ihm_dataset_related_db_reference tables'
+                                        % (dataset_list_id, table_name))
+            raise ValueError('bad data set id')
+        return ds.get(dataset_list_id, None)
+    
+    # -----------------------------------------------------------------------------
+    #
+    def read_comparative_models(self):
+        '''Read comparative models from the ihm_starting_model_details table'''
+        lmodels = []
+        sm_table = self.tables['ihm_starting_model_details']
+        if not sm_table:
+            return lmodels
+        fields = ['asym_id', 'starting_model_source', 'starting_model_auth_asym_id',
+                  'starting_model_id', 'dataset_list_id']
+        rows = sm_table.fields(fields, allow_missing_fields = True)
+        # TODO: Starting model can appear multiple times in table, with different sequence ranges.  Seems wrong.
+        smfound = set()
+        for asym_id, data_type, auth_asym_id, smid, did in rows:
+            if data_type != 'comparative model':
+                continue
+            d = self.data_set(did, 'ihm_starting_model_details')
+            if d is None:
+                continue
+            if smid in smfound:
+                continue
+            smfound.add(smid)
+            models = d.models(self.session)
+            for m in models:
+                keep_one_chain(m, auth_asym_id)
+                m.name += ' ' + auth_asym_id
+                m.dataset_id = did
+                m.asym_id = asym_id
+                m.comparative_model = True
+                show_colored_ribbon(m, asym_id)
+            lmodels.extend(models)
       
         return lmodels
 
@@ -279,41 +297,36 @@ class IHMModel(Model):
         comp_models = self.tables['ihm_starting_comparative_models']
         if not comp_models:
             return tmodels, seqmodels
-        fields = ['starting_model_ordinal_id',
-                  'template_db_name', 'template_db_code', 'template_auth_asym_id',
-                  'template_seq_begin', 'template_seq_end',
+        fields = ['starting_model_ordinal_id','template_auth_asym_id',
+                  'template_seq_begin', 'template_seq_end', 'template_dataset_list_id',
                   'alignment_file_id']
         rows = comp_models.fields(fields, allow_missing_fields = True)
 
         from collections import OrderedDict
         alignments = OrderedDict()  # Sequence alignments for comparative models
-        for sm_id, db_name, db_code, auth_asym_id, tseq_beg, tseq_end, alignment_file_id in rows:
-            # TODO: Probably should require comparative model asym_id to match sphere model asym_id
-            #       Currently mediator.cif has auth_asym_id identifying chain in comparative model
-            #       Corresponding to sphere model asym_id.  But that won't work if db_name/db_code
-            #       is used since then auth_asym_id is the db_asym_id.
-            if db_name == 'PDB' and db_code != '?' and sm_id in smdetails:
-                # Template for a comparative model.
-                asym_id, seq_beg, seq_end, did = smdetails[sm_id]
-                tm = TemplateModel(self.session, db_name, db_code, auth_asym_id)
-                tm.asym_id = asym_id
-                tm.template_seq_begin, tm.template_seq_end = int(tseq_beg), int(tseq_end)
-                tm.seq_begin, tm.seq_end = int(seq_beg), int(seq_end)
-                tm.dataset_id = did
-                tm.comparative_model = True
-                tmodels.append(tm)
-                if alignment_file_id != '.':
-                    sfinfo = self.file_info(alignment_file_id)
-                    if sfinfo is not None and sfinfo.ref is None:  # TODO: Handle DOI files.
-                        from os.path import join, isfile
-                        p = join(self.ihm_directory, sfinfo.file_path)
-                        if isfile(p):
-                            a = (p, asym_id, did)
-                            sam = alignments.get(a)
-                            if sam is None:
-                                # Make sequence alignment model for comparative model
-                                alignments[a] = sam = SequenceAlignmentModel(self.session, p, asym_id, did)
-                            sam.add_template_model(tm)
+        for sm_id, auth_asym_id, tseq_beg, tseq_end, tdid, alignment_file_id in rows:
+            d = self.data_set(tdid, 'ihm_starting_comparative_models')
+            if d is None:
+                continue
+            if sm_id not in smdetails:
+                continue
+            # Template for a comparative model.
+            asym_id, seq_beg, seq_end, cdid = smdetails[sm_id]
+            tm = TemplateModel(self.session, asym_id, int(seq_beg), int(seq_end),
+                               auth_asym_id, int(tseq_beg), int(tseq_end), d)
+            tmodels.append(tm)
+            if alignment_file_id != '.':
+                sfinfo = self.file_info(alignment_file_id)
+                if sfinfo is not None and sfinfo.ref is None:  # TODO: Handle DOI files.
+                    from os.path import join, isfile
+                    p = join(self.ihm_directory, sfinfo.file_path)
+                    if isfile(p):
+                        a = (p, asym_id, cdid)
+                        sam = alignments.get(a)
+                        if sam is None:
+                            # Make sequence alignment model for comparative model
+                            alignments[a] = sam = SequenceAlignmentModel(self.session, p, asym_id, cdid)
+                        sam.add_template_model(tm)
 
         seqmodels = list(alignments.values())
         return tmodels, seqmodels
@@ -424,14 +437,16 @@ class IHMModel(Model):
 
         # Open ensemble sphere models that are not included in ihm sphere obj table.
         emodels = []
+        eit = self.tables['ihm_ensemble_info']
+        ei_fields = ['ensemble_name', 'model_group_id', 'ensemble_file_id']
+        ei = eit.fields(ei_fields, allow_missing_fields = True)
         from os.path import isfile, join
-        smids = set(sm.ihm_model_id for sm in smodels)
-        for mid, mname, gid, file_id in ml:
+        for mname, gid, file_id in ei:
             finfo = self.file_info(file_id)
             if finfo is None or finfo.ref is not None:
                 continue	# TODO: Handle ensemble files from doi or url.
             path = join(self.ihm_directory, finfo.file_path)
-            if isfile(path) and path.endswith('.pdb') and mid not in smids:
+            if isfile(path) and path.endswith('.pdb'):
                 from chimerax.core.atomic.pdb import open_pdb
                 mlist,msg = open_pdb(self.session, path, mname,
                                      auto_style = False, explode = False)
@@ -531,43 +546,48 @@ class IHMModel(Model):
 
     # -----------------------------------------------------------------------------
     #
-    def read_electron_microscopy_maps(self):
+    def read_2d_electron_microscopy_maps(self):
         emmodels = []
-        dot = self.tables['ihm_dataset_external_reference']
+        dot = self.tables['ihm_2dem_class_average_restraint']
         if dot is None:
             return emmodels
-        fields = ['data_type', 'file_id']
+        fields = ['dataset_list_id', 'pixel_size_width', 'pixel_size_height']
         rows = dot.fields(fields, allow_missing_fields = True)
-        for data_type, file_id in rows:
-            if data_type in ('3DEM volume', '2DEM class average'):
-                finfo = self.file_info(file_id)
-                if finfo:
-                    filename = finfo.file_name
-                    if filename.endswith('.mrc'):
-                        image_path = self.map_path(finfo)
-                        if image_path:
-                            from chimerax.core.map.volume import open_map
-                            maps,msg = open_map(self.session, image_path)
-                            v = maps[0]
-                            v.name += ' %dD electron microscopy' % (3 if v.data.size[2] > 1 else 2)
-                            v.initialize_thresholds(vfrac = (0.01,1), replace = True)
-                            v.show()
-                            emmodels.append(v)
+        for did, pwidth, pheight in rows:
+            d = self.data_set(did, 'ihm_2dem_class_average_restraint')
+            if d:
+                v = d.volume_model(self.session)
+                if v:
+                    v.name += ' %dD electron microscopy' % (3 if v.data.size[2] > 1 else 2)
+                    v.initialize_thresholds(vfrac = (0.01,1), replace = True)
+                    v.show()
+                    emmodels.append(v)
         return emmodels
 
     # -----------------------------------------------------------------------------
     #
-    def map_path(self, file_info):
-        from os.path import join, isfile
-        image_path = join(self.ihm_directory, file_info.file_path)
-        if not isfile(image_path):
-            r = file_info.ref
-            if r and r.ref_type == 'DOI':
-                from .doi_fetch import unzip_archive
-                unzip_archive(self.session, r.ref, self.ihm_directory)
-                if not isfile(image_path):
-                    image_path = None
-        return image_path
+    def read_3d_electron_microscopy_maps(self):
+        emmodels = []
+        dot = self.tables['ihm_3dem_restraint']
+        if dot is None:
+            return emmodels
+        fields = ['dataset_list_id']
+        rows = dot.fields(fields, allow_missing_fields = True)
+        dfound = set()
+        for did, in rows:
+            d = self.data_set(did, 'ihm_3dem_restraint')
+            if d:
+                if d in dfound:
+                    # Show one copy of map even if it is used to constrain multiple models (e.g. mediator.cif)
+                    continue
+                dfound.add(d)
+                v = d.volume_model(self.session)
+                if v:
+                    v.name += ' %dD electron microscopy' % (3 if v.data.size[2] > 1 else 2)
+                    v.initialize_thresholds(vfrac = (0.01,1), replace = True)
+                    v.show()
+                    emmodels.append(v)
+        return emmodels
 
     # -----------------------------------------------------------------------------
     #
@@ -620,7 +640,7 @@ class IHMModel(Model):
                 finfo = self.file_info(file_id)
                 if finfo is None:
                     continue
-                map_path = self.map_path(finfo)
+                map_path = finfo.map_path(self.session)
                 maps,msg = open_map(self.session, map_path, show = False, show_dialog=False)
                 color = chain_rgba(asym_id)[:3] + (opacity,)
                 v = maps[0]
@@ -751,6 +771,20 @@ class FileInfo:
         from os.path import basename
         return basename(self.file_path)
 
+    # -----------------------------------------------------------------------------
+    #
+    def map_path(self, session):
+        from os.path import join, isfile
+        image_path = join(self.ihm_dir, self.file_path)
+        if not isfile(image_path):
+            r = self.ref
+            if r and r.ref_type == 'DOI':
+                from .doi_fetch import unzip_archive
+                unzip_archive(session, r.ref, self.ihm_dir)
+                if not isfile(image_path):
+                    image_path = None
+        return image_path
+
 # -----------------------------------------------------------------------------
 #
 class ExternalReference:
@@ -760,6 +794,68 @@ class ExternalReference:
         self.ref = ref 			# DOI identifier
         self.content = content		# "Archive" or "File"
         self.url = url			# URL to zip archive for a DOI, or file
+
+# -----------------------------------------------------------------------------
+#
+class DataSet:
+    def __init__(self, name):
+        self.name = name
+    def models(self, session):
+        return []
+    def volume_model(self, session):
+        return None
+    
+# -----------------------------------------------------------------------------
+#
+class FileDataSet(DataSet):
+    def __init__(self, file_info):
+        from os.path import basename
+        name = basename(file_info.file_path)
+        DataSet.__init__(self, name)
+        self.file_info = file_info
+    def models(self, session):
+                # TODO: use data set instead of file_id.
+        finfo = self.file_info
+        open_model = atomic_model_reader(finfo.file_path)
+        if open_model:
+            fs = finfo.stream(session)
+            models, msg = open_model(session, fs, finfo.file_name, auto_style = False)
+            fs.close()
+        else:
+            models = []	# Don't know how to read atomic model file
+        return models
+    def volume_model(self, session):
+        finfo = self.file_info
+        filename = finfo.file_name
+        if filename.endswith('.mrc'):
+            image_path = finfo.map_path(session)
+            if image_path:
+                from chimerax.core.map.volume import open_map
+                maps,msg = open_map(session, image_path)
+                v = maps[0]
+                return v
+        return None
+    
+# -----------------------------------------------------------------------------
+#
+class DatabaseDataSet(DataSet):
+    def __init__(self, db_name, db_code):
+        DataSet.__init__(self, db_code)
+        self.db_name = db_name
+        self.db_code = db_code
+    def models(self, session):
+        if self.db_name == 'PDB' and self.db_code != '?':
+            from chimerax.core.atomic.mmcif import fetch_mmcif
+            models, msg = fetch_mmcif(session, self.db_code, auto_style = False)
+        else:
+            models = []
+        return models
+    def volume_model(self, session):
+        if self.db_name == 'EMDB' and self.db_code != '?':
+            from chimerax.core.map.emdb_fetch import fetch_emdb
+            models, status = fetch_emdb(session, self.db_code)
+            return models[0]
+        return None
 
 # -----------------------------------------------------------------------------
 #
@@ -896,12 +992,17 @@ from chimerax.core.map import covariance_sum
 # -----------------------------------------------------------------------------
 #
 class TemplateModel(Model):
-    def __init__(self, session, db_name, db_code, db_asym_id):
-        name = 'Template %s %s' % (db_code, db_asym_id)
+    def __init__(self, session,
+                 asym_id, seq_begin, seq_end,
+                 template_asym_id, template_seq_begin, template_seq_end,
+                 data_set):
+        name = 'Template %s %s' % (data_set.name, template_asym_id)
         Model.__init__(self, name, session)
-        self.db_name = db_name
-        self.db_code = db_code
-        self.db_asym_id = db_asym_id
+        self.asym_id = asym_id
+        self.seq_begin, self.seq_end = seq_begin, seq_end
+        self.template_asym_id = template_asym_id
+        self.template_seq_begin, self.template_seq_end = template_seq_begin, template_seq_end
+        self.data_set = data_set    		# Template model database reference or file
         self.sequence_alignment_model = None
         
     def _get_display(self):
@@ -912,19 +1013,18 @@ class TemplateModel(Model):
     display = property(_get_display, _set_display)
 
     def fetch_model(self):
-        if self.db_name != 'PDB' or len(self.db_code) != 4:
-            return
-
-        from chimerax.core.atomic.mmcif import fetch_mmcif
-        models, msg = fetch_mmcif(self.session, self.db_code, auto_style = False)
-        name = '%s %s' % (self.db_code, self.db_asym_id)
+        if hasattr(self.data_set, 'db_code'):
+            # TODO: This is a guess at the name of the template in the sequence alignment.
+            sa_name = '%s%s' % (self.data_set.db_code.lower(), self.template_asym_id)
+        else:
+            sa_name = None
+            
+        models = self.data_set.models(self.session)
         for i,m in enumerate(models):
-            m.name = self.name
-            m.pdb_id = self.db_code
-            m.pdb_chain_id = self.db_asym_id
+            m.name = 'Template %s %s' % (m.name, self.template_asym_id)
+            m.sequence_alignment_name = sa_name
             m.asym_id = self.asym_id
-            m.dataset_id = self.dataset_id	# For locating comparative model
-            keep_one_chain(m, self.db_asym_id)
+            keep_one_chain(m, self.template_asym_id)
             show_colored_ribbon(m, self.asym_id, color_offset = 80)
             if i == 0:
                 m.id = self.id
@@ -944,8 +1044,8 @@ class TemplateModel(Model):
 class SequenceAlignmentModel(Model):
     def __init__(self, session, alignment_file, asym_id, dataset_id):
         self.alignment_file = alignment_file
-        self.asym_id = asym_id			# Identifies comparative model
-        self.dataset_id = dataset_id		# Identifies comparative model
+        self.asym_id = asym_id			# IHM asym_id
+        self.dataset_id = dataset_id		# Comparative model id
         self.template_models = []		# Filled in after templates fetched.
         self.comparative_model = None
         self.alignment = None
@@ -995,8 +1095,7 @@ class SequenceAlignmentModel(Model):
         if a is None:
             a = self.show_alignment()
         from chimerax.core.atomic import AtomicStructure
-        tmap = {'%s%s' % (tm.pdb_id.lower(), tm.pdb_chain_id) : tm
-                for tm in models if isinstance(tm, AtomicStructure)}
+        tmap = {tm.sequence_alignment_name : tm for tm in models if isinstance(tm, AtomicStructure)}
         if tmap:
             for seq in a.seqs:
                 tm = tmap.get(seq.name)

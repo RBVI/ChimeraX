@@ -9,7 +9,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def findHinges(rList0, rList1, segments):
+def findHinges(rList0, rList1, segments, min_hinge_spacing = 6):
 	"""Find hinge residues, which are defined as the interface
 	residues between segments that are at least 6 residues long."""
 	segmentId = {}
@@ -31,7 +31,7 @@ def findHinges(rList0, rList1, segments):
 			# Transition.  Check the previous two segment lengths
 			# to see if we found a hinge; then move "this" to "prev"
 			# and start a new segment.
-			if prevCount >= 6 and thisCount >= 6:
+			if prevCount >= min_hinge_spacing and thisCount >= min_hinge_spacing:
 				hingeIndices.append(rIndex - thisCount)
 				prevCount = thisCount
 			else:
@@ -39,7 +39,7 @@ def findHinges(rList0, rList1, segments):
 			thisCount = 1
 			prevId = thisId
 			thisId = newId
-	if prevCount >= 6 and thisCount >= 6:
+	if prevCount >= min_hinge_spacing and thisCount >= min_hinge_spacing:
 		hingeIndices.append(len(rList0) - thisCount)
 	return hingeIndices
 
