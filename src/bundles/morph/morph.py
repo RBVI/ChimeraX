@@ -11,7 +11,8 @@
 
 #
 def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew',
-          cartesian = False, same = False, core_fraction = 0.5, min_hinge_spacing = 6):
+          cartesian = False, same = False, core_fraction = 0.5, min_hinge_spacing = 6,
+          hide_models = True, play = True):
     '''
     Morph between atomic models using Yale Morph Server algorithm.
 
@@ -39,6 +40,10 @@ def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew
     min_hinge_spacing : int
         Minimum number of consecutive residues when splitting chains into rigidly
         moving segments at boundaries between core and non-core residues.  Default 6.
+    hide_models : bool
+        Whether to hide the input models after morph model is created.  Default true.
+    play : bool
+        Whether to play the morph.  Default true.
     '''
 
     if len(structures) < 2:
@@ -53,6 +58,16 @@ def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew
     traj.set_initial_color()
 
     session.logger.info('Computed %d frame morph #%s' % (traj.num_coord_sets, traj.id_string()))
+
+    if hide_models:
+        for m in structures:
+            m.display = False
+
+    if play:
+        csids = traj.coordset_ids
+        cmd = 'coordset #%s %d,%d' % (traj.id_string(), min(csids), max(csids))
+        from chimerax.core.commands import run
+        run(session, cmd)
 
     # from .interpolate import smt, stt, rit, rst, rsit
     # from .sieve_fit import svt
@@ -83,7 +98,9 @@ def register_morph_command(logger):
                    ('cartesian', BoolArg),
                    ('same', BoolArg),
                    ('core_fraction', FloatArg),
-                   ('min_hinge_spacing', IntArg)],
+                   ('min_hinge_spacing', IntArg),
+                   ('hide_models', BoolArg),
+                   ('play', BoolArg)],
         synopsis = 'morph atomic structures'
     )
     register('morph', desc, morph, logger=logger)
