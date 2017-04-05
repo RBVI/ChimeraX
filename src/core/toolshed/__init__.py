@@ -383,9 +383,13 @@ class Toolshed:
         except URLError as e:
             logger.info("Updating list of available bundles failed: %s"
                         % str(e.reason))
+            with self._abc_lock:
+                self._abc_updating = False
         except Exception as e:
             logger.info("Updating list of available bundles failed: %s"
                         % str(e))
+            with self._abc_lock:
+                self._abc_updating = False
         else:
             with self._abc_lock:
                 self._available_bundle_info = abc
@@ -398,6 +402,19 @@ class Toolshed:
         t = Thread(target=self.reload_available, args=(logger,),
                    name="Update list of available bundles")
         t.start()
+
+    def _get_available_bundles(self, logger):
+        with self._abc_lock:
+            if self._available_bundle_info is None:
+                from .available import AvailableBundleCache
+                if self._abc_updating:
+                    logger.warning("still retrieving bundle list from toolshed")
+                else:
+                    logger.warning("could not retrieve bundle list from toolshed")
+                self._available_bundle_info = AvailableBundleCache()
+            elif self._abc_updating:
+                logger.warning("still updating bundle list from toolshed")
+            return self._available_bundle_info
 
     def set_install_timestamp(self, per_user=False):
         """Set last installed timestamp."""
@@ -422,15 +439,15 @@ class Toolshed:
             Combined list of all selected types of bundle metadata.  """
 
         # _installed_bundle_info should always be defined
-        # but _available_bundle_info may need to be initialized`
+        # but _available_bundle_info may need to be initialized
         if available and self._available_bundle_info is None:
             self.reload(logger, reread_cache=False, check_remote=True)
         if installed and available:
-            return self._installed_bundle_info + self._available_bundle_info
+            return self._installed_bundle_info + self._get_available_bundles(logger)
         elif installed:
             return self._installed_bundle_info
         elif available:
-            return self._available_bundle_info
+            return self._get_available_bundles(logger)
         else:
             return []
 
@@ -476,7 +493,7 @@ class Toolshed:
         else:
             if available and self._available_bundle_info is None:
                 self.reload(logger, reread_cache=False, check_remote=True)
-            container = self._available_bundle_info
+            container = self._get_available_bundles(logger)
         container.append(bi)
         self.triggers.activate_trigger(TOOLSHED_BUNDLE_INFO_ADDED, bi)
 
@@ -564,9 +581,7 @@ class Toolshed:
         if installed:
             container = self._installed_bundle_info
         else:
-            if self._available_bundle_info is None:
-                self.reload(logger, reread_cache=False, check_remote=True)
-            container = self._available_bundle_info
+            container = self._get_available_bundles(logger)
         from distlib.version import NormalizedVersion as Version
         best_bi = None
         best_version = None
