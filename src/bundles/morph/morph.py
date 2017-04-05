@@ -12,7 +12,7 @@
 #
 def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew',
           cartesian = False, same = False, core_fraction = 0.5, min_hinge_spacing = 6,
-          hide_models = True, play = True):
+          hide_models = True, play = True, color_segments = False):
     '''
     Morph between atomic models using Yale Morph Server algorithm.
 
@@ -44,6 +44,12 @@ def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew
         Whether to hide the input models after morph model is created.  Default true.
     play : bool
         Whether to play the morph.  Default true.
+    color_segments : bool
+        Whether to color the residues for each rigid segment with a unique color.
+        This is to see how the morph algorithm divided the structure into segments.
+        For morphing a sequence of 3 or more structures only the residues segments
+        for the morph between the first two in the sequence is shown.  Segments are
+        recomputed for each consecutive pair in the sequence.  Default false.
     '''
 
     if len(structures) < 2:
@@ -53,9 +59,10 @@ def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew
     from .motion import compute_morph
     traj = compute_morph(structures, session.logger, method=method, rate=rate, frames=frames,
                          cartesian=cartesian, match_same=same, core_fraction = core_fraction,
-                         min_hinge_spacing = min_hinge_spacing)
+                         min_hinge_spacing = min_hinge_spacing, color_segments = color_segments)
     session.models.add([traj])
-    traj.set_initial_color()
+    if not color_segments:
+        traj.set_initial_color()
 
     session.logger.info('Computed %d frame morph #%s' % (traj.num_coord_sets, traj.id_string()))
 
@@ -100,7 +107,8 @@ def register_morph_command(logger):
                    ('core_fraction', FloatArg),
                    ('min_hinge_spacing', IntArg),
                    ('hide_models', BoolArg),
-                   ('play', BoolArg)],
+                   ('play', BoolArg),
+                   ('color_segments', BoolArg)],
         synopsis = 'morph atomic structures'
     )
     register('morph', desc, morph, logger=logger)

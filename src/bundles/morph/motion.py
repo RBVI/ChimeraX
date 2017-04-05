@@ -10,7 +10,8 @@
 # === UCSF ChimeraX Copyright ===
 
 def compute_morph(mols, log, method = 'corkscrew', rate = 'linear', frames = 20,
-                  cartesian = False, match_same = False, core_fraction = 0.5, min_hinge_spacing = 6):
+                  cartesian = False, match_same = False, core_fraction = 0.5, min_hinge_spacing = 6,
+                  color_segments = False):
         motion = MolecularMotion(mols[0], method = method, rate = rate, frames = frames,
                                  match_same = match_same, core_fraction = core_fraction,
                                  min_hinge_spacing = min_hinge_spacing)
@@ -18,7 +19,7 @@ def compute_morph(mols, log, method = 'corkscrew', rate = 'linear', frames = 20,
         res_interp = ResidueInterpolator(motion.trajectory().residues, cartesian)
         for i, mol in enumerate(mols[1:]):
                 log.status("Computing interpolation %d\n" % (i+1))
-                motion.interpolate(mol, res_interp)
+                motion.interpolate(mol, res_interp, (color_segments and i == 0))
         traj = motion.trajectory()
         traj.active_coordset_id = 1	# Start at initial trajectory frame.
         return traj
@@ -68,7 +69,7 @@ class MolecularMotion:
                 self.core_fraction = core_fraction
                 self.min_hinge_spacing = min_hinge_spacing
 
-        def interpolate(self, m, res_interp):
+        def interpolate(self, m, res_interp, color_segments = False):
                 """Interpolate to new conformation 'm'."""
 
                 #
@@ -103,6 +104,14 @@ class MolecularMotion:
                 if sm.deleted:
                         from chimerax.core.errors import UserError
                         raise UserError('No atoms matched')
+
+                if color_segments:
+                        from random import seed, randint
+                        seed(1)
+                        for rg in res_groups:
+                                c = (randint(128,255), randint(128,255), randint(128,255), 255)
+                                rg.ribbon_colors = c
+                                rg.atoms.colors = c
                 #
                 # Interpolate between current conformation in trajectory
                 # and new conformation
