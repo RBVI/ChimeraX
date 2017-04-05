@@ -66,8 +66,10 @@ class IHMModel(Model):
         xlinks, xlmodels = self.read_crosslinks()
         self.crosslink_models = xlinks
 
-        # 2D electron microscopy projections
-        self.electron_microscopy_models = emmodels = self.read_electron_microscopy_maps()
+        # 2D and 3D electron microscopy projections
+        emmodels = (self.read_2d_electron_microscopy_maps() +
+                    self.read_3d_electron_microscopy_maps())
+        self.electron_microscopy_models = emmodels
 
         # Make restraint model groupsy
         rmodels = xlmodels + emmodels
@@ -121,6 +123,8 @@ class IHMModel(Model):
                        'ihm_external_reference_info',	# DOI archive and URL external files
                        'ihm_starting_model_details', 	# Starting models
                        'ihm_starting_comparative_models', # Compararative model templates
+                       'ihm_2dem_class_average_restraint', # 2D EM constraing projectionn of atomic model
+                       'ihm_3dem_restraint',		# 3d electron microscopy
                        ]
         from chimerax.core.atomic import mmcif
         table_list = mmcif.get_mmcif_tables(filename, table_names)
@@ -195,7 +199,7 @@ class IHMModel(Model):
         for asym_id, seq_beg, seq_end, source, auth_asym_id, did, seqfile_id in rows:
             if source != 'experimental model':
                 continue
-            d = self.data_set(did)
+            d = self.data_set(did, 'ihm_starting_model_details')
             if d is None:
                 continue
             models = d.models(self.session)
@@ -214,7 +218,7 @@ class IHMModel(Model):
     
     # -----------------------------------------------------------------------------
     #
-    def data_set(self, dataset_list_id):
+    def data_set(self, dataset_list_id, table_name):
         ds = self._data_sets
         if ds is None:
             self._data_sets = ds = {}
@@ -230,7 +234,11 @@ class IHMModel(Model):
                 finfo = self.file_info(file_id)
                 if finfo:
                     ds[did] = FileDataSet(finfo)
-                
+        if dataset_list_id not in ds:
+            self.session.logger.warning('Data set id %s listed in table %s was not found '
+                                        'in ihm_dataset_external_reference or ihm_dataset_related_db_reference tables'
+                                        % (dataset_list_id, table_name))
+            raise ValueError('bad data set id')
         return ds.get(dataset_list_id, None)
     
     # -----------------------------------------------------------------------------
@@ -249,7 +257,7 @@ class IHMModel(Model):
         for asym_id, data_type, auth_asym_id, smid, did in rows:
             if data_type != 'comparative model':
                 continue
-            d = self.data_set(did)
+            d = self.data_set(did, 'ihm_starting_model_details')
             if d is None:
                 continue
             if smid in smfound:
@@ -297,7 +305,7 @@ class IHMModel(Model):
         from collections import OrderedDict
         alignments = OrderedDict()  # Sequence alignments for comparative models
         for sm_id, auth_asym_id, tseq_beg, tseq_end, tdid, alignment_file_id in rows:
-            d = self.data_set(tdid)
+            d = self.data_set(tdid, 'ihm_starting_comparative_models')
             if d is None:
                 continue
             if sm_id not in smdetails:
@@ -536,43 +544,48 @@ class IHMModel(Model):
 
     # -----------------------------------------------------------------------------
     #
-    def read_electron_microscopy_maps(self):
+    def read_2d_electron_microscopy_maps(self):
         emmodels = []
-        dot = self.tables['ihm_dataset_external_reference']
+        dot = self.tables['ihm_2dem_class_average_restraint']
         if dot is None:
             return emmodels
-        fields = ['data_type', 'file_id']
+        fields = ['dataset_list_id', 'pixel_size_width', 'pixel_size_height']
         rows = dot.fields(fields, allow_missing_fields = True)
-        for data_type, file_id in rows:
-            if data_type in ('3DEM volume', '2DEM class average'):
-                finfo = self.file_info(file_id)
-                if finfo:
-                    filename = finfo.file_name
-                    if filename.endswith('.mrc'):
-                        image_path = self.map_path(finfo)
-                        if image_path:
-                            from chimerax.core.map.volume import open_map
-                            maps,msg = open_map(self.session, image_path)
-                            v = maps[0]
-                            v.name += ' %dD electron microscopy' % (3 if v.data.size[2] > 1 else 2)
-                            v.initialize_thresholds(vfrac = (0.01,1), replace = True)
-                            v.show()
-                            emmodels.append(v)
+        for did, pwidth, pheight in rows:
+            d = self.data_set(did, 'ihm_2dem_class_average_restraint')
+            if d:
+                v = d.volume_model(self.session)
+                if v:
+                    v.name += ' %dD electron microscopy' % (3 if v.data.size[2] > 1 else 2)
+                    v.initialize_thresholds(vfrac = (0.01,1), replace = True)
+                    v.show()
+                    emmodels.append(v)
         return emmodels
 
     # -----------------------------------------------------------------------------
     #
-    def map_path(self, file_info):
-        from os.path import join, isfile
-        image_path = join(self.ihm_directory, file_info.file_path)
-        if not isfile(image_path):
-            r = file_info.ref
-            if r and r.ref_type == 'DOI':
-                from .doi_fetch import unzip_archive
-                unzip_archive(self.session, r.ref, self.ihm_directory)
-                if not isfile(image_path):
-                    image_path = None
-        return image_path
+    def read_3d_electron_microscopy_maps(self):
+        emmodels = []
+        dot = self.tables['ihm_3dem_restraint']
+        if dot is None:
+            return emmodels
+        fields = ['dataset_list_id']
+        rows = dot.fields(fields, allow_missing_fields = True)
+        dfound = set()
+        for did, in rows:
+            d = self.data_set(did, 'ihm_3dem_restraint')
+            if d:
+                if d in dfound:
+                    # Show one copy of map even if it is used to constrain multiple models (e.g. mediator.cif)
+                    continue
+                dfound.add(d)
+                v = d.volume_model(self.session)
+                if v:
+                    v.name += ' %dD electron microscopy' % (3 if v.data.size[2] > 1 else 2)
+                    v.initialize_thresholds(vfrac = (0.01,1), replace = True)
+                    v.show()
+                    emmodels.append(v)
+        return emmodels
 
     # -----------------------------------------------------------------------------
     #
@@ -625,7 +638,7 @@ class IHMModel(Model):
                 finfo = self.file_info(file_id)
                 if finfo is None:
                     continue
-                map_path = self.map_path(finfo)
+                map_path = finfo.map_path(self.session)
                 maps,msg = open_map(self.session, map_path, show = False, show_dialog=False)
                 color = chain_rgba(asym_id)[:3] + (opacity,)
                 v = maps[0]
@@ -756,6 +769,20 @@ class FileInfo:
         from os.path import basename
         return basename(self.file_path)
 
+    # -----------------------------------------------------------------------------
+    #
+    def map_path(self, session):
+        from os.path import join, isfile
+        image_path = join(self.ihm_dir, self.file_path)
+        if not isfile(image_path):
+            r = self.ref
+            if r and r.ref_type == 'DOI':
+                from .doi_fetch import unzip_archive
+                unzip_archive(session, r.ref, self.ihm_dir)
+                if not isfile(image_path):
+                    image_path = None
+        return image_path
+
 # -----------------------------------------------------------------------------
 #
 class ExternalReference:
@@ -773,6 +800,8 @@ class DataSet:
         self.name = name
     def models(self, session):
         return []
+    def volume_model(self, session):
+        return None
     
 # -----------------------------------------------------------------------------
 #
@@ -793,6 +822,17 @@ class FileDataSet(DataSet):
         else:
             models = []	# Don't know how to read atomic model file
         return models
+    def volume_model(self, session):
+        finfo = self.file_info
+        filename = finfo.file_name
+        if filename.endswith('.mrc'):
+            image_path = finfo.map_path(session)
+            if image_path:
+                from chimerax.core.map.volume import open_map
+                maps,msg = open_map(session, image_path)
+                v = maps[0]
+                return v
+        return None
     
 # -----------------------------------------------------------------------------
 #
@@ -808,6 +848,12 @@ class DatabaseDataSet(DataSet):
         else:
             models = []
         return models
+    def volume_model(self, session):
+        if self.db_name == 'EMDB' and self.db_code != '?':
+            from chimerax.core.map.emdb_fetch import fetch_emdb
+            models, status = fetch_emdb(session, self.db_code)
+            return models[0]
+        return None
 
 # -----------------------------------------------------------------------------
 #
@@ -973,7 +1019,7 @@ class TemplateModel(Model):
             
         models = self.data_set.models(self.session)
         for i,m in enumerate(models):
-            m.name += ' ' + self.template_asym_id
+            m.name = 'Template %s %s' % (m.name, self.template_asym_id)
             m.sequence_alignment_name = sa_name
             m.asym_id = self.asym_id
             keep_one_chain(m, self.template_asym_id)
