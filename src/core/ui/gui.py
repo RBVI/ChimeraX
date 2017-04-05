@@ -281,6 +281,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         from ..models import ADD_MODELS, REMOVE_MODELS
         session.triggers.add_handler(ADD_MODELS, self._check_rapid_access)
         session.triggers.add_handler(REMOVE_MODELS, self._check_rapid_access)
+        self._rapid_access_shown_once = False # kludge to work around early OpenGL errors
 
         from .save_dialog import MainSaveDialog, ImageSaver
         self.save_dialog = MainSaveDialog(self)
@@ -444,11 +445,21 @@ class MainWindow(QMainWindow, PlainTextLog):
             return
 
         if show:
-            self.graphics_window.session.update_loop.block_redraw()
+            icon = self._ra_shown_icon
+            if not self._rapid_access_shown_once:
+                self.graphics_window.session.update_loop.block_redraw()
             self._stack.setCurrentWidget(self.rapid_access)
         else:
+            icon = self._ra_hidden_icon
             self._stack.setCurrentWidget(self.graphics_window.widget)
-            self.graphics_window.session.update_loop.unblock_redraw()
+            if not self._rapid_access_shown_once:
+                self.graphics_window.session.update_loop.unblock_redraw()
+                self._rapid_access_shown_once = True
+
+        but = self._rapid_access_button
+        but.setChecked(show)
+        but.defaultAction().setChecked(show)
+        but.setIcon(icon)
 
     rapid_access_shown = property(_get_rapid_access_shown, _set_rapid_access_shown)
 
@@ -532,9 +543,8 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def _build_status(self):
         sb = build_statusbar()
-        """
-        self._global_hide_button = ghb = QToolButton()
-        self._rapid_access_button = rab = QToolButton()
+        self._global_hide_button = ghb = QToolButton(sb)
+        self._rapid_access_button = rab = QToolButton(sb)
         from PyQt5.QtGui import QIcon
         import os.path
         cur_dir = os.path.dirname(__file__)
@@ -546,20 +556,21 @@ class MainWindow(QMainWindow, PlainTextLog):
         rab.setIcon(self._ra_shown_icon)
         ghb.setCheckable(True)
         rab.setCheckable(True)
+        rab.setChecked(True)
         from PyQt5.QtWidgets import QAction
         ghb_action = QAction(ghb)
         rab_action = QAction(rab)
         ghb_action.setCheckable(True)
         rab_action.setCheckable(True)
+        rab_action.setChecked(True)
         ghb_action.toggled.connect(lambda checked: setattr(self, 'hide_tools', checked))
         rab_action.toggled.connect(lambda checked: setattr(self, 'rapid_access_shown', checked))
         ghb_action.setIcon(self._expand_icon)
         rab_action.setIcon(self._ra_shown_icon)
         ghb.setDefaultAction(ghb_action)
         rab.setDefaultAction(rab_action)
-        #sb.addPermanentWidget(ghb)
-        #sb.addPermanentWidget(rab)
-        """
+        sb.addPermanentWidget(ghb)
+        sb.addPermanentWidget(rab)
         sb.showMessage("Welcome to ChimeraX")
         self.setStatusBar(sb)
 
