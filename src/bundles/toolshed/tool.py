@@ -231,7 +231,7 @@ class ToolshedUI(ToolInstance):
         def bundle_key(bi):
             return bi.name
         s = StringIO()
-        bi_list = ts.bundle_info(installed=True, available=False)
+        bi_list = ts.bundle_info(session.logger, installed=True, available=False)
         if not bi_list:
             print('<p class="empty">No installed tools found.</p>', file=s)
         else:
