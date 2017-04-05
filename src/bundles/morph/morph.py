@@ -11,7 +11,7 @@
 
 #
 def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew',
-          cartesian = False, same = False, core_fraction = 0.5):
+          cartesian = False, same = False, core_fraction = 0.5, min_hinge_spacing = 6):
     '''
     Morph between atomic models using Yale Morph Server algorithm.
 
@@ -33,8 +33,12 @@ def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew
         Whether to match atoms with same chain id, same residue number and same
         atom name.  Default false.
     core_fraction : float
-        Fraction of residues of each chain that align best to move as
-        a segment.  Default 0.5.
+        Fraction of residues of each chain that align best used to define core and
+        non-core residues which are then split into contiguous residues stretches
+        where the chain crosses between the two residue sets.  Default 0.5.
+    min_hinge_spacing : int
+        Minimum number of consecutive residues when splitting chains into rigidly
+        moving segments at boundaries between core and non-core residues.  Default 6.
     '''
 
     if len(structures) < 2:
@@ -43,7 +47,8 @@ def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew
 
     from .motion import compute_morph
     traj = compute_morph(structures, session.logger, method=method, rate=rate, frames=frames,
-                         cartesian=cartesian, match_same=same, core_fraction = core_fraction)
+                         cartesian=cartesian, match_same=same, core_fraction = core_fraction,
+                         min_hinge_spacing = min_hinge_spacing)
     session.models.add([traj])
     traj.set_initial_color()
 
@@ -77,7 +82,8 @@ def register_morph_command(logger):
                    ('method', EnumOf(('corkscrew', 'independent', 'linear'))),
                    ('cartesian', BoolArg),
                    ('same', BoolArg),
-                   ('core_fraction', FloatArg)],
+                   ('core_fraction', FloatArg),
+                   ('min_hinge_spacing', IntArg)],
         synopsis = 'morph atomic structures'
     )
     register('morph', desc, morph, logger=logger)
