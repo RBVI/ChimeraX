@@ -437,14 +437,16 @@ class IHMModel(Model):
 
         # Open ensemble sphere models that are not included in ihm sphere obj table.
         emodels = []
+        eit = self.tables['ihm_ensemble_info']
+        ei_fields = ['ensemble_name', 'model_group_id', 'ensemble_file_id']
+        ei = eit.fields(ei_fields, allow_missing_fields = True)
         from os.path import isfile, join
-        smids = set(sm.ihm_model_id for sm in smodels)
-        for mid, mname, gid, file_id in ml:
+        for mname, gid, file_id in ei:
             finfo = self.file_info(file_id)
             if finfo is None or finfo.ref is not None:
                 continue	# TODO: Handle ensemble files from doi or url.
             path = join(self.ihm_directory, finfo.file_path)
-            if isfile(path) and path.endswith('.pdb') and mid not in smids:
+            if isfile(path) and path.endswith('.pdb'):
                 from chimerax.core.atomic.pdb import open_pdb
                 mlist,msg = open_pdb(self.session, path, mname,
                                      auto_style = False, explode = False)
