@@ -170,7 +170,6 @@ module or package is installed on the local machine.  The term
 but have not yet been installed on the local machine.
 
 """
-from ..orderedset import OrderedSet
 
 # Toolshed trigger names
 TOOLSHED_BUNDLE_INFO_ADDED = "bundle info added"
@@ -318,38 +317,19 @@ class Toolshed:
         self.triggers.add_trigger(TOOLSHED_BUNDLE_UNINSTALLED)
         self.triggers.add_trigger(TOOLSHED_BUNDLE_INFO_RELOADED)
 
+        # Variables for updating list of available bundles
+        from threading import RLock
+        self._abc_lock = RLock()
+        self._abc_updating = False
+
         # Reload the bundle info list
         _debug("loading bundles")
         self.reload(logger, check_remote=check_remote, rebuild_cache=rebuild_cache)
+        if not check_remote:
+            # Did not check for available bundles synchronously
+            # so start a thread and do it asynchronously
+            self._async_reload_remote(logger)
         _debug("finished loading bundles")
-
-    def check_remote(self, logger):
-        """Check remote shed for updated bundle info.
-
-        Parameters
-        ----------
-        logger : :py:class:`~chimerax.core.logger.Logger` instance
-            Logging object where warning and error messages are sent.
-
-        Returns
-        -------
-        list of :py:class:`BundleInfo` instances
-            List of bundle metadata from remote server.
-        """
-
-        _debug("check_remote")
-        if self._repo_locator is None:
-            from .chimera_locator import ChimeraLocator
-            self._repo_locator = ChimeraLocator(self.remote_url)
-        distributions = self._repo_locator.get_distributions()
-        bi_list = []
-        from .installed import _make_bundle_info
-        for d in distributions:
-            bi = _make_bundle_info(d, False, logger)
-            if bi is not None:
-                bi_list.append(bi)
-            _debug("added remote distribution:", d)
-        return bi_list
 
     def reload(self, logger, *, session=None, reread_cache=True, rebuild_cache=False,
                check_remote=False):
@@ -391,12 +371,33 @@ class Toolshed:
                 if session is not None:
                     bi.initialize(session)
         if check_remote:
-            from .available import AvailableBundleCache
-            self._available_bundle_info = AvailableBundleCache()
-            self._available_bundle_info.load(logger, _RemoteURL)
-            # XXX: do we want to register commands so that we can
-            # ask user whether to install bundle when invoked?
+            self.reload_available(logger)
         self.triggers.activate_trigger(TOOLSHED_BUNDLE_INFO_RELOADED, self)
+
+    def reload_available(self, logger):
+        from urllib.error import URLError
+        from .available import AvailableBundleCache
+        abc = AvailableBundleCache()
+        try:
+            abc.load(logger, _RemoteURL)
+        except URLError as e:
+            logger.info("Updating list of available bundles failed: %s"
+                        % str(e.reason))
+        except Exception as e:
+            logger.info("Updating list of available bundles failed: %s"
+                        % str(e))
+        else:
+            with self._abc_lock:
+                self._available_bundle_info = abc
+                self._abc_updating = False
+
+    def _async_reload_remote(self, logger):
+        with self._abc_lock:
+            self._abc_updating = True
+        from threading import Thread
+        t = Thread(target=self.reload_available, args=(logger,),
+                   name="Update list of available bundles")
+        t.start()
 
     def set_install_timestamp(self, per_user=False):
         """Set last installed timestamp."""
@@ -769,7 +770,7 @@ class BundleAPI:
 _toolshed = None
 
 
-def init(*args, debug=False, **kw):
+def init(*args, debug=None, **kw):
     """Initialize toolshed.
 
     The toolshed instance is a singleton across all sessions.
@@ -790,8 +791,9 @@ def init(*args, debug=False, **kw):
     :py:class:`Toolshed` instance
         The toolshed singleton.
     """
-    global _debug_toolshed
-    _debug_toolshed = debug
+    if debug is not None:
+        global _debug_toolshed
+        _debug_toolshed = debug
     global _toolshed
     if _toolshed is None:
         _toolshed = Toolshed(*args, **kw)
