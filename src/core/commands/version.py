@@ -33,7 +33,8 @@ def version(session, format=None):
         return
     import os
     if format == 'bundles':
-        dists = session.toolshed.bundle_info(installed=True, available=False)
+        dists = session.toolshed.bundle_info(session.logger,
+                                             installed=True, available=False)
         dists = list(dists)
         dists.sort(key=lambda d: d.name.casefold())
     else:

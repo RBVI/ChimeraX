@@ -13,7 +13,8 @@
 
 from . import CmdDesc, EnumOf, StringArg, BoolArg, plural_form, commas
 
-_bundle_types = EnumOf(["all", "installed", "available"])
+_bundle_types = EnumOf(["all", "installed", "user", "available"])
+_reload_types = EnumOf(["all", "cache", "installed", "available"])
 
 
 def _display_bundles(bi_list, logger, use_html=False):
@@ -100,7 +101,7 @@ th.bundle {
     logger.info(info, is_html=use_html)
 
 
-def toolshed_list(session, bundle_type="installed"):
+def toolshed_list(session, bundle_type="installed", outdated=False):
     '''List installed bundles in the log.
 
     Parameters
@@ -112,44 +113,52 @@ def toolshed_list(session, bundle_type="installed"):
     logger = session.logger
     use_html = session.ui.is_gui
     if bundle_type == "installed" or bundle_type == "all":
-        bi_list = ts.bundle_info(installed=True, available=False)
+        bi_list = ts.bundle_info(logger, installed=True, available=False)
         if bi_list:
             logger.info("List of installed bundles:")
             _display_bundles(bi_list, logger, use_html)
         else:
             logger.info("No installed bundles found.")
     if bundle_type in ("available", "all"):
-        bi_list = ts.bundle_info(installed=False, available=True)
+        bi_list = ts.bundle_info(logger, installed=False, available=True)
         if bi_list:
             logger.info("List of available bundles:")
             _display_bundles(bi_list, logger, use_html)
         else:
             logger.info("No available bundles found.")
-toolshed_list_desc = CmdDesc(optional=[("bundle_type", _bundle_types)],
-                       non_keyword=['bundle_type'],
-                       synopsis='List installed bundles')
+toolshed_list_desc = CmdDesc(optional=[("bundle_type", _bundle_types),
+                                       ("outdated", BoolArg),],
+                             non_keyword=['bundle_type'],
+                             synopsis='List installed bundles')
 
 
-def toolshed_refresh(session, bundle_type="installed"):
+def toolshed_reload(session, reload_type="installed"):
     '''
-    Check for new bundles or new bundle vesions on server and display
-    them in the toolshed window.
-
-    Parameters
-    ----------
-    bundle_type : string
-      Types are "installed", "available", or "all"
+    Rebuild the bundle metadata cache using information from
+    currently installed bundle.
     '''
     ts = session.toolshed
     logger = session.logger
-    if bundle_type == "installed":
-        ts.reload(logger, session=session, rebuild_cache=True, check_remote=False)
-    elif bundle_type == "available":
-        ts.reload(logger, session=session, rebuild_cache=False, check_remote=True)
-    elif bundle_type == "all":
-        ts.reload(logger, session=session, rebuild_cache=True, check_remote=True)
-toolshed_refresh_desc = CmdDesc(optional=[("bundle_type", _bundle_types)],
-                          synopsis='Refresh cached toolshed metadata')
+    if reload_type == "installed":
+        kw = {"reread_cache":True,
+              "rebuild_cache":True,
+              "check_remote":False}
+    elif reload_type == "cache":
+        kw = {"reread_cache":True,
+              "rebuild_cache":False,
+              "check_remote":True}
+    elif reload_type == "available":
+        kw = {"reread_cache":False,
+              "rebuild_cache":False,
+              "check_remote":True}
+    elif reload_type == "all":
+        kw = {"reread_cache":True,
+              "rebuild_cache":True,
+              "check_remote":True}
+    ts.reload(session.logger, **kw)
+toolshed_reload_desc = CmdDesc(optional=[("reload_type", _reload_types),],
+                               non_keyword=['reload_type'],
+                               synopsis='Refresh cached bundle metadata')
 
 
 def _bundle_string(bundle_name, version):
@@ -172,15 +181,22 @@ def toolshed_install(session, bundle_name, user_only=True, version=None):
     '''
     ts = session.toolshed
     logger = session.logger
-    bi = ts.find_bundle(bundle_name, installed=True, version=version)
-    if bi:
-        logger.error("\"%s\" is already installed" % bundle_name)
-        return
-    bi = ts.find_bundle(bundle_name, installed=False, version=version)
-    if bi is None:
-        logger.error("\"%s\" does not match any bundles"
-                     % _bundle_string(bundle_name, version))
-        return
+    if version == "latest":
+        bi = ts.find_latest_bundle(bundle_name)
+        cur_bi = ts.find_installed_bundle(bundle_name)
+        if bi.version == cur_bi.version:
+            logger.info("latest version of \"%s\" is already installed" % bundle_name)
+            return
+    else:
+        bi = ts.find_installed_bundle(bundle_name, installed=True, version=version)
+        if bi:
+            logger.error("\"%s\" is already installed" % bundle_name)
+            return
+        bi = ts.find_available_bundle(bundle_name, installed=False, version=version)
+        if bi is None:
+            logger.error("\"%s\" does not match any bundles"
+                         % _bundle_string(bundle_name, version))
+            return
     ts.install_bundle(bi, logger, not user_only, session=session)
 toolshed_install_desc = CmdDesc(required=[("bundle_name", StringArg)],
                           optional=[("user_only", BoolArg),
@@ -188,9 +204,9 @@ toolshed_install_desc = CmdDesc(required=[("bundle_name", StringArg)],
                           synopsis='Install a bundle')
 
 
-def toolshed_remove(session, bundle_name):
+def toolshed_uninstall(session, bundle_name):
     '''
-    Remove an installed bundle.
+    Uninstall an installed bundle.
 
     Parameters
     ----------
@@ -198,43 +214,13 @@ def toolshed_remove(session, bundle_name):
     '''
     ts = session.toolshed
     logger = session.logger
-    bi = ts.find_bundle(bundle_name, installed=True)
+    bi = ts.find_bundle(bundle_name, session.logger, installed=True)
     if bi is None:
         logger.error("\"%s\" does not match any bundles" % bundle_name)
         return
     ts.uninstall_bundle(bi, logger, session=session)
-toolshed_remove_desc = CmdDesc(required=[("bundle_name", StringArg)],
-                         synopsis='Remove a bundle')
-
-
-def toolshed_update(session, bundle_name, version=None):
-    '''
-    Update a bundle to the latest version.
-
-    Parameters
-    ----------
-    bundle_name : string
-    version : string
-    '''
-    ts = session.toolshed
-    logger = session.logger
-    new_bi = ts.find_bundle(bundle_name, installed=False, version=version)
-    if new_bi is None:
-        logger.error("\"%s\" does not match any bundles"
-                     % _bundle_string(bundle_name, version))
-        return
-    bi = ts.find_bundle(bundle_name, installed=True)
-    if bi is None:
-        logger.error("\"%s\" does not match any installed bundles" % bundle_name)
-        return
-    if (version is None and not new_bi.newer_than(bi) or
-            new_bi.version == bi.version):
-        logger.info("\"%s\" is up to date" % bundle_name)
-        return
-    ts.install_bundle(new_bi, logger)
-toolshed_update_desc = CmdDesc(required=[("bundle_name", StringArg)],
-                         optional=[("version", StringArg)],
-                         synopsis='Update a bundle to (latest) version')
+toolshed_uninstall_desc = CmdDesc(required=[("bundle_name", StringArg)],
+                                  synopsis='Uninstall a bundle')
 
 
 #
@@ -282,10 +268,15 @@ toolshed_hide_desc = CmdDesc(required=[('tool_name', StringArg)],
 def register_command(session):
     from . import register
 
-    register("toolshed list", toolshed_list_desc, toolshed_list, logger=session.logger)
-    register("toolshed refresh", toolshed_refresh_desc, toolshed_refresh, logger=session.logger)
-    register("toolshed install", toolshed_install_desc, toolshed_install, logger=session.logger)
-    register("toolshed remove", toolshed_remove_desc, toolshed_remove, logger=session.logger)
-    # register("toolshed update", toolshed_update_desc, toolshed_update, logger=session.logger)
-    register("toolshed show", toolshed_show_desc, toolshed_show, logger=session.logger)
-    register("toolshed hide", toolshed_hide_desc, toolshed_hide, logger=session.logger)
+    register("toolshed list", toolshed_list_desc, toolshed_list,
+             logger=session.logger)
+    register("toolshed reload", toolshed_reload_desc, toolshed_reload,
+             logger=session.logger)
+    register("toolshed install", toolshed_install_desc, toolshed_install,
+             logger=session.logger)
+    register("toolshed uninstall", toolshed_uninstall_desc, toolshed_uninstall,
+             logger=session.logger)
+    register("toolshed show", toolshed_show_desc, toolshed_show,
+             logger=session.logger)
+    register("toolshed hide", toolshed_hide_desc, toolshed_hide,
+             logger=session.logger)

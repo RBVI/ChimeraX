@@ -372,7 +372,7 @@ class Tools(State):
         from .toolshed import ToolshedError
         from .core_settings import settings
         start_bi = [None] * len(tool_names)
-        for bi in session.toolshed.bundle_info():
+        for bi in session.toolshed.bundle_info(session.logger):
             for ti in bi.tools:
                 try:
                     start_bi[tool_names.index(ti.name)] = bi
