@@ -11,16 +11,29 @@
 
 def compute_morph(mols, log, method = 'corkscrew', rate = 'linear', frames = 20,
                   cartesian = False, match_same = False, core_fraction = 0.5, min_hinge_spacing = 6,
-                  color_segments = False):
+                  color_segments = False, color_core = None):
         motion = MolecularMotion(mols[0], method = method, rate = rate, frames = frames,
                                  match_same = match_same, core_fraction = core_fraction,
                                  min_hinge_spacing = min_hinge_spacing)
+        traj = motion.trajectory()
         from .interpolate import ResidueInterpolator
-        res_interp = ResidueInterpolator(motion.trajectory().residues, cartesian)
+        res_interp = ResidueInterpolator(traj.residues, cartesian)
         for i, mol in enumerate(mols[1:]):
                 log.status("Computing interpolation %d\n" % (i+1))
-                motion.interpolate(mol, res_interp, (color_segments and i == 0))
-        traj = motion.trajectory()
+                res_groups = motion.interpolate(mol, res_interp)
+                if color_segments and i == 0:
+                        from random import seed, randint
+                        seed(1)
+                        for rg in res_groups:
+                                c = (randint(128,255), randint(128,255), randint(128,255), 255)
+                                rg.ribbon_colors = c
+                                rg.atoms.colors = c
+                if color_core and i == 0:
+                        rgba = color_core.uint8x4()
+                        for r in traj.residues:
+                                if getattr(r, '_in_morph_core', False):
+                                        r.ribbon_color = rgba
+                                        r.atoms.colors = rgba
         traj.active_coordset_id = 1	# Start at initial trajectory frame.
         return traj
 
@@ -105,13 +118,6 @@ class MolecularMotion:
                         from chimerax.core.errors import UserError
                         raise UserError('No atoms matched')
 
-                if color_segments:
-                        from random import seed, randint
-                        seed(1)
-                        for rg in res_groups:
-                                c = (randint(128,255), randint(128,255), randint(128,255), 255)
-                                rg.ribbon_colors = c
-                                rg.atoms.colors = c
                 #
                 # Interpolate between current conformation in trajectory
                 # and new conformation
@@ -141,6 +147,8 @@ class MolecularMotion:
                 t1 = time()
                 global it
                 it += t1-t0
+
+                return res_groups
 
         def trajectory(self):
                 return self.mol
