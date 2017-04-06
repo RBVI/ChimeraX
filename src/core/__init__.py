@@ -46,6 +46,7 @@ _class_class_init = {
     'MonoCamera': '.graphics',
     'NamedView': '.commands.view',
     'NamedViews': '.commands.view',
+    'OrthographicCamera': '.graphics',
     'Place': '.geometry',
     'Places': '.geometry',
     'Pseudobond': '.atomic',

@@ -397,11 +397,13 @@ class Session:
         if issubclass(cls, State):
             return cls
         elif not hasattr(self, '_snapshot_methods'):
-            from .graphics import View, MonoCamera, Lighting, Material, ClipPlane, Drawing, gsession as g
+            from .graphics import View, MonoCamera, OrthographicCamera, Lighting, Material, ClipPlane, Drawing
+            from .graphics import gsession as g
             from .geometry import Place, Places, psession as p
             self._snapshot_methods = {
                 View: g.ViewState,
                 MonoCamera: g.CameraState,
+                OrthographicCamera: g.CameraState,
                 Lighting: g.LightingState,
                 Material: g.MaterialState,
                 ClipPlane: g.ClipPlaneState,
@@ -668,7 +670,7 @@ def save_x3d(session, filename, **kw):
     x3d_scene.need(x3d.Components.EnvironmentalEffects, 1)  # Background
     # x3d_scene.need(x3d.Components.EnvironmentalEffects, 2)  # Fog
     camera = session.main_view.camera
-    if camera.name() == "orthographic":
+    if camera.name == "orthographic":
         x3d_scene.need(x3d.Components.Navigation, 3)  # OrthoViewpoint
     else:
         x3d_scene.need(x3d.Components.Navigation, 1)  # Viewpoint, NavigationInfo
@@ -688,7 +690,7 @@ def save_x3d(session, filename, **kw):
         cofr = session.main_view.center_of_rotation
         r, a = camera.position.rotation_axis_and_angle()
         t = camera.position.translation()
-        if camera.name() == "orthographic":
+        if camera.name == "orthographic":
             hw = camera.field_width / 2
             f = (-hw, -hw, hw, hw)
             print('  <OrthoViewpoint centerOfRotation="%g %g %g" fieldOfView="%g %g %g %g" orientation="%g %g %g %g" position="%g %g %g"/>'
