@@ -1780,9 +1780,11 @@ class _WordInfo:
 _commands = _WordInfo()
 # keep track of commands that have been overridden by an alias
 _aliased_commands = {}  # { name: _WordInfo instance }
+# keep track of available commands
+_available_commands = None
 
 
-def register(name, cmd_desc=(), function=None, *, logger=None):
+def register(name, cmd_desc=(), function=None, *, logger=None, parent_info=None):
     """register function that implements command
 
     :param name: the name of the command and may include spaces.
@@ -1818,7 +1820,8 @@ def register(name, cmd_desc=(), function=None, *, logger=None):
         url = _get_help_url(words)
         if url is not None:
             cmd_desc.url = url
-    parent_info = _commands
+    if parent_info is None:
+        parent_info = _commands
     for word in words[:-1]:
         if not parent_info.has_subcommands():
             word_info = parent_info.add_subcommand(word)
@@ -1861,7 +1864,7 @@ def _get_help_url(words):
     return None
 
 
-def deregister(name, *, is_user_alias=False):
+def deregister(name, *, is_user_alias=False, parent_info=None):
     """Remove existing command and subcommands
 
     :param name: the name of the command
@@ -1870,7 +1873,8 @@ def deregister(name, *, is_user_alias=False):
     # none of the exceptions below should happen
     words = name.split()
     name = ' '.join(words)  # canonicalize
-    parent_info = _commands
+    if parent_info is None:
+        parent_info = _commands
     for word in words:
         word_info = parent_info.subcommands.get(word, None)
         if word_info is None:
@@ -1899,6 +1903,15 @@ def deregister(name, *, is_user_alias=False):
         parent_info = word_info.parent
         assert(len(word_info.subcommands) == 0)
         del parent_info.subcommands[word]
+
+
+def register_available(*args, **kw):
+    return register(*args, parent_info=_available_commands, **kw)
+
+
+def clear_available():
+    global _available_commands
+    _available_commands = None
 
 
 def add_keyword_arguments(name, kw_info):
@@ -1990,14 +2003,15 @@ class Command:
         self.amount_parsed += self._replace(text, replacement)
         return value, rest
 
-    def _find_command_name(self, final=True, no_aliases=False, used_aliases=None):
+    def _find_command_name(self, final=True, no_aliases=False, used_aliases=None, parent_info=None):
         # side effects:
         #   updates amount_parsed
         #   updates possible completions
         #   if successful, sets self._ci
         self._error = "Missing command"
         self.word_info = None  # filled in when partial command is matched
-        parent_info = _commands
+        if parent_info is None:
+            parent_info = _commands
         cmd_name = None
         self.start = self.amount_parsed
         start = self.start
@@ -2279,9 +2293,22 @@ class Command:
         while 1:
             self._find_command_name(final, used_aliases=_used_aliases)
             if self._error:
-                if log:
-                    self.log_parse_error()
-                raise UserError(self._error)
+                # See if this command is available in the toolshed
+                save_error = self._error
+                self._error = ""
+                global _available_commands
+                if _available_commands is None:
+                    from .. import toolshed
+                    _available_commands = _WordInfo()
+                    toolshed.init().register_available_commands(session.logger)
+                self._find_command_name(final, used_aliases=_used_aliases,
+                                        parent_info=_available_commands)
+                if self._error:
+                    # Nope, give the original error message
+                    self._error = save_error
+                    if log:
+                        self.log_parse_error()
+                    raise UserError(self._error)
             if not self._ci:
                 if len(self.current_text) > self.amount_parsed and self.current_text[self.amount_parsed] == ';':
                     # allow for leading and empty semicolon-separated commands

@@ -397,6 +397,8 @@ class Toolshed:
             with self._abc_lock:
                 self._available_bundle_info = abc
                 self._abc_updating = False
+                from ..commands import cli
+                cli.clear_available()
 
     def _async_reload_remote(self, logger):
         with self._abc_lock:
@@ -418,6 +420,10 @@ class Toolshed:
             elif self._abc_updating:
                 logger.warning("still updating bundle list from toolshed")
             return self._available_bundle_info
+
+    def register_available_commands(self, logger):
+        for bi in self._get_available_bundles(logger):
+            bi.register_available_commands(logger)
 
     def set_install_timestamp(self, per_user=False):
         """Set last installed timestamp."""
@@ -633,6 +639,8 @@ class Toolshed:
             except KeyError:
                 pass
             package = package[0:-1]
+        print("No bundle", cls.__module__)
+        print("installed_packages", self._installed_packages.keys())
         return None
 
     def bootstrap_bundles(self, session):
