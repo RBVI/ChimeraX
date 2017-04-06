@@ -143,8 +143,8 @@ class _UniqueName:
         """
         class_name, ordinal = self.uid
         if isinstance(class_name, str):
-            from chimerax.core import get_class
-            cls = get_class(class_name)
+            from chimerax.core import bundle_api
+            cls = bundle_api.get_class(class_name)
         else:
             bundle_name, class_name = class_name
             bundle_info = session.toolshed.find_bundle(bundle_name, session.logger)
