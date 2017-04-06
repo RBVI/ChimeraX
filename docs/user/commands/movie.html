@@ -207,13 +207,16 @@ highest&nbsp;|&nbsp;higher&nbsp;|&nbsp;high&nbsp;|&nbsp;<b>good</b>&nbsp;|&nbsp;
   <br>The frame rate is the rate of playback in terms of image frames.  
   The frame rate <i>fps</i> is an integer and defaults to <b>25</b> frames/s.
   <p>
-  In ChimeraX, the target or intended graphics frame rate is 60 fps (default). 
+  In ChimeraX, the target or intended graphics frame rate during
+  interactive use is 60 fps (default).
   The actual frame rate may be lower depending on computer performance and
   what is being displayed. Recording generally slows the process further;
   however, the frame rate of the resulting movie is controlled independently
   with the <b>framerate</b> option described above.
   Thus, movie playback may be faster or slower than the original process 
-  in ChimeraX.
+  in ChimeraX. The command <a href="set.html#maxFrameRate"><b>set 
+  maxFrameRate</b></a> can be used to make the interactive frame rate as 
+  similar as possible to the playback rate to preview movie-content scripts.
   </p>
 </blockquote><blockquote>
   <b>roundTrip</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
@@ -283,5 +286,5 @@ script (movie content) development.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2017</address>
+April 2017</address>
 </body></html>

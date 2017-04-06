@@ -366,7 +366,10 @@ class Toolshed:
             self._installed_bundle_info.load(logger, cache_file=cache_file,
                                              rebuild_cache=rebuild_cache,
                                              write_cache=True)
+            self._installed_packages = {}
             for bi in self._installed_bundle_info:
+                for p in bi.packages:
+                    self._installed_packages[p] = bi
                 bi.register(logger)
                 if session is not None:
                     bi.initialize(session)

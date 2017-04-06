@@ -1,4 +1,4 @@
-appdirs==1.4.2
+appdirs==1.4.3
 beautifulsoup4==4.5.3
 blockdiag==1.5.3
 colorama==0.3.7
