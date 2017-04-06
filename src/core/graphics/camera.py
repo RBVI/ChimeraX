@@ -48,9 +48,8 @@ class Camera:
         """Indicates whether a camera change has been made which requires
         the graphics to be redrawn."""
 
-    def name(self):
-        '''Name indicating the type of camera, for example, "mono", "stereo", "orthographic".'''
-        return 'unknown'
+    name = 'unknown'
+    '''Name indicating the type of camera, for example, "mono", "stereo", "orthographic".'''
 
     def get_position(self, view_num=None):
         p = self._position if view_num is None else self.view(self._position, view_num)
@@ -179,14 +178,13 @@ class Camera:
 
 class MonoCamera(Camera):
     '''Perspective projection camera has an angular field of view measured in degrees.'''
+
+    name = 'mono'
+    
     def __init__(self):
         Camera.__init__(self)
         self.field_of_view = 30
         "Horizontal field of view in degrees."
-
-    def name(self):
-        '''Name indicating the type of camera, for example, "mono", "stereo", "orthographic".'''
-        return 'mono'
 
     def view_all(self, bounds, aspect = None, pad = 0):
         '''
@@ -279,14 +277,13 @@ def perspective_direction(window_x, window_y, window_size, field_of_view):
 
 class OrthographicCamera(Camera):
     '''Orthographic projection camera.'''
+
+    name = 'orthographic'
+
     def __init__(self, field_width = None):
         Camera.__init__(self)
         self.field_width = 1 if field_width is None or field_width <= 0 else field_width
         "Horizontal field width in scene coordinate units."
-
-    def name(self):
-        '''Name indicating the type of camera, for example, "mono", "stereo", "orthographic".'''
-        return 'orthographic'
 
     def view_all(self, bounds, aspect = None, pad = 0):
         '''
@@ -345,6 +342,7 @@ class StereoCamera(Camera):
     the eye spacing in pixels in the window.  The two eyes are considered
     2 views that belong to one camera.
     '''
+    name = 'stereo'
 
     def __init__(self, eye_separation_pixels=200):
         Camera.__init__(self)
@@ -357,9 +355,6 @@ class StereoCamera(Camera):
 
         self.eye_separation_pixels = eye_separation_pixels
         "Separation of the user's eyes in screen pixels used for stereo rendering."
-
-    def name(self):
-        return 'stereo'
 
     def view(self, camera_position, view_num):
         '''
@@ -407,6 +402,8 @@ class StereoCamera(Camera):
 class SplitStereoCamera(Camera):
     '''Side-by-side and top-bottom stereo.'''
 
+    name = 'split stereo'
+
     def __init__(self, layout = 'side-by-side'):
 
         Camera.__init__(self)
@@ -415,10 +412,6 @@ class SplitStereoCamera(Camera):
         self._framebuffer = {'left':None, 'right':None} # Framebuffer for rendering each eye
         self._drawing = {'left':None, 'right':None}	# Drawing of rectangle with cube map texture
         self.layout = layout			# Packing of left/right eye images: top-bottom or side-by-side
-
-    def name(self):
-        '''Name of camera mode.'''
-        return 'split stereo'
 
     def view(self, camera_position, view_num):
         '''
