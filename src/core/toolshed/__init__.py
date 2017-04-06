@@ -460,52 +460,6 @@ class Toolshed:
         else:
             return []
 
-    def add_bundle_info(self, bi, logger):
-        """Add metadata for a bundle.
-
-        Parameters
-        ----------
-        bi : :py:class:`BundleInfo` instance
-            Must be a constructed instance, *i.e.*, not an existing instance
-            returned by :py:func:`bundle_info`.
-        logger : :py:class:`~chimerax.core.logger.Logger` instance
-            Logging object where warning and error messages are sent.
-
-        Notes
-        -----
-        A :py:const:`TOOLSHED_BUNDLE_INFO_ADDED` trigger is fired after the addition.
-        """
-        _debug("add_bundle_info", bi)
-        if bi.installed:
-            container = self._installed_bundle_info
-            for p in bi.packages:
-                if p in self._installed_packages:
-                    bi2 = self._installed_packages[p]
-                    logger.warning('both %s and %s supply package %s' % (
-                                   bi.name, bi2.name, '.'.join(p)))
-                    if bi.name in bi2.supercedes:
-                        remove = skip = bi
-                    elif bi2.name in bi.supercedes:
-                        remove = skip = bi2
-                    else:
-                        remove = None
-                        skip = bi2
-                    if remove and hasattr(remove, 'path'):
-                        logger.warning('removing %s' % remove.path)
-                        import shutil
-                        shutil.rmtree(remove.path, ignore_errors=True)
-                    else:
-                        logger.warning('skipping %s' % skip.name)
-                    if skip == bi:
-                        continue
-                self._installed_packages[p] = bi
-        else:
-            if available and self._available_bundle_info is None:
-                self.reload(logger, reread_cache=False, check_remote=True)
-            container = self._get_available_bundles(logger)
-        container.append(bi)
-        self.triggers.activate_trigger(TOOLSHED_BUNDLE_INFO_ADDED, bi)
-
     def install_bundle(self, bi, logger, *, system=False, session=None):
         """Install the bundle by retrieving it from the remote shed.
 

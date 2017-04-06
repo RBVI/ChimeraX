@@ -95,22 +95,15 @@ class _UniqueName:
         obj_cls = obj.__class__
         bundle_info = toolshed.find_bundle_for_class(obj_cls)
         if bundle_info is None:
-            # no bundle info, must be in core
-            if not obj_cls.__module__.startswith('chimerax.core.'):
-                raise RuntimeError('No bundle information for %s.%s' % (
-                    obj_cls.__module__, obj_cls.__name__))
-            class_name = obj_cls.__name__
-            # double check that class will be able to be restored
-            from chimerax.core import get_class
-            if obj_cls != get_class(class_name):
-                raise RuntimeError('Will not be able to restore objects of %s class' % class_name)
+            raise RuntimeError('No bundle information for %s.%s' % (
+                obj_cls.__module__, obj_cls.__name__))
         else:
             class_name = (bundle_info.name, obj_cls.__name__)
             # double check that class will be able to be restored
             if obj_cls != bundle_info.get_class(obj_cls.__name__, logger):
                 raise RuntimeError(
                     'unable to restore objects of %s class in %s bundle' %
-                    (class_name, bundle_info.name))
+                    (obj_cls.__name__, bundle_info.name))
 
         ordinal = cls._cls_ordinals.get(class_name, 0)
         if ordinal == 0 and bundle_info is not None:
