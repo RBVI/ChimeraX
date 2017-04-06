@@ -425,6 +425,16 @@ def _make_bundle_info(d, installed, logger):
         bi.description = description
     except (KeyError, OSError):
         pass
+
+    #
+    # If the bundle does not implement BundleAPI interface,
+    # act as if it were not a bundle
+    #
+    from . import ToolshedError
+    try:
+        bi._get_api(logger)
+    except ToolshedError:
+        return None
     return bi
 
 

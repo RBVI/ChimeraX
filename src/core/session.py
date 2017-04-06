@@ -78,7 +78,7 @@ class _UniqueName:
         self.uid = uid
 
     @classmethod
-    def from_obj(cls, toolshed, obj):
+    def from_obj(cls, toolshed, obj, logger):
         """Return a unique identifier for an object in session
         Consequently, the identifier is composed of simple data types.
 
