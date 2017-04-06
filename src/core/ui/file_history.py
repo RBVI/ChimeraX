@@ -13,8 +13,9 @@
 
 class FileHistory:
 
-    def __init__(self, session, parent, bg_color=None, **kw):
-        self.thumbnail_size = (64,64)	# Pixels
+    def __init__(self, session, parent, bg_color=None, thumbnail_size=(64,64), filename_size=8, **kw):
+        self.thumbnail_size = thumbnail_size	# Pixels
+        self.filename_size = filename_size	# Characters
         self._default_image = None
         self._default_image_format = None
         self.session = session
@@ -53,9 +54,10 @@ class FileHistory:
             lines.append('</style>')
             w,h = self.thumbnail_size
             # TODO: Qt 5.6.0 bug in QT-53414 makes web content > 2 Mbytes not display.
-            hbytes, max_bytes = 0, 1500000
+            # Work-around code saves html to temp file.  Still limit html to < 50 Mbytes for performance.
+            hbytes, max_bytes = 0, 50000000
             for fi, f in enumerate(reversed(files)):
-                name = limit_string(f.short_name(), 8)
+                name = limit_string(f.short_name(), self.filename_size)
                 import html
                 cmd = html.escape(f.open_command())
                 # TODO: JPEG inline images cause page to be blank.

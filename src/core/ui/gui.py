@@ -274,7 +274,8 @@ class MainWindow(QMainWindow, PlainTextLog):
         self._stack.addWidget(g.widget)
         self.rapid_access = QWidget(self._stack)
         from .file_history import FileHistory
-        fh = FileHistory(session, self.rapid_access, bg_color="#B8B8B8")
+        fh = FileHistory(session, self.rapid_access, bg_color="#B8B8B8",
+                         thumbnail_size=(128,128), filename_size=15)
         self._stack.addWidget(self.rapid_access)
         self._stack.setCurrentWidget(g.widget)
         self.setCentralWidget(self._stack)
