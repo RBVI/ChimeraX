@@ -347,8 +347,9 @@ class BundleInfo:
             cli.register_available(ci.name, cd, function=cb, logger=logger)
 
     def _available_cmd(self, name, logger):
-        logger.warning("\"%s\" is provided by the uninstalled bundle \"%s\""
-                       % (name, self.name))
+        msg = ("\"%s\" is provided by the uninstalled bundle \"%s\""
+               % (name, self.name))
+        logger.status(msg, log=True)
 
     def initialize(self, session):
         """Initialize bundle by calling custom initialization code if needed."""
