@@ -639,8 +639,6 @@ class Toolshed:
             except KeyError:
                 pass
             package = package[0:-1]
-        print("No bundle", cls.__module__)
-        print("installed_packages", self._installed_packages.keys())
         return None
 
     def bootstrap_bundles(self, session):
