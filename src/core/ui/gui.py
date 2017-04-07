@@ -474,6 +474,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         if show == (self._stack.currentWidget() == self.rapid_access):
             return
 
+        from PyQt5.QtCore import QEventLoop
         if show:
             icon = self._ra_shown_icon
             if not self._rapid_access_shown_once:
@@ -485,6 +486,9 @@ class MainWindow(QMainWindow, PlainTextLog):
             if not self._rapid_access_shown_once:
                 self.graphics_window.session.update_loop.unblock_redraw()
                 self._rapid_access_shown_once = True
+        self.graphics_window.session.update_loop.block_redraw()
+        self.graphics_window.session.ui.processEvents(QEventLoop.ExcludeUserInputEvents)
+        self.graphics_window.session.update_loop.unblock_redraw()
 
         but = self._rapid_access_button
         but.setChecked(show)
