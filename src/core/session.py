@@ -554,8 +554,12 @@ def save(session, filename, **kw):
     from . import utils
     if isinstance(filename, str) and utils.can_set_file_icon():
         width = height = 512
-        image = session.main_view.image(width, height)
-        utils.set_file_icon(filename, image)
+        try:
+            image = session.main_view.image(width, height)
+        except RuntimeError:
+            pass
+        else:
+            utils.set_file_icon(filename, image)
 
     # Remember session in file history
     if isinstance(filename, str):
