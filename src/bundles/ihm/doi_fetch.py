@@ -18,12 +18,11 @@
 #
 # scrape web page for a zip file and return path local copy.
 #
-def fetch_doi(session, doi, ignore_cache = False):
+def fetch_doi(session, doi, url, ignore_cache = False):
     if not '/' in doi:
         from chimerax.core.errors import UserError
         raise UserError('DOI does not contain required "/", got "%s"' % doi)
-
-    doi_url = 'http://doi.org/%s' % doi
+        
     from chimerax.core.fetch import cache_directories, fetch_file
     from os.path import join, isdir, basename
     dirs = cache_directories()
@@ -32,11 +31,39 @@ def fetch_doi(session, doi, ignore_cache = False):
             path = join(d, 'DOI', doi)
             if isdir(path):
                 from os import listdir
-                zf = [f for f in listdir(path) if f.endswith('.zip')]
+                if url:
+                    zip_name = basename(url)
+                    zf = [f for f in listdir(path) if f == zip_name]
+                else:
+                    zf = [f for f in listdir(path) if f.endswith('.zip')]
                 if len(zf) == 1:
                     zp = join(path, zf[0])
                     return zp
 
+    if url is None:
+        zip_file_url = find_doi_zip_archive_url(session, doi)
+    else:
+        zip_file_url = url
+    zip_filename = basename(zip_file_url)
+    filename = fetch_file(session, zip_file_url, 'zip %s' % doi, zip_filename,
+                          save_dir = None, uncompress = False, ignore_cache=True)
+    
+    if dirs:
+        from os import makedirs, link
+        d = join(dirs[0], 'DOI', doi)
+        makedirs(d, exist_ok = True)
+        cfile = join(d, zip_filename)
+        link(filename, cfile)
+    else:
+        cfile = filename
+
+    return cfile
+
+# -----------------------------------------------------------------------------
+# HTML scraping to find zip file URL used with Zenodo file sharing site.
+#
+def find_doi_zip_archive_url(session, doi):
+    doi_url = 'http://doi.org/%s' % doi
     filename = fetch_file(session, doi_url, 'doi %s' % doi,
                           save_name = 'temp.html', save_dir = None,
                           uncompress = True, ignore_cache=True)
@@ -51,19 +78,7 @@ def fetch_doi(session, doi, ignore_cache = False):
         raise UserError('Found no zip archives at DOI "%s"' % doi)
 
     file_url = urls.pop()
-    filename = fetch_file(session, file_url, 'zip %s' % doi, basename(file_url), save_dir = None,
-                          uncompress = False, ignore_cache=True)
-    
-    if dirs:
-        from os import makedirs, link
-        d = join(dirs[0], 'DOI', doi)
-        makedirs(d, exist_ok = True)
-        cfile = join(d, basename(file_url))
-        link(filename, cfile)
-    else:
-        cfile = filename
-
-    return cfile
+    return file_url
 
 # -----------------------------------------------------------------------------
 # Look for file link in html of form
@@ -96,9 +111,9 @@ def find_link_in_html(filename, url_suffix = '.zip', mime_type = 'application/zi
 
 # -----------------------------------------------------------------------------
 #
-def fetch_doi_archive_file(session, doi, archive_path, ignore_cache = False):
+def fetch_doi_archive_file(session, doi, url, archive_path, ignore_cache = False):
 
-    zip_path = fetch_doi(session, doi, ignore_cache = ignore_cache)
+    zip_path = fetch_doi(session, doi, url, ignore_cache = ignore_cache)
     from zipfile import ZipFile
     zf = ZipFile(zip_path, 'r')
     full_paths = []
@@ -111,8 +126,8 @@ def fetch_doi_archive_file(session, doi, archive_path, ignore_cache = False):
 
 # -----------------------------------------------------------------------------
 #
-def unzip_archive(session, doi, directory, ignore_cache = False):
-    zip_path = fetch_doi(session, doi, ignore_cache = ignore_cache)
+def unzip_archive(session, doi, url, directory, ignore_cache = False):
+    zip_path = fetch_doi(session, doi, url, ignore_cache = ignore_cache)
     from zipfile import ZipFile
     zf = ZipFile(zip_path, 'r')
     # Check if zip file already extracted.

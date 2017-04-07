@@ -641,6 +641,9 @@ class IHMModel(Model):
                 if finfo is None:
                     continue
                 map_path = finfo.map_path(self.session)
+                if map_path is None:
+                    # TODO: Warn map file not found.
+                    continue
                 maps,msg = open_map(self.session, map_path, show = False, show_dialog=False)
                 color = chain_rgba(asym_id)[:3] + (opacity,)
                 v = maps[0]
@@ -761,7 +764,7 @@ class FileInfo:
             f = open(self.file_path, mode)
         elif r.ref_type == 'DOI':
             from .doi_fetch import fetch_doi_archive_file
-            f = fetch_doi_archive_file(session, r.ref, self.file_path)
+            f = fetch_doi_archive_file(session, r.ref, r.url, self.file_path)
         else:
             f = None
         return f
@@ -780,8 +783,10 @@ class FileInfo:
             r = self.ref
             if r and r.ref_type == 'DOI':
                 from .doi_fetch import unzip_archive
-                unzip_archive(session, r.ref, self.ihm_dir)
+                unzip_archive(session, r.ref, r.url, self.ihm_dir)
                 if not isfile(image_path):
+                    session.logger.warning('Failed to find map file in zip archive DOI "%s", url "%s", path "%s"'
+                                           % (r.ref, r.url, image_path))
                     image_path = None
         return image_path
 
