@@ -13,13 +13,15 @@
 
 class FileHistory:
 
-    def __init__(self, session, parent, bg_color=None, thumbnail_size=(64,64), filename_size=8, **kw):
+    def __init__(self, session, parent, bg_color=None, thumbnail_size=(64,64), filename_size=8,
+            no_hist_text='<html><body>No files in history</body></html>', **kw):
         self.thumbnail_size = thumbnail_size	# Pixels
         self.filename_size = filename_size	# Characters
         self._default_image = None
         self._default_image_format = None
         self.session = session
         self.bg_color = bg_color
+        self.no_hist_text = no_hist_text
 
         from .widgets import ChimeraXHtmlView
         self.file_history_window = fhw = ChimeraXHtmlView(session, parent, **kw)
@@ -46,7 +48,7 @@ class FileHistory:
         from ..filehistory import file_history
         files = file_history(self.session).files
         if len(files) == 0:
-            html = '<html><body>No files in history</body></html>'
+            html = self.no_hist_text
         else:
             lines = ['<html>', '<body>', '<style>', 'table { float:left; }']
             if self.bg_color:
