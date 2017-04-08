@@ -2198,7 +2198,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
         }
         PyTuple_SetItem(o, 2, ca);
 
-        if (!has_guides) {
+        if (!has_guides || centers.size() < 2) {
             Py_INCREF(Py_None);
             PyTuple_SetItem(o, 3, Py_None);
         }
