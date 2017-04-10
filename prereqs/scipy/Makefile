@@ -3,9 +3,10 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 include ../pips/Makefile.pip
 
-VERSION = 0.18.1
+VERSION = 0.19.0
 
 ifdef WIN32
+# Downloaded from http://www.lfd.uci.edu/~gohlke/pythonlibs/
 WHEEL = scipy-$(VERSION)-cp36-cp36m-win_amd64.whl
 endif
 
