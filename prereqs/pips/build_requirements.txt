@@ -5,7 +5,7 @@ colorama==0.3.7
 Cython==0.25.2
 distlib==0.2.4
 docutils==0.13.1
-filelock==2.0.7
+filelock==2.0.8
 flake8==3.3.0
 funcparserlib==0.3.6
 grako==3.16.5
@@ -17,12 +17,12 @@ networkx==1.10
 numpydoc==0.6.0
 pep8==1.7.0
 pep8-naming==0.4.1
-Pillow==4.0.0
+Pillow==4.1.0
 pyflakes==1.5.0
 Pygments==2.2.0
 pypiserver==1.2.0
 python-dateutil==2.6.0
-setuptools==34.3.1
+setuptools==34.4.1
 six==1.10.0
 Sphinx==1.5.3
 sphinxcontrib-blockdiag==1.5.5
