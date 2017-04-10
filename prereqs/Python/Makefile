@@ -3,11 +3,7 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 # PYTHON_VERSION is in config.make
-ifeq ($(OS),Windows)
-PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).0
-else
 PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).1
-endif
 DISTRIBUTION = Python-$(PYTHON_PATCH_LEVEL).tar.xz
 SOURCE = $(tmpdir)/Python-$(PYTHON_PATCH_LEVEL)
 
@@ -97,6 +93,11 @@ ifeq ($(OS),Windows)
 	#cd $(SOURCE)/PCbuild ; cmd /c build.bat -p $(PLATFORM) 
 	#cd $(SOURCE)/PCbuild ; env HOST_PYTHON=`cygpath -m '$(SOURCE)/PCbuild/amd64/python3.exe'` devenv.com pcbuild.sln /build $(CONFIG_PLATFORM) /project _ssl
 	test -n '$(PYDIR)'
+	@if [ $(PYTHON_PATCH_LEVEL) != $(shell '$(PYDIR)'/python -c 'import sys; print(sys.version.split()[0])') ] ; \
+	then \
+		echo "Can not find Python $(PYTHON_PATCH_LEVEL)" ; \
+		exit 1 ; \
+	fi
 	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ --delete\
 	  '$(PYDIR)'/DLLs \
 	  '$(PYDIR)'/Lib \

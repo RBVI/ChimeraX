@@ -131,8 +131,15 @@ class InstalledBundleCache(list):
         import filelock, json, os, sys
         from .info import BundleInfo
         try:
-            lock = filelock.FileLock(cache_file + '.lock')
+            lock_file = cache_file + '.lock'
+            lock = filelock.FileLock(lock_file)
             with lock.acquire():
+                if not lock.is_locked:
+                    # As of filelock==2.0.8:
+                    # On Unix, failing to create the lock file results
+                    # in an exception, but on Windows the acquire fails
+                    # silently but leaves the lock unlocked
+                    raise OSError("cannot create lock file %r" % lock_file)
                 f = open(cache_file, "r", encoding='utf-8')
                 try:
                     with f:
