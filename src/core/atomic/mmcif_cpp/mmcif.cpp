@@ -324,6 +324,15 @@ ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_c
         [this] () {
             parse_struct_sheet_range();
         }, { "struct_conn" });
+    register_category("chem_comp",
+        [this] () {
+            parse_chem_comp();
+        });
+    register_category("chem_comp_bond",
+        [this] () {
+            parse_chem_comp_bond();
+        }, { "chem_comp" });
+    // must be last:
     for (auto& c: generic_categories) {
         if (std::find(std::begin(builtin_categories), std::end(builtin_categories), c) != std::end(builtin_categories)) {
             logger::warning(_logger, "Can not overriden builtin parsing for "
@@ -335,14 +344,6 @@ ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_c
                 parse_generic_category();
             });
     }
-    register_category("chem_comp",
-        [this] () {
-            parse_chem_comp();
-        });
-    register_category("chem_comp_bond",
-        [this] () {
-            parse_chem_comp_bond();
-        }, { "chem_comp" });
 }
 
 ExtractMolecule::~ExtractMolecule()
@@ -814,7 +815,7 @@ ExtractMolecule::parse_audit_conform()
             [&dict_version] (const char* start) {
                 dict_version = atof(start);
             });
-        pv.emplace_back(get_column("pdbx_keywords"),
+        pv.emplace_back(get_column("pdbx_keywords_flag"),
             [&] (const char* start) {
                 has_pdbx = true;
                 set_PDBx_keywords(*start == 'Y' || *start == 'y');
