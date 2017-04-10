@@ -1331,7 +1331,7 @@ ExtractMolecule::parse_struct_conn()
         else if (conn_type == "metalc")
             metal = true;
         if (!normal && !metal && !hydro)
-            continue;   // skip hydrogen, modres, and unknown bonds
+            continue;   // skip modres and unknown connection types
         AtomKey k1(chain_id1, position1, auth_position1, ins_code1, alt_id1,
                 atom_name1, residue_name1);
         auto ai1 = atom_map.find(k1);
