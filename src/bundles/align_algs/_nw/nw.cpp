@@ -18,6 +18,8 @@
 #include <map>
 #include <vector>
 
+#include <iostream>
+
 #include <align_algs/support.h>
 #include <arrays/pythonarray.h>
 #include <pysupport/convert.h>
@@ -111,7 +113,7 @@ class SSEvaluator: public Evaluator
 public:
 	SSEvaluator(char* ss_types1, char* ss_types2, double ss_fraction, Evaluator* prev_eval,
 			PyObject* py_ss_m) {
-		if (make_matrix(py_ss_m, _ss_m) < 0)
+		if (make_matrix(py_ss_m, _ss_m, true) < 0)
 			throw std::invalid_argument("bad SS matrix");
 		_ss_types1 = ss_types1;
 		_ss_types2 = ss_types2;

@@ -146,7 +146,7 @@ PDBx/mmCIF styling constrains the CIF format by:
            into multiple lines.
 
 The :download:`example code <readcif_example.cpp>` shows how a derived class would turn on stylized parsing.
-The **audit_conform** category is examined for explicit references to **pdbx_keywords** and **pdbx_fixed_width_columns**.
+The **audit_conform** category is examined for explicit references to **pdbx_keywords_flag** and **pdbx_fixed_width_columns**.
 And if they are present, they control the options.
 Otherwise, a heuristic is used: if the **dict_name** is "mmcif_pdbx.dic_"
 and **dict_version** is greater than 4,
