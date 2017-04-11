@@ -23,7 +23,7 @@ def wait(session, frames=None):
     if frames is None:
         from . import motion
         while motion.motion_in_progress(session):
-            draw_farme(session)
+            draw_frame(session)
     else:
         for f in range(frames):
             draw_frame(session)
