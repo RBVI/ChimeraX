@@ -128,12 +128,11 @@ class InstalledBundleCache(list):
             _debug("InstalledBundleCache.load: write_cache")
             self._write_cache(cache_file, logger)
 
-    def register_all(self, logger, session):
+    def register_all(self, logger, session, package_map):
         """Register all installed bundles.
 
         Returns dictionary of package name to bundle instance."""
 
-        package_map = {}
         for bi in self:
             for p in bi.packages:
                 package_map[p] = bi
@@ -142,13 +141,13 @@ class InstalledBundleCache(list):
                 bi.initialize(session)
         return package_map
 
-    def deregister_all(self, logger):
+    def deregister_all(self, logger, session, package_map):
         """Deregister all installed bundles."""
 
         for bi in reversed(self):
             for p in bi.packages:
                 try:
-                    del self._installed_packages[p]
+                    del package_map[p]
                 except KeyError:
                     pass
             if session is not None:

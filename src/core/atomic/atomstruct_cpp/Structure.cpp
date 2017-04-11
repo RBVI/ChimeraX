@@ -672,6 +672,7 @@ Structure::rings(bool cross_residues, unsigned int all_size_threshold,
         return _rings;
     }
 
+    auto db = DestructionBatcher(const_cast<Structure*>(this));
     _recompute_rings = false;
     _rings_last_cross_residues = cross_residues;
     _rings_last_all_size_threshold = all_size_threshold;
