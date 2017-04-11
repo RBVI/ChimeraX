@@ -36,7 +36,7 @@ static const char *BadKey = "dictionary key must be tuple of two characters";
 //	a wildcard.
 //
 int
-make_matrix(PyObject *dict, Similarity &matrix)
+make_matrix(PyObject *dict, Similarity &matrix, bool is_ss_matrix)
 {
 	if (!PyDict_Check(dict)) {
 		PyErr_SetString(PyExc_TypeError, "matrix must be a dictionary");
@@ -92,6 +92,14 @@ make_matrix(PyObject *dict, Similarity &matrix)
 		//
 		matrix[Pair(*k0, *k1)] = v;
 	}
+    if (is_ss_matrix) {
+        // missing residues have ' ' as SS type
+        const char* chars = "HSO ";
+        for (const char* c = chars; *c; ++c) {
+            matrix[Pair(*c, ' ')] = 0.0;
+            matrix[Pair(' ', *c)] = 0.0;
+        }
+    }
 	return 0;
 }
 

@@ -25,7 +25,7 @@ namespace align_algs {
 typedef std::pair<char, char> Pair;
 typedef std::map<Pair, double> Similarity;
 
-int make_matrix(PyObject *dict, Similarity &matrix);
+int make_matrix(PyObject *dict, Similarity &matrix, bool is_ss_matrix = false);
 Similarity::const_iterator matrix_lookup(const Similarity &matrix, char c1, char c2);
 
 #define SIM_MATRIX_EXPLAIN \
