@@ -84,7 +84,7 @@ ExtractCIF::parse_audit_conform()
                     [&] (const char* start) {
                         dict_version = atof(start);
                     });
-    pv.emplace_back(get_column("pdbx_keywords"),
+    pv.emplace_back(get_column("pdbx_keywords_flag"),
                     [&] (const char* start) {
                         has_pdbx = true;
                         set_PDBx_keywords(*start == 'Y' || *start == 'y');

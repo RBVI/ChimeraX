@@ -26,8 +26,8 @@ class ViewState:
 
         # TODO: Handle cameras other than MonoCamera
         c = v.camera
-        from . import MonoCamera
-        if not isinstance(c, MonoCamera):
+        from . import MonoCamera, OrthographicCamera
+        if not isinstance(c, (MonoCamera, OrthographicCamera)):
             p = c.position
             c = MonoCamera()
             c.position = p
@@ -71,25 +71,31 @@ class ViewState:
 class CameraState:
 
     version = 1
-    save_attrs = ['position', 'field_of_view']
+    save_attrs = ['name', 'position', 'field_of_view', 'field_width']
 
     @staticmethod
     def take_snapshot(camera, session, flags):
         c = camera
-        from .camera import MonoCamera
-        if isinstance(c, MonoCamera):
-            data = {a:getattr(c,a) for a in CameraState.save_attrs}
+        from .camera import MonoCamera, OrthographicCamera
+        if isinstance(c, (MonoCamera, OrthographicCamera)):
+            data = {a:getattr(c,a) for a in CameraState.save_attrs if hasattr(c,a)}
         else:
             # TODO: Restore other camera modes.
-            session.logger.info('"%s" camera settings not currently saved in sessions' % c.name())
+            session.logger.info('"%s" camera settings not currently saved in sessions' % c.name)
             data = {'position': c.position}
         data['version'] = CameraState.version
         return data
 
     @staticmethod
     def restore_snapshot(session, data):
-        from .camera import MonoCamera
-        c = MonoCamera()
+        cname = data.get('name', 'mono')
+        from .camera import MonoCamera, OrthographicCamera
+        if cname == 'mono':
+            c = MonoCamera()
+        elif cname == 'orthographic':
+            c = OrthographicCamera()
+        else:
+            c = MonoCamera()
         CameraState.set_state_from_snapshot(c, session, data)
         return c
 

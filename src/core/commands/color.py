@@ -20,7 +20,7 @@ _SequentialLevels = ["residues", "chains", "polymers", "molmodels"]
 def color(session, objects, color=None, what=None,
           target=None, transparency=None,
           sequential=None, palette=None, halfbond=None,
-          map=None, range=None, offset=0):
+          map=None, range=None, offset=0, zone=None, distance=2):
     """Color atoms, ribbons, surfaces, ....
 
     Parameters
@@ -51,6 +51,10 @@ def color(session, objects, color=None, what=None,
       Specifies the range of map values used for sampling from a palette.
     offset : float
       Displacement distance along surface normals for sampling map when using map option.  Default 0.
+    zone : Atoms
+      Color surfaces to match closest atom within specified zone distance.
+    distance : float
+      Zone distance used with zone option.
     """
     if objects is None:
         from . import all_objects
@@ -94,6 +98,21 @@ def color(session, objects, color=None, what=None,
         else:
             f(session, objects, palette, opacity, target)
             return
+
+    if zone is not None:
+        from ..atomic import MolecularSurface, Structure
+        slist = [m for m in objects.models
+                 if not m.empty_drawing() and not isinstance(m, (Structure, MolecularSurface))]
+        for m in objects.models:
+            if hasattr(m, 'surface_drawings_for_vertex_coloring'):
+                slist.extend(m.surface_drawings_for_vertex_coloring())
+        bonds = None
+        auto_update = False
+        from ..surface.colorzone import points_and_colors, color_zone
+        for s in slist:
+            points, colors = points_and_colors(zone, bonds)
+            s.scene_position.inverse().move(points)	# Transform points to surface coordinates
+            color_zone(s, points, colors, distance, auto_update)
 
     what = []
 
@@ -417,7 +436,7 @@ _SequentialColor = {
 #
 def register_command(session):
     from . import register, CmdDesc, ColorArg, ColormapArg, ColormapRangeArg, ObjectsArg, create_alias
-    from . import EmptyArg, Or, EnumOf, StringArg, TupleOf, FloatArg, BoolArg
+    from . import EmptyArg, Or, EnumOf, StringArg, TupleOf, FloatArg, BoolArg, AtomsArg
     from ..map import MapArg
     what_arg = EnumOf(('atoms', 'cartoons', 'ribbons', 'surfaces', 'bonds', 'pseudobonds'))
     desc = CmdDesc(required=[('objects', Or(ObjectsArg, EmptyArg))],
@@ -431,6 +450,8 @@ def register_command(session):
                             ('palette', ColormapArg),
                             ('range', ColormapRangeArg),
                             ('offset', FloatArg),
+                            ('zone', AtomsArg),
+                            ('distance', FloatArg),
                    ],
                    synopsis="color objects")
     register('color', desc, color, logger=session.logger)

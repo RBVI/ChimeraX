@@ -2944,10 +2944,25 @@ def open_map(session, stream, *args, **kw):
     else:
       map_path = stream.name
       stream.close()
+    from os.path import basename
+    name = basename(map_path if isinstance(map_path, str) else map_path[0])
 
-    maps = []
     from . import data
     grids = data.open_file(map_path)
+
+    if grids and isinstance(grids[0], (tuple, list)):
+      # handle multiple channels.
+      models = []
+      for cgrids in grids:
+        cmodels, msg = open_grids(session, cgrids, name, **kw)
+        models.extend(cmodels)
+    else:
+      models, msg = open_grids(session, grids, name, **kw)
+    return models, msg
+
+# -----------------------------------------------------------------------------
+#
+def open_grids(session, grids, name, **kw):
 
     if kw.get('polar_values', False):
       for g in grids:
@@ -2967,7 +2982,8 @@ def open_map(session, stream, *args, **kw):
         for g in grids:
           if hasattr(g, 'series_index'):
             delattr(g, 'series_index')
-          
+
+    maps = []
     show = kw.get('show', True)
     show_dialog = kw.get('show_dialog', True)
     for i,d in enumerate(grids):
@@ -2978,8 +2994,6 @@ def open_map(session, stream, *args, **kw):
         maps.append(v)
 
     if len(maps) > 1 and len([d for d in grids if hasattr(d, 'series_index')]) == len(grids):
-        from os.path import basename
-        name = basename(map_path if isinstance(map_path, str) else map_path[0])
         from .series import Map_Series
         ms = Map_Series(name, maps, session)
         msg = 'Opened map series %s, %d images' % (name, len(maps))

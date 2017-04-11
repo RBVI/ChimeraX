@@ -12,6 +12,8 @@
 from .camera import Camera
 class Mono360Camera(Camera):
 
+    name = 'mono 360'
+
     def __init__(self):
 
         Camera.__init__(self)
@@ -20,10 +22,6 @@ class Mono360Camera(Camera):
         self._projection_size = (360,180)	# Grid size for projecting cubemap.
         self._drawing = None			# Drawing of rectangle with cube map texture
         self._view_rotations = _cube_map_face_views()   # Camera views for cube faces
-
-    def name(self):
-        '''Name of camera mode.'''
-        return 'mono 360'
 
     def view(self, camera_position, view_num):
         '''
@@ -90,6 +88,8 @@ class Mono360Camera(Camera):
 
 class Stereo360Camera(Camera):
 
+    name = 'stereo 360'
+
     def __init__(self, layout = 'top-bottom'):
 
         Camera.__init__(self)
@@ -101,10 +101,6 @@ class Stereo360Camera(Camera):
         v = _cube_map_face_views()
         self._view_rotations = v + v		# Camera views for cube faces
         self.layout = layout			# Packing of left/right eye images: top-bottom or side-by-side
-
-    def name(self):
-        '''Name of camera mode.'''
-        return 'stereo 360'
 
     def view(self, camera_position, view_num):
         '''

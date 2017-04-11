@@ -273,8 +273,38 @@ class MainWindow(QMainWindow, PlainTextLog):
         self.graphics_window = g = GraphicsWindow(self._stack, ui)
         self._stack.addWidget(g.widget)
         self.rapid_access = QWidget(self._stack)
+        ra_bg_color = "#B8B8B8"
+        font_size = 96
+        new_user_text = [
+            "<html>",
+            "<body>",
+            "<style>",
+            "body {",
+            "    background-color: %s;" % ra_bg_color,
+            "}",
+            ".banner-text {",
+            "    font-size: %dpx;" % font_size,
+            "    color: #3C6B19;",
+            "    position: absolute;",
+            "    top: 50%;",
+            "    left: 50%;",
+            "    transform: translate(-50%,-150%);",
+            "}"
+            ".help-link {",
+            "    position: absolute;"
+            "    top: 60%;",
+            "    left: 50%;",
+            "    transform: translate(-50%,-50%);",
+            "}",
+            "</style>",
+            '<p class="banner-text">ChimeraX</p>',
+            '<p class="help-link"><a href="cxcmd:help help:quickstart">Get started</a><p>',
+            "</body>",
+            "</html>"
+        ]
         from .file_history import FileHistory
-        fh = FileHistory(session, self.rapid_access, bg_color="#B8B8B8")
+        fh = FileHistory(session, self.rapid_access, bg_color=ra_bg_color, thumbnail_size=(128,128),
+            filename_size=15, no_hist_text="\n".join(new_user_text))
         self._stack.addWidget(self.rapid_access)
         self._stack.setCurrentWidget(g.widget)
         self.setCentralWidget(self._stack)
@@ -444,6 +474,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         if show == (self._stack.currentWidget() == self.rapid_access):
             return
 
+        from PyQt5.QtCore import QEventLoop
         if show:
             icon = self._ra_shown_icon
             if not self._rapid_access_shown_once:
@@ -455,6 +486,9 @@ class MainWindow(QMainWindow, PlainTextLog):
             if not self._rapid_access_shown_once:
                 self.graphics_window.session.update_loop.unblock_redraw()
                 self._rapid_access_shown_once = True
+        self.graphics_window.session.update_loop.block_redraw()
+        self.graphics_window.session.ui.processEvents(QEventLoop.ExcludeUserInputEvents)
+        self.graphics_window.session.update_loop.unblock_redraw()
 
         but = self._rapid_access_button
         but.setChecked(show)

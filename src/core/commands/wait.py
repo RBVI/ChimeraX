@@ -20,17 +20,31 @@ def wait(session, frames=None):
        Wait until this many frames have been rendered before executing the next
        command in a command script.
     '''
-    v = session.main_view
-    ul = session.update_loop
     if frames is None:
         from . import motion
         while motion.motion_in_progress(session):
-            v.redraw_needed = True  # Trigger frame rendered callbacks to cause image capture.
-            ul.draw_new_frame(session)
+            draw_frame(session)
     else:
         for f in range(frames):
-            v.redraw_needed = True  # Trigger frame rendered callbacks to cause image capture.
-            ul.draw_new_frame(session)
+            draw_frame(session)
+
+def draw_frame(session, limit_frame_rate = True):
+    '''Draw a graphics frame.'''
+    if limit_frame_rate:
+        from time import time, sleep
+        t0 = time()
+
+    v = session.main_view
+    v.redraw_needed = True  # Trigger frame rendered callbacks to cause image capture.
+    ul = session.update_loop
+    ul.draw_new_frame(session)
+
+    if limit_frame_rate:
+        dt = time() - t0
+        gw = session.ui.main_window.graphics_window
+        frame_time= gw.redraw_interval / 1000.0	# seconds
+        if dt < frame_time:
+            sleep(frame_time - dt)
 
 
 def register_command(session):

@@ -47,6 +47,11 @@ class InstalledBundleCache(list):
 
     @_hack_distlib
     def load(self, logger, cache_file=None, rebuild_cache=False, write_cache=True):
+        """Load list of installed bundles.
+
+        Bundles are ordered based on dependency with dependent
+        bundles appearing later in the list."""
+
         #
         # Load bundle info.  If not rebuild_cache, try reading
         # it from a cache file.  If we cannot use the cache,
@@ -123,6 +128,51 @@ class InstalledBundleCache(list):
             _debug("InstalledBundleCache.load: write_cache")
             self._write_cache(cache_file, logger)
 
+    def register_all(self, logger, session):
+        """Register all installed bundles.
+
+        Returns dictionary of package name to bundle instance."""
+
+        package_map = {}
+        for bi in self:
+            for p in bi.packages:
+                package_map[p] = bi
+            bi.register(logger)
+            if session is not None:
+                bi.initialize(session)
+        return package_map
+
+    def deregister_all(self, logger):
+        """Deregister all installed bundles."""
+
+        for bi in reversed(self):
+            for p in bi.packages:
+                try:
+                    del self._installed_packages[p]
+                except KeyError:
+                    pass
+            if session is not None:
+                bi.finish(session)
+            bi.deregister(logger)
+
+    def set_install_timestamp(self, per_user=False):
+        """Set last installed timestamp."""
+
+        import os
+        if per_user:
+            from chimerax import app_dirs
+            directory = app_dirs.user_data_dir
+        else:
+            from chimerax import app_data_dir as directory
+        timestamp_file = os.path.join(directory, _TIMESTAMP)
+        with open(timestamp_file, 'w') as f:
+            # Contents of file are never read, see _is_cache_newer()
+            import time
+            print(time.ctime(), file=f)
+
+    #
+    # Methods below are internal
+    #
     def _read_cache(self, cache_file):
         """Read installed bundle information from cache file.
 
@@ -131,8 +181,15 @@ class InstalledBundleCache(list):
         import filelock, json, os, sys
         from .info import BundleInfo
         try:
-            lock = filelock.FileLock(cache_file + '.lock')
+            lock_file = cache_file + '.lock'
+            lock = filelock.FileLock(lock_file)
             with lock.acquire():
+                if not lock.is_locked:
+                    # As of filelock==2.0.8:
+                    # On Unix, failing to create the lock file results
+                    # in an exception, but on Windows the acquire fails
+                    # silently but leaves the lock unlocked
+                    raise OSError("cannot create lock file %r" % lock_file)
                 f = open(cache_file, "r", encoding='utf-8')
                 try:
                     with f:
@@ -184,20 +241,6 @@ class InstalledBundleCache(list):
                     return False
         return True
 
-    def set_install_timestamp(self, per_user=False):
-        """Set last installed timestamp."""
-        import os
-        if per_user:
-            from chimerax import app_dirs
-            directory = app_dirs.user_data_dir
-        else:
-            from chimerax import app_data_dir as directory
-        timestamp_file = os.path.join(directory, _TIMESTAMP)
-        with open(timestamp_file, 'w') as f:
-            # Contents of file are never read, see _is_cache_newer()
-            import time
-            print(time.ctime(), file=f)
-
     def _write_cache(self, cache_file, logger):
         """Write current bundle information to cache file."""
         _debug("InstalledBundleCache._write_cache", cache_file)
@@ -219,7 +262,52 @@ class InstalledBundleCache(list):
 
 
 #
-# Class-independent utility functions
+# Class-independent utility functions available to other modules in package
+#
+
+
+def _extract_extra_keywords(kwds):
+    result = {}
+    all_kwds = [k.strip() for k in kwds.split(',')]
+    for k in all_kwds:
+        temp = [t.strip() for t in k.split(':', maxsplit=1)]
+        if len(temp) == 1:
+            result[temp[0]] = 'String'
+        else:
+            result[temp[0]] = temp[1]
+    return result
+
+
+def _report_difference(logger, before, after):
+    # TODO: more here
+    logger.info("installed._report_difference")
+    bundles = {}
+    for bi in before:
+        bundles[bi.name] = [bi.version, None]
+    for bi in after:
+        try:
+            versions = bundles[bi.name]
+        except KeyError:
+            bundles[bi.name] = [None, bi.version]
+        else:
+            versions[1] = bi.version
+    messages = []
+    for name in sorted(bundles.keys):
+        versions = bundles[name]
+        if versions[0] is None:
+            messages.append("Installed %s (%s)" % (name, version))
+        elif versions[1] is None:
+            messages.append("Removed %s (%s)" % (name, version))
+        else:
+            messages.append("Updated %s (%s->%s)" % (name, versions[0], versions[1]))
+    if messages:
+        logger.info('\n'.join(messages))
+    else:
+        logger.info("No change in list of installed bundles")
+
+
+#
+# Class-independent utility functions only used in this module
 #
 
 
@@ -425,6 +513,16 @@ def _make_bundle_info(d, installed, logger):
         bi.description = description
     except (KeyError, OSError):
         pass
+
+    #
+    # If the bundle does not implement BundleAPI interface,
+    # act as if it were not a bundle
+    #
+    from . import ToolshedError
+    try:
+        bi._get_api(logger)
+    except ToolshedError:
+        return None
     return bi
 
 
@@ -440,15 +538,3 @@ def _get_installed_packages(dist):
         parts = path.split('/')
         packages.append(tuple(parts[:-1]))
     return packages
-
-
-def _extract_extra_keywords(kwds):
-    result = {}
-    all_kwds = [k.strip() for k in kwds.split(',')]
-    for k in all_kwds:
-        temp = [t.strip() for t in k.split(':', maxsplit=1)]
-        if len(temp) == 1:
-            result[temp[0]] = 'String'
-        else:
-            result[temp[0]] = temp[1]
-    return result

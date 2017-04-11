@@ -337,6 +337,20 @@ class BundleInfo:
         for si in self.selectors:
             deregister_selector(si.name)
 
+    def register_available_commands(self, logger):
+        """Register available commands with cli."""
+        from chimerax.core.commands import cli, CmdDesc
+        for ci in self.commands:
+            cd = CmdDesc(synopsis=ci.synopsis)
+            def cb(session, s=self, n=ci.name, l=logger):
+                s._available_cmd(n, l)
+            cli.register_available(ci.name, cd, function=cb, logger=logger)
+
+    def _available_cmd(self, name, logger):
+        msg = ("\"%s\" is provided by the uninstalled bundle \"%s\""
+               % (name, self.name))
+        logger.status(msg, log=True)
+
     def initialize(self, session):
         """Initialize bundle by calling custom initialization code if needed."""
         if self.custom_init:

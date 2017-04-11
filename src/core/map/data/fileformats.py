@@ -33,6 +33,7 @@ file_types = (
 #  ('Gaussian cube grid', 'gaussian', ['cube'], ['cube','cub'], False),
 #  ('gOpenMol grid', 'gopenmol', ['gopenmol'], ['plt'], False),
   ('Image stack', 'imagestack', ['images'], ['tif', 'tiff', 'png'], True),
+  ('Imaris map', 'ims', ['ims'], ['ims'], False),
 #  ('IMOD map', 'imod', ['imodmap'], ['rec'], False),
 #  ('MacMolPlt grid', 'macmolplt', ['macmolplt'], ['mmp'], False),
   ('MRC density map', 'mrc', ['mrc'], ['mrc'], False),

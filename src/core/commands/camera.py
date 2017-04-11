@@ -89,7 +89,7 @@ def camera(session, type=None, field_of_view=None,
     if not has_arg:
         lines = [
             'Camera parameters:',
-            '    type: %s' % cam.name(),
+            '    type: %s' % cam.name,
             '    position: %.5g %.5g %.5g' % tuple(cam.position.origin()),
             '    view direction: %.5g %.5g %.5g' % tuple(cam.view_direction())
             ]
@@ -103,7 +103,7 @@ def camera(session, type=None, field_of_view=None,
             lines.append('    eye separation in screen pixels: %.5g' % cam.eye_separation_pixels)
         session.logger.info('\n'.join(lines))
 
-        fields = ['%s camera' % cam.name()]
+        fields = ['%s camera' % cam.name]
         if hasattr(cam, 'field_of_view'):
             fields.append('%.5g degree field of view' % cam.field_of_view)
         session.logger.status(', '.join(fields))
