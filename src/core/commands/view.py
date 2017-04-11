@@ -424,7 +424,7 @@ def report_positions(session):
 def _position_string(p):
     return ','.join('%.5g' % x for x in tuple(p.matrix.flat))
 
-def view_align(session, models, to_models):
+def view_position(session, models, same_as_models):
     '''
     Change the scene position of some models to match the scene position of other models.
     If to_models is just one model then each model is positioned to match that one model.
@@ -435,21 +435,21 @@ def view_align(session, models, to_models):
     ----------
     models : list of Model
       Models to move.
-    to_models : list of Models
+    same_as_models : list of Models
       Models are moved to align with these models.
     '''
-    if len(to_models) == 1:
-        tm = to_models[0]
+    if len(same_as_models) == 1:
+        tm = same_as_models[0]
         p = tm.position
         for m in models:
             if m is not tm:
                 m.position = p
-    elif len(models) != len(to_models):
+    elif len(models) != len(same_as_models):
         from ..errors import UserError
         raise UserError('Must specify equal numbers of models to align, got %d and %d'
-                        % (len(models), len(to_models)))
+                        % (len(models), len(same_as_models)))
     else:
-        tp = [tm.position for tm in to_models]
+        tp = [tm.position for tm in same_as_models]
         for m,p in zip(models, tp):
                 m.position = p
 
@@ -512,7 +512,7 @@ def register_command(session):
     register('view matrix', desc, view_matrix, logger=session.logger)
     desc = CmdDesc(
         required=[('models', TopModelsArg)],
-        keyword=[('to_models', TopModelsArg)],
-        required_arguments = ['to_models'],
+        keyword=[('same_as_models', TopModelsArg)],
+        required_arguments = ['same_as_models'],
         synopsis='move models to have same scene position as another model')
-    register('view align', desc, view_align, logger=session.logger)
+    register('view position', desc, view_position, logger=session.logger)

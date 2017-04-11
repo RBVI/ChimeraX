@@ -168,7 +168,8 @@ def _bundle_string(bundle_name, version):
         return "%s (%s)" % (bundle_name, version)
 
 
-def toolshed_install(session, bundle_name, user_only=True, version=None):
+def toolshed_install(session, bundle_name, user_only=True,
+                     reinstall=None, version=None):
     '''
     Install a bundle.
 
@@ -197,9 +198,14 @@ def toolshed_install(session, bundle_name, user_only=True, version=None):
             logger.error("\"%s\" does not match any bundles"
                          % _bundle_string(bundle_name, version))
             return
-    ts.install_bundle(bi, logger, not user_only, session=session)
+    kw = {"session":session,
+          "per_user":user_only}
+    if reinstall is not None:
+        kw["reinstall"] = reinstall
+    ts.install_bundle(bi, logger, **kw)
 toolshed_install_desc = CmdDesc(required=[("bundle_name", StringArg)],
                           optional=[("user_only", BoolArg),
+                                    ("reinstall", BoolArg),
                                     ("version", StringArg)],
                           synopsis='Install a bundle')
 
@@ -221,6 +227,30 @@ def toolshed_uninstall(session, bundle_name):
     ts.uninstall_bundle(bi, logger, session=session)
 toolshed_uninstall_desc = CmdDesc(required=[("bundle_name", StringArg)],
                                   synopsis='Uninstall a bundle')
+
+
+def toolshed_url(session, url=None, wait=False):
+    '''
+    Show or set toolshed URL
+
+    Parameters
+    ----------
+    url : string
+    '''
+    ts = session.toolshed
+    logger = session.logger
+    if url is None:
+        logger.info("Toolshed URL: %s" % ts.remote_url)
+    else:
+        ts.remote_url = url
+        logger.info("Toolshed URL set to %s" % ts.remote_url)
+        if wait:
+            ts.reload_available(logger)
+        else:
+            ts.async_reload_available(logger)
+toolshed_url_desc = CmdDesc(optional=[("url", StringArg),
+                                      ("wait", BoolArg)],
+                            synopsis='show or set toolshed url')
 
 
 #
@@ -275,6 +305,8 @@ def register_command(session):
     register("toolshed install", toolshed_install_desc, toolshed_install,
              logger=session.logger)
     register("toolshed uninstall", toolshed_uninstall_desc, toolshed_uninstall,
+             logger=session.logger)
+    register("toolshed url", toolshed_url_desc, toolshed_url,
              logger=session.logger)
     register("toolshed show", toolshed_show_desc, toolshed_show,
              logger=session.logger)

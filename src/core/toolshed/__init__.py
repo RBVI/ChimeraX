@@ -225,18 +225,12 @@ class ToolshedError(Exception):
     """Generic Toolshed error."""
 
 
-class ToolshedUninstalledError(ToolshedError):
-    """Uninstalled-bundle error.
-
-    This exception derives from :py:class:`ToolshedError` and is usually
-    raised when trying to uninstall a bundle that has not been installed."""
-
-
 class ToolshedInstalledError(ToolshedError):
     """Bundle-already-installed error.
 
     This exception derives from :py:class:`ToolshedError` and is usually
-    raised when trying to install a bundle that is already installed."""
+    raised when trying to install a bundle that is already installed
+    or to uninstall a bundle that is not installed yet."""
 
 
 class ToolshedUnavailableError(ToolshedError):
@@ -328,11 +322,11 @@ class Toolshed:
         if not check_remote:
             # Did not check for available bundles synchronously
             # so start a thread and do it asynchronously
-            self._async_reload_remote(logger)
+            self.async_reload_available(logger)
         _debug("finished loading bundles")
 
     def reload(self, logger, *, session=None, reread_cache=True, rebuild_cache=False,
-               check_remote=False):
+               check_remote=False, report=False):
         """Discard and reread bundle info.
 
         Parameters
@@ -351,31 +345,32 @@ class Toolshed:
         _debug("reload", rebuild_cache, check_remote)
         if reread_cache or rebuild_cache:
             from .installed import InstalledBundleCache
-            if self._installed_bundle_info is not None:
-                for bi in reversed(self._installed_bundle_info):
-                    for p in bi.packages:
-                        try:
-                            del self._installed_packages[p]
-                        except KeyError:
-                            pass
-                    if session is not None:
-                        bi.finish(session)
-                    bi.deregister(logger)
-            cache_file=self._bundle_cache(False, logger)
+            save = self._installed_bundle_info
             self._installed_bundle_info = InstalledBundleCache()
+            cache_file = self._bundle_cache(False, logger)
             self._installed_bundle_info.load(logger, cache_file=cache_file,
                                              rebuild_cache=rebuild_cache,
                                              write_cache=True)
-            self._installed_packages = {}
-            for bi in self._installed_bundle_info:
-                for p in bi.packages:
-                    self._installed_packages[p] = bi
-                bi.register(logger)
-                if session is not None:
-                    bi.initialize(session)
+            if report:
+                if save is None:
+                    logger.info("Initialed installed bundles.")
+                else:
+                    from .installed import _report_difference
+                    _report_difference(logger, save, self._installed_bundle_info)
+            if save is not None:
+                save.deregister_all(logger)
+            self._installed_packages = self._installed_bundle_info.register_all(logger, session)
         if check_remote:
             self.reload_available(logger)
         self.triggers.activate_trigger(TOOLSHED_BUNDLE_INFO_RELOADED, self)
+
+    def async_reload_available(self, logger):
+        with self._abc_lock:
+            self._abc_updating = True
+        from threading import Thread
+        t = Thread(target=self.reload_available, args=(logger,),
+                   name="Update list of available bundles")
+        t.start()
 
     def reload_available(self, logger):
         from urllib.error import URLError
@@ -399,27 +394,6 @@ class Toolshed:
                 self._abc_updating = False
                 from ..commands import cli
                 cli.clear_available()
-
-    def _async_reload_remote(self, logger):
-        with self._abc_lock:
-            self._abc_updating = True
-        from threading import Thread
-        t = Thread(target=self.reload_available, args=(logger,),
-                   name="Update list of available bundles")
-        t.start()
-
-    def _get_available_bundles(self, logger):
-        with self._abc_lock:
-            if self._available_bundle_info is None:
-                from .available import AvailableBundleCache
-                if self._abc_updating:
-                    logger.warning("still retrieving bundle list from toolshed")
-                else:
-                    logger.warning("could not retrieve bundle list from toolshed")
-                self._available_bundle_info = AvailableBundleCache()
-            elif self._abc_updating:
-                logger.warning("still updating bundle list from toolshed")
-            return self._available_bundle_info
 
     def register_available_commands(self, logger):
         for bi in self._get_available_bundles(logger):
@@ -460,16 +434,19 @@ class Toolshed:
         else:
             return []
 
-    def install_bundle(self, bi, logger, *, system=False, session=None):
+    def install_bundle(self, bundle, logger, *, per_user=True, reinstall=False, session=None):
         """Install the bundle by retrieving it from the remote shed.
 
         Parameters
         ----------
-        bi : :py:class:`BundleInfo` instance
-            Should be from the available bundle list.
-        system : boolean
-            False to install bundle only for the current user (default);
-            True to install for everyone.
+        bundle : string or :py:class:`BundleInfo` instance
+            If string, path to wheel installer.
+            If instance, should be from the available bundle list.
+        per_user : boolean
+            True to install bundle only for the current user (default);
+            False to install for everyone.
+        reinstall : boolean
+            True to force reinstall package.
         logger : :py:class:`~chimerax.core.logger.Logger` instance
             Logging object where warning and error messages are sent.
 
@@ -482,30 +459,38 @@ class Toolshed:
         -----
         A :py:const:`TOOLSHED_BUNDLE_INSTALLED` trigger is fired after installation.
         """
-        _debug("install_bundle", bi)
-        if bi.installed:
-            raise ToolshedInstalledError("bundle \"%s\" already installed"
-                                         % bi.name)
-        # Make sure that our install location is on chimerax module.__path__
-        # so that newly installed modules may be found
-        import importlib
-        import os
-        cx_dir = os.path.join(self._site_dir, _ChimeraNamespace)
-        m = importlib.import_module(_ChimeraNamespace)
-        if cx_dir not in m.__path__:
-            m.__path__.append(cx_dir)
-        # TODO: Install bundle
-        raise NotImplementedError("Toolshed.install_bundle")
-        # TODO: Update cache, ask InstalledBundleCache to reload
-        self.triggers.activate_trigger(TOOLSHED_BUNDLE_INSTALLED, bi)
+        _debug("install_bundle", bundle)
+        if False:
+            # XXX: Do we really need this?
+            # Make sure that our install location is on chimerax module.__path__
+            # so that newly installed modules may be found
+            import importlib
+            import os
+            cx_dir = os.path.join(self._site_dir, _ChimeraNamespace)
+            m = importlib.import_module(_ChimeraNamespace)
+            if cx_dir not in m.__path__:
+                m.__path__.append(cx_dir)
+        try:
+            if bundle.installed:
+                raise ToolshedInstalledError("bundle \"%s\" already installed" % bundle.name)
+            else:
+                bundle = bundle.name
+        except AttributeError:
+            # If "bundle" is not an instance, just leave it alone
+            pass
+        self._pip_install(bundle, per_user=per_user, reinstall=reinstall)
+        self.set_install_timestamp(per_user)
+        self.reload(logger, rebuild_cache=True, report=True)
+        self.triggers.activate_trigger(TOOLSHED_BUNDLE_INSTALLED, bundle)
 
-    def uninstall_bundle(self, bi, logger, *, session=None):
+    def uninstall_bundle(self, bundle, logger, *, session=None):
         """Uninstall bundle by removing the corresponding Python distribution.
 
         Parameters
         ----------
-        bi : :py:class:`BundleInfo` instance
-            Should be from the installed bundle list.
+        bundle : string or :py:class:`BundleInfo` instance
+            If string, path to wheel installer.
+            If instance, should be from the available bundle list.
         logger : :py:class:`~chimerax.core.logger.Logger` instance
             Logging object where warning and error messages are sent.
 
@@ -519,12 +504,18 @@ class Toolshed:
         A :py:const:`TOOLSHED_BUNDLE_UNINSTALLED` trigger is fired after package removal.
         """
         _debug("uninstall_bundle", bi)
-        # TODO: uninstall bundle
-        # self._uninstall_bundle(bi, logger, session)
-        raise NotImplementedError("Toolshed.uninstall_bundle")
-        # TODO: update cache, ask InstalledBundleCache to reload
-        # self._write_cache(self._installed_bundle_info, logger)
-        self.triggers.activate_trigger(TOOLSHED_BUNDLE_UNINSTALLED, bi)
+        try:
+            if not bundle.installed:
+                raise ToolshedInstalledError("bundle \"%s\" not installed" % bundle.name)
+            else:
+                bundle = bundle.name
+        except AttributeError:
+            # If "bundle" is not an instance, just leave it alone
+            pass
+        self._pip_uninstall(bundle)
+        self.set_install_timestamp(per_user)
+        self.reload(logger, rebuild_cache=True, report=True)
+        self.triggers.activate_trigger(TOOLSHED_BUNDLE_UNINSTALLED, bundle)
 
     def find_bundle(self, name, logger, installed=True, version=None):
         """Return a :py:class:`BundleInfo` instance with the given name.
@@ -619,6 +610,19 @@ class Toolshed:
     # All methods below are private
     #
 
+    def _get_available_bundles(self, logger):
+        with self._abc_lock:
+            if self._available_bundle_info is None:
+                from .available import AvailableBundleCache
+                if self._abc_updating:
+                    logger.warning("still retrieving bundle list from toolshed")
+                else:
+                    logger.warning("could not retrieve bundle list from toolshed")
+                self._available_bundle_info = AvailableBundleCache()
+            elif self._abc_updating:
+                logger.warning("still updating bundle list from toolshed")
+            return self._available_bundle_info
+
     def _bundle_cache(self, must_exist, logger):
         """Return path to bundle cache file."""
         _debug("_bundle_cache", must_exist)
@@ -627,6 +631,70 @@ class Toolshed:
             os.makedirs(self._cache_dir, exist_ok=True)
         import os
         return os.path.join(self._cache_dir, "bundle_info.cache")
+
+    def _pip_install(self, bundle_name, per_user=True, reinstall=False):
+        # Run "pip" with our standard arguments (index location, update
+        # strategy, etc) plus the given arguments.  Return standard
+        # output as string.  If there was an error, raise RuntimeError
+        # with stderr as parameter.
+        import sys
+        command = ["install",
+                   "--index-url", self.remote_url + "/pypi/",
+                   "--upgrade-strategy", "only-if-needed",
+                   "--only-binary", ":all:"]
+        if per_user:
+            command.append("--user")
+        if reinstall:
+            command.append("--force-reinstall")
+        # bundle_name can be either a file path or a bundle name in repository
+        command.append(bundle_name)
+        results = self._run_pip(command)
+        self._remove_scripts()
+        return results
+
+    def _pip_uninstall(self, bundle_name):
+        # Run "pip" and return standard output as string.  If there
+        # was an error, raise RuntimeError with stderr as parameter.
+        import sys
+        command = ["uninstall", "--yes", bundle_name]
+        return self._run_pip(command)
+
+    def _run_pip(self, command):
+        import sys, subprocess
+        cp = subprocess.run([sys.executable, "-m", "pip"] + command,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
+        if cp.returncode != 0:
+            error = cp.stderr.decode("utf-8")
+            raise RuntimeError(error)
+        result = cp.stdout.decode("utf-8")
+        return result
+
+    def _remove_scripts(self):
+        # remove pip installed scripts since they have hardcoded paths to
+        # python and thus don't work when ChimeraX is installed elsewhere
+        from .. import app_bin_dir
+        import os
+        if sys.platform.startswith('win'):
+            # Windows
+            script_dir = os.path.join(app_bin_dir, 'Scripts')
+            for dirpath, dirnames, filenames in os.walk(script_dir, topdown=False):
+                for f in filenames:
+                    path = os.path.join(dirpath, f)
+                    os.remove(path)
+                os.rmdir(dirpath)
+        else:
+            # Linux, Mac OS X
+            for filename in os.listdir(app_bin_dir):
+                path = os.path.join(app_bin_dir, filename)
+                if not os.path.isfile(path):
+                    continue
+                with open(path, 'br') as f:
+                    line = f.readline()
+                    if line[0:2] != b'#!' or b'/bin/python' not in line:
+                        continue
+                #print('removing (pip installed)', path)
+                os.remove(path)
 
 
 class BundleAPI:
