@@ -129,9 +129,8 @@ class ValueTypeArg(Annotation):
 
 class IntRangeArg(Annotation):
     name = 'integer range'
-    default_step = 1
     @staticmethod
-    def parse(text, session):
+    def parse(text, session, default_step = 1):
         token, text, rest = next_token(text)
         try:
             s = tuple(int(f) for f in token.split(','))
