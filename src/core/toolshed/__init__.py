@@ -378,7 +378,7 @@ class Toolshed:
         from .available import AvailableBundleCache
         abc = AvailableBundleCache()
         try:
-            abc.load(logger, _RemoteURL)
+            abc.load(logger, self.remote_url)
         except URLError as e:
             logger.info("Updating list of available bundles failed: %s"
                         % str(e.reason))
