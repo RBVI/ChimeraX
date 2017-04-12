@@ -942,7 +942,8 @@ Several operations are available:
 <li><a href="#bin"><b>volume bin</b></a>
 - reduce data size by averaging over cells of multiple grid points
 <li><a href="#boxes"><b>volume boxes</b></a>
-- extract cubic regions centered on markers or atoms
+- extract cubic regions centered on
+<a href="../markers.html">markers</a> or atoms
 <li><a href="#cover"><b>volume cover</b></a>
 - extend map to cover specified atoms or box
 <li><a href="#falloff"><b>volume falloff</b></a>
@@ -989,7 +990,8 @@ and/or above a specified maximum
 <li><a href="#tile"><b>volume tile</b></a>
 - make a single-plane volume from tiled slices of another volume
 <li><a href="#unbend"><b>volume unbend</b></a>
-- unbend a map near a path formed by markers/links or atoms/bonds
+- unbend a map near a path formed by 
+<a href="../markers.html">markers/links</a> or atoms/bonds
 <li><a href="#unroll"><b>volume unroll</b></a>
 - unroll a cylindrical slab into a flat slab
 <li><a href="#zone"><b>volume zone</b></a>
@@ -1086,9 +1088,9 @@ grid points in each dimension can be specified by supplying three integers
 [&nbsp;<b>useMarkerSize</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
 <blockquote>
-For each marker or atom in <a href="atomspec.html"><i>atom-spec</i></a>,
-extract a surrounding cube of data. Markers can be created with the mouse
-(see <a href="mousemode.html"><b>mousemode</b></a>).
+For each <a href="../markers.html">marker</a>
+or atom in <a href="atomspec.html"><i>atom-spec</i></a>,
+extract a surrounding cube of data.
 If <b>useMarkerSize</b> is false (default),
 the edge length of each cube must be specified in physical units
 of length with <b>size</b> or in grid units with <b>isize</b>.
@@ -1373,11 +1375,6 @@ See <a href="#add"><b>volume add</b></a> for descriptions of the options.
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
 <blockquote>
 Morph between two or more maps.
-<!--
-(this is the command-line implementation of
-<a href="../../ContributedSoftware/morphmap/morphmap.html"><b>Morph Map</b></a>,
-except that more than two maps can be handled).
--->
 For a reasonable result, the input maps should have the same grids:
 dimensions, spacing, and numbers of points.
 Note <a href="#resample"><b>volume resample</b></a>
@@ -1692,10 +1689,8 @@ and grid size 1 along the specified axis.
 [&nbsp;<b>gridSpacing</b>&nbsp;&nbsp;<i>s</i>&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
 <blockquote>
-Unbend a map near a path formed by markers/links or (equivalently) atoms/bonds.
-Markers and links can be created with the mouse
-(see <a href="mousemode.html"><b>mousemode</b></a>).
-The <i>path-spec</i> should be an
+Unbend a map near a path formed by <a href="../markers.html">markers/links</a>
+or (equivalently) atoms/bonds. The <i>path-spec</i> should be an
 <a href="atomspec.html"><i>atom-spec</i></a> that specifies
 a single chain of atoms (markers) connected by bonds (links).
 The path will be mapped to the Z axis of the result.
@@ -1953,5 +1948,5 @@ caused by nonperiodicity of the original data.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2017</address>
+April 2017</address>
 </body></html>

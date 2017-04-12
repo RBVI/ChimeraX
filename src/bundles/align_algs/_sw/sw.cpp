@@ -189,7 +189,7 @@ align(PyObject *, PyObject *args, PyObject *kwdict)
 			PyErr_SetString(PyExc_ValueError, SeqLenMismatch);
 			return nullptr;
 		}
-		if (make_matrix(ss_m, ss_matrix) < 0)
+		if (make_matrix(ss_m, ss_matrix, true) < 0)
 			return nullptr;
 		size_t r, c;
 		for (r = 1; r < rows; ++r) {

@@ -339,27 +339,6 @@ def compute_value_range(surf, value_range_func, cap_only):
     return v0,v1
 
 # -----------------------------------------------------------------------------
-#
-def zone_op(surfaces, zone = None, range = 2, autoUpdate = True):
-
-    atoms = zone.atoms()
-    bonds = zone.bonds()
-    from Commands import filter_surfaces
-    surfs = filter_surfaces(surfaces)
-    if len(surfs) == 0:
-        raise CommandError('No surfaces specified')
-    if len(atoms) == 0 and len(bonds) == 0:
-        raise CommandError('No atoms or bonds specified')
-    if not isinstance(range, (float, int)):
-        raise CommandError('Range must be a number')
-
-    from ColorZone import points_and_colors, color_zone
-    for s in surfs:
-        xform_to_surface = s.openState.xform.inverse()
-        points, colors = points_and_colors(atoms, bonds, xform_to_surface)
-        color_zone(s, points, colors, range, autoUpdate)
-
-# -----------------------------------------------------------------------------
 # All color arguments are rgba 4-tuples.
 #
 class Color_Map:

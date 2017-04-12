@@ -92,7 +92,7 @@ def write_mol2_sort_key(a, res_indices=None):
         ri = res_indices[a.residue] = a.structure.residues.index(a.residue)
     return (ri, a.coord_index)
 
-def write_mol2(structures, file_name, status=None, anchor=None, rel_model=None,
+def write_mol2(session, structures, file_name, status=None, anchor=None, rel_model=None,
         hyd_naming_style="sybyl", multimodel_handling="individual",
         skip=None, res_num=True, gaff_type=False, gaff_fail_error=None,
         temporary=False):
@@ -166,7 +166,7 @@ def write_mol2(structures, file_name, status=None, anchor=None, rel_model=None,
         class Jumbo:
             def __init__(self, atoms):
                 self.atoms = atoms
-                self.residues = atoms.residues
+                self.residues = atoms.unique_residues
                 self.bonds = atoms.intra_bonds
                 self.name = "(selection)"
                 self.pbg_map = { Structure.PBG_METAL_COORDINATION: JPBGroup(atoms) }
@@ -328,24 +328,19 @@ def write_mol2(structures, file_name, status=None, anchor=None, rel_model=None,
                     atom_type = "O.t3p"
                 else:
                     atom_type = "H.t3p"
-            #TODO
-            elif atom.element.name == "N" and len(
-            [r for r in atom.rings() if r.aromatic()]) > 0:
+            elif atom.element.name == "N" and len([r for r in atom.rings() if r.aromatic]) > 0:
                 atom_type = "N.ar"
-            elif atom.idatmType == "C2" and len([nb for nb in atom.neighbors
-                                            if nb.idatmType == "Ng+"]) > 2:
+            elif atom.idatm_type == "C2" and len([nb for nb in atom.neighbors
+                                            if nb.idatm_type == "Ng+"]) > 2:
                 atom_type = "C.cat"
-            elif sulfurOxygen(atom):
+            elif sulfur_oxygen(atom):
                 atom_type = "O.2"
             else:
                 try:
-                    atom_type = chimera_to_sybyl[atom.idatmType]
+                    atom_type = chimera_to_sybyl[atom.idatm_type]
                 except KeyError:
-                    chimera.replyobj.warning("Atom whose"
-                        " IDATM type has no equivalent"
-                        " Sybyl type: %s (type: %s)\n"
-                        % (atom.oslIdent(),
-                        atom.idatmType))
+                    session.logger.warning("Atom whose IDATM type has no equivalent"
+                        " Sybyl type: %s (type: %s)" % (atom, atom.idatm_type))
                     atom_type = str(atom.element)
             print("%-5s" % atom_type, end="", file=f)
 
@@ -376,9 +371,9 @@ def write_mol2(structures, file_name, status=None, anchor=None, rel_model=None,
 
 
         # make an atom-index dictionary to speed lookups
-        atomIndices = {}
+        atom_indices = {}
         for i, a in enumerate(atoms):
-            atomIndices[a] = i+1
+            atom_indices[a] = i+1
         for i, bond in enumerate(bonds):
             a1, a2 = bond.atoms
 
@@ -386,8 +381,7 @@ def write_mol2(structures, file_name, status=None, anchor=None, rel_model=None,
             print("%6d" % (i+1), end="", file=f)
 
             # atom IDs
-            print("%4d %4d" % (
-                    atomIndices[a1], atomIndices[a2]), end="", file=f)
+            print("%4d %4d" % (atom_indices[a1], atom_indices[a2]), end="", file=f)
 
             # bond order; give it our best shot...
             if hasattr(bond, 'mol2_type'):
@@ -404,25 +398,25 @@ def write_mol2(structures, file_name, status=None, anchor=None, rel_model=None,
                 else:
                     print("1", file=f)
                 continue
-                
+
             aromatic = False
-            #TODO: 'bond' might be a metal-coordination bond, so
-            # do an if/else to get the rings
-            for ring in bond.minimumRings():
-                if ring.aromatic():
-                    aromatic = True
-                    break
+            # 'bond' might be a metal-coordination bond so do a test for rings
+            if hasattr(bond, 'rings'):
+                for ring in bond.rings():
+                    if ring.aromatic:
+                        aromatic = True
+                        break
             if aromatic:
                 print("ar", file=f)
                 continue
 
             try:
-                geom1 = idatm_info[a1.idatmType].geometry
+                geom1 = idatm_info[a1.idatm_type].geometry
             except KeyError:
                 print("1", file=f)
                 continue
             try:
-                geom2 = idatm_info[a2.idatmType].geometry
+                geom2 = idatm_info[a2.idatm_type].geometry
             except KeyError:
                 print("1", file=f)
                 continue
@@ -430,7 +424,7 @@ def write_mol2(structures, file_name, status=None, anchor=None, rel_model=None,
             # bonded despite the high dipolar character of the
             # bond making it have single-bond character.  For
             # output, use the classical values.
-            if sulfurOxygen(a1) or sulfurOxygen(a2):
+            if sulfur_oxygen(a1) or sulfur_oxygen(a2):
                 print("2", file=f)
                 continue
             if geom1 not in [2,3] or geom2 not in [2,3]:
@@ -440,8 +434,8 @@ def write_mol2(structures, file_name, status=None, anchor=None, rel_model=None,
             # the bond isn't, it's a single bond...
             for endp in [a1, a2]:
                 aromatic = False
-                for ring in endp.minimumRings():
-                    if ring.aromatic():
+                for ring in endp.rings():
+                    if ring.aromatic:
                         aromatic = True
                         break
                 if aromatic:
@@ -468,30 +462,27 @@ def write_mol2(structures, file_name, status=None, anchor=None, rel_model=None,
             if substructure_names:
                 rname = substructure_names[res]
             elif res_num:
-                rname = "%3s%-4d" % (res.type, res.id.position)
+                rname = "%3s%-4d" % (res.name, res.number)
             else:
-                rname = "%3s" % res.type
+                rname = "%3s" % res.name
             print(rname, end="", file=f)
 
             # ID of the root atom of the residue
-            from chimera.misc import principalAtom
-            chainAtom = principalAtom(res)
-            if chainAtom is None:
-                if hasattr(res, 'atomsMap'):
-                    chainAtom = res.atoms[0]
-                else:
-                    chainAtom = res.atoms.values()[0][0]
-            print("%5d" % atomIndices[chainAtom], end="", file=f)
+            chain_atom = res.principal_atom
+            if chain_atom is None:
+                chain_atom = res.atoms[0]
+            print("%5d" % atom_indices[chain_atom], end="", file=f)
 
 
             print("RESIDUE           4", end="", file=f)
 
             # Sybyl seems to use chain 'A' when chain ID is blank,
             # so run with that
-            chainID = res.id.chainId
-            if len(chainID.strip()) != 1:
-                chainID = 'A'
-            print("%s     %3s" % (chainID, res.type), end="", file=f)
+            chain_id = res.chain_id
+            if not chain_id.strip():
+                chain_id = 'A'
+            #TODO: allow for multi-character chain IDs and longer atom/residue numbers
+            print("%s     %3s" % (chain_id, res.type), end="", file=f)
 
             # number of out-of-substructure bonds
             crossResBonds = 0
@@ -520,9 +511,9 @@ def write_mol2(structures, file_name, status=None, anchor=None, rel_model=None,
             if status:
                 status("writing anchor info")
             print("%s" % SET_HEADER, file=f)
-            atomIndices = {}
+            atom_indices = {}
             for i, a in enumerate(atoms):
-                atomIndices[a] = i+1
+                atom_indices[a] = i+1
             bondIndices = {}
             for i, b in enumerate(bonds):
                 bondIndices[b] = i+1
@@ -530,8 +521,8 @@ def write_mol2(structures, file_name, status=None, anchor=None, rel_model=None,
             atoms = anchor.atoms()
             print(len(atoms), end="", file=f)
             for a in atoms:
-                if a in atomIndices:
-                    print(atomIndices[a], end="", file=f)
+                if a in atom_indices:
+                    print(atom_indices[a], end="", file=f)
             print(file=f)
 
             print("RIGID           STATIC     BONDS    <user>   **** Rigid Bond Set", file=f)
@@ -549,17 +540,17 @@ def write_mol2(structures, file_name, status=None, anchor=None, rel_model=None,
         from chimera import triggers
         triggers.activateTrigger('file save', (file_name, 'Mol2'))
 
-def sulfurOxygen(atom):
-    if atom.idatmType != "O3-":
+def sulfur_oxygen(atom):
+    if atom.idatm_type != "O3-":
         return False
     try:
         s = atom.bondsMap.keys()[0]
     except IndexError:
         return False
-    if s.idatmType in ['Son', 'Sxd']:
+    if s.idatm_type in ['Son', 'Sxd']:
         return True
-    if s.idatmType == 'Sac':
-        o3s = [a for a in s.neighbors if a.idatmType == 'O3-']
+    if s.idatm_type == 'Sac':
+        o3s = [a for a in s.neighbors if a.idatm_type == 'O3-']
         o3s.sort()
         return o3s.index(atom) > 1
     return False

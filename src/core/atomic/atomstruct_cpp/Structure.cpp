@@ -672,6 +672,7 @@ Structure::rings(bool cross_residues, unsigned int all_size_threshold,
         return _rings;
     }
 
+    auto db = DestructionBatcher(const_cast<Structure*>(this));
     _recompute_rings = false;
     _rings_last_cross_residues = cross_residues;
     _rings_last_all_size_threshold = all_size_threshold;
@@ -960,12 +961,6 @@ Structure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
     int num_chains = _chains == nullptr ? -1 : _chains->size();
     num_ints = 1; // for storing num_chains, since len(chain_ids) can't show nullptr
     num_floats = 0;
-    if (_chains != nullptr) {
-        for (auto ch: *_chains) {
-            num_ints += ch->session_num_ints();
-            num_floats += ch->session_num_floats();
-        }
-    }
     // allocate for list of chain IDs
     PyObject* chain_misc = PyList_New(1);
     if (chain_misc == nullptr)

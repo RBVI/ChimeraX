@@ -11,7 +11,8 @@
 
 #
 def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew',
-          cartesian = False, same = False, core_fraction = 0.5):
+          cartesian = False, same = False, core_fraction = 0.5, min_hinge_spacing = 6,
+          hide_models = True, play = True, color_segments = False, color_core = None):
     '''
     Morph between atomic models using Yale Morph Server algorithm.
 
@@ -31,10 +32,27 @@ def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew
         which preserve bond lengths.
     same : bool
         Whether to match atoms with same chain id, same residue number and same
-        atom name.
+        atom name.  Default false.
     core_fraction : float
-        Fraction of atoms of each chain that align best to moved as
-        a segment.
+        Fraction of residues of each chain that align best used to define core and
+        non-core residues which are then split into contiguous residues stretches
+        where the chain crosses between the two residue sets.  Default 0.5.
+    min_hinge_spacing : int
+        Minimum number of consecutive residues when splitting chains into rigidly
+        moving segments at boundaries between core and non-core residues.  Default 6.
+    hide_models : bool
+        Whether to hide the input models after morph model is created.  Default true.
+    play : bool
+        Whether to play the morph.  Default true.
+    color_segments : bool
+        Whether to color the residues for each rigid segment with a unique color.
+        This is to see how the morph algorithm divided the structure into segments.
+        For morphing a sequence of 3 or more structures only the residues segments
+        for the morph between the first two in the sequence is shown.  Segments are
+        recomputed for each consecutive pair in the sequence.  Default false.
+    color_core : Color or None
+        Color the core residues the specified color.  This is to understand what residues
+        the algorithm calculates to be the core.
     '''
 
     if len(structures) < 2:
@@ -43,10 +61,24 @@ def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew
 
     from .motion import compute_morph
     traj = compute_morph(structures, session.logger, method=method, rate=rate, frames=frames,
-                         cartesian=cartesian, match_same=same, core_fraction = core_fraction)
+                         cartesian=cartesian, match_same=same, core_fraction = core_fraction,
+                         min_hinge_spacing = min_hinge_spacing,
+                         color_segments = color_segments, color_core = color_core)
     session.models.add([traj])
+    if not color_segments and color_core is None:
+        traj.set_initial_color()
 
     session.logger.info('Computed %d frame morph #%s' % (traj.num_coord_sets, traj.id_string()))
+
+    if hide_models:
+        for m in structures:
+            m.display = False
+
+    if play:
+        csids = traj.coordset_ids
+        cmd = 'coordset #%s %d,%d' % (traj.id_string(), min(csids), max(csids))
+        from chimerax.core.commands import run
+        run(session, cmd)
 
     # from .interpolate import smt, stt, rit, rst, rsit
     # from .sieve_fit import svt
@@ -68,7 +100,7 @@ def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew
 # -----------------------------------------------------------------------------------------
 #
 def register_morph_command(logger):
-    from chimerax.core.commands import CmdDesc, register, StructuresArg, IntArg, EnumOf, BoolArg, FloatArg
+    from chimerax.core.commands import CmdDesc, register, StructuresArg, IntArg, EnumOf, BoolArg, FloatArg, ColorArg
     desc = CmdDesc(
         required = [('structures', StructuresArg)],
         keyword = [('frames', IntArg),
@@ -76,7 +108,12 @@ def register_morph_command(logger):
                    ('method', EnumOf(('corkscrew', 'independent', 'linear'))),
                    ('cartesian', BoolArg),
                    ('same', BoolArg),
-                   ('core_fraction', FloatArg)],
+                   ('core_fraction', FloatArg),
+                   ('min_hinge_spacing', IntArg),
+                   ('hide_models', BoolArg),
+                   ('play', BoolArg),
+                   ('color_segments', BoolArg),
+                   ('color_core', ColorArg)],
         synopsis = 'morph atomic structures'
     )
     register('morph', desc, morph, logger=logger)

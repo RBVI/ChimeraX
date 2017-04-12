@@ -10,15 +10,30 @@
 # === UCSF ChimeraX Copyright ===
 
 def compute_morph(mols, log, method = 'corkscrew', rate = 'linear', frames = 20,
-                  cartesian = False, match_same = False, core_fraction = 0.5):
+                  cartesian = False, match_same = False, core_fraction = 0.5, min_hinge_spacing = 6,
+                  color_segments = False, color_core = None):
         motion = MolecularMotion(mols[0], method = method, rate = rate, frames = frames,
-                                 match_same = match_same, core_fraction = core_fraction)
+                                 match_same = match_same, core_fraction = core_fraction,
+                                 min_hinge_spacing = min_hinge_spacing)
+        traj = motion.trajectory()
         from .interpolate import ResidueInterpolator
-        res_interp = ResidueInterpolator(motion.trajectory().residues, cartesian)
+        res_interp = ResidueInterpolator(traj.residues, cartesian)
         for i, mol in enumerate(mols[1:]):
                 log.status("Computing interpolation %d\n" % (i+1))
-                motion.interpolate(mol, res_interp)
-        traj = motion.trajectory()
+                res_groups = motion.interpolate(mol, res_interp)
+                if color_segments and i == 0:
+                        from random import seed, randint
+                        seed(1)
+                        for rg in res_groups:
+                                c = (randint(128,255), randint(128,255), randint(128,255), 255)
+                                rg.ribbon_colors = c
+                                rg.atoms.colors = c
+                if color_core and i == 0:
+                        rgba = color_core.uint8x4()
+                        for r in traj.residues:
+                                if getattr(r, '_in_morph_core', False):
+                                        r.ribbon_color = rgba
+                                        r.atoms.colors = rgba
         traj.active_coordset_id = 1	# Start at initial trajectory frame.
         return traj
 
@@ -26,7 +41,7 @@ ht = it = 0
 class MolecularMotion:
 
         def __init__(self, m, method = "corkscrew", rate = "linear", frames = 20,
-                     match_same = False, core_fraction = 0.5):
+                     match_same = False, core_fraction = 0.5, min_hinge_spacing = 6):
                 """
                 Compute a trajectory that starting from molecule m conformation.
                 Subsequent calls to interpolate must supply molecules
@@ -50,6 +65,8 @@ class MolecularMotion:
                                         same residue number and same atom name.
                         core_fraction   Fraction of atoms in chain that align best
                                         to move rigidly.
+                	min_hinge_spacing  Minimum length of consecutive residue segment
+                			   to move rigidly.
                 """
 
                 # Make a copy of the molecule to hold the computed trajectory
@@ -63,8 +80,9 @@ class MolecularMotion:
                 self.frames = frames
                 self.match_same = match_same
                 self.core_fraction = core_fraction
+                self.min_hinge_spacing = min_hinge_spacing
 
-        def interpolate(self, m, res_interp):
+        def interpolate(self, m, res_interp, color_segments = False):
                 """Interpolate to new conformation 'm'."""
 
                 #
@@ -77,13 +95,14 @@ class MolecularMotion:
                 from time import time
                 t0 = time()
                 cf = self.core_fraction
+                mhs = self.min_hinge_spacing
                 if self.match_same:
-                        results = segment.segmentHingeSame(sm, m, cf)
+                        results = segment.segmentHingeSame(sm, m, cf, mhs)
                 else:
                         try:
-                                results = segment.segmentHingeExact(sm, m, cf)
+                                results = segment.segmentHingeExact(sm, m, cf, mhs)
                         except ValueError:
-                                results = segment.segmentHingeApproximate(sm, m, cf)
+                                results = segment.segmentHingeApproximate(sm, m, cf, mhs)
                 t1 = time()
                 global ht
                 ht += t1-t0
@@ -98,6 +117,7 @@ class MolecularMotion:
                 if sm.deleted:
                         from chimerax.core.errors import UserError
                         raise UserError('No atoms matched')
+
                 #
                 # Interpolate between current conformation in trajectory
                 # and new conformation
@@ -127,6 +147,8 @@ class MolecularMotion:
                 t1 = time()
                 global it
                 it += t1-t0
+
+                return res_groups
 
         def trajectory(self):
                 return self.mol

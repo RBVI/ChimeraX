@@ -324,6 +324,15 @@ ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_c
         [this] () {
             parse_struct_sheet_range();
         }, { "struct_conn" });
+    register_category("chem_comp",
+        [this] () {
+            parse_chem_comp();
+        });
+    register_category("chem_comp_bond",
+        [this] () {
+            parse_chem_comp_bond();
+        }, { "chem_comp" });
+    // must be last:
     for (auto& c: generic_categories) {
         if (std::find(std::begin(builtin_categories), std::end(builtin_categories), c) != std::end(builtin_categories)) {
             logger::warning(_logger, "Can not overriden builtin parsing for "
@@ -335,14 +344,6 @@ ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_c
                 parse_generic_category();
             });
     }
-    register_category("chem_comp",
-        [this] () {
-            parse_chem_comp();
-        });
-    register_category("chem_comp_bond",
-        [this] () {
-            parse_chem_comp_bond();
-        }, { "chem_comp" });
 }
 
 ExtractMolecule::~ExtractMolecule()
@@ -814,7 +815,7 @@ ExtractMolecule::parse_audit_conform()
             [&dict_version] (const char* start) {
                 dict_version = atof(start);
             });
-        pv.emplace_back(get_column("pdbx_keywords"),
+        pv.emplace_back(get_column("pdbx_keywords_flag"),
             [&] (const char* start) {
                 has_pdbx = true;
                 set_PDBx_keywords(*start == 'Y' || *start == 'y');
@@ -1330,7 +1331,7 @@ ExtractMolecule::parse_struct_conn()
         else if (conn_type == "metalc")
             metal = true;
         if (!normal && !metal && !hydro)
-            continue;   // skip hydrogen, modres, and unknown bonds
+            continue;   // skip modres and unknown connection types
         AtomKey k1(chain_id1, position1, auth_position1, ins_code1, alt_id1,
                 atom_name1, residue_name1);
         auto ai1 = atom_map.find(k1);

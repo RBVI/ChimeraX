@@ -19,7 +19,7 @@ include $(TOP)/mk/subdir.make
 PYSRCS= $(wildcard *.py)
 PKG_DIR= $(PYSITEDIR)/chimerax/core/ui
 APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/ui
-DATA = splash.jpg contract*.png expand*.png about.html
+DATA = splash.jpg contract*.png expand*.png lightning*.png about.html
 
 all: $(PYSRCS)
 	$(PYTHON_EXE) -B -m py_compile $?

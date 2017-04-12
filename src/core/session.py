@@ -78,7 +78,7 @@ class _UniqueName:
         self.uid = uid
 
     @classmethod
-    def from_obj(cls, toolshed, obj):
+    def from_obj(cls, toolshed, obj, logger):
         """Return a unique identifier for an object in session
         Consequently, the identifier is composed of simple data types.
 
@@ -95,22 +95,15 @@ class _UniqueName:
         obj_cls = obj.__class__
         bundle_info = toolshed.find_bundle_for_class(obj_cls)
         if bundle_info is None:
-            # no bundle info, must be in core
-            if not obj_cls.__module__.startswith('chimerax.core.'):
-                raise RuntimeError('No bundle information for %s.%s' % (
-                    obj_cls.__module__, obj_cls.__name__))
-            class_name = obj_cls.__name__
-            # double check that class will be able to be restored
-            from chimerax.core import get_class
-            if obj_cls != get_class(class_name):
-                raise RuntimeError('Will not be able to restore objects of %s class' % class_name)
+            raise RuntimeError('No bundle information for %s.%s' % (
+                obj_cls.__module__, obj_cls.__name__))
         else:
             class_name = (bundle_info.name, obj_cls.__name__)
             # double check that class will be able to be restored
-            if obj_cls != bundle_info.get_class(obj_cls.__name__):
+            if obj_cls != bundle_info.get_class(obj_cls.__name__, logger):
                 raise RuntimeError(
                     'unable to restore objects of %s class in %s bundle' %
-                    (class_name, bundle_info.name))
+                    (obj_cls.__name__, bundle_info.name))
 
         ordinal = cls._cls_ordinals.get(class_name, 0)
         if ordinal == 0 and bundle_info is not None:
@@ -150,15 +143,15 @@ class _UniqueName:
         """
         class_name, ordinal = self.uid
         if isinstance(class_name, str):
-            from chimerax.core import get_class
-            cls = get_class(class_name)
+            from chimerax.core import bundle_api
+            cls = bundle_api.get_class(class_name)
         else:
             bundle_name, class_name = class_name
-            bundle_info = session.toolshed.find_bundle(bundle_name)
+            bundle_info = session.toolshed.find_bundle(bundle_name, session.logger)
             if bundle_info is None:
                 cls = None
             else:
-                cls = bundle_info.get_class(class_name)
+                cls = bundle_info.get_class(class_name, session.logger)
         return cls
 
 #    @classmethod
@@ -195,14 +188,14 @@ class _SaveManager:
                     self.graph[key] = self._found_objs
                 else:
                     self.unprocessed.append(value)
-                    uid = _UniqueName.from_obj(self.session.toolshed, value)
+                    uid = _UniqueName.from_obj(self.session.toolshed, value, self.session.logger)
                     self.processed[key] = uid
                     self.graph[key] = [uid]
             except ValueError as e:
                 raise ValueError("error processing: %r" % key)
         while self.unprocessed:
             obj = self.unprocessed.pop()
-            key = _UniqueName.from_obj(self.session.toolshed, obj)
+            key = _UniqueName.from_obj(self.session.toolshed, obj, self.session.logger)
             try:
                 self.processed[key] = self.process(obj)
             except ValueError as e:
@@ -210,7 +203,7 @@ class _SaveManager:
             self.graph[key] = self._found_objs
 
     def _add_obj(self, obj):
-        uid = _UniqueName.from_obj(self.session.toolshed, obj)
+        uid = _UniqueName.from_obj(self.session.toolshed, obj, self.session.logger)
         self._found_objs.append(uid)
         if uid not in self.processed:
             self.unprocessed.append(obj)
@@ -262,7 +255,7 @@ class _RestoreManager:
         missing_bundles = []
         out_of_date_bundles = []
         for bundle_name, (bundle_version, bundle_state_version) in bundle_infos.items():
-            bi = session.toolshed.find_bundle(bundle_name)
+            bi = session.toolshed.find_bundle(bundle_name, session.logger)
             if bi is None:
                 missing_bundles.append(bundle_name)
                 continue
@@ -397,11 +390,13 @@ class Session:
         if issubclass(cls, State):
             return cls
         elif not hasattr(self, '_snapshot_methods'):
-            from .graphics import View, MonoCamera, Lighting, Material, ClipPlane, Drawing, gsession as g
+            from .graphics import View, MonoCamera, OrthographicCamera, Lighting, Material, ClipPlane, Drawing
+            from .graphics import gsession as g
             from .geometry import Place, Places, psession as p
             self._snapshot_methods = {
                 View: g.ViewState,
                 MonoCamera: g.CameraState,
+                OrthographicCamera: g.CameraState,
                 Lighting: g.LightingState,
                 Material: g.MaterialState,
                 ClipPlane: g.ClipPlaneState,
@@ -559,8 +554,12 @@ def save(session, filename, **kw):
     from . import utils
     if isinstance(filename, str) and utils.can_set_file_icon():
         width = height = 512
-        image = session.main_view.image(width, height)
-        utils.set_file_icon(filename, image)
+        try:
+            image = session.main_view.image(width, height)
+        except RuntimeError:
+            pass
+        else:
+            utils.set_file_icon(filename, image)
 
     # Remember session in file history
     if isinstance(filename, str):
@@ -668,7 +667,7 @@ def save_x3d(session, filename, **kw):
     x3d_scene.need(x3d.Components.EnvironmentalEffects, 1)  # Background
     # x3d_scene.need(x3d.Components.EnvironmentalEffects, 2)  # Fog
     camera = session.main_view.camera
-    if camera.name() == "orthographic":
+    if camera.name == "orthographic":
         x3d_scene.need(x3d.Components.Navigation, 3)  # OrthoViewpoint
     else:
         x3d_scene.need(x3d.Components.Navigation, 1)  # Viewpoint, NavigationInfo
@@ -688,7 +687,7 @@ def save_x3d(session, filename, **kw):
         cofr = session.main_view.center_of_rotation
         r, a = camera.position.rotation_axis_and_angle()
         t = camera.position.translation()
-        if camera.name() == "orthographic":
+        if camera.name == "orthographic":
             hw = camera.field_width / 2
             f = (-hw, -hw, hw, hw)
             print('  <OrthoViewpoint centerOfRotation="%g %g %g" fieldOfView="%g %g %g %g" orientation="%g %g %g %g" position="%g %g %g"/>'

@@ -656,7 +656,7 @@ class ZoomMouseMode(MouseMode):
     def zoom(self, delta_z):
         v = self.view
         c = v.camera
-        if c.name() == 'orthographic':
+        if c.name == 'orthographic':
             c.field_width = max(c.field_width - delta_z, self.pixel_size())
             # TODO: Make camera field_width a property so it knows to redraw.
             c.redraw_needed = True

@@ -297,7 +297,7 @@ class Drawing:
     @property
     def num_displayed_positions(self):
         dp = self.display_positions
-        ndp = dp.sum() if dp else len(self.positions)
+        ndp = len(self.positions) if dp is None else dp.sum()
         return ndp
 
     @property

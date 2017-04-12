@@ -129,6 +129,7 @@ class Model(State, Drawing):
             'id': self.id,
             'parent': p,
             'positions': self.positions.array(),
+            'display_positions': self.display_positions,
             'version': CORE_STATE_VERSION,
         }
         return data
@@ -151,6 +152,8 @@ class Model(State, Drawing):
             p.add([self])
         from .geometry import Places
         self.positions = Places(place_array=data['positions'])
+        if 'display_positions' in data:
+            self.display_positions = data['display_positions']
 
     def reset_state(self, session):
         pass

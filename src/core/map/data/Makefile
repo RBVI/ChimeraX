@@ -18,7 +18,7 @@ include $(TOP)/mk/config.make
 
 # TODO: Port other file readers from Python 2 to Python 3.
 
-SUBDIRS	= apbs ccp4 cmap dsn6 imagestack mrc
+SUBDIRS	= apbs ccp4 cmap dsn6 imagestack ims mrc
 
 PKG_DIR = $(PYSITEDIR)/chimerax/core/map/data
 APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/map/data

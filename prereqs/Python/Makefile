@@ -3,7 +3,7 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 # PYTHON_VERSION is in config.make
-PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).0
+PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).1
 DISTRIBUTION = Python-$(PYTHON_PATCH_LEVEL).tar.xz
 SOURCE = $(tmpdir)/Python-$(PYTHON_PATCH_LEVEL)
 
@@ -17,10 +17,9 @@ DYNLOAD_DIR = $(libdir)/python$(PYTHON_VERSION)/lib-dynload
 endif
 
 QUOTE_CC := $(subst ','\'',$(CC) $(TARGET_ARCH))
-QUOTE_CXX := $(subst ','\'',$(CXX) $(TARGET_ARCH))
 
 # Make Python use our compiler options
-ENV_CONFIGURE = env CC='$(QUOTE_CC) -I$(includedir) -L$(libdir) -DUSE_DYLD_GLOBAL_NAMESPACE' CXX='$(QUOTE_CXX) -I$(includedir) -L$(libdir)'
+ENV_CONFIGURE = env CC='$(QUOTE_CC) -I$(includedir) -L$(libdir) -DUSE_DYLD_GLOBAL_NAMESPACE'
 
 ifdef DEBUG
 ENV_CONFIGURE += OPT='$(OPT)'
@@ -34,10 +33,9 @@ PATCHES += $(wildcard Python-$(PYTHON_PATCH_LEVEL)_debug.patch)
 endif
 
 ifeq ($(OS),Linux)
-LDFLAGS += -Wl,-rpath,"$(libdir)"
+LDFLAGS += -Wl,-rpath,a-value-that-is-replaced
 ENV_CONFIGURE += LDFLAGS='$(LDFLAGS)'
-# On linux have to disable IPV6 socket support or _socket doesn't compile.
-CONFIG_OPTIONS += --disable-ipv6 --enable-shared
+CONFIG_OPTIONS += --enable-shared --enable-optimizations
 endif
 ifeq ($(OS),Darwin)
 # On Darwin, -Wl,-rpath ends up in shared libraries in addition to executables,
@@ -95,6 +93,11 @@ ifeq ($(OS),Windows)
 	#cd $(SOURCE)/PCbuild ; cmd /c build.bat -p $(PLATFORM) 
 	#cd $(SOURCE)/PCbuild ; env HOST_PYTHON=`cygpath -m '$(SOURCE)/PCbuild/amd64/python3.exe'` devenv.com pcbuild.sln /build $(CONFIG_PLATFORM) /project _ssl
 	test -n '$(PYDIR)'
+	@if [ $(PYTHON_PATCH_LEVEL) != $(shell '$(PYDIR)'/python -c 'import sys; print(sys.version.split()[0])') ] ; \
+	then \
+		echo "Can not find Python $(PYTHON_PATCH_LEVEL)" ; \
+		exit 1 ; \
+	fi
 	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ --delete\
 	  '$(PYDIR)'/DLLs \
 	  '$(PYDIR)'/Lib \

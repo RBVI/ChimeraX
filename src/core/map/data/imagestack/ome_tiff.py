@@ -24,7 +24,7 @@ def ome_image_grids(path):
                     g.series_index = t
                 cgrid.append(g)
                 gid += 1
-            grids.append(cgrid)
+            grids.append(cgrid if len(cgrid) > 1 else cgrid[0])
     return grids
 
 # -----------------------------------------------------------------------------
@@ -39,7 +39,10 @@ class OME_Image_Grid(Grid_Data):
     self.time = time
 
     name = d.name
-    if d.nchannels > 1:
+    if channel in d.channel_names:
+        cname = d.channel_names[channel]
+        name = '%s %s' % (cname, name) if channel == 0 else cname
+    elif d.nchannels > 1:
         name += ' ch%d' % channel
     if d.ntimes > 1:
         from math import log10
@@ -71,32 +74,15 @@ class OME_Image_Grid(Grid_Data):
     c, t = self.channel, self.time
     op = self.ome_pixels
     im = getattr(op, 'image', None)
+    if im and im.fp and im.fp.closed:
+        im = None
     from os.path import dirname, join
     dpath = dirname(op.path)
     for k in range(k0, k0+ksz, kstep):
       if progress:
-        progress.plane((k-k0)/kstep)
-      fname, plane = op.plane_table[(c,t,k)]
-      if im is None or fname != im.filename:
-          # Switch image files for multi-file OME TIFF data.
-          from PIL import Image
-          op.image = im = Image.open(join(dpath,fname))
-          im.filename = fname
-      im.seek(plane)
-      ia_1d[:] = im.getdata()
-
-      # Use tifffile.py instead of PIL
-      # if im is None or fname != im._filename:
-      #     # Switch image files for multi-file OME TIFF data.
-      #     from tifffile import TiffFile
-      #     op.image = im = TiffFile(join(dpath,fname))
-      #     im._filename = fname
-      #     print ('opened', fname, plane)
-      #     # PIL bug causes a ValueError: buffer is not large enough in mmap code on 4 Gbyte tiff file
-      #     # after reading a few images.  Overwriting PIL's filename attribute avoids using this mmap code.
-      # ia[:] = im.asarray(key = plane)
-
-      array[(k-k0)/kstep,:,:] = ia[j0:j0+jsz:jstep,i0:i0+isz:istep]
+        progress.plane((k-k0)//kstep)
+      op.plane_data(c, t, k, ia_1d)
+      array[(k-k0)//kstep,:,:] = ia[j0:j0+jsz:jstep,i0:i0+isz:istep]
     return array
 
 def parse_ome_tiff_header(path):
@@ -104,7 +90,14 @@ def parse_ome_tiff_header(path):
     from PIL import Image
     i = Image.open(path)
 
-    desc = [d for d in i.tag[270] if d.startswith('<?xml')][0]
+    descs = [d for d in i.tag[270] if d.startswith('<?xml')]
+    if descs:
+        desc = descs[0]
+    else:
+        from os.path import basename
+        raise TypeError('OME TIFF image %s does not have an image description tag'
+                        ' starting with "<?xml" as required by the OME TIFF specification,'
+                        ' got description tags "%s"' % (basename(path), str(i.tag[270])))
 #    print 'ImageDescription for %s\n%s' % (path, desc)
 
     from xml.etree import ElementTree as ET
@@ -133,10 +126,11 @@ def parse_ome_tiff_header(path):
                 raise TypeError('OME TIFF value type not a numpy type, got %s' % value_type)
             value_type = getattr(numpy, value_type)
             channels = [ch for ch in p if tag_name(ch) == 'Channel']
+            cnames = channel_names(channels)
             ccolor = channel_colors(channels)
             tdata = [td for td in p if tag_name(td) == 'TiffData']
             ptable = plane_table(dorder, nz, nt, nc, path, tdata)
-            pi = OME_Pixels(path, name, dorder, (sx,sy,sz), (nx,ny,nz), nt, nc, value_type, ptable, ccolor)
+            pi = OME_Pixels(path, name, dorder, (sx,sy,sz), (nx,ny,nz), nt, nc, value_type, ptable, cnames, ccolor)
             images.append(pi)
 
     return images
@@ -146,20 +140,33 @@ def tag_name(e):
     t = e.tag
     return t.split('}',1)[1] if t[0] == '{' else t
 
+def channel_names(channels):
+    cnames = {}
+    for ch in channels:
+        ca = ch.attrib
+        if 'ID' in ca and 'Name' in ca:
+            cnum = int(ca['ID'].split(':')[-1])
+            cnames[cnum] = ca['Name']
+    return cnames
+
 def channel_colors(channels):
     colors = {}
     for ch in channels:
         ca = ch.attrib
-        cnum = int(ca['ID'].split(':')[-1])
-        cint32 = int(ca['Color'])
-        rgba8 = (cint32 & 0xff, (cint32 & 0xff00) >> 8, (cint32 & 0xff0000) >> 16, (cint32 & 0xff000000) >> 24)
-        rgba = tuple(r/255.0 for r in rgba8)
-        colors[cnum] = rgba
+        if 'ID' in ca and 'Color' in ca:
+            cnum = int(ca['ID'].split(':')[-1])
+            cint32 = int(ca['Color'])
+            rgba8 = [cint32 & 0xff, (cint32 & 0xff00) >> 8, (cint32 & 0xff0000) >> 16, (cint32 & 0xff000000) >> 24]
+            if rgba8[3] == 0:
+                rgba8[3] = 255
+            rgba = tuple(r/255.0 for r in rgba8)
+            colors[cnum] = rgba
     return colors
 
 class OME_Pixels:
     def __init__(self, path, name, dimension_order, grid_spacing, grid_size,
-                 ntimes, nchannels, value_type, plane_table, channel_colors):
+                 ntimes, nchannels, value_type, plane_table,
+                 channel_names, channel_colors):
         self.path = path
         self.name = name
         self.dimension_order = dimension_order
@@ -169,18 +176,61 @@ class OME_Pixels:
         self.nchannels = nchannels
         self.value_type = value_type            # numpy type
         self.plane_table = plane_table		# Map (channel, time, z) to tiff file and image number
+        self.channel_names = channel_names
         self.channel_colors = channel_colors
+        self.image = None
 
+    def plane_data(self, channel, time, k, pixel_values):
+        fname, plane = self.plane_table[(channel,time,k)]
+        im = self.image_plane(fname, plane)
+        pixel_values[:] = im.getdata()
+
+    def image_plane(self, filename, plane):
+        im = self.image
+        opened = False
+        if im is None or filename != im.filename:
+            # Switch image files for multi-file OME TIFF data.
+            from os.path import dirname, join
+            dpath = dirname(self.path)
+            from PIL import Image
+            self.image = im = Image.open(join(dpath,filename))
+            im.filename = filename
+            opened = True
+        try:
+            im.seek(plane)
+        except ValueError:
+            if im.fp.closed and not opened:
+                # PIL TIFF reader seems to close file after reading last image of compressed stack.
+                # So reopen it.
+                self.image = None
+                im = self.image_plane(filename, plane)
+            else:
+                raise
+
+        # Use tifffile.py instead of PIL
+        # if im is None or fname != im._filename:
+        #     # Switch image files for multi-file OME TIFF data.
+        #     from tifffile import TiffFile
+        #     self.image = im = TiffFile(join(dpath,fname))
+        #     im._filename = fname
+        #     print ('opened', fname, plane)
+        #     # PIL bug causes a ValueError: buffer is not large enough in mmap code on 4 Gbyte tiff file
+        #     # after reading a few images.  Overwriting PIL's filename attribute avoids using this mmap code.
+        # ia[:] = im.asarray(key = plane)
+
+        return im
+    
     def description(self):
+        from numpy import dtype
         d = ', '.join(['image name %s' % self.name,
                        'dimension order %s' % self.dimension_order,
                        'grid spacing %.4g, %.4g, %.4g' % self.grid_spacing,
                        'grid size %d, %d, %d' % self.grid_size,
                        'times %d' % self.ntimes,
                        'channels %d' % self.nchannels,
-                       'value type %s' % self.value_type])
+                       'value type %s' % dtype(self.value_type).name])
         return d
-        
+
 # TIFF file plane number corresoponding to each channel, time and z.
 def plane_table(dimension_order, nz, nt, nc, path, tdata):
     if dimension_order[:2] != 'XY':

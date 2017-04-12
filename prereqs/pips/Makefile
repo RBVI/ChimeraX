@@ -7,6 +7,8 @@ include Makefile.pip
 # Force LANG to UTF-8 so that grako will install successfully
 LANG	= en_US.UTF-8
 
+PATCHES = pillow_ome_tiff.patch
+
 all:
 
 install:
@@ -20,6 +22,9 @@ upgrade:
 
 app-install:
 	$(APP_PIP) install -r app_requirements.txt
+	-for p in $(PATCHES); do \
+		patch -d $(PYSITEDIR) -N -p0 < $$p ; \
+	done
 
 app-upgrade:
 	$(APP_PIP) install -U -r app_requirements.txt

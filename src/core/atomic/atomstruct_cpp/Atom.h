@@ -20,6 +20,7 @@
 #include <cstring>
 #include <element/Element.h>
 #include <map>
+#include <memory>
 #include <set>
 #include <string>
 #include <vector>
@@ -85,26 +86,18 @@ private:
     char  _alt_loc;
     class _Alt_loc_info {
       public:
-        _Alt_loc_info() : aniso_u(NULL), serial_number(0) {}
-            ~_Alt_loc_info() { if (aniso_u) { delete aniso_u; aniso_u = NULL; } }
-        _Alt_loc_info(const _Alt_loc_info &ali) {
-          // Copy aniso_u vector.
-          if (ali.aniso_u) {
-            create_aniso_u();
-            for (int i = 0 ; i < 6 ; ++i)
-              aniso_u[i] = ali.aniso_u[i];
-          } else if (aniso_u) {
-            delete aniso_u;
-            aniso_u = NULL;
-          }
-        }
+        _Alt_loc_info() : serial_number(0) {}
+        ~_Alt_loc_info() { }
+
         std::vector<float> *create_aniso_u() {
-          if (aniso_u == NULL)
-            aniso_u = new std::vector<float>(6);
-          return aniso_u;
+            if (aniso_u.get() == nullptr) {
+                aniso_u = std::make_shared<std::vector<float>>();
+                aniso_u.get()->reserve(6);
+            }
+            return aniso_u.get();
         }
 
-        std::vector<float> *aniso_u;
+        std::shared_ptr<std::vector<float>>  aniso_u;
         float  bfactor;
         Point  coord;
         float  occupancy;
@@ -112,7 +105,7 @@ private:
     };
     typedef std::map<unsigned char, _Alt_loc_info>  _Alt_loc_map;
     _Alt_loc_map  _alt_loc_map;
-    std::vector<float> *  _aniso_u;
+    std::vector<float>*  _aniso_u;
     Bonds  _bonds; // _bonds/_neighbors in same order
     mutable AtomType  _computed_idatm_type;
     unsigned int  _coord_index;
@@ -159,7 +152,7 @@ public:
     static const IdatmInfoMap&  get_idatm_info_map();
     bool  has_alt_loc(char al) const
       { return _alt_loc_map.find(al) != _alt_loc_map.end(); }
-    bool  has_aniso_u() const { return aniso_u() != NULL; }
+    bool  has_aniso_u() const { return aniso_u() != nullptr; }
     bool  has_missing_structure_pseudobond() const;
     bool  idatm_is_explicit() const { return _explicit_idatm_type[0] != '\0'; }
     const AtomType&  idatm_type() const;
@@ -194,7 +187,7 @@ public:
     void  set_alt_loc(char alt_loc, bool create=false, bool _from_residue=false);
     void  set_aniso_u(float u11, float u12, float u13, float u22, float u23, float u33);
     void  set_bfactor(float);
-    void  set_coord(const Point& coord) { set_coord(coord, NULL); }
+    void  set_coord(const Point& coord) { set_coord(coord, nullptr); }
     void  set_coord(const Point& coord, CoordSet* cs);
     void  set_computed_idatm_type(const char* it);
     void  set_draw_mode(DrawMode dm);
