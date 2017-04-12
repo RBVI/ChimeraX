@@ -86,10 +86,9 @@ class MRC_Data:
       alpha = beta = gamma = 90
     self.cell_angles = (alpha, beta, gamma)
 
-    from math import isnan
     if (v['type'] == 'mrc2000' and
         (v['zorigin'] != 0 or v['xorigin'] != 0 or v['yorigin'] != 0) and
-        not (isnan(v['xorigin']) or isnan(v['yorigin']) or isnan(v['zorigin']))):
+        valid_origin(v, self.data_step)):
       #
       # This is a new MRC 2000 format file.  The xyz origin header parameters
       # are used instead of using ncstart, nrstart nsstart for new style files,
@@ -367,4 +366,19 @@ def valid_cell_angles(alpha, beta, gamma, path):
                  % (path, alpha, beta, gamma, err))
     return False
 
+  return True
+
+# -----------------------------------------------------------------------------
+#
+def valid_origin(v, step):
+  x,y,z = v['xorigin'], v['yorigin'], v['zorigin']
+  from math import isnan, isinf
+  if isnan(x) or isnan(y) or isnan(z) or isinf(x) or isinf(y) or isinf(z):
+    return False
+  if ((step[0] > 0 and x + step[0] == x) or
+      (step[1] > 0 and y + step[1] == y) or
+      (step[2] > 0 and z + step[2] == z)):
+    # Origin is so large that grid points cannot be distinguished
+    # Usually indicates uninitialized origin values as produced by Relion 2.0.
+    return False
   return True
