@@ -32,12 +32,17 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;method&nbsp;&nbsp;corkscrew&nbsp;|&nbsp;independent&nbsp;|&nbsp;linear&nbsp;]
 [&nbsp;rate&nbsp;&nbsp;<i>function</i>&nbsp;]
 [&nbsp;coreFraction&nbsp;&nbsp;<i>f</i>&nbsp;]
+[&nbsp;minHingeSpacing&nbsp;&nbsp;<i>M</i>&nbsp;]
+[&nbsp;colorSegments&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;colorCore&nbsp;&nbsp;<a href="colornames.html"><i>color</i></a>&nbsp;]
 [&nbsp;cartesian&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;same&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;hideModels&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;play&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 </h3>
 <p>
 The <b>morph</b> command creates a trajectory that morphs between two or
-more atomic models. The trajectory can be played back in either direction
+more atomic models. The trajectory can be played back
 with the command <a href="coordset.html"><b>coordset</b></a>.
 See also: 
 <a href="../movies.html">making movies</a>
@@ -48,6 +53,14 @@ In the <b>morph</b> command, the models should be specified in the order
 desired for morphing.
 Although the same model number cannot be given more than once, a given structure 
 can be opened multiple times to give copies with different model numbers.
+Examples:
+<blockquote><b>
+morph #3,1,2 frames 40
+<br>
+morph #1.1-20 same t
+<br>
+morph #2,5 core 0.1 frames 30
+</b></blockquote>
 </p><p>
 Only the <a href="#pairing">atoms in common</a>
 among the input structures will be included in the resulting trajectory.
@@ -77,10 +90,10 @@ and Gerstein</a>, <i>Nucleic Acids Res</i> <b>28</b>:1665 (2000).
 <li><a name="flexible">coordinate changes within the atom groups</a>
 </ol>
 <p>
-The <b>frames</b> option (default <i>N</i> = <b>20</b>) indicates
-generating <i>N</i>&ndash;1 coordinate sets per <a href="#stage">stage</a>,
+The <b>frames</b> option (default <i>N</i> = <b>20</b>) indicates generating 
+<i>N</i>&ndash;1 intermediate coordinate sets per <a href="#stage">stage</a>,
 giving a total number of frames in the trajectory
-= 1 + <i>N</i>(number of input models).
+= 1 + <i>N</i>(number of stages).
 </p><p>
 The <b>method</b> option controls how to calculate the rigid-body transformations:
   <ul>
@@ -117,8 +130,15 @@ the starting and ending structures) comprises one group
 and the remaining (1&ndash;<i>f</i>) a second group. Going through the
 residues in order, hinges are added between consecutive residues where
 there is a change from one group to the other, as long as a hinge is
-at least 6 residues away from the previous hinge (does not create a
-segment shorter than 6 residues).
+at least <b>minHingeSpacing</b> <i>M</i> residues 
+away from the previous hinge (does not create a
+segment shorter than <i>M</i> residues, default <b>6</b>).
+The <b>colorSegments</b> option (default <b>false</b>)
+shows the resulting segments in different colors (chosen automatically),
+whereas <b>colorCore</b> uses the specified
+<a href="colornames.html"><i>color</i></a> for residues in the initial core.
+Although segments are recomputed at each <a href="#stage">stage</a> 
+of a multistage morph, segment coloring only shows the first set.
 </p><p>
 The <b>cartesian</b> option</b> (default <b>false</b>) indicates whether
 <a href="#flexible">within-group coordinate changes</a>
@@ -141,12 +161,16 @@ Setting <b>same</b> to <b>true</b> may make the calculation slightly faster,
 but otherwise there is little harm in staying with the default
 if there is any doubt as to whether numbering/naming are the same.
 </p><p>
-The trajectory will be opened as a separate model. Coordinates for the
-<a href="#pairing">atoms in common</a> from the <a href="#stage">stage</a>
-endpoints (input structures) and the coordinate sets
-comprise the frames of the trajectory.
-The other models can be hidden by using the <b>Model Panel</b>
-or <a href="show.html"><b>hide</b></a> with <b>target m</b>.
+Coordinates for the <a href="#pairing">atoms in common</a> 
+from the <a href="#stage">stage</a> endpoints (input structures) 
+and the coordinate sets comprise the frames of the trajectory, 
+which is opened as a separate model.
+The <b>hideModels</b> option (default <b>true</b>) hides the input models,
+and the <b>play</b> option 
+(default <b>true</b>) plays through the resulting trajectory a single time. 
+Regardless of the <b>play</b> option, the 
+<a href="coordset.html"><b>coordset</b></a> command can be used to replay
+the trajectory.
 </p>
 
 <a name="pairing"></a>
@@ -237,5 +261,5 @@ and unattractive morph trajectory.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-March 2017</address>
+April 2017</address>
 </body></html>

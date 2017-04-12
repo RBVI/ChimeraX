@@ -51,12 +51,20 @@ map&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>map-model</i></a>&nbsp;
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
 &nbsp;<a href="#general-options"><i>general-options</i></a>
 </h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>color</b>
+&nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
+<b>zone</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+[&nbsp;<b>distance</b>&nbsp;&nbsp;<i>cutoff</i>&nbsp;]
+</h3>
 <p>
 The <b>color</b> command colors atomic models, including
 cartoon and molecular surface representations. 
 Simple coloring also applies to volume
 model (map) isosurfaces and semitransparent solid displays, 
 and coloring by map value applies to both molecular and nonmolecular surfaces.
+Coloring by zone to match nearby atoms or 
+<a href="../markers.html">markers</a> applies to nonmolecular surfaces only.
 The absence of an atom or model specifier implies &ldquo;all&rdquo;
 applicable items.
 Bonds and <a href="../pseudobonds.html">pseudobonds</a>
@@ -97,7 +105,7 @@ atomic representations and per-atom patches of molecular surfaces
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/colorbyelement.png"></a>
 <li><b>fromatoms</b>
-- color other <a href="#target">targets</a>
+- color other <a href="#target">targets</a> in atomic models
 (molecular surface patches, <i>etc.</i>) to match the corresponding atoms
 <li><a name="bychain"><b>bychain</b></a>
 - a stereotyped scheme for coloring by chain ID, also used for the
@@ -158,6 +166,15 @@ By default, a molecular surface shows where the surface of a spherical probe
 of radius 1.4 &Aring; can lie, the <b><i>solvent-excluded</i></b> surface.
 An offset of 1.4 &Aring; approximates the <b><i>solvent-accessible</i></b>
 surface, about as close as the probe center can get to the molecule.
+</p><p>
+Coloring by <b>zone</b> to match nearby atoms or
+<a href="../markers.html">markers</a> applies to nonmolecular surfaces only.
+The distance <i>cutoff</i> is specified in physical units of distance,
+typically &Aring; (default <b>2.0</b>).
+When multiple specified atoms fall within the cutoff distance of a 
+surface vertex, the vertex will be colored to match the closest one.
+Vertices not within the cutoff of any of the atoms are assigned 
+the default color of the surface model (single-color mode).
 </p>
 
 <a name="general-options"></a>
@@ -486,5 +503,5 @@ named <i>cname</i>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2017</address>
+April 2017</address>
 </body></html>

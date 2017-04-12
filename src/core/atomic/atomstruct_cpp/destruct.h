@@ -51,6 +51,11 @@ public:
         bool notification_time = _destruction_batcher == instance
         || (_destruction_batcher == nullptr && _destruction_parent == instance);
         if (notification_time) {
+            // both these need to be here in case the observers cause more
+            // (recursive) destructions
+            _destruction_batcher = nullptr;
+            if (_destruction_parent == instance)
+                _destruction_parent = nullptr;
             // copy the _destroyed set in case
             // the observers destroy anything
             decltype(_destroyed) destroyed_copy;
@@ -62,9 +67,7 @@ public:
                         o->destructors_done(destroyed_copy);
                 }
             }
-            _destruction_batcher = nullptr;
-        };
-        if (_destruction_parent == instance)
+        } else if (_destruction_parent == instance)
             _destruction_parent = nullptr;
     }
     static void  initiating_destruction(void* instance, bool batcher = false) {

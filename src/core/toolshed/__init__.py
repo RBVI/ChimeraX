@@ -358,8 +358,9 @@ class Toolshed:
                     from .installed import _report_difference
                     _report_difference(logger, save, self._installed_bundle_info)
             if save is not None:
-                save.deregister_all(logger)
-            self._installed_packages = self._installed_bundle_info.register_all(logger, session)
+                save.deregister_all(logger, session, self._installed_packages)
+            self._installed_bundle_info.register_all(logger, session,
+                                                     self._installed_packages)
         if check_remote:
             self.reload_available(logger)
         self.triggers.activate_trigger(TOOLSHED_BUNDLE_INFO_RELOADED, self)
@@ -377,7 +378,7 @@ class Toolshed:
         from .available import AvailableBundleCache
         abc = AvailableBundleCache()
         try:
-            abc.load(logger, _RemoteURL)
+            abc.load(logger, self.remote_url)
         except URLError as e:
             logger.info("Updating list of available bundles failed: %s"
                         % str(e.reason))
