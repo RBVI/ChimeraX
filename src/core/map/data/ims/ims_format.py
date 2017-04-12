@@ -110,9 +110,7 @@ class IMS_Data:
         # Imaris image header values are numpy arrays of characters. Ugh.
         im = f.root.DataSetInfo.Image._v_attrs
         extent = [(float(im['ExtMin%d' % a].tostring()), float(im['ExtMax%d' % a].tostring())) for a in (0,1,2)]
-        print ('extent', extent, type(extent[0][0]))
         size = [int(im[axis].tostring()) for axis in ('X','Y','Z')]
-        print ('size', size)
         origin = [e1 for e1,e2 in extent]
         step = [(e2-e1)/s for (e1,e2),s in zip(extent,size)]
         
@@ -202,6 +200,9 @@ class IMS_Data:
     def read_matrix(self, ijk_origin, ijk_size, ijk_step,
                     array_path, array, progress):
 
+#        import traceback
+#        traceback.print_stack()
+        
         i0,j0,k0 = ijk_origin
         isz,jsz,ksz = ijk_size
         istep,jstep,kstep = ijk_step
