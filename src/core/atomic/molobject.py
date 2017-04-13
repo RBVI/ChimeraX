@@ -831,10 +831,10 @@ class Ring:
         doc="Whether the ring is aromatic. Boolean value.")
     atoms = c_property('ring_atoms', cptr, 'size', astype = _atoms, read_only = True,
         doc=":class:`.Atoms` collection containing the atoms of the ring, "
-        "in no particular order (see :method:`.Ring.ordered_atoms`).")
+        "in no particular order (see :meth:`.Ring.ordered_atoms`).")
     bonds = c_property('ring_bonds', cptr, 'size', astype = _bonds, read_only = True,
         doc=":class:`.Bonds` collection containing the bonds of the ring, "
-        "in no particular order (see :method:`.Ring.ordered_bonds`).")
+        "in no particular order (see :meth:`.Ring.ordered_bonds`).")
     ordered_atoms = c_property('ring_ordered_atoms', cptr, 'size', astype=_atoms, read_only=True,
         doc=":class:`.Atoms` collection containing the atoms of the ring, in ring order.")
     ordered_bonds = c_property('ring_ordered_bonds', cptr, 'size', astype=_bonds, read_only=True,
