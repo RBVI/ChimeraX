@@ -386,7 +386,8 @@ class View:
         rendered scene.  This is used for blending effects such as motion
         blur and cross fades.
         '''
-        w, h = self.window_size
+        r = self._render
+        w, h = r.render_size()
         rgba = self._render.frame_buffer_image(w, h, front_buffer = True)
         return rgba
 
