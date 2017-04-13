@@ -13,7 +13,8 @@
  * === UCSF ChimeraX Copyright ===
  */
 
-#include <algorithm>  // for std::sort
+#include <algorithm>  // for std::sort, std::find
+#include <cctype>
 #include <set>
 #include <sstream>
 #include <stdio.h>  // fgets
@@ -30,7 +31,7 @@
 #include <atomstruct/Sequence.h>
 #include <atomstruct/destruct.h>
 #include <logger/logger.h>
-#include <arrays/pythonarray.h>	// Use python_voidp_array()
+#include <arrays/pythonarray.h>	// Use python_voidp_array(), array_from_python()
 
 namespace pdb {
 
@@ -45,12 +46,22 @@ using atomstruct::MolResId;
 using atomstruct::Residue;
 using atomstruct::ResName;
 using atomstruct::Sequence;
+using atomstruct::Structure;
 using atomstruct::Coord;
 
 std::string pdb_segment("pdb_segment");
 std::string pdb_charge("formal_charge");
 std::string pqr_charge("charge");
 std::string pqr_radius("radius");
+
+const vector<std::string> record_order = {
+    "HEADER", "OBSLTE", "TITLE", "CAVEAT", "COMPND", "SOURCE", "KEYWDS", "EXPDTA", "AUTHOR",
+    "REVDAT", "SPRSDE", "JRNL", "REMARK", "DBREF", "SEQADV", "SEQRES", "MODRES", "FTNOTE",
+    "HET", "HETNAM", "HETSYN", "FORMUL", "HELIX", "SHEET", "TURN", "SSBOND", "LINK", "HYDBND",
+    "SLTBRG", "CISPEP", "SITE", "CRYST1", "ORIGX1", "ORIGX2", "ORIGX3", "SCALE1", "SCALE2",
+    "SCALE3", "MTRIX1", "MTRIX2", "MTRIX3", "TVECT", "MODEL", "ATOM", "SIGATM", "ANISOU",
+    "SIGUIJ", "TER", "HETATM", "ENDMDL", "CONECT", "MASTER", "END",
+}
 
 static void
 canonicalize_atom_name(AtomName& aname, bool *asterisks_translated)
@@ -94,7 +105,7 @@ canonicalize_res_name(ResName& rname)
 #include <ctime>
 static clock_t cum_preloop_t, cum_loop_preswitch_t, cum_loop_switch_t, cum_loop_postswitch_t, cum_postloop_t;
 #endif
-// return NULL on error
+// return nullptr on error
 // return input if PDB records implying a structure encountered
 // return PyNone otherwise (e.g. only blank lines, MASTER records, etc.)
 static void *
@@ -112,7 +123,7 @@ read_one_structure(std::pair<char *, PyObject *> (*read_func)(void *),
     bool        start_connect = true;
     int            in_model = 0;
     AtomicStructure::Residues::size_type cur_res_index = 0;
-    Residue        *cur_residue = NULL;
+    Residue        *cur_residue = nullptr;
     MolResId    cur_rid;
     PDB            record;
     bool        actual_structure = false;
@@ -169,7 +180,7 @@ start_t = end_t;
             if (record.unknown.junk[0] & 0200) {
                 logger::error(py_logger, "Non-ASCII character on line ",
                     *line_num, " of PDB file");
-                return NULL;
+                return nullptr;
             }
             logger::warning(py_logger, "Ignored bad PDB record found on line ",
                 *line_num, '\n', is.str());
@@ -177,7 +188,7 @@ start_t = end_t;
 
         case PDB::HEADER:
             // SCOP doesn't provide MODRES records for HETATMs...
-            if (strstr(record.header.classification, "SCOP/ASTRAL") != NULL) {
+            if (strstr(record.header.classification, "SCOP/ASTRAL") != nullptr) {
                 is_SCOP = true;
             }
             break;
@@ -210,7 +221,7 @@ start_t = end_t;
             if (in_model && !as->residues().empty())
                 cur_residue = as->residues()[0];
             else {
-                cur_residue = NULL;
+                cur_residue = nullptr;
                 if (in_model)
                     // either the first model was empty or we have
                     // consecutive MODEL records with no intervening
@@ -252,7 +263,7 @@ start_t = end_t;
                 // trajectories if necessary
                 CoordSet *acs = as->active_coord_set();
                 const CoordSet *prev_cs = as->find_coord_set(acs->id()-1);
-                if (prev_cs != NULL && acs->coords().size() < prev_cs->coords().size())
+                if (prev_cs != nullptr && acs->coords().size() < prev_cs->coords().size())
                     acs->fill(prev_cs);
             }
             break;
@@ -290,7 +301,7 @@ start_t = end_t;
             MolResId rid(cid, seq_num, i_code);
             rname = record.atom.res.name;
             canonicalize_res_name(rname);
-            if (recent_TER && cur_residue != NULL && cur_residue->chain_id() == rid.chain)
+            if (recent_TER && cur_residue != nullptr && cur_residue->chain_id() == rid.chain)
                 // HETATMs following a TER in the middle of
                 // of chain should not be chained even if
                 // they are found in MODRES records (e.g. the
@@ -306,37 +317,37 @@ start_t = end_t;
                     } else {
                         // Monte-Carlo traj?
                         cur_residue = as->find_residue(cid, seq_num, i_code);
-                        if (cur_residue == NULL) {
+                        if (cur_residue == nullptr) {
                             // if chain ID is space and res is het,
                             // then chain ID probably should be
                             // space, check that...
                             cur_residue = as->find_residue(" ", seq_num, i_code);
-                            if (cur_residue != NULL)
+                            if (cur_residue != nullptr)
                                 rid = MolResId(' ', seq_num, i_code);
                         }
                     }
                 }
-                if (cur_residue == NULL || MolResId(cur_residue) != rid 
+                if (cur_residue == nullptr || MolResId(cur_residue) != rid 
                 || cur_residue->name() != rname) {
                     logger::error(py_logger, "Residue ", rid, " not in first"
                         " model on line ", *line_num, " of PDB file");
                     goto finished;
                 }
-            } else if (cur_residue == NULL || cur_rid != rid
+            } else if (cur_residue == nullptr || cur_rid != rid
             // modifying HETs can be inline...
             || (cur_residue->name() != rname && (record.type() != PDB::HETATM
                 || cur_residue->is_het())))
             {
                 // on to new residue
 
-                if (cur_residue != NULL && cur_rid.chain != rid.chain) {
+                if (cur_residue != nullptr && cur_rid.chain != rid.chain) {
                     start_connect = true;
                 } else if (record.type() == PDB::HETATM
                 && (break_hets || (!is_SCOP
                 && mod_res->find(rid) == mod_res->end()))) {
                     start_connect = true;
-                } else if (cur_residue != NULL && cur_residue->position() > rid.pos
-                && cur_residue->find_atom("OXT") !=  NULL) {
+                } else if (cur_residue != nullptr && cur_residue->position() > rid.pos
+                && cur_residue->find_atom("OXT") !=  nullptr) {
                     // connected residue numbers can
                     // legitimately drop due to circular
                     // permutations; only break chain
@@ -352,7 +363,7 @@ start_t = end_t;
                 // until we come out on the "other side" into
                 // the following ATOM residue.  When we do,
                 // remove the chain break.
-                if (!start_connect && cur_residue != NULL
+                if (!start_connect && cur_residue != nullptr
                 && record.type() == PDB::ATOM && cur_residue->is_het()
                 && rid.chain != " " && mod_res->find(cur_rid) == mod_res->end()
                 && cur_rid.chain == rid.chain){
@@ -372,7 +383,7 @@ start_t = end_t;
                     }
                 }
 
-                if (start_connect && cur_residue != NULL)
+                if (start_connect && cur_residue != nullptr)
                     end_residues->push_back(cur_residue);
                 cur_rid = rid;
                 cur_residue = as->new_residue(rname, rid.chain, rid.pos, rid.insert);
@@ -388,7 +399,7 @@ start_t = end_t;
             Coord c(record.atom.xyz);
             if (in_model > 1) {
                 Atom *a = cur_residue->find_atom(aname);
-                if (a == NULL) {
+                if (a == nullptr) {
                     logger::error(py_logger, "Atom ", aname, " not in first"
                         " model on line ", *line_num, " of PDB file");
                     goto finished;
@@ -538,7 +549,7 @@ start_t = end_t;
             auto chain_id = ChainID({record.ssbond.res[0].chain_id});
             Residue *ssres = as->find_residue(chain_id,
                 record.ssbond.res[0].seq_num, record.ssbond.res[0].i_code);
-            if (ssres == NULL)
+            if (ssres == nullptr)
                 break;
             if (ssres->name() != record.ssbond.res[0].name) {
                 logger::warning(py_logger, "First res name in SSBOND record (",
@@ -547,7 +558,7 @@ start_t = end_t;
                 break;
             }
             Atom *ap0 = ssres->find_atom("SG");
-            if (ap0 == NULL) {
+            if (ap0 == nullptr) {
                 logger::warning(py_logger, "Atom SG not found in ", ssres);
                 break;
             }
@@ -555,7 +566,7 @@ start_t = end_t;
             chain_id = ChainID({record.ssbond.res[1].chain_id});
             ssres = as->find_residue(chain_id,
                 record.ssbond.res[1].seq_num, record.ssbond.res[1].i_code);
-            if (ssres == NULL)
+            if (ssres == nullptr)
                 break;
             if (ssres->name() != record.ssbond.res[1].name) {
                 logger::warning(py_logger, "Second res name in SSBOND record (",
@@ -564,7 +575,7 @@ start_t = end_t;
                 break;
             }
             Atom *ap1 = ssres->find_atom("SG");
-            if (ap1 == NULL) {
+            if (ap1 == nullptr) {
                 logger::warning(py_logger, "Atom SG not found in ", ssres);
                 break;
             }
@@ -654,7 +665,7 @@ finished:
 start_t = clock();
 #endif
     // make the last residue an end residue
-    if (cur_residue != NULL) {
+    if (cur_residue != nullptr) {
         end_residues->push_back(cur_residue);
     }
     as->pdb_version = record.pdb_input_version();
@@ -752,7 +763,7 @@ assign_secondary_structure(AtomicStructure *as, const std::vector<PDB> &ss, PyOb
         ResName name = init->name;
         Residue *init_res = as->find_residue(chain_id, init->seq_num,
             init->i_code, name);
-        if (init_res == NULL) {
+        if (init_res == nullptr) {
             logger::warning(py_logger, "Start residue of secondary structure"
                 " not found: ", r.c_str());
             continue;
@@ -761,7 +772,7 @@ assign_secondary_structure(AtomicStructure *as, const std::vector<PDB> &ss, PyOb
         name = end->name;
         Residue *end_res = as->find_residue(chain_id, end->seq_num,
             end->i_code, name);
-        if (end_res == NULL) {
+        if (end_res == nullptr) {
             logger::warning(py_logger, "End residue of secondary structure"
                 " not found: ", r.c_str());
             continue;
@@ -889,7 +900,7 @@ link_up(PDB::Link_ &link, AtomicStructure *as, std::set<Atom *> *conect_atoms,
     aname = link.name[0];
     canonicalize_atom_name(aname, &as->asterisks_translated);
     Atom *a1 = res1->find_atom(aname);
-    if (a1 == NULL) {
+    if (a1 == nullptr) {
         logger::warning(py_logger, "Cannot find LINK atom ", aname,
             " in residue ", res1->str());
         return;
@@ -897,7 +908,7 @@ link_up(PDB::Link_ &link, AtomicStructure *as, std::set<Atom *> *conect_atoms,
     aname = link.name[1];
     canonicalize_atom_name(aname, &as->asterisks_translated);
     Atom *a2 = res2->find_atom(aname);
-    if (a2 == NULL) {
+    if (a2 == nullptr) {
         logger::warning(py_logger, "Cannot find LINK atom ", aname,
             " in residue ", res2->str());
         return;
@@ -926,9 +937,9 @@ static char read_fileno_buffer[1024];
 static std::pair<char *, PyObject *>
 read_fileno(void *f)
 {
-    if (fgets(read_fileno_buffer, 1024, (FILE *)f) == NULL)
+    if (fgets(read_fileno_buffer, 1024, (FILE *)f) == nullptr)
         read_fileno_buffer[0] = '\0';
-    return std::pair<char *, PyObject *>(read_fileno_buffer, NULL);
+    return std::pair<char *, PyObject *>(read_fileno_buffer, nullptr);
 }
 
 PyObject *
@@ -960,24 +971,24 @@ clock_t start_t, end_t;
 #endif
     auto notifications_off = atomstruct::DestructionNotificationsOff();
     PyObject *http_mod = PyImport_ImportModule("http.client");
-    if (http_mod == NULL)
-        return NULL;
+    if (http_mod == nullptr)
+        return nullptr;
     PyObject *http_conn = PyObject_GetAttrString(http_mod, "HTTPResponse");
-    if (http_conn == NULL) {
+    if (http_conn == nullptr) {
         Py_DECREF(http_mod);
         PyErr_SetString(PyExc_AttributeError,
             "HTTPResponse class not found in http.client module");
-        return NULL;
+        return nullptr;
     }
     PyObject *compression_mod = PyImport_ImportModule("_compression");
-    if (compression_mod == NULL)
-        return NULL;
+    if (compression_mod == nullptr)
+        return nullptr;
     PyObject *compression_stream = PyObject_GetAttrString(compression_mod, "BaseStream");
-    if (compression_stream == NULL) {
+    if (compression_stream == nullptr) {
         Py_DECREF(compression_mod);
         PyErr_SetString(PyExc_AttributeError,
             "BaseStream class not found in _compression module");
-        return NULL;
+        return nullptr;
     }
     bool is_inst = PyObject_IsInstance(pdb_file, http_conn) == 1 || 
         PyObject_IsInstance(pdb_file, compression_stream) == 1;
@@ -993,13 +1004,13 @@ clock_t start_t, end_t;
         input = pdb_file;
         PyErr_Clear();
         PyObject *io_mod = PyImport_ImportModule("io");
-        if (io_mod == NULL)
-            return NULL;
+        if (io_mod == nullptr)
+            return nullptr;
         PyObject *io_base = PyObject_GetAttrString(io_mod, "IOBase");
-        if (io_base == NULL) {
+        if (io_base == nullptr) {
             Py_DECREF(io_mod);
             PyErr_SetString(PyExc_AttributeError, "IOBase class not found in io module");
-            return NULL;
+            return nullptr;
         }
         int is_inst = PyObject_IsInstance(pdb_file, io_base);
         if (is_inst == 0)
@@ -1007,7 +1018,7 @@ clock_t start_t, end_t;
         if (is_inst <= 0) {
             Py_DECREF(io_mod);
             Py_DECREF(io_base);
-            return NULL;
+            return nullptr;
         }
     } else {
         read_func = read_fileno;
@@ -1027,13 +1038,13 @@ start_t = clock();
         void *ret = read_one_structure(read_func, input, as, &line_num, asn_map[as],
           &start_res_map[as], &end_res_map[as], &ss_map[as], &conect_map[as],
           &link_map[as], &mod_res_map[as], &reached_end, py_logger, explode, &eof);
-        if (ret == NULL) {
+        if (ret == nullptr) {
             for (std::vector<AtomicStructure *>::iterator si = structs->begin();
             si != structs->end(); ++si) {
                 delete *si;
             }
             delete as;
-            return NULL;
+            return nullptr;
         }
 #ifdef CLOCK_PROFILING
 end_t = clock();
@@ -1072,7 +1083,7 @@ start_t = end_t;
                 }
             }
             delete as;
-            as = NULL;
+            as = nullptr;
         } else {
             // give all members of an ensemble the same metadata
             if (explode && ! structs->empty()) {
@@ -1173,6 +1184,50 @@ std::cerr << "read_one breakdown:  pre-loop " << cum_preloop_t/(float)CLOCKS_PER
     return s_array;
 }
 
+void
+write_pdb(std::vector<Structure*> structures, std::ostream& os, bool selected_only,
+    bool displayed_only, double** xform, bool all_frames)
+{
+    bool need_TER = false;
+    PDB p;
+    for (auto s: structures) {
+        bool multi_model = (m->coord_sets().size() > 1) && all_frames;
+        // Output headers only before first MODEL
+        if (s == structures[0]) {
+            // write out known headers first
+            auto& headers = s->metadata();
+            for (auto& record_type: record_order) {
+                if (record_type == "MODEL")
+                    // end of headers
+                    break;
+                auto hdr_i = headers.find(record_type);
+                if (hdr_i == headers.end())
+                    continue;
+                for (auto hdr: hdr_i->second) {
+                    os << hdr << '\n';
+                }
+            }
+
+            // write out unknown headers
+            decltype(record_order) known_headers;
+            known_headers.insert(record_order.begin(),
+                std::find(record_order.begin(), record_order.end(), "MODEL"));
+            for (auto& type_records: headers) {
+                if (!std::isupper(type_records.first[0]) || type_records.first.size() > 6)
+                    // not a PDB header
+                    continue;
+                if (known_headers.find(type_records.first) != known_headers.end())
+                    continue;
+                for (auto& record: type_records.second)
+                    os << record << '\n';
+            }
+        }
+
+        std::map<Atom*, int> rev_asn;
+        //TODO
+    }
+}
+
 static const char*
 docstr_read_pdb_file = 
 "read_pdb_file(f, log=None, explode=True)\n" \
@@ -1194,18 +1249,116 @@ read_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
     PyObject *pdb_file;
     PyObject *py_logger = Py_None;
     int explode = 1;
-    static const char *kw_list[] = {"file", "log", "explode", NULL};
+    static const char *kw_list[] = {"file", "log", "explode", nullptr};
     if (!PyArg_ParseTupleAndKeywords(args, keywords, "O|$Op",
             (char **) kw_list, &pdb_file, &py_logger, &explode))
-        return NULL;
+        return nullptr;
     return read_pdb(pdb_file, py_logger, explode);
+}
+
+static const char*
+docstr_write_pdb_file = 
+"write_pdb_file(structures, file_name, selected_only=False, displayed_only=False, xform=None\n" \
+"    all_frames=True)\n" \
+"\n" \
+"structures\n" \
+"  A sequence of C++ structure pointers\n" \
+"file_name\n" \
+"  The output file path\n" \
+"selected_only\n" \
+"  If True, only selected atoms will be written\n" \
+"displayed_only\n" \
+"  If True, only displayed atoms will be written\n" \
+"xform\n" \
+"  A 3x4 numpy array to transform the atom coordinates with.\n" \
+"  If None then untransformed coordinates will be used.\n" \
+"all_frames\n" \
+"  If True, all frames of a trajectory will be written (as multiple MODELS).\n" \
+"  Otherwise, just the current frame will be written.\n" \
+"\n";
+
+extern "C" void
+write_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
+{
+    PyObject *py_structures;
+    PyObject *py_path;
+    int selected_only = (int)false;
+    int displayed_only = (int)false;
+    PyObject* py_xform = Py_None;
+    int all_frames = (int)true;
+    static const char *kw_list[] = {
+        "structures", "file_name", "selected_only", "displayed_only", "xform", "all_frames",
+        nullptr
+    };
+    if (!PyArg_ParseTupleAndKeywords(args, keywords, "OO&|$ppOp",
+            (char **) kw_list, &py_structures, PyUnicode_FSConverter, &py_path, &selected_only,
+            displayed_only, &py_xform, &all_frames))
+        return nullptr;
+
+    if (!PySequence_Check(py_structures) {
+        PyErr_SetString(PyExc_TypeError, "First arg is not a sequence (of structure pointers)");
+        return nullptr;
+    }
+    auto num_structs = PySequence_Size(py_structures);
+    if (num_structs == 0) {
+        PyErr_SetString(PyExc_ValueError, "First arg (sequence of structure pointers) is empty");
+        return nullptr;
+    }
+    std::vector<Structure*> structures;
+    for (decltype(num_structs) i = 0; i < num_structs; ++i) {
+        PyObject* py_ptr = PySequence_GetItem(py_structures, i);
+        if (!PyLong_Check(py_ptr)) {
+            std::stringstream err_msg;
+            err_msg << "Item at index " << i << " of first arg is not an int (structure pointer)";
+            PyErr_SetString(PyExc_TypeError, err_msg.str().c_str());
+            return nullptr;
+        }
+        structures.push_back(static_cast<Structure*>(PyLong_AsVoidPtr(ptr)));
+    }
+
+    char* path = PyBytes_AS_STRING(py_path);
+    auto os = new std::ofstream(path);
+    if (!*os) {
+        std::stringstream err_msg;
+        err_msg << "Unable to open file '" << path << "' for writing";
+        PyErr_SetString(PyExc_IOError, err_msg.str().c_str());
+        Py_XDECREF(py_path);
+        return nullptr;
+    }
+
+    double** xform = nullptr;
+    auto array = Numeric_Array();
+    if (py_xform != Py_None) {
+        if (!array_from_python(py_xform, 2, Numeric_Array::Double, &array, false)) {
+            Py_XDECREF(py_path);
+            return nullptr;
+        }
+        auto dims = array.sizes();
+        if (dims[0] != 3 || dims[1] != 4) {
+            std::stringstream err_msg;
+            err_msg << "Transform is not 3x4, is " << dims[0] << "x" << dims[1];
+            PyErr_SetString(PyExc_ValueError, err_msg.str().c_str());
+            Py_XDECREF(py_path);
+            return nullptr;
+        }
+        xform = static_cast<double**>(array.values());
+    }
+    write_pdb(structures, os, (bool)selected_only, (bool)displayed_only, xform, (bool)all_frames);
+
+    if (os->bad()) {
+        PyErr_SetString(PyExc_ValueError, "Problem writing output PDB file");
+        Py_XDECREF(py_path);
+        return nullptr;
+    }
+    Py_XDECREF(py_path);
 }
 
 static struct PyMethodDef pdbio_functions[] =
 {
     { "read_pdb_file", (PyCFunction)read_pdb_file, METH_VARARGS|METH_KEYWORDS,
-        docstr_read_pdb_file },
-    { NULL, NULL, 0, NULL }
+    { "write_pdb_file", (PyCFunction)write_pdb_file, METH_VARARGS|METH_KEYWORDS,
+        docstr_write_pdb_file },
+    { nullptr, nullptr, 0, nullptr }
 };
 
 static struct PyModuleDef pdbio_def =
@@ -1215,10 +1368,10 @@ static struct PyModuleDef pdbio_def =
     "Input/output for PDB files",
     -1,
     pdbio_functions,
-    NULL,
-    NULL,
-    NULL,
-    NULL
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr
 };
 
 PyMODINIT_FUNC PyInit_pdbio()
