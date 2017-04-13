@@ -278,8 +278,6 @@ def _extract_extra_keywords(kwds):
 
 
 def _report_difference(logger, before, after):
-    # TODO: more here
-    logger.info("installed._report_difference")
     bundles = {}
     for bi in before:
         bundles[bi.name] = [bi.version, None]
@@ -291,14 +289,15 @@ def _report_difference(logger, before, after):
         else:
             versions[1] = bi.version
     messages = []
-    for name in sorted(bundles.keys):
+    for name in sorted(bundles.keys()):
         versions = bundles[name]
         if versions[0] is None:
-            messages.append("Installed %s (%s)" % (name, version))
+            messages.append("Installed %s (%s)" % (name, versions[1]))
         elif versions[1] is None:
-            messages.append("Removed %s (%s)" % (name, version))
-        else:
-            messages.append("Updated %s (%s->%s)" % (name, versions[0], versions[1]))
+            messages.append("Removed %s (%s)" % (name, versions[0]))
+        elif versions[0] != versions[1]:
+            messages.append("Updated %s (from %s to %s)"
+                            % (name, versions[0], versions[1]))
     if messages:
         logger.info('\n'.join(messages))
     else:

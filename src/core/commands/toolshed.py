@@ -183,19 +183,19 @@ def toolshed_install(session, bundle_name, user_only=True,
     ts = session.toolshed
     logger = session.logger
     if version == "latest":
-        bi = ts.find_latest_bundle(bundle_name)
-        cur_bi = ts.find_installed_bundle(bundle_name)
+        bi = ts.find_bundle(bundle_name, logger, installed=False)
+        cur_bi = ts.find_bundle(bundle_name, logger, installed=True)
         if bi.version == cur_bi.version:
             logger.info("latest version of \"%s\" is already installed" % bundle_name)
             return
     else:
-        bi = ts.find_installed_bundle(bundle_name, installed=True, version=version)
+        bi = ts.find_bundle(bundle_name, logger, installed=True, version=version)
         if bi:
-            logger.error("\"%s\" is already installed" % bundle_name)
+            logger.error("%s (%s) is already installed" % (bi.name, bi.version))
             return
-        bi = ts.find_available_bundle(bundle_name, installed=False, version=version)
+        bi = ts.find_bundle(bundle_name, logger, installed=False, version=version)
         if bi is None:
-            logger.error("\"%s\" does not match any bundles"
+            logger.error("%s does not match any bundles"
                          % _bundle_string(bundle_name, version))
             return
     kw = {"session":session,
