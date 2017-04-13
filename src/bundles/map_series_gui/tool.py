@@ -238,4 +238,6 @@ def models_added_cb(models, session):
             if mss:
                 mss.add_series(m)
             else:
-                MapSeries(session, "Map Series", series = [m]).show()
+                mss = MapSeries(session, "Map Series", series = [m])
+                mss.show()
+                msstable[mss.size()] = mss
