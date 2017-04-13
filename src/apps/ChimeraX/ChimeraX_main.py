@@ -63,6 +63,20 @@ if sys.platform.startswith('win'):
     os.EX_NOPERM = 77           # permission denied
     os.EX_CONFIG = 78           # configuration error
 
+    if 'LANG' in os.environ:
+        # Double check that stdout matches what LANG asks for.
+        # This is a problem when running in nogui mode from inside a cygwin
+        # shell -- the console is supposed to use UTF-8 encoding in Python
+        # 3.6 but sys.stdout.encoding is cpXXX (the default for text file
+        # I/O) since cygwin shells are not true terminals.
+        import codecs
+        encoding = os.environ['LANG'].split('.')[-1].casefold()
+        if encoding != sys.stdout.encoding.casefold():
+            sys.stdout = codecs.getwriter(encoding)(sys.stdout.detach())
+            sys.stdout.encoding = encoding
+            sys.stderr = codecs.getwriter(encoding)(sys.stderr.detach())
+            sys.stderr.encoding = encoding
+
 
 def parse_arguments(argv):
     """Initialize ChimeraX application."""
