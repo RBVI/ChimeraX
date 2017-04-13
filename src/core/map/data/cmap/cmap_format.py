@@ -86,37 +86,63 @@ class Chimera_HDF_Data:
     def read_matrix(self, ijk_origin, ijk_size, ijk_step,
                     array_paths, array, progress):
 
-        i0,j0,k0 = ijk_origin
-        isz,jsz,ksz = ijk_size
-        istep,jstep,kstep = ijk_step
         import tables
         f = tables.open_file(self.path)
         if progress:
             progress.close_on_cancel(f)
         array_path = choose_chunk_size(f, array_paths, ijk_size)
         a = f.get_node(array_path)
-        cshape = a._v_chunkshape
-        csmin = min(cshape)
-        if cshape[0] == csmin:
-            for k in range(k0,k0+ksz,kstep):
-                array[(k-k0)//kstep,:,:] = a[k,j0:j0+jsz:jstep,i0:i0+isz:istep]
-                if progress:
-                    progress.plane((k-k0)//kstep)
-        elif cshape[1] == csmin:
-            for j in range(j0,j0+jsz,jstep):
-                array[:,(j-j0)//jstep,:] = a[k0:k0+ksz:kstep,j,i0:i0+isz:istep]
-                if progress:
-                    progress.plane((j-j0)//jstep)
-        else:
-            for i in range(i0,i0+isz,istep):
-                array[:,:,(i-i0)//istep] = a[k0:k0+ksz:kstep,j0:j0+jsz:jstep,i]
-                if progress:
-                    progress.plane((i-i0)//istep)
+        copy_hdf5_array(a, ijk_origin, ijk_size, ijk_step, array, progress)
         if progress:
             progress.done()
 
         f.close()
         return array
+
+# -----------------------------------------------------------------------------
+#
+def copy_hdf5_array(a, ijk_origin, ijk_size, ijk_step, array,
+                    progress = None, block_size = 2**26):
+    i0,j0,k0 = ijk_origin
+    isz,jsz,ksz = ijk_size
+    istep,jstep,kstep = ijk_step
+
+    if array.nbytes <= block_size:
+        array[:,:,:] = a[k0:k0+ksz:kstep,j0:j0+jsz:jstep,i0:i0+isz:istep]
+        return
+
+    # Read in blocks along axis with smallest chunk size.
+    cshape = a._v_chunkshape
+    csmin = min(cshape)
+    axis = cshape.index(csmin)
+    bf = block_size / array.nbytes
+    if axis == 0:
+        n = ksz // kstep
+        pstep = max(1, int(bf*n))
+        kpstep = kstep*pstep
+        for p in range(0,n,pstep):
+            k = k0+p*kstep
+            array[p:p+pstep,:,:] = a[k:k+kpstep:kstep,j0:j0+jsz:jstep,i0:i0+isz:istep]
+            if progress:
+                progress.plane(p)
+    elif axis == 1:
+        n = jsz // jstep
+        pstep = max(1, int(bf*n))
+        jpstep = jstep*pstep
+        for p in range(0,n,pstep):
+            j = j0+p*jstep
+            array[:,p:p+pstep,:] = a[k0:k0+ksz:kstep,j:j+jpstep:jstep,i0:i0+isz:istep]
+            if progress:
+                progress.plane(p)
+    elif axis == 2:
+        n = isz // istep
+        pstep = max(1, int(bf*n))
+        ipstep = istep*pstep
+        for p in range(0,n,pstep):
+            i = i0+p*istep
+            array[:,p:p+pstep,:] = a[k0:k0+ksz:kstep,j0:j0+jsz:jstep,i:i+ipstep:istep]
+            if progress:
+                progress.plane(p)
 
 # -----------------------------------------------------------------------------
 #

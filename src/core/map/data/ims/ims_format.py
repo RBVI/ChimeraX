@@ -203,32 +203,14 @@ class IMS_Data:
 #        import traceback
 #        traceback.print_stack()
         
-        i0,j0,k0 = ijk_origin
-        isz,jsz,ksz = ijk_size
-        istep,jstep,kstep = ijk_step
         import tables
         f = tables.open_file(self.path)
         if progress:
             progress.close_on_cancel(f)
 #        array_path = choose_chunk_size(f, array_paths, ijk_size)
         a = f.get_node(array_path)
-        cshape = a._v_chunkshape
-        csmin = min(cshape)
-        if cshape[0] == csmin:
-            for k in range(k0,k0+ksz,kstep):
-                array[(k-k0)//kstep,:,:] = a[k,j0:j0+jsz:jstep,i0:i0+isz:istep]
-                if progress:
-                    progress.plane((k-k0)//kstep)
-        elif cshape[1] == csmin:
-            for j in range(j0,j0+jsz,jstep):
-                array[:,(j-j0)//jstep,:] = a[k0:k0+ksz:kstep,j,i0:i0+isz:istep]
-                if progress:
-                    progress.plane((j-j0)//jstep)
-        else:
-            for i in range(i0,i0+isz,istep):
-                array[:,:,(i-i0)//istep] = a[k0:k0+ksz:kstep,j0:j0+jsz:jstep,i]
-                if progress:
-                    progress.plane((i-i0)//istep)
+        from ..cmap import copy_hdf5_array
+        copy_hdf5_array(a, ijk_origin, ijk_size, ijk_step, array, progress)
         if progress:
             progress.done()
 
