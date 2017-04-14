@@ -20,7 +20,7 @@
 #
 # TODO: Add commented-out file readers.
 file_types = (
-#  ('Amira mesh', 'amira', ['amira'], ['am'], False),
+  ('Amira mesh', 'amira', ['amira'], ['am'], False),
   ('APBS potential', 'apbs', ['apbs'], ['dx'], False),
   ('BRIX density map', 'dsn6', ['dsn6'], ['brix'], False),
   ('CCP4 density map', 'ccp4', ['ccp4'], ['ccp4','map'], False),

@@ -9,10 +9,18 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-# -----------------------------------------------------------------------------
-# AmiraMesh map file reader.
-#
-def open(path):
+TOP = ../../../../..
+include $(TOP)/mk/config.make
 
-  from .amira_grid import Amira_Grid
-  return [Amira_Grid(path)]
+PKG_DIR = $(PYSITEDIR)/chimerax/core/map/data/amira
+
+PYSRCS = __init__.py amira_format.py amira_grid.py
+
+all: $(PYOBJS)
+
+install: all
+	-mkdir -p $(PKG_DIR)
+	$(RSYNC) $(PYSRCS) $(PKG_DIR)
+
+clean:
+	rm -rf __pycache__

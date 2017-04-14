@@ -20,7 +20,7 @@ class Amira_Grid(Grid_Data):
 
   def __init__(self, path):
 
-    import amira_format
+    from . import amira_format
     d = amira_format.Amira_Mesh_Data(path)
 
     self.amira_data = d
