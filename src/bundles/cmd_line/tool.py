@@ -165,8 +165,7 @@ class CommandLine(ToolInstance):
             except errors.UserError as err:
                 logger.status(str(err), color="crimson")
             except:
-                import traceback
-                session.logger.error(traceback.format_exc())
+                raise
         self.set_focus()
         self.text.lineEdit().blockSignals(False)
         self.text.lineEdit().setText(cmd_text)
