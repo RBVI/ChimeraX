@@ -381,8 +381,10 @@ class Logger(StatusLogger):
 
             err = "".join(format_exception_only(ei[0], ei[1]))
             loc = "".join(format_tb(ei[2])[-1:])
-            self.error("%s%s\n%s" % (preface, err, loc)
-                + "See log for Python traceback.\n")
+            how_to_report = 'If you wish to report this error, send mail to <a href="mailto:chimerax-bugs@cgl.ucsf.edu">chimerax-bugs@cgl.ucsf.edu</a> and describe what you were doing and include a copy of the contents of the log.'
+            err_msg = "%s%s\n%s\n" % (preface, err, loc) + \
+                "<i>See log for Python complete traceback.</i>\n\n%s" % how_to_report
+            self.error(err_msg.replace("\n", "<br>"), is_html=True)
 
     def status(self, msg, **kw):
         """Show status."""
