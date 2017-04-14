@@ -135,7 +135,7 @@ def align_series(s, enclose_volume = None, fast_enclose_volume = None, session =
     n = len(s.maps)
     vprev = None
     for i,v in enumerate(s.maps):
-        session.status('Aligning %s (%d of %d maps)' % (v.data.name, i+1, n))
+        session.logger.status('Aligning %s (%d of %d maps)' % (v.data.name, i+1, n))
         set_enclosed_volume(v, enclose_volume, fast_enclose_volume)
         if vprev:
             align(v, vprev)
@@ -197,7 +197,7 @@ def vseries_save(session, series, path, subregion = None, step = None, value_typ
 
     n = len(maps)
     for i,v in enumerate(maps):
-        session.status('Writing %s (%d of %d maps)' % (v.data.name, i+1, n))
+        session.logger.status('Writing %s (%d of %d maps)' % (v.data.name, i+1, n))
         align_to = maps[i-1] if align and i > 0 else None
         d = processed_volume(v, subregion, step, value_type, threshold, zero_mean, scale_factor,
                              enclose_volume, fast_enclose_volume, normalize_level,
@@ -334,7 +334,7 @@ def vseries_measure(session, series, output = None, centroids = True,
             f.write(text)
             f.close()
         else:
-            session.info(text)
+            session.logger.info(text)
   
 # -----------------------------------------------------------------------------
 #
