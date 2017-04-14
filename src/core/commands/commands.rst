@@ -345,9 +345,10 @@ time
 toolshed
 ========
 .. autofunction:: chimerax.core.commands.toolshed.toolshed_list
-.. autofunction:: chimerax.core.commands.toolshed.toolshed_refresh
+.. autofunction:: chimerax.core.commands.toolshed.toolshed_reload
 .. autofunction:: chimerax.core.commands.toolshed.toolshed_install
-.. autofunction:: chimerax.core.commands.toolshed.toolshed_remove
+.. autofunction:: chimerax.core.commands.toolshed.toolshed_uninstall
+.. autofunction:: chimerax.core.commands.toolshed.toolshed_url
 .. autofunction:: chimerax.core.commands.toolshed.toolshed_show
 .. autofunction:: chimerax.core.commands.toolshed.toolshed_hide
 

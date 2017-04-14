@@ -43,6 +43,11 @@ class NoGuiLog(PlainTextLog):
 
     def log(self, level, msg):
         level_name = _log_level[level]
+        import sys
+        encoding = sys.stdout.encoding().lower()
+        if encoding != 'utf-8' and isinstance(msg, str):
+            msg = msg.encode(encoding, 'replace').decode(encoding)
+
         print("%s%s: %s%s" % (
             _colors[level_name], level_name, msg, _colors["normal"]), end='')
         return True

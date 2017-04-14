@@ -145,6 +145,7 @@ struct ExtractMolecule: public readcif::CIFFile
     virtual void reset_parse();
     virtual void finished_parse();
     void connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, bool gap);
+    void connect_residue_by_template(Residue* r, const tmpl::Residue* tr);
     const tmpl::Residue* find_template_residue(const ResName& name);
     void parse_audit_conform();
     void parse_atom_site();
@@ -432,6 +433,38 @@ ExtractMolecule::connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, b
     }
 }
 
+// connect_residue_by_template:
+//    Connect bonds in residue according to the given template.  Takes into
+//    account alternate atom locations.
+void
+ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr)
+{
+    auto& atoms = r->atoms();
+
+    // Confirm all atoms in residue are in template, if not connect by distance
+    for (auto&& a: atoms) {
+        tmpl::Atom *ta = tr->find_atom(a->name());
+        if (!ta) {
+            logger::warning(_logger, "Incomplete residue template for ", r->name());
+            connect_residue_by_distance(r);
+            return;
+        }
+    }
+
+    // foreach atom in residue
+    //    connect up like atom in template
+    for (auto&& a: atoms) {
+        tmpl::Atom *ta = tr->find_atom(a->name());
+        for (auto&& tmpl_nb: ta->neighbors()) {
+            Atom *b = r->find_atom(tmpl_nb->name());
+            if (b == nullptr)
+                continue;
+            if (!a->connects_to(b))
+                (void) a->structure()->new_bond(a, b);
+        }
+    }
+}
+
 void
 copy_nmr_info(Structure* from, Structure* to, PyObject* _logger)
 {
@@ -511,6 +544,7 @@ ExtractMolecule::finished_parse()
     for (auto&& r : mol->residues()) {
         auto tr = find_template_residue(r->name());
         if (tr == nullptr) {
+            logger::warning(_logger, "Missing residue template for ", r->name());
             connect_residue_by_distance(r);
         } else {
             connect_residue_by_template(r, tr);
@@ -873,6 +907,8 @@ ExtractMolecule::parse_atom_site()
     int model_num = 0;            // pdbx_PDB_model_num
 
     missing_poly_seq = poly_seq.empty();
+    if (missing_poly_seq)
+        logger::warning(_logger, "Missing entity_poly_seq table.  Inferring polymer connectivity");
 
     try {
         pv.emplace_back(get_column("id"),
@@ -1788,37 +1824,6 @@ parse_mmCIF_buffer(const unsigned char *whole_file,
     ExtractMolecule extract(logger, generic_categories);
     extract.parse(reinterpret_cast<const char *>(whole_file));
     return structure_pointers(extract, "unknown mmCIF file");
-}
-
-// connect_residue_by_template:
-//    Connect bonds in residue according to the given template.  Takes into
-//    account alternate atom locations.
-void
-connect_residue_by_template(Residue* r, const tmpl::Residue* tr)
-{
-    auto& atoms = r->atoms();
-
-    // Confirm all atoms in residue are in template, if not connect by distance
-    for (auto&& a: atoms) {
-        tmpl::Atom *ta = tr->find_atom(a->name());
-        if (!ta) {
-            connect_residue_by_distance(r);
-            return;
-        }
-    }
-
-    // foreach atom in residue
-    //    connect up like atom in template
-    for (auto&& a: atoms) {
-        tmpl::Atom *ta = tr->find_atom(a->name());
-        for (auto&& tmpl_nb: ta->neighbors()) {
-            Atom *b = r->find_atom(tmpl_nb->name());
-            if (b == nullptr)
-                continue;
-            if (!a->connects_to(b))
-                (void) a->structure()->new_bond(a, b);
-        }
-    }
 }
 
 
