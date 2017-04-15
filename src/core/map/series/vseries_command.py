@@ -46,7 +46,8 @@ def register_vseries_command(logger):
                              ('on_grid', MapArg),
                              ('mask', MapArg),
                              ('final_value_type', ValueTypeArg),
-                             ('compress', BoolArg),],
+                             ('compress', BoolArg),
+                             ('match_scale', SeriesArg)],
                         synopsis = 'Process and save a map series')
     register('vseries save', save_desc, vseries_save, logger=logger)
 
@@ -170,9 +171,10 @@ def align(v, vprev):
 # -----------------------------------------------------------------------------
 #
 def vseries_save(session, series, path, subregion = None, step = None, value_type = None,
-            threshold = None, zero_mean = False, scale_factor = None,
-            enclose_volume = None, fast_enclose_volume = None, normalize_level = None,
-            align = False, on_grid = None, mask = None, final_value_type = None, compress = False):
+                 threshold = None, zero_mean = False, scale_factor = None,
+                 enclose_volume = None, fast_enclose_volume = None, normalize_level = None,
+                 align = False, on_grid = None, mask = None, final_value_type = None, compress = False,
+                 match_scale = None):
     '''
     Process the frames of a map series and save the result to a a file.
     Processing can normalize, align, mask and change the numeric value type of maps.
@@ -199,8 +201,9 @@ def vseries_save(session, series, path, subregion = None, step = None, value_typ
     for i,v in enumerate(maps):
         session.logger.status('Writing %s (%d of %d maps)' % (v.data.name, i+1, n))
         align_to = maps[i-1] if align and i > 0 else None
+        mscale = match_scale[0].maps[i] if match_scale else None
         d = processed_volume(v, subregion, step, value_type, threshold, zero_mean, scale_factor,
-                             enclose_volume, fast_enclose_volume, normalize_level,
+                             enclose_volume, fast_enclose_volume, normalize_level, mscale,
                              align_to, grid, mask, final_value_type)
         d.name = '%04d' % i
         options = {'append': True, 'compress': compress}
@@ -215,18 +218,21 @@ def vseries_save(session, series, path, subregion = None, step = None, value_typ
 def processed_volume(v, subregion = None, step = None, value_type = None, threshold = None,
                      zero_mean = False, scale_factor = None,
                      enclose_volume = None, fast_enclose_volume = None, normalize_level = None,
+                     match_scale = None,
                      align_to = None, on_grid = None, mask = None, final_value_type = None):
     d = v.data
+    region = None
     if not subregion is None or not step is None:
         from ..volume import full_region
         ijk_min, ijk_max = full_region(d.size)[:2] if subregion is None else subregion
         ijk_step = (1,1,1) if step is None else step
+        region = (ijk_min, ijk_max, ijk_step)
         from ..data import Grid_Subregion
         d = Grid_Subregion(d, ijk_min, ijk_max, ijk_step)
 
     if (value_type is None and threshold is None and not zero_mean and
         scale_factor is None and align_to is None and mask is None and
-        final_value_type is None):
+        match_scale is None and final_value_type is None):
         return d
 
     m = d.full_matrix()
@@ -258,6 +264,19 @@ def processed_volume(v, subregion = None, step = None, value_type = None, thresh
             level -= mean
         scale = normalize_level / level
         m = (m*scale).astype(m.dtype)
+
+    if not match_scale is None:
+        ms = match_scale.region_matrix(region) if region else match_scale.full_matrix()
+        from numpy import float64, einsum
+        m1, ms1 = m.sum(dtype = float64), ms.sum(dtype = float64)
+        m2, ms2, mms = einsum('ijk,ijk',m,m,dtype=float64), einsum('ijk,ijk',ms,ms,dtype=float64), einsum('ijk,ijk',m,ms,dtype=float64)
+        n = m.size
+        a = (mms - m1*ms1/n) / (m2 - m1*m1/n)
+        b = (ms1 - a*m1) / n
+        am = a*m
+        am += b
+        print ('scaling #%s' % v.id_string(), a, b, m1, ms1, m2, ms2, mms, am.mean(), am.std(), ms.mean(), ms.std())
+        m[:] = am.astype(m.dtype)
 
     if not align_to is None:
         align(v, align_to)
