@@ -366,8 +366,10 @@ class BlendedImage(GrayScaleDrawing):
 
     d = drawings[0]
 
-    self.grid_size = d.grid_size
-    self.ijk_to_xyz = d.ijk_to_xyz
+    for attr in ('grid_size', 'ijk_to_xyz', 'projection_mode', 'maximum_intensity_projection',
+                 'linear_interpolation', 'transparency_blend_mode', 'brightness_and_transparency_correction',
+                 'minimal_texture_memory', 'show_outline_box', 'outline_box_rgb', 'outline_box_linewidth'):
+      setattr(self, attr, getattr(d, attr))
 
     self.drawings = drawings
     for d in drawings:
