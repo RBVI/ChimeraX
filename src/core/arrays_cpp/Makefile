@@ -36,6 +36,9 @@ endif
 endif
 	-mkdir $(includedir)/$(DIRNAME)
 	$(RSYNC) imex.h $(HDRS) $(includedir)/$(DIRNAME)
+	if [ -d "$(app_includedir)" ]; then \
+		$(RSYNC) imex.h $(HDRS) $(app_includedir)/$(DIRNAME); \
+	fi
 	#if [ -d "$(app_shlibdir)" ]; then $(RSYNC) $(SHLIB) $(app_shlibdir); fi
 
 $(SHLIB): imex.h $(OBJS)
