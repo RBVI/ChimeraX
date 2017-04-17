@@ -38,6 +38,7 @@ endif
 	-mkdir $(includedir)/$(DIRNAME)
 	$(RSYNC) imex.h $(wildcard *.h) $(includedir)/$(DIRNAME)
 	if [ -d "$(app_includedir)" ]; then \
+		mkdir $(app_includedir)/$(DIRNAME); \
 		$(RSYNC) imex.h $(wildcard *.h) $(app_includedir)/$(DIRNAME); \
 	fi
 	#if [ -d "$(app_shlibdir)" ]; then $(RSYNC) $(SHLIB) $(app_shlibdir); fi
