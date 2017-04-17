@@ -117,8 +117,6 @@ public:
 };
 #endif
 
-void connect_residue_by_template(Residue* r, const tmpl::Residue* tr);
-
 bool reasonable_bond_length(Atom* a1, Atom* a2, float distance = 0)
 {
     float idealBL = Element::bond_length(a1->element(), a2->element());
@@ -445,7 +443,7 @@ ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr
     for (auto&& a: atoms) {
         tmpl::Atom *ta = tr->find_atom(a->name());
         if (!ta) {
-            logger::warning(_logger, "Incomplete residue template for ", r->name());
+            logger::warning(_logger, "Incomplete residue template for ", r->str());
             connect_residue_by_distance(r);
             return;
         }
@@ -544,7 +542,7 @@ ExtractMolecule::finished_parse()
     for (auto&& r : mol->residues()) {
         auto tr = find_template_residue(r->name());
         if (tr == nullptr) {
-            logger::warning(_logger, "Missing residue template for ", r->name());
+            logger::warning(_logger, "Missing residue template for ", r->str());
             connect_residue_by_distance(r);
         } else {
             connect_residue_by_template(r, tr);
