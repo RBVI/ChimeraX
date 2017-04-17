@@ -44,7 +44,7 @@ class NoGuiLog(PlainTextLog):
     def log(self, level, msg):
         level_name = _log_level[level]
         import sys
-        encoding = sys.stdout.encoding().lower()
+        encoding = sys.stdout.encoding.lower()
         if encoding != 'utf-8' and isinstance(msg, str):
             msg = msg.encode(encoding, 'replace').decode(encoding)
 
