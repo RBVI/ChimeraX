@@ -505,6 +505,7 @@ void
 Structure::_delete_residue(Residue* r, const Structure::Residues::iterator& ri)
 {
     auto db = DestructionBatcher(r);
+#if 0
     if (r->chain() != nullptr) {
         r->chain()->remove_residue(r);
         set_gc_ribbon();
@@ -514,6 +515,10 @@ Structure::_delete_residue(Residue* r, const Structure::Residues::iterator& ri)
     }
     _residues.erase(ri);
     delete r;
+#else
+    auto del_atoms_set = std::set<Atom*>(r->atoms().begin(), r->atoms().end());
+    _delete_atoms(del_atoms_set);
+#endif
 }
 
 void
