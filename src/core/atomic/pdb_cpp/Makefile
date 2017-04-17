@@ -27,7 +27,7 @@ install: $(LIBRARY)
 	-mkdir $(includedir)/$(DIRNAME)
 	$(RSYNC) $(wildcard *.h) $(includedir)/$(DIRNAME)
 	if [ -d "$(app_includedir)" ]; then \
-		$(RSYNC) imex.h $(wildcard *.h) $(app_includedir)/$(DIRNAME); \
+		$(RSYNC) $(wildcard *.h) $(app_includedir)/$(DIRNAME); \
 	fi
 
 clean:
