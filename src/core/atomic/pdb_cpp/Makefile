@@ -26,6 +26,10 @@ install: $(LIBRARY)
 	$(RSYNC) $(LIBRARY) $(libdir)
 	-mkdir $(includedir)/$(DIRNAME)
 	$(RSYNC) $(wildcard *.h) $(includedir)/$(DIRNAME)
+	if [ -d "$(app_includedir)" ]; then \
+		mkdir -p $(app_includedir)/$(DIRNAME); \
+		$(RSYNC) $(wildcard *.h) $(app_includedir)/$(DIRNAME); \
+	fi
 
 clean:
 	rm -f $(LIBRARY) $(OBJS)

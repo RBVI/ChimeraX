@@ -117,8 +117,6 @@ public:
 };
 #endif
 
-void connect_residue_by_template(Residue* r, const tmpl::Residue* tr);
-
 bool reasonable_bond_length(Atom* a1, Atom* a2, float distance = 0)
 {
     float idealBL = Element::bond_length(a1->element(), a2->element());
@@ -445,7 +443,7 @@ ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr
     for (auto&& a: atoms) {
         tmpl::Atom *ta = tr->find_atom(a->name());
         if (!ta) {
-            logger::warning(_logger, "Incomplete residue template for ", r->name());
+            logger::warning(_logger, "Found atoms not in residue template for ", r->str());
             connect_residue_by_distance(r);
             return;
         }
@@ -544,7 +542,7 @@ ExtractMolecule::finished_parse()
     for (auto&& r : mol->residues()) {
         auto tr = find_template_residue(r->name());
         if (tr == nullptr) {
-            logger::warning(_logger, "Missing residue template for ", r->name());
+            logger::warning(_logger, "Missing residue template for ", r->str());
             connect_residue_by_distance(r);
         } else {
             connect_residue_by_template(r, tr);
@@ -555,7 +553,7 @@ ExtractMolecule::finished_parse()
     // Because some positions are heterogeneous, delay connecting
     // until next group of residues is found.
     for (auto&& chain: all_residues) {
-        const ResidueMap& residue_map = chain.second;
+        ResidueMap& residue_map = chain.second;
         auto ri = residue_map.begin();
         const string& entity_id = ri->first.entity_id;
         if (poly_seq.find(entity_id) == poly_seq.end())
@@ -581,10 +579,14 @@ ExtractMolecule::finished_parse()
             if (auth_chain_id.empty())
                 auth_chain_id = r->chain_id();
             if (lastp && lastp->seq_id == p.seq_id) {
-                if (!lastp->hetero)
-                    logger::warning(_logger, "Duplicate entity_id/seq_id ",
-                        p.seq_id, " without hetero");
-                current.push_back(r);
+                if (lastp->hetero)
+                    logger::warning(_logger, "Ignoring microheterogeneity for seq_id ",
+                                    p.seq_id);
+                else
+                    logger::warning(_logger, "Skipping duplicate seq_id ",
+                                    p.seq_id);
+                residue_map.erase(ri);
+                mol->delete_residue(r);
             } else {
                 if (!previous.empty() && !current.empty()) {
                     connect_residue_pairs(previous, current, gap);
@@ -609,8 +611,8 @@ ExtractMolecule::finished_parse()
         seqres.reserve(entity_poly_seq.size());
         lastp = nullptr;
         for (auto& p: entity_poly_seq) {
-            if (lastp && lastp->seq_id == p.seq_id && p.hetero)
-                continue;  // ignore microheterogeneity
+            if (lastp && lastp->seq_id == p.seq_id)
+                continue;  // ignore duplicates and microheterogeneity
             seqres.push_back(p.mon_id);
             lastp = &p;
         }
