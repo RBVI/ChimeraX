@@ -367,8 +367,12 @@ Structure::_delete_atom(Atom* a)
     auto db = DestructionBatcher(this);
     if (a->element().number() == 1)
         --_num_hyds;
-    for (auto b: a->bonds())
+    for (auto b: a->bonds()) {
         b->other_atom(a)->remove_bond(b);
+        typename Bonds::iterator bi = std::find_if(_bonds.begin(), _bonds.end(),
+            [&b](Bond* ub) { return ub == b; });
+        _bonds.erase(bi);
+    }
     typename Atoms::iterator i = std::find_if(_atoms.begin(), _atoms.end(),
         [&a](Atom* ua) { return ua == a; });
     _atoms.erase(i);
@@ -390,22 +394,23 @@ Structure::delete_atom(Atom* a)
     }
     auto r = a->residue();
     if (r->atoms().size() == 1) {
-        _delete_residue(r, std::find(_residues.begin(), _residues.end(), r));
+        _delete_residue(r);
         return;
     }
     _delete_atom(a);
 }
 
 void
-Structure::_delete_atoms(const std::set<Atom*>& atoms)
+Structure::_delete_atoms(const std::set<Atom*>& atoms, bool verify)
 {
-    for (auto a: atoms)
-        if (a->structure() != this) {
-            logger::error(_logger, "Atom ", a->residue()->str(), " ", a->name(),
-                " does not belong to the structure that it's being deleted from.");
-            throw std::invalid_argument("delete_atoms called with Atom not in"
-                " AtomicStructure/Structure");
-        }
+    if (verify)
+        for (auto a: atoms)
+            if (a->structure() != this) {
+                logger::error(_logger, "Atom ", a->residue()->str(), " ", a->name(),
+                    " does not belong to the structure that it's being deleted from.");
+                throw std::invalid_argument("delete_atoms called with Atom not in"
+                    " AtomicStructure/Structure");
+            }
     if (atoms.size() == _atoms.size()) {
         delete this;
         return;
@@ -413,6 +418,8 @@ Structure::_delete_atoms(const std::set<Atom*>& atoms)
     std::map<Residue*, std::vector<Atom*>> res_del_atoms;
     for (auto a: atoms) {
         res_del_atoms[a->residue()].push_back(a);
+        if (a->element().number() == 1)
+            --_num_hyds;
     }
     std::set<Residue*> res_removals;
     for (auto& r_atoms: res_del_atoms) {
@@ -502,23 +509,10 @@ Structure::delete_bond(Bond *b)
 }
 
 void
-Structure::_delete_residue(Residue* r, const Structure::Residues::iterator& ri)
+Structure::_delete_residue(Residue* r)
 {
-    auto db = DestructionBatcher(r);
-#if 0
-    if (r->chain() != nullptr) {
-        r->chain()->remove_residue(r);
-        set_gc_ribbon();
-    }
-    for (auto a: r->atoms()) {
-        _delete_atom(a);
-    }
-    _residues.erase(ri);
-    delete r;
-#else
     auto del_atoms_set = std::set<Atom*>(r->atoms().begin(), r->atoms().end());
-    _delete_atoms(del_atoms_set);
-#endif
+    _delete_atoms(del_atoms_set, false);
 }
 
 void
@@ -534,7 +528,7 @@ Structure::delete_residue(Residue* r)
         delete this;
         return;
     }
-    _delete_residue(r, ri);
+    _delete_residue(r);
 }
 
 CoordSet *
