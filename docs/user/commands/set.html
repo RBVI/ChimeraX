@@ -122,8 +122,11 @@ Set silhouette linewidth in pixels (initial default <b>1</b>).
 <a href="#top" class="nounder">&bull;</a>
 <a name="silhouetteDepthJump"><b>set silhouetteDepthJump</b></a> &nbsp;<i>depth</i>
 <blockquote>
-Set depth change needed to trigger drawing silhouettes
-(initial default <b>0.03</b> &Aring;).
+Set depth change needed to trigger drawing silhouettes,
+as a fraction of scene depth (the distance between the 
+<a href="clip.html">near and far clipping planes</a>);
+initial default <b>0.03</b>, but changed to <b>0.01</b> by the
+<a href="lighting.html#preset"><b>flat</b> lighting preset</a>.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -132,6 +135,11 @@ Set depth change needed to trigger drawing silhouettes
 Set subdivision level, where a higher value increases the apparent smoothness
 of stick, ball-and-stick, and sphere representations by increasing
 the number of planar facets used to approximate them (initial default <b>1</b>).
+For cartoons, see the <b>sides</b> and <b>barSides</b> options of
+<a href="cartoon.html#style"><b>cartoon style</b></a>.
+For molecular surfaces, see the 
+<a href="surface.html#parameters"><b>gridSpacing</b></a>
+option of <a href="surface.html"><b>surface</b></a>.
 </blockquote>
 
 <hr>
