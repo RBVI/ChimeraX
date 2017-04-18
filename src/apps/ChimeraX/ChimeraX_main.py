@@ -72,10 +72,16 @@ if sys.platform.startswith('win'):
         import codecs
         encoding = os.environ['LANG'].split('.')[-1].casefold()
         if encoding != sys.stdout.encoding.casefold():
-            sys.stdout = codecs.getwriter(encoding)(sys.stdout.detach())
-            sys.stdout.encoding = encoding
-            sys.stderr = codecs.getwriter(encoding)(sys.stderr.detach())
-            sys.stderr.encoding = encoding
+            try:
+                writer = codecs.getwriter(encoding)
+            except LookupError:
+                # If encoding is unknown, just leave things alone
+                pass
+            else:
+                sys.stdout = writer(sys.stdout.detach())
+                sys.stdout.encoding = encoding
+                sys.stderr = writer(sys.stderr.detach())
+                sys.stderr.encoding = encoding
 
 
 def parse_arguments(argv):
