@@ -1011,16 +1011,15 @@ class RegionBrowser:
             self._rebuildListing()
         """
 
-    def redrawRegions(self, justGapping=False, cullEmpty=False):
+    def redraw_regions(self, just_gapping=False, cull_empty=False):
         for region in self.regions[:]:
-            if justGapping and region.cover_gaps:
+            if just_gapping and region.cover_gaps:
                 continue
             region.redraw()
-            if cullEmpty and not region.blocks \
+            if cull_empty and not region.blocks \
             and region != self.get_region("ChimeraX selection"):
                 region.destroy()
-        self.seq_canvas.adjustScrolling()
-        
+
     def region_residues(self, region=None):
         if not region:
             region = self._drag_region
