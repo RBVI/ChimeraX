@@ -33,7 +33,7 @@ class Map_Series(Model):
       m.series = self
 
     self._timer = None		# Timer for updating volume viewer dialog
-    
+
   # ---------------------------------------------------------------------------
   #
   def number_of_times(self):
@@ -197,10 +197,14 @@ class Map_Series(Model):
     s = Map_Series('series', maps, session)
     Model.set_state_from_snapshot(s, session, data['model state'])
 
+    # Parent models are always restored before child models.
     # Restore child map list after child maps are restored.
     def restore_maps(trigger_name, session, series = s, map_ids = data['map ids']):
       idm = {m.id : m for m in s.child_models()}
-      series.maps = [idm[id] for id in map_ids if id in idm]
+      maps = [idm[id] for id in map_ids if id in idm]
+      series.maps = maps
+      for m in maps:
+        m.series = series
       from ...triggerset import DEREGISTER
       return DEREGISTER
     session.triggers.add_handler('end restore session', restore_maps)
