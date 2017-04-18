@@ -748,8 +748,9 @@ class View:
         pm = c.projection_matrix((near, far), view_num, (ww, wh))
         r.set_projection_matrix(pm)
         r.set_near_far_clip(near, far)	# Used by depth cue
+        pnf = 1 if c.name == 'orthographic' else (near / far)
 
-        return near / far
+        return pnf
 
     def near_far_distances(self, camera, view_num, include_clipping = True):
         '''Near and far scene bounds as distances from camera.'''
