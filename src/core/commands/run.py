@@ -28,13 +28,14 @@ def run(session, text, *, log=True, downgrade_errors=False):
     from ..errors import UserError
     command = cli.Command(session)
     try:
-        return command.run(text, log=log)
+        results = command.run(text, log=log)
     except UserError as err:
         if downgrade_errors:
             session.logger.info(str(err))
         else:
             session.logger.error(str(err))
-
+        results = []
+    return results[0] if len(results) == 1 else results
 
 def register_command(session):
     from . import CmdDesc, register, StringArg, BoolArg

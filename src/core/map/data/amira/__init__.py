@@ -14,5 +14,5 @@
 #
 def open(path):
 
-  from amira_grid import Amira_Grid
+  from .amira_grid import Amira_Grid
   return [Amira_Grid(path)]

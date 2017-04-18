@@ -158,6 +158,29 @@ ExtractTemplate::finished_parse()
             residue->description("peptide");
             residue->chief(residue->find_atom("N"));
             residue->link(residue->find_atom("C"));
+            // Standard amino acids are missing connectivity for the
+            // H1 and H3 atoms at the N-terminus.
+            tmpl::Atom* n = residue->find_atom("N");
+            if (n) {
+                tmpl::Atom* h1 = residue->find_atom("H1");
+                if (h1 == nullptr) {
+                    const Element& elem = Element::get_element('H');
+                    h1 = templates->new_atom("H1", elem);
+                    tmpl::Coord c(0, 0, 0);
+                    h1->set_coord(c);
+                    residue->add_atom(h1);
+                    templates->new_bond(n, h1);
+                }
+                tmpl::Atom* h3 = residue->find_atom("H3");
+                if (h3 == nullptr) {
+                    const Element& elem = Element::get_element('H');
+                    h3 = templates->new_atom("H3", elem);
+                    tmpl::Coord c(0, 0, 0);
+                    h3->set_coord(c);
+                    residue->add_atom(h3);
+                    templates->new_bond(n, h3);
+                }
+            }
         } else if (is_nucleotide) {
             residue->description("nucleotide");
             residue->chief(residue->find_atom("P"));

@@ -30,6 +30,7 @@ endif
 	$(MAKE) build-dirs
 	$(MAKE) -C prereqs install-prebuilt
 	$(MAKE) -C prereqs app-install
+	$(MAKE) build-app-dirs
 	$(MAKE) -C src install
 	$(MAKE) -C docs install
 	@echo 'Finished install at' `date`

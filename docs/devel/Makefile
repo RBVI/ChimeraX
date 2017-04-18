@@ -27,6 +27,11 @@ PAPER         =
 BUILDDIR      = _build
 DOCDIR        = $(app_datadir)/docs/devel
 
+# The short X.Y version extracted for core Makefile
+CHIMERAX_VERSION = $(shell grep ^BUNDLE_VERSION $(TOP)/src/core/Makefile | cut -d\  -f3)
+# The full version, including alpha/beta/rc tags.
+CHX_FULL_VERSION = $(CHIMERAX_VERSION)
+
 # Internal variables.
 PAPEROPT_a4     = -D latex_paper_size=a4
 PAPEROPT_letter = -D latex_paper_size=letter
@@ -66,7 +71,10 @@ clean:
 	-rm -rf $(BUILDDIR)/* conf.py
 
 conf.py: conf.py.in
-	sed 's/PYTHON_VERSION/$(PYTHON_VERSION)/' < $< > $@
+	sed -e 's/PYTHON_VERSION/$(PYTHON_VERSION)/' \
+		-e 's/CHIMERAX_VERSION/$(CHIMERAX_VERSION)/' \
+		-e 's/CHX_FULL_VERSION/$(CHX_FULL_VERSION)/' \
+		< $< > $@
 
 index.rst: index.rst.in
 	sed '/===/d' $(TOP)/copyright.txt | \

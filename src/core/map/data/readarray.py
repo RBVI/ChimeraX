@@ -67,7 +67,7 @@ def read_array(path, byte_offset, ijk_origin, ijk_size, ijk_step,
 # Read an array from a binary file making at most one copy of array in memory.
 #
 def read_full_array(path, byte_offset, size, type, byte_swap,
-                    progress = None, block_size = 2**20):
+                    progress = None, block_size = 2**25):
 
     a = allocate_array(size, type)
     

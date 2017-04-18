@@ -110,9 +110,7 @@ class IMS_Data:
         # Imaris image header values are numpy arrays of characters. Ugh.
         im = f.root.DataSetInfo.Image._v_attrs
         extent = [(float(im['ExtMin%d' % a].tostring()), float(im['ExtMax%d' % a].tostring())) for a in (0,1,2)]
-        print ('extent', extent, type(extent[0][0]))
         size = [int(im[axis].tostring()) for axis in ('X','Y','Z')]
-        print ('size', size)
         origin = [e1 for e1,e2 in extent]
         step = [(e2-e1)/s for (e1,e2),s in zip(extent,size)]
         
@@ -202,32 +200,17 @@ class IMS_Data:
     def read_matrix(self, ijk_origin, ijk_size, ijk_step,
                     array_path, array, progress):
 
-        i0,j0,k0 = ijk_origin
-        isz,jsz,ksz = ijk_size
-        istep,jstep,kstep = ijk_step
+#        import traceback
+#        traceback.print_stack()
+        
         import tables
         f = tables.open_file(self.path)
         if progress:
             progress.close_on_cancel(f)
 #        array_path = choose_chunk_size(f, array_paths, ijk_size)
         a = f.get_node(array_path)
-        cshape = a._v_chunkshape
-        csmin = min(cshape)
-        if cshape[0] == csmin:
-            for k in range(k0,k0+ksz,kstep):
-                array[(k-k0)//kstep,:,:] = a[k,j0:j0+jsz:jstep,i0:i0+isz:istep]
-                if progress:
-                    progress.plane((k-k0)//kstep)
-        elif cshape[1] == csmin:
-            for j in range(j0,j0+jsz,jstep):
-                array[:,(j-j0)//jstep,:] = a[k0:k0+ksz:kstep,j,i0:i0+isz:istep]
-                if progress:
-                    progress.plane((j-j0)//jstep)
-        else:
-            for i in range(i0,i0+isz,istep):
-                array[:,:,(i-i0)//istep] = a[k0:k0+ksz:kstep,j0:j0+jsz:jstep,i]
-                if progress:
-                    progress.plane((i-i0)//istep)
+        from ..cmap import copy_hdf5_array
+        copy_hdf5_array(a, ijk_origin, ijk_size, ijk_step, array, progress)
         if progress:
             progress.done()
 

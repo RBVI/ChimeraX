@@ -19,21 +19,24 @@ class Map_Series(Model):
   def __init__(self, name, maps, session):
 
     Model.__init__(self, name, session)
-    self.maps = maps
 
     self.add(maps)
-
-    self.shown_times = t = set(i for i,m in enumerate(maps) if m.display)
-    self.last_shown_time = tuple(t)[0] if len(t) > 0 else 0
-
+    self.set_maps(maps)
+    
     self.surface_level_ranks = []  # Cached for normalization calculation
     self.solid_level_ranks = []  # Cached for normalization calculation
 
+    self._timer = None		# Timer for updating volume viewer dialog
+
+  # ---------------------------------------------------------------------------
+  #
+  def set_maps(self, maps):
+    self.maps = maps
+    self.shown_times = t = set(i for i,m in enumerate(maps) if m.display)
+    self.last_shown_time = tuple(t)[0] if len(t) > 0 else 0
     for m in maps:
       m.series = self
 
-    self._timer = None		# Timer for updating volume viewer dialog
-    
   # ---------------------------------------------------------------------------
   #
   def number_of_times(self):
@@ -98,12 +101,7 @@ class Map_Series(Model):
 
     self.shown_times.discard(time)
 
-    if v.representation == 'solid' and cache_rendering:
-      vs = v.solid_model()
-      if vs:
-        vs.display = False
-    else:
-      v.show(show = False)
+    v.show(show = False)
 
     if not cache_rendering:
       v.remove_surfaces()
@@ -197,10 +195,12 @@ class Map_Series(Model):
     s = Map_Series('series', maps, session)
     Model.set_state_from_snapshot(s, session, data['model state'])
 
+    # Parent models are always restored before child models.
     # Restore child map list after child maps are restored.
     def restore_maps(trigger_name, session, series = s, map_ids = data['map ids']):
       idm = {m.id : m for m in s.child_models()}
-      series.maps = [idm[id] for id in map_ids if id in idm]
+      maps = [idm[id] for id in map_ids if id in idm]
+      series.set_maps(maps)
       from ...triggerset import DEREGISTER
       return DEREGISTER
     session.triggers.add_handler('end restore session', restore_maps)

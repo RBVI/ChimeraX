@@ -378,7 +378,7 @@ class Toolshed:
         from .available import AvailableBundleCache
         abc = AvailableBundleCache()
         try:
-            abc.load(logger, _RemoteURL)
+            abc.load(logger, self.remote_url)
         except URLError as e:
             logger.info("Updating list of available bundles failed: %s"
                         % str(e.reason))
@@ -504,7 +504,7 @@ class Toolshed:
         -----
         A :py:const:`TOOLSHED_BUNDLE_UNINSTALLED` trigger is fired after package removal.
         """
-        _debug("uninstall_bundle", bi)
+        _debug("uninstall_bundle", bundle)
         try:
             if not bundle.installed:
                 raise ToolshedInstalledError("bundle \"%s\" not installed" % bundle.name)
@@ -514,7 +514,6 @@ class Toolshed:
             # If "bundle" is not an instance, just leave it alone
             pass
         self._pip_uninstall(bundle)
-        self.set_install_timestamp(per_user)
         self.reload(logger, rebuild_cache=True, report=True)
         self.triggers.activate_trigger(TOOLSHED_BUNDLE_UNINSTALLED, bundle)
 
@@ -538,17 +537,23 @@ class Toolshed:
         else:
             container = self._get_available_bundles(logger)
         from distlib.version import NormalizedVersion as Version
+        lc_name = name.lower()
         best_bi = None
         best_version = None
         for bi in container:
-            if bi.name != name and name not in bi.supercedes:
+            if lc_name not in bi.name.lower():
                 continue
+            #if bi.name != name and name not in bi.supercedes:
+            #    continue
             if version == bi.version:
                 return bi
             if version is None:
                 if best_bi is None:
                     best_bi = bi
                     best_version = Version(bi.version)
+                elif best_bi.name != bi.name:
+                    logger("%r matches multiple bundles" % name)
+                    return None
                 else:
                     v = Version(bi.version)
                     if v > best_version:
@@ -674,8 +679,8 @@ class Toolshed:
     def _remove_scripts(self):
         # remove pip installed scripts since they have hardcoded paths to
         # python and thus don't work when ChimeraX is installed elsewhere
-        from .. import app_bin_dir
-        import os
+        from chimerax import app_bin_dir
+        import sys, os
         if sys.platform.startswith('win'):
             # Windows
             script_dir = os.path.join(app_bin_dir, 'Scripts')
