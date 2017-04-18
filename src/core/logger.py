@@ -207,6 +207,11 @@ class StatusLogger:
         else:
             self._status_timer1 = status_timer
             self._follow_timer1 = follow_timer
+        
+        # actually get status to show...
+        if self.session.ui.is_gui:
+            from PyQt5.QtCore import QEventLoop
+            self.session.ui.processEvents(QEventLoop.ExcludeUserInputEvents)
 
     def _follow_timeout(self, follow_with, color, log, secondary, follow_log):
         if secondary:
