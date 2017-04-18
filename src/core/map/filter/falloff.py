@@ -43,7 +43,8 @@ def falloff_grid(volume, iterations = 10, step = 1, subregion = None):
     v = volume
     region = v.subregion(step, subregion)
 
-    m = v.region_matrix(region).copy()
+    from numpy import float32
+    m = v.region_matrix(region).astype(float32)
     falloff_matrix(m, iterations)
 
     from ..data import Array_Grid_Data
