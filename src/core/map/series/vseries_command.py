@@ -171,10 +171,9 @@ def align(v, vprev):
 # -----------------------------------------------------------------------------
 #
 def vseries_save(session, series, path, subregion = None, step = None, value_type = None,
-                 threshold = None, zero_mean = False, scale_factor = None,
+                 threshold = None, zero_mean = False, scale_factor = None, match_scale = None,
                  enclose_volume = None, fast_enclose_volume = None, normalize_level = None,
-                 align = False, on_grid = None, mask = None, final_value_type = None, compress = False,
-                 match_scale = None):
+                 align = False, on_grid = None, mask = None, final_value_type = None, compress = False):
     '''
     Process the frames of a map series and save the result to a a file.
     Processing can normalize, align, mask and change the numeric value type of maps.
@@ -185,8 +184,9 @@ def vseries_save(session, series, path, subregion = None, step = None, value_typ
                            % len(series))
     s = series[0]
 
-    import os.path
-    path = os.path.expanduser(path)         # Tilde expansion
+    from os.path import expanduser, basename
+    path = expanduser(path)         # Tilde expansion
+    fname = basename(path)
 
     maps = s.maps
     if on_grid is None and align:
@@ -199,11 +199,11 @@ def vseries_save(session, series, path, subregion = None, step = None, value_typ
 
     n = len(maps)
     for i,v in enumerate(maps):
-        session.logger.status('Writing %s (%d of %d maps)' % (v.data.name, i+1, n))
+        session.logger.status('Writing %s to %s (%d of %d maps)' % (v.data.name, fname, i+1, n))
         align_to = maps[i-1] if align and i > 0 else None
         mscale = match_scale[0].maps[i] if match_scale else None
-        d = processed_volume(v, subregion, step, value_type, threshold, zero_mean, scale_factor,
-                             enclose_volume, fast_enclose_volume, normalize_level, mscale,
+        d = processed_volume(v, subregion, step, value_type, threshold, zero_mean, scale_factor, mscale,
+                             enclose_volume, fast_enclose_volume, normalize_level,
                              align_to, grid, mask, final_value_type)
         d.name = '%04d' % i
         options = {'append': True, 'compress': compress}
@@ -216,9 +216,8 @@ def vseries_save(session, series, path, subregion = None, step = None, value_typ
 # -----------------------------------------------------------------------------
 #
 def processed_volume(v, subregion = None, step = None, value_type = None, threshold = None,
-                     zero_mean = False, scale_factor = None,
+                     zero_mean = False, scale_factor = None, match_scale = None,
                      enclose_volume = None, fast_enclose_volume = None, normalize_level = None,
-                     match_scale = None,
                      align_to = None, on_grid = None, mask = None, final_value_type = None):
     d = v.data
     region = None
@@ -231,8 +230,8 @@ def processed_volume(v, subregion = None, step = None, value_type = None, thresh
         d = Grid_Subregion(d, ijk_min, ijk_max, ijk_step)
 
     if (value_type is None and threshold is None and not zero_mean and
-        scale_factor is None and align_to is None and mask is None and
-        match_scale is None and final_value_type is None):
+        scale_factor is None and match_scale is None and align_to is None and
+        mask is None and final_value_type is None):
         return d
 
     m = d.full_matrix()
@@ -252,19 +251,6 @@ def processed_volume(v, subregion = None, step = None, value_type = None, thresh
     if not scale_factor is None:
         m = (m*scale_factor).astype(m.dtype)
 
-    if not enclose_volume is None or not fast_enclose_volume is None:
-        set_enclosed_volume(v, enclose_volume, fast_enclose_volume)
-
-    if not normalize_level is None:
-        if len(v.surface_levels) == 0:
-            from ...commands.parse import CommandError
-            raise CommandError('vseries save: normalize_level used but no level set for volume %s' % v.name)
-        level = max(v.surface_levels)
-        if zero_mean:
-            level -= mean
-        scale = normalize_level / level
-        m = (m*scale).astype(m.dtype)
-
     if not match_scale is None:
         ms = match_scale.region_matrix(region) if region else match_scale.full_matrix()
         from numpy import float64, einsum
@@ -277,6 +263,19 @@ def processed_volume(v, subregion = None, step = None, value_type = None, thresh
         am += b
         print ('scaling #%s' % v.id_string(), a, b, m1, ms1, m2, ms2, mms, am.mean(), am.std(), ms.mean(), ms.std())
         m[:] = am.astype(m.dtype)
+
+    if not enclose_volume is None or not fast_enclose_volume is None:
+        set_enclosed_volume(v, enclose_volume, fast_enclose_volume)
+
+    if not normalize_level is None:
+        if len(v.surface_levels) == 0:
+            from ...commands.parse import CommandError
+            raise CommandError('vseries save: normalize_level used but no level set for volume %s' % v.name)
+        level = max(v.surface_levels)
+        if zero_mean:
+            level -= mean
+        scale = normalize_level / level
+        m = (m*scale).astype(m.dtype)
 
     if not align_to is None:
         align(v, align_to)

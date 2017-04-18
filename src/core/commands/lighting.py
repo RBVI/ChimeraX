@@ -149,8 +149,9 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
         lp.multishadow = 0
         lp.key_light_intensity = 0
         lp.fill_light_intensity = 0
-        lp.ambient_light_intensity = 1
+        lp.ambient_light_intensity = 1.45
         v.silhouettes = True
+        v.silhouette_depth_jump = 0.01
 
     if not direction is None:
         lp.key_light_direction = array(direction, float32)
