@@ -22,6 +22,7 @@ defaults = {
     "new_region_interior": [chan/255.0 for chan in (233, 218, 198, 255)],
     "sel_region_border": None,
     "sel_region_interior": "light green",
+    "show_ruler_at_startup": True,
     "show_sel": True,
     # if 'wrap_if' is True, then alignment will be wrapped if the number of
     # sequences is no more than 'wrap_threshold'.  If 'wrap_if' is false, then
