@@ -117,8 +117,6 @@ public:
 };
 #endif
 
-void connect_residue_by_template(Residue* r, const tmpl::Residue* tr);
-
 bool reasonable_bond_length(Atom* a1, Atom* a2, float distance = 0)
 {
     float idealBL = Element::bond_length(a1->element(), a2->element());
@@ -145,6 +143,7 @@ struct ExtractMolecule: public readcif::CIFFile
     virtual void reset_parse();
     virtual void finished_parse();
     void connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, bool gap);
+    void connect_residue_by_template(Residue* r, const tmpl::Residue* tr);
     const tmpl::Residue* find_template_residue(const ResName& name);
     void parse_audit_conform();
     void parse_atom_site();
@@ -432,6 +431,38 @@ ExtractMolecule::connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, b
     }
 }
 
+// connect_residue_by_template:
+//    Connect bonds in residue according to the given template.  Takes into
+//    account alternate atom locations.
+void
+ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr)
+{
+    auto& atoms = r->atoms();
+
+    // Confirm all atoms in residue are in template, if not connect by distance
+    for (auto&& a: atoms) {
+        tmpl::Atom *ta = tr->find_atom(a->name());
+        if (!ta) {
+            logger::warning(_logger, "Found atoms not in residue template for ", r->str());
+            connect_residue_by_distance(r);
+            return;
+        }
+    }
+
+    // foreach atom in residue
+    //    connect up like atom in template
+    for (auto&& a: atoms) {
+        tmpl::Atom *ta = tr->find_atom(a->name());
+        for (auto&& tmpl_nb: ta->neighbors()) {
+            Atom *b = r->find_atom(tmpl_nb->name());
+            if (b == nullptr)
+                continue;
+            if (!a->connects_to(b))
+                (void) a->structure()->new_bond(a, b);
+        }
+    }
+}
+
 void
 copy_nmr_info(Structure* from, Structure* to, PyObject* _logger)
 {
@@ -511,6 +542,7 @@ ExtractMolecule::finished_parse()
     for (auto&& r : mol->residues()) {
         auto tr = find_template_residue(r->name());
         if (tr == nullptr) {
+            logger::warning(_logger, "Missing residue template for ", r->str());
             connect_residue_by_distance(r);
         } else {
             connect_residue_by_template(r, tr);
@@ -521,7 +553,7 @@ ExtractMolecule::finished_parse()
     // Because some positions are heterogeneous, delay connecting
     // until next group of residues is found.
     for (auto&& chain: all_residues) {
-        const ResidueMap& residue_map = chain.second;
+        ResidueMap& residue_map = chain.second;
         auto ri = residue_map.begin();
         const string& entity_id = ri->first.entity_id;
         if (poly_seq.find(entity_id) == poly_seq.end())
@@ -547,10 +579,14 @@ ExtractMolecule::finished_parse()
             if (auth_chain_id.empty())
                 auth_chain_id = r->chain_id();
             if (lastp && lastp->seq_id == p.seq_id) {
-                if (!lastp->hetero)
-                    logger::warning(_logger, "Duplicate entity_id/seq_id ",
-                        p.seq_id, " without hetero");
-                current.push_back(r);
+                if (lastp->hetero)
+                    logger::warning(_logger, "Ignoring microheterogeneity for seq_id ",
+                                    p.seq_id);
+                else
+                    logger::warning(_logger, "Skipping duplicate seq_id ",
+                                    p.seq_id);
+                residue_map.erase(ri);
+                mol->delete_residue(r);
             } else {
                 if (!previous.empty() && !current.empty()) {
                     connect_residue_pairs(previous, current, gap);
@@ -575,8 +611,8 @@ ExtractMolecule::finished_parse()
         seqres.reserve(entity_poly_seq.size());
         lastp = nullptr;
         for (auto& p: entity_poly_seq) {
-            if (lastp && lastp->seq_id == p.seq_id && p.hetero)
-                continue;  // ignore microheterogeneity
+            if (lastp && lastp->seq_id == p.seq_id)
+                continue;  // ignore duplicates and microheterogeneity
             seqres.push_back(p.mon_id);
             lastp = &p;
         }
@@ -873,6 +909,8 @@ ExtractMolecule::parse_atom_site()
     int model_num = 0;            // pdbx_PDB_model_num
 
     missing_poly_seq = poly_seq.empty();
+    if (missing_poly_seq)
+        logger::warning(_logger, "Missing entity_poly_seq table.  Inferring polymer connectivity");
 
     try {
         pv.emplace_back(get_column("id"),
@@ -1788,37 +1826,6 @@ parse_mmCIF_buffer(const unsigned char *whole_file,
     ExtractMolecule extract(logger, generic_categories);
     extract.parse(reinterpret_cast<const char *>(whole_file));
     return structure_pointers(extract, "unknown mmCIF file");
-}
-
-// connect_residue_by_template:
-//    Connect bonds in residue according to the given template.  Takes into
-//    account alternate atom locations.
-void
-connect_residue_by_template(Residue* r, const tmpl::Residue* tr)
-{
-    auto& atoms = r->atoms();
-
-    // Confirm all atoms in residue are in template, if not connect by distance
-    for (auto&& a: atoms) {
-        tmpl::Atom *ta = tr->find_atom(a->name());
-        if (!ta) {
-            connect_residue_by_distance(r);
-            return;
-        }
-    }
-
-    // foreach atom in residue
-    //    connect up like atom in template
-    for (auto&& a: atoms) {
-        tmpl::Atom *ta = tr->find_atom(a->name());
-        for (auto&& tmpl_nb: ta->neighbors()) {
-            Atom *b = r->find_atom(tmpl_nb->name());
-            if (b == nullptr)
-                continue;
-            if (!a->connects_to(b))
-                (void) a->structure()->new_bond(a, b);
-        }
-    }
 }
 
 

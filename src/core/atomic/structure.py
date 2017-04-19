@@ -1946,10 +1946,41 @@ class AtomicStructure(Structure):
 
     def _report_chain_descriptions(self, session):
         chains = sorted(self.chains, key=lambda c: c.chain_id)
+        if not chains:
+            return
+        from collections import OrderedDict
+        descripts = OrderedDict()
         for chain in chains:
-            if chain.description:
-                session.logger.info("%s, chain %s: %s" %
-                                    (self, chain.chain_id, chain.description))
+            description = chain.description if chain.description else "No description available"
+            descripts.setdefault((description, chain.characters), []).append(chain)
+        def chain_text(chain):
+            return '<a href="cxcmd:seqalign chain #%s/%s">%s</a>' % (
+                chain.structure.id_string(), chain.chain_id, chain.chain_id)
+        from ..logger import html_table_params
+        summary = '\n<table %s>\n' % html_table_params
+        summary += '  <thead>\n'
+        summary += '    <tr>\n'
+        summary += '      <th colspan="2">Chain information for %s</th>\n' % self
+        summary += '    </tr>\n'
+        summary += '    <tr>\n'
+        summary += '      <th>Chain</th>\n'
+        summary += '      <th>Description</th>\n'
+        summary += '    </tr>\n'
+        summary += '  </thead>\n'
+        summary += '  <tbody>\n'
+        for key, chains in descripts.items():
+            description, characters = key
+            summary += '    <tr>\n'
+            summary += '      <td style="text-align:center">'
+            summary += ' '.join([chain_text(chain) for chain in chains])
+            summary += '      </td>'
+            summary += '      <td>'
+            summary += description
+            summary += '      </td>'
+            summary += '    </tr>\n'
+        summary += '  </tbody>\n'
+        summary += '</table>'
+        session.logger.info(summary, is_html=True)
 
     def _report_assemblies(self, session):
         if getattr(self, 'ignore_assemblies', False):

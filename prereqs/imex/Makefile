@@ -7,6 +7,7 @@ all:
 install:
 	$(RSYNC) imex.i $(includedir)
 
-app-install:;
+app-install:
+	$(RSYNC) imex.i $(app_includedir)
 
 clean:

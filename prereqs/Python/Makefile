@@ -35,7 +35,10 @@ endif
 ifeq ($(OS),Linux)
 LDFLAGS += -Wl,-rpath,a-value-that-is-replaced
 ENV_CONFIGURE += LDFLAGS='$(LDFLAGS)'
-CONFIG_OPTIONS += --enable-shared --enable-optimizations
+CONFIG_OPTIONS += --enable-shared
+# --enable-optimizations causes singularity build to fail (and causes long build times)
+# Try reneabling with newer versions of Python after benchmarking it is worth it.
+# CONFIG_OPTIONS += --enable-optimizations
 endif
 ifeq ($(OS),Darwin)
 # On Darwin, -Wl,-rpath ends up in shared libraries in addition to executables,

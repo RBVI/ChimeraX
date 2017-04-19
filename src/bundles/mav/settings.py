@@ -16,12 +16,13 @@ SINGLE_PREFIX = "single_seq_"
 defaults = {
 	"column_separation": 0,
     SINGLE_PREFIX + "column_separation": -2,
-    "line_width": -10,
-    SINGLE_PREFIX + "line_width": -10,
+    "line_width": -5,
+    SINGLE_PREFIX + "line_width": -5,
     "new_region_border": None,
     "new_region_interior": [chan/255.0 for chan in (233, 218, 198, 255)],
     "sel_region_border": None,
     "sel_region_interior": "light green",
+    "show_ruler_at_startup": True,
     "show_sel": True,
     # if 'wrap_if' is True, then alignment will be wrapped if the number of
     # sequences is no more than 'wrap_threshold'.  If 'wrap_if' is false, then

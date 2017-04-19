@@ -142,6 +142,14 @@ class MultAlignViewer(ToolInstance):
         self._blastAnnotationServices = {}
         ModelessDialog.__init__(self)
         """
+        words = self.alignment.description.split()
+        capped_words = []
+        for word in words:
+            if word.islower() and word.isalpha():
+                capped_words.append(word.capitalize())
+            else:
+                capped_words.append(word)
+        self.display_name = " ".join(capped_words) + " [ID: %s]" % self.alignment.name
         from chimerax.core.ui.gui  import MainToolWindow
         self.tool_window = MainToolWindow(self, close_destroys=True, statusbar=True)
         self.tool_window._ToolWindow__toolkit.dock_widget.setMouseTracking(True)
@@ -424,6 +432,8 @@ class MultAlignViewer(ToolInstance):
                 self.seq_canvas.assoc_mod(match_map.align_seq)
         elif note_name == "pre-remove seqs":
             self.region_browser._pre_remove_lines(note_data)
+        elif note_name == "destroyed":
+            self.delete()
 
     def delete(self):
         self.region_browser.destroy()

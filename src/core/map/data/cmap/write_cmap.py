@@ -73,18 +73,18 @@ def write_grid_as_chimera_map(grid_data, path, options = {}, progress = None):
     if settings['append']:      mode = 'a'
     else:                       mode = 'w'
     import tables
-    h5file = tables.openFile(path, mode = mode)
+    h5file = tables.open_file(path, mode = mode)
     if progress:
         progress.close_on_cancel(h5file)
 
     if '/Chimera' in h5file:
-        cg = h5file.getNode('/Chimera')
+        cg = h5file.get_node('/Chimera')
     else:
-        cg = h5file.createGroup(h5file.root, 'Chimera')
+        cg = h5file.create_group(h5file.root, 'Chimera')
 
     ioffset = next_suffix_number(cg, 'image')
     for i, d in enumerate(data_sets):
-        g = h5file.createGroup(cg, 'image%d' % (i+ioffset))
+        g = h5file.create_group(cg, 'image%d' % (i+ioffset))
         write_grid_data(h5file, d, g, settings, progress)
 
     h5file.close()
@@ -136,7 +136,7 @@ def write_grid_data(h5file, grid_data, g, settings, progress):
         axis, angle = matrix.rotation_axis_angle(grid_data.rotation)
         g._v_attrs.rotation_axis = array(axis, float32)
         g._v_attrs.rotation_angle = array(angle, float32)
-    if len(grid_data.symmetries) > 0:
+    if grid_data.symmetries:
         g._v_attrs.symmetries = array(grid_data.symmetries.array(), float32)
 
     # Determine data type.
@@ -189,8 +189,8 @@ def make_arrays(h5file, g, size, atom, settings):
     for csname in chunk_shapes:
         cshape = chunk_shape(shape, csname, chunk_elements)
         if not cshape in cshapes:
-            a = h5file.createCArray(g, 'data_' + csname, atom, shape,
-                                    chunkshape = cshape, filters = filters)
+            a = h5file.create_carray(g, 'data_' + csname, atom, shape,
+                                     chunkshape = cshape, filters = filters)
             arrays.append((1,a))
             cshapes[cshape] = True
 
@@ -204,9 +204,9 @@ def make_arrays(h5file, g, size, atom, settings):
         for csname in chunk_shapes:
             cshape = chunk_shape(shape, csname, chunk_elements)
             if not cshape in cshapes:
-                a = h5file.createCArray(g, 'data_%s_%d' % (csname,step), atom,
-                                        shape, chunkshape = cshape,
-                                        filters = filters)
+                a = h5file.create_carray(g, 'data_%s_%d' % (csname,step), atom,
+                                         shape, chunkshape = cshape,
+                                         filters = filters)
                 a._v_attrs.subsample_spacing = array((step,step,step), int32)
                 arrays.append((step, a))
                 cshapes[cshape] = True

@@ -18,7 +18,8 @@ class Alignment(State):
     Should only be created through new_alignment method of the alignment manager
     """
 
-    def __init__(self, session, seqs, name, file_attrs, file_markups, auto_destroy, auto_associate):
+    def __init__(self, session, seqs, name, file_attrs, file_markups, auto_destroy, auto_associate,
+            description):
         self.session = session
         self.seqs = seqs
         self.name = name
@@ -26,17 +27,20 @@ class Alignment(State):
         self.file_markups = file_markups
         self.auto_destroy = auto_destroy
         self.auto_associate = auto_associate
+        self.description = description
         self.viewers = []
         self.associations = {}
         from chimerax.core.atomic import Chain
+        self.intrinsic = False
         for i, seq in enumerate(seqs):
             if isinstance(seq, Chain):
                 from copy import copy
                 seqs[i] = copy(seq)
-            seq.match_maps = {}
+            seqs[i].match_maps = {}
         if self.auto_associate is None:
             self.associate(None)
             self.auto_associate = False
+            self.intrinsic = True
         elif self.auto_associate:
             from chimerax.core.atomic import AtomicStructure
             if self.auto_associate == "session":
@@ -66,8 +70,11 @@ class Alignment(State):
            If a chain is less than 'min_length' residues, ignore it.
         """
 
-        from chimerax.core.atomic import Chain, StructureSeq, AtomicStructure, SeqMatchMap, \
-            estimate_assoc_params, StructAssocError, try_assoc
+        if self.intrinsic and not force:
+            return
+        self.intrinsic = False
+        from chimerax.core.atomic import Sequence, Chain, StructureSeq, AtomicStructure, \
+            SeqMatchMap, estimate_assoc_params, StructAssocError, try_assoc
         from .settings import settings
         status = self.session.logger.status
         reeval = False
@@ -96,8 +103,7 @@ class Alignment(State):
                 match_map = SeqMatchMap(self.session, seq, seq)
                 for res, index in seq.res_map.items():
                     match_map.match(res, index)
-                #TODO: finish prematched_...
-                self.prematched_assoc_structure(seq, seq, match_map, 0, reassoc)
+                self.prematched_assoc_structure(match_map, 0, reassoc)
                 new_match_maps.append(match_map)
             else:
                 aseqs = [seq]
@@ -253,13 +259,16 @@ class Alignment(State):
     def detach_viewer(self, viewer):
         """Called when a viewer is done with the alignment (see attach_viewer)"""
         self.viewers.remove(viewer)
-        if not self.viewers and self.auto_destroy:
+        if not self.viewers and self.auto_destroy and not self._in_destroy:
             self.session.alignments.destroy_alignment(self)
 
     def disassociate(self, sseq, reassoc=False):
         if sseq not in self.associations or getattr(self, '_in_destroy', False):
             return
 
+        if self.intrinsic:
+            self.session.alignments.destroy_alignment(self)
+            return
         aseq = self.associations[sseq]
         match_map = aseq.match_maps[sseq]
         del aseq.match_maps[sseq]

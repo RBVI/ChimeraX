@@ -36,7 +36,7 @@ class Subsampled_Grid(Grid_Data):
   # ---------------------------------------------------------------------------
   #
   def _get_data_cache(self):
-    return self.data_cache
+    return self.__dict__['data_cache']
   def _set_data_cache(self, dc):
     self.__dict__['data_cache'] = dc
     for g in self.available_subsamplings.values():

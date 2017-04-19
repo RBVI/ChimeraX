@@ -171,7 +171,11 @@ class Log(ToolInstance, HtmlLog):
 
         self.log_window = lw = HtmlWindow(session, parent, self)
         from PyQt5.QtWidgets import QGridLayout, QErrorMessage
-        self.error_dialog = QErrorMessage(parent)
+        class BiggerErrorDialog(QErrorMessage):
+            def sizeHint(self):
+                from PyQt5.QtCore import QSize
+                return QSize(600, 300)
+        self.error_dialog = BiggerErrorDialog(parent)
         layout = QGridLayout(parent)
         layout.setContentsMargins(0,0,0,0)
         layout.addWidget(self.log_window, 0, 0)
@@ -213,8 +217,24 @@ class Log(ToolInstance, HtmlLog):
                     (level == self.LEVEL_WARNING and self.warning_shows_dialog)):
                 if not is_html:
                     dlg_msg = "<br>".join(msg.split("\n"))
-                self.session.ui.thread_safe(self.error_dialog.showMessage,
-                                            dlg_msg)
+                else:
+                    # error dialog doesn't actually handle anchor links, so they
+                    # look misleadingly clickable; strip them...
+                    search_text = msg
+                    dlg_msg = ""
+                    while '<a href=' in search_text:
+                        before, partial = search_text.split('<a href=', 1)
+                        dlg_msg += before
+                        html, text_plus = partial.split(">", 1)
+                        if '</a>' not in text_plus:
+                            # can't parse link, just use original message
+                            dlg_msg = ""
+                            search_text = msg
+                            break
+                        link, search_text = text_plus.split('</a>', 1)
+                        dlg_msg += link
+                    dlg_msg += search_text
+                self.session.ui.thread_safe(self.error_dialog.showMessage, dlg_msg)
             if not is_html:
                 from html import escape
                 msg = escape(msg)

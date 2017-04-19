@@ -62,9 +62,8 @@ class FileHistory:
                 name = limit_string(f.short_name(), self.filename_size)
                 import html
                 cmd = html.escape(f.open_command())
-                # TODO: JPEG inline images cause page to be blank.
-                i = self.default_image('PNG') if f.image is None or hbytes > max_bytes else image_jpeg_to_png(f.image, (w,h))
-                img = '<img src="data:image/png;base64,%s" width=%d height=%d>' % (i, w, h)
+                i = self.default_image('JPEG') if f.image is None or hbytes > max_bytes else f.image
+                img = '<img src="data:image/jpeg;base64,%s" width=%d height=%d>' % (i, w, h)
                 line = ('<table>'
                         '<tr><td><a href="cxcmd:%s">%s</a>'
                         '<tr><td align=center><a href="cxcmd:%s">%s</a>'
@@ -99,22 +98,6 @@ class FileHistory:
     def file_history_changed_cb(self, name, data):
         # TODO: Only update if window shown.
         self.update_html()
-
-def image_jpeg_to_png(image_jpeg_base64, size = None):
-    '''Convert base64 encoded jpeg image to base64 encode PNG image.'''
-    import codecs
-    image_jpeg = codecs.decode(image_jpeg_base64.encode('utf-8'), 'base64')
-    import io
-    img_io = io.BytesIO(image_jpeg)
-    from PIL import Image
-    i = Image.open(img_io)
-    if size is not None:
-        i = i.resize(size)
-    png_io = io.BytesIO()
-    i.save(png_io, format='PNG')
-    png_bytes = png_io.getvalue()
-    image_png_base64 = codecs.encode(png_bytes, 'base64').decode('utf-8')
-    return image_png_base64
 
 def limit_string(s, n):
     if len(s) > n:

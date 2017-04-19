@@ -9,15 +9,18 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-# -----------------------------------------------------------------------------
-# Chimera HDF map file reader.
-#
-def open(path):
+TOP = ../../../../..
+include $(TOP)/mk/config.make
 
-  from .cmap_grid import read_chimera_map
-  return read_chimera_map(path)
+PKG_DIR = $(PYSITEDIR)/chimerax/core/map/data/amira
 
-# -----------------------------------------------------------------------------
-#
-from .cmap_format import copy_hdf5_array
-from .write_cmap import write_grid_as_chimera_map
+PYSRCS = __init__.py amira_format.py amira_grid.py
+
+all: $(PYOBJS)
+
+install: all
+	-mkdir -p $(PKG_DIR)
+	$(RSYNC) $(PYSRCS) $(PKG_DIR)
+
+clean:
+	rm -rf __pycache__
