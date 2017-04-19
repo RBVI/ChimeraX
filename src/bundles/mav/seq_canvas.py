@@ -2079,9 +2079,9 @@ class SeqBlock:
         # but then right justify
         text.moveBy(self.label_width - self.label_pad - rect.width(), 0)
         self.label_texts[line] = text
-        """TODO
         if self.has_associated_structures(line):
-            self._colorizeLabel(line)
+            self._colorize_label(line)
+        """TODO
         bindings = self.label_bindings[line]
         if bindings:
             for eventType, function in bindings.items():

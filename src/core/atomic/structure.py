@@ -1960,7 +1960,7 @@ class AtomicStructure(Structure):
         summary = '\n<table %s>\n' % html_table_params
         summary += '  <thead>\n'
         summary += '    <tr>\n'
-        summary += '      <th colspan="2">Chain information</th>\n'
+        summary += '      <th colspan="2">Chain information for %s</th>\n' % self
         summary += '    </tr>\n'
         summary += '    <tr>\n'
         summary += '      <th>Chain</th>\n'
@@ -1971,7 +1971,7 @@ class AtomicStructure(Structure):
         for key, chains in descripts.items():
             description, characters = key
             summary += '    <tr>\n'
-            summary += '      <td>'
+            summary += '      <td style="text-align:center">'
             summary += ' '.join([chain_text(chain) for chain in chains])
             summary += '      </td>'
             summary += '      <td>'
