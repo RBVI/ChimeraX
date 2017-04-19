@@ -1946,10 +1946,17 @@ class AtomicStructure(Structure):
 
     def _report_chain_descriptions(self, session):
         chains = sorted(self.chains, key=lambda c: c.chain_id)
+        from collections import OrderedDict
+        descripts = OrderedDict()
         for chain in chains:
             if chain.description:
-                session.logger.info("%s, chain %s: %s" %
-                                    (self, chain.chain_id, chain.description))
+                descripts.setdefault(chain.description, []).append(chain)
+        def chain_text(chain):
+            return '<a href="cxcmd:seqalign chain #%s/%s">%s</a>' % (
+                chain.structure.id_string(), chain.chain_id, chain.chain_id)
+        for descript, chains in descripts.items():
+            session.logger.info("%s, chain %s: %s" %
+                (self, ",".join([chain_text(chain) for chain in chains]), descript), is_html=True)
 
     def _report_assemblies(self, session):
         if getattr(self, 'ignore_assemblies', False):

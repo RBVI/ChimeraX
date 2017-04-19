@@ -21,10 +21,6 @@ class AlignmentsManager(State):
         self.session = session
         self.viewer_info = {'alignment': {}, 'sequence': {}}
 
-    def delete_alignment(self, alignment):
-        del self.alignments[alignment.name]
-        alignment._close()
-
     def destroy_alignment(self, alignment):
         del self.alignments[alignment.name]
         alignment._destroy()
@@ -43,6 +39,10 @@ class AlignmentsManager(State):
         ----------
         seqs : list of :py:class:`~chimerax.core.atomic.Sequence` instances
             Contents of alignment
+        identify_as : a text string (or None) used to identify the alignment in commands.  If the
+            string is already in use by another alignment, that alignment will be destroyed
+            and replaced.  If identify_as is None, then a unique identifer will be generated
+            and used.
         auto_destroy : boolean or None
             Whether to automatically destroy the alignment when the last viewer for it
             is closed.  If None, then treated as False if the value of the 'viewer' keyword
@@ -86,15 +86,29 @@ class AlignmentsManager(State):
             auto_destroy = True
 
         from .alignment import Alignment
-        i = 1
-        disambig = ""
-        while identify_as+disambig in self.alignments:
-            i += 1
-            disambig = "[%d]" % i
-        final_identify_as = identify_as+disambig
-        alignment = Alignment(self.session, seqs, final_identify_as, attrs, markups, auto_destroy,
-            auto_associate)
-        self.alignments[final_identify_as] = alignment
+        if identify_as is None:
+            i = 1
+            while str(i) in self.alignments:
+                i += 1
+            identify_as = str(i)
+        elif identify_as in self.alignments:
+            self.session.logger.info(
+                "Destroying pre-existing alignment with identifier %s" % identify_as)
+            self.destroy_alignment(self.alignments[identify_as])
+
+        from chimerax.core.atomic import StructureSeq
+        if len(seqs) == 1 and isinstance(seqs[0], StructureSeq):
+            sseq = seqs[0]
+            if sseq.description:
+                description = "%s (%s)" % (sseq.description, sseq.full_name)
+            else:
+                description = sseq.full_name
+        else:
+            description = identify_as
+        self.session.logger.info("Alignment identifier is %s" % identify_as)
+        alignment = Alignment(self.session, seqs, identify_as, attrs, markups, auto_destroy,
+            auto_associate, description)
+        self.alignments[identify_as] = alignment
         if viewer:
             viewer_startup_cb(self.session, tool_name, alignment)
         return alignment

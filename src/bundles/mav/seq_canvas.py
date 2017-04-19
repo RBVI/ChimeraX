@@ -1739,11 +1739,22 @@ class SeqBlock:
             brush = self.multi_assoc_brush
             pen = self.multi_assoc_pen
         else:
-            struct = structures.pop()
+            import numpy
+            if len(aseq.match_maps) == 1:
+                chain = list(aseq.match_maps.keys())[0]
+                colors = chain.existing_residues.existing_principal_atoms.colors
+                color = numpy.sum(colors, axis=0) / len(colors)
+            else:
+                struct = structures.pop()
+                if struct.single_color:
+                    color = struct.single_color
+                else:
+                    colors = struct.atoms.colors
+                    color = numpy.sum(colors, axis=0) / len(colors)
+            from PyQt5.QtCore import Qt
             from PyQt5.QtGui import QPen, QBrush
             from PyQt5.QtGui import QColor
-            from PyQt5.QtCore import Qt
-            brush = QBrush(QColor(*struct.single_color), Qt.SolidPattern)
+            brush = QBrush(QColor(*color), Qt.SolidPattern)
             pen = QPen(brush, 0, Qt.SolidLine)
         label_rect.setBrush(brush)
         label_rect.setPen(pen)

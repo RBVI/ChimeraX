@@ -1124,7 +1124,7 @@ class StructureSeq(Sequence):
             name_part = " " + rem.strip()
         else:
             name_part = ""
-        return "%s (%s)%s" % (self.structure.name, self.structure, name_part)
+        return "%s (#%s)%s" % (self.structure.name, self.structure.id_string(), name_part)
 
     @property
     def has_protein(self):
