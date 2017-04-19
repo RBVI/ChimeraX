@@ -96,7 +96,8 @@ class MapSeries(ToolInstance):
         self.display_name = "Map series %s" % sname
         self.tool_window.title = self.display_name
         t = self.slider.value()
-        self.update_time(t)
+        if t >= 0 and t < series.number_of_times():
+            self.update_time(t)
 
     def size(self):
         if not self.series:

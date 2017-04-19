@@ -361,8 +361,13 @@ Subtract the mean from each value so that the new mean will be zero.
 </blockquote>
 <blockquote>
 <a name="scaleFactor"><b>scaleFactor</b> &nbsp;<i>f</i></a>
+<br><a name="matchScale"><b>matchScale</b> &nbsp;<i>other-series</i>
 <br>
-Scale values by a multiplicative factor <i>f</i>.
+Scale values by a multiplicative factor <i>f</i>, or (mutually exclusive option)
+to minimize the sum of squares of the differences with <i>other-series</i>
+specified by model number.
+The other series must be on the same grid and have the same map dimensions
+as the series to be scaled.
 </blockquote>
 <blockquote>
 <a name="enclose">
@@ -422,5 +427,5 @@ Compress the output file (<a href="save.html#chimap">Chimera map format</a>).
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2017</address>
+April 2017</address>
 </body></html>
