@@ -1229,7 +1229,7 @@ def _remove_child_models(models):
     for m in models:
         for c in m.child_models():
             s.discard(c)
-    return tuple(s)
+    return tuple(m for m in models if m in s)
 
 
 _escape_table = {
