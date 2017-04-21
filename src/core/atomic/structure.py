@@ -202,7 +202,7 @@ class Structure(Model, StructureData):
     def set_state_from_snapshot(self, session, data):
         # Model restores self.name, which is a property of the C++ StructureData
         # so initialize StructureData first.
-        StructureData.restore_state(self, session, data['structure state'])
+        StructureData.set_state_from_snapshot(self, session, data['structure state'])
         Model.set_state_from_snapshot(self, session, data['model state'])
 
         for attr_name, default_val in self._session_attrs.items():
