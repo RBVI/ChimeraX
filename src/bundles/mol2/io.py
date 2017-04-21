@@ -94,8 +94,7 @@ def write_mol2_sort_key(a, res_indices=None):
 
 def write_mol2(session, file_name, models=None, atoms=None, status=None, anchor=None,
         rel_model=None, sybyl_hyd_naming=True, combine_models=False,
-        skip_atoms=None, res_num=False, gaff_type=False, gaff_fail_error=None,
-        **kw):
+        skip_atoms=None, res_num=False, gaff_type=False, gaff_fail_error=None):
     """Write a Mol2 file.
 
     Parameters
@@ -142,6 +141,9 @@ def write_mol2(session, file_name, models=None, atoms=None, status=None, anchor=
        if there is no gaff_type attribute for an atom, otherwise throw the standard AttributeError.
     """
 
+    if status:
+        status("Writing Mol2 file %s" % file_name)
+
     from chimerax.core import io
     f = io.open_filename(file_name, "w")
 
@@ -153,7 +155,10 @@ def write_mol2(session, file_name, models=None, atoms=None, status=None, anchor=
             atom_set = set(atoms)
             pbs = []
             for s in atoms.unique_structures:
-                for pb in s.pbg_map[s.PBG_METAL_COORDINATION].pseudobonds:
+                pbg = s.pbg_map.get(s.PBG_METAL_COORDINATION, None)
+                if not pbg:
+                    continue
+                for pb in pbg.pseudobonds:
                     if pb.atoms[0] in atom_set and pb.atoms[1] in atom_set:
                         pbs.append(pb)
             self._pbs = pbs
@@ -185,7 +190,7 @@ def write_mol2(session, file_name, models=None, atoms=None, status=None, anchor=
                 self.pbg_map = { Structure.PBG_METAL_COORDINATION: JPBGroup(atoms) }
 
         structures = [Jumbo(structures)]
-        sort_key_func = lambda a: (a.structure.id,) + serial_sort(a)
+        sort_key_func = lambda a: (a.structure.id,) + serial_sort_key(a)
         combine_models = False
 
     # transform...
@@ -537,6 +542,9 @@ def write_mol2(session, file_name, models=None, atoms=None, status=None, anchor=
             print(file=f)
 
     f.close()
+
+    if status:
+        status("Wrote Mol2 file %s" % file_name)
 
 def sulfur_oxygen(atom):
     if atom.idatm_type != "O3-":
