@@ -32,9 +32,9 @@ class _IHMAPI(BundleAPI):
         raise ValueError('Attempt to open unrecognized format "%s"' % format_name)
 
     @staticmethod
-    def save_file(session, name, format_name=None, **kw):
+    def save_file(session, name, _, models=None):
         # 'save_file' is called by session code to save a file
         from . import savecoords
-        return savecoords.save_binary_coordinates(session, name, **kw)
+        return savecoords.save_binary_coordinates(session, name, models)
 
 bundle_api = _IHMAPI()
