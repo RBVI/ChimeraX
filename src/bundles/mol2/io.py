@@ -95,7 +95,7 @@ def write_mol2_sort_key(a, res_indices=None):
 def write_mol2(session, file_name, models=None, atoms=None, status=None, anchor=None,
         rel_model=None, sybyl_hyd_naming=True, combine_models=False,
         skip_atoms=None, res_num=False, gaff_type=False, gaff_fail_error=None,
-        temporary=False, **kw):
+        **kw):
     """Write a Mol2 file.
 
     Parameters
@@ -140,9 +140,6 @@ def write_mol2(session, file_name, models=None, atoms=None, status=None, anchor=
        If 'gaff_type' is True, outout GAFF atom types instead of Sybyl atom types.
        `gaff_fail_error`, if specified, is the type of error to throw (e.g. UserError)
        if there is no gaff_type attribute for an atom, otherwise throw the standard AttributeError.
-
-    temporary : bool
-       If 'temporary' is True, don't enter the file name into the file history.
     """
 
     from chimerax.core import io
