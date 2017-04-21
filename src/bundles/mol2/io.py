@@ -153,7 +153,10 @@ def write_mol2(session, file_name, models=None, atoms=None, status=None, anchor=
             atom_set = set(atoms)
             pbs = []
             for s in atoms.unique_structures:
-                for pb in s.pbg_map[s.PBG_METAL_COORDINATION].pseudobonds:
+                pbg = s.pbg_map.get(s.PBG_METAL_COORDINATION, None)
+                if not pbg:
+                    continue
+                for pb in pbg.pseudobonds:
                     if pb.atoms[0] in atom_set and pb.atoms[1] in atom_set:
                         pbs.append(pb)
             self._pbs = pbs
@@ -185,7 +188,7 @@ def write_mol2(session, file_name, models=None, atoms=None, status=None, anchor=
                 self.pbg_map = { Structure.PBG_METAL_COORDINATION: JPBGroup(atoms) }
 
         structures = [Jumbo(structures)]
-        sort_key_func = lambda a: (a.structure.id,) + serial_sort(a)
+        sort_key_func = lambda a: (a.structure.id,) + serial_sort_key(a)
         combine_models = False
 
     # transform...
