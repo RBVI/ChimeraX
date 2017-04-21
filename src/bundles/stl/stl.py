@@ -258,12 +258,3 @@ def binary_string(x, dtype):
     if not little_endian:
         ta[:] = ta.byteswap()
     return ta.tobytes()
-
-# -----------------------------------------------------------------------------
-#
-def register():
-    from chimerax.core import io
-    io.register_format(
-        "StereoLithography", generic3d.CATEGORY, (".stl",), ("stl",),
-        reference="http://en.wikipedia.org/wiki/STL_%28file_format%29",
-        open_func=read_stl, export_func=write_stl)
