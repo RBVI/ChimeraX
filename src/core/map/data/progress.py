@@ -34,7 +34,8 @@ class Progress_Reporter:
     
     self.operation = operation
     self.report_interval = report_interval
-    self.next_time = 0
+    from time import time
+    self.next_time = time() + report_interval
     self.status_shown = False
 
     self.format = None
