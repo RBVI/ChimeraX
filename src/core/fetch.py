@@ -18,8 +18,7 @@ _cache_dirs = []
 # -----------------------------------------------------------------------------
 #
 def fetch_file(session, url, name, save_name, save_dir, *,
-               uncompress=False, ignore_cache=False, check_certificates=True,
-               log='info'):
+               uncompress=False, ignore_cache=False, check_certificates=True):
     """fetch file from URL
 
     :param session: a ChimeraX :py:class:`~chimerax.core.session.Session`
@@ -30,7 +29,6 @@ def fetch_file(session, url, name, save_name, save_dir, *,
     :param uncompress: contents are compressed (False)
     :param ignore_cache: skip checking for cached file (False)
     :param check_certificates: confirm https certificate (True)
-    :param log: 'info' log in info too
     :returns: the filename
     :raises UserError: if unsuccessful
     """
@@ -40,10 +38,6 @@ def fetch_file(session, url, name, save_name, save_dir, *,
         for d in cache_dirs:
             filename = path.join(d, save_dir, save_name)
             if path.exists(filename):
-                msg = 'Fetching %s from local cache: %s' % (name, filename)
-                session.logger.status(msg)
-                if log == 'info':
-                    session.logger.info(msg)
                 return filename
 
     if save_dir is None:
