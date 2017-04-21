@@ -709,9 +709,12 @@ class Volume(Model):
   def calculate_contour_surface(self, level, rendering_options, piece):
 
     name = self.data.name
-    self.message('Computing %s surface, level %.3g' % (name, level))
 
     matrix = self.matrix()
+
+    min_status_message_voxels = 2**24
+    if matrix.size >= min_status_message_voxels:
+      self.message('Computing %s surface, level %.3g' % (name, level))
 
     # _map contour code does not handle single data planes.
     # Handle these by stacking two planes on top of each other.
@@ -769,8 +772,9 @@ class Volume(Model):
     from ..geometry import vector
     vector.normalize_vectors(narray)
 
-    self.message('Calculated %s surface, level %.3g, with %d triangles'
-                 % (name, level, len(tarray)), blank_after = 3.0)
+    if matrix.size >= min_status_message_voxels:
+      self.message('Calculated %s surface, level %.3g, with %d triangles'
+                   % (name, level, len(tarray)), blank_after = 3.0)
 
     p = piece
     p.geometry = varray, tarray
@@ -1728,11 +1732,15 @@ class Volume(Model):
     matrices = self.displayed_matrices(read_matrix)
     if len(matrices) == 0:
       return None
-      
-    self.message('Computing histogram for %s' % self.name)
+
+    min_status_message_voxels = 2**27
+    nvox = sum(m.size for m in matrices)
+    if nvox >= min_status_message_voxels:
+      self.message('Computing histogram for %s' % self.name)
     from . import data
     self.matrix_stats = ms = data.Matrix_Value_Statistics(matrices)
-    self.message('')
+    if nvox >= min_status_message_voxels:    
+      self.message('')
 
     return ms
   
