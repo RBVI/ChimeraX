@@ -838,11 +838,11 @@ extern "C" EXPORT PyObject *atom_rings(void *atom, bool cross_residue, int all_s
     Atom *a = static_cast<Atom *>(atom);
     try {
         auto& rings = a->rings(cross_residue, all_size_threshold);
-        void **ra;
-        PyObject *r_array = python_voidp_array(rings.size(), &ra);
+        const Ring **ra;
+        PyObject *r_array = python_voidp_array(rings.size(), (void***)&ra);
         size_t i = 0;
-        for (auto& r: rings)
-            ra[i++] = (void*)&r;
+        for (auto r: rings)
+            ra[i++] = r;
         return r_array;
     } catch (...) {
         molc_error();
@@ -1150,6 +1150,23 @@ extern "C" EXPORT void bond_radius(void *bonds, size_t n, float32_t *radii)
 {
     Bond **b = static_cast<Bond **>(bonds);
     error_wrap_array_get<Bond, float>(b, n, &Bond::radius, radii);
+}
+
+extern "C" EXPORT PyObject *bond_rings(void *bond, bool cross_residue, int all_size_threshold)
+{
+    Bond *b = static_cast<Bond *>(bond);
+    try {
+        auto& rings = b->rings(cross_residue, all_size_threshold);
+        const Ring **ra;
+        PyObject *r_array = python_voidp_array(rings.size(), (void***)&ra);
+        size_t i = 0;
+        for (auto r: rings)
+            ra[i++] = r;
+        return r_array;
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
 }
 
 extern "C" EXPORT void bond_shown(void *bonds, size_t n, npy_bool *shown)
@@ -3275,11 +3292,11 @@ extern "C" EXPORT PyObject *structure_rings(void *mol, bool cross_residue, int a
     Structure *m = static_cast<Structure *>(mol);
     try {
         auto& rings = m->rings(cross_residue, all_size_threshold);
-        void **ra;
-        PyObject *r_array = python_voidp_array(rings.size(), &ra);
+        const Ring **ra;
+        PyObject *r_array = python_voidp_array(rings.size(), (void***)&ra);
         size_t i = 0;
         for (auto& r: rings)
-            ra[i++] = (void*)&r;
+            ra[i++] = &r;
         return r_array;
     } catch (...) {
         molc_error();

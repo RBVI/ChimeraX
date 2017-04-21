@@ -63,5 +63,7 @@ setup(
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
         "ChimeraX :: Bundle :: I/O :: 1,1 :: PKG_NAME :: chimerax.mol2 :: false",
+        "ChimeraX :: DataFormat :: Sybyl Mol2 :: Mol2 :: Molecular structure :: .mol2 :: :: :: :: :: Sybyl Mol2 format :: utf-8",
+        "ChimeraX :: Save :: Sybyl Mol2 :: mol2 :: true :: models:Models,atoms:Atoms,anchor:Atoms,rel_model:Model,sybyl_hyd_naming:Bool,combine_models:Bool,skip_atoms:Atoms,res_num:Bool,gaff_type:Bool",
     ],
 )

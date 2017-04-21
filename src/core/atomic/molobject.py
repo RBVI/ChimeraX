@@ -385,6 +385,22 @@ class Bond(State):
         f = c_function('pseudobond_global_manager_clear', args = (ctypes.c_void_p,))
         f(self._c_pointer)
 
+    def rings(self, cross_residues=False, all_size_threshold=0):
+        '''Return :class:`.Rings` collection of rings this Bond is involved in.
+
+        If 'cross_residues' is False, then rings that cross residue boundaries are not
+        included.  If 'all_size_threshold' is zero, then return only minimal rings, of
+        any size.  If it is greater than zero, then return all rings not larger than the
+        given value.
+
+        The returned rings are quite emphemeral, and shouldn't be cached or otherwise
+        retained for long term use.  They may only live until the next call to rings()
+        [from anywhere, including C++].
+        '''
+        f = c_function('bond_rings', args = (ctypes.c_void_p, ctypes.c_bool, ctypes.c_int),
+                ret = ctypes.py_object)
+        return _rings(f(self._c_pointer, cross_residues, all_size_threshold))
+
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
                 'ses_id': self.structure.session_bond_to_id(self._c_pointer)}
@@ -884,11 +900,11 @@ class Sequence(State):
     SS_STRAND = 'S'
 
     nucleic3to1 = lambda rn: c_function('sequence_nucleic3to1', args = (ctypes.c_char_p,),
-        ret = ctypes.c_char)(rn).decode('utf-8')
+        ret = ctypes.c_char)(rn.encode('utf-8')).decode('utf-8')
     protein3to1 = lambda rn: c_function('sequence_protein3to1', args = (ctypes.c_char_p,),
-        ret = ctypes.c_char)(rn).decode('utf-8')
+        ret = ctypes.c_char)(rn.encode('utf-8')).decode('utf-8')
     rname3to1 = lambda rn: c_function('sequence_rname3to1', args = (ctypes.c_char_p,),
-        ret = ctypes.c_char)(rn).decode('utf-8')
+        ret = ctypes.c_char)(rn.encode('utf-8')).decode('utf-8')
 
     chimera_exiting = False
 
@@ -1311,7 +1327,7 @@ class StructureData:
     derived class handles the graphical 3-dimensional rendering using OpenGL.
     '''
 
-    PBG_METAL_COORDINATION = c_function('structure_PBG_METAL_COORDINATON', args = (),
+    PBG_METAL_COORDINATION = c_function('structure_PBG_METAL_COORDINATION', args = (),
         ret = ctypes.c_char_p)()
     PBG_MISSING_STRUCTURE = c_function('structure_PBG_MISSING_STRUCTURE', args = (),
         ret = ctypes.c_char_p)()

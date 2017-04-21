@@ -92,23 +92,25 @@ def write_mol2_sort_key(a, res_indices=None):
         ri = res_indices[a.residue] = a.structure.residues.index(a.residue)
     return (ri, a.coord_index)
 
-def write_mol2(session, structures, file_name, status=None, anchor=None, rel_model=None,
-        hyd_naming_style="sybyl", multimodel_handling="individual",
-        skip=None, res_num=True, gaff_type=False, gaff_fail_error=None,
-        temporary=False):
+def write_mol2(session, file_name, models=None, atoms=None, status=None, anchor=None,
+        rel_model=None, sybyl_hyd_naming=True, combine_models=False,
+        skip_atoms=None, res_num=False, gaff_type=False, gaff_fail_error=None,
+        temporary=False, **kw):
     """Write a Mol2 file.
 
     Parameters
     ----------
 
-    structures : a list/tuple/set of :py:class:`~chimerax.core.atomic.Structure`s
-        or a single :py:class:`~chimerax.core.atomic.Structure`
-        or an :py:class:`~chimerax.core.atomic.AtomicStructures` collection
-        or an :py:class:`~chimerax.core.atomic.Atoms` colleciton.
-        The structure(s)/atoms to write out.
-
-    file_name : str or file object open for writing
+    file_name : str, or file object open for writing
         Output file.
+
+    models : a list/tuple/set of models (:py:class:`~chimerax.core.atomic.Structure`s)
+        or a single :py:class:`~chimerax.core.atomic.Structure`
+        The structure(s) to write out. If None (and 'atoms' is also None) then
+        write out all structures.
+
+    atoms : an :py:class:`~chimerax.core.atomic.Atoms` collection or None.  If not None,
+        then 'models' must be None.
 
     status : function or None
         If not None, a function that takes a string -- used to report the progress of the write.
@@ -117,15 +119,17 @@ def write_mol2(session, structures, file_name, status=None, anchor=None, rel_mod
         Atoms (and their implied internal bonds) that should be written out to the
         @SET section of the file as the rigid framework for flexible ligand docking.
 
-    hyd_naming_style : "sybyl" or "pdb"
-        Controls whether hydrogen names should be "Sybyl-like" (value: sybyl) or
-        "PDB-like" (value: pdb) -- e.g.  HG21 vs. 1HG2.
+    rel_model : Model whose coordinate system the coordinates should be written out reletive to,
+        i.e. take the output atoms' coordinates and apply the inverse of the rel_model's transform.
 
-    multimodel_handling : "combined" or "individual"
+    sybyl_hyd_naming : bool
+        Controls whether hydrogen names should be "Sybyl-like" or "PDB-like" -- e.g.  HG21 vs. 1HG2.
+
+    combine_models : bool
         Controls whether multiple structures will be combined into a single @MOLECULE
-        section (value: combined) or each given its own section (value: individual).
+        section (value: True) or each given its own section (value: False).
 
-    skip : list/set of :py:class:`~chimerax.core.atomic.Atom`s or an :py:class:`~chimerax.core.atomic.Atoms` collection or None
+    skip_atoms : list/set of :py:class:`~chimerax.core.atomic.Atom`s or an :py:class:`~chimerax.core.atomic.Atoms` collection or None
        Atoms to not output
 
     res_num : bool
@@ -142,7 +146,7 @@ def write_mol2(session, structures, file_name, status=None, anchor=None, rel_mod
     """
 
     from chimerax.core import io
-    f = io.open(file_name, "w")
+    f = io.open_filename(file_name, "w")
 
     sort_key_func = serial_sort_key = lambda a, ri={}: write_mol2_sort_key(a, res_indices=ri)
 
@@ -160,9 +164,21 @@ def write_mol2(session, structures, file_name, status=None, anchor=None, rel_mod
         @property
         def pseudobonds(self):
             return self._pbs
-    if isinstance(structures, Structure):
-        structures = [structures]
-    elif isinstance(structures, Atoms):
+    if models is None:
+        if atoms is None:
+            structures = session.models.list(type=Structure)
+        else:
+            structures = atoms
+    else:
+        if atoms is None:
+            if isinstance(models, Structure):
+                structures = [models]
+            else:
+                structures = [m for m in models if isinstance(m, Structure)]
+        else:
+            raise ValueError("Cannot specify both 'models' and 'atoms' keywords")
+
+    if isinstance(structures, Atoms):
         class Jumbo:
             def __init__(self, atoms):
                 self.atoms = atoms
@@ -173,7 +189,7 @@ def write_mol2(session, structures, file_name, status=None, anchor=None, rel_mod
 
         structures = [Jumbo(structures)]
         sort_key_func = lambda a: (a.structure.id,) + serial_sort(a)
-        multimodel_handling = "individual"
+        combine_models = False
 
     # transform...
     if rel_model is None:
@@ -193,7 +209,7 @@ def write_mol2(session, structures, file_name, status=None, anchor=None, rel_mod
     amide_Os = set([amide[1] for amide in amides])
 
     substructure_names = None
-    if multimodel_handling == "combined":
+    if combine_models and len(structures) > 1:
         # create a fictitious jumbo model
         class Jumbo:
             def __init__(self, structures):
@@ -238,16 +254,17 @@ def write_mol2(session, structures, file_name, status=None, anchor=None, rel_mod
         coord_grp = struct.pbg_map.get(Structure.PBG_METAL_COORDINATION, None)
         if coord_grp:
             bonds.extend(list(coord_grp.pseudobonds))
-        if skip:
-            skip = set(skip)
-            atoms = [a for a in atoms if a not in skip]
-            bonds = [b for b in bonds if b.atoms[0] not in skip and b.atoms[1] not in skip]
+        if skip_atoms:
+            skip_atoms = set(skip_atoms)
+            atoms = [a for a in atoms if a not in skip_atoms]
+            bonds = [b for b in bonds
+                if b.atoms[0] not in skip_atoms and b.atoms[1] not in skip_atoms]
         residues  = struct.residues
 
         # Put the atoms in the order we want for output
         if status:
             status("Putting atoms in input order")
-        atoms.sort(sort_key_func)
+        atoms.sort(key=sort_key_func)
 
         # if anchor is not None, then there will be two entries in
         # the @SET section of the file...
@@ -256,7 +273,7 @@ def write_mol2(session, structures, file_name, status=None, anchor=None, rel_mod
         else:
             sets = 0
         # number of entries for various sections...
-        print("%d %d %d 0 %d" % (len(atoms), len(bonds), len(residues), sets), end="", file=f)
+        print("%d %d %d 0 %d" % (len(atoms), len(bonds), len(residues), sets), file=f)
 
         # type of molecule
         if hasattr(struct, "mol2_type"):
@@ -296,18 +313,18 @@ def write_mol2(session, structures, file_name, status=None, anchor=None, rel_mod
             res_indices[r] = i+1
         for i, atom in enumerate(atoms):
             # atom ID, starting from 1
-            print("%7d" % (i+1), end="", file=f)
+            print("%7d" % (i+1), end=" ", file=f)
 
             # atom name, possibly rearranged if it's a hydrogen
-            if hyd_naming_style == "sybyl" and not atom.name[0].isalpha():
+            if sybyl_hyd_naming and not atom.name[0].isalpha():
                 atom_name = atom.name[1:] + atom.name[0]
             else:
                 atom_name = atom.name
-            print("%-8s" % atom_name, end="", file=f)
+            print("%-8s" % atom_name, end=" ", file=f)
 
             # use correct relative coordinate position
             coord = xform * atom.scene_coord
-            print("%9.4f %9.4f %9.4f" % tuple(coord), file=f)
+            print("%9.4f %9.4f %9.4f" % tuple(coord), end=" ", file=f)
 
             # atom type
             if gaff_type:
@@ -342,13 +359,13 @@ def write_mol2(session, structures, file_name, status=None, anchor=None, rel_mod
                     session.logger.warning("Atom whose IDATM type has no equivalent"
                         " Sybyl type: %s (type: %s)" % (atom, atom.idatm_type))
                     atom_type = str(atom.element)
-            print("%-5s" % atom_type, end="", file=f)
+            print("%-5s" % atom_type, end=" ", file=f)
 
             # residue-related info
             res = atom.residue
 
             # residue index
-            print("%5d" % res_indices[res], end="", file=f)
+            print("%5d" % res_indices[res], end=" ", file=f)
 
             # substructure identifier and charge
             if hasattr(atom, 'charge') and atom.charge is not None:
@@ -358,9 +375,9 @@ def write_mol2(session, structures, file_name, status=None, anchor=None, rel_mod
             if substructure_names:
                 rname = substructure_names[res]
             elif res_num:
-                rname = "%3s%-5d" % (res.type, res.id.position)
+                rname = "%3s%-5d" % (res.name, res.number)
             else:
-                rname = "%3s" % res.type
+                rname = "%3s" % res.name
             print("%s %9.4f" % (rname, charge), file=f)
 
 
@@ -378,10 +395,10 @@ def write_mol2(session, structures, file_name, status=None, anchor=None, rel_mod
             a1, a2 = bond.atoms
 
             # ID
-            print("%6d" % (i+1), end="", file=f)
+            print("%6d" % (i+1), end=" ", file=f)
 
             # atom IDs
-            print("%4d %4d" % (atom_indices[a1], atom_indices[a2]), end="", file=f)
+            print("%4d %4d" % (atom_indices[a1], atom_indices[a2]), end=" ", file=f)
 
             # bond order; give it our best shot...
             if hasattr(bond, 'mol2_type'):
@@ -456,7 +473,7 @@ def write_mol2(session, structures, file_name, status=None, anchor=None, rel_mod
 
         for i, res in enumerate(residues):
             # residue id field
-            print("%6d" % (i+1), end="", file=f)
+            print("%6d" % (i+1), end=" ", file=f)
 
             # residue name field
             if substructure_names:
@@ -465,44 +482,34 @@ def write_mol2(session, structures, file_name, status=None, anchor=None, rel_mod
                 rname = "%3s%-4d" % (res.name, res.number)
             else:
                 rname = "%3s" % res.name
-            print(rname, end="", file=f)
+            print(rname, end=" ", file=f)
 
             # ID of the root atom of the residue
             chain_atom = res.principal_atom
             if chain_atom is None:
                 chain_atom = res.atoms[0]
-            print("%5d" % atom_indices[chain_atom], end="", file=f)
+            print("%5d" % atom_indices[chain_atom], end=" ", file=f)
 
 
-            print("RESIDUE           4", end="", file=f)
+            print("RESIDUE           4", end=" ", file=f)
 
             # Sybyl seems to use chain 'A' when chain ID is blank,
             # so run with that
             chain_id = res.chain_id
             if not chain_id.strip():
                 chain_id = 'A'
-            #TODO: allow for multi-character chain IDs and longer atom/residue numbers
-            print("%s     %3s" % (chain_id, res.type), end="", file=f)
+            print("%-4s  %3s" % (chain_id, res.name), end=" ", file=f)
 
             # number of out-of-substructure bonds
-            crossResBonds = 0
-            if hasattr(res, "atomsMap"):
-                atoms = res.atoms
-                for a in atoms:
-                    for oa in a.bondsMap.keys():
-                        if oa.residue != res:
-                            crossResBonds += 1
-            else:
-                atoms = [a for aList in res.atoms.values()
-                            for a in aList]
-                for a in atoms:
-                    for oa in a.bonds.keys():
-                        if oa.residue != res:
-                            crossResBonds += 1
-            print("%5d" % crossResBonds, end="", file=f)
+            cross_res_bonds = 0
+            for a in res.atoms:
+                for nb in a.neighbors:
+                    if nb.residue != res:
+                        cross_res_bonds += 1
+            print("%5d" % cross_res_bonds, end="", file=f)
             # print "ROOT" if first or only residue of a chain
-            if a.structure.rootForAtom(a, True).atom.residue == res:
-                print("ROOT", file=f)
+            if not res.chain or res.chain.existing_residues[0] == res:
+                print(" ROOT", file=f)
             else:
                 print(file=f)
 
@@ -514,37 +521,31 @@ def write_mol2(session, structures, file_name, status=None, anchor=None, rel_mod
             atom_indices = {}
             for i, a in enumerate(atoms):
                 atom_indices[a] = i+1
-            bondIndices = {}
+            bond_indices = {}
             for i, b in enumerate(bonds):
-                bondIndices[b] = i+1
+                bond_indices[b] = i+1
             print("ANCHOR          STATIC     ATOMS    <user>   **** Anchor Atom Set", file=f)
-            atoms = anchor.atoms()
-            print(len(atoms), end="", file=f)
-            for a in atoms:
+            print(len(anchor), end=" ", file=f)
+            for a in anchor:
                 if a in atom_indices:
-                    print(atom_indices[a], end="", file=f)
+                    print(atom_indices[a], end=" ", file=f)
             print(file=f)
 
             print("RIGID           STATIC     BONDS    <user>   **** Rigid Bond Set", file=f)
-            bonds = anchor.bonds()
-            print(len(bonds), end="", file=f)
+            bonds = anchor.intra_bonds
+            print(len(bonds), end=" ", file=f)
             for b in bonds:
-                if b in bondIndices:
-                    print(bondIndices[b], end="", file=f)
+                if b in bond_indices:
+                    print(bond_indices[b], end=" ", file=f)
             print(file=f)
 
-    if needClose:
-        f.close()
-
-    if not temporary:
-        from chimera import triggers
-        triggers.activateTrigger('file save', (file_name, 'Mol2'))
+    f.close()
 
 def sulfur_oxygen(atom):
     if atom.idatm_type != "O3-":
         return False
     try:
-        s = atom.bondsMap.keys()[0]
+        s = atom.neighbors[0]
     except IndexError:
         return False
     if s.idatm_type in ['Son', 'Sxd']:
