@@ -1,16 +1,5 @@
 # vim: set expandtab ts=4 sw=4:
 
-# === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
-# === UCSF ChimeraX Copyright ===
-
 # import distutils.core
 # distutils.core.DEBUG = True
 # TODO: remove distlib monkey patch when the wheel package
@@ -34,14 +23,13 @@ else:
 rel_inst_data_dir = os.path.basename(data_dir)
 
 description = """
-Provide alignment data manager
-and parsers for various alignment file formats.
+Sybyl Mol2 input/output
 """
 
 setup(
     name="BUNDLE_NAME",
     version="BUNDLE_VERSION",  # PEP 440, should match Development Status below
-    description="Sequence alignment support",  # one line synopsis
+    description="Sequence alignment viewer",  # one line synopsis
     long_description=description,  # see above
     author="UCSF RBVI",
     author_email="chimerax@cgl.ucsf.edu",
@@ -52,10 +40,10 @@ setup(
     },
     packages=[
         "PKG_NAME",
-        "PKG_NAME.io",
     ],
     install_requires=[
         "ChimeraX-Core >= 0.1",
+        "ChimeraX-ChemGroup >= 1.0",
     ],
     classifiers=[
         # From https://pypi.python.org/pypi?%3Aaction=list_classifiers
@@ -74,11 +62,8 @@ setup(
         "Topic :: Scientific/Engineering :: Visualization",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
-        "ChimeraX :: Bundle :: Sequence alignment :: 1,1 :: PKG_NAME :: chimerax.seqalign :: true",
-        "ChimeraX :: DataFormat :: FASTA :: :: Sequence alignment :: .fa,.fasta,.afasta,.afa :: :: https://en.wikipedia.org/wiki/FASTA_format :: :: :: FASTA format :: utf-8",
-        "ChimeraX :: DataFormat :: MSF :: :: Sequence alignment :: .msf :: :: :: :: :: GCG MSF (multiple sequence file) format :: utf-8",
-        "ChimeraX :: Open :: FASTA :: fasta :: true :: alignment:Bool,auto_associate:Bool",
-        "ChimeraX :: Open :: MSF :: msf :: true :: alignment:Bool,auto_associate:Bool",
-        "ChimeraX :: Command :: seqalign :: Sequence alignment :: control/open sequence alignments",
+        "ChimeraX :: Bundle :: I/O :: 1,1 :: PKG_NAME :: chimerax.mol2 :: false",
+        "ChimeraX :: DataFormat :: Sybyl Mol2 :: Mol2 :: Molecular structure :: .mol2 :: :: :: :: :: Sybyl Mol2 format :: utf-8",
+        "ChimeraX :: Save :: Sybyl Mol2 :: mol2 :: true :: models:Models,atoms:Atoms,anchor:Atoms,rel_model:Model,sybyl_hyd_naming:Bool,combine_models:Bool,skip_atoms:Atoms,res_num:Bool,gaff_type:Bool",
     ],
 )

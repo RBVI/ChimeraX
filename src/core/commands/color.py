@@ -84,7 +84,7 @@ def color(session, objects, color=None, what=None,
         opacity = color.uint8x4()[3]
 
     if halfbond is not None and atoms is not None:
-        bonds = atoms.inter_bonds
+        bonds = atoms.intra_bonds
         if len(bonds) > 0:
             bonds.halfbonds = halfbond
 
@@ -151,7 +151,7 @@ def color(session, objects, color=None, what=None,
 
     if 'b' in target and color is not None:
         if atoms is not None:
-            bonds = atoms.inter_bonds
+            bonds = atoms.intra_bonds
             if len(bonds) > 0:
                 if color not in _SpecialColors:
                     bonds.colors = color.uint8x4()

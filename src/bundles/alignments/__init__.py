@@ -43,4 +43,10 @@ class _AlignmentsBundleAPI(BundleAPI):
         from .parse import open_file
         return open_file(*args, **kw)
 
+    @staticmethod
+    def register_command(command_name, logger):
+        # 'register_command' is lazily called when the command is referenced
+        from . import cmd
+        cmd.register_seqalign_command(logger)
+
 bundle_api = _AlignmentsBundleAPI()

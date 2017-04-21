@@ -652,11 +652,13 @@ class SeqCanvas:
                 startupHeaders.add(header.name)
         if useDispDefault:
             self.mav.prefs[STARTUP_HEADERS] = startupHeaders
-        singleSequence = len(self.alignment.seqs) == 1
+        """
+        single_sequence = len(self.alignment.seqs) == 1
+        """TODO
         self.displayHeader = {}
         for header in self.headers:
             show = self.displayHeader[header] = header.name in startupHeaders \
-                and not (singleSequence and not header.singleSequenceRelevant) \
+                and not (single_sequence and not header.singleSequenceRelevant) \
                 and not isinstance(header, DynamicStructureHeaderSequence)
             if show:
                 header.show()
@@ -676,7 +678,7 @@ class SeqCanvas:
 
         # first, set residue coloring to a known safe value...
         from clustalX import clustalInfo
-        if singleSequence:
+        if single_sequence:
             prefResColor = RC_BLACK
         else:
             prefResColor = self.mav.prefs[RESIDUE_COLORING]
@@ -711,9 +713,10 @@ class SeqCanvas:
                 replyobj.error("Error reading %s: %s\nUsing"
                     " default ClustalX coloring instead\n"
                     % (prefResColor, exc_info()[1]))
+        """
 
-        self.showRuler = self.mav.prefs[SHOW_RULER_AT_STARTUP] \
-                        and not singleSequence
+        self.show_ruler = self.mav.settings.show_ruler_at_startup and not single_sequence
+        """TODO
         self.showNumberings = [self.mav.leftNumberingVar.get(),
                     self.mav.rightNumberingVar.get()]
         self.lead_block = SeqBlock(self._labelCanvas(), self.mainCanvas,
@@ -721,15 +724,15 @@ class SeqCanvas:
             0, initialHeaders, self.alignment.seqs,
             self.line_width, self.labelBindings, lambda *args, **kw:
             self.mav.status(secondary=True, *args, **kw),
-            self.showRuler, self.treeBalloon, self.showNumberings,
+            self.show_ruler, self.treeBalloon, self.showNumberings,
             self.mav.settings)
         self._resizescrollregion()
         """
         self.lead_block = SeqBlock(self._label_scene(), self.main_scene,
             None, self.font, self.emphasis_font, 0, [], self.alignment,
             self.line_width, {}, lambda *args, **kw: self.mav.status(secondary=True, *args, **kw),
-            True, None, [False, False], self.mav.settings, self.label_width, self.font_pixels,
-            self.numbering_widths)
+            self.show_ruler, None, [False, False], self.mav.settings, self.label_width,
+            self.font_pixels, self.numbering_widths)
 
     def _line_width_fits(self, pixels, num_characters):
         return (self.label_width + self.numbering_widths[0] + num_characters * self.font_pixels[0]
@@ -951,8 +954,8 @@ class SeqCanvas:
         self.lead_block = SeqBlock(self._label_scene(), self.main_scene,
             None, self.font, self.emphasis_font, 0, [], self.alignment,
             self.line_width, {}, lambda *args, **kw: self.mav.status(secondary=True, *args, **kw),
-            True, None, [False, False], self.mav.settings, self.label_width, self.font_pixels,
-            self.numbering_widths)
+            self.show_ruler, None, [False, False], self.mav.settings, self.label_width,
+            self.font_pixels, self.numbering_widths)
         """TODO
         if self.tree:
             if self.treeShown:
@@ -1195,12 +1198,12 @@ class SeqCanvas:
         else:
             self._recomputeScrollers()
 
-    def setRulerDisplay(self, showRuler):
-        if showRuler == self.showRuler:
+    def setRulerDisplay(self, show_ruler):
+        if show_ruler == self.show_ruler:
             return
-        self.showRuler = showRuler
-        self.lead_block.setRulerDisplay(showRuler)
-        self.mav.region_browser.redraw_regions(cull_empty=not showRuler)
+        self.show_ruler = show_ruler
+        self.lead_block.setRulerDisplay(show_ruler)
+        self.mav.region_browser.redraw_regions(cull_empty=not show_ruler)
 
     def _cfBlack(self, line, offset):
         return 'black'
@@ -1739,11 +1742,22 @@ class SeqBlock:
             brush = self.multi_assoc_brush
             pen = self.multi_assoc_pen
         else:
-            struct = structures.pop()
+            import numpy
+            if len(aseq.match_maps) == 1:
+                chain = list(aseq.match_maps.keys())[0]
+                colors = chain.existing_residues.existing_principal_atoms.colors
+                color = numpy.sum(colors, axis=0) / len(colors)
+            else:
+                struct = structures.pop()
+                if struct.single_color:
+                    color = struct.single_color
+                else:
+                    colors = struct.atoms.colors
+                    color = numpy.sum(colors, axis=0) / len(colors)
+            from PyQt5.QtCore import Qt
             from PyQt5.QtGui import QPen, QBrush
             from PyQt5.QtGui import QColor
-            from PyQt5.QtCore import Qt
-            brush = QBrush(QColor(*struct.single_color), Qt.SolidPattern)
+            brush = QBrush(QColor(*color), Qt.SolidPattern)
             pen = QPen(brush, 0, Qt.SolidLine)
         label_rect.setBrush(brush)
         label_rect.setPen(pen)
@@ -2065,9 +2079,9 @@ class SeqBlock:
         # but then right justify
         text.moveBy(self.label_width - self.label_pad - rect.width(), 0)
         self.label_texts[line] = text
-        """TODO
         if self.has_associated_structures(line):
-            self._colorizeLabel(line)
+            self._colorize_label(line)
+        """TODO
         bindings = self.label_bindings[line]
         if bindings:
             for eventType, function in bindings.items():

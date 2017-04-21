@@ -930,6 +930,18 @@ class AtomsArg(AtomSpecArg):
         return atoms, text, rest
 
 
+class UniqueChainsArg(AtomSpecArg):
+    """Parse command atoms specifier"""
+    name = "an atoms specifier"
+
+    @classmethod
+    def parse(cls, text, session):
+        aspec, text, rest = super().parse(text, session)
+        chains = aspec.evaluate(session).atoms.residues.unique_chains
+        chains.spec = str(aspec)
+        return chains, text, rest
+
+
 class StructuresArg(AtomSpecArg):
     """Parse command structures specifier"""
     name = "a structures specifier"
