@@ -249,12 +249,12 @@ class IHMModel(Model):
         sm_table = self.tables['ihm_starting_model_details']
         if not sm_table:
             return lmodels
-        fields = ['asym_id', 'starting_model_source', 'starting_model_auth_asym_id',
-                  'starting_model_id', 'dataset_list_id']
+        fields = ['starting_model_id', 'asym_id', 'starting_model_source', 'starting_model_auth_asym_id',
+                  'dataset_list_id']
         rows = sm_table.fields(fields, allow_missing_fields = True)
         # TODO: Starting model can appear multiple times in table, with different sequence ranges.  Seems wrong.
         smfound = set()
-        for asym_id, data_type, auth_asym_id, smid, did in rows:
+        for smid, asym_id, data_type, auth_asym_id, did in rows:
             if data_type != 'comparative model':
                 continue
             d = self.data_set(did, 'ihm_starting_model_details')
@@ -297,8 +297,8 @@ class IHMModel(Model):
         comp_models = self.tables['ihm_starting_comparative_models']
         if not comp_models:
             return tmodels, seqmodels
-        fields = ['starting_model_ordinal_id','template_auth_asym_id',
-                  'template_seq_begin', 'template_seq_end', 'template_dataset_list_id',
+        fields = ['starting_model_id','template_auth_asym_id',
+                  'template_seq_id_begin', 'template_seq_id_end', 'template_dataset_list_id',
                   'alignment_file_id']
         rows = comp_models.fields(fields, allow_missing_fields = True)
 
@@ -391,13 +391,9 @@ class IHMModel(Model):
     #
     def make_sphere_models(self, group_models):
         mlt = self.tables['ihm_model_list']
-        ml_fields = [
-            'model_id',
-            'model_name',
-            'model_group_id',
-            'file_id',]
+        ml_fields = ['model_id', 'model_name']
         ml = mlt.fields(ml_fields, allow_missing_fields = True)
-        mnames = {mid:mname for mid,mname,gid,file in ml if mname}
+        mnames = {mid:mname for mid,mname in ml if mname}
 
         sost = self.tables['ihm_sphere_obj_site']
         sos_fields = [
