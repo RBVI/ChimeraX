@@ -3027,7 +3027,7 @@ def open_grids(session, grids, name, **kw):
 
 # -----------------------------------------------------------------------------
 #
-def save_map(session, filename, format = None, models = None, region = None, step = (1,1,1),
+def save_map(session, filename, format, models = None, region = None, step = (1,1,1),
              mask_zone = True, chunk_shapes = None, append = None, compress = None,
              base_index = 1, **kw):
     '''

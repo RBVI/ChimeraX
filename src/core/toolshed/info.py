@@ -266,7 +266,7 @@ class BundleInfo:
                     cli.add_keyword_arguments('open', _convert_keyword_types(
                         fi.open_kwds, self, logger))
             if fi.has_save:
-                def save_cb(*args, format_name=fi.name, **kw):
+                def save_cb(*args, _format_name=fi.name, **kw):
                     try:
                         f = self._get_api(logger).save_file
                     except AttributeError:
@@ -277,11 +277,13 @@ class BundleInfo:
                         raise ToolshedError("bundle \"%s\"'s API forgot to override save_file()" % self.name)
 
                     # optimize by replacing save_func for format
-                    def save_shim(*args, f=f, format_name=format_name, **kw):
-                        return f(*args, format_name=format_name, **kw)
-                    format = io.format_from_name(format_name)
-                    format.export_func = save_shim
-                    return save_shim(*args, format_name=format_name, **kw)
+                    def save_shim(*args, _func=f, **kw):
+                        from ..io import check_keyword_compatibility
+                        check_keyword_compatibility(_func, *args, **kw)
+                        return _func(*args, **kw)
+                    fmt = io.format_from_name(_format_name)
+                    fmt.export_func = save_shim
+                    return save_shim(*args, **kw)
                 format.export_func = save_cb
                 if fi.save_kwds:
                     from ..commands import cli
