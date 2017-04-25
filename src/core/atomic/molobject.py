@@ -906,6 +906,12 @@ class Sequence(State):
     rname3to1 = lambda rn: c_function('sequence_rname3to1', args = (ctypes.c_char_p,),
         ret = ctypes.c_char)(rn.encode('utf-8')).decode('utf-8')
 
+    # the following colors for use by alignment/sequence viewers
+    default_helix_fill_color = (1.0, 1.0, 0.8)
+    default_strand_fill_color = (0.8, 1.0, 0.8)
+    default_helix_outline_color = tuple([chan/255.0 for chan in (218, 165, 32)]) # goldenrod
+    default_strand_outline_color = tuple([chan/255.0 for chan in (50, 205, 50)]) # lime green
+
     chimera_exiting = False
 
     def __init__(self, seq_pointer=None, *, name="sequence", characters=""):

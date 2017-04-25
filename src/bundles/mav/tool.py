@@ -179,6 +179,8 @@ class MultAlignViewer(ToolInstance):
         for seq in self.alignment.seqs:
             self._seq_rename_handlers[seq] = seq.triggers.add_handler("rename",
                 self.region_browser._seq_renamed_cb)
+        if self.alignment.intrinsic:
+            self.region_browser.show_ss(True)
         """TODO
         if self.fileMarkups:
             from HeaderSequence import FixedHeaderSequence
