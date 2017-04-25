@@ -1151,6 +1151,25 @@ class StructureSeq(Sequence):
                 return True
         return False
 
+    def _get_numbering_start(self):
+        if self._numbering_start == None:
+            for i, r in enumerate(self.residues):
+                if r is None:
+                    continue
+                if r.deleted:
+                    return getattr(self, '_prev_numbering_start', 1)
+                break
+            else:
+                return getattr(self, '_prev_numbering_start', 1)
+            pns = self._prev_numbering_start = r.number - i
+            return pns
+        return self._numbering_start
+
+    def _set_numbering_start(self, ns):
+        self._numbering_start = ns
+
+    numbering_start = property(_get_numbering_start, _set_numbering_start)
+
     @property
     def res_map(self):
         '''Returns a dict that maps from :class:`.Residue` to an ungapped sequence position'''
