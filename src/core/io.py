@@ -206,8 +206,7 @@ def formats(open=True, export=True, source_is_file=False):
     for f in _file_formats.values():
         if source_is_file and not f.extensions:
             continue
-        # if (open and f.open_func) or (export and f.export_func):
-        if 1:
+        if (open and f.open_func) or (export and f.export_func):
             fmts.append(f)
     return fmts
 
