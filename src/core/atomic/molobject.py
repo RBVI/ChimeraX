@@ -1943,6 +1943,9 @@ class SeqMatchMap(State):
         from . import get_triggers
         self._handler = get_triggers(session).add_handler("changes", self._atomic_changes)
 
+    def __bool__(self):
+        return bool(self._pos_to_res)
+
     def __contains__(self, i):
         if isinstance(i, int):
             return i in self._pos_to_res

@@ -185,7 +185,7 @@ class Region:
 
     def _disp_border_rgba(self):
         # account for highlighting
-        if not self.border_rgba and self.highlighted:
+        if self.border_rgba is None and self.highlighted:
             return (0.0, 0.0, 0.0, 1.0)
         return self.border_rgba
 
@@ -262,7 +262,7 @@ class Region:
             brush.setStyle(Qt.SolidPattern)
         else:
             brush.setStyle(Qt.NoBrush)
-        if self._disp_border_rgba():
+        if self._disp_border_rgba() is not None:
             pen.setColor(rgba_to_qcolor(self._disp_border_rgba()))
             if self.highlighted:
                 pen.setStyle(Qt.DashLine)
