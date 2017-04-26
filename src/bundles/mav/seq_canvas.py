@@ -1446,18 +1446,18 @@ class SeqBlock:
         else:
             self.chunk_gap = 0
         """
+        self.settings = settings
         self.chunk_gap = 0
-        """TODO
-        if prefs[prefPrefix + BLOCK_SPACE]:
+        block_space_attr_name = "block space"
+        if len(self.alignment.seqs) == 1:
+            block_space_attr_name = SINGLE_PREFIX + block_space_attr_name
+        if getattr(self.settings, block_space_attr_name):
             self.block_gap = 15
         else:
-            self.block_gap = 0
-        """
-        self.block_gap = 0 if len(alignment.seqs) == 1 else 15
+            self.block_gap = 3
         self.show_ruler = show_ruler
         self.tree_balloon = tree_balloon
         self.show_numberings = show_numberings[:]
-        self.settings = settings
         self.seq_offset = seq_offset
         self.line_width = line_width
         self.label_width = label_width
@@ -1684,7 +1684,7 @@ class SeqBlock:
             overlap = int(abs(sep) / 2)
             ulx += overlap
             lrx -= overlap
-        return ulx, uly, lrx, lry
+        return ulx, uly-1, lrx, lry-1
 
     def bounded_by(self, x1, y1, x2, y2):
         end = self.bottom_y + self.block_gap
@@ -1778,7 +1778,7 @@ class SeqBlock:
                 color = numpy.sum(colors, axis=0) / len(colors)
             else:
                 struct = structures.pop()
-                if struct.single_color:
+                if struct.single_color is not None:
                     color = struct.single_color
                 else:
                     colors = struct.atoms.colors

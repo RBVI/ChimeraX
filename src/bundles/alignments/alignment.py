@@ -32,6 +32,7 @@ class Alignment(State):
         self.associations = {}
         from chimerax.core.atomic import Chain
         self.intrinsic = False
+        self._in_destroy = False
         for i, seq in enumerate(seqs):
             if isinstance(seq, Chain):
                 from copy import copy
@@ -263,7 +264,7 @@ class Alignment(State):
             self.session.alignments.destroy_alignment(self)
 
     def disassociate(self, sseq, reassoc=False):
-        if sseq not in self.associations or getattr(self, '_in_destroy', False):
+        if sseq not in self.associations or self._in_destroy:
             return
 
         if self.intrinsic:

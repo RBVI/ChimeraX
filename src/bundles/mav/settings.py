@@ -14,6 +14,8 @@
 SINGLE_PREFIX = "single_seq_"
 
 defaults = {
+    "block space": True,
+    SINGLE_PREFIX + "block space": False,
 	"column_separation": 0,
     SINGLE_PREFIX + "column_separation": -2,
     "line_width": -5,
