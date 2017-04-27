@@ -45,7 +45,7 @@ def fetch_doi(session, doi, url, ignore_cache = False):
     else:
         zip_file_url = url
     zip_filename = basename(zip_file_url)
-    filename = fetch_file(session, zip_file_url, 'zip %s' % doi, zip_filename,
+    filename = fetch_file(session, zip_file_url, 'zip %s %s' % (doi, zip_filename), zip_filename,
                           save_dir = None, uncompress = False, ignore_cache=True)
     
     if dirs:

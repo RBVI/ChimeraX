@@ -327,7 +327,7 @@ def _make_bundle_info(d, installed, logger):
     except KeyError:
         _debug("InstalledBundleCache._make_bundle_info: no summary in %s" % d)
         return None
-    kw['packages'] = _get_installed_packages(d)
+    kw['packages'] = _get_installed_packages(d, logger)
     for classifier in md["classifiers"]:
         parts = [v.strip() for v in classifier.split("::")]
         if parts[0] != 'ChimeraX':
@@ -524,15 +524,20 @@ def _make_bundle_info(d, installed, logger):
     return bi
 
 
-def _get_installed_packages(dist):
+def _get_installed_packages(dist, logger):
     """Return set of tuples representing the packages in the distribution.
 
     For example, 'foo.bar' from foo/bar/__init__.py becomes ('foo', 'bar')
     """
     packages = []
-    for path, hash, size in dist.list_installed_files():
-        if not path.endswith('/__init__.py'):
-            continue
-        parts = path.split('/')
-        packages.append(tuple(parts[:-1]))
+    try:
+        installed = dist.list_installed_files()
+        for path, hash, size in installed:
+            if not path.endswith('/__init__.py'):
+                continue
+            parts = path.split('/')
+            packages.append(tuple(parts[:-1]))
+    except:
+        logger.warning("cannot get installed file list for %r" % dist.name)
+        return []
     return packages

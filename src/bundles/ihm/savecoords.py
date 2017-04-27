@@ -9,7 +9,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def save_binary_coordinates(session, filename, models, **kw):
+def save_binary_coordinates(session, filename, models):
     if models is None:
         from chimerax.core.errors import UserError
         raise UserError('Must specify models to save coordinates')

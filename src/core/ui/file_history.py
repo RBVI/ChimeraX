@@ -23,21 +23,13 @@ class FileHistory:
         self.bg_color = bg_color
         self.no_hist_text = no_hist_text
 
-        from .widgets import ChimeraXHtmlView
-        self.file_history_window = fhw = ChimeraXHtmlView(session, parent, **kw)
-        # Don't record html history as log changes.
-        def clear_history(okay, fhw=fhw):
-            fhw.history().clear()
-        fhw.loadFinished.connect(clear_history)
+        self.file_history_window = fhw = HistoryWindow(session, parent, **kw)
 
         from PyQt5.QtWidgets import QGridLayout, QErrorMessage
         layout = QGridLayout(parent)
         layout.setContentsMargins(0,0,0,0)
         layout.addWidget(self.file_history_window, 0, 0)
         parent.setLayout(layout)
-
-        from ..filehistory import file_history
-        file_history(session).remove_missing_files()
 
         self.update_html()
 
@@ -103,3 +95,27 @@ def limit_string(s, n):
     if len(s) > n:
         return s[:n//2] + '...' + s[-(n//2):]
     return s
+
+from .widgets import ChimeraXHtmlView
+class HistoryWindow(ChimeraXHtmlView):
+    def __init__(self, session, parent, **kw):
+        super().__init__(session, parent, **kw)
+
+        # Don't record html history as log changes.
+        self.loadFinished.connect(self.clear_history)
+        
+    def clear_history(self, okay):
+        self.history().clear()
+        
+    def contextMenuEvent(self, event):
+        event.accept()
+        cm = getattr(self, 'context_menu', None)
+        if cm is None:
+            from PyQt5.QtWidgets import QMenu
+            cm = self.context_menu = QMenu()
+            cm.addAction("Remove deleted files", self.remove_missing_files)
+        cm.popup(event.globalPos())
+
+    def remove_missing_files(self):
+        from ..filehistory import file_history
+        file_history(self.session).remove_missing_files()

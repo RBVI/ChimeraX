@@ -25,7 +25,7 @@ class MapSeries(ToolInstance):
 
         self.series = list(series)
         self.playing = False
-        self._block_time_update = False
+        self._block_time_update = 0
         
         self.display_name = "Map series %s" % ', '.join(s.name for s in series)
         from chimerax.core.ui.gui import MainToolWindow
@@ -119,6 +119,9 @@ class MapSeries(ToolInstance):
     def update_time(self, t):
         if self._block_time_update:
             return
+        # TODO: Avoid starting reentering update_time().  This can happen because
+        # status messages cause event processing.  Need to fix status line to not do that.
+        self._block_time_update += 1
         for s in self.series:
             lt = s.last_shown_time
             if lt is not None and lt != t:
@@ -126,6 +129,7 @@ class MapSeries(ToolInstance):
             s.show_time(t)
         # Make sure this time is shown before we draw the next time.
         self.session.ui.update_graphics_now()
+        self._block_time_update -= 1
 
     def play_cb(self, event):
         if self.playing:
@@ -148,9 +152,9 @@ class MapSeries(ToolInstance):
 
         def update_slider(t, self=self):
             self.update_slider_range()
-            self._block_time_update = True
+            self._block_time_update += 1
             self.slider.setValue(t)
-            self._block_time_update = False
+            self._block_time_update -= 1
 
         p.time_step_cb = update_slider
         self.playing = True

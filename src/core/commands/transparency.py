@@ -46,7 +46,7 @@ def transparency(session, objects, percent, target='s'):
 
     if 'b' in target:
         # bonds
-        bonds = atoms.inter_bonds
+        bonds = atoms.intra_bonds
         if bonds:
             c = bonds.colors
             c[:, 3] = alpha

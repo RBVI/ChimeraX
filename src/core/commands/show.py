@@ -59,7 +59,7 @@ def show_atoms(session, objects, only):
         other_atoms.displays = False
 
 def show_bonds(session, objects, only):
-    bonds = objects.atoms.inter_bonds
+    bonds = objects.atoms.intra_bonds
     bonds.displays = True
     a1, a2 = bonds.atoms
     a1.displays = True	   # Atoms need to be displayed for bond to appear

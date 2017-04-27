@@ -24,12 +24,15 @@ $(LIBRARY): $(OBJS)
 
 install: $(LIBRARY)
 	$(RSYNC) $(LIBRARY) $(libdir)
-	-mkdir $(includedir)/$(DIRNAME)
-	$(RSYNC) $(wildcard *.h) $(includedir)/$(DIRNAME)
+	$(RSYNC) $(wildcard *.h) $(includedir)/$(DIRNAME)/
 	if [ -d "$(app_includedir)" ]; then \
-		mkdir -p $(app_includedir)/$(DIRNAME); \
-		$(RSYNC) $(wildcard *.h) $(app_includedir)/$(DIRNAME); \
+		$(RSYNC) $(wildcard *.h) $(app_includedir)/$(DIRNAME)/; \
 	fi
+ifdef WIN32
+	if [ -d "$(app_libdir)" ]; then \
+		$(RSYNC) $(LIBRARY) $(app_libdir); \
+	fi
+endif
 
 clean:
 	rm -f $(LIBRARY) $(OBJS)

@@ -11,11 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def save(session, filename, models=None, format=None,
-         width=None, height=None, supersample=3,
-         pixel_size=None, transparent_background=False, quality=95,
-         region = None, step = (1,1,1), mask_zone = True, chunk_shapes = None,
-         append = None, compress = None, base_index = 1, **kw):
+def save(session, filename, models=None, format=None, **kw):
     '''Save data, sessions, images.
 
     Parameters
@@ -30,32 +26,6 @@ def save(session, filename, models=None, format=None,
     format : string
         Recognized formats are session, or for saving images png, jpeg, tiff, gif, ppm, bmp.
         If not specified, then the filename suffix is used to identify the format.
-    width : integer
-        Width of image in pixels for saving image files.
-        If width is not specified the current graphics window width is used.
-    height : integer
-        Height of image in pixels for saving image files.
-    pixel_size : float
-        The size of one pixel in the saved image in physical units,
-        typically Angstroms.  Set the image width and height in pixels is set
-        to achieve this physical pixel size.  For perspective projection the
-        pixel size is at the depth of the center of the bounding box of the
-        visible scene.
-    supersample : integer
-        Supersampling for saving images.
-        Makes an image N times larger in each dimension
-        then averages to requested image size to produce smoother object edges.
-        Values of 2 or 3 are most useful,
-        with little improvement for larger values.
-    transparent_background : bool
-        Save image with transparent background.
-    region = None
-    step = (1,1,1)
-    mask_zone = True
-    chunk_shapes = None,
-    append = None
-    compress = None
-    base_index = 1
     '''
     from .. import io
 
@@ -81,8 +51,12 @@ def save(session, filename, models=None, format=None,
         suffix = fmt.extensions[0]
         filename += suffix
 
-    save_func = fmt.export_func
-    if save_func is None:
+    if models:
+        kw["models"] = models
+    try:
+        fmt.export(session, filename, format, **kw)
+    except ValueError:
+        # No export function registered
         suffixes = ', '.join(sum([f.extensions for f in io.formats() if f.export_func], []))
         from ..errors import UserError
         if not suffix:
@@ -90,26 +64,10 @@ def save(session, filename, models=None, format=None,
         else:
             msg = 'Unrecognized file suffix "%s", require one of %s' % (suffix, suffixes)
         raise UserError(msg)
-
-    kw.update({
-        'models': models,
-        'format': format,
-        'width': width,
-        'height': height,
-        'supersample': supersample,
-        'pixel_size': pixel_size,
-        'transparent_background': transparent_background,
-        'quality': quality,
-        'region': region,
-        'step': step,
-        'mask_zone': mask_zone,
-        'chunk_shapes': chunk_shapes,
-        'append': append,
-        'compress': compress,
-        'base_index': base_index,
-    })
-    
-    save_func(session, filename, **kw)
+    except TypeError as e:
+        # Keywords incompatible with export function
+        from ..errors import UserError
+        raise UserError(str(e))
 
     if fmt.open_func and not fmt.name.endswith('image'):
         # Remember in file history
@@ -166,6 +124,7 @@ def register_command(session):
     map_format_args = [('format', FileFormatArg(toolshed.VOLUME))]
     image_format_args = [('format', FileFormatArg('Image'))]
 
+    # TODO: move adding these keywords where the format is registered
     image_args = [
         ('width', PositiveIntArg),
         ('height', PositiveIntArg),

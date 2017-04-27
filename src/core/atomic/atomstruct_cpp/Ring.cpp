@@ -143,9 +143,7 @@ const Ring::Atoms&
 Ring::atoms() const
 {
     if (_atoms.size() == 0) {
-        for (Bonds::const_iterator bi = _bonds.begin();
-        bi != _bonds.end(); ++bi) {
-            const Bond *b = *bi;
+        for (auto b: _bonds) {
             _atoms.insert(b->atoms()[0]);
             _atoms.insert(b->atoms()[1]);
         }

@@ -402,9 +402,9 @@ class Atoms(Collection):
             " Returns numpy bool array. Read only.")
     occupancy = cvec_property('atom_occupancy', float32)
     @property
-    def inter_bonds(self):
+    def intra_bonds(self):
         ":class:`Bonds` object where both endpoint atoms are in this collection"
-        f = c_function('atom_inter_bonds', args = [ctypes.c_void_p, ctypes.c_size_t],
+        f = c_function('atom_intra_bonds', args = [ctypes.c_void_p, ctypes.c_size_t],
             ret = ctypes.py_object)
         return _bonds(f(self._c_pointers, len(self)))
     radii = cvec_property('atom_radius', float32,

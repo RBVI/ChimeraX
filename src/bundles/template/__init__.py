@@ -49,8 +49,11 @@ class _MyAPI(BundleAPI):
         raise NotImplementedError     # FIXME: remove method if unneeded
 
     @staticmethod
-    def save_file(session, name, format_name=None, **kw):
+    def save_file(session, name, format):
         # 'save_file' is called by session code to save a file
+        # add any supported keyword arguments
+        # if you want to do your own argument checking, add **kw
+        # otherwise, core will make sure only your keywords are present
         raise NotImplementedError     # FIXME: remove method if unneeded
 
     @staticmethod

@@ -186,7 +186,7 @@ class Structure(Model, StructureData):
 
     def take_snapshot(self, session, flags):
         data = {'model state': Model.take_snapshot(self, session, flags),
-                'structure state': StructureData.take_snapshot(self, session, flags)}
+                'structure state': StructureData.save_state(self, session, flags)}
         for attr_name in self._session_attrs.keys():
             data[attr_name] = getattr(self, attr_name)
         from ..state import CORE_STATE_VERSION
@@ -1835,7 +1835,18 @@ class AtomicStructure(Structure):
     def added_to_session(self, session):
         super().added_to_session(session)
         if self._log_info:
-            self._report_chain_descriptions(session)
+            # don't report models in an NMR ensemble individually...
+            if len(self.id) > 1:
+                sibs = [m for m in session.models if m.id[:-1] == self.id[:-1]]
+                if len(set([s.name for s in sibs])) > 1:
+                    # not an NMR ensemble
+                    self._report_chain_descriptions(session)
+                else:
+                    sibs.sort(key=lambda m: m.id)
+                    if sibs[-1] == self:
+                        self._report_ensemble_chain_descriptions(session, sibs)
+            else:
+                self._report_chain_descriptions(session)
             self._report_assemblies(session)
 
     @staticmethod
@@ -1946,10 +1957,61 @@ class AtomicStructure(Structure):
 
     def _report_chain_descriptions(self, session):
         chains = sorted(self.chains, key=lambda c: c.chain_id)
+        if not chains:
+            return
+        from collections import OrderedDict
+        descripts = OrderedDict()
         for chain in chains:
-            if chain.description:
-                session.logger.info("%s, chain %s: %s" %
-                                    (self, chain.chain_id, chain.description))
+            description = chain.description if chain.description else "No description available"
+            descripts.setdefault((description, chain.characters), []).append(chain)
+        def chain_text(chain):
+            return '<a href="cxcmd:seqalign chain #%s/%s">%s</a>' % (
+                chain.structure.id_string(), chain.chain_id, chain.chain_id)
+        self._report_chain_summary(session, descripts, chain_text)
+
+    def _report_ensemble_chain_descriptions(self, session, ensemble):
+        from .molarray import AtomicStructures
+        structs = AtomicStructures(ensemble)
+        chains = sorted(structs.chains, key=lambda c: c.chain_id)
+        if not chains:
+            return
+        from collections import OrderedDict
+        descripts = OrderedDict()
+        for chain in chains:
+            description = chain.description if chain.description else "No description available"
+            descripts.setdefault((description, chain.characters), []).append(chain)
+        def chain_text(chain):
+            return '<a href="cxcmd:seqalign chain #%s/%s">%s/%s</a>' % (
+                chain.structure.id_string(), chain.chain_id,
+                chain.structure.id_string(), chain.chain_id)
+        self._report_chain_summary(session, descripts, chain_text)
+
+    def _report_chain_summary(self, session, descripts, chain_text):
+        from ..logger import html_table_params
+        summary = '\n<table %s>\n' % html_table_params
+        summary += '  <thead>\n'
+        summary += '    <tr>\n'
+        summary += '      <th colspan="2">Chain information for %s</th>\n' % self
+        summary += '    </tr>\n'
+        summary += '    <tr>\n'
+        summary += '      <th>Chain</th>\n'
+        summary += '      <th>Description</th>\n'
+        summary += '    </tr>\n'
+        summary += '  </thead>\n'
+        summary += '  <tbody>\n'
+        for key, chains in descripts.items():
+            description, characters = key
+            summary += '    <tr>\n'
+            summary += '      <td style="text-align:center">'
+            summary += ' '.join([chain_text(chain) for chain in chains])
+            summary += '      </td>'
+            summary += '      <td>'
+            summary += description
+            summary += '      </td>'
+            summary += '    </tr>\n'
+        summary += '  </tbody>\n'
+        summary += '</table>'
+        session.logger.info(summary, is_html=True)
 
     def _report_assemblies(self, session):
         if getattr(self, 'ignore_assemblies', False):
@@ -2474,7 +2536,7 @@ def selected_bonds(session):
     blist = []
     for m in session.models.list(type = Structure):
         for a in m.selected_items('atoms'):
-            blist.append(a.inter_bonds)
+            blist.append(a.intra_bonds)
     from .molarray import concatenate, Bonds
     bonds = concatenate(blist, Bonds)
     return bonds

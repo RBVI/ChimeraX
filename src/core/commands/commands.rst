@@ -152,7 +152,10 @@ crosslinks
 Function found in *chimerax.crosslinks.crosslinks*
 
 .. autofunction:: chimerax.crosslinks.crosslinks.crosslinks
-
+.. autofunction:: chimerax.crosslinks.crosslinks.crosslinks_histogram
+.. autofunction:: chimerax.crosslinks.crosslinks.crosslinks_minimize
+.. autofunction:: chimerax.crosslinks.crosslinks.crosslinks_network
+		  
 delete
 ======
 .. autofunction:: chimerax.core.commands.delete.delete
