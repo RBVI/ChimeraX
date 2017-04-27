@@ -1600,6 +1600,7 @@ class SeqBlock:
         diff = QFontMetrics(label_text.font()).width(name) - first_width
         if diff:
             label_text.moveBy(-diff, 0.0)
+        label_text.setToolTip(self._label_tip(aseq))
         associated = self.has_associated_structures(aseq)
         if associated:
             self._colorize_label(aseq)
@@ -2032,6 +2033,18 @@ class SeqBlock:
             return self.emphasis_font
         return self.font
 
+    def _label_tip(self, line):
+        from chimerax.core.atomic import Sequence
+        if not isinstance(line, Sequence):
+            return ""
+        basic_text = "%s (#%d of %d; %d non-gap residues)" % (line.name,
+            self.alignment.seqs.index(line)+1, len(self.alignment.seqs), len(line.ungapped()))
+        if self.alignment.intrinsic or not line.match_maps:
+            return basic_text
+        return "%s\n%s associated with:\n%s" % (basic_text, _seq_name(line, self.settings),
+            "\n".join(["#%s (%s %s)" % (m.structure.id_string(), m.structure.name,
+            line.match_maps[m].struct_seq.name) for m in line.match_maps.keys()]))
+
     def _large_alignment(self):
         # for now, return False until performance can be tested
         return False
@@ -2084,6 +2097,7 @@ class SeqBlock:
         # but then right justify
         text.moveBy(self.label_width - self.label_pad - rect.width(), 0)
         self.label_texts[line] = text
+        text.setToolTip(self._label_tip(line))
         if self.has_associated_structures(line):
             self._colorize_label(line)
         """TODO
