@@ -189,13 +189,15 @@ The <b><i>screen coordinate system</i></b> has:
 <b>view position</b>
 &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
 <b>sameAsModels</b>
-&nbsp;<a href="atomspec.html#hierarchy"><i>ref-model</i></a>
+&nbsp;<a href="atomspec.html#hierarchy"><i>ref-model-spec</i></a>
 </blockquote>
 <p>
 The <b>view position</b> command applies the transformation 
 (rotation and translation relative to the scene)
 of a reference model to other models.
-This will not necessarily superimpose the models. 
+Multiple reference models can be specified, in which case they will be paired
+in the given order with the models to be moved.
+Models with the same transformation will not necessarily be superimposed.
 For superposition, see: <a href="matchmaker.html"><b>matchmaker</b></a>,
 <b>align</b>,
 <a href="fitmap.html"><b>fitmap</b></a>
