@@ -149,7 +149,7 @@ class MultAlignViewer(ToolInstance):
                 capped_words.append(word.capitalize())
             else:
                 capped_words.append(word)
-        self.display_name = " ".join(capped_words) + " [ID: %s]" % self.alignment.name
+        self.display_name = " ".join(capped_words) + " [ID: %s]" % self.alignment.ident
         from chimerax.core.ui.gui  import MainToolWindow
         self.tool_window = MainToolWindow(self, close_destroys=True, statusbar=True)
         self.tool_window._ToolWindow__toolkit.dock_widget.setMouseTracking(True)

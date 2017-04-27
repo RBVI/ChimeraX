@@ -1987,6 +1987,12 @@ class AtomicStructure(Structure):
         self._report_chain_summary(session, descripts, chain_text)
 
     def _report_chain_summary(self, session, descripts, chain_text):
+        def descript_text(description, chains):
+            if len(chains) == 1:
+                return description
+            return '<a href="cxcmd:seqalign chain %s">%s</a>' % (
+                ''.join(["#%s/%s" % (chain.structure.id_string(), chain.chain_id)
+                    for chain in chains]), description)
         from ..logger import html_table_params
         summary = '\n<table %s>\n' % html_table_params
         summary += '  <thead>\n'
@@ -2006,7 +2012,7 @@ class AtomicStructure(Structure):
             summary += ' '.join([chain_text(chain) for chain in chains])
             summary += '      </td>'
             summary += '      <td>'
-            summary += description
+            summary += descript_text(description, chains)
             summary += '      </td>'
             summary += '    </tr>\n'
         summary += '  </tbody>\n'

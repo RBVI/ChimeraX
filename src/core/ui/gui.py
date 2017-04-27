@@ -869,7 +869,7 @@ class ToolWindow(StatusLogger):
     @property
     def statusbar(self):
         """This window's QStatusBar widget"""
-        return self.__toolkit.statusbar
+        return self.__toolkit.statusbar if self.__toolkit else None
 
     def _get_title(self):
         if self.__toolkit is None:

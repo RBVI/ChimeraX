@@ -37,7 +37,7 @@ def save(session, filename, models=None, format=None, **kw):
         from .open import format_from_name
         fmt = format_from_name(format, save=True, open=False)
         if fmt is None:
-            fnames = sum([tuple(f.nicknames) for f in io.formats()], ())
+            fnames = sum([tuple(f.nicknames) for f in io.formats(open=False)], ())
             from ..errors import UserError
             raise UserError("Unrecognized format '%s', must be one of %s" %
                             (format, ', '.join(fnames)))

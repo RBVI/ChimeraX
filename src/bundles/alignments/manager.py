@@ -22,7 +22,7 @@ class AlignmentsManager(State):
         self.viewer_info = {'alignment': {}, 'sequence': {}}
 
     def destroy_alignment(self, alignment):
-        del self.alignments[alignment.name]
+        del self.alignments[alignment.ident]
         alignment._destroy()
 
     def deregister_viewer(self, tool_name, sequence_viewer=True, alignment_viewer=True):
@@ -31,8 +31,8 @@ class AlignmentsManager(State):
         if alignment_viewer:
             del self.viewer_info['alignment'][tool_name]
 
-    def new_alignment(self, seqs, identify_as, attrs=None, markups=None,
-            auto_destroy=None, align_viewer=None, seq_viewer=None, auto_associate=True, **kw):
+    def new_alignment(self, seqs, identify_as, attrs=None, markups=None, auto_destroy=None,
+            align_viewer=None, seq_viewer=None, auto_associate=True, name=None, intrinsic=False):
         """Create new alignment from 'seqs'
 
         Parameters
@@ -56,6 +56,12 @@ class AlignmentsManager(State):
             Whether to automatically associate structures with the alignment.   A value of None
             is the same as False except that any StructureSeqs in the alignment will be associated
             with their structures.
+        name : string or None
+            Descriptive name of the alignment to use in viewer titles and so forth.  If not
+            provided, same as identify_as.
+        intrinsic : boolean
+            If True, then the alignment is treated as "coupled" to the structures associated with
+            it in that if all associations are removed then the alignment is destroyed.
         """
         if self.session.ui.is_gui:
             if len(seqs) > 1:
@@ -96,18 +102,21 @@ class AlignmentsManager(State):
                 "Destroying pre-existing alignment with identifier %s" % identify_as)
             self.destroy_alignment(self.alignments[identify_as])
 
-        from chimerax.core.atomic import StructureSeq
-        if len(seqs) == 1 and isinstance(seqs[0], StructureSeq):
-            sseq = seqs[0]
-            if sseq.description:
-                description = "%s (%s)" % (sseq.description, sseq.full_name)
+        if name is None:
+            from chimerax.core.atomic import StructureSeq
+            if len(seqs) == 1 and isinstance(seqs[0], StructureSeq):
+                sseq = seqs[0]
+                if sseq.description:
+                    description = "%s (%s)" % (sseq.description, sseq.full_name)
+                else:
+                    description = sseq.full_name
             else:
-                description = sseq.full_name
+                description = identify_as
         else:
-            description = identify_as
+            description = name
         self.session.logger.info("Alignment identifier is %s" % identify_as)
         alignment = Alignment(self.session, seqs, identify_as, attrs, markups, auto_destroy,
-            auto_associate, description)
+            auto_associate, description, intrinsic)
         self.alignments[identify_as] = alignment
         if viewer:
             viewer_startup_cb(self.session, tool_name, alignment)
