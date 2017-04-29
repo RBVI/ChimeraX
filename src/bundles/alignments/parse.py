@@ -15,7 +15,7 @@ class FormatSyntaxError(Exception):
     pass
 
 def open_file(session, stream, fname, format_name="FASTA", return_vals=None,
-        alignment=True, identify_as=None, auto_associate=True, **kw):
+        alignment=True, ident=None, auto_associate=True, **kw):
     ns = {}
     try:
         exec("from .io.read%s import read" % format_name.replace(' ', '_'), globals(), ns)
@@ -54,13 +54,13 @@ def open_file(session, stream, fname, format_name="FASTA", return_vals=None,
                 " you want to open the sequences individually, specify 'false' as the value"
                 " of the 'oneAlignment' keyword in the 'open' command." % differing_seq.name)
         alignments = [session.alignments.new_alignment(seqs,
-            identify_as if identify_as is not None else fname, align_attrs=file_attrs,
-            align_markups=file_markups, auto_associate=auto_associate, **kw)]
+            ident if ident is not None else fname, attrs=file_attrs,
+            markups=file_markups, auto_associate=auto_associate, **kw)]
     else:
         alignments = []
         for seq in seqs:
             alignments.append(session.alignments.new_alignment([seq],
-                identify_as if identify_as is not None else fname,
+                ident if ident is not None else fname,
                 auto_associate=auto_associate, **kw))
     if return_vals == "alignments":
         return alignments

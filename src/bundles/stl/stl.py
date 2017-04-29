@@ -68,7 +68,7 @@ class TriangleInfo(State):
         pass
 
 
-def read_stl(session, filename, name, *args, **kw):
+def read_stl(session, filename, name):
     """Populate the scene with the geometry from a STL file
 
     :param filename: either the name of a file or a file-like object

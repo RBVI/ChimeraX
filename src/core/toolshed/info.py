@@ -244,7 +244,7 @@ class BundleInfo:
                 dangerous=fi.dangerous, icon=fi.icon, encoding=fi.encoding
             )
             if fi.has_open:
-                def open_cb(*args, format_name=fi.name, **kw):
+                def open_cb(*args, format_name=fi.name, filespec=None, **kw):
                     try:
                         f = self._get_api(logger).open_file
                     except AttributeError:
@@ -255,8 +255,19 @@ class BundleInfo:
                         raise ToolshedError("bundle \"%s\"'s API forgot to override open_file()" % self.name)
 
                     # optimize by replacing open_func for format
-                    def open_shim(*args, f=f, format_name=format_name, **kw):
-                        return f(*args, format_name=format_name, **kw)
+                    # ... present the right call signature to io.open_data...
+                    import inspect
+                    sig = inspect.signature(f)
+                    supports_fn = "format_name" in sig.parameters
+                    supports_fs = "filespec" in sig.parameters
+                    def open_shim(*args, __ts_f=f, __ts_fmt_supports_fn=supports_fn,
+                            __ts_fmt_supports_fs=supports_fs, format_name=format_name,
+                            filespec=filespec, **kw):
+                        if __ts_fmt_supports_fn:
+                            kw["format_name"] = format_name
+                        if __ts_fmt_supports_fs:
+                            kw["filespec"] = filespec
+                        return f(*args, **kw)
                     format = io.format_from_name(format_name)
                     format.open_func = open_shim
                     return open_shim(*args, **kw)
