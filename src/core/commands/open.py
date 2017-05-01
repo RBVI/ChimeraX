@@ -51,6 +51,14 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
             if format is None:
                 format = 'mmcif'
 
+    def handle_unknown_kw(f, *args, **kw):
+        try:
+            return f(*args, **kw)
+        except TypeError as e:
+            if 'unexpected keyword' in str(e):
+                from ..errors import UserError
+                raise UserError(str(e))
+            raise
     from ..filehistory import remember_file
     if from_database is not None:
         from .. import fetch
@@ -63,8 +71,8 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
                     'Only %s %s can be fetched from %s database'
                     % (commas(['"%s"' % f for f in db_formats], ' and '),
                        plural_form(db_formats, "format"), from_database))
-        models, status = fetch.fetch_from_database(session, from_database, filename,
-                                                   format=format, name=name, ignore_cache=ignore_cache, **kw)
+        models, status = handle_unknown_kw(fetch.fetch_from_database, session, from_database,
+            filename, format=format, name=name, ignore_cache=ignore_cache, **kw)
         if len(models) > 1:
             session.models.add_group(models)
         else:
@@ -92,7 +100,7 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
             raise UserError('File not found: %s' % filename)
 
     try:
-        models = session.models.open(paths, format=format, name=name, **kw)
+        models = handle_unknown_kw(session.models.open, paths, format=format, name=name, **kw)
     except OSError as e:
         from ..errors import UserError
         raise UserError(e)
