@@ -18,11 +18,11 @@ class Alignment(State):
     Should only be created through new_alignment method of the alignment manager
     """
 
-    def __init__(self, session, seqs, name, file_attrs, file_markups, auto_destroy, auto_associate,
-            description):
+    def __init__(self, session, seqs, ident, file_attrs, file_markups, auto_destroy, auto_associate,
+            description, intrinsic):
         self.session = session
         self.seqs = seqs
-        self.name = name
+        self.ident = ident
         self.file_attrs = file_attrs
         self.file_markups = file_markups
         self.auto_destroy = auto_destroy
@@ -31,7 +31,7 @@ class Alignment(State):
         self.viewers = []
         self.associations = {}
         from chimerax.core.atomic import Chain
-        self.intrinsic = False
+        self.intrinsic = intrinsic
         self._in_destroy = False
         for i, seq in enumerate(seqs):
             if isinstance(seq, Chain):
@@ -39,9 +39,8 @@ class Alignment(State):
                 seqs[i] = copy(seq)
             seqs[i].match_maps = {}
         if self.auto_associate is None:
-            self.associate(None)
+            self.associate(None, keep_intrinsic=True)
             self.auto_associate = False
-            self.intrinsic = True
         elif self.auto_associate:
             from chimerax.core.atomic import AtomicStructure
             if self.auto_associate == "session":
@@ -53,7 +52,8 @@ class Alignment(State):
             self.session.triggers.add_handler(ADD_MODELS, lambda tname, models:
                 self.associate([s for s in models if isinstance(s, AtomicStructure)], force=False))
 
-    def associate(self, models, seq=None, force=True, min_length=10, reassoc=False):
+    def associate(self, models, seq=None, force=True, min_length=10, reassoc=False,
+            keep_intrinsic=False):
         """associate models with sequences
 
            'models' is normally a list of AtomicStructures, but it can be a Chain or None.
@@ -69,11 +69,13 @@ class Alignment(State):
            then use Needleman-Wunsch to force an association with at least one sequence.
 
            If a chain is less than 'min_length' residues, ignore it.
+
+           Normally, associating additional chains would change the 'intrinsic' property to
+           False, but some operations (like the inital associations) need to keep it True.
         """
 
-        if self.intrinsic and not force:
-            return
-        self.intrinsic = False
+        if not keep_intrinsic:
+            self.intrinsic = False
         from chimerax.core.atomic import Sequence, Chain, StructureSeq, AtomicStructure, \
             SeqMatchMap, estimate_assoc_params, StructAssocError, try_assoc
         from .settings import settings
@@ -85,7 +87,7 @@ class Alignment(State):
             for seq in self.seqs:
                 if isinstance(seq, StructureSeq) \
                 and seq.existing_residues.chains[0] not in self.associations:
-                    self.associate([], seq=seq, reassoc=reassoc)
+                    self.associate([], seq=seq, reassoc=reassoc, keep_intrinsic=keep_intrinsic)
             return
         else:
             structures = [m for m in models if isinstance(m, AtomicStructure)]
@@ -407,9 +409,11 @@ class Alignment(State):
     @staticmethod
     def restore_snapshot(session, data):
         """For restoring scenes/sessions"""
-        aln = Alignment(session, data['seqs'], data['name'], data['file attrs'],
+        ident = data['ident'] if 'ident' in data else data['name']
+        aln = Alignment(session, data['seqs'], ident, data['file attrs'],
             data['file markups'], data['auto_destroy'],
-            "session" if data['auto_associate'] else False)
+            "session" if data['auto_associate'] else False,
+            data.get('description', ident), data.get('intrinsic', False))
         aln.associations = data['associations']
         for s, mm in zip(aln.seqs, data['match maps']):
             s.match_maps = mm
@@ -420,10 +424,11 @@ class Alignment(State):
 
     def take_snapshot(self, session, flags):
         """For session/scene saving"""
-        return { 'version': 1, 'seqs': self.seqs, 'name': self.name,
+        return { 'version': 1, 'seqs': self.seqs, 'ident': self.ident,
             'file attrs': self.file_attrs, 'file markups': self.file_markups,
             'associations': self.associations, 'match maps': [s.match_maps for s in self.seqs],
-            'auto_destroy': self.auto_destroy, 'auto_associate': self.auto_associate }
+            'auto_destroy': self.auto_destroy, 'auto_associate': self.auto_associate,
+            'description' : self.description, 'intrinsic' : self.intrinsic }
 
 
 def nw_assoc(session, align_seq, struct_seq):

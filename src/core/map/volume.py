@@ -2978,7 +2978,7 @@ def open_grids(session, grids, name, **kw):
         if g.rgba is None:
           g.rgba = (0,1,0,1) # Green
 
-    series = kw.get('vseries')
+    series = kw.get('vseries', None)
     if series is not None:
       if series:
         for i,g in enumerate(grids):

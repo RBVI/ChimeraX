@@ -144,7 +144,16 @@ class CommandLine(ToolInstance):
             self.history_dialog.populate()
 
     def execute(self):
-        self.text.lineEdit().blockSignals(True)
+        from contextlib import contextmanager
+        @contextmanager
+        def processing_command(line_edit, cmd_text):
+            line_edit.blockSignals(True)
+            try:
+                yield
+            finally:
+                line_edit.blockSignals(False)
+                line_edit.setText(cmd_text)
+                line_edit.selectAll()
         session = self.session
         logger = session.logger
         text = self.text.lineEdit().text()
@@ -155,21 +164,19 @@ class CommandLine(ToolInstance):
         for cmd_text in text.split("\n"):
             if not cmd_text:
                 continue
-            self.history_dialog.add(cmd_text)
-            try:
-                cmd = Command(session)
-                cmd.run(cmd_text)
-            except SystemExit:
-                # TODO: somehow quit application
-                raise
-            except errors.UserError as err:
-                logger.status(str(err), color="crimson")
-            except:
-                raise
+            with processing_command(self.text.lineEdit(), cmd_text):
+                self.history_dialog.add(cmd_text)
+                try:
+                    cmd = Command(session)
+                    cmd.run(cmd_text)
+                except SystemExit:
+                    # TODO: somehow quit application
+                    raise
+                except errors.UserError as err:
+                    logger.status(str(err), color="crimson")
+                except:
+                    raise
         self.set_focus()
-        self.text.lineEdit().blockSignals(False)
-        self.text.lineEdit().setText(cmd_text)
-        self.text.lineEdit().selectAll()
 
     def set_focus(self):
         from PyQt5.QtCore import Qt

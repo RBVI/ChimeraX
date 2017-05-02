@@ -16,18 +16,18 @@ from chimerax.core.toolshed import BundleAPI
 class _IHMAPI(BundleAPI):
 
     @staticmethod
-    def open_file(session, f, name, filespec=None, format_name=None, **kw):
+    def open_file(session, f, name, filespec=None, format_name=None, model=None):
         # 'open_file' is called by session code to open a file
         # returns (list of models, status message)
         if format_name == 'IHM':
             from . import ihm
-            return ihm.read_ihm(session, filespec, name, **kw)
+            return ihm.read_ihm(session, filespec, name)
         elif format_name == 'Binary Coordinates':
-            if 'model' not in kw:
+            if 'model' is None:
                 from chimerax.core.errors import UserError
                 raise UserError('Must specify model option to open command to load binary coordinates')
             from . import coordsets
-            coordsets.read_coordinate_sets(filespec, kw['model'])
+            coordsets.read_coordinate_sets(filespec, model)
             return [], 'Read coordinate set %s' % name
         raise ValueError('Attempt to open unrecognized format "%s"' % format_name)
 

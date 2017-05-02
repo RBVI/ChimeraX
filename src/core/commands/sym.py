@@ -509,7 +509,7 @@ def assembly_html_table(mol):
     lines = ['<table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0">',
              '<tr><th colspan=2>%s mmCIF Assemblies' % mol.name]
     for id, details in sa:
-        lines.append('<tr><td><a href="cxcmd:sym #%s assembly %s ; view">%s</a><td>%s'
+        lines.append('<tr><td><a title="Generate assembly" href="cxcmd:sym #%s assembly %s ; view">%s</a><td>%s'
                      % (mol.id_string(), id, id, details))
     lines.append('</table>')
     html = '\n'.join(lines)

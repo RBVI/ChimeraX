@@ -59,6 +59,7 @@ _class_class_init = {
     'SeqMatchMap': '.atomic',
     'Sequence': '.atomic',
     'Structure': '.atomic',
+    'StructureSeq': '.atomic',
     'Tasks': '.tasks',
     'Tools': '.tools',
     'TriangleInfo': '.stl',

@@ -1209,18 +1209,12 @@ class StructureSeq(Sequence):
 
     @staticmethod
     def restore_snapshot(session, data):
-        sseq = StructureSequence(chain_id=data['chain_id'], structure=data['structure'])
+        sseq = StructureSeq(chain_id=data['chain_id'], structure=data['structure'])
         Sequence.set_state_from_snapshot(sseq, session, data['Sequence'])
         sseq.description = data['description']
-        self.bulk_set(data['residues'], sseq.characters)
+        sseq.bulk_set(data['residues'], sseq.characters)
         sseq.description = data.get('description', None)
         return sseq
-
-    @staticmethod
-    def restore_snapshot(session, data):
-        chain = object_map(data['structure'].session_id_to_chain(data['ses_id']), Chain)
-        chain.description = data.get('description', None)
-        return chain
 
     def ss_type(self, loc, loc_is_ungapped=False):
         if not loc_is_ungapped:
@@ -1238,7 +1232,7 @@ class StructureSeq(Sequence):
 
     def take_snapshot(self, session, flags):
         data = {
-            'Sequence': Sequence.take_snapshot(self),
+            'Sequence': Sequence.take_snapshot(self, session, flags),
             'chain_id': self.chain_id,
             'description': self.description,
             'residues': self.residues,

@@ -151,7 +151,7 @@ class SeqCanvas:
         font_width, font_height = self.font_metrics.width('W'), self.font_metrics.height()
         # pad font a little...
         self.font_pixels = (font_width + 1, font_height + 1)
-        self.show_numberings = [self.alignment.intrinsic, False]
+        self.show_numberings = [len(self.alignment.seqs) == 1, False]
         from PyQt5.QtCore import QTimer
         self._resize_timer = QTimer()
         self._resize_timer.timeout.connect(self._actually_resize)
@@ -2039,7 +2039,7 @@ class SeqBlock:
             return ""
         basic_text = "%s (#%d of %d; %d non-gap residues)" % (line.name,
             self.alignment.seqs.index(line)+1, len(self.alignment.seqs), len(line.ungapped()))
-        if self.alignment.intrinsic or not line.match_maps:
+        if not line.match_maps:
             return basic_text
         return "%s\n%s associated with:\n%s" % (basic_text, _seq_name(line, self.settings),
             "\n".join(["#%s (%s %s)" % (m.structure.id_string(), m.structure.name,
