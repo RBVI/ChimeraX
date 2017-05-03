@@ -170,8 +170,10 @@ class ToolshedUI(ToolInstance):
                 per_user = True
             else:
                 per_user = False
-            self.session.toolshed.install_bundle(filename, self.session.logger,
-                                                 per_user=per_user, session=session)
+            self.session.toolshed.install_bundle(filename,
+                                                 self.session.logger,
+                                                 per_user=per_user,
+                                                 session=self.session)
 
     def _navigate(self, qurl):
         session = self.session
