@@ -22,7 +22,7 @@ STRAND = 'strand'
 class _MyAPI(BundleAPI):
 
     @staticmethod
-    def fetch_from_database(session, identifier, ignore_cache=False, database_name=None):
+    def fetch_from_database(session, identifier, ignore_cache=False, database_name=None, format_name=None, **kw):
         # 'fetch_from_database' is called by session code to fetch data with give identifier
         # returns (list of models, status message)
         return fetch_mmtf(session, identifier)
