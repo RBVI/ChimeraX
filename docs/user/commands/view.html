@@ -31,6 +31,7 @@ The <b>view</b> command can:
 <li><a href="#initial">focus the view</a> on specified items
 <li>save and restore <a href="#name">named views</a>,
 including the positions of any models that have been moved separately
+<li>set model position <a href="#position">same as another</a>
 <li>set camera and model positions <a href="#matrix">using matrices</a>
 </ul>
 <p>
@@ -177,6 +178,31 @@ The <b><i>screen coordinate system</i></b> has:
 <li>Z-axis perpendicular to the screen increasing toward the viewer
 </ul>
 
+<a name="position"></a>
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<h3>Applying Model Position to Other Models</h3>
+
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>view position</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
+<b>sameAsModels</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>ref-model-spec</i></a>
+</blockquote>
+<p>
+The <b>view position</b> command applies the transformation 
+(rotation and translation relative to the scene)
+of a reference model to other models.
+Multiple reference models can be specified, in which case they will be paired
+in the given order with the models to be moved.
+Models with the same transformation will not necessarily be superimposed.
+For superposition, see: <a href="matchmaker.html"><b>matchmaker</b></a>,
+<b>align</b>,
+<a href="fitmap.html"><b>fitmap</b></a>
+</p>
+
 <a name="matrix"></a>
 <p class="nav">
 [<a href="#top">back to top</a>]
@@ -216,5 +242,5 @@ The following commands are equivalent:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2017</address>
+April 2017</address>
 </body></html>

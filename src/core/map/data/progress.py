@@ -34,7 +34,9 @@ class Progress_Reporter:
     
     self.operation = operation
     self.report_interval = report_interval
-    self.next_time = 0
+    from time import time
+    self.next_time = time() + report_interval
+    self.status_shown = False
 
     self.format = None
     self.ksize = None
@@ -50,6 +52,7 @@ class Progress_Reporter:
 #      self.message('  cancel', color = 'blue', append = True,
 #                   clickCallback = self.cancel_cb)
 #    else:
+    self.status_shown = True
     self.message(text)
 
   # ---------------------------------------------------------------------------
@@ -150,8 +153,6 @@ class Progress_Reporter:
   def done(self):
 
     self.allow_cancel = False
-    if self.cancel:
-      status = 'Cancelled'
-    else:
-      status = 'Done'
-    self.show_status('%s %s' % (status, self.operation))
+    if self.status_shown:
+      status = 'Cancelled' if self.cancel else 'Done'
+      self.show_status('%s %s' % (status, self.operation))

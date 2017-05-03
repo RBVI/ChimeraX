@@ -514,7 +514,7 @@ class InScriptFlag:
         return self._level > 0
 
 
-def save(session, filename, **kw):
+def save(session, filename, format):
     """command line version of saving a session"""
     my_open = None
     if hasattr(filename, 'write'):
@@ -642,7 +642,7 @@ def is_gzip_file(filename):
     return (magic[0] == 0x1f and magic[1] == 0x8b)
 
 
-def save_x3d(session, filename, **kw):
+def save_x3d(session, filename, format, transparent_background=False):
     # Settle on using Interchange profile as that is the intent of
     # X3D exporting.
     from . import x3d
@@ -702,7 +702,7 @@ def save_x3d(session, filename, **kw):
                   % (cofr[0], cofr[1], cofr[2], fov, r[0], r[1], r[2], a, t[0], t[1], t[2]), file=stream)
         print('  <NavigationInfo type=\'"EXAMINE" "ANY"\' headlight=\'true\'/>', file=stream)
         c = session.main_view.background_color
-        if kw.get('transparent_background', False):
+        if transparent_background:
             t = 1
         else:
             t = 0

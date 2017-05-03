@@ -16,10 +16,10 @@ from chimerax.core.toolshed import BundleAPI
 class _StormAPI(BundleAPI):
 
     @staticmethod
-    def open_file(session, f, name, filespec=None, **kw):
+    def open_file(session, f, name):
         # 'open_file' is called by session code to open a file
         # returns (list of models, status message)
         from . import storm
-        return storm.read_storm(session, f, name, **kw)
+        return storm.read_storm(session, f, name)
 
 bundle_api = _StormAPI()

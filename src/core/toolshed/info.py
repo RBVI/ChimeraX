@@ -244,7 +244,7 @@ class BundleInfo:
                 dangerous=fi.dangerous, icon=fi.icon, encoding=fi.encoding
             )
             if fi.has_open:
-                def open_cb(*args, format_name=fi.name, **kw):
+                def open_cb(*args, format_name=fi.name, filespec=None, **kw):
                     try:
                         f = self._get_api(logger).open_file
                     except AttributeError:
@@ -255,8 +255,19 @@ class BundleInfo:
                         raise ToolshedError("bundle \"%s\"'s API forgot to override open_file()" % self.name)
 
                     # optimize by replacing open_func for format
-                    def open_shim(*args, f=f, format_name=format_name, **kw):
-                        return f(*args, format_name=format_name, **kw)
+                    # ... present the right call signature to io.open_data...
+                    import inspect
+                    sig = inspect.signature(f)
+                    supports_fn = "format_name" in sig.parameters
+                    supports_fs = "filespec" in sig.parameters
+                    def open_shim(*args, __ts_f=f, __ts_fmt_supports_fn=supports_fn,
+                            __ts_fmt_supports_fs=supports_fs, format_name=format_name,
+                            filespec=filespec, **kw):
+                        if __ts_fmt_supports_fn:
+                            kw["format_name"] = format_name
+                        if __ts_fmt_supports_fs:
+                            kw["filespec"] = filespec
+                        return f(*args, **kw)
                     format = io.format_from_name(format_name)
                     format.open_func = open_shim
                     return open_shim(*args, **kw)
@@ -264,9 +275,9 @@ class BundleInfo:
                 if fi.open_kwds:
                     from ..commands import cli
                     cli.add_keyword_arguments('open', _convert_keyword_types(
-                        fi.open_kwds, self))
+                        fi.open_kwds, self, logger))
             if fi.has_save:
-                def save_cb(*args, format_name=fi.name, **kw):
+                def save_cb(*args, _format_name=fi.name, **kw):
                     try:
                         f = self._get_api(logger).save_file
                     except AttributeError:
@@ -277,16 +288,18 @@ class BundleInfo:
                         raise ToolshedError("bundle \"%s\"'s API forgot to override save_file()" % self.name)
 
                     # optimize by replacing save_func for format
-                    def save_shim(*args, f=f, format_name=format_name, **kw):
-                        return f(*args, format_name=format_name, **kw)
-                    format = io.format_from_name(format_name)
-                    format.export_func = save_shim
-                    return save_shim(*args, format_name=format_name, **kw)
+                    def save_shim(*args, _func=f, **kw):
+                        from ..io import check_keyword_compatibility
+                        check_keyword_compatibility(_func, *args, **kw)
+                        return _func(*args, **kw)
+                    fmt = io.format_from_name(_format_name)
+                    fmt.export_func = save_shim
+                    return save_shim(*args, **kw)
                 format.export_func = save_cb
                 if fi.save_kwds:
                     from ..commands import cli
                     cli.add_keyword_arguments('save', _convert_keyword_types(
-                        fi.save_kwds, self))
+                        fi.save_kwds, self, logger))
         for (database_name, format_name, prefixes, example_id, is_default) in self.fetches:
             if io.format_from_name(format_name) is None:
                 print('warning: unknown format %r given for database %r' % (format_name, database_name))
@@ -635,7 +648,7 @@ class FormatInfo:
 #
 
 
-def _convert_keyword_types(kwds, bi):
+def _convert_keyword_types(kwds, bi, logger):
     from .. import commands
     bundle_api = None
     arg_cache = {}
@@ -650,7 +663,7 @@ def _convert_keyword_types(kwds, bi):
             a = getattr(commands, full_arg_name)
         else:
             if bundle_api is None:
-                bundle_api = bi._get_api()
+                bundle_api = bi._get_api(logger)
             if hasattr(bundle_api, full_arg_name):
                 a = getattr(bundle_api, full_arg_name)
             else:

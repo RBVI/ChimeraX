@@ -77,8 +77,6 @@ _RUNNING_ROW = (
 class ToolshedUI(ToolInstance):
 
     SESSION_ENDURING = True
-    TOOLSHED_URL = "https://cxtoolshed.rbvi.ucsf.edu"
-    # TOOLSHED_URL = "https://www.rbvi.ucsf.edu"
 
     def __init__(self, session, tool_name):
         # Standard template stuff
@@ -101,7 +99,7 @@ class ToolshedUI(ToolInstance):
         parent.setLayout(layout)
 
         from PyQt5.QtCore import QUrl
-        self.html_view.setUrl(QUrl(self.TOOLSHED_URL))
+        self.html_view.setUrl(QUrl(session.toolshed.remote_url))
         self._pending_downloads = []
 
     def _intercept(self, info):
@@ -147,7 +145,6 @@ class ToolshedUI(ToolInstance):
 
     def _download_finished(self, *args, **kw):
         # print("ToolshedUI._download_finished", args, kw)
-        import pip
         finished = []
         pending = []
         for item in self._pending_downloads:
@@ -170,19 +167,13 @@ class ToolshedUI(ToolInstance):
                 self.session.logger.info("Bundle installation canceled")
                 continue
             elif how == "just me":
-                target = ["--user"]
+                per_user = True
             else:
-                target = []
-            cmd = install_cmd + target + [filename]
-            self.session.logger.info("Installing bundle %s" % filename)
-            if pip.main(cmd) == 0:
-                self.session.logger.info("Bundle %s installed" % filename)
-                need_reload = True
-        if need_reload:
-            self.session.toolshed.reload(self.session.logger,
-                                         session=self.session,
-                                         rebuild_cache=True,
-                                         check_remote=False)
+                per_user = False
+            self.session.toolshed.install_bundle(filename,
+                                                 self.session.logger,
+                                                 per_user=per_user,
+                                                 session=self.session)
 
     def _navigate(self, qurl):
         session = self.session

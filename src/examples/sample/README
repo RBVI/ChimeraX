@@ -1,0 +1,20 @@
+This directory contains code for generating a sample ChimeraX bundle
+using only an installed ChimeraX application rather than the entire
+ChimeraX source tree.
+
+To build the bundle:
+
+1. edit "Makefile" and change "CHIMERAX_APP" to match the location
+   of "ChimeraX.app" on your system.
+2. Create a "license.txt" file.  The easiest way is to copy
+   "license.txt.bsd" to "license.txt".
+3. "make"
+4. Check directory "dist" to make sure the wheel was created.
+
+To verify that the bundle works:
+
+1. "make app-install" to install the wheel into your copy
+   of ChimeraX.app (assuming you have write permission).
+2. Check that the bundle works by opening a molecule and executing
+   the command "sample count".  It should report the number of atoms
+   and bonds for each molecule in the log.

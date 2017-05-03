@@ -19,8 +19,10 @@ SRCS	= $(wildcard *.cpp)
 OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
 
 install:
-	-mkdir $(includedir)/$(DIRNAME)
-	$(RSYNC) $(wildcard *.h) $(includedir)/$(DIRNAME)
+	$(RSYNC) $(wildcard *.h) $(includedir)/$(DIRNAME)/
+	if [ -d "$(app_includedir)" ]; then \
+		$(RSYNC) $(wildcard *.h) $(app_includedir)/$(DIRNAME)/; \
+	fi
 
 clean:
 	rm -f $(OBJS)

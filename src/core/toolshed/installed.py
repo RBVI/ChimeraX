@@ -278,8 +278,6 @@ def _extract_extra_keywords(kwds):
 
 
 def _report_difference(logger, before, after):
-    # TODO: more here
-    logger.info("installed._report_difference")
     bundles = {}
     for bi in before:
         bundles[bi.name] = [bi.version, None]
@@ -291,14 +289,15 @@ def _report_difference(logger, before, after):
         else:
             versions[1] = bi.version
     messages = []
-    for name in sorted(bundles.keys):
+    for name in sorted(bundles.keys()):
         versions = bundles[name]
         if versions[0] is None:
-            messages.append("Installed %s (%s)" % (name, version))
+            messages.append("Installed %s (%s)" % (name, versions[1]))
         elif versions[1] is None:
-            messages.append("Removed %s (%s)" % (name, version))
-        else:
-            messages.append("Updated %s (%s->%s)" % (name, versions[0], versions[1]))
+            messages.append("Removed %s (%s)" % (name, versions[0]))
+        elif versions[0] != versions[1]:
+            messages.append("Updated %s (from %s to %s)"
+                            % (name, versions[0], versions[1]))
     if messages:
         logger.info('\n'.join(messages))
     else:
@@ -328,7 +327,7 @@ def _make_bundle_info(d, installed, logger):
     except KeyError:
         _debug("InstalledBundleCache._make_bundle_info: no summary in %s" % d)
         return None
-    kw['packages'] = _get_installed_packages(d)
+    kw['packages'] = _get_installed_packages(d, logger)
     for classifier in md["classifiers"]:
         parts = [v.strip() for v in classifier.split("::")]
         if parts[0] != 'ChimeraX':
@@ -525,15 +524,20 @@ def _make_bundle_info(d, installed, logger):
     return bi
 
 
-def _get_installed_packages(dist):
+def _get_installed_packages(dist, logger):
     """Return set of tuples representing the packages in the distribution.
 
     For example, 'foo.bar' from foo/bar/__init__.py becomes ('foo', 'bar')
     """
     packages = []
-    for path, hash, size in dist.list_installed_files():
-        if not path.endswith('/__init__.py'):
-            continue
-        parts = path.split('/')
-        packages.append(tuple(parts[:-1]))
+    try:
+        installed = dist.list_installed_files()
+        for path, hash, size in installed:
+            if not path.endswith('/__init__.py'):
+                continue
+            parts = path.split('/')
+            packages.append(tuple(parts[:-1]))
+    except:
+        logger.warning("cannot get installed file list for %r" % dist.name)
+        return []
     return packages

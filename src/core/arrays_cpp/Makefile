@@ -34,8 +34,15 @@ ifdef DEBUG
 	$(RSYNC) lib$(LIBNAME).pdb $(shlibdir)
 endif
 endif
-	-mkdir $(includedir)/$(DIRNAME)
-	$(RSYNC) imex.h $(HDRS) $(includedir)/$(DIRNAME)
+	$(RSYNC) imex.h $(HDRS) $(includedir)/$(DIRNAME)/
+	if [ -d "$(app_includedir)" ]; then \
+		$(RSYNC) imex.h $(HDRS) $(app_includedir)/$(DIRNAME)/; \
+	fi
+ifdef WIN32
+	if [ -d "$(app_libdir)" ]; then \
+		$(RSYNC) $(LIBRARY) $(app_libdir); \
+	fi
+endif
 	#if [ -d "$(app_shlibdir)" ]; then $(RSYNC) $(SHLIB) $(app_shlibdir); fi
 
 $(SHLIB): imex.h $(OBJS)

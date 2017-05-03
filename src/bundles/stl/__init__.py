@@ -24,16 +24,16 @@ class _MyAPI(BundleAPI):
         return None
 
     @staticmethod
-    def open_file(session, f, name, filespec=None, **kw):
+    def open_file(session, f, name):
         # 'open_file' is called by session code to open a file
         # returns (list of models, status message)
         from . import stl
-        return stl.read_stl(session, f, name, **kw)
+        return stl.read_stl(session, f, name)
 
     @staticmethod
-    def save_file(session, name, **kw):
+    def save_file(session, name, _, models=None):
         # 'save_file' is called by session code to save a file
         from . import stl
-        return stl.write_stl(session, name, **kw)
+        return stl.write_stl(session, name, models)
 
 bundle_api = _MyAPI()

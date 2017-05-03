@@ -49,6 +49,13 @@ class MainSaveDialogBase:
         self._registered_formats = {}
         self._format_selector = None
         self.register(self.DEFAULT_FORMAT, _session_wildcard, None, None, _session_save)
+        from ..toolshed import SESSION
+        from ..io import formats
+        from .open_save import export_file_filter
+        for fmt in formats(open=False):
+            if fmt.category not in (SESSION, "Image"):
+                self.register(fmt.name, lambda fmt=fmt: export_file_filter(format_name=fmt.name),
+                    None, None, lambda ses, fn, fmt=fmt: fmt.export_func(ses, fn, fmt.name))
 
     def register(self, format_name, wildcard, make_ui, update, save):
         self._registered_formats[format_name] = _SaveFormat(format_name, wildcard, make_ui,
@@ -139,6 +146,8 @@ class MainSaveDialog(MainSaveDialogBase):
     def _customize_file_dialog(self):
         from PyQt5.QtWidgets import QComboBox, QHBoxLayout, QLabel, QFrame
         self._options_panel = options_panel = self.file_dialog.custom_area
+        label = QLabel(options_panel)
+        label.setText("Format:")
         self._format_selector = selector = QComboBox(options_panel)
         selector.currentIndexChanged.connect(self._select_format)
         self._no_options_label = no_opt_label = QLabel(options_panel)
@@ -149,6 +158,7 @@ class MainSaveDialog(MainSaveDialogBase):
         self._update_format_selector()
         selector.setCurrentIndex(selector.findText(self.DEFAULT_FORMAT))
         self._options_layout = options_layout = QHBoxLayout(options_panel)
+        options_layout.addWidget(label)
         options_layout.addWidget(selector)
         options_layout.addWidget(no_opt_label)
         options_panel.setLayout(options_layout)

@@ -43,14 +43,21 @@ class _MyAPI(BundleAPI):
         raise NotImplementedError  # FIXME: remove method if unneeded
 
     @staticmethod
-    def open_file(session, f, name, filespec=None, format_name=None, **kw):
-        # 'open_file' is called by session code to open a file
-        # returns (list of models, status message)
+    def open_file(session, f, name):
+        # 'open_file' is called by session code to open a file;
+        # returns (list of models, status message).
+        # Add any keywords that you support (i.e. annotated in your
+        # setup.py.in file).  Also, if you support reading multiple formats
+        # then if you add a 'format_name' keyword arg, core will fill that
+        # in with the format name (again, as specified in your setup.py.in)
         raise NotImplementedError     # FIXME: remove method if unneeded
 
     @staticmethod
-    def save_file(session, name, format_name=None, **kw):
+    def save_file(session, name, format):
         # 'save_file' is called by session code to save a file
+        # add any supported keyword arguments
+        # if you want to do your own argument checking, add **kw
+        # otherwise, core will make sure only your keywords are present
         raise NotImplementedError     # FIXME: remove method if unneeded
 
     @staticmethod

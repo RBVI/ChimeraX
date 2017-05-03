@@ -4816,8 +4816,9 @@ def active_volume(session):
 # -----------------------------------------------------------------------------
 #
 def set_active_volume(session, v):
-    vv = volume_dialog(session, create = True)
-    vv.display_volume_info(v)
+    vv = volume_dialog(session)
+    if vv:
+        vv.display_volume_info(v)
     
 # -----------------------------------------------------------------------------
 #

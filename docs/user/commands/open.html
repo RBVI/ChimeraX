@@ -131,15 +131,15 @@ the <b>format</b> option (where <i>format-name</i> can be truncated).
 Files that are gzipped, as indicated by their additional .gz suffix, 
 can also be read.
 </p><p>
-A multi-model file in PDB format can be opened as a trajectory with 
-<b>coordset true</b> (default <b>false</b>). Only one frame of a trajectory
-is shown at a time, and different frames can be shown or played back 
-sequentially with the <a href="coordset.html"><b>coordset</b></a> command.
+A multi-model file in PDB format can be opened as a
+<a href="../trajectories.html">trajectory</a>
+with <b>coordset true</b> (default <b>false</b>).
 </p><p>
 When multiple maps with the same grid dimensions are opened 
 in a single command (multiple files specified with wild cards or globbing, 
 or a single multi-map file), the <b>vseries</b> option can be used to enforce 
-loading them as a series for playback with 
+loading them as a <a href="../trajectories.html#series">volume series</a>
+for playback with 
 <a href="vseries.html"><b>vseries</b></a> or the associated slider
 (if <b>true</b>), or as independent models (if <b>false</b>).
 If the option is not used, 3D TIFF images and
@@ -395,10 +395,9 @@ Opening a structure in mmCIF format automatically shows a clickable table of
 <a href="sym.html#assembly">assembly information</a>
 in the <a href="../tools/log.html"><b>Log</b></a>.
 </p><p>
-A multi-model file in PDB format can be opened as a trajectory with 
-<b>coordset true</b> (default <b>false</b>). Only one frame of a trajectory
-is shown at a time, and different frames can be shown or played back 
-sequentially with the <a href="coordset.html"><b>coordset</b></a> command.
+A multi-model file in PDB format can be opened as a
+<a href="../trajectories.html">trajectory</a>
+with <b>coordset true</b> (default <b>false</b>).
 </p><p>
 Web-fetched data are stored locally in <b>~/Downloads/ChimeraX/</b> 
 (where ~ indicates a user's home directory), with subdirectories
@@ -562,5 +561,5 @@ the single best-matching sequence is associated.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2017</address>
+May 2017</address>
 </body></html>

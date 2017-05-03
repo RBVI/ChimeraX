@@ -24,6 +24,14 @@ install: all
 	$(RSYNC) readcif.h $(includedir)
 	$(RSYNC) $(LIBRARY) $(libdir)
 	#cp $(SHLIB) $(shlibdir)
+	if [ -d "$(app_includedir)" ]; then \
+		$(RSYNC) readcif.h $(app_includedir); \
+	fi
+ifdef WIN32
+	if [ -d "$(app_libdir)" ]; then \
+		$(RSYNC) $(LIBRARY) $(app_libdir); \
+	fi
+endif
 	#if [ -d "$(app_shlibdir)" ]; then $(RSYNC) $(SHLIB) $(app_shlibdir); fi
 
 $(LIBRARY): $(OBJS)

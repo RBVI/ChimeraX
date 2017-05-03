@@ -29,8 +29,8 @@ default_format = 'png'
 image_formats = [ImageFormat(name, suffixes, pil_name)
                  for name, suffixes, pil_name in _formats]
 
-def save_image(session, filename, format=None, width=None, height=None,
-               supersample=3, pixel_size=None, transparent_background=False, quality=95, **kw):
+def save_image(session, filename, format, width=None, height=None,
+               supersample=3, pixel_size=None, transparent_background=False, quality=95):
     '''
     Save an image of the current graphics window contents.
     '''

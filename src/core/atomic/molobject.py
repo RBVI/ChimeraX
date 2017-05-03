@@ -385,6 +385,22 @@ class Bond(State):
         f = c_function('pseudobond_global_manager_clear', args = (ctypes.c_void_p,))
         f(self._c_pointer)
 
+    def rings(self, cross_residues=False, all_size_threshold=0):
+        '''Return :class:`.Rings` collection of rings this Bond is involved in.
+
+        If 'cross_residues' is False, then rings that cross residue boundaries are not
+        included.  If 'all_size_threshold' is zero, then return only minimal rings, of
+        any size.  If it is greater than zero, then return all rings not larger than the
+        given value.
+
+        The returned rings are quite emphemeral, and shouldn't be cached or otherwise
+        retained for long term use.  They may only live until the next call to rings()
+        [from anywhere, including C++].
+        '''
+        f = c_function('bond_rings', args = (ctypes.c_void_p, ctypes.c_bool, ctypes.c_int),
+                ret = ctypes.py_object)
+        return _rings(f(self._c_pointer, cross_residues, all_size_threshold))
+
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
                 'ses_id': self.structure.session_bond_to_id(self._c_pointer)}
@@ -649,6 +665,8 @@ class Residue(State):
     SS_HELIX = 1
     SS_SHEET = SS_STRAND = 2
 
+    water_res_names = set(["HOH", "WAT", "H2O", "D2O", "TIP3"])
+
     def __init__(self, residue_pointer):
         set_c_pointer(self, residue_pointer)
 
@@ -831,10 +849,10 @@ class Ring:
         doc="Whether the ring is aromatic. Boolean value.")
     atoms = c_property('ring_atoms', cptr, 'size', astype = _atoms, read_only = True,
         doc=":class:`.Atoms` collection containing the atoms of the ring, "
-        "in no particular order (see :method:`.Ring.ordered_atoms`).")
+        "in no particular order (see :meth:`.Ring.ordered_atoms`).")
     bonds = c_property('ring_bonds', cptr, 'size', astype = _bonds, read_only = True,
         doc=":class:`.Bonds` collection containing the bonds of the ring, "
-        "in no particular order (see :method:`.Ring.ordered_bonds`).")
+        "in no particular order (see :meth:`.Ring.ordered_bonds`).")
     ordered_atoms = c_property('ring_ordered_atoms', cptr, 'size', astype=_atoms, read_only=True,
         doc=":class:`.Atoms` collection containing the atoms of the ring, in ring order.")
     ordered_bonds = c_property('ring_ordered_bonds', cptr, 'size', astype=_bonds, read_only=True,
@@ -882,11 +900,17 @@ class Sequence(State):
     SS_STRAND = 'S'
 
     nucleic3to1 = lambda rn: c_function('sequence_nucleic3to1', args = (ctypes.c_char_p,),
-        ret = ctypes.c_char)(rn).decode('utf-8')
+        ret = ctypes.c_char)(rn.encode('utf-8')).decode('utf-8')
     protein3to1 = lambda rn: c_function('sequence_protein3to1', args = (ctypes.c_char_p,),
-        ret = ctypes.c_char)(rn).decode('utf-8')
+        ret = ctypes.c_char)(rn.encode('utf-8')).decode('utf-8')
     rname3to1 = lambda rn: c_function('sequence_rname3to1', args = (ctypes.c_char_p,),
-        ret = ctypes.c_char)(rn).decode('utf-8')
+        ret = ctypes.c_char)(rn.encode('utf-8')).decode('utf-8')
+
+    # the following colors for use by alignment/sequence viewers
+    default_helix_fill_color = (1.0, 1.0, 0.8)
+    default_strand_fill_color = (0.8, 1.0, 0.8)
+    default_helix_outline_color = tuple([chan/255.0 for chan in (218, 165, 32)]) # goldenrod
+    default_strand_outline_color = tuple([chan/255.0 for chan in (50, 205, 50)]) # lime green
 
     chimera_exiting = False
 
@@ -1124,7 +1148,7 @@ class StructureSeq(Sequence):
             name_part = " " + rem.strip()
         else:
             name_part = ""
-        return "%s (%s)%s" % (self.structure.name, self.structure, name_part)
+        return "%s (#%s)%s" % (self.structure.name, self.structure.id_string(), name_part)
 
     @property
     def has_protein(self):
@@ -1132,6 +1156,25 @@ class StructureSeq(Sequence):
             if r and Sequence.protein3to1(r.name.encode('utf8')) != 'X':
                 return True
         return False
+
+    def _get_numbering_start(self):
+        if self._numbering_start == None:
+            for i, r in enumerate(self.residues):
+                if r is None:
+                    continue
+                if r.deleted:
+                    return getattr(self, '_prev_numbering_start', 1)
+                break
+            else:
+                return getattr(self, '_prev_numbering_start', 1)
+            pns = self._prev_numbering_start = r.number - i
+            return pns
+        return self._numbering_start
+
+    def _set_numbering_start(self, ns):
+        self._numbering_start = ns
+
+    numbering_start = property(_get_numbering_start, _set_numbering_start)
 
     @property
     def res_map(self):
@@ -1166,18 +1209,12 @@ class StructureSeq(Sequence):
 
     @staticmethod
     def restore_snapshot(session, data):
-        sseq = StructureSequence(chain_id=data['chain_id'], structure=data['structure'])
+        sseq = StructureSeq(chain_id=data['chain_id'], structure=data['structure'])
         Sequence.set_state_from_snapshot(sseq, session, data['Sequence'])
         sseq.description = data['description']
-        self.bulk_set(data['residues'], sseq.characters)
+        sseq.bulk_set(data['residues'], sseq.characters)
         sseq.description = data.get('description', None)
         return sseq
-
-    @staticmethod
-    def restore_snapshot(session, data):
-        chain = object_map(data['structure'].session_id_to_chain(data['ses_id']), Chain)
-        chain.description = data.get('description', None)
-        return chain
 
     def ss_type(self, loc, loc_is_ungapped=False):
         if not loc_is_ungapped:
@@ -1195,7 +1232,7 @@ class StructureSeq(Sequence):
 
     def take_snapshot(self, session, flags):
         data = {
-            'Sequence': Sequence.take_snapshot(self),
+            'Sequence': Sequence.take_snapshot(self, session, flags),
             'chain_id': self.chain_id,
             'description': self.description,
             'residues': self.residues,
@@ -1308,6 +1345,14 @@ class StructureData:
     This base class manages the data while the
     derived class handles the graphical 3-dimensional rendering using OpenGL.
     '''
+
+    PBG_METAL_COORDINATION = c_function('structure_PBG_METAL_COORDINATION', args = (),
+        ret = ctypes.c_char_p)()
+    PBG_MISSING_STRUCTURE = c_function('structure_PBG_MISSING_STRUCTURE', args = (),
+        ret = ctypes.c_char_p)()
+    PBG_HYDROGEN_BONDS = c_function('structure_PBG_HYDROGEN_BONDS', args = (),
+        ret = ctypes.c_char_p)()
+
     def __init__(self, mol_pointer=None, *, logger=None):
         if mol_pointer is None:
             # Create a new graph
@@ -1525,6 +1570,22 @@ class StructureData:
         f(self._c_pointer, data['version'], data['ints'], data['floats'], data['misc'])
         session.triggers.add_handler("end restore session", self._ses_restore_teardown)
 
+    def save_state(self, session, flags):
+        '''Gather session info; return version number'''
+        # the save setup/teardown handled in Structure/AtomicStructure class, so that
+        # the trigger handlers can be deregistered when the object is deleted
+        f = c_function('structure_session_info',
+                    args = (ctypes.c_void_p, ctypes.py_object, ctypes.py_object,
+                        ctypes.py_object),
+                    ret = ctypes.c_int)
+        data = {'ints': [],
+                'floats': [],
+                'misc': []}
+        data['version'] = f(self._c_pointer, data['ints'], data['floats'], data['misc'])
+        # data is all simple Python primitives, let session saving know that...
+        from ..state import FinalizedState
+        return FinalizedState(data)
+
     def session_atom_to_id(self, ptr):
         '''Map Atom pointer to session ID'''
         f = c_function('structure_session_atom_to_id',
@@ -1578,22 +1639,6 @@ class StructureData:
         f = c_function('set_structure_color',
                     args = (ctypes.c_void_p, ctypes.c_void_p))
         return f(self._c_pointer, pointer(rgba))
-
-    def take_snapshot(self, session, flags):
-        '''Gather session info; return version number'''
-        # the save setup/teardown handled in Structure/AtomicStructure class, so that
-        # the trigger handlers can be deregistered when the object is deleted
-        f = c_function('structure_session_info',
-                    args = (ctypes.c_void_p, ctypes.py_object, ctypes.py_object,
-                        ctypes.py_object),
-                    ret = ctypes.c_int)
-        data = {'ints': [],
-                'floats': [],
-                'misc': []}
-        data['version'] = f(self._c_pointer, data['ints'], data['floats'], data['misc'])
-        # data is all simple Python primitives, let session saving know that...
-        from ..state import FinalizedState
-        return FinalizedState(data)
 
     def _ses_call(self, func_qual):
         f = c_function('structure_session_' + func_qual, args=(ctypes.c_void_p,))
@@ -1891,6 +1936,9 @@ class SeqMatchMap(State):
         self.session = session
         from . import get_triggers
         self._handler = get_triggers(session).add_handler("changes", self._atomic_changes)
+
+    def __bool__(self):
+        return bool(self._pos_to_res)
 
     def __contains__(self, i):
         if isinstance(i, int):

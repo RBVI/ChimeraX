@@ -50,6 +50,20 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>format</b>&nbsp;&nbsp;<b>ses</b>&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
+<br><b>save</b>&nbsp;&nbsp;<i>filename</i>
+[&nbsp;<b>format</b>&nbsp;&nbsp;<b>mol2</b>&nbsp;]
+[&nbsp;<b>models</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>relModel</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>combineModels</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>atoms</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
+[&nbsp;<b>skipAtoms</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
+[&nbsp;<b>anchor</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
+[&nbsp;<b>sybylHydNaming</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>resNum</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>gaffType</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+</h3>
+
+<h3><a href="usageconventions.html">Usage</a>:
 <br><b>save</b> &nbsp;<i>filename</i>
 [&nbsp;<b>format</b>&nbsp;&nbsp;<i>file-format</i>&nbsp;]
 </h3>
@@ -138,10 +152,20 @@ The command <b>save formats</b> lists the possible output formats in the
 <td align="center">.cxs</td>
 <td align="center">ChimeraX session</td>
 </tr><tr>
-<td align="center" rowspan="3">(none)</td>
+<td align="center" rowspan="4">(none)</td>
+<td align="center">mol2</td>
+<td align="center">.mol2</td>
+<td align="center">
+atomic coordinates,<br>
+Sybyl Mol2<br>
+(see <a href="#mol2-options">options</a>)</td>
+</tr><tr>
 <td align="center">mmcif</td>
 <td align="center">.cif</td>
-<td align="center">mmCIF<br>*experimental/incomplete*</td>
+<td align="center">
+atomic coordinates,<br>
+mmCIF<br>
+*experimental/incomplete*</td>
 </tr><tr>
 <td align="center">stl</td>
 <td align="center">.stl</td>
@@ -155,8 +179,10 @@ target="_blank">X3D</a></td>
 <p>
 If the format is specified separately, the
 appropriate suffix will be added to <i>filename</i>.
-Further options for <a href="#image-options">images</a> and
-<a href="#map-options">maps</a> are described below.
+Further options for <a href="#image-options">images</a>,
+<a href="#map-options">maps</a>, and
+<a href="#mol2-options">Mol2 files</a> (atomic coordinates)
+are described below.
 </p>
 
 <a name="image-options"></a>
@@ -164,6 +190,15 @@ Further options for <a href="#image-options">images</a> and
 [<a href="#top">back to top</a>]
 </p>
 <h3>Image Options</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>save</b> [&nbsp;<b>image</b>&nbsp;] &nbsp;<i>filename</i>
+[&nbsp;<b>format</b>&nbsp;&nbsp;<i>file-format</i>&nbsp;]
+[&nbsp;supersample&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>quality</b>&nbsp;<i>M</i>&nbsp;]
+[[&nbsp;<b>width</b>&nbsp;&nbsp;<i>w</i>&nbsp;][&nbsp;<b>height</b>&nbsp;&nbsp;<i>h</i>&nbsp;]&nbsp|&nbsp;<b>pixelSize</b>&nbsp;&nbsp;<i>p</i>&nbsp;]
+[&nbsp;<b>transparentBackground</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+</blockquote>
 <p>
 Images are rendered offscreen.
 Images can be <a name="#supersampling"><b><i>supersampled</i></b></a>, 
@@ -212,6 +247,19 @@ interpreted correctly by Adobe Photoshop.)
 [<a href="#top">back to top</a>]
 </p>
 <h3>Map Options</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>save</b> [&nbsp;<b>map</b>&nbsp;] &nbsp;<i>filename</i>
+[&nbsp;<b>models</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>format</b>&nbsp;&nbsp;<i>file-format</i>&nbsp;]
+[&nbsp;<b>step</b>&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
+[&nbsp;<b>region</b>&nbsp;all&nbsp;|&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;]
+[&nbsp;<b>maskZone</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>baseIndex</b>&nbsp;<i>M</i>&nbsp;]
+[&nbsp;<b>append</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>compress</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>chunkShapes</b>&nbsp;&nbsp;<i>order</i>&nbsp;]
+</blockquote>
 <p>
 The <a href="atomspec.html#hierarchy"><i>model-spec</i></a>
 can be omitted if only one volume model is currently open.
@@ -312,7 +360,91 @@ Saving a file with an <i>order</i> ending in &ldquo;z&rdquo; can be very slow
 because one Z-plane is written at a time.
 </p>
 
+<a name="mol2-options"></a>
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<h3>Mol2 Options</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>save</b>&nbsp;&nbsp;<i>filename</i>
+[&nbsp;<b>format</b>&nbsp;&nbsp;<b>mol2</b>&nbsp;]
+[&nbsp;<b>models</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>relModel</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>combineModels</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>atoms</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
+[&nbsp;<b>skipAtoms</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
+[&nbsp;<b>anchor</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
+[&nbsp;<b>sybylHydNaming</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>resNum</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>gaffType</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+</blockquote>
+<p>
+Atomic coordinates can be saved in Sybyl Mol2 format, with options:
+</p>
+<blockquote>
+<b>models</b> &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+<br>
+Write only the specified models, otherwise all atomic models
+(except as restricted with <a href="#atoms"><b>atoms</b></a>
+and/or <a href="#skipAtoms"><b>skipAtoms</b></a>).
+</blockquote>
+<blockquote>
+<b>relModel</b> &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+<br>
+Write coordinates relative to the original coordinates of the specified model. 
+Otherwise, coordinates will be written relative to the scene 
+(same as the original coordinates of each model unless it was moved separately).
+Saving a model relative to another is useful for preserving their 
+spatial relationship without having to save copies of both models.
+For example, if model 2 has been matched or docked to model 1, saving 2 
+relative to 1 results in the models being matched or docked in the same way
+when the original model 1 file and the new model 2 file (saved relative to 1)
+are opened.
+</blockquote>
+<blockquote>
+<b>combineModels</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to write multiple models into one combined @MOLECULE section.
+If <b>false</b> (default),
+separate @MOLECULE sections will be used for different models.
+</blockquote>
+<blockquote>
+<a name="atoms"></a>
+<b>atoms</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
+<br>
+Write only the specified atoms.
+</blockquote>
+<blockquote>
+<a name="skipAtoms"></a>
+<b>skipAtoms</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
+<br>
+Skip (omit) the specified atoms.
+</blockquote>
+<blockquote>
+<b>anchor</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
+<br>
+Write the specified atoms into the @SET section of the file.
+</blockquote>
+<blockquote>
+<b>sybylHydNaming</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+If <b>true</b> (default), hydrogen names will be of the form HG21 instead of 1HG2.
+</blockquote>
+<blockquote>
+<b>resNum</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to append residue number to reside name, giving
+substructure names of the form ALA85 instead of ALA (default <b>false</b>).
+</blockquote>
+<blockquote>
+<b>gaffType</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to write GAFF atom types instead of Sybyl atom types.
+GAFF types are not yet computed, so this should be kept <b>false</b>.
+</blockquote>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2017</address>
+April 2017</address>
 </body></html>

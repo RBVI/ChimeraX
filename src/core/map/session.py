@@ -171,12 +171,24 @@ class GridDataState(State):
 
   @staticmethod
   def restore_snapshot(session, data):
-    gdcache = {}        # (path, grid_id) -> Grid_Data object
+    # Grid cache used for opening HDF5 files that can contain hundreds of maps in a series.
+    if not hasattr(session, '_grid_restore_cache'):
+      session._grid_restore_cache = {}
+      # Remove cache when session restore ends
+      def remove_grid_cache(trigger_name, session):
+        delattr(session, '_grid_restore_cache')
+        from ..triggerset import DEREGISTER
+        return DEREGISTER
+      session.triggers.add_handler('end restore session', remove_grid_cache)
+    gdcache = session._grid_restore_cache        # (path, grid_id) -> Grid_Data object
+    
     class FilePaths:
       def find(self, path, ask = False):
         # TODO: If path doesn't exist show file dialog to let user enter new path to file.
         return path
+
     grids = grid_data_from_state(data, gdcache, session, FilePaths())
+
     return GridDataState(grids[0] if grids else None)
 
   def reset_state(self, session):
@@ -207,6 +219,8 @@ def state_from_grid_data(data):
     s['rotation'] = dt.rotation
   if dt.symmetries is not None and len(dt.symmetries) > 0:
     s['symmetries'] = dt.symmetries
+  if hasattr(dt, 'series_index'):
+    s['series_index'] = dt.series_index
 
   from .data import Subsampled_Grid
   if isinstance(dt, Subsampled_Grid):
@@ -252,7 +266,11 @@ def grid_data_from_state(s, gdcache, session, file_paths):
   if 'symmetries' in s:
     for data in dlist:
       data.symmetries = s['symmetries']
-    
+
+  if 'series_index' in s:
+    for data in dlist:
+      data.series_index = s['series_index']
+      
   if 'available_subsamplings' in s:
     # Subsamples may be from separate files or the same file.
     from .data import Subsampled_Grid
@@ -312,9 +330,10 @@ def open_data(path, gid, file_type, dbfetch, gdcache, session):
       gdcache[(path, data.grid_id)] = data
       data.database_fetch = dbfetch
 
-  data = gdcache.get((path, gid))
-  if data is None:
+  if (path,gid) not in gdcache:
       return []
+  data = gdcache[(path, gid)]
+  del gdcache[(path,gid)]	# Only use grid for one Volume
   dlist = [data]
 
   return dlist

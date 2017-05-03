@@ -141,6 +141,12 @@ class FileFormat:
         self.export_notes = None
         self.batch = False
 
+    def export(self, *args, **kw):
+        if self.export_func is None:
+            raise ValueError("Save %r files is not supported" % self.name)
+        check_keyword_compatibility(self.export_func, *args, **kw)
+        return self.export_func(*args, **kw)
+
 _file_formats = {}
 
 
@@ -200,8 +206,7 @@ def formats(open=True, export=True, source_is_file=False):
     for f in _file_formats.values():
         if source_is_file and not f.extensions:
             continue
-        # if (open and f.open_func) or (export and f.export_func):
-        if 1:
+        if (open and f.open_func) or (export and f.export_func):
             fmts.append(f)
     return fmts
 
@@ -322,7 +327,9 @@ def open_data(session, filespec, format=None, name=None, **kw):
         # TODO: Windows might need tf to be closed before reading with
         # a different file descriptor
 
-    kw["filespec"] = filename
+    import inspect
+    if 'filespec' in inspect.signature(open_func).parameters:
+        kw['filespec'] = filename
     if fmt.category == SCRIPT:
         with session.in_script:
             models, status = open_func(session, stream, dname, **kw)
@@ -487,3 +494,15 @@ def gunzip(gzpath, path, remove_gz=True):
     if remove_gz:
         import os
         os.remove(gzpath)
+
+
+def check_keyword_compatibility(f, *args, **kw):
+    import inspect
+    sig = inspect.signature(f)
+    # If function takes arbitrary keywords, it is compatible
+    for p in sig.parameters.values():
+        if p.kind == inspect.Parameter.VAR_KEYWORD:
+            return
+    # If we cannot bind the arguments, raise TypeError and
+    # let caller handle it
+    sig.bind(*args, **kw)

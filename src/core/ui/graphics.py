@@ -29,7 +29,7 @@ class GraphicsWindow(QWindow):
 
         self.opengl_context = OpenGLContext(self, ui)
 
-        self.redraw_interval = 16  # milliseconds
+        self.redraw_interval = 16.667  # milliseconds
         #   perhaps redraw interval should be 10 to reduce
         #   frame drops at 60 frames/sec
         self.minimum_event_processing_ratio = 0.1 # Event processing time as a fraction
