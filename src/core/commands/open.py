@@ -174,8 +174,14 @@ def register_command(session):
     from . import CmdDesc, register, DynamicEnum, StringArg, BoolArg, OpenFileNameArg
 
     def formats():
-        from .. import io
-        names = sum((tuple(f.nicknames) for f in io.formats()), ())
+        from .. import io, fetch
+        names = set()
+        for f in io.formats():
+            names.update(f.nicknames)
+        for db in fetch.fetch_databases():
+            formats = list(fetch.database_formats(db))
+            if formats and formats[0] is not None:
+                names.update(formats)
         return names
 
     def db_formats():
