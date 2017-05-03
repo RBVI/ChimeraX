@@ -144,7 +144,7 @@ def register_mmcif_format():
     #    reference="http://www.iucr.org/__data/iucr/cif/standard/cifstd1.html")
     from .mmcif_write import write_mmcif
     io.register_format(
-        "mmCIF", structure.CATEGORY, (".cif",), ("mmcif",),
+        "mmCIF", structure.CATEGORY, (".cif", ".mmcif"), ("mmcif",),
         mime=("chemical/x-mmcif",),
         reference="http://mmcif.wwpdb.org/",
         requires_filename=True, open_func=open_mmcif, export_func=write_mmcif)
