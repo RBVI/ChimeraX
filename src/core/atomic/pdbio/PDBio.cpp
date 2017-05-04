@@ -736,7 +736,7 @@ add_bond(std::unordered_map<int, Atom *> &atom_serial_nums, int from, int to, Py
 // assign_secondary_structure:
 //    Assign secondary structure state to residues using PDB
 //    HELIX and SHEET records
-void
+static void
 assign_secondary_structure(AtomicStructure *as, const std::vector<PDB> &ss, PyObject *py_logger)
 {
     std::vector<std::pair<AtomicStructure::Residues::const_iterator,
@@ -832,7 +832,7 @@ assign_secondary_structure(AtomicStructure *as, const std::vector<PDB> &ss, PyOb
 // bonded_dist:
 //    Are given atoms close enough to bond?  If so, return bond distance,
 // otherwise return zero.
-float
+static float
 bonded_dist(Atom *a, Atom *b)
 {
     float bond_len = Element::bond_length(a->element(), b->element());
@@ -846,7 +846,8 @@ bonded_dist(Atom *a, Atom *b)
     return dist_sq;
 }
 
-void prune_short_bonds(AtomicStructure *as)
+static void
+prune_short_bonds(AtomicStructure *as)
 {
     std::vector<Bond *> short_bonds;
 
@@ -942,7 +943,7 @@ read_fileno(void *f)
     return std::pair<char *, PyObject *>(read_fileno_buffer, nullptr);
 }
 
-PyObject *
+static PyObject *
 read_pdb(PyObject *pdb_file, PyObject *py_logger, bool explode)
 {
     std::vector<AtomicStructure *> file_structs;
@@ -1184,12 +1185,71 @@ std::cerr << "read_one breakdown:  pre-loop " << cum_preloop_t/(float)CLOCKS_PER
     return s_array;
 }
 
-void
+// for sorting atoms by coord index (input order)...
+namespace {
+struct less_Atom: public std::binary_function<Atom*, Atom*, bool> {
+    bool operator()(const Atom* a1, const Atom* a2) {
+        return a1->coord_index() < a2->coord_index();
+    }
+};
+}
+
+static void
+write_coord_set(std::ostream& os, Structure* s, CoorsSet* cs, std::map<Atom&>& rev_asn,
+    bool selected_only, bool displayed_only, double** xform, std::set<Atom*>& written);
+{
+    Residue* prev_res = nullptr;
+    bool prev_standard = false;
+    PDB p, p_ter;
+    bool need_ter = false;
+    int serial = 0;
+    for (auto r: s->residues()) {
+        bool standard = Sequence::rname3to1(r->name()) != 'X';
+        if (prev_res != nullptr && (prev_standard || standard)) {
+            // if no bonds connecting the two residues, output TER
+            if (!r->connects_to(prev_res))
+                need_ter = true;
+        }
+        if (need_ter) {
+            p_ter.set_type(PDB::TER);
+            p_ter.ter.serial = ++serial;
+            strcpy(p_ter.ter.res_name, prev_res->name().c_str());
+            p_ter.ter.res.chain_id = prev_res->chain_id()[0];
+            int seq_num = prev_res->position();
+            char i_code = prev_res->insertion_code();
+            if (seq_num > 9999) {
+                // usurp the insertion code...
+                i_code = '0' + (seq_num % 10);
+                seq_num = seq_num / 10;
+            }
+            p_ter.res.seq_num = seq_num;
+            p_ter.res.i_code = i_code;
+        }
+
+        if (standard && !r->is_het()) {
+            p.set_type(PDB::ATOM);
+        } else {
+            p.set_type(PDB::HETATM);
+        }
+
+        // PDB spec no longer specifies atom ordering;
+        // sort by coord_index to try to preserve input ordering...
+        std::vector<Atom*> ordering = r->atoms();
+        std::sort(ordering.begin(), ordering.end(), less_Atom());
+        //TODO: remainder
+    }
+}
+
+static void
 write_pdb(std::vector<Structure*> structures, std::ostream& os, bool selected_only,
     bool displayed_only, double** xform, bool all_frames)
 {
     bool need_TER = false;
     PDB p;
+    // non-selected/displayed atoms may not be written out, so we need to track what
+    // was written so we know which CONECT records to output
+    std::set<Atom*> written;
+    int out_model_num = 0;
     for (auto s: structures) {
         bool multi_model = (m->coord_sets().size() > 1) && all_frames;
         // Output headers only before first MODEL
@@ -1224,7 +1284,28 @@ write_pdb(std::vector<Structure*> structures, std::ostream& os, bool selected_on
         }
 
         std::map<Atom*, int> rev_asn;
-        //TODO
+        for (auto cs: s->coord_sets()) {
+            if (!multi_model && cs != s->active_coord_set())
+                continue;
+            bool use_MODEL = multi_model || structures.size() > 1;
+            if (use_MODEL) {
+                if (multimodel)
+                    p.model.serial = cs->id();
+                else
+                    p.model.serial = ++out_model_num;
+                p.set_type(PDB::MODEL);
+                os << p << "\n";
+            }
+            //TODO: implement write_coord_set
+            //TODO: decide if we support PQR; is charge in C++ layer or do we want to reach into
+            // core.atomic.molobject._object_map to get object/charge?
+            write_coord_set(os, s, cs, rev_asn, selected_only, displayed_only, xform, written);
+            if (use_MODEL) {
+                p.set_type(PDB::ENDMDL);
+                os << p << "\n";
+            }
+        }
+        //TODO: remainder
     }
 }
 

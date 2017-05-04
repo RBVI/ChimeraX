@@ -48,11 +48,10 @@ find_gaps(StructureSeq& sseq)
         auto c = *ci;
         int gap = 0;
         if (prev_res != nullptr) {
-            auto connects = prev_res->bonds_between(res, true);
             // since unlike Chimera, ChimeraX does not make
             // long "covalent" bonds across gaps, some of the
             // fancy logic used in Chimera is not necessary here
-            if (connects.empty()) {
+            if (res->connects_to(prev_res)) {
                 gap = res->position() - prev_res->position() - 1;
                 if (gap == -1) {
                     // 1ton/1bil have gaps in insertion codes...

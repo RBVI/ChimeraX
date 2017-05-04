@@ -78,12 +78,12 @@ private:
     Structure *  _structure;
 public:
     void  add_atom(Atom*);
-    const Atoms &  atoms() const { return _atoms; }
+    const Atoms&  atoms() const { return _atoms; }
     AtomsMap  atoms_map() const;
-    std::vector<Bond*>  bonds_between(const Residue* other_res,
-        bool just_first=false) const;
+    std::vector<Bond*>  bonds_between(const Residue* other_res, bool just_first=false) const;
     Chain*  chain() const;
     const ChainID&  chain_id() const;
+    bool connects_to(Residue* r) const { return bonds_between(r, true).size() > 0; }
     int  count_atom(const AtomName&) const;
     Atom *  find_atom(const AtomName&) const;
     const ChainID&  mmcif_chain_id() const { return _mmcif_chain_id; }
