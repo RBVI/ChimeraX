@@ -42,7 +42,9 @@ class AlignmentsManager(State):
         identify_as : a text string (or None) used to identify the alignment in commands.  If the
             string is already in use by another alignment, that alignment will be destroyed
             and replaced.  If identify_as is None, then a unique identifer will be generated
-            and used.
+            and used.  The cannot contain the ':' character, since that is used to indicate
+            sequences within the alignment to commands.  Any such characters will be replaced
+            with '/'.
         auto_destroy : boolean or None
             Whether to automatically destroy the alignment when the last viewer for it
             is closed.  If None, then treated as False if the value of the 'viewer' keyword
@@ -97,7 +99,11 @@ class AlignmentsManager(State):
             while str(i) in self.alignments:
                 i += 1
             identify_as = str(i)
-        elif identify_as in self.alignments:
+        elif ':' in identify_as:
+            self.session.logger.info(
+                "Illegal ':' character in alignment identifier replaced with '/'")
+            identify_as = identify_as.replace(':', '/')
+        if identify_as in self.alignments:
             self.session.logger.info(
                 "Destroying pre-existing alignment with identifier %s" % identify_as)
             self.destroy_alignment(self.alignments[identify_as])
