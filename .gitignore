@@ -45,6 +45,7 @@ src/core/atomic/mmcif_cpp/_mmcif.h
 src/core/atomic/mmcif_cpp/wrappy
 src/core/ui/about.html
 src/bundles/rest_server/server.pem
+src/examples/sample/license.txt
 prereqs/PyQt/*commercial*
 docs/license.html
 docs/license.txt
