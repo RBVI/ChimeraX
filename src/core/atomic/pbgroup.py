@@ -143,6 +143,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
             'version': 1,
             'category': self.category,
             'dashes': self._dashes,
+            'model state': Model.take_snapshot(self, session, flags),
             'structure': self.structure,
         }
         if self._global_group:
@@ -153,12 +154,12 @@ class PseudobondGroup(PseudobondGroupData, Model):
 
     @staticmethod
     def restore_snapshot(session, data):
-        if data['version'] != 1:
-            raise RestoreError("Unexpected pb group session version")
         if data['structure'] is not None:
             grp = data['structure'].pseudobond_group(data['category'], create_type=None)
         else:
             grp = session.pb_manager.get_group(data['category'], create=False)
+        if 'model state' in data:
+            Model.set_state_from_snapshot(grp, session, data['model state'])
         grp._dashes = data['dashes']
         return grp
 
