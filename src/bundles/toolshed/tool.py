@@ -99,8 +99,18 @@ class ToolshedUI(ToolInstance):
         parent.setLayout(layout)
 
         from PyQt5.QtCore import QUrl
-        self.html_view.setUrl(QUrl(session.toolshed.remote_url))
+        self.html_view.setUrl(QUrl(self.url))
         self._pending_downloads = []
+
+    @property
+    def url(self):
+        from urllib.parse import urlencode
+        from distutils.util import get_platform
+        from chimerax.core import buildinfo
+        params = urlencode({"platform":get_platform(),
+                            "version":buildinfo.version})
+        url = "%s?%s" % (self.session.toolshed.remote_url, params)
+        return url
 
     def _intercept(self, info):
         # "info" is an instance of QWebEngineUrlRequestInfo
