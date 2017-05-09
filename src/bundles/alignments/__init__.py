@@ -39,7 +39,7 @@ class _AlignmentsBundleAPI(BundleAPI):
         del session.alignments
 
     @staticmethod
-    def open_file(session, stream, fname, format_name="FASTA", alignment=True,
+    def open_file(session, stream, fname, format_name="FASTA", alignment=True, filespec=None,
             ident=None, auto_associate=True):
         from .parse import open_file
         return open_file(session, stream, fname, format_name=format_name, alignment=alignment,
