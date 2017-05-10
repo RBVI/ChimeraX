@@ -211,7 +211,7 @@ def _debug(*args, **kw):
 
 
 # Default URL of remote toolshed
-_RemoteURL = "https://cxtoolshed-preview.rbvi.ucsf.edu"
+_RemoteURL = "https://cxtoolshed.rbvi.ucsf.edu"
 # Default name for toolshed cache and data directories
 _ToolshedFolder = "toolshed"
 # Defaults names for installed ChimeraX bundles

@@ -22,7 +22,7 @@ class AlignmentsManager(State):
         self.viewer_info = {'alignment': {}, 'sequence': {}}
 
     def destroy_alignment(self, alignment):
-        del self.alignments[alignment.name]
+        del self.alignments[alignment.ident]
         alignment._destroy()
 
     def deregister_viewer(self, tool_name, sequence_viewer=True, alignment_viewer=True):
@@ -31,8 +31,8 @@ class AlignmentsManager(State):
         if alignment_viewer:
             del self.viewer_info['alignment'][tool_name]
 
-    def new_alignment(self, seqs, identify_as, attrs=None, markups=None,
-            auto_destroy=None, align_viewer=None, seq_viewer=None, auto_associate=True, **kw):
+    def new_alignment(self, seqs, identify_as, attrs=None, markups=None, auto_destroy=None,
+            align_viewer=None, seq_viewer=None, auto_associate=True, name=None, intrinsic=False):
         """Create new alignment from 'seqs'
 
         Parameters
@@ -42,7 +42,9 @@ class AlignmentsManager(State):
         identify_as : a text string (or None) used to identify the alignment in commands.  If the
             string is already in use by another alignment, that alignment will be destroyed
             and replaced.  If identify_as is None, then a unique identifer will be generated
-            and used.
+            and used.  The cannot contain the ':' character, since that is used to indicate
+            sequences within the alignment to commands.  Any such characters will be replaced
+            with '/'.
         auto_destroy : boolean or None
             Whether to automatically destroy the alignment when the last viewer for it
             is closed.  If None, then treated as False if the value of the 'viewer' keyword
@@ -56,6 +58,12 @@ class AlignmentsManager(State):
             Whether to automatically associate structures with the alignment.   A value of None
             is the same as False except that any StructureSeqs in the alignment will be associated
             with their structures.
+        name : string or None
+            Descriptive name of the alignment to use in viewer titles and so forth.  If not
+            provided, same as identify_as.
+        intrinsic : boolean
+            If True, then the alignment is treated as "coupled" to the structures associated with
+            it in that if all associations are removed then the alignment is destroyed.
         """
         if self.session.ui.is_gui:
             if len(seqs) > 1:
@@ -91,23 +99,30 @@ class AlignmentsManager(State):
             while str(i) in self.alignments:
                 i += 1
             identify_as = str(i)
-        elif identify_as in self.alignments:
+        elif ':' in identify_as:
+            self.session.logger.info(
+                "Illegal ':' character in alignment identifier replaced with '/'")
+            identify_as = identify_as.replace(':', '/')
+        if identify_as in self.alignments:
             self.session.logger.info(
                 "Destroying pre-existing alignment with identifier %s" % identify_as)
             self.destroy_alignment(self.alignments[identify_as])
 
-        from chimerax.core.atomic import StructureSeq
-        if len(seqs) == 1 and isinstance(seqs[0], StructureSeq):
-            sseq = seqs[0]
-            if sseq.description:
-                description = "%s (%s)" % (sseq.description, sseq.full_name)
+        if name is None:
+            from chimerax.core.atomic import StructureSeq
+            if len(seqs) == 1 and isinstance(seqs[0], StructureSeq):
+                sseq = seqs[0]
+                if sseq.description:
+                    description = "%s (%s)" % (sseq.description, sseq.full_name)
+                else:
+                    description = sseq.full_name
             else:
-                description = sseq.full_name
+                description = identify_as
         else:
-            description = identify_as
+            description = name
         self.session.logger.info("Alignment identifier is %s" % identify_as)
         alignment = Alignment(self.session, seqs, identify_as, attrs, markups, auto_destroy,
-            auto_associate, description)
+            auto_associate, description, intrinsic)
         self.alignments[identify_as] = alignment
         if viewer:
             viewer_startup_cb(self.session, tool_name, alignment)

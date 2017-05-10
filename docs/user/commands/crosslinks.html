@@ -1,0 +1,188 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: crosslinks</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: crosslinks</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>crosslinks</b>
+&nbsp;<a href="atomspec.html"><i>pseudobond-spec</i></a>&nbsp;
+[&nbsp;radius&nbsp;&nbsp;<i>r</i>&nbsp;]
+[&nbsp;color&nbsp;&nbsp;<a href="colornames.html"><i>colorname</i></a>&nbsp;] 
+</h3>
+<!--
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>crosslinks</b> <b>histogram</b>
+&nbsp;<a href="atomspec.html"><i>pseudobond-spec</i></a>&nbsp;
+[&nbsp;<b>ensemble</b>&nbsp;&nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;]
+</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>crosslinks</b> <b>network</b>
+&nbsp;<a href="atomspec.html"><i>pseudobond-spec</i></a>&nbsp;
+</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>crosslinks</b> <b>minimize</b>
+&nbsp;<a href="atomspec.html"><i>pseudobond-spec</i></a>&nbsp;
+[&nbsp;<b>structures</b>&nbsp;&nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>iterations</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>frames</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
+</h3>
+-->
+<p>
+The <b>crosslinks</b> command acts on
+<a href="../pseudobonds.html">pseudobonds</a>, such as crosslinks from
+<a href="open.html#composite">integrative hybrid modeling (IHM)</a>.
+See also: 
+<a href="color.html"><b>color</b></a>,
+<a href="style.html"><b>style</b></a>
+</p><p>
+The top-level command sets pseudobond <b>radius</b>
+<!-- radius is temporarily enlarged 3X by histogram mouseover -->
+and/or <b>color</b>, where the <i>colorname</i> can be any
+<a href="colornames.html">color name</a> that specifies a single color.
+The following subcommands perform plotting and other analyses:
+</p>
+<ul>
+<li><a href="#histogram"><b>crosslinks histogram</b></a>
+- plot as histogram by length
+<li><a href="#network"><b>crosslinks network</b></a>
+- plot as chain network diagram
+<li><a href="#minimize"><b>crosslinks minimize</b></a>
+- move models rigidly to minimize lengths
+</ul>
+<p>
+Any <a href="atomspec.html"><i>pseudobond-spec</i></a> can be used: 
+model numbers of pseudobond models or the atomic models containing them, 
+<a href="atomspec.html#builtin"><b>sel</b></a>
+to indicate the current <a href="../selection.html">selection</a>,
+<a href="atomspec.html#builtin"><b>hbonds</b></a>, <i>etc.</i>
+For IHM data, it is typically the model number of a sphere model,
+in which spheres are pseudoatoms and the pseudobonds between them represent
+crosslinks or other restraints.
+</p>
+
+<a name="histogram"></a>
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<h3>Histogram by Length</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>crosslinks</b> <b>histogram</b>
+&nbsp;<a href="atomspec.html"><i>pseudobond-spec</i></a>&nbsp;
+[&nbsp;<b>ensemble</b>&nbsp;&nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;]
+</blockquote>
+<p>
+A histogram of lengths can be shown for either a collection of 
+<a href="../pseudobonds.html">pseudobonds</a>
+within a given structure, or for a single 
+<a href="../pseudobonds.html">pseudobond</a>
+across the frames of a <a href="../trajectories.html">trajectory</a>
+specified with the <b>ensemble</b> option.
+See also: <a href="coordset.html"><b>coordset</b></a>
+</p><p>
+Passing the cursor over bars in a multiple-pseudobond histogram shows just
+the pseudobonds of the corresponding length, temporarily enlarged to 3 times
+their normal radius.
+In a histogram for a single pseudobond across a trajectory,
+passing the cursor over a bar shows just the trajectory frame (coordinate set)
+in which the pseudobond has the corresponding length.
+</p>
+
+<a name="network"></a>
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<h3>Chain-Chain Network Diagram</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>crosslinks</b> <b>network</b>
+&nbsp;<a href="atomspec.html"><i>pseudobond-spec</i></a>&nbsp;
+</blockquote>
+<p>
+Chains crosslinked by the specified
+<a href="../pseudobonds.html">pseudobonds</a>
+can be depicted in a 2D network diagram.
+In the diagram, <b><i>nodes</i></b> (circles) represent groups of atoms
+(chains in an atomic model or sets of spheres within a sphere model)
+and <b><i>edges</i></b> (lines) are drawn between nodes where the
+corresponding groups are crosslinked.
+Nodes are labeled with the number of intrachain pseudobonds, 
+edges with the number of interchain pseudobonds.
+Node colors match the colors of the groups when the diagram is created.
+Clicking a node <a href="../selection.html">selects</a> the corresponding atoms.
+</p><p>
+Context menus are accessed by
+right-clicking<a href="../window.html#mac-context">*</a>
+various parts of the diagram. The <b>node</b> context menu includes:
+</p>
+<ul>
+<li><b>Select [<i>chain</i>]</b>
+- <a href="../selection.html">select</a> the corresponding chain
+(same as simply clicking the node)
+<li><b>Layout matching structure</b>
+- redraw diagram with orientation similar to the current 3D structure
+(including repulsion to prevent node overlaps in the diagram)
+<li><b>Hide this tool</b>
+- hide the panel (can be <a href="../window.html#panelcontrol">reshown</a>)
+<li><b>Help</b>
+<!--
+- show help in the <a href="../window.html#browser">ChimeraX browser</a>
+-->
+</ul>
+<p>
+The <b>background</b> context menu contains the same options, 
+except for selecting the specific chain.
+</p>
+
+<a name="minimize"></a>
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<h3>Minimize Inter-Model Crosslinks</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>crosslinks</b> <b>minimize</b>
+&nbsp;<a href="atomspec.html"><i>pseudobond-spec</i></a>&nbsp;
+[&nbsp;<b>structures</b>&nbsp;&nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>iterations</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>frames</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
+</blockquote>
+<p>
+A simple optimization can be performed in which whole models are moved 
+as rigid bodies to shorten inter-model 
+<a href="../pseudobonds.html">pseudobonds</a>.
+The minimized quantity is the sum of squares of the lengths.
+Models to move can be restricted with the <b>structures</b> keyword
+and are repositioned (in memory, not in the display) once per iteration,
+with multiple iterations (default <b>10</b>) converging toward a minimum.
+In the display, movement from the initial position to the final position
+will occur over a total of <i>N</i> frames (default <b>1</b>).
+</p><p>
+Intra-model crosslinks are not affected.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+May 2017</address>
+</body></html>

@@ -266,15 +266,16 @@ Residue::str() const
 {
     std::stringstream pos_string;
     std::string ret = (const char*)_name;
-    ret += " ";
+    ret += ' ';
+    if (_chain_id != " ") {
+        ret += '/';
+        ret += _chain_id;
+    }
+    ret += ':';
     pos_string << _position;
     ret += pos_string.str();
     if (_insertion_code != ' ')
         ret += _insertion_code;
-    if (_chain_id != " ") {
-        ret += ".";
-        ret += _chain_id;
-    }
     return ret;
 }
 

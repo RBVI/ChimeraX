@@ -206,8 +206,7 @@ def formats(open=True, export=True, source_is_file=False):
     for f in _file_formats.values():
         if source_is_file and not f.extensions:
             continue
-        # if (open and f.open_func) or (export and f.export_func):
-        if 1:
+        if (open and f.open_func) or (export and f.export_func):
             fmts.append(f)
     return fmts
 
@@ -328,7 +327,9 @@ def open_data(session, filespec, format=None, name=None, **kw):
         # TODO: Windows might need tf to be closed before reading with
         # a different file descriptor
 
-    kw["filespec"] = filename
+    import inspect
+    if 'filespec' in inspect.signature(open_func).parameters:
+        kw['filespec'] = filename
     if fmt.category == SCRIPT:
         with session.in_script:
             models, status = open_func(session, stream, dname, **kw)

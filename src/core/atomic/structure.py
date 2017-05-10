@@ -1835,7 +1835,18 @@ class AtomicStructure(Structure):
     def added_to_session(self, session):
         super().added_to_session(session)
         if self._log_info:
-            self._report_chain_descriptions(session)
+            # don't report models in an NMR ensemble individually...
+            if len(self.id) > 1:
+                sibs = [m for m in session.models if m.id[:-1] == self.id[:-1]]
+                if len(set([s.name for s in sibs])) > 1:
+                    # not an NMR ensemble
+                    self._report_chain_descriptions(session)
+                else:
+                    sibs.sort(key=lambda m: m.id)
+                    if sibs[-1] == self:
+                        self._report_ensemble_chain_descriptions(session, sibs)
+            else:
+                self._report_chain_descriptions(session)
             self._report_assemblies(session)
 
     @staticmethod
@@ -1954,8 +1965,34 @@ class AtomicStructure(Structure):
             description = chain.description if chain.description else "No description available"
             descripts.setdefault((description, chain.characters), []).append(chain)
         def chain_text(chain):
-            return '<a href="cxcmd:seqalign chain #%s/%s">%s</a>' % (
+            return '<a title="Show sequence" href="cxcmd:seqalign chain #%s/%s">%s</a>' % (
                 chain.structure.id_string(), chain.chain_id, chain.chain_id)
+        self._report_chain_summary(session, descripts, chain_text)
+
+    def _report_ensemble_chain_descriptions(self, session, ensemble):
+        from .molarray import AtomicStructures
+        structs = AtomicStructures(ensemble)
+        chains = sorted(structs.chains, key=lambda c: c.chain_id)
+        if not chains:
+            return
+        from collections import OrderedDict
+        descripts = OrderedDict()
+        for chain in chains:
+            description = chain.description if chain.description else "No description available"
+            descripts.setdefault((description, chain.characters), []).append(chain)
+        def chain_text(chain):
+            return '<a title="Show sequence" href="cxcmd:seqalign chain #%s/%s">%s/%s</a>' % (
+                chain.structure.id_string(), chain.chain_id,
+                chain.structure.id_string(), chain.chain_id)
+        self._report_chain_summary(session, descripts, chain_text)
+
+    def _report_chain_summary(self, session, descripts, chain_text):
+        def descript_text(description, chains):
+            if len(chains) == 1:
+                return description
+            return '<a title="Show sequence" href="cxcmd:seqalign chain %s">%s</a>' % (
+                ''.join(["#%s/%s" % (chain.structure.id_string(), chain.chain_id)
+                    for chain in chains]), description)
         from ..logger import html_table_params
         summary = '\n<table %s>\n' % html_table_params
         summary += '  <thead>\n'
@@ -1975,7 +2012,7 @@ class AtomicStructure(Structure):
             summary += ' '.join([chain_text(chain) for chain in chains])
             summary += '      </td>'
             summary += '      <td>'
-            summary += description
+            summary += descript_text(description, chains)
             summary += '      </td>'
             summary += '    </tr>\n'
         summary += '  </tbody>\n'

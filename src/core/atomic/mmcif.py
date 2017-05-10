@@ -33,7 +33,7 @@ _additional_categories = (
 )
 
 
-def open_mmcif(session, filename, name, *args, **kw):
+def open_mmcif(session, filename, name, auto_style=True):
     # mmCIF parsing requires an uncompressed file
     if hasattr(filename, 'name'):
         # it's really a fetched stream
@@ -44,10 +44,8 @@ def open_mmcif(session, filename, name, *args, **kw):
         lambda name, session=session: _get_template(session, name))
     pointers = _mmcif.parse_mmCIF_file(filename, _additional_categories, session.logger)
 
-    smid = kw.get('auto_style', True)
-
     from .structure import AtomicStructure
-    models = [AtomicStructure(session, name = name, c_pointer = p, auto_style = smid) for p in pointers]
+    models = [AtomicStructure(session, name = name, c_pointer = p, auto_style = auto_style) for p in pointers]
     for m in models:
         m.filename = filename
 
@@ -146,7 +144,7 @@ def register_mmcif_format():
     #    reference="http://www.iucr.org/__data/iucr/cif/standard/cifstd1.html")
     from .mmcif_write import write_mmcif
     io.register_format(
-        "mmCIF", structure.CATEGORY, (".cif",), ("mmcif",),
+        "mmCIF", structure.CATEGORY, (".cif", ".mmcif"), ("mmcif",),
         mime=("chemical/x-mmcif",),
         reference="http://mmcif.wwpdb.org/",
         requires_filename=True, open_func=open_mmcif, export_func=write_mmcif)

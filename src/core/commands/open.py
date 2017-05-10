@@ -11,8 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def open(session, filename, format=None, name=None, from_database=None, ignore_cache=False,
-         auto_style = True, coordset = False, vseries = None, **kw):
+def open(session, filename, format=None, name=None, from_database=None, ignore_cache=False, **kw):
     '''Open a file.
 
     Parameters
@@ -33,15 +32,6 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
     ignore_cache : bool
         Whether to fetch files from cache.  Fetched files are always written
         to cache.
-    auto_style : bool
-        Whether to display molecules with rich styles and colors.
-    coordset : bool
-        Whether to read a PDB format multimodel file as coordinate sets (true)
-        or as multiple models (false, default).
-    vseries : bool or None
-        Whether to read a maps as a series, or as separate maps. The default None
-        means to use default rules: 3d TIFF images are series and Chimera map files
-        containing 5 or more maps of equal size.
     '''
 
     if ':' in filename:
@@ -61,10 +51,14 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
             if format is None:
                 format = 'mmcif'
 
-    kw.update({'auto_style': auto_style,
-               'coordset': coordset,
-               'vseries': vseries})
-
+    def handle_unknown_kw(f, *args, **kw):
+        try:
+            return f(*args, **kw)
+        except TypeError as e:
+            if 'unexpected keyword' in str(e):
+                from ..errors import UserError
+                raise UserError(str(e))
+            raise
     from ..filehistory import remember_file
     if from_database is not None:
         from .. import fetch
@@ -77,16 +71,14 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
                     'Only %s %s can be fetched from %s database'
                     % (commas(['"%s"' % f for f in db_formats], ' and '),
                        plural_form(db_formats, "format"), from_database))
-        models, status = fetch.fetch_from_database(session, from_database, filename,
-                                                   format=format, name=name, ignore_cache=ignore_cache, **kw)
+        models, status = handle_unknown_kw(fetch.fetch_from_database, session, from_database,
+            filename, format=format, name=name, ignore_cache=ignore_cache, **kw)
         if len(models) > 1:
             session.models.add_group(models)
         else:
             session.models.add(models)
         remember_file(session, filename, format, models, database=from_database)
         session.logger.status(status, log=True)
-        if coordset:
-            report_coordsets(models, session.logger)
         return models
 
     if format is not None:
@@ -108,23 +100,15 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
             raise UserError('File not found: %s' % filename)
 
     try:
-        models = session.models.open(paths, format=format, name=name, **kw)
+        models = handle_unknown_kw(session.models.open, paths, format=format, name=name, **kw)
     except OSError as e:
         from ..errors import UserError
         raise UserError(e)
-
-    if coordset:
-        report_coordsets(models, session.logger)
     
     # Remember in file history
     remember_file(session, filename, format, models or 'all models')
 
     return models
-
-def report_coordsets(models, log):
-    for m in models:
-        if hasattr(m, 'num_coord_sets'):
-            log.info('%s has %d coordinate sets' % (m.name, m.num_coord_sets))
 
 def format_from_name(name, open=True, save=False):
     from .. import io
@@ -190,8 +174,14 @@ def register_command(session):
     from . import CmdDesc, register, DynamicEnum, StringArg, BoolArg, OpenFileNameArg
 
     def formats():
-        from .. import io
-        names = sum((tuple(f.nicknames) for f in io.formats()), ())
+        from .. import io, fetch
+        names = set()
+        for f in io.formats():
+            names.update(f.nicknames)
+        for db in fetch.fetch_databases():
+            formats = list(fetch.database_formats(db))
+            if formats and formats[0] is not None:
+                names.update(formats)
         return names
 
     def db_formats():

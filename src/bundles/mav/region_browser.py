@@ -185,7 +185,7 @@ class Region:
 
     def _disp_border_rgba(self):
         # account for highlighting
-        if not self.border_rgba and self.highlighted:
+        if self.border_rgba is None and self.highlighted:
             return (0.0, 0.0, 0.0, 1.0)
         return self.border_rgba
 
@@ -262,7 +262,7 @@ class Region:
             brush.setStyle(Qt.SolidPattern)
         else:
             brush.setStyle(Qt.NoBrush)
-        if self._disp_border_rgba():
+        if self._disp_border_rgba() is not None:
             pen.setColor(rgba_to_qcolor(self._disp_border_rgba()))
             if self.highlighted:
                 pen.setStyle(Qt.DashLine)
@@ -417,7 +417,6 @@ class Region:
 
 class RegionBrowser:
 
-    """
     PRED_HELICES_REG_NAME = "predicted helices"
     PRED_STRANDS_REG_NAME = "predicted strands"
     PRED_SS_REG_NAMES = [PRED_HELICES_REG_NAME, PRED_STRANDS_REG_NAME]
@@ -425,7 +424,6 @@ class RegionBrowser:
     ACTUAL_STRANDS_REG_NAME = "structure strands"
     ACTUAL_SS_REG_NAMES = [ACTUAL_HELICES_REG_NAME, ACTUAL_STRANDS_REG_NAME]
     SS_REG_NAMES = PRED_SS_REG_NAMES + ACTUAL_SS_REG_NAMES
-    """
 
     def __init__(self, tool_window, seq_canvas):
         self.tool_window = tool_window
@@ -1212,63 +1210,63 @@ class RegionBrowser:
         seqOrder = self._regMenuOrder(retVal="sequence")
         self.seqRegionMenu.invoke(seqOrder.index(seq))
 
-    def showSS(self, show):
+    def show_ss(self, show):
         """show actual secondary structure"""
-        from chimera.Sequence import defHelixColor, defStrandColor
-        helixReg = self.get_region(self.ACTUAL_HELICES_REG_NAME, create=show,
-                fill=(1.0, 1.0, 0.8), outline=defHelixColor)
-        strandReg = self.get_region(self.ACTUAL_STRANDS_REG_NAME, create=show,
-                fill=(0.8, 1.0, 0.8), outline=defStrandColor)
-        if helixReg:
-            helixReg.shown = show
-        if strandReg:
-            strandReg.shown = show
+        from chimerax.core.atomic import Sequence
+        helix_reg = self.get_region(self.ACTUAL_HELICES_REG_NAME, create=show,
+                fill=Sequence.default_helix_fill_color,
+                outline=Sequence.default_helix_outline_color)
+        strand_reg = self.get_region(self.ACTUAL_STRANDS_REG_NAME, create=show,
+                fill=Sequence.default_strand_fill_color,
+                outline=Sequence.default_strand_outline_color)
+        if helix_reg:
+            helix_reg.shown = show
+        if strand_reg:
+            strand_reg.shown = show
         if not show:
             return
-        helixReg.clear(make_cb=False)  # callback will happen in
-        strandReg.clear(make_cb=False) # add_blocks below
+        helix_reg.clear(make_cb=False)  # callback will happen in
+        strand_reg.clear(make_cb=False) # add_blocks below
 
-        assocSeqs = {}
+        assoc_seqs = set()
         helices = []
         strands = []
-        for aseq in self.seq_canvas.mav.associations.values():
-            assocSeqs[aseq] = 1
-        for aseq in assocSeqs.keys():
-            inHelix = inStrand = 0
+        for aseq in self.seq_canvas.alignment.associations.values():
+            assoc_seqs.add(aseq)
+        for aseq in assoc_seqs:
+            in_helix = in_strand = False
             for pos in range(len(aseq.ungapped())):
-                isHelix = isStrand = 0
-                for matchMap in aseq.matchMaps.values():
+                is_helix = is_strand = False
+                for match_map in aseq.match_maps.values():
                     try:
-                        res = matchMap[pos]
+                        res = match_map[pos]
                     except KeyError:
                         continue
-                    if res.isHelix:
-                        isHelix = 1
-                    elif res.isStrand:
-                        isStrand = 1
-                gapped = aseq.ungapped2gapped(pos)
-                if isHelix:
-                    if inHelix:
+                    if res.is_helix:
+                        is_helix = True
+                    elif res.is_strand:
+                        is_strand = True
+                gapped = aseq.ungapped_to_gapped(pos)
+                if is_helix:
+                    if in_helix:
                         helices[-1][-1] = gapped
                     else:
-                        helices.append([aseq, aseq,
-                                gapped, gapped])
-                        inHelix = 1
+                        helices.append([aseq, aseq, gapped, gapped])
+                        in_helix = True
                 else:
-                    if inHelix:
-                        inHelix = 0
-                if isStrand:
-                    if inStrand:
+                    if in_helix:
+                        in_helix = False
+                if is_strand:
+                    if in_strand:
                         strands[-1][-1] = gapped
                     else:
-                        strands.append([aseq, aseq,
-                                gapped, gapped])
-                        inStrand = 1
+                        strands.append([aseq, aseq, gapped, gapped])
+                        in_strand = True
                 else:
-                    if inStrand:
-                        inStrand = 0
-        helixReg.add_blocks(helices)
-        strandReg.add_blocks(strands)
+                    if in_strand:
+                        in_strand = False
+        helix_reg.add_blocks(helices)
+        strand_reg.add_blocks(strands)
 
     def unmap(self, *args):
         if self._mod_assoc_handler_id:

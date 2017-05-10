@@ -14,7 +14,7 @@ from chimerax.core.toolshed import BundleAPI
 class _ColorGlobeAPI(BundleAPI):
 
     @staticmethod
-    def open_file(session, f, name, filespec=None, **kw):
+    def open_file(session, f, name, **kw):
         # 'open_file' is called by session code to open a file
         # returns (list of models, status message)
         from . import dres

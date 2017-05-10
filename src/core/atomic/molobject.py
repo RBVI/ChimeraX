@@ -906,6 +906,12 @@ class Sequence(State):
     rname3to1 = lambda rn: c_function('sequence_rname3to1', args = (ctypes.c_char_p,),
         ret = ctypes.c_char)(rn.encode('utf-8')).decode('utf-8')
 
+    # the following colors for use by alignment/sequence viewers
+    default_helix_fill_color = (1.0, 1.0, 0.8)
+    default_strand_fill_color = (0.8, 1.0, 0.8)
+    default_helix_outline_color = tuple([chan/255.0 for chan in (218, 165, 32)]) # goldenrod
+    default_strand_outline_color = tuple([chan/255.0 for chan in (50, 205, 50)]) # lime green
+
     chimera_exiting = False
 
     def __init__(self, seq_pointer=None, *, name="sequence", characters=""):
@@ -1147,9 +1153,28 @@ class StructureSeq(Sequence):
     @property
     def has_protein(self):
         for r in self.residues:
-            if r and Sequence.protein3to1(r.name.encode('utf8')) != 'X':
+            if r and Sequence.protein3to1(r.name) != 'X':
                 return True
         return False
+
+    def _get_numbering_start(self):
+        if self._numbering_start == None:
+            for i, r in enumerate(self.residues):
+                if r is None:
+                    continue
+                if r.deleted:
+                    return getattr(self, '_prev_numbering_start', 1)
+                break
+            else:
+                return getattr(self, '_prev_numbering_start', 1)
+            pns = self._prev_numbering_start = r.number - i
+            return pns
+        return self._numbering_start
+
+    def _set_numbering_start(self, ns):
+        self._numbering_start = ns
+
+    numbering_start = property(_get_numbering_start, _set_numbering_start)
 
     @property
     def res_map(self):
@@ -1184,18 +1209,12 @@ class StructureSeq(Sequence):
 
     @staticmethod
     def restore_snapshot(session, data):
-        sseq = StructureSequence(chain_id=data['chain_id'], structure=data['structure'])
+        sseq = StructureSeq(chain_id=data['chain_id'], structure=data['structure'])
         Sequence.set_state_from_snapshot(sseq, session, data['Sequence'])
         sseq.description = data['description']
-        self.bulk_set(data['residues'], sseq.characters)
+        sseq.bulk_set(data['residues'], sseq.characters)
         sseq.description = data.get('description', None)
         return sseq
-
-    @staticmethod
-    def restore_snapshot(session, data):
-        chain = object_map(data['structure'].session_id_to_chain(data['ses_id']), Chain)
-        chain.description = data.get('description', None)
-        return chain
 
     def ss_type(self, loc, loc_is_ungapped=False):
         if not loc_is_ungapped:
@@ -1213,7 +1232,7 @@ class StructureSeq(Sequence):
 
     def take_snapshot(self, session, flags):
         data = {
-            'Sequence': Sequence.take_snapshot(self),
+            'Sequence': Sequence.take_snapshot(self, session, flags),
             'chain_id': self.chain_id,
             'description': self.description,
             'residues': self.residues,
@@ -1500,7 +1519,7 @@ class StructureData:
         from .molarray import Residues
         return tuple(Residues(ra) for ra in resarrays)
 
-    def pseudobond_group(self, name, create_type = "normal"):
+    def pseudobond_group(self, name, *, create_type = "normal"):
         '''Get or create a :class:`.PseudobondGroup` belonging to this structure.'''
         if create_type is None:
             create_arg = 0
@@ -1917,6 +1936,9 @@ class SeqMatchMap(State):
         self.session = session
         from . import get_triggers
         self._handler = get_triggers(session).add_handler("changes", self._atomic_changes)
+
+    def __bool__(self):
+        return bool(self._pos_to_res)
 
     def __contains__(self, i):
         if isinstance(i, int):

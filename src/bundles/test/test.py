@@ -13,6 +13,10 @@
 
 commands = [
     'log warn false error false',
+    'open 1mtx',
+    'mmaker #1.1 to #1.2',
+    'mmaker #1.1-5 to #1.6 alg sw matrix PAM-150 iter 5.0',
+    'close',
     'open 1a0m',
     '~display /b',
     'style stick',

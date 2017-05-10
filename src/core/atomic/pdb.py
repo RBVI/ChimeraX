@@ -18,7 +18,7 @@ pdb: PDB format support
 Read Protein DataBank (PDB) files.
 """
 
-def open_pdb(session, filename, name, *args, **kw):
+def open_pdb(session, filename, name, auto_style=True, coordset=False):
 
     if hasattr(filename, 'read'):
         # it's really a fetched stream
@@ -28,24 +28,29 @@ def open_pdb(session, filename, name, *args, **kw):
         input = open(filename, 'rb')
         path = filename
 
-    explode = not kw.get('coordset', False)
     from . import pdbio
-    pointers = pdbio.read_pdb_file(input, log=session.logger, explode=explode)
+    pointers = pdbio.read_pdb_file(input, log=session.logger, explode=not coordset)
     if input != filename:
         input.close()
 
-    smid = kw.get('auto_style', True)
-    
     from .structure import AtomicStructure
-    models = [AtomicStructure(session, name = name, c_pointer = p, auto_style = smid) for p in pointers]
+    models = [AtomicStructure(session, name = name, c_pointer = p, auto_style = auto_style) for p in pointers]
 
     if path:
         for m in models:
             m.filename = path
 
-    return models, ("Opened PDB data containing %d atoms and %d bonds"
-                    % (sum(m.num_atoms for m in models),
-                       sum(m.num_bonds for m in models)))
+    info = "Opened PDB data containing %d atoms%s %d bonds" % (
+        sum(m.num_atoms for m in models),
+        ("," if coordset else " and"),
+        sum(m.num_bonds for m in models))
+    if coordset:
+        num_cs = 0
+        for m in models:
+            num_cs += m.num_coord_sets
+        info += " and %s coordinate sets" % num_cs
+
+    return models, info
 
 
 _pdb_sources = {

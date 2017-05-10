@@ -396,31 +396,36 @@ ExtractMolecule::connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, b
         if (tr0 == nullptr)
             continue;
         auto ta0 = tr0->link();
-        if (ta0 == nullptr)
-            continue;
         for (auto&& r1: b) {
             auto tr1 = find_template_residue(r1->name());
             // only connect residues of the same type
             if (tr1 == nullptr || tr1->description() != tr0->description())
                 continue;
             auto ta1 = tr1->chief();
-            if (ta1 == nullptr)
-                continue;
-            Atom* a0 = r0->find_atom(ta0->name());
-            Atom* a1 = r1->find_atom(ta1->name());
+            Atom* a0 = ta0 ? r0->find_atom(ta0->name()) : NULL;
+            Atom* a1 = ta1 ? r1->find_atom(ta1->name()) : NULL;
             if (a0 == nullptr && a1 != nullptr) {
                 std::swap(a0, a1);
                 std::swap(r0, r1);
             }
             if (a0 == nullptr) {
                 find_nearest_pair(r0, r1, &a0, &a1);
-            } else if (a1 == nullptr)
+                if (a0 == nullptr || a0->element() != Element::C || a0->name() != "CA") {
+                    // suppress warning for CA traces
+                    logger::warning(_logger, "Missing linking atoms for ", r0->str(), " and ", r1->str());
+                }
+            } else if (a1 == nullptr) {
+                logger::warning(_logger, "Missing linking atom for ", r1->str());
                 a1 = find_closest(a0, r1, nullptr, true);
+            }
             if (a1 == nullptr)
                 continue;
-            if (gap && reasonable_bond_length(a0, a1))
+            if (gap && reasonable_bond_length(a0, a1)) {
+                logger::warning(_logger, "Eliding gap between ", r0->str(), " and ", r1->str());
                 gap = false;    // bad data
-            if (gap || !Bond::polymer_bond_atoms(a0, a1)) {
+            }
+            if (gap || (!Bond::polymer_bond_atoms(a0, a1) && !reasonable_bond_length(a0, a1))) {
+                // gap or CA trace
                 auto as = r0->structure();
                 auto pbg = as->pb_mgr().get_group(as->PBG_MISSING_STRUCTURE,
                     atomstruct::AS_PBManager::GRP_NORMAL);
@@ -443,7 +448,8 @@ ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr
     for (auto&& a: atoms) {
         tmpl::Atom *ta = tr->find_atom(a->name());
         if (!ta) {
-            logger::warning(_logger, "Found atoms not in residue template for ", r->str());
+            logger::warning(_logger, "Found atom ", a->name(),
+                            " that is not in residue template for ", r->str());
             connect_residue_by_distance(r);
             return;
         }

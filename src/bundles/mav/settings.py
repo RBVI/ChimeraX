@@ -14,8 +14,16 @@
 SINGLE_PREFIX = "single_seq_"
 
 defaults = {
+    "block space": True,
+    SINGLE_PREFIX + "block space": False,
 	"column_separation": 0,
     SINGLE_PREFIX + "column_separation": -2,
+    "error_region_shown": True,
+    "error_region_borders": (None, None),
+    "error_region_interiors": ("red", "pink"),
+    "gap_region_shown": True,
+    "gap_region_borders": ("black", [chan/255.0 for chan in (190, 190, 190, 255)]),
+    "gap_region_interiors": (None, None),
     "line_width": -5,
     SINGLE_PREFIX + "line_width": -5,
     "new_region_border": None,

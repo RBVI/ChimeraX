@@ -149,7 +149,7 @@ class MultAlignViewer(ToolInstance):
                 capped_words.append(word.capitalize())
             else:
                 capped_words.append(word)
-        self.display_name = " ".join(capped_words) + " [ID: %s]" % self.alignment.name
+        self.display_name = " ".join(capped_words) + " [ID: %s]" % self.alignment.ident
         from chimerax.core.ui.gui  import MainToolWindow
         self.tool_window = MainToolWindow(self, close_destroys=True, statusbar=True)
         self.tool_window._ToolWindow__toolkit.dock_widget.setMouseTracking(True)
@@ -179,6 +179,11 @@ class MultAlignViewer(ToolInstance):
         for seq in self.alignment.seqs:
             self._seq_rename_handlers[seq] = seq.triggers.add_handler("rename",
                 self.region_browser._seq_renamed_cb)
+            if seq.match_maps:
+               self._update_errors_gaps(seq)
+        if self.alignment.intrinsic:
+            self.region_browser.show_ss(True)
+            self.status("Helices/strands depicted in gold/green")
         """TODO
         if self.fileMarkups:
             from HeaderSequence import FixedHeaderSequence
@@ -428,8 +433,13 @@ class MultAlignViewer(ToolInstance):
 
     def alignment_notification(self, note_name, note_data):
         if note_name == "modify association":
+            assoc_aseqs = set()
             for match_map in note_data[-1]:
-                self.seq_canvas.assoc_mod(match_map.align_seq)
+                aseq = match_map.align_seq
+                self.seq_canvas.assoc_mod(aseq)
+                assoc_aseqs.add(aseq)
+            for aseq in assoc_aseqs:
+                self._update_errors_gaps(aseq)
         elif note_name == "pre-remove seqs":
             self.region_browser._pre_remove_lines(note_data)
         elif note_name == "destroyed":
@@ -487,9 +497,77 @@ class MultAlignViewer(ToolInstance):
         }
         return data
 
+    def _update_errors_gaps(self, aseq):
+        if not self.settings.error_region_shown and not self.settings.gap_region_shown:
+            return
+        a_ref_seq = getattr(aseq, 'residue_sequence', aseq.ungapped())
+        errors = [0] * len(a_ref_seq)
+        gaps = [0] * len(a_ref_seq)
+        from chimerax.core.atomic import Sequence
+        for chain, match_map in aseq.match_maps.items():
+            for i, char in enumerate(a_ref_seq):
+                try:
+                    res = match_map[i]
+                except KeyError:
+                    gaps[i] += 1
+                else:
+                    if Sequence.rname3to1(res.name) != char:
+                        errors[i] += 1
+        partial_error_blocks, full_error_blocks = [], []
+        partial_gap_blocks, full_gap_blocks = [], []
+        num_assocs = len(aseq.match_maps)
+        if num_assocs > 0:
+            for partial, full, check in [(partial_error_blocks, full_error_blocks, errors),
+                    (partial_gap_blocks, full_gap_blocks, gaps)]:
+                cur_partial_block = cur_full_block = None
+                for i, check_num in enumerate(check):
+                    gapped_i = aseq.ungapped_to_gapped(i)
+                    if check_num == num_assocs:
+                        if cur_full_block:
+                            cur_full_block[-1] = gapped_i
+                        else:
+                            cur_full_block = [aseq, aseq, gapped_i, gapped_i]
+                            full.append(cur_full_block)
+                        if cur_partial_block:
+                            cur_partial_block = None
+                    else:
+                        if cur_full_block:
+                            cur_full_block = None
+                        if check_num > 0:
+                            if cur_partial_block:
+                                cur_partial_block[-1] = gapped_i
+                            else:
+                                cur_partial_block = [aseq, aseq, gapped_i, gapped_i]
+                                partial.append(cur_partial_block)
+                        elif cur_partial_block:
+                            cur_partial_block = None
+
+        for shown, region_name_part, partial_blocks, full_blocks, fills, outlines in [
+                (self.settings.error_region_shown, "mismatches", partial_error_blocks,
+                    full_error_blocks, self.settings.error_region_interiors,
+                    self.settings.error_region_borders),
+                (self.settings.gap_region_shown, "missing structure", partial_gap_blocks,
+                    full_gap_blocks, self.settings.gap_region_interiors,
+                    self.settings.gap_region_borders)]:
+            if not shown:
+                continue
+            full_fill, partial_fill = fills
+            full_outline, partial_outline = outlines
+            for region_name_start, blocks, fill, outline in [
+                    (region_name_part, full_blocks, full_fill, full_outline),
+                    ("partial " + region_name_part, partial_blocks, partial_fill, partial_outline)]:
+                region_name = "%s of %s" % (region_name_start, aseq.name)
+                old_reg = self.region_browser.get_region(region_name, create=False)
+                if old_reg:
+                    self.region_browser.delete_region(old_reg)
+                if blocks:
+                    self.region_browser.new_region(region_name, blocks=blocks, fill=fill,
+                        outline=outline, sequence=aseq, cover_gaps=False)
+
 def _start_mav(session, tool_name, alignment=None):
     if alignment is None:
         from chimerax.core.errors import LimitationError
         raise LimitationError("Running MAV from tools menu not implemented; instead, open"
             " alignment using 'open' command or File->Open")
     return MultAlignViewer(session, tool_name, alignment)
+

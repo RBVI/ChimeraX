@@ -15,7 +15,7 @@
 storm: Read STORM microscopy point lists
 ========================================
 """
-def read_storm(session, filename, name, *args, **kw):
+def read_storm(session, filename, name):
     """Create density maps from STORM microscopy point list files.
 
     :param filename: either the name of a file or a file-like object
