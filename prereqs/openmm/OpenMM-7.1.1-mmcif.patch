@@ -1,0 +1,56 @@
+*** lib/python3.6/site-packages/simtk/openmm/app/pdbxfile.py~	Tue May 24 23:55:16 2016
+--- lib/python3.6/site-packages/simtk/openmm/app/pdbxfile.py	Wed Sep 28 14:10:44 2016
+***************
+*** 86,99 ****
+          resIdCol = atomData.getAttributeIndex('label_seq_id')
+          resNumCol = atomData.getAttributeIndex('auth_seq_id')
+          asymIdCol = atomData.getAttributeIndex('label_asym_id')
+!         chainIdCol = atomData.getAttributeIndex('label_entity_id')
+          elementCol = atomData.getAttributeIndex('type_symbol')
+          altIdCol = atomData.getAttributeIndex('label_alt_id')
+          modelCol = atomData.getAttributeIndex('pdbx_PDB_model_num')
+          xCol = atomData.getAttributeIndex('Cartn_x')
+          yCol = atomData.getAttributeIndex('Cartn_y')
+          zCol = atomData.getAttributeIndex('Cartn_z')
+!         lastChainId = None
+          lastResId = None
+          lastAsymId = None
+          atomTable = {}
+--- 86,99 ----
+          resIdCol = atomData.getAttributeIndex('label_seq_id')
+          resNumCol = atomData.getAttributeIndex('auth_seq_id')
+          asymIdCol = atomData.getAttributeIndex('label_asym_id')
+!         entityIdCol = atomData.getAttributeIndex('label_entity_id')
+          elementCol = atomData.getAttributeIndex('type_symbol')
+          altIdCol = atomData.getAttributeIndex('label_alt_id')
+          modelCol = atomData.getAttributeIndex('pdbx_PDB_model_num')
+          xCol = atomData.getAttributeIndex('Cartn_x')
+          yCol = atomData.getAttributeIndex('Cartn_y')
+          zCol = atomData.getAttributeIndex('Cartn_z')
+!         lastEntityId = None
+          lastResId = None
+          lastAsymId = None
+          atomTable = {}
+***************
+*** 113,122 ****
+              if modelIndex == 0:
+                  # This row defines a new atom.
+  
+!                 if lastChainId != row[chainIdCol]:
+                      # The start of a new chain.
+                      chain = top.addChain(row[asymIdCol])
+!                     lastChainId = row[chainIdCol]
+                      lastResId = None
+                      lastAsymId = None
+                  if lastResId != row[resIdCol] or lastAsymId != row[asymIdCol] or (lastResId == '.' and row[atomNameCol] in atomsInResidue):
+--- 113,122 ----
+              if modelIndex == 0:
+                  # This row defines a new atom.
+  
+!                 if lastAsymId != row[asymIdCol] or lastEntityId != row[entityIdCol]:
+                      # The start of a new chain.
+                      chain = top.addChain(row[asymIdCol])
+!                     lastEntityId = row[entityIdCol]
+                      lastResId = None
+                      lastAsymId = None
+                  if lastResId != row[resIdCol] or lastAsymId != row[asymIdCol] or (lastResId == '.' and row[atomNameCol] in atomsInResidue):

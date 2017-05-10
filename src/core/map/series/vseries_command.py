@@ -39,6 +39,7 @@ def register_vseries_command(logger):
                              ('threshold', FloatArg),
                              ('zero_mean', BoolArg),
                              ('scale_factor', FloatArg),
+                             ('match_scale', SeriesArg),
                              ('enclose_volume', FloatArg),
                              ('fast_enclose_volume', FloatArg),
                              ('normalize_level', FloatArg),
@@ -46,8 +47,7 @@ def register_vseries_command(logger):
                              ('on_grid', MapArg),
                              ('mask', MapArg),
                              ('final_value_type', ValueTypeArg),
-                             ('compress', BoolArg),
-                             ('match_scale', SeriesArg)],
+                             ('compress', BoolArg)],
                         synopsis = 'Process and save a map series')
     register('vseries save', save_desc, vseries_save, logger=logger)
 
