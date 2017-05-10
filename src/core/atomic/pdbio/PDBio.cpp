@@ -583,7 +583,18 @@ start_t = end_t;
             int num_to_read = rem < 13 ? rem : 13;
             seqres_cur_count += num_to_read;
             for (int i = 0; i < num_to_read; ++i) {
-                ResName res_name(record.seqres.res_name[i]);
+                auto rn = record.seqres.res_name[i];
+                // remove leading/trailing spaces
+                while (*rn == ' ') ++rn;
+                auto brn = rn;
+                while (*brn != '\0') {
+                    if (*brn == ' ' && (*brn == ' ' || *brn == '\0')) {
+                        *brn = '\0';
+                        break;
+                    }
+                    ++brn;
+                }
+                ResName res_name(rn);
                 as->extend_input_seq_info(chain_id, res_name);
             }
             if (as->input_seq_source.empty())
