@@ -786,7 +786,7 @@ def _register_core_file_formats(session):
     from .surface import collada
     collada.register_collada_format()
     from . import image
-    image.register_image_save()
+    image.register_image_save(session)
 
 
 def _register_core_database_fetch():

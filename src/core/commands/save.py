@@ -112,46 +112,23 @@ class SaveFileFormatsArg(DynamicEnum):
         return names
         
 def register_command(session):
-    from . import CmdDesc, register, SaveFileNameArg
-    from . import IntArg, PositiveIntArg, Bounded, FloatArg, BoolArg
-    from . import ModelsArg
-
-    file_arg = [('filename', SaveFileNameArg)]
-    models_arg = [('models', ModelsArg)]
-    format_args = [('format', SaveFileFormatsArg())]
-
-    # TODO: move adding these keywords where the format is registered
-    image_args = [
-        ('width', PositiveIntArg),
-        ('height', PositiveIntArg),
-        ('supersample', PositiveIntArg),
-        ('pixel_size', FloatArg),
-        ('transparent_background', BoolArg),
-        ('quality', Bounded(IntArg, min=0, max=100))]
-
+    from . import CmdDesc, register, SaveFileNameArg, ModelsArg
     desc = CmdDesc(
-        required=file_arg,
-        optional=models_arg,
-        keyword=format_args + image_args,
+        required=[('filename', SaveFileNameArg)],
+        optional=[('models', ModelsArg)],
+        keyword=[('format', SaveFileFormatsArg())],
         synopsis='save data to various file formats'
     )
     register('save', desc, save, logger=session.logger)
 
     desc = CmdDesc(
-        required=file_arg,
+        required=[('filename', SaveFileNameArg)],
         synopsis='save session'
     )
     def save_session(session, filename, **kw):
         kw['format'] = 'session'
         save(session, filename, **kw)
     register('save session', desc, save_session, logger=session.logger)
-
-    desc = CmdDesc(
-        required=file_arg,
-        keyword=[('format', SaveFileFormatsArg('Image'))] + image_args,
-        synopsis='save image'
-    )
-    register('save image', desc, save, logger=session.logger)
 
     sf_desc = CmdDesc(synopsis='report formats that can be saved')
     register('save formats', sf_desc, save_formats, logger=session.logger)
