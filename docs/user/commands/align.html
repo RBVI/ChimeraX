@@ -1,0 +1,120 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: align</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: align</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>align</b>
+&nbsp;<a href="atomspec.html"><i>matchatoms</i></a>&nbsp; <b>toAtoms</b> 
+&nbsp;<a href="atomspec.html"><i>refatoms</i></a>&nbsp;
+[&nbsp;<b>cutoffDistance</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
+[&nbsp;<b>move</b>&nbsp;&nbsp;<i>what</i>&nbsp;]
+[&nbsp;<b>each</b>&nbsp;&nbsp;<i>level</i>&nbsp;]
+[&nbsp;<b>reportMatrix</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+&nbsp;<a href="#pairing-options"><i>pairing-options</i></a></h3>
+<p>
+The <b>align</b> command performs least-squares fitting of 
+the <a href="atomspec.html"><i>matchatoms</i></a>
+onto the <a href="atomspec.html"><i>refatoms</i></a>.
+It can also report least-squares-fit root-mean-square deviations (RMSDs)
+without moving the atoms.
+The number of atom pairs used and the RMSD are reported in the
+<a href="../tools/log.html"><b>Log</b></a>.
+See also:
+<a href="matchmaker.html"><b>matchmaker</b></a>,
+<a href="fitmap.html"><b>fitmap</b></a>,
+<a href="view.html"><b>view</b></a>
+</p><p>
+Only equal numbers of <i>matchatoms</i> and <i>refatoms</i> can be used
+in the calculation, but the <a href="#pairing-options">pairing-options</a>
+may help to restrict broader specifications to only the relevant pairs.
+</p><p>
+If a <b>cutoffDistance</b> <i>d</i> is supplied, the fit will be iterated.
+In each cycle of iteration, atom pairs are removed from the match list
+and the remaining pairs are fitted, until no matched pair is more than
+<i>distance</i> &Aring; apart.
+The atom pairs removed are either the 10% farthest apart of all pairs
+or the 50% farthest apart of all pairs exceeding the cutoff, whichever
+is the lesser number of pairs.
+This excludes conformationally dissimilar regions from the final fit
+and allows the best-matching regions to be well superimposed.
+</p><p>
+The <a name="move"><b>move</b></a> option indicates <i>what</i> to move,
+which can be:
+<ul>
+<li><b>atoms</b> - move the specified atoms (<i>matchatoms</i>)
+<li><b>residues</b> - move the residues containing the specified atoms
+<li><b>chains</b> - move the chains containing the specified atoms
+<li><b>molecules</b> (default unless <a href="#each"><b>each</b></a> is used)
+- move the models containing the specified atoms by overall rotation/translation
+<li><b>molecule atoms</b> - move all atoms in the models 
+by changing their coordinates instead of transforming the overall models
+<li><b>nothing</b> - do not move anything; simply report the current RMSD
+</ul>
+<p>
+The <a name="each"><b>each</b></a> option indicates dividing 
+<i>matchatoms</i> into subsets for matching independently 
+rather than collectively, where the <i>level</i> can be:
+</p>
+<ul>
+<li><b>chain</b> - match each chain separately
+(implies <b><a href="#move">move</a> chains</b>)
+<li><b>molecule</b> - match each molecule model separately
+<li><b>coordset</b> - match each coordinate set in <i>matchatoms</i>
+(which must specify a <a href="../trajectories.html">trajectory</a> model)
+separately
+</ul>
+<p>
+The <b>reportMatrix</b> option indicates whether to show the transformation 
+matrix or matrices in the <a href="../tools/log.html"><b>Log</b></a>.
+</p>
+
+<a name="pairing-options"></a>
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<h3>Pairing Options</h3>
+<p>
+The options below restrict how <i>matchatoms</i> are paired with <i>refatoms</i>.
+Unpaired atoms are ignored, so these options may help to limit broader
+specifications to the equal numbers of atoms required for the calculation.
+</p>
+<blockquote>
+<b>matchAtomNames</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>Only pair atoms with the same atom names.
+</blockquote>
+<blockquote>
+<b>matchSequenceNumbers</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>Only pair atoms with the same residue numbers. 
+Atoms are assumed to be in residue-number order.
+</blockquote>
+<blockquote>
+<b>matchChainIds</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>Only pair atoms with the same chain identifiers.
+</blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+May 2017</address>
+</body></html>
