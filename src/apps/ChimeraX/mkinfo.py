@@ -105,7 +105,7 @@ def dump_format(f):
 
 sess = session.Session("unknown", minimal=True)
 core_settings.init(sess)
-session._register_core_file_formats()
+session._register_core_file_formats(sess)
 
 chimera_types = [f.name for f in io.formats() if f.name.startswith('Chimera')]
 
