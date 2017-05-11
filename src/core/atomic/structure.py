@@ -448,7 +448,7 @@ class Structure(Model, StructureData):
         from .ribbon import Ribbon
         from .molobject import Residue
         from numpy import concatenate, array, zeros
-        polymers = self.polymers()
+        polymers = self.polymers(missing_structure_treatment=self.PMS_TRACE_CONNECTS)
         def end_strand(res_class, ss_ranges, end):
             if res_class[-1] == XSectionManager.RC_SHEET_START:
                 # Single-residue strands are coils

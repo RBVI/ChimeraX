@@ -3765,12 +3765,12 @@ extern "C" EXPORT void structure_start_change_tracking(void *mol, void *vct)
     }
 }
 
-extern "C" EXPORT PyObject *structure_polymers(void *mol, int consider_missing_structure, int consider_chains_ids)
+extern "C" EXPORT PyObject *structure_polymers(void *mol, int missing_structure_treatment, int consider_chains_ids)
 {
     Structure *m = static_cast<Structure *>(mol);
     PyObject *poly = NULL;
     try {
-        std::vector<Chain::Residues> polymers = m->polymers(consider_missing_structure, consider_chains_ids);
+        std::vector<Chain::Residues> polymers = m->polymers(static_cast<Structure::PolymerMissingStructure>(missing_structure_treatment), consider_chains_ids);
         poly = PyTuple_New(polymers.size());
         size_t p = 0;
         for (auto resvec: polymers) {

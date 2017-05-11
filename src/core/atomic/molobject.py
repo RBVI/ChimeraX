@@ -1509,13 +1509,18 @@ class StructureData:
         rp = f(self._c_pointer, residue_name.encode('utf-8'), chain_id.encode('utf-8'), pos, insert.encode('utf-8'))
         return object_map(rp, Residue)
 
-    def polymers(self, consider_missing_structure = True, consider_chains_ids = True):
+    PMS_ALWAYS_CONNECTS, PMS_NEVER_CONNECTS, PMS_TRACE_CONNECTS = range(3)
+    def polymers(self, missing_structure_treatment = PMS_ALWAYS_CONNECTS,
+            consider_chains_ids = True):
         '''Return a tuple of :class:`.Residues` objects each containing residues for one polymer.
-        Arguments control whether a single polymer can span missing residues or differing chain identifiers.'''
+        'missing_structure_treatment' controls whether a single polymer can span any missing
+        structure, no missing structure, or only missing structure that is part of a chain trace.
+        'consider_chain_ids', if true, will break polymers when chain IDs change, regardless of
+        other considerations.'''
         f = c_function('structure_polymers',
                        args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_int),
                        ret = ctypes.py_object)
-        resarrays = f(self._c_pointer, consider_missing_structure, consider_chains_ids)
+        resarrays = f(self._c_pointer, missing_structure_treatment, consider_chains_ids)
         from .molarray import Residues
         return tuple(Residues(ra) for ra in resarrays)
 
