@@ -170,7 +170,7 @@ class MouseModes:
         Mode is a MouseMode instance.
         '''
         self.remove_binding(button, modifiers)
-        if mode is not None:
+        if mode is not None and not isinstance(mode, NullMouseMode):
             b = MouseBinding(button, modifiers, mode)
             self._bindings.append(b)
 
