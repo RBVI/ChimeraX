@@ -52,7 +52,7 @@ public:
     void    chief(Atom *a) { _chief = a; }
     Atom    *link() const { return _link; }
     void    link(Atom *a) { _link = a; }
-    std::string    description() const { return _description; }
+    const std::string    &description() const { return _description; }
     void    description(const std::string &d) { _description = d; }
 
     // alternative to chief/link for mmCIF templates
