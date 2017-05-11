@@ -19,32 +19,11 @@ session = session  # noqa
 PDB_DIR = '/databases/mol/pdb'
 MMCIF_DIR = '/databases/mol/mmCIF'
 
-
-class FlushFile:
-    def __init__(self, fd):
-        self.fd = fd
-
-    def write(self, x):
-        ret = self.fd.write(x)
-        self.fd.flush()
-        return ret
-
-    def writelines(self, lines):
-        ret = self.writelines(lines)
-        self.fd.flush()
-        return ret
-
-    def flush(self):
-        return self.fd.flush()
-
-    def close(self):
-        return self.fd.close()
-
-    def fileno(self):
-        return self.fd.fileno()
-
-# always flush stdout, even if output is to a file
-sys.stdout = FlushFile(sys.stdout)
+# always line-buffer stdout, even if output is to a file
+if not sys.stdout.line_buffering:
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.detach(), sys.stdout.encoding,
+                                  sys.stdout.errors, line_buffering=True)
 
 
 def bonds(atoms):
@@ -320,6 +299,7 @@ def compare_all(session):
             mmcif_info = next_info(mmcif_files)
             continue
         assert(pid == mid)
+        print('trying: %s' % pid)
         same = compare(session, pid, os.path.join(PDB_DIR, pdb_dir, pdb_file),
                        os.path.join(MMCIF_DIR, mmcif_dir, mmcif_file))
         all_same = all_same and same

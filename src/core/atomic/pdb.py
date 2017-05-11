@@ -104,6 +104,9 @@ def register_pdb_format():
         mime=("chemical/x-pdb", "chemical/x-spdbv"),
         reference="http://wwpdb.org/docs.html#format",
         open_func=open_pdb)
+    from ..commands import add_keyword_arguments, BoolArg
+    add_keyword_arguments('open', {'coordset':BoolArg,
+                                   'auto_style':BoolArg})
 
 
 def register_pdb_fetch():

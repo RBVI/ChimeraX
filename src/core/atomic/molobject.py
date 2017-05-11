@@ -1153,7 +1153,7 @@ class StructureSeq(Sequence):
     @property
     def has_protein(self):
         for r in self.residues:
-            if r and Sequence.protein3to1(r.name.encode('utf8')) != 'X':
+            if r and Sequence.protein3to1(r.name) != 'X':
                 return True
         return False
 
@@ -1519,7 +1519,7 @@ class StructureData:
         from .molarray import Residues
         return tuple(Residues(ra) for ra in resarrays)
 
-    def pseudobond_group(self, name, create_type = "normal"):
+    def pseudobond_group(self, name, *, create_type = "normal"):
         '''Get or create a :class:`.PseudobondGroup` belonging to this structure.'''
         if create_type is None:
             create_arg = 0
