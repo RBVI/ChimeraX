@@ -3308,8 +3308,10 @@ extern "C" EXPORT void structure_active_coordset_id(void *mols, size_t n, int32_
 {
     Structure **m = static_cast<Structure **>(mols);
     try {
-        for (size_t i = 0; i != n; ++i)
-	  coordset_ids[i] = m[i]->active_coord_set()->id();
+      for (size_t i = 0; i != n; ++i) {
+	CoordSet *cs = m[i]->active_coord_set();
+	coordset_ids[i] = (cs ? cs->id() : -1);
+      }
     } catch (...) {
         molc_error();
     }
@@ -3374,8 +3376,10 @@ extern "C" EXPORT void structure_coordset_size(void *mols, size_t n, int32_t *co
 {
     Structure **m = static_cast<Structure **>(mols);
     try {
-        for (size_t i = 0; i != n; ++i)
-	  *coordset_size++ = m[i]->active_coord_set()->coords().size();
+      for (size_t i = 0; i != n; ++i) {
+	CoordSet *cs = m[i]->active_coord_set();
+	*coordset_size++ = (cs ? cs->coords().size() : 0);
+      }
     } catch (...) {
         molc_error();
     }
