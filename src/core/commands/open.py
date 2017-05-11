@@ -195,7 +195,6 @@ def register_command(session):
             ('name', StringArg),
             ('from_database', DynamicEnum(db_formats)),
             ('ignore_cache', BoolArg),
-            ('vseries', BoolArg),
             # ('id', ModelIdArg),
         ],
         synopsis='read and display data')

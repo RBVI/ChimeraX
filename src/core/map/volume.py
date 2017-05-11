@@ -3100,3 +3100,6 @@ def register_map_file_formats():
       save_func = save_map if d in fwriters else None
       io.register_format(d, toolshed.VOLUME, suf, nicknames=nicknames,
                          open_func=open_map, batch=True, export_func=save_func)
+
+    from ..commands import add_keyword_arguments, BoolArg
+    add_keyword_arguments('open', {'vseries':BoolArg})
