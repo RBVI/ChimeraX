@@ -155,8 +155,13 @@ class EnsemblePlot(Plot):
             # This makes it fall outside bins in numpy.digitize().
             # Remedy this by extending the rightmost bin edge a little.
             be[bins] += 0.01 * (be[bins]-be[bins-1])
+
+        # Map bin to list of coordset ids.
         from numpy import digitize
-        self._item_bin_index = digitize(d, self._bin_edges)-1
+        bi = digitize(d, self._bin_edges)-1
+        self._bin_coordset_ids = bcs = {}
+        for i,cs in zip(bi, cset_ids):
+            bcs.setdefault(i, []).append(cs)
 
     def _crosslink_atoms(self):
         pb = self.pbond
@@ -195,9 +200,7 @@ class EnsemblePlot(Plot):
             return
         self._last_picked_bin = b
 
-        if b is not None:
-            cset_id_mask = (self._item_bin_index == b)
-            if cset_id_mask.any():
-                cset_id = cset_id_mask.nonzero()[0][0]
-                e = self.ensemble_model
-                e.active_coordset_id = cset_id
+        cset_ids = self._bin_coordset_ids.get(b, None)
+        if cset_ids:
+            e = self.ensemble_model
+            e.active_coordset_id = cset_ids[0]
