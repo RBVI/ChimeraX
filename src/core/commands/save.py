@@ -121,14 +121,5 @@ def register_command(session):
     )
     register('save', desc, save, logger=session.logger)
 
-    desc = CmdDesc(
-        required=[('filename', SaveFileNameArg)],
-        synopsis='save session'
-    )
-    def save_session(session, filename, **kw):
-        kw['format'] = 'session'
-        save(session, filename, **kw)
-    register('save session', desc, save_session, logger=session.logger)
-
     sf_desc = CmdDesc(synopsis='report formats that can be saved')
     register('save formats', sf_desc, save_formats, logger=session.logger)
