@@ -768,11 +768,11 @@ def common_startup(sess):
         logger=sess.logger
     )
 
-    _register_core_file_formats()
+    _register_core_file_formats(sess)
     _register_core_database_fetch()
 
 
-def _register_core_file_formats():
+def _register_core_file_formats(session):
     from .atomic import pdb
     pdb.register_pdb_format()
     from .atomic import mmcif
@@ -780,7 +780,7 @@ def _register_core_file_formats():
     from . import scripting
     scripting.register()
     from . import map
-    map.register_map_file_formats()
+    map.register_map_file_formats(session)
     from .atomic import readpbonds
     readpbonds.register_pbonds_format()
     from .surface import collada

@@ -3091,7 +3091,7 @@ def is_multifile_save(path):
 
 # -----------------------------------------------------------------------------
 #
-def register_map_file_formats():
+def register_map_file_formats(session):
     from .. import io, toolshed
     from .data.fileformats import file_types, file_writers
     fwriters = set(fw[0] for fw in file_writers)
@@ -3101,5 +3101,32 @@ def register_map_file_formats():
       io.register_format(d, toolshed.VOLUME, suf, nicknames=nicknames,
                          open_func=open_map, batch=True, export_func=save_func)
 
+    # Add map specific keywords to open command
     from ..commands import add_keyword_arguments, BoolArg
     add_keyword_arguments('open', {'vseries':BoolArg})
+
+    # Add map specific keywords to save command
+    from ..commands import BoolArg, ListOf, EnumOf, IntArg
+    from .mapargs import MapRegionArg, Int1or3Arg
+    save_map_args = {
+      'region': MapRegionArg,
+      'step': Int1or3Arg,
+      'mask_zone': BoolArg,
+      'chunk_shapes': ListOf(EnumOf(('zyx','zxy','yxz','yzx','xzy','xyz'))),
+      'append': BoolArg,
+      'compress': BoolArg,
+      'base_index': IntArg
+    }
+    add_keyword_arguments('save', save_map_args)
+
+    # Register save map subcommand
+    from ..commands import CmdDesc, register, SaveFileNameArg, ModelsArg
+    from ..commands.save import SaveFileFormatsArg, save
+    from .. import toolshed
+    desc = CmdDesc(
+        required=[('filename', SaveFileNameArg)],
+        optional=[('models', ModelsArg)],
+        keyword=[('format', SaveFileFormatsArg(toolshed.VOLUME))] + list(save_map_args.items()),
+        synopsis='save map'
+    )
+    register('save map', desc, save, logger=session.logger)
