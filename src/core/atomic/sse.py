@@ -186,9 +186,18 @@ class HelixCylinder:
             # Get centers by projecting along unit vectors
             centers = self.center + uv * self.major_radius
             # Sort them so that centers are always in order
+            # All the vectors have the same length, so we
+            # do not need to normalize them for comparison.
+            # Sort by dot product against zeroth element
+            # since a.b.cos(theta) should go from a.b to -a.b.
+            # Note that cross product will not work right if
+            # the cylinder is >90 degrees since sin(theta)
+            # runs from 0 -> 1 -> 0.
+            # Because argsort result is always in ascending
+            # order, we reverse it to get the right order.
             dv = centers - self.center
-            d = norm(cross(dv, dv[0]), axis=1)
-            self._centers = centers[argsort(d)]
+            d = dot(dv, dv[0])
+            self._centers = centers[argsort(d)[::-1]]
         else:
             # Get distance of each atomic coordinate
             # from centroid along the center line
