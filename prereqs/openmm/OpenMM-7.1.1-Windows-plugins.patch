@@ -1,0 +1,24 @@
+*** Lib/site-packages/simtk/openmm/__init__.py.orig	2016-11-02 17:56:29.755562200 -0700
+--- Lib/site-packages/simtk/openmm/__init__.py	2016-11-02 17:59:49.133299200 -0700
+***************
+*** 24,30 ****
+  if os.getenv('OPENMM_PLUGIN_DIR') is None and os.path.isdir(version.openmm_library_path):
+      pluginLoadedLibNames = Platform.loadPluginsFromDirectory(os.path.join(version.openmm_library_path, 'plugins'))
+  else:
+!     pluginLoadedLibNames = Platform.loadPluginsFromDirectory(Platform.getDefaultPluginsDirectory())
+  
+  if sys.platform == 'win32':
+      os.environ['PATH'] = _path
+--- 24,35 ----
+  if os.getenv('OPENMM_PLUGIN_DIR') is None and os.path.isdir(version.openmm_library_path):
+      pluginLoadedLibNames = Platform.loadPluginsFromDirectory(os.path.join(version.openmm_library_path, 'plugins'))
+  else:
+!     # Assume that simtk is installed in LIB/site-packages
+!     # and plugins are in LIB/plugins.  We are in
+!     # site-packages/simtk/openmm
+!     import os.path
+!     pluginDir = os.path.join(os.path.dirname(__file__), "..", "..", "..", "plugins")
+!     pluginLoadedLibNames = Platform.loadPluginsFromDirectory(pluginDir)
+  
+  if sys.platform == 'win32':
+      os.environ['PATH'] = _path
