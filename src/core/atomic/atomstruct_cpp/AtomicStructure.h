@@ -35,7 +35,8 @@ public:
         int min_strand_length = 3, bool report = false);
     AtomicStructure*  copy() const;
     void  make_chains() const;
-    std::vector<Chain::Residues>  polymers(bool consider_missing_structure = true,
+    std::vector<Chain::Residues>  polymers(
+        PolymerMissingStructure missing_structure_treatment = PMS_ALWAYS_CONNECTS,
         bool consider_chain_ids = true) const;
 };
 

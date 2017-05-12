@@ -238,8 +238,13 @@ public:
     AS_PBManager&  pb_mgr() { return _pb_mgr; }
     const AS_PBManager&  pb_mgr() const { return _pb_mgr; }
     int  pdb_version;
+    enum PolymerMissingStructure {
+        PMS_ALWAYS_CONNECTS = 0,
+        PMS_NEVER_CONNECTS = 1,
+        PMS_TRACE_CONNECTS = 2
+    };
     virtual std::vector<Chain::Residues>  polymers(
-        bool /*consider_missing_structure*/ = true,
+        PolymerMissingStructure /*missing_structure_treatment*/ = PMS_ALWAYS_CONNECTS,
         bool /*consider_chain_ids*/ = true) const { return std::vector<Chain::Residues>(); }
     const Residues&  residues() const { return _residues; }
     const Rings&  rings(bool cross_residues = false,
