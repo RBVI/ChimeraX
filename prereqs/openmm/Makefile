@@ -20,7 +20,6 @@ SOURCE = $(tmpdir)/OpenMM-$(VERSION)-$(PLATFORM)
 OPENMM_LIB_INSTALL = $(libdir)/openmm
 
 PATCHES	= $(wildcard OpenMM-$(VERSION)-$(OS)-*.patch)
-PATCHES += OpenMM-$(VERSION)-mmcif.patch
 
 ifeq ($(OS),Windows)
 
