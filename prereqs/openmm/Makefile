@@ -19,6 +19,11 @@ DISTRIBUTION = openmm-$(VERSION)-$(PLATFORM)-$(PYVER).tar.bz2
 SOURCE = $(tmpdir)/OpenMM-$(VERSION)-$(PLATFORM)
 OPENMM_LIB_INSTALL = $(libdir)/openmm
 
+# Beware the Windows OpenMM has the Python code in a different location
+# than Mac and Linux, so one patch for OpenMM Python code won't find the
+# Python file on all 3 platforms.  Also the Windows Python has /r/n DOS
+# line endings and patches expecting /n line endings will fail.
+# Probably easiest to make a separate Windows patch.
 PATCHES	= $(wildcard OpenMM-$(VERSION)-$(OS)-*.patch)
 
 ifeq ($(OS),Windows)
