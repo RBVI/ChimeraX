@@ -69,19 +69,15 @@ if sys.platform.startswith('win'):
         # shell -- the console is supposed to use UTF-8 encoding in Python
         # 3.6 but sys.stdout.encoding is cpXXX (the default for text file
         # I/O) since cygwin shells are not true terminals.
-        import codecs
+        import io
         encoding = os.environ['LANG'].split('.')[-1].casefold()
         if encoding != sys.stdout.encoding.casefold():
-            try:
-                writer = codecs.getwriter(encoding)
-            except LookupError:
-                # If encoding is unknown, just leave things alone
-                pass
-            else:
-                sys.stdout = writer(sys.stdout.detach())
-                sys.stdout.encoding = encoding
-                sys.stderr = writer(sys.stderr.detach())
-                sys.stderr.encoding = encoding
+            sys.__stdout__ = sys.stdout = io.TextIOWrapper(
+                sys.stdout.detach(), encoding, 'backslashreplace',
+                line_buffering=sys.stdout.line_buffering)
+            sys.__stderr__ = sys.stderr = io.TextIOWrapper(
+                sys.stderr.detach(), encoding, 'backslashreplace',
+                line_buffering=sys.stderr.line_buffering)
 
 
 def parse_arguments(argv):
