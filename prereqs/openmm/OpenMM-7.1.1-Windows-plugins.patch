@@ -17,7 +17,7 @@
 !      # and plugins are in LIB/plugins.  We are in
 !      # site-packages/simtk/openmm
 !      import os.path
-!      pluginDir = os.path.join(os.path.dirname(__file__), "..", "..", "..", "plugins")
+!      pluginDir = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "plugins")
 !      pluginLoadedLibNames = Platform.loadPluginsFromDirectory(pluginDir)
   
   if sys.platform == 'win32':
