@@ -40,15 +40,23 @@ class FileHistory:
         flist.sort(key = lambda f: f.access_time)
         return flist
 
-    def remember_file(self, path, format, models, database = None, file_saved = False):
+    def remember_file(self, path, format, models, database = None, file_saved = False,
+                      open_options = {}):
         f = self._files
         from os.path import abspath
         apath = abspath(path) if database is None else path
         fs = f.get((apath,database))
         if fs:
             fs.set_access_time()
+            fchange = (format != fs.format)
+            fs.format = format
+            optchange = fs.set_open_options(open_options)
+            if fchange or optchange:
+                fs.image = None
+                self.history_changed()
         else:
-            f[(apath,database)] = fs = FileSpec(apath, format, database = database)
+            f[(apath,database)] = fs = FileSpec(apath, format, database = database,
+                                                open_options = open_options)
         has_graphics = self.session.main_view.render is not None
         if has_graphics and (fs.image is None or file_saved):
             self._need_thumbnails.append((fs, models))
@@ -71,7 +79,7 @@ class FileHistory:
                 models = [m for m in models if m in mset]
             if models:
                 fs.capture_image(models, ses)
-        ses.triggers.activate_trigger('file history changed', self._files)
+        self.history_changed()
         from .triggerset import DEREGISTER
         return DEREGISTER
 
@@ -85,7 +93,10 @@ class FileHistory:
             for fspec in remove:
                 del f[(fspec.path,fspec.database)]
             self._save_files = True
-            self.session.triggers.activate_trigger('file history changed', f)
+            self.history_changed()
+
+    def history_changed(self):
+        self.session.triggers.activate_trigger('file history changed', self._files)
             
     def quit_cb(self):
         if self._save_files:
@@ -109,13 +120,22 @@ class FileHistory:
         self._save_files = False
 
 class FileSpec:
-    def __init__(self, path, format, database = None):
+    def __init__(self, path, format, database = None, open_options = {}):
         self.path = path
         self.format = format
         self.database = database
         self.access_time = None
         self.image = None	# JPEG encoded as base64 string
+        self.open_options = {}
         self.set_access_time()
+        self.set_open_options(open_options)	# Dictionary of open command keyword to value.
+
+    def set_open_options(self, open_options):
+        opt = {k:str(v) for k,v in open_options.items()
+               if isinstance(v, (bool, int, float, str))}
+        change = (opt != self.open_options)
+        self.open_options = opt
+        return change
 
     def set_access_time(self):
         from time import time
@@ -140,17 +160,26 @@ class FileSpec:
             cmd += ' format %s' % self.format
         if self.database:
             cmd += ' fromDatabase %s' % self.database
+        if self.open_options:
+            cmd += ' ' + ' '.join('%s %s' % (kw, quoted_string(value))
+                            for kw,value in self.open_options.items())
         return cmd
 
     def state(self):
-        return {k:getattr(self,k) for k in ('path', 'format', 'database', 'access_time', 'image')}
+        return {k:getattr(self,k) for k in ('path', 'format', 'database', 'access_time', 'image', 'open_options')}
 
     @classmethod
     def from_state(self, state):
-        f = FileSpec(state['path'], state['format'], database = state['database'])
+        f = FileSpec(state['path'], state['format'], database = state['database'],
+                     open_options = state.get('open_options', {}))
         for k in ('access_time', 'image'):
             setattr(f, k, state[k])
         return f
+
+def quoted_string(s):
+    if ' ' in s:
+        return '"%s"' % s
+    return s
 
 def file_history(session):
     fh = getattr(session, 'file_history', None)
@@ -158,11 +187,13 @@ def file_history(session):
         session.file_history = fh = FileHistory(session)
     return fh
 
-def remember_file(session, filename, format, models, database = None, file_saved = False):
+def remember_file(session, filename, format, models, database = None, file_saved = False,
+                  open_options = None):
     if session.in_script:
         return		# Don't remember files opened by scripts
     h = file_history(session)
-    h.remember_file(filename, format, models, database = database, file_saved = file_saved)
+    h.remember_file(filename, format, models, database = database, file_saved = file_saved,
+                    open_options = open_options)
 
 def models_image(session, models, size, format = 'JPEG'):
     v = session.main_view

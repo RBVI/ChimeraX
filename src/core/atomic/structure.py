@@ -433,6 +433,14 @@ class Structure(Model, StructureData):
         if ad:
             lod.set_atom_sphere_geometry(ad, total_atoms)
 
+    def _add_r2t(self, r, tr):
+        try:
+            ranges = self._ribbon_r2t[r]
+        except KeyError:
+            self._ribbon_r2t[r] = [tr]
+        else:
+            ranges.append(tr)
+
     def _create_ribbon_graphics(self):
         if self._ribbon_drawing is None:
             self._ribbon_drawing = p = self.new_drawing('ribbon')
@@ -468,13 +476,9 @@ class Structure(Model, StructureData):
                 res_class[-1] = XSectionManager.RC_HELIX_END
                 ss_ranges[-1][1] = end
         def is_arc_helix_end(i):
-            if self.ribbon_mode_helix != self.RIBBON_MODE_ARC:
-                return False
-            return is_helix[i]
+            return is_arc_helix[i]
         def is_arc_helix_middle(i, j):
-            if self.ribbon_mode_helix != self.RIBBON_MODE_ARC:
-                return False
-            if not is_helix[i] or not is_helix[j]:
+            if not is_arc_helix[i] or not is_arc_helix[j]:
                 return False
             return ssids[i] == ssids[j]
         for rlist in polymers:
@@ -510,6 +514,10 @@ class Structure(Model, StructureData):
             last_ssid = None
             helix_ranges = []
             sheet_ranges = []
+            if self.ribbon_mode_helix == self.RIBBON_MODE_ARC:
+                is_arc_helix = array(is_helix)
+            else:
+                is_arc_helix = zeros(len(is_helix))
             was_nucleic = False
 
             for i in range(len(residues)):
@@ -573,6 +581,19 @@ class Structure(Model, StructureData):
             elif was_helix:
                 # 1hxx ends in a strand
                 end_helix(res_class, helix_ranges, len(residues))
+
+            # Postprocess helix ranges if in arc mode to remove
+            # 2-residue helices since we cannot compute an arc
+            # from two points.
+            if self.ribbon_mode_helix == self.RIBBON_MODE_ARC:
+                keep = []
+                for r in helix_ranges:
+                    if r[1] - r[0] > 2:
+                        keep.append(r)
+                    else:
+                        for i in range(r[0], r[1]):
+                            is_arc_helix[i] = False
+                helix_ranges = keep
 
             # Assign front and back cross sections for each residue.
             # The "front" section is between this residue and the previous.
@@ -692,7 +713,7 @@ class Structure(Model, StructureData):
                     prev_band = None
                 triangle_range = RibbonTriangleRange(t_start, t_end, rp, residues[0])
                 t2r.append(triangle_range)
-                self._ribbon_r2t[residues[0]] = triangle_range
+                self._add_r2t(residues[0], triangle_range)
                 t_start = t_end
             else:
                 capped = True
@@ -773,7 +794,7 @@ class Structure(Model, StructureData):
                 if t_end != t_start:
                     triangle_range = RibbonTriangleRange(t_start, t_end, rp, residues[i])
                     t2r.append(triangle_range)
-                    self._ribbon_r2t[residues[i]] = triangle_range
+                    self._add_r2t(residues[i], triangle_range)
                     t_start = t_end
             # Last residue
             if displays[-1] and not is_arc_helix_end(-1):
@@ -803,7 +824,7 @@ class Structure(Model, StructureData):
                     t_end += len(triangle_list[-1])
                 triangle_range = RibbonTriangleRange(t_start, t_end, rp, residues[-1])
                 t2r.append(triangle_range)
-                self._ribbon_r2t[residues[-1]] = triangle_range
+                self._add_r2t(residues[-1], triangle_range)
                 t_start = t_end
 
             # Create drawing from arrays
@@ -1198,7 +1219,7 @@ class Structure(Model, StructureData):
             res = rlist[i]
             triangle_range = RibbonTriangleRange(r[0], r[1], ssp, res)
             t2r.append(triangle_range)
-            self._ribbon_r2t[res] = triangle_range
+            self._add_r2t(res, triangle_range)
         self._ribbon_t2r[ssp] = t2r
 
     def _wrap_helix(self, rlist, coords, guides, ssids, tethered, xs_front, xs_back,
@@ -1376,14 +1397,15 @@ class Structure(Model, StructureData):
         for i in range(len(residues)):
             for r in residues[i]:
                 try:
-                    tr = self._ribbon_r2t[r]
+                    tr_list = self._ribbon_r2t[r]
                 except KeyError:
                     continue
-                try:
-                    a = da[tr.drawing]
-                except KeyError:
-                    a = da[tr.drawing] = ([], [], [])
-                a[i].append((tr.start, tr.end))
+                for tr in tr_list:
+                    try:
+                        a = da[tr.drawing]
+                    except KeyError:
+                        a = da[tr.drawing] = ([], [], [])
+                    a[i].append((tr.start, tr.end))
         for p, residues in da.items():
             if not residues[1] and not residues[2]:
                 # No residues being kept or added

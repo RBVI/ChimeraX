@@ -393,37 +393,55 @@ ExtractMolecule::connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, b
     // and have link & chief atoms (i.e., peptides and nucleotides)
     for (auto&& r0: a) {
         auto tr0 = find_template_residue(r0->name());
-        if (tr0 == nullptr)
-            continue;
-        auto ta0 = tr0->link();
         for (auto&& r1: b) {
+            Atom* a0 = nullptr;
+            Atom* a1 = nullptr;
             auto tr1 = find_template_residue(r1->name());
-            // only connect residues of the same type
-            if (tr1 == nullptr || tr1->description() != tr0->description())
-                continue;
-            auto ta1 = tr1->chief();
-            Atom* a0 = ta0 ? r0->find_atom(ta0->name()) : NULL;
-            Atom* a1 = ta1 ? r1->find_atom(ta1->name()) : NULL;
-            if (a0 == nullptr && a1 != nullptr) {
-                std::swap(a0, a1);
-                std::swap(r0, r1);
+            bool same_type = tr0 && tr1 && !tr0->description().empty()
+                             && (tr1->description() == tr0->description());
+            const char* conn_type;
+            if (same_type) {
+                // peptide or nucletide
+                auto ta0 = tr0 ? tr0->link() : nullptr;
+                if (ta0)
+                    a0 = r0->find_atom(ta0->name());
+                auto ta1 = tr1 ? tr1->chief() : nullptr;
+                if (ta1)
+                    a1 = r1->find_atom(ta1->name());
+                if (a0 == nullptr && a1 != nullptr) {
+                    std::swap(a0, a1);
+                    std::swap(r0, r1);
+                }
+                conn_type = "linking atoms for ";
+            } else {
+                // double check that there is a bond connecting the residues
+                auto bonds = r0->bonds_between(r1, true);
+                if (bonds.size() > 0)
+                    continue;
+                conn_type = "connection between ";
             }
             if (a0 == nullptr) {
                 find_nearest_pair(r0, r1, &a0, &a1);
                 if (a0 == nullptr || a0->element() != Element::C || a0->name() != "CA") {
                     // suppress warning for CA traces
-                    logger::warning(_logger, "Missing linking atoms for ", r0->str(), " and ", r1->str());
+                    logger::warning(_logger, "Missing ", conn_type, r0->str(), " and ", r1->str());
                 }
             } else if (a1 == nullptr) {
-                logger::warning(_logger, "Missing linking atom for ", r1->str());
+                logger::warning(_logger, "Missing linking atom in ", r1->str(),
+                                " for ", r0->str());
                 a1 = find_closest(a0, r1, nullptr, true);
             }
-            if (a1 == nullptr)
+            if (a1 == nullptr) {
+                logger::warning(_logger, "Unable to connect ", r0->str(),
+                                " and ", r1->str());
                 continue;
+            }
+#if 0
             if (gap && reasonable_bond_length(a0, a1)) {
                 logger::warning(_logger, "Eliding gap between ", r0->str(), " and ", r1->str());
                 gap = false;    // bad data
             }
+#endif
             if (gap || (!Bond::polymer_bond_atoms(a0, a1) && !reasonable_bond_length(a0, a1))) {
                 // gap or CA trace
                 auto as = r0->structure();
@@ -448,8 +466,9 @@ ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr
     for (auto&& a: atoms) {
         tmpl::Atom *ta = tr->find_atom(a->name());
         if (!ta) {
-            logger::warning(_logger, "Found atom ", a->name(),
-                            " that is not in residue template for ", r->str());
+            if (tr->atoms_map().size() != 0)
+                logger::warning(_logger, "Found atom ", a->name(),
+                                " that is not in residue template for ", r->str());
             connect_residue_by_distance(r);
             return;
         }

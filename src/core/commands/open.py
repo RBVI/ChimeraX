@@ -78,7 +78,7 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
             session.models.add_group(models)
         else:
             session.models.add(models)
-        remember_file(session, filename, format, models, database=from_database)
+        remember_file(session, filename, format, models, database=from_database, open_options = kw)
         session.logger.status(status, log=True)
         return models
 
@@ -107,7 +107,7 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
         raise UserError(e)
     
     # Remember in file history
-    remember_file(session, filename, format, models or 'all models')
+    remember_file(session, filename, format, models or 'all models', open_options = kw)
 
     return models
 

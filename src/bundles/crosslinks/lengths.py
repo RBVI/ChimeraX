@@ -16,6 +16,8 @@
 #
 from chimerax.contacts.graph import Plot
 class LengthsPlot(Plot):
+
+    help = 'help:user/commands/crosslinks.html#histogram'
     
     def __init__(self, session, pbonds):
 
