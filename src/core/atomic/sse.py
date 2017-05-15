@@ -185,19 +185,26 @@ class HelixCylinder:
             uv = _normalize_vector_array(in_plane)
             # Get centers by projecting along unit vectors
             centers = self.center + uv * self.major_radius
-            # Sort them so that centers are always in order
-            # All the vectors have the same length, so we
-            # do not need to normalize them for comparison.
-            # Sort by dot product against zeroth element
-            # since a.b.cos(theta) should go from a.b to -a.b.
-            # Note that cross product will not work right if
-            # the cylinder is >90 degrees since sin(theta)
-            # runs from 0 -> 1 -> 0.
-            # Because argsort result is always in ascending
-            # order, we reverse it to get the right order.
+            # For consecutive residues, the cross product
+            # of the vectors from the arc center to the residues
+            # should be in the same direction as the arc axis.
+            # If not, we flip the coordinates for the two residues
+            # to make sure that the arc does not double back on itself.
+            num_pts = len(centers)
+            order = list(range(num_pts))
             dv = centers - self.center
-            d = dot(dv, dv[0])
-            self._centers = centers[argsort(d)[::-1]]
+            i = 1
+            while i < num_pts:
+                v = cross(dv[order[i-1]], dv[order[i]])
+                if dot(v, self.axis) >= 0:
+                    i += 1
+                else:
+                    order[i-1], order[i] = order[i], order[i-1]
+                    if i > 1:
+                        # Since we flipped, we no longer know whether
+                        # (i-2,i-1) is okay, so we go back and check
+                        i -= 1
+            self._centers = centers[order]
         else:
             # Get distance of each atomic coordinate
             # from centroid along the center line
@@ -355,7 +362,7 @@ class HelixCylinder:
         self.axis = opt.axis
         self.major_radius = opt.radius
         radii = norm(self.coords - self.cylinder_centers(), axis=1)
-        self.minor_radius = mean(radii)
+        self.minor_radius = min(2.5, mean(radii))
 
 
 class StrandPlank:
