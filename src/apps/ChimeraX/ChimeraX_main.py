@@ -72,12 +72,16 @@ if sys.platform.startswith('win'):
         import io
         encoding = os.environ['LANG'].split('.')[-1].casefold()
         if encoding != sys.stdout.encoding.casefold():
-            sys.__stdout__ = sys.stdout = io.TextIOWrapper(
-                sys.stdout.detach(), encoding, 'backslashreplace',
-                line_buffering=sys.stdout.line_buffering)
-            sys.__stderr__ = sys.stderr = io.TextIOWrapper(
-                sys.stderr.detach(), encoding, 'backslashreplace',
-                line_buffering=sys.stderr.line_buffering)
+            try:
+                sys.__stdout__ = sys.stdout = io.TextIOWrapper(
+                    sys.stdout.detach(), encoding, 'backslashreplace',
+                    line_buffering=sys.stdout.line_buffering)
+                sys.__stderr__ = sys.stderr = io.TextIOWrapper(
+                    sys.stderr.detach(), encoding, 'backslashreplace',
+                    line_buffering=sys.stderr.line_buffering)
+            except LookupError:
+                # If encoding is unknown, just leave things as is
+                pass
 
 
 def parse_arguments(argv):
