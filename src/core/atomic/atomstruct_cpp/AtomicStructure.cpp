@@ -29,6 +29,7 @@
 #include <arrays/pythonarray.h>
 
 #include <algorithm>  // for std::find, std::sort, std::remove_if, std::min
+#include <cmath> // std::abs
 #include <iterator>
 #include <map>
 #include "Python.h"
@@ -392,7 +393,7 @@ AtomicStructure::make_chains() const
 }
 
 std::vector<Chain::Residues>
-AtomicStructure::polymers(bool consider_missing_structure,
+AtomicStructure::polymers(AtomicStructure::PolymerMissingStructure missing_structure_treatment,
     bool consider_chain_ids) const
 {
     // if consider_missing_structure is false, just consider actual
@@ -430,14 +431,28 @@ AtomicStructure::polymers(bool consider_missing_structure,
         }
     }
 
-    if (consider_missing_structure) {
+    if (missing_structure_treatment != PMS_NEVER_CONNECTS) {
         // go through missing-structure pseudobonds
         auto pbg = const_cast<AtomicStructure*>(this)->_pb_mgr.get_group(
             PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NONE);
         if (pbg != nullptr) {
             for (auto& pb: pbg->pseudobonds()) {
-                Residue *r1 = pb->atoms()[0]->residue();
-                Residue *r2 = pb->atoms()[1]->residue();
+                Atom* a1 = pb->atoms()[0];
+                Atom* a2 = pb->atoms()[1];
+                Residue *r1 = a1->residue();
+                Residue *r2 = a2->residue();
+                if (missing_structure_treatment == PMS_TRACE_CONNECTS) {
+                    if (std::abs(r1->position() - r2->position()) > 1)
+                        continue;
+                    Atom* pa1 = r1->principal_atom();
+                    if (r1->principal_atom() == nullptr)
+                        continue;
+                    Atom* pa2 = r2->principal_atom();
+                    if (r2->principal_atom() == nullptr)
+                        continue;
+                    if (pa1->coord().sqdistance(pa2->coord()) > Residue::TRACE_DISTSQ_CUTOFF)
+                        continue;
+                }
                 int index1 = res_lookup[r1], index2 = res_lookup[r2];
                 if (abs(index1 - index2) == 1
                 && r1->chain_id() == r2->chain_id()) {

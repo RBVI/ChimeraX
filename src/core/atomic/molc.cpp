@@ -3308,8 +3308,10 @@ extern "C" EXPORT void structure_active_coordset_id(void *mols, size_t n, int32_
 {
     Structure **m = static_cast<Structure **>(mols);
     try {
-        for (size_t i = 0; i != n; ++i)
-	  coordset_ids[i] = m[i]->active_coord_set()->id();
+      for (size_t i = 0; i != n; ++i) {
+	CoordSet *cs = m[i]->active_coord_set();
+	coordset_ids[i] = (cs ? cs->id() : -1);
+      }
     } catch (...) {
         molc_error();
     }
@@ -3374,8 +3376,10 @@ extern "C" EXPORT void structure_coordset_size(void *mols, size_t n, int32_t *co
 {
     Structure **m = static_cast<Structure **>(mols);
     try {
-        for (size_t i = 0; i != n; ++i)
-	  *coordset_size++ = m[i]->active_coord_set()->coords().size();
+      for (size_t i = 0; i != n; ++i) {
+	CoordSet *cs = m[i]->active_coord_set();
+	*coordset_size++ = (cs ? cs->coords().size() : 0);
+      }
     } catch (...) {
         molc_error();
     }
@@ -3765,12 +3769,12 @@ extern "C" EXPORT void structure_start_change_tracking(void *mol, void *vct)
     }
 }
 
-extern "C" EXPORT PyObject *structure_polymers(void *mol, int consider_missing_structure, int consider_chains_ids)
+extern "C" EXPORT PyObject *structure_polymers(void *mol, int missing_structure_treatment, int consider_chains_ids)
 {
     Structure *m = static_cast<Structure *>(mol);
     PyObject *poly = NULL;
     try {
-        std::vector<Chain::Residues> polymers = m->polymers(consider_missing_structure, consider_chains_ids);
+        std::vector<Chain::Residues> polymers = m->polymers(static_cast<Structure::PolymerMissingStructure>(missing_structure_treatment), consider_chains_ids);
         poly = PyTuple_New(polymers.size());
         size_t p = 0;
         for (auto resvec: polymers) {

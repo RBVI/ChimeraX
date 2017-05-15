@@ -61,7 +61,7 @@ public:
     const AtomList link_atoms() const { return _link_atoms; }
 
     typedef std::map<AtomName, Atom *> AtomsMap;
-    const AtomsMap &atoms_map() { return _atoms; }
+    const AtomsMap &atoms_map() const { return _atoms; }
 private:
     Residue(Molecule *, const char *t);
     ResName     _name;

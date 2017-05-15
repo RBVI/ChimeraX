@@ -64,6 +64,9 @@ class GraphicsWindow(QWindow):
                 # Inadequate OpenGL version
                 self.session.logger.error(str(e))
 
+    def exposeEvent(self, event):
+        self.view.redraw_needed = True
+        
     def set_redraw_interval(self, msec):
         self.redraw_interval = msec  # milliseconds
         t = self.timer

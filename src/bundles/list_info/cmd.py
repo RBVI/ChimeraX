@@ -108,9 +108,10 @@ def info_polymers(session, atoms=None):
     results = atoms.evaluate(session)
     polymers = []
     residues = results.atoms.unique_residues
+    from chimerax.core.atomic import AtomicStructure
     for m in results.atoms.unique_structures:
         try:
-            for p in m.polymers(False, False):
+            for p in m.polymers(AtomicStructure.PMS_NEVER_CONNECTS, False):
                 if p.intersects(residues):
                     polymers.append(p)
         except AttributeError:

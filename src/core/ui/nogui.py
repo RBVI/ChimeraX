@@ -48,16 +48,22 @@ class NoGuiLog(PlainTextLog):
         if encoding != 'utf-8' and isinstance(msg, str):
             msg = msg.encode(encoding, 'replace').decode(encoding)
 
-        print("%s%s: %s%s" % (
-            _colors[level_name], level_name, msg, _colors["normal"]), end='')
+        if sys.stdout.isatty():
+            print("%s%s%s" % (
+                _colors[level_name], msg, _colors["normal"]), end='')
+        else:
+            print("%s:\n%s" % (level_name.upper(), msg), end='')
         return True
 
     def status(self, msg, color, secondary):
         if secondary:
             return False
         if msg:
-            print("%sstatus: %s%s" % (
-                _colors["status"], msg, _colors["normal"]))
+            import sys
+            if sys.stdout.isatty():
+                print("%s%s%s" % (_colors["status"], msg, _colors["normal"]))
+            else:
+                print("STATUS:\n%s" % msg)
         return True
 
 

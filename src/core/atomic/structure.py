@@ -448,7 +448,7 @@ class Structure(Model, StructureData):
         from .ribbon import Ribbon
         from .molobject import Residue
         from numpy import concatenate, array, zeros
-        polymers = self.polymers()
+        polymers = self.polymers(missing_structure_treatment=self.PMS_TRACE_CONNECTS)
         def end_strand(res_class, ss_ranges, end):
             if res_class[-1] == XSectionManager.RC_SHEET_START:
                 # Single-residue strands are coils
@@ -468,13 +468,9 @@ class Structure(Model, StructureData):
                 res_class[-1] = XSectionManager.RC_HELIX_END
                 ss_ranges[-1][1] = end
         def is_arc_helix_end(i):
-            if self.ribbon_mode_helix != self.RIBBON_MODE_ARC:
-                return False
-            return is_helix[i]
+            return is_arc_helix[i]
         def is_arc_helix_middle(i, j):
-            if self.ribbon_mode_helix != self.RIBBON_MODE_ARC:
-                return False
-            if not is_helix[i] or not is_helix[j]:
+            if not is_arc_helix[i] or not is_arc_helix[j]:
                 return False
             return ssids[i] == ssids[j]
         for rlist in polymers:
@@ -510,6 +506,10 @@ class Structure(Model, StructureData):
             last_ssid = None
             helix_ranges = []
             sheet_ranges = []
+            if self.ribbon_mode_helix == self.RIBBON_MODE_ARC:
+                is_arc_helix = array(is_helix)
+            else:
+                is_arc_helix = zeros(len(is_helix))
             was_nucleic = False
 
             for i in range(len(residues)):
@@ -573,6 +573,19 @@ class Structure(Model, StructureData):
             elif was_helix:
                 # 1hxx ends in a strand
                 end_helix(res_class, helix_ranges, len(residues))
+
+            # Postprocess helix ranges if in arc mode to remove
+            # 2-residue helices since we cannot compute an arc
+            # from two points.
+            if self.ribbon_mode_helix == self.RIBBON_MODE_ARC:
+                keep = []
+                for r in helix_ranges:
+                    if r[1] - r[0] > 2:
+                        keep.append(r)
+                    else:
+                        for i in range(r[0], r[1]):
+                            is_arc_helix[i] = False
+                helix_ranges = keep
 
             # Assign front and back cross sections for each residue.
             # The "front" section is between this residue and the previous.
