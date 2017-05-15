@@ -1,0 +1,35 @@
+*** Lib/site-packages/simtk/openmm/app/forcefield.py.orig	Wed May 10 16:58:02 2017
+--- Lib/site-packages/simtk/openmm/app/forcefield.py	Mon May 15 13:52:58 2017
+***************
+*** 819,828 ****
+          signature = _createResidueSignature([atom.element for atom in res.atoms()])
+          if signature in templateSignatures:
+              allMatches = []
+              for t in templateSignatures[signature]:
+!                 match = _matchResidue(res, t, bondedToAtom, ignoreExternalBonds)
+                  if match is not None:
+                      allMatches.append((t, match))
+              if len(allMatches) == 1:
+                  template = allMatches[0][0]
+                  matches = allMatches[0][1]
+--- 819,838 ----
+          signature = _createResidueSignature([atom.element for atom in res.atoms()])
+          if signature in templateSignatures:
+              allMatches = []
++             '''
++             Search through once including external bonds. We only want to
++             consider the ignoreExternalBonds switch if no complete template
++             is found, otherwise we run into all sorts of problems.
++             '''
+              for t in templateSignatures[signature]:
+!                 match = _matchResidue(res, t, bondedToAtom)
+                  if match is not None:
+                      allMatches.append((t, match))
++             if len(allMatches) == 0 and ignoreExternalBonds:
++                 for t in templateSignatures[signature]:
++                     match = _matchResidue(res, t, bondedToAtom, ignoreExternalBonds)
++                     if match is not None:
++                         allMatches.append((t, match))
+              if len(allMatches) == 1:
+                  template = allMatches[0][0]
+                  matches = allMatches[0][1]
