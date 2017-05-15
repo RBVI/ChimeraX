@@ -15,6 +15,8 @@
 #
 from chimerax.contacts.graph import Graph
 class CrosslinksPlot(Graph):
+
+    help = 'help:user/commands/crosslinks.html#network'
     
     def __init__(self, session, chains, crosslinks):
 
