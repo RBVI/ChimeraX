@@ -79,6 +79,9 @@ class UI(QApplication):
         self.already_quit = False
         self.session = session
 
+        from .settings import UI_Settings
+        self.settings = UI_Settings(session, "ui")
+
         from .mousemodes import MouseModes
         self.mouse_modes = MouseModes(session)
 
@@ -147,6 +150,8 @@ class UI(QApplication):
         triggers.add_handler(TOOLSHED_BUNDLE_INSTALLED, handler)
         triggers.add_handler(TOOLSHED_BUNDLE_UNINSTALLED, handler)
         triggers.add_handler(TOOLSHED_BUNDLE_INFO_RELOADED, handler)
+        if self.autostart_tools:
+            self.session.tools.start_tools(self.settings.autostart)
 
     def deregister_for_keystrokes(self, sink, notfound_okay=False):
         """'undo' of register_for_keystrokes().  Use the same argument.
@@ -1056,6 +1061,16 @@ class _Qt:
             no_help_action = QAction("No help available", self.ui_area)
             no_help_action.setEnabled(False)
             menu.addAction(no_help_action)
+        session = ti.session
+        autostart = ti.name in session.ui.settings.autostart
+        auto_action = QAction("Start this tool at ChimeraX startup")
+        auto_action.setCheckable(True)
+        auto_action.setChecked(autostart)
+        from ..commands import run, quote_if_necessary
+        auto_action.triggered.connect(
+            lambda arg, ses=session, run=run, tool_name=ti.name:
+            run(ses, "ui autostart %s %s" % (("true" if arg else "false"),
+            quote_if_necessary(ti.name))))
         menu.exec(event.globalPos())
 
     def _get_shown(self):

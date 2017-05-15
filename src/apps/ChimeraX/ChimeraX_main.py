@@ -403,6 +403,8 @@ def init(argv, event_loop=True):
     # calls "sess.save_in_session(self)"
     sess.ui = ui_class(sess)
     sess.ui.stereo = opts.stereo
+    sess.ui.autostart_tools = opts.load_tools
+
     # splash step "0" will happen in the above initialization
     num_splash_steps = 2
     if opts.gui:
@@ -464,14 +466,6 @@ def init(argv, event_loop=True):
             if sess.ui.is_gui and opts.debug:
                 print("Starting main interface", flush=True)
         sess.ui.build()
-
-    if opts.load_tools:
-        if not opts.silent:
-            sess.ui.splash_info("Loading autostart tools",
-                                next(splash_step), num_splash_steps)
-            if sess.ui.is_gui and opts.debug:
-                print("Loading autostart tools", flush=True)
-        sess.tools.autostart()
 
     if opts.start_tools:
         if not opts.silent:
