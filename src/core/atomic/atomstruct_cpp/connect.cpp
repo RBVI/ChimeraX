@@ -433,6 +433,14 @@ find_missing_structure_bonds(Structure *as)
             // and SER 233.A OG <-> NDP 300.A O1X bond in 1a80
             // to not be classified as missing seqments)
             long_bonds.push_back(b);
+        else {
+            // if either end is CA/P in standard residue, then it has to be missing structure
+            // except P to O3'
+            if (r1->principal_atom() == a1 && (a1->name() != "P" || a2->name() != "O3'"))
+                long_bonds.push_back(b);
+            else if (r2->principal_atom() == a2 && (a2->name() != "P" || a1->name() != "O3'"))
+                long_bonds.push_back(b);
+        }
     }
     if (long_bonds.size() > 0) {
         auto pbg = as->pb_mgr().get_group(as->PBG_MISSING_STRUCTURE,
