@@ -188,7 +188,7 @@ def file_history(session):
     return fh
 
 def remember_file(session, filename, format, models, database = None, file_saved = False,
-                  open_options = None):
+                  open_options = {}):
     if session.in_script:
         return		# Don't remember files opened by scripts
     h = file_history(session)
