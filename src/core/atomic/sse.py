@@ -145,7 +145,7 @@ class HelixCylinder:
 
     MIN_CURVE_LENGTH = 13
 
-    def __init__(self, coords, maxiter=None):
+    def __init__(self, coords, radius=None, maxiter=None):
         self.coords = coords
         self.maxiter = maxiter
         self._centers = None
@@ -156,6 +156,11 @@ class HelixCylinder:
             self._straight_optimize()
         else:
             self._try_curved()
+        if radius is not None:
+            if self.curved:
+                self.minor_radius = radius
+            else:
+                self.radius = radius
 
     def cylinder_radius(self):
         """Return radius of cylinder."""
@@ -350,6 +355,10 @@ class HelixCylinder:
         self.radius = mean(radii)
 
     def _straight_initial(self):
+        # "Normal" helices can be approximated by using all
+        # coordinates on the assumption that the helix length
+        # is sufficiently larger than the helix radius that
+        # the biggest eigenvector will be the helical axis
         from numpy import mean, argmax, dot, newaxis
         from numpy.linalg import svd, norm
         centroid = mean(self.coords, axis=0)
