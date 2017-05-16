@@ -538,6 +538,7 @@ make_summary(KsdsspParams& params)
 	}
 
 	logger::info(logger, "Residue Summary");
+	logger::html_info(logger, "<pre>");
 	for (auto r: params.residues) {
 		int rflags = params.rflags[r];
 		char summary = ' ';
@@ -595,9 +596,10 @@ make_summary(KsdsspParams& params)
 		auto rstr = r->str();
 		while (rstr.size() < 7)
 			rstr += " ";
-		logger::info(logger, rstr, summary,
+		logger::html_info(logger, rstr, " ", summary,
 			" ", turn3, " ", turn4, " ", turn5, " ", bridge, " ", sheet);
 	}
+	logger::html_info(logger, "</pre>");
 }
 
 static void
