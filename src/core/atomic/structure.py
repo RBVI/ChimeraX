@@ -955,7 +955,7 @@ class Structure(Model, StructureData):
         from math import pi
         from numpy import empty, tile
 
-        hc = HelixCylinder(coords[start:end])
+        hc = HelixCylinder(coords[start:end], radius=self.ribbon_xs_mgr.tube_radius)
         centers = hc.cylinder_centers()
         radius = hc.cylinder_radius()
         normals, binormals = hc.cylinder_normals()
