@@ -50,8 +50,7 @@ py_exception_msg()
     return std::string(PyUnicode_AsUTF8(err_val));
 }
 
-// placeholders until the Python Logger is implemented...
-void  _log(PyObject* logger, std::stringstream& msg, _LogLevel level)
+void  _log(PyObject* logger, std::stringstream& msg, _LogLevel level, bool is_html)
 {
     if (logger == nullptr || logger == Py_None) {
         if (level == _LogLevel::ERROR)
@@ -95,13 +94,32 @@ void  _log(PyObject* logger, std::stringstream& msg, _LogLevel level)
                 << py_exception_msg();
             throw std::runtime_error(err_msg.str());
         }
-        PyObject* retval = PyObject_CallObject(method, args);
+        PyObject* kw = PyDict_New();
+        if (kw == nullptr) {
+            Py_DECREF(args);
+            std::stringstream err_msg;
+            err_msg << "Could not create kw dict for calling logger method: "
+                << py_exception_msg();
+            throw std::runtime_error(err_msg.str());
+        }
+        if (PyDict_SetItemString(kw, "is_html", is_html ? Py_True : Py_False) < 0) {
+            Py_DECREF(args);
+            std::stringstream err_msg;
+            err_msg << "Could not insert 'is_html' into kw dict for calling logger method: "
+                << py_exception_msg();
+            throw std::runtime_error(err_msg.str());
+        }
+        PyObject* retval = PyObject_Call(method, args, kw);
         if (retval == nullptr) {
+            Py_DECREF(args);
+            Py_DECREF(kw);
             std::stringstream err_msg;
             err_msg << "Call to logger '" << method_name << "' method failed: "
                 << py_exception_msg();
             throw std::runtime_error(err_msg.str());
         }
+        Py_DECREF(args);
+        Py_DECREF(kw);
     }
 }
 
