@@ -236,7 +236,7 @@ class HelixCylinder:
         Normals and binormals are relative to the cylinder center."""
         if self._normals is not None:
             return self._normals
-        from numpy import tile, vdot, cross
+        from numpy import tile, dot, cross
         from numpy.linalg import norm
         tile_shape = [len(self.coords), 1]
         centers = self.cylinder_centers()
@@ -246,7 +246,15 @@ class HelixCylinder:
             binormals = _normalize_vector_array(in_plane)
             self._normals = (normals, binormals)
         else:
-            normal = self.coords[1] - centers[1]
+            d = self.coords[1] - self.centroid
+            # We do not use:
+            #   normal = self.coords[1] - centers[1]
+            # because the order of the centers MAY not
+            # match the orders of the coords if the coords
+            # projection are out of order, i.e., they
+            # double back on themselves, which would
+            # result in bad rendering of cylinders.
+            normal = d - dot(d, self.axis) * self.axis
             normal = normal / norm(normal)
             binormal = cross(self.axis, normal)
             self._normals = (tile(normal, tile_shape),
