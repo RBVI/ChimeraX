@@ -554,6 +554,7 @@ class IHMModel(Model):
             if d:
                 v = d.volume_model(self.session)
                 if v:
+                    v.data.set_step((float(pwidth), float(pheight), v.data.step[2]))
                     v.name += ' %dD electron microscopy' % (3 if v.data.size[2] > 1 else 2)
                     v.initialize_thresholds(vfrac = (0.01,1), replace = True)
                     v.show()
@@ -828,13 +829,16 @@ class FileDataSet(DataSet):
     def volume_model(self, session):
         finfo = self.file_info
         filename = finfo.file_name
-        if filename.endswith('.mrc'):
-            image_path = finfo.map_path(session)
-            if image_path:
-                from chimerax.core.map.volume import open_map
+        image_path = finfo.map_path(session)
+        if image_path:
+            from chimerax.core.map.volume import open_map
+            from chimerax.core.map.data import Unknown_File_Type
+            try:
                 maps,msg = open_map(session, image_path)
-                v = maps[0]
-                return v
+            except Unknown_File_Type:
+                return None
+            v = maps[0]
+            return v
         return None
     
 # -----------------------------------------------------------------------------
