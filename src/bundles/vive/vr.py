@@ -134,12 +134,15 @@ class SteamVRCamera(Camera):
         self._controller_models = {}	# Device id to HandControllerModel
         self._controller_colors = ((200,200,0,255), (0,200,200,255))
         self._trigger_held = {}		# Map device id to bool
+        self._icons_shown = False
+        self._icons_device = None	# Controller id that shows icon panel
         self._move_selected_atoms = {}	# Map device id to bool
         self.mirror_display = False	# Mirror right eye in ChimeraX window
         				# This causes stuttering in the Vive.
         
         import openvr
         self.vr_system = vrs = openvr.init(openvr.VRApplication_Scene)
+        # TODO: If controller is turned on after initialization then it does not get in list.
         self._controller_ids = [d for d in range(openvr.k_unMaxTrackedDeviceCount)
                                 if vrs.getTrackedDeviceClass(d) == openvr.TrackedDeviceClass_Controller]
 
@@ -281,9 +284,35 @@ class SteamVRCamera(Camera):
         import openvr
         e = openvr.VREvent_t()
         if not vrs.pollNextEvent(e):
+            if self._icons_shown:
+                hm = self.hand_controller_models()
+                for d, m in hm.items():
+                    if d == self._icons_device:
+                        xy = self.touchpad_position(d)
+                        if xy is not None:
+                            m.show_icons(highlight_position = xy)
             return
         
         t = e.eventType
+        if t == openvr.VREvent_ButtonTouch or t == openvr.VREvent_ButtonUntouch:
+            touch = (t == openvr.VREvent_ButtonTouch)
+            b = e.data.controller.button
+            if b == openvr.k_EButton_SteamVR_Touchpad:
+                hm = self.hand_controller_models()
+                d = e.trackedDeviceIndex
+                m = hm.get(d, None)
+                if m:
+                    if self._icons_device is None or d == self._icons_device:
+                        self._icons_device = d
+                        if touch:
+                            xy = self.touchpad_position(d)
+                            if xy is not None:
+                                m.show_icons(highlight_position = xy)
+                                self._icons_shown = True
+                        else:
+                            m.hide_icons()	# Untouch
+                            self._icons_shown = False
+                
         if t == openvr.VREvent_ButtonPress or t == openvr.VREvent_ButtonUnpress:
             pressed = (t == openvr.VREvent_ButtonPress)
             d = e.trackedDeviceIndex
@@ -295,31 +324,45 @@ class SteamVRCamera(Camera):
 #                      % (press, d, b))
             elif b == openvr.k_EButton_SteamVR_Touchpad:
                 if pressed:
-                    hm = self.hand_controller_models()
-                    m = hm.get(d, None)
-                    if m:
-                        a = m.closest_atom()
-                        if a:
-                            # Select atom with bottom of touchpad,
-                            # or residue with top of touchpad
-                            xy = self.touchpad_position(d)
-                            if xy is not None:
-                                self._session.selection.clear()
-                                x,y = xy
-                                if x >= .5:
-                                    # Residue atoms not including backbone.
-                                    ratoms = a.residue.atoms
-                                    from numpy import logical_not
-                                    scatoms = ratoms.filter(logical_not(ratoms.is_backbones()))
-                                    scatoms.selected = True
-                                if y <= 0:
-                                    a.selected = True
-                                else:
-                                    a.residue.atoms.selected = True
+                    if self._icons_shown and d == self._icons_device:
+                        self.icon_clicked(d)
+                    else:
+                        self.select_object(d)
             elif b == openvr.k_EButton_ApplicationMenu:
                 pass
             elif b == openvr.k_EButton_Grip:
                 self._move_selected_atoms[d] = pressed
+
+    def icon_clicked(self, d):
+        hm = self.hand_controller_models()
+        m = hm.get(d, None)
+        xy = self.touchpad_position(d)
+        if m is None or xy is None:
+            return
+        m.run_icon(xy)
+
+    def select_object(self, d):
+        hm = self.hand_controller_models()
+        m = hm.get(d, None)
+        if m:
+            a = m.closest_atom()
+            if a:
+                # Select atom with bottom of touchpad,
+                # or residue with top of touchpad
+                xy = self.touchpad_position(d)
+                if xy is not None:
+                    self._session.selection.clear()
+                    x,y = xy
+                    if x >= .5:
+                        # Residue atoms not including backbone.
+                        ratoms = a.residue.atoms
+                        from numpy import logical_not
+                        scatoms = ratoms.filter(logical_not(ratoms.is_backbones()))
+                        scatoms.selected = True
+                    if y <= 0:
+                        a.selected = True
+                    else:
+                        a.residue.atoms.selected = True
 
     def touchpad_position(self, device_id):
         vrs = self.vr_system
@@ -340,7 +383,7 @@ class SteamVRCamera(Camera):
         # like you grab the models where your hand is located.
         # Another idea is to instead pretend controller is at center of models.
         acm = self.controller_motions()
-        cm = [acm[d] for d,h in self._trigger_held.items() if h]
+        cm = [acm[d] for d,h in self._trigger_held.items() if h and d in acm]
         if len(cm) == 1:
             # One controller has trigger pressed, move scene.
             previous_pose, pose = cm[0]
@@ -512,11 +555,18 @@ class HandControllerModel(Model):
 
     def __init__(self, name, session, rgba8, size = 0.20, aspect = 0.2):
         Model.__init__(self, name, session)
+        self._icon_drawing = None
+        self._icon_highlight_drawing = None
+        self._icon_size = 128  # pixels
+        self._icon_columns = 0
+        self._icon_rows = 0
+        self._icon_shortcuts = []
         from chimerax.core.surface.shapes import cone_geometry
         va, na, ta = cone_geometry(nc = 50, points_up = False)
         va[:,:2] *= aspect
         va[:,2] += 0.5		# Move tip to 0,0,0 for picking
         va *= size
+        self._cone_length = size
         self.geometry = va, ta
         self.normals = na
         from numpy import array, uint8
@@ -563,8 +613,121 @@ class HandControllerModel(Model):
                 matoms.append(ma.filter(ma.displays | (ma.hides != 0)))
         atoms = concatenate(matoms, Atoms)
         return atoms
-    
-    
+
+    def show_icons(self, highlight_position = None):
+        d = self.icon_drawing()
+        d.display = True
+        if highlight_position:
+            # x,y ranging from -1 to 1
+            x,y = highlight_position
+            ihd = self.icon_highlight_drawing()
+            s = self._cone_length
+            aspect = self._icon_rows / self._icon_columns
+            from chimerax.core.geometry import translation
+            ihd.position = translation((s*x,0,-s*(y+1)*aspect))
+            ihd.display = True
+
+    def run_icon(self, xy):
+        rows, cols = self._icon_rows, self._icon_columns
+        x,y = xy
+        c = int(0.5 * (x + 1) * cols)
+        r = int(0.5 * (1 - y) * rows)
+        i = r*cols + c
+        s = self._icon_shortcuts
+        if i < len(s):
+            from chimerax.core.commands import run
+            run(self.session, 'ks %s' % s[i])
+        
+    def icon_drawing(self):
+        d = self._icon_drawing
+        if d:
+            return d
+        
+        from chimerax.core.graphics import Drawing
+        from chimerax.core.graphics.drawing import rgba_drawing
+        self._icon_drawing = d = Drawing('VR icons')
+        rgba = self.tiled_icons() # numpy uint8 (ny,nx,4) array
+        s = self._cone_length
+        h,w = rgba.shape[:2]
+        self._icons_aspect = aspect = h/w if w > 0 else 1
+        pos = (-s, 0)	# Cone tip is at 0,0
+        size = (2*s, 2*s*aspect)
+        self.session.main_view.render.make_current() # Need to make texture in rgba_drawing()
+        rgba_drawing(d, rgba, pos, size)
+        from chimerax.core.geometry import rotation
+        d.vertices = rotation(axis = (1,0,0), angle = -90) * d.vertices
+        self.add_drawing(d)
+        return d
+
+    def icon_highlight_drawing(self):
+        d = self._icon_highlight_drawing
+        if d:
+            return d
+        
+        from chimerax.core.graphics import Drawing
+        self._icon_highlight_drawing = d = Drawing('VR icon highlight')
+        s = self._cone_length
+        from chimerax.core.surface import sphere_geometry
+        va, na, ta = sphere_geometry(200)
+        va *= 0.1*s
+        d.geometry = va,ta
+        d.normals = na
+        d.color = (0,255,0,255)
+        self.add_drawing(d)
+        return d
+        
+    def hide_icons(self):
+        d = self._icon_drawing
+        if d:
+            d.display = False
+        dh = self._icon_highlight_drawing
+        if dh:
+            dh.display = False
+
+    def icons(self):
+        images = []
+        self._icon_shortcuts = ks = []
+        from os.path import join, dirname
+        icon_dir = join(dirname(__file__), '..', 'shortcuts', 'icons')
+        from ..shortcuts.tool import MoleculeDisplayPanel
+        from PyQt5.QtGui import QImage
+        for keys, filename, descrip in MoleculeDisplayPanel.shortcuts:
+            icon_path = join(icon_dir, filename)
+            images.append(QImage(icon_path))
+            ks.append(keys)
+        return images
+
+    def tiled_icons(self):
+        images = self.icons()
+        n = len(images)
+        from math import ceil, sqrt
+        cols = int(ceil(sqrt(n)))
+        rows = (n + cols-1) // cols
+        self._icon_columns, self._icon_rows = cols, rows
+        isize = self._icon_size
+        from PyQt5.QtGui import QImage, QPainter
+        from PyQt5.QtCore import QRect
+        ti = QImage(cols*isize, rows*isize, QImage.Format_ARGB32)
+        p = QPainter()
+        p.begin(ti)
+        for i,im in enumerate(images):
+            r = QRect((i%cols)*isize, (i//cols)*isize, isize, isize)
+            p.drawImage(r, im)
+        rgba = qimage_to_numpy(ti)
+        p.end()
+        return rgba
+
+def qimage_to_numpy(qi):
+    shape = (qi.height(), qi.width(), 4)
+    buf = qi.bits().asstring(qi.byteCount())
+    from numpy import uint8, frombuffer
+    bgra = frombuffer(buf, uint8).reshape(shape)
+    rgba = bgra.copy()
+    rgba[:,:,0] = bgra[:,:,2]
+    rgba[:,:,2] = bgra[:,:,0]
+    rgba = rgba[::-1,:,:]	# flip
+    return rgba
+            
 def hmd44_to_opengl44(hm44):
     from numpy import array, float32
     m = hm44.m
