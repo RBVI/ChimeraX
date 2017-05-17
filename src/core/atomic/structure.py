@@ -1987,7 +1987,7 @@ class AtomicStructure(Structure):
             description = chain.description if chain.description else "No description available"
             descripts.setdefault((description, chain.characters), []).append(chain)
         def chain_text(chain):
-            return '<a title="Show sequence" href="cxcmd:seqalign chain #%s/%s">%s</a>' % (
+            return '<a title="Show sequence" href="cxcmd:sequence chain #%s/%s">%s</a>' % (
                 chain.structure.id_string(), chain.chain_id, chain.chain_id)
         self._report_chain_summary(session, descripts, chain_text)
 
@@ -2003,7 +2003,7 @@ class AtomicStructure(Structure):
             description = chain.description if chain.description else "No description available"
             descripts.setdefault((description, chain.characters), []).append(chain)
         def chain_text(chain):
-            return '<a title="Show sequence" href="cxcmd:seqalign chain #%s/%s">%s/%s</a>' % (
+            return '<a title="Show sequence" href="cxcmd:sequence chain #%s/%s">%s/%s</a>' % (
                 chain.structure.id_string(), chain.chain_id,
                 chain.structure.id_string(), chain.chain_id)
         self._report_chain_summary(session, descripts, chain_text)
@@ -2012,7 +2012,7 @@ class AtomicStructure(Structure):
         def descript_text(description, chains):
             if len(chains) == 1:
                 return description
-            return '<a title="Show sequence" href="cxcmd:seqalign chain %s">%s</a>' % (
+            return '<a title="Show sequence" href="cxcmd:sequence chain %s">%s</a>' % (
                 ''.join(["#%s/%s" % (chain.structure.id_string(), chain.chain_id)
                     for chain in chains]), description)
         from ..logger import html_table_params
