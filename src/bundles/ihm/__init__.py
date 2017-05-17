@@ -23,7 +23,7 @@ class _IHMAPI(BundleAPI):
             from . import ihm
             return ihm.read_ihm(session, filespec, name)
         elif format_name == 'Binary Coordinates':
-            if 'model' is None:
+            if model is None:
                 from chimerax.core.errors import UserError
                 raise UserError('Must specify model option to open command to load binary coordinates')
             from . import coordsets
