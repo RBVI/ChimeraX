@@ -46,6 +46,11 @@ class="clRight" title="User Guide Index"/></a>
 <br><b>surface</b> (&nbsp;<b>hide</b>&nbsp;|&nbsp;<b>show</b>&nbsp;|&nbsp;<b>close</b>&nbsp;)
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>
 </h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>surface style</b>
+&nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
+(&nbsp;<b>solid</b>&nbsp;|&nbsp;<b>mesh</b>&nbsp;|&nbsp;<b>dot</b>&nbsp;)
+</h3>
 <p>
 The <b>surface</b> command creates and displays <b><i>molecular surfaces</i></b>,
 either atomically detailed solvent-excluded surfaces (SES, default) or
@@ -108,11 +113,15 @@ closing an existing surface first is recommended, otherwise
 some of its settings may be retained.
 The <b>surface close</b> command removes the surface models specified directly,
 or all surface models that enclose any of the specified atoms.
+</p><p>
+Surface display style (solid, mesh, or dot) can be adjusted with
+<a href="#style"><b>surface style</b></a>.
 </p>
 
 <ul class="none">
 <li><a href="#options"><b>Surface Creation Options</b></a>
-<li><a href="#examples"><b>Examples</b></a>
+<li><a href="#examples"><b>Creation/Display Examples</b></a>
+<li><a href="#style"><b>Surface Style</b></a>
 <li><a href="#sop"><b>Surface Operations (Editing)</b></a> 
   <ul>
   <li><a href="#dust"><b>surface dust</b></a>
@@ -246,7 +255,7 @@ See also: <a href="#dust"><b>surface dust</b></a>
 <p class="nav">
 [<a href="#top">back to top</a>]
 </p>
-<h3>Examples</h3>
+<h3>Creation/Display Examples</h3>
 <blockquote>
 <b>surface</b>
 <br>
@@ -313,6 +322,22 @@ target="_blank">4HHB</a>)
 - display a single surface that encloses all the biopolymer chains 
 and HEM residues in model 1
 </blockquote>
+
+<a name="style"></a>
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<h3>Surface Style</h3>
+<blockquote><a href="usageconventions.html"><b>Usage</b></a>:
+<b>surface style</b>
+&nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
+(&nbsp;<b>solid</b>&nbsp;|&nbsp;<b>mesh</b>&nbsp;|&nbsp;<b>dot</b>&nbsp;)
+</blockquote>
+<p>
+The representation of a surface model can be <b>solid</b>,
+<b>mesh</b>, or <b>dot</b>.
+See also: <a href="transparency.html"><b>transparency</b></a>
+</p>
 
 <a name="sop"></a>
 <p class="nav">
@@ -410,5 +435,5 @@ atomic center.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2017</address>
+May 2017</address>
 </body></html>
