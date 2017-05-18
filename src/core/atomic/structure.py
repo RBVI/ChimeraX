@@ -1246,28 +1246,28 @@ class Structure(Model, StructureData):
         if (end - start + 1) <= 2:
             # Short strands do not need smoothing
             return
-        from numpy import empty, dot, newaxis
+        from numpy import zeros, empty, dot, newaxis
         from numpy.linalg import norm
         from .ribbon import normalize
         ss_coords = coords[start:end]
-        adjusts = ribbon_adjusts[start:end][:, newaxis]
-        ideal = empty(ss_coords.shape, dtype=float)
-        if len(ideal) == 2:
-            # Two-residue strand, no smoothing
-            ideal[0] = ss_coords[0]
-            ideal[-1] = ss_coords[-1]
+        if len(ss_coords) < 4:
+            # short strand, no smoothing
+            ideal = ss_coords
+            offsets = zeros(ss_coords.shape, dtype=float)
         else:
+            ideal = empty(ss_coords.shape, dtype=float)
             ideal[1:-1] = (ss_coords[1:-1] * 2 + ss_coords[:-2] + ss_coords[2:]) / 4
             ideal[0] = ss_coords[0] - (ideal[1] - ss_coords[1])
             ideal[-1] = ss_coords[-1] - (ideal[-2] - ss_coords[-2])
-        offsets = adjusts * (ideal - ss_coords)
-        new_coords = ss_coords + offsets
-        # Update both control point and guide coordinates
-        if guides is not None:
-            # Compute guide atom position relative to control point atom
-            delta_guides = guides[start:end] - ss_coords
-            guides[start:end] = new_coords + delta_guides
-        coords[start:end] = new_coords
+            adjusts = ribbon_adjusts[start:end][:, newaxis]
+            offsets = adjusts * (ideal - ss_coords)
+            new_coords = ss_coords + offsets
+            # Update both control point and guide coordinates
+            if guides is not None:
+                # Compute guide atom position relative to control point atom
+                delta_guides = guides[start:end] - ss_coords
+                guides[start:end] = new_coords + delta_guides
+            coords[start:end] = new_coords
         if False:
             # Debugging code to display center of secondary structure
             self._ss_display(p, str(self) + " strand " + str(start), ideal)
@@ -1987,7 +1987,7 @@ class AtomicStructure(Structure):
             description = chain.description if chain.description else "No description available"
             descripts.setdefault((description, chain.characters), []).append(chain)
         def chain_text(chain):
-            return '<a title="Show sequence" href="cxcmd:seqalign chain #%s/%s">%s</a>' % (
+            return '<a title="Show sequence" href="cxcmd:sequence chain #%s/%s">%s</a>' % (
                 chain.structure.id_string(), chain.chain_id, chain.chain_id)
         self._report_chain_summary(session, descripts, chain_text)
 
@@ -2003,7 +2003,7 @@ class AtomicStructure(Structure):
             description = chain.description if chain.description else "No description available"
             descripts.setdefault((description, chain.characters), []).append(chain)
         def chain_text(chain):
-            return '<a title="Show sequence" href="cxcmd:seqalign chain #%s/%s">%s/%s</a>' % (
+            return '<a title="Show sequence" href="cxcmd:sequence chain #%s/%s">%s/%s</a>' % (
                 chain.structure.id_string(), chain.chain_id,
                 chain.structure.id_string(), chain.chain_id)
         self._report_chain_summary(session, descripts, chain_text)
@@ -2012,7 +2012,7 @@ class AtomicStructure(Structure):
         def descript_text(description, chains):
             if len(chains) == 1:
                 return description
-            return '<a title="Show sequence" href="cxcmd:seqalign chain %s">%s</a>' % (
+            return '<a title="Show sequence" href="cxcmd:sequence chain %s">%s</a>' % (
                 ''.join(["#%s/%s" % (chain.structure.id_string(), chain.chain_id)
                     for chain in chains]), description)
         from ..logger import html_table_params

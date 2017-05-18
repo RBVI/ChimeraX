@@ -52,7 +52,7 @@ def open_file(session, stream, fname, format_name="FASTA", return_vals=None,
             raise UserError("Sequence '%s' differs in length from preceding sequences, and"
                 " it is therefore impossible to open these sequences as an alignment.  If"
                 " you want to open the sequences individually, specify 'false' as the value"
-                " of the 'oneAlignment' keyword in the 'open' command." % differing_seq.name)
+                " of the 'alignment' keyword in the 'open' command." % differing_seq.name)
         alignments = [session.alignments.new_alignment(seqs,
             ident if ident is not None else fname, attrs=file_attrs,
             markups=file_markups, auto_associate=auto_associate, **kw)]
