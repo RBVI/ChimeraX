@@ -111,7 +111,7 @@ def find_link_in_html(filename, url_suffix = '.zip', mime_type = 'application/zi
 
 # -----------------------------------------------------------------------------
 #
-def fetch_doi_archive_file(session, doi, url, archive_path, ignore_cache = False):
+def fetch_doi_archive_file(session, doi, url, archive_path, mode = 'r', ignore_cache = False):
 
     zip_path = fetch_doi(session, doi, url, ignore_cache = ignore_cache)
     from zipfile import ZipFile
@@ -121,7 +121,10 @@ def fetch_doi_archive_file(session, doi, url, archive_path, ignore_cache = False
         if p.endswith(archive_path):
             full_paths.append(p)
     zfile = full_paths[0] if len(full_paths) == 1 else archive_path
-    af = zf.open(zfile)
+    af = zf.open(zfile)	# Returns bytes stream 
+    if mode == 'r':
+        import io
+        af = io.TextIOWrapper(af)
     return af
 
 # -----------------------------------------------------------------------------

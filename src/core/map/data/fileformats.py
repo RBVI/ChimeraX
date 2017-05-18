@@ -32,7 +32,7 @@ file_types = (
 #  ('EMAN HDF map', 'emanhdf', ['emanhdf'], ['hdf', 'h5'], False),
 #  ('Gaussian cube grid', 'gaussian', ['cube'], ['cube','cub'], False),
 #  ('gOpenMol grid', 'gopenmol', ['gopenmol'], ['plt'], False),
-  ('Image stack', 'imagestack', ['images'], ['tif', 'tiff', 'png'], True),
+  ('Image stack', 'imagestack', ['images'], ['tif', 'tiff', 'png', 'pgm'], True),
   ('Imaris map', 'ims', ['ims'], ['ims'], False),
 #  ('IMOD map', 'imod', ['imodmap'], ['rec'], False),
 #  ('MacMolPlt grid', 'macmolplt', ['macmolplt'], ['mmp'], False),
