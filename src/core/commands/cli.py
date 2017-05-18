@@ -2384,7 +2384,7 @@ class Command:
                         used_aliases = _used_aliases.copy()
                         used_aliases.add(self.command_name)
                     results.append(ci.function(session, *args, optional=optional,
-                                   _used_aliases=used_aliases))
+                                   _used_aliases=used_aliases, log=log))
             except UserError as err:
                 raise
             except ValueError as err:
