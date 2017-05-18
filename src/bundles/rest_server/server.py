@@ -165,6 +165,8 @@ class RESTHandler(BaseHTTPRequestHandler):
                 else:
                     try:
                         for cmd in commands:
+                            if isinstance(cmd, bytes):
+                                cmd = cmd.decode('utf-8')
                             run(session, cmd, log=False)
                     except NotABug as e:
                         logger.info(str(e))
