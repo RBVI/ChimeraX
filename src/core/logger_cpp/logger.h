@@ -34,7 +34,7 @@ namespace logger {
 enum class _LogLevel { INFO, WARNING, ERROR };
 
 LOGGER_IMEX
-void  _log(PyObject* logger, std::stringstream& msg, _LogLevel level);
+void  _log(PyObject* logger, std::stringstream& msg, _LogLevel level, bool is_html=false);
 template<typename T, typename... Args>
 void  _log(PyObject* logger, std::stringstream& msg, _LogLevel level,
     T value, Args... args)
@@ -67,6 +67,44 @@ void  error(PyObject* logger, T value, Args... args)
     std::stringstream msg;
     msg << value;
     _log(logger, msg, _LogLevel::ERROR, args...);
+}
+
+inline void  _html_log(PyObject* logger, std::stringstream& msg, _LogLevel level) {
+    _log(logger, msg, level, true);
+}
+
+template<typename T, typename... Args>
+void  _html_log(PyObject* logger, std::stringstream& msg, _LogLevel level,
+    T value, Args... args)
+{
+    msg << value;
+    _html_log(logger, msg, level, args...);
+}
+
+// 'logger' arg can be nullptr
+
+template<typename T, typename... Args>
+void  html_info(PyObject* logger, T value, Args... args)
+{
+    std::stringstream msg;
+    msg << value;
+    _html_log(logger, msg, _LogLevel::INFO, args...);
+}
+
+template<typename T, typename... Args>
+void  html_warning(PyObject* logger, T value, Args... args)
+{
+    std::stringstream msg;
+    msg << value;
+    _html_log(logger, msg, _LogLevel::WARNING, args...);
+}
+
+template<typename T, typename... Args>
+void  html_error(PyObject* logger, T value, Args... args)
+{
+    std::stringstream msg;
+    msg << value;
+    _html_log(logger, msg, _LogLevel::ERROR, args...);
 }
 
 } //  namespace logger

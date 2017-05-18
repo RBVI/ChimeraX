@@ -609,6 +609,11 @@ class XSectionManager(State):
             self.arrow_sheet = b
             self._set_gc_ribbon()
 
+    def set_tube_radius(self, r):
+        if self.tube_radius != r:
+            self.tube_radius = r
+            self._set_gc_ribbon()
+
     def set_params(self, style, **kw):
         param = self.params[style]
         for k in kw.keys():
@@ -810,6 +815,7 @@ class XSectionManager(State):
         "arrow_sheet",
         "params",
         "transitions",
+        "tube_radius",
     ]
 
     def take_snapshot(self, session, flags):
@@ -825,7 +831,11 @@ class XSectionManager(State):
 
     def set_state_from_snapshot(self, session, data):
         for attr in self._SessionAttrs:
-            setattr(self, attr, data[attr])
+            try:
+                setattr(self, attr, data[attr])
+            except IndexError:
+                # Older sessions may not have all the current parameters
+                pass
 
     def reset_state(self, session):
         self.scale_helix = (1.0, 0.2)
@@ -908,6 +918,7 @@ class XSectionManager(State):
             (self.RC_HELIX_MIDDLE, self.RC_HELIX_END, self.RC_SHEET_START):
                 (self.RIBBON_HELIX_ARROW, self.RIBBON_COIL),
         }
+        self.tube_radius = None
 
         self._xs_helix = None
         self._xs_helix_arrow = None

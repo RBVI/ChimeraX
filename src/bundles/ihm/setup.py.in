@@ -75,7 +75,7 @@ setup(
         "Topic :: Scientific/Engineering :: Bio-Informatics",
         "ChimeraX :: Bundle :: Higher-Order Structure :: 1,1 :: PKG_NAME :: RBVI-IHM,chimerax.ihm :: ",
         "ChimeraX :: DataFormat :: IHM :: :: Higher-Order Structure :: .ihm :: :: http://salilab.org/ :: :: :: Integrative Hybrid Models data",
-        "ChimeraX :: Open :: IHM :: ihm :: true",
+        "ChimeraX :: Open :: IHM :: ihm :: true :: ensembles:Bool",
         "ChimeraX :: DataFormat :: Binary Coordinates :: :: Molecular structure :: .crd :: :: :: :: :: Raw binary coordinates",
         "ChimeraX :: Save :: Binary Coordinates :: crd :: true",
         "ChimeraX :: Open :: Binary Coordinates :: crd :: true :: model:Model",

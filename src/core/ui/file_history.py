@@ -52,15 +52,16 @@ class FileHistory:
             hbytes, max_bytes = 0, 50000000
             for fi, f in enumerate(reversed(files)):
                 name = limit_string(f.short_name(), self.filename_size)
+                descrip = f.path if f.database is None else '%s %s' % (f.database.upper(), f.path)
                 import html
                 cmd = html.escape(f.open_command())
                 i = self.default_image('JPEG') if f.image is None or hbytes > max_bytes else f.image
-                img = '<img src="data:image/jpeg;base64,%s" width=%d height=%d>' % (i, w, h)
+                img = '<img src="data:image/jpeg;base64,%s" width=%d height=%d title="%s">' % (i, w, h, descrip)
                 line = ('<table>'
                         '<tr><td><a href="cxcmd:%s">%s</a>'
-                        '<tr><td align=center><a href="cxcmd:%s">%s</a>'
+                        '<tr><td align=center><a href="cxcmd:%s" title="%s">%s</a>'
                         '</table></a>'
-                        % (cmd, img, cmd, name))
+                        % (cmd, img, cmd, descrip, name))
                 lines.append(line)
                 hbytes += len(line)
             lines.extend(['</body>', '</html>'])

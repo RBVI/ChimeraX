@@ -15,7 +15,7 @@
 ihm: Integrative Hybrid Model file format support
 =================================================
 """
-def read_ihm(session, filename, name, *args, load_linked_files = True,
+def read_ihm(session, filename, name, *args, load_ensembles = False, load_linked_files = True,
              show_sphere_crosslinks = True, show_atom_crosslinks = False, **kw):
     """Read an integrative hybrid models file creating sphere models and restraint models
 
@@ -31,6 +31,7 @@ def read_ihm(session, filename, name, *args, load_linked_files = True,
         stream.close()
 
     m = IHMModel(session, filename,
+                 load_ensembles = load_ensembles,
                  load_linked_files = load_linked_files,
                  show_sphere_crosslinks = show_sphere_crosslinks,
                  show_atom_crosslinks = show_atom_crosslinks)
@@ -42,6 +43,7 @@ def read_ihm(session, filename, name, *args, load_linked_files = True,
 from chimerax.core.models import Model
 class IHMModel(Model):
     def __init__(self, session, filename,
+                 load_ensembles = False,
                  load_linked_files = True,
                  show_sphere_crosslinks = True,
                  show_atom_crosslinks = False):
@@ -67,8 +69,9 @@ class IHMModel(Model):
         self.crosslink_models = xlinks
 
         # 2D and 3D electron microscopy projections
-        emmodels = (self.read_2d_electron_microscopy_maps() +
-                    self.read_3d_electron_microscopy_maps())
+        em2d = self.read_2d_electron_microscopy_maps()
+        em3d = self.read_3d_electron_microscopy_maps()
+        emmodels = em2d + em3d
         self.electron_microscopy_models = emmodels
 
         # Make restraint model groupsy
@@ -79,10 +82,19 @@ class IHMModel(Model):
             self.add([r_group])
 
         # Sphere models, ensemble models, groups
-        smodels, emodels, gmodels = self.read_sphere_models()
+        smodels, emodels, gmodels = self.read_sphere_models(load_ensembles)
         self.sphere_models = smodels
         self.ensemble_sphere_models = emodels
 
+        # Align 2DEM to projection position for first sphere model
+        if smodels:
+            s0 = smodels[0]
+            for v in em2d:
+                if hasattr(v, 'ihm_model_projections'):
+                    p = v.ihm_model_projections.get(s0.ihm_model_id)
+                    if p:
+                        v.position = p
+                        
         # Add crosslinks to sphere models
         if show_sphere_crosslinks:
             self.create_sphere_model_crosslinks(xlinks, smodels, emodels, xlmodels)
@@ -124,6 +136,7 @@ class IHMModel(Model):
                        'ihm_starting_model_details', 	# Starting models
                        'ihm_starting_comparative_models', # Compararative model templates
                        'ihm_2dem_class_average_restraint', # 2D EM constraing projectionn of atomic model
+                       'ihm_2dem_class_average_fitting', # 2D EM orientation relative to model
                        'ihm_3dem_restraint',		# 3d electron microscopy
                        ]
         from chimerax.core.atomic import mmcif
@@ -192,11 +205,10 @@ class IHMModel(Model):
             return xmodels
 
         fields = ['asym_id', 'seq_id_begin', 'seq_id_end', 'starting_model_source',
-                  'starting_model_auth_asym_id',
-                  'dataset_list_id', 'alignment_file_id']
+                  'starting_model_auth_asym_id', 'dataset_list_id']
         rows = starting_models.fields(fields, allow_missing_fields = True)
 
-        for asym_id, seq_beg, seq_end, source, auth_asym_id, did, seqfile_id in rows:
+        for asym_id, seq_beg, seq_end, source, auth_asym_id, did in rows:
             if source != 'experimental model':
                 continue
             d = self.data_set(did, 'ihm_starting_model_details')
@@ -286,7 +298,7 @@ class IHMModel(Model):
         starting_models = self.tables['ihm_starting_model_details']
         if not starting_models:
             return tmodels, seqmodels
-        fields = ['ordinal_id', 'asym_id', 'seq_id_begin', 'seq_id_end',
+        fields = ['starting_model_id', 'asym_id', 'seq_id_begin', 'seq_id_end',
                   'starting_model_source', 'dataset_list_id']
         rows = starting_models.fields(fields, allow_missing_fields = True)
         smdetails = {sm_id:(asym_id, seq_beg, seq_end, did)
@@ -317,16 +329,13 @@ class IHMModel(Model):
             tmodels.append(tm)
             if alignment_file_id != '.':
                 sfinfo = self.file_info(alignment_file_id)
-                if sfinfo is not None and sfinfo.ref is None:  # TODO: Handle DOI files.
-                    from os.path import join, isfile
-                    p = join(self.ihm_directory, sfinfo.file_path)
-                    if isfile(p):
-                        a = (p, asym_id, cdid)
-                        sam = alignments.get(a)
-                        if sam is None:
-                            # Make sequence alignment model for comparative model
-                            alignments[a] = sam = SequenceAlignmentModel(self.session, p, asym_id, cdid)
-                        sam.add_template_model(tm)
+                if sfinfo is not None:
+                    a = (sfinfo, asym_id, cdid)
+                    sam = alignments.get(a)
+                    if sam is None:
+                        # Make sequence alignment model for comparative model
+                        alignments[a] = sam = SequenceAlignmentModel(self.session, sfinfo, asym_id, cdid)
+                    sam.add_template_model(tm)
 
         seqmodels = list(alignments.values())
         return tmodels, seqmodels
@@ -350,20 +359,21 @@ class IHMModel(Model):
                 files_fields = ['id', 'reference_id', 'file_path']
                 rows = files_table.fields(files_fields, allow_missing_fields = True)
                 for f_id, ref_id, file_path in rows:
-                    fmap[f_id] = FileInfo(f_id, refs.get(ref_id,None), file_path, self.ihm_directory)
+                    fpath = None if file_path == '.' else file_path
+                    fmap[f_id] = FileInfo(f_id, refs.get(ref_id,None), fpath, self.ihm_directory)
 
         fi = fmap.get(file_id, None)
         return fi
 
     # -----------------------------------------------------------------------------
     #
-    def read_sphere_models(self):
+    def read_sphere_models(self, load_ensembles):
         gmodels = self.make_sphere_model_groups()
         for g in gmodels[1:]:
             g.display = False	# Only show first group.
         self.add(gmodels)
 
-        smodels, emodels = self.make_sphere_models(gmodels)
+        smodels, emodels = self.make_sphere_models(gmodels, load_ensembles = load_ensembles)
         return smodels, emodels, gmodels
 
     # -----------------------------------------------------------------------------
@@ -389,7 +399,7 @@ class IHMModel(Model):
 
     # -----------------------------------------------------------------------------
     #
-    def make_sphere_models(self, group_models):
+    def make_sphere_models(self, group_models, load_ensembles = False):
         mlt = self.tables['ihm_model_list']
         ml_fields = ['model_id', 'model_name']
         ml = mlt.fields(ml_fields, allow_missing_fields = True)
@@ -433,37 +443,43 @@ class IHMModel(Model):
 
         # Open ensemble sphere models that are not included in ihm sphere obj table.
         emodels = []
-        eit = self.tables['ihm_ensemble_info']
-        ei_fields = ['ensemble_name', 'model_group_id', 'ensemble_file_id']
-        ei = eit.fields(ei_fields, allow_missing_fields = True)
-        from os.path import isfile, join
-        for mname, gid, file_id in ei:
-            finfo = self.file_info(file_id)
-            if finfo is None or finfo.ref is not None:
-                continue	# TODO: Handle ensemble files from doi or url.
-            path = join(self.ihm_directory, finfo.file_path)
-            if isfile(path) and path.endswith('.pdb'):
+        if load_ensembles:
+            eit = self.tables['ihm_ensemble_info']
+            ei_fields = ['ensemble_name', 'model_group_id', 'ensemble_file_id']
+            ei = eit.fields(ei_fields, allow_missing_fields = True)
+            from os.path import isfile, join
+            for mname, gid, file_id in ei:
+                finfo = self.file_info(file_id)
+                if finfo is None:
+                    continue
+                fname = finfo.file_name
+                if not fname.endswith('.pdb') and not fname.endswith('.pdb.gz'):
+                    continue
+                fstream = finfo.stream(self.session, uncompress = True)
+                if fstream is None:
+                    continue
                 from chimerax.core.atomic.pdb import open_pdb
-                mlist,msg = open_pdb(self.session, path, mname,
-                                     auto_style = False, explode = False)
+                mlist,msg = open_pdb(self.session, fstream, mname,
+                                     auto_style = False, coordset = True)
                 sm = mlist[0]
                 sm.display = False
                 sm.ss_assigned = True	# Don't assign secondary structure to sphere model
                 atoms = sm.atoms
                 from chimerax.core.atomic.colors import chain_colors
                 atoms.colors = chain_colors(atoms.residues.chain_ids)
-                if isfile(path + '.crd'):
+                path = fstream.name if hasattr(fstream, 'name') else None
+                if path and isfile(path + '.crd'):
                     from .coordsets import read_coordinate_sets
                     read_coordinate_sets(path + '.crd', sm)
                 sm.name += ' %d models' % sm.num_coord_sets
                 gmodel[gid].add([sm])
                 emodels.append(sm)
 
-        # Copy bead radii from best score model to ensemble models
-        if smodels and emodels:
-            r = smodels[0].atoms.radii
-            for em in emodels:
-                em.atoms.radii = r
+            # Copy bead radii from best score model to ensemble models
+            if smodels and emodels:
+                r = smodels[0].atoms.radii
+                for em in emodels:
+                    em.atoms.radii = r
 
         return smodels, emodels
 
@@ -547,14 +563,35 @@ class IHMModel(Model):
         dot = self.tables['ihm_2dem_class_average_restraint']
         if dot is None:
             return emmodels
-        fields = ['dataset_list_id', 'pixel_size_width', 'pixel_size_height']
+
+        rt = {}	# Orientations of 2D EM for best projection
+        caf = self.tables['ihm_2dem_class_average_fitting']
+        if caf:
+            fields = ['restraint_id', 'model_id',
+                      'rot_matrix[1][1]', 'rot_matrix[2][1]', 'rot_matrix[3][1]',
+                      'rot_matrix[1][2]', 'rot_matrix[2][2]', 'rot_matrix[3][2]',
+                      'rot_matrix[1][3]', 'rot_matrix[2][3]', 'rot_matrix[3][3]',
+                      'tr_vector[1]', 'tr_vector[2]', 'tr_vector[3]']
+            rows = caf.fields(fields)
+            from chimerax.core.geometry import Place
+            for rid, mid, r11s,r21s,r31s,r12s,r22s,r32s,r13s,r23s,r33s,t1s,t2s,t3s in rows:
+                r11,r21,r31,r12,r22,r32,r13,r23,r33,t1,t2,t3 = \
+                    [float(x) for x in (r11s,r21s,r31s,r12s,r22s,r32s,r13s,r23s,r33s,t1s,t2s,t3s)]
+#                rt.setdefault(rid,{})[mid] = Place(((r11,r12,r13,t1),(r21,r22,r23,t2),(r31,r32,r33,t3)))
+                rt.setdefault(rid,{})[mid] = Place(((r11,r12,r13,t1),(r21,r22,r23,t2),(r31,r32,r33,t3))).inverse()
+#                rt.setdefault(rid,{})[mid] = Place(((r11,r21,r31,t1),(r12,r22,r32,t2),(r13,r23,r33,t3)))
+            
+        fields = ['id', 'dataset_list_id', 'pixel_size_width', 'pixel_size_height']
         rows = dot.fields(fields, allow_missing_fields = True)
-        for did, pwidth, pheight in rows:
+        for rid, did, pwidth, pheight in rows:
             d = self.data_set(did, 'ihm_2dem_class_average_restraint')
             if d:
                 v = d.volume_model(self.session)
                 if v:
                     v.name += ' %dD electron microscopy' % (3 if v.data.size[2] > 1 else 2)
+                    v.data.set_step((float(pwidth), float(pheight), v.data.step[2]))
+                    if rid in rt:
+                        v.ihm_model_projections = rt[rid]
                     v.initialize_thresholds(vfrac = (0.01,1), replace = True)
                     v.show()
                     emmodels.append(v)
@@ -752,23 +789,46 @@ class FileInfo:
         self.file_path = file_path
         self.ihm_dir = ihm_dir
 
-    def stream(self, session, mode = 'r'):
+    def stream(self, session, mode = 'r', uncompress = False):
         r = self.ref
         if r is None:
             # Local file
             path = join(self.ihm_dir, self.file_path)
-            f = open(self.file_path, mode)
+            if uncompress and path.endswith('.gz'):
+                import gzip
+                f = gzip.open(path, mode)
+            else:
+                f = open(path, mode)
         elif r.ref_type == 'DOI':
-            from .doi_fetch import fetch_doi_archive_file
-            f = fetch_doi_archive_file(session, r.ref, r.url, self.file_path)
+            if r.content == 'Archive':
+                from .doi_fetch import fetch_doi_archive_file
+                f = fetch_doi_archive_file(session, r.ref, r.url, self.file_path)
+                # TODO: Handle gzip decompression of archive files.
+            elif r.content == 'File':
+                from .doi_fetch import fetch_doi
+                path = fetch_doi(session, r.ref, r.url)
+                if uncompress and path.endswith('.gz'):
+                    import gzip
+                    f = gzip.open(path, mode)
+                else:
+                    f = open(path, mode)
+            else:
+                f = None
         else:
             f = None
         return f
 
     @property
     def file_name(self):
-        from os.path import basename
-        return basename(self.file_path)
+        if self.file_path is not None:
+            from os.path import basename
+            fname = basename(self.file_path)
+        elif self.ref and self.ref.url:
+            from os.path import basename
+            fname = basename(self.ref.url)
+        else:
+            fname = None
+        return fname
 
     # -----------------------------------------------------------------------------
     #
@@ -828,13 +888,16 @@ class FileDataSet(DataSet):
     def volume_model(self, session):
         finfo = self.file_info
         filename = finfo.file_name
-        if filename.endswith('.mrc'):
-            image_path = finfo.map_path(session)
-            if image_path:
-                from chimerax.core.map.volume import open_map
+        image_path = finfo.map_path(session)
+        if image_path:
+            from chimerax.core.map.volume import open_map
+            from chimerax.core.map.data import Unknown_File_Type
+            try:
                 maps,msg = open_map(session, image_path)
-                v = maps[0]
-                return v
+            except Unknown_File_Type:
+                return None
+            v = maps[0]
+            return v
         return None
     
 # -----------------------------------------------------------------------------
@@ -1043,15 +1106,14 @@ class TemplateModel(Model):
 # -----------------------------------------------------------------------------
 #
 class SequenceAlignmentModel(Model):
-    def __init__(self, session, alignment_file, asym_id, dataset_id):
-        self.alignment_file = alignment_file
+    def __init__(self, session, alignment_file_info, asym_id, dataset_id):
+        self.alignment_file_info = alignment_file_info	# FileInfo
         self.asym_id = asym_id			# IHM asym_id
         self.dataset_id = dataset_id		# Comparative model id
         self.template_models = []		# Filled in after templates fetched.
         self.comparative_model = None
         self.alignment = None
-        from os.path import basename
-        Model.__init__(self, 'Alignment ' + basename(alignment_file), session)
+        Model.__init__(self, 'Alignment ' + alignment_file_info.file_name, session)
         self.display = False
 
     def add_template_model(self, model):
@@ -1077,8 +1139,15 @@ class SequenceAlignmentModel(Model):
     def show_alignment(self):
         a = self.alignment
         if a is None:
+            fi = self.alignment_file_info
+            astream = fi.stream(self.session)
+            from chimerax.core.io import deduce_format
+            fmt = deduce_format(fi.file_name, no_raise=True)[0]
+            if fmt is None:
+                print ('Unknown alignment file suffix', fi.file_name)
+                return None
             from chimerax.seqalign.parse import open_file
-            a = open_file(self.session, None, self.alignment_file,
+            a = open_file(self.session, astream, fi.file_name, format_name = fmt.name,
                           auto_associate=False, return_vals='alignments')[0]
             self.alignment = a
             self.associate_structures(self.template_models)
@@ -1095,6 +1164,8 @@ class SequenceAlignmentModel(Model):
         a = self.alignment
         if a is None:
             a = self.show_alignment()
+            if a is None:
+                return
         from chimerax.core.atomic import AtomicStructure
         tmap = {tm.sequence_alignment_name : tm for tm in models if isinstance(tm, AtomicStructure)}
         if tmap:

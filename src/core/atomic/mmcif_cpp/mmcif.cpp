@@ -269,6 +269,7 @@ struct ExtractMolecule: public readcif::CIFFile
     tmpl::Molecule* my_templates;
     bool missing_poly_seq;
     bool has_pdbx;
+    set<ResName> empty_residue_templates;
 };
 
 const char* ExtractMolecule::builtin_categories[] = {
@@ -424,11 +425,15 @@ ExtractMolecule::connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, b
                 find_nearest_pair(r0, r1, &a0, &a1);
                 if (a0 == nullptr || a0->element() != Element::C || a0->name() != "CA") {
                     // suppress warning for CA traces
-                    logger::warning(_logger, "Missing ", conn_type, r0->str(), " and ", r1->str());
+                    if (!gap)
+                        logger::warning(_logger, "Missing ", conn_type,
+                                        r0->str(), " and ", r1->str());
                 }
             } else if (a1 == nullptr) {
-                logger::warning(_logger, "Missing linking atom in ", r1->str(),
-                                " for ", r0->str());
+                if (!gap)
+                    logger::warning(_logger,
+                                    "Missing linking atom in ", r1->str(),
+                                    " for ", r0->str());
                 a1 = find_closest(a0, r1, nullptr, true);
             }
             if (a1 == nullptr) {
@@ -468,7 +473,13 @@ ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr
         if (!ta) {
             if (tr->atoms_map().size() != 0)
                 logger::warning(_logger, "Found atom ", a->name(),
-                                " that is not in residue template for ", r->str());
+                                " that is not in residue template for ",
+                                r->str(), " residue");
+            else if (empty_residue_templates.find(r->name()) == empty_residue_templates.end()) {
+                empty_residue_templates.insert(r->name());
+                logger::warning(_logger, "Empty ", r->name(),
+                                " residue template");
+            }
             connect_residue_by_distance(r);
             return;
         }
@@ -608,7 +619,7 @@ ExtractMolecule::finished_parse()
                     logger::warning(_logger, "Ignoring microheterogeneity for seq_id ",
                                     p.seq_id);
                 else
-                    logger::warning(_logger, "Skipping duplicate seq_id ",
+                    logger::warning(_logger, "Skipping residue with duplicate seq_id ",
                                     p.seq_id);
                 residue_map.erase(ri);
                 mol->delete_residue(r);

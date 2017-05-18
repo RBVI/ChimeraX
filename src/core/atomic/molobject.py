@@ -792,22 +792,6 @@ class Residue(State):
         r_ref = ctypes.byref(self._c_pointer)
         f(r_ref, 1, loc)
 
-    def ss_type(self, disjoint = True):
-        '''Return the secondary structure type for this residue.
-
-        If 'disjoint' is True then if somehow both is_helix and is_strand is True,
-        Residue.SS_HELIX will be returned.  If 'disjoint' is False in that situation then
-        Residue.SS_HELIX | Residue.SS_STRAND will be returned.
-        '''
-        if disjoint:
-            if self.is_helix:
-                return Residue.SS_HELIX
-            if self.is_strand:
-                return Residue.SS_STRAND
-            return Residue.SS_COIL
-        return (Residue.SS_HELIX if self.is_helix else 0) | (
-            Residue.SS_STRAND if self.is_strand else 0)
-
     def reset_state(self, session):
         f = c_function('pseudobond_global_manager_clear', args = (ctypes.c_void_p,))
         f(self._c_pointer)
