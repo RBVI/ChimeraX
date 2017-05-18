@@ -15,7 +15,7 @@
 ihm: Integrative Hybrid Model file format support
 =================================================
 """
-def read_ihm(session, filename, name, *args, load_linked_files = True,
+def read_ihm(session, filename, name, *args, load_ensembles = False, load_linked_files = True,
              show_sphere_crosslinks = True, show_atom_crosslinks = False, **kw):
     """Read an integrative hybrid models file creating sphere models and restraint models
 
@@ -31,6 +31,7 @@ def read_ihm(session, filename, name, *args, load_linked_files = True,
         stream.close()
 
     m = IHMModel(session, filename,
+                 load_ensembles = load_ensembles,
                  load_linked_files = load_linked_files,
                  show_sphere_crosslinks = show_sphere_crosslinks,
                  show_atom_crosslinks = show_atom_crosslinks)
@@ -42,6 +43,7 @@ def read_ihm(session, filename, name, *args, load_linked_files = True,
 from chimerax.core.models import Model
 class IHMModel(Model):
     def __init__(self, session, filename,
+                 load_ensembles = False,
                  load_linked_files = True,
                  show_sphere_crosslinks = True,
                  show_atom_crosslinks = False):
@@ -80,7 +82,7 @@ class IHMModel(Model):
             self.add([r_group])
 
         # Sphere models, ensemble models, groups
-        smodels, emodels, gmodels = self.read_sphere_models()
+        smodels, emodels, gmodels = self.read_sphere_models(load_ensembles)
         self.sphere_models = smodels
         self.ensemble_sphere_models = emodels
 
@@ -357,20 +359,21 @@ class IHMModel(Model):
                 files_fields = ['id', 'reference_id', 'file_path']
                 rows = files_table.fields(files_fields, allow_missing_fields = True)
                 for f_id, ref_id, file_path in rows:
-                    fmap[f_id] = FileInfo(f_id, refs.get(ref_id,None), file_path, self.ihm_directory)
+                    fpath = None if file_path == '.' else file_path
+                    fmap[f_id] = FileInfo(f_id, refs.get(ref_id,None), fpath, self.ihm_directory)
 
         fi = fmap.get(file_id, None)
         return fi
 
     # -----------------------------------------------------------------------------
     #
-    def read_sphere_models(self):
+    def read_sphere_models(self, load_ensembles):
         gmodels = self.make_sphere_model_groups()
         for g in gmodels[1:]:
             g.display = False	# Only show first group.
         self.add(gmodels)
 
-        smodels, emodels = self.make_sphere_models(gmodels)
+        smodels, emodels = self.make_sphere_models(gmodels, load_ensembles = load_ensembles)
         return smodels, emodels, gmodels
 
     # -----------------------------------------------------------------------------
@@ -396,7 +399,7 @@ class IHMModel(Model):
 
     # -----------------------------------------------------------------------------
     #
-    def make_sphere_models(self, group_models):
+    def make_sphere_models(self, group_models, load_ensembles = False):
         mlt = self.tables['ihm_model_list']
         ml_fields = ['model_id', 'model_name']
         ml = mlt.fields(ml_fields, allow_missing_fields = True)
@@ -440,37 +443,43 @@ class IHMModel(Model):
 
         # Open ensemble sphere models that are not included in ihm sphere obj table.
         emodels = []
-        eit = self.tables['ihm_ensemble_info']
-        ei_fields = ['ensemble_name', 'model_group_id', 'ensemble_file_id']
-        ei = eit.fields(ei_fields, allow_missing_fields = True)
-        from os.path import isfile, join
-        for mname, gid, file_id in ei:
-            finfo = self.file_info(file_id)
-            if finfo is None or finfo.ref is not None:
-                continue	# TODO: Handle ensemble files from doi or url.
-            path = join(self.ihm_directory, finfo.file_path)
-            if isfile(path) and path.endswith('.pdb'):
+        if load_ensembles:
+            eit = self.tables['ihm_ensemble_info']
+            ei_fields = ['ensemble_name', 'model_group_id', 'ensemble_file_id']
+            ei = eit.fields(ei_fields, allow_missing_fields = True)
+            from os.path import isfile, join
+            for mname, gid, file_id in ei:
+                finfo = self.file_info(file_id)
+                if finfo is None:
+                    continue
+                fname = finfo.file_name
+                if not fname.endswith('.pdb') and not fname.endswith('.pdb.gz'):
+                    continue
+                fstream = finfo.stream(self.session, uncompress = True)
+                if fstream is None:
+                    continue
                 from chimerax.core.atomic.pdb import open_pdb
-                mlist,msg = open_pdb(self.session, path, mname,
-                                     auto_style = False, explode = False)
+                mlist,msg = open_pdb(self.session, fstream, mname,
+                                     auto_style = False, coordset = True)
                 sm = mlist[0]
                 sm.display = False
                 sm.ss_assigned = True	# Don't assign secondary structure to sphere model
                 atoms = sm.atoms
                 from chimerax.core.atomic.colors import chain_colors
                 atoms.colors = chain_colors(atoms.residues.chain_ids)
-                if isfile(path + '.crd'):
+                path = fstream.name if hasattr(fstream, 'name') else None
+                if path and isfile(path + '.crd'):
                     from .coordsets import read_coordinate_sets
                     read_coordinate_sets(path + '.crd', sm)
                 sm.name += ' %d models' % sm.num_coord_sets
                 gmodel[gid].add([sm])
                 emodels.append(sm)
 
-        # Copy bead radii from best score model to ensemble models
-        if smodels and emodels:
-            r = smodels[0].atoms.radii
-            for em in emodels:
-                em.atoms.radii = r
+            # Copy bead radii from best score model to ensemble models
+            if smodels and emodels:
+                r = smodels[0].atoms.radii
+                for em in emodels:
+                    em.atoms.radii = r
 
         return smodels, emodels
 
@@ -780,23 +789,46 @@ class FileInfo:
         self.file_path = file_path
         self.ihm_dir = ihm_dir
 
-    def stream(self, session, mode = 'r'):
+    def stream(self, session, mode = 'r', uncompress = False):
         r = self.ref
         if r is None:
             # Local file
             path = join(self.ihm_dir, self.file_path)
-            f = open(self.file_path, mode)
+            if uncompress and path.endswith('.gz'):
+                import gzip
+                f = gzip.open(path, mode)
+            else:
+                f = open(path, mode)
         elif r.ref_type == 'DOI':
-            from .doi_fetch import fetch_doi_archive_file
-            f = fetch_doi_archive_file(session, r.ref, r.url, self.file_path)
+            if r.content == 'Archive':
+                from .doi_fetch import fetch_doi_archive_file
+                f = fetch_doi_archive_file(session, r.ref, r.url, self.file_path)
+                # TODO: Handle gzip decompression of archive files.
+            elif r.content == 'File':
+                from .doi_fetch import fetch_doi
+                path = fetch_doi(session, r.ref, r.url)
+                if uncompress and path.endswith('.gz'):
+                    import gzip
+                    f = gzip.open(path, mode)
+                else:
+                    f = open(path, mode)
+            else:
+                f = None
         else:
             f = None
         return f
 
     @property
     def file_name(self):
-        from os.path import basename
-        return basename(self.file_path)
+        if self.file_path is not None:
+            from os.path import basename
+            fname = basename(self.file_path)
+        elif self.ref and self.ref.url:
+            from os.path import basename
+            fname = basename(self.ref.url)
+        else:
+            fname = None
+        return fname
 
     # -----------------------------------------------------------------------------
     #
