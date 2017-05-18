@@ -16,12 +16,12 @@ from chimerax.core.toolshed import BundleAPI
 class _IHMAPI(BundleAPI):
 
     @staticmethod
-    def open_file(session, f, name, filespec=None, format_name=None, model=None):
+    def open_file(session, f, name, filespec=None, format_name=None, ensembles=False, model=None):
         # 'open_file' is called by session code to open a file
         # returns (list of models, status message)
         if format_name == 'IHM':
             from . import ihm
-            return ihm.read_ihm(session, filespec, name)
+            return ihm.read_ihm(session, filespec, name, load_ensembles = ensembles)
         elif format_name == 'Binary Coordinates':
             if model is None:
                 from chimerax.core.errors import UserError
