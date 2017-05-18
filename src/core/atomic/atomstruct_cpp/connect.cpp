@@ -27,7 +27,6 @@
 #include "MolResId.h"
 #include "PBGroup.h"
 #include "Residue.h"
-#include "string_types.h"
 #include "tmpl/Residue.h"
 #include "tmpl/Atom.h"
 #include "tmpl/residues.h"
