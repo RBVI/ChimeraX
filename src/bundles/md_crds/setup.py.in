@@ -52,11 +52,13 @@ setup(
     },
     packages=[
         "PKG_NAME",
-        "PKG_NAME.io",
     ],
     install_requires=[
         "ChimeraX-Core >= 0.1",
     ],
+    package_data={
+        "PKG_NAME": [ "*.so"]
+    },
     classifiers=[
         # From https://pypi.python.org/pypi?%3Aaction=list_classifiers
         # and our own ChimeraX classifiers.
@@ -74,9 +76,9 @@ setup(
         "Topic :: Scientific/Engineering :: Visualization",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
-        "ChimeraX :: Bundle :: MD :: 1,1 :: PKG_NAME :: chimerax.md_crds :: true",
-        "ChimeraX :: DataFormat :: Gromacs full-precision cooordinates :: Gromacs trr :: Molecular trajectory :: .trr :: :: http://http://manual.gromacs.org/online/trr.html :: :: :: Gromacs trr format :: ",
-        "ChimeraX :: DataFormat :: Gromacs compressed cooordinates :: Gromacs xtc :: Molecular trajectory :: .xtc :: :: http://http://manual.gromacs.org/online/xtc.html :: :: :: Gromacs xtc format :: ",
+        "ChimeraX :: Bundle :: MD :: 1,1 :: PKG_NAME :: chimerax.md_crds :: false",
+        "ChimeraX :: DataFormat :: Gromacs full-precision coordinates :: trr :: Molecular trajectory :: .trr :: :: http://http://manual.gromacs.org/online/trr.html :: :: :: Gromacs trr format :: utf-8",
+        "ChimeraX :: DataFormat :: Gromacs compressed coordinates :: xtc :: Molecular trajectory :: .xtc :: :: http://http://manual.gromacs.org/online/xtc.html :: :: :: Gromacs xtc format :: utf-8",
         "ChimeraX :: Open :: Gromacs full-precision coordinates :: trr :: true :: model:Model,replace:Bool",
         "ChimeraX :: Open :: Gromacs compressed coordinates :: xtc :: true :: model:Model,replace:Bool",
     ],

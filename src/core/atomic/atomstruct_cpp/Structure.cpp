@@ -37,7 +37,7 @@ const char*  Structure::PBG_MISSING_STRUCTURE = "missing structure";
 const char*  Structure::PBG_HYDROGEN_BONDS = "hydrogen bonds";
 
 Structure::Structure(PyObject* logger):
-    _active_coord_set(NULL), _chains(nullptr),
+    _active_coord_set(nullptr), _chains(nullptr),
     _change_tracker(DiscardingChangeTracker::discarding_change_tracker()),
     _idatm_valid(false), _logger(logger), _name("unknown AtomicStructure/Structure"),
     _pb_mgr(this), _polymers_computed(false), _recompute_rings(true),

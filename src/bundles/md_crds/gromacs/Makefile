@@ -14,17 +14,20 @@ include $(TOP)/mk/config.make
 
 PKG_DIR		= $(PYSITEDIR)/chimerax/md_crds
 
+XDRFILE_VERSION = 1.1
+XDRFILE_MINOR_VERSION = b
+XDRFILE_LIB_SOURCE = xdrfile-$(XDRFILE_VERSION)$(XDRFILE_MINOR_VERSION)
+XDRFILE_ARCHIVE = xdrfile-$(XDRFILE_VERSION).tar.gz
+XDRFILE_LIB = $(XDRFILE_LIB_SOURCE)/src/.libs/libxdrfile.a
+PATCHES = patch
+
 PYMOD_NAME	= _gromacs
 SRCS		= gromacs.cpp
 OBJS		= $(SRCS:.cpp=.$(OBJ_EXT))
 DEFS		+= $(PYDEF)
-INCS 		+= $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
+INCS 		+= $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC) -I$(XDRFILE_LIB_SOURCE)/include
 LIBS		+= $(PYTHON_LIB)
-ifeq ($(WIN32),msvc)
-LIBS		+= libalign_algs.lib libarrays.lib
-else
-LIBS		+= -lalign_algs -larrays
-endif
+LIBS		+= $(XDRFILE_LIB)
 
 all: $(PYMOD)
 
@@ -36,11 +39,27 @@ ifdef DEBUG
 endif
 endif
 
+$(OBJS): $(XDRFILE_LIB)
+
 $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)
 
+$(XDRFILE_LIB): $(XDRFILE_LIB_SOURCE)
+	cd $(XDRFILE_LIB_SOURCE) ; $(MAKE)
+
+$(XDRFILE_LIB_SOURCE):
+	tar zxf $(XDRFILE_ARCHIVE)
+ifneq ($(PATCHES),)
+	for p in $(PATCHES); do \
+		if [ -f $$p ] ; then \
+			(cd $(XDRFILE_LIB_SOURCE) ; patch -p0) < $$p ; \
+		fi ; \
+	done
+endif
+	cd $(XDRFILE_LIB_SOURCE) ; env $(ENV_CONFIGURE) ./configure --enable-shared
+
 clean:
-	rm -f $(PYMOD) $(OBJS)
+	rm -rf $(PYMOD) $(OBJS) $(XDRFILE_LIB_SOURCE) $(BUILD)
 ifdef WIN32
 	rm -f $(PYMOD_NAME).exp $(PYMOD_NAME).lib
 endif
