@@ -1250,15 +1250,26 @@ class Structure(Model, StructureData):
         from numpy.linalg import norm
         from .ribbon import normalize
         ss_coords = coords[start:end]
-        if len(ss_coords) < 4:
+        if len(ss_coords) < 3:
             # short strand, no smoothing
             ideal = ss_coords
             offsets = zeros(ss_coords.shape, dtype=float)
         else:
+            # The "ideal" coordinates for a residue is computed by averaging
+            # with the previous and next residues.  The first and last
+            # residues are treated specially by moving in the opposite
+            # direction as their neighbors.
             ideal = empty(ss_coords.shape, dtype=float)
             ideal[1:-1] = (ss_coords[1:-1] * 2 + ss_coords[:-2] + ss_coords[2:]) / 4
-            ideal[0] = ss_coords[0] - (ideal[1] - ss_coords[1])
-            ideal[-1] = ss_coords[-1] - (ideal[-2] - ss_coords[-2])
+            # If there are exactly three residues in the strand, then they
+            # should end up on a line.  We use a 0.99 factor to make sure
+            # that we do not "cross the line" due to floating point round-off.
+            if len(ss_coords) == 3:
+                ideal[0] = ss_coords[0] - 0.99 * (ideal[1] - ss_coords[1])
+                ideal[-1] = ss_coords[-1] - 0.99 * (ideal[-2] - ss_coords[-2])
+            else:
+                ideal[0] = ss_coords[0] - (ideal[1] - ss_coords[1])
+                ideal[-1] = ss_coords[-1] - (ideal[-2] - ss_coords[-2])
             adjusts = ribbon_adjusts[start:end][:, newaxis]
             offsets = adjusts * (ideal - ss_coords)
             new_coords = ss_coords + offsets

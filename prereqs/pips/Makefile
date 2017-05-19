@@ -17,6 +17,9 @@ install:
 list:
 	$(PIP) list
 
+app-list:
+	$(APP_PIP) list
+
 upgrade:
 	$(PIP) install -U -r build_requirements.txt
 

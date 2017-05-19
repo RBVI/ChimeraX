@@ -67,8 +67,10 @@ def save(session, filename, models=None, format=None, **kw):
         raise UserError(msg)
     except TypeError as e:
         # Keywords incompatible with export function
-        from ..errors import UserError
-        raise UserError(str(e))
+        if 'unexpected keyword' in str(e):
+            from ..errors import UserError
+            raise UserError(str(e))
+        raise
 
     if fmt.open_func and not fmt.name.endswith('image'):
         # Remember in file history

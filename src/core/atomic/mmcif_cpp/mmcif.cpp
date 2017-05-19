@@ -288,6 +288,8 @@ ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_c
     _logger(logger), first_model_num(INT_MAX), my_templates(nullptr),
     missing_poly_seq(false), has_pdbx(false)
 {
+    empty_residue_templates.insert("UNL");  // Unknown ligand
+    empty_residue_templates.insert("UNX");  // Unknown atom or ion
     register_category("audit_conform",
         [this] () {
             parse_audit_conform();
@@ -471,17 +473,31 @@ ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr
     for (auto&& a: atoms) {
         tmpl::Atom *ta = tr->find_atom(a->name());
         if (!ta) {
-            if (tr->atoms_map().size() != 0)
-                logger::warning(_logger, "Found atom ", a->name(),
+            if (tr->atoms_map().size() == 0) {
+                if (empty_residue_templates.find(r->name()) == empty_residue_templates.end()) {
+                    empty_residue_templates.insert(r->name());
+                    logger::warning(_logger, "Empty ", r->name(),
+                                    " residue template");
+                }
+                // No connectivity, so don't connect
+                return;
+            }
+            bool connected = false;
+            auto bonds = a->bonds();
+            for (auto&& b: bonds) {
+                if (b->other_atom(a)->residue() == r) {
+                    connected = true;
+                }
+            }
+            // TODO: worth checking if there is a metal coordination bond?
+            if (!connected) {
+                logger::warning(_logger, "Found disconnected atom ", a->name(),
                                 " that is not in residue template for ",
                                 r->str(), " residue");
-            else if (empty_residue_templates.find(r->name()) == empty_residue_templates.end()) {
-                empty_residue_templates.insert(r->name());
-                logger::warning(_logger, "Empty ", r->name(),
-                                " residue template");
+                connect_residue_by_distance(r);
+                return;
             }
-            connect_residue_by_distance(r);
-            return;
+            // atom is connected, so assume template is still appropriate
         }
     }
 
@@ -574,13 +590,16 @@ ExtractMolecule::finished_parse()
         return;
 
     // connect residues in molecule with all_residues information
+    bool has_ambiguous = false;
     auto mol = all_residues.begin()->second.begin()->second->structure();
     for (auto&& r : mol->residues()) {
         auto tr = find_template_residue(r->name());
         if (tr == nullptr) {
             logger::warning(_logger, "Missing residue template for ", r->str());
+            has_ambiguous = true;   // safe to treat as ambiguous
             connect_residue_by_distance(r);
         } else {
+            has_ambiguous = has_ambiguous || tr->pdbx_ambiguous;
             connect_residue_by_template(r, tr);
         }
     }
@@ -656,7 +675,8 @@ ExtractMolecule::finished_parse()
         if (mol->input_seq_source.empty())
             mol->input_seq_source = "mmCIF entity_poly_seq table";
     }
-    find_and_add_metal_coordination_bonds(mol);
+    if (has_ambiguous)
+        find_and_add_metal_coordination_bonds(mol);
     if (missing_poly_seq)
         find_missing_structure_bonds(mol);
 
@@ -761,6 +781,7 @@ ExtractMolecule::parse_chem_comp()
 {
     ResName name;
     string  type;
+    bool    ambiguous = false;
 
     CIFFile::ParseValues pv;
     pv.reserve(4);
@@ -772,6 +793,10 @@ ExtractMolecule::parse_chem_comp()
         pv.emplace_back(get_column("type", Required),
             [&] (const char* start, const char* end) {
                 type = string(start, end - start);
+            });
+        pv.emplace_back(get_column("pdbx_ambiguous_flag"),
+            [&] (const char* start) {
+                ambiguous = *start == 'Y' || *start == 'y';
             });
     } catch (std::runtime_error& e) {
         logger::warning(_logger, "skipping chem_comp category: ", e.what());
@@ -790,6 +815,7 @@ ExtractMolecule::parse_chem_comp()
         tmpl::Residue* tr = my_templates->find_residue(name);
         if (!tr) {
             tr = my_templates->new_residue(name);
+            tr->pdbx_ambiguous = ambiguous;
             bool is_peptide = type.find("peptide") != string::npos;
             if (is_peptide)
                 tr->description("peptide");

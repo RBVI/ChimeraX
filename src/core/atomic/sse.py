@@ -144,6 +144,22 @@ class HelixCylinder:
     """
 
     MIN_CURVE_LENGTH = 13
+    # Ideal coordinates and parameters were generated using the Build
+    # Structure and Axes/Planes/Centroids tools in Chimera.  The helix
+    # sequences is ALA(18) and the coordinates are from some of the
+    # middle residues.  The axis parameters are (center, direction).
+    from numpy import array
+    IDEAL_COORDS = array([
+        (-1.332,-3.667,-1.376),     # CA coordinates
+        (-0.007,-0.471,-2.952),
+        (-1.782, 1.624,-0.322),
+        (-0.267,-0.482, 2.457),
+        ( 3.207,-0.031, 0.979),
+    ])
+    IDEAL_PARAMS = array([
+        (-0.395,-0.049,-0.215),     # center
+        (0.613,0.501,0.610)         # axis
+    ])
 
     def __init__(self, coords, radius=None, maxiter=None):
         self.coords = coords
@@ -355,16 +371,26 @@ class HelixCylinder:
         self.radius = mean(radii)
 
     def _straight_initial(self):
-        # "Normal" helices can be approximated by using all
-        # coordinates on the assumption that the helix length
-        # is sufficiently larger than the helix radius that
-        # the biggest eigenvector will be the helical axis
-        from numpy import mean, argmax, dot, newaxis
-        from numpy.linalg import svd, norm
-        centroid = mean(self.coords, axis=0)
-        rel_coords = self.coords - centroid
-        ignore, vals, vecs = svd(rel_coords)
-        axis = vecs[argmax(vals)]
+        from numpy import mean, dot, newaxis
+        from numpy.linalg import norm
+        if len(self.coords) > len(self.IDEAL_COORDS):
+            # "Normal" helices can be approximated by using all
+            # coordinates on the assumption that the helix length
+            # is sufficiently larger than the helix radius that
+            # the biggest eigenvector will be the helical axis
+            from numpy.linalg import svd
+            from numpy import argmax
+            centroid = mean(self.coords, axis=0)
+            rel_coords = self.coords - centroid
+            ignore, vals, vecs = svd(rel_coords)
+            axis = vecs[argmax(vals)]
+        else:
+            from ..geometry import align_points
+            num_pts = len(self.coords)
+            tf, rmsd = align_points(self.IDEAL_COORDS[:num_pts], self.coords)
+            centroid = tf * self.IDEAL_PARAMS[0]
+            axis = tf.apply_without_translation(self.IDEAL_PARAMS[1])
+            rel_coords = self.coords - centroid
         axis_pos = dot(rel_coords, axis)[:, newaxis]
         radial_vecs = rel_coords - axis * axis_pos
         radius = mean(norm(radial_vecs, axis=1))

@@ -58,6 +58,18 @@ using atomstruct::ResName;
 tmpl::Molecule* templates;
 LocateFunc  locate_func;
 
+// standard_residues have standard linkage 
+static std::set<ResName> standard_peptides = {
+    "ALA", "ARG", "ASN", "ASP", "ASX", "CYS",
+    "GLN", "GLU", "GLX", "GLY", "HIS", "ILE",
+    "LEU", "LYS", "MET", "PHE", "PRO", "SER",
+    "THR", "TRP", "TYR", "UNK", "VAL"
+};
+static std::set<ResName> standard_nucleotides = {
+    "A", "C", "G", "I", "T", "U",
+    "DA", "DC", "DG", "DT",
+};
+
 const tmpl::Residue*
 find_template_residue(const ResName& name)
 {
@@ -153,42 +165,20 @@ ExtractTemplate::finished_parse()
         }
     }
 #endif
-    if (!type.empty()) {
-        if (is_peptide) {
-            residue->description("peptide");
-            tmpl::Atom* n = residue->find_atom("N");
-            residue->chief(n);
-            tmpl::Atom* c = residue->find_atom("C");
-            residue->link(c);
-            // Standard amino acids are missing connectivity for the
-            // H1 and H3 atoms at the N-terminus.
-            if (n) {
-                tmpl::Atom* h1 = residue->find_atom("H1");
-                if (h1 == nullptr) {
-                    const Element& elem = Element::get_element('H');
-                    h1 = templates->new_atom("H1", elem);
-                    tmpl::Coord c(0, 0, 0);
-                    h1->set_coord(c);
-                    residue->add_atom(h1);
-                    templates->new_bond(n, h1);
-                }
-                tmpl::Atom* h3 = residue->find_atom("H3");
-                if (h3 == nullptr) {
-                    const Element& elem = Element::get_element('H');
-                    h3 = templates->new_atom("H3", elem);
-                    tmpl::Coord c(0, 0, 0);
-                    h3->set_coord(c);
-                    residue->add_atom(h3);
-                    templates->new_bond(n, h3);
-                }
-            }
-        } else if (is_nucleotide) {
-            residue->description("nucleotide");
-            tmpl::Atom* p = residue->find_atom("P");
-            residue->chief(p);
-            tmpl::Atom* o3p = residue->find_atom("O3'");
-            residue->link(o3p);
-        }
+    if (is_peptide
+    && standard_peptides.find(residue->name()) != standard_peptides.end()) {
+        residue->description("peptide");
+        tmpl::Atom* n = residue->find_atom("N");
+        residue->chief(n);
+        tmpl::Atom* c = residue->find_atom("C");
+        residue->link(c);
+    } else if (is_nucleotide
+    && standard_nucleotides.find(residue->name()) != standard_nucleotides.end()) {
+        residue->description("nucleotide");
+        tmpl::Atom* p = residue->find_atom("P");
+        residue->chief(p);
+        tmpl::Atom* o3p = residue->find_atom("O3'");
+        residue->link(o3p);
     }
 }
 
@@ -198,10 +188,11 @@ ExtractTemplate::parse_chem_comp()
     ResName  name;
     ResName  modres;
     char    code = '\0';
+    bool    ambiguous = false;
     type.clear();
 
     CIFFile::ParseValues pv;
-    pv.reserve(2);
+    pv.reserve(6);
     pv.emplace_back(get_column("id", true),
         [&] (const char* start, const char* end) {
             name = ResName(start, end - start);
@@ -222,6 +213,10 @@ ExtractTemplate::parse_chem_comp()
             if (code == '.' || code == '?')
                 code = '\0';
         });
+    pv.emplace_back(get_column("pdbx_ambiguous_flag"),
+        [&] (const char* start) {
+            ambiguous = *start == 'Y' || *start == 'y';
+        });
     (void) parse_row(pv);
 
     // convert type to lowercase
@@ -233,6 +228,7 @@ ExtractTemplate::parse_chem_comp()
     is_nucleotide = type.compare(0, 3, "dna") == 0
         || type.compare(0, 3, "rna") == 0;
     residue = templates->new_residue(name);
+    residue->pdbx_ambiguous = ambiguous;
     all_residues.push_back(residue);
     if (!modres.empty()) {
         if (!code) {

@@ -56,7 +56,7 @@ def stop_server(session, quiet=False):
     else:
         server.terminate()
         _server = None
-        if not quier:
+        if not quiet:
             session.logger.info("REST server stopped")
 from chimerax.core.commands import CmdDesc, BoolArg
 stop_desc = CmdDesc(synopsis="Stop REST server",
