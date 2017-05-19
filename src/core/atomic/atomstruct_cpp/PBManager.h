@@ -52,8 +52,8 @@ protected:
     // these maps need to be in the Base Manager (despite the global manager only
     // really using them) since Pseudobond adds to them and only distinguishes
     // global from per-structure at run time
-    mutable SessionStructureToIDMap*  _ses_struct_to_id_map;
-    mutable SessionIDToStructureMap*  _ses_id_to_struct_map;
+    mutable SessionStructureToIDMap*  _ses_struct_to_id_map = nullptr;
+    mutable SessionIDToStructureMap*  _ses_id_to_struct_map = nullptr;
 public:
     BaseManager(ChangeTracker* ct): _change_tracker(ct) {}
     virtual  ~BaseManager();
@@ -68,7 +68,7 @@ public:
     SessionIDToStructureMap*  ses_id_to_struct_map() const { return _ses_id_to_struct_map; }
     int  session_info(PyObject** ints, PyObject** floats, PyObject** misc) const;
     typedef std::unordered_map<const Pseudobond*, int> SessionSavePbMap;
-    mutable SessionSavePbMap* session_save_pbs;
+    mutable SessionSavePbMap* session_save_pbs = nullptr;
     void  session_save_setup() const {
         session_save_pbs = new SessionSavePbMap;
         _ses_struct_to_id_map = new SessionStructureToIDMap;
@@ -76,10 +76,12 @@ public:
     void  session_save_teardown() const {
         delete session_save_pbs;
         delete _ses_struct_to_id_map;
+        session_save_pbs = nullptr;
+        _ses_struct_to_id_map = nullptr;
     }
     void  session_restore(int version, int** ints, float** floats, PyObject* misc);
     typedef std::unordered_map<int, const Pseudobond*> SessionRestorePbMap;
-    mutable SessionRestorePbMap* session_restore_pbs;
+    mutable SessionRestorePbMap* session_restore_pbs = nullptr;
     void  session_restore_setup() const {
         session_restore_pbs = new SessionRestorePbMap;
         _ses_id_to_struct_map = new SessionIDToStructureMap;
@@ -87,6 +89,8 @@ public:
     void  session_restore_teardown() const {
         delete session_restore_pbs;
         delete _ses_id_to_struct_map;
+        session_restore_pbs = nullptr;
+        _ses_id_to_struct_map = nullptr;
     }
 };
 

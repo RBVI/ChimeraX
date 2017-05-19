@@ -1321,7 +1321,10 @@ extern "C" EXPORT void pseudobond_get_session_id(void *ptrs, size_t n, int32_t *
     try {
         for (size_t i = 0; i < n; ++i) {
             Pseudobond* pb = pbonds[i];
-            ses_ids[i] = static_cast<int32_t>((*pb->group()->manager()->session_save_pbs)[pb]);
+            auto sess_save_pbs = pb->group()->manager()->session_save_pbs;
+            if (sess_save_pbs == nullptr)
+                throw std::runtime_error("pseudobond session IDs only available during session save");
+            ses_ids[i] = static_cast<int32_t>((*sess_save_pbs)[pb]);
         }
     } catch (...) {
         molc_error();
