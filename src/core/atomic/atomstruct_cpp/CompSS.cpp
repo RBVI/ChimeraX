@@ -282,46 +282,36 @@ find_helices(KsdsspParams& params)
 
 	int max = params.residues.size();
 	int first = -1;
-	const int any_helix = DSSP_3HELIX | DSSP_4HELIX | DSSP_5HELIX;
-	const int any_acc = DSSP_3ACCEPTOR | DSSP_4ACCEPTOR | DSSP_5ACCEPTOR;
-	int cur_helix_type, off_helix_type;
-	int off_helix_run = 0;
+	int cur_helix_type;
 	int acc_only_run = 0;
 	bool in_initial_acc_only = false;
 	for (int i = 0; i < max; ++i) {
 		int flags = params.rflags[params.residues[i]];
-		int helix_type = flags & any_helix;
-		int acc_only = flags & any_acc;
-		if (helix_type) {
+		int helix_type = 0;
+		int helix_flags = 0;
+		bool acc_only = false;
+		if (flags & (DSSP_3HELIX)) {
+			helix_type = 3; // 3-10
+			helix_flags = DSSP_3ACCEPTOR | DSSP_3DONOR | DSSP_3GAP;
+			acc_only = !((flags & DSSP_3DONOR) | (flags & DSSP_3GAP));
+		} else if (flags & (DSSP_4HELIX | DSSP_5HELIX)) {
+			helix_type = 4; // alpha
+			helix_flags = DSSP_4ACCEPTOR | DSSP_4DONOR | DSSP_4GAP
+				| DSSP_5ACCEPTOR | DSSP_5DONOR | DSSP_5GAP;
+			acc_only = (flags & DSSP_4ACCEPTOR) && !((flags & DSSP_4DONOR) | (flags & DSSP_4GAP));
+		}
+		if (helix_type && (flags & helix_flags)) {
 			if (first < 0) {
 				first = i;
 				cur_helix_type = helix_type;
 				in_initial_acc_only = acc_only;
-			} else if (!(helix_type & cur_helix_type)) {
-				if (off_helix_run > 0) {
-					if (i-1 - first >= params.min_helix_length)
-						params.helices.push_back(std::make_pair(first, i-2));
-					if (helix_type == off_helix_type) {
-						first = i-1;
-						cur_helix_type = helix_type;
-						off_helix_run = 0;
-						acc_only_run = 0;
-						in_initial_acc_only = (params.rflags[params.residues[i-1]] & any_acc)
-							&& acc_only;
-					} else {
-						first = i;
-						cur_helix_type = helix_type;
-						off_helix_run = 0;
-						acc_only_run = 0;
-						in_initial_acc_only = acc_only;
-					}
-				} else {
-					off_helix_run++;
-					off_helix_type = helix_type;
-					in_initial_acc_only = in_initial_acc_only && acc_only;
-				}
+			} else if (helix_type != cur_helix_type) {
+				if (i - first >= params.min_helix_length)
+					params.helices.push_back(std::make_pair(first, i-1));
+				first = i;
+				cur_helix_type = helix_type;
+				acc_only_run = 0;
 			} else {
-				off_helix_run = 0;
 				in_initial_acc_only = in_initial_acc_only && acc_only;
 			}
 			if (in_initial_acc_only) {
@@ -332,7 +322,6 @@ find_helices(KsdsspParams& params)
 						params.helices.push_back(std::make_pair(first, i-2));
 					first = i-1;
 					cur_helix_type = helix_type;
-					off_helix_run = 0;
 					acc_only_run = 0;
 					in_initial_acc_only = true;
 				} else {
@@ -345,7 +334,6 @@ find_helices(KsdsspParams& params)
 			if (i - first >= params.min_helix_length)
 				params.helices.push_back(std::make_pair(first, i-1));
 			first = -1;
-			off_helix_run = 0;
 			acc_only_run = 0;
 		}
 	}
