@@ -13,6 +13,7 @@ TOP= ../../../..
 include $(TOP)/mk/config.make
 
 PYSRCS= $(wildcard *.py)
+DATAFILES = icons
 PKG_DIR= $(PYSITEDIR)/chimerax/core/ui/widgets
 APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/ui/widgets
 
@@ -20,7 +21,7 @@ all: $(PYSRCS)
 	$(PYTHON_EXE) -B -m py_compile $?
 
 install: all dir
-	$(RSYNC) $(PYSRCS) $(PKG_DIR)
+	$(RSYNC) $(PYSRCS) $(DATAFILES) $(PKG_DIR)
 	#if [ -d "$(APP_PKG_DIR)" ]; then $(RSYNC) $(PYSRCS) $(APP_PKG_DIR); fi
 
 dir:
