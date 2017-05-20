@@ -116,11 +116,14 @@ class Slider(ToolInstance):
                 self.record_cb()
 
     def next_value_cb(self, *_):
-        if not (self._recording and self.pause_when_recording):
+        if (not self._recording) or self.pause_when_recording:
             self._pause_count += 1
             if self._pause_count >= self.pause_frames:
                 self._pause_count = 0
             else:
+                if self._recording:
+                    # Make sure frame is drawn during pause.
+                    self.session.main_view.redraw_needed = True
                 return
         v = self._last_shown_value
         if v >= self.value_range[1]:
