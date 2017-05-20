@@ -44,6 +44,8 @@ def mseries_slider(session, models, pause_frames = 10, step = 1, movie_framerate
       Number of frames to show each model. Default 10.
     step : integer
       Show every Nth model with N given by step, default 1.
+    movie_framerate : float
+      Frames per second used when playing back a movie recorded with the record button.
     '''
     mlist = models[0].child_models() if len(models) == 1 else models
     if mlist:
