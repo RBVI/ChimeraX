@@ -34,7 +34,7 @@ def mseries(session, models, pause_frames = 10, loop = 1, step = 1):
 # -----------------------------------------------------------------------------
 #
 def mseries_slider(session, models, pause_frames = 10, step = 1, movie_framerate = 25):
-    '''Show slider to show one of a series of models.
+    '''Show slider to play through (i.e. display) a series of models.
 
     Parameters
     ----------
