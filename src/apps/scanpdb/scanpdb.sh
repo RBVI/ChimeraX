@@ -1,0 +1,46 @@
+#!/bin/sh
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
+# set path so we get the versions of command we expect
+originalpath="$PATH"
+PATH=/bin:/usr/bin:"$PATH"
+
+# stop cd from echoing the directory
+unset CDPATH
+
+# Assume that the true location of scanpdb is in CHIMERAX/bin/ and
+# deduce what CHIMERAX should be even if there are symbolic links
+bindir=`dirname "$0"`
+if test ! -L "$0"
+then
+	bindir=`cd "$bindir"; pwd -P`
+else
+	if link=`readlink "$0"`
+	then :
+	else
+		# fallback if readlink doesn't exist
+		link=`ls -l "$0" | sed 's/.* -> //'`
+	fi
+	# scanpdb was a (relative?) symbolic link
+	tmp=`dirname "$link"`
+	bindir=`cd "$bindir"; cd "$tmp"; pwd -P`
+fi
+CHIMERAX=`dirname "$bindir"`
+
+app="$CHIMERAX/bin/ChimeraX"
+if test $# -gt 0
+then
+	exec "$app" -m chimerax.scanpdb "$@"
+else
+	exec "$app" -m chimerax.scanpdb
+fi

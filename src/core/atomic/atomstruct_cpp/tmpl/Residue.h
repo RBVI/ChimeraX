@@ -62,6 +62,7 @@ public:
 
     typedef std::map<AtomName, Atom *> AtomsMap;
     const AtomsMap &atoms_map() const { return _atoms; }
+    bool        pdbx_ambiguous;      // for mmCIF ambiguous chemistry
 private:
     Residue(Molecule *, const char *t);
     ResName     _name;
