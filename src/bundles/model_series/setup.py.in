@@ -34,13 +34,13 @@ else:
 rel_inst_data_dir = os.path.basename(data_dir)
 
 description = """
-Display fit of residues to density map
+Display sequences of models one by one
 """
 
 setup(
     name="BUNDLE_NAME",
     version="BUNDLE_VERSION",  # PEP 440, should match Development Status below
-    description="Display fit of residues to density map",  # one line synopsis
+    description="Display sequences of models one by one",  # one line synopsis
     long_description=description,  # see above
     author="UCSF RBVI",
     author_email="chimerax@cgl.ucsf.edu",
@@ -76,7 +76,7 @@ setup(
         "Topic :: Scientific/Engineering :: Visualization",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
-        "ChimeraX :: Bundle :: General :: 1,1 :: PKG_NAME :: chimerax.residue-fit :: ",
-        "ChimeraX :: Command :: resfit :: General :: Display slider to show fit of each residue in density map",
+        "ChimeraX :: Bundle :: General :: 1,1 :: PKG_NAME :: chimerax.model-series :: ",
+        "ChimeraX :: Command :: mseries :: General :: Display sequence of models one by one",
     ],
 )
