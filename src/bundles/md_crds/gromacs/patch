@@ -1,0 +1,63 @@
+*** configure	2009-05-18 02:07:05.000000000 -0700
+--- configure	2012-08-29 16:51:06.000000000 -0700
+***************
+*** 25428,25434 ****
+  ############################################################################
+  #
+  # Don't add math library for intel compilers
+! if $CC -V 2>&1 | grep 'Intel Corporation' > /dev/null 2>&1; then
+    { echo "$as_me:$LINENO: Using built-in math library with intel compiler" >&5
+  echo "$as_me: Using built-in math library with intel compiler" >&6;}
+  else
+--- 25428,25434 ----
+  ############################################################################
+  #
+  # Don't add math library for intel compilers
+! if /usr/bin/true; then
+    { echo "$as_me:$LINENO: Using built-in math library with intel compiler" >&5
+  echo "$as_me: Using built-in math library with intel compiler" >&6;}
+  else
+***************
+*** 26774,26780 ****
+  
+  
+  
+! for ac_header in limits.h strings.h unistd.h
+  do
+  as_ac_Header=`echo "ac_cv_header_$ac_header" | $as_tr_sh`
+  if { as_var=$as_ac_Header; eval "test \"\${$as_var+set}\" = set"; }; then
+--- 26774,26780 ----
+  
+  
+  
+! for ac_header in limits.h
+  do
+  as_ac_Header=`echo "ac_cv_header_$ac_header" | $as_tr_sh`
+  if { as_var=$as_ac_Header; eval "test \"\${$as_var+set}\" = set"; }; then
+*** src/trr2xtc.c	2009-05-18 02:06:38.000000000 -0700
+--- src/trr2xtc.c	2012-08-29 17:30:18.000000000 -0700
+***************
+*** 144,154 ****
+        
+        while (1)
+  	{
+  	  result_trr = read_trr(xd_read, natoms_trr, &step_trr, &time_trr, &lambda_trr,
+  				box_trr, x_trr, v_trr, f_trr);
+  	      
+- 	  int ii_trr, jj_trr, x_ck=0, v_ck=0, f_ck=0;
+- 	  int x_ck_bool=0, v_ck_bool=0, f_ck_bool=0;
+  	  
+  	  for (ii_trr = 0; ii_trr < natoms_trr; ii_trr++)
+  	    {
+--- 144,154 ----
+        
+        while (1)
+  	{
++ 	  int ii_trr, jj_trr, x_ck=0, v_ck=0, f_ck=0;
++ 	  int x_ck_bool=0, v_ck_bool=0, f_ck_bool=0;
+  	  result_trr = read_trr(xd_read, natoms_trr, &step_trr, &time_trr, &lambda_trr,
+  				box_trr, x_trr, v_trr, f_trr);
+  	      
+  	  
+  	  for (ii_trr = 0; ii_trr < natoms_trr; ii_trr++)
+  	    {

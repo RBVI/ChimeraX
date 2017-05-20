@@ -1464,6 +1464,22 @@ class StructureData:
                        args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_size_t))
         f(self._c_pointer, id, pointer(xyz), len(xyz))
 
+    def add_coordsets(self, xyzs, replace = True):
+        '''Add coordinate sets.  If 'replace' is True, clear out existing coordinate sets first'''
+        if len(xyzs.shape) != 3:
+            raise ValueError('add_coordsets(): array must be (frames)x(atoms)x3-dimensional')
+        if xyzs.shape[1] != self.num_atoms:
+            raise ValueError('add_coordsets(): second dimension of coordinate array'
+                ' must be same as number of atoms')
+        if xyzs.shape[2] != 3:
+            raise ValueError('add_coordsets(): third dimension of coordinate array'
+                ' must be 3 (xyz)')
+        if xyzs.dtype != float64:
+            raise ValueError('add_coordsets(): array must be float64, got %s' % xyzs.dtype.name)
+        f = c_function('structure_add_coordsets',
+                       args = (ctypes.c_void_p, ctypes.c_bool, ctypes.c_void_p, ctypes.c_size_t, ctypes.c_size_t))
+        f(self._c_pointer, replace, pointer(xyzs), *xyzs.shape[:2])
+
     def delete_alt_locs(self):
         '''Incorporate current alt locs as "regular" atoms and remove other alt locs'''
         f = c_function('structure_delete_alt_locs', args = (ctypes.c_void_p,))(self._c_pointer)
