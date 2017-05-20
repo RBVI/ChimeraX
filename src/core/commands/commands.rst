@@ -51,6 +51,7 @@ and their code location is described with the function descriptions.
 | `mousemode`_ - Set mouse modes
 | `movie`_ * - Record videos
 | `move`_ - Move camera
+| `mseries`_ * - Display a series of models
 | `open`_ - Open data files
 | `pdbimages`_ - Render PDB assembly images
 | `perframe`_ - Run a command for every rendered frame
@@ -247,6 +248,11 @@ Functions defined in *chimerax.movie.moviecmd*
   :members:
   :member-order: bysource
   :show-inheritance:
+
+mseries
+=======
+.. autofunction:: chimerax.model_series.mseries.mseries
+.. autofunction:: chimerax.model_series.mseries.mseries_slider
 
 open
 ====
