@@ -26,9 +26,13 @@ class="clRight" title="User Guide Index"/></a>
 <h3>Trajectories and Volume Series</h3>
 <p>
 A <b><i>trajectory</i></b></a> is an ordered series of atomic coordinate sets,
-or &ldquo;frames.&rdquo; Only one frame of a trajectory
-is shown at a time, and different frames can be shown or played back
-sequentially with the <a href="commands/coordset.html"><b>coordset</b></a> command.
+or &ldquo;frames.&rdquo; 
+Although the coordinate sets are in a specific order, the data need not be
+a time series; for example, it could be an <b><i>ensemble</i></b>
+for which the order is not meaningful.
+Only one frame of a trajectory is shown at a time, 
+and different frames can be shown or played back sequentially with the 
+<a href="commands/coordset.html"><b>coordset</b></a> command. 
 A multi-model file in PDB format can be opened as a trajectory
 by using the command <a href="commands/open.html"><b>open</b></a> with
 <b>coordset true</b> (default <b>false</b>).
