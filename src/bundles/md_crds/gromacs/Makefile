@@ -21,6 +21,8 @@ XDRFILE_ARCHIVE = xdrfile-$(XDRFILE_VERSION).tar.gz
 XDRFILE_LIB = $(XDRFILE_LIB_SOURCE)/src/.libs/libxdrfile.a
 PATCHES = patch
 
+ENV_CONFIGURE = CC='$(QUOTE_CC)' CXX='$(QUOTE_CXX)'
+
 PYMOD_NAME	= _gromacs
 SRCS		= gromacs.cpp
 OBJS		= $(SRCS:.cpp=.$(OBJ_EXT))
@@ -28,6 +30,9 @@ DEFS		+= $(PYDEF)
 INCS 		+= $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC) -I$(XDRFILE_LIB_SOURCE)/include
 LIBS		+= $(PYTHON_LIB)
 LIBS		+= $(XDRFILE_LIB)
+ifdef WIN32
+LIBS		+= msvcrt.lib
+endif
 
 all: $(PYMOD)
 
