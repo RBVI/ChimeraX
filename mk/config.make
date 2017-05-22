@@ -129,3 +129,6 @@ APP_PIP = $(APP_EXE) -m pip
 APP_BOOTSTRAP_PIP = $(APP_PYTHON_EXE) -m pip
 
 PYLINT = $(PYTHON_EXE) -I -m flake8
+
+# common makefile targets
+.PHONY: all install app-install clean
