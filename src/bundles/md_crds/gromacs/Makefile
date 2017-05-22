@@ -21,8 +21,6 @@ XDRFILE_ARCHIVE = xdrfile-$(XDRFILE_VERSION).tar.gz
 XDRFILE_LIB = $(XDRFILE_LIB_SOURCE)/src/.libs/libxdrfile.a
 PATCHES = patch
 
-ENV_CONFIGURE = CC='$(CC)' CXX='$(CXX)'
-
 PYMOD_NAME	= _gromacs
 SRCS		= gromacs.cpp
 OBJS		= $(SRCS:.cpp=.$(OBJ_EXT))
@@ -61,7 +59,7 @@ ifneq ($(PATCHES),)
 		fi ; \
 	done
 endif
-	cd $(XDRFILE_LIB_SOURCE) ; env $(ENV_CONFIGURE) ./configure --enable-shared
+	cd $(XDRFILE_LIB_SOURCE) ; ./configure --enable-shared --with-pic
 
 clean:
 	rm -rf $(PYMOD) $(OBJS) $(XDRFILE_LIB_SOURCE) $(BUILD)
