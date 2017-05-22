@@ -21,6 +21,8 @@ QUOTE_CXX := $(subst ','\'',$(CXX) $(TARGET_ARCH))
 # Make xdrfile use our compiler options
 ENV_CONFIGURE = env CC='$(QUOTE_CC)' CXX='$(QUOTE_CXX)' LDFLAGS="$(TARGET_ARCH) $(LDFLAGS)"
 
+PATCHES = patch
+
 all: $(XDRFILE_LIB)
 
 $(XDRFILE_LIB): $(XDRFILE_LIB_SOURCE)
