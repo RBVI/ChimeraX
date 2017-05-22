@@ -21,7 +21,7 @@ XDRFILE_ARCHIVE = xdrfile-$(XDRFILE_VERSION).tar.gz
 XDRFILE_LIB = $(XDRFILE_LIB_SOURCE)/src/.libs/libxdrfile.a
 PATCHES = patch
 
-ENV_CONFIGURE = CC='$(QUOTE_CC)' CXX='$(QUOTE_CXX)'
+ENV_CONFIGURE = CC='$(CC)' CXX='$(CXX)'
 
 PYMOD_NAME	= _gromacs
 SRCS		= gromacs.cpp
