@@ -27,6 +27,11 @@ User documentation for the ChimeraX application is in the :doc:`User's Manual <m
 .. toctree::
    :maxdepth: 1
 
+   writing_bundles.rst
+
+.. toctree::
+   :maxdepth: 1
+
    core/commands/commands.rst
 
 .. toctree::
