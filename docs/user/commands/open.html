@@ -30,25 +30,27 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>open</b> &nbsp;<i>filename</i>&nbsp;
 [&nbsp;format&nbsp;&nbsp;<a href="#file-table"><i>format-name</i></a>&nbsp;]
-[&nbsp;coordset&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;coordsets&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;vseries&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>alignment</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-&nbsp;<a href="#options"><i>general-options</i></a>
+&nbsp;<a href="#options"><i>general-options</i></a>&nbsp;
+&nbsp;<a href="#trajectory-options"><i>trajectory-options</i></a>
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>open</b> &nbsp;<i>URL</i>&nbsp;
 [&nbsp;format&nbsp;&nbsp;<a href="#file-table"><i>format-name</i></a>&nbsp;]
-[&nbsp;coordset&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;coordsets&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;vseries&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>alignment</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-&nbsp;<a href="#options"><i>general-options</i></a>
+&nbsp;<a href="#options"><i>general-options</i></a>&nbsp;
+&nbsp;<a href="#trajectory-options"><i>trajectory-options</i></a>
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>open</b> 
 [&nbsp;<a href="#fetch-table"><i>prefix</i></a>:]<i>identifier</i>&nbsp;
 [&nbsp;fromDatabase&nbsp;&nbsp;<a href="#fetch-table"><i>source</i></a>&nbsp;]
 [&nbsp;format&nbsp;&nbsp;<a href="#fetch-table"><i>format-name</i></a>&nbsp;]
-[&nbsp;coordset&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;coordsets&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;ignoreCache&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#options"><i>general-options</i></a>
 </h3>
@@ -81,7 +83,7 @@ Examples:
 <br>
 <b>open 2gbp</b>
 <br>
-<b>open 1plx format pdb coordset T</b>
+<b>open 1plx format pdb coord T</b>
 <br>
 <b>open emdb:3087</b>
 <br>
@@ -99,16 +101,18 @@ Examples:
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>open</b> &nbsp;<i>filename</i>&nbsp;
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#file-table"><i>format-name</i></a>&nbsp;]
-[&nbsp;<b>coordset</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>coordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>vseries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>alignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-&nbsp;<a href="#options"><i>general-options</i></a>
+&nbsp;<a href="#options"><i>general-options</i></a>&nbsp;
+&nbsp;<a href="#trajectory-options"><i>trajectory-options</i></a>
 </blockquote>
 <p>
 File types can be categorized as:
 </p>
 <ul>
 <li><a href="#atomic">Atomic Structures and Related Data</a>
+<li><a href="#trajectory">Trajectory Coordinates</a>
 <li><a href="#volume">Volume Data and Related</a>
 <li><a href="#object">Other 3D Objects</a>
 <li><a href="#sequence">Sequences</a>
@@ -133,12 +137,19 @@ can also be read.
 </p><p>
 A multi-model file in PDB format can be opened as a
 <a href="../trajectories.html">trajectory</a>
-with <b>coordset true</b> (default <b>false</b>).
+with <b>coordsets true</b> (default <b>false</b>).
+A <a href="#trajectory">trajectory coordinate</a> file is
+automatically opened as <a href="../trajectories.html">trajectory</a>,
+but to provide topology information, the <b>model</b> option must be used 
+to specify an existing model with the same set of atoms
+(for example: <b>open myfile.trr model #3</b>).
+The coordinates of the existing model will be replaced with the new,
+unless appending is indicated with <b>replace false</b>.
 </p><p>
 When multiple maps with the same grid dimensions are opened 
 in a single command (multiple files specified with wild cards or globbing, 
 or a single multi-map file), the <b>vseries</b> option can be used to enforce 
-loading them as a <a href="../trajectories.html#series">volume series</a>
+loading them as a <a href="../trajectories.html#vseries">volume series</a>
 for playback with 
 <a href="vseries.html"><b>vseries</b></a> or the associated slider
 (if <b>true</b>), or as independent models (if <b>false</b>).
@@ -187,6 +198,33 @@ target="_blank">PDBx/mmCIF</a></td>
 plain text file with each line <a href="atomspec.html">specifying</a>
 a pair of atoms (already open in ChimeraX)
 to connect with <a href="../pseudobonds.html">pseudobonds</a></td>
+</tr><tr>
+<td colspan=4 align="center" style="background-color:#eaeaea">
+<a name="trajectory"></a>
+<b>Trajectory Coordinates</b></td>
+</tr><tr>
+<td align="center">DCD coordinates</a> (binary)</td>
+<td align="center"><b>dcd</b></td>
+<td align="center">.dcd</td>
+<td align="center"><a href="../trajectories.html">trajectory</a> coordinates;
+<br>existing model provides topology
+(<a href="#trajectory-options">details...</a>)</td>
+</tr><tr>
+<td align="center"><a href="http://manual.gromacs.org/online/xtc.html"
+target="_blank">Gromacs compressed coordinates</a></td>
+<td align="center"><b>xtc</b></td>
+<td align="center">.xtc</td>
+<td align="center"><a href="../trajectories.html">trajectory</a> coordinates;
+<br>existing model provides topology
+(<a href="#trajectory-options">details...</a>)</td>
+</tr><tr>
+<td align="center"><a href="http://manual.gromacs.org/online/trr.html"
+target="_blank">Gromacs full-precision coordinates</a> (binary)</td>
+<td align="center"><b>trr</b></td>
+<td align="center">.trr</td>
+<td align="center"><a href="../trajectories.html">trajectory</a> coordinates;
+<br>existing model provides topology
+(<a href="#trajectory-options">details...</a>)</td>
 <tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
 <a name="volume"></a>
@@ -366,10 +404,11 @@ hypertext to render in the
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>open</b> &nbsp;<i>URL</i>&nbsp;
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#file-table"><i>format-name</i></a>&nbsp;]
-[&nbsp;<b>coordset</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>coordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>vseries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>alignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-&nbsp;<a href="#options"><i>general-options</i></a>
+&nbsp;<a href="#options"><i>general-options</i></a>&nbsp;
+&nbsp;<a href="#trajectory-options"><i>trajectory-options</i></a>
 </blockquote>
 <p>
 Uniform Resource Locators (URLs) starting with
@@ -394,7 +433,7 @@ are stored locally as described <a href="#fetch">below</a>.
 [&nbsp;<a href="#fetch-table"><i>prefix</i></a>:]<i>identifier</i>&nbsp;
 [&nbsp;<b>fromDatabase</b>&nbsp;&nbsp;<a href="#fetch-table"><i>source</i></a>&nbsp;]
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#fetch-table"><i>format-name</i></a>&nbsp;]
-[&nbsp;<b>coordset</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>coordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>ignoreCache</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<a href="#options"><i>general-options</i></a>
 </blockquote>
@@ -414,7 +453,7 @@ in the <a href="../tools/log.html"><b>Log</b></a>.
 </p><p>
 A multi-model file in PDB format can be opened as a
 <a href="../trajectories.html">trajectory</a>
-with <b>coordset true</b> (default <b>false</b>).
+with <b>coordsets true</b> (default <b>false</b>).
 </p><p>
 Web-fetched data are stored locally in <b>~/Downloads/ChimeraX/</b> 
 (where ~ indicates a user's home directory), with subdirectories
@@ -576,6 +615,20 @@ the single best-matching sequence is associated.
 </p>
 </blockquote>
 
+<a name="trajectory-options"></a>
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<h3>Trajectory Options</h3>
+<p>
+A <a href="#trajectory">trajectory coordinate</a> file
+must be opened as the same model number as an existing atomic model 
+or trajectory, specified with the <b>model #<i>N</i></b> option. 
+The existing model is needed to provide topology information,
+and should contain the same set of atoms as the new trajectory.
+The coordinates of the existing model will be replaced with the new,
+unless <b>replace false</b> is used to indicate appending the new frames instead.
+</p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 May 2017</address>

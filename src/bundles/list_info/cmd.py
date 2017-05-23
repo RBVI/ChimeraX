@@ -56,7 +56,7 @@ def info_bounds(session, models=None):
     from .util import bounds_description
     if models is None:
         b = session.main_view.drawing_bounds()
-        msg = 'Scene bounds %s' % bounds_description(b)
+        msg = 'Scene %s' % bounds_description(b)
     else:
         lines = ['#%s, %s, %s' % (m.id_string(), m.name, bounds_description(m.bounds()))
                  for m in sorted(models, key = lambda m: m.id)]
@@ -152,34 +152,41 @@ def info_selection(session, level=None, mode=None, attribute=None):
             attribute = "idatm_type"
         atoms = session.selection.items("atoms")
         if atoms:
-            report_atoms(session.logger, atoms[0], attribute)
+            from chimerax.core.atomic.molarray import concatenate
+            report_atoms(session.logger, concatenate(atoms), attribute)
     elif level == "residue":
         if attribute is None:
             attribute = "name"
         atoms = session.selection.items("atoms")
         if atoms:
-            report_residues(session.logger, atoms[0].unique_residues, attribute)
+            from chimerax.core.atomic.molarray import concatenate
+            residues = concatenate([a.unique_residues for a in atoms])
+            report_residues(session.logger, residues, attribute)
     elif level == "chain":
         if attribute is None:
             attribute = "chain_id"
         atoms = session.selection.items("atoms")
         if atoms:
-            report_chains(session.logger, atoms[0].residues.unique_chains,
-                          attribute)
-    elif level == "molecule":
+            from chimerax.core.atomic.molarray import concatenate
+            chains = concatenate([a.unique_chains for a in atoms])
+            report_chains(session.logger, chains, attribute)
+    elif level == "molecule" || level == "structure":
         if attribute is None:
             attribute = "name"
         atoms = session.selection.items("atoms")
         if atoms:
-            report_models(session.logger, atoms[0].unique_structures, attribute)
+            from chimerax.core.atomic.molarray import concatenate
+            mols = concatenate([a.unique_structures for a in atoms])
+            report_models(session.logger, mols, attribute)
     elif level == "model":
         if attribute is None:
             attribute = "name"
-        report_models(session.logger, session.selection.all_models(), attribute)
+        report_models(session.logger, session.selection.models(), attribute)
 info_selection_desc = CmdDesc(keyword=[("level", EnumOf(["atom",
                                                          "residue",
                                                          "chain",
                                                          "molecule",
+                                                         "structure",
                                                          "model"])),
                                        ("mode", EnumOf(["any", "all"])),
                                        ("attribute", StringArg),],
