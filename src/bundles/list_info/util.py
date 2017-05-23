@@ -98,7 +98,8 @@ def report_atoms(logger, atoms, attr):
             value = attr_string(a, attr)
         except AttributeError:
             pass
-        logger.info("atom id %s %s %s" % (spec(a), attr, value))
+        else:
+            logger.info("atom id %s %s %s" % (spec(a), attr, value))
 
 def report_resattr(logger, attr):
     logger.info("resattr %s" % attr)
