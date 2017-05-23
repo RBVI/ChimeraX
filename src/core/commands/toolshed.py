@@ -253,6 +253,16 @@ toolshed_url_desc = CmdDesc(optional=[("url", StringArg),
                             synopsis='show or set toolshed url')
 
 
+def toolshed_cache(session):
+    '''
+    Show toolshed cache location
+    '''
+    ts = session.toolshed
+    logger = session.logger
+    logger.info("Toolshed cache: %s" % ts._cache_dir)
+toolshed_cache_desc = CmdDesc(synopsis='show toolshed cache location')
+
+
 #
 # Commands that deal with tools
 #
@@ -307,6 +317,8 @@ def register_command(session):
     register("toolshed uninstall", toolshed_uninstall_desc, toolshed_uninstall,
              logger=session.logger)
     register("toolshed url", toolshed_url_desc, toolshed_url,
+             logger=session.logger)
+    register("toolshed cache", toolshed_cache_desc, toolshed_cache,
              logger=session.logger)
     register("toolshed show", toolshed_show_desc, toolshed_show,
              logger=session.logger)

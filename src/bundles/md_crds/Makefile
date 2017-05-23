@@ -14,7 +14,7 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-SUBDIRS = gromacs
+SUBDIRS = gromacs dcd
 
 include $(TOP)/mk/subdir.make
 

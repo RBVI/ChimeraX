@@ -9,44 +9,35 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+PREREQ_MAKE = 1
 TOP = ../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR		= $(PYSITEDIR)/chimerax/md_crds
-
 include Makefile.common
 
-PYMOD_NAME	= _gromacs
-SRCS		= gromacs.cpp
-OBJS		= $(SRCS:.cpp=.$(OBJ_EXT))
-DEFS		+= $(PYDEF)
-INCS 		+= $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC) -I$(XDRFILE_LIB_SOURCE)/include
-LIBS		+= $(PYTHON_LIB)
-LIBS		+= $(XDRFILE_LIB)
-ifdef WIN32
-LIBS		+= msvcrt.lib
-endif
+QUOTE_CC := $(subst ','\'',$(CC) $(TARGET_ARCH))
+QUOTE_CXX := $(subst ','\'',$(CXX) $(TARGET_ARCH))
 
-all: $(PYMOD)
+# Make xdrfile use our compiler options
+ENV_CONFIGURE = env CC='$(QUOTE_CC)' CXX='$(QUOTE_CXX)' LDFLAGS="$(TARGET_ARCH) $(LDFLAGS)"
 
-install: all
-	$(RSYNC) $(PYMOD) $(PKG_DIR)
-ifdef WIN32
-ifdef DEBUG
-	$(RSYNC) $(PYMOD_NAME).pdb $(PKG_DIR)
-endif
-endif
+PATCHES = patch
 
-$(OBJS): $(XDRFILE_LIB)
-
-$(PYMOD): $(OBJS)
-	$(PYMOD_LINK)
+all: $(XDRFILE_LIB)
 
 $(XDRFILE_LIB): $(XDRFILE_LIB_SOURCE)
+	cd $(XDRFILE_LIB_SOURCE) ; $(MAKE)
 
 $(XDRFILE_LIB_SOURCE):
-	# Use separate makefile for xdr so that PREREQ_MAKE can be turned on
-	$(MAKE) -f Makefile.xdrfile
+	tar zxf $(XDRFILE_ARCHIVE)
+ifneq ($(PATCHES),)
+	for p in $(PATCHES); do \
+		if [ -f $$p ] ; then \
+			(cd $(XDRFILE_LIB_SOURCE) ; patch -p0) < $$p ; \
+		fi ; \
+	done
+endif
+	cd $(XDRFILE_LIB_SOURCE) ; env $(ENV_CONFIGURE) ./configure --enable-shared --with-pic
 
 clean:
 	rm -rf $(PYMOD) $(OBJS) $(XDRFILE_LIB_SOURCE) $(BUILD)

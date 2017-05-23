@@ -34,14 +34,13 @@ else:
 rel_inst_data_dir = os.path.basename(data_dir)
 
 description = """
-Provide alignment data manager
-and parsers for various alignment file formats.
+Display sequences of models one by one
 """
 
 setup(
     name="BUNDLE_NAME",
     version="BUNDLE_VERSION",  # PEP 440, should match Development Status below
-    description="Sequence alignment support",  # one line synopsis
+    description="Display sequences of models one by one",  # one line synopsis
     long_description=description,  # see above
     author="UCSF RBVI",
     author_email="chimerax@cgl.ucsf.edu",
@@ -52,19 +51,18 @@ setup(
     },
     packages=[
         "PKG_NAME",
-        "PKG_NAME.dcd",
-        "PKG_NAME.dcd.MDToolsMarch97",
-    ],
-    install_requires=[
-        "ChimeraX-Core >= 0.1",
     ],
     package_data={
-        "PKG_NAME": [ "*.so"]
+        "PKG_NAME": [ ]
     },
+    install_requires=[
+        "ChimeraX-Core >= 0.1",
+        # TODO: PyQt, numpy
+    ],
     classifiers=[
         # From https://pypi.python.org/pypi?%3Aaction=list_classifiers
         # and our own ChimeraX classifiers.
-        "Development Status :: 2 - Pre-Alpha",  # FIXME: update as appropriate
+        "Development Status :: 2 - Pre-Alpha",  # TODO: update as appropriate
         "Environment :: MacOS X :: Aqua",
         "Environment :: Win32 (MS Windows)",
         "Environment :: X11 Applications",
@@ -78,12 +76,7 @@ setup(
         "Topic :: Scientific/Engineering :: Visualization",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
-        "ChimeraX :: Bundle :: MD :: 1,1 :: PKG_NAME :: chimerax.md_crds :: false",
-        "ChimeraX :: DataFormat :: Gromacs full-precision coordinates :: trr :: Molecular trajectory :: .trr :: :: http://http://manual.gromacs.org/online/trr.html :: :: :: Gromacs trr format :: utf-8",
-        "ChimeraX :: DataFormat :: Gromacs compressed coordinates :: xtc :: Molecular trajectory :: .xtc :: :: http://http://manual.gromacs.org/online/xtc.html :: :: :: Gromacs xtc format :: utf-8",
-        "ChimeraX :: DataFormat :: DCD coordinates :: dcd :: Molecular trajectory :: .dcd :: :: :: :: :: dcd trajectory format :: utf-8",
-        "ChimeraX :: Open :: Gromacs full-precision coordinates :: trr :: true :: model:Model,replace:Bool",
-        "ChimeraX :: Open :: Gromacs compressed coordinates :: xtc :: true :: model:Model,replace:Bool",
-        "ChimeraX :: Open :: DCD coordinates :: dcd :: true :: model:Model,replace:Bool",
+        "ChimeraX :: Bundle :: General :: 1,1 :: PKG_NAME :: chimerax.model-series :: ",
+        "ChimeraX :: Command :: mseries :: General :: Display sequence of models one by one",
     ],
 )

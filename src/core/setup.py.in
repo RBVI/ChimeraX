@@ -88,6 +88,7 @@ setup(
         "PKG_NAME.map": ["*.PYMOD_EXT", "*.pdb"],
         "PKG_NAME.surface": ["*.PYMOD_EXT", "*.pdb"],
         "PKG_NAME.ui": ["*.jpg", "*.png", "*.html"],
+        "PKG_NAME.ui.widgets": ["icons/*.png"],
     },
     data_files=[
         (rel_inst_shlib_dir, [

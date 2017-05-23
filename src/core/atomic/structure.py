@@ -1021,7 +1021,7 @@ class Structure(Model, StructureData):
                 num_triangles += cap_triangles + band_triangles
             else:
                 # 4 = 2 for caps, 2 for tube
-                num_vertices += 4 * num_ptes
+                num_vertices += 4 * num_pts
                 num_triangles += 2 * cap_triangles + band_triangles
         elif was_displayed:
             # back cap

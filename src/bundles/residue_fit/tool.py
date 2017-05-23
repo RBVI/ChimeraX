@@ -11,17 +11,16 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.tools import ToolInstance
+from chimerax.core.ui.widgets.slider import Slider
 
 # ------------------------------------------------------------------------------
 #
-class ResidueFit(ToolInstance):
+class ResidueFit(Slider):
 
     SESSION_SKIP = True
 
     def __init__(self, session, tool_name, residues, map, residue_range = (-2,1),
                  pause_frames = 50, motion_frames = 50, movie_framerate = 25):
-        ToolInstance.__init__(self, session, tool_name)
 
         self.residues = {r.number:r for r in residues}
         self.map = map
@@ -32,54 +31,14 @@ class ResidueFit(ToolInstance):
         rnums = residues.numbers
         self.rmin, self.rmax = rmin, rmax = rnums.min(), rnums.max()
         self.residue_range = residue_range
-        self.pause_frames = pause_frames
-        self._pause_count = 0
         self.motion_frames = motion_frames
-        self.movie_framerate = movie_framerate
-        self._last_shown_resnum = None
         self._last_pos = None
         self._label = None	# Graphics Label showing residue number
-        
-        self._play_handler = None
-        self._recording = False
-        self._block_update = False
 
-        self.display_name = 'Residue fit %s chain %s %d-%d' % (s.name, cid, rmin, rmax)
-
-        from chimerax.core.ui.gui import MainToolWindow
-        tw = MainToolWindow(self)
-        self.tool_window = tw
-        parent = tw.ui_area
-
-        from PyQt5.QtWidgets import QHBoxLayout, QLabel, QSpinBox, QSlider, QPushButton
-        from PyQt5.QtGui import QPixmap, QIcon
-        from PyQt5.QtCore import Qt
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0,0,0,0)
-        layout.setSpacing(4)
-        rl = QLabel('Residue')
-        layout.addWidget(rl)
-        self.resnum = rn = QSpinBox()
-        rn.setRange(rmin, rmax)
-        rn.valueChanged.connect(self.resnum_changed_cb)
-        layout.addWidget(rn)
-        self.slider = rs = QSlider(Qt.Horizontal)
-        rs.setRange(rmin,rmax)
-        rs.valueChanged.connect(self.slider_moved_cb)
-        layout.addWidget(rs)
-        self.play_button = pb = QPushButton()
-        pb.setCheckable(True)
-        pb.clicked.connect(self.play_cb)
-        layout.addWidget(pb)
-        self.record_button = rb = QPushButton()
-        rb.setCheckable(True)
-        rb.clicked.connect(self.record_cb)
-        layout.addWidget(rb)
-        parent.setLayout(layout)
-
-        self.set_button_icon(play=True, record=True)
-
-        tw.manage(placement="top")
+        title = 'Residue fit %s chain %s %d-%d' % (s.name, cid, rmin, rmax)
+        Slider.__init__(self, session, tool_name, 'Residue', title, value_range = (rmin,rmax),
+                        pause_frames = pause_frames, pause_when_recording = (motion_frames == 0),
+                        movie_filename = 'resfit.mp4', movie_framerate = movie_framerate)
 
         from chimerax.core.models import REMOVE_MODELS
         self._model_close_handler = session.triggers.add_handler(REMOVE_MODELS, self.models_closed_cb)
@@ -88,31 +47,13 @@ class ResidueFit(ToolInstance):
         map.show(representation = 'mesh')
         s.atoms.displays = False
         s.residues.ribbon_displays = False
-        self.update_resnum(rmin)
+        self.update_value(rmin)
 
-    def show(self):
-        self.tool_window.shown = True
-
-    def hide(self):
-        self.tool_window.shown = False
-
-    def resnum_changed_cb(self, event):
-        rn = self.resnum.value()
-        self.slider.setValue(rn)
-
-    def slider_moved_cb(self, event):
-        rn = self.slider.value()
-        self.resnum.setValue(rn)
-        self.update_resnum(rn)
-
-    def update_resnum(self, rnum, motion = False):
-        if self._block_update:
-            return
+    def change_value(self, rnum, playing = False):
         res =  self.residues.get(rnum, None)
         if res is not None:
             self.structure.atoms.displays = False
-            self._last_shown_resnum = rnum
-            mf = self.motion_frames if motion else 0
+            mf = self.motion_frames if playing else 0
             lp = show_residue_fit(self.session, self.zone_residues(res), self.map,
                                   last_pos = self._last_pos, motion_frames = mf)
             if lp:
@@ -123,6 +64,9 @@ class ResidueFit(ToolInstance):
             log.status('No residue %d in %s chain %s'
                        % (rnum, self.structure.name, self.chain_id))
 
+    def valid_value(self, rnum):
+        return rnum in self.residues
+    
     def zone_residues(self, res):
         zone_res = [res]
         rnum = res.number
@@ -141,85 +85,6 @@ class ResidueFit(ToolInstance):
         l = self._label
         l.text = '%s %d' % (res.name, res.number)
         l.update_drawing()
-
-    def play_cb(self, event):
-        if self._recording:
-            return
-        if self._play_handler:
-            self.set_button_icon(play=True)
-            self.stop()
-        else:
-            self.set_button_icon(play=False)
-            self.play()
-
-    def play(self):
-        if self._play_handler is None:
-            t = self.session.triggers
-            self._play_handler = t.add_handler('new frame', self.next_residue_cb)
-
-    def stop(self):
-        if self._play_handler:
-            t = self.session.triggers
-            t.remove_handler(self._play_handler)
-            self._play_handler = None
-            if self._recording:
-                self.record_cb()
-
-    def next_residue_cb(self, *_):
-        if not (self._recording and self.motion_frames == 0):
-            self._pause_count += 1
-            if self._pause_count >= self.pause_frames:
-                self._pause_count = 0
-            else:
-                return
-        rn = self._last_shown_resnum
-        if rn >= self.rmax:
-            if self._recording:
-                self.stop()
-                return
-            rn = self.rmin
-        else:
-            rn += 1
-        while rn not in self.residues:
-            rn += 1
-                    
-        self._block_update = True # Don't update display when slider changes
-        self.resnum.setValue(rn)
-        self._block_update = False
-        self.update_resnum(rn, motion = True)
-
-    def set_button_icon(self, play = None, record = None):
-        from os.path import dirname, join
-        dir = dirname(__file__)
-        if play is not None:
-            bitmap_path = (join(dir, 'play.png' if play else 'pause.png'))
-            pb = self.play_button
-            from PyQt5.QtGui import QPixmap, QIcon
-            ppix = QPixmap(bitmap_path)
-            pi = QIcon(ppix)
-            pb.setIcon(pi)
-                
-        if record is not None:
-            bitmap_path = (join(dir, 'record.png' if record else 'stop.png'))
-            rb = self.record_button
-            from PyQt5.QtGui import QPixmap, QIcon
-            ppix = QPixmap(bitmap_path)
-            pi = QIcon(ppix)
-            rb.setIcon(pi)
-
-    def record_cb(self, event=None):
-        from chimerax.core.commands import run
-        ses = self.session
-        if not self._recording:
-            self.set_button_icon(record=False)
-            self._recording = True
-            run(ses, 'movie record')
-            self.play()
-        else:
-            self.set_button_icon(record=True)
-            self._recording = False
-            self.stop()
-            run(ses, 'movie encode ~/Desktop/resfit.mp4 framerate %.1f' % self.movie_framerate)
             
     def models_closed_cb(self, name, models):
         if self.structure in models or self.map in models:
@@ -230,9 +95,6 @@ class ResidueFit(ToolInstance):
         t = self.session.triggers
         t.remove_handler(self._model_close_handler)
         self._model_close_handler = None
-        if self._play_handler:
-            t.remove_handler(self._play_handler)
-            self._play_handler = None
         super().delete()
         self.structure = None
         self.residues = None

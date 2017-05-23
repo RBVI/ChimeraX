@@ -12,9 +12,9 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-BUNDLE_NAME = ChimeraX-ResidueFit
+BUNDLE_NAME = ChimeraX-ModelSeries
 BUNDLE_VERSION = 1.0
-PKG_NAME = chimerax.residue_fit
+PKG_NAME = chimerax.model_series
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,'g)
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
