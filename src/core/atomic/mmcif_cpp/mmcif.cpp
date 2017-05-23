@@ -428,14 +428,14 @@ ExtractMolecule::connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, b
                 if (a0 == nullptr || a0->element() != Element::C || a0->name() != "CA") {
                     // suppress warning for CA traces
                     if (!gap)
-                        logger::warning(_logger, "Missing ", conn_type,
+                        logger::warning(_logger, "Expected gap or ", conn_type,
                                         r0->str(), " and ", r1->str());
                 }
             } else if (a1 == nullptr) {
                 if (!gap)
                     logger::warning(_logger,
-                                    "Missing linking atom in ", r1->str(),
-                                    " for ", r0->str());
+                                    "Expected gap or linking atom in ",
+                                    r1->str(), " for ", r0->str());
                 a1 = find_closest(a0, r1, nullptr, true);
             }
             if (a1 == nullptr) {
