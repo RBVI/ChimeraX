@@ -52,6 +52,8 @@ setup(
     },
     packages=[
         "PKG_NAME",
+        "PKG_NAME.dcd",
+        "PKG_NAME.dcd.MDToolsMarch97",
     ],
     install_requires=[
         "ChimeraX-Core >= 0.1",
@@ -79,7 +81,9 @@ setup(
         "ChimeraX :: Bundle :: MD :: 1,1 :: PKG_NAME :: chimerax.md_crds :: false",
         "ChimeraX :: DataFormat :: Gromacs full-precision coordinates :: trr :: Molecular trajectory :: .trr :: :: http://http://manual.gromacs.org/online/trr.html :: :: :: Gromacs trr format :: utf-8",
         "ChimeraX :: DataFormat :: Gromacs compressed coordinates :: xtc :: Molecular trajectory :: .xtc :: :: http://http://manual.gromacs.org/online/xtc.html :: :: :: Gromacs xtc format :: utf-8",
+        "ChimeraX :: DataFormat :: DCD coordinates :: dcd :: Molecular trajectory :: .dcd :: :: :: :: :: dcd trajectory format :: utf-8",
         "ChimeraX :: Open :: Gromacs full-precision coordinates :: trr :: true :: model:Model,replace:Bool",
         "ChimeraX :: Open :: Gromacs compressed coordinates :: xtc :: true :: model:Model,replace:Bool",
+        "ChimeraX :: Open :: DCD coordinates :: dcd :: true :: model:Model,replace:Bool",
     ],
 )
