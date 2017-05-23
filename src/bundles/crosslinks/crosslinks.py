@@ -63,7 +63,7 @@ def crosslinks_network(session, pbonds):
     cnodes, edges = chains_and_edges(pbonds)
     CrosslinksPlot(session, cnodes, edges)
 
-def crosslinks_histogram(session, pbonds, coordset = None):
+def crosslinks_histogram(session, pbonds, coordsets = None):
     '''
     Show histogram of crosslink lengths.
 
@@ -71,7 +71,7 @@ def crosslinks_histogram(session, pbonds, coordset = None):
     ----------
     pbonds : Pseudobonds
       Crosslinks to show in histogram
-    coordset : AtomicStructure
+    coordsets : AtomicStructure
       If a single pseudobond is specified plot a histogram of its
       length across the specified coordinate sets is produced.
     '''
@@ -80,10 +80,10 @@ def crosslinks_histogram(session, pbonds, coordset = None):
         from chimerax.core.errors import UserError        
         raise UserError('No pseudobonds specified.')
 
-    if coordset:
+    if coordsets:
         if len(pbonds) == 1:
             from .lengths import EnsemblePlot
-            EnsemblePlot(session, pbonds[0], coordset)
+            EnsemblePlot(session, pbonds[0], coordsets)
         else:
             from chimerax.core.errors import UserError        
             raise UserError('Plotting coordset lengths requires exactly one crosslink, got %d.' % len(pbonds))
@@ -213,7 +213,7 @@ def register_command(logger):
     register('crosslinks network', desc, crosslinks_network, logger=logger)
 
     desc = CmdDesc(required = [('pbonds', PseudobondsArg)],
-                   keyword = [('coordset', StructureArg)],
+                   keyword = [('coordsets', StructureArg)],
                    synopsis = 'Show histogram of crosslink lengths')
     register('crosslinks histogram', desc, crosslinks_histogram, logger=logger)
 
