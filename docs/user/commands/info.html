@@ -28,20 +28,187 @@ class="clRight" title="User Guide Index"/></a>
 <br><b>info</b> &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
 </h3>
 <p>
-The command <b>info</b> shows information about the 
+The top-level <b>info</b> command shows information about the 
 <a href="atomspec.html">specified</a> models in the
 <a href="../tools/log.html"><b>Log</b></a>.
 As per the usual convention, a blank specification indicates &ldquo;all.&rdquo;
 The type of information depends on the type of model,
 and includes the numbers of atoms, bonds, residues, and chains in an 
-atomic model, the number of coordinate sets in a 
-<a href="../trajectories.html">trajectory</a> model, 
+atomic model, the number of coordinate sets in a trajectory model, 
 and the value range and current contour level(s) of a 
 <a href="../tools/volumeviewer.html">volume</a> model.
 See also: 
 <a href="open.html"><b>open</b></a>,
 <a href="sym.html"><b>sym</b></a>
+</p><p>
+Several subcommands of <b>info</b> specify sending information
+to the <a href="../tools/log.html"><b>Log</b></a>
+or to &ldquo;client&rdquo; programs:
+<ul>
+<li><a href="#atoms"><b>atoms</b></a>
+<li><a href="#residues"><b>residues</b></a>
+<li><a href="#resattr"><b>resattr</b></a>
+<li><a href="#chains"><b>chains</b></a>
+<li><a href="#polymers"><b>polymers</b></a>
+<li><a href="#models"><b>models</b></a>
+<li><a href="#selection"><b>selection</b></a>
+<li><a href="#bounds"><b>bounds</b></a>
+<li><a href="#distmat"><b>distmat</b></a>
+<li><b><a href="#notify">notify</a>
+(&nbsp;start&nbsp;|&nbsp;suspend&nbsp;|&nbsp;resume&nbsp;|&nbsp;stop&nbsp;)</b>
+</ul>
 </p>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="atoms"><b>info atoms</b></a>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+[&nbsp;<b>attribute</b>&nbsp;<i>attribute-name</i>&nbsp;]
+<blockquote>
+Report values of an attribute of atoms.
+By default, the <b>idatm_type</b> attribute is reported for the specified atoms.
+If <b>attribute</b> is given, values of <i>attribute-name</i> are reported instead.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="residues"><b>info residues</b></a>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+[&nbsp;<b>attribute</b>&nbsp;<i>attribute-name</i>&nbsp;]
+<blockquote>
+Report values of an attribute of residues.
+By default, the <b>name</b> attribute 
+is reported for the residues containing the specified atoms.
+If <b>attribute</b> is given, values of <i>attribute-name</i> are reported instead.
+Residue attribute names can be listed with 
+<a href="#resattr"><b>info resattr</b></a>.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="resattr"><b>info resattr</b></a>
+<blockquote>
+List the current residue attribute names.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="chains"><b>info chains</b></a>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+[&nbsp;<b>attribute</b>&nbsp;<i>attribute-name</i>&nbsp;]
+<blockquote>
+Report values of an attribute of chains.
+By default, the <b>chain_id</b> attribute is reported 
+for the chains containing the specified atoms.
+If <b>attribute</b> is given, values of <i>attribute-name</i> are reported instead.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="polymers"><b>info polymers</b></a>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+<blockquote>
+Report the starting and ending residues of the
+physically connected chains containing the specified atoms.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="models"><b>info models</b></a>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+[&nbsp;<b>type</b>&nbsp;<i>model-type</i>&nbsp;]
+[&nbsp;<b>attribute</b>&nbsp;<i>attribute-name</i>&nbsp;]
+<blockquote>
+Report values of an attribute of the specified models,
+optionally restricted by model <b>type</b>.
+By default, model <b>type</b> and <b>name</b> attributes are reported;
+if <b>attribute</b> is given, values of <i>attribute-name</i> are reported instead. 
+The <i>model-type</i> for restricting the output can be any of the <b>type</b>
+values shown in the default report, without truncation.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="selection"><b>info selection</b></a>
+[&nbsp;<b>level</b>&nbsp;&nbsp;<i>level</i>&nbsp;]
+[&nbsp;<b>mode</b>&nbsp;&nbsp;<b>any</b>&nbsp;|&nbsp;all&nbsp;]
+[&nbsp;<b>attribute</b>&nbsp;<i>attribute-name</i>&nbsp;]
+<blockquote>
+Report attribute values for items that are currently
+<a href="../selection.html">selected</a>.
+The <i>level</i> of reporting can be
+<b>atom</b> (default), <b>residue</b>, <b>chain</b>, <b>molecule</b>,
+or <b>model</b>. If the <b>mode</b> is <b>any</b> (default),
+items with any selected parts are included;
+if <b>all</b>, only items with all parts selected are included.
+For example, with <b>any</b> a residue of five atoms will be included 
+if any of the five atoms are selected; with <b>all</b>,
+all five atoms must be selected for the residue to be included.
+if <b>attribute</b> is given, values are reported for <i>attribute-name</i> 
+instead of the default attributes.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="bounds"><b>info bounds</b></a>
+&nbsp;<a href="atomspec.html"><i>model-spec</i></a>
+<blockquote>
+Report the bounds for the specified model(s), or if none are specified,
+the scene bounds. Bounds are reported as the coordinates of the
+front lower left and the back upper right of a rectangular box.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="distmat"><b>info distmat</b></a>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
+<blockquote>
+Report all pairwise distances among the specified atoms.
+The <a href="atomspec.html"><i>atom-spec</i></a> cannot be blank. 
+The output consists of lines that start with &ldquo;distmat,&rdquo;
+followed by the specifiers of the two atoms, followed by the distance in
+&Aring;. The upper triangle of the distance matrix is given row by row,
+with atoms in the order (if any) in which they were specified.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="notify"><b>info notify</b></a>
+<b>start</b>
+(&nbsp;<b>models</b>&nbsp;|&nbsp;<b>selection</b>&nbsp;) &nbsp;<i>clientId</i>&nbsp;
+[&nbsp;<b>prefix</b>&nbsp;<i>prefix</i>&nbsp;]
+[&nbsp;<b>url</b>&nbsp;<i>URL</i>&nbsp;]
+<br>
+<a href="#top" class="nounder">&bull;</a>
+<b>info notify</b> 
+(&nbsp;<b>suspend</b>&nbsp;|&nbsp;<b>resume</b>&nbsp;|&nbsp;<b>stop</b>&nbsp;)
+(&nbsp;<b>models</b>&nbsp;|&nbsp;<b>selection</b>&nbsp;) &nbsp;<i>clientId</i>&nbsp;
+<blockquote>
+(The ChimeraX programmer documentation will include a description.)
+See also: <b>remotecontrol</b>, <b>cytoscape</b>
+<!-- 
+Send notifications to &ldquo;client&rdquo; programs that can control ChimeraX 
+remotely (see commands <b>remotecontrol</b>, <b>cytoscape</b>).
+Notifications can be sent for certain events involving 
+<b>models</b> or <b>selection</b>.
+The <i>clientId</i> is required, but is simply a name supplied by the user
+with <b>start</b> that can be used to later suspend, resume, or stop notifications
+to that specific client.
+Example: <b>info notify start models myprogram</b>
+<p>
+If <i>what</i> is <b>models</b>, then the events of interest
+are the addition or removal of a model.
+Each notification message is prefixed
+with <i>prefix</i> (default <b>ModelChanged</b>).  Typical messages are:
+<pre>
+ModelChanged: add model #1
+ModelChanged: remove model #1
+</pre>
+</p><p>
+If <i>what</i> is <b>selection</b>, then the event of interest
+is a change in selected items.
+Each message is prefixed
+with <i>prefix</i> (default <b>SelectionChanged</b>).  A typical message is:
+<pre>
+SelectionChanged: selection changed
+</pre>
+</p><p>
+If <i>URL</i> is specified, then the messages are sent to
+the given URL with the message encoded as parameter
+<b>chimeraXNotification</b>.
+</p>
+-->
+</blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 

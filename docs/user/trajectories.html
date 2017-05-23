@@ -15,7 +15,7 @@ or derivations thereof.
 
 <head>
 <link rel="stylesheet" type="text/css" href="userdocs.css" />
-<title>Trajectories</title>
+<title>Trajectories, Model Series, Volume Series</title>
 </head><body>
 
 <a name="top"></a>
@@ -23,10 +23,10 @@ or derivations thereof.
 <img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
 class="clRight" title="User Guide Index"/></a>
 
-<h3>Trajectories and Volume Series</h3>
+<h3>Trajectories, Model Series, Volume Series</h3>
 <p>
 A <b><i>trajectory</i></b></a> is an ordered series of atomic coordinate sets,
-or &ldquo;frames.&rdquo; 
+or &ldquo;frames,&rdquo; opened as a single model.
 Although the coordinate sets are in a specific order, the data need not be
 a time series; for example, it could be an <b><i>ensemble</i></b>
 for which the order is not meaningful.
@@ -36,14 +36,21 @@ and different frames can be shown or played back sequentially with the
 A multi-model file in PDB format can be opened as a trajectory
 by using the command <a href="commands/open.html"><b>open</b></a> with
 <b>coordset true</b> (default <b>false</b>).
-A trajectory can also be created with the 
-<a href="commands/morph.html"><b>morph</b></a> command.
+A trajectory can also be read from any of several 
+<a href="commands/open.html#trajectory">trajectory formats</a>
+or created with the <a href="commands/morph.html"><b>morph</b></a> command.
 The number of coordinate sets in a trajectory
 can be reported with the command <a href="commands/info.html"><b>info</b></a>.
 See also:
 <a href="commands/crosslinks.html#histogram"><b>crosslinks histogram</b></a>
 </p><p>
-<a name="series"></a>
+<a name="mseries"></a>
+A <b><i>model series</i></b> is an ordered series of models.
+A model series can be played back with the
+<a href="commands/mseries.html"><b>mseries</b></a> command
+or the associated <a href="commands/mseries.html#slider">slider interface</a>.
+</p><p>
+<a name="vseries"></a>
 A <b><i>volume series</i></b> is an ordered series of
 <a href="tools/volumeviewer.html">volume data</a> sets (maps).
 The maps in a single series must be of the same size 

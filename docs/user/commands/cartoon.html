@@ -45,7 +45,8 @@ The <a href="#subcommands">subcommands</a> of <b>cartoon</b>, however,
 control per-model settings:
 <ul>
 <li><a href="#style"><b>cartoon style</b></a>
-- secondary structure representations, width, thickness, and shape
+- width, thickness, and shape; secondary structure representations like
+<a href="#hmode">helix tubes</a>
 <li><a href="#tether"><b>cartoon tether</b></a>
 - connectors between smoothed strands and offset &alpha;-carbons
 </ul>
@@ -184,8 +185,16 @@ rather than as ribbons spiraling along the backbone atoms (initial default).
 Spiraling ribbons from the <b>wrap</b> mode wrap around the calculated
 tubes, whereas those from the initial <b>default</b> mode
 are oriented as described <a href="#orientation">above</a>.
+<p>
+<a name="tubes"></a>
+Helix <b>tube</b> calculations use &alpha;-carbon coordinates.
+For a helix of 6 or more residues, a straight tube axis (first principal
+component) is used if it gives a low average distance to the &alpha;-carbons; 
+otherwise, an arc (circle segment) fit to the &alpha;-carbon coordinates 
+is used instead. For a helix of 3-5 residues, the axis of an idealized 
+&alpha;-helix fit to the &alpha;-carbons is used.
 Increasing the number of <a href="#sides"><b>sides</b></a> is recommended
-for tubes, to give a rounded rather than faceted appearance.
+to give tubes a rounded rather than faceted appearance.
 Other than <a href="#radius"><b>radius</b></a>
 and <a href="#sides"><b>sides</b></a>,
 most helix settings such as width, height, cross-section, and arrows
