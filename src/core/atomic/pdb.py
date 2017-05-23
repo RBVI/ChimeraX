@@ -18,7 +18,7 @@ pdb: PDB format support
 Read Protein DataBank (PDB) files.
 """
 
-def open_pdb(session, filename, name, auto_style=True, coordset=False):
+def open_pdb(session, filename, name, auto_style=True, coordsets=False):
 
     if hasattr(filename, 'read'):
         # it's really a fetched stream
@@ -29,7 +29,7 @@ def open_pdb(session, filename, name, auto_style=True, coordset=False):
         path = filename
 
     from . import pdbio
-    pointers = pdbio.read_pdb_file(input, log=session.logger, explode=not coordset)
+    pointers = pdbio.read_pdb_file(input, log=session.logger, explode=not coordsets)
     if input != filename:
         input.close()
 
@@ -42,9 +42,9 @@ def open_pdb(session, filename, name, auto_style=True, coordset=False):
 
     info = "Opened PDB data containing %d atoms%s %d bonds" % (
         sum(m.num_atoms for m in models),
-        ("," if coordset else " and"),
+        ("," if coordsets else " and"),
         sum(m.num_bonds for m in models))
-    if coordset:
+    if coordsets:
         num_cs = 0
         for m in models:
             num_cs += m.num_coord_sets
@@ -105,7 +105,7 @@ def register_pdb_format():
         reference="http://wwpdb.org/docs.html#format",
         open_func=open_pdb)
     from ..commands import add_keyword_arguments, BoolArg
-    add_keyword_arguments('open', {'coordset':BoolArg,
+    add_keyword_arguments('open', {'coordsets':BoolArg,
                                    'auto_style':BoolArg})
 
 
