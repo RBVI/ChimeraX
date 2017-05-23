@@ -129,22 +129,13 @@ class SteamVRCamera(Camera):
         self._texture_drawing = None	# For mirror display
         self._last_position = None
         self._last_h = None
-        self._controller_poses = {}	# Controller device pose while trigger pressed
         self._close = False
-        self._controller_models = {}	# Device id to HandControllerModel
-        self._controller_colors = ((200,200,0,255), (0,200,200,255))
-        self._trigger_held = {}		# Map device id to bool
-        self._icons_shown = False
-        self._icons_device = None	# Controller id that shows icon panel
-        self._move_selected_atoms = {}	# Map device id to bool
+        self._controller_models = []	# List of HandControllerModel
         self.mirror_display = False	# Mirror right eye in ChimeraX window
         				# This causes stuttering in the Vive.
         
         import openvr
         self.vr_system = vrs = openvr.init(openvr.VRApplication_Scene)
-        # TODO: If controller is turned on after initialization then it does not get in list.
-        self._controller_ids = [d for d in range(openvr.k_unMaxTrackedDeviceCount)
-                                if vrs.getTrackedDeviceClass(d) == openvr.TrackedDeviceClass_Controller]
 
         self._render_size = self.vr_system.getRecommendedRenderTargetSize()
         self.compositor = openvr.VRCompositor()
@@ -207,10 +198,10 @@ class SteamVRCamera(Camera):
                               translation(-array(room_center, float32)))
 
     def close(self, close_cb = None):
-        cm = [m for d,m in self._controller_models.items()]
+        cm = self._controller_models
         if cm:
             self._session.models.close(cm)
-            self._controller_models = {}
+            self._controller_models = []
         self._close = True
         self._close_cb = close_cb
         
@@ -275,7 +266,6 @@ class SteamVRCamera(Camera):
 
         self.process_controller_buttons()
         self.process_controller_motion()
-        self.move_controller_models()
 
     def process_controller_buttons(self):
         
@@ -284,158 +274,14 @@ class SteamVRCamera(Camera):
         import openvr
         e = openvr.VREvent_t()
         if not vrs.pollNextEvent(e):
-            if self._icons_shown:
-                hm = self.hand_controller_models()
-                for d, m in hm.items():
-                    if d == self._icons_device:
-                        xy = self.touchpad_position(d)
-                        if xy is not None:
-                            m.show_icons(highlight_position = xy)
-            return
-        
-        t = e.eventType
-        if t == openvr.VREvent_ButtonTouch or t == openvr.VREvent_ButtonUntouch:
-            touch = (t == openvr.VREvent_ButtonTouch)
-            b = e.data.controller.button
-            if b == openvr.k_EButton_SteamVR_Touchpad:
-                hm = self.hand_controller_models()
-                d = e.trackedDeviceIndex
-                m = hm.get(d, None)
-                if m:
-                    if self._icons_device is None or d == self._icons_device:
-                        self._icons_device = d
-                        if touch:
-                            xy = self.touchpad_position(d)
-                            if xy is not None:
-                                m.show_icons(highlight_position = xy)
-                                self._icons_shown = True
-                        else:
-                            m.hide_icons()	# Untouch
-                            self._icons_shown = False
-                
-        if t == openvr.VREvent_ButtonPress or t == openvr.VREvent_ButtonUnpress:
-            pressed = (t == openvr.VREvent_ButtonPress)
-            d = e.trackedDeviceIndex
-            b = e.data.controller.button
-            if b == openvr.k_EButton_SteamVR_Trigger:
-                self._trigger_held[d] = pressed
-#            press = 'press' if pressed else 'unpress'
-#            print('Controller button %s, device %d, button %d'
-#                      % (press, d, b))
-            elif b == openvr.k_EButton_SteamVR_Touchpad:
-                if pressed:
-                    if self._icons_shown and d == self._icons_device:
-                        self.icon_clicked(d)
-                    else:
-                        self.select_object(d)
-            elif b == openvr.k_EButton_ApplicationMenu:
-                pass
-            elif b == openvr.k_EButton_Grip:
-                self._move_selected_atoms[d] = pressed
-
-    def icon_clicked(self, d):
-        hm = self.hand_controller_models()
-        m = hm.get(d, None)
-        xy = self.touchpad_position(d)
-        if m is None or xy is None:
-            return
-        m.run_icon(xy)
-
-    def select_object(self, d):
-        hm = self.hand_controller_models()
-        m = hm.get(d, None)
-        if m:
-            a = m.closest_atom()
-            if a:
-                # Select atom with bottom of touchpad,
-                # or residue with top of touchpad
-                xy = self.touchpad_position(d)
-                if xy is not None:
-                    self._session.selection.clear()
-                    x,y = xy
-                    if x >= .5:
-                        # Residue atoms not including backbone.
-                        ratoms = a.residue.atoms
-                        from numpy import logical_not
-                        scatoms = ratoms.filter(logical_not(ratoms.is_backbones()))
-                        scatoms.selected = True
-                    if y <= 0:
-                        a.selected = True
-                    else:
-                        a.residue.atoms.selected = True
-
-    def touchpad_position(self, device_id):
-        vrs = self.vr_system
-        from ctypes import sizeof
-        # TODO: I think pyopenvr eliminated the size arg in Feb 2017.
-        import openvr
-        size = sizeof(openvr.VRControllerState_t)
-        success, cs = vrs.getControllerState(device_id, size)
-        if success:
-            a = cs.rAxis[0]
-            return (a.x, a.y)
-        return None
+            e = None
+        for hc in self.hand_controllers():
+            hc.process_event(e)
 
     def process_controller_motion(self):
 
-        # For controllers with trigger pressed, use controller motion to move scene
-        # Rotation and scaling is about controller position -- has natural feel,
-        # like you grab the models where your hand is located.
-        # Another idea is to instead pretend controller is at center of models.
-        acm = self.controller_motions()
-        cm = [acm[d] for d,h in self._trigger_held.items() if h and d in acm]
-        if len(cm) == 1:
-            # One controller has trigger pressed, move scene.
-            previous_pose, pose = cm[0]
-            move = previous_pose * pose.inverse()
-            self.room_to_scene = self.room_to_scene * move
-        elif len(cm) == 2:
-            # Two controllers have trigger pressed, scale scene.
-            (prev_pose1, pose1), (prev_pose2, pose2) = cm
-            pp1, p1 = prev_pose1.origin(), pose1.origin()
-            pp2, p2 = prev_pose2.origin(), pose2.origin()
-            from chimerax.core.geometry import distance, translation, scale
-            d, dp = distance(p1,p2), distance(pp1,pp2)
-            center = 0.5*(p1+p2)
-            if d > 0.5*dp:
-                s = dp / d
-                scale = translation(center) * scale(s) * translation(-center)
-                self.room_to_scene = self.room_to_scene * scale
-
-        # Move selected atoms
-        mam = [acm[d] for d,m in self._move_selected_atoms.items() if m]
-        if len(mam) == 1:
-            previous_pose, pose = mam[0]
-            move = pose * previous_pose.inverse()  # Room to room coords
-            rts = self.room_to_scene
-            smove = rts * move * rts.inverse()	# Scene to scene coords.
-            from chimerax.core.atomic import selected_atoms
-            atoms = selected_atoms(self._session)
-            atoms.scene_coords = smove * atoms.scene_coords
-
-    def controller_motions(self):
-        '''Return list of (pose, previous_pose) for controllers with trigger pressed.'''
-        cm = {}
-        cp = self._controller_poses
-        for d in self._controller_ids:
-            # Pose maps controller to room coords.
-            pose = hmd34_to_position(self._poses[d].mDeviceToAbsoluteTracking)
-            previous_pose = cp.get(d, None)
-            cp[d] = pose
-            if previous_pose:
-                cm[d] = (previous_pose, pose)
-        return cm
-
-    def controller_poses(self):
-        poses = {d:hmd34_to_position(self._poses[d].mDeviceToAbsoluteTracking)
-                 for d in self._controller_ids}
-        return poses
-
-    def move_controller_models(self):
-        hm = self.hand_controller_models()
-        cp = self.controller_poses()
-        for d in self._controller_ids:
-                hm[d].update_position(cp[d], self.room_to_scene)
+        for hc in self.hand_controllers():
+            hc.process_motion(self)
         
     def view(self, camera_position, view_num):
         '''
@@ -537,30 +383,43 @@ class SteamVRCamera(Camera):
     def do_swap_buffers(self):
         return self.mirror_display
 
-    def hand_controller_models(self):
-        hm = self._controller_models
-        if len(hm) == 0:
+    def hand_controllers(self):
+        cm = self._controller_models
+        if len(cm) == 0:
+            # TODO: If controller is turned on after initialization then it does not get in list.
+            import openvr
+            controller_ids = [d for d in range(openvr.k_unMaxTrackedDeviceCount)
+                              if self.vr_system.getTrackedDeviceClass(d)
+                                 == openvr.TrackedDeviceClass_Controller]
             ses = self._session
-            cc = self._controller_colors
-            hmlist = []
-            for i, d in enumerate(self._controller_ids):
-                hm[d] = HandControllerModel('Hand %s' % (i+1), ses, cc[i%len(cc)])
-                hmlist.append(hm[d])
-            ses.models.add(hmlist)
-        return hm
+            vrs = self.vr_system
+            cm = [HandControllerModel(d, ses, vrs) for d in controller_ids]
+            self._controller_models = cm
+            ses.models.add(cm)
+        return cm
 
 
 from chimerax.core.models import Model
 class HandControllerModel(Model):
+    _controller_colors = ((200,200,0,255), (0,200,200,255))
 
-    def __init__(self, name, session, rgba8, size = 0.20, aspect = 0.2):
+    def __init__(self, device_index, session, vr_system, size = 0.20, aspect = 0.2):
+        name = 'Hand %s' % device_index
         Model.__init__(self, name, session)
+        self.device_index = device_index
+        self.vr_system = vr_system
+        self._mode = 'move scene'
+        self._trigger_held = False
+        self._pose = None
+        self._previous_pose = None
         self._icon_drawing = None
         self._icon_highlight_drawing = None
         self._icon_size = 128  # pixels
         self._icon_columns = 0
         self._icon_rows = 0
         self._icon_shortcuts = []
+        self._icons_shown = False
+        
         from chimerax.core.surface.shapes import cone_geometry
         va, na, ta = cone_geometry(nc = 50, points_up = False)
         va[:,:2] *= aspect
@@ -569,16 +428,160 @@ class HandControllerModel(Model):
         self._cone_length = size
         self.geometry = va, ta
         self.normals = na
+        cc = self._controller_colors
+        rgba8 = cc[device_index%len(cc)]
         from numpy import array, uint8
         self.color = array(rgba8, uint8)
 
-    def update_position(self, room_place, room_to_scene):
-        '''Move hand controller to new position.
+    def _update_position(self, camera):
+        '''Move hand controller model to new position.
         Keep size constant in physical room units.'''
-        self.position = room_to_scene * room_place
+        dp = camera._poses[self.device_index].mDeviceToAbsoluteTracking
+        self._pose = hmd34_to_position(dp)
+        self.position = camera.room_to_scene * self._pose
 
     def tip_position(self):
         return self.scene_position.origin()
+
+    def process_event(self, e):
+        if e is None:
+            # Motion on touchpad does not generate an event.
+            if self._icons_shown:
+                xy = self.touchpad_position()
+                if xy is not None:
+                    self.show_icons(highlight_position = xy)
+            return
+        
+        t = e.eventType
+        import openvr
+        if ((t == openvr.VREvent_ButtonTouch or
+             t == openvr.VREvent_ButtonUntouch) and
+            e.data.controller.button == openvr.k_EButton_SteamVR_Touchpad and
+            e.trackedDeviceIndex == self.device_index):
+            touch = (t == openvr.VREvent_ButtonTouch)
+            if touch:
+                xy = self.touchpad_position()
+                if xy is not None:
+                    self.show_icons(highlight_position = xy)
+                    self._icons_shown = True
+            else:
+                self.hide_icons()	# Untouch
+                self._icons_shown = False
+                
+        if ((t == openvr.VREvent_ButtonPress or
+             t == openvr.VREvent_ButtonUnpress) and
+            e.trackedDeviceIndex == self.device_index):
+            pressed = (t == openvr.VREvent_ButtonPress)
+            b = e.data.controller.button
+            if b == openvr.k_EButton_SteamVR_Trigger:
+                self._trigger_held = pressed
+                if pressed and self._mode == 'move atoms':
+                    self.select_sidechain()
+            elif b == openvr.k_EButton_SteamVR_Touchpad:
+                if pressed and self._icons_shown:
+                    self.icon_clicked()
+            elif b == openvr.k_EButton_ApplicationMenu:
+                pass
+            elif b == openvr.k_EButton_Grip:
+                pass
+
+    def process_motion(self, camera):
+        # For controllers with trigger pressed, use controller motion to move scene
+        # Rotation and scaling is about controller position -- has natural feel,
+        # like you grab the models where your hand is located.
+        # Another idea is to instead pretend controller is at center of models.
+        previous_pose = self._pose
+        self._update_position(camera)
+
+        if not self._trigger_held:
+            return
+
+        if previous_pose is None:
+            return
+
+        m = self._mode
+        pose = self._pose
+        if m == 'move scene':
+            move = previous_pose * pose.inverse()
+            camera.room_to_scene = camera.room_to_scene * move
+        elif m == 'zoom':
+            center = pose.origin()
+            move = previous_pose * pose.inverse()
+            y_motion = move.matrix[1,3]  # meters
+            from math import exp
+            s = exp(y_motion)
+            from chimerax.core.geometry import distance, translation, scale
+            scale = translation(center) * scale(s) * translation(-center)
+            camera.room_to_scene = camera.room_to_scene * scale
+        elif m == 'move atoms':
+            move = pose * previous_pose.inverse()  # Room to room coords
+            rts = camera.room_to_scene
+            smove = rts * move * rts.inverse()	# Scene to scene coords.
+            from chimerax.core.atomic import selected_atoms
+            atoms = selected_atoms(self.session)
+            atoms.scene_coords = smove * atoms.scene_coords
+
+    def pinch_zoom(self, camera):
+        # TODO: No longer used.  Requires poses of two controllers.
+        # Two controllers have trigger pressed, scale scene.
+        pp1, p1 = prev_pose1.origin(), pose1.origin()
+        pp2, p2 = prev_pose2.origin(), pose2.origin()
+        from chimerax.core.geometry import distance, translation, scale
+        d, dp = distance(p1,p2), distance(pp1,pp2)
+        center = 0.5*(p1+p2)
+        if d > 0.5*dp:
+            s = dp / d
+            scale = translation(center) * scale(s) * translation(-center)
+            camera.room_to_scene = camera.room_to_scene * scale
+
+    def icon_clicked(self):
+        xy = self.touchpad_position()
+        if xy is None:
+            return
+        self.run_icon(xy)
+
+    def select_sidechain(self):
+        a = self.closest_atom()
+        if a:
+            # Residue atoms not including backbone.
+            ratoms = a.residue.atoms
+            from numpy import logical_not
+            scatoms = ratoms.filter(logical_not(ratoms.is_backbones()))
+            scatoms.selected = True
+        else:
+            self.session.selection.clear()
+
+    def select_object_old(self):
+        a = self.closest_atom()
+        if a:
+            # Select atom with bottom of touchpad,
+            # or residue with top of touchpad
+            xy = self.touchpad_position()
+            if xy is not None:
+                self.session.selection.clear()
+                x,y = xy
+                if x >= .5:
+                    # Residue atoms not including backbone.
+                    ratoms = a.residue.atoms
+                    from numpy import logical_not
+                    scatoms = ratoms.filter(logical_not(ratoms.is_backbones()))
+                    scatoms.selected = True
+                if y <= 0:
+                    a.selected = True
+                else:
+                    a.residue.atoms.selected = True
+
+    def touchpad_position(self):
+        vrs = self.vr_system
+        from ctypes import sizeof
+        # TODO: I think pyopenvr eliminated the size arg in Feb 2017.
+        import openvr
+        size = sizeof(openvr.VRControllerState_t)
+        success, cs = vrs.getControllerState(self.device_index, size)
+        if success:
+            a = cs.rAxis[0]
+            return (a.x, a.y)
+        return None
     
     def select_atom(self, range = 5.0):
         a = self.closest_atom(range)
@@ -619,7 +622,7 @@ class HandControllerModel(Model):
         d.display = True
         if highlight_position:
             # x,y ranging from -1 to 1
-            x,y = highlight_position
+            x,y = self.icons_position(highlight_position)
             ihd = self.icon_highlight_drawing()
             s = self._cone_length
             aspect = self._icon_rows / self._icon_columns
@@ -627,17 +630,28 @@ class HandControllerModel(Model):
             ihd.position = translation((s*x,0,-s*(y+1)*aspect))
             ihd.display = True
 
+    def icons_position(self, xy):
+        # Hard to reach corners on circular pad.
+        # So expand circle a bit.
+        f = 1.2
+        x,y = [min(1.0, max(-1.0, f*v)) for v in xy]
+        return x,y
+
     def run_icon(self, xy):
         rows, cols = self._icon_rows, self._icon_columns
-        x,y = xy
+        x,y = self.icons_position(xy)
         c = int(0.5 * (x + 1) * cols)
         r = int(0.5 * (1 - y) * rows)
         i = r*cols + c
         s = self._icon_shortcuts
         if i < len(s):
-            from chimerax.core.commands import run
-            run(self.session, 'ks %s' % s[i])
-        
+            k = s[i]
+            if isinstance(k, str):
+                from chimerax.core.commands import run
+                run(self.session, 'ks %s' % k)
+            else:
+                k()	# Python function.  For example, set mouse mode.
+                
     def icon_drawing(self):
         d = self._icon_drawing
         if d:
@@ -687,10 +701,23 @@ class HandControllerModel(Model):
     def icons(self):
         images = []
         self._icon_shortcuts = ks = []
+
+        from PyQt5.QtGui import QImage
+
         from os.path import join, dirname
+        mm_icon_dir = join(dirname(__file__), '..', 'mouse_modes', 'icons')
+        mm = self.session.ui.mouse_modes
+        mt = {'translate':self.move_scene,
+              'zoom':self.zoom,
+              'translate selected models':self.select_and_move}
+        modes = [m for m in mm.modes if m.icon_file and m.name in mt]
+        for mode in modes:
+            icon_path = join(mm_icon_dir, mode.icon_file)
+            images.append(QImage(icon_path))
+            ks.append(mt[mode.name])
+        
         icon_dir = join(dirname(__file__), '..', 'shortcuts', 'icons')
         from ..shortcuts.tool import MoleculeDisplayPanel
-        from PyQt5.QtGui import QImage
         for keys, filename, descrip in MoleculeDisplayPanel.shortcuts:
             icon_path = join(icon_dir, filename)
             images.append(QImage(icon_path))
@@ -706,10 +733,12 @@ class HandControllerModel(Model):
         self._icon_columns, self._icon_rows = cols, rows
         isize = self._icon_size
         from PyQt5.QtGui import QImage, QPainter
-        from PyQt5.QtCore import QRect
+        from PyQt5.QtCore import QRect, Qt
         ti = QImage(cols*isize, rows*isize, QImage.Format_ARGB32)
         p = QPainter()
         p.begin(ti)
+        # Set background white for transparent icons
+        p.fillRect(QRect(0,0,cols*isize, rows*isize), Qt.white)
         for i,im in enumerate(images):
             r = QRect((i%cols)*isize, (i//cols)*isize, isize, isize)
             p.drawImage(r, im)
@@ -717,6 +746,13 @@ class HandControllerModel(Model):
         p.end()
         return rgba
 
+    def move_scene(self):
+        self._mode = 'move scene'
+    def zoom(self):
+        self._mode = 'zoom'
+    def select_and_move(self):
+        self._mode = 'move atoms'
+    
 def qimage_to_numpy(qi):
     shape = (qi.height(), qi.width(), 4)
     buf = qi.bits().asstring(qi.byteCount())
