@@ -887,12 +887,10 @@ class DataSet:
 #
 class FileDataSet(DataSet):
     def __init__(self, file_info):
-        from os.path import basename
-        name = basename(file_info.file_path)
-        DataSet.__init__(self, name)
+        DataSet.__init__(self, file_info.file_name)
         self.file_info = file_info
     def models(self, session):
-                # TODO: use data set instead of file_id.
+        # TODO: use data set instead of file_id.
         finfo = self.file_info
         open_model = atomic_model_reader(finfo.file_path)
         if open_model:
