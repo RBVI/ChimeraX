@@ -77,11 +77,11 @@ def fetch_pdb(session, pdb_id, fetch_source="rcsb", ignore_cache=False, **kw):
             raise UserError('unrecognized PDB source "%s"' % fetch_source)
         url = base_url % pdb_id
         pdb_name = "%s.pdb" % pdb_id
-        session.logger.status("Fetching PDB %s from %s" % (pdb_id, url))
         from ..fetch import fetch_file
         filename = fetch_file(session, url, 'PDB %s' % pdb_id, pdb_name, 'PDB',
                               ignore_cache=ignore_cache)
 
+    session.logger.status("Opening PDB %s" % (pdb_id,))
     from .. import io
     models, status = io.open_data(session, filename, format='pdb', name=pdb_id, **kw)
     return models, status
