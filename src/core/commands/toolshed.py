@@ -182,7 +182,9 @@ def toolshed_install(session, bundle_name, user_only=True,
     '''
     ts = session.toolshed
     logger = session.logger
-    if version == "latest":
+    if bundle_name.endswith(".whl"):
+        bi = bundle_name
+    elif version == "latest":
         bi = ts.find_bundle(bundle_name, logger, installed=False)
         cur_bi = ts.find_bundle(bundle_name, logger, installed=True)
         if bi.version == cur_bi.version:
