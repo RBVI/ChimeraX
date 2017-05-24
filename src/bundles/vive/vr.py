@@ -12,7 +12,8 @@
 # -----------------------------------------------------------------------------
 # Command to view models in HTC Vive or Oculus Rift for ChimeraX.
 #
-def vr(session, enable = None, room_position = None, mirror = False):
+def vr(session, enable = None, room_position = None, mirror = False, icons = False,
+       show_controllers = True):
     '''Enable stereo viewing and head motion tracking with virtual reality headsets using SteamVR.
 
     Parameters
@@ -34,6 +35,13 @@ def vr(session, enable = None, room_position = None, mirror = False):
       frames per second and will slow the rendering to the headset.  (May be able to turn off
       syncing to vertical refresh to avoid this.)  It is better to use the SteamVR display
       mirror window.
+    icons : bool
+      Whether to show a panel of icons when controller trackpad is touched.
+      For demonstrations the icons can be too complex and it is better not to have icons.
+      Default false.
+    show_controllers : bool
+      Whether to show the hand controllers in the scene. Default true.  It can be useful
+      not to show the controllers to avoid time consuming ambient shadow updating.
     '''
     
     if enable is None and room_position is None:
@@ -45,8 +53,8 @@ def vr(session, enable = None, room_position = None, mirror = False):
         else:
             stop_vr(session)
 
+    c = session.main_view.camera
     if room_position is not None:
-        c = session.main_view.camera
         if not isinstance(c, SteamVRCamera):
             from chimerax.core.errors import UserError
             raise UserError('Cannot use vr roomPosition unless vr enabled.')
@@ -57,21 +65,27 @@ def vr(session, enable = None, room_position = None, mirror = False):
             c.room_to_scene = room_position
             c._last_position = c.position
 
-    if mirror is not None:
-        c = session.main_view.camera
-        if isinstance(c, SteamVRCamera):
+    if isinstance(c, SteamVRCamera):
+        if mirror is not None:
             c.mirror_display = mirror
+        if show_controllers is not None:
+            for hc in c.hand_controllers(show_controllers):
+                hc.show_in_scene(show_controllers)
+        if icons is not None: 
+            for hc in c.hand_controllers():
+                hc.use_icons = icons
             
-        
 # -----------------------------------------------------------------------------
 # Register the oculus command for ChimeraX.
 #
 def register_vr_command(logger):
-    from chimerax.core.commands import CmdDesc, BoolArg, FloatArg, PlaceArg, Or, EnumOf
+    from chimerax.core.commands import CmdDesc, BoolArg, FloatArg, PlaceArg, Or, EnumOf, NoArg
     from chimerax.core.commands import register, create_alias
     desc = CmdDesc(optional = [('enable', BoolArg)],
                    keyword = [('room_position', Or(EnumOf(['report']), PlaceArg)),
-                              ('mirror', BoolArg)],
+                              ('mirror', BoolArg),
+                              ('icons', NoArg),
+                              ('show_controllers', BoolArg),],
                    synopsis = 'Start SteamVR virtual reality rendering')
     register('device vr', desc, vr, logger=logger)
     create_alias('vr', 'device vr $*', logger=logger)
@@ -198,12 +212,9 @@ class SteamVRCamera(Camera):
                               translation(-array(room_center, float32)))
 
     def close(self, close_cb = None):
-        cm = self._controller_models
-        if cm:
-            self._session.models.close(cm)
-            self._controller_models = []
         self._close = True
         self._close_cb = close_cb
+        self._session.main_view.redraw_needed = True
         
     def _delayed_close(self):
         # Apparently OpenVR doesn't make its OpenGL context current
@@ -212,6 +223,9 @@ class SteamVRCamera(Camera):
         # until after rendering so that openvr opengl context is current.
         self._session.triggers.remove_handler(self._new_frame_handler)
         self._new_frame_handler = None
+        for hc in self._controller_models:
+            hc.close()
+        self._controller_models = []
         import openvr
         openvr.shutdown()
         self.vr_system = None
@@ -383,7 +397,7 @@ class SteamVRCamera(Camera):
     def do_swap_buffers(self):
         return self.mirror_display
 
-    def hand_controllers(self):
+    def hand_controllers(self, show = True):
         cm = self._controller_models
         if len(cm) == 0:
             # TODO: If controller is turned on after initialization then it does not get in list.
@@ -393,21 +407,26 @@ class SteamVRCamera(Camera):
                                  == openvr.TrackedDeviceClass_Controller]
             ses = self._session
             vrs = self.vr_system
-            cm = [HandControllerModel(d, ses, vrs) for d in controller_ids]
+            cm = [HandControllerModel(d, ses, vrs, show) for d in controller_ids]
             self._controller_models = cm
-            ses.models.add(cm)
         return cm
 
-
+    def other_controller(self, controller):
+        for hc in self.hand_controllers():
+            if hc != controller:
+                return hc
+        return None
+    
 from chimerax.core.models import Model
 class HandControllerModel(Model):
     _controller_colors = ((200,200,0,255), (0,200,200,255))
 
-    def __init__(self, device_index, session, vr_system, size = 0.20, aspect = 0.2):
+    def __init__(self, device_index, session, vr_system, show = True, size = 0.20, aspect = 0.2):
         name = 'Hand %s' % device_index
         Model.__init__(self, name, session)
         self.device_index = device_index
         self.vr_system = vr_system
+        self.use_icons = False
         self._mode = 'move scene'
         self._trigger_held = False
         self._pose = None
@@ -433,12 +452,31 @@ class HandControllerModel(Model):
         from numpy import array, uint8
         self.color = array(rgba8, uint8)
 
+        self._shown_in_scene = show
+        if show:
+            session.models.add([self])
+
+    def close(self):
+        if self._shown_in_scene:
+            self.session.models.close([self])
+        else:
+            self.delete()
+
+    def show_in_scene(self, show):
+        models = self.session.models
+        if show and not self._shown_in_scene:
+            models.add([self])
+        elif not show and self._shown_in_scene:
+            models.remove([self])
+        self._shown_in_scene = show
+        
     def _update_position(self, camera):
         '''Move hand controller model to new position.
         Keep size constant in physical room units.'''
         dp = camera._poses[self.device_index].mDeviceToAbsoluteTracking
         self._pose = hmd34_to_position(dp)
-        self.position = camera.room_to_scene * self._pose
+        if self._shown_in_scene:
+            self.position = camera.room_to_scene * self._pose
 
     def tip_position(self):
         return self.scene_position.origin()
@@ -454,7 +492,8 @@ class HandControllerModel(Model):
         
         t = e.eventType
         import openvr
-        if ((t == openvr.VREvent_ButtonTouch or
+        if (self.use_icons and
+            (t == openvr.VREvent_ButtonTouch or
              t == openvr.VREvent_ButtonUntouch) and
             e.data.controller.button == openvr.k_EButton_SteamVR_Touchpad and
             e.trackedDeviceIndex == self.device_index):
@@ -502,8 +541,13 @@ class HandControllerModel(Model):
         m = self._mode
         pose = self._pose
         if m == 'move scene':
-            move = previous_pose * pose.inverse()
-            camera.room_to_scene = camera.room_to_scene * move
+            oc = camera.other_controller(self)
+            if oc and oc._trigger_held and oc._mode == 'move scene':
+                # Both controllers trying to move scene -- zoom
+                self.pinch_zoom(camera, previous_pose.origin(), pose.origin(), oc._pose.origin())
+            else:
+                move = previous_pose * pose.inverse()
+                camera.room_to_scene = camera.room_to_scene * move
         elif m == 'zoom':
             center = pose.origin()
             move = previous_pose * pose.inverse()
@@ -521,14 +565,11 @@ class HandControllerModel(Model):
             atoms = selected_atoms(self.session)
             atoms.scene_coords = smove * atoms.scene_coords
 
-    def pinch_zoom(self, camera):
-        # TODO: No longer used.  Requires poses of two controllers.
+    def pinch_zoom(self, camera, prev_pos, pos, other_pos):
         # Two controllers have trigger pressed, scale scene.
-        pp1, p1 = prev_pose1.origin(), pose1.origin()
-        pp2, p2 = prev_pose2.origin(), pose2.origin()
         from chimerax.core.geometry import distance, translation, scale
-        d, dp = distance(p1,p2), distance(pp1,pp2)
-        center = 0.5*(p1+p2)
+        d, dp = distance(pos,other_pos), distance(prev_pos,other_pos)
+        center = 0.5*(pos+other_pos)
         if d > 0.5*dp:
             s = dp / d
             scale = translation(center) * scale(s) * translation(-center)
