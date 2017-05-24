@@ -170,7 +170,7 @@ def info_selection(session, level=None, mode=None, attribute=None):
             from chimerax.core.atomic.molarray import concatenate
             chains = concatenate([a.unique_chains for a in atoms])
             report_chains(session.logger, chains, attribute)
-    elif level == "molecule" || level == "structure":
+    elif level == "molecule" or level == "structure":
         if attribute is None:
             attribute = "name"
         atoms = session.selection.items("atoms")
