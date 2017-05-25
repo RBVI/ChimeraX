@@ -461,16 +461,14 @@ class Toolshed:
         A :py:const:`TOOLSHED_BUNDLE_INSTALLED` trigger is fired after installation.
         """
         _debug("install_bundle", bundle)
-        if False:
-            # XXX: Do we really need this?
-            # Make sure that our install location is on chimerax module.__path__
-            # so that newly installed modules may be found
-            import importlib
-            import os
-            cx_dir = os.path.join(self._site_dir, _ChimeraNamespace)
-            m = importlib.import_module(_ChimeraNamespace)
-            if cx_dir not in m.__path__:
-                m.__path__.append(cx_dir)
+        # Make sure that our install location is on chimerax module.__path__
+        # so that newly installed modules may be found
+        import importlib
+        import os
+        cx_dir = os.path.join(self._site_dir, _ChimeraNamespace)
+        m = importlib.import_module(_ChimeraNamespace)
+        if cx_dir not in m.__path__:
+            m.__path__.append(cx_dir)
         try:
             if bundle.installed:
                 raise ToolshedInstalledError("bundle \"%s\" already installed" % bundle.name)

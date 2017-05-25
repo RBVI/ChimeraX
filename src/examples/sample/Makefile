@@ -11,18 +11,22 @@
 # When uploaded to the ChimeraX toolshed, the bundle
 # will be displayed without the ChimeraX_ prefix.
 BUNDLE_NAME = ChimeraX_Sample
+BUNDLE_BASE_NAME = $(BUNDLE_NAME:s/ChimeraX//)
 BUNDLE_VERSION = 0.1
 # ChimeraX bundles should only include packages
 # that install as chimerax.package_name.
 # General Python packages should be uploaded to
 # pypi.python.org rather than the ChimeraX toolshed.
 PKG_NAME = chimerax.sample
+# Set PURE_PYTHON to 0 if bundle is platform-specific, 1 if pure Python
+PURE_PYTHON = 0
 
+# Define where ChimeraX is installed.
 OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
 # CHIMERAX_APP is the ChimeraX install folder
 ifeq ($(OS),CYGWIN_NT)
 # Windows
-CHIMERAX_APP = /d/chimerax/ChimeraX.app
+CHIMERAX_APP = /e/chimerax/ChimeraX.app
 endif
 ifeq ($(OS),Darwin)
 # Mac
@@ -33,7 +37,7 @@ CHIMERAX_APP = /usr/local/src/chimerax/ChimeraX.app
 endif
 
 # ==================================================================
-# Theoretically, no changes should be needed below here.
+# Theoretically, no changes are needed below this line
 
 # Platform-dependent settings.  Should not need fixing.
 # For Windows, we assume Cygwin is being used.
@@ -52,9 +56,11 @@ endif
 
 # Paths used for constructing the installation "wheel"
 WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
-# Use the "-p" version for pure Python packages
-#TAG = $(shell $(PYTHON_EXE) wheel_tag.py -p)
+ifeq ($(PURE_PYTHON),1)
+TAG = $(shell $(PYTHON_EXE) wheel_tag.py -p)
+else
 TAG = $(shell $(PYTHON_EXE) wheel_tag.py)
+endif
 WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-$(TAG).whl
 SOURCE = src
 SRCS = $(SOURCE)/*.py $(SOURCE)/*.cpp
@@ -76,10 +82,7 @@ license.txt:
 	@exit 1
 
 app-install:	$(WHEEL)
-	# For explanation of using two pip install commands, see
-	# https://pip.pypa.io/en/stable/user_guide/#installing-from-local-packages
-	$(CHIMERAX_EXE) -m pip install --upgrade --no-deps $(WHEEL)
-	$(CHIMERAX_EXE) -m pip install $(WHEEL)
+	$(CHIMERAX_EXE) --debug --nogui --cmd "toolshed install $(WHEEL) reinstall true ; exit"
 
 setup.py: setup.py.in Makefile
 	sed -e 's,BUNDLE_NAME,$(BUNDLE_NAME),' \
