@@ -174,8 +174,7 @@ class SteamVRCamera(Camera):
         self.eye_shift_right = hmd34_to_position(vr)
 
         # Map ChimeraX scene coordinates to OpenVR room coordinates
-        bounds = session.main_view.drawing_bounds()
-        self.fit_scene_to_room(bounds)
+        self.fit_scene_to_room()
         
         # Update camera position every frame.
         poses_t = openvr.TrackedDevicePose_t * openvr.k_unMaxTrackedDeviceCount
@@ -184,7 +183,7 @@ class SteamVRCamera(Camera):
         self._new_frame_handler = h
 
     def fit_scene_to_room(self,
-                          scene_bounds,
+                          scene_bounds = None,
                           room_scene_size = 2, 		# Initial virtual model size in meters
                           room_center = (0,1,0),
                           ):
@@ -199,6 +198,15 @@ class SteamVRCamera(Camera):
 #            print('corners', tuple(c.v))
         from numpy import array, zeros, float32
         b = scene_bounds
+        if b is None:
+            # TODO: Avoid this undisplay hack used to eliminate controllers from bounds.
+            cm = self._controller_models
+            hcd = [hc.display for hc in cm]
+            for hc in cm:
+                hc.display = False
+            b = self._session.main_view.drawing_bounds()
+            for hc, disp in zip(cm, hcd):
+                hc.display = disp
         if b:
             scene_size = b.width()
             scene_center = b.center()
@@ -290,7 +298,7 @@ class SteamVRCamera(Camera):
         if not vrs.pollNextEvent(e):
             e = None
         for hc in self.hand_controllers():
-            hc.process_event(e)
+            hc.process_event(e, self)
 
     def process_controller_motion(self):
 
@@ -431,6 +439,7 @@ class HandControllerModel(Model):
         self._trigger_held = False
         self._pose = None
         self._previous_pose = None
+        self._zoom_center = None
         self._icon_drawing = None
         self._icon_highlight_drawing = None
         self._icon_size = 128  # pixels
@@ -481,7 +490,7 @@ class HandControllerModel(Model):
     def tip_position(self):
         return self.scene_position.origin()
 
-    def process_event(self, e):
+    def process_event(self, e, camera):
         if e is None:
             # Motion on touchpad does not generate an event.
             if self._icons_shown:
@@ -514,15 +523,18 @@ class HandControllerModel(Model):
             b = e.data.controller.button
             if b == openvr.k_EButton_SteamVR_Trigger:
                 self._trigger_held = pressed
-                if pressed and self._mode == 'move atoms':
-                    self.select_sidechain()
+                if pressed:
+                    if self._mode == 'move atoms':
+                        self.select_sidechain()
+                    elif self._mode == 'zoom':
+                        self._zoom_center = self._pose.origin()
             elif b == openvr.k_EButton_SteamVR_Touchpad:
                 if pressed and self._icons_shown:
                     self.icon_clicked()
             elif b == openvr.k_EButton_ApplicationMenu:
                 pass
             elif b == openvr.k_EButton_Grip:
-                pass
+                camera.fit_scene_to_room()
 
     def process_motion(self, camera):
         # For controllers with trigger pressed, use controller motion to move scene
@@ -548,12 +560,12 @@ class HandControllerModel(Model):
             else:
                 move = previous_pose * pose.inverse()
                 camera.room_to_scene = camera.room_to_scene * move
-        elif m == 'zoom':
-            center = pose.origin()
+        elif m == 'zoom' and self._zoom_center is not None:
+            center = self._zoom_center
             move = previous_pose * pose.inverse()
             y_motion = move.matrix[1,3]  # meters
             from math import exp
-            s = exp(y_motion)
+            s = exp(2*y_motion)
             from chimerax.core.geometry import distance, translation, scale
             scale = translation(center) * scale(s) * translation(-center)
             camera.room_to_scene = camera.room_to_scene * scale
