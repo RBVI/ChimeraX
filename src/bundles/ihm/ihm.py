@@ -843,23 +843,26 @@ class FileInfo:
     # -----------------------------------------------------------------------------
     #
     def path(self, session):
-        from os.path import join, isfile
-        path = join(self.ihm_dir, self.file_path)
-        if not isfile(path):
-            r = self.ref
-            if r and r.ref_type == 'DOI':
-                if r.content == 'Archive':
-                    from .doi_fetch import unzip_archive
-                    unzip_archive(session, r.ref, r.url, self.ihm_dir)
-                    if not isfile(path):
-                        session.logger.warning('Failed to find map file in zip archive DOI "%s", url "%s", path "%s"'
-                                               % (r.ref, r.url, path))
-                        path = None
-                elif r.content == 'File':
-                    from .doi_fetch import fetch_doi
-                    path = fetch_doi(session, r.ref, r.url)
-                else:
+        if self.file_path:
+            from os.path import join, isfile
+            path = join(self.ihm_dir, self.file_path)
+            if isfile(path):
+                return path
+            
+        r = self.ref
+        if r and r.ref_type == 'DOI':
+            if r.content == 'Archive':
+                from .doi_fetch import unzip_archive
+                unzip_archive(session, r.ref, r.url, self.ihm_dir)
+                if not isfile(path):
+                    session.logger.warning('Failed to find map file in zip archive DOI "%s", url "%s", path "%s"'
+                                           % (r.ref, r.url, path))
                     path = None
+            elif r.content == 'File':
+                from .doi_fetch import fetch_doi
+                path = fetch_doi(session, r.ref, r.url)
+            else:
+                path = None
 
         return path
 
