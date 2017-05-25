@@ -48,7 +48,7 @@ class Changes:
         return self._changes["Chain"].reasons
 
     def created_atomic_structures(self):
-        return _atomic_structures(self._changes["Structure"].created)
+        return self._atomic_structures(self._changes["Structure"].created)
 
     def created_atoms(self, include_new_structures=True):
         return self._created_objects("Atom", include_new_structures)
@@ -75,7 +75,7 @@ class Changes:
     structure_reasons = atomic_structure_reasons
 
     def modified_atomic_structures(self):
-        return _atomic_structures(self._changes["Structure"].modified)
+        return self._atomic_structures(self._changes["Structure"].modified)
 
     def modified_atoms(self):
         return self._changes["Atom"].modified
@@ -137,7 +137,7 @@ class Changes:
             if isinstance(g, AtomicStructure):
                 ass.append(g)
         from . import AtomicStructures
-        return AtomicStructrures(ass)
+        return AtomicStructures(ass)
 
     def _created_objects(self, class_name, include_new_structures):
         in_existing = self._changes[class_name].created
