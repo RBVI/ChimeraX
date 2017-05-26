@@ -135,6 +135,13 @@ class ToolInstance(State):
     def bundle_info(self):
         return self.session.toolshed.find_bundle_for_class(self.__class__)
 
+    @property
+    def tool_info(self):
+        for ti in self.bundle_info.tools:
+            if ti.name == self.tool_name:
+                return ti
+        return None
+
     def delete(self):
         """Delete this tool instance.
 
