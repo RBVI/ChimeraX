@@ -519,7 +519,8 @@ def _make_bundle_info(d, installed, logger):
     from . import ToolshedError
     try:
         bi._get_api(logger)
-    except ToolshedError:
+    except ToolshedError as e:
+        _debug("InstalledBundleCache._make_bundle_info: %s" % str(e))
         return None
     return bi
 

@@ -14,14 +14,14 @@ except getopt.GetOptError as e:
 for opt, val in opts:
     if opt == "-v":
         # release version
-        print("0.1")
+        print(buildinfo.version)
     elif opt == "-y":
         # copyright year
         year = buildinfo.date.split('-', 1)[0]
         print(year)
     elif opt == "-p":
         # Windows product version: a,b,c,d
-        version = [0, 1]
+        version = buildinfo.version.split('.')
         n = len(version)
         if n > 4:
             version = version[0:4]

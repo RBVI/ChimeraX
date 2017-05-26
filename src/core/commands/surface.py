@@ -232,9 +232,37 @@ def _molecular_surfaces(session, objects):
 
 # -------------------------------------------------------------------------------------
 #
+def surface_style(session, surfaces, style):
+    '''
+    Show surface patches for atoms of existing surfaces.
+
+    Parameters
+    ----------
+    surfaces : Model list
+    style : "mesh", "dot" or "solid"
+    '''
+    if surfaces is None:
+        from ..atomic import Structure
+        surfaces = [m for m in session.models.list() if not isinstance(m, Structure)]
+    from ..map import Volume
+    for s in surfaces:
+        if isinstance(s, Volume) and s.representation in ('surface', 'mesh'):
+            if style == 'dot':
+                for d in s.surface_drawings:
+                    d.display_style = d.Dot
+            else:
+                rep = 'surface' if style == 'solid' else 'mesh'
+                s.set_representation(rep)
+                s.show()
+        elif not s.empty_drawing():
+            s.display_style = style
+
+# -------------------------------------------------------------------------------------
+#
 def register_command(session):
     from . import CmdDesc, register, ObjectsArg, AtomsArg
     from . import FloatArg, IntArg, ColorArg, BoolArg, NoArg, create_alias
+    from . import SurfacesArg, EmptyArg, EnumOf, Or
     surface_desc = CmdDesc(
         optional = [('atoms', AtomsArg)],
         keyword = [('enclose', AtomsArg),
@@ -267,6 +295,12 @@ def register_command(session):
         optional = [('objects', ObjectsArg)],
         synopsis = 'close molecular surfaces')
     register('surface close', close_desc, surface_close, logger=session.logger)
+
+    style_desc = CmdDesc(
+        required = [('surfaces', Or(SurfacesArg, EmptyArg)),
+                    ('style', EnumOf(('mesh', 'dot', 'solid')))],
+        synopsis = 'Change surface style to mesh, dot or solid')
+    register('surface style', style_desc, surface_style, logger=session.logger)
 
     # Register surface operation subcommands.
     from . import sop

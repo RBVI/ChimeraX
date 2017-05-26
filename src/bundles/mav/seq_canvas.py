@@ -1768,9 +1768,11 @@ class SeqBlock:
             label_rect.setZValue(-1)
             self.label_rects[aseq] = label_rect
         structures = set([chain.structure for chain in aseq.match_maps.keys()])
+        from PyQt5.QtGui import QColor
         if len(structures) > 1:
             brush = self.multi_assoc_brush
             pen = self.multi_assoc_pen
+            contrast = (0.0, 0.0, 0.0)
         else:
             import numpy
             if len(aseq.match_maps) == 1:
@@ -1786,11 +1788,15 @@ class SeqBlock:
                     color = numpy.sum(colors, axis=0) / len(colors)
             from PyQt5.QtCore import Qt
             from PyQt5.QtGui import QPen, QBrush
-            from PyQt5.QtGui import QColor
             brush = QBrush(QColor(*color), Qt.SolidPattern)
             pen = QPen(brush, 0, Qt.SolidLine)
+            from chimerax.core.colors import contrast_with
+            contrast = contrast_with([c/255.0 for c in color])
         label_rect.setBrush(brush)
         label_rect.setPen(pen)
+        text_brush = label_text.brush()
+        text_brush.setColor(QColor(*[int(c*255+0.5) for c in contrast]))
+        label_text.setBrush(text_brush)
 
     def _compute_numbering(self, line, end):
         if end == 0:

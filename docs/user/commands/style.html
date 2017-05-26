@@ -30,6 +30,7 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;atomRadius&nbsp;&nbsp;<i>r<sub><font size=-1>a</font></sub></i>&nbsp;|&nbsp;default&nbsp;]
 [&nbsp;stickRadius&nbsp;&nbsp;<i>r<sub><font size=-1>b</font></sub></i>&nbsp;]
 [&nbsp;ballScale&nbsp;&nbsp;<i>b</i>&nbsp;]
+[&nbsp;pseudobondRadius&nbsp;&nbsp;<i>r<sub><font size=-1>pb</font></sub></i>&nbsp;]
 [&nbsp;dashes&nbsp;&nbsp;<i>N</i>&nbsp;]
 </h3>
 <p>
@@ -65,9 +66,12 @@ contacts based on buried surface areas.
 The <b>ballScale</b> parameter applies to an entire atomic model even
 if only part of the model is specified.
 </p>
-The <b>style</b> command can also set the number of <b>dashes</b> per
-<a href="../pseudobonds.html">pseudobond</a>. Bonds and pseudobonds
-are considered as specified when both flanking atoms are specified,
+The <b>style</b> command can also set 
+<a href="../pseudobonds.html">pseudobond</a> stick radius 
+(<b>pseudobondRadius</b>&nbsp;<i>r<sub><font size=-1>pb</font></sub></i>)
+and number of <b>dashes</b> <i>N</i>.
+Bonds and pseudobonds are considered as specified 
+when both flanking atoms are specified,
 and all of the pseudobonds in a <a href="../pseudobonds.html">group</a>
 will be affected in parallel. 
 Pseudobonds can also be specified by pseudobond-group model number.
@@ -78,6 +82,7 @@ to give an even number of dashes.
 See also: 
 <a href="show.html"><b>show</b></a>,
 <a href="cartoon.html#style"><b>cartoon style</b></a>,
+<a href="crosslinks.html"><b>crosslinks</b></a>,
 <a href="surface.html"><b>surface</b></a>,
 <a href="measure.html"><b>measure</b></a>,
 <a href="contacts.html"><b>contacts</b></a>,
@@ -86,5 +91,5 @@ See also:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2017</address>
+May 2017</address>
 </body></html>

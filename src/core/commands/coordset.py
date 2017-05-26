@@ -28,7 +28,7 @@ def coordset(session, structures, index_range, hold_steady = None,
 
   Parameters
   ----------
-  structures : list of AtomicStructure
+  structures : list of Structure
     List of structures to show as assemblies.
   index_range : 3-tuple with integer or None elements
     Starting, ending and step coordinate set ids.  If starting id is None start with
@@ -61,9 +61,9 @@ def coordset(session, structures, index_range, hold_steady = None,
 # -----------------------------------------------------------------------------
 #
 def register_command(session):
-    from . import CmdDesc, register, AtomicStructuresArg, ListOf, IntArg, AtomsArg, BoolArg
+    from . import CmdDesc, register, StructuresArg, ListOf, IntArg, AtomsArg, BoolArg
     desc = CmdDesc(
-        required = [('structures', AtomicStructuresArg),
+        required = [('structures', StructuresArg),
                     ('index_range', IndexRangeArg)],
         keyword = [('hold_steady', AtomsArg),
                    ('pause', IntArg),

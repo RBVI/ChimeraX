@@ -23,6 +23,7 @@ class PlanesMouseMode(MouseMode):
         self.bound_button = None
         
         self.map = None
+        self.matching_maps = []	# Adjust region for these maps too.
         self.ijk = None         # Clicked grid point.
         self.axis = None        # Clicked face normal axis
         self.side = None        # 0 or 1 for min/max box face along axis
@@ -35,9 +36,14 @@ class PlanesMouseMode(MouseMode):
         v = self.session.main_view
         line = v.clip_plane_points(x,y)    # scene coordinates
         from .volume import Volume
-        maps = [m for m in self.session.models.list() if isinstance(m, Volume)]
+        maps = [m for m in self.session.models.list() if isinstance(m, Volume) and m.shown()]
         from .slice import nearest_volume_face
-        self.map, self.axis, self.side, self.ijk = nearest_volume_face(line, maps)
+        v, self.axis, self.side, self.ijk = nearest_volume_face(line, maps)
+        self.map = v
+        if v:
+            v.set_parameters(show_outline_box = True)
+            v.show()
+            self.matching_maps = matching_maps(v, maps)
         self.drag = False
 
     def mouse_drag(self, event):
@@ -63,6 +69,8 @@ class PlanesMouseMode(MouseMode):
             # Remember fractional grid step for next move.
             self.frac_istep = istep - int(istep)
             move_plane(v, self.axis, self.side, int(istep))
+            for m in self.matching_maps:
+                m.new_region(*tuple(v.region))
             # Make sure new plane is shown before another mouse event shows another plane.
             self.session.ui.update_graphics_now()
 
@@ -83,6 +91,19 @@ class PlanesMouseMode(MouseMode):
         self.frac_istep = 0
         return
 
+def matching_maps(v, maps):
+    mm = []
+    vd = v.data
+    vp = v.scene_position
+    for m in maps:
+        d = m.data
+        if (m is not v and
+            tuple(d.size) == tuple(vd.size) and
+            d.xyz_to_ijk_transform.same(vd.xyz_to_ijk_transform) and
+            m.scene_position.same(vp)):
+            mm.append(m)
+    return mm
+    
 def move_plane(v, axis, side, istep):
 
     if v.showing_orthoplanes():

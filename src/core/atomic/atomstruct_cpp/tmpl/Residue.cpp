@@ -142,7 +142,8 @@ Residue::add_link_atom(Atom *element)
     _link_atoms.push_back(element);
 }
 
-Residue::Residue(Molecule *, const char *n): _name(n), _chief(0), _link(0) 
+Residue::Residue(Molecule *, const char *n): _name(n), _chief(0), _link(0), 
+    pdbx_ambiguous(false)
 {
 }
 

@@ -277,27 +277,64 @@ mark_helices(KsdsspParams& params, int n)
 static void
 find_helices(KsdsspParams& params)
 {
+	// Criteria:  run of mostly same type; single-residue run of another type allowed;
+	// two consecutive '>' (acceptor only) indicate start of new helix
+
 	int max = params.residues.size();
 	int first = -1;
-	const int any_helix = DSSP_3HELIX | DSSP_4HELIX | DSSP_5HELIX;
 	int cur_helix_type;
+	int acc_only_run = 0;
+	bool in_initial_acc_only = false;
 	for (int i = 0; i < max; ++i) {
-		int helix_type = params.rflags[params.residues[i]] & any_helix;
-		if (helix_type) {
+		int flags = params.rflags[params.residues[i]];
+		int helix_type = 0;
+		int helix_flags = 0;
+		bool acc_only = false;
+		if (flags & (DSSP_3HELIX)) {
+			helix_type = 3; // 3-10
+			helix_flags = DSSP_3ACCEPTOR | DSSP_3DONOR | DSSP_3GAP;
+			acc_only = !((flags & DSSP_3DONOR) | (flags & DSSP_3GAP));
+		} else if (flags & (DSSP_4HELIX | DSSP_5HELIX)) {
+			helix_type = 4; // alpha
+			helix_flags = DSSP_4ACCEPTOR | DSSP_4DONOR | DSSP_4GAP
+				| DSSP_5ACCEPTOR | DSSP_5DONOR | DSSP_5GAP;
+			acc_only = (flags & DSSP_4ACCEPTOR) && !((flags & DSSP_4DONOR) | (flags & DSSP_4GAP));
+		}
+		if (helix_type && (flags & helix_flags)) {
 			if (first < 0) {
 				first = i;
 				cur_helix_type = helix_type;
+				in_initial_acc_only = acc_only;
 			} else if (helix_type != cur_helix_type) {
 				if (i - first >= params.min_helix_length)
 					params.helices.push_back(std::make_pair(first, i-1));
 				first = i;
 				cur_helix_type = helix_type;
+				acc_only_run = 0;
+			} else {
+				in_initial_acc_only = in_initial_acc_only && acc_only;
 			}
-		}
-		else if (first >= 0) {
+			if (in_initial_acc_only) {
+				in_initial_acc_only = acc_only;
+			} else if (acc_only) {
+				if (acc_only_run > 0) {
+					if (i-1 - first >= params.min_helix_length)
+						params.helices.push_back(std::make_pair(first, i-2));
+					first = i-1;
+					cur_helix_type = helix_type;
+					acc_only_run = 0;
+					in_initial_acc_only = true;
+				} else {
+					acc_only_run++;
+				}
+			} else {
+				acc_only_run = 0;
+			}
+		} else if (first >= 0) {
 			if (i - first >= params.min_helix_length)
 				params.helices.push_back(std::make_pair(first, i-1));
 			first = -1;
+			acc_only_run = 0;
 		}
 	}
 	if (first >= 0) {
@@ -538,6 +575,7 @@ make_summary(KsdsspParams& params)
 	}
 
 	logger::info(logger, "Residue Summary");
+	logger::html_info(logger, "<pre>");
 	for (auto r: params.residues) {
 		int rflags = params.rflags[r];
 		char summary = ' ';
@@ -595,9 +633,10 @@ make_summary(KsdsspParams& params)
 		auto rstr = r->str();
 		while (rstr.size() < 7)
 			rstr += " ";
-		logger::info(logger, rstr, summary,
+		logger::html_info(logger, rstr, " ", summary,
 			" ", turn3, " ", turn4, " ", turn5, " ", bridge, " ", sheet);
 	}
+	logger::html_info(logger, "</pre>");
 }
 
 static void

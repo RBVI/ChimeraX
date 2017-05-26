@@ -77,8 +77,10 @@ setup(
         "ChimeraX :: Bundle :: Sequence alignment :: 1,1 :: PKG_NAME :: chimerax.seqalign :: true",
         "ChimeraX :: DataFormat :: FASTA :: :: Sequence alignment :: .fa,.fasta,.afasta,.afa :: :: https://en.wikipedia.org/wiki/FASTA_format :: :: :: FASTA format :: utf-8",
         "ChimeraX :: DataFormat :: MSF :: :: Sequence alignment :: .msf :: :: :: :: :: GCG MSF (multiple sequence file) format :: utf-8",
+        "ChimeraX :: DataFormat :: PIR :: :: Sequence alignment :: .ali,.pir :: :: http://www.bioinformatics.nl/tools/crab_pir.html :: :: :: NBRF/PIR format :: utf-8",
         "ChimeraX :: Open :: FASTA :: fasta :: true :: alignment:Bool,auto_associate:Bool",
         "ChimeraX :: Open :: MSF :: msf :: true :: alignment:Bool,auto_associate:Bool",
-        "ChimeraX :: Command :: seqalign :: Sequence alignment :: control/open sequence alignments",
+        "ChimeraX :: Open :: PIR :: pir :: true :: alignment:Bool,auto_associate:Bool",
+        "ChimeraX :: Command :: sequence :: Sequence alignment :: control/open sequence alignments",
     ],
 )

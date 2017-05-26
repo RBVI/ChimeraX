@@ -16,7 +16,6 @@
 #ifndef atomstruct_connect
 #define atomstruct_connect
 
-#include <string>
 #include <vector>
 #include <set>
 
@@ -25,13 +24,14 @@
 #include "imex.h"
 #include "MolResId.h"
 #include "Residue.h"
+#include "string_types.h"
 #include "tmpl/Residue.h"
 
 namespace atomstruct {
 
-ATOMSTRUCT_IMEX bool  standard_residue(const std::string& name);
-ATOMSTRUCT_IMEX void  add_standard_residue(const std::string& name);
-ATOMSTRUCT_IMEX void  remove_standard_residue(const std::string& name);
+ATOMSTRUCT_IMEX bool  standard_residue(const ResName& name);
+ATOMSTRUCT_IMEX void  add_standard_residue(const ResName& name);
+ATOMSTRUCT_IMEX void  remove_standard_residue(const ResName& name);
 
 ATOMSTRUCT_IMEX void  connect_structure(Structure* as,
         std::vector<Residue *>* chain_starters,

@@ -792,22 +792,6 @@ class Residue(State):
         r_ref = ctypes.byref(self._c_pointer)
         f(r_ref, 1, loc)
 
-    def ss_type(self, disjoint = True):
-        '''Return the secondary structure type for this residue.
-
-        If 'disjoint' is True then if somehow both is_helix and is_strand is True,
-        Residue.SS_HELIX will be returned.  If 'disjoint' is False in that situation then
-        Residue.SS_HELIX | Residue.SS_STRAND will be returned.
-        '''
-        if disjoint:
-            if self.is_helix:
-                return Residue.SS_HELIX
-            if self.is_strand:
-                return Residue.SS_STRAND
-            return Residue.SS_COIL
-        return (Residue.SS_HELIX if self.is_helix else 0) | (
-            Residue.SS_STRAND if self.is_strand else 0)
-
     def reset_state(self, session):
         f = c_function('pseudobond_global_manager_clear', args = (ctypes.c_void_p,))
         f(self._c_pointer)
@@ -1479,6 +1463,22 @@ class StructureData:
         f = c_function('structure_add_coordset',
                        args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_size_t))
         f(self._c_pointer, id, pointer(xyz), len(xyz))
+
+    def add_coordsets(self, xyzs, replace = True):
+        '''Add coordinate sets.  If 'replace' is True, clear out existing coordinate sets first'''
+        if len(xyzs.shape) != 3:
+            raise ValueError('add_coordsets(): array must be (frames)x(atoms)x3-dimensional')
+        if xyzs.shape[1] != self.num_atoms:
+            raise ValueError('add_coordsets(): second dimension of coordinate array'
+                ' must be same as number of atoms')
+        if xyzs.shape[2] != 3:
+            raise ValueError('add_coordsets(): third dimension of coordinate array'
+                ' must be 3 (xyz)')
+        if xyzs.dtype != float64:
+            raise ValueError('add_coordsets(): array must be float64, got %s' % xyzs.dtype.name)
+        f = c_function('structure_add_coordsets',
+                       args = (ctypes.c_void_p, ctypes.c_bool, ctypes.c_void_p, ctypes.c_size_t, ctypes.c_size_t))
+        f(self._c_pointer, replace, pointer(xyzs), *xyzs.shape[:2])
 
     def delete_alt_locs(self):
         '''Incorporate current alt locs as "regular" atoms and remove other alt locs'''

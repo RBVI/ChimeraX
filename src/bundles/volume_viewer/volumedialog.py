@@ -1729,10 +1729,10 @@ class Thresholds_Panel(PopupPanel):
 
     a = self.active_hist
     if a and a.frame:
-      a.data_name.setStyleSheet("QLabel { background-color : none }")
+      a.data_id.setStyleSheet("QLabel { background-color : none }")
     self.active_hist = hp
     if hp and hp.frame:
-      hp.data_name.setStyleSheet("QLabel { background-color : lightblue }")
+      hp.data_id.setStyleSheet("QLabel { background-color : lightblue }")
       ao = self.active_order
       if hp in ao:
         ao.remove(hp)
@@ -1830,6 +1830,11 @@ class Histogram_Pane:
     flayout.setContentsMargins(0,0,0,0)
     flayout.setSpacing(0)
 
+    # Put volume name on separate line.
+    self.data_name = nm = QLabel(f)
+    flayout.addWidget(nm)
+    nm.mousePressEvent = self.select_data_cb
+    
     # Create frame for step, color, level controls.
     df = QFrame(f)
     df.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
@@ -1839,10 +1844,10 @@ class Histogram_Pane:
     layout.setContentsMargins(0,0,0,0)
     layout.setSpacing(10)
 
-    self.data_name = nm = QLabel(df)
-    layout.addWidget(nm)
-    nm.mousePressEvent = self.select_data_cb
-
+    self.data_id = did = QLabel(df)
+    layout.addWidget(did)
+    did.mousePressEvent = self.select_data_cb
+    
     self.size = sz = QLabel(df)
     layout.addWidget(sz)
     sz.mousePressEvent = self.select_data_cb
@@ -2146,8 +2151,15 @@ class Histogram_Pane:
   #
   def show_data_name(self):
 
-    name = self.data_region.name_with_id() if self.data_region else ''
-    self.data_name.setText(name)
+    v = self.data_region
+    if len(v.name) > 10:
+        self.data_name.show()
+        self.data_name.setText(v.name)
+        self.data_id.setText('#%s' % v.id_string())
+    else:
+        self.data_name.hide()
+        self.data_name.setText('')
+        self.data_id.setText('%s #%s' % (v.name, v.id_string()))
 
   # ---------------------------------------------------------------------------
   #

@@ -144,8 +144,24 @@ class HelixCylinder:
     """
 
     MIN_CURVE_LENGTH = 13
+    # Ideal coordinates and parameters were generated using the Build
+    # Structure and Axes/Planes/Centroids tools in Chimera.  The helix
+    # sequences is ALA(18) and the coordinates are from some of the
+    # middle residues.  The axis parameters are (center, direction).
+    from numpy import array
+    IDEAL_COORDS = array([
+        (-1.332,-3.667,-1.376),     # CA coordinates
+        (-0.007,-0.471,-2.952),
+        (-1.782, 1.624,-0.322),
+        (-0.267,-0.482, 2.457),
+        ( 3.207,-0.031, 0.979),
+    ])
+    IDEAL_PARAMS = array([
+        (-0.395,-0.049,-0.215),     # center
+        (0.613,0.501,0.610)         # axis
+    ])
 
-    def __init__(self, coords, maxiter=None):
+    def __init__(self, coords, radius=None, maxiter=None):
         self.coords = coords
         self.maxiter = maxiter
         self._centers = None
@@ -156,6 +172,11 @@ class HelixCylinder:
             self._straight_optimize()
         else:
             self._try_curved()
+        if radius is not None:
+            if self.curved:
+                self.minor_radius = radius
+            else:
+                self.radius = radius
 
     def cylinder_radius(self):
         """Return radius of cylinder."""
@@ -185,19 +206,26 @@ class HelixCylinder:
             uv = _normalize_vector_array(in_plane)
             # Get centers by projecting along unit vectors
             centers = self.center + uv * self.major_radius
-            # Sort them so that centers are always in order
-            # All the vectors have the same length, so we
-            # do not need to normalize them for comparison.
-            # Sort by dot product against zeroth element
-            # since a.b.cos(theta) should go from a.b to -a.b.
-            # Note that cross product will not work right if
-            # the cylinder is >90 degrees since sin(theta)
-            # runs from 0 -> 1 -> 0.
-            # Because argsort result is always in ascending
-            # order, we reverse it to get the right order.
+            # For consecutive residues, the cross product
+            # of the vectors from the arc center to the residues
+            # should be in the same direction as the arc axis.
+            # If not, we flip the coordinates for the two residues
+            # to make sure that the arc does not double back on itself.
+            num_pts = len(centers)
+            order = list(range(num_pts))
             dv = centers - self.center
-            d = dot(dv, dv[0])
-            self._centers = centers[argsort(d)[::-1]]
+            i = 1
+            while i < num_pts:
+                v = cross(dv[order[i-1]], dv[order[i]])
+                if dot(v, self.axis) >= 0:
+                    i += 1
+                else:
+                    order[i-1], order[i] = order[i], order[i-1]
+                    if i > 1:
+                        # Since we flipped, we no longer know whether
+                        # (i-2,i-1) is okay, so we go back and check
+                        i -= 1
+            self._centers = centers[order]
         else:
             # Get distance of each atomic coordinate
             # from centroid along the center line
@@ -229,7 +257,7 @@ class HelixCylinder:
         Normals and binormals are relative to the cylinder center."""
         if self._normals is not None:
             return self._normals
-        from numpy import tile, vdot, cross
+        from numpy import tile, dot, cross
         from numpy.linalg import norm
         tile_shape = [len(self.coords), 1]
         centers = self.cylinder_centers()
@@ -239,7 +267,15 @@ class HelixCylinder:
             binormals = _normalize_vector_array(in_plane)
             self._normals = (normals, binormals)
         else:
-            normal = self.coords[1] - centers[1]
+            d = self.coords[1] - self.centroid
+            # We do not use:
+            #   normal = self.coords[1] - centers[1]
+            # because the order of the centers MAY not
+            # match the orders of the coords if the coords
+            # projection are out of order, i.e., they
+            # double back on themselves, which would
+            # result in bad rendering of cylinders.
+            normal = d - dot(d, self.axis) * self.axis
             normal = normal / norm(normal)
             binormal = cross(self.axis, normal)
             self._normals = (tile(normal, tile_shape),
@@ -335,12 +371,26 @@ class HelixCylinder:
         self.radius = mean(radii)
 
     def _straight_initial(self):
-        from numpy import mean, argmax, dot, newaxis
-        from numpy.linalg import svd, norm
-        centroid = mean(self.coords, axis=0)
-        rel_coords = self.coords - centroid
-        ignore, vals, vecs = svd(rel_coords)
-        axis = vecs[argmax(vals)]
+        from numpy import mean, dot, newaxis
+        from numpy.linalg import norm
+        if len(self.coords) > len(self.IDEAL_COORDS):
+            # "Normal" helices can be approximated by using all
+            # coordinates on the assumption that the helix length
+            # is sufficiently larger than the helix radius that
+            # the biggest eigenvector will be the helical axis
+            from numpy.linalg import svd
+            from numpy import argmax
+            centroid = mean(self.coords, axis=0)
+            rel_coords = self.coords - centroid
+            ignore, vals, vecs = svd(rel_coords)
+            axis = vecs[argmax(vals)]
+        else:
+            from ..geometry import align_points
+            num_pts = len(self.coords)
+            tf, rmsd = align_points(self.IDEAL_COORDS[:num_pts], self.coords)
+            centroid = tf * self.IDEAL_PARAMS[0]
+            axis = tf.apply_without_translation(self.IDEAL_PARAMS[1])
+            rel_coords = self.coords - centroid
         axis_pos = dot(rel_coords, axis)[:, newaxis]
         radial_vecs = rel_coords - axis * axis_pos
         radius = mean(norm(radial_vecs, axis=1))
@@ -355,7 +405,7 @@ class HelixCylinder:
         self.axis = opt.axis
         self.major_radius = opt.radius
         radii = norm(self.coords - self.cylinder_centers(), axis=1)
-        self.minor_radius = mean(radii)
+        self.minor_radius = min(2.5, mean(radii))
 
 
 class StrandPlank:
