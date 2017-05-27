@@ -133,10 +133,15 @@ def open_formats(session):
     formats.sort(key = lambda f: f.name.lower())
     for f in formats:
         if session.ui.is_gui:
-            lines.append('<tr><td>%s<td>%s<td>%s' % (f.name,
-                commas(f.nicknames), ', '.join(f.extensions)))
+            from html import escape
+            if f.reference:
+                descrip = '<a href="%s">%s</a>' % (f.reference, escape(f.synopsis))
+            else:
+                descrip = escape(f.synopsis)
+            lines.append('<tr><td>%s<td>%s<td>%s' % (descrip,
+                escape(commas(f.nicknames)), escape(', '.join(f.extensions))))
         else:
-            session.logger.info('    %s: %s: %s' % (f.name,
+            session.logger.info('    %s: %s: %s' % (f.synopsis,
                 commas(f.nicknames), ', '.join(f.extensions)))
     if session.ui.is_gui:
         lines.append('</table>')

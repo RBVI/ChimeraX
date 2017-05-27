@@ -83,6 +83,7 @@ class ToolInstance(State):
         self.id = id
         import weakref
         self._session = weakref.ref(session)
+        self.tool_name = tool_name
         self.display_name = tool_name
         # TODO: track.created(ToolInstance, [self])
         session.tools.add([self])
@@ -129,6 +130,17 @@ class ToolInstance(State):
     def session(self):
         """Read-only property for session that contains this tool instance."""
         return self._session()
+
+    @property
+    def bundle_info(self):
+        return self.session.toolshed.find_bundle_for_class(self.__class__)
+
+    @property
+    def tool_info(self):
+        for ti in self.bundle_info.tools:
+            if ti.name == self.tool_name:
+                return ti
+        return None
 
     def delete(self):
         """Delete this tool instance.

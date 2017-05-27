@@ -71,6 +71,7 @@ SRCS = $(SOURCE)/*.py $(SOURCE)/*.cpp
 
 wheel $(WHEEL): license.txt setup.py $(SRCS)
 	$(PYTHON_EXE) setup.py --no-user-cfg build
+	$(PYTHON_EXE) setup.py --no-user-cfg test
 	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel
 	rm -rf $(WHL_BNDL_NAME).egg-info
 	echo Distribution is in $(WHEEL)
@@ -82,7 +83,7 @@ license.txt:
 	@exit 1
 
 app-install:	$(WHEEL)
-	$(CHIMERAX_EXE) --debug --nogui --cmd "toolshed install $(WHEEL) reinstall true ; exit"
+	$(CHIMERAX_EXE) --nogui --cmd "toolshed install $(WHEEL) reinstall true ; exit"
 
 setup.py: setup.py.in Makefile
 	sed -e 's,BUNDLE_NAME,$(BUNDLE_NAME),' \

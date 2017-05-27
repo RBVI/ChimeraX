@@ -83,6 +83,26 @@ canonicalize_atom_name(AtomName* aname, bool* asterisks_translated)
     }
 }
 
+std::string
+residue_str(Residue* r)
+{
+    std::stringstream pos_string;
+    std::string ret = static_cast<const char*>(r->name());
+    ret += " #";
+    pos_string << r->position();
+    ret += pos_string.str();
+    auto insertion_code = r->insertion_code();
+    if (insertion_code != ' ')
+        ret += insertion_code;
+    ret += ' ';
+    auto chain_id = r->chain_id();
+    if (chain_id != " ") {
+        ret += "in chain ";
+        ret += chain_id;
+    }
+    return ret;
+}
+
 } // namespace
 
 namespace mmcif {
@@ -429,23 +449,23 @@ ExtractMolecule::connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, b
                     // suppress warning for CA traces
                     if (!gap)
                         logger::warning(_logger, "Expected gap or ", conn_type,
-                                        r0->str(), " and ", r1->str());
+                                        residue_str(r0), " and ", residue_str(r1));
                 }
             } else if (a1 == nullptr) {
                 if (!gap)
                     logger::warning(_logger,
                                     "Expected gap or linking atom in ",
-                                    r1->str(), " for ", r0->str());
+                                    residue_str(r1), " for ", residue_str(r0));
                 a1 = find_closest(a0, r1, nullptr, true);
             }
             if (a1 == nullptr) {
-                logger::warning(_logger, "Unable to connect ", r0->str(),
-                                " and ", r1->str());
+                logger::warning(_logger, "Unable to connect ", residue_str(r0),
+                                " and ", residue_str(r1));
                 continue;
             }
 #if 0
             if (gap && reasonable_bond_length(a0, a1)) {
-                logger::warning(_logger, "Eliding gap between ", r0->str(), " and ", r1->str());
+                logger::warning(_logger, "Eliding gap between ", residue_str(r0), " and ", residue_str(r1));
                 gap = false;    // bad data
             }
 #endif
@@ -493,7 +513,7 @@ ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr
             if (!connected) {
                 logger::warning(_logger, "Found disconnected atom ", a->name(),
                                 " that is not in residue template for ",
-                                r->str(), " residue");
+                                residue_str(r));
                 connect_residue_by_distance(r);
                 return;
             }
@@ -595,7 +615,7 @@ ExtractMolecule::finished_parse()
     for (auto&& r : mol->residues()) {
         auto tr = find_template_residue(r->name());
         if (tr == nullptr) {
-            logger::warning(_logger, "Missing residue template for ", r->str());
+            logger::warning(_logger, "Missing residue template for ", residue_str(r));
             has_ambiguous = true;   // safe to treat as ambiguous
             connect_residue_by_distance(r);
         } else {
