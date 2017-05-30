@@ -49,6 +49,8 @@ def open_pdb(session, filename, name, auto_style=True, coordsets=False):
         for m in models:
             num_cs += m.num_coord_sets
         info += " and %s coordinate sets" % num_cs
+        from ..commands.coordset import coordset_slider
+        coordset_slider(session, models)
 
     return models, info
 
