@@ -1062,15 +1062,16 @@ class _Qt:
             no_help_action.setEnabled(False)
             menu.addAction(no_help_action)
         session = ti.session
-        autostart = ti.name in session.ui.settings.autostart
+        autostart = ti.tool_name in session.ui.settings.autostart
         auto_action = QAction("Start this tool at ChimeraX startup")
         auto_action.setCheckable(True)
         auto_action.setChecked(autostart)
         from ..commands import run, quote_if_necessary
         auto_action.triggered.connect(
-            lambda arg, ses=session, run=run, tool_name=ti.name:
+            lambda arg, ses=session, run=run, tool_name=ti.tool_name:
             run(ses, "ui autostart %s %s" % (("true" if arg else "false"),
-            quote_if_necessary(ti.name))))
+            quote_if_necessary(ti.tool_name))))
+        menu.addAction(auto_action)
         menu.exec(event.globalPos())
 
     def _get_shown(self):
