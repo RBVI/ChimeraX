@@ -53,8 +53,8 @@ with a few ChimeraX customizations.
 The most straightforward way is to start
 with some ChimeraX sample code and modify it appropriately.
 
-Sample Bundle
--------------
+Bundle Sample Code
+------------------
 
 To build a bundle from the `sample code
 <https://www.cgl.ucsf.edu/chimerax/cgi-bin/bundle_sample.zip>`_,
@@ -62,8 +62,11 @@ you will need access the the ``make`` program.  On Linux
 and macOS, ``make`` is available as part of the
 developer package.  On Windows, ``make`` is
 available as part of `Cygwin <https://cygwin.com>`_.
-
-**Bundle Sample Code**
+Because the sample code includes C++ source code that
+need to be compiled, you will need a C++ compiler for
+the build.  On Linux and macOS, we use the GNU C/C++
+compiler ``gcc``.  On Windows, we use Microsoft Visual
+Studio, Community 2015.
 
 The sample code is organized with "administrative" code
 at the top level and actual bundle code in the ``src``
@@ -72,15 +75,10 @@ license text, is only used for building the bundle.
 All other contents of the bundle should be in ``src``.
 
 
-    *Administrative Files*
+*Administrative Files*
 
     **README** contains terse instructions on how to
-    build the sample code.  (Because the sample code
-    includes source code that need to be compiled,
-    you will need a C++ compiler for the build.
-    If your bundle does not contain C++ code,
-    the compiler is not needed, as discussed in
-    the *Pure Python Bundles* section below.)
+    build the sample code.
 
     **Makefile** is the configuration file used by
     the ``make`` command.  This file will need to
@@ -109,7 +107,7 @@ All other contents of the bundle should be in ``src``.
     file name.   This file should not be modified.
 
 
-    *Bundle Source Code Files*
+*Bundle Source Code Files*
 
     **__init__.py** contains the bundle initialization
     code.  Typically, it defines a subclass of the
@@ -119,7 +117,11 @@ All other contents of the bundle should be in ``src``.
     singleton, which must conform to the `bundle API`.
 
     **cmd.py** contains code called by ``bundle_api``
-    from **__init__.py**.
+    from **__init__.py** for executing commands.
+
+    **tool.py** contains code called by ``bundle_api``
+    from **__init__.py** for starting tools (graphical
+    interfaces).
 
     **_sample.cpp** contains sample C++ code that
     compiles into a Python module that defines two
@@ -127,17 +129,18 @@ All other contents of the bundle should be in ``src``.
 
     .. _`Building the Sample Bundle`:
 
-    *Building the Sample Bundle*
+*Building the Sample Bundle*
 
     #. Edit **Makefile** and change ``CHIMERAX_APP`` to match the location
        of **ChimeraX.app** on your system.
     #. Create a **license.txt** file.  The easiest way is to copy
        **license.txt.bsd** to **license.txt**.
-    #. Execute ``make``.  See `Transcript for building sample code`_ below.
+    #. Execute ``make`` (short for ``make wheel``).
+       See `Transcript for building sample code`_ below.
     #. Check directory **dist** to make sure the wheel was created.
 
 
-    *Verifying Bundle Works*
+*Verifying Bundle Works*
 
     #. Execute ``make app-install`` to install the wheel into your copy
        of **ChimeraX.app** (assuming you have write permission).
@@ -218,7 +221,8 @@ importants steps:
      than the core), you need to list the dependency in
      ``install_requires``.
   -  Finally, you need to update the ``classifiers`` list
-     which contains metadata describing the bundle/wheel.
+     which contains metadata describing the bundle/wheel
+     (see `ChimeraX Metadata and Python Wheel Classifiers`_ below).
      Two general classifiers that should be checked for
      correctness are ``Development Status`` and ``License``.
      In addition, there are a number of ChimeraX-specific
@@ -227,7 +231,122 @@ importants steps:
      section).
 
 
-**ChimeraX Metadata and Python Wheel Classifiers**
+Building Bundles
+----------------
+
+To build your bundle, simply run ``make`` (short for ``make wheel``),
+which invokes the following steps:
+
+``$(PYTHON_EXE) setup.py --no-user-cfg build``
+    Execute **setup.py** ``build`` command using the Python
+    interpreter that comes with the ChimeraX distribution.
+    Python source code and other resource files are copied
+    into the *build* folder.  C/C++ source files, if any,
+    are compiled and also copied into the *build* folder.
+
+``$(PYTHON_EXE) setup.py --no-user-cfg test``
+    Execute **setup.py** ``test`` command using the Python
+    interpreter that comes with the ChimeraX distribution.
+    The sample code does not come with any custom test code,
+    so the only test done is to make sure that no syntax
+    errors are detected in Python code.
+
+``$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel``
+    Execute **setup.py** ``bdist_wheel`` command using the Python
+    interpreter that comes with the ChimeraX distribution.
+    Files from the *build* folder are assembled into a single
+    *wheel* file and placed under the *dist* folder.
+
+``rm -rf $(WHL_BNDL_NAME).egg-info``
+    Clean up intermediate files, such as a temporary folder
+    with ``.egg-info`` suffix that is the by-product of the wheel
+    assembly process
+
+``echo Distribution is in $(WHEEL)``
+    Print the name of the generated wheel file.
+
+If any of the steps fails, the build process stops.
+
+
+Testing Bundles
+---------------
+
+To test your successfully built bundle, run ``make app-install``,
+which invokes:
+
+``$(CHIMERAX_EXE) --nogui --cmd "toolshed uninstall $(BUNDLE_BASE_NAME) ; exit"``
+``$(CHIMERAX_EXE) --nogui --cmd "toolshed install $(WHEEL) ; exit"``
+    Execute ChimeraX and run the ``toolshed uninstall`` command
+    to remove any previously installed version of the bundle,
+    followed by the ``toolshed install`` command to install the
+    wheel in the **dist** folder.
+
+If the ``make app-install`` command completes successfully,
+fire up ChimeraX with ``make test`` and try out your command.
+Warning and error messages should appear in the ``Log`` window.
+If the bundle is not working as expected, *e.g.*, command is
+not found, tool does not start, and no messages are being
+displayed, try executing ``make debug``, which runs ChimeraX
+in debugging mode, and see if more messages are shown in
+the console.
+
+
+Distributing Bundles
+--------------------
+
+With ChimeraX bundles being packages as standard Python
+wheel-format files, they can be distributed as plain files
+and installed using the ChimeraX ``toolshed install``
+command.  Thus, electronic mail, web sites and file
+sharing services can all be used to distribute ChimeraX
+bundles.
+
+Private distributions are most useful during bundle
+development, when circulation may be limited to testers.
+When bundles are ready for public release, they can be
+published on the `ChimeraX Toolshed`_, which is designed
+to help developers by eliminating the need for custom
+distribution channels, and to aid users by providing
+a central repository where bundles with a variety of
+functionality may be found.
+
+Customizable information for each bundle on the toolshed
+includes its description, screen captures, authors,
+citation instructions and license terms.
+Automatically maintained information
+includes release history and download statistics.
+
+To submit a bundle for publication on the toolshed,
+you must first sign in.  Currently, only Google
+sign in is supported.  Once signed in, use the
+``Submit a Bundle`` link at the top of the page
+to initiate submission, and follow the instructions.
+The first time a bundle is submitted to the toolshed,
+approval from ChimeraX staff is needed before it is
+published.  Subsequent submissions, using the same
+sign in credentials, do not need approval and should
+appear immediately on the site.
+
+.. _`ChimeraX Toolshed`: https://cxtoolshed.rbvi.ucsf.edu
+
+
+Cleaning Up ChimeraX Bundle Source Folders
+------------------------------------------
+
+Two ``make`` targets are provided for removing intermediate
+files left over from building bundles:
+
+``make clean``
+    Remove generated files, *e.g.*, **setup.py** and **build** folder,
+    as well as the **dist** folder containing the built wheels.
+
+``make distclean``
+    Remove all files not part of the original source, including
+    **license.txt** so that the folder is in pristine condition.
+
+
+ChimeraX Metadata and Python Wheel Classifiers
+----------------------------------------------
 
 ChimeraX gathers metadata from Python wheel classifiers
 listed in the bundle.  The only required classifier is
@@ -395,24 +514,8 @@ data formats, and selectors.
       names carefully."
 
 
-Testing Bundles
----------------
-
-To test your bundle, you need to first build it in a similar
-manner as `Building the Sample Bundle`_.
-
-Distributing Bundles
---------------------
-
-**Toolshed Submission**
-
-
-Output Samples
---------------
-
-.. _`Transcript for building sample code`:
-
-**Transcript for building sample code**
+Transcript for building sample code
+___________________________________
 
 ::
 
@@ -495,9 +598,8 @@ Output Samples
     Distribution is in dist/ChimeraX_Sample-0.1-cp36-cp36m-win_amd64.whl
 
 
-.. _`Transcript for installing sample code`:
-
-**Transcript for installing sample code**
+Transcript for installing sample code
+_____________________________________
 
 ::
 

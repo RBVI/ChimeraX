@@ -99,6 +99,7 @@ setup(
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
         "ChimeraX :: Bundle :: General :: 1,1 :: PKG_NAME :: chimerax.sample :: ",
+        "ChimeraX :: Tool :: Sample Tool :: General :: Log model atom and bond counts",
         "ChimeraX :: Command :: sample count :: General :: Log model atom and bond counts",
     ] + environments,
 )

@@ -1,8 +1,10 @@
 # The "make" targets are:
 # 	wheel: build a Python wheel in "dist" directory.
 # 	app-install: build wheel (if needed) and install in ChimeraX.
-# 	compile: compile all Python source code in "SOURCE" directory.
+# 	test: run ChimeraX
+# 	debug: run ChimeraX with debugging flag set
 # 	clean: remove files used in building wheel
+# 	distclean: remove files used in building wheel and license file
 
 # These parameters may be changed as needed.
 
@@ -11,7 +13,7 @@
 # When uploaded to the ChimeraX toolshed, the bundle
 # will be displayed without the ChimeraX_ prefix.
 BUNDLE_NAME = ChimeraX_Sample
-BUNDLE_BASE_NAME = $(BUNDLE_NAME:s/ChimeraX//)
+BUNDLE_BASE_NAME = $(subst ChimeraX_,,$(BUNDLE_NAME))
 BUNDLE_VERSION = 0.1
 # ChimeraX bundles should only include packages
 # that install as chimerax.package_name.
@@ -26,7 +28,7 @@ OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
 # CHIMERAX_APP is the ChimeraX install folder
 ifeq ($(OS),CYGWIN_NT)
 # Windows
-CHIMERAX_APP = /e/chimerax/ChimeraX.app
+CHIMERAX_APP = /d/chimerax/ChimeraX.app
 endif
 ifeq ($(OS),Darwin)
 # Mac
@@ -76,27 +78,31 @@ wheel $(WHEEL): license.txt setup.py $(SRCS)
 	rm -rf $(WHL_BNDL_NAME).egg-info
 	echo Distribution is in $(WHEEL)
 
+app-install:	$(WHEEL)
+	$(CHIMERAX_EXE) --nogui --cmd "toolshed uninstall $(BUNDLE_BASE_NAME) ; exit"
+	$(CHIMERAX_EXE) --nogui --cmd "toolshed install $(WHEEL) ; exit"
+
+test:
+	$(CHIMERAX_EXE)
+
+debug:
+	$(CHIMERAX_EXE) --debug
+
+clean:
+	rm -rf __pycache__ build dist $(WHL_BNDL_NAME).egg-info setup.py
+	rm -rf $(SOURCE)/__pycache__
+
 license.txt:
 	@echo Please specify your project licensing terms in file \"license.txt\"
 	@echo The BSD license is included as file \"license.txt.bsd\"
 	@echo The MIT license is included as file \"license.txt.mit\"
 	@exit 1
 
-app-install:	$(WHEEL)
-	$(CHIMERAX_EXE) --nogui --cmd "toolshed install $(WHEEL) reinstall true ; exit"
-
 setup.py: setup.py.in Makefile
 	sed -e 's,BUNDLE_NAME,$(BUNDLE_NAME),' \
 		-e 's,BUNDLE_VERSION,$(BUNDLE_VERSION),' \
 		-e 's,PKG_NAME,$(PKG_NAME),' \
 		< setup.py.in > setup.py
-
-compile:
-	$(PYTHON_EXE) -B -m compileall $(SOURCE)
-
-clean:
-	rm -rf __pycache__ build dist $(WHL_BNDL_NAME).egg-info setup.py
-	rm -rf $(SOURCE)/__pycache__
 
 distclean:	clean
 	rm -f license.txt
