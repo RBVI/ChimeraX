@@ -61,7 +61,7 @@ def coordset(session, structures, index_range, hold_steady = None,
 # -----------------------------------------------------------------------------
 #
 def coordset_slider(session, structures, hold_steady = None,
-                    step = 1, pause = 1, loop = 1, compute_ss = False):
+                    pause = 1, loop = 1, compute_ss = False):
   '''
   Show a slider that controls which coordinate set is shown.
 
@@ -75,8 +75,6 @@ def coordset_slider(session, structures, hold_steady = None,
   pause : integer
      Stay at each coordset for this number of graphics frames when Play button used.
      This is to slow down playback.  Default 1.
-  step : integer
-     Increment of coordinate set id.  Allows showing every Nth coordinate set.  Default 1.
   compute_ss : bool
     Whether to recompute secondary structure using dssp for every new frame.  Default false.
   '''
@@ -87,7 +85,7 @@ def coordset_slider(session, structures, hold_steady = None,
 
   for m in structures:
     hold = hold_steady.intersect(m.atoms) if hold_steady else None
-    CoordinateSetSlider(session, m, step = step, steady_atoms = hold,
+    CoordinateSetSlider(session, m, steady_atoms = hold,
                         pause_frames = pause, compute_ss = compute_ss)
 
 # -----------------------------------------------------------------------------
@@ -107,7 +105,6 @@ def register_command(session):
     desc = CmdDesc(
         required = [('structures', StructuresArg)],
         keyword = [('hold_steady', AtomsArg),
-                   ('step', IntArg),
                    ('pause', IntArg),
                    ('compute_ss', BoolArg)],
         synopsis = 'show slider for coordinate sets')
@@ -285,7 +282,7 @@ class CoordinateSetSlider(Slider):
 
     SESSION_SKIP = True
 
-    def __init__(self, session, structure, pause_frames = 1, step = 1, movie_framerate = 25,
+    def __init__(self, session, structure, pause_frames = 1, movie_framerate = 25,
                  steady_atoms = None, compute_ss = False):
 
         self.structure = structure
@@ -298,7 +295,7 @@ class CoordinateSetSlider(Slider):
                         pause_frames = pause_frames, pause_when_recording = True,
                         movie_framerate = movie_framerate)
 
-        self._player = CoordinateSetPlayer(structure, id_start, id_end, step, pause = pause_frames, loop = 1,
+        self._player = CoordinateSetPlayer(structure, id_start, id_end, istep = 1, pause = pause_frames, loop = 1,
                                            compute_ss = compute_ss, steady_atoms = steady_atoms)
         self.update_value(structure.active_coordset_id)
 
