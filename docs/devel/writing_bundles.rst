@@ -117,7 +117,11 @@ All other contents of the bundle should be in ``src``.
     singleton, which must conform to the `bundle API`.
 
     **cmd.py** contains code called by ``bundle_api``
-    from **__init__.py**.
+    from **__init__.py** for executing commands.
+
+    **tool.py** contains code called by ``bundle_api``
+    from **__init__.py** for starting tools (graphical
+    interfaces).
 
     **_sample.cpp** contains sample C++ code that
     compiles into a Python module that defines two
@@ -270,13 +274,12 @@ Testing Bundles
 To test your successfully built bundle, run ``make app-install``,
 which invokes:
 
-``$(CHIMERAX_EXE) --nogui --cmd "toolshed install $(WHEEL) reinstall true ; exit"``
-    Execute ChimeraX and run the ``toolshed install`` command.
-    (Remember that we prefer not to use ``pip`` because ChimeraX
-    maintains a metadata cache
-    The ``reinstall true`` option is specified so that the
-    new wheel file will always be installed, even if ChimeraX
-    already has a version of it, *e.g.*, from a previous test.
+``$(CHIMERAX_EXE) --nogui --cmd "toolshed uninstall $(BUNDLE_BASE_NAME) ; exit"``
+``$(CHIMERAX_EXE) --nogui --cmd "toolshed install $(WHEEL) ; exit"``
+    Execute ChimeraX and run the ``toolshed uninstall`` command
+    to remove any previously installed version of the bundle,
+    followed by the ``toolshed install`` command to install the
+    wheel in the **dist** folder.
 
 If the ``make app-install`` command completes successfully,
 fire up ChimeraX with ``make test`` and try out your command.
