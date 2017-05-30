@@ -6,6 +6,11 @@ from chimerax.core.toolshed import BundleAPI
 class _MyAPI(BundleAPI):
 
     @staticmethod
+    def start_tool(session, tool_name, **kw):
+        from .tool import SampleTool
+        return SampleTool(session, tool_name, **kw)
+
+    @staticmethod
     def register_command(command_name, logger):
         # We expect that there is a function in "cmd"
         # corresponding to every registered command

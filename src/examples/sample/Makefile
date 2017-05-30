@@ -13,7 +13,7 @@
 # When uploaded to the ChimeraX toolshed, the bundle
 # will be displayed without the ChimeraX_ prefix.
 BUNDLE_NAME = ChimeraX_Sample
-BUNDLE_BASE_NAME = $(BUNDLE_NAME:s/ChimeraX//)
+BUNDLE_BASE_NAME = $(subst ChimeraX_,,$(BUNDLE_NAME))
 BUNDLE_VERSION = 0.1
 # ChimeraX bundles should only include packages
 # that install as chimerax.package_name.
@@ -79,7 +79,8 @@ wheel $(WHEEL): license.txt setup.py $(SRCS)
 	echo Distribution is in $(WHEEL)
 
 app-install:	$(WHEEL)
-	$(CHIMERAX_EXE) --nogui --cmd "toolshed install $(WHEEL) reinstall true ; exit"
+	$(CHIMERAX_EXE) --nogui --cmd "toolshed uninstall $(BUNDLE_BASE_NAME) ; exit"
+	$(CHIMERAX_EXE) --nogui --cmd "toolshed install $(WHEEL) ; exit"
 
 test:
 	$(CHIMERAX_EXE)
