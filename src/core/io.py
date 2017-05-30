@@ -90,6 +90,10 @@ class FileFormat:
 
         Sequence of associated MIME types (or empty)
 
+    ..attribute:: synopsis
+
+        Short description of format
+
     ..attribute:: reference
 
         URL reference to specification
@@ -124,16 +128,24 @@ class FileFormat:
     """
 
     def __init__(self, format_name, category, extensions, nicknames, mime, reference,
-                 dangerous, icon, encoding):
+                 dangerous, icon, encoding, synopsis):
         self.name = format_name
         self.category = category
         self.extensions = extensions
         self.nicknames = nicknames
         self.mime_types = mime
-        self.reference = reference
         self.dangerous = dangerous
         self.icon = icon
         self.encoding = encoding
+        self.synopsis = synopsis
+
+        if reference:
+            # sanitize URL
+            from urllib import parse
+            r = list(parse.urlsplit(reference))
+            r[1:5] = [parse.quote(p) for p in r[1:5]]
+            reference = parse.urlunsplit(r)
+        self.reference = reference
 
         self.open_func = None
         self.requires_filename = False
@@ -152,7 +164,7 @@ _file_formats = {}
 
 def register_format(format_name, category, extensions, nicknames=None,
                     *, mime=(), reference=None, dangerous=None, icon=None,
-                    encoding=None, **kw):
+                    encoding=None, synopsis=None, **kw):
     """Register file format's I/O functions and meta-data
 
     :param format_name: format's name
@@ -187,8 +199,11 @@ def register_format(format_name, category, extensions, nicknames=None,
         mime = ()
     elif isinstance(mime, str):
         mime = [mime]
-    ff = _file_formats[format_name] = FileFormat(format_name,
-        category, exts, nicknames, mime, reference, dangerous, icon, encoding)
+    if not synopsis:
+        synopsis = format_name
+    ff = _file_formats[format_name] = FileFormat(
+        format_name, category, exts, nicknames, mime, reference, dangerous,
+        icon, encoding, synopsis)
     other_kws = set(['open_func', 'requires_filename',
                      'export_func', 'export_notes', 'batch'])
     for attr in kw:

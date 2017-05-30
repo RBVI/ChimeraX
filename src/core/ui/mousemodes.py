@@ -677,7 +677,7 @@ class ObjectIdMouseMode(MouseMode):
             return
         
         x,y = position
-        p = self.view.first_intercept(x,y)
+        p = self.view.first_intercept(x,y,exclude=unpickable)
 
         # Show atom spec balloon
         pu = self.session.ui.main_window.graphics_window.popup
