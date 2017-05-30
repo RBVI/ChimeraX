@@ -18,11 +18,12 @@ from chimerax.core.tools import ToolInstance
 class Slider(ToolInstance):
 
     def __init__(self, session, tool_name, value_name, title, value_range = (1,10),
-                 pause_frames = 50, pause_when_recording = True,
-                 movie_filename = 'movie.mp4', movie_framerate = 25):
+                 loop = True, pause_frames = 50, pause_when_recording = True,
+                 movie_filename = 'movie.mp4', movie_framerate = 25, placement = 'side'):
         ToolInstance.__init__(self, session, tool_name)
 
         self.value_range = value_range
+        self.loop = loop
         self.pause_frames = pause_frames
         self.pause_when_recording = pause_when_recording
         self._pause_count = 0
@@ -69,7 +70,7 @@ class Slider(ToolInstance):
 
         self.set_button_icon(play=True, record=True)
 
-        tw.manage(placement="top")
+        tw.manage(placement=placement)
 
     def show(self):
         self.tool_window.shown = True
@@ -127,7 +128,7 @@ class Slider(ToolInstance):
                 return
         v = self._last_shown_value
         if v >= self.value_range[1]:
-            if self._recording:
+            if self._recording or not self.loop:
                 self.stop()
                 return
             v = self.value_range[0]
