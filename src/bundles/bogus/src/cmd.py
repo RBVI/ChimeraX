@@ -18,19 +18,22 @@ from .psize import Psize
 
 def echo(session, args="no arguments"):
     session.logger.info("echo: %s" % args)
-echo_desc = cli.CmdDesc(optional=[("args", cli.RestOfLine)])
+echo_desc = cli.CmdDesc(optional=[("args", cli.RestOfLine)],
+                        synopsis="echo arguments")
 
 
 def undisplay(session, spec=None):
     r = spec.evaluate(session)
     r.atoms.displays = False
-undisplay_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)])
+undisplay_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)],
+                             synopsis="undisplay specified atoms")
 
 
 def display(session, spec=None):
     r = spec.evaluate(session)
     r.atoms.displays = True
-display_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)])
+display_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)],
+                           synopsis="display specified atoms")
 
 
 def hidewater(session, modelspec=None):
@@ -48,7 +51,8 @@ def hidewater(session, modelspec=None):
             atom_displays = m.atoms.displays
             atom_displays[indices] = False
             m.atoms.displays = atom_displays
-hidewater_desc = cli.CmdDesc(optional=[("modelspec", atomspec.AtomSpecArg)])
+hidewater_desc = cli.CmdDesc(optional=[("modelspec", atomspec.AtomSpecArg)],
+                             synopsis="hide water atoms")
 
 
 def apbs(session, modelspec=None):
@@ -61,7 +65,8 @@ def apbs(session, modelspec=None):
         raise UserError("apbs works on one model at a time")
     for m in models:
         _apbs_pdb2pqr(session, m)
-apbs_desc = cli.CmdDesc(optional=[("modelspec", atomspec.AtomSpecArg)])
+apbs_desc = cli.CmdDesc(optional=[("modelspec", atomspec.AtomSpecArg)],
+                        synopsis="run APBS web service")
 
 
 def move(session, by, modelspec=None):
@@ -73,7 +78,8 @@ def move(session, by, modelspec=None):
     for m in spec.models:
         m.position = translation * m.position
 move_desc = cli.CmdDesc(required=[("by", cli.Float3Arg)],
-                        optional=[("modelspec", atomspec.AtomSpecArg)])
+                        optional=[("modelspec", atomspec.AtomSpecArg)],
+                        synopsis="move specified models")
 
 
 class _CCD(OpalJob):
@@ -88,7 +94,8 @@ class _CCD(OpalJob):
 
 def opal(session, name):
     _CCD(session, name)
-opal_desc = cli.CmdDesc(required=[("name", cli.StringArg)])
+opal_desc = cli.CmdDesc(required=[("name", cli.StringArg)],
+                        synopsis="test CCD web service")
 
 
 _ATOM_FMT = ("ATOM  %5d %-4s%1s"                # serial, atom name, altloc
