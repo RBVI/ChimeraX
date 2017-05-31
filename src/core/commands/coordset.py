@@ -85,6 +85,7 @@ def coordset_slider(session, structures, hold_steady = None,
 
   for m in structures:
     hold = hold_steady.intersect(m.atoms) if hold_steady else None
+    from .coordset_gui import CoordinateSetSlider
     CoordinateSetSlider(session, m, steady_atoms = hold,
                         pause_frames = pause, compute_ss = compute_ss)
 
@@ -274,48 +275,3 @@ def coordset_coords(atoms, cset, structure):
     xyz = atoms.coords
     structure.active_coordset_id = cs
   return xyz
-
-# -----------------------------------------------------------------------------
-#
-from chimerax.core.ui.widgets.slider import Slider
-class CoordinateSetSlider(Slider):
-
-    SESSION_SKIP = True
-
-    def __init__(self, session, structure, pause_frames = 1, movie_framerate = 25,
-                 steady_atoms = None, compute_ss = False):
-
-        self.structure = structure
-
-        title = 'Coordinate sets %s (%d)' % (structure.name, structure.num_coord_sets)
-        csids = structure.coordset_ids
-        id_start, id_end = min(csids), max(csids)
-        self.coordset_ids = set(csids)
-        Slider.__init__(self, session, 'Model Series', 'Model', title, value_range = (id_start, id_end),
-                        pause_frames = pause_frames, pause_when_recording = True,
-                        movie_framerate = movie_framerate)
-
-        self._player = CoordinateSetPlayer(structure, id_start, id_end, istep = 1, pause = pause_frames, loop = 1,
-                                           compute_ss = compute_ss, steady_atoms = steady_atoms)
-        self.update_value(structure.active_coordset_id)
-
-        from chimerax.core.models import REMOVE_MODELS
-        self._model_close_handler = session.triggers.add_handler(REMOVE_MODELS, self.models_closed_cb)
-
-    def change_value(self, i, playing = False):
-      self._player.change_coordset(i)
-
-    def valid_value(self, i):
-        return i in self.coordset_ids
-            
-    def models_closed_cb(self, name, models):
-      if self.structure in models:
-        self.delete()
-
-    # Override ToolInstance method
-    def delete(self):
-        t = self.session.triggers
-        t.remove_handler(self._model_close_handler)
-        self._model_close_handler = None
-        super().delete()
-        self.structure = None
