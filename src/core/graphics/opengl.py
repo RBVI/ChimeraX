@@ -668,9 +668,10 @@ class Render:
         r, g, b, a = rgba
         GL.glClearColor(r, g, b, a)
 
-    def draw_background(self):
+    def draw_background(self, depth=True):
         'Draw the background color and clear the depth buffer.'
-        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+        flags = (GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT) if depth else GL.GL_COLOR_BUFFER_BIT
+        GL.glClear(flags)
 
     def enable_depth_test(self, enable):
         'Enable OpenGL depth testing.'
@@ -870,13 +871,21 @@ class Render:
 
         return lvinv, stf
 
+    def set_outline_depth(self):
+        '''Copy framebuffer depth to outline framebuffer.  Only selected
+        objects at equal depth or in front will be outlines by start_rendering_outline().
+        This routine must be called before start_rendering_outline().
+        '''
+        mfb = self.make_mask_framebuffer()
+        self.copy_to_framebuffer(mfb, color=False)
+    
     def start_rendering_outline(self):
-
+        '''Must call set_outline_depth() before invoking this routine.'''
         fb = self.current_framebuffer()
         mfb = self.make_mask_framebuffer()
         self.push_framebuffer(mfb)
         self.set_background_color((0, 0, 0, 0))
-        self.draw_background()
+        self.draw_background(depth = False)
         # Use unlit all white color for drawing mask.
         # Outline code requires non-zero red component.
         self.disable_shader_capabilities(self.SHADER_VERTEX_COLORS
@@ -886,8 +895,6 @@ class Render:
         self.enable_capabilities |= self.SHADER_ALL_WHITE
         # Depth test GL_LEQUAL results in z-fighting:
         self.set_depth_range(0, 0.999999)
-        # Copy depth to outline framebuffer:
-        self.copy_from_framebuffer(fb, color=False)
 
     def finish_rendering_outline(self):
 
@@ -1051,6 +1058,20 @@ class Render:
         GL.glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, what, GL.GL_NEAREST)
         # Restore read buffer
         GL.glBindFramebuffer(GL.GL_READ_FRAMEBUFFER, cfb.fbo)
+
+    def copy_to_framebuffer(self, framebuffer, color=True, depth=True):
+        # Copy current framebuffer contents to another framebuffer.  This
+        # leaves read and draw framebuffers set to the current framebuffer.
+        cfb = self.current_framebuffer()
+        GL.glBindFramebuffer(GL.GL_READ_FRAMEBUFFER, cfb.fbo)
+        GL.glBindFramebuffer(GL.GL_DRAW_FRAMEBUFFER, framebuffer.fbo)
+        what = GL.GL_COLOR_BUFFER_BIT if color else 0
+        if depth:
+            what |= GL.GL_DEPTH_BUFFER_BIT
+        w, h = framebuffer.width, framebuffer.height
+        GL.glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, what, GL.GL_NEAREST)
+        # Restore draw buffer
+        GL.glBindFramebuffer(GL.GL_DRAW_FRAMEBUFFER, cfb.fbo)
 
     def finish_rendering(self):
         GL.glFinish()

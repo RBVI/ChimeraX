@@ -169,8 +169,8 @@ class View:
 
         r.set_frame_number(self.frame_number)
         perspective_near_far_ratio = 2
-        from .drawing import (draw_depth, draw_drawings, draw_outline,
-                              draw_overlays)
+        from .drawing import (draw_depth, draw_opaque, draw_transparent,
+                              draw_selection_outline, draw_overlays)
         for vnum in range(camera.number_of_views()):
             camera.set_render_target(vnum, r)
             if self.silhouettes:
@@ -190,12 +190,16 @@ class View:
                     draw_depth(r, cpinv, mdraw)
                     r.allow_equal_depth(True)
                 self._start_timing()
-                draw_drawings(r, cpinv, mdraw)
+                r.set_view_matrix(cpinv)
+                draw_opaque(r, mdraw)
+                if any_selected:
+                    r.set_outline_depth()       # copy depth to outline framebuffer
+                draw_transparent(r, mdraw)    
                 self._finish_timing()
                 if multishadows > 0:
                     r.allow_equal_depth(False)
                 if any_selected:
-                    draw_outline(r, cpinv, mdraw)
+                    draw_selection_outline(r, cpinv, mdraw)
             if self.silhouettes:
                 r.finish_silhouette_drawing(self.silhouette_thickness,
                                             self.silhouette_color,
