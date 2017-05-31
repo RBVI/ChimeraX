@@ -28,7 +28,8 @@ class CoordinateSetSlider(Slider):
                         movie_framerate = movie_framerate)
 
         from .coordset import CoordinateSetPlayer
-        self._player = CoordinateSetPlayer(structure, id_start, id_end, istep = 1, pause = pause_frames, loop = 1,
+        self._player = CoordinateSetPlayer(structure, id_start, id_end, istep = 1,
+                                           pause_frames = pause_frames, loop = 1,
                                            compute_ss = compute_ss, steady_atoms = steady_atoms)
         self.update_value(structure.active_coordset_id)
 

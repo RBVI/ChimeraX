@@ -21,7 +21,7 @@
 # Can use -1 for last frame.  Frame numbers start at 1.
 #
 def coordset(session, structures, index_range, hold_steady = None,
-             pause = 1, loop = 1, compute_ss = False):
+             pause_frames = 1, loop = 1, compute_ss = False):
   '''
   Change which coordinate set is shown for a structure.  Can play through
   a range of coordinate sets.  
@@ -40,7 +40,7 @@ def coordset(session, structures, index_range, hold_steady = None,
   hold_steady : Atoms
     Collection of atoms to hold steady while changing coordinate set.
     The atomic structure is repositioned to minimize change in RMSD of these atoms.
-  pause : integer
+  pause_frames : integer
      Stay at each coordset for this number of graphics frames.  This is to slow
      down playback.  Default 1.
   loop : integer
@@ -56,12 +56,12 @@ def coordset(session, structures, index_range, hold_steady = None,
   for m in structures:
     s,e,step = absolute_index_range(index_range, m)
     hold = hold_steady.intersect(m.atoms) if hold_steady else None
-    CoordinateSetPlayer(m, s, e, step, hold, pause, loop, compute_ss).start()
+    CoordinateSetPlayer(m, s, e, step, hold, pause_frames, loop, compute_ss).start()
 
 # -----------------------------------------------------------------------------
 #
 def coordset_slider(session, structures, hold_steady = None,
-                    pause = 1, loop = 1, compute_ss = False):
+                    pause_frames = 1, loop = 1, compute_ss = False):
   '''
   Show a slider that controls which coordinate set is shown.
 
@@ -72,7 +72,7 @@ def coordset_slider(session, structures, hold_steady = None,
   hold_steady : Atoms
     Collection of atoms to hold steady while changing coordinate set.
     The atomic structure is repositioned to minimize change in RMSD of these atoms.
-  pause : integer
+  pause_frames : integer
      Stay at each coordset for this number of graphics frames when Play button used.
      This is to slow down playback.  Default 1.
   compute_ss : bool
@@ -87,7 +87,7 @@ def coordset_slider(session, structures, hold_steady = None,
     hold = hold_steady.intersect(m.atoms) if hold_steady else None
     from .coordset_gui import CoordinateSetSlider
     CoordinateSetSlider(session, m, steady_atoms = hold,
-                        pause_frames = pause, compute_ss = compute_ss)
+                        pause_frames = pause_frames, compute_ss = compute_ss)
 
 # -----------------------------------------------------------------------------
 #
@@ -97,7 +97,7 @@ def register_command(session):
         required = [('structures', StructuresArg),
                     ('index_range', IndexRangeArg)],
         keyword = [('hold_steady', AtomsArg),
-                   ('pause', IntArg),
+                   ('pause_frames', IntArg),
                    ('loop', IntArg),
                    ('compute_ss', BoolArg)],
         synopsis = 'show coordinate sets')
@@ -106,7 +106,7 @@ def register_command(session):
     desc = CmdDesc(
         required = [('structures', StructuresArg)],
         keyword = [('hold_steady', AtomsArg),
-                   ('pause', IntArg),
+                   ('pause_frames', IntArg),
                    ('compute_ss', BoolArg)],
         synopsis = 'show slider for coordinate sets')
     register('coordset slider', desc, coordset_slider, logger=session.logger)
@@ -176,7 +176,7 @@ def absolute_index_range(index_range, mol):
 class CoordinateSetPlayer:
 
   def __init__(self, structure, istart, iend, istep,
-               steady_atoms = None, pause = 1, loop = 1, compute_ss = False):
+               steady_atoms = None, pause_frames = 1, loop = 1, compute_ss = False):
 
     self.structure = structure
     self.istart = istart
@@ -184,7 +184,7 @@ class CoordinateSetPlayer:
     self.istep = istep
     self.inext = None
     self.steady_atoms = steady_atoms
-    self.pause = pause
+    self.pause_frames = pause_frames
     self.loop = loop
     self.compute_ss = compute_ss
     self._pause_count = 0
@@ -214,7 +214,7 @@ class CoordinateSetPlayer:
       self.stop()
       return
     pc = self._pause_count
-    self._pause_count = (pc + 1) % self.pause
+    self._pause_count = (pc + 1) % self.pause_frames
     if pc > 0:
       return
     i = self.inext
