@@ -453,8 +453,16 @@ class SelectToggleMouseMode(SelectMouseMode):
 
 def mouse_select(event, mode, session, view):
     x,y = event.position()
-    pick = view.first_intercept(x,y,exclude=unpickable)
+    pick = picked_object(x, y, view)
     select_pick(session, pick, mode)
+
+def picked_object(x, y, view):
+    p = view.first_intercept(x, y, exclude=unpickable)
+    if p and getattr(p, 'pick_through', False) and p.distance is not None:
+        p2 = view.first_intercept(x, y, exclude=unpickable, beyond=p.distance)
+        if p2:
+            return p2
+    return p
 
 def unpickable(drawing):
     return not getattr(drawing, 'pickable', True)
@@ -677,7 +685,7 @@ class ObjectIdMouseMode(MouseMode):
             return
         
         x,y = position
-        p = self.view.first_intercept(x,y,exclude=unpickable)
+        p = picked_object(x, y, self.view)
 
         # Show atom spec balloon
         pu = self.session.ui.main_window.graphics_window.popup
@@ -706,7 +714,7 @@ class AtomCenterOfRotationMode(MouseMode):
         MouseMode.mouse_down(self, event)
         x,y = event.position()
         view = self.session.main_view
-        pick = view.first_intercept(x,y,exclude=unpickable)
+        pick = picked_object(x, y, view)
         if hasattr(pick, 'atom'):
             from chimerax.core.commands import cofr
             xyz = pick.atom.scene_coord

@@ -696,17 +696,21 @@ class View:
                                  exclude=lambda d: hasattr(d, 'no_cofr') and d.no_cofr)
         return p.position if p else None
 
-    def first_intercept(self, win_x, win_y, exclude=None):
+    def first_intercept(self, win_x, win_y, exclude=None, beyond = None):
         '''
         Return a Pick object for the front-most object below the given
         screen window position (specified in pixels).  This Pick object will
         have an attribute position giving the point where the intercept occurs.
         This is used when hovering the mouse over an object (e.g. an atom)
-        to get a description of that object.
+        to get a description of that object.  Beyond is minimum distance
+        as fraction from front to rear clip plane.
         '''
         xyz1, xyz2 = self.clip_plane_points(win_x, win_y)
         if xyz1 is None or xyz2 is None:
             return None
+        if beyond is not None:
+            f = beyond + 1e-5
+            xyz1 = (1-f)*xyz1 + f*xyz2
         p = self.drawing.first_intercept(xyz1, xyz2, exclude=exclude)
         if p is None:
             return None

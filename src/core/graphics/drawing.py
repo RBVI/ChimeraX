@@ -1650,6 +1650,17 @@ class TrianglePick(Pick):
         pmask[c] = s
         d.selected_positions = pmask
 
+    def is_transparent(self):
+        d = self.drawing()
+        vc = d.vertex_colors
+        if vc is None:
+            return d.color[3] < 255
+        t = self.triangle_num
+        for v in d.triangles[t]:
+            if vc[v,3] < 255:
+                return True
+        return False
+
 class TrianglesPick(Pick):
     '''
     Picked triangles of a drawing.
