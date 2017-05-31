@@ -44,6 +44,7 @@ See also:
 Several subcommands of <b>info</b> specify sending information
 to the <a href="../tools/log.html"><b>Log</b></a>
 or to &ldquo;client&rdquo; programs:
+</p>
 <ul>
 <li><a href="#atoms"><b>atoms</b></a>
 <li><a href="#residues"><b>residues</b></a>
@@ -57,6 +58,9 @@ or to &ldquo;client&rdquo; programs:
 <li><b><a href="#notify">notify</a>
 (&nbsp;start&nbsp;|&nbsp;suspend&nbsp;|&nbsp;resume&nbsp;|&nbsp;stop&nbsp;)</b>
 </ul>
+<p>
+Some of these subcommands also report <b>id</b>,
+which is a unique identifier but not an attribute.
 </p>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -80,6 +84,8 @@ is reported for the residues containing the specified atoms.
 If <b>attribute</b> is given, values of <i>attribute-name</i> are reported instead.
 Residue attribute names can be listed with 
 <a href="#resattr"><b>info resattr</b></a>.
+The reported <b>index</b> is not an attribute, but simply the 
+index of a residue within its chain, starting with 0.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -124,21 +130,15 @@ values shown in the default report, without truncation.
 <a href="#top" class="nounder">&bull;</a>
 <a name="selection"><b>info selection</b></a>
 [&nbsp;<b>level</b>&nbsp;&nbsp;<i>level</i>&nbsp;]
-[&nbsp;<b>mode</b>&nbsp;&nbsp;<b>any</b>&nbsp;|&nbsp;all&nbsp;]
 [&nbsp;<b>attribute</b>&nbsp;<i>attribute-name</i>&nbsp;]
 <blockquote>
 Report attribute values for items that are currently
 <a href="../selection.html">selected</a>.
 The <i>level</i> of reporting can be
-<b>atom</b> (default), <b>residue</b>, <b>chain</b>, <b>molecule</b>,
-or <b>model</b>. If the <b>mode</b> is <b>any</b> (default),
-items with any selected parts are included;
-if <b>all</b>, only items with all parts selected are included.
-For example, with <b>any</b> a residue of five atoms will be included 
-if any of the five atoms are selected; with <b>all</b>,
-all five atoms must be selected for the residue to be included.
-if <b>attribute</b> is given, values are reported for <i>attribute-name</i> 
-instead of the default attributes.
+<b>atom</b> (default), <b>residue</b>, <b>chain</b>, <b>structure</b>
+(atomic model), or <b>model</b> (any type of model).
+If <b>attribute</b> is given, values are reported for <i>attribute-name</i> 
+instead of the default attribute for the level.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
