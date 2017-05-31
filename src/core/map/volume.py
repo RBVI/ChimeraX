@@ -2943,7 +2943,7 @@ def volume_list(session):
 
 # -----------------------------------------------------------------------------
 #
-def open_map(session, stream, *args, **kw):
+def open_map(session, stream, name = None, format = None, **kw):
     '''
     Open a density map file having any of the known density map formats.
     '''
@@ -2956,7 +2956,7 @@ def open_map(session, stream, *args, **kw):
     name = basename(map_path if isinstance(map_path, str) else map_path[0])
 
     from . import data
-    grids = data.open_file(map_path)
+    grids = data.open_file(map_path, file_type = format)
 
     if grids and isinstance(grids[0], (tuple, list)):
       # handle multiple channels.
@@ -3098,8 +3098,10 @@ def register_map_file_formats(session):
     for d,t,nicknames,suffixes,batch in file_types:
       suf = tuple('.' + s for s in suffixes)
       save_func = save_map if d in fwriters else None
+      def open_map_format(session, stream, name = None, format = t, **kw):
+        return open_map(session, stream, name=name, format=format, **kw)
       io.register_format(d, toolshed.VOLUME, suf, nicknames=nicknames,
-                         open_func=open_map, batch=True, export_func=save_func)
+                         open_func=open_map_format, batch=True, export_func=save_func)
 
     # Add map specific keywords to open command
     from ..commands import add_keyword_arguments, BoolArg

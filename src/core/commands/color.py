@@ -14,7 +14,7 @@
 _SpecialColors = ["byatom", "byelement", "byhetero", "bychain", "bypolymer", "bymodel",
                   "fromatoms", "random"]
 
-_SequentialLevels = ["residues", "chains", "polymers", "molmodels"]
+_SequentialLevels = ["residues", "chains", "polymers", "structures"]
 # More possible sequential levels: "helix", "helices", "strands", "SSEs", "volmodels", "allmodels"
 
 def color(session, objects, color=None, what=None,
@@ -38,7 +38,7 @@ def color(session, objects, color=None, what=None,
       Everything is colored if no target is specified.
     transparency : float
       Percent transparency to use.  If not specified current transparency is preserved.
-    sequential : "residues", "chains", "polymers", "molmodels"
+    sequential : "residues", "chains", "polymers", "structures"
       Assigns each object a color from a color map.
     palette : :class:`.Colormap`
       Color map to use with sequential coloring.
@@ -429,7 +429,7 @@ _SequentialColor = {
     "polymers": _set_sequential_polymer,
     "chains": _set_sequential_chain,
     "residues": _set_sequential_residue,
-    "molmodels": _set_sequential_structures,
+    "structures": _set_sequential_structures,
 }
 
 # -----------------------------------------------------------------------------

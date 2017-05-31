@@ -290,15 +290,15 @@ find_helices(KsdsspParams& params)
 		int helix_type = 0;
 		int helix_flags = 0;
 		bool acc_only = false;
-		if (flags & (DSSP_3HELIX)) {
+		if (flags & DSSP_3HELIX) {
 			helix_type = 3; // 3-10
 			helix_flags = DSSP_3ACCEPTOR | DSSP_3DONOR | DSSP_3GAP;
-			acc_only = !((flags & DSSP_3DONOR) | (flags & DSSP_3GAP));
+			acc_only = !(flags & DSSP_3DONOR);
 		} else if (flags & (DSSP_4HELIX | DSSP_5HELIX)) {
 			helix_type = 4; // alpha
 			helix_flags = DSSP_4ACCEPTOR | DSSP_4DONOR | DSSP_4GAP
 				| DSSP_5ACCEPTOR | DSSP_5DONOR | DSSP_5GAP;
-			acc_only = (flags & DSSP_4ACCEPTOR) && !((flags & DSSP_4DONOR) | (flags & DSSP_4GAP));
+			acc_only = (flags & DSSP_4ACCEPTOR) && !(flags & DSSP_4DONOR);
 		}
 		if (helix_type && (flags & helix_flags)) {
 			if (first < 0) {

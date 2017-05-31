@@ -430,7 +430,9 @@ class IHMModel(Model):
         # Add sphere models to group
         gmodel = {id:g for g in group_models for id in g.ihm_model_ids}
         for sm in smodels:
-            gmodel[sm.ihm_model_id].add([sm])
+            g = gmodel[sm.ihm_model_id]
+            g.add([sm])
+            sm.ihm_group_id = g.group_id
 
         # Undisplay all but first sphere model in each group
         gfound = set()
@@ -453,25 +455,33 @@ class IHMModel(Model):
                 if finfo is None:
                     continue
                 fname = finfo.file_name
-                if not fname.endswith('.pdb') and not fname.endswith('.pdb.gz'):
-                    continue
-                fstream = finfo.stream(self.session, uncompress = True)
-                if fstream is None:
-                    continue
-                from chimerax.core.atomic.pdb import open_pdb
-                mlist,msg = open_pdb(self.session, fstream, mname,
-                                     auto_style = False, coordset = True)
-                sm = mlist[0]
+                if fname.endswith('.dcd'):
+                    gsm = [sm for sm in smodels if sm.ihm_group_id == gid]
+                    if len(gsm) != 1:
+                        continue  # Don't have exactly one sphere model for this group id
+                    sm = gsm[0].copy(name = mname)
+                    dcd_path = finfo.path(self.session)
+                    from chimerax.md_crds.read_coords import read_coords
+                    read_coords(self.session, dcd_path, sm, format_name = 'DCD coordinates', replace=True)
+                    sm.active_coordset_id = 1
+                elif fname.endswith('.pdb') or fname.endswith('.pdb.gz'):
+                    fstream = finfo.stream(self.session, uncompress = True)
+                    if fstream is None:
+                        continue
+                    from chimerax.core.atomic.pdb import open_pdb
+                    mlist,msg = open_pdb(self.session, fstream, mname,
+                                         auto_style = False, coordsets = True)
+                    sm = mlist[0]
+                    path = fstream.name if hasattr(fstream, 'name') else None
+                    if path and isfile(path + '.crd'):
+                        from .coordsets import read_coordinate_sets
+                        read_coordinate_sets(path + '.crd', sm)
                 sm.display = False
+                sm.name += ' %d models' % sm.num_coord_sets
                 sm.ss_assigned = True	# Don't assign secondary structure to sphere model
                 atoms = sm.atoms
                 from chimerax.core.atomic.colors import chain_colors
                 atoms.colors = chain_colors(atoms.residues.chain_ids)
-                path = fstream.name if hasattr(fstream, 'name') else None
-                if path and isfile(path + '.crd'):
-                    from .coordsets import read_coordinate_sets
-                    read_coordinate_sets(path + '.crd', sm)
-                sm.name += ' %d models' % sm.num_coord_sets
                 gmodel[gid].add([sm])
                 emodels.append(sm)
 
@@ -673,7 +683,7 @@ class IHMModel(Model):
                 finfo = self.file_info(file_id)
                 if finfo is None:
                     continue
-                map_path = finfo.map_path(self.session)
+                map_path = finfo.path(self.session)
                 if map_path is None:
                     # TODO: Warn map file not found.
                     continue
@@ -832,19 +842,29 @@ class FileInfo:
 
     # -----------------------------------------------------------------------------
     #
-    def map_path(self, session):
-        from os.path import join, isfile
-        image_path = join(self.ihm_dir, self.file_path)
-        if not isfile(image_path):
-            r = self.ref
-            if r and r.ref_type == 'DOI':
+    def path(self, session):
+        if self.file_path:
+            from os.path import join, isfile
+            path = join(self.ihm_dir, self.file_path)
+            if isfile(path):
+                return path
+            
+        r = self.ref
+        if r and r.ref_type == 'DOI':
+            if r.content == 'Archive':
                 from .doi_fetch import unzip_archive
                 unzip_archive(session, r.ref, r.url, self.ihm_dir)
-                if not isfile(image_path):
+                if not isfile(path):
                     session.logger.warning('Failed to find map file in zip archive DOI "%s", url "%s", path "%s"'
-                                           % (r.ref, r.url, image_path))
-                    image_path = None
-        return image_path
+                                           % (r.ref, r.url, path))
+                    path = None
+            elif r.content == 'File':
+                from .doi_fetch import fetch_doi
+                path = fetch_doi(session, r.ref, r.url)
+            else:
+                path = None
+
+        return path
 
 # -----------------------------------------------------------------------------
 #
@@ -870,12 +890,10 @@ class DataSet:
 #
 class FileDataSet(DataSet):
     def __init__(self, file_info):
-        from os.path import basename
-        name = basename(file_info.file_path)
-        DataSet.__init__(self, name)
+        DataSet.__init__(self, file_info.file_name)
         self.file_info = file_info
     def models(self, session):
-                # TODO: use data set instead of file_id.
+        # TODO: use data set instead of file_id.
         finfo = self.file_info
         open_model = atomic_model_reader(finfo.file_path)
         if open_model:
@@ -888,7 +906,7 @@ class FileDataSet(DataSet):
     def volume_model(self, session):
         finfo = self.file_info
         filename = finfo.file_name
-        image_path = finfo.map_path(session)
+        image_path = finfo.path(session)
         if image_path:
             from chimerax.core.map.volume import open_map
             from chimerax.core.map.data import Unknown_File_Type
@@ -1341,6 +1359,8 @@ class SphereModel(Structure):
     def __init__(self, session, name, ihm_model_id, sphere_list):
         Structure.__init__(self, session, name = name, auto_style = False)
         self.ihm_model_id = ihm_model_id
+        self.ihm_group_id = None
+        
         self._asym_models = {}
         self._sphere_atom = sa = {}	# (asym_id, res_num) -> sphere atom
         
@@ -1361,5 +1381,15 @@ class SphereModel(Structure):
                 sa[(asym_id,s)] = a
         self.new_atoms()
 
+    def copy(self, name = None):
+        # Copy only the Structure, not the SphereModel
+        if name is None:
+            name = self.name
+        from chimerax.core.atomic.molobject import StructureData
+        m = Structure(self.session, name = name, c_pointer = StructureData._copy(self),
+                           auto_style = False, log_info = False)
+        m.positions = self.positions
+        return m
+    
     def residue_sphere(self, asym_id, res_num):
         return self._sphere_atom.get((asym_id,res_num))

@@ -273,7 +273,7 @@ def zone_mask(grid_data, zone_points, zone_radius,
     xsize, ysize, zsize = grid_data.size
     grid_points = grid_indices((xsize,ysize,1), floatc)
     grid_data.ijk_to_xyz_transform.move(grid_points)
-    zstep = [grid_data.ijk_to_xyz_transform[a][2] for a in range(3)]
+    zstep = [grid_data.ijk_to_xyz_transform.matrix[a][2] for a in range(3)]
     for z in range(zsize):
       i1, i2, n1 = find_closest_points(grid_points, zone_points, zone_radius)
       offset = xsize*ysize*z

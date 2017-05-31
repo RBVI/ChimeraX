@@ -82,7 +82,6 @@ def fetch_mmcif(session, pdb_id, fetch_source="rcsb", ignore_cache=False, **kw):
             raise UserError('unrecognized mmCIF/PDB source "%s"' % fetch_source)
         url = base_url % pdb_id
         pdb_name = "%s.cif" % pdb_id
-        session.logger.status("Fetching mmCIF %s from %s" % (pdb_id, url))
         from ..fetch import fetch_file
         filename = fetch_file(session, url, 'mmCIF %s' % pdb_id, pdb_name, 'PDB',
                               ignore_cache=ignore_cache)
@@ -96,6 +95,7 @@ def fetch_mmcif(session, pdb_id, fetch_source="rcsb", ignore_cache=False, **kw):
                 os.remove(filename)
                 raise UserError("Invalid mmCIF identifier")
 
+    session.logger.status("Opening mmCIF %s" % (pdb_id,))
     from .. import io
     models, status = io.open_data(session, filename, format='mmcif', name=pdb_id, **kw)
     return models, status
