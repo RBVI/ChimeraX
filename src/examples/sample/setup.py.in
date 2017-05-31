@@ -101,5 +101,7 @@ setup(
         "ChimeraX :: Bundle :: General :: 1,1 :: PKG_NAME :: chimerax.sample :: ",
         "ChimeraX :: Tool :: Sample Tool :: General :: Log model atom and bond counts",
         "ChimeraX :: Command :: sample count :: General :: Log model atom and bond counts",
+        "ChimeraX :: DataFormat :: XYZ :: :: Molecule structure :: .xyz :: :: :: :: :: XYZ format :: utf-8",
+        "ChimeraX :: Open :: XYZ :: XYZ ::",
     ] + environments,
 )

@@ -146,7 +146,7 @@ info_atoms_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg, EmptyArg))],
                           synopsis="Report atom information")
 
 
-def info_selection(session, level=None, mode=None, attribute=None):
+def info_selection(session, level=None, attribute=None):
     if level is None or level == "atom":
         if attribute is None:
             attribute = "idatm_type"
@@ -170,7 +170,7 @@ def info_selection(session, level=None, mode=None, attribute=None):
             from chimerax.core.atomic.molarray import concatenate
             chains = concatenate([a.unique_chains for a in atoms])
             report_chains(session.logger, chains, attribute)
-    elif level == "molecule" or level == "structure":
+    elif level == "structure":
         if attribute is None:
             attribute = "name"
         atoms = session.selection.items("atoms")
@@ -185,10 +185,8 @@ def info_selection(session, level=None, mode=None, attribute=None):
 info_selection_desc = CmdDesc(keyword=[("level", EnumOf(["atom",
                                                          "residue",
                                                          "chain",
-                                                         "molecule",
                                                          "structure",
                                                          "model"])),
-                                       ("mode", EnumOf(["any", "all"])),
                                        ("attribute", StringArg),],
                               synopsis="Report selection information")
 

@@ -117,11 +117,15 @@ All other contents of the bundle should be in ``src``.
     singleton, which must conform to the `bundle API`.
 
     **cmd.py** contains code called by ``bundle_api``
-    from **__init__.py** for executing commands.
+    from **__init__.py** for executing the ``sample``
+    command.
+
+    **io.py** contains code called by ``bundle_api``
+    from **__init__.py** for opening XYZ files.
 
     **tool.py** contains code called by ``bundle_api``
-    from **__init__.py** for starting tools (graphical
-    interfaces).
+    from **__init__.py** for starting the graphical
+    interface.
 
     **_sample.cpp** contains sample C++ code that
     compiles into a Python module that defines two
@@ -455,16 +459,15 @@ data formats, and selectors.
     can fetch, open or save data in that format.
 
         ``ChimeraX`` :: ``Open`` :: *format_name* :: *tag* :: *is_default* :: *extra_keywords*
+
         ``ChimeraX`` :: ``Save`` :: *format_name* :: *tag* :: *is_default* :: *extra_keywords*
+
         ``ChimeraX`` :: ``Fetch`` :: *database_name* :: *format_name* :: *prefixes* :: *example_id* :: *is_default*
 
     - *format_name* is a format previously given in a ChimeraX :: DataFormat
       line.
-    - *database_name* is a string with the name of the databasea to fetch
-      the data from.
     - *prefixes* is a comma-separated list of strings associated with the
       (database_name, format_name).
-    - *example_id* is a string with an example identifier.
     - *tag* is a string is disambiguate multiple readers or writers.
     - *is_default* is a string.  If set to ``true``, this format is
       the default format for the database.
@@ -473,6 +476,9 @@ data formats, and selectors.
       ChimeraX argument type without the Arg suffix.  If the argument type
       isn't found in the ``chimerax.commands`` module, the bundle API class is
       searched for it.
+    - *database_name* is a string with the name of the databasea to fetch
+      the data from.
+    - *example_id* is a string with an example identifier.
 
     For example::
     
