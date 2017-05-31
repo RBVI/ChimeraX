@@ -719,7 +719,6 @@ class HandControllerModel(Model):
         self._icons_aspect = aspect = h/w if w > 0 else 1
         pos = (-s, 0)	# Cone tip is at 0,0
         size = (2*s, 2*s*aspect)
-        self.session.main_view.render.make_current() # Need to make texture in rgba_drawing()
         rgba_drawing(d, rgba, pos, size)
         from chimerax.core.geometry import rotation
         d.vertices = rotation(axis = (1,0,0), angle = -90) * d.vertices

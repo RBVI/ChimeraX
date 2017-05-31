@@ -1752,19 +1752,18 @@ class Texture:
     type GL_UNSIGNED_BYTE or GL_FLOAT is created.  Clamp to edge mode
     and nearest interpolation is set.  The c = 2 mode uses the second
     component as alpha and the first componet for red, green, blue.
+    The OpenGL texture is only created when the bind_texture() method
+    is called.  A reference to the array data is held until the OpenGL
+    texture is created.
     '''
     def __init__(self, data=None, dimension=2, cube_map=False):
 
+        self.data = data
         self.id = None
         self.dimension = dimension
         self.gl_target = (GL.GL_TEXTURE_CUBE_MAP if cube_map else
                           (GL.GL_TEXTURE_1D, GL.GL_TEXTURE_2D, GL.GL_TEXTURE_3D)[dimension - 1])
         self.is_cubemap = cube_map
-
-        if data is not None:
-            size = tuple(data.shape[dimension - 1::-1])
-            format, iformat, tdtype, ncomp = self.texture_format(data)
-            self.initialize_texture(size, format, iformat, tdtype, ncomp, data)
 
     def initialize_rgba(self, size):
 
@@ -1864,6 +1863,9 @@ class Texture:
 
     def bind_texture(self, tex_unit=None):
         'Bind the OpenGL texture.'
+        data = self.data
+        if self.data is not None:
+            self.fill_opengl_texture()
         if tex_unit is None:
             GL.glBindTexture(self.gl_target, self.id)
         else:
@@ -1880,7 +1882,27 @@ class Texture:
             GL.glBindTexture(self.gl_target, 0)
             GL.glActiveTexture(GL.GL_TEXTURE0)
 
-    def reload_texture(self, data):
+    def reload_texture(self, data, now = False):
+        '''
+        Replace the texture values in texture with OpenGL id using numpy
+        array data.  The data is interpreted the same as for the Texture
+        constructor data argument.
+        '''
+        self.data = data
+        if now:
+            self.fill_opengl_texture()
+
+    def fill_opengl_texture(self):
+        data = self.data
+        self.data = None
+        if self.id is None:
+            size = tuple(data.shape[self.dimension - 1::-1])
+            format, iformat, tdtype, ncomp = self.texture_format(data)
+            self.initialize_texture(size, format, iformat, tdtype, ncomp, data)
+        else:
+            self._fill_texture(data)
+        
+    def _fill_texture(self, data):
         '''
         Replace the texture values in texture with OpenGL id using numpy
         array data.  The data is interpreted the same as for the Texture

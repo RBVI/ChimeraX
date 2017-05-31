@@ -59,7 +59,6 @@ class CrossFade(Drawing):
         self.frame = f
         alpha = int(255 * (n - f) / n)
         self.rgba[:, :, 3] = alpha
-        view.render.make_current()
         self.texture.reload_texture(self.rgba)
         self.redraw_needed()
 
