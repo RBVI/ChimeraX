@@ -162,6 +162,7 @@ class ToolUI(ToolInstance):
 
     def _load_pdb(self, code):
         from chimerax.core.commands import run
+        from chimerax.core.atomic import AtomicStructure
         parts = code.split("_", 1)
         if len(parts) == 1:
             pdb_id = parts[0]
@@ -169,6 +170,8 @@ class ToolUI(ToolInstance):
         else:
             pdb_id, chain_id = parts
         models = run(self.session, "open pdb:%s" % pdb_id)[0]
+        if isinstance(models, AtomicStructure):
+            models = [models]
         if not self.ref_atomspec:
             run(self.session, "select clear")
         for m in models:
