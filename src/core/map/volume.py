@@ -1134,7 +1134,7 @@ class Volume(Model):
       detail = d.name
       p = PickedMap(self, pd.distance, detail)
       p.triangle_pick = pd
-      if hasattr(pd, 'is_transparent') and pd.is_transparent():
+      if d.display_style == d.Mesh or hasattr(pd, 'is_transparent') and pd.is_transparent():
         # Try picking opaque object under transparent map
         p.pick_through = True
     else:
