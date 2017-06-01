@@ -1191,7 +1191,7 @@ ExtractMolecule::parse_atom_site()
                 if (residue_name != "HOH") {
                     auto& entity_poly_seq = poly_seq[entity_id];
                     PolySeq p(position, residue_name, false);
-                    auto& pit = entity_poly_seq.equal_range(p);
+                    auto pit = entity_poly_seq.equal_range(p);
                     bool found = false;
                     for (auto& i = pit.first; i != pit.second; ++i) {
                         auto& p2 = *i;
