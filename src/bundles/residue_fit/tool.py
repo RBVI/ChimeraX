@@ -37,7 +37,8 @@ class ResidueFit(Slider):
 
         title = 'Residue fit %s chain %s %d-%d' % (s.name, cid, rmin, rmax)
         Slider.__init__(self, session, tool_name, 'Residue', title, value_range = (rmin,rmax),
-                        pause_frames = pause_frames, pause_when_recording = (motion_frames == 0),
+                        pause_frames = max(pause_frames, motion_frames+1),
+                        pause_when_recording = (motion_frames <= 1),
                         movie_filename = 'resfit.mp4', movie_framerate = movie_framerate)
 
         from chimerax.core.models import REMOVE_MODELS
@@ -115,12 +116,15 @@ def show_residue_fit(session, residues, map, range = 2, last_pos = None, motion_
         return None		# Missing backbone atom
     xyz = ratoms.filter(i).scene_coords
 
+    # Align backbone to template backbone coords
     from chimerax.core.geometry import align_points, Place
     from numpy import array
-    # Template backbone atom coords and camera view
     txyz = array([[ 12.83300018,   6.83900023,   6.73799992],
                   [ 12.80800056,   7.87400055,   5.70799971],
                   [ 11.91800022,   9.06700039,   5.9920001 ]])
+    p, rms = align_points(txyz, xyz)
+
+    # Set camera view relative to template.
     c = session.main_view.camera
     cp = c.position
     if last_pos is None:
@@ -130,14 +134,14 @@ def show_residue_fit(session, residues, map, range = 2, last_pos = None, motion_
     else:
         # Maintain same relative camera position to backbone.
         tc = last_pos.inverse() * cp
-    p, rms = align_points(txyz, xyz)
 
     # Smooth interpolation
     np = p*tc
     if motion_frames > 1:
         def interpolate_camera(session, f, cp=cp, np=np, center=np.inverse()*xyz[1], frames=motion_frames):
             c = session.main_view.camera
-            c.position = cp.interpolate(np, center, frac = (f+1)/frames)
+            p = np if f+1 == frames else cp.interpolate(np, center, frac = (f+1)/frames)
+            c.position = p
         from chimerax.core.commands import motion
         motion.CallForNFrames(interpolate_camera, motion_frames, session)
     else:
