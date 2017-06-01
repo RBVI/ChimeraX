@@ -60,6 +60,7 @@ class ATOMSTRUCT_IMEX Atom {
 public:
     // HIDE_ constants are masks for hide bits
     static const unsigned int  HIDE_RIBBON = 0x1;
+    static const unsigned int  HIDE_ISOLDE = 0x2;
 
     typedef std::vector<Bond*> Bonds;
     enum class DrawMode: unsigned char { Sphere, EndCap, Ball };
