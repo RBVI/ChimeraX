@@ -629,7 +629,7 @@ ExtractMolecule::finished_parse()
     // Connect residues in entity_poly_seq.
     // Because some positions are heterogeneous, delay connecting
     // until next group of residues is found.
-    for (auto&& chain: all_residues) {
+    for (auto& chain: all_residues) {
         ResidueMap& residue_map = chain.second;
         auto ri = residue_map.begin();
         const string& entity_id = ri->first.entity_id;
@@ -662,10 +662,10 @@ ExtractMolecule::finished_parse()
                 else
                     c_id = auth_chain_id;
                 if (lastp->hetero)
-                    logger::warning(_logger, "Ignoring microheterogeneity for seq_id ",
+                    logger::warning(_logger, "Ignoring microheterogeneity for label_seq_id ",
                                     p.seq_id, " in chain ", c_id);
                 else
-                    logger::warning(_logger, "Skipping residue with duplicate seq_id ",
+                    logger::warning(_logger, "Skipping residue with duplicate label_seq_id ",
                                     p.seq_id, " in chain ", c_id);
                 residue_map.erase(ri);
                 mol->delete_residue(r);
@@ -1188,8 +1188,21 @@ ExtractMolecule::parse_atom_site()
                 if (entity_id.empty())
                     entity_id = cid.c_str();
                 // TODO: should only save amino and nucleic acids
-                if (residue_name != "HOH")
-                    poly_seq[entity_id].emplace(position, residue_name, false);
+                if (residue_name != "HOH") {
+                    auto& entity_poly_seq = poly_seq[entity_id];
+                    PolySeq p(position, residue_name, false);
+                    auto& pit = entity_poly_seq.equal_range(p);
+                    bool found = false;
+                    for (auto& i = pit.first; i != pit.second; ++i) {
+                        auto& p2 = *i;
+                        if (p2.mon_id == p.mon_id) {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found)
+                        entity_poly_seq.emplace(p);
+                }
             }
             chain_entity_map[chain_id] = entity_id;
             if (model_num == first_model_num) {
@@ -1649,7 +1662,7 @@ ExtractMolecule::parse_struct_conf()
         if (init_ps == entity_poly_seq.end()) {
         // TODO: || end_ps == entity_poly_seq.end()) {
             logger::warning(_logger,
-                            "Bad residue range for secondary strcture \"", id,
+                            "Bad residue range for secondary structure \"", id,
                             "\" near line ", line_number());
             continue;
         }
