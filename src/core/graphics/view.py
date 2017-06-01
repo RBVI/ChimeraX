@@ -484,7 +484,7 @@ class View:
     def _use_shadow_map(self, light_direction, drawings):
 
         # Compute drawing bounds so shadow map can cover all drawings.
-        center, radius, bdrawings = _drawing_bounds(drawings, self.drawing)
+        center, radius, bdrawings = _drawing_bounds(drawings, self)
         if center is None or radius == 0:
             return None
 
@@ -534,7 +534,7 @@ class View:
             return self._multishadow_transforms, self._multishadow_depth
 
         # Compute drawing bounds so shadow map can cover all drawings.
-        center, radius, bdrawings = _drawing_bounds(drawings, self.drawing)
+        center, radius, bdrawings = _drawing_bounds(drawings, self)
         if center is None or radius == 0:
             return None, None
 
@@ -1020,10 +1020,10 @@ class _RedrawNeeded:
             self.cached_any_part_selected = None
 
 
-def _drawing_bounds(drawings, open_drawing):
+def _drawing_bounds(drawings, view):
     if drawings is None:
-        b = open_drawing.bounds()
-        bdrawings = [open_drawing]
+        b = view.drawing_bounds()
+        bdrawings = [view.drawing]
     else:
         from ..geometry import bounds
         b = bounds.union_bounds(d.bounds() for d in drawings)
