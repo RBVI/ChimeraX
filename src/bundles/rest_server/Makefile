@@ -44,7 +44,7 @@ wheel $(WHEEL): setup.py $(PYSRCS) $(DATAFILES)
 
 install app-install: $(WHEEL)
 	$(CHIMERAX_EXE) --nogui --cmd "toolshed uninstall $(BASE_BNDL_NAME); exit"
-	$(CHIMERAX_EXE) --nogui --cmd "toolshed install $(WHEEL); exit"
+	$(CHIMERAX_EXE) --nogui --cmd "toolshed install $(WHEEL) user false; exit"
 
 test:
 	$(CHIMERAX_EXE)
