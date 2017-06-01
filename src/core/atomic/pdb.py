@@ -49,10 +49,11 @@ def open_pdb(session, filename, name, auto_style=True, coordsets=False):
         for m in models:
             num_cs += m.num_coord_sets
         info += " and %s coordinate sets" % num_cs
-        mc = [m for m in models if m.num_coord_sets > 1]
-        if mc:
-            from ..commands.coordset import coordset_slider
-            coordset_slider(session, mc)
+        if session.ui.is_gui:
+            mc = [m for m in models if m.num_coord_sets > 1]
+            if mc:
+                from ..commands.coordset import coordset_slider
+                coordset_slider(session, mc)
 
     return models, info
 

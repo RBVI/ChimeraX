@@ -147,7 +147,9 @@ class Atom(State):
         doc="Whether atom is hidden (overrides display).  Integer bitmask."
         "\n\nPossible values:\n\n"
         "HIDE_RIBBON\n"
-        "    Hide mask for backbone atoms in ribbon.")
+        "    Hide mask for backbone atoms in ribbon.\n"
+        "HIDE_ISOLDE\n"
+        "    Hide mask for backbone atoms for ISOLDE.")
     idatm_type = c_property('atom_idatm_type', string, doc = "IDATM type")
     in_chain = c_property('atom_in_chain', npy_bool, read_only = True,
         doc = "Whether this atom belongs to a polymer. Read only.")
@@ -363,6 +365,8 @@ class Bond(State):
     '''Displayed cylinder radius for the bond.'''
     HIDE_RIBBON = 0x1
     '''Hide mask for backbone bonds in ribbon.'''
+    HIDE_ISOLDE = 0x2
+    '''Hide mask for backbone bonds for ISOLDE.'''
     hide = c_property('bond_hide', int32)
     '''Whether bond is hidden (overrides display).  Integer bitmask.'''
     shown = c_property('bond_shown', npy_bool, read_only = True)

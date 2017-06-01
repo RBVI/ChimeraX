@@ -107,7 +107,8 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
         raise UserError(e)
     
     # Remember in file history
-    remember_file(session, filename, format, models or 'all models', open_options = kw)
+    rfmt = None if format is None else fmt.nicknames[0]
+    remember_file(session, filename, rfmt, models or 'all models', open_options = kw)
 
     return models
 
