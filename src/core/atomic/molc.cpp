@@ -3993,10 +3993,10 @@ extern "C" EXPORT int structure_connect(void *mol, PyObject* chain_starters,
             mod.insert(MolResId(r->chain_id(), r->position(), r->insertion_code()));
         }
         connect_structure(m, &starters, &enders, &atoms, &mod);
-        return m->num_bonds();
     } catch (...) {
         molc_error();
     }
+    return m->num_bonds();
 }
         
 
