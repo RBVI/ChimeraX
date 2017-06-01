@@ -49,7 +49,7 @@ wheel $(WHEEL): setup.py $(PYSRCS)
 	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel
 	rm -rf $(WHL_BNDL_NAME).egg-info
 
-app-install: $(WHEEL)
+install app-install: $(WHEEL)
 	$(CHIMERAX_EXE) --nogui --cmd "toolshed uninstall $(BASE_BNDL_NAME); exit"
 	$(CHIMERAX_EXE) --nogui --cmd "toolshed install $(WHEEL); exit"
 
