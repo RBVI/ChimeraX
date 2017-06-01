@@ -12,7 +12,8 @@
 # === UCSF ChimeraX Copyright ===
 
 def open(session, filename, format=None, name=None, from_database=None, ignore_cache=False, **kw):
-    '''Open a file.
+    '''Open a file.  Specific formats have additional keyword arguments using
+    commands.add_keyword_arguments().  These are listed with command "usage open".
 
     Parameters
     ----------
@@ -77,7 +78,7 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
             session.models.add_group(models)
         else:
             session.models.add(models)
-        remember_file(session, filename, format, models, database=from_database)
+        remember_file(session, filename, format, models, database=from_database, open_options = kw)
         session.logger.status(status, log=True)
         return models
 
@@ -106,7 +107,8 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
         raise UserError(e)
     
     # Remember in file history
-    remember_file(session, filename, format, models or 'all models')
+    rfmt = None if format is None else fmt.nicknames[0]
+    remember_file(session, filename, rfmt, models or 'all models', open_options = kw)
 
     return models
 
@@ -132,10 +134,15 @@ def open_formats(session):
     formats.sort(key = lambda f: f.name.lower())
     for f in formats:
         if session.ui.is_gui:
-            lines.append('<tr><td>%s<td>%s<td>%s' % (f.name,
-                commas(f.nicknames), ', '.join(f.extensions)))
+            from html import escape
+            if f.reference:
+                descrip = '<a href="%s">%s</a>' % (f.reference, escape(f.synopsis))
+            else:
+                descrip = escape(f.synopsis)
+            lines.append('<tr><td>%s<td>%s<td>%s' % (descrip,
+                escape(commas(f.nicknames)), escape(', '.join(f.extensions))))
         else:
-            session.logger.info('    %s: %s: %s' % (f.name,
+            session.logger.info('    %s: %s: %s' % (f.synopsis,
                 commas(f.nicknames), ', '.join(f.extensions)))
     if session.ui.is_gui:
         lines.append('</table>')
@@ -194,9 +201,6 @@ def register_command(session):
             ('name', StringArg),
             ('from_database', DynamicEnum(db_formats)),
             ('ignore_cache', BoolArg),
-            ('auto_style', BoolArg),
-            ('coordset', BoolArg),
-            ('vseries', BoolArg),
             # ('id', ModelIdArg),
         ],
         synopsis='read and display data')

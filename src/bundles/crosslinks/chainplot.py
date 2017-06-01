@@ -15,6 +15,8 @@
 #
 from chimerax.contacts.graph import Graph
 class CrosslinksPlot(Graph):
+
+    help = 'help:user/commands/crosslinks.html#network'
     
     def __init__(self, session, chains, crosslinks):
 
@@ -40,7 +42,7 @@ class CrosslinksPlot(Graph):
         add = lambda *args: self.add_menu_entry(menu, *args)
         if item:
             add('Select ' + item.description(), lambda i=item: i.select())
-        add('Layout matching structure', self.draw_graph)
+        add('Lay out to match structure', self.draw_graph)
 
 # ------------------------------------------------------------------------------
 #

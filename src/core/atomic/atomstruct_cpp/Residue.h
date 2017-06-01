@@ -26,6 +26,7 @@
 #include "session.h"
 #include "string_types.h"
 #include "ChangeTracker.h"
+#include "Real.h"
 #include "Rgba.h"
 
 namespace atomstruct {
@@ -41,6 +42,7 @@ public:
     typedef std::multimap<AtomName, Atom *>  AtomsMap;
     enum PolymerType { PT_NONE = 0, PT_AMINO = 1, PT_NUCLEIC = 2 };
     enum SSType { SS_COIL = 0, SS_HELIX = 1, SS_STRAND = 2 };
+    static constexpr Real TRACE_DISTSQ_CUTOFF = 45.0;
 private:
     friend class Structure;
     Residue(Structure *as, const ResName& name, const ChainID& chain, int pos, char insert);

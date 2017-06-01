@@ -12,7 +12,7 @@
 # -----------------------------------------------------------------------------
 # coordset command to play frames of a trajectory.
 #
-# Syntax: coordset <molecule-id>
+# Syntax: coordset <structure-id>
 #                  <start>[,<end>][,<step>]     # frame range
 #                  [holdSteady <atomSpec>]
 #
@@ -21,14 +21,14 @@
 # Can use -1 for last frame.  Frame numbers start at 1.
 #
 def coordset(session, structures, index_range, hold_steady = None,
-             pause = 1, loop = 1, compute_ss = False):
+             pause_frames = 1, loop = 1, compute_ss = False):
   '''
   Change which coordinate set is shown for a structure.  Can play through
   a range of coordinate sets.  
 
   Parameters
   ----------
-  structures : list of AtomicStructure
+  structures : list of Structure
     List of structures to show as assemblies.
   index_range : 3-tuple with integer or None elements
     Starting, ending and step coordinate set ids.  If starting id is None start with
@@ -40,7 +40,7 @@ def coordset(session, structures, index_range, hold_steady = None,
   hold_steady : Atoms
     Collection of atoms to hold steady while changing coordinate set.
     The atomic structure is repositioned to minimize change in RMSD of these atoms.
-  pause : integer
+  pause_frames : integer
      Stay at each coordset for this number of graphics frames.  This is to slow
      down playback.  Default 1.
   loop : integer
@@ -56,21 +56,60 @@ def coordset(session, structures, index_range, hold_steady = None,
   for m in structures:
     s,e,step = absolute_index_range(index_range, m)
     hold = hold_steady.intersect(m.atoms) if hold_steady else None
-    Coordinate_Set_Player(m, s, e, step, hold, pause, loop, compute_ss).start()
+    CoordinateSetPlayer(m, s, e, step, hold, pause_frames, loop, compute_ss).start()
+
+# -----------------------------------------------------------------------------
+#
+def coordset_slider(session, structures, hold_steady = None,
+                    pause_frames = 1, loop = 1, compute_ss = False):
+  '''
+  Show a slider that controls which coordinate set is shown.
+
+  Parameters
+  ----------
+  structures : List of Structure
+    Make a slider for each structure specified.
+  hold_steady : Atoms
+    Collection of atoms to hold steady while changing coordinate set.
+    The atomic structure is repositioned to minimize change in RMSD of these atoms.
+  pause_frames : integer
+     Stay at each coordset for this number of graphics frames when Play button used.
+     This is to slow down playback.  Default 1.
+  compute_ss : bool
+    Whether to recompute secondary structure using dssp for every new frame.  Default false.
+  '''
+
+  if len(structures) == 0:
+    from ..errors import UserError
+    raise UserError('No structures specified')
+
+  for m in structures:
+    hold = hold_steady.intersect(m.atoms) if hold_steady else None
+    from .coordset_gui import CoordinateSetSlider
+    CoordinateSetSlider(session, m, steady_atoms = hold,
+                        pause_frames = pause_frames, compute_ss = compute_ss)
 
 # -----------------------------------------------------------------------------
 #
 def register_command(session):
-    from . import CmdDesc, register, AtomicStructuresArg, ListOf, IntArg, AtomsArg, BoolArg
+    from . import CmdDesc, register, StructuresArg, ListOf, IntArg, AtomsArg, BoolArg
     desc = CmdDesc(
-        required = [('structures', AtomicStructuresArg),
+        required = [('structures', StructuresArg),
                     ('index_range', IndexRangeArg)],
         keyword = [('hold_steady', AtomsArg),
-                   ('pause', IntArg),
+                   ('pause_frames', IntArg),
                    ('loop', IntArg),
                    ('compute_ss', BoolArg)],
         synopsis = 'show coordinate sets')
     register('coordset', desc, coordset, logger=session.logger)
+
+    desc = CmdDesc(
+        required = [('structures', StructuresArg)],
+        keyword = [('hold_steady', AtomsArg),
+                   ('pause_frames', IntArg),
+                   ('compute_ss', BoolArg)],
+        synopsis = 'show slider for coordinate sets')
+    register('coordset slider', desc, coordset_slider, logger=session.logger)
 
 # -----------------------------------------------------------------------------
 #
@@ -134,18 +173,18 @@ def absolute_index_range(index_range, mol):
 
 # -----------------------------------------------------------------------------
 #
-class Coordinate_Set_Player:
+class CoordinateSetPlayer:
 
-  def __init__(self, molecule, istart, iend, istep,
-               steady_atoms = None, pause = 1, loop = 1, compute_ss = False):
+  def __init__(self, structure, istart, iend, istep,
+               steady_atoms = None, pause_frames = 1, loop = 1, compute_ss = False):
 
-    self.molecule = molecule
+    self.structure = structure
     self.istart = istart
     self.iend = iend
     self.istep = istep
     self.inext = None
     self.steady_atoms = steady_atoms
-    self.pause = pause
+    self.pause_frames = pause_frames
     self.loop = loop
     self.compute_ss = compute_ss
     self._pause_count = 0
@@ -156,32 +195,44 @@ class Coordinate_Set_Player:
   def start(self):
 
     self.inext = self.istart
-    t = self.molecule.session.triggers
+    t = self.structure.session.triggers
     self._handler = t.add_handler('new frame', self.frame_cb)
 
   def stop(self):
 
     if self._handler is None:
       return
-    t = self.molecule.session.triggers
+    t = self.structure.session.triggers
     t.remove_handler(self._handler)
     self._handler = None
     self.inext = None
 
   def frame_cb(self, tname, tdata):
 
-    m = self.molecule
+    m = self.structure
     if m.deleted:
       self.stop()
       return
     pc = self._pause_count
-    self._pause_count = (pc + 1) % self.pause
+    self._pause_count = (pc + 1) % self.pause_frames
     if pc > 0:
       return
     i = self.inext
+    self.change_coordset(i)
+    self.inext += self.istep
+    if ((self.istep > 0 and self.inext > self.iend) or
+        (self.istep < 0 and self.inext < self.iend)):
+      if self.loop <= 1:
+        self.stop()
+      else:
+        self.inext = self.istart
+        self.loop -= 1
+
+  def change_coordset(self, cs):
+    m = self.structure
     last_cs = m.active_coordset_id
     try:
-      m.active_coordset_id = i
+      m.active_coordset_id = cs
       compute_ss = self.compute_ss
     except:
       # No such coordset.
@@ -192,18 +243,10 @@ class Coordinate_Set_Player:
     else:
       if self.steady_atoms:
         self.hold_steady(last_cs)
-    self.inext += self.istep
-    if ((self.istep > 0 and self.inext > self.iend) or
-        (self.istep < 0 and self.inext < self.iend)):
-      if self.loop <= 1:
-        self.stop()
-      else:
-        self.inext = self.istart
-        self.loop -= 1
 
   def hold_steady(self, last_cs):
 
-    m = self.molecule
+    m = self.structure
     tf = self.steady_transform(last_cs).inverse() * self.steady_transform(m.active_coordset_id)
     m.position = m.position * tf
     
@@ -213,7 +256,7 @@ class Coordinate_Set_Player:
     if cset in tfc:
       return tfc[cset]
     atoms = self.steady_atoms
-    coords = coordset_coords(atoms, cset, self.molecule)
+    coords = coordset_coords(atoms, cset, self.structure)
     if self._steady_coords is None:
       self._steady_coords = coords
     from ..geometry import align_points
@@ -221,6 +264,8 @@ class Coordinate_Set_Player:
     tfc[cset] = tf
     return tf
 
+# -----------------------------------------------------------------------------
+#
 def coordset_coords(atoms, cset, structure):
   cs = structure.active_coordset_id
   if cset == cs:
@@ -230,4 +275,3 @@ def coordset_coords(atoms, cset, structure):
     xyz = atoms.coords
     structure.active_coordset_id = cs
   return xyz
-  

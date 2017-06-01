@@ -63,4 +63,4 @@ def register_seqalign_command(logger):
         required = [('chains', UniqueChainsArg)],
         synopsis = 'show structure chain sequence'
     )
-    register('seqalign chain', desc, seqalign_chain, logger=logger)
+    register('sequence chain', desc, seqalign_chain, logger=logger)

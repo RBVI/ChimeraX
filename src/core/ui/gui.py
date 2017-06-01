@@ -208,8 +208,11 @@ class UI(QApplication):
     def quit(self, confirm=True):
         # called by exit command
         self.already_quit = True
-        self.session.logger.status("Exiting ...", blank_after=0)
-        self.session.logger.clear()    # clear logging timers
+        ses = self.session
+        log = ses.logger
+        log.status("Exiting ...", blank_after=0)
+        log.clear()    # clear logging timers
+        ses.triggers.activate_trigger('app quit', None)
         self.closeAllWindows()
         QApplication.quit()
 

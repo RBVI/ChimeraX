@@ -173,6 +173,7 @@ class MolecularSurface(Model):
         self.normals = na
         self.triangles = ta
         self.triangle_mask = self._calc_triangle_mask()
+        self.update_selection()
 
     def _calc_triangle_mask(self):
         tmask = self._patch_display_mask(self.show_atoms)

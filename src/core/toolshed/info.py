@@ -241,7 +241,8 @@ class BundleInfo:
             format = io.register_format(
                 fi.name, fi.category, fi.suffixes, fi.nicknames,
                 mime=fi.mime_types, reference=fi.documentation_url,
-                dangerous=fi.dangerous, icon=fi.icon, encoding=fi.encoding
+                dangerous=fi.dangerous, icon=fi.icon, encoding=fi.encoding,
+                synopsis=fi.synopsis
             )
             if fi.has_open:
                 def open_cb(*args, format_name=fi.name, filespec=None, **kw):

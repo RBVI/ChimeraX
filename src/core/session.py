@@ -715,20 +715,32 @@ def save_x3d(session, filename, format, transparent_background=False):
         x3d_scene.write_footer(stream, 0)
 
 
-def _initialize():
+def register_session_format(session):
     from . import io, toolshed
     io.register_format(
         "ChimeraX session", toolshed.SESSION, SESSION_SUFFIX, ("session",),
         mime="application/x-chimerax-session",
         reference="http://www.rbvi.ucsf.edu/chimerax/",
         open_func=open, export_func=save)
+
+    from .commands import CmdDesc, register, SaveFileNameArg
+    desc = CmdDesc(
+        required=[('filename', SaveFileNameArg)],
+        synopsis='save session'
+    )
+    def save_session(session, filename, **kw):
+        kw['format'] = 'session'
+        from .commands.save import save
+        save(session, filename, **kw)
+    register('save session', desc, save_session, logger=session.logger)
+
+def register_x3d_format():
+    from . import io, toolshed
     io.register_format(
         "X3D", toolshed.GENERIC3D, ".x3d", "x3d",
         mime="model/x3d+xml",
         reference="http://www.web3d.org/standards",
         export_func=save_x3d)
-_initialize()
-
 
 def common_startup(sess):
     """Initialize session with common data containers"""
@@ -768,11 +780,12 @@ def common_startup(sess):
         logger=sess.logger
     )
 
-    _register_core_file_formats()
+    _register_core_file_formats(sess)
     _register_core_database_fetch()
 
 
-def _register_core_file_formats():
+def _register_core_file_formats(session):
+    register_session_format(session)
     from .atomic import pdb
     pdb.register_pdb_format()
     from .atomic import mmcif
@@ -780,14 +793,14 @@ def _register_core_file_formats():
     from . import scripting
     scripting.register()
     from . import map
-    map.register_map_file_formats()
+    map.register_map_file_formats(session)
     from .atomic import readpbonds
     readpbonds.register_pbonds_format()
     from .surface import collada
     collada.register_collada_format()
     from . import image
-    image.register_image_save()
-
+    image.register_image_save(session)
+    register_x3d_format()
 
 def _register_core_database_fetch():
     from .atomic import pdb

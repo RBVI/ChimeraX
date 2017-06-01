@@ -136,6 +136,7 @@ read_one_structure(std::pair<char *, PyObject *> (*read_func)(void *),
     unsigned char  let;
     ChainID  seqres_cur_chain;
     int         seqres_cur_count;
+    bool        dup_MODEL_numbers = false;
 #ifdef CLOCK_PROFILING
 clock_t     start_t, end_t;
 start_t = clock();
@@ -216,7 +217,7 @@ start_t = end_t;
         case PDB::TURN:
             break;
 
-          case PDB::MODEL: {
+        case PDB::MODEL: {
             cur_res_index = 0;
             if (in_model && !as->residues().empty())
                 cur_residue = as->residues()[0];
@@ -233,6 +234,10 @@ start_t = end_t;
             // set coordinate set name to model#
             int csid = record.model.serial;
             if (in_model > 1) {
+                if (in_model == 2 && csid == as->active_coord_set()->id())
+                    dup_MODEL_numbers = true;
+                if (dup_MODEL_numbers)
+                    csid = as->active_coord_set()->id() + in_model - 1;
                 // make additional CoordSets same size as others
                 int cs_size = as->active_coord_set()->coords().size();
                 if (!explode && csid > as->active_coord_set()->id() + 1) {
@@ -594,7 +599,18 @@ start_t = end_t;
             int num_to_read = rem < 13 ? rem : 13;
             seqres_cur_count += num_to_read;
             for (int i = 0; i < num_to_read; ++i) {
-                ResName res_name(record.seqres.res_name[i]);
+                auto rn = record.seqres.res_name[i];
+                // remove leading/trailing spaces
+                while (*rn == ' ') ++rn;
+                auto brn = rn;
+                while (*brn != '\0') {
+                    if (*brn == ' ' && (*brn == ' ' || *brn == '\0')) {
+                        *brn = '\0';
+                        break;
+                    }
+                    ++brn;
+                }
+                ResName res_name(rn);
                 as->extend_input_seq_info(chain_id, res_name);
             }
             if (as->input_seq_source.empty())

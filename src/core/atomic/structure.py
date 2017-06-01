@@ -433,6 +433,14 @@ class Structure(Model, StructureData):
         if ad:
             lod.set_atom_sphere_geometry(ad, total_atoms)
 
+    def _add_r2t(self, r, tr):
+        try:
+            ranges = self._ribbon_r2t[r]
+        except KeyError:
+            self._ribbon_r2t[r] = [tr]
+        else:
+            ranges.append(tr)
+
     def _create_ribbon_graphics(self):
         if self._ribbon_drawing is None:
             self._ribbon_drawing = p = self.new_drawing('ribbon')
@@ -448,7 +456,7 @@ class Structure(Model, StructureData):
         from .ribbon import Ribbon
         from .molobject import Residue
         from numpy import concatenate, array, zeros
-        polymers = self.polymers(False, False)
+        polymers = self.polymers(missing_structure_treatment=self.PMS_TRACE_CONNECTS)
         def end_strand(res_class, ss_ranges, end):
             if res_class[-1] == XSectionManager.RC_SHEET_START:
                 # Single-residue strands are coils
@@ -468,13 +476,9 @@ class Structure(Model, StructureData):
                 res_class[-1] = XSectionManager.RC_HELIX_END
                 ss_ranges[-1][1] = end
         def is_arc_helix_end(i):
-            if self.ribbon_mode_helix != self.RIBBON_MODE_ARC:
-                return False
-            return is_helix[i]
+            return is_arc_helix[i]
         def is_arc_helix_middle(i, j):
-            if self.ribbon_mode_helix != self.RIBBON_MODE_ARC:
-                return False
-            if not is_helix[i] or not is_helix[j]:
+            if not is_arc_helix[i] or not is_arc_helix[j]:
                 return False
             return ssids[i] == ssids[j]
         for rlist in polymers:
@@ -510,6 +514,10 @@ class Structure(Model, StructureData):
             last_ssid = None
             helix_ranges = []
             sheet_ranges = []
+            if self.ribbon_mode_helix == self.RIBBON_MODE_ARC:
+                is_arc_helix = array(is_helix)
+            else:
+                is_arc_helix = zeros(len(is_helix))
             was_nucleic = False
 
             for i in range(len(residues)):
@@ -573,6 +581,19 @@ class Structure(Model, StructureData):
             elif was_helix:
                 # 1hxx ends in a strand
                 end_helix(res_class, helix_ranges, len(residues))
+
+            # Postprocess helix ranges if in arc mode to remove
+            # 2-residue helices since we cannot compute an arc
+            # from two points.
+            if self.ribbon_mode_helix == self.RIBBON_MODE_ARC:
+                keep = []
+                for r in helix_ranges:
+                    if r[1] - r[0] > 2:
+                        keep.append(r)
+                    else:
+                        for i in range(r[0], r[1]):
+                            is_arc_helix[i] = False
+                helix_ranges = keep
 
             # Assign front and back cross sections for each residue.
             # The "front" section is between this residue and the previous.
@@ -692,7 +713,7 @@ class Structure(Model, StructureData):
                     prev_band = None
                 triangle_range = RibbonTriangleRange(t_start, t_end, rp, residues[0])
                 t2r.append(triangle_range)
-                self._ribbon_r2t[residues[0]] = triangle_range
+                self._add_r2t(residues[0], triangle_range)
                 t_start = t_end
             else:
                 capped = True
@@ -773,7 +794,7 @@ class Structure(Model, StructureData):
                 if t_end != t_start:
                     triangle_range = RibbonTriangleRange(t_start, t_end, rp, residues[i])
                     t2r.append(triangle_range)
-                    self._ribbon_r2t[residues[i]] = triangle_range
+                    self._add_r2t(residues[i], triangle_range)
                     t_start = t_end
             # Last residue
             if displays[-1] and not is_arc_helix_end(-1):
@@ -803,7 +824,7 @@ class Structure(Model, StructureData):
                     t_end += len(triangle_list[-1])
                 triangle_range = RibbonTriangleRange(t_start, t_end, rp, residues[-1])
                 t2r.append(triangle_range)
-                self._ribbon_r2t[residues[-1]] = triangle_range
+                self._add_r2t(residues[-1], triangle_range)
                 t_start = t_end
 
             # Create drawing from arrays
@@ -934,7 +955,7 @@ class Structure(Model, StructureData):
         from math import pi
         from numpy import empty, tile
 
-        hc = HelixCylinder(coords[start:end])
+        hc = HelixCylinder(coords[start:end], radius=self.ribbon_xs_mgr.tube_radius)
         centers = hc.cylinder_centers()
         radius = hc.cylinder_radius()
         normals, binormals = hc.cylinder_normals()
@@ -1000,7 +1021,7 @@ class Structure(Model, StructureData):
                 num_triangles += cap_triangles + band_triangles
             else:
                 # 4 = 2 for caps, 2 for tube
-                num_vertices += 4 * num_ptes
+                num_vertices += 4 * num_pts
                 num_triangles += 2 * cap_triangles + band_triangles
         elif was_displayed:
             # back cap
@@ -1198,7 +1219,7 @@ class Structure(Model, StructureData):
             res = rlist[i]
             triangle_range = RibbonTriangleRange(r[0], r[1], ssp, res)
             t2r.append(triangle_range)
-            self._ribbon_r2t[res] = triangle_range
+            self._add_r2t(res, triangle_range)
         self._ribbon_t2r[ssp] = t2r
 
     def _wrap_helix(self, rlist, coords, guides, ssids, tethered, xs_front, xs_back,
@@ -1225,28 +1246,39 @@ class Structure(Model, StructureData):
         if (end - start + 1) <= 2:
             # Short strands do not need smoothing
             return
-        from numpy import empty, dot, newaxis
+        from numpy import zeros, empty, dot, newaxis
         from numpy.linalg import norm
         from .ribbon import normalize
         ss_coords = coords[start:end]
-        adjusts = ribbon_adjusts[start:end][:, newaxis]
-        ideal = empty(ss_coords.shape, dtype=float)
-        if len(ideal) == 2:
-            # Two-residue strand, no smoothing
-            ideal[0] = ss_coords[0]
-            ideal[-1] = ss_coords[-1]
+        if len(ss_coords) < 3:
+            # short strand, no smoothing
+            ideal = ss_coords
+            offsets = zeros(ss_coords.shape, dtype=float)
         else:
+            # The "ideal" coordinates for a residue is computed by averaging
+            # with the previous and next residues.  The first and last
+            # residues are treated specially by moving in the opposite
+            # direction as their neighbors.
+            ideal = empty(ss_coords.shape, dtype=float)
             ideal[1:-1] = (ss_coords[1:-1] * 2 + ss_coords[:-2] + ss_coords[2:]) / 4
-            ideal[0] = ss_coords[0] - (ideal[1] - ss_coords[1])
-            ideal[-1] = ss_coords[-1] - (ideal[-2] - ss_coords[-2])
-        offsets = adjusts * (ideal - ss_coords)
-        new_coords = ss_coords + offsets
-        # Update both control point and guide coordinates
-        if guides is not None:
-            # Compute guide atom position relative to control point atom
-            delta_guides = guides[start:end] - ss_coords
-            guides[start:end] = new_coords + delta_guides
-        coords[start:end] = new_coords
+            # If there are exactly three residues in the strand, then they
+            # should end up on a line.  We use a 0.99 factor to make sure
+            # that we do not "cross the line" due to floating point round-off.
+            if len(ss_coords) == 3:
+                ideal[0] = ss_coords[0] - 0.99 * (ideal[1] - ss_coords[1])
+                ideal[-1] = ss_coords[-1] - 0.99 * (ideal[-2] - ss_coords[-2])
+            else:
+                ideal[0] = ss_coords[0] - (ideal[1] - ss_coords[1])
+                ideal[-1] = ss_coords[-1] - (ideal[-2] - ss_coords[-2])
+            adjusts = ribbon_adjusts[start:end][:, newaxis]
+            offsets = adjusts * (ideal - ss_coords)
+            new_coords = ss_coords + offsets
+            # Update both control point and guide coordinates
+            if guides is not None:
+                # Compute guide atom position relative to control point atom
+                delta_guides = guides[start:end] - ss_coords
+                guides[start:end] = new_coords + delta_guides
+            coords[start:end] = new_coords
         if False:
             # Debugging code to display center of secondary structure
             self._ss_display(p, str(self) + " strand " + str(start), ideal)
@@ -1376,14 +1408,15 @@ class Structure(Model, StructureData):
         for i in range(len(residues)):
             for r in residues[i]:
                 try:
-                    tr = self._ribbon_r2t[r]
+                    tr_list = self._ribbon_r2t[r]
                 except KeyError:
                     continue
-                try:
-                    a = da[tr.drawing]
-                except KeyError:
-                    a = da[tr.drawing] = ([], [], [])
-                a[i].append((tr.start, tr.end))
+                for tr in tr_list:
+                    try:
+                        a = da[tr.drawing]
+                    except KeyError:
+                        a = da[tr.drawing] = ([], [], [])
+                    a[i].append((tr.start, tr.end))
         for p, residues in da.items():
             if not residues[1] and not residues[2]:
                 # No residues being kept or added
@@ -1965,7 +1998,7 @@ class AtomicStructure(Structure):
             description = chain.description if chain.description else "No description available"
             descripts.setdefault((description, chain.characters), []).append(chain)
         def chain_text(chain):
-            return '<a title="Show sequence" href="cxcmd:seqalign chain #%s/%s">%s</a>' % (
+            return '<a title="Show sequence" href="cxcmd:sequence chain #%s/%s">%s</a>' % (
                 chain.structure.id_string(), chain.chain_id, chain.chain_id)
         self._report_chain_summary(session, descripts, chain_text)
 
@@ -1981,7 +2014,7 @@ class AtomicStructure(Structure):
             description = chain.description if chain.description else "No description available"
             descripts.setdefault((description, chain.characters), []).append(chain)
         def chain_text(chain):
-            return '<a title="Show sequence" href="cxcmd:seqalign chain #%s/%s">%s/%s</a>' % (
+            return '<a title="Show sequence" href="cxcmd:sequence chain #%s/%s">%s/%s</a>' % (
                 chain.structure.id_string(), chain.chain_id,
                 chain.structure.id_string(), chain.chain_id)
         self._report_chain_summary(session, descripts, chain_text)
@@ -1990,7 +2023,7 @@ class AtomicStructure(Structure):
         def descript_text(description, chains):
             if len(chains) == 1:
                 return description
-            return '<a title="Show sequence" href="cxcmd:seqalign chain %s">%s</a>' % (
+            return '<a title="Show sequence" href="cxcmd:sequence chain %s">%s</a>' % (
                 ''.join(["#%s/%s" % (chain.structure.id_string(), chain.chain_id)
                     for chain in chains]), description)
         from ..logger import html_table_params

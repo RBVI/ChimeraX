@@ -62,11 +62,13 @@ setup(
         "PKG_NAME.map",
         "PKG_NAME.map.crystal",
         "PKG_NAME.map.data",
+        "PKG_NAME.map.data.amira",
         "PKG_NAME.map.data.apbs",
         "PKG_NAME.map.data.ccp4",
         "PKG_NAME.map.data.cmap",
         "PKG_NAME.map.data.dsn6",
         "PKG_NAME.map.data.imagestack",
+        "PKG_NAME.map.data.ims",
         "PKG_NAME.map.data.mrc",
         "PKG_NAME.map.filter",
         "PKG_NAME.map.fit",
@@ -86,6 +88,7 @@ setup(
         "PKG_NAME.map": ["*.PYMOD_EXT", "*.pdb"],
         "PKG_NAME.surface": ["*.PYMOD_EXT", "*.pdb"],
         "PKG_NAME.ui": ["*.jpg", "*.png", "*.html"],
+        "PKG_NAME.ui.widgets": ["icons/*.png"],
     },
     data_files=[
         (rel_inst_shlib_dir, [

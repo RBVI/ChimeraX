@@ -147,7 +147,9 @@ class Atom(State):
         doc="Whether atom is hidden (overrides display).  Integer bitmask."
         "\n\nPossible values:\n\n"
         "HIDE_RIBBON\n"
-        "    Hide mask for backbone atoms in ribbon.")
+        "    Hide mask for backbone atoms in ribbon.\n"
+        "HIDE_ISOLDE\n"
+        "    Hide mask for backbone atoms for ISOLDE.")
     idatm_type = c_property('atom_idatm_type', string, doc = "IDATM type")
     in_chain = c_property('atom_in_chain', npy_bool, read_only = True,
         doc = "Whether this atom belongs to a polymer. Read only.")
@@ -363,6 +365,8 @@ class Bond(State):
     '''Displayed cylinder radius for the bond.'''
     HIDE_RIBBON = 0x1
     '''Hide mask for backbone bonds in ribbon.'''
+    HIDE_ISOLDE = 0x2
+    '''Hide mask for backbone bonds for ISOLDE.'''
     hide = c_property('bond_hide', int32)
     '''Whether bond is hidden (overrides display).  Integer bitmask.'''
     shown = c_property('bond_shown', npy_bool, read_only = True)
@@ -792,22 +796,6 @@ class Residue(State):
         r_ref = ctypes.byref(self._c_pointer)
         f(r_ref, 1, loc)
 
-    def ss_type(self, disjoint = True):
-        '''Return the secondary structure type for this residue.
-
-        If 'disjoint' is True then if somehow both is_helix and is_strand is True,
-        Residue.SS_HELIX will be returned.  If 'disjoint' is False in that situation then
-        Residue.SS_HELIX | Residue.SS_STRAND will be returned.
-        '''
-        if disjoint:
-            if self.is_helix:
-                return Residue.SS_HELIX
-            if self.is_strand:
-                return Residue.SS_STRAND
-            return Residue.SS_COIL
-        return (Residue.SS_HELIX if self.is_helix else 0) | (
-            Residue.SS_STRAND if self.is_strand else 0)
-
     def reset_state(self, session):
         f = c_function('pseudobond_global_manager_clear', args = (ctypes.c_void_p,))
         f(self._c_pointer)
@@ -1153,7 +1141,7 @@ class StructureSeq(Sequence):
     @property
     def has_protein(self):
         for r in self.residues:
-            if r and Sequence.protein3to1(r.name.encode('utf8')) != 'X':
+            if r and Sequence.protein3to1(r.name) != 'X':
                 return True
         return False
 
@@ -1480,6 +1468,37 @@ class StructureData:
                        args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_size_t))
         f(self._c_pointer, id, pointer(xyz), len(xyz))
 
+    def add_coordsets(self, xyzs, replace = True):
+        '''Add coordinate sets.  If 'replace' is True, clear out existing coordinate sets first'''
+        if len(xyzs.shape) != 3:
+            raise ValueError('add_coordsets(): array must be (frames)x(atoms)x3-dimensional')
+        if xyzs.shape[1] != self.num_atoms:
+            raise ValueError('add_coordsets(): second dimension of coordinate array'
+                ' must be same as number of atoms')
+        if xyzs.shape[2] != 3:
+            raise ValueError('add_coordsets(): third dimension of coordinate array'
+                ' must be 3 (xyz)')
+        if xyzs.dtype != float64:
+            raise ValueError('add_coordsets(): array must be float64, got %s' % xyzs.dtype.name)
+        f = c_function('structure_add_coordsets',
+                       args = (ctypes.c_void_p, ctypes.c_bool, ctypes.c_void_p, ctypes.c_size_t, ctypes.c_size_t))
+        f(self._c_pointer, replace, pointer(xyzs), *xyzs.shape[:2])
+
+    def connect_structure(self, chain_starters, chain_enders, conect_atoms, mod_res):
+        '''Generate connectivity.  See connect_structure in connectivity.rst for more details.
+        
+        chain_starters and chain_enders are lists of residues.
+        conect_atoms is a list of atoms.
+        mod_res is a list of residues (not MolResId's).'''
+        f = c_function('structure_connect',
+                       args = (ctypes.c_void_p, ctypes.py_object, ctypes.py_object, ctypes.py_object, ctypes.py_object),
+                       ret = ctypes.c_int)
+        starters = list([r._c_pointer.value for r in chain_starters])
+        enders = list([r._c_pointer.value for r in chain_enders])
+        conect = list([a._c_pointer.value for a in conect_atoms])
+        mod = list([r._c_pointer.value for r in mod_res])
+        return f(self._c_pointer, starters, enders, conect, mod)
+
     def delete_alt_locs(self):
         '''Incorporate current alt locs as "regular" atoms and remove other alt locs'''
         f = c_function('structure_delete_alt_locs', args = (ctypes.c_void_p,))(self._c_pointer)
@@ -1509,17 +1528,22 @@ class StructureData:
         rp = f(self._c_pointer, residue_name.encode('utf-8'), chain_id.encode('utf-8'), pos, insert.encode('utf-8'))
         return object_map(rp, Residue)
 
-    def polymers(self, consider_missing_structure = True, consider_chains_ids = True):
+    PMS_ALWAYS_CONNECTS, PMS_NEVER_CONNECTS, PMS_TRACE_CONNECTS = range(3)
+    def polymers(self, missing_structure_treatment = PMS_ALWAYS_CONNECTS,
+            consider_chains_ids = True):
         '''Return a tuple of :class:`.Residues` objects each containing residues for one polymer.
-        Arguments control whether a single polymer can span missing residues or differing chain identifiers.'''
+        'missing_structure_treatment' controls whether a single polymer can span any missing
+        structure, no missing structure, or only missing structure that is part of a chain trace.
+        'consider_chain_ids', if true, will break polymers when chain IDs change, regardless of
+        other considerations.'''
         f = c_function('structure_polymers',
                        args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_int),
                        ret = ctypes.py_object)
-        resarrays = f(self._c_pointer, consider_missing_structure, consider_chains_ids)
+        resarrays = f(self._c_pointer, missing_structure_treatment, consider_chains_ids)
         from .molarray import Residues
         return tuple(Residues(ra) for ra in resarrays)
 
-    def pseudobond_group(self, name, create_type = "normal"):
+    def pseudobond_group(self, name, *, create_type = "normal"):
         '''Get or create a :class:`.PseudobondGroup` belonging to this structure.'''
         if create_type is None:
             create_arg = 0

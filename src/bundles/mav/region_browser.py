@@ -1551,7 +1551,7 @@ class RegionBrowser:
                 mav = self.seq_canvas.mav
                 mav.status("Region RMSD: %.3f" % rmsd)
                 mav.session.logger.info("%s region %s RMSD: %.3f\n"
-                    % (mav.name ,self._drag_region, rmsd))
+                    % (mav.display_name ,self._drag_region, rmsd))
         self._start_x, self._start_y = None, None
         if self._after_id:
             canvas.after_cancel(self._after_id)

@@ -28,26 +28,9 @@ class="clRight" title="User Guide Index"/></a>
 <br><b>crosslinks</b>
 &nbsp;<a href="atomspec.html"><i>pseudobond-spec</i></a>&nbsp;
 [&nbsp;radius&nbsp;&nbsp;<i>r</i>&nbsp;]
+[&nbsp;dashes&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;color&nbsp;&nbsp;<a href="colornames.html"><i>colorname</i></a>&nbsp;] 
 </h3>
-<!--
-<h3><a href="usageconventions.html">Usage</a>:
-<br><b>crosslinks</b> <b>histogram</b>
-&nbsp;<a href="atomspec.html"><i>pseudobond-spec</i></a>&nbsp;
-[&nbsp;<b>ensemble</b>&nbsp;&nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;]
-</h3>
-<h3><a href="usageconventions.html">Usage</a>:
-<br><b>crosslinks</b> <b>network</b>
-&nbsp;<a href="atomspec.html"><i>pseudobond-spec</i></a>&nbsp;
-</h3>
-<h3><a href="usageconventions.html">Usage</a>:
-<br><b>crosslinks</b> <b>minimize</b>
-&nbsp;<a href="atomspec.html"><i>pseudobond-spec</i></a>&nbsp;
-[&nbsp;<b>structures</b>&nbsp;&nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;]
-[&nbsp;<b>iterations</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
-[&nbsp;<b>frames</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
-</h3>
--->
 <p>
 The <b>crosslinks</b> command acts on
 <a href="../pseudobonds.html">pseudobonds</a>, such as crosslinks from
@@ -56,10 +39,14 @@ See also:
 <a href="color.html"><b>color</b></a>,
 <a href="style.html"><b>style</b></a>
 </p><p>
-The top-level command sets pseudobond <b>radius</b>
-<!-- radius is temporarily enlarged 3X by histogram mouseover -->
-and/or <b>color</b>, where the <i>colorname</i> can be any
-<a href="colornames.html">color name</a> that specifies a single color.
+The top-level command sets pseudobond stick <b>radius</b>,
+number of <b>dashes</b> <i>N</i>,
+and/or <b>color</b>, where
+<a href="colornames.html"><i>colorname</i></a> specifies a single color.
+Only whole numbers of dashes are accepted, with 0
+indicating solid sticks. Currently, odd numbers are rounded down
+to give an even number of dashes.
+</p><p>
 The following subcommands perform plotting and other analyses:
 </p>
 <ul>
@@ -90,7 +77,7 @@ crosslinks or other restraints.
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>crosslinks</b> <b>histogram</b>
 &nbsp;<a href="atomspec.html"><i>pseudobond-spec</i></a>&nbsp;
-[&nbsp;<b>ensemble</b>&nbsp;&nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>coordsets</b>&nbsp;&nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;]
 </blockquote>
 <p>
 A histogram of lengths can be shown for either a collection of 
@@ -98,11 +85,11 @@ A histogram of lengths can be shown for either a collection of
 within a given structure, or for a single 
 <a href="../pseudobonds.html">pseudobond</a>
 across the frames of a <a href="../trajectories.html">trajectory</a>
-specified with the <b>ensemble</b> option.
+specified with the <b>coordsets</b> option.
 See also: <a href="coordset.html"><b>coordset</b></a>
 </p><p>
-Passing the cursor over bars in a multiple-pseudobond histogram shows just
-the pseudobonds of the corresponding length, temporarily enlarged to 3 times
+Passing the cursor over bars in a multiple-pseudobond histogram shows just the 
+pseudobond(s) of the corresponding length, temporarily enlarged to 3 times
 their normal radius.
 In a histogram for a single pseudobond across a trajectory,
 passing the cursor over a bar shows just the trajectory frame (coordinate set)
@@ -140,7 +127,7 @@ various parts of the diagram. The <b>node</b> context menu includes:
 <li><b>Select [<i>chain</i>]</b>
 - <a href="../selection.html">select</a> the corresponding chain
 (same as simply clicking the node)
-<li><b>Layout matching structure</b>
+<li><b>Lay out to match structure</b>
 - redraw diagram with orientation similar to the current 3D structure
 (including repulsion to prevent node overlaps in the diagram)
 <li><b>Hide this tool</b>
@@ -164,7 +151,7 @@ except for selecting the specific chain.
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>crosslinks</b> <b>minimize</b>
 &nbsp;<a href="atomspec.html"><i>pseudobond-spec</i></a>&nbsp;
-[&nbsp;<b>structures</b>&nbsp;&nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>moveModels</b>&nbsp;&nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;]
 [&nbsp;<b>iterations</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>frames</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
 </blockquote>
@@ -173,7 +160,7 @@ A simple optimization can be performed in which whole models are moved
 as rigid bodies to shorten inter-model 
 <a href="../pseudobonds.html">pseudobonds</a>.
 The minimized quantity is the sum of squares of the lengths.
-Models to move can be restricted with the <b>structures</b> keyword
+Models to move can be restricted with the <b>moveModels</b> keyword
 and are repositioned (in memory, not in the display) once per iteration,
 with multiple iterations (default <b>10</b>) converging toward a minimum.
 In the display, movement from the initial position to the final position

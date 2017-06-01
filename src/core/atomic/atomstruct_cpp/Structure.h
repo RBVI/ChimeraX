@@ -197,6 +197,7 @@ public:
     const Bonds&  bonds() const { return _bonds; }
     const Chains&  chains() const { if (_chains == nullptr) make_chains(); return *_chains; }
     ChangeTracker*  change_tracker() { return _change_tracker; }
+    void  clear_coord_sets();
     virtual void  compute_secondary_structure(float = -0.5, int = 3, int = 3, bool = false) {}
     const CoordSets&  coord_sets() const { return _coord_sets; }
     virtual Structure*  copy() const;
@@ -238,8 +239,13 @@ public:
     AS_PBManager&  pb_mgr() { return _pb_mgr; }
     const AS_PBManager&  pb_mgr() const { return _pb_mgr; }
     int  pdb_version;
+    enum PolymerMissingStructure {
+        PMS_ALWAYS_CONNECTS = 0,
+        PMS_NEVER_CONNECTS = 1,
+        PMS_TRACE_CONNECTS = 2
+    };
     virtual std::vector<Chain::Residues>  polymers(
-        bool /*consider_missing_structure*/ = true,
+        PolymerMissingStructure /*missing_structure_treatment*/ = PMS_ALWAYS_CONNECTS,
         bool /*consider_chain_ids*/ = true) const { return std::vector<Chain::Residues>(); }
     const Residues&  residues() const { return _residues; }
     const Rings&  rings(bool cross_residues = false,
@@ -370,6 +376,20 @@ Structure::set_ribbon_mode_strand(RibbonMode m) {
     change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_MODE);
     set_gc_ribbon();
     _ribbon_mode_strand = m;
+}
+
+} //  namespace atomstruct
+
+#include "CoordSet.h"
+
+namespace atomstruct {
+
+inline void
+Structure::clear_coord_sets() {
+    for (auto cs: _coord_sets)
+        delete cs;
+    _coord_sets.clear();
+    _active_coord_set = nullptr;
 }
 
 } //  namespace atomstruct

@@ -617,8 +617,4 @@ def html_to_plain(html):
     from bs4 import BeautifulSoup
     # return BeautifulSoup(html).get_text() -- loses line breaks
     bs = BeautifulSoup(html, 'html.parser')
-    x = []
-    for result in bs:
-        s = result.string
-        x.append(s if s is not None else '\n')
-    return ''.join(x)
+    return bs.get_text('\n', strip=True) + '\n'

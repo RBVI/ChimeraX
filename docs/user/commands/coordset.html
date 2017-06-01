@@ -39,7 +39,15 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;computeSS&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;holdSteady&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
 [&nbsp;loop&nbsp;&nbsp;<i>N</i>&nbsp;]
-[&nbsp;pause&nbsp;&nbsp;<i>M</i>&nbsp;]
+[&nbsp;pauseFrames&nbsp;&nbsp;<i>M</i>&nbsp;]
+</h3>
+<a name="slider"></a>
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>coordset slider</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
+[&nbsp;computeSS&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;holdSteady&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
+[&nbsp;pauseFrames&nbsp;&nbsp;<i>M</i>&nbsp;]
 </h3>
 <p>
 <b>Coordset</b> displays the <a href="#framesdef">frames</a> (coordinate sets)
@@ -48,6 +56,7 @@ The number of coordinate sets in a trajectory
 can be reported with the command <a href="info.html"><b>info</b></a>.
 See also: 
 <a href="morph.html"><b>morph</b></a>,
+<a href="mseries.html"><b>mseries</b></a>,
 <a href="../movies.html">making movies</a>
 </p><p>
 Protein <a href="cartoon.html">cartoon</a> (ribbon) display
@@ -92,9 +101,20 @@ actual frame numbers.
 <p>
 The <b>loop</b> option indicates repeating playback
 <i>N</i> times, wrapping directly from <i>end</i> to <i>start</i>.
-The <b>pause</b> option can be used to slow playback by showing each
+The <b>pauseFrames</b> option can be used to slow playback by showing each
 trajectory frame for <i>M</i> image update frames (default <b>1</b>;
 see <a href="#framesdef">frames terminology</a>).
+</p><p>
+The command <b>coordset slider</b> shows a graphical interface
+in which the slider can be dragged or a frame number entered directly.
+The interface also includes a play/pause button and another
+(marked with a red dot) for recording a movie.
+The <b>computeSS</b>, <b>holdSteady</b>, and <b>pauseFrames</b> options are 
+the same as described above for the main <b>coordset</b> command.
+A separate slider is shown for each specified 
+<a href="../trajectories.html">trajectory</a> model,
+and appears automatically when a multi-model PDB file is opened as a 
+<a href="../trajectories.html">trajectory</a>.
 </p><p>
 Examples:
 <blockquote>

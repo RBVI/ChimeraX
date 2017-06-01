@@ -169,8 +169,8 @@ class View:
 
         r.set_frame_number(self.frame_number)
         perspective_near_far_ratio = 2
-        from .drawing import (draw_depth, draw_drawings, draw_outline,
-                              draw_overlays)
+        from .drawing import (draw_depth, draw_opaque, draw_transparent,
+                              draw_selection_outline, draw_overlays)
         for vnum in range(camera.number_of_views()):
             camera.set_render_target(vnum, r)
             if self.silhouettes:
@@ -190,12 +190,16 @@ class View:
                     draw_depth(r, cpinv, mdraw)
                     r.allow_equal_depth(True)
                 self._start_timing()
-                draw_drawings(r, cpinv, mdraw)
+                r.set_view_matrix(cpinv)
+                draw_opaque(r, mdraw)
+                if any_selected:
+                    r.set_outline_depth()       # copy depth to outline framebuffer
+                draw_transparent(r, mdraw)    
                 self._finish_timing()
                 if multishadows > 0:
                     r.allow_equal_depth(False)
                 if any_selected:
-                    draw_outline(r, cpinv, mdraw)
+                    draw_selection_outline(r, cpinv, mdraw)
             if self.silhouettes:
                 r.finish_silhouette_drawing(self.silhouette_thickness,
                                             self.silhouette_color,
@@ -480,7 +484,7 @@ class View:
     def _use_shadow_map(self, light_direction, drawings):
 
         # Compute drawing bounds so shadow map can cover all drawings.
-        center, radius, bdrawings = _drawing_bounds(drawings, self.drawing)
+        center, radius, bdrawings = _drawing_bounds(drawings, self)
         if center is None or radius == 0:
             return None
 
@@ -530,7 +534,7 @@ class View:
             return self._multishadow_transforms, self._multishadow_depth
 
         # Compute drawing bounds so shadow map can cover all drawings.
-        center, radius, bdrawings = _drawing_bounds(drawings, self.drawing)
+        center, radius, bdrawings = _drawing_bounds(drawings, self)
         if center is None or radius == 0:
             return None, None
 
@@ -696,17 +700,21 @@ class View:
                                  exclude=lambda d: hasattr(d, 'no_cofr') and d.no_cofr)
         return p.position if p else None
 
-    def first_intercept(self, win_x, win_y, exclude=None):
+    def first_intercept(self, win_x, win_y, exclude=None, beyond = None):
         '''
         Return a Pick object for the front-most object below the given
         screen window position (specified in pixels).  This Pick object will
         have an attribute position giving the point where the intercept occurs.
         This is used when hovering the mouse over an object (e.g. an atom)
-        to get a description of that object.
+        to get a description of that object.  Beyond is minimum distance
+        as fraction from front to rear clip plane.
         '''
         xyz1, xyz2 = self.clip_plane_points(win_x, win_y)
         if xyz1 is None or xyz2 is None:
             return None
+        if beyond is not None:
+            f = beyond + 1e-5
+            xyz1 = (1-f)*xyz1 + f*xyz2
         p = self.drawing.first_intercept(xyz1, xyz2, exclude=exclude)
         if p is None:
             return None
@@ -1012,10 +1020,10 @@ class _RedrawNeeded:
             self.cached_any_part_selected = None
 
 
-def _drawing_bounds(drawings, open_drawing):
+def _drawing_bounds(drawings, view):
     if drawings is None:
-        b = open_drawing.bounds()
-        bdrawings = [open_drawing]
+        b = view.drawing_bounds()
+        bdrawings = [view.drawing]
     else:
         from ..geometry import bounds
         b = bounds.union_bounds(d.bounds() for d in drawings)

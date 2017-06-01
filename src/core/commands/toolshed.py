@@ -182,22 +182,26 @@ def toolshed_install(session, bundle_name, user_only=True,
     '''
     ts = session.toolshed
     logger = session.logger
-    if version == "latest":
+    if bundle_name.endswith(".whl"):
+        bi = bundle_name
+    elif version == "latest":
         bi = ts.find_bundle(bundle_name, logger, installed=False)
         cur_bi = ts.find_bundle(bundle_name, logger, installed=True)
-        if bi.version == cur_bi.version:
+        if bi.version == cur_bi.version and not reinstall:
             logger.info("latest version of \"%s\" is already installed" % bundle_name)
             return
     else:
         bi = ts.find_bundle(bundle_name, logger, installed=True, version=version)
         if bi:
-            logger.error("%s (%s) is already installed" % (bi.name, bi.version))
-            return
-        bi = ts.find_bundle(bundle_name, logger, installed=False, version=version)
-        if bi is None:
-            logger.error("%s does not match any bundles"
-                         % _bundle_string(bundle_name, version))
-            return
+            if not reinstall:
+                logger.error("%s (%s) is already installed" % (bi.name, bi.version))
+                return
+        else:
+            bi = ts.find_bundle(bundle_name, logger, installed=False, version=version)
+            if bi is None:
+                logger.error("%s does not match any bundles"
+                             % _bundle_string(bundle_name, version))
+                return
     kw = {"session":session,
           "per_user":user_only}
     if reinstall is not None:
@@ -253,6 +257,16 @@ toolshed_url_desc = CmdDesc(optional=[("url", StringArg),
                             synopsis='show or set toolshed url')
 
 
+def toolshed_cache(session):
+    '''
+    Show toolshed cache location
+    '''
+    ts = session.toolshed
+    logger = session.logger
+    logger.info("Toolshed cache: %s" % ts._cache_dir)
+toolshed_cache_desc = CmdDesc(synopsis='show toolshed cache location')
+
+
 #
 # Commands that deal with tools
 #
@@ -269,15 +283,34 @@ def toolshed_show(session, tool_name, _show=True):
         from chimerax.core.errors import UserError
         raise UserError("Need a GUI to show or hide tools")
     ts = session.toolshed
-    bi, tool_name = ts.find_bundle_for_tool(tool_name)
-    if bi is None:
-        from chimerax.core.errors import UserError
-        raise UserError('No installed tool named "%s"' % tool_name)
-    tinst = [t for t in session.tools.list() if t.display_name == tool_name]
-    for ti in tinst:
-        ti.display(_show)
-    if _show and len(tinst) == 0:
+    all_tools = session.tools.list() 
+    # First look for tool instance whose display name
+    # matches tool_name
+    tinst = [t for t in all_tools if t.display_name == tool_name]
+    # Next look for tool instances whose tool_info name
+    # matches tool_name
+    if not tinst:
+        tinst = [t for t in all_tools if t.tool_name == tool_name]
+    # Next look for tool instances whose bundle_info name
+    # matches tool_name
+    if not tinst:
+        tinst = [t for t in all_tools
+                 if t.bundle_info.name.replace("ChimeraX-", "") == tool_name]
+    if tinst:
+        for ti in tinst:
+            ti.display(_show)
+    elif _show:
+        bi, tool_name = ts.find_bundle_for_tool(tool_name)
+        if bi is None:
+            from chimerax.core.errors import UserError
+            raise UserError('No installed tool named "%s"' % tool_name)
         bi.start_tool(session, tool_name)
+    else:
+        from chimerax.core.errors import UserError
+        for t in all_tools:
+            print(t, repr(t.display_name), repr(t.tool_name),
+                    repr(t.bundle_info.name))
+        raise UserError('No running tool named "%s"' % tool_name)
 toolshed_show_desc = CmdDesc(required=[('tool_name', StringArg)],
                        synopsis="Show tool.  Start if necessary")
 
@@ -307,6 +340,8 @@ def register_command(session):
     register("toolshed uninstall", toolshed_uninstall_desc, toolshed_uninstall,
              logger=session.logger)
     register("toolshed url", toolshed_url_desc, toolshed_url,
+             logger=session.logger)
+    register("toolshed cache", toolshed_cache_desc, toolshed_cache,
              logger=session.logger)
     register("toolshed show", toolshed_show_desc, toolshed_show,
              logger=session.logger)

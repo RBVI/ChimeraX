@@ -103,9 +103,11 @@ def dump_format(f):
             d2["public.mime-type"] = mime_types[0]
     return d
 
-sess = session.Session("unknown", minimal=True)
-core_settings.init(sess)
-session._register_core_file_formats()
+#sess = session.Session("unknown", minimal=True)
+#core_settings.init(sess)
+#session._register_core_file_formats(sess)
+from ChimeraX_main import init
+init([app_name, "--nogui"], event_loop=False)
 
 chimera_types = [f.name for f in io.formats() if f.name.startswith('Chimera')]
 

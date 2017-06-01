@@ -12,7 +12,8 @@
 # === UCSF ChimeraX Copyright ===
 
 def save(session, filename, models=None, format=None, **kw):
-    '''Save data, sessions, images.
+    '''Save data, sessions, images.  Specific formats have additional keyword arguments using
+    commands.add_keyword_arguments().  These are listed with command "usage save".
 
     Parameters
     ----------
@@ -66,8 +67,10 @@ def save(session, filename, models=None, format=None, **kw):
         raise UserError(msg)
     except TypeError as e:
         # Keywords incompatible with export function
-        from ..errors import UserError
-        raise UserError(str(e))
+        if 'unexpected keyword' in str(e):
+            from ..errors import UserError
+            raise UserError(str(e))
+        raise
 
     if fmt.open_func and not fmt.name.endswith('image'):
         # Remember in file history
@@ -87,10 +90,15 @@ def save_formats(session):
     formats.sort(key = lambda f: f.name)
     for f in formats:
         if session.ui.is_gui:
-            lines.append('<tr><td>%s<td>%s<td>%s' % (f.name,
-                commas(f.nicknames), ', '.join(f.extensions)))
+            from html import escape
+            if f.reference:
+                descrip = '<a href="%s">%s</a>' % (f.reference, escape(f.synopsis))
+            else:
+                descrip = escape(f.synopsis)
+            lines.append('<tr><td>%s<td>%s<td>%s' % (descrip,
+                escape(commas(f.nicknames)), escape(', '.join(f.extensions))))
         else:
-            session.logger.info('    %s: %s: %s' % (f.name,
+            session.logger.info('    %s: %s: %s' % (f.synopsis,
                 commas(f.nicknames), ', '.join(f.extensions)))
     if session.ui.is_gui:
         lines.append('</table>')
@@ -98,7 +106,7 @@ def save_formats(session):
         session.logger.info(msg, is_html=True)
 
 from . import DynamicEnum
-class FileFormatArg(DynamicEnum):
+class SaveFileFormatsArg(DynamicEnum):
     def __init__(self, category = None):
         DynamicEnum.__init__(self, self.formats)
         self.category = category
@@ -111,70 +119,14 @@ class FileFormatArg(DynamicEnum):
         return names
         
 def register_command(session):
-    from . import CmdDesc, register, EnumOf, SaveFileNameArg
-    from . import IntArg, PositiveIntArg, Bounded, FloatArg, BoolArg
-    from . import ModelsArg, ListOf
-    from ..map.mapargs import MapRegionArg, Int1or3Arg
-
-    file_arg = [('filename', SaveFileNameArg)]
-    models_arg = [('models', ModelsArg)]
-
-    format_args = [('format', FileFormatArg())]
-    from .. import toolshed
-    map_format_args = [('format', FileFormatArg(toolshed.VOLUME))]
-    image_format_args = [('format', FileFormatArg('Image'))]
-
-    # TODO: move adding these keywords where the format is registered
-    image_args = [
-        ('width', PositiveIntArg),
-        ('height', PositiveIntArg),
-        ('supersample', PositiveIntArg),
-        ('pixel_size', FloatArg),
-        ('transparent_background', BoolArg),
-        ('quality', Bounded(IntArg, min=0, max=100))]
-
-    map_args = [
-        ('region', MapRegionArg),
-        ('step', Int1or3Arg),
-        ('mask_zone', BoolArg),
-        ('chunk_shapes', ListOf(EnumOf(('zyx','zxy','yxz','yzx','xzy','xyz')))),
-        ('append', BoolArg),
-        ('compress', BoolArg),
-        ('base_index', IntArg)]
-
+    from . import CmdDesc, register, SaveFileNameArg, ModelsArg
     desc = CmdDesc(
-        required=file_arg,
-        optional=models_arg,
-        keyword=format_args + image_args + map_args,
-        synopsis='save session or image'
+        required=[('filename', SaveFileNameArg)],
+        optional=[('models', ModelsArg)],
+        keyword=[('format', SaveFileFormatsArg())],
+        synopsis='save data to various file formats'
     )
     register('save', desc, save, logger=session.logger)
-
-    desc = CmdDesc(
-        required=file_arg,
-        synopsis='save session'
-    )
-    def save_session(session, filename, **kw):
-        kw['format'] = 'session'
-        save(session, filename, **kw)
-    register('save session', desc, save_session, logger=session.logger)
-
-    desc = CmdDesc(
-        required=file_arg,
-        keyword=image_format_args + image_args,
-        synopsis='save image'
-    )
-    def save_image(session, filename, **kw):
-        save(session, filename, **kw)
-    register('save image', desc, save_image, logger=session.logger)
-
-    desc = CmdDesc(
-        required=file_arg,
-        optional=models_arg,
-        keyword=map_format_args + map_args,
-        synopsis='save map'
-    )
-    register('save map', desc, save, logger=session.logger)
 
     sf_desc = CmdDesc(synopsis='report formats that can be saved')
     register('save formats', sf_desc, save_formats, logger=session.logger)

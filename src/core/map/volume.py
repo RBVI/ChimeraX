@@ -1134,6 +1134,9 @@ class Volume(Model):
       detail = d.name
       p = PickedMap(self, pd.distance, detail)
       p.triangle_pick = pd
+      if d.display_style == d.Mesh or hasattr(pd, 'is_transparent') and pd.is_transparent():
+        # Try picking opaque object under transparent map
+        p.pick_through = True
     else:
       p = None
 
@@ -2943,7 +2946,7 @@ def volume_list(session):
 
 # -----------------------------------------------------------------------------
 #
-def open_map(session, stream, *args, **kw):
+def open_map(session, stream, name = None, format = None, **kw):
     '''
     Open a density map file having any of the known density map formats.
     '''
@@ -2956,7 +2959,7 @@ def open_map(session, stream, *args, **kw):
     name = basename(map_path if isinstance(map_path, str) else map_path[0])
 
     from . import data
-    grids = data.open_file(map_path)
+    grids = data.open_file(map_path, file_type = format)
 
     if grids and isinstance(grids[0], (tuple, list)):
       # handle multiple channels.
@@ -3091,12 +3094,44 @@ def is_multifile_save(path):
 
 # -----------------------------------------------------------------------------
 #
-def register_map_file_formats():
+def register_map_file_formats(session):
     from .. import io, toolshed
     from .data.fileformats import file_types, file_writers
     fwriters = set(fw[0] for fw in file_writers)
     for d,t,nicknames,suffixes,batch in file_types:
       suf = tuple('.' + s for s in suffixes)
       save_func = save_map if d in fwriters else None
+      def open_map_format(session, stream, name = None, format = t, **kw):
+        return open_map(session, stream, name=name, format=format, **kw)
       io.register_format(d, toolshed.VOLUME, suf, nicknames=nicknames,
-                         open_func=open_map, batch=True, export_func=save_func)
+                         open_func=open_map_format, batch=True, export_func=save_func)
+
+    # Add map specific keywords to open command
+    from ..commands import add_keyword_arguments, BoolArg
+    add_keyword_arguments('open', {'vseries':BoolArg})
+
+    # Add map specific keywords to save command
+    from ..commands import BoolArg, ListOf, EnumOf, IntArg
+    from .mapargs import MapRegionArg, Int1or3Arg
+    save_map_args = [
+      ('region', MapRegionArg),
+      ('step', Int1or3Arg),
+      ('mask_zone', BoolArg),
+      ('chunk_shapes', ListOf(EnumOf(('zyx','zxy','yxz','yzx','xzy','xyz')))),
+      ('append', BoolArg),
+      ('compress', BoolArg),
+      ('base_index', IntArg),
+    ]
+    add_keyword_arguments('save', dict(save_map_args))
+
+    # Register save map subcommand
+    from ..commands import CmdDesc, register, SaveFileNameArg, ModelsArg
+    from ..commands.save import SaveFileFormatsArg, save
+    from .. import toolshed
+    desc = CmdDesc(
+        required=[('filename', SaveFileNameArg)],
+        optional=[('models', ModelsArg)],
+        keyword=[('format', SaveFileFormatsArg(toolshed.VOLUME))] + save_map_args,
+        synopsis='save map'
+    )
+    register('save map', desc, save, logger=session.logger)

@@ -188,6 +188,10 @@ else
 	cd $(SOURCE) && $(MAKE) && $(MAKE) install
 ifeq ($(OS),Linux)
 	chrpath -r '$$ORIGIN/../lib' $(bindir)/python$(PYTHON_VERSION) $(bindir)/python$(PYTHON_VERSION)$(PYTHON_ABI)
+	-for lib in $(PYTHON_LIBRARY_DIR)/lib-dynload/*.so; do \
+		chrpath -d $$lib; \
+	done
+	chmod 755  $(libdir)/libpython*.so; chrpath -d $(libdir)/libpython*.so
 endif
 ifeq ($(OS),Darwin)
 	install_name_tool -add_rpath '@executable_path/../lib' $(bindir)/python$(PYTHON_VERSION)

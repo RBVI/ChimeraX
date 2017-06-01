@@ -426,6 +426,9 @@ def _make_bundle_info(d, installed, logger):
             else:
                 encoding = None
                 name, nicknames, category, suffixes, mime_types, url, dangerous, icon, synopsis = parts[2:]
+            if not synopsis:
+                logger.warning("Missing synopsis for %s data format" % name)
+                synopsis = name
             nicknames = [v.strip() for v in nicknames.split(',')] if nicknames else None
             suffixes = [v.strip() for v in suffixes.split(',')] if suffixes else None
             mime_types = [v.strip() for v in mime_types.split(',')] if mime_types else None
@@ -519,7 +522,8 @@ def _make_bundle_info(d, installed, logger):
     from . import ToolshedError
     try:
         bi._get_api(logger)
-    except ToolshedError:
+    except ToolshedError as e:
+        _debug("InstalledBundleCache._make_bundle_info: %s" % str(e))
         return None
     return bi
 

@@ -83,6 +83,28 @@ canonicalize_atom_name(AtomName* aname, bool* asterisks_translated)
     }
 }
 
+std::string
+residue_str(Residue* r, Residue* other = nullptr)
+{
+    std::stringstream pos_string;
+    std::string ret = static_cast<const char*>(r->name());
+    ret += " #";
+    pos_string << r->position();
+    ret += pos_string.str();
+    auto insertion_code = r->insertion_code();
+    if (insertion_code != ' ')
+        ret += insertion_code;
+    if (other && other->chain_id() == r->chain_id())
+        return ret;
+    auto chain_id = r->chain_id();
+    if (chain_id != " ") {
+        ret += ' ';
+        ret += "in chain ";
+        ret += chain_id;
+    }
+    return ret;
+}
+
 } // namespace
 
 namespace mmcif {
@@ -142,7 +164,7 @@ struct ExtractMolecule: public readcif::CIFFile
     virtual void data_block(const string& name);
     virtual void reset_parse();
     virtual void finished_parse();
-    void connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, bool gap);
+    void connect_polymer_pair(vector<Residue*> a, vector<Residue*> b, bool gap);
     void connect_residue_by_template(Residue* r, const tmpl::Residue* tr);
     const tmpl::Residue* find_template_residue(const ResName& name);
     void parse_audit_conform();
@@ -269,6 +291,7 @@ struct ExtractMolecule: public readcif::CIFFile
     tmpl::Molecule* my_templates;
     bool missing_poly_seq;
     bool has_pdbx;
+    set<ResName> empty_residue_templates;
 };
 
 const char* ExtractMolecule::builtin_categories[] = {
@@ -287,6 +310,8 @@ ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_c
     _logger(logger), first_model_num(INT_MAX), my_templates(nullptr),
     missing_poly_seq(false), has_pdbx(false)
 {
+    empty_residue_templates.insert("UNL");  // Unknown ligand
+    empty_residue_templates.insert("UNX");  // Unknown atom or ion
     register_category("audit_conform",
         [this] () {
             parse_audit_conform();
@@ -387,40 +412,67 @@ ExtractMolecule::find_template_residue(const ResName& name)
 }
 
 void
-ExtractMolecule::connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, bool gap)
+ExtractMolecule::connect_polymer_pair(vector<Residue*> a, vector<Residue*> b, bool gap)
 {
     // Connect adjacent residues that have the same type
     // and have link & chief atoms (i.e., peptides and nucleotides)
     for (auto&& r0: a) {
         auto tr0 = find_template_residue(r0->name());
-        if (tr0 == nullptr)
-            continue;
-        auto ta0 = tr0->link();
-        if (ta0 == nullptr)
-            continue;
         for (auto&& r1: b) {
+            Atom* a0 = nullptr;
+            Atom* a1 = nullptr;
             auto tr1 = find_template_residue(r1->name());
-            // only connect residues of the same type
-            if (tr1 == nullptr || tr1->description() != tr0->description())
-                continue;
-            auto ta1 = tr1->chief();
-            if (ta1 == nullptr)
-                continue;
-            Atom* a0 = r0->find_atom(ta0->name());
-            Atom* a1 = r1->find_atom(ta1->name());
-            if (a0 == nullptr && a1 != nullptr) {
-                std::swap(a0, a1);
-                std::swap(r0, r1);
+            bool same_type = tr0 && tr1 && !tr0->description().empty()
+                             && (tr1->description() == tr0->description());
+            const char* conn_type;
+            if (same_type) {
+                // peptide or nucletide
+                auto ta0 = tr0 ? tr0->link() : nullptr;
+                if (ta0)
+                    a0 = r0->find_atom(ta0->name());
+                auto ta1 = tr1 ? tr1->chief() : nullptr;
+                if (ta1)
+                    a1 = r1->find_atom(ta1->name());
+                if (a0 == nullptr && a1 != nullptr) {
+                    std::swap(a0, a1);
+                    std::swap(r0, r1);
+                }
+                conn_type = "linking atoms for ";
+            } else {
+                // double check that there is a bond connecting the residues
+                auto bonds = r0->bonds_between(r1, true);
+                if (bonds.size() > 0)
+                    continue;
+                conn_type = "connection between ";
             }
             if (a0 == nullptr) {
                 find_nearest_pair(r0, r1, &a0, &a1);
-            } else if (a1 == nullptr)
+                if (a0 == nullptr || a0->element() != Element::C || a0->name() != "CA") {
+                    // suppress warning for CA traces
+                    if (!gap)
+                        logger::warning(_logger, "Expected gap or ", conn_type,
+                                        residue_str(r0, r1), " and ", residue_str(r1));
+                }
+            } else if (a1 == nullptr) {
+                if (!gap)
+                    logger::warning(_logger,
+                                    "Expected gap or linking atom in ",
+                                    residue_str(r1, r0), " for ", residue_str(r0));
                 a1 = find_closest(a0, r1, nullptr, true);
-            if (a1 == nullptr)
+            }
+            if (a1 == nullptr) {
+                logger::warning(_logger, "Unable to connect ", residue_str(r0, r1),
+                                " and ", residue_str(r1));
                 continue;
-            if (gap && reasonable_bond_length(a0, a1))
+            }
+#if 0
+            if (gap && reasonable_bond_length(a0, a1)) {
+                logger::warning(_logger, "Eliding gap between ", residue_str(r0, r1), " and ", residue_str(r1));
                 gap = false;    // bad data
-            if (gap || !Bond::polymer_bond_atoms(a0, a1)) {
+            }
+#endif
+            if (gap || (!Bond::polymer_bond_atoms(a0, a1) && !reasonable_bond_length(a0, a1))) {
+                // gap or CA trace
                 auto as = r0->structure();
                 auto pbg = as->pb_mgr().get_group(as->PBG_MISSING_STRUCTURE,
                     atomstruct::AS_PBManager::GRP_NORMAL);
@@ -443,9 +495,31 @@ ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr
     for (auto&& a: atoms) {
         tmpl::Atom *ta = tr->find_atom(a->name());
         if (!ta) {
-            logger::warning(_logger, "Found atoms not in residue template for ", r->str());
-            connect_residue_by_distance(r);
-            return;
+            if (tr->atoms_map().size() == 0) {
+                if (empty_residue_templates.find(r->name()) == empty_residue_templates.end()) {
+                    empty_residue_templates.insert(r->name());
+                    logger::warning(_logger, "Empty ", r->name(),
+                                    " residue template");
+                }
+                // No connectivity, so don't connect
+                return;
+            }
+            bool connected = false;
+            auto bonds = a->bonds();
+            for (auto&& b: bonds) {
+                if (b->other_atom(a)->residue() == r) {
+                    connected = true;
+                }
+            }
+            // TODO: worth checking if there is a metal coordination bond?
+            if (!connected) {
+                logger::warning(_logger, "Found disconnected atom ", a->name(),
+                                " that is not in residue template for ",
+                                residue_str(r));
+                connect_residue_by_distance(r);
+                return;
+            }
+            // atom is connected, so assume template is still appropriate
         }
     }
 
@@ -538,13 +612,16 @@ ExtractMolecule::finished_parse()
         return;
 
     // connect residues in molecule with all_residues information
+    bool has_ambiguous = false;
     auto mol = all_residues.begin()->second.begin()->second->structure();
     for (auto&& r : mol->residues()) {
         auto tr = find_template_residue(r->name());
         if (tr == nullptr) {
-            logger::warning(_logger, "Missing residue template for ", r->str());
+            logger::warning(_logger, "Missing residue template for ", residue_str(r));
+            has_ambiguous = true;   // safe to treat as ambiguous
             connect_residue_by_distance(r);
         } else {
+            has_ambiguous = has_ambiguous || tr->pdbx_ambiguous;
             connect_residue_by_template(r, tr);
         }
     }
@@ -552,7 +629,7 @@ ExtractMolecule::finished_parse()
     // Connect residues in entity_poly_seq.
     // Because some positions are heterogeneous, delay connecting
     // until next group of residues is found.
-    for (auto&& chain: all_residues) {
+    for (auto& chain: all_residues) {
         ResidueMap& residue_map = chain.second;
         auto ri = residue_map.begin();
         const string& entity_id = ri->first.entity_id;
@@ -569,7 +646,7 @@ ExtractMolecule::finished_parse()
                 if (current.empty())
                     continue;
                 if (!previous.empty())
-                    connect_residue_pairs(previous, current, gap);
+                    connect_polymer_pair(previous, current, gap);
                 previous = std::move(current);
                 current.clear();
                 gap = true;
@@ -579,17 +656,22 @@ ExtractMolecule::finished_parse()
             if (auth_chain_id.empty())
                 auth_chain_id = r->chain_id();
             if (lastp && lastp->seq_id == p.seq_id) {
-                if (lastp->hetero)
-                    logger::warning(_logger, "Ignoring microheterogeneity for seq_id ",
-                                    p.seq_id);
+                string c_id;
+                if (auth_chain_id == " ")
+                    c_id = "' '";
                 else
-                    logger::warning(_logger, "Skipping duplicate seq_id ",
-                                    p.seq_id);
+                    c_id = auth_chain_id;
+                if (lastp->hetero)
+                    logger::warning(_logger, "Ignoring microheterogeneity for label_seq_id ",
+                                    p.seq_id, " in chain ", c_id);
+                else
+                    logger::warning(_logger, "Skipping residue with duplicate label_seq_id ",
+                                    p.seq_id, " in chain ", c_id);
                 residue_map.erase(ri);
                 mol->delete_residue(r);
             } else {
                 if (!previous.empty() && !current.empty()) {
-                    connect_residue_pairs(previous, current, gap);
+                    connect_polymer_pair(previous, current, gap);
                     gap = false;
                 }
                 if (!current.empty()) {
@@ -601,7 +683,7 @@ ExtractMolecule::finished_parse()
             lastp = &p;
         }
         if (!previous.empty())
-            connect_residue_pairs(previous, current, gap);
+            connect_polymer_pair(previous, current, gap);
         if (auth_chain_id.empty())
             continue;
         auto& input_seq_info = mol->input_seq_info();
@@ -620,7 +702,8 @@ ExtractMolecule::finished_parse()
         if (mol->input_seq_source.empty())
             mol->input_seq_source = "mmCIF entity_poly_seq table";
     }
-    find_and_add_metal_coordination_bonds(mol);
+    if (has_ambiguous)
+        find_and_add_metal_coordination_bonds(mol);
     if (missing_poly_seq)
         find_missing_structure_bonds(mol);
 
@@ -725,6 +808,7 @@ ExtractMolecule::parse_chem_comp()
 {
     ResName name;
     string  type;
+    bool    ambiguous = false;
 
     CIFFile::ParseValues pv;
     pv.reserve(4);
@@ -736,6 +820,10 @@ ExtractMolecule::parse_chem_comp()
         pv.emplace_back(get_column("type", Required),
             [&] (const char* start, const char* end) {
                 type = string(start, end - start);
+            });
+        pv.emplace_back(get_column("pdbx_ambiguous_flag"),
+            [&] (const char* start) {
+                ambiguous = *start == 'Y' || *start == 'y';
             });
     } catch (std::runtime_error& e) {
         logger::warning(_logger, "skipping chem_comp category: ", e.what());
@@ -754,6 +842,7 @@ ExtractMolecule::parse_chem_comp()
         tmpl::Residue* tr = my_templates->find_residue(name);
         if (!tr) {
             tr = my_templates->new_residue(name);
+            tr->pdbx_ambiguous = ambiguous;
             bool is_peptide = type.find("peptide") != string::npos;
             if (is_peptide)
                 tr->description("peptide");
@@ -1099,8 +1188,21 @@ ExtractMolecule::parse_atom_site()
                 if (entity_id.empty())
                     entity_id = cid.c_str();
                 // TODO: should only save amino and nucleic acids
-                if (residue_name != "HOH")
-                    poly_seq[entity_id].emplace(position, residue_name, false);
+                if (residue_name != "HOH") {
+                    auto& entity_poly_seq = poly_seq[entity_id];
+                    PolySeq p(position, residue_name, false);
+                    auto pit = entity_poly_seq.equal_range(p);
+                    bool found = false;
+                    for (auto& i = pit.first; i != pit.second; ++i) {
+                        auto& p2 = *i;
+                        if (p2.mon_id == p.mon_id) {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found)
+                        entity_poly_seq.emplace(p);
+                }
             }
             chain_entity_map[chain_id] = entity_id;
             if (model_num == first_model_num) {
@@ -1560,7 +1662,7 @@ ExtractMolecule::parse_struct_conf()
         if (init_ps == entity_poly_seq.end()) {
         // TODO: || end_ps == entity_poly_seq.end()) {
             logger::warning(_logger,
-                            "Bad residue range for secondary strcture \"", id,
+                            "Bad residue range for secondary structure \"", id,
                             "\" near line ", line_number());
             continue;
         }

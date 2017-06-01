@@ -53,7 +53,7 @@ setup(
         "PKG_NAME",
     ],
     package_data={
-        "PKG_NAME": [ "*.png" ]
+        "PKG_NAME": [ ]
     },
     install_requires=[
         "ChimeraX-Core >= 0.1",
