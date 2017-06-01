@@ -84,7 +84,7 @@ canonicalize_atom_name(AtomName* aname, bool* asterisks_translated)
 }
 
 std::string
-residue_str(Residue* r)
+residue_str(Residue* r, Residue* other = nullptr)
 {
     std::stringstream pos_string;
     std::string ret = static_cast<const char*>(r->name());
@@ -94,9 +94,11 @@ residue_str(Residue* r)
     auto insertion_code = r->insertion_code();
     if (insertion_code != ' ')
         ret += insertion_code;
-    ret += ' ';
+    if (other && other->chain_id() == r->chain_id())
+        return ret;
     auto chain_id = r->chain_id();
     if (chain_id != " ") {
+        ret += ' ';
         ret += "in chain ";
         ret += chain_id;
     }
@@ -162,7 +164,7 @@ struct ExtractMolecule: public readcif::CIFFile
     virtual void data_block(const string& name);
     virtual void reset_parse();
     virtual void finished_parse();
-    void connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, bool gap);
+    void connect_polymer_pair(vector<Residue*> a, vector<Residue*> b, bool gap);
     void connect_residue_by_template(Residue* r, const tmpl::Residue* tr);
     const tmpl::Residue* find_template_residue(const ResName& name);
     void parse_audit_conform();
@@ -410,7 +412,7 @@ ExtractMolecule::find_template_residue(const ResName& name)
 }
 
 void
-ExtractMolecule::connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, bool gap)
+ExtractMolecule::connect_polymer_pair(vector<Residue*> a, vector<Residue*> b, bool gap)
 {
     // Connect adjacent residues that have the same type
     // and have link & chief atoms (i.e., peptides and nucleotides)
@@ -449,23 +451,23 @@ ExtractMolecule::connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, b
                     // suppress warning for CA traces
                     if (!gap)
                         logger::warning(_logger, "Expected gap or ", conn_type,
-                                        residue_str(r0), " and ", residue_str(r1));
+                                        residue_str(r0, r1), " and ", residue_str(r1));
                 }
             } else if (a1 == nullptr) {
                 if (!gap)
                     logger::warning(_logger,
                                     "Expected gap or linking atom in ",
-                                    residue_str(r1), " for ", residue_str(r0));
+                                    residue_str(r1, r0), " for ", residue_str(r0));
                 a1 = find_closest(a0, r1, nullptr, true);
             }
             if (a1 == nullptr) {
-                logger::warning(_logger, "Unable to connect ", residue_str(r0),
+                logger::warning(_logger, "Unable to connect ", residue_str(r0, r1),
                                 " and ", residue_str(r1));
                 continue;
             }
 #if 0
             if (gap && reasonable_bond_length(a0, a1)) {
-                logger::warning(_logger, "Eliding gap between ", residue_str(r0), " and ", residue_str(r1));
+                logger::warning(_logger, "Eliding gap between ", residue_str(r0, r1), " and ", residue_str(r1));
                 gap = false;    // bad data
             }
 #endif
@@ -644,7 +646,7 @@ ExtractMolecule::finished_parse()
                 if (current.empty())
                     continue;
                 if (!previous.empty())
-                    connect_residue_pairs(previous, current, gap);
+                    connect_polymer_pair(previous, current, gap);
                 previous = std::move(current);
                 current.clear();
                 gap = true;
@@ -654,17 +656,22 @@ ExtractMolecule::finished_parse()
             if (auth_chain_id.empty())
                 auth_chain_id = r->chain_id();
             if (lastp && lastp->seq_id == p.seq_id) {
+                string c_id;
+                if (auth_chain_id == " ")
+                    c_id = "' '";
+                else
+                    c_id = auth_chain_id;
                 if (lastp->hetero)
                     logger::warning(_logger, "Ignoring microheterogeneity for seq_id ",
-                                    p.seq_id);
+                                    p.seq_id, " in chain ", c_id);
                 else
                     logger::warning(_logger, "Skipping residue with duplicate seq_id ",
-                                    p.seq_id);
+                                    p.seq_id, " in chain ", c_id);
                 residue_map.erase(ri);
                 mol->delete_residue(r);
             } else {
                 if (!previous.empty() && !current.empty()) {
-                    connect_residue_pairs(previous, current, gap);
+                    connect_polymer_pair(previous, current, gap);
                     gap = false;
                 }
                 if (!current.empty()) {
@@ -676,7 +683,7 @@ ExtractMolecule::finished_parse()
             lastp = &p;
         }
         if (!previous.empty())
-            connect_residue_pairs(previous, current, gap);
+            connect_polymer_pair(previous, current, gap);
         if (auth_chain_id.empty())
             continue;
         auto& input_seq_info = mol->input_seq_info();
