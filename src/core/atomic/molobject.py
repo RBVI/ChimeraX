@@ -2016,11 +2016,15 @@ class SeqMatchMap(State):
 
 # -----------------------------------------------------------------------------
 #
+
+# The C++ function Structure::py_object() calls object_map(), so if this function is
+# renamed or it's call signature is modified (or this module is moved) then that C++
+# function must be updated
 _object_map = {}	# Map C++ pointer to Python object
 def object_map(p, object_type):
     global _object_map
     o = _object_map.get(p, None)
-    if o is None:
+    if o is None and object_type is not None:
         _object_map[p] = o = object_type(p)
     return o
 
