@@ -566,6 +566,7 @@ class HandControllerModel(Model):
             y_motion = move.matrix[1,3]  # meters
             from math import exp
             s = exp(2*y_motion)
+            s = max(min(s, 10.0), 0.1)	# Limit scaling
             from chimerax.core.geometry import distance, translation, scale
             scale = translation(center) * scale(s) * translation(-center)
             camera.room_to_scene = camera.room_to_scene * scale
@@ -582,8 +583,9 @@ class HandControllerModel(Model):
         from chimerax.core.geometry import distance, translation, scale
         d, dp = distance(pos,other_pos), distance(prev_pos,other_pos)
         center = 0.5*(pos+other_pos)
-        if d > 0.5*dp:
+        if d > 0.5*dp and dp > 0:
             s = dp / d
+            s = max(min(s, 10.0), 0.1)	# Limit scaling
             scale = translation(center) * scale(s) * translation(-center)
             camera.room_to_scene = camera.room_to_scene * scale
 
