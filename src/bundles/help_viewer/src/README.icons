@@ -1,0 +1,46 @@
+Minicons-Free-Pack.zip is from http://www.webalys.com/minicons/icons-free-pack.php.
+
+License (from _license-agreement.txt in zip archive):
+
+	Minicons Free Vector Icons Pack by Webalys is licensed
+	under a Creative Commons Attribution 3.0 Unported License:
+	http://creativecommons.org/licenses/by/3.0/dee d.en_US
+
+	This Pack is published under a Creative Commons Attribution
+	license and Free for both personal and commercial use.  You
+	can copy, adapt, remix, distribute or transmit it.
+
+	Under this condition: provide a mention of this "Minicons
+	Free Vector Icons Pack " and a link back to this page:
+	http://www.webalys.com/minicons
+
+
+---------------------
+To extract the icons:
+---------------------
+
+1. inkscape Minicons-Free.eps
+
+2. Object / Ungroup the image
+
+3. For each wanted icon:
+
+   a. open a new (scratch) window
+
+   b. select and copy the icon
+
+   c. paste in scatch window
+
+   d. change File / Document Properties, in Page tab:
+
+      i. "Resize page to drawing or selecion"
+
+      ii. make page square
+
+      iii. center icon
+
+  e. File / Save As: icon.svg
+
+  f. File / Export PNG Image:
+
+     64x64 pixels
