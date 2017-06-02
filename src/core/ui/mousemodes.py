@@ -456,13 +456,14 @@ def mouse_select(event, mode, session, view):
     pick = picked_object(x, y, view)
     select_pick(session, pick, mode)
 
-def picked_object(x, y, view):
-    p = view.first_intercept(x, y, exclude=unpickable)
-    if p and getattr(p, 'pick_through', False) and p.distance is not None:
-        p2 = view.first_intercept(x, y, exclude=unpickable, beyond=p.distance)
-        if p2:
-            return p2
-    return p
+def picked_object(x, y, view, max_transparent_layers = 3):
+    p2 = p = view.first_intercept(x, y, exclude=unpickable)
+    for i in range(max_transparent_layers):
+        if p2 and getattr(p2, 'pick_through', False) and p2.distance is not None:
+            p2 = view.first_intercept(x, y, exclude=unpickable, beyond=p2.distance)
+        else:
+            break
+    return p2 if p2 else p
 
 def unpickable(drawing):
     return not getattr(drawing, 'pickable', True)
