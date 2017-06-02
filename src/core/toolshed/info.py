@@ -221,7 +221,7 @@ class BundleInfo:
             f(command_name, logger)
         except Exception as e:
             raise ToolshedError(
-                "register_command() failed for command %s:\n%s" % (command_name, str(e)))
+                "register_command() failed for command %s in bundle %s:\n%s" % (command_name, self.name, str(e)))
 
     def _deregister_commands(self, logger):
         """Deregister commands with cli."""
