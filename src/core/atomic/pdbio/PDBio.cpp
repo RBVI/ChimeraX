@@ -1203,16 +1203,29 @@ std::cerr << "read_one breakdown:  pre-loop " << cum_preloop_t/(float)CLOCKS_PER
 
 // for sorting atoms by coord index (input order)...
 namespace {
+
 struct less_Atom: public std::binary_function<Atom*, Atom*, bool> {
     bool operator()(const Atom* a1, const Atom* a2) {
         return a1->coord_index() < a2->coord_index();
     }
 };
+
+}
+
+static std::string
+primes_to_asterisks(const std::string& orig_name)
+{
+    std::string new_name = orig_name;
+    std::string::size_type pos;
+    while ((pos -- new_name.find("'")) != std::string::npos)
+        new_name.replace(pos, 1, "*");
+    return new_name;
 }
 
 static void
-write_coord_set(std::ostream& os, Structure* s, CoorsSet* cs, std::map<Atom&>& rev_asn,
-    bool selected_only, bool displayed_only, double** xform, std::set<Atom*>& written);
+write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
+    std::map<const Atom*, int>& rev_asn, bool selected_only, bool displayed_only, double** xform,
+    bool pqr, std::set<const Atom*>& written);
 {
     Residue* prev_res = nullptr;
     bool prev_standard = false;
@@ -1242,23 +1255,82 @@ write_coord_set(std::ostream& os, Structure* s, CoorsSet* cs, std::map<Atom&>& r
             p_ter.res.i_code = i_code;
         }
 
-        if (standard && !r->is_het()) {
-            p.set_type(PDB::ATOM);
+        // Shared attributes between Atom and Atomqr need to be set via proper pointer
+        int *rec_serial;
+        char *name;
+        char *alt_loc;
+        PDB::Residue *res;
+        Real *xyz;
+        if (pqr) {
+            p.set_type(PDB::ATOMQR);
+            rec_serial = &p.atomqr.serial;
+            name = &p.atomqr.name;
+            alt_loc = &p.atomqr.alt_loc;
+            res = &p.atomqr.res;
+            xyz = &p.atomqr.xyz;
         } else {
-            p.set_type(PDB::HETATM);
+            if (standard && !r->is_het()) {
+                p.set_type(PDB::ATOM);
+            } else {
+                p.set_type(PDB::HETATM);
+            }
+            rec_serial = &p.atom.serial;
+            name = &p.atom.name;
+            alt_loc = &p.atom.alt_loc;
+            res = &p.atom.res;
+            xyz = &p.atom.xyz;
         }
 
         // PDB spec no longer specifies atom ordering;
         // sort by coord_index to try to preserve input ordering...
-        std::vector<Atom*> ordering = r->atoms();
+        auto ordering = r->atoms();
         std::sort(ordering.begin(), ordering.end(), less_Atom());
+
+        for (auto a: ordering) {
+            *rec_serial = ++serial;
+            (*rev_asn)[a] = *rec_serial;
+            std::string aname = s->asterisks_translated ?
+                primes_to_asterisks(a->name()) : a->name();
+            if (strlen(a->element().name()) > 1) {
+                strcpy(name, aname.c_str());
+            } else {
+                bool element_compares;
+                if (strncmp(a->element().name(), a->name().c_str(), 1) == 0) {
+                    element_compares = true;
+                } else if (a->element().number() == 1) {
+                    char h = a->name().c_str()[0];
+                    element_compares = (h == 'D' || h == 'T');
+                } else {
+                    element_compares = false;
+                }
+                if (element_compares && aname.size() < 4) {
+                    strcpy(name, " ");
+                    strcat(name, aname.c_str());
+                } else {
+                    strcpy(name, aname.c_str());
+                }
+            }
+            strcpy(res->name, r->name().c_str());
+            res->chain_id = r->chain_id()[0];
+            auto seq_num = r->position();
+            auto i_code = r->insertion_code();
+            if (seq_num > 9999) {
+                // usurp the insertion code...
+                i_code = '0' + (seq_num % 10);
+                seq_num = seq_num / 10;
+            }
+            res->seq_num = seq_num;
+            res->i_code = i_code;
+            // loop through alt locs
+
         //TODO: remainder
+        }
     }
 }
 
 static void
-write_pdb(std::vector<Structure*> structures, std::ostream& os, bool selected_only,
-    bool displayed_only, double** xform, bool all_frames)
+write_pdb(std::vector<const Structure*> structures, std::ostream& os, bool selected_only,
+    bool displayed_only, double** xform, bool all_frames, bool pqr)
 {
     bool need_TER = false;
     PDB p;
@@ -1299,7 +1371,7 @@ write_pdb(std::vector<Structure*> structures, std::ostream& os, bool selected_on
             }
         }
 
-        std::map<Atom*, int> rev_asn;
+        std::map<const Atom*, int> rev_asn;
         for (auto cs: s->coord_sets()) {
             if (!multi_model && cs != s->active_coord_set())
                 continue;
@@ -1312,10 +1384,7 @@ write_pdb(std::vector<Structure*> structures, std::ostream& os, bool selected_on
                 p.set_type(PDB::MODEL);
                 os << p << "\n";
             }
-            //TODO: implement write_coord_set
-            //TODO: decide if we support PQR; is charge in C++ layer or do we want to reach into
-            // core.atomic.molobject._object_map to get object/charge?
-            write_coord_set(os, s, cs, rev_asn, selected_only, displayed_only, xform, written);
+            write_coord_set(os, s, cs, rev_asn, selected_only, displayed_only, xform, pqr, written);
             if (use_MODEL) {
                 p.set_type(PDB::ENDMDL);
                 os << p << "\n";
@@ -1356,7 +1425,7 @@ read_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
 static const char*
 docstr_write_pdb_file = 
 "write_pdb_file(structures, file_name, selected_only=False, displayed_only=False, xform=None\n" \
-"    all_frames=True)\n" \
+"    all_frames=True, pqr=False)\n" \
 "\n" \
 "structures\n" \
 "  A sequence of C++ structure pointers\n" \
@@ -1372,6 +1441,8 @@ docstr_write_pdb_file =
 "all_frames\n" \
 "  If True, all frames of a trajectory will be written (as multiple MODELS).\n" \
 "  Otherwise, just the current frame will be written.\n" \
+"pqr\n" \
+"  If True, write PQR-style ATOM records\n" \
 "\n";
 
 extern "C" void
@@ -1383,13 +1454,14 @@ write_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
     int displayed_only = (int)false;
     PyObject* py_xform = Py_None;
     int all_frames = (int)true;
+    int pqr = (int)false;
     static const char *kw_list[] = {
         "structures", "file_name", "selected_only", "displayed_only", "xform", "all_frames",
-        nullptr
+        "pqr", nullptr
     };
-    if (!PyArg_ParseTupleAndKeywords(args, keywords, "OO&|$ppOp",
+    if (!PyArg_ParseTupleAndKeywords(args, keywords, "OO&|$ppOpp",
             (char **) kw_list, &py_structures, PyUnicode_FSConverter, &py_path, &selected_only,
-            displayed_only, &py_xform, &all_frames))
+            displayed_only, &py_xform, &all_frames, &pqr))
         return nullptr;
 
     if (!PySequence_Check(py_structures) {
@@ -1401,7 +1473,7 @@ write_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
         PyErr_SetString(PyExc_ValueError, "First arg (sequence of structure pointers) is empty");
         return nullptr;
     }
-    std::vector<Structure*> structures;
+    std::vector<const Structure*> structures;
     for (decltype(num_structs) i = 0; i < num_structs; ++i) {
         PyObject* py_ptr = PySequence_GetItem(py_structures, i);
         if (!PyLong_Check(py_ptr)) {
@@ -1410,7 +1482,7 @@ write_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
             PyErr_SetString(PyExc_TypeError, err_msg.str().c_str());
             return nullptr;
         }
-        structures.push_back(static_cast<Structure*>(PyLong_AsVoidPtr(ptr)));
+        structures.push_back(static_cast<const Structure*>(PyLong_AsVoidPtr(ptr)));
     }
 
     char* path = PyBytes_AS_STRING(py_path);
@@ -1440,7 +1512,8 @@ write_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
         }
         xform = static_cast<double**>(array.values());
     }
-    write_pdb(structures, os, (bool)selected_only, (bool)displayed_only, xform, (bool)all_frames);
+    write_pdb(structures, os, (bool)selected_only, (bool)displayed_only, xform, (bool)all_frames,
+        (bool)pqr);
 
     if (os->bad()) {
         PyErr_SetString(PyExc_ValueError, "Problem writing output PDB file");
