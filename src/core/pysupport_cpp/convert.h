@@ -36,12 +36,16 @@ public:
     PyTmpRef(PyObject* o): obj(o) {}
     ~PyTmpRef() { Py_CLEAR(obj); }
     operator PyObject*() const { return obj; }
+    operator PyVarObject*() const { return reinterpret_cast<PyVarObject*>(obj); }
     PyTmpRef& operator=(PyObject* o) noexcept {
         if (obj != o) {
             Py_CLEAR(obj);
             obj = o;
         }
         return *this;
+    }
+    operator bool() noexcept {
+        return obj != nullptr;
     }
 };
 
@@ -263,11 +267,14 @@ void pylist_of_string_to_cvec(PyObject* pylist, std::vector<Contained>& cvec,
 template <class Contained>
 void pysequence_of_string_to_cvec(PyObject* pylist, std::vector<Contained>& cvec,
         const char* item_description) {
-    if (!PySequence_Check(pylist))
+    PyTmpRef seq = PySequence_Fast(pylist, "not a sequence");
+    if (!seq) {
+        PyErr_Clear();
         throw ErrNotList(item_description);
-    auto num_items = PySequence_Size(pylist);
+    }
+    auto num_items = PySequence_Fast_GET_SIZE(seq);
     for (decltype(num_items) i = 0; i < num_items; ++i) {
-        PyTmpRef item = PySequence_GetItem(pylist, i);
+        PyObject* item = PySequence_Fast_GET_ITEM(pylist, i);
         cvec.emplace_back(pystring_to_cchar(item, item_description));
     }
 }
