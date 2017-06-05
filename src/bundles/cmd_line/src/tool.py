@@ -37,10 +37,14 @@ class CommandLine(ToolInstance):
             def __init__(self, parent, tool):
                 self.tool = tool
                 QComboBox.__init__(self, parent)
-                self._processing_forwarded_key = False
+                self._processing_key = False
 
-            def keyPressEvent(self, event):
-                self._processing_forwarded_key = True
+            def keyPressEvent(self, event, forwarded=False):
+                self._processing_key = True
+                if forwarded:
+                    # Give command line the focus, so that up/down arrow work as
+                    # exepcted rather than changing the selection level
+                    self.setFocus()
                 from PyQt5.QtCore import Qt
                 import sys
                 control_key = Qt.MetaModifier if sys.platform == "darwin" else Qt.ControlModifier
@@ -62,11 +66,11 @@ class CommandLine(ToolInstance):
                         QComboBox.keyPressEvent(self, event)
                 else:
                     QComboBox.keyPressEvent(self, event)
-                self._processing_forwarded_key = False
+                self._processing_key = False
 
             def retain_selection_on_focus_out(self):
                 # prevent de-selection of text when focus lost
-                if self._processing_forwarded_key:
+                if self._processing_key:
                     return
                 le = self.lineEdit()
                 if not le.hasFocus() and not le.selectedText() and le.text():
@@ -86,7 +90,7 @@ class CommandLine(ToolInstance):
         # lineEdit() seems to be None during entire CmdText constructor, so connect here...
         self.text.lineEdit().selectionChanged.connect(self.text.retain_selection_on_focus_out)
         self.text.currentTextChanged.connect(self.text_changed)
-        self.text.forwarded_keystroke = lambda e: self.text.keyPressEvent(e)
+        self.text.forwarded_keystroke = lambda e: self.text.keyPressEvent(e, forwarded=True)
         session.ui.register_for_keystrokes(self.text)
         self.history_dialog.populate()
         self.tool_window.manage(placement="bottom")
