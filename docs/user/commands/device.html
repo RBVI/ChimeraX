@@ -70,6 +70,8 @@ See also: <a href="mousemode.html"><b>mousemode</b></a>
 <a name="vr"><b>vr</b></a> [&nbsp;<a href="#status"><i>status</i></a>&nbsp;]
 [&nbsp;<b>roomPosition</b>&nbsp;&nbsp;<i>matrix</i>&nbsp;|&nbsp;<b>report</b>&nbsp;]
 [&nbsp;<b>mirror</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>icons</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>showControllers</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 <blockquote>
 <p>
 The <b>vr</b> command (same as <b>device vr</b>)
@@ -106,10 +108,19 @@ because refreshing the computer display (nominally 60 times per second)
 slows rendering to headset.
 Although it may be possible to avoid this problem by turning off syncing to
 vertical refresh, it is better to use the SteamVR display mirror window.
+</p><p>
+The <b>icons</b> option (default <b>false</b>) indicates whether 
+to show a panel of icons when the controller trackpad is touched. 
+For demonstrations, the icons can be too complex and may be better left unshown.
+</p><p>
+The <b>showControllers</b> option (default <b>true</b>)
+shows representations of the hand controllers in the scene.
+Not showing the representations may be useful to avoid time-consuming
+calculations of the shadows they cast. 
 </p>
 </blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2017</address>
+June 2017</address>
 </body></html>

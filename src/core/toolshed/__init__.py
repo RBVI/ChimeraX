@@ -642,9 +642,10 @@ class Toolshed:
         # with stderr as parameter.
         import sys
         command = ["install",
-                   "--index-url", self.remote_url + "/pypi/",
+                   "--extra-index-url", self.remote_url + "/pypi/",
                    "--upgrade-strategy", "only-if-needed",
-                   "--only-binary", ":all:"]
+                   # "--only-binary", ":all:"   # msgpack-python is not binary
+                   ]
         if per_user:
             command.append("--user")
         if reinstall:

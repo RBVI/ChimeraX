@@ -58,16 +58,21 @@ using atomstruct::ResName;
 tmpl::Molecule* templates;
 LocateFunc  locate_func;
 
-// standard_residues have standard linkage 
+// Standard_residues have standard linkage.
+// The following standard residues are from
+// http://www.wwpdb.org/documentation/file-format-content/format33/sect4.html
 static std::set<ResName> standard_peptides = {
-    "ALA", "ARG", "ASN", "ASP", "ASX", "CYS",
-    "GLN", "GLU", "GLX", "GLY", "HIS", "ILE",
-    "LEU", "LYS", "MET", "PHE", "PRO", "SER",
-    "THR", "TRP", "TYR", "UNK", "VAL"
+    "ALA", "ARG", "ASN", "ASP", "CYS",
+    "GLN", "GLU", "GLY", "HIS", "ILE",
+    "LEU", "LYS", "MET", "PHE", "PRO",
+    "SER", "THR", "TRP", "TYR", "VAL",
+    "UNK",
+    // "ASX", "GLX" // not explicit listed, but might be reasonable
 };
 static std::set<ResName> standard_nucleotides = {
-    "A", "C", "G", "I", "T", "U",
-    "DA", "DC", "DG", "DT",
+    "A", "C", "G", "I", "U",
+    "DA", "DC", "DG", "DI", "DT",
+    "N",
 };
 
 const tmpl::Residue*

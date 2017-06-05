@@ -26,6 +26,25 @@
 
 namespace pysupport {
 
+class PyTmpRef {
+    // RAII for a Python object reference.  Treat like a PyObject*
+    // and don't worry about the refernce count being decremented.
+    // Not appropriate for borrowed references (just use PyObject*).
+    PyObject* obj;
+public:
+    PyTmpRef(): obj(nullptr) {}
+    PyTmpRef(PyObject* o): obj(o) {}
+    ~PyTmpRef() { Py_CLEAR(obj); }
+    operator PyObject*() const { return obj; }
+    PyTmpRef& operator=(PyObject* o) noexcept {
+        if (obj != o) {
+            Py_CLEAR(obj);
+            obj = o;
+        }
+        return *this;
+    }
+};
+
 inline std::string _make_msg(std::initializer_list<const char*> parts) {
     std::stringstream msg;
     for (auto part: parts)
@@ -237,6 +256,18 @@ void pylist_of_string_to_cvec(PyObject* pylist, std::vector<Contained>& cvec,
     auto num_items = PyList_GET_SIZE(pylist);
     for (decltype(num_items) i = 0; i < num_items; ++i) {
         PyObject* item = PyList_GET_ITEM(pylist, i);
+        cvec.emplace_back(pystring_to_cchar(item, item_description));
+    }
+}
+
+template <class Contained>
+void pysequence_of_string_to_cvec(PyObject* pylist, std::vector<Contained>& cvec,
+        const char* item_description) {
+    if (!PySequence_Check(pylist))
+        throw ErrNotList(item_description);
+    auto num_items = PySequence_Size(pylist);
+    for (decltype(num_items) i = 0; i < num_items; ++i) {
+        PyTmpRef item = PySequence_GetItem(pylist, i);
         cvec.emplace_back(pystring_to_cchar(item, item_description));
     }
 }
