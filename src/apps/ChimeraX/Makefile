@@ -17,6 +17,7 @@ STRIP	=
 BINMODE	= 755
 
 PY_MAIN = $(APP_NAME)_main.py
+UTILS	= wheel_tag.py
 
 ICONS	= ChimeraX-icon.svg ChimeraX-icon512.png
 ifeq ($(OS),Linux)
@@ -40,10 +41,12 @@ all: $(PROG)
 install: $(PROG)
 	$(RSYNC) $(PROG) $(bindir)
 	$(RSYNC) $(PY_MAIN) $(PYSITEDIR)
+	$(RSYNC) $(UTILS) $(PYSITEDIR)
 	$(RSYNC) $(ICONS) $(datadir)
 	if [ -d "$(app_prefix)" ]; then \
 		$(RSYNC) $(PROG) $(app_bindir); \
 		$(RSYNC) $(PY_MAIN) $(APP_PYSITEDIR); \
+		$(RSYNC) $(UTILS) $(APP_PYSITEDIR); \
 		$(RSYNC) $(ICONS) $(app_datadir); \
 	fi
 ifdef WIN32

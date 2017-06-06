@@ -53,7 +53,7 @@ find_gaps(StructureSeq& sseq)
             // long "covalent" bonds across gaps, some of the
             // fancy logic used in Chimera is not necessary here
             if (connects.empty()) {
-                gap = res->position() - prev_res->position() - 1;
+                gap = res->number() - prev_res->number() - 1;
                 if (gap == -1) {
                     // 1ton/1bil have gaps in insertion codes...
                     auto prev_insert = prev_res->insertion_code();
@@ -108,9 +108,9 @@ find_gaps(StructureSeq& sseq)
         ap.segments.back().push_back(c);
         prev_res = res;
     }
-    int front_pos = sseq.residues().front()->position();
-    if (ap.est_len > 0 && front_pos > 1)
-        ap.est_len += front_pos - 1;
+    int front_num = sseq.residues().front()->number();
+    if (ap.est_len > 0 && front_num > 1)
+        ap.est_len += front_num - 1;
     return ap;
 }
 

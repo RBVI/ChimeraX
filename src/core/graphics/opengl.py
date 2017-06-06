@@ -668,9 +668,10 @@ class Render:
         r, g, b, a = rgba
         GL.glClearColor(r, g, b, a)
 
-    def draw_background(self):
+    def draw_background(self, depth=True):
         'Draw the background color and clear the depth buffer.'
-        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+        flags = (GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT) if depth else GL.GL_COLOR_BUFFER_BIT
+        GL.glClear(flags)
 
     def enable_depth_test(self, enable):
         'Enable OpenGL depth testing.'
@@ -870,13 +871,21 @@ class Render:
 
         return lvinv, stf
 
+    def set_outline_depth(self):
+        '''Copy framebuffer depth to outline framebuffer.  Only selected
+        objects at equal depth or in front will be outlines by start_rendering_outline().
+        This routine must be called before start_rendering_outline().
+        '''
+        mfb = self.make_mask_framebuffer()
+        self.copy_to_framebuffer(mfb, color=False)
+    
     def start_rendering_outline(self):
-
+        '''Must call set_outline_depth() before invoking this routine.'''
         fb = self.current_framebuffer()
         mfb = self.make_mask_framebuffer()
         self.push_framebuffer(mfb)
         self.set_background_color((0, 0, 0, 0))
-        self.draw_background()
+        self.draw_background(depth = False)
         # Use unlit all white color for drawing mask.
         # Outline code requires non-zero red component.
         self.disable_shader_capabilities(self.SHADER_VERTEX_COLORS
@@ -886,8 +895,6 @@ class Render:
         self.enable_capabilities |= self.SHADER_ALL_WHITE
         # Depth test GL_LEQUAL results in z-fighting:
         self.set_depth_range(0, 0.999999)
-        # Copy depth to outline framebuffer:
-        self.copy_from_framebuffer(fb, color=False)
 
     def finish_rendering_outline(self):
 
@@ -1051,6 +1058,20 @@ class Render:
         GL.glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, what, GL.GL_NEAREST)
         # Restore read buffer
         GL.glBindFramebuffer(GL.GL_READ_FRAMEBUFFER, cfb.fbo)
+
+    def copy_to_framebuffer(self, framebuffer, color=True, depth=True):
+        # Copy current framebuffer contents to another framebuffer.  This
+        # leaves read and draw framebuffers set to the current framebuffer.
+        cfb = self.current_framebuffer()
+        GL.glBindFramebuffer(GL.GL_READ_FRAMEBUFFER, cfb.fbo)
+        GL.glBindFramebuffer(GL.GL_DRAW_FRAMEBUFFER, framebuffer.fbo)
+        what = GL.GL_COLOR_BUFFER_BIT if color else 0
+        if depth:
+            what |= GL.GL_DEPTH_BUFFER_BIT
+        w, h = framebuffer.width, framebuffer.height
+        GL.glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, what, GL.GL_NEAREST)
+        # Restore draw buffer
+        GL.glBindFramebuffer(GL.GL_DRAW_FRAMEBUFFER, cfb.fbo)
 
     def finish_rendering(self):
         GL.glFinish()
@@ -1752,19 +1773,18 @@ class Texture:
     type GL_UNSIGNED_BYTE or GL_FLOAT is created.  Clamp to edge mode
     and nearest interpolation is set.  The c = 2 mode uses the second
     component as alpha and the first componet for red, green, blue.
+    The OpenGL texture is only created when the bind_texture() method
+    is called.  A reference to the array data is held until the OpenGL
+    texture is created.
     '''
     def __init__(self, data=None, dimension=2, cube_map=False):
 
+        self.data = data
         self.id = None
         self.dimension = dimension
         self.gl_target = (GL.GL_TEXTURE_CUBE_MAP if cube_map else
                           (GL.GL_TEXTURE_1D, GL.GL_TEXTURE_2D, GL.GL_TEXTURE_3D)[dimension - 1])
         self.is_cubemap = cube_map
-
-        if data is not None:
-            size = tuple(data.shape[dimension - 1::-1])
-            format, iformat, tdtype, ncomp = self.texture_format(data)
-            self.initialize_texture(size, format, iformat, tdtype, ncomp, data)
 
     def initialize_rgba(self, size):
 
@@ -1864,6 +1884,9 @@ class Texture:
 
     def bind_texture(self, tex_unit=None):
         'Bind the OpenGL texture.'
+        data = self.data
+        if self.data is not None:
+            self.fill_opengl_texture()
         if tex_unit is None:
             GL.glBindTexture(self.gl_target, self.id)
         else:
@@ -1880,7 +1903,27 @@ class Texture:
             GL.glBindTexture(self.gl_target, 0)
             GL.glActiveTexture(GL.GL_TEXTURE0)
 
-    def reload_texture(self, data):
+    def reload_texture(self, data, now = False):
+        '''
+        Replace the texture values in texture with OpenGL id using numpy
+        array data.  The data is interpreted the same as for the Texture
+        constructor data argument.
+        '''
+        self.data = data
+        if now:
+            self.fill_opengl_texture()
+
+    def fill_opengl_texture(self):
+        data = self.data
+        self.data = None
+        if self.id is None:
+            size = tuple(data.shape[self.dimension - 1::-1])
+            format, iformat, tdtype, ncomp = self.texture_format(data)
+            self.initialize_texture(size, format, iformat, tdtype, ncomp, data)
+        else:
+            self._fill_texture(data)
+        
+    def _fill_texture(self, data):
         '''
         Replace the texture values in texture with OpenGL id using numpy
         array data.  The data is interpreted the same as for the Texture

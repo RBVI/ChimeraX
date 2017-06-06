@@ -470,10 +470,9 @@ class Toolshed:
         if cx_dir not in m.__path__:
             m.__path__.append(cx_dir)
         try:
-            if bundle.installed:
+            if bundle.installed and not reinstall:
                 raise ToolshedInstalledError("bundle \"%s\" already installed" % bundle.name)
-            else:
-                bundle = bundle.name
+            bundle = bundle.name
         except AttributeError:
             # If "bundle" is not an instance, just leave it alone
             pass
@@ -643,12 +642,14 @@ class Toolshed:
         # with stderr as parameter.
         import sys
         command = ["install",
-                   "--index-url", self.remote_url + "/pypi/",
+                   "--extra-index-url", self.remote_url + "/pypi/",
                    "--upgrade-strategy", "only-if-needed",
-                   "--only-binary", ":all:"]
+                   # "--only-binary", ":all:"   # msgpack-python is not binary
+                   ]
         if per_user:
             command.append("--user")
         if reinstall:
+            # XXX: Not sure how this interacts with "only-if-needed"
             command.append("--force-reinstall")
         # bundle_name can be either a file path or a bundle name in repository
         command.append(bundle_name)

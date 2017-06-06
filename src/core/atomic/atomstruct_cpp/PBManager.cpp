@@ -163,13 +163,13 @@ BaseManager::session_restore(int version, int** ints, float** floats, PyObject* 
     auto& int_ptr = *ints;
     auto& float_ptr = *floats;
 
-    if (!PyList_Check(misc) || PyList_Size(misc) != 1) {
+    if (!(PyTuple_Check(misc) || PyList_Check(misc)) || PySequence_Fast_GET_SIZE(misc) != 1) {
         throw std::invalid_argument("PBManager::session_restore: third arg is not a"
-            " 1-element list");
+            " 1-element tuple");
     }
-    using pysupport::pylist_of_string_to_cvec;
+    using pysupport::pysequence_of_string_to_cvec;
     std::vector<std::string> categories;
-    pylist_of_string_to_cvec(PyList_GET_ITEM(misc, 0), categories, "PB Group category");
+    pysequence_of_string_to_cvec(PySequence_Fast_GET_ITEM(misc, 0), categories, "PB Group category");
     for (auto cat: categories) {
         auto grp = get_group(cat, *int_ptr++);
         grp->session_restore(version, &int_ptr, &float_ptr);

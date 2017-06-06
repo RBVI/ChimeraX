@@ -147,7 +147,9 @@ class Atom(State):
         doc="Whether atom is hidden (overrides display).  Integer bitmask."
         "\n\nPossible values:\n\n"
         "HIDE_RIBBON\n"
-        "    Hide mask for backbone atoms in ribbon.")
+        "    Hide mask for backbone atoms in ribbon.\n"
+        "HIDE_ISOLDE\n"
+        "    Hide mask for backbone atoms for ISOLDE.")
     idatm_type = c_property('atom_idatm_type', string, doc = "IDATM type")
     in_chain = c_property('atom_in_chain', npy_bool, read_only = True,
         doc = "Whether this atom belongs to a polymer. Read only.")
@@ -363,6 +365,8 @@ class Bond(State):
     '''Displayed cylinder radius for the bond.'''
     HIDE_RIBBON = 0x1
     '''Hide mask for backbone bonds in ribbon.'''
+    HIDE_ISOLDE = 0x2
+    '''Hide mask for backbone bonds for ISOLDE.'''
     hide = c_property('bond_hide', int32)
     '''Whether bond is hidden (overrides display).  Integer bitmask.'''
     shown = c_property('bond_shown', npy_bool, read_only = True)
@@ -1480,6 +1484,21 @@ class StructureData:
                        args = (ctypes.c_void_p, ctypes.c_bool, ctypes.c_void_p, ctypes.c_size_t, ctypes.c_size_t))
         f(self._c_pointer, replace, pointer(xyzs), *xyzs.shape[:2])
 
+    def connect_structure(self, chain_starters, chain_enders, conect_atoms, mod_res):
+        '''Generate connectivity.  See connect_structure in connectivity.rst for more details.
+        
+        chain_starters and chain_enders are lists of residues.
+        conect_atoms is a list of atoms.
+        mod_res is a list of residues (not MolResId's).'''
+        f = c_function('structure_connect',
+                       args = (ctypes.c_void_p, ctypes.py_object, ctypes.py_object, ctypes.py_object, ctypes.py_object),
+                       ret = ctypes.c_int)
+        starters = list([r._c_pointer.value for r in chain_starters])
+        enders = list([r._c_pointer.value for r in chain_enders])
+        conect = list([a._c_pointer.value for a in conect_atoms])
+        mod = list([r._c_pointer.value for r in mod_res])
+        return f(self._c_pointer, starters, enders, conect, mod)
+
     def delete_alt_locs(self):
         '''Incorporate current alt locs as "regular" atoms and remove other alt locs'''
         f = c_function('structure_delete_alt_locs', args = (ctypes.c_void_p,))(self._c_pointer)
@@ -1572,7 +1591,7 @@ class StructureData:
         f = c_function('structure_session_restore',
                 args = (ctypes.c_void_p, ctypes.c_int,
                         ctypes.py_object, ctypes.py_object, ctypes.py_object))
-        f(self._c_pointer, data['version'], data['ints'], data['floats'], data['misc'])
+        f(self._c_pointer, data['version'], tuple(data['ints']), tuple(data['floats']), tuple(data['misc']))
         session.triggers.add_handler("end restore session", self._ses_restore_teardown)
 
     def save_state(self, session, flags):

@@ -327,6 +327,7 @@ class GrayScaleDrawing(Drawing):
       d = self.color_plane(k, axis)
       from ..graphics import Texture
       t = Texture(d)
+      t.fill_opengl_texture()	# Data array may be reused, so fill opengl texture now.
       self.texture_planes[(k,axis)] = t
     return t
 
@@ -353,7 +354,7 @@ class GrayScaleDrawing(Drawing):
         mtex = pd.multitexture
         for t,(k,axis) in enumerate(pd.planes):
           data = self.color_plane(k,axis)
-          mtex[t].reload_texture(data)
+          mtex[t].reload_texture(data, now = True)
 
 # ---------------------------------------------------------------------------
 #

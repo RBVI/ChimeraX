@@ -18,20 +18,6 @@
 from distlib import metadata
 metadata.METADATA_FILENAME = "metadata.json"
 from setuptools import setup
-import os
-import sys
-
-pkg_dir = "PKG_DIR"  # DO NOT CHANGE
-shlib_dir = "SHLIB_DIR"  # DO NOT CHANGE
-data_dir = "DATA_DIR"  # DO NOT CHANGE
-if sys.platform.startswith('win'):
-    # shared libraries are relative to bindir
-    rel_inst_shlib_dir = ""  # shlib_dir == bindir
-else:
-    # shared libraries are relative to rootdir
-    rel_inst_shlib_dir = os.path.basename(shlib_dir)
-# data files are relative to rootdir
-rel_inst_data_dir = os.path.basename(data_dir)
 
 description = """
 Cage Builder creates polyhedral cages composed of hexagons, pentagons, squares and other polygons.
@@ -48,7 +34,7 @@ setup(
     url="https://www.rbvi.ucsf.edu/chimerax/",
     python_requires=">= 3.5",
     package_dir={
-        "PKG_NAME": pkg_dir,    # directory package's source files are in
+        "PKG_NAME": "src",    # directory package's source files are in
     },
     packages=[
         "PKG_NAME",

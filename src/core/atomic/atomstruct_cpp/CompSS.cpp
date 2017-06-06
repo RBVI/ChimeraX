@@ -290,21 +290,21 @@ find_helices(KsdsspParams& params)
 		int helix_type = 0;
 		int helix_flags = 0;
 		bool acc_only = false;
-		if (flags & (DSSP_3HELIX)) {
+		if (flags & DSSP_3HELIX) {
 			helix_type = 3; // 3-10
 			helix_flags = DSSP_3ACCEPTOR | DSSP_3DONOR | DSSP_3GAP;
-			acc_only = !((flags & DSSP_3DONOR) | (flags & DSSP_3GAP));
+			acc_only = !(flags & DSSP_3DONOR);
 		} else if (flags & (DSSP_4HELIX | DSSP_5HELIX)) {
 			helix_type = 4; // alpha
 			helix_flags = DSSP_4ACCEPTOR | DSSP_4DONOR | DSSP_4GAP
 				| DSSP_5ACCEPTOR | DSSP_5DONOR | DSSP_5GAP;
-			acc_only = (flags & DSSP_4ACCEPTOR) && !((flags & DSSP_4DONOR) | (flags & DSSP_4GAP));
+			acc_only = (flags & DSSP_4ACCEPTOR) && !(flags & DSSP_4DONOR);
 		}
 		if (helix_type && (flags & helix_flags)) {
 			if (first < 0) {
 				first = i;
 				cur_helix_type = helix_type;
-				in_initial_acc_only = acc_only;
+				in_initial_acc_only = true; // don't break helix if X>>
 			} else if (helix_type != cur_helix_type) {
 				if (i - first >= params.min_helix_length)
 					params.helices.push_back(std::make_pair(first, i-1));
@@ -315,7 +315,7 @@ find_helices(KsdsspParams& params)
 				in_initial_acc_only = in_initial_acc_only && acc_only;
 			}
 			if (in_initial_acc_only) {
-				in_initial_acc_only = acc_only;
+				in_initial_acc_only = acc_only || (i == first);
 			} else if (acc_only) {
 				if (acc_only_run > 0) {
 					if (i-1 - first >= params.min_helix_length)

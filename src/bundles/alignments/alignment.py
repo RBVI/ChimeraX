@@ -21,6 +21,8 @@ class Alignment(State):
     def __init__(self, session, seqs, ident, file_attrs, file_markups, auto_destroy, auto_associate,
             description, intrinsic):
         self.session = session
+        if isinstance(seqs, tuple):
+            seqs = list(seqs)
         self.seqs = seqs
         self.ident = ident
         self.file_attrs = file_attrs

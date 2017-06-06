@@ -24,7 +24,9 @@
 #include <atomstruct/Chain.h>
 #include <atomstruct/ChangeTracker.h>
 #include <atomstruct/CoordSet.h>
+#include <atomstruct/connect.h>
 #include <atomstruct/destruct.h>     // Use DestructionObserver
+#include <atomstruct/MolResId.h>
 #include <atomstruct/PBGroup.h>
 #include <atomstruct/Pseudobond.h>
 #include <atomstruct/PBGroup.h>
@@ -1948,7 +1950,7 @@ extern "C" EXPORT void residue_num_atoms(void *residues, size_t n, size_t *natom
 extern "C" EXPORT void residue_number(void *residues, size_t n, int32_t *nums)
 {
     Residue **r = static_cast<Residue **>(residues);
-    error_wrap_array_get(r, n, &Residue::position, nums);
+    error_wrap_array_get(r, n, &Residue::number, nums);
 }
 
 extern "C" EXPORT void residue_str(void *residues, size_t n, pyobject_t *strs)
@@ -3938,6 +3940,65 @@ extern "C" EXPORT void set_pdb_version(void *mols, size_t n, int32_t *version)
         molc_error();
     }
 }
+
+extern "C" EXPORT int structure_connect(void *mol, PyObject* chain_starters,
+                                         PyObject* chain_enders,
+                                         PyObject* conect_atoms,
+                                         PyObject* mod_res)
+{
+    AtomicStructure *m = static_cast<AtomicStructure *>(mol);
+    try {
+        if (!PyList_Check(chain_starters))
+            throw std::invalid_argument("chain_starters must be a list of residues");
+        if (!PyList_Check(chain_enders))
+            throw std::invalid_argument("chain_enders must be a list of residues");
+        if (!PyList_Check(conect_atoms))
+            throw std::invalid_argument("conect_atoms must be a list of atoms");
+        if (!PyList_Check(mod_res))
+            throw std::invalid_argument("mod_res must be a list of residues");
+        std::vector<Residue *> starters;
+        auto num_starters = PyList_GET_SIZE(chain_starters);
+        for (int i = 0; i < num_starters; ++i) {
+            PyObject* p = PyList_GET_ITEM(chain_starters, i);
+            if (!PyLong_Check(p))
+                throw std::invalid_argument("chain_starters element must be long");
+            Residue* r = static_cast<Residue*>(PyLong_AsVoidPtr(p));
+            starters.push_back(r);
+        }
+        std::vector<Residue *> enders;
+        auto num_enders = PyList_GET_SIZE(chain_enders);
+        for (int i = 0; i < num_enders; ++i) {
+            PyObject* p = PyList_GET_ITEM(chain_enders, i);
+            if (!PyLong_Check(p))
+                throw std::invalid_argument("chain_enders element must be long");
+            Residue* r = static_cast<Residue*>(PyLong_AsVoidPtr(p));
+            enders.push_back(r);
+        }
+        std::set<Atom *> atoms;
+        auto num_atoms = PyList_GET_SIZE(conect_atoms);
+        for (int i = 0; i < num_atoms; ++i) {
+            PyObject* p = PyList_GET_ITEM(conect_atoms, i);
+            if (!PyLong_Check(p))
+                throw std::invalid_argument("conect_atoms element must be long");
+            Atom* a = static_cast<Atom*>(PyLong_AsVoidPtr(p));
+            atoms.insert(a);
+        }
+        std::set<MolResId> mod;
+        auto num_mod = PyList_GET_SIZE(mod_res);
+        for (int i = 0; i < num_mod; ++i) {
+            PyObject* p = PyList_GET_ITEM(mod_res, i);
+            if (!PyLong_Check(p))
+                throw std::invalid_argument("mod_res element must be long");
+            Residue* r = static_cast<Residue*>(PyLong_AsVoidPtr(p));
+            mod.insert(MolResId(r->chain_id(), r->number(), r->insertion_code()));
+        }
+        connect_structure(m, &starters, &enders, &atoms, &mod);
+    } catch (...) {
+        molc_error();
+    }
+    return m->num_bonds();
+}
+        
 
 // -------------------------------------------------------------------------
 // element functions

@@ -11,9 +11,8 @@
 # ChimeraX bundle names must start with "ChimeraX_"
 # to avoid clashes with package names in pypi.python.org.
 # When uploaded to the ChimeraX toolshed, the bundle
-# will be displayed without the ChimeraX_ prefix.
-BUNDLE_NAME = ChimeraX_Sample
-BUNDLE_BASE_NAME = $(BUNDLE_NAME:s/ChimeraX//)
+# will be displayed without the ChimeraX- prefix.
+BUNDLE_NAME = ChimeraX-Sample
 BUNDLE_VERSION = 0.1
 # ChimeraX bundles should only include packages
 # that install as chimerax.package_name.
@@ -28,7 +27,7 @@ OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
 # CHIMERAX_APP is the ChimeraX install folder
 ifeq ($(OS),CYGWIN_NT)
 # Windows
-CHIMERAX_APP = /d/chimerax/ChimeraX.app
+CHIMERAX_APP = /e/chimerax/ChimeraX.app
 endif
 ifeq ($(OS),Darwin)
 # Mac
@@ -57,11 +56,12 @@ CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
 endif
 
 # Paths used for constructing the installation "wheel"
+BUNDLE_BASE_NAME = $(subst ChimeraX-,,$(BUNDLE_NAME))
 WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
 ifeq ($(PURE_PYTHON),1)
-TAG = $(shell $(PYTHON_EXE) wheel_tag.py -p)
+TAG = $(shell $(PYTHON_EXE) -m wheel_tag -p)
 else
-TAG = $(shell $(PYTHON_EXE) wheel_tag.py)
+TAG = $(shell $(PYTHON_EXE) -m wheel_tag)
 endif
 WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-$(TAG).whl
 SOURCE = src
@@ -78,8 +78,9 @@ wheel $(WHEEL): license.txt setup.py $(SRCS)
 	rm -rf $(WHL_BNDL_NAME).egg-info
 	echo Distribution is in $(WHEEL)
 
-app-install:	$(WHEEL)
-	$(CHIMERAX_EXE) --nogui --cmd "toolshed install $(WHEEL) reinstall true ; exit"
+install app-install:	$(WHEEL)
+	$(CHIMERAX_EXE) --nogui --cmd "toolshed uninstall $(BUNDLE_BASE_NAME) ; exit"
+	$(CHIMERAX_EXE) --nogui --cmd "toolshed install $(WHEEL) ; exit"
 
 test:
 	$(CHIMERAX_EXE)
