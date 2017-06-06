@@ -98,7 +98,7 @@ def parse_ome_tiff_header(path):
         raise TypeError('OME TIFF image %s does not have an image description tag'
                         ' starting with "<?xml" as required by the OME TIFF specification,'
                         ' got description tags "%s"' % (basename(path), str(i.tag[270])))
-#    print 'ImageDescription for %s\n%s' % (path, desc)
+#    print ('ImageDescription for %s\n%s' % (path, desc))
 
     from xml.etree import ElementTree as ET
     r = ET.fromstring(desc)
@@ -248,7 +248,7 @@ def plane_table(dimension_order, nz, nt, nc, path, tdata):
         s *= sizes[a]
     zstride, tstride, cstride = axes_strides
 
-    from os.path import basename
+    from os.path import basename, dirname, join, isfile
     bpath = basename(path)
     ptable = {}
     for c in range(nc):
@@ -257,6 +257,7 @@ def plane_table(dimension_order, nz, nt, nc, path, tdata):
                 ptable[(c,t,z)] = (bpath, cstride*c + tstride*t + zstride*z)
 
     # Revise plane table using TiffData tags
+    file_found = {}
     for td in tdata:
         # TODO: Handle images split across multiple files.
         fname = tuple(uuid.attrib['FileName'] for uuid in td if tag_name(uuid) == 'UUID')
@@ -264,6 +265,17 @@ def plane_table(dimension_order, nz, nt, nc, path, tdata):
             fname = bpath
         elif len(fname) == 1:
             fname = fname[0]
+            if fname not in file_found:
+                fpath = join(dirname(path), fname)
+                file_found[fname] = found = isfile(fpath)
+                if not found and len(file_found) > 1:
+                    # Multiple files specified in header and this one is missing.
+                    raise TypeError('OME TIFF has UUID tag with FileName "%s" and file %s does not exist'
+                                    % (fname, fpath))
+            if not file_found[fname]:
+                # File specified in OME header does not exist.
+                # Maybe this file was renamed but header not updated.
+                fname = bpath
         else:
             raise TypeError('OME TIFF more than one UUID tag inside a TiffData tag, got %d' % len(fname))
         a = td.attrib
