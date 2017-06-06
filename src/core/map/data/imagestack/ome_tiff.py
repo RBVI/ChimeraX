@@ -27,6 +27,24 @@ def ome_image_grids(path):
             grids.append(cgrid if len(cgrid) > 1 else cgrid[0])
     return grids
 
+default_channel_colors = [
+    (1,0,0,1),
+    (0,1,0,1),
+    (0,0,1,1),
+    (1,1,0,1),
+    (1,0,1,1),
+    (0,1,1,1),
+    (.5,0,0,1),
+    (0,.5,0,1),
+    (0,0,.5,1),
+    (.5,1,0,1),
+    (1,.5,0,1),
+    (.5,0,1,1),
+    (1,0,.5,1),
+    (0,.5,1,1),
+    (0,1,.5,1),
+]
+
 # -----------------------------------------------------------------------------
 #
 from .. import Grid_Data
@@ -57,7 +75,9 @@ class OME_Image_Grid(Grid_Data):
 
     if channel in d.channel_colors:
         self.rgba = d.channel_colors[channel]
-
+    else:
+        self.rgba = default_channel_colors[channel % len(default_channel_colors)]
+        
   # ---------------------------------------------------------------------------
   #
   def read_matrix(self, ijk_origin, ijk_size, ijk_step, progress):
