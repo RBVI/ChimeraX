@@ -1591,7 +1591,7 @@ class StructureData:
         f = c_function('structure_session_restore',
                 args = (ctypes.c_void_p, ctypes.c_int,
                         ctypes.py_object, ctypes.py_object, ctypes.py_object))
-        f(self._c_pointer, data['version'], data['ints'], data['floats'], data['misc'])
+        f(self._c_pointer, data['version'], tuple(data['ints']), tuple(data['floats']), tuple(data['misc']))
         session.triggers.add_handler("end restore session", self._ses_restore_teardown)
 
     def save_state(self, session, flags):
