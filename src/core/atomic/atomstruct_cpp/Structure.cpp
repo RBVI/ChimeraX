@@ -1007,21 +1007,21 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
         throw std::invalid_argument("Don't know how to restore new session data; update your"
             " version of ChimeraX");
 
-    if (!PyList_Check(ints) || PyList_Size(ints) != 7)
+    if (!PyTuple_Check(ints) || PyTuple_Size(ints) != 7)
         throw std::invalid_argument("AtomicStructure::session_restore: first arg is not a"
-            " 7-element list");
-    if (!PyList_Check(floats) || PyList_Size(floats) != 7)
+            " 7-element tuple");
+    if (!PyTuple_Check(floats) || PyTuple_Size(floats) != 7)
         throw std::invalid_argument("AtomicStructure::session_restore: second arg is not a"
-            " 7-element list");
-    if (!PyList_Check(misc) || PyList_Size(misc) != 7)
+            " 7-element tuple");
+    if (!PyTuple_Check(misc) || PyTuple_Size(misc) != 7)
         throw std::invalid_argument("AtomicStructure::session_restore: third arg is not a"
-            " 7-element list");
+            " 7-element tuple");
 
-    using pysupport::pylist_of_string_to_cvec;
+    using pysupport::pysequence_of_string_to_cvec;
     using pysupport::pystring_to_cchar;
 
     // AtomicStructure ints
-    PyObject* item = PyList_GET_ITEM(ints, 0);
+    PyObject* item = PyTuple_GET_ITEM(ints, 0);
     auto iarray = Numeric_Array();
     if (!array_from_python(item, 1, Numeric_Array::Int, &iarray, false))
         throw std::invalid_argument("AtomicStructure int data is not a one-dimensional"
@@ -1053,7 +1053,7 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
     // if more added, change the array dimension check above
 
     // AtomicStructure floats
-    item = PyList_GET_ITEM(floats, 0);
+    item = PyTuple_GET_ITEM(floats, 0);
     auto farray = Numeric_Array();
     if (!array_from_python(item, 1, Numeric_Array::Float, &farray, false))
         throw std::invalid_argument("AtomicStructure float data is not a one-dimensional"
@@ -1069,11 +1069,11 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
     // if more added, change the array dimension check above
 
     // AtomicStructure misc info
-    item = PyList_GET_ITEM(misc, 0);
-    if (!PyList_Check(item) || PyList_GET_SIZE(item) != SESSION_NUM_MISC(version))
-        throw std::invalid_argument("AtomicStructure misc data is not list or is wrong size");
+    item = PyTuple_GET_ITEM(misc, 0);
+    if (!(PyTuple_Check(item) || PyList_Check(item)) || PySequence_Fast_GET_SIZE(item) != SESSION_NUM_MISC(version))
+        throw std::invalid_argument("AtomicStructure misc data is not a tuple or is wrong size");
     // input_seq_info
-    PyObject* map = PyList_GET_ITEM(item, 0);
+    PyObject* map = PySequence_Fast_GET_ITEM(item, 0);
     if (!PyDict_Check(map))
         throw std::invalid_argument("input seq info is not a dict!");
     Py_ssize_t index = 0;
@@ -1083,14 +1083,14 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
     while (PyDict_Next(map, &index, &py_chain_id, &py_residues)) {
         ChainID chain_id = pystring_to_cchar(py_chain_id, "input seq chain ID");
         auto& res_names = _input_seq_info[chain_id];
-        pylist_of_string_to_cvec(py_residues, res_names, "chain residue name");
+        pysequence_of_string_to_cvec(py_residues, res_names, "chain residue name");
     }
     // name
-    _name = pystring_to_cchar(PyList_GET_ITEM(item, 1), "structure name");
+    _name = pystring_to_cchar(PySequence_Fast_GET_ITEM(item, 1), "structure name");
     // input_seq_source
-    input_seq_source = pystring_to_cchar(PyList_GET_ITEM(item, 2), "structure input seq source");
+    input_seq_source = pystring_to_cchar(PySequence_Fast_GET_ITEM(item, 2), "structure input seq source");
     // metadata
-    map = PyList_GET_ITEM(item, 3);
+    map = PySequence_Fast_GET_ITEM(item, 3);
     if (!PyDict_Check(map))
         throw std::invalid_argument("structure metadata is not a dict!");
     index = 0;
@@ -1100,20 +1100,20 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
     while (PyDict_Next(map, &index, &py_hdr_type, &py_headers)) {
         auto hdr_type = pystring_to_cchar(py_hdr_type, "structure metadata key");
         auto& headers = metadata[hdr_type];
-        pylist_of_string_to_cvec(py_headers, headers, "structure metadata");
+        pysequence_of_string_to_cvec(py_headers, headers, "structure metadata");
     }
 
     // atoms
-    PyObject* atoms_misc = PyList_GET_ITEM(misc, 1);
-    if (!PyList_Check(atoms_misc))
-        throw std::invalid_argument("atom misc info is not a list");
-    if (PyList_GET_SIZE(atoms_misc) < 1)
+    PyObject* atoms_misc = PyTuple_GET_ITEM(misc, 1);
+    if (!(PyTuple_Check(atoms_misc) || PyList_Check(atoms_misc)))
+        throw std::invalid_argument("atom misc info is not a tuple");
+    if (PySequence_Fast_GET_SIZE(atoms_misc) < 1)
         throw std::invalid_argument("atom names missing");
     std::vector<AtomName> atom_names;
-    pylist_of_string_to_cvec(PyList_GET_ITEM(atoms_misc, 0), atom_names, "atom name");
-    if ((decltype(atom_names)::size_type)(PyList_GET_SIZE(atoms_misc)) != atom_names.size() + 1)
+    pysequence_of_string_to_cvec(PySequence_Fast_GET_ITEM(atoms_misc, 0), atom_names, "atom name");
+    if ((decltype(atom_names)::size_type)(PySequence_Fast_GET_SIZE(atoms_misc)) != atom_names.size() + 1)
         throw std::invalid_argument("bad atom misc info");
-    PyObject* atom_ints = PyList_GET_ITEM(ints, 1);
+    PyObject* atom_ints = PyTuple_GET_ITEM(ints, 1);
     iarray = Numeric_Array();
     if (!array_from_python(atom_ints, 1, Numeric_Array::Int, &iarray, false))
         throw std::invalid_argument("Atom int data is not a one-dimensional"
@@ -1121,7 +1121,7 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
     int_array = static_cast<int*>(iarray.values());
     auto element_ints = int_array;
     int_array += atom_names.size();
-    PyObject* atom_floats = PyList_GET_ITEM(floats, 1);
+    PyObject* atom_floats = PyTuple_GET_ITEM(floats, 1);
     farray = Numeric_Array();
     if (!array_from_python(atom_floats, 1, Numeric_Array::Float, &farray, false))
         throw std::invalid_argument("Atom float data is not a one-dimensional"
@@ -1130,11 +1130,11 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
     int i = 1; // atom names are in slot zero
     for (auto aname: atom_names) {
         auto a = new_atom(aname, Element::get_element(*element_ints++));
-        a->session_restore(version, &int_array, &float_array, PyList_GET_ITEM(atoms_misc, i++));
+        a->session_restore(version, &int_array, &float_array, PySequence_Fast_GET_ITEM(atoms_misc, i++));
     }
 
     // bonds
-    PyObject* bond_ints = PyList_GET_ITEM(ints, 2);
+    PyObject* bond_ints = PyTuple_GET_ITEM(ints, 2);
     iarray = Numeric_Array();
     if (!array_from_python(bond_ints, 1, Numeric_Array::Int, &iarray, false))
         throw std::invalid_argument("Bond int data is not a one-dimensional"
@@ -1143,7 +1143,7 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
     auto num_bonds = *int_array++;
     auto bond_index_ints = int_array;
     int_array += 2 * num_bonds;
-    PyObject* bond_floats = PyList_GET_ITEM(floats, 2);
+    PyObject* bond_floats = PyTuple_GET_ITEM(floats, 2);
     farray = Numeric_Array();
     if (!array_from_python(bond_floats, 1, Numeric_Array::Float, &farray, false))
         throw std::invalid_argument("Bond float data is not a one-dimensional"
@@ -1157,7 +1157,7 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
     }
 
     // coord sets
-    PyObject* cs_ints = PyList_GET_ITEM(ints, 3);
+    PyObject* cs_ints = PyTuple_GET_ITEM(ints, 3);
     iarray = Numeric_Array();
     if (!array_from_python(cs_ints, 1, Numeric_Array::Int, &iarray, false))
         throw std::invalid_argument("Coord set int data is not a one-dimensional"
@@ -1166,7 +1166,7 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
     auto num_cs = *int_array++;
     auto cs_id_ints = int_array;
     int_array += num_cs;
-    PyObject* cs_floats = PyList_GET_ITEM(floats, 3);
+    PyObject* cs_floats = PyTuple_GET_ITEM(floats, 3);
     farray = Numeric_Array();
     if (!array_from_python(cs_floats, 1, Numeric_Array::Float, &farray, false))
         throw std::invalid_argument("Coord set float data is not a one-dimensional"
@@ -1183,44 +1183,44 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
         _active_coord_set = nullptr;
 
     // PseudobondManager groups;
-    PyObject* pb_ints = PyList_GET_ITEM(ints, 4);
+    PyObject* pb_ints = PyTuple_GET_ITEM(ints, 4);
     iarray = Numeric_Array();
     if (!array_from_python(pb_ints, 1, Numeric_Array::Int, &iarray, false))
         throw std::invalid_argument("Pseudobond int data is not a one-dimensional"
             " numpy int array");
     int_array = static_cast<int*>(iarray.values());
-    PyObject* pb_floats = PyList_GET_ITEM(floats, 4);
+    PyObject* pb_floats = PyTuple_GET_ITEM(floats, 4);
     farray = Numeric_Array();
     if (!array_from_python(pb_floats, 1, Numeric_Array::Float, &farray, false))
         throw std::invalid_argument("Pseudobond float data is not a one-dimensional"
             " numpy float array");
     float_array = static_cast<float*>(farray.values());
-    _pb_mgr.session_restore(pb_manager_version, &int_array, &float_array, PyList_GET_ITEM(misc, 4));
+    _pb_mgr.session_restore(pb_manager_version, &int_array, &float_array, PyTuple_GET_ITEM(misc, 4));
 
     // residues
-    PyObject* res_misc = PyList_GET_ITEM(misc, 5);
+    PyObject* res_misc = PyTuple_GET_ITEM(misc, 5);
     if (version < 4) {
-        if (!PyList_Check(res_misc) || PyList_GET_SIZE(res_misc) != 2)
-            throw std::invalid_argument("residue misc info is not a two-item list");
+        if (!(PyTuple_Check(res_misc) || PyList_Check(res_misc)) || PySequence_Fast_GET_SIZE(res_misc) != 2)
+            throw std::invalid_argument("residue misc info is not a two-item tuple");
     } else {
-        if (!PyList_Check(res_misc) || PyList_GET_SIZE(res_misc) != 3)
-            throw std::invalid_argument("residue misc info is not a three-item list");
+        if (!(PyTuple_Check(res_misc) || PyList_Check(res_misc)) || PySequence_Fast_GET_SIZE(res_misc) != 3)
+            throw std::invalid_argument("residue misc info is not a three-item tuple");
     }
     std::vector<ResName> res_names;
-    pylist_of_string_to_cvec(PyList_GET_ITEM(res_misc, 0), res_names, "residue name");
+    pysequence_of_string_to_cvec(PySequence_Fast_GET_ITEM(res_misc, 0), res_names, "residue name");
     std::vector<ChainID> res_chain_ids;
-    pylist_of_string_to_cvec(PyList_GET_ITEM(res_misc, 1), res_chain_ids, "chain ID");
+    pysequence_of_string_to_cvec(PySequence_Fast_GET_ITEM(res_misc, 1), res_chain_ids, "chain ID");
     std::vector<ChainID> res_mmcif_chain_ids;
     if (version >= 4) {
-        pylist_of_string_to_cvec(PyList_GET_ITEM(res_misc, 2),
+        pysequence_of_string_to_cvec(PySequence_Fast_GET_ITEM(res_misc, 2),
             res_mmcif_chain_ids, "mmCIF chain ID");
     }
-    PyObject* py_res_ints = PyList_GET_ITEM(ints, 5);
+    PyObject* py_res_ints = PyTuple_GET_ITEM(ints, 5);
     iarray = Numeric_Array();
     if (!array_from_python(py_res_ints, 1, Numeric_Array::Int, &iarray, false))
         throw std::invalid_argument("Residue int data is not a one-dimensional numpy int array");
     auto res_ints = static_cast<int*>(iarray.values());
-    PyObject* py_res_floats = PyList_GET_ITEM(floats, 5);
+    PyObject* py_res_floats = PyTuple_GET_ITEM(floats, 5);
     farray = Numeric_Array();
     if (!array_from_python(py_res_floats, 1, Numeric_Array::Float, &farray, false))
         throw std::invalid_argument("Residue float data is not a one-dimensional"
@@ -1238,17 +1238,17 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
     }
 
     // chains
-    PyObject* chain_misc = PyList_GET_ITEM(misc, 6);
-    if (!PyList_Check(chain_misc) || PyList_GET_SIZE(chain_misc) != 1)
-        throw std::invalid_argument("chain misc info is not a one-item list");
+    PyObject* chain_misc = PyTuple_GET_ITEM(misc, 6);
+    if (!(PyTuple_Check(chain_misc) || PyList_Check(chain_misc)) || PySequence_Fast_GET_SIZE(chain_misc) != 1)
+        throw std::invalid_argument("chain misc info is not a one-item tuple");
     std::vector<ChainID> chain_chain_ids;
-    pylist_of_string_to_cvec(PyList_GET_ITEM(chain_misc, 0), chain_chain_ids, "chain ID");
-    PyObject* py_chain_ints = PyList_GET_ITEM(ints, 6);
+    pysequence_of_string_to_cvec(PySequence_Fast_GET_ITEM(chain_misc, 0), chain_chain_ids, "chain ID");
+    PyObject* py_chain_ints = PyTuple_GET_ITEM(ints, 6);
     iarray = Numeric_Array();
     if (!array_from_python(py_chain_ints, 1, Numeric_Array::Int, &iarray, false))
         throw std::invalid_argument("Chain int data is not a one-dimensional numpy int array");
     auto chain_ints = static_cast<int*>(iarray.values());
-    PyObject* py_chain_floats = PyList_GET_ITEM(floats, 6);
+    PyObject* py_chain_floats = PyTuple_GET_ITEM(floats, 6);
     farray = Numeric_Array();
     if (!array_from_python(py_chain_floats, 1, Numeric_Array::Float, &farray, false))
         throw std::invalid_argument("Chain float data is not a one-dimensional"

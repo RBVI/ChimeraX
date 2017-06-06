@@ -999,10 +999,12 @@ Atom::session_restore(int version, int** ints, float** floats, PyObject* misc)
     _radius = float_ptr[0];
     float_ptr += SESSION_NUM_FLOATS(version);
 
-    if (PyList_GET_SIZE(misc) != 2)
+    if (!(PyTuple_Check(misc) || PyList_Check(misc)))
+        throw std::invalid_argument("Atom misc info is not a tuple");
+    if (PySequence_Fast_GET_SIZE(misc) != 2)
         throw std::invalid_argument("Atom misc info wrong size");
-    _computed_idatm_type = pystring_to_cchar(PyList_GET_ITEM(misc, 0), "computed IDATM type");
-    _explicit_idatm_type = pystring_to_cchar(PyList_GET_ITEM(misc, 1), "explicit IDATM type");
+    _computed_idatm_type = pystring_to_cchar(PySequence_Fast_GET_ITEM(misc, 0), "computed IDATM type");
+    _explicit_idatm_type = pystring_to_cchar(PySequence_Fast_GET_ITEM(misc, 1), "explicit IDATM type");
 
     if (aniso_u_size > 0) {
         _aniso_u = new std::vector<float>();
