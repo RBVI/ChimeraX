@@ -69,7 +69,7 @@ private:
     ChainID  _mmcif_chain_id;
     ResName  _name;
     PolymerType  _polymer_type;
-    int  _position;
+    int  _number;
     float  _ribbon_adjust;
     bool  _ribbon_display;
     bool  _ribbon_hide_backbone;
@@ -95,7 +95,7 @@ public:
     bool  is_strand() const { return ss_type() == SS_STRAND; }
     const ResName&  name() const { return _name; }
     PolymerType  polymer_type() const { return _polymer_type; }
-    int  position() const { return _position; }
+    int  number() const { return _number; }
     Atom*  principal_atom() const;
     void  remove_atom(Atom*);
     int  session_num_floats(int version=CURRENT_SESSION_VERSION) const {

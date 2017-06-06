@@ -250,7 +250,7 @@ void Structure::_copy(Structure* g) const
     std::map<Residue*, Residue*> rmap;
     for (auto ri = residues().begin() ; ri != residues().end() ; ++ri) {
         Residue* r = *ri;
-        Residue* cr = g->new_residue(r->name(), r->chain_id(), r->position(), r->insertion_code());
+        Residue* cr = g->new_residue(r->name(), r->chain_id(), r->number(), r->insertion_code());
         cr->set_mmcif_chain_id(r->mmcif_chain_id());
         cr->set_ribbon_display(r->ribbon_display());
         cr->set_ribbon_color(r->ribbon_color());
@@ -543,11 +543,11 @@ Structure::find_coord_set(int id) const
 }
 
 Residue *
-Structure::find_residue(const ChainID &chain_id, int pos, char insert) const
+Structure::find_residue(const ChainID &chain_id, int num, char insert) const
 {
     for (auto ri = _residues.begin(); ri != _residues.end(); ++ri) {
         Residue *r = *ri;
-        if (r->position() == pos && r->chain_id() == chain_id
+        if (r->number() == num && r->chain_id() == chain_id
         && r->insertion_code() == insert)
             return r;
     }
@@ -555,11 +555,11 @@ Structure::find_residue(const ChainID &chain_id, int pos, char insert) const
 }
 
 Residue *
-Structure::find_residue(const ChainID& chain_id, int pos, char insert, ResName& name) const
+Structure::find_residue(const ChainID& chain_id, int num, char insert, ResName& name) const
 {
     for (auto ri = _residues.begin(); ri != _residues.end(); ++ri) {
         Residue *r = *ri;
-        if (r->position() == pos && r->name() == name && r->chain_id() == chain_id
+        if (r->number() == num && r->name() == name && r->chain_id() == chain_id
         && r->insertion_code() == insert)
             return r;
     }
@@ -951,7 +951,7 @@ Structure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
         PyList_SET_ITEM(py_chain_ids, i, cchar_to_pystring(res->chain_id(), "residue chain ID"));
         PyList_SET_ITEM(py_mmcif_chain_ids, i++,
             cchar_to_pystring(res->mmcif_chain_id(), "residue mmCIF chain ID"));
-        *res_ints++ = res->position();
+        *res_ints++ = res->number();
         *res_ints++ = res->insertion_code();
         res->session_save(&res_ints, &res_floats);
     }

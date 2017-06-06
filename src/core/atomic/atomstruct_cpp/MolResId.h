@@ -26,39 +26,39 @@
 namespace atomstruct {
 
 class ATOMSTRUCT_IMEX MolResId {
-    // convenience class for testing chain/position/insert-code equality
+    // convenience class for testing chain/number/insert-code equality
 public:
-    int    pos;
+    int    number;
     ChainID chain;
     char insert;
     MolResId() {};
-    MolResId(const ChainID& c, int p, char ic) {
+    MolResId(const ChainID& c, int n, char ic) {
         chain = c;
-        pos = p;
+        number = n;
         insert = ic;
     };
-    MolResId(char c, int p, char ic) :
-        MolResId(std::string(1, c).c_str(), p, ic) {};
+    MolResId(char c, int n, char ic) :
+        MolResId(std::string(1, c).c_str(), n, ic) {};
     MolResId(const atomstruct::Residue *r) {
         chain = r->chain_id();
-        pos = r->position();
+        number = r->number();
         insert = r->insertion_code();
     };
     bool operator==(const MolResId &rid) const {
-        return rid.pos == pos && rid.chain == chain && rid.insert == insert;
+        return rid.number == number && rid.chain == chain && rid.insert == insert;
     }
     bool operator!=(const MolResId &rid) const {
-        return rid.pos != pos || rid.chain != chain || rid.insert != insert;
+        return rid.number != number || rid.chain != chain || rid.insert != insert;
     }
     bool operator<(const MolResId &rid) const {
         return chain < rid.chain || 
-            (chain == rid.chain && (pos < rid.pos || 
-            (pos == rid.pos && insert < rid.insert)));
+            (chain == rid.chain && (number < rid.number || 
+            (number == rid.number && insert < rid.insert)));
     }
 };
 
 inline std::ostream & operator<<(std::ostream &os, const MolResId &rid) {
-    os << rid.pos;
+    os << rid.number;
     if (rid.insert != ' ')
         os << rid.insert;
     if (rid.chain != " ")
