@@ -442,7 +442,7 @@ AtomicStructure::polymers(AtomicStructure::PolymerMissingStructure missing_struc
                 Residue *r1 = a1->residue();
                 Residue *r2 = a2->residue();
                 if (missing_structure_treatment == PMS_TRACE_CONNECTS) {
-                    if (std::abs(r1->position() - r2->position()) > 1)
+                    if (std::abs(r1->number() - r2->number()) > 1)
                         continue;
                     Atom* pa1 = r1->principal_atom();
                     if (r1->principal_atom() == nullptr)

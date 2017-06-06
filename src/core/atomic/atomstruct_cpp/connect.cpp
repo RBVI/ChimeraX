@@ -422,7 +422,7 @@ find_missing_structure_bonds(Structure *as)
         if (r1 == r2)
             continue;
         if (r1->chain_id() == r2->chain_id()
-        && abs(r1->position() - r2->position()) < 2
+        && abs(r1->number() - r2->number()) < 2
         && b->polymeric_start_atom() != nullptr) // CA/P-only should use missing structure
             continue;
         auto idealBL = Element::bond_length(a1->element(), a2->element());
