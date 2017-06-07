@@ -1,4 +1,4 @@
-# vim: set expandtab ts=4 sw=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
@@ -11,7 +11,14 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .mousemodes import MouseMode, SelectMouseMode, RotateMouseMode, TranslateMouseMode, \
-                RotateSelectedMouseMode, TranslateSelectedMouseMode, ZoomMouseMode, mod_key_info
-from .ui_cmd import register_ui_command
-# Do not import anything from .gui so nogui mode works when UI toolkit can't be imported
+from ..settings import Settings
+
+class UI_Settings(Settings):
+
+    EXPLICIT_SAVE = {
+        'autostart': [
+            'Molecule Display Toolbar', 'Log', 'Model Panel',
+            'Mouse Modes for Right Button', 'Graphics Toolbar',
+            'Command Line Interface',
+        ],
+    }

@@ -333,7 +333,7 @@ class ConfigFile:
                 value = self.PROPERTY_INFO[name].default
         return value
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name, value, call_save=True):
         if name not in self.PROPERTY_INFO:
             if name[0] == '_':
                 return object.__setattr__(self, name, value)
@@ -353,7 +353,8 @@ class ConfigFile:
                 raise UserError("Illegal %s.%s value, unchanged" %
                                 (self._name, name))
             self._config['DEFAULT'][name] = str_value
-        self.save()
+        if call_save:
+            ConfigFile.save(self)
 
     def update(self, dict_iter=None, **kw):
         """Update all corresponding items from dict or iterator or keywords.
