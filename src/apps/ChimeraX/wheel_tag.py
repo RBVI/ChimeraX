@@ -20,7 +20,7 @@ for opt, val in opts:
 from wheel.pep425tags import get_impl_ver
 impl_ver = get_impl_ver()
 if pure:
-	impl = "py" + impl_ver
+	impl = "py" + impl_ver[0]
 	abi = "none"
 	platform = "any"
 else:
