@@ -27,7 +27,8 @@ class GraphicsWindow(QWindow):
         self.session = ui.session
         self.view = ui.session.main_view
 
-        self.opengl_context = OpenGLContext(self, ui)
+        use_stereo = getattr(ui, 'stereo', False)
+        self.opengl_context = OpenGLContext(self, ui, use_stereo = use_stereo)
 
         self.redraw_interval = 16.667  # milliseconds
         #   perhaps redraw interval should be 10 to reduce
@@ -36,11 +37,7 @@ class GraphicsWindow(QWindow):
         # of time since start of last drawing
         self.last_redraw_start_time = self.last_redraw_finish_time = 0
         
-        ui.have_stereo = False
-        if hasattr(ui, 'stereo') and ui.stereo:
-            sf = self.opengl_context.format()
-            ui.have_stereo = sf.stereo()
-        if ui.have_stereo:
+        if use_stereo:
             from ..graphics import StereoCamera
             self.view.camera = StereoCamera()
         self.view.initialize_rendering(self.opengl_context)
@@ -126,9 +123,10 @@ class OpenGLContext(QOpenGLContext):
     required_opengl_version = (3, 3)
     required_opengl_core_profile = True
 
-    def __init__(self, graphics_window, ui):
+    def __init__(self, graphics_window, ui, use_stereo = False):
         self.window = graphics_window
         self._ui = ui
+        self._use_stereo = use_stereo
         QOpenGLContext.__init__(self, graphics_window)
         self._context_initialized = False
         self._initialize_failed = False
@@ -159,6 +157,8 @@ class OpenGLContext(QOpenGLContext):
         if self.required_opengl_core_profile:
             fmt.setProfile(QSurfaceFormat.CoreProfile)
         fmt.setRenderableType(QSurfaceFormat.OpenGL)
+        if self._use_stereo:
+            fmt.setStereo(True)
         self.setFormat(fmt)
         self.window.setFormat(fmt)
         if not self.create():

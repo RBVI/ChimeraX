@@ -340,7 +340,7 @@ start_t = end_t;
                 && (break_hets || (!is_SCOP
                 && mod_res->find(rid) == mod_res->end()))) {
                     start_connect = true;
-                } else if (cur_residue != NULL && cur_residue->position() > rid.pos
+                } else if (cur_residue != NULL && cur_residue->number() > rid.number
                 && cur_residue->find_atom("OXT") !=  NULL) {
                     // connected residue numbers can
                     // legitimately drop due to circular
@@ -380,7 +380,7 @@ start_t = end_t;
                 if (start_connect && cur_residue != NULL)
                     end_residues->push_back(cur_residue);
                 cur_rid = rid;
-                cur_residue = as->new_residue(rname, rid.chain, rid.pos, rid.insert);
+                cur_residue = as->new_residue(rname, rid.chain, rid.number, rid.insert);
                 if (record.type() == PDB::HETATM)
                     cur_residue->set_is_het(true);
                 cur_res_index = as->residues().size() - 1;

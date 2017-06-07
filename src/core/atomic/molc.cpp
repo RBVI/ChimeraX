@@ -1950,7 +1950,7 @@ extern "C" EXPORT void residue_num_atoms(void *residues, size_t n, size_t *natom
 extern "C" EXPORT void residue_number(void *residues, size_t n, int32_t *nums)
 {
     Residue **r = static_cast<Residue **>(residues);
-    error_wrap_array_get(r, n, &Residue::position, nums);
+    error_wrap_array_get(r, n, &Residue::number, nums);
 }
 
 extern "C" EXPORT void residue_str(void *residues, size_t n, pyobject_t *strs)
@@ -3990,13 +3990,13 @@ extern "C" EXPORT int structure_connect(void *mol, PyObject* chain_starters,
             if (!PyLong_Check(p))
                 throw std::invalid_argument("mod_res element must be long");
             Residue* r = static_cast<Residue*>(PyLong_AsVoidPtr(p));
-            mod.insert(MolResId(r->chain_id(), r->position(), r->insertion_code()));
+            mod.insert(MolResId(r->chain_id(), r->number(), r->insertion_code()));
         }
         connect_structure(m, &starters, &enders, &atoms, &mod);
-        return m->num_bonds();
     } catch (...) {
         molc_error();
     }
+    return m->num_bonds();
 }
         
 

@@ -917,7 +917,7 @@ find_group(PyObject *, PyObject *args)
 		auto start = atoms.begin();
 		std::vector<std::thread> threads;
 		for (size_t i = 0; i < num_threads; ++i) {
-			decltype(start) end = start + (int)(i * per_thread + 0.5);
+			decltype(start) end = atoms.begin() + (int)((i+1) * per_thread + 0.5);
 			if (i == num_threads - 1) // an overabundance of caution
 				end = atoms.end();
 			threads.push_back(std::thread(initiate_find_group, group_rep, &group_principals,
@@ -1019,7 +1019,7 @@ find_aro_amines(PyObject *, PyObject *args)
 		auto start = atoms.begin();
 		std::vector<std::thread> threads;
 		for (size_t i = 0; i < num_threads; ++i) {
-			decltype(start) end = start + (int)(i * per_thread + 0.5);
+			decltype(start) end = atoms.begin() + (int)((i+1) * per_thread + 0.5);
 			if (i == num_threads - 1) // an overabundance of caution
 				end = atoms.end();
 			threads.push_back(std::thread(initiate_find_aro_amines, start, end,

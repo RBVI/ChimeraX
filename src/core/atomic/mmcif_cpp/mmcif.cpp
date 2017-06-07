@@ -89,7 +89,7 @@ residue_str(Residue* r, Residue* other = nullptr)
     std::stringstream pos_string;
     std::string ret = static_cast<const char*>(r->name());
     ret += " #";
-    pos_string << r->position();
+    pos_string << r->number();
     ret += pos_string.str();
     auto insertion_code = r->insertion_code();
     if (insertion_code != ' ')
