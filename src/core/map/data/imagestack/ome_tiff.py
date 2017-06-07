@@ -55,6 +55,7 @@ class OME_Image_Grid(Grid_Data):
     self.ome_pixels = d = ome_pixels
     self.channel = channel
     self.time = time
+    self.initial_style = 'solid'
 
     name = d.name
     if channel in d.channel_names:
