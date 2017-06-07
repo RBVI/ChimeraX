@@ -102,7 +102,7 @@ public:
     Contents::const_reference  front() const { return _contents.front(); }
     unsigned int  gapped_to_ungapped(unsigned int index) const;
     Contents::iterator  insert(Contents::const_iterator pos,
-        Contents::size_type n, Contents::value_type val)
+        Contents::size_type n, const Contents::value_type& val)
         { _clear_cache(); return _contents.insert(pos, n, val); }
     virtual bool  is_sequence() const { return true; }
     const std::string&  name() const { return _name; }
