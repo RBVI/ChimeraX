@@ -114,7 +114,21 @@ class Log(ToolInstance, HtmlLog):
         self.warning_shows_dialog = False
         self.error_shows_dialog = True
         from chimerax.core.ui.gui import MainToolWindow
-        self.tool_window = MainToolWindow(self, close_destroys = False)
+        class LogToolWindow(MainToolWindow):
+            def fill_context_menu(self, menu, x, y, session=session):
+                def save_image(ses=session):
+                    from chimerax.core.commands import run
+                    run(ses, "log thumbnail")
+                menu.addAction("Insert image", save_image)
+                log_window = self.tool_instance.log_window
+                menu.addAction("Save", log_window.cm_save)
+                menu.addAction("Clear", self.tool_instance.clear)
+                menu.addAction("Copy selection", lambda:
+                    log_window.page().triggerAction(log_window.page().Copy))
+                menu.addAction("Select all", lambda:
+                    log_window.page().triggerAction(log_window.page().SelectAll))
+        self.tool_window = LogToolWindow(self, close_destroys = False)
+
         parent = self.tool_window.ui_area
         from chimerax.core.ui.widgets import ChimeraXHtmlView
 
@@ -133,25 +147,16 @@ class Log(ToolInstance, HtmlLog):
                     self.copy_sc = QShortcut(QKeySequence.Copy, self)
                     self.copy_sc.activated.connect(
                         lambda: self.page().triggerAction(self.page().Copy))
+                ## The below three lines shoule be sufficent to allow the ui_area
+                ## to Handle the context menu, but apparently not for QWebView widgets,
+                ## so we define conextMenuEvent as a workaround.
+                # defer context menu to parent
+                #from PyQt5.QtCore import Qt
+                #self.setContextMenuPolicy(Qt.NoContextMenu)
 
             def contextMenuEvent(self, event):
-                event.accept()
-                cm = getattr(self, 'context_menu', None)
-                if cm is None:
-                    from PyQt5.QtWidgets import QMenu
-                    cm = self.context_menu = QMenu()
-                    def save_image(self=self):
-                        from .cmd import log
-                        log(self.log.session, thumbnail=True)
-                    cm.addAction("Insert image", save_image)
-                    cm.addAction("Save", self.cm_save)
-                    cm.addAction("Clear", self.log.clear)
-                    cm.addAction("Copy selection",
-                        lambda: self.page().triggerAction(self.page().Copy))
-                    cm.addAction("Select all",
-                        lambda: self.page().triggerAction(self.page().SelectAll))
-                    cm.addAction("Help", self.log.display_help)
-                cm.popup(event.globalPos())
+                # kludge to allow QWebView to show our context menu (see comment above)
+                self.log.tool_window._show_context_menu(event)
 
             def cm_save(self):
                 from chimerax.core.ui.open_save import export_file_filter, SaveDialog

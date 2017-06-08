@@ -38,6 +38,9 @@ class CommandLine(ToolInstance):
                 self.tool = tool
                 QComboBox.__init__(self, parent)
                 self._processing_key = False
+                from PyQt5.QtCore import Qt
+                # defer context menu to parent
+                self.setContextMenuPolicy(Qt.NoContextMenu)
 
             def keyPressEvent(self, event, forwarded=False):
                 self._processing_key = True
