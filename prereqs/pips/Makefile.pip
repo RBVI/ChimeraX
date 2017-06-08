@@ -1,2 +1,4 @@
 PIP	= $(PYTHON_EXE) -m pip --log pip.log
+PIP_INSTALL = $(PIP) install --upgrade-strategy only-if-needed
 APP_PIP	= $(APP_PYTHON_EXE) -m pip --log pip.log
+APP_PIP_INSTALL = $(APP_PIP) install --upgrade-strategy only-if-needed

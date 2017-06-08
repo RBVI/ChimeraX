@@ -51,7 +51,7 @@ setup(
         # "PyOpenGL == 3.1.0",
         # "PyQt5_commercial == 5.7",  # TODO: how are we going to handle this?
         # "scipy == 0.18",  # TODO: breaks on Windows
-        "setuptools == 34.3.1",
+        "setuptools == 34.4.1",
         "sortedcontainers == 1.5.7",
         "suds_jurko == 0.6",
     ],

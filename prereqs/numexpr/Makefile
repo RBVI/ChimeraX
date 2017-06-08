@@ -1,6 +1,7 @@
 PREREQ_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
+include ../pips/Makefile.pip
 
 ifdef WIN32
 VERSION = 2.6.2
@@ -11,7 +12,6 @@ DISTRIBUTION = numexpr-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/numexpr-$(VERSION)
 
 ifdef WIN32
-include ../pips/Makefile.pip
 WHEEL = numexpr-$(VERSION)-cp36-cp36m-win_amd64.whl
 endif
 
@@ -26,16 +26,16 @@ all:
 
 install:
 ifdef WIN32
-	$(PIP) install $(WHEEL)
+	$(PIP_INSTALL) $(WHEEL)
 else
-	$(PIP) install numexpr==$(VERSION)
+	$(PIP_INSTALL) numexpr==$(VERSION)
 endif
 
 app-install: install
 ifdef WIN32
-	$(APP_PIP) install $(WHEEL)
+	$(APP_PIP_INSTALL) $(WHEEL)
 else
-	$(APP_PIP) install numexpr==$(VERSION)
+	$(APP_PIP_INSTALL) numexpr==$(VERSION)
 endif
 
 clean:
