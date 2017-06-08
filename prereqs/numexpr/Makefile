@@ -2,6 +2,9 @@ PREREQ_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
+# Pretend we are all WIN32 and use pip to install 2.6.2
+WIN32 = 1
+
 ifdef WIN32
 VERSION = 2.6.2
 else
