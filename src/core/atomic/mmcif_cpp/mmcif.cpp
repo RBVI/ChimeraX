@@ -806,20 +806,27 @@ ExtractMolecule::parse_generic_category()
 void
 ExtractMolecule::parse_chem_comp()
 {
-    ResName name;
+    ResName id;
     string  type;
+    string  name;
     bool    ambiguous = false;
+    StringVector col_names = { "id", "type", "name" };
+    StringVector data;
 
     CIFFile::ParseValues pv;
     pv.reserve(4);
     try {
         pv.emplace_back(get_column("id", Required),
             [&] (const char* start, const char* end) {
-                name = ResName(start, end - start);
+                id = ResName(start, end - start);
             });
         pv.emplace_back(get_column("type", Required),
             [&] (const char* start, const char* end) {
                 type = string(start, end - start);
+            });
+        pv.emplace_back(get_column("name"),
+            [&] (const char* start, const char* end) {
+                name = string(start, end - start);
             });
         pv.emplace_back(get_column("pdbx_ambiguous_flag"),
             [&] (const char* start) {
@@ -830,30 +837,36 @@ ExtractMolecule::parse_chem_comp()
         return;
     }
 
+    if (my_templates == nullptr)
+        my_templates = new tmpl::Molecule();
     while (parse_row(pv)) {
+        data.push_back(id.c_str());
+        data.push_back(type);
+        data.push_back(name);
+
+        tmpl::Residue* tr = my_templates->find_residue(id);
+        if (tr)
+            continue;
+
+        tr = my_templates->new_residue(id);
+        tr->pdbx_ambiguous = ambiguous;
         // convert type to lowercase
         for (auto& c: type) {
             if (isupper(c))
                 c = tolower(c);
         }
-        if (my_templates == nullptr)
-            my_templates = new tmpl::Molecule();
-
-        tmpl::Residue* tr = my_templates->find_residue(name);
-        if (!tr) {
-            tr = my_templates->new_residue(name);
-            tr->pdbx_ambiguous = ambiguous;
-            bool is_peptide = type.find("peptide") != string::npos;
-            if (is_peptide)
-                tr->description("peptide");
-            else {
-                bool is_nucleotide = type.compare(0, 3, "dna") == 0
-                    || type.compare(0, 3, "rna") == 0;
-                if (is_nucleotide)
-                    tr->description("nucleotide");
-            }
+        bool is_peptide = type.find("peptide") != string::npos;
+        if (is_peptide)
+            tr->description("peptide");
+        else {
+            bool is_nucleotide = type.compare(0, 3, "dna") == 0
+                || type.compare(0, 3, "rna") == 0;
+            if (is_nucleotide)
+                tr->description("nucleotide");
         }
     }
+    generic_tables["chem_comp"] = col_names;
+    generic_tables["chem_comp data"].swap(data);
 }
 
 void
