@@ -454,11 +454,14 @@ ExtractMolecule::connect_polymer_pair(vector<Residue*> a, vector<Residue*> b, bo
                                         residue_str(r0, r1), " and ", residue_str(r1));
                 }
             } else if (a1 == nullptr) {
-                if (!gap)
-                    logger::warning(_logger,
-                                    "Expected gap or linking atom in ",
-                                    residue_str(r1, r0), " for ", residue_str(r0));
                 a1 = find_closest(a0, r1, nullptr, true);
+                if (a1 == nullptr || a1->element() != Element::C || a1->name() != "CA") {
+                    // suppress warning for CA traces
+                    if (!gap)
+                        logger::warning(_logger,
+                                        "Expected gap or linking atom in ",
+                                        residue_str(r1, r0), " for ", residue_str(r0));
+                }
             }
             if (a1 == nullptr) {
                 logger::warning(_logger, "Unable to connect ", residue_str(r0, r1),
