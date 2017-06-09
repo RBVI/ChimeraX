@@ -25,7 +25,7 @@ def register_core_commands(session):
         'lighting',
         'material', 'measure_buriedarea', 'measure_sasa', 'mousemode', 'move',
         'open', 'pdbimages', 'perframe', 'pwd',
-        'rainbow', 'rename', 'roll', 'run', 'rungs',
+        'rainbow', 'rename', 'roll', 'run', 'rungs', 'runscript',
         'save', 'scolor', 'select', 'set', 'show', 'split',
         'stop', 'style', 'surface', 'sym',
         'time', 'toolshed', 'transparency', 'turn',
