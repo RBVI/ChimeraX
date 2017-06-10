@@ -463,8 +463,7 @@ class Toolshed:
         _debug("install_bundle", bundle)
         # Make sure that our install location is on chimerax module.__path__
         # so that newly installed modules may be found
-        import importlib
-        import os
+        import importlib, os, re
         cx_dir = os.path.join(self._site_dir, _ChimeraNamespace)
         m = importlib.import_module(_ChimeraNamespace)
         if cx_dir not in m.__path__:
@@ -476,7 +475,10 @@ class Toolshed:
         except AttributeError:
             # If "bundle" is not an instance, just leave it alone
             pass
-        self._pip_install(bundle, per_user=per_user, reinstall=reinstall)
+        results = self._pip_install(bundle, per_user=per_user, reinstall=reinstall)
+        installed = re.findall(r"^\s*Successfully installed.*$", results, re.M)
+        if installed:
+            logger.info('\n'.join(installed))
         self.set_install_timestamp(per_user)
         self.reload(logger, rebuild_cache=True, report=True)
         self.triggers.activate_trigger(TOOLSHED_BUNDLE_INSTALLED, bundle)
@@ -510,7 +512,10 @@ class Toolshed:
         except AttributeError:
             # If "bundle" is not an instance, just leave it alone
             pass
-        self._pip_uninstall(bundle)
+        results = self._pip_uninstall(bundle)
+        uninstalled = re.findall(r"^\s*Successfully uninstalled.*$", results, re.M)
+        if uninstalled:
+            logger.info('\n'.join(uninstalled))
         self.reload(logger, rebuild_cache=True, report=True)
         self.triggers.activate_trigger(TOOLSHED_BUNDLE_UNINSTALLED, bundle)
 
@@ -641,7 +646,7 @@ class Toolshed:
         # output as string.  If there was an error, raise RuntimeError
         # with stderr as parameter.
         import sys
-        command = ["install",
+        command = ["install", "--upgrade",
                    "--extra-index-url", self.remote_url + "/pypi/",
                    "--upgrade-strategy", "only-if-needed",
                    # "--only-binary", ":all:"   # msgpack-python is not binary
@@ -673,6 +678,8 @@ class Toolshed:
             error = cp.stderr.decode("utf-8")
             raise RuntimeError(error)
         result = cp.stdout.decode("utf-8")
+        # print("_run_pip command:", command)
+        # print("_run_pip result:", result)
         return result
 
     def _remove_scripts(self):
