@@ -503,6 +503,7 @@ class Toolshed:
         -----
         A :py:const:`TOOLSHED_BUNDLE_UNINSTALLED` trigger is fired after package removal.
         """
+        import re
         _debug("uninstall_bundle", bundle)
         try:
             if not bundle.installed:
@@ -856,3 +857,6 @@ def init(*args, debug=None, **kw):
     if _toolshed is None:
         _toolshed = Toolshed(*args, **kw)
     return _toolshed
+
+# Make BundleBuilder available at package level
+from .bundle_builder import BundleBuilder
