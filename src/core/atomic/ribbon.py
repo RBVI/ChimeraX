@@ -833,7 +833,7 @@ class XSectionManager(State):
         for attr in self._SessionAttrs:
             try:
                 setattr(self, attr, data[attr])
-            except IndexError:
+            except KeyError:
                 # Older sessions may not have all the current parameters
                 pass
 
