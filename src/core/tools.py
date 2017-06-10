@@ -100,6 +100,8 @@ class ToolInstance(State):
 
     @classmethod
     def restore_snapshot(cls, session, data):
+        if data is None:
+            return None
         bundle_info = session.toolshed.find_bundle_for_class(cls)
         tool_name = data['name']
         if bundle_info is None:
@@ -296,8 +298,10 @@ class Tools(State):
         for id, tool_inst in items:
             if tool_inst.SESSION_ENDURING:
                 continue
+            name = tool_inst.display_name
             tool_inst.delete()
-            assert(id not in self._tool_instances)
+            if id in self._tool_instances:
+                session.logger.warning("Unable to delete tool %r during reset" % name)
 
     def list(self):
         """Return list of running tools.
