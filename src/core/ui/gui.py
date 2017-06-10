@@ -1128,6 +1128,7 @@ def redirect_stdio_to_logger(logger):
         def __init__(self, logger):
             self.logger = logger
             self.closed = False
+            self.errors = "ignore"
 
         def write(self, s):
             self.logger.session.ui.thread_safe(self.logger.info,
