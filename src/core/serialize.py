@@ -36,15 +36,23 @@ Version 1 of the protocol supports instances of the following types:
     :py:class:`set`; :py:class:`frozenset`;
     :py:class:`dict`;
     :py:mod:`collections`' :py:class:`~collections.OrderedDict`,
-    :py:class:`~collections.deque`, and :py:class:`~collections.Counter`;
-    :py:mod:`datetime`'s :py:class:`~datetime.date`,
-    :py:class:`~datetime.time`, :py:class:`~datetime.timedelta`,
-    :py:class:`~datetime.datetime`, and :py:class:`~datetime.timezone`;
+    and :py:class:`~collections.deque`;
+    :py:mod:`datetime`'s :py:class:`~datetime.datetime`,
+    and :py:class:`~datetime.timedelta`;
     and :pillow:`PIL.Image.Image`.
 
 """
+import msgpack
 import pickle
-import types
+import types  # for pickle support
+# imports for supported "primitive" types and collections
+# ** must be keep in sync with state.py **
+import numpy
+from collections import OrderedDict, deque
+from datetime import datetime, timedelta
+from PIL import Image
+from .session import _UniqueName
+from .state import FinalizedState
 
 _PICKLE_PROTOCOL = 4
 
@@ -84,13 +92,13 @@ class _RestrictedUnpickler(pickle.Unpickler):
     supported = {
         'builtins': {'complex'},
         'collections': {'deque', 'Counter', 'OrderedDict'},
-        'datetime': {'date', 'time', 'timedelta', 'datetime', 'timezone'},
+        'datetime': {'timedelta', 'datetime'},
         'numpy': {'ndarray', 'dtype'},
         'numpy.core.multiarray': {'_reconstruct', 'scalar'},
         'PIL.Image': {'Image'},
     }
-    from .session import _UniqueName
     supported[_UniqueName.__module__] = {_UniqueName.__name__}
+    supported[FinalizedState.__module__] = {FinalizedState.__name__}
 
     def find_class(self, module, name):
         if module in self.supported and name in self.supported[module]:
@@ -105,17 +113,181 @@ def pickle_deserialize(stream):
     unpickler = _RestrictedUnpickler(stream)
     return unpickler.load()
 
-# will always use pickle for the version number
-version_serialize = pickle_serialize
-version_deserialize = pickle_deserialize
+# msgpack can use 0-127 for msgpack extension types
+# use some example handlers from u-msgpack-python
+# TODO: look at msgpack_numpy for numpy ideas
 
-# might use a different serialization technique in the future
-serialize = pickle_serialize
-deserialize = pickle_deserialize
+
+def _encode_image(img):
+    import io
+    stream = io.BytesIO()
+    img.save(stream, format='PNG')
+    data = stream.getvalue()
+    stream.close()
+    return data
+
+
+def _decode_image(data):
+    import io
+    stream = io.BytesIO(data)
+    img = Image.open(stream)
+    img.load()
+    return img
+
+
+def _encode_ndarray(o):
+    # inspired by msgpack-numpy package
+    if o.dtype.kind == 'V':
+        # structured array
+        kind = b'V'
+        dtype = o.dtype.descr
+    else:
+        kind = b''
+        dtype = o.dtype.str
+    if 'O' in dtype:
+        raise TypeError("Can not serialize numpy arrays of objects")
+    return (
+        (b'kind', kind), (b'dtype', dtype),
+        (b'shape', o.shape), (b'data', o.tobytes())
+    )
+
+
+def _decode_ndarray(data):
+    data = dict(data)
+    kind = data[b'kind']
+    dtype = data[b'dtype']
+    if kind == b'V':
+        dtype = [tuple(str(t) for t in d) for d in dtype]
+    return numpy.fromstring(data[b'data'], numpy.dtype(dtype)).reshape(data[b'shape'])
+
+
+def _encode_numpy_number(o):
+    return (
+        (b'dtype', o.dtype.str), (b'data', o.tobytes())
+    )
+
+
+def _decode_numpy_number(data):
+    data = dict(data)
+    return numpy.fromstring(data[b'data'], numpy.dtype(data[b'dtype']))[0]
+
+
+def _decode_datetime(data):
+    from dateutil.parser import parse
+    return parse(data)
+
+
+_encode_handlers = {
+    # type : lambda returning OrderedDict with unique __type__ first
+    # __type__ is index into decode array
+    _UniqueName: lambda o: OrderedDict(
+        (('__type__', 0), ('uid', o.uid))
+    ),
+    # __type__ == 1 is for numpy arrays
+    complex: lambda o: OrderedDict(
+        (('__type__', 2), ('args', (o.real, o.imag)))
+    ),
+    set: lambda o: OrderedDict(
+        (('__type__', 3), ('args', tuple(o)))
+    ),
+    frozenset: lambda o: OrderedDict(
+        (('__type__', 4), ('args', tuple(o)))
+    ),
+    OrderedDict: lambda o: OrderedDict(
+        (('__type__', 5),) + tuple(o.items())
+    ),
+    deque: lambda o: OrderedDict(
+        (('__type__', 6), ('args', tuple(o)))
+    ),
+    datetime: lambda o: OrderedDict(
+        (('__type__', 7), ('arg', o.isoformat()))
+    ),
+    timedelta: lambda o: OrderedDict(
+        (('__type__', 8), ('args', (o.days, o.seconds, o.microseconds)))
+    ),
+    Image.Image: lambda o: OrderedDict(
+        (('__type__', 9), ('arg', _encode_image(o)))
+    ),
+    # __type__ == 10 is for numpy scalars
+}
+
+
+def _encode(obj):
+    cvt = _encode_handlers.get(type(obj), None)
+    if cvt is not None:
+        return cvt(obj)
+    # handle numpy subclasses
+    if isinstance(obj, numpy.ndarray):
+        return OrderedDict((('__type__', 1),) + _encode_ndarray(obj))
+    if isinstance(obj, (numpy.number, numpy.bool_, numpy.bool8)):
+        return OrderedDict((('__type__', 14),) + _encode_numpy_number(obj))
+
+    raise RuntimeError("Can't convert object of type: %s" % type(obj))
+
+
+_decode_handlers = [
+    # order must match encode's __type__ values
+    lambda args: _UniqueName(args[0][1]),
+    _decode_ndarray,
+    lambda args: complex(*args[0][1]),
+    lambda args: set(args[0][1]),
+    lambda args: frozenset(args[0][1]),
+    OrderedDict,
+    lambda args: deque(args[0][1]),
+    lambda args: _decode_datetime(args[0][1]),
+    lambda args: timedelta(*args[0][1]),
+    lambda args: _decode_image(args[0][1]),
+    lambda args: _decode_numpy_number(args),
+]
+
+
+def _decode_pairs(pairs):
+    if not pairs:
+        return dict()
+    if pairs[0][0] != '__type__':
+        return OrderedDict(pairs)
+    cvt = _decode_handlers[pairs[0][1]]
+    return cvt(pairs[1:])
+
+
+def msgpack_serialize_stream(stream):
+    packer = msgpack.Packer(default=_encode, use_bin_type=True,
+                            use_single_float=False)
+    return stream, packer
+
+
+def msgpack_serialize(stream, obj):
+    stream, packer = stream
+    stream.write(packer.pack(obj))
+
+
+def msgpack_deserialize_stream(stream):
+    unpacker = msgpack.Unpacker(
+        stream, object_pairs_hook=_decode_pairs, encoding='utf-8',
+        use_list=False)
+    return unpacker
+
+
+def msgpack_deserialize(stream):
+    try:
+        return next(stream)
+    except StopIteration:
+        return None
+
 
 if __name__ == '__main__':
     import io
-    import numpy
+
+    # serialize = pickle_serialize
+    # deserialize = pickle_deserialize
+
+    def serialize(buf, obj):
+        packer = msgpack_serialize_stream(buf)
+        msgpack_serialize(packer, obj)
+
+    def deserialize(buf):
+        unpacker = msgpack_deserialize_stream(buf)
+        return msgpack_deserialize(unpacker)
 
     def test(obj, msg, expect_pass=True, idempotent=True):
         passed = 'pass' if expect_pass else 'fail'
@@ -125,7 +297,10 @@ if __name__ == '__main__':
                 serialize(buf, obj)
                 buf.seek(0)
                 result = deserialize(buf)
-                assert(numpy.array_equal(result, obj))
+                if isinstance(obj, numpy.ndarray):
+                    assert(numpy.array_equal(result, obj))
+                else:
+                    assert(result == obj)
             except AssertionError:
                 if idempotent:
                     print('%s: %s: not idempotent' % (failed, msg))
@@ -136,7 +311,7 @@ if __name__ == '__main__':
                     print('%s (early): %s: %s' % (failed, msg, e))
                 else:
                     print('%s (early): %s' % (failed, msg))
-            except pickle.UnpicklingError as e:
+            except Exception as e:
                 if failed == "fail":
                     print('%s: %s: %s' % (failed, msg, e))
                 else:
@@ -153,7 +328,7 @@ if __name__ == '__main__':
     test(True, 'True')
     test(None, 'None')
     test(b'xyzzy', 'some bytes')
-    test([[0, 1], [2, 0]], 'nested lists')
+    test(((0, 1), (2, 0)), 'nested lists')
     test({'a': {0: 1}, 'b': {2: 0}}, 'nested dicts')
     test({1, 2, frozenset([3, 4])}, 'frozenset nested in a set')
     test(bool, 'can not serialize bool', expect_pass=False)
@@ -186,18 +361,27 @@ if __name__ == '__main__':
     test(test_obj, 'can not serialize numpy array of objects',
          expect_pass=False)
 
-    with open("/bin/ls") as f:
-        test(f, 'can not serialize file object', expect_pass=False)
+    import sys
+    if sys.platform.startswith('win'):
+        with open("nul:") as f:
+            test(f, 'can not serialize file object', expect_pass=False)
+    else:
+        with open("/bin/ls") as f:
+            test(f, 'can not serialize file object', expect_pass=False)
 
-    import datetime
-    d = datetime.date(2000, 1, 1)
-    test(d, 'date')
-    t = datetime.time()
-    test(t, 'time')
-    t = datetime.timedelta()
+    # d = date(2000, 1, 1)
+    # test(d, 'date')
+    # t = time()
+    # test(t, 'time')
+    t = timedelta()
     test(t, 'timedelta')
-    d = datetime.datetime.now(datetime.timezone.utc)
+    d = datetime.now()
+    test(d, 'datetime')
+    d = datetime.now().astimezone()
     test(d, 'datetime&timezone')
+    from datetime import timezone
+    d = datetime.now(timezone.utc)
+    test(d, 'datetime&utc timezone')
 
     import enum
 
@@ -206,13 +390,13 @@ if __name__ == '__main__':
     c = Color.red
     test(c, 'can not serialize Enum subclass', expect_pass=False)
 
+    # this fails with pickle, but works with msgpack
     class Color(enum.IntEnum):
         red = 1
     c = Color.red
-    test(c, 'can not serialize IntEnum subclass', expect_pass=False)
+    test(c, 'IntEnum subclass instance')
 
-    import collections
-    d = collections.OrderedDict([(1, 2), (3, 4)])
+    d = OrderedDict([(1, 2), (3, 4)])
     test(d, 'ordered dict')
 
     from PIL import Image
