@@ -13,7 +13,7 @@ TOP = ../..
 include $(TOP)/mk/config.make
 
 SUBDIRS = add_missing_atoms align_algs alignments blastprotein \
-	  cage_builder cellpack chem_group cmd_line \
+	  bundle_builder cage_builder cellpack chem_group cmd_line \
 	  color_globe contacts crosslinks \
 	  exp_cmd file_history help_viewer ihm label list_info \
 	  log map_series_gui match_maker mav md_crds mlp model_series mmtf model_panel \
@@ -42,3 +42,5 @@ clean:
 align_algs.install: alignments.install
 sim_matrices.install: alignments.install
 match_maker.install: align_algs.install sim_matrices.install
+mlp.install: bundle_builder.install
+stl.install: bundle_builder.install
