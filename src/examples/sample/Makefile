@@ -28,6 +28,7 @@ OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
 ifeq ($(OS),CYGWIN_NT)
 # Windows
 CHIMERAX_APP = "/c/Program Files/ChimeraX.app"
+CHIMERAX_APP = "/e/chimerax/ChimeraX.app"
 endif
 ifeq ($(OS),Darwin)
 # Mac
@@ -55,15 +56,8 @@ PYTHON_EXE = $(CHIMERAX_APP)/bin/python3.6
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
 endif
 
-# Paths used for constructing the installation "wheel"
 BUNDLE_BASE_NAME = $(subst ChimeraX-,,$(BUNDLE_NAME))
 WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
-ifeq ($(PURE_PYTHON),1)
-TAG = $(shell $(PYTHON_EXE) -m wheel_tag -p)
-else
-TAG = $(shell $(PYTHON_EXE) -m wheel_tag)
-endif
-WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-$(TAG).whl
 SOURCE = src
 SRCS = $(SOURCE)/*.py $(SOURCE)/*.cpp
 
@@ -71,16 +65,14 @@ SRCS = $(SOURCE)/*.py $(SOURCE)/*.cpp
 # Actual make dependencies!
 #
 
-wheel $(WHEEL): license.txt setup.py $(SRCS)
-	$(PYTHON_EXE) setup.py --no-user-cfg build
-	$(PYTHON_EXE) setup.py --no-user-cfg test
-	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel
-	rm -rf $(WHL_BNDL_NAME).egg-info
-	echo Distribution is in $(WHEEL)
+wheel $(WHEEL): license.txt bundle_info.xml $(SRCS)
+	$(CHIMERAX_EXE) --nogui --cmd "devel build . ; exit"
 
 install app-install:	$(WHEEL)
+	$(CHIMERAX_EXE) --nogui --cmd "devel install . ; exit"
+
+uninstall app-uninstall:	$(WHEEL)
 	$(CHIMERAX_EXE) --nogui --cmd "toolshed uninstall $(BUNDLE_BASE_NAME) ; exit"
-	$(CHIMERAX_EXE) --nogui --cmd "toolshed install $(WHEEL) ; exit"
 
 test:
 	$(CHIMERAX_EXE)
@@ -98,11 +90,6 @@ license.txt:
 	@echo The MIT license is included as file \"license.txt.mit\"
 	@exit 1
 
-setup.py: setup.py.in Makefile
-	sed -e 's,BUNDLE_NAME,$(BUNDLE_NAME),' \
-		-e 's,BUNDLE_VERSION,$(BUNDLE_VERSION),' \
-		-e 's,PKG_NAME,$(PKG_NAME),' \
-		< setup.py.in > setup.py
-
-distclean:	clean
-	rm -f license.txt
+bundle_info.xml:
+	@echo Please create file \"bundle_info.xml\"
+	@exit 1

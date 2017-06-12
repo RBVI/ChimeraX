@@ -857,6 +857,3 @@ def init(*args, debug=None, **kw):
     if _toolshed is None:
         _toolshed = Toolshed(*args, **kw)
     return _toolshed
-
-# Make BundleBuilder available at package level
-from .bundle_builder import BundleBuilder
