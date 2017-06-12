@@ -30,6 +30,8 @@ _additional_categories = (
     "entity",
     "entity_src_gen",
     "entity_src_nat",
+    "cell",
+    "symmetry",
 )
 
 
