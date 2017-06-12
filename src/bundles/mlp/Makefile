@@ -31,7 +31,7 @@ PKG_NAME = chimerax.mlp
 
 BASE_BNDL_NAME = $(subst ChimeraX-,,$(BUNDLE_NAME))
 WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
-TAG = $(shell $(PYTHON_EXE) -m wheel_tag)
+TAG = $(shell $(PYTHON_EXE) -m chimerax.bundle_builder.wheel_tag)
 
 PYSRCS = $(wildcard src/*.py)
 DATAFILES = 
