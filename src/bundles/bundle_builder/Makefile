@@ -25,17 +25,15 @@ PYTHON_EXE = $(CHIMERAX_APP)/bin/python3.6
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
 endif
 
-BUNDLE_NAME = ChimeraX-MLP
+BUNDLE_NAME = ChimeraX-BundleBuilder
 BUNDLE_VERSION = 1.0
-PKG_NAME = chimerax.mlp
+PKG_NAME = chimerax.bundle_builder
 
 BASE_BNDL_NAME = $(subst ChimeraX-,,$(BUNDLE_NAME))
 WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
-TAG = $(shell $(PYTHON_EXE) -m chimerax.bundle_builder.wheel_tag)
 
 PYSRCS = $(wildcard src/*.py)
-DATAFILES = 
-WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-$(TAG).whl
+WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-py3-none-any.whl
 
 wheel $(WHEEL): setup.py $(PYSRCS)
 	$(PYTHON_EXE) setup.py --no-user-cfg build
@@ -44,8 +42,7 @@ wheel $(WHEEL): setup.py $(PYSRCS)
 	rm -rf $(WHL_BNDL_NAME).egg-info
 
 install app-install: $(WHEEL)
-	$(CHIMERAX_EXE) --nogui --cmd "toolshed uninstall $(BASE_BNDL_NAME); exit"
-	$(CHIMERAX_EXE) --nogui --cmd "toolshed install $(WHEEL) user false; exit"
+	$(PYTHON_EXE) -m pip install --upgrade --force-reinstall $(WHEEL)
 
 test:
 	$(CHIMERAX_EXE)
@@ -54,8 +51,7 @@ debug:
 	$(CHIMERAX_EXE) --debug
 
 clean:
-	rm -rf src/__pycache__ src/*.pyd src/*.so src/*.dylib
-	rm -rf build dist $(WHL_BNDL_NAME).egg-info setup.py
+	rm -rf src/__pycache__ build dist $(WHL_BNDL_NAME).egg-info setup.py
 
 lint:
 	$(PYLINT) $(PYSRCS)

@@ -152,7 +152,7 @@ devel_dump_desc = CmdDesc(required=[("path", OpenFolderNameArg),],
 def _get_builder(path, logger):
     """Return BundleBuilder instance or None."""
     import os
-    from ..toolshed import BundleBuilder
+    from ...bundle_builder import BundleBuilder
     try:
         path = _aliases[path]
     except KeyError:
