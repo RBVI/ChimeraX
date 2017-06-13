@@ -209,6 +209,9 @@ _encode_handlers = {
         (('__type__', 9), ('arg', _encode_image(o)))
     ),
     # __type__ == 10 is for numpy scalars
+    FinalizedState: lambda o: OrderedDict(
+        (('__type__', 11), ('arg', o.data))
+    ),
 }
 
 
@@ -220,7 +223,7 @@ def _encode(obj):
     if isinstance(obj, numpy.ndarray):
         return OrderedDict((('__type__', 1),) + _encode_ndarray(obj))
     if isinstance(obj, (numpy.number, numpy.bool_, numpy.bool8)):
-        return OrderedDict((('__type__', 14),) + _encode_numpy_number(obj))
+        return OrderedDict((('__type__', 10),) + _encode_numpy_number(obj))
 
     raise RuntimeError("Can't convert object of type: %s" % type(obj))
 
@@ -238,6 +241,7 @@ _decode_handlers = [
     lambda args: timedelta(*args[0][1]),
     lambda args: _decode_image(args[0][1]),
     lambda args: _decode_numpy_number(args),
+    lambda args: args[0][1],  # FinalizedState's data
 ]
 
 

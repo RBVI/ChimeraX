@@ -411,7 +411,7 @@ class Session:
         methods = self._snapshot_methods.get(cls, None)
         return methods
 
-    def save(self, stream, version=1):
+    def save(self, stream, version):
         """Serialize session to binary stream."""
         from . import serialize
         self.triggers.activate_trigger("begin save session", self)
@@ -419,6 +419,9 @@ class Session:
             fserialize = serialize.pickle_serialize
             fserialize(stream, version)
         else:
+            if version != 2:
+                from .errors import UserError
+                raise UserError("Only session file versions 1 and 2 are supported")
             stream.write(b'# ChimeraX Session version %d\n' % CORE_SESSION_VERSION)
             stream = serialize.msgpack_serialize_stream(stream)
             fserialize = serialize.msgpack_serialize
@@ -528,7 +531,7 @@ class InScriptFlag:
         return self._level > 0
 
 
-def save(session, filename, format):
+def save(session, filename, format, version=1):
     """command line version of saving a session"""
     my_open = None
     if hasattr(filename, 'write'):
@@ -555,7 +558,7 @@ def save(session, filename, format):
     session.logger.warning("<b><i>Session file format is not finalized, and thus might not be restorable in other versions of ChimeraX.</i></b>", is_html=True)
     # TODO: put thumbnail in session metadata
     try:
-        session.save(output)
+        session.save(output, version=version)
     except:
         if my_open is not None:
             output.close("exceptional")
@@ -732,9 +735,11 @@ def register_session_format(session):
         reference="http://www.rbvi.ucsf.edu/chimerax/",
         open_func=open, export_func=save)
 
-    from .commands import CmdDesc, register, SaveFileNameArg
+    from .commands import CmdDesc, register, SaveFileNameArg, IntArg
     desc = CmdDesc(
         required=[('filename', SaveFileNameArg)],
+        keyword=[('version', IntArg)],
+        hidden=['version'],
         synopsis='save session'
     )
 
