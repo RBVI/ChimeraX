@@ -231,8 +231,9 @@ class BundleBuilder:
                                                self.chimerax_classifiers)
 
     def _make_paths(self):
-        import wheel_tag, os.path
-        self.tag = wheel_tag.tag(not self.c_modules)
+        import os.path
+        from .wheel_tag import tag
+        self.tag = tag(not self.c_modules)
         self.bundle_base_name = self.name.replace("ChimeraX-", "")
         bundle_wheel_name = self.name.replace("-", "_")
         wheel = "%s-%s-%s.whl" % (bundle_wheel_name, self.version, self.tag)

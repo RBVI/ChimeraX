@@ -12,4 +12,3 @@
 # === UCSF ChimeraX Copyright ===
 
 from .bundle_builder import BundleBuilder
-from .wheel_tag import tag
