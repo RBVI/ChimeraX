@@ -480,9 +480,7 @@ ExtractMolecule::connect_polymer_pair(vector<Residue*> a, vector<Residue*> b, bo
                 auto as = r0->structure();
                 auto pbg = as->pb_mgr().get_group(as->PBG_MISSING_STRUCTURE,
                     atomstruct::AS_PBManager::GRP_NORMAL);
-                for (auto& cs: as->coord_sets()) {
-                    pbg->new_pseudobond(a0, a1, cs);
-                }
+                pbg->new_pseudobond(a0, a1);
             } else if (!a0->connects_to(a1))
                 (void) a0->structure()->new_bond(a0, a1);
         }
@@ -1577,9 +1575,7 @@ ExtractMolecule::parse_struct_conn()
                 missing_pbg = mol->pb_mgr().get_group(
                     mol->PBG_MISSING_STRUCTURE,
                     atomstruct::AS_PBManager::GRP_NORMAL);
-            for (auto& cs: mol->coord_sets()) {
-                missing_pbg->new_pseudobond(a1, a2, cs);
-            }
+            missing_pbg->new_pseudobond(a1, a2);
             continue;
         }
         try {
