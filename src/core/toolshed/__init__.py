@@ -353,7 +353,7 @@ class Toolshed:
                                              write_cache=True)
             if report:
                 if save is None:
-                    logger.info("Initialed installed bundles.")
+                    logger.info("Initial installed bundles.")
                 else:
                     from .installed import _report_difference
                     _report_difference(logger, save, self._installed_bundle_info)
@@ -463,18 +463,34 @@ class Toolshed:
         _debug("install_bundle", bundle)
         # Make sure that our install location is on chimerax module.__path__
         # so that newly installed modules may be found
-        import importlib, os, re
+        import importlib, os.path, re
         cx_dir = os.path.join(self._site_dir, _ChimeraNamespace)
         m = importlib.import_module(_ChimeraNamespace)
         if cx_dir not in m.__path__:
             m.__path__.append(cx_dir)
         try:
-            if bundle.installed and not reinstall:
-                raise ToolshedInstalledError("bundle \"%s\" already installed" % bundle.name)
+            if bundle.installed:
+                if not reinstall:
+                    raise ToolshedInstalledError("bundle \"%s\" already installed" % bundle.name)
+                if bundle in self._installed_bundle_info:
+                    bundle.deregister(logger)
+                    bundle.unload(logger)
+                    self._installed_bundle_info.remove(bundle)
+                    # The reload that will happen later will undo the effect
+                    # of the unload by accessing the module again, so we
+                    # explicitly remove the bundle right now
             bundle = bundle.name
         except AttributeError:
-            # If "bundle" is not an instance, just leave it alone
-            pass
+            # If "bundle" is not an instance, it must be a string.
+            # Treat it like a path to a wheel and get a putative
+            # bundle name.  If it is install, deregister and unload it.
+            basename = os.path.split(bundle)[1]
+            name = basename.split('-')[0]
+            bi = self.find_bundle(name, logger, installed=True)
+            if bi in self._installed_bundle_info:
+                bi.deregister(logger)
+                bi.unload(logger)
+                self._installed_bundle_info.remove(bi)
         results = self._pip_install(bundle, per_user=per_user, reinstall=reinstall)
         installed = re.findall(r"^\s*Successfully installed.*$", results, re.M)
         if installed:
@@ -508,8 +524,9 @@ class Toolshed:
         try:
             if not bundle.installed:
                 raise ToolshedInstalledError("bundle \"%s\" not installed" % bundle.name)
-            else:
-                bundle = bundle.name
+            bundle.deregister(logger)
+            bundle.unload(logger)
+            bundle = bundle.name
         except AttributeError:
             # If "bundle" is not an instance, just leave it alone
             pass
@@ -540,7 +557,7 @@ class Toolshed:
         else:
             container = self._get_available_bundles(logger)
         from distlib.version import NormalizedVersion as Version
-        lc_name = name.lower()
+        lc_name = name.lower().replace('_', '-')
         best_bi = None
         best_version = None
         for bi in container:
@@ -672,15 +689,19 @@ class Toolshed:
 
     def _run_pip(self, command):
         import sys, subprocess
+        _debug("_run_pip command:", command)
         cp = subprocess.run([sys.executable, "-m", "pip"] + command,
                             stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE)
         if cp.returncode != 0:
+            output = cp.stdout.decode("utf-8")
             error = cp.stderr.decode("utf-8")
-            raise RuntimeError(error)
+            _debug("_run_pip return code:", cp.returncode, file=sys.__stderr__)
+            _debug("_run_pip output:", output, file=sys.__stderr__)
+            _debug("_run_pip error:", error, file=sys.__stderr__)
+            raise RuntimeError(output + error)
         result = cp.stdout.decode("utf-8")
-        # print("_run_pip command:", command)
-        # print("_run_pip result:", result)
+        _debug("_run_pip result:", result)
         return result
 
     def _remove_scripts(self):
