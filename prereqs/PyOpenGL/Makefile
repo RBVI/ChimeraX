@@ -37,7 +37,7 @@ all:
 
 install: $(PYOPENGL_SOURCE) $(ACCELERATE_SOURCE)
 ifdef WIN32
-	$(PIP) install -U $(WHEEL)
+	$(PIP_INSTALL) $(WHEEL)
 else
 	cd $(PYOPENGL_SOURCE) && $(PYTHON_EXE) setup.py build $(SETUP_BUILD) install
 	cd $(ACCELERATE_SOURCE) && $(PYTHON_EXE) setup.py build $(SETUP_BUILD) install
@@ -45,7 +45,7 @@ endif
 
 app-install: install
 ifdef WIN32
-	$(APP_PIP) install $(WHEEL)
+	$(APP_PIP_INSTALL) $(WHEEL)
 else
 	# TODO: figure out way to make below work, so we don't depend on SOURCE
 	#$(RSYNC) $(PYSITEDIR)/PyOpenGL-$(VERSION)-py$(PYTHON_VERSION).egg $(APP_PYSITEDIR)

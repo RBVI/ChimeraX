@@ -30,10 +30,12 @@ _additional_categories = (
     "entity",
     "entity_src_gen",
     "entity_src_nat",
+    "cell",
+    "symmetry",
 )
 
 
-def open_mmcif(session, filename, name, auto_style=True):
+def open_mmcif(session, filename, name, auto_style=True, coordsets=False):
     # mmCIF parsing requires an uncompressed file
     if hasattr(filename, 'name'):
         # it's really a fetched stream
@@ -42,16 +44,28 @@ def open_mmcif(session, filename, name, auto_style=True):
     from . import _mmcif
     _mmcif.set_Python_locate_function(
         lambda name, session=session: _get_template(session, name))
-    pointers = _mmcif.parse_mmCIF_file(filename, _additional_categories, session.logger)
+    pointers = _mmcif.parse_mmCIF_file(filename, _additional_categories, session.logger, coordsets)
 
     from .structure import AtomicStructure
-    models = [AtomicStructure(session, name = name, c_pointer = p, auto_style = auto_style) for p in pointers]
+    models = [AtomicStructure(session, name=name, c_pointer=p, auto_style=auto_style) for p in pointers]
     for m in models:
         m.filename = filename
 
-    return models, ("Opened mmCIF data containing %d atoms and %d bonds"
-                    % (sum(m.num_atoms for m in models),
-                       sum(m.num_bonds for m in models)))
+    info = "Opened mmCIF data containing %d atoms%s %d bonds" % (
+        sum(m.num_atoms for m in models),
+        ("," if coordsets else " and"),
+        sum(m.num_bonds for m in models))
+    if coordsets:
+        num_cs = 0
+        for m in models:
+            num_cs += m.num_coord_sets
+        info += " and %s coordinate sets" % num_cs
+        if session.ui.is_gui:
+            mc = [m for m in models if m.num_coord_sets > 1]
+            if mc:
+                from ..commands.coordset import coordset_slider
+                coordset_slider(session, mc)
+    return models, info
 
 
 _mmcif_sources = {

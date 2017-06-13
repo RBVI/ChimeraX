@@ -1,0 +1,59 @@
+# vim: set expandtab ts=4 sw=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
+# import distutils.core
+# distutils.core.DEBUG = True
+# TODO: remove distlib monkey patch when the wheel package
+# implements PEP 426's pydist.json
+from distlib import metadata
+metadata.METADATA_FILENAME = "metadata.json"
+from setuptools import setup
+
+description = """
+Utilties for building bundles using only installed ChimeraX.app.
+"""
+
+setup(
+    name="BUNDLE_NAME",
+    version="BUNDLE_VERSION",  # PEP 440, should match Development Status below
+    description="Bundle building utilities",  # one line synopsis
+    long_description=description,  # see above
+    author="UCSF RBVI",
+    author_email="chimerax@cgl.ucsf.edu",
+    url="https://www.rbvi.ucsf.edu/chimerax/",
+    python_requires=">= 3.5",
+    package_dir={
+        "PKG_NAME": "src",    # directory package's source files are in
+    },
+    packages=[
+        "PKG_NAME",
+    ],
+    classifiers=[
+        # From https://pypi.python.org/pypi?%3Aaction=list_classifiers
+        # and our own ChimeraX classifiers.
+        "Development Status :: 5 - Stable",
+        "Environment :: MacOS X :: Aqua",
+        "Environment :: Win32 (MS Windows)",
+        "Environment :: X11 Applications",
+        "Framework :: ChimeraX",
+        "Intended Audience :: Science/Research",
+        "License :: Free for non-commercial use",
+        "Operating System :: MacOS :: MacOS X",
+        "Operating System :: Microsoft :: Windows :: Windows 10",
+        "Operating System :: POSIX :: Linux",
+        "Programming Language :: Python :: 3",
+        "Topic :: Scientific/Engineering :: Visualization",
+        "Topic :: Scientific/Engineering :: Chemistry",
+        "Topic :: Scientific/Engineering :: Bio-Informatics",
+    ],
+)

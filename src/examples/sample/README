@@ -13,7 +13,7 @@ To build the bundle:
 
 To verify that the bundle works:
 
-1. "make app-install" to install the wheel into your copy
+1. "make install" to install the wheel into your copy
    of ChimeraX.app (assuming you have write permission).
 2. Check that the bundle works by opening a molecule and executing
    the command "sample count".  It should report the number of atoms

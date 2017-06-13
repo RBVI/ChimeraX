@@ -40,7 +40,7 @@ SESSION_SUFFIX = ".cxs"
 # triggers:
 
 #: version of session file that is written
-CORE_SESSION_VERSION = 1
+CORE_SESSION_VERSION = 2
 
 
 class _UniqueName:
@@ -217,6 +217,9 @@ class _SaveManager:
             try:
                 data = sm.take_snapshot(obj, self.session, self.state_flags)
             except:
+                # TODO: give user option to report error?
+                # import sys, traceback  # DEBUG
+                # traceback.print_exc(file=sys.__stderr__)  # DEBUG
                 pass
         if data is None:
             self.session.logger.warning('Unable to save "%s".  Session might not restore properly.' % obj.__class__.__name__)
@@ -242,10 +245,6 @@ class _SaveManager:
 
 
 class _RestoreManager:
-
-    #: common exception for needing a newer version of the application
-    NeedNewerError = RestoreError(
-        "Need newer version of bundle to restore session")
 
     def __init__(self):
         _UniqueName.reset()
@@ -306,6 +305,10 @@ class Session:
     triggers : An instance of :py:class:`~chimerax.core.triggerset.TriggerSet`
         Starts with session triggers.
     """
+
+    #: common exception for needing a newer version of the application
+    NeedNewerError = RestoreError(
+        "Need newer version of bundle to restore session")
 
     def __init__(self, app_name, *, debug=False, silent=False, minimal=False):
         self.app_name = app_name
@@ -408,44 +411,69 @@ class Session:
         methods = self._snapshot_methods.get(cls, None)
         return methods
 
-    def save(self, stream):
-        """Serialize session to stream."""
+    def save(self, stream, version):
+        """Serialize session to binary stream."""
         from . import serialize
         self.triggers.activate_trigger("begin save session", self)
-        serialize.version_serialize(stream, CORE_SESSION_VERSION)
+        if version == 1:
+            fserialize = serialize.pickle_serialize
+            fserialize(stream, version)
+        else:
+            if version != 2:
+                from .errors import UserError
+                raise UserError("Only session file versions 1 and 2 are supported")
+            stream.write(b'# ChimeraX Session version %d\n' % CORE_SESSION_VERSION)
+            stream = serialize.msgpack_serialize_stream(stream)
+            fserialize = serialize.msgpack_serialize
         # stash attribute info into metadata...
         attr_info = {}
         for tag, container in self._state_containers.items():
             attr_info[tag] = getattr(self, tag, None) == container
         self.metadata['attr_info'] = attr_info
-        serialize.serialize(stream, self.metadata)
+        fserialize(stream, self.metadata)
         # guarantee that bundles are serialized first, so on restoration,
         # all of the related code will be loaded before the rest of the
         # session is restored
         mgr = _SaveManager(self, State.SESSION)
         mgr.discovery(self._state_containers)
-        serialize.serialize(stream, mgr.bundle_infos())
+        fserialize(stream, mgr.bundle_infos())
         # TODO: collect OrderDAGError exceptions from walk and analyze
         for name, data in mgr.walk():
-            serialize.serialize(stream, name)
-            serialize.serialize(stream, data)
-        serialize.serialize(stream, None)
+            fserialize(stream, name)
+            fserialize(stream, data)
+        fserialize(stream, None)
         self.triggers.activate_trigger("end save session", self)
 
-    def restore(self, stream, version=None):
-        """Deserialize session from stream."""
+    def restore(self, stream, metadata_only=False):
+        """Deserialize session from binary stream."""
         from . import serialize
-        skip_over_metadata = version is not None
-        if not skip_over_metadata:
-            version = serialize.version_deserialize(stream)
-        if version > CORE_SESSION_VERSION:
-            raise State.NeedNewerError()
-        if not skip_over_metadata:
-            metadata = self.read_metadata(stream, skip_version=True)
+        if hasattr(stream, 'peek'):
+            use_pickle = stream.peek(1)[0] != ord(b'#')
         else:
-            metadata = None
+            use_pickle = stream.buffer.peek(1)[0] != ord(b'#')
+        if use_pickle:
+            version = serialize.pickle_deserialize(stream)
+            if version != 1:
+                raise RestoreError('Not a ChimeraX session file')
+            fdeserialize = serialize.pickle_deserialize
+        else:
+            line = stream.readline(256)   # limit line length to avoid DOS
+            tokens = line.split()
+            if line[-1] != ord(b'\n') or len(tokens) < 5 or tokens[0:4] != [b'#', b'ChimeraX', b'Session', b'version']:
+                raise RuntimeError('Not a ChimeraX session file')
+            version = int(tokens[4])
+            if not (2 <= version <= CORE_SESSION_VERSION):
+                raise self.NeedNewerError
+            stream = serialize.msgpack_deserialize_stream(stream)
+            fdeserialize = serialize.msgpack_deserialize
+        metadata = fdeserialize(stream)
+        metadata['session_version'] = version
+        if metadata_only:
+            self.metadata.update(metadata)
+            return
+
         mgr = _RestoreManager()
-        bundle_infos = serialize.deserialize(stream)
+        bundle_infos = fdeserialize(stream)
         try:
             mgr.check_bundles(self, bundle_infos)
         except RestoreError as e:
@@ -454,14 +482,13 @@ class Session:
         self.triggers.activate_trigger("begin restore session", self)
         try:
             self.reset()
-            if metadata is not None:
-                self.metadata.update(metadata)
+            self.metadata.update(metadata)
             attr_info = self.metadata.pop('attr_info', {})
             while True:
-                name = serialize.deserialize(stream)
+                name = fdeserialize(stream)
                 if name is None:
                     break
-                data = serialize.deserialize(stream)
+                data = fdeserialize(stream)
                 data = mgr.resolve_references(data)
                 if isinstance(name, str):
                     if attr_info.get(name, False):
@@ -488,16 +515,6 @@ class Session:
         finally:
             self.triggers.activate_trigger("end restore session", self)
 
-    def read_metadata(self, stream, skip_version=False):
-        """Deserialize session metadata from stream."""
-        from . import serialize
-        if not skip_version:
-            version = serialize.deserialize(stream)
-        metadata = serialize.deserialize(stream)
-        if skip_version:
-            return metadata
-        return version, metadata
-
 
 class InScriptFlag:
 
@@ -514,7 +531,7 @@ class InScriptFlag:
         return self._level > 0
 
 
-def save(session, filename, format):
+def save(session, filename, format, version=1):
     """command line version of saving a session"""
     my_open = None
     if hasattr(filename, 'write'):
@@ -541,7 +558,7 @@ def save(session, filename, format):
     session.logger.warning("<b><i>Session file format is not finalized, and thus might not be restorable in other versions of ChimeraX.</i></b>", is_html=True)
     # TODO: put thumbnail in session metadata
     try:
-        session.save(output)
+        session.save(output, version=version)
     except:
         if my_open is not None:
             output.close("exceptional")
@@ -572,46 +589,41 @@ def sdump(session, session_file, output=None):
     from . import serialize
     if not session_file.endswith(SESSION_SUFFIX):
         session_file += SESSION_SUFFIX
-    input = None
-#    from .io import open_filename
-#    from .errors import UserError
-#    try:
-#        input = open_filename(session_file, 'rb')
-#    except UserError:
-#        session_file2 = session_file + '.gz'
-#        try:
-#            input = open_filename(session_file2, 'rb')
-#        except UserError:
-#            pass
-#        if input is None:
-#            session.logger.error(
-#                "Unable to find compressed nor uncompressed file: %s"
-#                % session_file)
-#            return
     if is_gzip_file(session_file):
         import gzip
-        input = gzip.open(session_file, 'rb')
+        stream = gzip.open(session_file, 'rb')
     else:
-        input = _builtin_open(session_file, 'rb')
+        stream = _builtin_open(session_file, 'rb')
     if output is not None:
         # output = open_filename(output, 'w')
         output = _builtin_open(output, 'w')
     from pprint import pprint
-    with input:
+    with stream:
+        if hasattr(stream, 'peek'):
+            use_pickle = stream.peek(1)[0] != ord(b'#')
+        else:
+            use_pickle = stream.buffer.peek(1)[0] != ord(b'#')
+        if use_pickle:
+            fdeserialize = serialize.pickle_deserialize
+            version = fdeserialize(stream)
+        else:
+            tokens = stream.readline().split()
+            version = int(tokens[4])
+            stream = serialize.msgpack_deserialize_stream(stream)
+            fdeserialize = serialize.msgpack_deserialize
         print("==== session version:", file=output)
-        version = serialize.deserialize(input)
         pprint(version, stream=output)
         print("==== session metadata:", file=output)
-        metadata = serialize.deserialize(input)
+        metadata = fdeserialize(stream)
         pprint(metadata, stream=output)
         print("==== bundle info:", file=output)
-        bundle_infos = serialize.deserialize(input)
+        bundle_infos = fdeserialize(stream)
         pprint(bundle_infos, stream=output)
         while True:
-            name = serialize.deserialize(input)
+            name = fdeserialize(stream)
             if name is None:
                 break
-            data = serialize.deserialize(input)
+            data = fdeserialize(stream)
             print('==== name/uid:', name, file=output)
             pprint(data, stream=output)
 
@@ -626,12 +638,12 @@ def open(session, filename, *args, **kw):
 
     if is_gzip_file(fname):
         import gzip
-        input = gzip.open(fname, 'rb')
+        stream = gzip.open(fname, 'rb')
     else:
-        input = _builtin_open(fname, 'rb')
+        stream = _builtin_open(fname, 'rb')
     # TODO: active trigger to allow user to stop overwritting
     # current session
-    session.restore(input)
+    session.restore(stream)
     return [], "opened ChimeraX session"
 
 
@@ -723,16 +735,20 @@ def register_session_format(session):
         reference="http://www.rbvi.ucsf.edu/chimerax/",
         open_func=open, export_func=save)
 
-    from .commands import CmdDesc, register, SaveFileNameArg
+    from .commands import CmdDesc, register, SaveFileNameArg, IntArg
     desc = CmdDesc(
         required=[('filename', SaveFileNameArg)],
+        keyword=[('version', IntArg)],
+        hidden=['version'],
         synopsis='save session'
     )
+
     def save_session(session, filename, **kw):
         kw['format'] = 'session'
         from .commands.save import save
         save(session, filename, **kw)
     register('save session', desc, save_session, logger=session.logger)
+
 
 def register_x3d_format():
     from . import io, toolshed
@@ -741,6 +757,7 @@ def register_x3d_format():
         mime="model/x3d+xml",
         reference="http://www.web3d.org/standards",
         export_func=save_x3d)
+
 
 def common_startup(sess):
     """Initialize session with common data containers"""
@@ -801,6 +818,7 @@ def _register_core_file_formats(session):
     from . import image
     image.register_image_save(session)
     register_x3d_format()
+
 
 def _register_core_database_fetch():
     from .atomic import pdb

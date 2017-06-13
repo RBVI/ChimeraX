@@ -813,6 +813,7 @@ class ToolWindow(StatusLogger):
         self.__toolkit = _Qt(self, title, statusbar, mw)
         self.ui_area = self.__toolkit.ui_area
         mw._new_tool_window(self)
+        self._kludge = self.__toolkit
 
     def cleanup(self):
         """Perform tool-specific cleanup
@@ -905,6 +906,11 @@ class ToolWindow(StatusLogger):
 
     def _prioritized_logs(self):
         return [self.__toolkit.status_log]
+
+    def _show_context_menu(self, event):
+        # this routine needed as a klidge to allow QwebEngine to show
+        # our own context menu
+        self.__toolkit.show_context_menu(event)
 
 class MainToolWindow(ToolWindow):
     """Class used to generate tool's main UI window.
@@ -1122,6 +1128,7 @@ def redirect_stdio_to_logger(logger):
         def __init__(self, logger):
             self.logger = logger
             self.closed = False
+            self.errors = "ignore"
 
         def write(self, s):
             self.logger.session.ui.thread_safe(self.logger.info,

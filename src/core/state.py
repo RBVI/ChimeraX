@@ -49,7 +49,7 @@ class State(metaclass=abc.ABCMeta):
         The default implementation is for non-core classes and
         returns a copy of the instance dictionary (a deep copy of
         lists/dicts/etc., but shallow copy of named objects).
-        Named objects are later converted to unique names. 
+        Named objects are later converted to unique names.
         """
         data = self.vars().copy()
         data['bundle name'] = self.bundle_info.name
@@ -78,10 +78,12 @@ class State(metaclass=abc.ABCMeta):
     #    #   look at several scenes
     #    pass
 
+
 class FinalizedState:
     """Used for efficiency if state data is known to be nothing but Python simple primitives"""
     def __init__(self, data):
         self.data = data
+
 
 # Would like to use set's, but isinstance requires a tuple
 _final_primitives = ()
@@ -92,24 +94,37 @@ def _init_primitives():
     # These primitives should be exactly the same ones that can be serialized
     global _final_primitives, _container_primitives
     import collections
-    from numpy import ndarray, int32, int64, uint32, uint64, float32, float64
+    import numpy
     import datetime
     from PIL import Image
+
+    def numpy_numbers():
+        for n in dir(numpy):
+            try:
+                t = getattr(numpy, n)
+                if issubclass(t, numpy.number):
+                    yield t
+            except:
+                pass
+        yield numpy.bool_
+        yield numpy.bool8
+
     _final_primitives = (
-        type(None), type(Ellipsis),
+        type(None),
+        # type(Ellipsis), -- primitive in Python, no equivalent in msgpack
         bool, bytes, bytearray,
         complex, float,
         int, range, str,
-        int32, int64, uint32, uint64, float32, float64,
         collections.Counter,
-        datetime.date, datetime.time, datetime.timedelta, datetime.datetime,
-        datetime.timezone,
+        datetime.datetime, datetime.timedelta,
         Image.Image,
+        FinalizedState,
     )
+    _final_primitives += tuple(numpy_numbers())
     _container_primitives = (
         dict, frozenset, list, set, tuple,
         collections.deque, collections.OrderedDict,
-        ndarray,
+        numpy.ndarray,
     )
 
 
@@ -142,8 +157,6 @@ def copy_state(data, convert=None):
         nonlocal convert, Mapping, ndarray
         if isinstance(data, _final_primitives):
             return data
-        if isinstance(data, FinalizedState):
-            return data.data
         if isinstance(data, _container_primitives):
             if isinstance(data, Mapping):
                 items = [(_copy(k), _copy(v)) for k, v in data.items()]
@@ -176,6 +189,8 @@ def dereference_state(data, convert, convert_cls):
         nonlocal convert, convert_cls, Mapping, ndarray
         if isinstance(data, convert_cls):
             return convert(data)
+        if isinstance(data, FinalizedState):
+            return data.data
         if isinstance(data, _final_primitives):
             return data
         if not isinstance(data, _container_primitives):

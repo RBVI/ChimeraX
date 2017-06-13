@@ -326,8 +326,12 @@ class BundleInfo:
 
     def _deregister_file_types(self, logger):
         """Deregister file types."""
-        # TODO: implement
-        pass
+        from chimerax.core import io, fetch
+        # Deregister fetch first since it might use format info
+        for (database_name, format_name, prefixes, example_id, is_default) in self.fetches:
+            fetch.deregister_fetch(database_name, format_name, prefixes=prefixes)
+        for fi in self.formats:
+            io.deregister_format(fi.name)
 
     def _register_selectors(self, logger):
         from ..commands import register_selector
@@ -391,6 +395,18 @@ class BundleInfo:
                 session.logger.warning("bundle \"%s\"'s API forgot to override finish()" % self.name)
                 return
             f(session, self)
+
+    def unload(self, logger):
+        """Unload bundle modules (as best as we can)."""
+        import sys
+        m = self.get_module()
+        logger.info("unloading module %s" % m.__name__)
+        name = m.__name__
+        prefix = name + '.'
+        remove_list = [k for k in sys.modules.keys()
+                       if k == name or k.startswith(prefix)]
+        for k in remove_list:
+            del sys.modules[k]
 
     def get_class(self, class_name, logger):
         """Return bundle's class with given name."""

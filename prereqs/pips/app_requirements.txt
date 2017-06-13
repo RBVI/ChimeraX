@@ -1,4 +1,4 @@
-appdirs==1.4.2
+appdirs==1.4.3
 beautifulsoup4==4.5.3
 colorama==0.3.7
 Cython==0.25.2
@@ -11,7 +11,6 @@ openvr==1.0.401
 Pillow==4.1.0
 python-dateutil==2.5.3
 qtconsole==4.2.1
-setuptools==34.4.1
 six==1.10.0
 sortedcontainers==1.5.7
 suds-jurko==0.6

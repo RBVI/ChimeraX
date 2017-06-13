@@ -107,6 +107,7 @@ def parse_arguments(argv):
     opts.list_io_formats = False
     opts.load_tools = True
     opts.offscreen = False
+    opts.scripts = []
     opts.silent = False
     opts.start_tools = []
     opts.status = True
@@ -127,6 +128,7 @@ def parse_arguments(argv):
         "--nostatus",
         "--start <tool name>",
         "--cmd <command>",
+        "--script <python script and arguments>",
         "--notools",
         "--stereo",
         "--uninstall",
@@ -220,6 +222,8 @@ def parse_arguments(argv):
             opts.start_tools.append(optarg)
         elif opt == "--cmd":
             opts.commands.append(optarg)
+        elif opt == "--script":
+            opts.scripts.append(optarg)
         elif opt in ("--tools", "--notools"):
             opts.load_tools = opt[2] == 't'
         elif opt == "--uninstall":
@@ -486,6 +490,16 @@ def init(argv, event_loop=True):
         from chimerax.core.commands import run
         for cmd in opts.commands:
             run(sess, cmd)
+
+    if opts.scripts:
+        if not opts.silent:
+            msg = 'Running startup scripts'
+            # sess.ui.splash_info(msg, next(splash_step), num_splash_steps)
+            if sess.ui.is_gui and opts.debug:
+                print(msg, flush=True)
+        from chimerax.core.commands import runscript
+        for script in opts.scripts:
+            runscript(sess, script)
 
     if not opts.silent:
         sess.ui.splash_info("Finished initialization",

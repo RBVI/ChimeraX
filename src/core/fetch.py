@@ -376,6 +376,23 @@ def register_fetch(database_name, fetch_function, file_format,
 
 # -----------------------------------------------------------------------------
 #
+def deregister_fetch(database_name, file_format, prefixes=()):
+    d = fetch_databases()
+    df = d[database_name]
+    df.remove_format(file_format)
+    if not df.fetch_function:
+        # No more fetch options, just delete
+        del d[database_name]
+    else:
+        # Still have options, get rid of what we registered
+        if df.default_format == file_format:
+            df.default_format = None
+        for p in prefixes:
+            del df.prefix_format[p]
+
+
+# -----------------------------------------------------------------------------
+#
 def fetch_databases():
     return _database_fetches
 
@@ -436,6 +453,15 @@ class DatabaseFetch:
         else:
             for name in f.nicknames:
                 self.fetch_function[name] = fetch_function
+
+    def remove_format(self, format_name):
+        from . import io
+        f = io.format_from_name(format_name)
+        if f is None:
+            del self.fetch_function[format_name]
+        else:
+            for name in f.nicknames:
+                del self.fetch_function[name]
 
     def fetch(self, session, database_id, format=None, ignore_cache=False, **kw):
         f = self.default_format if format is None else format
