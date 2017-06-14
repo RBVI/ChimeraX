@@ -257,8 +257,8 @@ class Toolshed:
         Where to register handlers for toolshed triggers
     """
 
-    def __init__(self, logger,
-                 rebuild_cache=False, check_remote=False, remote_url=None):
+    def __init__(self, logger, rebuild_cache=False, check_remote=False,
+                 remote_url=None, check_available=True):
         """Initialize Toolshed instance.
 
         Parameters
@@ -319,7 +319,7 @@ class Toolshed:
         # Reload the bundle info list
         _debug("loading bundles")
         self.reload(logger, check_remote=check_remote, rebuild_cache=rebuild_cache)
-        if not check_remote:
+        if check_available and not check_remote:
             # Did not check for available bundles synchronously
             # so start a thread and do it asynchronously
             self.async_reload_available(logger)

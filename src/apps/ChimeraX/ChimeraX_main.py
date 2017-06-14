@@ -115,6 +115,7 @@ def parse_arguments(argv):
     opts.uninstall = False
     opts.use_defaults = False
     opts.version = -1
+    opts.get_available_bundles = True
 
     # Will build usage string from list of arguments
     arguments = [
@@ -134,6 +135,7 @@ def parse_arguments(argv):
         "--uninstall",
         "--usedefaults",
         "--version",
+        "--qtscalefactor <factor>",
     ]
     if sys.platform.startswith("win"):
         arguments += ["--console", "--noconsole"]
@@ -232,6 +234,8 @@ def parse_arguments(argv):
             opts.load_tools = opt[2] == 'u'
         elif opt == "--version":
             opts.version += 1
+        elif opt == "--qtscalefactor":
+            os.environ["QT_SCALE_FACTOR"] = optarg
         else:
             print("Unknown option: ", opt)
             help = True
@@ -242,6 +246,7 @@ def parse_arguments(argv):
     if opts.version >= 0 or opts.list_io_formats:
         opts.gui = False
         opts.silent = True
+        opts.get_available_bundles = False
     return opts, args
 
 
@@ -427,7 +432,8 @@ def init(argv, event_loop=True):
 
     from chimerax.core import toolshed
     # toolshed.init returns a singleton so it's safe to call multiple times
-    sess.toolshed = toolshed.init(sess.logger, debug=sess.debug)
+    sess.toolshed = toolshed.init(sess.logger, debug=sess.debug,
+                                  check_available=opts.get_available_bundles)
     if opts.module != 'pip':
         # keep bugs in ChimeraX from preventing pip from working
         if not opts.silent:
