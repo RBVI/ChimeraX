@@ -215,6 +215,10 @@ def register_format(format_name, category, extensions, nicknames=None,
     return ff
 
 
+def deregister_format(format_name):
+    del _file_formats[format_name]
+
+
 def formats(open=True, export=True, source_is_file=False):
     """Returns list of known formats."""
     fmts = []
