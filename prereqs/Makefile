@@ -115,7 +115,7 @@ endif
 # keep in alphabetical order, dependencies go below
 SUBDIRS	+= fonts \
 	   imex numexpr numpy openmm \
-	   pcre pdbfixer pips pycollada \
+	   pcre pdbfixer pillow pips pycollada \
 	   PyOpenGL PyQt pytables Python \
 	   scipy setuptools wrappy3
 
