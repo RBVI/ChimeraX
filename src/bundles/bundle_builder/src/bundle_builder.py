@@ -38,6 +38,15 @@ class BundleBuilder:
 
     @distlib_hack
     def make_wheel(self):
+        # HACK: distutils uses a cache to track created directories
+        # for a single setup() run.  We want to run setup() multiple
+        # times which can remove/create the same directories.
+        # So we need to flush the cache before each run.
+        import distutils.dir_util
+        try:
+            distutils.dir_util._path_created.clear()
+        except AttributeError:
+            pass
         import os.path, shutil
         self._run_setup(["--no-user-cfg", "test", "bdist_wheel"])
         if not os.path.exists(self.wheel_path):
