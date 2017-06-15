@@ -378,7 +378,10 @@ def register_fetch(database_name, fetch_function, file_format,
 #
 def deregister_fetch(database_name, file_format, prefixes=()):
     d = fetch_databases()
-    df = d[database_name]
+    try:
+        df = d[database_name]
+    except KeyError:
+        return
     df.remove_format(file_format)
     if not df.fetch_function:
         # No more fetch options, just delete
@@ -458,10 +461,16 @@ class DatabaseFetch:
         from . import io
         f = io.format_from_name(format_name)
         if f is None:
-            del self.fetch_function[format_name]
+            try:
+                del self.fetch_function[format_name]
+            except KeyError:
+                pass
         else:
             for name in f.nicknames:
-                del self.fetch_function[name]
+                try:
+                    del self.fetch_function[name]
+                except KeyError:
+                    pass
 
     def fetch(self, session, database_id, format=None, ignore_cache=False, **kw):
         f = self.default_format if format is None else format

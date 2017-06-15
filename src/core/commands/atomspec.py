@@ -758,7 +758,10 @@ def deregister_selector(name):
         If name is not registered.
 
     """
-    del _selectors[name]
+    try:
+        del _selectors[name]
+    except KeyError:
+        pass
 
 
 def list_selectors(session):

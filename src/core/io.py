@@ -216,7 +216,10 @@ def register_format(format_name, category, extensions, nicknames=None,
 
 
 def deregister_format(format_name):
-    del _file_formats[format_name]
+    try:
+        del _file_formats[format_name]
+    except KeyError:
+        pass
 
 
 def formats(open=True, export=True, source_is_file=False):
