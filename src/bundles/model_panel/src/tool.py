@@ -97,8 +97,14 @@ class ModelPanel(ToolInstance):
 
     def _initiate_fill_tree(self, *args):
         # in order to allow molecules to be drawn as quickly as possible,
-        # delay the update of the tree until the 'frame drawn' trigger fires
-        if self._frame_drawn_handler is None:
+        # delay the update of the tree until the 'frame drawn' trigger fires,
+        # unless no models are open, in which case update immediately because
+        # Rapid Access will come up and 'frame drawm' may not fire for awhile
+        if len(self.session.models) == 0:
+            if self._frame_drawn_handler is not None:
+                self.session.triggers.remove_handler(self._frame_drawn_handler)
+            self._fill_tree()
+        elif self._frame_drawn_handler is None:
             self._frame_drawn_handler = self.session.triggers.add_handler(
                 "frame drawn", self._fill_tree)
 
