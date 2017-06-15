@@ -204,7 +204,7 @@ _debug_toolshed = False
 def _debug(*args, **kw):
     if _debug_toolshed:
         import sys
-        print("Toolshed:", *args, file=sys.__stderr__, **kw)
+        print("Toolshed:", *args, file=sys.__stderr__, flush=True, **kw)
 
 
 # Package constants
