@@ -7,7 +7,7 @@ include Makefile.pip
 # Force LANG to UTF-8 so that grako will install successfully
 LANG	= en_US.UTF-8
 
-PATCHES = 
+PATCHES = pillow_ome_tiff.patch
 
 all:
 

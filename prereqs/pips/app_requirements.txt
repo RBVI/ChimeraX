@@ -8,6 +8,7 @@ line_profiler==2.0
 matplotlib==2.0.0
 networkx==1.10
 openvr==1.0.401
+Pillow==4.1.0
 python-dateutil==2.5.3
 qtconsole==4.2.1
 six==1.10.0

@@ -19,7 +19,6 @@ all:
 #
 
 NEED_FFMPEG=1
-NEED_ZLIB=1
 
 ifdef WIN32
 SUBDIRS += win32
@@ -30,6 +29,7 @@ NEED_EXPAT=1
 NEED_HDF5=1
 NEED_OPENSSL=1
 NEED_P7ZIP=1
+NEED_ZLIB=1
 #SUBDIRS += leapmotion
 SUBDIRS += oculus
 endif
@@ -39,6 +39,7 @@ NEED_EXPAT=1
 NEED_HDF5=1
 NEED_OPENSSL=1
 NEED_P7ZIP=1
+NEED_ZLIB=1
 endif
 
 ifdef NEED_FFMPEG
@@ -114,7 +115,7 @@ endif
 # keep in alphabetical order, dependencies go below
 SUBDIRS	+= fonts \
 	   imex numexpr numpy openmm \
-	   pcre pdbfixer pillow pips pycollada \
+	   pcre pdbfixer pips pycollada \
 	   PyOpenGL PyQt pytables Python \
 	   scipy setuptools wrappy3
 
