@@ -363,7 +363,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         md = event.mimeData()
         paths = [url.toLocalFile() for url in md.urls()]
         for p in paths:
-            self.open_dropped_file(path)
+            self.open_dropped_file(p)
 
     def open_dropped_file(self, path):
         # Use quotes around path only if needed so log looks nice.
