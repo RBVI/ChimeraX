@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .hbond import find_hbonds
+from .hbond import find_hbonds, rec_dist_slop, rec_angle_slop
 
 from chimerax.core.toolshed import BundleAPI
 
