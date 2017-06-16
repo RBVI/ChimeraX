@@ -156,7 +156,6 @@ def set_cap_drawing_geometry(drawing, plane_name, varray, narray, tarray):
     cm.vertices = varray
     cm.triangles = tarray
     cm.normals = narray
-    cm.display = True
 
 def new_cap(drawing, cap_name):
     from ..models import Model
