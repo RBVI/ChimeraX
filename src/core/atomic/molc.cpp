@@ -1654,6 +1654,24 @@ extern "C" EXPORT void residue_atoms(void *residues, size_t n, pyobject_t *atoms
     }
 }
 
+extern "C" EXPORT PyObject *residue_bonds_between(void *res, void* other_res)
+{
+    Residue *r = static_cast<Residue*>(res);
+    Residue *other = static_cast<Residue*>(other_res);
+    try {
+        auto bonds = r->bonds_between(other);
+        const Bond **bb;
+        PyObject *b_array = python_voidp_array(bonds.size(), (void***)&bb);
+        size_t i = 0;
+        for (auto b: bonds)
+            bb[i++] = b;
+        return b_array;
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
 extern "C" EXPORT void residue_center(void *residues, size_t n, float64_t *xyz)
 {
     Residue **r = static_cast<Residue **>(residues);  
@@ -1692,6 +1710,18 @@ extern "C" EXPORT void residue_chain_id(void *residues, size_t n, pyobject_t *ci
             cids[i] = unicode_from_string(r[i]->chain_id());
     } catch (...) {
         molc_error();
+    }
+}
+
+extern "C" EXPORT bool residue_connects_to(void *residue, void *other_res)
+{
+    Residue *r = static_cast<Residue *>(residue);
+    Residue *other = static_cast<Residue *>(other_res);
+    try {
+        return r->connects_to(other);
+    } catch (...) {
+        molc_error();
+        return false;
     }
 }
 

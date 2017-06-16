@@ -781,6 +781,18 @@ class Residue(State):
         f = c_function('residue_add_atom', args = (ctypes.c_void_p, ctypes.c_void_p))
         f(self._c_pointer, atom._c_pointer)
 
+    def bonds_between(self, other_res):
+        '''Return the bonds between this residue and other_res as a Bonds collection.'''
+        f = c_function('residue_bonds_between', args = (ctypes.c_void_p, ctypes.c_void_p),
+                ret = ctypes.py_object)
+        return _bonds(f(self._c_pointer, other_res._c_pointer))
+
+    def connects_to(self, other_res):
+        '''Return True if this residue is connected by at least one bond (not pseudobond) to other_res'''
+        f = c_function('residue_connects_to', args = (ctypes.c_void_p, ctypes.c_void_p),
+                ret = ctypes.c_bool)
+        return f(self._c_pointer, other_res._c_pointer, ret = ctypes.c_bool)
+
     def find_atom(self, atom_name):
         '''Return the atom with the given name, or None if not found.\n'''
         '''If multiple atoms in the residue have that name, an arbitrary one that matches will'''
