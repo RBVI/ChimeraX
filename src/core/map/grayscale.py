@@ -182,10 +182,14 @@ class GrayScaleDrawing(Drawing):
     axis, rev = self.projection_axis(r.current_view_matrix)
     pd = self._planes_drawing if axis is None else self._planes_drawings[axis]
     if pd is None:
+      sc = self.shape_changed
       pd = self.make_planes(axis)
       if axis is None:
         self._planes_drawing = pd
       else:
+        if tuple(self._planes_drawings) != (None, None, None):
+          # Reset shape change flag since this is the same shape.
+          self.shape_changed = sc
         self._planes_drawings[axis] = pd
     elif self.update_colors:
       self.reload_textures()
@@ -193,11 +197,15 @@ class GrayScaleDrawing(Drawing):
     if axis is not None:
       # Reverse drawing order if needed to draw back to front
       pd.multitexture_reverse_order = rev
+      sc = self.shape_changed
       for d in self._planes_drawings:
         disp = (d is pd)
         if d and d.display != disp:
           # TODO: Make drawing not cause redraw if display value does not change.
           d.display = disp
+      # When switching planes, do not set shape change flag since that causes center of rotation update
+      # with front center rotation method, which messes up spin movies.
+      self.shape_changed = sc
 
     max_proj = dtransp and self.maximum_intensity_projection
     if max_proj:
@@ -327,6 +335,7 @@ class GrayScaleDrawing(Drawing):
       d = self.color_plane(k, axis)
       from ..graphics import Texture
       t = Texture(d)
+      t.fill_opengl_texture()	# Data array may be reused, so fill opengl texture now.
       self.texture_planes[(k,axis)] = t
     return t
 
@@ -353,7 +362,7 @@ class GrayScaleDrawing(Drawing):
         mtex = pd.multitexture
         for t,(k,axis) in enumerate(pd.planes):
           data = self.color_plane(k,axis)
-          mtex[t].reload_texture(data)
+          mtex[t].reload_texture(data, now = True)
 
 # ---------------------------------------------------------------------------
 #
@@ -366,8 +375,10 @@ class BlendedImage(GrayScaleDrawing):
 
     d = drawings[0]
 
-    self.grid_size = d.grid_size
-    self.ijk_to_xyz = d.ijk_to_xyz
+    for attr in ('grid_size', 'ijk_to_xyz', 'projection_mode', 'maximum_intensity_projection',
+                 'linear_interpolation', 'transparency_blend_mode', 'brightness_and_transparency_correction',
+                 'minimal_texture_memory', 'show_outline_box', 'outline_box_rgb', 'outline_box_linewidth'):
+      setattr(self, attr, getattr(d, attr))
 
     self.drawings = drawings
     for d in drawings:

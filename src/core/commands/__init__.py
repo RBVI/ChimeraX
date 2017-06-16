@@ -12,6 +12,7 @@
 from .commands import register_core_commands
 from .selectors import register_core_selectors
 from .run import run, concise_model_spec, quote_if_necessary
+from .runscript import runscript
 
 from .cli import CmdDesc, register, Command, create_alias, command_function
 from .cli import commas, plural_form, plural_of, discard_article
@@ -22,11 +23,12 @@ from .cli import NoArg, BoolArg, StringArg, EmptyArg, EnumOf, DynamicEnum
 from .cli import IntArg, Int2Arg, Int3Arg, NonNegativeIntArg, PositiveIntArg
 from .cli import FloatArg, Float2Arg, Float3Arg, FloatsArg
 from .cli import AxisArg, Axis, CenterArg, Center, CoordSysArg, PlaceArg, Bounded
-from .cli import ModelIdArg, AtomsArg, AtomicStructuresArg
+from .cli import ModelIdArg, AtomsArg, UniqueChainsArg, AtomicStructuresArg
 from .cli import StructureArg, StructuresArg, SurfacesArg
 from .cli import PseudobondsArg, PseudobondGroupsArg
 from .cli import ModelArg, ModelsArg, TopModelsArg, ObjectsArg, RestOfLine
 from .cli import OpenFileNameArg, SaveFileNameArg, OpenFolderNameArg, SaveFolderNameArg, FileNameArg
+from .cli import add_keyword_arguments
 
 from .colorarg import ColorArg, ColormapArg, ColormapRangeArg
 from .symarg import SymmetryArg

@@ -45,7 +45,8 @@ The <a href="#subcommands">subcommands</a> of <b>cartoon</b>, however,
 control per-model settings:
 <ul>
 <li><a href="#style"><b>cartoon style</b></a>
-- secondary structure representations, width, thickness, and shape
+- width, thickness, and shape; secondary structure representations like
+<a href="#hmode">helix tubes</a>
 <li><a href="#tether"><b>cartoon tether</b></a>
 - connectors between smoothed strands and offset &alpha;-carbons
 </ul>
@@ -137,6 +138,7 @@ not those opened later.
 [&nbsp;<b>sides</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>barSides</b>&nbsp;&nbsp;<i>N<font size="-1"><sub>b</sub></font></i>&nbsp;]
 [&nbsp;<b>modeHelix</b>&nbsp;tube&nbsp;|&nbsp;wrap&nbsp;|&nbsp;default&nbsp;]
+[&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;|&nbsp;<b>auto</b>&nbsp;]
 -->
 <blockquote>
 <p>
@@ -183,9 +185,34 @@ rather than as ribbons spiraling along the backbone atoms (initial default).
 Spiraling ribbons from the <b>wrap</b> mode wrap around the calculated
 tubes, whereas those from the initial <b>default</b> mode
 are oriented as described <a href="#orientation">above</a>.
-Other than <a href="#sides"><b>sides</b></a>,
+<p>
+<a name="tubes"></a>
+Helix <b>tube</b> calculations use &alpha;-carbon coordinates.
+For a helix of 6 or more residues, a straight tube axis (first principal
+component) is used if it gives a low average distance to the &alpha;-carbons; 
+otherwise, an arc (circle segment) fit to the &alpha;-carbon coordinates 
+is used instead. For a helix of 3-5 residues, the axis of an idealized 
+&alpha;-helix fit to the &alpha;-carbons is used.
+Increasing the number of <a href="#sides"><b>sides</b></a> is recommended
+to give tubes a rounded rather than faceted appearance.
+Other than <a href="#radius"><b>radius</b></a>
+and <a href="#sides"><b>sides</b></a>,
 most helix settings such as width, height, cross-section, and arrows
-do not apply to helices in the <b>tube</b> mode.
+do not apply to helices in the <b>tube</b> mode. Tube-helix example:
+<blockquote>
+<b>cartoon style &nbsp;modeh tube &nbsp;rad 2.0 &nbsp;sides 18</b>
+</blockquote>
+  </blockquote><blockquote>
+<a name="radius"></a>
+<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;|&nbsp;<b>auto</b>
+<br>
+For peptide helices in the <a href="#hmode"><b>tube</b> mode</a> only,
+a constant <b>radius</b> <i>r</i> can be specified, otherwise
+(<b>auto</b>, default) a radius will be determined separately for each helix
+according to the average distance of the &alpha;-carbons to the tube midline,
+capped at a maximum of 2.5 &Aring;.
+Where a displayed &alpha;-carbon is offset from the tube surface,
+a <a href="#tether">tether</a> will be drawn.
   </blockquote><blockquote>
 <b>arrows</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
 <br>Whether to show arrowheads at the 
@@ -223,7 +250,7 @@ the central &ldquo;bar&rdquo; thickness of <b>barbell</b> cross-section
 relative to the edges, where the nominal value applies.
   </blockquote>
 </p><p>
-Examples:
+More examples:
 </p>
 <blockquote><b>
 cartoon style width 1.5 thick 0.3
@@ -235,7 +262,7 @@ car style <a href="atomspec.html#builtin">strand</a> xsection rect width 2
 cartoon style <a href="atomspec.html#builtin">nucleic</a> 
 width 2 thickness 2 xsection round
 <br>
-ribbon style modeh tube
+ribbon style modeh tube sides 24 rad 2
 <br>
 rib style x rect
 <br>
@@ -256,10 +283,11 @@ cartoon style #2 arrows f wid 1 thick 1 x round
 <blockquote>
 <p>
 The command <b>cartoon tether</b> controls the appearance of the
-connectors between smoothed peptide strands and offset &alpha;-carbons.
+connectors between &alpha;-carbons and the cartoon where they are offset.
+Such offsets may be visible where sidechains are displayed on
+<a href="#top">smoothed strands</a> or <a href="#hmode">helix tubes</a>.
 A <b><i>tether</i></b> is drawn between a displayed &alpha;-carbon (CA atom)
-and the corresponding cartoon segment where they are offset 
-(path-smoothing <a href="#top"><i>factor</i></a> &gt; 0).
+and the corresponding cartoon segment where they are offset.
 Tether <b>shape</b> can be:
  <ul>
  <li><b>cone</b> (initial default) 
@@ -280,5 +308,5 @@ The tether color tracks the color of the corresponding &alpha;-carbon.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2017</address>
+May 2017</address>
 </body></html>

@@ -21,26 +21,24 @@ class GraphicsWindow(QWindow):
     def __init__(self, parent, ui):
         QWindow.__init__(self)
         from PyQt5.QtWidgets import QWidget
-        self.widget = QWidget.createWindowContainer(self, parent)
+        self.widget = w = QWidget.createWindowContainer(self, parent)
+        w.setAcceptDrops(True)
         self.setSurfaceType(QSurface.OpenGLSurface)
         self.timer = None
         self.session = ui.session
         self.view = ui.session.main_view
 
-        self.opengl_context = OpenGLContext(self, ui)
+        use_stereo = getattr(ui, 'stereo', False)
+        self.opengl_context = OpenGLContext(self, ui, use_stereo = use_stereo)
 
-        self.redraw_interval = 16  # milliseconds
+        self.redraw_interval = 16.667  # milliseconds
         #   perhaps redraw interval should be 10 to reduce
         #   frame drops at 60 frames/sec
         self.minimum_event_processing_ratio = 0.1 # Event processing time as a fraction
         # of time since start of last drawing
         self.last_redraw_start_time = self.last_redraw_finish_time = 0
         
-        ui.have_stereo = False
-        if hasattr(ui, 'stereo') and ui.stereo:
-            sf = self.opengl_context.format()
-            ui.have_stereo = sf.stereo()
-        if ui.have_stereo:
+        if use_stereo:
             from ..graphics import StereoCamera
             self.view.camera = StereoCamera()
         self.view.initialize_rendering(self.opengl_context)
@@ -49,6 +47,26 @@ class GraphicsWindow(QWindow):
 
         ui.mouse_modes.set_graphics_window(self)
 
+    def event(self, event):
+        # QWindow does not have drag and drop methods to handle file dropped on app
+        # so we detect the drag and drop events here and pass them to the main window.
+        if self.handle_drag_and_drop(event):
+            return True
+        return QWindow.event(self, event)
+
+    def handle_drag_and_drop(self, event):
+        from PyQt5.QtCore import QEvent
+        t = event.type()
+        ui = self.session.ui
+        if hasattr(ui, 'main_window'):
+            mw = ui.main_window
+            if t == QEvent.DragEnter:
+                mw.dragEnterEvent(event)
+                return True
+            elif t == QEvent.Drop:
+                mw.dropEvent(event)
+                return True
+    
     def resizeEvent(self, event):
         s = event.size()
         w, h = s.width(), s.height()
@@ -64,6 +82,9 @@ class GraphicsWindow(QWindow):
                 # Inadequate OpenGL version
                 self.session.logger.error(str(e))
 
+    def exposeEvent(self, event):
+        self.view.redraw_needed = True
+        
     def set_redraw_interval(self, msec):
         self.redraw_interval = msec  # milliseconds
         t = self.timer
@@ -123,9 +144,10 @@ class OpenGLContext(QOpenGLContext):
     required_opengl_version = (3, 3)
     required_opengl_core_profile = True
 
-    def __init__(self, graphics_window, ui):
+    def __init__(self, graphics_window, ui, use_stereo = False):
         self.window = graphics_window
         self._ui = ui
+        self._use_stereo = use_stereo
         QOpenGLContext.__init__(self, graphics_window)
         self._context_initialized = False
         self._initialize_failed = False
@@ -156,6 +178,8 @@ class OpenGLContext(QOpenGLContext):
         if self.required_opengl_core_profile:
             fmt.setProfile(QSurfaceFormat.CoreProfile)
         fmt.setRenderableType(QSurfaceFormat.OpenGL)
+        if self._use_stereo:
+            fmt.setStereo(True)
         self.setFormat(fmt)
         self.window.setFormat(fmt)
         if not self.create():

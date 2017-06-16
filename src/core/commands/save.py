@@ -11,12 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def save(session, filename, models=None, format=None,
-         width=None, height=None, supersample=3,
-         pixel_size=None, transparent_background=False, quality=95,
-         region = None, step = (1,1,1), mask_zone = True, chunk_shapes = None,
-         append = None, compress = None, base_index = 1, **kw):
-    '''Save data, sessions, images.
+def save(session, filename, models=None, format=None, **kw):
+    '''Save data, sessions, images.  Specific formats have additional keyword arguments using
+    commands.add_keyword_arguments().  These are listed with command "usage save".
 
     Parameters
     ----------
@@ -30,32 +27,6 @@ def save(session, filename, models=None, format=None,
     format : string
         Recognized formats are session, or for saving images png, jpeg, tiff, gif, ppm, bmp.
         If not specified, then the filename suffix is used to identify the format.
-    width : integer
-        Width of image in pixels for saving image files.
-        If width is not specified the current graphics window width is used.
-    height : integer
-        Height of image in pixels for saving image files.
-    pixel_size : float
-        The size of one pixel in the saved image in physical units,
-        typically Angstroms.  Set the image width and height in pixels is set
-        to achieve this physical pixel size.  For perspective projection the
-        pixel size is at the depth of the center of the bounding box of the
-        visible scene.
-    supersample : integer
-        Supersampling for saving images.
-        Makes an image N times larger in each dimension
-        then averages to requested image size to produce smoother object edges.
-        Values of 2 or 3 are most useful,
-        with little improvement for larger values.
-    transparent_background : bool
-        Save image with transparent background.
-    region = None
-    step = (1,1,1)
-    mask_zone = True
-    chunk_shapes = None,
-    append = None
-    compress = None
-    base_index = 1
     '''
     from .. import io
 
@@ -67,7 +38,7 @@ def save(session, filename, models=None, format=None,
         from .open import format_from_name
         fmt = format_from_name(format, save=True, open=False)
         if fmt is None:
-            fnames = sum([tuple(f.nicknames) for f in io.formats()], ())
+            fnames = sum([tuple(f.nicknames) for f in io.formats(open=False)], ())
             from ..errors import UserError
             raise UserError("Unrecognized format '%s', must be one of %s" %
                             (format, ', '.join(fnames)))
@@ -81,8 +52,12 @@ def save(session, filename, models=None, format=None,
         suffix = fmt.extensions[0]
         filename += suffix
 
-    save_func = fmt.export_func
-    if save_func is None:
+    if models:
+        kw["models"] = models
+    try:
+        fmt.export(session, filename, format, **kw)
+    except ValueError:
+        # No export function registered
         suffixes = ', '.join(sum([f.extensions for f in io.formats() if f.export_func], []))
         from ..errors import UserError
         if not suffix:
@@ -90,26 +65,12 @@ def save(session, filename, models=None, format=None,
         else:
             msg = 'Unrecognized file suffix "%s", require one of %s' % (suffix, suffixes)
         raise UserError(msg)
-
-    kw.update({
-        'models': models,
-        'format': format,
-        'width': width,
-        'height': height,
-        'supersample': supersample,
-        'pixel_size': pixel_size,
-        'transparent_background': transparent_background,
-        'quality': quality,
-        'region': region,
-        'step': step,
-        'mask_zone': mask_zone,
-        'chunk_shapes': chunk_shapes,
-        'append': append,
-        'compress': compress,
-        'base_index': base_index,
-    })
-    
-    save_func(session, filename, **kw)
+    except TypeError as e:
+        # Keywords incompatible with export function
+        if 'unexpected keyword' in str(e):
+            from ..errors import UserError
+            raise UserError(str(e))
+        raise
 
     if fmt.open_func and not fmt.name.endswith('image'):
         # Remember in file history
@@ -129,10 +90,15 @@ def save_formats(session):
     formats.sort(key = lambda f: f.name)
     for f in formats:
         if session.ui.is_gui:
-            lines.append('<tr><td>%s<td>%s<td>%s' % (f.name,
-                commas(f.nicknames), ', '.join(f.extensions)))
+            from html import escape
+            if f.reference:
+                descrip = '<a href="%s">%s</a>' % (f.reference, escape(f.synopsis))
+            else:
+                descrip = escape(f.synopsis)
+            lines.append('<tr><td>%s<td>%s<td>%s' % (descrip,
+                escape(commas(f.nicknames)), escape(', '.join(f.extensions))))
         else:
-            session.logger.info('    %s: %s: %s' % (f.name,
+            session.logger.info('    %s: %s: %s' % (f.synopsis,
                 commas(f.nicknames), ', '.join(f.extensions)))
     if session.ui.is_gui:
         lines.append('</table>')
@@ -140,7 +106,7 @@ def save_formats(session):
         session.logger.info(msg, is_html=True)
 
 from . import DynamicEnum
-class FileFormatArg(DynamicEnum):
+class SaveFileFormatsArg(DynamicEnum):
     def __init__(self, category = None):
         DynamicEnum.__init__(self, self.formats)
         self.category = category
@@ -153,69 +119,14 @@ class FileFormatArg(DynamicEnum):
         return names
         
 def register_command(session):
-    from . import CmdDesc, register, EnumOf, SaveFileNameArg
-    from . import IntArg, PositiveIntArg, Bounded, FloatArg, BoolArg
-    from . import ModelsArg, ListOf
-    from ..map.mapargs import MapRegionArg, Int1or3Arg
-
-    file_arg = [('filename', SaveFileNameArg)]
-    models_arg = [('models', ModelsArg)]
-
-    format_args = [('format', FileFormatArg())]
-    from .. import toolshed
-    map_format_args = [('format', FileFormatArg(toolshed.VOLUME))]
-    image_format_args = [('format', FileFormatArg('Image'))]
-
-    image_args = [
-        ('width', PositiveIntArg),
-        ('height', PositiveIntArg),
-        ('supersample', PositiveIntArg),
-        ('pixel_size', FloatArg),
-        ('transparent_background', BoolArg),
-        ('quality', Bounded(IntArg, min=0, max=100))]
-
-    map_args = [
-        ('region', MapRegionArg),
-        ('step', Int1or3Arg),
-        ('mask_zone', BoolArg),
-        ('chunk_shapes', ListOf(EnumOf(('zyx','zxy','yxz','yzx','xzy','xyz')))),
-        ('append', BoolArg),
-        ('compress', BoolArg),
-        ('base_index', IntArg)]
-
+    from . import CmdDesc, register, SaveFileNameArg, ModelsArg
     desc = CmdDesc(
-        required=file_arg,
-        optional=models_arg,
-        keyword=format_args + image_args + map_args,
-        synopsis='save session or image'
+        required=[('filename', SaveFileNameArg)],
+        optional=[('models', ModelsArg)],
+        keyword=[('format', SaveFileFormatsArg())],
+        synopsis='save data to various file formats'
     )
     register('save', desc, save, logger=session.logger)
-
-    desc = CmdDesc(
-        required=file_arg,
-        synopsis='save session'
-    )
-    def save_session(session, filename, **kw):
-        kw['format'] = 'session'
-        save(session, filename, **kw)
-    register('save session', desc, save_session, logger=session.logger)
-
-    desc = CmdDesc(
-        required=file_arg,
-        keyword=image_format_args + image_args,
-        synopsis='save image'
-    )
-    def save_image(session, filename, **kw):
-        save(session, filename, **kw)
-    register('save image', desc, save_image, logger=session.logger)
-
-    desc = CmdDesc(
-        required=file_arg,
-        optional=models_arg,
-        keyword=map_format_args + map_args,
-        synopsis='save map'
-    )
-    register('save map', desc, save, logger=session.logger)
 
     sf_desc = CmdDesc(synopsis='report formats that can be saved')
     register('save formats', sf_desc, save_formats, logger=session.logger)

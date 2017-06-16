@@ -1,0 +1,107 @@
+# vim: set expandtab ts=4 sw=4:
+
+# import distutils.core
+# distutils.core.DEBUG = True
+# TODO: remove distlib monkey patch when the wheel package
+# implements PEP 426's pydist.json
+from distlib import metadata
+metadata.METADATA_FILENAME = "metadata.json"
+from setuptools import setup, Extension
+import os, os.path, sys
+
+description = """
+Sample code for implementing ChimeraX bundle.
+"""
+
+# Assume Python executable is in ROOT/bin/python
+# and make include directory be ROOT/include
+root = os.path.dirname(os.path.dirname(sys.executable))
+inc_dir = os.path.join(root, "include")
+lib_dir = os.path.join(root, "lib")
+if sys.platform == "darwin":
+    # Tested with macOS 10.12
+    libraries = []
+    compiler_flags = ["-std=c++11", "-stdlib=libc++"]
+    env = "Environment :: MacOS X :: Aqua",
+    op_sys = "Operating System :: MacOS :: MacOS X"
+elif sys.platform == "win32":
+    # Tested with Cygwin
+    libraries = ["libatomstruct"]
+    compiler_flags = []
+    env = "Environment :: Win32 (MS Windows)"
+    op_sys = "Operating System :: Microsoft :: Windows :: Windows 10"
+else:
+    # Presumably Linux
+    # Tested with Ubuntu 16.04 LTS running in
+    #   a singularity container on CentOS 7.3
+    libraries = []
+    compiler_flags = ["-std=c++11"]
+    env = "Environment :: X11 Applications"
+    op_sys = "Operating System :: POSIX :: Linux"
+
+# If platform-specific, list C++ source files
+ext_sources = ["src/_sample.cpp"]
+# If pure Python, set as empty list
+# ext_sources = []
+
+if ext_sources:
+    # platform-specific
+    ext_mods = [Extension("PKG_NAME._sample",
+                          define_macros=[("MAJOR_VERSION", 0),
+                                         ("MINOR_VERSION", 1)],
+                          extra_compile_args=compiler_flags,
+                          include_dirs=[inc_dir],
+                          library_dirs=[lib_dir],
+                          libraries=libraries,
+                          sources=ext_sources)]
+    environments = [env, op_sys]
+else:
+    # pure Python
+    ext_mods = []
+    environments = [
+        "Environment :: MacOS X :: Aqua",
+        "Environment :: Win32 (MS Windows)",
+        "Environment :: X11 Applications",
+        "Operating System :: MacOS :: MacOS X",
+        "Operating System :: Microsoft :: Windows :: Windows 10",
+        "Operating System :: POSIX :: Linux",
+    ]
+
+setup(
+    name="BUNDLE_NAME",
+    version="BUNDLE_VERSION",  # PEP 440, should match Development Status below
+    description="Sample code for implementing ChimeraX bundle",  # one line synopsis
+    long_description=description,  # see above
+    author="UCSF RBVI",
+    author_email="chimerax@cgl.ucsf.edu",
+    url="https://www.rbvi.ucsf.edu/chimerax/",
+    python_requires=">= 3.5",
+    package_dir={
+        "PKG_NAME": "src",
+    },
+    packages=[
+        "PKG_NAME",
+    ],
+    ext_modules=ext_mods,
+    install_requires=[
+        # list dependences on non-standard Python packages incl. ChimeraX ones
+        "ChimeraX-Core >= 0.1",
+    ],
+    classifiers=[
+        # From https://pypi.python.org/pypi?%3Aaction=list_classifiers
+        # and our own ChimeraX classifiers.
+        "Development Status :: 2 - Pre-Alpha",  # TODO: update as appropriate
+        "Framework :: ChimeraX",
+        "Intended Audience :: Science/Research",
+        "License :: Free for non-commercial use",
+        "Programming Language :: Python :: 3",
+        "Topic :: Scientific/Engineering :: Visualization",
+        "Topic :: Scientific/Engineering :: Chemistry",
+        "Topic :: Scientific/Engineering :: Bio-Informatics",
+        "ChimeraX :: Bundle :: General :: 1,1 :: PKG_NAME :: chimerax.sample :: ",
+        "ChimeraX :: Tool :: Sample Tool :: General :: Log model atom and bond counts",
+        "ChimeraX :: Command :: sample count :: General :: Log model atom and bond counts",
+        "ChimeraX :: DataFormat :: XYZ :: :: Molecule structure :: .xyz :: :: :: :: :: XYZ format :: utf-8",
+        "ChimeraX :: Open :: XYZ :: XYZ ::",
+    ] + environments,
+)

@@ -73,4 +73,5 @@ lint:
 	$(PYLINT) $(PYSRCS)
 
 clean:
-	rm -rf __pycache__ build dist $(WHL_BNDL_NAME).egg-info setup.py
+	rm -rf src/__pycache__ src/*.so src/*.dylib src/*.pyd
+	rm -rf build dist $(WHL_BNDL_NAME).egg-info setup.py

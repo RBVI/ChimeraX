@@ -356,7 +356,7 @@ _df_state = {}
 
 
 def distinguish_from(rgbs, *, num_candidates=3, seed=None, save_state=True):
-    """Best effort to return an RGB that perceptually differs from the given RGBs"""
+    """Best effort to return an RGB that perceptually differs from the given RGB(A)s"""
     if rgbs and len(rgbs[0]) > 3:
         rgbs = [rgba[:3] for rgba in rgbs]
 
@@ -386,6 +386,12 @@ def distinguish_from(rgbs, *, num_candidates=3, seed=None, save_state=True):
     if save_state and seed is not None:
         _df_state[seed] = random.getstate()
     return best_candidate
+
+def contrast_with(rgb):
+    """Depending on which contrasts best with the given RGB(A), return white or black (RGB)"""
+    if rgb[0]*2 + rgb[1]*3 + rgb[2] < 0.417:
+        return (1.0, 1.0, 1.0)
+    return (0.0, 0.0, 0.0)
 
 # -----------------------------------------------------------------------------
 #

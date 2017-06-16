@@ -171,4 +171,6 @@ class ModelSelectionPromotion:
     def promote(self):
         self.model.selected = True
     def demote(self):
-        self.model.selected_positions = self._prev_selected
+        m = self.model
+        m.selected = False	# This may clear child drawing selections.
+        m.selected_positions = self._prev_selected

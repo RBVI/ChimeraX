@@ -29,8 +29,8 @@ default_format = 'png'
 image_formats = [ImageFormat(name, suffixes, pil_name)
                  for name, suffixes, pil_name in _formats]
 
-def save_image(session, filename, format=None, width=None, height=None,
-               supersample=3, pixel_size=None, transparent_background=False, quality=95, **kw):
+def save_image(session, filename, format, width=None, height=None,
+               supersample=3, pixel_size=None, transparent_background=False, quality=95):
     '''
     Save an image of the current graphics window contents.
     '''
@@ -89,7 +89,7 @@ def save_image(session, filename, format=None, width=None, height=None,
                    transparent_background=transparent_background)
     i.save(path, fmt.pil_name, quality=quality)
 
-def register_image_save():
+def register_image_save(session):
     from .io import register_format
     for format in image_formats:
         register_format("%s image" % format.name,
@@ -97,3 +97,25 @@ def register_image_save():
                         extensions = ['.%s' % s for s in format.suffixes],
                         nicknames=[format.name.casefold()],
                         export_func=save_image)
+
+    # Register save command keywords for images
+    from .commands import PositiveIntArg, FloatArg, BoolArg, Bounded, IntArg, add_keyword_arguments
+    save_image_args = [
+        ('width', PositiveIntArg),
+        ('height', PositiveIntArg),
+        ('supersample', PositiveIntArg),
+        ('pixel_size', FloatArg),
+        ('transparent_background', BoolArg),
+        ('quality', Bounded(IntArg, min=0, max=100)),
+    ]
+    add_keyword_arguments('save', dict(save_image_args))
+
+    # Register save image subcommand
+    from .commands import CmdDesc, register, SaveFileNameArg
+    from .commands.save import SaveFileFormatsArg, save
+    desc = CmdDesc(
+        required=[('filename', SaveFileNameArg)],
+        keyword=[('format', SaveFileFormatsArg('Image'))] + save_image_args,
+        synopsis='save image'
+    )
+    register('save image', desc, save, logger=session.logger)

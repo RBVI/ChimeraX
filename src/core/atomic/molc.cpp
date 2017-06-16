@@ -13,7 +13,7 @@
  * === UCSF ChimeraX Copyright ===
  */
 
-#include <Python.h>	// Use PyUnicode_FromString
+#include <Python.h>     // Use PyUnicode_FromString
 
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <numpy/arrayobject.h>      // use PyArray_*(), NPY_*
@@ -24,7 +24,9 @@
 #include <atomstruct/Chain.h>
 #include <atomstruct/ChangeTracker.h>
 #include <atomstruct/CoordSet.h>
+#include <atomstruct/connect.h>
 #include <atomstruct/destruct.h>     // Use DestructionObserver
+#include <atomstruct/MolResId.h>
 #include <atomstruct/PBGroup.h>
 #include <atomstruct/Pseudobond.h>
 #include <atomstruct/PBGroup.h>
@@ -63,9 +65,9 @@
 // float32_t for numpys float32_t, etc.  The integer _t types are from
 // <stdint.h>.  Special case is for numpy/C/C++ booleans which are
 // processed in all cases as bytes:
-// 	1 == numpy.bool_().nbytes in Python
-// 	1 == sizeof (bool) in C++ and in C from <stdbool.h>
-// 	25 == sizeof (bool [25]) in C++ and C
+//      1 == numpy.bool_().nbytes in Python
+//      1 == sizeof (bool) in C++ and in C from <stdbool.h>
+//      25 == sizeof (bool [25]) in C++ and C
 //
 // Other arguments are their normal C types and are specified with the
 // appropriate ctypes annotations on the Python side.
@@ -269,19 +271,19 @@ extern "C" EXPORT void atom_aniso_u(void *atoms, size_t n, float32_t *aniso_u)
     Atom **a = static_cast<Atom **>(atoms);
     try {
         for (size_t i = 0; i != n; ++i) {
-	    const std::vector<float> *ai = a[i]->aniso_u();
-	    if (ai) {
-	        // Copy 6 values of symmetric matrix to 3x3 matrix.
-	        float32_t *ani = aniso_u + 9*i;
-		float32_t a00 = (*ai)[0], a01 = (*ai)[1], a02 = (*ai)[2];
-		float32_t a11 = (*ai)[3], a12 = (*ai)[4], a22 = (*ai)[5];
-		ani[0] = a00; ani[1] = a01; ani[2] = a02;
-		ani[3] = a01; ani[4] = a11; ani[5] = a12;
-		ani[6] = a02; ani[7] = a12; ani[8] = a22;
-	    } else {
-		PyErr_SetString(PyExc_ValueError, "Atom has no aniso_u value.");
-		break;
-	    }
+            const std::vector<float> *ai = a[i]->aniso_u();
+            if (ai) {
+                // Copy 6 values of symmetric matrix to 3x3 matrix.
+                float32_t *ani = aniso_u + 9*i;
+                float32_t a00 = (*ai)[0], a01 = (*ai)[1], a02 = (*ai)[2];
+                float32_t a11 = (*ai)[3], a12 = (*ai)[4], a22 = (*ai)[5];
+                ani[0] = a00; ani[1] = a01; ani[2] = a02;
+                ani[3] = a01; ani[4] = a11; ani[5] = a12;
+                ani[6] = a02; ani[7] = a12; ani[8] = a22;
+            } else {
+                PyErr_SetString(PyExc_ValueError, "Atom has no aniso_u value.");
+                break;
+            }
         }
     } catch (...) {
         molc_error();
@@ -293,15 +295,15 @@ extern "C" EXPORT void atom_aniso_u6(void *atoms, size_t n, float32_t *aniso_u)
     Atom **a = static_cast<Atom **>(atoms);
     try {
         for (size_t i = 0; i != n; ++i) {
-	    const std::vector<float> *ai = a[i]->aniso_u();
-	    if (ai) {
-	        float32_t *ani = aniso_u + 6*i;
-		ani[0] = (*ai)[0]; ani[1] = (*ai)[3]; ani[2] = (*ai)[5];
-		ani[3] = (*ai)[1]; ani[4] = (*ai)[2]; ani[5] = (*ai)[4];
-	    } else {
-		PyErr_SetString(PyExc_ValueError, "Atom has no aniso_u value.");
-		break;
-	    }
+            const std::vector<float> *ai = a[i]->aniso_u();
+            if (ai) {
+                float32_t *ani = aniso_u + 6*i;
+                ani[0] = (*ai)[0]; ani[1] = (*ai)[3]; ani[2] = (*ai)[5];
+                ani[3] = (*ai)[1]; ani[4] = (*ai)[2]; ani[5] = (*ai)[4];
+            } else {
+                PyErr_SetString(PyExc_ValueError, "Atom has no aniso_u value.");
+                break;
+            }
         }
     } catch (...) {
         molc_error();
@@ -313,8 +315,8 @@ extern "C" EXPORT void set_atom_aniso_u6(void *atoms, size_t n, float32_t *aniso
     Atom **a = static_cast<Atom **>(atoms);
     try {
         for (size_t i = 0; i != n; ++i) {
-	  float32_t *ani = aniso_u + 6*i;
-	  a[i]->set_aniso_u(ani[0],ani[3],ani[4],ani[1],ani[5],ani[2]);
+          float32_t *ani = aniso_u + 6*i;
+          a[i]->set_aniso_u(ani[0],ani[3],ani[4],ani[1],ani[5],ani[2]);
         }
     } catch (...) {
         molc_error();
@@ -790,7 +792,7 @@ extern "C" EXPORT void atom_maximum_bond_radius(void *atoms, size_t n, float32_t
     Atom **a = static_cast<Atom **>(atoms);
     try {
         for (size_t i = 0; i != n; ++i)
-	  radii[i] = a[i]->maximum_bond_radius(default_radius);
+          radii[i] = a[i]->maximum_bond_radius(default_radius);
     } catch (...) {
         molc_error();
     }
@@ -809,13 +811,13 @@ extern "C" EXPORT PyObject *atom_residue_sums(void *atoms, size_t n, double *ato
     PyObject *result = NULL;
     try {
       for (size_t i = 0; i < n; ++i) {
-	Residue *r = a[i]->residue();
-	double v = atom_values[i];
-	auto ri = rmap.find(r);
-	if (ri == rmap.end())
-	  rmap[r] = v;
-	else
-	  rmap[r] += v;
+        Residue *r = a[i]->residue();
+        double v = atom_values[i];
+        auto ri = rmap.find(r);
+        if (ri == rmap.end())
+          rmap[r] = v;
+        else
+          rmap[r] += v;
       }
       void **p;
       double *v;
@@ -823,8 +825,8 @@ extern "C" EXPORT PyObject *atom_residue_sums(void *atoms, size_t n, double *ato
       PyObject *rv = python_double_array(rmap.size(), &v);
       Residue **res = (Residue **)p;
       for (auto ri = rmap.begin() ; ri != rmap.end() ; ++ri) {
-	*res++ = ri->first;
-	*v++ = ri->second;
+        *res++ = ri->first;
+        *v++ = ri->second;
       }
       result = python_tuple(rp, rv);
     } catch (...) {
@@ -838,11 +840,11 @@ extern "C" EXPORT PyObject *atom_rings(void *atom, bool cross_residue, int all_s
     Atom *a = static_cast<Atom *>(atom);
     try {
         auto& rings = a->rings(cross_residue, all_size_threshold);
-        void **ra;
-        PyObject *r_array = python_voidp_array(rings.size(), &ra);
+        const Ring **ra;
+        PyObject *r_array = python_voidp_array(rings.size(), (void***)&ra);
         size_t i = 0;
-        for (auto& r: rings)
-            ra[i++] = (void*)&r;
+        for (auto r: rings)
+            ra[i++] = r;
         return r_array;
     } catch (...) {
         molc_error();
@@ -982,30 +984,30 @@ extern "C" EXPORT void atom_update_ribbon_visibility(void *atoms, size_t n)
     }
 }
 
-extern "C" EXPORT PyObject *atom_inter_bonds(void *atoms, size_t n)
+extern "C" EXPORT PyObject *atom_intra_bonds(void *atoms, size_t n)
 {
     Atom **a = static_cast<Atom **>(atoms);
     std::set<Atom *> aset;
     std::set<Bond *> bset;
     try {
         for (size_t i = 0; i < n; ++i)
-	  aset.insert(a[i]);
+          aset.insert(a[i]);
         for (size_t i = 0; i < n; ++i) {
-	  const Atom::Bonds &abonds = a[i]->bonds();
-	    for (auto b = abonds.begin() ; b != abonds.end() ; ++b) {
-	      Bond *bond = *b;
-	      const Bond::Atoms &batoms = bond->atoms();
-	      if (aset.find(batoms[0]) != aset.end() &&
-		  aset.find(batoms[1]) != aset.end() &&
-		  bset.find(bond) == bset.end())
-		bset.insert(bond);
-	    }
-	}
-	void **bptr;
-	PyObject *ba = python_voidp_array(bset.size(), &bptr);
-	int i = 0;
-	for (auto b = bset.begin() ; b != bset.end() ; ++b)
-	  bptr[i++] = *b;
+          const Atom::Bonds &abonds = a[i]->bonds();
+            for (auto b = abonds.begin() ; b != abonds.end() ; ++b) {
+              Bond *bond = *b;
+              const Bond::Atoms &batoms = bond->atoms();
+              if (aset.find(batoms[0]) != aset.end() &&
+                  aset.find(batoms[1]) != aset.end() &&
+                  bset.find(bond) == bset.end())
+                bset.insert(bond);
+            }
+        }
+        void **bptr;
+        PyObject *ba = python_voidp_array(bset.size(), &bptr);
+        int i = 0;
+        for (auto b = bset.begin() ; b != bset.end() ; ++b)
+          bptr[i++] = *b;
         return ba;
     } catch (...) {
         molc_error();
@@ -1072,16 +1074,16 @@ extern "C" EXPORT PyObject *bond_half_colors(void *bonds, size_t n)
     try {
         const Rgba *c1, *c2;
         for (size_t i = 0; i < n; ++i) {
-	  Bond *bond = b[i];
-	  if (bond->halfbond()) {
-	      c1 = &bond->atoms()[0]->color();
-	      c2 = &bond->atoms()[1]->color();
-	  } else {
-	      c1 = c2 = &bond->color();
-	  }
-	  *rgba1++ = c1->r; *rgba1++ = c1->g; *rgba1++ = c1->b; *rgba1++ = c1->a;
-	  *rgba2++ = c2->r; *rgba2++ = c2->g; *rgba2++ = c2->b; *rgba2++ = c2->a;
-	}
+          Bond *bond = b[i];
+          if (bond->halfbond()) {
+              c1 = &bond->atoms()[0]->color();
+              c2 = &bond->atoms()[1]->color();
+          } else {
+              c1 = c2 = &bond->color();
+          }
+          *rgba1++ = c1->r; *rgba1++ = c1->g; *rgba1++ = c1->b; *rgba1++ = c1->a;
+          *rgba2++ = c2->r; *rgba2++ = c2->g; *rgba2++ = c2->b; *rgba2++ = c2->a;
+        }
     } catch (...) {
         molc_error();
     }
@@ -1140,7 +1142,7 @@ extern "C" EXPORT void bond_length(void *bonds, size_t n, float32_t *lengths)
     Bond **b = static_cast<Bond **>(bonds);
     try {
         for (size_t i = 0; i != n; ++i)
-	  lengths[i] = b[i]->length();
+          lengths[i] = b[i]->length();
     } catch (...) {
         molc_error();
     }
@@ -1150,6 +1152,23 @@ extern "C" EXPORT void bond_radius(void *bonds, size_t n, float32_t *radii)
 {
     Bond **b = static_cast<Bond **>(bonds);
     error_wrap_array_get<Bond, float>(b, n, &Bond::radius, radii);
+}
+
+extern "C" EXPORT PyObject *bond_rings(void *bond, bool cross_residue, int all_size_threshold)
+{
+    Bond *b = static_cast<Bond *>(bond);
+    try {
+        auto& rings = b->rings(cross_residue, all_size_threshold);
+        const Ring **ra;
+        PyObject *r_array = python_voidp_array(rings.size(), (void***)&ra);
+        size_t i = 0;
+        for (auto r: rings)
+            ra[i++] = r;
+        return r_array;
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
 }
 
 extern "C" EXPORT void bond_shown(void *bonds, size_t n, npy_bool *shown)
@@ -1164,8 +1183,8 @@ extern "C" EXPORT int bonds_num_shown(void *bonds, size_t n)
     int count = 0;
     try {
         for (size_t i = 0; i < n; ++i)
-	  if (b[i]->shown())
-	    count += 1;
+          if (b[i]->shown())
+            count += 1;
     } catch (...) {
         molc_error();
     }
@@ -1282,16 +1301,16 @@ extern "C" EXPORT PyObject *pseudobond_half_colors(void *pbonds, size_t n)
     try {
         const Rgba *c1, *c2;
         for (size_t i = 0; i < n; ++i) {
-	  Pseudobond *bond = b[i];
-	  if (bond->halfbond()) {
-	      c1 = &bond->atoms()[0]->color();
-	      c2 = &bond->atoms()[1]->color();
-	  } else {
-	      c1 = c2 = &bond->color();
-	  }
-	  *rgba1++ = c1->r; *rgba1++ = c1->g; *rgba1++ = c1->b; *rgba1++ = c1->a;
-	  *rgba2++ = c2->r; *rgba2++ = c2->g; *rgba2++ = c2->b; *rgba2++ = c2->a;
-	}
+          Pseudobond *bond = b[i];
+          if (bond->halfbond()) {
+              c1 = &bond->atoms()[0]->color();
+              c2 = &bond->atoms()[1]->color();
+          } else {
+              c1 = c2 = &bond->color();
+          }
+          *rgba1++ = c1->r; *rgba1++ = c1->g; *rgba1++ = c1->b; *rgba1++ = c1->a;
+          *rgba2++ = c2->r; *rgba2++ = c2->g; *rgba2++ = c2->b; *rgba2++ = c2->a;
+        }
     } catch (...) {
         molc_error();
     }
@@ -1304,7 +1323,10 @@ extern "C" EXPORT void pseudobond_get_session_id(void *ptrs, size_t n, int32_t *
     try {
         for (size_t i = 0; i < n; ++i) {
             Pseudobond* pb = pbonds[i];
-            ses_ids[i] = static_cast<int32_t>((*pb->group()->manager()->session_save_pbs)[pb]);
+            auto sess_save_pbs = pb->group()->manager()->session_save_pbs;
+            if (sess_save_pbs == nullptr)
+                throw std::runtime_error("pseudobond session IDs only available during session save");
+            ses_ids[i] = static_cast<int32_t>((*sess_save_pbs)[pb]);
         }
     } catch (...) {
         molc_error();
@@ -1632,24 +1654,42 @@ extern "C" EXPORT void residue_atoms(void *residues, size_t n, pyobject_t *atoms
     }
 }
 
+extern "C" EXPORT PyObject *residue_bonds_between(void *res, void* other_res)
+{
+    Residue *r = static_cast<Residue*>(res);
+    Residue *other = static_cast<Residue*>(other_res);
+    try {
+        auto bonds = r->bonds_between(other);
+        const Bond **bb;
+        PyObject *b_array = python_voidp_array(bonds.size(), (void***)&bb);
+        size_t i = 0;
+        for (auto b: bonds)
+            bb[i++] = b;
+        return b_array;
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
 extern "C" EXPORT void residue_center(void *residues, size_t n, float64_t *xyz)
 {
     Residue **r = static_cast<Residue **>(residues);  
     try {
       for (size_t i = 0; i != n; ++i) {
-	Residue *ri = r[i];
-	double x = 0, y = 0, z = 0;
-	int na = 0;
-	for (auto atom: ri->atoms()) {
-	  const Coord &c = atom->coord();
-	  x += c[0]; y += c[1]; z += c[2];
-	  na += 1;
-	}
-	if (na > 0) {
-	  *xyz++ = x/na;  *xyz++ = y/na;  *xyz++ = z/na;
+        Residue *ri = r[i];
+        double x = 0, y = 0, z = 0;
+        int na = 0;
+        for (auto atom: ri->atoms()) {
+          const Coord &c = atom->coord();
+          x += c[0]; y += c[1]; z += c[2];
+          na += 1;
+        }
+        if (na > 0) {
+          *xyz++ = x/na;  *xyz++ = y/na;  *xyz++ = z/na;
         } else {
-	  *xyz++ = 0;  *xyz++ = 0;  *xyz++ = 0;
-	}
+          *xyz++ = 0;  *xyz++ = 0;  *xyz++ = 0;
+        }
       }
     } catch (...) {
         molc_error();
@@ -1673,6 +1713,18 @@ extern "C" EXPORT void residue_chain_id(void *residues, size_t n, pyobject_t *ci
     }
 }
 
+extern "C" EXPORT bool residue_connects_to(void *residue, void *other_res)
+{
+    Residue *r = static_cast<Residue *>(residue);
+    Residue *other = static_cast<Residue *>(other_res);
+    try {
+        return r->connects_to(other);
+    } catch (...) {
+        molc_error();
+        return false;
+    }
+}
+
 extern "C" EXPORT void residue_mmcif_chain_id(void *residues, size_t n, pyobject_t *cids)
 {
     Residue **r = static_cast<Residue **>(residues);
@@ -1690,10 +1742,10 @@ extern "C" EXPORT void residue_delete(void *residues, size_t n)
     try {
         Residue::Atoms atoms;
         for (size_t i = 0; i != n; ++i) {
-	  const Residue::Atoms &ratoms = r[i]->atoms();
-	  atoms.insert(atoms.end(), ratoms.begin(), ratoms.end());
-	}
-	atom_delete(atoms.data(), atoms.size());
+          const Residue::Atoms &ratoms = r[i]->atoms();
+          atoms.insert(atoms.end(), ratoms.begin(), ratoms.end());
+        }
+        atom_delete(atoms.data(), atoms.size());
     } catch (...) {
         molc_error();
     }
@@ -1928,7 +1980,7 @@ extern "C" EXPORT void residue_num_atoms(void *residues, size_t n, size_t *natom
 extern "C" EXPORT void residue_number(void *residues, size_t n, int32_t *nums)
 {
     Residue **r = static_cast<Residue **>(residues);
-    error_wrap_array_get(r, n, &Residue::position, nums);
+    error_wrap_array_get(r, n, &Residue::number, nums);
 }
 
 extern "C" EXPORT void residue_str(void *residues, size_t n, pyobject_t *strs)
@@ -1949,29 +2001,29 @@ extern "C" EXPORT void residue_secondary_structure_id(void *residues, size_t n, 
     try {
       int32_t id = 0;
       for (size_t i = 0; i != n; ++i) {
-	const Residue *r = res[i];
-	if (sid.find(r) != sid.end())
-	  continue;
-	// Scan the chain of this residue to identify secondary structure.
-	Chain *c = r->chain();
-	if (c == NULL)
-	  sid[r] = ++id;	// Residue is not part of a chain.
-	else {
-	  const Chain::Residues &cr = c->residues();
-	  Residue *pres = NULL;
-	  for (auto cres: cr)
-	    if (cres) { // Chain residues are null for missing structure.
-	      sid[cres] = ((pres == NULL ||
-			    cres->ss_id() != pres->ss_id() ||
-			    cres->is_helix() != pres->is_helix() ||
-			    cres->is_strand() != pres->is_strand()) ?
-			   ++id : id);
-	      pres = cres;
-	    }
-	}
+        const Residue *r = res[i];
+        if (sid.find(r) != sid.end())
+          continue;
+        // Scan the chain of this residue to identify secondary structure.
+        Chain *c = r->chain();
+        if (c == NULL)
+          sid[r] = ++id;        // Residue is not part of a chain.
+        else {
+          const Chain::Residues &cr = c->residues();
+          Residue *pres = NULL;
+          for (auto cres: cr)
+            if (cres) { // Chain residues are null for missing structure.
+              sid[cres] = ((pres == NULL ||
+                            cres->ss_id() != pres->ss_id() ||
+                            cres->is_helix() != pres->is_helix() ||
+                            cres->is_strand() != pres->is_strand()) ?
+                           ++id : id);
+              pres = cres;
+            }
+        }
       }
       for (size_t i = 0; i != n; ++i)
-	ids[i] = sid[res[i]];
+        ids[i] = sid[res[i]];
     } catch (...) {
         molc_error();
     }
@@ -1986,29 +2038,29 @@ extern "C" EXPORT PyObject *residue_unique_sequences(void *residues, size_t n, i
         std::map<Chain *, int> cmap;
         std::map<std::string, int> smap;
         for (size_t i = 0; i != n; ++i)
-	  {
-	    Chain *c = r[i]->chain();
-	    int si = 0;
-	    if (c)
-	      {
-	        auto ci = cmap.find(c);
-		if (ci == cmap.end())
-		  {
-		    std::string seq(c->begin(), c->end());
-		    auto seqi = smap.find(seq);
-		    if (seqi == smap.end())
-		      {
-			si = cmap[c] = smap[seq] = smap.size()+1;
-			PyList_Append(seqs, unicode_from_string(seq));
-		      }
-		    else
-		      si = cmap[c] = seqi->second;
-		  }
-		else
-		  si = ci->second;
-	      }
-	    seq_ids[i] = si;
-	  }
+          {
+            Chain *c = r[i]->chain();
+            int si = 0;
+            if (c)
+              {
+                auto ci = cmap.find(c);
+                if (ci == cmap.end())
+                  {
+                    std::string seq(c->begin(), c->end());
+                    auto seqi = smap.find(seq);
+                    if (seqi == smap.end())
+                      {
+                        si = cmap[c] = smap[seq] = smap.size()+1;
+                        PyList_Append(seqs, unicode_from_string(seq));
+                      }
+                    else
+                      si = cmap[c] = seqi->second;
+                  }
+                else
+                  si = ci->second;
+              }
+            seq_ids[i] = si;
+          }
     } catch (...) {
         molc_error();
     }
@@ -2198,7 +2250,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
         }
         PyTuple_SetItem(o, 2, ca);
 
-        if (!has_guides) {
+        if (!has_guides || centers.size() < 2) {
             Py_INCREF(Py_None);
             PyTuple_SetItem(o, 3, Py_None);
         }
@@ -3192,14 +3244,14 @@ extern "C" EXPORT void structure_num_atoms_visible(void *mols, size_t n, size_t 
     Structure **m = static_cast<Structure **>(mols);
     try {
         for (size_t i = 0; i != n; ++i)
-	  {
-	    const Structure::Atoms &atoms = m[i]->atoms();
-	    int c = 0;
-	    for (auto a: atoms)
-	      if (a->visible())
-		c += 1;
+          {
+            const Structure::Atoms &atoms = m[i]->atoms();
+            int c = 0;
+            for (auto a: atoms)
+              if (a->visible())
+                c += 1;
             natoms[i] = c;
-	  }
+          }
     } catch (...) {
         molc_error();
     }
@@ -3275,11 +3327,11 @@ extern "C" EXPORT PyObject *structure_rings(void *mol, bool cross_residue, int a
     Structure *m = static_cast<Structure *>(mol);
     try {
         auto& rings = m->rings(cross_residue, all_size_threshold);
-        void **ra;
-        PyObject *r_array = python_voidp_array(rings.size(), &ra);
+        const Ring **ra;
+        PyObject *r_array = python_voidp_array(rings.size(), (void***)&ra);
         size_t i = 0;
         for (auto& r: rings)
-            ra[i++] = (void*)&r;
+            ra[i++] = &r;
         return r_array;
     } catch (...) {
         molc_error();
@@ -3291,8 +3343,10 @@ extern "C" EXPORT void structure_active_coordset_id(void *mols, size_t n, int32_
 {
     Structure **m = static_cast<Structure **>(mols);
     try {
-        for (size_t i = 0; i != n; ++i)
-	  coordset_ids[i] = m[i]->active_coord_set()->id();
+      for (size_t i = 0; i != n; ++i) {
+        CoordSet *cs = m[i]->active_coord_set();
+        coordset_ids[i] = (cs ? cs->id() : -1);
+      }
     } catch (...) {
         molc_error();
     }
@@ -3303,12 +3357,12 @@ extern "C" EXPORT void set_structure_active_coordset_id(void *mols, size_t n, in
     Structure **m = static_cast<Structure **>(mols);
     try {
         for (size_t i = 0; i != n; ++i) {
-	    CoordSet *cs = m[i]->find_coord_set(coordset_ids[i]);
-	    if (cs == NULL)
-	      PyErr_Format(PyExc_IndexError, "No coordset id %d", coordset_ids[i]);
-	    else
-	      m[i]->set_active_coord_set(cs);
-	}
+            CoordSet *cs = m[i]->find_coord_set(coordset_ids[i]);
+            if (cs == NULL)
+              PyErr_Format(PyExc_IndexError, "No coordset id %d", coordset_ids[i]);
+            else
+              m[i]->set_active_coord_set(cs);
+        }
     } catch (...) {
         molc_error();
     }
@@ -3319,7 +3373,24 @@ extern "C" EXPORT void structure_add_coordset(void *mol, int id, void *xyz, size
     Structure *m = static_cast<Structure *>(mol);
     try {
         CoordSet *cs = m->new_coord_set(id);
-	cs->set_coords((double *)xyz, n);
+        cs->set_coords((double *)xyz, n);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void structure_add_coordsets(void *mol, bool replace, void *xyz, size_t n_sets, size_t n_coords)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    double* xyzs = (double*)xyz;
+    try {
+        if (replace)
+            m->clear_coord_sets();
+        for (size_t i = 0; i < n_sets; ++i) {
+            CoordSet *cs = m->new_coord_set();
+            cs->set_coords((double *)xyzs, n_coords);
+            xyzs += n_coords * 3;
+        }
     } catch (...) {
         molc_error();
     }
@@ -3346,8 +3417,8 @@ extern "C" EXPORT void structure_coordset_ids(void *mols, size_t n, int32_t *coo
     Structure **m = static_cast<Structure **>(mols);
     try {
         for (size_t i = 0; i != n; ++i)
-	  for (auto cs: m[i]->coord_sets())
-	    *coordset_ids++ = cs->id();
+          for (auto cs: m[i]->coord_sets())
+            *coordset_ids++ = cs->id();
     } catch (...) {
         molc_error();
     }
@@ -3357,8 +3428,10 @@ extern "C" EXPORT void structure_coordset_size(void *mols, size_t n, int32_t *co
 {
     Structure **m = static_cast<Structure **>(mols);
     try {
-        for (size_t i = 0; i != n; ++i)
-	  *coordset_size++ = m[i]->active_coord_set()->coords().size();
+      for (size_t i = 0; i != n; ++i) {
+        CoordSet *cs = m[i]->active_coord_set();
+        *coordset_size++ = (cs ? cs->coords().size() : 0);
+      }
     } catch (...) {
         molc_error();
     }
@@ -3539,6 +3612,19 @@ extern "C" EXPORT void structure_pbg_map(void *mols, size_t n, pyobject_t *pbgs)
         Py_XDECREF(pbg_map);
         molc_error();
     }
+}
+
+extern "C" EXPORT const char *structure_PBG_METAL_COORDINATION()
+{
+    return Structure::PBG_METAL_COORDINATION;
+}
+extern "C" EXPORT const char *structure_PBG_MISSING_STRUCTURE()
+{
+    return Structure::PBG_MISSING_STRUCTURE;
+}
+extern "C" EXPORT const char *structure_PBG_HYDROGEN_BONDS()
+{
+    return Structure::PBG_HYDROGEN_BONDS;
 }
 
 extern "C" EXPORT Proxy_PBGroup *structure_pseudobond_group(void *mol, const char *name, int create_type)
@@ -3735,12 +3821,12 @@ extern "C" EXPORT void structure_start_change_tracking(void *mol, void *vct)
     }
 }
 
-extern "C" EXPORT PyObject *structure_polymers(void *mol, int consider_missing_structure, int consider_chains_ids)
+extern "C" EXPORT PyObject *structure_polymers(void *mol, int missing_structure_treatment, int consider_chains_ids)
 {
     Structure *m = static_cast<Structure *>(mol);
     PyObject *poly = NULL;
     try {
-        std::vector<Chain::Residues> polymers = m->polymers(consider_missing_structure, consider_chains_ids);
+        std::vector<Chain::Residues> polymers = m->polymers(static_cast<Structure::PolymerMissingStructure>(missing_structure_treatment), consider_chains_ids);
         poly = PyTuple_New(polymers.size());
         size_t p = 0;
         for (auto resvec: polymers) {
@@ -3884,6 +3970,65 @@ extern "C" EXPORT void set_pdb_version(void *mols, size_t n, int32_t *version)
         molc_error();
     }
 }
+
+extern "C" EXPORT int structure_connect(void *mol, PyObject* chain_starters,
+                                         PyObject* chain_enders,
+                                         PyObject* conect_atoms,
+                                         PyObject* mod_res)
+{
+    AtomicStructure *m = static_cast<AtomicStructure *>(mol);
+    try {
+        if (!PyList_Check(chain_starters))
+            throw std::invalid_argument("chain_starters must be a list of residues");
+        if (!PyList_Check(chain_enders))
+            throw std::invalid_argument("chain_enders must be a list of residues");
+        if (!PyList_Check(conect_atoms))
+            throw std::invalid_argument("conect_atoms must be a list of atoms");
+        if (!PyList_Check(mod_res))
+            throw std::invalid_argument("mod_res must be a list of residues");
+        std::vector<Residue *> starters;
+        auto num_starters = PyList_GET_SIZE(chain_starters);
+        for (int i = 0; i < num_starters; ++i) {
+            PyObject* p = PyList_GET_ITEM(chain_starters, i);
+            if (!PyLong_Check(p))
+                throw std::invalid_argument("chain_starters element must be long");
+            Residue* r = static_cast<Residue*>(PyLong_AsVoidPtr(p));
+            starters.push_back(r);
+        }
+        std::vector<Residue *> enders;
+        auto num_enders = PyList_GET_SIZE(chain_enders);
+        for (int i = 0; i < num_enders; ++i) {
+            PyObject* p = PyList_GET_ITEM(chain_enders, i);
+            if (!PyLong_Check(p))
+                throw std::invalid_argument("chain_enders element must be long");
+            Residue* r = static_cast<Residue*>(PyLong_AsVoidPtr(p));
+            enders.push_back(r);
+        }
+        std::set<Atom *> atoms;
+        auto num_atoms = PyList_GET_SIZE(conect_atoms);
+        for (int i = 0; i < num_atoms; ++i) {
+            PyObject* p = PyList_GET_ITEM(conect_atoms, i);
+            if (!PyLong_Check(p))
+                throw std::invalid_argument("conect_atoms element must be long");
+            Atom* a = static_cast<Atom*>(PyLong_AsVoidPtr(p));
+            atoms.insert(a);
+        }
+        std::set<MolResId> mod;
+        auto num_mod = PyList_GET_SIZE(mod_res);
+        for (int i = 0; i < num_mod; ++i) {
+            PyObject* p = PyList_GET_ITEM(mod_res, i);
+            if (!PyLong_Check(p))
+                throw std::invalid_argument("mod_res element must be long");
+            Residue* r = static_cast<Residue*>(PyLong_AsVoidPtr(p));
+            mod.insert(MolResId(r->chain_id(), r->number(), r->insertion_code()));
+        }
+        connect_structure(m, &starters, &enders, &atoms, &mod);
+    } catch (...) {
+        molc_error();
+    }
+    return m->num_bonds();
+}
+        
 
 // -------------------------------------------------------------------------
 // element functions
@@ -4152,10 +4297,10 @@ private:
 extern "C" EXPORT void *object_map_deletion_handler(void *object_map)
 {
     try {
-	return new Object_Map_Deletion_Handler(static_cast<PyObject *>(object_map));
+        return new Object_Map_Deletion_Handler(static_cast<PyObject *>(object_map));
     } catch (...) {
         molc_error();
-	return nullptr;
+        return nullptr;
     }
 }
 
@@ -4554,11 +4699,11 @@ extern "C" EXPORT void pointer_indices(void *pointer_array, size_t n, void *poin
     try {
         std::map<void *,int> s;
         for (size_t i = 0; i != n2; ++i)
-	    s[pa2[i]] = i;
+            s[pa2[i]] = i;
         for (size_t i = 0; i != n; ++i) {
-	    std::map<void *,int>::iterator si = s.find(pa[i]);
-	    indices[i] = (si == s.end() ? -1 : si->second);
-	}
+            std::map<void *,int>::iterator si = s.find(pa[i]);
+            indices[i] = (si == s.end() ? -1 : si->second);
+        }
     } catch (...) {
         molc_error();
     }

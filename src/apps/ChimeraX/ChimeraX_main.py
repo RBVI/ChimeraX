@@ -63,6 +63,26 @@ if sys.platform.startswith('win'):
     os.EX_NOPERM = 77           # permission denied
     os.EX_CONFIG = 78           # configuration error
 
+    if 'LANG' in os.environ:
+        # Double check that stdout matches what LANG asks for.
+        # This is a problem when running in nogui mode from inside a cygwin
+        # shell -- the console is supposed to use UTF-8 encoding in Python
+        # 3.6 but sys.stdout.encoding is cpXXX (the default for text file
+        # I/O) since cygwin shells are not true terminals.
+        import io
+        encoding = os.environ['LANG'].split('.')[-1].casefold()
+        if encoding != sys.stdout.encoding.casefold():
+            try:
+                sys.__stdout__ = sys.stdout = io.TextIOWrapper(
+                    sys.stdout.detach(), encoding, 'backslashreplace',
+                    line_buffering=sys.stdout.line_buffering)
+                sys.__stderr__ = sys.stderr = io.TextIOWrapper(
+                    sys.stderr.detach(), encoding, 'backslashreplace',
+                    line_buffering=sys.stderr.line_buffering)
+            except LookupError:
+                # If encoding is unknown, just leave things as is
+                pass
+
 
 def parse_arguments(argv):
     """Initialize ChimeraX application."""
@@ -87,6 +107,7 @@ def parse_arguments(argv):
     opts.list_io_formats = False
     opts.load_tools = True
     opts.offscreen = False
+    opts.scripts = []
     opts.silent = False
     opts.start_tools = []
     opts.status = True
@@ -94,6 +115,7 @@ def parse_arguments(argv):
     opts.uninstall = False
     opts.use_defaults = False
     opts.version = -1
+    opts.get_available_bundles = True
 
     # Will build usage string from list of arguments
     arguments = [
@@ -107,11 +129,13 @@ def parse_arguments(argv):
         "--nostatus",
         "--start <tool name>",
         "--cmd <command>",
+        "--script <python script and arguments>",
         "--notools",
         "--stereo",
         "--uninstall",
         "--usedefaults",
         "--version",
+        "--qtscalefactor <factor>",
     ]
     if sys.platform.startswith("win"):
         arguments += ["--console", "--noconsole"]
@@ -200,6 +224,8 @@ def parse_arguments(argv):
             opts.start_tools.append(optarg)
         elif opt == "--cmd":
             opts.commands.append(optarg)
+        elif opt == "--script":
+            opts.scripts.append(optarg)
         elif opt in ("--tools", "--notools"):
             opts.load_tools = opt[2] == 't'
         elif opt == "--uninstall":
@@ -208,6 +234,8 @@ def parse_arguments(argv):
             opts.load_tools = opt[2] == 'u'
         elif opt == "--version":
             opts.version += 1
+        elif opt == "--qtscalefactor":
+            os.environ["QT_SCALE_FACTOR"] = optarg
         else:
             print("Unknown option: ", opt)
             help = True
@@ -218,6 +246,7 @@ def parse_arguments(argv):
     if opts.version >= 0 or opts.list_io_formats:
         opts.gui = False
         opts.silent = True
+        opts.get_available_bundles = False
     return opts, args
 
 
@@ -383,6 +412,8 @@ def init(argv, event_loop=True):
     # calls "sess.save_in_session(self)"
     sess.ui = ui_class(sess)
     sess.ui.stereo = opts.stereo
+    sess.ui.autostart_tools = opts.load_tools
+
     # splash step "0" will happen in the above initialization
     num_splash_steps = 2
     if opts.gui:
@@ -401,7 +432,8 @@ def init(argv, event_loop=True):
 
     from chimerax.core import toolshed
     # toolshed.init returns a singleton so it's safe to call multiple times
-    sess.toolshed = toolshed.init(sess.logger, debug=sess.debug)
+    sess.toolshed = toolshed.init(sess.logger, debug=sess.debug,
+                                  check_available=opts.get_available_bundles)
     if opts.module != 'pip':
         # keep bugs in ChimeraX from preventing pip from working
         if not opts.silent:
@@ -445,14 +477,6 @@ def init(argv, event_loop=True):
                 print("Starting main interface", flush=True)
         sess.ui.build()
 
-    if opts.load_tools:
-        if not opts.silent:
-            sess.ui.splash_info("Loading autostart tools",
-                                next(splash_step), num_splash_steps)
-            if sess.ui.is_gui and opts.debug:
-                print("Loading autostart tools", flush=True)
-        sess.tools.autostart()
-
     if opts.start_tools:
         if not opts.silent:
             msg = 'Starting tools %s' % ', '.join(opts.start_tools)
@@ -472,6 +496,16 @@ def init(argv, event_loop=True):
         from chimerax.core.commands import run
         for cmd in opts.commands:
             run(sess, cmd)
+
+    if opts.scripts:
+        if not opts.silent:
+            msg = 'Running startup scripts'
+            # sess.ui.splash_info(msg, next(splash_step), num_splash_steps)
+            if sess.ui.is_gui and opts.debug:
+                print(msg, flush=True)
+        from chimerax.core.commands import runscript
+        for script in opts.scripts:
+            runscript(sess, script)
 
     if not opts.silent:
         sess.ui.splash_info("Finished initialization",

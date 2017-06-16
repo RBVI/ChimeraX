@@ -54,7 +54,7 @@ install: dir all
 	fi
 
 app-install: wheel
-	$(APP_BOOTSTRAP_PIP) install -U --upgrade-strategy only-if-needed $(WHEEL)
+	$(APP_BOOTSTRAP_PIP) install -U $(WHEEL)
 	$(RSYNC) $(WHEEL) $(wheelhouse)
 
 wheel: setup.py
@@ -92,6 +92,7 @@ dir:
 clean:
 	rm -rf __pycache__ build dist $(WHL_BNDL_NAME).egg-info setup.py
 
+.PHONY: buildinfo.py
 buildinfo.py: buildinfo.py.in mkbuildinfo
 	rm -f buildinfo.py
 	$(PYTHON_EXE) mkbuildinfo $(TOP) $(BUNDLE_VERSION) > buildinfo.py || rm -f buildinfo.py

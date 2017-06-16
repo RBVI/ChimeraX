@@ -1,0 +1,82 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: mseries</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: mseries</h3>
+
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>mseries</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
+[&nbsp;<b>step</b>&nbsp;&nbsp;<i>i</i>&nbsp;]
+[&nbsp;<b>pauseFrames</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
+[&nbsp;<b>loop</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+</h3>
+<a name="slider"></a>
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>mseries slider</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
+[&nbsp;<b>step</b>&nbsp;&nbsp;<i>i</i>&nbsp;]
+[&nbsp;<b>pauseFrames</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
+[&nbsp;<b>movieFramerate</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+</h3>
+<p>
+The <b>mseries</b> command plays through an ordered set of models
+(a <a href="../trajectories.html#mseries">model series</a>).
+The <b>step</b> option specifies including every <i>i</i><sup>th</sup> model 
+starting with the first (default <b>1</b>, every model; 
+2 would give the first, third, fifth, <i>etc.</i>;
+3 would give the first, fourth, seventh, <i>etc.</i>)
+The resulting models are <a name="index">indexed sequentially starting with 1</a>.
+The <b>pauseFrames</b> option specifies the number of image frames per model 
+(default <b>10</b>).
+The <b>loop</b> option indicates repeating playback <i>N</i> times 
+(default <b>1</b>), wrapping directly from the last to the first.
+</p><p>
+The command <b>mseries slider</b> shows a graphical interface
+in which the slider can be dragged or a model <a href="#index">index number</a>
+entered directly.
+The interface also includes a play/pause button and another
+(marked with a red dot) for recording a movie.
+The <b>step</b> and <b>pauseFrames</b> options are the same as described
+above for the main <b>mseries</b> command.
+The <b>movieFramerate</b> option sets the playback rate of the resulting 
+movie file (default <b>25</b> frames/s).
+</p><p>
+See also: 
+<a href="coordset.html"><b>coordset</b></a>,
+<a href="vseries.html"><b>vseries</b></a>,
+<a href="../movies.html">making movies</a>
+</p><p>
+Examples:
+</p>
+<blockquote><b>
+mseries #1.1-60 pause 5 step 3
+<br>mseries slider #1
+<br>mseries slider #1.1-20 
+</b></blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+May 2017</address>
+</body></html>

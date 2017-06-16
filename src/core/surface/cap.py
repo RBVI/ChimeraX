@@ -132,6 +132,8 @@ def set_cap_drawing_geometry(drawing, plane_name, varray, narray, tarray):
     if not hasattr(d, '_clip_cap_drawings'):
         d._clip_cap_drawings = {}
     mcap = d._clip_cap_drawings.get(plane_name, None)     # Find cap drawing
+    if mcap and mcap.was_deleted:
+        mcap = None
     if varray is None:
         if mcap:
             mcap.display = False
@@ -142,15 +144,25 @@ def set_cap_drawing_geometry(drawing, plane_name, varray, narray, tarray):
     else:
         cap_name = 'cap ' + plane_name
         if len(d.positions) == 1:
-            cm = d.new_drawing(cap_name)
+            cm = new_cap(d, cap_name)
         else:
-            cm = d.parent.new_drawing(cap_name)
+            cm = new_cap(d.parent, cap_name)
             cm.pickable = False	  # Don't want pick of one cap to pick all instance caps.
         cm.clip_plane_name = plane_name
         cm.clip_cap_owner = d
         d._clip_cap_drawings[plane_name] = cm
+        cm.color = d.color
+
     cm.vertices = varray
     cm.triangles = tarray
     cm.normals = narray
-    cm.color = d.color
-    cm.display = True
+
+def new_cap(drawing, cap_name):
+    from ..models import Model
+    if isinstance(drawing, Model):
+        # Make cap a model when capping a model so color can be set by command.
+        c = Model(cap_name, drawing.session)
+        drawing.add([c])
+    else:
+        c = drawing.new_drawing(cap_name)
+    return c

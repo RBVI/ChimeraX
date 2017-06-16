@@ -30,10 +30,12 @@ _additional_categories = (
     "entity",
     "entity_src_gen",
     "entity_src_nat",
+    "cell",
+    "symmetry",
 )
 
 
-def open_mmcif(session, filename, name, *args, **kw):
+def open_mmcif(session, filename, name, auto_style=True, coordsets=False):
     # mmCIF parsing requires an uncompressed file
     if hasattr(filename, 'name'):
         # it's really a fetched stream
@@ -42,18 +44,28 @@ def open_mmcif(session, filename, name, *args, **kw):
     from . import _mmcif
     _mmcif.set_Python_locate_function(
         lambda name, session=session: _get_template(session, name))
-    pointers = _mmcif.parse_mmCIF_file(filename, _additional_categories, session.logger)
-
-    smid = kw.get('auto_style', True)
+    pointers = _mmcif.parse_mmCIF_file(filename, _additional_categories, session.logger, coordsets)
 
     from .structure import AtomicStructure
-    models = [AtomicStructure(session, name = name, c_pointer = p, auto_style = smid) for p in pointers]
+    models = [AtomicStructure(session, name=name, c_pointer=p, auto_style=auto_style) for p in pointers]
     for m in models:
         m.filename = filename
 
-    return models, ("Opened mmCIF data containing %d atoms and %d bonds"
-                    % (sum(m.num_atoms for m in models),
-                       sum(m.num_bonds for m in models)))
+    info = "Opened mmCIF data containing %d atoms%s %d bonds" % (
+        sum(m.num_atoms for m in models),
+        ("," if coordsets else " and"),
+        sum(m.num_bonds for m in models))
+    if coordsets:
+        num_cs = 0
+        for m in models:
+            num_cs += m.num_coord_sets
+        info += " and %s coordinate sets" % num_cs
+        if session.ui.is_gui:
+            mc = [m for m in models if m.num_coord_sets > 1]
+            if mc:
+                from ..commands.coordset import coordset_slider
+                coordset_slider(session, mc)
+    return models, info
 
 
 _mmcif_sources = {
@@ -84,7 +96,6 @@ def fetch_mmcif(session, pdb_id, fetch_source="rcsb", ignore_cache=False, **kw):
             raise UserError('unrecognized mmCIF/PDB source "%s"' % fetch_source)
         url = base_url % pdb_id
         pdb_name = "%s.cif" % pdb_id
-        session.logger.status("Fetching mmCIF %s from %s" % (pdb_id, url))
         from ..fetch import fetch_file
         filename = fetch_file(session, url, 'mmCIF %s' % pdb_id, pdb_name, 'PDB',
                               ignore_cache=ignore_cache)
@@ -98,6 +109,7 @@ def fetch_mmcif(session, pdb_id, fetch_source="rcsb", ignore_cache=False, **kw):
                 os.remove(filename)
                 raise UserError("Invalid mmCIF identifier")
 
+    session.logger.status("Opening mmCIF %s" % (pdb_id,))
     from .. import io
     models, status = io.open_data(session, filename, format='mmcif', name=pdb_id, **kw)
     return models, status
@@ -122,7 +134,7 @@ def _get_template(session, name):
     url = "http://ligand-expo.rcsb.org/reports/%s/%s/%s.cif" % (name[0], name,
                                                                 name)
     try:
-        return fetch_file(session, url, 'CCD %s' % name, filename, 'CCD', log='status')
+        return fetch_file(session, url, 'CCD %s' % name, filename, 'CCD')
     except UserError:
         session.logger.warning(
             "Unable to fetch template for '%s': might be missing bonds"
@@ -146,7 +158,7 @@ def register_mmcif_format():
     #    reference="http://www.iucr.org/__data/iucr/cif/standard/cifstd1.html")
     from .mmcif_write import write_mmcif
     io.register_format(
-        "mmCIF", structure.CATEGORY, (".cif",), ("mmcif",),
+        "mmCIF", structure.CATEGORY, (".cif", ".mmcif"), ("mmcif",),
         mime=("chemical/x-mmcif",),
         reference="http://mmcif.wwpdb.org/",
         requires_filename=True, open_func=open_mmcif, export_func=write_mmcif)

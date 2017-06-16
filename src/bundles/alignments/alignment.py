@@ -18,24 +18,30 @@ class Alignment(State):
     Should only be created through new_alignment method of the alignment manager
     """
 
-    def __init__(self, session, seqs, name, file_attrs, file_markups, auto_destroy, auto_associate):
+    def __init__(self, session, seqs, ident, file_attrs, file_markups, auto_destroy, auto_associate,
+            description, intrinsic):
         self.session = session
+        if isinstance(seqs, tuple):
+            seqs = list(seqs)
         self.seqs = seqs
-        self.name = name
+        self.ident = ident
         self.file_attrs = file_attrs
         self.file_markups = file_markups
         self.auto_destroy = auto_destroy
         self.auto_associate = auto_associate
+        self.description = description
         self.viewers = []
         self.associations = {}
         from chimerax.core.atomic import Chain
+        self.intrinsic = intrinsic
+        self._in_destroy = False
         for i, seq in enumerate(seqs):
             if isinstance(seq, Chain):
                 from copy import copy
                 seqs[i] = copy(seq)
-            seq.match_maps = {}
+            seqs[i].match_maps = {}
         if self.auto_associate is None:
-            self.associate(None)
+            self.associate(None, keep_intrinsic=True)
             self.auto_associate = False
         elif self.auto_associate:
             from chimerax.core.atomic import AtomicStructure
@@ -48,7 +54,8 @@ class Alignment(State):
             self.session.triggers.add_handler(ADD_MODELS, lambda tname, models:
                 self.associate([s for s in models if isinstance(s, AtomicStructure)], force=False))
 
-    def associate(self, models, seq=None, force=True, min_length=10, reassoc=False):
+    def associate(self, models, seq=None, force=True, min_length=10, reassoc=False,
+            keep_intrinsic=False):
         """associate models with sequences
 
            'models' is normally a list of AtomicStructures, but it can be a Chain or None.
@@ -64,10 +71,15 @@ class Alignment(State):
            then use Needleman-Wunsch to force an association with at least one sequence.
 
            If a chain is less than 'min_length' residues, ignore it.
+
+           Normally, associating additional chains would change the 'intrinsic' property to
+           False, but some operations (like the inital associations) need to keep it True.
         """
 
-        from chimerax.core.atomic import Chain, StructureSeq, AtomicStructure, SeqMatchMap, \
-            estimate_assoc_params, StructAssocError, try_assoc
+        if not keep_intrinsic:
+            self.intrinsic = False
+        from chimerax.core.atomic import Sequence, Chain, StructureSeq, AtomicStructure, \
+            SeqMatchMap, estimate_assoc_params, StructAssocError, try_assoc
         from .settings import settings
         status = self.session.logger.status
         reeval = False
@@ -77,7 +89,7 @@ class Alignment(State):
             for seq in self.seqs:
                 if isinstance(seq, StructureSeq) \
                 and seq.existing_residues.chains[0] not in self.associations:
-                    self.associate([], seq=seq, reassoc=reassoc)
+                    self.associate([], seq=seq, reassoc=reassoc, keep_intrinsic=keep_intrinsic)
             return
         else:
             structures = [m for m in models if isinstance(m, AtomicStructure)]
@@ -96,8 +108,7 @@ class Alignment(State):
                 match_map = SeqMatchMap(self.session, seq, seq)
                 for res, index in seq.res_map.items():
                     match_map.match(res, index)
-                #TODO: finish prematched_...
-                self.prematched_assoc_structure(seq, seq, match_map, 0, reassoc)
+                self.prematched_assoc_structure(match_map, 0, reassoc)
                 new_match_maps.append(match_map)
             else:
                 aseqs = [seq]
@@ -253,13 +264,16 @@ class Alignment(State):
     def detach_viewer(self, viewer):
         """Called when a viewer is done with the alignment (see attach_viewer)"""
         self.viewers.remove(viewer)
-        if not self.viewers and self.auto_destroy:
+        if not self.viewers and self.auto_destroy and not self._in_destroy:
             self.session.alignments.destroy_alignment(self)
 
     def disassociate(self, sseq, reassoc=False):
-        if sseq not in self.associations or getattr(self, '_in_destroy', False):
+        if sseq not in self.associations or self._in_destroy:
             return
 
+        if self.intrinsic:
+            self.session.alignments.destroy_alignment(self)
+            return
         aseq = self.associations[sseq]
         match_map = aseq.match_maps[sseq]
         del aseq.match_maps[sseq]
@@ -397,9 +411,11 @@ class Alignment(State):
     @staticmethod
     def restore_snapshot(session, data):
         """For restoring scenes/sessions"""
-        aln = Alignment(session, data['seqs'], data['name'], data['file attrs'],
+        ident = data['ident'] if 'ident' in data else data['name']
+        aln = Alignment(session, data['seqs'], ident, data['file attrs'],
             data['file markups'], data['auto_destroy'],
-            "session" if data['auto_associate'] else False)
+            "session" if data['auto_associate'] else False,
+            data.get('description', ident), data.get('intrinsic', False))
         aln.associations = data['associations']
         for s, mm in zip(aln.seqs, data['match maps']):
             s.match_maps = mm
@@ -410,10 +426,11 @@ class Alignment(State):
 
     def take_snapshot(self, session, flags):
         """For session/scene saving"""
-        return { 'version': 1, 'seqs': self.seqs, 'name': self.name,
+        return { 'version': 1, 'seqs': self.seqs, 'ident': self.ident,
             'file attrs': self.file_attrs, 'file markups': self.file_markups,
             'associations': self.associations, 'match maps': [s.match_maps for s in self.seqs],
-            'auto_destroy': self.auto_destroy, 'auto_associate': self.auto_associate }
+            'auto_destroy': self.auto_destroy, 'auto_associate': self.auto_associate,
+            'description' : self.description, 'intrinsic' : self.intrinsic }
 
 
 def nw_assoc(session, align_seq, struct_seq):

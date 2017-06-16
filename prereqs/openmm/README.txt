@@ -1,7 +1,11 @@
 Build notes for OpenMM
 ----------------------
 
-Using the OpenMM 7.0.1 binary installers on Mac and Linux that include precompiled C++ libraries.
+On Mac, Linux and Windowsusing the OpenMM 7.1.1 build from https://anaconda.org/omnia/openmm/files.
+
+Details of older builds follow:
+
+Formerly used the OpenMM 7.0.1 binary installers on Mac and Linux that include precompiled C++ libraries.
 The SWIG Python wrapper is compiled by the install.sh script on our machine.  The C++ ABI used by
 our compiler must match the ABI used in the OpenMM C++ libraries.  Specifically on Linux the OpenMM
 libraries use a G++ version 4.9(?) compiler and G++ 5.x uses a different ABI.

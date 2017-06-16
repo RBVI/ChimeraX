@@ -79,7 +79,6 @@ class MouseModeArg(Annotation):
         return 'one of ' + ', '.join("<b>%s</b>" % escape(m.name) for m in modes)
 
     def parse(self, text, session):
-        from ..ui import mousemodes
         modes = session.ui.mouse_modes.modes
         from .cli import EnumOf
         mode_arg = EnumOf(tuple(m.name for m in modes))

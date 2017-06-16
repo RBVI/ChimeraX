@@ -52,8 +52,8 @@ chosen by the user:
 <li>can be broadened with the up arrow key, narrowed with the down arrow key,
 within selection cascade:
   <ul>
-  <li>
-   atom &harr; residue &harr; all atoms with same chain ID &harr; atomic model
+  <li>atom &harr; residue &harr; protein secondary structure element 
+  (helix, strand, or coil) &harr; all atoms with same chain ID &harr; atomic model
   </ul>
 </ul>
 <p>
@@ -69,9 +69,17 @@ If a surface patch is selected
 <a href="commands/mousemode.html">with the mouse</a>,
 only the atom(s) directly contributing to that patch are selected.
 Conversely, selecting an atom selects its surface patch(es).
+</p><p>
+Nonmolecular surfaces can be selected as a whole. 
+Selectable objects such as atoms and bonds under or behind a 
+<a href="tools/volumeviewer.html">volume</a> surface 
+can be selected with the mouse if the surface is transparent 
+(not completely opaque) or shown as mesh.
+If the mouseclick is on a surface region that does not overlie another 
+selectable object, however, the surface model will be selected.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-February 2017</address>
+June 2017</address>
 </body></html>

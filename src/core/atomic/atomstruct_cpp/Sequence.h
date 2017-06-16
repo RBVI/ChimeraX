@@ -53,7 +53,7 @@ protected:
     mutable std::map<unsigned int, unsigned int>  _cache_g2ug;
     mutable std::map<unsigned int, unsigned int>  _cache_ug2g;
     mutable Contents  _cache_ungapped;
-    bool  _circular;
+    bool  _circular = false;
     void  _clear_cache() const
         { _cache_ungapped.clear();  _cache_g2ug.clear(); _cache_ug2g.clear(); }
     // can't inherit from vector, since we need to clear caches on changes
@@ -75,7 +75,7 @@ public:
     static char  rname3to1(const ResName& rn);
 
     Sequence(std::string name = "sequence"): _name(name), _python_obj(nullptr) {}
-    Sequence(const Contents& chars, std::string name = "sequence"): _circular(false),
+    Sequence(const Contents& chars, std::string name = "sequence"):
         _contents(chars), _name(name), _python_obj(nullptr) {}
     Sequence(const std::vector<ResName>& res_names, std::string name = "sequence");  // 3-letter codes
     virtual  ~Sequence() {}
@@ -102,7 +102,7 @@ public:
     Contents::const_reference  front() const { return _contents.front(); }
     unsigned int  gapped_to_ungapped(unsigned int index) const;
     Contents::iterator  insert(Contents::const_iterator pos,
-        Contents::size_type n, Contents::value_type val)
+        Contents::size_type n, const Contents::value_type& val)
         { _clear_cache(); return _contents.insert(pos, n, val); }
     virtual bool  is_sequence() const { return true; }
     const std::string&  name() const { return _name; }

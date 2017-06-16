@@ -58,15 +58,35 @@ using atomstruct::ResName;
 tmpl::Molecule* templates;
 LocateFunc  locate_func;
 
+// Standard_residues have standard linkage.
+// The following standard residues are from
+// http://www.wwpdb.org/documentation/file-format-content/format33/sect4.html
+static std::set<ResName> standard_peptides = {
+    "ALA", "ARG", "ASN", "ASP", "CYS",
+    "GLN", "GLU", "GLY", "HIS", "ILE",
+    "LEU", "LYS", "MET", "PHE", "PRO",
+    "SER", "THR", "TRP", "TYR", "VAL",
+    "UNK",
+    // "ASX", "GLX" // not explicit listed, but might be reasonable
+};
+static std::set<ResName> standard_nucleotides = {
+    "A", "C", "G", "I", "U",
+    "DA", "DC", "DG", "DI", "DT",
+    "N",
+};
+
 const tmpl::Residue*
 find_template_residue(const ResName& name)
 {
+    if (name.empty())
+        return nullptr;
     if (templates == nullptr)
         templates = new tmpl::Molecule();
-
-    tmpl::Residue* tr = templates->find_residue(name);
-    if (tr)
-        return tr;
+    else {
+        tmpl::Residue* tr = templates->find_residue(name);
+        if (tr)
+            return tr;
+    }
     if (locate_func == nullptr)
         return nullptr;
     string filename = locate_func(name);
@@ -98,7 +118,7 @@ struct ExtractTemplate: public readcif::CIFFile
     bool is_nucleotide;
 };
 
-ExtractTemplate::ExtractTemplate(): residue(NULL)
+ExtractTemplate::ExtractTemplate(): residue(nullptr)
 {
     all_residues.reserve(32);
     register_category("chem_comp",
@@ -118,9 +138,9 @@ ExtractTemplate::ExtractTemplate(): residue(NULL)
 void
 ExtractTemplate::data_block(const string& /*name*/)
 {
-    if (residue != NULL)
+    if (residue != nullptr)
         finished_parse();
-    residue = NULL;
+    residue = nullptr;
 #ifdef LEAVING_ATOMS
     leaving_atoms.clear();
 #endif
@@ -130,15 +150,15 @@ ExtractTemplate::data_block(const string& /*name*/)
 void
 ExtractTemplate::finished_parse()
 {
-    if (residue == NULL)
+    if (residue == nullptr)
         return;
+#ifdef LEAVING_ATOMS
     // figure out linking atoms
     //
     // The linking atoms of peptides and nucleotides used to connect
     // residues are "well known".  Links with other residue types are
     // explicitly given, so no need to figure which atoms are the
     // linking atoms.
-#ifdef LEAVING_ATOMS
     for (auto& akv: residue->atoms_map()) {
         auto& a1 = akv.second;
         if (leaving_atoms.find(a1) != leaving_atoms.end())
@@ -153,16 +173,20 @@ ExtractTemplate::finished_parse()
         }
     }
 #endif
-    if (!type.empty()) {
-        if (is_peptide) {
-            residue->description("peptide");
-            residue->chief(residue->find_atom("N"));
-            residue->link(residue->find_atom("C"));
-        } else if (is_nucleotide) {
-            residue->description("nucleotide");
-            residue->chief(residue->find_atom("P"));
-            residue->link(residue->find_atom("O3'"));
-        }
+    if (is_peptide
+    && standard_peptides.find(residue->name()) != standard_peptides.end()) {
+        residue->description("peptide");
+        tmpl::Atom* n = residue->find_atom("N");
+        residue->chief(n);
+        tmpl::Atom* c = residue->find_atom("C");
+        residue->link(c);
+    } else if (is_nucleotide
+    && standard_nucleotides.find(residue->name()) != standard_nucleotides.end()) {
+        residue->description("nucleotide");
+        tmpl::Atom* p = residue->find_atom("P");
+        residue->chief(p);
+        tmpl::Atom* o3p = residue->find_atom("O3'");
+        residue->link(o3p);
     }
 }
 
@@ -172,10 +196,11 @@ ExtractTemplate::parse_chem_comp()
     ResName  name;
     ResName  modres;
     char    code = '\0';
+    bool    ambiguous = false;
     type.clear();
 
     CIFFile::ParseValues pv;
-    pv.reserve(2);
+    pv.reserve(6);
     pv.emplace_back(get_column("id", true),
         [&] (const char* start, const char* end) {
             name = ResName(start, end - start);
@@ -196,6 +221,10 @@ ExtractTemplate::parse_chem_comp()
             if (code == '.' || code == '?')
                 code = '\0';
         });
+    pv.emplace_back(get_column("pdbx_ambiguous_flag"),
+        [&] (const char* start) {
+            ambiguous = *start == 'Y' || *start == 'y';
+        });
     (void) parse_row(pv);
 
     // convert type to lowercase
@@ -207,6 +236,7 @@ ExtractTemplate::parse_chem_comp()
     is_nucleotide = type.compare(0, 3, "dna") == 0
         || type.compare(0, 3, "rna") == 0;
     residue = templates->new_residue(name);
+    residue->pdbx_ambiguous = ambiguous;
     all_residues.push_back(residue);
     if (!modres.empty()) {
         if (!code) {
@@ -306,7 +336,7 @@ ExtractTemplate::parse_chem_comp_bond()
     while (parse_row(pv)) {
         tmpl::Atom* a1 = residue->find_atom(name1);
         tmpl::Atom* a2 = residue->find_atom(name2);
-        if (a1 == NULL || a2 == NULL)
+        if (a1 == nullptr || a2 == nullptr)
             continue;
         templates->new_bond(a1, a2);
     }
@@ -315,7 +345,7 @@ ExtractTemplate::parse_chem_comp_bond()
 void
 load_mmCIF_templates(const char* filename)
 {
-    if (templates == NULL)
+    if (templates == nullptr)
         templates = new tmpl::Molecule();
 
     ExtractTemplate extract;
@@ -355,9 +385,9 @@ set_locate_template_function(LocateFunc function)
 void
 set_Python_locate_function(PyObject* function)
 {
-    static PyObject* save_reference_to_function = NULL;
+    static PyObject* save_reference_to_function = nullptr;
 
-    if (function == NULL || function == Py_None) {
+    if (function == nullptr || function == Py_None) {
         locate_func = nullptr;
         return;
     }
@@ -373,7 +403,7 @@ set_Python_locate_function(PyObject* function)
         PyObject* name_arg = wrappy::pyObject((const char*)name);
         PyObject* result = PyObject_CallFunction(function, "O", name_arg);
         Py_XDECREF(name_arg);
-        if (result == NULL)
+        if (result == nullptr)
             throw wrappy::PythonError();
         if (result == Py_None) {
             Py_DECREF(result);

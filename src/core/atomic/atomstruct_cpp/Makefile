@@ -43,8 +43,15 @@ ifdef DEBUG
 	$(RSYNC) lib$(LIBNAME).pdb $(shlibdir)
 endif
 endif
-	-mkdir $(includedir)/$(DIRNAME)
-	$(RSYNC) imex.h $(wildcard *.h) $(includedir)/$(DIRNAME)
+	$(RSYNC) imex.h $(wildcard *.h) $(includedir)/$(DIRNAME)/
+	if [ -d "$(app_includedir)" ]; then \
+		$(RSYNC) imex.h $(wildcard *.h) $(app_includedir)/$(DIRNAME)/; \
+	fi
+ifdef WIN32
+	if [ -d "$(app_libdir)" ]; then \
+		$(RSYNC) $(LIBRARY) $(app_libdir); \
+	fi
+endif
 	#if [ -d "$(app_shlibdir)" ]; then $(RSYNC) $(SHLIB) $(app_shlibdir); fi
 
 clean:

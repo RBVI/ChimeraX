@@ -424,6 +424,35 @@ def report_positions(session):
 def _position_string(p):
     return ','.join('%.5g' % x for x in tuple(p.matrix.flat))
 
+def view_position(session, models, same_as_models):
+    '''
+    Change the scene position of some models to match the scene position of other models.
+    If to_models is just one model then each model is positioned to match that one model.
+    If to_models is more than one model, then models must consist of the same number of
+    models and corresponding models in the two lists are aligned.
+
+    Parameters
+    ----------
+    models : list of Model
+      Models to move.
+    same_as_models : list of Models
+      Models are moved to align with these models.
+    '''
+    if len(same_as_models) == 1:
+        tm = same_as_models[0]
+        p = tm.position
+        for m in models:
+            if m is not tm:
+                m.position = p
+    elif len(models) != len(same_as_models):
+        from ..errors import UserError
+        raise UserError('Must specify equal numbers of models to align, got %d and %d'
+                        % (len(models), len(same_as_models)))
+    else:
+        tp = [tm.position for tm in same_as_models]
+        for m,p in zip(models, tp):
+                m.position = p
+
 from . import Annotation, AnnotationError
 class ModelPlacesArg(Annotation):
     """Annotation for model id and positioning matrix as 12 floats."""
@@ -450,7 +479,7 @@ class ModelPlacesArg(Annotation):
 def register_command(session):
     from . import CmdDesc, register, ObjectsArg, FloatArg
     from . import StringArg, PositiveIntArg, Or, BoolArg
-    from . import PlaceArg, ModelsArg, Or, CoordSysArg
+    from . import PlaceArg, ModelsArg, TopModelsArg, Or, CoordSysArg
     desc = CmdDesc(
         optional=[('objects', Or(ObjectsArg, NamedViewArg)),
                   ('frames', PositiveIntArg)],
@@ -481,3 +510,9 @@ def register_command(session):
                  ('coordinate_system', CoordSysArg)],
         synopsis='set camera and model positions')
     register('view matrix', desc, view_matrix, logger=session.logger)
+    desc = CmdDesc(
+        required=[('models', TopModelsArg)],
+        keyword=[('same_as_models', TopModelsArg)],
+        required_arguments = ['same_as_models'],
+        synopsis='move models to have same scene position as another model')
+    register('view position', desc, view_position, logger=session.logger)

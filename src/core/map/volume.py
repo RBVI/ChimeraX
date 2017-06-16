@@ -493,6 +493,7 @@ class Volume(Model):
         self.surface_colors = [rgba]
 
     if replace or len(self.solid_levels) == 0:
+      ilow, imid, imax = 0, 0.8, 1
       if mfrac is None:
         vlow = s.rank_data_value(1-vfrac[1])
         vmid = s.rank_data_value(1-vfrac[0])
@@ -502,15 +503,15 @@ class Volume(Model):
       vmax = s.maximum
       rgba = saturate_rgba(self.default_rgba)
       if polar:
-        self.solid_levels = ((s.minimum,1), (max(-vmid,s.minimum),0.99), (0,0),
-                             (0,0), (vmid,0.99), (vmax,1))
+        self.solid_levels = ((s.minimum,imax), (max(-vmid,s.minimum),imid), (0,ilow),
+                             (0,ilow), (vmid,imid), (vmax,imax))
         neg_rgba = tuple([1-c for c in rgba[:3]] + [rgba[3]])
         self.solid_colors = (neg_rgba,neg_rgba,neg_rgba, rgba,rgba,rgba)
       else:
         if vlow < vmid and vmid < vmax:
-          self.solid_levels = ((vlow,0), (vmid,0.99), (vmax,1))
+          self.solid_levels = ((vlow,ilow), (vmid,imid), (vmax,imax))
         else:
-          self.solid_levels = ((vlow,0), (0.9*vlow+0.1*vmax,0.99), (vmax,1))
+          self.solid_levels = ((vlow,ilow), (0.9*vlow+0.1*vmax,imid), (vmax,imax))
         self.solid_colors = [rgba]*len(self.solid_levels)
 
     self.initialized_thresholds = True
@@ -709,9 +710,12 @@ class Volume(Model):
   def calculate_contour_surface(self, level, rendering_options, piece):
 
     name = self.data.name
-    self.message('Computing %s surface, level %.3g' % (name, level))
 
     matrix = self.matrix()
+
+    min_status_message_voxels = 2**24
+    if matrix.size >= min_status_message_voxels:
+      self.message('Computing %s surface, level %.3g' % (name, level))
 
     # _map contour code does not handle single data planes.
     # Handle these by stacking two planes on top of each other.
@@ -769,8 +773,9 @@ class Volume(Model):
     from ..geometry import vector
     vector.normalize_vectors(narray)
 
-    self.message('Calculated %s surface, level %.3g, with %d triangles'
-                 % (name, level, len(tarray)), blank_after = 3.0)
+    if matrix.size >= min_status_message_voxels:
+      self.message('Calculated %s surface, level %.3g, with %d triangles'
+                   % (name, level, len(tarray)), blank_after = 3.0)
 
     p = piece
     p.geometry = varray, tarray
@@ -928,7 +933,9 @@ class Volume(Model):
   #
   def shown(self):
 
-    return self.display
+    surf_disp = len([d for d in self.surface_drawings if d.display]) > 0
+    solid_disp = (self.solid and self.solid.drawing.display)
+    return self.display and (surf_disp or solid_disp)
     
   # ---------------------------------------------------------------------------
   #
@@ -1130,6 +1137,9 @@ class Volume(Model):
       detail = d.name
       p = PickedMap(self, pd.distance, detail)
       p.triangle_pick = pd
+      if d.display_style == d.Mesh or hasattr(pd, 'is_transparent') and pd.is_transparent():
+        # Try picking opaque object under transparent map
+        p.pick_through = True
     else:
       p = None
 
@@ -1728,11 +1738,15 @@ class Volume(Model):
     matrices = self.displayed_matrices(read_matrix)
     if len(matrices) == 0:
       return None
-      
-    self.message('Computing histogram for %s' % self.name)
+
+    min_status_message_voxels = 2**27
+    nvox = sum(m.size for m in matrices)
+    if nvox >= min_status_message_voxels:
+      self.message('Computing histogram for %s' % self.name)
     from . import data
     self.matrix_stats = ms = data.Matrix_Value_Statistics(matrices)
-    self.message('')
+    if nvox >= min_status_message_voxels:    
+      self.message('')
 
     return ms
   
@@ -2935,7 +2949,7 @@ def volume_list(session):
 
 # -----------------------------------------------------------------------------
 #
-def open_map(session, stream, *args, **kw):
+def open_map(session, stream, name = None, format = None, **kw):
     '''
     Open a density map file having any of the known density map formats.
     '''
@@ -2944,10 +2958,25 @@ def open_map(session, stream, *args, **kw):
     else:
       map_path = stream.name
       stream.close()
+    from os.path import basename
+    name = basename(map_path if isinstance(map_path, str) else map_path[0])
 
-    maps = []
     from . import data
-    grids = data.open_file(map_path)
+    grids = data.open_file(map_path, file_type = format)
+
+    if grids and isinstance(grids[0], (tuple, list)):
+      # handle multiple channels.
+      models = []
+      for cgrids in grids:
+        cmodels, msg = open_grids(session, cgrids, name, **kw)
+        models.extend(cmodels)
+    else:
+      models, msg = open_grids(session, grids, name, **kw)
+    return models, msg
+
+# -----------------------------------------------------------------------------
+#
+def open_grids(session, grids, name, **kw):
 
     if kw.get('polar_values', False):
       for g in grids:
@@ -2955,7 +2984,7 @@ def open_map(session, stream, *args, **kw):
         if g.rgba is None:
           g.rgba = (0,1,0,1) # Green
 
-    series = kw.get('vseries')
+    series = kw.get('vseries', None)
     if series is not None:
       if series:
         for i,g in enumerate(grids):
@@ -2967,19 +2996,25 @@ def open_map(session, stream, *args, **kw):
         for g in grids:
           if hasattr(g, 'series_index'):
             delattr(g, 'series_index')
-          
+
+    maps = []
     show = kw.get('show', True)
     show_dialog = kw.get('show_dialog', True)
+    channels = [getattr(d, 'channel', 0) for d in grids]
+    channels.sort()
+    channel_show_max = channels[min(2,len(channels)-1)]
     for i,d in enumerate(grids):
         show_data = show and (i == 0 or not hasattr(d, 'series_index'))
-        v = volume_from_grid_data(d, session, open_model = False,
-                                  show_data = show_data, show_dialog = show_dialog)
+        kw = {'show_data': show_data, 'show_dialog': show_dialog}
+        if hasattr(d, 'initial_style') and d.initial_style in ('surface', 'mesh', 'solid'):
+          kw['representation'] = d.initial_style
+        v = volume_from_grid_data(d, session, open_model = False, **kw)
+        if getattr(d, 'channel', 0) > channel_show_max:
+          v.display = False	# Hide all but lowest 3 channels, but compute the graphics
 #        v.new_region(ijk_step = (1,1,1), adjust_step = False, show = show_data)
         maps.append(v)
 
     if len(maps) > 1 and len([d for d in grids if hasattr(d, 'series_index')]) == len(grids):
-        from os.path import basename
-        name = basename(map_path if isinstance(map_path, str) else map_path[0])
         from .series import Map_Series
         ms = Map_Series(name, maps, session)
         msg = 'Opened map series %s, %d images' % (name, len(maps))
@@ -3005,7 +3040,7 @@ def open_map(session, stream, *args, **kw):
 
 # -----------------------------------------------------------------------------
 #
-def save_map(session, filename, format = None, models = None, region = None, step = (1,1,1),
+def save_map(session, filename, format, models = None, region = None, step = (1,1,1),
              mask_zone = True, chunk_shapes = None, append = None, compress = None,
              base_index = 1, **kw):
     '''
@@ -3069,12 +3104,44 @@ def is_multifile_save(path):
 
 # -----------------------------------------------------------------------------
 #
-def register_map_file_formats():
+def register_map_file_formats(session):
     from .. import io, toolshed
     from .data.fileformats import file_types, file_writers
     fwriters = set(fw[0] for fw in file_writers)
     for d,t,nicknames,suffixes,batch in file_types:
       suf = tuple('.' + s for s in suffixes)
       save_func = save_map if d in fwriters else None
+      def open_map_format(session, stream, name = None, format = t, **kw):
+        return open_map(session, stream, name=name, format=format, **kw)
       io.register_format(d, toolshed.VOLUME, suf, nicknames=nicknames,
-                         open_func=open_map, batch=True, export_func=save_func)
+                         open_func=open_map_format, batch=True, export_func=save_func)
+
+    # Add map specific keywords to open command
+    from ..commands import add_keyword_arguments, BoolArg
+    add_keyword_arguments('open', {'vseries':BoolArg})
+
+    # Add map specific keywords to save command
+    from ..commands import BoolArg, ListOf, EnumOf, IntArg
+    from .mapargs import MapRegionArg, Int1or3Arg
+    save_map_args = [
+      ('region', MapRegionArg),
+      ('step', Int1or3Arg),
+      ('mask_zone', BoolArg),
+      ('chunk_shapes', ListOf(EnumOf(('zyx','zxy','yxz','yzx','xzy','xyz')))),
+      ('append', BoolArg),
+      ('compress', BoolArg),
+      ('base_index', IntArg),
+    ]
+    add_keyword_arguments('save', dict(save_map_args))
+
+    # Register save map subcommand
+    from ..commands import CmdDesc, register, SaveFileNameArg, ModelsArg
+    from ..commands.save import SaveFileFormatsArg, save
+    from .. import toolshed
+    desc = CmdDesc(
+        required=[('filename', SaveFileNameArg)],
+        optional=[('models', ModelsArg)],
+        keyword=[('format', SaveFileFormatsArg(toolshed.VOLUME))] + save_map_args,
+        synopsis='save map'
+    )
+    register('save map', desc, save, logger=session.logger)

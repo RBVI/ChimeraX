@@ -68,6 +68,8 @@ For general appearance, see also:
 - translate</li>
 <li><a href="commands/movie.html"><b>movie</b></a>
 - record image frames and assemble them into a movie file</li>
+<li><a href="commands/mseries.html"><b>mseries</b></a>
+- display an ordered series of models</li>
 <li><a href="commands/perframe.html"><b>perframe</b></a>
 - specify operations to execute at every (or every N<sup>th</sup>) 
 display frame</li>
@@ -95,15 +97,19 @@ display frame</li>
 <h3>Frame Rate</h3>
 <p>
 In ChimeraX, the target or intended graphics frame rate during 
-interactive use is 60 fps (default). The actual frame rate may be lower,
+interactive use is 60 fps (default).
+The actual frame rate may be lower than the target,
 depending on computer performance and the complexity of the display,
 and recording a movie generally slows the process further.
-However, movie file playback may be faster or slower than the 
+However, movie-file playback may be faster or slower than the 
 original process, because the playback frame rate is specified independently
 when the file is <a href="commands/movie.html#encode">encoded</a>.
+The command <a href="commands/set.html#maxFrameRate"><b>set maxFrameRate</b></a>
+can be used to make the interactive frame rate as similar as possible 
+to the playback rate to preview movie-content scripts.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-March 2017</address>
+May 2017</address>
 </body></html> 

@@ -3,9 +3,10 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 include ../pips/Makefile.pip
 
-VERSION = 0.18.1
+VERSION = 0.19.0
 
 ifdef WIN32
+# Downloaded from http://www.lfd.uci.edu/~gohlke/pythonlibs/
 WHEEL = scipy-$(VERSION)-cp36-cp36m-win_amd64.whl
 endif
 
@@ -13,16 +14,16 @@ all:
 
 install:
 ifdef WIN32
-	$(PIP) install -U $(WHEEL)
+	$(PIP_INSTALL) $(WHEEL)
 else
-	$(PIP) install -U scipy==$(VERSION)
+	$(PIP_INSTALL) scipy==$(VERSION)
 endif
 
 app-install: install
 ifdef WIN32
-	$(APP_PIP) install $(WHEEL)
+	$(APP_PIP_INSTALL) $(WHEEL)
 else
-	$(APP_PIP) install -U scipy==$(VERSION)
+	$(APP_PIP_INSTALL) -U scipy==$(VERSION)
 endif
 
 clean:

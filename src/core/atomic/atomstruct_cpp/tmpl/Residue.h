@@ -52,7 +52,7 @@ public:
     void    chief(Atom *a) { _chief = a; }
     Atom    *link() const { return _link; }
     void    link(Atom *a) { _link = a; }
-    std::string    description() const { return _description; }
+    const std::string    &description() const { return _description; }
     void    description(const std::string &d) { _description = d; }
 
     // alternative to chief/link for mmCIF templates
@@ -61,7 +61,8 @@ public:
     const AtomList link_atoms() const { return _link_atoms; }
 
     typedef std::map<AtomName, Atom *> AtomsMap;
-    const AtomsMap &atoms_map() { return _atoms; }
+    const AtomsMap &atoms_map() const { return _atoms; }
+    bool        pdbx_ambiguous;      // for mmCIF ambiguous chemistry
 private:
     Residue(Molecule *, const char *t);
     ResName     _name;

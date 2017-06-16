@@ -18,6 +18,7 @@ chimerax.core: collection of base ChimeraX functionality
 """
 BUNDLE_NAME = 'ChimeraX-Core'
 from .buildinfo import version
+from .toolshed import BundleAPI
 
 _class_cache = {}
 # list modules classes are found in used by session restore to recreate objects.
@@ -46,6 +47,7 @@ _class_class_init = {
     'MonoCamera': '.graphics',
     'NamedView': '.commands.view',
     'NamedViews': '.commands.view',
+    'OrthographicCamera': '.graphics',
     'Place': '.geometry',
     'Places': '.geometry',
     'Pseudobond': '.atomic',
@@ -57,6 +59,7 @@ _class_class_init = {
     'SeqMatchMap': '.atomic',
     'Sequence': '.atomic',
     'Structure': '.atomic',
+    'StructureSeq': '.atomic',
     'Tasks': '.tasks',
     'Tools': '.tools',
     'TriangleInfo': '.stl',
@@ -68,27 +71,33 @@ _class_class_init = {
     '_Input': '.ui.nogui',
 }
 
-def get_class(class_name):
-    """Return chimerax.core class for instance in a session
 
-    Parameters
-    ----------
-    class_name : str
-        Class name
-    """
-    try:
-        return _class_cache[class_name]
-    except KeyError:
-        pass
-    module_name = _class_class_init.get(class_name, None)
-    if module_name is None:
-        cls = None
-    else:
-        import importlib
-        mod = importlib.import_module(module_name, __package__)
-        cls = getattr(mod, class_name)
-    _class_cache[class_name] = cls
-    return cls
+class _MyAPI(BundleAPI):
+
+    @staticmethod
+    def get_class(class_name):
+        """Return chimerax.core class for instance in a session
+
+        Parameters
+        ----------
+        class_name : str
+            Class name
+        """
+        try:
+            return _class_cache[class_name]
+        except KeyError:
+            pass
+        module_name = _class_class_init.get(class_name, None)
+        if module_name is None:
+            cls = None
+        else:
+            import importlib
+            mod = importlib.import_module(module_name, __package__)
+            cls = getattr(mod, class_name)
+        _class_cache[class_name] = cls
+        return cls
+
+bundle_api = _MyAPI()
 
 
 def profile(func):

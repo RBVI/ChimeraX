@@ -26,6 +26,7 @@
 #include "session.h"
 #include "string_types.h"
 #include "ChangeTracker.h"
+#include "Real.h"
 #include "Rgba.h"
 
 namespace atomstruct {
@@ -41,6 +42,7 @@ public:
     typedef std::multimap<AtomName, Atom *>  AtomsMap;
     enum PolymerType { PT_NONE = 0, PT_AMINO = 1, PT_NUCLEIC = 2 };
     enum SSType { SS_COIL = 0, SS_HELIX = 1, SS_STRAND = 2 };
+    static constexpr Real TRACE_DISTSQ_CUTOFF = 45.0;
 private:
     friend class Structure;
     Residue(Structure *as, const ResName& name, const ChainID& chain, int pos, char insert);
@@ -67,7 +69,7 @@ private:
     ChainID  _mmcif_chain_id;
     ResName  _name;
     PolymerType  _polymer_type;
-    int  _position;
+    int  _number;
     float  _ribbon_adjust;
     bool  _ribbon_display;
     bool  _ribbon_hide_backbone;
@@ -84,6 +86,7 @@ public:
         bool just_first=false) const;
     Chain*  chain() const;
     const ChainID&  chain_id() const;
+    bool  connects_to(const Residue* other_res) { return !bonds_between(other_res, true).empty(); }
     int  count_atom(const AtomName&) const;
     Atom *  find_atom(const AtomName&) const;
     const ChainID&  mmcif_chain_id() const { return _mmcif_chain_id; }
@@ -93,7 +96,7 @@ public:
     bool  is_strand() const { return ss_type() == SS_STRAND; }
     const ResName&  name() const { return _name; }
     PolymerType  polymer_type() const { return _polymer_type; }
-    int  position() const { return _position; }
+    int  number() const { return _number; }
     Atom*  principal_atom() const;
     void  remove_atom(Atom*);
     int  session_num_floats(int version=CURRENT_SESSION_VERSION) const {

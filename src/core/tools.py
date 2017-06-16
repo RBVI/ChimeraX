@@ -83,6 +83,7 @@ class ToolInstance(State):
         self.id = id
         import weakref
         self._session = weakref.ref(session)
+        self.tool_name = tool_name
         self.display_name = tool_name
         # TODO: track.created(ToolInstance, [self])
         session.tools.add([self])
@@ -99,6 +100,8 @@ class ToolInstance(State):
 
     @classmethod
     def restore_snapshot(cls, session, data):
+        if data is None:
+            return None
         bundle_info = session.toolshed.find_bundle_for_class(cls)
         tool_name = data['name']
         if bundle_info is None:
@@ -129,6 +132,17 @@ class ToolInstance(State):
     def session(self):
         """Read-only property for session that contains this tool instance."""
         return self._session()
+
+    @property
+    def bundle_info(self):
+        return self.session.toolshed.find_bundle_for_class(self.__class__)
+
+    @property
+    def tool_info(self):
+        for ti in self.bundle_info.tools:
+            if ti.name == self.tool_name:
+                return ti
+        return None
 
     def delete(self):
         """Delete this tool instance.
@@ -284,8 +298,10 @@ class Tools(State):
         for id, tool_inst in items:
             if tool_inst.SESSION_ENDURING:
                 continue
+            name = tool_inst.display_name
             tool_inst.delete()
-            assert(id not in self._tool_instances)
+            if id in self._tool_instances:
+                session.logger.warning("Unable to delete tool %r during reset" % name)
 
     def list(self):
         """Return list of running tools.
@@ -372,7 +388,7 @@ class Tools(State):
         from .toolshed import ToolshedError
         from .core_settings import settings
         start_bi = [None] * len(tool_names)
-        for bi in session.toolshed.bundle_info():
+        for bi in session.toolshed.bundle_info(session.logger):
             for ti in bi.tools:
                 try:
                     start_bi[tool_names.index(ti.name)] = bi

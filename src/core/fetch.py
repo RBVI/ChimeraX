@@ -18,8 +18,7 @@ _cache_dirs = []
 # -----------------------------------------------------------------------------
 #
 def fetch_file(session, url, name, save_name, save_dir, *,
-               uncompress=False, ignore_cache=False, check_certificates=True,
-               log='info'):
+               uncompress=False, ignore_cache=False, check_certificates=True):
     """fetch file from URL
 
     :param session: a ChimeraX :py:class:`~chimerax.core.session.Session`
@@ -30,7 +29,6 @@ def fetch_file(session, url, name, save_name, save_dir, *,
     :param uncompress: contents are compressed (False)
     :param ignore_cache: skip checking for cached file (False)
     :param check_certificates: confirm https certificate (True)
-    :param log: 'info' log in info too
     :returns: the filename
     :raises UserError: if unsuccessful
     """
@@ -40,10 +38,6 @@ def fetch_file(session, url, name, save_name, save_dir, *,
         for d in cache_dirs:
             filename = path.join(d, save_dir, save_name)
             if path.exists(filename):
-                msg = 'Fetching %s from local cache: %s' % (name, filename)
-                session.logger.status(msg)
-                if log == 'info':
-                    session.logger.info(msg)
                 return filename
 
     if save_dir is None:
@@ -382,6 +376,26 @@ def register_fetch(database_name, fetch_function, file_format,
 
 # -----------------------------------------------------------------------------
 #
+def deregister_fetch(database_name, file_format, prefixes=()):
+    d = fetch_databases()
+    try:
+        df = d[database_name]
+    except KeyError:
+        return
+    df.remove_format(file_format)
+    if not df.fetch_function:
+        # No more fetch options, just delete
+        del d[database_name]
+    else:
+        # Still have options, get rid of what we registered
+        if df.default_format == file_format:
+            df.default_format = None
+        for p in prefixes:
+            del df.prefix_format[p]
+
+
+# -----------------------------------------------------------------------------
+#
 def fetch_databases():
     return _database_fetches
 
@@ -442,6 +456,21 @@ class DatabaseFetch:
         else:
             for name in f.nicknames:
                 self.fetch_function[name] = fetch_function
+
+    def remove_format(self, format_name):
+        from . import io
+        f = io.format_from_name(format_name)
+        if f is None:
+            try:
+                del self.fetch_function[format_name]
+            except KeyError:
+                pass
+        else:
+            for name in f.nicknames:
+                try:
+                    del self.fetch_function[name]
+                except KeyError:
+                    pass
 
     def fetch(self, session, database_id, format=None, ignore_cache=False, **kw):
         f = self.default_format if format is None else format

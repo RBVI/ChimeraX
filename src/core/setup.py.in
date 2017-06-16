@@ -44,12 +44,14 @@ setup(
         # "filelock == 2",  # TODO: breaks on Windows
         "grako == 3.16.5",
         # "numpy == 1.11",  # TODO: breaks on Windows
-        "Pillow == 4.0.0",
+        "Pillow == 4.1.0",
         # "pycollada == 0.4",  # TODO: pypi version doesn't work with Python 3
-        "PyOpenGL == 3.1",
+        # We use PyOpenGL 3.1.1 for Windows but 3.1.0 (our build) for
+        # Linux and Mac.  Maybe we start using >=?
+        # "PyOpenGL == 3.1.0",
         # "PyQt5_commercial == 5.7",  # TODO: how are we going to handle this?
         # "scipy == 0.18",  # TODO: breaks on Windows
-        "setuptools == 34.3.1",
+        "setuptools == 34.4.1",
         "sortedcontainers == 1.5.7",
         "suds_jurko == 0.6",
     ],
@@ -62,11 +64,13 @@ setup(
         "PKG_NAME.map",
         "PKG_NAME.map.crystal",
         "PKG_NAME.map.data",
+        "PKG_NAME.map.data.amira",
         "PKG_NAME.map.data.apbs",
         "PKG_NAME.map.data.ccp4",
         "PKG_NAME.map.data.cmap",
         "PKG_NAME.map.data.dsn6",
         "PKG_NAME.map.data.imagestack",
+        "PKG_NAME.map.data.ims",
         "PKG_NAME.map.data.mrc",
         "PKG_NAME.map.filter",
         "PKG_NAME.map.fit",
@@ -86,6 +90,7 @@ setup(
         "PKG_NAME.map": ["*.PYMOD_EXT", "*.pdb"],
         "PKG_NAME.surface": ["*.PYMOD_EXT", "*.pdb"],
         "PKG_NAME.ui": ["*.jpg", "*.png", "*.html"],
+        "PKG_NAME.ui.widgets": ["icons/*.png"],
     },
     data_files=[
         (rel_inst_shlib_dir, [
@@ -118,6 +123,6 @@ setup(
         "Topic :: Scientific/Engineering :: Visualization",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
-        "ChimeraX-Tools :: ChimeraXCore",
+        "ChimeraX :: Bundle :: Core :: 1,1 :: chimerax.core :: :: ",
     ],
 )

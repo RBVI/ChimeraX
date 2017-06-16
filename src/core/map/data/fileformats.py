@@ -20,7 +20,7 @@
 #
 # TODO: Add commented-out file readers.
 file_types = (
-#  ('Amira mesh', 'amira', ['amira'], ['am'], False),
+  ('Amira mesh', 'amira', ['amira'], ['am'], False),
   ('APBS potential', 'apbs', ['apbs'], ['dx'], False),
   ('BRIX density map', 'dsn6', ['dsn6'], ['brix'], False),
   ('CCP4 density map', 'ccp4', ['ccp4'], ['ccp4','map'], False),
@@ -32,7 +32,8 @@ file_types = (
 #  ('EMAN HDF map', 'emanhdf', ['emanhdf'], ['hdf', 'h5'], False),
 #  ('Gaussian cube grid', 'gaussian', ['cube'], ['cube','cub'], False),
 #  ('gOpenMol grid', 'gopenmol', ['gopenmol'], ['plt'], False),
-  ('Image stack', 'imagestack', ['images'], ['tif', 'tiff', 'png'], True),
+  ('Image stack', 'imagestack', ['images'], ['tif', 'tiff', 'png', 'pgm'], True),
+  ('Imaris map', 'ims', ['ims'], ['ims'], False),
 #  ('IMOD map', 'imod', ['imodmap'], ['rec'], False),
 #  ('MacMolPlt grid', 'macmolplt', ['macmolplt'], ['mmp'], False),
   ('MRC density map', 'mrc', ['mrc'], ['mrc'], False),

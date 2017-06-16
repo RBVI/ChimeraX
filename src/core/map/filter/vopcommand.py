@@ -971,7 +971,7 @@ def zone_operation(v, atoms, radius, bond_point_spacing = None,
 
     points = atoms.scene_coords
     if bond_point_spacing is not None:
-        bonds = atoms.inter_bonds
+        bonds = atoms.intra_bonds
         from ...atomic.path import bond_points
         bpoints = bond_points(bonds, bond_point_spacing)
         from numpy import concatenate

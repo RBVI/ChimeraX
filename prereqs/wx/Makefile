@@ -44,7 +44,7 @@ all:
 
 install:	$(SOURCE)
 ifdef WIN32
-	$(PIP) install -U $(WHEEL)
+	$(PIP_INSTALL) -U $(WHEEL)
 else
 	rm -f $(PYSITEDIR)/wx/libwx_*
 	cd $(SOURCE) && \
@@ -66,7 +66,7 @@ endif
 
 app-install:
 ifdef WIN32
-	$(APP_PIP) install $(WHEEL)
+	$(APP_PIP_INSTALL) $(WHEEL)
 else
 	$(RSYNC) $(PYSITEDIR)/wxPython_Phoenix-$(VERSION)-py$(PYTHON_VERSION).egg-info \
 		$(PYSITEDIR)/wx $(APP_PYSITEDIR)

@@ -51,6 +51,7 @@ and their code location is described with the function descriptions.
 | `mousemode`_ - Set mouse modes
 | `movie`_ * - Record videos
 | `move`_ - Move camera
+| `mseries`_ * - Display a series of models
 | `open`_ - Open data files
 | `pdbimages`_ - Render PDB assembly images
 | `perframe`_ - Run a command for every rendered frame
@@ -152,7 +153,10 @@ crosslinks
 Function found in *chimerax.crosslinks.crosslinks*
 
 .. autofunction:: chimerax.crosslinks.crosslinks.crosslinks
-
+.. autofunction:: chimerax.crosslinks.crosslinks.crosslinks_histogram
+.. autofunction:: chimerax.crosslinks.crosslinks.crosslinks_minimize
+.. autofunction:: chimerax.crosslinks.crosslinks.crosslinks_network
+		  
 delete
 ======
 .. autofunction:: chimerax.core.commands.delete.delete
@@ -244,6 +248,11 @@ Functions defined in *chimerax.movie.moviecmd*
   :members:
   :member-order: bysource
   :show-inheritance:
+
+mseries
+=======
+.. autofunction:: chimerax.model_series.mseries.mseries
+.. autofunction:: chimerax.model_series.mseries.mseries_slider
 
 open
 ====
@@ -345,9 +354,10 @@ time
 toolshed
 ========
 .. autofunction:: chimerax.core.commands.toolshed.toolshed_list
-.. autofunction:: chimerax.core.commands.toolshed.toolshed_refresh
+.. autofunction:: chimerax.core.commands.toolshed.toolshed_reload
 .. autofunction:: chimerax.core.commands.toolshed.toolshed_install
-.. autofunction:: chimerax.core.commands.toolshed.toolshed_remove
+.. autofunction:: chimerax.core.commands.toolshed.toolshed_uninstall
+.. autofunction:: chimerax.core.commands.toolshed.toolshed_url
 .. autofunction:: chimerax.core.commands.toolshed.toolshed_show
 .. autofunction:: chimerax.core.commands.toolshed.toolshed_hide
 

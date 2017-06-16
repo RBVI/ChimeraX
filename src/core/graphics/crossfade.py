@@ -59,7 +59,6 @@ class CrossFade(Drawing):
         self.frame = f
         alpha = int(255 * (n - f) / n)
         self.rgba[:, :, 3] = alpha
-        view.render.make_current()
         self.texture.reload_texture(self.rgba)
         self.redraw_needed()
 
@@ -109,9 +108,8 @@ class MotionBlur(Drawing):
             from .drawing import rgba_drawing
             rgba_drawing(self, rgba, (-1, -1), (2, 2))
             v.add_overlay(self)
-        elif self.rgba.shape != (h, w, 4):
+        elif rgba.shape != self.rgba.shape:
             # Resize texture and motion blur image
-            self.remove_drawing(self.piece)
             from .drawing import rgba_drawing
             rgba_drawing(self, rgba, (-1, -1), (2, 2))
             self.rgba = rgba

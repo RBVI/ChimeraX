@@ -132,15 +132,17 @@ StructureSeq::pop_back()
     auto back = _residues.back();
     if (back != nullptr) {
         _res_map.erase(back);
+        // demote_to_sequence sets _structure to null, so...
+        auto structure = _structure;
         bool ischain = is_chain();
         if (no_structure_left()) {
             if (ischain)
-                _structure->remove_chain(dynamic_cast<Chain*>(this));
+                structure->remove_chain(dynamic_cast<Chain*>(this));
             demote_to_sequence();
         }
         if (ischain) {
             back->set_chain(nullptr);
-            _structure->change_tracker()->add_modified(dynamic_cast<Chain*>(this),
+            structure->change_tracker()->add_modified(dynamic_cast<Chain*>(this),
                 ChangeTracker::REASON_SEQUENCE, ChangeTracker::REASON_RESIDUES);
         }
     }
@@ -157,14 +159,16 @@ StructureSeq::pop_front()
         bool ischain = is_chain();
         for (auto& res_i: _res_map)
             res_i.second--;
+        // demote_to_sequence sets _structure to null, so...
+        auto structure = _structure;
         if (no_structure_left()) {
             if (ischain)
-                _structure->remove_chain(dynamic_cast<Chain*>(this));
-            _structure = nullptr;
+                structure->remove_chain(dynamic_cast<Chain*>(this));
+            demote_to_sequence();
         }
         if (ischain) {
             front->set_chain(nullptr);
-            _structure->change_tracker()->add_modified(dynamic_cast<Chain*>(this),
+            structure->change_tracker()->add_modified(dynamic_cast<Chain*>(this),
                 ChangeTracker::REASON_SEQUENCE, ChangeTracker::REASON_RESIDUES);
         }
     }
@@ -308,6 +312,8 @@ StructureSeq::set(unsigned i, Residue *r, char character)
         res_at_i = r;
         at(i) = c;
     }
+    // demote_to_sequence sets _structure to null, so...
+    auto structure = _structure;
     if (r != nullptr) {
         _res_map[r] = i;
         if (ischain)
@@ -315,12 +321,12 @@ StructureSeq::set(unsigned i, Residue *r, char character)
     } else {
         if (no_structure_left()) {
             if (ischain)
-                _structure->remove_chain(dynamic_cast<Chain*>(this));
+                structure->remove_chain(dynamic_cast<Chain*>(this));
             demote_to_sequence();
         }
     }
     if (ischain)
-        _structure->change_tracker()->add_modified(dynamic_cast<Chain*>(this),
+        structure->change_tracker()->add_modified(dynamic_cast<Chain*>(this),
             ChangeTracker::REASON_SEQUENCE, ChangeTracker::REASON_RESIDUES);
 }
 

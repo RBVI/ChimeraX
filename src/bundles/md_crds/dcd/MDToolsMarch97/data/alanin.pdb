@@ -1,0 +1,77 @@
+REMARK FILENAME="/usr/people/nonella/xplor/benchmark1/ALANIN.PDB"
+REMARK PARAM11.PRO ( from PARAM6A )
+REMARK ===========
+REMARK PROTEIN PARAMETERS:
+REMARK PEPTIDE GEOMETRY FROM RAMACHANDRAN ET AL BBA 359:298 (1974)
+REMARK TORSIONS FROM HAGLER ET AL JACS 98:4600 (1976)
+REMARK LENNARD-JONES NONBONDED PARAMETERS WITH SPECIAL TREATMENT OF 1:4
+REMARK CARBON-CARBON INTERACTIONS: JORGENSON ET. AL.
+REMARK                           JACS 103:3976-3985 WITH 1-4 RC=1.80/0.1
+REMARK DATE:16-Feb-89  11:21:32       created by user: nonella
+ATOM      1  CA  ACE     1      -2.927   5.072  -0.490  0.00  0.00      MAIN
+ATOM      2  C   ACE     1      -1.523   5.654  -0.496100.00  0.00      MAIN
+ATOM      3  O   ACE     1      -0.605   5.125   0.129100.00  0.00      MAIN
+ATOM      4  N   ALA     2      -1.320   6.762  -1.203100.00  0.00      MAIN
+ATOM      5  H   ALA     2      -2.062   7.172  -1.695100.00  0.00      MAIN
+ATOM      6  CA  ALA     2      -0.001   7.364  -1.245  0.00  0.00      MAIN
+ATOM      7  CB  ALA     2      -0.055   8.676  -2.010100.00  0.00      MAIN
+ATOM      8  C   ALA     2       0.508   7.697   0.147100.00  0.00      MAIN
+ATOM      9  O   ALA     2       1.646   7.398   0.504100.00  0.00      MAIN
+ATOM     10  N   ALA     3      -0.326   8.323   0.972100.00  0.00      MAIN
+ATOM     11  H   ALA     3      -1.230   8.554   0.673100.00  0.00      MAIN
+ATOM     12  CA  ALA     3       0.103   8.666   2.314  0.00  0.00      MAIN
+ATOM     13  CB  ALA     3      -1.059   9.259   3.095100.00  0.00      MAIN
+ATOM     14  C   ALA     3       0.561   7.440   3.086100.00  0.00      MAIN
+ATOM     15  O   ALA     3       1.612   7.438   3.725100.00  0.00      MAIN
+ATOM     16  N   ALA     4      -0.219   6.363   3.047100.00  0.00      MAIN
+ATOM     17  H   ALA     4      -1.053   6.381   2.534100.00  0.00      MAIN
+ATOM     18  CA  ALA     4       0.166   5.163   3.764  0.00  0.00      MAIN
+ATOM     19  CB  ALA     4      -0.817   4.043   3.463100.00  0.00      MAIN
+ATOM     20  C   ALA     4       1.534   4.665   3.328100.00  0.00      MAIN
+ATOM     21  O   ALA     4       2.391   4.340   4.149100.00  0.00      MAIN
+ATOM     22  N   ALA     5       1.774   4.592   2.022100.00  0.00      MAIN
+ATOM     23  H   ALA     5       1.081   4.855   1.382100.00  0.00      MAIN
+ATOM     24  CA  ALA     5       3.062   4.126   1.547  0.00  0.00      MAIN
+ATOM     25  CB  ALA     5       3.132   4.252   0.033100.00  0.00      MAIN
+ATOM     26  C   ALA     5       4.201   4.963   2.103100.00  0.00      MAIN
+ATOM     27  O   ALA     5       5.206   4.442   2.586100.00  0.00      MAIN
+ATOM     28  N   ALA     6       4.074   6.286   2.051100.00  0.00      MAIN
+ATOM     29  H   ALA     6       3.267   6.685   1.663100.00  0.00      MAIN
+ATOM     30  CA  ALA     6       5.128   7.136   2.566  0.00  0.00      MAIN
+ATOM     31  CB  ALA     6       4.696   8.593   2.507100.00  0.00      MAIN
+ATOM     32  C   ALA     6       5.428   6.834   4.026100.00  0.00      MAIN
+ATOM     33  O   ALA     6       6.582   6.696   4.430100.00  0.00      MAIN
+ATOM     34  N   ALA     7       4.394   6.724   4.855100.00  0.00      MAIN
+ATOM     35  H   ALA     7       3.481   6.837   4.517100.00  0.00      MAIN
+ATOM     36  CA  ALA     7       4.617   6.438   6.258  0.00  0.00      MAIN
+ATOM     37  CB  ALA     7       3.286   6.237   6.965100.00  0.00      MAIN
+ATOM     38  C   ALA     7       5.403   5.150   6.448100.00  0.00      MAIN
+ATOM     39  O   ALA     7       6.364   5.091   7.215100.00  0.00      MAIN
+ATOM     40  N   ALA     8       5.016   4.085   5.752100.00  0.00      MAIN
+ATOM     41  H   ALA     8       4.249   4.149   5.146100.00  0.00      MAIN
+ATOM     42  CA  ALA     8       5.727   2.829   5.892  0.00  0.00      MAIN
+ATOM     43  CB  ALA     8       5.175   1.809   4.910100.00  0.00      MAIN
+ATOM     44  C   ALA     8       7.205   2.985   5.569100.00  0.00      MAIN
+ATOM     45  O   ALA     8       8.075   2.519   6.302100.00  0.00      MAIN
+ATOM     46  N   ALA     9       7.524   3.647   4.461100.00  0.00      MAIN
+ATOM     47  H   ALA     9       6.819   4.012   3.886100.00  0.00      MAIN
+ATOM     48  CA  ALA     9       8.917   3.826   4.100  0.00  0.00      MAIN
+ATOM     49  CB  ALA     9       9.025   4.714   2.870100.00  0.00      MAIN
+ATOM     50  C   ALA     9       9.695   4.523   5.205100.00  0.00      MAIN
+ATOM     51  O   ALA     9      10.787   4.102   5.586100.00  0.00      MAIN
+ATOM     52  N   ALA    10       9.152   5.608   5.747100.00  0.00      MAIN
+ATOM     53  H   ALA    10       8.281   5.931   5.433100.00  0.00      MAIN
+ATOM     54  CA  ALA    10       9.847   6.316   6.805  0.00  0.00      MAIN
+ATOM     55  CB  ALA    10       8.972   7.439   7.341100.00  0.00      MAIN
+ATOM     56  C   ALA    10      10.149   5.404   7.983100.00  0.00      MAIN
+ATOM     57  O   ALA    10      11.262   5.377   8.506100.00  0.00      MAIN
+ATOM     58  N   ALA    11       9.162   4.634   8.432100.00  0.00      MAIN
+ATOM     59  H   ALA    11       8.282   4.667   8.004100.00  0.00      MAIN
+ATOM     60  CA  ALA    11       9.390   3.743   9.554  0.00  0.00      MAIN
+ATOM     61  CB  ALA    11       8.159   2.885   9.794100.00  0.00      MAIN
+ATOM     62  C   ALA    11      10.538   2.784   9.282100.00  0.00      MAIN
+ATOM     63  O   ALA    11      11.424   2.590  10.113100.00  0.00      MAIN
+ATOM     64  N   CBX    12      10.552   2.159   8.108100.00  0.00      MAIN
+ATOM     65  H   CBX    12       9.839   2.325   7.457100.00  0.00      MAIN
+ATOM     66  CA  CBX    12      11.650   1.206   7.784  0.00  0.00      MAIN
+END

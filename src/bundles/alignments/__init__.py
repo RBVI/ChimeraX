@@ -39,8 +39,16 @@ class _AlignmentsBundleAPI(BundleAPI):
         del session.alignments
 
     @staticmethod
-    def open_file(*args, **kw):
+    def open_file(session, stream, fname, format_name="FASTA", alignment=True, filespec=None,
+            ident=None, auto_associate=True):
         from .parse import open_file
-        return open_file(*args, **kw)
+        return open_file(session, stream, fname, format_name=format_name, alignment=alignment,
+            ident=ident, auto_associate=auto_associate)
+
+    @staticmethod
+    def register_command(command_name, logger):
+        # 'register_command' is lazily called when the command is referenced
+        from . import cmd
+        cmd.register_seqalign_command(logger)
 
 bundle_api = _AlignmentsBundleAPI()

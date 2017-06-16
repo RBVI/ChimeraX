@@ -13,13 +13,13 @@ TOP = ../..
 include $(TOP)/mk/config.make
 
 SUBDIRS = add_missing_atoms align_algs alignments blastprotein \
-	  cage_builder cellpack chem_group cmd_line \
-	  color_globe contacts crosslinks cytoscape \
+	  bundle_builder cage_builder cellpack chem_group cmd_line \
+	  color_globe contacts crosslinks \
 	  exp_cmd file_history hbonds help_viewer ihm label list_info \
-	  log map_series_gui match_maker mav mlp mmtf model_panel \
-	  morph mouse_modes movie remote_control rest_server \
+	  log map_series_gui match_maker mav md_crds mlp model_series mmtf model_panel \
+	  mol2 morph mouse_modes movie remote_control rest_server \
 	  residue_fit sim_matrices shell shortcuts sideview \
-	  smooth_lines spacenavigator stl storm stringdb struts \
+	  smooth_lines spacenavigator stl storm struts \
 	  test toolshed tug vive volume_viewer vtk
 
 include $(TOP)/mk/subdir.make
@@ -42,3 +42,5 @@ clean:
 align_algs.install: alignments.install
 sim_matrices.install: alignments.install
 match_maker.install: align_algs.install sim_matrices.install
+mlp.install: bundle_builder.install
+stl.install: bundle_builder.install

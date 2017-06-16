@@ -170,7 +170,7 @@ class MouseModes:
         Mode is a MouseMode instance.
         '''
         self.remove_binding(button, modifiers)
-        if mode is not None:
+        if mode is not None and not isinstance(mode, NullMouseMode):
             b = MouseBinding(button, modifiers, mode)
             self._bindings.append(b)
 
@@ -453,8 +453,17 @@ class SelectToggleMouseMode(SelectMouseMode):
 
 def mouse_select(event, mode, session, view):
     x,y = event.position()
-    pick = view.first_intercept(x,y,exclude=unpickable)
+    pick = picked_object(x, y, view)
     select_pick(session, pick, mode)
+
+def picked_object(x, y, view, max_transparent_layers = 3):
+    p2 = p = view.first_intercept(x, y, exclude=unpickable)
+    for i in range(max_transparent_layers):
+        if p2 and getattr(p2, 'pick_through', False) and p2.distance is not None:
+            p2 = view.first_intercept(x, y, exclude=unpickable, beyond=p2.distance)
+        else:
+            break
+    return p2 if p2 else p
 
 def unpickable(drawing):
     return not getattr(drawing, 'pickable', True)
@@ -656,7 +665,7 @@ class ZoomMouseMode(MouseMode):
     def zoom(self, delta_z):
         v = self.view
         c = v.camera
-        if c.name() == 'orthographic':
+        if c.name == 'orthographic':
             c.field_width = max(c.field_width - delta_z, self.pixel_size())
             # TODO: Make camera field_width a property so it knows to redraw.
             c.redraw_needed = True
@@ -677,7 +686,7 @@ class ObjectIdMouseMode(MouseMode):
             return
         
         x,y = position
-        p = self.view.first_intercept(x,y)
+        p = picked_object(x, y, self.view)
 
         # Show atom spec balloon
         pu = self.session.ui.main_window.graphics_window.popup
@@ -706,7 +715,7 @@ class AtomCenterOfRotationMode(MouseMode):
         MouseMode.mouse_down(self, event)
         x,y = event.position()
         view = self.session.main_view
-        pick = view.first_intercept(x,y,exclude=unpickable)
+        pick = picked_object(x, y, view)
         if hasattr(pick, 'atom'):
             from chimerax.core.commands import cofr
             xyz = pick.atom.scene_coord

@@ -3,11 +3,7 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 # PYTHON_VERSION is in config.make
-ifeq ($(OS),Windows)
-PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).0
-else
 PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).1
-endif
 DISTRIBUTION = Python-$(PYTHON_PATCH_LEVEL).tar.xz
 SOURCE = $(tmpdir)/Python-$(PYTHON_PATCH_LEVEL)
 
@@ -38,8 +34,12 @@ endif
 
 ifeq ($(OS),Linux)
 LDFLAGS += -Wl,-rpath,a-value-that-is-replaced
+export LD_LIBRARY_PATH=$(libdir)
 ENV_CONFIGURE += LDFLAGS='$(LDFLAGS)'
-CONFIG_OPTIONS += --enable-shared --enable-optimizations
+CONFIG_OPTIONS += --enable-shared
+# --enable-optimizations causes singularity build to fail (and causes long build times)
+# Try reneabling with newer versions of Python after benchmarking it is worth it.
+# CONFIG_OPTIONS += --enable-optimizations
 endif
 ifeq ($(OS),Darwin)
 # On Darwin, -Wl,-rpath ends up in shared libraries in addition to executables,
@@ -97,6 +97,11 @@ ifeq ($(OS),Windows)
 	#cd $(SOURCE)/PCbuild ; cmd /c build.bat -p $(PLATFORM) 
 	#cd $(SOURCE)/PCbuild ; env HOST_PYTHON=`cygpath -m '$(SOURCE)/PCbuild/amd64/python3.exe'` devenv.com pcbuild.sln /build $(CONFIG_PLATFORM) /project _ssl
 	test -n '$(PYDIR)'
+	@if [ $(PYTHON_PATCH_LEVEL) != $(shell '$(PYDIR)'/python -c 'import sys; print(sys.version.split()[0])') ] ; \
+	then \
+		echo "Can not find Python $(PYTHON_PATCH_LEVEL)" ; \
+		exit 1 ; \
+	fi
 	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ --delete\
 	  '$(PYDIR)'/DLLs \
 	  '$(PYDIR)'/Lib \
@@ -184,6 +189,10 @@ else
 	cd $(SOURCE) && $(MAKE) && $(MAKE) install
 ifeq ($(OS),Linux)
 	chrpath -r '$$ORIGIN/../lib' $(bindir)/python$(PYTHON_VERSION) $(bindir)/python$(PYTHON_VERSION)$(PYTHON_ABI)
+	-for lib in $(PYTHON_LIBRARY_DIR)/lib-dynload/*.so; do \
+		chrpath -d $$lib; \
+	done
+	chmod 755  $(libdir)/libpython*.so; chrpath -d $(libdir)/libpython*.so
 endif
 ifeq ($(OS),Darwin)
 	install_name_tool -add_rpath '@executable_path/../lib' $(bindir)/python$(PYTHON_VERSION)

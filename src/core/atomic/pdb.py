@@ -18,7 +18,7 @@ pdb: PDB format support
 Read Protein DataBank (PDB) files.
 """
 
-def open_pdb(session, filename, name, *args, **kw):
+def open_pdb(session, filename, name, auto_style=True, coordsets=False):
 
     if hasattr(filename, 'read'):
         # it's really a fetched stream
@@ -28,24 +28,34 @@ def open_pdb(session, filename, name, *args, **kw):
         input = open(filename, 'rb')
         path = filename
 
-    explode = not kw.get('coordset', False)
     from . import pdbio
-    pointers = pdbio.read_pdb_file(input, log=session.logger, explode=explode)
+    pointers = pdbio.read_pdb_file(input, log=session.logger, explode=not coordsets)
     if input != filename:
         input.close()
 
-    smid = kw.get('auto_style', True)
-    
     from .structure import AtomicStructure
-    models = [AtomicStructure(session, name = name, c_pointer = p, auto_style = smid) for p in pointers]
+    models = [AtomicStructure(session, name = name, c_pointer = p, auto_style = auto_style) for p in pointers]
 
     if path:
         for m in models:
             m.filename = path
 
-    return models, ("Opened PDB data containing %d atoms and %d bonds"
-                    % (sum(m.num_atoms for m in models),
-                       sum(m.num_bonds for m in models)))
+    info = "Opened PDB data containing %d atoms%s %d bonds" % (
+        sum(m.num_atoms for m in models),
+        ("," if coordsets else " and"),
+        sum(m.num_bonds for m in models))
+    if coordsets:
+        num_cs = 0
+        for m in models:
+            num_cs += m.num_coord_sets
+        info += " and %s coordinate sets" % num_cs
+        if session.ui.is_gui:
+            mc = [m for m in models if m.num_coord_sets > 1]
+            if mc:
+                from ..commands.coordset import coordset_slider
+                coordset_slider(session, mc)
+
+    return models, info
 
 
 _pdb_sources = {
@@ -72,11 +82,11 @@ def fetch_pdb(session, pdb_id, fetch_source="rcsb", ignore_cache=False, **kw):
             raise UserError('unrecognized PDB source "%s"' % fetch_source)
         url = base_url % pdb_id
         pdb_name = "%s.pdb" % pdb_id
-        session.logger.status("Fetching PDB %s from %s" % (pdb_id, url))
         from ..fetch import fetch_file
         filename = fetch_file(session, url, 'PDB %s' % pdb_id, pdb_name, 'PDB',
                               ignore_cache=ignore_cache)
 
+    session.logger.status("Opening PDB %s" % (pdb_id,))
     from .. import io
     models, status = io.open_data(session, filename, format='pdb', name=pdb_id, **kw)
     return models, status
@@ -99,6 +109,9 @@ def register_pdb_format():
         mime=("chemical/x-pdb", "chemical/x-spdbv"),
         reference="http://wwpdb.org/docs.html#format",
         open_func=open_pdb)
+    from ..commands import add_keyword_arguments, BoolArg
+    add_keyword_arguments('open', {'coordsets':BoolArg,
+                                   'auto_style':BoolArg})
 
 
 def register_pdb_fetch():

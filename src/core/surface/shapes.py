@@ -165,7 +165,6 @@ def cone_geometry(radius = 1, height = 1, nc = 20, caps = True, points_up = True
 
 
     # Create cone faces (first nc*2 vertices)
-    # The normals are wrong, but let's see how they look
     zbase = -0.5*height if points_up else 0.5*height
     znorm = radius/height if points_up else -radius/height
     nc2 = nc * 2
@@ -189,8 +188,8 @@ def cone_geometry(radius = 1, height = 1, nc = 20, caps = True, points_up = True
         varray[nc2+1:,2] = zbase
         narray[nc2:] = (0,0,-1) if points_up else (0,0,1)
         tarray[nc:,0] = nc2
-        tarray[nc:,1] = arange(nc) + nc2 + 1
-        tarray[nc:,2] = (arange(nc) + 1) % nc + nc2 + 1
+        tarray[nc:,1] = (arange(nc) + 1) % nc + nc2 + 1
+        tarray[nc:,2] = arange(nc) + nc2 + 1
 
     return varray, narray, tarray
 

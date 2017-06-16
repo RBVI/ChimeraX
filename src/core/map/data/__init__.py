@@ -19,7 +19,7 @@ from .griddata import Grid_Data, Grid_Subregion
 from .arraygrid import Array_Grid_Data
 from .subsample import Subsampled_Grid
 from .fileformats import file_types, electrostatics_types
-from .fileformats import open_file, File_Format_Error, save_grid_data
+from .fileformats import open_file, File_Format_Error, Unknown_File_Type, save_grid_data
 from .progress import Progress_Reporter
 from .readarray import allocate_array
 
