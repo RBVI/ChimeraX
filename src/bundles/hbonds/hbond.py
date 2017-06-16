@@ -43,11 +43,9 @@ non_O3_minus_sb = ({'geometry':tetrahedral, 'not type': ['O3-']},
 non_Sac_Pac_H_sb = ({'geometry':tetrahedral, 'not type': ['Sac', 'Pac']},
                 {'geometry':single, 'not type': ['H', 'HC', 'D']})
 
-"""
 # recommended distance and angle constraint relaxations for biomolecules
-recDistSlop = 0.4
-recAngleSlop = 20.0
-"""
+rec_dist_slop = 0.4
+rec_angle_slop = 20.0
 
 # layout of acceptor_params is:
 #     name or spec of acceptor group,
