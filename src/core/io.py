@@ -157,7 +157,12 @@ class FileFormat:
         if self.export_func is None:
             raise ValueError("Save %r files is not supported" % self.name)
         check_keyword_compatibility(self.export_func, *args, **kw)
-        return self.export_func(*args, **kw)
+        try:
+            result = self.export_func(*args, **kw)
+        except IOError as e:
+            from .errors import UserError
+            raise UserError(e)
+        return result
 
 _file_formats = {}
 
@@ -216,7 +221,10 @@ def register_format(format_name, category, extensions, nicknames=None,
 
 
 def deregister_format(format_name):
-    del _file_formats[format_name]
+    try:
+        del _file_formats[format_name]
+    except KeyError:
+        pass
 
 
 def formats(open=True, export=True, source_is_file=False):

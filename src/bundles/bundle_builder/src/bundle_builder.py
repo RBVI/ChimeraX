@@ -37,18 +37,30 @@ class BundleBuilder:
         self._make_setup_arguments()
 
     @distlib_hack
-    def make_wheel(self):
+    def make_wheel(self, test=True):
+        # HACK: distutils uses a cache to track created directories
+        # for a single setup() run.  We want to run setup() multiple
+        # times which can remove/create the same directories.
+        # So we need to flush the cache before each run.
+        import distutils.dir_util
+        try:
+            distutils.dir_util._path_created.clear()
+        except AttributeError:
+            pass
         import os.path, shutil
-        self._run_setup(["--no-user-cfg", "test", "bdist_wheel"])
+        if test:
+            self._run_setup(["--no-user-cfg", "test", "bdist_wheel"])
+        else:
+            self._run_setup(["--no-user-cfg", "build", "bdist_wheel"])
         if not os.path.exists(self.wheel_path):
             raise RuntimeError("Building wheel failed")
         else:
             print("Distribution is in %s" % self.wheel_path)
 
     @distlib_hack
-    def make_install(self, session):
+    def make_install(self, session, test=True):
         try:
-            self.make_wheel()
+            self.make_wheel(test=test)
         except RuntimeError:
             pass
         else:
@@ -84,6 +96,7 @@ class BundleBuilder:
         self._get_descriptions(bi)
         self._get_dependencies(bi)
         self._get_c_modules(bi)
+        self._get_packages(bi)
         self._get_classifiers(bi)
 
     def _get_identifiers(self, bi):
@@ -141,6 +154,14 @@ class BundleBuilder:
                 source_files.append(self._get_element_text(e))
             self.c_modules.append((mod_name, source_files))
 
+    def _get_packages(self, bi):
+        self.packages = []
+        pkgs = self._get_singleton(bi, "AdditionalPackages")
+        for pkg in pkgs.getElementsByTagName("Package"):
+            pkg_name = pkg.getAttribute("name")
+            pkg_folder = pkg.getAttribute("folder")
+            self.packages.append((pkg_name, pkg_folder))
+
     def _get_classifiers(self, bi):
         self.python_classifiers = [
             "Framework :: ChimeraX",
@@ -171,10 +192,15 @@ class BundleBuilder:
             "author_email": self.email,
             "url": self.url,
             "python_requires": ">= 3.6",
-            "package_dir": {self.package: "src"},
-            "packages": [self.package],
             "install_requires": self.dependencies,
         }
+        package_dir = {self.package: "src"}
+        packages = [self.package]
+        for name, folder in self.packages:
+            package_dir[name] = folder
+            packages.append(name)
+        self.setup_arguments["package_dir"] = package_dir
+        self.setup_arguments["packages"] = packages
         if self.c_modules:
             import sys, os.path
             from setuptools import Extension

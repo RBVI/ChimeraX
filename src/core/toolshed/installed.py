@@ -177,6 +177,9 @@ class InstalledBundleCache(list):
 
         Returns boolean on whether cache file was read."""
         _debug("InstalledBundleCache._read_cache:", cache_file)
+        import os.path
+        if not os.path.exists(cache_file):
+            return False
         import filelock, json, os, sys
         from .info import BundleInfo
         try:

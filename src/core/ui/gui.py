@@ -153,6 +153,13 @@ class UI(QApplication):
         if self.autostart_tools:
             self.session.tools.start_tools(self.settings.autostart)
 
+    def event(self, event):
+        from PyQt5.QtCore import QEvent
+        if event.type() == QEvent.FileOpen and hasattr(self, 'main_window'):
+            self.main_window.open_dropped_file(event.file())
+            return True
+        return QApplication.event(self, event)
+
     def deregister_for_keystrokes(self, sink, notfound_okay=False):
         """'undo' of register_for_keystrokes().  Use the same argument.
         """
@@ -263,6 +270,7 @@ from PyQt5.QtWidgets import QMainWindow, QStackedWidget, QLabel, QDesktopWidget,
 class MainWindow(QMainWindow, PlainTextLog):
 
     def __init__(self, ui, session):
+        self.session = session
         QMainWindow.__init__(self)
         self.setWindowTitle("ChimeraX")
         # make main window 2/3 of full screen of primary display
@@ -341,8 +349,28 @@ class MainWindow(QMainWindow, PlainTextLog):
         
         session.logger.add_log(self)
 
-        self.show()
+        # Allow drag and drop of files onto app window.
+        self.setAcceptDrops(True)
 
+        self.show()
+    
+    def dragEnterEvent(self, event):
+        md = event.mimeData()
+        if md.hasUrls():
+            event.acceptProposedAction()
+        
+    def dropEvent(self, event):
+        md = event.mimeData()
+        paths = [url.toLocalFile() for url in md.urls()]
+        for p in paths:
+            self.open_dropped_file(p)
+
+    def open_dropped_file(self, path):
+        # Use quotes around path only if needed so log looks nice.
+        p = ('"%s"' % path) if ' ' in path or ';' in path else path
+        from ..commands import run
+        run(self.session, 'open %s' % p)
+        
     def addToolBar(self, *args, **kw):
         # need to track toolbars for checkbuttons in Tools->Toolbar
         retval = QMainWindow.addToolBar(self, *args, **kw)
@@ -366,7 +394,7 @@ class MainWindow(QMainWindow, PlainTextLog):
     def closeEvent(self, event):
         # the MainWindow close button has been clicked
         event.accept()
-        self.graphics_window.session.ui.quit()
+        self.session.ui.quit()
 
     def close_request(self, tool_window, close_event):
         # closing a tool window has been requested
@@ -482,21 +510,22 @@ class MainWindow(QMainWindow, PlainTextLog):
         if show == (self._stack.currentWidget() == self.rapid_access):
             return
 
+        ses = self.session
         from PyQt5.QtCore import QEventLoop
         if show:
             icon = self._ra_shown_icon
             if not self._rapid_access_shown_once:
-                self.graphics_window.session.update_loop.block_redraw()
+                ses.update_loop.block_redraw()
             self._stack.setCurrentWidget(self.rapid_access)
         else:
             icon = self._ra_hidden_icon
             self._stack.setCurrentWidget(self.graphics_window.widget)
             if not self._rapid_access_shown_once:
-                self.graphics_window.session.update_loop.unblock_redraw()
-                self._rapid_access_shown_once = True
-        self.graphics_window.session.update_loop.block_redraw()
-        self.graphics_window.session.ui.processEvents(QEventLoop.ExcludeUserInputEvents)
-        self.graphics_window.session.update_loop.unblock_redraw()
+                ses.update_loop.unblock_redraw()
+                ses._rapid_access_shown_once = True
+        ses.update_loop.block_redraw()
+        ses.ui.processEvents(QEventLoop.ExcludeUserInputEvents)
+        ses.update_loop.unblock_redraw()
 
         but = self._rapid_access_button
         but.setChecked(show)
@@ -518,7 +547,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         self._show_status_now()
 
     def _check_rapid_access(self, *args):
-        self.rapid_access_shown = len(self.graphics_window.session.models) == 0
+        self.rapid_access_shown = len(self.session.models) == 0
 
     def _show_status_now(self):
         # In Qt 5.7.1 there is no way to for the status line to redraw without running the event loop.
@@ -537,7 +566,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         if getattr(self, '_processing_deferred_events', False):
             return
 
-        s = self.graphics_window.session
+        s = self.session
         ul = s.update_loop
         ul.block_redraw()	# Prevent graphics redraw. Qt timers can fire.
         self._in_status_event_processing = True
@@ -562,7 +591,7 @@ class MainWindow(QMainWindow, PlainTextLog):
                 self._process_deferred_events()
             else:
                 self._processing_deferred_events = True
-                self.graphics_window.session.ui.processEvents()
+                self.session.ui.processEvents()
                 self._processing_deferred_events = False
 
         self._flush_timer_queued = True

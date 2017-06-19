@@ -198,6 +198,8 @@ pcre.app-install: zlib.app-install
 pcre.install: zlib.install
 pdbfixer.app-install: Python.app-install openmm.app-install
 pdbfixer.install: Python.install openmm.install
+pillow.app-install: setuptools.app-install zlib.app-install
+pillow.install: setuptools.install zlib.install
 pips.app-install: setuptools.app-install
 pips.install: setuptools.install
 pycollada.app-install: setuptools.app-install pips.app-install

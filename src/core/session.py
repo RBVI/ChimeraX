@@ -531,7 +531,7 @@ class InScriptFlag:
         return self._level > 0
 
 
-def save(session, filename, format, version=1):
+def save(session, filename, format, version=1, uncompressed=False):
     """command line version of saving a session"""
     my_open = None
     if hasattr(filename, 'write'):
@@ -543,17 +543,24 @@ def save(session, filename, format, version=1):
         if not filename.endswith(SESSION_SUFFIX):
             filename += SESSION_SUFFIX
 
-        # Save compressed files
-        def my_open(filename):
-            import gzip
-            from .safesave import SaveFile
-            f = SaveFile(filename, open=lambda filename: gzip.GzipFile(filename, 'wb'))
-            return f
-        try:
-            output = my_open(filename)
-        except IOError as e:
-            from .errors import UserError
-            raise UserError(e)
+        if uncompressed:
+            try:
+                output = _builtin_open(filename, 'wb')
+            except IOError as e:
+                from .errors import UserError
+                raise UserError(e)
+        else:
+            # Save compressed files
+            def my_open(filename):
+                import gzip
+                from .safesave import SaveFile
+                f = SaveFile(filename, open=lambda filename: gzip.GzipFile(filename, 'wb'))
+                return f
+            try:
+                output = my_open(filename)
+            except IOError as e:
+                from .errors import UserError
+                raise UserError(e)
 
     session.logger.warning("<b><i>Session file format is not finalized, and thus might not be restorable in other versions of ChimeraX.</i></b>", is_html=True)
     # TODO: put thumbnail in session metadata
@@ -735,11 +742,11 @@ def register_session_format(session):
         reference="http://www.rbvi.ucsf.edu/chimerax/",
         open_func=open, export_func=save)
 
-    from .commands import CmdDesc, register, SaveFileNameArg, IntArg
+    from .commands import CmdDesc, register, SaveFileNameArg, IntArg, BoolArg
     desc = CmdDesc(
         required=[('filename', SaveFileNameArg)],
-        keyword=[('version', IntArg)],
-        hidden=['version'],
+        keyword=[('version', IntArg), ('uncompressed', BoolArg)],
+        hidden=['version', 'uncompressed'],
         synopsis='save session'
     )
 

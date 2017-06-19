@@ -174,6 +174,16 @@ class Drawing:
         if rn is not None:
             rn(**kw)
 
+    def _get_shape_changed(self):
+        rn = self._redraw_needed
+        return rn.shape_changed if rn else False
+    def _set_shape_changed(self, changed):
+        rn = self._redraw_needed
+        if rn:
+            rn.shape_changed = changed
+    shape_changed = property(_get_shape_changed, _set_shape_changed)
+    '''Did this drawing or any drawing in the same tree change shape since the last redraw.'''
+    
     def __setattr__(self, key, value):
         if key in self._effects_shader:
             self._shader_opt = None       # Cause shader update
