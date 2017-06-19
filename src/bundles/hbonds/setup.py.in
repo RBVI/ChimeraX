@@ -19,6 +19,9 @@ from distlib import metadata
 metadata.METADATA_FILENAME = "metadata.json"
 from setuptools import setup
 
+import builtins
+builtins.__dict__['line_profile'] = lambda x: x
+
 description = """
 Overlay 2D text on graphics scene 
 """

@@ -37,7 +37,7 @@ WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-py3-none-any.whl
 
 wheel $(WHEEL): setup.py $(PYSRCS)
 	$(PYTHON_EXE) setup.py --no-user-cfg build
-	#$(PYTHON_EXE) setup.py --no-user-cfg test
+	$(PYTHON_EXE) setup.py --no-user-cfg test
 	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel
 	rm -rf $(WHL_BNDL_NAME).egg-info
 
