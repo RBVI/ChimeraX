@@ -271,8 +271,9 @@ def html_user_agent(app_dirs):
 
 # -----------------------------------------------------------------------------
 #
-def fetch_web(session, url, **kw):
+def fetch_web(session, url, ignore_cache=False, **kw):
     # TODO: deal with content encoding for text formats
+    # TODO: how would "ignore_cache" work?
     import os
     from urllib import parse
     from . import io
