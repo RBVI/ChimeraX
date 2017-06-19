@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from . import CmdDesc, StringArg, OpenFolderNameArg
+from . import CmdDesc, StringArg, OpenFolderNameArg, BoolArg
 
 _aliases = {}
 
@@ -74,43 +74,49 @@ devel_unalias_desc = CmdDesc(required=[("name", StringArg)],
                              synopsis='Remove alias for bundle path')
 
 
-def devel_build(session, path):
+def devel_build(session, path, test=True):
     '''Build a wheel in for the source code in bundle path.
 
     Parameters
     ----------
     path : string
       Path to folder containing bundle source code or bundle alias.
+    test : bool
+      Whether to run test after building wheel
     '''
     from ..logger import StringPlainTextLog
     logger = session.logger
     bb = _get_builder(path, logger)
     if bb is not None:
         with StringPlainTextLog(logger) as log:
-            bb.make_wheel()
+            bb.make_wheel(test=test)
             msg = log.getvalue()
         logger.info(msg)
 devel_build_desc = CmdDesc(required=[("path", OpenFolderNameArg),],
+                           optional=[("test", BoolArg)],
                            synopsis='Build a wheel for bundle')
 
 
-def devel_install(session, path):
+def devel_install(session, path, test=True):
     '''Build and install a wheel in for the source code in bundle path.
 
     Parameters
     ----------
     path : string
       Path to folder containing bundle source code or bundle alias.
+    test : bool
+      Whether to run test after building wheel
     '''
     from ..logger import StringPlainTextLog
     logger = session.logger
     bb = _get_builder(path, logger)
     if bb is not None:
         with StringPlainTextLog(logger) as log:
-            bb.make_install(session)
+            bb.make_install(session, test=test)
             msg = log.getvalue()
         logger.info(msg)
 devel_install_desc = CmdDesc(required=[("path", OpenFolderNameArg),],
+                             optional=[("test", BoolArg)],
                              synopsis='Build and install wheel for bundle')
 
 
