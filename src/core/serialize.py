@@ -241,7 +241,7 @@ _decode_handlers = [
     lambda args: timedelta(*args[0][1]),
     lambda args: _decode_image(args[0][1]),
     lambda args: _decode_numpy_number(args),
-    lambda args: args[0][1],  # FinalizedState's data
+    lambda args: FinalizedState(args[0][1])
 ]
 
 

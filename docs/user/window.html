@@ -122,7 +122,7 @@ context menus.
 </p>
 <h3>ChimeraX Browser and Help Viewer</h3>
 <p>
-The <b>Help Viewer</b> is a built-in HTML browser.
+The <b>Help Viewer</b> is a built-in HTML browser. 
 ChimeraX help pages are written in HTML and can be shown in the 
 <b>Help Viewer</b> by using the <b>Help</b> menu, the
 <a href="commands/help.html"><b>help</b></a> command, tool context menus,
@@ -132,12 +132,12 @@ docked to and undocked from the main window like other panels,
 as described <a href="#panelcontrol">above</a>.
 The name listed for the <b>Help Viewer</b> in panel title-bar menus
 will be the title of the HTML page it is showing.
-Buttons and/or context menus are provided for navigation
-(forward, back, reload) and adjusting the font size, 
+Buttons and context menus are provided for navigation
+(back, forward, reload) and adjusting the font size, 
 and there is a field for entering search text.
 </p><p>
-The built-in browser provides a simple mechanism to execute 
-ChimeraX commands by clicking special links, for example:
+An important advantage of the built-in browser is that it provides a simple
+mechanism to execute ChimeraX commands by clicking special links, for example:
 </p>
 <blockquote>
 <a href="cxcmd:open 1gcn"><b>open 1gcn</b></a>
@@ -145,19 +145,21 @@ ChimeraX commands by clicking special links, for example:
 <b>&lt;a href="cxcmd:open 1gcn"&gt;open 1gcn&lt;/a&gt;</b>
 </blockquote>
 <p>
-** The execution links will only work in the ChimeraX browser, 
+** The execution links will only work in the ChimeraX browser, however,
 not other web browsers.**
-The <a href="../quickstart/index.html">Quick Start Guide</a> includes
-many more examples.
 </p><p>
 With this mechanism, it is easy to create web pages that use ChimeraX for
 structure display and other features, as in a scientific presentation or
-ChimeraX tutorial. Since the mechanism only works in the ChimeraX browser,
-however, ChimeraX must already be installed and used to open the web page
-of interest.
+ChimeraX tutorial. 
+The <a href="../quickstart/index.html">Quick Start Guide</a> includes
+many more examples, as well as some javascript 
+to display a brief explanation if such a link is clicked when the page 
+is being viewed in some other browser. 
+This javascript can be copied from the page source and used in other pages
+with the special links, as desired.
 </p><p>
 Web content and HTML files in general
-(with or without such special execution links)
+(with or without the special command-execution links)
 can be shown in the ChimeraX browser with commands:
 </p>
 <blockquote>
@@ -166,8 +168,6 @@ can be shown in the ChimeraX browser with commands:
 <b><a href="commands/open.html">open</a> &nbsp;<i>local-file.html</i></b>
 </blockquote>
 Local files can also be opened with <b>File... Open</b> in the menu.
-Besides the <b>Help Viewer</b>, other panels with HTML content such as the
-<a href="tools/log.html"><b>Log</b></a> are also displayed appropriately.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 June 2017</address>

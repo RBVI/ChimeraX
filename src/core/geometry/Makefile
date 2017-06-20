@@ -19,7 +19,7 @@ SUBDIRS	= _geometry
 
 PYSRCS = __init__.py adaptive_tree.py align.py \
 	bins.py bounds.py icosahedron.py \
-	matrix.py place.py psession.py \
+	matrix.py place.py plane.py psession.py \
 	sphere.py spline.py symmetry.py vector.py
 
 # All needed subdirectories must be set by now.
