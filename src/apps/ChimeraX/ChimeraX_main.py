@@ -519,12 +519,26 @@ def init(argv, event_loop=True):
     if not opts.silent:
         import chimerax.core.commands.version as vercmd
         vercmd.version(sess)  # report version in log
+
     if opts.gui or hasattr(core, 'offscreen_rendering'):
         r = sess.main_view.render
-        if r.make_current():
-            sess.logger.info('OpenGL version: ' + r.opengl_version())
-            sess.logger.info('OpenGL renderer: ' + r.opengl_renderer())
-            sess.logger.info('OpenGL vendor: ' + r.opengl_vendor())
+        log = sess.logger
+        from chimerax.core.graphics import OpenGLVersionError
+        try:
+            mc = r.make_current()
+        except OpenGLVersionError as e:
+            log.error(str(e))
+            mc = False
+        if mc:
+            info = log.info
+            e = r.check_for_opengl_errors()
+            if e:
+                msg = 'There was an OpenGL graphics error while starting up.  This is usually a problem with the system graphics driver, and the only way to remedy it is to update the graphics driver. ChimeraX will probably not function correctly with the current graphics driver.'
+                msg += '\n\n\t"%s"' % e
+                log.error(msg)
+            info('OpenGL version: ' + r.opengl_version())
+            info('OpenGL renderer: ' + r.opengl_renderer())
+            info('OpenGL vendor: ' + r.opengl_vendor())
             sess.ui.main_window.graphics_window.start_redraw_timer()
 
     if opts.module:
