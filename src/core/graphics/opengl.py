@@ -570,6 +570,19 @@ class Render:
             self._max_multishadows = m
         return m
 
+    def check_for_opengl_errors(self):
+        # Clear previous errors.
+        lines = []
+        while True:
+            e = GL.glGetError()
+            if e == GL.GL_NO_ERROR:
+                break
+            from OpenGL import GLU
+            es = GLU.gluErrorString(e)
+            lines.append('OpenGL error %s' % es.decode('utf-8'))
+        msg = '\n'.join(lines)
+        return msg
+
     def opengl_version(self):
         'String description of the OpenGL version for the current context.'
         return GL.glGetString(GL.GL_VERSION).decode('utf-8')
@@ -814,7 +827,7 @@ class Render:
             dt.initialize_depth((size, size))
             fb = Framebuffer(depth_texture=dt, color=False)
             if not fb.valid():
-                return           # Requested size exceeds framebuffer limits
+                return None           # Requested size exceeds framebuffer limits
 
         # Make sure depth texture is not bound from previous drawing so that
         # it is not used for rendering shadows while the depth texture is
@@ -1141,6 +1154,7 @@ class Framebuffer:
                  depth=True, depth_texture=None,
                  alpha=False):
 
+        self.fbo = None
         if width is not None and height is not None:
             w, h = width, height
         elif color_texture is not None:
@@ -1223,6 +1237,9 @@ class Framebuffer:
             GL.glFramebufferRenderbuffer(GL.GL_FRAMEBUFFER,
                                          GL.GL_COLOR_ATTACHMENT0,
                                          GL.GL_RENDERBUFFER, color_buf)
+        else:
+            GL.glDrawBuffer(GL.GL_NONE)
+            GL.glReadBuffer(GL.GL_NONE)
 
         if isinstance(depth_buf, Texture):
             level = 0
