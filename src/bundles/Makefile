@@ -20,7 +20,7 @@ SUBDIRS = add_missing_atoms align_algs alignments blastprotein \
 	  mol2 morph mouse_modes movie remote_control rest_server \
 	  residue_fit sim_matrices shell shortcuts sideview \
 	  smooth_lines spacenavigator stl storm struts \
-	  test toolshed tug vive volume_viewer vtk
+	  test tug vive volume_viewer vtk
 
 include $(TOP)/mk/subdir.make
 
