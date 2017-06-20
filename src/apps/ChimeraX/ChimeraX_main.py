@@ -527,8 +527,8 @@ def init(argv, event_loop=True):
         try:
             mc = r.make_current()
         except OpenGLVersionError as e:
-            log.error(str(e))
             mc = False
+            log.error(str(e))
         if mc:
             info = log.info
             e = r.check_for_opengl_errors()
