@@ -38,7 +38,11 @@ def show_surface_clip_caps(planes, drawings, offset = 0.01):
         if hasattr(cap, 'clip_cap_owner') and cap.clip_plane_name not in plane_names:
             d = cap.clip_cap_owner
             del d._clip_cap_drawings[cap.clip_plane_name]
-            cap.parent.remove_drawing(cap)
+            from ..models import Model
+            if isinstance(cap, Model):
+                cap.session.models.remove([cap])
+            else:
+                cap.parent.remove_drawing(cap)
 
 def compute_cap(drawing, plane, offset):
     # Undisplay cap for drawing with no geometry shown.
