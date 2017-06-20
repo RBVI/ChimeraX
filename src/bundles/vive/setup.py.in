@@ -18,50 +18,34 @@
 from distlib import metadata
 metadata.METADATA_FILENAME = "metadata.json"
 from setuptools import setup
-import os
-import sys
-
-pkg_dir = "PKG_DIR"  # DO NOT CHANGE
-shlib_dir = "SHLIB_DIR"  # DO NOT CHANGE
-data_dir = "DATA_DIR"  # DO NOT CHANGE
-if sys.platform.startswith('win'):
-    # shared libraries are relative to bindir
-    rel_inst_shlib_dir = ""  # shlib_dir == bindir
-else:
-    # shared libraries are relative to rootdir
-    rel_inst_shlib_dir = os.path.basename(shlib_dir)
-# data files are relative to rootdir
-rel_inst_data_dir = os.path.basename(data_dir)
 
 description = """
-Provide support for the HTC Vive VR headset and its controllers.
+Use virtual reality headsets with SteamVR
 """
 
 setup(
     name="BUNDLE_NAME",
     version="BUNDLE_VERSION",  # PEP 440, should match Development Status below
-    description="HTC Vive headset support",  # one line synopsis
+    description="Virtual reality headset support",  # one line synopsis
     long_description=description,  # see above
     author="UCSF RBVI",
     author_email="chimerax@cgl.ucsf.edu",
     url="https://www.rbvi.ucsf.edu/chimerax/",
     python_requires=">= 3.5",
     package_dir={
-        "PKG_NAME": pkg_dir,    # directory package's source files are in
+        "PKG_NAME": "src",    # directory package's source files are in
     },
     packages=[
         "PKG_NAME",
     ],
     install_requires=[
         "ChimeraX-Core >= 0.1",
-        # list all dependences on non-standard Python packages incl. ChimeraX ones
-        # TODO: numpy
         "openvr == 1.0.0401",
     ],
     classifiers=[
         # From https://pypi.python.org/pypi?%3Aaction=list_classifiers
         # and our own ChimeraX classifiers.
-        "Development Status :: 2 - Pre-Alpha",  # TODO: update as appropriate
+        "Development Status :: 3 - Alpha",  # TODO: update as appropriate
         "Environment :: MacOS X :: Aqua",
         "Environment :: Win32 (MS Windows)",
         "Environment :: X11 Applications",
@@ -75,8 +59,8 @@ setup(
         "Topic :: Scientific/Engineering :: Visualization",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
-        "ChimeraX :: Bundle :: General :: 1,1 :: PKG_NAME :: chimerax.vive :: ",
-        "ChimeraX :: Command :: device vr :: General :: View models on VR headset using SteamVR",
-        "ChimeraX :: Command :: vr :: General :: View models on VR headset using SteamVR",
+        "ChimeraX :: Bundle :: General :: 1,1 :: chimerax.vive :: :: ",
+        "ChimeraX :: Command :: vr :: General :: Render to virtual reality headsets",
+        "ChimeraX :: Command :: device vr :: General :: Render to virtual reality headsets",
     ],
 )

@@ -81,6 +81,8 @@ class HtmlView(QWebEngineView):
                 p.downloadRequested.connect(download)
         page = QWebEnginePage(self._profile, self)
         self.setPage(page)
+        s = page.settings()
+        s.setAttribute(s.LocalStorageEnabled, True)
         self.setAcceptDrops(False)
 
     @property
@@ -162,7 +164,9 @@ class ChimeraXHtmlView(HtmlView):
                 raise ValueError("Can not override HtmlView's %s" % k)
         # don't share profiles, so interceptor is bound to this instance
         super().__init__(*args, schemes=('cxcmd', 'help'),
-                         interceptor=self.link_clicked, **kw)
+                         interceptor=self.link_clicked,
+                         download=self.download_requested, **kw)
+        self._pending_downloads = []
 
     def link_clicked(self, request_info, *args):
         qurl = request_info.requestUrl()
@@ -194,3 +198,67 @@ class ChimeraXHtmlView(HtmlView):
                         os.chdir(prev_dir)
             self.session.ui.thread_safe(defer, self.session, qurl.url(), from_dir)
             return
+
+    def download_requested(self, item):
+        # "item" is an instance of QWebEngineDownloadItem
+        # print("ChimeraXHtmlView.download_requested", item)
+        import os.path, os
+        urlFile = item.url().fileName()
+        base, extension = os.path.splitext(urlFile)
+        # print("ChimeraXHtmlView.download_requested connect", item.mimeType(), extension)
+        # Normally, we would look at the download type or MIME type,
+        # but since neither one is set by the server, we look at the
+        # download extension instead
+        if extension == ".whl":
+            # Since the file name encodes the package name and version
+            # number, we make sure that we are using the right name
+            # instead of whatever QWebEngine may want to use.
+            # Remove _# which may be present if bundle author submitted
+            # the same version of the bundle multiple times.
+            parts = base.rsplit('_', 1)
+            if len(parts) == 2 and parts[1].isdigit():
+                urlFile = parts[0] + extension
+            filePath = os.path.join(os.path.dirname(item.path()), urlFile)
+            item.setPath(filePath)
+            # print("ChimeraXHtmlView.download_requested clean")
+            try:
+                # Guarantee that file name is available
+                os.remove(filePath)
+            except OSError:
+                pass
+            self._pending_downloads.append(item)
+            self.session.logger.info("Downloading bundle %s" % urlFile)
+            item.finished.connect(self.download_finished)
+        # print("ChimeraXHTMLView.download_requested accept")
+        item.accept()
+
+    def download_finished(self, *args, **kw):
+        # print("ChimeraXHtmlView.download_finished", args, kw)
+        finished = []
+        pending = []
+        for item in self._pending_downloads:
+            if not item.isFinished():
+                pending.append(item)
+            else:
+                finished.append(item)
+        self._pending_downloads = pending
+        need_reload = False
+        for item in finished:
+            item.finished.disconnect()
+            filename = item.path()
+            from chimerax.core.ui.ask import ask
+            how = ask(self.session,
+                      "Install %s for:" % filename,
+                      ["all users", "just me", "cancel"],
+                      title="Toolshed")
+            if how == "cancel":
+                self.session.logger.info("Bundle installation canceled")
+                continue
+            elif how == "just me":
+                per_user = True
+            else:
+                per_user = False
+            self.session.toolshed.install_bundle(filename,
+                                                 self.session.logger,
+                                                 per_user=per_user,
+                                                 session=self.session)
