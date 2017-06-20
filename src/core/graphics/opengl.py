@@ -63,6 +63,9 @@ stencil8_needed = False
 class OpenGLVersionError(RuntimeError):
     pass
 
+class OpenGLError(RuntimeError):
+    pass
+
 class OpenGLContext:
     '''
     OpenGL context used by View for drawing.  This should be subclassed
@@ -1739,8 +1742,11 @@ class Shader:
         f.close()
 
         from OpenGL.GL import shaders
-        vs = shaders.compileShader(vshader, GL.GL_VERTEX_SHADER)
-        fs = shaders.compileShader(fshader, GL.GL_FRAGMENT_SHADER)
+        try:
+            vs = shaders.compileShader(vshader, GL.GL_VERTEX_SHADER)
+            fs = shaders.compileShader(fshader, GL.GL_FRAGMENT_SHADER)
+        except Exception as e:
+            raise OpenGLError(str(e))
 
         prog_id = shaders.compileProgram(vs, fs)
 
