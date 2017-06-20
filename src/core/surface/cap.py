@@ -138,13 +138,11 @@ def set_cap_drawing_geometry(drawing, plane_name, varray, narray, tarray):
     mcap = d._clip_cap_drawings.get(plane_name, None)     # Find cap drawing
     if mcap and mcap.was_deleted:
         mcap = None
-    if varray is None:
-        if mcap:
-            mcap.display = False
-        return
 
     if mcap:
         cm = mcap
+    elif varray is None:
+        return
     else:
         cap_name = 'cap ' + plane_name
         if len(d.positions) == 1:
