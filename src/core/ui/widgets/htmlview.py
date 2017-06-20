@@ -81,6 +81,8 @@ class HtmlView(QWebEngineView):
                 p.downloadRequested.connect(download)
         page = QWebEnginePage(self._profile, self)
         self.setPage(page)
+        s = page.settings()
+        s.setAttribute(s.LocalStorageEnabled, True)
         self.setAcceptDrops(False)
 
     @property

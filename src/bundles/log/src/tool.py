@@ -132,10 +132,29 @@ class Log(ToolInstance, HtmlLog):
         parent = self.tool_window.ui_area
         from chimerax.core.ui.widgets import ChimeraXHtmlView
 
+        from PyQt5.QtWebEngineWidgets import QWebEnginePage
+        class MyPage(QWebEnginePage):
+
+            def acceptNavigationRequest(self, qurl, nav_type, is_main_frame):
+                import sys
+                print("acceptNavigationRequest", qurl.toString(), file=sys.__stderr__, flush=True)
+                if qurl.scheme() in ('http', 'https'):
+                    session = self.view().session
+                    def show_url(url):
+                        from chimerax.help_viewer import show_url
+                        show_url(session, url)
+                    session.ui.thread_safe(show_url, qurl.toString())
+                    return False
+                return True
+
         class HtmlWindow(ChimeraXHtmlView):
 
             def __init__(self, session, parent, log):
                 super().__init__(session, parent, size_hint=(575, 500))
+                page = MyPage(self._profile, self)
+                self.setPage(page)
+                s = page.settings()
+                s.setAttribute(s.LocalStorageEnabled, True)
                 self.log = log
                 # as of Qt 5.6.0, the keyboard shortcut for copying text
                 # from the QWebEngineView did nothing on Mac, the below
