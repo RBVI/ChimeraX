@@ -108,10 +108,10 @@ class Space_Navigator:
                 ttf = place.translation(shift)
                 self.apply_transform(ttf)
 
-        if 'N1' in buttons or 31 in buttons:
+        if 'N1' in buttons or 31 in buttons or 'Left' in buttons:
             self.button_pressed(self.button_1_action)
 
-        if 'N2' in buttons:
+        if 'N2' in buttons or 'Right' in buttons:
             self.button_pressed(self.button_2_action)
 
     def button_pressed(self, action):
