@@ -534,7 +534,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             self._stack.setCurrentWidget(self.graphics_window.widget)
             if not self._rapid_access_shown_once:
                 ses.update_loop.unblock_redraw()
-                ses._rapid_access_shown_once = True
+                self._rapid_access_shown_once = True
         ses.update_loop.block_redraw()
         ses.ui.processEvents(QEventLoop.ExcludeUserInputEvents)
         ses.update_loop.unblock_redraw()
