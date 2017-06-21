@@ -17,24 +17,48 @@
 # implements PEP 426's pydist.json
 from distlib import metadata
 metadata.METADATA_FILENAME = "metadata.json"
-from setuptools import setup
-import os
-import sys
+from setuptools import setup, Extension
+import os, os.path, sys
 
-pkg_dir = "PKG_DIR"  # DO NOT CHANGE
-shlib_dir = "SHLIB_DIR"  # DO NOT CHANGE
-data_dir = "DATA_DIR"  # DO NOT CHANGE
-if sys.platform.startswith('win'):
-    # shared libraries are relative to bindir
-    rel_inst_shlib_dir = ""  # shlib_dir == bindir
+# Assume Python executable is in ROOT/bin/python
+# and make include directory be ROOT/include
+root = os.path.dirname(os.path.dirname(sys.executable))
+inc_dir = os.path.join(root, "include")
+lib_dir = os.path.join(root, "lib")
+if sys.platform == "darwin":
+    # Tested with macOS 10.12
+    libraries = []
+    compiler_flags = ["-std=c++11", "-stdlib=libc++"]
+    libraries = ["arrays"]
+    env = "Environment :: MacOS X :: Aqua",
+    op_sys = "Operating System :: MacOS :: MacOS X"
+elif sys.platform == "win32":
+    # Tested with Cygwin
+    libraries = ["libarrays"]
+    compiler_flags = []
+    env = "Environment :: Win32 (MS Windows)"
+    op_sys = "Operating System :: Microsoft :: Windows :: Windows 10"
 else:
-    # shared libraries are relative to rootdir
-    rel_inst_shlib_dir = os.path.basename(shlib_dir)
-# data files are relative to rootdir
-rel_inst_data_dir = os.path.basename(data_dir)
+    # Presumably Linux
+    # Tested with Ubuntu 16.04 LTS running in
+    #   a singularity container on CentOS 7.3
+    libraries = ["arrays"]
+    compiler_flags = ["-std=c++11"]
+    env = "Environment :: X11 Applications"
+    op_sys = "Operating System :: POSIX :: Linux"
+
+ext_mods = [Extension("PKG_NAME._morph",
+                      define_macros=[("MAJOR_VERSION", 0),
+                                     ("MINOR_VERSION", 1)],
+                      extra_compile_args = compiler_flags,
+                      include_dirs=[inc_dir],
+                      library_dirs=[lib_dir],
+                      libraries=libraries,
+                      sources=["_morph/morph.cpp"])]
 
 description = """
-Add bonds between atoms of a molecule to strengthen it for 3-d printing.
+This bundle provides the morph command to smoothly interpolate between
+different conformations of an atomic structure.
 """
 
 setup(
@@ -47,35 +71,29 @@ setup(
     url="https://www.rbvi.ucsf.edu/chimerax/",
     python_requires=">= 3.5",
     package_dir={
-        "PKG_NAME": pkg_dir,    # directory package's source files are in
+        "PKG_NAME": "src",    # directory package's source files are in
     },
     packages=[
         "PKG_NAME",
     ],
-    package_data={
-        "PKG_NAME": ["*.PYMOD_EXT"]
-    },
+    ext_modules=ext_mods,
     install_requires=[
         "ChimeraX-Core >= 0.1",
     ],
     classifiers=[
         # From https://pypi.python.org/pypi?%3Aaction=list_classifiers
         # and our own ChimeraX classifiers.
-        "Development Status :: 2 - Pre-Alpha",  # TODO: update as appropriate
-        "Environment :: MacOS X :: Aqua",
-        "Environment :: Win32 (MS Windows)",
-        "Environment :: X11 Applications",
+        "Development Status :: 5 - Stable",
+        env,
+        op_sys,
         "Framework :: ChimeraX",
         "Intended Audience :: Science/Research",
         "License :: Free for non-commercial use",
-        "Operating System :: MacOS :: MacOS X",
-        "Operating System :: Microsoft :: Windows :: Windows 10",
-        "Operating System :: POSIX :: Linux",
         "Programming Language :: Python :: 3",
         "Topic :: Scientific/Engineering :: Visualization",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
-        "ChimeraX :: Bundle :: Molecular structure :: 1,1 :: PKG_NAME :: chimerax.morph :: ",
+        "ChimeraX :: Bundle :: Morph Structures :: 1,1 :: chimerax.morph :: :: ",
         "ChimeraX :: Command :: morph :: Molecular structure :: morph atomic structures",
     ],
 )

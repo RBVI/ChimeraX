@@ -37,6 +37,7 @@ and their code location is described with the function descriptions.
 | `echo`_ - Write message to log
 | `exit`_ - Quit
 | `fitmap`_ - fit atomic structures in density maps
+| `graphics`_ - low level graphics control
 | `help`_ - Show documentation
 | `hide`_ - Hide atoms, ribbons, models
 | `info`_ * - Report model info

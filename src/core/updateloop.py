@@ -38,18 +38,21 @@ class UpdateLoop:
             surface.update_clip_caps(view)
             changed = view.check_for_drawing_change()
             if changed:
-                from .graphics import OpenGLVersionError
+                from .graphics import OpenGLError, OpenGLVersionError
                 try:
                     view.draw(check_for_changes = False)
                 except OpenGLVersionError as e:
                     self.block_redraw()
                     session.logger.error(str(e))
-                except:
-                    # Stop redraw if an error occurs to avoid continuous stream of errors.
+                except OpenGLError as e:
                     self.block_redraw()
+                    msg = 'An OpenGL graphics error occurred. Most often this is caused by a graphics driver bug. The only way to fix such bugs is to update your graphics driver. Redrawing graphics is now stopped to avoid a continuous stream of error messages. To restart graphics use the command "graphics restart" after changing the settings that caused the error.'
+                    session.logger.error(msg + '\n\n' + str(e))
+                except:
+                    self.block_redraw()
+                    msg = 'An error occurred in drawing the scene. Redrawing graphics is now stopped to avoid a continuous stream of error messages. To restart graphics use the command "graphics restart" after changing the settings that caused the error.'
                     import traceback
-                    session.logger.error('Error in drawing scene. Redraw is now stopped.\n\n' +
-                                        traceback.format_exc())
+                    session.logger.error(msg + '\n\n' + traceback.format_exc())
                 session.triggers.activate_trigger('frame drawn', self)
         finally:
             self.unblock_redraw()

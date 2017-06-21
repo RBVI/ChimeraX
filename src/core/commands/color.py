@@ -158,13 +158,23 @@ def color(session, objects, color=None, what=None,
                     what.append('%d bonds' % len(bonds))
 
     if 'p' in target:
+        numbonds = 0
         if atoms is not None:
             from .. import atomic
             bonds = atomic.interatom_pseudobonds(atoms)
             if len(bonds) > 0:
                 if color not in _SpecialColors and color is not None:
                     bonds.colors = color.uint8x4()
-                what.append('%d pseudobonds' % len(bonds))
+                numbonds += len(bonds)
+        from ..atomic import PseudobondGroup
+        for pbg in objects.models:
+            if isinstance(pbg, PseudobondGroup):
+                if color not in _SpecialColors and color is not None:
+                    pbonds = pbg.pseudobonds
+                    pbonds.colors = color.uint8x4()
+                    numbonds += len(pbonds)
+        if numbonds > 0:
+            what.append('%d pseudobonds' % numbonds)
 
     if 'd' in target:
         if not default_target:

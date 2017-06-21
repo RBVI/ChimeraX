@@ -257,6 +257,10 @@ class Toolshed:
         Where to register handlers for toolshed triggers
     """
 
+    @classmethod
+    def get_toolshed(cls):
+        return _toolshed
+
     def __init__(self, logger, rebuild_cache=False, check_remote=False,
                  remote_url=None, check_available=True):
         """Initialize Toolshed instance.

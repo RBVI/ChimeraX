@@ -17,8 +17,9 @@ def style(session, objects=None, atom_style=None, atom_radius=None,
 
     Parameters
     ----------
-    atoms : Atoms or None
-        Change the style of these atoms. If not specified then all atoms are changed.
+    objects : Objects
+        Change the style of these atoms and pseudobond groups.
+        If not specified then all atoms are changed.
     atom_style : "sphere", "ball" or "stick"
         Controls how atoms and bonds are depicted.
     atom_radius : float or "default"
@@ -79,6 +80,8 @@ def style(session, objects=None, atom_style=None, atom_radius=None,
         for pbg in pseudobond_groups(objects, session):
             pbg.dashes = dashes
 
+# -----------------------------------------------------------------------------
+#
 def pseudobond_groups(objects, session):
     from ..atomic import PseudobondGroup, all_atoms
 
@@ -102,6 +105,8 @@ def pseudobond_groups(objects, session):
     return pbgs
 
 
+# -----------------------------------------------------------------------------
+#
 def register_command(session):
     from . import register, CmdDesc, ObjectsArg, EmptyArg, EnumOf, Or, IntArg, FloatArg
     desc = CmdDesc(required = [('objects', Or(ObjectsArg, EmptyArg)),

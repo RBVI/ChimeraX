@@ -12,8 +12,8 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
-Writing and Distributing Bundles
-================================
+Building and Distributing Bundles
+=================================
 
 A *bundle* is a collection of code and data that can be added to
 ChimeraX to provide support for new graphical tools, commands,
@@ -58,15 +58,18 @@ Bundle Sample Code
 
 To build a bundle from the `sample code
 <https://www.cgl.ucsf.edu/chimerax/cgi-bin/bundle_sample.zip>`_,
-you will need access the the ``make`` program.  On Linux
-and macOS, ``make`` is available as part of the
+you can either use the ``make`` program, or the
+ChimeraX application if you do not have ``make``.
+On Linux and macOS, ``make`` is available as part of the
 developer package.  On Windows, ``make`` is
 available as part of `Cygwin <https://cygwin.com>`_.
+
 Because the sample code includes C++ source code that
 need to be compiled, you will need a C++ compiler for
-the build.  On Linux and macOS, we use the GNU C/C++
-compiler ``gcc``.  On Windows, we use Microsoft Visual
-Studio, Community 2015.
+the build.  On Windows, we use Microsoft Visual
+Studio, Community 2015.  On the Mac, we use ``Xcode``.
+On Linux, ``gcc`` and ``g++`` are available in different
+packages depending on the flavor of Linux.
 
 The sample code is organized with "administrative" code
 at the top level and actual bundle code in the ``src``
@@ -77,12 +80,18 @@ All other contents of the bundle should be in ``src``.
 
 *Administrative Files*
 
-    **README** contains terse instructions on how to
-    build the sample code.
-
     **Makefile** is the configuration file used by
-    the ``make`` command.  This file will need to
-    be modified for your bundle.
+    the ``make`` command.  This file is not used
+    if you use the ``devel`` command to build and
+    install your bundle.)
+
+    **README** contains a pointer back to this document.
+
+    **bundle_info.xml** is an XML file containing
+    information about the bundle, including its name,
+    version, dependencies, *etc*.  (This file is only
+    used if you use the ``devel`` command to build and
+    install your bundle.)
 
     **license.txt.bsd** and **license.txt.mit** are
     two sample license text files.  The actual file
@@ -93,18 +102,14 @@ All other contents of the bundle should be in ``src``.
     actual bundle.
 
     **setup.py.in** contains Python code for building
-    the bundle.  It is preprocessed during the ``make``
-    command to create **setup.py**, which is then
-    executed using the Python interpreter that comes
-    as part of ChimeraX.  This file will need to be
-    modified for your bundle.
+    the bundle.  This file is a remnant from when
+    ChimeraX bundles were built using the Python
+    interpreter.  It is here only as a potential
+    starting point for developers who need greater
+    control over the build process.
 
     **setup.cfg** is the configuration file used when
     **setup.py** is run.  This file should not be modified.
-
-    **wheel_tag.py** is a Python script used while
-    building the bundle to determine part of the output
-    file name.   This file should not be modified.
 
 
 *Bundle Source Code Files*
@@ -133,22 +138,28 @@ All other contents of the bundle should be in ``src``.
 
     .. _`Building the Sample Bundle`:
 
-*Building the Sample Bundle*
 
+*Building and testing the Sample Bundle using ``ChimeraX``*
+    #. Create a **license.txt** file.  The easiest way is to copy
+       **license.txt.bsd** to **license.txt**.
+    #. Start ChimeraX.  In the command line, type ``devel install pathname``
+       where *pathname* is the path to the folder containing your
+       bundle.  This will build a wheel from your bundle and install
+       it as a user bundle, *i.e.*, it will **not** be installed in
+       the user-specific folder rather than the ChimeraX folder.
+    #. Check that the bundle works by opening a molecule and executing
+       the command ``sample count``.  It should report the number of atoms
+       and bonds for each molecule in the log.
+
+
+*Building the Sample Bundle using ``make``*
     #. Edit **Makefile** and change ``CHIMERAX_APP`` to match the location
        of **ChimeraX.app** on your system.
     #. Create a **license.txt** file.  The easiest way is to copy
        **license.txt.bsd** to **license.txt**.
-    #. Execute ``make`` (short for ``make wheel``).
-       See `Transcript for building sample code`_ below.
+    #. Execute ``make install`` (which simply executes
+       ``devel install .`` in ChimeraX).
     #. Check directory **dist** to make sure the wheel was created.
-
-
-*Verifying Bundle Works*
-
-    #. Execute ``make app-install`` to install the wheel into your copy
-       of **ChimeraX.app** (assuming you have write permission).
-       See `Transcript for installing sample code`_ below.
     #. Check that the bundle works by opening a molecule and executing
        the command ``sample count``.  It should report the number of atoms
        and bonds for each molecule in the log.
@@ -235,62 +246,29 @@ importants steps:
      section).
 
 
-Building Bundles
-----------------
+Building and Testing Bundles
+----------------------------
 
-To build your bundle, simply run ``make`` (short for ``make wheel``),
-which invokes the following steps:
+To build and test your bundle, execute the following command
+(or run ``make install`` which invokes the same command):
 
-``$(PYTHON_EXE) setup.py --no-user-cfg build``
-    Execute **setup.py** ``build`` command using the Python
-    interpreter that comes with the ChimeraX distribution.
+``$(CHIMERAX_EXE) --nogui --cmd "devel install . ; exit"``
+    Execute the ``devel install .`` command in ChimeraX.
     Python source code and other resource files are copied
     into the *build* folder.  C/C++ source files, if any,
     are compiled and also copied into the *build* folder.
+    The files in *build* are then assembled into a wheel
+    in the *dist* directory.  The assembled wheel is installed
+    as a user bundle.
 
-``$(PYTHON_EXE) setup.py --no-user-cfg test``
-    Execute **setup.py** ``test`` command using the Python
-    interpreter that comes with the ChimeraX distribution.
-    The sample code does not come with any custom test code,
-    so the only test done is to make sure that no syntax
-    errors are detected in Python code.
-
-``$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel``
-    Execute **setup.py** ``bdist_wheel`` command using the Python
-    interpreter that comes with the ChimeraX distribution.
-    Files from the *build* folder are assembled into a single
-    *wheel* file and placed under the *dist* folder.
-
-``rm -rf $(WHL_BNDL_NAME).egg-info``
-    Clean up intermediate files, such as a temporary folder
-    with ``.egg-info`` suffix that is the by-product of the wheel
-    assembly process
-
-``echo Distribution is in $(WHEEL)``
-    Print the name of the generated wheel file.
-
-If any of the steps fails, the build process stops.
-
-
-Testing Bundles
----------------
-
-To test your successfully built bundle, run ``make app-install``,
-which invokes:
-
-``$(CHIMERAX_EXE) --nogui --cmd "toolshed uninstall $(BUNDLE_BASE_NAME) ; exit"``
-``$(CHIMERAX_EXE) --nogui --cmd "toolshed install $(WHEEL) ; exit"``
-    Execute ChimeraX and run the ``toolshed uninstall`` command
-    to remove any previously installed version of the bundle,
-    followed by the ``toolshed install`` command to install the
-    wheel in the **dist** folder.
-
-If the ``make app-install`` command completes successfully,
-fire up ChimeraX with ``make test`` and try out your command.
-Warning and error messages should appear in the ``Log`` window.
+If the command completes successfully, fire up ChimeraX
+(``make test`` is a shortcut if ``make`` is available)
+and try out your command.  Warning and error messages
+should appear in the ``Log`` window.
 If the bundle is not working as expected, *e.g.*, command is
 not found, tool does not start, and no messages are being
-displayed, try executing ``make debug``, which runs ChimeraX
+displayed, try executing ``$(CHIMERAX_EXE) --debug``
+(or ``make debug`` for short), which runs ChimeraX
 in debugging mode, and see if more messages are shown in
 the console.
 
@@ -343,10 +321,6 @@ files left over from building bundles:
 ``make clean``
     Remove generated files, *e.g.*, **setup.py** and **build** folder,
     as well as the **dist** folder containing the built wheels.
-
-``make distclean``
-    Remove all files not part of the original source, including
-    **license.txt** so that the folder is in pristine condition.
 
 
 ChimeraX Metadata and Python Wheel Classifiers
@@ -518,106 +492,3 @@ data formats, and selectors.
       keyword, the command will interpret it as the keyword rather
       than the selector.  The bottom line is "choose your selector
       names carefully."
-
-
-Transcript for building sample code
-___________________________________
-
-::
-
-    sed -e 's,BUNDLE_NAME,ChimeraX_Sample,' \
-            -e 's,BUNDLE_VERSION,0.1,' \
-            -e 's,PKG_NAME,chimerax.sample,' \
-            < setup.py.in > setup.py
-    /e/chimerax/ChimeraX.app/bin/python.exe setup.py --no-user-cfg build
-    running build
-    running build_py
-    creating build
-    creating build\lib.win-amd64-3.6
-    creating build\lib.win-amd64-3.6\chimerax
-    creating build\lib.win-amd64-3.6\chimerax\sample
-    copying src\cmd.py -> build\lib.win-amd64-3.6\chimerax\sample
-    copying src\__init__.py -> build\lib.win-amd64-3.6\chimerax\sample
-    running build_ext
-    building 'chimerax.sample._sample' extension
-    creating build\temp.win-amd64-3.6
-    creating build\temp.win-amd64-3.6\Release
-    creating build\temp.win-amd64-3.6\Release\src
-    C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\BIN\x86_amd64\cl.exe /c /nologo /Ox /W3 /GL /DNDEBUG /MD -DMAJOR_VERSION=0 -DMINOR_VERSION=1 -IE:\chimerax\ChimeraX.app\include -IE:\chimerax\ChimeraX.app\bin\include -IE:\chimerax\ChimeraX.app\bin\include "-IC:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\INCLUDE" "-IC:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\ATLMFC\INCLUDE" "-IC:\Program Files (x86)\Windows Kits\10\include\10.0.10586.0\ucrt" "-IC:\Program Files (x86)\Windows Kits\NETFXSDK\4.6.1\include\um" "-IC:\Program Files (x86)\Windows Kits\10\include\10.0.10586.0\shared" "-IC:\Program Files (x86)\Windows Kits\10\include\10.0.10586.0\um" "-IC:\Program Files (x86)\Windows Kits\10\include\10.0.10586.0\winrt" "-Ic:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\include" "-Ic:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\atlmfc\include" "-Ic:\Program Files (x86)\Windows Kits\10\include\10.0.10586.0\ucrt" "-Ic:\Program Files (x86)\Windows Kits\10\include\10.0.10586.0\shared" "-Ic:\Program Files (x86)\Windows Kits\10\include\10.0.10586.0\um" "-Ic:\Program Files (x86)\Windows Kits\10\include\10.0.10586.0\winrt" /EHsc /Tpsrc/_sample.cpp /Fobuild\temp.win-amd64-3.6\Release\src/_sample.obj
-    _sample.cpp
-    [... Compiler warning messages not shown ...]
-    C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\BIN\x86_amd64\link.exe /nologo /INCREMENTAL:NO /LTCG /DLL /MANIFEST:EMBED,ID=2 /MANIFESTUAC:NO /LIBPATH:E:\chimerax\ChimeraX.app\lib /LIBPATH:E:\chimerax\ChimeraX.app\bin\libs /LIBPATH:E:\chimerax\ChimeraX.app\bin\PCbuild\amd64 "/LIBPATH:C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\LIB\amd64" "/LIBPATH:C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\ATLMFC\LIB\amd64" "/LIBPATH:C:\Program Files (x86)\Windows Kits\10\lib\10.0.10586.0\ucrt\x64" "/LIBPATH:C:\Program Files (x86)\Windows Kits\NETFXSDK\4.6.1\lib\um\x64" "/LIBPATH:C:\Program Files (x86)\Windows Kits\10\lib\10.0.10586.0\um\x64" "/LIBPATH:c:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\lib\amd64" "/LIBPATH:c:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\atlmfc\lib\amd64" "/LIBPATH:c:\Program Files (x86)\Windows Kits\10\lib\10.0.10586.0\ucrt\x64" "/LIBPATH:c:\Program Files (x86)\Windows Kits\10\lib\10.0.10586.0\um\x64" libatomstruct.lib /EXPORT:PyInit__sample build\temp.win-amd64-3.6\Release\src/_sample.obj /OUT:build\lib.win-amd64-3.6\chimerax\sample\_sample.cp36-win_amd64.pyd /IMPLIB:build\temp.win-amd64-3.6\Release\src\_sample.cp36-win_amd64.lib
-    [... Linker warning messages not shown ...]
-       Creating library build\temp.win-amd64-3.6\Release\src\_sample.cp36-win_amd64.lib and object build\temp.win-amd64-3.6\Release\src\_sample.cp36-win_amd64.exp
-    Generating code
-    Finished generating code
-    /e/chimerax/ChimeraX.app/bin/python.exe setup.py --no-user-cfg test
-    running test
-    running egg_info
-    creating ChimeraX_Sample.egg-info
-    writing ChimeraX_Sample.egg-info\PKG-INFO
-    writing dependency_links to ChimeraX_Sample.egg-info\dependency_links.txt
-    writing requirements to ChimeraX_Sample.egg-info\requires.txt
-    writing top-level names to ChimeraX_Sample.egg-info\top_level.txt
-    writing manifest file 'ChimeraX_Sample.egg-info\SOURCES.txt'
-    reading manifest file 'ChimeraX_Sample.egg-info\SOURCES.txt'
-    writing manifest file 'ChimeraX_Sample.egg-info\SOURCES.txt'
-    running build_ext
-    copying build\lib.win-amd64-3.6\chimerax\sample\_sample.cp36-win_amd64.pyd -> src
-    
-    ----------------------------------------------------------------------
-    Ran 0 tests in 0.000s
-    
-    OK
-    /e/chimerax/ChimeraX.app/bin/python.exe setup.py --no-user-cfg bdist_wheel
-    running bdist_wheel
-    running build
-    running build_py
-    running build_ext
-    installing to build\bdist.win-amd64\wheel
-    running install
-    running install_lib
-    creating build\bdist.win-amd64
-    creating build\bdist.win-amd64\wheel
-    creating build\bdist.win-amd64\wheel\chimerax
-    creating build\bdist.win-amd64\wheel\chimerax\sample
-    copying build\lib.win-amd64-3.6\chimerax\sample\cmd.py -> build\bdist.win-amd64\wheel\.\chimerax\sample
-    copying build\lib.win-amd64-3.6\chimerax\sample\_sample.cp36-win_amd64.pyd -> build\bdist.win-amd64\wheel\.\chimerax\sample
-    copying build\lib.win-amd64-3.6\chimerax\sample\__init__.py -> build\bdist.win-amd64\wheel\.\chimerax\sample
-    running install_egg_info
-    running egg_info
-    writing ChimeraX_Sample.egg-info\PKG-INFO
-    writing dependency_links to ChimeraX_Sample.egg-info\dependency_links.txt
-    writing requirements to ChimeraX_Sample.egg-info\requires.txt
-    writing top-level names to ChimeraX_Sample.egg-info\top_level.txt
-    reading manifest file 'ChimeraX_Sample.egg-info\SOURCES.txt'
-    writing manifest file 'ChimeraX_Sample.egg-info\SOURCES.txt'
-    Copying ChimeraX_Sample.egg-info to build\bdist.win-amd64\wheel\.\ChimeraX_Sample-0.1-py3.6.egg-info
-    running install_scripts
-    creating build\bdist.win-amd64\wheel\ChimeraX_Sample-0.1.dist-info\WHEEL
-    E:\chimerax\ChimeraX.app\bin\lib\site-packages\wheel\pep425tags.py:77: RuntimeWarning: Config variable 'Py_DEBUG' is unset, Python ABI tag may be incorrect
-      warn=(impl == 'cp')):
-    E:\chimerax\ChimeraX.app\bin\lib\site-packages\wheel\pep425tags.py:81: RuntimeWarning: Config variable 'WITH_PYMALLOC' is unset, Python ABI tag may be incorrect
-      warn=(impl == 'cp')):
-    rm -rf ChimeraX_Sample.egg-info
-    echo Distribution is in dist/ChimeraX_Sample-0.1-cp36-cp36m-win_amd64.whl
-    Distribution is in dist/ChimeraX_Sample-0.1-cp36-cp36m-win_amd64.whl
-
-
-Transcript for installing sample code
-_____________________________________
-
-::
-
-    [... Output from building the bundle ...]
-    /e/chimerax/ChimeraX.app/bin/ChimeraX.exe --nogui --cmd "toolshed install dist/ChimeraX_Sample-0.1-cp36-cp36m-win_amd64.whl reinstall true ; exit"
-    0.00% done: Initializing core
-    50.00% done: Initializing bundles
-    INFO:
-    Executing: toolshed install dist/ChimeraX_Sample-0.1-cp36-cp36m-win_amd64.whl reinstall true 
-    INFO:
-    Installed ChimeraX-Sample (0.1)
-    INFO:
-    Executing: exit
-    STATUS:
-    Exiting ...

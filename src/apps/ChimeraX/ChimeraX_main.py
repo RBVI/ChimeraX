@@ -414,7 +414,9 @@ def init(argv, event_loop=True):
     sess.ui.stereo = opts.stereo
     sess.ui.autostart_tools = opts.load_tools
 
-    # splash step "0" will happen in the above initialization
+    # splash screen
+    if opts.gui:
+        sess.ui.show_splash()
     num_splash_steps = 2
     if opts.gui:
         num_splash_steps += 1
@@ -519,12 +521,26 @@ def init(argv, event_loop=True):
     if not opts.silent:
         import chimerax.core.commands.version as vercmd
         vercmd.version(sess)  # report version in log
+
     if opts.gui or hasattr(core, 'offscreen_rendering'):
         r = sess.main_view.render
-        if r.make_current():
-            sess.logger.info('OpenGL version: ' + r.opengl_version())
-            sess.logger.info('OpenGL renderer: ' + r.opengl_renderer())
-            sess.logger.info('OpenGL vendor: ' + r.opengl_vendor())
+        log = sess.logger
+        from chimerax.core.graphics import OpenGLVersionError
+        try:
+            mc = r.make_current()
+        except OpenGLVersionError as e:
+            mc = False
+            log.error(str(e))
+        if mc:
+            info = log.info
+            e = r.check_for_opengl_errors()
+            if e:
+                msg = 'There was an OpenGL graphics error while starting up.  This is usually a problem with the system graphics driver, and the only way to remedy it is to update the graphics driver. ChimeraX will probably not function correctly with the current graphics driver.'
+                msg += '\n\n\t"%s"' % e
+                log.error(msg)
+            info('OpenGL version: ' + r.opengl_version())
+            info('OpenGL renderer: ' + r.opengl_renderer())
+            info('OpenGL vendor: ' + r.opengl_vendor())
             sess.ui.main_window.graphics_window.start_redraw_timer()
 
     if opts.module:
@@ -579,6 +595,9 @@ def init(argv, event_loop=True):
             traceback.print_exc()
             return os.EX_SOFTWARE
 
+    # Open files dropped on application
+    sess.ui.open_pending_files()
+    
     # Allow the event_loop to be disabled, so we can be embedded in
     # another application
     if event_loop:
