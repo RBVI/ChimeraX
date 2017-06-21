@@ -92,6 +92,13 @@ class UI(QApplication):
         import sys
         QApplication.__init__(self, [sys.argv[0]])
 
+        self.redirect_qt_messages()
+
+        self._keystroke_sinks = []
+        self._files_to_open = []
+
+    def redirect_qt_messages(self):
+        
         # redirect Qt log messages to our logger
         from ..logger import Log
         from PyQt5.QtCore import QtDebugMsg, QtInfoMsg, QtWarningMsg, QtCriticalMsg, QtFatalMsg
@@ -111,10 +118,10 @@ class UI(QApplication):
             self.session.logger.method_map[log_level](msg_string)
         qInstallMessageHandler(cx_qt_msg_handler)
 
+    def show_splash(self):
         # splash screen
         import os.path
-        splash_pic_path = os.path.join(os.path.dirname(__file__),
-                                       "splash.jpg")
+        splash_pic_path = os.path.join(os.path.dirname(__file__), "splash.jpg")
         from PyQt5.QtWidgets import QSplashScreen
         from PyQt5.QtGui import QPixmap
         self.splash = QSplashScreen(QPixmap(splash_pic_path))
@@ -123,8 +130,6 @@ class UI(QApplication):
         self.splash.setFont(font)
         self.splash.show()
         self.splash_info("Initializing ChimeraX")
-
-        self._keystroke_sinks = []
 
     def close_splash(self):
         pass
@@ -155,11 +160,24 @@ class UI(QApplication):
 
     def event(self, event):
         from PyQt5.QtCore import QEvent
-        if event.type() == QEvent.FileOpen and hasattr(self, 'main_window'):
-            self.main_window.open_dropped_file(event.file())
+        if event.type() == QEvent.FileOpen:
+            if not hasattr(self, 'toolshed'):
+                # Drop event might have started ChimeraX and it is not yet ready to open a file.
+                # So remember file and startup script will open it when ready.
+                self._files_to_open.append(event.file())
+            else:
+                _open_dropped_file(self.session, event.file())
             return True
         return QApplication.event(self, event)
 
+    def open_pending_files(self):
+        for path in self._files_to_open:
+            try:
+                _open_dropped_file(self.session, path)
+            except Exception as e:
+                self.session.logger.warning('Failed opening file %s:\n%s' % (path, str(e)))
+        self._files_to_open.clear()
+                    
     def deregister_for_keystrokes(self, sink, notfound_okay=False):
         """'undo' of register_for_keystrokes().  Use the same argument.
         """
@@ -363,13 +381,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         md = event.mimeData()
         paths = [url.toLocalFile() for url in md.urls()]
         for p in paths:
-            self.open_dropped_file(p)
-
-    def open_dropped_file(self, path):
-        # Use quotes around path only if needed so log looks nice.
-        p = ('"%s"' % path) if ' ' in path or ';' in path else path
-        from ..commands import run
-        run(self.session, 'open %s' % p)
+            _open_dropped_file(self.session, p)
         
     def addToolBar(self, *args, **kw):
         # need to track toolbars for checkbuttons in Tools->Toolbar
@@ -801,6 +813,12 @@ class MainWindow(QMainWindow, PlainTextLog):
                         delattr(window, '_prev_shown')
                 else:
                     set_shown(window, False)
+
+def _open_dropped_file(session, path):
+    # Use quotes around path only if needed so log looks nice.
+    p = ('"%s"' % path) if ' ' in path or ';' in path else path
+    from ..commands import run
+    run(session, 'open %s' % p)
 
 from ..logger import StatusLogger
 class ToolWindow(StatusLogger):

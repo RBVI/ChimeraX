@@ -414,7 +414,8 @@ def init(argv, event_loop=True):
     sess.ui.stereo = opts.stereo
     sess.ui.autostart_tools = opts.load_tools
 
-    # splash step "0" will happen in the above initialization
+    # splash screen
+    sess.ui.show_splash()
     num_splash_steps = 2
     if opts.gui:
         num_splash_steps += 1
@@ -593,6 +594,9 @@ def init(argv, event_loop=True):
             traceback.print_exc()
             return os.EX_SOFTWARE
 
+    # Open files dropped on application
+    sess.ui.open_pending_files()
+    
     # Allow the event_loop to be disabled, so we can be embedded in
     # another application
     if event_loop:
