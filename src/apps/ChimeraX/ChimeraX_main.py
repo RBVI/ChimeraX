@@ -415,7 +415,8 @@ def init(argv, event_loop=True):
     sess.ui.autostart_tools = opts.load_tools
 
     # splash screen
-    sess.ui.show_splash()
+    if opts.gui:
+        sess.ui.show_splash()
     num_splash_steps = 2
     if opts.gui:
         num_splash_steps += 1
