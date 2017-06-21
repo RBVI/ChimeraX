@@ -466,6 +466,8 @@ class Atoms(Collection):
     selected = cvec_property('atom_selected', npy_bool,
         doc="numpy bool array whether each Atom is selected.")
     selecteds = selected
+    serial_numbers = cvec_property('atom_serial_number', uint32, read_only = True,
+        doc="Serial numbers of atoms")
     @property
     def shown_atoms(self):
         '''

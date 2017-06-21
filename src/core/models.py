@@ -115,7 +115,13 @@ class Model(State, Drawing):
             p = getattr(self, 'parent', None)
             return p is None or p.visible
         return False
-    
+ 
+    def __lt__(self, other):
+        # for sorting (objects of the same type)
+        if self.id is None:
+            return self.name < other.name
+        return self.id < other.id
+
     def _set_display(self, display):
         Drawing.set_display(self, display)
         self.session.triggers.activate_trigger(MODEL_DISPLAY_CHANGED, self)

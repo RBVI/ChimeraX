@@ -1648,6 +1648,7 @@ class CmdDesc:
                         p.name in self._required_arguments or
                         p.kind in (var_positional, var_keyword)):
                     continue
+                print(p.name)
                 raise ValueError("Wrong function or '%s' argument must be "
                                  "required or have a default value" % p.name)
         self._function = function

@@ -719,6 +719,12 @@ extern "C" EXPORT void atom_is_sidechain(void *atoms, size_t n, npy_bool *is_sid
     }
 }
 
+extern "C" EXPORT void atom_serial_number(void *atoms, size_t n, uint32_t *index)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    error_wrap_array_get<Atom, unsigned int, unsigned int>(a, n, &Atom::serial_number, index);
+}
+
 extern "C" EXPORT void atom_structure(void *atoms, size_t n, pyobject_t *molp)
 {
     Atom **a = static_cast<Atom **>(atoms);
@@ -3818,6 +3824,31 @@ extern "C" EXPORT void structure_start_change_tracking(void *mol, void *vct)
             m->start_change_tracking(ct);
     } catch (...) {
         molc_error();
+    }
+}
+
+extern "C" EXPORT PyObject *structure_molecules(void *mol)
+{
+    Structure *s = static_cast<Structure *>(mol);
+    PyObject *mols = NULL;
+    try {
+        std::vector<std::vector<Atom*>> molecules;
+        s->bonded_groups(&molecules, true);
+        mols = PyTuple_New(molecules.size());
+        size_t p = 0;
+        for (auto atomvec: molecules) {
+            void **aa;
+            PyObject *a_array = python_voidp_array(atomvec.size(), &aa);
+            size_t i = 0;
+            for (auto a: atomvec)
+                aa[i++] = static_cast<void *>(a);
+            PyTuple_SetItem(mols, p++, a_array);
+        }
+        return mols;
+    } catch (...) {
+        Py_XDECREF(mols);
+        molc_error();
+        return nullptr;
     }
 }
 

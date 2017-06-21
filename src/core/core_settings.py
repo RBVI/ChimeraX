@@ -26,7 +26,7 @@ from .settings import Settings
 class _CoreSettings(Settings):
 
     EXPLICIT_SAVE = {
-        'atomspec_contents': 'simple', # choices: simple, command-line specifier, serial number
+        'atomspec_contents': 'simple', # choices: simple, command (-line specifier), serial (number)
         'bg_color': configfile.Value(
             Color('#000'), commands.ColorArg, Color.hex_with_alpha),
         'multisample_threshold': configfile.Value(
