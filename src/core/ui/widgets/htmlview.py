@@ -229,6 +229,13 @@ class ChimeraXHtmlView(HtmlView):
             self._pending_downloads.append(item)
             self.session.logger.info("Downloading bundle %s" % urlFile)
             item.finished.connect(self.download_finished)
+        else:
+            from PyQt5.QtWidgets import QFileDialog
+            path, filt = QFileDialog.getSaveFileName(directory=item.path())
+            if not path:
+                return
+            self.session.logger.info("Downloading file %s" % urlFile)
+            item.setPath(path)
         # print("ChimeraXHTMLView.download_requested accept")
         item.accept()
 
