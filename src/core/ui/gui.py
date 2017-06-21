@@ -672,24 +672,27 @@ class MainWindow(QMainWindow, PlainTextLog):
         file_menu = mb.addMenu("&File")
         open_action = QAction("&Open...", self)
         open_action.setShortcut("Ctrl+O")
-        open_action.setStatusTip("Open input file")
+        open_action.setToolTip("Open input file")
         open_action.triggered.connect(lambda arg, s=self, sess=session: s.file_open_cb(sess))
         file_menu.addAction(open_action)
         save_action = QAction("&Save...", self)
         save_action.setShortcut("Ctrl+S")
-        save_action.setStatusTip("Save output file")
+        save_action.setToolTip("Save output file")
         save_action.triggered.connect(lambda arg, s=self, sess=session: s.file_save_cb(sess))
         file_menu.addAction(save_action)
         quit_action = QAction("&Quit", self)
         quit_action.setShortcut("Ctrl+Q")
-        quit_action.setStatusTip("Quit ChimeraX")
+        quit_action.setToolTip("Quit ChimeraX")
         quit_action.triggered.connect(lambda arg, s=self, sess=session: s.file_quit_cb(sess))
         file_menu.addAction(quit_action)
+        file_menu.setToolTipsVisible(True)
 
         self.tools_menu = mb.addMenu("&Tools")
+        self.tools_menu.setToolTipsVisible(True)
         self.update_tools_menu(session)
 
         help_menu = mb.addMenu("&Help")
+        help_menu.setToolTipsVisible(True)
         for entry, topic, tooltip in (
                 ('User Guide', 'user', 'Tutorials and user documentation'),
                 ('Quick Start Guide', 'quickstart', 'Interactive ChimeraX basics'),
@@ -703,12 +706,6 @@ class MainWindow(QMainWindow, PlainTextLog):
                 run(ses, 'help help:%s' % t)
             help_action.triggered.connect(cb)
             help_menu.addAction(help_action)
-        def forceMenuToolTip(action):
-            from PyQt5.QtGui import QCursor
-            from PyQt5.QtWidgets import QToolTip
-            QToolTip.showText(QCursor.pos(), action.toolTip(), help_menu,
-                help_menu.actionGeometry(action))
-        help_menu.hovered.connect(forceMenuToolTip)
         from chimerax import app_dirs as ad
         about_action = QAction("About %s %s" % (ad.appauthor, ad.appname), self)
         about_action.triggered.connect(self._about)
@@ -718,6 +715,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         self._checkbutton_tools = {}
         from PyQt5.QtWidgets import QMenu, QAction
         tools_menu = QMenu("&Tools")
+        tools_menu.setToolTipsVisible(True)
         categories = {}
         for bi in session.toolshed.bundle_info(session.logger):
             for tool in bi.tools:
@@ -732,11 +730,12 @@ class MainWindow(QMainWindow, PlainTextLog):
                 cat_menu = tools_menu
             else:
                 cat_menu = tools_menu.addMenu(cat)
+                cat_menu.setToolTipsVisible(True)
             cat_info = categories[cat]
             use_checkbuttons = cat == "Toolbar"
             for tool_name in sorted(cat_info.keys()):
                 tool_action = QAction(tool_name, self)
-                tool_action.setStatusTip(tool.synopsis)
+                tool_action.setToolTip(cat_info[tool_name][1].synopsis)
                 if use_checkbuttons:
                     tool_action.setCheckable(True)
                     tool_action.setChecked(tool_name in active_tool_names)
@@ -755,7 +754,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             from ..toolshed import Toolshed
             show_url(session, Toolshed.get_toolshed().remote_url)
         more_tools = QAction("More Tools...", self)
-        more_tools.setStatusTip("Open ChimeraX Toolshed in Help Viewer")
+        more_tools.setToolTip("Open ChimeraX Toolshed in Help Viewer")
         more_tools.triggered.connect(_show_toolshed)
         tools_menu.addAction(more_tools)
         mb = self.menuBar()
@@ -780,6 +779,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         add = (menu is None)
         if add:
             menu = QMenu(menu_name, mb)
+            menu.setToolTipsVisible(True)
             menu.setObjectName(menu_name)	# Need for findChild() above to work.
         
         action = QAction(entry_name, self)
