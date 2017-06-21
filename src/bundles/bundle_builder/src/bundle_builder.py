@@ -58,14 +58,20 @@ class BundleBuilder:
             print("Distribution is in %s" % self.wheel_path)
 
     @distlib_hack
-    def make_install(self, session, test=True):
+    def make_install(self, session, test=True, user=None):
         try:
             self.make_wheel(test=test)
         except RuntimeError:
             pass
         else:
             from chimerax.core.commands import run
-            run(session, "toolshed install %s reinstall true" % self.wheel_path)
+            cmd = "toolshed install %s reinstall true" % self.wheel_path
+            if user is not None:
+                if user:
+                    cmd += " user true"
+                else:
+                    cmd += " user false"
+            run(session, cmd)
 
     @distlib_hack
     def make_clean(self):

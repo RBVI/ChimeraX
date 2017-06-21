@@ -93,7 +93,7 @@ setup(
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
         "ChimeraX :: Bundle :: Generic 3D objects :: 1,1 :: chimerax.stl :: :: ",
-        "ChimeraX :: DataFormat :: StereoLithography :: stl :: Generic 3D objects :: .stl :: :: http://en.wikipedia.org/wiki/STL_%28file_format%29 :: :: :: Simple triangle format used by 3D printers",
+        "ChimeraX :: DataFormat :: StereoLithography :: stl :: Generic 3D objects :: .stl :: :: http://en.wikipedia.org/wiki/STL_(file_format) :: :: :: Simple triangle format used by 3D printers",
         "ChimeraX :: Open :: StereoLithography :: :: ",
         "ChimeraX :: Save :: StereoLithography :: :: ",
     ],

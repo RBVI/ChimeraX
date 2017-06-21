@@ -97,7 +97,7 @@ devel_build_desc = CmdDesc(required=[("path", OpenFolderNameArg),],
                            synopsis='Build a wheel for bundle')
 
 
-def devel_install(session, path, test=True):
+def devel_install(session, path, test=True, user=None):
     '''Build and install a wheel in for the source code in bundle path.
 
     Parameters
@@ -112,11 +112,12 @@ def devel_install(session, path, test=True):
     bb = _get_builder(path, logger)
     if bb is not None:
         with StringPlainTextLog(logger) as log:
-            bb.make_install(session, test=test)
+            bb.make_install(session, test=test, user=user)
             msg = log.getvalue()
         logger.info(msg)
 devel_install_desc = CmdDesc(required=[("path", OpenFolderNameArg),],
-                             optional=[("test", BoolArg)],
+                             optional=[("test", BoolArg),
+                                       ("user", BoolArg)],
                              synopsis='Build and install wheel for bundle')
 
 
