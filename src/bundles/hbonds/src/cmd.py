@@ -100,28 +100,25 @@ def cmd_hbonds(session, spec=None, intramodel=True, intermodel=True, relax=True,
     if not make_pseudobonds:
         return
 
-    #TODO
     if two_colors:
         # color relaxed constraints differently
-        precise = findHBonds(session, structures,
+        precise = find_hbonds(session, structures,
             intermodel=intermodel, intramodel=intramodel,
             donors=donors, acceptors=acceptors,
             inter_submodel=inter_submodel, cache_da=cache_DA)
         if sel_restrict and donors == None:
             precise = filter_hbonds_by_sel(precise, sel_atoms, sel_restrict)
         if not intra_mol:
-            precise = [hb for hb in precise if hb[0].molecule.rootForAtom(hb[0], True)
-                    != hb[1].molecule.rootForAtom(hb[1], True)]
+            precise = [hb for hb in precise is mol_map[hb[0]] != mol_map[hb[1]]]
         if not intra_res:
             precise = [hb for hb in precise if hb[0].residue != hb[1].residue]
         # give another opportunity to read the result...
-        replyobj.status("%d hydrogen bonds found" % len(hbonds),
-                                blankAfter=120)
+        session.logger.status("%d hydrogen bonds found" % len(hbonds), blank_after=120)
 
-    from chimera.misc import getPseudoBondGroup
-    pbg = getPseudoBondGroup("hydrogen bonds", issueHint=True)
+    pbg = session.pb_manager.get_group("hydrogen bonds")
     if not retain_current:
-        pbg.deleteAll()
+        pbg.clear()
+    #TODO
     pbg.line_width = line_width
     line_types = ["solid", "dashed", "dotted", "dash-dot", "dash-dot-dot"]
     try:

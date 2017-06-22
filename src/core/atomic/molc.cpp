@@ -1418,6 +1418,16 @@ extern "C" EXPORT void set_pseudobond_group_graphics_change(void *pbgroups, size
     error_wrap_array_set<Proxy_PBGroup, int, int>(pbg, n, &Proxy_PBGroup::set_graphics_changes, changed);
 }
 
+extern "C" EXPORT void pseudobond_group_clear(void *pbgroup)
+{
+    Proxy_PBGroup *pbg = static_cast<Proxy_PBGroup *>(pbgroup);
+    try {
+        pbg->clear();
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void *pseudobond_group_new_pseudobond(void *pbgroup, void *atom1, void *atom2)
 {
     Proxy_PBGroup *pbg = static_cast<Proxy_PBGroup *>(pbgroup);

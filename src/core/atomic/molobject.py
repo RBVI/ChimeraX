@@ -560,6 +560,11 @@ class PseudobondGroupData:
         astype = _pseudobonds, read_only = True,
         doc = "Group pseudobonds as a :class:`.Pseudobonds` collection. Read only.")
 
+    def clear(self):
+        '''Delete all pseudobonds in group'''
+        f = c_function('pseudobond_group_clear', args = (ctypes.c_void_p))
+        f(self._c_pointer)
+
     def new_pseudobond(self, atom1, atom2):
         '''Create a new pseudobond between the specified :class:`Atom` objects.'''
         f = c_function('pseudobond_group_new_pseudobond',
