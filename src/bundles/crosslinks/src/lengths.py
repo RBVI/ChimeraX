@@ -109,7 +109,7 @@ class EnsemblePlot(Plot):
 
         # Create matplotlib panel
         e = ensemble_model
-        title = 'Crosslink length for %d models %s' % (e.num_coord_sets, e.name)
+        title = 'Crosslink length for %d models %s' % (e.num_coordsets, e.name)
         Plot.__init__(self, session, tool_name = "Crosslinks", title = title)
 
         self.pbond = pbond

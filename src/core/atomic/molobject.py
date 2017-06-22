@@ -111,17 +111,17 @@ class Atom(State):
         if style == None:
             from ..core_settings import settings
             style = settings.atomspec_contents
-        if style.starts_with("simple"):
+        if style.startswith("simple"):
             atom_str = self.name
-        elif style.starts_with("command"):
+        elif style.startswith("command"):
             atom_str = '@' + self.name
         else:
-            atom_str = '@' + self.serial_number
+            atom_str = '@' + str(self.serial_number)
         if atom_only:
             return atom_str
-        if cmd_style:
-            return '%s%s' % (str(self.residue), atom_str)
-        return '%s %s' % (str(self.residue), atom_str)
+        if not style.startswith('simple'):
+            return '%s%s' % (self.residue.__str__(style=style), atom_str)
+        return '%s %s' % (self.residue.__str__(style=style), atom_str)
 
     def atomspec(self):
         return self.residue.atomspec() + '@' + self.name
@@ -181,7 +181,7 @@ class Atom(State):
     residue = c_property('atom_residue', cptr, astype = _residue, read_only = True,
         doc = ":class:`Residue` the atom belongs to.")
     selected = c_property('atom_selected', npy_bool, doc="Whether the atom is selected.")
-    serial_number = c_property('atom_serial_number', uint32, read_only = True,
+    serial_number = c_property('atom_serial_number', int32, read_only = True,
         doc="Atom serial number from input file.")
     structure = c_property('atom_structure', cptr, astype=_atomic_structure, read_only=True,
         doc=":class:`.AtomicStructure` the atom belongs to")
@@ -713,21 +713,21 @@ class Residue(State):
 
     def __lt__(self, other):
         # for sorting (objects of the same type)
-        sc = self.chain
-        oc = other.chain
-        if sc != oc:
-            if sc is None:
-                return True
-            if oc is None:
-                return False
-            return sc < oc
-        return self.number < other.number \
-            if self.number != other.number else self.insert_code < other.insert_code
+        if self.structure != other.structure:
+            return self.structure < other.structure
 
-    def __str__(self, residue_only = False, omit_structure = False):
-        from ..core_settings import settings
-        cmd_style = settings.atomspec_contents == "command-line specifier"
+        if self.chain_id != other.chain_id:
+            return self.chain_id < other.chain_id
+
+        return self.number < other.number \
+            if self.number != other.number else self.insertion_code < other.insertion_code
+
+    def __str__(self, residue_only = False, omit_structure = False, style = None):
+        if style == None:
+            from ..core_settings import settings
+            style = settings.atomspec_contents
         ic = self.insertion_code
+        cmd_style = not style.startswith("simple")
         if cmd_style:
             res_str = ":" + str(self.number) + ic
         else:
@@ -1127,6 +1127,8 @@ class StructureSeq(Sequence):
             return self.structure < other.structure
         if self.chain_id != other.chain_id:
             return self.chain_id < other.chain_id
+        if self is other: # optimization to avoid comparing residue lists if possible
+            return False
         return self.residues < other.residues
 
     chain_id = c_property('sseq_chain_id', string, read_only = True)
@@ -1428,7 +1430,7 @@ class StructureData:
     ''':class:`.Bonds` collection containing all bonds of the structure.'''
     chains = c_property('structure_chains', cptr, 'num_chains', astype = _chains, read_only = True)
     ''':class:`.Chains` collection containing all chains of the structure.'''
-    coordset_ids = c_property('structure_coordset_ids', int32, 'num_coord_sets', read_only = True)
+    coordset_ids = c_property('structure_coordset_ids', int32, 'num_coordsets', read_only = True)
     '''Return array of ids of all coordinate sets.'''
     coordset_size = c_property('structure_coordset_size', int32, read_only = True)
     '''Return the size of the active coordinate set array.'''
@@ -1442,7 +1444,7 @@ class StructureData:
     '''Number of visible atoms in structure. Read only.'''
     num_bonds = c_property('structure_num_bonds', size_t, read_only = True)
     '''Number of bonds in structure. Read only.'''
-    num_coord_sets = c_property('structure_num_coord_sets', size_t, read_only = True)
+    num_coordsets = c_property('structure_num_coordsets', size_t, read_only = True)
     '''Number of coordinate sets in structure. Read only.'''
     num_chains = c_property('structure_num_chains', size_t, read_only = True)
     '''Number of chains structure. Read only.'''

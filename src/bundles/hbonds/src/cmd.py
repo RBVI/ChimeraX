@@ -14,7 +14,7 @@
 from .hbond import rec_dist_slop, rec_angle_slop, find_hbonds
 from chimerax.core.colors import Color
 
-def cmd_hbonds(session, structures=None, intramodel=True, intermodel=True, relax=True,
+def cmd_hbonds(session, spec=None, intramodel=True, intermodel=True, relax=True,
     dist_slop=rec_dist_slop, angle_slop=rec_angle_slop, two_colors=False,
     sel_restrict=None, line_width=1.0, save_file=None, batch=False,
     inter_submodel=False, make_pseudobonds=True, retain_current=False,
@@ -26,13 +26,14 @@ def cmd_hbonds(session, structures=None, intramodel=True, intermodel=True, relax
 
        Use hbonds.find_hbonds for other programming applications.
     """
+    structures = spec
 
     from chimerax.core.errors import UserError
     bond_color = color
 
     donors = acceptors = None
     if sel_restrict is not None:
-        from chimera.core.atomic import selected_atoms
+        from chimerax.core.atomic import selected_atoms
         sel_atoms = selected_atoms(session)
         if not sel_atoms:
             if batch:
@@ -56,7 +57,7 @@ def cmd_hbonds(session, structures=None, intramodel=True, intermodel=True, relax
         # cache trajectories by default
         cache_DA = len(structures) == 1 and structures[0].num_coordsets > 1
 
-    hbonds = find_hbonds(structures, intermodel=intermodel,
+    hbonds = find_hbonds(session, structures, intermodel=intermodel,
         intramodel=intramodel, dist_slop=dist_slop,
         angle_slop=angle_slop, donors=donors, acceptors=acceptors,
         inter_submodel=inter_submodel, cache_da=cache_DA)
@@ -77,8 +78,12 @@ def cmd_hbonds(session, structures=None, intramodel=True, intermodel=True, relax
     output_info = (intermodel, intramodel, relax, dist_slop, angle_slop,
                             structures, hbonds)
     if log:
-        import sys
-        _file_output(sys.stdout, output_info, naming_style)
+        import io
+        buffer = io.StringIO()
+        buffer.write("<pre>")
+        _file_output(buffer, output_info, naming_style)
+        buffer.write("</pre>")
+        session.logger.info(buffer.getvalue(), is_html=True)
     if save_file == '-':
         from chimerax.core.errors import LimitationError
         raise LimitationError("Browsing for file name not yet implemented")
@@ -91,14 +96,14 @@ def cmd_hbonds(session, structures=None, intramodel=True, intermodel=True, relax
     elif save_file is not None:
         _file_output(save_file, output_info, naming_style)
 
-    session.logger.status("%d hydrogen bonds found" % len(hbonds), log=True, blankAfter=120)
+    session.logger.status("%d hydrogen bonds found" % len(hbonds), log=True, blank_after=120)
     if not make_pseudobonds:
         return
 
     #TODO
     if two_colors:
         # color relaxed constraints differently
-        precise = findHBonds(structures,
+        precise = findHBonds(session, structures,
             intermodel=intermodel, intramodel=intramodel,
             donors=donors, acceptors=acceptors,
             inter_submodel=inter_submodel, cache_da=cache_DA)
@@ -215,7 +220,7 @@ def _file_output(file_name, output_info, naming_style):
     # figure out field widths to make things line up
     dwidth = awidth = hwidth = 0
     labels = {}
-    from chimerax.geometry import distance
+    from chimerax.core.geometry import distance
     for don, acc in hbonds:
         labels[don] = don.__str__(style=naming_style)
         labels[acc] = acc.__str__(style=naming_style)

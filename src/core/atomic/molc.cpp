@@ -719,10 +719,10 @@ extern "C" EXPORT void atom_is_sidechain(void *atoms, size_t n, npy_bool *is_sid
     }
 }
 
-extern "C" EXPORT void atom_serial_number(void *atoms, size_t n, uint32_t *index)
+extern "C" EXPORT void atom_serial_number(void *atoms, size_t n, int32_t *index)
 {
     Atom **a = static_cast<Atom **>(atoms);
-    error_wrap_array_get<Atom, unsigned int, unsigned int>(a, n, &Atom::serial_number, index);
+    error_wrap_array_get(a, n, &Atom::serial_number, index);
 }
 
 extern "C" EXPORT void atom_structure(void *atoms, size_t n, pyobject_t *molp)
@@ -3443,7 +3443,7 @@ extern "C" EXPORT void structure_coordset_size(void *mols, size_t n, int32_t *co
     }
 }
 
-extern "C" EXPORT void structure_num_coord_sets(void *mols, size_t n, size_t *ncoord_sets)
+extern "C" EXPORT void structure_num_coordsets(void *mols, size_t n, size_t *ncoord_sets)
 {
     Structure **m = static_cast<Structure **>(mols);
     error_wrap_array_get(m, n, &Structure::num_coord_sets, ncoord_sets);

@@ -146,7 +146,7 @@ def structure_info(m):
     line = ('\n%d atoms, %d bonds, %d residues, %d chains (%s)'
             % (m.num_atoms, m.num_bonds, m.num_residues, m.num_chains,
                ','.join(m.residues.unique_chain_ids)))
-    ncs = m.num_coord_sets
+    ncs = m.num_coordsets
     if ncs > 1:
         line += ', %d coordsets' % ncs
     pmap = m.pbg_map
