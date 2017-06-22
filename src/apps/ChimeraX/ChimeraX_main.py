@@ -596,7 +596,8 @@ def init(argv, event_loop=True):
             return os.EX_SOFTWARE
 
     # Open files dropped on application
-    sess.ui.open_pending_files()
+    if opts.gui:
+        sess.ui.open_pending_files()
     
     # Allow the event_loop to be disabled, so we can be embedded in
     # another application
