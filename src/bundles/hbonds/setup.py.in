@@ -1,5 +1,14 @@
 # vim: set expandtab ts=4 sw=4:
 
+#############################################################
+# THIS FILE IS NO LONGER USED FOR BUILDING THE BUNDLE.      #
+# bundle_info.xml NOW CONTAINS ALL INFORMATION FOR BUILDING #
+# BUNDLE USING THE "devel" COMMAND IN ChimaerX.             #
+#                                                           #
+# THIS FILE IS RETAINED AS A TEMPLATE IN CASE YOU WANT TO   #
+# DO SOMETHING FANCIER THAN THE DEFAULT BUILD ALLOWS.       #
+#############################################################
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
