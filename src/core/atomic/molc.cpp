@@ -1406,6 +1406,63 @@ extern "C" EXPORT void pseudobond_group_category(void *pbgroups, int n, void **c
     }
 }
 
+extern "C" EXPORT void pseudobond_group_color(void *groups, size_t n, uint8_t *rgba)
+{
+    Proxy_PBGroup **g = static_cast<Proxy_PBGroup **>(groups);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            const Rgba &c = g[i]->color();
+            *rgba++ = c.r;
+            *rgba++ = c.g;
+            *rgba++ = c.b;
+            *rgba++ = c.a;
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void set_pseudobond_group_color(void *groups, size_t n, uint8_t *rgba)
+{
+    Proxy_PBGroup **g = static_cast<Proxy_PBGroup **>(groups);
+    try {
+        Rgba c;
+        for (size_t i = 0; i != n; ++i) {
+            c.r = *rgba++;
+            c.g = *rgba++;
+            c.b = *rgba++;
+            c.a = *rgba++;
+            g[i]->set_color(c);
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void pseudobond_group_halfbond(void *groups, size_t n, npy_bool *halfb)
+{
+    Proxy_PBGroup **g = static_cast<Proxy_PBGroup **>(groups);
+    error_wrap_array_get<Proxy_PBGroup, bool, npy_bool>(g, n, &Proxy_PBGroup::halfbond, halfb);
+}
+
+extern "C" EXPORT void set_pseudobond_group_halfbond(void *groups, size_t n, npy_bool *halfb)
+{
+    Proxy_PBGroup **g = static_cast<Proxy_PBGroup **>(groups);
+    error_wrap_array_set<Proxy_PBGroup, bool, npy_bool>(g, n, &Proxy_PBGroup::set_halfbond, halfb);
+}
+
+extern "C" EXPORT void pseudobond_group_radius(void *groups, size_t n, float32_t *radii)
+{
+    Proxy_PBGroup **g = static_cast<Proxy_PBGroup **>(groups);
+    error_wrap_array_get<Proxy_PBGroup, float>(g, n, &Proxy_PBGroup::radius, radii);
+}
+
+extern "C" EXPORT void set_pseudobond_group_radius(void *groups, size_t n, float32_t *radii)
+{
+    Proxy_PBGroup **g = static_cast<Proxy_PBGroup **>(groups);
+    error_wrap_array_set<Proxy_PBGroup, float>(g, n, &Proxy_PBGroup::set_radius, radii);
+}
+
 extern "C" EXPORT void pseudobond_group_graphics_change(void *pbgroups, size_t n, int *changed)
 {
     Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);

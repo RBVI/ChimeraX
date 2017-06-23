@@ -34,6 +34,8 @@ class PseudobondGroup(PseudobondGroupData, Model):
         self._handlers = []
         if s:
             s.add([self])            # Add pseudobond group as child model of structure
+        else:
+            session.models.add([self])
         
     def delete(self):
         if self._global_group:
@@ -77,6 +79,8 @@ class PseudobondGroup(PseudobondGroupData, Model):
     def _get_dashes(self):
         return self._dashes
     def _set_dashes(self, n):
+        if n == self._dashes:
+            return
         self._dashes = n
         pb = self._pbond_drawing
         if pb:
@@ -84,6 +88,8 @@ class PseudobondGroup(PseudobondGroupData, Model):
             self._pbond_drawing = None
             self._graphics_changed |= self._SHAPE_CHANGE
             self.redraw_needed(shape_changed = True)
+        self.session.change_tracker.add_modified(self, "dashes changed")
+
     dashes = property(_get_dashes, _set_dashes)
 
     def _update_graphics_if_needed(self, *_):
