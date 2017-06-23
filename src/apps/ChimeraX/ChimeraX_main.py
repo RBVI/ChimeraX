@@ -597,7 +597,7 @@ def init(argv, event_loop=True):
 
     # Open files dropped on application
     if opts.gui:
-        sess.ui.open_pending_files()
+        sess.ui.open_pending_files(ignore_files = args)
     
     # Allow the event_loop to be disabled, so we can be embedded in
     # another application
