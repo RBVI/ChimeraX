@@ -1851,6 +1851,23 @@ class Structure(Model, StructureData):
         # print("AtomicStructure._atomspec_filter_atom", selected)
         return selected
 
+    def atomspec_zone(self, session, coords, distance, target_type, operator, results):
+        from ..geometry import find_close_points
+        atoms = self.atoms
+        a, _ = find_close_points(atoms.scene_coords, coords, distance)
+        if '<' in operator:
+            expand_by = atoms.filter(a)
+        else:
+            from numpy import ones, bool_
+            mask = ones(len(atoms), dtype=bool_)
+            mask[a] = 0
+            expand_by = atoms.filter(mask)
+        if target_type == ':':
+            expand_by = expand_by.unique_residues.atoms
+        elif target_type == '#':
+            expand_by = expand_by.unique_structures.atoms
+        results.add_atoms(expand_by)
+
 class AtomicStructure(Structure):
     """
     Bases: :class:`.StructureData`, :class:`.Model`, :class:`.Structure`

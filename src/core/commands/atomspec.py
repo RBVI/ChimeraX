@@ -602,27 +602,11 @@ class _ZoneSelector:
         my_results = Objects()
         self.model.find_matches(session, models, my_results)
         if my_results.num_atoms > 0:
-            # TODO: expand my_results before combining with results
-            from ..geometry import find_close_points
-            from ..atomic import AtomicStructure
-            from numpy import ones, bool_
-            base = my_results.atoms
-            b_coords = base.scene_coords
-            for s in session.models.list(type=AtomicStructure):
-                atoms = s.atoms
-                a_coords = atoms.scene_coords
-                a, b = find_close_points(a_coords, b_coords, self.distance)
-                if '<' in self.operator:
-                    expand_by = atoms.filter(a)
-                else:
-                    mask = ones(len(atoms), dtype=bool_)
-                    mask[a] = 0
-                    expand_by = atoms.filter(mask)
-                if self.target_type == ':':
-                    expand_by = expand_by.unique_residues.atoms
-                elif self.target_type == '#':
-                    expand_by = expand_by.unique_structures.atoms
-                my_results.add_atoms(expand_by)
+            # expand my_results before combining with results
+            coords = my_results.atoms.scene_coords
+            for m in session.models.list():
+                m.atomspec_zone(session, coords, self.distance,
+                                self.target_type, self.operator, my_results)
         results.combine(my_results)
 
     def matches(self, session, model):

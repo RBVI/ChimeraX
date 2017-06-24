@@ -179,6 +179,10 @@ class Model(State, Drawing):
         # Return True if there are atoms in this model
         return False
 
+    def atomspec_zone(self, session, coords, distance, target_type, operator, results):
+        # Ignore zone request by default
+        pass
+
 
 class Models(State):
 
