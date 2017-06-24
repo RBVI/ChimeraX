@@ -303,8 +303,12 @@ class _AtomSpecSemantics:
     def part_range_list(self, ast):
         return _Part(ast.start, ast.end)
 
-    def attr_list(self, ast):
-        return _AttrList(ast)
+    def attribute_list(self, ast):
+        attr_test, attr_list = ast
+        if not attr_list:
+            return _AttrList([attr_test])
+        else:
+            return attr_list.insert(0, attr_test)
 
     def attr_test(self, ast):
         return _AttrTest(ast.no, ast.name, ast.op, ast.value)
@@ -419,6 +423,8 @@ class _SubPart:
             r = sub_repr
         else:
             r = "%s%s%s" % (self.Symbol, str(self.my_parts), sub_repr)
+        if self.my_attrs is not None:
+            r += "%s%s%s" % (self.Symbol, self.Symbol, str(self.my_attrs))
         # print("_SubPart.__str__", self.__class__, r)
         return r
 
@@ -475,6 +481,11 @@ class _Model(_SubPart):
     Symbol = '#'
 
     def find_matches(self, session, model_list, results):
+        if self.my_attrs is not None:
+            # Using UserError instead of LimitationError to
+            # avoid generating traceback in log
+            from ..errors import UserError
+            raise UserError("Atomspec attributes not supported yet")
         if self.my_parts:
             self.my_parts.find_matches(session, model_list, self.sub_parts, results)
         else:
