@@ -439,12 +439,7 @@ class _SubPart:
     def find_selected_parts(self, model, atoms, num_atoms, results):
         # Only filter if a spec for this level is present
         # TODO: account for my_attrs in addition to my_parts
-        if self.my_attrs is not None:
-            # Using UserError instead of LimitationError to
-            # avoid generating traceback in log
-            from ..errors import UserError
-            raise UserError("Atomspec attributes not supported yet")
-        if self.my_parts is not None:
+        if self.my_parts or self.my_attrs:
             atoms = self._filter_parts(model, atoms, num_atoms)
             num_atoms = len(atoms)
         if len(atoms) == 0:
@@ -463,7 +458,9 @@ class _SubPart:
 
     def _filter_parts(self, model, atoms, num_atoms):
         if not self.my_parts:
-            return atoms
+            mask = model.atomspec_filter(self.Symbol, atoms, num_atoms,
+                                         None, self.my_attrs)
+            return atoms.filter(mask)
         from ..objects import Objects
         results = Objects()
         for part in self.my_parts:
@@ -481,11 +478,11 @@ class _Model(_SubPart):
     Symbol = '#'
 
     def find_matches(self, session, model_list, results):
-        if self.my_attrs is not None:
-            # Using UserError instead of LimitationError to
-            # avoid generating traceback in log
-            from ..errors import UserError
-            raise UserError("Atomspec attributes not supported yet")
+        model_list = [model for model in model_list
+                      if not self.my_attrs or
+                      model.atomspec_model_attr(self.my_attrs)]
+        if not model_list:
+            return
         if self.my_parts:
             self.my_parts.find_matches(session, model_list, self.sub_parts, results)
         else:

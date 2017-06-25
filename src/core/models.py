@@ -183,6 +183,15 @@ class Model(State, Drawing):
         # Ignore zone request by default
         pass
 
+    def atomspec_model_attr(self, attrs):
+        # Return true is attributes specifier matches model
+        if attrs is not None:
+            # Using UserError instead of LimitationError to
+            # avoid generating traceback in log
+            from .errors import UserError
+            raise UserError("Atomspec attributes not supported for models yet")
+        return False
+
 
 class Models(State):
 

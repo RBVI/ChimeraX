@@ -1719,6 +1719,11 @@ class Structure(Model, StructureData):
         return self.atoms
 
     def atomspec_filter(self, level, atoms, num_atoms, parts, attrs):
+        if attrs is not None:
+            # Using UserError instead of LimitationError to
+            # avoid generating traceback in log
+            from ..errors import UserError
+            raise UserError("Atomspec attributes not supported for structures yet")
         if parts is None:
             parts = []
         if attrs is None:
