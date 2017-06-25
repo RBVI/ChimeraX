@@ -311,7 +311,34 @@ class _AtomSpecSemantics:
             return attr_list.insert(0, attr_test)
 
     def attr_test(self, ast):
-        return _AttrTest(ast.no, ast.name, ast.op, ast.value)
+        import operator
+        if ast.no is not None:
+            op = operator.not_
+            v = None
+        elif ast.value is None:
+            op = operator.truth
+            v = None
+        else:
+            if ast.op == "=":
+                op = operator.eq
+            elif ast.op == "!=" or ast.op == "<>":
+                op = operator.ne
+            elif ast.op == ">=":
+                op = operator.ge
+            elif ast.op == ">":
+                op = operator.gt
+            elif ast.op == "<=":
+                op = operator.le
+            elif ast.op == "<":
+                op = operator.lt
+            try:
+                v = int(ast.value)
+            except ValueError:
+                try:
+                    v = float(ast.value)
+                except ValueError:
+                    v = ast.value
+        return _AttrTest(ast.no, ast.name, op, v)
 
     def zone_selector(self, ast):
         operator, distance = ast

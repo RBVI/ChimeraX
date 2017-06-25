@@ -185,12 +185,20 @@ class Model(State, Drawing):
 
     def atomspec_model_attr(self, attrs):
         # Return true is attributes specifier matches model
-        if attrs is not None:
-            # Using UserError instead of LimitationError to
-            # avoid generating traceback in log
-            from .errors import UserError
-            raise UserError("Atomspec attributes not supported for models yet")
-        return False
+        for attr in attrs:
+            try:
+                v = getattr(self, attr.name)
+            except AttributeError:
+                if not attr.no:
+                    return False
+            else:
+                if attr.value is None:
+                    tv = attr.op(v)
+                else:
+                    tv = attr.op(v, attr.value)
+                if not tv:
+                    return False
+        return True
 
 
 class Models(State):
