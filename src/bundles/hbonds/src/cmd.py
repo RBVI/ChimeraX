@@ -19,7 +19,7 @@ def cmd_hbonds(session, spec=None, intramodel=True, intermodel=True, relax=True,
     sel_restrict=None, radius=1.0, save_file=None, batch=False,
     inter_submodel=False, make_pseudobonds=True, retain_current=False,
     reveal=False, naming_style=None, log=False, cache_DA=None,
-    color=Color((0.0, 0.8, 0.9, 1.0)), slop_color=Color((0.95, 0.5, 0.0, 1.0)),
+    color=Color((0, 0.8, 0.9)), slop_color=Color((0.95, 0.5, 0.0)),
     show_dist=False, intra_res=True, intra_mol=True, dashes=0):
 
     """Wrapper to be called by command line.
@@ -148,7 +148,9 @@ def cmd_hbonds(session, spec=None, intramodel=True, intermodel=True, relax=True,
                 color = slop_color
         else:
             color = bond_color
-        pb.color = color.rgba
+        rgba = pb.color
+        rgba[:3] = color.uint8x4()[:3] # preserve transparency
+        pb.color = rgba
         if reveal:
             for end in [don, acc]:
                 if end.display:
@@ -264,7 +266,7 @@ def register_command(logger):
             ('show_dist', BoolArg),
             ('sel_restrict', Or(EnumOf(('cross', 'both', 'any')), AtomsArg)),
             ('spec', StructuresArg), ('inter_submodel', BoolArg), ('intermodel', BoolArg),
-            ('intramodel', BoolArg), ('intra_mol', BoolArg), ('intrares', BoolArg),
+            ('intramodel', BoolArg), ('intra_mol', BoolArg), ('intra_res', BoolArg),
             ('cache_DA', FloatArg), ('relax', BoolArg), ('dist_slop', FloatArg),
             ('angle_slop', FloatArg), ('two_colors', BoolArg), ('slop_color', ColorArg),
             ('reveal', BoolArg), ('retain_current', BoolArg), ('save_file', SaveFileNameArg),
