@@ -170,12 +170,15 @@ class UI(QApplication):
             return True
         return QApplication.event(self, event)
 
-    def open_pending_files(self):
+    def open_pending_files(self, ignore_files = ()):
+        # Note about ignore_files:  macOS 10.12 generates QFileOpenEvent for arguments specified
+        # on the command-line, but are code also opens those files, so ignore files we already processed.
         for path in self._files_to_open:
-            try:
-                _open_dropped_file(self.session, path)
-            except Exception as e:
-                self.session.logger.warning('Failed opening file %s:\n%s' % (path, str(e)))
+            if path not in ignore_files:
+                try:
+                    _open_dropped_file(self.session, path)
+                except Exception as e:
+                    self.session.logger.warning('Failed opening file %s:\n%s' % (path, str(e)))
         self._files_to_open.clear()
                     
     def deregister_for_keystrokes(self, sink, notfound_okay=False):

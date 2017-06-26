@@ -17,67 +17,72 @@
 # implements PEP 426's pydist.json
 from distlib import metadata
 metadata.METADATA_FILENAME = "metadata.json"
-from setuptools import setup
-import os
-import sys
+from setuptools import setup, Extension
+import os, os.path, sys
 
-pkg_dir = "PKG_DIR"  # DO NOT CHANGE
-shlib_dir = "SHLIB_DIR"  # DO NOT CHANGE
-data_dir = "DATA_DIR"  # DO NOT CHANGE
-if sys.platform.startswith('win'):
-    # shared libraries are relative to bindir
-    rel_inst_shlib_dir = ""  # shlib_dir == bindir
+if sys.platform == "darwin":
+    # Tested with macOS 10.12
+    # Assume Python executable is in ROOT/bin/python
+    # and make include directory be ROOT/include
+    root = os.path.dirname(os.path.dirname(sys.executable))
+    inc_dir = os.path.join(root, "include")
+    lib_dir = os.path.join(root, "lib")
+    libraries = []
+    snfw = '/Library/Frameworks/3DconnexionClient.framework'
+    sninc = snfw + '/Versions/Current/Headers'
+    compiler_flags = ["-std=c++11", "-stdlib=libc++"]
+    env = "Environment :: MacOS X :: Aqua",
+    op_sys = "Operating System :: MacOS :: MacOS X"
+
+    ext_mods = [Extension("PKG_NAME._spacenavigator",
+                          define_macros=[("MAJOR_VERSION", 0),
+                                         ("MINOR_VERSION", 1)],
+                          extra_compile_args = compiler_flags,
+                          include_dirs=[inc_dir, sninc],
+                          library_dirs=[lib_dir],
+                          libraries=libraries,
+                          extra_link_args = ['-F/Library/Frameworks', '-framework', '3DconnexionClient'],
+                          sources=["spacenav.cpp"])]
 else:
-    # shared libraries are relative to rootdir
-    rel_inst_shlib_dir = os.path.basename(shlib_dir)
-# data files are relative to rootdir
-rel_inst_data_dir = os.path.basename(data_dir)
+    ext_mods = []
 
 description = """
-Support 3Dconnexion 3D mice: SpaceNavigator, SpaceMouse, SpaceBall, etc.
+This bundle provides allows using 3dconnexion space navigator devices to move models.
 """
-# or FIXME description = open('ReadMe.rst', encoding='utf-8').read()
 
 setup(
     name="BUNDLE_NAME",
     version="BUNDLE_VERSION",  # PEP 440, should match Development Status below
-    description="Move models with SpaceNavigator device",  # one line synopsis
+    description="Space Navigator device support",  # one line synopsis
     long_description=description,  # see above
     author="UCSF RBVI",
     author_email="chimerax@cgl.ucsf.edu",
     url="https://www.rbvi.ucsf.edu/chimerax/",
     python_requires=">= 3.5",
     package_dir={
-        "PKG_NAME": pkg_dir,    # directory package's source files are in
+        "PKG_NAME": "src",    # directory package's source files are in
     },
     packages=[
         "PKG_NAME",
     ],
-    package_data={
-        "PKG_NAME": [ "*.PYMOD_EXT" ]
-    },
+    ext_modules=ext_mods,
     install_requires=[
         "ChimeraX-Core >= 0.1",
-        # TODO: numpy
     ],
     classifiers=[
         # From https://pypi.python.org/pypi?%3Aaction=list_classifiers
         # and our own ChimeraX classifiers.
-        "Development Status :: 2 - Pre-Alpha",  # TODO: update as appropriate
-        "Environment :: MacOS X :: Aqua",
-        "Environment :: Win32 (MS Windows)",
-        "Environment :: X11 Applications",
+        "Development Status :: 5 - Stable",
+        env,
+        op_sys,
         "Framework :: ChimeraX",
         "Intended Audience :: Science/Research",
         "License :: Free for non-commercial use",
-        "Operating System :: MacOS :: MacOS X",
-        "Operating System :: Microsoft :: Windows :: Windows 10",
-        "Operating System :: POSIX :: Linux",
         "Programming Language :: Python :: 3",
         "Topic :: Scientific/Engineering :: Visualization",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
-        "ChimeraX :: Bundle :: General :: 1,1 :: PKG_NAME :: chimerax.spacenavigator :: ",
+        "ChimeraX :: Bundle :: General :: 1,1 :: chimerax.spacenavigator :: :: ",
         "ChimeraX :: Command :: device snav :: General :: control SpaceNavigator device",
     ],
 )

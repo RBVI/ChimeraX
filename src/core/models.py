@@ -179,6 +179,27 @@ class Model(State, Drawing):
         # Return True if there are atoms in this model
         return False
 
+    def atomspec_zone(self, session, coords, distance, target_type, operator, results):
+        # Ignore zone request by default
+        pass
+
+    def atomspec_model_attr(self, attrs):
+        # Return true is attributes specifier matches model
+        for attr in attrs:
+            try:
+                v = getattr(self, attr.name)
+            except AttributeError:
+                if not attr.no:
+                    return False
+            else:
+                if attr.value is None:
+                    tv = attr.op(v)
+                else:
+                    tv = attr.op(v, attr.value)
+                if not tv:
+                    return False
+        return True
+
 
 class Models(State):
 

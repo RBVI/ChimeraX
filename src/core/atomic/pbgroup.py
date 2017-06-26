@@ -56,10 +56,13 @@ class PseudobondGroup(PseudobondGroupData, Model):
         # For global pseudobond groups:
         # Detect when atoms moved so pseudobonds must be redrawn.
         # TODO: Update only when atoms move or are shown hidden, not when anything shown or hidden.
+        # TODO: Only update on selection change if pseudobond atoms selection changed.
+        from ..selection import SELECTION_CHANGED
         t = session.triggers
         self._handlers = [
             t.add_handler('graphics update',self._update_graphics_if_needed),
-            t.add_handler('shape changed', lambda *args, s=self: s._update_graphics())
+            t.add_handler('shape changed', lambda *args, s=self: s._update_graphics()),
+            t.add_handler(SELECTION_CHANGED, lambda *args, s=self: s._update_graphics())
         ]
 
     def removed_from_session(self, session):

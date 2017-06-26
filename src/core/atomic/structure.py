@@ -1719,6 +1719,11 @@ class Structure(Model, StructureData):
         return self.atoms
 
     def atomspec_filter(self, level, atoms, num_atoms, parts, attrs):
+        if attrs is not None:
+            # Using UserError instead of LimitationError to
+            # avoid generating traceback in log
+            from ..errors import UserError
+            raise UserError("Atomspec attributes not supported for structures yet")
         if parts is None:
             parts = []
         if attrs is None:
@@ -1850,6 +1855,23 @@ class Structure(Model, StructureData):
             selected = numpy.logical_or(selected, s)
         # print("AtomicStructure._atomspec_filter_atom", selected)
         return selected
+
+    def atomspec_zone(self, session, coords, distance, target_type, operator, results):
+        from ..geometry import find_close_points
+        atoms = self.atoms
+        a, _ = find_close_points(atoms.scene_coords, coords, distance)
+        if '<' in operator:
+            expand_by = atoms.filter(a)
+        else:
+            from numpy import ones, bool_
+            mask = ones(len(atoms), dtype=bool_)
+            mask[a] = 0
+            expand_by = atoms.filter(mask)
+        if target_type == ':':
+            expand_by = expand_by.unique_residues.atoms
+        elif target_type == '#':
+            expand_by = expand_by.unique_structures.atoms
+        results.add_atoms(expand_by)
 
 class AtomicStructure(Structure):
     """
