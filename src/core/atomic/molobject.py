@@ -551,14 +551,25 @@ class PseudobondGroupData:
 
     category = c_property('pseudobond_group_category', string, read_only = True,
         doc = "Name of the pseudobond group.  Read only string.")
+    color = c_property('pseudobond_group_color', uint8, 4,
+        doc="Sets the color attribute of current pseudobonds and new pseudobonds")
+    halfbond = c_property('pseudobond_group_halfbond', npy_bool,
+        doc = "Sets the halfbond attribute of current pseudobonds and new pseudobonds")
     num_pseudobonds = c_property('pseudobond_group_num_pseudobonds', size_t, read_only = True,
         doc = "Number of pseudobonds in group. Read only.")
-    structure = c_property('pseudobond_group_structure', cptr, astype = _atomic_structure,
-        read_only = True, doc ="Structure pseudobond group is owned by.  Returns None if called"
-        "on a group managed by the global pseudobond manager")
     pseudobonds = c_property('pseudobond_group_pseudobonds', cptr, 'num_pseudobonds',
         astype = _pseudobonds, read_only = True,
         doc = "Group pseudobonds as a :class:`.Pseudobonds` collection. Read only.")
+    radius = c_property('pseudobond_group_radius', float32,
+        doc = "Sets the radius attribute of current pseudobonds and new pseudobonds")
+    structure = c_property('pseudobond_group_structure', cptr, astype = _atomic_structure,
+        read_only = True, doc ="Structure that pseudobond group is owned by.  "
+        "Returns None if called on a group managed by the global pseudobond manager")
+
+    def clear(self):
+        '''Delete all pseudobonds in group'''
+        f = c_function('pseudobond_group_clear', args = (ctypes.c_void_p,))
+        f(self._c_pointer)
 
     def new_pseudobond(self, atom1, atom2):
         '''Create a new pseudobond between the specified :class:`Atom` objects.'''

@@ -16,11 +16,11 @@ from chimerax.core.colors import Color
 
 def cmd_hbonds(session, spec=None, intramodel=True, intermodel=True, relax=True,
     dist_slop=rec_dist_slop, angle_slop=rec_angle_slop, two_colors=False,
-    sel_restrict=None, line_width=1.0, save_file=None, batch=False,
+    sel_restrict=None, radius=1.0, save_file=None, batch=False,
     inter_submodel=False, make_pseudobonds=True, retain_current=False,
     reveal=False, naming_style=None, log=False, cache_DA=None,
     color=Color((0.0, 0.8, 0.9, 1.0)), slop_color=Color((0.95, 0.5, 0.0, 1.0)),
-    show_dist=False, intra_res=True, intra_mol=True, line_type="solid"):
+    show_dist=False, intra_res=True, intra_mol=True, dashes=0):
 
     """Wrapper to be called by command line.
 
@@ -100,49 +100,47 @@ def cmd_hbonds(session, spec=None, intramodel=True, intermodel=True, relax=True,
     if not make_pseudobonds:
         return
 
-    #TODO
     if two_colors:
         # color relaxed constraints differently
-        precise = findHBonds(session, structures,
+        precise = find_hbonds(session, structures,
             intermodel=intermodel, intramodel=intramodel,
             donors=donors, acceptors=acceptors,
             inter_submodel=inter_submodel, cache_da=cache_DA)
         if sel_restrict and donors == None:
             precise = filter_hbonds_by_sel(precise, sel_atoms, sel_restrict)
         if not intra_mol:
-            precise = [hb for hb in precise if hb[0].molecule.rootForAtom(hb[0], True)
-                    != hb[1].molecule.rootForAtom(hb[1], True)]
+            precise = [hb for hb in precise is mol_map[hb[0]] != mol_map[hb[1]]]
         if not intra_res:
             precise = [hb for hb in precise if hb[0].residue != hb[1].residue]
         # give another opportunity to read the result...
-        replyobj.status("%d hydrogen bonds found" % len(hbonds),
-                                blankAfter=120)
+        session.logger.status("%d hydrogen bonds found" % len(hbonds), blank_after=120)
 
-    from chimera.misc import getPseudoBondGroup
-    pbg = getPseudoBondGroup("hydrogen bonds", issueHint=True)
+    pbg = session.pb_manager.get_group("hydrogen bonds")
+    existing = {}
     if not retain_current:
-        pbg.deleteAll()
-    pbg.line_width = line_width
-    line_types = ["solid", "dashed", "dotted", "dash-dot", "dash-dot-dot"]
-    try:
-        ltVal = line_types.index(line_type) + 1
-    except ValueError:
-        raise MidasError("No known line_type '%s'; legal values are %s" % 
-            (line_type, ", ".join(line_types)))
-    pbg.line_type = ltVal
+        pbg.clear()
+    else:
+        for pb in pbg.pseudobonds:
+            a1, a2 = pb.atoms
+            existing.setdefault(a1, set()).add(a2)
+            existing.setdefault(a2, set()).add(a1)
+    pbg.radius = radius
+    pbg.dashes = dashes
 
     for don, acc in hbonds:
         nearest = None
         for h in [x for x in don.neighbors if x.element.number == 1]:
-            sqdist = h.xformCoord().sqdistance(acc.xformCoord())
+            sqdist = h.scene_coord.sqdistance(acc.scene_coord)
             if nearest is None or sqdist < nsqdist:
                 nearest = h
                 nsqdist = sqdist
         if nearest is not None:
             don = nearest
-        if don.associated(acc, "hydrogen bonds"):
+        if don in existing and acc in existing[don]:
             continue
-        pb = pbg.newPseudoBond(don, acc)
+        existing.setdefault(don, set()).add(acc)
+        existing.setdefault(acc, set()).add(don)
+        pb = pbg.new_pseudobond(don, acc)
         if two_colors:
             if (don, acc) in precise:
                 color = bond_color
@@ -150,15 +148,19 @@ def cmd_hbonds(session, spec=None, intramodel=True, intermodel=True, relax=True,
                 color = slop_color
         else:
             color = bond_color
-        pb.color = color
+        pb.color = color.rgba
         if reveal:
             for end in [don, acc]:
                 if end.display:
                     continue
-                for ea in end.residue.oslChildren():
+                for ea in end.residue.atoms:
                     ea.display = True
-    from StructMeasure import DistMonitor
+    #from StructMeasure import DistMonitor
     if show_dist:
+        from chimerax.core.errors import LimitationError
+        raise LimitationError("Showing distance on H-bonds not yet implemented")
+        #TODO
+    """
         DistMonitor.addMonitoredGroup(pbg)
     else:
         DistMonitor.removeMonitoredGroup(pbg)
@@ -168,6 +170,7 @@ def cmd_hbonds(session, spec=None, intramodel=True, intermodel=True, relax=True,
             triggers.addHandler(SCENE_TOOL_SAVE, _sceneSave, None)
             triggers.addHandler(SCENE_TOOL_RESTORE, _sceneRestore, None)
             _sceneHandlersAdded = True
+    """
 
 def filter_hbonds_by_sel(hbonds, sel_atoms, sel_restrict):
     filtered = []
@@ -255,9 +258,9 @@ def _file_output(file_name, output_info, naming_style):
 def register_command(logger):
     from chimerax.core.commands \
         import CmdDesc, register, BoolArg, FloatArg, ColorArg, Or, EnumOf, AtomsArg, \
-            StructuresArg, SaveFileNameArg
+            StructuresArg, SaveFileNameArg, NonNegativeIntArg
     desc = CmdDesc(
-        keyword = [('make_pseudobonds', BoolArg), ('line_width', FloatArg), ('color', ColorArg),
+        keyword = [('make_pseudobonds', BoolArg), ('radius', FloatArg), ('color', ColorArg),
             ('show_dist', BoolArg),
             ('sel_restrict', Or(EnumOf(('cross', 'both', 'any')), AtomsArg)),
             ('spec', StructuresArg), ('inter_submodel', BoolArg), ('intermodel', BoolArg),
@@ -266,7 +269,7 @@ def register_command(logger):
             ('angle_slop', FloatArg), ('two_colors', BoolArg), ('slop_color', ColorArg),
             ('reveal', BoolArg), ('retain_current', BoolArg), ('save_file', SaveFileNameArg),
             ('log', BoolArg), ('naming_style', EnumOf(('simple', 'command', 'serial'))),
-            ('batch', BoolArg)],
+            ('batch', BoolArg), ('dashes', NonNegativeIntArg)],
         synopsis = 'Find hydrogen bonds'
     )
     register('hbonds', desc, cmd_hbonds, logger=logger)

@@ -691,7 +691,8 @@ def _convert_keyword_types(kwds, bi, logger):
 
     result = {}
     for kw in kwds:
-        arg_type = get_arg(kwds[kw])
+        desc, arg_name = kwds[kw]
+        arg_type = get_arg(arg_name)
         if arg_type is None:
             continue
         result[kw] = arg_type
