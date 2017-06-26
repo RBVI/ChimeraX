@@ -41,6 +41,9 @@ wheel $(WHEEL): setup.py $(PYSRCS)
 	$(PYTHON_EXE) setup.py --no-user-cfg build
 	$(PYTHON_EXE) setup.py --no-user-cfg test
 	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel
+# Distutils names bundle platform as "any" because it is pure python but in fact it is
+# platform specific (e.g. Mac uses C++ compiled code) so put platform into wheel file name.
+	mv dist/$(WHL_BNDL_NAME)*.whl $(WHEEL)
 	rm -rf $(WHL_BNDL_NAME).egg-info
 
 install app-install: $(WHEEL)
