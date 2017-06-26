@@ -129,7 +129,7 @@ def color(session, objects, color=None, what=None,
             session.logger.warning('Label colors not supported yet')
 
     if 's' in target and (color is not None or map is not None):
-        from ..atomic import MolecularSurface, concatenate, Structure
+        from ..atomic import MolecularSurface, concatenate, Structure, PseudobondGroup
         msatoms = [m.atoms for m in objects.models
                    if isinstance(m, MolecularSurface) and not m.atoms.intersects(atoms)]
         satoms = concatenate(msatoms + [atoms]) if msatoms else atoms
@@ -138,7 +138,7 @@ def color(session, objects, color=None, what=None,
         ns = _set_surface_colors(session, satoms, color, opacity, bgcolor, map, palette, range, offset)
         # Handle non-molecular surfaces like density maps
         if color not in _SpecialColors:
-            mlist = [m for m in objects.models if not isinstance(m, (Structure, MolecularSurface))]
+            mlist = [m for m in objects.models if not isinstance(m, (Structure, MolecularSurface, PseudobondGroup))]
             for m in mlist:
                 _set_model_colors(session, m, color, map, opacity, palette, range, offset)
             ns += len(mlist)
@@ -158,23 +158,22 @@ def color(session, objects, color=None, what=None,
                     what.append('%d bonds' % len(bonds))
 
     if 'p' in target:
-        numbonds = 0
+        bl = []
         if atoms is not None:
             from .. import atomic
             bonds = atomic.interatom_pseudobonds(atoms)
             if len(bonds) > 0:
                 if color not in _SpecialColors and color is not None:
                     bonds.colors = color.uint8x4()
-                numbonds += len(bonds)
+                    bl.append(bonds)
         from ..atomic import PseudobondGroup
         for pbg in objects.models:
             if isinstance(pbg, PseudobondGroup):
                 if color not in _SpecialColors and color is not None:
-                    pbonds = pbg.pseudobonds
-                    pbonds.colors = color.uint8x4()
-                    numbonds += len(pbonds)
-        if numbonds > 0:
-            what.append('%d pseudobonds' % numbonds)
+                    pbg.color = color.uint8x4()
+                    bl.append(pbg.pseudobonds)
+        if bl:
+            what.append('%d pseudobonds' % len(atomic.concatenate(bl, remove_duplicates = True)))
 
     if 'd' in target:
         if not default_target:
