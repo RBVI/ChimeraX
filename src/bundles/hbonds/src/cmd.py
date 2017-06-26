@@ -257,21 +257,30 @@ def _file_output(file_name, output_info, naming_style):
         # we opened it, so close it...
         out_file.close()
 
-def register_command(logger):
+def cmd_xhbonds(session):
+    pbg = session.pb_manager.get_group("hydrogen bonds", create=False)
+    if pbg:
+        pbg.clear()
+
+def register_command(command_name, logger):
     from chimerax.core.commands \
         import CmdDesc, register, BoolArg, FloatArg, ColorArg, Or, EnumOf, AtomsArg, \
             StructuresArg, SaveFileNameArg, NonNegativeIntArg
-    desc = CmdDesc(
-        keyword = [('make_pseudobonds', BoolArg), ('radius', FloatArg), ('color', ColorArg),
-            ('show_dist', BoolArg),
-            ('sel_restrict', Or(EnumOf(('cross', 'both', 'any')), AtomsArg)),
-            ('spec', StructuresArg), ('inter_submodel', BoolArg), ('intermodel', BoolArg),
-            ('intramodel', BoolArg), ('intra_mol', BoolArg), ('intra_res', BoolArg),
-            ('cache_DA', FloatArg), ('relax', BoolArg), ('dist_slop', FloatArg),
-            ('angle_slop', FloatArg), ('two_colors', BoolArg), ('slop_color', ColorArg),
-            ('reveal', BoolArg), ('retain_current', BoolArg), ('save_file', SaveFileNameArg),
-            ('log', BoolArg), ('naming_style', EnumOf(('simple', 'command', 'serial'))),
-            ('batch', BoolArg), ('dashes', NonNegativeIntArg)],
-        synopsis = 'Find hydrogen bonds'
-    )
-    register('hbonds', desc, cmd_hbonds, logger=logger)
+    if command_name == "hbonds":
+        desc = CmdDesc(
+            keyword = [('make_pseudobonds', BoolArg), ('radius', FloatArg), ('color', ColorArg),
+                ('show_dist', BoolArg),
+                ('sel_restrict', Or(EnumOf(('cross', 'both', 'any')), AtomsArg)),
+                ('spec', StructuresArg), ('inter_submodel', BoolArg), ('intermodel', BoolArg),
+                ('intramodel', BoolArg), ('intra_mol', BoolArg), ('intra_res', BoolArg),
+                ('cache_DA', FloatArg), ('relax', BoolArg), ('dist_slop', FloatArg),
+                ('angle_slop', FloatArg), ('two_colors', BoolArg), ('slop_color', ColorArg),
+                ('reveal', BoolArg), ('retain_current', BoolArg), ('save_file', SaveFileNameArg),
+                ('log', BoolArg), ('naming_style', EnumOf(('simple', 'command', 'serial'))),
+                ('batch', BoolArg), ('dashes', NonNegativeIntArg)],
+            synopsis = 'Find hydrogen bonds'
+        )
+        register('hbonds', desc, cmd_hbonds, logger=logger)
+    else:
+        desc = CmdDesc(synopsis = 'Clear hydrogen bonds')
+        register('~hbonds', desc, cmd_xhbonds, logger=logger)
