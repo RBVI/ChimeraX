@@ -115,7 +115,13 @@ class Model(State, Drawing):
             p = getattr(self, 'parent', None)
             return p is None or p.visible
         return False
-    
+ 
+    def __lt__(self, other):
+        # for sorting (objects of the same type)
+        if self.id is None:
+            return self.name < other.name
+        return self.id < other.id
+
     def _set_display(self, display):
         Drawing.set_display(self, display)
         self.session.triggers.activate_trigger(MODEL_DISPLAY_CHANGED, self)
@@ -172,6 +178,27 @@ class Model(State, Drawing):
     def atomspec_has_atoms(self):
         # Return True if there are atoms in this model
         return False
+
+    def atomspec_zone(self, session, coords, distance, target_type, operator, results):
+        # Ignore zone request by default
+        pass
+
+    def atomspec_model_attr(self, attrs):
+        # Return true is attributes specifier matches model
+        for attr in attrs:
+            try:
+                v = getattr(self, attr.name)
+            except AttributeError:
+                if not attr.no:
+                    return False
+            else:
+                if attr.value is None:
+                    tv = attr.op(v)
+                else:
+                    tv = attr.op(v, attr.value)
+                if not tv:
+                    return False
+        return True
 
 
 class Models(State):

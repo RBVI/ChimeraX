@@ -100,18 +100,28 @@ class Atom(State):
         '''Has the C++ side been deleted?'''
         return not hasattr(self, '_c_pointer')
 
-    def __str__(self, atom_only = False):
-        from ..core_settings import settings
-        cmd_style = settings.atomspec_contents == "command-line specifier"
-        if cmd_style:
+    def __lt__(self, other):
+        # for sorting (objects of the same type)
+        if self.residue == other.residue:
+            return self.name < other.name \
+                if self.name != other.name else self.serial_number < other.serial_number
+        return self.residue < other.residue
+
+    def __str__(self, atom_only = False, style = None):
+        if style == None:
+            from ..core_settings import settings
+            style = settings.atomspec_contents
+        if style.startswith("simple"):
+            atom_str = self.name
+        elif style.startswith("command"):
             atom_str = '@' + self.name
         else:
-            atom_str = self.name
+            atom_str = '@' + str(self.serial_number)
         if atom_only:
             return atom_str
-        if cmd_style:
-            return '%s%s' % (str(self.residue), atom_str)
-        return '%s %s' % (str(self.residue), atom_str)
+        if not style.startswith('simple'):
+            return '%s%s' % (self.residue.__str__(style=style), atom_str)
+        return '%s %s' % (self.residue.__str__(style=style), atom_str)
 
     def atomspec(self):
         return self.residue.atomspec() + '@' + self.name
@@ -171,6 +181,8 @@ class Atom(State):
     residue = c_property('atom_residue', cptr, astype = _residue, read_only = True,
         doc = ":class:`Residue` the atom belongs to.")
     selected = c_property('atom_selected', npy_bool, doc="Whether the atom is selected.")
+    serial_number = c_property('atom_serial_number', int32, read_only = True,
+        doc="Atom serial number from input file.")
     structure = c_property('atom_structure', cptr, astype=_atomic_structure, read_only=True,
         doc=":class:`.AtomicStructure` the atom belongs to")
     structure_category = c_property('atom_structure_category', string, read_only=True,
@@ -331,18 +343,24 @@ class Bond(State):
         '''Has the C++ side been deleted?'''
         return not hasattr(self, '_c_pointer')
 
-    def __str__(self):
+    def __lt__(self, other):
+        # for sorting (objects of the same type)
+        s1, s2 = self.atoms
+        o1, o2 = other.atoms
+        return s1 < o1 if s1 != o1 else s2 < o2
+
+    def __str__(self, style = None):
         a1, a2 = self.atoms
         bond_sep = " \N{Left Right Arrow} "
         if a1.residue == a2.residue:
-            return str(a1) + bond_sep + a2.__str__(atom_only=True)
+            return a1.__str__(style=style) + bond_sep + a2.__str__(atom_only=True, style=style)
         if a1.structure == a2.structure:
             # tautology for bonds, but this func is conscripted by pseudobonds, so test...
             res_str = a2.residue.__str__(residue_only=True)
-            atom_str = a2.__str__(atom_only=True)
+            atom_str = a2.__str__(atom_only=True, style=style)
             joiner = "" if res_str.startswith(":") else " "
-            return str(a1) + bond_sep + res_str + joiner + atom_str
-        return str(a1) + bond_sep + str(a2)
+            return a1.__str__(style=style) + bond_sep + res_str + joiner + atom_str
+        return a1.__str__(style=style) + bond_sep + a2.__str__(style=style)
 
     def atomspec(self):
         return a1.atomspec() + a2.atomspec()
@@ -441,6 +459,7 @@ class Pseudobond(State):
         '''Has the C++ side been deleted?'''
         return not hasattr(self, '_c_pointer')
 
+    __lt__ = Bond.__lt__
     __str__ = Bond.__str__
 
     atoms = c_property('pseudobond_atoms', cptr, 2, astype = _atom_pair, read_only = True)
@@ -532,14 +551,25 @@ class PseudobondGroupData:
 
     category = c_property('pseudobond_group_category', string, read_only = True,
         doc = "Name of the pseudobond group.  Read only string.")
+    color = c_property('pseudobond_group_color', uint8, 4,
+        doc="Sets the color attribute of current pseudobonds and new pseudobonds")
+    halfbond = c_property('pseudobond_group_halfbond', npy_bool,
+        doc = "Sets the halfbond attribute of current pseudobonds and new pseudobonds")
     num_pseudobonds = c_property('pseudobond_group_num_pseudobonds', size_t, read_only = True,
         doc = "Number of pseudobonds in group. Read only.")
-    structure = c_property('pseudobond_group_structure', cptr, astype = _atomic_structure,
-        read_only = True, doc ="Structure pseudobond group is owned by.  Returns None if called"
-        "on a group managed by the global pseudobond manager")
     pseudobonds = c_property('pseudobond_group_pseudobonds', cptr, 'num_pseudobonds',
         astype = _pseudobonds, read_only = True,
         doc = "Group pseudobonds as a :class:`.Pseudobonds` collection. Read only.")
+    radius = c_property('pseudobond_group_radius', float32,
+        doc = "Sets the radius attribute of current pseudobonds and new pseudobonds")
+    structure = c_property('pseudobond_group_structure', cptr, astype = _atomic_structure,
+        read_only = True, doc ="Structure that pseudobond group is owned by.  "
+        "Returns None if called on a group managed by the global pseudobond manager")
+
+    def clear(self):
+        '''Delete all pseudobonds in group'''
+        f = c_function('pseudobond_group_clear', args = (ctypes.c_void_p,))
+        f(self._c_pointer)
 
     def new_pseudobond(self, atom1, atom2):
         '''Create a new pseudobond between the specified :class:`Atom` objects.'''
@@ -692,10 +722,23 @@ class Residue(State):
         '''Has the C++ side been deleted?'''
         return not hasattr(self, '_c_pointer')
 
-    def __str__(self, residue_only = False, omit_structure = False):
-        from ..core_settings import settings
-        cmd_style = settings.atomspec_contents == "command-line specifier"
+    def __lt__(self, other):
+        # for sorting (objects of the same type)
+        if self.structure != other.structure:
+            return self.structure < other.structure
+
+        if self.chain_id != other.chain_id:
+            return self.chain_id < other.chain_id
+
+        return self.number < other.number \
+            if self.number != other.number else self.insertion_code < other.insertion_code
+
+    def __str__(self, residue_only = False, omit_structure = False, style = None):
+        if style == None:
+            from ..core_settings import settings
+            style = settings.atomspec_contents
         ic = self.insertion_code
+        cmd_style = not style.startswith("simple")
         if cmd_style:
             res_str = ":" + str(self.number) + ic
         else:
@@ -1089,6 +1132,16 @@ class StructureSeq(Sequence):
         # description derived from PDB/mmCIF info and set by AtomicStructure constructor
         self.description = None
 
+    def __lt__(self, other):
+        # for sorting (objects of the same type)
+        if self.structure != other.structure:
+            return self.structure < other.structure
+        if self.chain_id != other.chain_id:
+            return self.chain_id < other.chain_id
+        if self is other: # optimization to avoid comparing residue lists if possible
+            return False
+        return self.residues < other.residues
+
     chain_id = c_property('sseq_chain_id', string, read_only = True)
     '''Chain identifier. Limited to 4 characters. Read only string.'''
     # characters read-only in StructureSeq/Chain (use bulk_set)
@@ -1388,7 +1441,7 @@ class StructureData:
     ''':class:`.Bonds` collection containing all bonds of the structure.'''
     chains = c_property('structure_chains', cptr, 'num_chains', astype = _chains, read_only = True)
     ''':class:`.Chains` collection containing all chains of the structure.'''
-    coordset_ids = c_property('structure_coordset_ids', int32, 'num_coord_sets', read_only = True)
+    coordset_ids = c_property('structure_coordset_ids', int32, 'num_coordsets', read_only = True)
     '''Return array of ids of all coordinate sets.'''
     coordset_size = c_property('structure_coordset_size', int32, read_only = True)
     '''Return the size of the active coordinate set array.'''
@@ -1402,7 +1455,7 @@ class StructureData:
     '''Number of visible atoms in structure. Read only.'''
     num_bonds = c_property('structure_num_bonds', size_t, read_only = True)
     '''Number of bonds in structure. Read only.'''
-    num_coord_sets = c_property('structure_num_coord_sets', size_t, read_only = True)
+    num_coordsets = c_property('structure_num_coordsets', size_t, read_only = True)
     '''Number of coordinate sets in structure. Read only.'''
     num_chains = c_property('structure_num_chains', size_t, read_only = True)
     '''Number of chains structure. Read only.'''
@@ -1514,6 +1567,16 @@ class StructureData:
     def delete_alt_locs(self):
         '''Incorporate current alt locs as "regular" atoms and remove other alt locs'''
         f = c_function('structure_delete_alt_locs', args = (ctypes.c_void_p,))(self._c_pointer)
+
+    @property
+    def molecules(self):
+        '''Return a tuple of :class:`.Atoms` objects each containing atoms for one molecule.
+           Missing-structure pseudobonds are consider to connect parts of a molecule.
+        '''
+        f = c_function('structure_molecules', args = (ctypes.c_void_p,), ret = ctypes.py_object)
+        atom_arrays = f(self._c_pointer)
+        from .molarray import Atoms
+        return tuple(Atoms(ra) for aa in atom_arrays)
 
     def new_atom(self, atom_name, element_name):
         '''Create a new :class:`.Atom` object. It must be added to a :class:`.Residue` object

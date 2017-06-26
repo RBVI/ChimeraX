@@ -34,6 +34,8 @@ class PseudobondGroup(PseudobondGroupData, Model):
         self._handlers = []
         if s:
             s.add([self])            # Add pseudobond group as child model of structure
+        else:
+            session.models.add([self])
         
     def delete(self):
         if self._global_group:
@@ -54,10 +56,13 @@ class PseudobondGroup(PseudobondGroupData, Model):
         # For global pseudobond groups:
         # Detect when atoms moved so pseudobonds must be redrawn.
         # TODO: Update only when atoms move or are shown hidden, not when anything shown or hidden.
+        # TODO: Only update on selection change if pseudobond atoms selection changed.
+        from ..selection import SELECTION_CHANGED
         t = session.triggers
         self._handlers = [
             t.add_handler('graphics update',self._update_graphics_if_needed),
-            t.add_handler('shape changed', lambda *args, s=self: s._update_graphics())
+            t.add_handler('shape changed', lambda *args, s=self: s._update_graphics()),
+            t.add_handler(SELECTION_CHANGED, lambda *args, s=self: s._update_graphics())
         ]
 
     def removed_from_session(self, session):
@@ -77,6 +82,8 @@ class PseudobondGroup(PseudobondGroupData, Model):
     def _get_dashes(self):
         return self._dashes
     def _set_dashes(self, n):
+        if n == self._dashes:
+            return
         self._dashes = n
         pb = self._pbond_drawing
         if pb:
@@ -84,6 +91,8 @@ class PseudobondGroup(PseudobondGroupData, Model):
             self._pbond_drawing = None
             self._graphics_changed |= self._SHAPE_CHANGE
             self.redraw_needed(shape_changed = True)
+        self.session.change_tracker.add_modified(self, "dashes changed")
+
     dashes = property(_get_dashes, _set_dashes)
 
     def _update_graphics_if_needed(self, *_):

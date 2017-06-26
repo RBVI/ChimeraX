@@ -68,7 +68,7 @@ def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew
     if not color_segments and color_core is None:
         traj.set_initial_color()
 
-    session.logger.info('Computed %d frame morph #%s' % (traj.num_coord_sets, traj.id_string()))
+    session.logger.info('Computed %d frame morph #%s' % (traj.num_coordsets, traj.id_string()))
 
     if hide_models:
         for m in structures:

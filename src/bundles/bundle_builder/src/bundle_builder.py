@@ -28,10 +28,6 @@ class BundleBuilder:
         info_file = os.path.join(bundle_path, "bundle_info.xml")
         if not os.path.exists(info_file):
             raise IOError("Bundle info file %s is missing" % repr(info_file))
-        license_file = os.path.join(bundle_path, "license.txt")
-        if not os.path.exists(info_file):
-            raise IOError("Bundle license file %s is missing" %
-                          repr(license_file))
         self._read_bundle_info(info_file)
         self._make_paths()
         self._make_setup_arguments()
@@ -58,14 +54,20 @@ class BundleBuilder:
             print("Distribution is in %s" % self.wheel_path)
 
     @distlib_hack
-    def make_install(self, session, test=True):
+    def make_install(self, session, test=True, user=None):
         try:
             self.make_wheel(test=test)
         except RuntimeError:
             pass
         else:
             from chimerax.core.commands import run
-            run(session, "toolshed install %s reinstall true" % self.wheel_path)
+            cmd = "toolshed install %s reinstall true" % self.wheel_path
+            if user is not None:
+                if user:
+                    cmd += " user true"
+                else:
+                    cmd += " user false"
+            run(session, cmd)
 
     @distlib_hack
     def make_clean(self):
@@ -139,7 +141,12 @@ class BundleBuilder:
 
     def _get_dependencies(self, bi):
         self.dependencies = []
-        deps = self._get_singleton(bi, "Dependencies")
+        try:
+            deps = self._get_singleton(bi, "Dependencies")
+        except ValueError:
+            # Dependencies is optional, although
+            # ChimeraXCore *should* always be present
+            return
         for e in deps.getElementsByTagName("Dependency"):
             pkg = e.getAttribute("name")
             ver = e.getAttribute("version")
@@ -156,7 +163,11 @@ class BundleBuilder:
 
     def _get_packages(self, bi):
         self.packages = []
-        pkgs = self._get_singleton(bi, "AdditionalPackages")
+        try:
+            pkgs = self._get_singleton(bi, "AdditionalPackages")
+        except ValueError:
+            # AdditionalPackages is optional
+            return
         for pkg in pkgs.getElementsByTagName("Package"):
             pkg_name = pkg.getAttribute("name")
             pkg_folder = pkg.getAttribute("folder")

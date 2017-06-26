@@ -71,11 +71,11 @@ AS_PBManager::get_group(const std::string& name, int create)
 
     grp = new Proxy_PBGroup(this, name, structure(), create);
     if (name == structure()->PBG_METAL_COORDINATION)
-        grp->set_default_color(147, 112, 219);
+        grp->set_color(147, 112, 219);
     else if (name == structure()->PBG_MISSING_STRUCTURE)
-        grp->set_default_halfbond(true);
+        grp->set_halfbond(true);
     else if (name == structure()->PBG_HYDROGEN_BONDS)
-        grp->set_default_color(0, 204, 230);
+        grp->set_color(0, 204, 230);
     _groups[name] = grp;
     return grp;
 }

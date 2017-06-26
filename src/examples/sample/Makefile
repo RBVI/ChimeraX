@@ -19,8 +19,6 @@ BUNDLE_VERSION = 0.1
 # General Python packages should be uploaded to
 # pypi.python.org rather than the ChimeraX toolshed.
 PKG_NAME = chimerax.sample
-# Set PURE_PYTHON to 0 if bundle is platform-specific, 1 if pure Python
-PURE_PYTHON = 0
 
 # Define where ChimeraX is installed.
 OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
@@ -28,7 +26,6 @@ OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
 ifeq ($(OS),CYGWIN_NT)
 # Windows
 CHIMERAX_APP = "/c/Program Files/ChimeraX.app"
-CHIMERAX_APP = "/e/chimerax/ChimeraX.app"
 endif
 ifeq ($(OS),Darwin)
 # Mac
@@ -44,20 +41,16 @@ endif
 # Platform-dependent settings.  Should not need fixing.
 # For Windows, we assume Cygwin is being used.
 ifeq ($(OS),CYGWIN_NT)
-PYTHON_EXE = $(CHIMERAX_APP)/bin/python.exe
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX.exe
 endif
 ifeq ($(OS),Darwin)
-PYTHON_EXE = $(CHIMERAX_APP)/Contents/bin/python3.6
 CHIMERAX_EXE = $(CHIMERAX_APP)/Contents/bin/ChimeraX
 endif
 ifeq ($(OS),Linux)
-PYTHON_EXE = $(CHIMERAX_APP)/bin/python3.6
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
 endif
 
 BUNDLE_BASE_NAME = $(subst ChimeraX-,,$(BUNDLE_NAME))
-WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
 SOURCE = src
 SRCS = $(SOURCE)/*.py $(SOURCE)/*.cpp
 
@@ -65,7 +58,7 @@ SRCS = $(SOURCE)/*.py $(SOURCE)/*.cpp
 # Actual make dependencies!
 #
 
-wheel $(WHEEL): license.txt bundle_info.xml $(SRCS)
+wheel $(WHEEL): bundle_info.xml $(SRCS)
 	$(CHIMERAX_EXE) --nogui --cmd "devel build . ; exit"
 
 install app-install:	$(WHEEL)
@@ -81,15 +74,4 @@ debug:
 	$(CHIMERAX_EXE) --debug
 
 clean:
-	rm -rf __pycache__ build dist $(WHL_BNDL_NAME).egg-info setup.py
-	rm -rf $(SOURCE)/__pycache__
-
-license.txt:
-	@echo Please specify your project licensing terms in file \"license.txt\"
-	@echo The BSD license is included as file \"license.txt.bsd\"
-	@echo The MIT license is included as file \"license.txt.mit\"
-	@exit 1
-
-bundle_info.xml:
-	@echo Please create file \"bundle_info.xml\"
-	@exit 1
+	$(CHIMERAX_EXE) --nogui --cmd "devel clean . ; exit"

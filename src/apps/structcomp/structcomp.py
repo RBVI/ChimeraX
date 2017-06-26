@@ -157,7 +157,7 @@ def compare(session, pdb_id, pdb_path, mmcif_path):
                 same = False
 
             # coord_sets
-            diff = p.num_coord_sets - m.num_coord_sets
+            diff = p.num_coordsets - m.num_coordsets
             if diff != 0:
                 session.logger.error("%s: pdb has %d coord_set(s) %s than mmcif" % (
                     pdb_id, abs(diff), "fewer" if diff < 0 else "more"))

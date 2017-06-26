@@ -136,8 +136,6 @@ class Log(ToolInstance, HtmlLog):
         class MyPage(QWebEnginePage):
 
             def acceptNavigationRequest(self, qurl, nav_type, is_main_frame):
-                import sys
-                print("acceptNavigationRequest", qurl.toString(), file=sys.__stderr__, flush=True)
                 if qurl.scheme() in ('http', 'https'):
                     session = self.view().session
                     def show_url(url):

@@ -32,8 +32,8 @@ selector_name    = name:/[a-zA-Z][-+a-zA-Z0-9]*/
 model_list       = { model+:model }+
                  ;
 
-model            = '##' attrs:attribute_list [ parts:model_parts ] [ zone:zone_selector ]
-                 | '#' hierarchy:model_hierarchy [ parts:model_parts ] [ zone:zone_selector ]
+model            = '#' hierarchy:model_hierarchy [ '##' attrs:attribute_list ] [ parts:model_parts ] [ zone:zone_selector ]
+                 | '##' attrs:attribute_list [ parts:model_parts ] [ zone:zone_selector ]
 		 | parts:model_parts [ zone:zone_selector ]
                  ;
 
@@ -56,18 +56,18 @@ model_spec       = number:/[0-9]{1,5}(?![0-9A-Fa-f])/
 model_parts      = { chain+:chain }+
                  ;
 
-chain            = '//' attrs:attribute_list { residue+:residue }*
-                 | '/' parts:part_list { residue+:residue }*
+chain            = '/' parts:part_list [ '//' attrs:attribute_list ] { residue+:residue }*
+                 | '//' attrs:attribute_list { residue+:residue }*
 		 | { residue+:residue }+
                  ;
 
-residue          = '::' attrs:attribute_list { atom+:atom }*
-                 | ':' parts:part_list { atom+:atom }*
+residue          = ':' parts:part_list [ '::' attrs:attribute_list ] { atom+:atom }*
+                 | '::' attrs:attribute_list { atom+:atom }*
 		 | { atom+:atom }+
                  ;
 
-atom             = '@@' attrs:attribute_list
-                 | '@' parts:part_list
+atom             = '@' parts:part_list [ '@@' attrs:attribute_list ]
+                 | '@@' attrs:attribute_list
                  ;
 
 part_list        = range:part_range_list ',' part:part_list

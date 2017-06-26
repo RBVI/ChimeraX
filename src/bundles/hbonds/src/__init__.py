@@ -16,6 +16,10 @@ from .hbond import find_hbonds, rec_dist_slop, rec_angle_slop
 from chimerax.core.toolshed import BundleAPI
 
 class HBondsAPI(BundleAPI):
-    pass
+
+    @staticmethod
+    def register_command(command_name, logger):
+        from . import cmd
+        cmd.register_command(command_name, logger)
 
 bundle_api = HBondsAPI()

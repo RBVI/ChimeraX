@@ -477,7 +477,7 @@ class IHMModel(Model):
                         from .coordsets import read_coordinate_sets
                         read_coordinate_sets(path + '.crd', sm)
                 sm.display = False
-                sm.name += ' %d models' % sm.num_coord_sets
+                sm.name += ' %d models' % sm.num_coordsets
                 sm.ss_assigned = True	# Don't assign secondary structure to sphere model
                 atoms = sm.atoms
                 from chimerax.core.atomic.colors import chain_colors
