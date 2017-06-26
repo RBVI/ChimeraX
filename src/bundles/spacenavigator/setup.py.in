@@ -20,7 +20,9 @@ metadata.METADATA_FILENAME = "metadata.json"
 from setuptools import setup, Extension
 import os, os.path, sys
 
-if sys.platform == "darwin":
+snfw = '/Library/Frameworks/3DconnexionClient.framework'
+if sys.platform == "darwin" and os.path.isdir(snfw):
+    sninc = snfw + '/Versions/Current/Headers'
     # Tested with macOS 10.12
     # Assume Python executable is in ROOT/bin/python
     # and make include directory be ROOT/include
@@ -28,8 +30,6 @@ if sys.platform == "darwin":
     inc_dir = os.path.join(root, "include")
     lib_dir = os.path.join(root, "lib")
     libraries = []
-    snfw = '/Library/Frameworks/3DconnexionClient.framework'
-    sninc = snfw + '/Versions/Current/Headers'
     compiler_flags = ["-std=c++11", "-stdlib=libc++"]
     env = "Environment :: MacOS X :: Aqua",
     op_sys = "Operating System :: MacOS :: MacOS X"
