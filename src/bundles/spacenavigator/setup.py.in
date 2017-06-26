@@ -20,31 +20,37 @@ metadata.METADATA_FILENAME = "metadata.json"
 from setuptools import setup, Extension
 import os, os.path, sys
 
-snfw = '/Library/Frameworks/3DconnexionClient.framework'
-if sys.platform == "darwin" and os.path.isdir(snfw):
-    sninc = snfw + '/Versions/Current/Headers'
-    # Tested with macOS 10.12
-    # Assume Python executable is in ROOT/bin/python
-    # and make include directory be ROOT/include
-    root = os.path.dirname(os.path.dirname(sys.executable))
-    inc_dir = os.path.join(root, "include")
-    lib_dir = os.path.join(root, "lib")
-    libraries = []
-    compiler_flags = ["-std=c++11", "-stdlib=libc++"]
+ext_mods = []
+if sys.platform == "darwin":
     env = "Environment :: MacOS X :: Aqua",
     op_sys = "Operating System :: MacOS :: MacOS X"
+    snfw = '/Library/Frameworks/3DconnexionClient.framework'
+    if os.path.isdir(snfw):
+        sninc = snfw + '/Versions/Current/Headers'
+        # Tested with macOS 10.12
+        # Assume Python executable is in ROOT/bin/python
+        # and make include directory be ROOT/include
+        root = os.path.dirname(os.path.dirname(sys.executable))
+        inc_dir = os.path.join(root, "include")
+        lib_dir = os.path.join(root, "lib")
+        libraries = []
+        compiler_flags = ["-std=c++11", "-stdlib=libc++"]
 
-    ext_mods = [Extension("PKG_NAME._spacenavigator",
-                          define_macros=[("MAJOR_VERSION", 0),
-                                         ("MINOR_VERSION", 1)],
-                          extra_compile_args = compiler_flags,
-                          include_dirs=[inc_dir, sninc],
-                          library_dirs=[lib_dir],
-                          libraries=libraries,
-                          extra_link_args = ['-F/Library/Frameworks', '-framework', '3DconnexionClient'],
-                          sources=["spacenav.cpp"])]
+        ext_mods = [Extension("PKG_NAME._spacenavigator",
+                              define_macros=[("MAJOR_VERSION", 0),
+                                             ("MINOR_VERSION", 1)],
+                              extra_compile_args = compiler_flags,
+                              include_dirs=[inc_dir, sninc],
+                              library_dirs=[lib_dir],
+                              libraries=libraries,
+                              extra_link_args = ['-F/Library/Frameworks', '-framework', '3DconnexionClient'],
+                              sources=["spacenav.cpp"])]
+elif sys.platform == "win32":
+    env = "Environment :: Win32 (MS Windows)"
+    op_sys = "Operating System :: Microsoft :: Windows :: Windows 10"
 else:
-    ext_mods = []
+    env = "Environment :: X11 Applications"
+    op_sys = "Operating System :: POSIX :: Linux"
 
 description = """
 This bundle provides allows using 3dconnexion space navigator devices to move models.
