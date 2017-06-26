@@ -450,7 +450,7 @@ try_assoc(const Sequence& align_seq, const StructureSeq& mseq,
             throw SA_AssocFailure("bad assoc");
         return retvals;
     }
-    auto no_X = mseq;
+    StructureSeq no_X = mseq;
     auto no_X_ap = AssocParams(ap.est_len, ap.segments.begin(),
         ap.segments.end(), ap.gaps.begin(), ap.gaps.end());
     while (no_X.size() > 0 && no_X.front() == 'X') {
