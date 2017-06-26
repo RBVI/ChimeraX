@@ -53,8 +53,8 @@ class FileHistory:
             for fi, f in enumerate(reversed(files)):
                 name = limit_string(f.short_name(), self.filename_size)
                 descrip = f.path if f.database is None else '%s %s' % (f.database.upper(), f.path)
-                import html
-                cmd = html.escape(f.open_command())
+                from urllib import parse
+                cmd = parse.quote(f.open_command())
                 i = self.default_image('JPEG') if f.image is None or hbytes > max_bytes else f.image
                 img = '<img src="data:image/jpeg;base64,%s" width=%d height=%d title="%s">' % (i, w, h, descrip)
                 line = ('<table>'
