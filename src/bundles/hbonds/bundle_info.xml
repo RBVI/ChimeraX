@@ -39,6 +39,7 @@
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
 ]
     <ChimeraXClassifier>ChimeraX :: Command :: hbonds :: Structure Analysis :: Find hydrogen bonds</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: ~hbonds :: Structure Analysis :: Clear hydrogen bonds</ChimeraXClassifier>
 ]
   </Classifiers>
 

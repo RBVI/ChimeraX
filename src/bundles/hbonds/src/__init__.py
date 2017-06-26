@@ -20,6 +20,6 @@ class HBondsAPI(BundleAPI):
     @staticmethod
     def register_command(command_name, logger):
         from . import cmd
-        cmd.register_command(logger)
+        cmd.register_command(command_name, logger)
 
 bundle_api = HBondsAPI()

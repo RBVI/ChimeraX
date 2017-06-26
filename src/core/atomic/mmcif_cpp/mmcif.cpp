@@ -1414,6 +1414,10 @@ ExtractMolecule::parse_struct_conn()
         pv.emplace_back(get_column("conn_type_id", Required),
             [&] (const char* start, const char* end) {
                 conn_type = string(start, end - start);
+                for (auto& c: conn_type) {
+                    if (isupper(c))
+                        c = tolower(c);
+                }
             });
 
         pv.emplace_back(get_column(P1 ASYM_ID, Required),
@@ -1532,7 +1536,7 @@ ExtractMolecule::parse_struct_conn()
         bool metal = false;
         bool hydro = false;
         // TODO: survey PDB mmCIF files and test in descending prevalence
-        if (conn_type == "covale" || conn_type == "disulf")
+        if (conn_type.compare(0, 6, "covale") == 0 || conn_type == "disulf")
             normal = true;
         else if (conn_type == "hydrog")
             hydro = true;
@@ -1951,7 +1955,7 @@ structure_pointers(ExtractMolecule &e, const char *filename)
     int i = 0;
     for (auto m: e.all_molecules)
         if (m->atoms().size() > 0)
-	        sa[i++] = static_cast<void *>(m);
+            sa[i++] = static_cast<void *>(m);
 
     return s_array;
 }
