@@ -1900,13 +1900,6 @@ extern "C" EXPORT void set_residue_is_helix(void *residues, size_t n, npy_bool *
     // If true, also unsets is_strand
     Residue **r = static_cast<Residue **>(residues);
     error_wrap_array_set(r, n, &Residue::set_is_helix, is_helix);
-    try {
-        for (size_t i = 0; i < n; ++i)
-            if (is_helix[i])
-                r[i]->set_is_strand(false);
-    } catch (...) {
-        molc_error();
-    }
 }
 
 extern "C" EXPORT void residue_is_strand(void *residues, size_t n, npy_bool *is_strand)
@@ -1920,13 +1913,6 @@ extern "C" EXPORT void set_residue_is_strand(void *residues, size_t n, npy_bool 
     // If true, also unsets is_helix
     Residue **r = static_cast<Residue **>(residues);
     error_wrap_array_set(r, n, &Residue::set_is_strand, is_strand);
-    try {
-        for (size_t i = 0; i < n; ++i)
-            if (is_strand[i])
-                r[i]->set_is_helix(false);
-    } catch (...) {
-        molc_error();
-    }
 }
 
 extern "C" EXPORT void residue_ss_id(void *residues, size_t n, int32_t *ss_id)
@@ -2575,31 +2561,6 @@ extern "C" EXPORT void residue_set_alt_loc(void *residues, size_t n, char alt_lo
         molc_error();
     }
 }
-
-extern "C" EXPORT void residue_set_ss_helix(void *residues, size_t n, bool value)
-{
-    // Doesn't touch is_strand
-    Residue **r = static_cast<Residue **>(residues);
-    try {
-        for (size_t i = 0; i < n; ++i)
-            r[i]->set_is_helix(value);
-    } catch (...) {
-        molc_error();
-    }
-}
-
-extern "C" EXPORT void residue_set_ss_strand(void *residues, size_t n, bool value)
-{
-    // Doesn't touch is_helix
-    Residue **r = static_cast<Residue **>(residues);
-    try {
-        for (size_t i = 0; i < n; ++i)
-            r[i]->set_is_strand(value);
-    } catch (...) {
-        molc_error();
-    }
-}
-
 
 // -------------------------------------------------------------------------
 // ring functions
