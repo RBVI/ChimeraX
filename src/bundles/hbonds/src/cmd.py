@@ -119,6 +119,7 @@ def cmd_hbonds(session, spec=None, intramodel=True, intermodel=True, relax=True,
     existing = {}
     if not retain_current:
         pbg.clear()
+        pbg.color = bond_color.uint8x4()
     else:
         for pb in pbg.pseudobonds:
             a1, a2 = pb.atoms
