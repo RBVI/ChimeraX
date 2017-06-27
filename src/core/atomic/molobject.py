@@ -608,7 +608,7 @@ class PseudobondManager(State):
         self.session.triggers.add_handler("end restore session",
             lambda *args: self._ses_call("restore_teardown"))
 
-    def delete_group(self, pbg):
+    def _delete_group(self, pbg):
         f = c_function('pseudobond_global_manager_delete_group',
                        args = (ctypes.c_void_p, ctypes.c_void_p), ret = None)
         f(self._c_pointer, pbg._c_pointer)
@@ -1633,7 +1633,7 @@ class StructureData:
         from .pbgroup import PseudobondGroup
         return object_map(pbg, PseudobondGroup)
 
-    def delete_pseudobond_group(self, pbg):
+    def _delete_pseudobond_group(self, pbg):
         f = c_function('structure_delete_pseudobond_group',
                        args = (ctypes.c_void_p, ctypes.c_void_p), ret = None)
         f(self._c_pointer, pbg._c_pointer)

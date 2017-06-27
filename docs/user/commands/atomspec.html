@@ -39,8 +39,10 @@ Which types of items are accepted depends on the specific command.
 </p>
 <ul>
 <li><a name="atomspec"></a>
-Atomic models and their parts (atoms/bonds, residues, chains) and
-associated <a href="surface.html">molecular surfaces</a> can be specified using:
+Atomic models and their parts
+(atoms/bonds, <a href="../pseudobonds.html">pseudobonds</a>, residues, chains)
+and associated <a href="surface.html">molecular surfaces</a>
+can be specified using:
   <ul>
   <li><a href="#hierarchy">hierarchical specifiers</a>
   - model number, chain ID, residue name or number, atom name
@@ -58,6 +60,7 @@ associated <a href="surface.html">molecular surfaces</a> can be specified using:
   <font color="brown">(not yet implemented)</font>
   <li><a href="#combinations">combinations</a> of the above
   </ul>
+<br>
 <li><a name="othermodels"></a>
 Nonatomic models such as nonmolecular surfaces or maps 
 (<a href="../tools/volumeviewer.html">volume</a> models) can be specified
@@ -138,6 +141,14 @@ In <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/tutorials/framepdbin
 standard nomenclature is used for standard amino acid and nucleic acid residues.
 Asterisks (<b>*</b>) in PDB input atom names will be translated 
 to prime symbols (<b>'</b>).
+</p><p>
+A <a href="../pseudobonds.html">pseudobond</a> 
+model can also be specified directly by its own model number
+(not necessarily within the atomic-model hierarchy), but
+commands like <a href="color.html"><b>color</b></a> and
+<a href="show.html"><b>show</b></a> may still require using
+the <b>target p</b> option to indicate acting on 
+<a href="../pseudobonds.html">pseudobonds</a>.
 </p><p>
 <b>Capitalization</b><br>
 In the command line, capitalization of chain IDs,
@@ -897,5 +908,5 @@ excluding the ions themselves
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2017</address>
+June 2017</address>
 </body></html> 
