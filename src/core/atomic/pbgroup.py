@@ -34,8 +34,6 @@ class PseudobondGroup(PseudobondGroupData, Model):
         self._handlers = []
         if s:
             s.add([self])            # Add pseudobond group as child model of structure
-        else:
-            session.models.add([self])
         
     def delete(self):
         if self._global_group:
