@@ -174,6 +174,9 @@ class Structure(Model, StructureData):
                 cmd = Command(session)
                 cmd.run("lighting " + lighting, log=False)
 
+        hb_pbg = self.pbg_map.get("hydrogen bonds", None)
+        if hb_pbg:
+            hb_pbg.dashes = 6
         self._start_change_tracking(session.change_tracker)
 
         # Setup handler to manage C++ data changes that require graphics updates.

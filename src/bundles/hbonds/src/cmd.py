@@ -20,7 +20,7 @@ def cmd_hbonds(session, spec=None, intramodel=True, intermodel=True, relax=True,
     inter_submodel=False, make_pseudobonds=True, retain_current=False,
     reveal=False, naming_style=None, log=False, cache_DA=None,
     color=Color((0, 0.8, 0.9)), slop_color=Color((0.95, 0.5, 0.0)),
-    show_dist=False, intra_res=True, intra_mol=True, dashes=8):
+    show_dist=False, intra_res=True, intra_mol=True, dashes=6):
 
     """Wrapper to be called by command line.
 
