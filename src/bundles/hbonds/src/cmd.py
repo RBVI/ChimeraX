@@ -128,10 +128,11 @@ def cmd_hbonds(session, spec=None, intramodel=True, intermodel=True, relax=True,
     pbg.radius = radius
     pbg.dashes = dashes
 
+    from chimerax.core.geometry import distance_squared
     for don, acc in hbonds:
         nearest = None
         for h in [x for x in don.neighbors if x.element.number == 1]:
-            sqdist = h.scene_coord.sqdistance(acc.scene_coord)
+            sqdist = distance_squared(h.scene_coord, acc.scene_coord)
             if nearest is None or sqdist < nsqdist:
                 nearest = h
                 nsqdist = sqdist
