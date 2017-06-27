@@ -84,6 +84,7 @@ setup(
         "ChimeraX :: DataFormat :: DCD coordinates :: dcd :: Molecular trajectory :: .dcd :: :: :: :: :: dcd trajectory format :: utf-8",
         "ChimeraX :: Open :: Gromacs full-precision coordinates :: trr :: true :: model:Model,replace:Bool",
         "ChimeraX :: Open :: Gromacs compressed coordinates :: xtc :: true :: model:Model,replace:Bool",
-        "ChimeraX :: Open :: DCD coordinates :: dcd :: true :: model:Model,replace:Bool",
+        "ChimeraX :: Open :: DCD coordinates :: dcd :: true :: model:Structure,replace:Bool",
+        "ChimeraX :: Save :: DCD coordinates :: dcd :: true :: models:Models",
     ],
 )
