@@ -1910,6 +1910,9 @@ class Volume(Model):
   #
   def delete(self):
 
+    d = self.data
+    if d:
+      d.clear_cache()
     self.close_models()
     Model.delete(self)
       

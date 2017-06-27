@@ -34,17 +34,15 @@ class PseudobondGroup(PseudobondGroupData, Model):
         self._handlers = []
         if s:
             s.add([self])            # Add pseudobond group as child model of structure
-        else:
-            session.models.add([self])
         
     def delete(self):
         if self._global_group:
             pbm = self.session.pb_manager
-            pbm.delete_group(self)
+            pbm._delete_group(self)
         else:
             s = self._structure
             if s and not s.deleted:
-                s.delete_pseudobond_group(self)
+                s._delete_pseudobond_group(self)
             self._structure = None
         Model.delete(self)
         self._pbond_drawing = None

@@ -20,7 +20,7 @@ def cmd_hbonds(session, spec=None, intramodel=True, intermodel=True, relax=True,
     inter_submodel=False, make_pseudobonds=True, retain_current=False,
     reveal=False, naming_style=None, log=False, cache_DA=None,
     color=Color((0, 0.8, 0.9)), slop_color=Color((0.95, 0.5, 0.0)),
-    show_dist=False, intra_res=True, intra_mol=True, dashes=0):
+    show_dist=False, intra_res=True, intra_mol=True, dashes=6):
 
     """Wrapper to be called by command line.
 
@@ -119,6 +119,7 @@ def cmd_hbonds(session, spec=None, intramodel=True, intermodel=True, relax=True,
     existing = {}
     if not retain_current:
         pbg.clear()
+        pbg.color = bond_color.uint8x4()
     else:
         for pb in pbg.pseudobonds:
             a1, a2 = pb.atoms
@@ -127,10 +128,11 @@ def cmd_hbonds(session, spec=None, intramodel=True, intermodel=True, relax=True,
     pbg.radius = radius
     pbg.dashes = dashes
 
+    from chimerax.core.geometry import distance_squared
     for don, acc in hbonds:
         nearest = None
         for h in [x for x in don.neighbors if x.element.number == 1]:
-            sqdist = h.scene_coord.sqdistance(acc.scene_coord)
+            sqdist = distance_squared(h.scene_coord, acc.scene_coord)
             if nearest is None or sqdist < nsqdist:
                 nearest = h
                 nsqdist = sqdist
@@ -173,6 +175,8 @@ def cmd_hbonds(session, spec=None, intramodel=True, intermodel=True, relax=True,
             triggers.addHandler(SCENE_TOOL_RESTORE, _sceneRestore, None)
             _sceneHandlersAdded = True
     """
+    if pbg.id is None:
+        session.models.add([pbg])
 
 def filter_hbonds_by_sel(hbonds, sel_atoms, sel_restrict):
     filtered = []
@@ -260,7 +264,7 @@ def _file_output(file_name, output_info, naming_style):
 def cmd_xhbonds(session):
     pbg = session.pb_manager.get_group("hydrogen bonds", create=False)
     if pbg:
-        pbg.clear()
+        session.models.close([pbg])
 
 def register_command(command_name, logger):
     from chimerax.core.commands \
