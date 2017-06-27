@@ -1722,11 +1722,7 @@ class Structure(Model, StructureData):
         return self.atoms
 
     def atomspec_filter(self, level, atoms, num_atoms, parts, attrs):
-        if attrs is not None:
-            # Using UserError instead of LimitationError to
-            # avoid generating traceback in log
-            from ..errors import UserError
-            raise UserError("Atomspec attributes not supported for structures yet")
+        # print("Structure.atomspec_filter", level, num_atoms, parts, attrs)
         if parts is None:
             parts = []
         if attrs is None:
@@ -1739,94 +1735,137 @@ class Structure(Model, StructureData):
             return self._atomspec_filter_atom(atoms, num_atoms, parts, attrs)
 
     def _atomspec_filter_chain(self, atoms, num_atoms, parts, attrs):
+        # print("Structure._atomspec_filter_chain", num_atoms, parts, attrs)
         chain_ids = atoms.residues.chain_ids
         case_insensitive = not self.lower_case_chains
         import numpy
-        selected = numpy.zeros(num_atoms)
-        # TODO: account for attrs in addition to parts
-        for part in parts:
-            if part.end is None:
-                if case_insensitive:
-                    def choose(chain_id, v=part.start.lower()):
-                        return chain_id.lower() == v
+        if not parts:
+            selected = numpy.ones(num_atoms, dtype=numpy.bool_)
+        else:
+            selected = numpy.zeros(num_atoms, dtype=numpy.bool_)
+            for part in parts:
+                if part.end is None:
+                    if case_insensitive:
+                        def choose(chain_id, v=part.start.lower()):
+                            return chain_id.lower() == v
+                    else:
+                        def choose(chain_id, v=part.start):
+                            return chain_id == v
                 else:
-                    def choose(chain_id, v=part.start):
-                        return chain_id == v
-            else:
-                if case_insensitive:
-                    def choose(chain_id, s=part.start.lower(), e=part.end.lower()):
-                        cid = chain_id.lower()
-                        return cid >= s and cid <= e
-                else:
-                    def choose(chain_id, s=part.start, e=part.end):
-                        return chain_id >= s and chain_id <= e
-            s = numpy.vectorize(choose)(chain_ids)
-            selected = numpy.logical_or(selected, s)
+                    if case_insensitive:
+                        def choose(chain_id, s=part.start.lower(), e=part.end.lower()):
+                            cid = chain_id.lower()
+                            return cid >= s and cid <= e
+                    else:
+                        def choose(chain_id, s=part.start, e=part.end):
+                            return chain_id >= s and chain_id <= e
+                s = numpy.vectorize(choose)(chain_ids)
+                selected = numpy.logical_or(selected, s)
+        if attrs:
+            chains = self.chains
+            chain_selected = numpy.ones(len(chains), dtype=numpy.bool_)
+            self._atomspec_attr_filter(chains, chain_selected, attrs)
+            chain_map = dict(zip(chains, chain_selected))
+            for i, a in enumerate(atoms):
+                if not selected[i]:
+                    continue
+                try:
+                    if not chain_map[a.residue.chain]:
+                        selected[i] = False
+                except KeyError:
+                    # XXX: Atom is not in a chain, "must not be selected?"
+                    selected[i] = False
         # print("AtomicStructure._atomspec_filter_chain", selected)
         return selected
 
-    def _atomspec_filter_residue(self, atoms, num_atoms, parts, attrs):
-        import numpy
-        res_names = numpy.array(atoms.residues.names)
-        res_numbers = atoms.residues.numbers
-        res_ics = atoms.residues.insertion_codes
-        selected = numpy.zeros(num_atoms)
-        # TODO: account for attrs in addition to parts
-        for part in parts:
-            start_number, start_ic = self._res_parse(part.start)
-            if part.end is None:
-                end_number = None
-
-                def choose_type(value, v=part.start.lower()):
-                    return value.lower() == v
-            else:
-                end_number, end_ic = self._res_parse(part.end)
-
-                def choose_type(value, s=part.start.lower(), e=part.end.lower()):
-                    v = value.lower()
-                    return v >= s and v <= e
-            if start_number:
-                if end_number is None:
-                    def choose_id(n, ic, test_val=str(start_number)+start_ic):
-                        return str(n)+ic == test_val
+    def _atomspec_attr_filter(self, objects, selected, attrs):
+        for i, o in enumerate(objects):
+            if not selected[i]:
+                continue
+            for attr in attrs:
+                try:
+                    v = getattr(o, attr.name)
+                except AttributeError:
+                    if not attr.no:
+                        selected[i] = False
+                        break
                 else:
-                    def choose_id(n, ic, sn=start_number, sic=start_ic, en=end_number, eic=end_ic):
-                        if n < start_number or n > end_number:
-                            return False
-                        if n > start_number and n < end_number:
+                    if attr.value is None:
+                        tv = attr.op(v)
+                    else:
+                        tv = attr.op(v, attr.value)
+                    if not tv:
+                        selected[i] = False
+                        break
+
+    def _atomspec_filter_residue(self, atoms, num_atoms, parts, attrs):
+        # print("Structure._atomspec_filter_residue", num_atoms, parts, attrs)
+        import numpy
+        if not parts:
+            # No residue specifier, choose everything
+            selected = numpy.ones(num_atoms, dtype=numpy.bool_)
+        else:
+            res_names = numpy.array(atoms.residues.names)
+            res_numbers = atoms.residues.numbers
+            res_ics = atoms.residues.insertion_codes
+            selected = numpy.zeros(num_atoms, dtype=numpy.bool_)
+            for part in parts:
+                start_number, start_ic = self._res_parse(part.start)
+                if part.end is None:
+                    end_number = None
+
+                    def choose_type(value, v=part.start.lower()):
+                        return value.lower() == v
+                else:
+                    end_number, end_ic = self._res_parse(part.end)
+
+                    def choose_type(value, s=part.start.lower(), e=part.end.lower()):
+                        v = value.lower()
+                        return v >= s and v <= e
+                if start_number:
+                    if end_number is None:
+                        def choose_id(n, ic, test_val=str(start_number)+start_ic):
+                            return str(n)+ic == test_val
+                    else:
+                        def choose_id(n, ic, sn=start_number, sic=start_ic, en=end_number, eic=end_ic):
+                            if n < start_number or n > end_number:
+                                return False
+                            if n > start_number and n < end_number:
+                                return True
+                            if n == start_number:
+                                if not ic and not sic:
+                                    return True
+                                if ic and not sic:
+                                    # blank insertion code is before non-blanks
+                                    # res has insertion code, but test string doesn't...
+                                    return True
+                                if sic and not ic:
+                                    # blank insertion code is before non-blanks
+                                    # test string has insertion code, but res doesn't...
+                                    return False
+                                return sic <= ic
+                            if n == end_number:
+                                if not ic and not eic:
+                                    return True
+                                if ic and not eic:
+                                    # blank insertion code is before non-blanks
+                                    # res has insertion code, but test string doesn't...
+                                    return False
+                                if eic and not ic:
+                                    # blank insertion code is before non-blanks
+                                    # test string has insertion code, but res doesn't...
+                                    return True
+                                return eic >= ic
                             return True
-                        if n == start_number:
-                            if not ic and not sic:
-                                return True
-                            if ic and not sic:
-                                # blank insertion code is before non-blanks
-                                # res has insertion code, but test string doesn't...
-                                return True
-                            if sic and not ic:
-                                # blank insertion code is before non-blanks
-                                # test string has insertion code, but res doesn't...
-                                return False
-                            return sic <= ic
-                        if n == end_number:
-                            if not ic and not eic:
-                                return True
-                            if ic and not eic:
-                                # blank insertion code is before non-blanks
-                                # res has insertion code, but test string doesn't...
-                                return False
-                            if eic and not ic:
-                                # blank insertion code is before non-blanks
-                                # test string has insertion code, but res doesn't...
-                                return True
-                            return eic >= ic
-                        return True
-            else:
-                choose_id = None
-            s = numpy.vectorize(choose_type)(res_names)
-            selected = numpy.logical_or(selected, s)
-            if choose_id:
-                s = numpy.vectorize(choose_id)(res_numbers, res_ics)
+                else:
+                    choose_id = None
+                s = numpy.vectorize(choose_type)(res_names)
                 selected = numpy.logical_or(selected, s)
+                if choose_id:
+                    s = numpy.vectorize(choose_id)(res_numbers, res_ics)
+                    selected = numpy.logical_or(selected, s)
+        if attrs:
+            self._atomspec_attr_filter(atoms.residues, selected, attrs)
         # print("AtomicStructure._atomspec_filter_residue", selected)
         return selected
 
@@ -1842,20 +1881,26 @@ class Structure(Model, StructureData):
                 return None, ""
 
     def _atomspec_filter_atom(self, atoms, num_atoms, parts, attrs):
+        # print("Structure._atomspec_filter_atom", num_atoms, parts, attrs)
         import numpy
-        names = numpy.array(atoms.names)
-        selected = numpy.zeros(num_atoms)
-        # TODO: account for attrs in addition to parts
-        for part in parts:
-            if part.end is None:
-                def choose(name, v=part.start.lower()):
-                    return name.lower() == v
-            else:
-                def choose(name, s=part.start.lower(), e=part.end.lower()):
-                    n = name.lower()
-                    return n >= s and n <= e
-            s = numpy.vectorize(choose)(names)
-            selected = numpy.logical_or(selected, s)
+        if not parts:
+            # No name specifier, use everything
+            selected = numpy.ones(num_atoms, dtype=numpy.bool_)
+        else:
+            names = numpy.array(atoms.names)
+            selected = numpy.zeros(num_atoms, dtype=numpy.bool_)
+            for part in parts:
+                if part.end is None:
+                    def choose(name, v=part.start.lower()):
+                        return name.lower() == v
+                else:
+                    def choose(name, s=part.start.lower(), e=part.end.lower()):
+                        n = name.lower()
+                        return n >= s and n <= e
+                s = numpy.vectorize(choose)(names)
+                selected = numpy.logical_or(selected, s)
+        if attrs:
+            self._atomspec_attr_filter(atoms, selected, attrs)
         # print("AtomicStructure._atomspec_filter_atom", selected)
         return selected
 
