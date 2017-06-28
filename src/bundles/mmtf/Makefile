@@ -31,6 +31,9 @@ PKG_NAME = chimerax.mmtf
 MMTF_CPP_VERSION = master
 MMTF_CPP_DISTRIBUTION = mmtf-cpp-$(MMTF_CPP_VERSION).zip
 MMTF_CPP_SOURCE	= mmtf-cpp-$(MMTF_CPP_VERSION)
+MSGPACK_VERSION = master
+MSGPACK_DISTRIBUTION = msgpack-c-$(MSGPACK_VERSION).zip
+MSGPACK_SOURCE	= msgpack-c-$(MSGPACK_VERSION)
 
 BASE_BNDL_NAME = $(subst ChimeraX-,,$(BUNDLE_NAME))
 WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
@@ -40,7 +43,7 @@ PYSRCS = $(wildcard src/*.py)
 DATAFILES = 
 WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-$(TAG).whl
 
-wheel $(WHEEL): setup.py $(PYSRCS) $(MMTF_CPP_SOURCE)
+wheel $(WHEEL): setup.py $(PYSRCS) $(MMTF_CPP_SOURCE) $(MSGPACK_SOURCE)
 	$(PYTHON_EXE) setup.py --no-user-cfg build
 	$(PYTHON_EXE) setup.py --no-user-cfg test
 	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel
@@ -58,13 +61,18 @@ debug:
 clean:
 	rm -rf src/__pycache__ src/*.pyd src/*.so src/*.dylib
 	rm -rf build dist $(WHL_BNDL_NAME).egg-info setup.py
-	rm -rf $(MMTF_CPP_SOURCE)
+	rm -rf $(MMTF_CPP_SOURCE) $(MSGPACK_SOURCE)
 
 lint:
 	$(PYLINT) $(PYSRCS)
 
 $(MMTF_CPP_SOURCE): $(MMTF_CPP_DISTRIBUTION)
-	unzip -u $(MMTF_CPP_DISTRIBUTION)
+	# only need the include files
+	unzip -u $(MMTF_CPP_DISTRIBUTION) $(MMTF_CPP_SOURCE)/include/*
+
+$(MSGPACK_SOURCE): $(MSGPACK_DISTRIBUTION)
+	# only need the include files
+	unzip -u $(MSGPACK_DISTRIBUTION) $(MSGPACK_SOURCE)/include/*
 
 setup.py: setup.py.in Makefile
 	sed \
@@ -72,4 +80,5 @@ setup.py: setup.py.in Makefile
 		-e 's,BUNDLE_VERSION,$(BUNDLE_VERSION),' \
 		-e 's,PKG_NAME,$(PKG_NAME),' \
 		-e 's,MMTF_CPP_VERSION,$(MMTF_CPP_VERSION),' \
+		-e 's,MSGPACK_VERSION,$(MSGPACK_VERSION),' \
 		< setup.py.in > setup.py

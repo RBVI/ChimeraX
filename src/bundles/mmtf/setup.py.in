@@ -50,7 +50,11 @@ ext_mods = [Extension("PKG_NAME._mmtf",
                       define_macros=[("MAJOR_VERSION", 0),
                                      ("MINOR_VERSION", 1)],
                       extra_compile_args = compiler_flags,
-                      include_dirs=[inc_dir, "mmtf-cpp-MMTF_CPP_VERSION/include"],
+                      include_dirs=[
+                          inc_dir,
+                          "mmtf-cpp-MMTF_CPP_VERSION/include",
+                          "msgpack-c-MSGPACK_VERSION/include",
+                      ],
                       library_dirs=[lib_dir],
                       libraries=libraries,
                       sources=["_mmtf/mmtf.cpp"])]
