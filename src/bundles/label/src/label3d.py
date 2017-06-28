@@ -211,7 +211,6 @@ class AtomLabel(Drawing):
             self.session.logger.info("Can't find font for label")
             return
         if self.texture is not None:
-            # TODO: Have to have OpenGL context current to delete -- only can do it from draw routine.
             self.texture.delete_texture()
         from chimerax.core.graphics import opengl
         t = opengl.Texture(rgba)
