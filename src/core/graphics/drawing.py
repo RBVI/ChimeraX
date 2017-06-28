@@ -1801,6 +1801,8 @@ def _texture_drawing(texture, pos=(-1, -1), size=(2, 2), drawing=None):
     d.color = (255, 255, 255, 255)         # Modulates texture values
     d.use_lighting = False
     d.texture_coordinates = tc
+    if d.texture is not None:
+        d.texture.delete_texture()
     d.texture = texture
     return d
 
