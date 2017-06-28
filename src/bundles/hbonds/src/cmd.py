@@ -16,11 +16,11 @@ from chimerax.core.colors import BuiltinColors
 
 def cmd_hbonds(session, spec=None, intramodel=True, intermodel=True, relax=True,
     dist_slop=rec_dist_slop, angle_slop=rec_angle_slop, two_colors=False,
-    sel_restrict=None, radius=1.0, save_file=None, batch=False,
+    sel_restrict=None, radius=0.075, save_file=None, batch=False,
     inter_submodel=False, make_pseudobonds=True, retain_current=False,
     reveal=False, naming_style=None, log=False, cache_DA=None,
     color=BuiltinColors["dark cyan"], slop_color=BuiltinColors["dark orange"],
-    show_dist=False, intra_res=True, intra_mol=True, dashes=6):
+    show_dist=False, intra_res=True, intra_mol=True, dashes=None):
 
     """Wrapper to be called by command line.
 
@@ -120,13 +120,15 @@ def cmd_hbonds(session, spec=None, intramodel=True, intermodel=True, relax=True,
     if not retain_current:
         pbg.clear()
         pbg.color = bond_color.uint8x4()
+        pbg.radius = radius
+        pbg.dashes = dashes if dashes is not None else 6
     else:
         for pb in pbg.pseudobonds:
             a1, a2 = pb.atoms
             existing.setdefault(a1, set()).add(a2)
             existing.setdefault(a2, set()).add(a1)
-    pbg.radius = radius
-    pbg.dashes = dashes
+        if dashes is not None:
+            pbg.dashes = dashes
 
     from chimerax.core.geometry import distance_squared
     for don, acc in hbonds:
@@ -153,6 +155,7 @@ def cmd_hbonds(session, spec=None, intramodel=True, intermodel=True, relax=True,
         rgba = pb.color
         rgba[:3] = color.uint8x4()[:3] # preserve transparency
         pb.color = rgba
+        pb.radius = radius
         if reveal:
             for end in [don, acc]:
                 if end.display:
