@@ -122,20 +122,32 @@ class PseudobondGroup(PseudobondGroupData, Model):
         if changes & (self._SHAPE_CHANGE | self._SELECT_CHANGE):
             bond_atoms = pbonds.atoms
         if changes & self._SHAPE_CHANGE:
-            ba1, ba2 = bond_atoms
-            if self._global_group:
-                to_pbg = self.scene_position.inverse()
-                axyz0, axyz1 = to_pbg*ba1.scene_coords, to_pbg*ba2.scene_coords
-            else:
-                axyz0, axyz1 = ba1.coords, ba2.coords
-            from . import structure as s
-            d.positions = s._halfbond_cylinder_placements(axyz0, axyz1, pbonds.radii)
-            d.display_positions = s._shown_bond_cylinders(pbonds)
+            self._update_positions(pbonds, bond_atoms)
         if changes & (self._COLOR_CHANGE | self._SHAPE_CHANGE):
             d.colors = pbonds.half_colors
         if changes & (self._SELECT_CHANGE | self._SHAPE_CHANGE):
             from . import structure as s
             d.selected_positions = s._selected_bond_cylinders(bond_atoms)
+
+    def _update_positions(self, pbonds, bond_atoms):
+        ba1, ba2 = bond_atoms
+        if self._global_group:
+            to_pbg = self.scene_position.inverse()
+            axyz0, axyz1 = to_pbg*ba1.scene_coords, to_pbg*ba2.scene_coords
+        else:
+            axyz0, axyz1 = ba1.coords, ba2.coords
+        from . import structure as s
+        d = self._pbond_drawing
+        d.positions = s._halfbond_cylinder_placements(axyz0, axyz1, pbonds.radii)
+
+        # Check if models containing end-point have displayed structures.
+        dp = s._shown_bond_cylinders(pbonds)
+        for hs in (hidden_structures(ba1.structures), hidden_structures(ba2.structures)):
+            if hs is not None:
+                import numpy
+                sb = ~numpy.concatenate((hs,hs))
+                numpy.logical_and(dp, sb, dp)
+        d.display_positions = dp
 
     def first_intercept(self, mxyz1, mxyz2, exclude=None):
         if not self.display or (exclude and exclude(self)):
@@ -195,6 +207,17 @@ def interatom_pseudobonds(atoms, group_name = None):
     pb = concatenate(pbonds, Pseudobonds)
     ipb = pb.filter(pb.between_atoms(atoms))
     return ipb
+
+# -----------------------------------------------------------------------------
+#
+def hidden_structures(structures):
+    us = structures.unique()
+    vis = set(s for s in us if s.visible)
+    if len(vis) == len(us):
+        return None
+    from numpy import array, bool
+    hs = array([(s not in vis) for s in structures], bool)
+    return hs
 
 # -----------------------------------------------------------------------------
 #
