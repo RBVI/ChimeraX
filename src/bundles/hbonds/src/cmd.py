@@ -14,7 +14,7 @@
 from .hbond import rec_dist_slop, rec_angle_slop, find_hbonds
 from chimerax.core.colors import BuiltinColors
 
-def cmd_hbonds(session, spec=None, intramodel=True, intermodel=True, relax=True,
+def cmd_hbonds(session, spec=None, intra_model=True, inter_model=True, relax=True,
     dist_slop=rec_dist_slop, angle_slop=rec_angle_slop, two_colors=False,
     sel_restrict=None, radius=0.075, save_file=None, batch=False,
     inter_submodel=False, make_pseudobonds=True, retain_current=False,
@@ -39,8 +39,8 @@ def cmd_hbonds(session, spec=None, intramodel=True, intermodel=True, relax=True,
             if batch:
                 return
             raise UserError("No atoms in selection.")
-        if (not intermodel or sel_restrict == "both") and structures is None:
-            # intramodel only or both ends in selection
+        if (not inter_model or sel_restrict == "both") and structures is None:
+            # intra_model only or both ends in selection
             structures = sel_atoms.unique_structures
         if sel_restrict == "both":
             # both ends in selection
@@ -57,8 +57,8 @@ def cmd_hbonds(session, spec=None, intramodel=True, intermodel=True, relax=True,
         # cache trajectories by default
         cache_DA = len(structures) == 1 and structures[0].num_coordsets > 1
 
-    hbonds = find_hbonds(session, structures, intermodel=intermodel,
-        intramodel=intramodel, dist_slop=dist_slop,
+    hbonds = find_hbonds(session, structures, inter_model=inter_model,
+        intra_model=intra_model, dist_slop=dist_slop,
         angle_slop=angle_slop, donors=donors, acceptors=acceptors,
         inter_submodel=inter_submodel, cache_da=cache_DA)
     if sel_restrict and donors == None:
@@ -75,7 +75,7 @@ def cmd_hbonds(session, spec=None, intramodel=True, intermodel=True, relax=True,
     if not intra_res:
         hbonds = [hb for hb in hbonds if hb[0].residue != hb[1].residue]
 
-    output_info = (intermodel, intramodel, relax, dist_slop, angle_slop,
+    output_info = (inter_model, intra_model, relax, dist_slop, angle_slop,
                             structures, hbonds)
     if log:
         import io
@@ -103,7 +103,7 @@ def cmd_hbonds(session, spec=None, intramodel=True, intermodel=True, relax=True,
     if two_colors:
         # color relaxed constraints differently
         precise = find_hbonds(session, structures,
-            intermodel=intermodel, intramodel=intramodel,
+            inter_model=inter_model, intra_model=intra_model,
             donors=donors, acceptors=acceptors,
             inter_submodel=inter_submodel, cache_da=cache_DA)
         if sel_restrict and donors == None:
@@ -209,13 +209,13 @@ def filter_hbonds_by_sel(hbonds, sel_atoms, sel_restrict):
     return filtered
 
 def _file_output(file_name, output_info, naming_style):
-    intermodel, intramodel, relax_constraints, \
+    inter_model, intra_model, relax_constraints, \
             dist_slop, angle_slop, structures, hbonds = output_info
     from chimerax.core.io import open_filename
     out_file = open_filename(file_name, 'w')
-    if intermodel:
+    if inter_model:
         out_file.write("Finding intermodel H-bonds\n")
-    if intramodel:
+    if intra_model:
         out_file.write("Finding intramodel H-bonds\n")
     if relax_constraints:
         out_file.write("Constraints relaxed by %g angstroms"
@@ -278,8 +278,8 @@ def register_command(command_name, logger):
             keyword = [('make_pseudobonds', BoolArg), ('radius', FloatArg), ('color', ColorArg),
                 ('show_dist', BoolArg),
                 ('sel_restrict', Or(EnumOf(('cross', 'both', 'any')), AtomsArg)),
-                ('spec', StructuresArg), ('inter_submodel', BoolArg), ('intermodel', BoolArg),
-                ('intramodel', BoolArg), ('intra_mol', BoolArg), ('intra_res', BoolArg),
+                ('spec', StructuresArg), ('inter_submodel', BoolArg), ('inter_model', BoolArg),
+                ('intra_model', BoolArg), ('intra_mol', BoolArg), ('intra_res', BoolArg),
                 ('cache_DA', FloatArg), ('relax', BoolArg), ('dist_slop', FloatArg),
                 ('angle_slop', FloatArg), ('two_colors', BoolArg), ('slop_color', ColorArg),
                 ('reveal', BoolArg), ('retain_current', BoolArg), ('save_file', SaveFileNameArg),
