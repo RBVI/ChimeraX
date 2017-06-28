@@ -26,6 +26,9 @@ class _LabelBundle(BundleAPI):
         if class_name == 'AtomLabels':
             from .label3d import AtomLabels
             return AtomLabels
+        elif class_name == 'Labels':
+            from .label import Labels
+            return Labels
         return None
 
 bundle_api = _LabelBundle()
