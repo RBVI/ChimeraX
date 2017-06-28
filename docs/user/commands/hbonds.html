@@ -26,7 +26,9 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="../index.html#commands">Command</a>: hbonds</h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>hbonds</b> 
-&nbsp;<a href="#options"><i>options</i></a></h3>
+[&nbsp;<b>color</b> &nbsp;<a href="colornames.html"><i>colorname</i></a>&nbsp;]
+[&nbsp;<b>selRestrict</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;|&nbsp;cross&nbsp;|&nbsp;both&nbsp;|&nbsp;any&nbsp;]
+&nbsp;<a href="#options"><i>other-options</i></a></h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>~hbonds</b> 
 </h3>
@@ -37,8 +39,14 @@ to identify possible hydrogen bonds (H-bonds).
 By <a href="#makePseudobonds">default</a>, 
 the H-bonds are shown as dashed <a href="../pseudobonds.html">pseudobonds</a>,
 which can be removed with <b>~hbonds</b>.
+The <b>selRestrict</b> option allows limiting detection to only the 
+<a href="../selection.html">selected</a> atoms or between the 
+<a href="../selection.html">selected</a> atoms and another set of atoms
+(<a href="#selRestrict">details...</a>).
 The <a href="../tools/log.html"><b>Log</b></a> reports the total number of
-H-bonds found. Distances and other details can be <a href="#log">logged</a>
+H-bonds found.  The total indicates all interactions consistent with 
+the criteria, even if they could not coexist simultaneously.
+Distances and other details can be <a href="#log">logged</a>
 and/or <a href="#saveFile">saved</a> to a file.
 See also: <a href="style.html"><b>style</b></a>
 </p><p>
@@ -71,8 +79,14 @@ For purposes of pseudobond display, backbone atoms are considered as displayed
 when their display is being
 <a href="cartoon.html#suppress">suppressed</a> by cartoon (ribbon).
 <p>
+The number of H-bonds found may exceed the apparent number of pseudobonds 
+because the same pair of atoms could be identified as both
+donor-acceptor and acceptor-donor, even if only one of those 
+interactions could form at a time.
+<!-- example: 1zik HOH residues 50,53 which could be both at same time -->
+</p><p>
 Pseudobond radius and number of dashes 
-(initially <b>0.05</b> &Aring; and <b>6</b>, respectively)
+(initially <b>0.075</b> &Aring; and <b>6</b>, respectively)
 can be changed with the <a href="style.html"><b>style</b></a> command.
 </p>
 </blockquote>
@@ -81,9 +95,8 @@ can be changed with the <a href="style.html"><b>style</b></a> command.
 <br>Color to use for <a href="../pseudobonds.html">pseudobonds</a>
 depicting H-bonds (but see also <a href="#twoColors"><b>twoColors</b></a>
 and <a href="#slopColor"><b>slopColor</b></a>).
-The default color is similar to cyan.
-The <i>colorname</i> can be 
-any <a href="colornames.html">color name</a> that specifies a single color.
+The <i>colorname</i> can be any <a href="colornames.html">color name</a>
+that specifies a single color (default <b>dark cyan</b>).
 Subsequent recoloring (without recalculation) can be done with 
 the <a href="color.html"><b>color</b></a> command, for example:
 <b>color <a href="atomspec.html#builtin">hbonds</a> goldenrod target p</b>
@@ -96,8 +109,8 @@ with the corresponding distances.
 </blockquote>
 -->
 <blockquote>
-  <a name="selRestrict"><b>selRestrict</b></a>
-  &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;|&nbsp;cross&nbsp;|&nbsp;both&nbsp;|&nbsp;any
+<a name="selRestrict"><b>selRestrict</b></a>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;|&nbsp;cross&nbsp;|&nbsp;both&nbsp;|&nbsp;any
 <br>Whether to limit H-bond detection to one of the following:
 <ul>
 <li>those between atoms in
@@ -131,11 +144,11 @@ the specified atoms will be considered.
 <a href="atomspec.html#hierarchy">submodels</a> of the same model.
 </blockquote>
 <blockquote>
-  <a name="intermodel"><b>intermodel</b></a> &nbsp;<b>true</b>&nbsp;|&nbsp;false
+  <a name="intermodel"><b>interModel</b></a> &nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>Whether to look for H-bonds between models.
 </blockquote>
 <blockquote>
-  <b>intramodel</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
+  <b>intraModel</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>Whether to look for H-bonds within models.
 </blockquote>
 <blockquote>
@@ -183,11 +196,10 @@ the tolerance values).
 <blockquote>
   <a name="slopColor"><b>slopColor</b> &nbsp;<i>colorname</i></a>
 <br>If <a href="#twoColors"><b>twoColors</b></a>
-is <b>true</b>, the color to use for
-depicting H-bonds not meeting the precise criteria but within the
-tolerance values.  The default color is similar to orange.
-The <i>colorname</i> can be
-any <a href="colornames.html">color name</a> that specifies a single color.
+is <b>true</b>, the color to use for H-bonds not meeting the 
+precise criteria but within the tolerance values. 
+The <i>colorname</i> can be any <a href="colornames.html">color name</a> 
+that specifies a single color (default <b>dark orange</b>).
 </blockquote>
 <blockquote>
 <a name="reveal"><b>reveal</b> &nbsp;true&nbsp;|&nbsp;<b>false</b></a>

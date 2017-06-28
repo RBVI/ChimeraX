@@ -80,6 +80,8 @@ def _form_id_dict(models):
         id_dict = ids
         for part in model.id:
             id_dict = id_dict.setdefault(part, {})
+        # need next line in case there is a model 1 and 1.1
+        id_dict[0] = {}
     return ids
 
 def _compact_fully_selected(model_ids, all_ids):
@@ -137,6 +139,6 @@ def _range_strings(id_ranges, joiner = ','):
     return joiner.join([_part_strings(id_range, partial) for id_range, partial in id_ranges.items()])
 
 def _part_strings(id_range, subpart):
-    if not subpart:
+    if not subpart or (len(subpart) == 1 and list(subpart.keys())[0].ids == [0]):
         return str(id_range)
     return str(id_range) + '.' + _range_strings(subpart)
