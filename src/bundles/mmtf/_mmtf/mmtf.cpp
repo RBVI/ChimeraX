@@ -106,20 +106,28 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
     Models models;
     models.reserve(16);  // reduce memory use
 
+    vector<int> per_chain_entity_index(data.numChains);
+    for (int i = 0; i < data.entityList.size(); ++i) {
+        for (int j: data.entityList[i].chainIndexList) {
+            per_chain_entity_index[j] = i;
+        }
+    }
+
     for (int32_t model_index = 0; model_index < data.numModels; ++model_index) {
-	auto m = new AtomicStructure(_logger);
+        auto m = new AtomicStructure(_logger);
         models.push_back(m);
         int32_t model_chain_count = data.chainsPerModel[model_index];
         // traverse chains
-	for (auto _model_chain = 0; _model_chain < model_chain_count; ++_model_chain) {
+        for (auto _model_chain = 0; _model_chain < model_chain_count; ++_model_chain) {
             chain_index += 1;
             string chain_id = data.chainIdList[chain_index];
-	    string chain_name;
+            string chain_name;
             if (has_chain_name)
                 chain_name = data.chainNameList[chain_index];
             else
                 chain_name = chain_id;
             int32_t chain_group_count = data.groupsPerChain[chain_index];
+            auto& entity = data.entityList[per_chain_entity_index[chain_index]];
 
             // TODO:
             //  want 3-letter residue names, mmtf gives single-letter
@@ -134,28 +142,32 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
             Residue* last_residue = nullptr;
             bool gap = false;
 
-	    vector<std::pair<Residue*, Residue*>> gaps;
-	    for (auto _chain_group = 0; _chain_group < chain_group_count; ++_chain_group) {
+            vector<std::pair<Residue*, Residue*>> gaps;
+            for (auto _chain_group = 0; _chain_group < chain_group_count; ++_chain_group) {
                 group_index += 1;
                 auto group_id = data.groupIdList[group_index];  // ordinal
                 if (has_ins_code_list) {
                     ins_code = data.insCodeList[group_index];
                     if (ins_code == '\x00')
                         ins_code = ' ';
-		}
+                }
 
-		int8_t sec_struct;
-		int sequence_index;
+                group_id = data.groupIdList[group_index];
+                auto group_type = data.groupTypeList[group_index];
+                auto& group = data.groupList[group_type];
+
+                int8_t sec_struct;
+                int sequence_index;
                 if (has_sec_struct_list)
                     sec_struct = data.secStructList[group_index];
                 if (has_sequence_index_list) {
                     sequence_index = data.sequenceIndexList[group_index];
-                    gap = sequence_index != last_sequence_index + 1;
+                    if (entity.type == "polymer")
+                        gap = sequence_index != last_sequence_index + 1;
+                    else
+                        gap = false;
                     last_sequence_index = sequence_index;
-		}
-                group_id = data.groupIdList[group_index];
-                auto group_type = data.groupTypeList[group_index];
-                auto& group = data.groupList[group_type];
+                }
 
                 const string& group_name = group.groupName;
                 const auto& atom_name_list = group.atomNameList;
@@ -165,7 +177,7 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
                 // bond_order_list = group.bondOrderList;        // TODO
 
                 auto r = m->new_residue(group_name.c_str(), chain_name.c_str(), group_id, ins_code);
-                if (gap)
+                if (gap && last_residue)
                     gaps.emplace_back(last_residue, r);
                 last_residue = r;
                 if (has_sec_struct_list) {
@@ -185,16 +197,16 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
                         r->set_is_helix(true);
                         r->set_ss_id(ss_id);
                         last_ss = HELIX;
-		    } else if (sec_struct == 3) {
+                    } else if (sec_struct == 3) {
                         if (last_ss != STRAND)
                             ss_id += 1;
                         r->set_is_strand(true);
                         r->set_ss_id(ss_id);
                         last_ss = STRAND;
-		    } else
+                    } else
                         last_ss = nullptr;
 
-		}
+                }
                 // traverse atoms
                 auto start_atom = atom_index + 1;
                 map<string, Atom*> group_alt_atoms;
@@ -205,9 +217,9 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
                     auto x_coord = data.xCoordList[atom_index];
                     auto y_coord = data.yCoordList[atom_index];
                     auto z_coord = data.zCoordList[atom_index];
-		    float b_factor;
-		    float occupancy;
-		    char alt_loc;
+                    float b_factor;
+                    float occupancy;
+                    char alt_loc;
                     if (has_b_factor_list)
                         b_factor = data.bFactorList[atom_index];
                     if (has_occupancy_list)
@@ -218,29 +230,29 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
                     auto& atom_element = element_list[i];
                     // formal_charge = formal_charge_list[i];        // TODO
 
-		    Atom* a;
+                    Atom* a;
                     if (group_alt_atoms.find(atom_name) != group_alt_atoms.end()) {
                         a = group_alt_atoms[atom_name];
                         a->set_alt_loc(alt_loc, true);
-		    } else {
-			const Element& e =Element::get_element(atom_element.c_str());
+                    } else {
+                        const Element& e =Element::get_element(atom_element.c_str());
                         atoms[atom_index] = a = m->new_atom(atom_name.c_str(), e);
                         r->add_atom(a);
                         if (has_alt_loc_list && alt_loc != '\x00') {
                             a->set_alt_loc(alt_loc, true);
                             group_alt_atoms[atom_name] = a;
-			}
-		    }
-		    Coord c(x_coord, y_coord, z_coord);
-		    a->set_coord(c);
-		    if (has_b_factor_list)
-			a->set_bfactor(b_factor);
-		    if (has_occupancy_list)
-			a->set_occupancy(occupancy);
-		}
+                        }
+                    }
+                    Coord c(x_coord, y_coord, z_coord);
+                    a->set_coord(c);
+                    if (has_b_factor_list)
+                        a->set_bfactor(b_factor);
+                    if (has_occupancy_list)
+                        a->set_occupancy(occupancy);
+                }
 
                 // connect bonds in residue
-		for (size_t i = 0; i < bond_atom_list.size(); i += 2) {
+                for (size_t i = 0; i < bond_atom_list.size(); i += 2) {
                     // bond_order = bond_order_list[i / 2];  // TODO
                     auto a0 = atoms[start_atom + bond_atom_list[i]];
                     auto a1 = atoms[start_atom + bond_atom_list[i + 1]];
@@ -248,18 +260,28 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
                         // ignore bonds for alternate atoms
                         // assumes that all 'A' atoms were created first
                         continue;
-		    }
+                    }
                     m->new_bond(a0, a1);
-		}
-	    }
-            // TODO:
+                }
+            }
+
             // create gap bonds
-            // if gaps:
-            //     pbg = PseudoBondGroup("missing structure");
-            //     pdb = session.pb_manager.get_group("missing structure");
-            //     for r0, r1 in gaps:
-            //         connect_closest(r0, r1);
-	}
+            atomstruct::Proxy_PBGroup* missing_pbg = nullptr;
+            if (gaps.size() > 0) {
+                if (missing_pbg == nullptr)
+                    missing_pbg = m->pb_mgr().get_group(
+                        m->PBG_MISSING_STRUCTURE, atomstruct::AS_PBManager::GRP_NORMAL);
+                for (auto& residues : gaps) {
+                    Residue* r0 = residues.first;
+                    Residue* r1 = residues.second;
+                    Atom* a0 = nullptr;
+                    Atom* a1 = nullptr;
+                    find_nearest_pair(r0, r1, &a0, &a1);
+                    if (a1 != nullptr)
+                        missing_pbg->new_pseudobond(a0, a1);
+                }
+            }
+        }
     }
 
     if (has_bond_atom_list) {
@@ -281,11 +303,11 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
             //     if xlinks == nullptr:
             //         xlinks = session.pb_manager.get_group("cross links");
             //     xlinks.new_pseudobond(a0, a1);
-	}
+        }
     }
 
     for (auto m : models)
-	find_and_add_metal_coordination_bonds(m);
+        find_and_add_metal_coordination_bonds(m);
 
     return models;
 }
@@ -299,10 +321,10 @@ parse_MMTF_file(PyObject *, PyObject *args, PyObject *keywds)
     int coordsets;
     const char *kwlist[] = {"filename", "logger", "coordsets", NULL};
     if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&Op"),
-				     (char **) kwlist,
-				     PyUnicode_FSConverter, &tmp,
-				     &_logger, &coordsets))
-	return NULL;
+                                     (char **) kwlist,
+                                     PyUnicode_FSConverter, &tmp,
+                                     &_logger, &coordsets))
+        return NULL;
     filename = PyBytes_AS_STRING(tmp);
 
 #ifdef REPORT_TIME
@@ -311,11 +333,11 @@ parse_MMTF_file(PyObject *, PyObject *args, PyObject *keywds)
 
     mmtf::StructureData data;
     try {
-	mmtf::decodeFromFile(data, filename);
+        mmtf::decodeFromFile(data, filename);
     } catch (mmtf::DecodeError& e) {
-	Py_DECREF(tmp);
-	PyErr_SetString(PyExc_RuntimeError, e.what());
-	return NULL;
+        Py_DECREF(tmp);
+        PyErr_SetString(PyExc_RuntimeError, e.what());
+        return NULL;
     }
 #ifdef REPORT_TIME
     clock_t end_t = clock();
@@ -343,18 +365,17 @@ static PyMethodDef mmtf_methods[] = {
   {NULL, NULL, 0, NULL}
 };
 
-
 static struct PyModuleDef mmtf_def =
 {
-	PyModuleDef_HEAD_INIT,
-	"_mmtf",
-	"MMTF file parser",
-	-1,
-	mmtf_methods,
-	NULL,
-	NULL,
-	NULL,
-	NULL
+    PyModuleDef_HEAD_INIT,
+    "_mmtf",
+    "MMTF file parser",
+    -1,
+    mmtf_methods,
+    NULL,
+    NULL,
+    NULL,
+    NULL
 };
 
 } // namespace
@@ -362,5 +383,5 @@ static struct PyModuleDef mmtf_def =
 PyMODINIT_FUNC
 PyInit__mmtf()
 {
-	return PyModule_Create(&mmtf_def);
+    return PyModule_Create(&mmtf_def);
 }
