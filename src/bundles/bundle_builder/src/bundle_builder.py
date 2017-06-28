@@ -109,6 +109,7 @@ class BundleBuilder:
         self.min_session = bi.getAttribute("minSessionVersion")
         self.max_session = bi.getAttribute("maxSessionVersion")
         self.custom_init = bi.getAttribute("custom_init")
+        self.pure_python = bi.getAttribute("pure_python")
 
     def _get_categories(self, bi):
         self.categories = []
@@ -230,6 +231,13 @@ class BundleBuilder:
         self.setup_arguments["packages"] = packages
         if self.datafiles:
             self.setup_arguments["package_data"] = self.datafiles
+        if self.pure_python == "false":
+            # From https://stackoverflow.com/questions/35112511/pip-setup-py-bdist-wheel-no-longer-builds-forced-non-pure-wheels
+            from setuptools.dist import Distribution
+            class BinaryDistribution(Distribution):
+                def has_ext_modules(foo):
+                    return True
+            self.setup_arguments["distclass"] = BinaryDistribution
         if self.c_modules:
             import sys, os.path
             from setuptools import Extension

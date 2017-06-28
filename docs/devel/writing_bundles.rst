@@ -282,10 +282,14 @@ all the information needed to build the bundle.
   - Attributes:
 
     - **name**: bundle name (must start with ``ChimeraX-`` for now)
-    - **version**: bundle version
-    - **package**: Python package name corresponding to bundle
+    - **custom_init**: set to ``true`` if bundle has custom initialization
+      function; omit otherwise
     - **minSessionVersion**: version number of oldest supported Chimera session
     - **maxSessionVersion**: version number of newest supported Chimera session
+    - **package**: Python package name corresponding to bundle
+    - **pure_python**: set to ``false`` if bundle should be treated as
+      binary, *i.e.*, includes a compiled module; omit otherwise
+    - **version**: bundle version
 
   - Child elements:
 
