@@ -20,6 +20,14 @@ class _LabelBundle(BundleAPI):
         label.register_label_command(logger)
         label3d.register_label_command(logger)
 
+    @staticmethod
+    def get_class(class_name):
+        # 'get_class' is called by session code to get class saved in a session
+        if class_name == 'AtomLabels':
+            from .label3d import AtomLabels
+            return AtomLabels
+        return None
+
 bundle_api = _LabelBundle()
 
 from .label import label_create, label_change, label_delete

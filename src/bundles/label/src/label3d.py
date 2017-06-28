@@ -63,7 +63,11 @@ def structure_atom_labels(s, create = False):
     for al in s.child_models():
         if isinstance(al, AtomLabels):
             return al
-    al = AtomLabels(s) if create else None
+    if create:
+        al = AtomLabels(s.session)
+        s.add([al])
+    else:
+        al = None
     return al
 
 # -----------------------------------------------------------------------------
@@ -93,10 +97,8 @@ class AtomLabels(Model):
 
     pickable = False		# Don't allow mouse selection of labels
     
-    def __init__(self, structure):
-        session = structure.session
+    def __init__(self, session):
         Model.__init__(self, 'labels', session)
-        structure.add([self])
 
         self.on_top = True		# Should labels always appear above other graphics
         
@@ -135,6 +137,8 @@ class AtomLabels(Model):
                     if v is not None:
                         setattr(al, k, v)
                 al._needs_update = True
+        if atoms:
+            self.redraw_needed()
 
     def delete_labels(self, atoms):
         ld = self._label_drawings
@@ -149,6 +153,33 @@ class AtomLabels(Model):
     def _update_graphics_if_needed(self, *_):
         for ld in self._label_drawings.values():
             ld._update_graphics()
+
+    def take_snapshot(self, session, flags):
+        lattrs = ('atom', 'offset', 'text', 'color', 'size', 'typeface')
+        lstate = tuple({attr:getattr(ld, attr) for attr in lattrs}
+                       for ld in self._label_drawings.values())
+        data = {'model state': Model.take_snapshot(self, session, flags),
+                'labels state': lstate,
+                'on_top': self.on_top,
+                'version': 1}
+        return data
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        s = AtomLabels(session)
+        s.set_state_from_snapshot(session, data)
+        return s
+
+    def set_state_from_snapshot(self, session, data):
+        Model.set_state_from_snapshot(self, session, data['model state'])
+        self.on_top = data['on_top']
+        als = [AtomLabel(**ls) for ls in data['labels state']]
+        self._label_drawings = {al.atom:al for al in als}
+        for al in als:
+            self.add_drawing(al)
+
+    def reset_state(self, session):
+        pass
 
 # -----------------------------------------------------------------------------
 #
