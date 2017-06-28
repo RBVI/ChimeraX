@@ -237,7 +237,7 @@ class AtomLabel(Drawing):
         s = self.size
         rgba8 = (255,255,255,255)
         from chimerax import app_data_dir
-        from .label import text_image_rgba
+        from .label2d import text_image_rgba
         rgba = text_image_rgba(self.text, rgba8, s, self.typeface, app_data_dir)
         if rgba is None:
             self.session.logger.info("Can't find font for label")

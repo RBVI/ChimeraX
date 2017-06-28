@@ -16,8 +16,8 @@ class _LabelBundle(BundleAPI):
     @staticmethod
     def register_command(command_name, logger):
         # 'register_command' is lazily called when the command is referenced
-        from . import label, label3d
-        label.register_label_command(logger)
+        from . import label2d, label3d
+        label2d.register_label_command(logger)
         label3d.register_label_command(logger)
 
     @staticmethod
@@ -27,10 +27,10 @@ class _LabelBundle(BundleAPI):
             from .label3d import AtomLabels
             return AtomLabels
         elif class_name == 'Labels':
-            from .label import Labels
+            from .label2d import Labels
             return Labels
         return None
 
 bundle_api = _LabelBundle()
 
-from .label import label_create, label_change, label_delete
+from .label2d import label_create, label_change, label_delete
