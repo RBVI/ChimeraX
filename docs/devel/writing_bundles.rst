@@ -293,6 +293,7 @@ all the information needed to build the bundle.
     - **Email** (one)
     - **Categories** (one)
     - **Classifiers** (one)
+    - **DataFiles** (zero or more)
     - **CModule** (zero or more)
     - **Dependencies** (zero or more)
     - **Description** (one)
@@ -312,6 +313,28 @@ all the information needed to build the bundle.
 
     - **name**: name of category (see **Tools** menu in ChimeraX for
       a list of well-known category names)
+
+- **DataFiles**
+
+  - List of data files in package source tree that should be included
+    in bundle
+  - Attribute:
+
+    - **package**: name of package that has the extra data files.
+      If omitted, the current bundle package is used.
+
+  - Child elements:
+
+    - **DataFile** (one or more)
+
+- **DataFile**
+
+  - Element text
+
+    - Data file name (or wildcard pattern) relative to package
+      source.  For example, because current package source is expected
+      to be in folder **src**, a data file **datafile** in the
+      same folder is referenced as ``datafile``, not ``src/datafile``.
 
 - **ChimeraXClassifier**
 
