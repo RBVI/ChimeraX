@@ -30,6 +30,11 @@
 #include <logger/logger.h>
 #include <arrays/pythonarray.h> // Use python_voidp_array()
 
+#undef REPORT_TIME
+#ifdef REPORT_TIME
+#include <time.h>
+#endif
+
 namespace {
 
 using std::map;
@@ -300,6 +305,10 @@ parse_MMTF_file(PyObject *, PyObject *args, PyObject *keywds)
 	return NULL;
     filename = PyBytes_AS_STRING(tmp);
 
+#ifdef REPORT_TIME
+    clock_t start_t = clock();
+#endif
+
     mmtf::StructureData data;
     try {
 	mmtf::decodeFromFile(data, filename);
@@ -308,7 +317,16 @@ parse_MMTF_file(PyObject *, PyObject *args, PyObject *keywds)
 	PyErr_SetString(PyExc_RuntimeError, e.what());
 	return NULL;
     }
+#ifdef REPORT_TIME
+    clock_t end_t = clock();
+    std::cerr << "Load MMTF file " << (end_t - start_t) / (float)CLOCKS_PER_SEC << " seconds\n";
+    start_t = clock();
+#endif
     Models models = extract_data(data, _logger, coordsets);
+#ifdef REPORT_TIME
+    end_t = clock();
+    std::cerr << "Convert to ChimeraX objects " << (end_t - start_t) / (float)CLOCKS_PER_SEC << " seconds\n";
+#endif
 
     Py_DECREF(tmp);
     return structure_pointers(models, filename);
