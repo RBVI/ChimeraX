@@ -12,12 +12,12 @@
 
 # -----------------------------------------------------------------------------
 #
-def label(session, objects, text = None, offset = None, color = None, size = None, typeface = None, on_top = True):
+def label(session, atoms, text = None, offset = None, color = None, size = None, typeface = None, on_top = True):
     '''Create atom labels. The belong to a child model named "labels" of the structure.
 
     Parameters
     ----------
-    objects : Objects
+    atoms : Atoms
       Create labels on specified atoms.
     offset : float 3-tuple
       Offset of label from atom center in screen coordinates in physical units (Angstroms)
@@ -36,22 +36,20 @@ def label(session, objects, text = None, offset = None, color = None, size = Non
       attribute.  Default True.
     '''
     rgba = None if color is None else color.uint8x4()
-    atoms = objects.atoms
     for s, satoms in atoms.by_structure:
         al = structure_atom_labels(s, create = True)
         al.add_labels(satoms, offset, text, rgba, size, typeface, on_top)
 
 # -----------------------------------------------------------------------------
 #
-def label_delete(session, objects):
+def label_delete(session, atoms):
     '''Delete atoms labels.
 
     Parameters
     ----------
-    objects : Objects
+    atoms : Atoms
       Delete labels for specified atoms.
     '''
-    atoms = objects.atoms
     for s, satoms in atoms.by_structure:
         al = structure_atom_labels(s)
         if al is not None:
@@ -72,9 +70,9 @@ def structure_atom_labels(s, create = False):
 #
 def register_label_command(logger):
 
-    from chimerax.core.commands import CmdDesc, register, ObjectsArg, StringArg, Float3Arg, ColorArg, IntArg, BoolArg
+    from chimerax.core.commands import CmdDesc, register, AtomsArg, StringArg, Float3Arg, ColorArg, IntArg, BoolArg
 
-    desc = CmdDesc(required = [('objects', ObjectsArg)],
+    desc = CmdDesc(required = [('atoms', AtomsArg)],
                    keyword = [('text', StringArg),
                               ('offset', Float3Arg),
                               ('color', ColorArg),
@@ -83,7 +81,7 @@ def register_label_command(logger):
                               ('on_top', BoolArg)],
                    synopsis = 'Create atom labels')
     register('label', desc, label, logger=logger)
-    desc = CmdDesc(required = [('objects', ObjectsArg)],
+    desc = CmdDesc(required = [('atoms', AtomsArg)],
                    synopsis = 'Delete atom labels')
     register('label delete', desc, label_delete, logger=logger)
 
