@@ -1491,7 +1491,7 @@ class Structure(Model, StructureData):
             # Don't do bounds check for single copy because bounds are not cached.
             pos_nums = range(np)
         for pn in pos_nums:
-            ppicks = self._position_intercepts(self.positions[pn], mxyz1, mxyz2)
+            ppicks = self._position_intercepts(self.positions[pn], mxyz1, mxyz2, exclude)
             picks.extend(ppicks)
             for p in ppicks:
                 p.copy_number = pn
