@@ -89,9 +89,9 @@ All other contents of the bundle should be in ``src``.
 
     **bundle_info.xml** is an XML file containing
     information about the bundle, including its name,
-    version, dependencies, *etc*.  (This file is only
-    used if you use the ``devel`` command to build and
-    install your bundle.)
+    version, dependencies, *etc*.  This file is
+    used when you use the ``devel`` command to build and
+    install your bundle.
 
     **license.txt.bsd** and **license.txt.mit** are
     two sample license text files.  The actual file
@@ -103,8 +103,8 @@ All other contents of the bundle should be in ``src``.
 
     **setup.py.in** contains Python code for building
     the bundle.  This file is a remnant from when
-    ChimeraX bundles were built using the Python
-    interpreter.  It is here only as a potential
+    bundles were built using the Python interpreter
+    instead of ChimeraX It is here only as a potential
     starting point for developers who need greater
     control over the build process.
 
@@ -135,8 +135,6 @@ All other contents of the bundle should be in ``src``.
     **_sample.cpp** contains sample C++ code that
     compiles into a Python module that defines two
     module functions.
-
-    .. _`Building the Sample Bundle`:
 
 
 *Building and testing the Sample Bundle using ``ChimeraX``*
@@ -171,79 +169,11 @@ Customizing the Sample Code
 To convert the sample code into your own bundle, there are several
 importants steps:
 
-#. Set the bundle name and version number by editing **Makefile**
-   and changing the ``BUNDLE_NAME`` and ``BUNDLE_VERSION`` variables.
-   ``BUNDLE_NAME`` **must** start with the string ``ChimeraX_``
-   followed by the name of your bundle.  The "official" name for your
-   bundle includes the ``ChimeraX_`` prefix but the displayed name for
-   your bundle will not include the prefix.  Version numbers should be
-   either two or three integers separated by dots.  The numbers are
-   referred to as major, minor, and (if present) micro version numbers.
-#. Set the Python package name from where your code will be imported
-   by editing **Makefile** and changing the ``PKG_NAME`` variable.
-   Similar to ``BUNDLE_name``, ``PKG_NAME`` **must** start with
-   ``chimerax.``.
-#. Select the type of bundle (pure Python or platform-specific) by
-   by editing **Makefile** and changing the ``TAG`` variable.
-   If your bundle does not require compiled code, *e.g.*, Python
-   modules written in C/C++, include the ``-p`` flag on the ``TAG``
-   line.  For example, a pure Python bundle should use::
-
-     TAG = $(shell $(PYTHON_EXE) wheel_tag.py -p)
-
-   while a platform-specific one should use::
-
-     TAG = $(shell $(PYTHON_EXE) wheel_tag.py)
-
-#. Define the code and resources that should be included in the
-   bundle by editing **setup.py.in**.
-   
-  -  Configure whether there is a compiled extension module
-     in your bundle.  The line::
-
-      ext_sources = ["src/_sample.cpp"] 
-
-     defines that an extension module will be built from a
-     single C/C++ source file: **src/_sample.cpp**.
-     If your bundle is pure Python, change the assignment to::
-
-      ext_sources = []
-
-     If your bundle is platform-specific, set ``ext_sources``
-     to your list of C/C++ source files *to be compiled*, *i.e.*,
-     no header or include files.  You should also set the
-     name of the compiled extension module.  The statement
-     that creates the extension module is::
-
-      ext_mods = [Extension("PKG_NAME._sample", ...
-
-     which names the extension module as ``_sample`` within
-     your bundle.  By ChimeraX convention, a compiled
-     Python module's name starts with an underscore.
-     The remainder of the name is up to you.
-  -  You do not need to list the Python files to be included
-     in the bundle.  By default, all ``.py`` files in **src**
-     will be part of the bundle.
-  -  If you have other resource files that need to be part
-     of the bundle, you need to review
-     https://packaging.python.org/distributing/#data-files
-     to see what additional arguments needs to be passed to
-     ``setup()``.
-  -  Various "standard" ``setup()`` argument values need to
-     be updated to match your bundle, *e.g.*, ``description``,
-     ``author``, ``author_email``, ``url``.
-  -  If your bundle depends on another ChimeraX bundle (other
-     than the core), you need to list the dependency in
-     ``install_requires``.
-  -  Finally, you need to update the ``classifiers`` list
-     which contains metadata describing the bundle/wheel
-     (see `ChimeraX Metadata and Python Wheel Classifiers`_ below).
-     Two general classifiers that should be checked for
-     correctness are ``Development Status`` and ``License``.
-     In addition, there are a number of ChimeraX-specific
-     classifiers that must be correctly set in order for
-     ChimeraX to make proper use of your bundle (see next
-     section).
+#. First, customize the source code in the **src** folder for
+   your bundle.
+#. Edit **bundle_info.xml** to update bundle information.
+   The supported elements are listed below in `Bundle Information
+   XML Tags`_.
 
 
 Building and Testing Bundles
@@ -323,10 +253,185 @@ files left over from building bundles:
     as well as the **dist** folder containing the built wheels.
 
 
-ChimeraX Metadata and Python Wheel Classifiers
-----------------------------------------------
+Bundle Information XML Tags
+---------------------------
 
-ChimeraX gathers metadata from Python wheel classifiers
+ChimeraX bundle information is stored in **bundle_info.xml**.
+XML elements in the file typically have *attributes* and either
+(a) *child elements*, or (b) *element text*.
+An attributes is used for a value that may be represented
+as a simple string, such as an identifiers or a version numbers.
+The element text is used for a more complex value, such as a
+file name which may contain spaces.
+Child elements are used for multi-valued data, such as a
+list of file names, one element per value.
+
+The supported elements are listed below in alphabetical order.
+The root document elements is **BundleInfo**, which contains
+all the information needed to build the bundle.
+
+- **Author**
+
+  - Element text:
+
+    - Name of bundle author
+
+- **BundleInfo**:
+
+  - Root element containing all information needed to build the bundle.
+  - Attributes:
+
+    - **name**: bundle name (must start with ``ChimeraX-`` for now)
+    - **custom_init**: set to ``true`` if bundle has custom initialization
+      function; omit otherwise
+    - **minSessionVersion**: version number of oldest supported Chimera session
+    - **maxSessionVersion**: version number of newest supported Chimera session
+    - **package**: Python package name corresponding to bundle
+    - **pure_python**: set to ``false`` if bundle should be treated as
+      binary, *i.e.*, includes a compiled module; omit otherwise
+    - **version**: bundle version
+
+  - Child elements:
+
+    - **Author** (one)
+    - **Email** (one)
+    - **Categories** (one)
+    - **Classifiers** (one)
+    - **DataFiles** (zero or more)
+    - **CModule** (zero or more)
+    - **Dependencies** (zero or more)
+    - **Description** (one)
+    - **Synopsis** (one)
+    - **URL** (one)
+
+- **Categories**
+
+  - List of categories where bundle may appear, *e.g.*, in menus
+  - Child elements:
+
+    - **Category** (one or more)
+
+- **Category**
+
+  - Attribute:
+
+    - **name**: name of category (see **Tools** menu in ChimeraX for
+      a list of well-known category names)
+
+- **DataFiles**
+
+  - List of data files in package source tree that should be included
+    in bundle
+  - Attribute:
+
+    - **package**: name of package that has the extra data files.
+      If omitted, the current bundle package is used.
+
+  - Child elements:
+
+    - **DataFile** (one or more)
+
+- **DataFile**
+
+  - Element text
+
+    - Data file name (or wildcard pattern) relative to package
+      source.  For example, because current package source is expected
+      to be in folder **src**, a data file **datafile** in the
+      same folder is referenced as ``datafile``, not ``src/datafile``.
+
+- **ChimeraXClassifier**
+
+  - Lines similar to Python classifiers but containing
+    ChimeraX-specific information about the bundle.
+    See `ChimeraX Metadata Classifiers`_
+    below for detailed description of ChimeraX
+  - Element text:
+
+    - Lines with ``::``-separated fields.
+
+- **Classifiers**
+  
+  - Child elements:
+
+    - **ChimeraXClassifier** (zero or more)
+    - **PythonClassifier** (zero or more)
+
+- **CModule**
+
+  - List of compiled modules in the current bundle.
+  - Attribute:
+
+    - **name**: name of compiled module.  This should not include
+      file suffixes, as they vary across platforms.  The compiled
+      module will appear as a submodule of the Python package
+      corresponding to the bundle.
+
+  - Child elements:
+    
+    - **SourceFile** (one or more)
+
+- **Dependencies**
+
+  - List of all ChimeraX bundles and Python packages that the current
+    bundle depends on.
+  - Child elements:
+
+    - **Dependency** (one or more)
+
+- **Dependency**
+
+  - Attributes:
+
+    - **name**: name of ChimeraX bundle or Python package that current
+      bundle depends on.
+    - **version**: version of bundle of package that current bundle
+      depends on.
+
+- **Description**
+
+  - Element text:
+
+    - Full description of bundle.  May be multiple lines.
+
+- **Email**
+
+  - Element text:
+
+    - Contact address for bundle maintainer.
+
+- **PythonClassifier**
+
+  - Element text:
+
+    - Standard `Python classifier
+      <https://pypi.python.org/pypi?%3Aaction=list_classifiers>`_
+      with ``::``-separated fields.
+
+- **SourceFile**
+
+  - Element text:
+
+    - Name of source file in a compiled module.  The path should be
+      relative to **bundle_info.xml**.
+
+- **Synopsis**
+
+  - Element text:
+
+    - One line description of bundle (*e.g.*, as tool tip text)
+
+- **URL**
+
+  - Element text:
+
+    - URL containing additional information about bundle
+
+
+ChimeraX Metadata Classifiers
+-----------------------------
+
+ChimeraX gathers metadata from Python-wheel-style classifiers
 listed in the bundle.  The only required classifier is
 for overall bundle metadata; additional classifiers provide
 information about tools (graphical interfaces), commands,

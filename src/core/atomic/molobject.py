@@ -116,7 +116,7 @@ class Atom(State):
         elif style.startswith("command"):
             atom_str = '@' + self.name
         else:
-            atom_str = '@' + str(self.serial_number)
+            atom_str = str(self.serial_number)
         if atom_only:
             return atom_str
         if not style.startswith('simple'):
@@ -738,25 +738,28 @@ class Residue(State):
             from ..core_settings import settings
             style = settings.atomspec_contents
         ic = self.insertion_code
-        cmd_style = not style.startswith("simple")
-        if cmd_style:
-            res_str = ":" + str(self.number) + ic
-        else:
+        if style.startswith("simple"):
             res_str = self.name + " " + str(self.number) + ic
+        else:
+            res_str = ":" + str(self.number) + ic
+        chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
         if residue_only:
             return res_str
-        chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
         if omit_structure:
             return '%s %s' % (chain_str, res_str)
         from .structure import Structure
         if len([s for s in self.structure.session.models.list() if isinstance(s, Structure)]) > 1:
             struct_string = str(self.structure)
+            if style.startswith("serial"):
+                struct_string += " "
         else:
             struct_string = ""
         from ..core_settings import settings
-        if cmd_style:
+        if style.startswith("simple"):
+            return '%s%s %s' % (struct_string, chain_str, res_str)
+        if style.startswith("command"):
             return struct_string + chain_str + res_str
-        return '%s%s %s' % (struct_string, chain_str, res_str)
+        return struct_string
 
     def atomspec(self):
         res_str = ":" + str(self.number) + self.insertion_code
@@ -1576,7 +1579,7 @@ class StructureData:
         f = c_function('structure_molecules', args = (ctypes.c_void_p,), ret = ctypes.py_object)
         atom_arrays = f(self._c_pointer)
         from .molarray import Atoms
-        return tuple(Atoms(ra) for aa in atom_arrays)
+        return tuple(Atoms(aa) for aa in atom_arrays)
 
     def new_atom(self, atom_name, element_name):
         '''Create a new :class:`.Atom` object. It must be added to a :class:`.Residue` object

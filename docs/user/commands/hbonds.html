@@ -34,6 +34,18 @@ class="clRight" title="User Guide Index"/></a>
 The <b>hbonds</b> command uses <a href="../atomtypes.html">atom types</a> and
 <a href="#criteria">geometric criteria</a>
 to identify possible hydrogen bonds (H-bonds).
+By <a href="#makePseudobonds">default</a>, 
+the H-bonds are shown as dashed <a href="../pseudobonds.html">pseudobonds</a>,
+which can be removed with <b>~hbonds</b>.
+The <a href="../tools/log.html"><b>Log</b></a> reports the total number of
+H-bonds found. Distances and other details can be <a href="#log">logged</a>
+and/or <a href="#saveFile">saved</a> to a file.
+See also: <a href="style.html"><b>style</b></a>
+</p><p>
+The command-line specifier
+<a href="atomspec.html#builtin"><b>hbonds</b></a>
+(not to be confused with the command)
+refers to H-bond pseudobonds and their endpoint atoms.
 </p>
 
 <a name="options"></a>
@@ -47,11 +59,22 @@ default settings are indicated with <b>bold</b>.
 <blockquote>
 <a name="makePseudobonds"><b>makePseudobonds</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
 </a>
-<br>Whether to show the H-bonds as
-<a href="../pseudobonds.html">pseudobonds</a> in a model named
-<b>hydrogen bonds</b>. The pseudobonds will be drawn
+<br>Whether to show the H-bonds in 3D by creating a
+<a href="../pseudobonds.html">pseudobond model</a>
+named <b>hydrogen bonds</b>. The pseudobonds will be drawn
 between the donor and acceptor atoms, or if hydrogens are present,
-between the hydrogens and acceptor atoms.
+between the hydrogens and acceptor atoms. 
+H-bond pseudobonds are only displayed when both endpoint atoms are displayed,
+but the <a href="#reveal"><b>reveal</b></a> option can be used to ensure 
+all H-bonds are displayed by displaying the associated residues.
+For purposes of pseudobond display, backbone atoms are considered as displayed 
+when their display is being
+<a href="cartoon.html#suppress">suppressed</a> by cartoon (ribbon).
+<p>
+Pseudobond radius and number of dashes 
+(initially <b>0.05</b> &Aring; and <b>6</b>, respectively)
+can be changed with the <a href="style.html"><b>style</b></a> command.
+</p>
 </blockquote>
 <blockquote>
   <b>color</b> &nbsp;<i>colorname</i>
@@ -61,6 +84,9 @@ and <a href="#slopColor"><b>slopColor</b></a>).
 The default color is similar to cyan.
 The <i>colorname</i> can be 
 any <a href="colornames.html">color name</a> that specifies a single color.
+Subsequent recoloring (without recalculation) can be done with 
+the <a href="color.html"><b>color</b></a> command, for example:
+<b>color <a href="atomspec.html#builtin">hbonds</a> goldenrod target p</b>
 </blockquote>
 <!--
 <blockquote>
@@ -83,10 +109,6 @@ will not overrule other restrictions (for example, if
 the specified atoms are in a different model than the selected atoms
 but <a href="#intermodel"><b>intermodel</b></a> is <b>false</b>,
 no H-bonds will be found).
-<!--
-If <a href="atomspec.html"><i>atom-spec</i></a>
-includes any spaces, it must be enclosed in quotation marks.
--->
 <li><b>cross</b> - H-bonds with exactly one atom
 <a href="../selection.html">selected</a>
 <li><b>both</b> - H-bonds with both atoms
@@ -102,10 +124,6 @@ This option is <b>off</b> unless specified.
 <br>Whether to restrict H-bond detection to a subset of
 the open molecule models. The <i>entire model(s)</i> containing
 the specified atoms will be considered.
-<!--
-If <a href="atomspec.html"><i>atom-spec</i></a>
-includes any spaces, it must be enclosed in quotation marks.
--->
 </blockquote>
 <blockquote>
   <b>interSubmodel</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
@@ -134,7 +152,6 @@ where a molecule is defined as a covalently bonded set of atoms.
 <br>Whether to cache and reuse donor and acceptor information
 rather than regenerating it each time the command is used;
 useful for calculations on different conformations of the same structure.
-<!-- check -->
 The default is <b>true</b> for a <a href="../trajectories.html">trajectory</a>, 
 otherwise <b>false</b>.
 </blockquote>
@@ -143,6 +160,7 @@ otherwise <b>false</b>.
 <br>Whether to relax the
 <a href="#criteria">precise criteria</a> for hydrogen bonding.
 </blockquote>
+<a name="tolerances"></a>
 <blockquote>
   <b>distSlop</b> &nbsp;<i>tolerance</i>
 <br>How much to relax the distance criteria if
@@ -172,7 +190,7 @@ The <i>colorname</i> can be
 any <a href="colornames.html">color name</a> that specifies a single color.
 </blockquote>
 <blockquote>
-<b>reveal</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+<a name="reveal"><b>reveal</b> &nbsp;true&nbsp;|&nbsp;<b>false</b></a>
 <br>Whether to turn on the display of residues containing an
 H-bonding atom if that atom is not displayed initially.
 (By default, if the atom on either end of a
@@ -188,21 +206,13 @@ round of detection (as opposed to replacing the old with the new).
 </blockquote>
 <blockquote>
   <a name="saveFile"><b>saveFile</b> &nbsp;<i>file</i></a>
-<br>Whether to save H-bond information to a file
-(this option is <b>off</b> unless specified).
+<br>Save H-bond information to a file.
 The information includes donor and acceptor atom specifications
 (see <a href="#namingStyle"><b>namingStyle</b></a>),
 donor-acceptor distances, and when hydrogens are present,
 hydrogen atom specifications and hydrogen-acceptor distances.
 <i>File</i> is the output file name/pathname; 
-<!-- check -->
 if it includes spaces, it must be enclosed in quotation marks.
-<!--
-If <i>file</i> is <b>browse</b> or <b>browser</b>, a
-dialog for saving the file will appear
-(unless the word is enclosed in quotes, which would
-generate an output file by that name).
--->
 </blockquote>
 <blockquote>
   <a name="log"><b>log</b> &nbsp;true&nbsp;|&nbsp;<b>false</b></a>
@@ -215,11 +225,11 @@ generate an output file by that name).
 <br>How to describe atoms in H-bond information
 written to a <a href="#saveFile">file</a> or the <a href="#log">log</a>:
 <ul>
-<li><b>simple</b> - residue name, residue specifier, and atom name
-<!-- (for example, HIS 16.A ND1) -->
+<li><b>simple</b> - chain ID (preceded by slash), 
+residue name, residue number, atom name (for example, /B ASN 21 OD1)
 <li><b>command</b>
 - <a href="atomspec.html#hierarchy">command-line specifier</a>
-<!-- (for example, :16.A@ND1) -->
+(for example, /B:21@OD1)
 <li><b>serial</b> - atom serial number
 (for example, 126)
 </ul>
@@ -235,7 +245,7 @@ when <a href="#selRestrict"><b>selRestrict</b></a> is specified.
 </blockquote>
 
 <a name="criteria"></a>
-<h4>Method and Criteria</h4>
+<h4>Method and Geometric Criteria</h4>
 <p>
 Distance and angle cutoffs for H-bonding
 are based on a survey of small-molecule crystal structures, as described in

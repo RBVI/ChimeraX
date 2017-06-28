@@ -331,6 +331,8 @@ class _AtomSpecSemantics:
                 op = operator.le
             elif ast.op == "<":
                 op = operator.lt
+            # Convert string to value for comparison
+            # TODO: if ast.name ends with color, convert to 3-float-tuple
             try:
                 v = int(ast.value)
             except ValueError:
@@ -596,12 +598,27 @@ class _AttrTest:
         self.value = value
 
     def __str__(self):
-        if self.no:
+        if self.no is not None:
             return '~' + self.name
-        elif self.op:
-            return "%s%s%s" % (self.name, self.op, self.value)
-        else:
+        elif self.value is None:
             return self.name
+        else:
+            import operator
+            if self.op == operator.eq:
+                op = "="
+            elif self.op == operator.ne:
+                op = "!="
+            elif self.op == operator.ge:
+                op = ">="
+            elif self.op == operator.gt:
+                op = ">"
+            elif self.op == operator.le:
+                op = "<="
+            elif self.op == operator.lt:
+                op = "<"
+            else:
+                op = "???"
+            return "%s%s%s" % (self.name, op, self.value)
 
 
 class _SelectorName:
