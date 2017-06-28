@@ -195,6 +195,9 @@ class AtomLabel(Drawing):
 
     def _update_graphics(self):
         self._position_label()
+        disp = self.atom.visible
+        if disp != self.display:
+            self.display = disp
 
     def _update_label_texture(self):
         if not self._needs_update:
