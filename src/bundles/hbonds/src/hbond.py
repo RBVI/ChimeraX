@@ -286,7 +286,7 @@ _ring_funcs = [_ring5_asym_N, _ring6_asym_N, _ring5_O,
                 _ring5_sym_N, _ring6_sym_N, _ring5_NH, _ring6_aro_NH]
 
 @line_profile
-def find_hbonds(session, models, intermodel=True, intramodel=True, donors=None, acceptors=None,
+def find_hbonds(session, models, inter_model=True, intra_model=True, donors=None, acceptors=None,
         dist_slop=0.0, angle_slop=0.0, inter_submodel=False, cache_da=False):
     """Hydrogen bond detection based on criteria in "Three-dimensional
         hydrogen-bond geometry and probability information from a
@@ -526,7 +526,7 @@ def find_hbonds(session, models, intermodel=True, intramodel=True, donors=None, 
             donor_hyds = hyd_positions(donor_atom)
             coord = donor_atom.scene_coord
             for acc_model in models:
-                if acc_model == model and not intramodel or acc_model != model and not intermodel:
+                if acc_model == model and not intra_model or acc_model != model and not inter_model:
                     continue
                 if acc_model.id[0] == model.id[0] and not inter_submodel \
                 and acc_model.id[1:] != model.id[1:]:

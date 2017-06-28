@@ -122,6 +122,8 @@ class Collection(State):
         remove_deleted_pointers(pointers)
 
     def __eq__(self, atoms):
+        if not isinstance(atoms, Collection):
+            return False
         import numpy
         return numpy.array_equal(atoms._pointers, self._pointers)
     def hash(self):

@@ -9,33 +9,80 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.errors import UserError as CommandError
-from chimerax.core.commands import Annotation, AnnotationError, next_token
 
-class NameArg(Annotation):
+# -----------------------------------------------------------------------------
+#
+def label_create(session, name, text = '', color = None, size = 24, typeface = 'Arial',
+                 xpos = 0.5, ypos = 0.5, visibility = True):
+    '''Create a label at a fixed position in the graphics window.
 
-    name = "'all' or a label identifier"
-    _html_name = "<b>all</b> or a label identifier"
+    Parameters
+    ----------
+    name : string
+      Identifier for the label used to change or delete label.
+    text : string
+      Displayed text of the label.
+    color : Color
+      Color of the label text.  If no color is specified black is used on light backgrounds
+      and white is used on dark backgrounds.
+    size : int
+      Font size in pixels.
+    typeface : string
+      Font name.  This must be a true type font installed on Mac in /Library/Fonts
+      and is the name of the font file without the ".ttf" suffix.
+    xpos : float
+      Placement of left edge of text. Range 0 - 1 covers full width of graphics window.
+    ypos : float
+      Placement of bottom edge of text. Range 0 - 1 covers full height of graphics window.
+    visibility : bool
+      Whether or not to display the label.
+    '''
+    if name == 'all':
+        from chimerax.core.errors import UserError
+        raise UserError("'all' is reserved to refer to all labels")
+    kw = locals().copy()
+    if color is not None:
+        kw['color'] = color.uint8x4()
+    return Label(**kw)
 
-    @staticmethod
-    def parse(text, session):
-        if not text:
-            raise AnnotationError("Expected %s" % NameArg.name)
-        lmap = getattr(session, 'labels', {})
-        if len(lmap) == 0:
-            raise AnnotationError("No labels exist")
-        token, text, rest = next_token(text)
-        if token not in lmap:
-            possible = [name for name in lmap if name.startswith(token)]
-            if 'all'.startswith(token):
-                possible.append('all')
-            if not possible:
-                raise AnnotationError("Unknown label identifier: '%s'" % token)
-            possible.sort(key=len)
-            token = possible[0]
-        return token, token, rest
+
+# -----------------------------------------------------------------------------
+#
+def label_change(session, name, text = None, color = None, size = None, typeface = None,
+                 xpos = None, ypos = None, visibility = None):
+    '''Change label parameters.'''
+    lb = session_labels(session)
+    if name == 'all':
+        for n in lb.labels.keys():
+            label_change(session, n, text, color, size, typeface, xpos, ypos, visibility)
+        return
+    l = lb.labels[name]
+    if not text is None: l.text = text
+    if not color is None: l.color = color.uint8x4()
+    if not size is None: l.size = size
+    if not typeface is None: l.typeface = typeface
+    if not xpos is None: l.xpos = xpos
+    if not ypos is None: l.ypos = ypos
+    if not visibility is None: l.visibility = visibility
+    l.update_drawing()
+    return l
 
 
+# -----------------------------------------------------------------------------
+#
+def label_delete(session, name):
+    '''Delete label.'''
+    lb = session_labels(session)
+    if name == 'all':
+        for l in tuple(lb.labels.values()):
+            l.delete()
+        return
+    l = lb.labels[name]
+    l.delete()
+
+
+# -----------------------------------------------------------------------------
+#
 def register_label_command(logger):
 
     from chimerax.core.commands import CmdDesc, register, BoolArg, IntArg, StringArg, FloatArg, ColorArg
@@ -60,6 +107,56 @@ def register_label_command(logger):
                           synopsis = 'Delete a 2d label')
     register('2dlabels delete', delete_desc, label_delete, logger=logger)
 
+
+# -----------------------------------------------------------------------------
+#
+from chimerax.core.state import State
+class Labels(State):
+    def __init__(self):
+        State.__init__(self)
+        self.labels = {}	# Map label name to Label object
+
+    def add(self, label):
+        n = label.name
+        ls = self.labels
+        if n in ls:
+            ls[n].delete()
+        ls[n] = label
+
+    def delete(self, label):
+        del self.labels[label.name]
+
+    def take_snapshot(self, session, flags):
+        lattrs = ('name', 'text', 'color', 'size', 'typeface', 'xpos', 'ypos', 'visibility')
+        lstate = tuple({attr:getattr(l, attr) for attr in lattrs}
+                       for l in self.labels.values())
+        data = {'labels state': lstate, 'version': 1}
+        return data
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        s = session_labels(session)
+        s.set_state_from_snapshot(session, data)
+        return s
+
+    def set_state_from_snapshot(self, session, data):
+        self.labels = {ls['name']:Label(session, **ls) for ls in data['labels state']}
+
+    def reset_state(self, session):
+        pass
+
+
+# -----------------------------------------------------------------------------
+#
+def session_labels(session):
+    lb = getattr(session, 'labels', None)
+    if lb is None:
+        session.labels = lb = Labels()
+    return lb
+        
+
+# -----------------------------------------------------------------------------
+#
 class Label:
     def __init__(self, session, name, text = '', color = None, size = 24, typeface = 'Arial',
                  xpos = 0.5, ypos = 0.5, visibility = True):
@@ -75,12 +172,8 @@ class Label:
         self.drawing = d = LabelDrawing(self)
         session.main_view.add_overlay(d)
 
-        lmap = getattr(session, 'labels', None)
-        if lmap is None:
-            session.labels = lmap = {}
-        if name in lmap:
-            lmap[name].delete()
-        lmap[name] = self
+        lb = session_labels(session)
+        lb.add(self)
 
     def update_drawing(self):
         d = self.drawing
@@ -93,11 +186,16 @@ class Label:
             return
         s = self.session
         s.main_view.remove_overlays([d])
-        del s.labels[self.name]
+        session_labels(s).delete(self)
 
+
+# -----------------------------------------------------------------------------
+#
 from chimerax.core.graphics.drawing import Drawing
 class LabelDrawing(Drawing):
 
+    pickable = False
+    
     def __init__(self, label):
         Drawing.__init__(self, 'label %s' % label.name)
         self.label = label
@@ -120,7 +218,7 @@ class LabelDrawing(Drawing):
             light_bg = (sum(v.background_color[:3]) > 1.5)
             rgba8 = (0,0,0,255) if light_bg else (255,255,255,255)
         else:
-            rgba8 = tuple(l.color.uint8x4())
+            rgba8 = tuple(l.color)
         from chimerax import app_data_dir
         rgba = text_image_rgba(l.text, rgba8, l.size, l.typeface, app_data_dir)
         if rgba is None:
@@ -162,62 +260,8 @@ class LabelDrawing(Drawing):
         pass
 
 
-def label_create(session, name, text = '', color = None, size = 24, typeface = 'Arial',
-                 xpos = 0.5, ypos = 0.5, visibility = True):
-    '''Create a label at a fixed position in the graphics window.
-
-    Parameters
-    ----------
-    name : string
-      Identifier for the label used to change or delete label.
-    text : string
-      Displayed text of the label.
-    color : Color
-      Color of the label text.  If no color is specified black is used on light backgrounds
-      and white is used on dark backgrounds.
-    size : int
-      Font size in pixels.
-    typeface : string
-      Font name.  This must be a true type font installed on Mac in /Library/Fonts
-      and is the name of the font file without the ".ttf" suffix.
-    xpos : float
-      Placement of left edge of text. Range 0 - 1 covers full width of graphics window.
-    ypos : float
-      Placement of bottom edge of text. Range 0 - 1 covers full height of graphics window.
-    visibility : bool
-      Whether or not to display the label.
-    '''
-    if name == 'all':
-        raise CommandError("'all' is reserved to refer to all labels")
-    return Label(**locals())
-
-def label_change(session, name, text = None, color = None, size = None, typeface = None,
-                 xpos = None, ypos = None, visibility = None):
-    '''Change label parameters.'''
-    if name == 'all':
-        for n in session.labels.keys():
-            label_change(session, n, text, color, size, typeface, xpos, ypos, visibility)
-        return
-    l = session.labels[name]
-    if not text is None: l.text = text
-    if not color is None: l.color = color
-    if not size is None: l.size = size
-    if not typeface is None: l.typeface = typeface
-    if not xpos is None: l.xpos = xpos
-    if not ypos is None: l.ypos = ypos
-    if not visibility is None: l.visibility = visibility
-    l.update_drawing()
-    return l
-
-def label_delete(session, name):
-    '''Delete label.'''
-    if name == 'all':
-        for l in tuple(session.labels.values()):
-            l.delete()
-        return
-    l = session.labels[name]
-    l.delete()
-
+# -----------------------------------------------------------------------------
+#
 def text_image_rgba(text, color, size, typeface, data_dir):
     import os, sys
     from PIL import Image, ImageDraw, ImageFont
@@ -248,3 +292,30 @@ def text_image_rgba(text, color, size, typeface, data_dir):
 #    print ('Text "%s" rgba array size %s' % (text, tuple(rgba.shape)))
     frgba = rgba[::-1,:,:]	# Flip so text is right side up.
     return frgba
+
+
+# -----------------------------------------------------------------------------
+#
+from chimerax.core.commands import Annotation
+class NameArg(Annotation):
+
+    name = "'all' or a label identifier"
+    _html_name = "<b>all</b> or a label identifier"
+
+    @staticmethod
+    def parse(text, session):
+        from chimerax.core.commands import AnnotationError, next_token
+        if not text:
+            raise AnnotationError("Expected %s" % NameArg.name)
+        lmap = session_labels(session).labels
+        token, text, rest = next_token(text)
+        if token not in lmap:
+            possible = [name for name in lmap if name.startswith(token)]
+            if 'all'.startswith(token):
+                possible.append('all')
+            if not possible:
+                raise AnnotationError("Unknown label identifier: '%s'" % token)
+            possible.sort(key=len)
+            token = possible[0]
+        return token, token, rest
+

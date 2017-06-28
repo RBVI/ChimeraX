@@ -178,6 +178,7 @@ CS_PBGroup::new_pseudobond(Atom* a1, Atom* a2, CoordSet* cs)
     Pseudobond* pb = static_cast<Pseudobond*>(new CS_Pseudobond(a1, a2, this, cs));
     pb->set_color(color());
     pb->set_halfbond(halfbond());
+    pb->set_radius(radius());
     auto pbi = _pbonds.find(cs);
     if (pbi == _pbonds.end()) {
         _pbonds[cs].insert(pb);
@@ -195,6 +196,7 @@ StructurePBGroup::new_pseudobond(Atom* a1, Atom* a2)
     pb->finish_construction();
     pb->set_color(color());
     pb->set_halfbond(halfbond());
+    pb->set_radius(radius());
     _pbonds.insert(pb); return pb;
 }
 

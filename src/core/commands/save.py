@@ -55,16 +55,7 @@ def save(session, filename, models=None, format=None, **kw):
     if models:
         kw["models"] = models
     try:
-        fmt.export(session, filename, format, **kw)
-    except ValueError:
-        # No export function registered
-        suffixes = ', '.join(sum([f.extensions for f in io.formats() if f.export_func], []))
-        from ..errors import UserError
-        if not suffix:
-            msg = 'Missing file suffix, require one of %s' % suffixes
-        else:
-            msg = 'Unrecognized file suffix "%s", require one of %s' % (suffix, suffixes)
-        raise UserError(msg)
+        fmt.export(session, filename, fmt.nicknames[0], **kw)
     except TypeError as e:
         # Keywords incompatible with export function
         if 'unexpected keyword' in str(e):

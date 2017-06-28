@@ -781,7 +781,7 @@ class IHMModel(Model):
         nl = sum([len(lm.child_models()) for lm in self.localization_models], 0)
         xldesc = ', '.join('%d %s crosslinks' % (len(xls),type)
                            for type,xls in self.crosslink_models.items())
-        esizes = ' and '.join('%d'%em.num_coord_sets for em in self.ensemble_sphere_models)
+        esizes = ' and '.join('%d'%em.num_coordsets for em in self.ensemble_sphere_models)
         msg = ('Opened IHM file %s\n'
                ' %d xray/nmr models, %d comparative models, %d sequence alignments, %d templates\n'
                ' %s, %d electron microscopy images\n'

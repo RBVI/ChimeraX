@@ -96,6 +96,7 @@ class BundleBuilder:
         self._get_identifiers(bi)
         self._get_categories(bi)
         self._get_descriptions(bi)
+        self._get_datafiles(bi)
         self._get_dependencies(bi)
         self._get_c_modules(bi)
         self._get_packages(bi)
@@ -107,6 +108,8 @@ class BundleBuilder:
         self.package = bi.getAttribute("package")
         self.min_session = bi.getAttribute("minSessionVersion")
         self.max_session = bi.getAttribute("maxSessionVersion")
+        self.custom_init = bi.getAttribute("custom_init")
+        self.pure_python = bi.getAttribute("pure_python")
 
     def _get_categories(self, bi):
         self.categories = []
@@ -138,6 +141,20 @@ class BundleBuilder:
         elif len(elements) == 0:
             raise ValueError("%s element is missing" % repr(tag))
         return elements[0]
+
+    def _get_datafiles(self, bi):
+        import pathlib, os.path
+        self.datafiles = {}
+        for dfs in bi.getElementsByTagName("DataFiles"):
+            pkg_name = dfs.getAttribute("package")
+            files = []
+            for e in dfs.getElementsByTagName("DataFile"):
+                filename = self._get_element_text(e)
+                files.append(filename)
+            if files:
+                if not pkg_name:
+                    pkg_name = self.package
+                self.datafiles[pkg_name] = files
 
     def _get_dependencies(self, bi):
         self.dependencies = []
@@ -188,7 +205,7 @@ class BundleBuilder:
         self.chimerax_classifiers = [
             ("ChimeraX :: Bundle :: " + ','.join(self.categories) +
              " :: " + self.min_session + "," + self.max_session +
-             " :: " + self.package + " :: :: ")
+             " :: " + self.package + " :: :: " + self.custom_init)
         ]
         for e in cls.getElementsByTagName("ChimeraXClassifier"):
             self.chimerax_classifiers.append(self._get_element_text(e))
@@ -212,6 +229,15 @@ class BundleBuilder:
             packages.append(name)
         self.setup_arguments["package_dir"] = package_dir
         self.setup_arguments["packages"] = packages
+        if self.datafiles:
+            self.setup_arguments["package_data"] = self.datafiles
+        if self.pure_python == "false":
+            # From https://stackoverflow.com/questions/35112511/pip-setup-py-bdist-wheel-no-longer-builds-forced-non-pure-wheels
+            from setuptools.dist import Distribution
+            class BinaryDistribution(Distribution):
+                def has_ext_modules(foo):
+                    return True
+            self.setup_arguments["distclass"] = BinaryDistribution
         if self.c_modules:
             import sys, os.path
             from setuptools import Extension
