@@ -37,8 +37,8 @@ The <b>hbonds</b> command uses <a href="../atomtypes.html">atom types</a> and
 <a href="#criteria">geometric criteria</a>
 to identify possible hydrogen bonds (H-bonds).
 By <a href="#makePseudobonds">default</a>, 
-the H-bonds are shown as dashed <a href="../pseudobonds.html">pseudobonds</a>,
-which can be removed with <b>~hbonds</b>.
+the H-bonds are shown as dashed <a href="../pseudobonds.html">pseudobonds</a>
+that can be removed with <b>~hbonds</b>.
 The <b>selRestrict</b> option allows limiting detection to only the 
 <a href="../selection.html">selected</a> atoms or between the 
 <a href="../selection.html">selected</a> atoms and another set of atoms
@@ -48,7 +48,6 @@ H-bonds found.  The total indicates all interactions consistent with
 the criteria, even if they could not coexist simultaneously.
 Distances and other details can be <a href="#log">logged</a>
 and/or <a href="#saveFile">saved</a> to a file.
-See also: <a href="style.html"><b>style</b></a>
 </p><p>
 The command-line specifier
 <a href="atomspec.html#builtin"><b>hbonds</b></a>
@@ -84,10 +83,6 @@ because the same pair of atoms could be identified as both
 donor-acceptor and acceptor-donor, even if only one of those 
 interactions could form at a time.
 <!-- example: 1zik HOH residues 50,53 which could be both at same time -->
-</p><p>
-Pseudobond radius and number of dashes 
-(initially <b>0.075</b> &Aring; and <b>6</b>, respectively)
-can be changed with the <a href="style.html"><b>style</b></a> command.
 </p>
 </blockquote>
 <blockquote>
@@ -97,17 +92,30 @@ depicting H-bonds (but see also <a href="#twoColors"><b>twoColors</b></a>
 and <a href="#slopColor"><b>slopColor</b></a>).
 The <i>colorname</i> can be any <a href="colornames.html">color name</a>
 that specifies a single color (default <b>dark cyan</b>).
-Subsequent recoloring (without recalculation) can be done with 
+Subsequent recoloring without recalculating the H-bonds can be done with 
 the <a href="color.html"><b>color</b></a> command, for example:
 <b>color <a href="atomspec.html#builtin">hbonds</a> goldenrod target p</b>
 </blockquote>
-<!--
 <blockquote>
+  <b>radius</b> &nbsp;<i>r</i>
+<br>Radius in &Aring; to use for <a href="../pseudobonds.html">pseudobonds</a>
+depicting H-bonds (default <b>0.075</b>);
+can be changed later with <a href="style.html"><b>style</b></a>.
+</blockquote>
+<blockquote>
+  <b>dashes</b> &nbsp;<i>N</i>
+<br>Number of dashes to use for <a href="../pseudobonds.html">pseudobonds</a>
+depicting H-bonds (default <b>6</b>);
+can be changed later with <a href="style.html"><b>style</b></a>.
+</blockquote>
+<blockquote>
+<font color="brown">
+Not yet implemented:<br>
   <a name="showDist"><b>showDist</b> &nbsp;true&nbsp;|&nbsp;<b>false</b></a>
 <br>Whether to label the <a href="../pseudobonds.html">pseudobonds</a>
 with the corresponding distances.
+</font>
 </blockquote>
--->
 <blockquote>
 <a name="selRestrict"><b>selRestrict</b></a>
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;|&nbsp;cross&nbsp;|&nbsp;both&nbsp;|&nbsp;any
