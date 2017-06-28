@@ -61,5 +61,6 @@ setup(
         "Topic :: Scientific/Engineering :: Bio-Informatics",
         "ChimeraX :: Bundle :: General :: 1,1 :: chimerax.label :: :: ",
         "ChimeraX :: Command :: 2dlabels :: General :: add text labels to graphics",
+        "ChimeraX :: Command :: label :: General :: add 3d labels to graphics",
     ],
 )
