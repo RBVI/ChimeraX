@@ -71,7 +71,7 @@ def cmd_hbonds(session, spec=None, intra_model=True, inter_model=True, relax=Tru
                 mol_num += 1
                 for a in m:
                     mol_map[a] = mol_num
-        hbonds = [hb for hb in hbonds is mol_map[hb[0]] != mol_map[hb[1]]]
+        hbonds = [hb for hb in hbonds if mol_map[hb[0]] != mol_map[hb[1]]]
     if not intra_res:
         hbonds = [hb for hb in hbonds if hb[0].residue != hb[1].residue]
 

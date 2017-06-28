@@ -1579,7 +1579,7 @@ class StructureData:
         f = c_function('structure_molecules', args = (ctypes.c_void_p,), ret = ctypes.py_object)
         atom_arrays = f(self._c_pointer)
         from .molarray import Atoms
-        return tuple(Atoms(ra) for aa in atom_arrays)
+        return tuple(Atoms(aa) for aa in atom_arrays)
 
     def new_atom(self, atom_name, element_name):
         '''Create a new :class:`.Atom` object. It must be added to a :class:`.Residue` object
