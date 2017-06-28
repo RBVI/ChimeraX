@@ -26,21 +26,16 @@ CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
 endif
 
 BUNDLE_NAME = ChimeraX-MMTF
-BUNDLE_VERSION = 1.0
+BUNDLE_VERSION = 0.9
 PKG_NAME = chimerax.mmtf
-MMTF_CPP_VERSION = master
-MMTF_CPP_DISTRIBUTION = mmtf-cpp-$(MMTF_CPP_VERSION).zip
-MMTF_CPP_SOURCE	= mmtf-cpp-$(MMTF_CPP_VERSION)
 
 BASE_BNDL_NAME = $(subst ChimeraX-,,$(BUNDLE_NAME))
 WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
-TAG = $(shell $(PYTHON_EXE) -m chimerax.bundle_builder.wheel_tag)
 
 PYSRCS = $(wildcard src/*.py)
-DATAFILES = 
-WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-$(TAG).whl
+WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-py3-none-any.whl
 
-wheel $(WHEEL): setup.py $(PYSRCS) $(MMTF_CPP_SOURCE)
+wheel $(WHEEL): setup.py $(PYSRCS)
 	$(PYTHON_EXE) setup.py --no-user-cfg build
 	$(PYTHON_EXE) setup.py --no-user-cfg test
 	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel
@@ -56,20 +51,14 @@ debug:
 	$(CHIMERAX_EXE) --debug
 
 clean:
-	rm -rf src/__pycache__ src/*.pyd src/*.so src/*.dylib
-	rm -rf build dist $(WHL_BNDL_NAME).egg-info setup.py
-	rm -rf $(MMTF_CPP_SOURCE)
+	rm -rf src/__pycache__ build dist $(WHL_BNDL_NAME).egg-info setup.py
 
 lint:
 	$(PYLINT) $(PYSRCS)
-
-$(MMTF_CPP_SOURCE): $(MMTF_CPP_DISTRIBUTION)
-	unzip -u $(MMTF_CPP_DISTRIBUTION)
 
 setup.py: setup.py.in Makefile
 	sed \
 		-e 's,BUNDLE_NAME,$(BUNDLE_NAME),' \
 		-e 's,BUNDLE_VERSION,$(BUNDLE_VERSION),' \
 		-e 's,PKG_NAME,$(PKG_NAME),' \
-		-e 's,MMTF_CPP_VERSION,$(MMTF_CPP_VERSION),' \
 		< setup.py.in > setup.py
