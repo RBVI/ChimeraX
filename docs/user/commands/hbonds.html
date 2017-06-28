@@ -26,7 +26,8 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="../index.html#commands">Command</a>: hbonds</h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>hbonds</b> 
-[&nbsp;<b>color</b> &nbsp;<a href="colornames.html"><i>colorname</i></a>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>colorname</i></a>&nbsp;]
+[&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
 [&nbsp;<b>selRestrict</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;|&nbsp;cross&nbsp;|&nbsp;both&nbsp;|&nbsp;any&nbsp;]
 &nbsp;<a href="#options"><i>other-options</i></a></h3>
 <h3><a href="usageconventions.html">Usage</a>:
@@ -39,13 +40,14 @@ to identify possible hydrogen bonds (H-bonds).
 By <a href="#makePseudobonds">default</a>, 
 the H-bonds are shown as dashed <a href="../pseudobonds.html">pseudobonds</a>
 that can be removed with <b>~hbonds</b>.
+The pseudobond <b>color</b> and <b>radius</b> can be specified.
 The <b>selRestrict</b> option allows limiting detection to only the 
 <a href="../selection.html">selected</a> atoms or between the 
 <a href="../selection.html">selected</a> atoms and another set of atoms
 (<a href="#selRestrict">details...</a>).
-The <a href="../tools/log.html"><b>Log</b></a> reports the total number of
-H-bonds found.  The total indicates all interactions consistent with 
-the criteria, even if they could not coexist simultaneously.
+The total number of H-bonds found is reported in the
+<a href="../tools/log.html"><b>Log</b></a>. The total includes all H-bonds
+consistent with the criteria, even if they could not coexist simultaneously.
 Distances and other details can be <a href="#log">logged</a>
 and/or <a href="#saveFile">saved</a> to a file.
 </p><p>
@@ -105,7 +107,10 @@ can be changed later with <a href="style.html"><b>style</b></a>.
 <blockquote>
   <b>dashes</b> &nbsp;<i>N</i>
 <br>Number of dashes to use for <a href="../pseudobonds.html">pseudobonds</a>
-depicting H-bonds (default <b>6</b>);
+depicting H-bonds (default <b>6</b>).
+Only whole numbers are accepted, with 0
+indicating solid sticks. Currently, odd numbers are rounded down
+to give an even number of dashes. The number of dashes
 can be changed later with <a href="style.html"><b>style</b></a>.
 </blockquote>
 <blockquote>
