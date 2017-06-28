@@ -55,7 +55,7 @@ def save(session, filename, models=None, format=None, **kw):
     if models:
         kw["models"] = models
     try:
-        fmt.export(session, filename, format, **kw)
+        fmt.export(session, filename, fmt.nicknames[0], **kw)
     except TypeError as e:
         # Keywords incompatible with export function
         if 'unexpected keyword' in str(e):
