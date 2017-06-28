@@ -129,10 +129,18 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
             int32_t chain_group_count = data.groupsPerChain[chain_index];
             auto& entity = data.entityList[per_chain_entity_index[chain_index]];
 
-            // TODO:
-            //  want 3-letter residue names, mmtf gives single-letter
-            // m.set_input_seq_info(chain_name, seqres);
-            // m.input_seq_source = "MMTF";
+#ifdef TODO
+            if (entity.type == "polymer") {
+                //  want 3-letter residue names, mmtf gives single-letter
+                //  (so no "(ABC)"s either)
+                vector<ResName> seqres;
+                seqres.reserve(entity.sequence.size());
+                for (auto c: entity.sequence)
+                    seqres.emplace_back(c);
+                m->set_input_seq_info(chain_name, seqres);
+                m->input_seq_source = "MMTF sequence";
+            }
+#endif
 
             // traverse groups
             const char* last_ss = nullptr;
