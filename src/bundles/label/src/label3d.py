@@ -38,7 +38,8 @@ def label(session, atoms, object_type = 'atoms', text = None,
       Whether labels always appear on top of other graphics (cannot be occluded).  This is a per-structure
       attribute.  Default True.
     '''
-    rgba = None if color is None else color.uint8x4()
+    from chimerax.core.colors import Color
+    rgba = color.uint8x4() if isinstance(color, Color) else color
 
     if object_type == 'atoms':
         object_class = AtomLabel
@@ -110,14 +111,15 @@ def labels_model(parent, create = False):
 def register_label_command(logger):
 
     from chimerax.core.commands import CmdDesc, register, AtomsArg, StringArg
-    from chimerax.core.commands import Float3Arg, ColorArg, IntArg, BoolArg, EnumOf
+    from chimerax.core.commands import Float3Arg, ColorArg, IntArg, BoolArg, EnumOf, Or
 
     otype = EnumOf(('atoms','residues','pseudobonds'))
+    DefArg = EnumOf(['default'])
     desc = CmdDesc(required = [('atoms', AtomsArg)],
                    optional = [('object_type', otype)],
-                   keyword = [('text', StringArg),
-                              ('offset', Float3Arg),
-                              ('color', ColorArg),
+                   keyword = [('text', Or(DefArg, StringArg)),
+                              ('offset', Or(DefArg, Float3Arg)),
+                              ('color', Or(DefArg, ColorArg)),
                               ('size', IntArg),
                               ('typeface', StringArg),
                               ('on_top', BoolArg)],
@@ -170,7 +172,7 @@ class ObjectLabels(Model):
             if o not in ld:
                 ld[o] = lo = label_class(o, view, **kw)
                 self.add_drawing(lo)
-            elif kw:
+            if kw:
                 lo = ld[o]
                 for k,v in kw.items():
                     if v is not None:
@@ -241,23 +243,18 @@ def label_class(object):
 from chimerax.core.graphics import Drawing
 class ObjectLabel(Drawing):
 
-    pickable = False	# Don't allow mouse selection of labels
-
-    def __init__(self, object, view, offset = None, text = None, color = None, size = 24, typeface = 'Arial'):
+    pickable = False		# Don't allow mouse selection of labels
+    Default = 'default'		# Default computed value for offset, text, and color
+    
+    def __init__(self, object, view, offset = Default, text = Default, color = Default,
+                 size = 24, typeface = 'Arial'):
         Drawing.__init__(self, 'label %s' % self.default_text())
 
         self.object = object
         self.view = view	# View is used to update label position to face camera
-        self.offset = offset
-        self.text = self.default_text() if text is None else text
-
-        if color is None:
-            light_bg = (sum(view.background_color[:3]) > 1.5)
-            rgba8 = (0,0,0,255) if light_bg else (255,255,255,255)
-        else:
-            rgba8 = color
-        self.color = rgba8
-        
+        self._offset = offset
+        self._text = text
+        self._color = color
         self.size = size
         self._pixel_size = (100,10)	# Size of label in pixels, calculated from size attribute
 
@@ -274,6 +271,14 @@ class ObjectLabel(Drawing):
 
         self._needs_update = True		# Has text, color, size, font changed.
 
+    def default_text(self):
+        '''Override this to define the default label text for object.'''
+        return ''
+
+    def default_offset(self):
+        '''Override this to define the default offset for label.'''
+        return (0,0,0)
+        
     def location(self):
         '''Override this with position of label lower left corner in model coordinate system.'''
         return (0,0,0)
@@ -281,7 +286,34 @@ class ObjectLabel(Drawing):
     def visible(self):
         '''Override this to control visibility of label based on visibility of atom, residue...'''
         return True
+
+    def _get_offset(self):
+        return self.default_offset() if self._offset == self.Default else self._offset
+    def _set_offset(self, offset):
+        self._offset = offset
+        self._needs_update = True
+    offset = property(_get_offset, _set_offset)
     
+    def _get_text(self):
+        return self.default_text() if self._text == self.Default else self._text
+    def _set_text(self, text):
+        self._text = text
+        self._needs_update = True
+    text = property(_get_text, _set_text)
+    
+    def _get_color(self):
+        c = self._color
+        if c is None or (isinstance(c,str) and c == self.Default):
+            light_bg = (sum(self.view.background_color[:3]) > 1.5)
+            rgba8 = (0,0,0,255) if light_bg else (255,255,255,255)
+        else:
+            rgba8 = c
+        return rgba8
+    def _set_color(self, color):
+        self._color = color
+        self._needs_update = True
+    color = property(_get_color, _set_color)
+            
     def draw(self, renderer, place, draw_pass, selected_only=False):
         self._update_label_texture()  # This needs to be done during draw in case texture delete needed.
         Drawing.draw(self, renderer, place, draw_pass, selected_only)
@@ -300,14 +332,16 @@ class ObjectLabel(Drawing):
         rgba8 = (255,255,255,255)
         from chimerax import app_data_dir
         from .label2d import text_image_rgba
-        rgba = text_image_rgba(self.text, rgba8, s, self.typeface, app_data_dir)
+        text = self.text
+        rgba = text_image_rgba(text, rgba8, s, self.typeface, app_data_dir)
         if rgba is None:
-            raise RuntimeError("Can't find font %s size %d for label '%s'" % (self.typeface, s, self.text))
+            raise RuntimeError("Can't find font %s size %d for label '%s'" % (self.typeface, s, text))
         if self.texture is not None:
             self.texture.delete_texture()
         from chimerax.core.graphics import opengl
         t = opengl.Texture(rgba)
         self.texture = t
+        Drawing.set_color(self, self.color)
         h,w,c = rgba.shape
         ps = (s*w/h, s)
         if ps != self._pixel_size:
@@ -324,8 +358,9 @@ class ObjectLabel(Drawing):
         cam_xaxis, cam_yaxis, cam_zaxis = cpos.axes()
         from numpy import array, float32
         va = array((xyz, xyz + w*cam_xaxis, xyz + w*cam_xaxis + h*cam_yaxis, xyz + h*cam_yaxis), float32)
-        if self.offset is not None:
-            va += cpos.apply_without_translation(self.offset)
+        offset = self.offset
+        if offset is not None:
+            va += cpos.apply_without_translation(offset)
         if (va == self.vertices).all():
             return 	# Don't set vertices causing redraw if label has not moved.
         self.vertices = va
@@ -333,11 +368,15 @@ class ObjectLabel(Drawing):
 # -----------------------------------------------------------------------------
 #
 class AtomLabel(ObjectLabel):
-    def __init__(self, object, view, offset = None, text = None, color = None, size = 24, typeface = 'Arial'):
+    def __init__(self, object, view, offset = ObjectLabel.Default,
+                 text = ObjectLabel.Default, color = ObjectLabel.Default,
+                 size = 24, typeface = 'Arial'):
         self.atom = object
         ObjectLabel.__init__(self, object, view, offset=offset, text=text, color=color, size=size, typeface=typeface)
     def default_text(self):
         return self.atom.name
+    def default_offset(self):
+        return (0.2+self.atom.display_radius, 0, 0.5)
     def location(self):
         return self.atom.coord
     def visible(self):
@@ -346,7 +385,9 @@ class AtomLabel(ObjectLabel):
 # -----------------------------------------------------------------------------
 #
 class ResidueLabel(ObjectLabel):
-    def __init__(self, object, view, offset = None, text = None, color = None, size = 24, typeface = 'Arial'):
+    def __init__(self, object, view, offset = ObjectLabel.Default,
+                 text = ObjectLabel.Default, color = ObjectLabel.Default,
+                 size = 24, typeface = 'Arial'):
         self.residue = object
         ObjectLabel.__init__(self, object, view, offset=offset, text=text, color=color, size=size, typeface=typeface)
     def default_text(self):
@@ -361,11 +402,15 @@ class ResidueLabel(ObjectLabel):
 # -----------------------------------------------------------------------------
 #
 class PseudobondLabel(ObjectLabel):
-    def __init__(self, object, view, offset = None, text = None, color = None, size = 24, typeface = 'Arial'):
+    def __init__(self, object, view, offset = ObjectLabel.Default,
+                 text = ObjectLabel.Default, color = ObjectLabel.Default,
+                 size = 24, typeface = 'Arial'):
         self.pseudobond = object
         ObjectLabel.__init__(self, object, view, offset=offset, text=text, color=color, size=size, typeface=typeface)
     def default_text(self):
         return '%.2f' % self.pseudobond.length
+    def default_offset(self):
+        return (0.2+self.pseudobond.radius, 0, 0.5)
     def location(self):
         pb = self.pseudobond
         a1,a2 = pb.atoms
