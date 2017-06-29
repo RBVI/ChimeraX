@@ -414,6 +414,15 @@ class Atoms(Collection):
         "sequence), or with a single floating-point number.")
     default_radii = cvec_property('atom_default_radius', float32, read_only = True,
         doc="Returns a :mod:`numpy` array of default radii.")
+    def display_radii(self, ball_scale, bond_radius):
+        r = self.radii.copy()
+        dm = self.draw_modes
+        from .molobject import Atom
+        r[dm == Atom.BALL_STYLE] *= ball_scale
+        smask = (dm == Atom.STICK_STYLE)
+        if smask.any():
+            r[smask] = self.filter(smask).maximum_bond_radii(bond_radius)
+        return r
     def maximum_bond_radii(self, default_radius = 0.2):
         "Return maximum bond radius for each atom.  Used for stick style atom display."
         f = c_function('atom_maximum_bond_radius', args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_float, ctypes.c_void_p])

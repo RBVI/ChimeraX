@@ -375,15 +375,8 @@ class Structure(Model, StructureData):
             print('%s</Transform>' % tab, file=stream)
 
     def _atom_display_radii(self, atoms):
-        r = atoms.radii.copy()
-        dm = atoms.draw_modes
-        from .molobject import Atom
-        r[dm == Atom.BALL_STYLE] *= self.ball_scale
-        smask = (dm == Atom.STICK_STYLE)
-        if smask.any():
-            r[smask] = atoms.filter(smask).maximum_bond_radii(self.bond_radius)
-        return r
-
+        return atoms.display_radii(self.ball_scale, self.bond_radius)
+    
     def _update_bond_graphics(self, changes = StructureData._ALL_CHANGE):
         bonds = self.bonds  # optimzation, avoid making new numpy array from C++
         p = self._bonds_drawing
