@@ -198,7 +198,7 @@ class Atom(State):
         elif dm == Atom.BALL_STYLE:
             r = self.radius * self.structure.ball_scale
         elif dm == Atom.STICK_STYLE:
-            r = self.maximum_bound_radius(self.structure.bond_radius)
+            r = self.maximum_bond_radius(self.structure.bond_radius)
         return r
 
     def maximum_bond_radius(self, default_radius = 0.2):
