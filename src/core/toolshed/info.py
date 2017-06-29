@@ -250,10 +250,10 @@ class BundleInfo:
                         f = self._get_api(logger).open_file
                     except AttributeError:
                         raise ToolshedError(
-                            "no open_file function found for bundle \"%s\""
-                            % self.name)
+                            "no open_file function found for bundle \"%s\"" % self.name)
                     if f == BundleAPI.open_file:
-                        raise ToolshedError("bundle \"%s\"'s API forgot to override open_file()" % self.name)
+                        raise ToolshedError(
+                            "bundle \"%s\"'s API forgot to override open_file()" % self.name)
 
                     # optimize by replacing open_func for format
                     # ... present the right call signature to io.open_data...
