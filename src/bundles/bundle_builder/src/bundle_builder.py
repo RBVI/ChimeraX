@@ -173,10 +173,31 @@ class BundleBuilder:
         self.c_modules = []
         for cm in bi.getElementsByTagName("CModule"):
             mod_name = cm.getAttribute("name")
-            source_files = []
+            platform = cm.getAttribute("platform")
+            try:
+                major = int(cm.getAttribute("major_version"))
+            except ValueError:
+                major = 0
+            try:
+                minor = int(cm.getAttribute("minor_version"))
+            except ValueError:
+                minor = 1
+            c = _CModule(mod_name, platform, major, minor)
+            for e in cm.getElementsByTagName("Requires"):
+                c.add_require(self._get_element_text(e))
             for e in cm.getElementsByTagName("SourceFile"):
-                source_files.append(self._get_element_text(e))
-            self.c_modules.append((mod_name, source_files))
+                c.add_source_file(self._get_element_text(e))
+            for e in cm.getElementsByTagName("Library"):
+                c.add_library(self._get_element_text(e))
+            for e in cm.getElementsByTagName("Framework"):
+                c.add_framework(self._get_element_text(e))
+            for e in cm.getElementsByTagName("IncludeDir"):
+                c.add_include_dir(self._get_element_text(e))
+            for e in cm.getElementsByTagName("LibraryDir"):
+                c.add_library_dir(self._get_element_text(e))
+            for e in cm.getElementsByTagName("FrameworkDir"):
+                c.add_framework_dir(self._get_element_text(e))
+            self.c_modules.append(c)
 
     def _get_packages(self, bi):
         self.packages = []
@@ -231,55 +252,30 @@ class BundleBuilder:
         self.setup_arguments["packages"] = packages
         if self.datafiles:
             self.setup_arguments["package_data"] = self.datafiles
-        if self.pure_python == "false":
-            # From https://stackoverflow.com/questions/35112511/pip-setup-py-bdist-wheel-no-longer-builds-forced-non-pure-wheels
-            from setuptools.dist import Distribution
-            class BinaryDistribution(Distribution):
-                def has_ext_modules(foo):
-                    return True
-            self.setup_arguments["distclass"] = BinaryDistribution
-        if self.c_modules:
-            import sys, os.path
-            from setuptools import Extension
-            # platform-specific
-            # Assume Python executable is in ROOT/bin/python
-            # and make include directory be ROOT/include
-            root = os.path.dirname(os.path.dirname(sys.executable))
-            inc_dir = os.path.join(root, "include")
-            lib_dir = os.path.join(root, "lib")
+        ext_mods = [em for em in [cm.ext_mod(self.package)
+				  for cm in self.c_modules]
+                    if em is not None]
+        if ext_mods or self.pure_python == "false":
+            import sys
             if sys.platform == "darwin":
-                # Tested with macOS 10.12
-                libraries = []
-                compiler_flags = ["-std=c++11", "-stdlib=libc++"]
                 env = "Environment :: MacOS X :: Aqua",
                 op_sys = "Operating System :: MacOS :: MacOS X"
             elif sys.platform == "win32":
-                # Tested with Cygwin
-                libraries = ["libatomstruct"]
-                compiler_flags = []
                 env = "Environment :: Win32 (MS Windows)"
                 op_sys = "Operating System :: Microsoft :: Windows :: Windows 10"
             else:
-                # Presumably Linux
-                # Tested with Ubuntu 16.04 LTS running in
-                #   a singularity container on CentOS 7.3
-                libraries = []
-                compiler_flags = ["-std=c++11"]
                 env = "Environment :: X11 Applications"
                 op_sys = "Operating System :: POSIX :: Linux"
-            ext_mods = [Extension(self.package + '.' + ext_name,
-                                  define_macros=[("MAJOR_VERSION", 0),
-                                                 ("MINOR_VERSION", 1)],
-                                  extra_compile_args=compiler_flags,
-                                  include_dirs=[inc_dir],
-                                  library_dirs=[lib_dir],
-                                  libraries=libraries,
-                                  sources=ext_sources)
-                        for ext_name, ext_sources in self.c_modules]
             platform_classifiers = [env, op_sys]
+            if not ext_mods:
+                # From https://stackoverflow.com/questions/35112511/pip-setup-py-bdist-wheel-no-longer-builds-forced-non-pure-wheels
+                from setuptools.dist import Distribution
+                class BinaryDistribution(Distribution):
+                    def has_ext_modules(foo):
+                        return True
+                self.setup_arguments["distclass"] = BinaryDistribution
         else:
             # pure Python
-            ext_mods = []
             platform_classifiers = [
                 "Environment :: MacOS X :: Aqua",
                 "Environment :: Win32 (MS Windows)",
@@ -317,6 +313,84 @@ class BundleBuilder:
         finally:
             sys.argv = save
             os.chdir(cwd)
+
+class _CModule:
+
+    def __init__(self, name, platform, major, minor):
+        self.name = name
+        self.platform = platform
+        self.major = major
+        self.minor = minor
+        self.requires = []
+        self.source_files = []
+        self.frameworks = []
+        self.libraries = []
+        self.include_dirs = []
+        self.library_dirs = []
+        self.framework_dirs = []
+
+    def add_require(self, req):
+        self.requires.append(req)
+
+    def add_source_file(self, f):
+        self.source_files.append(f)
+
+    def add_library(self, f):
+        self.libraries.append(f)
+
+    def add_framework(self, f):
+        self.frameworks.append(f)
+
+    def add_include_dir(self, d):
+        self.include_dirs.append(d)
+
+    def add_library_dir(self, d):
+        self.library_dirs.append(d)
+
+    def add_framework_dir(self, d):
+        self.framework_dirs.append(d)
+
+    def ext_mod(self, package):
+        import sys, os.path
+        from setuptools import Extension
+        # platform-specific
+        # Assume Python executable is in ROOT/bin/python
+        # and make include directory be ROOT/include
+        root = os.path.dirname(os.path.dirname(sys.executable))
+        inc_dir = os.path.join(root, "include")
+        lib_dir = os.path.join(root, "lib")
+        if sys.platform == "darwin":
+            if self.platform and self.platform not in ["mac", "macos", "darwin"]:
+                return None
+            # Tested with macOS 10.12
+            libraries = ["-l" + lib for lib in self.libraries]
+            compiler_flags = ["-std=c++11", "-stdlib=libc++"]
+        elif sys.platform == "win32":
+            if self.platform and self.platform not in ["windows", "win32"]:
+                return None
+            # Tested with Cygwin
+            libraries = ["lib" + lib for lib in self.libraries]
+            compiler_flags = []
+        else:
+            if self.platform and self.platform not in ["linux"]:
+                return None
+            # Presumably Linux
+            # Tested with Ubuntu 16.04 LTS running in
+            #   a singularity container on CentOS 7.3
+            libraries = ["-l" + lib for lib in self.libraries]
+            compiler_flags = ["-std=c++11"]
+        extra_link_args = ["-F" + d for d in self.framework_dirs]
+        for fw in self.frameworks:
+            extra_link_args.extend(["-framework", fw])
+        return Extension(package + '.' + self.name,
+                         define_macros=[("MAJOR_VERSION", self.major),
+                                        ("MINOR_VERSION", self.minor)],
+                         extra_compile_args=compiler_flags,
+                         include_dirs=[inc_dir] + self.include_dirs,
+                         library_dirs=[lib_dir] + self.library_dirs,
+                         libraries=libraries,
+                         extra_link_args=extra_link_args,
+                         sources=self.source_files)
 
 if __name__ == "__main__" or __name__.startswith("ChimeraX_sandbox"):
     import sys
