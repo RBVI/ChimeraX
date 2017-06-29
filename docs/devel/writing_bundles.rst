@@ -378,6 +378,11 @@ all the information needed to build the bundle.
 
   - Child elements:
     
+    - **FrameworkDir** (zero or more)
+    - **IncludeDir** (zero or more)
+    - **Library** (zero or more)
+    - **LibraryDir** (zero or more)
+    - **Requires** (zero or more)
     - **SourceFile** (one or more)
 
 - **Dependencies**
