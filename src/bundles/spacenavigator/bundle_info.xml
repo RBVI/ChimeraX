@@ -1,0 +1,35 @@
+<BundleInfo name="ChimeraX-SpaceNavigator" version="1.0"
+	    package="chimerax.spacenavigator" pure_python="false"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+  <Synopsis>Space Navigator device support</Synopsis>
+  <Description>This bundle allows using 3dconnexion space navigator devices to move models.</Description>
+
+  <Categories>
+    <Category name="General"/>
+  </Categories>
+
+  <CModule name="_spacenavigator" platform="mac">
+    <Requires>/Library/Frameworks/3DconnexionClient.framework</Requires>
+    <SourceFile>spacenav.cpp</SourceFile>
+    <IncludeDir>/Library/Frameworks/3DconnexionClient.framework/Versions/Current/Headers</IncludeDir>
+    <FrameworkDir>/Library/Frameworks</FrameworkDir>
+    <Framework>3DconnexionClient</Framework>
+  </CModule>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+]
+    <ChimeraXClassifier>ChimeraX :: Command :: device snav :: General :: Control SpaceNavigator device</ChimeraXClassifier>
+]
+  </Classifiers>
+
+</BundleInfo>
