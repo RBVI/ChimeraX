@@ -59,7 +59,7 @@ def open_pdb(session, filename, name, auto_style=True, coordsets=False):
 
 
 _pdb_sources = {
-    "rcsb": "http://www.pdb.org/pdb/files/pdb%s.ent",
+    "rcsb": "http://www.pdb.org/pdb/files/%s.pdb",
     "pdbe": "http://www.ebi.ac.uk/pdbe/entry-files/download/pdb%s.ent",
     # "pdbj": "https://pdbj.org/rest/downloadPDBfile?format=pdb&id=%s",
 }
