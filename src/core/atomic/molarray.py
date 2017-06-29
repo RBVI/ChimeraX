@@ -801,6 +801,13 @@ class Pseudobonds(Collection):
         s = concatenate((a1.unique_structures, a2.unique_structures), AtomicStructures, remove_duplicates = True)
         return s
 
+    @property
+    def by_group(self):
+        "Return list of 2-tuples of (PseudobondGroup, Pseudobonds for that group)."
+        gps = self.groups
+        gpp = gps._pointers
+        return [(g, self.filter(gpp==g._c_pointer.value)) for g in gps.unique()]
+
     _ses_ids = cvec_property('pseudobond_get_session_id', int32, read_only = True,
         doc="Used internally to save/restore in sessions")
     @staticmethod

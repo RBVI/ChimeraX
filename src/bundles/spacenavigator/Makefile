@@ -13,15 +13,13 @@ CHIMERAX_APP = ../../../ChimeraX.app
 
 OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
 ifeq ($(OS),CYGWIN_NT)
-PYTHON_EXE = $(CHIMERAX_APP)/bin/python.exe
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX.exe
 endif
 ifeq ($(OS),Darwin)
-PYTHON_EXE = $(CHIMERAX_APP)/Contents/bin/python3.6
 CHIMERAX_EXE = $(CHIMERAX_APP)/Contents/bin/ChimeraX
+CSRCS = spacenav.cpp
 endif
 ifeq ($(OS),Linux)
-PYTHON_EXE = $(CHIMERAX_APP)/bin/python3.6
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
 endif
 
@@ -31,23 +29,14 @@ PKG_NAME = chimerax.spacenavigator
 
 BASE_BNDL_NAME = $(subst ChimeraX-,,$(BUNDLE_NAME))
 WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
-TAG = $(shell $(PYTHON_EXE) -m chimerax.bundle_builder.wheel_tag)
 
 PYSRCS = $(wildcard src/*.py)
-DATAFILES = 
-WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-$(TAG).whl
 
-wheel $(WHEEL): setup.py $(PYSRCS)
-	$(PYTHON_EXE) setup.py --no-user-cfg build
-	$(PYTHON_EXE) setup.py --no-user-cfg test
-	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel
-# Distutils names bundle platform as "any" because it is pure python but in fact it is
-# platform specific (e.g. Mac uses C++ compiled code) so put platform into wheel file name.
-	mv dist/$(WHL_BNDL_NAME)*.whl $(WHEEL)
-	rm -rf $(WHL_BNDL_NAME).egg-info
+wheel: $(PYSRCS) $(CSRCS)
+	$(CHIMERAX_EXE) --nogui --cmd "devel build . ; exit"
 
-install app-install: $(WHEEL)
-	$(CHIMERAX_EXE) --nogui --cmd "toolshed install $(WHEEL) reinstall true user false; exit"
+install app-install:
+	$(CHIMERAX_EXE) --nogui --cmd "devel install . ; exit"
 
 test:
 	$(CHIMERAX_EXE)
@@ -56,15 +45,7 @@ debug:
 	$(CHIMERAX_EXE) --debug
 
 clean:
-	rm -rf src/__pycache__ src/*.pyd src/*.so src/*.dylib
-	rm -rf build dist $(WHL_BNDL_NAME).egg-info setup.py
+	$(CHIMERAX_EXE) --nogui --cmd "devel clean . ; exit"
 
 lint:
 	$(PYLINT) $(PYSRCS)
-
-setup.py: setup.py.in Makefile
-	sed \
-		-e 's,BUNDLE_NAME,$(BUNDLE_NAME),' \
-		-e 's,BUNDLE_VERSION,$(BUNDLE_VERSION),' \
-		-e 's,PKG_NAME,$(PKG_NAME),' \
-		< setup.py.in > setup.py
