@@ -24,6 +24,7 @@ Implements command "sample count" to report number of atoms and bonds.
        Source files are listed in one or more SourceFile elements -->
   <CModule name="_sample">
     <SourceFile>src/_sample.cpp</SourceFile>
+    <Library>atomstruct</Library>
   </CModule>
 
   <!-- Dependencies on other ChimeraX/Python packages -->
