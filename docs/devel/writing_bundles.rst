@@ -362,10 +362,19 @@ all the information needed to build the bundle.
   - List of compiled modules in the current bundle.
   - Attribute:
 
+    - **major**: major version number for compiled module.
+    - **minor**: minor version number for compiled module.
     - **name**: name of compiled module.  This should not include
       file suffixes, as they vary across platforms.  The compiled
       module will appear as a submodule of the Python package
       corresponding to the bundle.
+    - **platform**: name of platform that builds this module.
+      This may be used when a compiled module is only needed
+      on a specific platform.  For example, supporting the
+      Space Navigator device requires a compiled module on
+      macOS, but may be accomplished using ``ctypes`` on other
+      platforms.  Supported values for platform are: **mac**,
+      **windows**, and **linux**.
 
   - Child elements:
     
@@ -400,6 +409,53 @@ all the information needed to build the bundle.
 
     - Contact address for bundle maintainer.
 
+- **Framework**
+
+  - Child element of **CModule**, applicable only for macOS.
+  - Element text:
+
+    - Name of a macOS framework required to compile the current module.
+
+- **FrameworkDir**
+
+  - Child element of **CModule**.
+  - Element text:
+
+    - Name of a directory (folder) containing frameworks required
+      to compile the current module.
+
+- **IncludeDir**
+
+  - Child element of **CModule**.
+  - Element text:
+
+    - Name of a directory (folder) containing header files required
+      to compile the current module.  Standard C/C++ and ChimeraX
+      include directories are automatically supplied by the build
+      process.
+
+- **Library**
+
+  - Child element of **CModule**.
+  - Element text:
+
+    - Name of a link library required to compile the current module.
+      Standard C/C++ libraries are automatically supplied by the build
+      process.  Additional libraries, such as those included in
+      **ChimeraX.app**, must be listed if used in the compiled module.
+      For example, to use atomic structure functionality, a **Library**
+      directive for ``atomstruct`` should be included.
+
+- **LibraryDir**
+
+  - Child element of **CModule**.
+  - Element text:
+
+    - Name of a directory (folder) containing link libraries required
+      to compile the current module.  Standard C/C++ and ChimeraX
+      library directories are automatically supplied by the build
+      process.
+
 - **PythonClassifier**
 
   - Element text:
@@ -408,8 +464,17 @@ all the information needed to build the bundle.
       <https://pypi.python.org/pypi?%3Aaction=list_classifiers>`_
       with ``::``-separated fields.
 
+- **Requires**
+
+  - Child element of **CModule**.
+  - Element text:
+
+    - Full path name of a system file that must be present in
+      order to compile the current module.
+
 - **SourceFile**
 
+  - Child element of **CModule**.
   - Element text:
 
     - Name of source file in a compiled module.  The path should be

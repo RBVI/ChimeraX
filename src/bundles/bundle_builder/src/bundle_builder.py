@@ -365,12 +365,16 @@ class _CModule:
             # Tested with macOS 10.12
             libraries = ["-l" + lib for lib in self.libraries]
             compiler_flags = ["-std=c++11", "-stdlib=libc++"]
+            extra_link_args = ["-F" + d for d in self.framework_dirs]
+            for fw in self.frameworks:
+                extra_link_args.extend(["-framework", fw])
         elif sys.platform == "win32":
             if self.platform and self.platform not in ["windows", "win32"]:
                 return None
             # Tested with Cygwin
             libraries = ["lib" + lib for lib in self.libraries]
             compiler_flags = []
+            extra_link_args = []
         else:
             if self.platform and self.platform not in ["linux"]:
                 return None
@@ -379,9 +383,7 @@ class _CModule:
             #   a singularity container on CentOS 7.3
             libraries = ["-l" + lib for lib in self.libraries]
             compiler_flags = ["-std=c++11"]
-        extra_link_args = ["-F" + d for d in self.framework_dirs]
-        for fw in self.frameworks:
-            extra_link_args.extend(["-framework", fw])
+            extra_link_args = []
         return Extension(package + '.' + self.name,
                          define_macros=[("MAJOR_VERSION", self.major),
                                         ("MINOR_VERSION", self.minor)],
