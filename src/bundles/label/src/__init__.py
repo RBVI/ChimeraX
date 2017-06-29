@@ -23,9 +23,9 @@ class _LabelBundle(BundleAPI):
     @staticmethod
     def get_class(class_name):
         # 'get_class' is called by session code to get class saved in a session
-        if class_name == 'AtomLabels':
-            from .label3d import AtomLabels
-            return AtomLabels
+        if class_name == 'ObjectLabels':
+            from .label3d import ObjectLabels
+            return ObjectLabels
         elif class_name == 'Labels':
             from .label2d import Labels
             return Labels
