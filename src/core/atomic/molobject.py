@@ -206,7 +206,7 @@ class Atom(State):
         f = c_function('atom_maximum_bond_radius',
                        args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_float, ctypes.c_void_p])
         r = ctypes.c_float()
-        f(ctypes.by_ref(self._c_pointer), 1, default_radius, ctypes.by_ref(r))
+        f(ctypes.byref(self._c_pointer), 1, default_radius, ctypes.byref(r))
         return r.value
 
     def set_alt_loc(self, loc, create):
