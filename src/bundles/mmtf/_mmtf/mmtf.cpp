@@ -264,7 +264,7 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
                     // bond_order = bond_order_list[i / 2];  // TODO
                     auto a0 = atoms[start_atom + bond_atom_list[i]];
                     auto a1 = atoms[start_atom + bond_atom_list[i + 1]];
-                    if (a0 == nullptr or a1 == nullptr) {
+                    if (a0 == nullptr || a1 == nullptr) {
                         // ignore bonds for alternate atoms
                         // assumes that all 'A' atoms were created first
                         continue;
