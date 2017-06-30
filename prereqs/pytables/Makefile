@@ -24,7 +24,7 @@ all:
 
 install: $(SOURCE)
 ifdef WIN32
-	$(PIP) install -U $(WHEEL)
+	$(PIP_INSTALL) $(WHEEL)
 else
 	cd $(SOURCE) &&	$(PYTHON_EXE) setup.py \
 		$(HDF_CONFIG) build $(SETUP_BUILD) install
@@ -32,7 +32,7 @@ endif
 
 app-install: install
 ifdef WIN32
-	$(APP_PIP) install $(WHEEL)
+	$(APP_PIP_INSTALL) $(WHEEL)
 else
 	# TODO: figure out way to make below work, so we don't depend on SOURCE
 	#$(RSYNC) $(PYSITEDIR)/tables-$(VERSION)-py$(PYTHON_VERSION).egg-info \

@@ -31,7 +31,7 @@ PKG_NAME = chimerax.stl
 
 BASE_BNDL_NAME = $(subst ChimeraX-,,$(BUNDLE_NAME))
 WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
-TAG = $(shell $(PYTHON_EXE) -m wheel_tag)
+TAG = $(shell $(PYTHON_EXE) -m chimerax.bundle_builder.wheel_tag)
 
 PYSRCS = $(wildcard src/*.py)
 DATAFILES = 
@@ -44,8 +44,7 @@ wheel $(WHEEL): setup.py $(PYSRCS)
 	rm -rf $(WHL_BNDL_NAME).egg-info
 
 install app-install: $(WHEEL)
-	$(CHIMERAX_EXE) --nogui --cmd "toolshed uninstall $(BASE_BNDL_NAME); exit"
-	$(CHIMERAX_EXE) --nogui --cmd "toolshed install $(WHEEL) user false; exit"
+	$(CHIMERAX_EXE) --nogui --cmd "toolshed install $(WHEEL) reinstall true user false; exit"
 
 test:
 	$(CHIMERAX_EXE)

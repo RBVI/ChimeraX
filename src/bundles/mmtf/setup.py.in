@@ -17,14 +17,57 @@
 # implements PEP 426's pydist.json
 from distlib import metadata
 metadata.METADATA_FILENAME = "metadata.json"
-from setuptools import setup
+from setuptools import setup, Extension
+import os, os.path, sys
 
-description = open('README.rst', encoding='utf-8').read()
+# Assume Python executable is in ROOT/bin/python
+# and make include directory be ROOT/include
+root = os.path.dirname(os.path.dirname(sys.executable))
+inc_dir = os.path.join(root, "include")
+lib_dir = os.path.join(root, "lib")
+if sys.platform == "darwin":
+    # Tested with macOS 10.12
+    libraries = [ "atomstruct", "element", "logger", "arrays"]
+    compiler_flags = ["-std=c++11", "-stdlib=libc++"]
+    env = "Environment :: MacOS X :: Aqua",
+    op_sys = "Operating System :: MacOS :: MacOS X"
+elif sys.platform == "win32":
+    # Tested with Cygwin
+    libraries = ["libatomstruct", "libelement", "liblogger", "libarrays", "ws2_32"]
+    compiler_flags = ['/wd4251']
+    env = "Environment :: Win32 (MS Windows)"
+    op_sys = "Operating System :: Microsoft :: Windows :: Windows 10"
+else:
+    # Presumably Linux
+    # Tested with Ubuntu 16.04 LTS running in
+    #   a singularity container on CentOS 7.3
+    libraries = [ "atomstruct", "element", "logger", "arrays"]
+    compiler_flags = ["-std=c++11"]
+    env = "Environment :: X11 Applications"
+    op_sys = "Operating System :: POSIX :: Linux"
+
+ext_mods = [Extension("PKG_NAME._mmtf",
+                      define_macros=[("MAJOR_VERSION", 0),
+                                     ("MINOR_VERSION", 1)],
+                      extra_compile_args = compiler_flags,
+                      include_dirs=[
+                          inc_dir,
+                          "mmtf-cpp-MMTF_CPP_VERSION/include",
+                          "msgpack-c-MSGPACK_VERSION/include",
+                      ],
+                      library_dirs=[lib_dir],
+                      libraries=libraries,
+                      sources=["_mmtf/mmtf.cpp"])]
+
+description = """
+This bundle provides the abiility to fetch and read MMTF
+files.
+"""
 
 setup(
     name="BUNDLE_NAME",
     version="BUNDLE_VERSION",  # PEP 440, should match Development Status below
-    description="MMTF reader",  # one line synopsis
+    description="STL file read/write",  # one line synopsis
     long_description=description,  # see above
     author="UCSF RBVI",
     author_email="chimerax@cgl.ucsf.edu",
@@ -36,23 +79,19 @@ setup(
     packages=[
         "PKG_NAME",
     ],
+    ext_modules=ext_mods,
     install_requires=[
         "ChimeraX-Core >= 0.1",
-        "mmtf-python >= 1.0",
     ],
     classifiers=[
         # From https://pypi.python.org/pypi?%3Aaction=list_classifiers
         # and our own ChimeraX classifiers.
-        "Development Status :: 4 - Beta",
-        "Environment :: MacOS X :: Aqua",
-        "Environment :: Win32 (MS Windows)",
-        "Environment :: X11 Applications",
+        "Development Status :: 5 - Stable",
+        env,
+        op_sys,
         "Framework :: ChimeraX",
         "Intended Audience :: Science/Research",
         "License :: Free for non-commercial use",
-        "Operating System :: MacOS :: MacOS X",
-        "Operating System :: Microsoft :: Windows :: Windows 10",
-        "Operating System :: POSIX :: Linux",
         "Programming Language :: Python :: 3",
         "Topic :: Scientific/Engineering :: Visualization",
         "Topic :: Scientific/Engineering :: Chemistry",
@@ -60,5 +99,6 @@ setup(
         "ChimeraX :: Bundle :: Molecular structure :: 1,1 :: PKG_NAME :: :: ",
         "ChimeraX :: DataFormat :: MMTF :: :: Molecular structure :: .mmtf :: :: http://mmtf.rcsb.org/ :: :: :: Macromolecular Transmission Format (MMTF)",
         "ChimeraX :: Fetch :: pdb :: MMTF :: :: 1a0m :: ",
+        "ChimeraX :: Open :: MMTF :: :: ",
     ],
 )

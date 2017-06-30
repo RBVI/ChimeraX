@@ -19,7 +19,7 @@ class CoordinateSetSlider(Slider):
 
         self.structure = structure
 
-        title = 'Coordinate sets %s (%d)' % (structure.name, structure.num_coord_sets)
+        title = 'Coordinate sets %s (%d)' % (structure.name, structure.num_coordsets)
         csids = structure.coordset_ids
         id_start, id_end = min(csids), max(csids)
         self.coordset_ids = set(csids)

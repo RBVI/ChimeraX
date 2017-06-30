@@ -58,6 +58,7 @@ class Model(State, Drawing):
         Drawing.__init__(self, name)
         self.session = session
         self.id = None
+        self._added_to_session = False
         self._deleted = False
         # TODO: track.created(Model, [self])
 
@@ -114,7 +115,13 @@ class Model(State, Drawing):
             p = getattr(self, 'parent', None)
             return p is None or p.visible
         return False
-    
+ 
+    def __lt__(self, other):
+        # for sorting (objects of the same type)
+        if self.id is None:
+            return self.name < other.name
+        return self.id < other.id
+
     def _set_display(self, display):
         Drawing.set_display(self, display)
         self.session.triggers.activate_trigger(MODEL_DISPLAY_CHANGED, self)
@@ -172,6 +179,27 @@ class Model(State, Drawing):
         # Return True if there are atoms in this model
         return False
 
+    def atomspec_zone(self, session, coords, distance, target_type, operator, results):
+        # Ignore zone request by default
+        pass
+
+    def atomspec_model_attr(self, attrs):
+        # Return true is attributes specifier matches model
+        for attr in attrs:
+            try:
+                v = getattr(self, attr.name)
+            except AttributeError:
+                if not attr.no:
+                    return False
+            else:
+                if attr.value is None:
+                    tv = attr.op(v)
+                else:
+                    tv = attr.op(v, attr.value)
+                if not tv:
+                    return False
+        return True
+
 
 class Models(State):
 
@@ -228,28 +256,49 @@ class Models(State):
             if not hasattr(m, 'parent') or m.parent is not d:
                 d.add_drawing(m)
 
-        # Assign id numbers
-        m_all = list(models)
+        # Clear model ids if they are not subids of parent id.
+        for model in models:
+            if model.id and model.id[:-1] != d.id:
+                # Model has id that is not a subid of parent, so assign new id.
+                del self._models[model.id]
+                model.id = None
+                if hasattr(model, 'parent'):
+                    model.parent._next_unused_id = None
+
+        # Assign new model ids
         for model in models:
             if model.id is None:
                 model.id = self._next_child_id(d)
             self._models[model.id] = model
             children = model.child_models()
             if children:
-                m_all.extend(self.add(children, model, _notify=False))
+                self.add(children, model, _notify=False)
 
+        # Notify that models were added
         if _notify:
             session = self._session()
-            for m in m_all:
+            m_add = [m for model in models for m in model.all_models() if not m._added_to_session]
+            for m in m_add:
+                m._added_to_session = True
                 m.added_to_session(session)
-            session.triggers.activate_trigger(ADD_MODELS, m_all)
-            if not _from_session and start_count == 0 and len(self._models) > 0:
-                v = session.main_view
-                v.initial_camera_view()
-                v.clip_planes.clear()   # Turn off clipping
+            session.triggers.activate_trigger(ADD_MODELS, m_add)
 
-        return m_all
+        # Initialize view if first model added
+        if _notify and not _from_session and start_count == 0 and len(self._models) > 0:
+            v = session.main_view
+            v.initial_camera_view()
+            v.clip_planes.clear()   # Turn off clipping
 
+    def assign_id(self, model, id):
+        '''Parent model for new id must already exist.'''
+        mt = self._models
+        del mt[model.id]
+        model.id = id
+        mt[id] = model
+        p = mt[id[:-1]] if len(id) > 1 else self.drawing
+        p._next_unused_id = None
+        self.add([model], parent = p)
+        
     def __getitem__(self, i):
         '''index into models using square brackets (e.g. session.models[i])'''
         return list(self._models.values())[i]
@@ -292,8 +341,8 @@ class Models(State):
         if id is not None:
             parent.id = id
         parent.add(models)
-        m_all = self.add([parent])
-        return [parent] + m_all
+        self.add([parent])
+        return parent
 
     def remove(self, models):
         # Also remove all child models, and remove deepest children first.
@@ -303,6 +352,7 @@ class Models(State):
         mlist.sort(key=lambda m: len(m.id), reverse=True)
         session = self._session()  # resolve back reference
         for m in mlist:
+            m._added_to_session = False
             m.removed_from_session(session)
         for model in mlist:
             model_id = model.id

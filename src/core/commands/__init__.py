@@ -12,6 +12,7 @@
 from .commands import register_core_commands
 from .selectors import register_core_selectors
 from .run import run, concise_model_spec, quote_if_necessary
+from .runscript import runscript
 
 from .cli import CmdDesc, register, Command, create_alias, command_function
 from .cli import commas, plural_form, plural_of, discard_article

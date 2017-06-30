@@ -1,0 +1,16 @@
+*** PIL/TiffImagePlugin.py~	Fri Mar 10 12:53:22 2017
+--- PIL/TiffImagePlugin.py	Mon Apr  3 19:10:19 2017
+***************
+*** 700,705 ****
+--- 700,710 ----
+                  if not data:
+                      continue
+  
++                 if tag == 270 and tag in self._tagdata and self._tagdata[tag].startswith(b'<?xml'):
++                     # TODO: Hack to get XML header of OME TIFF files that have multiple ImageDescription (270)
++                     # tags as set by BioFormats writer OME TIFF writer.
++                     continue
++                 
+                  self._tagdata[tag] = data
+                  self.tagtype[tag] = typ
+  

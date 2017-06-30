@@ -1,0 +1,8 @@
+This "bundle" is special because it is actually just a plain
+Python package with mostly ChimeraX-independent code.
+
+The "tag" function returns the tag part of the wheel filename:
+
+  {python tag}-{abi tag}-{platform tag}
+
+from https://www.python.org/dev/peps/pep-0491/#file-name-convention.

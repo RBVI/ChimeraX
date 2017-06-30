@@ -315,9 +315,11 @@ class MolecularSurface(Model):
     def update_selection(self):
         asel = self.atoms.selected
         tmask = self._atom_triangle_mask(asel)
-        if tmask is not None:
+        if tmask is None:
+            self.selected = False
+        else:
             self.selected = (tmask.sum() > 0)
-            self.selected_triangles_mask = tmask
+        self.selected_triangles_mask = tmask
 
     # State save/restore in ChimeraX
     _save_attrs = ('_refinement_steps', '_vertex_to_atom', '_vertex_to_atom_count', '_max_radius',

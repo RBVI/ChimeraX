@@ -1,0 +1,39 @@
+<BundleInfo name="ChimeraX-RestServer" version="0.1"
+	    package="chimerax.rest_server" custom_init="true"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Starts REST server to execute commands from network requests</Synopsis>
+  <Description>Starts REST server to execute commands from network requests
+
+Server is listening on a local port for HTTP requests.
+The request content is executed as a ChimeraX command
+and the generated output is returned as the response.
+  </Description>
+
+  <DataFiles>
+    <DataFile>static/*</DataFile>
+    <DataFile>server.pem</DataFile>
+  </DataFiles>
+
+  <Categories>
+    <Category name="General"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <Classifiers>
+    <!-- Development Status should be compatible with bundle version number -->
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+]
+    <ChimeraXClassifier>ChimeraX :: Command :: remotecontrol rest :: General :: Control REST server</ChimeraXClassifier>
+]
+  </Classifiers>
+
+</BundleInfo>

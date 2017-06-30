@@ -86,6 +86,7 @@ public:
         bool just_first=false) const;
     Chain*  chain() const;
     const ChainID&  chain_id() const;
+    bool  connects_to(const Residue* other_res) { return !bonds_between(other_res, true).empty(); }
     int  count_atom(const AtomName&) const;
     Atom *  find_atom(const AtomName&) const;
     const ChainID&  mmcif_chain_id() const { return _mmcif_chain_id; }

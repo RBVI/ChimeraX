@@ -137,7 +137,7 @@ the <b>format</b> option (where <i>format-name</i> can be truncated).
 Files that are gzipped, as indicated by their additional .gz suffix, 
 can also be read.
 </p><p>
-A multi-model file in PDB format can be opened as a
+A multi-model file in mmCIF or PDB format can be opened as a
 <a href="../trajectories.html">trajectory</a>
 with <b>coordsets true</b> (default <b>false</b>).
 A <a href="#trajectory">trajectory coordinate</a> file is
@@ -165,6 +165,13 @@ indicates whether it should be interpreted as an alignment
 Otherwise, each sequence will be opened in a separate window. 
 If the sequences (including any gap characters) are of differing lengths,
 the option must be set to <b>false</b>. 
+</p><p>
+<!-- ChimeraX builds after June 20 2017 as per ticket #320 -->
+Another way to open local files is by drag-and-drop onto the ChimeraX icon
+or a running instance of ChimeraX.
+On a Mac, ChimeraX-associated file types can also be opened by 
+double-clicking them in a Finder window or using &ldquo;open&rdquo; 
+in a Terminal window.
 </p>
 <center>
 <a name="file-table"><font size="+1"><b>File Types</b></font></a>
@@ -453,7 +460,7 @@ Opening a structure in mmCIF format automatically shows a clickable table of
 <a href="sym.html#assembly">assembly information</a>
 in the <a href="../tools/log.html"><b>Log</b></a>.
 </p><p>
-A multi-model file in PDB format can be opened as a
+A multi-model file in mmCIF or PDB format can be opened as a
 <a href="../trajectories.html">trajectory</a>
 with <b>coordsets true</b> (default <b>false</b>).
 </p><p>

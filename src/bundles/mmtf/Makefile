@@ -26,24 +26,31 @@ CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
 endif
 
 BUNDLE_NAME = ChimeraX-MMTF
-BUNDLE_VERSION = 0.9
+BUNDLE_VERSION = 1.0
 PKG_NAME = chimerax.mmtf
+MMTF_CPP_VERSION = master
+MMTF_CPP_DISTRIBUTION = mmtf-cpp-$(MMTF_CPP_VERSION).zip
+MMTF_CPP_SOURCE	= mmtf-cpp-$(MMTF_CPP_VERSION)
+MSGPACK_VERSION = master
+MSGPACK_DISTRIBUTION = msgpack-c-$(MSGPACK_VERSION).zip
+MSGPACK_SOURCE	= msgpack-c-$(MSGPACK_VERSION)
 
 BASE_BNDL_NAME = $(subst ChimeraX-,,$(BUNDLE_NAME))
 WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
+TAG = $(shell $(PYTHON_EXE) -m chimerax.bundle_builder.wheel_tag)
 
 PYSRCS = $(wildcard src/*.py)
-WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-py3-none-any.whl
+DATAFILES = 
+WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-$(TAG).whl
 
-wheel $(WHEEL): setup.py $(PYSRCS)
+wheel $(WHEEL): setup.py $(PYSRCS) $(MMTF_CPP_SOURCE) $(MSGPACK_SOURCE)
 	$(PYTHON_EXE) setup.py --no-user-cfg build
 	$(PYTHON_EXE) setup.py --no-user-cfg test
 	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel
 	rm -rf $(WHL_BNDL_NAME).egg-info
 
 install app-install: $(WHEEL)
-	$(CHIMERAX_EXE) --nogui --cmd "toolshed uninstall $(BASE_BNDL_NAME); exit"
-	$(CHIMERAX_EXE) --nogui --cmd "toolshed install $(WHEEL) user false; exit"
+	$(CHIMERAX_EXE) --nogui --cmd "toolshed install $(WHEEL) reinstall true user false; exit"
 
 test:
 	$(CHIMERAX_EXE)
@@ -52,14 +59,26 @@ debug:
 	$(CHIMERAX_EXE) --debug
 
 clean:
-	rm -rf src/__pycache__ build dist $(WHL_BNDL_NAME).egg-info setup.py
+	rm -rf src/__pycache__ src/*.pyd src/*.so src/*.dylib
+	rm -rf build dist $(WHL_BNDL_NAME).egg-info setup.py
+	rm -rf $(MMTF_CPP_SOURCE) $(MSGPACK_SOURCE)
 
 lint:
 	$(PYLINT) $(PYSRCS)
+
+$(MMTF_CPP_SOURCE): $(MMTF_CPP_DISTRIBUTION)
+	# only need the include files
+	unzip -u $(MMTF_CPP_DISTRIBUTION) $(MMTF_CPP_SOURCE)/include/*
+
+$(MSGPACK_SOURCE): $(MSGPACK_DISTRIBUTION)
+	# only need the include files
+	unzip -u $(MSGPACK_DISTRIBUTION) $(MSGPACK_SOURCE)/include/*
 
 setup.py: setup.py.in Makefile
 	sed \
 		-e 's,BUNDLE_NAME,$(BUNDLE_NAME),' \
 		-e 's,BUNDLE_VERSION,$(BUNDLE_VERSION),' \
 		-e 's,PKG_NAME,$(PKG_NAME),' \
+		-e 's,MMTF_CPP_VERSION,$(MMTF_CPP_VERSION),' \
+		-e 's,MSGPACK_VERSION,$(MSGPACK_VERSION),' \
 		< setup.py.in > setup.py

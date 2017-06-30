@@ -63,6 +63,9 @@ stencil8_needed = False
 class OpenGLVersionError(RuntimeError):
     pass
 
+class OpenGLError(RuntimeError):
+    pass
+
 class OpenGLContext:
     '''
     OpenGL context used by View for drawing.  This should be subclassed
@@ -570,6 +573,19 @@ class Render:
             self._max_multishadows = m
         return m
 
+    def check_for_opengl_errors(self):
+        # Clear previous errors.
+        lines = []
+        while True:
+            e = GL.glGetError()
+            if e == GL.GL_NO_ERROR:
+                break
+            from OpenGL import GLU
+            es = GLU.gluErrorString(e)
+            lines.append('OpenGL error %s' % es.decode('utf-8'))
+        msg = '\n'.join(lines)
+        return msg
+
     def opengl_version(self):
         'String description of the OpenGL version for the current context.'
         return GL.glGetString(GL.GL_VERSION).decode('utf-8')
@@ -814,7 +830,7 @@ class Render:
             dt.initialize_depth((size, size))
             fb = Framebuffer(depth_texture=dt, color=False)
             if not fb.valid():
-                return           # Requested size exceeds framebuffer limits
+                return None           # Requested size exceeds framebuffer limits
 
         # Make sure depth texture is not bound from previous drawing so that
         # it is not used for rendering shadows while the depth texture is
@@ -970,6 +986,9 @@ class Render:
         self.set_texture_mask_color(color)
         tc.draw()
 
+        # TODO: Probably should cache texture window.
+        tc.delete()
+
     def set_texture_mask_color(self, color):
 
         p = self.current_shader_program
@@ -1030,6 +1049,9 @@ class Render:
                                                   perspective_near_far_ratio)
             tc.draw()
         self.enable_blending(False)
+
+        # TODO: Probably should cache texture window.
+        tc.delete()
 
     def set_depth_outline_color(self, color):
 
@@ -1141,6 +1163,7 @@ class Framebuffer:
                  depth=True, depth_texture=None,
                  alpha=False):
 
+        self.fbo = None
         if width is not None and height is not None:
             w, h = width, height
         elif color_texture is not None:
@@ -1176,8 +1199,31 @@ class Framebuffer:
         self.fbo = fbo
 
     def __del__(self):
+        if self.fbo is not None:
+            raise RuntimeError('OpenGL framebuffer was not deleted before core.graphics.Framebuffer destroyed')
 
-        self.delete()
+    def delete(self):
+        if self.fbo is None:
+            return
+        
+        if self.fbo == 0:
+            self.fbo = None
+            return
+            
+        if self.color_rb is not None:
+            GL.glDeleteRenderbuffers(1, (self.color_rb,))
+        if self.depth_rb is not None:
+            GL.glDeleteRenderbuffers(1, (self.depth_rb,))
+        GL.glDeleteFramebuffers(1, (self.fbo,))
+        self.color_rb = self.depth_rb = self.fbo = None
+
+        ct = self.color_texture
+        dt = self.depth_texture
+        if ct is not None:
+            ct.delete_texture()
+        if dt is not None:
+            dt.delete_texture()
+        self.color_texture = self.depth_texture = None
 
     def valid_size(self, width, height):
 
@@ -1223,6 +1269,9 @@ class Framebuffer:
             GL.glFramebufferRenderbuffer(GL.GL_FRAMEBUFFER,
                                          GL.GL_COLOR_ATTACHMENT0,
                                          GL.GL_RENDERBUFFER, color_buf)
+        else:
+            GL.glDrawBuffer(GL.GL_NONE)
+            GL.glReadBuffer(GL.GL_NONE)
 
         if isinstance(depth_buf, Texture):
             level = 0
@@ -1255,25 +1304,6 @@ class Framebuffer:
 
     def activate(self):
         GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.fbo)
-
-    def delete(self):
-        if self.fbo is None or self.fbo == 0:
-            return
-
-        if self.color_rb is not None:
-            GL.glDeleteRenderbuffers(1, (self.color_rb,))
-        if self.depth_rb is not None:
-            GL.glDeleteRenderbuffers(1, (self.depth_rb,))
-        GL.glDeleteFramebuffers(1, (self.fbo,))
-        self.color_rb = self.depth_rb = self.fbo = None
-
-        ct = self.color_texture
-        dt = self.depth_texture
-        if ct is not None:
-            ct.delete_texture()
-        if dt is not None:
-            dt.delete_texture()
-        self.color_texture = self.depth_texture = None
 
 class Lighting:
     '''
@@ -1420,7 +1450,8 @@ class Bindings:
         self.bound_attr_buffers = {}	# Maps attribute id to bound buffer (or None).
 
     def __del__(self):
-        self.delete_bindings()
+        if self.vao_id is not None:
+            raise RuntimeError('OpenGL vertex array object was not deleted before core.graphics.Bindings destroyed')
 
     def delete_bindings(self):
         'Delete the OpenGL vertex array object.'
@@ -1563,7 +1594,8 @@ class Buffer:
         self.requires_capabilities = t.requires_capabilities
 
     def __del__(self):
-        self.delete_buffer()
+        if self.opengl_buffer is not None:
+            raise RuntimeError('OpenGL buffer was not deleted before core.graphics.Buffer destroyed')
 
     def delete_buffer(self):
         'Delete the OpenGL buffer object.'
@@ -1722,8 +1754,11 @@ class Shader:
         f.close()
 
         from OpenGL.GL import shaders
-        vs = shaders.compileShader(vshader, GL.GL_VERTEX_SHADER)
-        fs = shaders.compileShader(fshader, GL.GL_FRAGMENT_SHADER)
+        try:
+            vs = shaders.compileShader(vshader, GL.GL_VERTEX_SHADER)
+            fs = shaders.compileShader(fshader, GL.GL_FRAGMENT_SHADER)
+        except Exception as e:
+            raise OpenGLError(str(e))
 
         prog_id = shaders.compileProgram(vs, fs)
 
@@ -1874,7 +1909,8 @@ class Texture:
         GL.glBindTexture(gl_target, 0)
 
     def __del__(self):
-        self.delete_texture()
+        if self.id is not None:
+            raise RuntimeError('OpenGL texture was not deleted before core.graphics.Texture destroyed')
 
     def delete_texture(self):
         'Delete the OpenGL texture.'
@@ -2005,9 +2041,17 @@ class TextureWindow:
         vao.bind_shader_variable(eb)    # Binds element buffer for rendering
 
     def __del__(self):
+        if self.vao is not None:
+            raise RuntimeError('core.graphics.TextureWindow delete() not called')
+        
+    def delete(self):
+        if self.vao is None:
+            return
+        self.vao.delete_bindings()
         self.vao = None
         for b in (self.vertex_buf, self.tex_coord_buf, self.element_buf):
             b.delete_buffer()
+        self.vertex_buf = self.tex_coord_buf = self.element_buf = None
 
     def draw(self, xshift=0, yshift=0):
         xs, ys = xshift, yshift

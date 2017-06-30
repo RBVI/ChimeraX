@@ -150,13 +150,14 @@ class RESTHandler(BaseHTTPRequestHandler):
     def _run(self, args):
         from queue import Queue
         from chimerax.core.errors import NotABug
+        from chimerax.core.logger import StringPlainTextLog
         session = self.server.chimerax_session
         q = Queue()
         def f(args=args, session=session, q=q):
             logger = session.logger
             # rest_log.log_summary gets called at the end
             # of the "with" statement
-            with RESTLog(logger) as rest_log:
+            with StringPlainTextLog(logger) as rest_log:
                 from chimerax.core.commands import run
                 try:
                     commands = args["command"]
@@ -170,33 +171,8 @@ class RESTHandler(BaseHTTPRequestHandler):
                             run(session, cmd, log=False)
                     except NotABug as e:
                         logger.info(str(e))
-                q.put(rest_log.output())
+                q.put(rest_log.getvalue())
         session.ui.thread_safe(f)
         data = bytes(q.get(), "utf-8")
         self._header(200, "text/plain", len(data))
         self.wfile.write(data)
-
-
-class RESTLog(PlainTextLog):
-    """Collects log messages for retrieval after closing."""
-
-    excludes_other_logs = True
-
-    def __init__(self, logger):
-        super().__init__()
-        self.msgs = []
-        self.logger = logger
-
-    def __enter__(self):
-        self.logger.add_log(self)
-        return self
-
-    def __exit__(self, *exc_info):
-        self.logger.remove_log(self)
-
-    def log(self, level, msg):
-        self.msgs.append(msg)
-        return True
-
-    def output(self):
-        return ''.join(self.msgs)

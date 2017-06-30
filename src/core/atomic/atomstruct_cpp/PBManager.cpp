@@ -71,11 +71,11 @@ AS_PBManager::get_group(const std::string& name, int create)
 
     grp = new Proxy_PBGroup(this, name, structure(), create);
     if (name == structure()->PBG_METAL_COORDINATION)
-        grp->set_default_color(147, 112, 219);
+        grp->set_color(147, 112, 219);
     else if (name == structure()->PBG_MISSING_STRUCTURE)
-        grp->set_default_halfbond(true);
+        grp->set_halfbond(true);
     else if (name == structure()->PBG_HYDROGEN_BONDS)
-        grp->set_default_color(0, 204, 230);
+        grp->set_color(0, 204, 230);
     _groups[name] = grp;
     return grp;
 }
@@ -149,6 +149,18 @@ BaseManager::session_info(PyObject** ints, PyObject** floats, PyObject** misc) c
         grp->session_save(&int_array, &float_array);
     }
     return 1;
+}
+
+void
+BaseManager::session_save_setup() const
+{
+    session_save_pbs = new SessionSavePbMap;
+    _ses_struct_to_id_map = new SessionStructureToIDMap;
+    // since pseudobond session IDs may be asked for before
+    // the structure/manager is itself asked to save, need
+    // to populate the maps here instead of during session_info
+    for (auto& cat_grp: group_map())
+        cat_grp.second->session_save_setup();
 }
 
 void

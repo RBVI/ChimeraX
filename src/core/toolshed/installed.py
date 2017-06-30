@@ -177,6 +177,9 @@ class InstalledBundleCache(list):
 
         Returns boolean on whether cache file was read."""
         _debug("InstalledBundleCache._read_cache:", cache_file)
+        import os.path
+        if not os.path.exists(cache_file):
+            return False
         import filelock, json, os, sys
         from .info import BundleInfo
         try:
@@ -269,11 +272,13 @@ def _extract_extra_keywords(kwds):
     result = {}
     all_kwds = [k.strip() for k in kwds.split(',')]
     for k in all_kwds:
-        temp = [t.strip() for t in k.split(':', maxsplit=1)]
+        temp = [t.strip() for t in k.split(':', maxsplit=2)]
         if len(temp) == 1:
-            result[temp[0]] = 'String'
+            result[temp[0]] = ('no description', 'String')
+        if len(temp) == 2:
+            result[temp[0]] = ('no description', temp[1])
         else:
-            result[temp[0]] = temp[1]
+            result[temp[0]] = (temp[1], temp[2])
     return result
 
 

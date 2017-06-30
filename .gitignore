@@ -34,6 +34,7 @@ dist
 *.out
 _build
 src/apps/structcomp/structcomp.sh
+src/apps/ChimeraX/ChimeraX-tool.png
 src/apps/ChimeraX/ChimeraX.ico
 src/apps/ChimeraX/icon.rc
 src/core/buildinfo.py
@@ -44,7 +45,11 @@ src/core/atomic/mmcif_cpp/_mmcif.cpp
 src/core/atomic/mmcif_cpp/_mmcif.h
 src/core/atomic/mmcif_cpp/wrappy
 src/core/ui/about.html
-src/bundles/rest_server/server.pem
+src/bundles/md_crds/gromacs/xdrfile-1.1b/
+src/bundles/mmtf/.eggs/
+src/bundles/mmtf/mmtf-cpp-master/
+src/bundles/mmtf/msgpack-c-master/
+src/bundles/rest_server/src/server.pem
 src/examples/sample/license.txt
 prereqs/PyQt/*commercial*
 docs/license.html

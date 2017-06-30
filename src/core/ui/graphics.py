@@ -21,7 +21,8 @@ class GraphicsWindow(QWindow):
     def __init__(self, parent, ui):
         QWindow.__init__(self)
         from PyQt5.QtWidgets import QWidget
-        self.widget = QWidget.createWindowContainer(self, parent)
+        self.widget = w = QWidget.createWindowContainer(self, parent)
+        w.setAcceptDrops(True)
         self.setSurfaceType(QSurface.OpenGLSurface)
         self.timer = None
         self.session = ui.session
@@ -46,6 +47,26 @@ class GraphicsWindow(QWindow):
 
         ui.mouse_modes.set_graphics_window(self)
 
+    def event(self, event):
+        # QWindow does not have drag and drop methods to handle file dropped on app
+        # so we detect the drag and drop events here and pass them to the main window.
+        if self.handle_drag_and_drop(event):
+            return True
+        return QWindow.event(self, event)
+
+    def handle_drag_and_drop(self, event):
+        from PyQt5.QtCore import QEvent
+        t = event.type()
+        ui = self.session.ui
+        if hasattr(ui, 'main_window'):
+            mw = ui.main_window
+            if t == QEvent.DragEnter:
+                mw.dragEnterEvent(event)
+                return True
+            elif t == QEvent.Drop:
+                mw.dropEvent(event)
+                return True
+    
     def resizeEvent(self, event):
         s = event.size()
         w, h = s.width(), s.height()

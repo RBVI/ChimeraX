@@ -477,7 +477,7 @@ class IHMModel(Model):
                         from .coordsets import read_coordinate_sets
                         read_coordinate_sets(path + '.crd', sm)
                 sm.display = False
-                sm.name += ' %d models' % sm.num_coord_sets
+                sm.name += ' %d models' % sm.num_coordsets
                 sm.ss_assigned = True	# Don't assign secondary structure to sphere model
                 atoms = sm.atoms
                 from chimerax.core.atomic.colors import chain_colors
@@ -781,7 +781,7 @@ class IHMModel(Model):
         nl = sum([len(lm.child_models()) for lm in self.localization_models], 0)
         xldesc = ', '.join('%d %s crosslinks' % (len(xls),type)
                            for type,xls in self.crosslink_models.items())
-        esizes = ' and '.join('%d'%em.num_coord_sets for em in self.ensemble_sphere_models)
+        esizes = ' and '.join('%d'%em.num_coordsets for em in self.ensemble_sphere_models)
         msg = ('Opened IHM file %s\n'
                ' %d xray/nmr models, %d comparative models, %d sequence alignments, %d templates\n'
                ' %s, %d electron microscopy images\n'

@@ -14,16 +14,16 @@ all:
 
 install:
 ifdef WIN32
-	$(PIP) install -U $(WHEEL)
+	$(PIP_INSTALL) $(WHEEL)
 else
-	$(PIP) install -U numpy==$(VERSION)
+	$(PIP_INSTALL) numpy==$(VERSION)
 endif
 
 app-install: install
 ifdef WIN32
-	$(APP_PIP) install $(WHEEL)
+	$(APP_PIP_INSTALL) $(WHEEL)
 else
-	$(APP_PIP) install -U numpy==$(VERSION)
+	$(APP_PIP_INSTALL) numpy==$(VERSION)
 endif
 
 clean:

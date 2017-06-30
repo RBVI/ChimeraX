@@ -303,11 +303,44 @@ class _AtomSpecSemantics:
     def part_range_list(self, ast):
         return _Part(ast.start, ast.end)
 
-    def attr_list(self, ast):
-        return _AttrList(ast)
+    def attribute_list(self, ast):
+        attr_test, attr_list = ast
+        if not attr_list:
+            return _AttrList([attr_test])
+        else:
+            return attr_list.insert(0, attr_test)
 
     def attr_test(self, ast):
-        return _AttrTest(ast.no, ast.name, ast.op, ast.value)
+        import operator
+        if ast.no is not None:
+            op = operator.not_
+            v = None
+        elif ast.value is None:
+            op = operator.truth
+            v = None
+        else:
+            if ast.op == "=":
+                op = operator.eq
+            elif ast.op == "!=" or ast.op == "<>":
+                op = operator.ne
+            elif ast.op == ">=":
+                op = operator.ge
+            elif ast.op == ">":
+                op = operator.gt
+            elif ast.op == "<=":
+                op = operator.le
+            elif ast.op == "<":
+                op = operator.lt
+            # Convert string to value for comparison
+            # TODO: if ast.name ends with color, convert to 3-float-tuple
+            try:
+                v = int(ast.value)
+            except ValueError:
+                try:
+                    v = float(ast.value)
+                except ValueError:
+                    v = ast.value
+        return _AttrTest(ast.no, ast.name, op, v)
 
     def zone_selector(self, ast):
         operator, distance = ast
@@ -419,6 +452,8 @@ class _SubPart:
             r = sub_repr
         else:
             r = "%s%s%s" % (self.Symbol, str(self.my_parts), sub_repr)
+        if self.my_attrs is not None:
+            r += "%s%s%s" % (self.Symbol, self.Symbol, str(self.my_attrs))
         # print("_SubPart.__str__", self.__class__, r)
         return r
 
@@ -433,12 +468,7 @@ class _SubPart:
     def find_selected_parts(self, model, atoms, num_atoms, results):
         # Only filter if a spec for this level is present
         # TODO: account for my_attrs in addition to my_parts
-        if self.my_attrs is not None:
-            # Using UserError instead of LimitationError to
-            # avoid generating traceback in log
-            from ..errors import UserError
-            raise UserError("Atomspec attributes not supported yet")
-        if self.my_parts is not None:
+        if self.my_parts or self.my_attrs:
             atoms = self._filter_parts(model, atoms, num_atoms)
             num_atoms = len(atoms)
         if len(atoms) == 0:
@@ -457,7 +487,9 @@ class _SubPart:
 
     def _filter_parts(self, model, atoms, num_atoms):
         if not self.my_parts:
-            return atoms
+            mask = model.atomspec_filter(self.Symbol, atoms, num_atoms,
+                                         None, self.my_attrs)
+            return atoms.filter(mask)
         from ..objects import Objects
         results = Objects()
         for part in self.my_parts:
@@ -475,6 +507,11 @@ class _Model(_SubPart):
     Symbol = '#'
 
     def find_matches(self, session, model_list, results):
+        model_list = [model for model in model_list
+                      if not self.my_attrs or
+                      model.atomspec_model_attr(self.my_attrs)]
+        if not model_list:
+            return
         if self.my_parts:
             self.my_parts.find_matches(session, model_list, self.sub_parts, results)
         else:
@@ -561,12 +598,27 @@ class _AttrTest:
         self.value = value
 
     def __str__(self):
-        if self.no:
+        if self.no is not None:
             return '~' + self.name
-        elif self.op:
-            return "%s%s%s" % (self.name, self.op, self.value)
-        else:
+        elif self.value is None:
             return self.name
+        else:
+            import operator
+            if self.op == operator.eq:
+                op = "="
+            elif self.op == operator.ne:
+                op = "!="
+            elif self.op == operator.ge:
+                op = ">="
+            elif self.op == operator.gt:
+                op = ">"
+            elif self.op == operator.le:
+                op = "<="
+            elif self.op == operator.lt:
+                op = "<"
+            else:
+                op = "???"
+            return "%s%s%s" % (self.name, op, self.value)
 
 
 class _SelectorName:
@@ -598,21 +650,21 @@ class _ZoneSelector:
         if self.model is None:
             # No reference atomspec, so do nothing
             return
-        return self.model.find_matches(session, models, results)
+        from ..objects import Objects
+        my_results = Objects()
+        self.model.find_matches(session, models, my_results)
+        if my_results.num_atoms > 0:
+            # expand my_results before combining with results
+            coords = my_results.atoms.scene_coords
+            for m in session.models.list():
+                m.atomspec_zone(session, coords, self.distance,
+                                self.target_type, self.operator, my_results)
+        results.combine(my_results)
 
     def matches(self, session, model):
         if self.model is None:
             return False
         return self.model.matches(session, model)
-
-    def find_sub_parts(self, session, model, results):
-        if self.model is None:
-            return
-        from ..objects import Objects
-        my_results = Objects()
-        self.model.find_sub_parts(session, model, my_results)
-        # TODO: expand my_results before combining with results
-        results.combine(my_results)
 
 
 class _Term:
@@ -758,7 +810,10 @@ def deregister_selector(name):
         If name is not registered.
 
     """
-    del _selectors[name]
+    try:
+        del _selectors[name]
+    except KeyError:
+        pass
 
 
 def list_selectors(session):

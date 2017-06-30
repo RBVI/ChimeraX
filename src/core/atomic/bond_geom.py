@@ -36,7 +36,7 @@ cos705 = cos(pi * 70.5 / 180.0)
 
 def bond_positions(bondee, geom, bond_len, bonded, coplanar=None,
             toward=None, away=None, toward2=None, away2=None):
-    """Return a list of possible bond partner positions for 'bondee' that
+    """Return a numpy array of possible bond partner positions for 'bondee' that
        satisfy geometry 'geom' and are of length 'bond_len'.  'bonded' are
        positions of already-bonded substituents to 'bondee'.
 
@@ -234,8 +234,8 @@ def angle_pos(atom_pos, bond_pos, bond_length, degrees, coplanar=None):
         for cpos in coplanar:
             up = cpos - atom_pos
             if xforms:
-                up.negate()
-            from ..geom.place import look_at, rotation
+                up = numpy.negative(up)
+            from ..geometry import look_at, rotation
             # lookAt puts ref point opposite that of zAlign, so 
             # also rotate 180 degrees around y axis
             xform = rotation((0.0,1.0,0.0), 180.0) * look_at(atom_pos, bond_pos, up)
@@ -253,7 +253,7 @@ def angle_pos(atom_pos, bond_pos, bond_length, degrees, coplanar=None):
     if len(points) > 1:
         midpoint = points[0] + (points[1] - points[0]) / 2.0
         v = midpoint - atom_pos
-        v.length = bond_length
+        v = v * bond_length / norm(v)
         return atom_pos + v
 
     return points[0]

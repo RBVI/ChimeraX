@@ -12,7 +12,7 @@ PATCHES = pillow_ome_tiff.patch
 all:
 
 install:
-	LANG=$(LANG) $(PIP) install -r build_requirements.txt
+	LANG=$(LANG) $(PIP_INSTALL) -r build_requirements.txt
 
 list:
 	$(PIP) list
@@ -21,16 +21,16 @@ app-list:
 	$(APP_PIP) list
 
 upgrade:
-	$(PIP) install -U -r build_requirements.txt
+	$(PIP_INSTALL) -U -r build_requirements.txt
 
 app-install:
-	$(APP_PIP) install -r app_requirements.txt
+	$(APP_PIP_INSTALL) -r app_requirements.txt
 	-for p in $(PATCHES); do \
 		patch -d $(PYSITEDIR) -N -p0 < $$p ; \
 	done
 
 app-upgrade:
-	$(APP_PIP) install -U -r app_requirements.txt
+	$(APP_PIP_INSTALL) -U -r app_requirements.txt
 
 # Example targets for patching a pip package. These targets would
 # be dependencies of the install and app-install targets.

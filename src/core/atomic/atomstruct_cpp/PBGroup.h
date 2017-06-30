@@ -22,11 +22,12 @@
 #include <unordered_map>
 #include <vector>
 
-#include "imex.h"
+#include "ChangeTracker.h"
 #include "destruct.h"
-#include "session.h"
+#include "imex.h"
 #include "PBManager.h"
 #include "Rgba.h"
+#include "session.h"
 
 // "forward declare" PyObject, which is a typedef of a struct,
 // as per the python mailing list:
@@ -49,15 +50,18 @@ public:
     typedef std::set<Pseudobond*>  Pseudobonds;
 
     static int  SESSION_NUM_INTS(int /*version*/=CURRENT_SESSION_VERSION) { return 1; }
-    static int  SESSION_NUM_FLOATS(int /*version*/=CURRENT_SESSION_VERSION) { return 0; }
+    static int  SESSION_NUM_FLOATS(int version=CURRENT_SESSION_VERSION) {
+        return version < 7 ? 0: 1;
+    }
 protected:
     std::string  _category;
-    Rgba  _default_color = {255,255,0,255}; // yellow
-    bool  _default_halfbond = false;
+    Rgba  _color = {255,255,0,255}; // yellow
     bool  _destruction_relevant;
+    bool  _halfbond = false;
     BaseManager*  _manager;
     friend class Proxy_PBGroup;
     Proxy_PBGroup* _proxy; // the proxy for this group
+    float  _radius = 0.1;
 
     // the manager will need to be declared as a friend...
     PBGroup(const std::string& cat, BaseManager* manager):
@@ -72,6 +76,7 @@ protected:
     void delete_pbs_check(const std::set<Pseudobond*>& pbs) const;
 public:
     virtual void  clear() = 0;
+    virtual const Rgba&  color() const { return _color; }
     virtual const std::string&  category() const { return _category; }
     virtual void  check_destroyed_atoms(const std::set<void*>& destroyed) = 0;
     virtual void  delete_pseudobond(Pseudobond* pb) = 0;
@@ -81,12 +86,12 @@ public:
             return;
         check_destroyed_atoms(destroyed);
     }
-    virtual const Rgba&  get_default_color() const { return _default_color; }
-    virtual bool  get_default_halfbond() const { return _default_halfbond; }
+    virtual bool  halfbond() const { return _halfbond; }
     BaseManager*  manager() const { return _manager; }
     virtual Pseudobond*  new_pseudobond(Atom* e1, Atom* e2) = 0;
     Proxy_PBGroup*  proxy() const { return _proxy; }
     virtual const Pseudobonds&  pseudobonds() const = 0;
+    virtual float  radius() const { return _radius; }
     static int  session_num_floats(int version=CURRENT_SESSION_VERSION) {
         return SESSION_NUM_FLOATS(version) + Rgba::session_num_floats();
     }
@@ -95,10 +100,17 @@ public:
     }
     virtual void  session_restore(int version, int**, float**);
     virtual void  session_save(int**, float**) const;
-    virtual void  set_default_color(const Rgba& rgba) { _default_color = rgba; }
-    virtual void  set_default_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b,
-        Rgba::Channel a = 255) { this->set_default_color(Rgba(r,g,b,a)); }
-    virtual void  set_default_halfbond(bool hb) { _default_halfbond = hb; }
+    virtual void  session_save_setup() const = 0;
+    virtual void  set_color(const Rgba& rgba);
+    virtual void  set_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b,
+        Rgba::Channel a = 255) { this->set_color(Rgba(r,g,b,a)); }
+    virtual void  set_halfbond(bool hb);
+    virtual void  set_radius(float r);
+
+    // change tracking
+    void  track_change(const std::string& reason) const {
+        manager()->change_tracker()->add_modified(proxy(), reason);
+    }
 };
 
 // in per-AtomicStructure groups there are per-CoordSet groups
@@ -158,6 +170,7 @@ public:
     int  session_num_floats(int version=0) const;
     void  session_restore(int version, int** , float**);
     void  session_save(int** , float**) const;
+    void  session_save_setup() const;
     mutable std::unordered_map<const Pseudobond*, size_t>  *session_save_pbs;
 };
 
@@ -190,6 +203,7 @@ public:
     int  session_num_floats(int version=CURRENT_SESSION_VERSION) const;
     void  session_restore(int, int** , float**);
     void  session_save(int** , float**) const;
+    void  session_save_setup() const;
     mutable std::unordered_map<const Pseudobond*, size_t>  *session_save_pbs;
 };
 
@@ -228,6 +242,7 @@ private:
             _proxied = new CS_PBGroup(_category, _structure, _manager);
         _proxy = this;
         static_cast<PBGroup*>(_proxied)->_proxy = this;
+        _manager->change_tracker()->add_created(this);
     }
     void  remove_cs(const CoordSet* cs) {
         if (_group_type == AS_PBManager::GRP_PER_CS)
@@ -250,6 +265,11 @@ public:
             static_cast<StructurePBGroup*>(_proxied)->clear();
         static_cast<CS_PBGroup*>(_proxied)->clear();
     }
+    const Rgba&  color() const {
+        if (_group_type == AS_PBManager::GRP_NORMAL)
+            return static_cast<StructurePBGroup*>(_proxied)->color();
+        return static_cast<CS_PBGroup*>(_proxied)->color();
+    }
     void  delete_pseudobond(Pseudobond* pb) {
         if (_group_type == AS_PBManager::GRP_NORMAL)
             return static_cast<StructurePBGroup*>(_proxied)->delete_pseudobond(pb);
@@ -271,17 +291,12 @@ public:
         else
             static_cast<AS_PBManager*>(_manager)->delete_group(this);
     }
-    const Rgba&  get_default_color() const {
-        if (_group_type == AS_PBManager::GRP_NORMAL)
-            return static_cast<StructurePBGroup*>(_proxied)->get_default_color();
-        return static_cast<CS_PBGroup*>(_proxied)->get_default_color();
-    }
-    bool  get_default_halfbond() const {
-        if (_group_type == AS_PBManager::GRP_NORMAL)
-            return static_cast<StructurePBGroup*>(_proxied)->get_default_halfbond();
-        return static_cast<CS_PBGroup*>(_proxied)->get_default_halfbond();
-    }
     int  group_type() const { return _group_type; }
+    bool  halfbond() const {
+        if (_group_type == AS_PBManager::GRP_NORMAL)
+            return static_cast<StructurePBGroup*>(_proxied)->halfbond();
+        return static_cast<CS_PBGroup*>(_proxied)->halfbond();
+    }
     Pseudobond*  new_pseudobond(Atom* a1, Atom* a2) {
         if (_group_type == AS_PBManager::GRP_NORMAL)
             return static_cast<StructurePBGroup*>(_proxied)->new_pseudobond(a1, a2);
@@ -310,6 +325,11 @@ public:
             throw std::invalid_argument("Not a per-coordset pseudobond group");
         return static_cast<CS_PBGroup*>(_proxied)->pseudobonds(cs);
     }
+    float  radius() const {
+        if (_group_type == AS_PBManager::GRP_NORMAL)
+            return static_cast<StructurePBGroup*>(_proxied)->radius();
+        return static_cast<CS_PBGroup*>(_proxied)->radius();
+    }
     int  session_num_ints() const {
         if (_group_type == AS_PBManager::GRP_NORMAL)
             return static_cast<StructurePBGroup*>(_proxied)->session_num_ints();
@@ -330,19 +350,30 @@ public:
             return static_cast<StructurePBGroup*>(_proxied)->session_save(ints, floats);
         return static_cast<CS_PBGroup*>(_proxied)->session_save(ints, floats);
     }
-    void  set_default_color(const Rgba& rgba) {
+    void  session_save_setup() const {
         if (_group_type == AS_PBManager::GRP_NORMAL)
-            static_cast<StructurePBGroup*>(_proxied)->set_default_color(rgba);
-	else
-	    static_cast<CS_PBGroup*>(_proxied)->set_default_color(rgba);
+            return static_cast<StructurePBGroup*>(_proxied)->session_save_setup();
+        return static_cast<CS_PBGroup*>(_proxied)->session_save_setup();
     }
-    void  set_default_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b,
-        Rgba::Channel a = 255) { set_default_color(Rgba(r,g,b,a)); }
-    void  set_default_halfbond(bool hb) {
+    void  set_color(const Rgba& rgba) {
         if (_group_type == AS_PBManager::GRP_NORMAL)
-            static_cast<StructurePBGroup*>(_proxied)->set_default_halfbond(hb);
-	else
-	    static_cast<CS_PBGroup*>(_proxied)->set_default_halfbond(hb);
+            static_cast<StructurePBGroup*>(_proxied)->set_color(rgba);
+        else
+            static_cast<CS_PBGroup*>(_proxied)->set_color(rgba);
+    }
+    void  set_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b,
+        Rgba::Channel a = 255) { set_color(Rgba(r,g,b,a)); }
+    void  set_halfbond(bool hb) {
+        if (_group_type == AS_PBManager::GRP_NORMAL)
+            static_cast<StructurePBGroup*>(_proxied)->set_halfbond(hb);
+        else
+            static_cast<CS_PBGroup*>(_proxied)->set_halfbond(hb);
+    }
+    void  set_radius(float r) {
+        if (_group_type == AS_PBManager::GRP_NORMAL)
+            static_cast<StructurePBGroup*>(_proxied)->set_radius(r);
+        else
+            static_cast<CS_PBGroup*>(_proxied)->set_radius(r);
     }
     Structure*  structure() const { 
         if (_group_type == AS_PBManager::GRP_NORMAL)
@@ -353,8 +384,8 @@ public:
     void  gc_clear() {
         if (_group_type == AS_PBManager::GRP_NORMAL)
             static_cast<StructurePBGroup*>(_proxied)->gc_clear();
-	else
-	    static_cast<CS_PBGroup*>(_proxied)->gc_clear();
+    else
+        static_cast<CS_PBGroup*>(_proxied)->gc_clear();
     }
     bool  get_gc_color() const {
         if (_group_type == AS_PBManager::GRP_NORMAL)
@@ -384,46 +415,73 @@ public:
     void  set_gc_color() {
         if (_group_type == AS_PBManager::GRP_NORMAL)
             static_cast<StructurePBGroup*>(_proxied)->set_gc_color();
-	else
-	    static_cast<CS_PBGroup*>(_proxied)->set_gc_color();
+    else
+        static_cast<CS_PBGroup*>(_proxied)->set_gc_color();
     }
     void  set_gc_select() {
         if (_group_type == AS_PBManager::GRP_NORMAL)
             static_cast<StructurePBGroup*>(_proxied)->set_gc_select();
-	else
-	    static_cast<CS_PBGroup*>(_proxied)->set_gc_select();
+    else
+        static_cast<CS_PBGroup*>(_proxied)->set_gc_select();
     }
     void  set_gc_shape() {
         if (_group_type == AS_PBManager::GRP_NORMAL)
             static_cast<StructurePBGroup*>(_proxied)->set_gc_shape();
-	else
-	    static_cast<CS_PBGroup*>(_proxied)->set_gc_shape();
+    else
+        static_cast<CS_PBGroup*>(_proxied)->set_gc_shape();
     }
     void  set_gc_ribbon() {
         if (_group_type == AS_PBManager::GRP_NORMAL)
             static_cast<StructurePBGroup*>(_proxied)->set_gc_ribbon();
-	else
-	    static_cast<CS_PBGroup*>(_proxied)->set_gc_ribbon();
+    else
+        static_cast<CS_PBGroup*>(_proxied)->set_gc_ribbon();
     }
     void  set_graphics_changes(int change) {
         if (_group_type == AS_PBManager::GRP_NORMAL)
             static_cast<StructurePBGroup*>(_proxied)->set_graphics_changes(change);
-	else
-	    static_cast<CS_PBGroup*>(_proxied)->set_graphics_changes(change);
+    else
+        static_cast<CS_PBGroup*>(_proxied)->set_graphics_changes(change);
     }
     void  set_graphics_change(ChangeType type) {
         if (_group_type == AS_PBManager::GRP_NORMAL)
             static_cast<StructurePBGroup*>(_proxied)->set_graphics_change(type);
-	else
-	    static_cast<CS_PBGroup*>(_proxied)->set_graphics_change(type);
+    else
+        static_cast<CS_PBGroup*>(_proxied)->set_graphics_change(type);
     }
     void  clear_graphics_change(ChangeType type) {
         if (_group_type == AS_PBManager::GRP_NORMAL)
             static_cast<StructurePBGroup*>(_proxied)->clear_graphics_change(type);
-	else
-	    static_cast<CS_PBGroup*>(_proxied)->clear_graphics_change(type);
+    else
+        static_cast<CS_PBGroup*>(_proxied)->clear_graphics_change(type);
     }
 };
+
+}  // namespace atomstruct
+
+#include "Pseudobond.h"
+
+namespace atomstruct {
+    
+inline void  PBGroup::set_color(const Rgba& rgba) {
+    _color = rgba;
+    for (auto pb: pseudobonds())
+        pb->set_color(rgba);
+    track_change(ChangeTracker::REASON_COLOR);
+}
+
+inline void  PBGroup::set_halfbond(bool hb) {
+    _halfbond = hb;
+    for (auto pb: pseudobonds())
+        pb->set_halfbond(hb);
+    track_change(ChangeTracker::REASON_HALFBOND);
+}
+
+inline void  PBGroup::set_radius(float r) {
+    _radius = r;
+    for (auto pb: pseudobonds())
+        pb->set_radius(r);
+    track_change(ChangeTracker::REASON_RADIUS);
+}
 
 }  // namespace atomstruct
 
