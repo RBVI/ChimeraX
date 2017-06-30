@@ -27,16 +27,19 @@ class _MDCrdsBundleAPI(BundleAPI):
         return [], "Added %d frames to %s" % (num_coords, model)
     @staticmethod
     def save_file(session, file_name, format, models=None):
-        from chimerax.core.atomic import Structure
-        models = [m for m in models if isinstance(m, Structure)]
-        if models is None or len(models) == 0:
+        from chimerax.core import atomic
+        if models is None:
+            models = atomic.all_structures(session)
+        else:
+            models = [m for m in models if isinstance(m, atomic.Structure)]
+        if len(models) == 0:
             from chimerax.core.errors import UserError
             raise UserError("Must specify models to write DCD coordinates")
         # Check that all models have same number of atoms.
         nas = set(m.num_atoms for m in models)
         if len(nas) != 1:
             from chimerax.core.errors import UserError
-            raise UserError("Models have different number atomsMust specify models to write DCD coordinates")
+            raise UserError("Models have different number of atoms")
         from .write_coords import write_coords
         write_coords(session, file_name, format, models)
 

@@ -190,12 +190,23 @@ class Atom(State):
     visible = c_property('atom_visible', npy_bool, read_only=True,
         doc="Whether atom is displayed and not hidden.")
 
+    @property
+    def display_radius(self):
+        dm = self.draw_mode
+        if dm == Atom.SPHERE_STYLE:
+            r = self.radius
+        elif dm == Atom.BALL_STYLE:
+            r = self.radius * self.structure.ball_scale
+        elif dm == Atom.STICK_STYLE:
+            r = self.maximum_bond_radius(self.structure.bond_radius)
+        return r
+
     def maximum_bond_radius(self, default_radius = 0.2):
         "Return maximum bond radius.  Used for stick style atom display."
         f = c_function('atom_maximum_bond_radius',
                        args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_float, ctypes.c_void_p])
         r = ctypes.c_float()
-        f(ctypes.by_ref(self._c_pointer), 1, default_radius, ctypes.by_ref(r))
+        f(ctypes.byref(self._c_pointer), 1, default_radius, ctypes.byref(r))
         return r.value
 
     def set_alt_loc(self, loc, create):

@@ -28,7 +28,9 @@ class="clRight" title="User Guide Index"/></a>
 <br><b>hbonds</b> 
 [&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>colorname</i></a>&nbsp;]
 [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
+[&nbsp;<b>dashes</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>selRestrict</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;|&nbsp;cross&nbsp;|&nbsp;both&nbsp;|&nbsp;any&nbsp;]
+[&nbsp;<b>reveal</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<a href="#options"><i>other-options</i></a></h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>~hbonds</b> 
@@ -40,16 +42,20 @@ to identify possible hydrogen bonds (H-bonds).
 By <a href="#makePseudobonds">default</a>, 
 the H-bonds are shown as dashed <a href="../pseudobonds.html">pseudobonds</a>
 that can be removed with <b>~hbonds</b>.
-The pseudobond <b>color</b> and <b>radius</b> can be specified.
-The <b>selRestrict</b> option allows limiting detection to only the 
-<a href="../selection.html">selected</a> atoms or between the 
-<a href="../selection.html">selected</a> atoms and another set of atoms
-(<a href="#selRestrict">details...</a>).
-The total number of H-bonds found is reported in the
+Pseudobond <b>color</b>, <b>radius</b>, and number of <b>dashes</b> 
+can be specified. The total number of H-bonds found is reported in the
 <a href="../tools/log.html"><b>Log</b></a>. The total includes all H-bonds
 consistent with the criteria, even if they could not coexist simultaneously.
 Distances and other details can be <a href="#log">logged</a>
 and/or <a href="#saveFile">saved</a> to a file.
+</p><p>
+The <b>selRestrict</b> option allows limiting detection to only the 
+<a href="../selection.html">selected</a> atoms or between the 
+<a href="../selection.html">selected</a> atoms and another set of atoms
+(<a href="#selRestrict">details...</a>).
+Pseudobonds are only shown if their endpoint atoms are shown;
+<b>reveal true</b> can be used to display all involved residues 
+to ensure showing all H-bond pseudobonds (<a href="#reveal">details...</a>).
 </p><p>
 The command-line specifier
 <a href="atomspec.html#builtin"><b>hbonds</b></a>
