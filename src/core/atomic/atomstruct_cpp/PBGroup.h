@@ -100,6 +100,7 @@ public:
     }
     virtual void  session_restore(int version, int**, float**);
     virtual void  session_save(int**, float**) const;
+    virtual void  session_save_setup() const = 0;
     virtual void  set_color(const Rgba& rgba);
     virtual void  set_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b,
         Rgba::Channel a = 255) { this->set_color(Rgba(r,g,b,a)); }
@@ -169,6 +170,7 @@ public:
     int  session_num_floats(int version=0) const;
     void  session_restore(int version, int** , float**);
     void  session_save(int** , float**) const;
+    void  session_save_setup() const;
     mutable std::unordered_map<const Pseudobond*, size_t>  *session_save_pbs;
 };
 
@@ -201,6 +203,7 @@ public:
     int  session_num_floats(int version=CURRENT_SESSION_VERSION) const;
     void  session_restore(int, int** , float**);
     void  session_save(int** , float**) const;
+    void  session_save_setup() const;
     mutable std::unordered_map<const Pseudobond*, size_t>  *session_save_pbs;
 };
 
@@ -346,6 +349,11 @@ public:
         if (_group_type == AS_PBManager::GRP_NORMAL)
             return static_cast<StructurePBGroup*>(_proxied)->session_save(ints, floats);
         return static_cast<CS_PBGroup*>(_proxied)->session_save(ints, floats);
+    }
+    void  session_save_setup() const {
+        if (_group_type == AS_PBManager::GRP_NORMAL)
+            return static_cast<StructurePBGroup*>(_proxied)->session_save_setup();
+        return static_cast<CS_PBGroup*>(_proxied)->session_save_setup();
     }
     void  set_color(const Rgba& rgba) {
         if (_group_type == AS_PBManager::GRP_NORMAL)
