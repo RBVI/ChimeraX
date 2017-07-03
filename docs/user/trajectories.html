@@ -30,15 +30,17 @@ or &ldquo;frames,&rdquo; opened as a single model.
 Although the coordinate sets are in a specific order, the data need not be
 a time series; for example, it could be an <b><i>ensemble</i></b>
 for which the order is not meaningful.
-Only one frame of a trajectory is shown at a time, 
-and different frames can be shown or played back sequentially with the 
-<a href="commands/coordset.html"><b>coordset</b></a> command. 
+Only one frame of a trajectory is shown at a time.
+Different frames can be shown or played back sequentially with the 
+<a href="commands/coordset.html"><b>coordset</b></a> command, or interactively
+with a <a href="commands/coordset.html#slider">slider interface</a>.
 A multi-model file in mmCIF or PDB format can be opened as a trajectory
 by using the command <a href="commands/open.html"><b>open</b></a> with
 <b>coordset true</b> (default <b>false</b>).
 A trajectory can also be read from any of several 
 <a href="commands/open.html#trajectory">trajectory formats</a>
-or created with the <a href="commands/morph.html"><b>morph</b></a> command.
+or created with the <a href="commands/morph.html"><b>morph</b></a> command,
+and saved to a file with <a href="commands/save.html"><b>save</b></a>.
 The number of coordinate sets in a trajectory
 can be reported with the command <a href="commands/info.html"><b>info</b></a>.
 See also:
@@ -71,5 +73,5 @@ or the associated <a href="commands/vseries.html#slider">slider interface</a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-June 2017</address>
+July 2017</address>
 </body></html>

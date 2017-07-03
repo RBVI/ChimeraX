@@ -31,13 +31,14 @@ class="clRight" title="User Guide Index"/></a>
 </h3>
 <p>
 The <b>2dlabels</b> command allows adding 2D text and
-<a href="symbols.html">symbols</a> to the display. 
-This is useful for annotating images and movies.
-The labels exist in the X,Y plane (the plane of the screen) and do not
-have a &ldquo;depth&rdquo; (Z-coordinate); 
-they appear in front of any graphics displays and do not move
-along with the scene. 
-These static annotations can be of multiple colors and sizes.
+<a href="symbols.html">symbols</a> to the display 
+for presentation-quality images and movies.
+The labels can be of multiple colors and sizes.
+They exist in the X,Y plane (the plane of the screen) 
+and do not move along with the scene.
+</p><p>
+For labels that move along with the associated atoms in 3D,
+see the <a href="label.html"><b>label</b></a> command.
 See also:
 <a href="save.html"><b>save</b></a>,
 <a href="movie.html"><b>movie</b></a>,
@@ -45,7 +46,7 @@ See also:
 <a href="../movies.html">making movies</a>
 </p>
 <blockquote>
-** <b>2dlabels may only work on Macs</b> **
+** <b>due to font issues, 2dlabels may only work on Macs</b> **
 </blockquote>
 <p>
 The <b><i>action</i></b> can be one of the following:
@@ -87,11 +88,10 @@ The <i>name</i> is required and serves as an identifier
 for subsequently changing or deleting the 2D label.
 The <i>label-contents</i> (default nothing) can include 
 letters, numbers, symbols from the keyboard; additional
-<a name="symbols">symbols</a> can be copied (for example, from 
-<a href="http://www.rbvi.ucsf.edu/chimera/docs/ContributedSoftware/2dlabels/symbols.html">here</a>)
-and pasted into the command line, or indicated with
+<a href="symbols.html">symbols</a> can be copied and pasted
+into the command line, or indicated with
 <a href="http://unicode.org/charts/" target="_blank">unicode</a> 
-character codes or character names.  Unicode examples:
+character codes or character names. Unicode examples:
  <ul class="none">
  <li><b>text 'the \u03b1 subunit'</b> &nbsp;&nbsp;
  gives &nbsp;&nbsp; <b>the &alpha; subunit</b>
@@ -104,7 +104,6 @@ Carriage returns are indicated with <b>\n</b>.
 The <i>label-color</i> can be 
 any <a href="colornames.html">color name</a> 
 that specifies a single color (default <b>white</b>). 
-Any transparency in the color is ignored.
 The <i>font-size</i> must be an integer greater than zero 
 (default <b>24</b>). 
 The <i>font-typeface</i> must be the name 
@@ -148,5 +147,5 @@ or the word <b>all</b> can be used to specify all 2D labels collectively.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2017</address>
+July 2017</address>
 </body></html> 
