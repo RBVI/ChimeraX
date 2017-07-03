@@ -196,11 +196,12 @@ class _SaveManager:
         while self.unprocessed:
             obj = self.unprocessed.pop()
             key = _UniqueName.from_obj(self.session.toolshed, obj, self.session.logger)
-            try:
-                self.processed[key] = self.process(obj)
-            except ValueError as e:
-                raise ValueError("error processing key: %s: %s" % (key, e))
-            self.graph[key] = self._found_objs
+            if key not in self.processed:
+                try:
+                    self.processed[key] = self.process(obj)
+                except ValueError as e:
+                    raise ValueError("error processing key: %s: %s" % (key, e))
+                self.graph[key] = self._found_objs
 
     def _add_obj(self, obj):
         uid = _UniqueName.from_obj(self.session.toolshed, obj, self.session.logger)

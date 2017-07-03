@@ -382,4 +382,27 @@ StructurePBGroup::session_save(int** ints, float** floats) const
     }
 }
 
+void
+CS_PBGroup::session_save_setup() const
+{
+    auto ses_map = manager()->session_save_pbs;
+    int id = ses_map->size();
+    for (auto cs_pbs: _pbonds) {
+        auto& pbs = cs_pbs.second;
+        for (auto pb: pbs) {
+            (*ses_map)[pb] = id++;
+        }
+    }
+}
+
+void
+StructurePBGroup::session_save_setup() const
+{
+    auto ses_map = manager()->session_save_pbs;
+    int id = ses_map->size();
+    for (auto pb: _pbonds) {
+        (*ses_map)[pb] = id++;
+    }
+}
+
 }  // namespace atomstruct

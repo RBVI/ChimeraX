@@ -31,6 +31,11 @@ typedef _object PyObject;
     
 namespace logger {
 
+#ifdef _WIN32
+# undef INFO
+# undef WARNING
+# undef ERROR
+#endif
 enum class _LogLevel { INFO, WARNING, ERROR };
 
 LOGGER_IMEX

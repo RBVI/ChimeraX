@@ -152,6 +152,18 @@ BaseManager::session_info(PyObject** ints, PyObject** floats, PyObject** misc) c
 }
 
 void
+BaseManager::session_save_setup() const
+{
+    session_save_pbs = new SessionSavePbMap;
+    _ses_struct_to_id_map = new SessionStructureToIDMap;
+    // since pseudobond session IDs may be asked for before
+    // the structure/manager is itself asked to save, need
+    // to populate the maps here instead of during session_info
+    for (auto& cat_grp: group_map())
+        cat_grp.second->session_save_setup();
+}
+
+void
 BaseManager::session_restore(int version, int** ints, float** floats, PyObject* misc)
 {
     if (version > 1)

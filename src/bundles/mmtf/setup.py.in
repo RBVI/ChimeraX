@@ -33,8 +33,8 @@ if sys.platform == "darwin":
     op_sys = "Operating System :: MacOS :: MacOS X"
 elif sys.platform == "win32":
     # Tested with Cygwin
-    libraries = ["libatomstruct", "libelement", "liblogger", "libarrays"]
-    compiler_flags = []
+    libraries = ["libatomstruct", "libelement", "liblogger", "libarrays", "ws2_32"]
+    compiler_flags = ['/wd4251']
     env = "Environment :: Win32 (MS Windows)"
     op_sys = "Operating System :: Microsoft :: Windows :: Windows 10"
 else:

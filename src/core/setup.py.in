@@ -54,6 +54,7 @@ setup(
         "setuptools == 34.4.1",
         "sortedcontainers == 1.5.7",
         "suds_jurko == 0.6",
+        "msgpack-python >= 0.4.8",
     ],
     packages=[
         "PKG_NAME",
