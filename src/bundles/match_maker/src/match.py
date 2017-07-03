@@ -175,9 +175,9 @@ def align(session, ref, match, matrix_name, algorithm, gap_open, gap_extend, dss
             _dm_cleanup.append(aligned)
     return score, gapped_ref, gapped_match
 
-def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend, iterate=None,
-        show_alignment=False, align=align, domain_residues=(None, None), bring=None,
-        verbose=False, **align_kw):
+def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend,
+        cutoff_distance=None, show_alignment=False, align=align, domain_residues=(None, None),
+        bring=None, verbose=False, **align_kw):
     """Superimpose structures based on sequence alignment
 
        'chain_pairing' is the method of pairing chains to match:
@@ -396,10 +396,10 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                     """ % (ss_fraction, gh, gs, go, gap_extend,
                         ss_matrix[('H','H')], ss_matrix[('H','S')], ss_matrix[('H','O')],
                         ss_matrix[('S','S')], ss_matrix[('S','O')], ss_matrix[('O','O')])
-                if iterate is None:
+                if cutoff_distance is None:
                     iterate_row = """<tr> <td colspan="2" align="center">No iteration</td> </tr>"""
                 else:
-                    iterate_row = """<tr> <td>Iteration cutoff</td> <td>%g</td></tr>""" % iterate
+                    iterate_row = """<tr> <td>Iteration cutoff</td> <td>%g</td></tr>""" % cutoff_distance
                 from chimerax.core.logger import html_table_params
                 param_table = """
                     <table %s>
@@ -480,7 +480,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                             continue
                 ref_atoms.append(ref_atom)
                 match_atoms.append(match_atom)
-                if show_alignment and iterate is not None:
+                if show_alignment and cutoff_distance is not None:
                     """TODD
                     region_info[ref_atom] = (mav, i)
                     """
@@ -495,7 +495,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
         from chimerax.core.atomic import Atoms
         try:
             ret_vals.append(align.align(session, Atoms(match_atoms), Atoms(ref_atoms),
-                cutoff_distance=iterate))
+                cutoff_distance=cutoff_distance))
         except align.IterationError:
             logger.error("Iteration produces fewer than 3"
                 " residues aligned.\nCannot match %s with %s"
@@ -548,7 +548,7 @@ def cmd_match(session, match_atoms, to=None, pairing=defaults["chain_pairing"],
         ss_fraction=defaults["ss_mixture"], matrix=defaults["matrix"],
         gap_open=defaults["gap_open"], hgap=defaults["helix_open"],
         sgap=defaults["strand_open"], ogap=defaults["other_open"],
-        iterate=defaults["iter_cutoff"], gap_extend=defaults["gap_extend"],
+        cutoff_distance=defaults["iter_cutoff"], gap_extend=defaults["gap_extend"],
         show_alignment=False, compute_ss=defaults["compute_ss"],
         mat_hh=default_ss_matrix[('H', 'H')],
         mat_ss=default_ss_matrix[('S', 'S')],
@@ -616,11 +616,9 @@ def cmd_match(session, match_atoms, to=None, pairing=defaults["chain_pairing"],
     ss_matrix[('H', 'S')] = ss_matrix[('S', 'H')] = float(mat_hs)
     ss_matrix[('H', 'O')] = ss_matrix[('O', 'H')] = float(mat_ho)
     ss_matrix[('S', 'O')] = ss_matrix[('O', 'S')] = float(mat_so)
-    if type(iterate) == bool and not iterate:
-        iterate = None
     ret_vals = match(session, pairing, match_items, matrix, alg, gap_open, gap_extend,
         ss_fraction=ss_fraction, ss_matrix=ss_matrix,
-        iterate=iterate, show_alignment=show_alignment, bring=bring,
+        cutoff_distance=cutoff_distance, show_alignment=show_alignment, bring=bring,
         domain_residues=(ref_atoms.residues.unique(), match_atoms.residues.unique()),
         gap_open_helix=hgap, gap_open_strand=sgap,
         gap_open_other=ogap, compute_ss=compute_ss, verbose=verbose)
@@ -667,16 +665,16 @@ def register_command(logger):
         return
     _registered = True
     from chimerax.core.commands \
-        import CmdDesc, register, AtomsArg, FloatArg, StringArg, BoolArg, create_alias, Or
+        import CmdDesc, register, AtomsArg, FloatArg, StringArg, BoolArg, NoneArg, create_alias, Or
     desc = CmdDesc(
         required = [('match_atoms', AtomsArg)],
         required_arguments = ['to'],
         keyword = [('to', AtomsArg), ('pairing', StringArg), ('alg', StringArg),
             ('verbose', BoolArg), ('ss_fraction', Or(FloatArg, BoolArg)), ('matrix', StringArg),
             ('gap_open', FloatArg), ('hgap', FloatArg), ('sgap', FloatArg), ('ogap', FloatArg),
-            ('iterate', Or(FloatArg, BoolArg)), ('gap_extend', FloatArg), ('bring', AtomsArg),
-            ('show_alignment', BoolArg), ('compute_ss', BoolArg), ('mat_hh', FloatArg),
-            ('mat_ss', FloatArg), ('mat_oo', FloatArg), ('mat_hs', FloatArg),
+            ('cutoff_distance', Or(FloatArg, NoneArg)), ('gap_extend', FloatArg),
+            ('bring', AtomsArg), ('show_alignment', BoolArg), ('compute_ss', BoolArg),
+            ('mat_hh', FloatArg), ('mat_ss', FloatArg), ('mat_oo', FloatArg), ('mat_hs', FloatArg),
             ('mat_ho', FloatArg), ('mat_so', FloatArg)],
         synopsis = 'Align atomic structures using sequence alignment'
     )
