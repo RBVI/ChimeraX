@@ -128,7 +128,6 @@ protected:
     bool  _idatm_valid;
     InputSeqInfo  _input_seq_info;
     PyObject*  _logger;
-    std::string  _name;
     int  _num_hyds = 0;
     AS_PBManager  _pb_mgr;
     mutable bool  _polymers_computed;
@@ -181,7 +180,9 @@ protected:
     static int  SESSION_NUM_INTS(int version=CURRENT_SESSION_VERSION) {
         return version == 1 ? 9 : (version < 5 ? 10 : 16);
     }
-    static int  SESSION_NUM_MISC(int /*version*/=CURRENT_SESSION_VERSION) { return 4; }
+    static int  SESSION_NUM_MISC(int version=CURRENT_SESSION_VERSION) {
+        return version > 7 ? 3 : 4;
+    }
 
 public:
     Structure(PyObject* logger = nullptr);
@@ -222,7 +223,6 @@ public:
     bool  lower_case_chains;
     virtual void  make_chains() const;
     std::map<std::string, std::vector<std::string>> metadata;
-    const std::string&  name() const { return _name; }
     Atom*  new_atom(const char* name, const Element& e);
     Bond*  new_bond(Atom *, Atom *);
     CoordSet*  new_coord_set();
@@ -275,7 +275,6 @@ public:
         change_tracker()->add_modified(this, ChangeTracker::REASON_DISPLAY);
     }
     void  set_input_seq_info(const ChainID& chain_id, const std::vector<ResName>& res_names) { _input_seq_info[chain_id] = res_names; }
-    void  set_name(const std::string& name) { _name = name; }
     void  set_ss_assigned(bool sa) { _ss_assigned = sa; }
     bool  ss_assigned() const { return _ss_assigned; }
     void  start_change_tracking(ChangeTracker* ct) { _change_tracker = ct; ct->add_created(this); }

@@ -1461,8 +1461,6 @@ class StructureData:
     '''Return the size of the active coordinate set array.'''
     lower_case_chains = c_property('structure_lower_case_chains', npy_bool, read_only = True)
     '''Structure has lower case chain ids. Boolean'''
-    name = c_property('structure_name', string)
-    '''Structure name, a string.'''
     num_atoms = c_property('structure_num_atoms', size_t, read_only = True)
     '''Number of atoms in structure. Read only.'''
     num_atoms_visible = c_property('structure_num_atoms_visible', size_t, read_only = True)

@@ -285,7 +285,7 @@ AtomicStructure::make_chains() const
 
             if (seqres_size < chain_size) {
                 logger::warning(_logger, input_seq_source, " for chain ",
-                    chain_id, " of ", _name, " is incomplete.  "
+                    chain_id, " is incomplete.  "
                     "Ignoring input sequence records as basis for sequence.");
                 continue;
             }
@@ -297,7 +297,7 @@ AtomicStructure::make_chains() const
             && std::search(sr_seq.begin(), sr_seq.end(),
             chain->begin(), chain->end()) == sr_seq.end()) {
                 logger::warning(_logger, "Residues corresponding to ",
-                    input_seq_source, " for chain ", chain_id, " of ", _name,
+                    input_seq_source, " for chain ", chain_id,
                     " are missing.  Ignoring record as basis for sequence.");
                 continue;
             }
