@@ -21,7 +21,6 @@ class ModelPanel(ToolInstance):
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
-# TODO: Changing display_name to be different from tool_name breaks toolshed hide command.
         self.display_name = "Models"
         self.settings = ModelPanelSettings(session, "ModelPanel")
         last = self.settings.last_use
@@ -62,9 +61,12 @@ class ModelPanel(ToolInstance):
                     for i in self.tree.selectedItems()]] or self.models, ses))
         from chimerax.core.models import MODEL_DISPLAY_CHANGED
         session.triggers.add_handler(MODEL_DISPLAY_CHANGED, self._initiate_fill_tree)
-        from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
+        from chimerax.core.models import ADD_MODELS, REMOVE_MODELS, \
+            MODEL_ID_CHANGED, MODEL_NAME_CHANGED
         self.session.triggers.add_handler(ADD_MODELS, self._initiate_fill_tree)
         self.session.triggers.add_handler(REMOVE_MODELS, self._initiate_fill_tree)
+        self.session.triggers.add_handler(MODEL_ID_CHANGED, self._fill_tree)
+        self.session.triggers.add_handler(MODEL_NAME_CHANGED, self._fill_tree)
         from chimerax.core import atomic
         atomic.get_triggers(self.session).add_handler("changes", self._changes_cb)
         self._frame_drawn_handler = None
@@ -171,8 +173,9 @@ class ModelPanel(ToolInstance):
             self.tree.resizeColumnToContents(i)
 
         self._frame_drawn_handler = None
-        from chimerax.core.triggerset import DEREGISTER
-        return DEREGISTER
+        if args and args[0] == "frame drawn":
+            from chimerax.core.triggerset import DEREGISTER
+            return DEREGISTER
 
     def _get_info(self, obj):
         model_id = obj.id

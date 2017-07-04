@@ -39,6 +39,8 @@ def change_model_id(session, models, id, new_name = 'group'):
     of the specified id, otherwise give this model the specified id.  Missing parent
     models are created.
     '''
+    from ..models import MODEL_ID_CHANGED
+    session.triggers.block_trigger(MODEL_ID_CHANGED)
     ml = session.models
     p = _find_model(session, id, create = (len(models) > 1), new_name = new_name)
     if p:
@@ -48,6 +50,7 @@ def change_model_id(session, models, id, new_name = 'group'):
         p = _find_model(session, id[:-1], create = True, new_name = new_name)
         # Reparent
         ml.assign_id(models[0], id)
+    session.triggers.release_trigger(MODEL_ID_CHANGED)
 
 # Find parent of model with given id or create a new model or models
 # extending up to an existing model.
