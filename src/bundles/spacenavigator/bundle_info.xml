@@ -1,5 +1,5 @@
 <BundleInfo name="ChimeraX-SpaceNavigator" version="1.0"
-	    package="chimerax.spacenavigator" pure_python="false"
+	    package="chimerax.spacenavigator" purePython="false"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
