@@ -282,12 +282,12 @@ all the information needed to build the bundle.
   - Attributes:
 
     - **name**: bundle name (must start with ``ChimeraX-`` for now)
-    - **custom_init**: set to ``true`` if bundle has custom initialization
+    - **customInit**: set to ``true`` if bundle has custom initialization
       function; omit otherwise
     - **minSessionVersion**: version number of oldest supported Chimera session
     - **maxSessionVersion**: version number of newest supported Chimera session
     - **package**: Python package name corresponding to bundle
-    - **pure_python**: set to ``false`` if bundle should be treated as
+    - **purePython**: set to ``false`` if bundle should be treated as
       binary, *i.e.*, includes a compiled module; omit otherwise
     - **version**: bundle version
 
@@ -509,7 +509,7 @@ data formats, and selectors.
 
 *Bundle Metadata*
 
-    ``ChimeraX`` :: ``Bundle`` :: *categories* :: *session_versions* :: *api_module_name* :: *supercedes* :: *custom_session_init*
+    ``ChimeraX`` :: ``Bundle`` :: *categories* :: *session_versions* :: *api_module_name* :: *supercedes* :: *custom_init*
 
     - *categories* is a comma separated list of category names.
       (Category names are the names that appear under the ``Tools``
@@ -523,7 +523,7 @@ data formats, and selectors.
       has the bundle_api in it.
     - *supercedes* is an optional comma separated list of names that
       under which the bundle was previously released.
-    - *custom_session_init* is a string.  If not set to ``true``, the
+    - *custom_init* is a string.  If not set to ``true``, the
       bundle is not imported until actually invoked.  If set to
       ``true``, the ``bundle_api.initialize`` method for the bundle
       is called after the main session has been created.
@@ -531,6 +531,9 @@ data formats, and selectors.
     For example::
 
       ChimeraX :: Bundle :: Volume data :: 1,1 ::
+
+    This classifier is automatically generated when using the ``devel``
+    command and **bundle_info.xml**.
 
 
 *Tool Metadata*

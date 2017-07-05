@@ -20,6 +20,8 @@
 #include <pysupport/convert.h>
 #include <arrays/pythonarray.h>
 
+#include "Python.h"
+
 #define ATOMSTRUCT_EXPORT
 #include "Atom.h"
 #include "Bond.h"
@@ -29,6 +31,22 @@
 #include "PBGroup.h"
 #include "Pseudobond.h"
 #include "Residue.h"
+
+namespace {
+
+class AcquireGIL {
+    // RAII for Python GIL
+    PyGILState_STATE gil_state;
+public:
+    AcquireGIL() {
+        gil_state = PyGILState_Ensure();
+    }
+    ~AcquireGIL() {
+        PyGILState_Release(gil_state);
+    }
+};
+
+}
 
 namespace atomstruct {
 

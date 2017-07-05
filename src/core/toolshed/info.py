@@ -381,7 +381,13 @@ class BundleInfo:
             if f == BundleAPI.initialize:
                 session.logger.warning("bundle \"%s\"'s API forgot to override initialize()" % self.name)
                 return
-            f(session, self)
+            try:
+                f(session, self)
+            except:
+                import traceback, sys
+                traceback.print_exc(file=sys.stdout)
+                raise ToolshedError(
+                    "initialization failed for bundle \"%s\"" % self.name)
 
     def finish(self, session):
         """Deinitialize bundle by calling custom finish code if needed."""

@@ -1,5 +1,5 @@
 <BundleInfo name="ChimeraX-Alignments" version="1.0" package="chimerax.seqalign"
-  	    custom_init="true" minSessionVersion="1" maxSessionVersion="1">
+  	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
   <Author>UCSF RBVI</Author>

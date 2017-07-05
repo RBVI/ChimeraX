@@ -1,5 +1,5 @@
 <BundleInfo name="ChimeraX-RestServer" version="0.1"
-	    package="chimerax.rest_server" custom_init="true"
+	    package="chimerax.rest_server" customInit="true"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>

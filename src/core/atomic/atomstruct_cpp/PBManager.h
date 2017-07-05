@@ -21,6 +21,7 @@
 #include <unordered_map>
 
 #include "imex.h"
+#include "PythonInstance.h"
 
 // "forward declare" PyObject, which is a typedef of a struct,
 // as per the python mailing list:
@@ -38,7 +39,7 @@ class Structure;
 class Proxy_PBGroup;
 class Pseudobond;
 
-class ATOMSTRUCT_IMEX BaseManager {
+class ATOMSTRUCT_IMEX BaseManager: public PythonInstance {
 public:
     // so that subclasses can create multiple types of groups...
     static const int GRP_NONE = 0;

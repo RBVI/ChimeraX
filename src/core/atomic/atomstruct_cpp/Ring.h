@@ -18,11 +18,13 @@
 
 #include <set>
 
+#include "PythonInstance.h"
+
 namespace atomstruct {
 
 class Bond;
 
-class ATOMSTRUCT_IMEX Ring {
+class ATOMSTRUCT_IMEX Ring: public PythonInstance {
 public:
     typedef std::set<Atom*>  Atoms;
     typedef std::set<Bond*>  Bonds;
