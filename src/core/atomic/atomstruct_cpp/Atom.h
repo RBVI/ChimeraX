@@ -144,7 +144,8 @@ public:
     bool  connects_to(const Atom* other) const {
         return std::find(_neighbors.begin(), _neighbors.end(), other) != _neighbors.end();
     }
-    const Coord &coord() const;
+    const Coord&  coord(const CoordSet* cs) const;
+    const Coord&  coord() const;
     unsigned int  coord_index() const { return _coord_index; }
     int  coordination(int value_if_unknown) const;
     float  default_radius() const;

@@ -1218,7 +1218,7 @@ primes_to_asterisks(const std::string& orig_name)
 static void
 write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
     std::map<const Atom*, int>& rev_asn, bool selected_only, bool displayed_only, double** xform,
-    bool pqr, std::set<const Atom*>& written);
+    bool pqr, std::set<const Atom*>& written)
 {
     Residue* prev_res = nullptr;
     bool prev_standard = false;
@@ -1314,7 +1314,19 @@ write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
             }
             res->seq_num = seq_num;
             res->i_code = i_code;
+            if (pqr) {
+                //TODO
+            }
             // loop through alt locs
+            for (auto alt_loc: a->alt_locs()) {
+                auto crd = a->coord(cs);
+                //TODO
+                if (alt_loc == ' ') {
+                    // no alt locs
+                } else {
+                    
+                }
+            }
 
         //TODO: remainder
         }
