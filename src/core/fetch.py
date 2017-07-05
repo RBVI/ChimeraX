@@ -271,8 +271,9 @@ def html_user_agent(app_dirs):
 
 # -----------------------------------------------------------------------------
 #
-def fetch_web(session, url, **kw):
+def fetch_web(session, url, ignore_cache=False, **kw):
     # TODO: deal with content encoding for text formats
+    # TODO: how would "ignore_cache" work?
     import os
     from urllib import parse
     from . import io
@@ -376,6 +377,26 @@ def register_fetch(database_name, fetch_function, file_format,
 
 # -----------------------------------------------------------------------------
 #
+def deregister_fetch(database_name, file_format, prefixes=()):
+    d = fetch_databases()
+    try:
+        df = d[database_name]
+    except KeyError:
+        return
+    df.remove_format(file_format)
+    if not df.fetch_function:
+        # No more fetch options, just delete
+        del d[database_name]
+    else:
+        # Still have options, get rid of what we registered
+        if df.default_format == file_format:
+            df.default_format = None
+        for p in prefixes:
+            del df.prefix_format[p]
+
+
+# -----------------------------------------------------------------------------
+#
 def fetch_databases():
     return _database_fetches
 
@@ -436,6 +457,21 @@ class DatabaseFetch:
         else:
             for name in f.nicknames:
                 self.fetch_function[name] = fetch_function
+
+    def remove_format(self, format_name):
+        from . import io
+        f = io.format_from_name(format_name)
+        if f is None:
+            try:
+                del self.fetch_function[format_name]
+            except KeyError:
+                pass
+        else:
+            for name in f.nicknames:
+                try:
+                    del self.fetch_function[name]
+                except KeyError:
+                    pass
 
     def fetch(self, session, database_id, format=None, ignore_cache=False, **kw):
         f = self.default_format if format is None else format

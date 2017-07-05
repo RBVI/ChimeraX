@@ -1,0 +1,131 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: label</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: label</h3>
+
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>label</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+[&nbsp;atoms&nbsp;|&nbsp;residues&nbsp;|&nbsp;pseudobonds&nbsp;]
+&nbsp;<a href="#options"><i>options</i></a></h3>
+</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>label delete</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+[&nbsp;atoms&nbsp;|&nbsp;residues&nbsp;|&nbsp;pseudobonds&nbsp;]
+</h3>
+<p>
+The <b>label</b> command shows labels that move along with the associated
+<b>atoms</b> (default), <b>residues</b>, or <b>pseudobonds</b> in 3D.
+These labels can be of multiple colors and sizes, and both atom and residue 
+labels can be shown for the same atom at the same time.
+</p><p>
+For adding titles and otherwise labeling presentation-quality images and movies,
+see the <a href="2dlabels.html"><b>2dlabels</b></a> command.
+</p>
+<blockquote>
+** <b>due to font issues, may only work on Macs</b> **
+</blockquote>
+<p>
+
+<a name="options"></a>
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<h4>Options</h4>
+<p>
+None of the following settings will revert an existing label to the default value 
+unless <b>default</b> is specified explicitly in the command.
+</p>
+
+<blockquote>
+<b>text</b>&nbsp;&nbsp;<i>label-contents</i>&nbsp;|&nbsp;<b>default</b>
+<br>
+Text contents of the label, which can be an arbitrary string 
+or <b>default</b> information based on the object type being labeled:
+<ul>
+<li>for <b>atoms</b> (default), atom name
+<li>for <b>residues</b>, residue name and number
+<li>for <b>pseudobonds</b>, length
+</ul>
+Arbitrary <i>label-contents</i> can include 
+letters, numbers, symbols from the keyboard; 
+additional <a href="symbols.html">symbols</a> can be copied and pasted
+into the command line, or indicated with
+<a href="http://unicode.org/charts/" target="_blank">unicode</a> 
+character codes or character names.
+(See <a href="2dlabels.html"><b>2dlabels</b></a> for Unicode examples.)
+Spaces and quote marks can be included by enclosing the 
+entire <i>label-contents</i> in single or double quote marks.
+Carriage returns are indicated with <b>\n</b>. 
+</blockquote>
+
+<blockquote>
+<b>color</b>&nbsp;&nbsp;<i>label-color</i>&nbsp;|&nbsp;<b>default</b>
+<br>
+Label color, where <i>label-color</i> can be 
+any <a href="colornames.html">color name</a> 
+that specifies a single color (default <b>white</b>). 
+</blockquote>
+
+<blockquote>
+<b>size</b>&nbsp;&nbsp;<i>font-size</i>&nbsp;|&nbsp;<b>default</b>
+<br>
+Label size, where <i>font-size</i> must be an integer greater than zero 
+(default <b>24</b>). 
+</blockquote>
+
+<blockquote>
+<b>typeface</b>&nbsp;&nbsp;<i>font-typeface</i>&nbsp;|&nbsp;<b>default</b>
+<br>
+Label typeface, where <i>font-typeface</i> must be the name 
+(minus the &ldquo;.ttf&rdquo; suffix)
+of a font file installed in the <b>Mac</b> /Library/Fonts/ directory
+(default <b>Arial</b>).
+</blockquote>
+
+<blockquote>
+<b>offset</b>&nbsp;&nbsp;<i>x,y,z</i>&nbsp;|&nbsp;<b>default</b>
+<br>
+An absolute offset is specified by
+three comma-separated values <i>x,y,z</i> representing distances along the
+X-, Y-, and Z-axes in the 
+<a href="view.html#screencoords">screen coordinate system</a>.
+Negative values can be given.
+<!-- Label offsets can also be adjusted with the mouse. -->
+The default offset is <b>(<i>display_radius</i> + 0.2),0,0.5</b>.
+</blockquote>
+
+<blockquote>
+<b>onTop</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to draw the labels on top of other objects regardless of their
+relative positions in 3D (default <b>true</b>);
+applies to all 3D labels no matter which atoms are 
+<a href="atomspec.html">specified</a>.
+</blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+July 2017</address>
+</body></html> 

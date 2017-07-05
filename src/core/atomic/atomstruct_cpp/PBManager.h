@@ -21,6 +21,7 @@
 #include <unordered_map>
 
 #include "imex.h"
+#include "PythonInstance.h"
 
 // "forward declare" PyObject, which is a typedef of a struct,
 // as per the python mailing list:
@@ -38,7 +39,7 @@ class Structure;
 class Proxy_PBGroup;
 class Pseudobond;
 
-class ATOMSTRUCT_IMEX BaseManager {
+class ATOMSTRUCT_IMEX BaseManager: public PythonInstance {
 public:
     // so that subclasses can create multiple types of groups...
     static const int GRP_NONE = 0;
@@ -69,10 +70,7 @@ public:
     int  session_info(PyObject** ints, PyObject** floats, PyObject** misc) const;
     typedef std::unordered_map<const Pseudobond*, int> SessionSavePbMap;
     mutable SessionSavePbMap* session_save_pbs = nullptr;
-    void  session_save_setup() const {
-        session_save_pbs = new SessionSavePbMap;
-        _ses_struct_to_id_map = new SessionStructureToIDMap;
-    }
+    void  session_save_setup() const;
     void  session_save_teardown() const {
         delete session_save_pbs;
         delete _ses_struct_to_id_map;

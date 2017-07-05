@@ -63,7 +63,7 @@ PythonInstance::get_py_float_attr(const char* attr_name) const
         msg << "Expected Python attribute ";
         msg << attr_name;
         msg << " to be a float";
-        throw std::domain_error(msg.str());
+        throw WrongPyAttrTypeError(msg.str());
     }
     auto ret_val = PyFloat_AS_DOUBLE(py_attr);
     Py_DECREF(py_attr);
@@ -80,7 +80,7 @@ PythonInstance::get_py_int_attr(const char* attr_name) const
         msg << "Expected Python attribute ";
         msg << attr_name;
         msg << " to be an int";
-        throw std::domain_error(msg.str());
+        throw WrongPyAttrTypeError(msg.str());
     }
     auto ret_val = PyLong_AsLong(py_attr);
     Py_DECREF(py_attr);
@@ -97,7 +97,7 @@ PythonInstance::get_py_string_attr(const char* attr_name) const
         msg << "Expected Python attribute ";
         msg << attr_name;
         msg << " to be a string";
-        throw std::domain_error(msg.str());
+        throw WrongPyAttrTypeError(msg.str());
     }
     auto ret_val = PyUnicode_AsUTF8(py_attr);
     Py_DECREF(py_attr);

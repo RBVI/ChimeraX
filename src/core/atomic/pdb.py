@@ -47,18 +47,19 @@ def open_pdb(session, filename, name, auto_style=True, coordsets=False):
     if coordsets:
         num_cs = 0
         for m in models:
-            num_cs += m.num_coord_sets
+            num_cs += m.num_coordsets
         info += " and %s coordinate sets" % num_cs
-        mc = [m for m in models if m.num_coord_sets > 1]
-        if mc:
-            from ..commands.coordset import coordset_slider
-            coordset_slider(session, mc)
+        if session.ui.is_gui:
+            mc = [m for m in models if m.num_coordsets > 1]
+            if mc:
+                from ..commands.coordset import coordset_slider
+                coordset_slider(session, mc)
 
     return models, info
 
 
 _pdb_sources = {
-    "rcsb": "http://www.pdb.org/pdb/files/pdb%s.ent",
+    "rcsb": "http://www.pdb.org/pdb/files/%s.pdb",
     "pdbe": "http://www.ebi.ac.uk/pdbe/entry-files/download/pdb%s.ent",
     # "pdbj": "https://pdbj.org/rest/downloadPDBfile?format=pdb&id=%s",
 }

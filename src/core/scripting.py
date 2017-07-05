@@ -69,12 +69,22 @@ def open_python_script(session, filename, name, *args, **kw):
         sandbox = types.ModuleType(
             '%s_sandbox_%d' % (app_dirs.appname, _sandbox_count),
             '%s script sandbox' % app_dirs.appname)
+        try:
+            argv = kw["argv"]
+        except KeyError:
+            restore_argv = False
+        else:
+            restore_argv = True
+            orig_argv = sys.argv
+            sys.argv = argv
         setattr(sandbox, 'session', session)
         try:
             sys.modules[sandbox.__name__] = sandbox
             exec(code, sandbox.__dict__)
         finally:
             del sys.modules[sandbox.__name__]
+            if restore_argv:
+                sys.argv = orig_argv
     finally:
         if input != filename:
             input.close()

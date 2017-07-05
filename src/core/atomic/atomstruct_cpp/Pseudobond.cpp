@@ -42,10 +42,10 @@ void
 Pseudobond::session_save(int** ints, float** floats) const {
     Connection::session_save(ints, floats);
     auto& int_ptr = *ints;
+    // needed to uniquely identify pseudobond upon restore;
+    // IDs issued during group->session_save_setup
     auto ses_map = group()->manager()->session_save_pbs;
-    int id = ses_map->size();
-    (*ses_map)[this] = id;
-    int_ptr[0] = id; // needed to uniquely identify pseudobond upon restore
+    int_ptr[0] = (*ses_map)[this];
     int_ptr += SESSION_NUM_INTS();
 }
 

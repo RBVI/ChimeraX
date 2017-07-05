@@ -1,0 +1,56 @@
+*** libImaging/Access.c.orig	Tue Apr  4 11:14:25 2017
+--- libImaging/Access.c	Mon Jun 12 18:31:31 2017
+***************
+*** 227,232 ****
+--- 227,233 ----
+      ADD("I;16", line_16, get_pixel_16L, put_pixel_16L);
+      ADD("I;16L", line_16, get_pixel_16L, put_pixel_16L);
+      ADD("I;16B", line_16, get_pixel_16B, put_pixel_16B);
++     ADD("I;16S", line_16, get_pixel_16L, put_pixel_16L);
+      ADD("I;32L", line_32, get_pixel_32L, put_pixel_32L);
+      ADD("I;32B", line_32, get_pixel_32B, put_pixel_32B);
+      ADD("F", line_32, get_pixel_32, put_pixel_32);
+*** libImaging/Storage.c.orig	Tue Apr  4 11:14:25 2017
+--- libImaging/Storage.c	Mon Jun 12 18:26:11 2017
+***************
+*** 117,123 ****
+          im->type = IMAGING_TYPE_INT32;
+  
+      } else if (strcmp(mode, "I;16") == 0 || strcmp(mode, "I;16L") == 0 \
+!                            || strcmp(mode, "I;16B") == 0 || strcmp(mode, "I;16N") == 0)  {
+          /* EXPERIMENTAL */
+          /* 16-bit raw integer images */
+          im->bands = 1;
+--- 117,124 ----
+          im->type = IMAGING_TYPE_INT32;
+  
+      } else if (strcmp(mode, "I;16") == 0 || strcmp(mode, "I;16L") == 0 \
+!                            || strcmp(mode, "I;16B") == 0 || strcmp(mode, "I;16N") == 0 \
+!                            || strcmp(mode, "I;16S") == 0)  {
+          /* EXPERIMENTAL */
+          /* 16-bit raw integer images */
+          im->bands = 1;
+*** libImaging/Pack.c.orig	Mon Jan  2 03:47:11 2017
+--- libImaging/Pack.c	Mon Jun 12 18:18:31 2017
+***************
+*** 613,618 ****
+--- 613,619 ----
+      {"I;16",    "I;16",         16,     copy2},
+      {"I;16B",   "I;16B",        16,     copy2},
+      {"I;16L",   "I;16L",        16,     copy2},
++     {"I;16S",   "I;16S",        16,     copy2},
+      {"I;16",    "I;16N",        16,     packI16N_I16}, // LibTiff native->image endian.
+      {"I;16L",   "I;16N",        16,     packI16N_I16},
+      {"I;16B",   "I;16N",        16,     packI16N_I16B},
+*** libImaging/Unpack.c.orig	Tue Oct 18 12:11:47 2016
+--- libImaging/Unpack.c	Tue Jun 13 17:50:41 2017
+***************
+*** 1349,1354 ****
+--- 1349,1355 ----
+      {"I;16",    "I;16",         16,     copy2},
+      {"I;16B",   "I;16B",        16,     copy2},
+      {"I;16L",   "I;16L",        16,     copy2},
++     {"I;16S",   "I;16S",         16,     copy2},
+  
+      {"I;16", 	"I;16N",	    16,	    unpackI16N_I16}, // LibTiff native->image endian.
+      {"I;16L", 	"I;16N",	    16,	    unpackI16N_I16}, // LibTiff native->image endian.

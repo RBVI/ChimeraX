@@ -24,7 +24,9 @@
 #include <atomstruct/Chain.h>
 #include <atomstruct/ChangeTracker.h>
 #include <atomstruct/CoordSet.h>
+#include <atomstruct/connect.h>
 #include <atomstruct/destruct.h>     // Use DestructionObserver
+#include <atomstruct/MolResId.h>
 #include <atomstruct/PBGroup.h>
 #include <atomstruct/Pseudobond.h>
 #include <atomstruct/PBGroup.h>
@@ -717,6 +719,12 @@ extern "C" EXPORT void atom_is_sidechain(void *atoms, size_t n, npy_bool *is_sid
     }
 }
 
+extern "C" EXPORT void atom_serial_number(void *atoms, size_t n, int32_t *index)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    error_wrap_array_get(a, n, &Atom::serial_number, index);
+}
+
 extern "C" EXPORT void atom_structure(void *atoms, size_t n, pyobject_t *molp)
 {
     Atom **a = static_cast<Atom **>(atoms);
@@ -1398,6 +1406,63 @@ extern "C" EXPORT void pseudobond_group_category(void *pbgroups, int n, void **c
     }
 }
 
+extern "C" EXPORT void pseudobond_group_color(void *groups, size_t n, uint8_t *rgba)
+{
+    Proxy_PBGroup **g = static_cast<Proxy_PBGroup **>(groups);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            const Rgba &c = g[i]->color();
+            *rgba++ = c.r;
+            *rgba++ = c.g;
+            *rgba++ = c.b;
+            *rgba++ = c.a;
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void set_pseudobond_group_color(void *groups, size_t n, uint8_t *rgba)
+{
+    Proxy_PBGroup **g = static_cast<Proxy_PBGroup **>(groups);
+    try {
+        Rgba c;
+        for (size_t i = 0; i != n; ++i) {
+            c.r = *rgba++;
+            c.g = *rgba++;
+            c.b = *rgba++;
+            c.a = *rgba++;
+            g[i]->set_color(c);
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void pseudobond_group_halfbond(void *groups, size_t n, npy_bool *halfb)
+{
+    Proxy_PBGroup **g = static_cast<Proxy_PBGroup **>(groups);
+    error_wrap_array_get<Proxy_PBGroup, bool, npy_bool>(g, n, &Proxy_PBGroup::halfbond, halfb);
+}
+
+extern "C" EXPORT void set_pseudobond_group_halfbond(void *groups, size_t n, npy_bool *halfb)
+{
+    Proxy_PBGroup **g = static_cast<Proxy_PBGroup **>(groups);
+    error_wrap_array_set<Proxy_PBGroup, bool, npy_bool>(g, n, &Proxy_PBGroup::set_halfbond, halfb);
+}
+
+extern "C" EXPORT void pseudobond_group_radius(void *groups, size_t n, float32_t *radii)
+{
+    Proxy_PBGroup **g = static_cast<Proxy_PBGroup **>(groups);
+    error_wrap_array_get<Proxy_PBGroup, float>(g, n, &Proxy_PBGroup::radius, radii);
+}
+
+extern "C" EXPORT void set_pseudobond_group_radius(void *groups, size_t n, float32_t *radii)
+{
+    Proxy_PBGroup **g = static_cast<Proxy_PBGroup **>(groups);
+    error_wrap_array_set<Proxy_PBGroup, float>(g, n, &Proxy_PBGroup::set_radius, radii);
+}
+
 extern "C" EXPORT void pseudobond_group_graphics_change(void *pbgroups, size_t n, int *changed)
 {
     Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
@@ -1408,6 +1473,16 @@ extern "C" EXPORT void set_pseudobond_group_graphics_change(void *pbgroups, size
 {
     Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
     error_wrap_array_set<Proxy_PBGroup, int, int>(pbg, n, &Proxy_PBGroup::set_graphics_changes, changed);
+}
+
+extern "C" EXPORT void pseudobond_group_clear(void *pbgroup)
+{
+    Proxy_PBGroup *pbg = static_cast<Proxy_PBGroup *>(pbgroup);
+    try {
+        pbg->clear();
+    } catch (...) {
+        molc_error();
+    }
 }
 
 extern "C" EXPORT void *pseudobond_group_new_pseudobond(void *pbgroup, void *atom1, void *atom2)
@@ -1652,6 +1727,24 @@ extern "C" EXPORT void residue_atoms(void *residues, size_t n, pyobject_t *atoms
     }
 }
 
+extern "C" EXPORT PyObject *residue_bonds_between(void *res, void* other_res)
+{
+    Residue *r = static_cast<Residue*>(res);
+    Residue *other = static_cast<Residue*>(other_res);
+    try {
+        auto bonds = r->bonds_between(other);
+        const Bond **bb;
+        PyObject *b_array = python_voidp_array(bonds.size(), (void***)&bb);
+        size_t i = 0;
+        for (auto b: bonds)
+            bb[i++] = b;
+        return b_array;
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
 extern "C" EXPORT void residue_center(void *residues, size_t n, float64_t *xyz)
 {
     Residue **r = static_cast<Residue **>(residues);  
@@ -1690,6 +1783,18 @@ extern "C" EXPORT void residue_chain_id(void *residues, size_t n, pyobject_t *ci
             cids[i] = unicode_from_string(r[i]->chain_id());
     } catch (...) {
         molc_error();
+    }
+}
+
+extern "C" EXPORT bool residue_connects_to(void *residue, void *other_res)
+{
+    Residue *r = static_cast<Residue *>(residue);
+    Residue *other = static_cast<Residue *>(other_res);
+    try {
+        return r->connects_to(other);
+    } catch (...) {
+        molc_error();
+        return false;
     }
 }
 
@@ -1795,13 +1900,6 @@ extern "C" EXPORT void set_residue_is_helix(void *residues, size_t n, npy_bool *
     // If true, also unsets is_strand
     Residue **r = static_cast<Residue **>(residues);
     error_wrap_array_set(r, n, &Residue::set_is_helix, is_helix);
-    try {
-        for (size_t i = 0; i < n; ++i)
-            if (is_helix[i])
-                r[i]->set_is_strand(false);
-    } catch (...) {
-        molc_error();
-    }
 }
 
 extern "C" EXPORT void residue_is_strand(void *residues, size_t n, npy_bool *is_strand)
@@ -1815,13 +1913,6 @@ extern "C" EXPORT void set_residue_is_strand(void *residues, size_t n, npy_bool 
     // If true, also unsets is_helix
     Residue **r = static_cast<Residue **>(residues);
     error_wrap_array_set(r, n, &Residue::set_is_strand, is_strand);
-    try {
-        for (size_t i = 0; i < n; ++i)
-            if (is_strand[i])
-                r[i]->set_is_helix(false);
-    } catch (...) {
-        molc_error();
-    }
 }
 
 extern "C" EXPORT void residue_ss_id(void *residues, size_t n, int32_t *ss_id)
@@ -1948,7 +2039,7 @@ extern "C" EXPORT void residue_num_atoms(void *residues, size_t n, size_t *natom
 extern "C" EXPORT void residue_number(void *residues, size_t n, int32_t *nums)
 {
     Residue **r = static_cast<Residue **>(residues);
-    error_wrap_array_get(r, n, &Residue::position, nums);
+    error_wrap_array_get(r, n, &Residue::number, nums);
 }
 
 extern "C" EXPORT void residue_str(void *residues, size_t n, pyobject_t *strs)
@@ -2470,31 +2561,6 @@ extern "C" EXPORT void residue_set_alt_loc(void *residues, size_t n, char alt_lo
         molc_error();
     }
 }
-
-extern "C" EXPORT void residue_set_ss_helix(void *residues, size_t n, bool value)
-{
-    // Doesn't touch is_strand
-    Residue **r = static_cast<Residue **>(residues);
-    try {
-        for (size_t i = 0; i < n; ++i)
-            r[i]->set_is_helix(value);
-    } catch (...) {
-        molc_error();
-    }
-}
-
-extern "C" EXPORT void residue_set_ss_strand(void *residues, size_t n, bool value)
-{
-    // Doesn't touch is_helix
-    Residue **r = static_cast<Residue **>(residues);
-    try {
-        for (size_t i = 0; i < n; ++i)
-            r[i]->set_is_strand(value);
-    } catch (...) {
-        molc_error();
-    }
-}
-
 
 // -------------------------------------------------------------------------
 // ring functions
@@ -3174,28 +3240,6 @@ extern "C" EXPORT void structure_lower_case_chains(void *mols, size_t n, npy_boo
     }
 }
 
-extern "C" EXPORT void structure_name(void *mols, size_t n, pyobject_t *names)
-{
-    Structure **m = static_cast<Structure **>(mols);
-    try {
-        for (size_t i = 0; i != n; ++i)
-            names[i] = unicode_from_string(m[i]->name().c_str());
-    } catch (...) {
-        molc_error();
-    }
-}
-
-extern "C" EXPORT void set_structure_name(void *mols, size_t n, pyobject_t *names)
-{
-    Structure **m = static_cast<Structure **>(mols);
-    try {
-        for (size_t i = 0; i != n; ++i)
-            m[i]->set_name(PyUnicode_AsUTF8(static_cast<PyObject *>(names[i])));
-    } catch (...) {
-        molc_error();
-    }
-}
-
 extern "C" EXPORT void structure_num_atoms(void *mols, size_t n, size_t *natoms)
 {
     Structure **m = static_cast<Structure **>(mols);
@@ -3405,7 +3449,7 @@ extern "C" EXPORT void structure_coordset_size(void *mols, size_t n, int32_t *co
     }
 }
 
-extern "C" EXPORT void structure_num_coord_sets(void *mols, size_t n, size_t *ncoord_sets)
+extern "C" EXPORT void structure_num_coordsets(void *mols, size_t n, size_t *ncoord_sets)
 {
     Structure **m = static_cast<Structure **>(mols);
     error_wrap_array_get(m, n, &Structure::num_coord_sets, ncoord_sets);
@@ -3789,6 +3833,31 @@ extern "C" EXPORT void structure_start_change_tracking(void *mol, void *vct)
     }
 }
 
+extern "C" EXPORT PyObject *structure_molecules(void *mol)
+{
+    Structure *s = static_cast<Structure *>(mol);
+    PyObject *mols = NULL;
+    try {
+        std::vector<std::vector<Atom*>> molecules;
+        s->bonded_groups(&molecules, true);
+        mols = PyTuple_New(molecules.size());
+        size_t p = 0;
+        for (auto atomvec: molecules) {
+            void **aa;
+            PyObject *a_array = python_voidp_array(atomvec.size(), &aa);
+            size_t i = 0;
+            for (auto a: atomvec)
+                aa[i++] = static_cast<void *>(a);
+            PyTuple_SetItem(mols, p++, a_array);
+        }
+        return mols;
+    } catch (...) {
+        Py_XDECREF(mols);
+        molc_error();
+        return nullptr;
+    }
+}
+
 extern "C" EXPORT PyObject *structure_polymers(void *mol, int missing_structure_treatment, int consider_chains_ids)
 {
     Structure *m = static_cast<Structure *>(mol);
@@ -3938,6 +4007,65 @@ extern "C" EXPORT void set_pdb_version(void *mols, size_t n, int32_t *version)
         molc_error();
     }
 }
+
+extern "C" EXPORT int structure_connect(void *mol, PyObject* chain_starters,
+                                         PyObject* chain_enders,
+                                         PyObject* conect_atoms,
+                                         PyObject* mod_res)
+{
+    AtomicStructure *m = static_cast<AtomicStructure *>(mol);
+    try {
+        if (!PyList_Check(chain_starters))
+            throw std::invalid_argument("chain_starters must be a list of residues");
+        if (!PyList_Check(chain_enders))
+            throw std::invalid_argument("chain_enders must be a list of residues");
+        if (!PyList_Check(conect_atoms))
+            throw std::invalid_argument("conect_atoms must be a list of atoms");
+        if (!PyList_Check(mod_res))
+            throw std::invalid_argument("mod_res must be a list of residues");
+        std::vector<Residue *> starters;
+        auto num_starters = PyList_GET_SIZE(chain_starters);
+        for (int i = 0; i < num_starters; ++i) {
+            PyObject* p = PyList_GET_ITEM(chain_starters, i);
+            if (!PyLong_Check(p))
+                throw std::invalid_argument("chain_starters element must be long");
+            Residue* r = static_cast<Residue*>(PyLong_AsVoidPtr(p));
+            starters.push_back(r);
+        }
+        std::vector<Residue *> enders;
+        auto num_enders = PyList_GET_SIZE(chain_enders);
+        for (int i = 0; i < num_enders; ++i) {
+            PyObject* p = PyList_GET_ITEM(chain_enders, i);
+            if (!PyLong_Check(p))
+                throw std::invalid_argument("chain_enders element must be long");
+            Residue* r = static_cast<Residue*>(PyLong_AsVoidPtr(p));
+            enders.push_back(r);
+        }
+        std::set<Atom *> atoms;
+        auto num_atoms = PyList_GET_SIZE(conect_atoms);
+        for (int i = 0; i < num_atoms; ++i) {
+            PyObject* p = PyList_GET_ITEM(conect_atoms, i);
+            if (!PyLong_Check(p))
+                throw std::invalid_argument("conect_atoms element must be long");
+            Atom* a = static_cast<Atom*>(PyLong_AsVoidPtr(p));
+            atoms.insert(a);
+        }
+        std::set<MolResId> mod;
+        auto num_mod = PyList_GET_SIZE(mod_res);
+        for (int i = 0; i < num_mod; ++i) {
+            PyObject* p = PyList_GET_ITEM(mod_res, i);
+            if (!PyLong_Check(p))
+                throw std::invalid_argument("mod_res element must be long");
+            Residue* r = static_cast<Residue*>(PyLong_AsVoidPtr(p));
+            mod.insert(MolResId(r->chain_id(), r->number(), r->insertion_code()));
+        }
+        connect_structure(m, &starters, &enders, &atoms, &mod);
+    } catch (...) {
+        molc_error();
+    }
+    return m->num_bonds();
+}
+        
 
 // -------------------------------------------------------------------------
 // element functions

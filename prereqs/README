@@ -116,7 +116,7 @@ setuptools/
 sip/
 	C++ to Python code wrapping used to build PyQt, NOT CURRENTLY USED
 six==1.9.0
-	Compatibility module for Python 2 and 3, used by wx/numpy/matplotlib
+	Compatibility module for Python 2 and 3, used by numpy/matplotlib
 	and more
 sortedcontainers==0.9.6
 	provides SortedDict
@@ -130,8 +130,6 @@ wheel==0.24.0
 	wheel distribution format, needed for toolshed
 wrappy3/
 	Python C++ wrapping, used by readcif
-wx/
-	wx toolkit, needed for GUI
 xdg-utils/
 	Required to build mesa, off-screen rendering and for linux installation
 xml2/

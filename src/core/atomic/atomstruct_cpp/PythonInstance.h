@@ -46,6 +46,12 @@ public:
     NoPyAttrError(const std::string msg) : PyAttrError(msg) {}
 };
 
+class WrongPyAttrTypeError : public PyAttrError {
+public:
+    WrongPyAttrTypeError() : PyAttrError(std::string("Python attr is wrong type")) {}
+    WrongPyAttrTypeError(const std::string msg) : PyAttrError(msg) {}
+};
+
 class PythonInstance {
 public:
     PyObject*  get_py_attr(const char* attr_name) const;

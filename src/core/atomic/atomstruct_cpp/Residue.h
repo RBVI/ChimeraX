@@ -22,12 +22,13 @@
 #include <vector>
 
 #include "backbone.h"
-#include "imex.h"
-#include "session.h"
-#include "string_types.h"
 #include "ChangeTracker.h"
+#include "imex.h"
+#include "PythonInstance.h"
 #include "Real.h"
 #include "Rgba.h"
+#include "session.h"
+#include "string_types.h"
 
 namespace atomstruct {
 
@@ -36,7 +37,7 @@ class Bond;
 class Chain;
 class Structure;
 
-class ATOMSTRUCT_IMEX Residue {
+class ATOMSTRUCT_IMEX Residue: public PythonInstance {
 public:
     typedef std::vector<Atom *>  Atoms;
     typedef std::multimap<AtomName, Atom *>  AtomsMap;
@@ -69,7 +70,7 @@ private:
     ChainID  _mmcif_chain_id;
     ResName  _name;
     PolymerType  _polymer_type;
-    int  _position;
+    int  _number;
     float  _ribbon_adjust;
     bool  _ribbon_display;
     bool  _ribbon_hide_backbone;
@@ -86,6 +87,7 @@ public:
         bool just_first=false) const;
     Chain*  chain() const;
     const ChainID&  chain_id() const;
+    bool  connects_to(const Residue* other_res) { return !bonds_between(other_res, true).empty(); }
     int  count_atom(const AtomName&) const;
     Atom *  find_atom(const AtomName&) const;
     const ChainID&  mmcif_chain_id() const { return _mmcif_chain_id; }
@@ -95,7 +97,7 @@ public:
     bool  is_strand() const { return ss_type() == SS_STRAND; }
     const ResName&  name() const { return _name; }
     PolymerType  polymer_type() const { return _polymer_type; }
-    int  position() const { return _position; }
+    int  number() const { return _number; }
     Atom*  principal_atom() const;
     void  remove_atom(Atom*);
     int  session_num_floats(int version=CURRENT_SESSION_VERSION) const {

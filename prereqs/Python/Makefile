@@ -34,6 +34,7 @@ endif
 
 ifeq ($(OS),Linux)
 LDFLAGS += -Wl,-rpath,a-value-that-is-replaced
+export LD_LIBRARY_PATH=$(libdir)
 ENV_CONFIGURE += LDFLAGS='$(LDFLAGS)'
 CONFIG_OPTIONS += --enable-shared
 # --enable-optimizations causes singularity build to fail (and causes long build times)

@@ -75,10 +75,9 @@ connect.o: Atom.h Bond.h connect.h Coord.h destruct.h Structure.h MolResId.h PBG
 	Residue.h string_types.h tmpl/Residue.h tmpl/Atom.h tmpl/residues.h
 CoordSet.o: Atom.h CoordSet.h destruct.h PythonInstance.h Structure.h
 destruct.o: destruct.h
-Structure.o: Atom.h Bond.h ChangeTracker.h CoordSet.h destruct.h PBGroup.h Pseudobond.h \
-	PythonInstance.h Structure.h Residue.h
-StructureSeq.o: Structure.h Chain.h ChangeTracker.h destruct.h PythonInstance.h Structure.h \
-	Sequence.h Residue.h
+Structure.o: Atom.h Bond.h ChangeTracker.h CoordSet.h destruct.h PBGroup.h PBManager.h \
+	Pseudobond.h PythonInstance.h Structure.h Residue.h
+StructureSeq.o: Structure.h Chain.h ChangeTracker.h destruct.h PythonInstance.h Structure.h Sequence.h Residue.h
 PBGroup.o: Atom.h destruct.h Structure.h PBGroup.h Pseudobond.h PythonInstance.h
 PBManager.o: destruct.h Structure.h PBGroup.h PBManager.h PythonInstance.h
 Point.o: Point.h

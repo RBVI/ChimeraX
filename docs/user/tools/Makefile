@@ -19,9 +19,9 @@ DOCDIR = $(app_datadir)/docs/user/tools
 SRCS = $(wildcard *.html)
 IMAGES = $(wildcard *.png)
 
-MOUSEICONS = $(TOP)/src/bundles/mouse_modes/icons/*.png
+MOUSEICONS = $(TOP)/src/bundles/mouse_modes/src/icons/*.png
 MICONDIR = $(DOCDIR)/mouse-icons
-SHORTCUTICONS = $(TOP)/src/bundles/shortcuts/icons/*.png
+SHORTCUTICONS = $(TOP)/src/bundles/shortcuts/src/icons/*.png
 SICONDIR = $(DOCDIR)/shortcut-icons
 
 install:

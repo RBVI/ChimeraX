@@ -48,12 +48,11 @@ find_gaps(StructureSeq& sseq)
         auto c = *ci;
         int gap = 0;
         if (prev_res != nullptr) {
-            auto connects = prev_res->bonds_between(res, true);
             // since unlike Chimera, ChimeraX does not make
             // long "covalent" bonds across gaps, some of the
             // fancy logic used in Chimera is not necessary here
-            if (connects.empty()) {
-                gap = res->position() - prev_res->position() - 1;
+            if (!res->connects_to(prev_res)) {
+                gap = res->number() - prev_res->number() - 1;
                 if (gap == -1) {
                     // 1ton/1bil have gaps in insertion codes...
                     auto prev_insert = prev_res->insertion_code();
@@ -108,9 +107,9 @@ find_gaps(StructureSeq& sseq)
         ap.segments.back().push_back(c);
         prev_res = res;
     }
-    int front_pos = sseq.residues().front()->position();
-    if (ap.est_len > 0 && front_pos > 1)
-        ap.est_len += front_pos - 1;
+    int front_num = sseq.residues().front()->number();
+    if (ap.est_len > 0 && front_num > 1)
+        ap.est_len += front_num - 1;
     return ap;
 }
 
@@ -450,10 +449,10 @@ try_assoc(const Sequence& align_seq, const StructureSeq& mseq,
             throw SA_AssocFailure("bad assoc");
         return retvals;
     }
-    auto no_X = mseq;
+    StructureSeq no_X = mseq;
     auto no_X_ap = AssocParams(ap.est_len, ap.segments.begin(),
         ap.segments.end(), ap.gaps.begin(), ap.gaps.end());
-    while (no_X.front() == 'X') {
+    while (no_X.size() > 0 && no_X.front() == 'X') {
         no_X.pop_front();
         --no_X_ap.est_len;
     }

@@ -29,13 +29,23 @@ class="clRight" title="User Guide Index"/></a>
 <img class="outlineCR" width="450px" src="crispr.png" 
 alt="ChimeraX window" title="click to enlarge..."></a>
 <p>
-ChimeraX has an all-in-one window interface in which 
+ChimeraX has an all-in-one window interface in which various
 <b><i>panels</i></b> can be shown, hidden, and repositioned. 
 Panels can also be detached (undocked) from the main ChimeraX window 
 and subsequently reinserted (docked).
-The overall window also contains the <b><i>graphics</i></b> area, 
-a <b><i>title bar</i></b> across the top, 
-and a <b><i>status line</i></b> across the bottom.
+The overall window also contains the <b><i>main window</i></b>
+for 3D graphics, a <b><i>title bar</i></b> across the top, 
+and a <b><i>status line</i></b> for transient messages across the bottom. 
+At the bottom right are small icons:
+<ul>
+<li><img class="iconbar" src="toggle.png"> 
+- toggle main window to fill overall window
+<li><img class="iconbar" src="rapidoff.png">
+or <img class="iconbar" src="rapidon.png"> 
+- toggle main window between 3D graphics and <b>Rapid Access</b> 
+<br>(see <a href="tools/filehistory.html"><b>File History</b></a>)
+</ul>
+<p>
 See also:
 <a href="commands/windowsize.html"><b>windowsize</b></a>,
 <a href="commands/mousemode.html"><b>mousemode</b></a>
@@ -92,12 +102,12 @@ are still available.
 The overall window or any undocked panel can be resized by dragging 
 any corner and moved by dragging its title bar.
 The boundaries between docked panels or between panel(s) and the
-graphics area can be dragged to expand one side and shrink the other
+main window can be dragged to expand one side and shrink the other
 while keeping the overall window dimensions the same.
 Finally, the overall window can be toggled to hide/show the current panels 
 by clicking the &ldquo;nested squares&rdquo; button
 <img width="20px" src="toggle.png"> near its bottom right corner.
-This allows expanding the graphics area with a single click
+This allows expanding the main window with a single click
 without losing the overall window configuration.
 Icon toolbars and the <a href="tools/cli.html"><b>Command Line</b></a>
 are excluded from this toggling.
@@ -112,7 +122,7 @@ context menus.
 </p>
 <h3>ChimeraX Browser and Help Viewer</h3>
 <p>
-The <b>Help Viewer</b> is a built-in HTML browser.
+The <b>Help Viewer</b> is a built-in HTML browser. 
 ChimeraX help pages are written in HTML and can be shown in the 
 <b>Help Viewer</b> by using the <b>Help</b> menu, the
 <a href="commands/help.html"><b>help</b></a> command, tool context menus,
@@ -122,12 +132,12 @@ docked to and undocked from the main window like other panels,
 as described <a href="#panelcontrol">above</a>.
 The name listed for the <b>Help Viewer</b> in panel title-bar menus
 will be the title of the HTML page it is showing.
-Buttons and/or context menus are provided for navigation
-(forward, back, reload) and adjusting the font size, 
+Buttons and context menus are provided for navigation
+(back, forward, reload) and adjusting the font size, 
 and there is a field for entering search text.
 </p><p>
-The built-in browser provides a simple mechanism to execute 
-ChimeraX commands by clicking special links, for example:
+An important advantage of the built-in browser is that it provides a simple
+mechanism to execute ChimeraX commands by clicking special links, for example:
 </p>
 <blockquote>
 <a href="cxcmd:open 1gcn"><b>open 1gcn</b></a>
@@ -135,19 +145,21 @@ ChimeraX commands by clicking special links, for example:
 <b>&lt;a href="cxcmd:open 1gcn"&gt;open 1gcn&lt;/a&gt;</b>
 </blockquote>
 <p>
-** The execution links will only work in the ChimeraX browser, 
+** The execution links will only work in the ChimeraX browser, however,
 not other web browsers.**
-The <a href="../quickstart/index.html">Quick Start Guide</a> includes
-many more examples.
 </p><p>
 With this mechanism, it is easy to create web pages that use ChimeraX for
 structure display and other features, as in a scientific presentation or
-ChimeraX tutorial. Since the mechanism only works in the ChimeraX browser,
-however, ChimeraX must already be installed and used to open the web page
-of interest.
+ChimeraX tutorial. 
+The <a href="../quickstart/index.html">Quick Start Guide</a> includes
+many more examples, as well as some javascript 
+to display a brief explanation if such a link is clicked when the page 
+is being viewed in some other browser. 
+This javascript can be copied from the page source and used in other pages
+with the special links, as desired.
 </p><p>
 Web content and HTML files in general
-(with or without such special execution links)
+(with or without the special command-execution links)
 can be shown in the ChimeraX browser with commands:
 </p>
 <blockquote>
@@ -156,9 +168,7 @@ can be shown in the ChimeraX browser with commands:
 <b><a href="commands/open.html">open</a> &nbsp;<i>local-file.html</i></b>
 </blockquote>
 Local files can also be opened with <b>File... Open</b> in the menu.
-Besides the <b>Help Viewer</b>, other panels with HTML content such as the
-<a href="tools/log.html"><b>Log</b></a> are also displayed appropriately.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-March 2017</address>
+June 2017</address>
 </body></html> 

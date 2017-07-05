@@ -304,7 +304,7 @@ find_helices(KsdsspParams& params)
 			if (first < 0) {
 				first = i;
 				cur_helix_type = helix_type;
-				in_initial_acc_only = acc_only;
+				in_initial_acc_only = true; // don't break helix if X>>
 			} else if (helix_type != cur_helix_type) {
 				if (i - first >= params.min_helix_length)
 					params.helices.push_back(std::make_pair(first, i-1));
@@ -315,7 +315,7 @@ find_helices(KsdsspParams& params)
 				in_initial_acc_only = in_initial_acc_only && acc_only;
 			}
 			if (in_initial_acc_only) {
-				in_initial_acc_only = acc_only;
+				in_initial_acc_only = acc_only || (i == first);
 			} else if (acc_only) {
 				if (acc_only_run > 0) {
 					if (i-1 - first >= params.min_helix_length)

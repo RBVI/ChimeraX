@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "imex.h"
+#include "PythonInstance.h"
 #include "Sequence.h"
 #include "session.h"
 #include "string_types.h"
@@ -30,7 +31,7 @@ namespace atomstruct {
 class Structure;
 class Residue;
 
-class ATOMSTRUCT_IMEX StructureSeq: private Sequence {
+class ATOMSTRUCT_IMEX StructureSeq: private Sequence, public PythonInstance {
 public:
     typedef std::vector<unsigned char>::size_type  SeqPos;
     typedef std::vector<Residue *>  Residues;

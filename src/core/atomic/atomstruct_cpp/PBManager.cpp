@@ -71,11 +71,11 @@ AS_PBManager::get_group(const std::string& name, int create)
 
     grp = new Proxy_PBGroup(this, name, structure(), create);
     if (name == structure()->PBG_METAL_COORDINATION)
-        grp->set_default_color(147, 112, 219);
+        grp->set_color(147, 112, 219);
     else if (name == structure()->PBG_MISSING_STRUCTURE)
-        grp->set_default_halfbond(true);
+        grp->set_halfbond(true);
     else if (name == structure()->PBG_HYDROGEN_BONDS)
-        grp->set_default_color(0, 204, 230);
+        grp->set_color(0, 204, 230);
     _groups[name] = grp;
     return grp;
 }
@@ -152,6 +152,18 @@ BaseManager::session_info(PyObject** ints, PyObject** floats, PyObject** misc) c
 }
 
 void
+BaseManager::session_save_setup() const
+{
+    session_save_pbs = new SessionSavePbMap;
+    _ses_struct_to_id_map = new SessionStructureToIDMap;
+    // since pseudobond session IDs may be asked for before
+    // the structure/manager is itself asked to save, need
+    // to populate the maps here instead of during session_info
+    for (auto& cat_grp: group_map())
+        cat_grp.second->session_save_setup();
+}
+
+void
 BaseManager::session_restore(int version, int** ints, float** floats, PyObject* misc)
 {
     if (version > 1)
@@ -163,13 +175,13 @@ BaseManager::session_restore(int version, int** ints, float** floats, PyObject* 
     auto& int_ptr = *ints;
     auto& float_ptr = *floats;
 
-    if (!PyList_Check(misc) || PyList_Size(misc) != 1) {
+    if (!(PyTuple_Check(misc) || PyList_Check(misc)) || PySequence_Fast_GET_SIZE(misc) != 1) {
         throw std::invalid_argument("PBManager::session_restore: third arg is not a"
-            " 1-element list");
+            " 1-element tuple");
     }
-    using pysupport::pylist_of_string_to_cvec;
+    using pysupport::pysequence_of_string_to_cvec;
     std::vector<std::string> categories;
-    pylist_of_string_to_cvec(PyList_GET_ITEM(misc, 0), categories, "PB Group category");
+    pysequence_of_string_to_cvec(PySequence_Fast_GET_ITEM(misc, 0), categories, "PB Group category");
     for (auto cat: categories) {
         auto grp = get_group(cat, *int_ptr++);
         grp->session_restore(version, &int_ptr, &float_ptr);

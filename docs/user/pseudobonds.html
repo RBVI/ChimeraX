@@ -25,32 +25,42 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3>Pseudobonds</h3>
 <p>
-A <b><i>pseudobond</i></b></a> is drawn to
+A <b><i>pseudobond</i></b></a> is drawn between two atoms to
 signify a connection other than a covalent bond, such as a
 hydrogen bond, metal coordination bond, or missing peptide segment.
-It is rendered as a series of cylindrical dash segments.
-</p><p>
-A <b><i>pseudobond group</i></b> is a named set 
+A <b><i>pseudobond model</i></b> is a named set 
 of pseudobonds that can be treated collectively.
+Pseudobonds can be defined arbitrarily by creating and
+opening a <a href="commands/open.html#atomic">pseudobond file</a>.
+See also:
+<a href="commands/hbonds.html"><b>hbonds</b></a>,
+<a href="commands/rungs.html"><b>rungs</b></a>,
+<a href="commands/struts.html"><b>struts</b></a>,
+<a href="commands/crosslinks.html"><b>crosslinks</b></a>,
+<a href="hierarchy.html">display hierarchy</a>
 </p><p>
+Pseudobonds are only displayed when both of their endpoint atoms are displayed.
+For purposes of pseudobond display, backbone atoms are considered as displayed
+when their display is being
+<a href="commands/cartoon.html#suppress">suppressed</a> by cartoon (ribbon).
+<!-- "car supp f" may be handy for hiding all the air pbonds -->
+</p><p>
+Commands that act on pseudobonds include
+<a href="commands/color.html"><b>color</b></a>,
+<a href="commands/style.html"><b>style</b></a>, and
+<a href="commands/show.html"><b>show</b></a>.
 The command-line specifiers
 <a href="commands/atomspec.html#builtin"><b>hbonds</b></a> and
 <a href="commands/atomspec.html#builtin"><b>pbonds</b></a>
 refer to hydrogen-bond pseudobonds and all pseudobonds, respectively,
-as well as their endpoint atoms. 
-</p><p>
-Commands like <a href="commands/color.html"><b>color</b></a> and
-<a href="commands/show.html"><b>show</b></a> may require using
+as well as their endpoint atoms.
+Certain commands (<a href="commands/color.html"><b>color</b></a>,
+<a href="commands/show.html"><b>show</b></a>) may require using
 the <b>target p</b> option to indicate acting on pseudobonds
-and not their flanking atoms. See also:
-<a href="commands/open.html"><b>open</b></a>,
-<a href="commands/style.html"><b>style</b></a>,
-<a href="commands/crosslinks.html"><b>crosslinks</b></a>,
-<a href="commands/rungs.html"><b>rungs</b></a>,
-<a href="commands/struts.html"><b>struts</b></a>
+and not their flanking atoms. 
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-May 2017</address>
+June 2017</address>
 </body></html>

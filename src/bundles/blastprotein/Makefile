@@ -9,8 +9,21 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-TOP = ../../..
-include $(TOP)/mk/config.make
+CHIMERAX_APP = ../../../ChimeraX.app
+
+OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
+ifeq ($(OS),CYGWIN_NT)
+PYTHON_EXE = $(CHIMERAX_APP)/bin/python.exe
+CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX.exe
+endif
+ifeq ($(OS),Darwin)
+PYTHON_EXE = $(CHIMERAX_APP)/Contents/bin/python3.6
+CHIMERAX_EXE = $(CHIMERAX_APP)/Contents/bin/ChimeraX
+endif
+ifeq ($(OS),Linux)
+PYTHON_EXE = $(CHIMERAX_APP)/bin/python3.6
+CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
+endif
 
 BUNDLE_NAME = ChimeraX-BlastProtein
 BUNDLE_VERSION = 0.1
@@ -23,27 +36,32 @@ PKG_DIR := $(shell cygpath -m '$(PKG_DIR)' | sed 's,/,\\\\\\\\,g')
 shlibdir := $(shell cygpath -m '$(shlibdir)' | sed 's,/,\\\\\\\\,g')
 datadir := $(shell cygpath -m '$(datadir)' | sed 's,/,\\\\\\\\,g')
 endif
+BASE_BNDL_NAME = $(subst ChimeraX-,,$(BUNDLE_NAME))
 WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
 
-PYSRCS = $(filter-out setup.py,$(wildcard *.py))
+PYSRCS = $(wildcard src/*.py)
 WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-py3-none-any.whl
 
-all: $(PYSRCS)
-	$(PYTHON_EXE) -B -m py_compile $?
-
-install: dir all
-	$(RSYNC) $(PYSRCS) $(PKG_DIR)
-	if [ -d "$(app_prefix)" ]; then \
-		$(MAKE) app-install ;\
-	fi
-
-app-install: wheel
-	$(APP_PIP) install -U --upgrade-strategy only-if-needed $(WHEEL)
-	$(RSYNC) $(WHEEL) $(wheelhouse) && cd $(wheelhouse) && make update
-
-wheel: setup.py
+wheel $(WHEEL): setup.py $(PYSRCS)
+	$(PYTHON_EXE) setup.py --no-user-cfg build
+	$(PYTHON_EXE) setup.py --no-user-cfg test
 	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel
 	rm -rf $(WHL_BNDL_NAME).egg-info
+
+install app-install: $(WHEEL)
+	$(CHIMERAX_EXE) --nogui --cmd "toolshed install $(WHEEL) reinstall true user false; exit"
+
+test:
+	$(CHIMERAX_EXE)
+
+debug:
+	$(CHIMERAX_EXE) --debug
+
+clean:
+	rm -rf src/__pycache__ build dist $(WHL_BNDL_NAME).egg-info setup.py
+
+lint:
+	$(PYLINT) $(PYSRCS)
 
 setup.py: setup.py.in Makefile
 	sed -e 's,PKG_DIR,$(PKG_DIR),' \
@@ -58,13 +76,3 @@ setup.py: setup.py.in Makefile
 		-e 's,PKG_NAME,$(PKG_NAME),' \
 		-e 's,PKG_DIR,$(PKG_DIR),' \
 		< setup.py.in > setup.py
-
-dir:
-	if [ ! -d "$(PKG_DIR)" ]; then mkdir -p $(PKG_DIR); fi
-	if [ ! -d "$(wheelhouse)" ]; then mkdir -p $(wheelhouse); fi
-
-lint:
-	$(PYLINT) $(PYSRCS)
-
-clean:
-	rm -rf __pycache__ build dist $(WHL_BNDL_NAME).egg-info setup.py

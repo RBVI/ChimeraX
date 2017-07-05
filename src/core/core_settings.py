@@ -21,18 +21,12 @@ from . import commands
 from .colors import Color
 from . import configfile
 from .settings import Settings
-_prefs = None
 
 
 class _CoreSettings(Settings):
 
     EXPLICIT_SAVE = {
-        'autostart': [
-            'Molecule Display Toolbar', 'Log', 'Model Panel',
-            'Mouse Modes for Right Button', 'Graphics Toolbar',
-            'Command Line Interface',
-        ],
-        'atomspec_contents': 'simple', # choices: simple, command-line specifier, serial number
+        'atomspec_contents': 'simple', # choices: simple, command (-line specifier), serial (number)
         'bg_color': configfile.Value(
             Color('#000'), commands.ColorArg, Color.hex_with_alpha),
         'multisample_threshold': configfile.Value(

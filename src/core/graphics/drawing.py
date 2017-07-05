@@ -174,6 +174,16 @@ class Drawing:
         if rn is not None:
             rn(**kw)
 
+    def _get_shape_changed(self):
+        rn = self._redraw_needed
+        return rn.shape_changed if rn else False
+    def _set_shape_changed(self, changed):
+        rn = self._redraw_needed
+        if rn:
+            rn.shape_changed = changed
+    shape_changed = property(_get_shape_changed, _set_shape_changed)
+    '''Did this drawing or any drawing in the same tree change shape since the last redraw.'''
+    
     def __setattr__(self, key, value):
         if key in self._effects_shader:
             self._shader_opt = None       # Cause shader update
@@ -1235,6 +1245,19 @@ def draw_drawings(renderer, cvinv, drawings, opaque_only = False):
             lambda: _draw_multiple(drawings, r, p, Drawing.TRANSPARENT_DEPTH_DRAW_PASS),
             lambda: _draw_multiple(drawings, r, p, Drawing.TRANSPARENT_DRAW_PASS))
 
+def draw_opaque(renderer, drawings):
+    from ..geometry import identity
+    _draw_multiple(drawings, renderer, identity(), Drawing.OPAQUE_DRAW_PASS)
+
+def draw_transparent(renderer, drawings):
+    if _any_transparent_drawings(drawings):
+        from ..geometry import identity
+        p = identity()
+        r = renderer
+        r.draw_transparent(
+            lambda: _draw_multiple(drawings, r, p, Drawing.TRANSPARENT_DEPTH_DRAW_PASS),
+            lambda: _draw_multiple(drawings, r, p, Drawing.TRANSPARENT_DRAW_PASS))
+
 
 def _draw_multiple(drawings, renderer, place, draw_pass):
     selected_only = (draw_pass == Drawing.SELECTION_DRAW_PASS)
@@ -1284,7 +1307,7 @@ def draw_overlays(drawings, renderer):
     r.disable_shader_capabilities(0)
 
 
-def draw_outline(renderer, cvinv, drawings):
+def draw_selection_outline(renderer, cvinv, drawings):
     '''Draw the outlines of selected parts of the specified drawings.'''
     r = renderer
     r.set_view_matrix(cvinv)
@@ -1650,6 +1673,17 @@ class TrianglePick(Pick):
         pmask[c] = s
         d.selected_positions = pmask
 
+    def is_transparent(self):
+        d = self.drawing()
+        vc = d.vertex_colors
+        if vc is None:
+            return d.color[3] < 255
+        t = self.triangle_num
+        for v in d.triangles[t]:
+            if vc[v,3] < 255:
+                return True
+        return False
+
 class TrianglesPick(Pick):
     '''
     Picked triangles of a drawing.
@@ -1756,17 +1790,19 @@ def _texture_drawing(texture, pos=(-1, -1), size=(2, 2), drawing=None):
     d = drawing if drawing else Drawing('rgba')
     x, y = pos
     sx, sy = size
-    from numpy import array, float32, uint32
+    from numpy import array, float32, int32
     vlist = array(((x, y, 0),
                    (x + sx, y, 0),
                    (x + sx, y + sy, 0),
                    (x, y + sy, 0)), float32)
-    tlist = array(((0, 1, 2), (0, 2, 3)), uint32)
+    tlist = array(((0, 1, 2), (0, 2, 3)), int32)
     tc = array(((0, 0), (1, 0), (1, 1), (0, 1)), float32)
     d.geometry = vlist, tlist
     d.color = (255, 255, 255, 255)         # Modulates texture values
     d.use_lighting = False
     d.texture_coordinates = tc
+    if d.texture is not None:
+        d.texture.delete_texture()
     d.texture = texture
     return d
 

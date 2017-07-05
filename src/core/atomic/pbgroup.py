@@ -38,11 +38,11 @@ class PseudobondGroup(PseudobondGroupData, Model):
     def delete(self):
         if self._global_group:
             pbm = self.session.pb_manager
-            pbm.delete_group(self)
+            pbm._delete_group(self)
         else:
             s = self._structure
             if s and not s.deleted:
-                s.delete_pseudobond_group(self)
+                s._delete_pseudobond_group(self)
             self._structure = None
         Model.delete(self)
         self._pbond_drawing = None
@@ -54,10 +54,13 @@ class PseudobondGroup(PseudobondGroupData, Model):
         # For global pseudobond groups:
         # Detect when atoms moved so pseudobonds must be redrawn.
         # TODO: Update only when atoms move or are shown hidden, not when anything shown or hidden.
+        # TODO: Only update on selection change if pseudobond atoms selection changed.
+        from ..selection import SELECTION_CHANGED
         t = session.triggers
         self._handlers = [
             t.add_handler('graphics update',self._update_graphics_if_needed),
-            t.add_handler('shape changed', lambda *args, s=self: s._update_graphics())
+            t.add_handler('shape changed', lambda *args, s=self: s._update_graphics()),
+            t.add_handler(SELECTION_CHANGED, lambda *args, s=self: s._update_graphics())
         ]
 
     def removed_from_session(self, session):
@@ -77,6 +80,8 @@ class PseudobondGroup(PseudobondGroupData, Model):
     def _get_dashes(self):
         return self._dashes
     def _set_dashes(self, n):
+        if n == self._dashes:
+            return
         self._dashes = n
         pb = self._pbond_drawing
         if pb:
@@ -84,6 +89,8 @@ class PseudobondGroup(PseudobondGroupData, Model):
             self._pbond_drawing = None
             self._graphics_changed |= self._SHAPE_CHANGE
             self.redraw_needed(shape_changed = True)
+        self.session.change_tracker.add_modified(self, "dashes changed")
+
     dashes = property(_get_dashes, _set_dashes)
 
     def _update_graphics_if_needed(self, *_):
@@ -115,20 +122,32 @@ class PseudobondGroup(PseudobondGroupData, Model):
         if changes & (self._SHAPE_CHANGE | self._SELECT_CHANGE):
             bond_atoms = pbonds.atoms
         if changes & self._SHAPE_CHANGE:
-            ba1, ba2 = bond_atoms
-            if self._global_group:
-                to_pbg = self.scene_position.inverse()
-                axyz0, axyz1 = to_pbg*ba1.scene_coords, to_pbg*ba2.scene_coords
-            else:
-                axyz0, axyz1 = ba1.coords, ba2.coords
-            from . import structure as s
-            d.positions = s._halfbond_cylinder_placements(axyz0, axyz1, pbonds.radii)
-            d.display_positions = s._shown_bond_cylinders(pbonds)
+            self._update_positions(pbonds, bond_atoms)
         if changes & (self._COLOR_CHANGE | self._SHAPE_CHANGE):
             d.colors = pbonds.half_colors
         if changes & (self._SELECT_CHANGE | self._SHAPE_CHANGE):
             from . import structure as s
             d.selected_positions = s._selected_bond_cylinders(bond_atoms)
+
+    def _update_positions(self, pbonds, bond_atoms):
+        ba1, ba2 = bond_atoms
+        if self._global_group:
+            to_pbg = self.scene_position.inverse()
+            axyz0, axyz1 = to_pbg*ba1.scene_coords, to_pbg*ba2.scene_coords
+        else:
+            axyz0, axyz1 = ba1.coords, ba2.coords
+        from . import structure as s
+        d = self._pbond_drawing
+        d.positions = s._halfbond_cylinder_placements(axyz0, axyz1, pbonds.radii)
+
+        # Check if models containing end-point have displayed structures.
+        dp = s._shown_bond_cylinders(pbonds)
+        for hs in (hidden_structures(ba1.structures), hidden_structures(ba2.structures)):
+            if hs is not None:
+                import numpy
+                sb = ~numpy.concatenate((hs,hs))
+                numpy.logical_and(dp, sb, dp)
+        d.display_positions = dp
 
     def first_intercept(self, mxyz1, mxyz2, exclude=None):
         if not self.display or (exclude and exclude(self)):
@@ -188,6 +207,17 @@ def interatom_pseudobonds(atoms, group_name = None):
     pb = concatenate(pbonds, Pseudobonds)
     ipb = pb.filter(pb.between_atoms(atoms))
     return ipb
+
+# -----------------------------------------------------------------------------
+#
+def hidden_structures(structures):
+    us = structures.unique()
+    vis = set(s for s in us if s.visible)
+    if len(vis) == len(us):
+        return None
+    from numpy import array, bool
+    hs = array([(s not in vis) for s in structures], bool)
+    return hs
 
 # -----------------------------------------------------------------------------
 #

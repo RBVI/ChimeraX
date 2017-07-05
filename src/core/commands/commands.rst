@@ -37,10 +37,12 @@ and their code location is described with the function descriptions.
 | `echo`_ - Write message to log
 | `exit`_ - Quit
 | `fitmap`_ - fit atomic structures in density maps
+| `graphics`_ - low level graphics control
 | `help`_ - Show documentation
 | `hide`_ - Hide atoms, ribbons, models
 | `info`_ * - Report model info
 | `ks`_ * - Enable keyboard shortcuts
+| `label`_ * - Show text labels on atoms
 | `lighting`_ - Change lighting parameters
 | `log`_ * - Clear or save the log
 | `material`_ - Change surface material light reflection properties
@@ -87,11 +89,11 @@ and their code location is described with the function descriptions.
 
 2dlabels
 ========
-Function found in *chimerax.label.label*
+Function found in *chimerax.label.label2d*
 
-.. autofunction:: chimerax.label.label.label_create
-.. autofunction:: chimerax.label.label.label_change
-.. autofunction:: chimerax.label.label.label_delete
+.. autofunction:: chimerax.label.label2d.label_create
+.. autofunction:: chimerax.label.label2d.label_change
+.. autofunction:: chimerax.label.label2d.label_delete
 
 alias
 =====
@@ -195,6 +197,13 @@ info
 ks
 ==
 .. autofunction:: chimerax.shortcuts.shortcuts.ks
+
+labels
+======
+Function found in *chimerax.label.label3d*
+
+.. autofunction:: chimerax.label.label3d.label
+.. autofunction:: chimerax.label.label3d.label_delete
 
 lighting
 ========

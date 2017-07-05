@@ -9,66 +9,47 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-TOP = ../../..
-include $(TOP)/mk/config.make
+CHIMERAX_APP = ../../../ChimeraX.app
 
 BUNDLE_NAME = ChimeraX-RestServer
 BUNDLE_VERSION = 0.1
 PKG_NAME = chimerax.rest_server
 
-PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,'g)
-PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
-ifdef WIN32
-PKG_DIR := $(shell cygpath -m '$(PKG_DIR)' | sed 's,/,\\\\\\\\,g')
-shlibdir := $(shell cygpath -m '$(shlibdir)' | sed 's,/,\\\\\\\\,g')
-datadir := $(shell cygpath -m '$(datadir)' | sed 's,/,\\\\\\\\,g')
-endif
-WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
+BASE_BNDL_NAME = $(subst ChimeraX-,,$(BUNDLE_NAME))
 
-PYSRCS = $(filter-out setup.py,$(wildcard *.py))
-DATAFILES = static server.pem
+PYSRCS = $(wildcard src/*.py)
+DATAFILES = src/static src/server.pem
 WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-py3-none-any.whl
 
-all: $(PYOBJS)
+OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
+ifeq ($(OS),CYGWIN_NT)
+CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX.exe
+endif
+ifeq ($(OS),Darwin)
+CHIMERAX_EXE = $(CHIMERAX_APP)/Contents/bin/ChimeraX
+endif
+ifeq ($(OS),Linux)
+CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
+endif
 
-install: dir all server.pem
-	$(RSYNC) $(PYSRCS) $(DATAFILES) $(PKG_DIR)
-	if [ -d "$(app_prefix)" ]; then \
-		$(MAKE) app-install ;\
-	fi
+wheel $(WHEEL): $(PYSRCS) $(DATAFILES)
+	$(CHIMERAX_EXE) --nogui --cmd "devel build . ; exit"
 
-app-install: wheel
-	$(APP_PIP) install -U --upgrade-strategy only-if-needed $(WHEEL)
-	$(RSYNC) $(WHEEL) $(wheelhouse) && cd $(wheelhouse) && make update
+install app-install: $(WHEEL)
+	$(CHIMERAX_EXE) --nogui --cmd "devel install . ; exit"
 
-wheel: setup.py
-	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel
-	rm -rf $(WHL_BNDL_NAME).egg-info
+test:
+	$(CHIMERAX_EXE)
 
-setup.py: setup.py.in Makefile
-	sed -e 's,PKG_DIR,$(PKG_DIR),' \
-		-e 's,SHLIB_DIR,$(shlibdir),' \
-		-e 's,DATA_DIR,$(datadir),' \
-		-e 's,PYMOD_EXT,$(PYMOD_EXT),' \
-		-e 's,SHLIB_EXT,$(SHLIB_EXT),' \
-		-e 's,#$(OS)#,,' \
-		-e 's,#$(OSARCH)#,,' \
-		-e 's,BUNDLE_NAME,$(BUNDLE_NAME),' \
-		-e 's,BUNDLE_VERSION,$(BUNDLE_VERSION),' \
-		-e 's,PKG_NAME,$(PKG_NAME),' \
-		-e 's,PKG_DIR,$(PKG_DIR),' \
-		< setup.py.in > setup.py
+debug:
+	$(CHIMERAX_EXE) --debug
 
-dir:
-	if [ ! -d "$(PKG_DIR)" ]; then mkdir -p $(PKG_DIR); fi
-	if [ ! -d "$(wheelhouse)" ]; then mkdir -p $(wheelhouse); fi
+clean:
+	$(CHIMERAX_EXE) --nogui --cmd "devel clean . ; exit"
 
 lint:
 	$(PYLINT) $(PYSRCS)
 
-clean:
-	rm -rf __pycache__ build dist $(WHL_BNDL_NAME).egg-info setup.py server.pem
-
-server.pem:
-	openssl req -new -x509 -keyout server.pem -out server.pem \
+src/server.pem:	ssl.conf
+	openssl req -new -x509 -keyout server.pem -out src/server.pem \
 		-days 365 -nodes -config ssl.conf

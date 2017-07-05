@@ -35,12 +35,6 @@ function toggle(id, image) {
 </script>
 </head><body>
 
-<!--
-<p class="nav">
-[<a href="../index.html">ChimeraX doc index</a>]
-</p>
--->
-
 <a name="top"></a>
 <a href="http://www.rbvi.ucsf.edu/chimerax/">
 <img width="50px" src="ChimeraX-home-icon.svg" alt="ChimeraX home icon"
@@ -51,10 +45,9 @@ title="ChimeraX User Guide Index"/>
 UCSF ChimeraX User Guide
 </h2>
 <p>
-<a href="http://www.rbvi.ucsf.edu/chimerax/" 
-target="_blank"><b>UCSF ChimeraX</b></a> is the successor program to
-<a href="http://www.rbvi.ucsf.edu/chimera/" 
-target="_blank"><b>UCSF Chimera</b></a>.
+<a href="http://www.rbvi.ucsf.edu/chimerax/"><b>UCSF ChimeraX</b></a> 
+is the successor program to 
+<a href="http://www.rbvi.ucsf.edu/chimera/"><b>UCSF Chimera</b></a>.
 In ChimeraX, menu: <b>Help...  User Guide</b></a> shows this page in the 
 <a href="window.html#browser">ChimeraX browser</a>.
 </p>
@@ -69,12 +62,14 @@ src="triangled.png" width=10 height=10/>&nbsp;<b>General</b></li>
 <li><a href="../quickstart/index.html">Quick Start Guide</a></li>
 <li><a href="window.html">ChimeraX Window</a></li>
 <li>Data Formats: see <a href="commands/open.html"><b>open</b></a>
-and <a href="commands/save.html"><b>save</b></a>
+and <a href="commands/save.html"><b>save</b></a></li>
 <li>Manipulation: see <a href="commands/mousemode.html"><b>mousemode</b></a></li>
+<li><a href="selection.html">Selection</a></li>
 <li><a href="images.html">Making Images</a></li>
 <li><a href="movies.html">Making Movies</a></li>
 <li><a href="vr.html">Virtual Reality</a></li>
 <li><a href="../credits.html">Citing ChimeraX</a></li>
+<li><a href="general.html">More...</a></li>
 </ul>
 </div>
 
@@ -86,6 +81,7 @@ src="triangled.png" width=10 height=10/>&nbsp;<b>Tools</b></li>
 <li><a href="tools/cli.html"><b>Command Line Interface</b></a></li>
 <li><a href="tools/densitymaps.html"><b>Density Map Toolbar</b></a>
 <img class="iconbar" src="density-icons.png"></li>
+<li><a href="tools/filehistory.html"><b>File History</b></a>
 <li><a href="tools/graphics.html"><b>Graphics Toolbar</b></a>
 <img class="iconbar" src="graphics-icons.png"></li>
 <li><a href="tools/log.html"><b>Log</b></a></li>
@@ -110,8 +106,8 @@ src="triangled.png" width=10 height=10/>&nbsp;<b>Commands</b></li>
   <li><a href="commands/colornames.html">Color Specification</a></li>
   </ul>
 <li><a href="commands/2dlabels.html"><b>2dlabels</b></a>
-- static annotation with 2D text and 
-<a href="commands/symbols.html">symbols</a></li>
+- add text and <a href="commands/symbols.html">symbols</a> to the display
+for presentation images and movies</li>
 <li><a href="commands/alias.html"><b>alias</b></a>
 - define a command alias (shortcut or composite action)</li>
 <li><a href="commands/align.html"><b>align</b></a>
@@ -133,7 +129,7 @@ src="triangled.png" width=10 height=10/>&nbsp;<b>Commands</b></li>
 <li><a href="commands/contacts.html"><b>contacts</b></a>
 - draw chain-chain network diagram based on buried surface areas</li>
 <li><a href="commands/coordset.html"><b>coordset</b></a>
-- play through frames of a trajectory</li>
+- play through frames of a <a href="trajectories.html">trajectory</a></li>
 <li><a href="commands/crossfade.html"><b>crossfade</b></a>
 - interpolate between image frames</li>
 <li><a href="commands/crosslinks.html"><b>crosslinks</b></a>
@@ -151,10 +147,14 @@ by length, <i>etc.</i></li>
 - fit atoms or map into map</li>
 <li><a href="commands/getcrd.html"><b>getcrd</b></a>
 - report atomic coordinates</li>
+<li><a href="commands/hbonds.html"><b>hbonds</b></a>
+- identify hydrogen bonds
 <li><a href="commands/help.html"><b>help</b></a>
 - show command help in the <a href="window.html#browser">ChimeraX browser</a></li>
 <li><a href="commands/info.html"><b>info</b></a>
 - report model and other information to the user or to other programs</li>
+<li><a href="commands/label.html"><b>label</b></a>
+- label atoms, residues, <a href="pseudobonds.html">pseudobonds</a></li>
 <li><a href="commands/lighting.html"><b>lighting</b></a>
 - report or adjust lights and shadows</li>
 <li><a href="commands/log.html"><b>log</b></a>
@@ -197,7 +197,7 @@ display frame</li>
 <li><a href="commands/rungs.html"><b>rungs</b></a>
 - show a simple broken-ladder representation of nucleic acids</li>
 <li><a href="commands/save.html"><b>save</b></a>
-- save image, map, session, or other data</li>
+- save image, session, or other data file</li>
 <li><a href="commands/select.html"><b>select</b></a>
 - select items (models or their parts) for subsequent operations</li>
 <li><a href="commands/set.html"><b>set</b></a>
@@ -212,9 +212,11 @@ silhouette parameters, subdivision level</li>
 <li><a href="commands/stop.html"><b>stop</b></a>
 - halt ongoing motions</li>
 <li><a href="commands/struts.html"><b>struts</b></a>
-- add pseudobonds to a molecule to strengthen it for 3D printing 
+- add <a href="pseudobonds.html">pseudobonds</a>
+to a molecule to strengthen it for 3D printing</li>
 <li><a href="commands/style.html"><b>style</b></a>
-- set display style and size of atoms and bonds</li>
+- set display style and size of atoms, bonds, 
+and <a href="pseudobonds.html">pseudobonds</a></li>
 <li><a href="commands/surface.html"><b>surface</b></a>
 - create and show/hide molecular surfaces</li>
 <li><a href="commands/sym.html"><b>sym</b></a>
@@ -233,6 +235,8 @@ set camera and model positions with matrices</li>
 <li><a href="commands/volume.html"><b>volume</b></a>
 - display and processing of <a href="tools/volumeviewer.html">volume data</a> 
 (density maps, <i>etc.</i>)</li>
+<li><a href="commands/device.html#vr"><b>vr</b></a>
+- <a href="vr.html">virtual reality</a> mode and related options</li>
 <li><a href="commands/vseries.html"><b>vseries</b></a>
 - display, analyze, or process an ordered sequence of maps</li>
 <li><a href="commands/wait.html"><b>wait</b></a>
@@ -253,12 +257,14 @@ to show a brief description in the <a href="tools/log.html"><b>Log</b></a>.
 - BLAST search for similar protein sequences in PDB or NR</li>
 <!--
 <li><b>findclash</b>
-- find atomic clashes or contacts; similar to Chimera
-<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/findclash.html"
-target="_blank"><b>findclash</b></a></li>
+- find atomic clashes or contacts</li>
 -->
 <li><b>toolshed</b>
-- start, show/hide, and otherwise manage ChimeraX Tools</li>
+- manage ChimeraX tool bundles: install/update from the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/">Toolshed</a> 
+(web repository), <i>etc.</i></li>
+<li><b>ui</b>
+- set tool autostart status</li>
 <li><b>remotecontrol</b>
 - connect using REST or XML-RPC</li>
 <li><b>pdbimages</b>

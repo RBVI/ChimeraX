@@ -122,7 +122,7 @@ class FileHistory:
 class FileSpec:
     def __init__(self, path, format, database = None, open_options = {}):
         self.path = path
-        self.format = format
+        self.format = format	# Can be None
         self.database = database
         self.access_time = None
         self.image = None	# JPEG encoded as base64 string
@@ -156,8 +156,11 @@ class FileSpec:
         if ' ' in p:
             p = '"%s"' % p 	# Quote path
         cmd = 'open %s' % p
-        if self.format:
-            cmd += ' format %s' % self.format
+        f = self.format
+        if f:
+            if ' ' in f:
+                f = '"%s"' % f
+            cmd += ' format %s' % f
         if self.database:
             cmd += ' fromDatabase %s' % self.database
         if self.open_options:

@@ -30,6 +30,7 @@
 #include "Coord.h"
 #include "imex.h"
 #include "Point.h"
+#include "PythonInstance.h"
 #include "Rgba.h"
 #include "session.h"
 #include "string_types.h"
@@ -52,7 +53,7 @@ class CoordSet;
 class Residue;
 class Ring;
 
-class ATOMSTRUCT_IMEX Atom {
+class ATOMSTRUCT_IMEX Atom: public PythonInstance  {
     friend class AtomicStructure;
     friend class UniqueConnection;
     friend class Structure;
@@ -60,6 +61,7 @@ class ATOMSTRUCT_IMEX Atom {
 public:
     // HIDE_ constants are masks for hide bits
     static const unsigned int  HIDE_RIBBON = 0x1;
+    static const unsigned int  HIDE_ISOLDE = 0x2;
 
     typedef std::vector<Bond*> Bonds;
     enum class DrawMode: unsigned char { Sphere, EndCap, Ball };

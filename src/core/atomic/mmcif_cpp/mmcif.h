@@ -28,14 +28,16 @@ namespace mmcif {
 
 using atomstruct::ResName;
 
-PyObject*   parse_mmCIF_file(const char* filename, PyObject* logger);
+PyObject*   parse_mmCIF_file(const char* filename, PyObject* logger,
+                             bool coordsets);
 PyObject*   parse_mmCIF_file(const char* filename,
                              const std::vector<std::string> &extra_categories,
-                             PyObject* logger);
-PyObject*   parse_mmCIF_buffer(const unsigned char* buffer, PyObject* logger);
+                             PyObject* logger, bool coordsets);
+PyObject*   parse_mmCIF_buffer(const unsigned char* buffer, PyObject* logger,
+                               bool coordsets);
 PyObject*   parse_mmCIF_buffer(const unsigned char* buffer,
                              const std::vector<std::string> &extra_categories,
-                             PyObject* logger);
+                             PyObject* logger, bool coordsets);
 void        load_mmCIF_templates(const char* filename);
 void        set_Python_locate_function(PyObject* function);
 

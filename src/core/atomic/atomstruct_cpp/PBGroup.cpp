@@ -176,8 +176,9 @@ CS_PBGroup::new_pseudobond(Atom* a1, Atom* a2, CoordSet* cs)
 {
     _check_structure(a1, a2);
     Pseudobond* pb = static_cast<Pseudobond*>(new CS_Pseudobond(a1, a2, this, cs));
-    pb->set_color(get_default_color());
-    pb->set_halfbond(get_default_halfbond());
+    pb->set_color(color());
+    pb->set_halfbond(halfbond());
+    pb->set_radius(radius());
     auto pbi = _pbonds.find(cs);
     if (pbi == _pbonds.end()) {
         _pbonds[cs].insert(pb);
@@ -193,8 +194,9 @@ StructurePBGroup::new_pseudobond(Atom* a1, Atom* a2)
     _check_structure(a1, a2);
     Pseudobond* pb = new Pseudobond(a1, a2, this);
     pb->finish_construction();
-    pb->set_color(get_default_color());
-    pb->set_halfbond(get_default_halfbond());
+    pb->set_color(color());
+    pb->set_halfbond(halfbond());
+    pb->set_radius(radius());
     _pbonds.insert(pb); return pb;
 }
 
@@ -292,10 +294,15 @@ StructurePBGroup::session_num_ints(int version) const {
 void
 PBGroup::session_restore(int version, int** ints, float** floats)
 {
-    _default_color.session_restore(ints, floats);
+    _color.session_restore(ints, floats);
     auto& int_ptr = *ints;
-    _default_halfbond = int_ptr[0];
+    _halfbond = int_ptr[0];
     int_ptr += SESSION_NUM_INTS(version);
+    if (version > 6) {
+        auto& float_ptr = *floats;
+        _radius = float_ptr[0];
+        float_ptr += SESSION_NUM_FLOATS(version);
+    }
 }
 
 void
@@ -334,10 +341,13 @@ StructurePBGroup::session_restore(int version, int** ints, float** floats)
 void
 PBGroup::session_save(int** ints, float** floats) const
 {
-    _default_color.session_save(ints, floats);
+    _color.session_save(ints, floats);
     auto& int_ptr = *ints;
-    int_ptr[0] = _default_halfbond;
+    int_ptr[0] = _halfbond;
     int_ptr += SESSION_NUM_INTS();
+    auto& float_ptr = *floats;
+    float_ptr[0] = _radius;
+    float_ptr += SESSION_NUM_FLOATS();
 }
 
 void
@@ -369,6 +379,29 @@ StructurePBGroup::session_save(int** ints, float** floats) const
     for (auto pb: _pbonds) {
         session_note_pb_ctor_info(pb, ints);
         pb->session_save(ints, floats);
+    }
+}
+
+void
+CS_PBGroup::session_save_setup() const
+{
+    auto ses_map = manager()->session_save_pbs;
+    int id = ses_map->size();
+    for (auto cs_pbs: _pbonds) {
+        auto& pbs = cs_pbs.second;
+        for (auto pb: pbs) {
+            (*ses_map)[pb] = id++;
+        }
+    }
+}
+
+void
+StructurePBGroup::session_save_setup() const
+{
+    auto ses_map = manager()->session_save_pbs;
+    int id = ses_map->size();
+    for (auto pb: _pbonds) {
+        (*ses_map)[pb] = id++;
     }
 }
 

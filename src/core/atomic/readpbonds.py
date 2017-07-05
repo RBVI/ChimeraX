@@ -16,6 +16,11 @@ def read_pseudobond_file(session, file, name, *args, radius = 0.5, color = (255,
     file.close()
 
     g = session.pb_manager.get_group(name)
+    if g.id is None:
+        ret_models = [g]
+    else:
+        ret_models = []
+        g.clear()
 
     from ..commands import AtomsArg
     for i, line in enumerate(lines):
@@ -31,7 +36,7 @@ def read_pseudobond_file(session, file, name, *args, radius = 0.5, color = (255,
         b.radius = radius
         b.halfbond = False
 
-    return [g], 'Opened Pseudobonds %s, %d bonds' % (name, len(lines))
+    return ret_models, 'Opened Pseudobonds %s, %d bonds' % (name, len(lines))
 
 def register_pbonds_format():
     from .. import io, toolshed

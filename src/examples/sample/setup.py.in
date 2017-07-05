@@ -13,6 +13,11 @@ description = """
 Sample code for implementing ChimeraX bundle.
 """
 
+# Define line_profile in case developer wants
+# to be able to profile bundle code
+import builtins
+builtins.__dict__['line_profile'] = lambda x: x
+
 # Assume Python executable is in ROOT/bin/python
 # and make include directory be ROOT/include
 root = os.path.dirname(os.path.dirname(sys.executable))
@@ -101,5 +106,7 @@ setup(
         "ChimeraX :: Bundle :: General :: 1,1 :: PKG_NAME :: chimerax.sample :: ",
         "ChimeraX :: Tool :: Sample Tool :: General :: Log model atom and bond counts",
         "ChimeraX :: Command :: sample count :: General :: Log model atom and bond counts",
+        "ChimeraX :: DataFormat :: XYZ :: :: Molecule structure :: .xyz :: :: :: :: :: XYZ format :: utf-8",
+        "ChimeraX :: Open :: XYZ :: XYZ ::",
     ] + environments,
 )
