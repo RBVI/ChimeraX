@@ -23,6 +23,8 @@ from .state import State, CORE_STATE_VERSION
 ADD_MODELS = 'add models'
 REMOVE_MODELS = 'remove models'
 MODEL_DISPLAY_CHANGED = 'model display changed'
+MODEL_ID_CHANGED = 'model id changed'
+MODEL_NAME_CHANGED = 'model name changed'
 # TODO: register Model as data event type
 
 
@@ -55,9 +57,10 @@ class Model(State, Drawing):
     bundle_info = None    # default, should be set in subclass
 
     def __init__(self, name, session):
+        self._name = name
         Drawing.__init__(self, name)
         self.session = session
-        self.id = None
+        self._id = None
         self._added_to_session = False
         self._deleted = False
         # TODO: track.created(Model, [self])
@@ -72,10 +75,32 @@ class Model(State, Drawing):
         # may be overriden in subclass, e.g. Structure
         return self._deleted
 
+    def _get_id(self):
+        return self._id
+
+    def _set_id(self, val):
+        if val == self._id:
+            return
+        fire_trigger = self._id != None and val != None
+        self._id = val
+        if fire_trigger:
+            self.session.triggers.activate_trigger(MODEL_ID_CHANGED, self)
+    id = property(_get_id, _set_id)
+
     def id_string(self):
         if self.id is None:
             return ''
         return '.'.join(str(i) for i in self.id)
+
+    def _get_name(self):
+        return self._name
+
+    def _set_name(self, val):
+        if val == self._name:
+            return
+        self._name = val
+        self.session.triggers.activate_trigger(MODEL_NAME_CHANGED, self)
+    name = property(_get_name, _set_name)
 
     def _get_single_color(self):
         return self.color if self.vertex_colors is None else None
@@ -209,6 +234,8 @@ class Models(State):
         t.add_trigger(ADD_MODELS)
         t.add_trigger(REMOVE_MODELS)
         t.add_trigger(MODEL_DISPLAY_CHANGED)
+        t.add_trigger(MODEL_ID_CHANGED)
+        t.add_trigger(MODEL_NAME_CHANGED)
         self._models = {}
         self.drawing = r = Model("root", session)
         r.id = ()

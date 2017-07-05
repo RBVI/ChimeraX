@@ -970,7 +970,6 @@ read_pdb(PyObject *pdb_file, PyObject *py_logger, bool explode)
     std::pair<char *, PyObject *> (*read_func)(void *);
     void *input;
     std::vector<AtomicStructure *> *structs = new std::vector<AtomicStructure *>();
-    std::string as_name("unknown PDB file");
 #ifdef CLOCK_PROFILING
 clock_t start_t, end_t;
 #endif
@@ -1028,18 +1027,12 @@ clock_t start_t, end_t;
     } else {
         read_func = read_fileno;
         input = fdopen(fd, "r");
-        // try to get file name
-        PyObject* name_attr = PyObject_GetAttrString(pdb_file, "name");
-        if (name_attr != nullptr) {
-            as_name = PyUnicode_AsUTF8(name_attr);
-        }
     }
     while (true) {
 #ifdef CLOCK_PROFILING
 start_t = clock();
 #endif
         AtomicStructure *as = new AtomicStructure(py_logger);
-        as->set_name(as_name);
         void *ret = read_one_structure(read_func, input, as, &line_num, asn_map[as],
           &start_res_map[as], &end_res_map[as], &ss_map[as], &conect_map[as],
           &link_map[as], &mod_res_map[as], &reached_end, py_logger, explode, &eof);

@@ -39,7 +39,7 @@ const char*  Structure::PBG_HYDROGEN_BONDS = "hydrogen bonds";
 Structure::Structure(PyObject* logger):
     _active_coord_set(nullptr), _chains(nullptr),
     _change_tracker(DiscardingChangeTracker::discarding_change_tracker()),
-    _idatm_valid(false), _logger(logger), _name("unknown AtomicStructure/Structure"),
+    _idatm_valid(false), _logger(logger),
     _pb_mgr(this), _polymers_computed(false), _recompute_rings(true),
     _ss_assigned(false), _structure_cats_dirty(true),
     asterisks_translated(false), is_traj(false),
@@ -232,8 +232,6 @@ Structure::bonded_groups(std::vector<std::vector<Atom*>>* groups,
 
 void Structure::_copy(Structure* g) const
 {
-    g->set_name(name());
-
     for (auto h = metadata.begin() ; h != metadata.end() ; ++h)
         g->metadata[h->first] = h->second;
     g->pdb_version = pdb_version;
@@ -783,12 +781,10 @@ Structure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
     // input_seq_info
     PyList_SET_ITEM(attr_list, 0, cmap_of_chars_to_pydict(_input_seq_info,
         "residue chain ID", "residue name"));
-    // name
-    PyList_SET_ITEM(attr_list, 1, cchar_to_pystring(_name, "structure name"));
     // input_seq_source
-    PyList_SET_ITEM(attr_list, 2, cchar_to_pystring(input_seq_source, "seq info source"));
+    PyList_SET_ITEM(attr_list, 1, cchar_to_pystring(input_seq_source, "seq info source"));
     // metadata
-    PyList_SET_ITEM(attr_list, 3, cmap_of_chars_to_pydict(metadata,
+    PyList_SET_ITEM(attr_list, 2, cmap_of_chars_to_pydict(metadata,
         "metadata key", "metadata value"));
 
     // atoms
@@ -1085,12 +1081,16 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
         auto& res_names = _input_seq_info[chain_id];
         pysequence_of_string_to_cvec(py_residues, res_names, "chain residue name");
     }
-    // name
-    _name = pystring_to_cchar(PySequence_Fast_GET_ITEM(item, 1), "structure name");
+    int list_index = 1;
+    if (version < 8) {
+        // was name
+        list_index++;
+    }
     // input_seq_source
-    input_seq_source = pystring_to_cchar(PySequence_Fast_GET_ITEM(item, 2), "structure input seq source");
+    input_seq_source = pystring_to_cchar(PySequence_Fast_GET_ITEM(item, list_index++),
+        "structure input seq source");
     // metadata
-    map = PySequence_Fast_GET_ITEM(item, 3);
+    map = PySequence_Fast_GET_ITEM(item, list_index);
     if (!PyDict_Check(map))
         throw std::invalid_argument("structure metadata is not a dict!");
     index = 0;
