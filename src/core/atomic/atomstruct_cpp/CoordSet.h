@@ -18,6 +18,7 @@
 
 #include "Coord.h"
 #include "imex.h"
+#include "PythonInstance.h"
 #include "session.h"
 
 #include <string>
@@ -26,7 +27,7 @@
 
 namespace atomstruct {
 
-class ATOMSTRUCT_IMEX CoordSet {
+class ATOMSTRUCT_IMEX CoordSet: public PythonInstance {
     friend class Atom;
     friend class Structure;
 

@@ -1940,12 +1940,11 @@ ExtractMolecule::parse_entity_poly_seq()
 }
 
 static PyObject*
-structure_pointers(ExtractMolecule &e, const char *filename)
+structure_pointers(ExtractMolecule &e)
 {
     int count = 0;
     for (auto m: e.all_molecules) {
         if (m->atoms().size() > 0) {
-            m->set_name(filename);
             count += 1;
         }
     }
@@ -1968,7 +1967,7 @@ parse_mmCIF_file(const char *filename, PyObject* logger, bool coordsets)
 #endif
     ExtractMolecule extract(logger, StringVector(), coordsets);
     extract.parse_file(filename);
-    return structure_pointers(extract, filename);
+    return structure_pointers(extract);
 }
 
 PyObject*
@@ -1980,7 +1979,7 @@ parse_mmCIF_file(const char *filename, const StringVector& generic_categories,
 #endif
     ExtractMolecule extract(logger, generic_categories, coordsets);
     extract.parse_file(filename);
-    return structure_pointers(extract, filename);
+    return structure_pointers(extract);
 }
 
 PyObject*
@@ -1991,7 +1990,7 @@ parse_mmCIF_buffer(const unsigned char *whole_file, PyObject* logger, bool coord
 #endif
     ExtractMolecule extract(logger, StringVector(), coordsets);
     extract.parse(reinterpret_cast<const char *>(whole_file));
-    return structure_pointers(extract, "unknown mmCIF file");
+    return structure_pointers(extract);
 }
 
 PyObject*
@@ -2003,7 +2002,7 @@ parse_mmCIF_buffer(const unsigned char *whole_file,
 #endif
     ExtractMolecule extract(logger, generic_categories, coordsets);
     extract.parse(reinterpret_cast<const char *>(whole_file));
-    return structure_pointers(extract, "unknown mmCIF file");
+    return structure_pointers(extract);
 }
 
 

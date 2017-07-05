@@ -108,8 +108,8 @@ class BundleBuilder:
         self.package = bi.getAttribute("package")
         self.min_session = bi.getAttribute("minSessionVersion")
         self.max_session = bi.getAttribute("maxSessionVersion")
-        self.custom_init = bi.getAttribute("custom_init")
-        self.pure_python = bi.getAttribute("pure_python")
+        self.custom_init = bi.getAttribute("customInit")
+        self.pure_python = bi.getAttribute("purePython")
 
     def _get_categories(self, bi):
         self.categories = []

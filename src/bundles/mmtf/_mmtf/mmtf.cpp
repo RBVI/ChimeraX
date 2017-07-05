@@ -58,12 +58,11 @@ using atomstruct::ResName;
 typedef vector<AtomicStructure*> Models;
 
 PyObject*
-structure_pointers(const Models& models, const char *filename)
+structure_pointers(const Models& models)
 {
     int count = 0;
     for (auto m: models) {
         if (m->atoms().size() > 0) {
-            m->set_name(filename);
             count += 1;
         }
     }
@@ -359,7 +358,7 @@ parse_MMTF_file(PyObject *, PyObject *args, PyObject *keywds)
 #endif
 
     Py_DECREF(tmp);
-    return structure_pointers(models, filename);
+    return structure_pointers(models);
 }
 
 static PyMethodDef mmtf_methods[] = {

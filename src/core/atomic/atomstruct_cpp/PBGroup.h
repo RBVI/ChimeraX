@@ -26,6 +26,7 @@
 #include "destruct.h"
 #include "imex.h"
 #include "PBManager.h"
+#include "PythonInstance.h"
 #include "Rgba.h"
 #include "session.h"
 
@@ -45,7 +46,8 @@ class Pseudobond;
 class Proxy_PBGroup;
 class Structure;
 
-class ATOMSTRUCT_IMEX PBGroup: public DestructionObserver, public GraphicsContainer {
+class ATOMSTRUCT_IMEX PBGroup: public DestructionObserver, public GraphicsContainer,
+        public PythonInstance {
 public:
     typedef std::set<Pseudobond*>  Pseudobonds;
 

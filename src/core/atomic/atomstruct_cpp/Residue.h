@@ -22,12 +22,13 @@
 #include <vector>
 
 #include "backbone.h"
-#include "imex.h"
-#include "session.h"
-#include "string_types.h"
 #include "ChangeTracker.h"
+#include "imex.h"
+#include "PythonInstance.h"
 #include "Real.h"
 #include "Rgba.h"
+#include "session.h"
+#include "string_types.h"
 
 namespace atomstruct {
 
@@ -36,7 +37,7 @@ class Bond;
 class Chain;
 class Structure;
 
-class ATOMSTRUCT_IMEX Residue {
+class ATOMSTRUCT_IMEX Residue: public PythonInstance {
 public:
     typedef std::vector<Atom *>  Atoms;
     typedef std::multimap<AtomName, Atom *>  AtomsMap;

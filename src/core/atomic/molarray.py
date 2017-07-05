@@ -1104,8 +1104,6 @@ class StructureDatas(Collection):
     '''A single :class:`.Chains` object containing chains for all structures. Read only.'''
     lower_case_chains = cvec_property('structure_lower_case_chains', npy_bool, read_only=True)
     '''A numpy bool array of lower_case_names of each structure.'''
-    names = cvec_property('structure_name', string)
-    '''A numpy string array of names of each structure.'''
     num_atoms = cvec_property('structure_num_atoms', size_t, read_only = True)
     '''Number of atoms in each structure. Read only.'''
     num_bonds = cvec_property('structure_num_bonds', size_t, read_only = True)

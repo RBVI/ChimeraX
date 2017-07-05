@@ -3240,28 +3240,6 @@ extern "C" EXPORT void structure_lower_case_chains(void *mols, size_t n, npy_boo
     }
 }
 
-extern "C" EXPORT void structure_name(void *mols, size_t n, pyobject_t *names)
-{
-    Structure **m = static_cast<Structure **>(mols);
-    try {
-        for (size_t i = 0; i != n; ++i)
-            names[i] = unicode_from_string(m[i]->name().c_str());
-    } catch (...) {
-        molc_error();
-    }
-}
-
-extern "C" EXPORT void set_structure_name(void *mols, size_t n, pyobject_t *names)
-{
-    Structure **m = static_cast<Structure **>(mols);
-    try {
-        for (size_t i = 0; i != n; ++i)
-            m[i]->set_name(PyUnicode_AsUTF8(static_cast<PyObject *>(names[i])));
-    } catch (...) {
-        molc_error();
-    }
-}
-
 extern "C" EXPORT void structure_num_atoms(void *mols, size_t n, size_t *natoms)
 {
     Structure **m = static_cast<Structure **>(mols);

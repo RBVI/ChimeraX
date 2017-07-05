@@ -29,7 +29,7 @@ PKG_DIR = $(PYSITEDIR)/chimerax
 dir:
 	if [ ! -d "$(PKG_DIR)" ]; then mkdir -p $(PKG_DIR); fi
 
-$(SUBDIR_INSTALL): dir
+$(SUBDIR_INSTALL) $(SUBDIR_CLEAN): dir bundle_builder.install
 
 lint:
 ifneq (,$(PYSRCS))
@@ -42,5 +42,3 @@ clean:
 align_algs.install: alignments.install
 sim_matrices.install: alignments.install
 match_maker.install: align_algs.install sim_matrices.install
-mlp.install: bundle_builder.install
-stl.install: bundle_builder.install

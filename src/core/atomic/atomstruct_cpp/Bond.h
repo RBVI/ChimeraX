@@ -21,6 +21,7 @@
 
 #include "Connection.h"
 #include "imex.h"
+#include "PythonInstance.h"
 #include "session.h"
 
 namespace atomstruct {
@@ -31,7 +32,7 @@ class Residue;
 class Ring;
 class Structure;
 
-class ATOMSTRUCT_IMEX Bond: public UniqueConnection {
+class ATOMSTRUCT_IMEX Bond: public UniqueConnection, public PythonInstance {
     friend class Structure;
 public:
     // HIDE_ constants are masks for hide bits in Atom

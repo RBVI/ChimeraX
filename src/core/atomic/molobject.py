@@ -1461,8 +1461,6 @@ class StructureData:
     '''Return the size of the active coordinate set array.'''
     lower_case_chains = c_property('structure_lower_case_chains', npy_bool, read_only = True)
     '''Structure has lower case chain ids. Boolean'''
-    name = c_property('structure_name', string)
-    '''Structure name, a string.'''
     num_atoms = c_property('structure_num_atoms', size_t, read_only = True)
     '''Number of atoms in structure. Read only.'''
     num_atoms_visible = c_property('structure_num_atoms_visible', size_t, read_only = True)
@@ -2124,11 +2122,15 @@ class SeqMatchMap(State):
 
 # -----------------------------------------------------------------------------
 #
+
+# The C++ function Structure::py_object() calls object_map(), so if this function is
+# renamed or it's call signature is modified (or this module is moved) then that C++
+# function must be updated
 _object_map = {}	# Map C++ pointer to Python object
 def object_map(p, object_type):
     global _object_map
     o = _object_map.get(p, None)
-    if o is None:
+    if o is None and object_type is not None:
         _object_map[p] = o = object_type(p)
     return o
 

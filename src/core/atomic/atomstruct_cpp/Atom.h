@@ -30,6 +30,7 @@
 #include "Coord.h"
 #include "imex.h"
 #include "Point.h"
+#include "PythonInstance.h"
 #include "Rgba.h"
 #include "session.h"
 #include "string_types.h"
@@ -52,7 +53,7 @@ class CoordSet;
 class Residue;
 class Ring;
 
-class ATOMSTRUCT_IMEX Atom {
+class ATOMSTRUCT_IMEX Atom: public PythonInstance  {
     friend class AtomicStructure;
     friend class UniqueConnection;
     friend class Structure;
