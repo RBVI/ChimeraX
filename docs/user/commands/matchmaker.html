@@ -99,7 +99,7 @@ cutoff of 2.0 &Aring;.
 default settings, except without <a href="#computeSS">recalculating</a> 
 secondary structure assignments.
 <blockquote>
-<b>mm #2 to #1/a pair bs alg sw matrix PAM-150 ss false iter 5.0</b>
+<b>mm #2 to #1/a pair bs alg sw matrix PAM-150 ss false cut 5.0</b>
 </blockquote>
 (example structures: mouse and human phosphoserine phosphatases 
 <b>1j97</b>, <b>1nnl</b> open as models 1 and 2, respectively)
@@ -237,22 +237,24 @@ is not meaningful.
 </blockquote>
 <blockquote>
   <a name="cutoffDistance"><b>cutoffDistance</b> 
-  &nbsp;<i>cutoff</i>&nbsp;|&nbsp;off</a>
-  <br>Whether to iteratively fit the structures, and the cutoff for
-   excluding residue pairs from the fit. An iterative fit
-   will be performed unless this option is set to <b>off</b>.
-   The sequence alignment is not changed, but residue pairs in the 
-   alignment can be removed from the &ldquo;match list&rdquo; used to 
-   superimpose the structures. In each cycle,
-   pairs of <a href="#matchatom">atoms</a>
-   are removed from the match list and the remaining
-   pairs are fitted, until no matched pair is
-   more than <i>cutoff</i> &Aring; apart (<b>2.0</b> by default).
+  &nbsp;<i>cutoff</i>&nbsp;|&nbsp;none</a>
+<br>
+By default, structures are fit iteratively with a <i>cutoff</i> of 
+<b>2.0</b> &Aring; for omitting farther-apart pairs from the fit.
+Specifying the <i>cutoff</i> as <b>none</b> turns iteration off.
+When iteration is performed,
+the sequence alignment is not changed, but residue pairs in the 
+alignment can be pruned from the &ldquo;match list&rdquo; used to 
+superimpose the structures. In each cycle,
+pairs of <a href="#matchatom">atoms</a>
+are removed from the match list and the remaining
+pairs are fitted, until no matched pair is
+more than <i>cutoff</i> apart (default <b>2.0</b> &Aring;).
 The atom pairs removed are either the 10% farthest apart of all pairs
 or the 50% farthest apart of all pairs exceeding the cutoff, whichever
-is the lesser number of pairs.
-The result is that the best-matching &ldquo;core&rdquo; regions are maximally
-superimposed; conformationally dissimilar regions such as flexible
+is the lesser number of pairs. The result of iteration is that the 
+best-matching &ldquo;core&rdquo; regions are maximally superimposed, 
+and conformationally dissimilar regions such as flexible
 loops are not included in the final fit, even though they may be aligned
 in the sequence alignment.
 </blockquote>
