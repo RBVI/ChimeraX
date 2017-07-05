@@ -44,10 +44,10 @@ const std::set<AtomName> Residue::ribose_names = {
     "O3'", "C3'", "C4'", "C5'", "O5'", "O2'", "C2'", "O4'", "C1'"};
 const std::set<ResName> Residue::std_solvent_names = { "HOH", "WAT", "DOD" };
 
-Residue::Residue(Structure *as, const ResName& name, const ChainID& chain, int pos, char insert):
+Residue::Residue(Structure *as, const ResName& name, const ChainID& chain, int num, char insert):
     _alt_loc(' '), _chain(nullptr), _chain_id(chain), _insertion_code(insert),
     _is_het(false), _mmcif_chain_id(chain), _name(name), _polymer_type(PT_NONE),
-    _position(pos), _ribbon_adjust(-1.0), _ribbon_display(false),
+    _number(num), _ribbon_adjust(-1.0), _ribbon_display(false),
     _ribbon_hide_backbone(true), _ribbon_rgba({160,160,0,255}),
     _ss_id(-1), _ss_type(SS_COIL), _structure(as)
 {
@@ -264,7 +264,7 @@ Residue::set_alt_loc(char alt_loc)
 std::string
 Residue::str() const
 {
-    std::stringstream pos_string;
+    std::stringstream num_string;
     std::string ret = (const char*)_name;
     ret += ' ';
     if (_chain_id != " ") {
@@ -272,8 +272,8 @@ Residue::str() const
         ret += _chain_id;
     }
     ret += ':';
-    pos_string << _position;
-    ret += pos_string.str();
+    num_string << _number;
+    ret += num_string.str();
     if (_insertion_code != ' ')
         ret += _insertion_code;
     return ret;

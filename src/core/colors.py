@@ -162,7 +162,7 @@ class Color(State):
 
     def __ne__(self, other):
         if not isinstance(other, Color):
-            return False
+            return True
         import numpy
         return not numpy.array_equal(self.rgba, other.rgba)
 

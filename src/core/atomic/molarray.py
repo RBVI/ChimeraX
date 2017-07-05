@@ -122,6 +122,8 @@ class Collection(State):
         remove_deleted_pointers(pointers)
 
     def __eq__(self, atoms):
+        if not isinstance(atoms, Collection):
+            return False
         import numpy
         return numpy.array_equal(atoms._pointers, self._pointers)
     def hash(self):
@@ -412,6 +414,15 @@ class Atoms(Collection):
         "sequence), or with a single floating-point number.")
     default_radii = cvec_property('atom_default_radius', float32, read_only = True,
         doc="Returns a :mod:`numpy` array of default radii.")
+    def display_radii(self, ball_scale, bond_radius):
+        r = self.radii.copy()
+        dm = self.draw_modes
+        from .molobject import Atom
+        r[dm == Atom.BALL_STYLE] *= ball_scale
+        smask = (dm == Atom.STICK_STYLE)
+        if smask.any():
+            r[smask] = self.filter(smask).maximum_bond_radii(bond_radius)
+        return r
     def maximum_bond_radii(self, default_radius = 0.2):
         "Return maximum bond radius for each atom.  Used for stick style atom display."
         f = c_function('atom_maximum_bond_radius', args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_float, ctypes.c_void_p])
@@ -466,6 +477,8 @@ class Atoms(Collection):
     selected = cvec_property('atom_selected', npy_bool,
         doc="numpy bool array whether each Atom is selected.")
     selecteds = selected
+    serial_numbers = cvec_property('atom_serial_number', uint32, read_only = True,
+        doc="Serial numbers of atoms")
     @property
     def shown_atoms(self):
         '''
@@ -797,6 +810,13 @@ class Pseudobonds(Collection):
         s = concatenate((a1.unique_structures, a2.unique_structures), AtomicStructures, remove_duplicates = True)
         return s
 
+    @property
+    def by_group(self):
+        "Return list of 2-tuples of (PseudobondGroup, Pseudobonds for that group)."
+        gps = self.groups
+        gpp = gps._pointers
+        return [(g, self.filter(gpp==g._c_pointer.value)) for g in gps.unique()]
+
     _ses_ids = cvec_property('pseudobond_get_session_id', int32, read_only = True,
         doc="Used internally to save/restore in sessions")
     @staticmethod
@@ -1084,8 +1104,6 @@ class StructureDatas(Collection):
     '''A single :class:`.Chains` object containing chains for all structures. Read only.'''
     lower_case_chains = cvec_property('structure_lower_case_chains', npy_bool, read_only=True)
     '''A numpy bool array of lower_case_names of each structure.'''
-    names = cvec_property('structure_name', string)
-    '''A numpy string array of names of each structure.'''
     num_atoms = cvec_property('structure_num_atoms', size_t, read_only = True)
     '''Number of atoms in each structure. Read only.'''
     num_bonds = cvec_property('structure_num_bonds', size_t, read_only = True)

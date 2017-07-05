@@ -21,11 +21,11 @@ def register_core_commands(session):
         'alias', 'align',
         'camera', 'cartoon', 'cd', 'clip', 'close', 'cofr', 'color', 'colorname',
         'coordset', 'crossfade',
-        'delete', 'dssp', 'exit', 'hide',
+        'delete', 'devel', 'dssp', 'exit', 'graphics', 'hide',
         'lighting',
         'material', 'measure_buriedarea', 'measure_sasa', 'mousemode', 'move',
         'open', 'pdbimages', 'perframe', 'pwd',
-        'rainbow', 'rename', 'roll', 'run', 'rungs',
+        'rainbow', 'rename', 'roll', 'run', 'rungs', 'runscript',
         'save', 'scolor', 'select', 'set', 'show', 'split',
         'stop', 'style', 'surface', 'sym',
         'time', 'toolshed', 'transparency', 'turn',
@@ -42,3 +42,5 @@ def register_core_commands(session):
     fit.register_fitmap_command(session.logger)
     from ..map import series
     series.register_vseries_command(session.logger)
+    from .. import ui
+    ui.register_ui_command(session.logger)

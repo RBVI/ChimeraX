@@ -36,7 +36,7 @@ public:
     void  add_bond(Bond* element);
     void  remove_bond(Bond* element);
     const Bonds&  bonds() const { return _bonds; }
-    Bonds::size_type  size() { return _bonds.size(); }
+    Bonds::size_type  size() const { return _bonds.size(); }
 
     // Only bonds, not atoms, are stored "naturally" in the ring.
     // Nonetheless, it is convenient to get the atoms easily...

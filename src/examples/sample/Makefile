@@ -19,22 +19,20 @@ BUNDLE_VERSION = 0.1
 # General Python packages should be uploaded to
 # pypi.python.org rather than the ChimeraX toolshed.
 PKG_NAME = chimerax.sample
-# Set PURE_PYTHON to 0 if bundle is platform-specific, 1 if pure Python
-PURE_PYTHON = 0
 
 # Define where ChimeraX is installed.
 OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
 # CHIMERAX_APP is the ChimeraX install folder
 ifeq ($(OS),CYGWIN_NT)
 # Windows
-CHIMERAX_APP = /e/chimerax/ChimeraX.app
+CHIMERAX_APP = "/c/Program Files/ChimeraX.app"
 endif
 ifeq ($(OS),Darwin)
 # Mac
-CHIMERAX_APP = /usr/local/src/chimerax/ChimeraX.app
+CHIMERAX_APP = /Applications/ChimeraX.app
 endif
 ifeq ($(OS),Linux)
-CHIMERAX_APP = /usr/local/src/chimerax/ChimeraX.app
+CHIMERAX_APP = /usr/local/bin/ChimeraX.app
 endif
 
 # ==================================================================
@@ -43,27 +41,16 @@ endif
 # Platform-dependent settings.  Should not need fixing.
 # For Windows, we assume Cygwin is being used.
 ifeq ($(OS),CYGWIN_NT)
-PYTHON_EXE = $(CHIMERAX_APP)/bin/python.exe
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX.exe
 endif
 ifeq ($(OS),Darwin)
-PYTHON_EXE = $(CHIMERAX_APP)/Contents/bin/python3.6
 CHIMERAX_EXE = $(CHIMERAX_APP)/Contents/bin/ChimeraX
 endif
 ifeq ($(OS),Linux)
-PYTHON_EXE = $(CHIMERAX_APP)/bin/python3.6
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
 endif
 
-# Paths used for constructing the installation "wheel"
 BUNDLE_BASE_NAME = $(subst ChimeraX-,,$(BUNDLE_NAME))
-WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
-ifeq ($(PURE_PYTHON),1)
-TAG = $(shell $(PYTHON_EXE) -m wheel_tag -p)
-else
-TAG = $(shell $(PYTHON_EXE) -m wheel_tag)
-endif
-WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-$(TAG).whl
 SOURCE = src
 SRCS = $(SOURCE)/*.py $(SOURCE)/*.cpp
 
@@ -71,16 +58,14 @@ SRCS = $(SOURCE)/*.py $(SOURCE)/*.cpp
 # Actual make dependencies!
 #
 
-wheel $(WHEEL): license.txt setup.py $(SRCS)
-	$(PYTHON_EXE) setup.py --no-user-cfg build
-	$(PYTHON_EXE) setup.py --no-user-cfg test
-	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel
-	rm -rf $(WHL_BNDL_NAME).egg-info
-	echo Distribution is in $(WHEEL)
+wheel $(WHEEL): bundle_info.xml $(SRCS)
+	$(CHIMERAX_EXE) --nogui --cmd "devel build . ; exit"
 
 install app-install:	$(WHEEL)
+	$(CHIMERAX_EXE) --nogui --cmd "devel install . ; exit"
+
+uninstall app-uninstall:	$(WHEEL)
 	$(CHIMERAX_EXE) --nogui --cmd "toolshed uninstall $(BUNDLE_BASE_NAME) ; exit"
-	$(CHIMERAX_EXE) --nogui --cmd "toolshed install $(WHEEL) ; exit"
 
 test:
 	$(CHIMERAX_EXE)
@@ -89,20 +74,4 @@ debug:
 	$(CHIMERAX_EXE) --debug
 
 clean:
-	rm -rf __pycache__ build dist $(WHL_BNDL_NAME).egg-info setup.py
-	rm -rf $(SOURCE)/__pycache__
-
-license.txt:
-	@echo Please specify your project licensing terms in file \"license.txt\"
-	@echo The BSD license is included as file \"license.txt.bsd\"
-	@echo The MIT license is included as file \"license.txt.mit\"
-	@exit 1
-
-setup.py: setup.py.in Makefile
-	sed -e 's,BUNDLE_NAME,$(BUNDLE_NAME),' \
-		-e 's,BUNDLE_VERSION,$(BUNDLE_VERSION),' \
-		-e 's,PKG_NAME,$(PKG_NAME),' \
-		< setup.py.in > setup.py
-
-distclean:	clean
-	rm -f license.txt
+	$(CHIMERAX_EXE) --nogui --cmd "devel clean . ; exit"

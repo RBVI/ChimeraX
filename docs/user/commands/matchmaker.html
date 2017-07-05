@@ -71,7 +71,7 @@ can be specified with the <b>bring</b> option.
 Sequence alignment scores,
 parameter values, and final match RMSDs are reported in the
 <a href="../tools/log.html"><b>Log</b></a>.
-If the fit is <a href="#iterate">iterated</a>,
+If the fit is <a href="#cutoffDistance">iterated</a>,
 the final RMSD over all residue pairs (columns in the sequence alignment) 
 will be reported along with the RMSD over the pruned set of pairs.
 </p><p>
@@ -90,7 +90,7 @@ with the BLOSUM-62 <a href="#matrix">residue similarity matrix</a>
 <a href="#ssFraction">secondary structure scoring</a> (weight 0.3),
 keep the sequence alignment for the <a href="#pairing">best-scoring pair</a>
 of chains (one from model 0 and one from model 1), and using that alignment,
-<a href="#iterate">iteratively fit</a> the structures with a
+<a href="#cutoffDistance">iteratively fit</a> the structures with a
 cutoff of 2.0 &Aring;.
 <blockquote>
 <b>mm #1-5 to #6 computeSS false</b>
@@ -109,7 +109,7 @@ in model 2 onto chain A in model 1 using
 the Smith-Waterman <a href="#algorithm">algorithm</a>
 with the PAM-150 <a href="#matrix">residue similarity matrix</a>
 (weight 1.0, no <a href="#ssFraction">secondary structure scoring</a>);
-<a href="#iterate">iteratively fit</a>
+<a href="#cutoffDistance">iteratively fit</a>
 the structures using a cutoff of 5.0 &Aring;.
 <blockquote>
 <b>mm #1/a,b to #2/c,d pair ss</b>
@@ -140,7 +140,7 @@ otherwise align on their N-terminal domains can be forced to align on
 their C-terminal domains by specifying only the residues in
 the C-terminal domains.  Otherwise, restriction is not recommended,
 because full-length alignments tend to be of higher quality, and
-<a href="#iterate">iteration</a> already serves to exclude
+<a href="#cutoffDistance">iteration</a> already serves to exclude
 poorly superimposed regions from the final fit.
 <!--
 Although the unused parts of matched chains will appear in the resulting
@@ -200,7 +200,7 @@ Most of the options affect <a href="#scoring">alignment scoring</a>.
 <!--
     with <a href="../../ContributedSoftware/multalignviewer/framemav.html"
     target="_top"><b>Multalign Viewer</b></a>.
-    When <a href="#iterate">fit iteration</a> is employed,
+    When <a href="#cutoffDistance">fit iteration</a> is employed,
     the pairs used in the final fit will be shown in the alignment as a 
 <a href="../../ContributedSoftware/multalignviewer/multalignviewer.html#regions">region</a> 
    named <b>matched residues</b>. The &ldquo;<b>RMSD: ca</b>&rdquo; 
@@ -219,7 +219,7 @@ is not meaningful.
   **These sequence alignments can be considered a by-product of superposition.
   Successful superposition only requires the sequence alignment to be partly
   correct, as incorrect portions tend to be excluded from the fit during
-  <a href="#iterate">iteration</a>.
+  <a href="#cutoffDistance">iteration</a>.
   If the sequences are easy to align (highly similar),
   the sequence alignment is likely to be correct throughout.
   However, if the sequences are more distantly related,
@@ -236,12 +236,13 @@ is not meaningful.
 -->
 </blockquote>
 <blockquote>
-  <a name="iterate"><b>iterate</b> <i>cutoff</i>&nbsp;|&nbsp;false</a>
+  <a name="cutoffDistance"><b>cutoffDistance</b> 
+  &nbsp;<i>cutoff</i>&nbsp;|&nbsp;off</a>
   <br>Whether to iteratively fit the structures, and the cutoff for
    excluding residue pairs from the fit. An iterative fit
-   will be performed unless this option is set to <b>false</b>.
+   will be performed unless this option is set to <b>off</b>.
    The sequence alignment is not changed, but residue pairs in the 
-   alignment can be removed from the "match list" used to 
+   alignment can be removed from the &ldquo;match list&rdquo; used to 
    superimpose the structures. In each cycle,
    pairs of <a href="#matchatom">atoms</a>
    are removed from the match list and the remaining
@@ -250,7 +251,7 @@ is not meaningful.
 The atom pairs removed are either the 10% farthest apart of all pairs
 or the 50% farthest apart of all pairs exceeding the cutoff, whichever
 is the lesser number of pairs.
-The result is that the best-matching "core" regions are maximally
+The result is that the best-matching &ldquo;core&rdquo; regions are maximally
 superimposed; conformationally dissimilar regions such as flexible
 loops are not included in the final fit, even though they may be aligned
 in the sequence alignment.
@@ -432,5 +433,5 @@ a secondary structure term (if protein), and gap penalties.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2016</address>
+July 2017</address>
 </body></html>

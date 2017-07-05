@@ -73,6 +73,9 @@ class UI:
         global _color_output
         self.is_gui = False
         session.logger.add_log(NoGuiLog())
+        from .settings import UI_Settings
+        self.settings = UI_Settings(session, "ui")
+
         import weakref
         self._session = weakref.ref(session)
         self._queue = None

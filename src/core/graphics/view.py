@@ -713,13 +713,16 @@ class View:
         if xyz1 is None or xyz2 is None:
             return None
         if beyond is not None:
-            f = beyond + 1e-5
-            xyz1 = (1-f)*xyz1 + f*xyz2
+            fb = beyond + 1e-5
+            xyz1 = (1-fb)*xyz1 + fb*xyz2
         p = self.drawing.first_intercept(xyz1, xyz2, exclude=exclude)
         if p is None:
             return None
         f = p.distance
         p.position = (1.0 - f) * xyz1 + f * xyz2
+        if beyond:
+            # Correct distance fraction to refer to clip planes.
+            p.distance = fb + f*(1-fb)
         return p
 
     def rectangle_intercept(self, win_x1, win_y1, win_x2, win_y2, exclude=None):

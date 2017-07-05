@@ -221,7 +221,7 @@ class BundleInfo:
             f(command_name, logger)
         except Exception as e:
             raise ToolshedError(
-                "register_command() failed for command %s:\n%s" % (command_name, str(e)))
+                "register_command() failed for command %s in bundle %s:\n%s" % (command_name, self.name, str(e)))
 
     def _deregister_commands(self, logger):
         """Deregister commands with cli."""
@@ -250,10 +250,10 @@ class BundleInfo:
                         f = self._get_api(logger).open_file
                     except AttributeError:
                         raise ToolshedError(
-                            "no open_file function found for bundle \"%s\""
-                            % self.name)
+                            "no open_file function found for bundle \"%s\"" % self.name)
                     if f == BundleAPI.open_file:
-                        raise ToolshedError("bundle \"%s\"'s API forgot to override open_file()" % self.name)
+                        raise ToolshedError(
+                            "bundle \"%s\"'s API forgot to override open_file()" % self.name)
 
                     # optimize by replacing open_func for format
                     # ... present the right call signature to io.open_data...
@@ -326,8 +326,12 @@ class BundleInfo:
 
     def _deregister_file_types(self, logger):
         """Deregister file types."""
-        # TODO: implement
-        pass
+        from chimerax.core import io, fetch
+        # Deregister fetch first since it might use format info
+        for (database_name, format_name, prefixes, example_id, is_default) in self.fetches:
+            fetch.deregister_fetch(database_name, format_name, prefixes=prefixes)
+        for fi in self.formats:
+            io.deregister_format(fi.name)
 
     def _register_selectors(self, logger):
         from ..commands import register_selector
@@ -391,6 +395,18 @@ class BundleInfo:
                 session.logger.warning("bundle \"%s\"'s API forgot to override finish()" % self.name)
                 return
             f(session, self)
+
+    def unload(self, logger):
+        """Unload bundle modules (as best as we can)."""
+        import sys
+        m = self.get_module()
+        logger.info("unloading module %s" % m.__name__)
+        name = m.__name__
+        prefix = name + '.'
+        remove_list = [k for k in sys.modules.keys()
+                       if k == name or k.startswith(prefix)]
+        for k in remove_list:
+            del sys.modules[k]
 
     def get_class(self, class_name, logger):
         """Return bundle's class with given name."""
@@ -675,7 +691,8 @@ def _convert_keyword_types(kwds, bi, logger):
 
     result = {}
     for kw in kwds:
-        arg_type = get_arg(kwds[kw])
+        desc, arg_name = kwds[kw]
+        arg_type = get_arg(arg_name)
         if arg_type is None:
             continue
         result[kw] = arg_type

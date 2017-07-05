@@ -137,6 +137,31 @@ class PlainTextLog(Log):
         return False
 
 
+class StringPlainTextLog(PlainTextLog):
+    """Capture plain text messages in a string (similar to StringIO)"""
+
+    excludes_other_logs = True
+
+    def __init__(self, logger):
+        super().__init__()
+        self._msgs = []
+        self.logger = logger
+
+    def __enter__(self):
+        self.logger.add_log(self)
+        return self
+
+    def __exit__(self, *exc_info):
+        self.logger.remove_log(self)
+
+    def log(self, level, msg):
+        self._msgs.append(msg)
+        return True
+
+    def getvalue(self):
+        return ''.join(self._msgs)
+
+
 class StatusLogger:
     """Base class for classes that offer 'status' method."""
 

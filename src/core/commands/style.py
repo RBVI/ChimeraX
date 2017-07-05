@@ -17,8 +17,9 @@ def style(session, objects=None, atom_style=None, atom_radius=None,
 
     Parameters
     ----------
-    atoms : Atoms or None
-        Change the style of these atoms. If not specified then all atoms are changed.
+    objects : Objects
+        Change the style of these atoms and pseudobond groups.
+        If not specified then all atoms are changed.
     atom_style : "sphere", "ball" or "stick"
         Controls how atoms and bonds are depicted.
     atom_radius : float or "default"
@@ -58,10 +59,15 @@ def style(session, objects=None, atom_style=None, atom_radius=None,
         what.append('%d bond radii' % len(b))
 
     if pseudobond_radius is not None:
-        from ..atomic import interatom_pseudobonds
+        from ..atomic import interatom_pseudobonds, concatenate
         pb = interatom_pseudobonds(atoms)
         pb.radii = pseudobond_radius
-        what.append('%d pseudobond radii' % len(pb))
+        pbs = [pb]
+        for pbg in pseudobond_groups(objects, session, interatom = False):
+            pb = pbg.pseudobonds
+            pb.radii = pseudobond_radius
+            pbs.append(pb)
+        what.append('%d pseudobond radii' % len(concatenate(pbs, remove_duplicates=True)))
 
     if ball_scale is not None:
         mols = atoms.unique_structures
@@ -79,29 +85,34 @@ def style(session, objects=None, atom_style=None, atom_radius=None,
         for pbg in pseudobond_groups(objects, session):
             pbg.dashes = dashes
 
-def pseudobond_groups(objects, session):
+# -----------------------------------------------------------------------------
+#
+def pseudobond_groups(objects, session, interatom = True):
     from ..atomic import PseudobondGroup, all_atoms
 
     # Explicitly specified global pseudobond groups
     models = session.models.list() if objects is None else objects.models
     pbgs = set(m for m in models if isinstance(m, PseudobondGroup))
 
-    atoms = all_atoms(session) if objects is None else objects.atoms
+    if interatom:
+        atoms = all_atoms(session) if objects is None else objects.atoms
 
-    # Intra-molecular pseudobond groups with bonds between specified atoms.
-    for m in atoms.unique_structures:
-        molpbgs = [pbg for pbg in m.pbg_map.values()
-                   if pbg.pseudobonds.between_atoms(atoms).any()]
-        pbgs.update(molpbgs)
+        # Intra-molecular pseudobond groups with bonds between specified atoms.
+        for m in atoms.unique_structures:
+            molpbgs = [pbg for pbg in m.pbg_map.values()
+                       if pbg.pseudobonds.between_atoms(atoms).any()]
+            pbgs.update(molpbgs)
 
-    # Global pseudobond groups with bonds between specified atoms
-    gpbgs = [pbg for pbg in session.models.list(type = PseudobondGroup)
-             if pbg.pseudobonds.between_atoms(atoms).any()]
-    pbgs.update(gpbgs)
+        # Global pseudobond groups with bonds between specified atoms
+        gpbgs = [pbg for pbg in session.models.list(type = PseudobondGroup)
+                 if pbg.pseudobonds.between_atoms(atoms).any()]
+        pbgs.update(gpbgs)
 
     return pbgs
 
 
+# -----------------------------------------------------------------------------
+#
 def register_command(session):
     from . import register, CmdDesc, ObjectsArg, EmptyArg, EnumOf, Or, IntArg, FloatArg
     desc = CmdDesc(required = [('objects', Or(ObjectsArg, EmptyArg)),

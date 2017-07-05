@@ -67,7 +67,8 @@ class SampleTool(ToolInstance):
     def _run(self, atomspec):
         # Execute "sample count" command for given atomspec
         from chimerax.core.commands import run
-        with CaptureLog(self.session.logger) as log:
+        from chimerax.core.logger import StringPlainTextLog
+        with StringPlainTextLog(self.session.logger) as log:
             try:
                 run(self.session, "sample count " + atomspec)
             finally:

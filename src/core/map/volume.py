@@ -493,6 +493,7 @@ class Volume(Model):
         self.surface_colors = [rgba]
 
     if replace or len(self.solid_levels) == 0:
+      ilow, imid, imax = 0, 0.8, 1
       if mfrac is None:
         vlow = s.rank_data_value(1-vfrac[1])
         vmid = s.rank_data_value(1-vfrac[0])
@@ -502,15 +503,15 @@ class Volume(Model):
       vmax = s.maximum
       rgba = saturate_rgba(self.default_rgba)
       if polar:
-        self.solid_levels = ((s.minimum,1), (max(-vmid,s.minimum),0.99), (0,0),
-                             (0,0), (vmid,0.99), (vmax,1))
+        self.solid_levels = ((s.minimum,imax), (max(-vmid,s.minimum),imid), (0,ilow),
+                             (0,ilow), (vmid,imid), (vmax,imax))
         neg_rgba = tuple([1-c for c in rgba[:3]] + [rgba[3]])
         self.solid_colors = (neg_rgba,neg_rgba,neg_rgba, rgba,rgba,rgba)
       else:
         if vlow < vmid and vmid < vmax:
-          self.solid_levels = ((vlow,0), (vmid,0.99), (vmax,1))
+          self.solid_levels = ((vlow,ilow), (vmid,imid), (vmax,imax))
         else:
-          self.solid_levels = ((vlow,0), (0.9*vlow+0.1*vmax,0.99), (vmax,1))
+          self.solid_levels = ((vlow,ilow), (0.9*vlow+0.1*vmax,imid), (vmax,imax))
         self.solid_colors = [rgba]*len(self.solid_levels)
 
     self.initialized_thresholds = True
@@ -932,7 +933,9 @@ class Volume(Model):
   #
   def shown(self):
 
-    return self.display
+    surf_disp = len([d for d in self.surface_drawings if d.display]) > 0
+    solid_disp = (self.solid and self.solid.drawing.display)
+    return self.display and (surf_disp or solid_disp)
     
   # ---------------------------------------------------------------------------
   #
@@ -1907,6 +1910,9 @@ class Volume(Model):
   #
   def delete(self):
 
+    d = self.data
+    if d:
+      d.clear_cache()
     self.close_models()
     Model.delete(self)
       
@@ -2997,10 +3003,17 @@ def open_grids(session, grids, name, **kw):
     maps = []
     show = kw.get('show', True)
     show_dialog = kw.get('show_dialog', True)
+    channels = [getattr(d, 'channel', 0) for d in grids]
+    channels.sort()
+    channel_show_max = channels[min(2,len(channels)-1)]
     for i,d in enumerate(grids):
         show_data = show and (i == 0 or not hasattr(d, 'series_index'))
-        v = volume_from_grid_data(d, session, open_model = False,
-                                  show_data = show_data, show_dialog = show_dialog)
+        kw = {'show_data': show_data, 'show_dialog': show_dialog}
+        if hasattr(d, 'initial_style') and d.initial_style in ('surface', 'mesh', 'solid'):
+          kw['representation'] = d.initial_style
+        v = volume_from_grid_data(d, session, open_model = False, **kw)
+        if getattr(d, 'channel', 0) > channel_show_max:
+          v.display = False	# Hide all but lowest 3 channels, but compute the graphics
 #        v.new_region(ijk_step = (1,1,1), adjust_step = False, show = show_data)
         maps.append(v)
 

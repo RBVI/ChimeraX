@@ -33,6 +33,10 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>transparentBackground</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
+<br><b>save</b> [&nbsp;<b>session</b>&nbsp;] &nbsp;<i>filename</i>
+[&nbsp;<b>format</b>&nbsp;&nbsp;<b>ses</b>&nbsp;]
+</h3>
+<h3><a href="usageconventions.html">Usage</a>:
 <br><b>save</b> [&nbsp;<b>map</b>&nbsp;] 
 &nbsp;<i>filename</i>
 [&nbsp;<b>models</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
@@ -44,10 +48,6 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>append</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>compress</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>chunkShapes</b>&nbsp;&nbsp;<i>order</i>&nbsp;]
-</h3>
-<h3><a href="usageconventions.html">Usage</a>:
-<br><b>save</b> [&nbsp;<b>session</b>&nbsp;] &nbsp;<i>filename</i>
-[&nbsp;<b>format</b>&nbsp;&nbsp;<b>ses</b>&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>save</b>&nbsp;&nbsp;<i>filename</i>
@@ -71,14 +71,17 @@ class="clRight" title="User Guide Index"/></a>
 <br><b>save</b> <b>formats</b>
 </h3>
 <p>
-The command <b>save</b> saves an image, 
-map (<a href="../tools/volumeviewer.html">volume data</a>), ChimeraX session,
+The command <b>save</b> saves an image, ChimeraX session,
+map (<a href="../tools/volumeviewer.html">volume data</a>),
 or other data to <i>filename</i>, 
 which can be a pathname (including directory location).
 The pathname can be absolute or relative to the current working directory as
 reported by <a href="pwd.html"><b>pwd</b></a>.
 The working directory can be changed with <a href="cd.html"><b>cd</b></a>.
-Image and session files can also be saved with <b>File... Save</b> in the menu.
+Sessions and images include &ldquo;all,&rdquo; but for other file types,
+the <b>models</b> option can be used to specify which model(s) to save.
+</p><p>
+Files can also be saved with <b>File... Save</b> in the menu.
 See also:
 <a href="open.html"><b>open</b></a>,
 <a href="getcrd.html"><b>getcrd</b></a>,
@@ -90,15 +93,28 @@ See also:
 <a href="../tools/graphics.html"><b>Graphics Toolbar</b></a>,
 <a href="../images.html">making images</a>
 </p>
+<ul class="none">
+<li><a href="#formats"><b>Output Formats</b></a>
+<li><a href="#image-options"><b>Image Options</b></a>
+<li><a href="#map-options"><b>Map Options</b></a>
+<li><a href="#mol2-options"><b>Mol2 Options</b></a>
+</ul>
 
+<a name="formats"></a>
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
 <h3>Output Formats</h3>
 <p>
-The <b>image</b>, <b>map</b>, or <b>session</b> keyword 
+The <b>image</b>, <b>session</b>, or <b>map</b> keyword 
 before the <i>filename</i>
 is optional if the file type is specified with either the <i>filename</i> 
 suffix or the <b>format</b> option. Some file types have no 
 preceding keyword and must be specified with either the <i>filename</i>
-suffix or the <b>format</b> option.
+suffix or the <b>format</b> option. 
+If the format is specified separately, the
+appropriate suffix will be added to <i>filename</i>.
+</p><p>
 The command <b>save formats</b> lists the possible output formats in the
 <a href="../tools/log.html"><b>Log</b></a>.
 </p>
@@ -134,6 +150,11 @@ The command <b>save formats</b> lists the possible output formats in the
 <td align="center">.ppm</td>
 <td align="center">Portable PixMap</td>
 </tr><tr>
+<td align="center"><b>session</b></td>
+<td align="center">ses</td>
+<td align="center">.cxs</td>
+<td align="center">ChimeraX session</td>
+</tr><tr>
 <td align="center" rowspan="3"><b>map</b></td>
 <td align="center">cmap</td>
 <td align="center">.cmp<br>.cmap</td>
@@ -147,12 +168,7 @@ The command <b>save formats</b> lists the possible output formats in the
 <td align="center">.mrc</td>
 <td align="center">MRC density map</td>
 </tr><tr>
-<td align="center"><b>session</b></td>
-<td align="center">ses</td>
-<td align="center">.cxs</td>
-<td align="center">ChimeraX session</td>
-</tr><tr>
-<td align="center" rowspan="4">(none)</td>
+<td align="center" rowspan="5">(none)</td>
 <td align="center">mol2</td>
 <td align="center">.mol2</td>
 <td align="center">
@@ -167,6 +183,11 @@ atomic coordinates,<br>
 mmCIF<br>
 *experimental/incomplete*</td>
 </tr><tr>
+<td align="center">dcd</td>
+<td align="center">.dcd</td>
+<td align="center"><a href="../trajectories.html">trajectory</a> 
+coordinates,<br>DCD (binary)</td>
+</tr><tr>
 <td align="center">stl</td>
 <td align="center">.stl</td>
 <td align="center">STereoLithography</td>
@@ -176,14 +197,6 @@ mmCIF<br>
 <td align="center"><a href="http://www.web3d.org/x3d/"
 target="_blank">X3D</a></td>
 </tr></table>
-<p>
-If the format is specified separately, the
-appropriate suffix will be added to <i>filename</i>.
-Further options for <a href="#image-options">images</a>,
-<a href="#map-options">maps</a>, and
-<a href="#mol2-options">Mol2 files</a> (atomic coordinates)
-are described below.
-</p>
 
 <a name="image-options"></a>
 <p class="nav">
@@ -446,5 +459,5 @@ GAFF types are not yet computed, so this should be kept <b>false</b>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2017</address>
+June 2017</address>
 </body></html>

@@ -174,6 +174,16 @@ class Drawing:
         if rn is not None:
             rn(**kw)
 
+    def _get_shape_changed(self):
+        rn = self._redraw_needed
+        return rn.shape_changed if rn else False
+    def _set_shape_changed(self, changed):
+        rn = self._redraw_needed
+        if rn:
+            rn.shape_changed = changed
+    shape_changed = property(_get_shape_changed, _set_shape_changed)
+    '''Did this drawing or any drawing in the same tree change shape since the last redraw.'''
+    
     def __setattr__(self, key, value):
         if key in self._effects_shader:
             self._shader_opt = None       # Cause shader update
@@ -1780,17 +1790,19 @@ def _texture_drawing(texture, pos=(-1, -1), size=(2, 2), drawing=None):
     d = drawing if drawing else Drawing('rgba')
     x, y = pos
     sx, sy = size
-    from numpy import array, float32, uint32
+    from numpy import array, float32, int32
     vlist = array(((x, y, 0),
                    (x + sx, y, 0),
                    (x + sx, y + sy, 0),
                    (x, y + sy, 0)), float32)
-    tlist = array(((0, 1, 2), (0, 2, 3)), uint32)
+    tlist = array(((0, 1, 2), (0, 2, 3)), int32)
     tc = array(((0, 0), (1, 0), (1, 1), (0, 1)), float32)
     d.geometry = vlist, tlist
     d.color = (255, 255, 255, 255)         # Modulates texture values
     d.use_lighting = False
     d.texture_coordinates = tc
+    if d.texture is not None:
+        d.texture.delete_texture()
     d.texture = texture
     return d
 

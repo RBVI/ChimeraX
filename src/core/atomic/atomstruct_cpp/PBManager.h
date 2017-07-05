@@ -69,10 +69,7 @@ public:
     int  session_info(PyObject** ints, PyObject** floats, PyObject** misc) const;
     typedef std::unordered_map<const Pseudobond*, int> SessionSavePbMap;
     mutable SessionSavePbMap* session_save_pbs = nullptr;
-    void  session_save_setup() const {
-        session_save_pbs = new SessionSavePbMap;
-        _ses_struct_to_id_map = new SessionStructureToIDMap;
-    }
+    void  session_save_setup() const;
     void  session_save_teardown() const {
         delete session_save_pbs;
         delete _ses_struct_to_id_map;

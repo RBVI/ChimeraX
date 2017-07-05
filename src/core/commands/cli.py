@@ -819,6 +819,20 @@ class EmptyArg(Annotation):
         return None, "", text
 
 
+class NoneArg(Annotation):
+    """Annotation for 'none' (typically used with Or)"""
+    name = "none"
+
+    @staticmethod
+    def parse(text, session):
+        if not text:
+            raise AnnotationError("Expected %s" % NoneArg.name)
+        token, text, rest = next_token(text)
+        if token.lower() == "none":
+            return None, text, rest
+        raise AnnotationError("Expected %s" % NoneArg.name)
+
+
 class IntArg(Annotation):
     """Annotation for integer literals"""
     name = "an integer"

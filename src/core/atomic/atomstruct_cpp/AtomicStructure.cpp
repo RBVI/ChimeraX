@@ -285,7 +285,7 @@ AtomicStructure::make_chains() const
 
             if (seqres_size < chain_size) {
                 logger::warning(_logger, input_seq_source, " for chain ",
-                    chain_id, " of ", _name, " is incomplete.  "
+                    chain_id, " is incomplete.  "
                     "Ignoring input sequence records as basis for sequence.");
                 continue;
             }
@@ -297,7 +297,7 @@ AtomicStructure::make_chains() const
             && std::search(sr_seq.begin(), sr_seq.end(),
             chain->begin(), chain->end()) == sr_seq.end()) {
                 logger::warning(_logger, "Residues corresponding to ",
-                    input_seq_source, " for chain ", chain_id, " of ", _name,
+                    input_seq_source, " for chain ", chain_id,
                     " are missing.  Ignoring record as basis for sequence.");
                 continue;
             }
@@ -442,7 +442,7 @@ AtomicStructure::polymers(AtomicStructure::PolymerMissingStructure missing_struc
                 Residue *r1 = a1->residue();
                 Residue *r2 = a2->residue();
                 if (missing_structure_treatment == PMS_TRACE_CONNECTS) {
-                    if (std::abs(r1->position() - r2->position()) > 1)
+                    if (std::abs(r1->number() - r2->number()) > 1)
                         continue;
                     Atom* pa1 = r1->principal_atom();
                     if (r1->principal_atom() == nullptr)

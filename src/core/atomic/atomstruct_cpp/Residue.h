@@ -69,7 +69,7 @@ private:
     ChainID  _mmcif_chain_id;
     ResName  _name;
     PolymerType  _polymer_type;
-    int  _position;
+    int  _number;
     float  _ribbon_adjust;
     bool  _ribbon_display;
     bool  _ribbon_hide_backbone;
@@ -85,7 +85,7 @@ public:
     std::vector<Bond*>  bonds_between(const Residue* other_res, bool just_first=false) const;
     Chain*  chain() const;
     const ChainID&  chain_id() const;
-    bool connects_to(Residue* r) const { return bonds_between(r, true).size() > 0; }
+    bool  connects_to(const Residue* other_res) { return !bonds_between(other_res, true).empty(); }
     int  count_atom(const AtomName&) const;
     Atom *  find_atom(const AtomName&) const;
     const ChainID&  mmcif_chain_id() const { return _mmcif_chain_id; }
@@ -95,7 +95,7 @@ public:
     bool  is_strand() const { return ss_type() == SS_STRAND; }
     const ResName&  name() const { return _name; }
     PolymerType  polymer_type() const { return _polymer_type; }
-    int  position() const { return _position; }
+    int  number() const { return _number; }
     Atom*  principal_atom() const;
     void  remove_atom(Atom*);
     int  session_num_floats(int version=CURRENT_SESSION_VERSION) const {

@@ -64,9 +64,9 @@ lint:
 molc.$(OBJ_EXT): $(includedir)/atomstruct/Atom.h $(includedir)/atomstruct/AtomicStructure.h \
 	$(includedir)/atomstruct/Bond.h $(includedir)/atomstruct/Chain.h \
 	$(includedir)/atomstruct/ChangeTracker.h $(includedir)/atomstruct/destruct.h \
-	$(includedir)/atomstruct/PBGroup.h $(includedir)/atomstruct/Pseudobond.h \
-	$(includedir)/atomstruct/Residue.h $(includedir)/atomstruct/RibbonXSection.h \
-	$(includedir)/atomstruct/Sequence.h
+	$(includedir)/atomstruct/PBGroup.h $(includedir)/atomstruct/PBManager.h \
+	$(includedir)/atomstruct/Pseudobond.h $(includedir)/atomstruct/Residue.h \
+	$(includedir)/atomstruct/RibbonXSection.h $(includedir)/atomstruct/Sequence.h
 
 $(includedir)/atomstruct/Atom.h: atomstruct_cpp.install
 $(includedir)/atomstruct/AtomicStructure.h: atomstruct_cpp.install

@@ -79,6 +79,9 @@ class UI(QApplication):
         self.already_quit = False
         self.session = session
 
+        from .settings import UI_Settings
+        self.settings = UI_Settings(session, "ui")
+
         from .mousemodes import MouseModes
         self.mouse_modes = MouseModes(session)
 
@@ -89,6 +92,13 @@ class UI(QApplication):
         import sys
         QApplication.__init__(self, [sys.argv[0]])
 
+        self.redirect_qt_messages()
+
+        self._keystroke_sinks = []
+        self._files_to_open = []
+
+    def redirect_qt_messages(self):
+        
         # redirect Qt log messages to our logger
         from ..logger import Log
         from PyQt5.QtCore import QtDebugMsg, QtInfoMsg, QtWarningMsg, QtCriticalMsg, QtFatalMsg
@@ -108,10 +118,10 @@ class UI(QApplication):
             self.session.logger.method_map[log_level](msg_string)
         qInstallMessageHandler(cx_qt_msg_handler)
 
+    def show_splash(self):
         # splash screen
         import os.path
-        splash_pic_path = os.path.join(os.path.dirname(__file__),
-                                       "splash.jpg")
+        splash_pic_path = os.path.join(os.path.dirname(__file__), "splash.jpg")
         from PyQt5.QtWidgets import QSplashScreen
         from PyQt5.QtGui import QPixmap
         self.splash = QSplashScreen(QPixmap(splash_pic_path))
@@ -120,8 +130,6 @@ class UI(QApplication):
         self.splash.setFont(font)
         self.splash.show()
         self.splash_info("Initializing ChimeraX")
-
-        self._keystroke_sinks = []
 
     def close_splash(self):
         pass
@@ -147,7 +155,32 @@ class UI(QApplication):
         triggers.add_handler(TOOLSHED_BUNDLE_INSTALLED, handler)
         triggers.add_handler(TOOLSHED_BUNDLE_UNINSTALLED, handler)
         triggers.add_handler(TOOLSHED_BUNDLE_INFO_RELOADED, handler)
+        if self.autostart_tools:
+            self.session.tools.start_tools(self.settings.autostart)
 
+    def event(self, event):
+        from PyQt5.QtCore import QEvent
+        if event.type() == QEvent.FileOpen:
+            if not hasattr(self, 'toolshed'):
+                # Drop event might have started ChimeraX and it is not yet ready to open a file.
+                # So remember file and startup script will open it when ready.
+                self._files_to_open.append(event.file())
+            else:
+                _open_dropped_file(self.session, event.file())
+            return True
+        return QApplication.event(self, event)
+
+    def open_pending_files(self, ignore_files = ()):
+        # Note about ignore_files:  macOS 10.12 generates QFileOpenEvent for arguments specified
+        # on the command-line, but are code also opens those files, so ignore files we already processed.
+        for path in self._files_to_open:
+            if path not in ignore_files:
+                try:
+                    _open_dropped_file(self.session, path)
+                except Exception as e:
+                    self.session.logger.warning('Failed opening file %s:\n%s' % (path, str(e)))
+        self._files_to_open.clear()
+                    
     def deregister_for_keystrokes(self, sink, notfound_okay=False):
         """'undo' of register_for_keystrokes().  Use the same argument.
         """
@@ -258,6 +291,7 @@ from PyQt5.QtWidgets import QMainWindow, QStackedWidget, QLabel, QDesktopWidget,
 class MainWindow(QMainWindow, PlainTextLog):
 
     def __init__(self, ui, session):
+        self.session = session
         QMainWindow.__init__(self)
         self.setWindowTitle("ChimeraX")
         # make main window 2/3 of full screen of primary display
@@ -336,8 +370,22 @@ class MainWindow(QMainWindow, PlainTextLog):
         
         session.logger.add_log(self)
 
-        self.show()
+        # Allow drag and drop of files onto app window.
+        self.setAcceptDrops(True)
 
+        self.show()
+    
+    def dragEnterEvent(self, event):
+        md = event.mimeData()
+        if md.hasUrls():
+            event.acceptProposedAction()
+        
+    def dropEvent(self, event):
+        md = event.mimeData()
+        paths = [url.toLocalFile() for url in md.urls()]
+        for p in paths:
+            _open_dropped_file(self.session, p)
+        
     def addToolBar(self, *args, **kw):
         # need to track toolbars for checkbuttons in Tools->Toolbar
         retval = QMainWindow.addToolBar(self, *args, **kw)
@@ -361,7 +409,7 @@ class MainWindow(QMainWindow, PlainTextLog):
     def closeEvent(self, event):
         # the MainWindow close button has been clicked
         event.accept()
-        self.graphics_window.session.ui.quit()
+        self.session.ui.quit()
 
     def close_request(self, tool_window, close_event):
         # closing a tool window has been requested
@@ -477,21 +525,22 @@ class MainWindow(QMainWindow, PlainTextLog):
         if show == (self._stack.currentWidget() == self.rapid_access):
             return
 
+        ses = self.session
         from PyQt5.QtCore import QEventLoop
         if show:
             icon = self._ra_shown_icon
             if not self._rapid_access_shown_once:
-                self.graphics_window.session.update_loop.block_redraw()
+                ses.update_loop.block_redraw()
             self._stack.setCurrentWidget(self.rapid_access)
         else:
             icon = self._ra_hidden_icon
             self._stack.setCurrentWidget(self.graphics_window.widget)
             if not self._rapid_access_shown_once:
-                self.graphics_window.session.update_loop.unblock_redraw()
+                ses.update_loop.unblock_redraw()
                 self._rapid_access_shown_once = True
-        self.graphics_window.session.update_loop.block_redraw()
-        self.graphics_window.session.ui.processEvents(QEventLoop.ExcludeUserInputEvents)
-        self.graphics_window.session.update_loop.unblock_redraw()
+        ses.update_loop.block_redraw()
+        ses.ui.processEvents(QEventLoop.ExcludeUserInputEvents)
+        ses.update_loop.unblock_redraw()
 
         but = self._rapid_access_button
         but.setChecked(show)
@@ -513,7 +562,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         self._show_status_now()
 
     def _check_rapid_access(self, *args):
-        self.rapid_access_shown = len(self.graphics_window.session.models) == 0
+        self.rapid_access_shown = len(self.session.models) == 0
 
     def _show_status_now(self):
         # In Qt 5.7.1 there is no way to for the status line to redraw without running the event loop.
@@ -532,7 +581,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         if getattr(self, '_processing_deferred_events', False):
             return
 
-        s = self.graphics_window.session
+        s = self.session
         ul = s.update_loop
         ul.block_redraw()	# Prevent graphics redraw. Qt timers can fire.
         self._in_status_event_processing = True
@@ -557,7 +606,7 @@ class MainWindow(QMainWindow, PlainTextLog):
                 self._process_deferred_events()
             else:
                 self._processing_deferred_events = True
-                self.graphics_window.session.ui.processEvents()
+                self.session.ui.processEvents()
                 self._processing_deferred_events = False
 
         self._flush_timer_queued = True
@@ -626,24 +675,27 @@ class MainWindow(QMainWindow, PlainTextLog):
         file_menu = mb.addMenu("&File")
         open_action = QAction("&Open...", self)
         open_action.setShortcut("Ctrl+O")
-        open_action.setStatusTip("Open input file")
+        open_action.setToolTip("Open input file")
         open_action.triggered.connect(lambda arg, s=self, sess=session: s.file_open_cb(sess))
         file_menu.addAction(open_action)
         save_action = QAction("&Save...", self)
         save_action.setShortcut("Ctrl+S")
-        save_action.setStatusTip("Save output file")
+        save_action.setToolTip("Save output file")
         save_action.triggered.connect(lambda arg, s=self, sess=session: s.file_save_cb(sess))
         file_menu.addAction(save_action)
         quit_action = QAction("&Quit", self)
         quit_action.setShortcut("Ctrl+Q")
-        quit_action.setStatusTip("Quit ChimeraX")
+        quit_action.setToolTip("Quit ChimeraX")
         quit_action.triggered.connect(lambda arg, s=self, sess=session: s.file_quit_cb(sess))
         file_menu.addAction(quit_action)
+        file_menu.setToolTipsVisible(True)
 
         self.tools_menu = mb.addMenu("&Tools")
+        self.tools_menu.setToolTipsVisible(True)
         self.update_tools_menu(session)
 
         help_menu = mb.addMenu("&Help")
+        help_menu.setToolTipsVisible(True)
         for entry, topic, tooltip in (
                 ('User Guide', 'user', 'Tutorials and user documentation'),
                 ('Quick Start Guide', 'quickstart', 'Interactive ChimeraX basics'),
@@ -657,12 +709,6 @@ class MainWindow(QMainWindow, PlainTextLog):
                 run(ses, 'help help:%s' % t)
             help_action.triggered.connect(cb)
             help_menu.addAction(help_action)
-        def forceMenuToolTip(action):
-            from PyQt5.QtGui import QCursor
-            from PyQt5.QtWidgets import QToolTip
-            QToolTip.showText(QCursor.pos(), action.toolTip(), help_menu,
-                help_menu.actionGeometry(action))
-        help_menu.hovered.connect(forceMenuToolTip)
         from chimerax import app_dirs as ad
         about_action = QAction("About %s %s" % (ad.appauthor, ad.appname), self)
         about_action.triggered.connect(self._about)
@@ -672,6 +718,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         self._checkbutton_tools = {}
         from PyQt5.QtWidgets import QMenu, QAction
         tools_menu = QMenu("&Tools")
+        tools_menu.setToolTipsVisible(True)
         categories = {}
         for bi in session.toolshed.bundle_info(session.logger):
             for tool in bi.tools:
@@ -686,11 +733,12 @@ class MainWindow(QMainWindow, PlainTextLog):
                 cat_menu = tools_menu
             else:
                 cat_menu = tools_menu.addMenu(cat)
+                cat_menu.setToolTipsVisible(True)
             cat_info = categories[cat]
             use_checkbuttons = cat == "Toolbar"
             for tool_name in sorted(cat_info.keys()):
                 tool_action = QAction(tool_name, self)
-                tool_action.setStatusTip(tool.synopsis)
+                tool_action.setToolTip(cat_info[tool_name][1].synopsis)
                 if use_checkbuttons:
                     tool_action.setCheckable(True)
                     tool_action.setChecked(tool_name in active_tool_names)
@@ -704,6 +752,14 @@ class MainWindow(QMainWindow, PlainTextLog):
                         lambda arg, ses=session, run=run, tool_name=tool_name:
                         run(ses, "toolshed show %s" % quote_if_necessary(tool_name)))
                 cat_menu.addAction(tool_action)
+        def _show_toolshed(arg):
+            from chimerax.help_viewer import show_url
+            from ..toolshed import Toolshed
+            show_url(session, Toolshed.get_toolshed().remote_url)
+        more_tools = QAction("More Tools...", self)
+        more_tools.setToolTip("Open ChimeraX Toolshed in Help Viewer")
+        more_tools.triggered.connect(_show_toolshed)
+        tools_menu.addAction(more_tools)
         mb = self.menuBar()
         old_action = self.tools_menu.menuAction()
         mb.insertMenu(old_action, tools_menu)
@@ -726,6 +782,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         add = (menu is None)
         if add:
             menu = QMenu(menu_name, mb)
+            menu.setToolTipsVisible(True)
             menu.setObjectName(menu_name)	# Need for findChild() above to work.
         
         action = QAction(entry_name, self)
@@ -768,6 +825,12 @@ class MainWindow(QMainWindow, PlainTextLog):
                 else:
                     set_shown(window, False)
 
+def _open_dropped_file(session, path):
+    # Use quotes around path only if needed so log looks nice.
+    p = ('"%s"' % path) if ' ' in path or ';' in path else path
+    from ..commands import run
+    run(session, 'open %s' % p)
+
 from ..logger import StatusLogger
 class ToolWindow(StatusLogger):
     """An area that a tool can populate with widgets.
@@ -808,6 +871,7 @@ class ToolWindow(StatusLogger):
         self.__toolkit = _Qt(self, title, statusbar, mw)
         self.ui_area = self.__toolkit.ui_area
         mw._new_tool_window(self)
+        self._kludge = self.__toolkit
 
     def cleanup(self):
         """Perform tool-specific cleanup
@@ -900,6 +964,11 @@ class ToolWindow(StatusLogger):
 
     def _prioritized_logs(self):
         return [self.__toolkit.status_log]
+
+    def _show_context_menu(self, event):
+        # this routine needed as a klidge to allow QwebEngine to show
+        # our own context menu
+        self.__toolkit.show_context_menu(event)
 
 class MainToolWindow(ToolWindow):
     """Class used to generate tool's main UI window.
@@ -1056,6 +1125,17 @@ class _Qt:
             no_help_action = QAction("No help available", self.ui_area)
             no_help_action.setEnabled(False)
             menu.addAction(no_help_action)
+        session = ti.session
+        autostart = ti.tool_name in session.ui.settings.autostart
+        auto_action = QAction("Start this tool at ChimeraX startup")
+        auto_action.setCheckable(True)
+        auto_action.setChecked(autostart)
+        from ..commands import run, quote_if_necessary
+        auto_action.triggered.connect(
+            lambda arg, ses=session, run=run, tool_name=ti.tool_name:
+            run(ses, "ui autostart %s %s" % (("true" if arg else "false"),
+            quote_if_necessary(ti.tool_name))))
+        menu.addAction(auto_action)
         menu.exec(event.globalPos())
 
     def _get_shown(self):
@@ -1106,6 +1186,7 @@ def redirect_stdio_to_logger(logger):
         def __init__(self, logger):
             self.logger = logger
             self.closed = False
+            self.errors = "ignore"
 
         def write(self, s):
             self.logger.session.ui.thread_safe(self.logger.info,

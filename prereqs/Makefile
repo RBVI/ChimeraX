@@ -198,6 +198,8 @@ pcre.app-install: zlib.app-install
 pcre.install: zlib.install
 pdbfixer.app-install: Python.app-install openmm.app-install
 pdbfixer.install: Python.install openmm.install
+pillow.app-install: setuptools.app-install zlib.app-install
+pillow.install: setuptools.install zlib.install
 pips.app-install: setuptools.app-install
 pips.install: setuptools.install
 pycollada.app-install: setuptools.app-install pips.app-install
@@ -218,8 +220,6 @@ setuptools.app-install: Python.app-install
 setuptools.install: Python.install
 wrappy3.app-install: pcre.app-install setuptools.app-install
 wrappy3.install: pcre.install setuptools.install
-wx.app-install: setuptools.app-install
-wx.install: setuptools.install
 xml2.app-install: setuptools.app-install zlib.app-install
 xml2.install: setuptools.install zlib.install
 xslt.app-install: xml2.app-install

@@ -89,7 +89,7 @@ residue_str(Residue* r, Residue* other = nullptr)
     std::stringstream pos_string;
     std::string ret = static_cast<const char*>(r->name());
     ret += " #";
-    pos_string << r->position();
+    pos_string << r->number();
     ret += pos_string.str();
     auto insertion_code = r->insertion_code();
     if (insertion_code != ' ')
@@ -159,7 +159,7 @@ struct ExtractMolecule: public readcif::CIFFile
 {
     static const char* builtin_categories[];
     PyObject* _logger;
-    ExtractMolecule(PyObject* logger, const StringVector& generic_categories);
+    ExtractMolecule(PyObject* logger, const StringVector& generic_categories, bool coordsets);
     ~ExtractMolecule();
     virtual void data_block(const string& name);
     virtual void reset_parse();
@@ -292,6 +292,7 @@ struct ExtractMolecule: public readcif::CIFFile
     bool missing_poly_seq;
     bool has_pdbx;
     set<ResName> empty_residue_templates;
+    bool coordsets;  // use coordsets (trajectory) instead of separate models (NMR)
 };
 
 const char* ExtractMolecule::builtin_categories[] = {
@@ -306,9 +307,9 @@ std::ostream& operator<<(std::ostream& out, const ExtractMolecule::AtomKey& k) {
     return out;
 }
 
-ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_categories):
+ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_categories, bool coordsets):
     _logger(logger), first_model_num(INT_MAX), my_templates(nullptr),
-    missing_poly_seq(false), has_pdbx(false)
+    missing_poly_seq(false), has_pdbx(false), coordsets(coordsets)
 {
     empty_residue_templates.insert("UNL");  // Unknown ligand
     empty_residue_templates.insert("UNX");  // Unknown atom or ion
@@ -454,11 +455,14 @@ ExtractMolecule::connect_polymer_pair(vector<Residue*> a, vector<Residue*> b, bo
                                         residue_str(r0, r1), " and ", residue_str(r1));
                 }
             } else if (a1 == nullptr) {
-                if (!gap)
-                    logger::warning(_logger,
-                                    "Expected gap or linking atom in ",
-                                    residue_str(r1, r0), " for ", residue_str(r0));
                 a1 = find_closest(a0, r1, nullptr, true);
+                if (a1 == nullptr || a1->element() != Element::C || a1->name() != "CA") {
+                    // suppress warning for CA traces
+                    if (!gap)
+                        logger::warning(_logger,
+                                        "Expected gap or linking atom in ",
+                                        residue_str(r1, r0), " for ", residue_str(r0));
+                }
             }
             if (a1 == nullptr) {
                 logger::warning(_logger, "Unable to connect ", residue_str(r0, r1),
@@ -611,9 +615,18 @@ ExtractMolecule::finished_parse()
     if (molecules.empty())
         return;
 
+    auto mol = all_residues.begin()->second.begin()->second->structure();
+
+    // fill in coord set for Monte-Carlo trajectories if necessary
+    if (coordsets && mol->coord_sets().size() > 1) {
+        CoordSet *acs = mol->active_coord_set();
+        const CoordSet *prev_cs = mol->find_coord_set(acs->id() - 1);
+        if (prev_cs != nullptr && acs->coords().size() < prev_cs->coords().size())
+            acs->fill(prev_cs);
+    }
+
     // connect residues in molecule with all_residues information
     bool has_ambiguous = false;
-    auto mol = all_residues.begin()->second.begin()->second->structure();
     for (auto&& r : mol->residues()) {
         auto tr = find_template_residue(r->name());
         if (tr == nullptr) {
@@ -806,20 +819,27 @@ ExtractMolecule::parse_generic_category()
 void
 ExtractMolecule::parse_chem_comp()
 {
-    ResName name;
+    ResName id;
     string  type;
+    string  name;
     bool    ambiguous = false;
+    StringVector col_names = { "id", "type", "name" };
+    StringVector data;
 
     CIFFile::ParseValues pv;
     pv.reserve(4);
     try {
         pv.emplace_back(get_column("id", Required),
             [&] (const char* start, const char* end) {
-                name = ResName(start, end - start);
+                id = ResName(start, end - start);
             });
         pv.emplace_back(get_column("type", Required),
             [&] (const char* start, const char* end) {
                 type = string(start, end - start);
+            });
+        pv.emplace_back(get_column("name"),
+            [&] (const char* start, const char* end) {
+                name = string(start, end - start);
             });
         pv.emplace_back(get_column("pdbx_ambiguous_flag"),
             [&] (const char* start) {
@@ -830,30 +850,36 @@ ExtractMolecule::parse_chem_comp()
         return;
     }
 
+    if (my_templates == nullptr)
+        my_templates = new tmpl::Molecule();
     while (parse_row(pv)) {
+        data.push_back(id.c_str());
+        data.push_back(type);
+        data.push_back(name);
+
+        tmpl::Residue* tr = my_templates->find_residue(id);
+        if (tr)
+            continue;
+
+        tr = my_templates->new_residue(id);
+        tr->pdbx_ambiguous = ambiguous;
         // convert type to lowercase
         for (auto& c: type) {
             if (isupper(c))
                 c = tolower(c);
         }
-        if (my_templates == nullptr)
-            my_templates = new tmpl::Molecule();
-
-        tmpl::Residue* tr = my_templates->find_residue(name);
-        if (!tr) {
-            tr = my_templates->new_residue(name);
-            tr->pdbx_ambiguous = ambiguous;
-            bool is_peptide = type.find("peptide") != string::npos;
-            if (is_peptide)
-                tr->description("peptide");
-            else {
-                bool is_nucleotide = type.compare(0, 3, "dna") == 0
-                    || type.compare(0, 3, "rna") == 0;
-                if (is_nucleotide)
-                    tr->description("nucleotide");
-            }
+        bool is_peptide = type.find("peptide") != string::npos;
+        if (is_peptide)
+            tr->description("peptide");
+        else {
+            bool is_nucleotide = type.compare(0, 3, "dna") == 0
+                || type.compare(0, 3, "rna") == 0;
+            if (is_nucleotide)
+                tr->description("nucleotide");
         }
     }
+    generic_tables["chem_comp"] = col_names;
+    generic_tables["chem_comp data"].swap(data);
 }
 
 void
@@ -1144,8 +1170,30 @@ ExtractMolecule::parse_atom_site()
             if (first_model_num == INT_MAX)
                 first_model_num = model_num;
             cur_model_num = model_num;
-            mol = molecules[cur_model_num] = new AtomicStructure(_logger);
             cur_residue = nullptr;
+            if (!coordsets) {
+                mol = molecules[cur_model_num] = new AtomicStructure(_logger);
+            } else {
+                if (mol == nullptr) {
+                    mol = new AtomicStructure(_logger);
+                    molecules[0] = mol;
+                    CoordSet *cs = mol->new_coord_set(model_num);
+                    mol->set_active_coord_set(cs);
+                } else {
+                    // make additional CoordSets same size as others
+                    int cs_size = mol->active_coord_set()->coords().size();
+                    if (cur_model_num > mol->active_coord_set()->id() + 1) {
+                        // fill in coord sets for Monte-Carlo trajectories
+                        const CoordSet *acs = mol->active_coord_set();
+                        for (int fill_in_ID = acs->id() + 1; fill_in_ID < cur_model_num; ++fill_in_ID) {
+                            CoordSet *cs = mol->new_coord_set(fill_in_ID, cs_size);
+                            cs->fill(acs);
+                        }
+                    }
+                    CoordSet *cs = mol->new_coord_set(cur_model_num, cs_size);
+                    mol->set_active_coord_set(cs);
+                }
+            }
         }
 
         if (cur_residue == nullptr
@@ -1177,8 +1225,21 @@ ExtractMolecule::parse_atom_site()
                 pos = auth_position;
             else
                 pos = position;
-            cur_residue = mol->new_residue(rname, cid, pos, ins_code);
-            cur_residue->set_mmcif_chain_id(chain_id);
+            bool make_new_residue = true;
+            if (coordsets) {
+                auto& res_map = all_residues[chain_id];
+                if (!res_map.empty()) {
+                    auto ri = res_map.find(ResidueKey(entity_id, position, residue_name));
+                    if (ri != res_map.end()) {
+                        make_new_residue = false;
+                        cur_residue = ri->second;
+                    }
+                }
+            }
+            if (make_new_residue) {
+                cur_residue = mol->new_residue(rname, cid, pos, ins_code);
+                cur_residue->set_mmcif_chain_id(chain_id);
+            }
             cur_entity_id = entity_id;
             cur_seq_id = position;
             cur_auth_seq_id = auth_position;
@@ -1219,11 +1280,18 @@ ExtractMolecule::parse_atom_site()
         }
         canonicalize_atom_name(&atom_name, &mol->asterisks_translated);
 
+        bool make_new_atom = true;
         Atom* a;
         if (alt_id && cur_residue->count_atom(atom_name) == 1) {
+            make_new_atom = false;
             a = cur_residue->find_atom(atom_name);
             a->set_alt_loc(alt_id, true);
-        } else {
+        } else if (coordsets && cur_model_num != first_model_num) {
+            a = cur_residue->find_atom(atom_name);
+            if (a != nullptr)
+                make_new_atom = false;
+        }
+        if (make_new_atom) {
             const Element& elem = Element::get_element(symbol);
             a = mol->new_atom(atom_name, elem);
             cur_residue->add_atom(a);
@@ -1234,15 +1302,15 @@ ExtractMolecule::parse_atom_site()
                         atom_name, residue_name);
                 atom_map[k] = a;
             }
+            if (serial_num) {
+                atom_serial = serial_num;
+                a->set_serial_number(atom_serial);
+            } else {
+                a->set_serial_number(++atom_serial);
+            }
         }
         Coord c(x, y, z);
         a->set_coord(c);
-        if (serial_num) {
-            atom_serial = serial_num;
-            a->set_serial_number(atom_serial);
-        } else {
-            a->set_serial_number(++atom_serial);
-        }
         if (b_factor != DBL_MAX)
             a->set_bfactor(b_factor);
         if (occupancy != DBL_MAX)
@@ -1346,6 +1414,10 @@ ExtractMolecule::parse_struct_conn()
         pv.emplace_back(get_column("conn_type_id", Required),
             [&] (const char* start, const char* end) {
                 conn_type = string(start, end - start);
+                for (auto& c: conn_type) {
+                    if (isupper(c))
+                        c = tolower(c);
+                }
             });
 
         pv.emplace_back(get_column(P1 ASYM_ID, Required),
@@ -1464,7 +1536,7 @@ ExtractMolecule::parse_struct_conn()
         bool metal = false;
         bool hydro = false;
         // TODO: survey PDB mmCIF files and test in descending prevalence
-        if (conn_type == "covale" || conn_type == "disulf")
+        if (conn_type.compare(0, 6, "covale") == 0 || conn_type == "disulf")
             normal = true;
         else if (conn_type == "hydrog")
             hydro = true;
@@ -1488,14 +1560,18 @@ ExtractMolecule::parse_struct_conn()
             if (metal_pbg == nullptr)
                 metal_pbg = mol->pb_mgr().get_group(mol->PBG_METAL_COORDINATION,
                     atomstruct::AS_PBManager::GRP_PER_CS);
-            metal_pbg->new_pseudobond(a1, a2);
+            for (auto& cs: mol->coord_sets()) {
+                metal_pbg->new_pseudobond(a1, a2, cs);
+            }
             continue;
         }
         if (hydro) {
             if (hydro_pbg == nullptr)
                 hydro_pbg = mol->pb_mgr().get_group(mol->PBG_HYDROGEN_BONDS,
                     atomstruct::AS_PBManager::GRP_PER_CS);
-            hydro_pbg->new_pseudobond(a1, a2);
+            for (auto& cs: mol->coord_sets()) {
+                hydro_pbg->new_pseudobond(a1, a2, cs);
+            }
             continue;
         }
         if (!reasonable_bond_length(a1, a2, distance)) {
@@ -1864,12 +1940,11 @@ ExtractMolecule::parse_entity_poly_seq()
 }
 
 static PyObject*
-structure_pointers(ExtractMolecule &e, const char *filename)
+structure_pointers(ExtractMolecule &e)
 {
     int count = 0;
     for (auto m: e.all_molecules) {
         if (m->atoms().size() > 0) {
-            m->set_name(filename);
             count += 1;
         }
     }
@@ -1879,55 +1954,55 @@ structure_pointers(ExtractMolecule &e, const char *filename)
     int i = 0;
     for (auto m: e.all_molecules)
         if (m->atoms().size() > 0)
-	        sa[i++] = static_cast<void *>(m);
+            sa[i++] = static_cast<void *>(m);
 
     return s_array;
 }
 
 PyObject*
-parse_mmCIF_file(const char *filename, PyObject* logger)
+parse_mmCIF_file(const char *filename, PyObject* logger, bool coordsets)
 {
 #ifdef CLOCK_PROFILING
     ClockProfile p("parse_mmCIF_file");
 #endif
-    ExtractMolecule extract(logger, StringVector());
+    ExtractMolecule extract(logger, StringVector(), coordsets);
     extract.parse_file(filename);
-    return structure_pointers(extract, filename);
+    return structure_pointers(extract);
 }
 
 PyObject*
 parse_mmCIF_file(const char *filename, const StringVector& generic_categories,
-                 PyObject* logger)
+                 PyObject* logger, bool coordsets)
 {
 #ifdef CLOCK_PROFILING
     ClockProfile p("parse_mmCIF_file2");
 #endif
-    ExtractMolecule extract(logger, generic_categories);
+    ExtractMolecule extract(logger, generic_categories, coordsets);
     extract.parse_file(filename);
-    return structure_pointers(extract, filename);
+    return structure_pointers(extract);
 }
 
 PyObject*
-parse_mmCIF_buffer(const unsigned char *whole_file, PyObject* logger)
+parse_mmCIF_buffer(const unsigned char *whole_file, PyObject* logger, bool coordsets)
 {
 #ifdef CLOCK_PROFILING
     ClockProfile p("parse_mmCIF_buffer");
 #endif
-    ExtractMolecule extract(logger, StringVector());
+    ExtractMolecule extract(logger, StringVector(), coordsets);
     extract.parse(reinterpret_cast<const char *>(whole_file));
-    return structure_pointers(extract, "unknown mmCIF file");
+    return structure_pointers(extract);
 }
 
 PyObject*
 parse_mmCIF_buffer(const unsigned char *whole_file,
-   const StringVector& generic_categories, PyObject* logger)
+   const StringVector& generic_categories, PyObject* logger, bool coordsets)
 {
 #ifdef CLOCK_PROFILING
     ClockProfile p("parse_mmCIF_buffer2");
 #endif
-    ExtractMolecule extract(logger, generic_categories);
+    ExtractMolecule extract(logger, generic_categories, coordsets);
     extract.parse(reinterpret_cast<const char *>(whole_file));
-    return structure_pointers(extract, "unknown mmCIF file");
+    return structure_pointers(extract);
 }
 
 

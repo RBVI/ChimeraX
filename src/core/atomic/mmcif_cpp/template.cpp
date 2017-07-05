@@ -58,18 +58,6 @@ using atomstruct::ResName;
 tmpl::Molecule* templates;
 LocateFunc  locate_func;
 
-// standard_residues have standard linkage 
-static std::set<ResName> standard_peptides = {
-    "ALA", "ARG", "ASN", "ASP", "ASX", "CYS",
-    "GLN", "GLU", "GLX", "GLY", "HIS", "ILE",
-    "LEU", "LYS", "MET", "PHE", "PRO", "SER",
-    "THR", "TRP", "TYR", "UNK", "VAL"
-};
-static std::set<ResName> standard_nucleotides = {
-    "A", "C", "G", "I", "T", "U",
-    "DA", "DC", "DG", "DT",
-};
-
 const tmpl::Residue*
 find_template_residue(const ResName& name)
 {
@@ -111,6 +99,7 @@ struct ExtractTemplate: public readcif::CIFFile
     string type;                    // residue type
     bool is_peptide;
     bool is_nucleotide;
+    bool is_linking;
 };
 
 ExtractTemplate::ExtractTemplate(): residue(nullptr)
@@ -145,7 +134,7 @@ ExtractTemplate::data_block(const string& /*name*/)
 void
 ExtractTemplate::finished_parse()
 {
-    if (residue == nullptr)
+    if (residue == nullptr || !is_linking)
         return;
 #ifdef LEAVING_ATOMS
     // figure out linking atoms
@@ -154,29 +143,30 @@ ExtractTemplate::finished_parse()
     // residues are "well known".  Links with other residue types are
     // explicitly given, so no need to figure which atoms are the
     // linking atoms.
-    for (auto& akv: residue->atoms_map()) {
-        auto& a1 = akv.second;
-        if (leaving_atoms.find(a1) != leaving_atoms.end())
-            continue;
-        for (auto& bkv: a1->bonds_map()) {
-            auto& a2 = bkv.first;
-            if (a2->element() == Element::H
-            || leaving_atoms.find(a2) == leaving_atoms.end())
+    std::cout << residue->name() << ' ' << type << '\n';
+    for (auto a1: leaving_atoms) {
+        for (auto& b: a1->bonds()) {
+            auto a2 = b->other_atom(a1);
+            if (leaving_atoms.find(a2) != leaving_atoms.end())
                 continue;
-            std::cout << residue->name() << " linking atom: " << a1->name() << '\n';
+            std::cout << "    linking heavy atom: " << a2->name() << '\n';
             break;
         }
     }
 #endif
-    if (is_peptide
-    && standard_peptides.find(residue->name()) != standard_peptides.end()) {
+    if (is_peptide) {
         residue->description("peptide");
         tmpl::Atom* n = residue->find_atom("N");
         residue->chief(n);
-        tmpl::Atom* c = residue->find_atom("C");
+        tmpl::Atom* c;
+        if (type.find("c-gamma") != string::npos)
+            c = residue->find_atom("CG");
+        else if (type.find("c-delta") != string::npos)
+            c = residue->find_atom("CD");
+        else
+            c = residue->find_atom("C");
         residue->link(c);
-    } else if (is_nucleotide
-    && standard_nucleotides.find(residue->name()) != standard_nucleotides.end()) {
+    } else if (is_nucleotide) {
         residue->description("nucleotide");
         tmpl::Atom* p = residue->find_atom("P");
         residue->chief(p);
@@ -227,9 +217,10 @@ ExtractTemplate::parse_chem_comp()
         if (isupper(c))
             c = tolower(c);
     }
+    is_linking = type.find(" linking") != string::npos;
     is_peptide = type.find("peptide") != string::npos;
-    is_nucleotide = type.compare(0, 3, "dna") == 0
-        || type.compare(0, 3, "rna") == 0;
+    is_nucleotide = type.find("dna ") == string::npos
+        || type.find("rna ") == string::npos;
     residue = templates->new_residue(name);
     residue->pdbx_ambiguous = ambiguous;
     all_residues.push_back(residue);
