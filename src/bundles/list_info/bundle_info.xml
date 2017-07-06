@@ -1,0 +1,26 @@
+<BundleInfo name="ChimeraX-List-Info" version="0.1"
+	    package="chimerax.list_info"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Report attributes for selected atomic data</Synopsis>
+  <Description>Report attributes for selected atomic data</Description>
+
+  <Categories>
+    <Category name="General"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: info :: General :: Report attributes for models and atomic data</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

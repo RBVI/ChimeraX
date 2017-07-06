@@ -1,0 +1,31 @@
+<BundleInfo name="ChimeraX-ExperimentalCommands" version="1.0"
+	    package="chimerax.exp_cmd"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Experimental commands</Synopsis>
+  <Description>A collection of commands that might become a standard part of ChimeraX.</Description>
+
+  <Categories>
+    <Category name="General"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: ribbon :: General :: show cartoon for selected residues</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: ribbon hide :: General :: hide cartoon for selected residues</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: ~ribbon :: General :: hide cartoon for selected residues</ChimeraXClassifier>
+    <!-- <ChimeraXClassifier>ChimeraX :: Command :: findclash :: General :: find clashes between atom pairs</ChimeraXClassifier> -->
+    <ChimeraXClassifier>ChimeraX :: Command :: getcrd :: General :: report atomic coordinates</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: debug :: General :: report what a specifier matches</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

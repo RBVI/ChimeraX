@@ -875,6 +875,16 @@ class StringArg(Annotation):
         return token, text, rest
 
 
+class PasswordArg(StringArg):
+    """Annotation for a password (should not be echoed to log)"""
+    name = "a password"
+
+    @staticmethod
+    def parse(text, session):
+        token, text, rest = StringArg.parse(text, session)
+        return token, "******", rest
+
+
 class FileNameArg(Annotation):
     """Base class for Open/SaveFileNameArg"""
     name = "a file name"
