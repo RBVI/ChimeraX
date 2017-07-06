@@ -90,7 +90,7 @@ dir:
 	if [ ! -d "$(wheelhouse)" ]; then mkdir -p $(wheelhouse); fi
 
 clean:
-	rm -rf __pycache__ build dist $(WHL_BNDL_NAME).egg-info setup.py
+	rm -rf __pycache__ build dist $(WHL_BNDL_NAME).egg-info setup.py $(GENSRCS)
 
 .PHONY: buildinfo.py
 buildinfo.py: buildinfo.py.in mkbuildinfo
