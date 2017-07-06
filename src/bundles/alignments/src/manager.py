@@ -40,11 +40,10 @@ class AlignmentsManager(State):
         seqs : list of :py:class:`~chimerax.core.atomic.Sequence` instances
             Contents of alignment
         identify_as : a text string (or None) used to identify the alignment in commands.  If the
-            string is already in use by another alignment, that alignment will be destroyed
-            and replaced.  If identify_as is None, then a unique identifer will be generated
-            and used.  The cannot contain the ':' character, since that is used to indicate
-            sequences within the alignment to commands.  Any such characters will be replaced
-            with '/'.
+            string is already in use by another alignment, that alignment will be destroyed and
+            replaced.  If identify_as is None, then a unique identifer will be generated and used.
+            The string cannot contain the ':' character, since that is used to indicate sequences
+            within the alignment to commands.  Any such characters will be replaced with '/'.
         auto_destroy : boolean or None
             Whether to automatically destroy the alignment when the last viewer for it
             is closed.  If None, then treated as False if the value of the 'viewer' keyword
