@@ -56,8 +56,17 @@ class PythonInstance {
 public:
     PyObject*  get_py_attr(const char* attr_name) const;
     double  get_py_float_attr(const char* attr_name) const;
+    long  get_py_float_attr(std::string& attr_name) const {
+        return get_py_float_attr(attr_name.c_str());
+    }
     long  get_py_int_attr(const char* attr_name) const;
+    long  get_py_int_attr(std::string& attr_name) const {
+        return get_py_int_attr(attr_name.c_str());
+    }
     const char*  get_py_string_attr(const char* attr_name) const;
+    const char*  get_py_string_attr(std::string& attr_name) const {
+        return get_py_string_attr(attr_name.c_str());
+    }
     
     static PyObject*  py_instance(const void* ptr);
     PyObject*  py_instance() const { return py_instance(this); }

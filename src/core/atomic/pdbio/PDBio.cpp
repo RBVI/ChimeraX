@@ -27,6 +27,7 @@
 #include <atomstruct/Bond.h>
 #include <atomstruct/connect.h>
 #include <atomstruct/CoordSet.h>
+#include <atomstruct/PythonInstance.h>
 #include <atomstruct/Residue.h>
 #include <atomstruct/Sequence.h>
 #include <atomstruct/destruct.h>
@@ -52,7 +53,6 @@ using atomstruct::Coord;
 std::string pdb_segment("pdb_segment");
 std::string pdb_charge("formal_charge");
 std::string pqr_charge("charge");
-std::string pqr_radius("radius");
 
 const vector<std::string> record_order = {
     "HEADER", "OBSLTE", "TITLE", "CAVEAT", "COMPND", "SOURCE", "KEYWDS", "EXPDTA", "AUTHOR",
@@ -503,7 +503,7 @@ start_t = end_t;
                 if (record.type() == PDB::ATOMQR) {
                     a->register_field(pqr_charge, record.atomqr.charge);
                     if (record.atomqr.radius > 0.0)
-                        a->register_field(pqr_radius, record.atomqr.radius);
+                        a->set_radius(record.atomqr.radius);
                 } else {
                     a->set_bfactor(record.atom.temp_factor);
                     a->set_occupancy(record.atom.occupancy);
@@ -1250,15 +1250,15 @@ write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
 
         // Shared attributes between Atom and Atomqr need to be set via proper pointer
         int *rec_serial;
-        char *name;
-        char *alt_loc;
+        char *rec_name;
+        char *rec_alt_loc;
         PDB::Residue *res;
         Real *xyz;
         if (pqr) {
             p.set_type(PDB::ATOMQR);
             rec_serial = &p.atomqr.serial;
-            name = &p.atomqr.name;
-            alt_loc = &p.atomqr.alt_loc;
+            rec_name = &p.atomqr.name;
+            rec_alt_loc = &p.atomqr.alt_loc;
             res = &p.atomqr.res;
             xyz = &p.atomqr.xyz;
         } else {
@@ -1268,8 +1268,8 @@ write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
                 p.set_type(PDB::HETATM);
             }
             rec_serial = &p.atom.serial;
-            name = &p.atom.name;
-            alt_loc = &p.atom.alt_loc;
+            rec_name = &p.atom.name;
+            rec_alt_loc = &p.atom.alt_loc;
             res = &p.atom.res;
             xyz = &p.atom.xyz;
         }
@@ -1280,12 +1280,14 @@ write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
         std::sort(ordering.begin(), ordering.end(), less_Atom());
 
         for (auto a: ordering) {
-            *rec_serial = ++serial;
-            (*rev_asn)[a] = *rec_serial;
+            if (selected_only && !a->selected())
+                continue;
+            if (displayed_only && !a->display())
+                continue;
             std::string aname = s->asterisks_translated ?
                 primes_to_asterisks(a->name()) : a->name();
             if (strlen(a->element().name()) > 1) {
-                strcpy(name, aname.c_str());
+                strcpy(rec_name, aname.c_str());
             } else {
                 bool element_compares;
                 if (strncmp(a->element().name(), a->name().c_str(), 1) == 0) {
@@ -1297,10 +1299,10 @@ write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
                     element_compares = false;
                 }
                 if (element_compares && aname.size() < 4) {
-                    strcpy(name, " ");
-                    strcat(name, aname.c_str());
+                    strcpy(rec_name, " ");
+                    strcat(rec_name, aname.c_str());
                 } else {
-                    strcpy(name, aname.c_str());
+                    strcpy(rec_name, aname.c_str());
                 }
             }
             strcpy(res->name, r->name().c_str());
@@ -1315,21 +1317,85 @@ write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
             res->seq_num = seq_num;
             res->i_code = i_code;
             if (pqr) {
-                //TODO
+                try {
+                    p.atomqr.charge = a->get_py_float_attr(pqr_charge);
+                } catch (atomstruct::PyAttrError&) {
+                    p.atomqr.charge = 0.0;
+                }
+                p.atomqr.radius = a->radius();
+            } else {
+                try {
+                    p.atom.charge = a->get_py_float_attr(pdb_charge);
+                } catch (atomstruct::PyAttrError&) {
+                    p.atom.charge = 0.0;
+                }
+                try {
+                    strcpy(p.atom.seg_id, a->get_py_string_attr(pdb_charge));
+                } catch (atomstruct::PyAttrError&) { }
+                const char* ename = a->element()->name();
+                if (a->element()->number() == 1) {
+                    if (a->name().c_str()[0] == 'D')
+                        ename = "D";
+                    else if (a->name().c_str()[0] == 'T') {
+                        ename = "T";
+                    }
+                }
+                strcpy(p.atom.element, ename);
+            }
+            if (need_ter) {
+                os << p_ter << "\n";
+                need_ter = false;
             }
             // loop through alt locs
             for (auto alt_loc: a->alt_locs()) {
-                auto crd = a->coord(cs);
-                //TODO
+                *rec_alt_loc = alt_loc;
+                *rec_serial = ++serial;
+                (*rev_asn)[a] = *rec_serial;
+                const Coord* crd;
+                float bfactor, occupancy;
                 if (alt_loc == ' ') {
                     // no alt locs
+                    crd = &a->coord(cs);
+                    bfactor = cs->get_bfactor(a);
+                    occupancy = cs->get_occupancy(a);
                 } else {
-                    
+                    crd = &a->coord(alt_loc);
+                    bfactor = a->bfactor();
+                    occupancy = a->occupancy();
                 }
+                if (!pqr) {
+                    p.atom.temp_factor = bfactor;
+                    p.atom.occupancy = occupancy;
+                }
+                Coord final_crd;
+                if (xform != nullptr) {
+                    double* xf_vals = xform->values();
+                    double mat[3][3], offset[3];
+                    double *m = mat;
+                    double *off = offset;
+                    for (int row = 0; row < 3; ++row) {
+                        *m++ = *xf_vals++;
+                        *m++ = *xf_vals++;
+                        *m++ = *xf_vals++;
+                        *off++ = *xf_vals++;
+                    }
+                    final_crd[0] = mat[0][0] * (*crd)[0] + mat[1][0] * (*crd)[1]
+                        + mat[2][0] * (*crd)[2] + offset[0];
+                    final_crd[1] = mat[0][1] * (*crd)[0] + mat[1][1] * (*crd)[1]
+                        + mat[2][1] * (*crd)[2] + offset[1];
+                    final_crd[2] = mat[0][2] * (*crd)[0] + mat[1][2] * (*crd)[1]
+                        + mat[2][2] * (*crd)[2] + offset[2];
+                } else
+                    final_crd = *crd;
+                xyz[0] = final_crd[0];
+                xyz[1] = final_crd[1];
+                xyz[2] = final_crd[2];
+                os << p << "\n";
             }
-
-        //TODO: remainder
+            written.insert(a);
         }
+        prev_res = r;
+        prev_standard = standard;
     }
 }
 
