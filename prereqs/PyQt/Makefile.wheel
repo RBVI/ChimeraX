@@ -10,16 +10,18 @@ REMOTE_DIR = $(REMOTE_HOST)/usr/local/src/PyQt5
 
 # VERSION is overriden by Makefile
 VERSION = 5.9
-MINOR_VERSION = 1
-FULL_VERSION = $(VERSION).$(MINOR_VERSION)
-ifeq ($(MINOR_VERSION),0)
+PYQT_MINOR_VERSION =
+QT_MINOR_VERSION = 1
+ifeq (,$(PYQT_MINOR_VERSION))
 PYQT_VERSION = $(VERSION)
 else
-PYQT_VERSION = $(FULL_VERSION)
+PYQT_VERSION = $(VERSION).$(PYQT_MINOR_VERSION)
 endif
+QT_VERSION = $(VERSION).$(QT_MINOR_VERSION)
+
 # use local directory for the wheel, so we don't have to convert it
 # to a Windows path when installing
-WHEEL = PyQt5_$(PYQT_LICENSE)-$(VERSION)-$(WHEEL_PLATFORM).whl
+WHEEL = PyQt5_$(PYQT_LICENSE)-$(PYQT_VERSION)-$(WHEEL_PLATFORM).whl
 # Explicitly choose sip version that works -- depends how unlicensed wheel
 # from Riverbank Computing Limited was built and presumably matches the gpl
 # wheel in PyPI.
@@ -27,23 +29,23 @@ SIP_VERSION = 4.19.3
 
 ifeq ($(OS),Darwin)
 PLATFORM = osx
-WHEEL_PLATFORM = $(FULL_VERSION)-cp35.cp36.cp37-abi3-macosx_10_6_intel
-QTDIR = $(HOME)/Qt/$(FULL_VERSION)/clang_64
+WHEEL_PLATFORM = $(QT_VERSION)-cp35.cp36.cp37-abi3-macosx_10_6_intel
+QTDIR = $(HOME)/Qt/$(QT_VERSION)/clang_64
 else ifeq ($(OS),Linux)
 PLATFORM = linux
-WHEEL_PLATFORM = $(FULL_VERSION)-cp35.cp36.cp37-abi3-manylinux1_x86_64
-QTDIR = $(HOME)/Qt/$(FULL_VERSION)/gcc_64
+WHEEL_PLATFORM = $(QT_VERSION)-cp35.cp36.cp37-abi3-manylinux1_x86_64
+QTDIR = $(HOME)/Qt/$(QT_VERSION)/gcc_64
 else ifeq ($(OS),Windows)
 PLATFORM = win
-WHEEL_PLATFORM = $(FULL_VERSION)-cp35.cp36.cp37-none-win_amd64
-QTDIR = c:\\Qt\\$(FULL_VERSION)\\msvc2015_64
+WHEEL_PLATFORM = $(QT_VERSION)-cp35.cp36.cp37-none-win_amd64
+QTDIR = c:\\Qt\\$(QT_VERSION)\\msvc2015_64
 endif
 
 ifneq ($(PYQT_LICENSE),commercial)
 WHEEL := PyQt5==$(PYQT_VERSION)
 endif
 
-LICENSE_ARGS = --quiet --license pyqt-commercial.sip --qt $(QTDIR) --qt-version $(FULL_VERSION) --no-openssl
+LICENSE_ARGS = --quiet --license pyqt-commercial.sip --qt $(QTDIR) --qt-version $(QT_VERSION) --no-openssl
 ifdef WIN32
 LICENSE_ARGS += --no-msvc-runtime
 endif
