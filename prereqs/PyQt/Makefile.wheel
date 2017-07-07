@@ -23,7 +23,7 @@ WHEEL = PyQt5_$(PYQT_LICENSE)-$(VERSION)-$(WHEEL_PLATFORM).whl
 # Explicitly choose sip version that works -- depends how unlicensed wheel
 # from Riverbank Computing Limited was built and presumably matches the gpl
 # wheel in PyPI.
-SIP_VERSION = 4.19.1
+SIP_VERSION = 4.19.3
 
 ifeq ($(OS),Darwin)
 PLATFORM = osx
