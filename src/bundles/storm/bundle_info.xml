@@ -1,0 +1,27 @@
+<BundleInfo name="ChimeraX-Storm" version="1.0"
+	    package="chimerax.storm"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>STORM file reader</Synopsis>
+  <Description>Read STORM microscopy text files with x,y,z points and widths.</Description>
+
+  <Categories>
+    <Category name="Generic 3D object"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>ChimeraX :: DataFormat :: STORM :: :: Generic 3D object :: .storm :: :: http://en.wikipedia.org/wiki/STL_%28file_format%29 :: :: :: Point list for STORM microscopy</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Open :: STORM :: ::</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>
