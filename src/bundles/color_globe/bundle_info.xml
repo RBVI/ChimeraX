@@ -1,0 +1,27 @@
+<BundleInfo name="ChimeraX-ColorGlobe" version="1.0"
+	    package="chimerax.color_globe"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Show directional resolution colored sphere</Synopsis>
+  <Description>Show directional resolution colored sphere.</Description>
+
+  <Categories>
+    <Category name="General"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>ChimeraX :: DataFormat :: Directional FSC :: dres :: Generic 3D objects :: .dres :: ::  :: :: :: Direction dependent resolution values :: utf-8</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Open :: Directional FSC :: ::</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>
