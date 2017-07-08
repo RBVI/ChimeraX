@@ -1,0 +1,29 @@
+<BundleInfo name="ChimeraX-CellPack" version="1.0"
+	    package="chimerax.cellpack"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Fetch cellPACK models from web</Synopsis>
+  <Description>The ChimeraX-CellPack bundle provides support fo reading
+cellPack data files via the Internet.  See http://www.cellpack.org
+for more information.</Description>
+
+  <Categories>
+    <Category name="Molecular structure"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>ChimeraX :: DataFormat :: cellpack :: :: Molecular structure :: :: :: http://www.cellpack.org/ :: :: :: cellpack data</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Fetch :: cellpack :: cellpack :: cellpack :: HIV-1_0.1.6 :: true</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>
