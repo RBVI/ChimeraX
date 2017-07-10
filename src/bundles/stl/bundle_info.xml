@@ -1,0 +1,35 @@
+<BundleInfo name="ChimeraX-STL" version="1.0"
+	    package="chimerax.stl"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>STL file read/write</Synopsis>
+  <Description>This bundle provides the abiility to read and write
+StereoLithography (STL) files.</Description>
+
+  <Categories>
+    <Category name="Generic 3D objects"/>
+  </Categories>
+
+  <CModule name="_stl">
+    <SourceFile>_stl/stl.cpp</SourceFile>
+    <Library>arrays</Library>
+  </CModule>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    
+    <ChimeraXClassifier>ChimeraX :: DataFormat :: StereoLithography :: stl :: Generic 3D objects :: .stl :: :: http://en.wikipedia.org/wiki/STL_(file_format) :: :: :: Simple triangle format used by 3D printers</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Open :: StereoLithography :: ::</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Save :: StereoLithography :: ::</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

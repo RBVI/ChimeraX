@@ -1,0 +1,32 @@
+<BundleInfo name="ChimeraX-Help" version="0.9a1"
+	    package="chimerax.help_viewer"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Show ChimeraX Help</Synopsis>
+  <Description>Support help command and GUI.</Description>
+
+  <DataFiles>
+    <DataFile>*.png</DataFile>
+  </DataFiles>
+
+  <Categories>
+    <Category name="Documentation"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: help :: Documentation :: Display ChimeraX help</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: DataFormat :: HTML :: :: Documentation :: .html,.htm,.xhtml,.xht,.xml :: text/html,application/xhtml+xml :: http://en.wikipedia.org/wiki/Html :: :: :: HyperText Markup Language (HTML)</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Open :: HTML :: help ::</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

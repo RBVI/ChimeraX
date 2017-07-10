@@ -36,7 +36,7 @@ wheel: $(PYSRCS) $(CSRCS)
 	$(CHIMERAX_EXE) --nogui --cmd "devel build . ; exit"
 
 install app-install:
-	$(CHIMERAX_EXE) --nogui --cmd "devel install . ; exit"
+	$(CHIMERAX_EXE) --nogui --cmd "devel install . user false; exit"
 
 test:
 	$(CHIMERAX_EXE)

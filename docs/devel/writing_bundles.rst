@@ -270,6 +270,15 @@ The supported elements are listed below in alphabetical order.
 The root document elements is **BundleInfo**, which contains
 all the information needed to build the bundle.
 
+- **AdditionalPackages**
+
+  - List of additional packages to include in bundle
+    in bundle
+
+  - Child elements:
+
+    - **Package** (one or more)
+
 - **Author**
 
   - Element text:
@@ -460,6 +469,13 @@ all the information needed to build the bundle.
       to compile the current module.  Standard C/C++ and ChimeraX
       library directories are automatically supplied by the build
       process.
+
+- **Package**
+
+  - Attributes:
+
+    - **name**: name of Python package to be added.
+    - **folder**: folder containing source files in package.
 
 - **PythonClassifier**
 

@@ -168,6 +168,11 @@ Sequence::rname3to1(const ResName& rn)
     if (_rname3to1.empty())
         _init_rname_map();
 
+    // MMTF only knows the one-letter code for residues in SEQRES;
+    // as a kludge to allow that, simply return an alredy-one-letter 
+    // res name
+    if (rn.size() == 1)
+        return rn.c_str()[0];
     _1Letter_Map::const_iterator l1i = _rname3to1.find(rn);
     if (l1i == _rname3to1.end()) {
         return 'X';

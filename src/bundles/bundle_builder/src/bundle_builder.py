@@ -243,11 +243,17 @@ class BundleBuilder:
             "python_requires": ">= 3.6",
             "install_requires": self.dependencies,
         }
-        package_dir = {self.package: "src"}
-        packages = [self.package]
+        from setuptools import find_packages
+        def add_package(base_package, folder):
+            package_dir[base_package] = folder
+            packages.append(base_package)
+            packages.extend([base_package + "." + sub_pkg
+                             for sub_pkg in find_packages(folder)])
+        package_dir = {}
+        packages = []
+        add_package(self.package, "src")
         for name, folder in self.packages:
-            package_dir[name] = folder
-            packages.append(name)
+            add_package(name, folder)
         self.setup_arguments["package_dir"] = package_dir
         self.setup_arguments["packages"] = packages
         if self.datafiles:

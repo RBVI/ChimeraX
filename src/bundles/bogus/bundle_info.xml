@@ -1,0 +1,26 @@
+<BundleInfo name="ChimeraX-Bogus" version="0.1" package="chimerax.bogus"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Bogus Toolshed Demo example</Synopsis>
+  <Description>Simple example used to demonstrate toolshed functionality</Description>
+
+  <Categories>
+    <Category name="General"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>ChimeraX :: Tool :: Bogus Toolshed-demo Tool :: General :: Bogus tool for demonstrating toolshed functionality</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: bogus :: General :: Bogus commands for demonstrating toolshed functionality</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>
