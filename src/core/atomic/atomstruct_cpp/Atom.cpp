@@ -162,7 +162,7 @@ Atom::coord() const
 }
 
 const Coord&
-Atom::coord(const CoordSet* cs) const;
+Atom::coord(const CoordSet* cs) const
 {
     if (_coord_index == COORD_UNASSIGNED)
         throw std::logic_error("coordinate value hasn't been assigned");

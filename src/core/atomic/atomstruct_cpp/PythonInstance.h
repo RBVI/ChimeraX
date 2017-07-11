@@ -19,6 +19,8 @@
 #include <stdexcept>
 #include <string>
 
+#include "imex.h"
+
 // "forward declare" PyObject, which is a typedef of a struct,
 // as per the python mailing list:
 // http://mail.python.org/pipermail/python-dev/2003-August/037601.html
@@ -52,7 +54,7 @@ public:
     WrongPyAttrTypeError(const std::string msg) : PyAttrError(msg) {}
 };
 
-class PythonInstance {
+class ATOMSTRUCT_IMEX PythonInstance {
 public:
     PyObject*  get_py_attr(const char* attr_name) const;
     double  get_py_float_attr(const char* attr_name) const;

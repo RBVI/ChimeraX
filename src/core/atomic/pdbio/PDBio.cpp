@@ -15,24 +15,29 @@
 
 #include <algorithm>  // for std::sort, std::find
 #include <cctype>
+#include <cmath> // abs
+#include <fstream>
 #include <set>
 #include <sstream>
 #include <stdio.h>  // fgets
 #include <unordered_map>
 
-#include "PDBio.h"
-#include <pdb/PDB.h>
+#include "Python.h"
+
+#include <arrays/pythonarray.h>	// Use python_voidp_array(), array_from_python()
 #include <atomstruct/Atom.h>
 #include <atomstruct/AtomicStructure.h>
 #include <atomstruct/Bond.h>
 #include <atomstruct/connect.h>
 #include <atomstruct/CoordSet.h>
+#include <atomstruct/PBGroup.h>
 #include <atomstruct/PythonInstance.h>
 #include <atomstruct/Residue.h>
 #include <atomstruct/Sequence.h>
 #include <atomstruct/destruct.h>
 #include <logger/logger.h>
-#include <arrays/pythonarray.h>	// Use python_voidp_array(), array_from_python()
+#include <pdb/PDB.h>
+#include <atomstruct/tmpl/residues.h>
 
 namespace pdb {
 
@@ -44,6 +49,7 @@ using atomstruct::ChainID;
 using atomstruct::CoordSet;
 using element::Element;
 using atomstruct::MolResId;
+using atomstruct::Real;
 using atomstruct::Residue;
 using atomstruct::ResName;
 using atomstruct::Sequence;
@@ -54,14 +60,14 @@ std::string pdb_segment("pdb_segment");
 std::string pdb_charge("formal_charge");
 std::string pqr_charge("charge");
 
-const vector<std::string> record_order = {
+const std::vector<std::string> record_order = {
     "HEADER", "OBSLTE", "TITLE", "CAVEAT", "COMPND", "SOURCE", "KEYWDS", "EXPDTA", "AUTHOR",
     "REVDAT", "SPRSDE", "JRNL", "REMARK", "DBREF", "SEQADV", "SEQRES", "MODRES", "FTNOTE",
     "HET", "HETNAM", "HETSYN", "FORMUL", "HELIX", "SHEET", "TURN", "SSBOND", "LINK", "HYDBND",
     "SLTBRG", "CISPEP", "SITE", "CRYST1", "ORIGX1", "ORIGX2", "ORIGX3", "SCALE1", "SCALE2",
     "SCALE3", "MTRIX1", "MTRIX2", "MTRIX3", "TVECT", "MODEL", "ATOM", "SIGATM", "ANISOU",
     "SIGUIJ", "TER", "HETATM", "ENDMDL", "CONECT", "MASTER", "END",
-}
+};
 
 static void
 canonicalize_atom_name(AtomName& aname, bool *asterisks_translated)
@@ -351,7 +357,7 @@ start_t = end_t;
                 && (break_hets || (!is_SCOP
                 && mod_res->find(rid) == mod_res->end()))) {
                     start_connect = true;
-                } else if (cur_residue != nullptr && cur_residue->position() > rid.number
+                } else if (cur_residue != nullptr && cur_residue->number() > rid.number
                 && cur_residue->find_atom("OXT") !=  nullptr) {
                     // connected residue numbers can
                     // legitimately drop due to circular
@@ -845,23 +851,6 @@ assign_secondary_structure(AtomicStructure *as, const std::vector<PDB> &ss, PyOb
     }
 }
 
-// bonded_dist:
-//    Are given atoms close enough to bond?  If so, return bond distance,
-// otherwise return zero.
-static float
-bonded_dist(Atom *a, Atom *b)
-{
-    float bond_len = Element::bond_length(a->element(), b->element());
-    if (bond_len == 0.0)
-        return 0.0;
-    float max_bond_len_sq = bond_len + 0.4;
-    max_bond_len_sq *= max_bond_len_sq;
-    float dist_sq = a->coord().sqdistance(b->coord());
-    if (dist_sq > max_bond_len_sq)
-        return 0.0;
-    return dist_sq;
-}
-
 static void
 prune_short_bonds(AtomicStructure *as)
 {
@@ -1206,11 +1195,11 @@ struct less_Atom: public std::binary_function<Atom*, Atom*, bool> {
 }
 
 static std::string
-primes_to_asterisks(const std::string& orig_name)
+primes_to_asterisks(const char* orig_name)
 {
     std::string new_name = orig_name;
     std::string::size_type pos;
-    while ((pos -- new_name.find("'")) != std::string::npos)
+    while ((pos = new_name.find("'")) != std::string::npos)
         new_name.replace(pos, 1, "*");
     return new_name;
 }
@@ -1235,25 +1224,25 @@ write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
         if (need_ter) {
             p_ter.set_type(PDB::TER);
             p_ter.ter.serial = ++serial;
-            strcpy(p_ter.ter.res_name, prev_res->name().c_str());
+            strcpy(p_ter.ter.res.name, prev_res->name().c_str());
             p_ter.ter.res.chain_id = prev_res->chain_id()[0];
-            int seq_num = prev_res->position();
+            int seq_num = prev_res->number();
             char i_code = prev_res->insertion_code();
             if (seq_num > 9999) {
                 // usurp the insertion code...
                 i_code = '0' + (seq_num % 10);
                 seq_num = seq_num / 10;
             }
-            p_ter.res.seq_num = seq_num;
-            p_ter.res.i_code = i_code;
+            p_ter.ter.res.seq_num = seq_num;
+            p_ter.ter.res.i_code = i_code;
         }
 
         // Shared attributes between Atom and Atomqr need to be set via proper pointer
         int *rec_serial;
-        char *rec_name;
+        char (*rec_name)[5];
         char *rec_alt_loc;
         PDB::Residue *res;
-        Real *xyz;
+        Real (*xyz)[3];
         if (pqr) {
             p.set_type(PDB::ATOMQR);
             rec_serial = &p.atomqr.serial;
@@ -1285,9 +1274,9 @@ write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
             if (displayed_only && !a->display())
                 continue;
             std::string aname = s->asterisks_translated ?
-                primes_to_asterisks(a->name()) : a->name();
+                primes_to_asterisks(a->name()) : a->name().c_str();
             if (strlen(a->element().name()) > 1) {
-                strcpy(rec_name, aname.c_str());
+                strcpy(*rec_name, aname.c_str());
             } else {
                 bool element_compares;
                 if (strncmp(a->element().name(), a->name().c_str(), 1) == 0) {
@@ -1299,15 +1288,15 @@ write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
                     element_compares = false;
                 }
                 if (element_compares && aname.size() < 4) {
-                    strcpy(rec_name, " ");
-                    strcat(rec_name, aname.c_str());
+                    strcpy(*rec_name, " ");
+                    strcat(*rec_name, aname.c_str());
                 } else {
-                    strcpy(rec_name, aname.c_str());
+                    strcpy(*rec_name, aname.c_str());
                 }
             }
             strcpy(res->name, r->name().c_str());
             res->chain_id = r->chain_id()[0];
-            auto seq_num = r->position();
+            auto seq_num = r->number();
             auto i_code = r->insertion_code();
             if (seq_num > 9999) {
                 // usurp the insertion code...
@@ -1325,15 +1314,25 @@ write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
                 p.atomqr.radius = a->radius();
             } else {
                 try {
-                    p.atom.charge = a->get_py_float_attr(pdb_charge);
+                    auto charge = a->get_py_int_attr(pdb_charge);
+                    if (charge > 0.0)
+                        p.atom.charge[0] = '+';
+                    else if (charge < 0.0)
+                        p.atom.charge[0] = '-';
+                    else
+                        p.atom.charge[0] = ' ';
+                    p.atom.charge[1] = '0' + std::abs(charge);
+                    p.atom.charge[2] = '\0';
                 } catch (atomstruct::PyAttrError&) {
-                    p.atom.charge = 0.0;
+                    p.atom.charge[0] = ' ';
+                    p.atom.charge[1] = '0';
+                    p.atom.charge[2] = '\0';
                 }
                 try {
                     strcpy(p.atom.seg_id, a->get_py_string_attr(pdb_charge));
                 } catch (atomstruct::PyAttrError&) { }
-                const char* ename = a->element()->name();
-                if (a->element()->number() == 1) {
+                const char* ename = a->element().name();
+                if (a->element().number() == 1) {
                     if (a->name().c_str()[0] == 'D')
                         ename = "D";
                     else if (a->name().c_str()[0] == 'T') {
@@ -1350,7 +1349,7 @@ write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
             for (auto alt_loc: a->alt_locs()) {
                 *rec_alt_loc = alt_loc;
                 *rec_serial = ++serial;
-                (*rev_asn)[a] = *rec_serial;
+                rev_asn[a] = *rec_serial;
                 const Coord* crd;
                 float bfactor, occupancy;
                 if (alt_loc == ' ') {
@@ -1369,14 +1368,13 @@ write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
                 }
                 Coord final_crd;
                 if (xform != nullptr) {
-                    double* xf_vals = xform->values();
+                    double* xf_vals = *xform;
                     double mat[3][3], offset[3];
-                    double *m = mat;
                     double *off = offset;
                     for (int row = 0; row < 3; ++row) {
-                        *m++ = *xf_vals++;
-                        *m++ = *xf_vals++;
-                        *m++ = *xf_vals++;
+                        mat[row][0] = *xf_vals++;
+                        mat[row][2] = *xf_vals++;
+                        mat[row][2] = *xf_vals++;
                         *off++ = *xf_vals++;
                     }
                     final_crd[0] = mat[0][0] * (*crd)[0] + mat[1][0] * (*crd)[1]
@@ -1387,9 +1385,9 @@ write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
                         + mat[2][2] * (*crd)[2] + offset[2];
                 } else
                     final_crd = *crd;
-                xyz[0] = final_crd[0];
-                xyz[1] = final_crd[1];
-                xyz[2] = final_crd[2];
+                (*xyz)[0] = final_crd[0];
+                (*xyz)[1] = final_crd[1];
+                (*xyz)[2] = final_crd[2];
                 os << p << "\n";
             }
             written.insert(a);
@@ -1399,22 +1397,146 @@ write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
     }
 }
 
+static bool
+chief_or_link(const Atom* a)
+{
+    auto r = a->residue();
+    auto tr = tmpl::find_template_residue(r->name(), false, false);
+    if (tr == nullptr)
+        return false;
+    return a->name() == tr->chief()->name() || a->name() == tr->link()->name();
+}
+
+static void
+write_conect(std::ostream& os, const Structure* s, std::map<const Atom*, int>& rev_asn,
+    const std::set<const Atom*>& written)
+{
+    PDB p;
+    // to handle circular/cross-linked structures, make a map from residue to residue index...
+    std::map<const Residue*, long> res_order;
+    long i = 0;
+    for (auto r: s->residues())
+        res_order[r] = i++;
+
+    // collate the metal coordination bonds for easy access
+    std::map<const Atom*, std::vector<const Atom*>> coordinations;
+    auto& mgr = s->pb_mgr();
+    auto grp = mgr.get_group(Structure::PBG_METAL_COORDINATION);
+    if (grp != nullptr) {
+        for (auto pb: grp->pseudobonds()) {
+            auto a1 = pb->atoms()[0];
+            auto a2 = pb->atoms()[1];
+            coordinations[a1].push_back(a2);
+            coordinations[a2].push_back(a1);
+        }
+    }
+
+    for (auto r: s->residues()) {
+        bool standard = atomstruct::standard_residue(r->name());
+        // verify that the "standard" residue in fact has standard connectivity...
+        if (standard) {
+            auto index = res_order[r];
+            bool start = index == 0 || !r->connects_to(s->residues()[index-1]);
+            bool end = static_cast<Structure::Residues::size_type>(index) == s->residues().size()-1
+                || !r->connects_to(s->residues()[index+1]);
+            auto tr = tmpl::find_template_residue(r->name(), start, end);
+            if (tr) {
+                // Gather the intra-residue heavy-atom-only bonds...
+                std::set<std::pair<AtomName,AtomName>> res_bonds;
+                for (auto a: r->atoms()) {
+                    if (a->element().number() == 1)
+                        continue;
+                    for (auto b: a->bonds()) {
+                        auto oa = b->other_atom(a);
+                        if (oa->element().number() == 1)
+                            continue;
+                        if (oa->residue() != r)
+                            continue;
+                        if (a->name() < oa->name())
+                            res_bonds.insert(std::make_pair(a->name(), oa->name()));
+                        else
+                            res_bonds.insert(std::make_pair(oa->name(), a->name()));
+                    }
+                }
+
+                // Gather the template bonds...
+                std::set<std::pair<AtomName,AtomName>> tr_bonds;
+                for (auto nm_a: tr->atoms_map()) {
+                    auto a = nm_a.second;
+                    for (auto b: a->bonds()) {
+                        auto oa = b->other_atom(a);
+                        if (a->name() < oa->name())
+                            res_bonds.insert(std::make_pair(a->name(), oa->name()));
+                        else
+                            res_bonds.insert(std::make_pair(oa->name(), a->name()));
+                    }
+                }
+                standard = tr_bonds == res_bonds;
+            }
+        }
+        for (auto a: r->atoms()) {
+            if (written.find(a) == written.end())
+                continue;
+            bool skip_conect = standard && coordinations.find(a) == coordinations.end();
+            int count = 0;
+            p.set_type(PDB::CONECT);
+            p.conect.serial[0] = rev_asn[a];
+            for (auto b: a->bonds()) {
+                auto oa = b->other_atom(a);
+                if (written.find(oa) == written.end())
+                    continue;
+                auto oar = oa->residue();
+                if (skip_conect && oar != r) {
+                    if (!atomstruct::standard_residue(oar->name())
+                    || !chief_or_link(a)
+                    || oar->chain_id() != r->chain_id()
+                    || std::abs(res_order[r] - res_order[oar]) > 1)
+                        skip_conect = false;
+                }
+                if (count == 4) {
+                    if (!skip_conect)
+                        os << p << "\n";
+                    count = 0;
+                    p.set_type(PDB::CONECT);
+                    p.conect.serial[0] = rev_asn[a];
+                }
+                int index = 1 + count++;
+                p.conect.serial[index] = rev_asn[oa];
+            }
+            for (auto oa: coordinations[a]) {
+                if (written.find(oa) == written.end())
+                    continue;
+                if (count == 4) {
+                    os << p << "\n";
+                    count = 0;
+                    p.set_type(PDB::CONECT);
+                    p.conect.serial[0] = rev_asn[a];
+                }
+                int index = 1 + count++;
+                p.conect.serial[index] = rev_asn[oa];
+            }
+            if (!skip_conect && count != 0) {
+                os << p << "\n";
+            }
+        }
+    }
+}
+
 static void
 write_pdb(std::vector<const Structure*> structures, std::ostream& os, bool selected_only,
     bool displayed_only, double** xform, bool all_frames, bool pqr)
 {
-    bool need_TER = false;
     PDB p;
     // non-selected/displayed atoms may not be written out, so we need to track what
     // was written so we know which CONECT records to output
-    std::set<Atom*> written;
+    std::set<const Atom*> written;
     int out_model_num = 0;
     for (auto s: structures) {
-        bool multi_model = (m->coord_sets().size() > 1) && all_frames;
+        bool multi_model = (s->coord_sets().size() > 1) && all_frames;
         // Output headers only before first MODEL
         if (s == structures[0]) {
             // write out known headers first
-            auto& headers = s->metadata();
+            auto& headers = s->metadata;
             for (auto& record_type: record_order) {
                 if (record_type == "MODEL")
                     // end of headers
@@ -1428,14 +1550,14 @@ write_pdb(std::vector<const Structure*> structures, std::ostream& os, bool selec
             }
 
             // write out unknown headers
-            decltype(record_order) known_headers;
-            known_headers.insert(record_order.begin(),
+            decltype(record_order) known_headers(record_order.begin(),
                 std::find(record_order.begin(), record_order.end(), "MODEL"));
             for (auto& type_records: headers) {
                 if (!std::isupper(type_records.first[0]) || type_records.first.size() > 6)
                     // not a PDB header
                     continue;
-                if (known_headers.find(type_records.first) != known_headers.end())
+                if (std::find(known_headers.begin(), known_headers.end(), type_records.first)
+                != known_headers.end())
                     continue;
                 for (auto& record: type_records.second)
                     os << record << '\n';
@@ -1448,7 +1570,7 @@ write_pdb(std::vector<const Structure*> structures, std::ostream& os, bool selec
                 continue;
             bool use_MODEL = multi_model || structures.size() > 1;
             if (use_MODEL) {
-                if (multimodel)
+                if (multi_model)
                     p.model.serial = cs->id();
                 else
                     p.model.serial = ++out_model_num;
@@ -1461,7 +1583,9 @@ write_pdb(std::vector<const Structure*> structures, std::ostream& os, bool selec
                 os << p << "\n";
             }
         }
-        //TODO: remainder
+        write_conect(os, s, rev_asn, written);
+        p.set_type(PDB::END);
+        os << p << "\n";
     }
 }
 
@@ -1516,7 +1640,7 @@ docstr_write_pdb_file =
 "  If True, write PQR-style ATOM records\n" \
 "\n";
 
-extern "C" void
+extern "C" PyObject*
 write_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
 {
     PyObject *py_structures;
@@ -1535,7 +1659,7 @@ write_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
             displayed_only, &py_xform, &all_frames, &pqr))
         return nullptr;
 
-    if (!PySequence_Check(py_structures) {
+    if (!PySequence_Check(py_structures)) {
         PyErr_SetString(PyExc_TypeError, "First arg is not a sequence (of structure pointers)");
         return nullptr;
     }
@@ -1553,12 +1677,12 @@ write_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
             PyErr_SetString(PyExc_TypeError, err_msg.str().c_str());
             return nullptr;
         }
-        structures.push_back(static_cast<const Structure*>(PyLong_AsVoidPtr(ptr)));
+        structures.push_back(static_cast<const Structure*>(PyLong_AsVoidPtr(py_ptr)));
     }
 
-    char* path = PyBytes_AS_STRING(py_path);
-    auto os = new std::ofstream(path);
-    if (!*os) {
+    const char* path = PyBytes_AS_STRING(py_path);
+    auto os = std::ofstream(path);
+    if (!os.good()) {
         std::stringstream err_msg;
         err_msg << "Unable to open file '" << path << "' for writing";
         PyErr_SetString(PyExc_IOError, err_msg.str().c_str());
@@ -1586,17 +1710,19 @@ write_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
     write_pdb(structures, os, (bool)selected_only, (bool)displayed_only, xform, (bool)all_frames,
         (bool)pqr);
 
-    if (os->bad()) {
+    if (os.bad()) {
         PyErr_SetString(PyExc_ValueError, "Problem writing output PDB file");
         Py_XDECREF(py_path);
         return nullptr;
     }
     Py_XDECREF(py_path);
+    Py_RETURN_NONE;
 }
 
 static struct PyMethodDef pdbio_functions[] =
 {
-    { "read_pdb_file", (PyCFunction)read_pdb_file, METH_VARARGS|METH_KEYWORDS,
+    { "read_pdb_file", (PyCFunction)read_pdb_file, METH_VARARGS|METH_KEYWORDS, 
+        docstr_read_pdb_file },
     { "write_pdb_file", (PyCFunction)write_pdb_file, METH_VARARGS|METH_KEYWORDS,
         docstr_write_pdb_file },
     { nullptr, nullptr, 0, nullptr }
