@@ -50,6 +50,7 @@ using atomstruct::CoordSet;
 using element::Element;
 using atomstruct::MolResId;
 using atomstruct::Coord;
+using atomstruct::Sequence;
 
 using atomstruct::AtomName;
 using atomstruct::ChainID;
@@ -105,19 +106,41 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
     Models models;
     models.reserve(16);  // reduce memory use
 
+    // Add single letter codes for non-standard residues
+    for (size_t i = 0; i < data.groupList.size(); ++i) {
+        auto& g = data.groupList[i];
+        auto& type = g.chemCompType;
+        bool is_peptide = type.find("PEPTIDE") != string::npos;
+        bool is_nucleotide = type.find("DNA ") == string::npos
+            || type.find("RNA ") == string::npos;
+        ResName name = ResName(g.groupName.c_str());
+        char code = g.singleLetterCode;
+        if (code) {
+            if (is_peptide) {
+                if (Sequence::protein3to1(name) == 'X')
+                    Sequence::assign_rname3to1(name, code, true);
+            } else if (is_nucleotide) {
+                if (Sequence::nucleic3to1(name) == 'X')
+                    Sequence::assign_rname3to1(name, code, false);
+            }
+        }
+    }
+
+    // compute which entity corresponds to a chain
     vector<int> per_chain_entity_index(data.numChains);
-    for (int i = 0; i < data.entityList.size(); ++i) {
-        for (int j: data.entityList[i].chainIndexList) {
+    for (size_t i = 0; i < data.entityList.size(); ++i) {
+        for (auto j: data.entityList[i].chainIndexList) {
             per_chain_entity_index[j] = i;
         }
     }
 
-    for (int32_t model_index = 0; model_index < data.numModels; ++model_index) {
+    // Traverse data and contruct structures
+    for (size_t model_index = 0; model_index < data.numModels; ++model_index) {
         auto m = new AtomicStructure(_logger);
         models.push_back(m);
         int32_t model_chain_count = data.chainsPerModel[model_index];
         // traverse chains
-        for (auto _model_chain = 0; _model_chain < model_chain_count; ++_model_chain) {
+        for (size_t _model_chain = 0; _model_chain < model_chain_count; ++_model_chain) {
             chain_index += 1;
             string chain_id = data.chainIdList[chain_index];
             string chain_name;
@@ -128,18 +151,16 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
             int32_t chain_group_count = data.groupsPerChain[chain_index];
             auto& entity = data.entityList[per_chain_entity_index[chain_index]];
 
-#ifdef TODO
             if (entity.type == "polymer") {
-                //  want 3-letter residue names, mmtf gives single-letter
-                //  (so no "(ABC)"s either)
+                // Sequence code has been extended to accept single-letter
+                // residue names
                 vector<ResName> seqres;
                 seqres.reserve(entity.sequence.size());
                 for (auto c: entity.sequence)
-                    seqres.emplace_back(c);
-                m->set_input_seq_info(chain_name, seqres);
+                    seqres.emplace_back(string(1, c).c_str());
+                m->set_input_seq_info(chain_name.c_str(), seqres);
                 m->input_seq_source = "MMTF sequence";
             }
-#endif
 
             // traverse groups
             const char* last_ss = nullptr;
