@@ -58,6 +58,17 @@ def open_pdb(session, filename, name, auto_style=True, coordsets=False):
     return models, info
 
 
+def save_pdb(session, path, format, models=None, selected_only=False, displayed_only=False,
+        all_frames=False, pqr=False, relative=None):
+    from ..errors import UserError
+    if models is None:
+        from . import Structure
+        models = [m for m in session.models if isinstance(m, Structure)]
+    if not models:
+        raise UserError("No structures to save")
+
+    #TODO: need to rework C++ layer to take a matrix per structure
+
 _pdb_sources = {
     "rcsb": "http://www.pdb.org/pdb/files/%s.pdb",
     "pdbe": "http://www.ebi.ac.uk/pdbe/entry-files/download/pdb%s.ent",
@@ -108,7 +119,7 @@ def register_pdb_format():
         "PDB", structure.CATEGORY, (".pdb", ".pdb1", ".ent", ".pqr"), ("pdb",),
         mime=("chemical/x-pdb", "chemical/x-spdbv"),
         reference="http://wwpdb.org/docs.html#format",
-        open_func=open_pdb)
+        open_func=open_pdb, export_func=save_pdb)
     from ..commands import add_keyword_arguments, BoolArg
     add_keyword_arguments('open', {'coordsets':BoolArg,
                                    'auto_style':BoolArg})
