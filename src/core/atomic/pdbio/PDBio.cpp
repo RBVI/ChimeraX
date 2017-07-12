@@ -1206,19 +1206,22 @@ primes_to_asterisks(const char* orig_name)
 
 static void
 write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
-    std::map<const Atom*, int>& rev_asn, bool selected_only, bool displayed_only, double** xform,
-    bool pqr, std::set<const Atom*>& written)
+    std::map<const Atom*, int>& rev_asn, bool selected_only, bool displayed_only, double* xform,
+    bool pqr, std::set<const Atom*>& written, std::map<const Residue*, int>& polymer_map)
 {
     Residue* prev_res = nullptr;
     bool prev_standard = false;
     PDB p, p_ter;
     bool need_ter = false;
+    bool some_output = false;
     int serial = 0;
     for (auto r: s->residues()) {
         bool standard = Sequence::rname3to1(r->name()) != 'X';
-        if (prev_res != nullptr && (prev_standard || standard)) {
-            // if no bonds connecting the two residues, output TER
-            if (!r->connects_to(prev_res))
+        if (prev_res != nullptr && (prev_standard || standard) && some_output) {
+            // if the preceding residue isn't in the same polymer, output TER
+            int prev_pnum = polymer_map[prev_res];
+            int pnum = polymer_map[r];
+            if (prev_pnum != pnum)
                 need_ter = true;
         }
         if (need_ter) {
@@ -1307,6 +1310,7 @@ write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
             res->i_code = i_code;
             if (pqr) {
                 try {
+throw atomstruct::PyAttrError("avoid calling through Python");
                     p.atomqr.charge = a->get_py_float_attr(pqr_charge);
                 } catch (atomstruct::PyAttrError&) {
                     p.atomqr.charge = 0.0;
@@ -1314,6 +1318,7 @@ write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
                 p.atomqr.radius = a->radius();
             } else {
                 try {
+throw atomstruct::PyAttrError("avoid calling through Python");
                     auto charge = a->get_py_int_attr(pdb_charge);
                     if (charge > 0.0)
                         p.atom.charge[0] = '+';
@@ -1325,10 +1330,11 @@ write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
                     p.atom.charge[2] = '\0';
                 } catch (atomstruct::PyAttrError&) {
                     p.atom.charge[0] = ' ';
-                    p.atom.charge[1] = '0';
+                    p.atom.charge[1] = ' ';
                     p.atom.charge[2] = '\0';
                 }
                 try {
+throw atomstruct::PyAttrError("avoid calling through Python");
                     strcpy(p.atom.seg_id, a->get_py_string_attr(pdb_charge));
                 } catch (atomstruct::PyAttrError&) { }
                 const char* ename = a->element().name();
@@ -1344,9 +1350,13 @@ write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
             if (need_ter) {
                 os << p_ter << "\n";
                 need_ter = false;
+                some_output = false;
             }
             // loop through alt locs
-            for (auto alt_loc: a->alt_locs()) {
+            auto alt_locs = a->alt_locs();
+            if (alt_locs.empty())
+                alt_locs.insert(' ');
+            for (auto alt_loc: alt_locs) {
                 *rec_alt_loc = alt_loc;
                 *rec_serial = ++serial;
                 rev_asn[a] = *rec_serial;
@@ -1368,20 +1378,20 @@ write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
                 }
                 Coord final_crd;
                 if (xform != nullptr) {
-                    double* xf_vals = *xform;
                     double mat[3][3], offset[3];
                     double *off = offset;
+                    auto xf_vals = xform;
                     for (int row = 0; row < 3; ++row) {
                         mat[row][0] = *xf_vals++;
-                        mat[row][2] = *xf_vals++;
+                        mat[row][1] = *xf_vals++;
                         mat[row][2] = *xf_vals++;
                         *off++ = *xf_vals++;
                     }
-                    final_crd[0] = mat[0][0] * (*crd)[0] + mat[1][0] * (*crd)[1]
-                        + mat[2][0] * (*crd)[2] + offset[0];
-                    final_crd[1] = mat[0][1] * (*crd)[0] + mat[1][1] * (*crd)[1]
-                        + mat[2][1] * (*crd)[2] + offset[1];
-                    final_crd[2] = mat[0][2] * (*crd)[0] + mat[1][2] * (*crd)[1]
+                    final_crd[0] = mat[0][0] * (*crd)[0] + mat[0][1] * (*crd)[1]
+                        + mat[0][2] * (*crd)[2] + offset[0];
+                    final_crd[1] = mat[1][0] * (*crd)[0] + mat[1][1] * (*crd)[1]
+                        + mat[1][2] * (*crd)[2] + offset[1];
+                    final_crd[2] = mat[2][0] * (*crd)[0] + mat[2][1] * (*crd)[1]
                         + mat[2][2] * (*crd)[2] + offset[2];
                 } else
                     final_crd = *crd;
@@ -1389,6 +1399,7 @@ write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
                 (*xyz)[1] = final_crd[1];
                 (*xyz)[2] = final_crd[2];
                 os << p << "\n";
+                some_output = true;
             }
             written.insert(a);
         }
@@ -1459,16 +1470,20 @@ write_conect(std::ostream& os, const Structure* s, std::map<const Atom*, int>& r
                     }
                 }
 
-                // Gather the template bonds...
+                // Gather the template heavy-atom-only bonds...
                 std::set<std::pair<AtomName,AtomName>> tr_bonds;
                 for (auto nm_a: tr->atoms_map()) {
                     auto a = nm_a.second;
+                    if (a->element().number() == 1)
+                        continue;
                     for (auto b: a->bonds()) {
                         auto oa = b->other_atom(a);
+                        if (oa->element().number() == 1)
+                            continue;
                         if (a->name() < oa->name())
-                            res_bonds.insert(std::make_pair(a->name(), oa->name()));
+                            tr_bonds.insert(std::make_pair(a->name(), oa->name()));
                         else
-                            res_bonds.insert(std::make_pair(oa->name(), a->name()));
+                            tr_bonds.insert(std::make_pair(oa->name(), a->name()));
                     }
                 }
                 standard = tr_bonds == res_bonds;
@@ -1524,14 +1539,16 @@ write_conect(std::ostream& os, const Structure* s, std::map<const Atom*, int>& r
 
 static void
 write_pdb(std::vector<const Structure*> structures, std::ostream& os, bool selected_only,
-    bool displayed_only, double** xform, bool all_frames, bool pqr)
+    bool displayed_only, std::vector<double*>& xforms, bool all_frames, bool pqr)
 {
     PDB p;
     // non-selected/displayed atoms may not be written out, so we need to track what
     // was written so we know which CONECT records to output
     std::set<const Atom*> written;
     int out_model_num = 0;
-    for (auto s: structures) {
+    for (std::vector<const Structure*>::size_type i = 0; i < structures.size(); ++i) {
+        auto s = structures[i];
+        auto xform = xforms[i];
         bool multi_model = (s->coord_sets().size() > 1) && all_frames;
         // Output headers only before first MODEL
         if (s == structures[0]) {
@@ -1565,19 +1582,27 @@ write_pdb(std::vector<const Structure*> structures, std::ostream& os, bool selec
         }
 
         std::map<const Atom*, int> rev_asn;
+        std::map<const Residue*, int> polymer_map;
+        int polymer_num = 1;
+        for (auto poly_residues: s->polymers()) {
+            for (auto r: poly_residues)
+                polymer_map[r] = polymer_num;
+            polymer_num++;
+        }
         for (auto cs: s->coord_sets()) {
             if (!multi_model && cs != s->active_coord_set())
                 continue;
             bool use_MODEL = multi_model || structures.size() > 1;
             if (use_MODEL) {
+                p.set_type(PDB::MODEL);
                 if (multi_model)
                     p.model.serial = cs->id();
                 else
                     p.model.serial = ++out_model_num;
-                p.set_type(PDB::MODEL);
                 os << p << "\n";
             }
-            write_coord_set(os, s, cs, rev_asn, selected_only, displayed_only, xform, pqr, written);
+            write_coord_set(os, s, cs, rev_asn, selected_only, displayed_only, xform, pqr, written,
+                polymer_map);
             if (use_MODEL) {
                 p.set_type(PDB::ENDMDL);
                 os << p << "\n";
@@ -1619,7 +1644,7 @@ read_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
 
 static const char*
 docstr_write_pdb_file = 
-"write_pdb_file(structures, file_name, selected_only=False, displayed_only=False, xform=None\n" \
+"write_pdb_file(structures, file_name, selected_only=False, displayed_only=False, xforms=None\n" \
 "    all_frames=True, pqr=False)\n" \
 "\n" \
 "structures\n" \
@@ -1630,9 +1655,11 @@ docstr_write_pdb_file =
 "  If True, only selected atoms will be written\n" \
 "displayed_only\n" \
 "  If True, only displayed atoms will be written\n" \
-"xform\n" \
-"  A 3x4 numpy array to transform the atom coordinates with.\n" \
-"  If None then untransformed coordinates will be used.\n" \
+"xforms\n" \
+"  A sequence of 3x4 numpy arrays to transform the atom coordinates of the corresponding\n" \
+"  structure.  If None then untransformed coordinates will be used for all structures.\n" \
+"  Similarly, any None in the sequence will cause untransformed coordinates to be used\n" \
+"  for that structure.\n" \
 "all_frames\n" \
 "  If True, all frames of a trajectory will be written (as multiple MODELS).\n" \
 "  Otherwise, just the current frame will be written.\n" \
@@ -1647,16 +1674,16 @@ write_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
     PyObject *py_path;
     int selected_only = (int)false;
     int displayed_only = (int)false;
-    PyObject* py_xform = Py_None;
+    PyObject* py_xforms = Py_None;
     int all_frames = (int)true;
     int pqr = (int)false;
     static const char *kw_list[] = {
-        "structures", "file_name", "selected_only", "displayed_only", "xform", "all_frames",
+        "structures", "file_name", "selected_only", "displayed_only", "xforms", "all_frames",
         "pqr", nullptr
     };
     if (!PyArg_ParseTupleAndKeywords(args, keywords, "OO&|$ppOpp",
             (char **) kw_list, &py_structures, PyUnicode_FSConverter, &py_path, &selected_only,
-            displayed_only, &py_xform, &all_frames, &pqr))
+            &displayed_only, &py_xforms, &all_frames, &pqr))
         return nullptr;
 
     if (!PySequence_Check(py_structures)) {
@@ -1690,24 +1717,45 @@ write_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
         return nullptr;
     }
 
-    double** xform = nullptr;
+    std::vector<double*> xforms;
     auto array = Numeric_Array();
-    if (py_xform != Py_None) {
-        if (!array_from_python(py_xform, 2, Numeric_Array::Double, &array, false)) {
+    if (py_xforms == Py_None) {
+        for (int i = 0; i < num_structs; ++i)
+            xforms.push_back(nullptr);
+    } else {
+        if (PySequence_Check(py_xforms) < 0) {
+            PyErr_SetString(PyExc_TypeError, "xforms arg is not a sequence");
             Py_XDECREF(py_path);
             return nullptr;
         }
-        auto dims = array.sizes();
-        if (dims[0] != 3 || dims[1] != 4) {
-            std::stringstream err_msg;
-            err_msg << "Transform is not 3x4, is " << dims[0] << "x" << dims[1];
-            PyErr_SetString(PyExc_ValueError, err_msg.str().c_str());
+        if (PySequence_Size(py_xforms) != num_structs) {
+            PyErr_SetString(PyExc_TypeError,
+                "xforms arg sequence is not the same length as the number of structures");
             Py_XDECREF(py_path);
             return nullptr;
         }
-        xform = static_cast<double**>(array.values());
+        for (int i = 0; i < num_structs; ++i) {
+            PyObject* py_xform = PySequence_GetItem(py_xforms, i);
+            if (py_xform == Py_None) {
+                xforms.push_back(nullptr);
+                continue;
+            }
+            if (!array_from_python(py_xform, 2, Numeric_Array::Double, &array, false)) {
+                Py_XDECREF(py_path);
+                return nullptr;
+            }
+            auto dims = array.sizes();
+            if (dims[0] != 3 || dims[1] != 4) {
+                std::stringstream err_msg;
+                err_msg << "Transform #" << i+1 << " is not 3x4, is " << dims[0] << "x" << dims[1];
+                PyErr_SetString(PyExc_ValueError, err_msg.str().c_str());
+                Py_XDECREF(py_path);
+                return nullptr;
+            }
+            xforms.push_back(static_cast<double*>(array.values()));
+        }
     }
-    write_pdb(structures, os, (bool)selected_only, (bool)displayed_only, xform, (bool)all_frames,
+    write_pdb(structures, os, (bool)selected_only, (bool)displayed_only, xforms, (bool)all_frames,
         (bool)pqr);
 
     if (os.bad()) {

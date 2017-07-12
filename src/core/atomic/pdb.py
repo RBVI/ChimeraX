@@ -67,7 +67,31 @@ def save_pdb(session, path, format, models=None, selected_only=False, displayed_
     if not models:
         raise UserError("No structures to save")
 
-    #TODO: need to rework C++ layer to take a matrix per structure
+    if len(models) == 1 and list(models)[0] == relative:
+        xforms = None
+    else:
+        xforms = []
+        for s in models:
+            if relative is None:
+                xforms.append(s.scene_position.matrix)
+            else:
+                inv = relative.scene_position.inverse()
+                if s.scene_position == relative.scene_position:
+                    xforms.append(None)
+                else:
+                    xforms.append((s.scene_position * inv).matrix)
+
+    from . import pdbio
+    file_per_model = "[NAME]" in path or "[NUMBER]" in path
+    if file_per_model:
+        for m, xform in zip(models, xforms):
+            file_name = path.replace("[NUMBER]", m.id_string()).replace("[NAME]", m.name)
+            pdbio.write_pdb_file([m.cpp_pointer], file_name, selected_only=selected_only,
+                displayed_only=displayed_only, xforms=[xform], all_frames=all_frames, pqr=pqr)
+    else:
+        pdbio.write_pdb_file([m.cpp_pointer for m in models], path, selected_only=selected_only,
+            displayed_only=displayed_only, xforms=xforms, all_frames=all_frames, pqr=pqr)
+
 
 _pdb_sources = {
     "rcsb": "http://www.pdb.org/pdb/files/%s.pdb",
@@ -120,9 +144,10 @@ def register_pdb_format():
         mime=("chemical/x-pdb", "chemical/x-spdbv"),
         reference="http://wwpdb.org/docs.html#format",
         open_func=open_pdb, export_func=save_pdb)
-    from ..commands import add_keyword_arguments, BoolArg
-    add_keyword_arguments('open', {'coordsets':BoolArg,
-                                   'auto_style':BoolArg})
+    from ..commands import add_keyword_arguments, BoolArg, StructuresArg, ModelArg
+    add_keyword_arguments('open', {'coordsets':BoolArg, 'auto_style':BoolArg})
+    add_keyword_arguments('save', {'models':StructuresArg, 'selected_only':BoolArg,
+        'displayed_only':BoolArg, 'all_frames':BoolArg, 'pqr':BoolArg, 'relative':ModelArg})
 
 
 def register_pdb_fetch():
