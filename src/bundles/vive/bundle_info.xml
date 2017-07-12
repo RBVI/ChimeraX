@@ -1,0 +1,27 @@
+<BundleInfo name="ChimeraX-Vive" version="1.0"
+	    package="chimerax.vive"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Virtual reality headset support</Synopsis>
+  <Description>Use virtual reality headsets with SteamVR.</Description>
+
+  <Categories>
+    <Category name="General"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: vr :: General :: Render to virtual reality headsets</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: device vr :: General :: Render to virtual reality headsets</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>
