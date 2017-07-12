@@ -1,0 +1,27 @@
+<BundleInfo name="ChimeraX-Shell" version="1.0"
+	    package="chimerax.shell"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Interactive Python shell</Synopsis>
+  <Description> Provide IPython interactive shell, https://ipython.org/ipython-doc/3/interactive/qtconsole.html.  The current ChimeraX session is available in the global variable 'session'.</Description>
+
+  <Categories>
+    <Category name="General"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+    <Dependency name="qtconsole" version=">=4.2.1"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>ChimeraX :: Tool :: Shell :: General :: Python shell</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>
