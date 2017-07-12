@@ -1,0 +1,26 @@
+<BundleInfo name="ChimeraX-SideView" version="1.0"
+	    package="chimerax.sideview"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Side view of scene</Synopsis>
+  <Description>Show camera settings (eye position and clipping planes) overlayed on the scene and allow for them to be interactively changed.</Description>
+
+  <Categories>
+    <Category name="General"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>ChimeraX :: Tool :: Side View :: General :: Show side view interface</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>
