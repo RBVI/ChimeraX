@@ -21,7 +21,7 @@ CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
 endif
 
 SOURCE = src
-SRCS = $(SOURCE)/*.py
+SRCS = $(SOURCE)/*.py $(SOURCE)/matrices/*.matrix
 
 #
 # Actual make dependencies!
