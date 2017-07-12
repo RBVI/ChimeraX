@@ -48,6 +48,7 @@ PythonInstance::get_py_attr(const char* attr_name) const
         throw NoPyInstanceError();
 
     auto py_attr = PyObject_GetAttrString(py_obj, attr_name);
+    Py_DECREF(py_obj);
     if (py_attr == nullptr)
         throw NoPyAttrError();
     return py_attr;
@@ -87,6 +88,7 @@ PythonInstance::get_py_int_attr(const char* attr_name) const
     return ret_val;
 }
 
+static std::string _buffer;  // so that the const char* will hang around
 const char *
 PythonInstance::get_py_string_attr(const char* attr_name) const
 {
@@ -99,9 +101,9 @@ PythonInstance::get_py_string_attr(const char* attr_name) const
         msg << " to be a string";
         throw WrongPyAttrTypeError(msg.str());
     }
-    auto ret_val = PyUnicode_AsUTF8(py_attr);
+    _buffer = PyUnicode_AsUTF8(py_attr);
     Py_DECREF(py_attr);
-    return ret_val;
+    return _buffer.c_str();
 }
 
 PyObject*
@@ -140,11 +142,14 @@ PythonInstance::py_instance(const void* ptr)
     PyTuple_SET_ITEM(arg_tuple, 1, Py_None);
     auto ret_val = PyObject_CallObject(object_map_func, arg_tuple);
     Py_DECREF(arg_tuple);
-    Py_DECREF(py_ptr);
     if (ret_val == nullptr) {
         throw std::runtime_error("Calling chimerax.core.atomic.molobject.object_map failed");
     }
-    return ret_val == Py_None ? nullptr : ret_val;
+    if (ret_val == Py_None) {
+        Py_DECREF(Py_None);
+        return nullptr;
+    }
+    return ret_val;
 }
 
 } //  namespace atomstruct

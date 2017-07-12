@@ -1310,7 +1310,6 @@ write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
             res->i_code = i_code;
             if (pqr) {
                 try {
-throw atomstruct::PyAttrError("avoid calling through Python");
                     p.atomqr.charge = a->get_py_float_attr(pqr_charge);
                 } catch (atomstruct::PyAttrError&) {
                     p.atomqr.charge = 0.0;
@@ -1318,7 +1317,6 @@ throw atomstruct::PyAttrError("avoid calling through Python");
                 p.atomqr.radius = a->radius();
             } else {
                 try {
-throw atomstruct::PyAttrError("avoid calling through Python");
                     auto charge = a->get_py_int_attr(pdb_charge);
                     if (charge > 0.0)
                         p.atom.charge[0] = '+';
@@ -1334,8 +1332,7 @@ throw atomstruct::PyAttrError("avoid calling through Python");
                     p.atom.charge[2] = '\0';
                 }
                 try {
-throw atomstruct::PyAttrError("avoid calling through Python");
-                    strcpy(p.atom.seg_id, a->get_py_string_attr(pdb_charge));
+                    strcpy(p.atom.seg_id, a->get_py_string_attr(pdb_segment));
                 } catch (atomstruct::PyAttrError&) { }
                 const char* ename = a->element().name();
                 if (a->element().number() == 1) {
