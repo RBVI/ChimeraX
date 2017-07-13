@@ -59,7 +59,7 @@ def open_pdb(session, filename, name, auto_style=True, coordsets=False):
 
 
 def save_pdb(session, path, format, models=None, selected_only=False, displayed_only=False,
-        all_frames=False, pqr=False, relative=None):
+        all_frames=False, pqr=False, rel_model=None):
     from ..errors import UserError
     if models is None:
         from . import Structure
@@ -67,16 +67,16 @@ def save_pdb(session, path, format, models=None, selected_only=False, displayed_
     if not models:
         raise UserError("No structures to save")
 
-    if len(models) == 1 and list(models)[0] == relative:
+    if len(models) == 1 and list(models)[0] == rel_model:
         xforms = None
     else:
         xforms = []
         for s in models:
-            if relative is None:
+            if rel_model is None:
                 xforms.append(s.scene_position.matrix)
             else:
-                inv = relative.scene_position.inverse()
-                if s.scene_position == relative.scene_position:
+                inv = rel_model.scene_position.inverse()
+                if s.scene_position == rel_model.scene_position:
                     xforms.append(None)
                 else:
                     xforms.append((s.scene_position * inv).matrix)
@@ -147,7 +147,7 @@ def register_pdb_format():
     from ..commands import add_keyword_arguments, BoolArg, StructuresArg, ModelArg
     add_keyword_arguments('open', {'coordsets':BoolArg, 'auto_style':BoolArg})
     add_keyword_arguments('save', {'models':StructuresArg, 'selected_only':BoolArg,
-        'displayed_only':BoolArg, 'all_frames':BoolArg, 'pqr':BoolArg, 'relative':ModelArg})
+        'displayed_only':BoolArg, 'all_frames':BoolArg, 'pqr':BoolArg, 'rel_model':ModelArg})
 
 
 def register_pdb_fetch():
