@@ -1,0 +1,27 @@
+<BundleInfo name="ChimeraX-RemoteControl" version="1.0"
+	    package="chimerax.remote_control"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Control ChimeraX from other apps</Synopsis>
+  <Description>Provide the ability to send commands to ChimeraX from other applications.</Description>
+
+  <Categories>
+    <Category name="General"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>ChimeraX :: Tool :: Remote Control :: General :: Send commands to ChimeraX from other apps</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: remotecontrol xmlrpc :: General :: synopsis</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>
