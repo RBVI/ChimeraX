@@ -1,0 +1,31 @@
+<BundleInfo name="ChimeraX-Morph" version="1.0"
+	    package="chimerax.morph"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Morph atomic structures</Synopsis>
+  <Description>This bundle provides the morph command to smoothly interpolate between different conformations of an atomic structure.</Description>
+
+  <Categories>
+    <Category name="Morph Structures"/>
+  </Categories>
+
+  <CModule name="_morph">
+    <SourceFile>_morph/morph.cpp</SourceFile>
+    <Library>arrays</Library>
+  </CModule>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: morph :: Molecular structure :: morph atomic structures</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>
