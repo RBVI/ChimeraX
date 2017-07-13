@@ -286,6 +286,7 @@ def salt_preprocess(hbonds):
     his_data = {}
     his_names = ("HIS", "HIP") # HID/HIE cannot form salt bridge, so ignore them
     histidines = set()
+    structures = set()
     for d, a in hbonds:
         if d.idatm_type[-1] == '+':
             donors.add(d)
@@ -293,12 +294,24 @@ def salt_preprocess(hbonds):
             acceptors.add(a)
         if d.residue.name in his_names and d.name in ("NE2", "ND1"):
             histidines.add(d.residue)
+            structures.add(d.structure)
             d_hbs, a_hbs, = his_data.setdefault(d.residue, (set(), set()))
             d_hbs.add((d, a))
         if a.residue.name in his_names and a.name in ("NE2", "ND1"):
             histidines.add(a.residue)
+            structures.add(a.structure)
             d_hbs, a_hbs, = his_data.setdefault(a.residue, (set(), set()))
             a_hbs.add((d, a))
+    # histidines involved in metal coordination can't be salt-bridge donors
+    # so identify those
+    for s in structures:
+        coord_group = s.pseudobond_group(s.PBG_METAL_COORDINATION, create_type=None)
+        if not coord_group:
+            continue
+        for pb in coord_group.pseudobonds:
+            for a in pb.atoms:
+                if a.name in ("NE2", "ND1"):
+                    histidines.discard(a.residue)
     for his in histidines:
         ne = his.find_atom("NE2")
         nd = his.find_atom("ND1")

@@ -1414,11 +1414,11 @@ class StructureData:
     '''
 
     PBG_METAL_COORDINATION = c_function('structure_PBG_METAL_COORDINATION', args = (),
-        ret = ctypes.c_char_p)()
+        ret = ctypes.c_char_p)().decode('utf-8')
     PBG_MISSING_STRUCTURE = c_function('structure_PBG_MISSING_STRUCTURE', args = (),
-        ret = ctypes.c_char_p)()
+        ret = ctypes.c_char_p)().decode('utf-8')
     PBG_HYDROGEN_BONDS = c_function('structure_PBG_HYDROGEN_BONDS', args = (),
-        ret = ctypes.c_char_p)()
+        ret = ctypes.c_char_p)().decode('utf-8')
 
     def __init__(self, mol_pointer=None, *, logger=None):
         if mol_pointer is None:
