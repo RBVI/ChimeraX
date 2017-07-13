@@ -20,7 +20,8 @@ def cmd_hbonds(session, spec=None, intra_model=True, inter_model=True, relax=Tru
     inter_submodel=False, make_pseudobonds=True, retain_current=False,
     reveal=False, naming_style=None, log=False, cache_DA=None,
     color=BuiltinColors["dark cyan"], slop_color=BuiltinColors["dark orange"],
-    show_dist=False, intra_res=True, intra_mol=True, dashes=None):
+    show_dist=False, intra_res=True, intra_mol=True, dashes=None,
+    salt_only=False):
 
     """Wrapper to be called by command line.
 
@@ -74,6 +75,10 @@ def cmd_hbonds(session, spec=None, intra_model=True, inter_model=True, relax=Tru
         hbonds = [hb for hb in hbonds if mol_map[hb[0]] != mol_map[hb[1]]]
     if not intra_res:
         hbonds = [hb for hb in hbonds if hb[0].residue != hb[1].residue]
+    if salt_only:
+        hbonds = [hb for hb in hbonds
+            if hb[0].idatm_type[-1] in "+-" and hb[1].idatm_type[-1] in "+-"]
+
 
     output_info = (inter_model, intra_model, relax, dist_slop, angle_slop,
                             structures, hbonds)
@@ -112,6 +117,9 @@ def cmd_hbonds(session, spec=None, intra_model=True, inter_model=True, relax=Tru
             precise = [hb for hb in precise is mol_map[hb[0]] != mol_map[hb[1]]]
         if not intra_res:
             precise = [hb for hb in precise if hb[0].residue != hb[1].residue]
+        if salt_only:
+            precise = [hb for hb in precise
+                if hb[0].idatm_type[-1] in "+-" and hb[1].idatm_type[-1] in "+-"]
         # give another opportunity to read the result...
         session.logger.status("%d hydrogen bonds found" % len(hbonds), blank_after=120)
 
@@ -284,7 +292,7 @@ def register_command(command_name, logger):
                 ('angle_slop', FloatArg), ('two_colors', BoolArg), ('slop_color', ColorArg),
                 ('reveal', BoolArg), ('retain_current', BoolArg), ('save_file', SaveFileNameArg),
                 ('log', BoolArg), ('naming_style', EnumOf(('simple', 'command', 'serial'))),
-                ('batch', BoolArg), ('dashes', NonNegativeIntArg)],
+                ('batch', BoolArg), ('dashes', NonNegativeIntArg), ('salt_only', BoolArg)],
             synopsis = 'Find hydrogen bonds'
         )
         register('hbonds', desc, cmd_hbonds, logger=logger)
