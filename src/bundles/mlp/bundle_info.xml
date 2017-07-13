@@ -1,0 +1,43 @@
+<BundleInfo name="ChimeraX-MLP" version="1.0"
+	    package="chimerax.mlp"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Molecular lipophilicity calculation</Synopsis>
+  <Description>Molecular lipophilicity calculation
+
+Based on:
+
+    pyMLP Molecular Lipophilic Potential evaluator
+    Copyright (c) 2006-2007 Julien Lefeuvre <lefeuvrejulien@yahoo.fr>
+
+    Software License Agreement (BSD-new License)
+ 
+    Copyright (c) 2006-2015, Julien Lefeuvre <julien@lefeuv.re>
+    Contributors: - Julien Lefeuvre <julien@lefeuv.re>
+
+    All rights reserved.</Description>
+
+  <Categories>
+    <Category name="Molecular structure"/>
+  </Categories>
+
+  <CModule name="_mlp">
+    <SourceFile>_mlp/mlp.cpp</SourceFile>
+    <Library>arrays</Library>
+  </CModule>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: mlp :: Molecular structure :: Molecular lipophilicity calculation</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

@@ -1,0 +1,27 @@
+<BundleInfo name="ChimeraX-MAV" version="1.0"
+	    package="chimerax.mav"
+  	    minSessionVersion="1" maxSessionVersion="1", customInit="true">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Search PDB/NR using BLAST</Synopsis>
+  <Description>Sequence alignment viewer.</Description>
+
+  <Categories>
+    <Category name="Sequence"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+    <Dependency name="ChimeraX-Alignments" version=">=1.0"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>ChimeraX :: Tool :: Multalign Viewer :: Sequence :: Sequence alignment viewer</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>
