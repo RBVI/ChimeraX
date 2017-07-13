@@ -1,6 +1,6 @@
 <BundleInfo name="ChimeraX-MAV" version="1.0"
 	    package="chimerax.mav"
-  	    minSessionVersion="1" maxSessionVersion="1", customInit="true">
+  	    minSessionVersion="1" maxSessionVersion="1" customInit="true">
 
   <Author>UCSF RBVI</Author>
   <Email>chimerax@cgl.ucsf.edu</Email>
