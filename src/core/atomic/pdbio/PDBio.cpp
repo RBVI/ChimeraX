@@ -1705,7 +1705,7 @@ write_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
     }
 
     const char* path = PyBytes_AS_STRING(py_path);
-    auto os = std::ofstream(path);
+    std::ofstream os(path);
     if (!os.good()) {
         std::stringstream err_msg;
         err_msg << "Unable to open file '" << path << "' for writing";
