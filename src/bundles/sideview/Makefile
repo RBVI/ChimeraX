@@ -41,3 +41,6 @@ debug:
 
 clean:
 	$(CHIMERAX_EXE) --nogui --cmd "devel clean . ; exit"
+
+pylint:
+	$(CHIMERAX_EXE) -m flake8 $(filter %.py, $(SRCS))
