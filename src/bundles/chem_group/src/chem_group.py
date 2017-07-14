@@ -137,6 +137,7 @@ class RingAtom:
 
 # if a group is added here, or the synonyms just below group_info, it also has to be added
 # to setup.py.in
+from .support import collate_results
 group_info = {
     "acyl halide":    ("R(C=O)X",    ['C2', [X, 'O2', single_bond]], [1,1,1,0]),
     "adenine":    ("6-aminopurine",
