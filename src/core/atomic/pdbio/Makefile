@@ -47,5 +47,5 @@ PDBio.o: $(includedir)/pdb/PDB.h $(includedir)/atomstruct/Atom.h \
 	$(includedir)/atomstruct/AtomicStructure.h $(includedir)/atomstruct/Bond.h \
 	$(includedir)/atomstruct/connect.h $(includedir)/atomstruct/CoordSet.h \
 	$(includedir)/atomstruct/destruct.h $(includedir)/atomstruct/Residue.h \
-	$(includedir)/atomstruct/Sequence.h $(includedir)/atomstruct/Structure.h \
-	$(includedir)/logger/logger.h
+	$(includedir)/atomstruct/PythonInstance.h $(includedir)/atomstruct/Sequence.h \
+	$(includedir)/atomstruct/Structure.h $(includedir)/logger/logger.h

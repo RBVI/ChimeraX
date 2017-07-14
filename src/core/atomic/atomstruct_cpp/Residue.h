@@ -81,10 +81,9 @@ private:
     Structure *  _structure;
 public:
     void  add_atom(Atom*);
-    const Atoms &  atoms() const { return _atoms; }
+    const Atoms&  atoms() const { return _atoms; }
     AtomsMap  atoms_map() const;
-    std::vector<Bond*>  bonds_between(const Residue* other_res,
-        bool just_first=false) const;
+    std::vector<Bond*>  bonds_between(const Residue* other_res, bool just_first=false) const;
     Chain*  chain() const;
     const ChainID&  chain_id() const;
     bool  connects_to(const Residue* other_res) { return !bonds_between(other_res, true).empty(); }

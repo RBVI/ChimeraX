@@ -155,15 +155,21 @@ Atom::_new_coord(const Point &coord)
 const Coord &
 Atom::coord() const
 {
+    CoordSet *cs = structure()->active_coord_set();
+    if (cs == nullptr)
+        throw std::logic_error("no active coordinate set");
+    return coord(cs);
+}
+
+const Coord&
+Atom::coord(const CoordSet* cs) const
+{
     if (_coord_index == COORD_UNASSIGNED)
         throw std::logic_error("coordinate value hasn't been assigned");
     if (_alt_loc != ' ') {
         _Alt_loc_map::const_iterator i = _alt_loc_map.find(_alt_loc);
         return (*i).second.coord;
     }
-    CoordSet *cs = structure()->active_coord_set();
-    if (cs == nullptr)
-        throw std::logic_error("no active coordinate set");
     return cs->coords()[_coord_index];
 }
 

@@ -16,12 +16,6 @@
     <Category name="Sequence"/>
   </Categories>
 
-  <!-- Additional packages -->
-  <AdditionalPackages>
-    <Package name="chimerax.seqalign.io" folder="src/io"/>
-    <Package name="chimerax.seqalign.model" folder="src/model"/>
-  </AdditionalPackages>
-
   <!-- Dependencies on other ChimeraX/Python packages -->
   <Dependencies>
     <Dependency name="ChimeraX-Core" version=">=0.1"/>

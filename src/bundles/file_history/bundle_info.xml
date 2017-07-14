@@ -1,0 +1,26 @@
+<BundleInfo name="ChimeraX-FileHistory" version="1.0"
+	    package="chimerax.file_history"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>File History Panel</Synopsis>
+  <Description>Display thumbmails of the list of recently opened files in a panel.</Description>
+
+  <Categories>
+    <Category name="General"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>ChimeraX :: Tool :: File History :: General :: Show recently opened files</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

@@ -1,0 +1,30 @@
+<BundleInfo name="ChimeraX-RightMouseModes" version="1.0"
+	    package="chimerax.mouse_modes"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Provide right button mouse mode tool</Synopsis>
+  <Description>Provide a series of icons for changing the assigment of the right mouse button.</Description>
+
+  <DataFiles>
+    <DataFile>icons/*.png</DataFile>
+  </DataFiles>
+
+  <Categories>
+    <Category name="Toolbar"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>ChimeraX :: Tool :: Mouse Modes for Right Button :: Toolbar :: Choose mouse right button mode</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

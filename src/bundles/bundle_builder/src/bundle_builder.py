@@ -184,17 +184,25 @@ class BundleBuilder:
                 minor = 1
             c = _CModule(mod_name, platform, major, minor)
             for e in cm.getElementsByTagName("Requires"):
-                c.add_require(self._get_element_text(e))
+                c.add_require(self._get_element_text(e),
+                              e.getAttribute("platform"))
             for e in cm.getElementsByTagName("SourceFile"):
-                c.add_source_file(self._get_element_text(e))
+                c.add_source_file(self._get_element_text(e),
+                                  e.getAttribute("platform"))
+            for e in cm.getElementsByTagName("IncludeDir"):
+                c.add_include_dir(self._get_element_text(e),
+                                  e.getAttribute("platform"))
             for e in cm.getElementsByTagName("Library"):
-                c.add_library(self._get_element_text(e))
+                c.add_library(self._get_element_text(e),
+                              e.getAttribute("platform"))
+            for e in cm.getElementsByTagName("LibraryDir"):
+                c.add_library_dir(self._get_element_text(e),
+                                  e.getAttribute("platform"))
+            for e in cm.getElementsByTagName("LinkArgument"):
+                c.add_link_argument(self._get_element_text(e),
+                                    e.getAttribute("platform"))
             for e in cm.getElementsByTagName("Framework"):
                 c.add_framework(self._get_element_text(e))
-            for e in cm.getElementsByTagName("IncludeDir"):
-                c.add_include_dir(self._get_element_text(e))
-            for e in cm.getElementsByTagName("LibraryDir"):
-                c.add_library_dir(self._get_element_text(e))
             for e in cm.getElementsByTagName("FrameworkDir"):
                 c.add_framework_dir(self._get_element_text(e))
             self.c_modules.append(c)
@@ -243,11 +251,17 @@ class BundleBuilder:
             "python_requires": ">= 3.6",
             "install_requires": self.dependencies,
         }
-        package_dir = {self.package: "src"}
-        packages = [self.package]
+        from setuptools import find_packages
+        def add_package(base_package, folder):
+            package_dir[base_package] = folder
+            packages.append(base_package)
+            packages.extend([base_package + "." + sub_pkg
+                             for sub_pkg in find_packages(folder)])
+        package_dir = {}
+        packages = []
+        add_package(self.package, "src")
         for name, folder in self.packages:
-            package_dir[name] = folder
-            packages.append(name)
+            add_package(name, folder)
         self.setup_arguments["package_dir"] = package_dir
         self.setup_arguments["packages"] = packages
         if self.datafiles:
@@ -325,30 +339,38 @@ class _CModule:
         self.source_files = []
         self.frameworks = []
         self.libraries = []
+        self.link_arguments = []
         self.include_dirs = []
         self.library_dirs = []
         self.framework_dirs = []
 
-    def add_require(self, req):
-        self.requires.append(req)
+    def add_require(self, req, platform):
+        self.requires.append((req, platform))
 
-    def add_source_file(self, f):
-        self.source_files.append(f)
+    def add_source_file(self, f, platform):
+        self.source_files.append((f, platform))
 
-    def add_library(self, f):
-        self.libraries.append(f)
+    def add_include_dir(self, d, platform):
+        self.include_dirs.append((d, platform))
+
+    def add_library(self, l, platform):
+        self.libraries.append((l, platform))
+
+    def add_library_dir(self, d, platform):
+        self.library_dirs.append((d, platform))
+
+    def add_link_argument(self, a, platform):
+        self.link_arguments.append((a, platform))
 
     def add_framework(self, f):
         self.frameworks.append(f)
 
-    def add_include_dir(self, d):
-        self.include_dirs.append(d)
-
-    def add_library_dir(self, d):
-        self.library_dirs.append(d)
-
     def add_framework_dir(self, d):
         self.framework_dirs.append(d)
+
+    _mac_platforms = ["mac", "macos", "darwin"]
+    _windows_platforms = ["windows", "win32"]
+    _linux_platforms = ["linux"]
 
     def ext_mod(self, package):
         import sys, os.path
@@ -360,39 +382,58 @@ class _CModule:
         inc_dir = os.path.join(root, "include")
         lib_dir = os.path.join(root, "lib")
         if sys.platform == "darwin":
-            if self.platform and self.platform not in ["mac", "macos", "darwin"]:
+            if self.platform and self.platform not in self._mac_platforms:
                 return None
+            platforms = self._mac_platforms
             # Tested with macOS 10.12
-            libraries = ["-l" + lib for lib in self.libraries]
+            libraries = ["-l" + lib for lib, platform in self.libraries
+                         if not platform or platform in platforms]
             compiler_flags = ["-std=c++11", "-stdlib=libc++"]
             extra_link_args = ["-F" + d for d in self.framework_dirs]
             for fw in self.frameworks:
                 extra_link_args.extend(["-framework", fw])
         elif sys.platform == "win32":
-            if self.platform and self.platform not in ["windows", "win32"]:
+            if self.platform and self.platform not in self._windows_platforms:
                 return None
+            platforms = self._windows_platforms
             # Tested with Cygwin
-            libraries = ["lib" + lib for lib in self.libraries]
+            libraries = ["lib" + lib for lib, platform in self.libraries
+                         if not platform or platform in platforms]
             compiler_flags = []
             extra_link_args = []
         else:
-            if self.platform and self.platform not in ["linux"]:
+            if self.platform and self.platform not in self._linux_platforms:
                 return None
+            platforms = self._linux_platforms
             # Presumably Linux
             # Tested with Ubuntu 16.04 LTS running in
             #   a singularity container on CentOS 7.3
-            libraries = ["-l" + lib for lib in self.libraries]
+            libraries = ["-l" + lib for lib, platform in self.libraries
+                         if not platform or platform in platforms]
             compiler_flags = ["-std=c++11"]
             extra_link_args = []
+        for req, platform in self.requires:
+            if platform and platform not in platforms:
+                continue
+            if not os.path.exists(req):
+                return None
+        inc_dirs = [d for d, platform in self.include_dirs
+                    if not platform or platform in platforms]
+        lib_dirs = [d for d, platform in self.library_dirs
+                    if not platform or platform in platforms]
+        src_files = [f for f, platform in self.source_files
+                     if not platform or platform in platforms]
+        extra_link_args.extend([a for a, platform in self.link_arguments
+                                if not platform or platform in platforms])
         return Extension(package + '.' + self.name,
                          define_macros=[("MAJOR_VERSION", self.major),
                                         ("MINOR_VERSION", self.minor)],
                          extra_compile_args=compiler_flags,
-                         include_dirs=[inc_dir] + self.include_dirs,
-                         library_dirs=[lib_dir] + self.library_dirs,
+                         include_dirs=[inc_dir] + inc_dirs,
+                         library_dirs=[lib_dir] + lib_dirs,
                          libraries=libraries,
                          extra_link_args=extra_link_args,
-                         sources=self.source_files)
+                         sources=src_files)
 
 if __name__ == "__main__" or __name__.startswith("ChimeraX_sandbox"):
     import sys

@@ -511,7 +511,7 @@ class MultAlignViewer(ToolInstance):
                 except KeyError:
                     gaps[i] += 1
                 else:
-                    if Sequence.rname3to1(res.name) != char:
+                    if Sequence.rname3to1(res.name) != char.upper():
                         errors[i] += 1
         partial_error_blocks, full_error_blocks = [], []
         partial_gap_blocks, full_gap_blocks = [], []

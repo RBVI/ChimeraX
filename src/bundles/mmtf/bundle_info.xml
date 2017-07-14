@@ -1,0 +1,39 @@
+<BundleInfo name="ChimeraX-MMTF" version="1.0"
+	    package="chimerax.mmtf"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>MMTF format read/write</Synopsis>
+  <Description>This bundle provides the abiility to fetch and read MMTF files.</Description>
+
+  <Categories>
+    <Category name="Molecular structure"/>
+  </Categories>
+
+  <CModule name="_mmtf">
+    <SourceFile>_mmtf/mmtf.cpp</SourceFile>
+    <IncludeDir>mmtf-cpp-master/include</IncludeDir>
+    <IncludeDir>msgpack-c-master/include</IncludeDir>
+    <Library>atomstruct</Library>
+    <Library>element</Library>
+    <Library>logger</Library>
+    <Library>arrays</Library>
+    <LinkArgument platform="win32">ws2_32.lib</LinkArgument>
+  </CModule>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>ChimeraX :: DataFormat :: MMTF :: :: Molecular structure :: .mmtf :: :: http://mmtf.rcsb.org/ :: :: :: Macromolecular Transmission Format (MMTF)</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Fetch :: pdb :: MMTF :: :: 1a0m ::</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Open :: MMTF :: ::</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

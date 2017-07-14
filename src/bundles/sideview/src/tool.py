@@ -312,6 +312,7 @@ class SideViewCanvas(QWindow):
         b = event.button() | event.buttons()
         if b & Qt.LeftButton:
             self.moving = self.ON_NOTHING
+            self.exposeEvent(None)
 
     def mouseMoveEvent(self, event):
         if self.moving is self.ON_NOTHING:

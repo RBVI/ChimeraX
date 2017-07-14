@@ -1,0 +1,33 @@
+<BundleInfo name="ChimeraX-ChemGroup" version="1.0"
+	    package="chimerax.chem_group"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Detect chemically functional groups</Synopsis>
+  <Description>This bundle provides the ability for detection of functional groups in a structure.</Description>
+
+  <Categories>
+    <Category name="Structure Analysis"/>
+  </Categories>
+
+  <CModule name="_chem_group">
+    <SourceFile>_cg/cg.cpp</SourceFile>
+    <Library>atomstruct</Library>
+    <Library>element</Library>
+    <Library>arrays</Library>
+  </CModule>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    SELECTOR_CLASSIFIERS
+  </Classifiers>
+
+</BundleInfo>

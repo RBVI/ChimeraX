@@ -1,0 +1,27 @@
+<BundleInfo name="ChimeraX-AddMissingAtoms" version="1.0"
+	    package="chimerax.addmissingatoms"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Add missing atoms</Synopsis>
+  <Description> This bundle uses the PDBFixer package from Peter Eastman and Stanford University,
+https://github.com/pandegroup/pdbfixer, to add missing atoms for molecular dynamics.</Description>
+
+  <Categories>
+    <Category name="Molecular structure"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: addmissingatoms :: Molecular structure :: Add missing atoms</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

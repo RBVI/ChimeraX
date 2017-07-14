@@ -20,7 +20,8 @@ def cmd_hbonds(session, spec=None, intra_model=True, inter_model=True, relax=Tru
     inter_submodel=False, make_pseudobonds=True, retain_current=False,
     reveal=False, naming_style=None, log=False, cache_DA=None,
     color=BuiltinColors["dark cyan"], slop_color=BuiltinColors["dark orange"],
-    show_dist=False, intra_res=True, intra_mol=True, dashes=None):
+    show_dist=False, intra_res=True, intra_mol=True, dashes=None,
+    salt_only=False):
 
     """Wrapper to be called by command line.
 
@@ -61,6 +62,12 @@ def cmd_hbonds(session, spec=None, intra_model=True, inter_model=True, relax=Tru
         intra_model=intra_model, dist_slop=dist_slop,
         angle_slop=angle_slop, donors=donors, acceptors=acceptors,
         inter_submodel=inter_submodel, cache_da=cache_DA)
+    # filter on salt bridges first, since we need access to all H-bonds in order
+    # to assess which histidines should be considered salt-bridge donors
+    if salt_only:
+        sb_donors, sb_acceptors = salt_preprocess(hbonds)
+        hbonds = [hb for hb in hbonds
+            if hb[0] in sb_donors and hb[1] in sb_acceptors]
     if sel_restrict and donors == None:
         hbonds = filter_hbonds_by_sel(hbonds, sel_atoms, sel_restrict)
     if not intra_mol:
@@ -74,6 +81,7 @@ def cmd_hbonds(session, spec=None, intra_model=True, inter_model=True, relax=Tru
         hbonds = [hb for hb in hbonds if mol_map[hb[0]] != mol_map[hb[1]]]
     if not intra_res:
         hbonds = [hb for hb in hbonds if hb[0].residue != hb[1].residue]
+
 
     output_info = (inter_model, intra_model, relax, dist_slop, angle_slop,
                             structures, hbonds)
@@ -112,11 +120,14 @@ def cmd_hbonds(session, spec=None, intra_model=True, inter_model=True, relax=Tru
             precise = [hb for hb in precise is mol_map[hb[0]] != mol_map[hb[1]]]
         if not intra_res:
             precise = [hb for hb in precise if hb[0].residue != hb[1].residue]
+        if salt_only:
+            precise = [hb for hb in precise
+                if hb[0] in sb_donors and hb[1] in sb_acceptors]
         # give another opportunity to read the result...
         session.logger.status("%d hydrogen bonds found" % len(hbonds), blank_after=120)
 
     pbg = session.pb_manager.get_group("hydrogen bonds")
-    existing = {}
+    pre_existing = {}
     if not retain_current:
         pbg.clear()
         pbg.color = bond_color.uint8x4()
@@ -124,9 +135,7 @@ def cmd_hbonds(session, spec=None, intra_model=True, inter_model=True, relax=Tru
         pbg.dashes = dashes if dashes is not None else 6
     else:
         for pb in pbg.pseudobonds:
-            a1, a2 = pb.atoms
-            existing.setdefault(a1, set()).add(a2)
-            existing.setdefault(a2, set()).add(a1)
+            pre_existing[pb.atoms] = pb
         if dashes is not None:
             pbg.dashes = dashes
 
@@ -140,11 +149,7 @@ def cmd_hbonds(session, spec=None, intra_model=True, inter_model=True, relax=Tru
                 nsqdist = sqdist
         if nearest is not None:
             don = nearest
-        if don in existing and acc in existing[don]:
-            continue
-        existing.setdefault(don, set()).add(acc)
-        existing.setdefault(acc, set()).add(don)
-        pb = pbg.new_pseudobond(don, acc)
+        pb = pre_existing[(don,acc)] if (don,acc) in pre_existing else pbg.new_pseudobond(don, acc)
         if two_colors:
             if (don, acc) in precise:
                 color = bond_color
@@ -269,6 +274,67 @@ def cmd_xhbonds(session):
     if pbg:
         session.models.close([pbg])
 
+def salt_preprocess(hbonds):
+    donors = set()
+    acceptors = set()
+    his_data = {}
+    his_names = ("HIS", "HIP") # HID/HIE cannot form salt bridge, so ignore them
+    histidines = set()
+    structures = set()
+    for d, a in hbonds:
+        if d.idatm_type[-1] == '+':
+            donors.add(d)
+        if a.idatm_type[-1] == '-':
+            acceptors.add(a)
+        if d.residue.name in his_names and d.name in ("NE2", "ND1"):
+            histidines.add(d.residue)
+            structures.add(d.structure)
+            d_hbs, a_hbs, = his_data.setdefault(d.residue, (set(), set()))
+            d_hbs.add((d, a))
+        if a.residue.name in his_names and a.name in ("NE2", "ND1"):
+            histidines.add(a.residue)
+            structures.add(a.structure)
+            d_hbs, a_hbs, = his_data.setdefault(a.residue, (set(), set()))
+            a_hbs.add((d, a))
+    # histidines involved in metal coordination can't be salt-bridge donors
+    # so identify those
+    for s in structures:
+        coord_group = s.pseudobond_group(s.PBG_METAL_COORDINATION, create_type=None)
+        if not coord_group:
+            continue
+        for pb in coord_group.pseudobonds:
+            for a in pb.atoms:
+                if a.name in ("NE2", "ND1"):
+                    histidines.discard(a.residue)
+    for his in histidines:
+        ne = his.find_atom("NE2")
+        nd = his.find_atom("ND1")
+        if not ne or not nd:
+            continue
+        if his.name == "HIP":
+            donors.add(ne)
+            donors.add(nd)
+            continue
+        import numpy
+        ne_has_protons = numpy.any(ne.neighbors.elements.numbers == 1)
+        nd_has_protons = numpy.any(nd.neighbors.elements.numbers == 1)
+        if ne_has_protons and nd_has_protons:
+            donors.add(ne)
+            donors.add(nd)
+            continue
+        if ne_has_protons or nd_has_protons:
+            continue
+        # Okay, implicitly protonated HIS residue; assume it's a salt-bridge
+        # donor unless one of the nitrogens is unambigously an acceptor...
+        d_hbs, a_hbs = his_data[his]
+        for d, a in a_hbs:
+            if (a, d) not in d_hbs:
+                break
+        else:
+            donors.add(ne)
+            donors.add(nd)
+    return donors, acceptors
+
 def register_command(command_name, logger):
     from chimerax.core.commands \
         import CmdDesc, register, BoolArg, FloatArg, ColorArg, Or, EnumOf, AtomsArg, \
@@ -284,7 +350,7 @@ def register_command(command_name, logger):
                 ('angle_slop', FloatArg), ('two_colors', BoolArg), ('slop_color', ColorArg),
                 ('reveal', BoolArg), ('retain_current', BoolArg), ('save_file', SaveFileNameArg),
                 ('log', BoolArg), ('naming_style', EnumOf(('simple', 'command', 'serial'))),
-                ('batch', BoolArg), ('dashes', NonNegativeIntArg)],
+                ('batch', BoolArg), ('dashes', NonNegativeIntArg), ('salt_only', BoolArg)],
             synopsis = 'Find hydrogen bonds'
         )
         register('hbonds', desc, cmd_hbonds, logger=logger)
