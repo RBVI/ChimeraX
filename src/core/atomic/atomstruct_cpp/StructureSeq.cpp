@@ -90,15 +90,15 @@ StructureSeq::demote_to_sequence()
 {
     auto inst = py_instance();
     if (inst != nullptr) {
+        auto gil = AcquireGIL();
         _structure = nullptr;
         auto ret = PyObject_CallMethod(inst, "_cpp_demotion", nullptr);
         if (ret == nullptr) {
             throw std::runtime_error("Calling StructureSeq _cpp_demotion method failed.");
         }
         Py_DECREF(ret);
-    } else
-        // no one cares
-        delete this;
+    }
+    // let normal deletion processes clean up; don't explicitly delete here
 }
 
 StructureSeq&

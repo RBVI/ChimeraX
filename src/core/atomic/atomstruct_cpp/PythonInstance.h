@@ -31,6 +31,12 @@ typedef _object PyObject;
 
 namespace atomstruct {
 
+class AcquireGIL {
+public:
+    AcquireGIL();
+    ~AcquireGIL();
+};
+
 class PyAttrError : public std::runtime_error {
 public:
     PyAttrError(const std::string msg) : std::runtime_error(msg) {}
