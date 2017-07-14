@@ -34,7 +34,6 @@ struct _object;
 typedef _object PyObject;
 #endif
 
-#include <iostream>
 namespace atomstruct {
 
 class SeqIndexError: public std::range_error {

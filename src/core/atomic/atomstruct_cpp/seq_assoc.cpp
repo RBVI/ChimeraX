@@ -423,9 +423,9 @@ try_assoc(const Sequence& align_seq, const StructureSeq& mseq,
     int lower_to_upper = 'A' - 'a';
     Sequence::Contents aseq;
     for (auto c: align_seq.ungapped()) {
-        if (std::islower(c))
+        if (std::islower(c)) {
             aseq.push_back(c + lower_to_upper);
-        else
+        } else
             aseq.push_back(c);
     }
 
