@@ -92,8 +92,7 @@ Sequence::_init_rname_map()
 }
 
 // 3-letter codes
-Sequence::Sequence(const std::vector<ResName>& res_names, std::string name):
-    _name(name), _python_obj(nullptr)
+Sequence::Sequence(const std::vector<ResName>& res_names, std::string name): _name(name)
 {
     for (auto rn: res_names) {
         this->push_back(rname3to1(rn));
@@ -218,26 +217,14 @@ Sequence::set_name(std::string& name)
 {
     auto old_name = _name;
     _name = name;
-    if (_python_obj) {
-        auto ret = PyObject_CallMethod(_python_obj, "_cpp_rename", "s", old_name.c_str());
+    auto inst = py_instance();
+    if (inst != nullptr) {
+        auto ret = PyObject_CallMethod(inst, "_cpp_rename", "s", old_name.c_str());
         if (ret == nullptr) {
             throw std::runtime_error("Calling Sequence _cpp_rename method failed.");
         }
         Py_DECREF(ret);
     }
-}
-
-void
-Sequence::set_python_obj(PyObject* py_obj)
-{
-    if (py_obj == nullptr) {
-        Chain* chain = dynamic_cast<Chain*>(this);
-        if (chain == nullptr || !chain->is_chain()) {
-            delete this;
-            return;
-        }
-    }
-    _python_obj = py_obj;
 }
 
 const Sequence::Contents&

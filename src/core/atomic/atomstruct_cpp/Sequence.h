@@ -22,6 +22,7 @@
 #include <string>
 
 #include "imex.h"
+#include "PythonInstance.h"
 #include "session.h"
 #include "string_types.h"
 
@@ -40,7 +41,7 @@ public:
     SeqIndexError(const std::string& msg) : std::range_error(msg) {}
 };
 
-class ATOMSTRUCT_IMEX Sequence {
+class ATOMSTRUCT_IMEX Sequence: public PythonInstance {
 public:
     typedef std::vector<char>  Contents;
 protected:
@@ -59,7 +60,6 @@ protected:
     // can't inherit from vector, since we need to clear caches on changes
     Contents  _contents;
     std::string  _name;
-    PyObject*  _python_obj;
 
 private:
     static int  SESSION_NUM_INTS(int version=CURRENT_SESSION_VERSION) {
@@ -74,9 +74,9 @@ public:
     static char  protein3to1(const ResName& rn);
     static char  rname3to1(const ResName& rn);
 
-    Sequence(std::string name = "sequence"): _name(name), _python_obj(nullptr) {}
+    Sequence(std::string name = "sequence"): _name(name) {}
     Sequence(const Contents& chars, std::string name = "sequence"):
-        _contents(chars), _name(name), _python_obj(nullptr) {}
+        _contents(chars), _name(name) {}
     Sequence(const std::vector<ResName>& res_names, std::string name = "sequence");  // 3-letter codes
     virtual  ~Sequence() {}
 
@@ -111,6 +111,7 @@ public:
     void  pop_front() { _clear_cache(); _contents.erase(_contents.begin()); }
     void  push_back(char c) { _clear_cache(); _contents.push_back(c); }
     void  push_front(char c);
+    virtual void  python_destroyed() { delete this; }
     Contents::const_reverse_iterator  rbegin() const
         { return _contents.rbegin(); }
     Contents::const_reverse_iterator  rend() const { return _contents.rend(); }
@@ -121,7 +122,6 @@ public:
     void  set_circular(bool c) { _circular = c; }
     void  set_name(std::string& name);
     void  set_name(const char* name) { std::string n(name); set_name(n); }
-    void  set_python_obj(PyObject* py_obj);
     Contents::size_type  size() const { return _contents.size(); }
     void  swap(Contents& x) { _clear_cache(); _contents.swap(x); }
     const Contents&  ungapped() const;
