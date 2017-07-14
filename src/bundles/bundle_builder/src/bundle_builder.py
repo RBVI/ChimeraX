@@ -408,7 +408,7 @@ class _CModule:
             # Presumably Linux
             # Tested with Ubuntu 16.04 LTS running in
             #   a singularity container on CentOS 7.3
-            libraries = ["-l" + lib for lib, platforms in self.libraries
+            libraries = ["-l" + lib for lib, platform in self.libraries
                          if not platform or platform in platforms]
             compiler_flags = ["-std=c++11"]
             extra_link_args = []
