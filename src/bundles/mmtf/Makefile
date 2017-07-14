@@ -1,33 +1,29 @@
-# === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
-# === UCSF ChimeraX Copyright ===
+# The "make" targets are:
+# 	wheel: build a Python wheel in "dist" directory.
+# 	install: build wheel (if needed) and install in ChimeraX.
+# 	test: run ChimeraX
+# 	debug: run ChimeraX with debugging flag set
+# 	clean: remove files used in building wheel
 
 CHIMERAX_APP = ../../../ChimeraX.app
 
+# Platform-dependent settings.  Should not need fixing.
+# For Windows, we assume Cygwin is being used.
 OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
 ifeq ($(OS),CYGWIN_NT)
-PYTHON_EXE = $(CHIMERAX_APP)/bin/python.exe
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX.exe
 endif
 ifeq ($(OS),Darwin)
-PYTHON_EXE = $(CHIMERAX_APP)/Contents/bin/python3.6
 CHIMERAX_EXE = $(CHIMERAX_APP)/Contents/bin/ChimeraX
 endif
 ifeq ($(OS),Linux)
-PYTHON_EXE = $(CHIMERAX_APP)/bin/python3.6
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
 endif
 
-BUNDLE_NAME = ChimeraX-MMTF
-BUNDLE_VERSION = 1.0
-PKG_NAME = chimerax.mmtf
+PYSRCS = $(wildcard src/*.py)
+CSRCS = $(wildcard _mmtf/*.cpp)
+SRCS = $(PYSRCS) $(CSRCS)
+
 MMTF_CPP_VERSION = master
 MMTF_CPP_DISTRIBUTION = mmtf-cpp-$(MMTF_CPP_VERSION).zip
 MMTF_CPP_SOURCE	= mmtf-cpp-$(MMTF_CPP_VERSION)
@@ -35,22 +31,15 @@ MSGPACK_VERSION = master
 MSGPACK_DISTRIBUTION = msgpack-c-$(MSGPACK_VERSION).zip
 MSGPACK_SOURCE	= msgpack-c-$(MSGPACK_VERSION)
 
-BASE_BNDL_NAME = $(subst ChimeraX-,,$(BUNDLE_NAME))
-WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
-TAG = $(shell $(PYTHON_EXE) -m chimerax.bundle_builder.wheel_tag)
+#
+# Actual make dependencies!
+#
 
-PYSRCS = $(wildcard src/*.py)
-DATAFILES = 
-WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-$(TAG).whl
+wheel: bundle_info.xml $(SRCS) $(MMTF_CPP_SOURCE) $(MSGPACK_SOURCE)
+	$(CHIMERAX_EXE) --nogui --cmd "devel build . ; exit"
 
-wheel $(WHEEL): setup.py $(PYSRCS) $(MMTF_CPP_SOURCE) $(MSGPACK_SOURCE)
-	$(PYTHON_EXE) setup.py --no-user-cfg build
-	$(PYTHON_EXE) setup.py --no-user-cfg test
-	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel
-	rm -rf $(WHL_BNDL_NAME).egg-info
-
-install app-install: $(WHEEL)
-	$(CHIMERAX_EXE) --nogui --cmd "toolshed install $(WHEEL) reinstall true user false; exit"
+install app-install: bundle_info.xml $(SRCS) $(MMTF_CPP_SOURCE) $(MSGPACK_SOURCE)
+	$(CHIMERAX_EXE) --nogui --cmd "devel install . user false; exit"
 
 test:
 	$(CHIMERAX_EXE)
@@ -59,12 +48,8 @@ debug:
 	$(CHIMERAX_EXE) --debug
 
 clean:
-	rm -rf src/__pycache__ src/*.pyd src/*.so src/*.dylib
-	rm -rf build dist $(WHL_BNDL_NAME).egg-info setup.py
+	$(CHIMERAX_EXE) --nogui --cmd "devel clean . ; exit"
 	rm -rf $(MMTF_CPP_SOURCE) $(MSGPACK_SOURCE)
-
-lint:
-	$(PYLINT) $(PYSRCS)
 
 $(MMTF_CPP_SOURCE): $(MMTF_CPP_DISTRIBUTION)
 	# only need the include files
@@ -73,12 +58,3 @@ $(MMTF_CPP_SOURCE): $(MMTF_CPP_DISTRIBUTION)
 $(MSGPACK_SOURCE): $(MSGPACK_DISTRIBUTION)
 	# only need the include files
 	unzip -u $(MSGPACK_DISTRIBUTION) $(MSGPACK_SOURCE)/include/*
-
-setup.py: setup.py.in Makefile
-	sed \
-		-e 's,BUNDLE_NAME,$(BUNDLE_NAME),' \
-		-e 's,BUNDLE_VERSION,$(BUNDLE_VERSION),' \
-		-e 's,PKG_NAME,$(PKG_NAME),' \
-		-e 's,MMTF_CPP_VERSION,$(MMTF_CPP_VERSION),' \
-		-e 's,MSGPACK_VERSION,$(MSGPACK_VERSION),' \
-		< setup.py.in > setup.py
