@@ -18,23 +18,16 @@ pdb: PDB format support
 Read Protein DataBank (PDB) files.
 """
 
-def open_pdb(session, filename, name, auto_style=True, coordsets=False):
+def open_pdb(session, stream, file_name, auto_style=True, coordsets=False):
 
-    if hasattr(filename, 'read'):
-        # it's really a fetched stream
-        input = filename
-        path = filename.name if hasattr(filename, 'name') else None
-    else:
-        input = open(filename, 'rb')
-        path = filename
+    path = stream.name if hasattr(stream, 'name') else None
 
     from . import pdbio
-    pointers = pdbio.read_pdb_file(input, log=session.logger, explode=not coordsets)
-    if input != filename:
-        input.close()
+    pointers = pdbio.read_pdb_file(stream, log=session.logger, explode=not coordsets)
+    stream.close()
 
     from .structure import AtomicStructure
-    models = [AtomicStructure(session, name = name, c_pointer = p, auto_style = auto_style) for p in pointers]
+    models = [AtomicStructure(session, name = file_name, c_pointer = p, auto_style = auto_style) for p in pointers]
 
     if path:
         for m in models:

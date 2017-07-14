@@ -9,22 +9,16 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def read_directional_resolution(session, filename, name, *args, **kw):
+def read_directional_resolution(session, stream, name, *args, colormap=None):
     """Show directional resolution on a colored sphere."""
 
-    if hasattr(filename, 'read'):
-        # it's really a file-like object
-        input = filename
-    else:
-        input = open(filename, 'r')
-    lines = input.readlines()
-    input.close()
+    lines = stream.readlines()
+    stream.close()
     xyzres = [[float(v) for v in line.split()] for line in lines if not line.startswith('#')]
     xyz = [(x,y,z) for x,y,z,r in xyzres]
     res = [r for x,y,z,r in xyzres]
 
     # Figure out colormap from argument, file comment, or default colors
-    colormap = kw.get('colormap')
     if colormap is None:
         if lines:
             colormap = colormap_from_comment_line(lines[0])
