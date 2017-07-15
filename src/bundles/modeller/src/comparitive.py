@@ -16,7 +16,7 @@ def model(session, targets, combined_templates=False, custom_script=None,
     hydrogens=False, license_key=None, num_models=5, temp_path=None, thorough_opt=False,
     water_preserve=False):
     """
-    Perform comparitive models on the target sequences.
+    Generate comparitive models for the target sequences.
 
     Arguments:
     session
