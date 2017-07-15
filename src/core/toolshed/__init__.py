@@ -793,8 +793,8 @@ class BundleAPI:
         data stream or a filesystem path will be provided.  The third and fourth
         arguments are optional (remove "optional_" from their names if you provide them).
         'format-name' will be the first nickname of the format if it has any, otherwise
-        the full format name.  'file_name' if the name of input file, with path and
-        compression suffix components stripped.
+        the full format name, but all lower case.  'file_name' if the name of input file,
+        with path and compression suffix components stripped.
 
         You shouldn't actually use "**kw" but instead use the actual keyword args that
         your format declares that it accepts (in its bundle_info.xml file).

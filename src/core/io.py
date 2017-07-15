@@ -112,7 +112,7 @@ class FileFormat:
 
     ..attribute:: open_func
 
-        Function that opens files: func(session, stream/filename, name=None)
+        Function that opens files: func(session, stream/filename)
 
     ..attribute:: export_func
 
@@ -363,7 +363,7 @@ def open_data(session, filespec, format=None, name=None, **kw):
         dname = os.path.basename(filename)
 
     if 'format_name' in params:
-        kw['format_name'] = fmt.nicknames[0] if fmt.nicknames else fmt.name
+        kw['format_name'] = fmt.nicknames[0]
     if 'file_name' in params:
         kw['file_name'] = dname
 
