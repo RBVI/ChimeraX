@@ -245,34 +245,18 @@ class BundleInfo:
                 synopsis=fi.synopsis
             )
             if fi.has_open:
-                def open_cb(*args, format_name=fi.name, filespec=None, **kw):
+                def boot_open(bi_self=self, logger=logger):
                     try:
-                        f = self._get_api(logger).open_file
+                        f = bi_self._get_api(logger).open_file
                     except AttributeError:
                         raise ToolshedError(
-                            "no open_file function found for bundle \"%s\"" % self.name)
+                            "no open_file function found for bundle \"%s\"" % bi_self.name)
                     if f == BundleAPI.open_file:
                         raise ToolshedError(
-                            "bundle \"%s\"'s API forgot to override open_file()" % self.name)
+                            "bundle \"%s\"'s API forgot to override open_file()" % bi_self.name)
+                    return f
+                format._boot_open_func = boot_open
 
-                    # optimize by replacing open_func for format
-                    # ... present the right call signature to io.open_data...
-                    import inspect
-                    sig = inspect.signature(f)
-                    supports_fn = "format_name" in sig.parameters
-                    supports_fs = "filespec" in sig.parameters
-                    def open_shim(*args, __ts_f=f, __ts_fmt_supports_fn=supports_fn,
-                            __ts_fmt_supports_fs=supports_fs, format_name=format_name,
-                            filespec=filespec, **kw):
-                        if __ts_fmt_supports_fn:
-                            kw["format_name"] = format_name
-                        if __ts_fmt_supports_fs:
-                            kw["filespec"] = filespec
-                        return f(*args, **kw)
-                    format = io.format_from_name(format_name)
-                    format.open_func = open_shim
-                    return open_shim(*args, **kw)
-                format.open_func = open_cb
                 if fi.open_kwds:
                     from ..commands import cli
                     cli.add_keyword_arguments('open', _convert_keyword_types(
