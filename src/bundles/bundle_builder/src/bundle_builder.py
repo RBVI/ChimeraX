@@ -89,7 +89,25 @@ class BundleBuilder:
         import shutil
         shutil.rmtree(path, ignore_errors=True)
 
+    _mac_platforms = ["mac", "macos", "darwin"]
+    _windows_platforms = ["windows", "win32"]
+    _linux_platforms = ["linux"]
+
     def _read_bundle_info(self, bundle_info):
+        # Setup platform variable so we can skip non-matching elements
+        import sys
+        if sys.platform == "darwin":
+            # Tested with macOS 10.12
+            self._platform_names = self._mac_platforms
+        elif sys.platform == "win32":
+            # Tested with Cygwin
+            self._platform_names = self._windows_platforms
+        else:
+            # Presumably Linux
+            # Tested with Ubuntu 16.04 LTS running in
+            #   a singularity container on CentOS 7.3
+            self._platform_names = self._linux_platforms
+        # Read data from XML file
         from xml.dom.minidom import parse
         doc = parse(bundle_info)
         bi = doc.documentElement
@@ -114,7 +132,7 @@ class BundleBuilder:
     def _get_categories(self, bi):
         self.categories = []
         deps = self._get_singleton(bi, "Categories")
-        for e in deps.getElementsByTagName("Category"):
+        for e in self._get_elements(deps, "Category"):
             self.categories.append(e.getAttribute("name"))
 
     def _get_descriptions(self, bi):
@@ -124,31 +142,13 @@ class BundleBuilder:
         self.synopsis = self._get_singleton_text(bi, "Synopsis")
         self.description = self._get_singleton_text(bi, "Description")
 
-    def _get_singleton_text(self, bi, tag):
-        return self._get_element_text(self._get_singleton(bi, tag))
-
-    def _get_element_text(self, e):
-        text = ""
-        for node in e.childNodes:
-            if node.nodeType == node.TEXT_NODE:
-                text += node.data
-        return text.strip()
-
-    def _get_singleton(self, bi, tag):
-        elements = bi.getElementsByTagName(tag)
-        if len(elements) > 1:
-            raise ValueError("too many %s elements" % repr(tag))
-        elif len(elements) == 0:
-            raise ValueError("%s element is missing" % repr(tag))
-        return elements[0]
-
     def _get_datafiles(self, bi):
         import pathlib, os.path
         self.datafiles = {}
-        for dfs in bi.getElementsByTagName("DataFiles"):
+        for dfs in self._get_elements(bi, "DataFiles"):
             pkg_name = dfs.getAttribute("package")
             files = []
-            for e in dfs.getElementsByTagName("DataFile"):
+            for e in self._get_elements(dfs, "DataFile"):
                 filename = self._get_element_text(e)
                 files.append(filename)
             if files:
@@ -164,16 +164,15 @@ class BundleBuilder:
             # Dependencies is optional, although
             # ChimeraXCore *should* always be present
             return
-        for e in deps.getElementsByTagName("Dependency"):
+        for e in self._get_elements(deps, "Dependency"):
             pkg = e.getAttribute("name")
             ver = e.getAttribute("version")
             self.dependencies.append("%s %s" % (pkg, ver))
 
     def _get_c_modules(self, bi):
         self.c_modules = []
-        for cm in bi.getElementsByTagName("CModule"):
+        for cm in self._get_elements(bi, "CModule"):
             mod_name = cm.getAttribute("name")
-            platform = cm.getAttribute("platform")
             try:
                 major = int(cm.getAttribute("major_version"))
             except ValueError:
@@ -182,28 +181,22 @@ class BundleBuilder:
                 minor = int(cm.getAttribute("minor_version"))
             except ValueError:
                 minor = 1
-            c = _CModule(mod_name, platform, major, minor)
-            for e in cm.getElementsByTagName("Requires"):
-                c.add_require(self._get_element_text(e),
-                              e.getAttribute("platform"))
-            for e in cm.getElementsByTagName("SourceFile"):
-                c.add_source_file(self._get_element_text(e),
-                                  e.getAttribute("platform"))
-            for e in cm.getElementsByTagName("IncludeDir"):
-                c.add_include_dir(self._get_element_text(e),
-                                  e.getAttribute("platform"))
-            for e in cm.getElementsByTagName("Library"):
-                c.add_library(self._get_element_text(e),
-                              e.getAttribute("platform"))
-            for e in cm.getElementsByTagName("LibraryDir"):
-                c.add_library_dir(self._get_element_text(e),
-                                  e.getAttribute("platform"))
-            for e in cm.getElementsByTagName("LinkArgument"):
-                c.add_link_argument(self._get_element_text(e),
-                                    e.getAttribute("platform"))
-            for e in cm.getElementsByTagName("Framework"):
+            c = _CModule(mod_name, major, minor)
+            for e in self._get_elements(cm, "Requires"):
+                c.add_require(self._get_element_text(e))
+            for e in self._get_elements(cm, "SourceFile"):
+                c.add_source_file(self._get_element_text(e))
+            for e in self._get_elements(cm, "IncludeDir"):
+                c.add_include_dir(self._get_element_text(e))
+            for e in self._get_elements(cm, "Library"):
+                c.add_library(self._get_element_text(e))
+            for e in self._get_elements(cm, "LibraryDir"):
+                c.add_library_dir(self._get_element_text(e))
+            for e in self._get_elements(cm, "LinkArgument"):
+                c.add_link_argument(self._get_element_text(e))
+            for e in self._get_elements(cm, "Framework"):
                 c.add_framework(self._get_element_text(e))
-            for e in cm.getElementsByTagName("FrameworkDir"):
+            for e in self._get_elements(cm, "FrameworkDir"):
                 c.add_framework_dir(self._get_element_text(e))
             self.c_modules.append(c)
 
@@ -214,7 +207,7 @@ class BundleBuilder:
         except ValueError:
             # AdditionalPackages is optional
             return
-        for pkg in pkgs.getElementsByTagName("Package"):
+        for pkg in self._get_elements(pkgs, "Package"):
             pkg_name = pkg.getAttribute("name")
             pkg_folder = pkg.getAttribute("folder")
             self.packages.append((pkg_name, pkg_folder))
@@ -229,14 +222,14 @@ class BundleBuilder:
             "Topic :: Scientific/Engineering :: Bio-Informatics",
         ]
         cls = self._get_singleton(bi, "Classifiers")
-        for e in cls.getElementsByTagName("PythonClassifier"):
+        for e in self._get_elements(cls, "PythonClassifier"):
             self.python_classifiers.append(self._get_element_text(e))
         self.chimerax_classifiers = [
             ("ChimeraX :: Bundle :: " + ','.join(self.categories) +
              " :: " + self.min_session + "," + self.max_session +
              " :: " + self.package + " :: :: " + self.custom_init)
         ]
-        for e in cls.getElementsByTagName("ChimeraXClassifier"):
+        for e in self._get_elements(cls, "ChimeraXClassifier"):
             self.chimerax_classifiers.append(self._get_element_text(e))
 
     def _make_setup_arguments(self):
@@ -328,11 +321,40 @@ class BundleBuilder:
             sys.argv = save
             os.chdir(cwd)
 
+    #
+    # Utility functions dealing with XML tree
+    #
+    def _get_elements(self, e, tag):
+        elements = []
+        for se in e.getElementsByTagName(tag):
+            platform = se.getAttribute("platform")
+            if not platform or platform in self._platform_names:
+                elements.append(se)
+        return elements
+
+    def _get_element_text(self, e):
+        text = ""
+        for node in e.childNodes:
+            if node.nodeType == node.TEXT_NODE:
+                text += node.data
+        return text.strip()
+
+    def _get_singleton(self, bi, tag):
+        elements = bi.getElementsByTagName(tag)
+        if len(elements) > 1:
+            raise ValueError("too many %s elements" % repr(tag))
+        elif len(elements) == 0:
+            raise ValueError("%s element is missing" % repr(tag))
+        return elements[0]
+
+    def _get_singleton_text(self, bi, tag):
+        return self._get_element_text(self._get_singleton(bi, tag))
+
+
 class _CModule:
 
-    def __init__(self, name, platform, major, minor):
+    def __init__(self, name, major, minor):
         self.name = name
-        self.platform = platform
         self.major = major
         self.minor = minor
         self.requires = []
@@ -344,33 +366,29 @@ class _CModule:
         self.library_dirs = []
         self.framework_dirs = []
 
-    def add_require(self, req, platform):
-        self.requires.append((req, platform))
+    def add_require(self, req):
+        self.requires.append(req)
 
-    def add_source_file(self, f, platform):
-        self.source_files.append((f, platform))
+    def add_source_file(self, f):
+        self.source_files.append(f)
 
-    def add_include_dir(self, d, platform):
-        self.include_dirs.append((d, platform))
+    def add_include_dir(self, d):
+        self.include_dirs.append(d)
 
-    def add_library(self, l, platform):
-        self.libraries.append((l, platform))
+    def add_library(self, l):
+        self.libraries.append(l)
 
-    def add_library_dir(self, d, platform):
-        self.library_dirs.append((d, platform))
+    def add_library_dir(self, d):
+        self.library_dirs.append(d)
 
-    def add_link_argument(self, a, platform):
-        self.link_arguments.append((a, platform))
+    def add_link_argument(self, a):
+        self.link_arguments.append(a)
 
     def add_framework(self, f):
         self.frameworks.append(f)
 
     def add_framework_dir(self, d):
         self.framework_dirs.append(d)
-
-    _mac_platforms = ["mac", "macos", "darwin"]
-    _windows_platforms = ["windows", "win32"]
-    _linux_platforms = ["linux"]
 
     def ext_mod(self, package):
         import sys, os.path
@@ -379,61 +397,37 @@ class _CModule:
         # Assume Python executable is in ROOT/bin/python
         # and make include directory be ROOT/include
         root = os.path.dirname(os.path.dirname(sys.executable))
-        inc_dir = os.path.join(root, "include")
-        lib_dir = os.path.join(root, "lib")
+        inc_dirs = [os.path.join(root, "include")]
+        lib_dirs = [os.path.join(root, "lib")]
         if sys.platform == "darwin":
-            if self.platform and self.platform not in self._mac_platforms:
-                return None
-            platforms = self._mac_platforms
-            # Tested with macOS 10.12
-            libraries = ["-l" + lib for lib, platform in self.libraries
-                         if not platform or platform in platforms]
+            libraries = ["-l" + lib for lib in self.libraries]
             compiler_flags = ["-std=c++11", "-stdlib=libc++"]
             extra_link_args = ["-F" + d for d in self.framework_dirs]
             for fw in self.frameworks:
                 extra_link_args.extend(["-framework", fw])
         elif sys.platform == "win32":
-            if self.platform and self.platform not in self._windows_platforms:
-                return None
-            platforms = self._windows_platforms
-            # Tested with Cygwin
-            libraries = ["lib" + lib for lib, platform in self.libraries
-                         if not platform or platform in platforms]
+            libraries = ["lib" + lib for lib in self.libraries]
             compiler_flags = []
             extra_link_args = []
         else:
-            if self.platform and self.platform not in self._linux_platforms:
-                return None
-            platforms = self._linux_platforms
-            # Presumably Linux
-            # Tested with Ubuntu 16.04 LTS running in
-            #   a singularity container on CentOS 7.3
-            libraries = ["-l" + lib for lib, platform in self.libraries
-                         if not platform or platform in platforms]
+            libraries = ["-l" + lib for lib in self.libraries]
             compiler_flags = ["-std=c++11"]
             extra_link_args = []
-        for req, platform in self.requires:
-            if platform and platform not in platforms:
-                continue
+        for req in self.requires:
             if not os.path.exists(req):
                 return None
-        inc_dirs = [d for d, platform in self.include_dirs
-                    if not platform or platform in platforms]
-        lib_dirs = [d for d, platform in self.library_dirs
-                    if not platform or platform in platforms]
-        src_files = [f for f, platform in self.source_files
-                     if not platform or platform in platforms]
-        extra_link_args.extend([a for a, platform in self.link_arguments
-                                if not platform or platform in platforms])
+        inc_dirs.extend(self.include_dirs)
+        lib_dirs.extend(self.library_dirs)
+        extra_link_args.extend(self.link_arguments)
         return Extension(package + '.' + self.name,
                          define_macros=[("MAJOR_VERSION", self.major),
                                         ("MINOR_VERSION", self.minor)],
                          extra_compile_args=compiler_flags,
-                         include_dirs=[inc_dir] + inc_dirs,
-                         library_dirs=[lib_dir] + lib_dirs,
+                         include_dirs=inc_dirs,
+                         library_dirs=lib_dirs,
                          libraries=libraries,
                          extra_link_args=extra_link_args,
-                         sources=src_files)
+                         sources=self.source_files)
 
 if __name__ == "__main__" or __name__.startswith("ChimeraX_sandbox"):
     import sys

@@ -20,12 +20,7 @@ ifeq ($(OS),Linux)
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
 endif
 
-SOURCE = src
-SRCS = $(SOURCE)/*.py
-
-#
-# Actual make dependencies!
-#
+SRCS = $(wildcard src/*.py)
 
 wheel: bundle_info.xml $(SRCS)
 	$(CHIMERAX_EXE) --nogui --cmd "devel build . ; exit"

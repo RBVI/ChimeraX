@@ -23,6 +23,7 @@ endif
 PYSRCS = $(wildcard src/*.py)
 CSRCS = $(wildcard _mmtf/*.cpp)
 SRCS = $(PYSRCS) $(CSRCS)
+HEADERS = $(MMTF_CPP_SOURCE) $(MSGPACK_SOURCE)
 
 MMTF_CPP_VERSION = master
 MMTF_CPP_DISTRIBUTION = mmtf-cpp-$(MMTF_CPP_VERSION).zip
@@ -31,14 +32,10 @@ MSGPACK_VERSION = master
 MSGPACK_DISTRIBUTION = msgpack-c-$(MSGPACK_VERSION).zip
 MSGPACK_SOURCE	= msgpack-c-$(MSGPACK_VERSION)
 
-#
-# Actual make dependencies!
-#
-
-wheel: bundle_info.xml $(SRCS) $(MMTF_CPP_SOURCE) $(MSGPACK_SOURCE)
+wheel: bundle_info.xml $(SRCS) $(HEADERS)
 	$(CHIMERAX_EXE) --nogui --cmd "devel build . ; exit"
 
-install app-install: bundle_info.xml $(SRCS) $(MMTF_CPP_SOURCE) $(MSGPACK_SOURCE)
+install app-install: bundle_info.xml $(SRCS) $(HEADERS)
 	$(CHIMERAX_EXE) --nogui --cmd "devel install . user false; exit"
 
 test:
