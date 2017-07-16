@@ -54,6 +54,8 @@ from .md_Constants import *
 from .md_HomoCoord import *
 from .md_Trans import *
 
+from functools import reduce
+
 #
 # AtomGroup class hierarchy:
 #                                        AtomGroup -------------
@@ -130,7 +132,7 @@ See also: Molecule, ASel
 		for a in self.atoms:
 			(a.x,a.y,a.z) = tuple(frame[a.id-1])
 	def putframe(self,frame):
-		frame[:,:] = map(lambda a: (a.x,a.y,a.z), self.atoms)
+		frame[:,:] = list(map(lambda a: (a.x,a.y,a.z), self.atoms))
 	def coordinates(self):
 		return array([(a.x, a.y, a.z) for a in self.atoms])
 	def asel(self,func):
@@ -194,7 +196,7 @@ See also: RSel
 """
 	def __init__(self,base,func):
 		AtomGroup.__init__(self)
-		self.atoms = filter(func,base.atoms)
+		self.atoms = list(filter(func,base.atoms))
 
 class ResidueGroup(AtomGroup):
 	"""A group of residues.
@@ -217,7 +219,7 @@ See also: RSel
 		for r in self.residues:
 			for a in r.atoms: self.atoms.append(a)
 	def phipsi(self,units=angledefault):
-		return map(lambda r,u=units: r.phipsi(u), self.residues)
+		return list(map(lambda r,u=units: r.phipsi(u), self.residues))
 	def rsel(self,func):
 		return RSel(self,func)
 	def __repr__(self):
@@ -235,7 +237,7 @@ See also: ASel
 """
 	def __init__(self,base,func):
 		ResidueGroup.__init__(self)
-		self.residues = filter(func,base.residues)
+		self.residues = list(filter(func,base.residues))
 		self.buildlists()
 
 class Segment(ResidueGroup):

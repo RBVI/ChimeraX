@@ -33,18 +33,18 @@ except:
 
 if ostype in ('IRIX','HP-UX','SunOS'):
 	_RCS = _RCS + '\n'
-	import md_local_rasmol
+	from . import md_local_rasmol
 	_RCS = _RCS + md_local_rasmol._RCS
-	from md_local_rasmol import pdbview
+	from .md_local_rasmol import pdbview
 	_RCS = _RCS + '\n'
-	import md_local_xmgr
+	from . import md_local_xmgr
 	_RCS = _RCS + md_local_xmgr._RCS
-	from md_local_xmgr import xyplot
+	from .md_local_xmgr import xyplot
 elif ostype in ('NeXT',):
 	_RCS = _RCS + '\n'
-	import md_local_open
+	from . import md_local_open
 	_RCS = _RCS + md_local_open._RCS
-	from md_local_open import xyplot, pdbview
+	from .md_local_open import xyplot, pdbview
 else:
 	#print("Unknown OSTYPE " + ostype + " set.  Viewing and plotting are disabled.")
 	class pdbview:

@@ -181,7 +181,8 @@ class BundleBuilder:
                 minor = int(cm.getAttribute("minor_version"))
             except ValueError:
                 minor = 1
-            c = _CModule(mod_name, major, minor)
+            uses_numpy = cm.getAttribute("uses_numpy") == "true"
+            c = _CModule(mod_name, major, minor, uses_numpy)
             for e in self._get_elements(cm, "Requires"):
                 c.add_require(self._get_element_text(e))
             for e in self._get_elements(cm, "SourceFile"):
@@ -353,10 +354,11 @@ class BundleBuilder:
 
 class _CModule:
 
-    def __init__(self, name, major, minor):
+    def __init__(self, name, major, minor, uses_numpy):
         self.name = name
         self.major = major
         self.minor = minor
+        self.uses_numpy = uses_numpy
         self.requires = []
         self.source_files = []
         self.frameworks = []
@@ -399,6 +401,9 @@ class _CModule:
         root = os.path.dirname(os.path.dirname(sys.executable))
         inc_dirs = [os.path.join(root, "include")]
         lib_dirs = [os.path.join(root, "lib")]
+        if self.uses_numpy:
+            from numpy.distutils.misc_util import get_numpy_include_dirs
+            inc_dirs.extend(get_numpy_include_dirs())
         if sys.platform == "darwin":
             libraries = ["-l" + lib for lib in self.libraries]
             compiler_flags = ["-std=c++11", "-stdlib=libc++"]
