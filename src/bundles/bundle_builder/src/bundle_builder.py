@@ -181,7 +181,7 @@ class BundleBuilder:
                 minor = int(cm.getAttribute("minor_version"))
             except ValueError:
                 minor = 1
-            uses_numpy = cm.getAttribute("uses_numpy") == "true"
+            uses_numpy = cm.getAttribute("usesNumpy") == "true"
             c = _CModule(mod_name, major, minor, uses_numpy)
             for e in self._get_elements(cm, "Requires"):
                 c.add_require(self._get_element_text(e))

@@ -17,7 +17,7 @@
     <Category name="Molecular Dynamics"/>
   </Categories>
 
-  <CModule name="_gromacs" uses_numpy="true">
+  <CModule name="_gromacs" usesNumpy="true">
     <IncludeDir>gromacs/xdrfile-1.1b/include</IncludeDir>
     <SourceFile>gromacs/gromacs.cpp</SourceFile>
     <SourceFile>gromacs/xdrfile-1.1b/src/xdrfile.c</SourceFile>
