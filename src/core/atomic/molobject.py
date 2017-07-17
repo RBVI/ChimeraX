@@ -978,16 +978,13 @@ class Sequence(State):
         from ..triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger('rename')
-        set_pyobj_f = c_function('sequence_set_pyobj', args = (ctypes.c_void_p, ctypes.py_object))
         if seq_pointer:
             set_c_pointer(self, seq_pointer)
-            set_pyobj_f(self._c_pointer, self)
             return # name/characters already exists; don't set
         seq_pointer = c_function('sequence_new',
             args = (ctypes.c_char_p, ctypes.c_char_p), ret = ctypes.c_void_p)(
                 name.encode('utf-8'), characters.encode('utf-8'))
         set_c_pointer(self, seq_pointer)
-        set_pyobj_f(self._c_pointer, self)
 
     # cpp_pointer and deleted are "base class" methods, though for performance reasons
     # we are placing them directly in each class rather than using a base class,
@@ -1026,8 +1023,8 @@ class Sequence(State):
     def __del__(self):
         if Sequence.chimera_exiting:
             return
-        set_pyobj_f = c_function('sequence_set_pyobj', args = (ctypes.c_void_p, ctypes.py_object))
-        set_pyobj_f(self._c_pointer, None) # will destroy C++ object unless it's an active Chain
+        del_f = c_function('sequence_del_pyobj', args = (ctypes.c_void_p,))
+        del_f(self._c_pointer) # will destroy C++ object unless it's an active Chain
 
     def extend(self, chars):
         """Extend the sequence with the given string"""

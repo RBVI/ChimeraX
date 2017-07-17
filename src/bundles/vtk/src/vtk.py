@@ -17,7 +17,7 @@ vtk: VTK polydata file reader
 
 Read ascii and binary VTK format files.
 """
-def read_vtk(session, filename, name, *args, **kw):
+def read_vtk(session, filename, name):
     """
     Create a model showing point, lines, triangles, polygons.
     """

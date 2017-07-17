@@ -3141,14 +3141,11 @@ extern "C" EXPORT char sequence_protein3to1(const char *rname)
     }
 }
 
-extern "C" EXPORT void sequence_set_pyobj(void *seq_ptr, PyObject *seq_obj)
+extern "C" EXPORT void sequence_del_pyobj(void *seq_ptr)
 {
     Sequence *seq = static_cast<Sequence*>(seq_ptr);
     try {
-        if (seq_obj == Py_None)
-            seq->set_python_obj(nullptr);
-        else
-            seq->set_python_obj(seq_obj);
+        seq->python_destroyed();
     } catch (...) {
         molc_error();
     }

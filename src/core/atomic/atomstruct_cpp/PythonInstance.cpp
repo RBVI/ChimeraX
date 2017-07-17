@@ -20,25 +20,19 @@
 
 #include "PythonInstance.h"
 
-namespace {
-
-class AcquireGIL {
-    // RAII for Python GIL
-    PyGILState_STATE gil_state;
-public:
-    AcquireGIL() {
-        gil_state = PyGILState_Ensure();
-    }
-    ~AcquireGIL() {
-        PyGILState_Release(gil_state);
-    }
-};
-
-}
-
 namespace atomstruct {
 
 static PyObject* object_map_func = nullptr;
+// RAII for Python GIL
+static PyGILState_STATE gil_state;
+
+AcquireGIL::AcquireGIL() {
+    gil_state = PyGILState_Ensure();
+}
+
+AcquireGIL::~AcquireGIL() {
+    PyGILState_Release(gil_state);
+}
 
 PyObject*
 PythonInstance::get_py_attr(const char* attr_name) const

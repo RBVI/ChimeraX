@@ -24,11 +24,11 @@ class _MyAPI(BundleAPI):
         return None
 
     @staticmethod
-    def open_file(session, f, name):
+    def open_file(session, stream, file_name):
         # 'open_file' is called by session code to open a file
         # returns (list of models, status message)
         from . import stl
-        return stl.read_stl(session, f, name)
+        return stl.read_stl(session, stream, file_name)
 
     @staticmethod
     def save_file(session, name, _, models=None):

@@ -7,7 +7,7 @@
   <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
 
   <Synopsis>STL file read/write</Synopsis>
-  <Description>This bundle provides the abiility to read and write
+  <Description>This bundle provides the ability to read and write
 StereoLithography (STL) files.</Description>
 
   <Categories>

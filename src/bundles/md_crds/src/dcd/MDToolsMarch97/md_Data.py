@@ -32,7 +32,7 @@ import os
 import sys
 import time
 
-from md_local import xyplot
+from .md_local import xyplot
 
 #
 # Data class hierarchy

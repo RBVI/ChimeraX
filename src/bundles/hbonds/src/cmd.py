@@ -127,7 +127,7 @@ def cmd_hbonds(session, spec=None, intra_model=True, inter_model=True, relax=Tru
         session.logger.status("%d hydrogen bonds found" % len(hbonds), blank_after=120)
 
     pbg = session.pb_manager.get_group("hydrogen bonds")
-    existing = {}
+    pre_existing = {}
     if not retain_current:
         pbg.clear()
         pbg.color = bond_color.uint8x4()
@@ -135,9 +135,7 @@ def cmd_hbonds(session, spec=None, intra_model=True, inter_model=True, relax=Tru
         pbg.dashes = dashes if dashes is not None else 6
     else:
         for pb in pbg.pseudobonds:
-            a1, a2 = pb.atoms
-            existing.setdefault(a1, set()).add(a2)
-            existing.setdefault(a2, set()).add(a1)
+            pre_existing[pb.atoms] = pb
         if dashes is not None:
             pbg.dashes = dashes
 
@@ -151,11 +149,7 @@ def cmd_hbonds(session, spec=None, intra_model=True, inter_model=True, relax=Tru
                 nsqdist = sqdist
         if nearest is not None:
             don = nearest
-        if don in existing and acc in existing[don]:
-            continue
-        existing.setdefault(don, set()).add(acc)
-        existing.setdefault(acc, set()).add(don)
-        pb = pbg.new_pseudobond(don, acc)
+        pb = pre_existing[(don,acc)] if (don,acc) in pre_existing else pbg.new_pseudobond(don, acc)
         if two_colors:
             if (don, acc) in precise:
                 color = bond_color

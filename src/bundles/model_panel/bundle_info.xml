@@ -1,0 +1,28 @@
+<BundleInfo name="ChimeraX-ModelPanel" version="1.0"
+	    package="chimerax.model_panel"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>ChimeraX Model Panel</Synopsis>
+  <Description>ChimeraX Model Panel.</Description>
+
+  <Categories>
+    <Category name="General"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>ChimeraX :: Tool :: Blast Protein :: General :: Search PDB/NR using BLAST</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: blastprotein :: General :: Search PDB/NR using BLAST</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Tool :: Model Panel :: General :: model panel</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

@@ -20,17 +20,14 @@ ifeq ($(OS),Linux)
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
 endif
 
-PYSRCS = src/*.py
-CSRCS = _morph/morph.cpp
+PYSRCS = $(wildcard src/*.py)
+CSRCS = $(wildcard _morph/*.cpp)
+SRCS = $(PYSRCS) $(CSRCS)
 
-#
-# Actual make dependencies!
-#
-
-wheel $(WHEEL): bundle_info.xml $(PYSRCS) $(CSRCS)
+wheel:	bundle_info.xml $(SRCS)
 	$(CHIMERAX_EXE) --nogui --cmd "devel build . ; exit"
 
-install app-install:	$(WHEEL)
+install app-install:	bundle_info.xml $(SRCS)
 	$(CHIMERAX_EXE) --nogui --cmd "devel install . user false; exit"
 
 test:

@@ -112,11 +112,7 @@ class FileFormat:
 
     ..attribute:: open_func
 
-        Function that opens files: func(session, stream/filename, name=None)
-
-    ..attribute:: requires_filename
-
-        True if open function a filename
+        Function that opens files: func(session, stream/filename)
 
     ..attribute:: export_func
 
@@ -147,11 +143,22 @@ class FileFormat:
             reference = parse.urlunsplit(r)
         self.reference = reference
 
-        self.open_func = None
-        self.requires_filename = False
+        self._open_func = self._boot_open_func = None
         self.export_func = None
         self.export_notes = None
         self.batch = False
+
+    def _get_open_func(self):
+        if self._boot_open_func:
+            self._open_func = self._boot_open_func()
+            self._boot_open_func = None
+        return self._open_func
+
+    def _set_open_func(self, func):
+        self._open_func = func
+        self._boot_open_func = None
+
+    open_func = property(_get_open_func, _set_open_func)
 
     def export(self, *args, **kw):
         if self.export_func is None:
@@ -209,8 +216,7 @@ def register_format(format_name, category, extensions, nicknames=None,
     ff = _file_formats[format_name] = FileFormat(
         format_name, category, exts, nicknames, mime, reference, dangerous,
         icon, encoding, synopsis)
-    other_kws = set(['open_func', 'requires_filename',
-                     'export_func', 'export_notes', 'batch'])
+    other_kws = set(['open_func', 'export_func', 'export_notes', 'batch'])
     for attr in kw:
         if attr in other_kws:
             setattr(ff, attr, kw[attr])
@@ -332,38 +338,42 @@ def open_data(session, filespec, format=None, name=None, **kw):
     open_func = fmt.open_func
     if open_func is None:
         raise UserError("unable to open %s files" % fmt.name)
-    enc = fmt.encoding
-    if enc is None:
-        mode = 'rb'
-    else:
-        mode = 'rt'
-    filename, dname, stream = _compressed_open(filename, compression, mode, encoding=enc)
-    if fmt.requires_filename and not filename:
-        # copy compressed file to real file
-        import tempfile
-        exts = fmt.extensions
-        suffix = exts[0] if exts else ''
-        tf = tempfile.NamedTemporaryFile(prefix='chtmp', suffix=suffix)
-        while 1:
-            data = stream.read()
-            if not data:
-                break
-            tf.write(data)
-        tf.seek(0)
-        stream = tf
-        # TODO: Windows might need tf to be closed before reading with
-        # a different file descriptor
-
     import inspect
-    if 'filespec' in inspect.signature(open_func).parameters:
-        kw['filespec'] = filename
+    params = inspect.signature(open_func).parameters
+    if len(params) < 2:
+        raise UserError("%s-opening function is missing mandatory session, path/stream arguments"
+            % fmt.name)
+    if list(params.keys())[0] != "session":
+        raise UserError("First param of %s-opening function is not 'session'" % fmt.name)
+    if list(params.keys())[1] not in ("path", "stream"):
+        raise UserError("Second param of %s-opening function must be 'path' or 'stream'" % fmt.name)
+    import os.path
+    filename = os.path.expanduser(os.path.expandvars(filename))
+    provide_stream = list(params.keys())[1] == "stream"
+    if provide_stream:
+        enc = fmt.encoding
+        if enc is None:
+            mode = 'rb'
+        else:
+            mode = 'rt'
+        filename, dname, stream = _compressed_open(filename, compression, mode, encoding=enc)
+        args = (session, stream)
+    else:
+        args = (session, filename)
+        dname = os.path.basename(filename)
+
+    if 'format_name' in params:
+        kw['format_name'] = fmt.nicknames[0]
+    if 'file_name' in params:
+        kw['file_name'] = dname
+
     if fmt.category == SCRIPT:
         with session.in_script:
-            models, status = open_func(session, stream, dname, **kw)
+            models, status = open_func(*args, **kw)
     else:
-        models, status = open_func(session, stream, dname, **kw)
+        models, status = open_func(*args, **kw)
 
-    if not stream.closed:
+    if provide_stream and not stream.closed:
         stream.close()
 
     if name is not None:
@@ -453,7 +463,6 @@ def determine_compression(filename):
 def _compressed_open(filename, compression, *args, **kw):
     import os.path
     from .errors import UserError
-    filename = os.path.expanduser(os.path.expandvars(filename))
     if not compression:
         try:
             stream = open(filename, *args, **kw)
@@ -505,6 +514,8 @@ def open_filename(filename, *args, **kw):
         return urlopen(filename)
 
     stripped, compression = determine_compression(filename)
+    import os.path
+    filename = os.path.expanduser(os.path.expandvars(filename))
     path, fname, stream = _compressed_open(filename, compression, *args, **kw)
     return stream
 
