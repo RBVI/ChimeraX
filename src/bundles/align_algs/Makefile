@@ -1,77 +1,42 @@
-# === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
-# === UCSF ChimeraX Copyright ===
+# The "make" targets are:
+# 	wheel: build a Python wheel in "dist" directory.
+# 	install: build wheel (if needed) and install in ChimeraX.
+# 	test: run ChimeraX
+# 	debug: run ChimeraX with debugging flag set
+# 	clean: remove files used in building wheel
 
-TOP = ../../..
-include $(TOP)/mk/config.make
+CHIMERAX_APP = ../../../ChimeraX.app
 
-SUBDIRS = NeedlemanWunsch _sw support_cpp _nw
-
-include $(TOP)/mk/subdir.make
-
-BUNDLE_NAME = ChimeraX-AlignmentAlgorithms
-BUNDLE_VERSION = 1.0
-PKG_NAME = chimerax.seqalign.align_algs
-
-PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,'g)
-PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
-ifdef WIN32
-PKG_DIR := $(shell cygpath -m '$(PKG_DIR)' | sed 's,/,\\\\\\\\,g')
-shlibdir := $(shell cygpath -m '$(shlibdir)' | sed 's,/,\\\\\\\\,g')
-datadir := $(shell cygpath -m '$(datadir)' | sed 's,/,\\\\\\\\,g')
+# Platform-dependent settings.  Should not need fixing.
+# For Windows, we assume Cygwin is being used.
+OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
+ifeq ($(OS),CYGWIN_NT)
+CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX.exe
 endif
-WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
+ifeq ($(OS),Darwin)
+CHIMERAX_EXE = $(CHIMERAX_APP)/Contents/bin/ChimeraX
+endif
+ifeq ($(OS),Linux)
+CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
+endif
 
-PYSRCS = $(filter-out setup.py,$(wildcard *.py))
-DATAFILES = 
-WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-py3-none-$(BIN_PLATFORM).whl
+SRCS = $(wildcard src/*.py)
 
-all: $(PYOBJS)
+wheel:	bundle_info.xml $(SRCS) support_cpp.install
+	$(CHIMERAX_EXE) --nogui --cmd "devel build . ; exit"
 
-install: dir all
-	$(RSYNC) $(PYSRCS) $(DATAFILES) $(PKG_DIR)
-	if [ -d "$(app_prefix)" ]; then \
-		$(MAKE) app-install ;\
-	fi
+install app-install:	bundle_info.xml $(SRCS) support_cpp.install
+	$(CHIMERAX_EXE) --nogui --cmd "devel install . user false; exit"
 
-app-install: wheel
-	$(APP_PIP) install -U --upgrade-strategy only-if-needed $(WHEEL)
-	$(RSYNC) $(WHEEL) $(wheelhouse) && cd $(wheelhouse) && make update
+test:
+	$(CHIMERAX_EXE)
 
-wheel: setup.py
-	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel --plat-name $(BIN_PLATFORM)
-	rm -rf $(WHL_BNDL_NAME).egg-info
-
-setup.py: setup.py.in Makefile
-	sed -e 's,PKG_DIR,$(PKG_DIR),' \
-		-e 's,SHLIB_DIR,$(shlibdir),' \
-		-e 's,DATA_DIR,$(datadir),' \
-		-e 's,PYMOD_EXT,$(PYMOD_EXT),' \
-		-e 's,SHLIB_EXT,$(SHLIB_EXT),' \
-		-e 's,#$(OS)#,,' \
-		-e 's,#$(OSARCH)#,,' \
-		-e 's,BUNDLE_NAME,$(BUNDLE_NAME),' \
-		-e 's,BUNDLE_VERSION,$(BUNDLE_VERSION),' \
-		-e 's,PKG_NAME,$(PKG_NAME),' \
-		-e 's,PKG_DIR,$(PKG_DIR),' \
-		< setup.py.in > setup.py
-
-dir:
-	if [ ! -d "$(PKG_DIR)" ]; then mkdir -p $(PKG_DIR); fi
-	if [ ! -d "$(wheelhouse)" ]; then mkdir -p $(wheelhouse); fi
-
-lint:
-	$(PYLINT) $(PYSRCS)
+debug:
+	$(CHIMERAX_EXE) --debug
 
 clean:
-	rm -rf __pycache__ build dist $(WHL_BNDL_NAME).egg-info setup.py
+	$(CHIMERAX_EXE) --nogui --cmd "devel clean . ; exit"
+	$(MAKE) -C support_cpp clean
 
-_sw.install: support_cpp.install
-_nw.install: support_cpp.install
+support_cpp.install:
+	$(MAKE) -C support_cpp install
