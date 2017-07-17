@@ -75,10 +75,10 @@ def save_pdb(session, path, format, models=None, selected_only=False, displayed_
                     xforms.append((s.scene_position * inv).matrix)
 
     from . import pdbio
-    file_per_model = "[NAME]" in path or "[NUMBER]" in path
+    file_per_model = "[NAME]" in path or "[ID]" in path
     if file_per_model:
         for m, xform in zip(models, xforms):
-            file_name = path.replace("[NUMBER]", m.id_string()).replace("[NAME]", m.name)
+            file_name = path.replace("[ID]", m.id_string()).replace("[NAME]", m.name)
             pdbio.write_pdb_file([m.cpp_pointer], file_name, selected_only=selected_only,
                 displayed_only=displayed_only, xforms=[xform], all_frames=all_frames, pqr=pqr)
     else:
@@ -87,7 +87,8 @@ def save_pdb(session, path, format, models=None, selected_only=False, displayed_
 
 
 _pdb_sources = {
-    "rcsb": "http://www.pdb.org/pdb/files/%s.pdb",
+#    "rcsb": "http://www.pdb.org/pdb/files/%s.pdb",
+    "rcsb": "http://files.rcsb.org/download/%s.pdb",
     "pdbe": "http://www.ebi.ac.uk/pdbe/entry-files/download/pdb%s.ent",
     # "pdbj": "https://pdbj.org/rest/downloadPDBfile?format=pdb&id=%s",
 }

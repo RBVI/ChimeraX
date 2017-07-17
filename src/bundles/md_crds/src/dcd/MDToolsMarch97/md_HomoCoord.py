@@ -40,6 +40,7 @@ import sys
 import time
 
 from .md_Constants import angleunits, angledefault
+from numbers import Number
 
 #
 # HomoCoord class hierarchy:
@@ -90,15 +91,15 @@ Methods:
 	def __neg__(s):
 		return _HomoCoord_downcast(-s.x,-s.y,-s.z,-s.W)
 	def __mul__(s,a):
-		if isinstance(a, (int, float, long)):
+		if isinstance(a, Number):
 			return _HomoCoord_downcast(s.x*a,s.y*a,s.z*a,s.W*a)
 		else: raise TypeError('HomoCoord multiplication by non-numeric')
 	def __rmul__(s,a):
-		if isinstance(a, (int, float, long)):
+		if isinstance(a, Number):
 			return _HomoCoord_downcast(s.x*a,s.y*a,s.z*a,s.W*a)
 		else: raise TypeError('HomoCoord multiplication by non-numeric')
-	def __div__(s,a):
-		if isinstance(a, (int, float, long)):
+	def __truediv__(s,a):
+		if isinstance(a, Number):
 			return _HomoCoord_downcast(s.x/a,s.y/a,s.z/a,s.W/a)
 		else: raise TypeError('HomoCoord division by non-numeric')
 	def __len__(self):
@@ -124,7 +125,7 @@ Methods:
 	def __abs__(s):
 		return math.sqrt(s.x*s.x+s.y*s.y+s.z*s.z)
 	def __mul__(s,o):
-		if isinstance(o, (int, float, long)):
+		if isinstance(o, Number):
 			return HomoCoord.__mul__(s,o)
 		elif o.W == 0:
 			return s.x*o.x+s.y*o.y+s.z*o.z
@@ -193,7 +194,7 @@ def angleconvert(angle,old,new=angledefault):
 def angle(a,b=angledefault,c=angledefault,x1=angledefault,x2=angledefault):
 	if isinstance(a, tuple):
 		return apply(angle,a+(b,))
-	if isinstance(x1, basestring):
+	if isinstance(x1, str):
 		d = None
 		units = x1
 	else:

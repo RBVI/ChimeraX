@@ -25,34 +25,12 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: open</h3>
 
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>open</b> (&nbsp;<i>filename</i>&nbsp;|&nbsp;<i>URL</i>&nbsp;|&nbsp;[&nbsp;<a href="#fetch-table"><i>prefix</i></a>:]<i>identifier</i>&nbsp;)
+[&nbsp;coordsets&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+&nbsp;<i>other-options</i>
+</h3>
 <h3><a href="usageconventions.html">Usage</a>: <br><b>open formats</b>
-</h3>
-<h3><a href="usageconventions.html">Usage</a>:
-<br><b>open</b> &nbsp;<i>filename</i>&nbsp;
-[&nbsp;format&nbsp;&nbsp;<a href="#file-table"><i>format-name</i></a>&nbsp;]
-[&nbsp;coordsets&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;vseries&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>alignment</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-&nbsp;<a href="#options"><i>general-options</i></a>&nbsp;
-&nbsp;<a href="#trajectory-options"><i>trajectory-options</i></a>
-</h3>
-<h3><a href="usageconventions.html">Usage</a>:
-<br><b>open</b> &nbsp;<i>URL</i>&nbsp;
-[&nbsp;format&nbsp;&nbsp;<a href="#file-table"><i>format-name</i></a>&nbsp;]
-[&nbsp;coordsets&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;vseries&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>alignment</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-&nbsp;<a href="#options"><i>general-options</i></a>&nbsp;
-&nbsp;<a href="#trajectory-options"><i>trajectory-options</i></a>
-</h3>
-<h3><a href="usageconventions.html">Usage</a>:
-<br><b>open</b> 
-[&nbsp;<a href="#fetch-table"><i>prefix</i></a>:]<i>identifier</i>&nbsp;
-[&nbsp;fromDatabase&nbsp;&nbsp;<a href="#fetch-table"><i>source</i></a>&nbsp;]
-[&nbsp;format&nbsp;&nbsp;<a href="#fetch-table"><i>format-name</i></a>&nbsp;]
-[&nbsp;coordsets&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;ignoreCache&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-&nbsp;<a href="#options"><i>general-options</i></a>
 </h3>
 <p>
 The command <b>open</b> reads data from:
@@ -63,7 +41,7 @@ The command <b>open</b> reads data from:
 </ul>
 Input files may contain data to be displayed or commands or code to be executed.
 Local files can also be browsed/opened with <b>File... Open</b> in the menu,
-in which case the proper filename <a href="#local">suffix</a> is required.
+in which case the proper filename <a href="#file-table">suffix</a> is required.
 See also: 
 <a href="close.html"><b>close</b></a>,
 <a href="save.html"><b>save</b></a>,
@@ -74,9 +52,6 @@ See also:
 <b>Rapid Access</b> <img class="icon" src="../rapidoff.png"></a>,
 <a href="colortables.html#autocolors">initial colors</a>,
 <a href="../autostyle.html">automatic styling</a>
-</p><p>
-The <b>open formats</b> command lists the possible formats and databases
-in the <a href="../tools/log.html"><b>Log</b></a>. 
 </p><p>
 Examples:
 </p>
@@ -94,22 +69,14 @@ Examples:
 <b>open http://www.rbvi.ucsf.edu/chimerax/features.html</b>
 </blockquote>
 
-<a name="local"></a>
+<a name="formats"></a>
 <p class="nav">
 [<a href="#top">back to top</a>]
 </p>
-<h3>Local Files</h3>
-<blockquote>
-<a href="usageconventions.html"><b>Usage</b></a>:
-<b>open</b> &nbsp;<i>filename</i>&nbsp;
-[&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#file-table"><i>format-name</i></a>&nbsp;]
-[&nbsp;<b>coordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>vseries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>alignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-&nbsp;<a href="#options"><i>general-options</i></a>&nbsp;
-&nbsp;<a href="#trajectory-options"><i>trajectory-options</i></a>
-</blockquote>
+<h3>Input Formats</h3>
 <p>
+The command <b>open formats</b> command lists the possible formats and 
+<a href="#fetch">databases</a> in the <a href="../tools/log.html"><b>Log</b></a>. 
 File types can be categorized as:
 </p>
 <ul>
@@ -121,58 +88,6 @@ File types can be categorized as:
 <li><a href="#composite">Composite</a>
 <li><a href="#miscellaneous">Miscellaneous</a>
 </ul>
-<p>
-The <i>filename</i> is generally a pathname to a local file, 
-either absolute or relative to the current working directory as
-reported by <a href="pwd.html"><b>pwd</b></a>.
-The working directory can be changed with <a href="cd.html"><b>cd</b></a>.
-A pathname may start with &ldquo;<b>~</b>&rdquo; to indicate the user's 
-home directory. One or more files can be specified at a time by including 
-<b>*</b> (wild card), <b>?</b> (single-character wild card), 
-and/or square-bracketed character ranges in the <i>filename</i>
-(Unix-style pathname expansion or <b><i>globbing</i></b>).
-</p><p>
-The file format can be indicated with either the <i>filename</i> suffix or
-the <b>format</b> option (where <i>format-name</i> can be truncated).
-Files that are gzipped, as indicated by their additional .gz suffix, 
-can also be read.
-</p><p>
-A multi-model file in mmCIF or PDB format can be opened as a
-<a href="../trajectories.html">trajectory</a>
-with <b>coordsets true</b> (default <b>false</b>).
-A <a href="#trajectory">trajectory coordinate</a> file is
-automatically opened as <a href="../trajectories.html">trajectory</a>,
-but to provide topology information, the <b>model</b> option must be used 
-to specify an existing model with the same set of atoms
-(for example: <b>open myfile.trr model #3</b>).
-The coordinates of the existing model will be replaced with the new,
-unless appending is indicated with <b>replace false</b>.
-</p><p>
-When multiple maps with the same grid dimensions are opened 
-in a single command (multiple files specified with wild cards or globbing, 
-or a single multi-map file), the <b>vseries</b> option can be used to enforce 
-loading them as a <a href="../trajectories.html#vseries">volume series</a>
-for playback with 
-<a href="vseries.html"><b>vseries</b></a> or the associated slider
-(if <b>true</b>), or as independent models (if <b>false</b>).
-If the option is not used, 3D TIFF images and
-<a href="save.html#chimap">Chimera map</a> files containing five or more
-same-sized maps are automatically interpreted as series, if possible.
-</p><p>
-When a multi-sequence file is opened, the <b>alignment</b> option 
-indicates whether it should be interpreted as an alignment 
-(default <b>true</b>, all sequences in one <b>Multalign Viewer</b> window).
-Otherwise, each sequence will be opened in a separate window. 
-If the sequences (including any gap characters) are of differing lengths,
-the option must be set to <b>false</b>. 
-</p><p>
-<!-- ChimeraX builds after June 20 2017 as per ticket #320 -->
-Another way to open local files is by drag-and-drop onto the ChimeraX icon
-or a running instance of ChimeraX.
-On a Mac, ChimeraX-associated file types can also be opened by 
-double-clicking them in a Finder window or using &ldquo;open&rdquo; 
-in a Terminal window.
-</p>
 <center>
 <a name="file-table"><font size="+1"><b>File Types</b></font></a>
 </center>
@@ -403,6 +318,73 @@ hypertext to render in the
 <a href="../window.html#browser">ChimeraX browser</a>
 </tr></table>
 
+<a name="local"></a>
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<h3>Local Files</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>open</b> &nbsp;<i>filename</i>&nbsp;
+[&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#file-table"><i>format-name</i></a>&nbsp;]
+[&nbsp;<b>coordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>vseries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>alignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+&nbsp;<a href="#options"><i>general-options</i></a>&nbsp;
+&nbsp;<a href="#trajectory-options"><i>trajectory-options</i></a>
+</blockquote>
+<p>
+The <i>filename</i> is generally a pathname to a local file, 
+either absolute or relative to the current working directory as
+reported by <a href="pwd.html"><b>pwd</b></a>.
+The working directory can be changed with <a href="cd.html"><b>cd</b></a>.
+A pathname may start with &ldquo;<b>~</b>&rdquo; to indicate the user's 
+home directory. One or more files can be specified at a time by including 
+<b>*</b> (wild card), <b>?</b> (single-character wild card), 
+and/or square-bracketed character ranges in the <i>filename</i>
+(Unix-style pathname expansion or <b><i>globbing</i></b>).
+</p><p>
+The file format can be indicated with either the <i>filename</i> suffix or
+the <b>format</b> option (where <i>format-name</i> can be truncated).
+Files that are gzipped, as indicated by their additional .gz suffix, 
+can also be read.
+</p><p>
+A multi-model file in mmCIF or PDB format can be opened as a
+<a href="../trajectories.html">trajectory</a>
+with <b>coordsets true</b> (default <b>false</b>).
+A <a href="#trajectory">trajectory coordinate</a> file is
+automatically opened as <a href="../trajectories.html">trajectory</a>,
+but to provide topology information, the <b>model</b> option must be used 
+to specify an existing model with the same set of atoms
+(for example: <b>open myfile.trr model #3</b>).
+The coordinates of the existing model will be replaced with the new,
+unless appending is indicated with <b>replace false</b>.
+</p><p>
+When multiple maps with the same grid dimensions are opened 
+in a single command (multiple files specified with wild cards or globbing, 
+or a single multi-map file), the <b>vseries</b> option can be used to enforce 
+loading them as a <a href="../trajectories.html#vseries">volume series</a>
+for playback with 
+<a href="vseries.html"><b>vseries</b></a> or the associated slider
+(if <b>true</b>), or as independent models (if <b>false</b>).
+If the option is not used, 3D TIFF images and
+<a href="save.html#chimap">Chimera map</a> files containing five or more
+same-sized maps are automatically interpreted as series, if possible.
+</p><p>
+When a multi-sequence file is opened, the <b>alignment</b> option 
+indicates whether it should be interpreted as an alignment 
+(default <b>true</b>, all sequences in one <b>Multalign Viewer</b> window).
+Otherwise, each sequence will be opened in a separate window. 
+If the sequences (including any gap characters) are of differing lengths,
+the option must be set to <b>false</b>. 
+</p><p>
+<!-- ChimeraX builds after June 20 2017 as per ticket #320 -->
+Another way to open local files is by drag-and-drop onto the ChimeraX icon
+or a running instance of ChimeraX.
+On a Mac, ChimeraX-associated file types can also be opened by 
+double-clicking them in a Finder window or using &ldquo;open&rdquo; 
+in a Terminal window.
+</p>
 <a name="url"></a>
 <p class="nav">
 [<a href="#top">back to top</a>]
@@ -640,5 +622,5 @@ unless <b>replace false</b> is used to indicate appending the new frames instead
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2017</address>
+July 2017</address>
 </body></html>

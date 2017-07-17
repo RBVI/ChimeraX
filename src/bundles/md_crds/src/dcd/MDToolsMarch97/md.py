@@ -43,17 +43,17 @@ Constants:
 # Split into sub-modules, improved version reporting.
 #
 # Revision 0.64  1996/05/23 22:35:53  jim
-# Added delrefs() to Molecule and contents to allow dleeletion.
-# (Circular references prevent Python from deallocating objects).)
-# Molecule.display() is noew (view().  
-# Molecule.display() and Data(.plot() no longer take filenames.
-# Completely redid xyplotfunction and () and pdbdisplayfucnnction() are now objectclasses
+# Added delrefs() to Molecule and contents to allow deletion.
+# (Circular references prevent Python from deallocating objects.)
+# Molecule.display() is now view().
+# Molecule.display() and Data.plot() no longer take filenames.
+# xyplotfunction() and pdbdisplayfunction() are now classes
 # xyplot and pdbview so they keep data internally.
-# There is a mathchintching revision to md_local for this update.
+# There is a matching revision to md_local for this update.
 #
 # Revision 0.63  1996/05/22 15:26:37  jim
 # Added structure information read from psf file to Molecule and
-# buildstructure() to create useful sturucture on Molecule and Atoms.
+# buildstructure() to create useful structure on Molecule and Atoms.
 # Modified dist() and angle() to accept tuples of Coords.
 #
 # Revision 0.62  1996/05/17 15:37:02  jim
@@ -102,36 +102,36 @@ _RCS = "$Id: md.py 26655 2009-01-07 22:02:30Z gregc $"
 RCS = _RCS
 RCS = RCS + '\n'
 
-from md_HomoCoord import *
-import md_HomoCoord
+from .md_HomoCoord import *
+from . import md_HomoCoord
 RCS = RCS + md_HomoCoord._RCS
 del(md_HomoCoord)
 
 RCS = RCS + '\n'
 
-from md_AtomGroup import *
-import md_AtomGroup
+from .md_AtomGroup import *
+from . import md_AtomGroup
 RCS = RCS + md_AtomGroup._RCS
 del(md_AtomGroup)
 
 RCS = RCS + '\n'
 
-from md_Trans import *
-import md_Trans
+from .md_Trans import *
+from . import md_Trans
 RCS = RCS + md_Trans._RCS
 del(md_Trans)
 
 RCS = RCS + '\n'
 
-from md_DCD import *
-import md_DCD
+from .md_DCD import *
+from . import md_DCD
 RCS = RCS + md_DCD._RCS
 del(md_DCD)
 
 RCS = RCS + '\n'
 
-from md_Data import *
-import md_Data
+from .md_Data import *
+from . import md_Data
 RCS = RCS + md_Data._RCS
 del(md_Data)
 
@@ -141,8 +141,8 @@ del(md_Data)
 
 RCS = RCS + '\n'
 
-from md_Constants import *
-import md_Constants
+from .md_Constants import *
+from . import md_Constants
 RCS = RCS + md_Constants._RCS
 del(md_Constants)
 
@@ -152,7 +152,7 @@ del(md_Constants)
 
 RCS = RCS + '\n'
 
-import md_local
+from . import md_local
 RCS = RCS + md_local._RCS
 del(md_local)
 

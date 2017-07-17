@@ -25,80 +25,40 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: save</h3>
 <h3><a href="usageconventions.html">Usage</a>:
-<br><b>save</b> [&nbsp;<b>image</b>&nbsp;] &nbsp;<i>filename</i>
-[&nbsp;<b>format</b>&nbsp;&nbsp;<i>file-format</i>&nbsp;]
-[&nbsp;supersample&nbsp;<i>N</i>&nbsp;]
-[&nbsp;<b>quality</b>&nbsp;<i>M</i>&nbsp;]
-[[&nbsp;<b>width</b>&nbsp;&nbsp;<i>w</i>&nbsp;][&nbsp;<b>height</b>&nbsp;&nbsp;<i>h</i>&nbsp;]&nbsp|&nbsp;<b>pixelSize</b>&nbsp;&nbsp;<i>p</i>&nbsp;]
-[&nbsp;<b>transparentBackground</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+<br><b>save</b> &nbsp;<i>filename</i>
+[&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#formats"><i>file-format</i></a>&nbsp;]
+&nbsp;<i>other-options</i>
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>save</b> [&nbsp;<b>session</b>&nbsp;] &nbsp;<i>filename</i>
 [&nbsp;<b>format</b>&nbsp;&nbsp;<b>ses</b>&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
-<br><b>save</b> [&nbsp;<b>map</b>&nbsp;] 
-&nbsp;<i>filename</i>
-[&nbsp;<b>models</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
-[&nbsp;<b>format</b>&nbsp;&nbsp;<i>file-format</i>&nbsp;]
-[&nbsp;<b>step</b>&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
-[&nbsp;<b>region</b>&nbsp;all&nbsp;|&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;]
-[&nbsp;<b>maskZone</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>baseIndex</b>&nbsp;<i>M</i>&nbsp;]
-[&nbsp;<b>append</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>compress</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>chunkShapes</b>&nbsp;&nbsp;<i>order</i>&nbsp;]
-</h3>
-<h3><a href="usageconventions.html">Usage</a>:
-<br><b>save</b>&nbsp;&nbsp;<i>filename</i>
-[&nbsp;<b>format</b>&nbsp;&nbsp;<b>mol2</b>&nbsp;]
-[&nbsp;<b>models</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
-[&nbsp;<b>relModel</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
-[&nbsp;<b>combineModels</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>atoms</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
-[&nbsp;<b>skipAtoms</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
-[&nbsp;<b>anchor</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
-[&nbsp;<b>sybylHydNaming</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>resNum</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>gaffType</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-</h3>
-
-<h3><a href="usageconventions.html">Usage</a>:
-<br><b>save</b> &nbsp;<i>filename</i>
-[&nbsp;<b>format</b>&nbsp;&nbsp;<i>file-format</i>&nbsp;]
-</h3>
-<h3><a href="usageconventions.html">Usage</a>:
 <br><b>save</b> <b>formats</b>
 </h3>
 <p>
-The command <b>save</b> saves an image, ChimeraX session,
+The <b>save</b> command saves an image, ChimeraX session,
 map (<a href="../tools/volumeviewer.html">volume data</a>),
-or other data to <i>filename</i>, 
-which can be a pathname (including directory location).
-The pathname can be absolute or relative to the current working directory as
-reported by <a href="pwd.html"><b>pwd</b></a>.
+atomic coordinates, or other data to <i>filename</i>, 
+which can be a pathname including the directory location.
+The pathname can be absolute or relative to the current working directory
+as reported by <a href="pwd.html"><b>pwd</b></a>.
 The working directory can be changed with <a href="cd.html"><b>cd</b></a>.
-Sessions and images include &ldquo;all,&rdquo; but for other file types,
+Sessions and images include all contents, but for other file types,
 the <b>models</b> option can be used to specify which model(s) to save.
-</p><p>
-Files can also be saved with <b>File... Save</b> in the menu.
-See also:
-<a href="open.html"><b>open</b></a>,
-<a href="getcrd.html"><b>getcrd</b></a>,
-<a href="log.html"><b>log</b></a>,
-<a href="movie.html"><b>movie</b></a>,
-<a href="view.html"><b>view</b></a>,
-<a href="windowsize.html"><b>windowsize</b></a>,
-<a href="../tools/cli.html#history"><b>Command History</b></a>,
-<a href="../tools/graphics.html"><b>Graphics Toolbar</b></a>,
-<a href="../images.html">making images</a>
-</p>
+There may be several additional options, depending on the file type:
 <ul class="none">
 <li><a href="#formats"><b>Output Formats</b></a>
-<li><a href="#image-options"><b>Image Options</b></a>
-<li><a href="#map-options"><b>Map Options</b></a>
-<li><a href="#mol2-options"><b>Mol2 Options</b></a>
+<li><a href="#image"><b>Save Image</b></a>
+<li><a href="#map"><b>Save Map</b></a>
+<li><a href="#pdb"><b>Save PDB</b></a>
+<li><a href="#mol2"><b>Save Mol2</b></a>
 </ul>
+</p><p>
+Files can also be saved with <b>File... Save</b> in the menu.
+See also: <a href="open.html"><b>open</b></a>,
+<a href="log.html"><b>log</b></a>
+</p>
 
 <a name="formats"></a>
 <p class="nav">
@@ -106,26 +66,25 @@ See also:
 </p>
 <h3>Output Formats</h3>
 <p>
-The <b>image</b>, <b>session</b>, or <b>map</b> keyword 
-before the <i>filename</i>
+The command <b>save formats</b> lists the possible output formats in the
+<a href="../tools/log.html"><b>Log</b></a>.
+</p><p>
+An initial
+<b>image</b>, <b>session</b>, or <b>map</b> keyword before the <i>filename</i>
 is optional if the file type is specified with either the <i>filename</i> 
 suffix or the <b>format</b> option. Some file types have no 
 preceding keyword and must be specified with either the <i>filename</i>
-suffix or the <b>format</b> option. 
-If the format is specified separately, the
+suffix or the <b>format</b> option. If the format is specified separately, the
 appropriate suffix will be added to <i>filename</i>.
-</p><p>
-The command <b>save formats</b> lists the possible output formats in the
-<a href="../tools/log.html"><b>Log</b></a>.
 </p>
 <table border cellpadding="4" cellspacing="0"><tr>
-<th style="background-color: #eaeaea">initial keyword<br>(subcommand)</th>
+<th style="background-color: #eaeaea">initial keyword</th>
 <th style="background-color: #eaeaea"><i>file-format</i></th>
 <th style="background-color: #eaeaea">
 <a name="suffix"><i>filename</i> suffix</a></th>
 <th style="background-color: #eaeaea">description</th>
 </tr><tr>
-<td align="center" rowspan="6"><b>image</b></td>
+<td align="center" rowspan="6"><a href="#image"><b>image</b></a></td>
 <td align="center">png<br>(default for <b>save image</b>)</td>
 <td align="center">.png</td>
 <td align="center">Portable Network Graphics</td>
@@ -155,7 +114,7 @@ The command <b>save formats</b> lists the possible output formats in the
 <td align="center">.cxs</td>
 <td align="center">ChimeraX session</td>
 </tr><tr>
-<td align="center" rowspan="3"><b>map</b></td>
+<td align="center" rowspan="3"><a href="#map"><b>map</b></a></td>
 <td align="center">cmap</td>
 <td align="center">.cmp<br>.cmap</td>
 <td align="center">Chimera map<br>(may contain multiple models)</td>
@@ -168,13 +127,19 @@ The command <b>save formats</b> lists the possible output formats in the
 <td align="center">.mrc</td>
 <td align="center">MRC density map</td>
 </tr><tr>
-<td align="center" rowspan="5">(none)</td>
+<td align="center" rowspan="6">(none)</td>
+<td align="center">pdb</td>
+<td align="center">.pdb</td>
+<td align="center">
+atomic coordinates,<br>PDB<br>
+(see <a href="#pdb"><b>Save PDB</b></a>)</td>
+</tr><tr>
 <td align="center">mol2</td>
 <td align="center">.mol2</td>
 <td align="center">
 atomic coordinates,<br>
 Sybyl Mol2<br>
-(see <a href="#mol2-options">options</a>)</td>
+(see <a href="#mol2"><b>Save Mol2</b></a>)</td>
 </tr><tr>
 <td align="center">mmcif</td>
 <td align="center">.cif</td>
@@ -198,34 +163,31 @@ coordinates,<br>DCD (binary)</td>
 target="_blank">X3D</a></td>
 </tr></table>
 
-<a name="image-options"></a>
+<a name="image"></a>
 <p class="nav">
 [<a href="#top">back to top</a>]
 </p>
-<h3>Image Options</h3>
+<h3>Save Image</h3>
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>save</b> [&nbsp;<b>image</b>&nbsp;] &nbsp;<i>filename</i>
-[&nbsp;<b>format</b>&nbsp;&nbsp;<i>file-format</i>&nbsp;]
-[&nbsp;supersample&nbsp;<i>N</i>&nbsp;]
-[&nbsp;<b>quality</b>&nbsp;<i>M</i>&nbsp;]
+[&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#formats"><i>file-format</i></a>&nbsp;]
 [[&nbsp;<b>width</b>&nbsp;&nbsp;<i>w</i>&nbsp;][&nbsp;<b>height</b>&nbsp;&nbsp;<i>h</i>&nbsp;]&nbsp|&nbsp;<b>pixelSize</b>&nbsp;&nbsp;<i>p</i>&nbsp;]
+[&nbsp;<b>supersample</b>&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>quality</b>&nbsp;<i>M</i>&nbsp;]
 [&nbsp;<b>transparentBackground</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 </blockquote>
 <p>
-Images are rendered offscreen.
-Images can be <a name="#supersampling"><b><i>supersampled</i></b></a>, 
-that is, initially generated at a higher resolution 
-and then sampled down to the final size. 
-The degree of supersampling <i>N</i> can be specified with the 
-<b>supersample</b> keyword; the default is <b>3</b>,
-meaning that the initial image will be 3 times larger in each dimension,
-with 9 times as many pixels, as the final result.
-A value of 1 corresponds to no supersampling.
-</p><p>
-The <b>quality</b> setting applies to JPEG format only, with values
-of <i>M</i> in the range 0&ndash;100 (default <b>95</b>).
-</p><p>
+Images generally have the same contents as the graphics window,
+but are rendered offscreen.
+See also: <a href="windowsize.html"><b>windowsize</b></a>,
+<a href="view.html"><b>view</b></a>,
+<a href="../tools/graphics.html"><b>Graphics Toolbar</b></a>,
+<a href="../images.html">making images</a>,
+<a href="../movies.html">making movies</a>
+<blockquote>
+[&nbsp;<b>width</b>&nbsp;&nbsp;<i>w</i>&nbsp;][&nbsp;<b>height</b>&nbsp;&nbsp;<i>h</i>&nbsp;]&nbsp|&nbsp;<b>pixelSize</b>&nbsp;&nbsp;<i>p</i>
+<br>
 Image pixel dimensions can be specified directly with 
 <b>width</b> and <b>height</b>, or relative to the physical dimensions
 of the view in the window with <b>pixelSize</b>. 
@@ -244,66 +206,100 @@ but <b>pixelSize</b> sets the value at half-depth
 For example, if at half-depth the graphics window encloses
 a 400-&Aring by 300-&Aring; rectangle,
 <b>pixelSize 0.4</b> specifies image pixel dimensions of 1000 by 750.
-</p><p>
-The <b>transparentBackground</b> option (default <b>false</b>) indicates
-whether to include opacity values (alpha) in an output PNG or TIFF file. 
+</blockquote>
+<blockquote>
+<b>supersample</b>&nbsp;<i>N</i>
+<br>
+<a name="#supersampling"><b><i>Supersampling</i></b></a> refers to
+initially generating an image at a higher resolution than requested
+and then sampling it down to the final size. 
+This gives a smoother (less pixelated) appearance of
+lines and boundaries in the final image.
+The degree of supersampling <i>N</i> defaults to <b>3</b>, meaning
+that the initial image will be 3 times larger in each dimension,
+with 9 times as many pixels, as the final result.
+A value of 1 corresponds to no supersampling.
+See also: <a href="set.html#subdivision"><b>set subdivision</b></a>
+</blockquote>
+<blockquote>
+<b>quality</b>&nbsp;<i>M</i>
+<br>
+The <b>quality</b> <i>M</i> applies to JPEG format only, with values
+in the range 0&ndash;100 (default <b>95</b>).
+</blockquote>
+<blockquote>
+<b>transparentBackground</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to include opacity values (alpha) in an output PNG or TIFF file. 
 With background transparency, the background
 will be completely invisible in the saved images.
 This facilitates combining the image 
 with different backgrounds in image-editing applications.
 (<b>Note:</b> TIFF images with background transparency may not be
 interpreted correctly by Adobe Photoshop.)
-</p>
+</blockquote>
 
-<a name="map-options"></a>
+<a name="map"></a>
 <p class="nav">
 [<a href="#top">back to top</a>]
 </p>
-<h3>Map Options</h3>
+<h3>Save Map</h3>
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>save</b> [&nbsp;<b>map</b>&nbsp;] &nbsp;<i>filename</i>
-[&nbsp;<b>models</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
-[&nbsp;<b>format</b>&nbsp;&nbsp;<i>file-format</i>&nbsp;]
-[&nbsp;<b>step</b>&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
-[&nbsp;<b>region</b>&nbsp;all&nbsp;|&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;]
-[&nbsp;<b>maskZone</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>baseIndex</b>&nbsp;<i>M</i>&nbsp;]
+[&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#formats"><i>file-format</i></a>&nbsp;]
+[&nbsp;<b>models</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>step</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
+[&nbsp;<b>region</b>&nbsp;&nbsp;all&nbsp;|&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;]
+[&nbsp;<b>maskZone</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>append</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>compress</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>chunkShapes</b>&nbsp;&nbsp;<i>order</i>&nbsp;]
 </blockquote>
 <p>
-The <a href="atomspec.html#hierarchy"><i>model-spec</i></a>
-can be omitted if only one volume model is currently open.
-</p><p>
+MRC files written by ChimeraX are in the MRC 2000 format.
+Older MRC-reading programs or programs expecting CCP4 format will read such 
+files successfully but may not align the data correctly with other data sets.
+Only the <a href="#chimap">Chimera map</a> format 
+can accommodate multiple data sets in a single file.
 Multiple data sets can be written to multiple files by including a
 %d integer format specification in <i>filename</i>:
+</p>
 <blockquote>
 <b>save #2,3,7 data%d.mrc</b>
 <br>
 <b>save #2,3,7 data%03d.mrc</b>
 </blockquote>
+<p>
 The first example would generate the files data1.mrc, data2.mrc,
 and data3.mrc, while the second would instead use names like data001.mrc.
 Successive integers starting with <b>baseIndex</b> <i>M</i> (default <b>1</b>)
 will be used in the new names
 regardless of the volume model numbers. If the format specification is
-incorrect, <i>filename</i> will be interpreted as the name of a single
-file. Only the <a href="#chimap">Chimera map</a> format 
-can accommodate multiple data sets in a single file.
+incorrect, <i>filename</i> will be interpreted as the name of a single file. 
 </p><p>
-The <b>step</b> option indicates using the full resolution of the data
+Further options:
+<blockquote>
+<b>models</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+<br>
+Volume model(s) to save; can be omitted if only one volume model is open.
+</blockquote>
+<blockquote>
+<b>step</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>
+<br>
+Whether to use the full resolution of the data
 (step size <b>1</b>, default) or a specified subsample (step size &gt; 1).
-Step sizes must be integers.
-A step size of 1 indicates all data points,
+Step sizes must be integers. A step size of 1 indicates all data points,
 2 indicates every other data point, 3 every third point, <i>etc.</i>
 If a single number is supplied, it is
 used along all three axes; if three numbers are supplied
 (separated by commas but not spaces), they
 are used along the X, Y, and Z axes, respectively.
-</p><p>
-The <b>region</b> option indicates writing 
+</blockquote>
+<blockquote>
+<b>region</b>&nbsp;&nbsp;all&nbsp;|&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>
+<br>Whether to write
 the full extents of the data (<b>all</b>, default) or a specified subregion.
 A subregion can be specified by <i>name</i>
 (previously <a href="volume.html#dimensions">assigned</a> with 
@@ -315,21 +311,19 @@ Grid indices must be integers separated by commas but not spaces.
 If the <b>region</b> option is not supplied, the currently displayed
 subregion will be written.
 In this context, a zone is not considered a subregion.
-</p><p>
+</blockquote>
+<blockquote>
+<b>maskZone</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
 If zoning is in effect
 (see <a href="surface.html#zone"><b>surface zone</b></a>),
 <!--
 and the <b>Zone</b></a> feature in <b>Volume Viewer</b>
 -->
-the <b>maskZone</b> option (default <b>false</b>)
-indicates writing out data for a region enclosing the zone,
+whether to write out data for a region enclosing the zone,
 with values outside the zone set to zero.
 See also: <a href="volume.html#zone"><b>volume zone</b></a>
-</p><p>
-MRC files written by ChimeraX
-are in the MRC 2000 format. Older MRC-reading programs or
-programs expecting CCP4 format will read such files successfully
-but may not align the data correctly with other data sets.
+</blockquote>
 </p><p>
 If <a name="chimap"><b><i>Chimera map</i></b></a> format is saved:
 </p>
@@ -373,11 +367,87 @@ Saving a file with an <i>order</i> ending in &ldquo;z&rdquo; can be very slow
 because one Z-plane is written at a time.
 </p>
 
-<a name="mol2-options"></a>
+<a name="pdb"></a>
 <p class="nav">
 [<a href="#top">back to top</a>]
 </p>
-<h3>Mol2 Options</h3>
+<h3>Save PDB</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>save</b>&nbsp;&nbsp;<i>filename</i>
+[&nbsp;<b>format</b>&nbsp;&nbsp;<b>pdb</b>&nbsp;]
+[&nbsp;<b>models</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>relModel</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>selectedOnly</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>displayedOnly</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>allFrames</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>pqr</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+</blockquote>
+<p>
+Atomic coordinates can be saved in 
+<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/tutorials/framepdbintro.html"
+target="_blank">PDB format</a>. 
+The <i>filename</i> can include [NAME] and/or [ID]
+to indicate substitution with model name and/or model number, respectively,
+as needed to save multiple atomic models to multiple files with a 
+single command. See also: <a href="getcrd.html"><b>getcrd</b></a>
+</p>
+<blockquote>
+<b>models</b> &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+<br>
+Write only the specified models, otherwise all atomic models.
+</blockquote>
+<blockquote>
+<b>relModel</b> &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+<br>
+Write coordinates relative to the original coordinates of the specified model. 
+Otherwise, coordinates will be written relative to the scene 
+(same as the original coordinates of each model unless it was moved separately).
+Saving a model relative to another is useful for preserving their 
+spatial relationship without having to save copies of both models.
+For example, if model 2 has been matched or docked to model 1
+(such as with <a href="matchmaker.html"><b>matchmaker</b></a>,
+<a href="align.html"><b>align</b></a>, or
+<a href="fitmap.html"><b>fitmap</b></a>), saving model 2 relative to 
+model 1 results in them being matched or docked in the same way when the 
+original model 1 file and the new model 2 file (saved relative to 1)
+are opened.
+</blockquote>
+<blockquote>
+<b>selectedOnly</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>Whether to include only the <a href="../selection.html">selected</a> atoms.
+</blockquote>
+<blockquote>
+<b>displayedOnly</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>Whether to include only the displayed atoms.
+Note that <a href="cartoon.html">cartoon</a> display does not imply atomic 
+display, and conversely, backbone atoms may be displayed but suppressed by
+<a href="cartoon.html">cartoon</a>.
+</blockquote>
+<blockquote>
+<b>allFrames</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>Whether to save all frames of a 
+<a href="../trajectories.html">trajectory</a>
+or just the frame that is currently displayed (default).
+Saving all frames produces a multi-model PDB file.
+<!-- ticket #753 allow saving trajectory to multiple files -->
+</blockquote>
+<blockquote>
+<b>pqr</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>Whether to generate 
+<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/tutorials/pdbintro.html#PQR"
+target="_blank">PQR format</a> instead of
+<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/tutorials/framepdbintro.html"
+target="_blank">standard PDB</a>.
+In PQR format, atomic partial charge (Q) and radius (R) fields 
+follow the X,Y,Z atomic coordinates.
+</blockquote>
+
+<a name="mol2"></a>
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<h3>Save Mol2</h3>
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>save</b>&nbsp;&nbsp;<i>filename</i>
@@ -405,15 +475,8 @@ and/or <a href="#skipAtoms"><b>skipAtoms</b></a>).
 <blockquote>
 <b>relModel</b> &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
 <br>
-Write coordinates relative to the original coordinates of the specified model. 
-Otherwise, coordinates will be written relative to the scene 
-(same as the original coordinates of each model unless it was moved separately).
-Saving a model relative to another is useful for preserving their 
-spatial relationship without having to save copies of both models.
-For example, if model 2 has been matched or docked to model 1, saving 2 
-relative to 1 results in the models being matched or docked in the same way
-when the original model 1 file and the new model 2 file (saved relative to 1)
-are opened.
+Write coordinates relative to the original coordinates of the specified model
+(same as described above for <a href="#pdb">PDB</a>).
 </blockquote>
 <blockquote>
 <b>combineModels</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
@@ -459,5 +522,5 @@ GAFF types are not yet computed, so this should be kept <b>false</b>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2017</address>
+July 2017</address>
 </body></html>

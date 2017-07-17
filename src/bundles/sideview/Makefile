@@ -20,17 +20,12 @@ ifeq ($(OS),Linux)
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
 endif
 
-SOURCE = src
-SRCS = $(SOURCE)/*.py
+SRCS = $(wildcard src/*.py)
 
-#
-# Actual make dependencies!
-#
-
-wheel $(WHEEL): bundle_info.xml $(SRCS)
+wheel:	bundle_info.xml $(SRCS)
 	$(CHIMERAX_EXE) --nogui --cmd "devel build . ; exit"
 
-install app-install:	$(WHEEL)
+install app-install:	bundle_info.xml $(SRCS)
 	$(CHIMERAX_EXE) --nogui --cmd "devel install . user false; exit"
 
 test:
@@ -41,3 +36,6 @@ debug:
 
 clean:
 	$(CHIMERAX_EXE) --nogui --cmd "devel clean . ; exit"
+
+pylint:
+	$(CHIMERAX_EXE) -m flake8 $(filter %.py, $(SRCS))

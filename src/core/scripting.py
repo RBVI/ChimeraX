@@ -37,7 +37,7 @@ _builtin_open = open
 _sandbox_count = 0
 
 
-def open_python_script(session, filename, name, *args, **kw):
+def open_python_script(session, stream, file_name, argv=None):
     """Execute Python script in a ChimeraX context
 
     This function is invoked via ChimeraX's :py:mod:`~chimerax.core.io`
@@ -49,18 +49,12 @@ def open_python_script(session, filename, name, *args, **kw):
     Parameters
     ----------
     session : a ChimeraX :py:class:`~chimerax.core.session.Session`
-    filename : path to file to open
-    name : how to identify the file
+    stream : open data stream
+    file_name : how to identify the file
     """
-    if hasattr(filename, 'read'):
-        # it's really a fetched stream
-        input = filename
-    else:
-        input = _builtin_open(filename, 'rb')
-
     try:
-        data = input.read()
-        code = compile(data, name, 'exec')
+        data = stream.read()
+        code = compile(data, file_name, 'exec')
         import sys
         import types
         from chimerax import app_dirs
@@ -69,14 +63,13 @@ def open_python_script(session, filename, name, *args, **kw):
         sandbox = types.ModuleType(
             '%s_sandbox_%d' % (app_dirs.appname, _sandbox_count),
             '%s script sandbox' % app_dirs.appname)
-        try:
+        if argv is not None:
             argv = kw["argv"]
-        except KeyError:
-            restore_argv = False
-        else:
             restore_argv = True
             orig_argv = sys.argv
             sys.argv = argv
+        else:
+            restore_argv = False
         setattr(sandbox, 'session', session)
         try:
             sys.modules[sandbox.__name__] = sandbox
@@ -86,12 +79,11 @@ def open_python_script(session, filename, name, *args, **kw):
             if restore_argv:
                 sys.argv = orig_argv
     finally:
-        if input != filename:
-            input.close()
-    return [], "executed %s" % name
+        stream.close()
+    return [], "executed %s" % file_name
 
 
-def open_command_script(session, filename, name, *args, **kw):
+def open_command_script(session, path, file_name):
     """Execute utf-8 file as ChimeraX commands.
 
     The current directory is changed to the file directory before the commands
@@ -105,24 +97,17 @@ def open_command_script(session, filename, name, *args, **kw):
     Parameters
     ----------
     session : a ChimeraX :py:class:`~chimerax.core.session.Session`
-    filename : path to file to open
+    path : path to file to open
     name : how to identify the file
     """
-    if hasattr(filename, 'read'):
-        # it's really a fetched stream
-        input = filename
-        path = getattr(filename, 'name', None)
-    else:
-        input = _builtin_open(filename, 'rb')
-        path = filename
+    input = _builtin_open(path, 'rb')
 
     prev_dir = None
-    if path:
-        import os
-        dir = os.path.dirname(path)
-        if dir:
-            prev_dir = os.getcwd()
-            os.chdir(dir)
+    import os
+    dir = os.path.dirname(path)
+    if dir:
+        prev_dir = os.getcwd()
+        os.chdir(dir)
 
     from .commands import run
     try:
@@ -130,12 +115,11 @@ def open_command_script(session, filename, name, *args, **kw):
             text = line.strip().decode('utf-8', errors='replace')
             run(session, text)
     finally:
-        if input != filename:
-            input.close()
+        input.close()
         if prev_dir:
             os.chdir(prev_dir)
 
-    return [], "executed %s" % name
+    return [], "executed %s" % file_name
 
 
 def register():

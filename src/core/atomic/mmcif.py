@@ -66,7 +66,8 @@ def open_mmcif(session, path, file_name, auto_style=True, coordsets=False):
 
 
 _mmcif_sources = {
-    "rcsb": "http://www.pdb.org/pdb/files/%s.cif",
+#    "rcsb": "http://www.pdb.org/pdb/files/%s.cif",
+    "rcsb": "http://files.rcsb.org/download/%s.cif",
     "pdbe": "http://www.ebi.ac.uk/pdbe/entry-files/download/%s.cif",
     "pdbe_updated": "http://www.ebi.ac.uk/pdbe/entry-files/download/%s_updated.cif",
     "pdbj": "https://pdbj.org/rest/downloadPDBfile?format=mmcif&id=%s",
