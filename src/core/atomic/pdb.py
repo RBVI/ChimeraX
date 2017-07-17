@@ -87,7 +87,8 @@ def save_pdb(session, path, format, models=None, selected_only=False, displayed_
 
 
 _pdb_sources = {
-    "rcsb": "http://www.pdb.org/pdb/files/%s.pdb",
+#    "rcsb": "http://www.pdb.org/pdb/files/%s.pdb",
+    "rcsb": "http://files.rcsb.org/download/%s.pdb",
     "pdbe": "http://www.ebi.ac.uk/pdbe/entry-files/download/pdb%s.ent",
     # "pdbj": "https://pdbj.org/rest/downloadPDBfile?format=pdb&id=%s",
 }
