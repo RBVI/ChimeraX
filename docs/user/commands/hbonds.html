@@ -30,6 +30,7 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
 [&nbsp;<b>dashes</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>selRestrict</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;|&nbsp;cross&nbsp;|&nbsp;both&nbsp;|&nbsp;any&nbsp;]
+[&nbsp;<b>saltOnly</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>reveal</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<a href="#options"><i>other-options</i></a></h3>
 <h3><a href="usageconventions.html">Usage</a>:
@@ -38,7 +39,9 @@ class="clRight" title="User Guide Index"/></a>
 <p>
 The <b>hbonds</b> command uses <a href="../atomtypes.html">atom types</a> and
 <a href="#criteria">geometric criteria</a>
-to identify possible hydrogen bonds (H-bonds).
+to identify possible hydrogen bonds (H-bonds)
+or just the <a href="#saltOnly">salt bridges</a>
+(H-bonds between formally charged functional groups).
 By <a href="#makePseudobonds">default</a>, 
 the H-bonds are shown as dashed <a href="../pseudobonds.html">pseudobonds</a>
 that can be removed with <b>~hbonds</b>.
@@ -152,8 +155,26 @@ no H-bonds will be found).
 <a href="../selection.html">selected</a>
 </ul>
 This option is <b>off</b> unless specified.
-<blockquote>
 </blockquote>
+<blockquote>
+<a name="saltOnly"><b>saltOnly</b> &nbsp;true&nbsp;|&nbsp;<b>false</b></a>
+<br>Whether to limit the results to salt bridges, that is, H-bonds between
+formally charged functional groups. 
+Such groups are identified by their <a href="../atomtypes.html">atom types</a>,
+where possible. In the absence of explicit hydrogens, a histidine sidechain
+is assumed to be formally charged unless one of its nitrogens is 
+coordinating a metal ion or identified unambiguously as an H-bond acceptor.
+</blockquote>
+<blockquote>
+<a name="reveal"><b>reveal</b> &nbsp;true&nbsp;|&nbsp;<b>false</b></a>
+<br>Whether to turn on the display of residues containing an
+H-bonding atom if that atom is not displayed initially.
+(By default, if the atom on either end of a
+<a href="../pseudobonds.html">pseudobond</a> representing
+an H-bond is not shown, the pseudobond itself is not shown, although
+it still exists; displaying the atom allows the H-bond to be shown.)
+</blockquote>
+<blockquote>
   <b>spec</b>
   &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
 <br>Whether to restrict H-bond detection to a subset of
@@ -222,15 +243,6 @@ is <b>true</b>, the color to use for H-bonds not meeting the
 precise criteria but within the tolerance values. 
 The <i>colorname</i> can be any <a href="colornames.html">color name</a> 
 that specifies a single color (default <b>dark orange</b>).
-</blockquote>
-<blockquote>
-<a name="reveal"><b>reveal</b> &nbsp;true&nbsp;|&nbsp;<b>false</b></a>
-<br>Whether to turn on the display of residues containing an
-H-bonding atom if that atom is not displayed initially.
-(By default, if the atom on either end of a
-<a href="../pseudobonds.html">pseudobond</a> representing
-an H-bond is not shown, the pseudobond itself is not shown, although
-it still exists; displaying the atom allows the H-bond to be shown.)
 </blockquote>
 <blockquote>
   <b>retainCurrent</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
@@ -331,5 +343,5 @@ all of its possible positions.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-June 2017</address>
+July 2017</address>
 </body></html>
