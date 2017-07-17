@@ -18,23 +18,16 @@ pdb: PDB format support
 Read Protein DataBank (PDB) files.
 """
 
-def open_pdb(session, filename, name, auto_style=True, coordsets=False):
+def open_pdb(session, stream, file_name, auto_style=True, coordsets=False):
 
-    if hasattr(filename, 'read'):
-        # it's really a fetched stream
-        input = filename
-        path = filename.name if hasattr(filename, 'name') else None
-    else:
-        input = open(filename, 'rb')
-        path = filename
+    path = stream.name if hasattr(stream, 'name') else None
 
     from . import pdbio
-    pointers = pdbio.read_pdb_file(input, log=session.logger, explode=not coordsets)
-    if input != filename:
-        input.close()
+    pointers = pdbio.read_pdb_file(stream, log=session.logger, explode=not coordsets)
+    stream.close()
 
     from .structure import AtomicStructure
-    models = [AtomicStructure(session, name = name, c_pointer = p, auto_style = auto_style) for p in pointers]
+    models = [AtomicStructure(session, name = file_name, c_pointer = p, auto_style = auto_style) for p in pointers]
 
     if path:
         for m in models:
@@ -58,8 +51,44 @@ def open_pdb(session, filename, name, auto_style=True, coordsets=False):
     return models, info
 
 
+def save_pdb(session, path, format, models=None, selected_only=False, displayed_only=False,
+        all_frames=False, pqr=False, rel_model=None):
+    from ..errors import UserError
+    if models is None:
+        from . import Structure
+        models = [m for m in session.models if isinstance(m, Structure)]
+    if not models:
+        raise UserError("No structures to save")
+
+    if len(models) == 1 and list(models)[0] == rel_model:
+        xforms = None
+    else:
+        xforms = []
+        for s in models:
+            if rel_model is None:
+                xforms.append(s.scene_position.matrix)
+            else:
+                inv = rel_model.scene_position.inverse()
+                if s.scene_position == rel_model.scene_position:
+                    xforms.append(None)
+                else:
+                    xforms.append((s.scene_position * inv).matrix)
+
+    from . import pdbio
+    file_per_model = "[NAME]" in path or "[ID]" in path
+    if file_per_model:
+        for m, xform in zip(models, xforms):
+            file_name = path.replace("[ID]", m.id_string()).replace("[NAME]", m.name)
+            pdbio.write_pdb_file([m.cpp_pointer], file_name, selected_only=selected_only,
+                displayed_only=displayed_only, xforms=[xform], all_frames=all_frames, pqr=pqr)
+    else:
+        pdbio.write_pdb_file([m.cpp_pointer for m in models], path, selected_only=selected_only,
+            displayed_only=displayed_only, xforms=xforms, all_frames=all_frames, pqr=pqr)
+
+
 _pdb_sources = {
-    "rcsb": "http://www.pdb.org/pdb/files/%s.pdb",
+#    "rcsb": "http://www.pdb.org/pdb/files/%s.pdb",
+    "rcsb": "http://files.rcsb.org/download/%s.pdb",
     "pdbe": "http://www.ebi.ac.uk/pdbe/entry-files/download/pdb%s.ent",
     # "pdbj": "https://pdbj.org/rest/downloadPDBfile?format=pdb&id=%s",
 }
@@ -108,10 +137,11 @@ def register_pdb_format():
         "PDB", structure.CATEGORY, (".pdb", ".pdb1", ".ent", ".pqr"), ("pdb",),
         mime=("chemical/x-pdb", "chemical/x-spdbv"),
         reference="http://wwpdb.org/docs.html#format",
-        open_func=open_pdb)
-    from ..commands import add_keyword_arguments, BoolArg
-    add_keyword_arguments('open', {'coordsets':BoolArg,
-                                   'auto_style':BoolArg})
+        open_func=open_pdb, export_func=save_pdb)
+    from ..commands import add_keyword_arguments, BoolArg, StructuresArg, ModelArg
+    add_keyword_arguments('open', {'coordsets':BoolArg, 'auto_style':BoolArg})
+    add_keyword_arguments('save', {'models':StructuresArg, 'selected_only':BoolArg,
+        'displayed_only':BoolArg, 'all_frames':BoolArg, 'pqr':BoolArg, 'rel_model':ModelArg})
 
 
 def register_pdb_fetch():

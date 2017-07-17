@@ -35,21 +35,18 @@ _additional_categories = (
 )
 
 
-def open_mmcif(session, filename, name, auto_style=True, coordsets=False):
+def open_mmcif(session, path, file_name, auto_style=True, coordsets=False):
     # mmCIF parsing requires an uncompressed file
-    if hasattr(filename, 'name'):
-        # it's really a fetched stream
-        filename = filename.name
 
     from . import _mmcif
     _mmcif.set_Python_locate_function(
         lambda name, session=session: _get_template(session, name))
-    pointers = _mmcif.parse_mmCIF_file(filename, _additional_categories, session.logger, coordsets)
+    pointers = _mmcif.parse_mmCIF_file(path, _additional_categories, session.logger, coordsets)
 
     from .structure import AtomicStructure
-    models = [AtomicStructure(session, name=name, c_pointer=p, auto_style=auto_style) for p in pointers]
+    models = [AtomicStructure(session, name=file_name, c_pointer=p, auto_style=auto_style) for p in pointers]
     for m in models:
-        m.filename = filename
+        m.filename = path
 
     info = "Opened mmCIF data containing %d atoms%s %d bonds" % (
         sum(m.num_atoms for m in models),
@@ -69,7 +66,8 @@ def open_mmcif(session, filename, name, auto_style=True, coordsets=False):
 
 
 _mmcif_sources = {
-    "rcsb": "http://www.pdb.org/pdb/files/%s.cif",
+#    "rcsb": "http://www.pdb.org/pdb/files/%s.cif",
+    "rcsb": "http://files.rcsb.org/download/%s.cif",
     "pdbe": "http://www.ebi.ac.uk/pdbe/entry-files/download/%s.cif",
     "pdbe_updated": "http://www.ebi.ac.uk/pdbe/entry-files/download/%s_updated.cif",
     "pdbj": "https://pdbj.org/rest/downloadPDBfile?format=mmcif&id=%s",
@@ -161,7 +159,7 @@ def register_mmcif_format():
         "mmCIF", structure.CATEGORY, (".cif", ".mmcif"), ("mmcif",),
         mime=("chemical/x-mmcif",),
         reference="http://mmcif.wwpdb.org/",
-        requires_filename=True, open_func=open_mmcif, export_func=write_mmcif)
+        open_func=open_mmcif, export_func=write_mmcif)
 
 
 def register_mmcif_fetch():

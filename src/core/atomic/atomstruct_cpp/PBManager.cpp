@@ -54,15 +54,22 @@ BaseManager::delete_group(Proxy_PBGroup* group)
 }
 
 Proxy_PBGroup*
-AS_PBManager::get_group(const std::string& name, int create)
+BaseManager::get_group(const std::string& name) const
 {
-    Proxy_PBGroup* grp;
     auto gmi = _groups.find(name);
     if (gmi != _groups.end()) {
-        grp = (*gmi).second;
-        if (create != GRP_NONE && grp->group_type() != create) {
+        return (*gmi).second;
+    }
+    return nullptr;
+}
+
+Proxy_PBGroup*
+AS_PBManager::get_group(const std::string& name, int create)
+{
+    Proxy_PBGroup* grp = get_group(name);
+    if (grp) {
+        if (create != GRP_NONE && grp->group_type() != create)
             throw std::invalid_argument("Group type mismatch");
-        }
         return grp;
     }
 
@@ -83,10 +90,8 @@ AS_PBManager::get_group(const std::string& name, int create)
 Proxy_PBGroup*
 PBManager::get_group(const std::string& name, int create)
 {
-    Proxy_PBGroup* grp;
-    auto gmi = _groups.find(name);
-    if (gmi != _groups.end()) {
-        grp = (*gmi).second;
+    Proxy_PBGroup* grp = get_group(name);
+    if (grp) {
         if (create != GRP_NONE && grp->group_type() != create) {
             throw std::invalid_argument("Group type mismatch");
         }

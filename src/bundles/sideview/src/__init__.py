@@ -13,6 +13,7 @@
 
 from chimerax.core.toolshed import BundleAPI
 
+
 class _MyAPI(BundleAPI):
 
     @staticmethod
@@ -28,5 +29,6 @@ class _MyAPI(BundleAPI):
             from . import tool
             return tool.SideViewUI
         return None
+
 
 bundle_api = _MyAPI()

@@ -485,13 +485,14 @@ connect_structure(Structure* as, std::vector<Residue *>* start_residues,
         // residue's connected atom won't be in conect_atoms (which
         // is only for atoms whose complete connectivity is
         // specified by CONECT records)
+        bool is_mod_res = mod_res->find(MolResId(r)) != mod_res->end();
         bool prelinked = false;
         if (link_res != NULL) {
             for (auto a: r->atoms()) {
                 for (auto b: a->bonds()) {
                     auto other = b->other_atom(a);
                     if (other->residue() != r) {
-                        if (a->residue()->is_het()) {
+                        if (a->residue()->is_het() && !is_mod_res) {
                             // not coordination...
                             if (!(other->element().is_metal()
                             || a->element().is_metal())
@@ -516,7 +517,7 @@ connect_structure(Structure* as, std::vector<Residue *>* start_residues,
             }
         }
         const tmpl::Residue *tr;
-        if (mod_res->find(MolResId(r)) != mod_res->end())
+        if (is_mod_res)
             // residue in MODRES record;
             // don't try to use template connectivity
             tr = NULL;

@@ -1,0 +1,36 @@
+<BundleInfo name="ChimeraX-Shortcuts" version="1.0"
+	    package="chimerax.shortcuts"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Button and keyboard shortcuts</Synopsis>
+  <Description>Provide button and keyboard shortcuts for common commands.</Description>
+
+  <DataFiles>
+    <DataFile>icons/*.png</DataFile>
+  </DataFiles>
+
+  <Categories>
+    <Category name="Toolbar"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>ChimeraX :: Tool :: Molecule Display Toolbar :: Toolbar :: button shortcuts for molecular structure</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Tool :: Graphics Toolbar :: Toolbar :: button shortcuts for graphics</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Tool :: Density Map Toolbar :: Toolbar :: button shortcuts for density maps</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: ks :: Toolbar :: keyboard shortcuts</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: selAtoms :: Selected atoms, or if none selected then all atoms.</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: selMaps :: Selected maps, or if none selected then displayed maps.</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: selModels :: Selected models, or if none selected then all models.</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

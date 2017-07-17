@@ -1,0 +1,33 @@
+<BundleInfo name="ChimeraX-VolumeViewer" version="1.0"
+	    package="chimerax.volume_viewer"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Provide GUI for volume command</Synopsis>
+  <Description>Volume Viewer is a tool for visualizing volume data,
+3D numerical data sets such as electron density maps.
+The data can be shown as solid or mesh isosurfaces (contour surfaces)
+or as partially transparent solids.</Description>
+
+  <DataFiles>
+    <DataFile>*.png</DataFile>
+  </DataFiles>
+
+  <Categories>
+    <Category name="Volume Data"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>ChimeraX :: Tool :: Volume Viewer :: Volume Data :: Show density maps info</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

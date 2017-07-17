@@ -62,8 +62,8 @@ public:
     ChangeTracker*  change_tracker() { return _change_tracker; }
     void  clear();
     void  delete_group(Proxy_PBGroup*);
-    virtual Proxy_PBGroup*  get_group(
-            const std::string& name, int create = GRP_NONE) = 0;
+    virtual Proxy_PBGroup*  get_group(const std::string& name) const;
+    virtual Proxy_PBGroup*  get_group(const std::string& name, int create) = 0;
     const GroupMap&  group_map() const { return _groups; }
     SessionStructureToIDMap*  ses_struct_to_id_map() const { return _ses_struct_to_id_map; }
     SessionIDToStructureMap*  ses_id_to_struct_map() const { return _ses_id_to_struct_map; }
@@ -109,7 +109,10 @@ class ATOMSTRUCT_IMEX PBManager: public BaseManager {
 public:
     PBManager(ChangeTracker* ct): BaseManager(ct) {}
 
-    Proxy_PBGroup*  get_group(const std::string& name, int create = GRP_NONE);
+    Proxy_PBGroup*  get_group(const std::string& name) const {
+        return BaseManager::get_group(name);
+    }
+    Proxy_PBGroup*  get_group(const std::string& name, int create);
 };
 
 class ATOMSTRUCT_IMEX AS_PBManager: public StructureManager
@@ -124,7 +127,10 @@ private:
     void  remove_cs(const CoordSet* cs);
 public:
     ChangeTracker*  change_tracker() const;
-    Proxy_PBGroup*  get_group(const std::string& name, int create = GRP_NONE);
+    Proxy_PBGroup*  get_group(const std::string& name) const {
+        return BaseManager::get_group(name);
+    }
+    Proxy_PBGroup*  get_group(const std::string& name, int create);
 };
 
 }  // namespace atomstruct

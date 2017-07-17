@@ -39,11 +39,11 @@ class _AlignmentsBundleAPI(BundleAPI):
         del session.alignments
 
     @staticmethod
-    def open_file(session, stream, fname, format_name="FASTA", alignment=True, filespec=None,
+    def open_file(session, stream, file_name, format_name, alignment=True,
             ident=None, auto_associate=True):
         from .parse import open_file
-        return open_file(session, stream, fname, format_name=format_name, alignment=alignment,
-            ident=ident, auto_associate=auto_associate)
+        return open_file(session, stream, file_name, format_name=format_name.upper(),
+            alignment=alignment, ident=ident, auto_associate=auto_associate)
 
     @staticmethod
     def register_command(command_name, logger):

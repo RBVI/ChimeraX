@@ -1,0 +1,29 @@
+<BundleInfo name="ChimeraX-MapSeriesGUI" version="1.0"
+	    package="chimerax.map_series_gui" custom_init="true"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>User interface for density map series</Synopsis>
+  <Description>User interface for density map series.</Description>
+
+  <DataFiles>
+    <DataFile>icons/*.png</DataFile>
+  </DataFiles>
+
+  <Categories>
+    <Category name="Sequence"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+  </Classifiers>
+
+</BundleInfo>

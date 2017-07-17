@@ -81,6 +81,12 @@ run-nogui:
 # 64-bit Linux dies in exception handling if we don't link with the C++ compiler
 $(PROG): $(OBJS)
 	$(PROG_LINK)
+ifeq ($(OS),Linux)
+	# convert to RPATH
+	if objdump -p $(PROG) | grep RUNPATH > /dev/null; then \
+		chrpath -C $(PROG); \
+	fi
+endif
 
 ChimeraX-icon512.png: ChimeraX-icon.svg
 	inkscape --export-png=ChimeraX-icon512.png --export-width=512 --export-background-opacity=0 --without-gui ChimeraX-icon.svg

@@ -1,0 +1,36 @@
+<BundleInfo name="ChimeraX-AlignmentAlgorithms" version="1.0"
+	    package="chimerax.seqalign.align_algs"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Sequence alignment algorithms</Synopsis>
+  <Description>This bundle provides a collection of sequence alignment algorithms.</Description>
+
+  <Categories>
+    <Category name="Sequence alignment"/>
+  </Categories>
+
+  <CModule name="_nw">
+    <SourceFile>_nw/nw.cpp</SourceFile>
+    <Library>align_algs</Library>
+    <Library>arrays</Library>
+  </CModule>
+
+  <CModule name="_sw">
+    <SourceFile>_sw/sw.cpp</SourceFile>
+    <Library>align_algs</Library>
+  </CModule>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+  </Classifiers>
+
+</BundleInfo>

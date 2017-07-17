@@ -31,7 +31,7 @@ namespace atomstruct {
 class Structure;
 class Residue;
 
-class ATOMSTRUCT_IMEX StructureSeq: private Sequence, public PythonInstance {
+class ATOMSTRUCT_IMEX StructureSeq: private Sequence {
 public:
     typedef std::vector<unsigned char>::size_type  SeqPos;
     typedef std::vector<Residue *>  Residues;
@@ -85,6 +85,7 @@ public:
     void  pop_front();
     void  push_back(Residue* r);
     void  push_front(Residue* r);
+    void  python_destroyed() { if (!is_chain()) delete this; }
     const ResMap&  res_map() const { return _res_map; }
     const Residues&  residues() const { return _residues; }
     int  session_num_floats(int version=CURRENT_SESSION_VERSION) const {

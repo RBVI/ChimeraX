@@ -20,7 +20,7 @@
 from PyQt5.QtGui import QWindow, QSurface
 from chimerax.core.tools import ToolInstance
 from chimerax.core.geometry import Place
-from chimerax.core.graphics import View, Camera
+from chimerax.core.graphics import View, Camera, Drawing
 
 
 class _PixelLocations:
@@ -101,6 +101,8 @@ class SideViewCanvas(QWindow):
         self.applique.use_lighting = False
         self.view.add_overlay(self.applique)
         self.handler = session.triggers.add_handler('frame drawn', self._redraw)
+        from PyQt5.QtCore import QSize
+        self.widget.setMinimumSize(QSize(20, 20))
 
     def close(self):
         self.session.triggers.remove_handler(self.handler)
@@ -108,11 +110,11 @@ class SideViewCanvas(QWindow):
     def _redraw(self, *_):
         self.render()
 
-    def exposeEvent(self, event):
+    def exposeEvent(self, event):  # noqa
         if self.isExposed():
             self.render()
 
-    def resizeEvent(self, event):
+    def resizeEvent(self, event):  # noqa
         size = event.size()
         width = size.width()
         height = size.height()
@@ -282,7 +284,7 @@ class SideViewCanvas(QWindow):
             self.main_view.render.use_shared_context(mvwin, ww, wh)
         self.view.render.done_current()
 
-    def mousePressEvent(self, event):
+    def mousePressEvent(self, event):  # noqa
         from PyQt5.QtCore import Qt
         b = event.button() | event.buttons()
         if b & Qt.RightButton:
@@ -305,15 +307,16 @@ class SideViewCanvas(QWindow):
             self.x, self.y = x, y
             return
 
-    def mouseReleaseEvent(self, event):
+    def mouseReleaseEvent(self, event):  # noqa
         if not self.moving:
             return
         from PyQt5.QtCore import Qt
         b = event.button() | event.buttons()
         if b & Qt.LeftButton:
             self.moving = self.ON_NOTHING
+            self.exposeEvent(None)
 
-    def mouseMoveEvent(self, event):
+    def mouseMoveEvent(self, event):  # noqa
         if self.moving is self.ON_NOTHING:
             return
         from PyQt5.QtCore import Qt
@@ -362,7 +365,7 @@ class SideViewCanvas(QWindow):
                 plane_point = camera_pos + far * vd
             planes.set_clip_position('far', plane_point - shift, v.camera)
 
-    def keyPressEvent(self, event):
+    def keyPressEvent(self, event):  # noqa
         return self.session.ui.forward_keystroke(event)
 
 
@@ -376,14 +379,9 @@ class SideViewUI(ToolInstance):
         self.tool_window = MainToolWindow(self)
         parent = self.tool_window.ui_area
 
-        def sizeHint():
-            from PyQt5.QtCore import QSize
-            return QSize(300, 300)
-        parent.sizeHint = sizeHint
-
         # UI content code
         from PyQt5.QtCore import Qt
-        from PyQt5.QtWidgets import QLabel, QHBoxLayout, QVBoxLayout, QCheckBox
+        from PyQt5.QtWidgets import QLabel, QHBoxLayout, QVBoxLayout, QCheckBox, QStackedWidget
         self.view = v = View(session.models.drawing, window_size=(0, 0))
         v.initialize_rendering(session.main_view.render.opengl_context)
         # TODO: from chimerax.core.graphics.camera import OrthographicCamera
@@ -412,8 +410,16 @@ class SideViewUI(ToolInstance):
         button_layout.addWidget(self.auto_clip_far)
         button_layout.addStretch(1)
 
+        class graphics_area(QStackedWidget):
+
+            def sizeHint(self):  # noqa
+                from PyQt5.QtCore import QSize
+                return QSize(200, 200)
+
         layout = QVBoxLayout()
-        layout.addWidget(self.opengl_canvas.widget, 1)
+        ga = graphics_area(parent)
+        ga.addWidget(self.opengl_canvas.widget)
+        layout.addWidget(ga, 1)
         layout.addLayout(button_layout)
         parent.setLayout(layout)
         self.tool_window.manage(placement="side")
@@ -465,7 +471,6 @@ class SideViewUI(ToolInstance):
         planes.set_clip_position('far', plane_point, v.camera)
 
 
-from chimerax.core.graphics import Drawing
 class OrthoOverlay(Drawing):
     '''Overlay drawing that uses orthographic projection in window pixel units.'''
     def draw(self, renderer, place, draw_pass, selected_only=False):
@@ -477,4 +482,3 @@ class OrthoOverlay(Drawing):
         Drawing.draw(self, renderer, place, draw_pass, selected_only)
         r.set_projection_matrix(((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0),
                                  (0, 0, 0, 1)))
-

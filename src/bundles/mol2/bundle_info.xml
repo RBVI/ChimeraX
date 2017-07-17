@@ -1,0 +1,28 @@
+<BundleInfo name="ChimeraX-Mol2" version="1.0"
+	    package="chimerax.mol2"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Mol2 reader/writer</Synopsis>
+  <Description>Sybyl Mol2 input/output.</Description>
+
+  <Categories>
+    <Category name="I/O"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+    <Dependency name="ChimeraX-ChemGroup" version=">=1.0"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>ChimeraX :: DataFormat :: Sybyl Mol2 :: mol2 :: Molecular structure :: .mol2 :: :: :: :: :: Sybyl Mol2 format :: utf-8</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Save :: Sybyl Mol2 :: mol2 :: true :: models:Models,atoms:Atoms,anchor:Atoms,rel_model:Model,sybyl_hyd_naming:Bool,combine_models:Bool,skip_atoms:Atoms,res_num:Bool,gaff_type:Bool</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

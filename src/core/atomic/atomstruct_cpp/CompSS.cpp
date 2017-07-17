@@ -99,16 +99,6 @@ struct KsdsspParams {
     bool  report;
 };
 
-static bool
-bonds_between(Residue *r0, Residue *r1)
-{
-    for (auto a: r0->atoms())
-        for (auto nb: a->neighbors())
-            if (nb->residue() == r1)
-                return true;
-    return false;
-}
-
 //
 // Find the imide hydrogen position if it is missing
 //
@@ -154,7 +144,7 @@ add_imide_hydrogens(KsdsspParams& params)
     for (int i = 1; i < max; ++i) {
         Residue *r = params.residues[i];
         KsdsspCoords *crd = params.coords[i];
-        if (bonds_between(r, prev_res)) {
+        if (r->connects_to(prev_res)) {
             Coord *h_coord = add_imide_hydrogen(crd, prev_crd);
             if (h_coord != nullptr) {
                 params.imide_Hs.push_back(h_coord);
@@ -717,7 +707,7 @@ AtomicStructure::compute_secondary_structure(float energy_cutoff,
             r->set_is_helix(false);
             r->set_is_strand(false);
             r->set_ss_id(-1);
-            //if (prev_res && !bonds_between(prev_res, r)) {
+            //if (prev_res && !r->connects_to(prev_res)) {
             //    compute_chain(info);
             //}
             //prev_res = r;

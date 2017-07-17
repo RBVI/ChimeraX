@@ -1364,10 +1364,12 @@ class RegionBrowser:
     def _mouse_down_cb(self, event):
         from PyQt5.QtCore import Qt
         if event.button() == Qt.RightButton:
+            """TODO
             if event.modifiers() & Qt.ShiftModifier:
                 self._focus_cb(event, pref="region")
             else:
                 self._focus_cb(event, pref="residue")
+            """
             return
         pos = event.scenePos()
         self._start_x, self._start_y = pos.x(), pos.y()

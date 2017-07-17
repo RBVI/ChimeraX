@@ -270,6 +270,26 @@ The supported elements are listed below in alphabetical order.
 The root document elements is **BundleInfo**, which contains
 all the information needed to build the bundle.
 
+NB: All elements except **BundleInfo** may have a **platform**
+attribute.  If the **platform** attribute *is* present and its
+value does *not* matches the build platform, then the element and
+all its children are ignored.  Supported values for **platform**
+are: ``mac``, ``windows``, and ``linux``.  An example use for the
+**platform** attribute is in supporting the Space Navigator device.
+On macOS, ChimeraX relies on a compiled C module, while on Windows
+and Linux, it uses pure Python with the ``ctypes`` module;
+in this case, the **CModule** element has a **platform** attribute
+of ``mac``.
+
+- **AdditionalPackages**
+
+  - List of additional packages to include in bundle
+    in bundle
+
+  - Child elements:
+
+    - **Package** (one or more)
+
 - **Author**
 
   - Element text:
@@ -368,13 +388,9 @@ all the information needed to build the bundle.
       file suffixes, as they vary across platforms.  The compiled
       module will appear as a submodule of the Python package
       corresponding to the bundle.
-    - **platform**: name of platform that builds this module.
-      This may be used when a compiled module is only needed
-      on a specific platform.  For example, supporting the
-      Space Navigator device requires a compiled module on
-      macOS, but may be accomplished using ``ctypes`` on other
-      platforms.  Supported values for platform are: **mac**,
-      **windows**, and **linux**.
+    - **usesNumpy**: whether module required ``numpy`` headers.
+      If set to ``true``, ``numpy`` header directories (folders)
+      are included on the compilation command.
 
   - Child elements:
     
@@ -436,7 +452,7 @@ all the information needed to build the bundle.
 
     - Name of a directory (folder) containing header files required
       to compile the current module.  Standard C/C++ and ChimeraX
-      include directories are automatically supplied by the build
+      header directories are automatically supplied by the build
       process.
 
 - **Library**
@@ -460,6 +476,13 @@ all the information needed to build the bundle.
       to compile the current module.  Standard C/C++ and ChimeraX
       library directories are automatically supplied by the build
       process.
+
+- **Package**
+
+  - Attributes:
+
+    - **name**: name of Python package to be added.
+    - **folder**: folder containing source files in package.
 
 - **PythonClassifier**
 

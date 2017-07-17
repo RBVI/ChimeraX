@@ -65,7 +65,7 @@ compute_ss(PyObject *, PyObject *args)
         return nullptr;
     // convert first arg to Structure*
     if (!PyLong_Check(ptr)) {
-        PyErr_SetString(PyExc_TypeError, "First arg not an int");
+        PyErr_SetString(PyExc_TypeError, "First arg not an int (structure pointer)");
         return nullptr;
     }
 	using atomstruct::Structure;

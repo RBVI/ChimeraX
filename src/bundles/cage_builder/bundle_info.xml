@@ -1,0 +1,29 @@
+<BundleInfo name="ChimeraX-Cage-Builder" version="1.0"
+	    package="chimerax.cage_builder"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Build polygonal meshes for oligomeric molecular assemblies</Synopsis>
+  <Description>
+Cage Builder creates polyhedral cages composed of hexagons, pentagons, squares and other polygons.
+The cages can be decorated with atomic models to create oligomeric molecular assemblies.</Description>
+
+  <Categories>
+    <Category name="Higher-Order Structure"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>ChimeraX :: Tool :: Cage Builder :: Higher-Order Structure :: Build polygonal meshes</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: cage :: Higher-Order Structure :: Place copies of model on polygons of cage</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

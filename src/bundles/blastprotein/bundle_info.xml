@@ -1,0 +1,30 @@
+<BundleInfo name="ChimeraX-BlastProtein" version="0.1"
+	    package="chimerax.blastprotein"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Search PDB/NR using BLAST</Synopsis>
+  <Description>Use RBVI web service to search the PDB or NR database
+using BLAST.  Results are shown in a tool when a graphical
+interface is available; otherwise, the results are logged.</Description>
+
+  <Categories>
+    <Category name="Sequence"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>ChimeraX :: Tool :: Blast Protein :: General :: Search PDB/NR using BLAST</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: blastprotein :: General :: Search PDB/NR using BLAST</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: blastpdb :: General :: Search PDB/NR using BLAST</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

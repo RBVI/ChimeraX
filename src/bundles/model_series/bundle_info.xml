@@ -1,0 +1,26 @@
+<BundleInfo name="ChimeraX-ModelSeries" version="1.0"
+	    package="chimerax.model_series"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Display sequences of models one by one</Synopsis>
+  <Description>Display sequences of models one by one.</Description>
+
+  <Categories>
+    <Category name="General"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: mseries :: General :: Display sequence of models one by one</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

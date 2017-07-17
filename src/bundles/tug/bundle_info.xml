@@ -1,0 +1,28 @@
+<BundleInfo name="ChimeraX-Tug" version="1.0"
+	    package="chimerax.tug"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Tug on atoms with molecular dynamics</Synopsis>
+  <Description>Tug on atoms with molecular dynamics.</Description>
+
+  <Categories>
+    <Category name="Molecular structure"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>ChimeraX :: Tool :: Blast Protein :: General :: Search PDB/NR using BLAST</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: blastprotein :: General :: Search PDB/NR using BLAST</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: blastpdb :: General :: Search PDB/NR using BLAST</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

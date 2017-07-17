@@ -23,20 +23,14 @@ ifeq ($(OS),Linux)
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
 endif
 
-BUNDLE_NAME = ChimeraX-SpaceNavigator
-BUNDLE_VERSION = 1.0
-PKG_NAME = chimerax.spacenavigator
-
-BASE_BNDL_NAME = $(subst ChimeraX-,,$(BUNDLE_NAME))
-WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
-
 PYSRCS = $(wildcard src/*.py)
+SRCS = $(PYSRCS) $(CSRCS)
 
-wheel: $(PYSRCS) $(CSRCS)
+wheel:	bundle_info.xml $(SRCS)
 	$(CHIMERAX_EXE) --nogui --cmd "devel build . ; exit"
 
-install app-install:
-	$(CHIMERAX_EXE) --nogui --cmd "devel install . ; exit"
+install app-install:	bundle_info.xml $(SRCS)
+	$(CHIMERAX_EXE) --nogui --cmd "devel install . user false; exit"
 
 test:
 	$(CHIMERAX_EXE)
