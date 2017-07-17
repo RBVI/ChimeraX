@@ -51,6 +51,7 @@ src/bundles/mmtf/.eggs/
 src/bundles/mmtf/mmtf-cpp-master/
 src/bundles/mmtf/msgpack-c-master/
 src/bundles/rest_server/src/server.pem
+src/bundles/rest_server/server.key
 src/examples/sample/license.txt
 prereqs/PyQt/*commercial*
 docs/license.html
