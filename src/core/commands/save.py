@@ -63,7 +63,8 @@ def save(session, filename, models=None, format=None, **kw):
             raise UserError(str(e))
         raise
 
-    if fmt.open_func and not fmt.name.endswith('image'):
+    from os.path import isfile
+    if fmt.open_func and not fmt.name.endswith('image') and isfile(filename):
         # Remember in file history
         from ..filehistory import remember_file
         remember_file(session, filename, fmt.nicknames[0], models or 'all models', file_saved = True)
