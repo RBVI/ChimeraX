@@ -636,13 +636,13 @@ def sdump(session, session_file, output=None):
             pprint(data, stream=output)
 
 
-def open(session, filename, *args, **kw):
-    if hasattr(filename, 'read'):
+def open(session, path):
+    if hasattr(path, 'read'):
         # Given a stream instead of a file name.
-        fname = filename.name
-        filename.close()
+        fname = path.name
+        path.close()
     else:
-        fname = filename
+        fname = path
 
     if is_gzip_file(fname):
         import gzip
