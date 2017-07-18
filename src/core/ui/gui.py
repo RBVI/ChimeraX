@@ -1191,7 +1191,7 @@ def show_context_menu(event, tool_instance, fill_cb):
     menu = QMenu()
 
     if fill_cb:
-        fill_cb(menu, event.x(), event.y(), toolbar)
+        fill_cb(menu, event.x(), event.y())
     if not menu.isEmpty():
         menu.addSeparator()
     ti = tool_instance
