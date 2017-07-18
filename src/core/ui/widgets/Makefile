@@ -31,5 +31,5 @@ dir:
 clean:
 	rm -rf __pycache__
 
-lint:
+pylint:
 	$(PYLINT) $(PYSRCS)

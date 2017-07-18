@@ -37,7 +37,7 @@ dir:
 clean:
 	rm -rf __pycache__
 
-lint:
+pylint:
 	$(PYLINT) $(PYSRCS)
 
 about.html:	about.html.in Makefile
