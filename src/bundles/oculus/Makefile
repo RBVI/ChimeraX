@@ -92,7 +92,7 @@ dir:
 	if [ ! -d "$(PKG_DIR)" ]; then mkdir -p $(PKG_DIR); fi
 	if [ ! -d "$(wheelhouse)" ]; then mkdir -p $(wheelhouse); fi
 
-lint:
+pylint:
 	$(PYLINT) $(PYSRCS)
 
 clean:

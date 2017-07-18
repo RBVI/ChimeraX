@@ -48,6 +48,9 @@ clean:
 	$(CHIMERAX_EXE) --nogui --cmd "devel clean . ; exit"
 	rm -rf $(MMTF_CPP_SOURCE) $(MSGPACK_SOURCE)
 
+pylint:
+	$(CHIMERAX_EXE) -m flake8 $(filter %.py, $(SRCS))
+
 $(MMTF_CPP_SOURCE): $(MMTF_CPP_DISTRIBUTION)
 	# only need the include files
 	unzip -u $(MMTF_CPP_DISTRIBUTION) $(MMTF_CPP_SOURCE)/include/*

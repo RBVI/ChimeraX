@@ -38,5 +38,8 @@ clean:
 	$(CHIMERAX_EXE) --nogui --cmd "devel clean . ; exit"
 	$(MAKE) -C support_cpp clean
 
+pylint:
+	$(CHIMERAX_EXE) -m flake8 $(filter %.py, $(SRCS))
+
 support_cpp.install:
 	$(MAKE) -C support_cpp install

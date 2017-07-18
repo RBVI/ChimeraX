@@ -38,5 +38,8 @@ clean:
 	$(CHIMERAX_EXE) --nogui --cmd "devel clean . ; exit"
 	rm -f bundle_info.xml
 
+pylint:
+	$(CHIMERAX_EXE) -m flake8 $(filter %.py, $(SRCS))
+
 bundle_info.xml:	bundle_info.xml.in
 	$(CHIMERAX_EXE) --nogui make_selectors.py

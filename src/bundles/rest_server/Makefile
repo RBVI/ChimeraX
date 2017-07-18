@@ -42,6 +42,9 @@ clean:
 	$(CHIMERAX_EXE) --nogui --cmd "devel clean . ; exit"
 	rm -f server.key src/server.pem
 
+pylint:
+	$(CHIMERAX_EXE) -m flake8 $(filter %.py, $(SRCS))
+
 src/server.pem:	ssl.conf
 	# This creates a self-signed cert
 	# https://stackoverflow.com/questions/10175812/how-to-create-a-self-signed-certificate-with-openssl
