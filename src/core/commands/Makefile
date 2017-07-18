@@ -38,5 +38,5 @@ test_peg:	_atomspec.py
 clean:
 	rm -rf __pycache__ $(GENSRCS)
 
-lint:
+pylint:
 	$(PYLINT) $(PYSRCS)

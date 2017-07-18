@@ -74,7 +74,7 @@ devel_unalias_desc = CmdDesc(required=[("name", StringArg)],
                              synopsis='Remove alias for bundle path')
 
 
-def devel_build(session, path, test=True):
+def devel_build(session, path, test=True, exit=False):
     '''Build a wheel in for the source code in bundle path.
 
     Parameters
@@ -84,20 +84,15 @@ def devel_build(session, path, test=True):
     test : bool
       Whether to run test after building wheel
     '''
-    from ..logger import StringPlainTextLog
-    logger = session.logger
-    bb = _get_builder(path, logger)
-    if bb is not None:
-        with StringPlainTextLog(logger) as log:
-            bb.make_wheel(test=test)
-            msg = log.getvalue()
-        logger.info(msg)
+    from ...bundle_builder import BundleBuilder
+    _run(path, session.logger, exit, BundleBuilder.make_wheel, test=test)
 devel_build_desc = CmdDesc(required=[("path", OpenFolderNameArg),],
-                           optional=[("test", BoolArg)],
+                           optional=[("test", BoolArg),
+                                     ("exit", BoolArg)],
                            synopsis='Build a wheel for bundle')
 
 
-def devel_install(session, path, test=True, user=None):
+def devel_install(session, path, test=True, user=None, exit=False):
     '''Build and install a wheel in for the source code in bundle path.
 
     Parameters
@@ -107,21 +102,17 @@ def devel_install(session, path, test=True, user=None):
     test : bool
       Whether to run test after building wheel
     '''
-    from ..logger import StringPlainTextLog
-    logger = session.logger
-    bb = _get_builder(path, logger)
-    if bb is not None:
-        with StringPlainTextLog(logger) as log:
-            bb.make_install(session, test=test, user=user)
-            msg = log.getvalue()
-        logger.info(msg)
+    from ...bundle_builder import BundleBuilder
+    _run(path, session.logger, exit, BundleBuilder.make_install,
+         session, test=test, user=user)
 devel_install_desc = CmdDesc(required=[("path", OpenFolderNameArg),],
                              optional=[("test", BoolArg),
-                                       ("user", BoolArg)],
+                                       ("user", BoolArg),
+                                       ("exit", BoolArg)],
                              synopsis='Build and install wheel for bundle')
 
 
-def devel_clean(session, path):
+def devel_clean(session, path, exit=False):
     '''Remove build files from the source code in bundle path.
 
     Parameters
@@ -129,16 +120,33 @@ def devel_clean(session, path):
     path : string
       Path to folder containing bundle source code or bundle alias.
     '''
+    from ...bundle_builder import BundleBuilder
+    _run(path, session.logger, exit, BundleBuilder.make_clean)
+devel_clean_desc = CmdDesc(required=[("path", OpenFolderNameArg),],
+                           optional=[("exit", BoolArg)],
+                           synopsis='Remove build files from bundle path')
+
+
+def _run(path, logger, exit, unbound_method, *args, **kw):
     from ..logger import StringPlainTextLog
-    logger = session.logger
     bb = _get_builder(path, logger)
+    exit_status = 0
     if bb is not None:
         with StringPlainTextLog(logger) as log:
-            bb.make_clean()
-            msg = log.getvalue()
-        logger.info(msg)
-devel_clean_desc = CmdDesc(required=[("path", OpenFolderNameArg),],
-                           synopsis='Remove build files from bundle path')
+            try:
+                unbound_method(bb, *args, **kw)
+            except:
+                logger.info(log.getvalue())
+                import traceback, sys
+                traceback.print_exc(file=sys.stdout)
+                exit_status = 1
+            finally:
+                logger.info(log.getvalue())
+    else:
+        exit_status = 1
+    if exit:
+        raise SystemExit(exit_status)
+    return exit_status
 
 
 def devel_dump(session, path):

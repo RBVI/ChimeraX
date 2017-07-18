@@ -45,29 +45,25 @@ class BundleBuilder:
             pass
         import os.path, shutil
         if test:
-            self._run_setup(["--no-user-cfg", "test", "bdist_wheel"])
+            built = self._run_setup(["--no-user-cfg", "test", "bdist_wheel"])
         else:
-            self._run_setup(["--no-user-cfg", "build", "bdist_wheel"])
-        if not os.path.exists(self.wheel_path):
+            built = self._run_setup(["--no-user-cfg", "build", "bdist_wheel"])
+        if not built or not os.path.exists(self.wheel_path):
             raise RuntimeError("Building wheel failed")
         else:
             print("Distribution is in %s" % self.wheel_path)
 
     @distlib_hack
     def make_install(self, session, test=True, user=None):
-        try:
-            self.make_wheel(test=test)
-        except RuntimeError:
-            pass
-        else:
-            from chimerax.core.commands import run
-            cmd = "toolshed install %s reinstall true" % self.wheel_path
-            if user is not None:
-                if user:
-                    cmd += " user true"
-                else:
-                    cmd += " user false"
-            run(session, cmd)
+        self.make_wheel(test=test)
+        from chimerax.core.commands import run
+        cmd = "toolshed install %s reinstall true" % self.wheel_path
+        if user is not None:
+            if user:
+                cmd += " user true"
+            else:
+                cmd += " user false"
+        run(session, cmd)
 
     @distlib_hack
     def make_clean(self):
@@ -300,7 +296,7 @@ class BundleBuilder:
     def _make_paths(self):
         import os.path
         from .wheel_tag import tag
-        self.tag = tag(not self.c_modules)
+        self.tag = tag(not self.c_modules and self.pure_python != "false")
         self.bundle_base_name = self.name.replace("ChimeraX-", "")
         bundle_wheel_name = self.name.replace("-", "_")
         wheel = "%s-%s-%s.whl" % (bundle_wheel_name, self.version, self.tag)
@@ -315,9 +311,11 @@ class BundleBuilder:
             os.chdir(self.path)
             sys.argv = ["setup.py"] + cmd
             setuptools.setup(**self.setup_arguments)
+            return True
         except:
             import traceback
             traceback.print_exc()
+            return False
         finally:
             sys.argv = save
             os.chdir(cwd)

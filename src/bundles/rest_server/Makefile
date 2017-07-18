@@ -27,10 +27,10 @@ DATAFILES = src/static src/server.pem
 SRCS = $(PYSRCS) $(DATAFILES)
 
 wheel:	bundle_info.xml $(SRCS)
-	$(CHIMERAX_EXE) --nogui --cmd "devel build . ; exit"
+	$(CHIMERAX_EXE) --nogui --cmd "devel build . exit true"
 
 install app-install:	bundle_info.xml $(SRCS)
-	$(CHIMERAX_EXE) --nogui --cmd "devel install . user false; exit"
+	$(CHIMERAX_EXE) --nogui --cmd "devel install . user false exit true"
 
 test:
 	$(CHIMERAX_EXE)
@@ -39,8 +39,11 @@ debug:
 	$(CHIMERAX_EXE) --debug
 
 clean:
-	$(CHIMERAX_EXE) --nogui --cmd "devel clean . ; exit"
+	$(CHIMERAX_EXE) --nogui --cmd "devel clean . exit true"
 	rm -f server.key src/server.pem
+
+pylint:
+	$(CHIMERAX_EXE) -m flake8 $(filter %.py, $(SRCS))
 
 src/server.pem:	ssl.conf
 	# This creates a self-signed cert
