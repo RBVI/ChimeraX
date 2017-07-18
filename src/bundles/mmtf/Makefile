@@ -33,10 +33,10 @@ MSGPACK_DISTRIBUTION = msgpack-c-$(MSGPACK_VERSION).zip
 MSGPACK_SOURCE	= msgpack-c-$(MSGPACK_VERSION)
 
 wheel: bundle_info.xml $(SRCS) $(HEADERS)
-	$(CHIMERAX_EXE) --nogui --cmd "devel build . ; exit"
+	$(CHIMERAX_EXE) --nogui --cmd "devel build . exit true"
 
 install app-install: bundle_info.xml $(SRCS) $(HEADERS)
-	$(CHIMERAX_EXE) --nogui --cmd "devel install . user false; exit"
+	$(CHIMERAX_EXE) --nogui --cmd "devel install . user false exit true"
 
 test:
 	$(CHIMERAX_EXE)
@@ -45,7 +45,7 @@ debug:
 	$(CHIMERAX_EXE) --debug
 
 clean:
-	$(CHIMERAX_EXE) --nogui --cmd "devel clean . ; exit"
+	$(CHIMERAX_EXE) --nogui --cmd "devel clean . exit true"
 	rm -rf $(MMTF_CPP_SOURCE) $(MSGPACK_SOURCE)
 
 pylint:
