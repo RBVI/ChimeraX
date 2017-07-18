@@ -53,3 +53,36 @@ def model(session, targets, combined_templates=False, custom_script=None,
     water_preserve
         Whether to preserve water in generated models
     """
+
+    template_info = []
+    for alignment, orig_target in targets:
+        if not alignment.associations:
+            raise ValueError("Alignment %s has no associatied chains to use as templates."
+                % alignment.ident)
+        # Copy the target sequence, changing name to conform to Modeller limitations
+        from .common import modeller_copy
+        target = modeller_copy(orig_target)
+        if combined_templates:
+            target_templates = []
+            template_info.append((target, target_templates))
+        for aseq, chain in alignment.associations.items():
+            if not combined_templates:
+                target_templates = []
+                template_info.append((target, target_templates))
+            target_templates.append((regularized_seq(aseq, chain), chain))
+
+def regularized_seq(aseq, chain):
+    mmap = aseq.match_maps[chain]
+    from .common import modeller_copy
+    rseq = modeller_copy(aseq)
+    rseq.descript = "structure:" + chain_save_name(chain)
+    for ungapped in range(len(aseq.ungapped())):
+        gapped = aseq.ungapped_to_gapped(ungapped)
+        if i not in mmap:
+            rseq.characters[gapped] = '-'
+        else:
+           #TODO
+
+def chain_save_name(chain):
+    return chain.structure.name.replace(':', '_').replace(' ', '_') \
+        + "_" + chain.structure.id_string() + '/' + chain.chain_id.replace(' ', '_')
