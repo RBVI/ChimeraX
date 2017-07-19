@@ -33,15 +33,6 @@ class OptLine:
         # rather than the initial guess.
         from numpy import dot, sqrt, sum, fabs, mean, var
         self.centroid, self.axis = self._decode(res.x)
-        # Test code
-        xmp = self.coords - self.centroid
-        # xa = coordinates . axis (vector N)
-        xa = dot(self.coords, self.axis)
-        # ca = centroid . axis (scalar)
-        ca = dot(self.centroid, self.axis)
-        # f = squared distance from cylinder center line (vector N)
-        f = sum(xmp * xmp, axis=1) - xa * xa + 2 * xa * ca - ca * ca
-        print("avg dist", mean(sqrt(f)))
 
     def _encode(self, centroid, axis):
         from numpy import array
@@ -167,16 +158,20 @@ class HelixCylinder:
     # sequences is ALA(18) and the coordinates are from some of the
     # middle residues.  The axis parameters are (center, direction).
     from numpy import array
-    IDEAL_COORDS = array([
-        (-1.332,-3.667,-1.376),     # CA coordinates
+    IDEAL_COORDS = array([          # CA coordinates
+        (-4.543,-1.381,-5.088),
+        (-4.871,-2.280,-1.408),
+        (-1.332,-3.668,-1.376),
         (-0.007,-0.471,-2.952),
         (-1.782, 1.624,-0.322),
-        (-0.267,-0.482, 2.457),
-        ( 3.207,-0.031, 0.979),
+        (-0.267,-0.483, 2.456),
+        ( 3.207,-0.031, 0.978),
+        ( 2.712, 3.735, 0.827),
+        ( 1.634, 3.794, 4.473),
     ])
-    IDEAL_PARAMS = array([
-        (-0.395,-0.049,-0.215),     # center
-        (0.613,0.501,0.610)         # axis
+    IDEAL_PARAMS = array([          # center, axis
+        (-0.395,-0.049,-0.215),   
+        ( 0.613, 0.501, 0.610),
     ])
 
     def __init__(self, coords, radius=None, maxiter=None):
@@ -387,7 +382,6 @@ class HelixCylinder:
             self.axis = -self.axis
         radii = norm(self.coords - self.cylinder_centers(), axis=1)
         self.radius = mean(radii)
-        print("_straight_optimize", self.centroid, self.axis, self.radius)
 
     def _straight_initial(self):
         from numpy import mean, dot, newaxis
