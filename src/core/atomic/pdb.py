@@ -139,9 +139,9 @@ def register_pdb_format():
         mime=("chemical/x-pdb", "chemical/x-spdbv"),
         reference="http://wwpdb.org/docs.html#format",
         open_func=open_pdb, export_func=save_pdb)
-    from ..commands import add_keyword_arguments, BoolArg, modelsArg, ModelArg
+    from ..commands import add_keyword_arguments, BoolArg, ModelsArg, ModelArg
     add_keyword_arguments('open', {'coordsets':BoolArg, 'auto_style':BoolArg})
-    add_keyword_arguments('save', {'models':modelsArg, 'selected_only':BoolArg,
+    add_keyword_arguments('save', {'models':ModelsArg, 'selected_only':BoolArg,
         'displayed_only':BoolArg, 'all_frames':BoolArg, 'pqr':BoolArg, 'rel_model':ModelArg})
 
 
