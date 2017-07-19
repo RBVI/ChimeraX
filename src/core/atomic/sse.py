@@ -31,7 +31,17 @@ class OptLine:
         #       "iterations", res.nit)
         # Even on failure, we use the last results from the optimization
         # rather than the initial guess.
+        from numpy import dot, sqrt, sum, fabs, mean, var
         self.centroid, self.axis = self._decode(res.x)
+        # Test code
+        xmp = self.coords - self.centroid
+        # xa = coordinates . axis (vector N)
+        xa = dot(self.coords, self.axis)
+        # ca = centroid . axis (scalar)
+        ca = dot(self.centroid, self.axis)
+        # f = squared distance from cylinder center line (vector N)
+        f = sum(xmp * xmp, axis=1) - xa * xa + 2 * xa * ca - ca * ca
+        print("avg dist", mean(sqrt(f)))
 
     def _encode(self, centroid, axis):
         from numpy import array
@@ -46,19 +56,27 @@ class OptLine:
         return centroid, axis
 
     def _residual(self, params):
-        from numpy import dot, sqrt, sum, fabs, mean, var
         centroid, axis = self._decode(params)
-        # x = atom coordinates (vector Nx3)
-        # xmp = coordinates relative to centroid (vector Nx3)
-        xmp = self.coords - centroid
-        # xa = coordinates . axis (vector N)
-        xa = dot(self.coords, axis)
-        # ca = centroid . axis (scalar)
-        ca = dot(centroid, axis)
-        # f = squared distance from torus center line (vector N)
-        f = sum(xmp * xmp, axis=1) - xa * xa + 2 * xa * ca - ca * ca
-        # residual = variance in squared distance
-        res = var(f)
+        if False:
+            from numpy import dot, sqrt, sum, fabs, mean, var
+            # x = atom coordinates (vector Nx3)
+            # xmp = coordinates relative to centroid (vector Nx3)
+            xmp = self.coords - centroid
+            # xa = coordinates . axis (vector N)
+            xa = dot(self.coords, axis)
+            # ca = centroid . axis (scalar)
+            ca = dot(centroid, axis)
+            # f = squared distance from cylinder center line (vector N)
+            f = sum(xmp * xmp, axis=1) - xa * xa + 2 * xa * ca - ca * ca
+            # residual = variance in squared distance
+            res = var(f)
+        else:
+            from numpy import dot, outer, var
+            from numpy.linalg import norm
+            d = dot(self.coords - centroid, axis)
+            centers = centroid + outer(d, axis)
+            radii = norm(self.coords - centers, axis=1)
+            res = var(radii)
         return res
 
 
@@ -369,6 +387,7 @@ class HelixCylinder:
             self.axis = -self.axis
         radii = norm(self.coords - self.cylinder_centers(), axis=1)
         self.radius = mean(radii)
+        print("_straight_optimize", self.centroid, self.axis, self.radius)
 
     def _straight_initial(self):
         from numpy import mean, dot, newaxis

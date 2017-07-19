@@ -101,6 +101,7 @@ def parse_arguments(argv):
     opts.commands = []
     opts.cmd = None   # Python's -c option
     opts.debug = False
+    opts.event_loop = True
     opts.gui = True
     opts.module = None  # Python's -m option
     opts.line_profile = False
@@ -120,6 +121,7 @@ def parse_arguments(argv):
     # Will build usage string from list of arguments
     arguments = [
         "--debug",
+        "--exit",   # No event loop
         "--nogui",
         "--help",
         "--lineprofile",
@@ -146,6 +148,7 @@ def parse_arguments(argv):
     # add in default argument values
     arguments += [
         "--nodebug",
+        "--noexit",
         "--gui",
         "--nolineprofile",
         "--nosilent",
@@ -204,6 +207,8 @@ def parse_arguments(argv):
     for opt, optarg in options:
         if opt in ("--debug", "--nodebug"):
             opts.debug = opt[2] == 'd'
+        elif opt in ("--exit", "--noexit"):
+            opts.event_loop = opt[2] != 'e'
         elif opt == "--help":
             help = True
         elif opt in ("--gui", "--nogui"):
@@ -601,7 +606,7 @@ def init(argv, event_loop=True):
     
     # Allow the event_loop to be disabled, so we can be embedded in
     # another application
-    if event_loop:
+    if event_loop and opts.event_loop:
         try:
             sess.ui.event_loop()
         except SystemExit as e:
