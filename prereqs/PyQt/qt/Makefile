@@ -6,16 +6,15 @@ PREREQ_MAKE = 1
 TOP	= ../../..
 include $(TOP)/mk/config.make
 
-VERSION = 5.7
-MINOR_VERSION = 0
+VERSION = 5.9
+MINOR_VERSION = 1
 FULL_VERSION = $(VERSION).$(MINOR_VERSION)
-DISTRIBUTION = qt-everywhere-opensource-src-$(FULL_VERSION).tar.7z
+DISTRIBUTION = qt-everywhere-opensource-src-$(FULL_VERSION).tar.xz
 SOURCE = $(tmpdir)/qt-everywhere-opensource-src-$(FULL_VERSION)
 
 PATCHES	= $(wildcard qt-$(FULL_VERSION)-*.patch) $(wildcard qt-$(FULL_VERSION)_$(OS)-*.patch)
 
 CONFIG_OPTS = -opensource -confirm-license \
-	      -no-audio-backend \
 	      -qt-libpng -qt-libjpeg \
 	      -nomake examples
 ifeq ($(OS),Windows)

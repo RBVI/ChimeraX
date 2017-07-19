@@ -43,13 +43,21 @@ class _MyAPI(BundleAPI):
         raise NotImplementedError  # FIXME: remove method if unneeded
 
     @staticmethod
-    def open_file(session, f, name):
+    def open_file(session, stream_or_path, optional_format_name, optional_file_name, **kw):
         # 'open_file' is called by session code to open a file;
         # returns (list of models, status message).
-        # Add any keywords that you support (i.e. annotated in your
-        # setup.py.in file).  Also, if you support reading multiple formats
-        # then if you add a 'format_name' keyword arg, core will fill that
-        # in with the format name (again, as specified in your setup.py.in)
+        #
+        # Second arg must be 'stream' or 'path'.  Depending on the name, either an
+        # open data stream or a filesystem path will be provided.  The third and
+        # fourth arguments are optional (remove 'optional_' from their names if you
+        # provide them).  'format_name' will be the first nickname of the format
+        # (reminder: the nickname of a format that provides no explicit nicknames
+        # is the lower-case version of the full format name).  'file_name' is the
+        # name of the input file, with compression suffix and path components
+        # stripped.
+        # 
+        # You shouldn't actually use "**kw" but instead declare the actual keyword
+        # args that your format supports (as per your bundle_info.xml file).
         raise NotImplementedError     # FIXME: remove method if unneeded
 
     @staticmethod
