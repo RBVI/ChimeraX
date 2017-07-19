@@ -34,7 +34,7 @@ test:
 debug:
 	$(CHIMERAX_EXE) --debug
 
-clean:
+clean:	bundle_info.xml
 	$(CHIMERAX_EXE) --nogui --cmd "devel clean . exit true"
 	rm -f bundle_info.xml
 
