@@ -403,7 +403,7 @@ class _CModule:
             from numpy.distutils.misc_util import get_numpy_include_dirs
             inc_dirs.extend(get_numpy_include_dirs())
         if sys.platform == "darwin":
-            libraries = ["-l" + lib for lib in self.libraries]
+            libraries = self.libraries
             compiler_flags = ["-std=c++11", "-stdlib=libc++"]
             extra_link_args = ["-F" + d for d in self.framework_dirs]
             for fw in self.frameworks:
@@ -413,7 +413,7 @@ class _CModule:
             compiler_flags = []
             extra_link_args = []
         else:
-            libraries = ["-l" + lib for lib in self.libraries]
+            libraries = self.libraries
             compiler_flags = ["-std=c++11"]
             extra_link_args = []
         for req in self.requires:
