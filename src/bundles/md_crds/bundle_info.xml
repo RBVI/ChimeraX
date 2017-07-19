@@ -20,9 +20,9 @@
   <CModule name="_gromacs" usesNumpy="true">
     <IncludeDir>gromacs/xdrfile-1.1b/include</IncludeDir>
     <SourceFile>gromacs/gromacs.cpp</SourceFile>
-    <SourceFile>gromacs/xdrfile-1.1b/src/xdrfile.c</SourceFile>
-    <SourceFile>gromacs/xdrfile-1.1b/src/xdrfile_trr.c</SourceFile>
-    <SourceFile>gromacs/xdrfile-1.1b/src/xdrfile_xtc.c</SourceFile>
+    <LinkArgument platform="win32">gromacs/xdrfile-1.1b/src/.libs/libxdrfile.lib</LinkArgument>
+    <LinkArgument platform="mac">gromacs/xdrfile-1.1b/src/.libs/libxdrfile.a</LinkArgument>
+    <LinkArgument platform="linux">gromacs/xdrfile-1.1b/src/.libs/libxdrfile.a</LinkArgument>
   </CModule>
 
   <Dependencies>
