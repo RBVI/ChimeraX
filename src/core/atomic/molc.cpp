@@ -3400,6 +3400,8 @@ extern "C" EXPORT void structure_add_coordsets(void *mol, bool replace, void *xy
             cs->set_coords((double *)xyzs, n_coords);
             xyzs += n_coords * 3;
         }
+        if (replace)
+            m->set_active_coord_set(m->coord_sets()[0]);
     } catch (...) {
         molc_error();
     }
