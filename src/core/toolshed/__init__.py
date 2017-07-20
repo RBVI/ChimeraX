@@ -495,6 +495,8 @@ class Toolshed:
                 bi.deregister(logger)
                 bi.unload(logger)
                 self._installed_bundle_info.remove(bi)
+        if per_user is None:
+            per_user = True
         results = self._pip_install(bundle, per_user=per_user, reinstall=reinstall)
         installed = re.findall(r"^\s*Successfully installed.*$", results, re.M)
         if installed:
