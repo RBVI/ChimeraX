@@ -14,21 +14,21 @@
 def read_coords(session, file_name, model, format_name, replace=True):
     from numpy import array, float64
     from chimerax.core.errors import UserError
-    if format_name == "Gromacs compressed coordinates":
+    if format_name == "xtc":
         from ._gromacs import read_xtc_file
         session.logger.status("Reading Gromacs xtc coordinates", blank_after=0)
         num_atoms, coords_list = read_xtc_file(file_name)
         coords = array(coords_list, dtype=float64)
         coords *= 10.0
         session.logger.status("Finished reading Gromacs xtc coordinates")
-    elif format_name == "Gromacs full-precision coordinates":
+    elif format_name == "trr":
         from ._gromacs import read_trr_file
         session.logger.status("Reading Gromacs trr coordinates", blank_after=0)
         num_atoms, coords_list = read_trr_file(file_name)
         coords = array(coords_list, dtype=float64)
         coords *= 10.0
         session.logger.status("Finished reading Gromacs trr coordinates")
-    elif format_name == "DCD coordinates":
+    elif format_name == "dcd":
         from .dcd.MDToolsMarch97.md_DCD import DCD
         session.logger.status("Reading DCD coordinates", blank_after=0)
         dcd = DCD(file_name)

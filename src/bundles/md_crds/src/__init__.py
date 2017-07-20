@@ -16,15 +16,17 @@ from chimerax.core.toolshed import BundleAPI
 class _MDCrdsBundleAPI(BundleAPI):
 
     @staticmethod
-    def open_file(session, stream, fname, format_name=None, model=None, filespec=None, replace=True):
-        if model is None:
+    def open_file(session, path, format_name, structure_model=None, replace=True):
+        if structure_model is None:
             from chimerax.core.errors import UserError
-            raise UserError("Must specify a model to read the coordinates into")
+            raise UserError("Must specify a structure model to read the coordinates into")
         from .read_coords import read_coords
-        num_coords = read_coords(session, filespec, model, format_name, replace=replace)
+        num_coords = read_coords(session, path, structure_model, format_name, replace=replace)
         if replace:
-            return [], "Replaced existing frames of %s with  %d new frames" % (model, num_coords)
+            return [], "Replaced existing frames of %s with  %d new frames" % (structure_model,
+                num_coords)
         return [], "Added %d frames to %s" % (num_coords, model)
+
     @staticmethod
     def save_file(session, file_name, format, models=None):
         from chimerax.core import atomic
