@@ -209,6 +209,7 @@ def parse_arguments(argv):
             opts.debug = opt[2] == 'd'
         elif opt in ("--exit", "--noexit"):
             opts.event_loop = opt[2] != 'e'
+            opts.get_available_bundles = False
         elif opt == "--help":
             help = True
         elif opt in ("--gui", "--nogui"):
