@@ -1395,12 +1395,23 @@ extern "C" EXPORT void set_pseudobond_radius(void *pbonds, size_t n, float32_t *
 // -------------------------------------------------------------------------
 // pseudobond group functions
 //
-extern "C" EXPORT void pseudobond_group_category(void *pbgroups, int n, void **categories)
+extern "C" EXPORT void pseudobond_group_category(void *pbgroups, size_t n, void **categories)
 {
     Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
     try {
-        for (int i = 0 ; i < n ; ++i)
+        for (size_t i = 0 ; i < n ; ++i)
             categories[i] = unicode_from_string(pbg[i]->category());
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void pseudobond_group_group_type(void *pbgroups, size_t n, uint8_t *group_types)
+{
+    Proxy_PBGroup **g = static_cast<Proxy_PBGroup **>(pbgroups);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            group_types[i] = static_cast<uint8_t>(g[i]->group_type());
     } catch (...) {
         molc_error();
     }
