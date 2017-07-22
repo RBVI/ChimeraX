@@ -12,14 +12,14 @@
 
 # -----------------------------------------------------------------------------
 #
-def label(session, atoms, object_type = 'atoms', text = None,
-          offset = None, color = None, size = None, typeface = None, on_top = True):
+def label(session, atoms = None, object_type = None, text = None,
+          offset = None, color = None, size = None, typeface = None, on_top = None):
     '''Create atom labels. The belong to a child model named "labels" of the structure.
 
     Parameters
     ----------
-    atoms : Atoms
-      Create labels on specified atoms.
+    atoms : Atoms or None
+      Create labels on specified atoms.  If None the adjust settings of all existing labels.
     object_type : 'atoms', 'residues', 'pseudobonds'
       What type of object to label.
     offset : float 3-tuple
@@ -35,33 +35,40 @@ def label(session, atoms, object_type = 'atoms', text = None,
       Font name.  This must be a true type font installed on Mac in /Library/Fonts
       and is the name of the font file without the ".ttf" suffix.  Default "Arial".
     on_top : bool
-      Whether labels always appear on top of other graphics (cannot be occluded).  This is a per-structure
-      attribute.  Default True.
+      Whether labels always appear on top of other graphics (cannot be occluded).
+      This is a per-structure attribute.  Default True.
     '''
+    if object_type is None:
+        otypes = ['atoms', 'residues', 'pseudobonds'] if atoms is None else ['atoms']
+    else:
+        otypes = [object_type]
     from chimerax.core.colors import Color
     rgba = color.uint8x4() if isinstance(color, Color) else color
-
-    if object_type == 'atoms':
-        object_class = AtomLabel
-    elif object_type == 'residues':
-        object_class = ResidueLabel
-    elif object_type == 'pseudobonds':
-        object_class = PseudobondLabel
-
     view = session.main_view
-    for m, objects in objects_by_model(atoms, object_type):
-        lm = labels_model(m, create = True)
-        lm.add_labels(objects, object_class, view, offset, text, rgba, size, typeface, on_top)
+    lcount = 0
+    for otype in otypes:
+        if atoms is None:
+            mo = labeled_objects_by_model(session, otype)
+        else:
+            mo = objects_by_model(atoms, otype)
+        object_class = label_object_class(otype)
+        for m, objects in mo:
+            lm = labels_model(m, create = True)
+            lm.add_labels(objects, object_class, view, offset, text, rgba, size, typeface, on_top)
+            lcount += len(objects)
+    if atoms is None and lcount == 0:
+        from chimerax.core.errors import UserError
+        raise UserError('Label command requires an atom specifier to create labels.')
 
 # -----------------------------------------------------------------------------
 #
-def label_delete(session, atoms, object_type = None):
+def label_delete(session, atoms = None, object_type = None):
     '''Delete atoms labels.
 
     Parameters
     ----------
-    atoms : Atoms
-      Delete labels for specified atoms.
+    atoms : Atoms or None
+      Delete labels for specified atoms.  If None delete all labels.
     object_type : 'atoms', 'residues', 'pseudobonds'
       What type of object label to delete.
     '''
@@ -71,13 +78,29 @@ def label_delete(session, atoms, object_type = None):
         otypes = [object_type]
 
     for otype in otypes:
-        mo = objects_by_model(atoms, otype)
+        if atoms is None:
+            mo = labeled_objects_by_model(session, otype)
+        else:
+            mo = objects_by_model(atoms, otype)
         for m, objects in mo:
             lm = labels_model(m)
             if lm is not None:
                 lm.delete_labels(objects)
                 if lm.label_count() == 0:
                     session.models.close([lm])
+
+# -----------------------------------------------------------------------------
+#
+def label_object_class(object_type):
+    if object_type == 'atoms':
+        object_class = AtomLabel
+    elif object_type == 'residues':
+        object_class = ResidueLabel
+    elif object_type == 'pseudobonds':
+        object_class = PseudobondLabel
+    else:
+        object_class = None
+    return object_class
 
 # -----------------------------------------------------------------------------
 #
@@ -93,6 +116,13 @@ def objects_by_model(atoms, object_type):
         model_objects = pbonds.by_group
     return model_objects
 
+# -----------------------------------------------------------------------------
+#
+def labeled_objects_by_model(session, otype):
+    oclass = label_object_class(otype)
+    return [(lm.parent, lm.labeled_objects(oclass))
+            for lm in session.models.list(type = ObjectLabels)]
+        
 # -----------------------------------------------------------------------------
 #
 def labels_model(parent, create = False):
@@ -111,11 +141,11 @@ def labels_model(parent, create = False):
 def register_label_command(logger):
 
     from chimerax.core.commands import CmdDesc, register, AtomsArg, StringArg
-    from chimerax.core.commands import Float3Arg, ColorArg, IntArg, BoolArg, EnumOf, Or
+    from chimerax.core.commands import Float3Arg, ColorArg, IntArg, BoolArg, EnumOf, Or, EmptyArg
 
     otype = EnumOf(('atoms','residues','pseudobonds'))
     DefArg = EnumOf(['default'])
-    desc = CmdDesc(required = [('atoms', AtomsArg)],
+    desc = CmdDesc(required = [('atoms', Or(AtomsArg, EmptyArg))],
                    optional = [('object_type', otype)],
                    keyword = [('text', Or(DefArg, StringArg)),
                               ('offset', Or(DefArg, Float3Arg)),
@@ -125,7 +155,7 @@ def register_label_command(logger):
                               ('on_top', BoolArg)],
                    synopsis = 'Create atom labels')
     register('label', desc, label, logger=logger)
-    desc = CmdDesc(required = [('atoms', AtomsArg)],
+    desc = CmdDesc(required = [('atoms', Or(AtomsArg, EmptyArg))],
                    optional = [('object_type', otype)],
                    synopsis = 'Delete atom labels')
     register('label delete', desc, label_delete, logger=logger)
@@ -163,7 +193,8 @@ class ObjectLabels(Model):
     
     def add_labels(self, objects, label_class, view, offset = None, text = None,
                    color = None, size = 24, typeface = 'Arial', on_top = True):
-        self.on_top = on_top
+        if on_top is not None:
+            self.on_top = on_top
         ld = self._label_drawings
         opts = [('offset', offset), ('text', text), ('color', color),
                 ('size', size), ('typeface', typeface)]
@@ -190,6 +221,10 @@ class ObjectLabels(Model):
 
     def label_count(self):
         return len(self._label_drawings)
+
+    def labeled_objects(self, label_class = None):
+        return [o for o,l in self._label_drawings.items()
+                if label_class is None or isinstance(l, label_class)]
 
     def _update_graphics_if_needed(self, *_):
         for ld in self._label_drawings.values():
