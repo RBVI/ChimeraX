@@ -12,7 +12,6 @@
 # === UCSF ChimeraX Copyright ===
 
 from .hbond import rec_dist_slop, rec_angle_slop, find_hbonds
-from . import default_color, default_slop_color
 
 from chimerax.core.atomic import AtomicStructure
 from chimerax.core.colors import BuiltinColors
