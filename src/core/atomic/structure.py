@@ -1942,8 +1942,9 @@ class AtomicStructure(Structure):
                 global_group.radius = self.default_hbond_radius
                 global_group.color = self.default_hbond_color.uint8x4()
                 session.models.add([global_group])
-            def del_after_add(trig_name, models, hb_pbg=hb_pbg):
+            def del_after_add(trig_name, models, hb_pbg=hb_pbg, ses=session):
                 if hb_pbg in models:
+                    ses.models.remove([hb_pbg])
                     hb_pbg.delete()
                     from ..triggerset import DEREGISTER
                     return DEREGISTER
