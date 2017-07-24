@@ -1,6 +1,6 @@
 <BundleInfo name="ChimeraX-Tug" version="1.0"
 	    package="chimerax.tug"
-  	    minSessionVersion="1" maxSessionVersion="1">
+  	    minSessionVersion="1" maxSessionVersion="1" customInit="true">
 
   <Author>UCSF RBVI</Author>
   <Email>chimerax@cgl.ucsf.edu</Email>
@@ -20,9 +20,6 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: Tool :: Blast Protein :: General :: Search PDB/NR using BLAST</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: blastprotein :: General :: Search PDB/NR using BLAST</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: blastpdb :: General :: Search PDB/NR using BLAST</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
