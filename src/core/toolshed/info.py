@@ -262,25 +262,17 @@ class BundleInfo:
                     cli.add_keyword_arguments('open', _convert_keyword_types(
                         fi.open_kwds, self, logger))
             if fi.has_save:
-                def save_cb(*args, _format_name=fi.name, **kw):
+                def boot_save(bi_self=self, logger=logger):
                     try:
-                        f = self._get_api(logger).save_file
+                        f = bi_self._get_api(logger).save_file
                     except AttributeError:
                         raise ToolshedError(
-                            "no save_file function found for bundle \"%s\""
-                            % self.name)
+                            "no save_file function found for bundle \"%s\"" % bi_self.name)
                     if f == BundleAPI.save_file:
-                        raise ToolshedError("bundle \"%s\"'s API forgot to override save_file()" % self.name)
+                        raise ToolshedError(
+                            "bundle \"%s\"'s API forgot to override save_file()" % bi_self.name)
+                format._boot_export_func = boot_save
 
-                    # optimize by replacing save_func for format
-                    def save_shim(*args, _func=f, **kw):
-                        from ..io import check_keyword_compatibility
-                        check_keyword_compatibility(_func, *args, **kw)
-                        return _func(*args, **kw)
-                    fmt = io.format_from_name(_format_name)
-                    fmt.export_func = save_shim
-                    return save_shim(*args, **kw)
-                format.export_func = save_cb
                 if fi.save_kwds:
                     from ..commands import cli
                     cli.add_keyword_arguments('save', _convert_keyword_types(

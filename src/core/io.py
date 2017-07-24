@@ -144,7 +144,7 @@ class FileFormat:
         self.reference = reference
 
         self._open_func = self._boot_open_func = None
-        self.export_func = None
+        self.export_func = self._boot_export_func = None
         self.export_notes = None
         self.batch = False
 
@@ -159,6 +159,18 @@ class FileFormat:
         self._boot_open_func = None
 
     open_func = property(_get_open_func, _set_open_func)
+
+    def _get_export_func(self):
+        if self._boot_export_func:
+            self._export_func = self._boot_export_func()
+            self._boot_export_func = None
+        return self._export_func
+
+    def _set_export_func(self, func):
+        self._export_func = func
+        self._boot_export_func = None
+
+    export_func = property(_get_export_func, _set_export_func)
 
     def export(self, *args, **kw):
         if self.export_func is None:
