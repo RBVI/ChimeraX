@@ -15,8 +15,17 @@
 
   <DataFiles>
     <DataFile>include/align_algs/*</DataFile>
+    <DataFile>lib/*</DataFile>
+    <!-- Use dynamic shared object
+    <DataFile platform="windows">*.dll</DataFile>
+    <DataFile platform="mac">*.dylib</DataFile>
+    <DataFile platform="linux">*.so</DataFile>
+    -->
   </DataFiles>
 
+  <!-- Use dynamic shared object
+  <CLibrary name="align_algs">
+  -->
   <CLibrary name="align_algs" static="true">
     <IncludeDir>src/include/align_algs</IncludeDir>
     <SourceFile>src/support.cpp</SourceFile>

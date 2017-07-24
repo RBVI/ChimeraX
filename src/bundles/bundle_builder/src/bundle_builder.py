@@ -501,7 +501,7 @@ class _CLibrary(_CompiledCode):
         self.output_dir = output_dir
 
     def compile(self):
-        import sys, os.path, distutils.ccompiler, distutils.sysconfig
+        import sys, os, os.path, distutils.ccompiler, distutils.sysconfig
         try:
             (inc_dirs, lib_dirs, extra_link_args,
              libraries, cpp_flags) = self._compile_options()
@@ -525,18 +525,29 @@ class _CLibrary(_CompiledCode):
             lib_name = "lib" + self.name        # ChimeraX convention
         else:
             lib_name = self.name                # ChimeraX convention
+        if not self.static:
+            compiler.define_macro("DYNAMIC_LIBRARY", 1)
         compiler.compile(self.source_files, extra_preargs=cpp_flags)
         objs = compiler.object_filenames(self.source_files)
-        print("objects are", objs)
         compiler.mkpath(output_dir)
         if self.static:
-            compiler.create_static_lib(objs, lib_name, output_dir=output_dir)
             lib = compiler.library_filename(lib_name, lib_type="static")
+            compiler.create_static_lib(objs, lib_name, output_dir=output_dir)
         else:
-            compiler.link_shared_lib(objs, lib_name, output_dir=output_dir)
-            lib = compiler.library_filename(lib_name, lib_type="dynamic")
-            # TODO: What about on Windows where we need both .dll and .lib?
-        print("library is", lib)
+            if sys.platform == "win32":
+                # On Windows where we need both .dll and .lib
+                link_lib = compiler.library_filename(lib_name, lib_type="static")
+                extra_link_args.append("/LIBPATH:%s" % link_lib)
+            lib = compiler.shared_object_filename(lib_name)
+            compiler.link_shared_object(objs, lib, output_dir="src",
+                                        extra_postargs=extra_link_args)
+            if sys.platform == "win32":
+                link_file = os.path.join(output_dir, link_lib)
+                try:
+                    os.remove(link_file)
+                except OSError:
+                    pass
+                compiler.move_file(os.path.join("src", link_lib), link_file)
 
 if __name__ == "__main__" or __name__.startswith("ChimeraX_sandbox"):
     import sys
