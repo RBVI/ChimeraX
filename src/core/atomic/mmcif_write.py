@@ -18,7 +18,7 @@ Currently only writes a minimal atom_site table.
 No sequence, no secondary structure, no assemblies, no alt locs.
 """
 
-def write_mmcif(session, path, format, models=None):
+def write_mmcif(session, path, models=None):
     from . import Structure
     if models is None:
         models = session.models.list(type = Structure)

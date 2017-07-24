@@ -27,7 +27,7 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>open</b> (&nbsp;<i>filename</i>&nbsp;|&nbsp;<i>URL</i>&nbsp;|&nbsp;[&nbsp;<a href="#fetch-table"><i>prefix</i></a>:]<i>identifier</i>&nbsp;)
-[&nbsp;coordsets&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#coordsets">coordsets</a>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<i>other-options</i>
 </h3>
 <h3><a href="usageconventions.html">Usage</a>: <br><b>open formats</b>
@@ -113,7 +113,9 @@ target="_blank">PDBx/mmCIF</a></td>
 <td align="center"><b>mmcif</b></td>
 <td align="center">.cif<br>.mmcif</td>
 <td align="center">atomic coordinates and associated annotations
-<br>(see <a href="sym.html#assembly">assemblies from mmCIF</a>)</td>
+<br>(see <a href="sym.html#assembly">assemblies from mmCIF</a>,
+<br><a href="http://www.rbvi.ucsf.edu/chimerax/docs/devel/mmcif.html"
+target="_blank">ChimeraX Fast mmCIF Guidelines</a>)</td>
 </tr><tr>
 <td align="center"><a href="../pseudobonds.html">Pseudobond</a> file</td>
 <td align="center"><b>pseudobonds</b></td>
@@ -125,30 +127,26 @@ to connect with <a href="../pseudobonds.html">pseudobonds</a></td>
 </tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
 <a name="trajectory"></a>
-<b>Trajectory Coordinates</b></td>
+<b>Trajectory Coordinates</b>
+<br>(requires an already-open structure for topology, see the
+<a href="#structureModel"><b>structureModel</b></a> option)</td>
 </tr><tr>
 <td align="center">DCD coordinates</a> (binary)</td>
 <td align="center"><b>dcd</b></td>
 <td align="center">.dcd</td>
-<td align="center"><a href="../trajectories.html">trajectory</a> coordinates;
-<br>existing model provides topology
-(<a href="#trajectory-options">details...</a>)</td>
+<td align="center">atomic <a href="../trajectories.html">trajectory</a></td>
 </tr><tr>
 <td align="center"><a href="http://manual.gromacs.org/online/xtc.html"
 target="_blank">Gromacs compressed coordinates</a></td>
 <td align="center"><b>xtc</b></td>
 <td align="center">.xtc</td>
-<td align="center"><a href="../trajectories.html">trajectory</a> coordinates;
-<br>existing model provides topology
-(<a href="#trajectory-options">details...</a>)</td>
+<td align="center">atomic <a href="../trajectories.html">trajectory</a></td>
 </tr><tr>
 <td align="center"><a href="http://manual.gromacs.org/online/trr.html"
 target="_blank">Gromacs full-precision coordinates</a> (binary)</td>
 <td align="center"><b>trr</b></td>
 <td align="center">.trr</td>
-<td align="center"><a href="../trajectories.html">trajectory</a> coordinates;
-<br>existing model provides topology
-(<a href="#trajectory-options">details...</a>)</td>
+<td align="center">atomic <a href="../trajectories.html">trajectory</a></td>
 <tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
 <a name="volume"></a>
@@ -284,7 +282,7 @@ target="_blank">Visualization Toolkit (VTK) PolyData</a></td>
 <td align="center">.cxs</td>
 <td align="center">ChimeraX session</td>
 </tr><tr>
-<td align="center"><a href="https://pdb-dev.rcsb.rutgers.edu/about/"
+<td align="center"><a href="https://pdb-dev.wwpdb.org/about/"
 target="_blank">Integrative Hybrid Model (IHM)</a>
 </td>
 <td align="center"><b>ihm</b></td>
@@ -292,7 +290,7 @@ target="_blank">Integrative Hybrid Model (IHM)</a>
 <td align="center">integrative hybrid model, potentially including
 atomic and coarse-grained representations, crosslinks, <i>etc.</i>
 (examples can be downloaded from the
-<a href="https://pdb-dev.rcsb.rutgers.edu/" target="_blank">archive</a>)</td>
+<a href="https://pdb-dev.wwpdb.org/" target="_blank">archive</a>)</td>
 <tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
 <a name="miscellaneous"></a>
@@ -330,8 +328,9 @@ hypertext to render in the
 [&nbsp;<b>coordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>vseries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>alignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>structureModel</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>ensembles</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<a href="#options"><i>general-options</i></a>&nbsp;
-&nbsp;<a href="#trajectory-options"><i>trajectory-options</i></a>
 </blockquote>
 <p>
 The <i>filename</i> is generally a pathname to a local file, 
@@ -349,20 +348,29 @@ the <b>format</b> option (where <i>format-name</i> can be truncated).
 Files that are gzipped, as indicated by their additional .gz suffix, 
 can also be read.
 </p><p>
-A multi-model file in mmCIF or PDB format can be opened as a
-<a href="../trajectories.html">trajectory</a>
-with <b>coordsets true</b> (default <b>false</b>).
-A <a href="#trajectory">trajectory coordinate</a> file is
-automatically opened as <a href="../trajectories.html">trajectory</a>,
-but to provide topology information, the <b>model</b> option must be used 
-to specify an existing model with the same set of atoms
-(for example: <b>open myfile.trr model #3</b>).
-The coordinates of the existing model will be replaced with the new,
-unless appending is indicated with <b>replace false</b>.
-</p><p>
+Further command options:
+</p>
+<blockquote>
+<a name="coordsets"></a>
+<b>coordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to open a multi-model file in mmCIF or PDB format as a
+<a href="../trajectories.html">trajectory</a>. Only one frame
+(coordinate set) of a trajectory can be viewed at a time, although different
+frames can be accessed or played back sequentially with the
+<a href="coordset.html"><b>coordset</b></a> command.
+By default, the multiple models in the file will be opened not as a
+<a href="../trajectories.html">trajectory</a> but as
+separate submodels that can be shown/hidden/specified independently 
+(for example, using #1.1, #1.2, #1.3...) 
+or collectively (for example, using #1).
+</blockquote>
+<blockquote>
+<b>vseries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
+<br>
 When multiple maps with the same grid dimensions are opened 
 in a single command (multiple files specified with wild cards or globbing, 
-or a single multi-map file), the <b>vseries</b> option can be used to enforce 
+or a single multi-map file), this option can be used to enforce 
 loading them as a <a href="../trajectories.html#vseries">volume series</a>
 for playback with 
 <a href="vseries.html"><b>vseries</b></a> or the associated slider
@@ -370,14 +378,35 @@ for playback with
 If the option is not used, 3D TIFF images and
 <a href="save.html#chimap">Chimera map</a> files containing five or more
 same-sized maps are automatically interpreted as series, if possible.
-</p><p>
-When a multi-sequence file is opened, the <b>alignment</b> option 
-indicates whether it should be interpreted as an alignment 
-(default <b>true</b>, all sequences in one <b>Multalign Viewer</b> window).
+</blockquote>
+<blockquote>
+<b>alignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to interpret a multi-sequence file as an alignment 
+(default, all sequences in one <b>Multalign Viewer</b> window).
 Otherwise, each sequence will be opened in a separate window. 
 If the sequences (including any gap characters) are of differing lengths,
 the option must be set to <b>false</b>. 
-</p><p>
+</blockquote>
+<blockquote>
+<a name="structureModel"></a>
+<b>structureModel</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+<br>
+A <a href="#trajectory">trajectory coordinate</a> file is
+automatically opened as <a href="../trajectories.html">trajectory</a>,
+but to provide topology information, this option must be used 
+to specify an existing model with the same set of atoms
+(for example: <b>open myfile.trr struct #1</b>).
+The coordinates of the existing model will be replaced with the new,
+unless <b>replace false</b> is used to indicate appending the new frames instead.
+</blockquote>
+<blockquote>
+<b>ensembles</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to fetch ensembles associated with an IHM dataset 
+(default <b>false</b>, as these can be quite large).
+</blockquote>
+<p>
 <!-- ChimeraX builds after June 20 2017 as per ticket #320 -->
 Another way to open local files is by drag-and-drop onto the ChimeraX icon
 or a running instance of ChimeraX.
@@ -385,6 +414,7 @@ On a Mac, ChimeraX-associated file types can also be opened by
 double-clicking them in a Finder window or using &ldquo;open&rdquo; 
 in a Terminal window.
 </p>
+
 <a name="url"></a>
 <p class="nav">
 [<a href="#top">back to top</a>]
@@ -398,19 +428,20 @@ in a Terminal window.
 [&nbsp;<b>coordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>vseries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>alignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>structureModel</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>ensembles</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<a href="#options"><i>general-options</i></a>&nbsp;
-&nbsp;<a href="#trajectory-options"><i>trajectory-options</i></a>
 </blockquote>
 <p>
 Uniform Resource Locators (URLs) starting with
 <b>http:</b>, <b>https:</b>, and <b>ftp:</b> are handled.
-File types and command options are as described for 
-<a href="#local">local files</a>.
+File types and command options are as described
+<a href="#local">above</a> for local files.
 The file type can be indicated by suffix, MIME type, or the <b>format</b> option.
 </p><p>
 Web-fetched data other than those handled by the
 <a href="../window.html#browser">ChimeraX browser</a>
-are stored locally as described <a href="#fetch">below</a>.
+are stored locally as described <a href="#ignoreCache">below</a>.
 </p>
 
 <a name="fetch"></a>
@@ -424,8 +455,8 @@ are stored locally as described <a href="#fetch">below</a>.
 [&nbsp;<a href="#fetch-table"><i>prefix</i></a>:]<i>identifier</i>&nbsp;
 [&nbsp;<b>fromDatabase</b>&nbsp;&nbsp;<a href="#fetch-table"><i>source</i></a>&nbsp;]
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#fetch-table"><i>format-name</i></a>&nbsp;]
-[&nbsp;<b>coordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>ignoreCache</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#coordsets"><b>coordsets</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#ignoreCache"><b>ignoreCache</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<a href="#options"><i>general-options</i></a>
 </blockquote>
 <p>
@@ -441,11 +472,10 @@ can be specified with the <b>format</b> option.
 Opening a structure in mmCIF format automatically shows a clickable table of
 <a href="sym.html#assembly">assembly information</a>
 in the <a href="../tools/log.html"><b>Log</b></a>.
+See also: <a href="http://www.rbvi.ucsf.edu/chimerax/docs/devel/mmcif.html"
+target="_blank">ChimeraX Fast mmCIF Guidelines</a>
 </p><p>
-A multi-model file in mmCIF or PDB format can be opened as a
-<a href="../trajectories.html">trajectory</a>
-with <b>coordsets true</b> (default <b>false</b>).
-</p><p>
+<a name="ignoreCache"></a>
 Web-fetched data are stored locally in <b>~/Downloads/ChimeraX/</b> 
 (where ~ indicates a user's home directory), with subdirectories
 <b>PDB</b> for atomic coordinates from the Protein Data Bank,
@@ -454,7 +484,8 @@ Web-fetched data are stored locally in <b>~/Downloads/ChimeraX/</b>
 target="_blank">Electron Microscopy Data Bank</a>, <i>etc.</i>
 For caching, no distinction is made among the different Protein Data Bank sites.
 If a data file specified for opening is not found in this local cache or 
-<b>ignoreCache</b> is set to <b>true</b>, the file will be fetched and cached. 
+<b>ignoreCache</b> is set to <b>true</b>, the file will be fetched and cached.
+</p>
 <!--
 ChimeraX preferences, command history, file history, and package installation 
 files are stored in a standard platform-dependent location
@@ -462,7 +493,7 @@ files are stored in a standard platform-dependent location
 see <a href="http://pypi.python.org/pypi/appdirs" 
 target="_blank">python appdirs</a>). 
 -->
-</p>
+
 <center>
 <a name="fetch-table"><font size="+1"><b>Fetch Sources</b></font></a>
 </center>
@@ -557,7 +588,6 @@ Chimera instructions</a> for available identifiers</td>
 [<a href="#top">back to top</a>]
 </p>
 <h3>General Options</h3>
-
 <blockquote>
 <b>name</b>&nbsp;&nbsp;<i>model-name</i>
 <br>
@@ -606,20 +636,6 @@ the single best-matching sequence is associated.
 </p>
 </blockquote>
 
-<a name="trajectory-options"></a>
-<p class="nav">
-[<a href="#top">back to top</a>]
-</p>
-<h3>Trajectory Options</h3>
-<p>
-A <a href="#trajectory">trajectory coordinate</a> file
-must be opened as the same model number as an existing atomic model 
-or trajectory, specified with the <b>model #<i>N</i></b> option. 
-The existing model is needed to provide topology information,
-and should contain the same set of atoms as the new trajectory.
-The coordinates of the existing model will be replaced with the new,
-unless <b>replace false</b> is used to indicate appending the new frames instead.
-</p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 July 2017</address>

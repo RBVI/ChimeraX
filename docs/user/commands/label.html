@@ -36,7 +36,7 @@ class="clRight" title="User Guide Index"/></a>
 </h3>
 <p>
 The <b>label</b> command shows labels that move along with the associated
-<b>atoms</b> (default), <b>residues</b>, or <b>pseudobonds</b> in 3D.
+<b>atoms</b>, <b>residues</b>, or <b>pseudobonds</b> in 3D.
 These &ldquo;3D&rdquo; (although flat in appearance)
 labels can be of multiple colors and sizes, and both atom and residue 
 labels can be shown for the same atom at the same time.
@@ -44,13 +44,21 @@ A label is automatically hidden, however, when the corresponding
 item (atom, residue, or <a href="../pseudobonds.html">pseudobond</a>) is hidden.
 The command <b>label delete</b> removes 3D labels, including ones that
 were only hidden because the corresponding items were hidden.
-</p><p>
-For adding titles and otherwise labeling presentation-quality images and movies,
-see the <a href="2dlabels.html"><b>2dlabels</b></a> command.
 </p>
 <blockquote>
 ** <b>due to font issues, label may only work on Macs</b> **
 </blockquote>
+<p>
+For adding titles and otherwise labeling presentation-quality images and movies,
+see the <a href="2dlabels.html"><b>2dlabels</b></a> command.
+</p><p>
+A blank <a href="atomspec.html"><i>atom-spec</i></a> indicates 
+acting on all current labels, optionally restricted with the
+<b>atoms</b>, <b>residues</b>, or <b>pseudobonds</b> keyword.
+Otherwise (<a href="atomspec.html"><i>atom-spec</i></a> not blank)
+the default is to act on labels for <b>atoms</b>.
+A non-blank <a href="atomspec.html"><i>atom-spec</i></a> is required
+to create new labels. 
 <p>
 
 <a name="options"></a>

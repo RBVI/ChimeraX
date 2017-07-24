@@ -28,7 +28,7 @@ class _MDCrdsBundleAPI(BundleAPI):
         return [], "Added %d frames to %s" % (num_coords, model)
 
     @staticmethod
-    def save_file(session, file_name, format, models=None):
+    def save_file(session, path, format_name, models=None):
         from chimerax.core import atomic
         if models is None:
             models = atomic.all_structures(session)
@@ -43,6 +43,6 @@ class _MDCrdsBundleAPI(BundleAPI):
             from chimerax.core.errors import UserError
             raise UserError("Models have different number of atoms")
         from .write_coords import write_coords
-        write_coords(session, file_name, format, models)
+        write_coords(session, path, format_name, models)
 
 bundle_api = _MDCrdsBundleAPI()
