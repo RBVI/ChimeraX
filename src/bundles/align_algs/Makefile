@@ -23,10 +23,10 @@ RUN = $(CHIMERAX_EXE) --nogui --exit --cmd
 
 SRCS = $(wildcard src/*.py)
 
-wheel:	bundle_info.xml $(SRCS) support_cpp.install
+wheel:	bundle_info.xml $(SRCS)
 	$(RUN) "devel build . exit true"
 
-install app-install:	bundle_info.xml $(SRCS) support_cpp.install
+install app-install:	bundle_info.xml $(SRCS)
 	$(RUN) "devel install . user false exit true"
 
 test:
@@ -37,10 +37,9 @@ debug:
 
 clean:
 	$(RUN) "devel clean . exit true"
-	$(MAKE) -C support_cpp clean
+ifeq ($(OS),CYGWIN_NT)
+	rm -rf src/lib src/support.obj src/_[sn]w*.pyd
+endif
 
 pylint:
 	$(CHIMERAX_EXE) -m flake8 $(filter %.py, $(SRCS))
-
-support_cpp.install:
-	$(MAKE) -C support_cpp install
