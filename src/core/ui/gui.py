@@ -356,6 +356,7 @@ class MainWindow(QMainWindow, PlainTextLog):
 
         self._hide_tools = False
         self.tool_instance_to_windows = {}
+        self._fill_tb_context_menu_cbs = {}
 
         self._build_status()
         self._populate_menus(session)
@@ -386,18 +387,20 @@ class MainWindow(QMainWindow, PlainTextLog):
         for p in paths:
             _open_dropped_file(self.session, p)
         
-    def addToolBar(self, *args, **kw):
+    def add_tool_bar(self, tool, *tb_args, fill_context_menu_cb=None, **tb_kw):
         # need to track toolbars for checkbuttons in Tools->Toolbar
-        retval = QMainWindow.addToolBar(self, *args, **kw)
+        retval = QMainWindow.addToolBar(self, *tb_args, **tb_kw)
         from PyQt5.QtWidgets import QToolBar
-        for arg in args:
+        for arg in tb_args:
             if isinstance(arg, QToolBar):
                 tb = arg
                 break
         else:
             tb = retval
         tb.visibilityChanged.connect(lambda vis, tb=tb: self._set_tool_checkbuttons(tb, vis))
-        return retval
+        tb.contextMenuEvent = lambda e, self=self, tb=tb: self.show_tb_context_menu(tb, e)
+        self._fill_tb_context_menu_cbs[tb] = (tool, fill_context_menu_cb)
+        return tb
 
     def adjust_size(self, delta_width, delta_height):
         cs = self.size()
@@ -548,6 +551,10 @@ class MainWindow(QMainWindow, PlainTextLog):
         but.setIcon(icon)
 
     rapid_access_shown = property(_get_rapid_access_shown, _set_rapid_access_shown)
+
+    def show_tb_context_menu(self, tb, event):
+        tool, fill_cb = self._fill_tb_context_menu_cbs[tb]
+        show_context_menu(event, tool, fill_cb)
 
     def status(self, msg, color, secondary):
         sb = self.statusBar()
@@ -966,7 +973,7 @@ class ToolWindow(StatusLogger):
         return [self.__toolkit.status_log]
 
     def _show_context_menu(self, event):
-        # this routine needed as a klidge to allow QwebEngine to show
+        # this routine needed as a kludge to allow QwebEngine to show
         # our own context menu
         self.__toolkit.show_context_menu(event)
 
@@ -1106,37 +1113,7 @@ class _Qt:
             self.dock_widget.setAttribute(Qt.WA_DeleteOnClose)
 
     def show_context_menu(self, event):
-        from PyQt5.QtWidgets import QMenu, QAction
-        menu = QMenu(self.ui_area)
-
-        self.tool_window.fill_context_menu(menu, event.x(), event.y())
-        if not menu.isEmpty():
-            menu.addSeparator()
-        ti = self.tool_window.tool_instance
-        hide_tool_action = QAction("Hide this tool", self.ui_area)
-        hide_tool_action.triggered.connect(lambda arg, ti=ti: ti.display(False))
-        menu.addAction(hide_tool_action)
-        if ti.help is not None:
-            help_action = QAction("Help", self.ui_area)
-            help_action.setStatusTip("Show tool help")
-            help_action.triggered.connect(lambda arg, ti=ti: ti.display_help())
-            menu.addAction(help_action)
-        else:
-            no_help_action = QAction("No help available", self.ui_area)
-            no_help_action.setEnabled(False)
-            menu.addAction(no_help_action)
-        session = ti.session
-        autostart = ti.tool_name in session.ui.settings.autostart
-        auto_action = QAction("Start this tool at ChimeraX startup")
-        auto_action.setCheckable(True)
-        auto_action.setChecked(autostart)
-        from ..commands import run, quote_if_necessary
-        auto_action.triggered.connect(
-            lambda arg, ses=session, run=run, tool_name=ti.tool_name:
-            run(ses, "ui autostart %s %s" % (("true" if arg else "false"),
-            quote_if_necessary(ti.tool_name))))
-        menu.addAction(auto_action)
-        menu.exec(event.globalPos())
+        show_context_menu(event, self.tool_window.tool_instance, self.tool_window.fill_context_menu)
 
     def _get_shown(self):
         return not self.dock_widget.isHidden()
@@ -1209,3 +1186,36 @@ def redirect_stdio_to_logger(logger):
     sys.orig_stderr = sys.stderr
     sys.stderr = LogStderr(logger)
 
+def show_context_menu(event, tool_instance, fill_cb):
+    from PyQt5.QtWidgets import QMenu, QAction
+    menu = QMenu()
+
+    if fill_cb:
+        fill_cb(menu, event.x(), event.y())
+    if not menu.isEmpty():
+        menu.addSeparator()
+    ti = tool_instance
+    hide_tool_action = QAction("Hide this tool")
+    hide_tool_action.triggered.connect(lambda arg, ti=ti: ti.display(False))
+    menu.addAction(hide_tool_action)
+    if ti.help is not None:
+        help_action = QAction("Help")
+        help_action.setStatusTip("Show tool help")
+        help_action.triggered.connect(lambda arg, ti=ti: ti.display_help())
+        menu.addAction(help_action)
+    else:
+        no_help_action = QAction("No help available")
+        no_help_action.setEnabled(False)
+        menu.addAction(no_help_action)
+    session = ti.session
+    autostart = ti.tool_name in session.ui.settings.autostart
+    auto_action = QAction("Start this tool at ChimeraX startup")
+    auto_action.setCheckable(True)
+    auto_action.setChecked(autostart)
+    from ..commands import run, quote_if_necessary
+    auto_action.triggered.connect(
+        lambda arg, ses=session, run=run, tool_name=ti.tool_name:
+        run(ses, "ui autostart %s %s" % (("true" if arg else "false"),
+        quote_if_necessary(ti.tool_name))))
+    menu.addAction(auto_action)
+    menu.exec(event.globalPos())

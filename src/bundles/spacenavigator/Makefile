@@ -22,15 +22,16 @@ endif
 ifeq ($(OS),Linux)
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
 endif
+RUN = $(CHIMERAX_EXE) --nogui --exit --cmd
 
 PYSRCS = $(wildcard src/*.py)
 SRCS = $(PYSRCS) $(CSRCS)
 
 wheel:	bundle_info.xml $(SRCS)
-	$(CHIMERAX_EXE) --nogui --cmd "devel build . exit true"
+	$(RUN) "devel build . exit true"
 
 install app-install:	bundle_info.xml $(SRCS)
-	$(CHIMERAX_EXE) --nogui --cmd "devel install . user false exit true"
+	$(RUN) "devel install . user false exit true"
 
 test:
 	$(CHIMERAX_EXE)
@@ -39,7 +40,7 @@ debug:
 	$(CHIMERAX_EXE) --debug
 
 clean:
-	$(CHIMERAX_EXE) --nogui --cmd "devel clean . exit true"
+	$(RUN) "devel clean . exit true"
 
 pylint:
 	$(CHIMERAX_EXE) -m flake8 $(filter %.py, $(SRCS))

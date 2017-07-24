@@ -31,6 +31,7 @@ class OptLine:
         #       "iterations", res.nit)
         # Even on failure, we use the last results from the optimization
         # rather than the initial guess.
+        from numpy import dot, sqrt, sum, fabs, mean, var
         self.centroid, self.axis = self._decode(res.x)
 
     def _encode(self, centroid, axis):
@@ -46,19 +47,27 @@ class OptLine:
         return centroid, axis
 
     def _residual(self, params):
-        from numpy import dot, sqrt, sum, fabs, mean, var
         centroid, axis = self._decode(params)
-        # x = atom coordinates (vector Nx3)
-        # xmp = coordinates relative to centroid (vector Nx3)
-        xmp = self.coords - centroid
-        # xa = coordinates . axis (vector N)
-        xa = dot(self.coords, axis)
-        # ca = centroid . axis (scalar)
-        ca = dot(centroid, axis)
-        # f = squared distance from torus center line (vector N)
-        f = sum(xmp * xmp, axis=1) - xa * xa + 2 * xa * ca - ca * ca
-        # residual = variance in squared distance
-        res = var(f)
+        if False:
+            from numpy import dot, sqrt, sum, fabs, mean, var
+            # x = atom coordinates (vector Nx3)
+            # xmp = coordinates relative to centroid (vector Nx3)
+            xmp = self.coords - centroid
+            # xa = coordinates . axis (vector N)
+            xa = dot(self.coords, axis)
+            # ca = centroid . axis (scalar)
+            ca = dot(centroid, axis)
+            # f = squared distance from cylinder center line (vector N)
+            f = sum(xmp * xmp, axis=1) - xa * xa + 2 * xa * ca - ca * ca
+            # residual = variance in squared distance
+            res = var(f)
+        else:
+            from numpy import dot, outer, var
+            from numpy.linalg import norm
+            d = dot(self.coords - centroid, axis)
+            centers = centroid + outer(d, axis)
+            radii = norm(self.coords - centers, axis=1)
+            res = var(radii)
         return res
 
 
@@ -149,16 +158,20 @@ class HelixCylinder:
     # sequences is ALA(18) and the coordinates are from some of the
     # middle residues.  The axis parameters are (center, direction).
     from numpy import array
-    IDEAL_COORDS = array([
-        (-1.332,-3.667,-1.376),     # CA coordinates
+    IDEAL_COORDS = array([          # CA coordinates
+        (-4.543,-1.381,-5.088),
+        (-4.871,-2.280,-1.408),
+        (-1.332,-3.668,-1.376),
         (-0.007,-0.471,-2.952),
         (-1.782, 1.624,-0.322),
-        (-0.267,-0.482, 2.457),
-        ( 3.207,-0.031, 0.979),
+        (-0.267,-0.483, 2.456),
+        ( 3.207,-0.031, 0.978),
+        ( 2.712, 3.735, 0.827),
+        ( 1.634, 3.794, 4.473),
     ])
-    IDEAL_PARAMS = array([
-        (-0.395,-0.049,-0.215),     # center
-        (0.613,0.501,0.610)         # axis
+    IDEAL_PARAMS = array([          # center, axis
+        (-0.395,-0.049,-0.215),   
+        ( 0.613, 0.501, 0.610),
     ])
 
     def __init__(self, coords, radius=None, maxiter=None):

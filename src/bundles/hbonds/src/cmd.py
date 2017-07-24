@@ -12,14 +12,16 @@
 # === UCSF ChimeraX Copyright ===
 
 from .hbond import rec_dist_slop, rec_angle_slop, find_hbonds
+
+from chimerax.core.atomic import AtomicStructure
 from chimerax.core.colors import BuiltinColors
 
 def cmd_hbonds(session, spec=None, intra_model=True, inter_model=True, relax=True,
     dist_slop=rec_dist_slop, angle_slop=rec_angle_slop, two_colors=False,
-    sel_restrict=None, radius=0.075, save_file=None, batch=False,
+    sel_restrict=None, radius=AtomicStructure.default_hbond_radius, save_file=None, batch=False,
     inter_submodel=False, make_pseudobonds=True, retain_current=False,
     reveal=False, naming_style=None, log=False, cache_DA=None,
-    color=BuiltinColors["dark cyan"], slop_color=BuiltinColors["dark orange"],
+    color=AtomicStructure.default_hbond_color, slop_color=BuiltinColors["dark orange"],
     show_dist=False, intra_res=True, intra_mol=True, dashes=None,
     salt_only=False):
 
@@ -132,7 +134,7 @@ def cmd_hbonds(session, spec=None, intra_model=True, inter_model=True, relax=Tru
         pbg.clear()
         pbg.color = bond_color.uint8x4()
         pbg.radius = radius
-        pbg.dashes = dashes if dashes is not None else 6
+        pbg.dashes = dashes if dashes is not None else AtomicStructure.default_hbond_dashes
     else:
         for pb in pbg.pseudobonds:
             pre_existing[pb.atoms] = pb

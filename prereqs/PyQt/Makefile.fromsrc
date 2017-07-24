@@ -11,16 +11,26 @@ include $(TOP)/mk/subdir.make
 PYQT_LICENSE = commercial
 REMOTE_DIR = plato.cgl.ucsf.edu:/usr/local/src/PyQt5
 
-VERSION = 5.7
-DISTRIBUTION = PyQt5_$(PYQT_LICENSE)-$(VERSION).tar.gz
-SOURCE = $(tmpdir)/PyQt5_$(PYQT_LICENSE)-$(VERSION)
+# VERSION is overriden by Makefile
+VERSION = 5.9
+PYQT_MINOR_VERSION =
+QT_MINOR_VERSION = 1
+ifeq (,$(PYQT_MINOR_VERSION))
+PYQT_VERSION = $(VERSION)
+else
+PYQT_VERSION = $(VERSION).$(PYQT_MINOR_VERSION)
+endif
+QT_VERSION = $(VERSION).$(QT_MINOR_VERSION)
+
+DISTRIBUTION = PyQt5_$(PYQT_LICENSE)-$(PYQT_VERSION).tar.gz
+SOURCE = $(tmpdir)/PyQt5_$(PYQT_LICENSE)-$(PYQT_VERSION)
 
 ifeq ($(OS),Darwin)
 SIP_BIN = $(PYTHON_FRAMEWORK)/bin
 QT_BIN = $(bindir)
 else ifdef WIN32
 SIP_BIN = $(shell cygpath -m '$(bindir)')
-QT_BIN = c:/Qt/Qt$(VERSION).0/$(VERSION)/msvc2015_64/bin
+QT_BIN = c:/Qt/Qt$(QT_VERSION).0/$(QT_VERSION)/msvc2015_64/bin
 else
 SIP_BIN = $(bindir)
 QT_BIN = $(bindir)

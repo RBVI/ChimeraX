@@ -6,7 +6,7 @@ Cython==0.25.2
 distlib==0.2.4
 filelock==2.0.8
 line_profiler==2.0
-matplotlib==2.0.0
+matplotlib==2.0.2
 networkx==1.10
 openvr==1.0.401
 Pillow==4.1.0

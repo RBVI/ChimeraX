@@ -544,6 +544,9 @@ class PseudobondGroupData:
     To create a PseudobondGroup use the :class:`PseudobondManager` get_group() method.
     '''
 
+    GROUP_TYPE_NORMAL = 1
+    GROUP_TYPE_COORD_SET = 2
+
     def __init__(self, pbg_pointer):
         set_c_pointer(self, pbg_pointer)
 
@@ -564,6 +567,9 @@ class PseudobondGroupData:
         doc = "Name of the pseudobond group.  Read only string.")
     color = c_property('pseudobond_group_color', uint8, 4,
         doc="Sets the color attribute of current pseudobonds and new pseudobonds")
+    group_type = c_property('pseudobond_group_group_type', uint8, read_only = True, doc=
+        "PseudobondGroup.GROUP_TYPE_NORMAL is a normal group,"
+        "PseudobondGroup.GROUP_TYPE_COORD_SET is a per-coord-set pseudobond group")
     halfbond = c_property('pseudobond_group_halfbond', npy_bool,
         doc = "Sets the halfbond attribute of current pseudobonds and new pseudobonds")
     num_pseudobonds = c_property('pseudobond_group_num_pseudobonds', size_t, read_only = True,

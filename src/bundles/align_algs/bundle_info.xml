@@ -13,14 +13,27 @@
     <Category name="Sequence alignment"/>
   </Categories>
 
+  <DataFiles>
+    <DataFile>include/align_algs/*</DataFile>
+  </DataFiles>
+
+  <CLibrary name="align_algs" static="true">
+    <IncludeDir>src/include/align_algs</IncludeDir>
+    <SourceFile>src/support.cpp</SourceFile>
+  </CLibrary>
+
   <CModule name="_nw">
     <SourceFile>_nw/nw.cpp</SourceFile>
+    <IncludeDir>src/include</IncludeDir>
+    <LibraryDir>src/lib</LibraryDir>
     <Library>align_algs</Library>
     <Library>arrays</Library>
   </CModule>
 
   <CModule name="_sw">
     <SourceFile>_sw/sw.cpp</SourceFile>
+    <IncludeDir>src/include</IncludeDir>
+    <LibraryDir>src/lib</LibraryDir>
     <Library>align_algs</Library>
   </CModule>
 

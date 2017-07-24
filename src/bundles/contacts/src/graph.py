@@ -104,8 +104,11 @@ class Plot(ToolInstance):
     def matplotlib_mouse_event(self, x, y):
         '''Used for detecting clicked matplotlib canvas item using Artist.contains().'''
         h = self.tool_window.ui_area.height()
+        # TODO: matplotlib 2.0.2 bug on mac retina displays, requires 2x scaling
+        # for picking objects to work. ChimeraX ticket #762.
+        pr = self.tool_window.ui_area.devicePixelRatio()
         from matplotlib.backend_bases import MouseEvent
-        e = MouseEvent('context menu', self.canvas, x, h-y)
+        e = MouseEvent('context menu', self.canvas, pr*x, pr*(h-y))
         return e
 
 # ------------------------------------------------------------------------------

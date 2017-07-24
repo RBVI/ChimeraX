@@ -173,10 +173,6 @@ class Structure(Model, StructureData):
                     if isinstance(m, self.__class__)]) == 1:
                 cmd = Command(session)
                 cmd.run("lighting " + lighting, log=False)
-
-        hb_pbg = self.pbg_map.get("hydrogen bonds", None)
-        if hb_pbg:
-            hb_pbg.dashes = 6
         self._start_change_tracking(session.change_tracker)
 
         # Setup handler to manage C++ data changes that require graphics updates.
@@ -1921,6 +1917,11 @@ class AtomicStructure(Structure):
     which provides access to the C++ structures.
     """
 
+    from ..colors import BuiltinColors
+    default_hbond_color = BuiltinColors["dark cyan"]
+    default_hbond_radius = 0.075
+    default_hbond_dashes = 6
+
     def __init__(self, *args, **kw):
         super().__init__(*args, **kw)
         self._set_chain_descriptions(self.session)
@@ -1928,6 +1929,28 @@ class AtomicStructure(Structure):
 
     def added_to_session(self, session):
         super().added_to_session(session)
+
+        hb_pbg = self.pbg_map.get("hydrogen bonds", None)
+        if hb_pbg and not (
+                self.num_coordsets > 1 and hb_pbg.group_type == hb_pbg.GROUP_TYPE_COORD_SET):
+            pre_existing = "hydrogen bonds" in session.pb_manager.group_map
+            global_group = session.pb_manager.get_group("hydrogen bonds", create=True)
+            for pb in hb_pbg.pseudobonds:
+                global_group.new_pseudobond(*pb.atoms)
+            if not pre_existing:
+                global_group.dashes = self.default_hbond_dashes
+                global_group.radius = self.default_hbond_radius
+                global_group.color = self.default_hbond_color.uint8x4()
+                session.models.add([global_group])
+            def del_after_add(trig_name, models, hb_pbg=hb_pbg, ses=session):
+                if hb_pbg in models:
+                    ses.models.remove([hb_pbg])
+                    hb_pbg.delete()
+                    from ..triggerset import DEREGISTER
+                    return DEREGISTER
+            from ..models import ADD_MODELS
+            session.triggers.add_handler(ADD_MODELS, del_after_add)
+
         if self._log_info:
             # don't report models in an NMR ensemble individually...
             if len(self.id) > 1:

@@ -22,9 +22,7 @@
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>ChimeraX :: DataFormat :: IHM :: :: Higher-Order Structure :: .ihm :: :: http://salilab.org/ :: :: :: Integrative Hybrid Models data</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Open :: IHM :: ihm :: true :: ensembles:Bool</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: DataFormat :: Binary Coordinates :: :: Molecular structure :: .crd :: :: :: :: :: Raw binary coordinates</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Save :: Binary Coordinates :: crd :: true</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Open :: Binary Coordinates :: crd :: true :: model:Model</ChimeraXClassifier>
+ier>
   </Classifiers>
 
 </BundleInfo>

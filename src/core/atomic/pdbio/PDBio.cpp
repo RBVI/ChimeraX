@@ -1536,7 +1536,7 @@ write_conect(std::ostream& os, const Structure* s, std::map<const Atom*, int>& r
 
 static void
 write_pdb(std::vector<const Structure*> structures, std::ostream& os, bool selected_only,
-    bool displayed_only, std::vector<double*>& xforms, bool all_frames, bool pqr)
+    bool displayed_only, std::vector<double*>& xforms, bool all_coordsets, bool pqr)
 {
     PDB p;
     // non-selected/displayed atoms may not be written out, so we need to track what
@@ -1546,7 +1546,7 @@ write_pdb(std::vector<const Structure*> structures, std::ostream& os, bool selec
     for (std::vector<const Structure*>::size_type i = 0; i < structures.size(); ++i) {
         auto s = structures[i];
         auto xform = xforms[i];
-        bool multi_model = (s->coord_sets().size() > 1) && all_frames;
+        bool multi_model = (s->coord_sets().size() > 1) && all_coordsets;
         // Output headers only before first MODEL
         if (s == structures[0]) {
             // write out known headers first
@@ -1642,7 +1642,7 @@ read_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
 static const char*
 docstr_write_pdb_file = 
 "write_pdb_file(structures, file_name, selected_only=False, displayed_only=False, xforms=None\n" \
-"    all_frames=True, pqr=False)\n" \
+"    all_coordsets=True, pqr=False)\n" \
 "\n" \
 "structures\n" \
 "  A sequence of C++ structure pointers\n" \
@@ -1657,9 +1657,9 @@ docstr_write_pdb_file =
 "  structure.  If None then untransformed coordinates will be used for all structures.\n" \
 "  Similarly, any None in the sequence will cause untransformed coordinates to be used\n" \
 "  for that structure.\n" \
-"all_frames\n" \
-"  If True, all frames of a trajectory will be written (as multiple MODELS).\n" \
-"  Otherwise, just the current frame will be written.\n" \
+"all_coordsets\n" \
+"  If True, all coordsets of a trajectory will be written (as multiple MODELS).\n" \
+"  Otherwise, just the current coordset will be written.\n" \
 "pqr\n" \
 "  If True, write PQR-style ATOM records\n" \
 "\n";
@@ -1672,15 +1672,15 @@ write_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
     int selected_only = (int)false;
     int displayed_only = (int)false;
     PyObject* py_xforms = Py_None;
-    int all_frames = (int)true;
+    int all_coordsets = (int)true;
     int pqr = (int)false;
     static const char *kw_list[] = {
-        "structures", "file_name", "selected_only", "displayed_only", "xforms", "all_frames",
+        "structures", "file_name", "selected_only", "displayed_only", "xforms", "all_coordsets",
         "pqr", nullptr
     };
     if (!PyArg_ParseTupleAndKeywords(args, keywords, "OO&|$ppOpp",
             (char **) kw_list, &py_structures, PyUnicode_FSConverter, &py_path, &selected_only,
-            &displayed_only, &py_xforms, &all_frames, &pqr))
+            &displayed_only, &py_xforms, &all_coordsets, &pqr))
         return nullptr;
 
     if (!PySequence_Check(py_structures)) {
@@ -1752,8 +1752,8 @@ write_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
             xforms.push_back(static_cast<double*>(array.values()));
         }
     }
-    write_pdb(structures, os, (bool)selected_only, (bool)displayed_only, xforms, (bool)all_frames,
-        (bool)pqr);
+    write_pdb(structures, os, (bool)selected_only, (bool)displayed_only, xforms,
+        (bool)all_coordsets, (bool)pqr);
 
     if (os.bad()) {
         PyErr_SetString(PyExc_ValueError, "Problem writing output PDB file");
