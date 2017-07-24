@@ -52,7 +52,7 @@ def open_pdb(session, stream, file_name, auto_style=True, coordsets=False):
 
 
 def save_pdb(session, path, format, models=None, selected_only=False, displayed_only=False,
-        all_frames=False, pqr=False, rel_model=None):
+        all_coordsets=False, pqr=False, rel_model=None):
     from ..errors import UserError
     if models is None:
         models = session.models
@@ -81,10 +81,10 @@ def save_pdb(session, path, format, models=None, selected_only=False, displayed_
         for m, xform in zip(models, xforms):
             file_name = path.replace("[ID]", m.id_string()).replace("[NAME]", m.name)
             pdbio.write_pdb_file([m.cpp_pointer], file_name, selected_only=selected_only,
-                displayed_only=displayed_only, xforms=[xform], all_frames=all_frames, pqr=pqr)
+                displayed_only=displayed_only, xforms=[xform], all_coordsets=all_coordsets, pqr=pqr)
     else:
         pdbio.write_pdb_file([m.cpp_pointer for m in models], path, selected_only=selected_only,
-            displayed_only=displayed_only, xforms=xforms, all_frames=all_frames, pqr=pqr)
+            displayed_only=displayed_only, xforms=xforms, all_coordsets=all_coordsets, pqr=pqr)
 
 
 _pdb_sources = {
@@ -142,7 +142,7 @@ def register_pdb_format():
     from ..commands import add_keyword_arguments, BoolArg, ModelsArg, ModelArg
     add_keyword_arguments('open', {'coordsets':BoolArg, 'auto_style':BoolArg})
     add_keyword_arguments('save', {'models':ModelsArg, 'selected_only':BoolArg,
-        'displayed_only':BoolArg, 'all_frames':BoolArg, 'pqr':BoolArg, 'rel_model':ModelArg})
+        'displayed_only':BoolArg, 'all_coordsets':BoolArg, 'pqr':BoolArg, 'rel_model':ModelArg})
 
 
 def register_pdb_fetch():

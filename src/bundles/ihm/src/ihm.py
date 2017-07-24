@@ -462,7 +462,7 @@ class IHMModel(Model):
                     sm = gsm[0].copy(name = mname)
                     dcd_path = finfo.path(self.session)
                     from chimerax.md_crds.read_coords import read_coords
-                    read_coords(self.session, dcd_path, sm, format_name = 'DCD coordinates', replace=True)
+                    read_coords(self.session, dcd_path, sm, format_name = 'dcd', replace=True)
                     sm.active_coordset_id = 1
                 elif fname.endswith('.pdb') or fname.endswith('.pdb.gz'):
                     fstream = finfo.stream(self.session, uncompress = True)
@@ -472,10 +472,6 @@ class IHMModel(Model):
                     mlist,msg = open_pdb(self.session, fstream, mname,
                                          auto_style = False, coordsets = True)
                     sm = mlist[0]
-                    path = fstream.name if hasattr(fstream, 'name') else None
-                    if path and isfile(path + '.crd'):
-                        from .coordsets import read_coordinate_sets
-                        read_coordinate_sets(path + '.crd', sm)
                 sm.display = False
                 sm.name += ' %d models' % sm.num_coordsets
                 sm.ss_assigned = True	# Don't assign secondary structure to sphere model
