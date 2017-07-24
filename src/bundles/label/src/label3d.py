@@ -227,8 +227,9 @@ class ObjectLabels(Model):
                 if label_class is None or isinstance(l, label_class)]
 
     def _update_graphics_if_needed(self, *_):
-        for ld in self._label_drawings.values():
-            ld._update_graphics()
+        if self.visible:
+            for ld in self._label_drawings.values():
+                ld._update_graphics()
 
     def take_snapshot(self, session, flags):
         lattrs = ('object', 'offset', 'text', 'color', 'size', 'typeface')
@@ -350,14 +351,17 @@ class ObjectLabel(Drawing):
     color = property(_get_color, _set_color)
             
     def draw(self, renderer, place, draw_pass, selected_only=False):
+        if not self.display:
+            return
         self._update_label_texture()  # This needs to be done during draw in case texture delete needed.
         Drawing.draw(self, renderer, place, draw_pass, selected_only)
 
     def _update_graphics(self):
-        self._position_label()
         disp = self.visible()
         if disp != self.display:
             self.display = disp
+        if self.display:
+            self._position_label()
 
     def _update_label_texture(self):
         if not self._needs_update:
