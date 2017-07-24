@@ -51,7 +51,7 @@ def open_pdb(session, stream, file_name, auto_style=True, coordsets=False):
     return models, info
 
 
-def save_pdb(session, path, format, models=None, selected_only=False, displayed_only=False,
+def save_pdb(session, path, models=None, selected_only=False, displayed_only=False,
         all_coordsets=False, pqr=False, rel_model=None):
     from ..errors import UserError
     if models is None:

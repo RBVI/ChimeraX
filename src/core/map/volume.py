@@ -3043,7 +3043,7 @@ def open_grids(session, grids, name, **kw):
 
 # -----------------------------------------------------------------------------
 #
-def save_map(session, filename, format, models = None, region = None, step = (1,1,1),
+def save_map(session, path, format_name, models = None, region = None, step = (1,1,1),
              mask_zone = True, chunk_shapes = None, append = None, compress = None,
              base_index = 1, **kw):
     '''
@@ -3066,14 +3066,14 @@ def save_map(session, filename, format, models = None, region = None, step = (1,
 
       
     from .data.fileformats import file_writer, file_writers
-    if file_writer(filename, format) is None:
+    if file_writer(path, format_name) is None:
         from ..errors import UserError
-        if format is None:
+        if format_name is None:
             msg = ('Unknown file suffix for "%s", known suffixes %s'
-                   % (filename, ', '.join(sum([fw[2] for fw in file_writers], []))))
+                   % (path, ', '.join(sum([fw[2] for fw in file_writers], []))))
         else:
             msg = ('Unknown file format "%s", known formats %s'
-                   % (format, ', '.join(fw[1] for fw in file_writers)))
+                   % (format_name, ', '.join(fw[1] for fw in file_writers)))
         raise UserError(msg)
         
     options = {}
@@ -3083,17 +3083,17 @@ def save_map(session, filename, format, models = None, region = None, step = (1,
         options['append'] = True
     if compress:
         options['compress'] = True
-    if filename in ('browse', 'browser'):
+    if path in ('browse', 'browser'):
         from .data import select_save_path
-        filename, format = select_save_path()
-    if filename:
+        path, format_name = select_save_path()
+    if path:
         grids = [v.grid_data(region, step, mask_zone) for v in vlist]
         from .data import save_grid_data
-        if is_multifile_save(filename):
+        if is_multifile_save(path):
             for i,g in enumerate(grids):
-                save_grid_data(g, filename % (i + base_index), session, format, options)
+                save_grid_data(g, path % (i + base_index), session, format_name, options)
         else:
-            save_grid_data(grids, filename, session, format, options)
+            save_grid_data(grids, path, session, format_name, options)
    
 # -----------------------------------------------------------------------------
 # Check if file name contains %d type format specification.
