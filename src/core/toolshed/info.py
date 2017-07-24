@@ -271,6 +271,7 @@ class BundleInfo:
                     if f == BundleAPI.save_file:
                         raise ToolshedError(
                             "bundle \"%s\"'s API forgot to override save_file()" % bi_self.name)
+                    return f
                 format._boot_export_func = boot_save
 
                 if fi.save_kwds:
