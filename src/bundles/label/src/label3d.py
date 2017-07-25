@@ -13,7 +13,7 @@
 # -----------------------------------------------------------------------------
 #
 def label(session, atoms = None, object_type = None, text = None,
-          offset = None, color = None, size = None, typeface = None, on_top = None):
+          offset = None, color = None, size = None, font = None, on_top = None):
     '''Create atom labels. The belong to a child model named "labels" of the structure.
 
     Parameters
@@ -31,7 +31,7 @@ def label(session, atoms = None, object_type = None, text = None,
       and white is used on dark backgrounds.
     size : int or "default"
       Font size in pixels. Default 24.
-    typeface : string or "default"
+    font : string or "default"
       Font name.  This must be a true type font installed on Mac in /Library/Fonts
       and is the name of the font file without the ".ttf" suffix.  Default "Arial".
     on_top : bool
@@ -61,10 +61,10 @@ def label(session, atoms = None, object_type = None, text = None,
         settings['size'] = 24
     elif size is not None:
         settings['size'] = size
-    if typeface == 'default':
-        settings['typeface'] = 'Arial'
-    elif typeface is not None:
-        settings['typeface'] = typeface
+    if font == 'default':
+        settings['font'] = 'Arial'
+    elif font is not None:
+        settings['font'] = font
         
     view = session.main_view
     lcount = 0
@@ -173,7 +173,7 @@ def register_label_command(logger):
                               ('offset', Or(DefArg, Float3Arg)),
                               ('color', Or(DefArg, ColorArg)),
                               ('size', Or(DefArg, IntArg)),
-                              ('typeface', StringArg),
+                              ('font', StringArg),
                               ('on_top', BoolArg)],
                    synopsis = 'Create atom labels')
     register('label', desc, label, logger=logger)
@@ -252,7 +252,7 @@ class ObjectLabels(Model):
                 ld._update_graphics()
 
     def take_snapshot(self, session, flags):
-        lattrs = ('object', 'offset', 'text', 'color', 'size', 'typeface')
+        lattrs = ('object', 'offset', 'text', 'color', 'size', 'font')
         lstate = tuple({attr:getattr(ld, attr) for attr in lattrs}
                        for ld in self._label_drawings.values())
         data = {'model state': Model.take_snapshot(self, session, flags),
@@ -274,7 +274,7 @@ class ObjectLabels(Model):
         v = self.session.main_view
         for ls in data['labels state']:
             o = ls['object']
-            kw = {attr:ls[attr] for attr in ('offset', 'text', 'color', 'size', 'typeface')}
+            kw = {attr:ls[attr] for attr in ('offset', 'text', 'color', 'size', 'font')}
             cls = label_class(o)
             ld[o] = ol = cls(o, v, **kw)
             self.add_drawing(ol)
@@ -302,7 +302,7 @@ class ObjectLabel(Drawing):
     pickable = False		# Don't allow mouse selection of labels
     
     def __init__(self, object, view, offset = None, text = None, color = None,
-                 size = 24, typeface = 'Arial'):
+                 size = 24, font = 'Arial'):
         Drawing.__init__(self, 'label %s' % self.default_text())
 
         self.object = object
@@ -313,7 +313,7 @@ class ObjectLabel(Drawing):
         self.size = size
         self._pixel_size = (100,10)	# Size of label in pixels, calculated from size attribute
 
-        self.typeface = typeface
+        self.font = font
 
         # Set initial billboard geometry
         from numpy import array, float32, int32
@@ -391,9 +391,9 @@ class ObjectLabel(Drawing):
         from chimerax import app_data_dir
         from .label2d import text_image_rgba
         text = self.text
-        rgba = text_image_rgba(text, rgba8, s, self.typeface, app_data_dir)
+        rgba = text_image_rgba(text, rgba8, s, self.font, app_data_dir)
         if rgba is None:
-            raise RuntimeError("Can't find font %s size %d for label '%s'" % (self.typeface, s, text))
+            raise RuntimeError("Can't find font %s size %d for label '%s'" % (self.font, s, text))
         if self.texture is not None:
             self.texture.delete_texture()
         from chimerax.core.graphics import opengl
@@ -427,9 +427,9 @@ class ObjectLabel(Drawing):
 #
 class AtomLabel(ObjectLabel):
     def __init__(self, object, view, offset = None, text = None, color = None,
-                 size = 24, typeface = 'Arial'):
+                 size = 24, font = 'Arial'):
         self.atom = object
-        ObjectLabel.__init__(self, object, view, offset=offset, text=text, color=color, size=size, typeface=typeface)
+        ObjectLabel.__init__(self, object, view, offset=offset, text=text, color=color, size=size, font=font)
     def default_text(self):
         return self.atom.name
     def default_offset(self):
@@ -443,9 +443,9 @@ class AtomLabel(ObjectLabel):
 #
 class ResidueLabel(ObjectLabel):
     def __init__(self, object, view, offset = None, text = None, color = None,
-                 size = 24, typeface = 'Arial'):
+                 size = 24, font = 'Arial'):
         self.residue = object
-        ObjectLabel.__init__(self, object, view, offset=offset, text=text, color=color, size=size, typeface=typeface)
+        ObjectLabel.__init__(self, object, view, offset=offset, text=text, color=color, size=size, font=font)
     def default_text(self):
         r = self.residue
         return '%s %d' % (r.name, r.number)
@@ -459,9 +459,9 @@ class ResidueLabel(ObjectLabel):
 #
 class PseudobondLabel(ObjectLabel):
     def __init__(self, object, view, offset = None, text = None, color = None,
-                 size = 24, typeface = 'Arial'):
+                 size = 24, font = 'Arial'):
         self.pseudobond = object
-        ObjectLabel.__init__(self, object, view, offset=offset, text=text, color=color, size=size, typeface=typeface)
+        ObjectLabel.__init__(self, object, view, offset=offset, text=text, color=color, size=size, font=font)
     def default_text(self):
         return '%.2f' % self.pseudobond.length
     def default_offset(self):
