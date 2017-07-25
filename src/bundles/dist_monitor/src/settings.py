@@ -15,7 +15,10 @@ from chimerax.core.settings import Settings
 
 class _DistMonitorSettings(Settings):
 
-    EXPLICIT_SAVE = { }
+    EXPLICIT_SAVE = {
+        "precision": 3,
+        "show_units": True
+    }
 
 settings = None
 def init(session):
