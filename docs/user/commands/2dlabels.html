@@ -26,8 +26,10 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="../index.html#commands">Command</a>: 2dlabels</h3>
 
 <h3><a href="usageconventions.html">Usage</a>:
-<br><b>2dlabels</b>&nbsp;&nbsp;<i>action</i>&nbsp;&nbsp;<i>arguments</i></h3>
-<p>
+<br><b>2dlabels</b>&nbsp;&nbsp;<i>action</i>&nbsp;&nbsp;<i>arguments</i>
+</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>2dlabels fonts</b>
 </h3>
 <p>
 The <b>2dlabels</b> command allows adding 2D text and
@@ -36,11 +38,9 @@ for presentation-quality images and movies.
 The labels can be of multiple colors and sizes.
 They exist in the X,Y plane (the plane of the screen) 
 and do not move along with the scene.
-</p>
-<blockquote>
-** <b>due to font issues, 2dlabels may only work on Macs</b> **
-</blockquote>
-<p>
+The command <b>2dlabels fonts</b> lists the available fonts
+in the <a href="../tools/log.html"><b>Log</b></a>.
+</p><p>
 For labels that move along with the associated atoms in 3D,
 see the <a href="label.html"><b>label</b></a> command.
 See also:
@@ -79,7 +79,7 @@ Examples:
   [&nbsp;<b>text</b>&nbsp;<i>label-contents</i>&nbsp;]
   [&nbsp;<b>color</b>&nbsp;<i>label-color</i>&nbsp;]
   [&nbsp;<b>size</b>&nbsp;<i>font-size</i>&nbsp;]
-  [&nbsp;<b>typeface</b>&nbsp;<i>font-typeface</i>&nbsp;]
+  [&nbsp;<b>font</b>&nbsp;<i>font-type</i>&nbsp;]
   [&nbsp;<b>xpos</b>&nbsp;<i>x-position</i>&nbsp;]
   [&nbsp;<b>ypos</b>&nbsp;<i>y-position</i>&nbsp;]
   [&nbsp;<b>visibility</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
@@ -106,10 +106,10 @@ any <a href="colornames.html">color name</a>
 that specifies a single color (default <b>white</b>). 
 The <i>font-size</i> must be an integer greater than zero 
 (default <b>24</b>). 
-The <i>font-typeface</i> must be the name 
-(minus the &ldquo;.ttf&rdquo; suffix)
-of a font file installed in the <b>Mac</b> /Library/Fonts/ directory
-(default <b>Arial</b>).
+The possible values of <i>font-type</i> (default <b>Arial</b>)
+can be listed in the <a href="../tools/log.html"><b>Log</b></a>
+with the command <b>2dlabels fonts</b>.
+Those with spaces must be enclosed in quoatation marks.
 The <i>x-position</i> and <i>y-position</i> are the X and Y
 coordinates of the lower lefthand corner of the label 
 (defaults are <b>0.5</b> and <b>0.5</b>).  The X axis is 
@@ -124,7 +124,7 @@ The <b>visibility</b> option specifies whether the label should be displayed.
   [&nbsp;<b>text</b>&nbsp;<i>label-contents</i>&nbsp;]
   [&nbsp;<b>color</b>&nbsp;<i>label-color</i>&nbsp;]
   [&nbsp;<b>size</b>&nbsp;<i>font-size</i>&nbsp;]
-  [&nbsp;<b>typeface</b>&nbsp;<i>font-typeface</i>&nbsp;]
+  [&nbsp;<b>font</b>&nbsp;<i>font-type</i>&nbsp;]
   [&nbsp;<b>xpos</b>&nbsp;<i>x-position</i>&nbsp;]
   [&nbsp;<b>ypos</b>&nbsp;<i>y-position</i>&nbsp;]
   [&nbsp;<b>visibility</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
