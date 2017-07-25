@@ -113,8 +113,7 @@ endif
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
-SUBDIRS	+= fonts \
-	   imex networkx numexpr numpy openmm \
+SUBDIRS	+= imex networkx numexpr numpy openmm \
 	   pcre pdbfixer pips pycollada \
 	   PyOpenGL PyQt pytables Python \
 	   scipy setuptools wrappy3
