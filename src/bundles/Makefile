@@ -12,7 +12,7 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
-SUBDIRS = add_missing_atoms align_algs alignments blastprotein \
+SUBDIRS = add_h add_missing_atoms align_algs alignments blastprotein \
 	  bundle_builder cage_builder cellpack chem_group cmd_line \
 	  color_globe contacts crosslinks \
 	  exp_cmd file_history hbonds help_viewer ihm label list_info \

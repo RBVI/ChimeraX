@@ -4131,6 +4131,11 @@ extern "C" EXPORT void element_number(void *elements, size_t n, uint8_t *number)
     error_wrap_array_get(e, n, &Element::number, number);
 }
 
+extern "C" EXPORT size_t element_NUM_SUPPORTED_ELEMENTS()
+{
+    return static_cast<size_t>(Element::NUM_SUPPORTED_ELEMENTS);
+}
+
 extern "C" EXPORT void element_mass(void *elements, size_t n, float *mass)
 {
     Element **e = static_cast<Element **>(elements);

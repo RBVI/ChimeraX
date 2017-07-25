@@ -1865,6 +1865,10 @@ class ChangeTracker:
 #
 class Element:
     '''A chemical element having a name, number, mass, and other physical properties.'''
+
+    NUM_SUPPORTED_ELEMENTS = c_function('element_NUM_SUPPORTED_ELEMENTS', args = (),
+        ret = size_t)
+
     def __init__(self, element_pointer):
         set_c_pointer(self, element_pointer)
 
