@@ -521,10 +521,11 @@ class _CLibrary(_CompiledCode):
             compiler.set_libraries(libraries)
         compiler.add_include_dir(distutils.sysconfig.get_python_inc())
         if sys.platform == "win32":
+            # Link library directory for Python on Windows
             compiler.add_library_dir(os.path.join(sys.exec_prefix, 'libs'))
-            lib_name = "lib" + self.name        # ChimeraX convention
+            lib_name = "lib" + self.name
         else:
-            lib_name = self.name                # ChimeraX convention
+            lib_name = self.name
         if not self.static:
             compiler.define_macro("DYNAMIC_LIBRARY", 1)
         compiler.compile(self.source_files, extra_preargs=cpp_flags)
@@ -534,14 +535,25 @@ class _CLibrary(_CompiledCode):
             lib = compiler.library_filename(lib_name, lib_type="static")
             compiler.create_static_lib(objs, lib_name, output_dir=output_dir)
         else:
-            if sys.platform == "win32":
-                # On Windows where we need both .dll and .lib
+            if sys.platform == "darwin":
+                # On Mac, we only need the .dylib and it MUST be compiled
+                # with "-dynamiclib", not "-bundle".  Hence the giant hack:
+                try:
+                    n = compiler.linker_so.index("-bundle")
+                except ValueError:
+                    pass
+                else:
+                    compiler.linker_so[n] = "-dynamiclib"
+                lib = compiler.library_filename(lib_name, lib_type="dylib")
+                compiler.link_shared_object(objs, lib, output_dir="src",
+                                            extra_postargs=extra_link_args)
+            elif sys.platform == "win32":
+                # On Windows, we need both .dll and .lib
                 link_lib = compiler.library_filename(lib_name, lib_type="static")
                 extra_link_args.append("/LIBPATH:%s" % link_lib)
-            lib = compiler.shared_object_filename(lib_name)
-            compiler.link_shared_object(objs, lib, output_dir="src",
-                                        extra_postargs=extra_link_args)
-            if sys.platform == "win32":
+                lib = compiler.shared_object_filename(lib_name)
+                compiler.link_shared_object(objs, lib, output_dir="src",
+                                            extra_postargs=extra_link_args)
                 link_file = os.path.join(output_dir, link_lib)
                 try:
                     os.remove(link_file)
