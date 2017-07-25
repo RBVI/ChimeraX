@@ -44,6 +44,8 @@ class BundleBuilder:
         except AttributeError:
             pass
         import os.path, shutil
+        for lib in self.c_libraries:
+            lib.compile()
         if test:
             built = self._run_setup(["--no-user-cfg", "test", "bdist_wheel"])
         else:
@@ -104,6 +106,7 @@ class BundleBuilder:
             #   a singularity container on CentOS 7.3
             self._platform_names = self._linux_platforms
         # Read data from XML file
+        self._used_elements = set()
         from xml.dom.minidom import parse
         doc = parse(bundle_info)
         bi = doc.documentElement
@@ -113,8 +116,10 @@ class BundleBuilder:
         self._get_datafiles(bi)
         self._get_dependencies(bi)
         self._get_c_modules(bi)
+        self._get_c_libraries(bi)
         self._get_packages(bi)
         self._get_classifiers(bi)
+        self._check_unused_elements(bi)
 
     def _get_identifiers(self, bi):
         self.name = bi.getAttribute("name")
@@ -178,7 +183,7 @@ class BundleBuilder:
             except ValueError:
                 minor = 1
             uses_numpy = cm.getAttribute("usesNumpy") == "true"
-            c = _CModule(mod_name, major, minor, uses_numpy)
+            c = _CModule(mod_name, uses_numpy, major, minor)
             for e in self._get_elements(cm, "Requires"):
                 c.add_require(self._get_element_text(e))
             for e in self._get_elements(cm, "SourceFile"):
@@ -196,6 +201,31 @@ class BundleBuilder:
             for e in self._get_elements(cm, "FrameworkDir"):
                 c.add_framework_dir(self._get_element_text(e))
             self.c_modules.append(c)
+
+    def _get_c_libraries(self, bi):
+        self.c_libraries = []
+        for lib in self._get_elements(bi, "CLibrary"):
+            c = _CLibrary(lib.getAttribute("name"),
+                          lib.getAttribute("usesNumpy") == "true",
+                          lib.getAttribute("static") == "true",
+                          lib.getAttribute("outputDir"))
+            for e in self._get_elements(lib, "Requires"):
+                c.add_require(self._get_element_text(e))
+            for e in self._get_elements(lib, "SourceFile"):
+                c.add_source_file(self._get_element_text(e))
+            for e in self._get_elements(lib, "IncludeDir"):
+                c.add_include_dir(self._get_element_text(e))
+            for e in self._get_elements(lib, "Library"):
+                c.add_library(self._get_element_text(e))
+            for e in self._get_elements(lib, "LibraryDir"):
+                c.add_library_dir(self._get_element_text(e))
+            for e in self._get_elements(lib, "LinkArgument"):
+                c.add_link_argument(self._get_element_text(e))
+            for e in self._get_elements(lib, "Framework"):
+                c.add_framework(self._get_element_text(e))
+            for e in self._get_elements(lib, "FrameworkDir"):
+                c.add_framework_dir(self._get_element_text(e))
+            self.c_libraries.append(c)
 
     def _get_packages(self, bi):
         self.packages = []
@@ -329,6 +359,7 @@ class BundleBuilder:
             platform = se.getAttribute("platform")
             if not platform or platform in self._platform_names:
                 elements.append(se)
+        self._used_elements.update(elements)
         return elements
 
     def _get_element_text(self, e):
@@ -344,18 +375,24 @@ class BundleBuilder:
             raise ValueError("too many %s elements" % repr(tag))
         elif len(elements) == 0:
             raise ValueError("%s element is missing" % repr(tag))
+        self._used_elements.update(elements)
         return elements[0]
 
     def _get_singleton_text(self, bi, tag):
         return self._get_element_text(self._get_singleton(bi, tag))
 
+    def _check_unused_elements(self, bi):
+        for node in bi.childNodes:
+            if node.nodeType != node.ELEMENT_NODE:
+                continue
+            if node not in self._used_elements:
+                print("WARNING: unsupported element:", node.nodeName)
 
-class _CModule:
 
-    def __init__(self, name, major, minor, uses_numpy):
+class _CompiledCode:
+
+    def __init__(self, name, uses_numpy):
         self.name = name
-        self.major = major
-        self.minor = minor
         self.uses_numpy = uses_numpy
         self.requires = []
         self.source_files = []
@@ -390,9 +427,11 @@ class _CModule:
     def add_framework_dir(self, d):
         self.framework_dirs.append(d)
 
-    def ext_mod(self, package):
+    def _compile_options(self):
         import sys, os.path
-        from setuptools import Extension
+        for req in self.requires:
+            if not os.path.exists(req):
+                raise ValueError("unused on this platform")
         # platform-specific
         # Assume Python executable is in ROOT/bin/python
         # and make include directory be ROOT/include
@@ -404,17 +443,21 @@ class _CModule:
             inc_dirs.extend(get_numpy_include_dirs())
         if sys.platform == "darwin":
             libraries = self.libraries
-            compiler_flags = ["-std=c++11", "-stdlib=libc++"]
+            # Unfortunately, clang on macOS (for now) exits
+            # when receiving a -std=c++11 option when compiling
+            # a C (not C++) source file, which is why this value
+            # is named "cpp_flags" not "compile_flags"
+            cpp_flags = ["-std=c++11", "-stdlib=libc++"]
             extra_link_args = ["-F" + d for d in self.framework_dirs]
             for fw in self.frameworks:
                 extra_link_args.extend(["-framework", fw])
         elif sys.platform == "win32":
             libraries = ["lib" + lib for lib in self.libraries]
-            compiler_flags = []
+            cpp_flags = []
             extra_link_args = []
         else:
             libraries = self.libraries
-            compiler_flags = ["-std=c++11"]
+            cpp_flags = ["-std=c++11"]
             extra_link_args = []
         for req in self.requires:
             if not os.path.exists(req):
@@ -422,15 +465,89 @@ class _CModule:
         inc_dirs.extend(self.include_dirs)
         lib_dirs.extend(self.library_dirs)
         extra_link_args.extend(self.link_arguments)
+        return inc_dirs, lib_dirs, extra_link_args, libraries, cpp_flags
+
+
+class _CModule(_CompiledCode):
+
+    def __init__(self, name, uses_numpy, major, minor):
+        super().__init__(name, uses_numpy)
+        self.major = major
+        self.minor = minor
+
+    def ext_mod(self, package):
+        from setuptools import Extension
+        try:
+            (inc_dirs, lib_dirs, extra_link_args,
+             libraries, cpp_flags) = self._compile_options()
+        except ValueError:
+            return None
         return Extension(package + '.' + self.name,
                          define_macros=[("MAJOR_VERSION", self.major),
                                         ("MINOR_VERSION", self.minor)],
-                         extra_compile_args=compiler_flags,
+                         extra_compile_args=cpp_flags,
                          include_dirs=inc_dirs,
                          library_dirs=lib_dirs,
                          libraries=libraries,
                          extra_link_args=extra_link_args,
                          sources=self.source_files)
+
+
+class _CLibrary(_CompiledCode):
+
+    def __init__(self, name, uses_numpy, static, output_dir):
+        super().__init__(name, uses_numpy)
+        self.static = static
+        self.output_dir = output_dir
+
+    def compile(self):
+        import sys, os, os.path, distutils.ccompiler, distutils.sysconfig
+        try:
+            (inc_dirs, lib_dirs, extra_link_args,
+             libraries, cpp_flags) = self._compile_options()
+        except ValueError:
+            return None
+        if not self.output_dir:
+            output_dir = os.path.join("src", "lib")
+        else:
+            output_dir = os.path.join("src", self.output)
+        compiler = distutils.ccompiler.new_compiler()
+        distutils.sysconfig.customize_compiler(compiler)
+        if inc_dirs:
+            compiler.set_include_dirs(inc_dirs)
+        if lib_dirs:
+            compiler.set_library_dirs(inc_dirs)
+        if libraries:
+            compiler.set_libraries(libraries)
+        compiler.add_include_dir(distutils.sysconfig.get_python_inc())
+        if sys.platform == "win32":
+            compiler.add_library_dir(os.path.join(sys.exec_prefix, 'libs'))
+            lib_name = "lib" + self.name        # ChimeraX convention
+        else:
+            lib_name = self.name                # ChimeraX convention
+        if not self.static:
+            compiler.define_macro("DYNAMIC_LIBRARY", 1)
+        compiler.compile(self.source_files, extra_preargs=cpp_flags)
+        objs = compiler.object_filenames(self.source_files)
+        compiler.mkpath(output_dir)
+        if self.static:
+            lib = compiler.library_filename(lib_name, lib_type="static")
+            compiler.create_static_lib(objs, lib_name, output_dir=output_dir)
+        else:
+            if sys.platform == "win32":
+                # On Windows where we need both .dll and .lib
+                link_lib = compiler.library_filename(lib_name, lib_type="static")
+                extra_link_args.append("/LIBPATH:%s" % link_lib)
+            lib = compiler.shared_object_filename(lib_name)
+            compiler.link_shared_object(objs, lib, output_dir="src",
+                                        extra_postargs=extra_link_args)
+            if sys.platform == "win32":
+                link_file = os.path.join(output_dir, link_lib)
+                try:
+                    os.remove(link_file)
+                except OSError:
+                    pass
+                compiler.move_file(os.path.join("src", link_lib), link_file)
 
 if __name__ == "__main__" or __name__.startswith("ChimeraX_sandbox"):
     import sys

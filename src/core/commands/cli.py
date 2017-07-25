@@ -1964,7 +1964,12 @@ def add_keyword_arguments(name, kw_info):
     cmd._find_command_name(no_aliases=True)
     if not cmd._ci or cmd.amount_parsed != len(cmd.current_text):
         raise ValueError("'%s' is not a command name" % name)
-    # TODO: fail if there are conflicts with existing keywords?
+    # check compatibility with already-registered keywords
+    for kw, arg_type in kw_info.items():
+        if kw in cmd._ci._keyword and cmd._ci._keyword[kw] != arg_type:
+            raise ValueError("%s-command keyword '%s' being registered with different type (%s)"
+                " than previous registration (%s)" % (name, kw, repr(arg_type),
+                repr(cmd._ci._keyword[kw])))
     cmd._ci._keyword.update(kw_info)
     cmd._ci._keyword_map.update([(_user_kw(n), n) for n in kw_info])
 

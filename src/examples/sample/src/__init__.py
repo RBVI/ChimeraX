@@ -28,8 +28,25 @@ class _MyAPI(BundleAPI):
     # Override method for opening file
     @staticmethod
     def open_file(session, stream, name):
+
+    @staticmethod
+    def open_file(session, stream_or_path, optional_format_name, optional_file_name, **kw):
+        # 'open_file' is called by session code to open a file;
+        # returns (list of models, status message).
+        #
+        # Second arg must be 'stream' or 'path'.  Depending on the name, either an
+        # open data stream or a filesystem path will be provided.  The third and
+        # fourth arguments are optional (remove 'optional_' from their names if you
+        # provide them).  'format_name' will be the first nickname of the format
+        # (reminder: the nickname of a format that provides no explicit nicknames
+        # is the lower-case version of the full format name).  'file_name' is the
+        # name of the input file, with compression suffix and path components
+        # stripped.
+        # 
+        # You shouldn't actually use "**kw" but instead declare the actual keyword
+        # args that your format supports (as per your bundle_info.xml file).
         from .io import open_xyz
-        return open_xyz(session, stream, name)
+        return open_xyz(session, stream)
 
 
 bundle_api = _MyAPI()

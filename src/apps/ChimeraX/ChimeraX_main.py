@@ -209,6 +209,7 @@ def parse_arguments(argv):
             opts.debug = opt[2] == 'd'
         elif opt in ("--exit", "--noexit"):
             opts.event_loop = opt[2] != 'e'
+            opts.get_available_bundles = False
         elif opt == "--help":
             help = True
         elif opt in ("--gui", "--nogui"):
@@ -554,7 +555,7 @@ def init(argv, event_loop=True):
         sys.argv[:] = args  # runpy will insert appropriate argv[0]
         has_install = 'install' in sys.argv
         has_uninstall = 'uninstall' in sys.argv
-        per_user = '-user' in sys.argv
+        per_user = '--user' in sys.argv
         exit = SystemExit(os.EX_OK)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=BytesWarning)
@@ -570,8 +571,11 @@ def init(argv, event_loop=True):
             if has_install or has_uninstall:
                 sess.toolshed.reload(sess.logger, rebuild_cache=True)
                 sess.toolshed.set_install_timestamp(per_user)
-            if has_install:
-                remove_python_scripts(chimerax.app_bin_dir)
+            # Do not remove scripts anymore since we may be installing
+            # using ChimeraX which would put the right paths in
+            # generated files.
+            # if has_install:
+            #     remove_python_scripts(chimerax.app_bin_dir)
         return exit.code
 
     from chimerax.core import startup

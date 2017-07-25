@@ -8,7 +8,7 @@
 
 # These parameters may be changed as needed.
 
-# ChimeraX bundle names must start with "ChimeraX_"
+# ChimeraX bundle names must start with "ChimeraX-"
 # to avoid clashes with package names in pypi.python.org.
 # When uploaded to the ChimeraX toolshed, the bundle
 # will be displayed without the ChimeraX- prefix.

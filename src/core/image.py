@@ -29,13 +29,13 @@ default_format = 'png'
 image_formats = [ImageFormat(name, suffixes, pil_name)
                  for name, suffixes, pil_name in _formats]
 
-def save_image(session, filename, format, width=None, height=None,
+def save_image(session, path, format_name, width=None, height=None,
                supersample=3, pixel_size=None, transparent_background=False, quality=95):
     '''
     Save an image of the current graphics window contents.
     '''
     from os.path import expanduser, dirname, exists, splitext
-    path = expanduser(filename)         # Tilde expansion
+    path = expanduser(path)         # Tilde expansion
     dir = dirname(path)
     if dir and not exists(dir):
         from .errors import UserError
@@ -61,13 +61,13 @@ def save_image(session, filename, format, width=None, height=None,
                             % (pixel_size, psize))
 
     fmt = None
-    if format is not None:
+    if format_name is not None:
         for f in image_formats:
-            if f.name == format:
+            if f.name == format_name:
                 fmt = f
         if fmt is None:
             from .errors import UserError
-            raise UserError('Unknown image file format "%s"' % format)
+            raise UserError('Unknown image file format "%s"' % format_name)
         
     suffix = splitext(path)[1][1:].casefold()
     if suffix == '':

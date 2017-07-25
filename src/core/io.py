@@ -144,7 +144,7 @@ class FileFormat:
         self.reference = reference
 
         self._open_func = self._boot_open_func = None
-        self.export_func = None
+        self.export_func = self._boot_export_func = None
         self.export_notes = None
         self.batch = False
 
@@ -160,12 +160,37 @@ class FileFormat:
 
     open_func = property(_get_open_func, _set_open_func)
 
-    def export(self, *args, **kw):
+    def _get_export_func(self):
+        if self._boot_export_func:
+            self._export_func = self._boot_export_func()
+            self._boot_export_func = None
+        return self._export_func
+
+    def _set_export_func(self, func):
+        self._export_func = func
+        self._boot_export_func = None
+
+    export_func = property(_get_export_func, _set_export_func)
+
+    def export(self, session, path, format_name, **kw):
+        from .errors import UserError
         if self.export_func is None:
-            raise ValueError("Save %r files is not supported" % self.name)
-        check_keyword_compatibility(self.export_func, *args, **kw)
+            raise UserError("Save %r files is not supported" % self.name)
+        import inspect
+        params = inspect.signature(self.export_func).parameters
+        if len(params) < 2:
+            raise UserError("%s-opening function is missing mandatory session, path arguments"
+                % fmt.name)
+        if list(params.keys())[0] != "session":
+            raise UserError("First param of %s-saving function is not 'session'" % self.name)
+        if list(params.keys())[1] != "path":
+            raise UserError("Second param of %s-saving function must be 'path'" % self.name)
+        if 'format_name' in params:
+            kw['format_name'] = format_name
+
+        check_keyword_compatibility(self.export_func, session, path, **kw)
         try:
-            result = self.export_func(*args, **kw)
+            result = self.export_func(session, path, **kw)
         except IOError as e:
             from .errors import UserError
             raise UserError(e)
