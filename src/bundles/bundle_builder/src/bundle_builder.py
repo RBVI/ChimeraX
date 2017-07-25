@@ -383,7 +383,7 @@ class BundleBuilder:
 
     def _check_unused_elements(self, bi):
         for node in bi.childNodes:
-            if node.nodeType == node.TEXT_NODE:
+            if node.nodeType != node.ELEMENT_NODE:
                 continue
             if node not in self._used_elements:
                 print("WARNING: unsupported element:", node.nodeName)
