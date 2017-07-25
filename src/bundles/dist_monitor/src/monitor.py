@@ -20,6 +20,9 @@ class DistancesMonitor(State):
         self.monitored_groups = set()
         self.update_callbacks = {}
         self._distances_shown = True
+        from chimerax.core.atomic import get_triggers
+        triggers = get_triggers(session)
+        triggers.add_handler("changes", self._changes_handler)
 
     def add_group(self, group, update_callback=None):
         self.monitored_groups.add(group)
@@ -42,7 +45,17 @@ class DistancesMonitor(State):
         if group in self.update_callbacks:
             del self.update_callbacks[group]
 
-    def _update_distances(self, pseudobonds=None, *args):
+    def _changes_handler(self, _, changes):
+        if changes.num_deleted_pseudobond_groups() > 0:
+            for mg in list(self.monitored_groups):
+                if mg.deleted:
+                    self.remove_group(mg)
+        for pb in changes.created_pseudobonds:
+            if pb.group in self.monitored_groups:
+                self._update_distances(pseudobonds=[pb])
+        #TODO: modified coordsets; active coord set changed; matrix changed
+
+    def _update_distances(self, pseudobonds=None):
         if pseudobonds is None:
             pseudobonds = [pb for mg in self.monitored_groups for pb in mg.pseudobonds]
         by_group = {}
