@@ -123,6 +123,10 @@ class UI:
         pass  # nothing to build
 
     def quit(self):
+        # Hack around colorama not checking for closed streams at exit
+        import atexit, colorama.initialise
+        atexit.unregister(colorama.initialise.reset_all)
+        colorama.initialise.reset_all()
         import os
         import sys
         session = self._session()  # resolve back reference
