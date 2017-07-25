@@ -83,6 +83,17 @@ def label_delete(session, name):
 
 # -----------------------------------------------------------------------------
 #
+def label_fonts(session):
+    '''Report available fonts.'''
+    from PyQt5.QtGui import QFontDatabase
+    fdb = QFontDatabase()
+    fnames = list(fdb.families())
+    fnames.sort()
+    session.logger.info('%d fonts available:\n%s' % (len(fnames), '\n'.join(fnames)))
+
+
+# -----------------------------------------------------------------------------
+#
 def register_label_command(logger):
 
     from chimerax.core.commands import CmdDesc, register, BoolArg, IntArg, StringArg, FloatArg, ColorArg
@@ -106,6 +117,8 @@ def register_label_command(logger):
     delete_desc = CmdDesc(required = existing_arg,
                           synopsis = 'Delete a 2d label')
     register('2dlabels delete', delete_desc, label_delete, logger=logger)
+    fonts_desc = CmdDesc(synopsis = 'List available fonts')
+    register('2dlabels fonts', fonts_desc, label_fonts, logger=logger)
 
 
 # -----------------------------------------------------------------------------
@@ -259,10 +272,29 @@ class LabelDrawing(Drawing):
         # TODO
         pass
 
-
 # -----------------------------------------------------------------------------
 #
 def text_image_rgba(text, color, size, typeface, data_dir):
+    from PyQt5.QtGui import QImage, QPainter, QFont, QFontMetrics, QBrush, QColor
+    font = QFont(typeface, size)
+    fm = QFontMetrics(font)
+    r = fm.boundingRect(text)
+    ti = QImage(r.width(), r.height(), QImage.Format_ARGB32)
+    ti.fill(QColor(0,0,0,0))    # Set background transparent
+    p = QPainter()
+    p.begin(ti)
+    p.setFont(font)
+    c = QColor(*color)
+    p.setPen(c)
+    p.drawText(0, -r.y(), text)
+    from chimerax.core.graphics import qimage_to_numpy
+    rgba = qimage_to_numpy(ti)
+    p.end()
+    return rgba
+
+# -----------------------------------------------------------------------------
+#
+def text_image_rgba_pil(text, color, size, typeface, data_dir):
     import os, sys
     from PIL import Image, ImageDraw, ImageFont
     font_dir = os.path.join(data_dir, 'fonts', 'freefont')

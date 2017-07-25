@@ -159,6 +159,9 @@ def register_label_command(logger):
                    optional = [('object_type', otype)],
                    synopsis = 'Delete atom labels')
     register('label delete', desc, label_delete, logger=logger)
+    desc = CmdDesc(synopsis = 'List available fonts')
+    from .label2d import label_fonts
+    register('label fonts', desc, label_fonts, logger=logger)
 
 # -----------------------------------------------------------------------------
 #
