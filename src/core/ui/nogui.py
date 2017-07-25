@@ -93,6 +93,16 @@ class UI:
                 _colors["background"] = colorama.Back.BLACK
                 _colors["prompt"] = colorama.Fore.BLUE + colorama.Style.BRIGHT
                 _colors["endprompt"] = colorama.Style.NORMAL + _colors["normal"]
+                # Hack around colorama not checking for closed streams at exit
+                import atexit, colorama.initialise
+                atexit.unregister(colorama.initialise.reset_all)
+                def reset():
+                    try:
+                        colorama.initialise.reset_all()
+                    except ValueError:
+                        # raised if stream is closed
+                        pass
+                atexit.register(reset)
             except ImportError:
                 pass
 
@@ -123,10 +133,6 @@ class UI:
         pass  # nothing to build
 
     def quit(self):
-        # Hack around colorama not checking for closed streams at exit
-        import atexit, colorama.initialise
-        atexit.unregister(colorama.initialise.reset_all)
-        colorama.initialise.reset_all()
         import os
         import sys
         session = self._session()  # resolve back reference
