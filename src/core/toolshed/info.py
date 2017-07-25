@@ -259,8 +259,13 @@ class BundleInfo:
 
                 if fi.open_kwds:
                     from ..commands import cli
-                    cli.add_keyword_arguments('open', _convert_keyword_types(
-                        fi.open_kwds, self, logger))
+                    try:
+                        cli.add_keyword_arguments('open', _convert_keyword_types(
+                            fi.open_kwds, self, logger))
+                    except ValueError as e:
+                        logger.warning(
+                                "unable to register \"open\" keywords in bundle \"%s\": %s"
+                                % (self.name, str(e)))
             if fi.has_save:
                 def boot_save(bi_self=self, logger=logger):
                     try:
@@ -276,8 +281,13 @@ class BundleInfo:
 
                 if fi.save_kwds:
                     from ..commands import cli
-                    cli.add_keyword_arguments('save', _convert_keyword_types(
-                        fi.save_kwds, self, logger))
+                    try:
+                        cli.add_keyword_arguments('save', _convert_keyword_types(
+                            fi.save_kwds, self, logger))
+                    except ValueError as e:
+                        logger.warning(
+                                "unable to register \"save\" keywords in bundle \"%s\": %s"
+                                % (self.name, str(e)))
         for (database_name, format_name, prefixes, example_id, is_default) in self.fetches:
             if io.format_from_name(format_name) is None:
                 print('warning: unknown format %r given for database %r' % (format_name, database_name))

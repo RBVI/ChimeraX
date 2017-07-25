@@ -1811,3 +1811,14 @@ def _draw_texture(texture, renderer):
     d = _texture_drawing(texture)
     d.opaque_texture = True
     draw_overlays([d], renderer)
+    
+def qimage_to_numpy(qi):
+    shape = (qi.height(), qi.width(), 4)
+    buf = qi.bits().asstring(qi.byteCount())
+    from numpy import uint8, frombuffer
+    bgra = frombuffer(buf, uint8).reshape(shape)
+    rgba = bgra.copy()
+    rgba[:,:,0] = bgra[:,:,2]
+    rgba[:,:,2] = bgra[:,:,0]
+    rgba = rgba[::-1,:,:]	# flip
+    return rgba

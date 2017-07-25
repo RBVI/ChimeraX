@@ -113,8 +113,7 @@ endif
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
-SUBDIRS	+= fonts \
-	   imex numexpr numpy openmm \
+SUBDIRS	+= imex networkx numexpr numpy openmm \
 	   pcre pdbfixer pips pycollada \
 	   PyOpenGL PyQt pytables Python \
 	   scipy setuptools wrappy3
@@ -190,6 +189,8 @@ leapmotion.app-install: setuptools.app-install
 leapmotion.install: setuptools.install
 llvm.install: py7zip.install
 mesa.install: py7zip.install llvm.install pkgconfig.install
+networkx.app-install: setuptools.app-install
+networkx.install: setuptools.install
 numexpr.app-install: setuptools.app-install numpy.app-install pips.app-install
 numexpr.install: setuptools.install numpy.install pips.install
 openmm.app-install: Python.app-install numpy.app-install pips.app-install

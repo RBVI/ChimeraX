@@ -796,6 +796,7 @@ class HandControllerModel(Model):
         for i,im in enumerate(images):
             r = QRect((i%cols)*isize, (i//cols)*isize, isize, isize)
             p.drawImage(r, im)
+        from chimerax.core.graphics import qimage_to_numpy
         rgba = qimage_to_numpy(ti)
         p.end()
         return rgba
@@ -806,17 +807,6 @@ class HandControllerModel(Model):
         self._mode = 'zoom'
     def select_and_move(self):
         self._mode = 'move atoms'
-    
-def qimage_to_numpy(qi):
-    shape = (qi.height(), qi.width(), 4)
-    buf = qi.bits().asstring(qi.byteCount())
-    from numpy import uint8, frombuffer
-    bgra = frombuffer(buf, uint8).reshape(shape)
-    rgba = bgra.copy()
-    rgba[:,:,0] = bgra[:,:,2]
-    rgba[:,:,2] = bgra[:,:,0]
-    rgba = rgba[::-1,:,:]	# flip
-    return rgba
             
 def hmd44_to_opengl44(hm44):
     from numpy import array, float32

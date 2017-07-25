@@ -134,7 +134,9 @@ class Graph(Plot):
 
         # Layout and plot graph
         self._node_artist = None	# Matplotlib PathCollection for node display
+        self._node_objects = []		# For looking up mouse clicked object by index
         self._edge_artist = None	# Matplotlib LineCollection for edge display
+        self._edge_objects = []		# For looking up mouse clicked object by index
         self._labels = {}		# Maps group to Matplotlib Text object for labels
 
         c = self.canvas
@@ -188,6 +190,7 @@ class Graph(Plot):
         if self._node_artist:
             self._node_artist.remove()
         self._node_artist = na	# matplotlib PathCollection object
+        self._node_objects = nodes
 
         if len(nodes) < len(G):
             # Unclickable background nodes
@@ -307,7 +310,7 @@ class Graph(Plot):
         item = None
         if c:
             i = d['ind'][0]
-            item = self.graph.nodes()[i]
+            item = self._node_objects[i]
         elif self._edge_artist:
             # Check for edge click
             ec,ed = self._edge_artist.contains(e)

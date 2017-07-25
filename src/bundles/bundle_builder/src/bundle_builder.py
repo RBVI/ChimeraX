@@ -383,7 +383,7 @@ class BundleBuilder:
 
     def _check_unused_elements(self, bi):
         for node in bi.childNodes:
-            if node.nodeType == node.TEXT_NODE:
+            if node.nodeType != node.ELEMENT_NODE:
                 continue
             if node not in self._used_elements:
                 print("WARNING: unsupported element:", node.nodeName)
@@ -501,7 +501,7 @@ class _CLibrary(_CompiledCode):
         self.output_dir = output_dir
 
     def compile(self):
-        import sys, os.path, distutils.ccompiler, distutils.sysconfig
+        import sys, os, os.path, distutils.ccompiler, distutils.sysconfig
         try:
             (inc_dirs, lib_dirs, extra_link_args,
              libraries, cpp_flags) = self._compile_options()
@@ -521,22 +521,45 @@ class _CLibrary(_CompiledCode):
             compiler.set_libraries(libraries)
         compiler.add_include_dir(distutils.sysconfig.get_python_inc())
         if sys.platform == "win32":
+            # Link library directory for Python on Windows
             compiler.add_library_dir(os.path.join(sys.exec_prefix, 'libs'))
-            lib_name = "lib" + self.name        # ChimeraX convention
+            lib_name = "lib" + self.name
         else:
-            lib_name = self.name                # ChimeraX convention
+            lib_name = self.name
+        if not self.static:
+            compiler.define_macro("DYNAMIC_LIBRARY", 1)
         compiler.compile(self.source_files, extra_preargs=cpp_flags)
         objs = compiler.object_filenames(self.source_files)
-        print("objects are", objs)
         compiler.mkpath(output_dir)
         if self.static:
-            compiler.create_static_lib(objs, lib_name, output_dir=output_dir)
             lib = compiler.library_filename(lib_name, lib_type="static")
+            compiler.create_static_lib(objs, lib_name, output_dir=output_dir)
         else:
-            compiler.link_shared_lib(objs, lib_name, output_dir=output_dir)
-            lib = compiler.library_filename(lib_name, lib_type="dynamic")
-            # TODO: What about on Windows where we need both .dll and .lib?
-        print("library is", lib)
+            if sys.platform == "darwin":
+                # On Mac, we only need the .dylib and it MUST be compiled
+                # with "-dynamiclib", not "-bundle".  Hence the giant hack:
+                try:
+                    n = compiler.linker_so.index("-bundle")
+                except ValueError:
+                    pass
+                else:
+                    compiler.linker_so[n] = "-dynamiclib"
+                lib = compiler.library_filename(lib_name, lib_type="dylib")
+                compiler.link_shared_object(objs, lib, output_dir="src",
+                                            extra_postargs=extra_link_args)
+            elif sys.platform == "win32":
+                # On Windows, we need both .dll and .lib
+                link_lib = compiler.library_filename(lib_name, lib_type="static")
+                extra_link_args.append("/LIBPATH:%s" % link_lib)
+                lib = compiler.shared_object_filename(lib_name)
+                compiler.link_shared_object(objs, lib, output_dir="src",
+                                            extra_postargs=extra_link_args)
+                link_file = os.path.join(output_dir, link_lib)
+                try:
+                    os.remove(link_file)
+                except OSError:
+                    pass
+                compiler.move_file(os.path.join("src", link_lib), link_file)
 
 if __name__ == "__main__" or __name__.startswith("ChimeraX_sandbox"):
     import sys
