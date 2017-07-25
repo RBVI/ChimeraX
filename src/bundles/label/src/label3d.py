@@ -22,16 +22,16 @@ def label(session, atoms = None, object_type = None, text = None,
       Create labels on specified atoms.  If None the adjust settings of all existing labels.
     object_type : 'atoms', 'residues', 'pseudobonds'
       What type of object to label.
-    offset : float 3-tuple
+    offset : float 3-tuple or "default"
       Offset of label from atom center in screen coordinates in physical units (Angstroms)
-    text : string
+    text : string or "default"
       Displayed text of the label.
-    color : Color
+    color : Color or "default"
       Color of the label text.  If no color is specified black is used on light backgrounds
       and white is used on dark backgrounds.
-    size : int
+    size : int or "default"
       Font size in pixels. Default 24.
-    typeface : string
+    typeface : string or "default"
       Font name.  This must be a true type font installed on Mac in /Library/Fonts
       and is the name of the font file without the ".ttf" suffix.  Default "Arial".
     on_top : bool
@@ -42,8 +42,30 @@ def label(session, atoms = None, object_type = None, text = None,
         otypes = ['atoms', 'residues', 'pseudobonds'] if atoms is None else ['atoms']
     else:
         otypes = [object_type]
+
+    settings = {}
+    if text == 'default':
+        settings['text'] = None
+    elif text is not None:
+        settings['text'] = text
+    if offset == 'default':
+        settings['offset'] = None
+    elif offset is not None:
+        settings['offset'] = offset
     from chimerax.core.colors import Color
-    rgba = color.uint8x4() if isinstance(color, Color) else color
+    if isinstance(color, Color):
+        settings['color'] = color.uint8x4()
+    elif color == 'default':
+        settings['color'] = None
+    if size == 'default':
+        settings['size'] = 24
+    elif size is not None:
+        settings['size'] = size
+    if typeface == 'default':
+        settings['typeface'] = 'Arial'
+    elif typeface is not None:
+        settings['typeface'] = typeface
+        
     view = session.main_view
     lcount = 0
     for otype in otypes:
@@ -54,7 +76,7 @@ def label(session, atoms = None, object_type = None, text = None,
         object_class = label_object_class(otype)
         for m, objects in mo:
             lm = labels_model(m, create = True)
-            lm.add_labels(objects, object_class, view, offset, text, rgba, size, typeface, on_top)
+            lm.add_labels(objects, object_class, view, settings, on_top)
             lcount += len(objects)
     if atoms is None and lcount == 0:
         from chimerax.core.errors import UserError
@@ -150,7 +172,7 @@ def register_label_command(logger):
                    keyword = [('text', Or(DefArg, StringArg)),
                               ('offset', Or(DefArg, Float3Arg)),
                               ('color', Or(DefArg, ColorArg)),
-                              ('size', IntArg),
+                              ('size', Or(DefArg, IntArg)),
                               ('typeface', StringArg),
                               ('on_top', BoolArg)],
                    synopsis = 'Create atom labels')
@@ -194,23 +216,18 @@ class ObjectLabels(Model):
         if self.on_top:
             renderer.enable_depth_test(True)
     
-    def add_labels(self, objects, label_class, view, offset = None, text = None,
-                   color = None, size = 24, typeface = 'Arial', on_top = True):
+    def add_labels(self, objects, label_class, view, settings = {}, on_top = None):
         if on_top is not None:
             self.on_top = on_top
         ld = self._label_drawings
-        opts = [('offset', offset), ('text', text), ('color', color),
-                ('size', size), ('typeface', typeface)]
-        kw = {k:v for k,v in opts if v is not None}
         for o in objects:
             if o not in ld:
-                ld[o] = lo = label_class(o, view, **kw)
+                ld[o] = lo = label_class(o, view, **settings)
                 self.add_drawing(lo)
-            if kw:
+            if settings:
                 lo = ld[o]
-                for k,v in kw.items():
-                    if v is not None:
-                        setattr(lo, k, v)
+                for k,v in settings.items():
+                    setattr(lo, k, v)
                 lo._needs_update = True
         if objects:
             self.redraw_needed()
@@ -283,9 +300,8 @@ from chimerax.core.graphics import Drawing
 class ObjectLabel(Drawing):
 
     pickable = False		# Don't allow mouse selection of labels
-    Default = 'default'		# Default computed value for offset, text, and color
     
-    def __init__(self, object, view, offset = Default, text = Default, color = Default,
+    def __init__(self, object, view, offset = None, text = None, color = None,
                  size = 24, typeface = 'Arial'):
         Drawing.__init__(self, 'label %s' % self.default_text())
 
@@ -327,14 +343,14 @@ class ObjectLabel(Drawing):
         return True
 
     def _get_offset(self):
-        return self.default_offset() if self._offset == self.Default else self._offset
+        return self.default_offset() if self._offset is None else self._offset
     def _set_offset(self, offset):
         self._offset = offset
         self._needs_update = True
     offset = property(_get_offset, _set_offset)
     
     def _get_text(self):
-        return self.default_text() if self._text == self.Default else self._text
+        return self.default_text() if self._text is None else self._text
     def _set_text(self, text):
         self._text = text
         self._needs_update = True
@@ -342,7 +358,7 @@ class ObjectLabel(Drawing):
     
     def _get_color(self):
         c = self._color
-        if c is None or (isinstance(c,str) and c == self.Default):
+        if c is None:
             light_bg = (sum(self.view.background_color[:3]) > 1.5)
             rgba8 = (0,0,0,255) if light_bg else (255,255,255,255)
         else:
@@ -410,8 +426,7 @@ class ObjectLabel(Drawing):
 # -----------------------------------------------------------------------------
 #
 class AtomLabel(ObjectLabel):
-    def __init__(self, object, view, offset = ObjectLabel.Default,
-                 text = ObjectLabel.Default, color = ObjectLabel.Default,
+    def __init__(self, object, view, offset = None, text = None, color = None,
                  size = 24, typeface = 'Arial'):
         self.atom = object
         ObjectLabel.__init__(self, object, view, offset=offset, text=text, color=color, size=size, typeface=typeface)
@@ -427,8 +442,7 @@ class AtomLabel(ObjectLabel):
 # -----------------------------------------------------------------------------
 #
 class ResidueLabel(ObjectLabel):
-    def __init__(self, object, view, offset = ObjectLabel.Default,
-                 text = ObjectLabel.Default, color = ObjectLabel.Default,
+    def __init__(self, object, view, offset = None, text = None, color = None,
                  size = 24, typeface = 'Arial'):
         self.residue = object
         ObjectLabel.__init__(self, object, view, offset=offset, text=text, color=color, size=size, typeface=typeface)
@@ -444,8 +458,7 @@ class ResidueLabel(ObjectLabel):
 # -----------------------------------------------------------------------------
 #
 class PseudobondLabel(ObjectLabel):
-    def __init__(self, object, view, offset = ObjectLabel.Default,
-                 text = ObjectLabel.Default, color = ObjectLabel.Default,
+    def __init__(self, object, view, offset = None, text = None, color = None,
                  size = 24, typeface = 'Arial'):
         self.pseudobond = object
         ObjectLabel.__init__(self, object, view, offset=offset, text=text, color=color, size=size, typeface=typeface)
