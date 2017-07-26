@@ -38,11 +38,15 @@ class="clRight" title="User Guide Index"/></a>
 The <b>turn</b> command performs a rotation of <i>angle</i>
 (default <b>90</b>&deg;) around a specified <i>axis</i> (default <b>y</b>)
 at each of a specified number of image update <i>frames</i>
-(default <b>1</b> frame, except <b>infinity</b> if <b>rock</b> is used).
+(default <b>1</b> frame, except <b>infinity</b> if <b>rock</b> is used;
+can be halted with <a href="stop.html"><b>stop</b></a>).
 The <i>angle</i> can be positive or negative. 
-The <b>rock</b> option performs one cycle of rocking per <i>N</i> frames,
-reversing the direction of rotation 1/4 and 3/4 of the way through each cycle,
-and repeating until all <i>frames</i> have elapsed. 
+The <b>rock</b> option wags models back and forth around the specified
+<i>axis</i> with an amplitude of <i>angle</i> in each direction
+and <i>N</i> frames per cycle, continuing until all <i>frames</i> have elapsed.
+Like that of a pendulum, the movement is slower near the turnaround points
+1/4 and 3/4 of the way through a cycle.
+</p><p>
 The rotation applies to the 
 <a href="atomspec.html">specified</a> <b>models</b> or <b>atoms</b>;
 if none are specified, the scene will be rotated as a whole.
@@ -109,5 +113,5 @@ To halt an ongoing <b>turn</b>, use <a href="stop.html"><b>stop</b></a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2016</address>
+July 2017</address>
 </body></html> 

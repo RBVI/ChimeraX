@@ -57,7 +57,6 @@ specified. The pseudobonds can be removed with the <b>~hbonds</b> command.
 The default <a href="#name">name</a> of the pseudobond model for creation
 with <b>hbonds</b> and removal with <b>~hbonds</b> is <b>hydrogen bonds</b>,
 but different names can be assigned and used.
-</p><p>
 The command-line specifier
 <a href="atomspec.html#builtin"><b>hbonds</b></a>
 (not to be confused with the command)
@@ -70,7 +69,14 @@ The <b>selRestrict</b> option allows limiting detection to only the
 (<a href="#selRestrict">details...</a>).
 Pseudobonds are only shown if their endpoint atoms are shown;
 <b>reveal true</b> can be used to display all involved residues 
-to ensure showing all H-bond pseudobonds (<a href="#reveal">details...</a>).
+so that all of the H-bonds will be shown (<a href="#reveal">details...</a>).
+Since a backbone atom is considered as shown even if only the cartoon
+for that residue is shown, a pseudobond (which goes the atom position)
+may appear to be floating in space. 
+Floating pseudobonds can be eliminated from the display
+with the command <b><a href="cartoon.html">cartoon suppress false</a></b>,
+with the side effect of showing any backbone atoms that were already
+displayed but suppressed by the cartoon.
 </p>
 
 <a name="options"></a>
