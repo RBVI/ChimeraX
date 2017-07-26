@@ -54,8 +54,10 @@ def seqalign_chain(session, chains):
             seq.numbering_start = starts.pop()
         alignment = session.alignments.new_alignment([seq], None, seq_viewer="mav",
             auto_associate=False, name=chains[0].description, intrinsic=True)
+        alignment.suspend_notify_viewers()
         for chain in chains:
             alignment.associate(chain, keep_intrinsic=True)
+        alignment.resume_notify_viewers()
 
 def register_seqalign_command(logger):
     from chimerax.core.commands import CmdDesc, register, UniqueChainsArg
