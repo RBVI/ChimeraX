@@ -43,8 +43,10 @@ PythonInstance::get_py_attr(const char* attr_name) const
 
     auto py_attr = PyObject_GetAttrString(py_obj, attr_name);
     Py_DECREF(py_obj);
-    if (py_attr == nullptr)
+    if (py_attr == nullptr) {
+        PyErr_Clear();
         throw NoPyAttrError();
+    }
     return py_attr;
 }
 
@@ -133,6 +135,7 @@ PythonInstance::py_instance(const void* ptr)
             " to use as arg to chimerax.core.atomic.molobject.object_map");
     }
     PyTuple_SET_ITEM(arg_tuple, 0, py_ptr);
+    Py_INCREF(Py_None);
     PyTuple_SET_ITEM(arg_tuple, 1, Py_None);
     auto ret_val = PyObject_CallObject(object_map_func, arg_tuple);
     Py_DECREF(arg_tuple);
