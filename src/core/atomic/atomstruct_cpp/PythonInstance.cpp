@@ -135,6 +135,7 @@ PythonInstance::py_instance(const void* ptr)
             " to use as arg to chimerax.core.atomic.molobject.object_map");
     }
     PyTuple_SET_ITEM(arg_tuple, 0, py_ptr);
+    Py_INCREF(Py_None);
     PyTuple_SET_ITEM(arg_tuple, 1, Py_None);
     auto ret_val = PyObject_CallObject(object_map_func, arg_tuple);
     Py_DECREF(arg_tuple);
