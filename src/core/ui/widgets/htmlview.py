@@ -96,10 +96,13 @@ class HtmlView(QWebEngineView):
         else:
             return super().sizeHint()
 
-    def setHtml(self, html):  # noqa
+    def setHtml(self, html, url=None):  # noqa
+        from PyQt5.QtCore import QUrl
         self.setEnabled(False)
         if len(html) < 1000000:
-            super().setHtml(html)
+            if url is None:
+                url = QUrl()
+            super().setHtml(html, url)
         else:
             try:
                 tf = open(self._tf_name, "wb")
@@ -117,7 +120,6 @@ class HtmlView(QWebEngineView):
                     except OSError:
                         pass
                 atexit.register(clean, tf.name)
-            from PyQt5.QtCore import QUrl
             tf.write(bytes(html, "utf-8"))
             # On Windows, we have to close the temp file before
             # trying to open it again (like loading HTML from it).
