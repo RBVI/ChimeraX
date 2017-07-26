@@ -184,22 +184,7 @@ class BundleBuilder:
                 minor = 1
             uses_numpy = cm.getAttribute("usesNumpy") == "true"
             c = _CModule(mod_name, uses_numpy, major, minor)
-            for e in self._get_elements(cm, "Requires"):
-                c.add_require(self._get_element_text(e))
-            for e in self._get_elements(cm, "SourceFile"):
-                c.add_source_file(self._get_element_text(e))
-            for e in self._get_elements(cm, "IncludeDir"):
-                c.add_include_dir(self._get_element_text(e))
-            for e in self._get_elements(cm, "Library"):
-                c.add_library(self._get_element_text(e))
-            for e in self._get_elements(cm, "LibraryDir"):
-                c.add_library_dir(self._get_element_text(e))
-            for e in self._get_elements(cm, "LinkArgument"):
-                c.add_link_argument(self._get_element_text(e))
-            for e in self._get_elements(cm, "Framework"):
-                c.add_framework(self._get_element_text(e))
-            for e in self._get_elements(cm, "FrameworkDir"):
-                c.add_framework_dir(self._get_element_text(e))
+            self._add_c_options(c, cm)
             self.c_modules.append(c)
 
     def _get_c_libraries(self, bi):
@@ -209,23 +194,26 @@ class BundleBuilder:
                           lib.getAttribute("usesNumpy") == "true",
                           lib.getAttribute("static") == "true",
                           lib.getAttribute("outputDir"))
-            for e in self._get_elements(lib, "Requires"):
-                c.add_require(self._get_element_text(e))
-            for e in self._get_elements(lib, "SourceFile"):
-                c.add_source_file(self._get_element_text(e))
-            for e in self._get_elements(lib, "IncludeDir"):
-                c.add_include_dir(self._get_element_text(e))
-            for e in self._get_elements(lib, "Library"):
-                c.add_library(self._get_element_text(e))
-            for e in self._get_elements(lib, "LibraryDir"):
-                c.add_library_dir(self._get_element_text(e))
-            for e in self._get_elements(lib, "LinkArgument"):
-                c.add_link_argument(self._get_element_text(e))
-            for e in self._get_elements(lib, "Framework"):
-                c.add_framework(self._get_element_text(e))
-            for e in self._get_elements(lib, "FrameworkDir"):
-                c.add_framework_dir(self._get_element_text(e))
+            self._add_c_options(c, lib)
             self.c_libraries.append(c)
+
+    def _add_c_options(self, c, ce):
+            for e in self._get_elements(ce, "Requires"):
+                c.add_require(self._get_element_text(e))
+            for e in self._get_elements(ce, "SourceFile"):
+                c.add_source_file(self._get_element_text(e))
+            for e in self._get_elements(ce, "IncludeDir"):
+                c.add_include_dir(self._get_element_text(e))
+            for e in self._get_elements(ce, "Library"):
+                c.add_library(self._get_element_text(e))
+            for e in self._get_elements(ce, "LibraryDir"):
+                c.add_library_dir(self._get_element_text(e))
+            for e in self._get_elements(ce, "LinkArgument"):
+                c.add_link_argument(self._get_element_text(e))
+            for e in self._get_elements(ce, "Framework"):
+                c.add_framework(self._get_element_text(e))
+            for e in self._get_elements(ce, "FrameworkDir"):
+                c.add_framework_dir(self._get_element_text(e))
 
     def _get_packages(self, bi):
         self.packages = []
@@ -560,6 +548,11 @@ class _CLibrary(_CompiledCode):
                 except OSError:
                     pass
                 compiler.move_file(os.path.join("src", link_lib), link_file)
+            else:
+                # On Linux, we only need the .so
+                lib = compiler.library_filename(lib_name, lib_type="shared")
+                compiler.link_shared_object(objs, lib, output_dir="src",
+                                            extra_postargs=extra_link_args)
 
 if __name__ == "__main__" or __name__.startswith("ChimeraX_sandbox"):
     import sys

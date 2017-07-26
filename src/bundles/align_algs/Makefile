@@ -44,6 +44,9 @@ endif
 ifeq ($(OS),Darwin)
 	rm -rf src/support.o src/_[sn]w*.so src/libalign_algs.so
 endif
+ifeq ($(OS),Linux)
+	rm -rf src/support.o src/_[sn]w*.so src/libalign_algs.so
+endif
 
 pylint:
 	$(CHIMERAX_EXE) -m flake8 $(filter %.py, $(SRCS))
