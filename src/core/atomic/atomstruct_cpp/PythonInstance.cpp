@@ -43,8 +43,10 @@ PythonInstance::get_py_attr(const char* attr_name) const
 
     auto py_attr = PyObject_GetAttrString(py_obj, attr_name);
     Py_DECREF(py_obj);
-    if (py_attr == nullptr)
+    if (py_attr == nullptr) {
+        PyErr_Clear();
         throw NoPyAttrError();
+    }
     return py_attr;
 }
 
