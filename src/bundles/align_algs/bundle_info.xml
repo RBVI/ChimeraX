@@ -16,17 +16,23 @@
   <DataFiles>
     <DataFile>include/align_algs/*</DataFile>
     <DataFile>lib/*</DataFile>
-    <!-- Use dynamic shared object
-    -->
     <DataFile platform="windows">*.dll</DataFile>
-    <DataFile platform="mac">*.dylib</DataFile>
+    <!-- <DataFile platform="mac">*.dylib</DataFile> -->
     <DataFile platform="linux">*.so</DataFile>
   </DataFiles>
 
-  <CLibrary name="align_algs">
-  <!-- Use dynamic shared object
-  <CLibrary name="align_algs" static="true">
-  -->
+  <CLibrary platform="windows" name="align_algs">
+    <IncludeDir>src/include/align_algs</IncludeDir>
+    <SourceFile>src/support.cpp</SourceFile>
+  </CLibrary>
+
+  <CLibrary platform="linux" name="align_algs">
+    <IncludeDir>src/include/align_algs</IncludeDir>
+    <SourceFile>src/support.cpp</SourceFile>
+  </CLibrary>
+
+  <CLibrary platform="mac" name="align_algs" static="true">
+    <!-- Getting dynamic libraries to work on Mac is really hard -->
     <IncludeDir>src/include/align_algs</IncludeDir>
     <SourceFile>src/support.cpp</SourceFile>
   </CLibrary>

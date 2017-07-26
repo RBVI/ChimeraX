@@ -342,12 +342,14 @@ class BundleBuilder:
     # Utility functions dealing with XML tree
     #
     def _get_elements(self, e, tag):
+        tagged_elements = e.getElementsByTagName(tag)
+        # Mark element as used even for non-applicable platform
+        self._used_elements.update(tagged_elements)
         elements = []
-        for se in e.getElementsByTagName(tag):
+        for se in tagged_elements:
             platform = se.getAttribute("platform")
             if not platform or platform in self._platform_names:
                 elements.append(se)
-        self._used_elements.update(elements)
         return elements
 
     def _get_element_text(self, e):
@@ -359,11 +361,11 @@ class BundleBuilder:
 
     def _get_singleton(self, bi, tag):
         elements = bi.getElementsByTagName(tag)
+        self._used_elements.update(elements)
         if len(elements) > 1:
             raise ValueError("too many %s elements" % repr(tag))
         elif len(elements) == 0:
             raise ValueError("%s element is missing" % repr(tag))
-        self._used_elements.update(elements)
         return elements[0]
 
     def _get_singleton_text(self, bi, tag):
