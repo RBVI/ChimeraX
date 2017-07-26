@@ -26,15 +26,17 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="../index.html#commands">Command</a>: hbonds</h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>hbonds</b> 
+[&nbsp;<b>saltOnly</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>colorname</i></a>&nbsp;]
 [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
 [&nbsp;<b>dashes</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>name</b> &nbsp;<i>name</i>&nbsp;]
 [&nbsp;<b>selRestrict</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;|&nbsp;cross&nbsp;|&nbsp;both&nbsp;|&nbsp;any&nbsp;]
-[&nbsp;<b>saltOnly</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>reveal</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<a href="#options"><i>other-options</i></a></h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>~hbonds</b> 
+[&nbsp;<b>name</b> &nbsp;<i>name</i>&nbsp;]
 </h3>
 <p>
 The <b>hbonds</b> command uses <a href="../atomtypes.html">atom types</a> and
@@ -42,15 +44,25 @@ The <b>hbonds</b> command uses <a href="../atomtypes.html">atom types</a> and
 to identify possible hydrogen bonds (H-bonds)
 or just the <a href="#saltOnly">salt bridges</a>
 (H-bonds between formally charged functional groups).
-By <a href="#makePseudobonds">default</a>, 
-the H-bonds are shown as dashed <a href="../pseudobonds.html">pseudobonds</a>
-that can be removed with <b>~hbonds</b>.
-Pseudobond <b>color</b>, <b>radius</b>, and number of <b>dashes</b> 
-can be specified. The total number of H-bonds found is reported in the
+The total number of H-bonds found is reported in the
 <a href="../tools/log.html"><b>Log</b></a>. The total includes all H-bonds
 consistent with the criteria, even if they could not coexist simultaneously.
 Distances and other details can be <a href="#log">logged</a>
 and/or <a href="#saveFile">saved</a> to a file.
+</p><p>
+By <a href="#makePseudobonds">default</a>, 
+the H-bonds are shown as dashed <a href="../pseudobonds.html">pseudobonds</a>.
+Their <b>color</b>, <b>radius</b>, and number of <b>dashes</b> can be 
+specified. The pseudobonds can be removed with the <b>~hbonds</b> command.
+The default <a href="#name">name</a> of the pseudobond model for creation
+with <b>hbonds</b> and removal with <b>~hbonds</b> is <b>hydrogen bonds</b>,
+but different names can be assigned and used.
+</p><p>
+The command-line specifier
+<a href="atomspec.html#builtin"><b>hbonds</b></a>
+(not to be confused with the command)
+refers to the pseudobonds in the <b>hydrogen bonds</b> model
+and their endpoint atoms.
 </p><p>
 The <b>selRestrict</b> option allows limiting detection to only the 
 <a href="../selection.html">selected</a> atoms or between the 
@@ -59,11 +71,6 @@ The <b>selRestrict</b> option allows limiting detection to only the
 Pseudobonds are only shown if their endpoint atoms are shown;
 <b>reveal true</b> can be used to display all involved residues 
 to ensure showing all H-bond pseudobonds (<a href="#reveal">details...</a>).
-</p><p>
-The command-line specifier
-<a href="atomspec.html#builtin"><b>hbonds</b></a>
-(not to be confused with the command)
-refers to H-bond pseudobonds and their endpoint atoms.
 </p>
 
 <a name="options"></a>
@@ -249,6 +256,18 @@ that specifies a single color (default <b>dark orange</b>).
 <br>Whether to keep the <a href="../pseudobonds.html">pseudobonds</a>
 depicting a previously determined set of H-bonds through a subsequent
 round of detection (as opposed to replacing the old with the new).
+Regardless of this setting, however, pre-existing H-bond pseudobonds
+will not be replaced if the new pseudobond model is given a different
+<a href="#name">name</a>.
+</blockquote>
+<blockquote>
+<a name="name"></a>
+  <b>name</b> &nbsp;<i>name</i>
+<br>Name for the <a href="../pseudobonds.html">pseudobond model</a>
+(default <b>hydrogen bonds</b>, also the default name for deletion
+with <b>~hbonds</b>). Using a new name creates a separate
+model that can be hidden/shown/closed independently.
+Names containing spaces must be enclosed in quotation marks.
 </blockquote>
 <blockquote>
   <a name="saveFile"><b>saveFile</b> &nbsp;<i>file</i></a>

@@ -20,9 +20,9 @@
   <CModule name="_gromacs" usesNumpy="true">
     <IncludeDir>gromacs/xdrfile-1.1b/include</IncludeDir>
     <SourceFile>gromacs/gromacs.cpp</SourceFile>
-    <SourceFile>gromacs/xdrfile-1.1b/src/xdrfile.c</SourceFile>
-    <SourceFile>gromacs/xdrfile-1.1b/src/xdrfile_trr.c</SourceFile>
-    <SourceFile>gromacs/xdrfile-1.1b/src/xdrfile_xtc.c</SourceFile>
+    <LinkArgument platform="win32">gromacs/xdrfile-1.1b/src/.libs/libxdrfile.lib</LinkArgument>
+    <LinkArgument platform="mac">gromacs/xdrfile-1.1b/src/.libs/libxdrfile.a</LinkArgument>
+    <LinkArgument platform="linux">gromacs/xdrfile-1.1b/src/.libs/libxdrfile.a</LinkArgument>
   </CModule>
 
   <Dependencies>
@@ -35,10 +35,10 @@
     <ChimeraXClassifier>ChimeraX :: DataFormat :: Gromacs full-precision coordinates :: trr :: Molecular trajectory :: .trr :: :: http://manual.gromacs.org/online/trr.html :: :: :: Gromacs trr format :: utf-8</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: DataFormat :: Gromacs compressed coordinates :: xtc :: Molecular trajectory :: .xtc :: :: http://manual.gromacs.org/online/xtc.html :: :: :: Gromacs xtc format :: utf-8</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: DataFormat :: DCD coordinates :: dcd :: Molecular trajectory :: .dcd :: :: :: :: :: DCD trajectory format :: utf-8</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Open :: Gromacs full-precision coordinates :: trr :: true :: model:Structure,replace:Bool</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Open :: Gromacs compressed coordinates :: xtc :: true :: model:Structure,replace:Bool</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Open :: DCD coordinates :: dcd :: true :: model:Structure,replace:Bool</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Save :: DCD coordinates :: dcd :: true :: models:Structures</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Open :: Gromacs full-precision coordinates :: trr :: true :: structure_model:Structure,replace:Bool</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Open :: Gromacs compressed coordinates :: xtc :: true :: structure_model:Structure,replace:Bool</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Open :: DCD coordinates :: dcd :: true :: structure_model:Structure,replace:Bool</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Save :: DCD coordinates :: dcd :: true :: models:Models</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

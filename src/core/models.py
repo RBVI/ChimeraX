@@ -435,10 +435,7 @@ class Models(State):
                 name = basename(filenames[0])
                 if len(filenames) > 1:
                     name += '...'
-                descript = "files" if len(fns) > 1 else fns[0]
-                with Collator(session.logger,
-                        "Summary of additional actions taken when opening " + descript, log_errors):
-                    self.add_group(models, name=name)
+                self.add_group(models, name=name)
             else:
                 self.add(models)
         return models

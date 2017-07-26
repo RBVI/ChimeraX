@@ -532,33 +532,33 @@ class InScriptFlag:
         return self._level > 0
 
 
-def save(session, filename, format, version=1, uncompressed=False):
+def save(session, path, version=1, uncompressed=False):
     """command line version of saving a session"""
     my_open = None
-    if hasattr(filename, 'write'):
+    if hasattr(path, 'write'):
         # called via export, it's really a stream
-        output = filename
+        output = path
     else:
         from os.path import expanduser
-        filename = expanduser(filename)         # Tilde expansion
-        if not filename.endswith(SESSION_SUFFIX):
-            filename += SESSION_SUFFIX
+        path = expanduser(path)         # Tilde expansion
+        if not path.endswith(SESSION_SUFFIX):
+            path += SESSION_SUFFIX
 
         if uncompressed:
             try:
-                output = _builtin_open(filename, 'wb')
+                output = _builtin_open(path, 'wb')
             except IOError as e:
                 from .errors import UserError
                 raise UserError(e)
         else:
             # Save compressed files
-            def my_open(filename):
+            def my_open(path):
                 import gzip
                 from .safesave import SaveFile
-                f = SaveFile(filename, open=lambda filename: gzip.GzipFile(filename, 'wb'))
+                f = SaveFile(path, open=lambda path: gzip.GzipFile(path, 'wb'))
                 return f
             try:
-                output = my_open(filename)
+                output = my_open(path)
             except IOError as e:
                 from .errors import UserError
                 raise UserError(e)
@@ -577,19 +577,19 @@ def save(session, filename, format, version=1, uncompressed=False):
 
     # Associate thumbnail image with session file for display by operating system file browser.
     from . import utils
-    if isinstance(filename, str) and utils.can_set_file_icon():
+    if isinstance(path, str) and utils.can_set_file_icon():
         width = height = 512
         try:
             image = session.main_view.image(width, height)
         except RuntimeError:
             pass
         else:
-            utils.set_file_icon(filename, image)
+            utils.set_file_icon(path, image)
 
     # Remember session in file history
-    if isinstance(filename, str):
+    if isinstance(path, str):
         from .filehistory import remember_file
-        remember_file(session, filename, 'ses', 'all models', file_saved=True)
+        remember_file(session, path, 'ses', 'all models', file_saved=True)
 
 
 def sdump(session, session_file, output=None):
@@ -636,13 +636,13 @@ def sdump(session, session_file, output=None):
             pprint(data, stream=output)
 
 
-def open(session, filename, *args, **kw):
-    if hasattr(filename, 'read'):
+def open(session, path):
+    if hasattr(path, 'read'):
         # Given a stream instead of a file name.
-        fname = filename.name
-        filename.close()
+        fname = path.name
+        path.close()
     else:
-        fname = filename
+        fname = path
 
     if is_gzip_file(fname):
         import gzip
@@ -662,7 +662,7 @@ def is_gzip_file(filename):
     return (magic[0] == 0x1f and magic[1] == 0x8b)
 
 
-def save_x3d(session, filename, format, transparent_background=False):
+def save_x3d(session, path, transparent_background=False):
     # Settle on using Interchange profile as that is the intent of
     # X3D exporting.
     from . import x3d
@@ -696,7 +696,7 @@ def save_x3d(session, filename, format, transparent_background=False):
     for m in session.models.list():
         m.x3d_needs(x3d_scene)
 
-    with _builtin_open(filename, 'w', encoding='utf-8') as stream:
+    with _builtin_open(path, 'w', encoding='utf-8') as stream:
         x3d_scene.write_header(
             stream, 0, meta, profile_name='Interchange',
             # TODO? Skip units since it confuses X3D viewers and requires version 3.3

@@ -38,7 +38,7 @@ class ShortcutPanel(ToolInstance):
         tb.setStyleSheet('QToolBar{spacing:0px;}\n'
                          'QToolButton{padding:0px; margin:0px; background-color:white; border:none;}')
         tb.setIconSize(QSize(40,40))
-        parent.addToolBar(Qt.TopToolBarArea, tb)
+        parent.add_tool_bar(self, Qt.TopToolBarArea, tb)
         for keys, icon_file, descrip in self.shortcuts:
             from os import path
             icon_dir = path.join(path.dirname(__file__), 'icons')

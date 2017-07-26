@@ -43,6 +43,13 @@
 #include <ctime>
 #endif
 
+// The PDB has a limited form of struct_sheet_hbond called
+// pdbx_struct_sheet_hbond that does the simple case "where only a single
+// hydrogen bond is used to register the two residue ranges".
+// This is insufficient to actually be useful.  So the working code is
+// ifdef'd out to be used if struct_sheet_hbond support is implemented.
+#undef SHEET_HBONDS
+
 using std::hash;
 using std::map;
 using std::multiset;
@@ -173,6 +180,10 @@ struct ExtractMolecule: public readcif::CIFFile
     void parse_struct_conn();
     void parse_struct_conf();
     void parse_struct_sheet_range();
+#ifdef SHEET_HBONDS
+    void parse_struct_sheet_order();
+    void parse_pdbx_struct_sheet_hbond();
+#endif
     void parse_entity_poly_seq();
     void parse_entry();
     void parse_pdbx_database_PDB_obs_spr();
@@ -293,11 +304,21 @@ struct ExtractMolecule: public readcif::CIFFile
     bool has_pdbx;
     set<ResName> empty_residue_templates;
     bool coordsets;  // use coordsets (trajectory) instead of separate models (NMR)
+#ifdef SHEET_HBONDS
+    typedef map<string, map<std::pair<string, string>, string>> SheetOrder;
+    SheetOrder sheet_order;
+    typedef map<std::pair<string, string>, vector<Residue*>> StrandInfo;
+    StrandInfo strand_info;
+    Residue* find_residue(const ChainID& chain_id, long position, const ResName& name);
+#endif
 };
 
 const char* ExtractMolecule::builtin_categories[] = {
     "audit_conform", "atom_site", "entity_poly_seq"
     "struct_conn", "struct_conf", "struct_sheet_range",
+#ifdef SHEET_HBONDS
+    "struct_sheet_order", "pdbx_struct_sheet_hbond",
+#endif
 };
 
 std::ostream& operator<<(std::ostream& out, const ExtractMolecule::AtomKey& k) {
@@ -349,6 +370,16 @@ ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_c
         [this] () {
             parse_struct_sheet_range();
         }, { "struct_conn" });
+#ifdef SHEET_HBONDS
+    register_category("struct_sheet_order",
+        [this] () {
+            parse_struct_sheet_order();
+        });
+    register_category("pdbx_struct_sheet_hbond",
+        [this] () {
+            parse_pdbx_struct_sheet_hbond();
+        }, { "atom_site", "struct_sheet_order", "struct_sheet_range" });
+#endif
     register_category("chem_comp",
         [this] () {
             parse_chem_comp();
@@ -392,6 +423,10 @@ ExtractMolecule::reset_parse()
     atom_map.clear();
     chain_entity_map.clear();
     all_residues.clear();
+#ifdef SHEET_HBONDS
+    sheet_order.clear();
+    strand_info.clear();
+#endif
     entry_id.clear();
     generic_tables.clear();
     if (my_templates) {
@@ -1875,11 +1910,15 @@ ExtractMolecule::parse_struct_sheet_range()
         auto init_ps = entity_poly_seq.lower_bound(init_ps_key);
         auto end_ps = entity_poly_seq.upper_bound(end_ps_key);
         if (init_ps == entity_poly_seq.end()) {
-        // TODO: || end_ps == entity_poly_seq.end()) {
+        // TODO: || end_ps == entity_poly_seq.end())
             logger::warning(_logger, "Invalid sheet range for strand \"",
                             sheet_id, ' ', id, "\" near line ", line_number());
             continue;
         }
+#ifdef SHEET_HBONDS
+        auto& sheet_residues = strand_info[std::make_pair(sheet_id, id)];
+        sheet_residues.reserve(std::distance(init_ps, end_ps));
+#endif
         int strand_id;
         auto si = strand_ids.find(chain_id1);
         if (si == strand_ids.end()) {
@@ -1891,14 +1930,285 @@ ExtractMolecule::parse_struct_sheet_range()
         for (auto pi = init_ps; pi != end_ps; ++pi) {
             auto ri = residue_map.find(ResidueKey(entity_id, pi->seq_id,
                                                   pi->mon_id));
-            if (ri == residue_map.end())
+            if (ri == residue_map.end()) {
+#ifdef SHEET_HBONDS
+                sheet_residues.push_back(nullptr);
+#endif
                 continue;
+            }
             Residue *r = ri->second;
             r->set_is_strand(true);
             r->set_ss_id(strand_id);
+#ifdef SHEET_HBONDS
+            sheet_residues.push_back(r);
+#endif
         }
     }
 }
+
+#ifdef SHEET_HBONDS
+Residue*
+ExtractMolecule::find_residue(const ChainID& chain_id, long position, const ResName& name) {
+    // Document all of the steps to find a Residue given its
+    // asym_id, seq_id, comp_id values.
+    // Typically, all_residues and the entity_id are predetermined
+    // and don't need to be recomputed each time.
+    auto ari = all_residues.find(chain_id);
+    if (ari == all_residues.end())
+        return nullptr;
+    const ResidueMap& residue_map = ari->second;
+    auto cemi = chain_entity_map.find(chain_id);
+    if (cemi == chain_entity_map.end())
+        return nullptr;
+    const string& entity_id = cemi->second;
+    auto ri = residue_map.find(ResidueKey(entity_id, position, name));
+    if (ri == residue_map.end())
+        return nullptr;
+    return ri->second;
+}
+
+void
+ExtractMolecule::parse_struct_sheet_order()
+{
+    string sheet_id;
+    string id1, id2;
+    string sense;
+
+    CIFFile::ParseValues pv;
+    pv.reserve(5);
+    try {
+        pv.emplace_back(get_column("sheet_id", Required),
+            [&] (const char* start, const char* end) {
+                sheet_id = string(start, end - start);
+            });
+        pv.emplace_back(get_column("range_id_1", Required),
+            [&] (const char* start, const char* end) {
+                id1 = string(start, end - start);
+            });
+        pv.emplace_back(get_column("range_id_2", Required),
+            [&] (const char* start, const char* end) {
+                id2 = string(start, end - start);
+            });
+        pv.emplace_back(get_column("sense", Required),
+            [&] (const char* start, const char* end) {
+                sense = string(start, end - start);
+                for (auto& c: sense) {
+                    if (isupper(c))
+                        c = tolower(c);
+                }
+            });
+    } catch (std::runtime_error& e) {
+        logger::warning(_logger, "skipping struct_sheet_range category: ", e.what());
+        return;
+    }
+
+    while (parse_row(pv)) {
+        auto range = std::make_pair(id1, id2);
+        sheet_order[sheet_id][range] = sense;
+    }
+}
+
+void
+ExtractMolecule::parse_pdbx_struct_sheet_hbond()
+{
+    if (molecules.empty())
+        return;
+
+    #define RANGE1 "range_1"
+    #define RANGE2 "range_2"
+    #define ATOM_ID "_label_atom_id"
+    #define COMP_ID "_label_comp_id"
+    #define ASYM_ID "_label_asym_id"
+    #define SEQ_ID "_label_seq_id"
+
+    // hbonds from pdbx_struct_sheet_hbond records
+    string sheet_id;
+    string id1, id2;
+    ChainID chain_id1, chain_id2;           // range_[12]_label_asym_id
+    long position1, position2;              // range_[12]_label_seq_id
+    AtomName atom_name1, atom_name2;        // range_[12]_label_atom_id
+    ResName residue_name1, residue_name2;   // range_[12]_label_comp_id
+
+    CIFFile::ParseValues pv;
+    pv.reserve(32);
+    try {
+        pv.emplace_back(get_column("sheet_id", Required),
+            [&] (const char* start, const char* end) {
+                sheet_id = string(start, end - start);
+            });
+        pv.emplace_back(get_column("range_id_1", Required),
+            [&] (const char* start, const char* end) {
+                id1 = string(start, end - start);
+            });
+        pv.emplace_back(get_column("range_id_2", Required),
+            [&] (const char* start, const char* end) {
+                id2 = string(start, end - start);
+            });
+        pv.emplace_back(get_column(RANGE1 ATOM_ID, Required),
+            [&] (const char* start, const char* end) {
+                atom_name1 = AtomName(start, end - start);
+            });
+        pv.emplace_back(get_column(RANGE1 COMP_ID, Required),
+            [&] (const char* start, const char* end) {
+                residue_name1 = ResName(start, end - start);
+            });
+        pv.emplace_back(get_column(RANGE1 ASYM_ID, Required),
+            [&] (const char* start, const char* end) {
+                chain_id1 = ChainID(start, end - start);
+            });
+        pv.emplace_back(get_column(RANGE1 SEQ_ID, Required),
+            [&] (const char* start) {
+                position1 = readcif::str_to_int(start);
+            });
+        pv.emplace_back(get_column(RANGE2 ATOM_ID, Required),
+            [&] (const char* start, const char* end) {
+                atom_name2 = AtomName(start, end - start);
+            });
+        pv.emplace_back(get_column(RANGE2 COMP_ID, Required),
+            [&] (const char* start, const char* end) {
+                residue_name2 = ResName(start, end - start);
+            });
+        pv.emplace_back(get_column(RANGE2 ASYM_ID, Required),
+            [&] (const char* start, const char* end) {
+                chain_id2 = ChainID(start, end - start);
+            });
+        pv.emplace_back(get_column(RANGE2 SEQ_ID, Required),
+            [&] (const char* start) {
+                position2 = readcif::str_to_int(start);
+            });
+    } catch (std::runtime_error& e) {
+        logger::warning(_logger, "skipping pdbx_struct_sheet_hbond category: ", e.what());
+        return;
+    }
+    #undef RANGE1
+    #undef RANGE2
+    #undef ATOM_ID
+    #undef COMP_ID
+    #undef ASYM_ID
+    #undef SEQ_ID
+
+    static AtomName xray_atom_names[2] = { "O", "N" };
+    static AtomName nmr_atom_names[2] = { "O", "H" };
+    atomstruct::Proxy_PBGroup* hydro_pbg = nullptr;
+    auto mol = all_residues.begin()->second.begin()->second->structure();
+    while (parse_row(pv)) {
+        if (hydro_pbg == nullptr)
+            hydro_pbg = mol->pb_mgr().get_group(mol->PBG_HYDROGEN_BONDS,
+                atomstruct::AS_PBManager::GRP_PER_CS);
+
+        Residue* r1 = find_residue(chain_id1, position1, residue_name1);
+        if (r1 == nullptr) {
+            logger::warning(_logger, "pdbx_stuct_sheet_hbond: can't find residue /",
+                            chain_id1, ":", position1, " ", residue_name1);
+            continue;
+        }
+        Residue* r2 = find_residue(chain_id2, position2, residue_name2);
+        if (r2 == nullptr) {
+            logger::warning(_logger, "pdbx_stuct_sheet_hbond: can't find residue /",
+                            chain_id2, ":", position2, " ", residue_name2);
+            continue;
+        }
+
+        // make initial bond
+        Atom* a1 = r1->find_atom(atom_name1); 
+        if (a1 == nullptr) {
+            logger::warning(_logger, "pdbx_stuct_sheet_hbond: can't find atom ",
+                            atom_name1, " in ", residue_str(r1));
+        }
+        Atom* a2 = r2->find_atom(atom_name2); 
+        if (a2 == nullptr) {
+            logger::warning(_logger, "pdbx_stuct_sheet_hbond: can't find atom ",
+                            atom_name2, " in ", residue_str(r2));
+        }
+        if (a1 != nullptr && a2 != nullptr) {
+            for (auto& cs: mol->coord_sets()) {
+                hydro_pbg->new_pseudobond(a1, a2, cs);
+            }
+        }
+
+        // walk strands and create hbonds
+        AtomName* atom_names;
+        if (atom_name1 == "H" || atom_name2 == "H")
+            atom_names = nmr_atom_names;
+        else
+            atom_names = xray_atom_names;
+        auto range = std::make_pair(id1, id2);
+        const string& sense = sheet_order[sheet_id][range];
+        auto& strand1 = strand_info[std::make_pair(sheet_id, id1)];
+        if (strand1.empty()) {
+            logger::warning(_logger, "pdbx_stuct_sheet_hbond: can't find strand ",
+                            id1, " in sheet ", sheet_id);
+            continue;
+        }
+        auto& strand2 = strand_info[std::make_pair(sheet_id, id2)];
+        if (strand1.empty()) {
+            logger::warning(_logger, "pdbx_stuct_sheet_hbond: can't find strand ",
+                            id2, " in sheet ", sheet_id);
+            continue;
+        }
+        int n1 = std::find(atom_names, atom_names + 2, atom_name1) - atom_names;
+        int n2 = std::find(atom_names, atom_names + 2, atom_name2) - atom_names;
+        if (n1 == 2) {
+            logger::warning(_logger, "pdbx_stuct_sheet_hbond: unexpected atom name ", atom_name1);
+            continue;
+        }
+        if (n2 == 2) {
+            logger::warning(_logger, "pdbx_stuct_sheet_hbond: unexpected atom name ", atom_name2);
+            continue;
+        }
+        if (sense == "parallel") {
+            auto i1 = std::find(strand1.begin(), strand1.end(), r1);
+            auto i2 = std::find(strand2.begin(), strand2.end(), r2);
+            while (i1 != strand1.end() && i2 != strand2.end()) {
+                // TODO: fill in
+                ++i1;
+                ++i2;
+            }
+        } else { // anti-parallel
+            auto i1 = std::find(strand1.rbegin(), strand1.rend(), r1);
+            auto i2 = std::find(strand2.begin(), strand2.end(), r2);
+            logger::info(_logger, "pdbx_stuct_sheet_hbond: lengths ", std::distance(i1, strand1.rend()),
+                         ' ',  std::distance(i2, strand2.end()));
+            while (i1 != strand1.rend() && i2 != strand2.end()) {
+                Residue* r1 = *i1;
+                Residue* r2 = *i2;
+                Atom* a1 = r1->find_atom(atom_names[n1 % 2]);
+                if (a1 == nullptr) {
+                    logger::warning(_logger, "pdbx_stuct_sheet_hbond: can't find atom ",
+                                    atom_names[n1 % 2], " in ", residue_str(r1));
+                }
+                Atom* a2 = r2->find_atom(atom_names[n2 % 2]);
+                if (a2 == nullptr) {
+                    logger::warning(_logger, "pdbx_stuct_sheet_hbond: can't find atom ",
+                                    atom_names[n2 % 2], " in ", residue_str(r2));
+                }
+                if (a1 != nullptr && a2 != nullptr) {
+                    for (auto& cs: mol->coord_sets()) {
+                        hydro_pbg->new_pseudobond(a1, a2, cs);
+                    }
+                }
+                ++n1;
+                ++n2;
+                a1 = r1->find_atom(atom_names[n1 % 2]);
+                a2 = r2->find_atom(atom_names[n2 % 2]);
+                if (a1 != nullptr && a2 != nullptr) {
+                    for (auto& cs: mol->coord_sets()) {
+                        hydro_pbg->new_pseudobond(a1, a2, cs);
+                    }
+                }
+
+                // advance by two residues
+                ++i1;
+                ++i2;
+                if (i1 == strand1.rend() || i2 == strand2.end())
+                    break;
+                ++i1;
+                ++i2;
+            }
+        }
+    }
+}
+#endif
 
 void
 ExtractMolecule::parse_entity_poly_seq()

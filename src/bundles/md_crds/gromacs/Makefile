@@ -11,36 +11,11 @@
 
 TOP = ../../../..
 include $(TOP)/mk/config.make
-
-PKG_DIR		= $(PYSITEDIR)/chimerax/md_crds
-
 include Makefile.common
 
-PYMOD_NAME	= _gromacs
-SRCS		= gromacs.cpp
-OBJS		= $(SRCS:.cpp=.$(OBJ_EXT))
-DEFS		+= $(PYDEF)
-INCS 		+= $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC) -I$(XDRFILE_LIB_SOURCE)/include
-LIBS		+= $(PYTHON_LIB)
-LIBS		+= $(XDRFILE_LIB)
-ifdef WIN32
-LIBS		+= msvcrt.lib
-endif
-
-all: $(PYMOD)
+all: $(XDRFILE_LIB)
 
 install: all
-	$(RSYNC) $(PYMOD) $(PKG_DIR)
-ifdef WIN32
-ifdef DEBUG
-	$(RSYNC) $(PYMOD_NAME).pdb $(PKG_DIR)
-endif
-endif
-
-$(OBJS): $(XDRFILE_LIB)
-
-$(PYMOD): $(OBJS)
-	$(PYMOD_LINK)
 
 $(XDRFILE_LIB): $(XDRFILE_LIB_SOURCE)
 
@@ -49,7 +24,4 @@ $(XDRFILE_LIB_SOURCE):
 	$(MAKE) -f Makefile.xdrfile
 
 clean:
-	rm -rf $(PYMOD) $(OBJS) $(XDRFILE_LIB_SOURCE) $(BUILD)
-ifdef WIN32
-	rm -f $(PYMOD_NAME).exp $(PYMOD_NAME).lib
-endif
+	rm -rf $(XDRFILE_LIB_SOURCE) $(BUILD)

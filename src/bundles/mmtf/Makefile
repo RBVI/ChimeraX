@@ -19,6 +19,7 @@ endif
 ifeq ($(OS),Linux)
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
 endif
+RUN = $(CHIMERAX_EXE) --nogui --exit --cmd
 
 PYSRCS = $(wildcard src/*.py)
 CSRCS = $(wildcard _mmtf/*.cpp)
@@ -33,10 +34,10 @@ MSGPACK_DISTRIBUTION = msgpack-c-$(MSGPACK_VERSION).zip
 MSGPACK_SOURCE	= msgpack-c-$(MSGPACK_VERSION)
 
 wheel: bundle_info.xml $(SRCS) $(HEADERS)
-	$(CHIMERAX_EXE) --nogui --cmd "devel build . ; exit"
+	$(RUN) "devel build . exit true"
 
 install app-install: bundle_info.xml $(SRCS) $(HEADERS)
-	$(CHIMERAX_EXE) --nogui --cmd "devel install . user false; exit"
+	$(RUN) "devel install . user false exit true"
 
 test:
 	$(CHIMERAX_EXE)
@@ -45,8 +46,11 @@ debug:
 	$(CHIMERAX_EXE) --debug
 
 clean:
-	$(CHIMERAX_EXE) --nogui --cmd "devel clean . ; exit"
+	$(RUN) "devel clean . exit true"
 	rm -rf $(MMTF_CPP_SOURCE) $(MSGPACK_SOURCE)
+
+pylint:
+	$(CHIMERAX_EXE) -m flake8 $(filter %.py, $(SRCS))
 
 $(MMTF_CPP_SOURCE): $(MMTF_CPP_DISTRIBUTION)
 	# only need the include files

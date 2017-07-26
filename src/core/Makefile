@@ -80,9 +80,6 @@ endif
 setup.py: setup.py.in
 	sed $(SETUP_SED_ARGS) < setup.py.in > setup.py
 
-lint:
-	$(PYLINT) $(PYSRCS)
-
 $(SUBDIR_INSTALL): dir
 
 dir:
@@ -91,6 +88,9 @@ dir:
 
 clean:
 	rm -rf __pycache__ build dist $(WHL_BNDL_NAME).egg-info setup.py $(GENSRCS)
+
+pylint:
+	$(PYLINT) $(PYSRCS)
 
 .PHONY: buildinfo.py
 buildinfo.py: buildinfo.py.in mkbuildinfo

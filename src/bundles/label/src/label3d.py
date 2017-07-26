@@ -12,56 +12,85 @@
 
 # -----------------------------------------------------------------------------
 #
-def label(session, atoms, object_type = 'atoms', text = None,
-          offset = None, color = None, size = None, typeface = None, on_top = True):
+def label(session, atoms = None, object_type = None, text = None,
+          offset = None, color = None, size = None, font = None, on_top = None):
     '''Create atom labels. The belong to a child model named "labels" of the structure.
 
     Parameters
     ----------
-    atoms : Atoms
-      Create labels on specified atoms.
+    atoms : Atoms or None
+      Create labels on specified atoms.  If None the adjust settings of all existing labels.
     object_type : 'atoms', 'residues', 'pseudobonds'
       What type of object to label.
-    offset : float 3-tuple
+    offset : float 3-tuple or "default"
       Offset of label from atom center in screen coordinates in physical units (Angstroms)
-    text : string
+    text : string or "default"
       Displayed text of the label.
-    color : Color
+    color : Color or "default"
       Color of the label text.  If no color is specified black is used on light backgrounds
       and white is used on dark backgrounds.
-    size : int
+    size : int or "default"
       Font size in pixels. Default 24.
-    typeface : string
+    font : string or "default"
       Font name.  This must be a true type font installed on Mac in /Library/Fonts
       and is the name of the font file without the ".ttf" suffix.  Default "Arial".
     on_top : bool
-      Whether labels always appear on top of other graphics (cannot be occluded).  This is a per-structure
-      attribute.  Default True.
+      Whether labels always appear on top of other graphics (cannot be occluded).
+      This is a per-structure attribute.  Default True.
     '''
+    if object_type is None:
+        otypes = ['atoms', 'residues', 'pseudobonds'] if atoms is None else ['atoms']
+    else:
+        otypes = [object_type]
+
+    settings = {}
+    if text == 'default':
+        settings['text'] = None
+    elif text is not None:
+        settings['text'] = text
+    if offset == 'default':
+        settings['offset'] = None
+    elif offset is not None:
+        settings['offset'] = offset
     from chimerax.core.colors import Color
-    rgba = color.uint8x4() if isinstance(color, Color) else color
-
-    if object_type == 'atoms':
-        object_class = AtomLabel
-    elif object_type == 'residues':
-        object_class = ResidueLabel
-    elif object_type == 'pseudobonds':
-        object_class = PseudobondLabel
-
+    if isinstance(color, Color):
+        settings['color'] = color.uint8x4()
+    elif color == 'default':
+        settings['color'] = None
+    if size == 'default':
+        settings['size'] = 24
+    elif size is not None:
+        settings['size'] = size
+    if font == 'default':
+        settings['font'] = 'Arial'
+    elif font is not None:
+        settings['font'] = font
+        
     view = session.main_view
-    for m, objects in objects_by_model(atoms, object_type):
-        lm = labels_model(m, create = True)
-        lm.add_labels(objects, object_class, view, offset, text, rgba, size, typeface, on_top)
+    lcount = 0
+    for otype in otypes:
+        if atoms is None:
+            mo = labeled_objects_by_model(session, otype)
+        else:
+            mo = objects_by_model(atoms, otype)
+        object_class = label_object_class(otype)
+        for m, objects in mo:
+            lm = labels_model(m, create = True)
+            lm.add_labels(objects, object_class, view, settings, on_top)
+            lcount += len(objects)
+    if atoms is None and lcount == 0:
+        from chimerax.core.errors import UserError
+        raise UserError('Label command requires an atom specifier to create labels.')
 
 # -----------------------------------------------------------------------------
 #
-def label_delete(session, atoms, object_type = None):
+def label_delete(session, atoms = None, object_type = None):
     '''Delete atoms labels.
 
     Parameters
     ----------
-    atoms : Atoms
-      Delete labels for specified atoms.
+    atoms : Atoms or None
+      Delete labels for specified atoms.  If None delete all labels.
     object_type : 'atoms', 'residues', 'pseudobonds'
       What type of object label to delete.
     '''
@@ -71,13 +100,29 @@ def label_delete(session, atoms, object_type = None):
         otypes = [object_type]
 
     for otype in otypes:
-        mo = objects_by_model(atoms, otype)
+        if atoms is None:
+            mo = labeled_objects_by_model(session, otype)
+        else:
+            mo = objects_by_model(atoms, otype)
         for m, objects in mo:
             lm = labels_model(m)
             if lm is not None:
                 lm.delete_labels(objects)
                 if lm.label_count() == 0:
                     session.models.close([lm])
+
+# -----------------------------------------------------------------------------
+#
+def label_object_class(object_type):
+    if object_type == 'atoms':
+        object_class = AtomLabel
+    elif object_type == 'residues':
+        object_class = ResidueLabel
+    elif object_type == 'pseudobonds':
+        object_class = PseudobondLabel
+    else:
+        object_class = None
+    return object_class
 
 # -----------------------------------------------------------------------------
 #
@@ -93,6 +138,13 @@ def objects_by_model(atoms, object_type):
         model_objects = pbonds.by_group
     return model_objects
 
+# -----------------------------------------------------------------------------
+#
+def labeled_objects_by_model(session, otype):
+    oclass = label_object_class(otype)
+    return [(lm.parent, lm.labeled_objects(oclass))
+            for lm in session.models.list(type = ObjectLabels)]
+        
 # -----------------------------------------------------------------------------
 #
 def labels_model(parent, create = False):
@@ -111,24 +163,27 @@ def labels_model(parent, create = False):
 def register_label_command(logger):
 
     from chimerax.core.commands import CmdDesc, register, AtomsArg, StringArg
-    from chimerax.core.commands import Float3Arg, ColorArg, IntArg, BoolArg, EnumOf, Or
+    from chimerax.core.commands import Float3Arg, ColorArg, IntArg, BoolArg, EnumOf, Or, EmptyArg
 
     otype = EnumOf(('atoms','residues','pseudobonds'))
     DefArg = EnumOf(['default'])
-    desc = CmdDesc(required = [('atoms', AtomsArg)],
+    desc = CmdDesc(required = [('atoms', Or(AtomsArg, EmptyArg))],
                    optional = [('object_type', otype)],
                    keyword = [('text', Or(DefArg, StringArg)),
                               ('offset', Or(DefArg, Float3Arg)),
                               ('color', Or(DefArg, ColorArg)),
-                              ('size', IntArg),
-                              ('typeface', StringArg),
+                              ('size', Or(DefArg, IntArg)),
+                              ('font', StringArg),
                               ('on_top', BoolArg)],
                    synopsis = 'Create atom labels')
     register('label', desc, label, logger=logger)
-    desc = CmdDesc(required = [('atoms', AtomsArg)],
+    desc = CmdDesc(required = [('atoms', Or(AtomsArg, EmptyArg))],
                    optional = [('object_type', otype)],
                    synopsis = 'Delete atom labels')
     register('label delete', desc, label_delete, logger=logger)
+    desc = CmdDesc(synopsis = 'List available fonts')
+    from .label2d import label_fonts
+    register('label fonts', desc, label_fonts, logger=logger)
 
 # -----------------------------------------------------------------------------
 #
@@ -161,22 +216,18 @@ class ObjectLabels(Model):
         if self.on_top:
             renderer.enable_depth_test(True)
     
-    def add_labels(self, objects, label_class, view, offset = None, text = None,
-                   color = None, size = 24, typeface = 'Arial', on_top = True):
-        self.on_top = on_top
+    def add_labels(self, objects, label_class, view, settings = {}, on_top = None):
+        if on_top is not None:
+            self.on_top = on_top
         ld = self._label_drawings
-        opts = [('offset', offset), ('text', text), ('color', color),
-                ('size', size), ('typeface', typeface)]
-        kw = {k:v for k,v in opts if v is not None}
         for o in objects:
             if o not in ld:
-                ld[o] = lo = label_class(o, view, **kw)
+                ld[o] = lo = label_class(o, view, **settings)
                 self.add_drawing(lo)
-            if kw:
+            if settings:
                 lo = ld[o]
-                for k,v in kw.items():
-                    if v is not None:
-                        setattr(lo, k, v)
+                for k,v in settings.items():
+                    setattr(lo, k, v)
                 lo._needs_update = True
         if objects:
             self.redraw_needed()
@@ -191,12 +242,17 @@ class ObjectLabels(Model):
     def label_count(self):
         return len(self._label_drawings)
 
+    def labeled_objects(self, label_class = None):
+        return [o for o,l in self._label_drawings.items()
+                if label_class is None or isinstance(l, label_class)]
+
     def _update_graphics_if_needed(self, *_):
-        for ld in self._label_drawings.values():
-            ld._update_graphics()
+        if self.visible:
+            for ld in self._label_drawings.values():
+                ld._update_graphics()
 
     def take_snapshot(self, session, flags):
-        lattrs = ('object', 'offset', 'text', 'color', 'size', 'typeface')
+        lattrs = ('object', 'offset', 'text', 'color', 'size', 'font')
         lstate = tuple({attr:getattr(ld, attr) for attr in lattrs}
                        for ld in self._label_drawings.values())
         data = {'model state': Model.take_snapshot(self, session, flags),
@@ -218,7 +274,7 @@ class ObjectLabels(Model):
         v = self.session.main_view
         for ls in data['labels state']:
             o = ls['object']
-            kw = {attr:ls[attr] for attr in ('offset', 'text', 'color', 'size', 'typeface')}
+            kw = {attr:ls[attr] for attr in ('offset', 'text', 'color', 'size', 'font')}
             cls = label_class(o)
             ld[o] = ol = cls(o, v, **kw)
             self.add_drawing(ol)
@@ -244,10 +300,9 @@ from chimerax.core.graphics import Drawing
 class ObjectLabel(Drawing):
 
     pickable = False		# Don't allow mouse selection of labels
-    Default = 'default'		# Default computed value for offset, text, and color
     
-    def __init__(self, object, view, offset = Default, text = Default, color = Default,
-                 size = 24, typeface = 'Arial'):
+    def __init__(self, object, view, offset = None, text = None, color = None,
+                 size = 24, font = 'Arial'):
         Drawing.__init__(self, 'label %s' % self.default_text())
 
         self.object = object
@@ -258,7 +313,7 @@ class ObjectLabel(Drawing):
         self.size = size
         self._pixel_size = (100,10)	# Size of label in pixels, calculated from size attribute
 
-        self.typeface = typeface
+        self.font = font
 
         # Set initial billboard geometry
         from numpy import array, float32, int32
@@ -288,14 +343,14 @@ class ObjectLabel(Drawing):
         return True
 
     def _get_offset(self):
-        return self.default_offset() if self._offset == self.Default else self._offset
+        return self.default_offset() if self._offset is None else self._offset
     def _set_offset(self, offset):
         self._offset = offset
         self._needs_update = True
     offset = property(_get_offset, _set_offset)
     
     def _get_text(self):
-        return self.default_text() if self._text == self.Default else self._text
+        return self.default_text() if self._text is None else self._text
     def _set_text(self, text):
         self._text = text
         self._needs_update = True
@@ -303,7 +358,7 @@ class ObjectLabel(Drawing):
     
     def _get_color(self):
         c = self._color
-        if c is None or (isinstance(c,str) and c == self.Default):
+        if c is None:
             light_bg = (sum(self.view.background_color[:3]) > 1.5)
             rgba8 = (0,0,0,255) if light_bg else (255,255,255,255)
         else:
@@ -315,14 +370,17 @@ class ObjectLabel(Drawing):
     color = property(_get_color, _set_color)
             
     def draw(self, renderer, place, draw_pass, selected_only=False):
+        if not self.display:
+            return
         self._update_label_texture()  # This needs to be done during draw in case texture delete needed.
         Drawing.draw(self, renderer, place, draw_pass, selected_only)
 
     def _update_graphics(self):
-        self._position_label()
         disp = self.visible()
         if disp != self.display:
             self.display = disp
+        if self.display:
+            self._position_label()
 
     def _update_label_texture(self):
         if not self._needs_update:
@@ -333,9 +391,9 @@ class ObjectLabel(Drawing):
         from chimerax import app_data_dir
         from .label2d import text_image_rgba
         text = self.text
-        rgba = text_image_rgba(text, rgba8, s, self.typeface, app_data_dir)
+        rgba = text_image_rgba(text, rgba8, s, self.font, app_data_dir)
         if rgba is None:
-            raise RuntimeError("Can't find font %s size %d for label '%s'" % (self.typeface, s, text))
+            raise RuntimeError("Can't find font %s size %d for label '%s'" % (self.font, s, text))
         if self.texture is not None:
             self.texture.delete_texture()
         from chimerax.core.graphics import opengl
@@ -368,11 +426,10 @@ class ObjectLabel(Drawing):
 # -----------------------------------------------------------------------------
 #
 class AtomLabel(ObjectLabel):
-    def __init__(self, object, view, offset = ObjectLabel.Default,
-                 text = ObjectLabel.Default, color = ObjectLabel.Default,
-                 size = 24, typeface = 'Arial'):
+    def __init__(self, object, view, offset = None, text = None, color = None,
+                 size = 24, font = 'Arial'):
         self.atom = object
-        ObjectLabel.__init__(self, object, view, offset=offset, text=text, color=color, size=size, typeface=typeface)
+        ObjectLabel.__init__(self, object, view, offset=offset, text=text, color=color, size=size, font=font)
     def default_text(self):
         return self.atom.name
     def default_offset(self):
@@ -385,11 +442,10 @@ class AtomLabel(ObjectLabel):
 # -----------------------------------------------------------------------------
 #
 class ResidueLabel(ObjectLabel):
-    def __init__(self, object, view, offset = ObjectLabel.Default,
-                 text = ObjectLabel.Default, color = ObjectLabel.Default,
-                 size = 24, typeface = 'Arial'):
+    def __init__(self, object, view, offset = None, text = None, color = None,
+                 size = 24, font = 'Arial'):
         self.residue = object
-        ObjectLabel.__init__(self, object, view, offset=offset, text=text, color=color, size=size, typeface=typeface)
+        ObjectLabel.__init__(self, object, view, offset=offset, text=text, color=color, size=size, font=font)
     def default_text(self):
         r = self.residue
         return '%s %d' % (r.name, r.number)
@@ -402,11 +458,10 @@ class ResidueLabel(ObjectLabel):
 # -----------------------------------------------------------------------------
 #
 class PseudobondLabel(ObjectLabel):
-    def __init__(self, object, view, offset = ObjectLabel.Default,
-                 text = ObjectLabel.Default, color = ObjectLabel.Default,
-                 size = 24, typeface = 'Arial'):
+    def __init__(self, object, view, offset = None, text = None, color = None,
+                 size = 24, font = 'Arial'):
         self.pseudobond = object
-        ObjectLabel.__init__(self, object, view, offset=offset, text=text, color=color, size=size, typeface=typeface)
+        ObjectLabel.__init__(self, object, view, offset=offset, text=text, color=color, size=size, font=font)
     def default_text(self):
         return '%.2f' % self.pseudobond.length
     def default_offset(self):

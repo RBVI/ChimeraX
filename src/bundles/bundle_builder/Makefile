@@ -53,7 +53,7 @@ debug:
 clean:
 	rm -rf src/__pycache__ build dist $(WHL_BNDL_NAME).egg-info setup.py
 
-lint:
+pylint:
 	$(PYLINT) $(PYSRCS)
 
 setup.py: setup.py.in Makefile

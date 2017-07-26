@@ -58,7 +58,7 @@ ifdef WIN32
 	rm -f lib$(LIBNAME).{exp,pdb} vc*.pdb
 endif
 
-lint:
+pylint:
 	$(PYLINT) $(PYSRCS)
 
 molc.$(OBJ_EXT): $(includedir)/atomstruct/Atom.h $(includedir)/atomstruct/AtomicStructure.h \

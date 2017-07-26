@@ -1,7 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 
-def open_xyz(session, stream, name):
+def open_xyz(session, stream):
     structures = []
     atoms = 0
     bonds = 0

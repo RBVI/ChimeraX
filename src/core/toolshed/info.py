@@ -259,32 +259,35 @@ class BundleInfo:
 
                 if fi.open_kwds:
                     from ..commands import cli
-                    cli.add_keyword_arguments('open', _convert_keyword_types(
-                        fi.open_kwds, self, logger))
-            if fi.has_save:
-                def save_cb(*args, _format_name=fi.name, **kw):
                     try:
-                        f = self._get_api(logger).save_file
+                        cli.add_keyword_arguments('open', _convert_keyword_types(
+                            fi.open_kwds, self, logger))
+                    except ValueError as e:
+                        logger.warning(
+                                "unable to register \"open\" keywords in bundle \"%s\": %s"
+                                % (self.name, str(e)))
+            if fi.has_save:
+                def boot_save(bi_self=self, logger=logger):
+                    try:
+                        f = bi_self._get_api(logger).save_file
                     except AttributeError:
                         raise ToolshedError(
-                            "no save_file function found for bundle \"%s\""
-                            % self.name)
+                            "no save_file function found for bundle \"%s\"" % bi_self.name)
                     if f == BundleAPI.save_file:
-                        raise ToolshedError("bundle \"%s\"'s API forgot to override save_file()" % self.name)
+                        raise ToolshedError(
+                            "bundle \"%s\"'s API forgot to override save_file()" % bi_self.name)
+                    return f
+                format._boot_export_func = boot_save
 
-                    # optimize by replacing save_func for format
-                    def save_shim(*args, _func=f, **kw):
-                        from ..io import check_keyword_compatibility
-                        check_keyword_compatibility(_func, *args, **kw)
-                        return _func(*args, **kw)
-                    fmt = io.format_from_name(_format_name)
-                    fmt.export_func = save_shim
-                    return save_shim(*args, **kw)
-                format.export_func = save_cb
                 if fi.save_kwds:
                     from ..commands import cli
-                    cli.add_keyword_arguments('save', _convert_keyword_types(
-                        fi.save_kwds, self, logger))
+                    try:
+                        cli.add_keyword_arguments('save', _convert_keyword_types(
+                            fi.save_kwds, self, logger))
+                    except ValueError as e:
+                        logger.warning(
+                                "unable to register \"save\" keywords in bundle \"%s\": %s"
+                                % (self.name, str(e)))
         for (database_name, format_name, prefixes, example_id, is_default) in self.fetches:
             if io.format_from_name(format_name) is None:
                 print('warning: unknown format %r given for database %r' % (format_name, database_name))

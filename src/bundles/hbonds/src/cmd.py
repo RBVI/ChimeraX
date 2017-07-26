@@ -12,16 +12,18 @@
 # === UCSF ChimeraX Copyright ===
 
 from .hbond import rec_dist_slop, rec_angle_slop, find_hbonds
+
+from chimerax.core.atomic import AtomicStructure
 from chimerax.core.colors import BuiltinColors
 
 def cmd_hbonds(session, spec=None, intra_model=True, inter_model=True, relax=True,
     dist_slop=rec_dist_slop, angle_slop=rec_angle_slop, two_colors=False,
-    sel_restrict=None, radius=0.075, save_file=None, batch=False,
+    sel_restrict=None, radius=AtomicStructure.default_hbond_radius, save_file=None, batch=False,
     inter_submodel=False, make_pseudobonds=True, retain_current=False,
     reveal=False, naming_style=None, log=False, cache_DA=None,
-    color=BuiltinColors["dark cyan"], slop_color=BuiltinColors["dark orange"],
+    color=AtomicStructure.default_hbond_color, slop_color=BuiltinColors["dark orange"],
     show_dist=False, intra_res=True, intra_mol=True, dashes=None,
-    salt_only=False):
+    salt_only=False, name="hydrogen bonds"):
 
     """Wrapper to be called by command line.
 
@@ -126,13 +128,13 @@ def cmd_hbonds(session, spec=None, intra_model=True, inter_model=True, relax=Tru
         # give another opportunity to read the result...
         session.logger.status("%d hydrogen bonds found" % len(hbonds), blank_after=120)
 
-    pbg = session.pb_manager.get_group("hydrogen bonds")
+    pbg = session.pb_manager.get_group(name)
     pre_existing = {}
     if not retain_current:
         pbg.clear()
         pbg.color = bond_color.uint8x4()
         pbg.radius = radius
-        pbg.dashes = dashes if dashes is not None else 6
+        pbg.dashes = dashes if dashes is not None else AtomicStructure.default_hbond_dashes
     else:
         for pb in pbg.pseudobonds:
             pre_existing[pb.atoms] = pb
@@ -269,8 +271,8 @@ def _file_output(file_name, output_info, naming_style):
         # we opened it, so close it...
         out_file.close()
 
-def cmd_xhbonds(session):
-    pbg = session.pb_manager.get_group("hydrogen bonds", create=False)
+def cmd_xhbonds(session, name="hydrogen bonds"):
+    pbg = session.pb_manager.get_group(name, create=False)
     if pbg:
         session.models.close([pbg])
 
@@ -338,7 +340,7 @@ def salt_preprocess(hbonds):
 def register_command(command_name, logger):
     from chimerax.core.commands \
         import CmdDesc, register, BoolArg, FloatArg, ColorArg, Or, EnumOf, AtomsArg, \
-            StructuresArg, SaveFileNameArg, NonNegativeIntArg
+            StructuresArg, SaveFileNameArg, NonNegativeIntArg, StringArg
     if command_name == "hbonds":
         desc = CmdDesc(
             keyword = [('make_pseudobonds', BoolArg), ('radius', FloatArg), ('color', ColorArg),
@@ -350,10 +352,11 @@ def register_command(command_name, logger):
                 ('angle_slop', FloatArg), ('two_colors', BoolArg), ('slop_color', ColorArg),
                 ('reveal', BoolArg), ('retain_current', BoolArg), ('save_file', SaveFileNameArg),
                 ('log', BoolArg), ('naming_style', EnumOf(('simple', 'command', 'serial'))),
-                ('batch', BoolArg), ('dashes', NonNegativeIntArg), ('salt_only', BoolArg)],
+                ('batch', BoolArg), ('dashes', NonNegativeIntArg), ('salt_only', BoolArg),
+                ('name', StringArg)],
             synopsis = 'Find hydrogen bonds'
         )
         register('hbonds', desc, cmd_hbonds, logger=logger)
     else:
-        desc = CmdDesc(synopsis = 'Clear hydrogen bonds')
+        desc = CmdDesc(keyword = [('name', StringArg)], synopsis = 'Clear hydrogen bonds')
         register('~hbonds', desc, cmd_xhbonds, logger=logger)

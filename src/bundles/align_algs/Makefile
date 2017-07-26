@@ -19,14 +19,15 @@ endif
 ifeq ($(OS),Linux)
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
 endif
+RUN = $(CHIMERAX_EXE) --nogui --exit --cmd
 
 SRCS = $(wildcard src/*.py)
 
-wheel:	bundle_info.xml $(SRCS) support_cpp.install
-	$(CHIMERAX_EXE) --nogui --cmd "devel build . ; exit"
+wheel:	bundle_info.xml $(SRCS)
+	$(RUN) "devel build . exit true"
 
-install app-install:	bundle_info.xml $(SRCS) support_cpp.install
-	$(CHIMERAX_EXE) --nogui --cmd "devel install . user false; exit"
+install app-install:	bundle_info.xml $(SRCS)
+	$(RUN) "devel install . user false exit true"
 
 test:
 	$(CHIMERAX_EXE)
@@ -35,8 +36,17 @@ debug:
 	$(CHIMERAX_EXE) --debug
 
 clean:
-	$(CHIMERAX_EXE) --nogui --cmd "devel clean . ; exit"
-	$(MAKE) -C support_cpp clean
+	$(RUN) "devel clean . exit true"
+	rm -rf src/lib
+ifeq ($(OS),CYGWIN_NT)
+	rm -rf src/support.obj src/_[sn]w*.pyd src/libalign_algs.dll
+endif
+ifeq ($(OS),Darwin)
+	rm -rf src/support.o src/_[sn]w*.so src/libalign_algs.*
+endif
+ifeq ($(OS),Linux)
+	rm -rf src/support.o src/_[sn]w*.so src/libalign_algs.so
+endif
 
-support_cpp.install:
-	$(MAKE) -C support_cpp install
+pylint:
+	$(CHIMERAX_EXE) -m flake8 $(filter %.py, $(SRCS))

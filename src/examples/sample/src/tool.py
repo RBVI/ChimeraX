@@ -39,6 +39,15 @@ class SampleTool(ToolInstance):
         # Go!
         self._update_models()
 
+    def delete(self):
+        t = session.triggers
+        if self._add_handler:
+            t.remove_handler(self._add_handler)
+            self._add_handler = None
+        if self._remove_hander:
+            t.remove_handler(self._remove_handler)
+            self._remove_handler = None
+
     def _update_models(self, trigger=None, trigger_data=None):
         # Called to update page with current list of models
         from chimerax.core.atomic import AtomicStructure

@@ -31,9 +31,9 @@ class _MyAPI(BundleAPI):
         return stl.read_stl(session, stream, file_name)
 
     @staticmethod
-    def save_file(session, name, _, models=None):
+    def save_file(session, path, models=None):
         # 'save_file' is called by session code to save a file
         from . import stl
-        return stl.write_stl(session, name, models)
+        return stl.write_stl(session, path, models)
 
 bundle_api = _MyAPI()

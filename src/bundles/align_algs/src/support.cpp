@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <string>
 
+#define ALIGN_ALGS_EXPORT
 #include "support.h"
 
 namespace align_algs {
@@ -35,6 +36,7 @@ static const char *BadKey = "dictionary key must be tuple of two characters";
 //	must be floating point numbers.  The '*' character is
 //	a wildcard.
 //
+ALIGN_ALGS_IMEX
 int
 make_matrix(PyObject *dict, Similarity &matrix, bool is_ss_matrix)
 {
@@ -109,6 +111,7 @@ make_matrix(PyObject *dict, Similarity &matrix, bool is_ss_matrix)
 //
 //	Uses wildcards if the characters are not found directly.
 //
+ALIGN_ALGS_IMEX
 Similarity::const_iterator
 matrix_lookup(const Similarity &matrix, char c1, char c2)
 {
