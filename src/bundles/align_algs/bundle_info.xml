@@ -32,7 +32,6 @@
     <LibraryDir>src</LibraryDir>
     <Library>align_algs</Library>
     <Library>arrays</Library>
-    <LinkArgument platform="linux">-Wl,-rpath,$ORIGIN</LinkArgument>
   </CModule>
 
   <CModule name="_sw">

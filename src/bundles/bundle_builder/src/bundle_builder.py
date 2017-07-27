@@ -471,6 +471,9 @@ class _CModule(_CompiledCode):
              libraries, cpp_flags) = self._compile_options()
         except ValueError:
             return None
+        import sys
+        if sys.platform == "linux":
+            extra_link_args.append("-Wl,-rpath,$ORIGIN")
         return Extension(package + '.' + self.name,
                          define_macros=[("MAJOR_VERSION", self.major),
                                         ("MINOR_VERSION", self.minor)],
