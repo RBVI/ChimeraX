@@ -24,10 +24,9 @@ def model(session, targets, combined_templates=False, custom_script=None,
     targets
         list of (alignment, sequence) tuples.  Each sequence will be modelled.
     combined_templates
-        If True, all associated chains are used as templates to generate a single set of
-        models for the target sequence.  If False, each associated chain is used to
-        generate a separate set of models of the target sequence.  The latter is useful
-        for modelling multimers from a single alignment.
+        If True, all associated chains are used together as templates to generate a single set
+        of models for the target sequence.  If False, the associated chains are used individually
+        to generate chains in the resulting models (i.e. the models will be multimers).
     custom_script
         If provided, the location of a custom Modeller script to use instead of the
         one we would otherwise generate.
@@ -57,7 +56,7 @@ def model(session, targets, combined_templates=False, custom_script=None,
     template_info = []
     for alignment, orig_target in targets:
         if not alignment.associations:
-            raise ValueError("Alignment %s has no associatied chains to use as templates."
+            raise ValueError("Alignment %s has no associated chains to use as templates."
                 % alignment.ident)
         # Copy the target sequence, changing name to conform to Modeller limitations
         from .common import modeller_copy
@@ -76,12 +75,13 @@ def regularized_seq(aseq, chain):
     from .common import modeller_copy
     rseq = modeller_copy(aseq)
     rseq.descript = "structure:" + chain_save_name(chain)
+    from chimerax.core.atomic import Sequence
     for ungapped in range(len(aseq.ungapped())):
         gapped = aseq.ungapped_to_gapped(ungapped)
         if i not in mmap:
             rseq.characters[gapped] = '-'
         else:
-           #TODO
+            rseq.characters[gapped] = Sequence.rname3to1(mmap[i].name)
 
 def chain_save_name(chain):
     return chain.structure.name.replace(':', '_').replace(' ', '_') \
