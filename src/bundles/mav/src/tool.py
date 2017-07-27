@@ -436,9 +436,9 @@ class MultAlignViewer(ToolInstance):
             assoc_aseqs = set()
             for match_map in note_data[-1]:
                 aseq = match_map.align_seq
-                self.seq_canvas.assoc_mod(aseq)
                 assoc_aseqs.add(aseq)
             for aseq in assoc_aseqs:
+                self.seq_canvas.assoc_mod(aseq)
                 self._update_errors_gaps(aseq)
         elif note_name == "pre-remove seqs":
             self.region_browser._pre_remove_lines(note_data)

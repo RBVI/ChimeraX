@@ -119,7 +119,6 @@ class Changes:
     def num_deleted_structures(self):
         """Not possible to distinguish between AtomicStructures and Structures"""
         return self._changes["Structure"].total_deleted
-    num_deleted_structures = num_deleted_structures
 
     def pseudobond_reasons(self):
         return self._changes["Pseudobond"].reasons

@@ -37,11 +37,13 @@ debug:
 
 clean:
 	$(RUN) "devel clean . exit true"
-	rm -rf src/lib
 ifeq ($(OS),CYGWIN_NT)
 	rm -rf src/support.obj src/_[sn]w*.pyd src/libalign_algs.dll
 endif
 ifeq ($(OS),Darwin)
+	rm -rf src/support.o src/_[sn]w*.so src/libalign_algs.*
+endif
+ifeq ($(OS),Linux)
 	rm -rf src/support.o src/_[sn]w*.so src/libalign_algs.so
 endif
 

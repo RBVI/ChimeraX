@@ -184,22 +184,7 @@ class BundleBuilder:
                 minor = 1
             uses_numpy = cm.getAttribute("usesNumpy") == "true"
             c = _CModule(mod_name, uses_numpy, major, minor)
-            for e in self._get_elements(cm, "Requires"):
-                c.add_require(self._get_element_text(e))
-            for e in self._get_elements(cm, "SourceFile"):
-                c.add_source_file(self._get_element_text(e))
-            for e in self._get_elements(cm, "IncludeDir"):
-                c.add_include_dir(self._get_element_text(e))
-            for e in self._get_elements(cm, "Library"):
-                c.add_library(self._get_element_text(e))
-            for e in self._get_elements(cm, "LibraryDir"):
-                c.add_library_dir(self._get_element_text(e))
-            for e in self._get_elements(cm, "LinkArgument"):
-                c.add_link_argument(self._get_element_text(e))
-            for e in self._get_elements(cm, "Framework"):
-                c.add_framework(self._get_element_text(e))
-            for e in self._get_elements(cm, "FrameworkDir"):
-                c.add_framework_dir(self._get_element_text(e))
+            self._add_c_options(c, cm)
             self.c_modules.append(c)
 
     def _get_c_libraries(self, bi):
@@ -207,25 +192,27 @@ class BundleBuilder:
         for lib in self._get_elements(bi, "CLibrary"):
             c = _CLibrary(lib.getAttribute("name"),
                           lib.getAttribute("usesNumpy") == "true",
-                          lib.getAttribute("static") == "true",
-                          lib.getAttribute("outputDir"))
-            for e in self._get_elements(lib, "Requires"):
-                c.add_require(self._get_element_text(e))
-            for e in self._get_elements(lib, "SourceFile"):
-                c.add_source_file(self._get_element_text(e))
-            for e in self._get_elements(lib, "IncludeDir"):
-                c.add_include_dir(self._get_element_text(e))
-            for e in self._get_elements(lib, "Library"):
-                c.add_library(self._get_element_text(e))
-            for e in self._get_elements(lib, "LibraryDir"):
-                c.add_library_dir(self._get_element_text(e))
-            for e in self._get_elements(lib, "LinkArgument"):
-                c.add_link_argument(self._get_element_text(e))
-            for e in self._get_elements(lib, "Framework"):
-                c.add_framework(self._get_element_text(e))
-            for e in self._get_elements(lib, "FrameworkDir"):
-                c.add_framework_dir(self._get_element_text(e))
+                          lib.getAttribute("static") == "true")
+            self._add_c_options(c, lib)
             self.c_libraries.append(c)
+
+    def _add_c_options(self, c, ce):
+            for e in self._get_elements(ce, "Requires"):
+                c.add_require(self._get_element_text(e))
+            for e in self._get_elements(ce, "SourceFile"):
+                c.add_source_file(self._get_element_text(e))
+            for e in self._get_elements(ce, "IncludeDir"):
+                c.add_include_dir(self._get_element_text(e))
+            for e in self._get_elements(ce, "Library"):
+                c.add_library(self._get_element_text(e))
+            for e in self._get_elements(ce, "LibraryDir"):
+                c.add_library_dir(self._get_element_text(e))
+            for e in self._get_elements(ce, "LinkArgument"):
+                c.add_link_argument(self._get_element_text(e))
+            for e in self._get_elements(ce, "Framework"):
+                c.add_framework(self._get_element_text(e))
+            for e in self._get_elements(ce, "FrameworkDir"):
+                c.add_framework_dir(self._get_element_text(e))
 
     def _get_packages(self, bi):
         self.packages = []
@@ -354,12 +341,14 @@ class BundleBuilder:
     # Utility functions dealing with XML tree
     #
     def _get_elements(self, e, tag):
+        tagged_elements = e.getElementsByTagName(tag)
+        # Mark element as used even for non-applicable platform
+        self._used_elements.update(tagged_elements)
         elements = []
-        for se in e.getElementsByTagName(tag):
+        for se in tagged_elements:
             platform = se.getAttribute("platform")
             if not platform or platform in self._platform_names:
                 elements.append(se)
-        self._used_elements.update(elements)
         return elements
 
     def _get_element_text(self, e):
@@ -371,11 +360,11 @@ class BundleBuilder:
 
     def _get_singleton(self, bi, tag):
         elements = bi.getElementsByTagName(tag)
+        self._used_elements.update(elements)
         if len(elements) > 1:
             raise ValueError("too many %s elements" % repr(tag))
         elif len(elements) == 0:
             raise ValueError("%s element is missing" % repr(tag))
-        self._used_elements.update(elements)
         return elements[0]
 
     def _get_singleton_text(self, bi, tag):
@@ -482,6 +471,9 @@ class _CModule(_CompiledCode):
              libraries, cpp_flags) = self._compile_options()
         except ValueError:
             return None
+        import sys
+        if sys.platform == "linux":
+            extra_link_args.append("-Wl,-rpath,$ORIGIN")
         return Extension(package + '.' + self.name,
                          define_macros=[("MAJOR_VERSION", self.major),
                                         ("MINOR_VERSION", self.minor)],
@@ -495,10 +487,9 @@ class _CModule(_CompiledCode):
 
 class _CLibrary(_CompiledCode):
 
-    def __init__(self, name, uses_numpy, static, output_dir):
+    def __init__(self, name, uses_numpy, static):
         super().__init__(name, uses_numpy)
         self.static = static
-        self.output_dir = output_dir
 
     def compile(self):
         import sys, os, os.path, distutils.ccompiler, distutils.sysconfig
@@ -507,10 +498,7 @@ class _CLibrary(_CompiledCode):
              libraries, cpp_flags) = self._compile_options()
         except ValueError:
             return None
-        if not self.output_dir:
-            output_dir = os.path.join("src", "lib")
-        else:
-            output_dir = os.path.join("src", self.output)
+        output_dir = "src"
         compiler = distutils.ccompiler.new_compiler()
         distutils.sysconfig.customize_compiler(compiler)
         if inc_dirs:
@@ -545,21 +533,21 @@ class _CLibrary(_CompiledCode):
                 else:
                     compiler.linker_so[n] = "-dynamiclib"
                 lib = compiler.library_filename(lib_name, lib_type="dylib")
-                compiler.link_shared_object(objs, lib, output_dir="src",
+                extra_link_args.append("-Wl,-install_name,@loader_path/%s" % lib)
+                compiler.link_shared_object(objs, lib, output_dir=output_dir,
                                             extra_postargs=extra_link_args)
             elif sys.platform == "win32":
                 # On Windows, we need both .dll and .lib
                 link_lib = compiler.library_filename(lib_name, lib_type="static")
                 extra_link_args.append("/LIBPATH:%s" % link_lib)
                 lib = compiler.shared_object_filename(lib_name)
-                compiler.link_shared_object(objs, lib, output_dir="src",
+                compiler.link_shared_object(objs, lib, output_dir=output_dir,
                                             extra_postargs=extra_link_args)
-                link_file = os.path.join(output_dir, link_lib)
-                try:
-                    os.remove(link_file)
-                except OSError:
-                    pass
-                compiler.move_file(os.path.join("src", link_lib), link_file)
+            else:
+                # On Linux, we only need the .so
+                lib = compiler.library_filename(lib_name, lib_type="shared")
+                compiler.link_shared_object(objs, lib, output_dir=output_dir,
+                                            extra_postargs=extra_link_args)
 
 if __name__ == "__main__" or __name__.startswith("ChimeraX_sandbox"):
     import sys
