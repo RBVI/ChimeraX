@@ -192,8 +192,7 @@ class BundleBuilder:
         for lib in self._get_elements(bi, "CLibrary"):
             c = _CLibrary(lib.getAttribute("name"),
                           lib.getAttribute("usesNumpy") == "true",
-                          lib.getAttribute("static") == "true",
-                          lib.getAttribute("outputDir"))
+                          lib.getAttribute("static") == "true")
             self._add_c_options(c, lib)
             self.c_libraries.append(c)
 
@@ -472,6 +471,9 @@ class _CModule(_CompiledCode):
              libraries, cpp_flags) = self._compile_options()
         except ValueError:
             return None
+        import sys
+        if sys.platform == "linux":
+            extra_link_args.append("-Wl,-rpath,$ORIGIN")
         return Extension(package + '.' + self.name,
                          define_macros=[("MAJOR_VERSION", self.major),
                                         ("MINOR_VERSION", self.minor)],
@@ -485,10 +487,9 @@ class _CModule(_CompiledCode):
 
 class _CLibrary(_CompiledCode):
 
-    def __init__(self, name, uses_numpy, static, output_dir):
+    def __init__(self, name, uses_numpy, static):
         super().__init__(name, uses_numpy)
         self.static = static
-        self.output_dir = output_dir
 
     def compile(self):
         import sys, os, os.path, distutils.ccompiler, distutils.sysconfig
@@ -497,10 +498,7 @@ class _CLibrary(_CompiledCode):
              libraries, cpp_flags) = self._compile_options()
         except ValueError:
             return None
-        if not self.output_dir:
-            output_dir = os.path.join("src", "lib")
-        else:
-            output_dir = os.path.join("src", self.output)
+        output_dir = "src"
         compiler = distutils.ccompiler.new_compiler()
         distutils.sysconfig.customize_compiler(compiler)
         if inc_dirs:
@@ -535,25 +533,20 @@ class _CLibrary(_CompiledCode):
                 else:
                     compiler.linker_so[n] = "-dynamiclib"
                 lib = compiler.library_filename(lib_name, lib_type="dylib")
-                compiler.link_shared_object(objs, lib, output_dir="src",
+                extra_link_args.append("-Wl,-install_name,@loader_path/%s" % lib)
+                compiler.link_shared_object(objs, lib, output_dir=output_dir,
                                             extra_postargs=extra_link_args)
             elif sys.platform == "win32":
                 # On Windows, we need both .dll and .lib
                 link_lib = compiler.library_filename(lib_name, lib_type="static")
                 extra_link_args.append("/LIBPATH:%s" % link_lib)
                 lib = compiler.shared_object_filename(lib_name)
-                compiler.link_shared_object(objs, lib, output_dir="src",
+                compiler.link_shared_object(objs, lib, output_dir=output_dir,
                                             extra_postargs=extra_link_args)
-                link_file = os.path.join(output_dir, link_lib)
-                try:
-                    os.remove(link_file)
-                except OSError:
-                    pass
-                compiler.move_file(os.path.join("src", link_lib), link_file)
             else:
                 # On Linux, we only need the .so
                 lib = compiler.library_filename(lib_name, lib_type="shared")
-                compiler.link_shared_object(objs, lib, output_dir="src",
+                compiler.link_shared_object(objs, lib, output_dir=output_dir,
                                             extra_postargs=extra_link_args)
 
 if __name__ == "__main__" or __name__.startswith("ChimeraX_sandbox"):

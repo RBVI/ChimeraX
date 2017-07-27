@@ -37,7 +37,6 @@ debug:
 
 clean:
 	$(RUN) "devel clean . exit true"
-	rm -rf src/lib
 ifeq ($(OS),CYGWIN_NT)
 	rm -rf src/support.obj src/_[sn]w*.pyd src/libalign_algs.dll
 endif
