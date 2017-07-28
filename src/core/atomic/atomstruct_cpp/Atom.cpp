@@ -132,6 +132,7 @@ Atom::_coordset_set_coord(const Point &coord, CoordSet *cs)
         cs->_coords[_coord_index] = coord;
         graphics_container()->set_gc_shape();
         graphics_container()->set_gc_ribbon();
+        structure()->change_tracker()->add_modified(cs, ChangeTracker::REASON_COORDS);
     }
 }
 
