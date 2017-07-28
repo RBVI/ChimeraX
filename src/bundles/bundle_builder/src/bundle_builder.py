@@ -142,6 +142,10 @@ class BundleBuilder:
         self.url = self._get_singleton_text(bi, "URL")
         self.synopsis = self._get_singleton_text(bi, "Synopsis")
         self.description = self._get_singleton_text(bi, "Description")
+        try:
+            self.license = self._get_singleton_text(bi, "License")
+        except ValueError:
+            self.license = None
 
     def _get_datafiles(self, bi):
         import pathlib, os.path
@@ -247,17 +251,20 @@ class BundleBuilder:
             self.chimerax_classifiers.append(self._get_element_text(e))
 
     def _make_setup_arguments(self):
-        self.setup_arguments = {
-            "name": self.name,
-            "version": self.version,
-            "description": self.synopsis,
-            "long_description": self.description,
-            "author": self.author,
-            "author_email": self.email,
-            "url": self.url,
-            "python_requires": ">= 3.6",
-            "install_requires": self.dependencies,
-        }
+        def add_argument(name, value):
+            if value:
+                self.setup_arguments[name] = value
+        self.setup_arguments = {"name": self.name,
+                                "python_requires": ">= 3.6"}
+        add_argument("version", self.version)
+        add_argument("description", self.synopsis)
+        add_argument("long_description", self.description)
+        add_argument("author", self.author)
+        add_argument("author_email", self.email)
+        add_argument("url", self.url)
+        add_argument("install_requires", self.dependencies)
+        add_argument("license", self.license)
+        add_argument("package_data", self.datafiles)
         from setuptools import find_packages
         def add_package(base_package, folder):
             package_dir[base_package] = folder
@@ -271,8 +278,6 @@ class BundleBuilder:
             add_package(name, folder)
         self.setup_arguments["package_dir"] = package_dir
         self.setup_arguments["packages"] = packages
-        if self.datafiles:
-            self.setup_arguments["package_data"] = self.datafiles
         ext_mods = [em for em in [cm.ext_mod(self.package)
 				  for cm in self.c_modules]
                     if em is not None]
