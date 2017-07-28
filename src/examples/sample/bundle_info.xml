@@ -12,6 +12,7 @@ will be displayed without the ChimeraX- prefix.
   <Author>UCSF RBVI</Author>
   <Email>chimerax@cgl.ucsf.edu</Email>
   <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+  <License>license.txt.bsd</License>
 
   <!-- Synopsis is a one-line description
        Description is a full multi-line description -->
