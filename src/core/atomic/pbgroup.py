@@ -93,6 +93,14 @@ class PseudobondGroup(PseudobondGroupData, Model):
 
     dashes = property(_get_dashes, _set_dashes)
 
+    def _get_name(self):
+        return self.category
+
+    def _set_name(self, name):
+        if name != self.category:
+            self.change_category(name)
+    name = property(_get_name, _set_name)
+
     def _update_graphics_if_needed(self, *_):
         gc = self._graphics_changed
         if gc:
