@@ -1,3 +1,10 @@
+<!--
+ChimeraX bundle names must start with "ChimeraX-"
+to avoid clashes with package names in pypi.python.org.
+When uploaded to the ChimeraX toolshed, the bundle
+will be displayed without the ChimeraX- prefix.
+-->
+
 <BundleInfo name="ChimeraX-Sample" version="0.1" package="chimerax.sample"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -5,6 +12,7 @@
   <Author>UCSF RBVI</Author>
   <Email>chimerax@cgl.ucsf.edu</Email>
   <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+  <License>license.txt.bsd</License>
 
   <!-- Synopsis is a one-line description
        Description is a full multi-line description -->
