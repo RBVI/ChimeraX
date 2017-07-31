@@ -221,23 +221,32 @@ class ChimeraXHtmlView(HtmlView):
             if len(parts) == 2 and parts[1].isdigit():
                 urlFile = parts[0] + extension
             filePath = os.path.join(os.path.dirname(item.path()), urlFile)
-            item.setPath(filePath)
-            # print("ChimeraXHtmlView.download_requested clean")
+            from pip.wheel import Wheel, InvalidWheelFilename
             try:
-                # Guarantee that file name is available
-                os.remove(filePath)
-            except OSError:
+                w = Wheel(filePath)
+                if not w.supported():
+                    raise ValueError("unsupported wheel platform")
+            except (InvalidWheelFilename, ValueError):
                 pass
-            self._pending_downloads.append(item)
-            self.session.logger.info("Downloading bundle %s" % urlFile)
-            item.finished.connect(self.download_finished)
-        else:
-            from PyQt5.QtWidgets import QFileDialog
-            path, filt = QFileDialog.getSaveFileName(directory=item.path())
-            if not path:
+            finally:
+                item.setPath(filePath)
+                # print("ChimeraXHtmlView.download_requested clean")
+                try:
+                    # Guarantee that file name is available
+                    os.remove(filePath)
+                except OSError:
+                    pass
+                self._pending_downloads.append(item)
+                self.session.logger.info("Downloading bundle %s" % urlFile)
+                item.finished.connect(self.download_finished)
+                item.accept()
                 return
-            self.session.logger.info("Downloading file %s" % urlFile)
-            item.setPath(path)
+        from PyQt5.QtWidgets import QFileDialog
+        path, filt = QFileDialog.getSaveFileName(directory=item.path())
+        if not path:
+            return
+        self.session.logger.info("Downloading file %s" % urlFile)
+        item.setPath(path)
         # print("ChimeraXHTMLView.download_requested accept")
         item.accept()
 
@@ -258,7 +267,7 @@ class ChimeraXHtmlView(HtmlView):
             from chimerax.core.ui.ask import ask
             how = ask(self.session,
                       "Install %s for:" % filename,
-                      ["all users", "just me", "cancel"],
+                      ["just me", "all users", "cancel"],
                       title="Toolshed")
             if how == "cancel":
                 self.session.logger.info("Bundle installation canceled")
