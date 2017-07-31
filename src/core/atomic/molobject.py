@@ -1654,6 +1654,8 @@ class StructureData:
                        args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int),
                        ret = ctypes.c_void_p)
         pbg = f(self._c_pointer, name.encode('utf-8'), create_arg)
+        if not pbg:
+            return None
         from .pbgroup import PseudobondGroup
         return object_map(pbg, PseudobondGroup)
 
