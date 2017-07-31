@@ -189,11 +189,25 @@ class BundleInfo:
         return self._name, self._version
 
     def register(self, logger):
+        """Register bundle commands, tools, data formats, selectors, etc.
+
+        Parameters
+        ----------
+        logger : :py:class:`~chimerax.core.logger.Logger` instance
+            Where to log error messages.
+        """
         self._register_commands(logger)
         self._register_file_types(logger)
         self._register_selectors(logger)
 
     def deregister(self, logger):
+        """Deregister bundle commands, tools, data formats, selectors, etc.
+
+        Parameters
+        ----------
+        logger : :py:class:`~chimerax.core.logger.Logger` instance
+            Where to log error messages.
+        """
         self._deregister_selectors(logger)
         self._deregister_file_types(logger)
         self._deregister_commands(logger)
@@ -494,6 +508,35 @@ class BundleInfo:
         """
         from distlib.version import NormalizedVersion as Version
         return Version(self.version) > Version(bi.version)
+
+    def dependents(self, logger):
+        """Return set of bundles that directly depends on this one.
+
+        Parameters
+        ----------
+        logger : :py:class:`~chimerax.core.logger.Logger` instance
+            Where to log error messages.
+
+        Returns
+        -------
+        set of :py:class:`~chimerax.core.toolshed.BundleInfo` instances
+            Dependent bundles.
+        """
+        from . import Toolshed
+        from distlib.database import DistributionPath
+        keep = set()
+        for d in DistributionPath().get_distributions():
+            for req in d.run_requires:
+                if req.split()[0] == self.name:
+                    keep.add(d)
+                    break
+        ts = Toolshed.get_toolshed()
+        deps = set()
+        for d in keep:
+            bi = ts.find_bundle(d.name, logger)
+            if bi:
+                deps.add(bi)
+        return deps
 
 
 class ToolInfo:
