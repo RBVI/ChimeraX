@@ -36,7 +36,11 @@ debug:
 	$(CHIMERAX_EXE) --debug
 
 clean:	bundle_info.xml
-	$(RUN) "devel clean . exit true"
+	if [ -x $(CHIMERAX_EXE) ]; then \
+		$(RUN) "devel clean . exit true" ; \
+	else \
+		rm -rf build dist *.egg-info src/__pycache__ ; \
+	fi
 	rm -f bundle_info.xml
 
 pylint:

@@ -61,6 +61,7 @@ public:
 
     ChangeTracker*  change_tracker() { return _change_tracker; }
     void  clear();
+    void  change_category(Proxy_PBGroup*, std::string&);
     void  delete_group(Proxy_PBGroup*);
     virtual Proxy_PBGroup*  get_group(const std::string& name) const;
     virtual Proxy_PBGroup*  get_group(const std::string& name, int create) = 0;

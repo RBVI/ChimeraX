@@ -1406,6 +1406,16 @@ extern "C" EXPORT void pseudobond_group_category(void *pbgroups, size_t n, void 
     }
 }
 
+extern "C" EXPORT void pseudobond_group_change_category(void* ptr, const char* cat)
+{
+    Proxy_PBGroup *pbg = static_cast<Proxy_PBGroup *>(ptr);
+    try {
+        std::string scat = cat;
+        pbg->change_category(scat);
+    } catch (...) {
+        molc_error();
+    }
+}
 extern "C" EXPORT void pseudobond_group_group_type(void *pbgroups, size_t n, uint8_t *group_types)
 {
     Proxy_PBGroup **g = static_cast<Proxy_PBGroup **>(pbgroups);

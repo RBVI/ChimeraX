@@ -55,28 +55,30 @@ the H-bonds are shown as dashed <a href="../pseudobonds.html">pseudobonds</a>.
 Their <b>color</b>, <b>radius</b>, and number of <b>dashes</b> can be 
 specified. The pseudobonds can be removed with the <b>~hbonds</b> command.
 The default <a href="#name">name</a> of the pseudobond model for creation
-with <b>hbonds</b> and removal with <b>~hbonds</b> is <b>hydrogen bonds</b>,
+(and for removal with the <b>~hbonds</b> command) is <b>hydrogen bonds</b>,
 but different names can be assigned and used.
-The command-line specifier
-<a href="atomspec.html#builtin"><b>hbonds</b></a>
-(not to be confused with the command)
-refers to the pseudobonds in the <b>hydrogen bonds</b> model
-and their endpoint atoms.
+The command-line specifier <a href="atomspec.html#builtin"><b>hbonds</b></a>
+(not to be confused with the command) refers to the pseudobonds 
+in the <b>hydrogen bonds</b> model and their endpoint atoms. 
+An interactive histogram of pseudobond lengths can be plotted with 
+<a href="crosslinks.html#histogram"><b>crosslinks histogram</b></a>.
+See also: <a href="style.html"><b>style</b></a>
 </p><p>
 The <b>selRestrict</b> option allows limiting detection to only the 
 <a href="../selection.html">selected</a> atoms or between the 
 <a href="../selection.html">selected</a> atoms and another set of atoms
 (<a href="#selRestrict">details...</a>).
+</p><p>
 Pseudobonds are only shown if their endpoint atoms are shown;
 <b>reveal true</b> can be used to display all involved residues 
 so that all of the H-bonds will be shown (<a href="#reveal">details...</a>).
-Since a backbone atom is considered as shown even if only the cartoon
-for that residue is shown, a pseudobond (which goes the atom position)
-may appear to be floating in space. 
-Floating pseudobonds can be eliminated from the display
-with the command <b><a href="cartoon.html">cartoon suppress false</a></b>,
+Since a backbone atom is considered as shown when its cartoon is
+<a href="cartoon.html#suppress">suppressing</a> the backbone atoms,
+a pseudobond (which goes the atom position) may appear to be floating in space. 
+Floating pseudobonds can be hidden with the command
+<b><a href="cartoon.html">cartoon suppress false</a></b>,
 with the side effect of showing any backbone atoms that were already
-displayed but suppressed by the cartoon.
+displayed but suppressed.
 </p>
 
 <a name="options"></a>
@@ -180,8 +182,9 @@ coordinating a metal ion or identified unambiguously as an H-bond acceptor.
 </blockquote>
 <blockquote>
 <a name="reveal"><b>reveal</b> &nbsp;true&nbsp;|&nbsp;<b>false</b></a>
-<br>Whether to turn on the display of residues containing an
-H-bonding atom if that atom is not displayed initially.
+<br>Whether to display all atoms of a residue containing an
+H-bonding atom if that atom is not displayed initially,
+to ensure displaying all H-bond <a href="../pseudobonds.html">pseudobonds</a>.
 (By default, if the atom on either end of a
 <a href="../pseudobonds.html">pseudobond</a> representing
 an H-bond is not shown, the pseudobond itself is not shown, although
