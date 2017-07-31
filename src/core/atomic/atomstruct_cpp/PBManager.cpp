@@ -36,6 +36,15 @@ BaseManager::~BaseManager()
 }
 
 void
+BaseManager::change_category(Proxy_PBGroup* grp, std::string& category)
+{
+    if (_groups.find(category) != _groups.end())
+        throw std::invalid_argument("Another pb group with that category already exists.");
+    _groups.erase(grp->category());
+    _groups[category] = grp;
+}
+
+void
 BaseManager::clear()
 {
     for (auto cat_grp: _groups)

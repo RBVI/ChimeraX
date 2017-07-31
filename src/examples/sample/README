@@ -4,3 +4,12 @@ ChimeraX source tree.
 
 See http://www.cgl.ucsf.edu/chimerax/docs/devel/writing_bundles.html
 for more details on how to build and distribute bundles.
+
+NOTE:
+
+setup.py.in and setup.cfg are only present for historical reasons.
+They were used for building bundles before the "devel" command
+was implemented.  They do offer a more powerful alternative for
+experienced programmers (e.g., specifying a license file for
+inclusion in the bundle), which is why we decided not to remove
+them from the example.

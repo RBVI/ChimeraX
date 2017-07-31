@@ -142,6 +142,10 @@ class BundleBuilder:
         self.url = self._get_singleton_text(bi, "URL")
         self.synopsis = self._get_singleton_text(bi, "Synopsis")
         self.description = self._get_singleton_text(bi, "Description")
+        try:
+            self.license = self._get_singleton_text(bi, "License")
+        except ValueError:
+            self.license = None
 
     def _get_datafiles(self, bi):
         import pathlib, os.path
@@ -192,8 +196,7 @@ class BundleBuilder:
         for lib in self._get_elements(bi, "CLibrary"):
             c = _CLibrary(lib.getAttribute("name"),
                           lib.getAttribute("usesNumpy") == "true",
-                          lib.getAttribute("static") == "true",
-                          lib.getAttribute("outputDir"))
+                          lib.getAttribute("static") == "true")
             self._add_c_options(c, lib)
             self.c_libraries.append(c)
 
@@ -248,17 +251,20 @@ class BundleBuilder:
             self.chimerax_classifiers.append(self._get_element_text(e))
 
     def _make_setup_arguments(self):
-        self.setup_arguments = {
-            "name": self.name,
-            "version": self.version,
-            "description": self.synopsis,
-            "long_description": self.description,
-            "author": self.author,
-            "author_email": self.email,
-            "url": self.url,
-            "python_requires": ">= 3.6",
-            "install_requires": self.dependencies,
-        }
+        def add_argument(name, value):
+            if value:
+                self.setup_arguments[name] = value
+        self.setup_arguments = {"name": self.name,
+                                "python_requires": ">= 3.6"}
+        add_argument("version", self.version)
+        add_argument("description", self.synopsis)
+        add_argument("long_description", self.description)
+        add_argument("author", self.author)
+        add_argument("author_email", self.email)
+        add_argument("url", self.url)
+        add_argument("install_requires", self.dependencies)
+        add_argument("license", self.license)
+        add_argument("package_data", self.datafiles)
         from setuptools import find_packages
         def add_package(base_package, folder):
             package_dir[base_package] = folder
@@ -272,8 +278,6 @@ class BundleBuilder:
             add_package(name, folder)
         self.setup_arguments["package_dir"] = package_dir
         self.setup_arguments["packages"] = packages
-        if self.datafiles:
-            self.setup_arguments["package_data"] = self.datafiles
         ext_mods = [em for em in [cm.ext_mod(self.package)
 				  for cm in self.c_modules]
                     if em is not None]
@@ -472,6 +476,9 @@ class _CModule(_CompiledCode):
              libraries, cpp_flags) = self._compile_options()
         except ValueError:
             return None
+        import sys
+        if sys.platform == "linux":
+            extra_link_args.append("-Wl,-rpath,$ORIGIN")
         return Extension(package + '.' + self.name,
                          define_macros=[("MAJOR_VERSION", self.major),
                                         ("MINOR_VERSION", self.minor)],
@@ -485,10 +492,9 @@ class _CModule(_CompiledCode):
 
 class _CLibrary(_CompiledCode):
 
-    def __init__(self, name, uses_numpy, static, output_dir):
+    def __init__(self, name, uses_numpy, static):
         super().__init__(name, uses_numpy)
         self.static = static
-        self.output_dir = output_dir
 
     def compile(self):
         import sys, os, os.path, distutils.ccompiler, distutils.sysconfig
@@ -497,10 +503,7 @@ class _CLibrary(_CompiledCode):
              libraries, cpp_flags) = self._compile_options()
         except ValueError:
             return None
-        if not self.output_dir:
-            output_dir = os.path.join("src", "lib")
-        else:
-            output_dir = os.path.join("src", self.output)
+        output_dir = "src"
         compiler = distutils.ccompiler.new_compiler()
         distutils.sysconfig.customize_compiler(compiler)
         if inc_dirs:
@@ -535,25 +538,20 @@ class _CLibrary(_CompiledCode):
                 else:
                     compiler.linker_so[n] = "-dynamiclib"
                 lib = compiler.library_filename(lib_name, lib_type="dylib")
-                compiler.link_shared_object(objs, lib, output_dir="src",
+                extra_link_args.append("-Wl,-install_name,@loader_path/%s" % lib)
+                compiler.link_shared_object(objs, lib, output_dir=output_dir,
                                             extra_postargs=extra_link_args)
             elif sys.platform == "win32":
                 # On Windows, we need both .dll and .lib
                 link_lib = compiler.library_filename(lib_name, lib_type="static")
                 extra_link_args.append("/LIBPATH:%s" % link_lib)
                 lib = compiler.shared_object_filename(lib_name)
-                compiler.link_shared_object(objs, lib, output_dir="src",
+                compiler.link_shared_object(objs, lib, output_dir=output_dir,
                                             extra_postargs=extra_link_args)
-                link_file = os.path.join(output_dir, link_lib)
-                try:
-                    os.remove(link_file)
-                except OSError:
-                    pass
-                compiler.move_file(os.path.join("src", link_lib), link_file)
             else:
                 # On Linux, we only need the .so
                 lib = compiler.library_filename(lib_name, lib_type="shared")
-                compiler.link_shared_object(objs, lib, output_dir="src",
+                compiler.link_shared_object(objs, lib, output_dir=output_dir,
                                             extra_postargs=extra_link_args)
 
 if __name__ == "__main__" or __name__.startswith("ChimeraX_sandbox"):
