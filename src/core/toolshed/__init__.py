@@ -683,7 +683,7 @@ class Toolshed:
         # bundle_name can be either a file path or a bundle name in repository
         command.append(bundle_name)
         results = self._run_pip(command)
-        self._remove_scripts()
+        # self._remove_scripts()
         return results
 
     def _pip_uninstall(self, bundle_name):
