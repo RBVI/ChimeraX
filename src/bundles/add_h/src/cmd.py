@@ -18,7 +18,12 @@ def cmd_addh(session, structures=None, hbond=True, in_isolation=True, use_his_na
         from chimerax.core.atomic import AtomicStructure
         structures = [m for m in session.models if isinstance(m, AtomicStructure)]
 
-    add_h_func = hbond_add_hydrogens if hbond else simple_add_hydrogens
+    #add_h_func = hbond_add_hydrogens if hbond else simple_add_hydrogens
+    if hbond:
+        from chimerax.core.errors import LimitationError
+        raise LimitationError("'hbond true' option not yet implemented (use 'hbond false')")
+    add_h_func = simple_add_hydrogens
+
     prot_schemes = {}
     for res_name in ['his', 'glu', 'asp', 'lys', 'cys']:
         use = eval('use_%s_name' % res_name)
@@ -29,7 +34,7 @@ def cmd_addh(session, structures=None, hbond=True, in_isolation=True, use_his_na
     #else:
     #   add_f_func(...)
     add_h_func(session, structures, in_isolation=in_isolation, **prot_schemes)
-#TODO: determine_terminii, complete_terminal_carboxylate
+#TODO: determine_terminii, complete_terminal_carboxylate, determine_naming_schemas
 #TODO: _prep_add, _make_shared_data, simple.add_hydrogens, post_add, _delete_shared_data
 #TODO: hbond_add_hydrogens
 #TODO: initiate_add_hyd
@@ -179,8 +184,7 @@ def _prep_add(session, structures, unknowns_info, need_all=False, **prot_schemes
 				# sulfonamide nitrogens coordinating a metal
 				# get an additional hydrogen stripped
 				if coordinations.get(atom, []) and atom.element.name == "N":
-					pns = atom.primaryNeighbors()
-					if "Son" in [pn.idatm_type for pn in pns]:
+					if "Son" in [nb.idatm_type for nb in atom.neighbors]:
 						from copy import copy
 						ti = copy(type_info[atom.idatm_type])
 						ti.substituents -= 1
@@ -190,33 +194,30 @@ def _prep_add(session, structures, unknowns_info, need_all=False, **prot_schemes
 				type_info_for_atom[atom] = unknowns_info[atom]
 				atoms.append(atom)
 				continue
-			replyobj.info("AddH: unknown hydridization for atom"
-					" (%s) of residue type %s" %
-					(atom.name, atom.residue.type))
-		
-		naming_schemas.update(
-				determineNamingSchemas(struct, type_info_for_atom))
+			logger.info("Unknown hydridization for atom (%s) of residue type %s" %
+					(atom.name, atom.residue.name))
+		naming_schemas.update(determine_naming_schemas(struct, type_info_for_atom))
+
 	if need_all:
-		for struct in chimera.openModels.list(
-						modelTypes=[chimera.Molecule]):
+        from chimerax.core.atomic import AtomicStructure
+		for struct in [m for m in session.models if isinstance(m, AtomicStructure)]:
 			if struct in structures:
 				continue
 			for atom in struct.atoms:
 				idatm_type[atom] = atom.idatm_type
 				if type_info.has_key(atom.idatm_type):
-					type_info_for_atom[atom] = \
-						type_info[atom.idatm_type]
-	
+					type_info_for_atom[atom] = type_info[atom.idatm_type]
+
 	for atom in atoms:
 		if not type_info_for_atom.has_key(atom):
 			continue
-		bondingInfo = type_info_for_atom[atom]
-		totalHydrogens = bondingInfo.substituents - len(
-							atom.primaryBonds())
-		for bonded in atom.primaryNeighbors():
+		bonding_info = type_info_for_atom[atom]
+		totalHydrogens = bonding_info.substituents - atom.num_bonds
+		for bonded in atom.neighbors:
 			if bonded.element.number == 1:
-				totalHydrogens = totalHydrogens + 1
-		hydrogen_totals[atom] = totalHydrogens
+				total_hydrogens += 1
+		hydrogen_totals[atom] = total_hydrogens
+    #TODO
 
 	for schemeType, resNames, resCheck, typedAtoms in [
 			('his', ["HID", "HIE", "HIP"], None, []),
