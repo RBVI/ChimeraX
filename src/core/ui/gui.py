@@ -554,7 +554,7 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def show_tb_context_menu(self, tb, event):
         tool, fill_cb = self._fill_tb_context_menu_cbs[tb]
-        show_context_menu(event, tool, fill_cb)
+        show_context_menu(event, tool, fill_cb, True)
 
     def status(self, msg, color, secondary):
         sb = self.statusBar()
@@ -727,8 +727,10 @@ class MainWindow(QMainWindow, PlainTextLog):
         tools_menu = QMenu("&Tools")
         tools_menu.setToolTipsVisible(True)
         categories = {}
+        self._tools_cache = set()
         for bi in session.toolshed.bundle_info(session.logger):
             for tool in bi.tools:
+                self._tools_cache.add(tool)
                 for cat in tool.categories:
                     categories.setdefault(cat, {})[tool.name] = (bi, tool)
         cat_keys = sorted(categories.keys())
@@ -1115,7 +1117,8 @@ class _Qt:
             self.dock_widget.setAttribute(Qt.WA_DeleteOnClose)
 
     def show_context_menu(self, event):
-        show_context_menu(event, self.tool_window.tool_instance, self.tool_window.fill_context_menu)
+        show_context_menu(event, self.tool_window.tool_instance, self.tool_window.fill_context_menu,
+            self.tool_window.tool_instance.tool_info in self.main_window._tools_cache)
 
     def _get_shown(self):
         return not self.dock_widget.isHidden()
@@ -1188,7 +1191,7 @@ def redirect_stdio_to_logger(logger):
     sys.orig_stderr = sys.stderr
     sys.stderr = LogStderr(logger)
 
-def show_context_menu(event, tool_instance, fill_cb):
+def show_context_menu(event, tool_instance, fill_cb, autostartable):
     from PyQt5.QtWidgets import QMenu, QAction
     menu = QMenu()
 
@@ -1209,15 +1212,16 @@ def show_context_menu(event, tool_instance, fill_cb):
         no_help_action = QAction("No help available")
         no_help_action.setEnabled(False)
         menu.addAction(no_help_action)
-    session = ti.session
-    autostart = ti.tool_name in session.ui.settings.autostart
-    auto_action = QAction("Start this tool at ChimeraX startup")
-    auto_action.setCheckable(True)
-    auto_action.setChecked(autostart)
-    from ..commands import run, quote_if_necessary
-    auto_action.triggered.connect(
-        lambda arg, ses=session, run=run, tool_name=ti.tool_name:
-        run(ses, "ui autostart %s %s" % (("true" if arg else "false"),
-        quote_if_necessary(ti.tool_name))))
-    menu.addAction(auto_action)
+    if autostartable:
+        session = ti.session
+        autostart = ti.tool_name in session.ui.settings.autostart
+        auto_action = QAction("Start this tool at ChimeraX startup")
+        auto_action.setCheckable(True)
+        auto_action.setChecked(autostart)
+        from ..commands import run, quote_if_necessary
+        auto_action.triggered.connect(
+            lambda arg, ses=session, run=run, tool_name=ti.tool_name:
+            run(ses, "ui autostart %s %s" % (("true" if arg else "false"),
+            quote_if_necessary(ti.tool_name))))
+        menu.addAction(auto_action)
     menu.exec(event.globalPos())
