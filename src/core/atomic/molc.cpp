@@ -2980,6 +2980,8 @@ extern "C" EXPORT PyObject* change_tracker_changes(void *vct)
             PyTuple_SetItem(value, 3, PyLong_FromLong(class_changes.num_deleted));
 
             PyDict_SetItem(changes_data, key, value);
+            Py_DECREF(key);
+            Py_DECREF(value);
         }
     } catch (...) {
         Py_XDECREF(changes_data);
