@@ -212,14 +212,15 @@ class ChimeraXHtmlView(HtmlView):
         # but since neither one is set by the server, we look at the
         # download extension instead
         if extension == ".whl":
-            # Since the file name encodes the package name and version
-            # number, we make sure that we are using the right name
-            # instead of whatever QWebEngine may want to use.
-            # Remove _# which may be present if bundle author submitted
-            # the same version of the bundle multiple times.
-            parts = base.rsplit('_', 1)
-            if len(parts) == 2 and parts[1].isdigit():
-                urlFile = parts[0] + extension
+            if not base.endswith("x86_64"):
+                # Since the file name encodes the package name and version
+                # number, we make sure that we are using the right name
+                # instead of whatever QWebEngine may want to use.
+                # Remove _# which may be present if bundle author submitted
+                # the same version of the bundle multiple times.
+                parts = base.rsplit('_', 1)
+                if len(parts) == 2 and parts[1].isdigit():
+                    urlFile = parts[0] + extension
             filePath = os.path.join(os.path.dirname(item.path()), urlFile)
             from pip.wheel import Wheel, InvalidWheelFilename
             try:
