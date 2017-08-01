@@ -57,12 +57,6 @@ specified. The pseudobonds can be removed with the <b>~hbonds</b> command.
 The default <a href="#name">name</a> of the pseudobond model for creation
 (and for removal with the <b>~hbonds</b> command) is <b>hydrogen bonds</b>,
 but different names can be assigned and used.
-The command-line specifier <a href="atomspec.html#builtin"><b>hbonds</b></a>
-(not to be confused with the command) refers to the pseudobonds 
-in the <b>hydrogen bonds</b> model and their endpoint atoms. 
-An interactive histogram of pseudobond lengths can be plotted with 
-<a href="crosslinks.html#histogram"><b>crosslinks histogram</b></a>.
-See also: <a href="style.html"><b>style</b></a>
 </p><p>
 The <b>selRestrict</b> option allows limiting detection to only the 
 <a href="../selection.html">selected</a> atoms or between the 
@@ -81,11 +75,31 @@ with the side effect of showing any backbone atoms that were already
 displayed but suppressed.
 </p>
 
+<a name="related"></a>
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<h4>H-Bond-Related Features</h4>
+<p>
+Independent of the <a href="#top"><b>hbonds</b></a> command,
+reading an mmCIF file with base-pairing H-bond information automatically creates
+<b>hydrogen bonds</b> <a href="../pseudobonds.html">pseudobonds</a>.
+The command-line specifier <a href="atomspec.html#builtin"><b>hbonds</b></a>
+(not to be confused with the command) refers to pseudobonds
+in the <b>hydrogen bonds</b> model and their endpoint atoms.
+An interactive histogram of pseudobond lengths can be plotted with 
+<a href="crosslinks.html#histogram"><b>crosslinks histogram</b></a>, and a chain 
+network diagram summarizing intra- and interchain pseudobonds can be shown with
+<a href="crosslinks.html#network"><b>crosslinks network</b></a>.
+See also: <a href="style.html"><b>style</b></a>,
+<a href="color.html"><b>color</b></a>
+</p>
+
 <a name="options"></a>
 <p class="nav">
 [<a href="#top">back to top</a>]
 </p>
-<h4>Options</h4>
+<h4>Command Options</h4>
 <p>
 Option keywords and Boolean (truth) values can be truncated, with
 synonyms for true: True, 1, and synonyms for false: False, 0.

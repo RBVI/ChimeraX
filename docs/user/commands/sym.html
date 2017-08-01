@@ -53,7 +53,7 @@ class="clRight" title="User Guide Index"/></a>
 <p>
 The <b>sym</b> command generates symmetry copies of an atomic model.
 The command <b>sym clear</b> removes all
-<a href="#copies">graphical clones</a> of the specified model(s),
+<a href="#copies">graphical clones</a> from the specified model(s),
 but not any copies that were opened as full atomic models. 
 See also:
 <a href="open.html"><b>open</b></a>,
@@ -96,12 +96,14 @@ Similar information is shown automatically when the structure is first opened.
 The table gives a brief description of each assembly and 
 a character-string <i>identifier</i>, usually a number, 
 that can be clicked to generate the assembly (with default options)
-<!-- view clip false -->
 and adjust the view to encompass it.
-Alternatively,
-to generate the assembly with different options or without adjusting the view,
-the identifier can be given with the <b>assembly</b> keyword
-in the <b>sym</b> command.
+</p><p>
+By default, the additional copies are simply graphical clones; 
+however, for detailed analyses such as 
+calculating <a href="hbonds.html">hydrogen bonds</a> for the whole assembly,
+the <b>sym</b> command should be used with <a href="#copies"><b>copies true</b></a>
+to add full atomic copies instead. The <b>assembly</b> of interest
+is specified with the <i>identifier</i> mentioned above.
 </p>
 
 <a name="symmetry"></a>
@@ -298,12 +300,16 @@ or as graphical clones (<b>false</b>, default).
 Graphical clones of an atomic model cannot be displayed in 
 different styles and colors than the original. 
 Generating full atomic models instead of graphical clones
-allows their independent control, 
-but requires more memory and may not be practical for larger assemblies.
+allows their independent control and is required for more detailed analyses
+such as calculating <a href="hbonds.html">hydrogen bonds</a>
+for the whole assembly.
+However, it requires more memory and may not be practical for larger assemblies.
 </p><p>
 With <b>newModel true</b> but <b>copies false</b>,
 the new model will contain at least one full
 atomic copy, but the remainder will be graphical clones.
+The command <a href="#top"><b>sym clear</b></a> removes all graphical clones
+from the specified model(s),
 </p><p>
 Even when both <b>copies</b> and <b>newModel</b> are <b>false</b>,
 one or more copies of the full atomic model may be added, namely
@@ -348,5 +354,5 @@ but uses more memory.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2017</address>
+July 2017</address>
 </body></html>
