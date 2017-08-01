@@ -740,7 +740,7 @@ def register_session_format(session):
     io.register_format(
         "ChimeraX session", toolshed.SESSION, SESSION_SUFFIX, ("session",),
         mime="application/x-chimerax-session",
-        reference="http://www.rbvi.ucsf.edu/chimerax/",
+        reference="help:user/commands/save.html",
         open_func=open, export_func=save)
 
     from .commands import CmdDesc, register, SaveFileNameArg, IntArg, BoolArg

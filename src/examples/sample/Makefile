@@ -63,7 +63,11 @@ debug:
 	$(CHIMERAX_EXE) --debug
 
 clean:	clean_generated_files
-	$(RUN) "devel clean . exit true"
+	if [ -x $(CHIMERAX_EXE) ]; then \
+		$(RUN) "devel clean . exit true" ; \
+	else \
+		rm -rf build dist *.egg-info src/__pycache__ ; \
+	fi
 
 pylint:
 	$(CHIMERAX_EXE) -m flake8 $(filter %.py, $(SRCS))

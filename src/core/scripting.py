@@ -132,5 +132,5 @@ def register():
     io.register_format(
         "ChimeraX commands", toolshed.SCRIPT, (".cxc",), ("cmd",),
         mime=('text/x-chimerax', 'application/x-chimerax-code'),
-        reference="http://www.rbvi.ucsf.edu/chimerax/",
+        reference="help:user/commands/usageconventions.html",
         open_func=open_command_script)
