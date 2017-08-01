@@ -833,6 +833,8 @@ class MainWindow(QMainWindow, PlainTextLog):
                     set_shown(window, False)
 
 def _open_dropped_file(session, path):
+    if not path:
+        return
     # Use quotes around path only if needed so log looks nice.
     p = ('"%s"' % path) if ' ' in path or ';' in path else path
     from ..commands import run
