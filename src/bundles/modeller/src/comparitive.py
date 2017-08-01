@@ -53,6 +53,7 @@ def model(session, targets, combined_templates=False, custom_script=None,
         Whether to preserve water in generated models
     """
 
+    from chimerax.core.errors import LimitationError
     template_info = []
     for alignment, orig_target in targets:
         if not alignment.associations:
@@ -65,10 +66,40 @@ def model(session, targets, combined_templates=False, custom_script=None,
             target_templates = []
             template_info.append((target, target_templates))
         for aseq, chain in alignment.associations.items():
+            if len(chain.chain_id) > 1:
+                raise LimitationError(
+                    "Modeller cannot handle templates with multi-character chain IDs")
             if not combined_templates:
                 target_templates = []
                 template_info.append((target, target_templates))
-            target_templates.append((regularized_seq(aseq, chain), chain))
+            target_templates.append((regularized_seq(aseq, chain), chain, aseq.match_maps[chain]))
+
+    # collate the template info in series of strings that can be joined with '/'
+    target_strings = []
+    templates_strings = []
+    starts = []
+    ends = []
+    prior_templates_strings = []
+    for target, templates_info in template_info:
+        target_seq = target.characters
+        target_template_strings = []
+        accum_water_het = ""
+        for template, chain, match_map in templates_info:
+            # match_map has the chain-to-aseq original match map
+            # missing positions have already been changed to '-' in template
+            gapped_pos = template.ungapped_to_gapped(0)
+            start = match_map[chain.gapped_to_ungapped(gapped_pos)]
+            gapped_pos = template.ungapped_to_gapped(len(template.ungapped())-1)
+            end = match_map[chain.gapped_to_ungapped(gapped_pos)]
+            template_string = template.characters + accum_water_het
+            starts.append(start)
+            if not het_preserve and not water_preserve:
+                target_template_strings.append(template_string)
+                ends.append(end)
+                continue
+            #TODO: add het/water characters and get proper end residue
+
+
 
 def regularized_seq(aseq, chain):
     mmap = aseq.match_maps[chain]
