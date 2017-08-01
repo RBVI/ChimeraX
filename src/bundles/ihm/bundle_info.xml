@@ -20,7 +20,7 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: DataFormat :: IHM :: :: Higher-Order Structure :: .ihm :: :: http://salilab.org/ :: :: :: Integrative Hybrid Models data</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: DataFormat :: IHM :: :: Higher-Order Structure :: .ihm :: :: https://pdb-dev.wwpdb.org/about/ :: :: :: Integrative Hybrid Models data</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Open :: IHM :: ihm :: true :: ensembles:Bool</ChimeraXClassifier>
 ier>
   </Classifiers>

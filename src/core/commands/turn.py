@@ -29,8 +29,8 @@ def turn(session, axis=Axis((0,1,0)), angle=90, frames=None, rock=None,
     frames : integer
        Repeat the rotation for N frames, typically used in recording movies.
     rock : integer
-       Repeat the rotation reversing the direction every N/2 frames.  The first reversal
-       occurs at N/4 frames so that the rocking motion is centered at the current orientation.
+       Rotate +/- angle degrees repeating, one cycle every specified number of frames.
+       The rocking steps are small at the ends of the rock, using sine modulation.
        If the frames option is not given the rocking continues indefinitely.
     center : Center
        Specifies the center of rotation. If not specified, then the current
@@ -49,10 +49,12 @@ def turn(session, axis=Axis((0,1,0)), angle=90, frames=None, rock=None,
 
     if frames is not None:
         def turn_step(session, frame):
-            rp = _rock_phase(rock, frame)
-            if rp != 0:
-                turn(session, axis=axis, angle=rp*angle, frames=None, rock=None, center=center,
-                     coordinate_system=coordinate_system, models=models, atoms=atoms)
+            if rock is None:
+                a = angle
+            else:
+                a = _rock_step(frame, rock) * angle
+            turn(session, axis=axis, angle=a, frames=None, rock=None, center=center,
+                 coordinate_system=coordinate_system, models=models, atoms=atoms)
         from . import motion
         motion.CallForNFrames(turn_step, frames, session)
         return
@@ -76,16 +78,10 @@ def turn(session, axis=Axis((0,1,0)), angle=90, frames=None, rock=None,
     if models is None and atoms is None:
         c.position = r * c.position
 
-def _rock_phase(rock, frame):
-    if rock is None:
-        return 1
-    p = (frame + (rock+2)//4) % rock
-    h = rock//2
-    if p < h:
-        return 1
-    elif p < 2*h:
-        return -1
-    return 0
+def _rock_step(frame, rock):
+    from math import pi, sin
+    a = sin(2*pi*((frame+1)%rock)/rock) - sin(2*pi*(frame%rock)/rock)
+    return a
 
 def register_command(session):
     from .cli import CmdDesc, register, AxisArg, FloatArg, PositiveIntArg

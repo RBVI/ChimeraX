@@ -31,26 +31,46 @@ class="clRight" title="User Guide Index"/></a>
 &nbsp;<a href="#options"><i>options</i></a></h3>
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
-<br><b>label delete</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+<br><b>label
+delete</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 [&nbsp;atoms&nbsp;|&nbsp;residues&nbsp;|&nbsp;pseudobonds&nbsp;]
+</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>label listfonts</b>
 </h3>
 <p>
 The <b>label</b> command shows labels that move along with the associated
-<b>atoms</b> (default), <b>residues</b>, or <b>pseudobonds</b> in 3D.
+<b>atoms</b>, <b>residues</b>, or <b>pseudobonds</b> in 3D.
 These &ldquo;3D&rdquo; (although flat in appearance)
 labels can be of multiple colors and sizes, and both atom and residue 
 labels can be shown for the same atom at the same time.
 A label is automatically hidden, however, when the corresponding
 item (atom, residue, or <a href="../pseudobonds.html">pseudobond</a>) is hidden.
-The command <b>label delete</b> removes 3D labels, including ones that
-were only hidden because the corresponding items were hidden.
 </p><p>
-For adding titles and otherwise labeling presentation-quality images and movies,
+For adding titles and other text at fixed positions in the window
+for presentation-quality images and movies,
 see the <a href="2dlabels.html"><b>2dlabels</b></a> command.
+</p><p>
+Subcommands of <b>label</b>:
 </p>
-<blockquote>
-** <b>due to font issues, label may only work on Macs</b> **
-</blockquote>
+<ul>
+<li><b>label delete</b> removes 3D labels, including those which are 
+hidden because the corresponding items are hidden
+<li><b>label listfonts</b> lists the possible <a href="#font">fonts</a>
+in the <a href="../tools/log.html"><b>Log</b></a>
+</ul>
+<p>
+Using a blank <a href="atomspec.html"><i>atom-spec</i></a> with the 
+<b>label</b> command indicates acting on all current 3D labels, 
+optionally restricted with the
+<b>atoms</b>, <b>residues</b>, or <b>pseudobonds</b> keyword;
+if <a href="atomspec.html"><i>atom-spec</i></a> is not blank,
+the default is to act on labels for <b>atoms</b> only. A non-blank 
+<a href="atomspec.html"><i>atom-spec</i></a> is required to create new labels.
+For <b>label delete</b> (regardless of whether the 
+<a href="atomspec.html"><i>atom-spec</i></a> is blank),
+the default is to act on all types of 3D labels unless narrowed with the
+<b>atoms</b>, <b>residues</b>, or <b>pseudobonds</b> keyword.
 <p>
 
 <a name="options"></a>
@@ -101,12 +121,13 @@ Label size, where <i>font-size</i> must be an integer greater than zero
 </blockquote>
 
 <blockquote>
-<b>typeface</b>&nbsp;&nbsp;<i>font-typeface</i>&nbsp;|&nbsp;<b>default</b>
+<a name="font"></a>
+<b>font</b>&nbsp;&nbsp;<i>font-type</i>&nbsp;|&nbsp;<b>default</b>
 <br>
-Label typeface, where <i>font-typeface</i> must be the name 
-(minus the &ldquo;.ttf&rdquo; suffix)
-of a font file installed in the <b>Mac</b> /Library/Fonts/ directory
-(default <b>Arial</b>).
+Label font (default <b>Arial</b>); the command <b>label listfonts</b>
+lists the possible values of <i>font-type</i> in the 
+<a href="../tools/log.html"><b>Log</b></a>.
+Those with spaces must be enclosed in quotation marks.
 </blockquote>
 
 <blockquote>

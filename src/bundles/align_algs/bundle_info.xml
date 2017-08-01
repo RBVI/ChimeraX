@@ -15,9 +15,13 @@
 
   <DataFiles>
     <DataFile>include/align_algs/*</DataFile>
+    <DataFile>lib/*</DataFile>
+    <DataFile platform="windows">*.dll</DataFile>
+    <DataFile platform="mac">*.dylib</DataFile>
+    <DataFile platform="linux">*.so</DataFile>
   </DataFiles>
 
-  <CLibrary name="align_algs" static="true">
+  <CLibrary name="align_algs">
     <IncludeDir>src/include/align_algs</IncludeDir>
     <SourceFile>src/support.cpp</SourceFile>
   </CLibrary>
@@ -25,7 +29,7 @@
   <CModule name="_nw">
     <SourceFile>_nw/nw.cpp</SourceFile>
     <IncludeDir>src/include</IncludeDir>
-    <LibraryDir>src/lib</LibraryDir>
+    <LibraryDir>src</LibraryDir>
     <Library>align_algs</Library>
     <Library>arrays</Library>
   </CModule>
@@ -33,8 +37,9 @@
   <CModule name="_sw">
     <SourceFile>_sw/sw.cpp</SourceFile>
     <IncludeDir>src/include</IncludeDir>
-    <LibraryDir>src/lib</LibraryDir>
+    <LibraryDir>src</LibraryDir>
     <Library>align_algs</Library>
+    <LinkArgument platform="linux">-Wl,-rpath,$ORIGIN</LinkArgument>
   </CModule>
 
   <Dependencies>

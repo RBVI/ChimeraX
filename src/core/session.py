@@ -532,7 +532,7 @@ class InScriptFlag:
         return self._level > 0
 
 
-def save(session, path, version=1, uncompressed=False):
+def save(session, path, version=2, uncompressed=False):
     """command line version of saving a session"""
     my_open = None
     if hasattr(path, 'write'):
@@ -740,7 +740,7 @@ def register_session_format(session):
     io.register_format(
         "ChimeraX session", toolshed.SESSION, SESSION_SUFFIX, ("session",),
         mime="application/x-chimerax-session",
-        reference="http://www.rbvi.ucsf.edu/chimerax/",
+        reference="help:user/commands/save.html",
         open_func=open, export_func=save)
 
     from .commands import CmdDesc, register, SaveFileNameArg, IntArg, BoolArg

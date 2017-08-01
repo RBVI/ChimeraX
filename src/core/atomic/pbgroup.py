@@ -93,6 +93,14 @@ class PseudobondGroup(PseudobondGroupData, Model):
 
     dashes = property(_get_dashes, _set_dashes)
 
+    def _get_name(self):
+        return self.category
+
+    def _set_name(self, name):
+        if name != self.category:
+            self.change_category(name)
+    name = property(_get_name, _set_name)
+
     def _update_graphics_if_needed(self, *_):
         gc = self._graphics_changed
         if gc:
@@ -142,11 +150,12 @@ class PseudobondGroup(PseudobondGroupData, Model):
 
         # Check if models containing end-point have displayed structures.
         dp = s._shown_bond_cylinders(pbonds)
-        for hs in (hidden_structures(ba1.structures), hidden_structures(ba2.structures)):
-            if hs is not None:
-                import numpy
-                sb = ~numpy.concatenate((hs,hs))
-                numpy.logical_and(dp, sb, dp)
+        if self.structure is None:
+            for hs in (hidden_structures(ba1.structures), hidden_structures(ba2.structures)):
+                if hs is not None:
+                    import numpy
+                    sb = ~numpy.concatenate((hs,hs))
+                    numpy.logical_and(dp, sb, dp)
         d.display_positions = dp
 
     def first_intercept(self, mxyz1, mxyz2, exclude=None):

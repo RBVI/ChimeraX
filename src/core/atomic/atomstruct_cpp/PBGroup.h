@@ -80,6 +80,10 @@ public:
     virtual void  clear() = 0;
     virtual const Rgba&  color() const { return _color; }
     virtual const std::string&  category() const { return _category; }
+    virtual void  change_category(std::string& category) {
+        _manager->change_category(this->_proxy, category); // may throw invalid_argument
+        _category = category;
+    }
     virtual void  check_destroyed_atoms(const std::set<void*>& destroyed) = 0;
     virtual void  delete_pseudobond(Pseudobond* pb) = 0;
     virtual void  delete_pseudobonds(const std::set<Pseudobond*>& pbs) = 0;
@@ -256,6 +260,11 @@ public:
         if (_group_type == AS_PBManager::GRP_NORMAL)
             return static_cast<StructurePBGroup*>(_proxied)->category();
         return static_cast<CS_PBGroup*>(_proxied)->category();
+    }
+    void  change_category(std::string& category) {
+        if (_group_type == AS_PBManager::GRP_NORMAL)
+            return static_cast<StructurePBGroup*>(_proxied)->change_category(category);
+        return static_cast<CS_PBGroup*>(_proxied)->change_category(category);
     }
     void  check_destroyed_atoms(const std::set<void*>& destroyed) {
         if (_group_type == AS_PBManager::GRP_NORMAL)

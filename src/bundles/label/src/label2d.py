@@ -12,7 +12,7 @@
 
 # -----------------------------------------------------------------------------
 #
-def label_create(session, name, text = '', color = None, size = 24, typeface = 'Arial',
+def label_create(session, name, text = '', color = None, size = 24, font = 'Arial',
                  xpos = 0.5, ypos = 0.5, visibility = True):
     '''Create a label at a fixed position in the graphics window.
 
@@ -27,7 +27,7 @@ def label_create(session, name, text = '', color = None, size = 24, typeface = '
       and white is used on dark backgrounds.
     size : int
       Font size in pixels.
-    typeface : string
+    font : string
       Font name.  This must be a true type font installed on Mac in /Library/Fonts
       and is the name of the font file without the ".ttf" suffix.
     xpos : float
@@ -48,19 +48,19 @@ def label_create(session, name, text = '', color = None, size = 24, typeface = '
 
 # -----------------------------------------------------------------------------
 #
-def label_change(session, name, text = None, color = None, size = None, typeface = None,
+def label_change(session, name, text = None, color = None, size = None, font = None,
                  xpos = None, ypos = None, visibility = None):
     '''Change label parameters.'''
     lb = session_labels(session)
     if name == 'all':
         for n in lb.labels.keys():
-            label_change(session, n, text, color, size, typeface, xpos, ypos, visibility)
+            label_change(session, n, text, color, size, font, xpos, ypos, visibility)
         return
     l = lb.labels[name]
     if not text is None: l.text = text
     if not color is None: l.color = color.uint8x4()
     if not size is None: l.size = size
-    if not typeface is None: l.typeface = typeface
+    if not font is None: l.font = font
     if not xpos is None: l.xpos = xpos
     if not ypos is None: l.ypos = ypos
     if not visibility is None: l.visibility = visibility
@@ -83,6 +83,17 @@ def label_delete(session, name):
 
 # -----------------------------------------------------------------------------
 #
+def label_listfonts(session):
+    '''Report available fonts.'''
+    from PyQt5.QtGui import QFontDatabase
+    fdb = QFontDatabase()
+    fnames = list(fdb.families())
+    fnames.sort()
+    session.logger.info('%d fonts available:\n%s' % (len(fnames), '\n'.join(fnames)))
+
+
+# -----------------------------------------------------------------------------
+#
 def register_label_command(logger):
 
     from chimerax.core.commands import CmdDesc, register, BoolArg, IntArg, StringArg, FloatArg, ColorArg
@@ -93,7 +104,7 @@ def register_label_command(logger):
     cargs = [('text', StringArg),
              ('color', ColorArg),
              ('size', IntArg),
-             ('typeface', StringArg),
+             ('font', StringArg),
              ('xpos', FloatArg),
              ('ypos', FloatArg),
              ('visibility', BoolArg)]
@@ -106,6 +117,8 @@ def register_label_command(logger):
     delete_desc = CmdDesc(required = existing_arg,
                           synopsis = 'Delete a 2d label')
     register('2dlabels delete', delete_desc, label_delete, logger=logger)
+    fonts_desc = CmdDesc(synopsis = 'List available fonts')
+    register('2dlabels listfonts', fonts_desc, label_listfonts, logger=logger)
 
 
 # -----------------------------------------------------------------------------
@@ -127,7 +140,7 @@ class Labels(State):
         del self.labels[label.name]
 
     def take_snapshot(self, session, flags):
-        lattrs = ('name', 'text', 'color', 'size', 'typeface', 'xpos', 'ypos', 'visibility')
+        lattrs = ('name', 'text', 'color', 'size', 'font', 'xpos', 'ypos', 'visibility')
         lstate = tuple({attr:getattr(l, attr) for attr in lattrs}
                        for l in self.labels.values())
         data = {'labels state': lstate, 'version': 1}
@@ -158,14 +171,14 @@ def session_labels(session):
 # -----------------------------------------------------------------------------
 #
 class Label:
-    def __init__(self, session, name, text = '', color = None, size = 24, typeface = 'Arial',
+    def __init__(self, session, name, text = '', color = None, size = 24, font = 'Arial',
                  xpos = 0.5, ypos = 0.5, visibility = True):
         self.session = session
         self.name = name
         self.text = text
         self.color = color
         self.size = size
-        self.typeface = typeface
+        self.font = font
         self.xpos = xpos
         self.ypos = ypos
         self.visibility = visibility
@@ -220,7 +233,7 @@ class LabelDrawing(Drawing):
         else:
             rgba8 = tuple(l.color)
         from chimerax import app_data_dir
-        rgba = text_image_rgba(l.text, rgba8, l.size, l.typeface, app_data_dir)
+        rgba = text_image_rgba(l.text, rgba8, l.size, l.font, app_data_dir)
         if rgba is None:
             l.session.logger.info("Can't find font for label")
             return True
@@ -259,15 +272,34 @@ class LabelDrawing(Drawing):
         # TODO
         pass
 
+# -----------------------------------------------------------------------------
+#
+def text_image_rgba(text, color, size, font, data_dir):
+    from PyQt5.QtGui import QImage, QPainter, QFont, QFontMetrics, QBrush, QColor
+    f = QFont(font, size)
+    fm = QFontMetrics(f)
+    r = fm.boundingRect(text)
+    ti = QImage(r.width(), r.height(), QImage.Format_ARGB32)
+    ti.fill(QColor(0,0,0,0))    # Set background transparent
+    p = QPainter()
+    p.begin(ti)
+    p.setFont(f)
+    c = QColor(*color)
+    p.setPen(c)
+    p.drawText(0, -r.y(), text)
+    from chimerax.core.graphics import qimage_to_numpy
+    rgba = qimage_to_numpy(ti)
+    p.end()
+    return rgba
 
 # -----------------------------------------------------------------------------
 #
-def text_image_rgba(text, color, size, typeface, data_dir):
+def text_image_rgba_pil(text, color, size, font, data_dir):
     import os, sys
     from PIL import Image, ImageDraw, ImageFont
     font_dir = os.path.join(data_dir, 'fonts', 'freefont')
     f = None
-    for tf in (typeface, 'FreeSans'):
+    for tf in (font, 'FreeSans'):
         path = os.path.join(font_dir, '%s.ttf' % tf)
         if os.path.exists(path):
             f = ImageFont.truetype(path, size)

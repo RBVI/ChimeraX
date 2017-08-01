@@ -20,8 +20,6 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: Tool :: Blast Protein :: General :: Search PDB/NR using BLAST</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: blastprotein :: General :: Search PDB/NR using BLAST</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Tool :: Model Panel :: General :: model panel</ChimeraXClassifier>
   </Classifiers>
 

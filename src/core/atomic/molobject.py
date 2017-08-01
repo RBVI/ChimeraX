@@ -583,6 +583,15 @@ class PseudobondGroupData:
         read_only = True, doc ="Structure that pseudobond group is owned by.  "
         "Returns None if called on a group managed by the global pseudobond manager")
 
+    def change_category(self, category):
+        f = c_function('pseudobond_group_change_category',
+            args = (ctypes.c_void_p, ctypes.c_char_p))
+        try:
+            f(self._c_pointer, category.encode('utf-8'))
+        except TypeError:
+            from ..errors import UserError
+            raise UserError("Another pseudobond group is already named '%s'" % category)
+
     def clear(self):
         '''Delete all pseudobonds in group'''
         f = c_function('pseudobond_group_clear', args = (ctypes.c_void_p,))
@@ -1645,6 +1654,8 @@ class StructureData:
                        args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int),
                        ret = ctypes.c_void_p)
         pbg = f(self._c_pointer, name.encode('utf-8'), create_arg)
+        if not pbg:
+            return None
         from .pbgroup import PseudobondGroup
         return object_map(pbg, PseudobondGroup)
 

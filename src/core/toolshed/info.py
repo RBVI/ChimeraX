@@ -189,11 +189,25 @@ class BundleInfo:
         return self._name, self._version
 
     def register(self, logger):
+        """Register bundle commands, tools, data formats, selectors, etc.
+
+        Parameters
+        ----------
+        logger : :py:class:`~chimerax.core.logger.Logger` instance
+            Where to log error messages.
+        """
         self._register_commands(logger)
         self._register_file_types(logger)
         self._register_selectors(logger)
 
     def deregister(self, logger):
+        """Deregister bundle commands, tools, data formats, selectors, etc.
+
+        Parameters
+        ----------
+        logger : :py:class:`~chimerax.core.logger.Logger` instance
+            Where to log error messages.
+        """
         self._deregister_selectors(logger)
         self._deregister_file_types(logger)
         self._deregister_commands(logger)
@@ -259,8 +273,13 @@ class BundleInfo:
 
                 if fi.open_kwds:
                     from ..commands import cli
-                    cli.add_keyword_arguments('open', _convert_keyword_types(
-                        fi.open_kwds, self, logger))
+                    try:
+                        cli.add_keyword_arguments('open', _convert_keyword_types(
+                            fi.open_kwds, self, logger))
+                    except ValueError as e:
+                        logger.warning(
+                                "unable to register \"open\" keywords in bundle \"%s\": %s"
+                                % (self.name, str(e)))
             if fi.has_save:
                 def boot_save(bi_self=self, logger=logger):
                     try:
@@ -276,8 +295,13 @@ class BundleInfo:
 
                 if fi.save_kwds:
                     from ..commands import cli
-                    cli.add_keyword_arguments('save', _convert_keyword_types(
-                        fi.save_kwds, self, logger))
+                    try:
+                        cli.add_keyword_arguments('save', _convert_keyword_types(
+                            fi.save_kwds, self, logger))
+                    except ValueError as e:
+                        logger.warning(
+                                "unable to register \"save\" keywords in bundle \"%s\": %s"
+                                % (self.name, str(e)))
         for (database_name, format_name, prefixes, example_id, is_default) in self.fetches:
             if io.format_from_name(format_name) is None:
                 print('warning: unknown format %r given for database %r' % (format_name, database_name))
@@ -484,6 +508,35 @@ class BundleInfo:
         """
         from distlib.version import NormalizedVersion as Version
         return Version(self.version) > Version(bi.version)
+
+    def dependents(self, logger):
+        """Return set of bundles that directly depends on this one.
+
+        Parameters
+        ----------
+        logger : :py:class:`~chimerax.core.logger.Logger` instance
+            Where to log error messages.
+
+        Returns
+        -------
+        set of :py:class:`~chimerax.core.toolshed.BundleInfo` instances
+            Dependent bundles.
+        """
+        from . import Toolshed
+        from distlib.database import DistributionPath
+        keep = set()
+        for d in DistributionPath().get_distributions():
+            for req in d.run_requires:
+                if req.split()[0] == self.name:
+                    keep.add(d)
+                    break
+        ts = Toolshed.get_toolshed()
+        deps = set()
+        for d in keep:
+            bi = ts.find_bundle(d.name, logger)
+            if bi:
+                deps.add(bi)
+        return deps
 
 
 class ToolInfo:

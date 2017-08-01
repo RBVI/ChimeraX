@@ -193,7 +193,7 @@ class FIFOHistory:
             index -= front_len
             return self._back[index]
         if isinstance(index, slice):
-            return [self[i] for i in range(*index.indices(total_len))]
+            return [self[total_len - i - 1] for i in range(*index.indices(total_len))]
         raise TypeError("Expected integer or slice")
 
 
