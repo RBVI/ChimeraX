@@ -451,7 +451,7 @@ class RegionBrowser:
         ModelessDialog.__init__(self)
         """
         seq_canvas.main_scene.keyPressEvent = self._key_press_cb
-        settings = seq_canvas.mav.settings
+        settings = seq_canvas.sv.settings
         self._sel_change_from_self = False
         self._first_sel_region_show = True
         if settings.show_sel:
@@ -474,7 +474,7 @@ class RegionBrowser:
 
     def copyRegion(self, region, name=None, **kw):
         if not region:
-            self.seq_canvas.mav.status("No active region",
+            self.seq_canvas.sv.status("No active region",
                                 color="red")
             return
         if not isinstance(region, Region):
@@ -500,14 +500,14 @@ class RegionBrowser:
 
     def delete_region(self, region, rebuild_table=True):
         if not region:
-            self.seq_canvas.mav.status("No active region", color="red")
+            self.seq_canvas.sv.status("No active region", color="red")
             return
         if not isinstance(region, Region):
             for r in region:
                 self.delete_region(r, rebuild_table=(r == region[-1]))
             return
         if region == self.get_region("ChimeraX selection"):
-            self.seq_canvas.mav.status("Cannot delete ChimeraX selection region", color="red")
+            self.seq_canvas.sv.status("Cannot delete ChimeraX selection region", color="red")
         else:
             assoc = region.associated_with
             if assoc:
@@ -530,17 +530,17 @@ class RegionBrowser:
     def destroy(self):
         """
         self.regionListing.destroy()
-        self.seq_canvas.mav.triggers.deleteHandler(DEL_ASSOC,
+        self.seq_canvas.sv.triggers.deleteHandler(DEL_ASSOC,
                             self._delAssocHandlerID)
         if self._mod_assoc_handler_id:
-            self.seq_canvas.mav.triggers.deleteHandler(MOD_ASSOC,
+            self.seq_canvas.sv.triggers.deleteHandler(MOD_ASSOC,
                             self._mod_assoc_handler_id)
         if self._motion_stop_handler_id:
             chimera.triggers.deleteHandler(MOTION_STOP,
                             self._motion_stop_handler_id)
-        self.seq_canvas.mav.triggers.deleteHandler(PRE_DEL_SEQS,
+        self.seq_canvas.sv.triggers.deleteHandler(PRE_DEL_SEQS,
             self._pre_del_seqs_handler_id)
-        self.seq_canvas.mav.triggers.deleteHandler(SEQ_RENAMED,
+        self.seq_canvas.sv.triggers.deleteHandler(SEQ_RENAMED,
                             self._seqRenamedHandlerID)
         """
         if self._sel_change_handler:
@@ -570,7 +570,7 @@ class RegionBrowser:
             command=self._rebuildListing)
         from CGLtk.Table import SortableTable
         self.regionListing = SortableTable(browseFrame, allowUserSorting=False)
-        prefs = self.seq_canvas.mav.prefs
+        prefs = self.seq_canvas.sv.prefs
         last = prefs[RB_LAST_USE]
         from time import time
         now = prefs[RB_LAST_USE] = time()
@@ -660,14 +660,14 @@ class RegionBrowser:
 
         self._sel_change_from_self = False
         self._first_sel_region_show = True
-        if self.seq_canvas.mav.prefs[SHOW_SEL]:
+        if self.seq_canvas.sv.prefs[SHOW_SEL]:
             self._show_sel_cb()
 
         cb = lambda e, s=self: s.deleteRegion(s.selected())
         parent.winfo_toplevel().bind('<Delete>', cb)
         parent.winfo_toplevel().bind('<BackSpace>', cb)
 
-        self._delAssocHandlerID = self.seq_canvas.mav.triggers.addHandler(
+        self._delAssocHandlerID = self.seq_canvas.sv.triggers.addHandler(
                     DEL_ASSOC, self._delAssocCB, None)
     """
 
@@ -703,7 +703,7 @@ class RegionBrowser:
 
     def infoRegion(self, region):
         if not region:
-            self.seq_canvas.mav.status("No active region",
+            self.seq_canvas.sv.status("No active region",
                                 color="red")
             return
         if not isinstance(region, Region):
@@ -789,7 +789,7 @@ class RegionBrowser:
         else:
             info += unicode(region) + " region has no associated structures\n\n"
         replyobj.info(info)
-        self.seq_canvas.mav.status("Region info reported in reply log")
+        self.seq_canvas.sv.status("Region info reported in reply log")
         from chimera import dialogs
         dialogs.display("reply")
 
@@ -799,18 +799,18 @@ class RegionBrowser:
     def loadScfCB(self, okayed, dialog):
         if not okayed:
             return
-        self.seq_canvas.mav.prefs[SCF_COLOR_STRUCTURES] = \
+        self.seq_canvas.sv.prefs[SCF_COLOR_STRUCTURES] = \
                         dialog.colorStructureVar.get()
 
         for path in dialog.getPaths():
             self.loadScfFile(path,
-                self.seq_canvas.mav.prefs[SCF_COLOR_STRUCTURES])
+                self.seq_canvas.sv.prefs[SCF_COLOR_STRUCTURES])
         
     def loadScfFile(self, path, colorStructures=True):
         if path is None:
             if not self._scf_dialog:
                 self._scf_dialog = ScfDialog(
-                        self.seq_canvas.mav.prefs[
+                        self.seq_canvas.sv.prefs[
                         SCF_COLOR_STRUCTURES],
                         command=self.loadScfCB)
             self._scf_dialog.enter()
@@ -889,12 +889,12 @@ class RegionBrowser:
                 res.ribbonColor = c
                 for a in res.atoms:
                     a.color = c
-        self.seq_canvas.mav.status("%d scf regions created"
+        self.seq_canvas.sv.status("%d scf regions created"
                         % len(regionInfo))
         
     def lowerRegion(self, region, rebuild_table=True):
         if not region:
-            self.seq_canvas.mav.status("No active region",
+            self.seq_canvas.sv.status("No active region",
                                 color="red")
             return
         if not isinstance(region, Region):
@@ -915,7 +915,7 @@ class RegionBrowser:
 
     def map(self, *args):
         refreshRMSD = lambda *args: self.regionListing.refresh()
-        self._mod_assoc_handler_id = self.seq_canvas.mav.triggers.addHandler(
+        self._mod_assoc_handler_id = self.seq_canvas.sv.triggers.addHandler(
             MOD_ASSOC, refreshRMSD, None)
         self._motion_stop_handler_id = chimera.triggers.addHandler(
             MOTION_STOP, refreshRMSD, None)
@@ -948,7 +948,7 @@ class RegionBrowser:
                     # another user region
                     break
             else:
-                self.seq_canvas.mav.status("Use delete/backspace key to remove regions")
+                self.seq_canvas.sv.status("Use delete/backspace key to remove regions")
         interior = self._get_rgba(fill)
         border = self._get_rgba(outline)
         region = Region(self, init_blocks=blocks, name=name, name_prefix=name_prefix, shown=shown,
@@ -989,7 +989,7 @@ class RegionBrowser:
 
     def raise_region(self, region, rebuild_table=True):
         if not region:
-            self.seq_canvas.mav.status("No active region", color="red")
+            self.seq_canvas.sv.status("No active region", color="red")
             return
         if not isinstance(region, Region):
             for r in region[::-1]:
@@ -1030,7 +1030,7 @@ class RegionBrowser:
 
     def renameRegion(self, region, name=None):
         if not region:
-            self.seq_canvas.mav.status("No active region",
+            self.seq_canvas.sv.status("No active region",
                                 color="red")
             return
         if not isinstance(region, Region):
@@ -1038,12 +1038,12 @@ class RegionBrowser:
                 self.renameRegion(r)
             return
         if region == self.get_region("ChimeraX selection"):
-            self.seq_canvas.mav.status(
+            self.seq_canvas.sv.status(
                 "Cannot rename ChimeraX selection region",
                 color="red")
             return
         if name == "ChimeraX selection":
-            self.seq_canvas.mav.status("Cannot rename region as '%s'"
+            self.seq_canvas.sv.status("Cannot rename region as '%s'"
                 % "ChimeraX selection", color="red")
             return
         if name is not None:
@@ -1121,9 +1121,9 @@ class RegionBrowser:
         """
 
     def show_chimerax_selection(self):
-        mav = self.seq_canvas.mav
+        sv = self.seq_canvas.sv
         sel_region = self.get_region("ChimeraX selection", create=True,
-            fill=mav.settings.sel_region_interior, outline=mav.settings.sel_region_border)
+            fill=sv.settings.sel_region_interior, outline=sv.settings.sel_region_border)
         sel_region.clear()
 
         from chimerax.core.atomic import selected_atoms
@@ -1149,7 +1149,7 @@ class RegionBrowser:
                         aseq.ungapped_to_gapped(end)])
         if blocks and self._first_sel_region_show:
             self._first_sel_region_show = False
-            mav.status("ChimeraX selection region displayed.",
+            sv.status("ChimeraX selection region displayed.",
                 follow_with="Settings..Regions controls this display.")
         sel_region.add_blocks(blocks)
         self.raise_region(sel_region)
@@ -1270,7 +1270,7 @@ class RegionBrowser:
 
     def unmap(self, *args):
         if self._mod_assoc_handler_id:
-            self.seq_canvas.mav.triggers.deleteHandler(MOD_ASSOC,
+            self.seq_canvas.sv.triggers.deleteHandler(MOD_ASSOC,
                             self._mod_assoc_handler_id)
         if self._motion_stop_handler_id:
             chimera.triggers.deleteHandler(MOTION_STOP,
@@ -1357,7 +1357,7 @@ class RegionBrowser:
                     for hr in self.regions:
                         if hr not in regions \
                         and hr.name and not (
-                        hr.name.startswith(self.seq_canvas.mav.GAP_REG_NAME_START)
+                        hr.name.startswith(self.seq_canvas.sv.GAP_REG_NAME_START)
                         or hr == self.get_region("ChimeraX selection")):
                             hr.shown = False
 
@@ -1460,7 +1460,7 @@ class RegionBrowser:
                 """TODO
                 rebuild_table = self.seqRegionMenu.index(Pmw.SELECT) == 0
                 """
-                settings = self.seq_canvas.mav.settings
+                settings = self.seq_canvas.sv.settings
                 self._drag_region = self.new_region(blocks=[block], select=True,
                     outline=settings.new_region_border, fill=settings.new_region_interior,
                     cover_gaps=True, rebuild_table=rebuild_table)
@@ -1544,16 +1544,16 @@ class RegionBrowser:
                 from chimerax.core.ui import mod_key_info
                 shift_name = mod_key_info("shift")[1]
                 control_name = mod_key_info("control")[1]
-                self.seq_canvas.mav.status(
+                self.seq_canvas.sv.status(
                     "%s-drag to add to region; "
                     "%s-drag to start new region" % (shift_name.capitalize(), control_name),
                     follow_with="Tools->Region Browser to change region colors; "
                     "%s left/right arrow to realign region" % control_name, follow_time=15)
             else:
-                mav = self.seq_canvas.mav
-                mav.status("Region RMSD: %.3f" % rmsd)
-                mav.session.logger.info("%s region %s RMSD: %.3f\n"
-                    % (mav.display_name ,self._drag_region, rmsd))
+                sv = self.seq_canvas.sv
+                sv.status("Region RMSD: %.3f" % rmsd)
+                sv.session.logger.info("%s region %s RMSD: %.3f\n"
+                    % (sv.display_name ,self._drag_region, rmsd))
         self._start_x, self._start_y = None, None
         if self._after_id:
             canvas.after_cancel(self._after_id)
@@ -1719,7 +1719,7 @@ class RegionBrowser:
     def _sel_change_cb(self, _, changes):
         if "selected changed" not in changes.atom_reasons():
             return
-        settings = self.seq_canvas.mav.settings
+        settings = self.seq_canvas.sv.settings
         sel_region = self.get_region("ChimeraX selection", create=True,
             fill=settings.sel_region_interior, outline=settings.sel_region_border)
         if self._sel_change_from_self:
@@ -1743,7 +1743,7 @@ class RegionBrowser:
     def _show_sel_cb(self):
         # also called from settings dialog
         from chimerax.core import atomic
-        if self.seq_canvas.mav.settings.show_sel:
+        if self.seq_canvas.sv.settings.show_sel:
             self.show_chimerax_selection()
             self._sel_change_handler = atomic.get_triggers(self.tool_window.session).add_handler(
                 "changes", self._sel_change_cb)
@@ -1791,7 +1791,7 @@ class RenameDialog(ModelessDialog):
 
     def __init__(self, region_browser, region):
         self.title = "Rename '%s' Region" % region_name(region,
-                region_browser.seq_canvas.mav.prefs)
+                region_browser.seq_canvas.sv.prefs)
         self.region_browser = region_browser
         self.region = region
         ModelessDialog.__init__(self)
