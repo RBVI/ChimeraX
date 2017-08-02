@@ -35,8 +35,8 @@ test:
 debug:
 	$(CHIMERAX_EXE) --debug
 
-clean:	bundle_info.xml
-	if [ -x $(CHIMERAX_EXE) ]; then \
+clean:
+	if [ -x $(CHIMERAX_EXE) -a -f bundle_info.xml ]; then \
 		$(RUN) "devel clean . exit true" ; \
 	else \
 		rm -rf build dist *.egg-info src/__pycache__ ; \
