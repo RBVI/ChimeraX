@@ -16,10 +16,10 @@ SUBDIRS = add_h align_algs alignments blastprotein \
 	  bundle_builder cage_builder cellpack chem_group cmd_line \
 	  color_globe contacts crosslinks \
 	  exp_cmd file_history hbonds help_viewer ihm label list_info \
-	  log map_series_gui match_maker mav md_crds mlp model_series \
+	  log map_series_gui match_maker md_crds mlp model_series \
 	  mmtf model_panel \
 	  mol2 morph mouse_modes movie remote_control rest_server \
-	  residue_fit sim_matrices shell shortcuts sideview \
+	  residue_fit seq_view sim_matrices shell shortcuts sideview \
 	  smooth_lines spacenavigator stl storm struts \
 	  test tug vive volume_viewer vtk
 

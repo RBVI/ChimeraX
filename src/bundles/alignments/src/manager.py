@@ -145,7 +145,7 @@ class AlignmentsManager(State):
             Can this viewer show sequence alignments
         synonyms : list of str
            Shorthands that the user could type instead of standard_name to refer to your tool
-           in commands.  Example:  ['mav', 'multalign']
+           in commands.  Example:  ['sv']
         """
         if sequence_viewer:
             self.viewer_info['sequence'][tool_name] = (startup_cb, synonyms)
