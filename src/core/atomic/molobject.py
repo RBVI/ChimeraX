@@ -223,7 +223,7 @@ class Atom(State):
         vtype = ctypes.c_uint8
         v = vtype()
         v_ref = ctypes.byref(v)
-        f = c_array_function('atom_has_alt_loc', args=(byte,), ret=npy_bool, per_object=False)
+        f = c_array_function('atom_has_alt_loc', args=(byte,), per_object=False)
         a_ref = ctypes.byref(self._c_pointer)
         f(a_ref, 1, loc, v_ref)
         return v.value
@@ -1821,7 +1821,7 @@ class ChangeTracker:
                 reason.encode('utf-8'))
     @property
     def changed(self):
-        f = c_function('change_tracker_changed', args = (ctypes.c_void_p,), ret = npy_bool)
+        f = c_function('change_tracker_changed', args = (ctypes.c_void_p,), ret = ctypes.c_bool)
         return f(self._c_pointer)
 
     @property
