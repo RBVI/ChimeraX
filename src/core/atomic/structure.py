@@ -1930,27 +1930,6 @@ class AtomicStructure(Structure):
     def added_to_session(self, session):
         super().added_to_session(session)
 
-        hb_pbg = self.pbg_map.get("hydrogen bonds", None)
-        if hb_pbg and not (
-                self.num_coordsets > 1 and hb_pbg.group_type == hb_pbg.GROUP_TYPE_COORD_SET):
-            pre_existing = "hydrogen bonds" in session.pb_manager.group_map
-            global_group = session.pb_manager.get_group("hydrogen bonds", create=True)
-            for pb in hb_pbg.pseudobonds:
-                global_group.new_pseudobond(*pb.atoms)
-            if not pre_existing:
-                global_group.dashes = self.default_hbond_dashes
-                global_group.radius = self.default_hbond_radius
-                global_group.color = self.default_hbond_color.uint8x4()
-                session.models.add([global_group])
-            def del_after_add(trig_name, models, hb_pbg=hb_pbg, ses=session):
-                if hb_pbg in models:
-                    ses.models.remove([hb_pbg])
-                    hb_pbg.delete()
-                    from ..triggerset import DEREGISTER
-                    return DEREGISTER
-            from ..models import ADD_MODELS
-            session.triggers.add_handler(ADD_MODELS, del_after_add)
-
         if self._log_info:
             # don't report models in an NMR ensemble individually...
             if len(self.id) > 1:
