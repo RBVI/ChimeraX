@@ -16,6 +16,7 @@ def sphere_geometry(ntri):
   Return vertex, normal vector and triangle arrays for unit sphere geometry.
   Only produces 20, 80, 320, ... (multiples of 4) triangle count.
   '''
+  # TODO: revise to use geometry.sphere.sphere_triangulation
   from . import icosahedron
   va, ta = icosahedron.icosahedron_geometry()
   from numpy import int32
@@ -212,3 +213,102 @@ def tetrahedron_geometry():
   va = array(((s,s,s),(s,-s,-s),(-s,s,-s),(-s,-s,s)), float32)
   ta = array(((0,1,2),(0,2,3),(0,3,1),(2,1,3)), int32)
   return va, va, ta
+
+def box_geometry(llb, urf):
+    '''
+    Return vertex, normal vector and triangle arrays for box with
+    corners llb and urf (lower-left-back, upper-right-front)
+    '''
+    #       v2 ---- v3
+    #        |\      |\
+    #        | v6 ---- v7 = urf
+    #        |  |    | |
+    #        |  |    | |
+    # llb = v0 -|---v1 |
+    #         \ |     \|
+    #          v4 ---- v5
+    from numpy import array, float32, int32
+    vertices = array([
+        # -x, v0-v4-v2-v6
+        [llb[0], llb[1], llb[2]],
+        [llb[0], llb[1], urf[2]],
+        [llb[0], urf[1], llb[2]],
+        [llb[0], urf[1], urf[2]],
+
+        # -y, v0-v1-v4-v5
+        [llb[0], llb[1], llb[2]],
+        [urf[0], llb[1], llb[2]],
+        [llb[0], llb[1], urf[2]],
+        [urf[0], llb[1], urf[2]],
+
+        # -z, v1-v0-v3-v2
+        [urf[0], llb[1], llb[2]],
+        [llb[0], llb[1], llb[2]],
+        [urf[0], urf[1], llb[2]],
+        [llb[0], urf[1], llb[2]],
+
+        # x, v5-v1-v7-v3
+        [urf[0], llb[1], urf[2]],
+        [urf[0], llb[1], llb[2]],
+        [urf[0], urf[1], urf[2]],
+        [urf[0], urf[1], llb[2]],
+
+        # y, v3-v2-v7-v6
+        [urf[0], urf[1], llb[2]],
+        [llb[0], urf[1], llb[2]],
+        [urf[0], urf[1], urf[2]],
+        [llb[0], urf[1], urf[2]],
+
+        # z, v4-v5-v6-v7
+        [llb[0], llb[1], urf[2]],
+        [urf[0], llb[1], urf[2]],
+        [llb[0], urf[1], urf[2]],
+        [urf[0], urf[1], urf[2]],
+    ], dtype=float32)
+
+    normals = array([
+        # -x, v0-v4-v2-v6
+        [-1, 0, 0],
+        [-1, 0, 0],
+        [-1, 0, 0],
+        [-1, 0, 0],
+
+        # -y, v0-v1-v4-v5
+        [0, -1, 0],
+        [0, -1, 0],
+        [0, -1, 0],
+        [0, -1, 0],
+
+        # -z, v1-v0-v3-v2
+        [0, 0, -1],
+        [0, 0, -1],
+        [0, 0, -1],
+        [0, 0, -1],
+
+        # x, v5-v1-v7-v3
+        [1, 0, 0],
+        [1, 0, 0],
+        [1, 0, 0],
+        [1, 0, 0],
+
+        # y, v3-v2-v7-v6
+        [0, 1, 0],
+        [0, 1, 0],
+        [0, 1, 0],
+        [0, 1, 0],
+
+        # z, v4-v5-v6-v7
+        [0, 0, 1],
+        [0, 0, 1],
+        [0, 0, 1],
+        [0, 0, 1],
+    ], dtype=float32)
+    triangles = array([
+        [0, 1, 2], [2, 1, 3],           # -x
+        [4, 5, 6], [6, 5, 7],           # -y
+        [8, 9, 10], [10, 9, 11],        # -z
+        [12, 13, 14], [14, 13, 15],     # x
+        [16, 17, 18], [18, 17, 19],     # y
+        [20, 21, 22], [22, 21, 23],     # z
+    ], dtype=uint32)
+    return vertices, normals, triangles
