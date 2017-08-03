@@ -26,7 +26,7 @@ upgrade:
 app-install:
 	$(APP_PIP_INSTALL) -r app_requirements.txt
 	-for p in $(PATCHES); do \
-		patch -d $(PYSITEDIR) -N -p0 < $$p ; \
+		patch -d $(APP_PYSITEDIR) -N -p0 < $$p ; \
 	done
 
 app-upgrade:
