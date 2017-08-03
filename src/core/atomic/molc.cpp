@@ -538,6 +538,19 @@ extern "C" EXPORT void atom_has_alt_loc(void *atoms, size_t n, char alt_loc, npy
     }
 }
 
+extern "C" EXPORT void atom_set_coord(void *atom, void *xyz, int cs_id)
+{
+    Atom *a = static_cast<Atom *>(atom);
+    try {
+        auto cs = a->structure()->find_coord_set(cs_id);
+        if (cs == nullptr)
+            throw std::logic_error("No such coordset ID");
+        a->set_coord(Point((double*)xyz), cs);
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void atom_draw_mode(void *atoms, size_t n, uint8_t *modes)
 {
     Atom **a = static_cast<Atom **>(atoms);
@@ -3619,6 +3632,21 @@ extern "C" EXPORT void set_structure_ss_assigned(void *structures, size_t n, npy
     error_wrap_array_set(s, n, &Structure::set_ss_assigned, ss_assigned);
 }
 
+extern "C" EXPORT void structure_reorder_residues(void *structure, PyObject *py_new_order)
+{
+    Structure *s = static_cast<Structure *>(structure);
+    Structure::Residues new_order;
+    auto size = PyList_GET_SIZE(py_new_order);
+    for (int i = 0; i < size; ++i) {
+        new_order.push_back(
+            static_cast<Residue*>(PyLong_AsVoidPtr(PyList_GET_ITEM(py_new_order, i))));
+    }
+    try {
+        s->reorder_residues(new_order);
+    } catch (...) {
+        molc_error();
+}
+
 extern "C" EXPORT void structure_ribbon_display_count(void *mols, size_t n, int32_t *ribbon_display_count)
 {
     Structure **m = static_cast<Structure **>(mols);
@@ -3967,6 +3995,36 @@ extern "C" EXPORT void *structure_new_bond(void *mol, void *atom1, void *atom2)
     } catch (...) {
         molc_error();
         return nullptr;
+    }
+}
+
+extern "C" EXPORT void structure_new_coordset_default(void *mol)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        m->new_coord_set();
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void structure_new_coordset_index(void *mol, int32_t index)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        m->new_coord_set(index);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void structure_new_coordset_index_size(void *mol, int32_t index, int32_t size)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        m->new_coord_set(index, size);
+    } catch (...) {
+        molc_error();
     }
 }
 

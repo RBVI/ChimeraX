@@ -34,8 +34,9 @@ def cmd_addh(session, structures=None, hbond=True, in_isolation=True, use_his_na
     #else:
     #   add_f_func(...)
     add_h_func(session, structures, in_isolation=in_isolation, **prot_schemes)
-#TODO: determine_terminii, complete_terminal_carboxylate, determine_naming_schemas
-#TODO: _prep_add, _make_shared_data, simple.add_hydrogens, post_add, _delete_shared_data
+#TODO: complete_terminal_carboxylate, determine_naming_schemas
+#TODO: _handle_acid_protonation_scheme_item
+#TODO: _make_shared_data, simple.add_hydrogens, post_add, _delete_shared_data
 #TODO: hbond_add_hydrogens
 #TODO: initiate_add_hyd
 
@@ -104,6 +105,91 @@ def simple_add_hydrogens(session, structures, unknowns_info={}, in_isolation=Fal
 	_delete_shared_data()
 	session.logger.status("Hydrogens added")
 
+def complete_terminal_carboxylate(session, cter):
+	from chimerax.core.atomic.bond_geom import bond_positions
+    #TODO
+	from chimera.molEdit import addAtom
+	if cter.find_atom("OXT"):
+		return
+    c = cter.find_atom("C")
+	if c:
+		if c.num_bonds != 2:
+			return
+		loc = bond_positions(c.coord, 3, 1.229, [n.coord for n in c.neighbors])[0]
+		oxt = addAtom("OXT", chimera.Element("O"), cter, loc,
+								bondedTo=c)
+        session.logger.info("Missing OXT added to C-terminal residue %s" % str(cter))
+
+def determine_terminii(session, structs):
+	real_N = []
+	real_C = []
+	fake_N = []
+	fake_C = []
+    logger = session.logger
+	for s in structs:
+		sr_res = set()
+		for chain in s.chains:
+			if chain.from_seqres:
+				sr_res.update(chain.residues)
+				rn, rc, fn, fc = terminii_from_seqres(chain)
+				logger.info("Terminii for %s determined from SEQRES records" % chain.full_name)
+			else:
+				rn, rc, fn, fc = guessTerminii(chain)
+				if chain.fromSeqres == None:
+					logger.info("No SEQRES records for %s;" % chain.full_name, add_newline=False)
+				else:
+					logger.info("SEQRES records don't match %s;" % chain.full_name,
+                        add_newline=False)
+				replyobj.info(" guessing terminii instead")
+			real_N.extend(rn)
+			real_C.extend(rc)
+			fake_N.extend(fn)
+			fake_C.extend(fc)
+		if sr_res:
+			# Look for peptide terminii not in SEQRES records
+            from chimerax.core.atomic import Sequence
+            protein3to1 = Sequence.protein3to1
+			for r in s.residues:
+				if r in sr_res:
+					continue
+				if protein3to1(r.name) == 'X':
+					continue
+                ca = r.find_atom("CA")
+                o = r.find_atom("O")
+                n = r.find_atom("N")
+                c = r.find_atom("C")
+				if ca and o and n and c:
+					for atom_name, terminii in [('N', real_N), ('C', real_C)]:
+						for nb in r.find_atom(atom_name).neighbors:
+							if nb.residue != r:
+								break
+						else:
+							terminii.append(r)
+
+	return real_N, real_C, fake_N, fake_C
+
+def terminii_from_seqres(chain):
+	real_N = []
+	real_C = []
+	fake_N = []
+	fake_C = []
+	if chain.residues[0]:
+		real_N.append(chain.residues[0])
+	if chain.residues[-1]:
+		real_C.append(chain.residues[-1])
+
+	last = chain.residues[0]
+	for res in chain.residues[1:]:
+		if res:
+			if not last:
+				fake_N.append(res)
+		else:
+			if last:
+				fake_C.append(last)
+		last = res
+	return real_N, real_C, fake_N, fake_C
+
+
 class IdatmTypeInfo:
 	def __init__(self, geometry, substituents):
 		self.geometry = geometry
@@ -134,17 +220,17 @@ def _prep_add(session, structures, unknowns_info, need_all=False, **prot_schemes
 	# and add a single "HN" back on, using same dihedral as preceding residue;
 	# delete extra hydrogen of "fake" C terminii after protonation
     logger = session.logger
-	real_N, real_C, fake_N, fake_C = determine_terminii(structures)
+	real_N, real_C, fake_N, fake_C = determine_terminii(session, structures)
 	logger.info("Chain-initial residues that are actual N"
-		" terminii: %s\n" % ", ".join([str(r) for r in real_N]))
+		" terminii: %s" % ", ".join([str(r) for r in real_N]))
 	logger.info("Chain-initial residues that are not actual N"
-		" terminii: %s\n" % ", ".join([str(r) for r in fake_N]))
+		" terminii: %s" % ", ".join([str(r) for r in fake_N]))
 	logger.info("Chain-final residues that are actual C"
-		" terminii: %s\n" % ", ".join([str(r) for r in real_C]))
+		" terminii: %s" % ", ".join([str(r) for r in real_C]))
 	logger.info("Chain-final residues that are not actual C"
-		" terminii: %s\n" % ", ".join([str(r) for r in fake_C]))
+		" terminii: %s" % ", ".join([str(r) for r in fake_C]))
 	for rc in real_C:
-		complete_terminal_carboxylate(rc)
+		complete_terminal_carboxylate(session, rc)
 
 	# ensure that N terminii are protonated as N3+ (since Npl will fail)
 	for nter in real_N+fake_N:
@@ -217,69 +303,67 @@ def _prep_add(session, structures, unknowns_info, need_all=False, **prot_schemes
 			if bonded.element.number == 1:
 				total_hydrogens += 1
 		hydrogen_totals[atom] = total_hydrogens
-    #TODO
 
-	for schemeType, resNames, resCheck, typedAtoms in [
+    schemes = {}
+	for scheme_type, res_names, res_check, typed_atoms in [
 			('his', ["HID", "HIE", "HIP"], None, []),
 			('asp', asp_res_names, _aspCheck, asp_prot_names),
 			('glu', glu_res_names, _gluCheck, glu_prot_names),
 			('lys', lys_res_names, _lysCheck, lys_prot_names),
 			('cys', cys_res_names, _cysCheck, cys_prot_names) ]:
-		scheme = prot_schemes.get(schemeType + 'Scheme', None)
+		scheme = prot_schemes.get(scheme_type + '_scheme', None)
 		if scheme is None:
-			byName = True
+			by_name = True
 			scheme = {}
 		else:
-			byName = False
+			by_name = False
 		if not scheme:
 			for s in structures:
 				for r in s.residues:
-					if r.type in resNames and resCheck and resCheck(r):
-						if byName:
-							scheme[r] = r.type
-						elif schemeType != 'his':
-							scheme[r] = resNames[0]
+					if r.name in res_names and res_check and res_check(r):
+						if by_name:
+							scheme[r] = r.name
+						elif scheme_type != 'his':
+							scheme[r] = res_names[0]
 						# unset any explicit typing...
-						for ta in typedAtoms:
-							for a in r.atomsMap[ta]:
+						for ta in typed_atoms:
+                            a = r.find_atom(ta)
+                            if a:
 								a.idatm_type = None
 		else:
 			for r in scheme.keys():
-				if resCheck and not resCheck(r, scheme[r]):
+				if res_check and not res_check(r, scheme[r]):
 					del scheme[r]
-		exec("%sScheme = scheme" % schemeType)
+        schemes[scheme_type] = scheme
 	# create dictionary keyed on histidine residue with value of another
 	# dictionary keyed on the nitrogen atoms with boolean values: True
 	# equals should be protonated
-	hisNs = {}
-	for r, protonation in hisScheme.items():
-		try:
-			delta = r.atomsMap["ND1"][0]
-			epsilon = r.atomsMap["NE2"][0]
-		except KeyError:
+	his_Ns = {}
+	for r, protonation in schemes["his"].items():
+        delta = r.find_atom("ND1")
+        epsilon = r.find_atom("NE2")
+        if delta is None or epsilon is None:
 			# find the ring, etc.
-			rings = r.molecule.minimumRings()
+			rings = r.structure.rings()
 			for ring in rings:
-				if ring.atoms.pop().residue == r:
+                if r in rings.atoms.residues:
 					break
 			else:
 				continue
 			# find CG by locating CB-CG bond
-			ringBonds = ring.bonds
+			ring_bonds = ring.bonds
 			for ra in ring.atoms:
 				if ra.element.name != "C":
 					continue
-				for ba, b in ra.bondsMap.items():
-					if ba.element.name == "C" \
-					and b not in ringBonds:
+				for ba, b in zip(ra.neighbors, ra.bonds):
+					if ba.element.name == "C" and b not in ring_bonds:
 						break
 				else:
 					continue
 				break
 			else:
 				continue
-			nitrogens = [a for a in ring.atoms
-						if a.element.name == "N"]
+			nitrogens = [a for a in ring.atoms if a.element.name == "N"]
 			if len(nitrogens) != 2:
 				continue
 			if ra in nitrogens[0].neighbors:
@@ -287,57 +371,57 @@ def _prep_add(session, structures, unknowns_info, need_all=False, **prot_schemes
 			else:
 				epsilon, delta = nitrogens
 		if protonation == "HID":
-			hisNs.update({ delta: True, epsilon: False })
+			his_Ns.update({ delta: True, epsilon: False })
 		elif protonation == "HIE":
-			hisNs.update({ delta: False, epsilon: True })
+			his_Ns.update({ delta: False, epsilon: True })
 		elif protonation == "HIP":
-			hisNs.update({ delta: True, epsilon: True })
+			his_Ns.update({ delta: True, epsilon: True })
 		else:
 			continue
-	for n, doProt in hisNs.items():
-		if doProt:
+	for n, do_prot in his_Ns.items():
+		if do_prot:
 			type_info_for_atom[n] = type_info["Npl"]
 			n.idatm_type = idatm_type[n] = "Npl"
 		else:
 			type_info_for_atom[n] = type_info["N2"]
 			n.idatm_type = idatm_type[n] = "N2"
 
-	for r, protonation in aspScheme.items():
-		_handleAcidProtonationSchemeItem(r, protonation, asp_res_names,
+	for r, protonation in schemes["asp"].items():
+		_handle_acid_protonation_scheme_item(r, protonation, asp_res_names,
 			asp_prot_names, type_info, type_info_for_atom)
 
-	for r, protonation in gluScheme.items():
-		_handleAcidProtonationSchemeItem(r, protonation, glu_res_names,
+	for r, protonation in schemes["glu"].items():
+		_handle_acid_protonation_scheme_item(r, protonation, glu_res_names,
 			glu_prot_names, type_info, type_info_for_atom)
 
-	for r, protonation in lysScheme.items():
-		nzs = r.atomsMap["NZ"]
+	for r, protonation in schemes["lys"].items():
+		nz = r.find_atom("NZ")
 		if protonation == "LYS":
 			it = 'N3+'
 		else:
 			it = 'N3'
 		ti = type_info[it]
-		for nz in nzs:
+		if nz is not None:
 			type_info_for_atom[nz] = ti
 			# avoid explicitly setting type if possible
 			if nz.idatm_type != it:
 				nz.idatm_type = it
 
-	for r, protonation in cysScheme.items():
-		sgs = r.atomsMap["SG"]
+	for r, protonation in schemes["cys"].items():
+		sg = r.find_atom("SG")
 		if protonation == "CYS":
 			it = 'S3'
 		else:
 			it = 'S3-'
 		ti = type_info[it]
-		for sg in sgs:
+		if sg is not None:
 			type_info_for_atom[sg] = ti
 			# avoid explicitly setting type if possible
 			if sg.idatm_type != it:
 				sg.idatm_type = it
 
 	return atoms, type_info_for_atom, naming_schemas, idatm_type, \
-			hydrogen_totals, hisNs, coordinations, fake_N, fake_C
+			hydrogen_totals, his_Ns, coordinations, fake_N, fake_C
 
 def register_command(command_name, logger):
     from chimerax.core.commands import CmdDesc, register, AtomicStructuresArg, BoolArg

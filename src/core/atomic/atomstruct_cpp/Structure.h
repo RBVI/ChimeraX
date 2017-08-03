@@ -248,6 +248,7 @@ public:
     virtual std::vector<Chain::Residues>  polymers(
         PolymerMissingStructure /*missing_structure_treatment*/ = PMS_ALWAYS_CONNECTS,
         bool /*consider_chain_ids*/ = true) const { return std::vector<Chain::Residues>(); }
+    void  reorder_residues(const Residues&); 
     const Residues&  residues() const { return _residues; }
     const Rings&  rings(bool cross_residues = false,
         unsigned int all_size_threshold = 0,

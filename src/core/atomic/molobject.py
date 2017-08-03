@@ -191,44 +191,6 @@ class Atom(State):
         doc="Whether atom is displayed and not hidden.")
 
     @property
-    def display_radius(self):
-        dm = self.draw_mode
-        if dm == Atom.SPHERE_STYLE:
-            r = self.radius
-        elif dm == Atom.BALL_STYLE:
-            r = self.radius * self.structure.ball_scale
-        elif dm == Atom.STICK_STYLE:
-            r = self.maximum_bond_radius(self.structure.bond_radius)
-        return r
-
-    def maximum_bond_radius(self, default_radius = 0.2):
-        "Return maximum bond radius.  Used for stick style atom display."
-        f = c_function('atom_maximum_bond_radius',
-                       args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_float, ctypes.c_void_p])
-        r = ctypes.c_float()
-        f(ctypes.byref(self._c_pointer), 1, default_radius, ctypes.byref(r))
-        return r.value
-
-    def set_alt_loc(self, loc, create):
-        if isinstance(loc, str):
-            loc = loc.encode('utf-8')
-        f = c_function('atom_set_alt_loc', args=(ctypes.c_void_p, ctypes.c_char, ctypes.c_bool, ctypes.c_bool))
-        f(self._c_pointer, loc, create, False)
-
-    def has_alt_loc(self, loc):
-        if isinstance(loc, str):
-            loc = loc.encode('utf-8')
-        #value_type = npy_bool
-        #vtype = numpy_type_to_ctype[value_type]
-        vtype = ctypes.c_uint8
-        v = vtype()
-        v_ref = ctypes.byref(v)
-        f = c_array_function('atom_has_alt_loc', args=(byte,), per_object=False)
-        a_ref = ctypes.byref(self._c_pointer)
-        f(a_ref, 1, loc, v_ref)
-        return v.value
-
-    @property
     def aniso_u(self):
         '''Anisotropic temperature factors, returns 3x3 array of numpy float32 or None.  Read only.'''
         f = c_function('atom_aniso_u', args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p))
@@ -262,17 +224,41 @@ class Atom(State):
         f(self._c_pointer_ref, 1, pointer(ai))
     aniso_u6 = property(_get_aniso_u6, _set_aniso_u6)
 
-    def delete(self):
-        '''Delete this Atom from it's Structure'''
-        f = c_function('atom_delete', args = (ctypes.c_void_p, ctypes.c_size_t))
-        c = f(self._c_pointer_ref, 1)
-
     def connects_to(self, atom):
         '''Whether this atom is directly bonded to a specified atom.'''
         f = c_function('atom_connects_to', args = (ctypes.c_void_p, ctypes.c_void_p),
                ret = ctypes.c_bool)
         c = f(self._c_pointer, atom._c_pointer)
         return c
+
+    def delete(self):
+        '''Delete this Atom from it's Structure'''
+        f = c_function('atom_delete', args = (ctypes.c_void_p, ctypes.c_size_t))
+        c = f(self._c_pointer_ref, 1)
+
+    @property
+    def display_radius(self):
+        dm = self.draw_mode
+        if dm == Atom.SPHERE_STYLE:
+            r = self.radius
+        elif dm == Atom.BALL_STYLE:
+            r = self.radius * self.structure.ball_scale
+        elif dm == Atom.STICK_STYLE:
+            r = self.maximum_bond_radius(self.structure.bond_radius)
+        return r
+
+    def has_alt_loc(self, loc):
+        if isinstance(loc, str):
+            loc = loc.encode('utf-8')
+        #value_type = npy_bool
+        #vtype = numpy_type_to_ctype[value_type]
+        vtype = ctypes.c_uint8
+        v = vtype()
+        v_ref = ctypes.byref(v)
+        f = c_array_function('atom_has_alt_loc', args=(byte,), per_object=False)
+        a_ref = ctypes.byref(self._c_pointer)
+        f(a_ref, 1, loc, v_ref)
+        return v.value
 
     def is_backbone(self, bb_extent=BBE_MAX):
         '''Whether this Atom is considered backbone, given the 'extent' criteria.
@@ -291,6 +277,31 @@ class Atom(State):
         f = c_function('atom_is_backbone', args = (ctypes.c_void_p, ctypes.c_int),
                 ret = ctypes.c_bool)
         return f(self._c_pointer, bb_type)
+
+    def maximum_bond_radius(self, default_radius = 0.2):
+        "Return maximum bond radius.  Used for stick style atom display."
+        f = c_function('atom_maximum_bond_radius',
+                       args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_float, ctypes.c_void_p])
+        r = ctypes.c_float()
+        f(ctypes.byref(self._c_pointer), 1, default_radius, ctypes.byref(r))
+        return r.value
+
+    def set_alt_loc(self, loc, create):
+        if isinstance(loc, str):
+            loc = loc.encode('utf-8')
+        f = c_function('atom_set_alt_loc', args=(ctypes.c_void_p, ctypes.c_char, ctypes.c_bool, ctypes.c_bool))
+        f(self._c_pointer, loc, create, False)
+
+    def set_coord(self, xyz, cs_id):
+        '''Used to set the atom's xyz for a particular coordset.  Just use the 'coord' attr
+           for changing the current coordinate set.'''
+        if xyz.dtype != float64:
+            raise ValueError('set_coord(): array must be float64, got %s' % xyz.dtype.name)
+        if len(xyz.shape) != 1 or len(xyz) != 3:
+            raise ValueError('set_coord(): array must of dimension 1x3, not %s' % repr(xyz.shape))
+        f = c_function('atom_set_coord',
+                       args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int))
+        f(self._c_pointer, pointer(xyz), cs_id)
 
     def rings(self, cross_residues=False, all_size_threshold=0):
         '''Return :class:`.Rings` collection of rings this Atom participates in.
@@ -316,6 +327,7 @@ class Atom(State):
         of models this atom belongs to.
         '''
         return self.structure.scene_position * self.coord
+
 
     def reset_state(self, session):
         """For when the session is closed"""
@@ -1619,6 +1631,28 @@ class StructureData:
         bp = f(self._c_pointer, atom1._c_pointer, atom2._c_pointer)
         return object_map(bp, Bond)
 
+    def new_coordset(self, index=None, size=None):
+        '''Create a new empty coordset.  In almost all circumstances one would use the
+           add_coordset(s) method instead (to add fully populated coordsets), but in some
+           cases when building a Structure from scratch this method is needed.
+
+           'index' defaults to one more than highest existing index (or 1 if none existing);
+           'size' is for efficiency when creating the first coordinate set of a new Structure,
+               and is otherwise unnecessary to specify
+        '''
+        if index is None:
+            f = c_function('structure_new_coordset_default', args = (ctypes.c_void_p,))
+            f()
+        else:
+            if size is None:
+                f = c_function('structure_new_coordset_index',
+                    args = (ctypes.c_void_p, ctypes.c_int))
+                f(index)
+            else
+                f = c_function('structure_new_coordset_index_size',
+                    args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_int))
+                f(index, size)
+
     def new_residue(self, residue_name, chain_id, pos, insert=' '):
         '''Create a new :class:`.Residue`.'''
         f = c_function('structure_new_residue',
@@ -1663,6 +1697,13 @@ class StructureData:
         f = c_function('structure_delete_pseudobond_group',
                        args = (ctypes.c_void_p, ctypes.c_void_p), ret = None)
         f(self._c_pointer, pbg._c_pointer)
+
+    def reorder_residues(self, new_order):
+        '''Reorder the residues.  Obviously, 'new_order' has to have exactly the same
+           residues as the structure currently has.
+        '''
+        f = c_function('structure_reorder_residues', args = (ctypes.c_void_p, ctypes.py_object))
+        f(self._c_pointer, [r._c_pointer for r in new_order]))
 
     @classmethod
     def restore_snapshot(cls, session, data):
