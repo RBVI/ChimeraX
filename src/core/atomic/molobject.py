@@ -159,7 +159,9 @@ class Atom(State):
         "HIDE_RIBBON\n"
         "    Hide mask for backbone atoms in ribbon.\n"
         "HIDE_ISOLDE\n"
-        "    Hide mask for backbone atoms for ISOLDE.")
+        "    Hide mask for backbone atoms for ISOLDE.\n"
+        "HIDE_NUCLEOTIDE\n"
+        "    Hide mask for sidechain atoms in nucleotides.\n")
     idatm_type = c_property('atom_idatm_type', string, doc = "IDATM type")
     in_chain = c_property('atom_in_chain', npy_bool, read_only = True,
         doc = "Whether this atom belongs to a polymer. Read only.")
