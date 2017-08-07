@@ -250,6 +250,10 @@ class BundleBuilder:
         for e in self._get_elements(cls, "ChimeraXClassifier"):
             self.chimerax_classifiers.append(self._get_element_text(e))
 
+    def _is_pure_python(self):
+        return (not self.c_modules and not self.c_libraries
+                and self.pure_python != "false")
+
     def _make_setup_arguments(self):
         def add_argument(name, value):
             if value:
@@ -271,7 +275,7 @@ class BundleBuilder:
         ext_mods = [em for em in [cm.ext_mod(self.package)
 				  for cm in self.c_modules]
                     if em is not None]
-        if ext_mods or self.pure_python == "false":
+        if not self._is_pure_python():
             import sys
             if sys.platform == "darwin":
                 env = "Environment :: MacOS X :: Aqua",
@@ -322,7 +326,7 @@ class BundleBuilder:
     def _make_paths(self):
         import os.path
         from .wheel_tag import tag
-        self.tag = tag(not self.c_modules and self.pure_python != "false")
+        self.tag = tag(self._is_pure_python())
         self.bundle_base_name = self.name.replace("ChimeraX-", "")
         bundle_wheel_name = self.name.replace("-", "_")
         wheel = "%s-%s-%s.whl" % (bundle_wheel_name, self.version, self.tag)
