@@ -322,6 +322,7 @@ class Session:
         self._state_containers = {}  # stuff to save in sessions
         self.metadata = {}           #: session metadata
         self.in_script = InScriptFlag()
+        self.session_file_path = None	# Last saved or opened session file.
         if minimal:
             return
 
@@ -354,6 +355,7 @@ class Session:
     def reset(self):
         """Reset session to data-less state"""
         self.metadata.clear()
+        self.session_file_path = None
         for tag in self._state_containers:
             container = self._state_containers[tag]
             sm = self.snapshot_methods(container)
@@ -565,6 +567,7 @@ def save(session, path, version=2, uncompressed=False):
 
     session.logger.warning("<b><i>Session file format is not finalized, and thus might not be restorable in other versions of ChimeraX.</i></b>", is_html=True)
     # TODO: put thumbnail in session metadata
+    session.session_file_path = path
     try:
         session.save(output, version=version)
     except:
@@ -651,6 +654,7 @@ def open(session, path):
         stream = _builtin_open(fname, 'rb')
     # TODO: active trigger to allow user to stop overwritting
     # current session
+    session.session_file_path = path
     session.restore(stream)
     return [], "opened ChimeraX session"
 
