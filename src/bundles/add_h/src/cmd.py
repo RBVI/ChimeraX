@@ -34,9 +34,7 @@ def cmd_addh(session, structures=None, hbond=True, in_isolation=True, use_his_na
     #else:
     #   add_f_func(...)
     add_h_func(session, structures, in_isolation=in_isolation, **prot_schemes)
-#TODO: complete_terminal_carboxylate, determine_naming_schemas
-#TODO: _handle_acid_protonation_scheme_item
-#TODO: _make_shared_data, simple.add_hydrogens, post_add, _delete_shared_data
+#TODO: simple.add_hydrogens, post_add, _delete_shared_data
 #TODO: hbond_add_hydrogens
 #TODO: initiate_add_hyd
 
@@ -87,7 +85,7 @@ def simple_add_hydrogens(session, structures, unknowns_info={}, in_isolation=Fal
 	from simple import add_hydrogens
 	atoms, type_info_for_atom, naming_schemas, idatm_type, hydrogen_totals, his_Ns, coordinations, \
         fake_N, fake_C = _prepAdd(session, structures, unknowns_info, **prot_schemes)
-	_make_shared_data(structures, in_isolation)
+	_make_shared_data(session, structures, in_isolation)
 	invert_xforms = {}
 	for atom in atoms:
 		if not type_info_for_atom.has_key(atom):
@@ -107,8 +105,8 @@ def simple_add_hydrogens(session, structures, unknowns_info={}, in_isolation=Fal
 
 def complete_terminal_carboxylate(session, cter):
 	from chimerax.core.atomic.bond_geom import bond_positions
-    #TODO
-	from chimera.molEdit import addAtom
+    from chimerax.core.atomic.struct_edit import add_atom
+    from chimerax.core.atomic import Element
 	if cter.find_atom("OXT"):
 		return
     c = cter.find_atom("C")
@@ -116,9 +114,133 @@ def complete_terminal_carboxylate(session, cter):
 		if c.num_bonds != 2:
 			return
 		loc = bond_positions(c.coord, 3, 1.229, [n.coord for n in c.neighbors])[0]
-		oxt = addAtom("OXT", chimera.Element("O"), cter, loc,
-								bondedTo=c)
+		oxt = add_atom("OXT", Element.get_element("O"), cter, loc, bonded_to=c)
         session.logger.info("Missing OXT added to C-terminal residue %s" % str(cter))
+
+naming_exceptions = {
+	'ATP': {
+		"N6": ["HN61", "HN62"],
+	},
+	'ADP': {
+		"N6": ["HN61", "HN62"],
+	},
+	'GTP': {
+		"N1": ["HN1"],
+		"N2": ["HN21", "HN22"]
+	},
+	'GDP': {
+		"N1": ["HN1"],
+		"N2": ["HN21", "HN22"]
+	}
+}
+
+def determine_naming_schemas(structure, type_info):
+	"""Determine for each residue, method for naming hydrogens
+
+	The possible schemas are:
+		1) 'prepend' -- put 'H' in front of atom element name
+		2) a set of hetero atoms that should be prepended (others
+		will have the element symbol replaced with 'H'); in this
+		case the prepend will be in front of the entire atom name
+	
+	In both cases, a number will be appended if more than one hydrogen
+	is to be added. (Unless the base atom name ends in a prime [']
+	character, in which case additional primes will be added as long
+	as the resulting name is 4 characters or less)
+	
+	The "set" is the preferred scheme and is used when the heavy atoms
+	have been given reasonably distinctive names.  'Prepend' is used
+	mostly in small molecules where the atoms have names such as 'C1',
+	'C2', 'C3', 'N1', 'N2', etc. and 'replace' would not work."""
+
+	schemas = {structure: 3} # default to PDB version 3 naming
+	for residue in structure.residues:
+		if schemas[structure] == 3 and residue.name == "T" and residue.find_atom("O1P"):
+			# DNA thymine is "DT" in version 3
+			# (but RNA still has A/C/G so can't check those)
+			schemas[structure] = 2 # PDB version 2
+		carbons = set()
+		hets = set()
+		identifiers = set()
+		for atom in residue.atoms:
+			# skip pre-existing hydrogens
+			if atom.element.number == 1:
+				# use :1 instead of 0 in case atom name is empty
+				if not atom.name[:1].isalpha():
+					schemas[structure] = 2 # PDB version 2
+				if atom.num_bonds == 1:
+					nb = atom.neighbors[0]
+					if nb.name == 'N' and atom.name == 'H':
+						# this 'exception' occurs in standard amino
+						# acids so, don't allow it to force prepend...
+						continue
+					if type_info.has_key(nb) and type_info[nb].substituents - nb.num_bonds >= 1:
+						# the neighbor will have more protons added to it,
+						# so skip its identifier...
+						continue
+					if not nb.name.startswith(nb.element.name):
+						schemas[residue] = 'prepend'
+						break
+					if atom.name[:1].isdigit():
+						atom_test_name = atom.name[2:] + atom.name[:1]
+					else:
+						atom_test_name = atom.name[1:]
+					if atom_test_name.startswith(nb.name):
+						identifiers.add(nb.name[len(nb.element.name):])
+					elif atom_test_name.startswith(nb.name[len(nb.element.name):]):
+						identifiers.add(nb.name[len(nb.element.name):])
+					else:
+						schemas[residue] = 'prepend'
+						break
+				continue
+
+			# make sure leading characters are atomic symbol (otherwise use 'prepend')
+			symbol = atom.element.name
+			if len(atom.name) < len(symbol) or atom.name[0:len(symbol)].upper() != symbol.upper():
+				schemas[residue] = 'prepend'
+				break
+
+			# if this atom won't have hydrogens added, we don't care
+			if not type_info.has_key(atom):
+				continue
+			num_to_add = type_info[atom].substituents - atom.num_bonds
+			if num_to_add < 1:
+				continue
+
+			# if this atom has explicit naming given, don't enter in identifiers dict
+			res_name = atom.residue.name
+			if naming_exceptions.has_key(res_name) \
+			and naming_exceptions[res_name].has_key(atom.name):
+				continue
+			if atom.element.name == "C":
+				carbons.add(atom)
+			else:
+				hets.add(atom)
+		else:
+			dups = set()
+			for c in carbons:
+				identifier = c.name[1:]
+				if identifier in identifiers:
+					schemas[residue] = 'prepend'
+					break
+				identifiers.add(identifier)
+
+			else:
+				het_identifiers = set()
+				for het in hets:
+					identifier = het.name[len(het.element.name):]
+					if identifier in identifiers:
+						if identifier in het_identifiers:
+							schemas[residue] = 'prepend'
+							break
+						else:
+							dups.add(het)
+							het_identifiers.add(identifier)
+					else:
+						identifiers.add(identifier)
+				else:
+					schemas[residue] = dups
+	return schemas
 
 def determine_terminii(session, structs):
 	real_N = []
@@ -201,6 +323,106 @@ for element_num in range(1, Element.NUM_SUPPORTED_ELEMENTS):
 	type_info[e.name] = IdatmTypeInfo(single, 0)
 from chimerax.core.atomic import idatm
 type_info.update(idatm.type_info)
+
+def _acid_check(r, protonation, res_types, atom_names):
+	if protonation == res_types[0]:
+		protonation = 0
+	elif protonation == res_types[1]:
+		protonation = 2
+	one_name, two_name = atom_names
+    ones = [r.find_atom(one_name)]
+    twos = [r.find_atom(two_name)]
+	if not ones[0] or not twos[0]:
+		return False
+	if protonation == 1:
+		prot_check = ones
+		deprot_check = twos
+	elif protonation == 2:
+		prot_check = twos
+		deprot_check = ones
+	else:
+		prot_check = []
+		deprot_check = ones + twos
+	can_prot = True
+	for oxy in prot_check:
+		if oxy.num_bonds != 1:
+			can_prot = False
+			break
+	if not can_prot:
+		return False
+	can_deprot = True
+	for oxy in deprot_check:
+		if oxy.num_bonds != 1:
+			can_deprot = False
+			break
+	if not can_deprot:
+		return False
+	return protonation, prot_check, deprot_check
+
+def _handle_acid_protonation_scheme_item(r, protonation, res_types, atom_names,
+		type_info, type_info_for_atom):
+	protonation, prot_check, deprot_check = _acid_check(r, protonation, res_types, atom_names)
+	tiO3 = type_info['O3']
+	tiO2 = type_info['O2']
+	tiO2minus = type_info['O2-']
+	for oxy in prot_check:
+		type_info_for_atom[oxy] = tiO3
+	if protonation:
+		deprot_type = tiO2
+	else:
+		deprot_type = tiO2minus
+	for oxy in deprot_check:
+		type_info_for_atom[oxy] = deprot_type
+
+_tree_dist = 3.25
+_metal_dist = 3.6
+def _make_shared_data(session, protonation_models, in_isolation):
+	from chimerax.core.geometry import AdaptiveTree, distance_squared
+	# since adaptive search tree is static, it will not include
+	# hydrogens added after this; they will have to be found by
+	# looking off their heavy atoms
+	global search_tree, _radii, _metals, ident_pos_models, _h_coloring
+	_radii = {}
+	xyzs = []
+	vals = []
+	metal_xyzs = []
+	metal_vals = []
+	# if we're adding hydrogens to unopen models, add those models to open models...
+	pm_set = set(protonation_models)
+	if in_isolation:
+		models = pm_set
+	else:
+        from chimerax.core.atomic import AtomicStructure
+		om_set = set([m for m in session.models if isinstance(m, AtomicStructure)])
+		models = om_set | pm_set
+	# consider only one copy of identically-positioned models...
+	ident_pos_models = {}
+	for pm in protonation_models:
+		for m in models:
+			if m == pm:
+				continue
+			if pm.num_atoms != (m.num_atoms:
+				continue
+			for a1, a2 in zip(pm.atoms[:3], m.atoms[:3]):
+				if distance_squared(a1.scene_coord, a2.scene_coord) > 0.00001:
+					break
+			else:
+				ident_pos_models.setdefault(pm, set()).add(m)
+
+	for m in models:
+		if m not in ident_pos_models:
+			ident_pos_models[m] = set()
+		for a in m.atoms:
+			xyzs.append(a.scene_coord)
+			vals.append(a)
+			_radii[a] = a.radius
+			if a.element.is_metal:
+				metal_xyzs.append(a.coord)
+				metal_vals.append(a)
+	search_tree = AdaptiveTree(xyzs, vals, _tree_dist)
+	_metals = AdaptiveTree(metal_xyzs, metal_vals, _metal_dist)
+	from weakref import WeakKeyDictionary
+	_h_coloring = WeakKeyDictionary()
 
 asp_prot_names, asp_res_names = ["OD1", "OD2"], ["ASP", "ASH"]
 glu_prot_names, glu_res_names = ["OE1", "OE2"], ["GLU", "GLH"]
@@ -307,10 +529,10 @@ def _prep_add(session, structures, unknowns_info, need_all=False, **prot_schemes
     schemes = {}
 	for scheme_type, res_names, res_check, typed_atoms in [
 			('his', ["HID", "HIE", "HIP"], None, []),
-			('asp', asp_res_names, _aspCheck, asp_prot_names),
-			('glu', glu_res_names, _gluCheck, glu_prot_names),
-			('lys', lys_res_names, _lysCheck, lys_prot_names),
-			('cys', cys_res_names, _cysCheck, cys_prot_names) ]:
+			('asp', asp_res_names, _asp_check, asp_prot_names),
+			('glu', glu_res_names, _glu_check, glu_prot_names),
+			('lys', lys_res_names, _lys_check, lys_prot_names),
+			('cys', cys_res_names, _cys_check, cys_prot_names) ]:
 		scheme = prot_schemes.get(scheme_type + '_scheme', None)
 		if scheme is None:
 			by_name = True

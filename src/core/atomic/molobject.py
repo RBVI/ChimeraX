@@ -1958,6 +1958,9 @@ class Element:
     valence = c_property('element_valence', uint8, read_only = True)
     '''Element valence number, for example 7 for chlorine. Read only.'''
 
+    def __str__(self):
+        return self.name
+
     @staticmethod
     def bond_length(e1, e2):
         """Standard single-bond length between two elements

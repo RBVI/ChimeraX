@@ -216,23 +216,17 @@ def find_pt(n1, n2, n3, dist, angle, dihed):
 	x = normalize(cross(v13, v12))
 	y = normalize(cross(v12, x))
 
-	mat = [0.0] * 12
-	for i in range(3):
-		mat[i*4] = x[i]
-		mat[1 + i*4] = y[i]
-		mat[2 + i*4] = v12[i]
-		mat[3 + i*4] = n1[i]
+    from ..geometry import Place
+    xform = Place([(x[i], y[i], v12[i], n1[i]) for i in range(3)])
 
-    #TODO
-	xform = Xform.xform(*mat)
+	rad_angle = pi * angle / 180.0
+	tmp = dist * sin(rad_angle)
+	rad_dihed = pi * dihed / 180.0
+    from numpy import array
+	pt = array([tmp*sin(rad_dihed), tmp*cos(rad_dihed), dist*cos(rad_angle)])
+	return xform * pt
 
-	radAngle = pi * angle / 180.0
-	tmp = dist * sin(radAngle)
-	radDihed = pi * dihed / 180.0
-	pt = Point(tmp*sin(radDihed), tmp*cos(radDihed), dist*cos(radAngle))
-	return xform.apply(pt)
-
-def genAtomName(element, residue):
+def gen_atom_name(element, residue):
 	"""generate non-hydrogen atom name"""
 	n = 1
 	while True:
