@@ -78,29 +78,28 @@ class _UniqueName:
         self.uid = uid
 
     @classmethod
-    def from_obj(cls, toolshed, obj, logger):
+    def from_obj(cls, session, obj):
         """Return a unique identifier for an object in session
         Consequently, the identifier is composed of simple data types.
 
         Parameters
         ----------
+        session : instance of :py:class:`Session`
         obj : any object
-        bundle_info : optional :py:class:`~chimerax.core.toolshed.BundleInfo` instance
-            Explicitly denote which bundle object comes from.
         """
 
         uid = cls._obj_to_uid.get(id(obj), None)
         if uid is not None:
             return cls(uid)
         obj_cls = obj.__class__
-        bundle_info = toolshed.find_bundle_for_class(obj_cls)
+        bundle_info = session.toolshed.find_bundle_for_class(obj_cls)
         if bundle_info is None:
             raise RuntimeError('No bundle information for %s.%s' % (
                 obj_cls.__module__, obj_cls.__name__))
         else:
             class_name = (bundle_info.name, obj_cls.__name__)
             # double check that class will be able to be restored
-            if obj_cls != bundle_info.get_class(obj_cls.__name__, logger):
+            if obj_cls != bundle_info.get_class(obj_cls.__name__, session.logger):
                 raise RuntimeError(
                     'unable to restore objects of %s class in %s bundle' %
                     (obj_cls.__name__, bundle_info.name))
@@ -188,14 +187,14 @@ class _SaveManager:
                     self.graph[key] = self._found_objs
                 else:
                     self.unprocessed.append(value)
-                    uid = _UniqueName.from_obj(self.session.toolshed, value, self.session.logger)
+                    uid = _UniqueName.from_obj(self.session, value)
                     self.processed[key] = uid
                     self.graph[key] = [uid]
             except ValueError as e:
                 raise ValueError("error processing: %r" % key)
         while self.unprocessed:
             obj = self.unprocessed.pop()
-            key = _UniqueName.from_obj(self.session.toolshed, obj, self.session.logger)
+            key = _UniqueName.from_obj(self.session, obj)
             if key not in self.processed:
                 try:
                     self.processed[key] = self.process(obj)
@@ -204,7 +203,7 @@ class _SaveManager:
                 self.graph[key] = self._found_objs
 
     def _add_obj(self, obj):
-        uid = _UniqueName.from_obj(self.session.toolshed, obj, self.session.logger)
+        uid = _UniqueName.from_obj(self.session, obj)
         self._found_objs.append(uid)
         if uid not in self.processed:
             self.unprocessed.append(obj)
