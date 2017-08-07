@@ -47,6 +47,12 @@ class IMS_Grid(Grid_Data):
     self.hdf_data.read_matrix(ijk_origin, ijk_size, ijk_step,
                               self.array_path, m, progress)
     return m
+
+  # ---------------------------------------------------------------------------
+  #
+  def clear_cache(self):
+    self.hdf_data.close_file()
+    Grid_Data.clear_cache(self)
     
 # -----------------------------------------------------------------------------
 #
