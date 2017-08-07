@@ -52,6 +52,32 @@ class SaveDialog(QFileDialog):
         path = paths[0]
         return path
 
+class OpenDialogWithMessage(QFileDialog):
+    def __init__(self, parent, message = '', caption = 'Open File', starting_directory = None):
+        if starting_directory is None:
+            import os
+            starting_directory = os.getcwd()
+        QFileDialog.__init__(self, parent, caption = caption, directory = starting_directory)
+        self.setFileMode(QFileDialog.AnyFile)
+        self.setOption(QFileDialog.DontUseNativeDialog)
+
+        if message:
+            layout = self.layout()
+            row = layout.rowCount()
+            from PyQt5.QtWidgets import QLabel
+            label = QLabel(message, self)
+            from PyQt5.QtCore import Qt
+            layout.addWidget(label, row, 0, 1, -1, Qt.AlignLeft)
+
+    def get_path(self):
+        if not self.exec():
+            return None
+        paths = self.selectedFiles()
+        if not paths:
+            return None
+        path = paths[0]
+        return path
+
 def export_file_filter(category=None, format_name=None, all=False):
     """Return file name filter suitable for Export File dialog for Qt"""
 
