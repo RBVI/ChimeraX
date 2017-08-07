@@ -288,7 +288,9 @@ class SideViewCanvas(QWindow):
         from PyQt5.QtCore import Qt
         b = event.button() | event.buttons()
         if b & Qt.RightButton:
-            self.widget.parent().contextMenuEvent(event)
+            from PyQt5.QtGui import QContextMenuEvent
+            e = QContextMenuEvent(QContextMenuEvent.Mouse, event.pos())
+            self.widget.parent().parent().contextMenuEvent(e)
             return
         if b & Qt.LeftButton:
             x, y = event.x(), event.y()
