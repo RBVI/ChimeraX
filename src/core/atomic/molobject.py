@@ -982,9 +982,9 @@ class Sequence(State):
 
     # the following colors for use by alignment/sequence viewers
     default_helix_fill_color = (1.0, 1.0, 0.8)
-    default_strand_fill_color = (0.8, 1.0, 0.8)
     default_helix_outline_color = tuple([chan/255.0 for chan in (218, 165, 32)]) # goldenrod
-    default_strand_outline_color = tuple([chan/255.0 for chan in (50, 205, 50)]) # lime green
+    default_strand_fill_color = (0.88, 1.0, 1.0) # light cyan
+    default_strand_outline_color = tuple([0.75*chan for chan in default_strand_fill_color])
 
     chimera_exiting = False
 

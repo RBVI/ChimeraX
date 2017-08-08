@@ -533,7 +533,7 @@ class InScriptFlag:
         return self._level > 0
 
 
-def save(session, path, version=2, uncompressed=False):
+def save(session, path, version=1, uncompressed=False):
     """command line version of saving a session"""
     my_open = None
     if hasattr(path, 'write'):
