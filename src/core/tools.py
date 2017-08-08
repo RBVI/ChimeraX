@@ -97,10 +97,13 @@ class ToolInstance(State):
         session = self._session()   # resolve back reference
         old_id = self._id
         self._id = new_id
+        if old_id is None or new_id is None:
+            return
         tools = getattr(session, 'tools', None)
-        if old_id is None or tools is None:
+        if tools is None:
             return
         # id changed, so update tool instance map
+        # (when restoring sessions)
         del tools._tool_instances[old_id]
         tools._tool_instances[new_id] = self
 
