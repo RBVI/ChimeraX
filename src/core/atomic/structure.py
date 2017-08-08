@@ -1454,6 +1454,11 @@ class Structure(Model, StructureData):
         adisp = a[a.displays]
         xyz = adisp.coords
         radii = adisp.radii
+        # TODO: Currently 40% of time is taken in getting atom radii because
+        #       they are recomputed from element and bonds every time. Ticket #789.
+        #       If that was fixed by using a precomputed radius, then it would make
+        #       sense to optimize this bounds calculation in C++ so arrays
+        #       of display state, radii and coordinates are not needed.
         from .. import geometry
         b = geometry.sphere_bounds(xyz, radii)
         self._cached_atom_bounds = b
