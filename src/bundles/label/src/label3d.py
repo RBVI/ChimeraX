@@ -412,13 +412,14 @@ class ObjectLabel(Drawing):
         psize = view.pixel_size(xyz)
         pw,ph = self._pixel_size
         w,h = psize * pw, psize * ph
-        cpos = view.camera.position
-        cam_xaxis, cam_yaxis, cam_zaxis = cpos.axes()
+        cpos = view.camera.position	# Camera position in scene coords
+        clpos = self.scene_position.inverse() * cpos  # Camera pos in label drawing coords
+        cam_xaxis, cam_yaxis, cam_zaxis = clpos.axes()
         from numpy import array, float32
         va = array((xyz, xyz + w*cam_xaxis, xyz + w*cam_xaxis + h*cam_yaxis, xyz + h*cam_yaxis), float32)
         offset = self.offset
         if offset is not None:
-            va += cpos.apply_without_translation(offset)
+            va += clpos.apply_without_translation(offset)
         if (va == self.vertices).all():
             return 	# Don't set vertices causing redraw if label has not moved.
         self.vertices = va

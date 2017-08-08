@@ -18,7 +18,8 @@ msgpack-python==0.4.8
 numpydoc==0.6.0
 pep8==1.7.0
 pep8-naming==0.4.1
-Pillow==4.1.0
+Pillow==4.2.1
+psutil==5.2.2
 pyflakes==1.5.0
 Pygments==2.2.0
 pypiserver==1.2.0

@@ -159,7 +159,9 @@ class Atom(State):
         "HIDE_RIBBON\n"
         "    Hide mask for backbone atoms in ribbon.\n"
         "HIDE_ISOLDE\n"
-        "    Hide mask for backbone atoms for ISOLDE.")
+        "    Hide mask for backbone atoms for ISOLDE.\n"
+        "HIDE_NUCLEOTIDE\n"
+        "    Hide mask for sidechain atoms in nucleotides.\n")
     idatm_type = c_property('atom_idatm_type', string, doc = "IDATM type")
     in_chain = c_property('atom_in_chain', npy_bool, read_only = True,
         doc = "Whether this atom belongs to a polymer. Read only.")
@@ -223,7 +225,7 @@ class Atom(State):
         vtype = ctypes.c_uint8
         v = vtype()
         v_ref = ctypes.byref(v)
-        f = c_array_function('atom_has_alt_loc', args=(byte,), ret=npy_bool, per_object=False)
+        f = c_array_function('atom_has_alt_loc', args=(byte,), per_object=False)
         a_ref = ctypes.byref(self._c_pointer)
         f(a_ref, 1, loc, v_ref)
         return v.value
@@ -1821,7 +1823,7 @@ class ChangeTracker:
                 reason.encode('utf-8'))
     @property
     def changed(self):
-        f = c_function('change_tracker_changed', args = (ctypes.c_void_p,), ret = npy_bool)
+        f = c_function('change_tracker_changed', args = (ctypes.c_void_p,), ret = ctypes.c_bool)
         return f(self._c_pointer)
 
     @property

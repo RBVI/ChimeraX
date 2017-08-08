@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.tools import ToolInstance
-class MultAlignViewer(ToolInstance):
+class SequenceViewer(ToolInstance):
     """ Viewer displays a multiple sequence alignment """
 
     """TODO
@@ -24,7 +24,7 @@ class MultAlignViewer(ToolInstance):
     provideSecondaryStatus = True
     secondaryStatusPosition = "left"
 
-    ConsAttr = "mavPercentConserved"
+    ConsAttr = "svPercentConserved"
 
     MATCH_REG_NAME_START = "matches"
     ERROR_REG_NAME_START = "mismatches"
@@ -131,7 +131,7 @@ class MultAlignViewer(ToolInstance):
             if isinstance(fileNameOrSeqs, basestring):
                 title = os.path.split(fileNameOrSeqs)[1]
             else:
-                title = "MultAlignViewer"
+                title = "Sequence Viewer"
         self.title = title
         self.autoAssociate = autoAssociate
         self.quitCB = quitCB
@@ -564,10 +564,10 @@ class MultAlignViewer(ToolInstance):
                     self.region_browser.new_region(region_name, blocks=blocks, fill=fill,
                         outline=outline, sequence=aseq, cover_gaps=False)
 
-def _start_mav(session, tool_name, alignment=None):
+def _start_seq_viewer(session, tool_name, alignment=None):
     if alignment is None:
         from chimerax.core.errors import LimitationError
         raise LimitationError("Running MAV from tools menu not implemented; instead, open"
             " alignment using 'open' command or File->Open")
-    return MultAlignViewer(session, tool_name, alignment)
+    return SequenceViewer(session, tool_name, alignment)
 

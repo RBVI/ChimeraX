@@ -250,6 +250,10 @@ class BundleBuilder:
         for e in self._get_elements(cls, "ChimeraXClassifier"):
             self.chimerax_classifiers.append(self._get_element_text(e))
 
+    def _is_pure_python(self):
+        return (not self.c_modules and not self.c_libraries
+                and self.pure_python != "false")
+
     def _make_setup_arguments(self):
         def add_argument(name, value):
             if value:
@@ -265,23 +269,13 @@ class BundleBuilder:
         add_argument("install_requires", self.dependencies)
         add_argument("license", self.license)
         add_argument("package_data", self.datafiles)
-        from setuptools import find_packages
-        def add_package(base_package, folder):
-            package_dir[base_package] = folder
-            packages.append(base_package)
-            packages.extend([base_package + "." + sub_pkg
-                             for sub_pkg in find_packages(folder)])
-        package_dir = {}
-        packages = []
-        add_package(self.package, "src")
-        for name, folder in self.packages:
-            add_package(name, folder)
-        self.setup_arguments["package_dir"] = package_dir
-        self.setup_arguments["packages"] = packages
+        # We cannot call find_packages unless we are already
+        # in the right directory, and that will not happen
+        # until run_setup.  So we do the package stuff there.
         ext_mods = [em for em in [cm.ext_mod(self.package)
 				  for cm in self.c_modules]
                     if em is not None]
-        if ext_mods or self.pure_python == "false":
+        if not self._is_pure_python():
             import sys
             if sys.platform == "darwin":
                 env = "Environment :: MacOS X :: Aqua",
@@ -315,10 +309,24 @@ class BundleBuilder:
         self.setup_arguments["classifiers"] = (self.python_classifiers +
                                                self.chimerax_classifiers)
 
+    def _make_package_arguments(self):
+        from setuptools import find_packages
+        def add_package(base_package, folder):
+            package_dir[base_package] = folder
+            packages.append(base_package)
+            packages.extend([base_package + "." + sub_pkg
+                             for sub_pkg in find_packages(folder)])
+        package_dir = {}
+        packages = []
+        add_package(self.package, "src")
+        for name, folder in self.packages:
+            add_package(name, folder)
+        return package_dir, packages
+
     def _make_paths(self):
         import os.path
         from .wheel_tag import tag
-        self.tag = tag(not self.c_modules and self.pure_python != "false")
+        self.tag = tag(self._is_pure_python())
         self.bundle_base_name = self.name.replace("ChimeraX-", "")
         bundle_wheel_name = self.name.replace("-", "_")
         wheel = "%s-%s-%s.whl" % (bundle_wheel_name, self.version, self.tag)
@@ -331,8 +339,10 @@ class BundleBuilder:
         save = sys.argv
         try:
             os.chdir(self.path)
+            kw = self.setup_arguments.copy()
+            kw["package_dir"], kw["packages"] = self._make_package_arguments()
             sys.argv = ["setup.py"] + cmd
-            setuptools.setup(**self.setup_arguments)
+            setuptools.setup(**kw)
             return True
         except:
             import traceback

@@ -42,16 +42,16 @@ DISPLAY_TREE = "hide/show tree"
 """
 
 class SeqCanvas:
-    """'public' methods are only public to the MultAlignViewer class.
+    """'public' methods are only public to the SequenceViewer class.
        Access to SeqCanvas functions is made through methods of the
-       MultAlignViewer class.
+       SequenceViewer class.
     """
 
     """TODO
     EditUpdateDelay = 7000
     viewMargin = 2
     """
-    def __init__(self, parent, mav, alignment):
+    def __init__(self, parent, sv, alignment):
         from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QHBoxLayout
         from PyQt5.QtCore import Qt
         self.label_scene = QGraphicsScene()
@@ -113,12 +113,12 @@ class SeqCanvas:
         self.mainCanvas.bind('<Configure>', self._configureCB)
 
         """
-        self.mav = mav
+        self.sv = sv
         self.alignment = alignment
         """TODO
         for trig in [ADD_HEADERS, DEL_HEADERS,
                 SHOW_HEADERS, HIDE_HEADERS, DISPLAY_TREE]:
-            self.mav.triggers.addTrigger(trig)
+            self.sv.triggers.addTrigger(trig)
         parent.winfo_toplevel().configure(takefocus=1)
         parent.winfo_toplevel().focus()
         self.mainCanvas.configure(takefocus=1)
@@ -135,7 +135,7 @@ class SeqCanvas:
         """
         """
         self.font = tkFont.Font(parent,
-            (self.mav.prefs[FONT_NAME], self.mav.prefs[FONT_SIZE]))
+            (self.sv.prefs[FONT_NAME], self.sv.prefs[FONT_SIZE]))
         """
         from PyQt5.QtGui import QFont, QFontMetrics
         self.font = QFont("Helvetica")
@@ -143,7 +143,7 @@ class SeqCanvas:
         self.emphasis_font.setBold(True)
         self.font_metrics = QFontMetrics(self.font)
         self.emphasis_font_metrics = QFontMetrics(self.emphasis_font)
-        self.label_width = _find_label_width(self.alignment.seqs, self.mav.settings,
+        self.label_width = _find_label_width(self.alignment.seqs, self.sv.settings,
             self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad)
         # On Windows the maxWidth() of Helvetica is 39(!), whereas the width of 'W' is 14.
         # So, I have no idea what that 39-wide character is, but I don't care -- just use
@@ -206,9 +206,9 @@ class SeqCanvas:
         self._checkPoint(fromScratch=True)
 
         from MAViewer import ADDDEL_SEQS, SEQ_RENAMED
-        self._addDelSeqsHandler = self.mav.triggers.addHandler(
+        self._addDelSeqsHandler = self.sv.triggers.addHandler(
                 ADDDEL_SEQS, self._addDelSeqsCB, None)
-        self._seqRenamedHandler = self.mav.triggers.addHandler(
+        self._seqRenamedHandler = self.sv.triggers.addHandler(
                 SEQ_RENAMED, lambda *args: self._reformat(), None)
         """
 
@@ -245,12 +245,12 @@ class SeqCanvas:
         for seq in seqs:
             self.labelBindings[seq] = {
                 '<Enter>': lambda e, s=seq:
-                    self.mav.status(self.seqInfoText(s)),
-                '<Double-Button>': lambda e, s=seq: self.mav._editSeqName(s)
+                    self.sv.status(self.seqInfoText(s)),
+                '<Double-Button>': lambda e, s=seq: self.sv._editSeqName(s)
             }
-        self.mav.region_browser._preAddLines(seqs)
+        self.sv.region_browser._preAddLines(seqs)
         self.lead_block.addSeqs(seqs)
-        self.mav.region_browser.redraw_regions()
+        self.sv.region_browser.redraw_regions()
 
     def adjustScrolling(self):
         self._resizescrollregion()
@@ -259,13 +259,13 @@ class SeqCanvas:
     def _arrowCB(self, event):
         if event.state & 4 != 4:
             if event.keysym == "Up":
-                self.mav.region_browser.raiseRegion(
-                        self.mav.currentRegion())
+                self.sv.region_browser.raiseRegion(
+                        self.sv.currentRegion())
             elif event.keysym == "Down":
-                self.mav.region_browser.lowerRegion(
-                        self.mav.currentRegion())
+                self.sv.region_browser.lowerRegion(
+                        self.sv.currentRegion())
             else:
-                self.mav.status(
+                self.sv.status(
                     "Use control-arrow to edit alignment\n")
             return
 
@@ -276,7 +276,7 @@ class SeqCanvas:
             self._undoRedo(True)
             return
 
-        region = self.mav.currentRegion()
+        region = self.sv.currentRegion()
         if not region:
             replyobj.error("No active region.\n")
             return
@@ -314,7 +314,7 @@ class SeqCanvas:
 
         offset = 0
         if gapPos < 0 or gapPos >= len(line1):
-            self.mav.status("Need to add columns to alignment to"
+            self.sv.status("Need to add columns to alignment to"
                 " allow for requested motion.\nPlease wait...")
             # try to figure out the gap character
             # in use...
@@ -341,9 +341,9 @@ class SeqCanvas:
             else:
                 newSeqs = [str(x) + gapChar * num2add
                             for x in self.alignment.seqs]
-            self.mav.realign(newSeqs, offset=offset,
+            self.sv.realign(newSeqs, offset=offset,
                             markEdited=True)
-            self.mav.status("Columns added")
+            self.sv.status("Columns added")
         else:
             for seq in seqs:
                 if seq[gapPos].isalnum():
@@ -376,7 +376,7 @@ class SeqCanvas:
                 gapPos = nextGap
                 continue
             break
-        self.mav._edited = True
+        self.sv._edited = True
         if incr == -1:
             left, right = gapPos, end-2-motion
         else:
@@ -394,7 +394,7 @@ class SeqCanvas:
             self.labelBindings[hd] = {}
         self.headers.extend(headers)
         self.display_header.update({}.fromkeys(headers, False))
-        self.mav.triggers.activateTrigger(ADD_HEADERS, headers)
+        self.sv.triggers.activateTrigger(ADD_HEADERS, headers)
         self.showHeaders(headers)
 
     def _associationsCB(self, trigName, myData, trigData):
@@ -418,9 +418,9 @@ class SeqCanvas:
     """TODO
     def _attrsUpdateCB(self):
         self._delayedAttrsHandler = None
-        self.mav.status("Updating residue attributes")
-        self.mav.setResidueAttrs()
-        self.mav.status("Residue attributes updated")
+        self.sv.status("Updating residue attributes")
+        self.sv.setResidueAttrs()
+        self.sv.status("Residue attributes updated")
 
     def _checkPoint(self, fromScratch=False, checkChange=False, offset=0,
                         left=None, right=None):
@@ -433,7 +433,7 @@ class SeqCanvas:
             if chkpt == self._checkPoints[self._checkPointIndex][0]:
                 return
         self._checkPoints.append(
-            (chkpt, (offset, self.mav._edited, left, right)))
+            (chkpt, (offset, self.sv._edited, left, right)))
         self._checkPointIndex += 1
 
     def _configureCB(self, e):
@@ -456,7 +456,7 @@ class SeqCanvas:
         self._recomputeScrollers(e.width, e.height)
 
     def _copyCB(self, e):
-        region = self.mav.currentRegion()
+        region = self.sv.currentRegion()
         if region is None:
             copy = "\n".join([s.ungapped() for s in self.alignment.seqs])
         else:
@@ -476,7 +476,7 @@ class SeqCanvas:
                     if text:
                         texts[seq] = texts.setdefault(seq, "") + text
             if not texts:
-                self.mav.status("Active region is all gaps!", color="red")
+                self.sv.status("Active region is all gaps!", color="red")
                 return
             copy = "\n".join([texts[seq] for seq in self.alignment.seqs
                             if seq in texts])
@@ -484,11 +484,11 @@ class SeqCanvas:
         self.mainCanvas.clipboard_append(copy)
         if region is None:
             if len(self.alignment.seqs) > 1:
-                self.mav.status("No current region; copied all sequences")
+                self.sv.status("No current region; copied all sequences")
             else:
-                self.mav.status("Sequence copied")
+                self.sv.status("Sequence copied")
         else:
-            self.mav.status("Region copied")
+            self.sv.status("Region copied")
 
     def dehighlightName(self):
         self.lead_block.dehighlightName()
@@ -507,7 +507,7 @@ class SeqCanvas:
         for hd in headers:
             del self.display_header[hd]
             self.headers.remove(hd)
-        self.mav.triggers.activateTrigger(DEL_HEADERS, headers)
+        self.sv.triggers.activateTrigger(DEL_HEADERS, headers)
     """
 
     def destroy(self):
@@ -515,15 +515,15 @@ class SeqCanvas:
     """
         chimera.triggers.deleteHandler('Molecule', self._trigID)
         from MAViewer import ADDDEL_SEQS, SEQ_RENAMED
-        self.mav.triggers.deleteHandler(ADDDEL_SEQS,
+        self.sv.triggers.deleteHandler(ADDDEL_SEQS,
                         self._addDelSeqsHandler)
-        self.mav.triggers.deleteHandler(SEQ_RENAMED,
+        self.sv.triggers.deleteHandler(SEQ_RENAMED,
                         self._seqRenamedHandler)
         if self._residueHandlers:
             chimera.triggers.deleteHandler('Residue',
                         self._residueHandlers[0])
             from MAViewer import MOD_ASSOC
-            self.mav.triggers.deleteHandler(MOD_ASSOC,
+            self.sv.triggers.deleteHandler(MOD_ASSOC,
                         self._residueHandlers[1])
         for header in self.headers:
             header.destroy()
@@ -538,10 +538,10 @@ class SeqCanvas:
             if header.fastUpdate():
                 # already updated
                 continue
-            self.mav.status("Updating %s header" % header.name)
+            self.sv.status("Updating %s header" % header.name)
             header.alignChange(left, right)
             self.refresh(header, left=left, right=right)
-            self.mav.status("%s header updated" % header.name)
+            self.sv.status("%s header updated" % header.name)
 
     def _editRefresh(self, seqs, left, right, region=None, lastBlock=None):
         for header in self.headers:
@@ -551,7 +551,7 @@ class SeqCanvas:
                 continue
             if not header.fastUpdate():
                 # header can't update quickly; delay it
-                self.mav.status("Postponing update of %s header"
+                self.sv.status("Postponing update of %s header"
                             % header.name)
                 if self._editBounds:
                     self._editBounds = (min(left,
@@ -572,7 +572,7 @@ class SeqCanvas:
                             updateAttrs=False)
         if region:
             region.updateLastBlock(lastBlock)
-        self.mav.region_browser.redraw_regions(just_gapping=True)
+        self.sv.region_browser.redraw_regions(just_gapping=True)
         if not self._editBounds:
             if self._delayedAttrsHandler:
                 self.mainCanvas.after_cancel(
@@ -581,7 +581,7 @@ class SeqCanvas:
                 self.EditUpdateDelay, self._attrsUpdateCB)
     def _escapeCB(self, event):
         if event.state & 4 != 4:
-            self.mav.status(
+            self.sv.status(
                 "Use control-escape to revert to unedited\n")
             return
         while self._checkPointIndex > 0:
@@ -636,19 +636,19 @@ class SeqCanvas:
         for header in headers:
             header.hide()
         if fromMenu and len(self.alignment.seqs) > 1:
-            startHeaders = set(self.mav.prefs[STARTUP_HEADERS])
+            startHeaders = set(self.sv.prefs[STARTUP_HEADERS])
             startHeaders -= set([hd.name for hd in headers])
-            self.mav.prefs[STARTUP_HEADERS] = startHeaders
+            self.sv.prefs[STARTUP_HEADERS] = startHeaders
         self.display_header.update({}.fromkeys(headers, False))
-        self.mav.region_browser._preDelLines(headers)
+        self.sv.region_browser._preDelLines(headers)
         self.lead_block.hideHeaders(headers)
-        self.mav.region_browser.redraw_regions(cull_empty=True)
-        self.mav.triggers.activateTrigger(HIDE_HEADERS, headers)
+        self.sv.region_browser.redraw_regions(cull_empty=True)
+        self.sv.triggers.activateTrigger(HIDE_HEADERS, headers)
         """
         
     def layout_alignment(self):
         """
-        self.consensus = Consensus(self.mav)
+        self.consensus = Consensus(self.sv)
         def colorConsensus(line, offset, upper=string.uppercase):
             if line[offset] in upper:
                 if line.conserved[offset]:
@@ -656,25 +656,25 @@ class SeqCanvas:
                 return 'purple'
             return 'black'
         self.consensus.color_func = colorConsensus
-        self.conservation = Conservation(self.mav, evalWhileHidden=True)
+        self.conservation = Conservation(self.sv, evalWhileHidden=True)
         """
         self.headers = []
         """
         self.headers = [self.consensus, self.conservation]
         self.builtinHeaders = self.headers[:]
-        startupHeaders = self.mav.prefs[STARTUP_HEADERS]
+        startupHeaders = self.sv.prefs[STARTUP_HEADERS]
         useDispDefault = startupHeaders == None
         if useDispDefault:
             startupHeaders = set([self.consensus.name, self.conservation.name])
         from HeaderSequence import registeredHeaders, \
                     DynamicStructureHeaderSequence
         for seq, defaultOn in registeredHeaders.values():
-            header = seq(self.mav)
+            header = seq(self.sv)
             self.headers.append(header)
             if useDispDefault and defaultOn:
                 startupHeaders.add(header.name)
         if useDispDefault:
-            self.mav.prefs[STARTUP_HEADERS] = startupHeaders
+            self.sv.prefs[STARTUP_HEADERS] = startupHeaders
         """
         single_sequence = len(self.alignment.seqs) == 1
         self.display_header = {}
@@ -691,8 +691,8 @@ class SeqCanvas:
         for seq in self.alignment.seqs:
             self.labelBindings[seq] = {
                 '<Enter>': lambda e, s=seq:
-                    self.mav.status(self.seqInfoText(s)),
-                '<Double-Button>': lambda e, s=seq: self.mav._editSeqName(s)
+                    self.sv.status(self.seqInfoText(s)),
+                '<Double-Button>': lambda e, s=seq: self.sv._editSeqName(s)
             }
         initialHeaders = [hd for hd in self.headers
                         if self.display_header[hd]]
@@ -704,14 +704,14 @@ class SeqCanvas:
         if single_sequence:
             prefResColor = RC_BLACK
         else:
-            prefResColor = self.mav.prefs[RESIDUE_COLORING]
+            prefResColor = self.sv.prefs[RESIDUE_COLORING]
         if prefResColor == RC_BLACK:
             rc = self._cfBlack
         elif prefResColor == RC_RIBBON:
             from MAViewer import MOD_ASSOC
             self._residueHandlers = [chimera.triggers.addHandler(
                     'Residue', self._resChangeCB, None),
-                self.mav.triggers.addHandler(MOD_ASSOC,
+                self.sv.triggers.addHandler(MOD_ASSOC,
                     self._associationsCB, None)]
             rc = self._cfRibbon
         else:
@@ -726,37 +726,37 @@ class SeqCanvas:
                 self._clustalCategories, self._clustalColorings\
                         = clustalInfo(prefResColor)
             except:
-                schemes = self.mav.prefs[RC_CUSTOM_SCHEMES]
+                schemes = self.sv.prefs[RC_CUSTOM_SCHEMES]
                 if prefResColor in schemes:
                     schemes.remove(prefResColor)
-                    self.mav.prefs[
+                    self.sv.prefs[
                         RC_CUSTOM_SCHEMES] = schemes[:]
-                self.mav.prefs[RESIDUE_COLORING] = RC_CLUSTALX
+                self.sv.prefs[RESIDUE_COLORING] = RC_CLUSTALX
                 from sys import exc_info
                 replyobj.error("Error reading %s: %s\nUsing"
                     " default ClustalX coloring instead\n"
                     % (prefResColor, exc_info()[1]))
         """
 
-        self.show_ruler = self.mav.settings.show_ruler_at_startup and not single_sequence
+        self.show_ruler = self.sv.settings.show_ruler_at_startup and not single_sequence
         self.line_width = self.line_width_from_settings()
         self.numbering_widths = self.find_numbering_widths(self.line_width)
         """TODO
-        self.showNumberings = [self.mav.leftNumberingVar.get(),
-                    self.mav.rightNumberingVar.get()]
+        self.showNumberings = [self.sv.leftNumberingVar.get(),
+                    self.sv.rightNumberingVar.get()]
         self.lead_block = SeqBlock(self._labelCanvas(), self.mainCanvas,
             None, self.font, self.emphasis_font, self.font_metrics, self.emphasis_font_metrics,
             0, initialHeaders, self.alignment.seqs,
             self.line_width, self.labelBindings, lambda *args, **kw:
-            self.mav.status(secondary=True, *args, **kw),
+            self.sv.status(secondary=True, *args, **kw),
             self.show_ruler, self.treeBalloon, self.showNumberings,
-            self.mav.settings)
+            self.sv.settings)
         self._resizescrollregion()
         """
         self.lead_block = SeqBlock(self._label_scene(), self.main_scene,
             None, self.font, self.emphasis_font, 0, [], self.alignment,
-            self.line_width, {}, lambda *args, **kw: self.mav.status(secondary=True, *args, **kw),
-            self.show_ruler, None, self.show_numberings, self.mav.settings,
+            self.line_width, {}, lambda *args, **kw: self.sv.status(secondary=True, *args, **kw),
+            self.show_ruler, None, self.show_numberings, self.sv.settings,
             self.label_width, self.font_pixels, self.numbering_widths)
 
     def _line_width_fits(self, pixels, num_characters):
@@ -769,12 +769,12 @@ class SeqCanvas:
                 prefix = SINGLE_PREFIX
             else:
                 prefix = ""
-            lw = getattr(self.mav.settings, prefix + "line_width")
+            lw = getattr(self.sv.settings, prefix + "line_width")
             if lw < 0: # wrap to window size, at multiple of abs(lw) characters
                 increment = abs(lw)
                 lw = increment
                 try_lw = lw + increment
-                win_width = self.mav.tool_window.ui_area.size().width()
+                win_width = self.sv.tool_window.ui_area.size().width()
                 aln_len = len(self.alignment.seqs[0])
                 while try_lw - increment < aln_len \
                 and self._line_width_fits(win_width, min(aln_len, try_lw)):
@@ -796,7 +796,7 @@ class SeqCanvas:
         assocSeqs = []
         for mol in changes.created | changes.modified:
             try:
-                seq = self.mav.associations[mol]
+                seq = self.sv.associations[mol]
             except KeyError:
                 continue
             if seq not in assocSeqs:
@@ -809,19 +809,19 @@ class SeqCanvas:
         self.mainCanvas.yview(*args)
 
     def _newFont(self):
-        if len(self.mav.seqs) == 1:
+        if len(self.sv.seqs) == 1:
             prefix = SINGLE_PREFIX
         else:
             prefix = ""
-        fontname, fontsize = (self.mav.prefs[prefix + FONT_NAME],
-                        self.mav.prefs[prefix + FONT_SIZE])
+        fontname, fontsize = (self.sv.prefs[prefix + FONT_NAME],
+                        self.sv.prefs[prefix + FONT_SIZE])
         self.font = tkFont.Font(self.mainCanvas, (fontname, fontsize))
-        self.mav.status("Changing to %d point %s"
+        self.sv.status("Changing to %d point %s"
                     % (fontsize, fontname), blankAfter=0)
         self.lead_block.fontChange(self.font)
         self.refreshTree()
-        self.mav.region_browser.redraw_regions()
-        self.mav.status("Font changed")
+        self.sv.region_browser.redraw_regions()
+        self.sv.status("Font changed")
 
     def _newWrap(self):
         '''alignment wrapping preferences have changed'''
@@ -863,7 +863,7 @@ class SeqCanvas:
         self.labelCanvas.yview_moveto(float(numBlocks - 1) / numBlocks)
     
     def realign(self, seqs, handleRegions=True):
-        rb = self.mav.region_browser
+        rb = self.sv.region_browser
         if handleRegions:
             # do what we can; move single-seq regions that begin and end
             # over non-gap characters, delete others
@@ -873,7 +873,7 @@ class SeqCanvas:
                 if not region.blocks:
                     continue
                 seq = region.blocks[0][0]
-                if seq not in self.mav.seqs:
+                if seq not in self.sv.seqs:
                     deleteRegions.append(region)
                     continue
                 for block in region.blocks:
@@ -970,7 +970,7 @@ class SeqCanvas:
     """
 
     def _reformat(self, cull_empty=False):
-        self.mav.status("Reformatting alignment; please wait...", blank_after=0)
+        self.sv.status("Reformatting alignment; please wait...", blank_after=0)
         """TODO
         if self.tree:
             activeNode = self.activeNode()
@@ -982,8 +982,8 @@ class SeqCanvas:
         """
         self.lead_block = SeqBlock(self._label_scene(), self.main_scene,
             None, self.font, self.emphasis_font, 0, [], self.alignment,
-            self.line_width, {}, lambda *args, **kw: self.mav.status(secondary=True, *args, **kw),
-            self.show_ruler, None, self.show_numberings, self.mav.settings,
+            self.line_width, {}, lambda *args, **kw: self.sv.status(secondary=True, *args, **kw),
+            self.show_ruler, None, self.show_numberings, self.sv.settings,
             self.label_width, self.font_pixels, self.numbering_widths)
         """TODO
         if self.tree:
@@ -993,14 +993,14 @@ class SeqCanvas:
             else:
                 self.lead_block.treeNodeMap = {'active': activeNode }
         """
-        self.mav.region_browser.redraw_regions(cull_empty=cull_empty)
+        self.sv.region_browser.redraw_regions(cull_empty=cull_empty)
         """TODO
         if len(self.alignment.seqs) != len(self._checkPoints[0]):
             self._checkPoint(fromScratch=True)
         else:
             self._checkPoint(checkChange=True)
         """
-        self.mav.status("Alignment reformatted")
+        self.sv.status("Alignment reformatted")
 
     """TODO
     def refresh(self, seq, left=0, right=None, updateAttrs=True):
@@ -1010,7 +1010,7 @@ class SeqCanvas:
             right = len(self.alignment.seqs[0])-1
         self.lead_block.refresh(seq, left, right)
         if updateAttrs:
-            self.mav.setResidueAttrs()
+            self.sv.setResidueAttrs()
 
     def refreshTree(self):
         if self.treeShown:
@@ -1021,8 +1021,8 @@ class SeqCanvas:
     def _resChangeCB(self, trigName, myData, trigData):
         mols = set([r.molecule for r in trigData.modified])
         for m in mols:
-            if m in self.mav.associations:
-                self.recolor(self.mav.associations[m])
+            if m in self.sv.associations:
+                self.recolor(self.sv.associations[m])
     """
     
     def resizeEvent(self, event):
@@ -1099,7 +1099,7 @@ class SeqCanvas:
                 file=labelFileName, rotate=rotate, **labelKw)
         if self.tree:
             self.showNodes(savedNodeDisplay)
-        self.mav.status(msg)
+        self.sv.status(msg)
 
     def seeBlocks(self, blocks):
         '''scroll canvas to show given blocks'''
@@ -1163,20 +1163,20 @@ class SeqCanvas:
         self._clustalXcache = {}
         self._clustalCategories, self._clustalColorings = \
                         categories, colorings
-        if self.mav.prefs[RESIDUE_COLORING] in [RC_BLACK, RC_RIBBON]:
+        if self.sv.prefs[RESIDUE_COLORING] in [RC_BLACK, RC_RIBBON]:
             return
         for seq in self.alignment.seqs:
             self.refresh(seq)
 
     def seqInfoText(self, aseq):
         basicText = "%s (#%d of %d; %d non-gap residues)\n" % (aseq.name,
-            self.mav.seqs.index(aseq)+1, len(self.mav.seqs),
+            self.sv.seqs.index(aseq)+1, len(self.sv.seqs),
             len(aseq.ungapped()))
-        if self.mav.intrinsicStructure \
+        if self.sv.intrinsicStructure \
                 or not hasattr(aseq, 'matchMaps') or not aseq.matchMaps:
             return basicText
         return "%s%s associated with %s\n" % (basicText,
-            _seq_name(aseq, self.mav.prefs),
+            _seq_name(aseq, self.sv.prefs),
             ", ".join(["%s (%s %s)" % (m.oslIdent(), m.name,
             aseq.matchMaps[m]['mseq'].name)
             for m in aseq.matchMaps.keys()]))
@@ -1186,7 +1186,7 @@ class SeqCanvas:
             chimera.triggers.deleteHandler('Residue',
                         self._residueHandlers[0])
             from MAViewer import MOD_ASSOC
-            self.mav.triggers.deleteHandler(MOD_ASSOC,
+            self.sv.triggers.deleteHandler(MOD_ASSOC,
                         self._residueHandlers[1])
             self._residueHandlers = None
         if coloring == RC_BLACK:
@@ -1195,7 +1195,7 @@ class SeqCanvas:
             from MAViewer import MOD_ASSOC
             self._residueHandlers = [chimera.triggers.addHandler(
                     'Residue', self._resChangeCB, None),
-                self.mav.triggers.addHandler(MOD_ASSOC,
+                self.sv.triggers.addHandler(MOD_ASSOC,
                     self._associationsCB, None)]
             cf = self._cfRibbon
         else:
@@ -1212,7 +1212,7 @@ class SeqCanvas:
             return
         self.showNumberings[0] = showNumbering
         self.lead_block.setLeftNumberingDisplay(showNumbering)
-        self.mav.region_browser.redraw_regions()
+        self.sv.region_browser.redraw_regions()
         self._resizescrollregion()
         self._recomputeScrollers()
 
@@ -1232,7 +1232,7 @@ class SeqCanvas:
             return
         self.show_ruler = show_ruler
         self.lead_block.setRulerDisplay(show_ruler)
-        self.mav.region_browser.redraw_regions(cull_empty=not show_ruler)
+        self.sv.region_browser.redraw_regions(cull_empty=not show_ruler)
 
     def _cfBlack(self, line, offset):
         return 'black'
@@ -1297,7 +1297,7 @@ class SeqCanvas:
         """
 
     def wrap_okay(self):
-        return _wrap_okay(len(self.alignment.seqs), self.mav.settings)
+        return _wrap_okay(len(self.alignment.seqs), self.sv.settings)
 
         """TODO
     def showHeaders(self, headers, fromMenu=False):
@@ -1307,15 +1307,15 @@ class SeqCanvas:
         for header in headers:
             header.show()
         if fromMenu and len(self.alignment.seqs) > 1:
-            startHeaders = set(self.mav.prefs[STARTUP_HEADERS])
+            startHeaders = set(self.sv.prefs[STARTUP_HEADERS])
             startHeaders |= set([hd.name for hd in headers])
-            self.mav.prefs[STARTUP_HEADERS] = startHeaders
+            self.sv.prefs[STARTUP_HEADERS] = startHeaders
         self.display_header.update({}.fromkeys(headers, True))
-        self.mav.region_browser._preAddLines(headers)
+        self.sv.region_browser._preAddLines(headers)
         self.lead_block.showHeaders(headers)
-        self.mav.region_browser.redraw_regions()
-        self.mav.setResidueAttrs()
-        self.mav.triggers.activateTrigger(SHOW_HEADERS, headers)
+        self.sv.region_browser.redraw_regions()
+        self.sv.setResidueAttrs()
+        self.sv.triggers.activateTrigger(SHOW_HEADERS, headers)
 
     def showNodes(self, show):
         if show == self.nodesShown:
@@ -1331,11 +1331,11 @@ class SeqCanvas:
             self.lead_block.showTree({'tree': self.tree},
                         self._treeCallback, True,
                         active=self.activeNode())
-            self.mav.triggers.activateTrigger(
+            self.sv.triggers.activateTrigger(
                             DISPLAY_TREE, self.tree)
         else:
             self.lead_block.showTree(None, None, None)
-            self.mav.triggers.activateTrigger(DISPLAY_TREE, None)
+            self.sv.triggers.activateTrigger(DISPLAY_TREE, None)
         self._resizescrollregion()
         self._recomputeScrollers(xShowAt=0.0)
         self.treeShown = show
@@ -1358,7 +1358,7 @@ class SeqCanvas:
         self.tree = tree
         self._treeCallback = callback
         self.treeShown = self.nodesShown = bool(tree)
-        self.mav.triggers.activateTrigger(DISPLAY_TREE, tree)
+        self.sv.triggers.activateTrigger(DISPLAY_TREE, tree)
         """
 
     def _label_scene(self, grid=True):
@@ -1397,13 +1397,13 @@ class SeqCanvas:
         else:
             offset = chkOffset
             left, right = chkLeft, chkRight
-        self.mav._edited = chkEdited
+        self.sv._edited = chkEdited
         if len(checkPoint[0]) != len(self.alignment.seqs[0]):
-            self.mav.status("Need to change number of columns in"
+            self.sv.status("Need to change number of columns in"
                 " alignment to allow for requested change.\n"
                 "Please wait...")
-            self.mav.realign(checkPoint, offset=offset)
-            self.mav.status("Columns changed")
+            self.sv.realign(checkPoint, offset=offset)
+            self.sv.status("Columns changed")
             return
         for seq, chkSeq in zip(self.alignment.seqs, checkPoint):
             seq[:] = chkSeq
