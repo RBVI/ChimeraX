@@ -44,6 +44,10 @@ private:
     CoordSet(Structure* as, int cs_id, int size);
 
 public:
+    CoordSet(const CoordSet& source) {
+        _coords = source._coords;
+        _bfactor_map = source._bfactor_map; _occupancy_map = source._occupancy_map;
+    }
     void  add_coord(const Point &coord) { _coords.push_back(coord); }
     const Coords &  coords() const { return _coords; }
     void set_coords(Real *xyz, size_t n);
