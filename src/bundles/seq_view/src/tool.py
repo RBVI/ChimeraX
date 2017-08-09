@@ -489,6 +489,8 @@ class SequenceViewer(ToolInstance):
         inst.region_browser.restore_state(data['region browser'])
         return inst
 
+    SESSION_SAVE = True
+    
     def take_snapshot(self, session, flags):
         data = {
             'ToolInstance': ToolInstance.take_snapshot(self, session, flags),

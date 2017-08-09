@@ -69,14 +69,14 @@ class ToolInstance(State):
         to set the attribute before creating the first tool window.
     SESSION_ENDURING : bool, class-level optional
         If True, then tool survives across sessions.
-    SESSION_SKIP : bool, class-level optional
+    SESSION_SAVE : bool, class-level optional
         If True, then tool is not saved in sessions.
     help : str
         URL for tool's help
     """
 
     SESSION_ENDURING = False
-    SESSION_SKIP = False
+    SESSION_SAVE = False
     help = None
 
     def __init__(self, session, tool_name):
@@ -270,7 +270,7 @@ class Tools(State):
         tmap = {}
         for tid, tool_inst in self._tool_instances.items():
             assert(isinstance(tool_inst, ToolInstance))
-            if tool_inst.SESSION_SKIP:
+            if not tool_inst.SESSION_SAVE:
                 continue
             tmap[tid] = tool_inst
         data = {'tools': tmap,
@@ -296,7 +296,7 @@ class Tools(State):
         """
         t = session.tools
         # Session save can put a None tool instance into file if tool instance
-        # has no take_snapshot method and does not use SESSION_SKIP.
+        # has no take_snapshot method and has SESSION_SAVE true.
         # Filter these None tool instances out.
         tools = {id: ti for id, ti in data['tools'].items()
                  if ti is not None and not ti.SESSION_ENDURING}

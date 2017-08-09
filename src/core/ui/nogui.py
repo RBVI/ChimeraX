@@ -164,7 +164,6 @@ class UI:
 class _Input(Task):
 
     SESSION_ENDURING = True
-    SESSION_SKIP = True
 
     def __init__(self, session):
         # Initializer, runs in UI thread

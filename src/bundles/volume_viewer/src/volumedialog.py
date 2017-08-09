@@ -22,8 +22,6 @@ from chimerax.core.tools import ToolInstance
 #
 class VolumeViewer(ToolInstance):
 
-    SESSION_SKIP = True
-
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
 

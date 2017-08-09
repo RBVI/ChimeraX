@@ -251,6 +251,8 @@ class ObjectLabels(Model):
             for ld in self._label_drawings.values():
                 ld._update_graphics()
 
+    SESSION_SAVE = True
+    
     def take_snapshot(self, session, flags):
         lattrs = ('object', 'offset', 'text', 'color', 'size', 'font')
         lstate = tuple({attr:getattr(ld, attr) for attr in lattrs}
