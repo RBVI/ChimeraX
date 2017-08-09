@@ -1908,7 +1908,7 @@ class Histogram_Pane:
     # TODO: Need to hide the menu indicator.  Can set it to 1x1 pixel image with style sheet.
     stm.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
     sm = QMenu()
-    for style in ('surface', 'mesh', 'image', 'plane', 'orthoplanes'):
+    for style in ('surface', 'mesh', 'image', 'plane', 'orthoplanes', 'box'):
         sm.addAction(style, lambda s=style: self.representation_changed_cb(s))
     stm.setMenu(sm)
     layout.addWidget(stm)
@@ -2373,6 +2373,8 @@ class Histogram_Pane:
           v = self.volume
           if v.showing_orthoplanes():
               repr = 'orthoplanes'
+          elif v.showing_box_faces():
+              repr = 'box'
           else:
               for imin, imax, istep in zip(v.region[0], v.region[1], v.region[2]):
                   if imax < imin + istep:
@@ -2393,6 +2395,10 @@ class Histogram_Pane:
 
       if rep != 'plane':
           self.show_plane_slider(False, show_volume = False)
+
+      if rep != 'box' and v.showing_box_faces():
+          v.set_parameters(box_faces = False,
+                           color_mode = 'auto8')
           
       if rep in ('surface', 'mesh'):
           v.show(representation = rep, show = v.shown())
@@ -2410,6 +2416,15 @@ class Histogram_Pane:
           middle = tuple((imin + imax) // 2 for imin, imax in zip(v.region[0], v.region[1]))
           v.set_parameters(orthoplanes_shown = (True, True, True),
                            orthoplane_positions = middle,
+                           color_mode = 'opaque8',
+                           show_outline_box = True)
+          v.show(representation = 'solid', show = v.shown())
+          v.expand_single_plane()
+          self.enable_move_planes()
+      elif rep == 'box':
+          middle = tuple((imin + imax) // 2 for imin, imax in zip(v.region[0], v.region[1]))
+          v.set_parameters(box_faces = True,
+                           orthoplanes_shown = (False, False, False),
                            color_mode = 'opaque8',
                            show_outline_box = True)
           v.show(representation = 'solid', show = v.shown())
