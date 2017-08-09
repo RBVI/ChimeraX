@@ -12,14 +12,14 @@
 
 # -----------------------------------------------------------------------------
 #
-def label(session, atoms = None, object_type = None, text = None,
+def label(session, objects = None, object_type = None, text = None,
           offset = None, color = None, size = None, font = None, on_top = None):
     '''Create atom labels. The belong to a child model named "labels" of the structure.
 
     Parameters
     ----------
-    atoms : Atoms or None
-      Create labels on specified atoms.  If None the adjust settings of all existing labels.
+    objects : Objects or None
+      Create labels on specified atoms or pseudobonds.  If None then adjust settings of all existing labels.
     object_type : 'atoms', 'residues', 'pseudobonds'
       What type of object to label.
     offset : float 3-tuple or "default"
@@ -39,7 +39,12 @@ def label(session, atoms = None, object_type = None, text = None,
       This is a per-structure attribute.  Default True.
     '''
     if object_type is None:
-        otypes = ['atoms', 'residues', 'pseudobonds'] if atoms is None else ['atoms']
+        if objects is None:
+            otypes = ['atoms', 'residues', 'pseudobonds']
+        elif len(objects.atoms) == 0:
+            otypes = ['pseudobonds']
+        else:
+            otypes = ['atoms']
     else:
         otypes = [object_type]
 
@@ -69,28 +74,28 @@ def label(session, atoms = None, object_type = None, text = None,
     view = session.main_view
     lcount = 0
     for otype in otypes:
-        if atoms is None:
+        if objects is None:
             mo = labeled_objects_by_model(session, otype)
         else:
-            mo = objects_by_model(atoms, otype)
+            mo = objects_by_model(objects, otype)
         object_class = label_object_class(otype)
         for m, objects in mo:
             lm = labels_model(m, create = True)
             lm.add_labels(objects, object_class, view, settings, on_top)
             lcount += len(objects)
-    if atoms is None and lcount == 0:
+    if objects is None and lcount == 0:
         from chimerax.core.errors import UserError
         raise UserError('Label command requires an atom specifier to create labels.')
 
 # -----------------------------------------------------------------------------
 #
-def label_delete(session, atoms = None, object_type = None):
-    '''Delete atoms labels.
+def label_delete(session, objects = None, object_type = None):
+    '''Delete object labels.
 
     Parameters
     ----------
-    atoms : Atoms or None
-      Delete labels for specified atoms.  If None delete all labels.
+    objects : Objects or None
+      Delete labels for specified atoms or pseudobonds.  If None delete all labels.
     object_type : 'atoms', 'residues', 'pseudobonds'
       What type of object label to delete.
     '''
@@ -100,14 +105,14 @@ def label_delete(session, atoms = None, object_type = None):
         otypes = [object_type]
 
     for otype in otypes:
-        if atoms is None:
+        if objects is None:
             mo = labeled_objects_by_model(session, otype)
         else:
-            mo = objects_by_model(atoms, otype)
-        for m, objects in mo:
+            mo = objects_by_model(objects, otype)
+        for m, lbl_objects in mo:
             lm = labels_model(m)
             if lm is not None:
-                lm.delete_labels(objects)
+                lm.delete_labels(lbl_objects)
                 if lm.label_count() == 0:
                     session.models.close([lm])
 
@@ -126,16 +131,19 @@ def label_object_class(object_type):
 
 # -----------------------------------------------------------------------------
 #
-def objects_by_model(atoms, object_type):
+def objects_by_model(objects, object_type):
+    atoms = objects.atoms
     if object_type == 'atoms':
         model_objects = atoms.by_structure
     elif object_type == 'residues':
         res = atoms.residues.unique()
         model_objects = res.by_structure
     elif object_type == 'pseudobonds':
-        from chimerax.core.atomic import interatom_pseudobonds
+        from chimerax.core.atomic import interatom_pseudobonds, PseudobondGroup
         pbonds = interatom_pseudobonds(atoms)
         model_objects = pbonds.by_group
+        pbgroups = [(pbg, pbg.pseudobonds) for pbg in objects.models if isinstance(pbg, PseudobondGroup)]
+        model_objects.extend(pbgroups)
     return model_objects
 
 # -----------------------------------------------------------------------------
@@ -162,12 +170,12 @@ def labels_model(parent, create = False):
 #
 def register_label_command(logger):
 
-    from chimerax.core.commands import CmdDesc, register, AtomsArg, StringArg
+    from chimerax.core.commands import CmdDesc, register, ObjectsArg, StringArg
     from chimerax.core.commands import Float3Arg, ColorArg, IntArg, BoolArg, EnumOf, Or, EmptyArg
 
     otype = EnumOf(('atoms','residues','pseudobonds'))
     DefArg = EnumOf(['default'])
-    desc = CmdDesc(required = [('atoms', Or(AtomsArg, EmptyArg))],
+    desc = CmdDesc(required = [('objects', Or(ObjectsArg, EmptyArg))],
                    optional = [('object_type', otype)],
                    keyword = [('text', Or(DefArg, StringArg)),
                               ('offset', Or(DefArg, Float3Arg)),
@@ -177,7 +185,7 @@ def register_label_command(logger):
                               ('on_top', BoolArg)],
                    synopsis = 'Create atom labels')
     register('label', desc, label, logger=logger)
-    desc = CmdDesc(required = [('atoms', Or(AtomsArg, EmptyArg))],
+    desc = CmdDesc(required = [('objects', Or(ObjectsArg, EmptyArg))],
                    optional = [('object_type', otype)],
                    synopsis = 'Delete atom labels')
     register('label delete', desc, label_delete, logger=logger)
@@ -251,6 +259,8 @@ class ObjectLabels(Model):
             for ld in self._label_drawings.values():
                 ld._update_graphics()
 
+    SESSION_SAVE = True
+    
     def take_snapshot(self, session, flags):
         lattrs = ('object', 'offset', 'text', 'color', 'size', 'font')
         lstate = tuple({attr:getattr(ld, attr) for attr in lattrs}

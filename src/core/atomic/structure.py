@@ -1451,9 +1451,14 @@ class Structure(Model, StructureData):
         if not self._atom_bounds_needs_update:
             return self._cached_atom_bounds
         a = self.atoms
-        disp = a.displays
-        xyz = a.coords[disp]
-        radii = a.radii[disp]
+        adisp = a[a.displays]
+        xyz = adisp.coords
+        radii = adisp.radii
+        # TODO: Currently 40% of time is taken in getting atom radii because
+        #       they are recomputed from element and bonds every time. Ticket #789.
+        #       If that was fixed by using a precomputed radius, then it would make
+        #       sense to optimize this bounds calculation in C++ so arrays
+        #       of display state, radii and coordinates are not needed.
         from .. import geometry
         b = geometry.sphere_bounds(xyz, radii)
         self._cached_atom_bounds = b
