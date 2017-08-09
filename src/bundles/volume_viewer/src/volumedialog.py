@@ -1908,7 +1908,7 @@ class Histogram_Pane:
     # TODO: Need to hide the menu indicator.  Can set it to 1x1 pixel image with style sheet.
     stm.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
     sm = QMenu()
-    for style in ('surface', 'mesh', 'image', 'orthoplanes'):
+    for style in ('surface', 'mesh', 'image', 'plane', 'orthoplanes'):
         sm.addAction(style, lambda s=style: self.representation_changed_cb(s))
     stm.setMenu(sm)
     layout.addWidget(stm)
@@ -1992,9 +1992,12 @@ class Histogram_Pane:
   # ---------------------------------------------------------------------------
   # Show slider below histogram to control which plane of data is shown.
   #
-  def show_plane_slider(self, show):
+  def show_plane_slider(self, show, show_volume = True):
       v = self.volume
       if v is None:
+          return
+
+      if show == self._planes_slider_shown:
           return
 
       if show:
@@ -2014,12 +2017,13 @@ class Histogram_Pane:
           k = ((ijk_min[2] + ijk_max[2])//(2*s))*s
           self._update_plane(k)
           v.set_representation('solid')
-          v.show()
+          if show_volume:
+              v.show()
       else:
           # Show all planes
           from chimerax.core.map.volume import full_region
           r = full_region(v.data.size)
-          v.new_region(*r)
+          v.new_region(*r, show = show_volume)
           
   # ---------------------------------------------------------------------------
   #
@@ -2365,8 +2369,15 @@ class Histogram_Pane:
   def set_repr(self, repr):
       if repr == 'solid':
           repr = 'image'
-      if repr == 'image' and self.volume.showing_orthoplanes():
-          repr = 'orthoplanes'
+      if repr == 'image':
+          v = self.volume
+          if v.showing_orthoplanes():
+              repr = 'orthoplanes'
+          else:
+              for imin, imax, istep in zip(v.region[0], v.region[1], v.region[2]):
+                  if imax < imin + istep:
+                      repr = 'plane'
+              
       self.style.setText(repr)
   representation = property(get_repr, set_repr)
   
@@ -2379,12 +2390,22 @@ class Histogram_Pane:
       self.style.setText(style)
       v = self.volume
       rep = self.representation
+
+      if rep != 'plane':
+          self.show_plane_slider(False, show_volume = False)
+          
       if rep in ('surface', 'mesh'):
           v.show(representation = rep, show = v.shown())
       elif rep == 'solid':
           v.set_parameters(orthoplanes_shown = (False, False, False),
                            color_mode = 'auto8')
           v.show(representation = rep, show = v.shown())
+      elif rep == 'plane':
+          v.set_parameters(orthoplanes_shown = (False, False, False),
+                           color_mode = 'auto8',
+                           show_outline_box = True)
+          self.show_plane_slider(True)
+          self.enable_move_planes()
       elif rep == 'orthoplanes':
           middle = tuple((imin + imax) // 2 for imin, imax in zip(v.region[0], v.region[1]))
           v.set_parameters(orthoplanes_shown = (True, True, True),
@@ -2393,9 +2414,14 @@ class Histogram_Pane:
                            show_outline_box = True)
           v.show(representation = 'solid', show = v.shown())
           v.expand_single_plane()
-          # Bind move planes mouse mode
-          mm = self.dialog.session.ui.mouse_modes
-          mm.bind_mouse_mode('right', [], mm.named_mode('move planes'))
+          self.enable_move_planes()
+      
+  # ---------------------------------------------------------------------------
+  #
+  def enable_move_planes(self):
+      # Bind move planes mouse mode
+      mm = self.dialog.session.ui.mouse_modes
+      mm.bind_mouse_mode('right', [], mm.named_mode('move planes'))
       
   # ---------------------------------------------------------------------------
   #
