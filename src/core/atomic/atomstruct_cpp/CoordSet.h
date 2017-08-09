@@ -64,8 +64,8 @@ public:
     }
     void  session_restore(int version, int** ints, float** floats);
     void  session_save(int** ints, float** floats) const;
-    void  set_bfactor(const Atom *, float);
-    void  set_occupancy(const Atom *, float);
+    void  set_bfactor(const Atom* a, float val) { _bfactor_map[a] = val; }
+    void  set_occupancy(const Atom* a, float val) { _occupancy_map[a] = val; }
     Structure*  structure() const { return _structure; }
 };
 
