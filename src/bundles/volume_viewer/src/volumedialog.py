@@ -1570,7 +1570,7 @@ class Thresholds_Panel(PopupPanel):
       del hptable[None]
     elif len(hptable) >= self.maximum_histograms():
       hp = self.active_order[-1]        # Reuse least recently active histogram
-      del hptable[hp.data_region]
+      del hptable[hp.volume]
     else:
       # Make new histogram
       hp = Histogram_Pane(self.dialog, self.histograms_frame, self.histogram_height)
@@ -1642,7 +1642,7 @@ class Thresholds_Panel(PopupPanel):
   def close_histogram_pane(self, hp):
 
     self.histogram_panes.remove(hp)
-    del self.histogram_table[hp.data_region]
+    del self.histogram_table[hp.volume]
     self.histograms_layout.removeWidget(hp.frame)
     hp.close()
     
@@ -1696,7 +1696,7 @@ class Thresholds_Panel(PopupPanel):
 #    hp.update_threshold_gui(self.dialog.message)
     hp.update_threshold_gui(message_cb = None)
 
-    if activate or hp.data_region is self.dialog.active_volume:
+    if activate or hp.volume is self.dialog.active_volume:
       self.set_active_histogram(hp)
 
   # ---------------------------------------------------------------------------
@@ -1813,7 +1813,7 @@ class Histogram_Pane:
   def __init__(self, dialog, parent, histogram_height):
 
     self.dialog = dialog
-    self.data_region = None
+    self.volume = None
     self.histogram_data = None
     self.histogram_size = None
     self.update_timer = None
@@ -1908,7 +1908,7 @@ class Histogram_Pane:
     # TODO: Need to hide the menu indicator.  Can set it to 1x1 pixel image with style sheet.
     stm.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
     sm = QMenu()
-    for style in ('surface', 'mesh', 'image'):
+    for style in ('surface', 'mesh', 'image', 'orthoplanes'):
         sm.addAction(style, lambda s=style: self.representation_changed_cb(s))
     stm.setMenu(sm)
     layout.addWidget(stm)
@@ -1940,7 +1940,7 @@ class Histogram_Pane:
   # ---------------------------------------------------------------------------
   #
   def show_context_menu(self, event):
-      v = self.data_region
+      v = self.volume
       if v is None:
           return
       
@@ -1984,7 +1984,7 @@ class Histogram_Pane:
   # ---------------------------------------------------------------------------
   #
   def show_outline_box(self, show):
-      v = self.data_region
+      v = self.volume
       if v:
           v.rendering_options.show_outline_box = show
           v.show()
@@ -1993,7 +1993,7 @@ class Histogram_Pane:
   # Show slider below histogram to control which plane of data is shown.
   #
   def show_plane_slider(self, show):
-      v = self.data_region
+      v = self.volume
       if v is None:
           return
 
@@ -2037,7 +2037,7 @@ class Histogram_Pane:
       pl = QLabel('Plane', f)
       layout.addWidget(pl)
       self._planes_spinbox = pv = QSpinBox(f)
-      nz = self.data_region.data.size[2]
+      nz = self.volume.data.size[2]
       pv.setMaximum(nz-1)
       pv.valueChanged.connect(self._plane_changed_cb)
       layout.addWidget(pv)
@@ -2081,7 +2081,7 @@ class Histogram_Pane:
   def _update_plane(self, k):
       self._planes_spinbox.setValue(k)
       self._planes_slider.setValue(k)
-      v = self.data_region
+      v = self.volume
       ijk_min, ijk_max, ijk_step = v.region
       if ijk_min[2] == k and ijk_max[2] == k:
           return	# Already showing this plane.
@@ -2121,10 +2121,10 @@ class Histogram_Pane:
   #
   def set_data_region(self, volume):
 
-    if volume == self.data_region:
+    if volume == self.volume:
         return
 
-    self.data_region = volume
+    self.volume = volume
     self.histogram_shown = False
     self.histogram_data = None
     self.show_data_name()
@@ -2149,7 +2149,7 @@ class Histogram_Pane:
   #
   def show_data_name(self):
 
-    v = self.data_region
+    v = self.volume
     if len(v.name) > 10:
         self.data_name.show()
         self.data_name.setText(v.name)
@@ -2163,7 +2163,7 @@ class Histogram_Pane:
   #
   def close_map_cb(self, event = None):
 
-    v = self.data_region
+    v = self.volume
     if v:
         self.dialog.session.models.close([v])
 
@@ -2242,7 +2242,7 @@ class Histogram_Pane:
   #
   def select_data_cb(self, event = None):
 
-    v = self.data_region
+    v = self.volume
     if v:
       d = self.dialog
       if v != d.active_volume:
@@ -2271,7 +2271,7 @@ class Histogram_Pane:
 
     self.data_step.setText('%d' % step)
 
-    dr = self.data_region
+    dr = self.volume
     if dr is None or dr.region is None:
       return
 
@@ -2293,7 +2293,7 @@ class Histogram_Pane:
   #
   def show_cb(self):
 
-    v = self.data_region
+    v = self.volume
     if v is None:
       return
 
@@ -2323,11 +2323,11 @@ class Histogram_Pane:
 
     from chimera import openModels
     if trigger == 'Model':
-      if self.data_region.representation == 'solid':
+      if self.volume.representation == 'solid':
         from _volume import Volume_Model
         if [m for m in changes.deleted if isinstance(m, Volume_Model)]:
           self.update_shown_icon()
-      if not [m for m in self.data_region.models()
+      if not [m for m in self.volume.models()
               if m in changes.modified or m in changes.created]:
         return
       if 'name changed' in changes.reasons:
@@ -2341,7 +2341,7 @@ class Histogram_Pane:
   #
   def update_shown_icon(self):
 
-    v = self.data_region
+    v = self.volume
     if v is None:
       return
 
@@ -2365,6 +2365,8 @@ class Histogram_Pane:
   def set_repr(self, repr):
       if repr == 'solid':
           repr = 'image'
+      if repr == 'image' and self.volume.showing_orthoplanes():
+          repr = 'orthoplanes'
       self.style.setText(repr)
   representation = property(get_repr, set_repr)
   
@@ -2375,8 +2377,25 @@ class Histogram_Pane:
   def representation_changed_cb(self, style):
 
       self.style.setText(style)
-      v = self.data_region
-      v.show(representation = self.representation, show = v.shown())
+      v = self.volume
+      rep = self.representation
+      if rep in ('surface', 'mesh'):
+          v.show(representation = rep, show = v.shown())
+      elif rep == 'solid':
+          v.set_parameters(orthoplanes_shown = (False, False, False),
+                           color_mode = 'auto8')
+          v.show(representation = rep, show = v.shown())
+      elif rep == 'orthoplanes':
+          middle = tuple((imin + imax) // 2 for imin, imax in zip(v.region[0], v.region[1]))
+          v.set_parameters(orthoplanes_shown = (True, True, True),
+                           orthoplane_positions = middle,
+                           color_mode = 'opaque8',
+                           show_outline_box = True)
+          v.show(representation = 'solid', show = v.shown())
+          v.expand_single_plane()
+          # Bind move planes mouse mode
+          mm = self.dialog.session.ui.mouse_modes
+          mm.bind_mouse_mode('right', [], mm.named_mode('move planes'))
       
   # ---------------------------------------------------------------------------
   #
@@ -2430,7 +2449,7 @@ class Histogram_Pane:
   #
   def update_data_range(self, delay = 0.5):
 
-    volume = self.data_region
+    volume = self.volume
     if volume is None:
         return
 
@@ -2468,8 +2487,8 @@ class Histogram_Pane:
 
     self.plot_surface_levels()
     self.plot_solid_levels()
-    self.representation = rep = self.data_region.representation
-    self.solid_mode(rep == 'solid')
+    self.representation = rep = self.volume.representation
+    self.solid_mode(rep in ('solid', 'orthoplanes'))
     self.set_threshold_and_color_widgets()
     
   # ---------------------------------------------------------------------------
@@ -2477,7 +2496,7 @@ class Histogram_Pane:
   def update_size_and_step(self, region = None):
 
     if region is None:
-      dr = self.data_region
+      dr = self.volume
       if dr is None:
         return
       region = dr.region
@@ -2500,7 +2519,7 @@ class Histogram_Pane:
   #
   def plot_surface_levels(self):
 
-    v = self.data_region
+    v = self.volume
     if v is None:
       return
 
@@ -2512,7 +2531,7 @@ class Histogram_Pane:
   #
   def plot_solid_levels(self):
 
-    v = self.data_region
+    v = self.volume
     if v is None:
       return
 
@@ -2524,7 +2543,7 @@ class Histogram_Pane:
   #
   def update_histogram(self, read_matrix, message_cb, resize = False, delay = 0.5):
 
-    v = self.data_region
+    v = self.volume
     if v is None:
       return
 
@@ -2599,7 +2618,7 @@ class Histogram_Pane:
   #
   def set_threshold_parameters_from_gui(self, show = False):
 
-    v = self.data_region
+    v = self.volume
     if v is None:
       return
     
@@ -2622,7 +2641,7 @@ class Histogram_Pane:
     self.shown_handlers = []
 
     self.dialog = None
-    self.data_region = None
+    self.volume = None
     self.histogram_data = None
 
     # Suprisingly need to set parent to None or the frame and children are still shown.
