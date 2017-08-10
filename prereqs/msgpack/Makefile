@@ -5,7 +5,10 @@ include $(TOP)/mk/config.make
 VERSION = 0.5
 DISTRIBUTION = msgpack-python-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/msgpack-python-$(VERSION)
-WHEEL = $(SOURCE)//dist/msgpack_python-$(VERSION)-cp36-cp36m-$(BIN_PLATFORM).whl
+WHEEL = $(SOURCE)/dist/msgpack_python-$(VERSION)-cp36-cp36m-$(BIN_PLATFORM).whl
+ifdef WIN32
+WHEEL := $(shell cygpath -m "$(WHEEL)")
+endif
 
 all:
 
@@ -18,7 +21,7 @@ app-install: $(WHEEL)
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
 
-$(WHEEL): $(SOURCE)
+wheel $(WHEEL): $(SOURCE)
 	cd $(SOURCE) &&	$(PYTHON_EXE) setup.py build bdist_wheel
 
 clean:
