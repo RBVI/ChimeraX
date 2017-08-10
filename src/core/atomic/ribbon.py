@@ -23,13 +23,14 @@ class Ribbon:
     FRONT = 1
     BACK = 2
 
-    def __init__(self, coords, guides, orients):
+    def __init__(self, coords, guides, orients, use_spline_normals):
         # Extend the coordinates at start and end to make sure the
         # ribbon is straight on either end.  Compute the spline
         # coefficients for each axis.  Then throw away the
         # coefficients for the fake ends.
         from .structure import Structure
         from numpy import empty, zeros, ones
+        self.use_spline_normals = use_spline_normals
         c = empty((len(coords) + 2, 3), float)
         c[0] = coords[0] + (coords[0] - coords[1])
         c[1:-1] = coords
@@ -72,9 +73,18 @@ class Ribbon:
                 self.normals = guide_normals
             else:
                 self.normals[guide_mask] = guide_normals[guide_mask]
-        self.ignore_flip_mode = ones(len(self.normals))
-        if guide_normals is not None and not guide_flip:
-            self.ignore_flip_mode[guide_mask] = False
+        if use_spline_normals:
+            self._flip_normals(coords)
+            num_coords = len(coords)
+            from scipy.interpolate import make_interp_spline
+            from numpy import linspace
+            x = linspace(0.0, num_coords, num=num_coords, endpoint=False)
+            y = coords + self.normals
+            self.normal_spline = make_interp_spline(x, y)
+        else:
+            self.ignore_flip_mode = ones(len(self.normals))
+            if guide_normals is not None and not guide_flip:
+                self.ignore_flip_mode[guide_mask] = False
         # Initialize segment cache
         self._seg_cache = {}
 
@@ -275,6 +285,43 @@ class Ribbon:
         tcoeffs = array([c_a, c_b, c_c, c_d]).transpose()
         self.coefficients.append(tcoeffs[1:-1])
 
+    def _flip_normals(self, coords):
+        from numpy import cross, sqrt, dot
+        from numpy.linalg import norm
+        num_coords = len(coords)
+        tangents = self.get_tangents()
+        axes = cross(tangents[:-1], tangents[1:])
+        s = norm(axes, axis=1)
+        c = sqrt(1 - s * s)
+        for i in range(1, num_coords):
+            ne = self._rotate_around(axes[i-1], c[i-1], s[i-1], self.normals[i-1])
+            n = self.normals[i]
+            # Allow for a little extra twist before flipping
+            # if dot(ne, n) < 0:
+            if dot(ne, n) < 0.2:
+                self.normals[i] = -n
+
+    def _rotate_around(self, n, c, s, v):
+        c1 = 1 - c
+        m00 = c + n[0] * n[0] * c1
+        m01 = n[0] * n[1] * c1 - s * n[2]
+        m02 = n[2] * n[0] * c1 + s * n[1]
+        m10 = n[0] * n[1] * c1 + s * n[2]
+        m11 = c + n[1] * n[1] * c1
+        m12 = n[2] * n[1] * c1 - s * n[0]
+        m20 = n[0] * n[2] * c1 - s * n[1]
+        m21 = n[1] * n[2] * c1 + s * n[0]
+        m22 = c + n[2] * n[2] * c1
+        # Use temporary so that v[0] does not get set too soon
+        x = m00 * v[0] + m01 * v[1] + m02 * v[2]
+        y = m10 * v[0] + m11 * v[1] + m12 * v[2]
+        z = m20 * v[0] + m21 * v[1] + m22 * v[2]
+        #v[0] = x
+        #v[1] = y
+        #v[2] = z
+        import numpy
+        return numpy.array((x, y, z))
+
     @property
     def num_segments(self):
         return len(self.coefficients[0])
@@ -347,13 +394,27 @@ class Ribbon:
             ne = self.normals[seg + 1]
             # import sys
             # print("ns, ne", ns, ne, file=sys.__stderr__); sys.__stderr__.flush()
-            if self.ignore_flip_mode[seg]:
-                flip_mode = FLIP_MINIMIZE
-            normals, flipped = constrained_normals(tangents, ns, ne, flip_mode,
-                                                   self.flipped[seg], self.flipped[seg + 1], no_twist)
-            if flipped:
-                self.flipped[seg + 1] = not self.flipped[seg + 1]
-                self.normals[seg + 1] = -ne
+            if self.use_spline_normals:
+                from numpy import array, linspace, sum
+                # We _should_ return normals that are orthogonal to the
+                # tangents, but it does not look as good as if we use
+                # the interpolated non-orthogonal normals. - CCH
+                #xyz = array([get_orthogonal_component(self.normal_spline(t) - coords[i],
+                #                                      tangents[i])
+                #             for i, t in enumerate(linspace(seg, seg+1.0, num=divisions+1,
+                #                                            endpoint=True))])
+                # normals = normalize_vector_array(xyz)
+                xyz = array([self.normal_spline(t)
+                             for t in linspace(seg, seg+1.0, num=divisions+1, endpoint=True)])
+                normals = normalize_vector_array(xyz - coords)
+            else:
+                if self.ignore_flip_mode[seg]:
+                    flip_mode = FLIP_MINIMIZE
+                normals, flipped = constrained_normals(tangents, ns, ne, flip_mode,
+                                                       self.flipped[seg], self.flipped[seg + 1], no_twist)
+                if flipped:
+                    self.flipped[seg + 1] = not self.flipped[seg + 1]
+                    self.normals[seg + 1] = -ne
             #normals = curvature_to_normals(curvature, tangents, prev_normal)
             self._seg_cache[seg] = (coords, tangents, normals)
         # divisions = number of segments = number of vertices + 1
