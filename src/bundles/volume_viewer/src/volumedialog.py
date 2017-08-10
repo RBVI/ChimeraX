@@ -1419,76 +1419,6 @@ class Coordinates_Panel(PopupPanel):
     self.dialog.redisplay_needed_cb()
 
 # -----------------------------------------------------------------------------
-# User interface for setting display style: surface, mesh, solid.
-#
-class Display_Style_Panel(PopupPanel):
-
-  name = 'Display style'           # Used in feature menu.
-  
-  def __init__(self, dialog, parent):
-
-    self.dialog = dialog
-
-    PopupPanel.__init__(self, parent)
-    
-    frame = self.frame
-
-    from PyQt5.QtWidgets import QHBoxLayout, QLabel, QRadioButton, QButtonGroup
-    layout = QHBoxLayout(frame)
-    layout.setContentsMargins(0,0,0,0)
-    
-    sl = QLabel('Style', frame)
-    layout.addWidget(sl)
-
-    self.button_group = bg = QButtonGroup(frame)
-    bg.buttonClicked.connect(self.representation_changed_cb)
-    
-    initial_style = 'surface'
-    self.buttons = bt = {}
-    for style in ('surface', 'mesh', 'image'):
-        bt[style] = b = QRadioButton(style, frame)
-        b.setChecked(style == initial_style)
-        layout.addWidget(b)
-        bg.addButton(b)
-
-    layout.addStretch(1)
-
-  def get_repr(self):
-      cb = self.button_group.checkedButton()
-      style = cb.text()
-      if style == 'image':
-          style = 'solid'
-      return style
-  def set_repr(self, repr):
-      if repr == 'solid':
-          repr = 'image'
-      self.buttons[repr].setChecked(True)
-  representation = property(get_repr, set_repr)
-  
-  # ---------------------------------------------------------------------------
-  # Notify all panels that representation changed so they can update gui if
-  # it depends on the representation.
-  #
-  def representation_changed_cb(self):
-
-      d = self.dialog
-      d.representation_changed(self.representation)
-      d.redisplay_needed_cb()
-  
-  # ---------------------------------------------------------------------------
-  #
-  def update_panel_widgets(self, data_region):
-
-    if data_region and data_region.representation:
-      self.representation = data_region.representation
-    
-  # ---------------------------------------------------------------------------
-  #
-  def use_gui_settings(self, data_region):
-
-    data_region.representation = self.representation
-
-# -----------------------------------------------------------------------------
 # User interface for adjusting thresholds and colors.
 #
 class Thresholds_Panel(PopupPanel):
@@ -1908,7 +1838,7 @@ class Histogram_Pane:
     # TODO: Need to hide the menu indicator.  Can set it to 1x1 pixel image with style sheet.
     stm.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
     sm = QMenu()
-    for style in ('surface', 'mesh', 'image', 'plane', 'orthoplanes', 'box'):
+    for style in ('surface', 'mesh', 'volume', 'maximum', 'plane', 'orthoplanes', 'box'):
         sm.addAction(style, lambda s=style: self.representation_changed_cb(s))
     stm.setMenu(sm)
     layout.addWidget(stm)
@@ -2363,24 +2293,24 @@ class Histogram_Pane:
 
   def get_repr(self):
       style = self.style.text()
-      if style == 'image':
-          style = 'solid'
-      return style
+      repr = 'solid' if style in ('volume', 'maximum', 'plane', 'orthoplanes', 'box') else style
+      return repr
   def set_repr(self, repr):
       if repr == 'solid':
-          repr = 'image'
-      if repr == 'image':
           v = self.volume
           if v.showing_orthoplanes():
-              repr = 'orthoplanes'
+              style = 'orthoplanes'
           elif v.showing_box_faces():
-              repr = 'box'
+              style = 'box'
+          elif v.rendering_options.maximum_intensity_projection:
+              style = 'maximum'
+          elif min(v.matrix_size()) == 1:
+              style = 'plane'
           else:
-              for imin, imax, istep in zip(v.region[0], v.region[1], v.region[2]):
-                  if imax < imin + istep:
-                      repr = 'plane'
-              
-      self.style.setText(repr)
+              style = 'volume'
+      elif repr in ('surface', 'mesh'):
+          style = repr
+      self.style.setText(style)
   representation = property(get_repr, set_repr)
   
   # ---------------------------------------------------------------------------
@@ -2391,41 +2321,49 @@ class Histogram_Pane:
 
       self.style.setText(style)
       v = self.volume
-      rep = self.representation
 
-      if rep != 'plane':
+      if style != 'plane':
           self.show_plane_slider(False, show_volume = False)
 
-      if rep != 'box' and v.showing_box_faces():
+      if style != 'box' and v.showing_box_faces():
           v.set_parameters(box_faces = False,
                            color_mode = 'auto8')
           
-      if rep in ('surface', 'mesh'):
-          v.show(representation = rep, show = v.shown())
-      elif rep == 'solid':
-          v.set_parameters(orthoplanes_shown = (False, False, False),
-                           color_mode = 'auto8')
-          v.show(representation = rep, show = v.shown())
-      elif rep == 'plane':
+      if style in ('surface', 'mesh'):
+          v.show(representation = style, show = v.shown())
+      elif style == 'volume':
           v.set_parameters(orthoplanes_shown = (False, False, False),
                            color_mode = 'auto8',
+                           maximum_intensity_projection = False)
+          v.show(representation = 'solid', show = v.shown())
+      elif style == 'maximum':
+          v.set_parameters(orthoplanes_shown = (False, False, False),
+                           color_mode = 'auto8',
+                           maximum_intensity_projection = True)
+          v.show(representation = 'solid', show = v.shown())
+      elif style == 'plane':
+          v.set_parameters(orthoplanes_shown = (False, False, False),
+                           color_mode = 'auto8',
+                           maximum_intensity_projection = False,
                            show_outline_box = True)
           self.show_plane_slider(True)
           self.enable_move_planes()
-      elif rep == 'orthoplanes':
+      elif style == 'orthoplanes':
           middle = tuple((imin + imax) // 2 for imin, imax in zip(v.region[0], v.region[1]))
           v.set_parameters(orthoplanes_shown = (True, True, True),
                            orthoplane_positions = middle,
                            color_mode = 'opaque8',
+                           maximum_intensity_projection = False,
                            show_outline_box = True)
           v.show(representation = 'solid', show = v.shown())
           v.expand_single_plane()
           self.enable_move_planes()
-      elif rep == 'box':
+      elif style == 'box':
           middle = tuple((imin + imax) // 2 for imin, imax in zip(v.region[0], v.region[1]))
           v.set_parameters(box_faces = True,
                            orthoplanes_shown = (False, False, False),
                            color_mode = 'opaque8',
+                           maximum_intensity_projection = False,
                            show_outline_box = True)
           v.show(representation = 'solid', show = v.shown())
           v.expand_single_plane()
