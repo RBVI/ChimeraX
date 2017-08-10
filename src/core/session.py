@@ -32,6 +32,7 @@ Session data, ie., data that is archived, uses the :py:class:`State` API.
 
 from .state import RestoreError, State, copy_state, dereference_state
 from .commands import CmdDesc, OpenFileNameArg, SaveFileNameArg, register, commas, plural_form
+from .errors import UserError
 
 _builtin_open = open
 #: session file suffix
@@ -40,7 +41,7 @@ SESSION_SUFFIX = ".cxs"
 # triggers:
 
 #: version of session file that is written
-CORE_SESSION_VERSION = 2
+CORE_SESSION_VERSION = 3
 
 
 class _UniqueName:
@@ -271,7 +272,7 @@ class _RestoreManager:
                 msg += "; out of date %s: %s" % (
                     plural_form(out_of_date_bundles, 'bundle'),
                     commas(out_of_date_bundles, ' and'))
-            raise RestoreError(msg)
+            raise UserError(msg)
         self.bundle_infos = bundle_infos
 
     def resolve_references(self, data):
@@ -306,10 +307,6 @@ class Session:
         Starts with session triggers.
     """
 
-    #: common exception for needing a newer version of the application
-    NeedNewerError = RestoreError(
-        "Need newer version of bundle to restore session")
-
     def __init__(self, app_name, *, debug=False, silent=False, minimal=False):
         self.app_name = app_name
         self.debug = debug
@@ -321,7 +318,7 @@ class Session:
         self._state_containers = {}  # stuff to save in sessions
         self.metadata = {}           #: session metadata
         self.in_script = InScriptFlag()
-        self.session_file_path = None	# Last saved or opened session file.
+        self.session_file_path = None  # Last saved or opened session file.
         if minimal:
             return
 
@@ -420,10 +417,14 @@ class Session:
         if version == 1:
             fserialize = serialize.pickle_serialize
             fserialize(stream, version)
+        elif version == 2:
+            # TODO: raise UserError("Version 2 session files are no longer supported")
+            stream.write(b'# ChimeraX Session version 2\n')
+            stream = serialize.msgpack_serialize_stream_v2(stream)
+            fserialize = serialize.msgpack_serialize
         else:
-            if version != 2:
-                from .errors import UserError
-                raise UserError("Only session file versions 1 and 2 are supported")
+            if version != 3:
+                raise UserError("Only session file versions 1, 2, and 3 are supported")
             stream.write(b'# ChimeraX Session version %d\n' % CORE_SESSION_VERSION)
             stream = serialize.msgpack_serialize_stream(stream)
             fserialize = serialize.msgpack_serialize
@@ -456,7 +457,7 @@ class Session:
         if use_pickle:
             version = serialize.pickle_deserialize(stream)
             if version != 1:
-                raise RestoreError('Not a ChimeraX session file')
+                raise UserError('Not a ChimeraX session file')
             fdeserialize = serialize.pickle_deserialize
         else:
             line = stream.readline(256)   # limit line length to avoid DOS
@@ -464,9 +465,13 @@ class Session:
             if line[-1] != ord(b'\n') or len(tokens) < 5 or tokens[0:4] != [b'#', b'ChimeraX', b'Session', b'version']:
                 raise RuntimeError('Not a ChimeraX session file')
             version = int(tokens[4])
-            if not (2 <= version <= CORE_SESSION_VERSION):
-                raise self.NeedNewerError
-            stream = serialize.msgpack_deserialize_stream(stream)
+            if version == 2:
+                stream = serialize.msgpack_deserialize_stream_v2(stream)
+            elif version == 3:
+                stream = serialize.msgpack_deserialize_stream(stream)
+            else:
+                raise UserError(
+                    "Need newer version of ChimeraX to restore session")
             fdeserialize = serialize.msgpack_deserialize
         metadata = fdeserialize(stream)
         metadata['session_version'] = version
@@ -549,7 +554,6 @@ def save(session, path, version=1, uncompressed=False):
             try:
                 output = _builtin_open(path, 'wb')
             except IOError as e:
-                from .errors import UserError
                 raise UserError(e)
         else:
             # Save compressed files
@@ -561,7 +565,6 @@ def save(session, path, version=1, uncompressed=False):
             try:
                 output = my_open(path)
             except IOError as e:
-                from .errors import UserError
                 raise UserError(e)
 
     session.logger.warning("<b><i>Session file format is not finalized, and thus might not be restorable in other versions of ChimeraX.</i></b>", is_html=True)
@@ -619,7 +622,10 @@ def sdump(session, session_file, output=None):
         else:
             tokens = stream.readline().split()
             version = int(tokens[4])
-            stream = serialize.msgpack_deserialize_stream(stream)
+            if version == 2:
+                stream = serialize.msgpack_deserialize_stream_v2(stream)
+            else:
+                stream = serialize.msgpack_deserialize_stream(stream)
             fdeserialize = serialize.msgpack_deserialize
         print("==== session version:", file=output)
         pprint(version, stream=output)
