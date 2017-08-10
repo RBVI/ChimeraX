@@ -18,7 +18,6 @@ class ShellUI(ToolInstance):
 
     # shell tool does not participate in sessions
     SESSION_ENDURING = True
-    SESSION_SKIP = True
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)

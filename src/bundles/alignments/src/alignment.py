@@ -457,6 +457,8 @@ class Alignment(State):
                     lambda _1, sseq, aln=aln: aln.disassociate(sseq))
         return aln
 
+    SESSION_SAVE = True
+    
     def take_snapshot(self, session, flags):
         """For session/scene saving"""
         return { 'version': 1, 'seqs': self.seqs, 'ident': self.ident,

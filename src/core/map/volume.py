@@ -1334,6 +1334,8 @@ class Volume(Model):
     ijk_min[axis] += mplane*ijk_step[axis]
     ijk_max[axis] = ijk_min[axis]
     m = self.region_matrix((ijk_min, ijk_max, ijk_step), read_matrix)
+    if m is None:
+      return None
     s = [slice(None), slice(None), slice(None)]
     s[2-axis] = 0
     m2d = m[s]

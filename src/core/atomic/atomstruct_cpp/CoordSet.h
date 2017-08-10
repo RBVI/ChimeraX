@@ -44,6 +44,10 @@ private:
     CoordSet(Structure* as, int cs_id, int size);
 
 public:
+    CoordSet(const CoordSet& source) {
+        _coords = source._coords;
+        _bfactor_map = source._bfactor_map; _occupancy_map = source._occupancy_map;
+    }
     void  add_coord(const Point &coord) { _coords.push_back(coord); }
     const Coords &  coords() const { return _coords; }
     void set_coords(Real *xyz, size_t n);
@@ -60,8 +64,8 @@ public:
     }
     void  session_restore(int version, int** ints, float** floats);
     void  session_save(int** ints, float** floats) const;
-    void  set_bfactor(const Atom *, float);
-    void  set_occupancy(const Atom *, float);
+    void  set_bfactor(const Atom* a, float val) { _bfactor_map[a] = val; }
+    void  set_occupancy(const Atom* a, float val) { _occupancy_map[a] = val; }
     Structure*  structure() const { return _structure; }
 };
 

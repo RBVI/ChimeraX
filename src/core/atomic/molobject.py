@@ -705,8 +705,11 @@ class PseudobondManager(State):
         return pbm
 
     def reset_state(self, session):
-        f = c_function('pseudobond_global_manager_clear', args = (ctypes.c_void_p,))
-        f(self._c_pointer)
+        # Need to call delete() on the models, since just clearing out the C++
+        # will cause an error when the last reference to the Python object goes
+        # away, which causes delete() to get called
+        for pbg in list(self.group_map.values()):
+            pbg.delete()
 
     def _ses_call(self, func_qual):
         f = c_function('pseudobond_global_manager_session_' + func_qual, args=(ctypes.c_void_p,))

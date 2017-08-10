@@ -18,8 +18,6 @@ from chimerax.core.tools import ToolInstance
 #
 class MapSeries(ToolInstance):
 
-    SESSION_SKIP = True
-
     def __init__(self, session, tool_name, *, series=[]):
         ToolInstance.__init__(self, session, tool_name)
 
