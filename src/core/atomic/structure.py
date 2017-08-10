@@ -33,6 +33,7 @@ class Structure(Model, StructureData):
         self._session_attrs = {
             '_bond_radius': 0.2,
             '_pseudobond_radius': 0.05,
+            '_use_spline_normals': False,
             'ribbon_xs_mgr': XSectionManager(),
             'filename': None,
         }
@@ -266,6 +267,14 @@ class Structure(Model, StructureData):
         self.atoms.colors = color
         self.residues.ribbon_colors = color
     single_color = property(_get_single_color, _set_single_color)
+
+    def _get_spline_normals(self):
+        return self._use_spline_normals
+    def _set_spline_normals(self, sn):
+        if sn != self._use_spline_normals:
+            self._use_spline_normals = sn
+            self._graphics_changed |= self._RIBBON_CHANGE
+    spline_normals = property(_get_spline_normals, _set_spline_normals)
 
     def _make_drawing(self):
         # Create graphics
@@ -646,7 +655,9 @@ class Structure(Model, StructureData):
 
             # Generate ribbon
             any_ribbon = True
-            ribbon = Ribbon(coords, guides, self.ribbon_orients(residues))
+            ribbon = Ribbon(coords, guides, self.ribbon_orients(residues),
+                            self._use_spline_normals)
+            #self._show_normal_spline(p, coords, ribbon)
             v_start = 0         # for tracking starting vertex index for each residue
             t_start = 0         # for tracking starting triangle index for each residue
             vertex_list = []
@@ -862,6 +873,38 @@ class Structure(Model, StructureData):
                 sp.colors = spine_colors
         self._graphics_changed |= self._SHAPE_CHANGE
         self.residues.ribbon_selected = False
+
+    def _show_normal_spline(self, p, coords, ribbon):
+        num_coords = len(coords)
+        from scipy.interpolate import make_interp_spline
+        from numpy import linspace
+        x = linspace(0.0, num_coords, num=num_coords, endpoint=False)
+        y = coords + ribbon.normals
+        spline = make_interp_spline(x, y)
+        sp = p.new_drawing(str(self) + " control points")
+        from .. import surface
+        va, na, ta = surface.sphere_geometry(20)
+        sp.geometry = va, ta
+        sp.normals = na
+        from numpy import empty, float32
+        pts_per_res = 6
+        num_pts = num_coords*pts_per_res
+        #num_pts = num_coords
+        xyzr = empty((num_pts, 4), float32)
+        #xyzr[:, :3] = coords + ribbon.normals
+        xyzr[:, :3] = [spline(i) for i in linspace(0.0, num_coords, num=num_pts, endpoint=False)]
+        xyzr[:, 3] = 0.4
+        from ..geometry import Places
+        sp.positions = Places(shift_and_scale=xyzr)
+        sp_colors = empty((len(coords), 4), float)
+        sp_colors[:] = (255, 0, 0, 255)
+        #sp_colors[ribbon.flipped] = (0, 255, 0, 255)
+        for i in range(num_coords):
+            if ribbon.flipped[i]:
+                start = i * pts_per_res
+                stop = start + pts_per_res
+                sp_colors[start:stop] = (0, 255, 0, 255)
+        sp.colors = sp_colors
 
     def _smooth_ribbon(self, rlist, coords, guides, atoms, ssids, tethered,
                        xs_front, xs_back, p, helix_ranges, sheet_ranges):
