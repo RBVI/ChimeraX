@@ -53,7 +53,7 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
         if not restrict and not batch:
             raise UserError("'restrict' atom specifier selects no atoms")
         combined = atoms | restrict
-        donors = acceptors = conbined
+        donors = acceptors = combined
         structures = combined.unique_structures
 
     if not relax:

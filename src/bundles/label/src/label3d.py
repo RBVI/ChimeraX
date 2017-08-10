@@ -142,7 +142,9 @@ def objects_by_model(objects, object_type):
         from chimerax.core.atomic import interatom_pseudobonds, PseudobondGroup
         pbonds = interatom_pseudobonds(atoms)
         model_objects = pbonds.by_group
-        pbgroups = [(pbg, pbg.pseudobonds) for pbg in objects.models if isinstance(pbg, PseudobondGroup)]
+        pbgs = set(g for g,pbs in model_objects)
+        pbgroups = [(pbg, pbg.pseudobonds) for pbg in objects.models
+                    if isinstance(pbg, PseudobondGroup) and pbg not in pbgs]
         model_objects.extend(pbgroups)
     return model_objects
 
@@ -481,8 +483,7 @@ class PseudobondLabel(ObjectLabel):
         pb = self.pseudobond
         a1,a2 = pb.atoms
         sxyz = 0.5 * (a1.scene_coord + a2.scene_coord)	# Midpoint
-        g = pb.group
-        xyz = g.position.inverse() * sxyz
+        xyz = self.scene_position.inverse() * sxyz
         return xyz
     def visible(self):
         return self.pseudobond.shown

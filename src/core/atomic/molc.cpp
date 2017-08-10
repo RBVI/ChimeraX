@@ -4644,7 +4644,8 @@ extern "C" EXPORT PyObject *constrained_normals(PyObject* py_tangents, PyObject*
         if (flip_mode == FLIP_MINIMIZE) {
             // If twist is greater than 90 degrees, turn the opposite
             // direction.  (Assumes that ribbons are symmetric.)
-            if (twist > M_PI / 2)
+            if (twist > 0.6 * M_PI)
+            // if (twist > M_PI / 2)
                 need_flip = true;
         } else if (flip_mode == FLIP_PREVENT) {
             // Make end_flip the same as start_flip
