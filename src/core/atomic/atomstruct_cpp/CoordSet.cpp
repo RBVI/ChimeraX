@@ -127,16 +127,4 @@ CoordSet::session_save(int** ints, float** floats) const
     }
 }
 
-void
-CoordSet::set_bfactor(const Atom *a, float val)
-{
-    _bfactor_map.insert(std::pair<const Atom *, float>(a, val));
-}
-
-void
-CoordSet::set_occupancy(const Atom *a, float val)
-{
-    _occupancy_map.insert(std::pair<const Atom *, float>(a, val));
-}
-
 }  // namespace atomstruct

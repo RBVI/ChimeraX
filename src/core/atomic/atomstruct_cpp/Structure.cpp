@@ -652,8 +652,9 @@ _coord_set_insert(Structure::CoordSets &coord_sets, CoordSet* cs, int index)
             coord_sets.insert(csi, cs);
             return;
         } else if (index == (*csi)->id()) {
+            auto pos = csi - coord_sets.begin();
             delete *csi;
-            coord_sets.insert(csi, cs);
+            coord_sets[pos] = cs;
             return;
         }
     }

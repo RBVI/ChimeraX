@@ -99,6 +99,8 @@ class PseudobondGroup(PseudobondGroupData, Model):
     def _set_name(self, name):
         if name != self.category:
             self.change_category(name)
+        # allow Model to fire 'name changed' trigger
+        Model.name.fset(self, name)
     name = property(_get_name, _set_name)
 
     def _update_graphics_if_needed(self, *_):

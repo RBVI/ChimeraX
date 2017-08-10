@@ -382,8 +382,10 @@ class Region:
             return
         self._shown = bool(val)
         self.redraw()
+        """TODO
         rb = self.region_browser
         rb.update_table_cell(self, rb.shown_column, contents=self.shown)
+        """
 
     def get_shown(self):
         return self._shown
