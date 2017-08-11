@@ -92,7 +92,7 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False):
             # First check if they all have the attr
             for inst in instances:
                 if inst is None or not hasattr(inst, attr_name):
-                    raise UserError("Not creating atrribute '%s'; use 'create true' to override"
+                    raise UserError("Not creating attribute '%s'; use 'create true' to override"
                         % attr_name)
             for inst in instances:
                 setattr(inst, attr_name, value)
@@ -101,7 +101,7 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False):
             # First check if they all have the attr
             for item in items:
                 if not hasattr(item, attr_name):
-                    raise UserError("Not creating atrribute '%s'; use 'create true' to override"
+                    raise UserError("Not creating attribute '%s'; use 'create true' to override"
                         % attr_name)
         for item in items:
             attempt_set_attr(item, attr_name, value, attr_name, attr_value)
