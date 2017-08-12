@@ -904,7 +904,7 @@ class ClipPlanes:
         return np[0] if len(np) == 1 else None
 
     def replace_planes(self, planes):
-        self._clip_planes = planes
+        self._clip_planes = list(planes)
         self.changed = True
 
     def remove_plane(self, name):

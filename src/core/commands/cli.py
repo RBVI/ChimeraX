@@ -257,6 +257,8 @@ def plural_of(word):
         if word.casefold() in ('zero', 'photo', 'quarto'):
             return word + 's'
         return word + 'es'
+    if word.endswith('ius'):
+        return word[:-2] + 'i'
     if word.endswith(('sh', 'ch', 's', 'x')):
         return word + 'es'
     if word.endswith('y'):
