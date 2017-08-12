@@ -421,11 +421,12 @@ class ObjectLabel(Drawing):
     def _position_label(self):
         xyz = self.location()
         view = self.view
-        psize = view.pixel_size(xyz)
+        spos = self.scene_position
+        psize = view.pixel_size(spos*xyz)
         pw,ph = self._pixel_size
         w,h = psize * pw, psize * ph
         cpos = view.camera.position	# Camera position in scene coords
-        clpos = self.scene_position.inverse() * cpos  # Camera pos in label drawing coords
+        clpos = spos.inverse() * cpos  # Camera pos in label drawing coords
         cam_xaxis, cam_yaxis, cam_zaxis = clpos.axes()
         from numpy import array, float32
         va = array((xyz, xyz + w*cam_xaxis, xyz + w*cam_xaxis + h*cam_yaxis, xyz + h*cam_yaxis), float32)
