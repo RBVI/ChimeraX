@@ -248,6 +248,8 @@ class ObjectLabels(Model):
             if o in ld:
                 self.remove_drawing(ld[o])
                 del ld[o]
+        if len(ld) == 0:
+            self.session.models.close([self])
 
     def label_count(self):
         return len(self._label_drawings)
@@ -257,9 +259,15 @@ class ObjectLabels(Model):
                 if label_class is None or isinstance(l, label_class)]
 
     def _update_graphics_if_needed(self, *_):
-        if self.visible:
-            for ld in self._label_drawings.values():
-                ld._update_graphics()
+        if not self.visible:
+            return
+        delo = []
+        for o,ld in self._label_drawings.items():
+            ld._update_graphics()
+            if ld.object_deleted:
+                delo.append(o)
+        if delo:
+            self.delete_labels(delo)
 
     SESSION_SAVE = True
     
@@ -380,6 +388,10 @@ class ObjectLabel(Drawing):
         self._color = color
         self._needs_update = True
     color = property(_get_color, _set_color)
+
+    @property
+    def object_deleted(self):
+        return self.location() is None
             
     def draw(self, renderer, place, draw_pass, selected_only=False):
         if not self.display:
@@ -420,6 +432,8 @@ class ObjectLabel(Drawing):
 
     def _position_label(self):
         xyz = self.location()
+        if xyz is None:
+            return	# Label deleted
         view = self.view
         spos = self.scene_position
         psize = view.pixel_size(spos*xyz)
@@ -449,9 +463,11 @@ class AtomLabel(ObjectLabel):
     def default_offset(self):
         return (0.2+self.atom.display_radius, 0, 0.5)
     def location(self):
-        return self.atom.coord
+        a = self.atom
+        return None if a.deleted else a.coord
     def visible(self):
-        return self.atom.visible
+        a = self.atom
+        return (not a.deleted) and a.visible
 
 # -----------------------------------------------------------------------------
 #
@@ -464,10 +480,11 @@ class ResidueLabel(ObjectLabel):
         r = self.residue
         return '%s %d' % (r.name, r.number)
     def location(self):
-        return self.residue.center
+        r = self.residue
+        return None if r.deleted else r.center
     def visible(self):
         r = self.residue
-        return r.ribbon_display or r.atoms.displays.any()
+        return (not r.deleted) and (r.ribbon_display or r.atoms.displays.any())
 
 # -----------------------------------------------------------------------------
 #
@@ -482,9 +499,12 @@ class PseudobondLabel(ObjectLabel):
         return (0.2+self.pseudobond.radius, 0, 0.5)
     def location(self):
         pb = self.pseudobond
+        if pb.deleted:
+            return None
         a1,a2 = pb.atoms
         sxyz = 0.5 * (a1.scene_coord + a2.scene_coord)	# Midpoint
         xyz = self.scene_position.inverse() * sxyz
         return xyz
     def visible(self):
-        return self.pseudobond.shown
+        pb = self.pseudobond
+        return (not pb.deleted) and pb.shown
