@@ -76,11 +76,32 @@ class Ribbon:
         if use_spline_normals:
             self._flip_normals(coords)
             num_coords = len(coords)
+            from numpy import linspace, array, empty, float32, double
+            x = linspace(0.0, num_coords, num=num_coords, endpoint=False, dtype=double)
+            y = array(coords + self.normals, dtype=double)
+            y2 = array(coords - self.normals, dtype=double)
+            # Interpolation can be done using interpolating (1),
+            # least-squares (2) or plain cubic splines (3):
+            #
+            #1
             from scipy.interpolate import make_interp_spline
-            from numpy import linspace
-            x = linspace(0.0, num_coords, num=num_coords, endpoint=False)
-            y = coords + self.normals
             self.normal_spline = make_interp_spline(x, y)
+            self.other_normal_spline = make_interp_spline(x, y2)
+            #1
+            #2
+            #2 from scipy.interpolate import make_lsq_spline
+            #2 t = empty(len(x) + 4, double)
+            #2 t[:4] = x[0]
+            #2 t[4:-4] = x[2:-2]
+            #2 t[-4:] = x[-1]
+            #2 self.normal_spline = make_lsq_spline(x, y, t)
+            #2 self.other_normal_spline = make_lsq_spline(x, y2, t)
+            #2
+            #3
+            #3 from scipy.interpolate import CubicSpline
+            #3 self.normal_spline = CubicSpline(x, y)
+            #3 self.other_normal_spline = CubicSpline(x, y2)
+            #3
         else:
             self.ignore_flip_mode = ones(len(self.normals))
             if guide_normals is not None and not guide_flip:
@@ -297,8 +318,8 @@ class Ribbon:
             ne = self._rotate_around(axes[i-1], c[i-1], s[i-1], self.normals[i-1])
             n = self.normals[i]
             # Allow for a little extra twist before flipping
-            # if dot(ne, n) < 0:
-            if dot(ne, n) < 0.2:
+            if dot(ne, n) < 0:
+            # if dot(ne, n) < 0.2:
                 self.normals[i] = -n
 
     def _rotate_around(self, n, c, s, v):
@@ -396,17 +417,22 @@ class Ribbon:
             # print("ns, ne", ns, ne, file=sys.__stderr__); sys.__stderr__.flush()
             if self.use_spline_normals:
                 from numpy import array, linspace, sum
-                # We _should_ return normals that are orthogonal to the
+                # We _should_ return normals that are orthogonal (O) to the
                 # tangents, but it does not look as good as if we use
-                # the interpolated non-orthogonal normals. - CCH
-                #xyz = array([get_orthogonal_component(self.normal_spline(t) - coords[i],
-                #                                      tangents[i])
-                #             for i, t in enumerate(linspace(seg, seg+1.0, num=divisions+1,
-                #                                            endpoint=True))])
-                # normals = normalize_vector_array(xyz)
+                # the interpolated non-orthogonal (NO) normals.
+                #
+                #O
+                #O xyz = array([get_orthogonal_component(self.normal_spline(t) - coords[i],
+                #O                                       tangents[i])
+                #O              for i, t in enumerate(linspace(seg, seg+1.0, num=divisions+1,
+                #O                                             endpoint=True))])
+                #O normals = normalize_vector_array(xyz)
+                #O
+                #NO
                 xyz = array([self.normal_spline(t)
                              for t in linspace(seg, seg+1.0, num=divisions+1, endpoint=True)])
                 normals = normalize_vector_array(xyz - coords)
+                #NO
             else:
                 if self.ignore_flip_mode[seg]:
                     flip_mode = FLIP_MINIMIZE
