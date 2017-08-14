@@ -131,7 +131,7 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
 
     # a true inter-model computation should be placed in a global group, otherwise
     # into indvidual per-structure groups
-    global_comp = inter_model and (len(structures) > 1)
+    global_comp = (inter_model or inter_submodel) and (len(structures) > 1)
     if global_comp:
         # global comp nukes per-structure groups it covers if intra-model also
         if intra_model and not retain_current:
