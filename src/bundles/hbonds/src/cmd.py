@@ -129,65 +129,87 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
         # give another opportunity to read the result...
         session.logger.status("%d hydrogen bonds found" % len(hbonds), blank_after=120)
 
-    pbg = session.pb_manager.get_group(name)
-    pre_existing = {}
-    if not retain_current:
-        pbg.clear()
-        pbg.color = bond_color.uint8x4()
-        pbg.radius = radius
-        pbg.dashes = dashes if dashes is not None else AtomicStructure.default_hbond_dashes
+    # a true inter-model computation should be placed in a global group, otherwise
+    # into indvidual per-structure groups
+    global_comp = inter_model and (len(structures) > 1)
+    if global_comp:
+        # global comp nukes per-structure groups it covers if intra-model also
+        if intra_model and not retain_current:
+            closures = []
+            for s in structures:
+                pbg = s.pseudobond_group(name, create_type=None)
+                if pbg:
+                    closures.append(pbg)
+            if closures:
+                session.models.close(closures)
+        hb_info = [(hbonds, session.pb_manager.get_group(name))]
     else:
-        for pb in pbg.pseudobonds:
-            pre_existing[pb.atoms] = pb
-        if dashes is not None:
-            pbg.dashes = dashes
+        per_structure = {s:[] for s in structures}
+        for hb in hbonds:
+            per_structure[hb[0].structure].append(hb)
+        hb_info = [(hbs, s.pseudobond_group(name, create_type="coordset"))
+            for s, hbs in per_structure.items()]
 
-    from chimerax.core.geometry import distance_squared
-    for don, acc in hbonds:
-        nearest = None
-        for h in [x for x in don.neighbors if x.element.number == 1]:
-            sqdist = distance_squared(h.scene_coord, acc.scene_coord)
-            if nearest is None or sqdist < nsqdist:
-                nearest = h
-                nsqdist = sqdist
-        if nearest is not None:
-            don = nearest
-        pb = pre_existing[(don,acc)] if (don,acc) in pre_existing else pbg.new_pseudobond(don, acc)
-        if two_colors:
-            if (don, acc) in precise:
-                color = bond_color
-            else:
-                color = slop_color
+    for grp_hbonds, pbg in hb_info:
+        pre_existing = {}
+        if not retain_current:
+            pbg.clear()
+            pbg.color = bond_color.uint8x4()
+            pbg.radius = radius
+            pbg.dashes = dashes if dashes is not None else AtomicStructure.default_hbond_dashes
         else:
-            color = bond_color
-        rgba = pb.color
-        rgba[:3] = color.uint8x4()[:3] # preserve transparency
-        pb.color = rgba
-        pb.radius = radius
-        if reveal:
-            for end in [don, acc]:
-                if end.display:
-                    continue
-                for ea in end.residue.atoms:
-                    ea.display = True
-    #from StructMeasure import DistMonitor
-    if show_dist:
-        from chimerax.core.errors import LimitationError
-        raise LimitationError("Showing distance on H-bonds not yet implemented")
-        #TODO
-    """
-        DistMonitor.addMonitoredGroup(pbg)
-    else:
-        DistMonitor.removeMonitoredGroup(pbg)
-        global _sceneHandlersAdded
-        if not _sceneHandlersAdded:
-            from chimera import triggers, SCENE_TOOL_SAVE, SCENE_TOOL_RESTORE
-            triggers.addHandler(SCENE_TOOL_SAVE, _sceneSave, None)
-            triggers.addHandler(SCENE_TOOL_RESTORE, _sceneRestore, None)
-            _sceneHandlersAdded = True
-    """
-    if pbg.id is None:
-        session.models.add([pbg])
+            for pb in pbg.pseudobonds:
+                pre_existing[pb.atoms] = pb
+            if dashes is not None:
+                pbg.dashes = dashes
+
+        from chimerax.core.geometry import distance_squared
+        for don, acc in grp_hbonds:
+            nearest = None
+            for h in [x for x in don.neighbors if x.element.number == 1]:
+                sqdist = distance_squared(h.scene_coord, acc.scene_coord)
+                if nearest is None or sqdist < nsqdist:
+                    nearest = h
+                    nsqdist = sqdist
+            if nearest is not None:
+                don = nearest
+            pb = pre_existing[(don,acc)] if (don,acc) in pre_existing \
+                else pbg.new_pseudobond(don, acc)
+            if two_colors:
+                if (don, acc) in precise:
+                    color = bond_color
+                else:
+                    color = slop_color
+            else:
+                color = bond_color
+            rgba = pb.color
+            rgba[:3] = color.uint8x4()[:3] # preserve transparency
+            pb.color = rgba
+            pb.radius = radius
+            if reveal:
+                for end in [don, acc]:
+                    if end.display:
+                        continue
+                    for ea in end.residue.atoms:
+                        ea.display = True
+        #from StructMeasure import DistMonitor
+        if show_dist:
+            from chimerax.core.errors import LimitationError
+            raise LimitationError("Showing distance on H-bonds not yet implemented")
+            #TODO
+        """
+            DistMonitor.addMonitoredGroup(pbg)
+        else:
+            DistMonitor.removeMonitoredGroup(pbg)
+            global _sceneHandlersAdded
+            if not _sceneHandlersAdded:
+                from chimera import triggers, SCENE_TOOL_SAVE, SCENE_TOOL_RESTORE
+                triggers.addHandler(SCENE_TOOL_SAVE, _sceneSave, None)
+                triggers.addHandler(SCENE_TOOL_RESTORE, _sceneRestore, None)
+                _sceneHandlersAdded = True
+        """
+        if pbg.id is None:
+            session.models.add([pbg])
 
 def restrict_hbonds(hbonds, atoms, restrict):
     filtered = []
