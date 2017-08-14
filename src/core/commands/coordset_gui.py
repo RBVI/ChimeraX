@@ -12,8 +12,6 @@
 from ..ui.widgets.slider import Slider
 class CoordinateSetSlider(Slider):
 
-    SESSION_SKIP = True
-
     def __init__(self, session, structure, pause_frames = 1, movie_framerate = 25,
                  steady_atoms = None, compute_ss = False):
 

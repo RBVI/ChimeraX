@@ -369,10 +369,12 @@ class Bond(State):
             return a1.__str__(style=style) + bond_sep + a2.__str__(atom_only=True, style=style)
         if a1.structure == a2.structure:
             # tautology for bonds, but this func is conscripted by pseudobonds, so test...
+            chain_str = "" if  a1.residue.chain_id == a2.residue.chain_id \
+                else '/' + a2.residue.chain_id + ' '
             res_str = a2.residue.__str__(residue_only=True)
             atom_str = a2.__str__(atom_only=True, style=style)
             joiner = "" if res_str.startswith(":") else " "
-            return a1.__str__(style=style) + bond_sep + res_str + joiner + atom_str
+            return a1.__str__(style=style) + bond_sep + chain_str + res_str + joiner + atom_str
         return a1.__str__(style=style) + bond_sep + a2.__str__(style=style)
 
     def atomspec(self):
@@ -705,8 +707,11 @@ class PseudobondManager(State):
         return pbm
 
     def reset_state(self, session):
-        f = c_function('pseudobond_global_manager_clear', args = (ctypes.c_void_p,))
-        f(self._c_pointer)
+        # Need to call delete() on the models, since just clearing out the C++
+        # will cause an error when the last reference to the Python object goes
+        # away, which causes delete() to get called
+        for pbg in list(self.group_map.values()):
+            pbg.delete()
 
     def _ses_call(self, func_qual):
         f = c_function('pseudobond_global_manager_session_' + func_qual, args=(ctypes.c_void_p,))

@@ -374,10 +374,13 @@ class BlendedImage(GrayScaleDrawing):
     GrayScaleDrawing.__init__(self, name)
 
     d = drawings[0]
+    if 'a' not in d.color_mode:
+      self.color_mode = 'rgb8'
 
     for attr in ('grid_size', 'ijk_to_xyz', 'projection_mode', 'maximum_intensity_projection',
                  'linear_interpolation', 'transparency_blend_mode', 'brightness_and_transparency_correction',
-                 'minimal_texture_memory', 'show_outline_box', 'outline_box_rgb', 'outline_box_linewidth'):
+                 'minimal_texture_memory', 'show_outline_box', 'outline_box_rgb', 'outline_box_linewidth',
+                 '_show_box_faces', '_show_ortho_planes', '_ortho_planes_position'):
       setattr(self, attr, getattr(d, attr))
 
     self.drawings = drawings
@@ -387,6 +390,13 @@ class BlendedImage(GrayScaleDrawing):
     self._rgba8_array = None
 
   def draw(self, renderer, place, draw_pass, selected_only = False):
+
+    # Mirror orthoplane and box face modes.
+    d = self.drawings[0]
+    self.show_ortho_planes = d.show_ortho_planes
+    self.ortho_planes_position = d.ortho_planes_position
+    self.show_box_faces = d.show_box_faces
+    
     self.check_update_colors()
     GrayScaleDrawing.draw(self, renderer, place, draw_pass, selected_only)
 
@@ -405,15 +415,24 @@ class BlendedImage(GrayScaleDrawing):
         p = self.rgba8_array(w,h)
         if cmode == 'rgba8':
           p[:] = dp
+        elif cmode == 'rgb8':
+          p[:,:,:3] = dp
+          p[:,:,3] = 255
         elif cmode == 'la8':
           copy_la_to_rgba(dp, d.mod_rgba, p)
+        elif cmode == 'l8':
+          copy_l_to_rgba(dp, d.mod_rgba, p)
         else:
           raise ValueError('Cannot blend with color mode %s' % cmode)
       else:
         if cmode == 'rgba8':
           blend_rgba(dp, p)
+        if cmode == 'rgb8':
+          blend_rgb_to_rgba(dp, p)
         elif cmode == 'la8':
           blend_la_to_rgba(dp, d.mod_rgba, p)
+        elif cmode == 'l8':
+          blend_l_to_rgba(dp, d.mod_rgba, p)
     return p
 
   def rgba8_array(self, w, h):
@@ -443,6 +462,27 @@ def blend_la_to_rgba(la_plane, color, rgba_plane):
   h, w = la_plane.shape[:2]
   from . import _map
   _map.blend_la_to_rgba(la_plane.reshape((w*h,2)), color, rgba_plane.reshape((w*h,4)))
+
+# ---------------------------------------------------------------------------
+#
+def copy_l_to_rgba(l_plane, color, rgba_plane):
+  h, w = l_plane.shape[:2]
+  from . import _map
+  _map.copy_l_to_rgba(l_plane.reshape((w*h,)), color, rgba_plane.reshape((w*h,4)))
+
+# ---------------------------------------------------------------------------
+#
+def blend_l_to_rgba(l_plane, color, rgba_plane):
+  h, w = l_plane.shape[:2]
+  from . import _map
+  _map.blend_l_to_rgba(l_plane.reshape((w*h,)), color, rgba_plane.reshape((w*h,4)))
+
+# ---------------------------------------------------------------------------
+#
+def blend_rgb_to_rgba(rgb, rgba):
+  h, w = rgba.shape[:2]
+  from . import _map
+  _map.blend_rgb_to_rgba(rgb.reshape((w*h,3)), rgba.reshape((w*h,4)))
 
 # ---------------------------------------------------------------------------
 #
@@ -490,8 +530,11 @@ class ImageBlendManager:
     aligned = {}
     for d in drawings:
       if d.display and d.parents_displayed and not d.maximum_intensity_projection:
-        # Need to have matching grid size, scene position and grid spacing
-        k = (tuple(d.grid_size), tuple(d.scene_position.matrix.flat), tuple(d.ijk_to_xyz.matrix.flat))
+        sortho = d._show_ortho_planes
+        orthoplanes = (sortho, tuple(d._ortho_planes_position)) if sortho else sortho
+        # Need to have matching grid size, scene position, grid spacing, box face mode, orthoplane mode
+        k = (tuple(d.grid_size), tuple(d.scene_position.matrix.flat), tuple(d.ijk_to_xyz.matrix.flat),
+             d._show_box_faces, orthoplanes)
         if k in aligned:
           aligned[k].append(d)
         else:

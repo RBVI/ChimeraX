@@ -46,12 +46,12 @@ class Model(State, Drawing):
         Set and unset by :py:class:`Models` instance.
     SESSION_ENDURING : bool, class-level optional
         If True, then model survives across sessions.
-    SESSION_SKIP : bool, class-level optional
-        If True, then model is not saved in sessions.
+    SESSION_SAVE : bool, class-level optional
+        If True, then model is saved in sessions.
     """
 
     SESSION_ENDURING = False
-    SESSION_SKIP = False
+    SESSION_SAVE = True
 
     def __init__(self, name, session):
         self._name = name
@@ -241,7 +241,7 @@ class Models(State):
         models = {}
         for id, model in self._models.items():
             assert(isinstance(model, Model))
-            if model.SESSION_SKIP:
+            if not model.SESSION_SAVE:
                 continue
             models[id] = model
         data = {'models': models,

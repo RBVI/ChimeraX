@@ -91,7 +91,7 @@ class IHMModel(Model):
             s0 = smodels[0]
             for v in em2d:
                 if hasattr(v, 'ihm_model_projections'):
-                    p = v.ihm_model_projections.get(s0.ihm_model_id)
+                    p = v.ihm_model_projections.get(s0.ihm_model_ids[0])
                     if p:
                         v.position = p
                         
@@ -390,16 +390,16 @@ class IHMModel(Model):
             gm.setdefault((gid, gname), []).append(mid)
         models = []
         for (gid, gname), mid_list in gm.items():
-            m = Model(gname, self.session)
-            m.group_id = gid
-            m.ihm_model_ids = mid_list
-            models.append(m)
-        models.sort(key = lambda m: m.group_id)
+            g = Model(gname, self.session)
+            g.group_id = gid
+            g.ihm_model_ids = mid_list
+            models.append(g)
+        models.sort(key = lambda g: g.group_id)
         return models
 
     # -----------------------------------------------------------------------------
     #
-    def make_sphere_models(self, group_models, load_ensembles = False):
+    def make_sphere_models(self, group_models, group_coordsets = True, load_ensembles = False):
         mlt = self.tables['ihm_model_list']
         ml_fields = ['model_id', 'model_name']
         ml = mlt.fields(ml_fields, allow_missing_fields = True)
@@ -423,25 +423,43 @@ class IHMModel(Model):
             r = float(radius)
             mspheres.setdefault(model_id, []).append((asym_id,sb,se,xyz,r))
 
-        smodels = [SphereModel(self.session, mnames.get(mid, 'sphere model'), mid, slist)
-                   for mid, slist in mspheres.items()]
-        smodels.sort(key = lambda m: m.ihm_model_id)
-
-        # Add sphere models to group
+        # Model id groups
         gmodel = {id:g for g in group_models for id in g.ihm_model_ids}
-        for sm in smodels:
-            g = gmodel[sm.ihm_model_id]
-            g.add([sm])
-            sm.ihm_group_id = g.group_id
 
-        # Undisplay all but first sphere model in each group
-        gfound = set()
-        for sm in smodels:
-            g = gmodel[sm.ihm_model_id]
-            if g in gfound:
-                sm.display = False
-            else:
-                gfound.add(g)
+        if group_coordsets:
+            gsm = {}	# Group sphere model table
+            for mid, slist in mspheres.items():
+                g = gmodel[mid]
+                if g in gsm:
+                    gsm[g].add_coordinates(mid, slist)
+                else:
+                    sm = SphereModel(self.session, mnames.get(mid, 'sphere model'), mid, slist)
+                    sm.ihm_group_id = g.group_id
+                    g.add([sm])
+                    gsm[g] = sm
+            smodels = list(gsm.values())
+            for sm in smodels:
+                if len(sm.ihm_model_ids) > 1:
+                    sm.name = '%d models' % len(sm.ihm_model_ids)
+        else:
+            smodels = [SphereModel(self.session, mnames.get(mid, 'sphere model'), mid, slist)
+                       for mid, slist in mspheres.items()]
+            smodels.sort(key = lambda m: m.ihm_model_ids[0])
+
+            # Add sphere models to group
+            for sm in smodels:
+                g = gmodel[sm.ihm_model_ids[0]]
+                g.add([sm])
+                sm.ihm_group_id = g.group_id
+
+            # Undisplay all but first sphere model in each group
+            gfound = set()
+            for sm in smodels:
+                gid = sm.ihm_group_id
+                if gid in gfound:
+                    sm.display = False
+                else:
+                    gfound.add(gid)
 
         # Open ensemble sphere models that are not included in ihm sphere obj table.
         emodels = []
@@ -523,7 +541,7 @@ class IHMModel(Model):
         # Create cross links for sphere models
         for i,smodel in enumerate(smodels):
             pbgs = make_crosslink_pseudobonds(self.session, xlinks, smodel.residue_sphere,
-                                              name = smodel.ihm_model_id,
+                                              name = smodel.ihm_group_id,
                                               parent = smodel)
             if i == 0:
                 # Show only multi-residue spheres and crosslink end-point spheres
@@ -534,10 +552,6 @@ class IHMModel(Model):
                     a1,a2 = pbg.pseudobonds.atoms
                     a1.displays = True
                     a2.displays = True
-            else:
-                # Hide crosslinks for all but first sphere model
-                for pbg in pbgs:
-                    pbg.display = False
             xpbgs.extend(pbgs)
 
         if emodels and smodels:
@@ -1006,8 +1020,8 @@ def make_crosslink_pseudobonds(session, xlinks, atom_lookup,
             elif a2 is None:
                 missing.append((xl.asym2, xl.seq2))
         if missing:
-            session.logger.info('Missing %d crosslink residues %s'
-                                % (len(missing), ','.join('/%s:%d' for asym_id, seq_num in missing)))
+            smiss = ','.join('/%s:%d' % (asym_id, seq_num) for asym_id, seq_num in missing)
+            session.logger.info('Missing %d crosslink residues %s' % (len(missing), smiss))
                 
     return pbgs
 
@@ -1354,14 +1368,16 @@ from chimerax.core.atomic import Structure
 class SphereModel(Structure):
     def __init__(self, session, name, ihm_model_id, sphere_list):
         Structure.__init__(self, session, name = name, auto_style = False)
-        self.ihm_model_id = ihm_model_id
+        self.ihm_model_ids = [ihm_model_id]
         self.ihm_group_id = None
         
         self._asym_models = {}
         self._sphere_atom = sa = {}	# (asym_id, res_num) -> sphere atom
+        self._sphere_ids = sids = []
         
         from chimerax.core.atomic.colors import chain_rgba8
         for (asym_id, sb,se,xyz,r) in sphere_list:
+            sids.append((asym_id, sb, se))
             aname = 'CA'
             a = self.new_atom(aname, 'C')
             a.coord = xyz
@@ -1389,3 +1405,22 @@ class SphereModel(Structure):
     
     def residue_sphere(self, asym_id, res_num):
         return self._sphere_atom.get((asym_id,res_num))
+
+    def add_coordinates(self, model_id, sphere_list):
+        self.ihm_model_ids.append(model_id)
+        sids = [(asym_id,sb,se) for (asym_id, sb,se,xyz,r) in sphere_list]
+        if sids != self._sphere_ids:
+            mismatch = ''
+            for i in range(len(sids)):
+                if sids[i] != self._sphere_ids[i]:
+                    mismatch = '%s and %s' % (self._sphere_ids[i], sids[i])
+                    break
+            raise ValueError("Can't use coordinate sets for models %s and %s in group %s"
+                             % (model_id, self.ihm_model_ids[-1], self.ihm_group_id) +
+                             "because the sphere asym_id and begin end residues don't match " + mismatch)
+                             
+        from numpy import array, float64
+        cxyz = array(tuple(xyz for (asym_id, sb,se,xyz,r) in sphere_list), float64)
+        id = len(self.ihm_model_ids)
+        self.add_coordset(id, cxyz)
+        # TODO: Sphere radius values which may differ from one coordinate set to another.

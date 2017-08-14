@@ -17,8 +17,6 @@ from chimerax.core.ui.widgets.slider import Slider
 #
 class ResidueFit(Slider):
 
-    SESSION_SKIP = True
-
     def __init__(self, session, tool_name, residues, map, residue_range = (-2,1),
                  pause_frames = 50, motion_frames = 50, movie_framerate = 25):
 

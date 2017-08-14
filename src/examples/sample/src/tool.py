@@ -7,7 +7,7 @@ from chimerax.core.logger import PlainTextLog
 class SampleTool(ToolInstance):
 
     SESSION_ENDURING = False
-    SESSION_SKIP = True         # No session saving for now
+    SESSION_SAVE = False         # No session saving for now
     CUSTOM_SCHEME = "sample"    # HTML scheme for custom links
     display_name = "Sample Tool"
 

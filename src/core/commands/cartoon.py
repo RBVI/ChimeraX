@@ -143,7 +143,8 @@ def cartoon_tether(session, structures=None, scale=None, shape=None, sides=None,
 def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, arrows_helix=None,
                   arrow_scale=None, xsection=None, sides=None,
                   bar_scale=None, bar_sides=None, ss_ends=None,
-                  mode_helix=None, mode_strand=None, radius=None):
+                  mode_helix=None, mode_strand=None, radius=None,
+                  spline_normals=None):
     '''Set cartoon style options for secondary structures in specified structures.
 
     Parameters
@@ -190,7 +191,7 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
         arrows_helix is None and arrow_scale is None and xsection is None and
         sides is None and bar_scale is None and bar_sides is None and
         ss_ends is None and mode_helix is None and mode_strand is None and
-        radius is None):
+        radius is None and spline_normals is None):
         # No options, report current state and return
         indent = "  -"
         for m in structures:
@@ -464,6 +465,9 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
             radius = None
         for m in structures:
             m.ribbon_xs_mgr.set_tube_radius(radius)
+    if spline_normals is not None:
+        for m in structures:
+            m.spline_normals = spline_normals
 
 
 def uncartoon(session, atoms=None):
@@ -533,8 +537,9 @@ def register_command(session):
                             ("mode_helix", EnumOf(list(_ModeHelixMap.keys()))),
                             ("mode_strand", EnumOf(list(_ModeStrandMap.keys()))),
                             ("radius", Or(FloatArg, EnumOf(["auto"]))),
+                            ("spline_normals", BoolArg),
                             ],
-                   hidden=["ss_ends", "mode_strand"],
+                   hidden=["ss_ends", "mode_strand", "spline_nromals"],
                    synopsis='set cartoon style for secondary structures in specified models')
     register("cartoon style", desc, cartoon_style, logger=session.logger)
     desc = CmdDesc(optional=[("atoms", AtomSpecArg)],

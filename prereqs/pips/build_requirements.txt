@@ -14,7 +14,6 @@ Jinja2==2.9.5
 line_profiler==2.0
 markupsafe==0.23
 mccabe==0.6.1
-msgpack-python==0.4.8
 numpydoc==0.6.0
 pep8==1.7.0
 pep8-naming==0.4.1
