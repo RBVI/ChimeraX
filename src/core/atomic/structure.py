@@ -657,7 +657,7 @@ class Structure(Model, StructureData):
             any_ribbon = True
             ribbon = Ribbon(coords, guides, self.ribbon_orients(residues),
                             self._use_spline_normals)
-            #self._show_normal_spline(p, coords, ribbon)
+            # self._show_normal_spline(p, coords, ribbon)
             v_start = 0         # for tracking starting vertex index for each residue
             t_start = 0         # for tracking starting triangle index for each residue
             vertex_list = []
@@ -735,7 +735,9 @@ class Structure(Model, StructureData):
                     # Show as ribbon
                     seg = capped and seg_cap or seg_blend
                     mid_cap = not self.ribbon_xs_mgr.is_compatible(xs_front[i], xs_back[i])
-                    front_c, front_t, front_n = ribbon.segment(i - 1, ribbon.BACK, seg, mid_cap, last=mid_cap)
+                    #print(residues[i], mid_cap, need_twist[i])
+                    front_c, front_t, front_n = ribbon.segment(i - 1, ribbon.BACK, seg,
+                                                               mid_cap or not need_twist[i], last=mid_cap)
                     if self.ribbon_show_spine:
                         spine_colors, spine_xyz1, spine_xyz2 = self._ribbon_update_spine(colors[i],
                                                                                          front_c, front_n,
@@ -875,36 +877,45 @@ class Structure(Model, StructureData):
         self.residues.ribbon_selected = False
 
     def _show_normal_spline(self, p, coords, ribbon):
+        # Normal spline can be shown as spheres on either side (S)
+        # or a cylinder across (C)
         num_coords = len(coords)
-        from scipy.interpolate import make_interp_spline
-        from numpy import linspace
-        x = linspace(0.0, num_coords, num=num_coords, endpoint=False)
-        y = coords + ribbon.normals
-        spline = make_interp_spline(x, y)
-        sp = p.new_drawing(str(self) + " control points")
+        try:
+            spline = ribbon.normal_spline
+            other_spline = ribbon.other_normal_spline
+        except AttributeError:
+            return
+        sp = p.new_drawing(str(self) + " normal spline")
         from .. import surface
-        va, na, ta = surface.sphere_geometry(20)
+        from numpy import empty, array, float32, linspace
+        from ..geometry import Places
+        num_pts = num_coords*self._level_of_detail._ribbon_divisions
+        #S
+        #S va, na, ta = surface.sphere_geometry(20)
+        #S xyzr = empty((num_pts*2, 4), float32)
+        #S t = linspace(0.0, num_coords, num=num_pts, endpoint=False)
+        #S xyzr[:num_pts, :3] = [spline(i) for i in t]
+        #S xyzr[num_pts:, :3] = [other_spline(i) for i in t]
+        #S xyzr[:, 3] = 0.2
+        #S sp.positions = Places(shift_and_scale=xyzr)
+        #S sp_colors = empty((len(xyzr), 4), dtype=float32)
+        #S sp_colors[:num_pts] = (255, 0, 0, 255)
+        #S sp_colors[num_pts:] = (0, 255, 0, 255)
+        #S
+        #C
+        va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=True)
+        radii = empty(num_pts, dtype=float32)
+        radii.fill(0.2)
+        t = linspace(0.0, num_coords, num=num_pts, endpoint=False)
+        xyz1 = array([spline(i) for i in t], dtype=float32)
+        xyz2 = array([other_spline(i) for i in t], dtype=float32)
         sp.geometry = va, ta
         sp.normals = na
-        from numpy import empty, float32
-        pts_per_res = 6
-        num_pts = num_coords*pts_per_res
-        #num_pts = num_coords
-        xyzr = empty((num_pts, 4), float32)
-        #xyzr[:, :3] = coords + ribbon.normals
-        xyzr[:, :3] = [spline(i) for i in linspace(0.0, num_coords, num=num_pts, endpoint=False)]
-        xyzr[:, 3] = 0.4
-        from ..geometry import Places
-        sp.positions = Places(shift_and_scale=xyzr)
-        sp_colors = empty((len(coords), 4), float)
+        sp.positions = _tether_placements(xyz1, xyz2, radii, self.TETHER_CYLINDER)
+        sp_colors = empty((len(xyz1), 4), dtype=float32)
         sp_colors[:] = (255, 0, 0, 255)
-        #sp_colors[ribbon.flipped] = (0, 255, 0, 255)
-        for i in range(num_coords):
-            if ribbon.flipped[i]:
-                start = i * pts_per_res
-                stop = start + pts_per_res
-                sp_colors[start:stop] = (0, 255, 0, 255)
         sp.colors = sp_colors
+        #C
 
     def _smooth_ribbon(self, rlist, coords, guides, atoms, ssids, tethered,
                        xs_front, xs_back, p, helix_ranges, sheet_ranges):
