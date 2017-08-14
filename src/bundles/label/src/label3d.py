@@ -113,8 +113,6 @@ def label_delete(session, objects = None, object_type = None):
             lm = labels_model(m)
             if lm is not None:
                 lm.delete_labels(lbl_objects)
-                if lm.label_count() == 0:
-                    session.models.close([lm])
 
 # -----------------------------------------------------------------------------
 #
