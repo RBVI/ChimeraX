@@ -3379,6 +3379,24 @@ extern "C" EXPORT void structure_num_bonds(void *mols, size_t n, size_t *nbonds)
     error_wrap_array_get(m, n, &Structure::num_bonds, nbonds);
 }
 
+extern "C" EXPORT void structure_num_bonds_visible(void *mols, size_t n, size_t *nbonds)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    try {
+        for (size_t i = 0; i != n; ++i)
+          {
+            const Structure::Bonds &bonds = m[i]->bonds();
+            int c = 0;
+            for (auto b: bonds)
+              if (b->shown())
+                c += 1;
+            nbonds[i] = c;
+          }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void structure_bonds(void *mols, size_t n, pyobject_t *bonds)
 {
     Structure **m = static_cast<Structure **>(mols);
