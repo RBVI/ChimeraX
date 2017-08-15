@@ -1488,6 +1488,8 @@ class StructureData:
     '''Number of visible atoms in structure. Read only.'''
     num_bonds = c_property('structure_num_bonds', size_t, read_only = True)
     '''Number of bonds in structure. Read only.'''
+    num_bonds_visible = c_property('structure_num_bonds_visible', size_t, read_only = True)
+    '''Number of visible bonds in structure. Read only.'''
     num_coordsets = c_property('structure_num_coordsets', size_t, read_only = True)
     '''Number of coordinate sets in structure. Read only.'''
     num_chains = c_property('structure_num_chains', size_t, read_only = True)
