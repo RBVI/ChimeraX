@@ -1,0 +1,77 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: setattr</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: setattr</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>setattr</b>
+&nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
+&nbsp;<i>level</i> &nbsp;<i>attr_name</i>&nbsp; &nbsp;<i>value</i>&nbsp;
+[&nbsp;<b>create</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+</h3>
+<p>
+<b>Setattr</b> is a general, multipurpose attribute-setting command.
+It sets an attribute (existing or new)
+of the <a href="atomspec.html">specified</a> items 
+at the indicated <i>level</i> to a single user-supplied value.
+The attribute may remain multi-valued, however, 
+as only a subset of the items may have been specified.
+A new attribute will not be created unless <b>create</b> is true 
+(default <b>false</b>).
+</p><p>
+Although <b>setattr</b> does not restrict which attributes it can affect,
+using it for certain attributes may not make sense.
+In some cases, another command already exists to perform the same task.
+For example, the following are equivalent:
+<blockquote>
+<b>setattr /a res ribbon_color orange</b>
+<br>
+<a href="color.html"><b>color</b></a> <b>/a orange targ r</b>
+</blockquote>
+<!--
+It is possible, however, to set an attribute that is also used
+in the <a href="atomspec.html"><i>atom-spec</i></a>
+because the specification will be
+evaluated before the attribute value is changed.
+-->
+</p><p>
+The <i>level</i> can be any one of the following, with truncations allowed:
+<ul>
+<li><b>atoms</b>
+<li><b>residues</b>
+<li><b>chains</b>
+<li><b>bonds</b>
+<li><b>pseudobonds</b>
+- individual <a href="../pseudobonds.html">pseudobonds</a>
+<li><b>structures</b> - atomic models
+<li><b>surfaces</b> - surface models
+<li><b>groups</b> - <a href="../pseudobonds.html">pseudobond models</a>
+<li><b>models</b> - models of all applicable types
+</ul>
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+August 2017</address>
+</body></html>
