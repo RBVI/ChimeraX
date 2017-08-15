@@ -50,6 +50,7 @@ static struct PyMethodDef geometry_cpp_methods[] =
 
   /* cylinderrot.h */
   {const_cast<char*>("cylinder_rotations"), (PyCFunction)cylinder_rotations, METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("half_cylinder_rotations"), (PyCFunction)half_cylinder_rotations, METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("cylinder_rotations_x3d"), (PyCFunction)cylinder_rotations_x3d, METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* distancepy.h */
