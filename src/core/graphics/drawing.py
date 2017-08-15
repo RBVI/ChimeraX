@@ -428,7 +428,7 @@ class Drawing:
         if len(self._colors) != np:
             from numpy import empty, uint8
             c = empty((np, 4), uint8)
-            c[:,:] = self._colors[0,:]
+            c[:,:] = self._colors[0,:] if len(self._colors) > 0 else 255
             self._colors = c
         self.redraw_needed(shape_changed=True)
 
