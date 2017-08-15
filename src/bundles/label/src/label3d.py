@@ -79,10 +79,10 @@ def label(session, objects = None, object_type = None, text = None,
         else:
             mo = objects_by_model(objects, otype)
         object_class = label_object_class(otype)
-        for m, objects in mo:
+        for m, mobjects in mo:
             lm = labels_model(m, create = True)
-            lm.add_labels(objects, object_class, view, settings, on_top)
-            lcount += len(objects)
+            lm.add_labels(mobjects, object_class, view, settings, on_top)
+            lcount += len(mobjects)
     if objects is None and lcount == 0:
         from chimerax.core.errors import UserError
         raise UserError('Label command requires an atom specifier to create labels.')
