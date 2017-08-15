@@ -55,7 +55,7 @@ class Residue;
 class Rgba;
 
     
-class ATOMSTRUCT_IMEX GraphicsContainer {
+class ATOMSTRUCT_IMEX GraphicsChanges {
 private:
     int _gc_changes;
     
@@ -65,20 +65,20 @@ public:
       COLOR_CHANGE = (1 << 1),
       SELECT_CHANGE = (1 << 2),
       RIBBON_CHANGE = (1 << 3),
+      ADDDEL_CHANGE = (1 << 4),
+      DISPLAY_CHANGE = (1 << 5),
     };
 
-    GraphicsContainer(): _gc_changes(0) {}
-    virtual  ~GraphicsContainer() {}
+    GraphicsChanges(): _gc_changes(0) {}
+    virtual  ~GraphicsChanges() {}
     virtual void  gc_clear() { _gc_changes = 0; }
-    virtual bool  get_gc_color() const { return _gc_changes & COLOR_CHANGE; }
-    virtual bool  get_gc_select() const { return _gc_changes & SELECT_CHANGE; }
-    virtual bool  get_gc_shape() const { return _gc_changes & SHAPE_CHANGE; }
-    virtual bool  get_gc_ribbon() const { return _gc_changes & RIBBON_CHANGE; }
     virtual int   get_graphics_changes() const { return _gc_changes; }
     virtual void  set_gc_color() { set_graphics_change(COLOR_CHANGE); }
     virtual void  set_gc_select() { set_graphics_change(SELECT_CHANGE); }
     virtual void  set_gc_shape() { set_graphics_change(SHAPE_CHANGE); }
     virtual void  set_gc_ribbon() { set_graphics_change(RIBBON_CHANGE); }
+    virtual void  set_gc_adddel() { set_graphics_change(ADDDEL_CHANGE); }
+    virtual void  set_gc_display() { set_graphics_change(DISPLAY_CHANGE); }
     virtual void  set_graphics_changes(int change) { _gc_changes = change; }
     virtual void  set_graphics_change(ChangeType type) { _gc_changes |= type; }
     virtual void  clear_graphics_change(ChangeType type) { _gc_changes &= ~type; }
@@ -89,7 +89,7 @@ public:
 // add any) so that they can be treated identically in the Python
 // layer.  Some atomic-structure-specific methods will have no-op
 // implementations in Structure and real implementations in AtomicStructure.
-class ATOMSTRUCT_IMEX Structure: public GraphicsContainer, public PythonInstance {
+class ATOMSTRUCT_IMEX Structure: public GraphicsChanges, public PythonInstance {
     friend class Atom; // for IDATM stuff and structure categories
     friend class Bond; // for checking if make_chains() has been run yet, struct categories
     friend class Residue; // for _polymers_computed
@@ -150,8 +150,8 @@ protected:
     bool  _ss_assigned;
     mutable bool  _structure_cats_dirty;
 
-    void  add_bond(Bond* b) { _bonds.emplace_back(b); }
-    void  add_atom(Atom* a) { _atoms.emplace_back(a); }
+    void  add_bond(Bond* b) { _bonds.emplace_back(b); set_gc_shape(); set_gc_adddel(); }
+    void  add_atom(Atom* a) { _atoms.emplace_back(a); set_gc_shape(); set_gc_adddel(); }
     void  _calculate_rings(bool cross_residue, unsigned int all_size_threshold,
             std::set<const Residue *>* ignore) const;
     virtual void  _compute_atom_types() {}

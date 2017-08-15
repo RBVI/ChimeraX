@@ -683,6 +683,18 @@ class Bonds(Collection):
         f = c_function('bond_half_colors', args = [ctypes.c_void_p, ctypes.c_size_t], ret = ctypes.py_object)
         return f(self._c_pointers, len(self))
 
+    def halfbond_cylinder_placements(self, opengl_array = None):
+        '''Return Places for halfbond cylinders specified by 2N 4x4 float matrices.'''
+        n = len(self)
+        if opengl_array is None or len(opengl_array) != 2*n:
+            from numpy import empty, float32
+            opengl_array = empty((2*n,4,4), float32)
+        f = c_function('bond_halfbond_cylinder_placements',
+                       args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p])
+        f(self._c_pointers, n, pointer(opengl_array))
+        from ..geometry import Places
+        return Places(opengl_array = opengl_array)
+        
     @classmethod
     def session_restore_pointers(cls, session, data):
         structures, bond_ids = data

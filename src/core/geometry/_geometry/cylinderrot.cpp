@@ -111,6 +111,96 @@ PyObject *cylinder_rotations(PyObject *, PyObject *args, PyObject *keywds)
 
 // -----------------------------------------------------------------------------
 //
+static void half_cylinder_rotations(float *axyz0, float *axyz1, int n, float *radii,
+				    float *rot44)
+{
+  float *rot44b = rot44 + 16*n;
+  for (int i = 0 ; i < n ; ++i)
+    {
+      float x0 = *axyz0++, x1 = *axyz1++;
+      float y0 = *axyz0++, y1 = *axyz1++;
+      float z0 = *axyz0++, z1 = *axyz1++;
+      float vx = x1-x0, vy = y1-y0, vz = z1-z0;
+      float d = sqrtf(vx*vx + vy*vy + vz*vz);
+      if (d == 0)
+	{ vx = vy = 0 ; vz = 1; }
+      else
+	{ vx /= d; vy /= d; vz /= d; }
+
+      float c = vz, c1;
+      if (c <= -1)
+	c1 = 0;       // Degenerate -z axis case.
+      else
+	c1 = 1.0/(1+c);
+
+      float wx = -vy, wy = vx;
+      float cx = c1*wx, cy = c1*wy;
+      float r = *radii++;
+      float h = d;
+
+      *rot44++ = *rot44b++ = r*(cx*wx + c);
+      *rot44++ = *rot44b++ = r*cy*wx;
+      *rot44++ = *rot44b++ = -r*wy;
+      *rot44++ = *rot44b++ = 0;
+
+      *rot44++ = *rot44b++ = r*cx*wy;
+      *rot44++ = *rot44b++ = r*(cy*wy + c);
+      *rot44++ = *rot44b++ = r*wx;
+      *rot44++ = *rot44b++ = 0;
+
+      *rot44++ = *rot44b++ = h*wy;
+      *rot44++ = *rot44b++ = -h*wx;
+      *rot44++ = *rot44b++ = h*c;
+      *rot44++ = *rot44b++ = 0;
+
+      *rot44++ = .75*x0 + .25*x1;
+      *rot44++ = .75*y0 + .25*y1;
+      *rot44++ = .75*z0 + .25*z1;
+      *rot44++ = 1;
+
+      *rot44b++ = .25*x0 + .75*x1;
+      *rot44b++ = .25*y0 + .75*y1;
+      *rot44b++ = .25*z0 + .75*z1;
+      *rot44b++ = 1;
+    }
+}
+
+// -----------------------------------------------------------------------------
+//
+extern "C"
+PyObject *half_cylinder_rotations(PyObject *, PyObject *args, PyObject *keywds)
+{
+  FArray xyz0, xyz1, radii, rot44;
+  const char *kwlist[] = {"xyz0", "xyz1", "radii", "rot44", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&O&O&"),
+				   (char **)kwlist,
+				   parse_float_n3_array, &xyz0,
+				   parse_float_n3_array, &xyz1,
+				   parse_float_n_array, &radii,
+				   parse_writable_float_3d_array, &rot44))
+    return NULL;
+
+  int n = xyz0.size(0);
+  if (xyz1.size(0) != n || radii.size(0) != n)
+    return PyErr_Format(PyExc_ValueError,
+			"Cylinder end-point and radii arrays must have same size, got %d and %d",
+			n, xyz1.size(0), radii.size(0));
+  if (rot44.size(0) != 2*n || rot44.size(1) != 4 || rot44.size(2) != 4)
+    return PyErr_Format(PyExc_ValueError,
+			"Cylinder rotations wrong size, got %d %d %d, expected %d 4 4",
+			rot44.size(0), rot44.size(1), rot44.size(2), 2*n);
+  if (!xyz0.is_contiguous() || !xyz1.is_contiguous() || !radii.is_contiguous()
+      || !rot44.is_contiguous())
+    return PyErr_Format(PyExc_ValueError,
+			"Cylinder end point, radii or rotation array not contiguous.");
+
+  half_cylinder_rotations(xyz0.values(), xyz1.values(), n, radii.values(), rot44.values());
+
+  return python_none();
+}
+
+// -----------------------------------------------------------------------------
+//
 static void cylinder_rotations_x3d(float *axyz0, float *axyz1, int n,
                                    float *radii, float *info)
 {

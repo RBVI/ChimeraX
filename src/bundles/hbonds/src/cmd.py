@@ -131,7 +131,14 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
 
     # a true inter-model computation should be placed in a global group, otherwise
     # into indvidual per-structure groups
-    global_comp = (inter_model or inter_submodel) and (len(structures) > 1)
+    submodels = False
+    m_ids = set()
+    for s in structures:
+        m_id = s.id[:-1] if len(s.id) > 1 else s.id
+        if m_id in m_ids:
+            submodels = True
+        m_ids.add(m_id)
+    global_comp = (inter_model and len(m_ids) > 1) or (submodels and inter_submodel)
     if global_comp:
         # global comp nukes per-structure groups it covers if intra-model also
         if intra_model and not retain_current:
@@ -296,8 +303,13 @@ def _file_output(file_name, output_info, naming_style):
 
 def cmd_xhbonds(session, name="hydrogen bonds"):
     pbg = session.pb_manager.get_group(name, create=False)
-    if pbg:
-        session.models.close([pbg])
+    pbgs = [pbg] if pbg else []
+    for s in [m for m in session.models if isinstance(m, AtomicStructure)]:
+        pbg = s.pseudobond_group(name, create_type=None)
+        if pbg:
+            pbgs.append(pbg)
+    if pbgs:
+        session.models.close(pbgs)
 
 def salt_preprocess(hbonds):
     donors = set()

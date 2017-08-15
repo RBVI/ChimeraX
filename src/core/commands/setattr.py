@@ -38,8 +38,10 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False):
     from ..errors import UserError
     if "atoms".startswith(target):
         items = atoms
+        target = "atoms"
     elif "residues".startswith(target):
         items = atoms.unique_residues
+        target = "residues"
     elif "chains".startswith(target):
         items = atoms.residues.unique_chains
     elif "structures".startswith(target):
@@ -47,17 +49,40 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False):
             raise UserError("Must provide enough attribute-target characters to distinguish"
                 " 'structures' from 'surfaces'")
         items = atoms.unique_structures
+        target = "structures"
     elif "models".startswith(target):
         items = objects.models
+        target = "models"
     elif "bonds".startswith(target):
         items = atoms.intra_bonds
     elif "pseudobonds".startswith(target):
-        items = atoms.intra_pseudobonds
+        if atoms:
+            items = atoms.intra_pseudobonds
+        else:
+            pb_grps = []
+            from ..atomic import PseudobondGroup, concatenate
+            for m in objects.models:
+                if isinstance(m, PseudobondGroup):
+                    pb_grps.append(m)
+            if pb_grps:
+                items = concatenate([g.pseudobonds for g in pb_grps])
+            else:
+                items = None
+        target = "pseudobonds"
     elif "groups".startswith(target):
-        items = atoms.intra_pseudobonds.unique_groups
+        if atoms:
+            items = atoms.intra_pseudobonds.unique_groups
+        else:
+            items = []
+            from ..atomic import PseudobondGroup, concatenate
+            for m in objects.models:
+                if isinstance(m, PseudobondGroup):
+                    items.append(m)
+        target = "groups"
     elif "surfaces".startswith(target):
         from . import MolecularSurface
         items = [m for m in objects.models if isinstance(m, MolecularSurface)]
+        target = "surfaces"
     else:
         raise UserError("Unknown attribute target: '%s'" % target)
     if not items:
