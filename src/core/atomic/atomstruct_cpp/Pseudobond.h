@@ -33,7 +33,7 @@ namespace atomstruct {
 
 class Atom;
 class ChangeTracker;
-class GraphicsContainer;
+class GraphicsChanges;
 class PBGroup;
 
 class ATOMSTRUCT_IMEX Pseudobond: public Connection, public PythonInstance
@@ -62,7 +62,7 @@ protected:
         { return "Atom given to other_end() not in pseudobond!"; }
 public:
     ChangeTracker*  change_tracker() const;
-    GraphicsContainer*  graphics_container() const;
+    GraphicsChanges*  graphics_changes() const;
     PBGroup*  group() const { return _group; }
     bool shown() const
     { return (visible() &&

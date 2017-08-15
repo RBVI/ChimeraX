@@ -25,8 +25,8 @@ namespace atomstruct {
 ChangeTracker*
 Pseudobond::change_tracker() const { return atoms()[0]->change_tracker(); }
 
-GraphicsContainer*
-Pseudobond::graphics_container() const { return static_cast<GraphicsContainer*>(group()); }
+GraphicsChanges*
+Pseudobond::graphics_changes() const { return static_cast<GraphicsChanges*>(group()); }
 
 void
 Pseudobond::session_restore(int version, int** ints, float** floats) {
