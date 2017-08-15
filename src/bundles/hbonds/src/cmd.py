@@ -134,7 +134,7 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
     submodels = False
     m_ids = set()
     for s in structures:
-        m_id = s.id[:-1]
+        m_id = s.id[:-1] if len(s.id) > 1 else s.id
         if m_id in m_ids:
             submodels = True
         m_ids.add(m_id)
