@@ -1221,6 +1221,65 @@ extern "C" EXPORT void *bond_other_atom(void *bond, void *atom)
     return oa;
 }
 
+extern "C" EXPORT void bond_halfbond_cylinder_placements(void *bonds, size_t n, float32_t *m44)
+{
+    Bond **b = static_cast<Bond **>(bonds);
+    try {
+      float32_t *m44b = m44 + 16*n;
+      for (size_t i = 0; i != n; ++i) {
+	Bond *bd = b[i];
+	Atom *a0 = bd->atoms()[0], *a1 = bd->atoms()[1];
+	const Coord &xyz0 = a0->coord(), &xyz1 = a1->coord();
+	float r = bd->radius();
+
+	float x0 = xyz0[0], y0 = xyz0[1], z0 = xyz0[2], x1 = xyz1[0], y1 = xyz1[1], z1 = xyz1[2];
+	float vx = x1-x0, vy = y1-y0, vz = z1-z0;
+	float d = sqrtf(vx*vx + vy*vy + vz*vz);
+	if (d == 0)
+	  { vx = vy = 0 ; vz = 1; }
+	else
+	  { vx /= d; vy /= d; vz /= d; }
+
+	float c = vz, c1;
+	if (c <= -1)
+	  c1 = 0;       // Degenerate -z axis case.
+	else
+	  c1 = 1.0/(1+c);
+
+	float wx = -vy, wy = vx;
+	float cx = c1*wx, cy = c1*wy;
+	float h = d;
+
+	*m44++ = *m44b++ = r*(cx*wx + c);
+	*m44++ = *m44b++ = r*cy*wx;
+	*m44++ = *m44b++ = -r*wy;
+	*m44++ = *m44b++ = 0;
+
+	*m44++ = *m44b++ = r*cx*wy;
+	*m44++ = *m44b++ = r*(cy*wy + c);
+	*m44++ = *m44b++ = r*wx;
+	*m44++ = *m44b++ = 0;
+
+	*m44++ = *m44b++ = h*wy;
+	*m44++ = *m44b++ = -h*wx;
+	*m44++ = *m44b++ = h*c;
+	*m44++ = *m44b++ = 0;
+
+	*m44++ = .75*x0 + .25*x1;
+	*m44++ = .75*y0 + .25*y1;
+	*m44++ = .75*z0 + .25*z1;
+	*m44++ = 1;
+
+	*m44b++ = .25*x0 + .75*x1;
+	*m44b++ = .25*y0 + .75*y1;
+	*m44b++ = .25*z0 + .75*z1;
+	*m44b++ = 1;
+      }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 // -------------------------------------------------------------------------
 // pseudobond functions
 //
