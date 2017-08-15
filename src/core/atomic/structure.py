@@ -48,7 +48,9 @@ class Structure(Model, StructureData):
 
         # for now, restore attrs to default initial values even for sessions...
         self._atoms_drawing = None
+        self._visible_atoms = None	# Only visible atoms included in Drawing
         self._bonds_drawing = None
+        self._visible_bonds = None	# Only visible bonds included in Drawing
         self._cached_atom_bounds = None
         self._atom_bounds_needs_update = True
         self._ribbon_drawing = None
@@ -330,7 +332,7 @@ class Structure(Model, StructureData):
         self._update_ribbon_graphics()
 
     def _update_atom_graphics(self, changes = StructureData._ALL_CHANGE):
-        atoms = self.atoms  # optimzation, avoid making new numpy array from C++
+
         p = self._atoms_drawing
         if p is None:
             changes = self._ALL_CHANGE
@@ -339,9 +341,15 @@ class Structure(Model, StructureData):
             # Update level of detail of spheres
             self._level_of_detail.set_atom_sphere_geometry(p)
 
-        if changes & self._ADDDEL_CHANGE:
+        if changes & (self._ADDDEL_CHANGE | self._DISPLAY_CHANGE):
             changes |= self._ALL_CHANGE
-            
+
+        if changes & self._DISPLAY_CHANGE:
+            all_atoms = self.atoms
+            self._visible_atoms = all_atoms[all_atoms.visibles]
+
+        atoms = self._visible_atoms
+        
         if changes & self._SHAPE_CHANGE:
             # Set instanced sphere center position and radius
             n = len(atoms)
@@ -353,8 +361,8 @@ class Structure(Model, StructureData):
             from ..geometry import Places
             p.positions = Places(shift_and_scale=xyzr)
 
-        if changes & self._DISPLAY_CHANGE:
-            p.display_positions = atoms.visibles
+#        if changes & self._DISPLAY_CHANGE:
+#            p.display_positions = atoms.visibles
 
         if changes & self._COLOR_CHANGE:
             # Set atom colors
@@ -367,10 +375,12 @@ class Structure(Model, StructureData):
     def _custom_atom_x3d(self, stream, x3d_scene, indent, place):
         from numpy import empty, float32
         p = self._atoms_drawing
-        atoms = self.atoms
+        atoms = self._visible_atoms
+        if atoms is None:
+            return
         radii = self._atom_display_radii(atoms)
         tab = ' ' * indent
-        for v, xyz, r, c in zip(p.display_positions, atoms.coords, radii, p.colors):
+        for xyz, r, c in zip(atoms.coords, radii, p.colors):
             if not v:
                 continue
             print('%s<Transform translation="%g %g %g">' % (tab, xyz[0], xyz[1], xyz[2]), file=stream)
@@ -384,10 +394,10 @@ class Structure(Model, StructureData):
         return atoms.display_radii(self.ball_scale, self.bond_radius)
     
     def _update_bond_graphics(self, changes = StructureData._ALL_CHANGE):
-        bonds = self.bonds  # optimzation, avoid making new numpy array from C++
+
         p = self._bonds_drawing
         if p is None:
-            if bonds.num_shown == 0:
+            if self.num_bonds_visible == 0:
                 return
             changes = self._ALL_CHANGE
             self._bonds_drawing = p = self.new_drawing('bonds')
@@ -395,28 +405,34 @@ class Structure(Model, StructureData):
             # Update level of detail of cylinders
             self._level_of_detail.set_bond_cylinder_geometry(p)
 
-        if changes & self._ADDDEL_CHANGE:
+        if changes & (self._ADDDEL_CHANGE | self._DISPLAY_CHANGE):
             changes |= self._ALL_CHANGE
+
+        if changes & self._DISPLAY_CHANGE:
+            all_bonds = self.bonds
+            self._visible_bonds = all_bonds[all_bonds.showns]
+
+        bonds = self._visible_bonds
 
         if changes & self._SHAPE_CHANGE:
             p.positions = bonds.halfbond_cylinder_placements(p.positions.opengl_matrices())
-        if changes & self._DISPLAY_CHANGE:
-            p.display_positions = _shown_bond_cylinders(bonds)
+            
         if changes & self._COLOR_CHANGE:
             p.colors = bonds.half_colors
+            
         if changes & self._SELECT_CHANGE:
             p.selected_positions = _selected_bond_cylinders(bonds.atoms)
 
     def _custom_bond_x3d(self, stream, x3d_scene, indent, place):
         from numpy import empty, float32
         p = self._bonds_drawing
-        bonds = self.bonds
+        bonds = self._visible_bonds
+        if bonds is None:
+            return
         ba1, ba2 = bonds.atoms
         cyl_info = _halfbond_cylinder_x3d(ba1.coords, ba2.coords, bonds.radii)
         tab = ' ' * indent
-        for v, ci, c in zip(p.display_positions, cyl_info, p.colors):
-            if not v:
-                continue
+        for ci, c in zip(cyl_info, p.colors):
             h = ci[0]
             r = ci[1]
             rot = ci[2:6]
@@ -1574,12 +1590,11 @@ class Structure(Model, StructureData):
 
     def _atom_first_intercept(self, mxyz1, mxyz2):
         d = self._atoms_drawing
-        if d is None or not d.display:
+        if d is None or not d.display or self._visible_atoms is None:
             return None
 
         xyzr = d.positions.shift_and_scale_array()
-        dp = d.display_positions
-        xyz,r = (xyzr[:,:3], xyzr[:,3]) if dp is None else (xyzr[dp,:3], xyzr[dp,3])
+        xyz,r = xyzr[:,:3], xyzr[:,3]
 
         # Check for atom sphere intercept
         from .. import geometry
@@ -1588,9 +1603,7 @@ class Structure(Model, StructureData):
         if fmin is None:
             return None
 
-        if not dp is None:
-            anum = dp.nonzero()[0][anum]    # Remap index to include undisplayed positions
-        atom = self.atoms[anum]
+        atom = self._visible_atoms[anum]
 
         # Create pick object
         s = PickedAtom(atom, fmin)
@@ -1648,13 +1661,10 @@ class Structure(Model, StructureData):
 
     def _atoms_planes_pick(self, planes):
         d = self._atoms_drawing
-        if d is None or not d.display:
+        if d is None or not d.display or self._visible_atoms is None:
             return []
 
         xyz = d.positions.shift_and_scale_array()[:,:3]
-        dp = d.display_positions
-        if dp is not None:
-            xyz = xyz[dp,:]
 
         picks = []
         from .. import geometry
@@ -1662,12 +1672,7 @@ class Structure(Model, StructureData):
         if pmask.sum() == 0:
             return []
 
-        a = self.atoms
-        if not dp is None:
-            anum = dp.nonzero()[0][pmask]    # Remap index to include undisplayed positions
-            atoms = a.filter(anum)
-        else:
-            atoms = a.filter(pmask)
+        atoms = self._visible_atoms.filter(pmask)
 
         p = PickedAtoms(atoms)
 
