@@ -331,16 +331,17 @@ class Structure(Model, StructureData):
 
     def _update_atom_graphics(self, changes = StructureData._ALL_CHANGE):
         atoms = self.atoms  # optimzation, avoid making new numpy array from C++
-        avis = atoms.visibles
         p = self._atoms_drawing
         if p is None:
-            if avis.sum() == 0:
-                return
+            changes = self._ALL_CHANGE
             self._atoms_drawing = p = self.new_drawing('atoms')
             self._atoms_drawing.custom_x3d = self._custom_atom_x3d
             # Update level of detail of spheres
             self._level_of_detail.set_atom_sphere_geometry(p)
 
+        if changes & self._ADDDEL_CHANGE:
+            changes |= self._ALL_CHANGE
+            
         if changes & self._SHAPE_CHANGE:
             # Set instanced sphere center position and radius
             n = len(atoms)
@@ -351,13 +352,15 @@ class Structure(Model, StructureData):
 
             from ..geometry import Places
             p.positions = Places(shift_and_scale=xyzr)
-            p.display_positions = avis
 
-        if changes & (self._COLOR_CHANGE | self._SHAPE_CHANGE):
+        if changes & self._DISPLAY_CHANGE:
+            p.display_positions = atoms.visibles
+
+        if changes & self._COLOR_CHANGE:
             # Set atom colors
             p.colors = atoms.colors
 
-        if changes & (self._SELECT_CHANGE | self._SHAPE_CHANGE):
+        if changes & self._SELECT_CHANGE:
             # Set selected
             p.selected_positions = atoms.selected if atoms.num_selected > 0 else None
 
@@ -386,21 +389,23 @@ class Structure(Model, StructureData):
         if p is None:
             if bonds.num_shown == 0:
                 return
+            changes = self._ALL_CHANGE
             self._bonds_drawing = p = self.new_drawing('bonds')
             self._bonds_drawing.custom_x3d = self._custom_bond_x3d
             # Update level of detail of cylinders
             self._level_of_detail.set_bond_cylinder_geometry(p)
 
-        if changes & (self._SHAPE_CHANGE | self._SELECT_CHANGE):
-            bond_atoms = bonds.atoms
+        if changes & self._ADDDEL_CHANGE:
+            changes |= self._ALL_CHANGE
+
         if changes & self._SHAPE_CHANGE:
-            ba1, ba2 = bond_atoms
-            p.positions = _halfbond_cylinder_placements(ba1.coords, ba2.coords, bonds.radii)
+            p.positions = bonds.halfbond_cylinder_placements(p.positions.opengl_matrices())
+        if changes & self._DISPLAY_CHANGE:
             p.display_positions = _shown_bond_cylinders(bonds)
-        if changes & (self._COLOR_CHANGE | self._SHAPE_CHANGE):
-            p.colors = c = bonds.half_colors
-        if changes & (self._SELECT_CHANGE | self._SHAPE_CHANGE):
-            p.selected_positions = _selected_bond_cylinders(bond_atoms)
+        if changes & self._COLOR_CHANGE:
+            p.colors = bonds.half_colors
+        if changes & self._SELECT_CHANGE:
+            p.selected_positions = _selected_bond_cylinders(bonds.atoms)
 
     def _custom_bond_x3d(self, stream, x3d_scene, indent, place):
         from numpy import empty, float32
@@ -2577,22 +2582,21 @@ def _bond_cylinder_placements(axyz0, axyz1, radii):
 # -----------------------------------------------------------------------------
 # Return 4x4 matrices taking two prototype cylinders to each bond location.
 #
-def _halfbond_cylinder_placements(axyz0, axyz1, radii):
+def _halfbond_cylinder_placements(axyz0, axyz1, radii, parray = None):
 
   n = len(axyz0)
-  from numpy import empty, float32
-  p = empty((2*n,4,4), float32)
-
-  from ..geometry import cylinder_rotations
-  cylinder_rotations(axyz0, axyz1, radii, p[:n,:,:])
-  p[n:,:,:] = p[:n,:,:]
-
-  # Translations
-  p[:n,3,:3] = 0.75*axyz0 + 0.25*axyz1
-  p[n:,3,:3] = 0.25*axyz0 + 0.75*axyz1
+  if parray is None or len(parray) != 2*n:
+      from numpy import empty, float32
+      p = empty((2*n,4,4), float32)
+  else:
+      p = parray
+      
+  from ..geometry import half_cylinder_rotations
+  half_cylinder_rotations(axyz0, axyz1, radii, p)
 
   from ..geometry import Places
   pl = Places(opengl_array = p)
+
   return pl
 
 # -----------------------------------------------------------------------------
