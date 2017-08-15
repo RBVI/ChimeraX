@@ -85,7 +85,7 @@ public:
     }
 
     // graphics related
-    GraphicsContainer*  graphics_container() const;
+    GraphicsChanges*  graphics_changes() const;
 };
 
 }  // namespace atomstruct
@@ -114,9 +114,9 @@ Bond::all_rings(bool cross_residues, int size_threshold,
     return rings(cross_residues, max_ring_size, ignore);
 }
 
-inline GraphicsContainer*
-Bond::graphics_container() const {
-    return reinterpret_cast<GraphicsContainer*>(atoms()[0]->structure());
+inline GraphicsChanges*
+Bond::graphics_changes() const {
+    return reinterpret_cast<GraphicsChanges*>(atoms()[0]->structure());
 }
 
 inline const Bond::Rings&

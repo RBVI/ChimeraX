@@ -411,6 +411,7 @@ Structure::_delete_atom(Atom* a)
         [&a](Atom* ua) { return ua == a; });
     _atoms.erase(i);
     set_gc_shape();
+    set_gc_adddel();
     delete a;
 }
 
@@ -538,6 +539,7 @@ Structure::delete_bond(Bond *b)
         a->remove_bond(b);
     _bonds.erase(i);
     set_gc_shape();
+    set_gc_adddel();
     _structure_cats_dirty = true;
     delete b;
 }

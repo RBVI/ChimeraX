@@ -213,8 +213,8 @@ public:
     const Rgba&  color() const { return _rgba; }
     bool  display() const { return _display; }
     int  hide() const { return _hide; }
-    GraphicsContainer*  graphics_container() const {
-        return reinterpret_cast<GraphicsContainer*>(structure()); }
+    GraphicsChanges*  graphics_changes() const {
+        return reinterpret_cast<GraphicsChanges*>(structure()); }
     bool  selected() const { return _selected; }
     void  set_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b, Rgba::Channel a) {
         set_color(Rgba({r, g, b, a}));
