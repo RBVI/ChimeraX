@@ -45,7 +45,7 @@ class GrayScaleDrawing(Drawing):
     # Mode names 2d-xyz, 2d-x, 2d-y, 2d-z, 3d
     self._projection_mode = '2d-z'
 
-    self.maximum_intensity_projection = False
+    self._maximum_intensity_projection = False
 
     self.linear_interpolation = True
 
@@ -114,6 +114,13 @@ class GrayScaleDrawing(Drawing):
       self._show_box_faces = s
       self.remove_planes()
   show_box_faces = property(showing_box_faces, set_showing_box_faces)
+
+  def max_intensity_projection(self):
+    return self._maximum_intensity_projection
+  def set_max_intensity_projection(self, enable):
+    if enable != self._maximum_intensity_projection:
+      self._maximum_intensity_projection = enable
+  maximum_intensity_projection = property(max_intensity_projection, set_max_intensity_projection)
   
   def modulation_rgba(self):
     return self.mod_rgba
@@ -317,7 +324,7 @@ class GrayScaleDrawing(Drawing):
       textures.append(self.texture_plane(k, axis))
       tc[4*p:4*(p+1),:] = (tc2 if axis == 1 else tc1)
 
-    p = self.new_drawing()
+    p = self.new_drawing('grayscale planes')
     p.color = tuple(int(255*r) for r in self.modulation_rgba())
     p.use_lighting = False
     p.opaque_texture = (not 'a' in self.color_mode)
