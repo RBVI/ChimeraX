@@ -591,14 +591,21 @@ def cmd_match(session, match_atoms, to=None, pairing=defaults["chain_pairing"],
     if not matches:
         raise UserError("Must use different reference and match structures")
     if bring is not None:
-        bring = bring.structures.unique()
+        bring = set(bring)
         match_structures = matches if pairing != CP_SPECIFIC_SPECIFIC \
             else matches.structures.unique()
         if len(match_structures) > 1:
             raise UserError("'bring' option can only be used when exactly one structure is being"
                 " matched")
         ref_structures = refs if pairing == CP_BEST_BEST else set([r.structure for r in refs])
-        bring = [s for s in bring if s not in match_structures and s not in ref_structures]
+        for test_structures, text in [(match_structures, "match"), (ref_structures, "reference")]:
+            for s in test_structures:
+                if s in bring:
+                    bring.discard(s)
+                else:
+                    for b in bring:
+                        if b.id == s.id[:len(b.id)]:
+                            raise UserError("Cannot 'bring' parent model of %s structure" % text)
         if len(bring) == 0:
             session.logger.warning("'bring' arg specifies no non-match/ref structures")
             bring = None
@@ -664,8 +671,8 @@ def register_command(logger):
         # registration can be called for both main command and alias, so only do once...
         return
     _registered = True
-    from chimerax.core.commands \
-        import CmdDesc, register, AtomsArg, FloatArg, StringArg, BoolArg, NoneArg, create_alias, Or
+    from chimerax.core.commands import CmdDesc, register, AtomsArg, FloatArg, StringArg, \
+        BoolArg, NoneArg, TopModelsArg, create_alias, Or
     desc = CmdDesc(
         required = [('match_atoms', AtomsArg)],
         required_arguments = ['to'],
@@ -673,7 +680,7 @@ def register_command(logger):
             ('verbose', BoolArg), ('ss_fraction', Or(FloatArg, BoolArg)), ('matrix', StringArg),
             ('gap_open', FloatArg), ('hgap', FloatArg), ('sgap', FloatArg), ('ogap', FloatArg),
             ('cutoff_distance', Or(FloatArg, NoneArg)), ('gap_extend', FloatArg),
-            ('bring', AtomsArg), ('show_alignment', BoolArg), ('compute_ss', BoolArg),
+            ('bring', TopModelsArg), ('show_alignment', BoolArg), ('compute_ss', BoolArg),
             ('mat_hh', FloatArg), ('mat_ss', FloatArg), ('mat_oo', FloatArg), ('mat_hs', FloatArg),
             ('mat_ho', FloatArg), ('mat_so', FloatArg)],
         synopsis = 'Align atomic structures using sequence alignment'
