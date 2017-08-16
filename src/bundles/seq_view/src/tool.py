@@ -15,6 +15,8 @@ from chimerax.core.tools import ToolInstance
 class SequenceViewer(ToolInstance):
     """ Viewer displays a multiple sequence alignment """
 
+    MATCHED_REGION_INFO = ("matched residues", (1, .88, .8), "orange red")
+
     """TODO
     buttons = ('Quit', 'Hide')
     help = "ContributedSoftware/multalignviewer/framemav.html"
