@@ -108,12 +108,17 @@ class IMS_Data:
         f = tables.open_file(path, chunk_cache_size = hdf5_cache_size)
 
         # Imaris image header values are numpy arrays of characters. Ugh.
-        im = f.root.DataSetInfo.Image._v_attrs
+        dsi = f.root.DataSetInfo
+        im = dsi.Image._v_attrs
         extent = [(float(im['ExtMin%d' % a].tostring()), float(im['ExtMax%d' % a].tostring())) for a in (0,1,2)]
         size = [int(im[axis].tostring()) for axis in ('X','Y','Z')]
         origin = [e1 for e1,e2 in extent]
         step = [(e2-e1)/s for (e1,e2),s in zip(extent,size)]
-        
+
+        # Colors
+        ccolors = self.channel_colors(dsi)
+        default_colors = ((1,0,0,1),(0,1,0,1),(0,0,1,0),(0,1,1,1),(1,1,0,1),(1,0,1,1))
+
         agroups = self.find_arrays(f.root)
         if len(agroups) == 0:
             raise ValueError('Imaris file %s contains no 3d arrays' % path)
@@ -142,10 +147,8 @@ class IMS_Data:
                         ch_arrays[channel][time].append((level, g, a[0]))
 
         cimages = {}
-        # TODO: Read channel color from header.
-        colors = ((1,0,0,1),(0,1,0,1),(0,0,1,0),(0,1,1,1),(1,1,0,1),(1,0,1,1))
         for c, times in ch_arrays.items():
-            rgba = colors[c%len(colors)]
+            rgba = ccolors[c] if c < len(ccolors) else default_colors[c%len(default_colors)]
             cimages[c] = cim = []
             for t, levels in times.items():
                 for lev,g,a in sorted(levels):
@@ -233,6 +236,22 @@ class IMS_Data:
         if not self.keep_open:
             f.close()
         return array
+
+    # --------------------------------------------------------------------------
+    # Read channel colors from HDF5, returning list of rgba 0-1 float values.
+    #
+    def channel_colors(self, dataset_info):
+        ccolors = []
+        while True:
+            cnum = len(ccolors)
+            cd = getattr(dataset_info, 'Channel %d' % cnum, None)
+            if cd is None:
+                break
+            a = cd._v_attrs
+            color = a.Color.tostring()
+            rgba = tuple(float(r) for r in color.split()) + (1.0,)
+            ccolors.append(rgba)
+        return ccolors
 
 # -----------------------------------------------------------------------------
 #
