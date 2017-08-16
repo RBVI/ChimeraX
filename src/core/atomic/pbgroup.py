@@ -29,6 +29,8 @@ class PseudobondGroup(PseudobondGroupData, Model):
             session = s.session
         Model.__init__(self, self.category, session)
         self._pbond_drawing = None
+        self._visible_pbonds = None		# Drawing only contains visible pseudobonds
+        self._visible_pbond_atoms = None
         self._dashes = 9
         self._global_group = (s is None)
         self._handlers = []
@@ -99,6 +101,8 @@ class PseudobondGroup(PseudobondGroupData, Model):
     def _set_name(self, name):
         if name != self.category:
             self.change_category(name)
+        # allow Model to fire 'name changed' trigger
+        Model.name.fset(self, name)
     name = property(_get_name, _set_name)
 
     def _update_graphics_if_needed(self, *_):
@@ -111,14 +115,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
 
     def _update_graphics(self, changes = PseudobondGroupData._ALL_CHANGE):
 
-        pbonds = self.pseudobonds
         d = self._pbond_drawing
-        if len(pbonds) == 0:
-            if d:
-                self.remove_drawing(d)
-                self._pbond_drawing = None
-            return
-
         if d is None:
             d = self.new_drawing('pbonds')
             self._pbond_drawing = d
@@ -126,14 +123,29 @@ class PseudobondGroup(PseudobondGroupData, Model):
             d.vertices = va
             d.normals = na
             d.triangles = ta
+        elif self.num_pseudobonds == 0:
+            self.remove_drawing(d)
+            self._pbond_drawing = None
+            return
 
-        if changes & (self._SHAPE_CHANGE | self._SELECT_CHANGE):
-            bond_atoms = pbonds.atoms
+        if changes & (self._ADDDEL_CHANGE | self._DISPLAY_CHANGE):
+            changes = self._ALL_CHANGE
+            
+        if changes & self._DISPLAY_CHANGE or self._visible_pbonds is None:
+            vpb = self._shown_pbonds(self.pseudobonds)
+            self._visible_pbonds = vpb
+            self._visible_pbond_atoms = vpb.atoms
+        
+        pbonds = self._visible_pbonds
+        bond_atoms = self._visible_pbond_atoms
+
         if changes & self._SHAPE_CHANGE:
-            self._update_positions(pbonds, bond_atoms)
-        if changes & (self._COLOR_CHANGE | self._SHAPE_CHANGE):
+            d.positions = self._update_positions(pbonds, bond_atoms)
+            
+        if changes & self._COLOR_CHANGE:
             d.colors = pbonds.half_colors
-        if changes & (self._SELECT_CHANGE | self._SHAPE_CHANGE):
+            
+        if changes & self._SELECT_CHANGE:
             from . import structure as s
             d.selected_positions = s._selected_bond_cylinders(bond_atoms)
 
@@ -145,17 +157,18 @@ class PseudobondGroup(PseudobondGroupData, Model):
         else:
             axyz0, axyz1 = ba1.coords, ba2.coords
         from . import structure as s
-        d = self._pbond_drawing
-        d.positions = s._halfbond_cylinder_placements(axyz0, axyz1, pbonds.radii)
+        return s._halfbond_cylinder_placements(axyz0, axyz1, pbonds.radii)
 
+    def _shown_pbonds(self, pbonds):
         # Check if models containing end-point have displayed structures.
-        dp = s._shown_bond_cylinders(pbonds)
-        for hs in (hidden_structures(ba1.structures), hidden_structures(ba2.structures)):
-            if hs is not None:
-                import numpy
-                sb = ~numpy.concatenate((hs,hs))
-                numpy.logical_and(dp, sb, dp)
-        d.display_positions = dp
+        dpb = pbonds.showns
+        if self.structure is None:
+            ba1, ba2 = pbonds.atoms
+            for hs in (hidden_structures(ba1.structures), hidden_structures(ba2.structures)):
+                if hs is not None:
+                    from numpy import logical_and
+                    logical_and(dpb, ~hs, dpb)
+        return pbonds[dpb]
 
     def first_intercept(self, mxyz1, mxyz2, exclude=None):
         if not self.display or (exclude and exclude(self)):

@@ -85,7 +85,7 @@ def don_theta_tau(donor, donor_hyds, acceptor, sp2_O_rp2, sp2_O_theta, sp3_O_rp2
         for bonded in acceptor.neighbors:
             bonded_pos.append(bonded.scene_coord)
         lp_pos = bond_positions(ap, geom, 1.0, bonded_pos)
-        if lp_pos:
+        if len(lp_pos) > 0:
             # fixed lone pair positions
             for lp in bond_positions(ap, geom, 1.0, bonded_pos):
                 # invert position so that we are measuring angles correctly
@@ -169,7 +169,7 @@ def don_upsilon_tau(donor, donor_hyds, acceptor,
         elif hbond.verbose:
             print("lone pair positions indeterminate at N; upsilon(N) default okay")
         return test_upsion_tau_acceptor(donor, donor_hyds, acceptor, sp3_N_r2,
-                sp3_N_upsilon_low, sp3NupsilonHigh, sp3_N_theta, sp3_N_tau, tau_sym)
+                sp3_N_upsilon_low, sp3_N_upsilon_high, sp3_N_theta, sp3_N_tau, tau_sym)
     else:
         if hbond.verbose:
             print("generic acceptor")

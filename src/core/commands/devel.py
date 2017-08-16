@@ -136,12 +136,11 @@ def _run(path, logger, exit, unbound_method, *args, **kw):
             try:
                 unbound_method(bb, *args, **kw)
             except:
-                logger.info(log.getvalue())
-                import traceback, sys
-                traceback.print_exc(file=sys.stdout)
+                import traceback
+                logger.error(traceback.format_exc())
                 exit_status = 1
-            finally:
-                logger.info(log.getvalue())
+            output = log.getvalue()
+        logger.info(output)
     else:
         exit_status = 1
     if exit:

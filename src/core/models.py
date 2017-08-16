@@ -44,17 +44,14 @@ class Model(State, Drawing):
     id : None or tuple of int
         Model/submodel identification: *e.g.*, 1.3.2 is (1, 3, 2).
         Set and unset by :py:class:`Models` instance.
-    bundle_info : a :py:class:`~chimerax.core.toolshed.BundleInfo` instance
-        The tool that provides the subclass.
     SESSION_ENDURING : bool, class-level optional
         If True, then model survives across sessions.
-    SESSION_SKIP : bool, class-level optional
-        If True, then model is not saved in sessions.
+    SESSION_SAVE : bool, class-level optional
+        If True, then model is saved in sessions.
     """
 
     SESSION_ENDURING = False
-    SESSION_SKIP = False
-    bundle_info = None    # default, should be set in subclass
+    SESSION_SAVE = True
 
     def __init__(self, name, session):
         self._name = name
@@ -244,7 +241,7 @@ class Models(State):
         models = {}
         for id, model in self._models.items():
             assert(isinstance(model, Model))
-            if model.SESSION_SKIP:
+            if not model.SESSION_SAVE:
                 continue
             models[id] = model
         data = {'models': models,

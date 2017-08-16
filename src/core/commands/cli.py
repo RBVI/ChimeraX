@@ -257,6 +257,8 @@ def plural_of(word):
         if word.casefold() in ('zero', 'photo', 'quarto'):
             return word + 's'
         return word + 'es'
+    if word.endswith('ius'):
+        return word[:-2] + 'i'
     if word.endswith(('sh', 'ch', 's', 'x')):
         return word + 'es'
     if word.endswith('y'):
@@ -2785,7 +2787,7 @@ def registered_commands(multiword=False, _start=None):
         return words
 
     def cmds(parent_info):
-        for word_info in parent_info.subcommands.values():
+        for word_info in list(parent_info.subcommands.values()):
             if word_info.is_deferred():
                 word_info.lazy_register()
         words = list(parent_info.subcommands.keys())

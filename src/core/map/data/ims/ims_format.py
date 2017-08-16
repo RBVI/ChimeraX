@@ -97,7 +97,7 @@
 #
 class IMS_Data:
 
-    def __init__(self, path):
+    def __init__(self, path, keep_open = True, hdf5_cache_size = 2**30):
 
         self.path = path
 
@@ -105,7 +105,7 @@ class IMS_Data:
         self.name = os.path.basename(path)
     
         import tables
-        f = tables.open_file(path)
+        f = tables.open_file(path, chunk_cache_size = hdf5_cache_size)
 
         # Imaris image header values are numpy arrays of characters. Ugh.
         im = f.root.DataSetInfo.Image._v_attrs
@@ -161,8 +161,24 @@ class IMS_Data:
 
         self.channel_images = cimages
 
-        f.close()
+        self.keep_open = keep_open
+        self.hdf_file = f if keep_open else None
+        if not keep_open:
+            f.close()
 
+    # --------------------------------------------------------------------------
+    #
+    def __del__(self):
+        self.close_file()
+
+    # --------------------------------------------------------------------------
+    #
+    def close_file(self):        
+        f = self.hdf_file
+        if f is not None:
+            self.hdf_file = None
+            f.close()
+            
     # --------------------------------------------------------------------------
     # Return list of grouped arrays.  Each element is a tuple containing a
     # group and a list of 3-d arrays that are children of the group.
@@ -204,7 +220,7 @@ class IMS_Data:
 #        traceback.print_stack()
         
         import tables
-        f = tables.open_file(self.path)
+        f = self.hdf_file if self.keep_open else tables.open_file(self.path)
         if progress:
             progress.close_on_cancel(f)
 #        array_path = choose_chunk_size(f, array_paths, ijk_size)
@@ -214,7 +230,8 @@ class IMS_Data:
         if progress:
             progress.done()
 
-        f.close()
+        if not self.keep_open:
+            f.close()
         return array
 
 # -----------------------------------------------------------------------------

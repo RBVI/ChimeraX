@@ -683,7 +683,7 @@ class Toolshed:
         # bundle_name can be either a file path or a bundle name in repository
         command.append(bundle_name)
         results = self._run_pip(command)
-        self._remove_scripts()
+        # self._remove_scripts()
         return results
 
     def _pip_uninstall(self, bundle_name):
@@ -744,6 +744,8 @@ class BundleAPI:
     implemented.
     """
 
+    api_version = 0
+
     @staticmethod
     def start_tool(session, tool_name):
         """Called to lazily create a tool instance.
@@ -758,15 +760,17 @@ class BundleAPI:
         raise NotImplementedError("BundleAPI.start_tool")
 
     @staticmethod
-    def register_command(command_name, logger):
+    def register_command(command, logger):
         """Called when delayed command line registration occurs.
 
         Parameters
         ----------
-        command_name : :py:class:`str`
+        command : :py:class:`str` or instance of :py:class:`~chimerax.core.toolshed.CommandInfo`
         logger : :py:class:`~chimerax.core.logger.Logger` instance.
 
-        ``command_name`` is a string of the command to be registered.
+        ``command`` is a string of the command to be registered
+        or an instance of CommandInfo, which holds additional
+        information about the command from the bundle description.
         This function is called when the command line interface is invoked
         with one of the registered command names.
         """

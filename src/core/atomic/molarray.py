@@ -255,6 +255,13 @@ class Collection(State):
     def unique(self):
         '''Return a new collection containing the unique elements from this one, preserving order.'''
         return self.objects_class(unique_ordered(self._pointers))
+    def instances(self, instantiate=True):
+        '''Returns a list of the Python instances.  If 'instantiate' is False, then for
+        those items that haven't yet been instantiated, None will be returned.'''
+        from .molobject import object_map
+        if instantiate:
+            return [object_map(p, self._object_class) for p in self._pointers]
+        return [object_map(p, None) for p in self._pointers]
     STATE_VERSION = 1
     def take_snapshot(self, session, flags):
         return {'version': self.STATE_VERSION,
@@ -402,13 +409,18 @@ class Atoms(Collection):
     is_sidechains = cvec_property('atom_is_sidechain', npy_bool, read_only = True,
         doc="Whether each atom is part of an amino/nucleic acid sidechain."
             " Returns numpy bool array. Read only.")
-    occupancy = cvec_property('atom_occupancy', float32)
+    occupancies = cvec_property('atom_occupancy', float32)
+
     @property
     def intra_bonds(self):
         ":class:`Bonds` object where both endpoint atoms are in this collection"
         f = c_function('atom_intra_bonds', args = [ctypes.c_void_p, ctypes.c_size_t],
             ret = ctypes.py_object)
         return _bonds(f(self._c_pointers, len(self)))
+
+    from . import interatom_pseudobonds
+    intra_pseudobonds = property(interatom_pseudobonds)
+
     radii = cvec_property('atom_radius', float32,
         doc="Returns a :mod:`numpy` array of radii.  Can be set with such an array (or equivalent "
         "sequence), or with a single floating-point number.")
@@ -671,6 +683,18 @@ class Bonds(Collection):
         f = c_function('bond_half_colors', args = [ctypes.c_void_p, ctypes.c_size_t], ret = ctypes.py_object)
         return f(self._c_pointers, len(self))
 
+    def halfbond_cylinder_placements(self, opengl_array = None):
+        '''Return Places for halfbond cylinders specified by 2N 4x4 float matrices.'''
+        n = len(self)
+        if opengl_array is None or len(opengl_array) != 2*n:
+            from numpy import empty, float32
+            opengl_array = empty((2*n,4,4), float32)
+        f = c_function('bond_halfbond_cylinder_placements',
+                       args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p])
+        f(self._c_pointers, n, pointer(opengl_array))
+        from ..geometry import Places
+        return Places(opengl_array = opengl_array)
+        
     @classmethod
     def session_restore_pointers(cls, session, data):
         structures, bond_ids = data
@@ -802,6 +826,10 @@ class Pseudobonds(Collection):
         '''Return mask of those pseudobonds which have both ends in the given set of atoms.'''
         a1, a2 = self.atoms
         return a1.mask(atoms) & a2.mask(atoms)
+
+    @property
+    def unique_groups(self):
+        return self.groups.unique()
 
     @property
     def unique_structures(self):

@@ -1,0 +1,96 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Sequence Viewer</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<table class="clRight">
+<tr><td>
+<img class="outline" src="1bzm-others-screenshot.png"
+alt="1bzm, 1urt, sequence alignment" width="800px"></td></tr>
+</table>
+
+<h3><a href="../index.html#tools">Tool</a>: Sequence Viewer</h3>
+<p>
+The <b>Sequence Viewer</b> displays individual sequences and sequence alignments
+of amino acids and nucleotides, with crosstalk to any
+<a href="#association">associated</a> structures.
+A <a href="../commands/open.html#sequence">sequence file</a> can be opened 
+with the command <a href="../commands/open.html"><b>open</b></a>,
+and the sequence of a structure chain can be shown
+by clicking a link in the <a href="log.html"><b>Log</b></a>
+(in the <b>Chain information</b> table that appears when a structure is opened)
+or by using the command:
+</p>
+<blockquote>
+<b>sequence chain 
+&nbsp;<a href="../commands/atomspec.html#hierarchy"><i>chain-spec</i></a></b>
+</blockquote>
+<p>
+Multiple <b>Sequence Viewer</b> windows can be shown at the same time, 
+and they can be manipulated like other panels in ChimeraX 
+(<a href="../window.html#toolstart">more...</a>).
+<p>
+
+<a name="association"></a>
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<h3>Sequence-Structure Association</h3>
+<p>
+A sequence that arose from a structure's chain information
+is automatically associated with that chain, 
+with light yellow and light cyan boxes indicating 
+protein helices and strands, respectively. 
+Such sequences are closed when their structure chains are deleted or closed,
+and they are not automatically associated with other structures (see below).
+</p><p>
+When sequences and structures are opened independently,
+a structure chain will be associated automatically
+with a sequence if their sequences can be aligned without
+mismatches exceeding 1/10 of the residues in the structure chain.
+Associations are reported in the <a href="log.html"><b>Log</b></a>.
+For automatic association, gaps in the structure sequence
+relative to the sequence in the alignment file can only occur where
+residues are missing from the structure (for example, a flexible
+loop with insufficient density for coordinates to be determined).
+Mismatches are indicated with red boxes, missing residues with black outline boxes.
+If a mismatch or missing residue only occurs in a subset of multiple
+associated structures, a pink box or gray outline is shown instead. 
+</p><p>
+Further effects of association:
+</p>
+<ul>
+<li>a box colored to match the associated model is shown around the sequence name, 
+or a dark-green dashed outline box if chains from multiple models are associated
+<li>pausing the cursor over the sequence name reports the association, and 
+over residues in the sequence window reports the corresponding structure residue(s)
+<li>dragging a box in the sequence window <a href="../selection.html">selects</a> 
+the corresponding structure residues
+<li><a href="../selection.html">selections</a> (by any means) of the structure
+are shown as green boxes around the corresponding residues in the sequence window
+</ul>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+August 2017</address>
+</body></html>

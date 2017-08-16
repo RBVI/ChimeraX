@@ -95,6 +95,9 @@ pips/
 	pip installation directory, installs pips
 pkgconfig/
 	Required to build mesa, off-screen rendering.
+psutil/
+	Installed by pips prereq from PyPi. Python system and process utilities
+	Used to find total physical memory for setting volume data cache size.
 pycollada/
 	COLLADA library, needed to read cellPack surface files
 pyflakes==0.9.2

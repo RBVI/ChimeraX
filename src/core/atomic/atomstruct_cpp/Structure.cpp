@@ -248,6 +248,25 @@ Structure::bonded_groups(std::vector<std::vector<Atom*>>* groups,
     }
 }
 
+static void
+_copy_pseudobonds(Proxy_PBGroup* pbgc, const Proxy_PBGroup::Pseudobonds& pbs,
+    std::map<Atom*, Atom*>& amap, CoordSet* cs = nullptr)
+{
+    for (auto pb: pbs) {
+        const Connection::Atoms &a = pb->atoms();
+        Pseudobond *pbc;
+        if (cs == nullptr)
+            pbc = pbgc->new_pseudobond(amap[a[0]], amap[a[1]]);
+        else
+            pbc = pbgc->new_pseudobond(amap[a[0]], amap[a[1]], cs);
+        pbc->set_display(pb->display());
+        pbc->set_hide(pb->hide());
+        pbc->set_color(pb->color());
+        pbc->set_halfbond(pb->halfbond());
+        pbc->set_radius(pb->radius());
+    }
+}
+
 void Structure::_copy(Structure* g) const
 {
     for (auto h = metadata.begin() ; h != metadata.end() ; ++h)
@@ -280,18 +299,23 @@ void Structure::_copy(Structure* g) const
         cr->_ribbon_adjust = r->_ribbon_adjust;
         rmap[r] = cr;
     }
+    std::map<CoordSet*, CoordSet*> cs_map;
+    for (auto cs: coord_sets()) {
+        auto new_cs = g->new_coord_set(cs->id());
+        *new_cs = *cs;
+        cs_map[cs] = new_cs;
+    }
+    g->set_active_coord_set(cs_map[active_coord_set()]);
+
     std::map<Atom*, Atom*> amap;
     for (auto ai = atoms().begin() ; ai != atoms().end() ; ++ai) {
         Atom* a = *ai;
         Atom* ca = g->new_atom(a->name(), a->element());
         Residue *cr = rmap[a->residue()];
         cr->add_atom(ca);	// Must set residue before setting alt locs
+        ca->_coord_index = a->coord_index();
         std::set<char> alocs = a->alt_locs();
-        if (alocs.empty()) {
-            ca->set_coord(a->coord());
-            ca->set_bfactor(a->bfactor());
-            ca->set_occupancy(a->occupancy());
-        } else {
+        if (!alocs.empty()) {
             char aloc = a->alt_loc();	// Remember original alt loc.
             for (auto ali = alocs.begin() ; ali != alocs.end() ; ++ali) {
                 char al = *ali;
@@ -304,7 +328,6 @@ void Structure::_copy(Structure* g) const
             a->set_alt_loc(aloc);	// Restore original alt loc.
             ca->set_alt_loc(aloc);
         }
-	// TODO: Copy coordinate sets.
         ca->set_draw_mode(a->draw_mode());
         ca->set_radius(a->radius());
         ca->set_color(a->color());
@@ -325,22 +348,17 @@ void Structure::_copy(Structure* g) const
     // Copy pseudobond groups.
     const AS_PBManager::GroupMap &gm = pb_mgr().group_map();
     for (auto gi = gm.begin() ; gi != gm.end() ; ++gi) {
-      Proxy_PBGroup *pbg = gi->second;
-      if (pbg->group_type() == AS_PBManager::GRP_NORMAL) {
-	Proxy_PBGroup *pbgc = g->pb_mgr().get_group(gi->first, AS_PBManager::GRP_NORMAL);
-	const PBGroup::Pseudobonds &pbs = pbg->pseudobonds();
-	for (auto bi = pbs.begin() ; bi != pbs.end() ; ++bi) {
-	  Pseudobond *pb = *bi;
-	  const Connection::Atoms &a = pb->atoms();
-	  Pseudobond *pbc = pbgc->new_pseudobond(amap[a[0]], amap[a[1]]);
-	  pbc->set_display(pb->display());
-	  pbc->set_hide(pb->hide());
-	  pbc->set_color(pb->color());
-	  pbc->set_halfbond(pb->halfbond());
-	  pbc->set_radius(pb->radius());
-	}
-      }
-      // TODO: Copy per coordinate set pseudobond groups.
+        Proxy_PBGroup *pbg = gi->second;
+        auto group_type = pbg->group_type();
+        Proxy_PBGroup *pbgc = g->pb_mgr().get_group(gi->first, group_type);
+        if (group_type == AS_PBManager::GRP_NORMAL) {
+            _copy_pseudobonds(pbgc, pbg->pseudobonds(), amap);
+        } else {
+            // per coordinate set pseudobond groups
+            for (auto cs: coord_sets()) {
+                _copy_pseudobonds(pbgc, pbg->pseudobonds(cs), amap, cs_map[cs]);
+            }
+        }
     }
 }
 
@@ -393,6 +411,7 @@ Structure::_delete_atom(Atom* a)
         [&a](Atom* ua) { return ua == a; });
     _atoms.erase(i);
     set_gc_shape();
+    set_gc_adddel();
     delete a;
 }
 
@@ -520,6 +539,7 @@ Structure::delete_bond(Bond *b)
         a->remove_bond(b);
     _bonds.erase(i);
     set_gc_shape();
+    set_gc_adddel();
     _structure_cats_dirty = true;
     delete b;
 }
@@ -634,8 +654,9 @@ _coord_set_insert(Structure::CoordSets &coord_sets, CoordSet* cs, int index)
             coord_sets.insert(csi, cs);
             return;
         } else if (index == (*csi)->id()) {
+            auto pos = csi - coord_sets.begin();
             delete *csi;
-            coord_sets.insert(csi, cs);
+            coord_sets[pos] = cs;
             return;
         }
     }

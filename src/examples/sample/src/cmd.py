@@ -11,5 +11,4 @@ def sample_count(session, structures=None):
     for m in structures:
         atoms, bonds = _sample.counts(m)
         session.logger.info("%s: %d atoms, %d bonds" % (m, atoms, bonds))
-sample_count_desc = CmdDesc(optional=[("structures", AtomicStructuresArg)],
-                            synopsis="log model atom and bond counts")
+sample_count_desc = CmdDesc(optional=[("structures", AtomicStructuresArg)])
