@@ -25,6 +25,7 @@
 #    rotation_axis (0.0, 0.0, 1.0)
 #    rotation_angle 45.0
 #    symmetries (((0,-1,0,0),(1,0,0,0),(0,0,1,0)),...)
+#    color (1.0, 1.0, 0, 1.0) (attribute, rgba 0-1 float)
 #    data_zyx (3d array of uint8 (123,542,82))
 #    data_yzx (3d array of uint8 (123,542,82), alternate chunk shape)
 #    data_zyx_2 (3d array of uint8 (61,271,41))
@@ -38,7 +39,7 @@
 #
 # In the example "Chimera" and "image1" are HDF groups,
 # "chimera_version", "name", "step", "origin", "cell_angles",
-# "rotation_axis", "rotation_angle", "symmetries" are group
+# "rotation_axis", "rotation_angle", "symmetries", "color" are group
 # attributes, "data_zyx", "data_yzx" and "data_zyx_2" are hdf datasets
 # (arrays), and "subsample_step" is a dataset attribute.
 #
@@ -138,7 +139,9 @@ def write_grid_data(h5file, grid_data, g, settings, progress):
         g._v_attrs.rotation_angle = array(angle, float32)
     if grid_data.symmetries:
         g._v_attrs.symmetries = array(grid_data.symmetries.array(), float32)
-
+    if grid_data.rgba is not None:
+        g._v_attrs.color = array(grid_data.rgba, float32)
+        
     # Determine data type.
     import tables
     atom = tables.Atom.from_dtype(grid_data.value_type)

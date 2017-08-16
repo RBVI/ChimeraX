@@ -20,7 +20,7 @@ from ..griddata import Grid_Data
 class Chimera_HDF_Grid(Grid_Data):
 
   def __init__(self, hdf_data, size, value_type,
-               origin, step, cell_angles, rotation, symmetries,
+               origin, step, cell_angles, rotation, symmetries, rgba,
                image_name, array_paths):
 
     self.hdf_data = hdf_data
@@ -33,6 +33,7 @@ class Chimera_HDF_Grid(Grid_Data):
 
     Grid_Data.__init__(self, size, value_type,
                        origin, step, cell_angles, rotation,
+                       default_color = rgba,
                        name = name, path = hdf_data.path, file_type = 'cmap',
                        grid_id = sorted(array_paths)[0])
 
@@ -62,7 +63,7 @@ def read_chimera_map(path):
     else:                 image_name = ''
     g = Chimera_HDF_Grid(d, i.size, i.value_type,
                          i.origin, i.step, i.cell_angles, i.rotation,
-                         i.symmetries, image_name, i.array_paths)
+                         i.symmetries, i.rgba, image_name, i.array_paths)
     if i.subsamples:
       g = add_subsamples(d, i, g)
     glist.append(g)
@@ -87,7 +88,7 @@ def add_subsamples(hdf_data, hdf_image, g):
       step = tuple(map(lambda s,c: s*c, i.step, cell_size))
       sg = Chimera_HDF_Grid(hdf_data, data_size, i.value_type,
                             i.origin, step, i.cell_angles, i.rotation,
-                            i.symmetries, i.name, array_paths)
+                            i.symmetries, i.rgba, i.name, array_paths)
       g.add_subsamples(sg, cell_size)
       
   return g

@@ -21,6 +21,7 @@
 #    cell_angles (90.0, 90.0, 90.0) (attribute)
 #    rotation_axis (0.0, 0.0, 1.0) (attribute)
 #    rotation_angle 45.0 (attribute, degrees)
+#    color (1.0, 1.0, 0, 1.0) (attribute, rgba 0-1 float)
 #    /data (3d array of uint8 (123,542,82)) (dataset, any name allowed)
 #    /data_x (3d array of uint8 (123,542,82), alternate chunk shape) (dataset, any name allowed)
 #    /data_2 (3d array of uint8 (61,271,41)) (dataset, any name allowed)
@@ -173,6 +174,7 @@ class Chimera_HDF_Image:
         self.cell_angles = self.find_cell_angles(group)
         self.rotation = self.find_rotation(group)
         self.symmetries = self.find_symmetries(group)
+        self.rgba = self.find_color(group)
 
         subsamples = []
         stable = {}
@@ -258,6 +260,18 @@ class Chimera_HDF_Image:
         else:
             sym = None
         return sym
+
+    # --------------------------------------------------------------------------
+    #
+    def find_color(self, group):
+
+        va = group._v_attrs
+        if 'color' in va:
+            color = tuple(float(r) for r in va.color)
+        else:
+            color = None
+        print ('read hdf5 color', color)
+        return color
 
     # --------------------------------------------------------------------------
     #

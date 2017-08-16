@@ -3089,7 +3089,11 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
         from .data import select_save_path
         path, format_name = select_save_path()
     if path:
-        grids = [v.grid_data(region, step, mask_zone) for v in vlist]
+        grids = []
+        for v in vlist:
+          g = v.grid_data(region, step, mask_zone)
+          g.rgba = tuple(r/255 for r in v.single_color)	# Set default map color to current color
+          grids.append(g)
         from .data import save_grid_data
         if is_multifile_save(path):
             for i,g in enumerate(grids):
