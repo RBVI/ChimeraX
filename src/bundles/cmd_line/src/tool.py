@@ -416,8 +416,7 @@ class _HistoryDialog:
 
     def update_list(self):
         c = self.controller
-        last8 = self.history[-8:]
-        last8.reverse()
+        last8 = self.history[:8]
         c.text.clear()
         c.text.addItems(last8 + [c.show_history_label, c.compact_label])
 
