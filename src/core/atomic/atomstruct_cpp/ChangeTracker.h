@@ -70,7 +70,7 @@ public:
     static const std::string  REASON_BFACTOR;
     static const std::string  REASON_COLOR;
     static const std::string  REASON_COORD;
-    static const std::string  REASON_COORDS;
+    static const std::string  REASON_COORDSET;
     static const std::string  REASON_DISPLAY;
     static const std::string  REASON_DRAW_MODE;
     static const std::string  REASON_HALFBOND;

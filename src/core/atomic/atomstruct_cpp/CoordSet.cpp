@@ -54,7 +54,7 @@ CoordSet::set_coords(Real *xyz, size_t n)
     for (size_t i = nc ; i < n ; ++i, c += 3)
     add_coord(Coord(xyz[c], xyz[c+1], xyz[c+2]));
 
-    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_COORDS);
+    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_COORDSET);
 }
 
 float

@@ -18,14 +18,14 @@
 
 namespace atomstruct {
 
-const std::string ChangeTracker::REASON_ACTIVE_COORD_SET("active_coord_set changed");
+const std::string ChangeTracker::REASON_ACTIVE_COORD_SET("active_coordset changed");
 const std::string ChangeTracker::REASON_ALT_LOC("alt_loc changed");
 const std::string ChangeTracker::REASON_ANISO_U("aniso_u changed");
 const std::string ChangeTracker::REASON_BALL_SCALE("ball_scale changed");
 const std::string ChangeTracker::REASON_BFACTOR("bfactor changed");
 const std::string ChangeTracker::REASON_COLOR("color changed");
 const std::string ChangeTracker::REASON_COORD("coord changed");
-const std::string ChangeTracker::REASON_COORDS("coords changed");
+const std::string ChangeTracker::REASON_COORDSET("coordset changed");
 const std::string ChangeTracker::REASON_DISPLAY("display changed");
 const std::string ChangeTracker::REASON_DRAW_MODE("draw_mode changed");
 const std::string ChangeTracker::REASON_HALFBOND("halfbond changed");
