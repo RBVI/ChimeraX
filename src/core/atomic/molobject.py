@@ -1854,8 +1854,11 @@ class ChangeTracker:
             temp_ns = {}
             # can't effectively use locals() as the third argument as per the
             # Python 3 documentation for exec() and locals()
-            exec("from .molarray import {}s as collection".format(k), globals(), temp_ns)
-            collection = temp_ns['collection']
+            if k == "CoordSet":
+                collection = lambda ptrs: ptrs
+            else:
+                exec("from .molarray import {}s as collection".format(k), globals(), temp_ns)
+                collection = temp_ns['collection']
             fc_key = k[:-4] if k.endswith("Data") else k
             final_changes[fc_key] = Changes(collection(created_ptrs),
                 collection(mod_ptrs), reasons, tot_del)
@@ -1883,6 +1886,8 @@ class ChangeTracker:
             return 5
         if klass.__name__ == "PseudobondGroup":
             return 6
+        if klass.__name__ == "CoordSet":
+            return 7
         raise AssertionError("Unknown class for change tracking")
 
 # -----------------------------------------------------------------------------

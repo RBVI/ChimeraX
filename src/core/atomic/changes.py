@@ -47,6 +47,9 @@ class Changes:
     def chain_reasons(self):
         return self._changes["Chain"].reasons
 
+    def coordset_reasons(self):
+        return self._changes["CoordSet"].reasons
+
     def created_atomic_structures(self):
         return self._atomic_structures(self._changes["Structure"].created)
 
@@ -98,6 +101,12 @@ class Changes:
     def modified_residues(self):
         return self._changes["Residue"].modified
 
+    def num_created_coordsets(self, include_new_structures=True):
+        num_in_existing = len(self._changes["CoordSet"].created)
+        if not include_new_structures:
+            return num_in_existing
+        return sum([s.num_coordsets for s in self._changes["Structure"].created]) + num_in_existing
+
     def num_deleted_atoms(self):
         return self._changes["Atom"].total_deleted
 
@@ -106,6 +115,9 @@ class Changes:
 
     def num_deleted_chains(self):
         return self._changes["Chain"].total_deleted
+
+    def num_deleted_coordsets(self):
+        return self._changes["CoordSet"].total_deleted
 
     def num_deleted_pseudobond_groups(self):
         return self._changes["PseudobondGroup"].total_deleted
@@ -119,6 +131,9 @@ class Changes:
     def num_deleted_structures(self):
         """Not possible to distinguish between AtomicStructures and Structures"""
         return self._changes["Structure"].total_deleted
+
+    def num_modified_coordsets(self):
+        return len(self._changes["CoordSet"].modified)
 
     def pseudobond_reasons(self):
         return self._changes["Pseudobond"].reasons
@@ -142,10 +157,12 @@ class Changes:
         in_existing = self._changes[class_name].created
         if not include_new_structures:
             return in_existing
-        new = self._changes["StructureData"].created.atoms
+        from .molarray import concatenate
+        attr_name = class_name.lower() + 's'
+        new = concatenate([getattr(s, attr_name) for s in self._changes["Structure"].created],
+            in_existing.objects_class)
         if not in_existing:
             return new
         elif not new:
             return in_existing
-        from . import concatenate
         return concatenate([new, in_existing])

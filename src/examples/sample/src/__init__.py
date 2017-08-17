@@ -5,6 +5,9 @@ from chimerax.core.toolshed import BundleAPI
 
 class _MyAPI(BundleAPI):
 
+    api_version = 1     # register_command called with CommandInfo instance
+                        # instead of string
+
     # Override method for starting tool
     @staticmethod
     def start_tool(session, tool_name, **kw):
@@ -13,16 +16,19 @@ class _MyAPI(BundleAPI):
 
     # Override method for registering commands
     @staticmethod
-    def register_command(command_name, logger):
+    def register_command(ci, logger):
         # We expect that there is a function in "cmd"
         # corresponding to every registered command
         # in "setup.py.in" and that they are named
         # identically (except with '_' replacing spaces)
         from . import cmd
         from chimerax.core.commands import register
+        command_name = ci.name
         base_name = command_name.replace(" ", "_")
         func = getattr(cmd, base_name)
         desc = getattr(cmd, base_name + "_desc")
+        if desc.synopsis is None:
+            desc.synopsis = ci.synopsis
         register(command_name, desc, func)
 
     # Override method for opening file

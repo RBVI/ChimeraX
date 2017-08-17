@@ -217,25 +217,29 @@ class BundleInfo:
         from chimerax.core.commands import cli
         for ci in self.commands:
             def cb(s=self, n=ci.name, l=logger):
-                s._register_cmd(n, l)
+                s._register_cmd(ci, l)
             _debug("delay_registration", ci.name)
             cli.delay_registration(ci.name, cb, logger=logger)
 
-    def _register_cmd(self, command_name, logger):
+    def _register_cmd(self, ci, logger):
         """Called when commands need to be really registered."""
         try:
-            f = self._get_api(logger).register_command
+            api = self._get_api(logger)
+            f = api.register_command
         except AttributeError:
-            raise ToolshedError(
-                "no register_command function found for bundle \"%s\""
-                % self.name)
+            raise ToolshedError("bundle \"%s\" has no register_command method" % self.name)
         try:
             if f == BundleAPI.register_command:
-                raise ToolshedError("bundle \"%s\"'s API forgot to override register_command()" % self.name)
-            f(command_name, logger)
+                raise ToolshedError("bundle \"%s\" forgot to override register_command()" % self.name)
+            if api.api_version == 0:
+                f(ci.name, logger)
+            elif api.api_version == 1:
+                f(ci, logger)
+            else:
+                raise ToolshedError("bundle \"%s\" uses unsupport bundle API version %s" % (self.name, api.api_version))
         except Exception as e:
             raise ToolshedError(
-                "register_command() failed for command %s in bundle %s:\n%s" % (command_name, self.name, str(e)))
+                "register_command() failed for command %s in bundle %s:\n%s" % (ci.name, self.name, str(e)))
 
     def _deregister_commands(self, logger):
         """Deregister commands with cli."""
