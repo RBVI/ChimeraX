@@ -429,6 +429,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                 s1.name, s1.structure.id_string(), s2.name,
                 s2.structure.id_string(), score), log=True)
             skip = set()
+            viewer = None
             if show_alignment:
                 for s in [s1,s2]:
                     if hasattr(s, '_dm_rebuild_info'):
@@ -453,8 +454,6 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                                     if h.name == CaDistanceSeq.name])
                         """
                         break
-                else:
-                    viewer = None
             for i in range(len(s1)):
                 if s1[i] == "." or s2[i] == ".":
                     continue
