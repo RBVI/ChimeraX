@@ -20,7 +20,7 @@ defaults = {
     SINGLE_PREFIX + "column_separation": -2,
     "error_region_shown": True,
     "error_region_borders": (None, None),
-    "error_region_interiors": ("red", "pink"),
+    "error_region_interiors": ((1.0, 0.3, 0.3, 1.0), "pink"),
     "gap_region_shown": True,
     "gap_region_borders": ("black", [chan/255.0 for chan in (190, 190, 190, 255)]),
     "gap_region_interiors": (None, None),
