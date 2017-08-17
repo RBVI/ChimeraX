@@ -133,8 +133,6 @@ ARRAYS_IMEX PyObject *c_array_to_python(const double *values, int size0, int siz
 ARRAYS_IMEX PyObject *python_bool_array(int size, unsigned char **data = NULL);
 ARRAYS_IMEX PyObject *python_uint8_array(int size, unsigned char **data = NULL);
 ARRAYS_IMEX PyObject *python_uint8_array(int size1, int size2, unsigned char **data = NULL);
-ARRAYS_IMEX PyObject *python_char_array(int size1, int size2, char **data = NULL);
-ARRAYS_IMEX PyObject *python_string_array(int size, int string_length, char **data = NULL);
 ARRAYS_IMEX PyObject *python_int_array(int size, int **data = NULL);
 ARRAYS_IMEX PyObject *python_int_array(int size1, int size2, int **data = NULL);
 ARRAYS_IMEX PyObject *python_unsigned_int_array(int size1, int size2, int size3, unsigned int **data = NULL);
