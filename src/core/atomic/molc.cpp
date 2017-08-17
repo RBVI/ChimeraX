@@ -1221,6 +1221,65 @@ extern "C" EXPORT void *bond_other_atom(void *bond, void *atom)
     return oa;
 }
 
+extern "C" EXPORT void bond_halfbond_cylinder_placements(void *bonds, size_t n, float32_t *m44)
+{
+    Bond **b = static_cast<Bond **>(bonds);
+    try {
+      float32_t *m44b = m44 + 16*n;
+      for (size_t i = 0; i != n; ++i) {
+	Bond *bd = b[i];
+	Atom *a0 = bd->atoms()[0], *a1 = bd->atoms()[1];
+	const Coord &xyz0 = a0->coord(), &xyz1 = a1->coord();
+	float r = bd->radius();
+
+	float x0 = xyz0[0], y0 = xyz0[1], z0 = xyz0[2], x1 = xyz1[0], y1 = xyz1[1], z1 = xyz1[2];
+	float vx = x1-x0, vy = y1-y0, vz = z1-z0;
+	float d = sqrtf(vx*vx + vy*vy + vz*vz);
+	if (d == 0)
+	  { vx = vy = 0 ; vz = 1; }
+	else
+	  { vx /= d; vy /= d; vz /= d; }
+
+	float c = vz, c1;
+	if (c <= -1)
+	  c1 = 0;       // Degenerate -z axis case.
+	else
+	  c1 = 1.0/(1+c);
+
+	float wx = -vy, wy = vx;
+	float cx = c1*wx, cy = c1*wy;
+	float h = d;
+
+	*m44++ = *m44b++ = r*(cx*wx + c);
+	*m44++ = *m44b++ = r*cy*wx;
+	*m44++ = *m44b++ = -r*wy;
+	*m44++ = *m44b++ = 0;
+
+	*m44++ = *m44b++ = r*cx*wy;
+	*m44++ = *m44b++ = r*(cy*wy + c);
+	*m44++ = *m44b++ = r*wx;
+	*m44++ = *m44b++ = 0;
+
+	*m44++ = *m44b++ = h*wy;
+	*m44++ = *m44b++ = -h*wx;
+	*m44++ = *m44b++ = h*c;
+	*m44++ = *m44b++ = 0;
+
+	*m44++ = .75*x0 + .25*x1;
+	*m44++ = .75*y0 + .25*y1;
+	*m44++ = .75*z0 + .25*z1;
+	*m44++ = 1;
+
+	*m44b++ = .25*x0 + .75*x1;
+	*m44b++ = .25*y0 + .75*y1;
+	*m44b++ = .25*z0 + .75*z1;
+	*m44b++ = 1;
+      }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 // -------------------------------------------------------------------------
 // pseudobond functions
 //
@@ -1406,6 +1465,16 @@ extern "C" EXPORT void pseudobond_group_category(void *pbgroups, size_t n, void 
     }
 }
 
+extern "C" EXPORT void pseudobond_group_change_category(void* ptr, const char* cat)
+{
+    Proxy_PBGroup *pbg = static_cast<Proxy_PBGroup *>(ptr);
+    try {
+        std::string scat = cat;
+        pbg->change_category(scat);
+    } catch (...) {
+        molc_error();
+    }
+}
 extern "C" EXPORT void pseudobond_group_group_type(void *pbgroups, size_t n, uint8_t *group_types)
 {
     Proxy_PBGroup **g = static_cast<Proxy_PBGroup **>(pbgroups);
@@ -2970,6 +3039,8 @@ extern "C" EXPORT PyObject* change_tracker_changes(void *vct)
             PyTuple_SetItem(value, 3, PyLong_FromLong(class_changes.num_deleted));
 
             PyDict_SetItem(changes_data, key, value);
+            Py_DECREF(key);
+            Py_DECREF(value);
         }
     } catch (...) {
         Py_XDECREF(changes_data);
@@ -3306,6 +3377,24 @@ extern "C" EXPORT void structure_num_bonds(void *mols, size_t n, size_t *nbonds)
 {
     Structure **m = static_cast<Structure **>(mols);
     error_wrap_array_get(m, n, &Structure::num_bonds, nbonds);
+}
+
+extern "C" EXPORT void structure_num_bonds_visible(void *mols, size_t n, size_t *nbonds)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    try {
+        for (size_t i = 0; i != n; ++i)
+          {
+            const Structure::Bonds &bonds = m[i]->bonds();
+            int c = 0;
+            for (auto b: bonds)
+              if (b->shown())
+                c += 1;
+            nbonds[i] = c;
+          }
+    } catch (...) {
+        molc_error();
+    }
 }
 
 extern "C" EXPORT void structure_bonds(void *mols, size_t n, pyobject_t *bonds)
@@ -4632,7 +4721,8 @@ extern "C" EXPORT PyObject *constrained_normals(PyObject* py_tangents, PyObject*
         if (flip_mode == FLIP_MINIMIZE) {
             // If twist is greater than 90 degrees, turn the opposite
             // direction.  (Assumes that ribbons are symmetric.)
-            if (twist > M_PI / 2)
+            if (twist > 0.6 * M_PI)
+            // if (twist > M_PI / 2)
                 need_flip = true;
         } else if (flip_mode == FLIP_PREVENT) {
             // Make end_flip the same as start_flip

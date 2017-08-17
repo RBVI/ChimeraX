@@ -13,33 +13,33 @@
 
 from chimerax.core.toolshed import BundleAPI
 
-class _MavBundleAPI(BundleAPI):
+class _SeqViewerBundleAPI(BundleAPI):
 
     @staticmethod
     def finish(session, bundle_info):
-        """De-register MAV from alignments manager"""
+        """De-register sequence viewer from alignments manager"""
         session.alignments.deregister_viewer(bundle_info.tools[0].name)
 
     @staticmethod
     def get_class(class_name):
-        if class_name == "MultAlignViewer":
-            from .tool import MultAlignViewer
-            return MultAlignViewer
+        if class_name == "SequenceViewer":
+            from .tool import SequenceViewer
+            return SequenceViewer
 
     @staticmethod
     def initialize(session, bundle_info):
-        """Register MAV with alignments manager"""
+        """Register sequence viewer with alignments manager"""
         session.alignments.register_viewer(bundle_info.tools[0].name, _show_alignment,
-            synonyms=["mav", "multalign"])
+            synonyms=["sv"])
 
     @staticmethod
     def start_tool(session, tool_name):
-        from .tool import _start_mav
-        return _start_mav(session, tool_name)
+        from .tool import _start_seq_viewer
+        return _start_seq_viewer(session, tool_name)
 
 
-bundle_api = _MavBundleAPI()
+bundle_api = _SeqViewerBundleAPI()
 
 def _show_alignment(session, tool_name, alignment):
-    from .tool import _start_mav
-    return _start_mav(session, tool_name, alignment)
+    from .tool import _start_seq_viewer
+    return _start_seq_viewer(session, tool_name, alignment)

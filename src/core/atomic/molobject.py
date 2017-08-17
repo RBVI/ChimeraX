@@ -159,7 +159,9 @@ class Atom(State):
         "HIDE_RIBBON\n"
         "    Hide mask for backbone atoms in ribbon.\n"
         "HIDE_ISOLDE\n"
-        "    Hide mask for backbone atoms for ISOLDE.")
+        "    Hide mask for backbone atoms for ISOLDE.\n"
+        "HIDE_NUCLEOTIDE\n"
+        "    Hide mask for sidechain atoms in nucleotides.\n")
     idatm_type = c_property('atom_idatm_type', string, doc = "IDATM type")
     in_chain = c_property('atom_in_chain', npy_bool, read_only = True,
         doc = "Whether this atom belongs to a polymer. Read only.")
@@ -223,7 +225,7 @@ class Atom(State):
         vtype = ctypes.c_uint8
         v = vtype()
         v_ref = ctypes.byref(v)
-        f = c_array_function('atom_has_alt_loc', args=(byte,), ret=npy_bool, per_object=False)
+        f = c_array_function('atom_has_alt_loc', args=(byte,), per_object=False)
         a_ref = ctypes.byref(self._c_pointer)
         f(a_ref, 1, loc, v_ref)
         return v.value
@@ -367,10 +369,12 @@ class Bond(State):
             return a1.__str__(style=style) + bond_sep + a2.__str__(atom_only=True, style=style)
         if a1.structure == a2.structure:
             # tautology for bonds, but this func is conscripted by pseudobonds, so test...
+            chain_str = "" if  a1.residue.chain_id == a2.residue.chain_id \
+                else '/' + a2.residue.chain_id + ' '
             res_str = a2.residue.__str__(residue_only=True)
             atom_str = a2.__str__(atom_only=True, style=style)
             joiner = "" if res_str.startswith(":") else " "
-            return a1.__str__(style=style) + bond_sep + res_str + joiner + atom_str
+            return a1.__str__(style=style) + bond_sep + chain_str + res_str + joiner + atom_str
         return a1.__str__(style=style) + bond_sep + a2.__str__(style=style)
 
     def atomspec(self):
@@ -583,6 +587,15 @@ class PseudobondGroupData:
         read_only = True, doc ="Structure that pseudobond group is owned by.  "
         "Returns None if called on a group managed by the global pseudobond manager")
 
+    def change_category(self, category):
+        f = c_function('pseudobond_group_change_category',
+            args = (ctypes.c_void_p, ctypes.c_char_p))
+        try:
+            f(self._c_pointer, category.encode('utf-8'))
+        except TypeError:
+            from ..errors import UserError
+            raise UserError("Another pseudobond group is already named '%s'" % category)
+
     def clear(self):
         '''Delete all pseudobonds in group'''
         f = c_function('pseudobond_group_clear', args = (ctypes.c_void_p,))
@@ -601,7 +614,9 @@ class PseudobondGroupData:
     _COLOR_CHANGE = 0x2
     _SELECT_CHANGE = 0x4
     _RIBBON_CHANGE = 0x8
-    _ALL_CHANGE = 0xf
+    _ADDDEL_CHANGE = 0x10
+    _DISPLAY_CHANGE = 0x20
+    _ALL_CHANGE = 0x2f
     _graphics_changed = c_property('pseudobond_group_graphics_change', int32)
 
 
@@ -694,8 +709,11 @@ class PseudobondManager(State):
         return pbm
 
     def reset_state(self, session):
-        f = c_function('pseudobond_global_manager_clear', args = (ctypes.c_void_p,))
-        f(self._c_pointer)
+        # Need to call delete() on the models, since just clearing out the C++
+        # will cause an error when the last reference to the Python object goes
+        # away, which causes delete() to get called
+        for pbg in list(self.group_map.values()):
+            pbg.delete()
 
     def _ses_call(self, func_qual):
         f = c_function('pseudobond_global_manager_session_' + func_qual, args=(ctypes.c_void_p,))
@@ -971,9 +989,9 @@ class Sequence(State):
 
     # the following colors for use by alignment/sequence viewers
     default_helix_fill_color = (1.0, 1.0, 0.8)
-    default_strand_fill_color = (0.8, 1.0, 0.8)
     default_helix_outline_color = tuple([chan/255.0 for chan in (218, 165, 32)]) # goldenrod
-    default_strand_outline_color = tuple([chan/255.0 for chan in (50, 205, 50)]) # lime green
+    default_strand_fill_color = (0.88, 1.0, 1.0) # light cyan
+    default_strand_outline_color = tuple([0.75*chan for chan in default_strand_fill_color])
 
     chimera_exiting = False
 
@@ -1470,6 +1488,8 @@ class StructureData:
     '''Number of visible atoms in structure. Read only.'''
     num_bonds = c_property('structure_num_bonds', size_t, read_only = True)
     '''Number of bonds in structure. Read only.'''
+    num_bonds_visible = c_property('structure_num_bonds_visible', size_t, read_only = True)
+    '''Number of visible bonds in structure. Read only.'''
     num_coordsets = c_property('structure_num_coordsets', size_t, read_only = True)
     '''Number of coordinate sets in structure. Read only.'''
     num_chains = c_property('structure_num_chains', size_t, read_only = True)
@@ -1645,6 +1665,8 @@ class StructureData:
                        args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int),
                        ret = ctypes.c_void_p)
         pbg = f(self._c_pointer, name.encode('utf-8'), create_arg)
+        if not pbg:
+            return None
         from .pbgroup import PseudobondGroup
         return object_map(pbg, PseudobondGroup)
 
@@ -1773,7 +1795,9 @@ class StructureData:
     _COLOR_CHANGE = 0x2
     _SELECT_CHANGE = 0x4
     _RIBBON_CHANGE = 0x8
-    _ALL_CHANGE = 0xf
+    _ADDDEL_CHANGE = 0x10
+    _DISPLAY_CHANGE = 0x20
+    _ALL_CHANGE = 0x2f
     _graphics_changed = c_property('structure_graphics_change', int32)
 
 class ChangeTracker:
@@ -1810,7 +1834,7 @@ class ChangeTracker:
                 reason.encode('utf-8'))
     @property
     def changed(self):
-        f = c_function('change_tracker_changed', args = (ctypes.c_void_p,), ret = npy_bool)
+        f = c_function('change_tracker_changed', args = (ctypes.c_void_p,), ret = ctypes.c_bool)
         return f(self._c_pointer)
 
     @property
@@ -1830,8 +1854,11 @@ class ChangeTracker:
             temp_ns = {}
             # can't effectively use locals() as the third argument as per the
             # Python 3 documentation for exec() and locals()
-            exec("from .molarray import {}s as collection".format(k), globals(), temp_ns)
-            collection = temp_ns['collection']
+            if k == "CoordSet":
+                collection = lambda ptrs: ptrs
+            else:
+                exec("from .molarray import {}s as collection".format(k), globals(), temp_ns)
+                collection = temp_ns['collection']
             fc_key = k[:-4] if k.endswith("Data") else k
             final_changes[fc_key] = Changes(collection(created_ptrs),
                 collection(mod_ptrs), reasons, tot_del)
@@ -1859,6 +1886,8 @@ class ChangeTracker:
             return 5
         if klass.__name__ == "PseudobondGroup":
             return 6
+        if klass.__name__ == "CoordSet":
+            return 7
         raise AssertionError("Unknown class for change tracking")
 
 # -----------------------------------------------------------------------------

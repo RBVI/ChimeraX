@@ -120,27 +120,30 @@ def copy_hdf5_array(a, ijk_origin, ijk_size, ijk_step, array,
         n = ksz // kstep
         pstep = max(1, int(bf*n))
         kpstep = kstep*pstep
+        kmax = k0 + ksz
         for p in range(0,n,pstep):
             k = k0+p*kstep
-            array[p:p+pstep,:,:] = a[k:k+kpstep:kstep,j0:j0+jsz:jstep,i0:i0+isz:istep]
+            array[p:p+pstep,:,:] = a[k:min(k+kpstep,kmax):kstep,j0:j0+jsz:jstep,i0:i0+isz:istep]
             if progress:
                 progress.plane(p)
     elif axis == 1:
         n = jsz // jstep
         pstep = max(1, int(bf*n))
         jpstep = jstep*pstep
+        jmax = j0 + jsz
         for p in range(0,n,pstep):
             j = j0+p*jstep
-            array[:,p:p+pstep,:] = a[k0:k0+ksz:kstep,j:j+jpstep:jstep,i0:i0+isz:istep]
+            array[:,p:p+pstep,:] = a[k0:k0+ksz:kstep,j:min(j+jpstep,jmax):jstep,i0:i0+isz:istep]
             if progress:
                 progress.plane(p)
     elif axis == 2:
         n = isz // istep
         pstep = max(1, int(bf*n))
         ipstep = istep*pstep
+        imax = i0 + isz
         for p in range(0,n,pstep):
             i = i0+p*istep
-            array[:,p:p+pstep,:] = a[k0:k0+ksz:kstep,j0:j0+jsz:jstep,i:i+ipstep:istep]
+            array[:,p:p+pstep,:] = a[k0:k0+ksz:kstep,j0:j0+jsz:jstep,i:min(i+ipstep,imax):istep]
             if progress:
                 progress.plane(p)
 

@@ -38,9 +38,6 @@ class State(metaclass=abc.ABCMeta):
     SESSION = 0x2
     ALL = SCENE | SESSION
 
-    #: Which "bundle" this state is from (None is core)
-    bundle_info = None
-
     def take_snapshot(self, session, flags):
         """Return snapshot of current state of instance.
 

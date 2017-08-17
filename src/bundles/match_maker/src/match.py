@@ -430,27 +430,31 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                 s2.structure.id_string(), score), log=True)
             skip = set()
             if show_alignment:
-                logger.info("Showing alignment not yet supported")
-                """TODO
-                from MultAlignViewer.MAViewer import MAViewer
                 for s in [s1,s2]:
                     if hasattr(s, '_dm_rebuild_info'):
+                        residues = s.residues
+                        characters = list(s.characters)
                         for i, c, r in s._dm_rebuild_info:
                             g = s.ungapped_to_gapped(i)
-                            s[g] = c
-                            s.residues[i] = r
+                            characters[g] = c
+                            residues[i] = r
                             skip.add(r)
-                        s.resMap.clear()
-                        for i, r in enumerate(s.residues):
-                            if r:
-                                s.resMap[r] = i
-                mav = MAViewer([s1,s2], autoAssociate=None)
-                mav.autoAssociate = True
-                mav.hideHeaders(mav.headers(shownOnly=True))
-                from MAVHeader.ChimeraExtension import CaDistanceSeq
-                mav.showHeaders([h for h in mav.headers()
-                            if h.name == CaDistanceSeq.name])
-                """
+                        s.bulk_set(residues, characters)
+                alignment = session.alignments.new_alignment([s1,s2], None, auto_associate=None,
+                    name="MatchMaker alignment")
+                alignment.auto_associate = True
+                for viewer in alignment.viewers:
+                    if viewer.tool_name == "Sequence Viewer":
+                        #TODO: port once sequence viewer supports headers
+                        """
+                        mav.hideHeaders(mav.headers(shownOnly=True))
+                        from MAVHeader.ChimeraExtension import CaDistanceSeq
+                        mav.showHeaders([h for h in mav.headers()
+                                    if h.name == CaDistanceSeq.name])
+                        """
+                        break
+                else:
+                    viewer = None
             for i in range(len(s1)):
                 if s1[i] == "." or s2[i] == ".":
                     continue
@@ -480,10 +484,8 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                             continue
                 ref_atoms.append(ref_atom)
                 match_atoms.append(match_atom)
-                if show_alignment and cutoff_distance is not None:
-                    """TODD
-                    region_info[ref_atom] = (mav, i)
-                    """
+                if viewer and cutoff_distance is not None:
+                    region_info[ref_atom] = (viewer, i)
 
             if verbose:
                 seq_pairings.append((s1, s2))
@@ -507,22 +509,16 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
             for m in bring:
                 m.scene_position = xf * m.scene_position
         logger.info("") # separate matches with whitespace
-        """TODO
         if region_info:
-            by_mav = {}
+            by_viewer = {}
             for ra in ret_vals[-1][1]:
-                mav, index = region_info[ra]
-                by_mav.setdefault(mav, []).append(index)
-            for mav, indices in by_mav.items():
+                viewer, index = region_info[ra]
+                by_viewer.setdefault(viewer, []).append(index)
+            for viewer, indices in by_viewer.items():
                 indices.sort()
-                from MultAlignViewer.MAViewer import \
-                            MATCHED_REGION_INFO
-                name, fill, outline = MATCHED_REGION_INFO
-                mav.newRegion(name=name, columns=indices,
-                        fill=fill, outline=outline)
-                mav.status("Residues used in final fit"
-                        " iteration are highlighted")
-        """
+                name, fill, outline = viewer.MATCHED_REGION_INFO
+                viewer.new_region(name=name, columns=indices, fill=fill, outline=outline)
+                viewer.status("Residues used in final fit iteration are highlighted")
         if verbose:
             for s1, s2 in seq_pairings:
                 logger.info("Sequences:")
@@ -591,14 +587,21 @@ def cmd_match(session, match_atoms, to=None, pairing=defaults["chain_pairing"],
     if not matches:
         raise UserError("Must use different reference and match structures")
     if bring is not None:
-        bring = bring.structures.unique()
+        bring = set(bring)
         match_structures = matches if pairing != CP_SPECIFIC_SPECIFIC \
             else matches.structures.unique()
         if len(match_structures) > 1:
             raise UserError("'bring' option can only be used when exactly one structure is being"
                 " matched")
         ref_structures = refs if pairing == CP_BEST_BEST else set([r.structure for r in refs])
-        bring = [s for s in bring if s not in match_structures and s not in ref_structures]
+        for test_structures, text in [(match_structures, "match"), (ref_structures, "reference")]:
+            for s in test_structures:
+                if s in bring:
+                    bring.discard(s)
+                else:
+                    for b in bring:
+                        if b.id == s.id[:len(b.id)]:
+                            raise UserError("Cannot 'bring' parent model of %s structure" % text)
         if len(bring) == 0:
             session.logger.warning("'bring' arg specifies no non-match/ref structures")
             bring = None
@@ -664,8 +667,8 @@ def register_command(logger):
         # registration can be called for both main command and alias, so only do once...
         return
     _registered = True
-    from chimerax.core.commands \
-        import CmdDesc, register, AtomsArg, FloatArg, StringArg, BoolArg, NoneArg, create_alias, Or
+    from chimerax.core.commands import CmdDesc, register, AtomsArg, FloatArg, StringArg, \
+        BoolArg, NoneArg, TopModelsArg, create_alias, Or
     desc = CmdDesc(
         required = [('match_atoms', AtomsArg)],
         required_arguments = ['to'],
@@ -673,7 +676,7 @@ def register_command(logger):
             ('verbose', BoolArg), ('ss_fraction', Or(FloatArg, BoolArg)), ('matrix', StringArg),
             ('gap_open', FloatArg), ('hgap', FloatArg), ('sgap', FloatArg), ('ogap', FloatArg),
             ('cutoff_distance', Or(FloatArg, NoneArg)), ('gap_extend', FloatArg),
-            ('bring', AtomsArg), ('show_alignment', BoolArg), ('compute_ss', BoolArg),
+            ('bring', TopModelsArg), ('show_alignment', BoolArg), ('compute_ss', BoolArg),
             ('mat_hh', FloatArg), ('mat_ss', FloatArg), ('mat_oo', FloatArg), ('mat_hs', FloatArg),
             ('mat_ho', FloatArg), ('mat_so', FloatArg)],
         synopsis = 'Align atomic structures using sequence alignment'

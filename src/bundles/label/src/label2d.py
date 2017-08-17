@@ -83,7 +83,7 @@ def label_delete(session, name):
 
 # -----------------------------------------------------------------------------
 #
-def label_fonts(session):
+def label_listfonts(session):
     '''Report available fonts.'''
     from PyQt5.QtGui import QFontDatabase
     fdb = QFontDatabase()
@@ -118,7 +118,7 @@ def register_label_command(logger):
                           synopsis = 'Delete a 2d label')
     register('2dlabels delete', delete_desc, label_delete, logger=logger)
     fonts_desc = CmdDesc(synopsis = 'List available fonts')
-    register('2dlabels fonts', fonts_desc, label_fonts, logger=logger)
+    register('2dlabels listfonts', fonts_desc, label_listfonts, logger=logger)
 
 
 # -----------------------------------------------------------------------------
@@ -139,6 +139,8 @@ class Labels(State):
     def delete(self, label):
         del self.labels[label.name]
 
+    SESSION_SAVE = True
+    
     def take_snapshot(self, session, flags):
         lattrs = ('name', 'text', 'color', 'size', 'font', 'xpos', 'ypos', 'visibility')
         lstate = tuple({attr:getattr(l, attr) for attr in lattrs}

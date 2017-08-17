@@ -122,6 +122,7 @@ class LightingState:
         'fill_light_intensity',
         'ambient_light_color',
         'ambient_light_intensity',
+        'depth_cue',
         'depth_cue_start',
         'depth_cue_end',
         'depth_cue_color',

@@ -16,7 +16,6 @@ from chimerax.core.tools import ToolInstance
 class FilePanel(ToolInstance):
 
     SESSION_ENDURING = True
-    SESSION_SKIP = True
     help = "help:user/tools/filehistory.html"
 
     def __init__(self, session, tool_name):

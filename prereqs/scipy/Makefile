@@ -3,7 +3,7 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 include ../pips/Makefile.pip
 
-VERSION = 0.19.0
+VERSION = 0.19.1
 
 ifdef WIN32
 # Downloaded from http://www.lfd.uci.edu/~gohlke/pythonlibs/

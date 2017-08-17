@@ -189,11 +189,25 @@ class BundleInfo:
         return self._name, self._version
 
     def register(self, logger):
+        """Register bundle commands, tools, data formats, selectors, etc.
+
+        Parameters
+        ----------
+        logger : :py:class:`~chimerax.core.logger.Logger` instance
+            Where to log error messages.
+        """
         self._register_commands(logger)
         self._register_file_types(logger)
         self._register_selectors(logger)
 
     def deregister(self, logger):
+        """Deregister bundle commands, tools, data formats, selectors, etc.
+
+        Parameters
+        ----------
+        logger : :py:class:`~chimerax.core.logger.Logger` instance
+            Where to log error messages.
+        """
         self._deregister_selectors(logger)
         self._deregister_file_types(logger)
         self._deregister_commands(logger)
@@ -203,25 +217,29 @@ class BundleInfo:
         from chimerax.core.commands import cli
         for ci in self.commands:
             def cb(s=self, n=ci.name, l=logger):
-                s._register_cmd(n, l)
+                s._register_cmd(ci, l)
             _debug("delay_registration", ci.name)
             cli.delay_registration(ci.name, cb, logger=logger)
 
-    def _register_cmd(self, command_name, logger):
+    def _register_cmd(self, ci, logger):
         """Called when commands need to be really registered."""
         try:
-            f = self._get_api(logger).register_command
+            api = self._get_api(logger)
+            f = api.register_command
         except AttributeError:
-            raise ToolshedError(
-                "no register_command function found for bundle \"%s\""
-                % self.name)
+            raise ToolshedError("bundle \"%s\" has no register_command method" % self.name)
         try:
             if f == BundleAPI.register_command:
-                raise ToolshedError("bundle \"%s\"'s API forgot to override register_command()" % self.name)
-            f(command_name, logger)
+                raise ToolshedError("bundle \"%s\" forgot to override register_command()" % self.name)
+            if api.api_version == 0:
+                f(ci.name, logger)
+            elif api.api_version == 1:
+                f(ci, logger)
+            else:
+                raise ToolshedError("bundle \"%s\" uses unsupport bundle API version %s" % (self.name, api.api_version))
         except Exception as e:
             raise ToolshedError(
-                "register_command() failed for command %s in bundle %s:\n%s" % (command_name, self.name, str(e)))
+                "register_command() failed for command %s in bundle %s:\n%s" % (ci.name, self.name, str(e)))
 
     def _deregister_commands(self, logger):
         """Deregister commands with cli."""
@@ -494,6 +512,35 @@ class BundleInfo:
         """
         from distlib.version import NormalizedVersion as Version
         return Version(self.version) > Version(bi.version)
+
+    def dependents(self, logger):
+        """Return set of bundles that directly depends on this one.
+
+        Parameters
+        ----------
+        logger : :py:class:`~chimerax.core.logger.Logger` instance
+            Where to log error messages.
+
+        Returns
+        -------
+        set of :py:class:`~chimerax.core.toolshed.BundleInfo` instances
+            Dependent bundles.
+        """
+        from . import Toolshed
+        from distlib.database import DistributionPath
+        keep = set()
+        for d in DistributionPath().get_distributions():
+            for req in d.run_requires:
+                if req.split()[0] == self.name:
+                    keep.add(d)
+                    break
+        ts = Toolshed.get_toolshed()
+        deps = set()
+        for d in keep:
+            bi = ts.find_bundle(d.name, logger)
+            if bi:
+                deps.add(bi)
+        return deps
 
 
 class ToolInfo:

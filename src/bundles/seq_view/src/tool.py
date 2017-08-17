@@ -12,8 +12,10 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.tools import ToolInstance
-class MultAlignViewer(ToolInstance):
+class SequenceViewer(ToolInstance):
     """ Viewer displays a multiple sequence alignment """
+
+    MATCHED_REGION_INFO = ("matched residues", (1, .88, .8), "orange red")
 
     """TODO
     buttons = ('Quit', 'Hide')
@@ -24,7 +26,7 @@ class MultAlignViewer(ToolInstance):
     provideSecondaryStatus = True
     secondaryStatusPosition = "left"
 
-    ConsAttr = "mavPercentConserved"
+    ConsAttr = "svPercentConserved"
 
     MATCH_REG_NAME_START = "matches"
     ERROR_REG_NAME_START = "mismatches"
@@ -131,7 +133,7 @@ class MultAlignViewer(ToolInstance):
             if isinstance(fileNameOrSeqs, basestring):
                 title = os.path.split(fileNameOrSeqs)[1]
             else:
-                title = "MultAlignViewer"
+                title = "Sequence Viewer"
         self.title = title
         self.autoAssociate = autoAssociate
         self.quitCB = quitCB
@@ -182,7 +184,7 @@ class MultAlignViewer(ToolInstance):
             if seq.match_maps:
                self._update_errors_gaps(seq)
         if self.alignment.intrinsic:
-            self.region_browser.show_ss(True)
+            self.show_ss(True)
             self.status("Helices/strands depicted in gold/green")
         """TODO
         if self.fileMarkups:
@@ -309,9 +311,12 @@ class MultAlignViewer(ToolInstance):
         self._predSSHandler = self.triggers.addHandler(ADD_SEQS,
             lambda a1, a2, a3, s=self:
             s.showSS(show=None, ssType="predicted"), None)
-        self._resChangeHandler = chimera.triggers.addHandler(
-            "Residue", self._resChangeCB, None)
+        """
+        from chimerax.core.atomic import get_triggers
+        self._atomic_changes_handler = get_triggers(self.session).add_handler(
+            "changes", self._atomic_changes_cb)
 
+        """TODO
         self.structureMenu.add_command(state='disabled',
                 label="Select by Conservation...",
                 command=lambda: self._doByConsCB("Select"))
@@ -436,9 +441,9 @@ class MultAlignViewer(ToolInstance):
             assoc_aseqs = set()
             for match_map in note_data[-1]:
                 aseq = match_map.align_seq
-                self.seq_canvas.assoc_mod(aseq)
                 assoc_aseqs.add(aseq)
             for aseq in assoc_aseqs:
+                self.seq_canvas.assoc_mod(aseq)
                 self._update_errors_gaps(aseq)
         elif note_name == "pre-remove seqs":
             self.region_browser._pre_remove_lines(note_data)
@@ -451,6 +456,8 @@ class MultAlignViewer(ToolInstance):
         self.alignment.detach_viewer(self)
         for seq in self.alignment.seqs:
             seq.triggers.remove_handler(self._seq_rename_handlers[seq])
+        from chimerax.core.atomic import get_triggers
+        get_triggers(self.session).remove_handler(self._atomic_changes_handler)
         ToolInstance.delete(self)
 
     def new_region(self, **kw):
@@ -480,6 +487,11 @@ class MultAlignViewer(ToolInstance):
             del kw['columns']
         return self.region_browser.new_region(**kw)
 
+    def show_ss(self, show=True):
+        # show == None means don't change show states, but update regions
+        # ... not yet implemented
+        self.region_browser.show_ss(show if show is not None else True)
+
     @classmethod
     def restore_snapshot(cls, session, data):
         bundle_info = session.toolshed.find_bundle_for_class(cls)
@@ -489,6 +501,8 @@ class MultAlignViewer(ToolInstance):
         inst.region_browser.restore_state(data['region browser'])
         return inst
 
+    SESSION_SAVE = True
+    
     def take_snapshot(self, session, flags):
         data = {
             'ToolInstance': ToolInstance.take_snapshot(self, session, flags),
@@ -496,6 +510,10 @@ class MultAlignViewer(ToolInstance):
             'region browser': self.region_browser.save_state()
         }
         return data
+
+    def _atomic_changes_cb(self, trig_name, changes):
+        if "ss_type changed" in changes.residue_reasons():
+            self.show_ss(show=None)
 
     def _update_errors_gaps(self, aseq):
         if not self.settings.error_region_shown and not self.settings.gap_region_shown:
@@ -564,10 +582,10 @@ class MultAlignViewer(ToolInstance):
                     self.region_browser.new_region(region_name, blocks=blocks, fill=fill,
                         outline=outline, sequence=aseq, cover_gaps=False)
 
-def _start_mav(session, tool_name, alignment=None):
+def _start_seq_viewer(session, tool_name, alignment=None):
     if alignment is None:
         from chimerax.core.errors import LimitationError
         raise LimitationError("Running MAV from tools menu not implemented; instead, open"
             " alignment using 'open' command or File->Open")
-    return MultAlignViewer(session, tool_name, alignment)
+    return SequenceViewer(session, tool_name, alignment)
 

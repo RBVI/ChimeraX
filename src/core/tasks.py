@@ -85,12 +85,12 @@ class Task(State):
         ``TERMINATED``, and ``FINISHED``.
     SESSION_ENDURING : bool, class-level optional
         If True, then task survives across sessions.
-    SESSION_SKIP : bool, class-level optional
-        If True, then task is not saved in sessions.
+    SESSION_SAVE : bool, class-level optional
+        If True, then task is saved in sessions.
     """
 
     SESSION_ENDURING = False
-    SESSION_SKIP = False
+    SESSION_SAVE = False
 
     def __init__(self, session, id=None, **kw):
         """Initialize a Task.
@@ -377,7 +377,7 @@ class Tasks(State):
         tasks = {}
         for tid, task in self._tasks.items():
             assert(isinstance(task, Task))
-            if task.state == RUNNING and not task.SESSION_SKIP:
+            if task.state == RUNNING and task.SESSION_SAVE:
                 tasks[tid] = task
         data = {'tasks': tasks,
                 'version': CORE_STATE_VERSION}
@@ -416,7 +416,7 @@ class Tasks(State):
         """
         task_list = list(self._tasks.values())
         for tid, t in self._tasks.items():
-            if t.SESSION_SKIP or t.SESSION_ENDURING:
+            if (not t.SESSION_SAVE) or t.SESSION_ENDURING:
                 continue
             task.terminate()
             # ?assert(tid not in self._tasks)

@@ -47,9 +47,9 @@ defaults = {
 from  chimerax.core.settings import Settings
 from copy import deepcopy
 
-class _MAVSettings(Settings):
+class _SVSettings(Settings):
 	EXPLICIT_SAVE = deepcopy(defaults)
 
 def init(session):
-    # each MAV instance has its own settings instance
-    return _MAVSettings(session, "Multalign Viewer")
+    # each SV instance has its own settings instance
+    return _SVSettings(session, "Sequence Viewer")

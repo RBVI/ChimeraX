@@ -23,8 +23,6 @@ _InProgressPage = "<h2>BLAST search in progress&hellip;</h2>"
 class ToolUI(ToolInstance):
 
     SESSION_ENDURING = False
-    # For now, no session saving
-    SESSION_SKIP = True
     CUSTOM_SCHEME = "blastprotein"
     REF_ID_URL = "https://www.ncbi.nlm.nih.gov/protein/%s"
     KNOWN_IDS = ["ref","gi"]
@@ -191,6 +189,8 @@ class ToolUI(ToolInstance):
         t.remove_handler(self._remove_handler)
         super().delete()
 
+    SESSION_SAVE = False
+    
     def take_snapshot(self, session, flags):
         # For now, do not save anything in session.
         # Need to figure out which attributes (like UI widgets)

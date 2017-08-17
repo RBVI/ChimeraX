@@ -25,7 +25,7 @@ def seqalign_chain(session, chains):
     if len(chains) == 1:
         chain = chains[0]
         ident = ".".join([str(part) for part in chain.structure.id]) + "." + chain.chain_id
-        alignment = session.alignments.new_alignment([chain], ident, seq_viewer="mav",
+        alignment = session.alignments.new_alignment([chain], ident, seq_viewer="sv",
             auto_associate=None, intrinsic=True)
     else:
         # all chains have to have the same sequence, and they will all be associated with
@@ -52,10 +52,12 @@ def seqalign_chain(session, chains):
         starts.discard(None)
         if len(starts) == 1:
             seq.numbering_start = starts.pop()
-        alignment = session.alignments.new_alignment([seq], None, seq_viewer="mav",
+        alignment = session.alignments.new_alignment([seq], None, seq_viewer="sv",
             auto_associate=False, name=chains[0].description, intrinsic=True)
+        alignment.suspend_notify_viewers()
         for chain in chains:
             alignment.associate(chain, keep_intrinsic=True)
+        alignment.resume_notify_viewers()
 
 def register_seqalign_command(logger):
     from chimerax.core.commands import CmdDesc, register, UniqueChainsArg

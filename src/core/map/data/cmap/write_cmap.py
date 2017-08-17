@@ -148,19 +148,36 @@ def write_grid_data(h5file, grid_data, g, settings, progress):
 
     # Write values to primary and subsample arrays.
     isz,jsz,ksz = grid_data.size
+    # Read multiple planes so reading HDF5 with multiplane chunks is more efficient
+    # Read a slab of planes up to 1 Gbytes.  Take power of 2 number of planes (common file chunk size).
+    max_slab_bytes = 2**30
+    plane_bytes = isz * jsz * grid_data.value_type.itemsize
+    kchunk = floor_power_of_2(max(1, max_slab_bytes // plane_bytes))
     for k in range(ksz):
         if progress:
             progress.plane(k)
         # Read a single plane at a time to handle data sets that do not
         # fit in memory.
-        m = grid_data.matrix((0,0,k), (isz,jsz,1))
+        if k % kchunk == 0:
+            kc = kchunk if k + kchunk <= ksz else ksz-k
+            mc = grid_data.matrix((0,0,k), (isz,jsz,kc))
+        mk = mc[k%kchunk,:,:]
         for step, a in arrays:
             if step == 1 or k % step == 0:
-                a[k//step,:,:] = m[0,::step,::step]
+                a[k//step,:,:] = mk[::step,::step]
 
     # TODO: Use subsample arrays if available.
     # TODO: Optimize read write depending on chunk shapes.
 
+# -----------------------------------------------------------------------------
+# Largest power of 2 less than or equal to n.
+#
+def floor_power_of_2(n):
+  p = 1
+  while 2*p <= n:
+    p *= 2
+  return p
+    
 # -----------------------------------------------------------------------------
 # Determine name used to distinguish multiple maps in file.
 #

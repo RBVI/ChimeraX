@@ -31,6 +31,8 @@ class Alignment(State):
         self.auto_associate = auto_associate
         self.description = description
         self.viewers = []
+        self._viewer_notification_suspended = 0
+        self._vn_suspended_data = []
         self.associations = {}
         from chimerax.core.atomic import Chain
         self.intrinsic = intrinsic
@@ -138,7 +140,8 @@ class Alignment(State):
                     if old_aseq == best_match_map.align_seq:
                         return
                     self.disassociate(sseq)
-                status("Associated %s %s to %s with %d error(s)" % (struct_name, sseq.name,
+                if not self.intrinsic:
+                    status("Associated %s %s to %s with %d error(s)" % (struct_name, sseq.name,
                         best_match_map.align_seq.name, best_errors), log=True)
                 self.prematched_assoc_structure(best_match_map, best_errors, reassoc)
                 new_match_maps.append(best_match_map)
@@ -390,6 +393,33 @@ class Alignment(State):
                 mseq.TRIG_MODIFY, self._mseqModCB, match_map)
         """
 
+    def resume_notify_viewers(self):
+        self._viewer_notification_suspended -= 1
+        if self._viewer_notification_suspended == 0:
+            cur_note = None
+            for note, data in self._vn_suspended_data:
+                if cur_note == None:
+                    cur_note = note
+                    cur_data = data
+                    continue
+                if note == cur_note:
+                    if isinstance(cur_data, list):
+                        cur_data.extend(data)
+                        continue
+                    if isinstance(cur_data, tuple) and len(cur_data) == 2\
+                    and cur_data[0] == data[0] and isinstance(cur_data[1], list):
+                        cur_data[1].extend(data[1])
+                        continue
+                self._notify_viewers(cur_note, cur_data)
+                cur_note = note
+                cur_data = data
+            if cur_note is not None:
+                self._notify_viewers(cur_note, cur_data)
+            self._vn_suspended_data = []
+
+    def suspend_notify_viewers(self):
+        self._viewer_notification_suspended += 1
+
     def _destroy(self):
         self._in_destroy = True
         self._notify_viewers("destroyed", None)
@@ -399,6 +429,9 @@ class Alignment(State):
             sseq.triggers.remove_handler(mmap.del_handler)
 
     def _notify_viewers(self, note_name, note_data):
+        if self._viewer_notification_suspended > 0:
+            self._vn_suspended_data.append((note_name, note_data))
+            return
         for viewer in self.viewers:
             viewer.alignment_notification(note_name, note_data)
             if note_name in ["add association", "remove association"]:
@@ -424,6 +457,8 @@ class Alignment(State):
                     lambda _1, sseq, aln=aln: aln.disassociate(sseq))
         return aln
 
+    SESSION_SAVE = True
+    
     def take_snapshot(self, session, flags):
         """For session/scene saving"""
         return { 'version': 1, 'seqs': self.seqs, 'ident': self.ident,

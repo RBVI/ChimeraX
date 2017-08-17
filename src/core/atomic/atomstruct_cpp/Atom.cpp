@@ -59,7 +59,7 @@ Atom::add_bond(Bond *b)
 {
     _bonds.push_back(b);
     _neighbors.push_back(b->other_atom(this));
-    graphics_container()->set_gc_shape();
+    graphics_changes()->set_gc_shape();
 }
 
 std::set<char>
@@ -126,12 +126,13 @@ Atom::_coordset_set_coord(const Point &coord, CoordSet *cs)
             }
         }
         cs->add_coord(coord);
-        graphics_container()->set_gc_shape();
-        graphics_container()->set_gc_ribbon();
+        graphics_changes()->set_gc_shape();
+        graphics_changes()->set_gc_ribbon();
     } else {
         cs->_coords[_coord_index] = coord;
-        graphics_container()->set_gc_shape();
-        graphics_container()->set_gc_ribbon();
+        graphics_changes()->set_gc_shape();
+        graphics_changes()->set_gc_ribbon();
+        structure()->change_tracker()->add_modified(cs, ChangeTracker::REASON_COORDSET);
     }
 }
 
@@ -957,7 +958,7 @@ Atom::remove_bond(Bond *b)
     auto bi = std::find(_bonds.begin(), _bonds.end(), b);
     _neighbors.erase(_neighbors.begin() + (bi - _bonds.begin()));
     _bonds.erase(bi);
-    graphics_container()->set_gc_shape();
+    graphics_changes()->set_gc_shape();
 }
 
 const Atom::Rings&
@@ -1111,7 +1112,7 @@ Atom::set_alt_loc(char alt_loc, bool create, bool _from_residue)
 {
     if (alt_loc == _alt_loc || alt_loc == ' ')
         return;
-    graphics_container()->set_gc_shape();
+    graphics_changes()->set_gc_shape();
     structure()->change_tracker()->add_modified(this, ChangeTracker::REASON_ALT_LOC);
     if (create) {
         if (_alt_loc_map.find(alt_loc) != _alt_loc_map.end()) {
@@ -1179,7 +1180,7 @@ Atom::set_color(const Rgba& rgba)
 {
     if (rgba == _rgba)
         return;
-    graphics_container()->set_gc_color();
+    graphics_changes()->set_gc_color();
     change_tracker()->add_modified(this, ChangeTracker::REASON_COLOR);
     _rgba = rgba;
 }
@@ -1213,7 +1214,8 @@ Atom::set_display(bool d)
 {
     if (d == _display)
         return;
-    graphics_container()->set_gc_shape();
+    graphics_changes()->set_gc_shape();
+    graphics_changes()->set_gc_display();
     change_tracker()->add_modified(this, ChangeTracker::REASON_DISPLAY);
     _display = d;
 }
@@ -1223,7 +1225,8 @@ Atom::set_draw_mode(DrawMode dm)
 {
     if (dm == _draw_mode)
         return;
-    graphics_container()->set_gc_shape();
+    graphics_changes()->set_gc_shape();
+    graphics_changes()->set_gc_display();	// Sphere style can effect if bonds are shown.
     change_tracker()->add_modified(this, ChangeTracker::REASON_DRAW_MODE);
     _draw_mode = dm;
 }
@@ -1233,7 +1236,8 @@ Atom::set_hide(int h)
 {
     if (h == _hide)
         return;
-    graphics_container()->set_gc_shape();
+    graphics_changes()->set_gc_shape();
+    graphics_changes()->set_gc_display();
     change_tracker()->add_modified(this, ChangeTracker::REASON_HIDE);
     _hide = h;
 }
@@ -1258,7 +1262,7 @@ Atom::set_radius(float r)
     if (r == _radius)
         return;
 
-    graphics_container()->set_gc_shape();
+    graphics_changes()->set_gc_shape();
     change_tracker()->add_modified(this, ChangeTracker::REASON_RADIUS);
     _radius = r;
 }
@@ -1268,7 +1272,7 @@ Atom::set_selected(bool s)
 {
     if (s == _selected)
         return;
-    graphics_container()->set_gc_select();
+    graphics_changes()->set_gc_select();
     change_tracker()->add_modified(this, ChangeTracker::REASON_SELECTED);
     _selected = s;
 }

@@ -20,7 +20,7 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: DataFormat :: STORM :: :: Generic 3D object :: .storm :: :: http://en.wikipedia.org/wiki/STL_%28file_format%29 :: :: :: Point list for STORM microscopy</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: DataFormat :: STORM :: :: Generic 3D object :: .storm :: ::  :: :: :: Point list for STORM microscopy</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Open :: STORM :: ::</ChimeraXClassifier>
   </Classifiers>
 
