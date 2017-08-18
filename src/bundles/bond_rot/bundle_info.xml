@@ -8,12 +8,12 @@
 
   <!-- Synopsis is a one-line description
        Description is a full multi-line description -->
-  <Synopsis>Sequence alignment support</Synopsis>
-  <Description>Sequence alignment support</Description>
+  <Synopsis>Bond rotation support</Synopsis>
+  <Description>Bond rotation support</Description>
 
   <!-- Categories is a list where this bundle should appear -->
   <Categories>
-    <Category name="Sequence"/>
+    <Category name="Structure Editing"/>
   </Categories>
 
   <!-- Dependencies on other ChimeraX/Python packages -->
@@ -38,13 +38,7 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
 ]
-	<ChimeraXClassifier>ChimeraX :: DataFormat :: FASTA :: :: Sequence alignment :: .fa,.fasta,.afasta,.afa :: :: https://en.wikipedia.org/wiki/FASTA_format :: :: :: FASTA format :: utf-8</ChimeraXClassifier>
-	<ChimeraXClassifier>ChimeraX :: DataFormat :: MSF :: :: Sequence alignment :: .msf :: :: :: :: :: GCG MSF (multiple sequence file) format :: utf-8</ChimeraXClassifier>
-	<ChimeraXClassifier>ChimeraX :: DataFormat :: PIR :: :: Sequence alignment :: .ali,.pir :: :: http://www.bioinformatics.nl/tools/crab_pir.html :: :: :: NBRF/PIR format :: utf-8</ChimeraXClassifier>
-	<ChimeraXClassifier>ChimeraX :: Open :: FASTA :: fasta :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
-	<ChimeraXClassifier>ChimeraX :: Open :: MSF :: msf :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
-	<ChimeraXClassifier>ChimeraX :: Open :: PIR :: pir :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
-	<ChimeraXClassifier>ChimeraX :: Command :: sequence :: Sequence alignment :: control/open sequence alignments</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: torsion :: Rotate bonds :: adjust bond torsion angles</ChimeraXClassifier>
 ]
   </Classifiers>
 
