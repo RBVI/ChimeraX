@@ -25,6 +25,7 @@ REMOVE_MODELS = 'remove models'
 MODEL_DISPLAY_CHANGED = 'model display changed'
 MODEL_ID_CHANGED = 'model id changed'
 MODEL_NAME_CHANGED = 'model name changed'
+MODEL_POSITION_CHANGED = 'model position changed'
 # TODO: register Model as data event type
 
 
@@ -98,6 +99,20 @@ class Model(State, Drawing):
         self._name = val
         self.session.triggers.activate_trigger(MODEL_NAME_CHANGED, self)
     name = property(_get_name, _set_name)
+
+    def _model_set_position(self, pos):
+        if pos != self.position:
+            Drawing.position.fset(self, pos)
+            self.session.triggers.activate_trigger(MODEL_POSITION_CHANGED, self)
+    position = property(Drawing.position.fget, _model_set_position)
+
+    def _model_set_positions(self, positions):
+        if positions != self.positions:
+            Drawing.positions.fset(self, positions)
+            self.session.triggers.activate_trigger(MODEL_POSITION_CHANGED, self)
+    positions = property(Drawing.positions.fget, _model_set_positions)
+
+    # Drawing._set_scene_position calls _set_positions, so don't need to override
 
     def _get_single_color(self):
         return self.color if self.vertex_colors is None else None
@@ -233,6 +248,7 @@ class Models(State):
         t.add_trigger(MODEL_DISPLAY_CHANGED)
         t.add_trigger(MODEL_ID_CHANGED)
         t.add_trigger(MODEL_NAME_CHANGED)
+        t.add_trigger(MODEL_POSITION_CHANGED)
         self._models = {}
         self.drawing = r = Model("root", session)
         r.id = ()
