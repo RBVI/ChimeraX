@@ -5,12 +5,13 @@ from chimerax.core.toolshed import BundleAPI
 
 class _MyAPI(BundleAPI):
 
-    api_version = 1     # register_command called with CommandInfo instance
-                        # instead of string (when api_version==0)
+    api_version = 1     # register_command called with BundleInfo and
+                        # CommandInfo instance instead of command name
+                        # (when api_version==0)
 
     # Override method for registering commands
     @staticmethod
-    def register_command(ci, logger):
+    def register_command(bi, ci, logger):
         # Since we only listed one command in bundle_info.xml
         # we expect only a single call to this method.
         # We pull the function to call and its argument
