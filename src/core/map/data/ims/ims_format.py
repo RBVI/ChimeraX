@@ -153,7 +153,7 @@ class IMS_Data:
             for t, levels in times.items():
                 for lev,g,a in sorted(levels):
                     if lev == 0:
-                        i = IMS_Image(t,g,a,size,origin,step,rgba)
+                        i = IMS_Image(t,c,g,a,size,origin,step,rgba)
                         cim.append(i)
                     else:
                         ss = 2**lev
@@ -257,9 +257,10 @@ class IMS_Data:
 #
 class IMS_Image:
 
-    def __init__(self, time, group, array, size, origin, step, color):
+    def __init__(self, time, channel, group, array, size, origin, step, color):
 
         self.time = time
+        self.channel = channel
         
         self.array_path = array._v_pathname
 

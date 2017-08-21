@@ -22,6 +22,8 @@
 #    rotation_axis (0.0, 0.0, 1.0) (attribute)
 #    rotation_angle 45.0 (attribute, degrees)
 #    color (1.0, 1.0, 0, 1.0) (attribute, rgba 0-1 float)
+#    time 5 (attribute, time series frame number)
+#    channel 0 (attribute, integer for multichannel data)
 #    /data (3d array of uint8 (123,542,82)) (dataset, any name allowed)
 #    /data_x (3d array of uint8 (123,542,82), alternate chunk shape) (dataset, any name allowed)
 #    /data_2 (3d array of uint8 (61,271,41)) (dataset, any name allowed)
@@ -175,6 +177,8 @@ class Chimera_HDF_Image:
         self.rotation = self.find_rotation(group)
         self.symmetries = self.find_symmetries(group)
         self.rgba = self.find_color(group)
+        self.time = self.find_time(group)
+        self.channel = self.find_channel(group)
 
         subsamples = []
         stable = {}
@@ -270,8 +274,23 @@ class Chimera_HDF_Image:
             color = tuple(float(r) for r in va.color)
         else:
             color = None
-        print ('read hdf5 color', color)
         return color
+
+    # --------------------------------------------------------------------------
+    #
+    def find_time(self, group):
+
+        va = group._v_attrs
+        t = va.time if 'time' in va else None
+        return t
+
+    # --------------------------------------------------------------------------
+    #
+    def find_channel(self, group):
+
+        va = group._v_attrs
+        c = va.channel if 'channel' in va else None
+        return c
 
     # --------------------------------------------------------------------------
     #

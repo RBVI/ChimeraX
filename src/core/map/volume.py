@@ -61,6 +61,8 @@ class Volume(Model):
     rlist.insert_region(ijk_min, ijk_max)
     self.region_list = rlist
 
+    self._channels = None	# Map_Channels model
+    
     self.representation = 'surface'
 
     self.solid = None
@@ -103,6 +105,15 @@ class Volume(Model):
 
     if self.message_cb:
       self.message_cb(text, **kw)
+
+  # ---------------------------------------------------------------------------
+  # Update data name when model name changes, so it gets written to cmap files.
+  #
+  def _set_data_name(self, name):
+    if hasattr(self, 'data') and name != self.data.name:
+      self.data.name = name
+    Model.name.fset(self, name)
+  name = property(Model.name.fget, _set_data_name)
     
   # ---------------------------------------------------------------------------
   #
@@ -447,6 +458,16 @@ class Volume(Model):
         return False
     return True
     
+  # ---------------------------------------------------------------------------
+  #
+  @property
+  def showing_one_plane(self):
+    ijk_min, ijk_max, ijk_step = self.region
+    for i0, i1, step in zip(ijk_min, ijk_max, ijk_step):
+      if i1//step - i0//step == 0:
+        return True
+    return False
+  
   # ---------------------------------------------------------------------------
   #
   def has_thresholds(self):
@@ -961,6 +982,24 @@ class Volume(Model):
     return bool(self.representation == 'solid' and
                 self.rendering_options.box_faces)
     
+  # ---------------------------------------------------------------------------
+  #
+  def principal_channel(self):
+
+    c = self._channels
+    return c is None or self == c.first_channel
+    
+  # ---------------------------------------------------------------------------
+  #
+  def other_channels(self):
+
+    c = self._channels
+    if c is None:
+      vc = []
+    else:
+      vc = [v for v in c.maps if v is not self]
+    return vc
+  
   # ---------------------------------------------------------------------------
   #
   def copy(self):
@@ -3005,26 +3044,26 @@ def open_grids(session, grids, name, **kw):
     maps = []
     show = kw.get('show', True)
     show_dialog = kw.get('show_dialog', True)
-    channels = [getattr(d, 'channel', 0) for d in grids]
-    channels.sort()
-    channel_show_max = channels[min(2,len(channels)-1)]
     for i,d in enumerate(grids):
-        show_data = show and (i == 0 or not hasattr(d, 'series_index'))
-        kw = {'show_data': show_data, 'show_dialog': show_dialog}
-        if hasattr(d, 'initial_style') and d.initial_style in ('surface', 'mesh', 'solid'):
-          kw['representation'] = d.initial_style
-        v = volume_from_grid_data(d, session, open_model = False, **kw)
-        if getattr(d, 'channel', 0) > channel_show_max:
-          v.display = False	# Hide all but lowest 3 channels, but compute the graphics
-#        v.new_region(ijk_step = (1,1,1), adjust_step = False, show = show_data)
-        maps.append(v)
+      show_data = show and (i == 0 or not hasattr(d, 'series_index'))
+      kw = {'show_data': show_data, 'show_dialog': show_dialog}
+      if hasattr(d, 'initial_style') and d.initial_style in ('surface', 'mesh', 'solid'):
+        kw['representation'] = d.initial_style
+      v = volume_from_grid_data(d, session, open_model = False, **kw)
+#      v.new_region(ijk_step = (1,1,1), adjust_step = False, show = show_data)
+      maps.append(v)
 
     if len(maps) > 1 and len([d for d in grids if hasattr(d, 'series_index')]) == len(grids):
-        from .series import Map_Series
-        ms = Map_Series(name, maps, session)
-        msg = 'Opened map series %s, %d images' % (name, len(maps))
-        models = [ms]
+      from .series import Map_Series
+      ms = Map_Series(name, maps, session)
+      msg = 'Opened map series %s, %d images' % (name, len(maps))
+      models = [ms]
+    elif len(maps) > 1 and len([d for d in grids if hasattr(d, 'channel')]) == len(grids):
+      mc = Map_Channels(name, maps, session)
+      msg = 'Opened multi-channel map %s, %d channels' % (name, len(maps))
+      models = [mc]
     else:
+      # TODO: Handle multi-times and multi-channels.
       msg = 'Opened %s' % maps[0].name
       models = maps
 
@@ -3043,6 +3082,33 @@ def open_grids(session, grids, name, **kw):
     
     return models, msg
 
+# -----------------------------------------------------------------------------
+#
+class Map_Channels(Model):
+  
+  def __init__(self, name, maps, session):
+
+    Model.__init__(self, name, session)
+
+    for v in maps:
+      v._channels = self
+      
+    self.maps = maps
+    self.add(maps)
+
+    # Hide all but lowest 3 channels, but compute the graphics.
+    # Allen Institute data sometimes has 14 channels, mostly segmentations.
+    channels = [v.data.channel for v in maps]
+    channels.sort()
+    channel_show_max = channels[min(2,len(channels)-1)]
+    for v in maps:
+      if v.data.channel > channel_show_max:
+        v.display = False
+
+  @property
+  def first_channel(self):
+    return self.maps[0]
+  
 # -----------------------------------------------------------------------------
 #
 def save_map(session, path, format_name, models = None, region = None, step = (1,1,1),

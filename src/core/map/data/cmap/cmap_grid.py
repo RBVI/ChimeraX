@@ -29,7 +29,7 @@ class Chimera_HDF_Grid(Grid_Data):
     from os.path import basename
     name = basename(hdf_data.path)
     if image_name and image_name != name.rsplit('.',1)[0]:
-      name += ' ' + image_name
+      name = image_name
 
     Grid_Data.__init__(self, size, value_type,
                        origin, step, cell_angles, rotation,
@@ -64,6 +64,10 @@ def read_chimera_map(path):
     g = Chimera_HDF_Grid(d, i.size, i.value_type,
                          i.origin, i.step, i.cell_angles, i.rotation,
                          i.symmetries, i.rgba, image_name, i.array_paths)
+    if i.time is not None:
+      g.time = i.time
+    if i.channel is not None:
+      g.channel = i.channel
     if i.subsamples:
       g = add_subsamples(d, i, g)
     glist.append(g)

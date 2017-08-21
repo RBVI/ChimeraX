@@ -422,22 +422,28 @@ class Grid_Subregion(Grid_Data):
 
   def __init__(self, grid_data, ijk_min, ijk_max, ijk_step = (1,1,1)):
 
-    self.full_data = grid_data
+    d = grid_data
+    self.full_data = d
 
     ijk_min = [((a+s-1)//s)*s for a,s in zip(ijk_min, ijk_step)]
     self.ijk_offset = ijk_min
     self.ijk_step = ijk_step
 
     size = [max(0,(b-a+s)//s) for a,b,s in zip(ijk_min, ijk_max, ijk_step)]
-    origin = grid_data.ijk_to_xyz(ijk_min)
-    step = [ijk_step[a]*grid_data.step[a] for a in range(3)]
+    origin = d.ijk_to_xyz(ijk_min)
+    step = [ijk_step[a]*d.step[a] for a in range(3)]
 
-    Grid_Data.__init__(self, size, grid_data.value_type,
-                       origin, step, grid_data.cell_angles,
-                       grid_data.rotation, grid_data.symmetries,
-                       name = grid_data.name + ' subregion')
-    self.rgba = grid_data.rgba
+    Grid_Data.__init__(self, size, d.value_type,
+                       origin, step, d.cell_angles,
+                       d.rotation, d.symmetries,
+                       name = d.name + ' subregion')
+    self.rgba = d.rgba
     self.data_cache = None      # Caching done by underlying grid.
+
+    if hasattr(d, 'time') and d.time is not None:
+      self.time = d.time
+    if hasattr(d, 'channel') and d.channel is not None:
+      self.channel = d.channel
         
   # ---------------------------------------------------------------------------
   #

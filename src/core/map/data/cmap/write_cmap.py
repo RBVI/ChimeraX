@@ -75,20 +75,21 @@ def write_grid_as_chimera_map(grid_data, path, options = {}, progress = None):
     else:                       mode = 'w'
     import tables
     h5file = tables.open_file(path, mode = mode)
-    if progress:
-        progress.close_on_cancel(h5file)
+    try:
+        if progress:
+            progress.close_on_cancel(h5file)
 
-    if '/Chimera' in h5file:
-        cg = h5file.get_node('/Chimera')
-    else:
-        cg = h5file.create_group(h5file.root, 'Chimera')
+        if '/Chimera' in h5file:
+            cg = h5file.get_node('/Chimera')
+        else:
+            cg = h5file.create_group(h5file.root, 'Chimera')
 
-    ioffset = next_suffix_number(cg, 'image')
-    for i, d in enumerate(data_sets):
-        g = h5file.create_group(cg, 'image%d' % (i+ioffset))
-        write_grid_data(h5file, d, g, settings, progress)
-
-    h5file.close()
+        ioffset = next_suffix_number(cg, 'image')
+        for i, d in enumerate(data_sets):
+            g = h5file.create_group(cg, 'image%d' % (i+ioffset))
+            write_grid_data(h5file, d, g, settings, progress)
+    finally:
+        h5file.close()
 
 # -----------------------------------------------------------------------------
 # Used to produce new group name when adding maps to an existing hdf file.
@@ -141,6 +142,10 @@ def write_grid_data(h5file, grid_data, g, settings, progress):
         g._v_attrs.symmetries = array(grid_data.symmetries.array(), float32)
     if grid_data.rgba is not None:
         g._v_attrs.color = array(grid_data.rgba, float32)
+    if hasattr(grid_data, 'time') and grid_data.time is not None:
+        g._v_attrs.time = grid_data.time
+    if hasattr(grid_data, 'channel') and grid_data.channel is not None:
+        g._v_attrs.channel = grid_data.channel
         
     # Determine data type.
     import tables
