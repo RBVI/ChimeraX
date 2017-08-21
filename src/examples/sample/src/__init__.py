@@ -10,13 +10,13 @@ class _MyAPI(BundleAPI):
 
     # Override method for starting tool
     @staticmethod
-    def start_tool(session, tool_name, **kw):
+    def start_tool(session, bi, ti, **kw):
         from .tool import SampleTool
-        return SampleTool(session, tool_name, **kw)
+        return SampleTool(session, ti.name, **kw)
 
     # Override method for registering commands
     @staticmethod
-    def register_command(ci, logger):
+    def register_command(bi, ci, logger):
         # We expect that there is a function in "cmd"
         # corresponding to every registered command
         # in "setup.py.in" and that they are named

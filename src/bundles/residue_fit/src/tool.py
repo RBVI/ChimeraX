@@ -79,7 +79,7 @@ class ResidueFit(Slider):
 
     def update_label(self, res):
         if self._label is None:
-            from chimerax.label.label import Label
+            from chimerax.label import Label
             self._label = Label(self.session, 'resfit', xpos = 0.7, ypos = 0.9)
         l = self._label
         l.text = '%s %d' % (res.name, res.number)
