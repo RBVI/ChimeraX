@@ -36,7 +36,7 @@ def alias(session, name, text=''):
 def list_aliases(session, internal=False):
     # list aliases
     logger = session.logger
-    aliases = cli.list_aliases(all=internal)
+    aliases = cli.list_aliases(all=internal, logger=logger)
     aliases.sort(key=lambda x: x[x[0] == '~':])
     names = cli.commas(aliases, ' and')
     noun = cli.plural_form(aliases, 'alias')
@@ -54,9 +54,9 @@ def unalias(session, name):
         If not given, then remove all aliases.
     """
     if name == 'all':
-        cli.remove_alias(user=True)
+        cli.remove_alias(user=True, logger=session.logger)
     else:
-        cli.remove_alias(name, user=True)
+        cli.remove_alias(name, user=True, logger=session.logger)
 
 
 def register_command(session):
