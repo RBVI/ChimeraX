@@ -17,8 +17,6 @@ from chimerax.core.ui.widgets.slider import Slider
 #
 class ResidueFit(Slider):
 
-    SESSION_SKIP = True
-
     def __init__(self, session, tool_name, residues, map, residue_range = (-2,1),
                  pause_frames = 50, motion_frames = 50, movie_framerate = 25):
 
@@ -81,7 +79,7 @@ class ResidueFit(Slider):
 
     def update_label(self, res):
         if self._label is None:
-            from chimerax.label.label import Label
+            from chimerax.label import Label
             self._label = Label(self.session, 'resfit', xpos = 0.7, ypos = 0.9)
         l = self._label
         l.text = '%s %d' % (res.name, res.number)

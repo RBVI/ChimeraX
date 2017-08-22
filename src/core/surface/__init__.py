@@ -13,7 +13,7 @@
 
 from .sasa import spheres_surface_area
 from .split import split_surfaces
-from .shapes import sphere_geometry, cylinder_geometry, dashed_cylinder_geometry, cone_geometry
+from .shapes import sphere_geometry, sphere_geometry2, cylinder_geometry, dashed_cylinder_geometry, cone_geometry, box_geometry
 from .area import surface_area, enclosed_volume, surface_volume_and_area
 from .gridsurf import ses_surface_geometry
 from ._surface import subdivide_triangles, vertex_areas

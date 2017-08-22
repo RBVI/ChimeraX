@@ -41,6 +41,27 @@ PyObject *copy_la_to_rgba(PyObject *, PyObject *args, PyObject *keywds);
 PyObject *blend_la_to_rgba(PyObject *, PyObject *args, PyObject *keywds);
 
 // ----------------------------------------------------------------------------
+// Copy array of luminosity uint8 values to array of rgba uint8 values.
+//
+// copy_l_to_rgba(l, color, rgba)
+//
+PyObject *copy_l_to_rgba(PyObject *, PyObject *args, PyObject *keywds);
+
+// ----------------------------------------------------------------------------
+// Blend array of luminosity uint8 values with array of rgba uint8 values.
+//
+// blend_l_to_rgba(l, color, rgba)
+//
+PyObject *blend_l_to_rgba(PyObject *, PyObject *args, PyObject *keywds);
+
+// ----------------------------------------------------------------------------
+// Blend array of rgb values with array of rgba uint8 values.
+//
+// blend_rgb_to_rgba(rgb, rgba)
+//
+PyObject *blend_rgb_to_rgba(PyObject *, PyObject *args, PyObject *keywds);
+
+// ----------------------------------------------------------------------------
 // Blend two arrays with rgba uint8 values.
 //
 // blend_rgba(la, color, rgba)

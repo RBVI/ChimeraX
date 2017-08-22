@@ -220,6 +220,12 @@ class MouseModes:
         '''List of MouseMode instances.'''
         return self._available_modes
 
+    def named_mode(self, name):
+        for m in self.modes:
+            if m.name == name:
+                return m
+        return None
+    
     def mouse_pause_tracking(self):
         '''
         Called periodically to check for mouse pause and invoke pause mode.

@@ -35,7 +35,7 @@ typedef _object PyObject;
 namespace atomstruct {
 
 class Atom;
-class GraphicsContainer;
+class GraphicsChanges;
 
 class ATOMSTRUCT_IMEX Connection {
 public:
@@ -113,7 +113,7 @@ public:
     bool  display() const { return _display; }
     bool  halfbond() const { return _halfbond; }
     int  hide() const { return _hide; }
-    virtual GraphicsContainer*  graphics_container() const = 0;
+    virtual GraphicsChanges*  graphics_changes() const = 0;
     float  radius() const { return _radius; }
     void  set_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b, Rgba::Channel a)
         { set_color(Rgba({r, g, b, a})); }
@@ -159,7 +159,7 @@ Connection::finish_construction()
 {
     if (_atoms[0] == _atoms[1])
         throw std::invalid_argument(err_msg_loop());
-    graphics_container()->set_gc_shape();
+    graphics_changes()->set_gc_shape();
 }
 
 inline Real
@@ -171,7 +171,8 @@ inline void
 Connection::set_display(bool d) {
     if (d == _display)
         return;
-    graphics_container()->set_gc_shape();
+    graphics_changes()->set_gc_shape();
+    graphics_changes()->set_gc_display();
     track_change(ChangeTracker::REASON_DISPLAY);
     _display = d;
 }
@@ -180,7 +181,7 @@ inline void
 Connection::set_color(const Rgba& rgba) {
     if (rgba == _rgba)
         return;
-    graphics_container()->set_gc_color();
+    graphics_changes()->set_gc_color();
     track_change(ChangeTracker::REASON_COLOR);
     _rgba = rgba;
 }
@@ -189,7 +190,7 @@ inline void
 Connection::set_halfbond(bool hb) {
     if (hb == _halfbond)
         return;
-    graphics_container()->set_gc_color();
+    graphics_changes()->set_gc_color();
     track_change(ChangeTracker::REASON_HALFBOND);
     _halfbond = hb;
 }
@@ -198,7 +199,7 @@ inline void
 Connection::set_hide(int h) {
     if (h == _hide)
         return;
-    graphics_container()->set_gc_shape();
+    graphics_changes()->set_gc_shape();
     track_change(ChangeTracker::REASON_HIDE);
     _hide = h;
 }
@@ -207,7 +208,7 @@ inline void
 Connection::set_radius(float r) {
     if (r == _radius)
         return;
-    graphics_container()->set_gc_shape();
+    graphics_changes()->set_gc_shape();
     track_change(ChangeTracker::REASON_RADIUS);
     _radius = r;
 }

@@ -86,7 +86,6 @@ bool array_from_python(PyObject *array, int dim, Numeric_Array *na, bool allow_d
   int type = PyArray_TYPE(a);
   switch ((NPY_TYPES) type)
     {
-    case NPY_CHAR:  dtype = Numeric_Array::Char;        break;
     case NPY_BOOL:  dtype = Numeric_Array::Unsigned_Char;   break;
     case NPY_UBYTE: dtype = Numeric_Array::Unsigned_Char;   break;
     case NPY_BYTE:  dtype = Numeric_Array::Signed_Char; break;
@@ -444,29 +443,6 @@ static PyObject *allocate_python_array(int dim, int *size, int type)
 }
 
 // ----------------------------------------------------------------------------
-// Array is not initialized to zero.
-//
-static PyObject *allocate_python_array(int dim, int *size, PyArray_Descr *dtype)
-{
-  npy_intp *sn = new npy_intp[dim];
-  for (int i = 0 ; i < dim ; ++i)
-    sn[i] = (npy_intp)size[i];
-
-  PyObject *a = PyArray_SimpleNewFromDescr(dim, sn, dtype);
-  delete [] sn;
-  if (a == NULL)
-    {
-      long s = 1;
-      for (int i = 0 ; i < dim ; ++i)
-        s *= size[i];
-      PyErr_Format(PyExc_MemoryError, "array allocation of size %ld, dimension %d, value type %c failed",
-           s, dim, dtype->type);
-      return NULL;
-    }
-  return a;
-}
-
-// ----------------------------------------------------------------------------
 //
 PyObject *c_array_to_python(const int *data, int size)
 {
@@ -672,36 +648,6 @@ PyObject *python_uint8_array(int size1, int size2, unsigned char **data)
   PyObject *a = allocate_python_array(2, dimensions, NPY_UINT8);
   if (a && data)
     *data = (unsigned char *)PyArray_DATA((PyArrayObject *)a);
-
-  return a;
-}
-
-// ----------------------------------------------------------------------------
-//
-PyObject *python_char_array(int size1, int size2, char **data)
-{
-  initialize_numpy();       // required before using NumPy.
-
-  int dimensions[2] = {size1, size2};
-  PyObject *a = allocate_python_array(2, dimensions, NPY_CHAR);
-  if (a && data)
-    *data = (char *)PyArray_DATA((PyArrayObject *)a);
-
-  return a;
-}
-
-// ----------------------------------------------------------------------------
-//
-PyObject *python_string_array(int size, int string_length, char **data)
-{
-  initialize_numpy();       // required before using NumPy.
-
-  PyArray_Descr *d = PyArray_DescrNewFromType(NPY_CHAR);
-  d->elsize = string_length;
-  int dimensions[1] = {size};
-  PyObject *a = allocate_python_array(1, dimensions, d);
-  if (a && data)
-    *data = (char *)PyArray_DATA((PyArrayObject *)a);
 
   return a;
 }
@@ -1101,6 +1047,17 @@ extern "C" int parse_uint8_n2_array(PyObject *arg, void *carray)
 {
   Numeric_Array v;
   int s = parse_nm_array(arg, Numeric_Array::Unsigned_Char, 2, false, v);
+  if (s)
+    *static_cast<CArray*>(carray) = static_cast<CArray>(v);
+  return s;
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" int parse_uint8_n3_array(PyObject *arg, void *carray)
+{
+  Numeric_Array v;
+  int s = parse_nm_array(arg, Numeric_Array::Unsigned_Char, 3, false, v);
   if (s)
     *static_cast<CArray*>(carray) = static_cast<CArray>(v);
   return s;

@@ -21,6 +21,9 @@
 #    cell_angles (90.0, 90.0, 90.0) (attribute)
 #    rotation_axis (0.0, 0.0, 1.0) (attribute)
 #    rotation_angle 45.0 (attribute, degrees)
+#    color (1.0, 1.0, 0, 1.0) (attribute, rgba 0-1 float)
+#    time 5 (attribute, time series frame number)
+#    channel 0 (attribute, integer for multichannel data)
 #    /data (3d array of uint8 (123,542,82)) (dataset, any name allowed)
 #    /data_x (3d array of uint8 (123,542,82), alternate chunk shape) (dataset, any name allowed)
 #    /data_2 (3d array of uint8 (61,271,41)) (dataset, any name allowed)
@@ -120,27 +123,30 @@ def copy_hdf5_array(a, ijk_origin, ijk_size, ijk_step, array,
         n = ksz // kstep
         pstep = max(1, int(bf*n))
         kpstep = kstep*pstep
+        kmax = k0 + ksz
         for p in range(0,n,pstep):
             k = k0+p*kstep
-            array[p:p+pstep,:,:] = a[k:k+kpstep:kstep,j0:j0+jsz:jstep,i0:i0+isz:istep]
+            array[p:p+pstep,:,:] = a[k:min(k+kpstep,kmax):kstep,j0:j0+jsz:jstep,i0:i0+isz:istep]
             if progress:
                 progress.plane(p)
     elif axis == 1:
         n = jsz // jstep
         pstep = max(1, int(bf*n))
         jpstep = jstep*pstep
+        jmax = j0 + jsz
         for p in range(0,n,pstep):
             j = j0+p*jstep
-            array[:,p:p+pstep,:] = a[k0:k0+ksz:kstep,j:j+jpstep:jstep,i0:i0+isz:istep]
+            array[:,p:p+pstep,:] = a[k0:k0+ksz:kstep,j:min(j+jpstep,jmax):jstep,i0:i0+isz:istep]
             if progress:
                 progress.plane(p)
     elif axis == 2:
         n = isz // istep
         pstep = max(1, int(bf*n))
         ipstep = istep*pstep
+        imax = i0 + isz
         for p in range(0,n,pstep):
             i = i0+p*istep
-            array[:,p:p+pstep,:] = a[k0:k0+ksz:kstep,j0:j0+jsz:jstep,i:i+ipstep:istep]
+            array[:,p:p+pstep,:] = a[k0:k0+ksz:kstep,j0:j0+jsz:jstep,i:min(i+ipstep,imax):istep]
             if progress:
                 progress.plane(p)
 
@@ -170,6 +176,9 @@ class Chimera_HDF_Image:
         self.cell_angles = self.find_cell_angles(group)
         self.rotation = self.find_rotation(group)
         self.symmetries = self.find_symmetries(group)
+        self.rgba = self.find_color(group)
+        self.time = self.find_time(group)
+        self.channel = self.find_channel(group)
 
         subsamples = []
         stable = {}
@@ -255,6 +264,33 @@ class Chimera_HDF_Image:
         else:
             sym = None
         return sym
+
+    # --------------------------------------------------------------------------
+    #
+    def find_color(self, group):
+
+        va = group._v_attrs
+        if 'color' in va:
+            color = tuple(float(r) for r in va.color)
+        else:
+            color = None
+        return color
+
+    # --------------------------------------------------------------------------
+    #
+    def find_time(self, group):
+
+        va = group._v_attrs
+        t = va.time if 'time' in va else None
+        return t
+
+    # --------------------------------------------------------------------------
+    #
+    def find_channel(self, group):
+
+        va = group._v_attrs
+        c = va.channel if 'channel' in va else None
+        return c
 
     # --------------------------------------------------------------------------
     #

@@ -43,6 +43,12 @@ static struct PyMethodDef map_cpp_methods[] =
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("blend_la_to_rgba"), (PyCFunction)blend_la_to_rgba,
    METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("copy_l_to_rgba"), (PyCFunction)copy_l_to_rgba,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("blend_l_to_rgba"), (PyCFunction)blend_l_to_rgba,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("blend_rgb_to_rgba"), (PyCFunction)blend_rgb_to_rgba,
+   METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("blend_rgba"), (PyCFunction)blend_rgba,
    METH_VARARGS|METH_KEYWORDS, NULL},
 

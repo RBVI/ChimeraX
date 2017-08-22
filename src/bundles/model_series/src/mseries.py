@@ -128,8 +128,6 @@ from chimerax.core.ui.widgets.slider import Slider
 
 class ModelSequenceSlider(Slider):
 
-    SESSION_SKIP = True
-
     def __init__(self, session, models, pause_frames = 1, step = 1, movie_framerate = 25):
 
         self.models = models[::step]

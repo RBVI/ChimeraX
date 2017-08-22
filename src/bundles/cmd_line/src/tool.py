@@ -172,7 +172,6 @@ class CommandLine(ToolInstance):
             if not cmd_text:
                 continue
             with processing_command(self.text.lineEdit(), cmd_text):
-                self.history_dialog.add(cmd_text)
                 try:
                     cmd = Command(session)
                     cmd.run(cmd_text)
@@ -183,6 +182,10 @@ class CommandLine(ToolInstance):
                     logger.status(str(err), color="crimson")
                 except:
                     raise
+                finally:
+                    # done before command execution, will show
+                    # oldest known command while command executing
+                    self.history_dialog.add(cmd_text)
         self.set_focus()
 
     def set_focus(self):
@@ -413,8 +416,7 @@ class _HistoryDialog:
 
     def update_list(self):
         c = self.controller
-        last8 = self.history[-8:]
-        last8.reverse()
+        last8 = self.history[:8]
         c.text.clear()
         c.text.addItems(last8 + [c.show_history_label, c.compact_label])
 

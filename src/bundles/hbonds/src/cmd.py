@@ -16,9 +16,9 @@ from .hbond import rec_dist_slop, rec_angle_slop, find_hbonds
 from chimerax.core.atomic import AtomicStructure
 from chimerax.core.colors import BuiltinColors
 
-def cmd_hbonds(session, spec=None, intra_model=True, inter_model=True, relax=True,
+def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
     dist_slop=rec_dist_slop, angle_slop=rec_angle_slop, two_colors=False,
-    sel_restrict=None, radius=AtomicStructure.default_hbond_radius, save_file=None, batch=False,
+    restrict="any", radius=AtomicStructure.default_hbond_radius, save_file=None, batch=False,
     inter_submodel=False, make_pseudobonds=True, retain_current=False,
     reveal=False, naming_style=None, log=False, cache_DA=None,
     color=AtomicStructure.default_hbond_color, slop_color=BuiltinColors["dark orange"],
@@ -29,29 +29,32 @@ def cmd_hbonds(session, spec=None, intra_model=True, inter_model=True, relax=Tru
 
        Use hbonds.find_hbonds for other programming applications.
     """
-    structures = spec
+
+    if atoms is None:
+        from chimerax.core.atomic import concatenate
+        atoms = concatenate([m.atoms for m in session.models if isinstance(m, AtomicStructure)])
 
     from chimerax.core.errors import UserError
+    if not atoms and not batch:
+        raise UserError("Atom specifier selects no atoms")
+
     bond_color = color
 
-    donors = acceptors = None
-    if sel_restrict is not None:
-        from chimerax.core.atomic import selected_atoms
-        sel_atoms = selected_atoms(session)
-        if not sel_atoms:
-            if batch:
-                return
-            raise UserError("No atoms in selection.")
-        if (not inter_model or sel_restrict == "both") and structures is None:
-            # intra_model only or both ends in selection
-            structures = sel_atoms.unique_structures
-        if sel_restrict == "both":
-            # both ends in selection
-            donors = acceptors = sel_atoms
-
-    if structures is None:
-        from chimerax.core.atomic import AtomicStructure
-        structures = [m for m in session.models if isinstance(m, AtomicStructure)]
+    if restrict == "both":
+        donors = acceptors = atoms
+        structures = atoms.unique_structures
+    elif restrict in ["cross", "any"]:
+        donors = acceptors = None
+        if inter_model:
+            structures = [m for m in session.models if isinstance(m, AtomicStructure)]
+        else:
+            structures = atoms.unique_structures
+    else: # another Atom collection
+        if not restrict and not batch:
+            raise UserError("'restrict' atom specifier selects no atoms")
+        combined = atoms | restrict
+        donors = acceptors = combined
+        structures = combined.unique_structures
 
     if not relax:
         dist_slop = angle_slop = 0.0
@@ -70,8 +73,7 @@ def cmd_hbonds(session, spec=None, intra_model=True, inter_model=True, relax=Tru
         sb_donors, sb_acceptors = salt_preprocess(hbonds)
         hbonds = [hb for hb in hbonds
             if hb[0] in sb_donors and hb[1] in sb_acceptors]
-    if sel_restrict and donors == None:
-        hbonds = filter_hbonds_by_sel(hbonds, sel_atoms, sel_restrict)
+    hbonds = restrict_hbonds(hbonds, atoms, restrict)
     if not intra_mol:
         mol_num = 0
         mol_map = {}
@@ -116,8 +118,7 @@ def cmd_hbonds(session, spec=None, intra_model=True, inter_model=True, relax=Tru
             inter_model=inter_model, intra_model=intra_model,
             donors=donors, acceptors=acceptors,
             inter_submodel=inter_submodel, cache_da=cache_DA)
-        if sel_restrict and donors == None:
-            precise = filter_hbonds_by_sel(precise, sel_atoms, sel_restrict)
+        precise = restrict_hbonds(precise, atoms, restrict)
         if not intra_mol:
             precise = [hb for hb in precise is mol_map[hb[0]] != mol_map[hb[1]]]
         if not intra_res:
@@ -128,77 +129,106 @@ def cmd_hbonds(session, spec=None, intra_model=True, inter_model=True, relax=Tru
         # give another opportunity to read the result...
         session.logger.status("%d hydrogen bonds found" % len(hbonds), blank_after=120)
 
-    pbg = session.pb_manager.get_group(name)
-    pre_existing = {}
-    if not retain_current:
-        pbg.clear()
-        pbg.color = bond_color.uint8x4()
-        pbg.radius = radius
-        pbg.dashes = dashes if dashes is not None else AtomicStructure.default_hbond_dashes
+    # a true inter-model computation should be placed in a global group, otherwise
+    # into indvidual per-structure groups
+    submodels = False
+    m_ids = set()
+    for s in structures:
+        m_id = s.id[:-1] if len(s.id) > 1 else s.id
+        if m_id in m_ids:
+            submodels = True
+        m_ids.add(m_id)
+    global_comp = (inter_model and len(m_ids) > 1) or (submodels and inter_submodel)
+    if global_comp:
+        # global comp nukes per-structure groups it covers if intra-model also
+        if intra_model and not retain_current:
+            closures = []
+            for s in structures:
+                pbg = s.pseudobond_group(name, create_type=None)
+                if pbg:
+                    closures.append(pbg)
+            if closures:
+                session.models.close(closures)
+        hb_info = [(hbonds, session.pb_manager.get_group(name))]
     else:
-        for pb in pbg.pseudobonds:
-            pre_existing[pb.atoms] = pb
-        if dashes is not None:
-            pbg.dashes = dashes
+        per_structure = {s:[] for s in structures}
+        for hb in hbonds:
+            per_structure[hb[0].structure].append(hb)
+        hb_info = [(hbs, s.pseudobond_group(name, create_type="coordset"))
+            for s, hbs in per_structure.items()]
 
-    from chimerax.core.geometry import distance_squared
-    for don, acc in hbonds:
-        nearest = None
-        for h in [x for x in don.neighbors if x.element.number == 1]:
-            sqdist = distance_squared(h.scene_coord, acc.scene_coord)
-            if nearest is None or sqdist < nsqdist:
-                nearest = h
-                nsqdist = sqdist
-        if nearest is not None:
-            don = nearest
-        pb = pre_existing[(don,acc)] if (don,acc) in pre_existing else pbg.new_pseudobond(don, acc)
-        if two_colors:
-            if (don, acc) in precise:
-                color = bond_color
-            else:
-                color = slop_color
+    for grp_hbonds, pbg in hb_info:
+        pre_existing = {}
+        if not retain_current:
+            pbg.clear()
+            pbg.color = bond_color.uint8x4()
+            pbg.radius = radius
+            pbg.dashes = dashes if dashes is not None else AtomicStructure.default_hbond_dashes
         else:
-            color = bond_color
-        rgba = pb.color
-        rgba[:3] = color.uint8x4()[:3] # preserve transparency
-        pb.color = rgba
-        pb.radius = radius
-        if reveal:
-            for end in [don, acc]:
-                if end.display:
-                    continue
-                for ea in end.residue.atoms:
-                    ea.display = True
-    #from StructMeasure import DistMonitor
-    if show_dist:
-        from chimerax.core.errors import LimitationError
-        raise LimitationError("Showing distance on H-bonds not yet implemented")
-        #TODO
-    """
-        DistMonitor.addMonitoredGroup(pbg)
-    else:
-        DistMonitor.removeMonitoredGroup(pbg)
-        global _sceneHandlersAdded
-        if not _sceneHandlersAdded:
-            from chimera import triggers, SCENE_TOOL_SAVE, SCENE_TOOL_RESTORE
-            triggers.addHandler(SCENE_TOOL_SAVE, _sceneSave, None)
-            triggers.addHandler(SCENE_TOOL_RESTORE, _sceneRestore, None)
-            _sceneHandlersAdded = True
-    """
-    if pbg.id is None:
-        session.models.add([pbg])
+            for pb in pbg.pseudobonds:
+                pre_existing[pb.atoms] = pb
+            if dashes is not None:
+                pbg.dashes = dashes
 
-def filter_hbonds_by_sel(hbonds, sel_atoms, sel_restrict):
+        from chimerax.core.geometry import distance_squared
+        for don, acc in grp_hbonds:
+            nearest = None
+            for h in [x for x in don.neighbors if x.element.number == 1]:
+                sqdist = distance_squared(h.scene_coord, acc.scene_coord)
+                if nearest is None or sqdist < nsqdist:
+                    nearest = h
+                    nsqdist = sqdist
+            if nearest is not None:
+                don = nearest
+            pb = pre_existing[(don,acc)] if (don,acc) in pre_existing \
+                else pbg.new_pseudobond(don, acc)
+            if two_colors:
+                if (don, acc) in precise:
+                    color = bond_color
+                else:
+                    color = slop_color
+            else:
+                color = bond_color
+            rgba = pb.color
+            rgba[:3] = color.uint8x4()[:3] # preserve transparency
+            pb.color = rgba
+            pb.radius = radius
+            if reveal:
+                for end in [don, acc]:
+                    if end.display:
+                        continue
+                    for ea in end.residue.atoms:
+                        ea.display = True
+        #from StructMeasure import DistMonitor
+        if show_dist:
+            from chimerax.core.errors import LimitationError
+            raise LimitationError("Showing distance on H-bonds not yet implemented")
+            #TODO
+        """
+            DistMonitor.addMonitoredGroup(pbg)
+        else:
+            DistMonitor.removeMonitoredGroup(pbg)
+            global _sceneHandlersAdded
+            if not _sceneHandlersAdded:
+                from chimera import triggers, SCENE_TOOL_SAVE, SCENE_TOOL_RESTORE
+                triggers.addHandler(SCENE_TOOL_SAVE, _sceneSave, None)
+                triggers.addHandler(SCENE_TOOL_RESTORE, _sceneRestore, None)
+                _sceneHandlersAdded = True
+        """
+        if pbg.id is None:
+            session.models.add([pbg])
+
+def restrict_hbonds(hbonds, atoms, restrict):
     filtered = []
-    sel_both = sel_restrict == "both"
-    sel_cross = sel_restrict == "cross"
-    if not sel_both and not sel_cross and sel_restrict != "any":
-        custom_atoms = set(sel_restrict)
+    both = restrict == "both"
+    cross = restrict == "cross"
+    if not isinstance(restrict, str):
+        custom_atoms = set(restrict)
     else:
         custom_atoms = None
     for d, a in hbonds:
-        d_in = d in sel_atoms
-        a_in = a in sel_atoms
+        d_in = d in atoms
+        a_in = a in atoms
         num = a_in + d_in
         if num == 0:
             continue
@@ -208,9 +238,9 @@ def filter_hbonds_by_sel(hbonds, sel_atoms, sel_restrict):
                 continue
         else:
             if num == 1:
-                if sel_both:
+                if both:
                     continue
-            elif sel_cross:
+            elif cross:
                 continue
         filtered.append((d, a))
     return filtered
@@ -273,8 +303,13 @@ def _file_output(file_name, output_info, naming_style):
 
 def cmd_xhbonds(session, name="hydrogen bonds"):
     pbg = session.pb_manager.get_group(name, create=False)
-    if pbg:
-        session.models.close([pbg])
+    pbgs = [pbg] if pbg else []
+    for s in [m for m in session.models if isinstance(m, AtomicStructure)]:
+        pbg = s.pseudobond_group(name, create_type=None)
+        if pbg:
+            pbgs.append(pbg)
+    if pbgs:
+        session.models.close(pbgs)
 
 def salt_preprocess(hbonds):
     donors = set()
@@ -340,13 +375,13 @@ def salt_preprocess(hbonds):
 def register_command(command_name, logger):
     from chimerax.core.commands \
         import CmdDesc, register, BoolArg, FloatArg, ColorArg, Or, EnumOf, AtomsArg, \
-            StructuresArg, SaveFileNameArg, NonNegativeIntArg, StringArg
+            StructuresArg, SaveFileNameArg, NonNegativeIntArg, StringArg, EmptyArg
     if command_name == "hbonds":
-        desc = CmdDesc(
+        desc = CmdDesc(required=[('atoms', Or(AtomsArg,EmptyArg))],
             keyword = [('make_pseudobonds', BoolArg), ('radius', FloatArg), ('color', ColorArg),
                 ('show_dist', BoolArg),
-                ('sel_restrict', Or(EnumOf(('cross', 'both', 'any')), AtomsArg)),
-                ('spec', StructuresArg), ('inter_submodel', BoolArg), ('inter_model', BoolArg),
+                ('restrict', Or(EnumOf(('cross', 'both', 'any')), AtomsArg)),
+                ('inter_submodel', BoolArg), ('inter_model', BoolArg),
                 ('intra_model', BoolArg), ('intra_mol', BoolArg), ('intra_res', BoolArg),
                 ('cache_DA', FloatArg), ('relax', BoolArg), ('dist_slop', FloatArg),
                 ('angle_slop', FloatArg), ('two_colors', BoolArg), ('slop_color', ColorArg),

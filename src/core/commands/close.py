@@ -57,9 +57,14 @@ def _contains_model_tree(m, mset, contains):
             return
 
     contains.add(m)
+
+def close_session(session):
+    session.reset()
         
 def register_command(session):
     from . import CmdDesc, register, ModelsArg
     desc = CmdDesc(optional=[('models', ModelsArg)],
                    synopsis='close models')
     register('close', desc, close, logger=session.logger)
+    desc = CmdDesc(synopsis="clear session contents")
+    register('close session', desc, close_session, logger=session.logger)

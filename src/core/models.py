@@ -25,6 +25,7 @@ REMOVE_MODELS = 'remove models'
 MODEL_DISPLAY_CHANGED = 'model display changed'
 MODEL_ID_CHANGED = 'model id changed'
 MODEL_NAME_CHANGED = 'model name changed'
+MODEL_POSITION_CHANGED = 'model position changed'
 # TODO: register Model as data event type
 
 
@@ -44,17 +45,14 @@ class Model(State, Drawing):
     id : None or tuple of int
         Model/submodel identification: *e.g.*, 1.3.2 is (1, 3, 2).
         Set and unset by :py:class:`Models` instance.
-    bundle_info : a :py:class:`~chimerax.core.toolshed.BundleInfo` instance
-        The tool that provides the subclass.
     SESSION_ENDURING : bool, class-level optional
         If True, then model survives across sessions.
-    SESSION_SKIP : bool, class-level optional
-        If True, then model is not saved in sessions.
+    SESSION_SAVE : bool, class-level optional
+        If True, then model is saved in sessions.
     """
 
     SESSION_ENDURING = False
-    SESSION_SKIP = False
-    bundle_info = None    # default, should be set in subclass
+    SESSION_SAVE = True
 
     def __init__(self, name, session):
         self._name = name
@@ -101,6 +99,20 @@ class Model(State, Drawing):
         self._name = val
         self.session.triggers.activate_trigger(MODEL_NAME_CHANGED, self)
     name = property(_get_name, _set_name)
+
+    def _model_set_position(self, pos):
+        if pos != self.position:
+            Drawing.position.fset(self, pos)
+            self.session.triggers.activate_trigger(MODEL_POSITION_CHANGED, self)
+    position = property(Drawing.position.fget, _model_set_position)
+
+    def _model_set_positions(self, positions):
+        if positions != self.positions:
+            Drawing.positions.fset(self, positions)
+            self.session.triggers.activate_trigger(MODEL_POSITION_CHANGED, self)
+    positions = property(Drawing.positions.fget, _model_set_positions)
+
+    # Drawing._set_scene_position calls _set_positions, so don't need to override
 
     def _get_single_color(self):
         return self.color if self.vertex_colors is None else None
@@ -236,6 +248,7 @@ class Models(State):
         t.add_trigger(MODEL_DISPLAY_CHANGED)
         t.add_trigger(MODEL_ID_CHANGED)
         t.add_trigger(MODEL_NAME_CHANGED)
+        t.add_trigger(MODEL_POSITION_CHANGED)
         self._models = {}
         self.drawing = r = Model("root", session)
         r.id = ()
@@ -244,7 +257,7 @@ class Models(State):
         models = {}
         for id, model in self._models.items():
             assert(isinstance(model, Model))
-            if model.SESSION_SKIP:
+            if not model.SESSION_SAVE:
                 continue
             models[id] = model
         data = {'models': models,

@@ -214,22 +214,31 @@ toolshed_install_desc = CmdDesc(required=[("bundle_name", StringArg)],
                           synopsis='Install a bundle')
 
 
-def toolshed_uninstall(session, bundle_name):
+def toolshed_uninstall(session, bundle_name, force_remove=False):
     '''
     Uninstall an installed bundle.
 
     Parameters
     ----------
     bundle_name : string
+    force_remove : boolean
     '''
     ts = session.toolshed
     logger = session.logger
-    bi = ts.find_bundle(bundle_name, session.logger, installed=True)
+    bi = ts.find_bundle(bundle_name, logger, installed=True)
     if bi is None:
         logger.error("\"%s\" does not match any bundles" % bundle_name)
         return
+    if not force_remove:
+        deps = bi.dependents(logger)
+        if deps:
+            logger.error("\"%s\" has dependent bundles: %s"
+                         % (bi.name,
+                            ", ".join(["\"%s\"" % b.name for b in deps])))
+            return
     ts.uninstall_bundle(bi, logger, session=session)
 toolshed_uninstall_desc = CmdDesc(required=[("bundle_name", StringArg)],
+                                  optional=[("force_remove", BoolArg)],
                                   synopsis='Uninstall a bundle')
 
 

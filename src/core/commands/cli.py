@@ -257,6 +257,8 @@ def plural_of(word):
         if word.casefold() in ('zero', 'photo', 'quarto'):
             return word + 's'
         return word + 'es'
+    if word.endswith('ius'):
+        return word[:-2] + 'i'
     if word.endswith(('sh', 'ch', 's', 'x')):
         return word + 'es'
     if word.endswith('y'):
@@ -2785,7 +2787,7 @@ def registered_commands(multiword=False, _start=None):
         return words
 
     def cmds(parent_info):
-        for word_info in parent_info.subcommands.values():
+        for word_info in list(parent_info.subcommands.values()):
             if word_info.is_deferred():
                 word_info.lazy_register()
         words = list(parent_info.subcommands.keys())
@@ -2901,7 +2903,7 @@ class Alias:
         return self.cmd.run(text, _used_aliases=_used_aliases, log=log)
 
 
-def list_aliases(all=False):
+def list_aliases(all=False, logger=None):
     """List all aliases
 
     :param all: if True, then only list all aliases, not just user ones
@@ -2909,9 +2911,14 @@ def list_aliases(all=False):
     Return in depth-first order.
     """
     def find_aliases(partial_name, parent_info):
-        for word, word_info in parent_info.subcommands.items():
+        for word, word_info in list(parent_info.subcommands.items()):
             if word_info.is_deferred():
-                word_info.lazy_register()
+                try:
+                    word_info.lazy_register()
+                except RuntimeError as e:
+                    if logger:
+                        logger.warning(str(e))
+                    continue
             if partial_name:
                 yield from find_aliases('%s %s' % (partial_name, word), word_info)
             else:
@@ -2956,7 +2963,7 @@ def create_alias(name, text, *, user=False, logger=None, url=None):
         raise
 
 
-def remove_alias(name=None, user=False):
+def remove_alias(name=None, user=False, logger=None):
     """Remove command alias
 
     :param name: name of the alias
@@ -2965,7 +2972,7 @@ def remove_alias(name=None, user=False):
     If no name is given, then all user generated aliases are removed.
     """
     if name is None:
-        for name in list_aliases():
+        for name in list_aliases(logger=logger):
             deregister(name, is_user_alias=True)
         return
 

@@ -324,7 +324,7 @@ class Assembly:
                     excluded_atoms.delete()
                 self._show_atoms(included_atoms)
 
-        g = session.models.add_group(mlist)[0]
+        g = session.models.add_group(mlist)
         g.name = '%s assembly %s' % (mol.name, self.id)
 
         if surface_only:

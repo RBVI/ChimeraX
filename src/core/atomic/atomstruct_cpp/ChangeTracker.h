@@ -25,13 +25,14 @@
 namespace atomstruct {
 
 class Atom;
+class AtomicStructure;
 class Bond;
-class Structure;
+class Chain;
+class CoordSet;
+class Proxy_PBGroup;
 class Pseudobond;
 class Residue;
-class Chain;
-class AtomicStructure;
-class Proxy_PBGroup;
+class Structure;
     
 }
 
@@ -51,7 +52,7 @@ public:
 
 class ATOMSTRUCT_IMEX ChangeTracker {
 protected:
-    static const int  _num_types = 7;
+    static const int  _num_types = 8;
     template<class C>
     int  _ptr_to_type(C*);
 
@@ -69,6 +70,7 @@ public:
     static const std::string  REASON_BFACTOR;
     static const std::string  REASON_COLOR;
     static const std::string  REASON_COORD;
+    static const std::string  REASON_COORDSET;
     static const std::string  REASON_DISPLAY;
     static const std::string  REASON_DRAW_MODE;
     static const std::string  REASON_HALFBOND;
@@ -176,7 +178,7 @@ public:
     const std::vector<Changes>&  get_changes() const { return _type_changes; }
     const std::string  python_class_names[_num_types] = {
         "Atom", "Bond", "Pseudobond", "Residue", "Chain",
-        "StructureData", "PseudobondGroupData"
+        "StructureData", "PseudobondGroupData", "CoordSet"
     };
 };
 
@@ -247,6 +249,14 @@ ChangeTracker::_ptr_to_type(atomstruct::Proxy_PBGroup*) { return 6; }
 template <>
 inline int
 ChangeTracker::_ptr_to_type(const atomstruct::Proxy_PBGroup*) { return 6; }
+
+template <>
+inline int
+ChangeTracker::_ptr_to_type(atomstruct::CoordSet*) { return 7; }
+
+template <>
+inline int
+ChangeTracker::_ptr_to_type(const atomstruct::CoordSet*) { return 7; }
 
 }  // namespace atomstruct
 

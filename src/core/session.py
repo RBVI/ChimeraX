@@ -32,6 +32,7 @@ Session data, ie., data that is archived, uses the :py:class:`State` API.
 
 from .state import RestoreError, State, copy_state, dereference_state
 from .commands import CmdDesc, OpenFileNameArg, SaveFileNameArg, register, commas, plural_form
+from .errors import UserError
 
 _builtin_open = open
 #: session file suffix
@@ -40,7 +41,7 @@ SESSION_SUFFIX = ".cxs"
 # triggers:
 
 #: version of session file that is written
-CORE_SESSION_VERSION = 2
+CORE_SESSION_VERSION = 3
 
 
 class _UniqueName:
@@ -78,29 +79,28 @@ class _UniqueName:
         self.uid = uid
 
     @classmethod
-    def from_obj(cls, toolshed, obj, logger):
+    def from_obj(cls, session, obj):
         """Return a unique identifier for an object in session
         Consequently, the identifier is composed of simple data types.
 
         Parameters
         ----------
+        session : instance of :py:class:`Session`
         obj : any object
-        bundle_info : optional :py:class:`~chimerax.core.toolshed.BundleInfo` instance
-            Explicitly denote which bundle object comes from.
         """
 
         uid = cls._obj_to_uid.get(id(obj), None)
         if uid is not None:
             return cls(uid)
         obj_cls = obj.__class__
-        bundle_info = toolshed.find_bundle_for_class(obj_cls)
+        bundle_info = session.toolshed.find_bundle_for_class(obj_cls)
         if bundle_info is None:
             raise RuntimeError('No bundle information for %s.%s' % (
                 obj_cls.__module__, obj_cls.__name__))
         else:
             class_name = (bundle_info.name, obj_cls.__name__)
             # double check that class will be able to be restored
-            if obj_cls != bundle_info.get_class(obj_cls.__name__, logger):
+            if obj_cls != bundle_info.get_class(obj_cls.__name__, session.logger):
                 raise RuntimeError(
                     'unable to restore objects of %s class in %s bundle' %
                     (obj_cls.__name__, bundle_info.name))
@@ -188,14 +188,14 @@ class _SaveManager:
                     self.graph[key] = self._found_objs
                 else:
                     self.unprocessed.append(value)
-                    uid = _UniqueName.from_obj(self.session.toolshed, value, self.session.logger)
+                    uid = _UniqueName.from_obj(self.session, value)
                     self.processed[key] = uid
                     self.graph[key] = [uid]
             except ValueError as e:
                 raise ValueError("error processing: %r" % key)
         while self.unprocessed:
             obj = self.unprocessed.pop()
-            key = _UniqueName.from_obj(self.session.toolshed, obj, self.session.logger)
+            key = _UniqueName.from_obj(self.session, obj)
             if key not in self.processed:
                 try:
                     self.processed[key] = self.process(obj)
@@ -204,7 +204,7 @@ class _SaveManager:
                 self.graph[key] = self._found_objs
 
     def _add_obj(self, obj):
-        uid = _UniqueName.from_obj(self.session.toolshed, obj, self.session.logger)
+        uid = _UniqueName.from_obj(self.session, obj)
         self._found_objs.append(uid)
         if uid not in self.processed:
             self.unprocessed.append(obj)
@@ -272,7 +272,7 @@ class _RestoreManager:
                 msg += "; out of date %s: %s" % (
                     plural_form(out_of_date_bundles, 'bundle'),
                     commas(out_of_date_bundles, ' and'))
-            raise RestoreError(msg)
+            raise UserError(msg)
         self.bundle_infos = bundle_infos
 
     def resolve_references(self, data):
@@ -307,10 +307,6 @@ class Session:
         Starts with session triggers.
     """
 
-    #: common exception for needing a newer version of the application
-    NeedNewerError = RestoreError(
-        "Need newer version of bundle to restore session")
-
     def __init__(self, app_name, *, debug=False, silent=False, minimal=False):
         self.app_name = app_name
         self.debug = debug
@@ -322,6 +318,7 @@ class Session:
         self._state_containers = {}  # stuff to save in sessions
         self.metadata = {}           #: session metadata
         self.in_script = InScriptFlag()
+        self.session_file_path = None  # Last saved or opened session file.
         if minimal:
             return
 
@@ -354,6 +351,7 @@ class Session:
     def reset(self):
         """Reset session to data-less state"""
         self.metadata.clear()
+        self.session_file_path = None
         for tag in self._state_containers:
             container = self._state_containers[tag]
             sm = self.snapshot_methods(container)
@@ -419,10 +417,14 @@ class Session:
         if version == 1:
             fserialize = serialize.pickle_serialize
             fserialize(stream, version)
+        elif version == 2:
+            # TODO: raise UserError("Version 2 session files are no longer supported")
+            stream.write(b'# ChimeraX Session version 2\n')
+            stream = serialize.msgpack_serialize_stream_v2(stream)
+            fserialize = serialize.msgpack_serialize
         else:
-            if version != 2:
-                from .errors import UserError
-                raise UserError("Only session file versions 1 and 2 are supported")
+            if version != 3:
+                raise UserError("Only session file versions 1, 2, and 3 are supported")
             stream.write(b'# ChimeraX Session version %d\n' % CORE_SESSION_VERSION)
             stream = serialize.msgpack_serialize_stream(stream)
             fserialize = serialize.msgpack_serialize
@@ -455,7 +457,7 @@ class Session:
         if use_pickle:
             version = serialize.pickle_deserialize(stream)
             if version != 1:
-                raise RestoreError('Not a ChimeraX session file')
+                raise UserError('Not a ChimeraX session file')
             fdeserialize = serialize.pickle_deserialize
         else:
             line = stream.readline(256)   # limit line length to avoid DOS
@@ -463,9 +465,13 @@ class Session:
             if line[-1] != ord(b'\n') or len(tokens) < 5 or tokens[0:4] != [b'#', b'ChimeraX', b'Session', b'version']:
                 raise RuntimeError('Not a ChimeraX session file')
             version = int(tokens[4])
-            if not (2 <= version <= CORE_SESSION_VERSION):
-                raise self.NeedNewerError
-            stream = serialize.msgpack_deserialize_stream(stream)
+            if version == 2:
+                stream = serialize.msgpack_deserialize_stream_v2(stream)
+            elif version == 3:
+                stream = serialize.msgpack_deserialize_stream(stream)
+            else:
+                raise UserError(
+                    "Need newer version of ChimeraX to restore session")
             fdeserialize = serialize.msgpack_deserialize
         metadata = fdeserialize(stream)
         metadata['session_version'] = version
@@ -532,7 +538,7 @@ class InScriptFlag:
         return self._level > 0
 
 
-def save(session, path, version=2, uncompressed=False):
+def save(session, path, version=1, uncompressed=False):
     """command line version of saving a session"""
     my_open = None
     if hasattr(path, 'write'):
@@ -548,7 +554,6 @@ def save(session, path, version=2, uncompressed=False):
             try:
                 output = _builtin_open(path, 'wb')
             except IOError as e:
-                from .errors import UserError
                 raise UserError(e)
         else:
             # Save compressed files
@@ -560,11 +565,11 @@ def save(session, path, version=2, uncompressed=False):
             try:
                 output = my_open(path)
             except IOError as e:
-                from .errors import UserError
                 raise UserError(e)
 
     session.logger.warning("<b><i>Session file format is not finalized, and thus might not be restorable in other versions of ChimeraX.</i></b>", is_html=True)
     # TODO: put thumbnail in session metadata
+    session.session_file_path = path
     try:
         session.save(output, version=version)
     except:
@@ -617,7 +622,10 @@ def sdump(session, session_file, output=None):
         else:
             tokens = stream.readline().split()
             version = int(tokens[4])
-            stream = serialize.msgpack_deserialize_stream(stream)
+            if version == 2:
+                stream = serialize.msgpack_deserialize_stream_v2(stream)
+            else:
+                stream = serialize.msgpack_deserialize_stream(stream)
             fdeserialize = serialize.msgpack_deserialize
         print("==== session version:", file=output)
         pprint(version, stream=output)
@@ -651,6 +659,7 @@ def open(session, path):
         stream = _builtin_open(fname, 'rb')
     # TODO: active trigger to allow user to stop overwritting
     # current session
+    session.session_file_path = path
     session.restore(stream)
     return [], "opened ChimeraX session"
 

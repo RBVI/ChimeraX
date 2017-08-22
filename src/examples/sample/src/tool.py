@@ -7,7 +7,7 @@ from chimerax.core.logger import PlainTextLog
 class SampleTool(ToolInstance):
 
     SESSION_ENDURING = False
-    SESSION_SKIP = True         # No session saving for now
+    SESSION_SAVE = False         # No session saving for now
     CUSTOM_SCHEME = "sample"    # HTML scheme for custom links
     display_name = "Sample Tool"
 
@@ -40,13 +40,14 @@ class SampleTool(ToolInstance):
         self._update_models()
 
     def delete(self):
-        t = session.triggers
+        t = self.session.triggers
         if self._add_handler:
             t.remove_handler(self._add_handler)
             self._add_handler = None
-        if self._remove_hander:
+        if self._remove_handler:
             t.remove_handler(self._remove_handler)
             self._remove_handler = None
+        super().delete()
 
     def _update_models(self, trigger=None, trigger_data=None):
         # Called to update page with current list of models

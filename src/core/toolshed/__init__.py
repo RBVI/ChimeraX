@@ -606,6 +606,16 @@ class Toolshed:
         # TODO: longest match?
         return tools[0]
 
+    def find_bundle_for_command(self, cmd):
+        """Find bundle registering given command
+        
+        `cmd` must be the full command name, not an abbreviation."""
+        for bi in self._installed_bundle_info:
+            for ci in bi.commands:
+                if ci.name == cmd:
+                    return bi
+        return None
+
     def find_bundle_for_class(self, cls):
         """Find bundle that has given class"""
 
@@ -744,44 +754,73 @@ class BundleAPI:
     implemented.
     """
 
+    api_version = 0
+
     @staticmethod
-    def start_tool(session, tool_name):
+    def start_tool(*args):
         """Called to lazily create a tool instance.
 
-        Parameters
-        ----------
+        Parameters (v0)
+        ---------------
         session : :py:class:`~chimerax.core.session.Session` instance.
         tool_name : str.
 
+        Parameters (v1)
+        ---------------
+        session : :py:class:`~chimerax.core.session.Session` instance.
+        bundle_info : instance of :py:class:`BundleInfo`
+        tool_info : instance of :py:class:`ToolInfo`
+
         Errors should be reported via exceptions.
+
+        Returns
+        -------
+        :py:class:`~chimerax.core.tools.ToolInstance` instance
+            The created tool.
         """
         raise NotImplementedError("BundleAPI.start_tool")
 
     @staticmethod
-    def register_command(command_name, logger):
+    def register_command(*args):
         """Called when delayed command line registration occurs.
 
-        Parameters
-        ----------
-        command_name : :py:class:`str`
+        Parameters (v0)
+        ---------------
+        command : :py:class:`str`
         logger : :py:class:`~chimerax.core.logger.Logger` instance.
 
-        ``command_name`` is a string of the command to be registered.
+        Parameters (v1)
+        ---------------
+        bundle_info : instance of :py:class:`BundleInfo`
+        command_info : instance of :py:class:`CommandInfo`
+        logger : :py:class:`~chimerax.core.logger.Logger` instance.
+
+        ``command`` is a string of the command to be registered.
+        Alternatively, in version 1, ``command_info`` is the instance
+        containing information about the command to be registered.
         This function is called when the command line interface is invoked
         with one of the registered command names.
         """
         raise NotImplementedError("BundleAPI.register_command")
 
     @staticmethod
-    def register_selector(selector_name, logger):
+    def register_selector(*args):
         """Called when delayed selector registration occurs.
 
-        Parameters
-        ----------
+        Parameters (v0)
+        ---------------
         selector_name : :py:class:`str`
         logger : :py:class:`~chimerax.core.logger.Logger` instance.
 
+        Parameters (v1)
+        ---------------
+        bundle_info : instance of :py:class:`BundleInfo`
+        selector_info : instance of :py:class:`SelectorInfo`
+        logger : :py:class:`~chimerax.core.logger.Logger` instance.
+
         ``selector_name`` is the name of the selector to be registered.
+        Alternatively, in version 1, ``selector_info`` is the instance
+        containing information about the selector to be registered.
         This function is called when the selector invoked with one of
         the registered names.
         """
@@ -800,6 +839,14 @@ class BundleAPI:
 
         You shouldn't actually use "**kw" but instead use the actual keyword args that
         your format declares that it accepts (in its bundle_info.xml file).
+
+        Returns
+        -------
+        :py:class:`tuple`
+            The return value is a 2-tuple whose first element is a list of
+            :py:class:`~chimerax.core.models.Model` instances and second
+            element is a string containing a status message, such as the
+            number of atoms and bonds found in the open models.
         """
         raise NotImplementedError("BundleAPI.open_file")
 
@@ -856,6 +903,81 @@ class BundleAPI:
         the :py:class:`~chimerax.core.state.State` API.
         """
         return None
+
+    @property
+    def _api_caller(self):
+        try:
+            return _CallBundleAPI[self.api_version]
+        except KeyError:
+            raise ToolshedError("bundle uses unsupport bundle API version %s" % api.api_version)
+
+
+#
+# _CallBundleAPI is used to call a bundle method with the
+# correct arguments depending on the API version used
+# by the bundle.  Note that open_file, save_file and get_class
+# are not called via this mechanism.  ../io.py handles the
+# argument passing for open_file and save_file using
+# introspection.  get_class() is more of a lookup than
+# an invocation and the calling convertion should not change.
+#
+class _CallBundleAPIv0:
+
+    api_version = 0
+
+    @classmethod
+    def start_tool(cls, api, session, bi, ti):
+        return cls._get_func(api, "start_tool")(session, ti.name)
+
+    @classmethod
+    def register_command(cls, api, bi, ci, logger):
+        return cls._get_func(api, "register_command")(ci.name, logger)
+        return api.register_command(ci.name, logger)
+
+    @classmethod
+    def register_selector(cls, api, bi, si, logger):
+        return cls._get_func(api, "register_selector")(si.name, logger)
+
+    @classmethod
+    def initialize(cls, api, session, bi):
+        return cls._get_func(api, "initialize")(session, bi)
+
+    @classmethod
+    def finish(cls, api, session, bi):
+        return cls._get_func(api, "finish")(session, bi)
+
+    @classmethod
+    def _get_func(cls, api, func_name):
+        try:
+            f = getattr(api, func_name)
+        except AttributeError:
+            raise ToolshedError("bundle has no %s method" % func_name)
+        if f is getattr(BundleAPI, func_name):
+            raise ToolshedError("bundle forgot to override %s method" % func_name)
+        return f
+
+
+class _CallBundleAPIv1(_CallBundleAPIv0):
+
+    api_version = 1
+
+    @classmethod
+    def start_tool(cls, api, session, bi, ti):
+        return cls._get_func(api, "start_tool")(session, bi, ti)
+
+    @classmethod
+    def register_command(cls, api, bi, ci, logger):
+        return cls._get_func(api, "register_command")(bi, ci, logger)
+
+    @classmethod
+    def register_selector(cls, api, bi, si, logger):
+        return cls._get_func(api, "register_selector")(bi, si, logger)
+
+
+_CallBundleAPI = {
+    0: _CallBundleAPIv0,
+    1: _CallBundleAPIv1,
+}
 
 
 # Toolshed is a singleton.  Multiple calls to init returns the same instance.

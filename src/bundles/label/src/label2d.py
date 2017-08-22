@@ -139,6 +139,8 @@ class Labels(State):
     def delete(self, label):
         del self.labels[label.name]
 
+    SESSION_SAVE = True
+    
     def take_snapshot(self, session, flags):
         lattrs = ('name', 'text', 'color', 'size', 'font', 'xpos', 'ypos', 'visibility')
         lstate = tuple({attr:getattr(l, attr) for attr in lattrs}

@@ -52,8 +52,8 @@ See also:
 </p><p>
 A panel may include clickable icons (as in the
 <a href="tools/graphics.html"><b>Graphics Toolbar</b></a>),
-tables, plots, histograms, and other 2D representations with 
-interactive elements, or HTML with links and images
+interactive 2D representations such as histograms and network diagrams,
+or HTML with links and images
 (as in the <a href="tools/log.html"><b>Log</b></a>
 and <a href="#browser"><b>Help Viewer</b></a>).
 </p><p>
@@ -64,10 +64,18 @@ interfaces, but may also appear as the result of a
 or <a href="commands/help.html"><b>help</b></a>).
 </p><p>
 <a name="toolstart"></a>
-A tool can be started or shown using the <b>Tools</b> menu and/or
+A tool can be shown by using the <b>Tools</b> menu or
 <b>toolshed</b> command, or by <a href="commands/open.html">opening</a>
-a certain type of data (for example, opening a density map starts 
-<a href="tools/volumeviewer.html"><b>Volume Viewer</b></a>).
+a certain type of data. For example, opening a density map starts 
+<a href="tools/volumeviewer.html"><b>Volume Viewer</b></a>.
+<!-- start/show will be migrated to ui command instead -->
+A tool can be designated to &ldquo;autostart&rdquo; when ChimeraX is started,
+using the <b>ui</b> command or the context menu from right-clicking*
+within the tool panel.
+</p><p>
+<a name="mac-context"></a>
+<font size="+2"><b>*</b></font>for Mac touchpad or single-button mouse,
+Ctrl-click replaces &ldquo;right-click&rdquo; for showing context menus
 </p><p>
 <a name="panelcontrol"></a>
 A panel can also be:
@@ -89,11 +97,8 @@ dragged location controlling where and how the panel will be inserted
 Tabs are shown at the bottom of the panel.
 A tabbed set of panels can be docked/undocked collectively by dragging
 its top bar, and an individual tabbed panel can be untabbed 
-(separated from the others) by dragging the tab.
+(separated from the others) by dragging its tab.
 </ul>
-<a name="mac-context"></a>
-<font size="+2"><b>*</b></font>for Mac touchpad or single-button mouse,
-Ctrl-click replaces &ldquo;right-click&rdquo; for showing context menus
 <p>
 <a href="index.html#tools">Icon toolbars</a>
 and the <a href="tools/cli.html"><b>Command Line</b></a>
@@ -112,8 +117,7 @@ without losing the overall window configuration.
 Icon toolbars and the <a href="tools/cli.html"><b>Command Line</b></a>
 are excluded from this toggling.
 </p><p>
-Panel contents (away from the title bar) may have their own specific 
-context menus.
+Panel contents (away from the title bar) may have their own specific context menus.
 </p>
 
 <a name="browser"></a>
@@ -170,5 +174,5 @@ can be shown in the ChimeraX browser with commands:
 Local files can also be opened with <b>File... Open</b> in the menu.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-June 2017</address>
+August 2017</address>
 </body></html> 

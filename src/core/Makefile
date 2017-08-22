@@ -55,7 +55,6 @@ install: dir all
 
 app-install: wheel
 	$(APP_BOOTSTRAP_PIP) install -U $(WHEEL)
-	$(RSYNC) $(WHEEL) $(wheelhouse)
 
 wheel: setup.py
 	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel --plat-name $(BIN_PLATFORM)
@@ -84,7 +83,6 @@ $(SUBDIR_INSTALL): dir
 
 dir:
 	if [ ! -d "$(PKG_DIR)" ]; then mkdir -p $(PKG_DIR); fi
-	if [ ! -d "$(wheelhouse)" ]; then mkdir -p $(wheelhouse); fi
 
 clean:
 	rm -rf __pycache__ build dist $(WHL_BNDL_NAME).egg-info setup.py $(GENSRCS)

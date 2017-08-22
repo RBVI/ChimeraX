@@ -27,11 +27,22 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>close</b> &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
 </h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>close</b> <b>session</b>
+</h3>
 <p>
 The command <b>close</b> removes the specified model(s) from ChimeraX,
 including any submodels at lower levels of the hierarchy. For example,
 <b>close #3</b> will close any models #3.<i>N</i>, #3.<i>N.N</i>, <i>etc.</i>
-As per the usual convention, a blank specification indicates &ldquo;all.&rdquo;
+As per the usual convention, a blank specification indicates all models.
+</p><p>
+The command <b>close session</b> closes all models
+plus various tool and results panels (plots,
+<a href="../tools/sequenceviewer.html">sequence alignments</a>, <i>etc.</i>).
+<!--
+and restores some global settings to their baseline values.
+-->
+</p><p>
 See also: <a href="open.html"><b>open</b></a>,
 <a href="show.html"><b>hide</b></a>,
 <a href="delete.html"><b>delete</b></a>,
@@ -53,5 +64,5 @@ Examples:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2017</address>
+August 2017</address>
 </body></html>

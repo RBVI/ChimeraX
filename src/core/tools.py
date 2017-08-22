@@ -37,7 +37,7 @@ and `session.trigger.remove_handler`.
 
 
 # Tools and ToolInstance are session-specific
-from .state import State, RestoreError, CORE_STATE_VERSION
+from .state import State, CORE_STATE_VERSION
 ADD_TOOL_INSTANCE = 'add tool instance'
 REMOVE_TOOL_INSTANCE = 'remove tool instance'
 
@@ -69,24 +69,43 @@ class ToolInstance(State):
         to set the attribute before creating the first tool window.
     SESSION_ENDURING : bool, class-level optional
         If True, then tool survives across sessions.
-    SESSION_SKIP : bool, class-level optional
+    SESSION_SAVE : bool, class-level optional
         If True, then tool is not saved in sessions.
     help : str
         URL for tool's help
     """
 
     SESSION_ENDURING = False
-    SESSION_SKIP = False
+    SESSION_SAVE = False
     help = None
 
-    def __init__(self, session, tool_name, *, id=None):
-        self.id = id
+    def __init__(self, session, tool_name):
+        self._id = None
         import weakref
         self._session = weakref.ref(session)
         self.tool_name = tool_name
         self.display_name = tool_name
         # TODO: track.created(ToolInstance, [self])
         session.tools.add([self])
+
+    @property
+    def id(self):
+        return self._id
+
+    @id.setter
+    def id(self, new_id):
+        session = self._session()   # resolve back reference
+        old_id = self._id
+        self._id = new_id
+        if old_id is None or new_id is None:
+            return
+        tools = getattr(session, 'tools', None)
+        if tools is None:
+            return
+        # id changed, so update tool instance map
+        # (when restoring sessions)
+        del tools._tool_instances[old_id]
+        tools._tool_instances[new_id] = self
 
     def take_snapshot(self, session, flags):
         data = {
@@ -119,7 +138,7 @@ class ToolInstance(State):
         if ti:
             ti.set_state_from_snapshot(session, data)
         return ti
-                            
+
     def set_state_from_snapshot(self, session, data):
         self.id = data['id']
         if 'shown' in data:
@@ -162,7 +181,7 @@ class ToolInstance(State):
             return self.tool_window.shown
         raise NotImplementedError(
             "%s tool has not implemented 'displayed' method" % self.display_name)
-        
+
     def display(self, b):
         """Show or hide this tool instance in the user interface.
 
@@ -200,6 +219,7 @@ def get_singleton(session, tool_class, tool_name, create=True, display=False, **
     if display and tinst:
         tinst.display(True)
     return tinst
+
 
 class Tools(State):
     """A per-session state manager for running tools.
@@ -250,7 +270,7 @@ class Tools(State):
         tmap = {}
         for tid, tool_inst in self._tool_instances.items():
             assert(isinstance(tool_inst, ToolInstance))
-            if tool_inst.SESSION_SKIP:
+            if not tool_inst.SESSION_SAVE:
                 continue
             tmap[tid] = tool_inst
         data = {'tools': tmap,
@@ -276,15 +296,14 @@ class Tools(State):
         """
         t = session.tools
         # Session save can put a None tool instance into file if tool instance
-        # has no take_snapshot method and does not use SESSION_SKIP.
+        # has no take_snapshot method and has SESSION_SAVE true.
         # Filter these None tool instances out.
-        tools = {id:ti for id, ti in data['tools'].items()
+        tools = {id: ti for id, ti in data['tools'].items()
                  if ti is not None and not ti.SESSION_ENDURING}
         t._tool_instances.update(tools)
         import itertools
         t._id_counter = itertools.count(data['next id'])
         return t
-
 
     def reset_state(self, session):
         """Reset state manager to default state.
@@ -401,10 +420,10 @@ class Tools(State):
                 continue
             try:
                 bi.start_tool(session, tool_name)
-            #except ToolshedError as e:
+            # except ToolshedError as e:
             except Exception as e:
                 msg = "Tool \"%s\" failed to start" % tool_name
                 # session.logger.info(msg)
-                print(msg)
-                import traceback
-                traceback.print_exc()
+                import traceback, sys
+                traceback.print_exc(file=sys.stdout)
+                print(msg, flush=True)
