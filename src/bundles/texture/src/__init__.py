@@ -1,4 +1,4 @@
-# vim: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab ts=4 sw=4:
 
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
@@ -11,24 +11,14 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-#--- public API ---
-CP_SPECIFIC_SPECIFIC = "ss"
-CP_SPECIFIC_BEST = "bs"
-CP_BEST_BEST = "bb"
-
-AA_NEEDLEMAN_WUNSCH = "Needleman-Wunsch"
-AA_SMITH_WATERMAN = "Smith-Waterman"
-
-
-#--- toolshed/session-init funcs ---
-
 from chimerax.core.toolshed import BundleAPI
 
-class _MyAPI(BundleAPI):
+class _TextureBundle(BundleAPI):
 
     @staticmethod
     def register_command(command_name, logger):
-        from . import match
-        match.register_command(logger)
+        # 'register_command' is lazily called when the command is referenced
+        from . import texture
+        texture.register_texture_command(logger)
 
-bundle_api = _MyAPI()
+bundle_api = _TextureBundle()
