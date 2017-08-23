@@ -216,7 +216,7 @@ class BundleInfo:
         """Register commands with cli."""
         from chimerax.core.commands import cli
         for ci in self.commands:
-            def cb(s=self, n=ci.name, l=logger):
+            def cb(s=self, ci=ci, l=logger):
                 s._register_cmd(ci, l)
             _debug("delay_registration", ci.name)
             cli.delay_registration(ci.name, cb, logger=logger)
@@ -225,18 +225,7 @@ class BundleInfo:
         """Called when commands need to be really registered."""
         try:
             api = self._get_api(logger)
-            f = api.register_command
-        except AttributeError:
-            raise ToolshedError("bundle \"%s\" has no register_command method" % self.name)
-        try:
-            if f == BundleAPI.register_command:
-                raise ToolshedError("bundle \"%s\" forgot to override register_command()" % self.name)
-            if api.api_version == 0:
-                f(ci.name, logger)
-            elif api.api_version == 1:
-                f(ci, logger)
-            else:
-                raise ToolshedError("bundle \"%s\" uses unsupport bundle API version %s" % (self.name, api.api_version))
+            api._api_caller.register_command(api, self, ci, logger)
         except Exception as e:
             raise ToolshedError(
                 "register_command() failed for command %s in bundle %s:\n%s" % (ci.name, self.name, str(e)))
@@ -341,18 +330,15 @@ class BundleInfo:
     def _register_selectors(self, logger):
         from ..commands import register_selector
         for si in self.selectors:
-            def selector_cb(session, models, results, _name=si.name):
+            def selector_cb(session, models, results, si=si):
                 try:
-                    reg = self._get_api(logger).register_selector
-                except AttributeError:
+                    api = self._get_api(logger)
+                    api._api_caller.register_selector(api, self, si, logger)
+                except Exception as e:
                     raise ToolshedError(
-                        "no register_selector function found for bundle \"%s\""
-                        % self.name)
-                if reg == BundleAPI.register_selector:
-                    raise ToolshedError("bundle \"%s\"'s API forgot to override register_selector()" % self.name)
-                reg(_name, session.logger)
+                        "register_selector() failed for selector %s in bundle %s:\n%s" % (si.name, self.name, str(e)))
                 from ..commands import get_selector
-                return get_selector(_name)(session, models, results)
+                return get_selector(si.name)(session, models, results)
             register_selector(si.name, selector_cb, logger)
 
     def _deregister_selectors(self, logger):
@@ -378,34 +364,25 @@ class BundleInfo:
         """Initialize bundle by calling custom initialization code if needed."""
         if self.custom_init:
             try:
-                f = self._get_api(session.logger).initialize
-            except AttributeError:
-                raise ToolshedError(
-                    "no initialize function found for bundle \"%s\""
-                    % self.name)
-            if f == BundleAPI.initialize:
-                session.logger.warning("bundle \"%s\"'s API forgot to override initialize()" % self.name)
-                return
-            try:
-                f(session, self)
-            except:
+                api = self._get_api(session.logger)
+                api._api_caller.initialize(api, session, self)
+            except Exception as e:
                 import traceback, sys
                 traceback.print_exc(file=sys.stdout)
                 raise ToolshedError(
-                    "initialization failed for bundle \"%s\"" % self.name)
+                    "initialize() failed in bundle %s:\n%s" % (self.name, str(e)))
 
     def finish(self, session):
         """Deinitialize bundle by calling custom finish code if needed."""
         if self.custom_init:
             try:
-                f = self._get_api(session.logger).finish
-            except AttributeError:
-                raise ToolshedError("no finish function found for bundle \"%s\""
-                                    % self.name)
-            if f == BundleAPI.finish:
-                session.logger.warning("bundle \"%s\"'s API forgot to override finish()" % self.name)
-                return
-            f(session, self)
+                api = self._get_api(session.logger)
+                api._api_caller.finish(api, session, self)
+            except Exception as e:
+                import traceback, sys
+                traceback.print_exc(file=sys.stdout)
+                raise ToolshedError(
+                    "finish() failed in bundle %s:\n%s" % (self.name, str(e)))
 
     def unload(self, logger):
         """Unload bundle modules (as best as we can)."""
@@ -485,17 +462,20 @@ class BundleInfo:
         if not session.ui.is_gui:
             raise ToolshedError("tool \"%s\" is not supported without a GUI"
                                 % tool_name)
+        tool_info = None
+        for tinfo in self.tools:
+            if tool_name == tinfo.name:
+                tool_info = tinfo
+                break
         try:
-            f = self._get_api(session.logger).start_tool
-        except AttributeError:
-            raise ToolshedError("no start_tool function found for bundle \"%s\""
-                                % self.name)
-        if f == BundleAPI.start_tool:
-            raise ToolshedError("bundle \"%s\"'s API forgot to override start_tool()" % self.name)
-        ti = f(session, tool_name, *args, **kw)
-        if ti is not None:
-            ti.display(True)  # in case the instance is a singleton not currently shown
-        return ti
+            api = self._get_api(session.logger)
+            ti = api._api_caller.start_tool(api, session, self, tool_info)
+            if ti is not None:
+                ti.display(True)  # in case the instance is a singleton not currently shown
+            return ti
+        except Exception as e:
+            raise ToolshedError(
+                "start_tool() failed for tool %s in bundle %s:\n%s" % (tool_name, self.name, str(e)))
 
     def newer_than(self, bi):
         """Return whether this :py:class:`BundleInfo` instance is newer than given one

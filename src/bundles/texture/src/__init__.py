@@ -1,3 +1,5 @@
+# vim: set expandtab ts=4 sw=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -11,26 +13,12 @@
 
 from chimerax.core.toolshed import BundleAPI
 
-class _LabelBundle(BundleAPI):
+class _TextureBundle(BundleAPI):
 
     @staticmethod
     def register_command(command_name, logger):
         # 'register_command' is lazily called when the command is referenced
-        from . import label2d, label3d
-        label2d.register_label_command(logger)
-        label3d.register_label_command(logger)
+        from . import texture
+        texture.register_texture_command(logger)
 
-    @staticmethod
-    def get_class(class_name):
-        # 'get_class' is called by session code to get class saved in a session
-        if class_name == 'ObjectLabels':
-            from .label3d import ObjectLabels
-            return ObjectLabels
-        elif class_name == 'Labels':
-            from .label2d import Labels
-            return Labels
-        return None
-
-bundle_api = _LabelBundle()
-
-from .label2d import label_create, label_change, label_delete, Label
+bundle_api = _TextureBundle()
