@@ -79,10 +79,10 @@ def model(session, targets, combined_templates=False, custom_script=None,
     templates_strings = []
     starts = []
     ends = []
-    prior_templates_strings = []
     for target, templates_info in template_info:
         target_seq = target.characters
         target_template_strings = []
+        templates_strings.append(target_template_strings)
         accum_water_het = ""
         for template, chain, match_map in templates_info:
             # match_map has the chain-to-aseq original match map
@@ -120,11 +120,17 @@ def model(session, targets, combined_templates=False, custom_script=None,
                 target_template_strings[i] = tts + accum
             target_template_strings.append(template_string)
             ends.append(end)
-    #TODO: figure out how/what we need to accumulate,
-    # taking into account the 'combined_templates' keyword
-
-
-
+    # Insert/append all-'-' strings so that each template is in it's own line
+    for i, tts in enumerate(templates_strings):
+        num_lines_to_add = len(tts)
+        for template_lines in templates_strings[:i]:
+            line_to_add = '-' * len(template_lines[0])
+            for i in range(num_lines_to_add):
+                template_lines.append(line_to_add)
+        for template_lines in template_strings[i+i:]:
+            line_to_add = '-' * len(template_lines[0])
+            for i in range(num_lines_to_add):
+                template_lines.insert(0, line_to_add)
 
 def regularized_seq(aseq, chain):
     mmap = aseq.match_maps[chain]
