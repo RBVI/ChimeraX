@@ -82,13 +82,7 @@ def read_obj(session, filename, name):
             normals.append(n)
         if f0 == 'f':
             # Polygonal face.
-            if [vi for vi in fa if '/' in vi]:
-                raise OBJError('OBJ reader only handles faces with vertex indices, line %d: "%s"'
-                               % (line_num, line))
-            t = [int(vi) for vi in fa]
-            if len(t) != 3:
-                raise OBJError('OBJ reader only handles triangle faces, line %d: "%s"'
-                               % (line_num, line))
+            t = parse_triangle(fa, line, line_num)
             triangles.append(t)
 
     if input != filename:
@@ -118,8 +112,34 @@ def read_obj(session, filename, name):
                      % len(model.triangles))
 
 # -----------------------------------------------------------------------------
+#  Handle faces with vertex, normal and texture indices.
 #
-def write_obj(session, filename, models):
+#	f 1 2 3
+#	f 1/1 2/2 3/3
+#	f 1/1/1 2/2/2 3/3/3
+#
+def parse_triangle(fields, line, line_num):
+    if len(fields) != 3:
+        raise OBJError('OBJ reader only handles triangle faces, line %d: "%s"'
+                       % (line_num, line))
+    t = []
+    for f in fields:
+        vi = None
+        for s in f.split('/'):
+            i = int(s)
+            if vi is None:
+                vi = i
+            elif i != vi:
+                raise OBJError('OBJ reader does not handle faces with differing'
+                               'vertex, normal, and texture coordinate indices, line %d: "%s"'
+                               % (line_num, line))
+        t.append(vi)
+
+    return t
+
+# -----------------------------------------------------------------------------
+#
+def write_obj(session, filename, models, obj_to_unity = True):
     if models is None:
         models = session.models.list()
 
@@ -160,8 +180,21 @@ def write_obj(session, filename, models):
     if na is not None:
         file.write('\n'.join(('vn %.5g %.5g %.5g' % tuple(xyz)) for xyz in na))
         file.write('\n')
+
     # Write triangles
-    file.write('\n'.join(('f %d %d %d' % (v0+1,v1+1,v2+1)) for v0,v1,v2 in ta))
+    # For Unity3D 2017.1 to import OBJ texture coordinates, must specify their indices
+    # even though they are the same as the vertex indices.
+    if not obj_to_unity:
+        tlines = [('f %d %d %d' % (v0+1,v1+1,v2+1)) for v0,v1,v2 in ta]
+    elif na is None and tca is None:
+        tlines = [('f %d %d %d' % (v0+1,v1+1,v2+1)) for v0,v1,v2 in ta]
+    elif tca is None:
+        tlines = [('f %d/%d %d/%d %d/%d' % (v0+1,v0+1,v1+1,v1+1,v2+1,v2+1)) for v0,v1,v2 in ta]
+    elif na is None:
+        tlines = [('f %d//%d %d//%d %d//%d' % (v0+1,v0+1,v1+1,v1+1,v2+1,v2+1)) for v0,v1,v2 in ta]
+    else:
+        tlines = [('f %d/%d/%d %d/%d/%d %d/%d/%d' % (v0+1,v0+1,v0+1,v1+1,v1+1,v1+1,v2+1,v2+1,v2+1)) for v0,v1,v2 in ta]
+    file.write('\n'.join(tlines))
     file.write('\n')
 
     file.close()
