@@ -93,11 +93,36 @@ def model(session, targets, combined_templates=False, custom_script=None,
             end = match_map[chain.gapped_to_ungapped(gapped_pos)]
             template_string = template.characters + accum_water_het
             starts.append(start)
+            accum = ""
             if not het_preserve and not water_preserve:
                 target_template_strings.append(template_string)
                 ends.append(end)
                 continue
-            #TODO: add het/water characters and get proper end residue
+            # add het/water characters and get proper end residue
+            before_end = True
+            for r in chain.structure.residues:
+                if before_end:
+                    before_end = r != end
+                    continue
+                if r.chain_id != chain.chain_id or (r.chain and r.chain != chain):
+                    break
+                end = r
+                if water_preserve and r.name in r.standard_water_names \
+                or het_reserve and r.is_het:
+                    char = '.'
+                else:
+                    char = '-'
+                target_seq += char
+                template_string += char
+                accum_ += '-'
+            accum_water_het += accum
+            for i, tts in enumerate(target_template_strings):
+                target_template_strings[i] = tts + accum
+            target_template_strings.append(template_string)
+            ends.append(end)
+    #TODO: figure out how/what we need to accumulate,
+    # taking into account the 'combined_templates' keyword
+
 
 
 

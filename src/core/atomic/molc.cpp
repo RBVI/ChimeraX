@@ -2168,6 +2168,46 @@ extern "C" EXPORT void residue_secondary_structure_id(void *residues, size_t n, 
     }
 }
 
+extern "C" EXPORT PyObject *residue_standard_solvent_names()
+{
+    PyObject* name_set = PySet_New(nullptr);
+    if (name_set == nullptr)
+        return nullptr;
+    try {
+        for (auto name: Residue::std_solvent_names) {
+            PyObject* py_name = PyUnicode_FromString(name.c_str());
+            if (py_name == nullptr || PySet_Add(name_set, py_name) < 0) {
+                Py_DECREF(name_set);
+                return nullptr;
+            }
+        }
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+    return name_set;
+}
+
+extern "C" EXPORT PyObject *residue_standard_water_names()
+{
+    PyObject* name_set = PySet_New(nullptr);
+    if (name_set == nullptr)
+        return nullptr;
+    try {
+        for (auto name: Residue::std_water_names) {
+            PyObject* py_name = PyUnicode_FromString(name.c_str());
+            if (py_name == nullptr || PySet_Add(name_set, py_name) < 0) {
+                Py_DECREF(name_set);
+                return nullptr;
+            }
+        }
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+    return name_set;
+}
+
 extern "C" EXPORT PyObject *residue_unique_sequences(void *residues, size_t n, int *seq_ids)
 {
     Residue **r = static_cast<Residue **>(residues);

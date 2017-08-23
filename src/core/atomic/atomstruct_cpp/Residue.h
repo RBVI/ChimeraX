@@ -139,7 +139,8 @@ public:
     static const std::set<AtomName>  na_max_backbone_names;
     static const std::set<AtomName>  na_ribbon_backbone_names;
     static const std::set<AtomName>  ribose_names;
-    static const std::set<ResName>  std_solvent_names;
+    static std::set<ResName>  std_solvent_names;
+    static std::set<ResName>  std_water_names;
     const std::set<AtomName>*  backbone_atom_names(BackboneExtent bbe) const;
     const std::set<AtomName>*  ribose_atom_names() const;
 

@@ -734,7 +734,13 @@ class Residue(State):
     SS_HELIX = 1
     SS_SHEET = SS_STRAND = 2
 
-    water_res_names = set(["HOH", "WAT", "H2O", "D2O", "TIP3"])
+    # Since there are no class properties, these are simply sets; changing them
+    # will have no effect on the C++ layer.  If that is needed we will have to
+    # add add_standard_solvent/water_name functions
+    standard_solvent_names = c_function('residue_standard_solvent_names', args = (),
+        ret = ctypes.py_object)()
+    standard_water_names = c_function('residue_standard_water_names', args = (),
+        ret = ctypes.py_object)()
 
     def __init__(self, residue_pointer):
         set_c_pointer(self, residue_pointer)
