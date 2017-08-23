@@ -275,6 +275,7 @@ class Render:
         if self.SHADER_STEREO_360 & c:
             self.set_stereo_360_params()
         self.set_clip_parameters()
+        shader.validate_program()	# Check that OpenGL is setup right (only happens one time).
 
     def push_framebuffer(self, fb):
         self.framebuffer_stack.append(fb)
@@ -1709,6 +1710,7 @@ class Shader:
         self.capabilities = capabilities
         self.program_id = self.compile_shader(capabilities, max_shadows)
         self.uniform_ids = {}
+        self._validated = False	# Don't validate program until uniforms set.
 
     def set_integer(self, name, value):
         GL.glUniform1i(self.uniform_id(name), value)
@@ -1760,7 +1762,8 @@ class Shader:
         except Exception as e:
             raise OpenGLError(str(e))
 
-        prog_id = shaders.compileProgram(vs, fs)
+        prog_id = self.compile_program(vs, fs)
+        #prog_id = shaders.compileProgram(vs, fs)
 
         # msg = (('Compiled shader %d,\n'
         #        ' capbilities %s,\n'
@@ -1780,6 +1783,32 @@ class Shader:
         # print(msg)
 
         return prog_id
+
+    def compile_program(self, vs, fs):
+        program = GL.glCreateProgram()
+        GL.glAttachShader(program, vs)
+        GL.glAttachShader(program, fs)
+        GL.glLinkProgram(program)
+        link_status = GL.glGetProgramiv(program, GL.GL_LINK_STATUS)
+        if link_status == GL.GL_FALSE:
+            raise RuntimeError( 'Link failure (%s): %s'
+                                % (link_status, GL.glGetProgramInfoLog(program)))
+        GL.glDeleteShader(vs)
+        GL.glDeleteShader(fs)
+        return program
+
+    def validate_program(self):
+        # Only validate after setting Sampler uniforms.  Validation finds collisions
+        # using the same texture unit for multiple samplers.  Usually only validate in debug builds.
+        if self._validated:
+            return
+        self._validated = True
+        p = self.program_id
+        GL.glValidateProgram(p)
+        validation = GL.glGetProgramiv(p, GL.GL_VALIDATE_STATUS )
+        if validation == GL.GL_FALSE:
+            raise RuntimeError('OpenGL Program validation failure (%r): %s'
+                               % (validation, glGetProgramInfoLog(p)))
 
     # Add #define lines after #version line of shader
     def insert_define_macros(self, shader, capabilities, max_shadows):
