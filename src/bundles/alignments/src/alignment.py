@@ -141,8 +141,10 @@ class Alignment(State):
                         return
                     self.disassociate(sseq)
                 if not self.intrinsic:
-                    status("Associated %s %s to %s with %d error(s)" % (struct_name, sseq.name,
-                        best_match_map.align_seq.name, best_errors), log=True)
+                    s1, s2, s3 = ("", "", "") if best_errors == 1 else ("es", "and/", "s")
+                    status("Associated %s %s to %s with %d mismatch%s %sor gap%s" % (struct_name,
+                        sseq.name, best_match_map.align_seq.name, best_errors, s1, s2, s3),
+                        log=True)
                 self.prematched_assoc_structure(best_match_map, best_errors, reassoc)
                 new_match_maps.append(best_match_map)
                 nonlocal associated
