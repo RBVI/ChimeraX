@@ -110,6 +110,7 @@ class Structure(Model, StructureData):
             self.set_color(color)
 
             atoms = self.atoms
+            print("num chains:", self.num_chains)
             if self.num_chains == 0:
                 lighting = "default"
                 from .molobject import Atom, Bond
@@ -124,8 +125,7 @@ class Structure(Model, StructureData):
                 from .colors import element_colors
                 het_atoms = atoms.filter(atoms.element_numbers != 6)
                 het_atoms.colors = element_colors(het_atoms.element_numbers)
-                physical_residues = self.chains.existing_residues
-                ribbonable = physical_residues.filter(physical_residues.num_atoms > 1)
+                ribbonable = self.chains.existing_residues
                 # 10 residues or less is basically a trivial depiction if ribboned
                 if len(ribbonable) > 10:
                     atoms.displays = False
@@ -153,9 +153,6 @@ class Structure(Model, StructureData):
                         display_atoms = display_atoms.filter(display_atoms.idatm_types != "HC")
                     display_atoms.displays = True
                     ribbonable.ribbon_displays = True
-                elif len(ribbonable) == 0:
-                    # CA only?
-                    atoms.draw_modes = Atom.BALL_STYLE
             elif self.num_chains < 250:
                 lighting = "full" if self.num_atoms < 300000 else "full multiShadow 16"
                 from .colors import chain_colors, element_colors
