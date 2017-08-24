@@ -138,18 +138,19 @@ Residue::principal_atom() const
         return am.size() == 1 ? ca : nullptr;
     }
     auto c4f = am.find("C4'");
-    if (c4f == am.end())
-        return nullptr;
+    if (c4f == am.end()) {
+        if (am.size() > 1)
+            return nullptr;
+        auto pf = am.find("P");
+        if (pf == am.end())
+            return nullptr;
+        auto p = pf->second;
+        return p->element() == Element::P ? p : nullptr;
+    }
     auto c4 = c4f->second;
     if (am.find("C3'") != am.end() && am.find("C5'") != am.end() && am.find("O5'") != am.end())
         return c4;
-    if (am.size() > 1)
-        return nullptr;
-    auto pf = am.find("P");
-    if (pf == am.end())
-        return nullptr;
-    auto p = pf->second;
-    return p->element() == Element::P ? p : nullptr;
+    return nullptr;
 }
 
 void
