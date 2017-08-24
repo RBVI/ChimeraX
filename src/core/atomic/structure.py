@@ -361,9 +361,6 @@ class Structure(Model, StructureData):
             from ..geometry import Places
             p.positions = Places(shift_and_scale=xyzr)
 
-#        if changes & self._DISPLAY_CHANGE:
-#            p.display_positions = atoms.visibles
-
         if changes & self._COLOR_CHANGE:
             # Set atom colors
             p.colors = atoms.colors
