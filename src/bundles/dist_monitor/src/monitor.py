@@ -53,7 +53,10 @@ class DistancesMonitor(State):
         for pb in changes.created_pseudobonds:
             if pb.group in self.monitored_groups:
                 self._update_distances(pseudobonds=[pb])
-        #TODO: modified coordsets; active coord set changed; matrix changed
+        if "position changed" in changes.structure_reasons() \
+        or "active_coordset changed" in changes.structure_reasons() \
+        or len(changes.modified_coordsets()) > 0:
+            self._update_distances()
 
     def _update_distances(self, pseudobonds=None):
         if pseudobonds is None:
