@@ -1229,6 +1229,20 @@ class PseudobondGroups(PseudobondGroupDatas):
         return [s for s in self]
 
 # -----------------------------------------------------------------------------
+#
+class CoordSets(Collection):
+    '''
+    Bases: :class:`.Collection`
+
+    Collection of C++ coordsets.
+    '''
+    def __init__(self, cs_pointers = None):
+        Collection.__init__(self, cs_pointers, molobject.CoordSet, CoordSets)
+
+    structures = cvec_property('coordset_structure', cptr, astype=_atomic_structures,
+        read_only=True, doc="Returns an :class:`AtomicStructure` for each coordset. Read only.")
+
+# -----------------------------------------------------------------------------
 # For making collections from lists of objects.
 #
 def object_pointers(objects):

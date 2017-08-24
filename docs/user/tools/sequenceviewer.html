@@ -111,22 +111,36 @@ border:solid goldenrod 1px;padding:1px 3px">
 border:solid rgb(168,191,191) 1px;padding:1px 3px">
 <b>structure&nbsp;strands</b></font>.
 Such sequences are closed when their structure chains are deleted or closed,
-and they are not automatically associated with other structures (see below).
+and they are not automatically associated with other structures.
 </p><p>
 When sequences and structures are opened independently,
-a structure chain will be associated automatically
-with a sequence if their sequences can be aligned without
-mismatches exceeding 1/10 of the residues in the structure chain.
-Associations are reported in the <a href="log.html"><b>Log</b></a>.
-For automatic association, gaps in the structure sequence
-relative to the sequence in the alignment file can only occur where
-residues are missing from the structure (for example, a flexible
-loop with insufficient density for coordinates to be determined).
-<a href="#regions">Regions</a> may be created to show
+a structure chain will be associated automatically with a sequence 
+if their sequences can be aligned without mismatches 
+exceeding 1/10 of the residues in the structure chain.
+The association and number of mismatches will be reported
+in the <a href="log.html"><b>Log</b></a>. For automatic association,
+<ul>
+<li>Gaps in the structure sequence 
+(relative to the sequence opened independently)
+are not allowed except where residues are missing from the structure,
+such as in disordered regions with poorly defined density.
+<li>Insertions in the structure sequence relative to the 
+sequence opened independently are not allowed.
+</ul>
+<!--
+For manual (forced) association, both of the above are allowed, 
+but only the &ldquo;extra&rdquo; residues in the structure not associated 
+with any positions in the sequence (minus the length difference
+if the structure sequence is longer) are counted along with mismatches 
+and reported in the <a href="log.html"><b>Log</b></a>.
+-->
+</p><p>
+In the sequence window, <a href="#regions">regions</a> may be created to show
 <font style="background:rgb(255,76,76);padding:1px 3px">
 <b>mismatches</b></font> and
 <font style="border:solid black 1px;padding:1px 3px">
-<b>missing&nbsp;residues</b></font>.
+<b>missing&nbsp;residues</b></font>
+according to the association.
 If a mismatch or missing residue only occurs in a subset of multiple
 associated structures, a 
 <font style="background:pink;padding:1px 3px">
@@ -137,8 +151,10 @@ gray outline</font> is shown instead.
 Further effects of association:
 </p>
 <ul>
-<li>a color swatch matching the associated model is shown around the sequence name, 
-or a dark-green dashed outline if chains from multiple models are associated
+<li>a color swatch matching the associated model is shown around the 
+sequence name, or a 
+<font style="border:dashed darkgreen 1px;padding:1px 3px">
+dark-green dashed outline</font> if chains from multiple models are associated
 <li>pausing the cursor over the sequence name reports the association, and 
 over residues in the sequence window reports the corresponding structure residue(s)
 <li>clicking or dragging to update the <a href="#active">active region</a> will
