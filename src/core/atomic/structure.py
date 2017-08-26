@@ -110,7 +110,6 @@ class Structure(Model, StructureData):
             self.set_color(color)
 
             atoms = self.atoms
-            print("num chains:", self.num_chains)
             if self.num_chains == 0:
                 lighting = "default"
                 from .molobject import Atom, Bond
