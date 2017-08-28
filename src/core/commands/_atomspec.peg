@@ -103,21 +103,13 @@ attr_value       = ?/[^,#/:@ \t]+/?
 zone_selector    = zone_operator real_number
                  ;
 
-zone_operator    = '@>='
-                 | '@>'
-                 | '@<='
+zone_operator    = '@>'
                  | '@<'
-                 | ':>='
                  | ':>'
-                 | ':<='
                  | ':<'
-                 | '/>='
                  | '/>'
-                 | '/<='
                  | '/<'
-                 | '#>='
                  | '#>'
-                 | '#<='
                  | '#<'
 		 ;
 
