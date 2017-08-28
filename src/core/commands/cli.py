@@ -218,6 +218,8 @@ def commas(text_seq, conjunction=' or'):
     :param text_seq: a sequence of text strings
     :param conjunction: a word with a leading space
     """
+    if not isinstance(text_seq, (list, tuple)):
+        text_seq = tuple(text_seq)
     seq_len = len(text_seq)
     if seq_len == 0:
         return ""
@@ -1615,7 +1617,7 @@ class CmdDesc:
         function that implements command
 
     Each :param required:, :param optional:, :param keyword: sequence
-    contains tuples with the argument name and a type annotation.
+    contains 2-tuples with the argument name and a type annotation.
     The command line parser uses the :param optional: argument names as
     additional keyword arguments.
     :param required_arguments: are for Python function arguments that
@@ -1634,13 +1636,13 @@ class CmdDesc:
                  non_keyword=(), hidden=(), url=None, synopsis=None):
         self._required = OrderedDict(required)
         self._optional = OrderedDict(optional)
-        self._keyword = OrderedDict(keyword)
+        self._keyword = dict(keyword)
         optional_keywords = [i for i in self._optional.items()
                              if i[0] not in non_keyword]
         self._keyword.update(optional_keywords)
         self._hidden = set(hidden)
         # keyword_map is what would user would type
-        self._keyword_map = OrderedDict([(_user_kw(n), n) for n in self._keyword])
+        self._keyword_map = {_user_kw(n): n for n in self._keyword}
         self._postconditions = postconditions
         self._required_arguments = required_arguments
         self.url = url
@@ -1957,7 +1959,6 @@ def add_keyword_arguments(name, kw_info):
 
     :param name: the name of the command (must not be an alias)
     :param kw_info: { keyword: annotation }
-        Use an OrderedDict to control which keyword is used for abbreviations
     """
     if not isinstance(kw_info, dict):
         raise ValueError("kw_info must be a dictionary")
@@ -1969,11 +1970,12 @@ def add_keyword_arguments(name, kw_info):
     # check compatibility with already-registered keywords
     for kw, arg_type in kw_info.items():
         if kw in cmd._ci._keyword and cmd._ci._keyword[kw] != arg_type:
-            raise ValueError("%s-command keyword '%s' being registered with different type (%s)"
-                " than previous registration (%s)" % (name, kw, repr(arg_type),
-                repr(cmd._ci._keyword[kw])))
+            raise ValueError(
+                "%s-command keyword '%s' being registered with different type (%s)"
+                " than previous registration (%s)" % (
+                    name, kw, repr(arg_type), repr(cmd._ci._keyword[kw])))
     cmd._ci._keyword.update(kw_info)
-    cmd._ci._keyword_map.update([(_user_kw(n), n) for n in kw_info])
+    cmd._ci._keyword_map.update((_user_kw(n), n) for n in kw_info)
 
 
 class _FakeSession:
@@ -2246,18 +2248,24 @@ class Command:
             arg_name = _user_kw(word)
             if arg_name not in self._ci._keyword_map:
                 self.completion_prefix = word
+                folded_arg_name = arg_name.casefold()
                 self.completions = [x for x in self._ci._keyword_map
                                     if x.startswith(arg_name) or
-                                    x.casefold().startswith(arg_name.casefold())]
+                                    x.casefold().startswith(folded_arg_name)]
                 if (final or len(text) > len(chars)) and self.completions:
-                    # If final version of text, or if there
-                    # is following text, make best guess,
-                    # and retry
-                    c = self.completions[0]
-                    self._replace(chars, c)
-                    text = self.current_text[self.amount_parsed:]
-                    self.completions = []
-                    continue
+                    # require shortened keywords to be unambiguous
+                    unambiguous = (
+                        len(self.completions) == 1 or len(self.completions[0]) == len(arg_name) or
+                        all(x.startswith(self.completions[0]) for x in self.completions)
+                    )
+                    if unambiguous:
+                        c = self.completions[0]
+                        self._replace(chars, c)
+                        text = self.current_text[self.amount_parsed:]
+                        self.completions = []
+                        continue
+                    self._error = "Expected keyword " + commas('"%s"' % x for x in self.completions)
+                    return
                 expected = []
                 if isinstance(prev_annos[0], Aggregate):
                     expected.append("'%s'" % prev_annos[0].separator)
@@ -2903,7 +2911,7 @@ class Alias:
         return self.cmd.run(text, _used_aliases=_used_aliases, log=log)
 
 
-def list_aliases(all=False):
+def list_aliases(all=False, logger=None):
     """List all aliases
 
     :param all: if True, then only list all aliases, not just user ones
@@ -2911,9 +2919,14 @@ def list_aliases(all=False):
     Return in depth-first order.
     """
     def find_aliases(partial_name, parent_info):
-        for word, word_info in parent_info.subcommands.items():
+        for word, word_info in list(parent_info.subcommands.items()):
             if word_info.is_deferred():
-                word_info.lazy_register()
+                try:
+                    word_info.lazy_register()
+                except RuntimeError as e:
+                    if logger:
+                        logger.warning(str(e))
+                    continue
             if partial_name:
                 yield from find_aliases('%s %s' % (partial_name, word), word_info)
             else:
@@ -2958,7 +2971,7 @@ def create_alias(name, text, *, user=False, logger=None, url=None):
         raise
 
 
-def remove_alias(name=None, user=False):
+def remove_alias(name=None, user=False, logger=None):
     """Remove command alias
 
     :param name: name of the alias
@@ -2967,7 +2980,7 @@ def remove_alias(name=None, user=False):
     If no name is given, then all user generated aliases are removed.
     """
     if name is None:
-        for name in list_aliases():
+        for name in list_aliases(logger=logger):
             deregister(name, is_user_alias=True)
         return
 

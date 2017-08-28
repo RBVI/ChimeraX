@@ -640,7 +640,13 @@ class _ZoneSelector:
     def __init__(self, operator, distance):
         self.distance = distance
         self.target_type = operator[0]  # '@', ':' or '#'
-        self.operator = operator[1:]    # '<', '<=', '>', '>='
+        self.operator = operator[1:]    # '<', '>'
+        # We do not support <= or >= because distances are
+        # computed as floating point and equality suggests
+        # more control than we really have.  If two atoms
+        # are _actually_ _exactly_ equal to the specified
+        # distance, we put them in the < bucket (because
+        # we are using closepoints).
         self.model = None
 
     def __str__(self):
@@ -652,14 +658,17 @@ class _ZoneSelector:
             return
         from ..objects import Objects
         my_results = Objects()
+        zone_results = Objects()
         self.model.find_matches(session, models, my_results)
         if my_results.num_atoms > 0:
             # expand my_results before combining with results
             coords = my_results.atoms.scene_coords
             for m in session.models.list():
                 m.atomspec_zone(session, coords, self.distance,
-                                self.target_type, self.operator, my_results)
-        results.combine(my_results)
+                                self.target_type, self.operator, zone_results)
+        results.combine(zone_results)
+        if '<' in self.operator:
+            results.combine(my_results)
 
     def matches(self, session, model):
         if self.model is None:

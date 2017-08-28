@@ -69,6 +69,8 @@ def read_imaris_map(path):
       g = IMS_Grid(d, i.size, i.value_type,
                    i.origin, i.step, i.cell_angles, i.rotation,
                    i.symmetries, i.default_color, image_name, i.array_path)
+      g.time = i.time
+      g.channel = i.channel
       if i.subsamples:
         g = add_subsamples(d, i, g)
       # Mark as volume series if maps of same size.
@@ -76,8 +78,7 @@ def read_imaris_map(path):
     if len(glist) > 1 and len(set(tuple(g.size) for g in glist)) == 1:
       for i,g in enumerate(glist):
         g.series_index = i
-    cglist.append(glist)
-
+    cglist.extend(glist)
 
   return cglist
     
@@ -94,6 +95,8 @@ def add_subsamples(hdf_data, hdf_image, g):
       sg = IMS_Grid(hdf_data, data_size, i.value_type,
                     i.origin, step, i.cell_angles, i.rotation,
                     i.symmetries, i.default_color, i.name, array_path)
+      g.time = i.time
+      g.channel = i.channel
       g.add_subsamples(sg, cell_size)
       
   return g

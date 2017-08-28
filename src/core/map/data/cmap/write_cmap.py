@@ -25,6 +25,7 @@
 #    rotation_axis (0.0, 0.0, 1.0)
 #    rotation_angle 45.0
 #    symmetries (((0,-1,0,0),(1,0,0,0),(0,0,1,0)),...)
+#    color (1.0, 1.0, 0, 1.0) (attribute, rgba 0-1 float)
 #    data_zyx (3d array of uint8 (123,542,82))
 #    data_yzx (3d array of uint8 (123,542,82), alternate chunk shape)
 #    data_zyx_2 (3d array of uint8 (61,271,41))
@@ -38,7 +39,7 @@
 #
 # In the example "Chimera" and "image1" are HDF groups,
 # "chimera_version", "name", "step", "origin", "cell_angles",
-# "rotation_axis", "rotation_angle", "symmetries" are group
+# "rotation_axis", "rotation_angle", "symmetries", "color" are group
 # attributes, "data_zyx", "data_yzx" and "data_zyx_2" are hdf datasets
 # (arrays), and "subsample_step" is a dataset attribute.
 #
@@ -74,20 +75,21 @@ def write_grid_as_chimera_map(grid_data, path, options = {}, progress = None):
     else:                       mode = 'w'
     import tables
     h5file = tables.open_file(path, mode = mode)
-    if progress:
-        progress.close_on_cancel(h5file)
+    try:
+        if progress:
+            progress.close_on_cancel(h5file)
 
-    if '/Chimera' in h5file:
-        cg = h5file.get_node('/Chimera')
-    else:
-        cg = h5file.create_group(h5file.root, 'Chimera')
+        if '/Chimera' in h5file:
+            cg = h5file.get_node('/Chimera')
+        else:
+            cg = h5file.create_group(h5file.root, 'Chimera')
 
-    ioffset = next_suffix_number(cg, 'image')
-    for i, d in enumerate(data_sets):
-        g = h5file.create_group(cg, 'image%d' % (i+ioffset))
-        write_grid_data(h5file, d, g, settings, progress)
-
-    h5file.close()
+        ioffset = next_suffix_number(cg, 'image')
+        for i, d in enumerate(data_sets):
+            g = h5file.create_group(cg, 'image%d' % (i+ioffset))
+            write_grid_data(h5file, d, g, settings, progress)
+    finally:
+        h5file.close()
 
 # -----------------------------------------------------------------------------
 # Used to produce new group name when adding maps to an existing hdf file.
@@ -138,7 +140,13 @@ def write_grid_data(h5file, grid_data, g, settings, progress):
         g._v_attrs.rotation_angle = array(angle, float32)
     if grid_data.symmetries:
         g._v_attrs.symmetries = array(grid_data.symmetries.array(), float32)
-
+    if grid_data.rgba is not None:
+        g._v_attrs.color = array(grid_data.rgba, float32)
+    if hasattr(grid_data, 'time') and grid_data.time is not None:
+        g._v_attrs.time = grid_data.time
+    if hasattr(grid_data, 'channel') and grid_data.channel is not None:
+        g._v_attrs.channel = grid_data.channel
+        
     # Determine data type.
     import tables
     atom = tables.Atom.from_dtype(grid_data.value_type)
