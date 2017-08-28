@@ -50,7 +50,7 @@ protected:
         _halfbond = false;
         _radius = 0.05;
     }
-    virtual ~Pseudobond() {}
+    virtual ~Pseudobond() { graphics_changes()->set_gc_adddel(); }
 
     // convert a global pb_manager version# to version# for Connection base class
     static int  session_base_version(int /*version*/) { return 1; }
