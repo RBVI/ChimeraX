@@ -516,6 +516,7 @@ Structure::_delete_atoms(const std::set<Atom*>& atoms, bool verify)
         });
     _bonds.erase(new_b_end, _bonds.end());
     set_gc_shape();
+    set_gc_adddel();
 }
 
 void

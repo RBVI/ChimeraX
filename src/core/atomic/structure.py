@@ -124,8 +124,7 @@ class Structure(Model, StructureData):
                 from .colors import element_colors
                 het_atoms = atoms.filter(atoms.element_numbers != 6)
                 het_atoms.colors = element_colors(het_atoms.element_numbers)
-                physical_residues = self.chains.existing_residues
-                ribbonable = physical_residues.filter(physical_residues.num_atoms > 1)
+                ribbonable = self.chains.existing_residues
                 # 10 residues or less is basically a trivial depiction if ribboned
                 if len(ribbonable) > 10:
                     atoms.displays = False
@@ -153,9 +152,6 @@ class Structure(Model, StructureData):
                         display_atoms = display_atoms.filter(display_atoms.idatm_types != "HC")
                     display_atoms.displays = True
                     ribbonable.ribbon_displays = True
-                elif len(ribbonable) == 0:
-                    # CA only?
-                    atoms.draw_modes = Atom.BALL_STYLE
             elif self.num_chains < 250:
                 lighting = "full" if self.num_atoms < 300000 else "full multiShadow 16"
                 from .colors import chain_colors, element_colors
@@ -360,9 +356,6 @@ class Structure(Model, StructureData):
 
             from ..geometry import Places
             p.positions = Places(shift_and_scale=xyzr)
-
-#        if changes & self._DISPLAY_CHANGE:
-#            p.display_positions = atoms.visibles
 
         if changes & self._COLOR_CHANGE:
             # Set atom colors
@@ -1972,9 +1965,15 @@ class Structure(Model, StructureData):
             mask[a] = 0
             expand_by = atoms.filter(mask)
         if target_type == ':':
-            expand_by = expand_by.unique_residues.atoms
+            if '<' in operator:
+                expand_by = expand_by.unique_residues.atoms
+            else:
+                expand_by = expand_by.full_residues.atoms
         elif target_type == '#':
-            expand_by = expand_by.unique_structures.atoms
+            if '<' in operator:
+                expand_by = expand_by.unique_structures.atoms
+            else:
+                expand_by = expand_by.full_structures.atoms
         results.add_atoms(expand_by)
 
 class AtomicStructure(Structure):

@@ -520,6 +520,18 @@ class Atoms(Collection):
         "The unique structures as an :class:`.AtomicStructures` collection"
         return self.structures.unique()
     @property
+    def full_residues(self):
+        '''The :class:`.Residues` all of whose atoms are in this :class:`.Atoms` instance'''
+        all_residues = self.unique_residues
+        extra = (all_residues.atoms - self).unique_residues
+        return all_residues - extra
+    @property
+    def full_structures(self):
+        '''The :class:`.Structures` all of whose atoms are in this :class:`.Atoms` instance'''
+        all_structures = self.unique_structures
+        extra = (all_structures.atoms - self).unique_structures
+        return all_structures - extra
+    @property
     def single_structure(self):
         "Do all atoms belong to a single :class:`.Structure`"
         p = self.structures._pointers
@@ -1227,6 +1239,20 @@ class PseudobondGroups(PseudobondGroupDatas):
         return array([s._c_pointer.value for s in data], dtype=cptr)
     def session_save_pointers(self, session):
         return [s for s in self]
+
+# -----------------------------------------------------------------------------
+#
+class CoordSets(Collection):
+    '''
+    Bases: :class:`.Collection`
+
+    Collection of C++ coordsets.
+    '''
+    def __init__(self, cs_pointers = None):
+        Collection.__init__(self, cs_pointers, molobject.CoordSet, CoordSets)
+
+    structures = cvec_property('coordset_structure', cptr, astype=_atomic_structures,
+        read_only=True, doc="Returns an :class:`AtomicStructure` for each coordset. Read only.")
 
 # -----------------------------------------------------------------------------
 # For making collections from lists of objects.
