@@ -20,6 +20,9 @@ TODO
 
 from .. import State
 
+class _NoDefault:
+    pass
+
 #inherited by the class to offer attr-registration functionality
 class AttrRegistrant:
     def __getattr__(self, attr_name):
@@ -28,10 +31,7 @@ class AttrRegistrant:
     def register_attr(self, registerer, attr_name, default_value=_NoDefault, attr_type=None):
         self._attr_registration.register(registerer, attr_name, default_value, attr_type)
 
-class _NoDefault:
-    pass
-
-# used within the class to hold the reistration info
+# used within the class to hold the registration info
 class AttrRegistration(State):
     def __init__(self):
         self._reg_attr_info = {}
