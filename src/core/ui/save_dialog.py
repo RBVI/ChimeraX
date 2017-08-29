@@ -55,7 +55,7 @@ class MainSaveDialogBase:
         for fmt in formats(open=False):
             if fmt.category not in (SESSION, "Image"):
                 self.register(fmt.name, lambda fmt=fmt: export_file_filter(format_name=fmt.name),
-                    None, None, lambda ses, fn, fmt=fmt: fmt.export_func(ses, fn, fmt.name))
+                    None, None, lambda ses, fn, fmt=fmt: fmt.export(ses, fn, fmt.name))
 
     def register(self, format_name, wildcard, make_ui, update, save):
         self._registered_formats[format_name] = _SaveFormat(format_name, wildcard, make_ui,
