@@ -69,7 +69,7 @@ public:
     bool  contains(Atom* a) const { return a == _atoms[0] || a == _atoms[1]; }
     const Atoms&  atoms() const { return _atoms; }
     Real  length() const;
-    Atom*  other_atom(Atom* a) const;
+    Atom*  other_atom(const Atom* a) const;
     void  session_info(bool intra_mol, PyObject* ints, PyObject* floats, PyObject* misc) const;
     Real  sqlength() const;
 
@@ -138,7 +138,7 @@ public:
 };
 
 inline Atom *
-Connection::other_atom(Atom *a) const
+Connection::other_atom(const Atom *a) const
 {
     if (a == _atoms[0])
         return _atoms[1];

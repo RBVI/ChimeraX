@@ -1197,6 +1197,35 @@ extern "C" EXPORT int bonds_num_shown(void *bonds, size_t n)
     return count;
 }
 
+extern "C" EXPORT void* bond_side_atoms(void *bond, void *side_atom)
+{
+    Bond *b = static_cast<Bond*>(bond);
+    Atom *sa = static_cast<Atom*>(side_atom);
+    try {
+        auto side_atoms = b->side_atoms(sa);
+        const Atom **sas;
+        PyObject *sa_array = python_voidp_array(side_atoms.size(), (void***)&sas);
+        size_t i = 0;
+        for (auto s: side_atoms)
+            sas[i++] = s;
+        return sa_array;
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" EXPORT void *bond_smaller_side(void *bond)
+{
+    Bond *b = static_cast<Bond *>(bond);
+    try {
+        return b->smaller_side();
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
 extern "C" EXPORT void set_bond_radius(void *bonds, size_t n, float32_t *radii)
 {
     Bond **b = static_cast<Bond **>(bonds);

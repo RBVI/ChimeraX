@@ -18,45 +18,15 @@ class BondRotation(State):
     Should only be created through new_bond_rotation method of the bond-rotation manager
     """
 
-    #TODO
-    def __init__(self, session, seqs, ident, file_attrs, file_markups, auto_destroy, auto_associate,
-            description, intrinsic):
+    def __init__(self, session, bond, ident, moving_side, one_shot):
         self.session = session
-        if isinstance(seqs, tuple):
-            seqs = list(seqs)
-        self.seqs = seqs
+        self.bond = bond
         self.ident = ident
-        self.file_attrs = file_attrs
-        self.file_markups = file_markups
-        self.auto_destroy = auto_destroy
-        self.auto_associate = auto_associate
-        self.description = description
-        self.viewers = []
-        self._viewer_notification_suspended = 0
-        self._vn_suspended_data = []
-        self.associations = {}
-        from chimerax.core.atomic import Chain
-        self.intrinsic = intrinsic
-        self._in_destroy = False
-        for i, seq in enumerate(seqs):
-            if isinstance(seq, Chain):
-                from copy import copy
-                seqs[i] = copy(seq)
-            seqs[i].match_maps = {}
-        if self.auto_associate is None:
-            self.associate(None, keep_intrinsic=True)
-            self.auto_associate = False
-        elif self.auto_associate:
-            from chimerax.core.atomic import AtomicStructure
-            if self.auto_associate == "session":
-                self.auto_associate = True
-            else:
-                self.associate([s for s in session.models
-                    if isinstance(s, AtomicStructure)], force=False)
-            from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
-            self.session.triggers.add_handler(ADD_MODELS, lambda tname, models:
-                self.associate([s for s in models if isinstance(s, AtomicStructure)], force=False))
+        self.moving_side = moving_side
+        self.one_shot = one_shot
+        self.angle = 0.0
 
+    #TODO
     def associate(self, models, seq=None, force=True, min_length=10, reassoc=False,
             keep_intrinsic=False):
         """associate models with sequences

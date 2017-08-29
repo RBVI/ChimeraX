@@ -65,6 +65,8 @@ public:
     Atom*  polymeric_start_atom() const;
     const Rings&  rings(bool cross_residues = false, int all_size_threshold = 0,
         std::set<const Residue*>* ignore = nullptr) const;
+    std::vector<Atom*>  side_atoms(const Atom*) const;
+    Atom*  smaller_side() const; // considers missing structure, returns nullptr if in a cycle
     // sqlength() inherited from UniqueConnection
 
     // session related

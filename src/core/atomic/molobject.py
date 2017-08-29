@@ -438,6 +438,25 @@ class Bond(State):
                 ret = ctypes.py_object)
         return _rings(f(self._c_pointer, cross_residues, all_size_threshold))
 
+    def side_atoms(self, side_atom):
+        '''All the atoms on the same side of the bond as side_atom.
+
+           'side_atom' has to be one of the two bond atoms, and the returned atoms will include
+           'side_atom'.  Missing-structure pseudobonds are treated as connecting their atoms for
+           the purpose of computing the side atoms.  If bond is part of a ring or cycle then
+           ValueError will be thrown.
+        '''
+        f = c_function('bond_side_atoms', args = (ctypes.c_void_p, ctypes.c_void_p),
+            ret = ctypes.py_object)
+        return _atoms(f(self._c_pointer, side_atom._c_pointer))
+
+    @property
+    def smaller_side(self):
+        '''Returns the bond atom on the side of the bond with fewer total atoms attached'''
+        f = c_function('bond_smaller_side', args = (ctypes.c_void_p,), ret = ctypes.c_void_p)
+        c = f(self._c_pointer)
+        return object_map(c, Atom)
+
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
                 'ses_id': self.structure.session_bond_to_id(self._c_pointer)}
