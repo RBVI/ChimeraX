@@ -93,7 +93,7 @@ PyObject *cylinder_rotations(PyObject *, PyObject *args, PyObject *keywds)
   int n = xyz0.size(0);
   if (xyz1.size(0) != n || radii.size(0) != n)
     return PyErr_Format(PyExc_ValueError,
-			"Cylinder end-point and radii arrays must have same size, got %d and %d",
+			"Cylinder end-point and radii arrays must have same size, got %d %d %d",
 			n, xyz1.size(0), radii.size(0));
   if (rot44.size(0) != n || rot44.size(1) != 4 || rot44.size(2) != 4)
     return PyErr_Format(PyExc_ValueError,
@@ -183,7 +183,7 @@ PyObject *half_cylinder_rotations(PyObject *, PyObject *args, PyObject *keywds)
   int n = xyz0.size(0);
   if (xyz1.size(0) != n || radii.size(0) != n)
     return PyErr_Format(PyExc_ValueError,
-			"Cylinder end-point and radii arrays must have same size, got %d and %d",
+			"Cylinder end-point and radii arrays must have same size, got %d %d %d",
 			n, xyz1.size(0), radii.size(0));
   if (rot44.size(0) != 2*n || rot44.size(1) != 4 || rot44.size(2) != 4)
     return PyErr_Format(PyExc_ValueError,
@@ -279,7 +279,7 @@ PyObject *cylinder_rotations_x3d(PyObject *, PyObject *args, PyObject *keywds)
   int n = xyz0.size(0);
   if (xyz1.size(0) != n || radii.size(0) != n)
     return PyErr_Format(PyExc_ValueError,
-			"Cylinder end-point and radii arrays must have same size, got %d and %d",
+			"Cylinder end-point and radii arrays must have same size, got %d %d %d",
 			n, xyz1.size(0), radii.size(0));
   if (info.size(0) != n || info.size(1) != 9)
     return PyErr_Format(PyExc_ValueError,
