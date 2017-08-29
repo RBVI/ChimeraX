@@ -52,6 +52,7 @@ Atom::~Atom()
     }
     DestructionUser(this);
     structure()->change_tracker()->add_deleted(this);
+    graphics_changes()->set_gc_adddel();
 }
 
 void

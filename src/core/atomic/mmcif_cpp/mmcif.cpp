@@ -510,7 +510,7 @@ ExtractMolecule::connect_polymer_pair(vector<Residue*> a, vector<Residue*> b, bo
                 gap = false;    // bad data
             }
 #endif
-            if (gap || (!Bond::polymer_bond_atoms(a0, a1) && !reasonable_bond_length(a0, a1))) {
+            if (gap || !Bond::polymer_bond_atoms(a0, a1)) {
                 // gap or CA trace
                 auto as = r0->structure();
                 auto pbg = as->pb_mgr().get_group(as->PBG_MISSING_STRUCTURE,

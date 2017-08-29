@@ -1,5 +1,5 @@
 <BundleInfo name="ChimeraX-MapSeriesGUI" version="1.0"
-	    package="chimerax.map_series_gui" custom_init="true"
+	    package="chimerax.map_series_gui" customInit="true"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>

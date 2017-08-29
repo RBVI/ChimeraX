@@ -2350,10 +2350,13 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
                 // Look for nucleotide
                 Atom *a = r->find_atom("C5'");
                 if (a == NULL) {
-                    // Case 2: not a nucleotide
-                    r->set_ribbon_display(false);
-                    residue_update_hide(r, NULL);
-                    continue;
+                    a = r->find_atom("P");
+                    if (a == NULL) {
+                        // Case 2: not a nucleotide
+                        r->set_ribbon_display(false);
+                        residue_update_hide(r, NULL);
+                        continue;
+                    }
                 }
                 // Case 3: Nucleotide
                 centers.push_back(a);
@@ -2526,7 +2529,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int
                 Atom *guide = NULL;
                 for (auto atom: a) {
                     AtomName name = atom->name();
-                    if (name == "CA" || name == "C5'")
+                    if (name == "CA" || name == "C5'" || name == "P")
                         center = atom;
                     else if (want_guides && (name == "O" || name == "C1'"))
                         guide = atom;
@@ -3084,6 +3087,15 @@ extern "C" EXPORT void change_tracker_add_modified(void *vct, int class_num, voi
     } catch (...) {
         molc_error();
     }
+}
+
+// -------------------------------------------------------------------------
+// coordset functions
+//
+extern "C" EXPORT void coordset_structure(void *coordsets, size_t n, pyobject_t *molp)
+{
+    CoordSet **cs = static_cast<CoordSet **>(coordsets);
+    error_wrap_array_get(cs, n, &CoordSet::structure, molp);
 }
 
 // -------------------------------------------------------------------------

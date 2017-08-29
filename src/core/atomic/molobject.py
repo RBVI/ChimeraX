@@ -1800,6 +1800,35 @@ class StructureData:
     _ALL_CHANGE = 0x2f
     _graphics_changed = c_property('structure_graphics_change', int32)
 
+# -----------------------------------------------------------------------------
+#
+class CoordSet(State):
+    '''
+    The coordinates for one frame of a Structure
+
+    To create a Bond use the :class:`.AtomicStructure` new_coordset() method.
+    '''
+    def __init__(self, cs_pointer):
+        set_c_pointer(self, cs_pointer)
+
+    # cpp_pointer and deleted are "base class" methods, though for performance reasons
+    # we are placing them directly in each class rather than using a base class,
+    # and for readability by most programmers we avoid using metaclasses
+    @property
+    def cpp_pointer(self):
+        '''Value that can be passed to C++ layer to be used as pointer (Python int)'''
+        return self._c_pointer.value
+
+    @property
+    def deleted(self):
+        '''Has the C++ side been deleted?'''
+        return not hasattr(self, '_c_pointer')
+
+    structure = c_property('coordset_structure', cptr, astype=_atomic_structure, read_only=True,
+        doc=":class:`.AtomicStructure` the coordset belongs to")
+
+# -----------------------------------------------------------------------------
+#
 class ChangeTracker:
     '''Per-session singleton change tracker keeps track of all
     atomic data changes'''
@@ -1854,11 +1883,8 @@ class ChangeTracker:
             temp_ns = {}
             # can't effectively use locals() as the third argument as per the
             # Python 3 documentation for exec() and locals()
-            if k == "CoordSet":
-                collection = lambda ptrs: ptrs
-            else:
-                exec("from .molarray import {}s as collection".format(k), globals(), temp_ns)
-                collection = temp_ns['collection']
+            exec("from .molarray import {}s as collection".format(k), globals(), temp_ns)
+            collection = temp_ns['collection']
             fc_key = k[:-4] if k.endswith("Data") else k
             final_changes[fc_key] = Changes(collection(created_ptrs),
                 collection(mod_ptrs), reasons, tot_del)
