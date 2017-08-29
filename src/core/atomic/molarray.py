@@ -520,6 +520,18 @@ class Atoms(Collection):
         "The unique structures as an :class:`.AtomicStructures` collection"
         return self.structures.unique()
     @property
+    def full_residues(self):
+        '''The :class:`.Residues` all of whose atoms are in this :class:`.Atoms` instance'''
+        all_residues = self.unique_residues
+        extra = (all_residues.atoms - self).unique_residues
+        return all_residues - extra
+    @property
+    def full_structures(self):
+        '''The :class:`.Structures` all of whose atoms are in this :class:`.Atoms` instance'''
+        all_structures = self.unique_structures
+        extra = (all_structures.atoms - self).unique_structures
+        return all_structures - extra
+    @property
     def single_structure(self):
         "Do all atoms belong to a single :class:`.Structure`"
         p = self.structures._pointers

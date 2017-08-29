@@ -217,7 +217,11 @@ class _AtomSpecSemantics:
         elif ast.models is not None:
             return _Term(ast.models)
         else:
-            return _Term(ast.selector)
+            if ast.zone:
+                ast.zone.model = ast.selector
+                return _Term(ast.zone)
+            else:
+                return _Term(ast.selector)
 
     def selector_name(self, ast):
         # print("selector_name", ast)
