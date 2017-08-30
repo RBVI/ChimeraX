@@ -3110,19 +3110,50 @@ class Map_Channels(Model):
 
     # Hide all but lowest 3 channels, but compute the graphics.
     # Allen Institute data sometimes has 14 channels, mostly segmentations.
-    channels = [v.data.channel for v in maps]
-    channels.sort()
-    channel_show_max = channels[min(2,len(channels)-1)]
-    for v in maps:
-      if v.data.channel > channel_show_max:
-        v.display = False
-      else:
-        v.initialize_thresholds()
-        v.show()
+    if maps:
+      channels = [v.data.channel for v in maps]
+      channels.sort()
+      channel_show_max = channels[min(2,len(channels)-1)]
+      for v in maps:
+        if v.data.channel > channel_show_max:
+          v.display = False
+        else:
+          v.initialize_thresholds()
+          v.show()
 
   @property
   def first_channel(self):
     return self.maps[0]
+
+  # State save/restore in ChimeraX
+  def take_snapshot(self, session, flags):
+    from ..state import CORE_STATE_VERSION
+    data = {'model state': Model.take_snapshot(self, session, flags),
+            # Can't reference maps directly because it creates cyclic dependency.
+            'map ids': [m.id for m in self.maps],
+            'version': CORE_STATE_VERSION}
+    return data
+
+  @staticmethod
+  def restore_snapshot(session, data):
+    maps = []
+    c = Map_Channels('channels', maps, session)
+    Model.set_state_from_snapshot(c, session, data['model state'])
+
+    # Parent models are always restored before child models.
+    # Restore child map list after child maps are restored.
+    def restore_maps(trigger_name, session, channels = c, map_ids = data['map ids']):
+      idm = {m.id : m for m in channels.child_models()}
+      maps = [idm[id] for id in map_ids if id in idm]
+      channels.maps = maps
+      from ..triggerset import DEREGISTER
+      return DEREGISTER
+    session.triggers.add_handler('end restore session', restore_maps)
+    
+    return c
+
+  def reset_state(self):
+    pass
   
 # -----------------------------------------------------------------------------
 #

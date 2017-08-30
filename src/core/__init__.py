@@ -39,6 +39,7 @@ _class_class_init = {
     'Job': '.tasks',
     'LevelOfDetail': '.atomic.structure',
     'Lighting': '.graphics',
+    'Map_Channels': '.map',
     'Map_Series': '.map.series',
     'Material': '.graphics',
     'Model': '.models',
