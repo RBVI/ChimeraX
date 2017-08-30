@@ -1114,6 +1114,14 @@ class _StatusLog:
         if getattr(self, '_processing_deferred_events', False):
             return
 
+        # Need to preserve OpenGL context across processing events, otherwise
+        # a status message during the graphics draw, causes an OpenGL error because
+        # Qt changed the current context.
+        from PyQt5.QtGui import QOpenGLContext
+        opengl_context = QOpenGLContext.currentContext()
+        if opengl_context:
+            opengl_surface = opengl_context.surface()
+
         s = self.session
         ul = s.update_loop
         ul.block_redraw()	# Prevent graphics redraw. Qt timers can fire.
@@ -1122,6 +1130,10 @@ class _StatusLog:
         s.ui.processEvents(QEventLoop.ExcludeUserInputEvents)
         self._in_status_event_processing = False
         ul.unblock_redraw()
+
+        if opengl_context and QOpenGLContext.currentContext() != opengl_context:
+            opengl_context.makeCurrent(opengl_surface)
+            
         self._process_deferred_events()
 
     def _process_deferred_events(self):
