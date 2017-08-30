@@ -454,6 +454,8 @@ def init(argv, event_loop=True):
         sess.tools = tools.Tools(sess, first=True)
         from chimerax.core import tasks
         sess.tasks = tasks.Tasks(sess, first=True)
+        from chimerax.core.atomic import attr_registration
+        sess.custom_attr_registration = attr_registration.RegAttrManager()
 
     if opts.version >= 0:
         sess.silent = False
