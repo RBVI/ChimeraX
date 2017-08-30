@@ -217,7 +217,11 @@ class _AtomSpecSemantics:
         elif ast.models is not None:
             return _Term(ast.models)
         else:
-            return _Term(ast.selector)
+            if ast.zone:
+                ast.zone.model = ast.selector
+                return _Term(ast.zone)
+            else:
+                return _Term(ast.selector)
 
     def selector_name(self, ast):
         # print("selector_name", ast)
@@ -640,7 +644,13 @@ class _ZoneSelector:
     def __init__(self, operator, distance):
         self.distance = distance
         self.target_type = operator[0]  # '@', ':' or '#'
-        self.operator = operator[1:]    # '<', '<=', '>', '>='
+        self.operator = operator[1:]    # '<', '>'
+        # We do not support <= or >= because distances are
+        # computed as floating point and equality suggests
+        # more control than we really have.  If two atoms
+        # are _actually_ _exactly_ equal to the specified
+        # distance, we put them in the < bucket (because
+        # we are using closepoints).
         self.model = None
 
     def __str__(self):

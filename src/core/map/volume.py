@@ -566,6 +566,9 @@ class Volume(Model):
     if display == self.display:
       return
     Model._set_display(self, display)
+    if display:
+      self.initialize_thresholds()
+      self.show()
     self.call_change_callbacks('displayed')
   display = Model.display.setter(_set_display)
 
@@ -3044,8 +3047,12 @@ def open_grids(session, grids, name, **kw):
     maps = []
     show = kw.get('show', True)
     show_dialog = kw.get('show_dialog', True)
+    is_series = (len(grids) > 1 and len([d for d in grids if hasattr(d, 'series_index')]) == len(grids))
+    is_multichannel = (len(grids) > 1 and len([d for d in grids if hasattr(d, 'channel')]) == len(grids))
     for i,d in enumerate(grids):
-      show_data = show and (i == 0 or not hasattr(d, 'series_index'))
+      show_data = show
+      if is_series or is_multichannel:
+        show_data = False	# Map_Series or Map_Channels classes will decide which to show
       kw = {'show_data': show_data, 'show_dialog': show_dialog}
       if hasattr(d, 'initial_style') and d.initial_style in ('surface', 'mesh', 'solid'):
         kw['representation'] = d.initial_style
@@ -3053,12 +3060,12 @@ def open_grids(session, grids, name, **kw):
 #      v.new_region(ijk_step = (1,1,1), adjust_step = False, show = show_data)
       maps.append(v)
 
-    if len(maps) > 1 and len([d for d in grids if hasattr(d, 'series_index')]) == len(grids):
+    if is_series:
       from .series import Map_Series
       ms = Map_Series(name, maps, session)
       msg = 'Opened map series %s, %d images' % (name, len(maps))
       models = [ms]
-    elif len(maps) > 1 and len([d for d in grids if hasattr(d, 'channel')]) == len(grids):
+    elif is_multichannel:
       mc = Map_Channels(name, maps, session)
       msg = 'Opened multi-channel map %s, %d channels' % (name, len(maps))
       models = [mc]
@@ -3104,6 +3111,8 @@ class Map_Channels(Model):
     for v in maps:
       if v.data.channel > channel_show_max:
         v.display = False
+      else:
+        v.show()
 
   @property
   def first_channel(self):

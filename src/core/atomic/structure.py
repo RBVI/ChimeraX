@@ -1965,9 +1965,24 @@ class Structure(Model, StructureData):
             mask[a] = 0
             expand_by = atoms.filter(mask)
         if target_type == ':':
-            expand_by = expand_by.unique_residues.atoms
+            if '<' in operator:
+                expand_by = expand_by.unique_residues.atoms
+            else:
+                expand_by = expand_by.full_residues.atoms
+        elif target_type == '/':
+            chains = expand_by.unique_residues.unique_chains
+            chain_atoms = chains.existing_residues.atoms
+            if '<' in operator:
+                expand_by = chain_atoms
+            else:
+                extra_atoms = chain_atoms - expand_by
+                extra_chains = extra_atoms.unique_residues.unique_chains
+                expand_by = (chains - extra_chains).existing_residues.atoms
         elif target_type == '#':
-            expand_by = expand_by.unique_structures.atoms
+            if '<' in operator:
+                expand_by = expand_by.unique_structures.atoms
+            else:
+                expand_by = expand_by.full_structures.atoms
         results.add_atoms(expand_by)
 
 class AtomicStructure(Structure):
