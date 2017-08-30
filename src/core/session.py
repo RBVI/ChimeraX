@@ -213,17 +213,18 @@ class _SaveManager:
     def process(self, obj):
         self._found_objs = []
         data = None
-        sm = self.session.snapshot_methods(obj)
+        session = self.session
+        sm = session.snapshot_methods(obj)
         if sm:
             try:
-                data = sm.take_snapshot(obj, self.session, self.state_flags)
+                data = sm.take_snapshot(obj, session, self.state_flags)
             except:
-                # TODO: give user option to report error?
-                # import sys, traceback  # DEBUG
-                # traceback.print_exc(file=sys.__stderr__)  # DEBUG
-                pass
+                import traceback
+                session.logger.warning('Error in saving session for "%s":\n%s'
+                                       % (obj.__class__.__name__, traceback.format_exc()))
         if data is None:
-            self.session.logger.warning('Unable to save "%s".  Session might not restore properly.' % obj.__class__.__name__)
+            session.logger.warning('Unable to save "%s".  Session might not restore properly.'
+                                   % obj.__class__.__name__)
         return copy_state(data, convert=self._add_obj)
 
     def walk(self):
