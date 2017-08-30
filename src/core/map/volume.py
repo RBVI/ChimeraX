@@ -566,11 +566,16 @@ class Volume(Model):
     if display == self.display:
       return
     Model._set_display(self, display)
-    if display:
-      self.initialize_thresholds()
-      self.show()
     self.call_change_callbacks('displayed')
   display = Model.display.setter(_set_display)
+
+  # ---------------------------------------------------------------------------
+  #
+  def draw(self, renderer, place, draw_pass, selected_only = False):
+    if self.display and not self.initialized_thresholds:
+      self.initialize_thresholds()
+      self.show()
+    Model.draw(self, renderer, place, draw_pass, selected_only = selected_only)
 
   # ---------------------------------------------------------------------------
   #
@@ -3112,6 +3117,7 @@ class Map_Channels(Model):
       if v.data.channel > channel_show_max:
         v.display = False
       else:
+        v.initialize_thresholds()
         v.show()
 
   @property
