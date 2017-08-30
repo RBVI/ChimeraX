@@ -94,11 +94,6 @@ class OME_Image_Grid(Grid_Data):
     ia_1d = ia.ravel()
     c, t = self.channel, self.time
     op = self.ome_pixels
-    im = getattr(op, 'image', None)
-    if im and im.fp and im.fp.closed:
-        im = None
-    from os.path import dirname, join
-    dpath = dirname(op.path)
     for k in range(k0, k0+ksz, kstep):
       if progress:
         progress.plane((k-k0)//kstep)
@@ -204,7 +199,8 @@ class OME_Pixels:
     def plane_data(self, channel, time, k, pixel_values):
         fname, plane = self.plane_table[(channel,time,k)]
         im = self.image_plane(fname, plane)
-        pixel_values[:] = im.getdata()
+        from numpy import array
+        pixel_values[:] = array(im).ravel()
 
     def image_plane(self, filename, plane):
         im = self.image
