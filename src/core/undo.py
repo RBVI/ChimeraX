@@ -88,39 +88,36 @@ class Undo:
             raise ValueError("undo name must not be empty")
         self._push(self.undo_stack, UndoInstance(name, undo, redo))
         self.redo_stack.clear()
+        self._update_ui()
 
     def top_undo_name(self):
         """Return name for top undo item, or None if stack is empty.
         """
-        try:
-            return self.undo_stack[-1].name
-        except IndexError:
-            return None
+        return self._name(self.undo_stack)
 
     def top_redo_name(self):
         """Return name for top redo item, or None if stack is empty.
         """
-        try:
-            return self.redo_stack[-1].name
-        except IndexError:
-            return None
+        return self._name(self.redo_stack)
 
     def undo(self):
         """Execute top undo item.
         """
-        inst = self.undo_stack.pop()
+        inst = self._pop(self.undo_stack)
         inst.undo()
         if inst.redo:
             self._push(self.redo_stack, inst)
         else:
             self.redo_stack.clear()
+        self._update_ui()
 
     def redo(self):
         """Execute top redo item.
         """
-        inst = self.redo_stack.pop()
+        inst = self._pop(self.redo_stack)
         inst.redo()
         self._push(self.undo_stack, inst)
+        self._update_ui()
 
     def _push(self, stack, inst):
         stack.append(inst)
@@ -129,7 +126,24 @@ class Undo:
                 stack.pop(0)
 
     def _pop(self, stack):
-        return stack[-1]
+        return stack.pop()
+
+    def _name(self, stack):
+        try:
+            return stack[-1].name
+        except IndexError:
+            return None
+
+    def _update_ui(self):
+        session = self._session()
+        if session is None:
+            return
+        try:
+            f = session.ui.update_undo
+        except AttributeError:
+            pass
+        else:
+            f(self)
 
 
 class UndoInstance:

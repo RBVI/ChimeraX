@@ -285,6 +285,9 @@ class UI(QApplication):
         surface level change.  After each mouse event this is called to force a redraw.
         '''
         self.main_window.graphics_window.update_graphics_now()
+
+    def update_undo(self, undo_manager):
+        self.main_window.update_undo(undo_manager)
         
 from PyQt5.QtWidgets import QMainWindow, QStackedWidget, QLabel, QDesktopWidget, \
     QToolButton, QWidget
@@ -472,26 +475,10 @@ class MainWindow(QMainWindow, PlainTextLog):
         session.ui.quit()
 
     def edit_undo_cb(self, session):
-        print("undo")
+        session.undo.undo()
 
     def edit_redo_cb(self, session):
-        print("redo")
-
-    def set_undo_label(self, label):
-        if label is None:
-            self.undo_action.setText("Undo")
-            self.undo_action.setEnabled(False)
-        else:
-            self.undo_action.setText("Undo %s" % label)
-            self.undo_action.setEnabled(True)
-
-    def set_redo_label(self, label):
-        if label is None:
-            self.redo_action.setText("Undo")
-            self.redo_action.setEnabled(False)
-        else:
-            self.redo_action.setText("Undo %s" % label)
-            self.redo_action.setEnabled(True)
+        session.undo.redo()
 
     def edit_ccp_cb(self, session, key):
         # Cut/Copy/Paste callback
@@ -502,6 +489,18 @@ class MainWindow(QMainWindow, PlainTextLog):
         if w:
             ui.postEvent(w, QKeyEvent(QEvent.KeyPress, key, Qt.ControlModifier))
             ui.postEvent(w, QKeyEvent(QEvent.KeyRelease, key, Qt.ControlModifier))
+
+    def update_undo(self, undo_manager):
+        self._set_undo(self.undo_action, "Undo", undo_manager.top_undo_name())
+        self._set_undo(self.redo_action, "Redo", undo_manager.top_redo_name())
+
+    def _set_undo(self, action, label, name):
+        if name is None:
+            action.setText(label)
+            action.setEnabled(False)
+        else:
+            action.setText("%s %s" % (label, name))
+            action.setEnabled(True)
 
     def _get_hide_tools(self):
         return self._hide_tools
