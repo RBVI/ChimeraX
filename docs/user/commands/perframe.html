@@ -51,13 +51,12 @@ See also:
 <a href="../movies.html">making movies</a>
 </p><p>
 A per-frame <i>operation</i> consists of one or more
-<a href="../index.html#commands">commands</a>, optionally
+<a href="../index.html#commands">commands</a> or previously defined
+<a href="alias.html">aliases</a>, optionally
 with embedded substitution arguments ($1, $2, <i>etc.</i>).
 If multiple commands are included, they should be combined into a single line
 with semicolon separators. If <i>operation</i> contains any spaces, it
 should be enclosed in quotation marks.
-Alternatively, <i>operation</i> can be a single-word alias
-defined previously with the <a href="alias.html"><b>alias</b></a> command.
 During execution, substitution arguments in <i>operation</i> 
 are replaced by the values of variables described in 
 <b>range</b> specifications and/or a frame counter that starts at 1.
@@ -138,22 +137,27 @@ protein secondary structure re-evaluated at every fifth trajectory frame:
 <blockquote>
 <b>perframe dssp interval 5; <a href="coordset.html">coordset</a> #1 1,200; <a href="wait.html">wait</a> 200; ~perframe</b>
 </blockquote>
-<!--
-The following re-evaluates hydrogen bonding between two molecules
-as they are gradually changed from a previously saved view
-named <b>undocked</b> to a previously saved view named <b>docked</b>:
+The following re-evaluates hydrogen bonding between two atomic models 
+as they are gradually moved (over 20 frames) from a 
+<a href="view.html#name">previously saved view</a>
+named <b>undocked</b> to another named <b>docked</b>:
 <blockquote>
 <b><a href="alias.html">alias</a>
-^evalhb <a href="hbonds.html">hb</a> intramod false line 2</b>
+evalhb <a href="hbonds.html">hb</a> intramod false rad 0.1 color magenta</b>
 <br>
 <b><a href="view.html">view</a> undocked</b>
 <br>
-<b>perframe evalhb; <a href="view.html">view</a> docked 40;
-<a href="wait.html">wait</a>; ~perf</b>
+<b>perframe evalhb; <a href="view.html">view</a> docked 20;
+<a href="wait.html">wait</a> 20; ~perf</b>
 </blockquote>
--->
+An example with a substitution argument in the alias:
+<blockquote>
+<b><a href="alias.html">alias</a> snap save ~/Desktop/$1.png width 300
+<br>
+perframe "snap $1" zeropad 3; roll y 2 180; wait 180; ~perf</b>
+</blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-May 2017</address>
+August 2017</address>
 </body></html>
