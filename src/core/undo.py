@@ -119,11 +119,28 @@ class Undo:
         self._push(self.undo_stack, inst)
         self._update_ui()
 
-    def _push(self, stack, inst):
-        stack.append(inst)
+    def set_depth(self, depth):
+        """Set the maximum depth for the undo and redo stacks.
+
+        Parameter
+        ---------
+        depth : int
+            Maximum depth for stacks.  Values <= 0 means unlimited.
+        """
+        if depth < 0:
+            depth = 0
+        self.max_depth = depth
+        self._trim(self.undo_stack)
+        self._trim(self.redo_stack)
+
+    def _trim(self, stack):
         if self.max_depth > 0:
             while len(stack) > self.max_depth:
                 stack.pop(0)
+
+    def _push(self, stack, inst):
+        stack.append(inst)
+        self._trim(stack)
 
     def _pop(self, stack):
         return stack.pop()

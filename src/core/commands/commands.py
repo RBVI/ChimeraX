@@ -28,7 +28,7 @@ def register_core_commands(session):
         'rainbow', 'rename', 'roll', 'run', 'rungs', 'runscript',
         'save', 'scolor', 'select', 'set', 'setattr', 'show', 'split',
         'stop', 'style', 'surface', 'sym',
-        'time', 'toolshed', 'transparency', 'turn',
+        'time', 'toolshed', 'transparency', 'turn', 'undo',
         'usage', 'view', 'version', 'wait', 'windowsize', 'zoom'
     ]
     for mod in modules:
