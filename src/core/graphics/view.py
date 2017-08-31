@@ -273,6 +273,8 @@ class View:
                 lp.depth_cue_color = tuple(color[:3])
         self._background_rgba = color
         self.redraw_needed = True
+        if self.triggers:
+            self.triggers.activate_trigger("background color changed", self)
     background_color = property(get_background_color, set_background_color)
     '''Background color as R, G, B, A values in 0-1 range.'''
 
