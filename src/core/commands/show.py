@@ -50,6 +50,7 @@ def show(session, objects=None, what=None, target=None, only=False):
         show_surfaces(session, objects, only, undo_data)
     if 'models' in what_to_show:
         show_models(session, objects, only, undo_data)
+
     def undo(data=undo_data):
         _show_undo(data)
     def redo(data=undo_data):
@@ -202,15 +203,18 @@ def _show_undo(undo_data):
     _update_attr('cartoons_other', 'ribbon_displays')
     # TODO: Surfaces
     # Models
+    _update_models(undo_data, 0)
+
+def _update_models(undo_data, which):
     try:
         ud_positions, ud_displays = undo_data['models']
     except KeyError:
         pass
     else:
         for m, v in ud_positions.items():
-            m.display_positions = v[0]
+            m.display_positions = v[which]
         for m, v in ud_display.items():
-            m.display = v[0]
+            m.display = v[which]
 
 def _show_redo(undo_data):
     def _update_attr(key, attr):
@@ -237,15 +241,7 @@ def _show_redo(undo_data):
     _update_attr('cartoons_other', 'ribbon_displays')
     # TODO: Surfaces
     # Models
-    try:
-        ud_positions, ud_displays = undo_data['models']
-    except KeyError:
-        pass
-    else:
-        for m, v in ud_positions.items():
-            m.display_positions = v[1]
-        for m, v in ud_display.items():
-            m.display = v[1]
+    _update_models(undo_data, 1)
 
 from . import EnumOf, Annotation
 WhatArg = EnumOf(('atoms', 'bonds', 'pseudobonds', 'pbonds', 'cartoons', 'ribbons',
