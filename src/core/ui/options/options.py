@@ -45,7 +45,7 @@ class OptionsPanel(QWidget):
             self.layout().itemAt(insert_row,
                 QFormLayout.LabelRole).widget().setToolTip(option.balloon)
 
-def recurse_getattr(obj. attr_name):
+def recurse_getattr(obj, attr_name):
     attrs = attr_name.split('.')
     for a in attrs:
         obj = getattr(obj, a)
@@ -101,7 +101,7 @@ class Option:
                 elif hasattr(self, 'mapping'):
                     attr_vals = self.mapping.items()
                 elif hasattr(self, 'labels') and hasattr(self, 'values'):
-                    if not isinstance(BooleanOption) or self.labels != BooleanOption,labels:
+                    if not isinstance(BooleanOption) or self.labels != BooleanOption.labels:
                         attr_vals = zip(self.values, self.labels)
                 if attr_vals:
                     attr_balloon += '\n'
@@ -127,6 +127,10 @@ class Option:
         if self.default is not None:
             self.value = self.default
 
+        self._enabled = True
+        if self.read_only:
+            self.disable()
+
     @abstractmethod
     def get(self):
         # return the option's value
@@ -150,6 +154,16 @@ class Option:
 
     value = property(_get_value, _set_value)
 
+    @abstractmethod
+    def enable(self):
+        # put widget in 'enabled' (active) state
+        pass
+
+    @abstractmethod
+    def disable(self):
+        # put widget in 'disabled' (inactive) state
+        pass
+
     def _make_callback(self):
         # Called by GUI to propagate changes back to program
         if self._callback:
@@ -160,3 +174,11 @@ class Option:
         # create and return the widget to display the option value
         pass
 
+
+class EnumOption(Option):
+    """Enumerated values option"""
+    values = ()
+
+    def _make_widget(self, **kw):
+        pass
+        #self.widget = 

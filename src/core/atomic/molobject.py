@@ -292,7 +292,7 @@ class Atom(State):
         '''
         f = c_function('atom_is_backbone', args = (ctypes.c_void_p, ctypes.c_int),
                 ret = ctypes.c_bool)
-        return f(self._c_pointer, bb_type)
+        return f(self._c_pointer, bb_extent)
 
     def rings(self, cross_residues=False, all_size_threshold=0):
         '''Return :class:`.Rings` collection of rings this Atom participates in.
