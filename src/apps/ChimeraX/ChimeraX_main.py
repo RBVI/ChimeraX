@@ -454,6 +454,8 @@ def init(argv, event_loop=True):
         sess.tools = tools.Tools(sess, first=True)
         from chimerax.core import tasks
         sess.tasks = tasks.Tasks(sess, first=True)
+        from chimerax.core import undo
+        sess.undo = undo.Undo(sess, first=True)
 
     if opts.version >= 0:
         sess.silent = False

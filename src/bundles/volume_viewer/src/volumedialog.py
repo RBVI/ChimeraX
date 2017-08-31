@@ -2036,7 +2036,7 @@ class Histogram_Pane:
       nijk_max[2] = k
       v.new_region(nijk_min, nijk_max, ijk_step)
       for vc in v.other_channels():
-          vc.new_region(nijk_min, nijk_max, ijk_step)
+          vc.new_region(nijk_min, nijk_max, ijk_step, show = vc.shown())
       # Make sure this plane is shown before we show another plane.
       self.dialog.session.ui.update_graphics_now()
 

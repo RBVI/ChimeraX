@@ -20,6 +20,10 @@ class Map_Series(Model):
 
     Model.__init__(self, name, session)
 
+    v0 = maps[0]
+    v0.initialize_thresholds()
+    v0.show()	# Show first map of series
+    
     self.add(maps)
     self.set_maps(maps)
     

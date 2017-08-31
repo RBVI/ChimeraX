@@ -38,18 +38,13 @@ _builtin_open = open
 #: session file suffix
 SESSION_SUFFIX = ".cxs"
 
-# triggers:
-
-#: version of session file that is written
-CORE_SESSION_VERSION = 3
-
 
 class _UniqueName:
     # uids are (class_name, ordinal)
     # The class_name is either the name of a core class
     # or a tuple (bundle name, class name)
 
-    _cls_ordinals = {}  # {class: ordinal}
+    _cls_info = {}  # {class: [bundle_info, class_name, ordinal]}
     _uid_to_obj = {}    # {uid: obj}
     _obj_to_uid = {}    # {id(obj): uid}
     _bundle_infos = set()
@@ -58,7 +53,7 @@ class _UniqueName:
 
     @classmethod
     def reset(cls):
-        cls._cls_ordinals.clear()
+        cls._cls_info.clear()
         cls._uid_to_obj.clear()
         cls._obj_to_uid.clear()
 
@@ -93,31 +88,36 @@ class _UniqueName:
         if uid is not None:
             return cls(uid)
         obj_cls = obj.__class__
-        bundle_info = session.toolshed.find_bundle_for_class(obj_cls)
-        if bundle_info is None:
-            raise RuntimeError('No bundle information for %s.%s' % (
-                obj_cls.__module__, obj_cls.__name__))
-        else:
-            class_name = (bundle_info.name, obj_cls.__name__)
+        bundle_info, class_name, ordinal = cls._cls_info.get(obj_cls, (None, None, 0))
+        known_class = bundle_info is not None
+        if not known_class:
+            bundle_info = session.toolshed.find_bundle_for_class(obj_cls)
+            if bundle_info is None:
+                raise RuntimeError('No bundle information for %s.%s' % (
+                    obj_cls.__module__, obj_cls.__name__))
+
+        if class_name is None:
+            from . import BUNDLE_NAME
+            if bundle_info.name == BUNDLE_NAME:
+                class_name = obj_cls.__name__
+            else:
+                class_name = (bundle_info.name, obj_cls.__name__)
             # double check that class will be able to be restored
             if obj_cls != bundle_info.get_class(obj_cls.__name__, session.logger):
                 raise RuntimeError(
                     'unable to restore objects of %s class in %s bundle' %
                     (obj_cls.__name__, bundle_info.name))
 
-        ordinal = cls._cls_ordinals.get(class_name, 0)
-        if ordinal == 0 and bundle_info is not None:
+        if not known_class:
             cls._bundle_infos.add(bundle_info)
         ordinal += 1
         uid = (class_name, ordinal)
-        cls._cls_ordinals[class_name] = ordinal
+        cls._cls_info[obj_cls] = bundle_info, class_name, ordinal
         cls._uid_to_obj[uid] = obj
         cls._obj_to_uid[id(obj)] = uid
         return cls(uid)
 
     def __repr__(self):
-        if len(self.uid) == 1:
-            return '<%r>' % self.uid
         return '<%r, %r>' % self.uid
 
     def __eq__(self, other):
@@ -143,7 +143,7 @@ class _UniqueName:
         """
         class_name, ordinal = self.uid
         if isinstance(class_name, str):
-            from chimerax.core import bundle_api
+            from . import bundle_api
             cls = bundle_api.get_class(class_name)
         else:
             bundle_name, class_name = class_name
@@ -153,16 +153,6 @@ class _UniqueName:
             else:
                 cls = bundle_info.get_class(class_name, session.logger)
         return cls
-
-#    @classmethod
-#    def restore_unique_id(self, obj, uid):
-#        """Restore unique identifier for an object"""
-#        class_name, ordinal = uid
-#        obj._cache_uid = ordinal
-#        self._uid_to_obj[uid] = obj
-#        current_ordinal = self._cls_ordinals.get(class_name, 0)
-#        if ordinal > current_ordinal:
-#            self._cls_ordinals[class_name] = ordinal
 
 
 class _SaveManager:
@@ -175,6 +165,14 @@ class _SaveManager:
         self.unprocessed = []   # item: LIFO [obj]
         self.processed = {}     # item: {_UniqueName(obj)/attr_name: data}
         self._found_objs = []
+        _UniqueName.reset()
+
+    def cleanup(self):
+        # remove references
+        self.graph.clear()
+        self.unprocessed.clear()
+        self.processed.clear()
+        self._found_objs.clear()
         _UniqueName.reset()
 
     def discovery(self, containers):
@@ -213,17 +211,18 @@ class _SaveManager:
     def process(self, obj):
         self._found_objs = []
         data = None
-        sm = self.session.snapshot_methods(obj)
+        session = self.session
+        sm = session.snapshot_methods(obj)
         if sm:
             try:
-                data = sm.take_snapshot(obj, self.session, self.state_flags)
+                data = sm.take_snapshot(obj, session, self.state_flags)
             except:
-                # TODO: give user option to report error?
-                # import sys, traceback  # DEBUG
-                # traceback.print_exc(file=sys.__stderr__)  # DEBUG
-                pass
+                import traceback
+                session.logger.warning('Error in saving session for "%s":\n%s'
+                                       % (obj.__class__.__name__, traceback.format_exc()))
         if data is None:
-            self.session.logger.warning('Unable to save "%s".  Session might not restore properly.' % obj.__class__.__name__)
+            session.logger.warning('Unable to save "%s".  Session might not restore properly.'
+                                   % obj.__class__.__name__)
         return copy_state(data, convert=self._add_obj)
 
     def walk(self):
@@ -250,6 +249,11 @@ class _RestoreManager:
     def __init__(self):
         _UniqueName.reset()
         self.bundle_infos = {}
+
+    def cleanup(self):
+        # remove references
+        _UniqueName.reset()
+        self.bundle_infos.clear()
 
     def check_bundles(self, session, bundle_infos):
         missing_bundles = []
@@ -413,39 +417,42 @@ class Session:
     def save(self, stream, version):
         """Serialize session to binary stream."""
         from . import serialize
-        self.triggers.activate_trigger("begin save session", self)
-        if version == 1:
-            fserialize = serialize.pickle_serialize
-            fserialize(stream, version)
-        elif version == 2:
-            # TODO: raise UserError("Version 2 session files are no longer supported")
-            stream.write(b'# ChimeraX Session version 2\n')
-            stream = serialize.msgpack_serialize_stream_v2(stream)
-            fserialize = serialize.msgpack_serialize
-        else:
-            if version != 3:
-                raise UserError("Only session file versions 1, 2, and 3 are supported")
-            stream.write(b'# ChimeraX Session version %d\n' % CORE_SESSION_VERSION)
-            stream = serialize.msgpack_serialize_stream(stream)
-            fserialize = serialize.msgpack_serialize
-        # stash attribute info into metadata...
-        attr_info = {}
-        for tag, container in self._state_containers.items():
-            attr_info[tag] = getattr(self, tag, None) == container
-        self.metadata['attr_info'] = attr_info
-        fserialize(stream, self.metadata)
-        # guarantee that bundles are serialized first, so on restoration,
-        # all of the related code will be loaded before the rest of the
-        # session is restored
         mgr = _SaveManager(self, State.SESSION)
-        mgr.discovery(self._state_containers)
-        fserialize(stream, mgr.bundle_infos())
-        # TODO: collect OrderDAGError exceptions from walk and analyze
-        for name, data in mgr.walk():
-            fserialize(stream, name)
-            fserialize(stream, data)
-        fserialize(stream, None)
-        self.triggers.activate_trigger("end save session", self)
+        self.triggers.activate_trigger("begin save session", self)
+        try:
+            if version == 1:
+                fserialize = serialize.pickle_serialize
+                fserialize(stream, version)
+            elif version == 2:
+                # TODO: raise UserError("Version 2 session files are no longer supported")
+                stream.write(b'# ChimeraX Session version 2\n')
+                stream = serialize.msgpack_serialize_stream_v2(stream)
+                fserialize = serialize.msgpack_serialize
+            else:
+                if version != 3:
+                    raise UserError("Only session file versions 1, 2, and 3 are supported")
+                stream.write(b'# ChimeraX Session version 3\n')
+                stream = serialize.msgpack_serialize_stream(stream)
+                fserialize = serialize.msgpack_serialize
+            # stash attribute info into metadata...
+            attr_info = {}
+            for tag, container in self._state_containers.items():
+                attr_info[tag] = getattr(self, tag, None) == container
+            self.metadata['attr_info'] = attr_info
+            fserialize(stream, self.metadata)
+            # guarantee that bundles are serialized first, so on restoration,
+            # all of the related code will be loaded before the rest of the
+            # session is restored
+            mgr.discovery(self._state_containers)
+            fserialize(stream, mgr.bundle_infos())
+            # TODO: collect OrderDAGError exceptions from walk and analyze
+            for name, data in mgr.walk():
+                fserialize(stream, name)
+                fserialize(stream, data)
+            fserialize(stream, None)
+        finally:
+            mgr.cleanup()
+            self.triggers.activate_trigger("end save session", self)
 
     def restore(self, stream, metadata_only=False):
         """Deserialize session from binary stream."""
@@ -521,6 +528,7 @@ class Session:
             self.reset()
         finally:
             self.triggers.activate_trigger("end restore session", self)
+            mgr.cleanup()
 
 
 class InScriptFlag:
