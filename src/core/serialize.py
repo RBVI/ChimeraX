@@ -273,10 +273,9 @@ _decode_handlers_v2 = [
 
 def _decode_pairs_v2(pairs):
     try:
-        count = len(pairs)
+        len(pairs)
     except TypeError:
         pairs = tuple(pairs)
-        count = len(pairs)
     if not pairs:
         return dict()
     if pairs[0][0] != '__type__':
@@ -298,84 +297,158 @@ def msgpack_deserialize_stream_v2(stream):
     return unpacker
 
 
-_encode_handlers = {
-    # type : lambda returning OrderedDict with unique __type__ first
-    # __type__ is index into decode array
-    _UniqueName: lambda o: {'__type__': 0, None: o.uid},
-    # __type__ == 1 is for numpy arrays
-    complex: lambda o: {'__type__': 2, None: [o.real, o.imag]},
-    set: lambda o: {'__type__': 3, None: list(o)},
-    frozenset: lambda o: {'__type__': 4, None: list(o)},
-    OrderedDict: lambda o: {'__type__': 5, None: list(o.items())},
-    deque: lambda o: {'__type__': 6, None: list(o)},
-    datetime: lambda o: {'__type__': 7, None: o.isoformat()},
-    timedelta: lambda o: {
-        '__type__': 8, None: [o.days, o.seconds, o.microseconds]},
-    Image.Image: lambda o: {'__type__': 9, None: _encode_image(o)},
-    # __type__ == 10 is for numpy scalars
-    FinalizedState: lambda o: {'__type__': 11, None: o.data},
-    tuple: lambda o: {'__type__': 12, None: list(o)},
-    timezone: lambda o: {'__type__': 13, None: o.__getinitargs__()},
-}
+def _encode_unique_name(un):
+    # Return byte representation for serialization
+    import struct
+    class_name, ordinal = un.uid
+    try:
+        bin_ord = struct.pack("<Q", ordinal)
+        if ordinal < 2 ** 8:
+            num_bytes = 1
+        elif ordinal < 2 ** 16:
+            num_bytes = 2
+        elif ordinal < 2 ** 24:
+            num_bytes = 3
+        elif ordinal < 2 ** 32:
+            num_bytes = 4
+        elif ordinal < 2 ** 40:
+            num_bytes = 5
+        elif ordinal < 2 ** 48:
+            num_bytes = 6
+        elif ordinal < 2 ** 56:
+            num_bytes = 7
+        else:
+            num_bytes = 8
+        if isinstance(class_name, str):
+            cn = bytes(class_name, 'utf-8')
+            len_cn = len(cn)
+            return struct.pack(
+                "<BBB%ds%ds" % (len_cn, num_bytes),
+                0, len_cn, num_bytes, cn, bin_ord)
+        else:
+            bn = bytes(class_name[0], 'utf-8')
+            len_bn = len(bn)
+            cn = bytes(class_name[1], 'utf-8')
+            len_cn = len(cn)
+            return struct.pack(
+                "<BBBB%ds%ds%ds" % (len_bn, len_cn, num_bytes),
+                1, len_bn, len_cn, num_bytes, bn, cn, bin_ord)
+    except struct.error:
+        # TODO: either string length > 255 or ordinal > 2^64-1
+        raise RuntimeError("Unable to encode unique id")
+
+
+def _decode_unique_name(buf):
+    # restore _UniqueName from serialized representation
+    import struct
+    if buf[0] == 0:
+        len_cn, num_bytes = struct.unpack("<BB", buf[1:3])
+        class_name, ordinal = struct.unpack(
+            "<%ds%ds" % (len_cn, num_bytes), buf[4:])
+    else:
+        # assert buf[0] == 1
+        len_bn, len_cn, num_bytes = struct.unpack("<BBB", buf[1:4])
+        bundle_name, class_name, ordinal = struct.unpack(
+            "<%ds%ds%ds" % (len_bn, len_cn, num_bytes), buf[5:])
+        class_name = (bundle_name, class_name)
+    ordinal += (8 - num_bytes) * b'\0'
+    ordinal = struct.unpack("<Q", ordinal)
+    uid = (class_name, ordinal)
+    return _UniqueName(uid)
 
 
 def _encode(obj):
-    cvt = _encode_handlers.get(type(obj), None)
-    if cvt is not None:
-        return cvt(obj)
-    # handle numpy subclasses
+    # Return msgpack extension type, limited to 0-127
+    if isinstance(obj, _UniqueName):
+        return msgpack.ExtType(0, _encode_unique_name(obj))
     if isinstance(obj, numpy.ndarray):
-        return {'__type__': 1, None: _encode_ndarray(obj)}
+        # handle numpy array subclasses
+        return msgpack.ExtType(1, msgpack.packb(_encode_ndarray(obj), **_packer_args))
+    if isinstance(obj, complex):
+        # TODO: don't include the list header
+        return msgpack.ExtType(2, msgpack.packb([obj.real, obj.imag], **_packer_args))
+    if isinstance(obj, set):
+        # TODO: don't include the list header
+        return msgpack.ExtType(3, msgpack.packb(list(obj), **_packer_args))
+    if isinstance(obj, frozenset):
+        # TODO: don't include the list header
+        return msgpack.ExtType(4, msgpack.packb(list(obj), **_packer_args))
+    if isinstance(obj, OrderedDict):
+        # TODO: don't include the list header
+        return msgpack.ExtType(5, msgpack.packb(list(obj.items()), **_packer_args))
+    if isinstance(obj, deque):
+        # TODO: don't include the list header
+        return msgpack.ExtType(6, msgpack.packb(list(obj), **_packer_args))
+    if isinstance(obj, datetime):
+        return msgpack.ExtType(7, msgpack.packb(obj.isoformat(), **_packer_args))
+    if isinstance(obj, timedelta):
+        return msgpack.ExtType(8, msgpack.packb([obj.days, obj.seconds, obj.microseconds], **_packer_args))
+    if isinstance(obj, Image.Image):
+        return msgpack.ExtType(9, _encode_image(obj))
     if isinstance(obj, (numpy.number, numpy.bool_, numpy.bool8)):
-        return {'__type__': 10, None: _encode_numpy_number(obj)}
+        # handle numpy scalar subclasses
+        return msgpack.ExtType(10, msgpack.packb(_encode_numpy_number(obj), **_packer_args))
+    if isinstance(obj, FinalizedState):
+        return msgpack.ExtType(11, msgpack.packb(obj.data, **_packer_args))
+    if isinstance(obj, tuple):
+        # TODO: don't include the list header
+        return msgpack.ExtType(12, msgpack.packb(list(obj), **_packer_args))
+    if isinstance(obj, timezone):
+        return msgpack.ExtType(13, msgpack.packb(obj.__getinitargs__(), **_packer_args))
 
     raise RuntimeError("Can't convert object of type: %s" % type(obj))
 
 
-_decode_handlers = [
-    # order must match encode's __type__ values
-    _UniqueName,
-    _decode_ndarray,
-    lambda args: complex(*tuple(args)),
-    set,
-    frozenset,
-    OrderedDict,
-    deque,
-    _decode_datetime,
-    lambda args: timedelta(*tuple(args)),
-    _decode_image,
-    _decode_numpy_number,
-    FinalizedState,
-    tuple,
-    lambda args: timezone(*tuple(args)),
-]
+_decode_handlers = (
+    # order must match encode's values
+    _decode_unique_name,
+    lambda buf: _decode_ndarray(_decode_bytes(buf)),
+    lambda buf: complex(*tuple(_decode_bytes(buf))),
+    lambda buf: set(_decode_bytes(buf)),
+    lambda buf: frozenset(_decode_bytes(buf)),
+    lambda buf: OrderedDict(_decode_bytes(buf)),
+    lambda buf: deque(_decode_bytes(buf)),
+    lambda buf: _decode_datetime(_decode_bytes(buf)),
+    lambda buf: timedelta(*tuple(_decode_bytes(buf))),
+    lambda buf: _decode_image(buf),
+    lambda buf: _decode_numpy_number(_decode_bytes(buf)),
+    lambda buf: FinalizedState(_decode_bytes(buf)),
+    lambda buf: tuple(_decode_bytes(buf)),
+    lambda buf: timezone(*tuple(_decode_bytes(buf))),
+)
+assert len(_decode_handlers) == 14
 
 
-def _decode_pairs(pairs):
-    try:
-        count = len(pairs)
-    except TypeError:
-        pairs = tuple(pairs)
-        count = len(pairs)
-    if count == 2:
-        if pairs[0][0] == '__type__':
-            cvt = _decode_handlers[pairs[0][1]]
-            return cvt(pairs[1][1])
-        if pairs[1][0] == '__type__':
-            cvt = _decode_handlers[pairs[1][1]]
-            return cvt(pairs[0][1])
-    return dict(pairs)
+def _decode_bytes(buf):
+    return msgpack.unpackb(buf, **_unpacker_args)
+
+
+def _decode_ext(n, buf):
+    # assert 0 <= n < len(_decode_handlers)
+    return _decode_handlers[n](buf)
+
+
+_packer_args = {
+    'default': _encode,
+    'encoding': 'utf-8',
+    'use_bin_type': True,
+    'use_single_float': False,
+    'strict_types': True
+}
+
+_unpacker_args = {
+    'ext_hook': _decode_ext,
+    'encoding': 'utf-8'
+}
 
 
 def msgpack_serialize_stream(stream):
-    packer = msgpack.Packer(default=_encode, use_bin_type=True,
-                            use_single_float=False, strict_types=True)
+    packer = msgpack.Packer(**_packer_args)
     return stream, packer
 
 
 def msgpack_deserialize_stream(stream):
-    unpacker = msgpack.Unpacker(
-        stream, object_pairs_hook=_decode_pairs, encoding='utf-8')
+    unpacker = msgpack.Unpacker(stream, **_unpacker_args)
     return unpacker
 
 
@@ -395,10 +468,12 @@ if __name__ == '__main__':
     import io
 
     def serialize(buf, obj):
+        # packer = msgpack_serialize_stream_v2(buf)
         packer = msgpack_serialize_stream(buf)
         msgpack_serialize(packer, obj)
 
     def deserialize(buf):
+        # unpacker = msgpack_deserialize_stream_v2(buf)
         unpacker = msgpack_deserialize_stream(buf)
         return msgpack_deserialize(unpacker)
 
@@ -523,5 +598,4 @@ if __name__ == '__main__':
     d = OrderedDict([(1, 2), (3, 4), (5, 6), (7, 8)])
     test(d, 'ordered dict')
 
-    from PIL import Image
     test(Image.new("RGB", (32, 32), "white"), 'PIL image', idempotent=False)

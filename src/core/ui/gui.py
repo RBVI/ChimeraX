@@ -285,6 +285,9 @@ class UI(QApplication):
         surface level change.  After each mouse event this is called to force a redraw.
         '''
         self.main_window.graphics_window.update_graphics_now()
+
+    def update_undo(self, undo_manager):
+        self.main_window.update_undo(undo_manager)
         
 from PyQt5.QtWidgets import QMainWindow, QStackedWidget, QLabel, QDesktopWidget, \
     QToolButton, QWidget
@@ -471,6 +474,34 @@ class MainWindow(QMainWindow, PlainTextLog):
     def file_quit_cb(self, session):
         session.ui.quit()
 
+    def edit_undo_cb(self, session):
+        session.undo.undo()
+
+    def edit_redo_cb(self, session):
+        session.undo.redo()
+
+    def edit_ccp_cb(self, session, key):
+        # Cut/Copy/Paste callback
+        from PyQt5.QtCore import QEvent, Qt
+        from PyQt5.QtGui import QKeyEvent
+        ui = session.ui
+        w = ui.focusWidget()
+        if w:
+            ui.postEvent(w, QKeyEvent(QEvent.KeyPress, key, Qt.ControlModifier))
+            ui.postEvent(w, QKeyEvent(QEvent.KeyRelease, key, Qt.ControlModifier))
+
+    def update_undo(self, undo_manager):
+        self._set_undo(self.undo_action, "Undo", undo_manager.top_undo_name())
+        self._set_undo(self.redo_action, "Redo", undo_manager.top_redo_name())
+
+    def _set_undo(self, action, label, name):
+        if name is None:
+            action.setText(label)
+            action.setEnabled(False)
+        else:
+            action.setText("%s %s" % (label, name))
+            action.setEnabled(True)
+
     def _get_hide_tools(self):
         return self._hide_tools
 
@@ -621,6 +652,7 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def _populate_menus(self, session):
         from PyQt5.QtWidgets import QAction
+        from PyQt5.QtCore import Qt
 
         mb = self.menuBar()
         file_menu = mb.addMenu("&File")
@@ -640,6 +672,31 @@ class MainWindow(QMainWindow, PlainTextLog):
         quit_action.triggered.connect(lambda arg, s=self, sess=session: s.file_quit_cb(sess))
         file_menu.addAction(quit_action)
         file_menu.setToolTipsVisible(True)
+
+        edit_menu = mb.addMenu("&Edit")
+        self.undo_action = QAction("&Undo", self)
+        self.undo_action.setEnabled(False)
+        self.undo_action.setShortcut("Ctrl+Z")
+        self.undo_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_undo_cb(sess))
+        edit_menu.addAction(self.undo_action)
+        self.redo_action = QAction("&Redo", self)
+        self.redo_action.setEnabled(False)
+        self.redo_action.setShortcut("Ctrl+R")
+        self.redo_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_redo_cb(sess))
+        edit_menu.addAction(self.redo_action)
+        edit_menu.addSeparator()
+        cut_action = QAction("&Cut", self)
+        cut_action.setShortcut("Ctrl+X")
+        cut_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_ccp_cb(sess, Qt.Key_X))
+        edit_menu.addAction(cut_action)
+        copy_action = QAction("&Copy", self)
+        copy_action.setShortcut("Ctrl+C")
+        copy_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_ccp_cb(sess, Qt.Key_C))
+        edit_menu.addAction(copy_action)
+        paste_action = QAction("&Paste", self)
+        paste_action.setShortcut("Ctrl+V")
+        paste_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_ccp_cb(sess, Qt.Key_V))
+        edit_menu.addAction(paste_action)
 
         self.tools_menu = mb.addMenu("&Tools")
         self.tools_menu.setToolTipsVisible(True)
@@ -1114,6 +1171,14 @@ class _StatusLog:
         if getattr(self, '_processing_deferred_events', False):
             return
 
+        # Need to preserve OpenGL context across processing events, otherwise
+        # a status message during the graphics draw, causes an OpenGL error because
+        # Qt changed the current context.
+        from PyQt5.QtGui import QOpenGLContext
+        opengl_context = QOpenGLContext.currentContext()
+        if opengl_context:
+            opengl_surface = opengl_context.surface()
+
         s = self.session
         ul = s.update_loop
         ul.block_redraw()	# Prevent graphics redraw. Qt timers can fire.
@@ -1122,6 +1187,10 @@ class _StatusLog:
         s.ui.processEvents(QEventLoop.ExcludeUserInputEvents)
         self._in_status_event_processing = False
         ul.unblock_redraw()
+
+        if opengl_context and QOpenGLContext.currentContext() != opengl_context:
+            opengl_context.makeCurrent(opengl_surface)
+            
         self._process_deferred_events()
 
     def _process_deferred_events(self):
