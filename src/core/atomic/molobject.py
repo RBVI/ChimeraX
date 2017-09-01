@@ -228,7 +228,7 @@ class Atom(State):
         f = c_array_function('atom_has_alt_loc', args=(byte,), per_object=False)
         a_ref = ctypes.byref(self._c_pointer)
         f(a_ref, 1, loc, v_ref)
-        return v.value
+        return bool(v.value)
 
     @property
     def aniso_u(self):
@@ -290,9 +290,13 @@ class Atom(State):
         BBE_RIBBON
             The backbone atoms that a ribbon depiction hides
         '''
-        f = c_function('atom_is_backbone', args = (ctypes.c_void_p, ctypes.c_int),
-                ret = ctypes.c_bool)
-        return f(self._c_pointer, bb_extent)
+        vtype = ctypes.c_uint8
+        v = vtype()
+        v_ref = ctypes.byref(v)
+        f = c_array_function('atom_is_backbone', args=(ctype_type_to_numpy[ctypes.c_int],), per_object=False)
+        a_ref = ctypes.byref(self._c_pointer)
+        f(a_ref, 1, bb_extent, v_ref)
+        return bool(v.value)
 
     def rings(self, cross_residues=False, all_size_threshold=0):
         '''Return :class:`.Rings` collection of rings this Atom participates in.

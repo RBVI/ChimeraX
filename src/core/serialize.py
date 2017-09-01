@@ -250,7 +250,9 @@ def _encode_v2(obj):
     if isinstance(obj, (numpy.number, numpy.bool_, numpy.bool8)):
         return OrderedDict((('__type__', 10),) + _encode_numpy_number_v2(obj))
 
-    raise RuntimeError("Can't convert object of type: %s" % type(obj))
+    obj_cls = type(obj)
+    raise RuntimeError("Can't convert object of type: %s.%s" % (
+                       obj_cls.__module__, obj_cls.__name__))
 
 
 _decode_handlers_v2 = [
@@ -344,44 +346,51 @@ def _decode_unique_name(buf):
     if buf[0] == 0:
         len_cn, num_bytes = struct.unpack("<BB", buf[1:3])
         class_name, ordinal = struct.unpack(
-            "<%ds%ds" % (len_cn, num_bytes), buf[4:])
+            "<%ds%ds" % (len_cn, num_bytes), buf[3:])
+        class_name = class_name.decode()
     else:
         # assert buf[0] == 1
         len_bn, len_cn, num_bytes = struct.unpack("<BBB", buf[1:4])
         bundle_name, class_name, ordinal = struct.unpack(
-            "<%ds%ds%ds" % (len_bn, len_cn, num_bytes), buf[5:])
-        class_name = (bundle_name, class_name)
+            "<%ds%ds%ds" % (len_bn, len_cn, num_bytes), buf[4:])
+        class_name = (bundle_name.decode(), class_name.decode())
     ordinal += (8 - num_bytes) * b'\0'
-    ordinal = struct.unpack("<Q", ordinal)
+    ordinal, = struct.unpack("<Q", ordinal)
     uid = (class_name, ordinal)
     return _UniqueName(uid)
 
 
 def _encode(obj):
     # Return msgpack extension type, limited to 0-127
+    # In simple session test: # of tuples > # of UniqueNames > # of numpy arrays > the rest
+    if isinstance(obj, tuple):
+        # TODO: save as msgpack array without converting to list first
+        # restored as a tuple
+        return msgpack.ExtType(12, msgpack.packb(list(obj), **_packer_args))
     if isinstance(obj, _UniqueName):
         return msgpack.ExtType(0, _encode_unique_name(obj))
     if isinstance(obj, numpy.ndarray):
         # handle numpy array subclasses
         return msgpack.ExtType(1, msgpack.packb(_encode_ndarray(obj), **_packer_args))
     if isinstance(obj, complex):
-        # TODO: don't include the list header
+        # restored as a tuple
         return msgpack.ExtType(2, msgpack.packb([obj.real, obj.imag], **_packer_args))
     if isinstance(obj, set):
-        # TODO: don't include the list header
+        # TODO: save as msgpack array without converting to list first
         return msgpack.ExtType(3, msgpack.packb(list(obj), **_packer_args))
     if isinstance(obj, frozenset):
-        # TODO: don't include the list header
+        # TODO: save as msgpack array without converting to list first
         return msgpack.ExtType(4, msgpack.packb(list(obj), **_packer_args))
     if isinstance(obj, OrderedDict):
-        # TODO: don't include the list header
+        # TODO: save as msgpack array without converting to list first
         return msgpack.ExtType(5, msgpack.packb(list(obj.items()), **_packer_args))
     if isinstance(obj, deque):
-        # TODO: don't include the list header
+        # TODO: save as msgpack array without converting to list first
         return msgpack.ExtType(6, msgpack.packb(list(obj), **_packer_args))
     if isinstance(obj, datetime):
         return msgpack.ExtType(7, msgpack.packb(obj.isoformat(), **_packer_args))
     if isinstance(obj, timedelta):
+        # restored as a tuple
         return msgpack.ExtType(8, msgpack.packb([obj.days, obj.seconds, obj.microseconds], **_packer_args))
     if isinstance(obj, Image.Image):
         return msgpack.ExtType(9, _encode_image(obj))
@@ -390,37 +399,47 @@ def _encode(obj):
         return msgpack.ExtType(10, msgpack.packb(_encode_numpy_number(obj), **_packer_args))
     if isinstance(obj, FinalizedState):
         return msgpack.ExtType(11, msgpack.packb(obj.data, **_packer_args))
-    if isinstance(obj, tuple):
-        # TODO: don't include the list header
-        return msgpack.ExtType(12, msgpack.packb(list(obj), **_packer_args))
     if isinstance(obj, timezone):
-        return msgpack.ExtType(13, msgpack.packb(obj.__getinitargs__(), **_packer_args))
+        # TODO: save as msgpack array without converting to list first
+        # restored as a tuple
+        return msgpack.ExtType(13, msgpack.packb(list(obj.__getinitargs__()), **_packer_args))
 
     raise RuntimeError("Can't convert object of type: %s" % type(obj))
 
 
 _decode_handlers = (
-    # order must match encode's values
+    # order must match _encode ExtType's type code
     _decode_unique_name,
     lambda buf: _decode_ndarray(_decode_bytes(buf)),
-    lambda buf: complex(*tuple(_decode_bytes(buf))),
+    lambda buf: complex(*_decode_bytes_as_tuple(buf)),
     lambda buf: set(_decode_bytes(buf)),
     lambda buf: frozenset(_decode_bytes(buf)),
     lambda buf: OrderedDict(_decode_bytes(buf)),
     lambda buf: deque(_decode_bytes(buf)),
     lambda buf: _decode_datetime(_decode_bytes(buf)),
-    lambda buf: timedelta(*tuple(_decode_bytes(buf))),
+    lambda buf: timedelta(*_decode_bytes_as_tuple(buf)),
     lambda buf: _decode_image(buf),
     lambda buf: _decode_numpy_number(_decode_bytes(buf)),
     lambda buf: FinalizedState(_decode_bytes(buf)),
-    lambda buf: tuple(_decode_bytes(buf)),
-    lambda buf: timezone(*tuple(_decode_bytes(buf))),
+    lambda buf: _decode_bytes_as_tuple(buf),
+    lambda buf: timezone(*_decode_bytes_as_tuple(buf)),
 )
 assert len(_decode_handlers) == 14
 
 
 def _decode_bytes(buf):
     return msgpack.unpackb(buf, **_unpacker_args)
+
+
+def _decode_bytes_as_tuple(buf):
+    unpacker = msgpack.Unpacker(None, **_unpacker_args)
+    unpacker.feed(buf)
+    n = unpacker.read_array_header()
+
+    def extract(unpacker=unpacker, n=n):
+        for i in range(n):
+            yield unpacker.unpack()
+    return tuple(extract())
 
 
 def _decode_ext(n, buf):
@@ -453,6 +472,7 @@ def msgpack_deserialize_stream(stream):
 
 
 def msgpack_serialize(stream, obj):
+    # _count_object_types(obj)  # DEBUG
     stream, packer = stream
     stream.write(packer.pack(obj))
 
@@ -462,6 +482,92 @@ def msgpack_deserialize(stream):
         return next(stream)
     except StopIteration:
         return None
+
+
+# Debuging code for finding out object types used
+
+_object_counts = {
+    type(None): 0,
+    bool: 0,
+    int: 0,
+    bytes: 0,
+    bytearray: 0,
+    str: 0,
+    memoryview: 0,
+    float: 0,
+    list: 0,
+    dict: 0,
+
+    # extension types
+    _UniqueName: 0,
+    numpy.ndarray: 0,
+    complex: 0,
+    set: 0,
+    frozenset: 0,
+    OrderedDict: 0,
+    deque: 0,
+    datetime: 0,
+    timedelta: 0,
+    Image.Image: 0,
+    numpy.number: 0,
+    FinalizedState: 0,
+    tuple: 0,
+    timezone: 0,
+}
+
+_extention_types = [
+    _UniqueName,
+    numpy.ndarray,
+    complex,
+    set,
+    frozenset,
+    OrderedDict,
+    deque,
+    datetime,
+    timedelta,
+    Image.Image,
+    numpy.number,
+    FinalizedState,
+    tuple,
+    timezone,
+]
+
+
+def _reset_object_counts():
+    for t in _object_counts:
+        _object_counts[t] = 0
+
+
+def _count_object_types(obj):
+    # handle numpy subclasses
+    if isinstance(obj, numpy.ndarray):
+        _object_counts[numpy.ndarray] += 1
+        return
+    if isinstance(obj, (numpy.number, numpy.bool_, numpy.bool8)):
+        _object_counts[numpy.number] += 1
+        return
+    t = type(obj)
+    _object_counts[t] += 1
+    if t == FinalizedState:
+        _count_object_types(obj.data)
+        return
+    if t in (list, tuple, set, frozenset, deque):
+        for o in obj:
+            _count_object_types(o)
+        return
+    if t in (dict, OrderedDict):
+        for k, v in obj.items():
+            _count_object_types(k)
+            _count_object_types(v)
+        return
+
+
+def _print_object_counts():
+    types = list(_object_counts)
+    # types = list(_extention_types)
+    types.sort(key=lambda t: t.__name__)
+    for t in types:
+        print('%s: %s' % (t.__name__, _object_counts[t]))
 
 
 if __name__ == '__main__':
@@ -599,3 +705,5 @@ if __name__ == '__main__':
     test(d, 'ordered dict')
 
     test(Image.new("RGB", (32, 32), "white"), 'PIL image', idempotent=False)
+
+    test(_UniqueName((('module', 'class'), 10)), 'UniqueName')

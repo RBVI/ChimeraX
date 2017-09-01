@@ -685,7 +685,7 @@ extern "C" EXPORT void atom_in_chain(void *atoms, size_t n, npy_bool *in_chain)
 }
 
 
-extern "C" EXPORT void atom_is_backbone(void *atoms, size_t n, uint8_t extent, npy_bool *bb)
+extern "C" EXPORT void atom_is_backbone(void *atoms, size_t n, int extent, npy_bool *bb)
 {
     Atom **a = static_cast<Atom **>(atoms);
     BackboneExtent bbe = static_cast<BackboneExtent>(extent);
@@ -2251,13 +2251,13 @@ extern "C" EXPORT void set_residue_ribbon_color(void *residues, size_t n, uint8_
 
 #define AVERAGE_PEPTIDE_PLANE
 #ifdef AVERAGE_PEPTIDE_PLANE
-static void residue_update_hide(Residue *r, Atom *center)
+static void residue_update_hide(Residue *r, Atom *anchor)
 {
     if (r->ribbon_display() && r->ribbon_hide_backbone()) {
         // Ribbon is shown and hides backbone, so hide backbone atoms and bonds
         for (auto atom: r->atoms())
             if ((atom->hide() & Atom::HIDE_RIBBON) == 0
-                    && atom->is_backbone(BBE_RIBBON) && atom != center)
+                    && atom->is_backbone(BBE_RIBBON) && atom != anchor)
                 atom->set_hide(atom->hide() | Atom::HIDE_RIBBON);
     }
     else {
@@ -2265,7 +2265,7 @@ static void residue_update_hide(Residue *r, Atom *center)
         // so unhide backbone atoms and bonds
         for (auto atom: r->atoms())
             if ((atom->hide() & Atom::HIDE_RIBBON) != 0
-                    && atom->is_backbone(BBE_RIBBON) && atom != center)
+                    && atom->is_backbone(BBE_RIBBON) && atom != anchor)
                 atom->set_hide(atom->hide() & ~Atom::HIDE_RIBBON);
     }
 }
@@ -2349,6 +2349,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
                 prev_c = NULL;
                 // Look for nucleotide
                 Atom *a = r->find_atom("C5'");
+                Atom *anchor = a;
                 if (a == NULL) {
                     a = r->find_atom("P");
                     if (a == NULL) {
@@ -2367,7 +2368,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
                     else
                         has_guides = false;
                 }
-                residue_update_hide(r, a);
+                residue_update_hide(r, anchor);
             }
         }
 
