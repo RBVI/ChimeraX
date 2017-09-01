@@ -450,7 +450,12 @@ AtomicStructure::polymers(AtomicStructure::PolymerMissingStructure missing_struc
                     Atom* pa2 = r2->principal_atom();
                     if (r2->principal_atom() == nullptr)
                         continue;
-                    if (pa1->coord().sqdistance(pa2->coord()) > Residue::TRACE_DISTSQ_CUTOFF)
+                    Real distsq_cutoff;
+                    if (pa1->name() == "CA")
+                        distsq_cutoff = Residue::TRACE_PROTEIN_DISTSQ_CUTOFF;
+                    else
+                        distsq_cutoff = Residue::TRACE_NUCLEIC_DISTSQ_CUTOFF;
+                    if (pa1->coord().sqdistance(pa2->coord()) > distsq_cutoff)
                         continue;
                 }
                 int index1 = res_lookup[r1], index2 = res_lookup[r2];

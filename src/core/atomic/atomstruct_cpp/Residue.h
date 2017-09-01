@@ -43,7 +43,10 @@ public:
     typedef std::multimap<AtomName, Atom *>  AtomsMap;
     enum PolymerType { PT_NONE = 0, PT_AMINO = 1, PT_NUCLEIC = 2 };
     enum SSType { SS_COIL = 0, SS_HELIX = 1, SS_STRAND = 2 };
-    static constexpr Real TRACE_DISTSQ_CUTOFF = 45.0;
+    // 1gsg chain T has 7.050 P-P length between residues 21 and 22
+    static constexpr Real TRACE_NUCLEIC_DISTSQ_CUTOFF = 50.0;
+    // 3ixy chain B has 6.602 CA-CA length between residues 131 and 132
+    static constexpr Real TRACE_PROTEIN_DISTSQ_CUTOFF = 45.0;
 private:
     friend class Structure;
     Residue(Structure *as, const ResName& name, const ChainID& chain, int pos, char insert);
