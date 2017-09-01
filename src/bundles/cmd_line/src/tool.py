@@ -30,7 +30,7 @@ class CommandLine(ToolInstance):
         self.tool_window = MainToolWindow(self, close_destroys=False)
         parent = self.tool_window.ui_area
         self.history_dialog = _HistoryDialog(self)
-        from PyQt5.QtWidgets import QComboBox, QHBoxLayout, QLineEdit, QLabel
+        from PyQt5.QtWidgets import QComboBox, QHBoxLayout, QLabel
         label = QLabel(parent)
         label.setText("Command:")
         class CmdText(QComboBox):
@@ -65,6 +65,12 @@ class CommandLine(ToolInstance):
                         self.tool.cmd_clear()
                     elif event.key() == Qt.Key_K:
                         self.tool.cmd_clear_to_end_of_line()
+                    elif event.key() == Qt.Key_Z:
+                        try:
+                            session.undo.undo()
+                        except IndexError:
+                            # No undo action registered
+                            pass
                     else:
                         QComboBox.keyPressEvent(self, event)
                 else:
