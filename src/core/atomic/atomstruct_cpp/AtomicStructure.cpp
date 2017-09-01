@@ -451,12 +451,20 @@ AtomicStructure::polymers(AtomicStructure::PolymerMissingStructure missing_struc
                     if (r2->principal_atom() == nullptr)
                         continue;
                     Real distsq_cutoff;
-                    if (pa1->name() == "CA")
+                    Residue::PolymerType pt;
+                    bool protein = pa1->name() == "CA";
+                    if (protein) {
                         distsq_cutoff = Residue::TRACE_PROTEIN_DISTSQ_CUTOFF;
-                    else
+                        pt = Residue::PT_AMINO;
+                    } else {
                         distsq_cutoff = Residue::TRACE_NUCLEIC_DISTSQ_CUTOFF;
+                        pt = Residue::PT_NUCLEIC;
+                    }
                     if (pa1->coord().sqdistance(pa2->coord()) > distsq_cutoff)
                         continue;
+                    // traces don't get their polymer type set, so set it here
+                    r1->set_polymer_type(pt);
+                    r2->set_polymer_type(pt);
                 }
                 int index1 = res_lookup[r1], index2 = res_lookup[r2];
                 if (abs(index1 - index2) == 1
