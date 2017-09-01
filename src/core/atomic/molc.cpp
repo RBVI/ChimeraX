@@ -685,7 +685,7 @@ extern "C" EXPORT void atom_in_chain(void *atoms, size_t n, npy_bool *in_chain)
 }
 
 
-extern "C" EXPORT void atom_is_backbone(void *atoms, size_t n, uint8_t extent, npy_bool *bb)
+extern "C" EXPORT void atom_is_backbone(void *atoms, size_t n, int extent, npy_bool *bb)
 {
     Atom **a = static_cast<Atom **>(atoms);
     BackboneExtent bbe = static_cast<BackboneExtent>(extent);
