@@ -2258,10 +2258,7 @@ static void residue_update_hide(Residue *r, Atom *anchor)
         for (auto atom: r->atoms())
             if ((atom->hide() & Atom::HIDE_RIBBON) == 0
                     && atom->is_backbone(BBE_RIBBON) && atom != anchor)
-{
-std::cerr << atom->str() << ": " << atom->is_backbone(BBE_RIBBON) << '\n';
                 atom->set_hide(atom->hide() | Atom::HIDE_RIBBON);
-}
     }
     else {
         // Ribbon is not shown or does not hide backbone

@@ -51,7 +51,7 @@ private:
     static int  SESSION_NUM_INTS(int /*version*/=CURRENT_SESSION_VERSION) { return 0; }
     static int  SESSION_NUM_FLOATS(int /*version*/=CURRENT_SESSION_VERSION) { return 0; }
 public:
-    virtual ~Bond() { graphics_changes()->set_gc_adddel(); }
+    virtual ~Bond() {}
     virtual bool shown() const;
     const Rings&  all_rings(bool cross_residues = false, int size_threshold = 0,
         std::set<const Residue*>* ignore = nullptr) const;
