@@ -22,20 +22,20 @@ from ..logger import PlainTextLog
 _color_output = False
 
 _log_level = {
-        PlainTextLog.LEVEL_INFO: 'info',
-        PlainTextLog.LEVEL_WARNING: 'warning',
-        PlainTextLog.LEVEL_ERROR: 'error',
+    PlainTextLog.LEVEL_INFO: 'info',
+    PlainTextLog.LEVEL_WARNING: 'warning',
+    PlainTextLog.LEVEL_ERROR: 'error',
 }
 
 _colors = {
-        "info": "",
-        "warning": "",
-        "error": "",
-        "status": "",
-        "normal": "",
-        "background": "",
-        "prompt": "",
-        "endprompt": "",
+    "info": "",
+    "warning": "",
+    "error": "",
+    "status": "",
+    "normal": "",
+    "background": "",
+    "prompt": "",
+    "endprompt": "",
 }
 
 
@@ -94,8 +94,10 @@ class UI:
                 _colors["prompt"] = colorama.Fore.BLUE + colorama.Style.BRIGHT
                 _colors["endprompt"] = colorama.Style.NORMAL + _colors["normal"]
                 # Hack around colorama not checking for closed streams at exit
-                import atexit, colorama.initialise
+                import atexit
+                import colorama.initialise
                 atexit.unregister(colorama.initialise.reset_all)
+
                 def reset():
                     try:
                         colorama.initialise.reset_all()
@@ -207,8 +209,8 @@ class _Input(Task):
         logger = self.session.logger
         try:
             self._cmd.run(text)
-        except errors.UserError as err:
-            # UserErrors are already logged
+        except errors.NotABug as err:
+            # NotABug and subclasses are already logged
             pass
         except Exception:
             logger.error("\nUnexpected exception, save your work and exit:\n")
