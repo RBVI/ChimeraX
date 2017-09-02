@@ -56,7 +56,12 @@ class CoreSettingsPanel:
             None,
             None,
             None,
-            "How to format display of atomic data"),
+            """How to format display of atomic data<br>
+            <table>
+            <tr><td>simple</td><td>Simple readable form</td></tr>
+            <tr><td>command line</td><td>From used in commands</td></tr>
+            <tr><td>serial number</td><td>Atom serial number</td></tr>
+            </table>"""),
 #        'bg_color': (
 #            "Background color",
 #            "Background",
