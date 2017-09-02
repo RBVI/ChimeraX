@@ -19,6 +19,11 @@ TODO
 """
 
 from ..core_settings import settings as core_settings
+from .options import SymbolicEnumOption
+
+class AtomSpecOption(SymbolicEnumOption):
+    values = ("command", "serial", "simple")
+    labels = ("command line", "serial number", "simple")
 
 class CoreSettingsPanel:
 
@@ -51,16 +56,16 @@ class CoreSettingsPanel:
             None,
             None,
             None,
-            None),
-        'bg_color': (
-            "Background color",
-            "Background",
-            ColorOption,
-            "set bgColor %s",
-            lambda val: val.hex_with_alpha(),
-            lambda ses, cb: ses.triggers.add_handler("background color changed", cb),
-            lambda ses: ses.main_view.background_color,
-            "Background color of main graphics window"),
+            "How to format display of atomic data"),
+#        'bg_color': (
+#            "Background color",
+#            "Background",
+#            ColorOption,
+#            "set bgColor %s",
+#            lambda val: val.hex_with_alpha(),
+#            lambda ses, cb: ses.triggers.add_handler("background color changed", cb),
+#            lambda ses: ses.main_view.background_color,
+#            "Background color of main graphics window"),
     }
 
     def __init__(self, session, ui_area):
@@ -68,11 +73,12 @@ class CoreSettingsPanel:
         from .options import OptionsPanel
         self.session = session
         panels = {}
-        tab_widget = TabWidget(ui_area)
+        tab_widget = QTabWidget(ui_area)
         categories = []
 
         for setting, setting_info in self.settings_info.items():
-            opt_name, category, opt_class, updater, converter, notifier, fetcher = setting_info
+            opt_name, category, opt_class, updater, converter, notifier, fetcher, balloon \
+                = setting_info
             try:
                 panel = panels[category]
             except KeyError:
@@ -80,7 +86,7 @@ class CoreSettingsPanel:
                 panel = OptionsPanel(sorting=True)
                 panels[category] = panel
             opt = opt_class(opt_name, getattr(core_settings, setting), self._opt_cb,
-                attr_name=setting)
+                attr_name=setting, balloon=balloon)
             panel.add_option(opt)
             if notifier is not None:
                 notifier(ses, lambda tn, data, fetch=fetcher, opt=opt: opt.set(fetch()))
@@ -91,9 +97,12 @@ class CoreSettingsPanel:
 
     def _opt_cb(self, opt):
         setting = opt.attr_name
+        import sys
+        print("_opt_cb: setting", setting, "to", opt.value, file=sys.__stderr__)
         setattr(core_settings, setting, opt.value)
 
-        opt_name, category, opt_class, updater, converter = settings_info[setting]
+        opt_name, category, opt_class, updater, converter, notifier, fetcher, balloon \
+            = self.settings_info[setting]
         if updater is None:
             return
 

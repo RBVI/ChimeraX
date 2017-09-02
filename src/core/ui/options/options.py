@@ -51,12 +51,10 @@ def recurse_getattr(obj, attr_name):
         obj = getattr(obj, a)
     return obj
 
-from abc import ABCMeta
+from abc import ABCMeta, abstractmethod
 
-class Option:
+class Option(metaclass=ABCMeta):
     """Base class (and common API) for all options"""
-
-    __metaclass__ = ABCMeta
 
     multiple_value = "-- mulitple --"
     read_only = False
@@ -86,7 +84,7 @@ class Option:
         if default != None or not hasattr(self, 'default'):
             self.default = default
 
-        self.widget = self._make_widget(**kw)
+        self._make_widget(**kw)
 
         if balloon or not hasattr(self, 'balloon'):
             self.balloon = balloon
@@ -137,7 +135,7 @@ class Option:
         pass
 
     @abstractmethod
-    def set(self, val):
+    def set(self, value):
         # set the option's value
         pass
 
@@ -154,15 +152,13 @@ class Option:
 
     value = property(_get_value, _set_value)
 
-    @abstractmethod
     def enable(self):
         # put widget in 'enabled' (active) state
-        pass
+        self.widget.setDisabled(False)
 
-    @abstractmethod
     def disable(self):
         # put widget in 'disabled' (inactive) state
-        pass
+        self.widget.setDisabled(True)
 
     def _make_callback(self):
         # Called by GUI to propagate changes back to program
@@ -171,14 +167,77 @@ class Option:
 
     @abstractmethod
     def _make_widget(self):
-        # create and return the widget to display the option value
+        # create (as self.widget) the widget to display the option value
         pass
 
 
 class EnumOption(Option):
-    """Enumerated values option"""
+    """Option for enumerated values"""
     values = ()
 
+    def get(self):
+        return self.widget.text()
+
+    def remake_menu(self, labels=None):
+        from PyQt5.QtWidgets import QAction
+        if labels is None:
+            labels = self.values
+        menu = self.widget.menu()
+        menu.clear()
+        for label in labels:
+            action = QAction(label, self.widget)
+            action.triggered.connect(lambda arg, s=self, lab=label: s._menu_cb(lab))
+            menu.addAction(action)
+
+    def set(self, value):
+        self.widget.setText(value)
+
+    def set_multiple(self):
+        self.widget.setText(self.multiple_value)
+
+    def _make_widget(self, *, display_value=None, **kw):
+        from PyQt5.QtWidgets import QPushButton, QMenu
+        if display_value is None:
+            display_value = self.default
+        self.widget = QPushButton(display_value, **kw)
+        menu = QMenu()
+        self.widget.setMenu(menu)
+        self.remake_menu()
+
+    def _menu_cb(self, label):
+        self.set(label)
+        self._make_callback()
+
+class SymbolicEnumOption(EnumOption):
+    """Option for enumerated values with symbolic names"""
+    values = ()
+    labels = ()
+
+    def get(self):
+        return self._value
+
+    def remake_menu(self):
+        EnumOption.remake_menu(self, labels=self.labels)
+
+    def set(self, value):
+        self._value = value
+        self.widget.setText(self.labels[list(self.values).index(value)])
+
+    def set_multiple(self):
+        self._value = None
+        EnumOption.set_multiple(self)
+
+    def _make_callback(self):
+        label = self.widget.text()
+        i = list(self.labels).index(label)
+        self._value = self.values[i]
+        EnumOption._make_callback(self)
+
     def _make_widget(self, **kw):
-        pass
-        #self.widget = 
+        self._value = self.default
+        EnumOption._make_widget(self,
+            display_value=self.labels[list(self.values).index(self.default)], **kw)
+
+    def _menu_cb(self, label):
+        self.set(self.values[self.labels.index(label)])
+        self._make_callback()

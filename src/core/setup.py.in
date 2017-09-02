@@ -80,6 +80,7 @@ setup(
         "PKG_NAME.toolshed",
         "PKG_NAME.ui",
         "PKG_NAME.ui.widgets",
+        "PKG_NAME.ui.options",
         "PKG_NAME.webservices",
     ],
     package_data={

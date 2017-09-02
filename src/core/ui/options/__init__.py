@@ -11,4 +11,4 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .options import OptionsPanel
+from .options import OptionsPanel, EnumOption, SymbolicEnumOption

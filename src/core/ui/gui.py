@@ -642,6 +642,19 @@ class MainWindow(QMainWindow, PlainTextLog):
         sb.showMessage("Welcome to ChimeraX")
         self.setStatusBar(sb)
 
+    def _make_settings_ui(self, session):
+        from .core_settings_ui import CoreSettingsPanel
+        from PyQt5.QtWidgets import QDockWidget, QWidget, QVBoxLayout
+        self.settings_ui_widget = dw = QDockWidget("ChimeraX settings", self)
+        dw.closeEvent = lambda e, dw=dw: dw.hide()
+        container = QWidget()
+        CoreSettingsPanel(session, container)
+        dw.setWidget(container)
+        from PyQt5.QtCore import Qt
+        self.addDockWidget(Qt.RightDockWidgetArea, dw)
+        dw.setFloating(True)
+        dw.hide()
+
     def _new_tool_window(self, tw):
         if self.hide_tools:
             self._hide_tools_shown_states[tw] = True
@@ -673,6 +686,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         file_menu.addAction(quit_action)
         file_menu.setToolTipsVisible(True)
 
+        """
         edit_menu = mb.addMenu("&Edit")
         self.undo_action = QAction("&Undo", self)
         self.undo_action.setEnabled(False)
@@ -697,10 +711,14 @@ class MainWindow(QMainWindow, PlainTextLog):
         paste_action.setShortcut("Ctrl+V")
         paste_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_ccp_cb(sess, Qt.Key_V))
         edit_menu.addAction(paste_action)
+        """
 
         self.tools_menu = mb.addMenu("&Tools")
-        self.tools_menu.setToolTipsVisible(True)
         self.update_tools_menu(session)
+
+        self.favorites_menu = mb.addMenu("Fa&vorites")
+        self._make_settings_ui(session)
+        self.update_favorites_menu(session)
 
         help_menu = mb.addMenu("&Help")
         help_menu.setToolTipsVisible(True)
@@ -721,6 +739,21 @@ class MainWindow(QMainWindow, PlainTextLog):
         about_action = QAction("About %s %s" % (ad.appauthor, ad.appname), self)
         about_action.triggered.connect(self._about)
         help_menu.addAction(about_action)
+
+    def update_favorites_menu(self, session):
+        from PyQt5.QtWidgets import QMenu, QAction
+        favorites_menu = QMenu("Fa&vorites")
+        favorites_menu.setToolTipsVisible(True)
+        favorites_menu.addSeparator()
+        settings = QAction("Settings...", self)
+        settings.setToolTip("Show/set ChimeraX settings")
+        settings.triggered.connect(lambda arg, self=self: self.settings_ui_widget.show())
+        favorites_menu.addAction(settings)
+        mb = self.menuBar()
+        old_action = self.favorites_menu.menuAction()
+        mb.insertMenu(old_action, favorites_menu)
+        mb.removeAction(old_action)
+        self.favorites_menu = favorites_menu
 
     def update_tools_menu(self, session):
         self._checkbutton_tools = {}
