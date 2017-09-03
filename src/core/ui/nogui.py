@@ -19,7 +19,7 @@ Text-based user interface.  API-compatible with :py:module:`ui` package.
 """
 from ..tasks import Task
 from ..logger import PlainTextLog
-_color_output = False
+_color_output = None
 
 _log_level = {
     PlainTextLog.LEVEL_INFO: 'info',
@@ -48,7 +48,7 @@ class NoGuiLog(PlainTextLog):
         if encoding != 'utf-8' and isinstance(msg, str):
             msg = msg.encode(encoding, 'replace').decode(encoding)
 
-        if sys.stdout.isatty():
+        if _color_output:
             print("%s%s%s" % (
                 _colors[level_name], msg, _colors["normal"]), end='')
         else:
@@ -59,8 +59,7 @@ class NoGuiLog(PlainTextLog):
         if secondary:
             return False
         if msg:
-            import sys
-            if sys.stdout.isatty():
+            if _color_output:
                 print("%s%s%s" % (_colors["status"], msg, _colors["normal"]))
             else:
                 print("STATUS:\n%s" % msg)
@@ -80,7 +79,7 @@ class UI:
         self._session = weakref.ref(session)
         self._queue = None
         import sys
-        if sys.stdout.isatty():
+        if _color_output is not None and (_color_output or sys.stdout.isatty()):
             try:
                 import colorama
                 colorama.init()
