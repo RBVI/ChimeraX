@@ -58,10 +58,10 @@ like other panels in ChimeraX (<a href="../window.html#toolstart">more...</a>).
 </p><p>
 By default, a data set will be displayed automatically if it does not
 exceed a certain size
-(see <a href="../commands/volume.html"><b>volume</b></a> command option
+(<a href="../commands/volume.html"><b>volume</b></a> command option
 <a href="../commands/volume.html#dispopen"><b>showOnOpen</b></a>), 
 although it may be subsampled
-(see <a href="../commands/volume.html"><b>volume</b></a> command option
+(<a href="../commands/volume.html"><b>volume</b></a> command option
 <a href="../commands/volume.html#autostep"><b>limitVoxelCount</b></a>).
 </ul>
 <p>
@@ -74,13 +74,29 @@ Above the histogram (from left to right) are:
 <li>the <a href="#step">step size</a> (subsampling)
 <li>an <b>eye icon</b> for showing/hiding the model
 <li> color and level of the <a href="#threshold">threshold</a>
-most recently moved or clicked
+most recently moved or clicked (see also the <b>contour level</b> 
+<a href="../commands/mousemode.html">mouse mode</a>)
 <li>the range of values in the <a href="#region">display region</a>
-<li>a pulldown menu with display styles:
+<li>a pulldown menu with display settings:
   <ul>
-  <li><b>surface</b> (default) - solid isosurfaces
-  <li><b>mesh</b> - mesh isosurfaces
-  <li><b>image</b> - cloudlike with varying intensity and opacity
+  <li><b>surface</b> (default) 
+  - solid isosurfaces, the
+  <b>surface</b> <a href="../commands/volume.html#style">display style</a>
+  <li><b>mesh</b>
+  - mesh isosurfaces,
+  the <b>mesh</b> <a href="../commands/volume.html#style">display style</a>
+  <li><b>volume</b> - cloudlike with varying intensity and opacity, also known as
+ the <b>solid</b> <a href="../commands/volume.html#style">display style</a>
+  <li><b>maximum</b> - solid volume style,
+ <a href="../commands/volume.html#maximumintensity">maximum intensity projection</a>
+  <li><b>plane</b> - solid volume style,
+ a <a href="../commands/volume.html#planes">single plane</a> perpendicular to Z;
+ the <b>move planes</b> <a href="../commands/mousemode.html">mouse mode</a>
+ is useful with this or orthoplanes
+  <li><b>orthoplanes</b> - solid volume style,
+ <a href="../commands/volume.html#orthoplanes">orthoplanes</a>
+  <li><b>box</b> - solid volume style, 
+ <a href="../commands/volume.html#boxfaces">orthoplanes as six box faces</a>
   </ul>
 <li>a <b>minus-sign button</b> for closing the model
 </ul>
@@ -107,7 +123,7 @@ of the data grid; it can be limited with the
 The <b><i>thresholds</i></b> on the histogram control how data values 
 are mapped to the display:
 <blockquote>
-<b>surface</b> or <b>mesh</b><br>
+<b>surface</b> or <b>mesh</b> style:<br>
 Each threshold (contour level) is shown on the histogram as a vertical bar
 that can be moved horizontally.
 For unsigned data types, an initial threshold is set so that 1% of voxels
@@ -116,7 +132,7 @@ for signed data types, positive and negative thresholds are placed
 symmetrically about zero.
 </blockquote>
 <blockquote>
-<b>image</b><br>
+<b>volume</b> (<b>solid</b>) style:<br>
 Each threshold is shown as a small square that can be moved horizontally
 and/or vertically.
 For unsigned data types, initial thresholds are set to give zero intensity
@@ -134,8 +150,18 @@ than a threshold at a higher data value.
 </blockquote>
 </ul>
 <p>
-Thresholds can be added or deleted using the context menu from 
-right-clicking<a href="../window.html#mac-context">*</a> on the histogram.
+The context menu from right-clicking<a href="../window.html#mac-context">*</a>
+in the <b>Volume Viewer</b> window includes:
+<ul>
+<li><b>Show outline box</b>
+- toggle <a href="../commands/volume.html#outline">outline box</a>
+<li><b>Show one plane</b>
+- toggle between showing a 
+<a href="../commands/volume.html#planes">single plane</a> or all planes
+in the solid volume style
+<li><b>New threshold</b>
+<li><b>Delete threshold</b>
+</ul>
 Each threshold is shown in the same color as its display.
 The color and level shown above the histogram apply
 to the threshold most recently moved or clicked.
@@ -151,11 +177,12 @@ data. The <a href="../commands/volume.html"><b>volume</b></a>
 command also allows specifying threshold levels in units of
 root-mean-square deviations from zero or standard deviations from the mean.
 </p><p>
-There is also a <a href="../commands/mousemode.html">mouse mode</a> for
-adjusting threshold level by dragging within the graphics window.
+See also the <b>contour level</b> and <b>move planes</b>
+<a href="../commands/mousemode.html">mouse modes</a> for
+adjusting the display by dragging within the graphics window.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2017</address>
+August 2017</address>
 </body></html>

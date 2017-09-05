@@ -61,6 +61,8 @@ class Volume(Model):
     rlist.insert_region(ijk_min, ijk_max)
     self.region_list = rlist
 
+    self._channels = None	# MapChannels object
+    
     self.representation = 'surface'
 
     self.solid = None
@@ -103,6 +105,15 @@ class Volume(Model):
 
     if self.message_cb:
       self.message_cb(text, **kw)
+
+  # ---------------------------------------------------------------------------
+  # Update data name when model name changes, so it gets written to cmap files.
+  #
+  def _set_data_name(self, name):
+    if hasattr(self, 'data') and name != self.data.name:
+      self.data.name = name
+    Model.name.fset(self, name)
+  name = property(Model.name.fget, _set_data_name)
     
   # ---------------------------------------------------------------------------
   #
@@ -449,6 +460,16 @@ class Volume(Model):
     
   # ---------------------------------------------------------------------------
   #
+  @property
+  def showing_one_plane(self):
+    ijk_min, ijk_max, ijk_step = self.region
+    for i0, i1, step in zip(ijk_min, ijk_max, ijk_step):
+      if i1//step - i0//step == 0:
+        return True
+    return False
+  
+  # ---------------------------------------------------------------------------
+  #
   def has_thresholds(self):
 
     return len(self.surface_levels) > 0 and len(self.solid_levels) > 0
@@ -547,6 +568,14 @@ class Volume(Model):
     Model._set_display(self, display)
     self.call_change_callbacks('displayed')
   display = Model.display.setter(_set_display)
+
+  # ---------------------------------------------------------------------------
+  #
+  def draw(self, renderer, place, draw_pass, selected_only = False):
+    if self.display and not self.initialized_thresholds:
+      self.initialize_thresholds()
+      self.show()
+    Model.draw(self, renderer, place, draw_pass, selected_only = selected_only)
 
   # ---------------------------------------------------------------------------
   #
@@ -961,6 +990,24 @@ class Volume(Model):
     return bool(self.representation == 'solid' and
                 self.rendering_options.box_faces)
     
+  # ---------------------------------------------------------------------------
+  #
+  def principal_channel(self):
+
+    c = self._channels
+    return c is None or self == c.first_channel
+    
+  # ---------------------------------------------------------------------------
+  #
+  def other_channels(self):
+
+    c = self._channels
+    if c is None:
+      vc = []
+    else:
+      vc = [v for v in c.maps if v is not self]
+    return vc
+  
   # ---------------------------------------------------------------------------
   #
   def copy(self):
@@ -2989,6 +3036,11 @@ def open_grids(session, grids, name, **kw):
         if g.rgba is None:
           g.rgba = (0,1,0,1) # Green
 
+    channel = kw.get('channel', None)
+    if channel is not None:
+      for g in grids:
+        g.channel = channel
+        
     series = kw.get('vseries', None)
     if series is not None:
       if series:
@@ -3005,26 +3057,46 @@ def open_grids(session, grids, name, **kw):
     maps = []
     show = kw.get('show', True)
     show_dialog = kw.get('show_dialog', True)
-    channels = [getattr(d, 'channel', 0) for d in grids]
-    channels.sort()
-    channel_show_max = channels[min(2,len(channels)-1)]
+    si = [d.series_index for d in grids if hasattr(d, 'series_index')]
+    is_series = (len(si) == len(grids) and len(set(si)) > 1)
+    cn = [d.channel for d in grids if hasattr(d, 'channel')]
+    is_multichannel = (len(cn) == len(grids) and len(set(cn)) > 1)
     for i,d in enumerate(grids):
-        show_data = show and (i == 0 or not hasattr(d, 'series_index'))
-        kw = {'show_data': show_data, 'show_dialog': show_dialog}
-        if hasattr(d, 'initial_style') and d.initial_style in ('surface', 'mesh', 'solid'):
-          kw['representation'] = d.initial_style
-        v = volume_from_grid_data(d, session, open_model = False, **kw)
-        if getattr(d, 'channel', 0) > channel_show_max:
-          v.display = False	# Hide all but lowest 3 channels, but compute the graphics
-#        v.new_region(ijk_step = (1,1,1), adjust_step = False, show = show_data)
-        maps.append(v)
+      show_data = show
+      if is_series or is_multichannel:
+        show_data = False	# Map_Series or MapChannelsModel classes will decide which to show
+      kw = {'show_data': show_data, 'show_dialog': show_dialog}
+      if hasattr(d, 'initial_style') and d.initial_style in ('surface', 'mesh', 'solid'):
+        kw['representation'] = d.initial_style
+      v = volume_from_grid_data(d, session, open_model = False, **kw)
+#      v.new_region(ijk_step = (1,1,1), adjust_step = False, show = show_data)
+      maps.append(v)
 
-    if len(maps) > 1 and len([d for d in grids if hasattr(d, 'series_index')]) == len(grids):
-        from .series import Map_Series
-        ms = Map_Series(name, maps, session)
-        msg = 'Opened map series %s, %d images' % (name, len(maps))
-        models = [ms]
+    if is_series and is_multichannel:
+      cmaps = {}
+      for m in maps:
+        cmaps.setdefault(m.data.channel,[]).append(m)
+      if len(set(len(cm) for cm in cmaps.values())) > 1:
+        session.logger.warning('Map channels have differing numbers of series maps: %s'
+                               % ', '.join('%d (%d)' % (c,cm) for c, cm in cmaps.items()))
+      from .series import Map_Series
+      ms = [Map_Series('channel %d' % c, cm, session) for c, cm in cmaps.items()]
+      mc = MultiChannelSeries(name, ms, session)
+      msg = ('Opened multichannel map series %s, %d channels, %d images per channel'
+             % (name, len(ms), len(maps)//len(ms)))
+      models = [mc]
+    elif is_series:
+      from .series import Map_Series
+      ms = Map_Series(name, maps, session)
+      msg = 'Opened map series %s, %d images' % (name, len(maps))
+      models = [ms]
+    elif is_multichannel:
+      mc = MapChannelsModel(name, maps, session)
+      mc.show_n_channels(3)
+      msg = 'Opened multi-channel map %s, %d channels' % (name, len(maps))
+      models = [mc]
     else:
+      # TODO: Handle multi-times and multi-channels.
       msg = 'Opened %s' % maps[0].name
       models = maps
 
@@ -3043,6 +3115,125 @@ def open_grids(session, grids, name, **kw):
     
     return models, msg
 
+# -----------------------------------------------------------------------------
+#
+class MapChannels:
+  
+  def __init__(self, maps):
+    self.set_maps(maps)
+
+  def set_maps(self, maps):
+    for v in maps:
+      v._channels = self
+    self.maps = maps
+
+  def show_n_channels(self, n):
+    # Hide all but lowest N channels.
+    # Allen Institute data sometimes has 8 channels, mostly segmentations.
+    maps = self.maps
+    if len(maps) == 0:
+      return
+    channels = [v.data.channel for v in maps]
+    channels.sort()
+    channel_show_max = channels[min(2,len(channels)-1)]
+    for v in maps:
+      if v.data.channel > channel_show_max:
+        v.display = False
+      else:
+        v.initialize_thresholds()
+        v.show()
+    
+  @property
+  def first_channel(self):
+    return self.maps[0]
+
+# -----------------------------------------------------------------------------
+#
+class MapChannelsModel(Model, MapChannels):
+  
+  def __init__(self, name, maps, session):
+    Model.__init__(self, name, session)
+    self.add(maps)
+    MapChannels.__init__(self, maps)
+
+  # State save/restore in ChimeraX
+  def take_snapshot(self, session, flags):
+    from ..state import CORE_STATE_VERSION
+    data = {'model state': Model.take_snapshot(self, session, flags),
+            # Can't reference maps directly because it creates cyclic dependency.
+            'map ids': [m.id for m in self.maps],
+            'version': CORE_STATE_VERSION}
+    return data
+
+  @staticmethod
+  def restore_snapshot(session, data):
+    maps = []
+    c = MapChannelsModel('channels', maps, session)
+    Model.set_state_from_snapshot(c, session, data['model state'])
+
+    # Parent models are always restored before child models.
+    # Restore child map list after child maps are restored.
+    def restore_maps(trigger_name, session, channels = c, map_ids = data['map ids']):
+      idm = {m.id : m for m in channels.child_models()}
+      maps = [idm[id] for id in map_ids if id in idm]
+      channels.set_maps(maps)
+      from ..triggerset import DEREGISTER
+      return DEREGISTER
+    session.triggers.add_handler('end restore session', restore_maps)
+    
+    return c
+
+  def reset_state(self):
+    pass
+
+# -----------------------------------------------------------------------------
+#
+class MultiChannelSeries(Model):
+  
+  def __init__(self, name, map_series, session):
+    Model.__init__(self, name, session)
+    self.add(map_series)
+    self.set_map_series(map_series)
+
+  def set_map_series(self, map_series):
+    self.map_series = map_series
+    if map_series:
+      # For each time, group the map channels
+      for maps in zip(*tuple(ms.maps for ms in map_series)):
+        mc = MapChannels(maps)
+        for m in maps:
+          m._channels = mc
+
+  # State save/restore in ChimeraX
+  def take_snapshot(self, session, flags):
+    from ..state import CORE_STATE_VERSION
+    data = {'model state': Model.take_snapshot(self, session, flags),
+            # Can't reference maps directly because it creates cyclic dependency.
+            'map series ids': [m.id for m in self.map_series],
+            'version': CORE_STATE_VERSION}
+    return data
+
+  @staticmethod
+  def restore_snapshot(session, data):
+    map_series = []
+    mcs = MultiChannelSeries('mcs', map_series, session)
+    Model.set_state_from_snapshot(mcs, session, data['model state'])
+
+    # Parent models are always restored before child models.
+    # Restore child map list after child maps are restored.
+    def restore_maps(trigger_name, session, mcs = mcs, map_ids = data['map ids']):
+      idm = {m.id : m for m in mcs.child_models()}
+      map_series = [idm[id] for id in map_ids if id in idm]
+      channels.set_map_series(map_series)
+      from ..triggerset import DEREGISTER
+      return DEREGISTER
+    session.triggers.add_handler('end restore session', restore_maps)
+    
+    return mcs
+
+  def reset_state(self):
+    pass
+  
 # -----------------------------------------------------------------------------
 #
 def save_map(session, path, format_name, models = None, region = None, step = (1,1,1),
@@ -3089,7 +3280,13 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
         from .data import select_save_path
         path, format_name = select_save_path()
     if path:
-        grids = [v.grid_data(region, step, mask_zone) for v in vlist]
+        grids = []
+        for v in vlist:
+          g = v.grid_data(region, step, mask_zone)
+          color = v.single_color
+          if color is not None:
+            g.rgba = tuple(r/255 for r in color)	# Set default map color to current color
+          grids.append(g)
         from .data import save_grid_data
         if is_multifile_save(path):
             for i,g in enumerate(grids):
@@ -3121,11 +3318,11 @@ def register_map_file_formats(session):
       io.register_format(d, toolshed.VOLUME, suf, nicknames=nicknames,
                          open_func=open_map_format, batch=True, export_func=save_func)
 
-    # Add map specific keywords to open command
-    from ..commands import add_keyword_arguments, BoolArg
-    add_keyword_arguments('open', {'vseries':BoolArg})
+    # Add keywords to open command for maps
+    from ..commands import add_keyword_arguments, BoolArg, IntArg
+    add_keyword_arguments('open', {'vseries':BoolArg, 'channel':IntArg})
 
-    # Add map specific keywords to save command
+    # Add keywords to save command for maps
     from ..commands import BoolArg, ListOf, EnumOf, IntArg
     from .mapargs import MapRegionArg, Int1or3Arg
     save_map_args = [

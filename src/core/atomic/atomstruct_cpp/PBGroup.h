@@ -46,7 +46,7 @@ class Pseudobond;
 class Proxy_PBGroup;
 class Structure;
 
-class ATOMSTRUCT_IMEX PBGroup: public DestructionObserver, public GraphicsContainer,
+class ATOMSTRUCT_IMEX PBGroup: public DestructionObserver, public GraphicsChanges,
         public PythonInstance {
 public:
     typedef std::set<Pseudobond*>  Pseudobonds;
@@ -397,26 +397,6 @@ public:
             static_cast<StructurePBGroup*>(_proxied)->gc_clear();
     else
         static_cast<CS_PBGroup*>(_proxied)->gc_clear();
-    }
-    bool  get_gc_color() const {
-        if (_group_type == AS_PBManager::GRP_NORMAL)
-            return static_cast<StructurePBGroup*>(_proxied)->get_gc_color();
-        return static_cast<CS_PBGroup*>(_proxied)->get_gc_color();
-    }
-    bool  get_gc_select() const {
-        if (_group_type == AS_PBManager::GRP_NORMAL)
-            return static_cast<StructurePBGroup*>(_proxied)->get_gc_select();
-        return static_cast<CS_PBGroup*>(_proxied)->get_gc_select();
-    }
-    bool  get_gc_shape() const {
-        if (_group_type == AS_PBManager::GRP_NORMAL)
-            return static_cast<StructurePBGroup*>(_proxied)->get_gc_shape();
-        return static_cast<CS_PBGroup*>(_proxied)->get_gc_shape();
-    }
-    bool  get_gc_ribbon() const {
-        if (_group_type == AS_PBManager::GRP_NORMAL)
-            return static_cast<StructurePBGroup*>(_proxied)->get_gc_ribbon();
-        return static_cast<CS_PBGroup*>(_proxied)->get_gc_ribbon();
     }
     int   get_graphics_changes() const {
         if (_group_type == AS_PBManager::GRP_NORMAL)

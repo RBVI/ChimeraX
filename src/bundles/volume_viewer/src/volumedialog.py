@@ -262,10 +262,9 @@ class VolumeViewer(ToolInstance):
             # dop = self.display_options_panel
             # if dop.adjust_camera.get():
             #   self.focus_camera_on_region(v)
-          else:
-            tp.update_panel_widgets(v, activate = False)
+          tp.update_panel_widgets(v, activate = False)
 
-        elif type == 'thresholds changed':
+        elif type == 'thresholds changed' or type == 'rendering options changed':
           tp.update_panel_widgets(v, activate = False)
 
         elif type == 'colors changed':
@@ -1941,19 +1940,31 @@ class Histogram_Pane:
       self._planes_slider_shown = show
 
       if show:
-          # Switch to showing a single plane
-          ijk_min, ijk_max, ijk_step = v.region
-          s = ijk_step[2]
-          k = ((ijk_min[2] + ijk_max[2])//(2*s))*s
-          self._update_plane(k)
-          v.set_representation('solid')
-          if show_volume:
-              v.show()
-      else:
-          # Show all planes
-          from chimerax.core.map.volume import full_region
-          r = full_region(v.data.size)
-          v.new_region(*r, show = show_volume)
+          self.show_one_plane(v, show_volume)
+      elif v.showing_one_plane:
+          self.show_full_region(v, show_volume)
+
+  # ---------------------------------------------------------------------------
+  #
+  def show_one_plane(self, v, show_volume = True):
+
+      # Switch to showing a single plane
+      ijk_min, ijk_max, ijk_step = v.region
+      s = ijk_step[2]
+      k = ((ijk_min[2] + ijk_max[2])//(2*s))*s
+      self._update_plane(k)
+      v.set_representation('solid')
+      if show_volume or v.shown():
+          v.show()
+
+  # ---------------------------------------------------------------------------
+  #
+  def show_full_region(self, v, show_volume = True):
+
+      # Show all planes
+      from chimerax.core.map.volume import full_region
+      r = full_region(v.data.size)
+      v.new_region(*r, show = show_volume)
           
   # ---------------------------------------------------------------------------
   #
@@ -2024,6 +2035,8 @@ class Histogram_Pane:
       nijk_max = list(ijk_max)
       nijk_max[2] = k
       v.new_region(nijk_min, nijk_max, ijk_step)
+      for vc in v.other_channels():
+          vc.new_region(nijk_min, nijk_max, ijk_step, show = vc.shown())
       # Make sure this plane is shown before we show another plane.
       self.dialog.session.ui.update_graphics_now()
 
@@ -2077,7 +2090,8 @@ class Histogram_Pane:
 
     ijk_min, ijk_max, ijk_step = volume.region
     if ijk_max[2]//ijk_step[2] == ijk_min[2]//ijk_step[2] and volume.data.size[2] > 1:
-        self.show_plane_slider(True)
+        if volume.principal_channel():
+            self.show_plane_slider(True)
 
   # ---------------------------------------------------------------------------
   #
@@ -2205,22 +2219,24 @@ class Histogram_Pane:
 
     self.data_step.setText('%d' % step)
 
-    dr = self.volume
-    if dr is None or dr.region is None:
+    v = self.volume
+    if v is None or v.region is None:
       return
 
     ijk_step = [step]
     if len(ijk_step) == 1:
       ijk_step = ijk_step * 3
 
-    if tuple(ijk_step) == tuple(dr.region[2]):
+    if tuple(ijk_step) == tuple(v.region[2]):
       return
 
-    ijk_min, ijk_max = dr.region[:2]
-    dr.new_region(ijk_min, ijk_max, ijk_step, adjust_step = False, show = True)
+    v.new_region(ijk_step = ijk_step, adjust_step = False, show = True)
+    for vc in v.other_channels():
+        vc.new_region(ijk_step = ijk_step, adjust_step = False, show = vc.shown())
+        
     d = self.dialog
-    if dr != d.active_volume:
-      d.display_volume_info(dr)
+    if v != d.active_volume:
+      d.display_volume_info(v)
 #    d.redisplay_needed_cb()
 
   # ---------------------------------------------------------------------------
@@ -2322,9 +2338,20 @@ class Histogram_Pane:
       self.style.setText(style)
       v = self.volume
 
-      if style != 'plane':
-          self.show_plane_slider(False, show_volume = False)
+      self.set_map_style(v, style)
+      for vc in v.other_channels():
+          self.set_map_style(vc, style)
 
+  # ---------------------------------------------------------------------------
+  #
+  def set_map_style(self, v, style):
+
+      if style != 'plane':
+          if v is self.volume:
+              self.show_plane_slider(False, show_volume = False)
+          elif v.showing_one_plane:
+              self.show_full_region(v, show_volume = False)
+              
       if style != 'box' and v.showing_box_faces():
           v.set_parameters(box_faces = False,
                            color_mode = 'auto8')
@@ -2346,8 +2373,11 @@ class Histogram_Pane:
                            color_mode = 'auto8',
                            maximum_intensity_projection = False,
                            show_outline_box = True)
-          self.show_plane_slider(True)
-          self.enable_move_planes()
+          if v is self.volume:
+              self.show_plane_slider(True)
+              self.enable_move_planes()
+          else:
+              self.show_one_plane(v, show_volume = False)
       elif style == 'orthoplanes':
           middle = tuple((imin + imax) // 2 for imin, imax in zip(v.region[0], v.region[1]))
           v.set_parameters(orthoplanes_shown = (True, True, True),

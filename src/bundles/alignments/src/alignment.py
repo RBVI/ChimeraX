@@ -134,15 +134,20 @@ class Alignment(State):
             if '.' in struct.id_string():
                 # ensemble
                 struct_name += " (" + struct.id_string() + ")"
-            def do_assoc():
+            def do_assoc(add_gaps=False):
                 if reeval and sseq in self.associations:
                     old_aseq = self.associations[sseq]
                     if old_aseq == best_match_map.align_seq:
                         return
                     self.disassociate(sseq)
                 if not self.intrinsic:
-                    status("Associated %s %s to %s with %d error(s)" % (struct_name, sseq.name,
-                        best_match_map.align_seq.name, best_errors), log=True)
+                    s1, s2, s3 = ("", "", "") if best_errors == 1 else ("es", "and/", "s")
+                    if add_gaps:
+                        gaps = " %sor gap%s" % (s2, s3)
+                    else:
+                        gaps = ""
+                    status("Associated %s %s to %s with %d mismatch%s%s" % (struct_name,
+                        sseq.name, best_match_map.align_seq.name, best_errors, s1, gaps), log=True)
                 self.prematched_assoc_structure(best_match_map, best_errors, reassoc)
                 new_match_maps.append(best_match_map)
                 nonlocal associated
@@ -239,7 +244,7 @@ class Alignment(State):
                             best_match_map = match_map
                             best_errors = errors
                 if best_match_map:
-                    do_assoc()
+                    do_assoc(add_gaps=True)
                 else:
                     status("No reasonable association found for %s %s" % (struct_name, sseq.name))
 

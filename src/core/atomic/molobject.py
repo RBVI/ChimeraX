@@ -228,7 +228,7 @@ class Atom(State):
         f = c_array_function('atom_has_alt_loc', args=(byte,), per_object=False)
         a_ref = ctypes.byref(self._c_pointer)
         f(a_ref, 1, loc, v_ref)
-        return v.value
+        return bool(v.value)
 
     @property
     def aniso_u(self):
@@ -290,9 +290,13 @@ class Atom(State):
         BBE_RIBBON
             The backbone atoms that a ribbon depiction hides
         '''
-        f = c_function('atom_is_backbone', args = (ctypes.c_void_p, ctypes.c_int),
-                ret = ctypes.c_bool)
-        return f(self._c_pointer, bb_type)
+        vtype = ctypes.c_uint8
+        v = vtype()
+        v_ref = ctypes.byref(v)
+        f = c_array_function('atom_is_backbone', args=(ctype_type_to_numpy[ctypes.c_int],), per_object=False)
+        a_ref = ctypes.byref(self._c_pointer)
+        f(a_ref, 1, bb_extent, v_ref)
+        return bool(v.value)
 
     def rings(self, cross_residues=False, all_size_threshold=0):
         '''Return :class:`.Rings` collection of rings this Atom participates in.
@@ -614,7 +618,9 @@ class PseudobondGroupData:
     _COLOR_CHANGE = 0x2
     _SELECT_CHANGE = 0x4
     _RIBBON_CHANGE = 0x8
-    _ALL_CHANGE = 0xf
+    _ADDDEL_CHANGE = 0x10
+    _DISPLAY_CHANGE = 0x20
+    _ALL_CHANGE = 0x2f
     _graphics_changed = c_property('pseudobond_group_graphics_change', int32)
 
 
@@ -1486,6 +1492,8 @@ class StructureData:
     '''Number of visible atoms in structure. Read only.'''
     num_bonds = c_property('structure_num_bonds', size_t, read_only = True)
     '''Number of bonds in structure. Read only.'''
+    num_bonds_visible = c_property('structure_num_bonds_visible', size_t, read_only = True)
+    '''Number of visible bonds in structure. Read only.'''
     num_coordsets = c_property('structure_num_coordsets', size_t, read_only = True)
     '''Number of coordinate sets in structure. Read only.'''
     num_chains = c_property('structure_num_chains', size_t, read_only = True)
@@ -1791,9 +1799,40 @@ class StructureData:
     _COLOR_CHANGE = 0x2
     _SELECT_CHANGE = 0x4
     _RIBBON_CHANGE = 0x8
-    _ALL_CHANGE = 0xf
+    _ADDDEL_CHANGE = 0x10
+    _DISPLAY_CHANGE = 0x20
+    _ALL_CHANGE = 0x2f
     _graphics_changed = c_property('structure_graphics_change', int32)
 
+# -----------------------------------------------------------------------------
+#
+class CoordSet(State):
+    '''
+    The coordinates for one frame of a Structure
+
+    To create a Bond use the :class:`.AtomicStructure` new_coordset() method.
+    '''
+    def __init__(self, cs_pointer):
+        set_c_pointer(self, cs_pointer)
+
+    # cpp_pointer and deleted are "base class" methods, though for performance reasons
+    # we are placing them directly in each class rather than using a base class,
+    # and for readability by most programmers we avoid using metaclasses
+    @property
+    def cpp_pointer(self):
+        '''Value that can be passed to C++ layer to be used as pointer (Python int)'''
+        return self._c_pointer.value
+
+    @property
+    def deleted(self):
+        '''Has the C++ side been deleted?'''
+        return not hasattr(self, '_c_pointer')
+
+    structure = c_property('coordset_structure', cptr, astype=_atomic_structure, read_only=True,
+        doc=":class:`.AtomicStructure` the coordset belongs to")
+
+# -----------------------------------------------------------------------------
+#
 class ChangeTracker:
     '''Per-session singleton change tracker keeps track of all
     atomic data changes'''
@@ -1877,6 +1916,8 @@ class ChangeTracker:
             return 5
         if klass.__name__ == "PseudobondGroup":
             return 6
+        if klass.__name__ == "CoordSet":
+            return 7
         raise AssertionError("Unknown class for change tracking")
 
 # -----------------------------------------------------------------------------

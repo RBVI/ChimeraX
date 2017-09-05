@@ -411,6 +411,7 @@ Structure::_delete_atom(Atom* a)
         [&a](Atom* ua) { return ua == a; });
     _atoms.erase(i);
     set_gc_shape();
+    set_gc_adddel();
     delete a;
 }
 
@@ -515,6 +516,7 @@ Structure::_delete_atoms(const std::set<Atom*>& atoms, bool verify)
         });
     _bonds.erase(new_b_end, _bonds.end());
     set_gc_shape();
+    set_gc_adddel();
 }
 
 void
@@ -538,6 +540,7 @@ Structure::delete_bond(Bond *b)
         a->remove_bond(b);
     _bonds.erase(i);
     set_gc_shape();
+    set_gc_adddel();
     _structure_cats_dirty = true;
     delete b;
 }
@@ -1370,7 +1373,7 @@ Structure::set_active_coord_set(CoordSet *cs)
     if (_active_coord_set != new_active) {
         _active_coord_set = new_active;
         set_gc_shape();
-	set_gc_ribbon();
+        set_gc_ribbon();
         change_tracker()->add_modified(this, ChangeTracker::REASON_ACTIVE_COORD_SET);
     }
 }

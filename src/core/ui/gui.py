@@ -285,6 +285,9 @@ class UI(QApplication):
         surface level change.  After each mouse event this is called to force a redraw.
         '''
         self.main_window.graphics_window.update_graphics_now()
+
+    def update_undo(self, undo_manager):
+        self.main_window.update_undo(undo_manager)
         
 from PyQt5.QtWidgets import QMainWindow, QStackedWidget, QLabel, QDesktopWidget, \
     QToolButton, QWidget
@@ -368,6 +371,8 @@ class MainWindow(QMainWindow, PlainTextLog):
         if os.path.exists(icon_path):
             from PyQt5.QtGui import QIcon
             self.setWindowIcon(QIcon(icon_path))
+
+        self._status_log = _StatusLog(session, self.statusBar())
         
         session.logger.add_log(self)
 
@@ -469,6 +474,34 @@ class MainWindow(QMainWindow, PlainTextLog):
     def file_quit_cb(self, session):
         session.ui.quit()
 
+    def edit_undo_cb(self, session):
+        session.undo.undo()
+
+    def edit_redo_cb(self, session):
+        session.undo.redo()
+
+    def edit_ccp_cb(self, session, key):
+        # Cut/Copy/Paste callback
+        from PyQt5.QtCore import QEvent, Qt
+        from PyQt5.QtGui import QKeyEvent
+        ui = session.ui
+        w = ui.focusWidget()
+        if w:
+            ui.postEvent(w, QKeyEvent(QEvent.KeyPress, key, Qt.ControlModifier))
+            ui.postEvent(w, QKeyEvent(QEvent.KeyRelease, key, Qt.ControlModifier))
+
+    def update_undo(self, undo_manager):
+        self._set_undo(self.undo_action, "Undo", undo_manager.top_undo_name())
+        self._set_undo(self.redo_action, "Redo", undo_manager.top_redo_name())
+
+    def _set_undo(self, action, label, name):
+        if name is None:
+            action.setText(label)
+            action.setEnabled(False)
+        else:
+            action.setText("%s %s" % (label, name))
+            action.setEnabled(True)
+
     def _get_hide_tools(self):
         return self._hide_tools
 
@@ -552,73 +585,15 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     rapid_access_shown = property(_get_rapid_access_shown, _set_rapid_access_shown)
 
+    def _check_rapid_access(self, *args):
+        self.rapid_access_shown = len(self.session.models) == 0
+
     def show_tb_context_menu(self, tb, event):
         tool, fill_cb = self._fill_tb_context_menu_cbs[tb]
         show_context_menu(event, tool, fill_cb, True)
 
     def status(self, msg, color, secondary):
-        sb = self.statusBar()
-        sb.clearMessage()
-        if secondary:
-            label = sb._secondary_status_label
-        else:
-            label = sb._primary_status_label
-        label.setText("<font color='" + color + "'>" + msg + "</font>")
-        label.show()
-
-        self._show_status_now()
-
-    def _check_rapid_access(self, *args):
-        self.rapid_access_shown = len(self.session.models) == 0
-
-    def _show_status_now(self):
-        # In Qt 5.7.1 there is no way to for the status line to redraw without running the event loop.
-        # But we don't want requesting a status message to have any side effects, such as dispatching
-        # mouse events.  This could cause havoc in the code writing the status message which does not
-        # expect any side effects.
-
-        # The only viable solution seems to be to process Qt events but exclude mouse and key events.
-        # The unprocessed mouse/key events are kept and supposed to be processed later but due to
-        # Qt bugs (57718 and 53126), those events don't get processed and mouse up events are lost
-        # during mouse drags, causing the mouse to still drag controls even after the button is released.
-        # This is seen in volume viewer when dragging the level bar on the histogram making the tool
-        # very annoying to use. Some work-around code suggested in Qt bug 57718 of calling processEvents()
-        # to send those deferred events is used below.
-
-        if getattr(self, '_processing_deferred_events', False):
-            return
-
-        s = self.session
-        ul = s.update_loop
-        ul.block_redraw()	# Prevent graphics redraw. Qt timers can fire.
-        self._in_status_event_processing = True
-        from PyQt5.QtCore import QEventLoop
-        s.ui.processEvents(QEventLoop.ExcludeUserInputEvents)
-        self._in_status_event_processing = False
-        ul.unblock_redraw()
-        self._process_deferred_events()
-
-    def _process_deferred_events(self):
-        # Handle bug where deferred mouse/key events are never processed on Mac Qt 5.7.1.
-        from sys import platform
-        if platform != 'darwin':
-            return
-        if getattr(self, '_flush_timer_queued', False):
-            return
-
-        def flush_pending_user_events(self=self):
-            self._flush_timer_queued = False
-            if getattr(self, '_in_status_event_processing', False):
-                # Avoid processing deferred events if timer goes off during status message.
-                self._process_deferred_events()
-            else:
-                self._processing_deferred_events = True
-                self.session.ui.processEvents()
-                self._processing_deferred_events = False
-
-        self._flush_timer_queued = True
-        from PyQt5.QtCore import QTimer
-        QTimer.singleShot(0, flush_pending_user_events)
+        self._status_log.status(msg, color, secondary)
 
     def _about(self, arg):
         from PyQt5.QtWebEngineWidgets import QWebEngineView
@@ -677,6 +652,7 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def _populate_menus(self, session):
         from PyQt5.QtWidgets import QAction
+        from PyQt5.QtCore import Qt
 
         mb = self.menuBar()
         file_menu = mb.addMenu("&File")
@@ -696,6 +672,31 @@ class MainWindow(QMainWindow, PlainTextLog):
         quit_action.triggered.connect(lambda arg, s=self, sess=session: s.file_quit_cb(sess))
         file_menu.addAction(quit_action)
         file_menu.setToolTipsVisible(True)
+
+        edit_menu = mb.addMenu("&Edit")
+        self.undo_action = QAction("&Undo", self)
+        self.undo_action.setEnabled(False)
+        self.undo_action.setShortcut("Ctrl+Z")
+        self.undo_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_undo_cb(sess))
+        edit_menu.addAction(self.undo_action)
+        self.redo_action = QAction("&Redo", self)
+        self.redo_action.setEnabled(False)
+        self.redo_action.setShortcut("Ctrl+R")
+        self.redo_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_redo_cb(sess))
+        edit_menu.addAction(self.redo_action)
+        edit_menu.addSeparator()
+        cut_action = QAction("&Cut", self)
+        cut_action.setShortcut("Ctrl+X")
+        cut_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_ccp_cb(sess, Qt.Key_X))
+        edit_menu.addAction(cut_action)
+        copy_action = QAction("&Copy", self)
+        copy_action.setShortcut("Ctrl+C")
+        copy_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_ccp_cb(sess, Qt.Key_C))
+        edit_menu.addAction(copy_action)
+        paste_action = QAction("&Paste", self)
+        paste_action.setShortcut("Ctrl+V")
+        paste_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_ccp_cb(sess, Qt.Key_V))
+        edit_menu.addAction(paste_action)
 
         self.tools_menu = mb.addMenu("&Tools")
         self.tools_menu.setToolTipsVisible(True)
@@ -1054,19 +1055,8 @@ class _Qt:
         if has_statusbar:
             self.statusbar = build_statusbar()
             layout.addWidget(self.statusbar)
-            class _StatusLog:
-                def __init__(s, statusbar):
-                    s.statusbar = statusbar
-                def status(s, msg, color, secondary):
-                    sb = s.statusbar
-                    sb.clearMessage()
-                    if secondary:
-                        label = sb._secondary_status_label
-                    else:
-                        label = sb._primary_status_label
-                    label.setText("<font color='" + color + "'>" + msg + "</font>")
-                    label.show()
-            self.status_log = _StatusLog(self.statusbar)
+            session = tool_window.tool_instance.session
+            self.status_log = _StatusLog(session, self.statusbar)
         else:
             self.statusbar = None
         container.setLayout(layout)
@@ -1147,6 +1137,83 @@ class _Qt:
 
     def set_title(self, title):
         self.dock_widget.setWindowTitle(title)
+
+class _StatusLog:
+    def __init__(self, session, statusbar):
+        self.session = session
+        self.statusbar = statusbar
+    def status(self, msg, color, secondary):
+        sb = self.statusbar
+        sb.clearMessage()
+        if secondary:
+            label = sb._secondary_status_label
+        else:
+            label = sb._primary_status_label
+        label.setText("<font color='" + color + "'>" + msg + "</font>")
+        label.show()
+
+        self._show_status_now()
+
+    def _show_status_now(self):
+        # In Qt 5.7.1 there is no way to for the status line to redraw without running the event loop.
+        # But we don't want requesting a status message to have any side effects, such as dispatching
+        # mouse events.  This could cause havoc in the code writing the status message which does not
+        # expect any side effects.
+
+        # The only viable solution seems to be to process Qt events but exclude mouse and key events.
+        # The unprocessed mouse/key events are kept and supposed to be processed later but due to
+        # Qt bugs (57718 and 53126), those events don't get processed and mouse up events are lost
+        # during mouse drags, causing the mouse to still drag controls even after the button is released.
+        # This is seen in volume viewer when dragging the level bar on the histogram making the tool
+        # very annoying to use. Some work-around code suggested in Qt bug 57718 of calling processEvents()
+        # to send those deferred events is used below.
+
+        if getattr(self, '_processing_deferred_events', False):
+            return
+
+        # Need to preserve OpenGL context across processing events, otherwise
+        # a status message during the graphics draw, causes an OpenGL error because
+        # Qt changed the current context.
+        from PyQt5.QtGui import QOpenGLContext
+        opengl_context = QOpenGLContext.currentContext()
+        if opengl_context:
+            opengl_surface = opengl_context.surface()
+
+        s = self.session
+        ul = s.update_loop
+        ul.block_redraw()	# Prevent graphics redraw. Qt timers can fire.
+        self._in_status_event_processing = True
+        from PyQt5.QtCore import QEventLoop
+        s.ui.processEvents(QEventLoop.ExcludeUserInputEvents)
+        self._in_status_event_processing = False
+        ul.unblock_redraw()
+
+        if opengl_context and QOpenGLContext.currentContext() != opengl_context:
+            opengl_context.makeCurrent(opengl_surface)
+            
+        self._process_deferred_events()
+
+    def _process_deferred_events(self):
+        # Handle bug where deferred mouse/key events are never processed on Mac Qt 5.7.1.
+        from sys import platform
+        if platform != 'darwin':
+            return
+        if getattr(self, '_flush_timer_queued', False):
+            return
+
+        def flush_pending_user_events(self=self):
+            self._flush_timer_queued = False
+            if getattr(self, '_in_status_event_processing', False):
+                # Avoid processing deferred events if timer goes off during status message.
+                self._process_deferred_events()
+            else:
+                self._processing_deferred_events = True
+                self.session.ui.processEvents()
+                self._processing_deferred_events = False
+
+        self._flush_timer_queued = True
+        from PyQt5.QtCore import QTimer
+        QTimer.singleShot(0, flush_pending_user_events)
 
 def build_statusbar():
     from PyQt5.QtWidgets import QStatusBar, QSizePolicy

@@ -33,7 +33,7 @@ namespace atomstruct {
 
 class Atom;
 class ChangeTracker;
-class GraphicsContainer;
+class GraphicsChanges;
 class PBGroup;
 
 class ATOMSTRUCT_IMEX Pseudobond: public Connection, public PythonInstance
@@ -50,7 +50,7 @@ protected:
         _halfbond = false;
         _radius = 0.05;
     }
-    virtual ~Pseudobond() {}
+    virtual ~Pseudobond() { graphics_changes()->set_gc_adddel(); }
 
     // convert a global pb_manager version# to version# for Connection base class
     static int  session_base_version(int /*version*/) { return 1; }
@@ -62,7 +62,7 @@ protected:
         { return "Atom given to other_end() not in pseudobond!"; }
 public:
     ChangeTracker*  change_tracker() const;
-    GraphicsContainer*  graphics_container() const;
+    GraphicsChanges*  graphics_changes() const;
     PBGroup*  group() const { return _group; }
     bool shown() const
     { return (visible() &&

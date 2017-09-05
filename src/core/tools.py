@@ -424,6 +424,6 @@ class Tools(State):
             except Exception as e:
                 msg = "Tool \"%s\" failed to start" % tool_name
                 # session.logger.info(msg)
-                print(msg)
-                import traceback
-                traceback.print_exc()
+                import traceback, sys
+                traceback.print_exc(file=sys.stdout)
+                print(msg, flush=True)

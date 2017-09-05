@@ -520,6 +520,18 @@ class Atoms(Collection):
         "The unique structures as an :class:`.AtomicStructures` collection"
         return self.structures.unique()
     @property
+    def full_residues(self):
+        '''The :class:`.Residues` all of whose atoms are in this :class:`.Atoms` instance'''
+        all_residues = self.unique_residues
+        extra = (all_residues.atoms - self).unique_residues
+        return all_residues - extra
+    @property
+    def full_structures(self):
+        '''The :class:`.Structures` all of whose atoms are in this :class:`.Atoms` instance'''
+        all_structures = self.unique_structures
+        extra = (all_structures.atoms - self).unique_structures
+        return all_structures - extra
+    @property
     def single_structure(self):
         "Do all atoms belong to a single :class:`.Structure`"
         p = self.structures._pointers
@@ -683,6 +695,18 @@ class Bonds(Collection):
         f = c_function('bond_half_colors', args = [ctypes.c_void_p, ctypes.c_size_t], ret = ctypes.py_object)
         return f(self._c_pointers, len(self))
 
+    def halfbond_cylinder_placements(self, opengl_array = None):
+        '''Return Places for halfbond cylinders specified by 2N 4x4 float matrices.'''
+        n = len(self)
+        if opengl_array is None or len(opengl_array) != 2*n:
+            from numpy import empty, float32
+            opengl_array = empty((2*n,4,4), float32)
+        f = c_function('bond_halfbond_cylinder_placements',
+                       args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p])
+        f(self._c_pointers, n, pointer(opengl_array))
+        from ..geometry import Places
+        return Places(opengl_array = opengl_array)
+        
     @classmethod
     def session_restore_pointers(cls, session, data):
         structures, bond_ids = data
@@ -1215,6 +1239,20 @@ class PseudobondGroups(PseudobondGroupDatas):
         return array([s._c_pointer.value for s in data], dtype=cptr)
     def session_save_pointers(self, session):
         return [s for s in self]
+
+# -----------------------------------------------------------------------------
+#
+class CoordSets(Collection):
+    '''
+    Bases: :class:`.Collection`
+
+    Collection of C++ coordsets.
+    '''
+    def __init__(self, cs_pointers = None):
+        Collection.__init__(self, cs_pointers, molobject.CoordSet, CoordSets)
+
+    structures = cvec_property('coordset_structure', cptr, astype=_atomic_structures,
+        read_only=True, doc="Returns an :class:`AtomicStructure` for each coordset. Read only.")
 
 # -----------------------------------------------------------------------------
 # For making collections from lists of objects.

@@ -685,7 +685,7 @@ extern "C" EXPORT void atom_in_chain(void *atoms, size_t n, npy_bool *in_chain)
 }
 
 
-extern "C" EXPORT void atom_is_backbone(void *atoms, size_t n, uint8_t extent, npy_bool *bb)
+extern "C" EXPORT void atom_is_backbone(void *atoms, size_t n, int extent, npy_bool *bb)
 {
     Atom **a = static_cast<Atom **>(atoms);
     BackboneExtent bbe = static_cast<BackboneExtent>(extent);
@@ -1219,6 +1219,65 @@ extern "C" EXPORT void *bond_other_atom(void *bond, void *atom)
       molc_error();
     }
     return oa;
+}
+
+extern "C" EXPORT void bond_halfbond_cylinder_placements(void *bonds, size_t n, float32_t *m44)
+{
+    Bond **b = static_cast<Bond **>(bonds);
+    try {
+      float32_t *m44b = m44 + 16*n;
+      for (size_t i = 0; i != n; ++i) {
+	Bond *bd = b[i];
+	Atom *a0 = bd->atoms()[0], *a1 = bd->atoms()[1];
+	const Coord &xyz0 = a0->coord(), &xyz1 = a1->coord();
+	float r = bd->radius();
+
+	float x0 = xyz0[0], y0 = xyz0[1], z0 = xyz0[2], x1 = xyz1[0], y1 = xyz1[1], z1 = xyz1[2];
+	float vx = x1-x0, vy = y1-y0, vz = z1-z0;
+	float d = sqrtf(vx*vx + vy*vy + vz*vz);
+	if (d == 0)
+	  { vx = vy = 0 ; vz = 1; }
+	else
+	  { vx /= d; vy /= d; vz /= d; }
+
+	float c = vz, c1;
+	if (c <= -1)
+	  c1 = 0;       // Degenerate -z axis case.
+	else
+	  c1 = 1.0/(1+c);
+
+	float wx = -vy, wy = vx;
+	float cx = c1*wx, cy = c1*wy;
+	float h = d;
+
+	*m44++ = *m44b++ = r*(cx*wx + c);
+	*m44++ = *m44b++ = r*cy*wx;
+	*m44++ = *m44b++ = -r*wy;
+	*m44++ = *m44b++ = 0;
+
+	*m44++ = *m44b++ = r*cx*wy;
+	*m44++ = *m44b++ = r*(cy*wy + c);
+	*m44++ = *m44b++ = r*wx;
+	*m44++ = *m44b++ = 0;
+
+	*m44++ = *m44b++ = h*wy;
+	*m44++ = *m44b++ = -h*wx;
+	*m44++ = *m44b++ = h*c;
+	*m44++ = *m44b++ = 0;
+
+	*m44++ = .75*x0 + .25*x1;
+	*m44++ = .75*y0 + .25*y1;
+	*m44++ = .75*z0 + .25*z1;
+	*m44++ = 1;
+
+	*m44b++ = .25*x0 + .75*x1;
+	*m44b++ = .25*y0 + .75*y1;
+	*m44b++ = .25*z0 + .75*z1;
+	*m44b++ = 1;
+      }
+    } catch (...) {
+        molc_error();
+    }
 }
 
 // -------------------------------------------------------------------------
@@ -2192,13 +2251,13 @@ extern "C" EXPORT void set_residue_ribbon_color(void *residues, size_t n, uint8_
 
 #define AVERAGE_PEPTIDE_PLANE
 #ifdef AVERAGE_PEPTIDE_PLANE
-static void residue_update_hide(Residue *r, Atom *center)
+static void residue_update_hide(Residue *r, Atom *anchor)
 {
     if (r->ribbon_display() && r->ribbon_hide_backbone()) {
         // Ribbon is shown and hides backbone, so hide backbone atoms and bonds
         for (auto atom: r->atoms())
             if ((atom->hide() & Atom::HIDE_RIBBON) == 0
-                    && atom->is_backbone(BBE_RIBBON) && atom != center)
+                    && atom->is_backbone(BBE_RIBBON) && atom != anchor)
                 atom->set_hide(atom->hide() | Atom::HIDE_RIBBON);
     }
     else {
@@ -2206,7 +2265,7 @@ static void residue_update_hide(Residue *r, Atom *center)
         // so unhide backbone atoms and bonds
         for (auto atom: r->atoms())
             if ((atom->hide() & Atom::HIDE_RIBBON) != 0
-                    && atom->is_backbone(BBE_RIBBON) && atom != center)
+                    && atom->is_backbone(BBE_RIBBON) && atom != anchor)
                 atom->set_hide(atom->hide() & ~Atom::HIDE_RIBBON);
     }
 }
@@ -2290,11 +2349,15 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
                 prev_c = NULL;
                 // Look for nucleotide
                 Atom *a = r->find_atom("C5'");
+                Atom *anchor = a;
                 if (a == NULL) {
-                    // Case 2: not a nucleotide
-                    r->set_ribbon_display(false);
-                    residue_update_hide(r, NULL);
-                    continue;
+                    a = r->find_atom("P");
+                    if (a == NULL) {
+                        // Case 2: not a nucleotide
+                        r->set_ribbon_display(false);
+                        residue_update_hide(r, NULL);
+                        continue;
+                    }
                 }
                 // Case 3: Nucleotide
                 centers.push_back(a);
@@ -2305,7 +2368,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
                     else
                         has_guides = false;
                 }
-                residue_update_hide(r, a);
+                residue_update_hide(r, anchor);
             }
         }
 
@@ -2467,7 +2530,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int
                 Atom *guide = NULL;
                 for (auto atom: a) {
                     AtomName name = atom->name();
-                    if (name == "CA" || name == "C5'")
+                    if (name == "CA" || name == "C5'" || name == "P")
                         center = atom;
                     else if (want_guides && (name == "O" || name == "C1'"))
                         guide = atom;
@@ -3028,6 +3091,15 @@ extern "C" EXPORT void change_tracker_add_modified(void *vct, int class_num, voi
 }
 
 // -------------------------------------------------------------------------
+// coordset functions
+//
+extern "C" EXPORT void coordset_structure(void *coordsets, size_t n, pyobject_t *molp)
+{
+    CoordSet **cs = static_cast<CoordSet **>(coordsets);
+    error_wrap_array_get(cs, n, &CoordSet::structure, molp);
+}
+
+// -------------------------------------------------------------------------
 // sequence functions
 //
 extern "C" EXPORT void *sequence_new(const char* name, const char* characters)
@@ -3318,6 +3390,24 @@ extern "C" EXPORT void structure_num_bonds(void *mols, size_t n, size_t *nbonds)
 {
     Structure **m = static_cast<Structure **>(mols);
     error_wrap_array_get(m, n, &Structure::num_bonds, nbonds);
+}
+
+extern "C" EXPORT void structure_num_bonds_visible(void *mols, size_t n, size_t *nbonds)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    try {
+        for (size_t i = 0; i != n; ++i)
+          {
+            const Structure::Bonds &bonds = m[i]->bonds();
+            int c = 0;
+            for (auto b: bonds)
+              if (b->shown())
+                c += 1;
+            nbonds[i] = c;
+          }
+    } catch (...) {
+        molc_error();
+    }
 }
 
 extern "C" EXPORT void structure_bonds(void *mols, size_t n, pyobject_t *bonds)

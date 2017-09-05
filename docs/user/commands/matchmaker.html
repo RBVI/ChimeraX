@@ -35,7 +35,8 @@ The <b>matchmaker</b> (or <b>mmaker</b>) command
 superimposes protein or nucleic acid structures by first creating 
 a pairwise sequence alignment, then fitting the aligned residue pairs.
 Residue types and/or protein secondary structure information
-can be used to align the sequences.
+can be used to align the sequences, and the pairwise alignment can be shown
+in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>.
 <a name="matchatom">
 Fitting uses one point per residue:  CA in
 amino acid residues and C4' in nucleic acid residues.
@@ -66,7 +67,7 @@ whether chains or models should be specified.
 On occasion, it may be useful to <a href="#restrict">restrict</a>
 the calculation to certain residues.
 When <i>matchstruct</i> includes only a single model, 
-one or more additional atomic models to move along with it 
+one or more additional models to move along with it 
 can be specified with the <b>bring</b> option. 
 </p><p>
 Sequence alignment scores,
@@ -143,25 +144,19 @@ the C-terminal domains.  Otherwise, restriction is not recommended,
 because full-length alignments tend to be of higher quality, and
 <a href="#cutoffDistance">iteration</a> already serves to exclude
 poorly superimposed regions from the final fit.
-<!--
 Although the unused parts of matched chains will appear in the resulting
 sequence alignment (if <a href="#show">shown</a>), they have simply
 been added back in as &ldquo;filler,&rdquo; without consideration of
 how the characters align, after alignment and matching of only the
 specified residues.
--->
 </p>
 
 <a name="options"></a>
 <p class="nav">
-[<a href="#top">back to top</a>]
+[<a href="#top">back to top: matchmaker</a>]
 </p>
 <h3>Options</h3>
 <p>
-Option keywords and Boolean (truth) values can be truncated, with
-synonyms for true: True, 1, and synonyms for false: False, 0.
-A vertical bar &ldquo;|&rdquo; designates mutually exclusive values, and
-default settings are indicated with <b>bold</b>.
 Most of the options affect <a href="#scoring">alignment scoring</a>.
 </p>
 <blockquote>
@@ -193,48 +188,52 @@ Most of the options affect <a href="#scoring">alignment scoring</a>.
     </ul>
 </blockquote>
 <blockquote>
-  <font color="brown">
-  Not yet implemented:<br>
-  <a name="show"><b>showAlignment</b> &nbsp;true&nbsp;|&nbsp;<b>false</b></a>
-    <br>Whether to show the resulting pairwise sequence alignment(s).
-  </font>
+<a name="show"><b>showAlignment</b> &nbsp;true&nbsp;|&nbsp;<b>false</b></a>
+<br>
+Whether to show the resulting pairwise sequence alignment(s) in the
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>.
+When <a href="#cutoffDistance">fit iteration</a> is employed,
+the pairs used in the final fit will be highlighted in the sequence alignment
+as a <a href="../tools/sequenceviewer.html#regions">region</a> named 
+<font style="background:rgb(255,224,204);
+border:solid orangered 1px;padding:1px 3px">
+<b>matched&nbsp;residues</b></font>.
 <!--
-    with <a href="../../ContributedSoftware/multalignviewer/framemav.html"
-    target="_top"><b>Multalign Viewer</b></a>.
-    When <a href="#cutoffDistance">fit iteration</a> is employed,
-    the pairs used in the final fit will be shown in the alignment as a 
-<a href="../../ContributedSoftware/multalignviewer/multalignviewer.html#regions">region</a> 
-   named <b>matched residues</b>. The &ldquo;<b>RMSD: ca</b>&rdquo; 
+The &ldquo;<b>RMSD: ca</b>&rdquo; 
 <a href="../../ContributedSoftware/multalignviewer/multalignviewer.html#headers">header</a>
-  is automatically shown above the sequences, with histogram bar heights
-  representing the <a href="#matchatom">single-point</a>
-  spatial variation among residues associated with a column.
-  In the pairwise case, the value per column is simply the distance between
-  the two associated residues.
-  <p>
-*When the fit has been <a href="#restrict">restricted</a> to specified residues,
+is automatically shown above the sequences, with histogram bar heights
+representing the <a href="#matchatom">single-point</a>
+spatial variation among residues associated with a column.
+In the pairwise case, the value per column is simply the distance between
+the two associated residues.
+-->
+<p>
+*These sequence alignments are a by-product of superposition,
+and may not be entirely correct.
+Successful superposition only requires the sequence alignment to be partly
+correct, as incorrect portions tend to be excluded from the fit during
+<a href="#cutoffDistance">iteration</a>.
+If the sequences are easy to align (highly similar),
+the sequence alignment is likely to be correct throughout.
+However, if the sequences are more distantly related,
+parts of the alignment may be incorrect even when the superposition is good.
+<!--
+When <b>matchmaker</b> is used 
+simply to superimpose structures, this is not important.
+However, if one also wants a corresponding sequence alignment,
+generating a structure-based alignment (after superposition) with
+<a href="../../ContributedSoftware/matchalign/matchalign.html"><b>Match 
+-> Align</b></a> is recommended, especially if the sequences are dissimilar.
+The structure-based sequence alignment will provide better
+statistics for describing structural similarity (RMSD, <i>etc.</i>)
+because more columns will be aligned correctly.
+-->
+</p><p>
+**When the fit has been <a href="#restrict">restricted</a> to specified residues,
 the remaining residues of matched chains will still appear in the alignment,
 but merely as a convenient compact representation; how they are aligned
 is not meaningful.
-  </p><p>
-  **These sequence alignments can be considered a by-product of superposition.
-  Successful superposition only requires the sequence alignment to be partly
-  correct, as incorrect portions tend to be excluded from the fit during
-  <a href="#cutoffDistance">iteration</a>.
-  If the sequences are easy to align (highly similar),
-  the sequence alignment is likely to be correct throughout.
-  However, if the sequences are more distantly related,
-  parts of the alignment may be incorrect even when a successful
-  superposition is produced. When <b>matchmaker</b> is used 
-  simply to superimpose structures, this is not important.  However, if
-  one also wants a corresponding sequence alignment,
-  generating a structure-based alignment (after superposition) with
-  <a href="../../ContributedSoftware/matchalign/matchalign.html"><b>Match 
-  -> Align</b></a> is recommended, especially if the sequences are dissimilar.
-  The structure-based sequence alignment will provide better
-  statistics for describing structural similarity (RMSD, <i>etc.</i>)
-  because more columns will be aligned correctly.
--->
+</p>
 </blockquote>
 <blockquote>
   <a name="cutoffDistance"><b>cutoffDistance</b> 
@@ -281,7 +280,7 @@ in the sequence alignment.
 
 <a name="scoring"></a>
 <p class="nav">
-[<a href="#top">back to top</a>]
+[<a href="#top">back to top: matchmaker</a>]
 </p>
 <h3>Alignment Scoring Options</h3>
 <p>
@@ -436,5 +435,5 @@ a secondary structure term (if protein), and gap penalties.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2017</address>
+August 2017</address>
 </body></html>

@@ -45,7 +45,7 @@ class GrayScaleDrawing(Drawing):
     # Mode names 2d-xyz, 2d-x, 2d-y, 2d-z, 3d
     self._projection_mode = '2d-z'
 
-    self.maximum_intensity_projection = False
+    self._maximum_intensity_projection = False
 
     self.linear_interpolation = True
 
@@ -114,6 +114,13 @@ class GrayScaleDrawing(Drawing):
       self._show_box_faces = s
       self.remove_planes()
   show_box_faces = property(showing_box_faces, set_showing_box_faces)
+
+  def max_intensity_projection(self):
+    return self._maximum_intensity_projection
+  def set_max_intensity_projection(self, enable):
+    if enable != self._maximum_intensity_projection:
+      self._maximum_intensity_projection = enable
+  maximum_intensity_projection = property(max_intensity_projection, set_max_intensity_projection)
   
   def modulation_rgba(self):
     return self.mod_rgba
@@ -317,7 +324,7 @@ class GrayScaleDrawing(Drawing):
       textures.append(self.texture_plane(k, axis))
       tc[4*p:4*(p+1),:] = (tc2 if axis == 1 else tc1)
 
-    p = self.new_drawing()
+    p = self.new_drawing('grayscale planes')
     p.color = tuple(int(255*r) for r in self.modulation_rgba())
     p.use_lighting = False
     p.opaque_texture = (not 'a' in self.color_mode)
@@ -373,31 +380,31 @@ class BlendedImage(GrayScaleDrawing):
     name = 'blend ' + ', '.join(d.name for d in drawings)
     GrayScaleDrawing.__init__(self, name)
 
-    d = drawings[0]
+    self.drawings = drawings
+
+    self.mirror_attributes()
+
+    for d in drawings:
+      d.remove_planes()	# Free textures and opengl buffers
+
+    self._rgba8_array = None
+
+  def mirror_attributes(self):
+    d = self.drawings[0]
     if 'a' not in d.color_mode:
       self.color_mode = 'rgb8'
 
     for attr in ('grid_size', 'ijk_to_xyz', 'projection_mode', 'maximum_intensity_projection',
                  'linear_interpolation', 'transparency_blend_mode', 'brightness_and_transparency_correction',
                  'minimal_texture_memory', 'show_outline_box', 'outline_box_rgb', 'outline_box_linewidth',
-                 '_show_box_faces', '_show_ortho_planes', '_ortho_planes_position'):
+                 'show_box_faces', 'show_ortho_planes', 'ortho_planes_position'):
       setattr(self, attr, getattr(d, attr))
-
-    self.drawings = drawings
-    for d in drawings:
-      d.remove_planes()	# Free textures and opengl buffers
-
-    self._rgba8_array = None
 
   def draw(self, renderer, place, draw_pass, selected_only = False):
 
-    # Mirror orthoplane and box face modes.
-    d = self.drawings[0]
-    self.show_ortho_planes = d.show_ortho_planes
-    self.ortho_planes_position = d.ortho_planes_position
-    self.show_box_faces = d.show_box_faces
-    
+    self.mirror_attributes()
     self.check_update_colors()
+    
     GrayScaleDrawing.draw(self, renderer, place, draw_pass, selected_only)
 
   @property
