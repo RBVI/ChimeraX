@@ -17,7 +17,10 @@ from . import Annotation, AnnotationError
 def undo(session):
     '''Undo last undoable action.
     '''
-    session.undo.undo()
+    try:
+        session.undo.undo()
+    except IndexError:
+        session.logger.error("No undo action is available")
 
 def undo_list(session):
     '''List undoable actions
@@ -30,7 +33,10 @@ def undo_list(session):
 def redo(session):
     '''Redo last undone action.
     '''
-    session.undo.redo()
+    try:
+        session.undo.redo()
+    except IndexError:
+        session.logger.error("No redo action is available")
 
 def redo_list(session):
     '''List undoable actions
