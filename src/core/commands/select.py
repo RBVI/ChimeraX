@@ -28,12 +28,14 @@ def select(session, objects=None, polymer=None):
         from . import all_objects
         objects = all_objects(session)
 
+    undo_data = _undo_setup()
     if objects is not None:
-        session.selection.clear()
-        modify_selection(objects, 'add')
+        clear_selection(session, "select_clear", undo_data)
+        modify_selection(objects, 'add', undo_data)
 
     if polymer is not None:
-        polymer_selection(polymer, session)
+        polymer_selection(polymer, session, undo_data)
+    _undo_finish(session, undo_data)
         
     report_selection(session)
 
@@ -43,21 +45,27 @@ def select_add(session, objects=None):
     if objects is None:
         from . import all_objects
         objects = all_objects(session)
-    modify_selection(objects, 'add')
+    undo_data = _undo_setup()
+    modify_selection(objects, 'add', undo_data)
+    _undo_finish(session, undo_data)
 
 def select_subtract(session, objects=None):
     '''Subtract objects from the selection.
     If objects is None the selection is cleared.'''
+    undo_data = _undo_setup()
     if objects is None:
-        session.selection.clear()
+        clear_selection(session, "subtract_clear", undo_data)
     else:
-        modify_selection(objects, 'subtract')
+        modify_selection(objects, 'subtract', undo_data)
+    _undo_finish(session, undo_data)
 
 def select_intersect(session, objects=None):
     '''Reduce the selection by intersecting with specified objects.'''
-    intersect_selection(objects, session)
+    undo_data = _undo_setup()
+    intersect_selection(objects, session, undo_data)
+    _undo_finish(session, undo_data)
 
-def polymer_selection(seq_atoms, session):
+def polymer_selection(seq_atoms, session, undo_data):
     '''
     Reduce the current selected atoms to include only those that belong to a chain
     having the same sequence string as one of seq_atoms.
@@ -69,16 +77,20 @@ def polymer_selection(seq_atoms, session):
         sseqs, sseq_ids = seq_atoms.residues.unique_sequences
         sset = set(sseqs)
         sset.discard('')	# Don't include non-polymers.
+        undo_data["atoms"]["polymer"] = up = []
         for atoms in atoms_list:
             seqs, seq_ids = atoms.residues.unique_sequences
             from numpy import array, bool
             smask = array([(seq in sset) for seq in seqs], bool)
             satoms = atoms.filter(smask[seq_ids])
+            up.append((satoms, satoms.selected, True))
             satoms.selected = True
     
 def select_clear(session, objects=None):
     '''Clear the selection.'''
-    session.selection.clear()
+    undo_data = _undo_setup()
+    clear_selection(session, "clear", undo_data)
+    _undo_finish(session, undo_data)
 
 def report_selection(session):
     s = session.selection
@@ -96,14 +108,17 @@ def report_selection(session):
         lines.append('%d model%s' % (mc, plural))
     session.logger.status(', '.join(lines) + ' selected', log = True)
 
-def modify_selection(objects, mode = 'add'):
+def modify_selection(objects, mode, undo_data):
     select = (mode == 'add')
     atoms, models = _atoms_and_models(objects)
+    undo_data["atoms"]["modify"] = [(atoms, atoms.selected, select)]
     atoms.selected = select
+    undo_data["models"]["modify"] = um = []
     for m in models:
+        um.append((m, m.selected, select))
         m.selected = select
 
-def intersect_selection(objects, session):
+def intersect_selection(objects, session, undo_data):
     atoms, models = _atoms_and_models(objects)
     from .. import atomic
     selatoms = atomic.selected_atoms(session)
@@ -111,9 +126,29 @@ def intersect_selection(objects, session):
     from ..atomic import Structure
     selmodels = set(m for m in session.selection.models() if not isinstance(m, Structure))
     submodels = selmodels.difference(models)
+    undo_data["atoms"]["intersect"] = [(subatoms, subatoms.selected, False)]
     subatoms.selected = False
+    undo_data["models"]["intersect"] = um = []
     for m in submodels:
+        um.append((m, m.selected, False))
         m.selected = False
+
+def clear_selection(session, why, undo_data):
+    from ..atomic.molarray import Atoms
+    atoms = session.selection.items("atoms")
+    if atoms:
+        undo_data["atoms"][why] = ua = []
+        if isinstance(atoms, Atoms):
+            ua.append((atoms, atoms.selected, False))
+        else:
+            for a in atoms:
+                ua.append((a, a.selected, False))
+    models = [m for m in session.selection.all_models() if m.selected]
+    if models:
+        undo_data["models"][why] = um = []
+        for m in models:
+            um.append((m, m.selected, False))
+    session.selection.clear()
 
 def _atoms_and_models(objects):
     # Treat selecting molecular surface as selecting atoms.
@@ -134,6 +169,63 @@ def _atoms_and_models(objects):
         from ..atomic import molarray
         atoms = molarray.concatenate([atoms] + satoms)
     return atoms, models
+
+def _undo_setup():
+    undo_data = {}
+    undo_data["models"] = {}
+    undo_data["atoms"] = {}
+    return undo_data
+
+def _undo_finish(session, undo_data):
+    def undo(undo_data=undo_data):
+        _selection_undo(undo_data)
+    def redo(undo_data=undo_data):
+        _selection_redo(undo_data)
+    session.undo.register("selection", undo, redo)
+
+def _update_selected(undo_dict, key, attr, n):
+    try:
+        items = undo_dict[key]
+    except KeyError:
+        return
+    for item in items:
+        container = item[0]
+        value = item[n]
+        setattr(container, attr, value)
+
+def _selection_undo(undo_data):
+    atoms_dict = undo_data["atoms"]
+    models_dict = undo_data["models"]
+
+    _update_selected(models_dict, "modify", "selected", 1)
+    _update_selected(models_dict, "intersect", "selected", 1)
+    _update_selected(atoms_dict, "polymer", "selected", 1)
+    _update_selected(atoms_dict, "modify", "selected", 1)
+    _update_selected(atoms_dict, "intersect", "selected", 1)
+
+    _update_selected(models_dict, "select_clear", "selected", 1)
+    _update_selected(models_dict, "subtract_clear", "selected", 1)
+    _update_selected(models_dict, "clear", "selected", 1)
+    _update_selected(atoms_dict, "select_clear", "selected", 1)
+    _update_selected(atoms_dict, "subtract_clear", "selected", 1)
+    _update_selected(atoms_dict, "clear", "selected", 1)
+
+def _selection_redo(undo_data):
+    atoms_dict = undo_data["atoms"]
+    models_dict = undo_data["models"]
+
+    _update_selected(models_dict, "select_clear", "selected", 2)
+    _update_selected(models_dict, "subtract_clear", "selected", 2)
+    _update_selected(models_dict, "clear", "selected", 2)
+    _update_selected(atoms_dict, "select_clear", "selected", 2)
+    _update_selected(atoms_dict, "subtract_clear", "selected", 2)
+    _update_selected(atoms_dict, "clear", "selected", 2)
+
+    _update_selected(models_dict, "modify", "selected", 2)
+    _update_selected(models_dict, "intersect", "selected", 2)
+    _update_selected(atoms_dict, "polymer", "selected", 2)
+    _update_selected(atoms_dict, "modify", "selected", 2)
+    _update_selected(atoms_dict, "intersect", "selected", 2)
 
 def register_command(session):
     from . import CmdDesc, register, ObjectsArg, NoArg, create_alias, AtomsArg
