@@ -94,7 +94,7 @@ def report_selection(session):
     if mc != 0:
         plural = ('s' if mc > 1 else '')
         lines.append('%d model%s' % (mc, plural))
-    session.logger.status(', '.join(lines) + ' selected')
+    session.logger.status(', '.join(lines) + ' selected', log = True)
 
 def modify_selection(objects, mode = 'add'):
     select = (mode == 'add')
