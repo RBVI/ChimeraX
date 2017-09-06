@@ -13,23 +13,43 @@
 
 from .settings import defaults
 
-def cmd_clashes(session, test_atoms, overlap_cutoff=defaults["clash_threshold"],
-        hbond_allowance=defaults["clash_hbond_allowance"], *args, **kw):
-    return _cmd(session, test_atoms, overlap_cutoff, hbond_allowance, *args, **kw)
+def cmd_clashes(session, test_atoms, *args, *
+        group_name="clashes",
+        hbond_allowance=defaults["clash_hbond_allowance"],
+        overlap_cutoff=defaults["clash_threshold"],
+        **kw):
+    return _cmd(session, test_atoms, group_name, hbond_allowance, overlap_cutoff, *args, **kw)
 
-def cmd_contacts(session, test_atoms, overlap_cutoff=defaults["contact_threshold"],
-        hbond_allowance=defaults["clash_hbond_allowance"], *args, **kw):
-    return _cmd(session, test_atoms, overlap_cutoff, hbond_allowance, *args, **kw)
+def cmd_contacts(session, test_atoms, *args, *,
+        group_name="contacts",
+        hbond_allowance=defaults["clash_hbond_allowance"],
+        overlap_cutoff=defaults["contact_threshold"],
+        **kw):
+    return _cmd(session, test_atoms, group_name, hbond_allowance, overlap_cutoff, *args, **kw)
 
-def _cmd(session, test_atoms, overlap_cutoff, hbond_allowance, atom_color=defaults["atom_color"],
-        bond_separation=defaults["bond_separation"], color_atoms=defaults["action_color"],
-		continuous=False, coordset=None, inter_model=Treu, inter_submodel=False,
-        intra_mol=defaults["intra_mol"], intra_res=defaults["intra_res"],
-        log=defaults["action_log"], make_pseudobonds=defaults["action_pseudobonds"],
-        naming_style=None, nonatom_color=defaults["nonatom_color"], pb_color=defaults["pb_color"],
-        pb_radius=defaults["pb_radius"], reveal=False, save_file=None,
-		set_attrs=defaults["action_attr"], select_clashes=defaults["action_select"],
-        summary=True, test="cross"):
+def _cmd(session, test_atoms, group_name, hbond_allowance, overlap_cutoff,
+        atom_color=defaults["atom_color"],
+        attr_name=defaults["attr_name"],
+        bond_separation=defaults["bond_separation"],
+        color_atoms=defaults["action_color"],
+        continuous=False,
+        coordset=None,
+        inter_model=True,
+        inter_submodel=False,
+        intra_mol=defaults["intra_mol"],
+        intra_res=defaults["intra_res"],
+        log=defaults["action_log"],
+        make_pseudobonds=defaults["action_pseudobonds"],
+        naming_style=None,
+        nonatom_color=defaults["nonatom_color"],
+        pb_color=defaults["pb_color"],
+        pb_radius=defaults["pb_radius"],
+        reveal=False,
+        save_file=None,
+		set_attrs=defaults["action_attr"],
+        select_clashes=defaults["action_select"],
+        summary=True,
+        test="cross"):
     from chimerax.core.colors import Color
     if isinstance(atom_color, Color):
         atom_color = atom_color.uint8x4()
@@ -38,33 +58,35 @@ def _cmd(session, test_atoms, overlap_cutoff, hbond_allowance, atom_color=defaul
     if isinstance(pb_color, Color):
         pb_color = pb_color.uint8x4()
 	from chimeras.core.errors import UserError
-    if continuous:
-        raise UserError("'continuous true' not yet implemented")
-    #TODO: need transformation change trigger
-    """
 	continuous_attr = "_clashes_continuous_id"
+    from chimerax.core.atomic import get_triggers
 	if continuous:
 		if set_attrs or save_file != None or log:
 			raise UserError("log/setAttrs/saveFile not allowed with continuous detection")
 		if getattr(session, continuous_attr, None) == None:
 			from inspect import getargvalues, currentframe
-			argNames, fArgs, fKw, frameDict = getargvalues(
-								currentframe())
-			callData = [frameDict[an] for an in argNames]
-			def preCB(trigName, myData, changes):
-				if 'transformation change' in changes.reasons:
+			arg_names, fArgs, fKw, frame_dict = getargvalues(currentframe())
+			call_data = [frame_dict[an] for an in arg_names]
+			def changes_cb(trig_name, changes, session=session, call_data=call_data):
+				if 'position change' in changes.atomic_structure_reasons():
+                    if not call_data[0]:
+                        # all atoms gone
+                        delattr(session, continuous_attr)
+                        from chimerax.core.triggerset import DEREGISTER
+                        return DEREGISTER
+                    _cmd(*tuple(call_data))
 					return _motionCB(myData)
-			_continuousID = chimera.triggers.addHandler(
-						'OpenState', preCB, callData)
-	elif _continuousID != None:
-		chimera.triggers.deleteHandler('OpenState', _continuousID)
-		_continuousID = None
-    """
-    #TODO: 'inter_model' keyword is new (no "model" in 'test')
-	clashes = detectClash(test_atoms, test=test,
-		hbond_allowance=hbond_allowance, clashThreshold=overlap_cutoff,
-		bond_separation=bond_separation, intra_res=intra_res, intra_mol=intra_mol,
-        inter_model=inter_model, inter_submodel=inter_submodel, coordset=coordset)
+			setattr(session, continuous_attr, get_triggers(session).add_handler(
+						'changes', changes_cb))
+	elif getattr(session, continuous_attr, None) != None:
+        get_triggers(session).remove_handler(getattr(session, continuous_attr))
+        delattr(session, continous_attr)
+    from .clashes import find_clashes
+    #TODO: 'inter_model' keyword is new (no "model" option in 'test' now)
+	clashes = find_clashes(test_atoms, attr_name=attr_name, bond_separation=bond_separation,
+        clash_threshold=overlap_cutoff, coordset=coordset, group_name=group_name,
+        hbond_allowance=hbond_allowance, inter_model=inter_model, inter_submodel=inter_submodel,
+		intra_res=intra_res, intra_mol=intra_mol, test=test)
 	if select_clashes:
 		chimera.selectionOperation(clashes.keys())
 	if test == "self":
