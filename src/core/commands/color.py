@@ -172,12 +172,12 @@ def color(session, objects, color=None, what=None,
             if len(bonds) > 0:
                 if color not in _SpecialColors and color is not None:
                     color_array = color.uint8x4()
-                    undo["pseudobonds"] = (bonds, bonds.colors, color_array)
+                    undo_data["pseudobonds"] = (bonds, bonds.colors, color_array)
                     bonds.colors = color_array
                     bl.append(bonds)
                     apbgs.update(bonds.groups.unique())
         from ..atomic import PseudobondGroup
-        undo["pbg"] = up = []
+        undo_data["pbg"] = up = []
         for pbg in objects.models:
             if isinstance(pbg, PseudobondGroup) and pbg not in apbgs:
                 if color not in _SpecialColors and color is not None:
