@@ -71,17 +71,29 @@ def cartoon(session, atoms=None, smooth=None, suppress_backbone_display=None, sp
         atoms = atomspec.everything(session)
     results = atoms.evaluate(session)
     residues = results.atoms.residues
+    undo_data = {}
+    undo_data["ribbon_displays"] = (residues, residues.ribbon_displays, True)
     residues.ribbon_displays = True
     if smooth is not None:
         if smooth is "default":
             # Convert to C++ default value
             smooth = -1.0
+        undo_data["ribbon_adjust"] = (residues, residues.ribbon_adjust, smooth)
         residues.ribbon_adjusts = smooth
     if suppress_backbone_display is not None:
+        undo_data["ribbon_hide_backbones"] = (residues, residues.ribbon_hide_backbones,
+                                              suppress_backbond_display)
         residues.ribbon_hide_backbones = suppress_backbone_display
     if spine is not None:
+        undo_data["ribbon_show_spines"] = (residues, residues.ribbon_show_spines, spine)
         residues.unique_structures.ribbon_show_spines = spine
     residues.atoms.update_ribbon_visibility()
+
+    def undo(data=undo_data):
+        _cartoon_undo(data)
+    def redo(data=undo_data):
+        _cartoon_redo(data)
+    session.undo.register("cartoon", undo, redo)
 
 
 def _get_structures(session, structures):
@@ -129,15 +141,26 @@ def cartoon_tether(session, structures=None, scale=None, shape=None, sides=None,
             print(indent, "sides", m.ribbon_tether_sides)
             print(indent, "opacity", m.ribbon_tether_opacity)
         return
+    undo_data = {}
     if scale is not None:
+        undo_data["ribbon_tether_scales"] = (structures, structures.ribbon_tether_scales, scale)
         structures.ribbon_tether_scales = scale
     if shape is not None:
         ts = _TetherShapeMap.get(shape, Structure.TETHER_CONE)
+        undo_data["ribbon_tether_shapes"] = (structures, structures.ribbon_tether_shapes, ts)
         structures.ribbon_tether_shapes = ts
     if sides is not None:
+        undo_data["ribbon_tether_sides"] = (structures, structures.ribbon_tether_sides, sides)
         structures.ribbon_tether_sides = sides
     if opacity is not None:
+        undo_data["ribbon_tether_opacities"] = (structures, structures.ribbon_tether_opacities, opacity)
         structures.ribbon_tether_opacities = opacity
+
+    def undo(data=undo_data):
+        _cartoon_tether_undo(data)
+    def redo(data=undo_data):
+        _cartoon_tether_redo(data)
+    session.undo.register("cartoon tether", undo, redo)
 
 
 def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, arrows_helix=None,
@@ -238,18 +261,28 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
         width /= 2
     if thickness is not None:
         thickness /= 2
-    # set coil parameters
+    undo_data = {}
     if is_coil.any():
+        # set coil parameters
+        undo_data["coil_scale"] = uscale = []
+        undo_data["coil_style"] = ustyle = []
         for m in structures:
             mgr = m.ribbon_xs_mgr
             if thickness is not None:
                 coil_scale_changed[m] = True
+                uscale.append((m, mgr.scale_coil, (thickness, thickness)))
                 mgr.set_coil_scale(thickness, thickness)
             if (xsection is not None and
                     _XSectionMap[xsection] != XSectionManager.STYLE_PIPING):
-                m.ribbon_xs_mgr.set_coil_style(_XSectionMap[xsection])
+                ustyle.append((m, mgr.style_coil, _XSectionMap[xsection]))
+                mgr.set_coil_style(_XSectionMap[xsection])
     if is_helix.any():
         # set helix parameters
+        undo_data["helix_scale"] = uscale = []
+        undo_data["helix_arrow_scale"] = uascale = []
+        undo_data["helix_end_arrow"] = uendarrow = []
+        undo_data["helix_transition"] = utransition = []
+        undo_data["helix_style"] = ustyle = []
         for m in structures:
             mgr = m.ribbon_xs_mgr
             old_arrow_scale = None
@@ -259,6 +292,7 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
                     w = width
                 if thickness is not None:
                     h = thickness
+                uscale.append((m, mgr.scale_helix, (w, h)))
                 mgr.set_helix_scale(w, h)
                 aw, ah = mgr.scale_helix_arrow[0]
                 old_arrow_scale = aw / w
@@ -270,14 +304,20 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
                     aw = w * old_arrow_scale
                 ah = h
                 cw, ch = mgr.scale_coil
+                old = mgr.scale_helix_arrow[0] + mgr.scale_helix_arrow[1]
+                uascale.append((m, old, (aw, ah, cw, ch)))
                 mgr.set_helix_arrow_scale(aw, ah, cw, ch)
             elif coil_scale_changed.get(m, False):
                 aw, ah = mgr.scale_helix_arrow[0]
                 cw, ch = mgr.scale_coil
+                old = mgr.scale_helix_arrow[0] + mgr.scale_helix_arrow[1]
+                uascale.append((m, old, (aw, ah, cw, ch)))
                 mgr.set_helix_arrow_scale(aw, ah, cw, ch)
             if arrows_helix is not None:
+                uendarrow.append((m, mgr.arrow_helix, arrows_helix))
                 mgr.set_helix_end_arrow(arrows_helix)
             if ss_ends is not None:
+                # TODO: save undo data
                 # These are the cases we deal with:
                 # 1. coil->helix_start. (c_hs below)
                 #    The default is coil/helix (use coil for front and helix for back).
@@ -347,9 +387,15 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
                 mgr.set_transition(mgr.RC_HELIX_START, mgr.RC_HELIX_END, mgr.RC_SHEET_START, *h_he_ss)
                 mgr.set_transition(mgr.RC_HELIX_MIDDLE, mgr.RC_HELIX_END, mgr.RC_SHEET_START, *h_he_ss)
             if xsection is not None:
-                m.ribbon_xs_mgr.set_helix_style(_XSectionMap[xsection])
+                ustyle.append((m, mgr.style_helix, _XSectionMap[xsection]))
+                mgr.set_helix_style(_XSectionMap[xsection])
     if is_strand.any():
         # set strand/sheet parameters
+        undo_data["sheet_scale"] = uscale = []
+        undo_data["sheet_arrow_scale"] = uascale = []
+        undo_data["sheet_end_arrow"] = uendarrow = []
+        undo_data["sheet_transition"] = utransition = []
+        undo_data["sheet_style"] = ustyle = []
         for m in structures:
             mgr = m.ribbon_xs_mgr
             old_arrow_scale = None
@@ -359,6 +405,7 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
                     w = width
                 if thickness is not None:
                     h = thickness
+                uscale.append((m, mgr.scale_sheet, (aw, ah, cw, ch)))
                 mgr.set_sheet_scale(w, h)
                 aw, ah = mgr.scale_sheet_arrow[0]
                 old_arrow_scale = aw / w
@@ -370,14 +417,20 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
                     aw = w * old_arrow_scale
                 ah = h
                 cw, ch = mgr.scale_coil
+                old = mgr.scale_sheet_arrow[0] + mgr.scale_sheet_arrow[1]
+                uascale.append((m, old, (aw, ah, cw, ch)))
                 mgr.set_sheet_arrow_scale(aw, ah, cw, ch)
             elif coil_scale_changed.get(m, False):
                 aw, ah = mgr.scale_sheet_arrow[0]
                 cw, ch = mgr.scale_coil
+                old = mgr.scale_sheet_arrow[0] + mgr.scale_sheet_arrow[1]
+                uascale.append((m, old, (aw, ah, cw, ch)))
                 mgr.set_sheet_arrow_scale(aw, ah, cw, ch)
             if arrows is not None:
+                uendarrow.append((m, mgr.arrow_sheet, arrows_sheet))
                 mgr.set_sheet_end_arrow(arrows)
             if ss_ends is not None:
+                # TODO: save undo data
                 if ss_ends == "default":
                     # c_ss = (mgr.RIBBON_COIL, mgr.RIBBON_SHEET)
                     he_ss_s = (mgr.RIBBON_SHEET, mgr.RIBBON_SHEET)
@@ -420,9 +473,12 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
                 mgr.set_transition(mgr.RC_SHEET_START, mgr.RC_SHEET_END, mgr.RC_SHEET_START, *s_se_ss)
                 mgr.set_transition(mgr.RC_SHEET_MIDDLE, mgr.RC_SHEET_END, mgr.RC_SHEET_START, *s_se_ss)
             if xsection is not None:
-                m.ribbon_xs_mgr.set_sheet_style(_XSectionMap[xsection])
+                ustyle.append((m, mgr.style_helix, _XSectionMap[xsection]))
+                mgr.set_sheet_style(_XSectionMap[xsection])
     if (polymer_types == Residue.PT_NUCLEIC).any():
         # set nucleic parameters
+        undo_data["nucleic_scale"] = uscale = []
+        undo_data["nucleic_style"] = ustyle = []
         for m in structures:
             mgr = m.ribbon_xs_mgr
             if width is not None or thickness is not None:
@@ -433,41 +489,68 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
                     h = width
                 if thickness is not None:
                     w = thickness
+                uscale.append((m, mgr.scale_nucleic, (w, h)))
                 mgr.set_nucleic_scale(w, h)
             if xsection is not None:
-                m.ribbon_xs_mgr.set_nucleic_style(_XSectionMap[xsection])
+                uscale.append((m, mgr.style_nucleic, _XSectionMap[xsection]))
+                mgr.set_nucleic_style(_XSectionMap[xsection])
     # process sides, bar_sides and bar_scale
     oval_params = {}
     bar_params = {}
     if sides is not None:
         oval_params["sides"] = sides
     if oval_params:
+        undo_data["oval_params"] = uop = []
         for m in structures:
-            m.ribbon_xs_mgr.set_params(XSectionManager.STYLE_ROUND, **oval_params)
+            mgr = m.ribbon_xs_mgr
+            old_param = mgr.params[XSectionManager.STYLE_ROUND].copy()
+            mgr.set_params(XSectionManager.STYLE_ROUND, **oval_params)
+            new_param = mgr.params[XSectionManager.STYLE_ROUND].copy()
+            uop.append((m, old_param, new_param))
     if bar_scale is not None:
         bar_params["ratio"] = bar_scale
     if bar_sides is not None:
         bar_params["sides"] = bar_sides
     if bar_params:
+        undo_data["bar_params"] = ubp = []
         for m in structures:
-            m.ribbon_xs_mgr.set_params(XSectionManager.STYLE_PIPING, **bar_params)
+            mgr = m.ribbon_xs_mgr
+            old_param = mgr.params[XSectionManager.STYLE_PIPING].copy()
+            mgr.set_params(XSectionManager.STYLE_PIPING, **bar_params)
+            new_param = mgr.params[XSectionManager.STYLE_PIPING].copy()
+            ubp.append((m, old_param, new_param))
     if mode_helix is not None:
+        undo_data["mode_helix"] = umh = []
         mode = _ModeHelixMap.get(mode_helix, None)
         for m in structures:
+            umh.append((m, m.ribbon_mode_helix, mode))
             m.ribbon_mode_helix = mode
     if mode_strand is not None:
+        undo_data["mode_strand"] = ums = []
         mode = _ModeStrandMap.get(mode_strand, None)
         for m in structures:
+            ums.append((m, m.ribbon_mode_strand, mode))
             m.ribbon_mode_strand = mode
     # process radius
     if radius is not None:
         if radius == "auto":
             radius = None
+        undo_data["radius"] = ur = []
         for m in structures:
-            m.ribbon_xs_mgr.set_tube_radius(radius)
+            mgr = m.ribbon_xs_mgr
+            ums.append((m, mgr.tube_radius, mode))
+            mgr.set_tube_radius(radius)
     if spline_normals is not None:
+        undo_data["spline_normals"] = usn = []
         for m in structures:
+            usn.append((m, m.spline_normals, spline_normals))
             m.spline_normals = spline_normals
+
+    def undo(data=undo_data):
+        _cartoon_style_undo(data)
+    def redo(data=undo_data):
+        _cartoon_style_redo(data)
+    session.undo.register("cartoon style", undo, redo)
 
 
 def uncartoon(session, atoms=None):
@@ -482,9 +565,20 @@ def uncartoon(session, atoms=None):
         from . import atomspec
         atoms = atomspec.everything(session)
     results = atoms.evaluate(session)
-    results.atoms.residues.ribbon_displays = False
+    residues = results.atoms.residues
+    undo_data = {}
+    undo_data["ribbon_displays"] = (residues, residues.ribbon_displays, False)
+    residues.ribbon_displays = False
+
+    def undo(data=undo_data):
+        _cartoon_undo(data)
+    def redo(data=undo_data):
+        _cartoon_redo(data)
+    session.undo.register("cartoon", undo, redo)
 
 
+# -----------------------------------------------------------------------------
+#
 class EvenIntArg(Annotation):
     """Annotation for even integers (for "sides")"""
     name = "an even integer"
@@ -501,6 +595,124 @@ class EvenIntArg(Annotation):
         return token, text, rest
 
 
+# -----------------------------------------------------------------------------
+#
+def _update_attr(undo_data, key, attr, n):
+    try:
+        items = undo_data[key]
+    except KeyError:
+        return
+    if isinstance(items, list):
+        for v in items:
+            try:
+                container = v[0]
+                value = v[n]
+            except (ValueError, IndexError):
+                pass
+            else:
+                setattr(container, attr, value)
+    else:
+        try:
+            container = items[0]
+            value = items[n]
+        except (KeyError, ValueError, IndexError):
+            pass
+        else:
+            setattr(container, attr, value)
+
+def _cartoon_undo(undo_data):
+    _cartoon_undo_redo(undo_data, 1)
+def _cartoon_redo(undo_data):
+    _cartoon_undo_redo(undo_data, 2)
+def _cartoon_undo_redo(undo_data, n):
+    _update_attr(undo_data, "ribbon_displays", "ribbon_displays", n)
+    _update_attr(undo_data, "ribbon_adjust", "ribbon_adjust", n)
+    _update_attr(undo_data, "ribbon_hide_backbones", "ribbon_hide_backbones", n)
+    _update_attr(undo_data, "ribbon_show_spines", "ribbon_show_spines", n)
+
+def _cartoon_tether_undo(undo_data):
+    _cartoon_tether_undo_redo(undo_data, 1)
+def _cartoon_tether_redo(undo_data):
+    _cartoon_tether_undo_redo(undo_data, 2)
+def _cartoon_tether_undo(undo_data, n):
+    _update_attr(undo_data, "ribbon_tether_scales", "ribbon_tether_scales", n)
+    _update_attr(undo_data, "ribbon_tether_shapes", "ribbon_tether_shapes", n)
+    _update_attr(undo_data, "ribbon_tether_sides", "ribbon_tether_sides", n)
+    _update_attr(undo_data, "ribbon_tether_opacities", "ribbon_tether_opacities", n)
+
+def _update_method(undo_data, key, xs, method, n):
+    try:
+        items = undo_data[key]
+    except KeyError:
+        return
+    if isinstance(items, list):
+        for v in items:
+            try:
+                container = v[0]
+                value = v[n]
+            except (ValueError, IndexError):
+                pass
+            else:
+                if xs:
+                    f = getattr(container.ribbon_xs_mgr, method)
+                else:
+                    f = getattr(container, method)
+                f(*value)
+    else:
+        try:
+            container = items[0]
+            value = items[n]
+        except (KeyError, ValueError, IndexError):
+            pass
+        else:
+            if xs:
+                f = getattr(container.ribbon_xs_mgr, method)
+            else:
+                f = getattr(container, method)
+            f(*value)
+
+def _update_params(undo_data, key, which, n):
+    try:
+        items = undo_data[key]
+    except KeyError:
+        return
+    for v in items:
+        try:
+            container = v[0]
+            value = v[n]
+        except (ValueError, IndexError):
+            pass
+        else:
+            container.ribbon_xs_mgr.set_params(which, **value)
+
+def _cartoon_style_undo(undo_data):
+    _cartoon_style_undo_redo(undo_data, 1)
+def _cartoon_style_redo(undo_data):
+    _cartoon_style_undo_redo(undo_data, 2)
+def _cartoon_style_undo_redo(undo_data, n):
+    _update_method(undo_data, "coil_scale", True, "set_coil_scale", n)
+    _update_method(undo_data, "coil_style", True, "set_coil_style", n)
+    _update_method(undo_data, "helix_scale", True, "set_helix_scale", n)
+    _update_method(undo_data, "helix_arrow_scale", True, "set_helix_arrow_scale", n)
+    _update_method(undo_data, "helix_end_arrow", True, "set_helix_end_arrow", n)
+    #_update_method(undo_data, "helix_transition", True, "set_helix_scale", n)
+    _update_method(undo_data, "helix_style", True, "set_helix_style", n)
+    _update_method(undo_data, "sheet_scale", True, "set_sheet_scale", n)
+    _update_method(undo_data, "sheet_arrow_scale", True, "set_sheet_arrow_scale", n)
+    _update_method(undo_data, "sheet_end_arrow", True, "set_sheet_end_arrow", n)
+    #_update_method(undo_data, "sheet_transition", True, "set_sheet_scale", n)
+    _update_method(undo_data, "sheet_style", True, "set_sheet_style", n)
+    _update_method(undo_data, "nucleic_scale", True, "set_nucleic_scale", n)
+    _update_method(undo_data, "nucleic_style", True, "set_nucleic_style", n)
+    _update_params(undo_data, "oval_params", XSectionManager.STYLE_ROUND, n)
+    _update_params(undo_data, "bar_params", XSectionManager.STYLE_PIPING, n)
+    _update_attr(undo_data, "mode_helix", "ribbon_mode_helix", n)
+    _update_attr(undo_data, "mode_strand", "ribbon_mode_strand", n)
+    _update_method(undo_data, "radius", True, "tube_radius", n)
+    _update_attr(undo_data, "spline_normals", "spline_normals", n)
+
+# -----------------------------------------------------------------------------
+#
 def register_command(session):
     from . import register, CmdDesc, AtomSpecArg, AtomicStructuresArg
     from . import Or, Bounded, FloatArg, EnumOf, BoolArg, IntArg, TupleOf, NoArg

@@ -71,6 +71,12 @@ class CommandLine(ToolInstance):
                         except IndexError:
                             # No undo action registered
                             pass
+                    elif event.key() == Qt.Key_R:
+                        try:
+                            session.undo.redo()
+                        except IndexError:
+                            # No redo action registered
+                            pass
                     else:
                         QComboBox.keyPressEvent(self, event)
                 else:

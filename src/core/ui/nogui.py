@@ -79,7 +79,7 @@ class UI:
         self._session = weakref.ref(session)
         self._queue = None
         import sys
-        if _color_output is not None and (_color_output or sys.stdout.isatty()):
+        if _color_output or (_color_output is None and sys.stdout.isatty()):
             try:
                 import colorama
                 colorama.init()
