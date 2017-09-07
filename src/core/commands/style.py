@@ -173,7 +173,6 @@ def _style_redo(undo_data):
     _update_attr(undo_data, "ball_scale", "ball_scale", 2)
     _update_attr(undo_data, "dashes", "dashes", 2)
 
-
 # -----------------------------------------------------------------------------
 #
 def register_command(session):
