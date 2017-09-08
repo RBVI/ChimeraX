@@ -154,6 +154,8 @@ def buffer_arrays(accessors, buffer_views, binc):
         atype = a['type']		# "VEC3", "SCALAR"
         if atype == 'VEC3':
             ba = ba.reshape((len(ba)//3, 3))
+        elif atype == 'VEC4':
+            ba = ba.reshape((len(ba)//4, 4))
         elif atype == 'SCALAR':
             pass
         else:
@@ -169,13 +171,29 @@ def set_geometry(model, va, na, vc, ta):
     if na is not None:
         model.normals = na
     if vc is not None:
-        from numpy import empty, uint8
-        c = empty((len(vc),4),uint8)
-        nc = vc.shape[1]
-        c[:,:nc] = (vc[:,:nc]*255).astype(uint8)
-        if nc == 3:
+        model.vertex_colors = colors_to_uint8(vc)
+
+# -----------------------------------------------------------------------------
+#
+def colors_to_uint8(vc):
+    from numpy import empty, uint8, float32
+    nc,ni = len(vc), vc.shape[1]
+    if vc.dtype == uint8:
+        if ni == 3:
+            c = empty((nc,4),uint8)
+            c[:,:3] = vc
             c[:,3] = 255
-        model.vertex_colors = c
+        elif ni == 4:
+            c = vc
+    elif vc.dtype == float32:
+        c = empty((nc,4),uint8)
+        c[:,:ni] = (vc[:,:ni]*255).astype(uint8)
+        if ni == 3:
+            c[:,3] = 255
+    else:
+        raise glTFError('glTF colors, only handle float32 and uint8, got %s' % str(vc.dtype))
+
+    return c
 
 # -----------------------------------------------------------------------------
 #
@@ -259,9 +277,6 @@ def geometry_buffers(geom):
         if na is not None:
             attr['NORMAL'] = b.add_array(na)
         if vc is not None:
-            # TODO: Save float RGB.
-            vc = vc[:,:3].astype(float32)
-            vc *= 1/255
             attr['COLOR_0'] = b.add_array(vc)
         prim.append({'attributes': attr, 'indices':b.add_array(ta.astype(uint32, copy=False))})
 
@@ -290,6 +305,8 @@ class Buffers:
             t = 'SCALAR'
         elif array.shape[1] == 3:
             t = 'VEC3'
+        elif array.shape[1] == 4:
+            t = 'VEC4'
         else:
             raise glTFError('glTF buffer shape %s not allowed, must be 1 dimensional or N by 3'
                             % repr(tuple(array.shape)))
