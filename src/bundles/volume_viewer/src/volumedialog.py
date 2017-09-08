@@ -2262,12 +2262,11 @@ class Histogram_Pane:
     show = self.shown.isChecked()
     v.display = show
 
-    self.update_shown_icon()
-
     if show:
       self.select_data_cb()
 
   # ---------------------------------------------------------------------------
+  # Not used.
   #
   def check_shown_cb(self, trigger, x, changes):
 
@@ -2295,7 +2294,7 @@ class Histogram_Pane:
     if v is None:
       return
 
-    shown = v.shown()
+    shown = v.display
     fname = 'shown.png' if shown else 'hidden.png'
     s = self.shown
     if fname == getattr(s, 'file_name', None):
