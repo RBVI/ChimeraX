@@ -20,7 +20,7 @@ def find_clashes(test_atoms,
         clash_threshold=defaults["clash_threshold"],
         coordset=None,
         group_name=defaults["group_name"],
-		hbond_allowance=defaults["hbond_allowance"],
+		hbond_allowance=defaults["clash_hbond_allowance"],
 		inter_model=True,
 		inter_submodel=False,
         intra_res=False,
@@ -142,6 +142,7 @@ def find_clashes(test_atoms,
 			clashes.setdefault(nb, {})[a] = clash
 	return clashes
 
+"""
 hyd = chimera.Element(1)
 negative = set([chimera.Element(sym) for sym in ["N", "O", "S"]])
 from chimera.idatm import typeInfo
@@ -167,3 +168,4 @@ def _acceptor(a):
 	except KeyError:
 		return False
 	return info.substituents < info.geometry
+"""
