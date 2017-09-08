@@ -463,7 +463,10 @@ class Drawing:
     '''Single color of drawing used when per-vertex coloring is not
     specified, 0-255 red, green, blue, alpha values.'''
 
-    def get_colors(self):
+    def get_colors(self, displayed_only=False):
+        if displayed_only:
+            dp = self.display_positions
+            return self._colors if dp is None else self._colors[dp]
         return self._colors
 
     def set_colors(self, rgba):
