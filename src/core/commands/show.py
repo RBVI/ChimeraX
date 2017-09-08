@@ -37,44 +37,41 @@ def show(session, objects=None, what=None, target=None, only=False):
     if len(what_to_show) == 0:
         what_to_show = set(['atoms' if objects.atoms else 'models'])
 
-    undo_data = {}
+    from ..undo import UndoState
+    undo_state = UndoState("show")
     if 'atoms' in what_to_show:
-        show_atoms(session, objects, only, undo_data)
+        show_atoms(session, objects, only, undo_state)
     if 'bonds' in what_to_show:
-        show_bonds(session, objects, only, undo_data)
+        show_bonds(session, objects, only, undo_state)
     if 'pseudobonds' in what_to_show or 'pbonds' in what_to_show:
-        show_pseudobonds(session, objects, only, undo_data)
+        show_pseudobonds(session, objects, only, undo_state)
     if 'cartoons' in what_to_show or 'ribbons' in what_to_show:
-        show_cartoons(session, objects, only, undo_data)
+        show_cartoons(session, objects, only, undo_state)
     if 'surfaces' in what_to_show:
-        show_surfaces(session, objects, only, undo_data)
+        show_surfaces(session, objects, only, undo_state)
     if 'models' in what_to_show:
-        show_models(session, objects, only, undo_data)
+        show_models(session, objects, only, undo_state)
 
-    def undo(data=undo_data):
-        _show_undo(data)
-    def redo(data=undo_data):
-        _show_redo(data)
-    session.undo.register("show", undo, redo)
+    session.undo.register(undo_state)
 
-def show_atoms(session, objects, only, undo_data):
+def show_atoms(session, objects, only, undo_state):
     atoms = objects.atoms
-    undo_data['atoms'] = (atoms, atoms.displays, True)
+    undo_state.add(atoms, "displays", atoms.displays, True)
     atoms.displays = True
     if only:
         from ..atomic import structure_atoms
         other_atoms = structure_atoms(atoms.unique_structures) - atoms
-        undo_data['atoms_other'] = (other_atoms, other_atoms.displays, False)
+        undo_state.add(other_atoms, "displays", other_atoms.displays, False)
         other_atoms.displays = False
 
-def show_bonds(session, objects, only, undo_data):
+def show_bonds(session, objects, only, undo_state):
     bonds = objects.atoms.intra_bonds
-    undo_data['bonds'] = (bonds, bonds.displays, True)
+    undo_state.add(bonds, "displays", bonds.displays, True)
     bonds.displays = True
     a1, a2 = bonds.atoms
-    undo_data['bonds_atoms1'] = (a1, a1.displays, True)
-    undo_data['bonds_atoms2'] = (a2, a2.displays, True)
+    undo_state.add(a1, "displays", a1.displays, True)
     a1.displays = True	   # Atoms need to be displayed for bond to appear
+    undo_state.add(a2, "displays", a2.displays, True)
     a2.displays = True
     if only:
         mbonds = [m.bonds for m in atoms.unique_structures]
@@ -82,19 +79,19 @@ def show_bonds(session, objects, only, undo_data):
             from ..atomic import concatenate
             all_bonds = concatenate(mbonds)
             other_bonds = all_bonds - bonds
-            undo_data['bonds_other'] = (other_bonds, other_bonds.displays, False)
+            undo_state.add(other_bonds, "displays", other_bonds.displays, False)
             other_bonds.displays = False
 
-def show_pseudobonds(session, objects, only, undo_data):
+def show_pseudobonds(session, objects, only, undo_state):
     atoms = objects.atoms
     from .. import atomic
     pbonds = atomic.interatom_pseudobonds(atoms)
-    undo_data['pseudobonds'] = (pbonds, pbonds.displays, True)
+    undo_state.add(pbonds, "displays", pbonds.displays, True)
     pbonds.displays = True
     a1, a2 = pbonds.atoms
-    undo_data['pseudobonds_atoms1'] = (a1, a1.displays, True)
-    undo_data['pseudobonds_atoms2'] = (a2, a2.displays, True)
+    undo_state.add(a1, "displays", a1.displays, True)
     a1.displays = True	   # Atoms need to be displayed for bond to appear
+    undo_state.add(a2, "displays", a1.displays, True)
     a2.displays = True
     if only:
         pbs = sum([[pbg.pseudobonds for pbg in m.pbg_map.values()]
@@ -103,21 +100,21 @@ def show_pseudobonds(session, objects, only, undo_data):
             from ..atomic import concatenate
             all_pbonds = concatenate(pbs)
             other_pbonds = all_pbonds - pbonds
-            undo_data['pseudobonds_other'] = (other_pbonds, other_pbonds.displays, False)
+            undo_state.add(other_pbonds, "displays", other_pbonds.displays, False)
             other_pbonds.displays = False
 
-def show_cartoons(session, objects, only, undo_data):
+def show_cartoons(session, objects, only, undo_state):
     atoms = objects.atoms
     res = atoms.unique_residues
-    undo_data['cartoons'] = (res, res.ribbon_displays, True)
+    undo_state.add(res, "ribbon_displays", res.ribbon_displays, True)
     res.ribbon_displays = True
     if only:
         from ..atomic import structure_residues
         other_res = structure_residues(atoms.unique_structures) - res
-        undo_data['cartoons_other'] = (other_res, other_res.ribbon_displays, False)
+        undo_state.add(other_res, "ribbon_displays", other_res.ribbon_displays, False)
         other_res.ribbon_displays = False
 
-def show_surfaces(session, objects, only, undo_data):
+def show_surfaces(session, objects, only, undo_state):
     # TODO: fill in undo data
     atoms = objects.atoms
     if len(atoms) == 0:
@@ -137,13 +134,12 @@ def show_surfaces(session, objects, only, undo_data):
         from .surface import surface
         surface(session, extra_atoms)
 
-def show_models(session, objects, only, undo_data):
+def show_models(session, objects, only, undo_state):
     from ..models import ancestor_models
     models = objects.models
     minst = objects.model_instances
     ud_positions = {}
     ud_display = {}
-    undo_data['models'] = (ud_positions, ud_display)
     if minst:
         for m,inst in minst.items():
             dp = m.display_positions
@@ -170,78 +166,17 @@ def show_models(session, objects, only, undo_data):
         for m in ancestor_models(models):
             ud_display[m] = [m.display, True]
             m.display = True
+    for m, values in ud_positions.items():
+        undo_state.add(m, "display_positions", *values)
+    for m, values in ud_display.items():
+        undo_state.add(m, "display", *values)
     if only:
         mset = set(models)
         mset.update(ancestor_models(models))
         for m in session.models.list():
             if m not in mset:
-                ud_display[m] = [m.display, False]
+                undo_state.add(m, "display", m.display, False)
                 m.display = False
-
-def _show_undo(undo_data):
-    def _update_attr(key, attr):
-        try:
-            container, old_values, new_values = undo_data[key]
-        except KeyError:
-            pass
-        else:
-            setattr(container, attr, old_values)
-    # Atoms
-    _update_attr('atoms', 'displays')
-    _update_attr('atoms_other', 'displays')
-    # Bonds
-    _update_attr('bonds', 'displays')
-    _update_attr('bonds_atoms1', 'displays')
-    _update_attr('bonds_atoms2', 'displays')
-    _update_attr('bonds_other', 'displays')
-    # Pseudobonds
-    _update_attr('pseudobonds', 'displays')
-    _update_attr('pseudobonds_atoms1', 'displays')
-    _update_attr('pseudobonds_atoms2', 'displays')
-    # Cartoons
-    _update_attr('cartoons', 'ribbon_displays')
-    _update_attr('cartoons_other', 'ribbon_displays')
-    # TODO: Surfaces
-    # Models
-    _update_models(undo_data, 0)
-
-def _update_models(undo_data, which):
-    try:
-        ud_positions, ud_displays = undo_data['models']
-    except KeyError:
-        pass
-    else:
-        for m, v in ud_positions.items():
-            m.display_positions = v[which]
-        for m, v in ud_display.items():
-            m.display = v[which]
-
-def _show_redo(undo_data):
-    def _update_attr(key, attr):
-        try:
-            container, old_values, new_values = undo_data[key]
-        except KeyError:
-            pass
-        else:
-            setattr(container, attr, new_values)
-    # Atoms
-    _update_attr('atoms', 'displays')
-    _update_attr('atoms_other', 'displays')
-    # Bonds
-    _update_attr('bonds', 'displays')
-    _update_attr('bonds_atoms1', 'displays')
-    _update_attr('bonds_atoms2', 'displays')
-    _update_attr('bonds_other', 'displays')
-    # Pseudobonds
-    _update_attr('pseudobonds', 'displays')
-    _update_attr('pseudobonds_atoms1', 'displays')
-    _update_attr('pseudobonds_atoms2', 'displays')
-    # Cartoons
-    _update_attr('cartoons', 'ribbon_displays')
-    _update_attr('cartoons_other', 'ribbon_displays')
-    # TODO: Surfaces
-    # Models
-    _update_models(undo_data, 1)
 
 from . import EnumOf, Annotation
 WhatArg = EnumOf(('atoms', 'bonds', 'pseudobonds', 'pbonds', 'cartoons', 'ribbons',

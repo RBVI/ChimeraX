@@ -36,7 +36,8 @@ def style(session, objects=None, atom_style=None, atom_radius=None,
     from ..atomic import all_atoms, Atom
     atoms = all_atoms(session) if objects is None else objects.atoms
 
-    undo_data = {}
+    from ..undo import UndoState
+    undo_state = UndoState("style")
     what = []
     if atom_style is not None:
         s = {
@@ -44,52 +45,49 @@ def style(session, objects=None, atom_style=None, atom_radius=None,
             'ball': Atom.BALL_STYLE,
             'stick': Atom.STICK_STYLE,
         }[atom_style.lower()]
-        undo_data["atom_style"] = (atoms, atoms.draw_modes, s)
+        undo_state.add(atoms, "draw_modes", atoms.draw_modes, s)
         atoms.draw_modes = s
         what.append('%d atom styles' % len(atoms))
 
     if atom_radius is not None:
         if atom_radius == 'default':
-            undo_data["atom_radii"] = (atoms, atoms.radii, atoms.default_radii)
+            undo_state.add(atoms, "radii", atoms.radii, atoms.default_radii)
             atoms.radii = atoms.default_radii
         else:
-            undo_data["atom_radii"] = (atoms, atoms.radii, atom_radius)
+            undo_state.add(atoms, "radii", atoms.radii, atom_radius)
             atoms.radii = atom_radius
         what.append('%d atom radii' % len(atoms))
 
     if stick_radius is not None:
         b = atoms.intra_bonds
-        undo_data["stick_radius"] = (b, b.radii, stick_radius)
+        undo_state.add(b, "radii", b.radii, stick_radius)
         b.radii = stick_radius
         what.append('%d bond radii' % len(b))
 
     if pseudobond_radius is not None:
         from ..atomic import interatom_pseudobonds, concatenate
         pb = interatom_pseudobonds(atoms)
-        undo_data["pseudobond_radius"] = (pb, pb.radii, pseudobond_radius)
+        undo_state.add(pb, "radii", pb.radii, pseudobond_radius)
         pb.radii = pseudobond_radius
         pbs = [pb]
-        undo_data["pbg_radius"] = upbg = []
         for pbg in pseudobond_groups(objects, session, interatom = False):
             pb = pbg.pseudobonds
-            upbg.append((pb, pb.radii, pseudobond_radius))
+            undo_state.add(pb, "radii", pb.radii, pseudobond_radius)
             pb.radii = pseudobond_radius
             pbs.append(pb)
         what.append('%d pseudobond radii' % len(concatenate(pbs, remove_duplicates=True)))
 
     if ball_scale is not None:
         mols = atoms.unique_structures
-        undo_data["ball_scale"] = ubs = []
         for s in mols:
-            ubs.append((s, s.ball_scale, ball_scale))
+            undo_state.add(s, "ball_scale", s.ball_scale, ball_scale)
             s.ball_scale = ball_scale
         what.append('%d ball scales' % len(mols))
 
     if dashes is not None:
         pbgs = pseudobond_groups(objects, session)
-        undo_data["dashes"] = ud = []
         for pbg in pbgs:
-            ud.append((pbg, pbg.dashes, dashes))
+            undo_state.add(pbg, "dashes", pbg.dashes, dashes)
             pbg.dashes = dashes
         what.append('%d pseudobond dashes' % len(pbgs))
 
@@ -99,11 +97,7 @@ def style(session, objects=None, atom_style=None, atom_radius=None,
         log.status(msg)
         log.info(msg)
 
-    def undo(data=undo_data):
-        _style_undo(undo_data)
-    def redo(data=undo_data):
-        _style_redo(undo_data)
-    session.undo.register("style", undo, redo)
+    session.undo.register(undo_state)
 
 # -----------------------------------------------------------------------------
 #
@@ -129,49 +123,6 @@ def pseudobond_groups(objects, session, interatom = True):
         pbgs.update(gpbgs)
 
     return pbgs
-
-# -----------------------------------------------------------------------------
-#
-def _update_attr(undo_data, key, attr, n):
-    try:
-        items = undo_data[key]
-    except KeyError:
-        return
-    if isinstance(items, list):
-        for v in items:
-            try:
-                container = v[0]
-                value = v[n]
-            except (ValueError, IndexError):
-                pass
-            else:
-                setattr(container, attr, value)
-    else:
-        try:
-            container = items[0]
-            value = items[n]
-        except (KeyError, ValueError, IndexError):
-            pass
-        else:
-            setattr(container, attr, value)
-
-def _style_undo(undo_data):
-    _update_attr(undo_data, "atom_style", "draw_modes", 1)
-    _update_attr(undo_data, "atom_radii", "radii", 1)
-    _update_attr(undo_data, "stick_radius", "radii", 1)
-    _update_attr(undo_data, "pseudobond_radius", "radii", 1)
-    _update_attr(undo_data, "pbg_radius", "radii", 1)
-    _update_attr(undo_data, "ball_scale", "ball_scale", 1)
-    _update_attr(undo_data, "dashes", "dashes", 1)
-
-def _style_redo(undo_data):
-    _update_attr(undo_data, "atom_style", "draw_modes", 2)
-    _update_attr(undo_data, "atom_radii", "radii", 2)
-    _update_attr(undo_data, "stick_radius", "radii", 2)
-    _update_attr(undo_data, "pseudobond_radius", "radii", 2)
-    _update_attr(undo_data, "pbg_radius", "radii", 2)
-    _update_attr(undo_data, "ball_scale", "ball_scale", 2)
-    _update_attr(undo_data, "dashes", "dashes", 2)
 
 # -----------------------------------------------------------------------------
 #
