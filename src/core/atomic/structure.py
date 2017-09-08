@@ -850,7 +850,9 @@ class Structure(Model, StructureData):
                 rp.vertices = concatenate(vertex_list)
                 rp.normals = concatenate(normal_list)
                 rp.triangles = concatenate(triangle_list)
-                rp.vertex_colors = concatenate(color_list)
+                # TODO: Change calculation of color arrays to use uint8 instead float32
+                from numpy import uint8
+                rp.vertex_colors = concatenate(color_list).astype(uint8)
             else:
                 rp.display = False
             # Save mappings for picking
