@@ -4500,6 +4500,15 @@ static IArray* _numpy_ints3(PyObject *a, IArray *iarray)
     throw std::invalid_argument("not an int[3] array");
 }
 
+static CArray* _numpy_uint8s(PyObject *a, CArray *carray)
+{
+    if (a == Py_None)
+        return NULL;
+    if (parse_uint8_n_array(a, carray))
+        return carray;
+    throw std::invalid_argument("not a unsigned char array");
+}
+
 extern "C" EXPORT void *rxsection_new(PyObject* coords, PyObject* coords2,
                                PyObject* normals, PyObject* normals2,
                                bool faceted, PyObject* tess)
@@ -4536,12 +4545,13 @@ extern "C" EXPORT PyObject *rxsection_extrude(void *p, PyObject *centers,
                                        bool cap_back, int offset)
 {
     auto *xs = static_cast<RibbonXSection *>(p);
-    FArray fa_centers, fa_tangents, fa_normals, fa_colors;
+    FArray fa_centers, fa_tangents, fa_normals;
+    CArray ca_colors;
     try {
         FArray* c = _numpy_floats3(centers, &fa_centers);
         FArray* t = _numpy_floats3(tangents, &fa_tangents);
         FArray* n = _numpy_floats3(normals, &fa_normals);
-        FArray* co = _numpy_float3(colors, &fa_colors);
+        CArray* co = _numpy_uint8s(colors, &ca_colors);
         PyObject *r = xs->extrude(*c, *t, *n, *co, cap_front, cap_back, offset);
         return r;
     } catch (...) {
