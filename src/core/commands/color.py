@@ -20,7 +20,8 @@ _SequentialLevels = ["residues", "chains", "polymers", "structures"]
 def color(session, objects, color=None, what=None,
           target=None, transparency=None,
           sequential=None, palette=None, halfbond=None,
-          map=None, range=None, offset=0, zone=None, distance=2):
+          map=None, range=None, offset=0, zone=None, distance=2,
+          undo_name="color"):
     """Color atoms, ribbons, surfaces, ....
 
     Parameters
@@ -77,7 +78,7 @@ def color(session, objects, color=None, what=None,
         target += what_target[what]
 
     from ..undo import UndoState
-    undo_state = UndoState("color")
+    undo_state = UndoState(undo_name)
 
     # Decide whether to set or preserve transparency
     opacity = None
@@ -101,6 +102,7 @@ def color(session, objects, color=None, what=None,
                             % sequential)
         else:
             f(session, objects, palette, opacity, target, undo_state)
+            session.undo.register(undo_state)
             return
 
     if zone is not None:
