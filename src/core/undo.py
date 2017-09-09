@@ -73,6 +73,8 @@ class Undo:
 
     @property
     def session(self):
+        """Returns the session this undo state manager is in.
+        """
         return self._session()
 
     def register(self, action):
@@ -83,10 +85,36 @@ class Undo:
         action : instance of UndoAction
             Action that can change session between "before"
             and "after" states.
+
+        Returns
+        -------
+        The registered action.
         """
         self._push(self.undo_stack, action)
         self.redo_stack.clear()
         self._update_ui()
+        return action
+
+    def deregister(self, action, delete_history=True):
+        """Deregisters undo/redo actions from state manager.
+        If the action is on the undo stack, all prior undo
+        actions are deleted if 'delete_history' is True
+        (default).  Similarly, if the action is on the redo
+        stack all subsequent redo actions are deleted if
+        'delete_history' is True.  The 'delete_history'
+        default is True because the deregistering action is
+        the one to establish the "current" state for the
+        next undo/redo action, so removing the action would
+        likely prevent the next undo/redo action from working
+        properly.
+
+        Parameters
+        ----------
+        action : instance of UndoAction
+            A previously registered UndoAction instance.
+        """
+        self._remove(self.undo_stack, action, delete_history)
+        self._remove(self.redo_stack, action, delete_history)
 
     def top_undo_name(self):
         """Return name for top undo action, or None if stack is empty.
@@ -152,6 +180,17 @@ class Undo:
     def _pop(self, stack):
         return stack.pop()
 
+    def _remove(self, stack, action, delete_history):
+        try:
+            n = stack.index(action)
+        except ValueError:
+            pass
+        else:
+            if delete_history:
+                del stack[:n+1]
+            else:
+                del stack[n]
+
     def _name(self, stack):
         try:
             return stack[-1].name
@@ -188,11 +227,13 @@ class UndoAction:
         self.can_redo = can_redo
 
     def undo(self):
-        """Undo an action."""
+        """Undo an action.
+        """
         raise NotImplementedError("undo")
 
     def redo(self):
-        """Redo an action."""
+        """Redo an action.
+        """
         raise NotImplementedError("redo")
 
 
@@ -258,20 +299,36 @@ class UndoState(UndoAction):
         self.state.append((owner, attribute, old_value, new_value, option))
 
     def undo(self):
-        """Undo action (set owner attributes to old values)."""
+        """Undo action (set owner attributes to old values).
+        """
         self._consistency_check()
         for owner, attribute, old_value, new_value, option in reversed(self.state):
             self._update_owner(owner, attribute, old_value, option)
 
     def redo(self):
-        """Redo action (set owner attributes to new values)."""
+        """Redo action (set owner attributes to new values).
+        """
         self._consistency_check()
         for owner, attribute, old_value, new_value, option in self.state:
             self._update_owner(owner, attribute, new_value, option)
 
     def _consistency_check(self):
-        # TODO: implement, on error, raise exception
-        pass
+        for owner, attribute, old_value, new_value, option in self.state:
+            try:
+                owner_length = len(owner)
+            except TypeError:
+                # Not a container, so move on
+                continue
+            else:
+                # Is a container, old_value must be the same length
+                try:
+                    value_length = len(old_value)
+                except TypeError:
+                    value_length = 1
+                if value_length != owner_length:
+                    raise ValueError("undo action with different number "
+                                     "of owners and old values: %d != %d" %
+                                     (owner_length, value_length))
 
     def _update_owner(self, owner, attribute, value, option):
         if option == "A":
