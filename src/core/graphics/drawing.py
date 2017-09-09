@@ -209,11 +209,13 @@ class Drawing:
         '''Return the list of surface pieces.'''
         return self._child_drawings
 
-    def all_drawings(self):
+    def all_drawings(self, displayed_only = False):
         '''Return all drawings including self and children at all levels.'''
+        if displayed_only and not self.display:
+            return []
         dlist = [self]
         for d in self.child_drawings():
-            dlist.extend(d.all_drawings())
+            dlist.extend(d.all_drawings(displayed_only))
         return dlist
 
     def new_drawing(self, name=None):
