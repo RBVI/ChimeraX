@@ -48,6 +48,39 @@ def read_gltf(session, filename, name):
     else:
         input = open(filename, 'r')
 
+    # Separate header and binary data
+    json_chunk, bin_chunk = check_gltf_header(input)
+    if input != filename:
+        input.close()
+
+    # Parse json header
+    import json
+    j = json.loads(json_chunk)
+
+    # Check for geometry
+    for attr in ('scenes', 'nodes', 'meshes', 'accessors', 'bufferViews'):
+        if attr not in j:
+            raise glTFError('glTF JSON contains no "%s": %s' % (attr, str(j)))
+
+    # Make model for each scene and each node with hierarchy
+    scenes, nodes = scene_and_node_models(j['scenes'], j['nodes'], name, session)
+
+    # Make a Drawing for each mesh.
+    ba = buffer_arrays(j['accessors'], j['bufferViews'], bin_chunk)
+    mesh_drawings = meshes_as_drawings(j['meshes'], ba)
+
+    # Add mesh drawings to node models.
+    for nm in nodes:
+        if hasattr(nm, 'gltf_mesh'):
+            for d in mesh_drawings[nm.gltf_mesh]:
+                nm.add_drawing(d)
+
+    return scenes, ('Opened glTF file containing %d scenes, %d nodes, %d meshes'
+                    % (len(scenes), len(nodes), len(j['meshes'])))
+
+# -----------------------------------------------------------------------------
+#
+def check_gltf_header(input):
     from numpy import fromstring, uint32, float32, array, uint8
     magic = fromstring(input.read(4), uint32)[0]        # magic number
     if magic != 0x46546c67:
@@ -65,26 +98,73 @@ def read_gltf(session, filename, name):
     if chunks[0][0] != 'JSON' or chunks[1][0] != 'BIN':
         raise glTFError('glTF expected JSON and BIN chunks, got %s' % ' and '.join(c[0] for c in chunks))
 
-    if input != filename:
-        input.close()
-
     jsonc, binc = chunks[0][1].decode('utf-8'), chunks[1][1]
-    import json
-    j = json.loads(jsonc)
+    return jsonc, binc
 
-    for attr in ('accessors', 'bufferViews', 'meshes'):
-        if attr not in j:
-            raise glTFError('glTF JSON contains no "%s": %s' % (attr, str(j)))
-    accessors, buffer_views, meshes = j['accessors'], j['bufferViews'], j['meshes']
+# -----------------------------------------------------------------------------
+#
+def scene_and_node_models(scenes, nodes, file_name, session):
+                    
+    smodels = []
+    for si, s in enumerate(scenes):
+        if 'name' in s:
+            sname = s['name']
+        elif len(scenes) == 1:
+            sname = file_name
+        else:
+            sname = '%s scene %d' % (file_name, si+1)
+        sm = gltfModel(sname, session)
+        smodels.append(sm)
+        if 'nodes' not in s:
+            raise glTFError('glTF scene %d has no nodes' % si)
+        sm.gltf_nodes = s['nodes']
 
-    ba = buffer_arrays(accessors, buffer_views, binc)
-        
-    geom = []
+    # Make model for each node
+    nmodels = []
+    for ni,node in enumerate(nodes):
+        if 'name' in node:
+            nname = node['name']
+        else:
+            nname = '%d' % (ni+1)
+        nm = gltfModel(nname, session)
+        if 'mesh' in node:
+            nm.gltf_mesh = node['mesh']
+        if 'children' in node:
+            nm.gltf_child_nodes = node['children']
+        if 'matrix' in node:
+            m = node['matrix']
+            from chimerax.core.geometry import Place
+            nm.position = Place(((m[0],m[4],m[8],m[12]),
+                                 (m[1],m[5],m[9],m[13]),
+                                 (m[2],m[6],m[10],m[14])))
+        if 'scale' in node or 'translation' in node or 'rotation' in node:
+            session.logger.warning('glTF node %d has unsupported rotation, scale or translation, ignoring it' % ni)
+        nmodels.append(nm)
+
+    # Add node models to scenes.
+    for sm in smodels:
+        sm.add([nmodels[ni] for ni in sm.gltf_nodes])
+
+    # Add child nodes to parent nodes.
+    for nm in nmodels:
+        if hasattr(nm, 'gltf_child_nodes'):
+            nm.add([nmodels[ni] for ni in nm.gltf_child_nodes])
+
+    return smodels, nmodels
+
+# -----------------------------------------------------------------------------
+#
+def meshes_as_drawings(meshes, buf_arrays):
+
+    mesh_drawings = []
+    ba = buf_arrays
     from numpy import int32
+    from chimerax.core.graphics import Drawing
     for m in meshes:
         if 'primitives' not in m:
             raise glTFError('glTF mesh has no "primitives": %s' % str(j))
-        for p in m['primitives']:
+        pdlist = []
+        for pi,p in enumerate(m['primitives']):
             if 'mode' in p and p['mode'] != GLTF_TRIANGLES:
                 raise glTFError('glTF reader only handles triangles, got mode %d' % p['mode'])
             if 'indices' not in p:
@@ -108,21 +188,13 @@ def read_gltf(session, filename, name):
                 vc = ba[pa['COLOR_0']]
             else:
                 vc = None
-            geom.append((va,na,vc,ta))
+            pd = Drawing('p%d' % pi)
+            set_geometry(pd, va, na, vc, ta)
+            pdlist.append(pd)
+        mesh_drawings.append(pdlist)
 
-    m = gltfModel(name, session)
-    if len(geom) == 1:
-        set_geometry(m, *geom[0])
-    else:
-        mlist = []
-        for i,g in enumerate(geom):
-            mm = gltfModel('mesh %d' % (i+1) , session)
-            set_geometry(mm, *g)
-            mlist.append(mm)
-        m.add(mlist)
-
-    return [m], ('Opened glTF file containing %d meshes' % len(geom))
-
+    return mesh_drawings
+                    
 # -----------------------------------------------------------------------------
 #
 def read_chunks(input):
@@ -201,29 +273,32 @@ def write_gltf(session, filename, models):
     if models is None:
         models = session.models.list()
 
-    geom = drawing_geometries(models)
-
+    drawings = all_drawings(models)
+    
     # Write 80 character comment.
     from chimerax import app_dirs as ad
     app_ver  = "%s %s version: %s" % (ad.appauthor, ad.appname, ad.version)
 
-    prim, buffer_views, accessors, binc = geometry_buffers(geom)
+    b = Buffers()
+    nodes, meshes = nodes_and_meshes(drawings, b)
+    node_index = {d:di for di,d in enumerate(drawings)}
     h = {
         'asset': {'version': '2.0', 'generator': app_ver},
-        'scene': 0,
-        'scenes': [{'nodes':[0]}],
-        'nodes':[{'mesh':0}],
-        'meshes': [{'primitives': prim}],
-        'accessors': accessors,
-        'bufferViews': buffer_views,
+        'scenes': [{'nodes':[node_index[m] for m in models]}],
+        'nodes': nodes,
+        'meshes': meshes,
+        'accessors': b.accessors,
+        'bufferViews': b.buffer_views,
     }
+    
     import json
     json_text = json.dumps(h).encode('utf-8')
     from numpy import uint32
     clen = to_bytes(len(json_text), uint32)
     ctype = b'JSON'
     json_chunk = b''.join((clen, ctype, json_text))
-    
+
+    binc = b.chunk_bytes()
     blen = to_bytes(len(binc), uint32)
     btype = b'BIN\x00'
     bin_chunk = b''.join((blen, btype, binc))
@@ -239,49 +314,52 @@ def write_gltf(session, filename, models):
 
 # -----------------------------------------------------------------------------
 #
-def drawing_geometries(models):
+def all_drawings(models):
     # Collect all drawing children of models.
     drawings = set()
     for m in models:
         if not m in drawings:
-            for d in m.all_drawings():
+            for d in m.all_drawings(displayed_only = True):
                 drawings.add(d)
-            
-    # Collect geometry, not including children, handle instancing
-    geom = []
-    for d in drawings:
-        if d.display and d.parents_displayed:
-            va, na, vc, ta = d.vertices, d.normals, d.vertex_colors, d.masked_triangles
-            if va is not None and ta is not None:
-                pos = d.get_scene_positions(displayed_only = True)
-                if pos.is_identity():
-                    geom.append((va, na, vc, ta))
-                elif len(pos) > 1:
-                    # TODO: Need instance colors to take account of parent instances.
-                    ic = d.get_colors(displayed_only = True)
-                    cg = combine_instance_geometry(va, na, vc, ta, pos, ic)
-                    geom.append(cg)
-                else:
-                    geom.append((pos*va, pos.apply_without_translation(na), vc, ta))
+    return tuple(drawings)
 
-    return geom
-        
 # -----------------------------------------------------------------------------
 #
-def geometry_buffers(geom):
-    prim = []
-    b = Buffers()
+def nodes_and_meshes(drawings, buffers):
+    nodes = []
+    meshes = []
+    b = buffers
+    drawing_index = {d:di for di,d in enumerate(drawings)}
     from numpy import float32, uint32
-    for (va, na, vc, ta) in geom:
-        attr = {'POSITION': b.add_array(va.astype(float32, copy=False), bounds=True)}
-        if na is not None:
-            attr['NORMAL'] = b.add_array(na)
-        if vc is not None:
-            attr['COLOR_0'] = b.add_array(vc)
-        prim.append({'attributes': attr, 'indices':b.add_array(ta.astype(uint32, copy=False))})
+    for d in drawings:
+        dn = {'name':d.name}
+        cn = [drawing_index[c] for c in d.child_drawings() if c in drawing_index]
+        if cn:
+            dn['children'] = cn
+        nodes.append(dn)
+        va, na, vc, ta = d.vertices, d.normals, d.vertex_colors, d.masked_triangles
+        if va is None or ta is None or len(ta) == 0:
+            continue
+        dn['mesh'] = len(meshes)
+        pos = d.get_scene_positions(displayed_only = True)
+        if pos.is_identity():
+            pva,pna,pvc,pta = va,na,vc,ta
+        elif len(pos) > 1:
+            # TODO: Need instance colors to take account of parent instances.
+            ic = d.get_colors(displayed_only = True)
+            pva,pna,pvc,pta = combine_instance_geometry(va, na, vc, ta, pos, ic)
+        else:
+            pva,pna,pvc,pta = (pos*va, pos.apply_without_translation(na), vc, ta)
+        attr = {'POSITION': b.add_array(pva.astype(float32, copy=False), bounds=True)}
+        if pna is not None:
+            attr['NORMAL'] = b.add_array(pna)
+        if pvc is None:
+            pvc = single_vertex_color(len(pva), d.color)
+        attr['COLOR_0'] = b.add_array(pvc)
+        elem = b.add_array(pta.astype(uint32, copy=False))
+        meshes.append({'primitives': [{'attributes': attr, 'indices':elem}]})
 
-    return prim, b.buffer_views, b.accessors, b.chunk_bytes()
-
+    return nodes, meshes
 
 # -----------------------------------------------------------------------------
 #
@@ -352,9 +430,7 @@ def combine_instance_geometry(va, na, vc, ta, places, instance_colors):
         v.append(p*va)
         n.append(p.apply_without_translation(na))
         if vc is None:
-            from numpy import empty, uint8
-            ivc = empty((len(va),4), uint8)
-            ivc[:] = instance_colors[i]
+            ivc = single_vertex_color(len(va), instance_colors[i])
             c.append(ivc)
         else:
             c.append(vc)
@@ -363,6 +439,14 @@ def combine_instance_geometry(va, na, vc, ta, places, instance_colors):
 
     from numpy import concatenate
     return concatenate(v), concatenate(n), concatenate(c), concatenate(t)
+
+# -----------------------------------------------------------------------------
+#
+def single_vertex_color(n, color):
+    from numpy import empty, uint8
+    vc = empty((n,4), uint8)
+    vc[:] = color
+    return vc
 
 # -----------------------------------------------------------------------------
 #
