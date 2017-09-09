@@ -16,8 +16,10 @@ and "redo" callbacks.  Actions can register "undo" and "redo"
 functions which may be invoked via GUI, command or programmatically.
 """
 
+from .state import State, CORE_STATE_VERSION
 
-class Undo:
+
+class Undo(State):
     """A per-session undo manager for tracking undo/redo callbacks.
 
     'Undo' managers are per-session singletons that track
@@ -41,9 +43,6 @@ class Undo:
     Maximum stack depths are supported.  If zero, there is no
     limit.  Otherwise, if a stack grows deeper than its
     allowed maximum, the bottom of stack is discarded.
-
-    The undo manager is not derived from state.State because it
-    is not possible to save and restore callback functions safely.
 
     Attributes
     ----------
@@ -115,6 +114,14 @@ class Undo:
         """
         self._remove(self.undo_stack, action, delete_history)
         self._remove(self.redo_stack, action, delete_history)
+        self._update_ui()
+
+    def clear(self):
+        """Clear both undo and redo stacks.
+        """
+        self.undo_stack.clear()
+        self.redo_stack.clear()
+        self._update_ui()
 
     def top_undo_name(self):
         """Return name for top undo action, or None if stack is empty.
@@ -167,6 +174,21 @@ class Undo:
         self.max_depth = depth
         self._trim(self.undo_stack)
         self._trim(self.redo_stack)
+
+    # State methods
+
+    def take_snapshot(self, session, flags):
+        return {"version":1, "max_depth":self.max_depth}
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        return cls(session, max_depth=data["max_depth"])
+
+    def reset_state(self, session):
+        """Reset state to data-less state"""
+        self.clear()
+
+    # Internal methods
 
     def _trim(self, stack):
         if self.max_depth > 0:
