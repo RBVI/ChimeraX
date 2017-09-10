@@ -11,8 +11,10 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-# import distutils.core
-# distutils.core.DEBUG = True
+#import distutils.core, distutils.debug
+#distutils.core.DEBUG = True
+#distutils.debug.DEBUG = True
+
 from setuptools import setup
 from glob import glob
 import os
@@ -84,14 +86,14 @@ setup(
     ],
     package_data={
         # *.pdb files are Windows debugging files
-        "PKG_NAME": ["*.PYMOD_EXT", "*.pdb"],
+        "PKG_NAME": ["*.json", "*.PYMOD_EXT", "*.pdb"],
         "PKG_NAME.atomic": ["*.SHLIB_EXT", "*.PYMOD_EXT", "*.pdb"],
         "PKG_NAME.geometry": ["*.PYMOD_EXT", "*.pdb"],
         "PKG_NAME.graphics": ["*.txt", "*.PYMOD_EXT", "*.pdb"],
         "PKG_NAME.map": ["*.PYMOD_EXT", "*.pdb"],
         "PKG_NAME.surface": ["*.PYMOD_EXT", "*.pdb"],
-        "PKG_NAME.ui": ["*.jpg", "*.png", "*.html"],
         "PKG_NAME.ui.widgets": ["icons/*.png"],
+        "PKG_NAME.ui": ["*.jpg", "*.png", "*.html"],
     },
     data_files=[
         (rel_inst_shlib_dir, [

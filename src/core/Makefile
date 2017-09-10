@@ -42,13 +42,14 @@ WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
 GENSRCS = buildinfo.py
 PYSRCS = $(filter-out setup.py,$(wildcard *.py)) $(GENSRCS)
 WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-py3-none-$(BIN_PLATFORM).whl
+DATA = colorbrewer.json
 
 .FORCE: wheel
 
 all: $(PYOBJS)
 
 install: dir all
-	$(RSYNC) $(PYSRCS) $(PKG_DIR)
+	$(RSYNC) $(PYSRCS) $(DATA) $(PKG_DIR)
 	if [ -d "$(app_prefix)" ]; then \
 		$(MAKE) app-install ;\
 	fi

@@ -351,6 +351,32 @@ BuiltinColormaps['bluered'] = BuiltinColormaps['blue-white-red']
 BuiltinColormaps['gray'] = BuiltinColormaps['grayscale']
 BuiltinColormaps['cyanmaroon'] = BuiltinColormaps['cyan-white-maroon']
 
+# Add colorbrewer palettes
+def _read_colorbrewer():
+    import os.path, json
+    my_dir = os.path.dirname(__file__)
+    # colorbrewer.json is downloaded from
+    # http://colorbrewer2.org/export/colorbrewer.json
+    brewer_filename = os.path.join(my_dir, "colorbrewer.json")
+    import sys
+    try:
+        with open(brewer_filename) as f:
+            brewer_maps = json.load(f)
+    except IOError as e:
+        print("%s: %s" % (brewer_filename, str(e)), flush=True)
+    else:
+        def rgb(r, g, b):
+            return (r/255, g/255, b/255, 1)
+        gs = {'__builtins__':None, 'rgb':rgb}
+        ls = {}
+        for scheme, ramps in brewer_maps.items():
+            s_type = ramps.pop("type")
+            for count, rgbs in ramps.items():
+                name = "%s-%s" % (scheme, count)
+                colors = tuple([eval(e, gs, ls) for e in rgbs])
+                BuiltinColormaps[name.casefold()] = Colormap(None, colors)
+_read_colorbrewer()
+
 
 _df_state = {}
 
