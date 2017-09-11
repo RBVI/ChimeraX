@@ -378,7 +378,8 @@ def nodes_and_meshes(drawings, buffers, short_vertex_indices = False):
             ic = d.get_colors(displayed_only = True)
             geom = [combine_instance_geometry(va, na, vc, ta, pos, ic)]
         else:
-            geom = [(pos*va, pos.apply_without_translation(na), vc, ta)]
+            p0 = pos[0]
+            geom = [(p0*va, p0.apply_without_translation(na), vc, ta)]
         if short_vertex_indices:
             geom = limit_vertex_count(geom)
         prims = []
@@ -404,7 +405,6 @@ def nodes_and_meshes(drawings, buffers, short_vertex_indices = False):
 def limit_vertex_count(geom, vmax = 2**16):
     lgeom = []
     for va,na,vc,ta in geom:
-        print ('geom', len(va))
         if len(va) <= vmax:
             lgeom.append((va,na,vc,ta))
         else:
