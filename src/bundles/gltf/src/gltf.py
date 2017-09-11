@@ -282,16 +282,17 @@ def write_gltf(session, filename, models, center = None, size = None, short_vert
     b = Buffers()
     nodes, meshes = nodes_and_meshes(drawings, b, short_vertex_indices)
     node_index = {d:di for di,d in enumerate(drawings)}
+    shown_models = [m for m in models if m in node_index]
     
     if center is not None or size is not None:
         from chimerax.core.geometry import union_bounds
-        bounds = union_bounds(m.bounds() for m in models)
-        mnodes = [nodes[node_index[m]] for m in models]
+        bounds = union_bounds(m.bounds() for m in shown_models)
+        mnodes = [nodes[node_index[m]] for m in shown_models]
         center_and_size(mnodes, bounds, center, size)
         
     h = {
         'asset': {'version': '2.0', 'generator': app_ver},
-        'scenes': [{'nodes':[node_index[m] for m in models]}],
+        'scenes': [{'nodes':[node_index[m] for m in shown_models]}],
         'nodes': nodes,
         'meshes': meshes,
         'accessors': b.accessors,
@@ -320,15 +321,36 @@ def write_gltf(session, filename, models, center = None, size = None, short_vert
     file.close()
 
 # -----------------------------------------------------------------------------
+# Collect all drawings including descendants of specified models, excluding
+# ones that show no triangles.
 #
 def all_drawings(models):
-    # Collect all drawing children of models.
     drawings = set()
     for m in models:
         if not m in drawings:
             for d in m.all_drawings(displayed_only = True):
                 drawings.add(d)
-    return tuple(drawings)
+    # Prune drawings with nothing displayed.
+    ts = {}
+    dshown = tuple(d for d in drawings if any_triangles_shown(d, drawings, ts))
+    return dshown
+
+# -----------------------------------------------------------------------------
+#
+def any_triangles_shown(d, drawings, ts):
+    if d in ts:
+        return ts[d]
+    if not d.display:
+        ts[d] = False
+    elif d.num_masked_triangles > 0:
+        ts[d] = True
+    else:
+        for c in d.child_drawings():
+            if c in drawings and any_triangles_shown(c, drawings, ts):
+                ts[d] = True
+                return True
+        ts[d] = False
+    return ts[d]
 
 # -----------------------------------------------------------------------------
 #
