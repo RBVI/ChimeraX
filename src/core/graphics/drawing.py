@@ -567,7 +567,8 @@ class Drawing:
     def empty_drawing(self):
         '''Does this drawing have no geometry? Does not consider child
         drawings.'''
-        return self.vertices is None
+        v,t = self.vertices, self.triangles
+        return v is None or t is None or len(t) == 0
 
     def number_of_triangles(self, displayed_only=False):
         '''Return the number of triangles including all child drawings
@@ -1085,8 +1086,18 @@ class Drawing:
     @property
     def masked_triangles(self):
         ta = self.triangles
+        if ta is None:
+            return None
         tm = self._triangle_mask
         return ta if tm is None else ta[tm,:]
+
+    @property
+    def num_masked_triangles(self):
+        ta = self.triangles
+        if ta is None:
+            return 0
+        tm = self._triangle_mask
+        return len(ta) if tm is None else tm.sum()
 
     def x3d_needs(self, x3d_scene):
         if not self.display:
