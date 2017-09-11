@@ -269,7 +269,7 @@ def colors_to_uint8(vc):
 
 # -----------------------------------------------------------------------------
 #
-def write_gltf(session, filename, models):
+def write_gltf(session, filename, models, center = None, size = None):
     if models is None:
         models = session.models.list()
 
@@ -282,6 +282,13 @@ def write_gltf(session, filename, models):
     b = Buffers()
     nodes, meshes = nodes_and_meshes(drawings, b)
     node_index = {d:di for di,d in enumerate(drawings)}
+    
+    if center is not None or size is not None:
+        from chimerax.core.geometry import union_bounds
+        bounds = union_bounds(m.bounds() for m in models)
+        mnodes = [nodes[node_index[m]] for m in models]
+        center_and_size(mnodes, bounds, center, size)
+        
     h = {
         'asset': {'version': '2.0', 'generator': app_ver},
         'scenes': [{'nodes':[node_index[m] for m in models]}],
@@ -417,6 +424,27 @@ class Buffers:
     #
     def chunk_bytes(self):
         return b''.join(self.buffer_bytes)
+
+# -----------------------------------------------------------------------------
+#
+def center_and_size(nodes, bounds, center, size):
+
+    if bounds is None:
+        return
+    if center is None and size is None:
+        return
+    
+    c = bounds.center()
+    s = max(bounds.size())
+    f = 1 if size is None else size / s
+    tx,ty,tz = (0,0,0) if center is None else [center[a]-f*c[a] for a in (0,1,2)]
+    matrix = [f,0,0,0,
+              0,f,0,0,
+              0,0,f,0,
+              tx,ty,tz,1]
+    
+    for n in nodes:
+           n['matrix'] = matrix
 
 # -----------------------------------------------------------------------------
 #
