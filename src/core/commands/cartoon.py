@@ -83,7 +83,7 @@ def cartoon(session, atoms=None, smooth=None, suppress_backbone_display=None, sp
         residues.ribbon_adjusts = smooth
     if suppress_backbone_display is not None:
         undo_state.add(residues, "ribbon_hide_backbones",
-                       residues.ribbon_hide_backbones, suppress_backbond_display)
+                       residues.ribbon_hide_backbones, suppress_backbone_display)
         residues.ribbon_hide_backbones = suppress_backbone_display
     if spine is not None:
         structures = residues.unique_structures
