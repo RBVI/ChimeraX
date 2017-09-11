@@ -269,7 +269,7 @@ def colors_to_uint8(vc):
 
 # -----------------------------------------------------------------------------
 #
-def write_gltf(session, filename, models, center = None, size = None):
+def write_gltf(session, filename, models, center = None, size = None, short_vertex_indices = False):
     if models is None:
         models = session.models.list()
 
@@ -280,7 +280,7 @@ def write_gltf(session, filename, models, center = None, size = None):
     app_ver  = "%s %s version: %s" % (ad.appauthor, ad.appname, ad.version)
 
     b = Buffers()
-    nodes, meshes = nodes_and_meshes(drawings, b)
+    nodes, meshes = nodes_and_meshes(drawings, b, short_vertex_indices)
     node_index = {d:di for di,d in enumerate(drawings)}
     
     if center is not None or size is not None:
@@ -332,12 +332,12 @@ def all_drawings(models):
 
 # -----------------------------------------------------------------------------
 #
-def nodes_and_meshes(drawings, buffers):
+def nodes_and_meshes(drawings, buffers, short_vertex_indices = False):
     nodes = []
     meshes = []
     b = buffers
     drawing_index = {d:di for di,d in enumerate(drawings)}
-    from numpy import float32, uint32
+    from numpy import float32, uint32, uint16
     for d in drawings:
         dn = {'name':d.name}
         cn = [drawing_index[c] for c in d.child_drawings() if c in drawing_index]
@@ -350,23 +350,63 @@ def nodes_and_meshes(drawings, buffers):
         dn['mesh'] = len(meshes)
         pos = d.get_scene_positions(displayed_only = True)
         if pos.is_identity():
-            pva,pna,pvc,pta = va,na,vc,ta
+            geom = [(va,na,vc,ta)]
         elif len(pos) > 1:
             # TODO: Need instance colors to take account of parent instances.
             ic = d.get_colors(displayed_only = True)
-            pva,pna,pvc,pta = combine_instance_geometry(va, na, vc, ta, pos, ic)
+            geom = [combine_instance_geometry(va, na, vc, ta, pos, ic)]
         else:
-            pva,pna,pvc,pta = (pos*va, pos.apply_without_translation(na), vc, ta)
-        attr = {'POSITION': b.add_array(pva.astype(float32, copy=False), bounds=True)}
-        if pna is not None:
-            attr['NORMAL'] = b.add_array(pna)
-        if pvc is None:
-            pvc = single_vertex_color(len(pva), d.color)
-        attr['COLOR_0'] = b.add_array(pvc)
-        elem = b.add_array(pta.astype(uint32, copy=False))
-        meshes.append({'primitives': [{'attributes': attr, 'indices':elem}]})
+            geom = [(pos*va, pos.apply_without_translation(na), vc, ta)]
+        if short_vertex_indices:
+            geom = limit_vertex_count(geom)
+        prims = []
+        for pva,pna,pvc,pta in geom:
+            attr = {'POSITION': b.add_array(pva.astype(float32, copy=False), bounds=True)}
+            if pna is not None:
+                attr['NORMAL'] = b.add_array(pna)
+            if pvc is None:
+                pvc = single_vertex_color(len(pva), d.color)
+            attr['COLOR_0'] = b.add_array(pvc)
+            etype = uint16 if short_vertex_indices else uint32
+            ea = pta.astype(etype, copy=False)
+            elem = b.add_array(ea)
+            prims.append({'attributes': attr, 'indices':elem})
+        meshes.append({'primitives': prims})
 
     return nodes, meshes
+
+# -----------------------------------------------------------------------------
+# Split triangle geometry so vertex arrays are of specified maximum size.
+# To handle Unity3D only allowing 16-bit vertex indices.
+#
+def limit_vertex_count(geom, vmax = 2**16):
+    lgeom = []
+    for va,na,vc,ta in geom:
+        print ('geom', len(va))
+        if len(va) <= vmax:
+            lgeom.append((va,na,vc,ta))
+        else:
+            vi = []
+            vmap = {}
+            ti0 = 0
+            nt = len(ta)
+            for ti,tv in enumerate(ta):
+                for v in tv:
+                    if v not in vmap:
+                        vs = len(vmap)
+                        vmap[v] = vs
+                        vi.append(v)
+                if len(vmap) > vmax - 3 or ti == nt-1:
+                    sva = va[vi]
+                    sna = None if na is None else na[vi]
+                    svc = None if vc is None else vc[vi]
+                    from numpy import array
+                    sta = array([vmap[v] for tv in ta[ti0:ti+1] for v in tv])
+                    lgeom.append((sva,sna,svc,sta))
+                    vi = []
+                    vmap = {}
+                    ti0 = ti+1
+    return lgeom
 
 # -----------------------------------------------------------------------------
 #
