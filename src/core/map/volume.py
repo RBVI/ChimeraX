@@ -345,6 +345,9 @@ class Volume(Model):
       lev = self.solid_levels
       if lev:
         return rgba_to_rgba8(self.solid_colors[argmin(lev)])
+    drgba = self.data.rgba
+    if drgba:
+      return rgba_to_rgba8(drgba)
     return None
   def _set_single_color(self, color):
     from ..colors import rgba8_to_rgba

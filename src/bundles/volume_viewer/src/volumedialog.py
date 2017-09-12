@@ -2476,12 +2476,19 @@ class Histogram_Pane:
   def set_threshold_and_color_widgets(self):
 
     markers, m = self.selected_histogram_marker()
+    rgba = None
     if m:
       threshold = m.xy[0]
       t_str = float_format(threshold, 3)
       self.threshold.setText(t_str)
-      from .histogram import hex_color_name
-      self.color.setStyleSheet('background-color: %s' % hex_color_name(m.rgba[:3]))
+      rgba = m.rgba
+    else:
+        v = self.volume
+        if v:
+            rgba = v.default_rgba
+    if rgba is not None:
+        from .histogram import hex_color_name
+        self.color.setStyleSheet('background-color: %s' % hex_color_name(rgba[:3]))
 
   # ---------------------------------------------------------------------------
   #
