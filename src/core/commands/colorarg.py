@@ -214,20 +214,20 @@ class ColormapArg(cli.Annotation):
             from ..colors import Colormap
             return Colormap(values, [c.rgba for c in colors]), text, rest
         else:
-            name = token.casefold()
+            ci_token = token.casefold()
             if session is not None:
-                i = session.user_colormaps.bisect_left(name)
+                i = session.user_colormaps.bisect_left(ci_token)
                 if i < len(session.user_colormaps):
                     name = session.user_colormaps.iloc[i]
-                    if name.startswith(name):
+                    if name.startswith(ci_token):
                         return session.user_colormaps[name], name, rest
             from ..colors import BuiltinColormaps
-            i = BuiltinColormaps.bisect_left(name)
+            i = BuiltinColormaps.bisect_left(ci_token)
             if i < len(BuiltinColormaps):
                 name = BuiltinColormaps.iloc[i]
-                if name.startswith(name):
+                if name.startswith(ci_token):
                     return BuiltinColormaps[name], name, rest
-            return _fetch_colormap(session, palette_id=name), token, rest
+            return _fetch_colormap(session, palette_id=token), token, rest
 
 _color_func = re.compile(r"^(rgb|rgba|hsl|hsla|gray)\s*\(([^)]*)\)")
 _number = re.compile(r"\s*[-+]?([0-9]+(\.[0-9]*)?|\.[0-9]+)")

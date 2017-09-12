@@ -253,7 +253,8 @@ class Colormap:
     def __init__(self, data_values, colors,
                  color_above_value_range=None,
                  color_below_value_range=None,
-                 color_no_value=None):
+                 color_no_value=None, name=None):
+        self.name = name
         self.values_specified = (data_values is not None)
         from numpy import array, float32, ndarray, argsort
         if data_values is None:
@@ -374,7 +375,7 @@ def _read_colorbrewer():
             for count, rgbs in ramps.items():
                 name = "%s-%s" % (scheme, count)
                 colors = tuple([eval(e, gs, ls) for e in rgbs])
-                BuiltinColormaps[name.casefold()] = Colormap(None, colors)
+                BuiltinColormaps[name.casefold()] = Colormap(None, colors, name=name)
 _read_colorbrewer()
 
 
