@@ -3059,21 +3059,24 @@ def open_grids(session, grids, name, **kw):
 
     maps = []
     show = kw.get('show', True)
-    show_dialog = kw.get('show_dialog', True)
     si = [d.series_index for d in grids if hasattr(d, 'series_index')]
     is_series = (len(si) == len(grids) and len(set(si)) > 1)
     cn = [d.channel for d in grids if hasattr(d, 'channel')]
     is_multichannel = (len(cn) == len(grids) and len(set(cn)) > 1)
-    for i,d in enumerate(grids):
+    for d in grids:
       show_data = show
       if is_series or is_multichannel:
         show_data = False	# Map_Series or MapChannelsModel classes will decide which to show
-      kw = {'show_data': show_data, 'show_dialog': show_dialog}
+      vkw = {'show_data': show_data, 'show_dialog': False}
       if hasattr(d, 'initial_style') and d.initial_style in ('surface', 'mesh', 'solid'):
-        kw['representation'] = d.initial_style
-      v = volume_from_grid_data(d, session, open_model = False, **kw)
+        vkw['representation'] = d.initial_style
+      v = volume_from_grid_data(d, session, open_model = False, **vkw)
 #      v.new_region(ijk_step = (1,1,1), adjust_step = False, show = show_data)
       maps.append(v)
+
+    show_dialog = kw.get('show_dialog', True)
+    if maps and show_dialog:
+      show_volume_dialog(session)
 
     if is_series and is_multichannel:
       cmaps = {}
