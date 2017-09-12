@@ -79,8 +79,9 @@ find_gaps(StructureSeq& sseq)
                         float pair_dist_sq;
                         find_nearest_pair(prev_res, res, &a1, &a2, &pair_dist_sq);
                     }
-                    // 3ixy chain B has 6.602 CA-CA length between residues 131 and 132
-                    no_gap = a1->coord().sqdistance(a2->coord()) < Residue::TRACE_DISTSQ_CUTOFF;
+                    Real distsq_cutoff = a1->residue()->polymer_type() == Residue::PT_AMINO ?
+                        Residue::TRACE_PROTEIN_DISTSQ_CUTOFF : Residue::TRACE_NUCLEIC_DISTSQ_CUTOFF;
+                    no_gap = a1->coord().sqdistance(a2->coord()) < distsq_cutoff;
                 }
                 if (!no_gap) {
                     if (gap < 1)

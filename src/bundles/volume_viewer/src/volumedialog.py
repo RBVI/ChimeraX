@@ -2034,7 +2034,7 @@ class Histogram_Pane:
       nijk_min[2] = k
       nijk_max = list(ijk_max)
       nijk_max[2] = k
-      v.new_region(nijk_min, nijk_max, ijk_step)
+      v.new_region(nijk_min, nijk_max, ijk_step, show = v.shown())
       for vc in v.other_channels():
           vc.new_region(nijk_min, nijk_max, ijk_step, show = vc.shown())
       # Make sure this plane is shown before we show another plane.
@@ -2262,12 +2262,11 @@ class Histogram_Pane:
     show = self.shown.isChecked()
     v.display = show
 
-    self.update_shown_icon()
-
     if show:
       self.select_data_cb()
 
   # ---------------------------------------------------------------------------
+  # Not used.
   #
   def check_shown_cb(self, trigger, x, changes):
 
@@ -2295,7 +2294,7 @@ class Histogram_Pane:
     if v is None:
       return
 
-    shown = v.shown()
+    shown = v.display
     fname = 'shown.png' if shown else 'hidden.png'
     s = self.shown
     if fname == getattr(s, 'file_name', None):

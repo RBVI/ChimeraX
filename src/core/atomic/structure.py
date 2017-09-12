@@ -684,7 +684,7 @@ class Structure(Model, StructureData):
                 spine_xyz1 = None
                 spine_xyz2 = None
             # Odd number of segments gets blending, even has sharp edge
-            rd = self._level_of_detail._ribbon_divisions
+            rd = self._level_of_detail.ribbon_divisions
             if rd % 2 == 1:
                 seg_blend = rd
                 seg_cap = seg_blend + 1
@@ -903,7 +903,7 @@ class Structure(Model, StructureData):
         from .. import surface
         from numpy import empty, array, float32, linspace
         from ..geometry import Places
-        num_pts = num_coords*self._level_of_detail._ribbon_divisions
+        num_pts = num_coords*self._level_of_detail.ribbon_divisions
         #S
         #S va, na, ta = surface.sphere_geometry(20)
         #S xyzr = empty((num_pts*2, 4), float32)
@@ -2216,6 +2216,7 @@ class StructureGraphicsChangeManager:
         self._structures_array = None		# StructureDatas object
         self.num_atoms_shown = 0
         self.level_of_detail = LevelOfDetail()
+        self._last_ribbon_divisions = 20
         from ..models import MODEL_DISPLAY_CHANGED
         self._display_handler = t.add_handler(MODEL_DISPLAY_CHANGED, self._model_display_changed)
         self._need_update = False
@@ -2249,18 +2250,26 @@ class StructureGraphicsChangeManager:
                     for m in s if m.visible)
             if n > 0 and n != self.num_atoms_shown:
                 self.num_atoms_shown = n
-                self._update_level_of_detail()
+                self.update_level_of_detail()
             self._need_update = False
             if (gc & StructureData._SELECT_CHANGE).any():
                 from ..selection import SELECTION_CHANGED
                 self.session.triggers.activate_trigger(SELECTION_CHANGED, None)
                 # XXX: No data for now.  What should be passed?
 
-    def _update_level_of_detail(self):
+    def update_level_of_detail(self):
         n = self.num_atoms_shown
+
+        lod = self.level_of_detail
+        ribbon_changed = (lod.ribbon_divisions != self._last_ribbon_divisions)
+        if ribbon_changed:
+            self._last_ribbon_divisions = lod.ribbon_divisions
+            
         for m in self._structures:
             if m.display:
                 m._update_level_of_detail(n)
+                if ribbon_changed:
+                    m._graphics_changed |= m._RIBBON_CHANGE
 
     def _array(self):
         sa = self._structures_array
@@ -2271,7 +2280,7 @@ class StructureGraphicsChangeManager:
 
     def set_subdivision(self, subdivision):
         self.level_of_detail.quality = subdivision
-        self._update_level_of_detail()
+        self.update_level_of_detail()
 
 # -----------------------------------------------------------------------------
 #
@@ -2302,15 +2311,17 @@ class LevelOfDetail(State):
         self._atom_default_triangles = 200
         self._atom_max_total_triangles = 5000000
         self._step_factor = 1.2
+        self.atom_fixed_triangles = None	# If not None use fixed number of triangles
         self._sphere_geometries = {}	# Map ntri to (va,na,ta)
 
         self._bond_min_triangles = 24
         self._bond_max_triangles = 160
         self._bond_default_triangles = 60
         self._bond_max_total_triangles = 5000000
+        self.bond_fixed_triangles = None	# If not None use fixed number of triangles
         self._cylinder_geometries = {}	# Map ntri to (va,na,ta)
 
-        self._ribbon_divisions = 20
+        self.ribbon_divisions = 20
 
     def take_snapshot(self, session, flags):
         return {'quality': self.quality,
@@ -2348,14 +2359,18 @@ class LevelOfDetail(State):
         return sg[ntri]
 
     def atom_sphere_triangles(self, natoms):
-        if natoms is None:
-            return self._atom_default_triangles
-        ntri = self.quality * self._atom_max_total_triangles // natoms
-        nmin, nmax = self._atom_min_triangles, self._atom_max_triangles
-        ntri = self.clamp_geometric(ntri, nmin, nmax)
+        aft = self.atom_fixed_triangles
+        if aft is not None:
+            ntri = aft
+        elif natoms is None or natoms == 0:
+            ntri = self._atom_default_triangles
+        else:
+            ntri = self.quality * self._atom_max_total_triangles // natoms
+            nmin, nmax = self._atom_min_triangles, self._atom_max_triangles
+            ntri = self.clamp_geometric(ntri, nmin, nmax)
         ntri = 2*(ntri//2)	# Require multiple of 2.
         return ntri
-
+    
     def clamp_geometric(self, n, nmin, nmax):
         f = self._step_factor
         from math import log, pow
@@ -2386,11 +2401,15 @@ class LevelOfDetail(State):
         return cg[div]
 
     def bond_cylinder_triangles(self, nbonds):
-        if nbonds is None:
-            return self._bond_default_triangles
-        ntri = self.quality * self._bond_max_total_triangles // nbonds
-        nmin, nmax = self._bond_min_triangles, self._bond_max_triangles
-        ntri = self.clamp_geometric(ntri, nmin, nmax)
+        bft = self.bond_fixed_triangles
+        if bft is not None:
+            ntri = bft
+        elif nbonds is None or nbonds == 0:
+            ntri = self._bond_default_triangles
+        else:
+            ntri = self.quality * self._bond_max_total_triangles // nbonds
+            nmin, nmax = self._bond_min_triangles, self._bond_max_triangles
+            ntri = self.clamp_geometric(ntri, nmin, nmax)
         ntri = 4*(ntri//4)	# Require multiple of 4
         return ntri
 

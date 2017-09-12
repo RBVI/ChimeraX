@@ -3092,6 +3092,7 @@ def open_grids(session, grids, name, **kw):
       models = [ms]
     elif is_multichannel:
       mc = MapChannelsModel(name, maps, session)
+      mc.show_n_channels(3)
       msg = 'Opened multi-channel map %s, %d channels' % (name, len(maps))
       models = [mc]
     else:
@@ -3120,7 +3121,6 @@ class MapChannels:
   
   def __init__(self, maps):
     self.set_maps(maps)
-    self.show_n_channels(3)
 
   def set_maps(self, maps):
     for v in maps:

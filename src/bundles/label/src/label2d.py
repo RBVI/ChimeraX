@@ -234,8 +234,7 @@ class LabelDrawing(Drawing):
             rgba8 = (0,0,0,255) if light_bg else (255,255,255,255)
         else:
             rgba8 = tuple(l.color)
-        from chimerax import app_data_dir
-        rgba = text_image_rgba(l.text, rgba8, l.size, l.font, app_data_dir)
+        rgba = text_image_rgba(l.text, rgba8, l.size, l.font)
         if rgba is None:
             l.session.logger.info("Can't find font for label")
             return True
@@ -276,7 +275,7 @@ class LabelDrawing(Drawing):
 
 # -----------------------------------------------------------------------------
 #
-def text_image_rgba(text, color, size, font, data_dir):
+def text_image_rgba(text, color, size, font):
     from PyQt5.QtGui import QImage, QPainter, QFont, QFontMetrics, QBrush, QColor
     f = QFont(font, size)
     fm = QFontMetrics(f)

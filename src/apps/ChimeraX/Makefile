@@ -69,7 +69,7 @@ ifdef WIN32
 	rm -f $(APP_NAME).ico icon.rc $(PROG).manifest $(APP_NAME).pdb vc*.pdb
 endif
 
-lint:
+pylint:
 	$(PYLINT) *.py
 
 run:

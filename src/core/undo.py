@@ -16,49 +16,48 @@ and "redo" callbacks.  Actions can register "undo" and "redo"
 functions which may be invoked via GUI, command or programmatically.
 """
 
+from .state import State, CORE_STATE_VERSION
 
-class Undo:
+
+class Undo(State):
     """A per-session undo manager for tracking undo/redo callbacks.
 
-    'Undo' instances are per-session singletons that track
+    'Undo' managers are per-session singletons that track
     undo/redo callbacks in two stacks: the undo and redo stacks.
-    Actions can register a pair of undo and redo callbacks along
-    with a name; the triplet is stored as an UndoInstance.
-    When actions register new undo/redo callbacks, the UndoInstance
+    Actions can register objects that conform to the
+    'UndoAction'.  When registered, an UndoAction instance
     is pushed on to the undo stack and the redo stack is cleared.
-    When an "undo" is requested, an UndoInstance is popped
-    off the undo stack, the undo callback is invoked, and
-    the UndoInstance is pushed onto the redo stack.  When
-    a "redo" is requested, an UndoInstance is popped off the
-    redo stack, the redo callback is invoked, and the UndoInstance
-    is pushed on to the undo stack.
+
+    When an "undo" is requested, an UndoAction is popped
+    off the undo stack, and its undo callback is invoked
+    If the undo callback throws an error or the UndoAction
+    'can_redo' attribute is false, the redo stack is cleared,
+    because we cannot establish the "original" state for the
+    next redo; otherwise, the UndoAction is pushed onto the
+    redo stack.
     
-    If an action registers only an undo but no redo callback,
-    then the UndoInstance is not pushed onto the redo stack when
-    "undo" is requested; instead, the redo stack is cleared (since
-    the "original" state for the next redo cannot be restored).
+    When a "redo" is requested, an UndoAction is popped off the
+    redo stack, its redo callback is invoked, and the UndoAction
+    is pushed on to the undo stack.
 
-    A maximum stack depth is supported.  If zero, there is no
-    limit.  Otherwise, if either stack grows deeper than the
+    Maximum stack depths are supported.  If zero, there is no
+    limit.  Otherwise, if a stack grows deeper than its
     allowed maximum, the bottom of stack is discarded.
-
-    The undo manager is not derived from state.State because it
-    is not possible to save and restore callback functions safely.
 
     Attributes
     ----------
     max_depth : int
-        Maximum depth for both undo and redo stacks.
+        Maximum depth for both the undo and redo stacks.
         Default is 10.  Setting to 0 removes limit.
-    undo_stack : list
-        List of UndoInstance instances
     redo_stack : list
-        List of UndoInstance instances
+        List of UndoAction instances
+    undo_stack : list
+        List of UndoAction instances
     """
     # Most of this code is modeled after tools.Tools
 
     def __init__(self, session, first=False, max_depth=10):
-        """Initialize per-session state manager for undo/redo callbacks.
+        """Initialize per-session state manager for undo/redo actions.
 
         Parameters
         ----------
@@ -71,52 +70,95 @@ class Undo:
         self.undo_stack = []
         self.redo_stack = []
 
-    def register(self, name, undo, redo):
-        """Register undo/redo callbacks with state manager.
+    @property
+    def session(self):
+        """Returns the session this undo state manager is in.
+        """
+        return self._session()
+
+    def register(self, action):
+        """Register undo/redo actions with state manager.
 
         Parameters
         ----------
-        name : str
-            Name for the pair of undo/redo callbacks that changes
-            session between start and end states.
-        undo : function
-            Function to execute to go from end state to start state.
-        redo : function
-            Function to execute to go from start state to end state.
+        action : instance of UndoAction
+            Action that can change session between "before"
+            and "after" states.
+
+        Returns
+        -------
+        The registered action.
         """
-        if not name:
-            raise ValueError("undo name must not be empty")
-        self._push(self.undo_stack, UndoInstance(name, undo, redo))
+        self._push(self.undo_stack, action)
+        self.redo_stack.clear()
+        self._update_ui()
+        return action
+
+    def deregister(self, action, delete_history=True):
+        """Deregisters undo/redo actions from state manager.
+        If the action is on the undo stack, all prior undo
+        actions are deleted if 'delete_history' is True
+        (default).  Similarly, if the action is on the redo
+        stack all subsequent redo actions are deleted if
+        'delete_history' is True.  The 'delete_history'
+        default is True because the deregistering action is
+        the one to establish the "current" state for the
+        next undo/redo action, so removing the action would
+        likely prevent the next undo/redo action from working
+        properly.
+
+        Parameters
+        ----------
+        action : instance of UndoAction
+            A previously registered UndoAction instance.
+        """
+        self._remove(self.undo_stack, action, delete_history)
+        self._remove(self.redo_stack, action, delete_history)
+        self._update_ui()
+
+    def clear(self):
+        """Clear both undo and redo stacks.
+        """
+        self.undo_stack.clear()
         self.redo_stack.clear()
         self._update_ui()
 
     def top_undo_name(self):
-        """Return name for top undo item, or None if stack is empty.
+        """Return name for top undo action, or None if stack is empty.
         """
         return self._name(self.undo_stack)
 
     def top_redo_name(self):
-        """Return name for top redo item, or None if stack is empty.
+        """Return name for top redo action, or None if stack is empty.
         """
         return self._name(self.redo_stack)
 
     def undo(self):
-        """Execute top undo item.
+        """Execute top undo action.
         """
         inst = self._pop(self.undo_stack)
-        inst.undo()
-        if inst.redo:
-            self._push(self.redo_stack, inst)
-        else:
+        try:
+            inst.undo()
+        except Exception as e:
+            self.session.logger.report_exception("undo failed: %s" % str(e))
             self.redo_stack.clear()
+        else:
+            if inst.can_redo:
+                self._push(self.redo_stack, inst)
+            else:
+                self.redo_stack.clear()
         self._update_ui()
 
     def redo(self):
         """Execute top redo item.
         """
         inst = self._pop(self.redo_stack)
-        inst.redo()
-        self._push(self.undo_stack, inst)
+        try:
+            inst.redo()
+        except Exception as e:
+            self.session.logger.report_exception("redo failed: %s" % str(e))
+        else:
+            self._push(self.undo_stack, inst)
         self._update_ui()
 
     def set_depth(self, depth):
@@ -133,6 +175,21 @@ class Undo:
         self._trim(self.undo_stack)
         self._trim(self.redo_stack)
 
+    # State methods
+
+    def take_snapshot(self, session, flags):
+        return {"version":1, "max_depth":self.max_depth}
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        return cls(session, max_depth=data["max_depth"])
+
+    def reset_state(self, session):
+        """Reset state to data-less state"""
+        self.clear()
+
+    # Internal methods
+
     def _trim(self, stack):
         if self.max_depth > 0:
             while len(stack) > self.max_depth:
@@ -144,6 +201,17 @@ class Undo:
 
     def _pop(self, stack):
         return stack.pop()
+
+    def _remove(self, stack, action, delete_history):
+        try:
+            n = stack.index(action)
+        except ValueError:
+            pass
+        else:
+            if delete_history:
+                del stack[:n+1]
+            else:
+                del stack[n]
 
     def _name(self, stack):
         try:
@@ -163,7 +231,7 @@ class Undo:
             f(self)
 
 
-class UndoInstance:
+class UndoAction:
     """An instance holding the name for a pair of undo/redo callbacks.
 
     Attributes
@@ -171,13 +239,125 @@ class UndoInstance:
     name : str
         Name for the pair of undo/redo callbacks that changes
         session between start and end states.
-    undo : function
-        Function to execute to go from end state to start state.
-    redo : function
-        Function to execute to go from start state to end state.
+    can_redo : boolean
+        Whether this instance supports redoing an action after
+        undoing it.
     """
 
-    def __init__(self, name, undo, redo):
+    def __init__(self, name, can_redo=True):
         self.name = name
-        self.undo = undo
-        self.redo = redo
+        self.can_redo = can_redo
+
+    def undo(self):
+        """Undo an action.
+        """
+        raise NotImplementedError("undo")
+
+    def redo(self):
+        """Redo an action.
+        """
+        raise NotImplementedError("redo")
+
+
+class UndoState(UndoAction):
+    """An instance that stores tuples of (owner,
+    attribute name, old values, new values) and uses the
+    information to undo/redo actions.  'owner' may be
+    a simple instance or an ordered container such as
+    a list or an 'atomic.molarray.Collection' instance.
+
+    Attributes
+    ----------
+    name : str
+    can_redo : boolean
+        Inherited from UndoAction.
+    state : list
+        List of (owner, attribute, old, new, options) tuples that
+        have been added to the action.
+    """
+
+    _valid_options = ["A", "M", "MA", "MK"]
+
+    def __init__(self, name, can_redo=True):
+        super().__init__(name, can_redo)
+        self.state = []
+
+    def add(self, owner, attribute, old_value, new_value, option="A"):
+        """Add another tuple of (owner, attribute, old_value, new_value,
+        option) to the undo action state.
+
+        Arguments
+        ---------
+        owner : instance
+            An instance or a container of instances.  If owner
+            is a container, then undo/redo callbacks will check
+            to make sure that old_value has the same number of
+            elements.
+        attribute : string
+            Name of attribute whose value changes with undo/redo.
+        old_value : object
+            Value for attribute after undo.
+            If owner is a container, then old_value should be
+            a container of values with the same number of elements.
+            Otherwise, any value is acceptable.
+        new_value : object
+            Value for attribute after redo.
+            Even if owner is a container, new_value may be a
+            simple value, in which case all elements in the
+            owner container will receive the same attribute value.
+        option : string
+            Option specifying how the attribute and values are
+            used for updating state.  If option is "A" (default),
+            the attribute is changed to the value using setattr.
+            If option is "M", the attribute is assumed to be callable
+            with a single argument of the value.  If option is "MA",
+            the attribute is called with the values as its argument
+            list, i.e., attribute(*value).  If option is "MK", the
+            attribute iscalled with the values as keywords, i.e.,
+            attribute(**value).
+        """
+        if option not in self._valid_options:
+            raise ValueError("invalid UndoState option: %s" % option)
+        self.state.append((owner, attribute, old_value, new_value, option))
+
+    def undo(self):
+        """Undo action (set owner attributes to old values).
+        """
+        self._consistency_check()
+        for owner, attribute, old_value, new_value, option in reversed(self.state):
+            self._update_owner(owner, attribute, old_value, option)
+
+    def redo(self):
+        """Redo action (set owner attributes to new values).
+        """
+        self._consistency_check()
+        for owner, attribute, old_value, new_value, option in self.state:
+            self._update_owner(owner, attribute, new_value, option)
+
+    def _consistency_check(self):
+        for owner, attribute, old_value, new_value, option in self.state:
+            try:
+                owner_length = len(owner)
+            except TypeError:
+                # Not a container, so move on
+                continue
+            else:
+                # Is a container, old_value must be the same length
+                try:
+                    value_length = len(old_value)
+                except TypeError:
+                    value_length = 1
+                if value_length != owner_length:
+                    raise ValueError("undo action with different number "
+                                     "of owners and old values: %d != %d" %
+                                     (owner_length, value_length))
+
+    def _update_owner(self, owner, attribute, value, option):
+        if option == "A":
+            setattr(owner, attribute, value)
+        elif option == "M":
+            getattr(owner, attribute)(value)
+        elif option == "MK":
+            getattr(owner, attribute)(**value)
+        elif option == "MA":
+            getattr(owner, attribute)(*value)

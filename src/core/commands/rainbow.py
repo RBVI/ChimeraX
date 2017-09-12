@@ -17,7 +17,8 @@ def rainbow(session, objects, level='residues', target=None, transparency=None,
     '''
     from .color import color
     color(session, objects, target=target, transparency=transparency,
-          sequential=level, palette=palette, halfbond=halfbond)
+          sequential=level, palette=palette, halfbond=halfbond,
+	  undo_name="rainbow")
 
 # -----------------------------------------------------------------------------
 #

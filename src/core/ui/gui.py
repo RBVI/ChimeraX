@@ -372,8 +372,6 @@ class MainWindow(QMainWindow, PlainTextLog):
             from PyQt5.QtGui import QIcon
             self.setWindowIcon(QIcon(icon_path))
 
-        self._status_log = _StatusLog(session, self.statusBar())
-        
         session.logger.add_log(self)
 
         # Allow drag and drop of files onto app window.
@@ -593,7 +591,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         show_context_menu(event, tool, fill_cb, True)
 
     def status(self, msg, color, secondary):
-        self._status_log.status(msg, color, secondary)
+        self._status_bar.status(msg, color, secondary)
 
     def _about(self, arg):
         from PyQt5.QtWebEngineWidgets import QWebEngineView
@@ -610,7 +608,9 @@ class MainWindow(QMainWindow, PlainTextLog):
         self._about_dialog.show()
 
     def _build_status(self):
-        sb = build_statusbar()
+        from .statusbar import _StatusBar
+        self._status_bar = sbar = _StatusBar(self.session)
+        sb = sbar.widget
         self._global_hide_button = ghb = QToolButton(sb)
         self._rapid_access_button = rab = QToolButton(sb)
         from PyQt5.QtGui import QIcon
@@ -686,15 +686,15 @@ class MainWindow(QMainWindow, PlainTextLog):
         edit_menu.addAction(self.redo_action)
         edit_menu.addSeparator()
         cut_action = QAction("&Cut", self)
-        cut_action.setShortcut("Ctrl+X")
+        # cut_action.setShortcut("Ctrl+X")
         cut_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_ccp_cb(sess, Qt.Key_X))
         edit_menu.addAction(cut_action)
         copy_action = QAction("&Copy", self)
-        copy_action.setShortcut("Ctrl+C")
+        # copy_action.setShortcut("Ctrl+C")
         copy_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_ccp_cb(sess, Qt.Key_C))
         edit_menu.addAction(copy_action)
         paste_action = QAction("&Paste", self)
-        paste_action.setShortcut("Ctrl+V")
+        # paste_action.setShortcut("Ctrl+V")
         paste_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_ccp_cb(sess, Qt.Key_V))
         edit_menu.addAction(paste_action)
 
@@ -940,15 +940,16 @@ class ToolWindow(StatusLogger):
         pass
 
     def status(self, *args, **kw):
-        if self.statusbar:
+        if self._have_statusbar:
             StatusLogger.status(self, *args, **kw)
         else:
             self.session.logger.status(*args, **kw)
 
     @property
-    def statusbar(self):
-        """This window's QStatusBar widget"""
-        return self.__toolkit.statusbar if self.__toolkit else None
+    def _have_statusbar(self):
+        """Does this window have a QStatusBar widget"""
+        tk = self.__toolkit
+        return tk is not None and tk.status_bar is not None
 
     def _get_title(self):
         if self.__toolkit is None:
@@ -965,7 +966,7 @@ class ToolWindow(StatusLogger):
 
     def _destroy(self):
         self.cleanup()
-        if self.statusbar:
+        if self._have_statusbar:
             self.clear()
         self.__toolkit.destroy()
         self.__toolkit = None
@@ -975,7 +976,7 @@ class ToolWindow(StatusLogger):
         self.shown_changed(shown)
 
     def _prioritized_logs(self):
-        return [self.__toolkit.status_log]
+        return [self.__toolkit.status_bar]
 
     def _show_context_menu(self, event):
         # this routine needed as a kludge to allow QwebEngine to show
@@ -1053,12 +1054,12 @@ class _Qt:
         self.ui_area.contextMenuEvent = lambda e, self=self: self.show_context_menu(e)
         layout.addWidget(self.ui_area)
         if has_statusbar:
-            self.statusbar = build_statusbar()
-            layout.addWidget(self.statusbar)
             session = tool_window.tool_instance.session
-            self.status_log = _StatusLog(session, self.statusbar)
+            from .statusbar import _StatusBar
+            self.status_bar = sbar = _StatusBar(session)
+            layout.addWidget(sbar.widget)
         else:
-            self.statusbar = None
+            self.status_bar = None
         container.setLayout(layout)
         self.dock_widget.setWidget(container)
 
@@ -1070,9 +1071,9 @@ class _Qt:
         self.tool_window = None
         self.main_window = None
         self.ui_area.destroy()
-        if self.statusbar:
-            self.statusbar.destroy()
-            self.statusbar = None
+        if self.status_bar:
+            self.status_bar.destroy()
+            self.status_bar = None
         self.dock_widget.destroy()
 
     def manage(self, placement, allowed_areas, fixed_size=False):
@@ -1137,93 +1138,6 @@ class _Qt:
 
     def set_title(self, title):
         self.dock_widget.setWindowTitle(title)
-
-class _StatusLog:
-    def __init__(self, session, statusbar):
-        self.session = session
-        self.statusbar = statusbar
-    def status(self, msg, color, secondary):
-        sb = self.statusbar
-        sb.clearMessage()
-        if secondary:
-            label = sb._secondary_status_label
-        else:
-            label = sb._primary_status_label
-        label.setText("<font color='" + color + "'>" + msg + "</font>")
-        label.show()
-
-        self._show_status_now()
-
-    def _show_status_now(self):
-        # In Qt 5.7.1 there is no way to for the status line to redraw without running the event loop.
-        # But we don't want requesting a status message to have any side effects, such as dispatching
-        # mouse events.  This could cause havoc in the code writing the status message which does not
-        # expect any side effects.
-
-        # The only viable solution seems to be to process Qt events but exclude mouse and key events.
-        # The unprocessed mouse/key events are kept and supposed to be processed later but due to
-        # Qt bugs (57718 and 53126), those events don't get processed and mouse up events are lost
-        # during mouse drags, causing the mouse to still drag controls even after the button is released.
-        # This is seen in volume viewer when dragging the level bar on the histogram making the tool
-        # very annoying to use. Some work-around code suggested in Qt bug 57718 of calling processEvents()
-        # to send those deferred events is used below.
-
-        if getattr(self, '_processing_deferred_events', False):
-            return
-
-        # Need to preserve OpenGL context across processing events, otherwise
-        # a status message during the graphics draw, causes an OpenGL error because
-        # Qt changed the current context.
-        from PyQt5.QtGui import QOpenGLContext
-        opengl_context = QOpenGLContext.currentContext()
-        if opengl_context:
-            opengl_surface = opengl_context.surface()
-
-        s = self.session
-        ul = s.update_loop
-        ul.block_redraw()	# Prevent graphics redraw. Qt timers can fire.
-        self._in_status_event_processing = True
-        from PyQt5.QtCore import QEventLoop
-        s.ui.processEvents(QEventLoop.ExcludeUserInputEvents)
-        self._in_status_event_processing = False
-        ul.unblock_redraw()
-
-        if opengl_context and QOpenGLContext.currentContext() != opengl_context:
-            opengl_context.makeCurrent(opengl_surface)
-            
-        self._process_deferred_events()
-
-    def _process_deferred_events(self):
-        # Handle bug where deferred mouse/key events are never processed on Mac Qt 5.7.1.
-        from sys import platform
-        if platform != 'darwin':
-            return
-        if getattr(self, '_flush_timer_queued', False):
-            return
-
-        def flush_pending_user_events(self=self):
-            self._flush_timer_queued = False
-            if getattr(self, '_in_status_event_processing', False):
-                # Avoid processing deferred events if timer goes off during status message.
-                self._process_deferred_events()
-            else:
-                self._processing_deferred_events = True
-                self.session.ui.processEvents()
-                self._processing_deferred_events = False
-
-        self._flush_timer_queued = True
-        from PyQt5.QtCore import QTimer
-        QTimer.singleShot(0, flush_pending_user_events)
-
-def build_statusbar():
-    from PyQt5.QtWidgets import QStatusBar, QSizePolicy
-    sb = QStatusBar()
-    sb.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
-    sb._primary_status_label = QLabel()
-    sb._secondary_status_label = QLabel()
-    sb.addWidget(sb._primary_status_label)
-    sb.addPermanentWidget(sb._secondary_status_label)
-    return sb
 
 def redirect_stdio_to_logger(logger):
     # Redirect stderr to log

@@ -33,42 +33,38 @@ def hide(session, objects=None, what=None, target=None):
     if len(what_to_hide) == 0:
         what_to_hide = set(['atoms' if objects.atoms else 'models'])
 
-    undo_data = {}
+    from ..undo import UndoState
+    undo_state = UndoState("hide")
     if 'atoms' in what_to_hide:
         atoms = objects.atoms
-        undo_data['atoms'] = (atoms, atoms.displays, False)
+        undo_state.add(atoms, "displays", atoms.displays, False)
         atoms.displays = False
     if 'bonds' in what_to_hide:
         bonds = objects.atoms.intra_bonds
-        undo_data['bonds'] = (bonds, bonds.displays, False)
+        undo_state.add(bonds, "displays", bonds.displays, False)
         bonds.displays = False
     if 'pseudobonds' in what_to_hide or 'pbonds' in what_to_hide:
         from .. import atomic
         pbonds = atomic.interatom_pseudobonds(objects.atoms)
-        undo_data['pseudobonds'] = (pbonds, pbonds.displays, False)
+        undo_state.add(pbond, "displays", pbonds.displays, False)
         pbonds.displays = False
     if 'cartoons' in what_to_hide or 'ribbons' in what_to_hide:
         res = objects.atoms.unique_residues
-        undo_data['cartoons'] = (res, res.ribbon_displays, False)
+        undo_state.add(res, "ribbon_displays", res.ribbon_displays, False)
         res.ribbon_displays = False
     if 'surfaces' in what_to_hide:
         from ..atomic import molsurf
         # TODO: save undo data
         molsurf.hide_surface_atom_patches(objects.atoms, session.models)
     if 'models' in what_to_hide:
-        hide_models(objects, undo_data)
+        hide_models(objects, undo_state)
 
-    def undo(data=undo_data):
-        _hide_undo(data)
-    def redo(data=undo_data):
-        _hide_redo(data)
-    session.undo.register("hide", undo, redo)
+    session.undo.register(undo_state)
 
-def hide_models(objects, undo_data):
+def hide_models(objects, undo_state):
     minst = objects.model_instances
     ud_positions = {}
     ud_display = {}
-    undo_data['models'] = (ud_positions, ud_display)
     if minst:
         from numpy import logical_and, logical_not
         for m,inst in minst.items():
@@ -90,47 +86,10 @@ def hide_models(objects, undo_data):
             else:
                 ud_display[m] = [m.display, True]
             m.display = False
-
-def _hide_undo(undo_data):
-    def _update_attr(key, attr):
-        try:
-            container, old_values, new_values = undo_data[key]
-        except KeyError:
-            pass
-        else:
-            setattr(container, attr, old_values)
-    _update_attr('atoms', 'displays')
-    _update_attr('bonds', 'displays')
-    _update_attr('pseudobonds', 'displays')
-    _update_attr('cartoons', 'ribbon_displays')
-    # TODO: Surfaces
-    _update_models(undo_data, 0)
-
-def _update_models(undo_data, which):
-    try:
-        ud_positions, ud_displays = undo_data['models']
-    except KeyError:
-        pass
-    else:
-        for m, v in ud_positions.items():
-            m.display_positions = v[which]
-        for m, v in ud_display.items():
-            m.display = v[which]
-
-def _hide_redo(undo_data):
-    def _update_attr(key, attr):
-        try:
-            container, old_values, new_values = undo_data[key]
-        except KeyError:
-            pass
-        else:
-            setattr(container, attr, new_values)
-    _update_attr('atoms', 'displays')
-    _update_attr('bonds', 'displays')
-    _update_attr('pseudobonds', 'displays')
-    _update_attr('cartoons', 'ribbon_displays')
-    # TODO: Surfaces
-    _update_models(undo_data, 1)
+    for m, values in ud_positions.items():
+        undo_state.add(m, "display_positions", *values)
+    for m, values in ud_display.items():
+        undo_state.add(m, "display", *values)
 
 def register_command(session):
     from . import CmdDesc, register, ObjectsArg, EnumOf, EmptyArg, Or, create_alias

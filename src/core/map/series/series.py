@@ -19,12 +19,9 @@ class Map_Series(Model):
   def __init__(self, name, maps, session):
 
     Model.__init__(self, name, session)
-
-    v0 = maps[0]
-    v0.initialize_thresholds()
-    v0.show()	# Show first map of series
     
     self.add(maps)
+    self.show_first_map_only(maps)
     self.set_maps(maps)
     
     self.surface_level_ranks = []  # Cached for normalization calculation
@@ -40,6 +37,15 @@ class Map_Series(Model):
     self.last_shown_time = tuple(t)[0] if len(t) > 0 else 0
     for m in maps:
       m.series = self
+
+  # ---------------------------------------------------------------------------
+  #
+  def show_first_map_only(self, maps):
+    v0 = maps[0]
+    v0.initialize_thresholds()
+    v0.show()	# Show first map of series
+    for v in maps[1:]:
+      v.display = False
 
   # ---------------------------------------------------------------------------
   #

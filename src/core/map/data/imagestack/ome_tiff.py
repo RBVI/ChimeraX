@@ -195,6 +195,7 @@ class OME_Pixels:
         self.channel_names = channel_names
         self.channel_colors = channel_colors
         self.image = None
+        self._last_plane = 0
 
     def plane_data(self, channel, time, k, pixel_values):
         fname, plane = self.plane_table[(channel,time,k)]
@@ -205,7 +206,7 @@ class OME_Pixels:
     def image_plane(self, filename, plane):
         im = self.image
         opened = False
-        if im is None or filename != im.filename:
+        if im is None or filename != im.filename or plane < self._last_plane:
             # Switch image files for multi-file OME TIFF data.
             from os.path import dirname, join
             dpath = dirname(self.path)
@@ -213,6 +214,7 @@ class OME_Pixels:
             self.image = im = Image.open(join(dpath,filename))
             im.filename = filename
             opened = True
+        self._last_plane = plane
         try:
             im.seek(plane)
         except ValueError:
