@@ -1524,22 +1524,25 @@ class Thresholds_Panel(PopupPanel):
       hf.resize(w, hf.height())
       
   # ---------------------------------------------------------------------------
-  # Resize thresholds panel to fit up to 3 histograms before scrolling.
+  # Resize thresholds panel to fit more histograms up to 350 pixels total height.
   #
-  def resize_panel(self, nhist = 3):
+  def resize_panel(self, max_height = 350):
 
     hpanes = self.histogram_panes
     n = len(hpanes)
-    if n == 0 or n > nhist:
+    if n == 0:
         return
 
     hf = self.histograms_frame
     h = hf.height() + 2*hf.lineWidth()
     f = self.frame
-    if f.height() < h:
-        # This is the only way I could find to convince a QDockWidget to
-        # resize to a size I request.
-        f.setMinimumHeight(h)
+    h = min(h, max_height)
+    if h <= f.height():
+        return
+
+    # This is the only way I could find to convince a QDockWidget to
+    # resize to a size I request.
+    f.setMinimumHeight(h)
 
     # Allow resizing panel smaller with mouse
     from PyQt5.QtCore import QTimer
