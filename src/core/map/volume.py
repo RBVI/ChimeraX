@@ -3061,7 +3061,7 @@ def open_grids(session, grids, name, **kw):
     show = kw.get('show', True)
     si = [d.series_index for d in grids if hasattr(d, 'series_index')]
     is_series = (len(si) == len(grids) and len(set(si)) > 1)
-    cn = [d.channel for d in grids if hasattr(d, 'channel')]
+    cn = [d.channel for d in grids if d.channel is not None]
     is_multichannel = (len(cn) == len(grids) and len(set(cn)) > 1)
     for d in grids:
       show_data = show

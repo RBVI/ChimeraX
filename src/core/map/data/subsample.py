@@ -28,14 +28,9 @@ class Subsampled_Grid(Grid_Data):
 
     self.available_subsamplings = {(1,1,1): pg}
 
-    Grid_Data.__init__(self, pg.size, pg.value_type, pg.origin, pg.step,
-                       pg.cell_angles, pg.rotation, pg.symmetries,
-                       name = pg.name, path = pg.path, file_type = pg.file_type,
-                       grid_id = pg.grid_id, default_color = pg.rgba)
-    if hasattr(pg, 'time') and pg.time is not None:
-      self.time = pg.time
-    if hasattr(pg, 'channel') and pg.channel is not None:
-      self.channel = pg.channel
+    settings = pg.settings()
+    Grid_Data.__init__(self, path = pg.path, file_type = pg.file_type,
+                       grid_id = pg.grid_id, **settings)
 
   # ---------------------------------------------------------------------------
   #

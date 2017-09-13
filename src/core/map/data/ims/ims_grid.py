@@ -18,9 +18,11 @@ from ..griddata import Grid_Data
 #
 class IMS_Grid(Grid_Data):
 
-  def __init__(self, hdf_data, size, value_type,
-               origin, step, cell_angles, rotation, symmetries, color,
-               image_name, array_path):
+  # Attribute names for constructor grid settings.
+  attributes = ('size', 'value_type', 'origin', 'step', 'cell_angles',
+                'rotation', 'symmetries', 'default_color', 'time', 'channel')
+
+  def __init__(self, hdf_data, image_name, array_path, **grid_settings):
 
     self.hdf_data = hdf_data
     self.array_path = array_path
@@ -30,13 +32,8 @@ class IMS_Grid(Grid_Data):
     if image_name and image_name != name.rsplit('.',1)[0]:
       name += ' ' + image_name
 
-    Grid_Data.__init__(self, size, value_type,
-                       origin, step, cell_angles, rotation,
-                       name = name, default_color = color,
-                       path = hdf_data.path, file_type = 'ims', grid_id = array_path)
-
-    if not symmetries is None and len(symmetries) > 0:
-      self.symmetries = symmetries
+    Grid_Data.__init__(self, path = hdf_data.path, file_type = 'ims', grid_id = array_path, name = name,
+                       **grid_settings)
 
   # ---------------------------------------------------------------------------
   #
@@ -66,9 +63,8 @@ def read_imaris_map(path):
     glist = []
     for i in images:
       image_name = i.name if len(images) > 1 else ''
-      g = IMS_Grid(d, i.size, i.value_type,
-                   i.origin, i.step, i.cell_angles, i.rotation,
-                   i.symmetries, i.default_color, image_name, i.array_path)
+      gsettings = {attr:getattr(i,attr) for attr in IMS_Grid.attributes}
+      g = IMS_Grid(d, image_name, i.array_path, **gsettings)
       g.time = i.time
       g.channel = i.channel
       if i.subsamples:
@@ -92,11 +88,9 @@ def add_subsamples(hdf_data, hdf_image, g):
   i = hdf_image
   for cell_size, data_size, array_path in i.subsamples:
       step = tuple(s*c for s,c in zip(i.step, cell_size))
-      sg = IMS_Grid(hdf_data, data_size, i.value_type,
-                    i.origin, step, i.cell_angles, i.rotation,
-                    i.symmetries, i.default_color, i.name, array_path)
-      g.time = i.time
-      g.channel = i.channel
+      gsettings = {attr:getattr(i,attr) for attr in IMS_Grid.attributes}
+      gsettings.update({'size':data_size, 'step':step})
+      sg = IMS_Grid(hdf_data, i.name, array_path, **gsettings)
       g.add_subsamples(sg, cell_size)
       
   return g

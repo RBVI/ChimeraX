@@ -55,7 +55,9 @@ class Grid_Data:
                path = '',       # Can be list of paths
                file_type = '',
                grid_id = '',
-               default_color = None):
+               default_color = None,
+               time = None,
+               channel = None):
 
     # Path, file_type and grid_id are for reloading data sets.
     self.path = path
@@ -86,6 +88,9 @@ class Grid_Data:
 
     self.rgba = default_color            # preferred color for displaying data
 
+    self.time = time			# Integer, position in time series
+    self.channel = channel		# Integer, channel number for multi-channel data
+
     self.data_cache = None
 
     self.writable = False
@@ -93,6 +98,22 @@ class Grid_Data:
 
     self.update_transform()
 
+    
+  # ---------------------------------------------------------------------------
+  # Return dictionary of options for Grid_Data constructor used to initialize
+  # a new Grid_Data.  Keyword options replace the specified settings.
+  #
+  def settings(self, **replace):
+    attrs = ('size', 'value_type', 'origin', 'step', 'cell_angles', 'rotation', 'symmetries',
+             'name', 'time', 'channel')
+    s = {attr:getattr(self, attr) for attr in attrs}
+    s['default_color'] = self.rgba
+    for k in replace.keys():
+      if k not in attrs:
+        raise ValueError('Unknown argument to Grid_Data settings(): "%s"' % k)
+    s.update(replace)
+    return s
+      
   # ---------------------------------------------------------------------------
   #
   def set_path(self, path, format = None):
@@ -433,17 +454,10 @@ class Grid_Subregion(Grid_Data):
     origin = d.ijk_to_xyz(ijk_min)
     step = [ijk_step[a]*d.step[a] for a in range(3)]
 
-    Grid_Data.__init__(self, size, d.value_type,
-                       origin, step, d.cell_angles,
-                       d.rotation, d.symmetries,
-                       name = d.name + ' subregion')
-    self.rgba = d.rgba
-    self.data_cache = None      # Caching done by underlying grid.
+    settings = d.settings(size=size, origin=origin, step=step, name=d.name+' subregion')
+    Grid_Data.__init__(self, **settings)
 
-    if hasattr(d, 'time') and d.time is not None:
-      self.time = d.time
-    if hasattr(d, 'channel') and d.channel is not None:
-      self.channel = d.channel
+    self.data_cache = None      # Caching done by underlying grid.
         
   # ---------------------------------------------------------------------------
   #
