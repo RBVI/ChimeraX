@@ -269,7 +269,8 @@ def colors_to_uint8(vc):
 
 # -----------------------------------------------------------------------------
 #
-def write_gltf(session, filename, models, center = None, size = None, short_vertex_indices = False):
+def write_gltf(session, filename, models, center = None, size = None, short_vertex_indices = False,
+               float_colors = False):
     if models is None:
         models = session.models.list()
 
@@ -280,7 +281,7 @@ def write_gltf(session, filename, models, center = None, size = None, short_vert
     app_ver  = "%s %s version: %s" % (ad.appauthor, ad.appname, ad.version)
 
     b = Buffers()
-    nodes, meshes = nodes_and_meshes(drawings, b, short_vertex_indices)
+    nodes, meshes = nodes_and_meshes(drawings, b, short_vertex_indices, float_colors)
     node_index = {d:di for di,d in enumerate(drawings)}
     shown_models = [m for m in models if m in node_index]
     
@@ -359,7 +360,7 @@ def any_triangles_shown(d, drawings, ts):
 
 # -----------------------------------------------------------------------------
 #
-def nodes_and_meshes(drawings, buffers, short_vertex_indices = False):
+def nodes_and_meshes(drawings, buffers, short_vertex_indices = False, float_colors = False):
     nodes = []
     meshes = []
     b = buffers
@@ -398,7 +399,10 @@ def nodes_and_meshes(drawings, buffers, short_vertex_indices = False):
                 attr['NORMAL'] = b.add_array(pna)
             if pvc is None:
                 pvc = single_vertex_color(len(pva), d.color)
-            attr['COLOR_0'] = b.add_array(pvc, normalized=True)
+            if float_colors:
+                pvc = pvc.astype(float32)
+                pvc /= 255
+            attr['COLOR_0'] = b.add_array(pvc, normalized = not float_colors)
             etype = uint16 if short_vertex_indices else uint32
             ne = len(pta)
             ea = pta.astype(etype, copy=False).reshape((3*ne,))
