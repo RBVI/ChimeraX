@@ -284,6 +284,10 @@ def state_from_grid_data(data, session_dir = None):
     s['symmetries'] = dt.symmetries
   if hasattr(dt, 'series_index'):
     s['series_index'] = dt.series_index
+  if hasattr(dt, 'channel') and dt.channel is not None:
+    s['channel_index'] = dt.channel
+  if hasattr(dt, 'time') and dt.time is not None:
+    s['time'] = dt.time
 
   from .data import Subsampled_Grid
   if isinstance(dt, Subsampled_Grid):
@@ -334,6 +338,14 @@ def grid_data_from_state(s, gdcache, session, file_paths):
   if 'series_index' in s:
     for data in dlist:
       data.series_index = s['series_index']
+
+  if 'channel' in s:
+    for data in dlist:
+      data.channel = s['channel']
+
+  if 'time' in s:
+    for data in dlist:
+      data.time = s['time']
       
   if 'available_subsamplings' in s:
     # Subsamples may be from separate files or the same file.
