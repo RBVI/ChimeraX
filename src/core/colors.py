@@ -376,6 +376,10 @@ def _read_colorbrewer():
                 name = "%s-%s" % (scheme, count)
                 colors = tuple([eval(e, gs, ls) for e in rgbs])
                 BuiltinColormaps[name.casefold()] = Colormap(None, colors, name=name)
+                if ((s_type == "div" and count == "5")
+                        or (s_type == "seq" and count == "5")
+                        or (s_type == "qual" and count == "6")):
+                    BuiltinColormaps[scheme.casefold()] = Colormap(None, colors, name=scheme)
 _read_colorbrewer()
 
 

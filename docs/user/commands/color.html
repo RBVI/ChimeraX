@@ -273,7 +273,7 @@ value,<a href="colornames.html">color</a> pairs.
 Specify a <i>palette</i> for <b>sequential</b> coloring
 (synonym <b>rainbow</b>) or <b>map</b> coloring as one of the following:
 <ul>
-<li>the name of a pre-defined palette (colors listed in ascending value order):
+<li>the name of a predefined palette (colors listed in ascending value order):
   <ul>
   <li><b>rainbow</b> 
    - blue, cyan, green, yellow, red; default for <b>sequential</b> coloring
@@ -293,8 +293,26 @@ Specify a <i>palette</i> for <b>sequential</b> coloring
   <li><b>lipophilicity</b> - dark cyan, white, dark goldenrod
   (default for <a href="mlp.html"><b>mlp</b></a> command,
   along with <a href="#range"><b>range</b></a> -20,20)
+  <li> <i>colorbrewer-id</i> - the name of a palette from
+<a href="http://www.colorbrewer2.org/" target="_blank">ColorBrewer.org</a>
+(see <a href="#colorbrewer">below</a>);
+a default number of colors will be used if the number is omitted.
+Examples:
+<blockquote>
+<b>palette pastel2-5</b><br>
+<b>palette accent-4</b><br>
+<b>palette blues</b>
+</blockquote>
+Users should cite:
+www.ColorBrewer.org, color specifications and designs by Cynthia A. Brewer,
+Pennsylvania State University.
   </ul>
-<br>
+The colors in a predefined palette are used in order, 
+spaced equally along the range of values.
+The command <a href="palette.html#list"><b>palette list</b></a>
+lists the names of all predefined palettes 
+in the <a href="../tools/log.html"><b>Log</b></a>.
+<br><br>
 <li> <i>color1</i>:<i>color2</i>:<i>color3</i>...
 a series of <a href="colornames.html">color specifications</i></a> 
 separated by colons,
@@ -417,6 +435,13 @@ yellow, but not their flanking atoms
 - color the unique biopolymers in each atomic model, cartoons only,
 along the range cornflower blue &rarr; red &rarr; gold
 (chains that are the same biopolymer will be the same color) 
+<blockquote>
+<b>open 1qmv; rainbow protein chain palette paired-10</b>
+</blockquote>
+- color the protein 10-mer in PDB entry 
+<a href="http://www.rcsb.org/pdb/explore/explore.do?structureId=1qmv"
+target="_blank">1qmv</a> using the 10-color version of the &ldquo;paired&rdquo;
+<a href="#colorbrewer">ColorBrewer palette</a>
 <!--
 <blockquote>
 <b>color /A &nbsp;attribute bfactor &nbsp;target ac &nbsp;residueVal max</b>
@@ -437,6 +462,342 @@ surface-only), create new atom attribute named <b>esp</b>
 -->
 <hr>
 
+<a name="colorbrewer"></a>
+<p class="nav">
+[<a href="#top">back to top: color</a>]
+</p>
+<h3>ColorBrewer Palette Names</h3>
+<p>
+Users should cite:
+www.ColorBrewer.org, color specifications and designs by Cynthia A. Brewer,
+Pennsylvania State University.
+</p><p>
+The tables below summarize ColorBrewer <a href="#palette-options">palette</a>
+names (<i>colorbrewer-id</i> values) available for use with the 
+<a href="#top"><b>color</b></a> command.
+Only a selected number-version is shown for each name,
+with the range of available numbers given in parentheses.
+Capitalization of the name is not important.
+All versions can be previewed (albeit without their names)
+and assessed by other criteria such as suitability for colorblind viewers at the 
+<a href="http://www.colorbrewer2.org" target="_blank">ColorBrewer website</a>.
+</p>
+Palettes for <b>qualitative</b> data, default <b>6</b> colors
+(a qualitative N-color palette uses only<br>
+the first N colors shown, from left to right):
+<table border cellpadding="2px" cellspacing="0px">
+<tr>
+<th style="background:lightgrey" width="107px">Name</th>
+<th style="background:lightgrey" colspan="13">Colors</th>
+</tr><tr>
+<td align="left">Paired-12 (3-12)</td>
+<td style="background:#a6cee3" width="30px"></td>
+<td style="background:#1f78b4" width="30px"></td>
+<td style="background:#b2df8a" width="30px"></td>
+<td style="background:#33a02c" width="30px"></td>
+<td style="background:#fb9a99" width="30px"></td>
+<td style="background:#e31a1c" width="30px"></td>
+<td style="background:#fdbf6f" width="30px"></td>
+<td style="background:#ff7f00" width="30px"></td>
+<td style="background:#cab2d6" width="30px"></td>
+<td style="background:#6a3d9a" width="30px"></td>
+<td style="background:#ffff99" width="30px"></td>
+<td style="background:#b15928" width="30px"></td>
+</tr><tr>
+<td align="left">Set3-12 (3-12)</td>
+<td style="background:#8dd3c7" width="30px"></td>
+<td style="background:#ffffb3" width="30px"></td>
+<td style="background:#bebada" width="30px"></td>
+<td style="background:#fb8072" width="30px"></td>
+<td style="background:#80b1d3" width="30px"></td>
+<td style="background:#fdb462" width="30px"></td>
+<td style="background:#b3de69" width="30px"></td>
+<td style="background:#fccde5" width="30px"></td>
+<td style="background:#d9d9d9" width="30px"></td>
+<td style="background:#bc80bd" width="30px"></td>
+<td style="background:#ccebc5" width="30px"></td>
+<td style="background:#ffed6f" width="30px"></td>
+</tr><tr>
+<td align="left">Pastel1-9 (3-9)</td>
+<td style="background:#fbb4ae" width="30px"></td>
+<td style="background:#b3cde3" width="30px"></td>
+<td style="background:#ccebc5" width="30px"></td>
+<td style="background:#decbe4" width="30px"></td>
+<td style="background:#fed9a6" width="30px"></td>
+<td style="background:#ffffcc" width="30px"></td>
+<td style="background:#e5d8bd" width="30px"></td>
+<td style="background:#fddaec" width="30px"></td>
+<td style="background:#f2f2f2" width="30px"></td>
+</tr><tr>
+<td align="left">Set1-9 (3-9)</td>
+<td style="background:#e41a1c" width="30px"></td>
+<td style="background:#377eb8" width="30px"></td>
+<td style="background:#4daf4a" width="30px"></td>
+<td style="background:#984ea3" width="30px"></td>
+<td style="background:#ff7f00" width="30px"></td>
+<td style="background:#ffff33" width="30px"></td>
+<td style="background:#a65628" width="30px"></td>
+<td style="background:#f781bf" width="30px"></td>
+<td style="background:#999999" width="30px"></td>
+</tr><tr>
+<td align="left">Pastel2-8 (3-8)</td>
+<td style="background:#b3e2cd" width="30px"></td>
+<td style="background:#fdcdac" width="30px"></td>
+<td style="background:#cbd5e8" width="30px"></td>
+<td style="background:#f4cae4" width="30px"></td>
+<td style="background:#e6f5c9" width="30px"></td>
+<td style="background:#fff2ae" width="30px"></td>
+<td style="background:#f1e2cc" width="30px"></td>
+<td style="background:#cccccc" width="30px"></td>
+</tr><tr>
+<td align="left">Set2-8 (3-8)</td>
+<td style="background:#66c2a5" width="30px"></td>
+<td style="background:#fc8d62" width="30px"></td>
+<td style="background:#8da0cb" width="30px"></td>
+<td style="background:#e78ac3" width="30px"></td>
+<td style="background:#a6d854" width="30px"></td>
+<td style="background:#ffd92f" width="30px"></td>
+<td style="background:#e5c494" width="30px"></td>
+<td style="background:#b3b3b3" width="30px"></td>
+</tr><tr>
+<td align="left">Dark2-8 (3-8)</td>
+<td style="background:#1b9e77" width="30px"></td>
+<td style="background:#d95f02" width="30px"></td>
+<td style="background:#7570b3" width="30px"></td>
+<td style="background:#e7298a" width="30px"></td>
+<td style="background:#66a61e" width="30px"></td>
+<td style="background:#e6ab02" width="30px"></td>
+<td style="background:#a6761d" width="30px"></td>
+<td style="background:#666666" width="30px"></td>
+</tr><tr>
+<td align="left">Accent-8 (3-8)</td>
+<td style="background:#7fc97f" width="30px"></td>
+<td style="background:#beaed4" width="30px"></td>
+<td style="background:#fdc086" width="30px"></td>
+<td style="background:#ffff99" width="30px"></td>
+<td style="background:#386cb0" width="30px"></td>
+<td style="background:#f0027f" width="30px"></td>
+<td style="background:#bf5b17" width="30px"></td>
+<td style="background:#666666" width="30px"></td>
+</tr>
+</table>
+</p>
+
+<table>
+<tr><td width="300px">
+Palettes for <b>sequential</b> data, default <b>5</b> colors
+(colors in the name are interpolated
+across the range and from light to dark):
+<table border cellpadding="2px" cellspacing="0px">
+<tr>
+<th style="background:lightgrey" width="107px">Name</th>
+<th style="background:lightgrey" colspan="5">Colors</th>
+</tr><tr>
+<td align="left">Greys-5 (3-9)</td>
+<td style="background:#f7f7f7" width="30px"></td>
+<td style="background:#cccccc" width="30px"></td>
+<td style="background:#969696" width="30px"></td>
+<td style="background:#636363" width="30px"></td>
+<td style="background:#252525" width="30px"></td>
+</tr><tr>
+<td align="left">OrRd-5 (3-9)</td>
+<td style="background:#fef0d9" width="30px"></td>
+<td style="background:#fdcc8a" width="30px"></td>
+<td style="background:#fc8d59" width="30px"></td>
+<td style="background:#e34a33" width="30px"></td>
+<td style="background:#b30000" width="30px"></td>
+</tr><tr>
+<td align="left">Oranges-5 (3-9)</td>
+<td style="background:#feedde" width="30px"></td>
+<td style="background:#fdbe85" width="30px"></td>
+<td style="background:#fd8d3c" width="30px"></td>
+<td style="background:#e6550d" width="30px"></td>
+<td style="background:#a63603" width="30px"></td>
+</tr><tr>
+<td align="left">YlOrBr-5 (3-9)</td>
+<td style="background:#ffffd4" width="30px"></td>
+<td style="background:#fed98e" width="30px"></td>
+<td style="background:#fe9929" width="30px"></td>
+<td style="background:#d95f0e" width="30px"></td>
+<td style="background:#993404" width="30px"></td>
+</tr><tr>
+<td align="left">Greens-5 (3-9)</td>
+<td style="background:#edf8e9" width="30px"></td>
+<td style="background:#bae4b3" width="30px"></td>
+<td style="background:#74c476" width="30px"></td>
+<td style="background:#31a354" width="30px"></td>
+<td style="background:#006d2c" width="30px"></td>
+</tr><tr>
+<td align="left">BuGn-5 (3-9)</td>
+<td style="background:#edf8fb" width="30px"></td>
+<td style="background:#b2e2e2" width="30px"></td>
+<td style="background:#66c2a4" width="30px"></td>
+<td style="background:#2ca25f" width="30px"></td>
+<td style="background:#006d2c" width="30px"></td>
+</tr><tr>
+<td align="left">YlGn-5 (3-9)</td>
+<td style="background:#ffffcc" width="30px"></td>
+<td style="background:#c2e699" width="30px"></td>
+<td style="background:#78c679" width="30px"></td>
+<td style="background:#31a354" width="30px"></td>
+<td style="background:#006837" width="30px"></td>
+</tr><tr>
+<td align="left">PuBuGn-5 (3-9)</td>
+<td style="background:#f6eff7" width="30px"></td>
+<td style="background:#bdc9e1" width="30px"></td>
+<td style="background:#67a9cf" width="30px"></td>
+<td style="background:#1c9099" width="30px"></td>
+<td style="background:#016c59" width="30px"></td>
+</tr><tr>
+<td align="left">PuBu-5 (3-9)</td>
+<td style="background:#f1eef6" width="30px"></td>
+<td style="background:#bdc9e1" width="30px"></td>
+<td style="background:#74a9cf" width="30px"></td>
+<td style="background:#2b8cbe" width="30px"></td>
+<td style="background:#045a8d" width="30px"></td>
+</tr><tr>
+<td align="left">GnBu-5 (3-9)</td>
+<td style="background:#f0f9e8" width="30px"></td>
+<td style="background:#bae4bc" width="30px"></td>
+<td style="background:#7bccc4" width="30px"></td>
+<td style="background:#43a2ca" width="30px"></td>
+<td style="background:#0868ac" width="30px"></td>
+</tr><tr>
+<td align="left">Blues-5 (3-9)</td>
+<td style="background:#eff3ff" width="30px"></td>
+<td style="background:#bdd7e7" width="30px"></td>
+<td style="background:#6baed6" width="30px"></td>
+<td style="background:#3182bd" width="30px"></td>
+<td style="background:#08519c" width="30px"></td>
+</tr><tr>
+<td align="left">YlGnBu-5 (3-9)</td>
+<td style="background:#ffffcc" width="30px"></td>
+<td style="background:#a1dab4" width="30px"></td>
+<td style="background:#41b6c4" width="30px"></td>
+<td style="background:#2c7fb8" width="30px"></td>
+<td style="background:#253494" width="30px"></td>
+</tr><tr>
+<td align="left">Purples-5 (3-9)</td>
+<td style="background:#f2f0f7" width="30px"></td>
+<td style="background:#cbc9e2" width="30px"></td>
+<td style="background:#9e9ac8" width="30px"></td>
+<td style="background:#756bb1" width="30px"></td>
+<td style="background:#54278f" width="30px"></td>
+</tr><tr>
+<td align="left">RdPu-5 (3-9)</td>
+<td style="background:#feebe2" width="30px"></td>
+<td style="background:#fbb4b9" width="30px"></td>
+<td style="background:#f768a1" width="30px"></td>
+<td style="background:#c51b8a" width="30px"></td>
+<td style="background:#7a0177" width="30px"></td>
+</tr><tr>
+<td align="left">BuPu-5 (3-9)</td>
+<td style="background:#edf8fb" width="30px"></td>
+<td style="background:#b3cde3" width="30px"></td>
+<td style="background:#8c96c6" width="30px"></td>
+<td style="background:#8856a7" width="30px"></td>
+<td style="background:#810f7c" width="30px"></td>
+</tr><tr>
+<td align="left">PuRd-5 (3-9)</td>
+<td style="background:#f1eef6" width="30px"></td>
+<td style="background:#d7b5d8" width="30px"></td>
+<td style="background:#df65b0" width="30px"></td>
+<td style="background:#dd1c77" width="30px"></td>
+<td style="background:#980043" width="30px"></td>
+</tr><tr>
+<td align="left">YlOrRd-5 (3-9)</td>
+<td style="background:#ffffb2" width="30px"></td>
+<td style="background:#fecc5c" width="30px"></td>
+<td style="background:#fd8d3c" width="30px"></td>
+<td style="background:#f03b20" width="30px"></td>
+<td style="background:#bd0026" width="30px"></td>
+</tr><tr>
+<td align="left">Reds-5 (3-9)</td>
+<td style="background:#fee5d9" width="30px"></td>
+<td style="background:#fcae91" width="30px"></td>
+<td style="background:#fb6a4a" width="30px"></td>
+<td style="background:#de2d26" width="30px"></td>
+<td style="background:#a50f15" width="30px"></td>
+</tr>
+</table>
+</td><td width="300px">
+Palettes for <b>diverging</b> data, default <b>5</b> colors
+(colors are interpolated across the range
+with a light color in the middle):
+<table border cellpadding="2px" cellspacing="0px">
+<tr>
+<th style="background:lightgrey" width="117px">Name</th>
+<th style="background:lightgrey" colspan="5">Colors</th>
+</tr><tr>
+<td align="left">RdGy-5 (3-11)</td>
+<td style="background:#ca0020" width="30px"></td>
+<td style="background:#f4a582" width="30px"></td>
+<td style="background:#ffffff" width="30px"></td>
+<td style="background:#bababa" width="30px"></td>
+<td style="background:#404040" width="30px"></td>
+</tr><tr>
+<td align="left">PiYG-5 (3-11)</td>
+<td style="background:#d01c8b" width="30px"></td>
+<td style="background:#f1b6da" width="30px"></td>
+<td style="background:#f7f7f7" width="30px"></td>
+<td style="background:#b8e186" width="30px"></td>
+<td style="background:#4dac26" width="30px"></td>
+</tr><tr>
+<td align="left">PRGn-5 (3-11)</td>
+<td style="background:#7b3294" width="30px"></td>
+<td style="background:#c2a5cf" width="30px"></td>
+<td style="background:#f7f7f7" width="30px"></td>
+<td style="background:#a6dba0" width="30px"></td>
+<td style="background:#008837" width="30px"></td>
+</tr><tr>
+<td align="left">BrBG-5 (3-11)</td>
+<td style="background:#a6611a" width="30px"></td>
+<td style="background:#dfc27d" width="30px"></td>
+<td style="background:#f5f5f5" width="30px"></td>
+<td style="background:#80cdc1" width="30px"></td>
+<td style="background:#018571" width="30px"></td>
+</tr><tr>
+<td align="left">RdBu-5 (3-11)</td>
+<td style="background:#ca0020" width="30px"></td>
+<td style="background:#f4a582" width="30px"></td>
+<td style="background:#f7f7f7" width="30px"></td>
+<td style="background:#92c5de" width="30px"></td>
+<td style="background:#0571b0" width="30px"></td>
+</tr><tr>
+<td align="left">PuOr-5 (3-11)*</td>
+<td style="background:#e66101" width="30px"></td>
+<td style="background:#fdb863" width="30px"></td>
+<td style="background:#f7f7f7" width="30px"></td>
+<td style="background:#b2abd2" width="30px"></td>
+<td style="background:#5e3c99" width="30px"></td>
+</tr><tr>
+<td align="left">RdYlGn-5 (3-11)</td>
+<td style="background:#d7191c" width="30px"></td>
+<td style="background:#fdae61" width="30px"></td>
+<td style="background:#ffffbf" width="30px"></td>
+<td style="background:#a6d96a" width="30px"></td>
+<td style="background:#1a9641" width="30px"></td>
+</tr><tr>
+<td align="left">Spectral-5 (3-11)</td>
+<td style="background:#d7191c" width="30px"></td>
+<td style="background:#fdae61" width="30px"></td>
+<td style="background:#ffffbf" width="30px"></td>
+<td style="background:#abdda4" width="30px"></td>
+<td style="background:#2b83ba" width="30px"></td>
+</tr><tr>
+<td align="left">RdYlBu-5 (3-11)</td>
+<td style="background:#d7191c" width="30px"></td>
+<td style="background:#fdae61" width="30px"></td>
+<td style="background:#ffffbf" width="30px"></td>
+<td style="background:#abd9e9" width="30px"></td>
+<td style="background:#2c7bb6" width="30px"></td>
+</tr>
+</table>
+*The &ldquo;PuOr&rdquo; name seems backwards, but that's the way it is.
+</td></tr>
+</table>
+
+<hr>
 <a name="name"></a>
 <a name="delete"></a>
 <a name="list"></a>
@@ -467,6 +828,7 @@ It can be used to define a new color name or redefine an existing one.
 Color names must begin with an alphabetical letter and may contain 
 only lowercase letters, numbers, hyphens, underscores, and spaces. 
 If <i>cname</i> has embedded spaces, it must be enclosed in quotation marks.
+See also: <a href="palette.html#list"><b>palette list</b></a>
 </p>
 Examples:
 <blockquote>
@@ -492,5 +854,5 @@ named <i>cname</i>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2017</address>
+September 2017</address>
 </body></html>
