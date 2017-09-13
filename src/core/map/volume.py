@@ -51,6 +51,8 @@ class Volume(Model):
       rendering_options = Rendering_Options()
     self.rendering_options = rendering_options
 
+    if message_cb is None:
+      message_cb = session.logger.status
     self.message_cb = message_cb
     
     self.matrix_stats = None
