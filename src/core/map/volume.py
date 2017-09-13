@@ -1223,10 +1223,8 @@ class Volume(Model):
   #
   def ijk_bounds(self, step = None, subregion = None, integer = False):
 
-    ss_origin, ss_size, subsampling, ss_step = self.ijk_region(step, subregion)
-    ijk_origin = [a*b for a,b in zip(ss_origin, subsampling)]
-    ijk_step = [a*b for a,b in zip(subsampling, ss_step)]
-    mat_size = [(a+b-1)//b for a,b in zip(ss_size, ss_step)]
+    ijk_origin, ijk_size, ijk_step = self.ijk_aligned_region(step, subregion)
+    mat_size = [(a+b-1)//b for a,b in zip(ijk_size, ijk_step)]
     ijk_last = [a+b*(c-1) for a,b,c in zip(ijk_origin, ijk_step, mat_size)]
 
     ijk_min_edge = [a - .5*b for a,b in zip(ijk_origin, ijk_step)]
@@ -1317,17 +1315,14 @@ class Volume(Model):
 
     if region is None:
       region = self.region
-    origin, size, subsampling, step = self.subsample_region(region)
+    origin, size, step = self.step_aligned_region(region)
     d = self.data
     operation = 'reading %s' % d.name
     from .data import Progress_Reporter
     progress = Progress_Reporter(operation, size, d.value_type.itemsize,
                                  message = self.message_cb)
     from_cache_only = not read_matrix
-    if subsampling == (1,1,1):
-      m = d.matrix(origin, size, step, progress, from_cache_only)
-    else:
-      m = d.matrix(origin, size, step, progress, from_cache_only, subsampling)
+    m = d.matrix(origin, size, step, progress, from_cache_only)
     return m
 
   # ---------------------------------------------------------------------------
@@ -1338,9 +1333,8 @@ class Volume(Model):
 
     if region is None:
       region = self.subregion(step, subregion)
-    ss_origin, ss_size, subsampling, ss_step = self.subsample_region(region,
-                                                                     clamp)
-    mat_size = [(a+b-1)//b for a,b in zip(ss_size, ss_step)]
+    origin, size, step = self.step_aligned_region(region, clamp)
+    mat_size = [(a+b-1)//b for a,b in zip(size, step)]
     return mat_size
 
   # ---------------------------------------------------------------------------
@@ -1362,11 +1356,7 @@ class Volume(Model):
 
     if region is None:
       region = self.subregion(step, subregion)
-    ss_origin, ss_size, subsampling, ss_step = self.subsample_region(region,
-                                                                     clamp)
-    step = [sm*st for sm,st in zip(subsampling, ss_step)]
-    origin = [o*st for o,st in zip(ss_origin, subsampling)]
-    size = [(a+b-1)//b for a,b in zip(ss_size,ss_step)]
+    origin, size, step = self.step_aligned_region(region, clamp)
     slc = [slice(o,o+st*(sz-1)+1,st) for o,st,sz in zip(origin,step,size)]
     return slc
 
@@ -1417,9 +1407,7 @@ class Volume(Model):
   #
   def matrix_indices_to_xyz_transform(self, step = None, subregion = None):
 
-    ss_origin, ss_size, subsampling, ss_step = self.ijk_region(step, subregion)
-    ijk_origin = [a*b for a,b in zip(ss_origin, subsampling)]
-    ijk_step = [a*b for a,b in zip(subsampling, ss_step)]
+    ijk_origin, ijk_size, ijk_step = self.ijk_aligned_region(step, subregion)
 
     data = self.data
     xo, yo, zo = data.ijk_to_xyz(ijk_origin)
@@ -1470,67 +1458,34 @@ class Volume(Model):
   # ---------------------------------------------------------------------------
   # Return the origin and size of the subsampled submatrix to be read.
   #
-  def ijk_region(self, step = None, subregion = None):
+  def ijk_aligned_region(self, step = None, subregion = None):
 
     r = self.subregion(step, subregion)
-    return self.subsample_region(r)
+    return self.step_aligned_region(r)
 
   # ---------------------------------------------------------------------------
-  # Return the origin and size of the subsampled submatrix to be read.
-  # Also return the subsampling factor and additional step (ie stride) that
-  # must be used to get the displayed data.
+  # Return the origin aligned to a multiple of step and size of the region and step.
   #
-  def subsample_region(self, region, clamp = True):
+  def step_aligned_region(self, region, clamp = True):
 
     ijk_min, ijk_max, ijk_step = region
     
     # Samples always have indices divisible by step, so increase ijk_min if
     # needed to make it a multiple of ijk_step.
-    m_ijk_min = [s*((i+s-1)//s) for i,s in zip(ijk_min, ijk_step)]
+    origin = [s*((i+s-1)//s) for i,s in zip(ijk_min, ijk_step)]
 
     # If region is non-empty but contains no step multiple decrease ijk_min.
     for a in range(3):
-      if m_ijk_min[a] > ijk_max[a] and ijk_min[a] <= ijk_max[a]:
-        m_ijk_min[a] -= ijk_step[a]
+      if origin[a] > ijk_max[a] and ijk_min[a] <= ijk_max[a]:
+        origin[a] -= ijk_step[a]
 
-    subsampling, ss_full_size = self.choose_subsampling(ijk_step)
-
-    ss_origin = [(i+s-1)//s for i,s in zip (m_ijk_min, subsampling)]
+    end = [s*(i+s)//s for i,s in zip(ijk_max, ijk_step)]
     if clamp:
-      ss_origin = [max(i,0) for i in ss_origin]
-    ss_end = [(i+s)//s for i,s in zip(ijk_max, subsampling)]
-    if clamp:
-      ss_end = [min(i,lim) for i,lim in zip(ss_end, ss_full_size)]
-    ss_size = [e-o for e,o in zip(ss_end, ss_origin)]
-    ss_step = [s//d for s,d in zip(ijk_step, subsampling)]
+      origin = [max(i,0) for i in origin]
+      end = [min(i,lim) for i,lim in zip(end, self.data.size)]
+    size = [e-o for e,o in zip(end, origin)]
 
-    return tuple(ss_origin), tuple(ss_size), tuple(subsampling), tuple(ss_step)
-
-  # ---------------------------------------------------------------------------
-  # Return the subsampling and size of subsampled matrix for the requested
-  # ijk_step.
-  #
-  def choose_subsampling(self, ijk_step):
-    
-    data = self.data
-    if not hasattr(data, 'available_subsamplings'):
-      return (1,1,1), data.size
-
-    compatible = []
-    for step, grid in data.available_subsamplings.items():
-      if (ijk_step[0] % step[0] == 0 and
-          ijk_step[1] % step[1] == 0 and
-          ijk_step[2] % step[2] == 0):
-        e = ((ijk_step[0] // step[0]) *
-             (ijk_step[1] // step[1]) *
-             (ijk_step[2] // step[2]))
-        compatible.append((e, step, grid.size))
-
-    if len(compatible) == 0:
-      return (1,1,1), data.size
-
-    subsampling, size = min(compatible)[1:]
-    return subsampling, size
+    return tuple(origin), tuple(size), tuple(ijk_step)
 
   # ---------------------------------------------------------------------------
   # Applying point_xform to points gives Chimera world coordinates.  If the
@@ -2598,9 +2553,9 @@ def full_region(size, ijk_step = [1,1,1]):
 
 # -----------------------------------------------------------------------------
 #
-def is_empty_region(ijk_region):
+def is_empty_region(region):
 
-  ijk_min, ijk_max, ijk_step = ijk_region
+  ijk_min, ijk_max, ijk_step = region
   for a,b in zip(ijk_max, ijk_min):
     if a - b + 1 <= 0:
       return True
@@ -2940,7 +2895,7 @@ class CancelOperation(BaseException):
 # -----------------------------------------------------------------------------
 # Decide whether a data region is small enough to show when opened.
 #
-def show_when_opened(data_region, show_on_open, max_voxels):
+def show_when_opened(v, show_on_open, max_voxels):
 
   if not show_on_open:
     return False
@@ -2949,8 +2904,9 @@ def show_when_opened(data_region, show_on_open, max_voxels):
     return False
   
   voxel_limit = int(max_voxels * (2 ** 20))
-  ss_origin, ss_size, subsampling, ss_step = data_region.ijk_region()
-  voxels = float(ss_size[0]) * float(ss_size[1]) * float(ss_size[2])
+  ijk_origin, ijk_size, ijk_step = v.ijk_aligned_region()
+  sx,sy,sz = [s//st for s,st in zip(ijk_size, ijk_step)]
+  voxels = sx*sy*sz
 
   return (voxels <= voxel_limit)
 
