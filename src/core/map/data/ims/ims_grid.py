@@ -65,8 +65,6 @@ def read_imaris_map(path):
       image_name = i.name if len(images) > 1 else ''
       gsettings = {attr:getattr(i,attr) for attr in IMS_Grid.attributes}
       g = IMS_Grid(d, image_name, i.array_path, **gsettings)
-      g.time = i.time
-      g.channel = i.channel
       if i.subsamples:
         g = add_subsamples(d, i, g)
       # Mark as volume series if maps of same size.

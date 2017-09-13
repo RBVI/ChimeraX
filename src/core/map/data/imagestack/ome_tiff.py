@@ -53,8 +53,6 @@ class OME_Image_Grid(Grid_Data):
   def __init__(self, ome_pixels, channel, time, grid_id):
 
     self.ome_pixels = d = ome_pixels
-    self.channel = channel
-    self.time = time
     self.initial_style = 'solid'
 
     name = d.name
@@ -72,7 +70,8 @@ class OME_Image_Grid(Grid_Data):
     Grid_Data.__init__(self, d.grid_size, d.value_type,
                        origin, d.grid_spacing,
                        name = name, path = d.path,
-                       file_type = 'imagestack', grid_id = grid_id)
+                       file_type = 'imagestack', grid_id = grid_id,
+                       channel = channel, time = time)
 
     if channel in d.channel_colors:
         self.rgba = d.channel_colors[channel]
