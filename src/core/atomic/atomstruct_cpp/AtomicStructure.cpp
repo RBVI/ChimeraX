@@ -390,6 +390,32 @@ AtomicStructure::make_chains() const
             chain->bulk_set(new_residues, &sr_seq.contents());
         }
     }
+
+    // now look through missing-structure pseudobonds for "chain trace"
+    // pseudobonds and set their shown_when_atoms_hidden to false, so 
+    // that they disappear when ribbons/nucleotides are shown
+    auto pbg = pb_mgr().get_group(PBG_MISSING_STRUCTURE);
+    if (pbg != nullptr) {
+        for (auto pb: pbg->pseudobonds()) {
+            Residue* r1 = pb->atoms()[0]->residue();
+            Residue* r2 = pb->atoms()[1]->residue();
+            if (r1->chain() == nullptr || (r1->chain() != r2->chain()))
+                continue;
+            auto& res_map = r1->chain()->res_map();
+            if (std::abs((int)(res_map.at(r1) - res_map.at(r2))) < 2) {
+                if (r1->chain()->from_seqres()) {
+                    // Okay, willing to trust that these are truly consecutive residues...
+                    pb->set_shown_when_atoms_hidden(false);
+                } else {
+                    // need to check more closely
+                    Real cutoff = r1->polymer_type() == Residue::PT_AMINO ?
+                        Residue::TRACE_PROTEIN_DISTSQ_CUTOFF : Residue::TRACE_NUCLEIC_DISTSQ_CUTOFF;
+                    if (pb->sqlength() <= cutoff)
+                        pb->set_shown_when_atoms_hidden(false);
+                }
+            }
+        }
+    }
 }
 
 std::vector<Chain::Residues>

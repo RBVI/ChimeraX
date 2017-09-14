@@ -176,7 +176,7 @@ class Chimera_HDF_Image:
         self.cell_angles = self.find_cell_angles(group)
         self.rotation = self.find_rotation(group)
         self.symmetries = self.find_symmetries(group)
-        self.rgba = self.find_color(group)
+        self.default_color = self.find_color(group)
         self.time = self.find_time(group)
         self.channel = self.find_channel(group)
 

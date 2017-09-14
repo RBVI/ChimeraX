@@ -288,10 +288,11 @@ class Logger(StatusLogger):
         if sys.excepthook == sys.__excepthook__:
             def ehook(*exc_info):
                 from traceback import format_exception
-                if self.session.debug:
+                if self.session.debug or not hasattr(self.session, "ui"):
                     from traceback import print_exception
                     print_exception(*exc_info, file=sys.__stderr__)
-                self.session.ui.thread_safe(self.report_exception, exc_info=exc_info)
+                else:
+                    self.session.ui.thread_safe(self.report_exception, exc_info=exc_info)
             sys.excepthook = ehook
         # non-exclusively collate any early log messages, so that they
         # can also be sent to the first "real" log to hit the stack

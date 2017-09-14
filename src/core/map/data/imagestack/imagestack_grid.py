@@ -35,11 +35,10 @@ class Image_Stack_Grid(Grid_Data):
   def __init__(self, d, channel = 0):
 
     self.image_stack = d
-    self.channel = channel
 
     Grid_Data.__init__(self, d.data_size, d.value_type,
                        d.data_origin, d.data_step,
-                       path = d.paths, file_type = 'imagestack')
+                       path = d.paths, file_type = 'imagestack', channel = channel)
 
   # ---------------------------------------------------------------------------
   #

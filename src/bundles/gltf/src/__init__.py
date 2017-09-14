@@ -31,10 +31,12 @@ class _gltfBundle(BundleAPI):
         return gltf.read_gltf(session, stream, file_name)
 
     @staticmethod
-    def save_file(session, path, models=None, center=None, size=None, short_vertex_indices=False):
+    def save_file(session, path, models=None, center=None, size=None,
+                  short_vertex_indices=False, float_colors=False):
         # 'save_file' is called by session code to save a file
         from . import gltf
         return gltf.write_gltf(session, path, models, center=center, size=size,
-                               short_vertex_indices=short_vertex_indices)
+                               short_vertex_indices=short_vertex_indices,
+                               float_colors=float_colors)
 
 bundle_api = _gltfBundle()

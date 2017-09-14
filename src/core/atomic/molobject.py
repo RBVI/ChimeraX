@@ -501,6 +501,10 @@ class Pseudobond(State):
     '''Displayed cylinder radius for the bond.'''
     shown = c_property('pseudobond_shown', npy_bool, read_only = True)
     '''Whether bond is visible and both atoms are shown. Read only.'''
+    shown_when_atoms_hidden = c_property('pseudobond_shown_when_atoms_hidden', npy_bool, doc =
+    '''Controls whether the pseudobond is shown when the endpoint atoms are not
+    explictly displayed (atom.display == False) but are implicitly shown by a
+    ribbon or somesuch (atom.hide != 0).  Defaults to True.''')
 
     def delete(self):
         '''Delete this pseudobond from it's group'''
