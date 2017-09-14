@@ -814,6 +814,10 @@ class Pseudobonds(Collection):
     '''
     Whether each pseudobond is displayed, visible and has both atoms displayed.
     '''
+    shown_when_atoms_hiddens = cvec_property('pseudobond_shown_when_atoms_hidden', npy_bool, doc =
+    '''Controls whether the pseudobond is shown when the endpoint atoms are not
+    explictly displayed (atom.display == False) but are implicitly shown by a
+    ribbon or somesuch (atom.hide != 0).  Defaults to True.''')
 
     def delete(self):
         '''Delete the C++ Pseudobond objects'''

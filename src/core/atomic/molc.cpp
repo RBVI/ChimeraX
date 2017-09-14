@@ -1445,6 +1445,18 @@ extern "C" EXPORT void pseudobond_shown(void *pbonds, size_t n, npy_bool *shown)
     error_wrap_array_get<Pseudobond, bool, npy_bool>(b, n, &Pseudobond::shown, shown);
 }
 
+extern "C" EXPORT void pseudobond_shown_when_atoms_hidden(void *pbonds, size_t n, npy_bool *shown)
+{
+    Pseudobond **b = static_cast<Pseudobond **>(pbonds);
+    error_wrap_array_get<Pseudobond, bool, npy_bool>(b, n, &Pseudobond::shown_when_atoms_hidden, shown);
+}
+
+extern "C" EXPORT void set_pseudobond_shown_when_atoms_hidden(void *pbonds, size_t n, npy_bool *shown)
+{
+    Pseudobond **b = static_cast<Pseudobond **>(pbonds);
+    error_wrap_array_set<Pseudobond, bool, npy_bool>(b, n, &Pseudobond::set_shown_when_atoms_hidden, shown);
+}
+
 extern "C" EXPORT void set_pseudobond_radius(void *pbonds, size_t n, float32_t *radii)
 {
     Pseudobond **b = static_cast<Pseudobond **>(pbonds);
