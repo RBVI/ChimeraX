@@ -27,15 +27,26 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="../index.html#commands">Command</a>: palette</h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>palette list</b>
+<!--
+ [&nbsp;builtin&nbsp;|&nbsp;custom&nbsp;]
+-->
 </h3>
 <p>
-The command <b>palette list</b> gives a complete list of the
-predefined <a href="color.html#palette-options">palettes</a>
+The command <b>palette list</b> lists the names of the available 
+<a href="palettes.html">palettes</a>
 in the <a href="../tools/log.html"><b>Log</b></a>.
-These are available for sequential (rainbow) coloring and coloring by map value
-with the <a href="color.html"><b>color</b></a> command. See also:
-<a href="color.html#colorbrewer">ColorBrewer palette names</a>,
-<a href="color.html#list"><b>color list</b></a>
+<!--
+The list can be limited to just the built-in (predefined) palettes
+with the <b>builtin</b> keyword, or to
+just the user-defined palettes with the <b>custom</b> keyword.
+-->
+A palette is used for coloring sequentially or by value with the
+<a href="color.html#palette-options">palette option</a>
+of <a href="color.html"><b>color</b></a>
+or <a href="mlp.html"><b>mlp</b></a>.
+See also:
+<a href="color.html#list"><b>color list</b></a>,
+<a href="colortables.html#autocolors">initial colors</a>
 </p>
 
 <hr>

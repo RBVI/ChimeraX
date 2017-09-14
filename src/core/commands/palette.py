@@ -21,7 +21,7 @@ def palette_list(session, which="all"):
         from .. import colors
         _list(session, colors.BuiltinColormaps, "builtin",
               "http://rbvi.ucsf.edu/chimerax/docs/user/commands/"
-              "color.html#colorbrewer")
+              "palettes.html#colorbrewer")
 
 def _list(session, colormaps, kind, url=None):
     from . import cli
