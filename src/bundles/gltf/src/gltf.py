@@ -214,7 +214,7 @@ def read_chunks(input):
 def buffer_arrays(accessors, buffer_views, binc):
     balist = []
     from numpy import float32, uint32, uint16, int16, uint8, frombuffer
-    value_type = {5126:float32, 5125:uint32, 5123:uint16, 5122:int16, 5120:uint8}
+    value_type = {5126:float32, 5125:uint32, 5123:uint16, 5122:int16, 5121:uint8}
     for a in accessors:
         ibv = a['bufferView']	# index into buffer_views
         bv = buffer_views[ibv]
@@ -269,7 +269,8 @@ def colors_to_uint8(vc):
 
 # -----------------------------------------------------------------------------
 #
-def write_gltf(session, filename, models, center = None, size = None, short_vertex_indices = False):
+def write_gltf(session, filename, models, center = None, size = None, short_vertex_indices = False,
+               float_colors = False):
     if models is None:
         models = session.models.list()
 
@@ -280,7 +281,7 @@ def write_gltf(session, filename, models, center = None, size = None, short_vert
     app_ver  = "%s %s version: %s" % (ad.appauthor, ad.appname, ad.version)
 
     b = Buffers()
-    nodes, meshes = nodes_and_meshes(drawings, b, short_vertex_indices)
+    nodes, meshes = nodes_and_meshes(drawings, b, short_vertex_indices, float_colors)
     node_index = {d:di for di,d in enumerate(drawings)}
     shown_models = [m for m in models if m in node_index]
     
@@ -297,10 +298,15 @@ def write_gltf(session, filename, models, center = None, size = None, short_vert
         'meshes': meshes,
         'accessors': b.accessors,
         'bufferViews': b.buffer_views,
+        'buffers':[{'byteLength': b.nbytes}],
     }
     
     import json
     json_text = json.dumps(h).encode('utf-8')
+    nj = len(json_text)
+    if nj % 4 != 0:
+        # Pad. Following binary chunk is required to align to 4-byte boundary.
+        json_text += b' ' * (4 - nj%4)
     from numpy import uint32
     clen = to_bytes(len(json_text), uint32)
     ctype = b'JSON'
@@ -354,7 +360,7 @@ def any_triangles_shown(d, drawings, ts):
 
 # -----------------------------------------------------------------------------
 #
-def nodes_and_meshes(drawings, buffers, short_vertex_indices = False):
+def nodes_and_meshes(drawings, buffers, short_vertex_indices = False, float_colors = False):
     nodes = []
     meshes = []
     b = buffers
@@ -386,12 +392,20 @@ def nodes_and_meshes(drawings, buffers, short_vertex_indices = False):
         for pva,pna,pvc,pta in geom:
             attr = {'POSITION': b.add_array(pva.astype(float32, copy=False), bounds=True)}
             if pna is not None:
+                # TODO: Ribbon normals were normalized, bug #829.  Normalize to work around.
+                from numpy import sqrt, newaxis
+                lengths = sqrt((pna*pna).sum(axis=1))
+                pna /= lengths[..., newaxis]
                 attr['NORMAL'] = b.add_array(pna)
             if pvc is None:
                 pvc = single_vertex_color(len(pva), d.color)
-            attr['COLOR_0'] = b.add_array(pvc)
+            if float_colors:
+                pvc = pvc.astype(float32)
+                pvc /= 255
+            attr['COLOR_0'] = b.add_array(pvc, normalized = not float_colors)
             etype = uint16 if short_vertex_indices else uint32
-            ea = pta.astype(etype, copy=False)
+            ne = len(pta)
+            ea = pta.astype(etype, copy=False).reshape((3*ne,))
             elem = b.add_array(ea)
             prims.append({'attributes': attr, 'indices':elem})
         meshes.append({'primitives': prims})
@@ -440,11 +454,11 @@ class Buffers:
         self.nbytes = 0
 
         from numpy import float32, uint32, uint16, int16, uint8, frombuffer
-        self.value_types = {float32:5126, uint32:5125, uint16:5123, int16:5122, uint8:5120}
+        self.value_types = {float32:5126, uint32:5125, uint16:5123, int16:5122, uint8:5121}
 
     # -----------------------------------------------------------------------------
     #
-    def add_array(self, array, bounds=True):
+    def add_array(self, array, bounds=False, normalized=False):
 
         a = {}
         a['count'] = array.shape[0]
@@ -460,6 +474,8 @@ class Buffers:
         a['type'] = t
         a['componentType'] = self.value_types[array.dtype.type]
         a['bufferView'] = len(self.buffer_views)
+        if normalized:
+            a['normalized'] = True	# Required for COLOR_0
 
         if bounds:
             nd = array.ndim
