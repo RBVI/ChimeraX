@@ -32,11 +32,11 @@ class _gltfBundle(BundleAPI):
 
     @staticmethod
     def save_file(session, path, models=None, center=None, size=None,
-                  short_vertex_indices=False, float_colors=False):
+                  short_vertex_indices=False, float_colors=False, transparency=True):
         # 'save_file' is called by session code to save a file
         from . import gltf
         return gltf.write_gltf(session, path, models, center=center, size=size,
                                short_vertex_indices=short_vertex_indices,
-                               float_colors=float_colors)
+                               float_colors=float_colors, transparency=transparency)
 
 bundle_api = _gltfBundle()

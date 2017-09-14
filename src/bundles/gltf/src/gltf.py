@@ -270,7 +270,7 @@ def colors_to_uint8(vc):
 # -----------------------------------------------------------------------------
 #
 def write_gltf(session, filename, models, center = None, size = None, short_vertex_indices = False,
-               float_colors = False):
+               float_colors = False, transparency = True):
     if models is None:
         models = session.models.list()
 
@@ -281,7 +281,7 @@ def write_gltf(session, filename, models, center = None, size = None, short_vert
     app_ver  = "%s %s version: %s" % (ad.appauthor, ad.appname, ad.version)
 
     b = Buffers()
-    nodes, meshes = nodes_and_meshes(drawings, b, short_vertex_indices, float_colors)
+    nodes, meshes = nodes_and_meshes(drawings, b, short_vertex_indices, float_colors, transparency)
     node_index = {d:di for di,d in enumerate(drawings)}
     shown_models = [m for m in models if m in node_index]
     
@@ -360,7 +360,7 @@ def any_triangles_shown(d, drawings, ts):
 
 # -----------------------------------------------------------------------------
 #
-def nodes_and_meshes(drawings, buffers, short_vertex_indices = False, float_colors = False):
+def nodes_and_meshes(drawings, buffers, short_vertex_indices = False, float_colors = False, transparency = True):
     nodes = []
     meshes = []
     b = buffers
@@ -399,6 +399,8 @@ def nodes_and_meshes(drawings, buffers, short_vertex_indices = False, float_colo
                 attr['NORMAL'] = b.add_array(pna)
             if pvc is None:
                 pvc = single_vertex_color(len(pva), d.color)
+            if not transparency:
+                pvc = pvc[:,:3]
             if float_colors:
                 pvc = pvc.astype(float32)
                 pvc /= 255
