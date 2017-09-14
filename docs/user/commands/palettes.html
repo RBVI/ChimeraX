@@ -25,14 +25,14 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3>Palettes</h3>
 <p>
-A <b><i>palette</i></b> is an ordered list of 
-<a href="colornames.html">colors</a> or value,color pairs
+A <b><i>palette</i></b> is an ordered set of colors
+or value,color pairs
 used for coloring sequentially or by value with the 
 <a href="color.html#palette-options">palette option</a>
 of <a href="color.html"><b>color</b></a>
 or <a href="mlp.html"><b>mlp</b></a>.
-The colors can specified individually, or the name of a palette
-can be given. Named palettes consist of colors only.
+The colors can be <a href="colornames.html">specified individually</a>,
+or the name of a palette can be given. Named palettes consist of colors only.
 The command <a href="palette.html#list"><b>palette list</b></a>
 lists the names of the available palettes
 in the <a href="../tools/log.html"><b>Log</b></a>.
@@ -216,7 +216,8 @@ the first N colors shown, from left to right):
 <tr><td width="300px">
 Palettes for <b>sequential</b> data, default <b>5</b> colors
 (colors in the name are interpolated
-across the range and from light to dark):
+across the range and from light to dark;
+the more colors used, the darker the last color):
 <table border cellpadding="2px" cellspacing="0px">
 <tr>
 <th style="background:lightgrey" width="107px">Name</th>
@@ -352,7 +353,8 @@ across the range and from light to dark):
 </td><td width="300px">
 Palettes for <b>diverging</b> data, default <b>5</b> colors
 (colors are interpolated across the range
-with a light color in the middle):
+with a light color in the middle;
+the more colors used, the darker the ends):
 <table border cellpadding="2px" cellspacing="0px">
 <tr>
 <th style="background:lightgrey" width="117px">Name</th>
