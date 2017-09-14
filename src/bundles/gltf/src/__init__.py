@@ -37,6 +37,6 @@ class _gltfBundle(BundleAPI):
         from . import gltf
         return gltf.write_gltf(session, path, models, center=center, size=size,
                                short_vertex_indices=short_vertex_indices,
-                               float_colors=float_colors, tranparency=transparency)
+                               float_colors=float_colors, transparency=transparency)
 
 bundle_api = _gltfBundle()
