@@ -20,8 +20,7 @@ def palette_list(session, which="all"):
     if which == "all" or which == "builtin":
         from .. import colors
         _list(session, colors.BuiltinColormaps, "builtin",
-              "http://rbvi.ucsf.edu/chimerax/docs/user/commands/"
-              "palettes.html#colorbrewer")
+              "http://rbvi.ucsf.edu/chimerax/docs/user/commands/palettes.html")
 
 def _list(session, colormaps, kind, url=None):
     from . import cli
