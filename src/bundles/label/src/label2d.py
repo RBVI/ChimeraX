@@ -158,7 +158,9 @@ class Labels(State):
         self.labels = {ls['name']:Label(session, **ls) for ls in data['labels state']}
 
     def reset_state(self, session):
-        pass
+        for l in tuple(self.labels.values()):
+            l.delete()
+        self.labels = {}
 
 
 # -----------------------------------------------------------------------------
