@@ -275,19 +275,22 @@ class LabelDrawing(Drawing):
 
 # -----------------------------------------------------------------------------
 #
-def text_image_rgba(text, color, size, font):
+def text_image_rgba(text, color, size, font, pad = 0):
     from PyQt5.QtGui import QImage, QPainter, QFont, QFontMetrics, QBrush, QColor
     f = QFont(font, size)
     fm = QFontMetrics(f)
     r = fm.boundingRect(text)
-    ti = QImage(r.width(), r.height(), QImage.Format_ARGB32)
+    # TODO: width is sometimes 1 or 2 pixels too small in Qt 5.9.
+    # Right bearing of rightmost character was positive, so does not extend right.
+    # Use pad option to add some pixels to avoid clipped text.
+    ti = QImage(r.width()+2*pad, r.height()+2*pad, QImage.Format_ARGB32)
     ti.fill(QColor(0,0,0,0))    # Set background transparent
     p = QPainter()
     p.begin(ti)
     p.setFont(f)
     c = QColor(*color)
     p.setPen(c)
-    p.drawText(0, -r.y(), text)
+    p.drawText(0, -r.y()+pad, text)
     from chimerax.core.graphics import qimage_to_numpy
     rgba = qimage_to_numpy(ti)
     p.end()
