@@ -849,6 +849,8 @@ class Structure(Model, StructureData):
                 rp.display = True
                 rp.vertices = concatenate(vertex_list)
                 rp.normals = concatenate(normal_list)
+                from .ribbon import normalize_vector_array_inplace
+                normalize_vector_array_inplace(rp.normals)
                 rp.triangles = concatenate(triangle_list)
                 rp.vertex_colors = concatenate(color_list)
             else:
