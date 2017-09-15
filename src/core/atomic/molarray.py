@@ -655,11 +655,11 @@ class Bonds(Collection):
     single value.  Bonds are shown only if display is
     true, hide is false, and both atoms are shown.
     '''
-    visibles = cvec_property('bond_visible', int32, read_only = True)
+    visibles = cvec_property('bond_visible', npy_bool, read_only = True)
     '''
-    Returns whether the Bonds should be visible.  If hidden, the
-    return value is Never; otherwise, same as display.
-    Returns a :mod:`numpy` array of integers.  Read only.
+    Returns whether the Bonds should be visible regardless
+    of whether the atoms on either end is shown.
+    Returns a :mod:`numpy` array of bool.  Read only.
     '''
     halfbonds = cvec_property('bond_halfbond', npy_bool)
     '''

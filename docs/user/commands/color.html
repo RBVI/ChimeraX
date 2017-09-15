@@ -264,7 +264,7 @@ can be used to set transparency apart from color.
 </p>
 <h3>Palette Options</h3>
 <p>
-A <b><i>palette</i></b> is an ordered list of
+A <b><i>palette</i></b> is an ordered set of 
 <a href="colornames.html">colors</a> or value,color pairs
 used for <b>sequential</b> coloring (<b>rainbow</b>)
 or coloring by <b>map</b> value.
@@ -530,7 +530,7 @@ surface-only), create new atom attribute named <b>esp</b>
 (&nbsp;<i>cname</i>&nbsp;|&nbsp;all&nbsp;)
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
-<br><b>color list</b> [&nbsp;builtin&nbsp;|&nbsp;custom&nbsp;]
+<br><b>color list</b> [&nbsp;all&nbsp;|&nbsp;builtin&nbsp;|&nbsp;custom&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>color show</b> &nbsp;<i>cname</i>
@@ -555,13 +555,15 @@ The command <b>color delete</b> can be used to &ldquo;forget&rdquo; a specific
 user-defined color or <b>all</b> user-defined colors. 
 A <a href="colornames.html#builtin">built-in color name</a> cannot be deleted.
 </p><p>
-The command <b>color list</b> lists all color names along with
-color swatches in the <a href="../tools/log.html"><b>Log</b></a>.
-The list can be limited to just the
-<a href="colornames.html#builtin">built-in colors</a>
-with the <b>builtin</b> keyword, or to
-just the user-defined colors with the <b>custom</b> keyword.
-</p><p>
+The command <b>color list</b> lists color names along with
+color swatches in the <a href="../tools/log.html"><b>Log</b></a>, with options:
+</p>
+<ul>
+<li><b>all</b> (default)
+<li><b>builtin</b> - just the <a href="colornames.html#builtin">built-in colors</a>
+<li><b>custom</b> - just the user-defined colors
+</ul>
+<p>
 The command &ldquo;<b>color show</b> <i>cname</i>&rdquo;
 reports in the <a href="../tools/log.html"><b>Log</b></a>
 the <b>rgba</b> (red, green, blue, opacity) definition of an existing color

@@ -539,8 +539,7 @@ connect_structure(Structure* as, std::vector<Residue *>* start_residues,
             } else {
                 bool made_connection = false;
                 // don't definitely connect a leading HET residue
-                bool definitely_connect = (link_res != first_res
-                    || link_atom_name != "");
+                bool definitely_connect = (link_res != first_res || !first_res->is_het());
                 Atom *chief = r->find_atom(tr->chief()->name());
                 if (chief != NULL) {
                     // 1vqn, chain 5, is a nucleic/amino acid
