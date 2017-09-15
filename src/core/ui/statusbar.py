@@ -137,15 +137,13 @@ class _StatusBarOpenGL:
         rgba = text_image_rgba(msg, tcolor, self.font_size, self.font)
         th, tw = rgba.shape[:2]
 
-        # TODO: Handle secondary status by drawing right-aligned.
-        sb = self.widget
         win = self._window
         lw, lh = win.width(), win.height()
         aspect = lh/lw
         xpad,ypad = self.pad_horz, self.pad_vert
         f = 1-2*ypad
-        uw = f*tw/lw
-        uh = f*th/lh
+        uh = 2*f
+        uw = uh * (lh/lw) * (tw/th)
         # Right align secondary status
         x = 1 - aspect*2*xpad - 2*uw if secondary else -1 + aspect*2*xpad
         y = -1 + 2*ypad
