@@ -32,8 +32,7 @@ class _StatusBarOpenGL:
         self._drawing2 = None	# Secondary status
         self.background_color = (0.85,0.85,0.85,1.0)
         self.text_color = (0,0,0,255)
-        self.font = 'Helvetica'
-        self.font_size = 40
+        self.font = 'Lucida Sans'	# Wider and clearer than Helvetica or Arial
         self.pad_vert = 0.1 		# Fraction of status bar height
         self.pad_horz = 0.3 		# Fraction of status bar height (not width)
         self.widget = self._make_widget()
@@ -131,22 +130,27 @@ class _StatusBarOpenGL:
         if d.cleared:
             return
 
-        from ..colors import BuiltinColors
-        tcolor = BuiltinColors[color].uint8x4() if color in BuiltinColors else self.text_color
-        from chimerax.label.label2d import text_image_rgba
-        rgba = text_image_rgba(msg, tcolor, self.font_size, self.font)
-        th, tw = rgba.shape[:2]
-
         win = self._window
         lw, lh = win.width(), win.height()
         aspect = lh/lw
         xpad,ypad = self.pad_horz, self.pad_vert
-        f = 1-2*ypad
-        uh = 2*f
-        uw = uh * (lh/lw) * (tw/th)
+
+        from ..colors import BuiltinColors
+        tcolor = BuiltinColors[color].uint8x4() if color in BuiltinColors else self.text_color
+        from chimerax.label.label2d import text_image_rgba
+        size = max(1, int((1-2*ypad) * lh))
+        rgba = text_image_rgba(msg, tcolor, size, self.font, pad=1)
+        th, tw = rgba.shape[:2]
+
+        # Make image pixel exactly match screen pixel size for best appearance.
+        uh = 2*th/lh
+        uw = 2*tw/lw
+        # Align image pixels exactly with screen pixels to give best appearance.
         # Right align secondary status
-        x = 1 - aspect*2*xpad - 2*uw if secondary else -1 + aspect*2*xpad
-        y = -1 + 2*ypad
+        xp = int(xpad*lh)
+        x = 1 - 2*xp/lw - 2*uw if secondary else -1 + 2*xp/lw
+        yp = 0.5*(lh-th)
+        y = -1 + 2*yp/lh
 
         from ..graphics.drawing import rgba_drawing, draw_overlays
         rgba_drawing(d, rgba, (x, y), (uw, uh))
