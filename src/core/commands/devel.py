@@ -27,8 +27,10 @@ def devel_alias(session, name=None, path=None):
       Path to folder containing bundle source code.
     '''
     logger = session.logger
+
     def show_alias(name, path):
         logger.info("%s defined as %s" % (repr(name), repr(path)))
+
     if name is None:
         # No arguments, list all aliases
         if not _aliases:
@@ -50,8 +52,10 @@ def devel_alias(session, name=None, path=None):
         # Both name and path given, define/replace alias
         _aliases[name] = path
         show_alias(name, path)
+
+
 devel_alias_desc = CmdDesc(optional=[("name", StringArg),
-                                     ("path", OpenFolderNameArg),],
+                                     ("path", OpenFolderNameArg)],
                            synopsis='Define alias for bundle path')
 
 
@@ -70,6 +74,8 @@ def devel_unalias(session, name):
         logger.info("No bundle alias %s has been defined." % repr(name))
     else:
         logger.info("Alias %s has been removed." % repr(name))
+
+
 devel_unalias_desc = CmdDesc(required=[("name", StringArg)],
                              synopsis='Remove alias for bundle path')
 
@@ -86,14 +92,16 @@ def devel_build(session, path, test=True, debug=False, exit=False):
     '''
     from ...bundle_builder import BundleBuilder
     _run(path, session.logger, exit, BundleBuilder.make_wheel, test=test, debug=debug)
-devel_build_desc = CmdDesc(required=[("path", OpenFolderNameArg),],
+
+
+devel_build_desc = CmdDesc(required=[("path", OpenFolderNameArg)],
                            optional=[("test", BoolArg),
                                      ("debug", BoolArg),
                                      ("exit", BoolArg)],
                            synopsis='Build a wheel for bundle')
 
 
-def devel_install(session, path, test=True, user=None, exit=False):
+def devel_install(session, path, test=True, user=None, debug=False, exit=False):
     '''Build and install a wheel in for the source code in bundle path.
 
     Parameters
@@ -106,7 +114,9 @@ def devel_install(session, path, test=True, user=None, exit=False):
     from ...bundle_builder import BundleBuilder
     _run(path, session.logger, exit, BundleBuilder.make_install,
          session, test=test, debug=debug, user=user)
-devel_install_desc = CmdDesc(required=[("path", OpenFolderNameArg),],
+
+
+devel_install_desc = CmdDesc(required=[("path", OpenFolderNameArg)],
                              optional=[("test", BoolArg),
                                        ("debug", BoolArg),
                                        ("user", BoolArg),
@@ -124,7 +134,9 @@ def devel_clean(session, path, exit=False):
     '''
     from ...bundle_builder import BundleBuilder
     _run(path, session.logger, exit, BundleBuilder.make_clean)
-devel_clean_desc = CmdDesc(required=[("path", OpenFolderNameArg),],
+
+
+devel_clean_desc = CmdDesc(required=[("path", OpenFolderNameArg)],
                            optional=[("exit", BoolArg)],
                            synopsis='Remove build files from bundle path')
 
@@ -161,13 +173,14 @@ def devel_dump(session, path):
     bb = _get_builder(path, session.logger)
     if bb is not None:
         bb.dump()
-devel_dump_desc = CmdDesc(required=[("path", OpenFolderNameArg),],
+
+
+devel_dump_desc = CmdDesc(required=[("path", OpenFolderNameArg)],
                           synopsis='Dump bundle information in bundle path')
 
 
 def _get_builder(path, logger):
     """Return BundleBuilder instance or None."""
-    import os
     from ...bundle_builder import BundleBuilder
     try:
         path = _aliases[path]
