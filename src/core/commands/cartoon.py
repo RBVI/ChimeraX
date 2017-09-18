@@ -517,7 +517,7 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
             mgr.set_tube_radius(radius)
     if spline_normals is not None:
         for m in structures:
-            undo_state_manager.add(m, "spline_normals", m.spline_normals, spline_normals)
+            undo_state.add(m, "spline_normals", m.spline_normals, spline_normals)
             m.spline_normals = spline_normals
     session.undo.register(undo_state)
 
