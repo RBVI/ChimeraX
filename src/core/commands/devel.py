@@ -74,7 +74,7 @@ devel_unalias_desc = CmdDesc(required=[("name", StringArg)],
                              synopsis='Remove alias for bundle path')
 
 
-def devel_build(session, path, test=True, exit=False):
+def devel_build(session, path, test=True, debug=False, exit=False):
     '''Build a wheel in for the source code in bundle path.
 
     Parameters
@@ -85,9 +85,10 @@ def devel_build(session, path, test=True, exit=False):
       Whether to run test after building wheel
     '''
     from ...bundle_builder import BundleBuilder
-    _run(path, session.logger, exit, BundleBuilder.make_wheel, test=test)
+    _run(path, session.logger, exit, BundleBuilder.make_wheel, test=test, debug=debug)
 devel_build_desc = CmdDesc(required=[("path", OpenFolderNameArg),],
                            optional=[("test", BoolArg),
+                                     ("debug", BoolArg),
                                      ("exit", BoolArg)],
                            synopsis='Build a wheel for bundle')
 
@@ -104,9 +105,10 @@ def devel_install(session, path, test=True, user=None, exit=False):
     '''
     from ...bundle_builder import BundleBuilder
     _run(path, session.logger, exit, BundleBuilder.make_install,
-         session, test=test, user=user)
+         session, test=test, debug=debug, user=user)
 devel_install_desc = CmdDesc(required=[("path", OpenFolderNameArg),],
                              optional=[("test", BoolArg),
+                                       ("debug", BoolArg),
                                        ("user", BoolArg),
                                        ("exit", BoolArg)],
                              synopsis='Build and install wheel for bundle')
