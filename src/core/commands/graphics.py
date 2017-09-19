@@ -35,12 +35,12 @@ def graphics(session, atom_triangles = None, bond_triangles = None,
     change = False
     from ..errors import UserError
     if atom_triangles is not None:
-        if atom_triangles < 4:
+        if atom_triangles != 0 and atom_triangles < 4:
             raise UserError('Minimum number of atom triangles is 4')
         lod.atom_fixed_triangles = atom_triangles if atom_triangles > 0 else None
         change = True
     if bond_triangles is not None:
-        if bond_triangles < 12:
+        if bond_triangles != 0 and bond_triangles < 12:
             raise UserError('Minimum number of bond triangles is 12')
         lod.bond_fixed_triangles = bond_triangles if bond_triangles > 0 else None
         change = True
