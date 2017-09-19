@@ -88,7 +88,7 @@ def atom_site_lines(m, anum_offset, cid_suffix, entities):
     elem = atoms.element_names
     aname = atoms.names
     aloc = atoms.alt_locs
-    occ = atoms.occupancy
+    occ = atoms.occupancies
     bfact = atoms.bfactors
     res = atoms.residues
     rname = res.names

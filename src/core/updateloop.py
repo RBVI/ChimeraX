@@ -40,7 +40,8 @@ class UpdateLoop:
             if changed:
                 from .graphics import OpenGLError, OpenGLVersionError
                 try:
-                    view.draw(check_for_changes = False)
+                    if session.ui.is_gui:
+                        view.draw(check_for_changes = False)
                 except OpenGLVersionError as e:
                     self.block_redraw()
                     session.logger.error(str(e))

@@ -123,6 +123,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
             d.vertices = va
             d.normals = na
             d.triangles = ta
+            changes = self._ALL_CHANGE
         elif self.num_pseudobonds == 0:
             self.remove_drawing(d)
             self._pbond_drawing = None

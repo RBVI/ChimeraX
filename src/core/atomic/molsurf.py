@@ -323,14 +323,15 @@ class MolecularSurface(Model):
 
     # State save/restore in ChimeraX
     _save_attrs = ('_refinement_steps', '_vertex_to_atom', '_vertex_to_atom_count', '_max_radius',
-                   'vertices', 'normals', 'triangles', 'triangle_mask', 'vertex_colors', 'color')
+                   'vertices', 'normals', 'triangles', 'triangle_mask', 'vertex_colors', 'color',
+                   'joined_triangles')
 
     def take_snapshot(self, session, flags):
         init_attrs = ('atoms', 'show_atoms', 'probe_radius', 'grid_spacing', 'resolution', 'level',
                       'name', 'color', 'visible_patches', 'sharp_boundaries')
         data = {attr:getattr(self, attr) for attr in init_attrs}
         data['model state'] = Model.take_snapshot(self, session, flags)
-        data.update({attr:getattr(self,attr) for attr in self._save_attrs})
+        data.update({attr:getattr(self,attr) for attr in self._save_attrs if hasattr(self,attr)})
         from ..state import CORE_STATE_VERSION
         data['version'] = CORE_STATE_VERSION
         return data

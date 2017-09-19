@@ -13,7 +13,7 @@
 
 from .hbond import rec_dist_slop, rec_angle_slop, find_hbonds
 
-from chimerax.core.atomic import AtomicStructure
+from chimerax.core.atomic import AtomicStructure, Atoms
 from chimerax.core.colors import BuiltinColors
 
 def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
@@ -32,7 +32,11 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
 
     if atoms is None:
         from chimerax.core.atomic import concatenate
-        atoms = concatenate([m.atoms for m in session.models if isinstance(m, AtomicStructure)])
+        structures_atoms = [m.atoms for m in session.models if isinstance(m, AtomicStructure)]
+        if structures_atoms:
+            atoms = concatenate(structures_atoms)
+        else:
+            atoms = Atoms()
 
     from chimerax.core.errors import UserError
     if not atoms and not batch:

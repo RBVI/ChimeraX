@@ -54,6 +54,9 @@ from PIL import Image
 from .session import _UniqueName
 from .state import FinalizedState
 
+#from ._serial_ext import msgpack_serialize_stream, msgpack_deserialize_stream
+from ._serialize import msgpack_serialize_stream, msgpack_deserialize_stream
+
 # TODO: remove pickle and msgpack v2 after corresponding sessions
 # are no longer supported.
 _PICKLE_PROTOCOL = 4
@@ -150,25 +153,6 @@ def _encode_ndarray_v2(o):
     )
 
 
-def _encode_ndarray(o):
-    # inspired by msgpack-numpy package
-    if o.dtype.kind == 'V':
-        # structured array
-        kind = b'V'
-        dtype = o.dtype.descr
-    else:
-        kind = b''
-        dtype = o.dtype.str
-    if 'O' in dtype:
-        raise TypeError("Can not serialize numpy arrays of objects")
-    return {
-        b'kind': kind,
-        b'dtype': dtype,
-        b'shape': list(o.shape),
-        b'data': o.tobytes()
-    }
-
-
 def _decode_ndarray(data):
     kind = data[b'kind']
     dtype = data[b'dtype']
@@ -250,7 +234,9 @@ def _encode_v2(obj):
     if isinstance(obj, (numpy.number, numpy.bool_, numpy.bool8)):
         return OrderedDict((('__type__', 10),) + _encode_numpy_number_v2(obj))
 
-    raise RuntimeError("Can't convert object of type: %s" % type(obj))
+    obj_cls = type(obj)
+    raise RuntimeError("Can't convert object of type: %s.%s" % (
+                       obj_cls.__module__, obj_cls.__name__))
 
 
 _decode_handlers_v2 = [
@@ -273,10 +259,9 @@ _decode_handlers_v2 = [
 
 def _decode_pairs_v2(pairs):
     try:
-        count = len(pairs)
+        len(pairs)
     except TypeError:
         pairs = tuple(pairs)
-        count = len(pairs)
     if not pairs:
         return dict()
     if pairs[0][0] != '__type__':
@@ -298,88 +283,8 @@ def msgpack_deserialize_stream_v2(stream):
     return unpacker
 
 
-_encode_handlers = {
-    # type : lambda returning OrderedDict with unique __type__ first
-    # __type__ is index into decode array
-    _UniqueName: lambda o: {'__type__': 0, None: o.uid},
-    # __type__ == 1 is for numpy arrays
-    complex: lambda o: {'__type__': 2, None: [o.real, o.imag]},
-    set: lambda o: {'__type__': 3, None: list(o)},
-    frozenset: lambda o: {'__type__': 4, None: list(o)},
-    OrderedDict: lambda o: {'__type__': 5, None: list(o.items())},
-    deque: lambda o: {'__type__': 6, None: list(o)},
-    datetime: lambda o: {'__type__': 7, None: o.isoformat()},
-    timedelta: lambda o: {
-        '__type__': 8, None: [o.days, o.seconds, o.microseconds]},
-    Image.Image: lambda o: {'__type__': 9, None: _encode_image(o)},
-    # __type__ == 10 is for numpy scalars
-    FinalizedState: lambda o: {'__type__': 11, None: o.data},
-    tuple: lambda o: {'__type__': 12, None: list(o)},
-    timezone: lambda o: {'__type__': 13, None: o.__getinitargs__()},
-}
-
-
-def _encode(obj):
-    cvt = _encode_handlers.get(type(obj), None)
-    if cvt is not None:
-        return cvt(obj)
-    # handle numpy subclasses
-    if isinstance(obj, numpy.ndarray):
-        return {'__type__': 1, None: _encode_ndarray(obj)}
-    if isinstance(obj, (numpy.number, numpy.bool_, numpy.bool8)):
-        return {'__type__': 10, None: _encode_numpy_number(obj)}
-
-    raise RuntimeError("Can't convert object of type: %s" % type(obj))
-
-
-_decode_handlers = [
-    # order must match encode's __type__ values
-    _UniqueName,
-    _decode_ndarray,
-    lambda args: complex(*tuple(args)),
-    set,
-    frozenset,
-    OrderedDict,
-    deque,
-    _decode_datetime,
-    lambda args: timedelta(*tuple(args)),
-    _decode_image,
-    _decode_numpy_number,
-    FinalizedState,
-    tuple,
-    lambda args: timezone(*tuple(args)),
-]
-
-
-def _decode_pairs(pairs):
-    try:
-        count = len(pairs)
-    except TypeError:
-        pairs = tuple(pairs)
-        count = len(pairs)
-    if count == 2:
-        if pairs[0][0] == '__type__':
-            cvt = _decode_handlers[pairs[0][1]]
-            return cvt(pairs[1][1])
-        if pairs[1][0] == '__type__':
-            cvt = _decode_handlers[pairs[1][1]]
-            return cvt(pairs[0][1])
-    return dict(pairs)
-
-
-def msgpack_serialize_stream(stream):
-    packer = msgpack.Packer(default=_encode, use_bin_type=True,
-                            use_single_float=False, strict_types=True)
-    return stream, packer
-
-
-def msgpack_deserialize_stream(stream):
-    unpacker = msgpack.Unpacker(
-        stream, object_pairs_hook=_decode_pairs, encoding='utf-8')
-    return unpacker
-
-
 def msgpack_serialize(stream, obj):
+    # _count_object_types(obj)  # DEBUG
     stream, packer = stream
     stream.write(packer.pack(obj))
 
@@ -391,21 +296,109 @@ def msgpack_deserialize(stream):
         return None
 
 
+# Debuging code for finding out object types used
+
+_object_counts = {
+    type(None): 0,
+    bool: 0,
+    int: 0,
+    bytes: 0,
+    bytearray: 0,
+    str: 0,
+    memoryview: 0,
+    float: 0,
+    list: 0,
+    dict: 0,
+
+    # extension types
+    _UniqueName: 0,
+    numpy.ndarray: 0,
+    complex: 0,
+    set: 0,
+    frozenset: 0,
+    OrderedDict: 0,
+    deque: 0,
+    datetime: 0,
+    timedelta: 0,
+    Image.Image: 0,
+    numpy.number: 0,
+    FinalizedState: 0,
+    tuple: 0,
+    timezone: 0,
+}
+
+_extention_types = [
+    _UniqueName,
+    numpy.ndarray,
+    complex,
+    set,
+    frozenset,
+    OrderedDict,
+    deque,
+    datetime,
+    timedelta,
+    Image.Image,
+    numpy.number,
+    FinalizedState,
+    tuple,
+    timezone,
+]
+
+
+def _reset_object_counts():
+    for t in _object_counts:
+        _object_counts[t] = 0
+
+
+def _count_object_types(obj):
+    # handle numpy subclasses
+    if isinstance(obj, numpy.ndarray):
+        _object_counts[numpy.ndarray] += 1
+        return
+    if isinstance(obj, (numpy.number, numpy.bool_, numpy.bool8)):
+        _object_counts[numpy.number] += 1
+        return
+    t = type(obj)
+    _object_counts[t] += 1
+    if t == FinalizedState:
+        _count_object_types(obj.data)
+        return
+    if t in (list, tuple, set, frozenset, deque):
+        for o in obj:
+            _count_object_types(o)
+        return
+    if t in (dict, OrderedDict):
+        for k, v in obj.items():
+            _count_object_types(k)
+            _count_object_types(v)
+        return
+
+
+def _print_object_counts():
+    types = list(_object_counts)
+    # types = list(_extention_types)
+    types.sort(key=lambda t: t.__name__)
+    for t in types:
+        print('%s: %s' % (t.__name__, _object_counts[t]))
+
+
 if __name__ == '__main__':
     import io
 
     def serialize(buf, obj):
+        # packer = msgpack_serialize_stream_v2(buf)
         packer = msgpack_serialize_stream(buf)
         msgpack_serialize(packer, obj)
 
     def deserialize(buf):
+        # unpacker = msgpack_deserialize_stream_v2(buf)
         unpacker = msgpack_deserialize_stream(buf)
         return msgpack_deserialize(unpacker)
 
     # serialize = pickle_serialize
     # deserialize = pickle_deserialize
 
-    def test(obj, msg, expect_pass=True, idempotent=True):
+    def test(obj, msg, expect_pass=True, compare=None):
         passed = 'pass' if expect_pass else 'fail'
         failed = 'fail' if expect_pass else 'pass'
         with io.BytesIO() as buf:
@@ -427,17 +420,14 @@ if __name__ == '__main__':
                     print('%s (deserialize): %s' % (failed, msg))
                 return
             try:
-                if isinstance(obj, numpy.ndarray):
-                    assert(numpy.array_equal(result, obj))
+                if compare is not None:
+                    assert compare(result, obj)
                 else:
-                    assert(result == obj)
+                    assert result == obj
             except AssertionError:
-                if idempotent:
-                    print('%s: %s: not idempotent' % (failed, msg))
-                    print('  original:', obj)
-                    print('  result:', result)
-                else:
-                    print('%s: %s' % (passed, msg))
+                print('%s: %s: not idempotent' % (failed, msg))
+                print('  original:', obj)
+                print('  result:', result)
             else:
                 print('%s: %s' % (passed, msg))
 
@@ -473,16 +463,16 @@ if __name__ == '__main__':
 
     # test: numpy arrays
     test_obj = numpy.zeros((2, 2), dtype=numpy.float32)
-    test(test_obj, 'numerical numpy array')
+    test(test_obj, 'numerical numpy array', compare=numpy.array_equal)
     test_obj = numpy.empty((2, 2), dtype=numpy.float32)
-    test(test_obj, 'empty numerical numpy array')
+    test(test_obj, 'empty numerical numpy array', compare=numpy.array_equal)
 
     class C:
         pass
     test_obj = numpy.empty((2, 2), dtype=object)
     test_obj[:, :] = C()
     test(test_obj, 'can not serialize numpy array of objects',
-         expect_pass=False)
+         expect_pass=False, compare=numpy.array_equal)
     test_obj = numpy.float32(3.14159)
     test(test_obj, 'numpy float32 number')
 
@@ -523,5 +513,12 @@ if __name__ == '__main__':
     d = OrderedDict([(1, 2), (3, 4), (5, 6), (7, 8)])
     test(d, 'ordered dict')
 
-    from PIL import Image
-    test(Image.new("RGB", (32, 32), "white"), 'PIL image', idempotent=False)
+    def image_compare(a, b):
+        return a.tobytes() == b.tobytes()
+
+    test(Image.new("RGB", (32, 32), "white"), 'RGB image', compare=image_compare)
+    img = Image.new('RGBA', (127, 253), color=(255, 10, 140, 127))
+    test(img, 'RBGA image', compare=image_compare)
+
+    test(_UniqueName((('bundle', 'class'), 10010)), 'UniqueName in bundle')
+    test(_UniqueName(('class_name', 65537)), 'UniqueName in core')

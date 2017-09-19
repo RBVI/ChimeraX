@@ -25,6 +25,12 @@ endif
 
 include $(TOP)/mk/subdir.make
 
+ifdef WIN32
+CYTHON_EXE = $(bindir)/Scripts/cython.exe
+else
+CYTHON_EXE = $(bindir)/cython
+endif
+
 BUNDLE_NAME = ChimeraX-Core
 BUNDLE_VERSION = 0.1
 PKG_NAME = chimerax.core
@@ -41,14 +47,15 @@ WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
 
 GENSRCS = buildinfo.py
 PYSRCS = $(filter-out setup.py,$(wildcard *.py)) $(GENSRCS)
-WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-py3-none-$(BIN_PLATFORM).whl
+WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-cp36-cp36m-$(BIN_PLATFORM).whl
+DATA = colorbrewer.json
 
 .FORCE: wheel
 
 all: $(PYOBJS)
 
 install: dir all
-	$(RSYNC) $(PYSRCS) $(PKG_DIR)
+	$(RSYNC) $(PYSRCS) $(DATA) $(PKG_DIR)
 	if [ -d "$(app_prefix)" ]; then \
 		$(MAKE) app-install ;\
 	fi
@@ -72,11 +79,11 @@ SETUP_SED_ARGS = -e 's,PKG_DIR,$(PKG_DIR),' \
 		-e 's,PKG_NAME,$(PKG_NAME),'
 ifdef WIN32
 ifdef DEBUG
-SETUP_SED_ARGS += -e 's,\#WINDEBUG,,'
+SETUP_SED_ARGS += -e 's,\# WINDEBUG,,'
 endif
 endif
 
-setup.py: setup.py.in
+setup.py: setup.py.in _serialize.cpp
 	sed $(SETUP_SED_ARGS) < setup.py.in > setup.py
 
 $(SUBDIR_INSTALL): dir
@@ -94,6 +101,9 @@ pylint:
 buildinfo.py: buildinfo.py.in mkbuildinfo
 	rm -f buildinfo.py
 	$(PYTHON_EXE) mkbuildinfo $(TOP) $(BUNDLE_VERSION) > buildinfo.py || rm -f buildinfo.py
+
+_serialize.cpp: _serialize.pyx
+	$(CYTHON_EXE) --cplus _serialize.pyx
 
 _appdirs.install: appdirs_cpp.install
 atomic.install: arrays_cpp.install chutil_cpp.install ioutil_cpp.install \

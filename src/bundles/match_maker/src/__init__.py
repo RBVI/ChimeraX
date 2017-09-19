@@ -27,16 +27,6 @@ from chimerax.core.toolshed import BundleAPI
 class _MyAPI(BundleAPI):
 
     @staticmethod
-    def initialize(session, bundle_info):
-        from . import settings
-        settings.init(session)
-
-    @staticmethod
-    def finish(session, bi):
-        # deinitialize bundle in session (causes import)
-        pass
-
-    @staticmethod
     def register_command(command_name, logger):
         from . import match
         match.register_command(logger)

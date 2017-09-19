@@ -139,18 +139,19 @@ Residue::principal_atom() const
         return am.size() == 1 ? ca : nullptr;
     }
     auto c4f = am.find("C4'");
-    if (c4f == am.end())
-        return nullptr;
+    if (c4f == am.end()) {
+        if (am.size() > 1)
+            return nullptr;
+        auto pf = am.find("P");
+        if (pf == am.end())
+            return nullptr;
+        auto p = pf->second;
+        return p->element() == Element::P ? p : nullptr;
+    }
     auto c4 = c4f->second;
     if (am.find("C3'") != am.end() && am.find("C5'") != am.end() && am.find("O5'") != am.end())
         return c4;
-    if (am.size() > 1)
-        return nullptr;
-    auto pf = am.find("P");
-    if (pf == am.end())
-        return nullptr;
-    auto p = pf->second;
-    return p->element() == Element::P ? p : nullptr;
+    return nullptr;
 }
 
 void
@@ -176,22 +177,29 @@ Residue::session_restore(int version, int** ints, float** floats)
         _is_het = int_ptr[2];
         if (int_ptr[3]) // is_strand
             _ss_type = SS_STRAND;
-        _polymer_type = (PolymerType)int_ptr[4];
         _ribbon_display = int_ptr[5];
         _ribbon_hide_backbone = int_ptr[6];
         _ribbon_selected = int_ptr[7];
         _ss_id = int_ptr[8];
         num_atoms = int_ptr[9];
-    } else {
+    } else if (version < 10) {
         _alt_loc = int_ptr[0];
         _is_het = int_ptr[1];
-        _polymer_type = (PolymerType)int_ptr[2];
         _ribbon_display = int_ptr[3];
         _ribbon_hide_backbone = int_ptr[4];
         _ribbon_selected = int_ptr[5];
         _ss_id = int_ptr[6];
         _ss_type = (SSType)int_ptr[7];
         num_atoms = int_ptr[8];
+    } else {
+        _alt_loc = int_ptr[0];
+        _is_het = int_ptr[1];
+        _ribbon_display = int_ptr[2];
+        _ribbon_hide_backbone = int_ptr[3];
+        _ribbon_selected = int_ptr[4];
+        _ss_id = int_ptr[5];
+        _ss_type = (SSType)int_ptr[6];
+        num_atoms = int_ptr[7];
     }
     int_ptr += SESSION_NUM_INTS(version);
 
@@ -214,13 +222,12 @@ Residue::session_save(int** ints, float** floats) const
 
     int_ptr[0] = (int)_alt_loc;
     int_ptr[1] = (int)_is_het;
-    int_ptr[2] = (int)_polymer_type;
-    int_ptr[3] = (int)_ribbon_display;
-    int_ptr[4] = (int)_ribbon_hide_backbone;
-    int_ptr[5] = (int) _ribbon_selected;
-    int_ptr[6] = (int)_ss_id;
-    int_ptr[7] = (int)_ss_type;
-    int_ptr[8] = atoms().size();
+    int_ptr[2] = (int)_ribbon_display;
+    int_ptr[3] = (int)_ribbon_hide_backbone;
+    int_ptr[4] = (int) _ribbon_selected;
+    int_ptr[5] = (int)_ss_id;
+    int_ptr[6] = (int)_ss_type;
+    int_ptr[7] = atoms().size();
     int_ptr += SESSION_NUM_INTS();
 
     float_ptr[0] = _ribbon_adjust;

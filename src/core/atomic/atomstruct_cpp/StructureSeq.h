@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "imex.h"
+#include "polymer.h"
 #include "PythonInstance.h"
 #include "Sequence.h"
 #include "session.h"
@@ -46,11 +47,14 @@ protected:
 
     ChainID  _chain_id;
     bool  _from_seqres;
+    PolymerType  _polymer_type;
     ResMap  _res_map;
     Residues  _residues;
     Structure*  _structure;
 
-    static int  SESSION_NUM_INTS(int /*version*/=CURRENT_SESSION_VERSION) { return 3; }
+    static int  SESSION_NUM_INTS(int version=CURRENT_SESSION_VERSION) {
+        return version < 10 ? 3 : 4;
+    }
     static int  SESSION_NUM_FLOATS(int /*version*/=CURRENT_SESSION_VERSION) { return 0; }
 
     void  demote_to_sequence();
@@ -63,7 +67,7 @@ protected:
     }
 
 public:
-    StructureSeq(const ChainID& chain_id, Structure* as);
+    StructureSeq(const ChainID& chain_id, Structure* as, PolymerType pt = PT_NONE);
     virtual ~StructureSeq() { }
 
     Contents::const_reference  back() const { return Sequence::back(); }
@@ -81,6 +85,7 @@ public:
     bool  is_sequence() const { return _structure == nullptr; }
     const std::string&  name() const { return Sequence::name(); }
     StructureSeq&  operator+=(StructureSeq&);
+    PolymerType  polymer_type() const { return _polymer_type; }
     void  pop_back();
     void  pop_front();
     void  push_back(Residue* r);
