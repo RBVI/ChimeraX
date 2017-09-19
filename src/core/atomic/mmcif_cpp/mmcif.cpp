@@ -1062,7 +1062,7 @@ ExtractMolecule::parse_atom_site()
 
     missing_poly_seq = poly_seq.empty();
     if (missing_poly_seq)
-        logger::warning(_logger, "Missing entity_poly_seq table.  Inferring polymer connectivity");
+        logger::warning(_logger, "Missing entity_poly_seq table.  Inferring polymer connectivity.");
 
     try {
         pv.emplace_back(get_column("id"),
@@ -1270,8 +1270,6 @@ ExtractMolecule::parse_atom_site()
                 pos = auth_position;
             else
                 pos = position;
-            if (position == 0)
-                position = pos;  // fix for 1tna
             bool make_new_residue = true;
             if (coordsets) {
                 auto& res_map = all_residues[chain_id];
@@ -1295,8 +1293,16 @@ ExtractMolecule::parse_atom_site()
             if (missing_poly_seq) {
                 if (entity_id.empty())
                     entity_id = cid.c_str();
-                // TODO: should only save amino and nucleic acids
-                if (residue_name != "HOH") {
+                auto tr = find_template_residue(residue_name);
+                if (tr && !tr->description().empty()) {
+                    // only save polymer residues
+                    if (position == 0) {
+                        logger::warning(_logger, "Unable to infer polymer connectivity due to "
+                                        "unspecified label_seq_id for standard residue \"",
+                                        residue_name, "\" near line ", line_number());
+                        // Bad data, don't try to reconstrut entity_poly_seq information
+                        missing_poly_seq = false;
+                    }
                     auto& entity_poly_seq = poly_seq[entity_id];
                     PolySeq p(position, residue_name, false);
                     auto pit = entity_poly_seq.equal_range(p);
