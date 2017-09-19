@@ -1270,6 +1270,8 @@ ExtractMolecule::parse_atom_site()
                 pos = auth_position;
             else
                 pos = position;
+            if (position == 0)
+                position = pos;  // fix for 1tna
             bool make_new_residue = true;
             if (coordsets) {
                 auto& res_map = all_residues[chain_id];

@@ -849,6 +849,8 @@ class Structure(Model, StructureData):
                 rp.display = True
                 rp.vertices = concatenate(vertex_list)
                 rp.normals = concatenate(normal_list)
+                from .ribbon import normalize_vector_array_inplace
+                normalize_vector_array_inplace(rp.normals)
                 rp.triangles = concatenate(triangle_list)
                 rp.vertex_colors = concatenate(color_list)
             else:
@@ -1957,33 +1959,39 @@ class Structure(Model, StructureData):
         from ..geometry import find_close_points
         atoms = self.atoms
         a, _ = find_close_points(atoms.scene_coords, coords, distance)
-        if '<' in operator:
-            expand_by = atoms.filter(a)
-        else:
+        def not_a():
             from numpy import ones, bool_
             mask = ones(len(atoms), dtype=bool_)
-            mask[a] = 0
-            expand_by = atoms.filter(mask)
-        if target_type == ':':
+            mask[a] = False
+            return mask
+        expand_by = None
+        if target_type == '@':
             if '<' in operator:
-                expand_by = expand_by.unique_residues.atoms
+                expand_by = atoms.filter(a)
             else:
-                expand_by = expand_by.full_residues.atoms
+                expand_by = atoms.filter(not_a())
+        elif target_type == ':':
+            if '<' in operator:
+                expand_by = atoms.filter(a).unique_residues.atoms
+            else:
+                expand_by = atoms.filter(not_a()).full_residues.atoms
         elif target_type == '/':
-            chains = expand_by.unique_residues.unique_chains
-            chain_atoms = chains.existing_residues.atoms
+            # There is no "full_chain" property for atoms so we have
+            # to do it the hard way
+            from numpy import in1d, invert
+            matched_chain_ids = atoms.filter(a).unique_chain_ids
+            mask = in1d(atoms.chain_ids, matched_chain_ids)
             if '<' in operator:
-                expand_by = chain_atoms
+                expand_by = atoms.filter(mask)
             else:
-                extra_atoms = chain_atoms - expand_by
-                extra_chains = extra_atoms.unique_residues.unique_chains
-                expand_by = (chains - extra_chains).existing_residues.atoms
+                expand_by = atoms.filter(invert(mask))
         elif target_type == '#':
             if '<' in operator:
-                expand_by = expand_by.unique_structures.atoms
+                expand_by = atoms.filter(a).unique_structures.atoms
             else:
-                expand_by = expand_by.full_structures.atoms
-        results.add_atoms(expand_by)
+                expand_by = atoms.filter(not_a()).full_structures.atoms
+        if expand_by:
+            results.add_atoms(expand_by)
 
 class AtomicStructure(Structure):
     """
