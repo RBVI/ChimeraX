@@ -1585,7 +1585,8 @@ write_pdb(std::vector<const Structure*> structures, std::ostream& os, bool selec
         std::map<const Atom*, int> rev_asn;
         std::map<const Residue*, int> polymer_map;
         int polymer_num = 1;
-        for (auto poly_residues: s->polymers()) {
+        for (auto polymers: s->polymers()) {
+            auto& poly_residues = polymers.first;
             for (auto r: poly_residues)
                 polymer_map[r] = polymer_num;
             polymer_num++;

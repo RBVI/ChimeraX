@@ -17,9 +17,10 @@
 #include "Atom.h"
 #include "Bond.h"
 #include "Chain.h"
-#include "Structure.h"
+#include "polymer.h"
 #include "Residue.h"
 #include "Sequence.h"
+#include "Structure.h"
 #include <stdexcept>
 
 namespace atomstruct {
@@ -38,7 +39,8 @@ Bond::Bond(Structure* as, Atom* a1, Atom* a2): UniqueConnection(a1, a2)
             if (start_r->chain() == nullptr) {
                 if (other_r->chain() == nullptr) {
                     // form a new chain based on start residue's chain ID
-                    auto chain = start_r->structure()->_new_chain(start_r->chain_id());
+                    auto chain = start_r->structure()->_new_chain(start_r->chain_id(),
+                        Sequence::rname_polymer_type(start_r->name()));
                     chain->push_back(start_r);
                     chain->push_back(other_r);
                 } else {
@@ -92,7 +94,7 @@ _polymer_res(Residue* r, Atom* a, bool* is_nucleic)
 }
 
 static Atom*
-_polymeric_start_atom(Atom* a1, Atom* a2, Residue::PolymerType* pt = nullptr)
+_polymeric_start_atom(Atom* a1, Atom* a2)
 {
     Residue *r1 = a1->residue();
     Residue *r2 = a2->residue();
@@ -129,8 +131,6 @@ _polymeric_start_atom(Atom* a1, Atom* a2, Residue::PolymerType* pt = nullptr)
 
     if (n1) {
         // both nucleic
-        if (pt != nullptr)
-            *pt = Residue::PT_NUCLEIC;
         if (a1->name() == "O3'" && a2->name() == "P") {
             return a1;
         }
@@ -139,8 +139,6 @@ _polymeric_start_atom(Atom* a1, Atom* a2, Residue::PolymerType* pt = nullptr)
         }
     } else {
         // both protein
-        if (pt != nullptr)
-            *pt = Residue::PT_AMINO;
         if (a1->name() == "C" && a2->name() == "N") {
             return a1;
         }
@@ -165,12 +163,7 @@ Bond::polymeric_start_atom() const
     const Atoms& as = atoms();
     Atom *a1 = as[0];
     Atom *a2 = as[1];
-    Residue::PolymerType pt;
-    auto psa = _polymeric_start_atom(a1, a2, &pt);
-    if (psa != nullptr) {
-        a1->residue()->set_polymer_type(pt);
-        a2->residue()->set_polymer_type(pt);
-    }
+    auto psa = _polymeric_start_atom(a1, a2);
     return psa;
 }
 

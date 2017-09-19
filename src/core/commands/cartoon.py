@@ -25,10 +25,6 @@ _XSectionMap = {
     "rectangle": XSectionManager.STYLE_SQUARE,
     "oval": XSectionManager.STYLE_ROUND,
     "barbell": XSectionManager.STYLE_PIPING,
-    # Old names (to be removed)
-    "square": XSectionManager.STYLE_SQUARE,
-    "round": XSectionManager.STYLE_ROUND,
-    "piping": XSectionManager.STYLE_PIPING,
 }
 _XSectionInverseMap = dict([(v, k) for k, v in _XSectionMap.items()])
 _ModeHelixMap = {
@@ -214,14 +210,14 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
             mgr = m.ribbon_xs_mgr
             print(m)
             print(indent, "helix",
-                  "mode=%s" % _ModeHelixInverseMap[mgr.style_helix],
+                  "mode=%s" % _ModeHelixInverseMap[m.ribbon_mode_helix],
                   "xsection=%s" % _XSectionInverseMap[mgr.style_helix],
                   "size=%.2g,%.2g" % mgr.scale_helix,
                   "arrow=%s" % mgr.arrow_helix,
                   "arrow size=%.2g,%.2g,%.2g,%.2g" % (mgr.scale_helix_arrow[0] +
                                                        mgr.scale_helix_arrow[1]))
             print(indent, "strand",
-                  "mode=%s" % _ModeStrandInverseMap[mgr.style_helix],
+                  "mode=%s" % _ModeStrandInverseMap[m.ribbon_mode_strand],
                   "xsection=%s" % _XSectionInverseMap[mgr.style_sheet],
                   "size=%.2g,%.2g" % mgr.scale_sheet,
                   "arrow=%s" % mgr.arrow_sheet,
@@ -521,7 +517,7 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
             mgr.set_tube_radius(radius)
     if spline_normals is not None:
         for m in structures:
-            undo_state_manager.add(m, "spline_normals", m.spline_normals, spline_normals)
+            undo_state.add(m, "spline_normals", m.spline_normals, spline_normals)
             m.spline_normals = spline_normals
     session.undo.register(undo_state)
 

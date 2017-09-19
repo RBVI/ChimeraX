@@ -1,4 +1,3 @@
-# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
@@ -11,11 +10,11 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-#import distutils.core, distutils.debug
-#distutils.core.DEBUG = True
-#distutils.debug.DEBUG = True
+# import distutils.core, distutils.debug
+# distutils.core.DEBUG = True
+# distutils.debug.DEBUG = True
 
-from setuptools import setup
+from setuptools import setup, Extension
 from glob import glob
 import os
 import sys
@@ -29,6 +28,7 @@ if sys.platform.startswith('win'):
 else:
     # data files are relative to rootdir
     rel_inst_shlib_dir = os.path.basename(shlib_dir)
+
 
 setup(
     name="BUNDLE_NAME",
@@ -102,14 +102,17 @@ setup(
             os.path.join(shlib_dir, "libatomstruct.SHLIB_EXT"),
             os.path.join(shlib_dir, "libelement.SHLIB_EXT"),
             os.path.join(shlib_dir, "liblogger.SHLIB_EXT"),
-            #WINDEBUG os.path.join(shlib_dir, "libappdirs.pdb"),
-            #WINDEBUG os.path.join(shlib_dir, "libarrays.pdb"),
-            #WINDEBUG os.path.join(shlib_dir, "libatomstruct.pdb"),
-            #WINDEBUG os.path.join(shlib_dir, "libelement.pdb"),
-            #WINDEBUG os.path.join(shlib_dir, "liblogger.pdb"),
+            # WINDEBUG os.path.join(shlib_dir, "libappdirs.pdb"),
+            # WINDEBUG os.path.join(shlib_dir, "libarrays.pdb"),
+            # WINDEBUG os.path.join(shlib_dir, "libatomstruct.pdb"),
+            # WINDEBUG os.path.join(shlib_dir, "libelement.pdb"),
+            # WINDEBUG os.path.join(shlib_dir, "liblogger.pdb"),
         ]),
         (os.path.join(os.path.basename(data_dir), "idatm", "templates"),
          glob(os.path.join(data_dir, "idatm", "templates", "*"))),
+    ],
+    ext_modules=[
+        Extension("chimerax.core._serialize", sources=["_serialize.cpp"])
     ],
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
