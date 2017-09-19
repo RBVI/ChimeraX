@@ -494,7 +494,7 @@ class Structure(Model, StructureData):
             if not is_arc_helix[i] or not is_arc_helix[j]:
                 return False
             return ssids[i] == ssids[j]
-        for rlist in polymers:
+        for rlist, ptype in polymers:
             # Always call get_polymer_spline to make sure hide bits are
             # properly set when ribbons are completely undisplayed
             any_display, atoms, coords, guides = rlist.get_polymer_spline()

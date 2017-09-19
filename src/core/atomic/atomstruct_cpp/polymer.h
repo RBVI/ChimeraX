@@ -13,9 +13,13 @@
  * === UCSF ChimeraX Copyright ===
  */
 
-#ifndef atomstruct_session
-#define atomstruct_session
+#ifndef atomstruct_polymer
+#define atomstruct_polymer
 
-#define CURRENT_SESSION_VERSION 10
+namespace atomstruct {
 
-#endif  // atomstruct_session
+enum PolymerType { PT_NONE = 0, PT_AMINO = 1, PT_NUCLEIC = 2 };
+
+}  // namespace atomstruct
+
+#endif  // atomstruct_polymer
