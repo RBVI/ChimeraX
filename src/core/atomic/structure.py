@@ -2279,7 +2279,10 @@ class StructureGraphicsChangeManager:
         return sa
 
     def set_subdivision(self, subdivision):
-        self.level_of_detail.quality = subdivision
+        lod = self.level_of_detail
+        lod.quality = subdivision
+        lod.atom_fixed_triangles = None
+        lod.bond_fixed_triangles = None
         self.update_level_of_detail()
 
 # -----------------------------------------------------------------------------
