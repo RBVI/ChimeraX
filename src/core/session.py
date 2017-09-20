@@ -699,6 +699,8 @@ def save_x3d(session, path, transparent_background=False):
     if user is None:
         user = os.getlogin()
     meta['author'] = user
+    # Split 'copy' 'right' so updating code does not try to replace it
+    meta['copy' 'right'] = '© %d by %s.  All Rights reserved.' % (year, user)
 
     # record needed X3D components
     x3d_scene.need(x3d.Components.EnvironmentalEffects, 1)  # Background
