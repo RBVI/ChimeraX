@@ -57,6 +57,8 @@ class TriangleInfo(State):
         """Return coordinates of each vertex of triangles."""
         return self._stl.vertices[self._stl.triangles[self._index]]
 
+    SESSION_SAVE = True
+    
     def take_snapshot(self, session, flags):
         return {'stl model': self._stl, 'triangle index': self._index, 'version':CORE_STATE_VERSION}
 

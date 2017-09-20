@@ -28,13 +28,16 @@ def select(session, objects=None, polymer=None):
         from . import all_objects
         objects = all_objects(session)
 
+    from ..undo import UndoState
+    undo_state = UndoState("select")
     if objects is not None:
-        session.selection.clear()
-        modify_selection(objects, 'add')
+        clear_selection(session, "select_clear", undo_state)
+        modify_selection(objects, 'add', undo_state)
 
     if polymer is not None:
-        polymer_selection(polymer, session)
+        polymer_selection(polymer, session, undo_state)
         
+    session.undo.register(undo_state)
     report_selection(session)
 
 def select_add(session, objects=None):
@@ -43,21 +46,30 @@ def select_add(session, objects=None):
     if objects is None:
         from . import all_objects
         objects = all_objects(session)
-    modify_selection(objects, 'add')
+    from ..undo import UndoState
+    undo_state = UndoState("select add")
+    modify_selection(objects, 'add', undo_state)
+    session.undo.register(undo_state)
 
 def select_subtract(session, objects=None):
     '''Subtract objects from the selection.
     If objects is None the selection is cleared.'''
+    from ..undo import UndoState
+    undo_state = UndoState("select subtract")
     if objects is None:
-        session.selection.clear()
+        clear_selection(session, "subtract_clear", undo_state)
     else:
-        modify_selection(objects, 'subtract')
+        modify_selection(objects, 'subtract', undo_state)
+    session.undo.register(undo_state)
 
 def select_intersect(session, objects=None):
     '''Reduce the selection by intersecting with specified objects.'''
-    intersect_selection(objects, session)
+    from ..undo import UndoState
+    undo_state = UndoState("select intersect")
+    intersect_selection(objects, session, undo_state)
+    session.undo.register(undo_state)
 
-def polymer_selection(seq_atoms, session):
+def polymer_selection(seq_atoms, session, undo_state):
     '''
     Reduce the current selected atoms to include only those that belong to a chain
     having the same sequence string as one of seq_atoms.
@@ -74,11 +86,15 @@ def polymer_selection(seq_atoms, session):
             from numpy import array, bool
             smask = array([(seq in sset) for seq in seqs], bool)
             satoms = atoms.filter(smask[seq_ids])
+            undo_state.add(satoms, "selected", satoms.selected, True)
             satoms.selected = True
     
 def select_clear(session, objects=None):
     '''Clear the selection.'''
-    session.selection.clear()
+    from ..undo import UndoState
+    undo_state = UndoState("select clear")
+    clear_selection(session, "clear", undo_state)
+    session.undo.register(undo_state)
 
 def report_selection(session):
     s = session.selection
@@ -94,16 +110,18 @@ def report_selection(session):
     if mc != 0:
         plural = ('s' if mc > 1 else '')
         lines.append('%d model%s' % (mc, plural))
-    session.logger.status(', '.join(lines) + ' selected')
+    session.logger.status(', '.join(lines) + ' selected', log = True)
 
-def modify_selection(objects, mode = 'add'):
+def modify_selection(objects, mode, undo_state):
     select = (mode == 'add')
     atoms, models = _atoms_and_models(objects)
+    undo_state.add(atoms, "selected", atoms.selected, select)
     atoms.selected = select
     for m in models:
+        undo_state.add(m, "selected", m.selected, select)
         m.selected = select
 
-def intersect_selection(objects, session):
+def intersect_selection(objects, session, undo_state):
     atoms, models = _atoms_and_models(objects)
     from .. import atomic
     selatoms = atomic.selected_atoms(session)
@@ -111,9 +129,26 @@ def intersect_selection(objects, session):
     from ..atomic import Structure
     selmodels = set(m for m in session.selection.models() if not isinstance(m, Structure))
     submodels = selmodels.difference(models)
+    undo_state.add(subatoms, "selected", subatoms.selected, False)
     subatoms.selected = False
     for m in submodels:
+        undo_state.add(m, "selected", m.selected, False)
         m.selected = False
+
+def clear_selection(session, why, undo_state):
+    from ..atomic.molarray import Atoms
+    atoms = session.selection.items("atoms")
+    if atoms:
+        if isinstance(atoms, Atoms):
+            undo_state.add(atoms, "selected", atoms.selected, False)
+        else:
+            for a in atoms:
+                undo_state.add(a, "selected", a.selected, False)
+    models = [m for m in session.selection.all_models() if m.selected]
+    if models:
+        for m in models:
+            undo_state.add(m, "selected", m.selected, False)
+    session.selection.clear()
 
 def _atoms_and_models(objects):
     # Treat selecting molecular surface as selecting atoms.

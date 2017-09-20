@@ -17,6 +17,7 @@
 
 #define ATOMSTRUCT_EXPORT
 #include "Atom.h"
+#include "ChangeTracker.h"
 #include "CoordSet.h"
 #include "destruct.h"
 #include "Structure.h"
@@ -26,29 +27,34 @@ namespace atomstruct {
 CoordSet::CoordSet(Structure* as, int cs_id):
     _cs_id(cs_id), _structure(as)
 {
+    as->change_tracker()->add_created(this);
 }
 
 CoordSet::CoordSet(Structure* as, int cs_id, int size):
     _cs_id(cs_id), _structure(as)
 {
     _coords.reserve(size);
+    as->change_tracker()->add_created(this);
 }
 
 CoordSet::~CoordSet()
 {
     if (DestructionCoordinator::destruction_parent() != _structure)
         _structure->pb_mgr().remove_cs(this);
+    _structure->change_tracker()->add_deleted(this);
 }
 
 void
 CoordSet::set_coords(Real *xyz, size_t n)
 {
-  size_t nc = _coords.size();
-  size_t c = 0;
-  for (size_t i = 0 ; i < nc ; ++i, c += 3)
+    size_t nc = _coords.size();
+    size_t c = 0;
+    for (size_t i = 0 ; i < nc ; ++i, c += 3)
     _coords[i].set_xyz(xyz[c], xyz[c+1], xyz[c+2]);
-  for (size_t i = nc ; i < n ; ++i, c += 3)
+    for (size_t i = nc ; i < n ; ++i, c += 3)
     add_coord(Coord(xyz[c], xyz[c+1], xyz[c+2]));
+
+    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_COORDSET);
 }
 
 float
@@ -125,18 +131,6 @@ CoordSet::session_save(int** ints, float** floats) const
         float_ptr[2] = crd[2];
         float_ptr += 3;
     }
-}
-
-void
-CoordSet::set_bfactor(const Atom *a, float val)
-{
-    _bfactor_map.insert(std::pair<const Atom *, float>(a, val));
-}
-
-void
-CoordSet::set_occupancy(const Atom *a, float val)
-{
-    _occupancy_map.insert(std::pair<const Atom *, float>(a, val));
 }
 
 }  // namespace atomstruct

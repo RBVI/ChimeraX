@@ -31,8 +31,6 @@ def close(session, models=None):
 
     m.close(cmodels)
 
-    session.main_view.remove_overlays()
-    
 def have_all_child_models(models):
     '''
     Return a set containing those models in the given models that have all
@@ -57,9 +55,14 @@ def _contains_model_tree(m, mset, contains):
             return
 
     contains.add(m)
+
+def close_session(session):
+    session.reset()
         
 def register_command(session):
     from . import CmdDesc, register, ModelsArg
     desc = CmdDesc(optional=[('models', ModelsArg)],
                    synopsis='close models')
     register('close', desc, close, logger=session.logger)
+    desc = CmdDesc(synopsis="clear session contents")
+    register('close session', desc, close_session, logger=session.logger)

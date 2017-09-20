@@ -62,6 +62,7 @@ public:
     // HIDE_ constants are masks for hide bits
     static const unsigned int  HIDE_RIBBON = 0x1;
     static const unsigned int  HIDE_ISOLDE = 0x2;
+    static const unsigned int  HIDE_NUCLEOTIDE = 0x4;
 
     typedef std::vector<Bond*> Bonds;
     enum class DrawMode: unsigned char { Sphere, EndCap, Ball };
@@ -212,8 +213,8 @@ public:
     const Rgba&  color() const { return _rgba; }
     bool  display() const { return _display; }
     int  hide() const { return _hide; }
-    GraphicsContainer*  graphics_container() const {
-        return reinterpret_cast<GraphicsContainer*>(structure()); }
+    GraphicsChanges*  graphics_changes() const {
+        return reinterpret_cast<GraphicsChanges*>(structure()); }
     bool  selected() const { return _selected; }
     void  set_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b, Rgba::Channel a) {
         set_color(Rgba({r, g, b, a}));

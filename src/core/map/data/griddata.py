@@ -55,7 +55,9 @@ class Grid_Data:
                path = '',       # Can be list of paths
                file_type = '',
                grid_id = '',
-               default_color = None):
+               default_color = None,
+               time = None,
+               channel = None):
 
     # Path, file_type and grid_id are for reloading data sets.
     self.path = path
@@ -86,6 +88,9 @@ class Grid_Data:
 
     self.rgba = default_color            # preferred color for displaying data
 
+    self.time = time			# Integer, position in time series
+    self.channel = channel		# Integer, channel number for multi-channel data
+
     self.data_cache = None
 
     self.writable = False
@@ -93,6 +98,22 @@ class Grid_Data:
 
     self.update_transform()
 
+    
+  # ---------------------------------------------------------------------------
+  # Return dictionary of options for Grid_Data constructor used to initialize
+  # a new Grid_Data.  Keyword options replace the specified settings.
+  #
+  def settings(self, **replace):
+    attrs = ('size', 'value_type', 'origin', 'step', 'cell_angles', 'rotation', 'symmetries',
+             'name', 'time', 'channel')
+    s = {attr:getattr(self, attr) for attr in attrs}
+    s['default_color'] = self.rgba
+    for k in replace.keys():
+      if k not in attrs:
+        raise ValueError('Unknown argument to Grid_Data settings(): "%s"' % k)
+    s.update(replace)
+    return s
+      
   # ---------------------------------------------------------------------------
   #
   def set_path(self, path, format = None):
@@ -422,21 +443,20 @@ class Grid_Subregion(Grid_Data):
 
   def __init__(self, grid_data, ijk_min, ijk_max, ijk_step = (1,1,1)):
 
-    self.full_data = grid_data
+    d = grid_data
+    self.full_data = d
 
     ijk_min = [((a+s-1)//s)*s for a,s in zip(ijk_min, ijk_step)]
     self.ijk_offset = ijk_min
     self.ijk_step = ijk_step
 
     size = [max(0,(b-a+s)//s) for a,b,s in zip(ijk_min, ijk_max, ijk_step)]
-    origin = grid_data.ijk_to_xyz(ijk_min)
-    step = [ijk_step[a]*grid_data.step[a] for a in range(3)]
+    origin = d.ijk_to_xyz(ijk_min)
+    step = [ijk_step[a]*d.step[a] for a in range(3)]
 
-    Grid_Data.__init__(self, size, grid_data.value_type,
-                       origin, step, grid_data.cell_angles,
-                       grid_data.rotation, grid_data.symmetries,
-                       name = grid_data.name + ' subregion')
-    self.rgba = grid_data.rgba
+    settings = d.settings(size=size, origin=origin, step=step, name=d.name+' subregion')
+    Grid_Data.__init__(self, **settings)
+
     self.data_cache = None      # Caching done by underlying grid.
         
   # ---------------------------------------------------------------------------

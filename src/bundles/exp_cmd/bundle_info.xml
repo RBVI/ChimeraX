@@ -25,7 +25,7 @@
     <ChimeraXClassifier>ChimeraX :: Command :: ~ribbon :: General :: hide cartoon for selected residues</ChimeraXClassifier>
     <!-- <ChimeraXClassifier>ChimeraX :: Command :: findclash :: General :: find clashes between atom pairs</ChimeraXClassifier> -->
     <ChimeraXClassifier>ChimeraX :: Command :: getcrd :: General :: report atomic coordinates</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: debug :: General :: report what a specifier matches</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: debug dumpspec :: General :: report what a specifier matches</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

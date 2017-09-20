@@ -1,0 +1,30 @@
+<BundleInfo name="ChimeraX-WavefrontOBJ" version="1.0"
+	    package="chimerax.wavefront_obj"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Wavefront OBJ file read/write</Synopsis>
+  <Description>This bundle provides the ability to read and write
+Wavefront OBJ files.</Description>
+
+  <Categories>
+    <Category name="Generic 3D objects"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    
+    <ChimeraXClassifier>ChimeraX :: DataFormat :: Wavefront OBJ :: obj :: Generic 3D objects :: .obj :: :: https://en.wikipedia.org/wiki/Wavefront_.obj_file :: :: :: Surface format used in 3D modeling :: utf-8</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Open :: Wavefront OBJ :: ::</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Save :: Wavefront OBJ :: ::</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

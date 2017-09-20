@@ -19,23 +19,23 @@ Text-based user interface.  API-compatible with :py:module:`ui` package.
 """
 from ..tasks import Task
 from ..logger import PlainTextLog
-_color_output = False
+_color_output = None
 
 _log_level = {
-        PlainTextLog.LEVEL_INFO: 'info',
-        PlainTextLog.LEVEL_WARNING: 'warning',
-        PlainTextLog.LEVEL_ERROR: 'error',
+    PlainTextLog.LEVEL_INFO: 'info',
+    PlainTextLog.LEVEL_WARNING: 'warning',
+    PlainTextLog.LEVEL_ERROR: 'error',
 }
 
 _colors = {
-        "info": "",
-        "warning": "",
-        "error": "",
-        "status": "",
-        "normal": "",
-        "background": "",
-        "prompt": "",
-        "endprompt": "",
+    "info": "",
+    "warning": "",
+    "error": "",
+    "status": "",
+    "normal": "",
+    "background": "",
+    "prompt": "",
+    "endprompt": "",
 }
 
 
@@ -48,7 +48,7 @@ class NoGuiLog(PlainTextLog):
         if encoding != 'utf-8' and isinstance(msg, str):
             msg = msg.encode(encoding, 'replace').decode(encoding)
 
-        if sys.stdout.isatty():
+        if _color_output:
             print("%s%s%s" % (
                 _colors[level_name], msg, _colors["normal"]), end='')
         else:
@@ -59,8 +59,7 @@ class NoGuiLog(PlainTextLog):
         if secondary:
             return False
         if msg:
-            import sys
-            if sys.stdout.isatty():
+            if _color_output:
                 print("%s%s%s" % (_colors["status"], msg, _colors["normal"]))
             else:
                 print("STATUS:\n%s" % msg)
@@ -80,7 +79,7 @@ class UI:
         self._session = weakref.ref(session)
         self._queue = None
         import sys
-        if sys.stdout.isatty():
+        if _color_output or (_color_output is None and sys.stdout.isatty()):
             try:
                 import colorama
                 colorama.init()
@@ -94,8 +93,10 @@ class UI:
                 _colors["prompt"] = colorama.Fore.BLUE + colorama.Style.BRIGHT
                 _colors["endprompt"] = colorama.Style.NORMAL + _colors["normal"]
                 # Hack around colorama not checking for closed streams at exit
-                import atexit, colorama.initialise
+                import atexit
+                import colorama.initialise
                 atexit.unregister(colorama.initialise.reset_all)
+
                 def reset():
                     try:
                         colorama.initialise.reset_all()
@@ -164,7 +165,6 @@ class UI:
 class _Input(Task):
 
     SESSION_ENDURING = True
-    SESSION_SKIP = True
 
     def __init__(self, session):
         # Initializer, runs in UI thread
@@ -208,8 +208,8 @@ class _Input(Task):
         logger = self.session.logger
         try:
             self._cmd.run(text)
-        except errors.UserError as err:
-            # UserErrors are already logged
+        except errors.NotABug as err:
+            # NotABug and subclasses are already logged
             pass
         except Exception:
             logger.error("\nUnexpected exception, save your work and exit:\n")

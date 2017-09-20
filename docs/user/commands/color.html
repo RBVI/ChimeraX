@@ -35,12 +35,12 @@ class="clRight" title="User Guide Index"/></a>
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 &nbsp;<b>sequential</b>
 &nbsp;<a href="#level"><i>level</i></a>&nbsp;
-[&nbsp;<a href="#palette">palette</a>&nbsp;&nbsp;<i>palette</i>&nbsp;]
+[&nbsp;<a href="#palette-options">palette</a>&nbsp;&nbsp;<i>palette</i>&nbsp;]
 &nbsp;<a href="#general-options"><i>general-options</i></a>
 <br>&ndash; or &ndash;<br>
 <b>rainbow</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 [&nbsp;<a href="#level"><i>level</i></a>&nbsp;]
-[&nbsp;<a href="#palette">palette</a>&nbsp;&nbsp;<i>palette</i>&nbsp;]
+[&nbsp;<a href="#palette-options">palette</a>&nbsp;&nbsp;<i>palette</i>&nbsp;]
 &nbsp;<a href="#general-options"><i>general-options</i></a>
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
@@ -179,17 +179,9 @@ the default color of the surface model (single-color mode).
 
 <a name="general-options"></a>
 <p class="nav">
-[<a href="#top">back to top</a>]
+[<a href="#top">back to top: color</a>]
 </p>
 <h3>General Options</h3>
-<p>
-Keywords can be truncated to unique strings.
-<!--
-A vertical bar &ldquo;|&rdquo; designates mutually exclusive options, and
-default settings are indicated with <b>bold</b>.
--->
-Synonyms for true: True, 1.  Synonyms for false: False, 0.
-</p>
 <blockquote>
 <a name="target"><b>target</b></a>&nbsp;&nbsp;<i>string</i>
 <br>
@@ -268,39 +260,107 @@ can be used to set transparency apart from color.
 
 <a name="palette-options"></a>
 <p class="nav">
-[<a href="#top">back to top</a>]
+[<a href="#top">back to top: color</a>]
 </p>
 <h3>Palette Options</h3>
 <p>
-A <b><i>palette</i></b> is an ordered list of 
-<a href="colornames.html">colors</a> or 
-value,<a href="colornames.html">color</a> pairs.
+A <b><i>palette</i></b> is an ordered set of 
+<a href="colornames.html">colors</a> or value,color pairs
+used for <b>sequential</b> coloring (<b>rainbow</b>)
+or coloring by <b>map</b> value.
 <blockquote>
 <a name="palette"><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>
 <br>
-Specify a <i>palette</i> for <b>sequential</b> coloring
-(synonym <b>rainbow</b>) or <b>map</b> coloring as one of the following:
+Specify a <i>palette</i> as one of the following:
 <ul>
-<li>the name of a pre-defined palette (colors listed in ascending value order):
+<li><i>palette-name</i> - the name of an existing 
+<a href="palettes.html">palette</a>;
+the command <a href="palette.html#list"><b>palette list</b></a>
+lists the names of the available palettes
+in the <a href="../tools/log.html"><b>Log</b></a>.
+Predefined palettes include the following, with
+colors shown in ascending value order:
   <ul>
-  <li><b>rainbow</b> 
-   - blue, cyan, green, yellow, red; default for <b>sequential</b> coloring
-  <li><b>red-white-blue</b> or <b>redblue</b>
-   - default for <b>map</b> coloring
+  <li><b>rainbow</b> (default for <b>sequential</b> coloring)
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=blue width="30px"></td>
+<td bgcolor=cyan width="30px"></td>
+<td bgcolor=lime width="30px"></td>
+<td bgcolor=yellow width="30px"></td>
+<td bgcolor=red width="30px"></td>
+</tr></table>
+  <li><b>red-white-blue</b> or <b>redblue</b> (default for <b>map</b> coloring)
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=red width="30px"></td>
+<td bgcolor=white width="30px"></td>
+<td bgcolor=blue width="30px"></td>
+</tr></table>
   <li><b>blue-white-red</b> or <b>bluered</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=blue width="30px"></td>
+<td bgcolor=white width="30px"></td>
+<td bgcolor=red width="30px"></td>
+</tr></table>
   <li><b>cyan-white-maroon</b> or <b>cyanmaroon</b>
-   - #0f1bc7adcf5b
-   <table style="display:inline-block; vertical-align:middle"><tr>
-   <td bgcolor=#0f1bc7adcf5b><font size=-1>&nbsp;&nbsp;&nbsp;&nbsp;</font></td>
-   </tr></table>,
-   white, #9eb820005eb8
-   <table style="display:inline-block; vertical-align:middle"><tr>
-   <td bgcolor=#9eb820005eb8><font size=-1>&nbsp;&nbsp;&nbsp;&nbsp;</font></td>
-   </tr></table>
-  <li><b>grayscale</b> or <b>gray</b> - black, white
-  <li><b>lipophilicity</b> - dark cyan, white, dark goldenrod
-  (default for <a href="mlp.html"><b>mlp</b></a> command,
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=#0f1bc7adcf5b width="30px"></td>
+<td bgcolor=white width="30px"></td>
+<td bgcolor=#9eb820005eb8 width="30px"></td>
+</tr></table>
+  <li><b>grayscale</b> or <b>gray</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=black width="30px"></td>
+<td bgcolor=white width="30px"></td>
+</tr></table>
+  <li><b>lipophilicity</b>
+  (default for the <a href="mlp.html"><b>mlp</b></a> command,
   along with <a href="#range"><b>range</b></a> -20,20)
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=darkcyan width="30px"></td>
+<td bgcolor=white width="30px"></td>
+<td bgcolor=darkgoldenrod width="30px"></td>
+</tr></table>
+  <li><a href="palettes.html#colorbrewer">ColorBrewer palettes</a> -
+a default number of colors will be used if the number is omitted from the name.
+Examples:
+<blockquote>
+<b>palette pastel2-4</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td style="background:#b3e2cd" width="30px"></td>
+<td style="background:#fdcdac" width="30px"></td>
+<td style="background:#cbd5e8" width="30px"></td>
+<td style="background:#f4cae4" width="30px"></td>
+</tr></table>
+<br><b>palette paired-6</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td style="background:#a6cee3" width="30px"></td>
+<td style="background:#1f78b4" width="30px"></td>
+<td style="background:#b2df8a" width="30px"></td>
+<td style="background:#33a02c" width="30px"></td>
+<td style="background:#fb9a99" width="30px"></td>
+<td style="background:#e31a1c" width="30px"></td>
+</tr></table>
+<br><b>palette piyg</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td style="background:#d01c8b" width="30px"></td>
+<td style="background:#f1b6da" width="30px"></td>
+<td style="background:#f7f7f7" width="30px"></td>
+<td style="background:#b8e186" width="30px"></td>
+<td style="background:#4dac26" width="30px"></td>
+</tr></table>
+</blockquote>
+Users should cite:
+www.ColorBrewer.org, color specifications and designs by Cynthia A. Brewer,
+Pennsylvania State University.
   </ul>
 <br>
 <li> <i>color1</i>:<i>color2</i>:<i>color3</i>...
@@ -372,12 +432,9 @@ the <b>full</b> range is determined separately for each model.
 
 <a name="examples"></a>
 <p class="nav">
-[<a href="#top">back to top</a>]
+[<a href="#top">back to top: color</a>]
 </p>
 <h3>Examples</h3>
-<p>
-Example <a href="#top"><b>color</b></a> commands:
-</p>
 <blockquote>
 <b>color /d & helix &nbsp;sky blue &nbsp;target c</b>
 <br>&ndash; or &ndash;</br>
@@ -428,6 +485,13 @@ yellow, but not their flanking atoms
 - color the unique biopolymers in each atomic model, cartoons only,
 along the range cornflower blue &rarr; red &rarr; gold
 (chains that are the same biopolymer will be the same color) 
+<blockquote>
+<b>open 1qmv; rainbow protein chain palette paired-10</b>
+</blockquote>
+- color the protein 10-mer in PDB entry 
+<a href="http://www.rcsb.org/pdb/explore/explore.do?structureId=1qmv"
+target="_blank">1qmv</a> using the 10-color version of the &ldquo;paired&rdquo;
+<a href="palettes.html#colorbrewer">ColorBrewer palette</a>
 <!--
 <blockquote>
 <b>color /A &nbsp;attribute bfactor &nbsp;target ac &nbsp;residueVal max</b>
@@ -453,7 +517,7 @@ surface-only), create new atom attribute named <b>esp</b>
 <a name="list"></a>
 <a name="show"></a>
 <p class="nav">
-[<a href="#top">back to top</a>]
+[<a href="#top">back to top: color</a>]
 </p>
 <h3>Defining and Listing Colors</h3>
 
@@ -466,7 +530,7 @@ surface-only), create new atom attribute named <b>esp</b>
 (&nbsp;<i>cname</i>&nbsp;|&nbsp;all&nbsp;)
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
-<br><b>color list</b> [&nbsp;all&nbsp;]
+<br><b>color list</b> [&nbsp;all&nbsp;|&nbsp;builtin&nbsp;|&nbsp;custom&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>color show</b> &nbsp;<i>cname</i>
@@ -478,6 +542,7 @@ It can be used to define a new color name or redefine an existing one.
 Color names must begin with an alphabetical letter and may contain 
 only lowercase letters, numbers, hyphens, underscores, and spaces. 
 If <i>cname</i> has embedded spaces, it must be enclosed in quotation marks.
+See also: <a href="palette.html#list"><b>palette list</b></a>
 </p>
 Examples:
 <blockquote>
@@ -486,15 +551,19 @@ Examples:
 <b>color name tgreen rgba(0%, 80%, 40%, 0.5)</b>
 </blockquote>
 <p>
-The <b>delete</b> option can be used to &ldquo;forget&rdquo; a specific
+The command <b>color delete</b> can be used to &ldquo;forget&rdquo; a specific
 user-defined color or <b>all</b> user-defined colors. 
-A <a href="colornames.html">built-in color name</a> cannot be deleted.
+A <a href="colornames.html#builtin">built-in color name</a> cannot be deleted.
 </p><p>
-The command <b>color list</b> gives the names and color swatches of
-any user-defined colors in the <a href="../tools/log.html"><b>Log</b></a>,
-whereas <b>color list all</b> includes the
-<a href="colornames.html">built-in colors</a> as well.
-</p><p>
+The command <b>color list</b> lists color names along with
+color swatches in the <a href="../tools/log.html"><b>Log</b></a>, with options:
+</p>
+<ul>
+<li><b>all</b> (default)
+<li><b>builtin</b> - just the <a href="colornames.html#builtin">built-in colors</a>
+<li><b>custom</b> - just the user-defined colors
+</ul>
+<p>
 The command &ldquo;<b>color show</b> <i>cname</i>&rdquo;
 reports in the <a href="../tools/log.html"><b>Log</b></a>
 the <b>rgba</b> (red, green, blue, opacity) definition of an existing color
@@ -503,5 +572,5 @@ named <i>cname</i>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2017</address>
+September 2017</address>
 </body></html>

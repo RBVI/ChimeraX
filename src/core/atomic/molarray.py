@@ -255,6 +255,13 @@ class Collection(State):
     def unique(self):
         '''Return a new collection containing the unique elements from this one, preserving order.'''
         return self.objects_class(unique_ordered(self._pointers))
+    def instances(self, instantiate=True):
+        '''Returns a list of the Python instances.  If 'instantiate' is False, then for
+        those items that haven't yet been instantiated, None will be returned.'''
+        from .molobject import object_map
+        if instantiate:
+            return [object_map(p, self._object_class) for p in self._pointers]
+        return [object_map(p, None) for p in self._pointers]
     STATE_VERSION = 1
     def take_snapshot(self, session, flags):
         return {'version': self.STATE_VERSION,
@@ -402,13 +409,18 @@ class Atoms(Collection):
     is_sidechains = cvec_property('atom_is_sidechain', npy_bool, read_only = True,
         doc="Whether each atom is part of an amino/nucleic acid sidechain."
             " Returns numpy bool array. Read only.")
-    occupancy = cvec_property('atom_occupancy', float32)
+    occupancies = cvec_property('atom_occupancy', float32)
+
     @property
     def intra_bonds(self):
         ":class:`Bonds` object where both endpoint atoms are in this collection"
         f = c_function('atom_intra_bonds', args = [ctypes.c_void_p, ctypes.c_size_t],
             ret = ctypes.py_object)
         return _bonds(f(self._c_pointers, len(self)))
+
+    from . import interatom_pseudobonds
+    intra_pseudobonds = property(interatom_pseudobonds)
+
     radii = cvec_property('atom_radius', float32,
         doc="Returns a :mod:`numpy` array of radii.  Can be set with such an array (or equivalent "
         "sequence), or with a single floating-point number.")
@@ -507,6 +519,18 @@ class Atoms(Collection):
     def unique_structures(self):
         "The unique structures as an :class:`.AtomicStructures` collection"
         return self.structures.unique()
+    @property
+    def full_residues(self):
+        '''The :class:`.Residues` all of whose atoms are in this :class:`.Atoms` instance'''
+        all_residues = self.unique_residues
+        extra = (all_residues.atoms - self).unique_residues
+        return all_residues - extra
+    @property
+    def full_structures(self):
+        '''The :class:`.Structures` all of whose atoms are in this :class:`.Atoms` instance'''
+        all_structures = self.unique_structures
+        extra = (all_structures.atoms - self).unique_structures
+        return all_structures - extra
     @property
     def single_structure(self):
         "Do all atoms belong to a single :class:`.Structure`"
@@ -631,11 +655,11 @@ class Bonds(Collection):
     single value.  Bonds are shown only if display is
     true, hide is false, and both atoms are shown.
     '''
-    visibles = cvec_property('bond_visible', int32, read_only = True)
+    visibles = cvec_property('bond_visible', npy_bool, read_only = True)
     '''
-    Returns whether the Bonds should be visible.  If hidden, the
-    return value is Never; otherwise, same as display.
-    Returns a :mod:`numpy` array of integers.  Read only.
+    Returns whether the Bonds should be visible regardless
+    of whether the atoms on either end is shown.
+    Returns a :mod:`numpy` array of bool.  Read only.
     '''
     halfbonds = cvec_property('bond_halfbond', npy_bool)
     '''
@@ -671,6 +695,18 @@ class Bonds(Collection):
         f = c_function('bond_half_colors', args = [ctypes.c_void_p, ctypes.c_size_t], ret = ctypes.py_object)
         return f(self._c_pointers, len(self))
 
+    def halfbond_cylinder_placements(self, opengl_array = None):
+        '''Return Places for halfbond cylinders specified by 2N 4x4 float matrices.'''
+        n = len(self)
+        if opengl_array is None or len(opengl_array) != 2*n:
+            from numpy import empty, float32
+            opengl_array = empty((2*n,4,4), float32)
+        f = c_function('bond_halfbond_cylinder_placements',
+                       args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p])
+        f(self._c_pointers, n, pointer(opengl_array))
+        from ..geometry import Places
+        return Places(opengl_array = opengl_array)
+        
     @classmethod
     def session_restore_pointers(cls, session, data):
         structures, bond_ids = data
@@ -778,6 +814,10 @@ class Pseudobonds(Collection):
     '''
     Whether each pseudobond is displayed, visible and has both atoms displayed.
     '''
+    shown_when_atoms_hiddens = cvec_property('pseudobond_shown_when_atoms_hidden', npy_bool, doc =
+    '''Controls whether the pseudobond is shown when the endpoint atoms are not
+    explictly displayed (atom.display == False) but are implicitly shown by a
+    ribbon or somesuch (atom.hide != 0).  Defaults to True.''')
 
     def delete(self):
         '''Delete the C++ Pseudobond objects'''
@@ -802,6 +842,10 @@ class Pseudobonds(Collection):
         '''Return mask of those pseudobonds which have both ends in the given set of atoms.'''
         a1, a2 = self.atoms
         return a1.mask(atoms) & a2.mask(atoms)
+
+    @property
+    def unique_groups(self):
+        return self.groups.unique()
 
     @property
     def unique_structures(self):
@@ -869,7 +913,7 @@ class Residues(Collection):
     whatever data source the structure came from, so not necessarily consecutive,
     or starting from 1, *etc.* Read only.
     ''')
-    polymer_types = cvec_property('residue_polymer_type', int32, read_only = True, doc =
+    polymer_types = cvec_property('residue_polymer_type', uint8, read_only = True, doc =
     '''Returns a numpy int array of residue types. Read only.''')
     principal_atoms = cvec_property('residue_principal_atom', cptr, astype = _atoms_or_nones,
         read_only = True, doc =
@@ -1072,6 +1116,8 @@ class Chains(Collection):
     '''A numpy integer array containing the number of existing residues in each chain.'''
     num_residues = cvec_property('sseq_num_residues', size_t, read_only = True)
     '''A numpy integer array containing the number of residues in each chain.'''
+    polymer_types = cvec_property('sseq_polymer_type', uint8, read_only = True, doc =
+    '''Returns a numpy int array of residue types. Same values as Residues.polymer_types except shouldn't return PT_NONE.''')
 
     @classmethod
     def session_restore_pointers(cls, session, data):
@@ -1199,6 +1245,20 @@ class PseudobondGroups(PseudobondGroupDatas):
         return array([s._c_pointer.value for s in data], dtype=cptr)
     def session_save_pointers(self, session):
         return [s for s in self]
+
+# -----------------------------------------------------------------------------
+#
+class CoordSets(Collection):
+    '''
+    Bases: :class:`.Collection`
+
+    Collection of C++ coordsets.
+    '''
+    def __init__(self, cs_pointers = None):
+        Collection.__init__(self, cs_pointers, molobject.CoordSet, CoordSets)
+
+    structures = cvec_property('coordset_structure', cptr, astype=_atomic_structures,
+        read_only=True, doc="Returns an :class:`AtomicStructure` for each coordset. Read only.")
 
 # -----------------------------------------------------------------------------
 # For making collections from lists of objects.

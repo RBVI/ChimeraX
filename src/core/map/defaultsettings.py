@@ -104,8 +104,9 @@ class Volume_Default_Settings:
     }
 
     try:
-      from .. import mac_os_cpp
-      msize = mac_os_cpp.memory_size()
+      import psutil
+      m = psutil.virtual_memory()
+      msize = m.total
     except:
       msize = 2**32
     csize = msize//2

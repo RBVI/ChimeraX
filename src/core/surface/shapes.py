@@ -16,7 +16,6 @@ def sphere_geometry(ntri):
   Return vertex, normal vector and triangle arrays for unit sphere geometry.
   Only produces 20, 80, 320, ... (multiples of 4) triangle count.
   '''
-  # TODO: revise to use geometry.sphere.sphere_triangulation
   from . import icosahedron
   va, ta = icosahedron.icosahedron_geometry()
   from numpy import int32
@@ -34,6 +33,19 @@ def sphere_geometry(ntri):
     va[:,a] /= vn
 
   return va, va, ta
+
+
+# -----------------------------------------------------------------------------
+#
+def sphere_geometry2(ntri):
+    '''
+    Return vertex, normal vector and triangle arrays for unit sphere geometry.
+    Alternate techinque that produces any even number of triangles >= 4.
+    Use in place of :py:func:`sphere_geometry` in new code.
+    '''
+    from ..geometry import sphere
+    va, ta = sphere.sphere_triangulation(ntri)
+    return va, va, ta
 
 
 # -----------------------------------------------------------------------------

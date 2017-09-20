@@ -166,7 +166,8 @@ struct ExtractMolecule: public readcif::CIFFile
 {
     static const char* builtin_categories[];
     PyObject* _logger;
-    ExtractMolecule(PyObject* logger, const StringVector& generic_categories, bool coordsets);
+    ExtractMolecule(PyObject* logger, const StringVector& generic_categories, bool coordsets,
+        bool atomic);
     ~ExtractMolecule();
     virtual void data_block(const string& name);
     virtual void reset_parse();
@@ -193,8 +194,8 @@ struct ExtractMolecule: public readcif::CIFFile
     void parse_chem_comp_bond();
 
     std::map<string, StringVector> generic_tables;
-    vector<AtomicStructure*> all_molecules;
-    map<int, AtomicStructure*> molecules;
+    vector<Structure*> all_molecules;
+    map<int, Structure*> molecules;
     struct AtomKey {
         long position;
         long auth_position;   // needed in PDB mmCIF files for uniqueness
@@ -304,6 +305,7 @@ struct ExtractMolecule: public readcif::CIFFile
     bool has_pdbx;
     set<ResName> empty_residue_templates;
     bool coordsets;  // use coordsets (trajectory) instead of separate models (NMR)
+    bool atomic;  // use AtomicStructure if true, else Structure
 #ifdef SHEET_HBONDS
     typedef map<string, map<std::pair<string, string>, string>> SheetOrder;
     SheetOrder sheet_order;
@@ -328,9 +330,9 @@ std::ostream& operator<<(std::ostream& out, const ExtractMolecule::AtomKey& k) {
     return out;
 }
 
-ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_categories, bool coordsets):
+ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_categories, bool coordsets, bool atomic):
     _logger(logger), first_model_num(INT_MAX), my_templates(nullptr),
-    missing_poly_seq(false), has_pdbx(false), coordsets(coordsets)
+    missing_poly_seq(false), has_pdbx(false), coordsets(coordsets), atomic(atomic)
 {
     empty_residue_templates.insert("UNL");  // Unknown ligand
     empty_residue_templates.insert("UNX");  // Unknown atom or ion
@@ -510,7 +512,7 @@ ExtractMolecule::connect_polymer_pair(vector<Residue*> a, vector<Residue*> b, bo
                 gap = false;    // bad data
             }
 #endif
-            if (gap || (!Bond::polymer_bond_atoms(a0, a1) && !reasonable_bond_length(a0, a1))) {
+            if (gap || !Bond::polymer_bond_atoms(a0, a1)) {
                 // gap or CA trace
                 auto as = r0->structure();
                 auto pbg = as->pb_mgr().get_group(as->PBG_MISSING_STRUCTURE,
@@ -775,7 +777,7 @@ ExtractMolecule::finished_parse()
         }
         m->use_best_alt_locs();
     }
-    vector<AtomicStructure*> save_molecules;
+    vector<Structure*> save_molecules;
     reset_parse();
 }
 
@@ -1060,7 +1062,7 @@ ExtractMolecule::parse_atom_site()
 
     missing_poly_seq = poly_seq.empty();
     if (missing_poly_seq)
-        logger::warning(_logger, "Missing entity_poly_seq table.  Inferring polymer connectivity");
+        logger::warning(_logger, "Missing entity_poly_seq table.  Inferring polymer connectivity.");
 
     try {
         pv.emplace_back(get_column("id"),
@@ -1189,7 +1191,7 @@ ExtractMolecule::parse_atom_site()
 
     long atom_serial = 0;
     Residue* cur_residue = nullptr;
-    AtomicStructure* mol = nullptr;
+    Structure* mol = nullptr;
     int cur_model_num = INT_MAX;
     // residues are uniquely identified by (entity_id, seq_id, comp_id)
     string cur_entity_id;
@@ -1207,10 +1209,18 @@ ExtractMolecule::parse_atom_site()
             cur_model_num = model_num;
             cur_residue = nullptr;
             if (!coordsets) {
-                mol = molecules[cur_model_num] = new AtomicStructure(_logger);
+                if (atomic) {
+                    mol = molecules[cur_model_num] = new AtomicStructure(_logger);
+                } else {
+                    mol = molecules[cur_model_num] = new Structure(_logger);
+                }
             } else {
                 if (mol == nullptr) {
-                    mol = new AtomicStructure(_logger);
+                    if (atomic) {
+                        mol = new AtomicStructure(_logger);
+                    } else {
+                        mol = new Structure(_logger);
+                    }
                     molecules[0] = mol;
                     CoordSet *cs = mol->new_coord_set(model_num);
                     mol->set_active_coord_set(cs);
@@ -1283,8 +1293,16 @@ ExtractMolecule::parse_atom_site()
             if (missing_poly_seq) {
                 if (entity_id.empty())
                     entity_id = cid.c_str();
-                // TODO: should only save amino and nucleic acids
-                if (residue_name != "HOH") {
+                auto tr = find_template_residue(residue_name);
+                if (tr && !tr->description().empty()) {
+                    // only save polymer residues
+                    if (position == 0) {
+                        logger::warning(_logger, "Unable to infer polymer connectivity due to "
+                                        "unspecified label_seq_id for standard residue \"",
+                                        residue_name, "\" near line ", line_number());
+                        // Bad data, don't try to reconstrut entity_poly_seq information
+                        missing_poly_seq = false;
+                    }
                     auto& entity_poly_seq = poly_seq[entity_id];
                     PolySeq p(position, residue_name, false);
                     auto pit = entity_poly_seq.equal_range(p);
@@ -2270,47 +2288,47 @@ structure_pointers(ExtractMolecule &e)
 }
 
 PyObject*
-parse_mmCIF_file(const char *filename, PyObject* logger, bool coordsets)
+parse_mmCIF_file(const char *filename, PyObject* logger, bool coordsets, bool atomic)
 {
 #ifdef CLOCK_PROFILING
     ClockProfile p("parse_mmCIF_file");
 #endif
-    ExtractMolecule extract(logger, StringVector(), coordsets);
+    ExtractMolecule extract(logger, StringVector(), coordsets, atomic);
     extract.parse_file(filename);
     return structure_pointers(extract);
 }
 
 PyObject*
 parse_mmCIF_file(const char *filename, const StringVector& generic_categories,
-                 PyObject* logger, bool coordsets)
+                 PyObject* logger, bool coordsets, bool atomic)
 {
 #ifdef CLOCK_PROFILING
     ClockProfile p("parse_mmCIF_file2");
 #endif
-    ExtractMolecule extract(logger, generic_categories, coordsets);
+    ExtractMolecule extract(logger, generic_categories, coordsets, atomic);
     extract.parse_file(filename);
     return structure_pointers(extract);
 }
 
 PyObject*
-parse_mmCIF_buffer(const unsigned char *whole_file, PyObject* logger, bool coordsets)
+parse_mmCIF_buffer(const unsigned char *whole_file, PyObject* logger, bool coordsets, bool atomic)
 {
 #ifdef CLOCK_PROFILING
     ClockProfile p("parse_mmCIF_buffer");
 #endif
-    ExtractMolecule extract(logger, StringVector(), coordsets);
+    ExtractMolecule extract(logger, StringVector(), coordsets, atomic);
     extract.parse(reinterpret_cast<const char *>(whole_file));
     return structure_pointers(extract);
 }
 
 PyObject*
 parse_mmCIF_buffer(const unsigned char *whole_file,
-   const StringVector& generic_categories, PyObject* logger, bool coordsets)
+   const StringVector& generic_categories, PyObject* logger, bool coordsets, bool atomic)
 {
 #ifdef CLOCK_PROFILING
     ClockProfile p("parse_mmCIF_buffer2");
 #endif
-    ExtractMolecule extract(logger, generic_categories, coordsets);
+    ExtractMolecule extract(logger, generic_categories, coordsets, atomic);
     extract.parse(reinterpret_cast<const char *>(whole_file));
     return structure_pointers(extract);
 }

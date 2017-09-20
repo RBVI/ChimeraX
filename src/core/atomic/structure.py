@@ -33,6 +33,7 @@ class Structure(Model, StructureData):
         self._session_attrs = {
             '_bond_radius': 0.2,
             '_pseudobond_radius': 0.05,
+            '_use_spline_normals': False,
             'ribbon_xs_mgr': XSectionManager(),
             'filename': None,
         }
@@ -47,7 +48,9 @@ class Structure(Model, StructureData):
 
         # for now, restore attrs to default initial values even for sessions...
         self._atoms_drawing = None
+        self._visible_atoms = None	# Only visible atoms included in Drawing
         self._bonds_drawing = None
+        self._visible_bonds = None	# Only visible bonds included in Drawing
         self._cached_atom_bounds = None
         self._atom_bounds_needs_update = True
         self._ribbon_drawing = None
@@ -121,8 +124,7 @@ class Structure(Model, StructureData):
                 from .colors import element_colors
                 het_atoms = atoms.filter(atoms.element_numbers != 6)
                 het_atoms.colors = element_colors(het_atoms.element_numbers)
-                physical_residues = self.chains.existing_residues
-                ribbonable = physical_residues.filter(physical_residues.num_atoms > 1)
+                ribbonable = self.chains.existing_residues
                 # 10 residues or less is basically a trivial depiction if ribboned
                 if len(ribbonable) > 10:
                     atoms.displays = False
@@ -150,9 +152,6 @@ class Structure(Model, StructureData):
                         display_atoms = display_atoms.filter(display_atoms.idatm_types != "HC")
                     display_atoms.displays = True
                     ribbonable.ribbon_displays = True
-                elif len(ribbonable) == 0:
-                    # CA only?
-                    atoms.draw_modes = Atom.BALL_STYLE
             elif self.num_chains < 250:
                 lighting = "full" if self.num_atoms < 300000 else "full multiShadow 16"
                 from .colors import chain_colors, element_colors
@@ -267,6 +266,14 @@ class Structure(Model, StructureData):
         self.residues.ribbon_colors = color
     single_color = property(_get_single_color, _set_single_color)
 
+    def _get_spline_normals(self):
+        return self._use_spline_normals
+    def _set_spline_normals(self, sn):
+        if sn != self._use_spline_normals:
+            self._use_spline_normals = sn
+            self._graphics_changed |= self._RIBBON_CHANGE
+    spline_normals = property(_get_spline_normals, _set_spline_normals)
+
     def _make_drawing(self):
         # Create graphics
         self._update_atom_graphics()
@@ -321,17 +328,24 @@ class Structure(Model, StructureData):
         self._update_ribbon_graphics()
 
     def _update_atom_graphics(self, changes = StructureData._ALL_CHANGE):
-        atoms = self.atoms  # optimzation, avoid making new numpy array from C++
-        avis = atoms.visibles
+
         p = self._atoms_drawing
         if p is None:
-            if avis.sum() == 0:
-                return
+            changes = self._ALL_CHANGE
             self._atoms_drawing = p = self.new_drawing('atoms')
             self._atoms_drawing.custom_x3d = self._custom_atom_x3d
             # Update level of detail of spheres
             self._level_of_detail.set_atom_sphere_geometry(p)
 
+        if changes & (self._ADDDEL_CHANGE | self._DISPLAY_CHANGE):
+            changes |= self._ALL_CHANGE
+
+        if changes & self._DISPLAY_CHANGE:
+            all_atoms = self.atoms
+            self._visible_atoms = all_atoms[all_atoms.visibles]
+
+        atoms = self._visible_atoms
+        
         if changes & self._SHAPE_CHANGE:
             # Set instanced sphere center position and radius
             n = len(atoms)
@@ -342,23 +356,24 @@ class Structure(Model, StructureData):
 
             from ..geometry import Places
             p.positions = Places(shift_and_scale=xyzr)
-            p.display_positions = avis
 
-        if changes & (self._COLOR_CHANGE | self._SHAPE_CHANGE):
+        if changes & self._COLOR_CHANGE:
             # Set atom colors
             p.colors = atoms.colors
 
-        if changes & (self._SELECT_CHANGE | self._SHAPE_CHANGE):
+        if changes & self._SELECT_CHANGE:
             # Set selected
             p.selected_positions = atoms.selected if atoms.num_selected > 0 else None
 
     def _custom_atom_x3d(self, stream, x3d_scene, indent, place):
         from numpy import empty, float32
         p = self._atoms_drawing
-        atoms = self.atoms
+        atoms = self._visible_atoms
+        if atoms is None:
+            return
         radii = self._atom_display_radii(atoms)
         tab = ' ' * indent
-        for v, xyz, r, c in zip(p.display_positions, atoms.coords, radii, p.colors):
+        for xyz, r, c in zip(atoms.coords, radii, p.colors):
             if not v:
                 continue
             print('%s<Transform translation="%g %g %g">' % (tab, xyz[0], xyz[1], xyz[2]), file=stream)
@@ -372,37 +387,45 @@ class Structure(Model, StructureData):
         return atoms.display_radii(self.ball_scale, self.bond_radius)
     
     def _update_bond_graphics(self, changes = StructureData._ALL_CHANGE):
-        bonds = self.bonds  # optimzation, avoid making new numpy array from C++
+
         p = self._bonds_drawing
         if p is None:
-            if bonds.num_shown == 0:
+            if self.num_bonds_visible == 0:
                 return
+            changes = self._ALL_CHANGE
             self._bonds_drawing = p = self.new_drawing('bonds')
             self._bonds_drawing.custom_x3d = self._custom_bond_x3d
             # Update level of detail of cylinders
             self._level_of_detail.set_bond_cylinder_geometry(p)
 
-        if changes & (self._SHAPE_CHANGE | self._SELECT_CHANGE):
-            bond_atoms = bonds.atoms
+        if changes & (self._ADDDEL_CHANGE | self._DISPLAY_CHANGE):
+            changes |= self._ALL_CHANGE
+
+        if changes & self._DISPLAY_CHANGE:
+            all_bonds = self.bonds
+            self._visible_bonds = all_bonds[all_bonds.showns]
+
+        bonds = self._visible_bonds
+
         if changes & self._SHAPE_CHANGE:
-            ba1, ba2 = bond_atoms
-            p.positions = _halfbond_cylinder_placements(ba1.coords, ba2.coords, bonds.radii)
-            p.display_positions = _shown_bond_cylinders(bonds)
-        if changes & (self._COLOR_CHANGE | self._SHAPE_CHANGE):
-            p.colors = c = bonds.half_colors
-        if changes & (self._SELECT_CHANGE | self._SHAPE_CHANGE):
-            p.selected_positions = _selected_bond_cylinders(bond_atoms)
+            p.positions = bonds.halfbond_cylinder_placements(p.positions.opengl_matrices())
+            
+        if changes & self._COLOR_CHANGE:
+            p.colors = bonds.half_colors
+            
+        if changes & self._SELECT_CHANGE:
+            p.selected_positions = _selected_bond_cylinders(bonds.atoms)
 
     def _custom_bond_x3d(self, stream, x3d_scene, indent, place):
         from numpy import empty, float32
         p = self._bonds_drawing
-        bonds = self.bonds
+        bonds = self._visible_bonds
+        if bonds is None:
+            return
         ba1, ba2 = bonds.atoms
         cyl_info = _halfbond_cylinder_x3d(ba1.coords, ba2.coords, bonds.radii)
         tab = ' ' * indent
-        for v, ci, c in zip(p.display_positions, cyl_info, p.colors):
-            if not v:
-                continue
+        for ci, c in zip(cyl_info, p.colors):
             h = ci[0]
             r = ci[1]
             rot = ci[2:6]
@@ -471,7 +494,7 @@ class Structure(Model, StructureData):
             if not is_arc_helix[i] or not is_arc_helix[j]:
                 return False
             return ssids[i] == ssids[j]
-        for rlist in polymers:
+        for rlist, ptype in polymers:
             # Always call get_polymer_spline to make sure hide bits are
             # properly set when ribbons are completely undisplayed
             any_display, atoms, coords, guides = rlist.get_polymer_spline()
@@ -646,7 +669,9 @@ class Structure(Model, StructureData):
 
             # Generate ribbon
             any_ribbon = True
-            ribbon = Ribbon(coords, guides, self.ribbon_orients(residues))
+            ribbon = Ribbon(coords, guides, self.ribbon_orients(residues),
+                            self._use_spline_normals)
+            # self._show_normal_spline(p, coords, ribbon)
             v_start = 0         # for tracking starting vertex index for each residue
             t_start = 0         # for tracking starting triangle index for each residue
             vertex_list = []
@@ -659,7 +684,7 @@ class Structure(Model, StructureData):
                 spine_xyz1 = None
                 spine_xyz2 = None
             # Odd number of segments gets blending, even has sharp edge
-            rd = self._level_of_detail._ribbon_divisions
+            rd = self._level_of_detail.ribbon_divisions
             if rd % 2 == 1:
                 seg_blend = rd
                 seg_cap = seg_blend + 1
@@ -724,7 +749,9 @@ class Structure(Model, StructureData):
                     # Show as ribbon
                     seg = capped and seg_cap or seg_blend
                     mid_cap = not self.ribbon_xs_mgr.is_compatible(xs_front[i], xs_back[i])
-                    front_c, front_t, front_n = ribbon.segment(i - 1, ribbon.BACK, seg, mid_cap, last=mid_cap)
+                    #print(residues[i], mid_cap, need_twist[i])
+                    front_c, front_t, front_n = ribbon.segment(i - 1, ribbon.BACK, seg,
+                                                               mid_cap or not need_twist[i], last=mid_cap)
                     if self.ribbon_show_spine:
                         spine_colors, spine_xyz1, spine_xyz2 = self._ribbon_update_spine(colors[i],
                                                                                          front_c, front_n,
@@ -822,6 +849,8 @@ class Structure(Model, StructureData):
                 rp.display = True
                 rp.vertices = concatenate(vertex_list)
                 rp.normals = concatenate(normal_list)
+                from .ribbon import normalize_vector_array_inplace
+                normalize_vector_array_inplace(rp.normals)
                 rp.triangles = concatenate(triangle_list)
                 rp.vertex_colors = concatenate(color_list)
             else:
@@ -862,6 +891,47 @@ class Structure(Model, StructureData):
                 sp.colors = spine_colors
         self._graphics_changed |= self._SHAPE_CHANGE
         self.residues.ribbon_selected = False
+
+    def _show_normal_spline(self, p, coords, ribbon):
+        # Normal spline can be shown as spheres on either side (S)
+        # or a cylinder across (C)
+        num_coords = len(coords)
+        try:
+            spline = ribbon.normal_spline
+            other_spline = ribbon.other_normal_spline
+        except AttributeError:
+            return
+        sp = p.new_drawing(str(self) + " normal spline")
+        from .. import surface
+        from numpy import empty, array, float32, linspace
+        from ..geometry import Places
+        num_pts = num_coords*self._level_of_detail.ribbon_divisions
+        #S
+        #S va, na, ta = surface.sphere_geometry(20)
+        #S xyzr = empty((num_pts*2, 4), float32)
+        #S t = linspace(0.0, num_coords, num=num_pts, endpoint=False)
+        #S xyzr[:num_pts, :3] = [spline(i) for i in t]
+        #S xyzr[num_pts:, :3] = [other_spline(i) for i in t]
+        #S xyzr[:, 3] = 0.2
+        #S sp.positions = Places(shift_and_scale=xyzr)
+        #S sp_colors = empty((len(xyzr), 4), dtype=float32)
+        #S sp_colors[:num_pts] = (255, 0, 0, 255)
+        #S sp_colors[num_pts:] = (0, 255, 0, 255)
+        #S
+        #C
+        va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=True)
+        radii = empty(num_pts, dtype=float32)
+        radii.fill(0.2)
+        t = linspace(0.0, num_coords, num=num_pts, endpoint=False)
+        xyz1 = array([spline(i) for i in t], dtype=float32)
+        xyz2 = array([other_spline(i) for i in t], dtype=float32)
+        sp.geometry = va, ta
+        sp.normals = na
+        sp.positions = _tether_placements(xyz1, xyz2, radii, self.TETHER_CYLINDER)
+        sp_colors = empty((len(xyz1), 4), dtype=float32)
+        sp_colors[:] = (255, 0, 0, 255)
+        sp.colors = sp_colors
+        #C
 
     def _smooth_ribbon(self, rlist, coords, guides, atoms, ssids, tethered,
                        xs_front, xs_back, p, helix_ranges, sheet_ranges):
@@ -1451,9 +1521,14 @@ class Structure(Model, StructureData):
         if not self._atom_bounds_needs_update:
             return self._cached_atom_bounds
         a = self.atoms
-        disp = a.displays
-        xyz = a.coords[disp]
-        radii = a.radii[disp]
+        adisp = a[a.displays]
+        xyz = adisp.coords
+        radii = adisp.radii
+        # TODO: Currently 40% of time is taken in getting atom radii because
+        #       they are recomputed from element and bonds every time. Ticket #789.
+        #       If that was fixed by using a precomputed radius, then it would make
+        #       sense to optimize this bounds calculation in C++ so arrays
+        #       of display state, radii and coordinates are not needed.
         from .. import geometry
         b = geometry.sphere_bounds(xyz, radii)
         self._cached_atom_bounds = b
@@ -1510,12 +1585,11 @@ class Structure(Model, StructureData):
 
     def _atom_first_intercept(self, mxyz1, mxyz2):
         d = self._atoms_drawing
-        if d is None or not d.display:
+        if d is None or not d.display or self._visible_atoms is None:
             return None
 
         xyzr = d.positions.shift_and_scale_array()
-        dp = d.display_positions
-        xyz,r = (xyzr[:,:3], xyzr[:,3]) if dp is None else (xyzr[dp,:3], xyzr[dp,3])
+        xyz,r = xyzr[:,:3], xyzr[:,3]
 
         # Check for atom sphere intercept
         from .. import geometry
@@ -1524,9 +1598,7 @@ class Structure(Model, StructureData):
         if fmin is None:
             return None
 
-        if not dp is None:
-            anum = dp.nonzero()[0][anum]    # Remap index to include undisplayed positions
-        atom = self.atoms[anum]
+        atom = self._visible_atoms[anum]
 
         # Create pick object
         s = PickedAtom(atom, fmin)
@@ -1584,13 +1656,10 @@ class Structure(Model, StructureData):
 
     def _atoms_planes_pick(self, planes):
         d = self._atoms_drawing
-        if d is None or not d.display:
+        if d is None or not d.display or self._visible_atoms is None:
             return []
 
         xyz = d.positions.shift_and_scale_array()[:,:3]
-        dp = d.display_positions
-        if dp is not None:
-            xyz = xyz[dp,:]
 
         picks = []
         from .. import geometry
@@ -1598,12 +1667,7 @@ class Structure(Model, StructureData):
         if pmask.sum() == 0:
             return []
 
-        a = self.atoms
-        if not dp is None:
-            anum = dp.nonzero()[0][pmask]    # Remap index to include undisplayed positions
-            atoms = a.filter(anum)
-        else:
-            atoms = a.filter(pmask)
+        atoms = self._visible_atoms.filter(pmask)
 
         p = PickedAtoms(atoms)
 
@@ -1895,18 +1959,39 @@ class Structure(Model, StructureData):
         from ..geometry import find_close_points
         atoms = self.atoms
         a, _ = find_close_points(atoms.scene_coords, coords, distance)
-        if '<' in operator:
-            expand_by = atoms.filter(a)
-        else:
+        def not_a():
             from numpy import ones, bool_
             mask = ones(len(atoms), dtype=bool_)
-            mask[a] = 0
-            expand_by = atoms.filter(mask)
-        if target_type == ':':
-            expand_by = expand_by.unique_residues.atoms
+            mask[a] = False
+            return mask
+        expand_by = None
+        if target_type == '@':
+            if '<' in operator:
+                expand_by = atoms.filter(a)
+            else:
+                expand_by = atoms.filter(not_a())
+        elif target_type == ':':
+            if '<' in operator:
+                expand_by = atoms.filter(a).unique_residues.atoms
+            else:
+                expand_by = atoms.filter(not_a()).full_residues.atoms
+        elif target_type == '/':
+            # There is no "full_chain" property for atoms so we have
+            # to do it the hard way
+            from numpy import in1d, invert
+            matched_chain_ids = atoms.filter(a).unique_chain_ids
+            mask = in1d(atoms.chain_ids, matched_chain_ids)
+            if '<' in operator:
+                expand_by = atoms.filter(mask)
+            else:
+                expand_by = atoms.filter(invert(mask))
         elif target_type == '#':
-            expand_by = expand_by.unique_structures.atoms
-        results.add_atoms(expand_by)
+            if '<' in operator:
+                expand_by = atoms.filter(a).unique_structures.atoms
+            else:
+                expand_by = atoms.filter(not_a()).full_structures.atoms
+        if expand_by:
+            results.add_atoms(expand_by)
 
 class AtomicStructure(Structure):
     """
@@ -2139,6 +2224,7 @@ class StructureGraphicsChangeManager:
         self._structures_array = None		# StructureDatas object
         self.num_atoms_shown = 0
         self.level_of_detail = LevelOfDetail()
+        self._last_ribbon_divisions = 20
         from ..models import MODEL_DISPLAY_CHANGED
         self._display_handler = t.add_handler(MODEL_DISPLAY_CHANGED, self._model_display_changed)
         self._need_update = False
@@ -2172,18 +2258,26 @@ class StructureGraphicsChangeManager:
                     for m in s if m.visible)
             if n > 0 and n != self.num_atoms_shown:
                 self.num_atoms_shown = n
-                self._update_level_of_detail()
+                self.update_level_of_detail()
             self._need_update = False
             if (gc & StructureData._SELECT_CHANGE).any():
                 from ..selection import SELECTION_CHANGED
                 self.session.triggers.activate_trigger(SELECTION_CHANGED, None)
                 # XXX: No data for now.  What should be passed?
 
-    def _update_level_of_detail(self):
+    def update_level_of_detail(self):
         n = self.num_atoms_shown
+
+        lod = self.level_of_detail
+        ribbon_changed = (lod.ribbon_divisions != self._last_ribbon_divisions)
+        if ribbon_changed:
+            self._last_ribbon_divisions = lod.ribbon_divisions
+            
         for m in self._structures:
             if m.display:
                 m._update_level_of_detail(n)
+                if ribbon_changed:
+                    m._graphics_changed |= m._RIBBON_CHANGE
 
     def _array(self):
         sa = self._structures_array
@@ -2193,8 +2287,11 @@ class StructureGraphicsChangeManager:
         return sa
 
     def set_subdivision(self, subdivision):
-        self.level_of_detail.quality = subdivision
-        self._update_level_of_detail()
+        lod = self.level_of_detail
+        lod.quality = subdivision
+        lod.atom_fixed_triangles = None
+        lod.bond_fixed_triangles = None
+        self.update_level_of_detail()
 
 # -----------------------------------------------------------------------------
 #
@@ -2225,15 +2322,17 @@ class LevelOfDetail(State):
         self._atom_default_triangles = 200
         self._atom_max_total_triangles = 5000000
         self._step_factor = 1.2
+        self.atom_fixed_triangles = None	# If not None use fixed number of triangles
         self._sphere_geometries = {}	# Map ntri to (va,na,ta)
 
         self._bond_min_triangles = 24
         self._bond_max_triangles = 160
         self._bond_default_triangles = 60
         self._bond_max_total_triangles = 5000000
+        self.bond_fixed_triangles = None	# If not None use fixed number of triangles
         self._cylinder_geometries = {}	# Map ntri to (va,na,ta)
 
-        self._ribbon_divisions = 20
+        self.ribbon_divisions = 20
 
     def take_snapshot(self, session, flags):
         return {'quality': self.quality,
@@ -2271,14 +2370,18 @@ class LevelOfDetail(State):
         return sg[ntri]
 
     def atom_sphere_triangles(self, natoms):
-        if natoms is None:
-            return self._atom_default_triangles
-        ntri = self.quality * self._atom_max_total_triangles // natoms
-        nmin, nmax = self._atom_min_triangles, self._atom_max_triangles
-        ntri = self.clamp_geometric(ntri, nmin, nmax)
+        aft = self.atom_fixed_triangles
+        if aft is not None:
+            ntri = aft
+        elif natoms is None or natoms == 0:
+            ntri = self._atom_default_triangles
+        else:
+            ntri = self.quality * self._atom_max_total_triangles // natoms
+            nmin, nmax = self._atom_min_triangles, self._atom_max_triangles
+            ntri = self.clamp_geometric(ntri, nmin, nmax)
         ntri = 2*(ntri//2)	# Require multiple of 2.
         return ntri
-
+    
     def clamp_geometric(self, n, nmin, nmax):
         f = self._step_factor
         from math import log, pow
@@ -2309,11 +2412,15 @@ class LevelOfDetail(State):
         return cg[div]
 
     def bond_cylinder_triangles(self, nbonds):
-        if nbonds is None:
-            return self._bond_default_triangles
-        ntri = self.quality * self._bond_max_total_triangles // nbonds
-        nmin, nmax = self._bond_min_triangles, self._bond_max_triangles
-        ntri = self.clamp_geometric(ntri, nmin, nmax)
+        bft = self.bond_fixed_triangles
+        if bft is not None:
+            ntri = bft
+        elif nbonds is None or nbonds == 0:
+            ntri = self._bond_default_triangles
+        else:
+            ntri = self.quality * self._bond_max_total_triangles // nbonds
+            nmin, nmax = self._bond_min_triangles, self._bond_max_triangles
+            ntri = self.clamp_geometric(ntri, nmin, nmax)
         ntri = 4*(ntri//4)	# Require multiple of 4
         return ntri
 
@@ -2518,22 +2625,21 @@ def _bond_cylinder_placements(axyz0, axyz1, radii):
 # -----------------------------------------------------------------------------
 # Return 4x4 matrices taking two prototype cylinders to each bond location.
 #
-def _halfbond_cylinder_placements(axyz0, axyz1, radii):
+def _halfbond_cylinder_placements(axyz0, axyz1, radii, parray = None):
 
   n = len(axyz0)
-  from numpy import empty, float32
-  p = empty((2*n,4,4), float32)
-
-  from ..geometry import cylinder_rotations
-  cylinder_rotations(axyz0, axyz1, radii, p[:n,:,:])
-  p[n:,:,:] = p[:n,:,:]
-
-  # Translations
-  p[:n,3,:3] = 0.75*axyz0 + 0.25*axyz1
-  p[n:,3,:3] = 0.25*axyz0 + 0.75*axyz1
+  if parray is None or len(parray) != 2*n:
+      from numpy import empty, float32
+      p = empty((2*n,4,4), float32)
+  else:
+      p = parray
+      
+  from ..geometry import half_cylinder_rotations
+  half_cylinder_rotations(axyz0, axyz1, radii, p)
 
   from ..geometry import Places
   pl = Places(opengl_array = p)
+
   return pl
 
 # -----------------------------------------------------------------------------

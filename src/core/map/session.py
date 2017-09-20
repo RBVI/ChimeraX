@@ -16,7 +16,7 @@ def map_states(session):
   d2v = {}
   for v in session.maps():
     d2v.setdefault(v.data,[]).append(v)
-  s = state_from_maps(d2v)
+  s = state_from_maps(d2v, session_dir = session.session_file_path)
   return s
 
 # -----------------------------------------------------------------------------
@@ -38,7 +38,7 @@ def restore_map_attributes(dms, session):
 
 # ---------------------------------------------------------------------------
 #
-def state_from_maps(data_maps, include_unsaved_volumes = False):
+def state_from_maps(data_maps, include_unsaved_volumes = False, session_dir = None):
 
   dvlist = []
   unsaved_data = []
@@ -46,7 +46,7 @@ def state_from_maps(data_maps, include_unsaved_volumes = False):
     if data.path == '' and not include_unsaved_volumes:
       unsaved_data.append(data)
       continue                # Do not save data sets with no path
-    dvlist.append((state_from_grid_data(data),
+    dvlist.append((state_from_grid_data(data, session_dir),
                    [state_from_map(v) for v in volumes]))
 
   if unsaved_data:
@@ -124,19 +124,47 @@ def find_volumes_by_session_id(ids, session):
 # -----------------------------------------------------------------------------
 # Path can be a tuple of paths.
 #
-def absolute_path(path, file_paths, ask = False):
+def absolute_path(path, file_paths, ask = False, session_dir = None):
 
   from os.path import abspath
   if isinstance(path, (tuple, list)):
-    apath = tuple(file_paths.find(p,ask) for p in path)
+    fpath = [full_path(p, session_dir) for p in path]
+    apath = tuple(file_paths.find(p,ask) for p in fpath)
     apath = tuple(abspath(p) for p in apath if p)
   elif path == '':
     return path
   else:
-    apath = file_paths.find(path,ask)
+    fpath = full_path(path, session_dir)
+    apath = file_paths.find(fpath,ask)
     if not apath is None:
       apath = abspath(apath)
   return apath
+
+# -----------------------------------------------------------------------------
+# If path is relative use specified directory to produce absolute path.
+#
+def full_path(path, dir):
+  from os.path import isabs, join
+  if isabs(path) or dir is None:
+    return path
+  return join(dir, path)
+
+# -----------------------------------------------------------------------------
+# Path can be a tuple of paths.
+#
+def relative_path(path, dir):
+
+  if isinstance(path, (tuple, list)):
+    return tuple([relative_path(p, dir) for p in path])
+
+
+  from os.path import join
+  d = join(dir, '')       # Make directory end with "/".
+  if not path.startswith(d):
+    return path
+
+  rpath = path[len(d):]
+  return rpath
 
 # ---------------------------------------------------------------------------
 # Get ChimeraX unique GridDataState object for a grid.
@@ -166,7 +194,7 @@ class GridDataState(State):
 
   # State save/restore in ChimeraX
   def take_snapshot(self, session, flags):
-    data = state_from_grid_data(self.grid_data)
+    data = state_from_grid_data(self.grid_data, session_dir = session.session_file_path)
     return data
 
   @staticmethod
@@ -181,13 +209,10 @@ class GridDataState(State):
         return DEREGISTER
       session.triggers.add_handler('end restore session', remove_grid_cache)
     gdcache = session._grid_restore_cache        # (path, grid_id) -> Grid_Data object
-    
-    class FilePaths:
-      def find(self, path, ask = False):
-        # TODO: If path doesn't exist show file dialog to let user enter new path to file.
-        return path
-
-    grids = grid_data_from_state(data, gdcache, session, FilePaths())
+    rfp = getattr(session, '_map_replacement_file_paths', None)
+    if rfp is None:
+      session._map_replacement_file_paths = rfp = ReplacementFilePaths(session.ui)
+    grids = grid_data_from_state(data, gdcache, session, rfp)
 
     return GridDataState(grids[0] if grids else None)
 
@@ -196,10 +221,48 @@ class GridDataState(State):
 
 # ---------------------------------------------------------------------------
 #
-def state_from_grid_data(data):
+class ReplacementFilePaths:
+  def __init__(self, ui):
+    self._ui = ui
+    self._replaced_paths = {}
+  def find(self, path, ask = False):
+    replacements = self._replaced_paths
+    from os.path import isfile
+    if isfile(path):
+      return path
+    elif path in replacements:
+      return replacements[path]
+    elif self._ui.is_gui:
+      # If path doesn't exist show file dialog to let user enter new path to file.
+      from ..ui.open_save import OpenDialogWithMessage
+      d = OpenDialogWithMessage(self._ui.main_window,
+                                message = 'Replace missing file %s' % path,
+                                caption = 'Replace missing file',
+                                starting_directory = existing_directory(path))
+      p = d.get_path()
+      replacements[path] = p
+      return p
+    else:
+      return path
+
+# ---------------------------------------------------------------------------
+#
+def existing_directory(path):
+  if not path:
+    import os
+    return os.getcwd()
+  from os.path import dirname, isdir
+  d = dirname(path)
+  if isdir(d):
+    return d
+  return existing_directory(d)
+
+# ---------------------------------------------------------------------------
+#
+def state_from_grid_data(data, session_dir = None):
     
   dt = data
-  s = {'path': dt.path,
+  s = {'path': relative_path(dt.path, session_dir),
        'file_type': dt.file_type,
        'name': dt.name,
        'version': 1,
@@ -221,13 +284,17 @@ def state_from_grid_data(data):
     s['symmetries'] = dt.symmetries
   if hasattr(dt, 'series_index'):
     s['series_index'] = dt.series_index
+  if hasattr(dt, 'channel') and dt.channel is not None:
+    s['channel_index'] = dt.channel
+  if hasattr(dt, 'time') and dt.time is not None:
+    s['time'] = dt.time
 
   from .data import Subsampled_Grid
   if isinstance(dt, Subsampled_Grid):
     s['available_subsamplings'] = ass = {}
     for csize, ssdata in dt.available_subsamplings.items():
       if ssdata.path != dt.path:
-        ass[csize] = state_from_grid_data(ssdata)
+        ass[csize] = state_from_grid_data(ssdata, session_dir)
 
   return s
 
@@ -236,7 +303,8 @@ def state_from_grid_data(data):
 def grid_data_from_state(s, gdcache, session, file_paths):
 
   dbfetch = s.get('database_fetch')
-  path = absolute_path(s['path'], file_paths, ask = (dbfetch is None))
+  path = absolute_path(s['path'], file_paths, ask = (dbfetch is None),
+                       session_dir = session.session_file_path)
   if (path is None or path == '') and dbfetch is None:
     return None
 
@@ -270,6 +338,14 @@ def grid_data_from_state(s, gdcache, session, file_paths):
   if 'series_index' in s:
     for data in dlist:
       data.series_index = s['series_index']
+
+  if 'channel' in s:
+    for data in dlist:
+      data.channel = s['channel']
+
+  if 'time' in s:
+    for data in dlist:
+      data.time = s['time']
       
   if 'available_subsamplings' in s:
     # Subsamples may be from separate files or the same file.
@@ -281,7 +357,8 @@ def grid_data_from_state(s, gdcache, session, file_paths):
       dslist.append(data)
     dlist = dslist
     for cell_size, dstate in s['available_subsamplings'].items():
-      if absolute_path(dstate.path, file_paths) != path:
+      dpath = absolute_path(dstate.path, file_paths, session_dir = session.session_file_path)
+      if dpath != path:
         ssdlist = dstate.create_object(gdcache)
         for i,ssdata in enumerate(ssdlist):
           dlist[i].add_subsamples(ssdata, cell_size)

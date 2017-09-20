@@ -25,35 +25,16 @@ class="clRight" title="User Guide Index"/></a>
 
 <h2>Command-Line Color Specification</h2>
 <p>
-The command <a href="color.html#list"><b>color list all</b></a>
-shows the available names along with color swatches in the
-<a href="../tools/log.html"><b>Log</b></a>. As described below,
-additional colors can be specified by their component values.
-See also:
-<a href="colortables.html#autocolors">initial colors</a>,
-<a href="colortables.html#element">element colors</a>
-</p><p>
 Colors can be specified in <a href="../index.html#commands">commands</a>
 (<a href="color.html"><b>color</b></a>, <i>etc.</i>) with:
 </p>
 <ul>
-<li>CSS color names except in lowercase only, 
-optionally with spaces between words
-<!-- 141 names in CSS3 specification -->
-  <ul>
-  <li><a href="https://en.wikipedia.org/wiki/Web_colors#X11_color_names"
-  target="_blank">grouped by similarity</a>
-  <li><a href="http://www.w3schools.com/colors/colors_names.asp"
-  target="_blank">listed alphabetically</a>
-  </ul>
-<li>color names defined previously with
+<li><a href="#builtin">predefined color names</a>
+<li>color names defined by the user with
 <a href="color.html#name"><b>color name</b></a>
 <li>hexadecimal format starting with <b>#</b> and encoding
-<b>rgb</b> (3, 6, or 12 digits) or <b>rgba</b> (4, 8, or 16 digits)
-<table style="margin:2px 14px"><tr>
-<td>example: <b>#00ced1</b></td><td>&nbsp;&nbsp;</td>
-<td bgcolor=#00ced1>&nbsp;&nbsp;&nbsp;&nbsp;</td>
-</tr></table>
+<b>rgb</b> (3, 6, or 12 digits) or <b>rgba</b> (4, 8, or 16 digits), 
+for example: <b>#00ced1</b> 
 <!-- 
 fix for #143 is to interpret as color instead of model number if it has
 any non-numbers and/or at least 6 digits; thus model numbers top out at #99999
@@ -61,11 +42,11 @@ and all-number hex colors with fewer than 6 digits don't work
 -->
 <li><b>rgb</b> or <b>rgba</b> given as three or four comma-separated values 
 <!-- integer, float both OK -->
-in the range 0-100 (no spaces, no % signs)
-<table style="margin:2px 14px"><tr>
-<td>example: <b>75,10,55</b></td><td>&nbsp;&nbsp;</td>
-<td bgcolor="#bfff199a8ccc">&nbsp;&nbsp;&nbsp;&nbsp;</td>
-</tr></table>
+in the range 0-100 (no spaces, no % signs),
+for example: <b>75,10,55</b>
+<!--
+<font style="background:#bfff199a8ccc">&nbsp;&nbsp;&nbsp;&nbsp;</font>
+-->
 <li><a href="http://www.w3schools.com/cssref/css_colors_legal.asp"
 target="_blank">CSS-like specifications</a> in the following formats:
   <ul>
@@ -89,14 +70,771 @@ The <i>red</i>, <i>green</i>, <i>blue</i>, and <i>grayscale</i>
 components can also be expressed as whole numbers in the range 0-255. 
 Values for <i>hue</i> are in the range 0-360,
 corresponding to angular positions on the color wheel.
+See <a href="#examples">more examples</a>.
 </ul>
 <p>
-Color names from CSS or <a href="color.html#name"><b>color name</b></a>
-can be truncated, with ambiguous truncations going to the shortest 
-of the matching full color names. 
+The command <a href="color.html#list"><b>color list</b></a>
+lists the available names along with color swatches in the 
+<a href="../tools/log.html"><b>Log</b></a>.
+<a name="truncation"></a>
+Color names can be truncated, with ambiguous truncations going to the shortest 
+of the matching full names. 
+<!-- chimerax ticket #581 -->
+For the <a href="color.html"><b>color</b></a> command, however,
+color names starting with &ldquo;pale&rdquo; should be expanded sufficiently
+and enclosed in quotation marks (or the space omitted) to distinguish them 
+from the <a href="color.html#palette-options">palette option</a>. 
+See also:
+<a href="colortables.html#autocolors">initial colors</a>,
+<a href="colortables.html#element">element colors</a>,
+<a href="palettes.html">palettes</a>
 </p>
 
-<h3>Examples</h3>
+<a name="builtin"></a>
+<p class="nav">
+[<a href="#top">back to top: Color Specification</a>]
+</p>
+<h3>Color Names</h3>
+<p>
+The following color names 
+(<a href="https://en.wikipedia.org/wiki/Web_colors#X11_color_names" 
+target="_blank">X11 colors</a> from the CSS3 specification)
+are predefined in ChimeraX.
+<!-- 138 colors, not counting synonyms -->
+Color names can be <a href="#truncation">truncated</a>,
+but they must be entered in lowercase only. 
+The spaces in multiword names are optional, 
+and &ldquo;grey&rdquo; may be substituted for &ldquo;gray.&rdquo;
+More names can be defined with the command
+<a href="color.html#name"><b>color name</b></a>.
+</p>
+<table style="margin 4px">
+<tr style="vertical-align:top;">
+<td>
+<table border cellpadding="2px" cellspacing="0px">
+<tr>
+<th style="background:lightgrey">Name</th>
+<th style="background:lightgrey">Hex</th>
+<th style="background:lightgrey">RGB<br>(%)</th>
+</tr>
+<tr style="background:mistyrose;color:black">
+<td>misty&nbsp;rose</td>
+<td><code>#FFE4E1</code></td>
+<td>100,89,88</td>
+</tr>
+<tr style="background:pink;color:black">
+<td>pink</td>
+<td><code>#FFC0CB</code></td>
+<td>100,75,80</td>
+</tr>
+<tr style="background:lightpink;color:black">
+<td>light&nbsp;pink</td>
+<td><code>#FFB6C1</code></td>
+<td>100,71,76</td>
+</tr>
+<tr style="background:hotpink;color:white">
+<td>hot&nbsp;pink</td>
+<td><code>#FF69B4</code></td>
+<td>100,41,71</td>
+</tr>
+<tr style="background:deeppink;color:white">
+<td>deep&nbsp;pink</td>
+<td><code>#FF1493</code></td>
+<td>100,8,58</td>
+</tr>
+<tr style="background:mediumvioletred;color:white">
+<td>medium&nbsp;violet&nbsp;red</td>
+<td><code>#C71585</code></td>
+<td>78,8,52</td>
+</tr>
+<tr style="background:palevioletred;color:white">
+<td>pale&nbsp;violet&nbsp;red</td>
+<td><code>#DB7093</code></td>
+<td>86,44,58</td>
+</tr>
+<tr style="background:lightcoral;color:black">
+<td>light&nbsp;coral</td>
+<td><code>#F08080</code></td>
+<td>94,50,50</td>
+</tr>
+<tr style="background:salmon;color:black">
+<td>salmon</td>
+<td><code>#FA8072</code></td>
+<td>98,50,45</td>
+</tr>
+<tr style="background:lightsalmon;color:black">
+<td>light&nbsp;salmon</td>
+<td><code>#FFA07A</code></td>
+<td>100,63,48</td>
+</tr>
+<tr style="background:darksalmon;color:black">
+<td>dark&nbsp;salmon</td>
+<td><code>#E9967A</code></td>
+<td>91,59,48</td>
+</tr>
+<tr style="background:indianred;color:white">
+<td>indian&nbsp;red</td>
+<td><code>#CD5C5C</code></td>
+<td>80,36,36</td>
+</tr>
+<tr style="background:crimson;color:white;color:white">
+<td>crimson</td>
+<td><code>#DC143C</code></td>
+<td>86,8,24</td>
+</tr>
+<tr style="background:fireBrick;color:white">
+<td>firebrick</td>
+<td><code>#B22222</code></td>
+<td>70,13,13</td>
+</tr>
+<tr style="background:brown;color:white">
+<td>brown</td>
+<td><code>#A52A2A</code></td>
+<td>65,17,17</td>
+</tr>
+<tr style="background:darkred;color:white">
+<td>dark&nbsp;red</td>
+<td><code>#8B0000</code></td>
+<td>54,0,0</td>
+</tr>
+<tr style="background:maroon;color:white">
+<td>maroon</td>
+<td><code>#800000</code></td>
+<td>50,0,0</td>
+</tr>
+<tr style="background:red;color:white">
+<td>red</td>
+<td><code>#FF0000</code></td>
+<td>100,0,0</td>
+</tr>
+<tr style="background:orangered;color:white">
+<td>orange&nbsp;red</td>
+<td><code>#FF4500</code></td>
+<td>100,27,0</td>
+</tr>
+<tr style="background:tomato;color:white">
+<td>tomato</td>
+<td><code>#FF6347</code></td>
+<td>100,39,28</td>
+</tr>
+<tr style="background:coral;color:black">
+<td>coral</td>
+<td><code>#FF7F50</code></td>
+<td>100,50,31</td>
+</tr>
+<tr style="background:darkorange;color:black">
+<td>dark&nbsp;orange</td>
+<td><code>#FF8C00</code></td>
+<td>100,55,0</td>
+</tr>
+<tr style="background:orange;color:black">
+<td>orange</td>
+<td><code>#FFA500</code></td>
+<td>100,65,0</td>
+</tr>
+<tr style="background:gold;color:black">
+<td>gold</td>
+<td><code>#FFD700</code></td>
+<td>100,84,0</td>
+</tr>
+<tr style="background:yellow;color:black">
+<td>yellow</td>
+<td><code>#FFFF00</code></td>
+<td>100,100,0</td>
+</tr>
+<tr style="background:khaki;color:black">
+<td>khaki</td>
+<td><code>#F0E68C</code></td>
+<td>94,90,55</td>
+</tr>
+<tr style="background:goldenrod;color:black">
+<td>goldenrod</td>
+<td><code>#DAA520</code></td>
+<td>86,65,12</td>
+</tr>
+<tr style="background:darkgoldenrod;color:black">
+<td>dark&nbsp;goldenrod</td>
+<td><code>#B8860B</code></td>
+<td>72,52,4</td>
+</tr>
+<tr style="background:lemonchiffon;color:black">
+<td>lemon&nbsp;chiffon</td>
+<td><code>#FFFACD</code></td>
+<td>100,98,80</td>
+</tr>
+<tr style="background:lightgoldenrodyellow;color:black">
+<td>light&nbsp;goldenrod&nbsp;yellow</td>
+<td><code>#FAFAD2</code></td>
+<td>98,98,82</td>
+</tr>
+<tr style="background:lightyellow;color:black">
+<td>light&nbsp;yellow</td>
+<td><code>#FFFFE0</code></td>
+<td>100,100,88</td>
+</tr>
+<tr style="background:cornsilk;color:black">
+<td>cornsilk</td>
+<td><code>#FFF8DC</code></td>
+<td>100,97,86</td>
+</tr>
+<tr style="background:papayawhip;color:black">
+<td>papaya&nbsp;whip</td>
+<td><code>#FFEFD5</code></td>
+<td>100,94,84</td>
+</tr>
+<tr style="background:blanchedalmond;color:black">
+<td>blanched&nbsp;almond</td>
+<td><code>#FFEBCD</code></td>
+<td>100,92,80</td>
+</tr>
+<tr style="background:peachpuff;color:black">
+<td>peach&nbsp;puff</td>
+<td><code>#FFDAB9</code></td>
+<td>100,86,72</td>
+</tr>
+<tr style="background:bisque;color:black">
+<td>bisque</td>
+<td><code>#FFE4C4</code></td>
+<td>100,89,77</td>
+</tr>
+<tr style="background:moccasin;color:black">
+<td>moccasin</td>
+<td><code>#FFE4B5</code></td>
+<td>100,89,71</td>
+</tr>
+<tr style="background:navajowhite;color:black">
+<td>navajo&nbsp;white</td>
+<td><code>#FFDEAD</code></td>
+<td>100,87,68</td>
+</tr>
+<tr style="background:wheat;color:black">
+<td>wheat</td>
+<td><code>#F5DEB3</code></td>
+<td>96,87,70</td>
+</tr>
+<tr style="background:burlywood;color:black">
+<td>burlywood</td>
+<td><code>#DEB887</code></td>
+<td>87,72,53</td>
+</tr>
+<tr style="background:tan;color:black">
+<td>tan</td>
+<td><code>#D2B48C</code></td>
+<td>82,71,55</td>
+</tr>
+<tr style="background:sandybrown;color:black">
+<td>sandy&nbsp;brown</td>
+<td><code>#F4A460</code></td>
+<td>96,64,38</td>
+</tr>
+<tr style="background:Peru;color:black">
+<td>peru</td>
+<td><code>#CD853F</code></td>
+<td>80,52,25</td>
+</tr>
+<tr style="background:chocolate;color:white">
+<td>chocolate</td>
+<td><code>#D2691E</code></td>
+<td>82,41,12</td>
+</tr>
+<tr style="background:saddlebrown;color:white">
+<td>saddle&nbsp;brown</td>
+<td><code>#8B4513</code></td>
+<td>54,27,8</td>
+</tr>
+<tr style="background:sienna;color:white">
+<td>sienna</td>
+<td><code>#A0522D</code></td>
+<td>63,32,18</td>
+</tr>
+<tr style="background:rosybrown;color:black">
+<td>rosy&nbsp;brown</td>
+<td><code>#BC8F8F</code></td>
+<td>74,56,56</td>
+</tr>
+</table>
+</td>
+<td>
+<table border cellpadding="2px" cellspacing="0px">
+<tr>
+<th style="background:lightgrey">Name</th>
+<th style="background:lightgrey">Hex</th>
+<th style="background:lightgrey">RGB<br>(%)</th>
+</tr>
+<tr style="background:beige;color:black">
+<td>beige</td>
+<td><code>#F5F5DC</code></td>
+<td>96,96,86</td>
+</tr>
+<tr style="background:palegoldenrod;color:black">
+<td>pale&nbsp;goldenrod</td>
+<td><code>#EEE8AA</code></td>
+<td>93,91,67</td>
+</tr>
+<tr style="background:darkkhaki;color:black">
+<td>dark&nbsp;khaki</td>
+<td><code>#BDB76B</code></td>
+<td>74,72,42</td>
+</tr>
+<tr style="background:darkolivegreen;color:white">
+<td>dark&nbsp;olive&nbsp;green</td>
+<td><code>#556B2F</code></td>
+<td>33,42,18</td>
+</tr>
+<tr style="background:olive;color:white">
+<td>olive</td>
+<td><code>#808000</code></td>
+<td>50,50,0</td>
+</tr>
+<tr style="background:olivedrab;color:white">
+<td>olive&nbsp;drab</td>
+<td><code>#6B8E23</code></td>
+<td>42,56,14</td>
+</tr>
+<tr style="background:yellowgreen;color:black">
+<td>yellow&nbsp;green</td>
+<td><code>#9ACD32</code></td>
+<td>60,80,20</td>
+</tr>
+<tr style="background:greenyellow;color:black">
+<td>green&nbsp;yellow</td>
+<td><code>#ADFF2F</code></td>
+<td>68,100,18</td>
+</tr>
+<tr style="background:chartreuse;color:black">
+<td>chartreuse</td>
+<td><code>#7FFF00</code></td>
+<td>50,100,0</td>
+</tr>
+<tr style="background:lawngreen;color:black">
+<td>lawn&nbsp;green</td>
+<td><code>#7CFC00</code></td>
+<td>49,99,0</td>
+</tr>
+<tr style="background:lime;color:black">
+<td>lime</td>
+<td><code>#00FF00</code></td>
+<td>0,100,0</td>
+</tr>
+<tr style="background:limegreen;color:black">
+<td>lime&nbsp;green</td>
+<td><code>#32CD32</code></td>
+<td>20,80,20</td>
+</tr>
+<tr style="background:forestgreen;color:white">
+<td>forest&nbsp;green</td>
+<td><code>#228B22</code></td>
+<td>13,54,13</td>
+</tr>
+<tr style="background:green;color:white">
+<td>green</td>
+<td><code>#008000</code></td>
+<td>0,50,0</td>
+</tr>
+<tr style="background:darkgreen;color:white">
+<td>dark&nbsp;green</td>
+<td><code>#006400</code></td>
+<td>0,39,0</td>
+</tr>
+<tr style="background:palegreen;color:black">
+<td>pale&nbsp;green</td>
+<td><code>#98FB98</code></td>
+<td>60,98,60</td>
+</tr>
+<tr style="background:lightgreen;color:black">
+<td>light&nbsp;green</td>
+<td><code>#90EE90</code></td>
+<td>56,93,56</td>
+</tr>
+<tr style="background:springgreen;color:black">
+<td>spring&nbsp;green</td>
+<td><code>#00FF7F</code></td>
+<td>0,100,50</td>
+</tr>
+<tr style="background:mediumspringgreen;color:black">
+<td>medium&nbsp;spring&nbsp;green</td>
+<td><code>#00FA9A</code></td>
+<td>0,98,60</td>
+</tr>
+<tr style="background:mediumseagreen;color:black">
+<td>medium&nbsp;sea&nbsp;green</td>
+<td><code>#3CB371</code></td>
+<td>24,70,44</td>
+</tr>
+<tr style="background:seagreen;color:white">
+<td>sea&nbsp;green</td>
+<td><code>#2E8B57</code></td>
+<td>18,54,34</td>
+</tr>
+<tr style="background:darkseagreen;color:black">
+<td>dark&nbsp;sea&nbsp;green</td>
+<td><code>#8FBC8F</code></td>
+<td>56,74,56</td>
+</tr>
+<tr style="background:mediumaquamarine;color:black">
+<td>medium&nbsp;aquamarine</td>
+<td><code>#66CDAA</code></td>
+<td>40,80,67</td>
+</tr>
+<tr style="background:aquamarine;color:black">
+<td>aquamarine</td>
+<td><code>#7FFFD4</code></td>
+<td>50,100,83</td>
+</tr>
+<tr style="background:turquoise;color:black">
+<td>turquoise</td>
+<td><code>#40E0D0</code></td>
+<td>25,88,82</td>
+</tr>
+<tr style="background:mediumturquoise;color:black">
+<td>medium&nbsp;turquoise</td>
+<td><code>#48D1CC</code></td>
+<td>28,82,80</td>
+</tr>
+<tr style="background:lightseagreen;color:black">
+<td>light&nbsp;sea&nbsp;green</td>
+<td><code>#20B2AA</code></td>
+<td>12,70,67</td>
+</tr>
+<tr style="background:cyan;color:black">
+<td>cyan (aqua)</td>
+<td><code>#00FFFF</code></td>
+<td>0,100,100</td>
+</tr>
+<tr style="background:darkturquoise;color:black">
+<td>dark&nbsp;turquoise</td>
+<td><code>#00CED1</code></td>
+<td>0,81,82</td>
+</tr>
+<tr style="background:cadetblue;color:white">
+<td>cadet&nbsp;blue</td>
+<td><code>#5F9EA0</code></td>
+<td>34,62,63</td>
+</tr>
+<tr style="background:darkcyan;color:white">
+<td>dark&nbsp;cyan</td>
+<td><code>#008B8B</code></td>
+<td>0,54,54</td>
+</tr>
+<tr style="background:teal;color:white">
+<td>teal</td>
+<td><code>#008080</code></td>
+<td>0,50,50</td>
+</tr>
+<tr style="background:paleturquoise;color:black">
+<td>pale&nbsp;turquoise</td>
+<td><code>#AFEEEE</code></td>
+<td>69,93,93</td>
+</tr>
+<tr style="background:powderblue;color:black">
+<td>powder&nbsp;blue</td>
+<td><code>#B0E0E6</code></td>
+<td>69,88,90</td>
+</tr>
+<tr style="background:lightblue;color:black">
+<td>light&nbsp;blue</td>
+<td><code>#ADD8E6</code></td>
+<td>68,85,90</td>
+</tr>
+<tr style="background:lightsteelblue;color:black">
+<td>light&nbsp;steel&nbsp;blue</td>
+<td><code>#B0C4DE</code></td>
+<td>69,77,87</td>
+</tr>
+<tr style="background:steelblue;color:white">
+<td>steel&nbsp;blue</td>
+<td><code>#4682B4</code></td>
+<td>28,51,71</td>
+</tr>
+<tr style="background:skyblue;color:black">
+<td>sky&nbsp;blue</td>
+<td><code>#87CEEB</code></td>
+<td>53,81,92</td>
+</tr>
+<tr style="background:lightskyblue;color:black">
+<td>light&nbsp;sky&nbsp;blue</td>
+<td><code>#87CEFA</code></td>
+<td>53,81,98</td>
+</tr>
+<tr style="background:deepskyblue;color:black">
+<td>deep&nbsp;sky&nbsp;blue</td>
+<td><code>#00BFFF</code></td>
+<td>0,75,100</td>
+</tr>
+<tr style="background:dodgerblue;color:black">
+<td>dodger&nbsp;blue</td>
+<td><code>#1E90FF</code></td>
+<td>12,56,100</td>
+</tr>
+<tr style="background:cornflowerblue;color:black">
+<td>cornflower&nbsp;blue</td>
+<td><code>#6495ED</code></td>
+<td>39,58,93</td>
+</tr>
+<tr style="background:royalblue;color:white">
+<td>royal&nbsp;blue</td>
+<td><code>#4169E1</code></td>
+<td>26,41,88</td>
+</tr>
+<tr style="background:blue;color:white">
+<td>blue</td>
+<td><code>#0000FF</code></td>
+<td>0,0,100</td>
+</tr>
+<tr style="background:mediumblue;color:white">
+<td>medium&nbsp;blue</td>
+<td><code>#0000CD</code></td>
+<td>0,0,80</td>
+</tr>
+<tr style="background:darkblue;color:white">
+<td>dark&nbsp;blue</td>
+<td><code>#00008B</code></td>
+<td>0,0,54</td>
+</tr>
+<tr style="background:navy;color:white">
+<td>navy</td>
+<td><code>#000080</code></td>
+<td>0,0,50</td>
+</tr>
+</table>
+</td>
+<td>
+<table border cellpadding="2px" cellspacing="0px">
+<tr>
+<th style="background:lightgrey">Name</th>
+<th style="background:lightgrey">Hex</th>
+<th style="background:lightgrey">RGB<br>(%)</th>
+</tr>
+<tr style="background:lavender;color:black">
+<td>lavender</td>
+<td><code>#E6E6FA</code></td>
+<td>90,90,98</td>
+</tr>
+<tr style="background:thistle;color:black">
+<td>thistle</td>
+<td><code>#D8BFD8</code></td>
+<td>85,75,85</td>
+</tr>
+<tr style="background:plum;color:black">
+<td>plum</td>
+<td><code>#DDA0DD</code></td>
+<td>87,63,87</td>
+</tr>
+<tr style="background:violet;color:black">
+<td>violet</td>
+<td><code>#EE82EE</code></td>
+<td>93,51,93</td>
+</tr>
+<tr style="background:orchid;color:black">
+<td>orchid</td>
+<td><code>#DA70D6</code></td>
+<td>86,44,84</td>
+</tr>
+<tr style="background:Magenta;color:white">
+<td>magenta (fuchsia)</td>
+<td><code>#FF00FF</code></td>
+<td>100,0,100</td>
+</tr>
+<tr style="background:darkmagenta;color:white">
+<td>dark&nbsp;magenta</td>
+<td><code>#8B008B</code></td>
+<td>54,0,54</td>
+</tr>
+<tr style="background:purple;color:white">
+<td>purple</td>
+<td><code>#800080</code></td>
+<td>50,0,50</td>
+</tr>
+<tr style="background:mediumorchid;color:white">
+<td>medium&nbsp;orchid</td>
+<td><code>#BA55D3</code></td>
+<td>73,33,83</td>
+</tr>
+<tr style="background:darkorchid;color:white">
+<td>dark&nbsp;orchid</td>
+<td><code>#9932CC</code></td>
+<td>60,20,80</td>
+</tr>
+<tr style="background:darkviolet;color:white">
+<td>dark&nbsp;violet</td>
+<td><code>#9400D3</code></td>
+<td>58,0,83</td>
+</tr>
+<tr style="background:blueviolet;color:white">
+<td>blue&nbsp;violet</td>
+<td><code>#8A2BE2</code></td>
+<td>54,17,89</td>
+</tr>
+<tr style="background:indigo;color:white">
+<td>indigo</td>
+<td><code>#4B0082</code></td>
+<td>29,0,51</td>
+</tr>
+<tr style="background:mediumpurple;color:white">
+<td>medium&nbsp;purple</td>
+<td><code>#9370DB</code></td>
+<td>58,44,86</td>
+</tr>
+<tr style="background:mediumslateblue;color:white">
+<td>medium&nbsp;slate&nbsp;blue</td>
+<td><code>#7B68EE</code></td>
+<td>48,41,93</td>
+</tr>
+<tr style="background:slateblue;color:white">
+<td>slate&nbsp;blue</td>
+<td><code>#6A5ACD</code></td>
+<td>42,35,80</td>
+</tr>
+<tr style="background:darkslateblue;color:white">
+<td>dark&nbsp;slate&nbsp;blue</td>
+<td><code>#483D8B</code></td>
+<td>28,24,54</td>
+</tr>
+<tr style="background:midnightblue;color:white">
+<td>midnight&nbsp;blue</td>
+<td><code>#191970</code></td>
+<td>10,10,44</td>
+</tr>
+<tr style="background:white;color:black">
+<td>white</td>
+<td><code>#FFFFFF</code></td>
+<td>100,100,100</td>
+</tr>
+<tr style="background:snow;color:black">
+<td>snow</td>
+<td><code>#FFFAFA</code></td>
+<td>100,98,98</td>
+</tr>
+<tr style="background:mintcream;color:black">
+<td>mint&nbsp;cream</td>
+<td><code>#F5FFFA</code></td>
+<td>96,100,98</td>
+</tr>
+<tr style="background:honeydew;color:black">
+<td>honeydew</td>
+<td><code>#F0FFF0</code></td>
+<td>94,100,94</td>
+</tr>
+<tr style="background:azure;color:black">
+<td>azure</td>
+<td><code>#F0FFFF</code></td>
+<td>94,100,100</td>
+</tr>
+<tr style="background:lightcyan;color:black">
+<td>light&nbsp;cyan</td>
+<td><code>#E0FFFF</code></td>
+<td>88,100,100</td>
+</tr>
+<tr style="background:aliceblue;color:black">
+<td>alice&nbsp;blue</td>
+<td><code>#F0F8FF</code></td>
+<td>94,97,100</td>
+</tr>
+<tr style="background:ghostwhite;color:black">
+<td>ghost&nbsp;white</td>
+<td><code>#F8F8FF</code></td>
+<td>97,97,100</td>
+</tr>
+<tr style="background:whitesmoke;color:black">
+<td>white&nbsp;smoke</td>
+<td><code>#F5F5F5</code></td>
+<td>96,96,96</td>
+</tr>
+<tr style="background:lavenderblush;color:black">
+<td>lavender&nbsp;blush</td>
+<td><code>#FFF0F5</code></td>
+<td>100,94,96</td>
+</tr>
+<tr style="background:seashell;color:black">
+<td>seashell</td>
+<td><code>#FFF5EE</code></td>
+<td>100,96,93</td>
+</tr>
+<tr style="background:oldlace;color:black">
+<td>old&nbsp;lace</td>
+<td><code>#FDF5E6</code></td>
+<td>99,96,90</td>
+</tr>
+<tr style="background:floralwhite;color:black">
+<td>floral&nbsp;white</td>
+<td><code>#FFFAF0</code></td>
+<td>100,98,94</td>
+</tr>
+<tr style="background:ivory;color:black">
+<td>ivory</td>
+<td><code>#FFFFF0</code></td>
+<td>100,100,94</td>
+</tr>
+<tr style="background:linen;color:black">
+<td>linen</td>
+<td><code>#FAF0E6</code></td>
+<td>98,94,90</td>
+</tr>
+<tr style="background:antiquewhite;color:black">
+<td>antique&nbsp;white</td>
+<td><code>#FAEBD7</code></td>
+<td>98,92,84</td>
+</tr>
+<tr style="background:gainsboro;color:black">
+<td>gainsboro</td>
+<td><code>#DCDCDC</code></td>
+<td>86,86,86</td>
+</tr>
+<tr style="background:lightgray; color:black;">
+<td>light&nbsp;gray</td>
+<td><code>#D3D3D3</code></td>
+<td>83,83,83</td>
+</tr>
+<tr style="background:silver;color:black">
+<td>silver</td>
+<td><code>#C0C0C0</code></td>
+<td>75,75,75</td>
+</tr>
+<tr style="background:darkgray; color:black;">
+<td>dark&nbsp;gray</td>
+<td><code>#A9A9A9</code></td>
+<td>66,66,66</td>
+</tr>
+<tr style="background:gray;color:white">
+<td>gray</td>
+<td><code>#808080</code></td>
+<td>50,50,50</td>
+</tr>
+<tr style="background:dimgray; color:white;">
+<td>dim&nbsp;gray</td>
+<td><code>#696969</code></td>
+<td>41,41,41</td>
+</tr>
+<tr style="background:lightslategray; color:white;">
+<td>light&nbsp;slate&nbsp;gray</td>
+<td><code>#778899</code></td>
+<td>47,53,60</td>
+</tr>
+<tr style="background:slategray; color:white;">
+<td>slate&nbsp;gray</td>
+<td><code>#708090</code></td>
+<td>44,50,56</td>
+</tr>
+<tr style="background:darkslategray; color:white;">
+<td>dark&nbsp;slate&nbsp;gray</td>
+<td><code>#2F4F4F</code></td>
+<td>18,31,31</td>
+</tr>
+<tr style="background:black;color:white">
+<td>black</td>
+<td><code>#000000</code></td>
+<td>0,0,0</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+
+<a name="examples"></a>
+<p class="nav">
+[<a href="#top">back to top: Color Specification</a>]
+</p>
+<h3>More Examples</h3>
 <p>
 The following all specify the same color:
 </p>
@@ -122,5 +860,5 @@ gray(50%)
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-October 2016</address>
+August 2017</address>
 </body></html>

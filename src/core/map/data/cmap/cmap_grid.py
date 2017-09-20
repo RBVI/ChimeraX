@@ -19,9 +19,11 @@ from ..griddata import Grid_Data
 #
 class Chimera_HDF_Grid(Grid_Data):
 
-  def __init__(self, hdf_data, size, value_type,
-               origin, step, cell_angles, rotation, symmetries,
-               image_name, array_paths):
+  # Attribute names for grid settings in constructor call.
+  attributes = ('size', 'value_type', 'origin', 'step', 'cell_angles',
+                'rotation', 'symmetries', 'default_color', 'time', 'channel')
+  
+  def __init__(self, hdf_data, image_name, array_paths, **grid_settings):
 
     self.hdf_data = hdf_data
     self.array_paths = array_paths
@@ -29,15 +31,10 @@ class Chimera_HDF_Grid(Grid_Data):
     from os.path import basename
     name = basename(hdf_data.path)
     if image_name and image_name != name.rsplit('.',1)[0]:
-      name += ' ' + image_name
+      name = image_name
 
-    Grid_Data.__init__(self, size, value_type,
-                       origin, step, cell_angles, rotation,
-                       name = name, path = hdf_data.path, file_type = 'cmap',
-                       grid_id = sorted(array_paths)[0])
-
-    if not symmetries is None and len(symmetries) > 0:
-      self.symmetries = symmetries
+    Grid_Data.__init__(self, name = name, path = hdf_data.path, file_type = 'cmap',
+                       grid_id = sorted(array_paths)[0], **grid_settings)
 
   # ---------------------------------------------------------------------------
   #
@@ -60,9 +57,8 @@ def read_chimera_map(path):
   for i in d.images:
     if len(d.images) > 1: image_name = i.name
     else:                 image_name = ''
-    g = Chimera_HDF_Grid(d, i.size, i.value_type,
-                         i.origin, i.step, i.cell_angles, i.rotation,
-                         i.symmetries, image_name, i.array_paths)
+    settings = {attr:getattr(i,attr) for attr in Chimera_HDF_Grid.attributes}
+    g = Chimera_HDF_Grid(d, image_name, i.array_paths, **settings)
     if i.subsamples:
       g = add_subsamples(d, i, g)
     glist.append(g)
@@ -84,10 +80,10 @@ def add_subsamples(hdf_data, hdf_image, g):
   g = Subsampled_Grid(g)
   i = hdf_image
   for cell_size, data_size, array_paths in i.subsamples:
-      step = tuple(map(lambda s,c: s*c, i.step, cell_size))
-      sg = Chimera_HDF_Grid(hdf_data, data_size, i.value_type,
-                            i.origin, step, i.cell_angles, i.rotation,
-                            i.symmetries, i.name, array_paths)
+      settings = {attr:getattr(i,attr) for attr in Chimera_HDF_Grid.attributes}
+      step = tuple(s*c for s,c in zip(i.step, cell_size))
+      settings.update({'size':data_size, 'step':step})
+      sg = Chimera_HDF_Grid(hdf_data, i.name, array_paths, **settings)
       g.add_subsamples(sg, cell_size)
       
   return g

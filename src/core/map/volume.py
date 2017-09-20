@@ -51,6 +51,8 @@ class Volume(Model):
       rendering_options = Rendering_Options()
     self.rendering_options = rendering_options
 
+    if message_cb is None:
+      message_cb = session.logger.status
     self.message_cb = message_cb
     
     self.matrix_stats = None
@@ -61,6 +63,8 @@ class Volume(Model):
     rlist.insert_region(ijk_min, ijk_max)
     self.region_list = rlist
 
+    self._channels = None	# MapChannels object
+    
     self.representation = 'surface'
 
     self.solid = None
@@ -103,6 +107,15 @@ class Volume(Model):
 
     if self.message_cb:
       self.message_cb(text, **kw)
+
+  # ---------------------------------------------------------------------------
+  # Update data name when model name changes, so it gets written to cmap files.
+  #
+  def _set_data_name(self, name):
+    if hasattr(self, 'data') and name != self.data.name:
+      self.data.name = name
+    Model.name.fset(self, name)
+  name = property(Model.name.fget, _set_data_name)
     
   # ---------------------------------------------------------------------------
   #
@@ -334,6 +347,9 @@ class Volume(Model):
       lev = self.solid_levels
       if lev:
         return rgba_to_rgba8(self.solid_colors[argmin(lev)])
+    drgba = self.data.rgba
+    if drgba:
+      return rgba_to_rgba8(drgba)
     return None
   def _set_single_color(self, color):
     from ..colors import rgba8_to_rgba
@@ -449,6 +465,16 @@ class Volume(Model):
     
   # ---------------------------------------------------------------------------
   #
+  @property
+  def showing_one_plane(self):
+    ijk_min, ijk_max, ijk_step = self.region
+    for i0, i1, step in zip(ijk_min, ijk_max, ijk_step):
+      if i1//step - i0//step == 0:
+        return True
+    return False
+  
+  # ---------------------------------------------------------------------------
+  #
   def has_thresholds(self):
 
     return len(self.surface_levels) > 0 and len(self.solid_levels) > 0
@@ -547,6 +573,14 @@ class Volume(Model):
     Model._set_display(self, display)
     self.call_change_callbacks('displayed')
   display = Model.display.setter(_set_display)
+
+  # ---------------------------------------------------------------------------
+  #
+  def draw(self, renderer, place, draw_pass, selected_only = False):
+    if self.display and not self.initialized_thresholds:
+      self.initialize_thresholds()
+      self.show()
+    Model.draw(self, renderer, place, draw_pass, selected_only = selected_only)
 
   # ---------------------------------------------------------------------------
   #
@@ -963,6 +997,24 @@ class Volume(Model):
     
   # ---------------------------------------------------------------------------
   #
+  def principal_channel(self):
+
+    c = self._channels
+    return c is None or self == c.first_channel
+    
+  # ---------------------------------------------------------------------------
+  #
+  def other_channels(self):
+
+    c = self._channels
+    if c is None:
+      vc = []
+    else:
+      vc = [v for v in c.maps if v is not self]
+    return vc
+  
+  # ---------------------------------------------------------------------------
+  #
   def copy(self):
 
     v = volume_from_grid_data(self.data, self.session, self.representation,
@@ -1173,10 +1225,8 @@ class Volume(Model):
   #
   def ijk_bounds(self, step = None, subregion = None, integer = False):
 
-    ss_origin, ss_size, subsampling, ss_step = self.ijk_region(step, subregion)
-    ijk_origin = [a*b for a,b in zip(ss_origin, subsampling)]
-    ijk_step = [a*b for a,b in zip(subsampling, ss_step)]
-    mat_size = [(a+b-1)//b for a,b in zip(ss_size, ss_step)]
+    ijk_origin, ijk_size, ijk_step = self.ijk_aligned_region(step, subregion)
+    mat_size = [(a+b-1)//b for a,b in zip(ijk_size, ijk_step)]
     ijk_last = [a+b*(c-1) for a,b,c in zip(ijk_origin, ijk_step, mat_size)]
 
     ijk_min_edge = [a - .5*b for a,b in zip(ijk_origin, ijk_step)]
@@ -1267,17 +1317,14 @@ class Volume(Model):
 
     if region is None:
       region = self.region
-    origin, size, subsampling, step = self.subsample_region(region)
+    origin, size, step = self.step_aligned_region(region)
     d = self.data
     operation = 'reading %s' % d.name
     from .data import Progress_Reporter
     progress = Progress_Reporter(operation, size, d.value_type.itemsize,
                                  message = self.message_cb)
     from_cache_only = not read_matrix
-    if subsampling == (1,1,1):
-      m = d.matrix(origin, size, step, progress, from_cache_only)
-    else:
-      m = d.matrix(origin, size, step, progress, from_cache_only, subsampling)
+    m = d.matrix(origin, size, step, progress, from_cache_only)
     return m
 
   # ---------------------------------------------------------------------------
@@ -1288,9 +1335,8 @@ class Volume(Model):
 
     if region is None:
       region = self.subregion(step, subregion)
-    ss_origin, ss_size, subsampling, ss_step = self.subsample_region(region,
-                                                                     clamp)
-    mat_size = [(a+b-1)//b for a,b in zip(ss_size, ss_step)]
+    origin, size, step = self.step_aligned_region(region, clamp)
+    mat_size = [(a+b-1)//b for a,b in zip(size, step)]
     return mat_size
 
   # ---------------------------------------------------------------------------
@@ -1312,11 +1358,7 @@ class Volume(Model):
 
     if region is None:
       region = self.subregion(step, subregion)
-    ss_origin, ss_size, subsampling, ss_step = self.subsample_region(region,
-                                                                     clamp)
-    step = [sm*st for sm,st in zip(subsampling, ss_step)]
-    origin = [o*st for o,st in zip(ss_origin, subsampling)]
-    size = [(a+b-1)//b for a,b in zip(ss_size,ss_step)]
+    origin, size, step = self.step_aligned_region(region, clamp)
     slc = [slice(o,o+st*(sz-1)+1,st) for o,st,sz in zip(origin,step,size)]
     return slc
 
@@ -1334,6 +1376,8 @@ class Volume(Model):
     ijk_min[axis] += mplane*ijk_step[axis]
     ijk_max[axis] = ijk_min[axis]
     m = self.region_matrix((ijk_min, ijk_max, ijk_step), read_matrix)
+    if m is None:
+      return None
     s = [slice(None), slice(None), slice(None)]
     s[2-axis] = 0
     m2d = m[s]
@@ -1365,9 +1409,7 @@ class Volume(Model):
   #
   def matrix_indices_to_xyz_transform(self, step = None, subregion = None):
 
-    ss_origin, ss_size, subsampling, ss_step = self.ijk_region(step, subregion)
-    ijk_origin = [a*b for a,b in zip(ss_origin, subsampling)]
-    ijk_step = [a*b for a,b in zip(subsampling, ss_step)]
+    ijk_origin, ijk_size, ijk_step = self.ijk_aligned_region(step, subregion)
 
     data = self.data
     xo, yo, zo = data.ijk_to_xyz(ijk_origin)
@@ -1418,67 +1460,34 @@ class Volume(Model):
   # ---------------------------------------------------------------------------
   # Return the origin and size of the subsampled submatrix to be read.
   #
-  def ijk_region(self, step = None, subregion = None):
+  def ijk_aligned_region(self, step = None, subregion = None):
 
     r = self.subregion(step, subregion)
-    return self.subsample_region(r)
+    return self.step_aligned_region(r)
 
   # ---------------------------------------------------------------------------
-  # Return the origin and size of the subsampled submatrix to be read.
-  # Also return the subsampling factor and additional step (ie stride) that
-  # must be used to get the displayed data.
+  # Return the origin aligned to a multiple of step and size of the region and step.
   #
-  def subsample_region(self, region, clamp = True):
+  def step_aligned_region(self, region, clamp = True):
 
     ijk_min, ijk_max, ijk_step = region
     
     # Samples always have indices divisible by step, so increase ijk_min if
     # needed to make it a multiple of ijk_step.
-    m_ijk_min = [s*((i+s-1)//s) for i,s in zip(ijk_min, ijk_step)]
+    origin = [s*((i+s-1)//s) for i,s in zip(ijk_min, ijk_step)]
 
     # If region is non-empty but contains no step multiple decrease ijk_min.
     for a in range(3):
-      if m_ijk_min[a] > ijk_max[a] and ijk_min[a] <= ijk_max[a]:
-        m_ijk_min[a] -= ijk_step[a]
+      if origin[a] > ijk_max[a] and ijk_min[a] <= ijk_max[a]:
+        origin[a] -= ijk_step[a]
 
-    subsampling, ss_full_size = self.choose_subsampling(ijk_step)
-
-    ss_origin = [(i+s-1)//s for i,s in zip (m_ijk_min, subsampling)]
+    end = [s*(i+s)//s for i,s in zip(ijk_max, ijk_step)]
     if clamp:
-      ss_origin = [max(i,0) for i in ss_origin]
-    ss_end = [(i+s)//s for i,s in zip(ijk_max, subsampling)]
-    if clamp:
-      ss_end = [min(i,lim) for i,lim in zip(ss_end, ss_full_size)]
-    ss_size = [e-o for e,o in zip(ss_end, ss_origin)]
-    ss_step = [s//d for s,d in zip(ijk_step, subsampling)]
+      origin = [max(i,0) for i in origin]
+      end = [min(i,lim) for i,lim in zip(end, self.data.size)]
+    size = [e-o for e,o in zip(end, origin)]
 
-    return tuple(ss_origin), tuple(ss_size), tuple(subsampling), tuple(ss_step)
-
-  # ---------------------------------------------------------------------------
-  # Return the subsampling and size of subsampled matrix for the requested
-  # ijk_step.
-  #
-  def choose_subsampling(self, ijk_step):
-    
-    data = self.data
-    if not hasattr(data, 'available_subsamplings'):
-      return (1,1,1), data.size
-
-    compatible = []
-    for step, grid in data.available_subsamplings.items():
-      if (ijk_step[0] % step[0] == 0 and
-          ijk_step[1] % step[1] == 0 and
-          ijk_step[2] % step[2] == 0):
-        e = ((ijk_step[0] // step[0]) *
-             (ijk_step[1] // step[1]) *
-             (ijk_step[2] // step[2]))
-        compatible.append((e, step, grid.size))
-
-    if len(compatible) == 0:
-      return (1,1,1), data.size
-
-    subsampling, size = min(compatible)[1:]
-    return subsampling, size
+    return tuple(origin), tuple(size), tuple(ijk_step)
 
   # ---------------------------------------------------------------------------
   # Applying point_xform to points gives Chimera world coordinates.  If the
@@ -2546,9 +2555,9 @@ def full_region(size, ijk_step = [1,1,1]):
 
 # -----------------------------------------------------------------------------
 #
-def is_empty_region(ijk_region):
+def is_empty_region(region):
 
-  ijk_min, ijk_max, ijk_step = ijk_region
+  ijk_min, ijk_max, ijk_step = region
   for a,b in zip(ijk_max, ijk_min):
     if a - b + 1 <= 0:
       return True
@@ -2888,7 +2897,7 @@ class CancelOperation(BaseException):
 # -----------------------------------------------------------------------------
 # Decide whether a data region is small enough to show when opened.
 #
-def show_when_opened(data_region, show_on_open, max_voxels):
+def show_when_opened(v, show_on_open, max_voxels):
 
   if not show_on_open:
     return False
@@ -2897,8 +2906,9 @@ def show_when_opened(data_region, show_on_open, max_voxels):
     return False
   
   voxel_limit = int(max_voxels * (2 ** 20))
-  ss_origin, ss_size, subsampling, ss_step = data_region.ijk_region()
-  voxels = float(ss_size[0]) * float(ss_size[1]) * float(ss_size[2])
+  ijk_origin, ijk_size, ijk_step = v.ijk_aligned_region()
+  sx,sy,sz = [s//st for s,st in zip(ijk_size, ijk_step)]
+  voxels = sx*sy*sz
 
   return (voxels <= voxel_limit)
 
@@ -2987,6 +2997,11 @@ def open_grids(session, grids, name, **kw):
         if g.rgba is None:
           g.rgba = (0,1,0,1) # Green
 
+    channel = kw.get('channel', None)
+    if channel is not None:
+      for g in grids:
+        g.channel = channel
+        
     series = kw.get('vseries', None)
     if series is not None:
       if series:
@@ -3002,27 +3017,50 @@ def open_grids(session, grids, name, **kw):
 
     maps = []
     show = kw.get('show', True)
-    show_dialog = kw.get('show_dialog', True)
-    channels = [getattr(d, 'channel', 0) for d in grids]
-    channels.sort()
-    channel_show_max = channels[min(2,len(channels)-1)]
-    for i,d in enumerate(grids):
-        show_data = show and (i == 0 or not hasattr(d, 'series_index'))
-        kw = {'show_data': show_data, 'show_dialog': show_dialog}
-        if hasattr(d, 'initial_style') and d.initial_style in ('surface', 'mesh', 'solid'):
-          kw['representation'] = d.initial_style
-        v = volume_from_grid_data(d, session, open_model = False, **kw)
-        if getattr(d, 'channel', 0) > channel_show_max:
-          v.display = False	# Hide all but lowest 3 channels, but compute the graphics
-#        v.new_region(ijk_step = (1,1,1), adjust_step = False, show = show_data)
-        maps.append(v)
+    si = [d.series_index for d in grids if hasattr(d, 'series_index')]
+    is_series = (len(si) == len(grids) and len(set(si)) > 1)
+    cn = [d.channel for d in grids if d.channel is not None]
+    is_multichannel = (len(cn) == len(grids) and len(set(cn)) > 1)
+    for d in grids:
+      show_data = show
+      if is_series or is_multichannel:
+        show_data = False	# Map_Series or MapChannelsModel classes will decide which to show
+      vkw = {'show_data': show_data, 'show_dialog': False}
+      if hasattr(d, 'initial_style') and d.initial_style in ('surface', 'mesh', 'solid'):
+        vkw['representation'] = d.initial_style
+      v = volume_from_grid_data(d, session, open_model = False, **vkw)
+#      v.new_region(ijk_step = (1,1,1), adjust_step = False, show = show_data)
+      maps.append(v)
 
-    if len(maps) > 1 and len([d for d in grids if hasattr(d, 'series_index')]) == len(grids):
-        from .series import Map_Series
-        ms = Map_Series(name, maps, session)
-        msg = 'Opened map series %s, %d images' % (name, len(maps))
-        models = [ms]
+    show_dialog = kw.get('show_dialog', True)
+    if maps and show_dialog:
+      show_volume_dialog(session)
+
+    if is_series and is_multichannel:
+      cmaps = {}
+      for m in maps:
+        cmaps.setdefault(m.data.channel,[]).append(m)
+      if len(set(len(cm) for cm in cmaps.values())) > 1:
+        session.logger.warning('Map channels have differing numbers of series maps: %s'
+                               % ', '.join('%d (%d)' % (c,cm) for c, cm in cmaps.items()))
+      from .series import Map_Series
+      ms = [Map_Series('channel %d' % c, cm, session) for c, cm in cmaps.items()]
+      mc = MultiChannelSeries(name, ms, session)
+      msg = ('Opened multichannel map series %s, %d channels, %d images per channel'
+             % (name, len(ms), len(maps)//len(ms)))
+      models = [mc]
+    elif is_series:
+      from .series import Map_Series
+      ms = Map_Series(name, maps, session)
+      msg = 'Opened map series %s, %d images' % (name, len(maps))
+      models = [ms]
+    elif is_multichannel:
+      mc = MapChannelsModel(name, maps, session)
+      mc.show_n_channels(3)
+      msg = 'Opened multi-channel map %s, %d channels' % (name, len(maps))
+      models = [mc]
     else:
+      # TODO: Handle multi-times and multi-channels.
       msg = 'Opened %s' % maps[0].name
       models = maps
 
@@ -3041,6 +3079,125 @@ def open_grids(session, grids, name, **kw):
     
     return models, msg
 
+# -----------------------------------------------------------------------------
+#
+class MapChannels:
+  
+  def __init__(self, maps):
+    self.set_maps(maps)
+
+  def set_maps(self, maps):
+    for v in maps:
+      v._channels = self
+    self.maps = maps
+
+  def show_n_channels(self, n):
+    # Hide all but lowest N channels.
+    # Allen Institute data sometimes has 8 channels, mostly segmentations.
+    maps = self.maps
+    if len(maps) == 0:
+      return
+    channels = [v.data.channel for v in maps]
+    channels.sort()
+    channel_show_max = channels[min(2,len(channels)-1)]
+    for v in maps:
+      if v.data.channel > channel_show_max:
+        v.display = False
+      else:
+        v.initialize_thresholds()
+        v.show()
+    
+  @property
+  def first_channel(self):
+    return self.maps[0]
+
+# -----------------------------------------------------------------------------
+#
+class MapChannelsModel(Model, MapChannels):
+  
+  def __init__(self, name, maps, session):
+    Model.__init__(self, name, session)
+    self.add(maps)
+    MapChannels.__init__(self, maps)
+
+  # State save/restore in ChimeraX
+  def take_snapshot(self, session, flags):
+    from ..state import CORE_STATE_VERSION
+    data = {'model state': Model.take_snapshot(self, session, flags),
+            # Can't reference maps directly because it creates cyclic dependency.
+            'map ids': [m.id for m in self.maps],
+            'version': CORE_STATE_VERSION}
+    return data
+
+  @staticmethod
+  def restore_snapshot(session, data):
+    maps = []
+    c = MapChannelsModel('channels', maps, session)
+    Model.set_state_from_snapshot(c, session, data['model state'])
+
+    # Parent models are always restored before child models.
+    # Restore child map list after child maps are restored.
+    def restore_maps(trigger_name, session, channels = c, map_ids = data['map ids']):
+      idm = {m.id : m for m in channels.child_models()}
+      maps = [idm[id] for id in map_ids if id in idm]
+      channels.set_maps(maps)
+      from ..triggerset import DEREGISTER
+      return DEREGISTER
+    session.triggers.add_handler('end restore session', restore_maps)
+    
+    return c
+
+  def reset_state(self):
+    pass
+
+# -----------------------------------------------------------------------------
+#
+class MultiChannelSeries(Model):
+  
+  def __init__(self, name, map_series, session):
+    Model.__init__(self, name, session)
+    self.add(map_series)
+    self.set_map_series(map_series)
+
+  def set_map_series(self, map_series):
+    self.map_series = map_series
+    if map_series:
+      # For each time, group the map channels
+      for maps in zip(*tuple(ms.maps for ms in map_series)):
+        mc = MapChannels(maps)
+        for m in maps:
+          m._channels = mc
+
+  # State save/restore in ChimeraX
+  def take_snapshot(self, session, flags):
+    from ..state import CORE_STATE_VERSION
+    data = {'model state': Model.take_snapshot(self, session, flags),
+            # Can't reference maps directly because it creates cyclic dependency.
+            'map series ids': [m.id for m in self.map_series],
+            'version': CORE_STATE_VERSION}
+    return data
+
+  @staticmethod
+  def restore_snapshot(session, data):
+    map_series = []
+    mcs = MultiChannelSeries('mcs', map_series, session)
+    Model.set_state_from_snapshot(mcs, session, data['model state'])
+
+    # Parent models are always restored before child models.
+    # Restore child map list after child maps are restored.
+    def restore_maps(trigger_name, session, mcs = mcs, map_ids = data['map ids']):
+      idm = {m.id : m for m in mcs.child_models()}
+      map_series = [idm[id] for id in map_ids if id in idm]
+      channels.set_map_series(map_series)
+      from ..triggerset import DEREGISTER
+      return DEREGISTER
+    session.triggers.add_handler('end restore session', restore_maps)
+    
+    return mcs
+
+  def reset_state(self):
+    pass
+  
 # -----------------------------------------------------------------------------
 #
 def save_map(session, path, format_name, models = None, region = None, step = (1,1,1),
@@ -3087,7 +3244,13 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
         from .data import select_save_path
         path, format_name = select_save_path()
     if path:
-        grids = [v.grid_data(region, step, mask_zone) for v in vlist]
+        grids = []
+        for v in vlist:
+          g = v.grid_data(region, step, mask_zone)
+          color = v.single_color
+          if color is not None:
+            g.rgba = tuple(r/255 for r in color)	# Set default map color to current color
+          grids.append(g)
         from .data import save_grid_data
         if is_multifile_save(path):
             for i,g in enumerate(grids):
@@ -3119,11 +3282,11 @@ def register_map_file_formats(session):
       io.register_format(d, toolshed.VOLUME, suf, nicknames=nicknames,
                          open_func=open_map_format, batch=True, export_func=save_func)
 
-    # Add map specific keywords to open command
-    from ..commands import add_keyword_arguments, BoolArg
-    add_keyword_arguments('open', {'vseries':BoolArg})
+    # Add keywords to open command for maps
+    from ..commands import add_keyword_arguments, BoolArg, IntArg
+    add_keyword_arguments('open', {'vseries':BoolArg, 'channel':IntArg})
 
-    # Add map specific keywords to save command
+    # Add keywords to save command for maps
     from ..commands import BoolArg, ListOf, EnumOf, IntArg
     from .mapargs import MapRegionArg, Int1or3Arg
     save_map_args = [

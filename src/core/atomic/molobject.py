@@ -159,7 +159,9 @@ class Atom(State):
         "HIDE_RIBBON\n"
         "    Hide mask for backbone atoms in ribbon.\n"
         "HIDE_ISOLDE\n"
-        "    Hide mask for backbone atoms for ISOLDE.")
+        "    Hide mask for backbone atoms for ISOLDE.\n"
+        "HIDE_NUCLEOTIDE\n"
+        "    Hide mask for sidechain atoms in nucleotides.\n")
     idatm_type = c_property('atom_idatm_type', string, doc = "IDATM type")
     in_chain = c_property('atom_in_chain', npy_bool, read_only = True,
         doc = "Whether this atom belongs to a polymer. Read only.")
@@ -189,6 +191,44 @@ class Atom(State):
         doc = "Whether atom is ligand, ion, etc.")
     visible = c_property('atom_visible', npy_bool, read_only=True,
         doc="Whether atom is displayed and not hidden.")
+
+    @property
+    def display_radius(self):
+        dm = self.draw_mode
+        if dm == Atom.SPHERE_STYLE:
+            r = self.radius
+        elif dm == Atom.BALL_STYLE:
+            r = self.radius * self.structure.ball_scale
+        elif dm == Atom.STICK_STYLE:
+            r = self.maximum_bond_radius(self.structure.bond_radius)
+        return r
+
+    def maximum_bond_radius(self, default_radius = 0.2):
+        "Return maximum bond radius.  Used for stick style atom display."
+        f = c_function('atom_maximum_bond_radius',
+                       args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_float, ctypes.c_void_p])
+        r = ctypes.c_float()
+        f(ctypes.byref(self._c_pointer), 1, default_radius, ctypes.byref(r))
+        return r.value
+
+    def set_alt_loc(self, loc, create):
+        if isinstance(loc, str):
+            loc = loc.encode('utf-8')
+        f = c_function('atom_set_alt_loc', args=(ctypes.c_void_p, ctypes.c_char, ctypes.c_bool, ctypes.c_bool))
+        f(self._c_pointer, loc, create, False)
+
+    def has_alt_loc(self, loc):
+        if isinstance(loc, str):
+            loc = loc.encode('utf-8')
+        #value_type = npy_bool
+        #vtype = numpy_type_to_ctype[value_type]
+        vtype = ctypes.c_uint8
+        v = vtype()
+        v_ref = ctypes.byref(v)
+        f = c_array_function('atom_has_alt_loc', args=(byte,), per_object=False)
+        a_ref = ctypes.byref(self._c_pointer)
+        f(a_ref, 1, loc, v_ref)
+        return bool(v.value)
 
     @property
     def aniso_u(self):
@@ -274,23 +314,13 @@ class Atom(State):
         BBE_RIBBON
             The backbone atoms that a ribbon depiction hides
         '''
-        f = c_function('atom_is_backbone', args = (ctypes.c_void_p, ctypes.c_int),
-                ret = ctypes.c_bool)
-        return f(self._c_pointer, bb_type)
-
-    def maximum_bond_radius(self, default_radius = 0.2):
-        "Return maximum bond radius.  Used for stick style atom display."
-        f = c_function('atom_maximum_bond_radius',
-                       args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_float, ctypes.c_void_p])
-        r = ctypes.c_float()
-        f(ctypes.byref(self._c_pointer), 1, default_radius, ctypes.byref(r))
-        return r.value
-
-    def set_alt_loc(self, loc, create):
-        if isinstance(loc, str):
-            loc = loc.encode('utf-8')
-        f = c_function('atom_set_alt_loc', args=(ctypes.c_void_p, ctypes.c_char, ctypes.c_bool, ctypes.c_bool))
-        f(self._c_pointer, loc, create, False)
+        vtype = ctypes.c_uint8
+        v = vtype()
+        v_ref = ctypes.byref(v)
+        f = c_array_function('atom_is_backbone', args=(ctype_type_to_numpy[ctypes.c_int],), per_object=False)
+        a_ref = ctypes.byref(self._c_pointer)
+        f(a_ref, 1, bb_extent, v_ref)
+        return bool(v.value)
 
     def set_coord(self, xyz, cs_id):
         '''Used to set the atom's xyz for a particular coordset.  Just use the 'coord' attr
@@ -379,10 +409,12 @@ class Bond(State):
             return a1.__str__(style=style) + bond_sep + a2.__str__(atom_only=True, style=style)
         if a1.structure == a2.structure:
             # tautology for bonds, but this func is conscripted by pseudobonds, so test...
+            chain_str = "" if  a1.residue.chain_id == a2.residue.chain_id \
+                else '/' + a2.residue.chain_id + ' '
             res_str = a2.residue.__str__(residue_only=True)
             atom_str = a2.__str__(atom_only=True, style=style)
             joiner = "" if res_str.startswith(":") else " "
-            return a1.__str__(style=style) + bond_sep + res_str + joiner + atom_str
+            return a1.__str__(style=style) + bond_sep + chain_str + res_str + joiner + atom_str
         return a1.__str__(style=style) + bond_sep + a2.__str__(style=style)
 
     def atomspec(self):
@@ -505,6 +537,10 @@ class Pseudobond(State):
     '''Displayed cylinder radius for the bond.'''
     shown = c_property('pseudobond_shown', npy_bool, read_only = True)
     '''Whether bond is visible and both atoms are shown. Read only.'''
+    shown_when_atoms_hidden = c_property('pseudobond_shown_when_atoms_hidden', npy_bool, doc =
+    '''Controls whether the pseudobond is shown when the endpoint atoms are not
+    explictly displayed (atom.display == False) but are implicitly shown by a
+    ribbon or somesuch (atom.hide != 0).  Defaults to True.''')
 
     def delete(self):
         '''Delete this pseudobond from it's group'''
@@ -622,7 +658,9 @@ class PseudobondGroupData:
     _COLOR_CHANGE = 0x2
     _SELECT_CHANGE = 0x4
     _RIBBON_CHANGE = 0x8
-    _ALL_CHANGE = 0xf
+    _ADDDEL_CHANGE = 0x10
+    _DISPLAY_CHANGE = 0x20
+    _ALL_CHANGE = 0x2f
     _graphics_changed = c_property('pseudobond_group_graphics_change', int32)
 
 
@@ -715,8 +753,11 @@ class PseudobondManager(State):
         return pbm
 
     def reset_state(self, session):
-        f = c_function('pseudobond_global_manager_clear', args = (ctypes.c_void_p,))
-        f(self._c_pointer)
+        # Need to call delete() on the models, since just clearing out the C++
+        # will cause an error when the last reference to the Python object goes
+        # away, which causes delete() to get called
+        for pbg in list(self.group_map.values()):
+            pbg.delete()
 
     def _ses_call(self, func_qual):
         f = c_function('pseudobond_global_manager_session_' + func_qual, args=(ctypes.c_void_p,))
@@ -830,7 +871,7 @@ class Residue(State):
     '''Residue polymer type = amino acid.'''
     PT_NUCLEIC = 2
     '''Residue polymer type = nucleotide.'''
-    polymer_type = c_property('residue_polymer_type', int32, read_only = True)
+    polymer_type = c_property('residue_polymer_type', uint8, read_only = True)
     '''Polymer type of residue. Integer value.'''
     name = c_property('residue_name', string, read_only = True)
     '''Residue name. Maximum length 4 characters. Read only.'''
@@ -992,9 +1033,9 @@ class Sequence(State):
 
     # the following colors for use by alignment/sequence viewers
     default_helix_fill_color = (1.0, 1.0, 0.8)
-    default_strand_fill_color = (0.8, 1.0, 0.8)
     default_helix_outline_color = tuple([chan/255.0 for chan in (218, 165, 32)]) # goldenrod
-    default_strand_outline_color = tuple([chan/255.0 for chan in (50, 205, 50)]) # lime green
+    default_strand_fill_color = (0.88, 1.0, 1.0) # light cyan
+    default_strand_outline_color = tuple([0.75*chan for chan in default_strand_fill_color])
 
     chimera_exiting = False
 
@@ -1193,6 +1234,8 @@ class StructureSeq(Sequence):
     '''Number of residues in this sequence with existing structure. Read only.'''
     num_residues = c_property('sseq_num_residues', size_t, read_only = True)
     '''Number of residues belonging to this sequence, including those without structure. Read only.'''
+    polymer_type = c_property('sseq_polymer_type', uint8, read_only = True)
+    '''Polymer type of this sequence. Same values as Residue.polymer_type, except should not return PT_NONE.'''
     residues = c_property('sseq_residues', cptr, 'num_residues', astype = _residues_or_nones,
         read_only = True, doc = "List containing the residues of this sequence in order. "
         "Residues with no structure will be None. Read only.")
@@ -1491,6 +1534,8 @@ class StructureData:
     '''Number of visible atoms in structure. Read only.'''
     num_bonds = c_property('structure_num_bonds', size_t, read_only = True)
     '''Number of bonds in structure. Read only.'''
+    num_bonds_visible = c_property('structure_num_bonds_visible', size_t, read_only = True)
+    '''Number of visible bonds in structure. Read only.'''
     num_coordsets = c_property('structure_num_coordsets', size_t, read_only = True)
     '''Number of coordinate sets in structure. Read only.'''
     num_chains = c_property('structure_num_chains', size_t, read_only = True)
@@ -1664,7 +1709,8 @@ class StructureData:
     PMS_ALWAYS_CONNECTS, PMS_NEVER_CONNECTS, PMS_TRACE_CONNECTS = range(3)
     def polymers(self, missing_structure_treatment = PMS_ALWAYS_CONNECTS,
             consider_chains_ids = True):
-        '''Return a tuple of :class:`.Residues` objects each containing residues for one polymer.
+        '''Return a list of (:class:`.Residues`, Residue.polymer_type) tuples, one tuple
+        per polymer.
         'missing_structure_treatment' controls whether a single polymer can span any missing
         structure, no missing structure, or only missing structure that is part of a chain trace.
         'consider_chain_ids', if true, will break polymers when chain IDs change, regardless of
@@ -1672,9 +1718,9 @@ class StructureData:
         f = c_function('structure_polymers',
                        args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_int),
                        ret = ctypes.py_object)
-        resarrays = f(self._c_pointer, missing_structure_treatment, consider_chains_ids)
+        polymers = f(self._c_pointer, missing_structure_treatment, consider_chains_ids)
         from .molarray import Residues
-        return tuple(Residues(ra) for ra in resarrays)
+        return [(Residues(res_array), ptype) for res_array, ptype in polymers]
 
     def pseudobond_group(self, name, *, create_type = "normal"):
         '''Get or create a :class:`.PseudobondGroup` belonging to this structure.'''
@@ -1825,9 +1871,40 @@ class StructureData:
     _COLOR_CHANGE = 0x2
     _SELECT_CHANGE = 0x4
     _RIBBON_CHANGE = 0x8
-    _ALL_CHANGE = 0xf
+    _ADDDEL_CHANGE = 0x10
+    _DISPLAY_CHANGE = 0x20
+    _ALL_CHANGE = 0x2f
     _graphics_changed = c_property('structure_graphics_change', int32)
 
+# -----------------------------------------------------------------------------
+#
+class CoordSet(State):
+    '''
+    The coordinates for one frame of a Structure
+
+    To create a Bond use the :class:`.AtomicStructure` new_coordset() method.
+    '''
+    def __init__(self, cs_pointer):
+        set_c_pointer(self, cs_pointer)
+
+    # cpp_pointer and deleted are "base class" methods, though for performance reasons
+    # we are placing them directly in each class rather than using a base class,
+    # and for readability by most programmers we avoid using metaclasses
+    @property
+    def cpp_pointer(self):
+        '''Value that can be passed to C++ layer to be used as pointer (Python int)'''
+        return self._c_pointer.value
+
+    @property
+    def deleted(self):
+        '''Has the C++ side been deleted?'''
+        return not hasattr(self, '_c_pointer')
+
+    structure = c_property('coordset_structure', cptr, astype=_atomic_structure, read_only=True,
+        doc=":class:`.AtomicStructure` the coordset belongs to")
+
+# -----------------------------------------------------------------------------
+#
 class ChangeTracker:
     '''Per-session singleton change tracker keeps track of all
     atomic data changes'''
@@ -1911,6 +1988,8 @@ class ChangeTracker:
             return 5
         if klass.__name__ == "PseudobondGroup":
             return 6
+        if klass.__name__ == "CoordSet":
+            return 7
         raise AssertionError("Unknown class for change tracking")
 
 # -----------------------------------------------------------------------------

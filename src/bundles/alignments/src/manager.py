@@ -64,6 +64,8 @@ class AlignmentsManager(State):
         intrinsic : boolean
             If True, then the alignment is treated as "coupled" to the structures associated with
             it in that if all associations are removed then the alignment is destroyed.
+
+        Returns the created Alignment
         """
         if self.session.ui.is_gui:
             if len(seqs) > 1:
@@ -172,6 +174,8 @@ class AlignmentsManager(State):
         mgr._ses_restore(data)
         return mgr
 
+    SESSION_SAVE = True
+    
     def take_snapshot(self, session, flags):
         # viewer_info is "session independent"
         return {

@@ -97,7 +97,7 @@
 #
 class IMS_Data:
 
-    def __init__(self, path):
+    def __init__(self, path, keep_open = True, hdf5_cache_size = 2**30):
 
         self.path = path
 
@@ -105,15 +105,20 @@ class IMS_Data:
         self.name = os.path.basename(path)
     
         import tables
-        f = tables.open_file(path)
+        f = tables.open_file(path, chunk_cache_size = hdf5_cache_size)
 
         # Imaris image header values are numpy arrays of characters. Ugh.
-        im = f.root.DataSetInfo.Image._v_attrs
+        dsi = f.root.DataSetInfo
+        im = dsi.Image._v_attrs
         extent = [(float(im['ExtMin%d' % a].tostring()), float(im['ExtMax%d' % a].tostring())) for a in (0,1,2)]
         size = [int(im[axis].tostring()) for axis in ('X','Y','Z')]
         origin = [e1 for e1,e2 in extent]
         step = [(e2-e1)/s for (e1,e2),s in zip(extent,size)]
-        
+
+        # Colors
+        ccolors = self.channel_colors(dsi)
+        default_colors = ((1,0,0,1),(0,1,0,1),(0,0,1,0),(0,1,1,1),(1,1,0,1),(1,0,1,1))
+
         agroups = self.find_arrays(f.root)
         if len(agroups) == 0:
             raise ValueError('Imaris file %s contains no 3d arrays' % path)
@@ -142,15 +147,13 @@ class IMS_Data:
                         ch_arrays[channel][time].append((level, g, a[0]))
 
         cimages = {}
-        # TODO: Read channel color from header.
-        colors = ((1,0,0,1),(0,1,0,1),(0,0,1,0),(0,1,1,1),(1,1,0,1),(1,0,1,1))
         for c, times in ch_arrays.items():
-            rgba = colors[c%len(colors)]
+            rgba = ccolors[c] if c < len(ccolors) else default_colors[c%len(default_colors)]
             cimages[c] = cim = []
             for t, levels in times.items():
                 for lev,g,a in sorted(levels):
                     if lev == 0:
-                        i = IMS_Image(t,g,a,size,origin,step,rgba)
+                        i = IMS_Image(t,c,g,a,size,origin,step,rgba)
                         cim.append(i)
                     else:
                         ss = 2**lev
@@ -161,8 +164,24 @@ class IMS_Data:
 
         self.channel_images = cimages
 
-        f.close()
+        self.keep_open = keep_open
+        self.hdf_file = f if keep_open else None
+        if not keep_open:
+            f.close()
 
+    # --------------------------------------------------------------------------
+    #
+    def __del__(self):
+        self.close_file()
+
+    # --------------------------------------------------------------------------
+    #
+    def close_file(self):        
+        f = self.hdf_file
+        if f is not None:
+            self.hdf_file = None
+            f.close()
+            
     # --------------------------------------------------------------------------
     # Return list of grouped arrays.  Each element is a tuple containing a
     # group and a list of 3-d arrays that are children of the group.
@@ -204,7 +223,7 @@ class IMS_Data:
 #        traceback.print_stack()
         
         import tables
-        f = tables.open_file(self.path)
+        f = self.hdf_file if self.keep_open else tables.open_file(self.path)
         if progress:
             progress.close_on_cancel(f)
 #        array_path = choose_chunk_size(f, array_paths, ijk_size)
@@ -214,16 +233,34 @@ class IMS_Data:
         if progress:
             progress.done()
 
-        f.close()
+        if not self.keep_open:
+            f.close()
         return array
+
+    # --------------------------------------------------------------------------
+    # Read channel colors from HDF5, returning list of rgba 0-1 float values.
+    #
+    def channel_colors(self, dataset_info):
+        ccolors = []
+        while True:
+            cnum = len(ccolors)
+            cd = getattr(dataset_info, 'Channel %d' % cnum, None)
+            if cd is None:
+                break
+            a = cd._v_attrs
+            color = a.Color.tostring()
+            rgba = tuple(float(r) for r in color.split()) + (1.0,)
+            ccolors.append(rgba)
+        return ccolors
 
 # -----------------------------------------------------------------------------
 #
 class IMS_Image:
 
-    def __init__(self, time, group, array, size, origin, step, color):
+    def __init__(self, time, channel, group, array, size, origin, step, color):
 
         self.time = time
+        self.channel = channel
         
         self.array_path = array._v_pathname
 

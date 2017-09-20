@@ -33,7 +33,8 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="usageconventions.html">Usage</a>: <br><b>open formats</b>
 </h3>
 <p>
-The command <b>open</b> reads data from:
+The command <b>open</b> reads data in several
+<a href="#formats">formats</a> from:
 <ul>
 <li><a href="#local">local files</a>
 <li><a href="#url">URLs</a>
@@ -71,7 +72,7 @@ Examples:
 
 <a name="formats"></a>
 <p class="nav">
-[<a href="#top">back to top</a>]
+[<a href="#top">back to top: open</a>]
 </p>
 <h3>Input Formats</h3>
 <p>
@@ -242,12 +243,27 @@ target="_blank">COLLADA</a></td>
 <td align="center">.dae</td>
 <td align="center">graphical objects<br>(geometry nodes define surfaces)</td>
 </tr><tr>
+<td align="center"><a href="https://www.khronos.org/gltf"
+target="_blank">GL Transmission Format</a></td>
+<td align="center"><b>gltf</b></td>
+<td align="center">.glb</td>
+<td align="center">graphical objects</td>
+</tr><tr>
+<td align="center">
+<a href="http://www.fileformat.info/format/wavefrontobj/egff.htm"
+target="_blank">Wavefront OBJ</a>
+</td>
+<td align="center"><b>obj</b></td>
+<td align="center">.obj</td>
+<td align="center">graphical objects
+<br>(geometric and texture vertices, vertex normals, faces; no colors)</td>
+</tr><tr>
 <td align="center"><a href="http://en.wikipedia.org/wiki/STL_%28file_format%29#Binary_STL"
 target="_blank">STereoLithography (binary)</a></td>
 <td align="center"><b>stl</b></td>
 <td align="center">.stl</td>
 <td align="center">triangle-based format (binary)
-native to stereolithography CAD software
+native to stereolithography CAD software</td>
 <tr><tr>
 <td align="center"><a href="http://vtk.org/" 
 target="_blank">Visualization Toolkit (VTK) PolyData</a></td>
@@ -257,7 +273,8 @@ target="_blank">Visualization Toolkit (VTK) PolyData</a></td>
 <tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
 <a name="sequence"></a>
-<b>Sequences</b> (associated tool: <b>Multalign Viewer</b>)</td>
+<b>Sequences</b> (associated tool: 
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>)</td>
 <tr><tr>
 <td align="center">FASTA, aligned FASTA</td>
 <td align="center"><b>fasta</b></td>
@@ -319,7 +336,7 @@ hypertext to render in the
 
 <a name="local"></a>
 <p class="nav">
-[<a href="#top">back to top</a>]
+[<a href="#top">back to top: open</a>]
 </p>
 <h3>Local Files</h3>
 <blockquote>
@@ -330,6 +347,7 @@ hypertext to render in the
 [&nbsp;<b>vseries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>alignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>structureModel</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>atomic</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>ensembles</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<a href="#options"><i>general-options</i></a>&nbsp;
 </blockquote>
@@ -402,6 +420,20 @@ The coordinates of the existing model will be replaced with the new,
 unless <b>replace false</b> is used to indicate appending the new frames instead.
 </blockquote>
 <blockquote>
+<a name="atomicStructure"></a>
+<b>atomic</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to interpret coordinates read from mmCIF or PDB format as an atomic model 
+(<b>true</b>, default).
+Setting the option to <b>false</b> is appropriate for data such as SAXS models 
+that are simply collections of points 
+(possibly with connecting &ldquo;bonds&rdquo;)
+rather than realistically spaced atoms;
+it classifies the models as Structure rather than atomicStructure, 
+bypassing chemical perception steps like identifying
+<a href="../atomtypes.html">atom types</a>.
+</blockquote>
+<blockquote>
 <b>ensembles</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
 Whether to fetch ensembles associated with an IHM dataset 
@@ -418,7 +450,7 @@ in a Terminal window.
 
 <a name="url"></a>
 <p class="nav">
-[<a href="#top">back to top</a>]
+[<a href="#top">back to top: open</a>]
 </p>
 <h3>URLs</h3>
 
@@ -430,6 +462,7 @@ in a Terminal window.
 [&nbsp;<b>vseries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>alignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>structureModel</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>atomic</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>ensembles</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<a href="#options"><i>general-options</i></a>&nbsp;
 </blockquote>
@@ -447,7 +480,7 @@ are stored locally as described <a href="#ignoreCache">below</a>.
 
 <a name="fetch"></a>
 <p class="nav">
-[<a href="#top">back to top</a>]
+[<a href="#top">back to top: open</a>]
 </p>
 <h3>Fetch from Online Databases</h3>
 
@@ -586,7 +619,7 @@ Chimera instructions</a> for available identifiers</td>
 
 <a name="options"></a>
 <p class="nav">
-[<a href="#top">back to top</a>]
+[<a href="#top">back to top: open</a>]
 </p>
 <h3>General Options</h3>
 <blockquote>
@@ -639,5 +672,5 @@ the single best-matching sequence is associated.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2017</address>
+September 2017</address>
 </body></html>

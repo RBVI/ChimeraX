@@ -24,11 +24,11 @@ def register_core_commands(session):
         'delete', 'devel', 'dssp', 'exit', 'graphics', 'hide',
         'lighting',
         'material', 'measure_buriedarea', 'measure_sasa', 'mousemode', 'move',
-        'open', 'pdbimages', 'perframe', 'pwd',
+        'open', 'palette', 'pdbimages', 'perframe', 'pwd',
         'rainbow', 'rename', 'roll', 'run', 'rungs', 'runscript',
-        'save', 'scolor', 'select', 'set', 'show', 'split',
+        'save', 'scolor', 'select', 'set', 'setattr', 'show', 'split',
         'stop', 'style', 'surface', 'sym',
-        'time', 'toolshed', 'transparency', 'turn',
+        'time', 'toolshed', 'transparency', 'turn', 'undo',
         'usage', 'view', 'version', 'wait', 'windowsize', 'zoom'
     ]
     for mod in modules:

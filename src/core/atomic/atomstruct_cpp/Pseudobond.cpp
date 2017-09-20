@@ -25,14 +25,15 @@ namespace atomstruct {
 ChangeTracker*
 Pseudobond::change_tracker() const { return atoms()[0]->change_tracker(); }
 
-GraphicsContainer*
-Pseudobond::graphics_container() const { return static_cast<GraphicsContainer*>(group()); }
+GraphicsChanges*
+Pseudobond::graphics_changes() const { return static_cast<GraphicsChanges*>(group()); }
 
 void
 Pseudobond::session_restore(int version, int** ints, float** floats) {
     Connection::session_restore(session_base_version(version), ints, floats);
     auto& int_ptr = *ints;
     auto id = int_ptr[0];
+    _shown_when_atoms_hidden = version < 9 ? true : int_ptr[1];
     int_ptr += SESSION_NUM_INTS(version);
     auto ses_map = group()->manager()->session_restore_pbs;
     (*ses_map)[id] = this;
@@ -46,6 +47,7 @@ Pseudobond::session_save(int** ints, float** floats) const {
     // IDs issued during group->session_save_setup
     auto ses_map = group()->manager()->session_save_pbs;
     int_ptr[0] = (*ses_map)[this];
+    int_ptr[1] = _shown_when_atoms_hidden;
     int_ptr += SESSION_NUM_INTS();
 }
 

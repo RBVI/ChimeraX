@@ -214,17 +214,18 @@ class ColormapArg(cli.Annotation):
             from ..colors import Colormap
             return Colormap(values, [c.rgba for c in colors]), text, rest
         else:
+            ci_token = token.casefold()
             if session is not None:
-                i = session.user_colormaps.bisect_left(token)
+                i = session.user_colormaps.bisect_left(ci_token)
                 if i < len(session.user_colormaps):
                     name = session.user_colormaps.iloc[i]
-                    if name.startswith(token):
+                    if name.startswith(ci_token):
                         return session.user_colormaps[name], name, rest
             from ..colors import BuiltinColormaps
-            i = BuiltinColormaps.bisect_left(token)
+            i = BuiltinColormaps.bisect_left(ci_token)
             if i < len(BuiltinColormaps):
                 name = BuiltinColormaps.iloc[i]
-                if name.startswith(token):
+                if name.startswith(ci_token):
                     return BuiltinColormaps[name], name, rest
             return _fetch_colormap(session, palette_id=token), token, rest
 

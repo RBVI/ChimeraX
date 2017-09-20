@@ -242,7 +242,7 @@ def angle_pos(atom_pos, bond_pos, bond_length, degrees, coplanar=None):
             xforms.append(xform)
 
     else:
-        from ..geom.place import z_align
+        from ..geometry.place import z_align
         xforms = [z_align(atom_pos, bond_pos)]
     points = []
     for xform in xforms:
