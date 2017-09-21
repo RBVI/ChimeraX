@@ -24,14 +24,14 @@ class _MyAPI(BundleAPI):
         register(command_name, cmd.help_desc, cmd.help, logger=logger)
 
     @staticmethod
-    def open_file(session, path, file_name):
+    def open_file(session, path, file_name, new=False):
         # 'open_file' is called by session code to open a file
         import os
         path = os.path.abspath(path)
         from urllib.parse import urlunparse
         from urllib.request import pathname2url
         url = urlunparse(('file', '', pathname2url(path), '', '', ''))
-        show_url(session, url)
+        show_url(session, url, new=new)
         return [], "Opened %s" % file_name
 
     @staticmethod
