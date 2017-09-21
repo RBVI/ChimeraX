@@ -172,8 +172,8 @@ public:
     }
     Pseudobond*  new_pseudobond(Atom* a1, Atom* a2);
     const Pseudobonds&  pseudobonds() const { return _pbonds; }
-    int  session_num_ints(int version=0) const;
-    int  session_num_floats(int version=0) const;
+    int  session_num_ints(int version=CURRENT_SESSION_VERSION) const;
+    int  session_num_floats(int version=CURRENT_SESSION_VERSION) const;
     void  session_restore(int version, int** , float**);
     void  session_save(int** , float**) const;
     void  session_save_setup() const;

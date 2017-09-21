@@ -18,27 +18,37 @@
 #   "delete" - called to clean up before instance is deleted
 #
 from chimerax.core.tools import ToolInstance
-import weakref
+from chimerax.core.ui.widgets import ChimeraXHtmlView
 
-_targets = weakref.WeakValueDictionary()
+_singleton = None
+
+
+class _HelpWebView(ChimeraXHtmlView):
+
+    def __init__(self, session, tool):
+        super().__init__(session, tool.tabs)
+        self.session = session
+        self.help_tool = tool
+
+    def createWindow(self, win_type):
+        # win_type is window, tab, dialog, backgroundtab
+        return self.help_tool.create_tab()
+
 
 class HelpUI(ToolInstance):
 
     SESSION_ENDURING = True     # do not close when opening session (especially
                                 # if web page asked to open session)
 
-    def __init__(self, session, target):
+    def __init__(self, session):
         tool_name = "Help Viewer"
         ToolInstance.__init__(self, session, tool_name)
         from chimerax import app_dirs
-        self.target = target
         from chimerax.core.ui.gui import MainToolWindow
         self.tool_window = MainToolWindow(self)
         parent = self.tool_window.ui_area
-        self.on_page = None
-        self.home_page = None
         # UI content code
-        from PyQt5.QtWidgets import QToolBar, QVBoxLayout, QAction, QLabel, QLineEdit
+        from PyQt5.QtWidgets import QToolBar, QVBoxLayout, QAction, QLabel, QLineEdit, QTabWidget
         from PyQt5.QtGui import QIcon
         # from PyQt5.QtCore import Qt
         self.toolbar = tb = QToolBar()
@@ -80,91 +90,120 @@ class HelpUI(ToolInstance):
         self.search.setPlaceholderText("search terms")
         self.search.setMaximumWidth(200)
         tb.addWidget(self.search)
+        self.tabs = QTabWidget(parent)
+        self.tabs.setTabsClosable(True)
+        self.tabs.setUsesScrollButtons(True)
+        self.tabs.currentChanged.connect(self.tab_changed)
+        self.tabs.tabCloseRequested.connect(self.tab_close)
+        layout.addWidget(self.tabs)
 
-        from chimerax.core.ui.widgets import ChimeraXHtmlView
-        class HelpWebView(ChimeraXHtmlView):
-
-            def __init__(self, session, parent):
-                super().__init__(session, parent)
-                self.session = session
-
-            def createWindow(self, win_type):
-                # win_type is window, tab, dialog, backgroundtab
-                help_ui = HelpUI.get_viewer(self.session)  # TODO: target
-                return help_ui.help_window
-        self.help_window = HelpWebView(session, parent)
-        layout.addWidget(self.help_window)
-        self.help_window.loadFinished.connect(self.page_loaded)
-        self.help_window.titleChanged.connect(self.title_changed)
-        self.search.returnPressed.connect(lambda s=self.search, hw=self.help_window:
-            hw.findText(s.text()))
+        self.search.returnPressed.connect(self.page_search)
         self.url.returnPressed.connect(self.go_to)
 
         self.tool_window.manage(placement=None)
 
-    def show(self, url, set_home=False):
+    def create_tab(self):
+        w = _HelpWebView(self.session, self)
+        self.tabs.addTab(w, "")
+        self.tabs.setCurrentWidget(w)
+        w.loadFinished.connect(lambda okay, w=w: self.page_loaded(w, okay))
+        w.titleChanged.connect(lambda title, w=w: self.title_changed(w, title))
+        return w
+
+    def show(self, url, *, new=False):
         from urllib.parse import urlparse, urlunparse
         parts = urlparse(url)
         if not parts.scheme:
             parts = list(parts)
             parts[0] = "http"
         url = urlunparse(parts)  # canonicalize
-        self.on_page = url
-        if set_home or not self.home_page:
-            self.home_page = url
-            if set_home:
-                self.help_window.history().clear()
-                self.back.setEnabled(False)
-                self.forward.setEnabled(False)
+        if new or self.tabs.count() == 0:
+            w = self.create_tab()
+        else:
+            w = self.tabs.currentWidget()
         from PyQt5.QtCore import QUrl
-        self.help_window.setUrl(QUrl(url))
+        w.setUrl(QUrl(url))
+        self.display(True)
 
     def go_to(self):
         self.show(self.url.text())
 
     def page_back(self, checked):
-        self.help_window.history().back()
+        w = self.tabs.currentWidget()
+        if w is None:
+            return
+        w.history().back()
 
     def page_forward(self, checked):
-        self.help_window.history().forward()
+        w = self.tabs.currentWidget()
+        if w is None:
+            return
+        w.history().forward()
 
     def page_home(self, checked):
-        self.show(self.home_page)
+        w = self.tabs.currentWidget()
+        if w is None:
+            return
+        history = w.history()
+        hi = history.itemAt(0)
+        self.show(hi.url().url())
 
     def page_zoom_in(self, checked):
-        self.help_window.setZoomFactor(1.25 * self.help_window.zoomFactor())
+        w = self.tabs.currentWidget()
+        if w is None:
+            return
+        w.setZoomFactor(1.25 * self.help_window.zoomFactor())
 
     def page_zoom_out(self, checked):
-        self.help_window.setZoomFactor(0.8 * self.help_window.zoomFactor())
+        w = self.tabs.currentWidget()
+        if w is None:
+            return
+        w.setZoomFactor(0.8 * self.help_window.zoomFactor())
 
     def page_reload(self, checked):
-        self.help_window.reload()
+        w = self.tabs.currentWidget()
+        if w is None:
+            return
+        w.reload()
+
+    def page_search(self):
+        w = self.tabs.currentWidget()
+        if w is None:
+            return
+        w.findText(self.search.text())
 
     def delete(self):
+        global _singleton
+        _singleton = None
         ToolInstance.delete(self)
-        try:
-            del _targets[self.target]
-        except:
-            pass
 
-    def page_loaded(self, okay):
-        page = self.help_window.page()
-        history = self.help_window.history()
+    def page_loaded(self, w, okay):
+        if self.tabs.currentWidget() != w:
+            return
+        history = w.history()
         self.back.setEnabled(history.canGoBack())
         self.forward.setEnabled(history.canGoForward())
-        self.url.setText(self.help_window.url().url())
+        self.url.setText(w.url().url())
 
-    def title_changed(self, title):
-        self.tool_window.title = title
+    def title_changed(self, w, title):
+        if self.tabs.currentWidget() == w:
+            self.tool_window.title = title
+        i = self.tabs.indexOf(w)
+        self.tabs.setTabText(i, title)
+
+    def tab_changed(self, i):
+        if i >= 0:
+            self.tool_window.title = self.tabs.tabText(i)
+        else:
+            # no more tabs
+            self.display(False)
+
+    def tab_close(self, i):
+        self.tabs.removeTab(i)
 
     @classmethod
     def get_viewer(cls, session, target=None):
-        # TODO: reenable multiple target windows
-        # if target is None:
-        if 1:
-            target = 'help'
-        if target in _targets:
-            return _targets[target]
-        viewer = HelpUI(session, target)
-        _targets[target] = viewer
-        return viewer
+        global _singleton
+        if _singleton is None:
+            _singleton = HelpUI(session)
+        return _singleton
