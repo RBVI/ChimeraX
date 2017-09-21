@@ -175,6 +175,9 @@ class HelpUI(ToolInstance):
     def delete(self):
         global _singleton
         _singleton = None
+        # remove tabs before destroying tool to avoid segfault when exiting
+        for i in reversed(range(self.tabs.count())):
+            self.tabs.removeTab(i)
         ToolInstance.delete(self)
 
     def page_loaded(self, w, okay):
