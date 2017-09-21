@@ -378,10 +378,14 @@ metal_coordination_bonds(Structure* as)
             }
             bi = metal_bonds.begin();
             for (auto nb: metal->neighbors()) {
-                for (auto gnb: nb->neighbors()) {
-                    if (metals.find(gnb) == metals.end()
-                    && gnb->residue() == nb->residue())
-                        del_bonds.insert(*bi);
+                if (metals.find(nb) != metals.end()) {
+                    del_bonds.insert(*bi);
+                } else {
+                    for (auto gnb: nb->neighbors()) {
+                        if (metals.find(gnb) == metals.end()
+                        && gnb->residue() == nb->residue())
+                            del_bonds.insert(*bi);
+                    }
                 }
                 ++bi;
             }
