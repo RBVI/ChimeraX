@@ -13,6 +13,7 @@
 
 from chimerax.core.toolshed import BundleAPI
 
+
 class _MyAPI(BundleAPI):
 
     @staticmethod
@@ -41,6 +42,7 @@ class _MyAPI(BundleAPI):
             return tool.HelpUI
         return None
 
+
 def show_url(session, url, *, new=False):
     if session.ui.is_gui:
         from .tool import HelpUI
@@ -49,5 +51,6 @@ def show_url(session, url, *, new=False):
     else:
         import webbrowser
         webbrowser.open(url, new=new)
+
 
 bundle_api = _MyAPI()

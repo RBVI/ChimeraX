@@ -37,13 +37,12 @@ class _HelpWebView(ChimeraXHtmlView):
 
 class HelpUI(ToolInstance):
 
-    SESSION_ENDURING = True     # do not close when opening session (especially
-                                # if web page asked to open session)
+    # do not close when opening session (especially if web page asked to open session)
+    SESSION_ENDURING = True
 
     def __init__(self, session):
         tool_name = "Help Viewer"
         ToolInstance.__init__(self, session, tool_name)
-        from chimerax import app_dirs
         from chimerax.core.ui.gui import MainToolWindow
         self.tool_window = MainToolWindow(self)
         parent = self.tool_window.ui_area
@@ -58,14 +57,14 @@ class HelpUI(ToolInstance):
         parent.setLayout(layout)
         import os.path
         icon_dir = os.path.dirname(__file__)
-            # attribute, text, tool tip, callback, enabled
+        # attribute, text, tool tip, callback, enabled
         buttons = (
-            ( "back", "Back", "Back to previous page", self.page_back, False ),
-            ( "forward", "Forward", "Next page", self.page_forward, False ),
-            ( "reload", "Reload", "Reload page", self.page_reload, True ),
-            ( "zoom_in", "Zoom in", "Zoom in", self.page_zoom_in, True ),
-            ( "zoom_out", "Zoom out", "Zoom out", self.page_zoom_out, True ),
-            ( "home", "Home", "Home page", self.page_home, True ),
+            ("back", "Back", "Back to previous page", self.page_back, False),
+            ("forward", "Forward", "Next page", self.page_forward, False),
+            ("reload", "Reload", "Reload page", self.page_reload, True),
+            ("zoom_in", "Zoom in", "Zoom in", self.page_zoom_in, True),
+            ("zoom_out", "Zoom out", "Zoom out", self.page_zoom_out, True),
+            ("home", "Home", "Home page", self.page_home, True),
         )
         for attribute, text, tooltip, callback, enabled in buttons:
             icon_path = os.path.join(icon_dir, "%s.png" % attribute)

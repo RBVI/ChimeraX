@@ -87,8 +87,8 @@ def help(session, topic=None, *, option=None, is_query=False):
             alias = cli.expand_alias(cmd_name)
             if not alias:
                 break
-            #if not is_query:
-            #    run(session, "usage %s" % cmd_name, log=False)
+            # if not is_query:
+            #     run(session, "usage %s" % cmd_name, log=False)
             alias_words = alias.split()
             for i in range(len(alias_words)):
                 try:
@@ -103,6 +103,7 @@ def help(session, topic=None, *, option=None, is_query=False):
         return
     from . import show_url
     show_url(session, url, new=(option == 'new'))
+
 
 help_desc = CmdDesc(
     optional=[
