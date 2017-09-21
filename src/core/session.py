@@ -424,13 +424,10 @@ class Session:
                 fserialize = serialize.pickle_serialize
                 fserialize(stream, version)
             elif version == 2:
-                # TODO: raise UserError("Version 2 session files are no longer supported")
-                stream.write(b'# ChimeraX Session version 2\n')
-                stream = serialize.msgpack_serialize_stream_v2(stream)
-                fserialize = serialize.msgpack_serialize
+                raise UserError("Version 2 session files are no longer supported")
             else:
                 if version != 3:
-                    raise UserError("Only session file versions 1, 2, and 3 are supported")
+                    raise UserError("Only session file versions 1 and 3 are supported")
                 stream.write(b'# ChimeraX Session version 3\n')
                 stream = serialize.msgpack_serialize_stream(stream)
                 fserialize = serialize.msgpack_serialize
@@ -473,6 +470,7 @@ class Session:
                 raise RuntimeError('Not a ChimeraX session file')
             version = int(tokens[4])
             if version == 2:
+                self.logger.error("Session file format version 2 detected.  DO NOT RESAVE.  Recreate session from scratch, and then save.")
                 stream = serialize.msgpack_deserialize_stream_v2(stream)
             elif version == 3:
                 stream = serialize.msgpack_deserialize_stream(stream)
@@ -546,7 +544,7 @@ class InScriptFlag:
         return self._level > 0
 
 
-def save(session, path, version=1, uncompressed=False):
+def save(session, path, version=3, uncompressed=False):
     """command line version of saving a session"""
     my_open = None
     if hasattr(path, 'write'):
@@ -699,6 +697,8 @@ def save_x3d(session, path, transparent_background=False):
     if user is None:
         user = os.getlogin()
     meta['author'] = user
+    # Split 'copy' 'right' so updating code does not try to replace it
+    meta['copy' 'right'] = '© %d by %s.  All Rights reserved.' % (year, user)
 
     # record needed X3D components
     x3d_scene.need(x3d.Components.EnvironmentalEffects, 1)  # Background

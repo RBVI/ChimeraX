@@ -1524,22 +1524,25 @@ class Thresholds_Panel(PopupPanel):
       hf.resize(w, hf.height())
       
   # ---------------------------------------------------------------------------
-  # Resize thresholds panel to fit up to 3 histograms before scrolling.
+  # Resize thresholds panel to fit more histograms up to 350 pixels total height.
   #
-  def resize_panel(self, nhist = 3):
+  def resize_panel(self, max_height = 350):
 
     hpanes = self.histogram_panes
     n = len(hpanes)
-    if n == 0 or n > nhist:
+    if n == 0:
         return
 
     hf = self.histograms_frame
     h = hf.height() + 2*hf.lineWidth()
     f = self.frame
-    if f.height() < h:
-        # This is the only way I could find to convince a QDockWidget to
-        # resize to a size I request.
-        f.setMinimumHeight(h)
+    h = min(h, max_height)
+    if h <= f.height():
+        return
+
+    # This is the only way I could find to convince a QDockWidget to
+    # resize to a size I request.
+    f.setMinimumHeight(h)
 
     # Allow resizing panel smaller with mouse
     from PyQt5.QtCore import QTimer
@@ -2034,7 +2037,7 @@ class Histogram_Pane:
       nijk_min[2] = k
       nijk_max = list(ijk_max)
       nijk_max[2] = k
-      v.new_region(nijk_min, nijk_max, ijk_step)
+      v.new_region(nijk_min, nijk_max, ijk_step, show = v.shown())
       for vc in v.other_channels():
           vc.new_region(nijk_min, nijk_max, ijk_step, show = vc.shown())
       # Make sure this plane is shown before we show another plane.
@@ -2262,12 +2265,11 @@ class Histogram_Pane:
     show = self.shown.isChecked()
     v.display = show
 
-    self.update_shown_icon()
-
     if show:
       self.select_data_cb()
 
   # ---------------------------------------------------------------------------
+  # Not used.
   #
   def check_shown_cb(self, trigger, x, changes):
 
@@ -2295,7 +2297,7 @@ class Histogram_Pane:
     if v is None:
       return
 
-    shown = v.shown()
+    shown = v.display
     fname = 'shown.png' if shown else 'hidden.png'
     s = self.shown
     if fname == getattr(s, 'file_name', None):
@@ -2477,12 +2479,19 @@ class Histogram_Pane:
   def set_threshold_and_color_widgets(self):
 
     markers, m = self.selected_histogram_marker()
+    rgba = None
     if m:
       threshold = m.xy[0]
       t_str = float_format(threshold, 3)
       self.threshold.setText(t_str)
-      from .histogram import hex_color_name
-      self.color.setStyleSheet('background-color: %s' % hex_color_name(m.rgba[:3]))
+      rgba = m.rgba
+    else:
+        v = self.volume
+        if v:
+            rgba = v.default_rgba
+    if rgba is not None:
+        from .histogram import hex_color_name
+        self.color.setStyleSheet('background-color: %s' % hex_color_name(rgba[:3]))
 
   # ---------------------------------------------------------------------------
   #

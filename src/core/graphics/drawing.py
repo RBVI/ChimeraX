@@ -209,11 +209,13 @@ class Drawing:
         '''Return the list of surface pieces.'''
         return self._child_drawings
 
-    def all_drawings(self):
+    def all_drawings(self, displayed_only = False):
         '''Return all drawings including self and children at all levels.'''
+        if displayed_only and not self.display:
+            return []
         dlist = [self]
         for d in self.child_drawings():
-            dlist.extend(d.all_drawings())
+            dlist.extend(d.all_drawings(displayed_only))
         return dlist
 
     def new_drawing(self, name=None):
@@ -463,7 +465,10 @@ class Drawing:
     '''Single color of drawing used when per-vertex coloring is not
     specified, 0-255 red, green, blue, alpha values.'''
 
-    def get_colors(self):
+    def get_colors(self, displayed_only=False):
+        if displayed_only:
+            dp = self.display_positions
+            return self._colors if dp is None else self._colors[dp]
         return self._colors
 
     def set_colors(self, rgba):
@@ -562,7 +567,8 @@ class Drawing:
     def empty_drawing(self):
         '''Does this drawing have no geometry? Does not consider child
         drawings.'''
-        return self.vertices is None
+        v,t = self.vertices, self.triangles
+        return v is None or t is None or len(t) == 0
 
     def number_of_triangles(self, displayed_only=False):
         '''Return the number of triangles including all child drawings
@@ -1080,8 +1086,18 @@ class Drawing:
     @property
     def masked_triangles(self):
         ta = self.triangles
+        if ta is None:
+            return None
         tm = self._triangle_mask
         return ta if tm is None else ta[tm,:]
+
+    @property
+    def num_masked_triangles(self):
+        ta = self.triangles
+        if ta is None:
+            return 0
+        tm = self._triangle_mask
+        return len(ta) if tm is None else tm.sum()
 
     def x3d_needs(self, x3d_scene):
         if not self.display:

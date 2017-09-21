@@ -610,6 +610,7 @@ class MainWindow(QMainWindow, PlainTextLog):
     def _build_status(self):
         from .statusbar import _StatusBar
         self._status_bar = sbar = _StatusBar(self.session)
+        sbar.pad_vert = 0.2	# Make text in main status bar a little smaller to match command-line
         sb = sbar.widget
         self._global_hide_button = ghb = QToolButton(sb)
         self._rapid_access_button = rab = QToolButton(sb)
@@ -686,15 +687,15 @@ class MainWindow(QMainWindow, PlainTextLog):
         edit_menu.addAction(self.redo_action)
         edit_menu.addSeparator()
         cut_action = QAction("&Cut", self)
-        cut_action.setShortcut("Ctrl+X")
+        # cut_action.setShortcut("Ctrl+X")
         cut_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_ccp_cb(sess, Qt.Key_X))
         edit_menu.addAction(cut_action)
         copy_action = QAction("&Copy", self)
-        copy_action.setShortcut("Ctrl+C")
+        # copy_action.setShortcut("Ctrl+C")
         copy_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_ccp_cb(sess, Qt.Key_C))
         edit_menu.addAction(copy_action)
         paste_action = QAction("&Paste", self)
-        paste_action.setShortcut("Ctrl+V")
+        # paste_action.setShortcut("Ctrl+V")
         paste_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_ccp_cb(sess, Qt.Key_V))
         edit_menu.addAction(paste_action)
 

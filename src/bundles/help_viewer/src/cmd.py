@@ -14,7 +14,7 @@
 from chimerax.core.commands import CmdDesc, Or, EnumOf, EmptyArg, RestOfLine, run, cli
 
 
-def help(session, topic=None, *, option=None, is_query=False, target=None):
+def help(session, topic=None, *, option=None, is_query=False):
     '''Display help
 
     Parameters
@@ -102,12 +102,12 @@ def help(session, topic=None, *, option=None, is_query=False, target=None):
         run(session, "usage %s" % topic, log=False)
         return
     from . import show_url
-    show_url(session, url)
+    show_url(session, url, new=(option == 'new'))
 
 help_desc = CmdDesc(
     optional=[
-        #('option',
-        # Or(EnumOf(['new_viewer'], abbreviations=False), EmptyArg)),
+        ('option',
+         Or(EnumOf(['new'], abbreviations=False), EmptyArg)),
         ('topic', RestOfLine)
     ],
     non_keyword=('option', 'topic'),

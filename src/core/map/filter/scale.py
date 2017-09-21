@@ -59,15 +59,14 @@ class Scaled_Grid(Grid_Data):
     self.scale = scale
     self.shift = shift
     self.value_type = vt = (value_type or g.value_type)
-    Grid_Data.__init__(self, g.size, vt, g.origin, g.step,
-                       g.cell_angles, g.rotation, g.symmetries,
-                       name = g.name + ' scaled', default_color = g.rgba)
+    settings = g.settings(value_type=vt, name = g.name + ' scaled')
+    Grid_Data.__init__(self, **settings)
     
   # ---------------------------------------------------------------------------
   #
   def read_matrix(self, ijk_origin, ijk_size, ijk_step, progress):
 
-    data = self.grid_data.read_matrix(ijk_origin, ijk_size, ijk_step, progress)
+    data = self.grid_data.matrix(ijk_origin, ijk_size, ijk_step, progress)
     s = self.scale
     o = self.shift
     t = self.value_type

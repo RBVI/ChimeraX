@@ -20,7 +20,8 @@ _SequentialLevels = ["residues", "chains", "polymers", "structures"]
 def color(session, objects, color=None, what=None,
           target=None, transparency=None,
           sequential=None, palette=None, halfbond=None,
-          map=None, range=None, offset=0, zone=None, distance=2):
+          map=None, range=None, offset=0, zone=None, distance=2,
+          undo_name="color"):
     """Color atoms, ribbons, surfaces, ....
 
     Parameters
@@ -76,7 +77,8 @@ def color(session, objects, color=None, what=None,
             target = ''
         target += what_target[what]
 
-    undo_data = {}
+    from ..undo import UndoState
+    undo_state = UndoState(undo_name)
 
     # Decide whether to set or preserve transparency
     opacity = None
@@ -88,7 +90,7 @@ def color(session, objects, color=None, what=None,
     if halfbond is not None and atoms is not None:
         bonds = atoms.intra_bonds
         if len(bonds) > 0:
-            undo_data["halfbond"] = (bonds, bonds.halfbonds, halfbond)
+            undo_state.add(bonds, "halfbonds", bonds.halfbonds, halfbond)
             bonds.halfbonds = halfbond
 
     if sequential is not None:
@@ -99,7 +101,8 @@ def color(session, objects, color=None, what=None,
             raise UserError("sequential \"%s\" not implemented yet"
                             % sequential)
         else:
-            f(session, objects, palette, opacity, target, undo_data)
+            f(session, objects, palette, opacity, target, undo_state)
+            session.undo.register(undo_state)
             return
 
     if zone is not None:
@@ -125,7 +128,7 @@ def color(session, objects, color=None, what=None,
     if 'a' in target:
         # atoms/bonds
         if atoms is not None and color is not None:
-            undo_data["atoms"] = _set_atom_colors(atoms, color, opacity, bgcolor)
+            _set_atom_colors(atoms, color, opacity, bgcolor, undo_state)
             what.append('%d atoms' % len(atoms))
 
     if 'l' in target:
@@ -133,13 +136,15 @@ def color(session, objects, color=None, what=None,
             session.logger.warning('Label colors not supported yet')
 
     if 's' in target and (color is not None or map is not None):
+        # TODO: save undo data
         from ..atomic import MolecularSurface, concatenate, Structure, PseudobondGroup
         msatoms = [m.atoms for m in objects.models
                    if isinstance(m, MolecularSurface) and not m.atoms.intersects(atoms)]
         satoms = concatenate(msatoms + [atoms]) if msatoms else atoms
         if color == "byhetero":
             satoms = satoms.filter(satoms.element_numbers != 6)
-        ns = _set_surface_colors(session, satoms, color, opacity, bgcolor, map, palette, range, offset)
+        ns = _set_surface_colors(session, satoms, color, opacity, bgcolor,
+                                 map, palette, range, offset, undo_state=undo_state)
         # Handle non-molecular surfaces like density maps
         if color not in _SpecialColors:
             mlist = [m for m in objects.models if not isinstance(m, (Structure, MolecularSurface, PseudobondGroup))]
@@ -150,7 +155,7 @@ def color(session, objects, color=None, what=None,
 
     if 'c' in target and color is not None:
         residues = atoms.unique_residues
-        undo_data["cartoon"] = _set_ribbon_colors(residues, color, opacity, bgcolor)
+        _set_ribbon_colors(residues, color, opacity, bgcolor, undo_state)
         what.append('%d residues' % len(residues))
 
     if 'b' in target and color is not None:
@@ -159,7 +164,7 @@ def color(session, objects, color=None, what=None,
             if len(bonds) > 0:
                 if color not in _SpecialColors:
                     color_array = color.uint8x4()
-                    undo_data["bonds"] = (bonds, bonds.color, color_array)
+                    undo_state.add(bonds, "colors", bonds.colors, color_array)
                     bonds.colors = color_array
                     what.append('%d bonds' % len(bonds))
 
@@ -172,17 +177,16 @@ def color(session, objects, color=None, what=None,
             if len(bonds) > 0:
                 if color not in _SpecialColors and color is not None:
                     color_array = color.uint8x4()
-                    undo_data["pseudobonds"] = (bonds, bonds.colors, color_array)
+                    undo_state.add(bonds, "colors", bonds.colors, color_array)
                     bonds.colors = color_array
                     bl.append(bonds)
                     apbgs.update(bonds.groups.unique())
         from ..atomic import PseudobondGroup
-        undo_data["pbg"] = up = []
         for pbg in objects.models:
             if isinstance(pbg, PseudobondGroup) and pbg not in apbgs:
                 if color not in _SpecialColors and color is not None:
                     color_array = color.uint8x4()
-                    up.append((pbg, pbg.color, color_array))
+                    undo_state.add(pbg, "color", pbg.color, color_array)
                     pbg.color = color_array
                     bl.append(pbg.pseudobonds)
         if bl:
@@ -197,12 +201,7 @@ def color(session, objects, color=None, what=None,
 
     from . import cli
     session.logger.status('Colored %s' % cli.commas(what, ' and'))
-
-    def undo(data=undo_data):
-        _color_undo(undo_data)
-    def redo(data=undo_data):
-        _color_redo(undo_data)
-    session.undo.register("color", undo, redo)
+    session.undo.register(undo_state)
 
 
 def _computed_atom_colors(atoms, color, opacity, bgcolor):
@@ -243,65 +242,61 @@ def _element_colors(atoms, opacity=None):
     return c
 
 
-def _set_atom_colors(atoms, color, opacity, bgcolor=None):
-    undo = None
+def _set_atom_colors(atoms, color, opacity, bgcolor, undo_state):
     if color in _SpecialColors:
         c = _computed_atom_colors(atoms, color, opacity, bgcolor)
         if c is not None:
-            undo = (atoms, atoms.colors, c)
+            undo_state.add(atoms, "colors", atoms.colors, c)
             atoms.colors = c
     else:
         c = atoms.colors
         c[:, :3] = color.uint8x4()[:3]    # Preserve transparency
         if opacity is not None:
             c[:, 3] = opacity
-        undo = (atoms, atoms.colors, c)
+        undo_state.add(atoms, "colors", atoms.colors, c)
         atoms.colors = c
-    return undo
 
 
-def _set_ribbon_colors(residues, color, opacity, bgcolor=None):
-    undo = None
+def _set_ribbon_colors(residues, color, opacity, bgcolor, undo_state):
     if color not in _SpecialColors:
         c = residues.ribbon_colors
         c[:, :3] = color.uint8x4()[:3]    # Preserve transparency
         if opacity is not None:
             c[:, 3] = opacity
-        undo = (residues, residues.ribbon_colors, c)
+        undo_state.add(residues, "ribbon_colors", residues.ribbon_colors, c)
         residues.ribbon_colors = c
     elif color == 'bychain':
         from ..atomic.colors import chain_colors
         c = chain_colors(residues.chain_ids)
         c[:, 3] = residues.ribbon_colors[:, 3] if opacity is None else opacity
-        undo = (residues, residues.ribbon_colors, c)
+        undo_state.add(residues, "ribbon_colors", residues.ribbon_colors, c)
         residues.ribbon_colors = c
     elif color == "bypolymer":
         from ..atomic.colors import polymer_colors
         c,rmask = polymer_colors(residues)
         c[rmask, 3] = residues.ribbon_colors[rmask, 3] if opacity is None else opacity
         masked_residues = residues.filter(rmask)
-        undo = (masked_residues, masked_residues.ribbon_colors, c[rmask,:])
+        undo_state.add(masked_residues, "ribbon_colors", masked_residues.ribbon_colors, c[rmask,:])
         masked_residues.ribbon_colors = c[rmask,:]
     elif color == 'bymodel':
-        undo = []
         for m, res in residues.by_structure:
             c = res.ribbon_colors
             c[:, :3] = m.initial_color(bgcolor).uint8x4()[:3]
             if opacity is not None:
                 c[:, 3] = opacity
-            undo.append((res, res.ribbon_colors, c))
+            undo_state.add(res, "ribbon_colors", res.ribbon_colors, c)
             res.ribbon_colors = c
     elif color == 'random':
         from numpy import random, uint8
         c = random.randint(0, 255, (len(residues), 4)).astype(uint8)
         c[:, 3] = 255   # No transparency
-        undo = (residues, residues.ribbon_colors, c)
+        undo_state.add(residues, "ribbon_colors", residues.ribbon_colors, c)
         residues.ribbon_colors = c
-    return undo
 
 
 def _set_surface_colors(session, atoms, color, opacity, bgcolor=None,
-                        map=None, palette=None, range=None, offset=0):
+                        map=None, palette=None, range=None, offset=0, undo_state=None):
+    # TODO: save undo data
     from .scolor import scolor
     if color in _SpecialColors:
         if color == 'fromatoms':
@@ -344,7 +339,7 @@ def _set_model_colors(session, m, color, map, opacity, palette, range, offset):
 # -----------------------------------------------------------------------------
 # Chain ids in each structure are colored from color map ordered alphabetically.
 #
-def _set_sequential_chain(session, selected, cmap, opacity, target, undo_data):
+def _set_sequential_chain(session, selected, cmap, opacity, target, undo_state):
     # Organize selected atoms by structure and then chain
     uc = selected.atoms.residues.chains.unique()
     chain_atoms = {}
@@ -357,27 +352,24 @@ def _set_sequential_chain(session, selected, cmap, opacity, target, undo_data):
     # Each structure is colored separately with cmap applied by chain
     import numpy
     from ..colors import Color
-    undo_data["seq_chain_atoms"] = ua = []
-    undo_data["seq_chain_ribbon"] = ur = [] 
-    undo_data["seq_chain_surface"] = us = []
     for sl in chain_atoms.values():
         sl.sort(key = lambda ca: ca[0])	# Sort by chain id
         colors = cmap.interpolated_rgba(numpy.linspace(0.0, 1.0, len(sl)))
         for color, (chain_id, atoms) in zip(colors, sl):
             c = Color(color)
             if target is None or 'a' in target:
-                ua.append(_set_atom_colors(atoms, c, opacity))
+                _set_atom_colors(atoms, c, opacity, None, undo_state)
             if target is None or 'c' in target:
                 res = atoms.unique_residues
-                ur.append(_set_ribbon_colors(res, c, opacity))
+                _set_ribbon_colors(res, c, opacity, None, undo_state)
             if target is None or 's' in target:
-                us.append(_set_surface_colors(session, atoms, c, opacity))
+                _set_surface_colors(session, atoms, c, opacity, undo_state=undo_state)
 
 # ----------------------------------------------------------------------------------
 # Polymers (unique sequences) in each structure are colored from color map ordered
 # by polymer length.
 #
-def _set_sequential_polymer(session, objects, cmap, opacity, target, undo_data):
+def _set_sequential_polymer(session, objects, cmap, opacity, target, undo_state):
     # Organize atoms by structure and then polymer sequence
     uc = objects.atoms.residues.chains.unique()
     seq_atoms = {}
@@ -390,9 +382,6 @@ def _set_sequential_polymer(session, objects, cmap, opacity, target, undo_data):
     # Each structure is colored separately with cmap applied by chain
     import numpy
     from ..colors import Color
-    undo_data["seq_polymer_atoms"] = ua = []
-    undo_data["seq_polymer_ribbon"] = ur = [] 
-    undo_data["seq_polymer_surface"] = us = []
     for sl in seq_atoms.values():
         sseq = list(sl.items())
         sseq.sort(key = lambda sa: len(sa[0]))	# Sort by sequence length
@@ -401,16 +390,16 @@ def _set_sequential_polymer(session, objects, cmap, opacity, target, undo_data):
             c = Color(color)
             for atoms in alist:
                 if target is None or 'a' in target:
-                    ua.append(_set_atom_colors(atoms, c, opacity))
+                    _set_atom_colors(atoms, c, opacity, None, undo_state)
                 if target is None or 'c' in target:
                     res = atoms.unique_residues
-                    ur.append(_set_ribbon_colors(res, c, opacity))
+                    _set_ribbon_colors(res, c, opacity, None, undo_state)
                 if target is None or 's' in target:
-                    us.append(_set_surface_colors(session, atoms, c, opacity))
+                    _set_surface_colors(session, atoms, c, opacity, undo_state=undo_state)
 
 # -----------------------------------------------------------------------------
 #
-def _set_sequential_residue(session, selected, cmap, opacity, target, undo_data):
+def _set_sequential_residue(session, selected, cmap, opacity, target, undo_state):
     # Make sure there is a colormap
     if cmap is None:
         from .. import colors
@@ -426,8 +415,6 @@ def _set_sequential_residue(session, selected, cmap, opacity, target, undo_data)
         except KeyError:
             structure_chain_ids[structure] = cids = set()
         cids.add(chain_id)
-    undo_data["seq_residue_atoms"] = ua = []
-    undo_data["seq_residue_ribbon"] = ur = []
     for structure, cids in structure_chain_ids.items():
         for chain in structure.chains:
             if chain.chain_id not in cids:
@@ -437,17 +424,17 @@ def _set_sequential_residue(session, selected, cmap, opacity, target, undo_data)
             for color, r in zip(colors, residues):
                 c = Color(color)
                 if target is None or 'a' in target:
-                    ua.append(_set_atom_colors(r.atoms, c, opacity))
+                    _set_atom_colors(r.atoms, c, opacity, None, undo_state)
                 if target is None or 'c' in target:
                     rgba = c.uint8x4()
                     if opacity is not None:
                         rgba[3] = opacity
-                    ur.append((r, r.ribbon_color, rgba))
+                    undo_state.add(r, "ribbon_color", r.ribbon_color, rgba)
                     r.ribbon_color = rgba
 
 # -----------------------------------------------------------------------------
 #
-def _set_sequential_structures(session, selected, cmap, opacity, target, undo_data):
+def _set_sequential_structures(session, selected, cmap, opacity, target, undo_state):
     # Make sure there is a colormap
     if cmap is None:
         from .. import colors
@@ -462,17 +449,15 @@ def _set_sequential_structures(session, selected, cmap, opacity, target, undo_da
     # Each structure is colored separately with cmap applied by chain
     import numpy
     from ..colors import Color
-    undo_data["seq_structures_atoms"] = ua = []
-    undo_data["seq_structures_ribbon"] = ur = []
-    # TODO: save surface undo data
     colors = cmap.interpolated_rgba(numpy.linspace(0.0, 1.0, len(models)))
     for color, m in zip(colors, models):
         c = Color(color)
         if 'a' in target:
-            ua.append(_set_atom_colors(m.atoms, c, opacity))
+            _set_atom_colors(m.atoms, c, opacity, None, undo_state)
         if 'c' in target:
-            ur.append(_set_ribbon_colors(m.residues, c, opacity))
+            _set_ribbon_colors(m.residues, c, opacity, None, undo_state)
         if 's' in target:
+            # TODO: save surface undo data
             from .scolor import scolor
             ns = scolor(session, m.atoms, c)
 
@@ -484,69 +469,6 @@ _SequentialColor = {
     "residues": _set_sequential_residue,
     "structures": _set_sequential_structures,
 }
-
-# -----------------------------------------------------------------------------
-#
-def _update_attr(undo_data, key, attr, n):
-    try:
-        items = undo_data[key]
-    except KeyError:
-        return
-    if isinstance(items, list):
-        for v in items:
-            try:
-                container = v[0]
-                value = v[n]
-            except (ValueError, IndexError):
-                pass
-            else:
-                setattr(container, attr, value)
-    else:
-        try:
-            container = items[0]
-            value = items[n]
-        except (KeyError, ValueError, IndexError):
-            pass
-        else:
-            setattr(container, attr, value)
-
-def _color_undo(undo_data):
-    _update_attr(undo_data, "halfbond", "halfbonds", 1)
-    _update_attr(undo_data, "atoms", "colors", 1)
-    _update_attr(undo_data, "bonds", "colors", 1)
-    _update_attr(undo_data, "cartoon", "ribbon_colors", 1)
-    _update_attr(undo_data, "pseudobonds", "colors", 1)
-    _update_attr(undo_data, "pbg", "color", 1)
-    _update_attr(undo_data, "seq_chain_atoms", "color", 1)
-    _update_attr(undo_data, "seq_chain_ribbon", "ribbon_color", 1)
-    #_update_attr(undo_data, "seq_chain_surface", "surface_color", 1)
-    _update_attr(undo_data, "seq_polymer_atoms", "color", 1)
-    _update_attr(undo_data, "seq_polymer_ribbon", "ribbon_color", 1)
-    #_update_attr(undo_data, "seq_polymer_surface", "surface_color", 1)
-    _update_attr(undo_data, "seq_residue_atoms", "color", 1)
-    _update_attr(undo_data, "seq_residue_ribbon", "ribbon_color", 1)
-    _update_attr(undo_data, "seq_structures_atoms", "color", 1)
-    _update_attr(undo_data, "seq_structures_ribbon", "ribbon_color", 1)
-    #_update_attr(undo_data, "seq_structures_surface", "surface_color", 1)
-
-def _color_redo(undo_data):
-    _update_attr(undo_data, "halfbond", "halfbonds", 2)
-    _update_attr(undo_data, "atoms", "colors", 2)
-    _update_attr(undo_data, "bonds", "colors", 2)
-    _update_attr(undo_data, "cartoon", "ribbon_colors", 2)
-    _update_attr(undo_data, "pseudobonds", "colors", 2)
-    _update_attr(undo_data, "pbg", "color", 2)
-    _update_attr(undo_data, "seq_chain_atoms", "color", 2)
-    _update_attr(undo_data, "seq_chain_ribbon", "ribbon_color", 2)
-    #_update_attr(undo_data, "seq_chain_surface", "surface_color", 2)
-    _update_attr(undo_data, "seq_polymer_atoms", "color", 2)
-    _update_attr(undo_data, "seq_polymer_ribbon", "ribbon_color", 2)
-    #_update_attr(undo_data, "seq_polymer_surface", "surface_color", 2)
-    _update_attr(undo_data, "seq_residue_atoms", "color", 2)
-    _update_attr(undo_data, "seq_residue_ribbon", "ribbon_color", 2)
-    _update_attr(undo_data, "seq_structures_atoms", "color", 2)
-    _update_attr(undo_data, "seq_structures_ribbon", "ribbon_color", 2)
-    #_update_attr(undo_data, "seq_structures_surface", "surface_color", 2)
 
 # -----------------------------------------------------------------------------
 #

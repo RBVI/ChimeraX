@@ -655,11 +655,11 @@ class Bonds(Collection):
     single value.  Bonds are shown only if display is
     true, hide is false, and both atoms are shown.
     '''
-    visibles = cvec_property('bond_visible', int32, read_only = True)
+    visibles = cvec_property('bond_visible', npy_bool, read_only = True)
     '''
-    Returns whether the Bonds should be visible.  If hidden, the
-    return value is Never; otherwise, same as display.
-    Returns a :mod:`numpy` array of integers.  Read only.
+    Returns whether the Bonds should be visible regardless
+    of whether the atoms on either end is shown.
+    Returns a :mod:`numpy` array of bool.  Read only.
     '''
     halfbonds = cvec_property('bond_halfbond', npy_bool)
     '''
@@ -814,6 +814,10 @@ class Pseudobonds(Collection):
     '''
     Whether each pseudobond is displayed, visible and has both atoms displayed.
     '''
+    shown_when_atoms_hiddens = cvec_property('pseudobond_shown_when_atoms_hidden', npy_bool, doc =
+    '''Controls whether the pseudobond is shown when the endpoint atoms are not
+    explictly displayed (atom.display == False) but are implicitly shown by a
+    ribbon or somesuch (atom.hide != 0).  Defaults to True.''')
 
     def delete(self):
         '''Delete the C++ Pseudobond objects'''
@@ -909,7 +913,7 @@ class Residues(Collection):
     whatever data source the structure came from, so not necessarily consecutive,
     or starting from 1, *etc.* Read only.
     ''')
-    polymer_types = cvec_property('residue_polymer_type', int32, read_only = True, doc =
+    polymer_types = cvec_property('residue_polymer_type', uint8, read_only = True, doc =
     '''Returns a numpy int array of residue types. Read only.''')
     principal_atoms = cvec_property('residue_principal_atom', cptr, astype = _atoms_or_nones,
         read_only = True, doc =
@@ -1112,6 +1116,8 @@ class Chains(Collection):
     '''A numpy integer array containing the number of existing residues in each chain.'''
     num_residues = cvec_property('sseq_num_residues', size_t, read_only = True)
     '''A numpy integer array containing the number of residues in each chain.'''
+    polymer_types = cvec_property('sseq_polymer_type', uint8, read_only = True, doc =
+    '''Returns a numpy int array of residue types. Same values as Residues.polymer_types except shouldn't return PT_NONE.''')
 
     @classmethod
     def session_restore_pointers(cls, session, data):

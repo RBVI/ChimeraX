@@ -410,10 +410,9 @@ class ObjectLabel(Drawing):
         self._needs_update = False
         s = self.size
         rgba8 = (255,255,255,255)
-        from chimerax import app_data_dir
         from .label2d import text_image_rgba
         text = self.text
-        rgba = text_image_rgba(text, rgba8, s, self.font, app_data_dir)
+        rgba = text_image_rgba(text, rgba8, s, self.font)
         if rgba is None:
             raise RuntimeError("Can't find font %s size %d for label '%s'" % (self.font, s, text))
         if self.texture is not None:
