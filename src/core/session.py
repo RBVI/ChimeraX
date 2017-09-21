@@ -424,13 +424,10 @@ class Session:
                 fserialize = serialize.pickle_serialize
                 fserialize(stream, version)
             elif version == 2:
-                # TODO: raise UserError("Version 2 session files are no longer supported")
-                stream.write(b'# ChimeraX Session version 2\n')
-                stream = serialize.msgpack_serialize_stream_v2(stream)
-                fserialize = serialize.msgpack_serialize
+                raise UserError("Version 2 session files are no longer supported")
             else:
                 if version != 3:
-                    raise UserError("Only session file versions 1, 2, and 3 are supported")
+                    raise UserError("Only session file versions 1 and 3 are supported")
                 stream.write(b'# ChimeraX Session version 3\n')
                 stream = serialize.msgpack_serialize_stream(stream)
                 fserialize = serialize.msgpack_serialize
@@ -473,6 +470,7 @@ class Session:
                 raise RuntimeError('Not a ChimeraX session file')
             version = int(tokens[4])
             if version == 2:
+                self.logger.error("Session file format version 2 detected.  DO NOT RESAVE.  Recreate session from scratch, and then save.")
                 stream = serialize.msgpack_deserialize_stream_v2(stream)
             elif version == 3:
                 stream = serialize.msgpack_deserialize_stream(stream)
