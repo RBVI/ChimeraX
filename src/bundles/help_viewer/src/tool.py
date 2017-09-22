@@ -46,10 +46,13 @@ class HelpUI(ToolInstance):
         from chimerax.core.ui.gui import MainToolWindow
         self.tool_window = MainToolWindow(self)
         parent = self.tool_window.ui_area
+
         # UI content code
-        from PyQt5.QtWidgets import QToolBar, QVBoxLayout, QAction, QLabel, QLineEdit, QTabWidget
+        from PyQt5.QtWidgets import QToolBar, QVBoxLayout, QAction, QLabel, QLineEdit, QTabWidget, QShortcut
         from PyQt5.QtGui import QIcon
-        # from PyQt5.QtCore import Qt
+        from PyQt5.QtCore import Qt
+        self.new_tab = QShortcut(Qt.CTRL + Qt.Key_T, parent)
+        self.new_tab.activated.connect(lambda: self.create_tab(empty=True))
         self.toolbar = tb = QToolBar()
         # tb.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         layout = QVBoxLayout()
@@ -76,6 +79,7 @@ class HelpUI(ToolInstance):
             tb.addAction(a)
 
         self.url = QLineEdit()
+        self.url.setClearButtonEnabled(True)
         tb.insertWidget(self.reload, self.url)
 
         label = QLabel("  Search:")
@@ -101,9 +105,16 @@ class HelpUI(ToolInstance):
 
         self.tool_window.manage(placement=None)
 
-    def create_tab(self):
+    def create_tab(self, empty=False):
         w = _HelpWebView(self.session, self)
-        self.tabs.addTab(w, "")
+        self.tabs.addTab(w, "New Tab")
+        if empty:
+            from chimerax import app_dirs
+            self.tool_window.title = app_dirs.appname
+            self.url.setText("url")
+            self.url.selectAll()
+            from PyQt5.QtCore import Qt
+            self.url.setFocus(Qt.ShortcutFocusReason)
         self.tabs.setCurrentWidget(w)
         w.loadFinished.connect(lambda okay, w=w: self.page_loaded(w, okay))
         w.titleChanged.connect(lambda title, w=w: self.title_changed(w, title))
@@ -195,7 +206,9 @@ class HelpUI(ToolInstance):
 
     def tab_changed(self, i):
         if i >= 0:
-            self.tool_window.title = self.tabs.tabText(i)
+            tab_text = self.tabs.tabText(i)
+            if tab_text != "New Tab":
+                self.tool_window.title = tab_text
         else:
             # no more tabs
             self.display(False)
