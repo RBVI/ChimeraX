@@ -288,10 +288,11 @@ class Logger(StatusLogger):
         if sys.excepthook == sys.__excepthook__:
             def ehook(*exc_info):
                 from traceback import format_exception
-                if self.session.debug:
+                if self.session.debug or not hasattr(self.session, "ui"):
                     from traceback import print_exception
                     print_exception(*exc_info, file=sys.__stderr__)
-                self.session.ui.thread_safe(self.report_exception, exc_info=exc_info)
+                else:
+                    self.session.ui.thread_safe(self.report_exception, exc_info=exc_info)
             sys.excepthook = ehook
         # non-exclusively collate any early log messages, so that they
         # can also be sent to the first "real" log to hit the stack
@@ -406,7 +407,7 @@ class Logger(StatusLogger):
 
             err = "".join(format_exception_only(ei[0], ei[1]))
             loc = "".join(format_tb(ei[2])[-1:])
-            how_to_report = 'If you wish to report this error, send mail to <a href="mailto:chimerax-bugs@cgl.ucsf.edu">chimerax-bugs@cgl.ucsf.edu</a> and describe what you were doing and include a copy of the contents of the log.'
+            how_to_report = 'If you wish to report this error, send mail to <a href="mailto:chimerax-bugs@cgl.ucsf.edu">chimerax-bugs@cgl.ucsf.edu</a> and describe what you were doing and include a copy of the contents of the log.  Don\'t include any data you wish to remain private since a publicly viewable bug report will be created.'
             err_msg = "%s%s\n%s\n" % (preface, err, loc) + \
                 "<i>See log for complete Python traceback.</i>\n\n%s" % how_to_report
             self.error(err_msg.replace("\n", "<br>"), is_html=True)

@@ -103,6 +103,7 @@ def parse_arguments(argv):
     opts.debug = False
     opts.event_loop = True
     opts.gui = True
+    opts.color = None
     opts.module = None  # Python's -m option
     opts.line_profile = False
     opts.list_io_formats = False
@@ -123,6 +124,7 @@ def parse_arguments(argv):
         "--debug",
         "--exit",   # No event loop
         "--nogui",
+        "--nocolor",
         "--help",
         "--lineprofile",
         "--listioformats",
@@ -150,6 +152,7 @@ def parse_arguments(argv):
         "--nodebug",
         "--noexit",
         "--gui",
+        "--color",
         "--nolineprofile",
         "--nosilent",
         "--nousedefaults",
@@ -214,6 +217,8 @@ def parse_arguments(argv):
             help = True
         elif opt in ("--gui", "--nogui"):
             opts.gui = opt[2] == 'g'
+        elif opt in ("--color", "--nocolor"):
+            opts.color = opt[2] == 'c'
         elif opt in ("--lineprofile", "--nolineprofile"):
             opts.line_profile = opt[2] == 'l'
         elif opt == "--listioformats":
@@ -257,7 +262,7 @@ def parse_arguments(argv):
 
 
 def init(argv, event_loop=True):
-    import site, sys
+    import sys
     if sys.platform.startswith('darwin'):
         paths = os.environ['PATH'].split(':')
         if '/usr/sbin' not in paths:
@@ -414,6 +419,13 @@ def init(argv, event_loop=True):
     else:
         from chimerax.core.ui import nogui
         ui_class = nogui.UI
+        if opts.color is not None:
+            nogui._color_output = opts.color
+            if opts.color:
+                def t():
+                    return True
+                sys.stdout.isatty = t
+                sys.stderr.isatty = t
     # sets up logging, splash screen if gui
     # calls "sess.save_in_session(self)"
     sess.ui = ui_class(sess)
@@ -608,8 +620,8 @@ def init(argv, event_loop=True):
 
     # Open files dropped on application
     if opts.gui:
-        sess.ui.open_pending_files(ignore_files = args)
-    
+        sess.ui.open_pending_files(ignore_files=args)
+
     # Allow the event_loop to be disabled, so we can be embedded in
     # another application
     if event_loop and opts.event_loop:
@@ -703,6 +715,7 @@ def remove_python_scripts(bin_dir):
                     continue
             print('removing (pip installed)', path)
             os.remove(path)
+
 
 if __name__ == '__main__':
     exit_code = init(sys.argv)

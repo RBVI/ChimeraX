@@ -494,7 +494,7 @@ class Structure(Model, StructureData):
             if not is_arc_helix[i] or not is_arc_helix[j]:
                 return False
             return ssids[i] == ssids[j]
-        for rlist in polymers:
+        for rlist, ptype in polymers:
             # Always call get_polymer_spline to make sure hide bits are
             # properly set when ribbons are completely undisplayed
             any_display, atoms, coords, guides = rlist.get_polymer_spline()
@@ -684,7 +684,7 @@ class Structure(Model, StructureData):
                 spine_xyz1 = None
                 spine_xyz2 = None
             # Odd number of segments gets blending, even has sharp edge
-            rd = self._level_of_detail._ribbon_divisions
+            rd = self._level_of_detail.ribbon_divisions
             if rd % 2 == 1:
                 seg_blend = rd
                 seg_cap = seg_blend + 1
@@ -849,6 +849,8 @@ class Structure(Model, StructureData):
                 rp.display = True
                 rp.vertices = concatenate(vertex_list)
                 rp.normals = concatenate(normal_list)
+                from .ribbon import normalize_vector_array_inplace
+                normalize_vector_array_inplace(rp.normals)
                 rp.triangles = concatenate(triangle_list)
                 rp.vertex_colors = concatenate(color_list)
             else:
@@ -903,7 +905,7 @@ class Structure(Model, StructureData):
         from .. import surface
         from numpy import empty, array, float32, linspace
         from ..geometry import Places
-        num_pts = num_coords*self._level_of_detail._ribbon_divisions
+        num_pts = num_coords*self._level_of_detail.ribbon_divisions
         #S
         #S va, na, ta = surface.sphere_geometry(20)
         #S xyzr = empty((num_pts*2, 4), float32)
@@ -1957,33 +1959,39 @@ class Structure(Model, StructureData):
         from ..geometry import find_close_points
         atoms = self.atoms
         a, _ = find_close_points(atoms.scene_coords, coords, distance)
-        if '<' in operator:
-            expand_by = atoms.filter(a)
-        else:
+        def not_a():
             from numpy import ones, bool_
             mask = ones(len(atoms), dtype=bool_)
-            mask[a] = 0
-            expand_by = atoms.filter(mask)
-        if target_type == ':':
+            mask[a] = False
+            return mask
+        expand_by = None
+        if target_type == '@':
             if '<' in operator:
-                expand_by = expand_by.unique_residues.atoms
+                expand_by = atoms.filter(a)
             else:
-                expand_by = expand_by.full_residues.atoms
+                expand_by = atoms.filter(not_a())
+        elif target_type == ':':
+            if '<' in operator:
+                expand_by = atoms.filter(a).unique_residues.atoms
+            else:
+                expand_by = atoms.filter(not_a()).full_residues.atoms
         elif target_type == '/':
-            chains = expand_by.unique_residues.unique_chains
-            chain_atoms = chains.existing_residues.atoms
+            # There is no "full_chain" property for atoms so we have
+            # to do it the hard way
+            from numpy import in1d, invert
+            matched_chain_ids = atoms.filter(a).unique_chain_ids
+            mask = in1d(atoms.chain_ids, matched_chain_ids)
             if '<' in operator:
-                expand_by = chain_atoms
+                expand_by = atoms.filter(mask)
             else:
-                extra_atoms = chain_atoms - expand_by
-                extra_chains = extra_atoms.unique_residues.unique_chains
-                expand_by = (chains - extra_chains).existing_residues.atoms
+                expand_by = atoms.filter(invert(mask))
         elif target_type == '#':
             if '<' in operator:
-                expand_by = expand_by.unique_structures.atoms
+                expand_by = atoms.filter(a).unique_structures.atoms
             else:
-                expand_by = expand_by.full_structures.atoms
-        results.add_atoms(expand_by)
+                expand_by = atoms.filter(not_a()).full_structures.atoms
+        if expand_by:
+            results.add_atoms(expand_by)
 
 class AtomicStructure(Structure):
     """
@@ -2216,6 +2224,7 @@ class StructureGraphicsChangeManager:
         self._structures_array = None		# StructureDatas object
         self.num_atoms_shown = 0
         self.level_of_detail = LevelOfDetail()
+        self._last_ribbon_divisions = 20
         from ..models import MODEL_DISPLAY_CHANGED
         self._display_handler = t.add_handler(MODEL_DISPLAY_CHANGED, self._model_display_changed)
         self._need_update = False
@@ -2249,18 +2258,26 @@ class StructureGraphicsChangeManager:
                     for m in s if m.visible)
             if n > 0 and n != self.num_atoms_shown:
                 self.num_atoms_shown = n
-                self._update_level_of_detail()
+                self.update_level_of_detail()
             self._need_update = False
             if (gc & StructureData._SELECT_CHANGE).any():
                 from ..selection import SELECTION_CHANGED
                 self.session.triggers.activate_trigger(SELECTION_CHANGED, None)
                 # XXX: No data for now.  What should be passed?
 
-    def _update_level_of_detail(self):
+    def update_level_of_detail(self):
         n = self.num_atoms_shown
+
+        lod = self.level_of_detail
+        ribbon_changed = (lod.ribbon_divisions != self._last_ribbon_divisions)
+        if ribbon_changed:
+            self._last_ribbon_divisions = lod.ribbon_divisions
+            
         for m in self._structures:
             if m.display:
                 m._update_level_of_detail(n)
+                if ribbon_changed:
+                    m._graphics_changed |= m._RIBBON_CHANGE
 
     def _array(self):
         sa = self._structures_array
@@ -2270,8 +2287,11 @@ class StructureGraphicsChangeManager:
         return sa
 
     def set_subdivision(self, subdivision):
-        self.level_of_detail.quality = subdivision
-        self._update_level_of_detail()
+        lod = self.level_of_detail
+        lod.quality = subdivision
+        lod.atom_fixed_triangles = None
+        lod.bond_fixed_triangles = None
+        self.update_level_of_detail()
 
 # -----------------------------------------------------------------------------
 #
@@ -2302,15 +2322,17 @@ class LevelOfDetail(State):
         self._atom_default_triangles = 200
         self._atom_max_total_triangles = 5000000
         self._step_factor = 1.2
+        self.atom_fixed_triangles = None	# If not None use fixed number of triangles
         self._sphere_geometries = {}	# Map ntri to (va,na,ta)
 
         self._bond_min_triangles = 24
         self._bond_max_triangles = 160
         self._bond_default_triangles = 60
         self._bond_max_total_triangles = 5000000
+        self.bond_fixed_triangles = None	# If not None use fixed number of triangles
         self._cylinder_geometries = {}	# Map ntri to (va,na,ta)
 
-        self._ribbon_divisions = 20
+        self.ribbon_divisions = 20
 
     def take_snapshot(self, session, flags):
         return {'quality': self.quality,
@@ -2348,14 +2370,18 @@ class LevelOfDetail(State):
         return sg[ntri]
 
     def atom_sphere_triangles(self, natoms):
-        if natoms is None:
-            return self._atom_default_triangles
-        ntri = self.quality * self._atom_max_total_triangles // natoms
-        nmin, nmax = self._atom_min_triangles, self._atom_max_triangles
-        ntri = self.clamp_geometric(ntri, nmin, nmax)
+        aft = self.atom_fixed_triangles
+        if aft is not None:
+            ntri = aft
+        elif natoms is None or natoms == 0:
+            ntri = self._atom_default_triangles
+        else:
+            ntri = self.quality * self._atom_max_total_triangles // natoms
+            nmin, nmax = self._atom_min_triangles, self._atom_max_triangles
+            ntri = self.clamp_geometric(ntri, nmin, nmax)
         ntri = 2*(ntri//2)	# Require multiple of 2.
         return ntri
-
+    
     def clamp_geometric(self, n, nmin, nmax):
         f = self._step_factor
         from math import log, pow
@@ -2386,11 +2412,15 @@ class LevelOfDetail(State):
         return cg[div]
 
     def bond_cylinder_triangles(self, nbonds):
-        if nbonds is None:
-            return self._bond_default_triangles
-        ntri = self.quality * self._bond_max_total_triangles // nbonds
-        nmin, nmax = self._bond_min_triangles, self._bond_max_triangles
-        ntri = self.clamp_geometric(ntri, nmin, nmax)
+        bft = self.bond_fixed_triangles
+        if bft is not None:
+            ntri = bft
+        elif nbonds is None or nbonds == 0:
+            ntri = self._bond_default_triangles
+        else:
+            ntri = self.quality * self._bond_max_total_triangles // nbonds
+            nmin, nmax = self._bond_min_triangles, self._bond_max_triangles
+            ntri = self.clamp_geometric(ntri, nmin, nmax)
         ntri = 4*(ntri//4)	# Require multiple of 4
         return ntri
 

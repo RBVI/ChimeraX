@@ -18,11 +18,12 @@
 #include <cmath>  // std::abs
 
 #define ATOMSTRUCT_EXPORT
+#include "connect.h"
+#include "polymer.h"
+#include "Residue.h"
+#include "seq_assoc.h"
 #include "Structure.h"
 #include "StructureSeq.h"
-#include "Residue.h"
-#include "connect.h"
-#include "seq_assoc.h"
 
 namespace atomstruct {
 
@@ -79,7 +80,7 @@ find_gaps(StructureSeq& sseq)
                         float pair_dist_sq;
                         find_nearest_pair(prev_res, res, &a1, &a2, &pair_dist_sq);
                     }
-                    Real distsq_cutoff = a1->residue()->polymer_type() == Residue::PT_AMINO ?
+                    Real distsq_cutoff = a1->residue()->polymer_type() == PT_AMINO ?
                         Residue::TRACE_PROTEIN_DISTSQ_CUTOFF : Residue::TRACE_NUCLEIC_DISTSQ_CUTOFF;
                     no_gap = a1->coord().sqdistance(a2->coord()) < distsq_cutoff;
                 }

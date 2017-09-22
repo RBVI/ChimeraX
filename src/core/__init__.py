@@ -65,6 +65,7 @@ _class_class_init = {
     'Tasks': '.tasks',
     'Tools': '.tools',
     'TriangleInfo': '.stl',
+    'Undo': '.undo',
     'UserColors': '.colors',
     'UserColormaps': '.colors',
     'View': '.graphics',

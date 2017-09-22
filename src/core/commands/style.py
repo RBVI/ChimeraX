@@ -36,6 +36,8 @@ def style(session, objects=None, atom_style=None, atom_radius=None,
     from ..atomic import all_atoms, Atom
     atoms = all_atoms(session) if objects is None else objects.atoms
 
+    from ..undo import UndoState
+    undo_state = UndoState("style")
     what = []
     if atom_style is not None:
         s = {
@@ -43,28 +45,34 @@ def style(session, objects=None, atom_style=None, atom_radius=None,
             'ball': Atom.BALL_STYLE,
             'stick': Atom.STICK_STYLE,
         }[atom_style.lower()]
+        undo_state.add(atoms, "draw_modes", atoms.draw_modes, s)
         atoms.draw_modes = s
         what.append('%d atom styles' % len(atoms))
 
     if atom_radius is not None:
         if atom_radius == 'default':
+            undo_state.add(atoms, "radii", atoms.radii, atoms.default_radii)
             atoms.radii = atoms.default_radii
         else:
+            undo_state.add(atoms, "radii", atoms.radii, atom_radius)
             atoms.radii = atom_radius
         what.append('%d atom radii' % len(atoms))
 
     if stick_radius is not None:
         b = atoms.intra_bonds
+        undo_state.add(b, "radii", b.radii, stick_radius)
         b.radii = stick_radius
         what.append('%d bond radii' % len(b))
 
     if pseudobond_radius is not None:
         from ..atomic import interatom_pseudobonds, concatenate
         pb = interatom_pseudobonds(atoms)
+        undo_state.add(pb, "radii", pb.radii, pseudobond_radius)
         pb.radii = pseudobond_radius
         pbs = [pb]
         for pbg in pseudobond_groups(objects, session, interatom = False):
             pb = pbg.pseudobonds
+            undo_state.add(pb, "radii", pb.radii, pseudobond_radius)
             pb.radii = pseudobond_radius
             pbs.append(pb)
         what.append('%d pseudobond radii' % len(concatenate(pbs, remove_duplicates=True)))
@@ -72,8 +80,16 @@ def style(session, objects=None, atom_style=None, atom_radius=None,
     if ball_scale is not None:
         mols = atoms.unique_structures
         for s in mols:
+            undo_state.add(s, "ball_scale", s.ball_scale, ball_scale)
             s.ball_scale = ball_scale
         what.append('%d ball scales' % len(mols))
+
+    if dashes is not None:
+        pbgs = pseudobond_groups(objects, session)
+        for pbg in pbgs:
+            undo_state.add(pbg, "dashes", pbg.dashes, dashes)
+            pbg.dashes = dashes
+        what.append('%d pseudobond dashes' % len(pbgs))
 
     if what:
         msg = 'Changed %s' % ', '.join(what)
@@ -81,9 +97,7 @@ def style(session, objects=None, atom_style=None, atom_radius=None,
         log.status(msg)
         log.info(msg)
 
-    if dashes is not None:
-        for pbg in pseudobond_groups(objects, session):
-            pbg.dashes = dashes
+    session.undo.register(undo_state)
 
 # -----------------------------------------------------------------------------
 #
@@ -109,7 +123,6 @@ def pseudobond_groups(objects, session, interatom = True):
         pbgs.update(gpbgs)
 
     return pbgs
-
 
 # -----------------------------------------------------------------------------
 #

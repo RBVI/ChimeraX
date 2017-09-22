@@ -20,6 +20,7 @@
 #include "CoordSet.h"
 #include "destruct.h"
 #include "PBGroup.h"
+#include "polymer.h"
 #include "Pseudobond.h"
 #include "Residue.h"
 #include "seq_assoc.h"
@@ -255,7 +256,8 @@ AtomicStructure::make_chains() const
     // on structure only
     std::map<ChainID, bool> unique_chain_id;
     if (!_input_seq_info.empty()) {
-        for (auto polymer: polys) {
+        for (auto polymer_type: polys) {
+            auto& polymer = polymer_type.first;
             auto chain_id = polymer[0]->chain_id();
             if (unique_chain_id.find(chain_id) == unique_chain_id.end()) {
                 unique_chain_id[chain_id] = true;
@@ -264,9 +266,11 @@ AtomicStructure::make_chains() const
             }
         }
     }
-    for (auto polymer: polys) {
+    for (auto polymer_type: polys) {
+        auto& polymer = polymer_type.first;
+        auto pt_type = polymer_type.second;
         const ChainID& chain_id = polymer[0]->chain_id();
-        auto chain = _new_chain(chain_id);
+        auto chain = _new_chain(chain_id, pt_type);
 
         // first, create chain directly from structure
         chain->bulk_set(polymer, nullptr);
@@ -390,9 +394,35 @@ AtomicStructure::make_chains() const
             chain->bulk_set(new_residues, &sr_seq.contents());
         }
     }
+
+    // now look through missing-structure pseudobonds for "chain trace"
+    // pseudobonds and set their shown_when_atoms_hidden to false, so 
+    // that they disappear when ribbons/nucleotides are shown
+    auto pbg = pb_mgr().get_group(PBG_MISSING_STRUCTURE);
+    if (pbg != nullptr) {
+        for (auto pb: pbg->pseudobonds()) {
+            Residue* r1 = pb->atoms()[0]->residue();
+            Residue* r2 = pb->atoms()[1]->residue();
+            if (r1->chain() == nullptr || (r1->chain() != r2->chain()))
+                continue;
+            auto& res_map = r1->chain()->res_map();
+            if (std::abs((int)(res_map.at(r1) - res_map.at(r2))) < 2) {
+                if (r1->chain()->from_seqres()) {
+                    // Okay, willing to trust that these are truly consecutive residues...
+                    pb->set_shown_when_atoms_hidden(false);
+                } else {
+                    // need to check more closely
+                    Real cutoff = r1->polymer_type() == PT_AMINO ?
+                        Residue::TRACE_PROTEIN_DISTSQ_CUTOFF : Residue::TRACE_NUCLEIC_DISTSQ_CUTOFF;
+                    if (pb->sqlength() <= cutoff)
+                        pb->set_shown_when_atoms_hidden(false);
+                }
+            }
+        }
+    }
 }
 
-std::vector<Chain::Residues>
+std::vector<std::pair<Chain::Residues,PolymerType>>
 AtomicStructure::polymers(AtomicStructure::PolymerMissingStructure missing_structure_treatment,
     bool consider_chain_ids) const
 {
@@ -407,8 +437,6 @@ AtomicStructure::polymers(AtomicStructure::PolymerMissingStructure missing_struc
     std::map<const Residue*, int> res_lookup;
     for (auto r: _residues) {
         res_lookup[r] = i++;
-        // while we're at it, set the initial polymeric residue type to none
-        r->set_polymer_type(Residue::PT_NONE);
     }
 
     // Find all polymeric connections and make a map
@@ -451,20 +479,14 @@ AtomicStructure::polymers(AtomicStructure::PolymerMissingStructure missing_struc
                     if (r2->principal_atom() == nullptr)
                         continue;
                     Real distsq_cutoff;
-                    Residue::PolymerType pt;
                     bool protein = pa1->name() == "CA";
                     if (protein) {
                         distsq_cutoff = Residue::TRACE_PROTEIN_DISTSQ_CUTOFF;
-                        pt = Residue::PT_AMINO;
                     } else {
                         distsq_cutoff = Residue::TRACE_NUCLEIC_DISTSQ_CUTOFF;
-                        pt = Residue::PT_NUCLEIC;
                     }
                     if (pa1->coord().sqdistance(pa2->coord()) > distsq_cutoff)
                         continue;
-                    // traces don't get their polymer type set, so set it here
-                    r1->set_polymer_type(pt);
-                    r2->set_polymer_type(pt);
                 }
                 int index1 = res_lookup[r1], index2 = res_lookup[r2];
                 if (abs(index1 - index2) == 1
@@ -480,27 +502,30 @@ AtomicStructure::polymers(AtomicStructure::PolymerMissingStructure missing_struc
     }
 
     // Go through residue list; start chains with initially-connected residues
-    std::vector<Chain::Residues> polys;
+    std::vector<std::pair<Chain::Residues,PolymerType>> polys;
     Chain::Residues chain;
     bool in_chain = false;
+    PolymerType pt = PT_NONE;
     for (auto& upr: _residues) {
         Residue* r = upr;
         auto connection = connected.find(r);
         if (connection == connected.end()) {
             if (in_chain) {
                 chain.push_back(r);
-                polys.push_back(chain);
+                polys.emplace_back(chain, pt);
                 chain.clear();
                 in_chain = false;
+                pt = PT_NONE;
             }
         } else {
             chain.push_back(r);
             in_chain = true;
+            if (pt == PT_NONE)
+                pt = Sequence::rname_polymer_type(r->name());
         }
     }
-    if (in_chain) {
-        polys.push_back(chain);
-    }
+    if (in_chain)
+        polys.emplace_back(chain, pt);
 
     _polymers_computed = true;
     return polys;

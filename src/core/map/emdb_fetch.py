@@ -30,6 +30,8 @@ def fetch_emdb(session, emdb_id, ignore_cache=False, **kw):
         #    url_pattern = ('https://files.rcsb.org/pub/emdb/structures/EMD-%s/map/%s.gz'
         # The RCSB ftp does not report file size so progress messages don't indicate how long it will take.
         url_pattern = 'ftp://ftp.wwpdb.org/pub/emdb/structures/EMD-%s/map/%s.gz'
+#        url_pattern = 'https://files.rcsb.org/pub/emdb/structures/EMD-%s/map/%s.gz'
+#        url_pattern = 'ftp://ftp.rcsb.org/pub/emdb/structures/EMD-%s/map/%s.gz'
     elif hname.endswith('.cn'):
         url_pattern = 'ftp://ftp.emdb-china.org/structures/EMD-%s/map/%s.gz'
     else:

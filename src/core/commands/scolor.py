@@ -58,16 +58,17 @@ def scolor(session, atoms = None, color = None, opacity = None, byatom = False,
             vcolors = vcolors.copy()    # Preserve original opacity
         if atoms is None:
             v = slice(nv)
+            all_atoms = True
         else:
             ai = s.atoms.mask(atoms)
             v2a = s.vertex_to_atom_map()
-            if v2a is None:
-                if ai.all():
-                    v = slice(nv)
-                else:
-                    continue
-            else:
+            all_atoms = ai.all()
+            if all_atoms:
+                v = slice(nv)
+            elif v2a is not None:
                 v = ai[v2a]		# Vertices for the given atoms
+            else:
+                continue	# Some atoms colored but no vertex to atom mapping
         if byatom:
             v2a = s.vertex_to_atom_map()
             if v2a is None:
@@ -91,6 +92,12 @@ def scolor(session, atoms = None, color = None, opacity = None, byatom = False,
         elif opacity != 'computed':
             vcolors[v,3] = opacity
         s.vertex_colors = vcolors
+        if all_atoms:
+            c8 = s.color if color is None else color.uint8x4()
+            if opacity is not None and opacity != 'computed':
+                c8[3] = opacity
+            s.color = c8
+
     return len(surfs)
 
 def register_command(session):

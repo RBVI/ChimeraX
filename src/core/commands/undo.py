@@ -17,28 +17,30 @@ from . import Annotation, AnnotationError
 def undo(session):
     '''Undo last undoable action.
     '''
-    session.undo.undo()
+    try:
+        session.undo.undo()
+    except IndexError:
+        session.logger.error("No undo action is available")
 
 def undo_list(session):
     '''List undoable actions
     '''
-    stack = session.undo.undo_stack
-    session.logger.info("There are %d undo actions on the stack" % len(stack))
-    for inst in stack:
-        session.logger.info("  %s" % inst.name)
+    msgs = _list_stack("undo", session.undo.undo_stack)
+    msgs.extend(_list_stack("redo", session.undo.redo_stack))
+    session.logger.info(''.join(msgs), is_html=True)
 
-def redo(session):
-    '''Redo last undone action.
-    '''
-    session.undo.redo()
-
-def redo_list(session):
-    '''List undoable actions
-    '''
-    stack = session.undo.redo_stack
-    session.logger.info("There are %d redo actions on the stack" % len(stack))
+def _list_stack(label, stack):
+    msgs = ["<p>There are %d %s actions</p>" % (len(stack), label)]
+    msgs.append("<ul>")
     for inst in stack:
-        session.logger.info("  %s" % inst.name)
+        msgs.append("<li>%s</li>" % inst.name)
+    msgs.append("</ul>")
+    return msgs
+
+def undo_clear(session):
+    '''Clear all undoable and redoable actions
+    '''
+    stack = session.undo.clear()
 
 def undo_depth(session, depth=None):
     if depth is None:
@@ -53,16 +55,24 @@ def undo_depth(session, depth=None):
         else:
             session.logger.info("Undo stack depth is unlimited")
 
+def redo(session):
+    '''Redo last undone action.
+    '''
+    try:
+        session.undo.redo()
+    except IndexError:
+        session.logger.error("No redo action is available")
+
 def register_command(session):
     from . import CmdDesc, register, IntArg
     desc = CmdDesc(synopsis='undo last action')
     register('undo', desc, undo, logger=session.logger)
     desc = CmdDesc(synopsis='list available undo actions')
     register('undo list', desc, undo_list, logger=session.logger)
-    desc = CmdDesc(synopsis='redo last undone action')
-    register('redo', desc, redo, logger=session.logger)
-    desc = CmdDesc(synopsis='list available redo actions')
-    register('redo list', desc, redo_list, logger=session.logger)
+    desc = CmdDesc(synopsis='clear all undo and redo actions')
+    register('undo clear', desc, undo_clear, logger=session.logger)
     desc = CmdDesc(optional=[('depth', IntArg)],
                    synopsis='set undo/redo stack depth')
     register('undo depth', desc, undo_depth, logger=session.logger)
+    desc = CmdDesc(synopsis='redo last undone action')
+    register('redo', desc, redo, logger=session.logger)
