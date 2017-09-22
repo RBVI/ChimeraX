@@ -13,12 +13,13 @@
 
 from .settings import defaults
 
-def find_clashes(test_atoms,
+def find_clashes(session, test_atoms,
         assumed_max_vdw=2.1,
         attr_name=defaults["attr_name"],
 		bond_separation=defaults["bond_separation"],
         clash_threshold=defaults["clash_threshold"],
         coordset=None,
+        distance_only=None,
         group_name=defaults["group_name"],
 		hbond_allowance=defaults["clash_hbond_allowance"],
 		inter_model=True,
@@ -28,7 +29,7 @@ def find_clashes(test_atoms,
         test="others"):
 	"""Detect steric clashes/contacts
 
-	   'test_atoms' should be a list of atoms.
+	   'test_atoms' should be an Atoms collection.
 
 	   If 'test' is 'others' then non-bonded clashes between atoms in
 	   'test_atoms' and non-'test_atoms' atoms will be found.  If 'test'
@@ -39,6 +40,10 @@ def find_clashes(test_atoms,
 
 	   'hbond_allowance' is how much the clash value is reduced if one
 	   atom is a donor and the other an acceptor.
+
+       If 'distance_only' is set (in which case it must be a positive numeric
+       value), then both VDW radii and hbond_allowance are ignored and the
+       center-center distance between the atoms must <= the given value.
 
 	   Atom pairs are eliminated from consideration if they are less than
 	   or equal to 'bond_separation' bonds apart.
@@ -57,37 +62,31 @@ def find_clashes(test_atoms,
 	   dictionaries keyed on clashing atom with value being the clash value.
 	"""
 
-    #TODO (remember that 'inter-model' logic needs to be added)
-
 	# use the fast _closepoints module to cut down candidate atoms if we
 	# can (since _closepoints doesn't know about "non-bonded" it isn't as
 	# useful as it might otherwise be)
 	if test == "others":
-		mList = chimera.openModels.list(modelTypes=[chimera.Molecule])
-		testSet = set(test_atoms)
-		from numpy import array
-		testList = array(test_atoms)
-		otherAtoms = [a for m in mList for a in m.atoms
-							if a not in testSet]
-		otherAtoms = array(otherAtoms)
-		if len(otherAtoms) == 0:
-			from chimera import UserError
-			raise UserError("All atoms are in test set: no others"
-				" available to test against")
-		from _multiscale import get_atom_coordinates
-		from chimera import numpyArrayFromAtoms
-		tPoints = numpyArrayFromAtoms(testList, xformed=not crdSet, crdSet=crdSet)
-		oPoints = numpyArrayFromAtoms(otherAtoms, xformed=not crdSet, crdSet=crdSet)
+        if inter_model:
+            from chimera.core.atomic import all_atoms
+            universe_atoms = all_atoms(session)
+        else:
+            from chimera.core.atomic import structure_atoms
+            universe_atoms = structure_atoms(test_atoms.unique_structures)
+        other_atoms = universe_atoms.subtract(test_atoms)
+		if len(other_atoms) == 0:
+			from chimerax.core.errors import UserError
+			raise UserError("All atoms are in test set: no others available to test against")
 		cutoff = 2.0 * assumed_max_vdw - clash_threshold
-		from _closepoints import find_close_points, BOXES_METHOD
-		tClose, oClose = find_close_points(BOXES_METHOD,
-						tPoints.astype('f'), oPoints.astype('f'), cutoff)
-		test_atoms = testList.take(tClose)
-		search_atoms = otherAtoms.take(oClose)
+		t_close, o_close = find_close_points(test_atoms.scene_coords,
+                                other_atoms.scene_coords, cutoff)
+		test_atoms = test_atoms[t_close]
+		search_atoms = other_atoms[o_close]
 	elif not isinstance(test, basestring):
 		search_atoms = test
 	else:
 		search_atoms = test_atoms
+
+    #TODO (remember that 'inter-model' logic needs to be added)
 
 	from chimera.misc import atomSearchTree
 	tree = atomSearchTree(list(search_atoms), xformed=not crdSet, crdSet=crdSet)

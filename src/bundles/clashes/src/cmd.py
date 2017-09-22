@@ -34,6 +34,7 @@ def _cmd(session, test_atoms, group_name, hbond_allowance, overlap_cutoff,
         color_atoms=defaults["action_color"],
         continuous=False,
         coordset=None,
+        distance_only=None,
         inter_model=True,
         inter_submodel=False,
         intra_mol=defaults["intra_mol"],
@@ -83,10 +84,11 @@ def _cmd(session, test_atoms, group_name, hbond_allowance, overlap_cutoff,
         delattr(session, continous_attr)
     from .clashes import find_clashes
     #TODO: 'inter_model' keyword is new (no "model" option in 'test' now)
-    clashes = find_clashes(test_atoms, attr_name=attr_name, bond_separation=bond_separation,
-        clash_threshold=overlap_cutoff, coordset=coordset, group_name=group_name,
-        hbond_allowance=hbond_allowance, inter_model=inter_model, inter_submodel=inter_submodel,
-        intra_res=intra_res, intra_mol=intra_mol, test=test)
+    clashes = find_clashes(session, test_atoms, attr_name=attr_name,
+        bond_separation=bond_separation, clash_threshold=overlap_cutoff, coordset=coordset,
+        distance_only=distance_only, group_name=group_name, hbond_allowance=hbond_allowance,
+        inter_model=inter_model, inter_submodel=inter_submodel, intra_res=intra_res,
+        intra_mol=intra_mol, test=test)
     if select_clashes:
         chimera.selectionOperation(clashes.keys())
     if test == "self":
