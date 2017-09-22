@@ -79,6 +79,7 @@ class HelpUI(ToolInstance):
             tb.addAction(a)
 
         self.url = QLineEdit()
+        self.url.setPlaceholderText("url")
         self.url.setClearButtonEnabled(True)
         tb.insertWidget(self.reload, self.url)
 
@@ -111,8 +112,6 @@ class HelpUI(ToolInstance):
         if empty:
             from chimerax import app_dirs
             self.tool_window.title = app_dirs.appname
-            self.url.setText("url")
-            self.url.selectAll()
             from PyQt5.QtCore import Qt
             self.url.setFocus(Qt.ShortcutFocusReason)
         self.tabs.setCurrentWidget(w)
