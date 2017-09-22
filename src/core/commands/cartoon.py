@@ -606,7 +606,7 @@ def register_command(session):
                             ("arrow_scale", Bounded(FloatArg, 1.0, 3.0)),
                             ("xsection", EnumOf(_XSectionMap.keys())),
                             ("sides", Bounded(EvenIntArg, 3, 24)),
-                            ("divisions", Bounded(IntArg, 1, 40)),
+                            ("divisions", Bounded(IntArg, 2, 40)),
                             ("bar_scale", FloatArg),
                             ("bar_sides", Bounded(EvenIntArg, 3, 24)),
                             ("ss_ends", EnumOf(["default", "short", "long"])),
