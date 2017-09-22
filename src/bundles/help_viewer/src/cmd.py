@@ -29,7 +29,7 @@ def help(session, topic=None, *, option=None, is_query=False):
     if topic is None:
         if is_query:
             return True
-        topic = 'help:user'
+        topic = 'help:index.html'
     if topic.startswith('cxcmd:'):
         from urllib.parse import unquote
         cmd = unquote(topic.split(':', 1)[1])

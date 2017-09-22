@@ -21,6 +21,25 @@ from chimerax.core.tools import ToolInstance
 from chimerax.core.ui.widgets import ChimeraXHtmlView
 
 _singleton = None
+_help_path = None
+
+
+def _qurl2text(qurl):
+    # recreate help: version
+    global _help_path
+    if _help_path is None:
+        from chimerax import app_data_dir
+        import os
+        from urllib.request import pathname2url
+        _help_path = pathname2url(os.path.join(app_data_dir, 'docs'))[2:] + '/'
+    if qurl.scheme() == 'file':
+        path = qurl.path()
+        if path.startswith(_help_path):
+            path = path[len(_help_path):]
+            if path.endswith("/index.html"):
+                path = path[:-11]
+            return "help:%s" % path
+    return qurl.toString()
 
 
 class _HelpWebView(ChimeraXHtmlView):
@@ -48,11 +67,13 @@ class HelpUI(ToolInstance):
         parent = self.tool_window.ui_area
 
         # UI content code
-        from PyQt5.QtWidgets import QToolBar, QVBoxLayout, QAction, QLabel, QLineEdit, QTabWidget, QShortcut
+        from PyQt5.QtWidgets import QToolBar, QVBoxLayout, QAction, QLineEdit, QTabWidget, QShortcut
         from PyQt5.QtGui import QIcon
         from PyQt5.QtCore import Qt
-        self.new_tab = QShortcut(Qt.CTRL + Qt.Key_T, parent)
-        self.new_tab.activated.connect(lambda: self.create_tab(empty=True))
+        self.sc_new_tab = QShortcut(Qt.CTRL + Qt.Key_T, parent)
+        self.sc_new_tab.activated.connect(lambda: self.create_tab(empty=True))
+        self.sc_reset_zoom = QShortcut(Qt.CTRL + Qt.Key_0, parent)
+        self.sc_reset_zoom.activated.connect(self.page_reset_zoom)
         self.toolbar = tb = QToolBar()
         # tb.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         layout = QVBoxLayout()
@@ -60,49 +81,62 @@ class HelpUI(ToolInstance):
         parent.setLayout(layout)
         import os.path
         icon_dir = os.path.dirname(__file__)
-        # attribute, text, tool tip, callback, enabled
+        # attribute, text, tool tip, callback, shortcut(s), enabled
         buttons = (
-            ("back", "Back", "Back to previous page", self.page_back, False),
-            ("forward", "Forward", "Next page", self.page_forward, False),
-            ("reload", "Reload", "Reload page", self.page_reload, True),
-            ("zoom_in", "Zoom in", "Zoom in", self.page_zoom_in, True),
-            ("zoom_out", "Zoom out", "Zoom out", self.page_zoom_out, True),
-            ("home", "Home", "Home page", self.page_home, True),
+            ("back", "Back", "Back to previous page", self.page_back,
+                Qt.Key_Back, False),
+            ("forward", "Forward", "Next page", self.page_forward,
+                Qt.Key_Forward, False),
+            ("reload", "Reload", "Reload page", self.page_reload,
+                Qt.Key_Reload, True),
+            ("zoom_in", "Zoom in", "Zoom in", self.page_zoom_in,
+                [Qt.CTRL + Qt.Key_Plus, Qt.Key_ZoomIn], True),
+            ("zoom_out", "Zoom out", "Zoom out", self.page_zoom_out,
+                [Qt.CTRL + Qt.Key_Minus, Qt.Key_ZoomOut], True),
+            ("home", "Home", "Home page", self.page_home,
+                Qt.Key_HomePage, True),
+            (None, None, None, None, None, None),
+            ("search", "Search", "Search in page", self.page_search,
+                Qt.Key_Search, True),
         )
-        for attribute, text, tooltip, callback, enabled in buttons:
-            icon_path = os.path.join(icon_dir, "%s.png" % attribute)
+        for attribute, text, tooltip, callback, shortcut, enabled in buttons:
+            if attribute is None:
+                tb.addSeparator()
+                continue
+            icon_path = os.path.join(icon_dir, "%s.svg" % attribute)
             setattr(self, attribute, QAction(QIcon(icon_path), text, tb))
             a = getattr(self, attribute)
             a.setToolTip(tooltip)
             a.triggered.connect(callback)
+            if shortcut:
+                if isinstance(shortcut, list):
+                    a.setShortcuts(shortcut)
+                else:
+                    a.setShortcut(shortcut)
             a.setEnabled(enabled)
             tb.addAction(a)
 
         self.url = QLineEdit()
         self.url.setPlaceholderText("url")
         self.url.setClearButtonEnabled(True)
+        self.url.returnPressed.connect(self.go_to)
         tb.insertWidget(self.reload, self.url)
 
-        label = QLabel("  Search:")
-        font = label.font()
-        font.setPointSize(font.pointSize() + 2)
-        font.setBold(True)
-        label.setFont(font)
-        tb.addWidget(label)
-        self.search = QLineEdit()
-        self.search.setClearButtonEnabled(True)
-        self.search.setPlaceholderText("search terms")
-        self.search.setMaximumWidth(200)
-        tb.addWidget(self.search)
+        self.search_terms = QLineEdit()
+        self.search_terms.setClearButtonEnabled(True)
+        self.search_terms.setPlaceholderText("search terms")
+        self.search_terms.setMaximumWidth(200)
+        self.search_terms.returnPressed.connect(self.page_search)
+        tb.addWidget(self.search_terms)
+
         self.tabs = QTabWidget(parent)
         self.tabs.setTabsClosable(True)
         self.tabs.setUsesScrollButtons(True)
+        self.tabs.setTabBarAutoHide(True)
+        self.tabs.setDocumentMode(False)
         self.tabs.currentChanged.connect(self.tab_changed)
         self.tabs.tabCloseRequested.connect(self.tab_close)
         layout.addWidget(self.tabs)
-
-        self.search.returnPressed.connect(self.page_search)
-        self.url.returnPressed.connect(self.go_to)
 
         self.tool_window.manage(placement=None)
 
@@ -155,19 +189,25 @@ class HelpUI(ToolInstance):
             return
         history = w.history()
         hi = history.itemAt(0)
-        self.show(hi.url().url())
+        self.show(_qurl2text(hi.url()))
 
-    def page_zoom_in(self, checked):
+    def page_zoom_in(self, checked=None):
         w = self.tabs.currentWidget()
         if w is None:
             return
-        w.setZoomFactor(1.25 * self.help_window.zoomFactor())
+        w.setZoomFactor(1.25 * w.zoomFactor())
 
-    def page_zoom_out(self, checked):
+    def page_zoom_out(self, checked=None):
         w = self.tabs.currentWidget()
         if w is None:
             return
-        w.setZoomFactor(0.8 * self.help_window.zoomFactor())
+        w.setZoomFactor(0.8 * w.zoomFactor())
+
+    def page_reset_zoom(self):
+        w = self.tabs.currentWidget()
+        if w is None:
+            return
+        w.setZoomFactor(1)
 
     def page_reload(self, checked):
         w = self.tabs.currentWidget()
@@ -179,7 +219,7 @@ class HelpUI(ToolInstance):
         w = self.tabs.currentWidget()
         if w is None:
             return
-        w.findText(self.search.text())
+        w.findText(self.search_terms.text())
 
     def delete(self):
         global _singleton
@@ -195,7 +235,7 @@ class HelpUI(ToolInstance):
         history = w.history()
         self.back.setEnabled(history.canGoBack())
         self.forward.setEnabled(history.canGoForward())
-        self.url.setText(w.url().url())
+        self.url.setText(_qurl2text(w.url()))
 
     def title_changed(self, w, title):
         if self.tabs.currentWidget() == w:
@@ -208,6 +248,7 @@ class HelpUI(ToolInstance):
             tab_text = self.tabs.tabText(i)
             if tab_text != "New Tab":
                 self.tool_window.title = tab_text
+                self.url.setText(_qurl2text(self.tabs.currentWidget().url()))
         else:
             # no more tabs
             self.display(False)
