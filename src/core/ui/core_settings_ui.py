@@ -74,11 +74,11 @@ class CoreSettingsPanel:
     }
 
     def __init__(self, session, ui_area):
-        from PyQt5.QtWidgets import QTabWidget
+        from PyQt5.QtWidgets import QTabWidget, QBoxLayout
         from .options import OptionsPanel
         self.session = session
         panels = {}
-        tab_widget = QTabWidget(ui_area)
+        tab_widget = QTabWidget()
         categories = []
 
         for setting, setting_info in self.settings_info.items():
@@ -99,6 +99,9 @@ class CoreSettingsPanel:
         categories.sort()
         for category in categories:
             tab_widget.addTab(panels[category], category)
+        layout = QBoxLayout(QBoxLayout.LeftToRight)
+        layout.addWidget(tab_widget)
+        ui_area.setLayout(layout)
 
     def _opt_cb(self, opt):
         setting = opt.attr_name

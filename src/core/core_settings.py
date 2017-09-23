@@ -25,6 +25,8 @@ from .settings import Settings
 
 class _CoreSettings(Settings):
 
+    # if a new setting is to appear in the settings GUI, info must also be added to
+    # ui.core_settings_ui.py
     EXPLICIT_SAVE = {
         'atomspec_contents': 'simple', # choices: simple, command (-line specifier), serial (number)
         'bg_color': configfile.Value(Color('#000'), commands.ColorArg, Color.hex_with_alpha),
