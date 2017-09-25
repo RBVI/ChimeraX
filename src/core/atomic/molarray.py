@@ -913,7 +913,7 @@ class Residues(Collection):
     whatever data source the structure came from, so not necessarily consecutive,
     or starting from 1, *etc.* Read only.
     ''')
-    polymer_types = cvec_property('residue_polymer_type', int32, read_only = True, doc =
+    polymer_types = cvec_property('residue_polymer_type', uint8, read_only = True, doc =
     '''Returns a numpy int array of residue types. Read only.''')
     principal_atoms = cvec_property('residue_principal_atom', cptr, astype = _atoms_or_nones,
         read_only = True, doc =
@@ -1116,6 +1116,8 @@ class Chains(Collection):
     '''A numpy integer array containing the number of existing residues in each chain.'''
     num_residues = cvec_property('sseq_num_residues', size_t, read_only = True)
     '''A numpy integer array containing the number of residues in each chain.'''
+    polymer_types = cvec_property('sseq_polymer_type', uint8, read_only = True, doc =
+    '''Returns a numpy int array of residue types. Same values as Residues.polymer_types except shouldn't return PT_NONE.''')
 
     @classmethod
     def session_restore_pointers(cls, session, data):
