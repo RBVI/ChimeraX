@@ -1778,7 +1778,7 @@ class SeqBlock:
             if len(aseq.match_maps) == 1:
                 chain = list(aseq.match_maps.keys())[0]
                 colors = chain.existing_residues.existing_principal_atoms.colors
-                if len(colors) > 0:
+                if len(colors) == 0:
                     colors = chain.existing_residues.atoms.colors
                 color = numpy.sum(colors, axis=0) / len(colors)
             else:

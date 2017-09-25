@@ -28,6 +28,7 @@
 #include <atomstruct/destruct.h>     // Use DestructionObserver
 #include <atomstruct/MolResId.h>
 #include <atomstruct/PBGroup.h>
+#include <atomstruct/polymer.h>
 #include <atomstruct/Pseudobond.h>
 #include <atomstruct/PBGroup.h>
 #include <atomstruct/Residue.h>
@@ -685,7 +686,7 @@ extern "C" EXPORT void atom_in_chain(void *atoms, size_t n, npy_bool *in_chain)
 }
 
 
-extern "C" EXPORT void atom_is_backbone(void *atoms, size_t n, uint8_t extent, npy_bool *bb)
+extern "C" EXPORT void atom_is_backbone(void *atoms, size_t n, int extent, npy_bool *bb)
 {
     Atom **a = static_cast<Atom **>(atoms);
     BackboneExtent bbe = static_cast<BackboneExtent>(extent);
@@ -1445,6 +1446,18 @@ extern "C" EXPORT void pseudobond_shown(void *pbonds, size_t n, npy_bool *shown)
     error_wrap_array_get<Pseudobond, bool, npy_bool>(b, n, &Pseudobond::shown, shown);
 }
 
+extern "C" EXPORT void pseudobond_shown_when_atoms_hidden(void *pbonds, size_t n, npy_bool *shown)
+{
+    Pseudobond **b = static_cast<Pseudobond **>(pbonds);
+    error_wrap_array_get<Pseudobond, bool, npy_bool>(b, n, &Pseudobond::shown_when_atoms_hidden, shown);
+}
+
+extern "C" EXPORT void set_pseudobond_shown_when_atoms_hidden(void *pbonds, size_t n, npy_bool *shown)
+{
+    Pseudobond **b = static_cast<Pseudobond **>(pbonds);
+    error_wrap_array_set<Pseudobond, bool, npy_bool>(b, n, &Pseudobond::set_shown_when_atoms_hidden, shown);
+}
+
 extern "C" EXPORT void set_pseudobond_radius(void *pbonds, size_t n, float32_t *radii)
 {
     Pseudobond **b = static_cast<Pseudobond **>(pbonds);
@@ -1963,7 +1976,7 @@ extern "C" EXPORT void residue_principal_atom(void *residues, size_t n, pyobject
     }
 }
 
-extern "C" EXPORT void residue_polymer_type(void *residues, size_t n, int32_t *polymer_type)
+extern "C" EXPORT void residue_polymer_type(void *residues, size_t n, uint8_t *polymer_type)
 {
     Residue **r = static_cast<Residue **>(residues);
     error_wrap_array_get(r, n, &Residue::polymer_type, polymer_type);
@@ -2251,13 +2264,13 @@ extern "C" EXPORT void set_residue_ribbon_color(void *residues, size_t n, uint8_
 
 #define AVERAGE_PEPTIDE_PLANE
 #ifdef AVERAGE_PEPTIDE_PLANE
-static void residue_update_hide(Residue *r, Atom *center)
+static void residue_update_hide(Residue *r, Atom *anchor)
 {
     if (r->ribbon_display() && r->ribbon_hide_backbone()) {
         // Ribbon is shown and hides backbone, so hide backbone atoms and bonds
         for (auto atom: r->atoms())
             if ((atom->hide() & Atom::HIDE_RIBBON) == 0
-                    && atom->is_backbone(BBE_RIBBON) && atom != center)
+                    && atom->is_backbone(BBE_RIBBON) && atom != anchor)
                 atom->set_hide(atom->hide() | Atom::HIDE_RIBBON);
     }
     else {
@@ -2265,7 +2278,7 @@ static void residue_update_hide(Residue *r, Atom *center)
         // so unhide backbone atoms and bonds
         for (auto atom: r->atoms())
             if ((atom->hide() & Atom::HIDE_RIBBON) != 0
-                    && atom->is_backbone(BBE_RIBBON) && atom != center)
+                    && atom->is_backbone(BBE_RIBBON) && atom != anchor)
                 atom->set_hide(atom->hide() & ~Atom::HIDE_RIBBON);
     }
 }
@@ -2349,11 +2362,15 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
                 prev_c = NULL;
                 // Look for nucleotide
                 Atom *a = r->find_atom("C5'");
+                Atom *anchor = a;
                 if (a == NULL) {
-                    // Case 2: not a nucleotide
-                    r->set_ribbon_display(false);
-                    residue_update_hide(r, NULL);
-                    continue;
+                    a = r->find_atom("P");
+                    if (a == NULL) {
+                        // Case 2: not a nucleotide
+                        r->set_ribbon_display(false);
+                        residue_update_hide(r, NULL);
+                        continue;
+                    }
                 }
                 // Case 3: Nucleotide
                 centers.push_back(a);
@@ -2364,7 +2381,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
                     else
                         has_guides = false;
                 }
-                residue_update_hide(r, a);
+                residue_update_hide(r, anchor);
             }
         }
 
@@ -2406,7 +2423,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
                 float* center = cdata + i*3;
                 float* guide = gdata + i*3;
                 if (want_peptide
-                && r->polymer_type() == Residue::PT_AMINO
+                && r->polymer_type() == PT_AMINO
                 && r->structure()->ribbon_orient(r) == Structure::RIBBON_ORIENT_PEPTIDE) {
                     // "peptide_planes" are relative to the previous
                     // residue, so the i'th element is the peptide
@@ -2437,7 +2454,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
                 float* guide = gdata;
                 float* source;
                 if (want_peptide
-                && r->polymer_type() == Residue::PT_AMINO
+                && r->polymer_type() == PT_AMINO
                 && r->structure()->ribbon_orient(r) == Structure::RIBBON_ORIENT_PEPTIDE) {
                     // Want peptide.  Copy from second residue.
                     source = gdata + 3;
@@ -2460,7 +2477,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
                 float* guide = gdata + last*3;
                 float* source;
                 if (want_peptide
-                && r->polymer_type() == Residue::PT_AMINO
+                && r->polymer_type() == PT_AMINO
                 && r->structure()->ribbon_orient(r) == Structure::RIBBON_ORIENT_PEPTIDE) {
                     // Want peptide.  Copy from next to last residue.
                     source = gdata + (last-1)*3;
@@ -2526,7 +2543,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int
                 Atom *guide = NULL;
                 for (auto atom: a) {
                     AtomName name = atom->name();
-                    if (name == "CA" || name == "C5'")
+                    if (name == "CA" || name == "C5'" || name == "P")
                         center = atom;
                     else if (want_guides && (name == "O" || name == "C1'"))
                         guide = atom;
@@ -2843,6 +2860,12 @@ extern "C" EXPORT void sseq_num_existing_residues(void *chains, size_t n, size_t
     } catch (...) {
         molc_error();
     }
+}
+
+extern "C" EXPORT void sseq_polymer_type(void *sseqs, size_t n, uint8_t *polymer_type)
+{
+    StructureSeq **ss = static_cast<StructureSeq **>(sseqs);
+    error_wrap_array_get(ss, n, &StructureSeq::polymer_type, polymer_type);
 }
 
 extern "C" EXPORT void sseq_residues(void *chains, size_t n, pyobject_t *res)
@@ -3969,18 +3992,24 @@ extern "C" EXPORT PyObject *structure_molecules(void *mol)
 extern "C" EXPORT PyObject *structure_polymers(void *mol, int missing_structure_treatment, int consider_chains_ids)
 {
     Structure *m = static_cast<Structure *>(mol);
-    PyObject *poly = NULL;
+    PyObject *poly = nullptr;
     try {
-        std::vector<Chain::Residues> polymers = m->polymers(static_cast<Structure::PolymerMissingStructure>(missing_structure_treatment), consider_chains_ids);
-        poly = PyTuple_New(polymers.size());
+        std::vector<std::pair<Chain::Residues,PolymerType>> polymers = m->polymers(static_cast<Structure::PolymerMissingStructure>(missing_structure_treatment), consider_chains_ids);
+        poly = PyList_New(polymers.size());
         size_t p = 0;
-        for (auto resvec: polymers) {
+        for (auto residues_ptype: polymers) {
+            auto& resvec = residues_ptype.first;
+            auto pt = residues_ptype.second;
             void **ra;
             PyObject *r_array = python_voidp_array(resvec.size(), &ra);
             size_t i = 0;
             for (auto r: resvec)
                 ra[i++] = static_cast<void *>(r);
-            PyTuple_SetItem(poly, p++, r_array);
+            PyObject *ptype = PyLong_FromLong((long)pt);
+            PyObject *vals = PyTuple_New(2);
+            PyTuple_SET_ITEM(vals, 0, r_array);
+            PyTuple_SET_ITEM(vals, 1, ptype);
+            PyList_SET_ITEM(poly, p++, vals);
         }
         return poly;
     } catch (...) {
@@ -4496,6 +4525,15 @@ static IArray* _numpy_ints3(PyObject *a, IArray *iarray)
     throw std::invalid_argument("not an int[3] array");
 }
 
+static CArray* _numpy_uint8s(PyObject *a, CArray *carray)
+{
+    if (a == Py_None)
+        return NULL;
+    if (parse_uint8_n_array(a, carray))
+        return carray;
+    throw std::invalid_argument("not a unsigned char array");
+}
+
 extern "C" EXPORT void *rxsection_new(PyObject* coords, PyObject* coords2,
                                PyObject* normals, PyObject* normals2,
                                bool faceted, PyObject* tess)
@@ -4532,12 +4570,13 @@ extern "C" EXPORT PyObject *rxsection_extrude(void *p, PyObject *centers,
                                        bool cap_back, int offset)
 {
     auto *xs = static_cast<RibbonXSection *>(p);
-    FArray fa_centers, fa_tangents, fa_normals, fa_colors;
+    FArray fa_centers, fa_tangents, fa_normals;
+    CArray ca_colors;
     try {
         FArray* c = _numpy_floats3(centers, &fa_centers);
         FArray* t = _numpy_floats3(tangents, &fa_tangents);
         FArray* n = _numpy_floats3(normals, &fa_normals);
-        FArray* co = _numpy_float3(colors, &fa_colors);
+        CArray* co = _numpy_uint8s(colors, &ca_colors);
         PyObject *r = xs->extrude(*c, *t, *n, *co, cap_front, cap_back, offset);
         return r;
     } catch (...) {

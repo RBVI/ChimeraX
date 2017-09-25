@@ -293,7 +293,6 @@ void Structure::_copy(Structure* g) const
         cr->set_ss_id(r->ss_id());
         cr->set_ss_type(r->ss_type());
         cr->_alt_loc = r->_alt_loc;
-        cr->set_polymer_type(r->polymer_type());
         cr->_ribbon_hide_backbone = r->_ribbon_hide_backbone;
         cr->_ribbon_selected = r->_ribbon_selected;
         cr->_ribbon_adjust = r->_ribbon_adjust;
@@ -931,15 +930,12 @@ Structure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
     }
 
     // PseudobondManager groups;
-    // main version number needs to go up when manager's
-    // version number goes up, so check it
     PyObject* pb_ints;
     PyObject* pb_floats;
     PyObject* pb_misc;
+    // pb manager version now locked to main version number, so the next line
+    // is really a historical artifact
     *int_array = _pb_mgr.session_info(&pb_ints, &pb_floats, &pb_misc);
-    if (*int_array++ != 1) {
-        throw std::runtime_error("Unexpected version number from pseudobond manager");
-    }
     if (PyList_Append(ints, pb_ints) < 0)
         throw std::runtime_error("Couldn't append pseudobond ints to int list");
     if (PyList_Append(floats, pb_floats) < 0)
@@ -1418,7 +1414,7 @@ Structure::set_all_graphics_changes(int changes)
 Structure::RibbonOrientation
 Structure::ribbon_orient(const Residue *r) const
 {
-    if (r->polymer_type() == Residue::PT_NUCLEIC)
+    if (r->polymer_type() == PT_NUCLEIC)
         return Structure::RIBBON_ORIENT_GUIDES;
     if (r->is_helix())
         return Structure::RIBBON_ORIENT_ATOMS;

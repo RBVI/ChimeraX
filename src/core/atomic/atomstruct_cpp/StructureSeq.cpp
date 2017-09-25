@@ -28,9 +28,9 @@
 
 namespace atomstruct {
 
-StructureSeq::StructureSeq(const ChainID& chain_id, Structure* s):
+StructureSeq::StructureSeq(const ChainID& chain_id, Structure* s, PolymerType pt):
     Sequence(std::string("chain ") + (chain_id == " " ? "(blank)" : chain_id.c_str())),
-    _chain_id(chain_id), _from_seqres(false), _structure(s)
+    _chain_id(chain_id), _from_seqres(false), _polymer_type(pt), _structure(s)
 { }
 
 void
@@ -245,6 +245,9 @@ StructureSeq::session_restore(int version, int** ints, float** floats)
     _from_seqres = int_ptr[0];
     auto res_map_size = int_ptr[1];
     auto residues_size = int_ptr[2];
+    if (version >= 10) {
+        _polymer_type = static_cast<PolymerType>(int_ptr[3]);
+    }
     int_ptr += SESSION_NUM_INTS(version);
 
     auto& residues = _structure->residues();
@@ -254,6 +257,10 @@ StructureSeq::session_restore(int version, int** ints, float** floats)
         auto res = residues[res_index];
         _res_map[res] = pos;
         res->set_chain(dynamic_cast<Chain*>(this));
+        if (i == 0 && version < 10) {
+            // polymer type stored in residues
+            _polymer_type = Sequence::rname_polymer_type(res->name());
+        }
     }
 
     _residues.reserve(residues_size);
@@ -275,6 +282,7 @@ StructureSeq::session_save(int** ints, float** floats) const
     int_ptr[0] = _from_seqres;
     int_ptr[1] = _res_map.size();
     int_ptr[2] = _residues.size();
+    int_ptr[3] = (int)_polymer_type;
     int_ptr += SESSION_NUM_INTS();
 
     auto& ses_res = *_structure->session_save_residues;

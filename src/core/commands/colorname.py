@@ -1,3 +1,5 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -157,31 +159,40 @@ def delete_color(session, name):
         raise UserError(v)
 
 
-def list_colors(session, all=False):
+def list_colors(session, which='all'):
     from . import cli
+    if which == 'all' or which == 'custom':
+        from sortedcontainers import SortedDict
+        d = SortedDict([(name, session.user_colors[name])
+                        for name in session.user_colors.list()])
+        _list_colors(session, d, 'custom')
+    if which == 'all' or which == 'builtin':
+        from .. import colors
+        _list_colors(session, colors.BuiltinColors, 'builtin',
+                     "http://rbvi.ucsf.edu/chimerax/docs/user/commands/"
+                     "colornames.html#builtin")
+
+
+def _list_colors(session, colors_dict, kind, url=None):
+    from . import cli
+    import html
     logger = session.logger
-    color_names = session.user_colors.list(all=all)
-    names = cli.commas(color_names, ' and')
-    noun = cli.plural_form(color_names, 'color')
-    if not names:
-        logger.status('No %scolors.' % ('custom ' if not all else ''))
-    elif not session.ui.is_gui:
-        logger.info('%d %s: %s' % (len(color_names), noun, names))
+    if not colors_dict:
+        logger.info("No %s colors." % kind)
+        return
+    is_html = session.ui.is_gui
+    colors = []
+    for name, c in colors_dict.items():
+        if is_html:
+            colors.append(html.escape(name) + html_color_swatch(c))
+        else:
+            colors.append(name)
+    noun = cli.plural_form(colors, 'color')
+    if url is None or not is_html:
+        label = "%d %s %s: " % (len(colors), kind, noun)
     else:
-        from html import escape
-        msg = '%d %s:' % (len(color_names), noun)
-        sep = ''
-        for n in color_names[:-1]:
-            c = session.user_colors[n]
-            msg += '%s %s' % (sep, escape(n)) + html_color_swatch(c)
-            sep = ','
-        if len(color_names) > 0:
-            if sep:
-                sep = ', and'
-            n = color_names[-1]
-            c = session.user_colors[n]
-            msg += '%s %s' % (sep, escape(n)) + html_color_swatch(c)
-        logger.info(msg, is_html=True)
+        label = "%d <a href=\"%s\">%s %s</a>: " % (len(colors), url, kind, noun)
+    logger.info(label + cli.commas(colors, ' and') + '.', is_html=is_html)
 
 
 # -----------------------------------------------------------------------------
@@ -191,7 +202,7 @@ def register_command(session):
     register(
         'color list',
         CmdDesc(
-            keyword=[('all', NoArg)],
+            optional=[('which', EnumOf(["all", "custom", "builtin"]))],
             synopsis='list colors'),
         list_colors, logger=session.logger
     )
