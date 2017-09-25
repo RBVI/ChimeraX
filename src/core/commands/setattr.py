@@ -26,7 +26,7 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False):
       Attribute name
     attr_value : string
       If attr_name.lower() ends in "color", will be treated as a color name, otherwise as
-      whatever type it "looks like": int, float, string.
+      whatever type it "looks like": int, bool, float, string.
     create : bool
       Whether to create the attribute if the object doesn't already have it
     """
@@ -94,6 +94,8 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False):
             value = ColorArg.parse(attr_value, session)[0].uint8x4()
         except Exception as e:
             raise UserError(str(e))
+    elif attr_value.lower() in ["false", "true"]:
+        value = eval(attr_value.capitalize())
     else:
         try:
             value = int(attr_value)
