@@ -43,6 +43,9 @@ The command <b>open</b> reads data in several
 Input files may contain data to be displayed or commands or code to be executed.
 Local files can also be browsed/opened with <b>File... Open</b> in the menu,
 in which case the proper filename <a href="#file-table">suffix</a> is required.
+A file browser window can also be shown by giving
+<a href="usageconventions.html#browse"><b>browse</b></a> as the filename 
+in the <b>open</b> command.
 See also: 
 <a href="close.html"><b>close</b></a>,
 <a href="save.html"><b>save</b></a>,
@@ -361,6 +364,9 @@ home directory. One or more files can be specified at a time by including
 <b>*</b> (wild card), <b>?</b> (single-character wild card), 
 and/or square-bracketed character ranges in the <i>filename</i>
 (Unix-style pathname expansion or <b><i>globbing</i></b>).
+Substituting the word <a href="usageconventions.html#browse"><b>browse</b></a>
+for the filename brings up a file browser window for choosing the
+name and location interactively.
 </p><p>
 The file format can be indicated with either the <i>filename</i> suffix or
 the <b>format</b> option (where <i>format-name</i> can be truncated).
@@ -659,7 +665,6 @@ can be opened in either order.
 Gaps in the structure sequence relative to the sequence in the alignment file 
 can only occur where residues are missing from the structure (for example, 
 a flexible loop with insufficient density to determine coordinates).
-<!-- check the following -->
 Associations are reported in the <a href="../window.html">status line</a>
 and the <a href="../tools/log.html"><b>Log</b></a>.
 A structure (even if it has multiple chains) cannot be associated with more

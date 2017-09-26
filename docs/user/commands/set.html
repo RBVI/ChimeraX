@@ -62,7 +62,8 @@ See also:
 class="nounder"><b>silhouetteDepthJump</b></a>
 - change in depth needed to trigger drawing an outline
 <li><a href="#subdivision" class="nounder"><b>subdivision</b></a>
-- fineness of facets in stick, balls, spheres
+- fineness of triangulation
+of stick, ball-and-stick, and sphere <a href="style.html">display styles</a>
 </ul>
 <p>
 One or more parameters can be specified in a single command. Examples:
@@ -132,10 +133,21 @@ initial default <b>0.03</b>, but changed to <b>0.01</b> by the
 <a href="#top" class="nounder">&bull;</a>
 <a name="subdivision"><b>set subdivision</b></a> &nbsp;<i>level</i>
 <blockquote>
-Set subdivision level, where a higher value increases the apparent smoothness
-of stick, ball-and-stick, and sphere representations by increasing
-the number of planar facets used to approximate them (initial default <b>1</b>).
-For cartoons, see the <b>sides</b> and <b>barSides</b> options of
+Set subdivision level (initial default <b>1</b>),
+where higher values increase the apparent smoothness
+of stick, ball-and-stick, and sphere <a href="style.html">display styles</a>
+by increasing the number of triangles used to draw them.
+At a given subdivision level, the fineness of triangulation
+is adjusted automatically depending on the display contents
+(<i>e.g.</i>, the number of atoms displayed), within the range
+of 10-2000 triangles per atom and 24-160 per bond.
+Alternatively, a fixed number of triangles per atom or bond can be specified
+with the <a href="graphics.html"><b>graphics</b></a> command.
+Using <b>set subdivision</b> returns to automatic adjustment,
+overriding any fixed values specified beforehand with 
+<a href="graphics.html"><b>graphics</b></a>.
+For cartoons, see <a href="graphics.html"><b>graphics</b></a>
+or the <b>divisions</b>, <b>sides</b>, and <b>barSides</b> options of
 <a href="cartoon.html#style"><b>cartoon style</b></a>.
 For molecular surfaces, see the 
 <a href="surface.html#parameters"><b>gridSpacing</b></a>
@@ -144,5 +156,5 @@ option of <a href="surface.html"><b>surface</b></a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2017</address>
+September 2017</address>
 </body></html> 
