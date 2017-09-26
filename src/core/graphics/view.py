@@ -605,8 +605,10 @@ class View:
         c.position = identity()
         w,h = self.window_size
         c.view_all(b, aspect = h/w, pad = pad)
-        self._center_of_rotation = b.center()
+        self._center_of_rotation = cr = b.center()
         self._update_center_of_rotation = True
+        if c.name == 'stereo':
+            c.set_eye_separation(cr, w)
 
     def view_all(self, bounds = None, pad = 0):
         '''Adjust the camera to show all displayed drawings using the
@@ -882,6 +884,30 @@ class View:
             if p is None:
                 p = self.center_of_rotation	# Compute center of rotation
         return self.camera.view_width(p) / self.window_size[0]
+
+    def stereo_scaling(self, delta_z):
+        '''
+        If in stereo camera mode change eye separation so that
+        when models moved towards camera by delta_z, their center
+        of bounding box appears to stay at the same depth, giving
+        the appearance that the models were simply scaled in size.
+        Another way to understand this is the models are scaled
+        when measured as a multiple of stereo eye separation.
+        '''
+        c = self.camera
+        if not hasattr(c, 'eye_separation_scene'):
+            return
+        b = self.drawing_bounds()
+        if b is None:
+            return
+        from ..geometry import distance
+        d = distance(b.center(), c.position.origin())
+        if d == 0 and delta_z > 0.5*d:
+            return
+        f = 1 - delta_z / d
+        from math import exp
+        c.eye_separation_scene *= f
+        c.redraw_needed = True
 
 
 class ClipPlanes:
