@@ -603,12 +603,9 @@ class View:
         c = self.camera
         from ..geometry import identity
         c.position = identity()
-        w,h = self.window_size
-        c.view_all(b, aspect = h/w, pad = pad)
+        c.view_all(b, window_size = self.window_size, pad = pad)
         self._center_of_rotation = cr = b.center()
         self._update_center_of_rotation = True
-        if c.name == 'stereo':
-            c.set_eye_separation(cr, w)
 
     def view_all(self, bounds = None, pad = 0):
         '''Adjust the camera to show all displayed drawings using the
@@ -620,8 +617,7 @@ class View:
             bounds = self.drawing_bounds()
             if bounds is None:
                 return
-        w,h = self.window_size
-        self.camera.view_all(bounds, aspect = h/w, pad = pad)
+        self.camera.view_all(bounds, window_size = self.window_size, pad = pad)
         if self._center_of_rotation_method in ('front center', 'center of view'):
             self._update_center_of_rotation = True
 
