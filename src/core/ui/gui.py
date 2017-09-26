@@ -301,7 +301,6 @@ class MainWindow(QMainWindow, PlainTextLog):
         dw = QDesktopWidget()
         main_screen = dw.availableGeometry(dw.primaryScreen())
         self.resize(main_screen.width()*.67, main_screen.height()*.67)
-        self.setDockOptions(self.dockOptions() | self.GroupedDragging)
 
         from PyQt5.QtCore import QSize
         class GraphicsArea(QStackedWidget):

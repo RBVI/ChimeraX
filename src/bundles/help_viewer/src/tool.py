@@ -50,12 +50,17 @@ class _HelpWebView(ChimeraXHtmlView):
 
     def __init__(self, session, tool):
         super().__init__(session, tool.tabs)
-        self.session = session
         self.help_tool = tool
 
-    def createWindow(self, win_type):
+    def createWindow(self, win_type):  # noqa
         # win_type is window, tab, dialog, backgroundtab
-        return self.help_tool.create_tab()
+        from PyQt5.QtWebEngineWidgets import QWebEnginePage
+        background = win_type == QWebEnginePage.WebBrowserBackgroundTab
+        return self.help_tool.create_tab(background=background)
+
+    def deleteLater(self):
+        self.help_tool = None
+        super().deleteLater()
 
 
 class HelpUI(ToolInstance):
@@ -159,7 +164,7 @@ class HelpUI(ToolInstance):
 
         self.tool_window.manage(placement=None)
 
-    def create_tab(self, empty=False):
+    def create_tab(self, *, empty=False, background=False):
         w = _HelpWebView(self.session, self)
         self.tabs.addTab(w, "New Tab")
         if empty:
@@ -167,7 +172,8 @@ class HelpUI(ToolInstance):
             self.tool_window.title = app_dirs.appname
             from PyQt5.QtCore import Qt
             self.url.setFocus(Qt.ShortcutFocusReason)
-        self.tabs.setCurrentWidget(w)
+        if not background:
+            self.tabs.setCurrentWidget(w)
         w.loadFinished.connect(lambda okay, w=w: self.page_loaded(w, okay))
         w.titleChanged.connect(lambda title, w=w: self.title_changed(w, title))
         return w
@@ -210,13 +216,13 @@ class HelpUI(ToolInstance):
         hi = history.itemAt(0)
         self.show(_qurl2text(hi.url()))
 
-    def page_zoom_in(self, checked=None):
+    def page_zoom_in(self):
         w = self.tabs.currentWidget()
         if w is None:
             return
         w.setZoomFactor(1.25 * w.zoomFactor())
 
-    def page_zoom_out(self, checked=None):
+    def page_zoom_out(self):
         w = self.tabs.currentWidget()
         if w is None:
             return
