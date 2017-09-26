@@ -89,21 +89,15 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False):
         raise UserError("No items of type '%s' found" % target)
 
     if attr_name.lower().endswith("color"):
+        if not isinstance(attr_value, str):
+            raise UserError("Trouble parsing shortened color name; please use full name")
         from . import ColorArg
         try:
             value = ColorArg.parse(attr_value, session)[0].uint8x4()
         except Exception as e:
             raise UserError(str(e))
-    elif attr_value.lower() in ["false", "true"]:
-        value = eval(attr_value.capitalize())
     else:
-        try:
-            value = int(attr_value)
-        except ValueError:
-            try:
-                value = float(attr_value)
-            except ValueError:
-                value = attr_value
+        value = attr_value
 
     from ..atomic.molarray import Collection
     if isinstance(items, Collection):
@@ -147,12 +141,12 @@ def attempt_set_attr(item, attr_name, value, orig_attr_name, value_string):
 #
 def register_command(session):
     from . import register, CmdDesc, ObjectsArg
-    from . import EmptyArg, Or, StringArg, BoolArg
+    from . import EmptyArg, Or, StringArg, BoolArg, IntArg, FloatArg
     from ..map import MapArg
     desc = CmdDesc(required=[('objects', Or(ObjectsArg, EmptyArg)),
                             ('target', StringArg),
                             ('attr_name', StringArg),
-                            ('attr_value', StringArg)],
+                            ('attr_value', Or(BoolArg, IntArg, FloatArg, StringArg))],
                    keyword=[('create', BoolArg)],
                    synopsis="set attributes")
     register('setattr', desc, set_attr, logger=session.logger)
