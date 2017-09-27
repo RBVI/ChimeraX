@@ -383,6 +383,17 @@ class StereoCamera(Camera):
         '''
         self.position = perspective_view_all(bounds, self.position, self.field_of_view, aspect, pad)
 
+    def set_eye_separation(self, point_on_screen, window_width):
+        from ..geometry import inner_product
+        z = inner_product(self.view_direction(), point_on_screen - self.position.origin())
+        if z <= 0:
+            return
+        from math import tan, radians
+        screen_width = 2*z*tan(0.5*radians(self.field_of_view))
+        es = screen_width * self.eye_separation_pixels / window_width
+        self.eye_separation_scene = es
+        self.redraw_needed = True
+
     def view_width(self, center):
         '''Return the width of the view at position center which is in
         scene coordinates.'''

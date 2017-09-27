@@ -505,24 +505,27 @@ AtomicStructure::polymers(AtomicStructure::PolymerMissingStructure missing_struc
     std::vector<std::pair<Chain::Residues,PolymerType>> polys;
     Chain::Residues chain;
     bool in_chain = false;
+    PolymerType pt = PT_NONE;
     for (auto& upr: _residues) {
         Residue* r = upr;
         auto connection = connected.find(r);
         if (connection == connected.end()) {
             if (in_chain) {
                 chain.push_back(r);
-                polys.emplace_back(chain, Sequence::rname_polymer_type(r->name()));
+                polys.emplace_back(chain, pt);
                 chain.clear();
                 in_chain = false;
+                pt = PT_NONE;
             }
         } else {
             chain.push_back(r);
             in_chain = true;
+            if (pt == PT_NONE)
+                pt = Sequence::rname_polymer_type(r->name());
         }
     }
-    if (in_chain) {
-        polys.emplace_back(chain, Sequence::rname_polymer_type(chain.back()->name()));
-    }
+    if (in_chain)
+        polys.emplace_back(chain, pt);
 
     _polymers_computed = true;
     return polys;

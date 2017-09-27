@@ -73,13 +73,49 @@ Floating pseudobonds can be hidden with the command
 <b><a href="cartoon.html">cartoon suppress false</a></b>,
 with the side effect of showing any backbone atoms that were already
 displayed but suppressed.
-</p>
+</p><p>
+<a name="examples">Examples:</a>
+<blockquote>
+<b><a href="show.html">hide</a><br>hb ligand restrict protein reveal true</b>
+</blockquote>
+&ndash; hide all atoms, then identify H-bonds between 
+<a href="atomspec.html#builtin"><b>ligand</b></a> and
+<a href="atomspec.html#builtin"><b>protein</b></a>,
+displaying the residues involved; note that the automatic classifier
+<a href="atomspec.html#builtin"><b>ligand</b></a> may not specify exactly
+(or only) the atoms of interest, and in that case, residue names, numbers, and/or
+chain IDs may be used instead, as in the following example:
+<blockquote>
+<b>hb /a:nad restrict cross log true reveal true</b>
+</blockquote>
+&ndash; calculate H-bonds between the NAD residue in chain A and everything else,
+write results to the <a href="../tools/log.html"><b>Log</b></a>
+<blockquote>
+<b><a href="show.html">hide</a>; <a href="cartoon.html">cartoon</a> suppress f
+<br>hb (/a & protein) restrict (/b & protein) reveal true</b>
+</blockquote>
+&ndash; hide all atoms and show cartoon (enabling coincident backbone-atom display),
+then identify H-bonds between
+chain A protein and chain B protein, displaying the residues involved;
+the parentheses are not required, but may be included for clarity
+<blockquote>
+<b><a href="delete.html">del</a> solvent; <a href="show.html">hide</a> protein
+<br>hb sidechain restrict both reveal t color yellow radius .08
+<br>hb sidechain restrict both salt t name "salt bridges" col magenta radius .1</b>
+</blockquote>
+&ndash; 
+delete <a href="atomspec.html#builtin"><b>solvent</b></a>,
+hide <a href="atomspec.html#builtin"><b>protein</b></a> atoms, and
+calculate all sidechain-sidechain H-bonds and their salt bridge subset
+as two separate <a href="../pseudobonds.html">pseudobond models</a>,
+displaying the involved residues and making the salt-bridge pseudobonds fatter
+so that they are clearly visible over the others
 
 <a name="related"></a>
 <p class="nav">
 [<a href="#top">back to top: hbonds</a>]
 </p>
-<h4>H-Bond-Related Features</h4>
+<h3>H-Bond-Related Features</h3>
 <p>
 Independent of the <a href="#top"><b>hbonds</b></a> command,
 reading an mmCIF file with base-pairing H-bond information automatically creates
@@ -99,7 +135,7 @@ See also: <a href="style.html"><b>style</b></a>,
 <p class="nav">
 [<a href="#top">back to top: hbonds</a>]
 </p>
-<h4>Command Options</h4>
+<h3>Command Options</h3>
 <p>
 Option keywords and Boolean (truth) values can be truncated, with
 synonyms for true: True, 1, and synonyms for false: False, 0.
@@ -299,8 +335,10 @@ The information includes donor and acceptor atom specifications
 (see <a href="#namingStyle"><b>namingStyle</b></a>),
 donor-acceptor distances, and when hydrogens are present,
 hydrogen atom specifications and hydrogen-acceptor distances.
-<i>File</i> is the output file name/pathname; 
-if it includes spaces, it must be enclosed in quotation marks.
+<i>File</i> is the output file pathname,
+enclosed in quotation marks if it includes spaces,
+or the word <a href="usageconventions.html#browse"><b>browse</b></a>
+to specify it interactively in a file browser window.
 </blockquote>
 <blockquote>
   <a name="log"><b>log</b> &nbsp;true&nbsp;|&nbsp;<b>false</b></a>
@@ -336,7 +374,7 @@ when <a href="#selRestrict"><b>selRestrict</b></a> is specified.
 <p class="nav">
 [<a href="#top">back to top: hbonds</a>]
 </p>
-<h4>Method and Geometric Criteria</h4>
+<h3>Method and Geometric Criteria</h3>
 <p>
 Distance and angle cutoffs for H-bonding
 are based on a survey of small-molecule crystal structures, as described in

@@ -31,7 +31,11 @@ def _qurl2text(qurl):
         from chimerax import app_data_dir
         import os
         from urllib.request import pathname2url
-        _help_path = pathname2url(os.path.join(app_data_dir, 'docs'))[2:] + '/'
+        _help_path = pathname2url(os.path.join(app_data_dir, 'docs'))
+        if _help_path.startswith('///'):
+            _help_path = _help_path[2:]
+        if not _help_path.endswith('/'):
+            _help_path += '/'
     if qurl.scheme() == 'file':
         path = qurl.path()
         if path.startswith(_help_path):
@@ -46,12 +50,17 @@ class _HelpWebView(ChimeraXHtmlView):
 
     def __init__(self, session, tool):
         super().__init__(session, tool.tabs)
-        self.session = session
         self.help_tool = tool
 
-    def createWindow(self, win_type):
+    def createWindow(self, win_type):  # noqa
         # win_type is window, tab, dialog, backgroundtab
-        return self.help_tool.create_tab()
+        from PyQt5.QtWebEngineWidgets import QWebEnginePage
+        background = win_type == QWebEnginePage.WebBrowserBackgroundTab
+        return self.help_tool.create_tab(background=background)
+
+    def deleteLater(self):
+        self.help_tool = None
+        super().deleteLater()
 
 
 class HelpUI(ToolInstance):
@@ -70,10 +79,25 @@ class HelpUI(ToolInstance):
         from PyQt5.QtWidgets import QToolBar, QVBoxLayout, QAction, QLineEdit, QTabWidget, QShortcut
         from PyQt5.QtGui import QIcon
         from PyQt5.QtCore import Qt
-        self.sc_new_tab = QShortcut(Qt.CTRL + Qt.Key_T, parent)
-        self.sc_new_tab.activated.connect(lambda: self.create_tab(empty=True))
-        self.sc_reset_zoom = QShortcut(Qt.CTRL + Qt.Key_0, parent)
-        self.sc_reset_zoom.activated.connect(self.page_reset_zoom)
+        shortcuts = (
+            (Qt.CTRL + Qt.Key_0, self.page_reset_zoom),
+            (Qt.CTRL + Qt.Key_T, lambda: self.create_tab(empty=True)),
+            (Qt.CTRL + Qt.Key_W, self.close_current_tab),
+            (Qt.CTRL + Qt.Key_Tab, lambda: self.cycle_tab(1)),
+            (Qt.CTRL + Qt.SHIFT + Qt.Key_Tab, lambda: self.cycle_tab(-1)),
+            (Qt.CTRL + Qt.Key_1, lambda: self.tab_n(0)),
+            (Qt.CTRL + Qt.Key_2, lambda: self.tab_n(1)),
+            (Qt.CTRL + Qt.Key_3, lambda: self.tab_n(2)),
+            (Qt.CTRL + Qt.Key_4, lambda: self.tab_n(3)),
+            (Qt.CTRL + Qt.Key_5, lambda: self.tab_n(4)),
+            (Qt.CTRL + Qt.Key_6, lambda: self.tab_n(5)),
+            (Qt.CTRL + Qt.Key_7, lambda: self.tab_n(6)),
+            (Qt.CTRL + Qt.Key_8, lambda: self.tab_n(7)),
+            (Qt.CTRL + Qt.Key_9, lambda: self.tab_n(-1)),
+        )
+        for shortcut, callback in shortcuts:
+            sc = QShortcut(shortcut, parent)
+            sc.activated.connect(callback)
         self.toolbar = tb = QToolBar()
         # tb.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         layout = QVBoxLayout()
@@ -90,7 +114,7 @@ class HelpUI(ToolInstance):
             ("reload", "Reload", "Reload page", self.page_reload,
                 Qt.Key_Reload, True),
             ("zoom_in", "Zoom in", "Zoom in", self.page_zoom_in,
-                [Qt.CTRL + Qt.Key_Plus, Qt.Key_ZoomIn], True),
+                [Qt.CTRL + Qt.Key_Plus, Qt.Key_ZoomIn, Qt.CTRL + Qt.Key_Equal], True),
             ("zoom_out", "Zoom out", "Zoom out", self.page_zoom_out,
                 [Qt.CTRL + Qt.Key_Minus, Qt.Key_ZoomOut], True),
             ("home", "Home", "Home page", self.page_home,
@@ -135,12 +159,12 @@ class HelpUI(ToolInstance):
         self.tabs.setTabBarAutoHide(True)
         self.tabs.setDocumentMode(False)
         self.tabs.currentChanged.connect(self.tab_changed)
-        self.tabs.tabCloseRequested.connect(self.tab_close)
+        self.tabs.tabCloseRequested.connect(self.close_tab)
         layout.addWidget(self.tabs)
 
         self.tool_window.manage(placement=None)
 
-    def create_tab(self, empty=False):
+    def create_tab(self, *, empty=False, background=False):
         w = _HelpWebView(self.session, self)
         self.tabs.addTab(w, "New Tab")
         if empty:
@@ -148,7 +172,8 @@ class HelpUI(ToolInstance):
             self.tool_window.title = app_dirs.appname
             from PyQt5.QtCore import Qt
             self.url.setFocus(Qt.ShortcutFocusReason)
-        self.tabs.setCurrentWidget(w)
+        if not background:
+            self.tabs.setCurrentWidget(w)
         w.loadFinished.connect(lambda okay, w=w: self.page_loaded(w, okay))
         w.titleChanged.connect(lambda title, w=w: self.title_changed(w, title))
         return w
@@ -191,13 +216,13 @@ class HelpUI(ToolInstance):
         hi = history.itemAt(0)
         self.show(_qurl2text(hi.url()))
 
-    def page_zoom_in(self, checked=None):
+    def page_zoom_in(self):
         w = self.tabs.currentWidget()
         if w is None:
             return
         w.setZoomFactor(1.25 * w.zoomFactor())
 
-    def page_zoom_out(self, checked=None):
+    def page_zoom_out(self):
         w = self.tabs.currentWidget()
         if w is None:
             return
@@ -253,8 +278,32 @@ class HelpUI(ToolInstance):
             # no more tabs
             self.display(False)
 
-    def tab_close(self, i):
+    def close_tab(self, i):
+        w = self.tabs.widget(i)
         self.tabs.removeTab(i)
+        w.deleteLater()
+
+    def close_current_tab(self):
+        i = self.tabs.currentIndex()
+        if i != -1:
+            self.close_tab(i)
+
+    def cycle_tab(self, incr):
+        i = self.tabs.currentIndex()
+        if i == -1:
+            return
+        count = self.tabs.count()
+        i = (i + incr) % count
+        self.tabs.setCurrentIndex(i)
+
+    def tab_n(self, n):
+        count = self.tabs.count()
+        if count == 0:
+            return
+        if n == -1:
+            self.tabs.setCurrentIndex(count - 1)
+        elif n < count:
+            self.tabs.setCurrentIndex(n)
 
     @classmethod
     def get_viewer(cls, session, target=None):
