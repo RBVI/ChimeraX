@@ -1446,23 +1446,25 @@ class Bindings:
                     'instance_shift_and_scale': 4, 'instance_placement': 5}
 
     def __init__(self):
-        self.vao_id = GL.glGenVertexArrays(1)
-        self.bound_attr_ids = {}        # Maps buffer to list of ids
-        self.bound_attr_buffers = {}	# Maps attribute id to bound buffer (or None).
+        self._vao_id = None
+        self._bound_attr_ids = {}        # Maps buffer to list of ids
+        self._bound_attr_buffers = {}	# Maps attribute id to bound buffer (or None).
 
     def __del__(self):
-        if self.vao_id is not None:
+        if self._vao_id is not None:
             raise RuntimeError('OpenGL vertex array object was not deleted before core.graphics.Bindings destroyed')
 
     def delete_bindings(self):
         'Delete the OpenGL vertex array object.'
-        if self.vao_id is not None:
-            GL.glDeleteVertexArrays(1, (self.vao_id,))
-            self.vao_id = None
+        if self._vao_id is not None:
+            GL.glDeleteVertexArrays(1, (self._vao_id,))
+            self._vao_id = None
 
     def activate(self):
         'Activate the bindings by binding the OpenGL vertex array object.'
-        GL.glBindVertexArray(self.vao_id)
+        if self._vao_id is None:
+            self._vao_id = GL.glGenVertexArrays(1)
+        GL.glBindVertexArray(self._vao_id)
 
     def bind_shader_variable(self, buffer):
         '''
@@ -1474,11 +1476,11 @@ class Bindings:
         btype = buffer.buffer_type
         if buf_id is None:
             # Unbind already bound variable
-            for a in self.bound_attr_ids.get(buffer, []):
-                if self.bound_attr_buffers[a] is buffer:
+            for a in self._bound_attr_ids.get(buffer, []):
+                if self._bound_attr_buffers[a] is buffer:
                     GL.glDisableVertexAttribArray(a)
-                    self.bound_attr_buffers[a] = None
-            self.bound_attr_ids[buffer] = []
+                    self._bound_attr_buffers[a] = None
+            self._bound_attr_ids[buffer] = []
             if btype == GL.GL_ELEMENT_ARRAY_BUFFER:
                 GL.glBindBuffer(btype, 0)
             return
@@ -1503,14 +1505,14 @@ class Bindings:
             GL.glVertexAttribPointer(attr_id, ncomp, gtype, normalize, 0, None)
             GL.glEnableVertexAttribArray(attr_id)
             GL.glVertexAttribDivisor(attr_id, 1 if buffer.instance_buffer else 0)
-            self.bound_attr_ids[buffer] = [attr_id]
-            self.bound_attr_buffers[attr_id] = buffer
+            self._bound_attr_ids[buffer] = [attr_id]
+            self._bound_attr_buffers[attr_id] = buffer
         else:
             # Matrices use multiple vector attributes
             esize = buffer.array_element_bytes()
             abytes = ncomp * esize
             stride = nattr * abytes
-            bab = self.bound_attr_buffers
+            bab = self._bound_attr_buffers
             import ctypes
             for a in range(nattr):
                 # Pointer arg must be void_p, not an integer.
@@ -1520,7 +1522,7 @@ class Bindings:
                 GL.glEnableVertexAttribArray(a_id)
                 GL.glVertexAttribDivisor(a_id, 1 if buffer.instance_buffer else 0)
                 bab[a_id] = buffer
-            self.bound_attr_ids[buffer] = [attr_id + a for a in range(nattr)]
+            self._bound_attr_ids[buffer] = [attr_id + a for a in range(nattr)]
         GL.glBindBuffer(btype, 0)
 
         # print('bound shader variable', vname, attr_id, nattr, ncomp)
