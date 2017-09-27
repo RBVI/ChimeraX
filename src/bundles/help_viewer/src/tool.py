@@ -38,11 +38,14 @@ def _qurl2text(qurl):
             _help_path += '/'
     if qurl.scheme() == 'file':
         path = qurl.path()
+        frag = qurl.fragment()
+        if frag:
+            frag = '#%s' % frag
         if path.startswith(_help_path):
             path = path[len(_help_path):]
             if path.endswith("/index.html"):
                 path = path[:-11]
-            return "help:%s" % path
+            return "help:%s%s" % (path, frag)
     return qurl.toString()
 
 
@@ -175,6 +178,7 @@ class HelpUI(ToolInstance):
         if not background:
             self.tabs.setCurrentWidget(w)
         w.loadFinished.connect(lambda okay, w=w: self.page_loaded(w, okay))
+        w.urlChanged.connect(lambda url, w=w: self.url_changed(w, url))
         w.titleChanged.connect(lambda title, w=w: self.title_changed(w, title))
         return w
 
@@ -257,7 +261,11 @@ class HelpUI(ToolInstance):
         history = w.history()
         self.back.setEnabled(history.canGoBack())
         self.forward.setEnabled(history.canGoForward())
-        self.url.setText(_qurl2text(w.url()))
+
+    def url_changed(self, w, url):
+        if self.tabs.currentWidget() != w:
+            return
+        self.url.setText(_qurl2text(url))
 
     def title_changed(self, w, title):
         if self.tabs.currentWidget() == w:
