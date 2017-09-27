@@ -65,6 +65,29 @@ class _HelpWebView(ChimeraXHtmlView):
         self.help_tool = None
         super().deleteLater()
 
+    def contextMenuEvent(self, event):
+        # inpsired by qwebengine simplebrowser example
+        from PyQt5.QtWebEngineWidgets import QWebEnginePage
+        from PyQt5.QtCore import Qt
+        page = self.page()
+        # keep reference to menu, so it doesn't get deleted before being shown
+        self._context_menu = menu = page.createStandardContextMenu()
+        menu.setAttribute(Qt.WA_DeleteOnClose, True)
+        action = page.action(QWebEnginePage.OpenLinkInThisWindow)
+        actions = iter(menu.actions())
+        for a in actions:
+            if a == action:
+                try:
+                    before = next(actions)
+                except StopIteration:
+                    before = None
+                menu.insertAction(before, page.action(QWebEnginePage.OpenLinkInNewTab))
+                menu.insertAction(before, page.action(QWebEnginePage.OpenLinkInNewBackgroundTab))
+                break
+        # if not page.contextMenuData().selectedText():
+        #    menu.addAction(page.action(QWebEnginePage.SavePage))
+        menu.popup(event.globalPos())
+
 
 class HelpUI(ToolInstance):
 
