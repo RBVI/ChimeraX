@@ -96,11 +96,11 @@ class Camera:
         '''
         self._pixel_shift = shift
 
-    def view_all(self, bounds, aspect = None, pad = 0):
+    def view_all(self, bounds, window_size = None, pad = 0):
         '''
         Return the shift that makes the camera completely show models
-        having specified bounds.  If the window aspect ratio is given
-        (height / width) then the models are fit in both height and width,
+        having specified bounds.  If the window size is given (width, height)
+        in pixels then the models are fit in both height and width,
         otherwise just the width is fit. If pad is specified the fit
         is to a window size reduced by this fraction.
         The camera view direction is not changed.
@@ -186,12 +186,12 @@ class MonoCamera(Camera):
         self.field_of_view = 30
         "Horizontal field of view in degrees."
 
-    def view_all(self, bounds, aspect = None, pad = 0):
+    def view_all(self, bounds, window_size = None, pad = 0):
         '''
         Return the shift that makes the camera completely show models
         having specified bounds.  The camera view direction is not changed.
         '''
-        self.position = perspective_view_all(bounds, self.position, self.field_of_view, aspect, pad)
+        self.position = perspective_view_all(bounds, self.position, self.field_of_view, window_size, pad)
 
     def view_width(self, center):
         '''Return the width of the view at position center which is in
@@ -208,7 +208,7 @@ class MonoCamera(Camera):
         ds = p.apply_without_translation(d)  # Convert camera to scene coordinates
         return (p.origin(), ds)
 
-def perspective_view_all(bounds, position, field_of_view, aspect = None, pad = 0):
+def perspective_view_all(bounds, position, field_of_view, window_size = None, pad = 0):
     '''
     Return the camera position that shows the specified bounds.
     Camera has perspective projection.
@@ -218,7 +218,8 @@ def perspective_view_all(bounds, position, field_of_view, aspect = None, pad = 0
     s,c = sin(fov2), cos(fov2)
     face_normals = [position.apply_without_translation(v)
                     for v in ((c/s,0,1), (-c/s,0,1))] # frustum side normals
-    if aspect is not None:
+    if window_size is not None:
+        aspect = window_size[1]/window_size[0]
         from math import tan, atan
         fov2y = atan(aspect*tan(fov2))
         sy,cy = sin(fov2y), cos(fov2y)
@@ -285,7 +286,7 @@ class OrthographicCamera(Camera):
         self.field_width = 1 if field_width is None or field_width <= 0 else field_width
         "Horizontal field width in scene coordinate units."
 
-    def view_all(self, bounds, aspect = None, pad = 0):
+    def view_all(self, bounds, window_size = None, pad = 0):
         '''
         Return the shift that shifts the camera to show the bounding box.
         The camera view direction is not changed.
@@ -295,7 +296,7 @@ class OrthographicCamera(Camera):
         from ..geometry import point_bounds
         b = point_bounds(corners)
         xsize, ysize, zsize = b.xyz_max - b.xyz_min
-        w = max(xsize, ysize/aspect) if aspect else xsize
+        w = max(xsize, ysize * window_size[0] / window_size[1]) if window_size else xsize
         w *= 1/max(0.01, 1-pad)
         self.field_width = w if w > 0 else 1.0
         ca = bounds.center() - zsize*self.view_direction()
@@ -376,14 +377,16 @@ class StereoCamera(Camera):
         '''Number of views rendered by camera mode.'''
         return 2
 
-    def view_all(self, bounds, aspect = None, pad = 0):
+    def view_all(self, bounds, window_size = None, pad = 0):
         '''
         Return the shift that makes the camera completely show models
         having specified bounds.  The camera view direction is not changed.
         '''
-        self.position = perspective_view_all(bounds, self.position, self.field_of_view, aspect, pad)
+        self.position = perspective_view_all(bounds, self.position, self.field_of_view, window_size, pad)
+        if window_size is not None:
+            self._set_eye_separation(bounds.center(), window_size[0])
 
-    def set_eye_separation(self, point_on_screen, window_width):
+    def _set_eye_separation(self, point_on_screen, window_width):
         from ..geometry import inner_product
         z = inner_product(self.view_direction(), point_on_screen - self.position.origin())
         if z <= 0:
@@ -444,12 +447,12 @@ class SplitStereoCamera(Camera):
         '''Number of views rendered by camera mode.'''
         return 2
 
-    def view_all(self, bounds, aspect = None, pad = 0):
+    def view_all(self, bounds, window_size = None, pad = 0):
         '''
         Return the shift that makes the camera completely show models
         having specified bounds.  The camera view direction is not changed.
         '''
-        self.position = perspective_view_all(bounds, self.position, self.field_of_view, aspect, pad)
+        self.position = perspective_view_all(bounds, self.position, self.field_of_view, window_size, pad)
 
     def view_width(self, point):
         return perspective_view_width(point, self.position.origin(), self.field_of_view)
