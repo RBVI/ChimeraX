@@ -894,7 +894,8 @@ class Render:
         This routine must be called before start_rendering_outline().
         '''
         mfb = self.make_mask_framebuffer()
-        self.copy_to_framebuffer(mfb, color=False)
+        cfb = self.current_framebuffer()
+        cfb.copy_to_framebuffer(mfb, color=False)
     
     def start_rendering_outline(self):
         '''Must call set_outline_depth() before invoking this routine.'''
@@ -1017,7 +1018,8 @@ class Render:
     def finish_silhouette_drawing(self, thickness, color, depth_jump,
                                   perspective_near_far_ratio):
         fb = self.pop_framebuffer()
-        self.copy_from_framebuffer(fb, depth=False)
+        cfb = self.current_framebuffer()
+        cfb.copy_from_framebuffer(fb, depth=False)
         self.draw_depth_outline(fb.depth_texture, thickness, color, depth_jump,
                                 perspective_near_far_ratio)
 
@@ -1067,34 +1069,6 @@ class Render:
         if p is not None:
             v = (xs, ys, depth_jump, perspective_near_far_ratio)
             p.set_float4("depth_shift_and_jump", v)
-
-    def copy_from_framebuffer(self, framebuffer, color=True, depth=True):
-        # Copy current framebuffer contents to another framebuffer.  This
-        # leaves read and draw framebuffers set to the current framebuffer.
-        cfb = self.current_framebuffer()
-        GL.glBindFramebuffer(GL.GL_READ_FRAMEBUFFER, framebuffer.fbo)
-        GL.glBindFramebuffer(GL.GL_DRAW_FRAMEBUFFER, cfb.fbo)
-        what = GL.GL_COLOR_BUFFER_BIT if color else 0
-        if depth:
-            what |= GL.GL_DEPTH_BUFFER_BIT
-        w, h = framebuffer.width, framebuffer.height
-        GL.glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, what, GL.GL_NEAREST)
-        # Restore read buffer
-        GL.glBindFramebuffer(GL.GL_READ_FRAMEBUFFER, cfb.fbo)
-
-    def copy_to_framebuffer(self, framebuffer, color=True, depth=True):
-        # Copy current framebuffer contents to another framebuffer.  This
-        # leaves read and draw framebuffers set to the current framebuffer.
-        cfb = self.current_framebuffer()
-        GL.glBindFramebuffer(GL.GL_READ_FRAMEBUFFER, cfb.fbo)
-        GL.glBindFramebuffer(GL.GL_DRAW_FRAMEBUFFER, framebuffer.fbo)
-        what = GL.GL_COLOR_BUFFER_BIT if color else 0
-        if depth:
-            what |= GL.GL_DEPTH_BUFFER_BIT
-        w, h = framebuffer.width, framebuffer.height
-        GL.glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, what, GL.GL_NEAREST)
-        # Restore draw buffer
-        GL.glBindFramebuffer(GL.GL_DRAW_FRAMEBUFFER, cfb.fbo)
 
     def finish_rendering(self):
         GL.glFinish()
@@ -1164,7 +1138,7 @@ class Framebuffer:
                  depth=True, depth_texture=None,
                  alpha=False):
 
-        self.fbo = None
+        self._fbo = None
         if width is not None and height is not None:
             w, h = width, height
         elif color_texture is not None:
@@ -1197,26 +1171,26 @@ class Framebuffer:
         else:
             fbo = self.create_fbo(color_texture or self.color_rb,
                                   depth_texture or self.depth_rb)
-        self.fbo = fbo
+        self._fbo = fbo
 
     def __del__(self):
-        if self.fbo is not None:
+        if self._fbo is not None:
             raise RuntimeError('OpenGL framebuffer was not deleted before core.graphics.Framebuffer destroyed')
 
     def delete(self):
-        if self.fbo is None:
+        if self._fbo is None:
             return
         
-        if self.fbo == 0:
-            self.fbo = None
+        if self._fbo == 0:
+            self._fbo = None
             return
             
         if self.color_rb is not None:
             GL.glDeleteRenderbuffers(1, (self.color_rb,))
         if self.depth_rb is not None:
             GL.glDeleteRenderbuffers(1, (self.depth_rb,))
-        GL.glDeleteFramebuffers(1, (self.fbo,))
-        self.color_rb = self.depth_rb = self.fbo = None
+        GL.glDeleteFramebuffers(1, (self._fbo,))
+        self.color_rb = self.depth_rb = self._fbo = None
 
         ct = self.color_texture
         dt = self.depth_texture
@@ -1301,10 +1275,36 @@ class Framebuffer:
                                   self.color_texture.id, level)
 
     def valid(self):
-        return self.fbo is not None
+        return self._fbo is not None
 
     def activate(self):
-        GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.fbo)
+        GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self._fbo)
+
+    def copy_from_framebuffer(self, framebuffer, color=True, depth=True):
+        # Copy current framebuffer contents to another framebuffer.  This
+        # leaves read and draw framebuffers set to the current framebuffer.
+        GL.glBindFramebuffer(GL.GL_READ_FRAMEBUFFER, framebuffer._fbo)
+        GL.glBindFramebuffer(GL.GL_DRAW_FRAMEBUFFER, self._fbo)
+        what = GL.GL_COLOR_BUFFER_BIT if color else 0
+        if depth:
+            what |= GL.GL_DEPTH_BUFFER_BIT
+        w, h = framebuffer.width, framebuffer.height
+        GL.glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, what, GL.GL_NEAREST)
+        # Restore read buffer
+        GL.glBindFramebuffer(GL.GL_READ_FRAMEBUFFER, self._fbo)
+
+    def copy_to_framebuffer(self, framebuffer, color=True, depth=True):
+        # Copy current framebuffer contents to another framebuffer.  This
+        # leaves read and draw framebuffers set to the current framebuffer.
+        GL.glBindFramebuffer(GL.GL_READ_FRAMEBUFFER, self._fbo)
+        GL.glBindFramebuffer(GL.GL_DRAW_FRAMEBUFFER, framebuffer._fbo)
+        what = GL.GL_COLOR_BUFFER_BIT if color else 0
+        if depth:
+            what |= GL.GL_DEPTH_BUFFER_BIT
+        w, h = framebuffer.width, framebuffer.height
+        GL.glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, what, GL.GL_NEAREST)
+        # Restore draw buffer
+        GL.glBindFramebuffer(GL.GL_DRAW_FRAMEBUFFER, self._fbo)
 
 class Lighting:
     '''
