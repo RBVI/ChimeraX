@@ -427,6 +427,15 @@ class IHMModel(Model):
         gmodel = {id:g for g in group_models for id in g.ihm_model_ids}
         smodels = self.make_sphere_models_by_group(mspheres, mnames, gmodel, group_coordsets)
 
+        # Warn about groups with missing models.
+        smids = set(sum((sm.ihm_model_ids for sm in smodels), []))
+        for g in group_models:
+            missing = [mid for mid in g.ihm_model_ids if mid not in smids]
+            if missing:
+                msg = ('Missing sphere models (id %s) for group %s (id %s)'
+                       % (','.join('%s' % mid for mid in missing), g.name, g.group_id))
+                self.session.logger.info(msg)
+
         # Open ensemble sphere models that are not included in ihm sphere obj table.
         emodels = self.load_sphere_model_ensembles(smodels, gmodel) if load_ensembles else []
 
