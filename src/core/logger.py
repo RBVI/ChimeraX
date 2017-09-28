@@ -632,12 +632,12 @@ class _EarlyCollator(CollatingLog):
     """Collate any errors that occur before any "real" log hits the log stack."""
     excludes_other_logs = False
 
-    def log_summary(self):
+    def log_summary(self, logger):
         if self.msgs[self.LEVEL_ERROR]:
             title = "Startup Errors"
         else:
             title = "Startup Messages"
-        CollatingLog.log_summary(self, self, title)
+        CollatingLog.log_summary(self, logger, title)
 
 def html_to_plain(html):
     """'best effort' to convert HTML to plain text"""
