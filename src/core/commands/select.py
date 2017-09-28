@@ -91,6 +91,14 @@ def polymer_selection(seq_atoms, session, undo_state):
             undo_state.add(satoms, "selected", satoms.selected, True)
             satoms.selected = True
     
+def select_up(session):
+    '''Extend the current selection up one level.'''
+    session.selection.promote()
+    
+def select_down(session):
+    '''Reduce the current selection down one level. Only possible after extending selection.'''
+    session.selection.demote()
+    
 def select_clear(session):
     '''Clear the selection.'''
     from ..undo import UndoState
@@ -196,6 +204,12 @@ def register_command(session):
                    keyword=[('residues', BoolArg)],
                    synopsis='intersect objects with selection')
     register('select intersect', desc, select_intersect, logger=session.logger)
+
+    desc = CmdDesc(synopsis='extend the selection up one level')
+    register('select up', desc, select_up, logger=session.logger)
+
+    desc = CmdDesc(synopsis='revert the selection down one level')
+    register('select down', desc, select_down, logger=session.logger)
 
     desc = CmdDesc(synopsis='clear the selection')
     register('select clear', desc, select_clear, logger=session.logger)

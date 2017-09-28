@@ -58,6 +58,7 @@ def show_atoms(session, objects, only, undo_state):
     atoms = objects.atoms
     undo_state.add(atoms, "displays", atoms.displays, True)
     atoms.displays = True
+    atoms.update_ribbon_visibility()
     if only:
         from ..atomic import structure_atoms
         other_atoms = structure_atoms(atoms.unique_structures) - atoms

@@ -263,6 +263,17 @@ ifneq (,$(PATCHES))
 endif
 	cd $(SOURCE) && $(ENV_CONFIGURE) \
 	    ./configure --prefix=$(build_prefix) $(CONFIG_OPTIONS)
+
+ifdef USE_MAC_FRAMEWORKS
+	# Remove this when we no longer support El Capitan (10.11)
+	cd $(SOURCE) && \
+		mv pyconfig.h pyconfig.h.old && \
+		sed -e /HAVE_GETENTROPY/d \
+			-e /HAVE_CLOCK_GETRES/d \
+			-e /HAVE_CLOCK_GETTIME/d \
+			-e /HAVE_CLOCK_SETTIME/d \
+			< pyconfig.h.old > pyconfig.h
+endif
 	# Don't use stuff from /usr/local (especially Tcl, Tk, and SSL)
 	cd $(SOURCE) && \
 	    mv setup.py setup.py.orig ; \
