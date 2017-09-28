@@ -58,8 +58,13 @@ def drawings(models):
     return dlist
 
 def image_file_as_rgba(path):
+    from os.path import expanduser, isfile
+    p = expanduser(path)
+    if not isfile(p):
+        from chimerax.core.errors import UserError
+        raise UserError('texture image file "%s" does not exist' % p)
     from PyQt5.QtGui import QImage
-    qi = QImage(path)
+    qi = QImage(p)
     from chimerax.core.graphics import qimage_to_numpy
     rgba = qimage_to_numpy(qi)
     return rgba

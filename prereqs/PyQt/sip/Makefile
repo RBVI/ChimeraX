@@ -2,7 +2,7 @@ PREREQ_MAKE = 1
 TOP	= ../../..
 include $(TOP)/mk/config.make
 
-SIP_VERSION = 4.18.1
+SIP_VERSION = 4.19.3
 DISTRIBUTION = sip-$(SIP_VERSION).tar.gz
 SOURCE = $(tmpdir)/sip-$(SIP_VERSION)
 

@@ -134,7 +134,8 @@ class Atom(State):
         doc = "Protein Data Bank chain identifier. Limited to 4 characters. Read only string.")
     color = c_property('atom_color', uint8, 4, doc="Color RGBA length 4 numpy uint8 array.")
     coord = c_property('atom_coord', float64, 3,
-        doc="Coordinates as a numpy length 3 array, 64-bit float values.")
+        doc="Coordinates from the current coordinate set (or alt loc) as a numpy length 3 array,"
+            " 64-bit float values.  See get_coord method for other coordsets / alt locs.")
     coord_index = c_property('atom_coord_index', uint32, read_only = True,
         doc="Coordinate index of atom in coordinate set.")
     display = c_property('atom_display', npy_bool,
@@ -228,7 +229,7 @@ class Atom(State):
         f = c_array_function('atom_has_alt_loc', args=(byte,), per_object=False)
         a_ref = ctypes.byref(self._c_pointer)
         f(a_ref, 1, loc, v_ref)
-        return v.value
+        return bool(v.value)
 
     @property
     def aniso_u(self):
@@ -290,9 +291,13 @@ class Atom(State):
         BBE_RIBBON
             The backbone atoms that a ribbon depiction hides
         '''
-        f = c_function('atom_is_backbone', args = (ctypes.c_void_p, ctypes.c_int),
-                ret = ctypes.c_bool)
-        return f(self._c_pointer, bb_type)
+        vtype = ctypes.c_uint8
+        v = vtype()
+        v_ref = ctypes.byref(v)
+        f = c_array_function('atom_is_backbone', args=(ctype_type_to_numpy[ctypes.c_int],), per_object=False)
+        a_ref = ctypes.byref(self._c_pointer)
+        f(a_ref, 1, bb_extent, v_ref)
+        return bool(v.value)
 
     def rings(self, cross_residues=False, all_size_threshold=0):
         '''Return :class:`.Rings` collection of rings this Atom participates in.
@@ -318,6 +323,32 @@ class Atom(State):
         of models this atom belongs to.
         '''
         return self.structure.scene_position * self.coord
+
+    def get_coord(self, crdset_or_altloc):
+        '''
+        Like the 'coord' property, but uses the given coordset ID (integer) / altloc (character)
+        rather than the current coordset / altloc.
+        '''
+        from numpy import empty, float64
+        ai = empty((3,), float64)
+        if isinstance(crdset_or_altloc, int):
+            f = c_function('atom_get_coord_crdset',
+                args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p))
+        elif isinstance(crdset_or_altloc, str):
+            crdset_or_altloc = crdset_or_altloc.encode('utf-8')
+            f = c_function('atom_get_coord_altloc',
+                args = (ctypes.c_void_p, ctypes.c_char, ctypes.c_void_p))
+        else:
+            raise TypeError("crdset_or_altloc value must be int or character")
+        f(self._c_pointer, crdset_or_altloc, pointer(ai))
+        return ai
+
+    def get_scene_coord(self, crdset_or_altloc):
+        '''
+        Like the 'scene_coord' property, but uses the given coordset ID (integer) / altloc
+        (character) rather than the current coordset / altloc.
+        '''
+        return self.structure.scene_position * self.get_coord(crdset_or_altloc)
 
     def reset_state(self, session):
         """For when the session is closed"""
@@ -497,6 +528,10 @@ class Pseudobond(State):
     '''Displayed cylinder radius for the bond.'''
     shown = c_property('pseudobond_shown', npy_bool, read_only = True)
     '''Whether bond is visible and both atoms are shown. Read only.'''
+    shown_when_atoms_hidden = c_property('pseudobond_shown_when_atoms_hidden', npy_bool, doc =
+    '''Controls whether the pseudobond is shown when the endpoint atoms are not
+    explictly displayed (atom.display == False) but are implicitly shown by a
+    ribbon or somesuch (atom.hide != 0).  Defaults to True.''')
 
     def delete(self):
         '''Delete this pseudobond from it's group'''
@@ -827,7 +862,7 @@ class Residue(State):
     '''Residue polymer type = amino acid.'''
     PT_NUCLEIC = 2
     '''Residue polymer type = nucleotide.'''
-    polymer_type = c_property('residue_polymer_type', int32, read_only = True)
+    polymer_type = c_property('residue_polymer_type', uint8, read_only = True)
     '''Polymer type of residue. Integer value.'''
     name = c_property('residue_name', string, read_only = True)
     '''Residue name. Maximum length 4 characters. Read only.'''
@@ -1190,6 +1225,8 @@ class StructureSeq(Sequence):
     '''Number of residues in this sequence with existing structure. Read only.'''
     num_residues = c_property('sseq_num_residues', size_t, read_only = True)
     '''Number of residues belonging to this sequence, including those without structure. Read only.'''
+    polymer_type = c_property('sseq_polymer_type', uint8, read_only = True)
+    '''Polymer type of this sequence. Same values as Residue.polymer_type, except should not return PT_NONE.'''
     residues = c_property('sseq_residues', cptr, 'num_residues', astype = _residues_or_nones,
         read_only = True, doc = "List containing the residues of this sequence in order. "
         "Residues with no structure will be None. Read only.")
@@ -1641,7 +1678,8 @@ class StructureData:
     PMS_ALWAYS_CONNECTS, PMS_NEVER_CONNECTS, PMS_TRACE_CONNECTS = range(3)
     def polymers(self, missing_structure_treatment = PMS_ALWAYS_CONNECTS,
             consider_chains_ids = True):
-        '''Return a tuple of :class:`.Residues` objects each containing residues for one polymer.
+        '''Return a list of (:class:`.Residues`, Residue.polymer_type) tuples, one tuple
+        per polymer.
         'missing_structure_treatment' controls whether a single polymer can span any missing
         structure, no missing structure, or only missing structure that is part of a chain trace.
         'consider_chain_ids', if true, will break polymers when chain IDs change, regardless of
@@ -1649,9 +1687,9 @@ class StructureData:
         f = c_function('structure_polymers',
                        args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_int),
                        ret = ctypes.py_object)
-        resarrays = f(self._c_pointer, missing_structure_treatment, consider_chains_ids)
+        polymers = f(self._c_pointer, missing_structure_treatment, consider_chains_ids)
         from .molarray import Residues
-        return tuple(Residues(ra) for ra in resarrays)
+        return [(Residues(res_array), ptype) for res_array, ptype in polymers]
 
     def pseudobond_group(self, name, *, create_type = "normal"):
         '''Get or create a :class:`.PseudobondGroup` belonging to this structure.'''

@@ -899,12 +899,66 @@ class FileNameArg(Annotation):
         import os.path
         return os.path.expanduser(token), text, rest
 
+_browse_string = "browse"
 
-# In the future when/if "browse" is supported as a file name,
-# Open/SaveFileNameArg may be different.  If/when that time
-# comes, the "name" class attr may also be made more specfic
-OpenFileNameArg = SaveFileNameArg = OpenFolderNameArg = SaveFolderNameArg = FileNameArg
+def _browse_parse(text, session, item_kind, accept_mode, dialog_mode):
+    path, text, rest = FileNameArg.parse(text, session)
+    if path == _browse_string:
+        if not session.ui.is_gui:
+            raise AnnotationError("Cannot browse for %s name in nogui mode" % item_kind)
+        from PyQt5.QtWidgets import QFileDialog
+        dlg = QFileDialog()
+        dlg.setAcceptMode(accept_mode)
+        dlg.setFileMode(dialog_mode)
+        if dlg.exec():
+            paths = dlg.selectedFiles()
+            if not paths:
+                raise AnnotationError("No %s selected by browsing" % item_kind)
+            path = paths[0]
+        else:
+            raise AnnotationError("%s browsing cancelled" % item_kind.capitalize())
+        text = path
+    return path, text, rest
 
+class OpenFileNameArg(FileNameArg):
+    """Annotation for a file to open"""
+    name = "name of a file to open/read"
+
+    @staticmethod
+    def parse(text, session):
+        from PyQt5.QtWidgets import QFileDialog
+        return _browse_parse(text, session, "file",
+            QFileDialog.AcceptOpen, QFileDialog.ExistingFile)
+
+class SaveFileNameArg(FileNameArg):
+    """Annotation for a file to save"""
+    name = "name of a file to save/write"
+
+    @staticmethod
+    def parse(text, session):
+        from PyQt5.QtWidgets import QFileDialog
+        return _browse_parse(text, session, "file",
+            QFileDialog.AcceptSave, QFileDialog.AnyFile)
+
+class OpenFolderNameArg(FileNameArg):
+    """Annotation for a folder to open from"""
+    name = "name of a folder to open/read"
+
+    @staticmethod
+    def parse(text, session):
+        from PyQt5.QtWidgets import QFileDialog
+        return _browse_parse(text, session, "folder",
+            QFileDialog.AcceptOpen, QFileDialog.DirectoryOnly)
+
+class SaveFolderNameArg(FileNameArg):
+    """Annotation for a folder to save to"""
+    name = "name of a folder to save/write"
+
+    @staticmethod
+    def parse(text, session):
+        from PyQt5.QtWidgets import QFileDialog
+        return _browse_parse(text, session, "folder",
+            QFileDialog.AcceptSave, QFileDialog.DirectoryOnly)
 
 # Atom Specifiers are used in lots of places
 # avoid circular import by importing here

@@ -143,7 +143,7 @@ RibbonXSection::~RibbonXSection()
 
 PyObject*
 RibbonXSection::extrude(const FArray& centers, const FArray& tangents,
-                        const FArray& normals, const FArray& color,
+                        const FArray& normals, const CArray& color,
                         bool cap_front, bool cap_back, int offset) const
 {
     if (is_faceted)
@@ -333,7 +333,7 @@ extrude_values(PyObject* vertices, PyObject* normals, PyObject* triangles,
 
 PyObject*
 RibbonXSection::_extrude_smooth(const FArray& centers, const FArray& tangents,
-                                const FArray& normals, const FArray& color,
+                                const FArray& normals, const CArray& color,
                                 bool cap_front, bool cap_back, int offset) const
 {
 // std::cerr << "extrude_smooth " << xs_coords2.dimension() << "\n";
@@ -349,14 +349,14 @@ RibbonXSection::_extrude_smooth(const FArray& centers, const FArray& tangents,
     if (cap_back)
         num_vertices += num_splines;
     // Allocate space for colors
-    float *ca_data = NULL;
-    PyObject* ca = python_float_array(num_vertices, 4, &ca_data);
+    unsigned char *ca_data = NULL;
+    PyObject* ca = python_uint8_array(num_vertices, 4, &ca_data);
     if (!ca)
         return NULL;
     // Repeat color for all vertices
-    float *cp = color.values();
+    unsigned char *cp = (unsigned char *) color.values();
     for (int i = 0; i != num_vertices; ++i) {
-        float *cai = ca_data + i * 4;
+        unsigned char *cai = ca_data + i * 4;
         for (int j = 0; j != 4; ++j)
             cai[j] = cp[j];
     }
@@ -532,7 +532,7 @@ RibbonXSection::_extrude_smooth(const FArray& centers, const FArray& tangents,
 
 PyObject*
 RibbonXSection::_extrude_faceted(const FArray& centers, const FArray& tangents,
-                                 const FArray& normals, const FArray& color,
+                                 const FArray& normals, const CArray& color,
                                  bool cap_front, bool cap_back, int offset) const
 {
 // std::cerr << "extrude_faceted " << xs_coords2.dimension() << "\n";
@@ -554,14 +554,14 @@ RibbonXSection::_extrude_faceted(const FArray& centers, const FArray& tangents,
     if (cap_back)
         num_vertices += num_splines;
     // Allocate space for colors
-    float *ca_data = NULL;
-    PyObject* ca = python_float_array(num_vertices, 4, &ca_data);
+    unsigned char *ca_data = NULL;
+    PyObject* ca = python_uint8_array(num_vertices, 4, &ca_data);
     if (!ca)
         return NULL;
     // Repeat color for all vertices
-    float *cp = color.values();
+    unsigned char *cp = (unsigned char *) color.values();
     for (int i = 0; i != num_vertices; ++i) {
-        float *cai = ca_data + i * 4;
+        unsigned char *cai = ca_data + i * 4;
         for (int j = 0; j != 4; ++j)
             cai[j] = cp[j];
     }

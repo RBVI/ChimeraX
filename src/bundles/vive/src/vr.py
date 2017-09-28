@@ -328,10 +328,10 @@ class SteamVRCamera(Camera):
         from chimerax.core.graphics.camera import perspective_view_width
         return perspective_view_width(point, self.position.origin(), fov)
 
-    def view_all(self, bounds, aspect = None, pad = 0):
+    def view_all(self, bounds, window_size = None, pad = 0):
         fov = 100	# Effective field of view, degrees
         from chimerax.core.graphics.camera import perspective_view_all
-        self.position = perspective_view_all(bounds, self.position, fov, aspect, pad)
+        self.position = perspective_view_all(bounds, self.position, fov, window_size, pad)
         self._last_position = None
         self._last_h = None
         self.fit_scene_to_room(bounds)

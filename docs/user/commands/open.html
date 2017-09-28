@@ -33,7 +33,8 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="usageconventions.html">Usage</a>: <br><b>open formats</b>
 </h3>
 <p>
-The command <b>open</b> reads data from:
+The command <b>open</b> reads data in several
+<a href="#formats">formats</a> from:
 <ul>
 <li><a href="#local">local files</a>
 <li><a href="#url">URLs</a>
@@ -42,6 +43,9 @@ The command <b>open</b> reads data from:
 Input files may contain data to be displayed or commands or code to be executed.
 Local files can also be browsed/opened with <b>File... Open</b> in the menu,
 in which case the proper filename <a href="#file-table">suffix</a> is required.
+A file browser window can also be shown by giving
+<a href="usageconventions.html#browse"><b>browse</b></a> as the filename 
+in the <b>open</b> command.
 See also: 
 <a href="close.html"><b>close</b></a>,
 <a href="save.html"><b>save</b></a>,
@@ -71,7 +75,7 @@ Examples:
 
 <a name="formats"></a>
 <p class="nav">
-[<a href="#top">back to top</a>]
+[<a href="#top">back to top: open</a>]
 </p>
 <h3>Input Formats</h3>
 <p>
@@ -242,12 +246,27 @@ target="_blank">COLLADA</a></td>
 <td align="center">.dae</td>
 <td align="center">graphical objects<br>(geometry nodes define surfaces)</td>
 </tr><tr>
+<td align="center"><a href="https://www.khronos.org/gltf"
+target="_blank">GL Transmission Format</a></td>
+<td align="center"><b>gltf</b></td>
+<td align="center">.glb</td>
+<td align="center">graphical objects</td>
+</tr><tr>
+<td align="center">
+<a href="http://www.fileformat.info/format/wavefrontobj/egff.htm"
+target="_blank">Wavefront OBJ</a>
+</td>
+<td align="center"><b>obj</b></td>
+<td align="center">.obj</td>
+<td align="center">graphical objects
+<br>(geometric and texture vertices, vertex normals, faces; no colors)</td>
+</tr><tr>
 <td align="center"><a href="http://en.wikipedia.org/wiki/STL_%28file_format%29#Binary_STL"
 target="_blank">STereoLithography (binary)</a></td>
 <td align="center"><b>stl</b></td>
 <td align="center">.stl</td>
 <td align="center">triangle-based format (binary)
-native to stereolithography CAD software
+native to stereolithography CAD software</td>
 <tr><tr>
 <td align="center"><a href="http://vtk.org/" 
 target="_blank">Visualization Toolkit (VTK) PolyData</a></td>
@@ -320,7 +339,7 @@ hypertext to render in the
 
 <a name="local"></a>
 <p class="nav">
-[<a href="#top">back to top</a>]
+[<a href="#top">back to top: open</a>]
 </p>
 <h3>Local Files</h3>
 <blockquote>
@@ -331,6 +350,7 @@ hypertext to render in the
 [&nbsp;<b>vseries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>alignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>structureModel</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>atomic</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>ensembles</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<a href="#options"><i>general-options</i></a>&nbsp;
 </blockquote>
@@ -344,6 +364,9 @@ home directory. One or more files can be specified at a time by including
 <b>*</b> (wild card), <b>?</b> (single-character wild card), 
 and/or square-bracketed character ranges in the <i>filename</i>
 (Unix-style pathname expansion or <b><i>globbing</i></b>).
+Substituting the word <a href="usageconventions.html#browse"><b>browse</b></a>
+for the filename brings up a file browser window for choosing the
+name and location interactively.
 </p><p>
 The file format can be indicated with either the <i>filename</i> suffix or
 the <b>format</b> option (where <i>format-name</i> can be truncated).
@@ -403,6 +426,20 @@ The coordinates of the existing model will be replaced with the new,
 unless <b>replace false</b> is used to indicate appending the new frames instead.
 </blockquote>
 <blockquote>
+<a name="atomicStructure"></a>
+<b>atomic</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to interpret coordinates read from mmCIF or PDB format as an atomic model 
+(<b>true</b>, default).
+Setting the option to <b>false</b> is appropriate for data such as SAXS models 
+that are simply collections of points 
+(possibly with connecting &ldquo;bonds&rdquo;)
+rather than realistically spaced atoms;
+it classifies the models as Structure rather than atomicStructure, 
+bypassing chemical perception steps like identifying
+<a href="../atomtypes.html">atom types</a>.
+</blockquote>
+<blockquote>
 <b>ensembles</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
 Whether to fetch ensembles associated with an IHM dataset 
@@ -419,7 +456,7 @@ in a Terminal window.
 
 <a name="url"></a>
 <p class="nav">
-[<a href="#top">back to top</a>]
+[<a href="#top">back to top: open</a>]
 </p>
 <h3>URLs</h3>
 
@@ -431,6 +468,7 @@ in a Terminal window.
 [&nbsp;<b>vseries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>alignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>structureModel</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>atomic</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>ensembles</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<a href="#options"><i>general-options</i></a>&nbsp;
 </blockquote>
@@ -448,7 +486,7 @@ are stored locally as described <a href="#ignoreCache">below</a>.
 
 <a name="fetch"></a>
 <p class="nav">
-[<a href="#top">back to top</a>]
+[<a href="#top">back to top: open</a>]
 </p>
 <h3>Fetch from Online Databases</h3>
 
@@ -587,7 +625,7 @@ Chimera instructions</a> for available identifiers</td>
 
 <a name="options"></a>
 <p class="nav">
-[<a href="#top">back to top</a>]
+[<a href="#top">back to top: open</a>]
 </p>
 <h3>General Options</h3>
 <blockquote>
@@ -627,7 +665,6 @@ can be opened in either order.
 Gaps in the structure sequence relative to the sequence in the alignment file 
 can only occur where residues are missing from the structure (for example, 
 a flexible loop with insufficient density to determine coordinates).
-<!-- check the following -->
 Associations are reported in the <a href="../window.html">status line</a>
 and the <a href="../tools/log.html"><b>Log</b></a>.
 A structure (even if it has multiple chains) cannot be associated with more
@@ -640,5 +677,5 @@ the single best-matching sequence is associated.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2017</address>
+September 2017</address>
 </body></html>

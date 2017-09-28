@@ -24,6 +24,7 @@
 #include "backbone.h"
 #include "ChangeTracker.h"
 #include "imex.h"
+#include "polymer.h"
 #include "PythonInstance.h"
 #include "Real.h"
 #include "Rgba.h"
@@ -41,9 +42,11 @@ class ATOMSTRUCT_IMEX Residue: public PythonInstance {
 public:
     typedef std::vector<Atom *>  Atoms;
     typedef std::multimap<AtomName, Atom *>  AtomsMap;
-    enum PolymerType { PT_NONE = 0, PT_AMINO = 1, PT_NUCLEIC = 2 };
     enum SSType { SS_COIL = 0, SS_HELIX = 1, SS_STRAND = 2 };
-    static constexpr Real TRACE_DISTSQ_CUTOFF = 45.0;
+    // 1gsg chain T has 7.050 P-P length between residues 21 and 22
+    static constexpr Real TRACE_NUCLEIC_DISTSQ_CUTOFF = 50.0;
+    // 3ixy chain B has 6.602 CA-CA length between residues 131 and 132
+    static constexpr Real TRACE_PROTEIN_DISTSQ_CUTOFF = 45.0;
 private:
     friend class Structure;
     Residue(Structure *as, const ResName& name, const ChainID& chain, int pos, char insert);
@@ -56,9 +59,10 @@ private:
     }
     friend class AtomicStructure;
     friend class Bond;
-    void  set_polymer_type(PolymerType pt) { _polymer_type = pt; }
 
-    static int  SESSION_NUM_INTS(int version=CURRENT_SESSION_VERSION) { return version < 6 ? 10 : 9; }
+    static int  SESSION_NUM_INTS(int version=CURRENT_SESSION_VERSION) {
+        return version < 6 ? 10 : (version < 10 ? 9 : 8);
+    }
     static int  SESSION_NUM_FLOATS(int /*version*/=CURRENT_SESSION_VERSION) { return 1; }
 
     char  _alt_loc;
@@ -95,7 +99,7 @@ public:
     bool  is_het() const { return _is_het; }
     bool  is_strand() const { return ss_type() == SS_STRAND; }
     const ResName&  name() const { return _name; }
-    PolymerType  polymer_type() const { return _polymer_type; }
+    PolymerType  polymer_type() const;
     int  number() const { return _number; }
     Atom*  principal_atom() const;
     void  remove_atom(Atom*);
@@ -193,6 +197,10 @@ inline Chain*
 Residue::chain() const {
     (void)_structure->chains();
     return _chain;
+}
+inline PolymerType
+Residue::polymer_type() const {
+    return chain() == nullptr ? PT_NONE : chain()->polymer_type();
 }
 
 inline float

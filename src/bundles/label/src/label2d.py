@@ -158,7 +158,9 @@ class Labels(State):
         self.labels = {ls['name']:Label(session, **ls) for ls in data['labels state']}
 
     def reset_state(self, session):
-        pass
+        for l in tuple(self.labels.values()):
+            l.delete()
+        self.labels = {}
 
 
 # -----------------------------------------------------------------------------
@@ -234,8 +236,7 @@ class LabelDrawing(Drawing):
             rgba8 = (0,0,0,255) if light_bg else (255,255,255,255)
         else:
             rgba8 = tuple(l.color)
-        from chimerax import app_data_dir
-        rgba = text_image_rgba(l.text, rgba8, l.size, l.font, app_data_dir)
+        rgba = text_image_rgba(l.text, rgba8, l.size, l.font)
         if rgba is None:
             l.session.logger.info("Can't find font for label")
             return True
@@ -276,19 +277,22 @@ class LabelDrawing(Drawing):
 
 # -----------------------------------------------------------------------------
 #
-def text_image_rgba(text, color, size, font, data_dir):
+def text_image_rgba(text, color, size, font, pad = 0):
     from PyQt5.QtGui import QImage, QPainter, QFont, QFontMetrics, QBrush, QColor
     f = QFont(font, size)
     fm = QFontMetrics(f)
     r = fm.boundingRect(text)
-    ti = QImage(r.width(), r.height(), QImage.Format_ARGB32)
+    # TODO: width is sometimes 1 or 2 pixels too small in Qt 5.9.
+    # Right bearing of rightmost character was positive, so does not extend right.
+    # Use pad option to add some pixels to avoid clipped text.
+    ti = QImage(r.width()+2*pad, r.height()+2*pad, QImage.Format_ARGB32)
     ti.fill(QColor(0,0,0,0))    # Set background transparent
     p = QPainter()
     p.begin(ti)
     p.setFont(f)
     c = QColor(*color)
     p.setPen(c)
-    p.drawText(0, -r.y(), text)
+    p.drawText(0, -r.y()+pad, text)
     from chimerax.core.graphics import qimage_to_numpy
     rgba = qimage_to_numpy(ti)
     p.end()

@@ -271,7 +271,7 @@ def html_user_agent(app_dirs):
 
 # -----------------------------------------------------------------------------
 #
-def fetch_web(session, url, ignore_cache=False, **kw):
+def fetch_web(session, url, ignore_cache=False, new=False, **kw):
     # TODO: deal with content encoding for text formats
     # TODO: how would "ignore_cache" work?
     import os
@@ -289,7 +289,7 @@ def fetch_web(session, url, ignore_cache=False, **kw):
         except ImportError:
             from .errors import UserError
             raise UserError('Help viewer is not installed')
-        browser.show_url(session, url)
+        browser.show_url(session, url, new=new)
         return [], "Opened %s" % url
     base, ext = os.path.splitext(basename)
     filename = os.path.join(cache_dir, '%s%s' % (base, ext))
@@ -334,6 +334,9 @@ def fetch_web(session, url, ignore_cache=False, **kw):
 # -----------------------------------------------------------------------------
 #
 def register_web_fetch():
+    from .commands import add_keyword_arguments, BoolArg
+    add_keyword_arguments("open", {'new': BoolArg})
+
     def fetch_http(session, scheme_specific_part, **kw):
         return fetch_web(session, 'http:' + scheme_specific_part, **kw)
     register_fetch('http', fetch_http, None, prefixes=['http'])

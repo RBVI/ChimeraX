@@ -378,10 +378,14 @@ metal_coordination_bonds(Structure* as)
             }
             bi = metal_bonds.begin();
             for (auto nb: metal->neighbors()) {
-                for (auto gnb: nb->neighbors()) {
-                    if (metals.find(gnb) == metals.end()
-                    && gnb->residue() == nb->residue())
-                        del_bonds.insert(*bi);
+                if (metals.find(nb) != metals.end()) {
+                    del_bonds.insert(*bi);
+                } else {
+                    for (auto gnb: nb->neighbors()) {
+                        if (metals.find(gnb) == metals.end()
+                        && gnb->residue() == nb->residue())
+                            del_bonds.insert(*bi);
+                    }
                 }
                 ++bi;
             }
@@ -539,8 +543,7 @@ connect_structure(Structure* as, std::vector<Residue *>* start_residues,
             } else {
                 bool made_connection = false;
                 // don't definitely connect a leading HET residue
-                bool definitely_connect = (link_res != first_res
-                    || link_atom_name != "");
+                bool definitely_connect = (link_res != first_res || !first_res->is_het());
                 Atom *chief = r->find_atom(tr->chief()->name());
                 if (chief != NULL) {
                     // 1vqn, chain 5, is a nucleic/amino acid

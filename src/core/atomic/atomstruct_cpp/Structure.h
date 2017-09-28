@@ -29,6 +29,7 @@
 #include "ChangeTracker.h"
 #include "destruct.h"
 #include "PBManager.h"
+#include "polymer.h"
 #include "PythonInstance.h"
 #include "Rgba.h"
 #include "Ring.h"
@@ -165,8 +166,8 @@ protected:
     bool  _fast_ring_calc_available(bool cross_residue,
             unsigned int all_size_threshold,
             std::set<const Residue *>* ignore) const;
-    Chain*  _new_chain(const ChainID& chain_id) const {
-        auto chain = new Chain(chain_id, const_cast<Structure*>(this));
+    Chain*  _new_chain(const ChainID& chain_id, PolymerType pt = PT_NONE) const {
+        auto chain = new Chain(chain_id, const_cast<Structure*>(this), pt);
         _chains->emplace_back(chain);
         return chain;
     }
@@ -245,9 +246,11 @@ public:
         PMS_NEVER_CONNECTS = 1,
         PMS_TRACE_CONNECTS = 2
     };
-    virtual std::vector<Chain::Residues>  polymers(
+    virtual std::vector<std::pair<Chain::Residues,PolymerType>>  polymers(
         PolymerMissingStructure /*missing_structure_treatment*/ = PMS_ALWAYS_CONNECTS,
-        bool /*consider_chain_ids*/ = true) const { return std::vector<Chain::Residues>(); }
+        bool /*consider_chain_ids*/ = true) const {
+            return std::vector<std::pair<Chain::Residues,PolymerType>>();
+        }
     const Residues&  residues() const { return _residues; }
     const Rings&  rings(bool cross_residues = false,
         unsigned int all_size_threshold = 0,

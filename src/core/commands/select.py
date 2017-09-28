@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def select(session, objects=None, polymer=None):
+def select(session, objects=None, polymer=None, residues=False):
     '''Select specified objects.
 
     Parameters
@@ -19,6 +19,8 @@ def select(session, objects=None, polymer=None):
     objects : Objects
       Replace the current selection with the specified objects (typically atoms).
       If no objects are specified then everything is selected.
+    residues : bool
+      Extend atoms that are selected to containing residues if true (default false).
     polymer : Atoms
       Reduce the selection to include only atoms belonging to chains having a sequence that is the
       same as one of the sequences specified by the polymer option.
@@ -28,36 +30,48 @@ def select(session, objects=None, polymer=None):
         from . import all_objects
         objects = all_objects(session)
 
+    from ..undo import UndoState
+    undo_state = UndoState("select")
     if objects is not None:
-        session.selection.clear()
-        modify_selection(objects, 'add')
+        clear_selection(session, "select_clear", undo_state)
+        modify_selection(objects, 'add', undo_state, full_residues = residues)
 
     if polymer is not None:
-        polymer_selection(polymer, session)
+        polymer_selection(polymer, session, undo_state)
         
+    session.undo.register(undo_state)
     report_selection(session)
 
-def select_add(session, objects=None):
+def select_add(session, objects=None, residues=False):
     '''Add objects to the selection.
     If objects is None everything is selected.'''
     if objects is None:
         from . import all_objects
         objects = all_objects(session)
-    modify_selection(objects, 'add')
+    from ..undo import UndoState
+    undo_state = UndoState("select add")
+    modify_selection(objects, 'add', undo_state, full_residues = residues)
+    session.undo.register(undo_state)
 
-def select_subtract(session, objects=None):
+def select_subtract(session, objects=None, residues=False):
     '''Subtract objects from the selection.
     If objects is None the selection is cleared.'''
+    from ..undo import UndoState
+    undo_state = UndoState("select subtract")
     if objects is None:
-        session.selection.clear()
+        clear_selection(session, "subtract_clear", undo_state)
     else:
-        modify_selection(objects, 'subtract')
+        modify_selection(objects, 'subtract', undo_state, full_residues = residues)
+    session.undo.register(undo_state)
 
-def select_intersect(session, objects=None):
+def select_intersect(session, objects=None, residues=False):
     '''Reduce the selection by intersecting with specified objects.'''
-    intersect_selection(objects, session)
+    from ..undo import UndoState
+    undo_state = UndoState("select intersect")
+    intersect_selection(objects, session, undo_state, full_residues = residues)
+    session.undo.register(undo_state)
 
-def polymer_selection(seq_atoms, session):
+def polymer_selection(seq_atoms, session, undo_state):
     '''
     Reduce the current selected atoms to include only those that belong to a chain
     having the same sequence string as one of seq_atoms.
@@ -74,11 +88,23 @@ def polymer_selection(seq_atoms, session):
             from numpy import array, bool
             smask = array([(seq in sset) for seq in seqs], bool)
             satoms = atoms.filter(smask[seq_ids])
+            undo_state.add(satoms, "selected", satoms.selected, True)
             satoms.selected = True
     
-def select_clear(session, objects=None):
+def select_up(session):
+    '''Extend the current selection up one level.'''
+    session.selection.promote()
+    
+def select_down(session):
+    '''Reduce the current selection down one level. Only possible after extending selection.'''
+    session.selection.demote()
+    
+def select_clear(session):
     '''Clear the selection.'''
-    session.selection.clear()
+    from ..undo import UndoState
+    undo_state = UndoState("select clear")
+    clear_selection(session, "clear", undo_state)
+    session.undo.register(undo_state)
 
 def report_selection(session):
     s = session.selection
@@ -94,28 +120,47 @@ def report_selection(session):
     if mc != 0:
         plural = ('s' if mc > 1 else '')
         lines.append('%d model%s' % (mc, plural))
-    session.logger.status(', '.join(lines) + ' selected')
+    session.logger.status(', '.join(lines) + ' selected', log = True)
 
-def modify_selection(objects, mode = 'add'):
+def modify_selection(objects, mode, undo_state, full_residues = False):
     select = (mode == 'add')
-    atoms, models = _atoms_and_models(objects)
+    atoms, models = _atoms_and_models(objects, full_residues = full_residues)
+    undo_state.add(atoms, "selected", atoms.selected, select)
     atoms.selected = select
     for m in models:
+        undo_state.add(m, "selected", m.selected, select)
         m.selected = select
 
-def intersect_selection(objects, session):
-    atoms, models = _atoms_and_models(objects)
+def intersect_selection(objects, session, undo_state, full_residues = False):
+    atoms, models = _atoms_and_models(objects, full_residues = full_residues)
     from .. import atomic
     selatoms = atomic.selected_atoms(session)
     subatoms = selatoms - atoms
     from ..atomic import Structure
     selmodels = set(m for m in session.selection.models() if not isinstance(m, Structure))
     submodels = selmodels.difference(models)
+    undo_state.add(subatoms, "selected", subatoms.selected, False)
     subatoms.selected = False
     for m in submodels:
+        undo_state.add(m, "selected", m.selected, False)
         m.selected = False
 
-def _atoms_and_models(objects):
+def clear_selection(session, why, undo_state):
+    from ..atomic.molarray import Atoms
+    atoms = session.selection.items("atoms")
+    if atoms:
+        if isinstance(atoms, Atoms):
+            undo_state.add(atoms, "selected", atoms.selected, False)
+        else:
+            for a in atoms:
+                undo_state.add(a, "selected", a.selected, False)
+    models = [m for m in session.selection.all_models() if m.selected]
+    if models:
+        for m in models:
+            undo_state.add(m, "selected", m.selected, False)
+    session.selection.clear()
+
+def _atoms_and_models(objects, full_residues = False):
     # Treat selecting molecular surface as selecting atoms.
     # Returned models list does not include atomic models
     atoms = objects.atoms
@@ -133,26 +178,38 @@ def _atoms_and_models(objects):
     if satoms:
         from ..atomic import molarray
         atoms = molarray.concatenate([atoms] + satoms)
+    if full_residues:
+        atoms = atoms.unique_residues.atoms
     return atoms, models
 
 def register_command(session):
-    from . import CmdDesc, register, ObjectsArg, NoArg, create_alias, AtomsArg
+    from . import CmdDesc, register, ObjectsArg, NoArg, create_alias, AtomsArg, BoolArg
     desc = CmdDesc(optional=[('objects', ObjectsArg)],
-                   keyword=[('polymer', AtomsArg)],
+                   keyword=[('residues', BoolArg),
+                            ('polymer', AtomsArg)],
                    synopsis='select specified objects')
     register('select', desc, select, logger=session.logger)
 
     desc = CmdDesc(optional=[('objects', ObjectsArg)],
+                   keyword=[('residues', BoolArg)],
                    synopsis='add objects to selection')
     register('select add', desc, select_add, logger=session.logger)
 
     desc = CmdDesc(optional=[('objects', ObjectsArg)],
+                   keyword=[('residues', BoolArg)],
                    synopsis='subtract objects from selection')
     register('select subtract', desc, select_subtract, logger=session.logger)
 
     desc = CmdDesc(required=[('objects', ObjectsArg)],
+                   keyword=[('residues', BoolArg)],
                    synopsis='intersect objects with selection')
     register('select intersect', desc, select_intersect, logger=session.logger)
+
+    desc = CmdDesc(synopsis='extend the selection up one level')
+    register('select up', desc, select_up, logger=session.logger)
+
+    desc = CmdDesc(synopsis='revert the selection down one level')
+    register('select down', desc, select_down, logger=session.logger)
 
     desc = CmdDesc(synopsis='clear the selection')
     register('select clear', desc, select_clear, logger=session.logger)

@@ -27,7 +27,7 @@ from .cli import ModelIdArg, AtomsArg, UniqueChainsArg, AtomicStructuresArg
 from .cli import StructureArg, StructuresArg, SurfacesArg
 from .cli import PseudobondsArg, PseudobondGroupsArg
 from .cli import ModelArg, ModelsArg, TopModelsArg, ObjectsArg, RestOfLine
-from .cli import OpenFileNameArg, SaveFileNameArg, OpenFolderNameArg, SaveFolderNameArg, FileNameArg
+from .cli import OpenFileNameArg, SaveFileNameArg, OpenFolderNameArg, SaveFolderNameArg
 from .cli import add_keyword_arguments
 
 from .colorarg import ColorArg, ColormapArg, ColormapRangeArg
