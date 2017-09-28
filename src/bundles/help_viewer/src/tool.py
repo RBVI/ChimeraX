@@ -102,7 +102,7 @@ class HelpUI(ToolInstance):
         parent = self.tool_window.ui_area
 
         # UI content code
-        from PyQt5.QtWidgets import QToolBar, QVBoxLayout, QAction, QLineEdit, QTabWidget, QShortcut
+        from PyQt5.QtWidgets import QToolBar, QVBoxLayout, QAction, QLineEdit, QTabWidget, QShortcut, QStatusBar
         from PyQt5.QtGui import QIcon
         from PyQt5.QtCore import Qt
         shortcuts = (
@@ -127,6 +127,7 @@ class HelpUI(ToolInstance):
         self.toolbar = tb = QToolBar()
         # tb.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         layout = QVBoxLayout()
+        layout.setContentsMargins(0, 1, 0, 0)
         layout.addWidget(tb)
         parent.setLayout(layout)
         import os.path
@@ -188,7 +189,13 @@ class HelpUI(ToolInstance):
         self.tabs.tabCloseRequested.connect(self.close_tab)
         layout.addWidget(self.tabs)
 
+        self.status_bar = QStatusBar()
+        layout.addWidget(self.status_bar)
+
         self.tool_window.manage(placement=None)
+
+    def status(self, message):
+        self.status_bar.showMessage(message, 2000)
 
     def create_tab(self, *, empty=False, background=False):
         w = _HelpWebView(self.session, self)
@@ -200,9 +207,11 @@ class HelpUI(ToolInstance):
             self.url.setFocus(Qt.ShortcutFocusReason)
         if not background:
             self.tabs.setCurrentWidget(w)
-        w.loadFinished.connect(lambda okay, w=w: self.page_loaded(w, okay))
-        w.urlChanged.connect(lambda url, w=w: self.url_changed(w, url))
-        w.titleChanged.connect(lambda title, w=w: self.title_changed(w, title))
+        p = w.page()
+        p.loadFinished.connect(lambda okay, w=w: self.page_loaded(w, okay))
+        p.urlChanged.connect(lambda url, w=w: self.url_changed(w, url))
+        p.titleChanged.connect(lambda title, w=w: self.title_changed(w, title))
+        p.linkHovered.connect(self.link_hovered)
         return w
 
     def show(self, url, *, new=False):
@@ -295,6 +304,13 @@ class HelpUI(ToolInstance):
             self.tool_window.title = title
         i = self.tabs.indexOf(w)
         self.tabs.setTabText(i, title)
+
+    def link_hovered(self, url):
+        from PyQt5.QtCore import QUrl
+        try:
+            self.status(_qurl2text(QUrl(url)))
+        except:
+            self.status(url)
 
     def tab_changed(self, i):
         if i >= 0:
