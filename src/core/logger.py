@@ -325,7 +325,7 @@ class Logger(StatusLogger):
         self.logs.add(log)
         if self._early_collation == None:
             self._early_collation = False
-            early_collator.log_summary(self, "Startup Errors")
+            early_collator.log_summary(self)
 
     def clear(self):
         """clear all loggers"""
@@ -632,6 +632,12 @@ class _EarlyCollator(CollatingLog):
     """Collate any errors that occur before any "real" log hits the log stack."""
     excludes_other_logs = False
 
+    def log_summary(self):
+        if self.msgs[self.LEVEL_ERROR]:
+            title = "Startup Errors"
+        else:
+            title = "Startup Messages"
+        CollatingLog.log_summary(self, self, title)
 
 def html_to_plain(html):
     """'best effort' to convert HTML to plain text"""
