@@ -1,0 +1,67 @@
+<html>
+<head>
+<title>ChimeraX Registration</title>
+<style>
+table {
+  border: 0px;
+  width: 95%;
+}
+.label {
+  text-align: right;
+}
+.data {
+  text-align: left;
+  width: 85%;
+}
+.data input[type="text"] {
+  width: 100%;
+}
+.boolean {
+  text-align: left;
+}
+</style>
+</head>
+<body>
+<h2>ChimeraX Registration</h2>
+<form action="cxreg:register">
+<table border="0">
+<tr>
+<th class="label">Name:</th>
+<td class="data"><input type="text" name="name"/></td>
+</tr>
+<tr>
+<th class="label">E-mail:</th>
+<td class="data"><input type="text" name="email"/></td>
+</tr>
+<tr>
+<th class="label">Organization:</th>
+<td class="data"><input type="text" name="org"/></td>
+</tr>
+<tr>
+<th class="label">Organization type:</th>
+<td class="data">ORGTYPE_PLACEHOLDER</td>
+</tr>
+<tr>
+<th class="label">Primary usage:</th>
+<td class="data">USAGE_PLACEHOLDER</td>
+</tr>
+</table>
+<p>
+<span class="boolean"><input type="checkbox" name="nih_funded"/>
+ChimeraX will be used in support of NIH-funded research</span>
+<br/>
+<span class="boolean"><input type="checkbox" name="join_discussion"/>
+Add me to the
+<a href="https://www.rbvi.ucsf.edu/mailman/listinfo/chimerax-users">
+ChimeraX users mailing list</a></span>
+<br/>
+<span class="boolean">
+<input type="checkbox" name="join_announcements" checked="1"/>
+Add me to the
+<a href="https://www.rbvi.ucsf.edu/mailman/listinfo/chimerax-announce">
+ChimeraX announcements mailing list</a> (~2-3 messages per year)</span>
+</p>
+<input type="submit" value="Register"/>
+</form>
+</body>
+</html>
