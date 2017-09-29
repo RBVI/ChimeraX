@@ -1139,6 +1139,9 @@ class StructureDatas(Collection):
     def __init__(self, mol_pointers):
         Collection.__init__(self, mol_pointers, molobject.StructureData, StructureDatas)
 
+    alt_loc_change_notifies = cvec_property('structure_alt_loc_change_notify', npy_bool)
+    '''Whether notifications are issued when altlocs are changed.  Should only be
+    set to true when temporarily changing alt locs in a Python script. Numpy bool array.'''
     atoms = cvec_property('structure_atoms', cptr, 'num_atoms', astype = _atoms,
                           read_only = True, per_object = False)
     '''A single :class:`.Atoms` containing atoms for all structures. Read only.'''
