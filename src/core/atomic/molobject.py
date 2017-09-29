@@ -1505,6 +1505,9 @@ class StructureData:
 
     active_coordset_id = c_property('structure_active_coordset_id', int32)
     '''Index of the active coordinate set.'''
+    alt_loc_change_notify = c_property('structure_alt_loc_change_notify', npy_bool, doc=
+    '''Whether notifications are issued when altlocs are changed.  Should only be
+    set to true when temporarily changing alt locs in a Python script. Boolean''')
     atoms = c_property('structure_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True)
     ''':class:`.Atoms` collection containing all atoms of the structure.'''
     ball_scale = c_property('structure_ball_scale', float32,

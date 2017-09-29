@@ -3390,6 +3390,18 @@ extern "C" EXPORT void structure_lower_case_chains(void *mols, size_t n, npy_boo
     }
 }
 
+extern "C" EXPORT void structure_alt_loc_change_notify(void *structures, size_t n, npy_bool *alcn)
+{
+    Structure **s = static_cast<Structure **>(structures);
+    error_wrap_array_get(s, n, &Structure::alt_loc_change_notify, alcn);
+}
+
+extern "C" EXPORT void set_structure_alt_loc_change_notify(void *structures, size_t n, npy_bool *alcn)
+{
+    Structure **s = static_cast<Structure **>(structures);
+    error_wrap_array_set(s, n, &Structure::set_alt_loc_change_notify, alcn);
+}
+
 extern "C" EXPORT void structure_num_atoms(void *mols, size_t n, size_t *natoms)
 {
     Structure **m = static_cast<Structure **>(mols);
