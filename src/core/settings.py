@@ -182,8 +182,16 @@ class Settings(ConfigFile):
         else:
             ConfigFile.__setattr__(self, name, value)
 
-    def save(self):
-        for name in self.__class__.EXPLICIT_SAVE.keys():
+    def save(self, setting=None, *, settings=None):
+        '''If 'setting' or 'settings' is specified, save only those settings (don't 
+        change saved value of any other setting. Otherwise, save all settings.'''
+        if setting is not None:
+            settings_to_save = [setting]
+        elif settings is not None:
+            settings_to_save = settings
+        else:
+            settings_to_save = self.__class__.EXPLICIT_SAVE.keys()
+        for name in settings_to_save:
             ConfigFile.__setattr__(self, name, self._cur_settings[name], call_save=False)
         ConfigFile.save(self)
 
