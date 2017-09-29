@@ -232,6 +232,15 @@ class Atom(State):
         return bool(v.value)
 
     @property
+    def alt_locs(self):
+        '''Returns a list of the valid alt-loc characters for this Atom (which will
+           be [' '] for a "non-alt-loc" atom).
+        '''
+        f = c_function('atom_alt_locs',
+                       args = (ctypes.c_void_p,), ret = ctypes.py_object)
+        return f(self._c_pointer)
+
+    @property
     def aniso_u(self):
         '''Anisotropic temperature factors, returns 3x3 array of numpy float32 or None.  Read only.'''
         f = c_function('atom_aniso_u', args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p))
@@ -287,19 +296,6 @@ class Atom(State):
         elif dm == Atom.STICK_STYLE:
             r = self.maximum_bond_radius(self.structure.bond_radius)
         return r
-
-    def has_alt_loc(self, loc):
-        if isinstance(loc, str):
-            loc = loc.encode('utf-8')
-        #value_type = npy_bool
-        #vtype = numpy_type_to_ctype[value_type]
-        vtype = ctypes.c_uint8
-        v = vtype()
-        v_ref = ctypes.byref(v)
-        f = c_array_function('atom_has_alt_loc', args=(byte,), per_object=False)
-        a_ref = ctypes.byref(self._c_pointer)
-        f(a_ref, 1, loc, v_ref)
-        return v.value
 
     def is_backbone(self, bb_extent=BBE_MAX):
         '''Whether this Atom is considered backbone, given the 'extent' criteria.
@@ -1722,7 +1718,7 @@ class StructureData:
                 f = c_function('structure_new_coordset_index',
                     args = (ctypes.c_void_p, ctypes.c_int))
                 f(index)
-            else
+            else:
                 f = c_function('structure_new_coordset_index_size',
                     args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_int))
                 f(index, size)
@@ -1778,7 +1774,7 @@ class StructureData:
            residues as the structure currently has.
         '''
         f = c_function('structure_reorder_residues', args = (ctypes.c_void_p, ctypes.py_object))
-        f(self._c_pointer, [r._c_pointer for r in new_order]))
+        f(self._c_pointer, [r._c_pointer for r in new_order])
 
     @classmethod
     def restore_snapshot(cls, session, data):

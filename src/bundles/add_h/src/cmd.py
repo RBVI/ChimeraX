@@ -33,7 +33,13 @@ def cmd_addh(session, structures=None, hbond=True, in_isolation=True, use_his_na
     #   initiate_add_hyd...
     #else:
     #   add_f_func(...)
-    add_h_func(session, structures, in_isolation=in_isolation, **prot_schemes)
+    for structure in structures:
+        structure.alt_loc_change_notify = False
+    try:
+        add_h_func(session, structures, in_isolation=in_isolation, **prot_schemes)
+    finally:
+        for structure in structures:
+            structure.alt_loc_change_notify = True
 #TODO: simple.add_hydrogens, post_add, _delete_shared_data
 #TODO: hbond_add_hydrogens
 #TODO: initiate_add_hyd

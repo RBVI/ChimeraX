@@ -563,6 +563,8 @@ extern "C" EXPORT void set_atom_alt_loc(void *atoms, size_t n, char *alt_locs)
 
 extern "C" EXPORT void atom_set_alt_loc(void *atom, char alt_loc, bool create, bool from_residue)
 {
+    // this one used in the Atom class so that the additional args can be supplied,
+    // whereas set_atom_alt_loc is used for the setter half of alt_loc properties
     Atom *a = static_cast<Atom *>(atom);
     error_wrap(a, &Atom::set_alt_loc, alt_loc, create, from_residue);
 }
@@ -575,6 +577,32 @@ extern "C" EXPORT void atom_has_alt_loc(void *atoms, size_t n, char alt_loc, npy
             has[i] = a[i]->has_alt_loc(alt_loc);
     } catch (...) {
         molc_error();
+    }
+}
+
+extern "C" EXPORT PyObject *atom_alt_locs(void *atom)
+{
+    Atom *a = static_cast<Atom *>(atom);
+    PyObject *py_alt_locs = nullptr;
+    try {
+        const auto& alt_locs = a->alt_locs();
+        py_alt_locs = PyList_New(alt_locs.size());
+        if (py_alt_locs == nullptr)
+            return nullptr;
+        size_t p = 0;
+        for (auto alt_loc: alt_locs) {
+            PyObject* py_alt_loc = PyUnicode_FromFormat("%c", (int)alt_loc);
+            if (py_alt_loc == nullptr) {
+                Py_DECREF(py_alt_locs);
+                return nullptr;
+            }
+            PyList_SET_ITEM(py_alt_locs, p++, py_alt_loc);
+        }
+        return py_alt_locs;
+    } catch (...) {
+        Py_XDECREF(py_alt_locs);
+        molc_error();
+        return nullptr;
     }
 }
 
@@ -3805,6 +3833,7 @@ extern "C" EXPORT void structure_reorder_residues(void *structure, PyObject *py_
         s->reorder_residues(new_order);
     } catch (...) {
         molc_error();
+    }
 }
 
 extern "C" EXPORT void structure_ribbon_display_count(void *mols, size_t n, int32_t *ribbon_display_count)

@@ -710,7 +710,7 @@ Structure::reorder_residues(const Structure::Residues& new_order)
         if (seen.find(r) != seen.end())
             throw std::invalid_argument("Duplicate residue in new residue order");
         seen.insert(r);
-        if (r->structure() != this):
+        if (r->structure() != this)
             throw std::invalid_argument("Residue not belonging to this structure"
                 " in new residue order");
     }

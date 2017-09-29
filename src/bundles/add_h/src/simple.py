@@ -23,7 +23,20 @@ from math import sin, cos, pi, sqrt
 sin5475 = sin(pi * 54.75 / 180.0)
 cos5475 = cos(pi * 54.75 / 180.0)
 
-def add_hydrogens(atom, bonding_info, naming_schema, total_hydrogens, idatm_type,
+def add_hydrogens(atom, *args, **kw):
+    # determine what alt_loc(s) to add hydrogens to...
+    alt_loc_atom = None
+    if len(atoms.alt_locs) > 1:
+        alt_loc_atom = atom
+    else:
+        for nb in atom.neighbors:
+            if len(nb.alt_locs) > 1:
+                alt_loc_atom = nb
+                break
+    _alt_loc_add_hydrogens(atom, alt_loc_atom, *args, **kw)
+
+#TODO: tricky in that later alt locs may not be adding new hydrogen atoms, just new positions
+def _alt_loc_add_hydrogens(atom, alt_loc, bonding_info, naming_schema, total_hydrogens, idatm_type,
 							invert, coordinations):
 	away = away2 = planar = None
 	geom = bonding_info.geometry
