@@ -34,7 +34,8 @@ class _MyAPI(BundleAPI):
 
     @staticmethod
     def initialize(session, bundle_info):
-        session.logger.info("Initializing registration")
+        from .nag import nag
+        nag(session)
 
     @staticmethod
     def finish(session, bundle_info):

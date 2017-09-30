@@ -9,6 +9,9 @@ table {
 .label {
   text-align: right;
 }
+required::before {
+  content: "*";
+}
 .data {
   text-align: left;
   width: 85%;
@@ -26,23 +29,23 @@ table {
 <form action="cxreg:register">
 <table border="0">
 <tr>
-<th class="label">Name:</th>
+<th class="label"><required>Name:</required></th>
 <td class="data"><input type="text" name="name"/></td>
 </tr>
 <tr>
-<th class="label">E-mail:</th>
+<th class="label"><required>E-mail:</required></th>
 <td class="data"><input type="text" name="email"/></td>
 </tr>
 <tr>
-<th class="label">Organization:</th>
+<th class="label"><required>Organization:</required></th>
 <td class="data"><input type="text" name="org"/></td>
 </tr>
 <tr>
-<th class="label">Organization type:</th>
+<th class="label"><required>Organization type:</required></th>
 <td class="data">ORGTYPE_PLACEHOLDER</td>
 </tr>
 <tr>
-<th class="label">Primary usage:</th>
+<th class="label"><required>Primary usage:</required></th>
 <td class="data">USAGE_PLACEHOLDER</td>
 </tr>
 </table>
@@ -61,6 +64,7 @@ Add me to the
 <a href="https://www.rbvi.ucsf.edu/mailman/listinfo/chimerax-announce">
 ChimeraX announcements mailing list</a> (~2-3 messages per year)</span>
 </p>
+<p><required>required field</required></p>
 <input type="submit" value="Register"/>
 </form>
 </body>
