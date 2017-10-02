@@ -477,16 +477,6 @@ class MainWindow(QMainWindow, PlainTextLog):
     def edit_redo_cb(self, session):
         session.undo.redo()
 
-    def edit_ccp_cb(self, session, key):
-        # Cut/Copy/Paste callback
-        from PyQt5.QtCore import QEvent, Qt
-        from PyQt5.QtGui import QKeyEvent
-        ui = session.ui
-        w = ui.focusWidget()
-        if w:
-            ui.postEvent(w, QKeyEvent(QEvent.KeyPress, key, Qt.ControlModifier))
-            ui.postEvent(w, QKeyEvent(QEvent.KeyRelease, key, Qt.ControlModifier))
-
     def update_undo(self, undo_manager):
         self._set_undo(self.undo_action, "Undo", undo_manager.top_undo_name())
         self._set_undo(self.redo_action, "Redo", undo_manager.top_redo_name())
@@ -685,19 +675,6 @@ class MainWindow(QMainWindow, PlainTextLog):
         self.redo_action.setShortcut(QKeySequence.Redo)
         self.redo_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_redo_cb(sess))
         edit_menu.addAction(self.redo_action)
-        edit_menu.addSeparator()
-        cut_action = QAction("&Cut", self)
-        # cut_action.setShortcut("Ctrl+X")
-        cut_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_ccp_cb(sess, Qt.Key_X))
-        edit_menu.addAction(cut_action)
-        copy_action = QAction("&Copy", self)
-        # copy_action.setShortcut("Ctrl+C")
-        copy_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_ccp_cb(sess, Qt.Key_C))
-        edit_menu.addAction(copy_action)
-        paste_action = QAction("&Paste", self)
-        # paste_action.setShortcut("Ctrl+V")
-        paste_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_ccp_cb(sess, Qt.Key_V))
-        edit_menu.addAction(paste_action)
 
         self.tools_menu = mb.addMenu("&Tools")
         self.tools_menu.setToolTipsVisible(True)
