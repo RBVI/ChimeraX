@@ -652,6 +652,7 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def _populate_menus(self, session):
         from PyQt5.QtWidgets import QAction
+        from PyQt5.QtGui import QKeySequence
         from PyQt5.QtCore import Qt
 
         mb = self.menuBar()
@@ -676,12 +677,12 @@ class MainWindow(QMainWindow, PlainTextLog):
         edit_menu = mb.addMenu("&Edit")
         self.undo_action = QAction("&Undo", self)
         self.undo_action.setEnabled(False)
-        self.undo_action.setShortcut("Ctrl+Z")
+        self.undo_action.setShortcut(QKeySequence.Undo)
         self.undo_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_undo_cb(sess))
         edit_menu.addAction(self.undo_action)
         self.redo_action = QAction("&Redo", self)
         self.redo_action.setEnabled(False)
-        self.redo_action.setShortcut("Ctrl+R")
+        self.redo_action.setShortcut(QKeySequence.Redo)
         self.redo_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_redo_cb(sess))
         edit_menu.addAction(self.redo_action)
         edit_menu.addSeparator()
