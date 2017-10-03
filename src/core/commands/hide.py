@@ -47,7 +47,7 @@ def hide(session, objects=None, what=None, target=None):
     if 'pseudobonds' in what_to_hide or 'pbonds' in what_to_hide:
         from .. import atomic
         pbonds = atomic.interatom_pseudobonds(objects.atoms)
-        undo_state.add(pbond, "displays", pbonds.displays, False)
+        undo_state.add(pbonds, "displays", pbonds.displays, False)
         pbonds.displays = False
     if 'cartoons' in what_to_hide or 'ribbons' in what_to_hide:
         res = objects.atoms.unique_residues

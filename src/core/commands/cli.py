@@ -324,6 +324,12 @@ def _user_kw(kw_name):
     return words[0] + ''.join([x.capitalize() for x in words[1:]])
 
 
+def _user_kw_cnt(kw_name):
+    """Return user version of a keyword argument name and number of words."""
+    words = kw_name.split('_')
+    return words[0] + ''.join([x.capitalize() for x in words[1:]]), len(words)
+
+
 class AnnotationError(UserError, ValueError):
     """Error, with optional offset, in annotation"""
 
@@ -899,7 +905,9 @@ class FileNameArg(Annotation):
         import os.path
         return os.path.expanduser(token), text, rest
 
+
 _browse_string = "browse"
+
 
 def _browse_parse(text, session, item_kind, accept_mode, dialog_mode):
     path, text, rest = FileNameArg.parse(text, session)
@@ -920,6 +928,7 @@ def _browse_parse(text, session, item_kind, accept_mode, dialog_mode):
         text = path
     return path, text, rest
 
+
 class OpenFileNameArg(FileNameArg):
     """Annotation for a file to open"""
     name = "name of a file to open/read"
@@ -927,8 +936,10 @@ class OpenFileNameArg(FileNameArg):
     @staticmethod
     def parse(text, session):
         from PyQt5.QtWidgets import QFileDialog
-        return _browse_parse(text, session, "file",
-            QFileDialog.AcceptOpen, QFileDialog.ExistingFile)
+        return _browse_parse(
+            text, session, "file", QFileDialog.AcceptOpen,
+            QFileDialog.ExistingFile)
+
 
 class SaveFileNameArg(FileNameArg):
     """Annotation for a file to save"""
@@ -937,8 +948,9 @@ class SaveFileNameArg(FileNameArg):
     @staticmethod
     def parse(text, session):
         from PyQt5.QtWidgets import QFileDialog
-        return _browse_parse(text, session, "file",
-            QFileDialog.AcceptSave, QFileDialog.AnyFile)
+        return _browse_parse(
+            text, session, "file", QFileDialog.AcceptSave, QFileDialog.AnyFile)
+
 
 class OpenFolderNameArg(FileNameArg):
     """Annotation for a folder to open from"""
@@ -947,8 +959,10 @@ class OpenFolderNameArg(FileNameArg):
     @staticmethod
     def parse(text, session):
         from PyQt5.QtWidgets import QFileDialog
-        return _browse_parse(text, session, "folder",
-            QFileDialog.AcceptOpen, QFileDialog.DirectoryOnly)
+        return _browse_parse(
+            text, session, "folder", QFileDialog.AcceptOpen,
+            QFileDialog.DirectoryOnly)
+
 
 class SaveFolderNameArg(FileNameArg):
     """Annotation for a folder to save to"""
@@ -957,8 +971,9 @@ class SaveFolderNameArg(FileNameArg):
     @staticmethod
     def parse(text, session):
         from PyQt5.QtWidgets import QFileDialog
-        return _browse_parse(text, session, "folder",
-            QFileDialog.AcceptSave, QFileDialog.DirectoryOnly)
+        return _browse_parse(
+            text, session, "folder", QFileDialog.AcceptSave,
+            QFileDialog.DirectoryOnly)
 
 # Atom Specifiers are used in lots of places
 # avoid circular import by importing here
@@ -1696,7 +1711,12 @@ class CmdDesc:
         self._keyword.update(optional_keywords)
         self._hidden = set(hidden)
         # keyword_map is what would user would type
-        self._keyword_map = {_user_kw(n): n for n in self._keyword}
+
+        def fill_keyword_map(n):
+            kw, cnt = _user_kw_cnt(n)
+            return kw, (n, cnt)
+        self._keyword_map = {}
+        self._keyword_map.update(fill_keyword_map(n) for n in self._keyword)
         self._postconditions = postconditions
         self._required_arguments = required_arguments
         self.url = url
@@ -2029,7 +2049,11 @@ def add_keyword_arguments(name, kw_info):
                 " than previous registration (%s)" % (
                     name, kw, repr(arg_type), repr(cmd._ci._keyword[kw])))
     cmd._ci._keyword.update(kw_info)
-    cmd._ci._keyword_map.update((_user_kw(n), n) for n in kw_info)
+
+    def fill_keyword_map(n):
+        kw, cnt = _user_kw_cnt(n)
+        return kw, (n, cnt)
+    cmd._ci._keyword_map.update(fill_keyword_map(n) for n in kw_info)
 
 
 class _FakeSession:
@@ -2245,9 +2269,8 @@ class Command:
                 if not tmp:
                     return last_anno, None
                 if tmp[0].isalpha():
-                    tmp = _user_kw(tmp)
-                    if (any(kw.startswith(tmp) for kw in self._ci._keyword_map) or
-                            any(kw.casefold().startswith(tmp) for kw in self._ci._keyword_map)):
+                    tmp = _user_kw(tmp).casefold()
+                    if any(kw.casefold().startswith(tmp) for kw in self._ci._keyword_map):
                         return last_anno, None
             try:
                 value, text = self._parse_arg(anno, text, session, False)
@@ -2303,21 +2326,26 @@ class Command:
             if arg_name not in self._ci._keyword_map:
                 self.completion_prefix = word
                 folded_arg_name = arg_name.casefold()
-                self.completions = [x for x in self._ci._keyword_map
-                                    if x.startswith(arg_name) or
-                                    x.casefold().startswith(folded_arg_name)]
-                if (final or len(text) > len(chars)) and self.completions:
+                kw_map = self._ci._keyword_map
+                completions = [(kw, kw_map[kw][1]) for kw in kw_map
+                               if kw.casefold().startswith(folded_arg_name)]
+                if (final or len(text) > len(chars)) and completions:
                     # require shortened keywords to be unambiguous
-                    unambiguous = (
-                        len(self.completions) == 1 or len(self.completions[0]) == len(arg_name) or
-                        all(x.startswith(self.completions[0]) for x in self.completions)
-                    )
+                    if len(completions) == 1:
+                        unambiguous = True
+                    elif len(completions[0][0]) == len(arg_name):
+                        unambiguous = True
+                    elif 1 == len([cnt for kw, cnt in completions if cnt == completions[0][1]]):
+                        unambiguous = True
+                    else:
+                        unambiguous = False
                     if unambiguous:
-                        c = self.completions[0]
+                        c = completions[0][0]
                         self._replace(chars, c)
                         text = self.current_text[self.amount_parsed:]
                         self.completions = []
                         continue
+                    self.completions = list(c[0] for c in completions)
                     self._error = "Expected keyword " + commas('"%s"' % x for x in self.completions)
                     return
                 expected = []
@@ -2338,7 +2366,7 @@ class Command:
                 self.amount_parsed += start
                 text = text[start:]
 
-            kw_name = self._ci._keyword_map[arg_name]
+            kw_name = self._ci._keyword_map[arg_name][0]
             anno = self._ci._keyword[kw_name]
             if not text and anno != NoArg:
                 self._error = 'Missing "%s" keyword\'s argument' % _user_kw(kw_name)

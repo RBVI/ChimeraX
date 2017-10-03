@@ -120,6 +120,7 @@ public:
                        RIBBON_TETHER_CYLINDER = 2 };
 protected:
     CoordSet *  _active_coord_set;
+    bool  _alt_loc_change_notify = true;
     Atoms  _atoms;
     float  _ball_scale = 0.25;
     Bonds  _bonds;
@@ -191,6 +192,7 @@ public:
     virtual  ~Structure();
 
     CoordSet*  active_coord_set() const { return _active_coord_set; };
+    bool  alt_loc_change_notify() const { return _alt_loc_change_notify; }
     bool  asterisks_translated;
     const Atoms&  atoms() const { return _atoms; }
     float  ball_scale() const { return _ball_scale; }
@@ -267,6 +269,7 @@ public:
     void  session_save_setup() const;
     void  session_save_teardown() const;
     void  set_active_coord_set(CoordSet *cs);
+    void  set_alt_loc_change_notify(bool cn) { _alt_loc_change_notify = cn; }
     void  set_ball_scale(float bs) {
         if (bs == _ball_scale) return;
         set_gc_shape(); _ball_scale = bs;

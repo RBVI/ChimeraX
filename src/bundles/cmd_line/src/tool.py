@@ -44,11 +44,12 @@ class CommandLine(ToolInstance):
 
             def keyPressEvent(self, event, forwarded=False):
                 self._processing_key = True
-                if forwarded:
-                    # Give command line the focus, so that up/down arrow work as
-                    # exepcted rather than changing the selection level
-                    self.setFocus()
                 from PyQt5.QtCore import Qt
+                from PyQt5.QtGui import QKeySequence
+                want_focus = forwarded and event.key() not in [Qt.Key_Control,
+                                                               Qt.Key_Shift,
+                                                               Qt.Key_Meta,
+                                                               Qt.Key_Alt]
                 import sys
                 control_key = Qt.MetaModifier if sys.platform == "darwin" else Qt.ControlModifier
                 shifted = event.modifiers() & Qt.ShiftModifier
@@ -56,6 +57,12 @@ class CommandLine(ToolInstance):
                     self.tool.history_dialog.up(shifted)
                 elif event.key() == Qt.Key_Down:  # down arrow
                     self.tool.history_dialog.down(shifted)
+                elif event.matches(QKeySequence.Undo):
+                    want_focus = False
+                    session.undo.undo()
+                elif event.matches(QKeySequence.Redo):
+                    want_focus = False
+                    session.undo.redo()
                 elif event.modifiers() & control_key:
                     if event.key() == Qt.Key_N:
                         self.tool.history_dialog.down(shifted)
@@ -65,22 +72,14 @@ class CommandLine(ToolInstance):
                         self.tool.cmd_clear()
                     elif event.key() == Qt.Key_K:
                         self.tool.cmd_clear_to_end_of_line()
-                    elif event.key() == Qt.Key_Z:
-                        try:
-                            session.undo.undo()
-                        except IndexError:
-                            # No undo action registered
-                            pass
-                    elif event.key() == Qt.Key_R:
-                        try:
-                            session.undo.redo()
-                        except IndexError:
-                            # No redo action registered
-                            pass
                     else:
                         QComboBox.keyPressEvent(self, event)
                 else:
                     QComboBox.keyPressEvent(self, event)
+                if want_focus:
+                    # Give command line the focus, so that up/down arrow work as
+                    # exepcted rather than changing the selection level
+                    self.setFocus()
                 self._processing_key = False
 
             def retain_selection_on_focus_out(self):
