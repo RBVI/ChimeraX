@@ -49,6 +49,7 @@ class CommandLine(ToolInstance):
                     # exepcted rather than changing the selection level
                     self.setFocus()
                 from PyQt5.QtCore import Qt
+                from PyQt5.QtGui import QKeySequence
                 import sys
                 control_key = Qt.MetaModifier if sys.platform == "darwin" else Qt.ControlModifier
                 shifted = event.modifiers() & Qt.ShiftModifier
@@ -56,6 +57,18 @@ class CommandLine(ToolInstance):
                     self.tool.history_dialog.up(shifted)
                 elif event.key() == Qt.Key_Down:  # down arrow
                     self.tool.history_dialog.down(shifted)
+                elif event.matches(QKeySequence.Undo):
+                    try:
+                        session.undo.undo()
+                    except IndexError:
+                        # No undo action registered
+                        pass
+                elif event.matches(QKeySequence.Redo):
+                    try:
+                        session.undo.redo()
+                    except IndexError:
+                        # No redo action registered
+                        pass
                 elif event.modifiers() & control_key:
                     if event.key() == Qt.Key_N:
                         self.tool.history_dialog.down(shifted)
@@ -65,18 +78,6 @@ class CommandLine(ToolInstance):
                         self.tool.cmd_clear()
                     elif event.key() == Qt.Key_K:
                         self.tool.cmd_clear_to_end_of_line()
-                    elif event.key() == Qt.Key_Z:
-                        try:
-                            session.undo.undo()
-                        except IndexError:
-                            # No undo action registered
-                            pass
-                    elif event.key() == Qt.Key_R:
-                        try:
-                            session.undo.redo()
-                        except IndexError:
-                            # No redo action registered
-                            pass
                     else:
                         QComboBox.keyPressEvent(self, event)
                 else:
