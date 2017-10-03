@@ -12,7 +12,10 @@
 def imagej_grids(path):
 
     pi = imagej_pixels(path)
-    grids = [ImageJ_Grid(pi, c) for c in range(pi.nchannels)]
+    if pi.nchannels == 1:
+        grids = [ImageJ_Grid(pi)]
+    else:
+        grids = [ImageJ_Grid(pi, c) for c in range(pi.nchannels)]
     return grids
 
 # -----------------------------------------------------------------------------
@@ -20,7 +23,7 @@ def imagej_grids(path):
 from .. import Grid_Data
 class ImageJ_Grid(Grid_Data):
 
-  def __init__(self, imagej_pixels, channel):
+  def __init__(self, imagej_pixels, channel = None):
 
     self.imagej_pixels = d = imagej_pixels
     self.initial_style = 'solid'
@@ -29,17 +32,12 @@ class ImageJ_Grid(Grid_Data):
     if d.nchannels > 1:
         name += ' ch%d' % channel
 
-    from .ome_tiff import default_channel_colors
-    rgba = default_channel_colors[channel % len(default_channel_colors)]
-
     origin = (0,0,0)
     Grid_Data.__init__(self, d.grid_size, d.value_type,
                        origin, d.grid_spacing,
                        name = name, path = d.path,
                        file_type = 'imagestack',
-                       channel = channel,
-                       default_color = rgba)
-
+                       channel = channel)
         
   # ---------------------------------------------------------------------------
   #
@@ -150,7 +148,8 @@ class ImageJ_Pixels:
         self._last_plane = 0
 
     def plane_data(self, channel, k, pixel_values):
-        plane = self.nchannels*k + channel
+        nc = self.nchannels
+        plane = nc*k + channel if nc > 1 else k
         im = self.image_plane(plane)
         from numpy import array
         pixel_values[:] = array(im).ravel()
@@ -161,7 +160,7 @@ class ImageJ_Pixels:
             from PIL import Image
             self.image = im = Image.open(self.path)
         self._last_plane = plane
-        
+
         im.seek(plane)
 
         return im
