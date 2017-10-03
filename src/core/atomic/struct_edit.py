@@ -23,7 +23,7 @@ from math import pi, cos, sin
 from chimera import cross, Xform, Coord, Atom, Bond
 
 def add_atom(name, element, residue, loc, serial_number=None, bonded_to=None,
-							occupancy=None, info_from=None):
+							occupancy=None, info_from=None, alt_loc=None):
 	"""Add an atom at the Point 'loc'
 	
 	   The atom is added to the given residue (and its molecule).
@@ -45,6 +45,9 @@ def add_atom(name, element, residue, loc, serial_number=None, bonded_to=None,
 	   If 'occupancy' is not None or the 'bonded_to' atom has an
 	   occupancy, the new atom will be given the corresponding occupancy.
 
+       If 'alt_loc' is specified (must be a single-character string), then
+       the new atom will be given that alt loc, otherwise the alt loc will be ' '.
+
 	   Returns the new atom.
 	"""
 
@@ -53,6 +56,8 @@ def add_atom(name, element, residue, loc, serial_number=None, bonded_to=None,
 	struct = residue.structure
 	new_atom = struct.new_atom(name, element)
 	residue.add_atom(new_atom)
+    if alt_loc is not None:
+        new_atom.set_alt_loc(alt_loc, True)
     if len(loc.shape) == 1:
         locs = [loc]
     else:

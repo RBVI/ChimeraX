@@ -14,8 +14,6 @@
 #from chimera import Coord, Point
 #from chimera.bondGeom import tetrahedral, planar, linear, single, bondPositions
 #from chimera.idatm import *
-#from AddH import newHydrogen, findNearest, roomiest, bondWithHLength, \
-#							findRotamerNearest
 from math import sin, cos, pi, sqrt
 #from chimera import Element
 #Element_H = Element(1)
@@ -35,72 +33,83 @@ def add_hydrogens(atom, *args, **kw):
                 break
     _alt_loc_add_hydrogens(atom, alt_loc_atom, *args, **kw)
 
-#TODO: tricky in that later alt locs may not be adding new hydrogen atoms, just new positions
-def _alt_loc_add_hydrogens(atom, alt_loc, bonding_info, naming_schema, total_hydrogens, idatm_type,
-							invert, coordinations):
+def _alt_loc_add_hydrogens(atom, alt_loc_atom, bonding_info, naming_schema, total_hydrogens,
+        idatm_type, invert, coordinations):
+    from .cmd import new_hydrogen, find_nearest, roomiest, bond_with_H_length, find_rotamer_nearest
 	away = away2 = planar = None
 	geom = bonding_info.geometry
 	substs = bonding_info.substituents
 	needed = substs - atom.num_bonds
 	if needed <= 0:
 		return
-	at_pos = atom.scene_coord
-	exclude = coordinations + list(atom.neighbors)
-	occupancy = None
-	if geom == 3:
-		if atom.num_bonds == 1:
-            bonded = atom.neighbors[0]
-            #TODO: need to rethink how to add hydrogens in the face of altloc positions;
-            # may need to restore old code and go at it again
-            if atom.altLoc:
-                grandBonded = [nb for nb in bonded.neighbors
-                        if not nb.altLoc or nb.altLoc == atom.altLoc]
-            else:
-                grandBonded = bonded.primaryNeighbors()
-            grandBonded.remove(atom)
-            if len(grandBonded) < 3:
-                planar = [a.xformCoord() for a in grandBonded]
-		elif atom.num_bonds == 2:
-			if len(atom.neighbors) > 2:
-				for altLoc in set([nb.altLoc for nb in atom.neighbors if nb.altLoc]):
-					add_hydrogens(atom, bonding_info, naming_schema, total_hydrogens, idatm_type,
-							invert, coordinations, altLoc=altLoc)
-				return
-	if geom == 4 and atom.num_bonds == 0:
-		away, d, natom = findNearest(at_pos, atom, exclude, 3.5)
-		if away:
-			away2, d2, natom2 = findRotamerNearest(at_pos,
-				idatm_type[atom], atom, natom, 3.5)
-	elif geom == 4 and len(coordinations) + atom.num_bonds == 1:
-		away, d, natom = findRotamerNearest(at_pos,
-				idatm_type[atom], atom, (list(atom.neighbors)+coordinations)[0], 3.5)
-	else:
-		away, d, natom = findNearest(at_pos, atom, exclude, 3.5)
+    added = None
+    if alt_loc_atom is None:
+        alt_locs = [atom.alt_loc]
+    else:
+        alt_locs = alt_loc_atom.alt_locs
+        # move current alt_loc to end of list to minimize
+        # the number of times we have to change alt locs
+        cur_alt_loc = alt_loc_atom.alt_loc
+        alt_locs.remove(cur_alt_loc)
+        alt_locs.append(cur_alt_loc)
+    added_hs = []
+    for alt_loc in alt_locs:
+        if alt_loc_atom:
+            alt_loc_atom.alt_loc = alt_loc
+            occupancy = alt_loc_atom.occupancy
+        else:
+            occupancy = 1.0
+        at_pos = atom.scene_coord
+        exclude = coordinations + list(atom.neighbors)
+        if geom == 3:
+            if atom.num_bonds == 1:
+                bonded = atom.neighbors[0]
+                grand_bonded = bonded.neighbors
+                grand_bonded.remove(atom)
+                if len(grand_bonded) < 3:
+                    planar = [a.scene_coord for a in grand_bonded]
+        if geom == 4 and atom.num_bonds == 0:
+            away, d, natom = find_nearest(at_pos, atom, exclude, 3.5)
+            if away:
+                away2, d2, natom2 = find_rotamer_nearest(at_pos, idatm_type[atom], atom, natom, 3.5)
+        elif geom == 4 and len(coordinations) + atom.num_bonds == 1:
+            away, d, natom = find_rotamer_nearest(at_pos,
+                    idatm_type[atom], atom, (list(atom.neighbors)+coordinations)[0], 3.5)
+        else:
+            away, d, natom = find_nearest(at_pos, atom, exclude, 3.5)
 
-	bondedPos = []
-	for bonded in atom.neighbors:
-		bondedPos.append(bonded.xformCoord())
+        bonded_pos = []
+        for bonded in atom.neighbors:
+            bonded_pos.append(bonded.scene_coord)
 
-	if coordinations:
-		toward = coordinations[0].xformCoord()
-		away2 = away
-		away = None
-	else:
-		toward = None
-	positions = bondPositions(at_pos, geom, bondWithHLength(atom, geom),
-		bondedPos, toward=toward, coPlanar=planar, away=away, away2=away2)
-	if coordinations:
-		coordPos = None
-		for pos in positions:
-			d = pos.sqdistance(toward)
-			if coordPos is None or d < lowest:
-				coordPos = pos
-				lowest = d
-		positions.remove(coordPos)
-	if len(positions) > needed:
-		positions = roomiest(positions, atom, 3.5, bonding_info)[:needed]
-	for i, pos in enumerate(positions):
-		h = newHydrogen(atom, i+1, total_hydrogens, naming_schema,
-							invert.apply(pos), bonding_info)
-		if occupancy is not None:
-			h.occupancy = occupancy
+        if coordinations:
+            toward = coordinations[0].scene_coord
+            away2 = away
+            away = None
+        else:
+            toward = None
+        from chimerax.core.atomic.bond_geom import bond_positions
+        from chimerax.core.geometry import distance_squared
+        positions = bond_positions(at_pos, geom, bond_with_H_length(atom, geom),
+            bonded_pos, toward=toward, coplanar=planar, away=away, away2=away2)
+        if coordinations:
+            coord_pos = None
+            for pos in positions:
+                d = distance_squared(pos, toward)
+                if coord_pos is None or d < lowest:
+                    coord_pos = pos
+                    lowest = d
+            positions.remove(coord_pos)
+        if len(positions) > needed:
+            positions = roomiest(positions, atom, 3.5, bonding_info)[:needed]
+        if added_hs:
+            for h, pos in zip(added_hs, positions):
+                h.set_alt_loc(alt_loc, True)
+                h.coord = invert.apply(pos)
+                h.occupancy = occupancy
+        else:
+            for i, pos in enumerate(positions):
+                h = new_hydrogen(atom, i+1, total_hydrogens, naming_schema,
+                                    invert.apply(pos), bonding_info, alt_loc)
+                added_hs.append(h)
+                h.occupancy = occupancy

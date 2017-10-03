@@ -37,3 +37,4 @@ from .icosahedron import icosahedral_symmetry_matrices
 from .icosahedron import coordinate_system_names as icosahedral_orientations
 from .spline import arc_lengths
 from .adaptive_tree import AdaptiveTree
+from .plane import Plane
