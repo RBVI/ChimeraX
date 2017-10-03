@@ -218,20 +218,14 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
                   "width=%.2g" % (mgr.scale_helix[0] * 2),
                   "height=%.2g" % (mgr.scale_helix[1] * 2),
                   "arrow=%s" % mgr.arrow_helix,
-                  "arrow size=%.2g,%.2g / %.2g,%.2g" % (mgr.scale_helix_arrow[0][0]*2,
-                                                        mgr.scale_helix_arrow[0][1]*2,
-                                                        mgr.scale_helix_arrow[1][0]*2,
-                                                        mgr.scale_helix_arrow[1][1]*2))
+                  "arrow scale=%.2g" % (mgr.scale_helix_arrow[0][0] / mgr.scale_helix[0]))
             print(indent, "strand",
                   "mode=%s" % _ModeStrandInverseMap[m.ribbon_mode_strand],
                   "xsection=%s" % _XSectionInverseMap[mgr.style_sheet],
                   "width=%.2g" % (mgr.scale_sheet[0] * 2),
                   "height=%.2g" % (mgr.scale_sheet[1] * 2),
                   "arrow=%s" % mgr.arrow_sheet,
-                  "arrow size=%.2g,%.2g / %.2g,%.2g" % (mgr.scale_sheet_arrow[0][0]*2,
-                                                        mgr.scale_sheet_arrow[0][1]*2,
-                                                        mgr.scale_sheet_arrow[1][0]*2,
-                                                        mgr.scale_sheet_arrow[1][1]*2))
+                  "arrow scale=%.2g" % (mgr.scale_sheet_arrow[0][0] / mgr.scale_sheet[0]))
             print(indent, "coil",
                   "xsection=%s" % _XSectionInverseMap[mgr.style_coil],
                   "width=%.2g" % (mgr.scale_coil[0] * 2),
