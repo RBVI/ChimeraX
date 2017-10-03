@@ -367,8 +367,8 @@ class BundleInfo:
                 api = self._get_api(session.logger)
                 api._api_caller.initialize(api, session, self)
             except Exception as e:
-                import traceback, sys
-                traceback.print_exc(file=sys.stdout)
+                import traceback
+                session.logger.warning(traceback.format_exc())
                 raise ToolshedError(
                     "initialize() failed in bundle %s:\n%s" % (self.name, str(e)))
 
