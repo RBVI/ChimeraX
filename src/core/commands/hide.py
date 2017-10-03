@@ -82,7 +82,7 @@ def hide_models(objects, undo_state):
             m.display_positions = dp
     else:
         for m in objects.models:
-            if m in ud:
+            if m in ud_display:
                 ud_display[m][1] = False
             else:
                 ud_display[m] = [m.display, True]
