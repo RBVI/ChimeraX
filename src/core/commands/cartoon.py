@@ -528,7 +528,7 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
             radius = None
         for m in structures:
             mgr = m.ribbon_xs_mgr
-            undo_state.add(mgr, "set_tube_radius", mgr.tube_radius, mode, "M")
+            undo_state.add(mgr, "set_tube_radius", mgr.tube_radius, radius, "M")
             mgr.set_tube_radius(radius)
     if spline_normals is not None:
         for m in structures:
