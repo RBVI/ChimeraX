@@ -99,14 +99,14 @@ class MouseMode:
         '''
         pass
 
-    def pixel_size(self, min_scene_frac = 1e-5):
+    def pixel_size(self, center = None, min_scene_frac = 1e-5):
         '''
         Report the pixel size in scene units at the center of rotation.
         Clamp the value to be at least min_scene_fraction times the width
         of the displayed models.
         '''
         v = self.view
-        psize = v.pixel_size()
+        psize = v.pixel_size(center)
         b = v.drawing_bounds()
         if not b is None:
             w = b.width()
