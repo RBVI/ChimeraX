@@ -55,8 +55,9 @@ class MarkerModeSettings(ToolInstance):
             'surface center': 'Place marker at center of connected surface',
             'link': 'Link consecutively clicked markers',
             'move': 'Move markers',
+            'delete': 'Delete markers or links',
         }
-        mode_order = ('surface', 'surface center', 'link', 'move')
+        mode_order = ('surface', 'surface center', 'link', 'move', 'delete')
         mm_layout = QHBoxLayout(mf)
         mm_layout.setContentsMargins(0,0,0,0)
         mm_layout.setSpacing(5)

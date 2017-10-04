@@ -41,6 +41,8 @@ class MarkerMouseMode(MouseMode):
             self.link_consecutive(event)
         elif mode == 'move':
             self.move_marker_begin(event)
+        elif mode == 'delete':
+            self.delete_marker_or_link(event)
         else:
             self.place_marker(event)
 
@@ -116,6 +118,21 @@ class MarkerMouseMode(MouseMode):
         step = cpos.apply_without_translation(s)    # Scene coord system
         m.scene_coord = sxyz + step
 
+    def delete_marker_or_link(self, event):
+        x,y = event.position()
+        from chimerax.core.ui.mousemodes import picked_object, select_pick
+        pick = picked_object(x, y, self.session.main_view)
+        from chimerax.core.atomic import PickedAtom, PickedBond
+        if isinstance(pick, PickedAtom):
+            a = pick.atom
+            if a.structure.num_atoms == 1:
+                # TODO: Leaving an empty structure causes errors
+                self.session.models.close([a.structure])
+            else:
+                a.delete()
+        elif isinstance(pick, PickedBond):
+            pick.bond.delete()
+
     def mouse_up(self, event):
         self._moving_marker = None
 
@@ -136,7 +153,7 @@ def marker_settings(session, attr = None):
             'marker_chain_id': 'M',
             'color': (255,255,0,255),
             'radius': 1.0,
-            'placement_mode': 'surface'	# 'surface', 'surface center', 'link', 'move'
+            'placement_mode': 'surface'	# 'surface', 'surface center', 'link', 'move', 'delete'
         }
     s = session._marker_settings
     return s if attr is None else s[attr]
