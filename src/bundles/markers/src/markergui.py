@@ -53,8 +53,10 @@ class MarkerModeSettings(ToolInstance):
         self.mode_menu_names = mnames = {
             'surface': 'Place marker on surface',
             'surface center': 'Place marker at center of connected surface',
-            'link': 'Link consecutively clicked markers'}
-        mode_order = ('surface', 'surface center', 'link')
+            'link': 'Link consecutively clicked markers',
+            'move': 'Move markers',
+        }
+        mode_order = ('surface', 'surface center', 'link', 'move')
         mm_layout = QHBoxLayout(mf)
         mm_layout.setContentsMargins(0,0,0,0)
         mm_layout.setSpacing(5)

@@ -22,7 +22,8 @@ class MarkerMouseMode(MouseMode):
         MouseMode.__init__(self, session)
 
         self.mode_name = 'place markers'
-        self.bound_button = None
+
+        self._moving_marker = None
 
     def enable(self):
         from .markergui import marker_panel
@@ -35,8 +36,11 @@ class MarkerMouseMode(MouseMode):
         return marker_settings(self.session, 'placement_mode')
 
     def mouse_down(self, event):
-        if self.placement_mode == 'link':
+        mode = self.placement_mode
+        if mode == 'link':
             self.link_consecutive(event)
+        elif mode == 'move':
+            self.move_marker_begin(event)
         else:
             self.place_marker(event)
 
@@ -63,16 +67,8 @@ class MarkerMouseMode(MouseMode):
         from chimerax.core.atomic import selected_atoms
         atoms1 = selected_atoms(s)
 
-        x,y = event.position()
-        from chimerax.core.ui.mousemodes import picked_object, select_pick
-        pick = picked_object(x, y, s.main_view)
-        from chimerax.core.atomic import PickedAtom
-        if not isinstance(pick, PickedAtom):
-            return False
-        a2 = pick.atom
-        select_pick(s, pick, 'replace')
-
-        if len(atoms1) != 1:
+        a2 = self.picked_marker(event, select = True)
+        if a2 is None or len(atoms1) != 1:
             return False
         a1 = atoms1[0]
 
@@ -90,11 +86,38 @@ class MarkerMouseMode(MouseMode):
         s.logger.status('Made connection, distance %.3g' % b.length)
         return True
 
+    def picked_marker(self, event, select = False):
+        x,y = event.position()
+        from chimerax.core.ui.mousemodes import picked_object, select_pick
+        pick = picked_object(x, y, self.session.main_view)
+        from chimerax.core.atomic import PickedAtom
+        if not isinstance(pick, PickedAtom):
+            return None
+        if select:
+            select_pick(self.session, pick, 'replace')
+        return pick.atom
+
     def mouse_drag(self, event):
-        pass
+        self.move_marker(event)
+
+    def move_marker_begin(self, event):
+        self._moving_marker = self.picked_marker(event)
+        MouseMode.mouse_down(self, event)
+
+    def move_marker(self, event):        
+        m = self._moving_marker
+        if m is None:
+            return
+        sxyz = m.scene_coord
+        dx, dy = self.mouse_motion(event)
+        psize = self.pixel_size(sxyz)
+        s = (dx*psize, -dy*psize, 0)	# Screen shift
+        cpos = self.session.main_view.camera.position
+        step = cpos.apply_without_translation(s)    # Scene coord system
+        m.scene_coord = sxyz + step
 
     def mouse_up(self, event):
-        pass
+        self._moving_marker = None
 
 class ConnectMouseMode(MarkerMouseMode):
     name = 'connect markers'
@@ -113,7 +136,7 @@ def marker_settings(session, attr = None):
             'marker_chain_id': 'M',
             'color': (255,255,0,255),
             'radius': 1.0,
-            'placement_mode': 'surface'	# 'surface', 'surface center', 'link'
+            'placement_mode': 'surface'	# 'surface', 'surface center', 'link', 'move'
         }
     s = session._marker_settings
     return s if attr is None else s[attr]
