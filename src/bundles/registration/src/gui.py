@@ -55,11 +55,19 @@ class RegistrationUI(ToolInstance):
                                  "registration_form.html")
         with open(html_file) as f:
             html = f.read()
+        from .nag import check_registration
         from .cmd import OrganizationTypes, UsageTypes
+        expiration = check_registration()
+        if expiration is not None:
+            exp_msg = ("<p>Your copy of ChimeraX is already registered "
+                                "through %s.</p>" % expiration.strftime("%x"))
+        else:
+            exp_msg = "<p>Your copy of ChimeraX is unregistered.</p>"
         org_list = ['<input type="radio" name="org_type" value="%s">%s</input>'
                     % (ot, ot.capitalize()) for ot in OrganizationTypes]
         usage_list = ['<input type="radio" name="usage" value="%s">%s'
                       % (u, u.capitalize()) for u in UsageTypes]
+        html = html.replace("EXPIRATION_PLACEHOLDER", exp_msg)
         html = html.replace("ORGTYPE_PLACEHOLDER", ' '.join(org_list))
         html = html.replace("USAGE_PLACEHOLDER", ' '.join(usage_list))
         self.html_view.setHtml(html)
@@ -80,9 +88,9 @@ class RegistrationUI(ToolInstance):
         fields = {
             "name": ("Name", None),
             "email": ("E-mail", None),
-            "org": ("Organization", None),
-            "org_type": ("Organization type", None),
-            "usage": ("Primary usage", None),
+            "org": ("Organization", ""),
+            "org_type": ("Organization type", ""),
+            "usage": ("Primary usage", ""),
             "nih_funded": ("Funded by NIH", False),
             "join_discussion": ("Join discussion mailing list", False),
             "join_announcements": ("Join announcements mailing list", False),

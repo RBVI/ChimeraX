@@ -26,6 +26,7 @@ required::before {
 </head>
 <body>
 <h2>ChimeraX Registration</h2>
+EXPIRATION_PLACEHOLDER
 <form action="cxreg:register">
 <table border="0">
 <tr>
@@ -37,15 +38,21 @@ required::before {
 <td class="data"><input type="text" name="email"/></td>
 </tr>
 <tr>
-<th class="label"><required>Organization:</required></th>
+<th class="label">Organization:</th>
 <td class="data"><input type="text" name="org"/></td>
 </tr>
 <tr>
-<th class="label"><required>Organization type:</required></th>
+<td/>
+<!-- <th class="label"><required>Organization type:</required></th> -->
 <td class="data">ORGTYPE_PLACEHOLDER</td>
 </tr>
 <tr>
-<th class="label"><required>Primary usage:</required></th>
+<td/>
+<td>This software will primarily be used for:</td>
+</tr>
+<tr>
+<td/>
+<!-- <th class="label"><required>Primary usage:</required></th> -->
 <td class="data">USAGE_PLACEHOLDER</td>
 </tr>
 </table>
