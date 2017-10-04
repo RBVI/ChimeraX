@@ -50,6 +50,8 @@ class MarkerMouseMode(MouseMode):
             self.place_marker(event)
         elif mode == 'maximum':
             self.place_on_maximum(event)
+        elif mode == 'plane':
+            self.place_on_plane(event)
             
     def place_marker(self, event):
         x,y = event.position()
@@ -75,6 +77,15 @@ class MarkerMouseMode(MouseMode):
         x,y = event.position()
         xyz1, xyz2 = self.session.main_view.clip_plane_points(x, y)
         sxyz, v = first_volume_maxima(xyz1, xyz2, vlist)
+        if sxyz is not None:
+            place_marker(self.session, sxyz)
+            
+    def place_on_plane(self, event):
+        from chimerax.core.map import Volume
+        vlist = self.session.models.list(type = Volume)
+        x,y = event.position()
+        xyz1, xyz2 = self.session.main_view.clip_plane_points(x, y)
+        sxyz, v = volume_plane_intercept(xyz1, xyz2, vlist)
         if sxyz is not None:
             place_marker(self.session, sxyz)
 
@@ -183,7 +194,8 @@ def marker_settings(session, attr = None):
             'marker_chain_id': 'M',
             'color': (255,255,0,255),
             'radius': 1.0,
-            'placement_mode': 'maximum'	# 'maximum', 'surface', 'surface center', 'link', 'move', 'resize', 'delete'
+            'placement_mode': 'maximum',        # Modes: 'maximum', 'plane', 'surface', 'surface center'
+                                                #        'link', 'move', 'resize', 'delete'
         }
     s = session._marker_settings
     return s if attr is None else s[attr]
@@ -246,7 +258,7 @@ def first_volume_maxima(xyz_in, xyz_out, vlist):
         if not v.shown():
             continue
         v_xyz_in, v_xyz_out = data_slice(v, line)
-        if xyz_in is None:
+        if v_xyz_in is None:
             continue
         slevels = v.surface_levels
         if len(slevels) == 0:
@@ -256,6 +268,35 @@ def first_volume_maxima(xyz_in, xyz_out, vlist):
         if f is None:
             continue
         vxyz = (1-f)*v_xyz_in + f*v_xyz_out
+        sxyz = v.position * vxyz
+        d = distance(sxyz, xyz_in)
+        hits.append((d,sxyz,v))
+
+    if len(hits) == 0:
+        return None, None
+    
+    d,sxyz,v = min(hits, key=lambda h: h[0])
+    return sxyz, v
+
+# -----------------------------------------------------------------------------
+#
+def volume_plane_intercept(xyz_in, xyz_out, vlist):
+
+    line = (xyz_in, xyz_out) # Scene coords
+    hits = []
+    from chimerax.core.geometry import distance
+    for v in vlist:
+        if not v.shown():
+            continue
+        plane = (v.single_plane() or
+                 v.showing_orthoplanes() or
+                 v.showing_box_faces())
+        if not plane:
+            continue
+        v_xyz_in, v_xyz_out = data_slice(v, line)
+        if v_xyz_in is None:
+            continue
+        vxyz = .5 * v_xyz_in + .5 * v_xyz_out
         sxyz = v.position * vxyz
         d = distance(sxyz, xyz_in)
         hits.append((d,sxyz,v))

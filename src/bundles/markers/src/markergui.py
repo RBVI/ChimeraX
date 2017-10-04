@@ -52,6 +52,7 @@ class MarkerModeSettings(ToolInstance):
         layout.addWidget(mf)
         self.mode_menu_names = mnames = {
             'maximum': 'Place marker at density maximum',
+            'plane': 'Place marker on volume plane',
             'surface': 'Place marker on surface',
             'surface center': 'Place marker at center of connected surface',
             'link': 'Link consecutively clicked markers',
@@ -59,7 +60,7 @@ class MarkerModeSettings(ToolInstance):
             'resize': 'Resize markers',
             'delete': 'Delete markers or links',
         }
-        mode_order = ('maximum', 'surface', 'surface center', 'link', 'move', 'resize', 'delete')
+        mode_order = ('maximum', 'plane', 'surface', 'surface center', 'link', 'move', 'resize', 'delete')
         mm_layout = QHBoxLayout(mf)
         mm_layout.setContentsMargins(0,0,0,0)
         mm_layout.setSpacing(5)
