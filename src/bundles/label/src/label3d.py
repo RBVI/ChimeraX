@@ -105,6 +105,7 @@ def label_delete(session, objects = None, object_type = None):
     else:
         otypes = [object_type]
 
+    delete_count = 0
     for otype in otypes:
         if objects is None:
             mo = labeled_objects_by_model(session, otype)
@@ -113,7 +114,9 @@ def label_delete(session, objects = None, object_type = None):
         for m, lbl_objects in mo:
             lm = labels_model(m)
             if lm is not None:
-                lm.delete_labels(lbl_objects)
+                delete_count += lm.delete_labels(lbl_objects)
+
+    return delete_count
 
 # -----------------------------------------------------------------------------
 #
@@ -251,12 +254,15 @@ class ObjectLabels(Model):
 
     def delete_labels(self, objects):
         ld = self._label_drawings
+        count = 0
         for o in objects:
             if o in ld:
                 self.remove_drawing(ld[o])
                 del ld[o]
+                count += 1
         if len(ld) == 0:
             self.session.models.close([self])
+        return count
 
     def label_count(self):
         return len(self._label_drawings)
