@@ -34,16 +34,10 @@ class MarkerMouseMode(MouseMode):
     def placement_mode(self):
         return marker_settings(self.session, 'placement_mode')
 
-    @property
-    def link_consecutive(self):
-        return marker_settings(self.session, 'link_consecutive')
-
     def mouse_down(self, event):
-        if self.link_consecutive:
-            if link_consecutive(self.session, event):
-                return
-
-        if self.placement_mode != 'link only':
+        if self.placement_mode == 'link':
+            self.link_consecutive(event)
+        else:
             self.place_marker(event)
 
     def place_marker(self, event):
@@ -64,6 +58,38 @@ class MarkerMouseMode(MouseMode):
             return
         place_marker(self.session, c)
 
+    def link_consecutive(self, event):
+        s = self.session
+        from chimerax.core.atomic import selected_atoms
+        atoms1 = selected_atoms(s)
+
+        x,y = event.position()
+        from chimerax.core.ui.mousemodes import picked_object, select_pick
+        pick = picked_object(x, y, s.main_view)
+        from chimerax.core.atomic import PickedAtom
+        if not isinstance(pick, PickedAtom):
+            return False
+        a2 = pick.atom
+        select_pick(s, pick, 'replace')
+
+        if len(atoms1) != 1:
+            return False
+        a1 = atoms1[0]
+
+        if a1.structure != a2.structure:
+            s.logger.status('Cannot connect atoms from different molecules')
+            return False
+        if a1.connects_to(a2):
+            return False
+
+        m = a1.structure
+        b = m.new_bond(a1,a2)
+        b.radius = 0.5*min(a1.radius, a2.radius)
+        b.color = (101,156,239,255)	# cornflowerblue
+        b.halfbond = False
+        s.logger.status('Made connection, distance %.3g' % b.length)
+        return True
+
     def mouse_drag(self, event):
         pass
 
@@ -76,41 +102,8 @@ class ConnectMouseMode(MarkerMouseMode):
 
     def enable(self):
         s = marker_settings(self.session)
-        s['link_consecutive'] = True
-        s['placement_mode'] = 'link only'
+        s['placement_mode'] = 'link'
         MarkerMouseMode.enable(self)
-
-def link_consecutive(session, event):
-    s = session
-    from chimerax.core.atomic import selected_atoms
-    atoms1 = selected_atoms(s)
-
-    x,y = event.position()
-    from chimerax.core.ui.mousemodes import picked_object, select_pick
-    pick = picked_object(x, y, session.main_view)
-    from chimerax.core.atomic import PickedAtom
-    if not isinstance(pick, PickedAtom):
-        return False
-    a2 = pick.atom
-    select_pick(session, pick, 'replace')
-
-    if len(atoms1) != 1:
-        return False
-    a1 = atoms1[0]
-
-    if a1.structure != a2.structure:
-        s.logger.status('Cannot connect atoms from different molecules')
-        return False
-    if a1.connects_to(a2):
-        return False
-    
-    m = a1.structure
-    b = m.new_bond(a1,a2)
-    b.radius = 0.5*min(a1.radius, a2.radius)
-    b.color = (101,156,239,255)	# cornflowerblue
-    b.halfbond = False
-    s.logger.status('Made connection, distance %.3g' % b.length)
-    return True
 
 def marker_settings(session, attr = None):
     if not hasattr(session, '_marker_settings'):
@@ -120,8 +113,7 @@ def marker_settings(session, attr = None):
             'marker_chain_id': 'M',
             'color': (255,255,0,255),
             'radius': 1.0,
-            'link_consecutive': False,  # Link consecutively clicked markers
-            'placement_mode': 'surface'	# 'surface', 'surface center', 'link only'
+            'placement_mode': 'surface'	# 'surface', 'surface center', 'link'
         }
     s = session._marker_settings
     return s if attr is None else s[attr]
