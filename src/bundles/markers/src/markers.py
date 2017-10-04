@@ -46,9 +46,11 @@ class MarkerMouseMode(MouseMode):
             self.resize_marker_begin(event)
         elif mode == 'delete':
             self.delete_marker_or_link(event)
-        else:
+        elif mode in ('surface', 'surface center'):
             self.place_marker(event)
-
+        elif mode == 'maximum':
+            self.place_on_maximum(event)
+            
     def place_marker(self, event):
         x,y = event.position()
         s = self.session
@@ -66,6 +68,15 @@ class MarkerMouseMode(MouseMode):
             log.status('No marker placed')
             return
         place_marker(self.session, c)
+            
+    def place_on_maximum(self, event):
+        from chimerax.core.map import Volume
+        vlist = self.session.models.list(type = Volume)
+        x,y = event.position()
+        xyz1, xyz2 = self.session.main_view.clip_plane_points(x, y)
+        sxyz, v = first_volume_maxima(xyz1, xyz2, vlist)
+        if sxyz is not None:
+            place_marker(self.session, sxyz)
 
     def link_consecutive(self, event):
         s = self.session
@@ -172,7 +183,7 @@ def marker_settings(session, attr = None):
             'marker_chain_id': 'M',
             'color': (255,255,0,255),
             'radius': 1.0,
-            'placement_mode': 'surface'	# 'surface', 'surface center', 'link', 'move', 'resize', 'delete'
+            'placement_mode': 'maximum'	# 'maximum', 'surface', 'surface center', 'link', 'move', 'resize', 'delete'
         }
     s = session._marker_settings
     return s if attr is None else s[attr]
@@ -224,3 +235,69 @@ def mark_map_center(volume):
         c = varea.dot(va)/a
         place_marker(volume.session, c)
         
+# -----------------------------------------------------------------------------
+#
+def first_volume_maxima(xyz_in, xyz_out, vlist):
+
+    line = (xyz_in, xyz_out)	# Scene coords
+    hits = []
+    from chimerax.core.geometry import distance
+    for v in vlist:
+        if not v.shown():
+            continue
+        v_xyz_in, v_xyz_out = data_slice(v, line)
+        if xyz_in is None:
+            continue
+        slevels = v.surface_levels
+        if len(slevels) == 0:
+            return
+        threshold = min(slevels)
+        f = first_maximum_along_ray(v, v_xyz_in, v_xyz_out, threshold)
+        if f is None:
+            continue
+        vxyz = (1-f)*v_xyz_in + f*v_xyz_out
+        sxyz = v.position * vxyz
+        d = distance(sxyz, xyz_in)
+        hits.append((d,sxyz,v))
+
+    if len(hits) == 0:
+        return None, None
+    
+    d,sxyz,v = min(hits, key=lambda h: h[0])
+    return sxyz, v
+
+# -----------------------------------------------------------------------------
+#
+def data_slice(v, line):
+
+  if not v.shown():
+    return None, None
+
+  from chimerax.core.map import slice
+  if v.showing_orthoplanes() or v.showing_box_faces():
+    xyz_in = xyz_out = slice.face_intercept_point(v, line)
+  else:
+    xyz_in, xyz_out = slice.volume_segment(v, line)
+
+  return xyz_in, xyz_out
+
+
+# -----------------------------------------------------------------------------
+# Graph the data values along a line passing through a volume on a Tkinter
+# canvas.  The volume data may have multiple components.  Each component is
+# graphed using a Trace object.
+#
+def first_maximum_along_ray(volume, xyz_in, xyz_out, threshold):
+
+  from chimerax.core.map.slice import slice_data_values
+  trace = slice_data_values(volume, xyz_in, xyz_out)
+  trace = tuple(trace)
+  n = len(trace)
+  for k in range(n):
+    t, v = trace[k]
+    if v >= threshold:
+      if ((k-1 < 0 or trace[k-1][1] < v) and
+          (k+1 >= n or trace[k+1][1] <= v)):
+        return t
+
+  return None
