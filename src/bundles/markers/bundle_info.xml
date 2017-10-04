@@ -20,6 +20,7 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>ChimeraX :: Tool :: Marker Placement :: Volume Data :: Place markers on density maps</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

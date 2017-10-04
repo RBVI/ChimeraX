@@ -43,6 +43,10 @@ class MouseMode:
         self.last_mouse_position = None
         '''Last mouse position during a mouse drag.'''
 
+    def enable(self):
+        '''Override if mode wants to know that it has been bound to a mouse button.'''
+        pass
+
     def mouse_down(self, event):
         '''
         Override this method to handle mouse down events.
@@ -173,6 +177,7 @@ class MouseModes:
         if mode is not None and not isinstance(mode, NullMouseMode):
             b = MouseBinding(button, modifiers, mode)
             self._bindings.append(b)
+            mode.enable()
 
     def bind_standard_mouse_modes(self, buttons = ('left', 'middle', 'right', 'wheel', 'pause')):
         '''
@@ -956,7 +961,6 @@ def standard_mouse_mode_classes():
         mouselevel.ContourLevelMouseMode,
         moveplanes.PlanesMouseMode,
         markers.MarkerMouseMode,
-        markers.MarkCenterMouseMode,
         markers.ConnectMouseMode,
         series.PlaySeriesMouseMode,
         NullMouseMode,

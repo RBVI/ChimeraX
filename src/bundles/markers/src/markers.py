@@ -24,16 +24,36 @@ class MarkerMouseMode(MouseMode):
         self.mode_name = 'place markers'
         self.bound_button = None
 
-        self.center = False             # Place at centroid of surface
+    def enable(self):
+        from .markergui import marker_panel
+        p = marker_panel(self.session, 'Markers')
+        p.update_settings()
+        p.show()
+
+    @property
+    def placement_mode(self):
+        return marker_settings(self.session, 'placement_mode')
+
+    @property
+    def link_consecutive(self):
+        return marker_settings(self.session, 'link_consecutive')
 
     def mouse_down(self, event):
+        if self.link_consecutive:
+            if link_consecutive(self.session, event):
+                return
+
+        if self.placement_mode != 'link only':
+            self.place_marker(event)
+
+    def place_marker(self, event):
         x,y = event.position()
         s = self.session
         v = s.main_view
         p = v.first_intercept(x,y)
         if p is None:
             c = None
-        elif self.center and hasattr(p, 'triangle_pick'):
+        elif self.placement_mode == 'surface center' and hasattr(p, 'triangle_pick'):
             c, vol = connected_center(p.triangle_pick)
             self.session.logger.info('Enclosed volume for marked surface: %.3g' % vol)
         else:
@@ -50,17 +70,61 @@ class MarkerMouseMode(MouseMode):
     def mouse_up(self, event):
         pass
 
-def marker_settings(session):
+class ConnectMouseMode(MarkerMouseMode):
+    name = 'connect markers'
+    icon_file = 'bond.png'
+
+    def enable(self):
+        s = marker_settings(self.session)
+        s['link_consecutive'] = True
+        s['placement_mode'] = 'link only'
+        MarkerMouseMode.enable(self)
+
+def link_consecutive(session, event):
+    s = session
+    from chimerax.core.atomic import selected_atoms
+    atoms1 = selected_atoms(s)
+
+    x,y = event.position()
+    from chimerax.core.ui.mousemodes import picked_object, select_pick
+    pick = picked_object(x, y, session.main_view)
+    from chimerax.core.atomic import PickedAtom
+    if not isinstance(pick, PickedAtom):
+        return False
+    a2 = pick.atom
+    select_pick(session, pick, 'replace')
+
+    if len(atoms1) != 1:
+        return False
+    a1 = atoms1[0]
+
+    if a1.structure != a2.structure:
+        s.logger.status('Cannot connect atoms from different molecules')
+        return False
+    if a1.connects_to(a2):
+        return False
+    
+    m = a1.structure
+    b = m.new_bond(a1,a2)
+    b.radius = 0.5*min(a1.radius, a2.radius)
+    b.color = (101,156,239,255)	# cornflowerblue
+    b.halfbond = False
+    s.logger.status('Made connection, distance %.3g' % b.length)
+    return True
+
+def marker_settings(session, attr = None):
     if not hasattr(session, '_marker_settings'):
         session._marker_settings = {
             'molecule': None,
             'next_marker_num': 1,
             'marker_chain_id': 'M',
             'color': (255,255,0,255),
-            'radius': 1.0
+            'radius': 1.0,
+            'link_consecutive': False,  # Link consecutively clicked markers
+            'placement_mode': 'surface'	# 'surface', 'surface center', 'link only'
         }
     s = session._marker_settings
-    return s
+    return s if attr is None else s[attr]
 
 def marker_molecule(session):
     ms = marker_settings(session)
@@ -86,14 +150,6 @@ def place_marker(session, center):
     m.new_atoms()
     session.logger.status('Placed marker')
 
-class MarkCenterMouseMode(MarkerMouseMode):
-    name = 'mark centroid'
-    icon_file = 'marker2.png'
-
-    def __init__(self, session):
-        MarkerMouseMode.__init__(self, session)
-        self.center = True
-
 def connected_center(triangle_pick):
     d = triangle_pick.drawing()
     t = triangle_pick.triangle_number
@@ -107,29 +163,6 @@ def connected_center(triangle_pick):
     cscene = d.scene_position * c
     vol, holes = surface.enclosed_volume(va, tc)
     return cscene, vol
-
-class ConnectMouseMode(MouseMode):
-    name = 'connect markers'
-    icon_file = 'bond.png'
-
-    def mouse_down(self, event):
-        s = self.session
-        from chimerax.core.atomic import selected_atoms
-        atoms1 = selected_atoms(s)
-        from chimerax.core.ui.mousemodes import mouse_select
-        mouse_select(event, 'replace', s, self.view)
-        atoms2 = selected_atoms(s)
-        if len(atoms1) == 1 and len(atoms2) == 1:
-            a1, a2 = atoms1[0], atoms2[0]
-            if a1.structure != a2.structure:
-                s.logger.status('Cannot connect atoms from different molecules')
-            elif not a1.connects_to(a2):
-                m = a1.structure
-                b = m.new_bond(a1,a2)
-                b.radius = 0.5*min(a1.radius, a2.radius)
-                b.color = (101,156,239,255)	# cornflowerblue
-                b.halfbond = False
-                s.logger.status('Made connection, distance %.3g' % b.length)
 
 def mark_map_center(volume):
     for s in volume.surface_drawings:

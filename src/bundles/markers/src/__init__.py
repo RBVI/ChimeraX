@@ -15,9 +15,13 @@ from chimerax.core.toolshed import BundleAPI
 
 class _MarkersAPI(BundleAPI):
 
-    pass
+    @staticmethod
+    def start_tool(session, tool_name):
+        from .markergui import marker_panel
+        p = marker_panel(session, tool_name)
+        return p
 
 bundle_api = _MarkersAPI()
 
-from .markers import MarkerMouseMode, MarkCenterMouseMode, ConnectMouseMode
+from .markers import MarkerMouseMode, ConnectMouseMode
 from .markers import mark_map_center
