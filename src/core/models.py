@@ -97,7 +97,8 @@ class Model(State, Drawing):
         if val == self._name:
             return
         self._name = val
-        self.session.triggers.activate_trigger(MODEL_NAME_CHANGED, self)
+        if self._id != None:  # model actually open
+            self.session.triggers.activate_trigger(MODEL_NAME_CHANGED, self)
     name = property(_get_name, _set_name)
 
     def _model_set_position(self, pos):

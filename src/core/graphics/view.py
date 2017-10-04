@@ -176,35 +176,36 @@ class View:
             if self.silhouettes:
                 r.start_silhouette_drawing()
             r.draw_background()
-            if mdraw:
-                perspective_near_far_ratio \
-                    = self._update_projection(vnum, camera=camera)
-                cp = camera.get_position(vnum)
-                cpinv = cp.inverse()
-                if shadows and stf is not None:
-                    r.set_shadow_transform(stf * cp)
-                if multishadows > 0 and mstf is not None:
-                    r.set_multishadow_transforms(mstf, cp, msdepth)
-                    # Initial depth pass optimization to avoid lighting
-                    # calculation on hidden geometry
-                    draw_depth(r, cpinv, mdraw)
-                    r.allow_equal_depth(True)
-                self._start_timing()
-                r.set_view_matrix(cpinv)
-                draw_opaque(r, mdraw)
-                if any_selected:
-                    r.set_outline_depth()       # copy depth to outline framebuffer
-                draw_transparent(r, mdraw)    
-                self._finish_timing()
-                if multishadows > 0:
-                    r.allow_equal_depth(False)
-                if any_selected:
-                    draw_selection_outline(r, cpinv, mdraw)
+            if len(mdraw) == 0:
+                continue
+            perspective_near_far_ratio \
+                = self._update_projection(vnum, camera=camera)
+            cp = camera.get_position(vnum)
+            cpinv = cp.inverse()
+            if shadows and stf is not None:
+                r.set_shadow_transform(stf * cp)
+            if multishadows > 0 and mstf is not None:
+                r.set_multishadow_transforms(mstf, cp, msdepth)
+                # Initial depth pass optimization to avoid lighting
+                # calculation on hidden geometry
+                draw_depth(r, cpinv, mdraw)
+                r.allow_equal_depth(True)
+            self._start_timing()
+            r.set_view_matrix(cpinv)
+            draw_opaque(r, mdraw)
+            if any_selected:
+                r.set_outline_depth()       # copy depth to outline framebuffer
+            draw_transparent(r, mdraw)    
+            self._finish_timing()
+            if multishadows > 0:
+                r.allow_equal_depth(False)
             if self.silhouettes:
                 r.finish_silhouette_drawing(self.silhouette_thickness,
                                             self.silhouette_color,
                                             self.silhouette_depth_jump,
                                             perspective_near_far_ratio)
+            if any_selected:
+                draw_selection_outline(r, cpinv, mdraw)
 
         camera.combine_rendered_camera_views(r)
 

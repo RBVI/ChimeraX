@@ -459,6 +459,45 @@ extern "C" EXPORT void atom_coord_index(void *atoms, size_t n, uint32_t *index)
     error_wrap_array_get<Atom, unsigned int, unsigned int>(a, n, &Atom::coord_index, index);
 }
 
+extern "C" EXPORT void atom_get_coord_crdset(void *atom, int cs_id, float64_t *xyz)
+{
+    Atom *a = static_cast<Atom *>(atom);
+    try {
+        auto cs = a->structure()->find_coord_set(cs_id);
+        if (cs == nullptr) {
+            std::stringstream err_msg;
+            err_msg << "Structure has no coordset with ID " << cs_id;
+            PyErr_SetString(PyExc_ValueError, err_msg.str().c_str());
+        } else {
+            auto& crd = a->coord(cs);
+            *xyz++ = crd[0];
+            *xyz++ = crd[1];
+            *xyz++ = crd[2];
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void atom_get_coord_altloc(void *atom, char altloc, float64_t *xyz)
+{
+    Atom *a = static_cast<Atom *>(atom);
+    try {
+        if (a->has_alt_loc(altloc)) {
+            auto& crd = a->coord(altloc);
+            *xyz++ = crd[0];
+            *xyz++ = crd[1];
+            *xyz++ = crd[2];
+        } else {
+            std::stringstream err_msg;
+            err_msg << "Atom " << a->str() << " has no altloc " << altloc;
+            PyErr_SetString(PyExc_ValueError, err_msg.str().c_str());
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void atom_delete(void *atoms, size_t n)
 {
     Atom **a = static_cast<Atom **>(atoms);
@@ -3349,6 +3388,18 @@ extern "C" EXPORT void structure_lower_case_chains(void *mols, size_t n, npy_boo
     } catch (...) {
         molc_error();
     }
+}
+
+extern "C" EXPORT void structure_alt_loc_change_notify(void *structures, size_t n, npy_bool *alcn)
+{
+    Structure **s = static_cast<Structure **>(structures);
+    error_wrap_array_get(s, n, &Structure::alt_loc_change_notify, alcn);
+}
+
+extern "C" EXPORT void set_structure_alt_loc_change_notify(void *structures, size_t n, npy_bool *alcn)
+{
+    Structure **s = static_cast<Structure **>(structures);
+    error_wrap_array_set(s, n, &Structure::set_alt_loc_change_notify, alcn);
 }
 
 extern "C" EXPORT void structure_num_atoms(void *mols, size_t n, size_t *natoms)

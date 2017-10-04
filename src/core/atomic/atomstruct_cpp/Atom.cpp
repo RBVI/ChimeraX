@@ -1114,7 +1114,8 @@ Atom::set_alt_loc(char alt_loc, bool create, bool _from_residue)
     if (alt_loc == _alt_loc || alt_loc == ' ')
         return;
     graphics_changes()->set_gc_shape();
-    structure()->change_tracker()->add_modified(this, ChangeTracker::REASON_ALT_LOC);
+    if (structure()->alt_loc_change_notify())
+        structure()->change_tracker()->add_modified(this, ChangeTracker::REASON_ALT_LOC);
     if (create) {
         if (_alt_loc_map.find(alt_loc) != _alt_loc_map.end()) {
             set_alt_loc(alt_loc, create=false);
@@ -1137,7 +1138,8 @@ Atom::set_alt_loc(char alt_loc, bool create, bool _from_residue)
         _Alt_loc_info &info = (*i).second;
         _serial_number = info.serial_number;
         _alt_loc = alt_loc;
-        structure()->change_tracker()->add_modified(this, ChangeTracker::REASON_COORD);
+        if (structure()->alt_loc_change_notify())
+            structure()->change_tracker()->add_modified(this, ChangeTracker::REASON_COORD);
     } else {
         residue()->set_alt_loc(alt_loc);
     }

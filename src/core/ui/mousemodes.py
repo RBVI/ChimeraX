@@ -482,6 +482,9 @@ def mouse_drag_select(start_xy, event, mode, session, view):
 
 def select_pick(session, pick, mode = 'replace'):
     sel = session.selection
+    from ..undo import UndoState
+    undo_state = UndoState("select")
+    sel.undo_add_selected(undo_state, False)
     if pick is None:
         if mode == 'replace':
             sel.clear()
@@ -496,6 +499,8 @@ def select_pick(session, pick, mode = 'replace'):
         else:
             pick.select(mode)
     sel.clear_promotion_history()
+    sel.undo_add_selected(undo_state, True, old_state=False)
+    session.undo.register(undo_state)
 
 class RotateMouseMode(MouseMode):
     '''

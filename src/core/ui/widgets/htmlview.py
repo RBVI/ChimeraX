@@ -68,7 +68,7 @@ class HtmlView(QWebEngineView):
             self._profile = profile
             self._private_profile = False
         else:
-            p = self._profile = QWebEngineProfile()
+            p = self._profile = QWebEngineProfile(self.parent())
             self._private_profile = True
             set_user_agent(p)
             if interceptor is not None:

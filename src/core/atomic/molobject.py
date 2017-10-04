@@ -134,7 +134,8 @@ class Atom(State):
         doc = "Protein Data Bank chain identifier. Limited to 4 characters. Read only string.")
     color = c_property('atom_color', uint8, 4, doc="Color RGBA length 4 numpy uint8 array.")
     coord = c_property('atom_coord', float64, 3,
-        doc="Coordinates as a numpy length 3 array, 64-bit float values.")
+        doc="Coordinates from the current coordinate set (or alt loc) as a numpy length 3 array,"
+            " 64-bit float values.  See get_coord method for other coordsets / alt locs.")
     coord_index = c_property('atom_coord_index', uint32, read_only = True,
         doc="Coordinate index of atom in coordinate set.")
     display = c_property('atom_display', npy_bool,
@@ -322,6 +323,32 @@ class Atom(State):
         of models this atom belongs to.
         '''
         return self.structure.scene_position * self.coord
+
+    def get_coord(self, crdset_or_altloc):
+        '''
+        Like the 'coord' property, but uses the given coordset ID (integer) / altloc (character)
+        rather than the current coordset / altloc.
+        '''
+        from numpy import empty, float64
+        ai = empty((3,), float64)
+        if isinstance(crdset_or_altloc, int):
+            f = c_function('atom_get_coord_crdset',
+                args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p))
+        elif isinstance(crdset_or_altloc, str):
+            crdset_or_altloc = crdset_or_altloc.encode('utf-8')
+            f = c_function('atom_get_coord_altloc',
+                args = (ctypes.c_void_p, ctypes.c_char, ctypes.c_void_p))
+        else:
+            raise TypeError("crdset_or_altloc value must be int or character")
+        f(self._c_pointer, crdset_or_altloc, pointer(ai))
+        return ai
+
+    def get_scene_coord(self, crdset_or_altloc):
+        '''
+        Like the 'scene_coord' property, but uses the given coordset ID (integer) / altloc
+        (character) rather than the current coordset / altloc.
+        '''
+        return self.structure.scene_position * self.get_coord(crdset_or_altloc)
 
     def reset_state(self, session):
         """For when the session is closed"""
@@ -1478,6 +1505,9 @@ class StructureData:
 
     active_coordset_id = c_property('structure_active_coordset_id', int32)
     '''Index of the active coordinate set.'''
+    alt_loc_change_notify = c_property('structure_alt_loc_change_notify', npy_bool, doc=
+    '''Whether notifications are issued when altlocs are changed.  Should only be
+    set to true when temporarily changing alt locs in a Python script. Boolean''')
     atoms = c_property('structure_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True)
     ''':class:`.Atoms` collection containing all atoms of the structure.'''
     ball_scale = c_property('structure_ball_scale', float32,

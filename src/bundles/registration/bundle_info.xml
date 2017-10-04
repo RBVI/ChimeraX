@@ -1,0 +1,34 @@
+<BundleInfo name="ChimeraX-Registration" version="0.1" customInit="true"
+	    package="chimerax.registration"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Register ChimeraX</Synopsis>
+  <Description>Register ChimeraX with RBVI and help us document
+the impact this software is having in the scientific community.
+The information you supply will only be used for reporting
+summary statistics to NIH.</Description>
+
+  <Categories>
+    <Category name="General"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <DataFiles>
+    <DataFile>*.html</DataFile>
+  </DataFiles>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>ChimeraX :: Tool :: Registration :: General :: Register ChimeraX with RBVI</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: register :: General :: Register ChimeraX with RBVI</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

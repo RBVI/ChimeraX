@@ -677,7 +677,7 @@ class Render:
         GL.glClear(flags)
 
     def enable_depth_test(self, enable):
-        'Enable OpenGL depth testing.'
+        'Enable OpenGL depth testing.  Disabling also disables writing depth buffer.'
         if enable:
             GL.glEnable(GL.GL_DEPTH_TEST)
         else:
