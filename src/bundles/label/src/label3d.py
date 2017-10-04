@@ -473,7 +473,8 @@ class AtomLabel(ObjectLabel):
         self.atom = object
         ObjectLabel.__init__(self, object, view, offset=offset, text=text, color=color, size=size, font=font)
     def default_text(self):
-        return self.atom.name
+        aname = self.atom.name
+        return aname if aname else ('%d' % self.atom.residue.number)
     def default_offset(self):
         return (0.2+self.atom.display_radius, 0, 0.5)
     def location(self):
