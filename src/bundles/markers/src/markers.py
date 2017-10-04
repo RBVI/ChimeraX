@@ -23,8 +23,8 @@ class MarkerMouseMode(MouseMode):
 
         self.mode_name = 'place markers'
 
-        self._moving_marker = None
-        self._resizing_marker = None
+        self._moving_marker = None		# Atom
+        self._resizing_marker_or_link = None	# Atom or Bond
 
     def enable(self):
         from .markergui import marker_panel
@@ -43,7 +43,7 @@ class MarkerMouseMode(MouseMode):
         elif mode == 'move':
             self.move_marker_begin(event)
         elif mode == 'resize':
-            self.resize_marker_begin(event)
+            self.resize_begin(event)
         elif mode == 'delete':
             self.delete_marker_or_link(event)
         elif mode in ('surface', 'surface center'):
@@ -107,26 +107,34 @@ class MarkerMouseMode(MouseMode):
 
         m = a1.structure
         b = m.new_bond(a1,a2)
-        b.radius = 0.5*min(a1.radius, a2.radius)
-        b.color = (101,156,239,255)	# cornflowerblue
+        ms = marker_settings(s)
+        b.radius = ms['link radius'] # 0.5*min(a1.radius, a2.radius)
+        b.color = ms['link color']
         b.halfbond = False
         s.logger.status('Made connection, distance %.3g' % b.length)
         return True
 
     def picked_marker(self, event, select = False):
+        m, l = self.picked_marker_or_link(event, select)
+        return m
+    
+    def picked_marker_or_link(self, event, select = False):
         x,y = event.position()
         from chimerax.core.ui.mousemodes import picked_object, select_pick
         pick = picked_object(x, y, self.session.main_view)
-        from chimerax.core.atomic import PickedAtom
-        if not isinstance(pick, PickedAtom):
-            return None
+        m = l = None
+        from chimerax.core.atomic import PickedAtom, PickedBond
+        if isinstance(pick, PickedAtom):
+            m = pick.atom    
+        elif isinstance(pick, PickedBond):
+            l = pick.bond
         if select:
             select_pick(self.session, pick, 'replace')
-        return pick.atom
+        return m, l
 
     def mouse_drag(self, event):
         self.move_marker(event)
-        self.resize_marker(event)
+        self.resize_marker_or_link(event)
 
     def move_marker_begin(self, event):
         self._moving_marker = self.picked_marker(event)
@@ -144,12 +152,13 @@ class MarkerMouseMode(MouseMode):
         step = cpos.apply_without_translation(s)    # Scene coord system
         m.scene_coord = sxyz + step
 
-    def resize_marker_begin(self, event):
-        self._resizing_marker = self.picked_marker(event)
+    def resize_begin(self, event):
+        m, l = self.picked_marker_or_link(event)
+        self._resizing_marker_or_link = m or l
         MouseMode.mouse_down(self, event)
 
-    def resize_marker(self, event):        
-        m = self._resizing_marker
+    def resize_marker_or_link(self, event):        
+        m = self._resizing_marker_or_link
         if m is None:
             return
         dx, dy = self.mouse_motion(event)
@@ -157,7 +166,11 @@ class MarkerMouseMode(MouseMode):
         r = m.radius * exp(-0.01*dy)
         m.radius = r
         s = marker_settings(self.session)
-        s['radius'] = r
+        from chimerax.core.atomic import Atom
+        if isinstance(m, Atom):
+            s['marker radius'] = r
+        else:
+            s['link radius'] = r
 
     def delete_marker_or_link(self, event):
         x,y = event.position()
@@ -192,8 +205,10 @@ def marker_settings(session, attr = None):
             'molecule': None,
             'next_marker_num': 1,
             'marker_chain_id': 'M',
-            'color': (255,255,0,255),
-            'radius': 1.0,
+            'marker color': (255,255,0,255),	# yellow
+            'marker radius': 1.0,
+            'link color': (101,156,239,255),	# cornflowerblue
+            'link radius': 0.5,
             'placement_mode': 'maximum',        # Modes: 'maximum', 'plane', 'surface', 'surface center'
                                                 #        'link', 'move', 'resize', 'delete'
         }
@@ -215,8 +230,8 @@ def place_marker(session, center):
     a = m.new_atom('', 'H')
     a.coord = center
     ms = marker_settings(session)
-    a.radius = ms['radius']
-    a.color = ms['color']
+    a.radius = ms['marker radius']
+    a.color = ms['marker color']
     a.draw_mode = a.BALL_STYLE	# Sphere style hides bonds between markers, so use ball style.
     r = m.new_residue('mark', ms['marker_chain_id'], ms['next_marker_num'])
     r.add_atom(a)
