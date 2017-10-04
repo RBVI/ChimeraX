@@ -24,6 +24,7 @@ class MarkerMouseMode(MouseMode):
         self.mode_name = 'place markers'
 
         self._moving_marker = None
+        self._resizing_marker = None
 
     def enable(self):
         from .markergui import marker_panel
@@ -41,6 +42,8 @@ class MarkerMouseMode(MouseMode):
             self.link_consecutive(event)
         elif mode == 'move':
             self.move_marker_begin(event)
+        elif mode == 'resize':
+            self.resize_marker_begin(event)
         elif mode == 'delete':
             self.delete_marker_or_link(event)
         else:
@@ -101,6 +104,7 @@ class MarkerMouseMode(MouseMode):
 
     def mouse_drag(self, event):
         self.move_marker(event)
+        self.resize_marker(event)
 
     def move_marker_begin(self, event):
         self._moving_marker = self.picked_marker(event)
@@ -117,6 +121,21 @@ class MarkerMouseMode(MouseMode):
         cpos = self.session.main_view.camera.position
         step = cpos.apply_without_translation(s)    # Scene coord system
         m.scene_coord = sxyz + step
+
+    def resize_marker_begin(self, event):
+        self._resizing_marker = self.picked_marker(event)
+        MouseMode.mouse_down(self, event)
+
+    def resize_marker(self, event):        
+        m = self._resizing_marker
+        if m is None:
+            return
+        dx, dy = self.mouse_motion(event)
+        from math import exp
+        r = m.radius * exp(-0.01*dy)
+        m.radius = r
+        s = marker_settings(self.session)
+        s['radius'] = r
 
     def delete_marker_or_link(self, event):
         x,y = event.position()
@@ -153,7 +172,7 @@ def marker_settings(session, attr = None):
             'marker_chain_id': 'M',
             'color': (255,255,0,255),
             'radius': 1.0,
-            'placement_mode': 'surface'	# 'surface', 'surface center', 'link', 'move', 'delete'
+            'placement_mode': 'surface'	# 'surface', 'surface center', 'link', 'move', 'resize', 'delete'
         }
     s = session._marker_settings
     return s if attr is None else s[attr]
