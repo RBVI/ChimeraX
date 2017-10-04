@@ -683,6 +683,11 @@ class Bonds(Collection):
     structures = cvec_property('bond_structure', cptr, astype = _atomic_structures, read_only = True)
     '''Returns an :class:`.StructureDatas` with the structure for each bond. Read only.'''
 
+    def delete(self):
+        '''Delete the C++ Bonds objects'''
+        c_function('bond_delete',
+            args = [ctypes.c_void_p, ctypes.c_size_t])(self._c_pointers, len(self))
+
     @property
     def num_shown(self):
         '''Number of bonds shown.'''

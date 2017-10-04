@@ -1261,6 +1261,17 @@ extern "C" EXPORT void *bond_other_atom(void *bond, void *atom)
     return oa;
 }
 
+extern "C" EXPORT void bond_delete(void *bonds, size_t n)
+{
+    Bond **b = static_cast<Bond **>(bonds);
+    try {
+        for (size_t i = 0; i != n; ++i)
+	    b[i]->structure()->delete_bond(b[i]);
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void bond_halfbond_cylinder_placements(void *bonds, size_t n, float32_t *m44)
 {
     Bond **b = static_cast<Bond **>(bonds);
