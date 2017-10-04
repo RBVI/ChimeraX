@@ -19,6 +19,7 @@ from .structure import AtomicStructure, Structure, LevelOfDetail
 from .structure import selected_atoms, selected_bonds
 from .structure import all_atoms, all_atomic_structures, all_structures
 from .structure import structure_atoms, structure_residues, structure_graphics_updater, level_of_detail
+from .structure import PickedAtom, PickedBond, PickedResidue, PickedPseudobond
 from .molsurf import buried_area, MolecularSurface, surfaces_with_atoms
 from .changes import check_for_changes
 from .pdbmatrices import biological_unit_matrices
