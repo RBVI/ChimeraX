@@ -1096,6 +1096,18 @@ class PseudobondsArg(ObjectsArg):
         pbonds = concatenate(pblist, Pseudobonds)
         return pbonds, used, rest
 
+    
+class BondsArg(ObjectsArg):
+    """Parse command specifier for bonds"""
+    name = 'a bonds specifier'
+
+    @classmethod
+    def parse(cls, text, session):
+        objects, used, rest = super().parse(text, session)
+        from ..atomic import PseudobondGroup, interatom_pseudobonds
+        bonds = objects.atoms.intra_bonds
+        return bonds, used, rest
+
 
 class SurfacesArg(AtomSpecArg):
     """Parse command surfaces specifier"""
