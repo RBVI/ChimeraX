@@ -700,6 +700,23 @@ Structure::new_residue(const ResName& name, const ChainID& chain,
     return r;
 }
 
+void
+Structure::reorder_residues(const Structure::Residues& new_order)
+{
+    if (new_order.size() != _residues.size())
+        throw std::invalid_argument("New residue order not same length as old order");
+    std::set<Residue*> seen;
+    for (auto r: new_order) {
+        if (seen.find(r) != seen.end())
+            throw std::invalid_argument("Duplicate residue in new residue order");
+        seen.insert(r);
+        if (r->structure() != this)
+            throw std::invalid_argument("Residue not belonging to this structure"
+                " in new residue order");
+    }
+    _residues = new_order;
+}
+
 const Structure::Rings&
 Structure::rings(bool cross_residues, unsigned int all_size_threshold,
     std::set<const Residue *>* ignore) const

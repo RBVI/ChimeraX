@@ -22,7 +22,7 @@ APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/atomic
 PYSRCS = __init__.py bond_geom.py changes.py colors.py idatm.py mmcif.py mmcif_write.py molc.py \
 	 molarray.py molobject.py molsurf.py \
 	 path.py pbgroup.py pdb.py pdbmatrices.py readpbonds.py ribbon.py \
-	 sse.py structure.py triggers.py
+	 struct_edit.py sse.py structure.py triggers.py
 LIBNAME = molc
 
 SRCS	= molc.cpp

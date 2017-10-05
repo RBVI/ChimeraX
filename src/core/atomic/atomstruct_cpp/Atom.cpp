@@ -1113,15 +1113,16 @@ Atom::set_alt_loc(char alt_loc, bool create, bool _from_residue)
 {
     if (alt_loc == _alt_loc || alt_loc == ' ')
         return;
-    graphics_changes()->set_gc_shape();
-    if (structure()->alt_loc_change_notify())
+    if (structure()->alt_loc_change_notify()) {
+        graphics_changes()->set_gc_shape();
         structure()->change_tracker()->add_modified(this, ChangeTracker::REASON_ALT_LOC);
+    }
     if (create) {
         if (_alt_loc_map.find(alt_loc) != _alt_loc_map.end()) {
             set_alt_loc(alt_loc, create=false);
             return;
         }
-    _alt_loc_map[alt_loc];    // Create map entry.
+        _alt_loc_map[alt_loc];    // Create map entry.
         _alt_loc = alt_loc;
         return;
     }
