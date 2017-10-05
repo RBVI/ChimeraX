@@ -25,6 +25,7 @@ class MarkerMouseMode(MouseMode):
 
         self._moving_marker = None		# Atom
         self._resizing_marker_or_link = None	# Atom or Bond
+        self._set_initial_sizes = True		# First marker on volume sets marker radius
 
     def enable(self):
         from .markergui import marker_panel
@@ -82,8 +83,18 @@ class MarkerMouseMode(MouseMode):
         xyz1, xyz2 = self.session.main_view.clip_plane_points(x, y)
         sxyz, v = first_volume_maxima(xyz1, xyz2, vlist)
         if sxyz is not None:
+            self._set_sizes(v)
             place_marker(self.session, sxyz, self.link_new)
-            
+
+    def _set_sizes(self, volume):
+        if not self._set_initial_sizes:
+            return
+        self._set_initial_sizes = False
+        ms = marker_settings(self.session)
+        r = max(volume.data.step)
+        ms['marker radius'] = r
+        ms['link radius'] = 0.5*r
+
     def place_on_plane(self, event):
         from chimerax.core.map import Volume
         vlist = self.session.models.list(type = Volume)
@@ -91,6 +102,7 @@ class MarkerMouseMode(MouseMode):
         xyz1, xyz2 = self.session.main_view.clip_plane_points(x, y)
         sxyz, v = volume_plane_intercept(xyz1, xyz2, vlist)
         if sxyz is not None:
+            self._set_sizes(v)
             place_marker(self.session, sxyz, self.link_new)
 
     def link_consecutive(self, event):
@@ -109,7 +121,7 @@ class MarkerMouseMode(MouseMode):
         if a1.connects_to(a2):
             return False
 
-        create_link(a1, a2)
+        b = create_link(a1, a2)
         s.logger.status('Made connection, distance %.3g' % b.length)
         return True
 
@@ -220,9 +232,14 @@ def marker_molecule(session):
     m = ms['molecule']
     if m is None or m.was_deleted:
         from chimerax.core.atomic import Structure
-        ms['molecule'] = m = Structure(session, name = 'markers', auto_style = False)
-        m.ball_scale = 1.0
-        session.models.add([m])
+        mlist = [m for m in session.models.list(type = Structure) if m.name == 'markers']
+        if mlist:
+            m = mlist[0]
+        else:
+            m = Structure(session, name = 'markers', auto_style = False)
+            m.ball_scale = 1.0
+            session.models.add([m])
+        ms['molecule'] = m
     return m
 
 def place_marker(session, center, link_to_selected = False, select = True):
@@ -257,6 +274,7 @@ def create_link(atom1, atom2):
     b.radius = ms['link radius'] # 0.5*min(a1.radius, a2.radius)
     b.color = ms['link color']
     b.halfbond = False
+    return b
 
 def connected_center(triangle_pick):
     d = triangle_pick.drawing()
