@@ -14,6 +14,7 @@
 from .util import complete_terminal_carboxylate, determine_terminii, determine_naming_schemas
 from chimerax.core.atomic import Element
 from chimerax.core.atomic.struct_edit import add_atom
+from chimerax.core.atomic.colors import element_colors
 
 def cmd_addh(session, structures=None, hbond=True, in_isolation=True, use_his_name=True,
     use_glu_name=True, use_asp_name=True, use_lys_name=True, use_cys_name=True):
@@ -173,8 +174,8 @@ def post_add(session, fake_n, fake_c):
                 dihed = dihedral(pc.coord, pca.coord, pn.coord, ph.coord)
             session.logger.info("Adding 'H' to %s" % str(fn))
             from chimerax.core.atomic.struct_edit import add_dihedral_atom
-            h = add_dihedral_atom("H", Element.get_element(1), n, ca, c, 1.01, 120.0,
-                                dihed, bonded=True)
+            h = add_dihedral_atom("H", "H", n, ca, c, 1.01, 120.0, dihed, bonded=True)
+            h.color = determine_h_color(n)
         # also need to set N's IDATM type, because if we leave it as
         # N3+ then the residue will be identified by AddCharge as
         # terminal and there will be no charge for the H atom
@@ -192,7 +193,9 @@ def post_add(session, fake_n, fake_c):
         hn = fc.find_atom("HN")
         if not hn:
             continue
-        add_atom("H", "H", fc, hn.coord, serial_number=hn.serial_number, bonded_to=hn.neighbors[0])
+        n = hn.neighbors[0]
+        h = add_atom("H", "H", fc, hn.coord, serial_number=hn.serial_number, bonded_to=n)
+        h.color = determine_h_color(n)
         fc.structure.delete_atom(hn)
 
 def _acid_check(r, protonation, res_types, atom_names):
@@ -727,7 +730,7 @@ def bond_with_H_length(heavy, geom):
 
 def new_hydrogen(parent_atom, h_num, total_hydrogens, naming_schema, pos, parent_type_info,
         alt_loc):
-    global _serial, _metals, _h_coloring
+    global _serial, _metals
     nearby_metals = _metals.search_tree(pos, _metal_dist)
     for metal in nearby_metals:
         if metal.structure != parent_atom.structure:
@@ -739,9 +742,17 @@ def new_hydrogen(parent_atom, h_num, total_hydrogens, naming_schema, pos, parent
     new_h = add_atom(_h_name(parent_atom, h_num, total_hydrogens, naming_schema), "H",
         parent_atom.residue, pos, serial_number=_serial, bonded_to=parent_atom, alt_loc=alt_loc)
     _serial = new_h.serial_number + 1
-    from chimerax.core.atomic.colors import element_colors
-    if new_h.structure in _h_coloring:
-        color_scheme = _h_coloring[new_h.structure]
+    new_h.color = determine_h_color(parent_atom)
+    import sys
+    return new_h
+
+def determine_h_color(parent_atom):
+    global _h_coloring
+    res = parent_atom.residue
+    if res.name in res.water_res_names:
+        return element_colors(1)
+    if parent_atom.structure in _h_coloring:
+        color_scheme = _h_coloring[parent_atom.structure]
     else:
         parent_color = parent_atom.color
         from numpy import allclose
@@ -749,12 +760,8 @@ def new_hydrogen(parent_atom, h_num, total_hydrogens, naming_schema, pos, parent
             color_scheme = "element"
         else:
             color_scheme = "parent"
-        _h_coloring[new_h.structure] = color_scheme
-    if color_scheme == "element":
-        new_h.color = element_colors(1)
-    else:
-        new_h.color = parent_atom.color
-    return new_h
+        _h_coloring[parent_atom.structure] = color_scheme
+    return parent_atom.color if color_scheme == "parent" else element_colors(1)
 
 naming_exceptions = {
     'ATP': {

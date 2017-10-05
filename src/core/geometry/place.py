@@ -355,13 +355,11 @@ def look_at(from_pt, to_pt, up):
     import numpy
     from numpy.linalg import norm
     normalize = lambda v: v/norm(v)
-    print("from:", from_pt, "to:", to_pt, "up:", up)
 
     # Compute rotation
     p01 = normalize(to_pt - from_pt)
     x = normalize(numpy.cross(up, p01))
     y = normalize(numpy.cross(p01, x))
-    print("p01:", p01, "up x p01:", numpy.cross(up, p01), "p01 x x:", numpy.cross(p01, x))
     xf = Place(axes=numpy.array([x, y, numpy.negative(p01)]),
         origin=numpy.array([0.0, 0.0, 0.0])).transpose()
 
