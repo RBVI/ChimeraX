@@ -482,6 +482,9 @@ def mouse_drag_select(start_xy, event, mode, session, view):
 
 def select_pick(session, pick, mode = 'replace'):
     sel = session.selection
+    from ..undo import UndoState
+    undo_state = UndoState("select")
+    sel.undo_add_selected(undo_state, False)
     if pick is None:
         if mode == 'replace':
             sel.clear()
@@ -496,6 +499,8 @@ def select_pick(session, pick, mode = 'replace'):
         else:
             pick.select(mode)
     sel.clear_promotion_history()
+    sel.undo_add_selected(undo_state, True, old_state=False)
+    session.undo.register(undo_state)
 
 class RotateMouseMode(MouseMode):
     '''
@@ -729,6 +734,39 @@ class AtomCenterOfRotationMode(MouseMode):
             from chimerax.core.commands import cofr
             xyz = pick.atom.scene_coord
             cofr.cofr(self.session,pivot=xyz)
+
+class LabelMode(MouseMode):
+    '''Click an atom,ribbon,pseudobond or bond to label or unlabel it with default label.'''
+    name = 'label'
+    icon_file = 'label.png'
+
+    def mouse_down(self, event):
+        MouseMode.mouse_down(self, event)
+        x,y = event.position()
+        ses = self.session
+        pick = picked_object(x, y, ses.main_view)
+        if pick is None:
+            return
+        from ..objects import Objects
+        objects = Objects()
+        from .. import atomic
+        if isinstance(pick, atomic.PickedAtom):
+            objects.add_atoms(atomic.Atoms([pick.atom]))
+            object_type = 'atoms'
+        elif isinstance(pick, atomic.PickedResidue):
+            objects.add_atoms(pick.residue.atoms)
+            object_type = 'residues'
+        elif isinstance(pick, atomic.PickedPseudobond):
+            objects.add_atoms(atomic.Atoms(pick.pbond.atoms))
+            object_type = 'pseudobonds'
+        elif isinstance(pick, atomic.PickedBond):
+            objects.add_atoms(atomic.Atoms(pick.bond.atoms))
+            object_type = 'bonds'
+        else:
+            return
+        from chimerax.label.label3d import label, label_delete
+        if label_delete(ses, objects, object_type) == 0:
+            label(ses, objects, object_type)
            
 class NullMouseMode(MouseMode):
     '''Used to assign no mode to a mouse button.'''
@@ -913,6 +951,7 @@ def standard_mouse_mode_classes():
         ClipMouseMode,
         ClipRotateMouseMode,
         ObjectIdMouseMode,
+        LabelMode,
         AtomCenterOfRotationMode,
         mouselevel.ContourLevelMouseMode,
         moveplanes.PlanesMouseMode,

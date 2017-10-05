@@ -181,7 +181,7 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
     divisions : integer
         Number of segments per residue
     bar_scale : floating point number
-        Scale factor of barbell connector to ends.
+        Ratio of barbell connector to ends.
     bar_sides : integer
         Number of sides for barbell cross sections.
     ss_ends : string
@@ -215,32 +215,35 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
             print(indent, "helix",
                   "mode=%s" % _ModeHelixInverseMap[m.ribbon_mode_helix],
                   "xsection=%s" % _XSectionInverseMap[mgr.style_helix],
-                  "size=%.2g,%.2g" % mgr.scale_helix,
+                  "width=%.2g" % (mgr.scale_helix[0] * 2),
+                  "height=%.2g" % (mgr.scale_helix[1] * 2),
                   "arrow=%s" % mgr.arrow_helix,
-                  "arrow size=%.2g,%.2g,%.2g,%.2g" % (mgr.scale_helix_arrow[0] +
-                                                       mgr.scale_helix_arrow[1]))
+                  "arrow scale=%.2g" % (mgr.scale_helix_arrow[0][0] / mgr.scale_helix[0]))
             print(indent, "strand",
                   "mode=%s" % _ModeStrandInverseMap[m.ribbon_mode_strand],
                   "xsection=%s" % _XSectionInverseMap[mgr.style_sheet],
-                  "size=%.2g,%.2g" % mgr.scale_sheet,
+                  "width=%.2g" % (mgr.scale_sheet[0] * 2),
+                  "height=%.2g" % (mgr.scale_sheet[1] * 2),
                   "arrow=%s" % mgr.arrow_sheet,
-                  "arrow size=%.2g,%.2g,%.2g,%.2g" % (mgr.scale_sheet_arrow[0] +
-                                                        mgr.scale_sheet_arrow[1]))
+                  "arrow scale=%.2g" % (mgr.scale_sheet_arrow[0][0] / mgr.scale_sheet[0]))
             print(indent, "coil",
                   "xsection=%s" % _XSectionInverseMap[mgr.style_coil],
-                  "size=%.2g,%.2g" % mgr.scale_coil)
+                  "width=%.2g" % (mgr.scale_coil[0] * 2),
+                  "height=%.2g" % (mgr.scale_coil[1] * 2))
             print(indent, "nucleic",
                   "xsection=%s" % _XSectionInverseMap[mgr.style_nucleic],
-                  "size=%.2g,%.2g" % mgr.scale_nucleic)
+                  "width=%.2g" % (mgr.scale_nucleic[0] * 2),
+                  "height=%.2g" % (mgr.scale_nucleic[1] * 2))
             from ..atomic.structure import structure_graphics_updater
             lod = structure_graphics_updater(session).level_of_detail
             print(indent, "divisions=%d" % lod.ribbon_divisions)
             param = mgr.params[XSectionManager.STYLE_ROUND]
-            print(indent,
-                  "oval parameters:", " ".join("%s=%s" % item for item in param.items()))
+            print(indent, "oval parameters:",
+                  "sides=%d" % param["sides"])
             param = mgr.params[XSectionManager.STYLE_PIPING]
-            print(indent,
-                  "barbell parameters:", " ".join("%s=%s" % item for item in param.items()))
+            print(indent, "barbell parameters:",
+                  "sides=%d" % param["sides"],
+                  "scale=%.2g" % param["ratio"])
         return
     residues = results.atoms.residues
     is_helix = residues.is_helix
@@ -528,7 +531,7 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
             radius = None
         for m in structures:
             mgr = m.ribbon_xs_mgr
-            undo_state.add(mgr, "set_tube_radius", mgr.tube_radius, mode, "M")
+            undo_state.add(mgr, "set_tube_radius", mgr.tube_radius, radius, "M")
             mgr.set_tube_radius(radius)
     if spline_normals is not None:
         for m in structures:

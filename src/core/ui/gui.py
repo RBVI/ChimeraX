@@ -209,9 +209,9 @@ class UI(QApplication):
         """
         from PyQt5.QtCore import Qt
         if event.key() == Qt.Key_Up:
-            self.session.selection.promote()
+            self.session.selection.promote(self.session)
         elif event.key() == Qt.Key_Down:
-            self.session.selection.demote()
+            self.session.selection.demote(self.session)
         elif self._keystroke_sinks:
             self._keystroke_sinks[-1].forwarded_keystroke(event)
 

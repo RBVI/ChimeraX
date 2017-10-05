@@ -52,7 +52,8 @@ def select_add(session, objects=None, residues=False):
     undo_state = UndoState("select add")
     modify_selection(objects, 'add', undo_state, full_residues = residues)
     session.undo.register(undo_state)
-
+    report_selection(session)
+    
 def select_subtract(session, objects=None, residues=False):
     '''Subtract objects from the selection.
     If objects is None the selection is cleared.'''
@@ -63,14 +64,16 @@ def select_subtract(session, objects=None, residues=False):
     else:
         modify_selection(objects, 'subtract', undo_state, full_residues = residues)
     session.undo.register(undo_state)
-
+    report_selection(session)
+    
 def select_intersect(session, objects=None, residues=False):
     '''Reduce the selection by intersecting with specified objects.'''
     from ..undo import UndoState
     undo_state = UndoState("select intersect")
     intersect_selection(objects, session, undo_state, full_residues = residues)
     session.undo.register(undo_state)
-
+    report_selection(session)
+    
 def polymer_selection(seq_atoms, session, undo_state):
     '''
     Reduce the current selected atoms to include only those that belong to a chain
@@ -94,17 +97,16 @@ def polymer_selection(seq_atoms, session, undo_state):
 def select_up(session):
     '''Extend the current selection up one level.'''
     session.selection.promote()
+    report_selection(session)
     
 def select_down(session):
     '''Reduce the current selection down one level. Only possible after extending selection.'''
     session.selection.demote()
+    report_selection(session)
     
 def select_clear(session):
     '''Clear the selection.'''
-    from ..undo import UndoState
-    undo_state = UndoState("select clear")
     clear_selection(session, "clear", undo_state)
-    session.undo.register(undo_state)
 
 def report_selection(session):
     s = session.selection
@@ -146,19 +148,11 @@ def intersect_selection(objects, session, undo_state, full_residues = False):
         m.selected = False
 
 def clear_selection(session, why, undo_state):
-    from ..atomic.molarray import Atoms
-    atoms = session.selection.items("atoms")
-    if atoms:
-        if isinstance(atoms, Atoms):
-            undo_state.add(atoms, "selected", atoms.selected, False)
-        else:
-            for a in atoms:
-                undo_state.add(a, "selected", a.selected, False)
-    models = [m for m in session.selection.all_models() if m.selected]
-    if models:
-        for m in models:
-            undo_state.add(m, "selected", m.selected, False)
+    from ..undo import UndoState
+    undo_state = UndoState("select clear")
+    session.selection.undo_add_selected(session, undo_state, False)
     session.selection.clear()
+    session.undo.register(undo_state)
 
 def _atoms_and_models(objects, full_residues = False):
     # Treat selecting molecular surface as selecting atoms.

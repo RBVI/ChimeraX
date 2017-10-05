@@ -49,11 +49,49 @@ class Selection:
     def clear_promotion_history(self):
         self._promotion.clear_selection_promotion_history()
 
-    def promote(self):
+    def promote(self, session):
+        from .undo import UndoState
+        undo_state = UndoState("select up")
+        self.undo_add_selected(undo_state, False)
         self._promotion.promote_selection()
+        self.undo_add_selected(undo_state, True, old_state=False)
+        session.undo.register(undo_state)
 
-    def demote(self):
+    def demote(self, session):
+        from .undo import UndoState
+        undo_state = UndoState("select down")
+        self.undo_add_selected(undo_state, False)
         self._promotion.demote_selection()
+        self.undo_add_selected(undo_state, True, old_state=False)
+        session.undo.register(undo_state)
+
+    def undo_add_selected(self, undo_state, new_state, old_state=None):
+        from .atomic.molarray import Atoms
+        atoms = self.items("atoms")
+        if atoms:
+            if isinstance(atoms, Atoms):
+                orig = self._orig_state(atoms, old_state)
+                undo_state.add(atoms, "selected", orig, new_state)
+            else:
+                for a in atoms:
+                    orig = self._orig_state(a, old_state)
+
+                    undo_state.add(a, "selected", orig, new_state)
+        models = [m for m in self.all_models() if m.selected]
+        if models:
+            for m in models:
+                orig = old_state if old_state is not None else m.selected
+                undo_state.add(m, "selected", orig, new_state)
+
+    def _orig_state(self, owner, old_state):
+        if old_state is None:
+            return owner.selected
+        else:
+            import numpy
+            if old_state:
+                return numpy.ones(len(owner), dtype=numpy.bool_)
+            else:
+                return numpy.zeros(len(owner), dtype=numpy.bool_)
 
 
 class SelectionPromoter:

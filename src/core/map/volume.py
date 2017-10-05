@@ -432,6 +432,11 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
+  def full_region(self):
+    return full_region(self.data.size)
+
+  # ---------------------------------------------------------------------------
+  #
   def is_full_region(self, region = None):
 
     if region is None:
