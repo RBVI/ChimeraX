@@ -543,19 +543,28 @@ extern "C" EXPORT void atom_visible(void *atoms, size_t n, npy_bool *visible)
     error_wrap_array_get<Atom, bool, npy_bool>(a, n, &Atom::visible, visible);
 }
 
-extern "C" EXPORT void atom_alt_loc(void *atoms, size_t n, char *alt_loc)
+extern "C" EXPORT void atom_alt_loc(void *atoms, size_t n, pyobject_t *alt_locs)
 {
     Atom **a = static_cast<Atom **>(atoms);
-    error_wrap_array_get<Atom, char>(a, n, &Atom::alt_loc, alt_loc);
+    char buffer[2];
+    buffer[1] = '\0';
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            buffer[0] = a[i]->alt_loc();
+            alt_locs[i] = unicode_from_string(buffer);
+        }
+    } catch (...) {
+        molc_error();
+    }
 }
 
-extern "C" EXPORT void set_atom_alt_loc(void *atoms, size_t n, char *alt_locs)
+extern "C" EXPORT void set_atom_alt_loc(void *atoms, size_t n, pyobject_t *alt_locs)
 {
     Atom **a = static_cast<Atom **>(atoms);
     // can't use error_wrap_array_set because set_alt_loc takes multiple args
     try {
         for (size_t i = 0; i < n; ++i)
-            a[i]->set_alt_loc(alt_locs[i]);
+            a[i]->set_alt_loc(PyUnicode_AsUTF8(static_cast<PyObject *>(alt_locs[i]))[0]);
     } catch (...) {
         molc_error();
     }
@@ -804,6 +813,17 @@ extern "C" EXPORT void atom_serial_number(void *atoms, size_t n, int32_t *index)
 {
     Atom **a = static_cast<Atom **>(atoms);
     error_wrap_array_get(a, n, &Atom::serial_number, index);
+}
+
+extern "C" EXPORT void set_atom_serial_number(void *atoms, size_t n, int32_t *serial)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            a[i]->set_serial_number(serial[i]);
+    } catch (...) {
+        molc_error();
+    }
 }
 
 extern "C" EXPORT void atom_structure(void *atoms, size_t n, pyobject_t *molp)
@@ -4169,15 +4189,26 @@ extern "C" EXPORT void structure_delete(void *mol)
     }
 }
 
-extern "C" EXPORT void *structure_new_atom(void *mol, const char *atom_name, const char *element_name)
+extern "C" EXPORT void *structure_new_atom(void *mol, const char *atom_name, void *element)
 {
     Structure *m = static_cast<Structure *>(mol);
+    Element *e = static_cast<Element *>(element);
     try {
-        Atom *a = m->new_atom(atom_name, Element::get_element(element_name));
+        Atom *a = m->new_atom(atom_name, *e);
         return a;
     } catch (...) {
         molc_error();
         return nullptr;
+    }
+}
+
+extern "C" EXPORT void structure_delete_atom(void *mol, void *atom)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        m->delete_atom(static_cast<Atom *>(atom));
+    } catch (...) {
+        molc_error();
     }
 }
 

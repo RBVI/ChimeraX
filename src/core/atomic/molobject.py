@@ -126,7 +126,7 @@ class Atom(State):
     def atomspec(self):
         return self.residue.atomspec() + '@' + self.name
 
-    alt_loc = c_property('atom_alt_loc', byte, doc='Alternate location indicator')
+    alt_loc = c_property('atom_alt_loc', string, doc='Alternate location indicator')
     bfactor = c_property('atom_bfactor', float32, doc = "B-factor, floating point value.")
     bonds = c_property('atom_bonds', cptr, "num_bonds", astype=_bonds, read_only=True,
         doc="Bonds connected to this atom as an array of :py:class:`Bonds` objects. Read only.")
@@ -163,7 +163,12 @@ class Atom(State):
         "    Hide mask for backbone atoms for ISOLDE.\n"
         "HIDE_NUCLEOTIDE\n"
         "    Hide mask for sidechain atoms in nucleotides.\n")
-    idatm_type = c_property('atom_idatm_type', string, doc = "IDATM type")
+    _idatm_type = c_property('atom_idatm_type', string, doc = "IDATM type")
+    def _get_idatm_type(self):
+        return self._idatm_type
+    def _set_idatm_type(self, iat):
+        self._idatm_type = "" if iat is None else iat
+    idatm_type = property(_get_idatm_type, _set_idatm_type)
     in_chain = c_property('atom_in_chain', npy_bool, read_only = True,
         doc = "Whether this atom belongs to a polymer. Read only.")
     is_ribose = c_property('atom_is_ribose', npy_bool, read_only = True,
@@ -184,7 +189,7 @@ class Atom(State):
     residue = c_property('atom_residue', cptr, astype = _residue, read_only = True,
         doc = ":class:`Residue` the atom belongs to.")
     selected = c_property('atom_selected', npy_bool, doc="Whether the atom is selected.")
-    serial_number = c_property('atom_serial_number', int32, read_only = True,
+    serial_number = c_property('atom_serial_number', int32,
         doc="Atom serial number from input file.")
     structure = c_property('atom_structure', cptr, astype=_atomic_structure, read_only=True,
         doc=":class:`.AtomicStructure` the atom belongs to")
@@ -1674,6 +1679,11 @@ class StructureData:
         '''Incorporate current alt locs as "regular" atoms and remove other alt locs'''
         f = c_function('structure_delete_alt_locs', args = (ctypes.c_void_p,))(self._c_pointer)
 
+    def delete_atom(self, atom):
+        '''Delete the specified Atom.'''
+        f = c_function('structure_delete_atom', args = (ctypes.c_void_p, ctypes.c_void_p))
+        f(self._c_pointer, atom._c_pointer)
+
     @property
     def molecules(self):
         '''Return a tuple of :class:`.Atoms` objects each containing atoms for one molecule.
@@ -1684,13 +1694,16 @@ class StructureData:
         from .molarray import Atoms
         return tuple(Atoms(aa) for aa in atom_arrays)
 
-    def new_atom(self, atom_name, element_name):
+    def new_atom(self, atom_name, element):
         '''Create a new :class:`.Atom` object. It must be added to a :class:`.Residue` object
-        belonging to this structure before being used.'''
+        belonging to this structure before being used.  'element' can be a string (atomic symbol),
+        an integer (atomic number), or an Element instance'''
+        if not isinstance(element, Element):
+            element = Element.get_element(element)
         f = c_function('structure_new_atom',
-                       args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_char_p),
+                       args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_void_p),
                        ret = ctypes.c_void_p)
-        ap = f(self._c_pointer, atom_name.encode('utf-8'), element_name.encode('utf-8'))
+        ap = f(self._c_pointer, atom_name.encode('utf-8'), element._c_pointer)
         return object_map(ap, Atom)
 
     def new_bond(self, atom1, atom2):
@@ -2023,7 +2036,7 @@ class Element:
     '''A chemical element having a name, number, mass, and other physical properties.'''
 
     NUM_SUPPORTED_ELEMENTS = c_function('element_NUM_SUPPORTED_ELEMENTS', args = (),
-        ret = size_t)
+        ret = size_t)()
 
     def __init__(self, element_pointer):
         set_c_pointer(self, element_pointer)

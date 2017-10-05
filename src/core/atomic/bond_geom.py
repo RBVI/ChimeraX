@@ -56,7 +56,7 @@ def bond_positions(bondee, geom, bond_len, bonded, coplanar=None,
        determine the remaining positions.
     """
 
-    if toward and away or toward2 and away2:
+    if (toward is not None and away is not None) or (toward2 is not None and away2 is not None):
         raise ValueError("Cannot specify both toward and away, or both toward2 and away2")
     if geom == single:
         if len(bonded) > 0:
@@ -82,10 +82,10 @@ def bond_positions(bondee, geom, bond_len, bonded, coplanar=None,
 
 
 def single_pos(bondee, bond_len, toward=None, away=None):
-    if toward:
+    if toward is not None:
         v = toward - bondee
         return bondee + normalize(v) * bond_len
-    elif away:
+    elif away is not None:
         v = bondee - away
         return bondee + normalize(v) * bond_len
     return bondee + numpy.array([bond_len, 0.0, 0.0])
@@ -94,7 +94,7 @@ def linear_pos(bondee, bonded, bond_len, toward=None, away=None):
     new_bonded = []
     cur_bonded = bonded[:]
     if len(bonded) == 0:
-        if away:
+        if away is not None:
             # need 90 angle, rather than directly away
             # (since otherwise second added position will then be
             # directly towards)
@@ -121,11 +121,11 @@ def planar_pos(bondee, bonded, bond_len, coplanar=None, toward=None, away=None,
 
     if len(cur_bonded) == 1:
         # add at 120 degree angle, co-planar if required
-        if not coplanar:
-            if toward or toward2:
-                coplanar = [toward or toward2]
-            elif away or away2:
-                ninety = right_angle((away or away2) - bondee)
+        if coplanar is None:
+            if toward is not None or toward2 is not None:
+                coplanar = [toward if toward is not None else toward2]
+            elif away is not None or away2 is not None:
+                ninety = right_angle((away if away is not None else away2) - bondee)
                 coplanar = [bondee + ninety]
         pos = angle_pos(bondee, cur_bonded[0], bond_len, 120.0, coplanar)
         new_bonded.append(pos)
@@ -149,27 +149,28 @@ def tetra_pos(bondee, bonded, bond_len, toward=None, away=None, toward2=None, aw
         new_bonded.append(pos)
         cur_bonded.append(pos)
 
+    # The next line necessitated due to numpy's retarded handling of boolean tests.
+    # Also, needs to be here instead of earlier since the above 'if' replaces toward/away
+    toward_or_away = toward if toward is not None else (None if away is None else away)
     if len(cur_bonded) == 1:
         # add at 109.5 degree angle
-        coplanar = toward or away
-        if coplanar:
-            coplanar = [coplanar]
-        else:
-            coplanar = None
+        #
+        # stupid numpy and boolean testing of arrays...
+        coplanar = [toward_or_away] if toward_or_away is not None else None
         pos = angle_pos(bondee, cur_bonded[0], bond_len, 109.5, coplanar=coplanar)
-        if toward or away:
+        if toward_or_away is not None:
             # find the other 109.5 position in the toward/away
             # plane and the closer/farther position as appropriate
             old = normalize(bondee - cur_bonded[0])
             new = pos - bondee
-            midpoint = bondee + old * new.length * cos705
+            midpoint = bondee + old * norm(new) * cos705
             other_pos = pos + (midpoint - pos) * 2
-            d1 = sqlength(pos - (toward or away))
-            d2 = sqlength(other_pos - (toward or away))
-            if toward:
+            d1 = sqlength(pos - toward_or_away)
+            d2 = sqlength(other_pos - toward_or_away)
+            if toward is not None:
                 if d2 < d1:
                     pos = other_pos
-            elif away and d2 > d1:
+            elif away is not None and d2 > d1:
                 pos = other_pos
 
         new_bonded.append(pos)
@@ -192,14 +193,14 @@ def tetra_pos(bondee, bonded, bond_len, toward=None, away=None, toward2=None, aw
         cross_v = cross_v * sin5475 * bond_len
 
         pos = bondee + anti_bi + cross_v
-        if toward or away:
+        if toward_or_away is not None:
             other_pos = bondee + anti_bi - cross_v
-            d1 = sqlength(pos - (toward or away))
-            d2 = sqlength(other_pos - (toward or away))
-            if toward:
+            d1 = sqlength(pos - toward_or_away)
+            d2 = sqlength(other_pos - toward_or_away)
+            if toward is not None:
                 if d2 < d1:
                     pos = other_pos
-            elif away and d2 > d1:
+            elif away is not None and d2 > d1:
                 pos = other_pos
         new_bonded.append(pos)
         cur_bonded.append(pos)
@@ -211,20 +212,20 @@ def tetra_pos(bondee, bonded, bond_len, toward=None, away=None, toward2=None, aw
             unitized.append(bondee + v)
         from ..geometry.plane import Plane
         pl = Plane(unitized)
-        norm = pl.normal
+        normal = pl.normal
         # if normal on other side of plane from bondee, we need to
         # invert the normal;  the (signed) distance from bondee
         # to the plane indicates if it is on the same side
         # (positive == same side)
         d = pl.distance(bondee)
         if d < 0.0:
-            norm = numpy.negative(norm)
-        new_bonded.append(bondee + norm * bond_len)
+            normal = numpy.negative(normal)
+        new_bonded.append(bondee + normal * bond_len)
     return numpy.array(new_bonded)
 
         
 def angle_pos(atom_pos, bond_pos, bond_length, degrees, coplanar=None):
-    if coplanar:
+    if coplanar is not None:
         # may have one or two coplanar positions specified,
         # if two, compute both resultant positions and average
         # (the up vector has to be negated for the second one)
