@@ -406,6 +406,7 @@ Structure::_delete_atom(Atom* a)
             [&b](Bond* ub) { return ub == b; });
         _bonds.erase(bi);
     }
+    a->residue()->remove_atom(a);
     typename Atoms::iterator i = std::find_if(_atoms.begin(), _atoms.end(),
         [&a](Atom* ua) { return ua == a; });
     _atoms.erase(i);
