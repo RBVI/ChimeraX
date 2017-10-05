@@ -115,4 +115,5 @@ def marker_panel(session, tool_name):
   cb = getattr(session, '_markers_gui', None)
   if cb is None:
     session._markers_gui = cb = MarkerModeSettings(session, tool_name)
+    session.remove_state_manager('_markers_gui')
   return cb
