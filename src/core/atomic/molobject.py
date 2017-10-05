@@ -351,14 +351,16 @@ class Atom(State):
                 ret = ctypes.py_object)
         return _rings(f(self._c_pointer, cross_residues, all_size_threshold))
 
-    @property
-    def scene_coord(self):
-        '''
-        Atom center coordinates in the global scene coordinate system.
-        This accounts for the :class:`Drawing` positions for the hierarchy
-        of models this atom belongs to.
-        '''
+    def _get_scene_coord(self):
         return self.structure.scene_position * self.coord
+    def _set_scene_coord(self, xyz):
+        self.coord = self.structure.scene_position.inverse() * xyz
+    scene_coord = property(_get_scene_coord, _set_scene_coord)
+    '''
+    Atom center coordinates in the global scene coordinate system.
+    This accounts for the :class:`Drawing` positions for the hierarchy
+    of models this atom belongs to.
+    '''
 
     def get_coord(self, crdset_or_altloc):
         '''
@@ -484,6 +486,11 @@ class Bond(State):
         f = c_function('bond_other_atom', args = (ctypes.c_void_p, ctypes.c_void_p), ret = ctypes.c_void_p)
         c = f(self._c_pointer, atom._c_pointer)
         return object_map(c, Atom)
+
+    def delete(self):
+        '''Delete this Bond from it's Structure'''
+        f = c_function('bond_delete', args = (ctypes.c_void_p, ctypes.c_size_t))
+        c = f(self._c_pointer_ref, 1)
 
     def reset_state(self, session):
         f = c_function('pseudobond_global_manager_clear', args = (ctypes.c_void_p,))

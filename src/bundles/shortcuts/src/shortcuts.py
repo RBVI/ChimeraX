@@ -502,7 +502,7 @@ def toggle_box_faces(m):
   m.show('solid')
 
 def mark_map_surface_center(m):
-    from chimerax.core import markers
+    from chimerax import markers
     markers.mark_map_center(m)
 
 def enable_move_planes_mouse_mode(mouse_modes, button = 'right'):
@@ -517,12 +517,12 @@ def enable_contour_mouse_mode(mouse_modes, button = 'right'):
 
 def enable_marker_mouse_mode(mouse_modes, button = 'right'):
     m = mouse_modes
-    from chimerax.core import markers
+    from chimerax import markers
     m.bind_mouse_mode(button, markers.MarkerMouseMode(m.session))
 
 def enable_mark_center_mouse_mode(mouse_modes, button = 'right'):
     m = mouse_modes
-    from chimerax.core import markers
+    from chimerax import markers
     m.bind_mouse_mode(button, markers.MarkCenterMouseMode(m.session))
 
 def enable_map_series_mouse_mode(mouse_modes, button = 'right'):

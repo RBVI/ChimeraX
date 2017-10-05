@@ -43,6 +43,10 @@ class MouseMode:
         self.last_mouse_position = None
         '''Last mouse position during a mouse drag.'''
 
+    def enable(self):
+        '''Override if mode wants to know that it has been bound to a mouse button.'''
+        pass
+
     def mouse_down(self, event):
         '''
         Override this method to handle mouse down events.
@@ -95,14 +99,14 @@ class MouseMode:
         '''
         pass
 
-    def pixel_size(self, min_scene_frac = 1e-5):
+    def pixel_size(self, center = None, min_scene_frac = 1e-5):
         '''
         Report the pixel size in scene units at the center of rotation.
         Clamp the value to be at least min_scene_fraction times the width
         of the displayed models.
         '''
         v = self.view
-        psize = v.pixel_size()
+        psize = v.pixel_size(center)
         b = v.drawing_bounds()
         if not b is None:
             w = b.width()
@@ -173,6 +177,7 @@ class MouseModes:
         if mode is not None and not isinstance(mode, NullMouseMode):
             b = MouseBinding(button, modifiers, mode)
             self._bindings.append(b)
+            mode.enable()
 
     def bind_standard_mouse_modes(self, buttons = ('left', 'middle', 'right', 'wheel', 'pause')):
         '''
@@ -935,7 +940,7 @@ class ClipRotateMouseMode(MouseMode):
 
 def standard_mouse_mode_classes():
     '''List of core MouseMode classes.'''
-    from .. import markers
+    from chimerax import markers
     from ..map import series, mouselevel, moveplanes
     mode_classes = [
         SelectMouseMode,
@@ -956,7 +961,6 @@ def standard_mouse_mode_classes():
         mouselevel.ContourLevelMouseMode,
         moveplanes.PlanesMouseMode,
         markers.MarkerMouseMode,
-        markers.MarkCenterMouseMode,
         markers.ConnectMouseMode,
         series.PlaySeriesMouseMode,
         NullMouseMode,

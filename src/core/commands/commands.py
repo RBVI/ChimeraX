@@ -23,7 +23,7 @@ def register_core_commands(session):
         'coordset', 'crossfade',
         'delete', 'devel', 'dssp', 'exit', 'graphics', 'hide',
         'lighting',
-        'material', 'measure_buriedarea', 'measure_sasa', 'mousemode', 'move',
+        'material', 'measure_buriedarea', 'measure_length', 'measure_sasa', 'mousemode', 'move',
         'open', 'palette', 'pdbimages', 'perframe', 'pwd',
         'rainbow', 'rename', 'roll', 'run', 'rungs', 'runscript',
         'save', 'scolor', 'select', 'set', 'setattr', 'show', 'split',
