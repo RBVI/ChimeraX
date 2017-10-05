@@ -40,13 +40,17 @@ def cmd_addh(session, structures=None, hbond=True, in_isolation=True, use_his_na
     #   add_f_func(...)
     for structure in structures:
         structure.alt_loc_change_notify = False
-    from chimerax.core.atomic import AtomicStructures
+    from chimerax.core.atomic import AtomicStructures, Atom
     struct_collection = AtomicStructures(structures)
     atoms = struct_collection.atoms
     num_pre_hs = len(atoms.filter(atoms.elements.numbers == 1))
+    # at this time, Atom.scene_coord is *so* much slower then .coord (50x),
+    # that we use this hack to use .coord if possible
+    Atom._addh_coord = Atom.coord if in_isolation else Atom.scene_coord
     try:
         add_h_func(session, structures, in_isolation=in_isolation, **prot_schemes)
     finally:
+        delattr(Atom, "_addh_coord")
         for structure in structures:
             structure.alt_loc_change_notify = True
     atoms = struct_collection.atoms
@@ -317,7 +321,7 @@ def _make_shared_data(session, protonation_models, in_isolation):
             if pm.num_atoms != m.num_atoms:
                 continue
             for a1, a2 in zip(pm.atoms[:3], m.atoms[:3]):
-                if distance_squared(a1.scene_coord, a2.scene_coord) > 0.00001:
+                if distance_squared(a1._addh_coord, a2._addh_coord) > 0.00001:
                     break
             else:
                 ident_pos_models.setdefault(pm, set()).add(m)
@@ -326,7 +330,7 @@ def _make_shared_data(session, protonation_models, in_isolation):
         if m not in ident_pos_models:
             ident_pos_models[m] = set()
         for a in m.atoms:
-            xyzs.append(a.scene_coord)
+            xyzs.append(a._addh_coord)
             vals.append(a)
             _radii[a] = a.radius
             if a.element.is_metal:
@@ -565,11 +569,11 @@ def _prep_add(session, structures, unknowns_info, need_all=False, **prot_schemes
 def find_nearest(pos, atom, exclude, check_dist, avoid_metal_info=None):
     nearby = search_tree.search_tree(pos, check_dist)
     near_pos = n = near_atom = None
-    exclude_pos = set([tuple(ex.scene_coord) for ex in exclude])
-    exclude_pos.add(tuple(atom.scene_coord))
+    exclude_pos = set([tuple(ex._addh_coord) for ex in exclude])
+    exclude_pos.add(tuple(atom._addh_coord))
     from chimerax.core.geometry import distance
     for nb in nearby:
-        n_pos = nb.scene_coord
+        n_pos = nb._addh_coord
         if tuple(n_pos) in exclude_pos:
             # excludes identical models also...
             continue
@@ -582,7 +586,7 @@ def find_nearest(pos, atom, exclude, check_dist, avoid_metal_info=None):
             continue
         if nb not in atom.neighbors:
             if avoid_metal_info and nb.element.is_metal and nb.structure == atom.structure:
-                if metal_clash(nb.scene_coord, pos, atom.scene_coord, atom, avoid_metal_info):
+                if metal_clash(nb._addh_coord, pos, atom._addh_coord, atom, avoid_metal_info):
                     return n_pos, 0.0, nb
             d = distance(n_pos, pos) - vdw_radius(nb)
             if near_pos is None or d < n:
@@ -593,9 +597,9 @@ def find_nearest(pos, atom, exclude, check_dist, avoid_metal_info=None):
         for nbb in nb.neighbors:
             if nbb.element.number != 1:
                 continue
-            if tuple(nbb.scene_coord) in exclude_pos:
+            if tuple(nbb._addh_coord) in exclude_pos:
                 continue
-            n_pos = nbb.scene_coord
+            n_pos = nbb._addh_coord
             d = distance(n_pos, pos) - h_rad
             if near_pos is None or d < n:
                 near_pos = n_pos
@@ -608,7 +612,7 @@ from math import sqrt
 sin70_5 = sqrt(1.0 - cos70_5 * cos70_5)
 def find_rotamer_nearest(at_pos, idatm_type, atom, neighbor, check_dist):
     # find atom that approaches nearest to a methyl-type rotamer
-    n_pos = neighbor.scene_coord
+    n_pos = neighbor._addh_coord
     v = at_pos - n_pos
     try:
         geom = type_info[idatm_type].geometry
@@ -626,7 +630,7 @@ def find_rotamer_nearest(at_pos, idatm_type, atom, neighbor, check_dist):
     nearby = search_tree.search_tree(center, check_dist)
     near_pos = n = near_atom = None
     for nb in nearby:
-        nb_sc = nb.scene_coord
+        nb_sc = nb._addh_coord
         from numpy import allclose
         if allclose(nb_sc, at_pos) or allclose(nb_sc, n_pos):
             # exclude atoms from identical-copy structure also...
@@ -648,7 +652,7 @@ def find_rotamer_nearest(at_pos, idatm_type, atom, neighbor, check_dist):
             candidates.append((nbb, h_rad))
 
         for candidate, a_rad in candidates:
-            c_pos = candidate.scene_coord
+            c_pos = candidate._addh_coord
             # project into plane...
             proj = plane.nearest(c_pos)
 
