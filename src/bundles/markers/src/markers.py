@@ -25,6 +25,7 @@ class MarkerMouseMode(MouseMode):
 
         self._moving_marker = None		# Atom
         self._resizing_marker_or_link = None	# Atom or Bond
+        self._set_initial_sizes = True		# First marker on volume sets marker radius
 
     def enable(self):
         from .markergui import marker_panel
@@ -35,6 +36,10 @@ class MarkerMouseMode(MouseMode):
     @property
     def placement_mode(self):
         return marker_settings(self.session, 'placement_mode')
+
+    @property
+    def link_new(self):
+        return marker_settings(self.session, 'link_new_markers')
 
     def mouse_down(self, event):
         mode = self.placement_mode
@@ -47,13 +52,13 @@ class MarkerMouseMode(MouseMode):
         elif mode == 'delete':
             self.delete_marker_or_link(event)
         elif mode in ('surface', 'surface center'):
-            self.place_marker(event)
+            self.place_on_surface(event)
         elif mode == 'maximum':
             self.place_on_maximum(event)
         elif mode == 'plane':
             self.place_on_plane(event)
             
-    def place_marker(self, event):
+    def place_on_surface(self, event):
         x,y = event.position()
         s = self.session
         v = s.main_view
@@ -69,7 +74,7 @@ class MarkerMouseMode(MouseMode):
         if c is None:
             log.status('No marker placed')
             return
-        place_marker(self.session, c)
+        place_marker(self.session, c, self.link_new)
             
     def place_on_maximum(self, event):
         from chimerax.core.map import Volume
@@ -78,8 +83,18 @@ class MarkerMouseMode(MouseMode):
         xyz1, xyz2 = self.session.main_view.clip_plane_points(x, y)
         sxyz, v = first_volume_maxima(xyz1, xyz2, vlist)
         if sxyz is not None:
-            place_marker(self.session, sxyz)
-            
+            self._set_sizes(v)
+            place_marker(self.session, sxyz, self.link_new)
+
+    def _set_sizes(self, volume):
+        if not self._set_initial_sizes:
+            return
+        self._set_initial_sizes = False
+        ms = marker_settings(self.session)
+        r = max(volume.data.step)
+        ms['marker radius'] = r
+        ms['link radius'] = 0.5*r
+
     def place_on_plane(self, event):
         from chimerax.core.map import Volume
         vlist = self.session.models.list(type = Volume)
@@ -87,7 +102,8 @@ class MarkerMouseMode(MouseMode):
         xyz1, xyz2 = self.session.main_view.clip_plane_points(x, y)
         sxyz, v = volume_plane_intercept(xyz1, xyz2, vlist)
         if sxyz is not None:
-            place_marker(self.session, sxyz)
+            self._set_sizes(v)
+            place_marker(self.session, sxyz, self.link_new)
 
     def link_consecutive(self, event):
         s = self.session
@@ -105,12 +121,7 @@ class MarkerMouseMode(MouseMode):
         if a1.connects_to(a2):
             return False
 
-        m = a1.structure
-        b = m.new_bond(a1,a2)
-        ms = marker_settings(s)
-        b.radius = ms['link radius'] # 0.5*min(a1.radius, a2.radius)
-        b.color = ms['link color']
-        b.halfbond = False
+        b = create_link(a1, a2)
         s.logger.status('Made connection, distance %.3g' % b.length)
         return True
 
@@ -211,6 +222,7 @@ def marker_settings(session, attr = None):
             'link radius': 0.5,
             'placement_mode': 'maximum',        # Modes: 'maximum', 'plane', 'surface', 'surface center'
                                                 #        'link', 'move', 'resize', 'delete'
+            'link_new_markers': False,
         }
     s = session._marker_settings
     return s if attr is None else s[attr]
@@ -220,12 +232,17 @@ def marker_molecule(session):
     m = ms['molecule']
     if m is None or m.was_deleted:
         from chimerax.core.atomic import Structure
-        ms['molecule'] = m = Structure(session, name = 'markers', auto_style = False)
-        m.ball_scale = 1.0
-        session.models.add([m])
+        mlist = [m for m in session.models.list(type = Structure) if m.name == 'markers']
+        if mlist:
+            m = mlist[0]
+        else:
+            m = Structure(session, name = 'markers', auto_style = False)
+            m.ball_scale = 1.0
+            session.models.add([m])
+        ms['molecule'] = m
     return m
 
-def place_marker(session, center):
+def place_marker(session, center, link_to_selected = False, select = True):
     m = marker_molecule(session)
     a = m.new_atom('', 'H')
     a.coord = center
@@ -238,6 +255,26 @@ def place_marker(session, center):
     ms['next_marker_num'] += 1
     m.new_atoms()
     session.logger.status('Placed marker')
+    if link_to_selected:
+        from chimerax.core.atomic import selected_atoms
+        atoms = selected_atoms(session)
+        if len(atoms) == 1:
+            al = atoms[0]
+            if a.structure == al.structure:
+                create_link(al, a)
+    if select:
+        session.selection.clear()
+        a.selected = True
+
+def create_link(atom1, atom2):
+    m = atom1.structure
+    s = m.session
+    b = m.new_bond(atom1,atom2)
+    ms = marker_settings(s)
+    b.radius = ms['link radius'] # 0.5*min(a1.radius, a2.radius)
+    b.color = ms['link color']
+    b.halfbond = False
+    return b
 
 def connected_center(triangle_pick):
     d = triangle_pick.drawing()

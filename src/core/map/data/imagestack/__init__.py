@@ -77,9 +77,12 @@ def assign_series_and_channels(grids):
 
   # Mark volume series if all grids the same size
   if not assigned:
-    if len(grids) > 1 and len(set(tuple(g.size) for g in grids)) == 1:
-      for i,g in enumerate(grids):
-        g.series_index = i
+    channels = set(g.channel for g in grids)
+    for c in channels:
+      gc = tuple(g for g in grids if g.channel == channel)
+      if len(gc) > 1 and len(set(tuple(g.size) for g in gc)) == 1:
+        for i,g in enumerate(gc):
+          g.series_index = i
 
 # -----------------------------------------------------------------------------
 #

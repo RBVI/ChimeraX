@@ -30,7 +30,7 @@ class MarkerModeSettings(ToolInstance):
         self.tool_window = tw
         parent = tw.ui_area
         
-        from PyQt5.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QMenu, QSizePolicy
+        from PyQt5.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QMenu, QSizePolicy, QCheckBox
 
         playout = QVBoxLayout(parent)
         playout.setContentsMargins(0,0,0,0)
@@ -57,7 +57,7 @@ class MarkerModeSettings(ToolInstance):
             'surface center': 'Place marker at center of connected surface',
             'link': 'Link consecutively clicked markers',
             'move': 'Move markers',
-            'resize': 'Resize markers',
+            'resize': 'Resize markers or links',
             'delete': 'Delete markers or links',
         }
         mode_order = ('maximum', 'plane', 'surface', 'surface center', 'link', 'move', 'resize', 'delete')
@@ -74,14 +74,23 @@ class MarkerModeSettings(ToolInstance):
         mb.setMenu(mm)
         mm_layout.addWidget(mb)
         mm_layout.addStretch(1)    # Extra space at end
+
+        self.link_new_button = lc = QCheckBox('Link new marker to selected marker', f)
+        lc.stateChanged.connect(self.link_new_cb)
+        layout.addWidget(lc)
+
         self.update_settings()
         
         tw.manage(placement="side")
 
     def update_settings(self):
+        s = self.session
         from .markers import marker_settings
-        mode = marker_settings(self.session, 'placement_mode')
+        mode = marker_settings(s, 'placement_mode')
         self.mode_button.setText(self.mode_menu_names[mode])
+        lnew = marker_settings(s, 'link_new_markers')
+        from PyQt5.QtCore import Qt
+        self.link_new_button.setChecked(Qt.Checked if lnew else Qt.Unchecked)
         
     def show(self):
         self.tool_window.shown = True
@@ -96,9 +105,15 @@ class MarkerModeSettings(ToolInstance):
         s = marker_settings(self.session)
         s['placement_mode'] = mode
 
+    def link_new_cb(self, link):
+        from .markers import marker_settings
+        s = marker_settings(self.session)
+        s['link_new_markers'] = link
+
         
 def marker_panel(session, tool_name):
   cb = getattr(session, '_markers_gui', None)
   if cb is None:
     session._markers_gui = cb = MarkerModeSettings(session, tool_name)
+    session.remove_state_manager('_markers_gui')
   return cb
