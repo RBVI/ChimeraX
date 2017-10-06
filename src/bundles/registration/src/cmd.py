@@ -22,7 +22,8 @@ UsageTypes = ["research",
               "teaching",
               "presentation",
               "personal"]
-RegistrationURL = "https://www.rbvi.ucsf.edu/chimerax/cgi-bin/chimerax_registration.py"
+#RegistrationURL = "https://www.rbvi.ucsf.edu/chimerax/cgi-bin/chimerax_registration.py"
+RegistrationURL = "https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/chimerax_registration.py"
 DiscussionURL = "https://www.rbvi.ucsf.edu/mailman/subscribe/chimerax-users"
 AnnouncementsURL = "https://www.rbvi.ucsf.edu/mailman/subscribe/chimerax-announce"
 ThankYou = """Thank you for registering your copy of ChimeraX.
@@ -38,8 +39,10 @@ def register(session, name, email, organization, type, usage, nih_funded,
              join_discussion=False, join_announcements=True):
     from chimerax.core.errors import UserError
     from .nag import check_registration
-    if check_registration():
-        session.logger.info("Your copy of Chimera is already registered.")
+    expiration = check_registration()
+    if expiration is not None:
+        session.logger.info("Your copy of Chimera is already registered "
+                            "through %s." % expiration.strftime("%x"))
     # Normalize input
     name = name.strip()
     email = email.strip()
@@ -47,32 +50,11 @@ def register(session, name, email, organization, type, usage, nih_funded,
     type = type.strip().casefold()
     usage = usage.strip().casefold()
     nih_funded = "yes" if nih_funded else ""
-    print("Register ChimeraX")
-    print("Name:", name)
-    print("E-Mail:", email)
-    print("Organization:", organization)
-    print("Organization type:", type)
-    print("Primary usage:", usage)
-    print("NIH-funded:", nih_funded)
-    print("Join discussion mailing list:", join_discussion)
-    print("Join announcements mailing list:", join_announcements)
     # Do some error checking
-    if not user:
+    if not name:
         raise UserError('"Name" field cannot be empty')
     if not email or '@' not in email:
         raise UserError('"E-mail" field cannot be empty or invalid')
-    if not organization:
-        raise UserError('"Organization" field cannot be empty')
-    if not type:
-        raise UserError('"Organization type" field cannot be empty')
-    elif type not in OrganizationTypes:
-        raise UserError('"Organization type" must be one of %s' %
-                        ", ".join(OrganizationTypes))
-    if not usage:
-        raise UserError('"Primary usage" field cannot be empty')
-    elif type not in OrganizationTypes:
-        raise UserError('"Primary usage" must be one of %s' %
-                        ", ".join(UsageTypes))
 
     # Get registration from server
     registration = _get_registration(name, email, organization, type,
@@ -89,21 +71,27 @@ def register(session, name, email, organization, type, usage, nih_funded,
     if join_announcements:
         _subscribe(session, "announcements", AnnouncementsURL, name, email)
 
-def _get_registration(name, email, organization, type, usage, nih_funded):
+def _get_registration(name, email, organization, org_type, usage, nih_funded):
     from urllib.parse import urlencode
     from urllib.request import urlopen
     from xml.dom import minidom
     from xml.parsers.expat import ExpatError
-    params = urlencode({
+    # Required fields
+    params = {
         "action":"Register from ChimeraX",
         "user":name,
         "email":email,
-        "organization":organization,
-        "type":type,
-        "usage":usage,
-        "nih":nih_funded,
-    })
-    with urlopen(RegistrationURL, params) as f:
+    }
+    # Optional fields
+    if organization:
+        params["organization"] = organization
+    if org_type:
+        params["type"] = org_type
+    if usage:
+        params["usage"] = usage
+    if nih_funded:
+        params["nih"] = nih_funded
+    with urlopen(RegistrationURL, urlencode(params).encode()) as f:
         text = f.read()
     try:
         dom = minidom.parseString(text)
@@ -134,12 +122,13 @@ def _get_text(e):
 def _subscribe(session, label, url, name, email):
     from urllib.parse import urlencode
     from urllib.request import urlopen
-    params = urlencode({
+    from urllib.error import URLError
+    params = {
         "fullname":name,
         "email":email,
-    })
+    }
     try:
-        with urlopen(url, params) as f:
+        with urlopen(url, urlencode(params).encode()) as f:
             text = f.read()
         session.logger.info("%s is subscribed to the ChimeraX %s list" %
                             (email, label))

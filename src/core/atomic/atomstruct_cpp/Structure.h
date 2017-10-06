@@ -253,6 +253,7 @@ public:
         bool /*consider_chain_ids*/ = true) const {
             return std::vector<std::pair<Chain::Residues,PolymerType>>();
         }
+    void  reorder_residues(const Residues&); 
     const Residues&  residues() const { return _residues; }
     const Rings&  rings(bool cross_residues = false,
         unsigned int all_size_threshold = 0,

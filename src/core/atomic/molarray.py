@@ -489,8 +489,7 @@ class Atoms(Collection):
     selected = cvec_property('atom_selected', npy_bool,
         doc="numpy bool array whether each Atom is selected.")
     selecteds = selected
-    serial_numbers = cvec_property('atom_serial_number', uint32, read_only = True,
-        doc="Serial numbers of atoms")
+    serial_numbers = cvec_property('atom_serial_number', int32, doc="Serial numbers of atoms")
     @property
     def shown_atoms(self):
         '''
@@ -539,7 +538,7 @@ class Atoms(Collection):
     visibles = cvec_property('atom_visible', npy_bool, read_only=True,
         doc="Returns whether the Atom should be visible (displayed and not hidden). Returns a "
         ":mod:`numpy` array of boolean values.  Read only.")
-    alt_locs = cvec_property('atom_alt_loc', byte, astype=bytearray,
+    alt_locs = cvec_property('atom_alt_loc', string, astype=bytearray,
                          doc='Returns current alternate location indicators')
 
     def __init__(self, c_pointers = None, guaranteed_live_pointers = False):
@@ -682,6 +681,11 @@ class Bonds(Collection):
     '''
     structures = cvec_property('bond_structure', cptr, astype = _atomic_structures, read_only = True)
     '''Returns an :class:`.StructureDatas` with the structure for each bond. Read only.'''
+
+    def delete(self):
+        '''Delete the C++ Bonds objects'''
+        c_function('bond_delete',
+            args = [ctypes.c_void_p, ctypes.c_size_t])(self._c_pointers, len(self))
 
     @property
     def num_shown(self):

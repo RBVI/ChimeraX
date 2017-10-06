@@ -51,7 +51,7 @@ public:
         Fr, Ra, Ac,
         Th, Pa, U, Np, Pu, Am, Cm, Bk, Cf, Es, Fm, Md, No, Lr,
         Rf, Db, Sg, Bh, Hs, Mt, Ds, Rg,
-        Cn, Uut, Fl, Uup, Uuh, Uus, Uuo
+        Cn, Uut, Fl, Uup, Uuh, Uus, Uuo, NUM_SUPPORTED_ELEMENTS
     };
     static float    bond_radius(const Element&);
     static float    bond_length(const Element&, const Element&);

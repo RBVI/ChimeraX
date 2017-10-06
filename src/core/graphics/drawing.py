@@ -1694,7 +1694,7 @@ class TrianglePick(Pick):
         vc = d.vertex_colors
         if vc is None:
             return d.color[3] < 255
-        t = self.triangle_num
+        t = self.triangle_number
         for v in d.triangles[t]:
             if vc[v,3] < 255:
                 return True

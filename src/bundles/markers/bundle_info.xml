@@ -1,0 +1,26 @@
+<BundleInfo name="ChimeraX-Markers" version="1.0"
+	    package="chimerax.markers"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Place markers on density maps</Synopsis>
+  <Description>Mouse mode to place markers on density maps.</Description>
+
+  <Categories>
+    <Category name="Volume Data"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>ChimeraX :: Tool :: Marker Placement :: Volume Data :: Place markers on density maps</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

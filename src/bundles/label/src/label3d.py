@@ -19,8 +19,9 @@ def label(session, objects = None, object_type = None, text = None,
     Parameters
     ----------
     objects : Objects or None
-      Create labels on specified atoms or pseudobonds.  If None then adjust settings of all existing labels.
-    object_type : 'atoms', 'residues', 'pseudobonds'
+      Create labels on specified atoms, residues, pseudobonds, or bonds.
+      If None then adjust settings of all existing labels.
+    object_type : 'atoms', 'residues', 'pseudobonds', 'bonds'
       What type of object to label.
     offset : float 3-tuple or "default"
       Offset of label from atom center in screen coordinates in physical units (Angstroms)
@@ -40,7 +41,7 @@ def label(session, objects = None, object_type = None, text = None,
     '''
     if object_type is None:
         if objects is None:
-            otypes = ['atoms', 'residues', 'pseudobonds']
+            otypes = ['atoms', 'residues', 'pseudobonds', 'bonds']
         elif len(objects.atoms) == 0:
             otypes = ['pseudobonds']
         else:
@@ -95,15 +96,16 @@ def label_delete(session, objects = None, object_type = None):
     Parameters
     ----------
     objects : Objects or None
-      Delete labels for specified atoms or pseudobonds.  If None delete all labels.
-    object_type : 'atoms', 'residues', 'pseudobonds'
+      Delete labels for specified atoms, residues, pseudobonds or bonds.  If None delete all labels.
+    object_type : 'atoms', 'residues', 'pseudobonds', 'bonds'
       What type of object label to delete.
     '''
     if object_type is None:
-        otypes = ['atoms', 'residues', 'pseudobonds']
+        otypes = ['atoms', 'residues', 'pseudobonds', 'bonds']
     else:
         otypes = [object_type]
 
+    delete_count = 0
     for otype in otypes:
         if objects is None:
             mo = labeled_objects_by_model(session, otype)
@@ -112,7 +114,9 @@ def label_delete(session, objects = None, object_type = None):
         for m, lbl_objects in mo:
             lm = labels_model(m)
             if lm is not None:
-                lm.delete_labels(lbl_objects)
+                delete_count += lm.delete_labels(lbl_objects)
+
+    return delete_count
 
 # -----------------------------------------------------------------------------
 #
@@ -123,6 +127,8 @@ def label_object_class(object_type):
         object_class = ResidueLabel
     elif object_type == 'pseudobonds':
         object_class = PseudobondLabel
+    elif object_type == 'bonds':
+        object_class = BondLabel
     else:
         object_class = None
     return object_class
@@ -144,6 +150,12 @@ def objects_by_model(objects, object_type):
         pbgroups = [(pbg, pbg.pseudobonds) for pbg in objects.models
                     if isinstance(pbg, PseudobondGroup) and pbg not in pbgs]
         model_objects.extend(pbgroups)
+    elif object_type == 'bonds':
+        model_objects = []
+        for s,satoms in atoms.by_structure:
+            bonds = satoms.intra_bonds
+            if len(bonds) > 0:
+                model_objects.append((s, bonds))
     return model_objects
 
 # -----------------------------------------------------------------------------
@@ -173,7 +185,7 @@ def register_label_command(logger):
     from chimerax.core.commands import CmdDesc, register, ObjectsArg, StringArg
     from chimerax.core.commands import Float3Arg, ColorArg, IntArg, BoolArg, EnumOf, Or, EmptyArg
 
-    otype = EnumOf(('atoms','residues','pseudobonds'))
+    otype = EnumOf(('atoms','residues','pseudobonds','bonds'))
     DefArg = EnumOf(['default'])
     desc = CmdDesc(required = [('objects', Or(ObjectsArg, EmptyArg))],
                    optional = [('object_type', otype)],
@@ -197,7 +209,7 @@ def register_label_command(logger):
 #
 from chimerax.core.models import Model
 class ObjectLabels(Model):
-    '''Model holding labels appearing next to atoms, residues or pseudobonds.'''
+    '''Model holding labels appearing next to atoms, residues, pseudobonds or bonds.'''
 
     pickable = False		# Don't allow mouse selection of labels
     
@@ -206,7 +218,7 @@ class ObjectLabels(Model):
 
         self.on_top = True		# Should labels always appear above other graphics
         
-        self._label_drawings = {}	# Map object (Atom, Residue, Pseudobond) to ObjectLabel
+        self._label_drawings = {}	# Map object (Atom, Residue, Pseudobond, Bond) to ObjectLabel
 
         t = session.triggers
         self._handler = t.add_handler('graphics update', self._update_graphics_if_needed)
@@ -242,12 +254,15 @@ class ObjectLabels(Model):
 
     def delete_labels(self, objects):
         ld = self._label_drawings
+        count = 0
         for o in objects:
             if o in ld:
                 self.remove_drawing(ld[o])
                 del ld[o]
+                count += 1
         if len(ld) == 0:
             self.session.models.close([self])
+        return count
 
     def label_count(self):
         return len(self._label_drawings)
@@ -303,13 +318,15 @@ class ObjectLabels(Model):
 # -----------------------------------------------------------------------------
 #
 def label_class(object):
-    from chimerax.core.atomic import Atom, Residue, Pseudobond
+    from chimerax.core.atomic import Atom, Residue, Pseudobond, Bond
     if isinstance(object, Atom):
         return AtomLabel
     elif isinstance(object, Residue):
         return ResidueLabel
     elif isinstance(object, Pseudobond):
         return PseudobondLabel
+    elif isinstance(object, Bond):
+        return BondLabel
     return None
 
 # -----------------------------------------------------------------------------
@@ -456,7 +473,8 @@ class AtomLabel(ObjectLabel):
         self.atom = object
         ObjectLabel.__init__(self, object, view, offset=offset, text=text, color=color, size=size, font=font)
     def default_text(self):
-        return self.atom.name
+        aname = self.atom.name
+        return aname if aname else ('%d' % self.atom.residue.number)
     def default_offset(self):
         return (0.2+self.atom.display_radius, 0, 0.5)
     def location(self):
@@ -505,3 +523,7 @@ class PseudobondLabel(ObjectLabel):
     def visible(self):
         pb = self.pseudobond
         return (not pb.deleted) and pb.shown
+
+# -----------------------------------------------------------------------------
+#
+BondLabel = PseudobondLabel
