@@ -313,12 +313,12 @@ class Structure(Model, StructureData):
             self._atom_bounds_needs_update = True
 
         if gc & self._SELECT_CHANGE:
-            # Update selection on molecular surfaces
+            # Update selection in child drawings (e.g., surfaces)
             # TODO: Won't work for surfaces spanning multiple molecules
-            from .molsurf import MolecularSurface
-            for surf in self.child_drawings():
-                if isinstance(surf, MolecularSurface):
-                    surf.update_selection()
+            for d in self.child_drawings():
+                update = getattr(d, 'update_selection', None)
+                if update is not None:
+                    update()
 
     def _update_graphics(self, changes = StructureData._ALL_CHANGE):
         self._update_atom_graphics(changes)

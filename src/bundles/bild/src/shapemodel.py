@@ -5,7 +5,7 @@ from chimerax.core.graphics import Pick
 
 class _Shape:
 
-    def __init__(self, triangle_range, description, atom_spec=None):
+    def __init__(self, triangle_range, description, atom_spec):
         # triangle_range is a range object that corresponds to the indices
         # of the triangles for that shape in the vertex array
         self.triangle_range = triangle_range
@@ -15,16 +15,16 @@ class _Shape:
 
 class _ShapePick(Pick):
 
-    def __init__(self, distance, shape, model):
+    def __init__(self, distance, shape, drawing):
         super().__init__(distance)
         self.shape = shape
-        self.model = model
+        self._drawing = drawing
 
     def description(self):
         return self.shape.description
 
     def drawing(self):
-        return self.model
+        return self._drawing
 
     def id_string(self):
         d = self.drawing()
@@ -42,16 +42,16 @@ class _ShapePick(Pick):
         return False
 
     def select(self, mode='add'):
-        model = self.model
+        drawing = self._drawing
         if mode == 'add':
-            model._add_selected_shape(self.shape)
+            drawing._add_selected_shape(self.shape)
         elif mode == 'subtract':
-            model._remove_selected_shapes(self.shape)
+            drawing._remove_selected_shapes(self.shape)
         elif mode == 'toggle':
-            if self.shape in model._selected_shapes:
-                model._remove_selected_shape(self.shape)
+            if self.shape in drawing._selected_shapes:
+                drawing._remove_selected_shape(self.shape)
             else:
-                model._add_selected_shape(self.shape)
+                drawing._add_selected_shape(self.shape)
 
 
 class ShapeModel(generic3d.Generic3DModel):
