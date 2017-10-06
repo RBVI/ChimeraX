@@ -32,6 +32,7 @@ def register_core_selectors(session):
     reg("backbone", _backbone_selector, logger)
     reg("mainchain", _backbone_selector, logger)
     reg("sidechain", _sidechain_selector, logger)
+    reg("sideonly", _sideonly_selector, logger)
     reg("ribose", _ribose_selector, logger)
     from ..atomic import Element, Atom
     # Since IDATM has types in conflict with element symbols (e.g. 'H'), register
@@ -178,11 +179,20 @@ def _backbone_selector(session, models, results):
 def _sidechain_selector(session, models, results):
     from ..atomic import Structure, structure_atoms
     atoms = structure_atoms([m for m in models if isinstance(m, Structure)])
-    sidechain = atoms.filter(atoms.is_sidechains)
+    sidechain = atoms.filter(atoms.is_side_chains)
     if sidechain:
         for m in sidechain.unique_structures:
             results.add_model(m)
         results.add_atoms(sidechain)
+
+def _sideonly_selector(session, models, results):
+    from ..atomic import Structure, structure_atoms
+    atoms = structure_atoms([m for m in models if isinstance(m, Structure)])
+    sideonly = atoms.filter(atoms.is_side_onlys)
+    if sideonly:
+        for m in sideonly.unique_structures:
+            results.add_model(m)
+        results.add_atoms(sideonly)
 
 def _ribose_selector(session, models, results):
     from ..atomic import Structure, structure_atoms

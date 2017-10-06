@@ -173,8 +173,15 @@ class Atom(State):
         doc = "Whether this atom belongs to a polymer. Read only.")
     is_ribose = c_property('atom_is_ribose', npy_bool, read_only = True,
         doc = "Whether this atom is part of an nucleic acid ribose moiety. Read only.")
-    is_sidechain = c_property('atom_is_sidechain', npy_bool, read_only = True,
-        doc = "Whether this atom is part of an amino/nucleic acid sidechain. Read only.")
+    is_side_connector = c_property('atom_is_side_connector', npy_bool, read_only = True,
+        doc = "Whether this atom is connects the side chain to the backbone"
+        " e.g. CA/ribose. Read only.")
+    is_side_chain = c_property('atom_is_side_chain', npy_bool, read_only = True,
+        doc = "Whether this atom is part of an amino/nucleic acid sidechain. Includes atoms"
+        " needed to connect to backbone (CA/ribose). Read only.")
+    is_side_only = c_property('atom_is_side_only', npy_bool, read_only = True,
+        doc = "Whether this atom is part of an amino/nucleic acid sidechain."
+        "  Does not include atoms needed to connect to backbone (CA/ribose). Read only.")
     name = c_property('atom_name', string, doc = "Atom name. Maximum length 4 characters.")
     neighbors = c_property('atom_neighbors', cptr, "num_bonds", astype=_atoms, read_only=True,
         doc=":class:`.Atom`\\ s connnected to this atom directly by one bond. Read only.")
