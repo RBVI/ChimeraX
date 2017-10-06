@@ -406,8 +406,16 @@ class Atoms(Collection):
     is_riboses = cvec_property('atom_is_ribose', npy_bool, read_only = True,
         doc="Whether each atom is part of an nucleic acid ribose moiety."
             " Returns numpy bool array. Read only.")
-    is_sidechains = cvec_property('atom_is_sidechain', npy_bool, read_only = True,
+    is_side_chains = cvec_property('atom_is_side_chain', npy_bool, read_only = True,
         doc="Whether each atom is part of an amino/nucleic acid sidechain."
+            " Includes atoms needed to connect to backbone (CA/ribose)."
+            " Returns numpy bool array. Read only.")
+    is_side_connectors = cvec_property('atom_is_side_connector', npy_bool, read_only = True,
+        doc="Whether each atom is needed to connect to backbone (CA/ribose)."
+            " Returns numpy bool array. Read only.")
+    is_side_onlys = cvec_property('atom_is_side_only', npy_bool, read_only = True,
+        doc="Whether each atom is part of an amino/nucleic acid sidechain."
+            " Does not include atoms needed to connect to backbone (CA/ribose)."
             " Returns numpy bool array. Read only.")
     occupancies = cvec_property('atom_occupancy', float32)
 

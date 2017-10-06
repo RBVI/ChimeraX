@@ -59,7 +59,7 @@ def _alt_loc_add_hydrogens(atom, alt_loc_atom, bonding_info, naming_schema, tota
             occupancy = alt_loc_atom.occupancy
         else:
             occupancy = 1.0
-        at_pos = atom.scene_coord
+        at_pos = atom._addh_coord
         exclude = coordinations + list(atom.neighbors)
         if geom == 3:
             if atom.num_bonds == 1:
@@ -67,7 +67,7 @@ def _alt_loc_add_hydrogens(atom, alt_loc_atom, bonding_info, naming_schema, tota
                 grand_bonded = list(bonded.neighbors)
                 grand_bonded.remove(atom)
                 if len(grand_bonded) < 3:
-                    planar = [a.scene_coord for a in grand_bonded]
+                    planar = [a._addh_coord for a in grand_bonded]
         if geom == 4 and atom.num_bonds == 0:
             away, d, natom = find_nearest(at_pos, atom, exclude, 3.5)
             if away is not None:
@@ -80,10 +80,10 @@ def _alt_loc_add_hydrogens(atom, alt_loc_atom, bonding_info, naming_schema, tota
 
         bonded_pos = []
         for bonded in atom.neighbors:
-            bonded_pos.append(bonded.scene_coord)
+            bonded_pos.append(bonded._addh_coord)
 
         if coordinations:
-            toward = coordinations[0].scene_coord
+            toward = coordinations[0]._addh_coord
             away2 = away
             away = None
         else:
