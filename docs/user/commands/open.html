@@ -193,7 +193,7 @@ density map</td>
 <a href="http://www.hdfgroup.org/HDF5/" target="_blank">HDF5</a>)</td>
 <td align="center"><b>cmap</b></td>
 <td align="center">.cmp<br>.cmap</td>
-<td align="center">density map</td>
+<td align="center">volume data</td>
 </tr><tr>
 <td align="center">Directional FSC (Fourier shell correlation)</td>
 <td align="center"><b>dres</b></td>
@@ -209,13 +209,21 @@ to colormap onto the globe)</td>
 <td align="center">.omap</td>
 <td align="center">density map</td>
 </tr><tr>
+<td align="center">ImageJ or
+<a href="https://www-legacy.openmicroscopy.org/site/products/ome-tiff"
+target="_blank">OME</a> multichannel TIFF</a>
+<br>(specified in file header)</td>
+<td align="center"><b></b></td>
+<td align="center">.tif, .tiff</td>
+<td align="center">microscopy data</td>
+</tr><tr>
 <td align="center">Image stack
 <br>(grayscale image series in multiple files or a single multipage file,
 in formats supported by
 <a href="http://www.pythonware.com/products/pil/" target="_blank">PIL</a>)</td>
 <td align="center"><b>images</b></td>
 <td align="center">.tif, .tiff<br>.png<br>.pgm</td>
-<td align="center">density map</td>
+<td align="center">image stack</td>
 </tr><tr>
 <td align="center">
 <a href="http://www.bitplane.com/imaris" target="_blank">Imaris</a> map</td>
@@ -348,6 +356,7 @@ hypertext to render in the
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#file-table"><i>format-name</i></a>&nbsp;]
 [&nbsp;<b>coordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>vseries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>channel</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>alignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>structureModel</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 [&nbsp;<b>atomic</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
@@ -403,6 +412,21 @@ for playback with
 If the option is not used, 3D TIFF images and
 <a href="save.html#chimap">Chimera map</a> files containing five or more
 same-sized maps are automatically interpreted as series, if possible.
+When multiple maps are opened in a single command (multiple files specified with 
+wild cards or globbing), time ordering is automatically discerned from the
+filenames, if possible: for example, a file will be identified as time point 12 
+if its name contains &ldquo;_stack0012_&rdquo; or &ldquo;_0012stack_&rdquo; 
+(and 12 could be any integer with or without leading zeros).
+</blockquote>
+<blockquote>
+<b>channel</b>&nbsp;&nbsp;<i>N</i>
+<br>
+Assign channel number <i>N</i> to map; typically used for light microscopy data.
+When multiple maps are opened in a single command (multiple files specified with 
+wild cards or globbing), channel numbers are automatically discerned from the
+filenames, if possible: for example, a file will be identified as channel 0
+if its name contains &ldquo;_ch0_&rdquo; or &ldquo;_0ch_&rdquo;
+(and 0 could be any whole number).
 </blockquote>
 <blockquote>
 <b>alignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
@@ -677,5 +701,5 @@ the single best-matching sequence is associated.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2017</address>
+October 2017</address>
 </body></html>
