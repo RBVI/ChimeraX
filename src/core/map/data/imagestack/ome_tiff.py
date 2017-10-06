@@ -17,14 +17,12 @@ def ome_image_grids(path):
     for i in images:
         print (i.description())
         for c in range(i.nchannels):
-            cgrid = []
             for t in range(i.ntimes):
                 g = OME_Image_Grid(i, c, t, gid)
                 if i.ntimes > 1:
                     g.series_index = t
-                cgrid.append(g)
+                grids.append(g)
                 gid += 1
-            grids.append(cgrid if len(cgrid) > 1 else cgrid[0])
     return grids
 
 # -----------------------------------------------------------------------------
@@ -116,7 +114,8 @@ def parse_ome_tiff_header(path):
                 continue
             pa = p.attrib
             dorder = pa['DimensionOrder']
-            sx, sy, sz = [float(s) for s in (pa['PhysicalSizeX'], pa['PhysicalSizeY'], pa['PhysicalSizeZ'])]
+            sx, sy, sz = [(float(pa[sa]) if sa in pa else 1.0)
+                          for sa in ('PhysicalSizeX', 'PhysicalSizeY', 'PhysicalSizeZ')]
             nc, nt, nx, ny, nz = [int(i) for i in (pa['SizeC'], pa['SizeT'], pa['SizeX'], pa['SizeY'], pa['SizeZ'])]
             value_type = pa['Type']
             import numpy
