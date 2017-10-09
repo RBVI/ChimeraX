@@ -150,7 +150,7 @@ def intersect_selection(objects, session, undo_state, full_residues = False):
 def clear_selection(session, why, undo_state):
     from ..undo import UndoState
     undo_state = UndoState("select clear")
-    session.selection.undo_add_selected(session, undo_state, False)
+    session.selection.undo_add_selected(undo_state, False)
     session.selection.clear()
     session.undo.register(undo_state)
 
