@@ -917,6 +917,9 @@ def _browse_parse(text, session, item_kind, accept_mode, dialog_mode):
         from PyQt5.QtWidgets import QFileDialog
         dlg = QFileDialog()
         dlg.setAcceptMode(accept_mode)
+        if accept_mode == QFileDialog.AcceptOpen and dialog_mode != QFileDialog.DirectoryOnly:
+            from ..ui.open_save import open_file_filter
+            dlg.setNameFilter(open_file_filter(all=True))
         dlg.setFileMode(dialog_mode)
         if dlg.exec():
             paths = dlg.selectedFiles()
