@@ -64,7 +64,7 @@ Notes
 -----
 
 AtomSpecArg arguments should always be optional because
-not providing and atom specifier is the same as choosing
+not providing an atom specifier is the same as choosing
 all atoms.
 
 """
