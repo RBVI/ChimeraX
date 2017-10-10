@@ -54,7 +54,7 @@ def camera(session, type=None, field_of_view=None,
             from ..graphics import Stereo360Camera
             camera = Stereo360Camera(layout = 'side-by-side')
         elif type == 'stereo':
-            if not getattr(session.ui, 'have_stereo', False):
+            if not getattr(session.ui, 'stereo', False):
                 from ..errors import UserError
                 raise UserError('Do not have stereo OpenGL context.' +
                                 ('\nUse --stereo command-line option'
