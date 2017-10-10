@@ -1,3 +1,16 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2017 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 """
 bild: bild format support
 =========================
@@ -61,7 +74,7 @@ class _BildFile:
         self.transforms = [identity()]
         self.cur_color = [1.0, 1.0, 1.0, 1.0]
         self.cur_transparency = 0
-        self.cur_atomspec = None
+        self.cur_atoms = None
         self.num_objects = 0
         self.num_arrows = 0
         self.num_boxes = 0
@@ -133,16 +146,20 @@ class _BildFile:
         add_cylinder(
             self.model, r1, p1, junction, self.cur_color,
             closed=True, xform=self.transforms[-1],
-            balloon_text=balloon_text)
-        add_cone(self.model, r2, junction, p2, self.cur_color, bottom=True,
-                 xform=self.transforms[-1], balloon_text=balloon_text)
+            atoms=self.cur_atoms, balloon_text=balloon_text)
+        add_cone(
+            self.model, r2, junction, p2, self.cur_color, bottom=True,
+            xform=self.transforms[-1],
+            atoms=self.cur_atoms, balloon_text=balloon_text)
         self.num_objects += 1
 
     def atomspec_command(self, tokens):
         atomspec = ' '.join(tokens[1:])
         if not atomspec or atomspec == 'none':
             atomspec = None
-        self.cur_atomspec = atomspec
+        from chimerax.core.commands import AtomSpecArg
+        a, _, _ = AtomSpecArg(atomspec)
+        self.cur_atoms = a.evaluate(self.session).atoms
 
     def box_command(self, tokens):
         if len(tokens) != 7:
@@ -152,8 +169,9 @@ class _BildFile:
         urf = numpy.array(data[3:6])
         self.num_boxes += 1
         balloon_text = 'box %d' % self.num_boxes
-        add_box(self.model, llb, urf, self.cur_color, self.transforms[-1],
-                balloon_text=balloon_text)
+        add_box(
+            self.model, llb, urf, self.cur_color, self.transforms[-1],
+            atoms=self.cur_atoms, balloon_text=balloon_text)
         self.num_objects += 1
 
     def comment_command(self, tokens):
@@ -190,8 +208,10 @@ class _BildFile:
             bottom = False
         self.num_cones += 1
         balloon_text = 'cone %d' % self.num_cones
-        add_cone(self.model, radius, p0, p1, self.cur_color, bottom=bottom,
-                 xform=self.transforms[-1], balloon_text=balloon_text)
+        add_cone(
+            self.model, radius, p0, p1, self.cur_color, bottom=bottom,
+            xform=self.transforms[-1],
+            atoms=self.cur_atoms, balloon_text=balloon_text)
         self.num_objects += 1
 
     def cylinder_command(self, tokens):
@@ -210,7 +230,8 @@ class _BildFile:
         balloon_text = 'cylinder %d' % self.num_cylinders
         add_cylinder(
             self.model, radius, p0, p1, self.cur_color, closed=closed,
-            xform=self.transforms[-1], balloon_text=balloon_text)
+            xform=self.transforms[-1],
+            atoms=self.cur_atoms, balloon_text=balloon_text)
         self.num_objects += 1
 
     def dashed_cylinder_command(self, tokens):
@@ -230,7 +251,8 @@ class _BildFile:
         balloon_text = 'cylinder %d' % self.num_cylinders
         add_dashed_cylinder(
             self.model, count, radius, p0, p1, self.cur_color, closed=closed,
-            xform=self.transforms[-1], balloon_text=balloon_text)
+            xform=self.transforms[-1],
+            atoms=self.cur_atoms, balloon_text=balloon_text)
         self.num_objects += 1
 
     def pop_command(self, tokens):
@@ -277,8 +299,9 @@ class _BildFile:
         radius = data[3]
         self.num_spheres += 1
         balloon_text = 'sphere %d' % self.num_spheres
-        add_sphere(self.model, radius, center, self.cur_color,
-                   self.transforms[-1], balloon_text=balloon_text)
+        add_sphere(
+            self.model, radius, center, self.cur_color, self.transforms[-1],
+            atoms=self.cur_atoms, balloon_text=balloon_text)
         self.num_objects += 1
 
     def translate_command(self, tokens):
@@ -341,17 +364,17 @@ def read_bild(session, stream, file_name):
     return b.parse_stream(stream)
 
 
-def add_sphere(model, radius, center, color, xform=None, atom_spec=None, balloon_text=None):
+def add_sphere(model, radius, center, color, xform=None, atoms=None, balloon_text=None):
     # TODO: vary number of triangles with radius
     vertices, normals, triangles = surface.sphere_geometry2(200)
     vertices = vertices * radius + center
     if xform is not None:
         vertices = xform * vertices
         normals = xform.apply_without_translation(normals)
-    model.add_shape(vertices, normals, triangles, color, atom_spec, balloon_text)
+    model.add_shape(vertices, normals, triangles, color, atoms, balloon_text)
 
 
-def add_cylinder(model, radius, p0, p1, color, closed=True, xform=None, atom_spec=None, balloon_text=None):
+def add_cylinder(model, radius, p0, p1, color, closed=True, xform=None, atoms=None, balloon_text=None):
     h = distance(p0, p1)
     vertices, normals, triangles = surface.cylinder_geometry(radius, height=h, caps=closed)
     # rotate so z-axis matches p0->p1
@@ -363,10 +386,10 @@ def add_cylinder(model, radius, p0, p1, color, closed=True, xform=None, atom_spe
     if xform is not None:
         vertices = xform * vertices
         normals = xform.apply_without_translation(normals)
-    model.add_shape(vertices, normals, triangles, color, atom_spec, balloon_text)
+    model.add_shape(vertices, normals, triangles, color, atoms, balloon_text)
 
 
-def add_dashed_cylinder(model, count, radius, p0, p1, color, closed=True, xform=None, atom_spec=None, balloon_text=None):
+def add_dashed_cylinder(model, count, radius, p0, p1, color, closed=True, xform=None, atoms=None, balloon_text=None):
     h = distance(p0, p1)
     vertices, normals, triangles = surface.dashed_cylinder_geometry(count, radius, height=h, caps=closed)
     # rotate so z-axis matches p0->p1
@@ -378,18 +401,18 @@ def add_dashed_cylinder(model, count, radius, p0, p1, color, closed=True, xform=
     if xform is not None:
         vertices = xform * vertices
         normals = xform.apply_without_translation(normals)
-    model.add_shape(vertices, normals, triangles, color, atom_spec, balloon_text)
+    model.add_shape(vertices, normals, triangles, color, atoms, balloon_text)
 
 
-def add_box(model, llb, urf, color, xform=None, atom_spec=None, balloon_text=None):
+def add_box(model, llb, urf, color, xform=None, atoms=None, balloon_text=None):
     vertices, normals, triangles = surface.box_geometry(llb, urf)
     if xform is not None:
         vertices = xform * vertices
         normals = xform.apply_without_translation(normals)
-    model.add_shape(vertices, normals, triangles, color, atom_spec, balloon_text)
+    model.add_shape(vertices, normals, triangles, color, atoms, balloon_text)
 
 
-def add_cone(model, radius, p0, p1, color, bottom=False, xform=None, atom_spec=None, balloon_text=None):
+def add_cone(model, radius, p0, p1, color, bottom=False, xform=None, atoms=None, balloon_text=None):
     h = distance(p0, p1)
     vertices, normals, triangles = surface.cone_geometry(radius, height=h, caps=bottom)
     from chimerax.core.geometry import z_align
@@ -400,4 +423,4 @@ def add_cone(model, radius, p0, p1, color, bottom=False, xform=None, atom_spec=N
     if xform is not None:
         vertices = xform * vertices
         normals = xform.apply_without_translation(normals)
-    model.add_shape(vertices, normals, triangles, color, atom_spec, balloon_text)
+    model.add_shape(vertices, normals, triangles, color, atoms, balloon_text)

@@ -196,9 +196,18 @@ class BundleInfo:
         logger : :py:class:`~chimerax.core.logger.Logger` instance
             Where to log error messages.
         """
-        self._register_commands(logger)
-        self._register_file_types(logger)
-        self._register_selectors(logger)
+        try:
+            self._register_commands(logger)
+        except Exception as e:
+            logger.warning(str(e))
+        try:
+            self._register_file_types(logger)
+        except Exception as e:
+            logger.warning(str(e))
+        try:
+            self._register_selectors(logger)
+        except Exception as e:
+            logger.warning(str(e))
 
     def deregister(self, logger):
         """Deregister bundle commands, tools, data formats, selectors, etc.

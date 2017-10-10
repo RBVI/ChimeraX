@@ -27,7 +27,7 @@ def open(paths):
     grids = []
     series_check = True
     for p in paths:
-      tiff_type = tiff_format(p) if p.endswith('.tif') else None
+      tiff_type = tiff_format(p)
       if tiff_type == 'OME':
         from . import ome_tiff
         grids.extend(ome_tiff.ome_image_grids(p))
@@ -56,7 +56,8 @@ def assign_series_and_channels(grids):
     series_index = getattr(g, 'series_index', g.time)
     if channel is not None and series_index is not None:
       continue
-    fields = g.path.split('_')
+    gpath = g.path if isinstance(g.path, str) else g.path[0]
+    fields = gpath.split('_')
     for f in fields:
       if channel is None and f.startswith('ch') and is_integer(f[2:]):
         channel = int(f[2:])

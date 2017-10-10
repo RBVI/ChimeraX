@@ -96,12 +96,12 @@ def polymer_selection(seq_atoms, session, undo_state):
     
 def select_up(session):
     '''Extend the current selection up one level.'''
-    session.selection.promote()
+    session.selection.promote(session)
     report_selection(session)
     
 def select_down(session):
     '''Reduce the current selection down one level. Only possible after extending selection.'''
-    session.selection.demote()
+    session.selection.demote(session)
     report_selection(session)
     
 def select_clear(session):
@@ -150,7 +150,7 @@ def intersect_selection(objects, session, undo_state, full_residues = False):
 def clear_selection(session, why, undo_state):
     from ..undo import UndoState
     undo_state = UndoState("select clear")
-    session.selection.undo_add_selected(session, undo_state, False)
+    session.selection.undo_add_selected(undo_state, False)
     session.selection.clear()
     session.undo.register(undo_state)
 

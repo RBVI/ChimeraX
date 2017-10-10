@@ -118,7 +118,7 @@ class MarkerMouseMode(MouseMode):
         if a1.structure != a2.structure:
             s.logger.status('Cannot connect atoms from different molecules')
             return False
-        if a1.connects_to(a2):
+        if a1 is a2 or a1.connects_to(a2):
             return False
 
         b = create_link(a1, a2)
@@ -260,7 +260,7 @@ def place_marker(session, center, link_to_selected = False, select = True):
         atoms = selected_atoms(session)
         if len(atoms) == 1:
             al = atoms[0]
-            if a.structure == al.structure:
+            if a.structure == al.structure and a is not al:
                 create_link(al, a)
     if select:
         session.selection.clear()

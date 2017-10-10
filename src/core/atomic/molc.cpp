@@ -798,12 +798,34 @@ extern "C" EXPORT void atom_is_ribose(void *atoms, size_t n, npy_bool *is_ribose
     }
 }
 
-extern "C" EXPORT void atom_is_sidechain(void *atoms, size_t n, npy_bool *is_sidechain)
+extern "C" EXPORT void atom_is_side_chain(void *atoms, size_t n, npy_bool *is_side_chain)
 {
     Atom **a = static_cast<Atom **>(atoms);
     try {
         for (size_t i = 0; i != n; ++i)
-            is_sidechain[i] = a[i]->is_sidechain();
+            is_side_chain[i] = a[i]->is_side_chain(false);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void atom_is_side_connector(void *atoms, size_t n, npy_bool *is_side_connector)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            is_side_connector[i] = a[i]->is_side_connector();
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void atom_is_side_only(void *atoms, size_t n, npy_bool *is_side_only)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            is_side_only[i] = a[i]->is_side_chain(true);
     } catch (...) {
         molc_error();
     }

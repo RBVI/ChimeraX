@@ -139,13 +139,16 @@ public:
     static const std::set<AtomName>  aa_min_backbone_names;
     static const std::set<AtomName>  aa_max_backbone_names;
     static const std::set<AtomName>  aa_ribbon_backbone_names;
+    static const std::set<AtomName>  aa_side_connector_names;
     static const std::set<AtomName>  na_min_backbone_names;
     static const std::set<AtomName>  na_max_backbone_names;
     static const std::set<AtomName>  na_ribbon_backbone_names;
+    static const std::set<AtomName>  na_side_connector_names;
     static const std::set<AtomName>  ribose_names;
     static const std::set<ResName>  std_solvent_names;
     const std::set<AtomName>*  backbone_atom_names(BackboneExtent bbe) const;
     const std::set<AtomName>*  ribose_atom_names() const;
+    const std::set<AtomName>*  side_connector_atom_names() const;
 
     // graphics related
     float  ribbon_adjust() const;
@@ -181,6 +184,19 @@ Residue::backbone_atom_names(BackboneExtent bbe) const
         if (bbe == BBE_RIBBON) return &na_ribbon_backbone_names;
         if (bbe == BBE_MAX) return &na_max_backbone_names;
         return &na_min_backbone_names;
+    }
+    return nullptr;
+}
+
+inline const std::set<AtomName>*
+Residue::side_connector_atom_names() const
+{
+    if (!structure()->_polymers_computed) structure()->polymers();
+    if (polymer_type() == PT_AMINO) {
+        return &aa_side_connector_names;
+    }
+    if (polymer_type() == PT_NUCLEIC) {
+        return &na_side_connector_names;
     }
     return nullptr;
 }
