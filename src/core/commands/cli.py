@@ -740,23 +740,36 @@ class EnumOf(Annotation):
 class DynamicEnum(Annotation):
     '''Enumerated type where enumeration values computed from a function.'''
 
-    def __init__(self, values_func):
-        Annotation.__init__(self)
+    def __init__(self, values_func, name=None, url=None, html_name=None):
+        Annotation.__init__(self, url=url)
+        self.__name = name
+        self.__html_name = html_name
         self.values_func = values_func
+
 
     def parse(self, text, session):
         return EnumOf(self.values_func()).parse(text, session)
 
     @property
     def name(self):
+        if self.__name is not None:
+            return self.__name
         return 'one of ' + ', '.join("'%s'" % str(v)
                                      for v in sorted(self.values_func()))
 
     @property
     def _html_name(self):
+        if self.__html_name is not None:
+            return self.__html_name
         from html import escape
-        return 'one of ' + ', '.join("<b>%s</b>" % escape(str(v))
+        if self.__name is not None:
+            name = self.__name
+        else:
+            name = 'one of ' + ', '.join("<b>%s</b>" % escape(str(v))
                                      for v in sorted(self.values_func()))
+        if self.url is None:
+            return name
+        return '<a href="%s">%s</a>' % (escape(self.url), name)
 
 
 class Or(Annotation):
@@ -1858,10 +1871,10 @@ class _WordInfo:
         self.cmd_desc = None  # prevent recursion
         try:
             deferred.call()
-        except:
-            raise RuntimeError("delayed registration failed")
+        except Exception as e:
+            raise RuntimeError("delayed command registration failed (%s)" % e)
         if self.cmd_desc is None and not self.has_subcommands():
-            raise RuntimeError("delayed registration didn't register the command")
+            raise RuntimeError("delayed command registration didn't register the command")
 
     def add_subcommand(self, word, name, cmd_desc=None, *, logger=None):
         try:
