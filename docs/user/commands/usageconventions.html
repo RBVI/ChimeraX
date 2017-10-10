@@ -50,7 +50,11 @@ merely symbolic and should not be included in the typed command.
 Command names and keywords can be truncated to unique strings.
 Command names should be entered as lowercase letters, whereas keywords can be
 completely lowercase or capitalized as shown in the documentation,
-typically camelCase for compound words.
+typically camelCase for compound words. 
+If a truncation matches multiple keywords, the one (if any) made up of 
+fewer words is used, for example, <b>silhouettes</b> rather than 
+<b>silhouetteWidth</b> in the <a href="set.html"><b>set</b></a> command;
+otherwise, an ambiguity error is raised.
 </p><p>
 Boolean (truth) values can also be truncated, with
 synonyms for <b>true</b>: <b>True</b>, <b>1</b>, and
@@ -90,5 +94,5 @@ See also: <a href="open.html"><b>open</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2017</address>
+October 2017</address>
 </body></html>

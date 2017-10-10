@@ -415,8 +415,12 @@ same-sized maps are automatically interpreted as series, if possible.
 When multiple maps are opened in a single command (multiple files specified with 
 wild cards or globbing), time ordering is automatically discerned from the
 filenames, if possible: for example, a file will be identified as time point 12 
-if its name contains &ldquo;_stack0012_&rdquo; or &ldquo;_0012stack_&rdquo; 
-(and 12 could be any integer with or without leading zeros).
+if its name contains either of the following:
+<ul class="none">
+<li>_stack0012_
+<li>_0012stack_
+</ul>
+(and 0012 could be any integer).
 </blockquote>
 <blockquote>
 <b>channel</b>&nbsp;&nbsp;<i>N</i>
@@ -425,7 +429,11 @@ Assign channel number <i>N</i> to map; typically used for light microscopy data.
 When multiple maps are opened in a single command (multiple files specified with 
 wild cards or globbing), channel numbers are automatically discerned from the
 filenames, if possible: for example, a file will be identified as channel 0
-if its name contains &ldquo;_ch0_&rdquo; or &ldquo;_0ch_&rdquo;
+if its name contains either of the following:
+<ul class="none">
+<li>_ch0_
+<li>_0ch_
+</ul>
 (and 0 could be any whole number).
 </blockquote>
 <blockquote>

@@ -330,10 +330,15 @@ Built-in classifications include:
 <li>biopolymer types <b>protein</b>, <b>nucleic</b> or <b>nucleic-acid</b>,
 and their subparts:
   <ul>
-  <li><b>sidechain</b> - amino acid sidechain (not including CA), nucleic 
-  acid base (not including ribose C1'), and any directly attached hydrogens
+  <li><b>sidechain</b> - amino acid sidechain + CA (for connectivity
+  to <a href="cartoon.html">cartoon</a> representations), nucleic acid base
+  + <b>ribose</b> (see below), and any directly attached hydrogens
+  <li><b>sideonly</b> - amino acid sidechain,
+  nucleic acid base, and any directly attached hydrogens
   <li><b>mainchain</b> (or <b>backbone</b>) 
-  - the complement of <b>sidechain</b>
+  - the complement of <b>sideonly</b>, namely:
+  peptide N, CA, C, O, nucleic acid phosphoribosyl backbone,
+  and any directly attached hydrogens
   <li><b>ribose</b> - backbone ribose and deoxyribose moieties
   </ul>
 <li>protein/peptide secondary structure types:
@@ -926,12 +931,21 @@ formally positive nitrogens
 </blockquote>
 - cysteine sulfur atoms not participating in a disulfide bond
 <blockquote>
-<b>:phe,tyr &amp; (sidechain | @ca)</b>
+<b>:phe,tyr &amp; <a href="#builtin">sidechain</a></b>
 </blockquote>
-- sidechain and CA atoms of phenylalanine and tyrosine
+- phenylalanine and tyrosine sidechains (including CA)
+<blockquote>
+<b><a href="#builtin">sidechain</a> & ligand :<4</b>
+</blockquote>
+- sidechains (including peptide CA and nucleic acid ribose) 
+of residues with any atom within 4 &Aring; of <a href="#surfcats">ligand</a>
+<blockquote>
+<b><a href="#builtin">sideonly</a> & ligand @<4</b>
+</blockquote>
+- sidechain atoms within 4 &Aring; of <a href="#surfcats">ligand</a>
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2017</address>
+October 2017</address>
 </body></html> 
