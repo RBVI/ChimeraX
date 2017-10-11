@@ -104,7 +104,7 @@ def tiff_format(path):
   if path.endswith('.tif') or path.endswith('.tiff'):
     from PIL import Image
     i = Image.open(path)
-    description_tags = i.tag[270]
+    description_tags = i.tag[270] if 270 in i.tag else []
     for d in description_tags:
       if d.startswith('<?xml'):
         return 'OME'
