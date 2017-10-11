@@ -43,11 +43,11 @@ class _MyAPI(BundleAPI):
         return None
 
 
-def show_url(session, url, *, new=False):
+def show_url(session, url, *, new=False, confirm=False):
     if session.ui.is_gui:
         from .tool import HelpUI
         help_viewer = HelpUI.get_viewer(session)
-        help_viewer.show(url, new=new)
+        help_viewer.show(url, new=new, confirm=confirm)
     else:
         import webbrowser
         webbrowser.open(url, new=new)

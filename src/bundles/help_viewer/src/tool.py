@@ -99,6 +99,7 @@ class HelpUI(ToolInstance):
         ToolInstance.__init__(self, session, tool_name)
         from chimerax.core.ui.gui import MainToolWindow
         self.tool_window = MainToolWindow(self)
+        self._confirm = set()
         parent = self.tool_window.ui_area
 
         # UI content code
@@ -214,7 +215,7 @@ class HelpUI(ToolInstance):
         p.linkHovered.connect(self.link_hovered)
         return w
 
-    def show(self, url, *, new=False):
+    def show(self, url, *, new=False, confirm=False):
         from urllib.parse import urlparse, urlunparse
         parts = urlparse(url)
         if not parts.scheme:
@@ -228,6 +229,8 @@ class HelpUI(ToolInstance):
         from PyQt5.QtCore import QUrl
         w.setUrl(QUrl(url))
         self.display(True)
+        # if confirm and w not in self._confirm:
+        #     pass
 
     def go_to(self):
         self.show(self.url.text())
@@ -288,6 +291,7 @@ class HelpUI(ToolInstance):
         ToolInstance.delete(self)
 
     def page_loaded(self, w, okay):
+        print('PAGE_LOADED:', w, okay)
         if self.tabs.currentWidget() != w:
             return
         history = w.history()
