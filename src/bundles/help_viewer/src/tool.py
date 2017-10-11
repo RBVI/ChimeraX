@@ -217,14 +217,14 @@ class HelpUI(ToolInstance):
         p.linkHovered.connect(self.link_hovered)
         return w
 
-    def show(self, url, *, new=False, confirm=False):
+    def show(self, url, *, new_tab=False, confirm=False):
         from urllib.parse import urlparse, urlunparse
         parts = urlparse(url)
         if not parts.scheme:
             parts = list(parts)
             parts[0] = "http"
         url = urlunparse(parts)  # canonicalize
-        if new or self.tabs.count() == 0:
+        if new_tab or self.tabs.count() == 0:
             w = self.create_tab()
         else:
             w = self.tabs.currentWidget()
@@ -293,7 +293,6 @@ class HelpUI(ToolInstance):
         ToolInstance.delete(self)
 
     def page_loaded(self, w, okay):
-        print('PAGE_LOADED:', w, okay)
         if self.tabs.currentWidget() != w:
             return
         history = w.history()

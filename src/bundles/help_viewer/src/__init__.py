@@ -24,14 +24,14 @@ class _MyAPI(BundleAPI):
         register(command_name, cmd.help_desc, cmd.help, logger=logger)
 
     @staticmethod
-    def open_file(session, path, file_name, new=False):
+    def open_file(session, path, file_name, new_tab=False):
         # 'open_file' is called by session code to open a file
         import os
         path = os.path.abspath(path)
         from urllib.parse import urlunparse
         from urllib.request import pathname2url
         url = urlunparse(('file', '', pathname2url(path), '', '', ''))
-        show_url(session, url, new=new)
+        show_url(session, url, new_tab=new_tab)
         return [], "Opened %s" % file_name
 
     @staticmethod
@@ -43,14 +43,14 @@ class _MyAPI(BundleAPI):
         return None
 
 
-def show_url(session, url, *, new=False, confirm=False):
+def show_url(session, url, *, new_tab=False, confirm=False):
     if session.ui.is_gui:
         from .tool import HelpUI
         help_viewer = HelpUI.get_viewer(session)
-        help_viewer.show(url, new=new, confirm=confirm)
+        help_viewer.show(url, new_tab=new_tab, confirm=confirm)
     else:
         import webbrowser
-        webbrowser.open(url, new=new)
+        webbrowser.open(url, new_tab=new_tab)
 
 
 bundle_api = _MyAPI()
