@@ -9,7 +9,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def ome_image_grids(path):
+def ome_image_grids(path, found_paths = None):
 
     images = parse_ome_tiff_header(path)
     grids = []
@@ -23,6 +23,8 @@ def ome_image_grids(path):
                     g.series_index = t
                 grids.append(g)
                 gid += 1
+        if found_paths is not None:
+            found_paths.update(i.files())
     return grids
 
 # -----------------------------------------------------------------------------
@@ -80,7 +82,12 @@ class OME_Image_Grid(Grid_Data):
       op.plane_data(c, t, k, ia_1d)
       array[(k-k0)//kstep,:,:] = ia[j0:j0+jsz:jstep,i0:i0+isz:istep]
     return array
-
+        
+  # ---------------------------------------------------------------------------
+  #
+  def files(self):
+      return self.ome_pixels.files()
+  
 def parse_ome_tiff_header(path):
 
     from PIL import Image
@@ -219,7 +226,14 @@ class OME_Pixels:
         # ia[:] = im.asarray(key = plane)
 
         return im
-    
+
+    def files(self):
+        fnames = set(fname for fname, plane in self.plane_table.values())
+        from os.path import dirname, join
+        dir = dirname(self.path)
+        paths = set(join(dir, fname) for fname in fnames)
+        return paths
+        
     def description(self):
         from numpy import dtype
         d = ', '.join(['image name %s' % self.name,
