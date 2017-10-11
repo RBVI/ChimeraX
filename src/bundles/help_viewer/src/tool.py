@@ -141,6 +141,8 @@ class HelpUI(ToolInstance):
                 Qt.Key_Forward, False),
             ("reload", "Reload", "Reload page", self.page_reload,
                 Qt.Key_Reload, True),
+            ("new_tab", "New Tab", "New Tab", lambda: self.create_tab(empty=True),
+                Qt.Key_Reload, True),
             ("zoom_in", "Zoom in", "Zoom in", self.page_zoom_in,
                 [Qt.CTRL + Qt.Key_Plus, Qt.Key_ZoomIn, Qt.CTRL + Qt.Key_Equal], True),
             ("zoom_out", "Zoom out", "Zoom out", self.page_zoom_out,
