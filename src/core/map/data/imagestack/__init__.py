@@ -26,11 +26,15 @@ def open(paths):
     # 3d images.
     grids = []
     series_check = True
+    fpaths = set()
     for p in paths:
       tiff_type = tiff_format(p)
       if tiff_type == 'OME':
+        if p in fpaths:
+          continue	# OME file already referenced by a previous OME file.
         from . import ome_tiff
-        grids.extend(ome_tiff.ome_image_grids(p))
+        pgrids = ome_tiff.ome_image_grids(p, fpaths)
+        grids.extend(pgrids)
         series_check = False
       elif tiff_type == 'ImageJ':
         from . import imagej_tiff
