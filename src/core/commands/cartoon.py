@@ -414,7 +414,7 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
                 undo_state.add(mgr, "set_sheet_arrow_scale", old, (aw, ah, cw, ch), "MA")
                 mgr.set_sheet_arrow_scale(aw, ah, cw, ch)
             if arrows is not None:
-                undo_state.add(mgr, "set_sheet_end_arrow", mgr.arrow_sheet, arrows_sheet, "M")
+                undo_state.add(mgr, "set_sheet_end_arrow", mgr.arrow_sheet, arrows, "M")
                 mgr.set_sheet_end_arrow(arrows)
             if ss_ends is not None:
                 # TODO: save undo data

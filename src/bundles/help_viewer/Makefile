@@ -22,7 +22,7 @@ endif
 RUN = $(CHIMERAX_EXE) --nogui --exit --cmd
 
 PYSRCS = $(wildcard src/*.py)
-DATAFILES = $(wildcard src/*.png)
+DATAFILES = $(wildcard src/*.svg)
 SRCS = $(PYSRCS) $(DATAFILES)
 
 wheel:	bundle_info.xml $(SRCS)
