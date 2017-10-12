@@ -121,8 +121,8 @@ Independent of the <a href="#top"><b>hbonds</b></a> command,
 reading an mmCIF file with base-pairing H-bond information automatically creates
 <b>hydrogen bonds</b> <a href="../pseudobonds.html">pseudobonds</a>.
 The command-line specifier <a href="atomspec.html#builtin"><b>hbonds</b></a>
-(not to be confused with the command) refers to pseudobonds
-in the <b>hydrogen bonds</b> model(s) and their endpoint atoms.
+(not to be confused with the command) refers to pseudobonds in the 
+pseudobond model named <b>hydrogen bonds</b>.
 An interactive histogram of pseudobond lengths can be plotted with 
 <a href="crosslinks.html#histogram"><b>crosslinks histogram</b></a>, and a chain 
 network diagram summarizing intra- and interchain pseudobonds can be shown with
@@ -284,6 +284,13 @@ The default is <b>true</b> for a <a href="../trajectories.html">trajectory</a>,
 otherwise <b>false</b>.
 </blockquote>
 <blockquote>
+<b>perCoordset</b> &nbsp;true&nbsp;|&nbsp;false
+<br>Whether to calculate and retain H-bonds for each frame of a 
+<a href="../trajectories.html">trajectory</a>, instead of just the current frame.
+The default is <b>true</b> for a <a href="../trajectories.html">trajectory</a>
+if it is the only atomic model present or specified in the command.
+</blockquote>
+<blockquote>
 <a name="relax"></a>
 <b>relax</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>Whether to relax the
@@ -426,5 +433,5 @@ all of its possible positions.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-September 2017</address>
+October 2017</address>
 </body></html>

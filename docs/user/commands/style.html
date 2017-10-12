@@ -65,18 +65,21 @@ Note that <a href="../radii.html">VDW radii</a> are also used to calculate
 contacts based on buried surface areas.
 The <b>ballScale</b> parameter applies to an entire atomic model even
 if only part of the model is specified.
-</p>
+</p><p>
+Bonds can be <a href="atomspec.html">specified</a> by their endpoint atoms
+or directly by <a href="../selection.html">selection</a>
+and using the word <a href="atomspec.html#builtin"><b>sel</b></a>.
+</p><p>
 The <b>style</b> command can also set 
 <a href="../pseudobonds.html">pseudobond</a> stick radius 
 (<b>pseudobondRadius</b>&nbsp;<i>r<sub><font size=-1>pb</font></sub></i>)
 and number of <b>dashes</b> <i>N</i>.
-Bonds and pseudobonds are considered as specified 
-when both flanking atoms are specified, and all of the pseudobonds in the same
-<a href="../pseudobonds.html">pseudobond model</a> will be affected in parallel. 
-Pseudobonds can also be specified by pseudobond model number.
 Only whole numbers of dashes are accepted, with 0
 indicating solid sticks. Currently, odd numbers are rounded down 
 to give an even number of dashes.
+The <b>dashes</b> setting applies to an entire 
+<a href="../pseudobonds.html">pseudobond model</a> even
+if only part of the model is specified.
 </p><p>
 See also: 
 <a href="show.html"><b>show</b></a>,
@@ -93,5 +96,5 @@ See also:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2017</address>
+October 2017</address>
 </body></html>
