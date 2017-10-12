@@ -1650,6 +1650,7 @@ class Structure(Model, StructureData):
         for p in self.positions:
             pplanes = transform_planes(p, planes)
             picks.extend(self._atoms_planes_pick(pplanes))
+            picks.extend(self._bonds_planes_pick(pplanes))
             picks.extend(self._ribbon_planes_pick(pplanes))
 
         return picks
@@ -1670,6 +1671,27 @@ class Structure(Model, StructureData):
         atoms = self._visible_atoms.filter(pmask)
 
         p = PickedAtoms(atoms)
+
+        return [p]
+
+    def _bonds_planes_pick(self, planes):
+        d = self._bonds_drawing
+        if d is None or not d.display:
+            return []
+
+        hb_xyz = d.positions.array()[:,:,3]	# Half-bond centers
+        n = len(hb_xyz)//2
+        xyz = 0.5*(hb_xyz[:n] + hb_xyz[n:])	# Bond centers
+
+        picks = []
+        from .. import geometry
+        pmask = geometry.points_within_planes(xyz, planes)
+        if pmask.sum() == 0:
+            return []
+
+        bonds = self._visible_bonds.filter(pmask)
+
+        p = PickedBonds(bonds)
 
         return [p]
 
@@ -2507,13 +2529,14 @@ class PickedAtoms(Pick):
 #
 def select_atoms(a, mode = 'add'):
     if mode == 'add':
-        a.selected = True
+        s = True
     elif mode == 'subtract':
-        a.selected = False
+        s = False
     elif mode == 'toggle':
         from numpy import logical_not
-        a.selected = logical_not(a.selected)
-
+        s = logical_not(a.selected)
+    a.selected = s
+    
 # -----------------------------------------------------------------------------
 # Handles bonds and pseudobonds.
 #
@@ -2562,6 +2585,29 @@ def select_bond(b, mode = 'add'):
         s = False
     elif mode == 'toggle':
         s = not b.selected
+    b.selected = s
+
+# -----------------------------------------------------------------------------
+#
+class PickedBonds(Pick):
+    def __init__(self, bonds):
+        Pick.__init__(self)
+        self.bonds = bonds
+    def description(self):
+        return '%d bonds' % len(self.bonds)
+    def select(self, mode = 'add'):
+        select_bonds(self.bonds, mode)
+
+# -----------------------------------------------------------------------------
+#
+def select_bonds(b, mode = 'add'):
+    if mode == 'add':
+        s = True
+    elif mode == 'subtract':
+        s = False
+    elif mode == 'toggle':
+        from numpy import logical_not
+        s = logical_not(b.selected)
     b.selected = s
 
 # -----------------------------------------------------------------------------
