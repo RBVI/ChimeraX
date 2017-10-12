@@ -99,6 +99,13 @@ class PseudobondGroup(PseudobondGroupData, Model):
                 return True
         return False
 
+    def selection_promotion(self):
+        pbonds = self.pseudobonds
+        n = pbonds.num_selected
+        if n == 0 or n == len(pbonds):
+            return None
+        return PromotePseudobondSelection(self, pbonds.selected)
+
     def clear_selection(self):
         self.selected = False
         self.pseudobonds.selected = False
@@ -244,6 +251,22 @@ def selected_pseudobonds(session):
     from .molarray import concatenate, Pseudobonds
     pbonds = concatenate(blist, Pseudobonds)
     return pbonds
+
+# -----------------------------------------------------------------------------
+#
+from ..selection import SelectionPromotion
+class PromotePseudobondSelection(SelectionPromotion):
+    def __init__(self, pbgroup, prev_pbond_sel_mask):
+        level = 1001
+        SelectionPromotion.__init__(self, level)
+        self._pbgroup = pbgroup
+        self._prev_pbond_sel_mask = prev_pbond_sel_mask
+    def promote(self):
+        pbonds = self._pbgroup.pseudobonds
+        pbonds.selected = True
+    def demote(self):
+        pbonds = self._pbgroup.pseudobonds
+        pbonds.selected = self._prev_pbond_sel_mask
 
 # -----------------------------------------------------------------------------
 #

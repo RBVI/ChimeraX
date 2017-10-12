@@ -1691,11 +1691,14 @@ class Structure(Model, StructureData):
 
     def set_selected(self, sel):
         self.atoms.selected = sel
+        self.bonds.selected = sel
         Model.set_selected(self, sel)
     selected = property(Model.get_selected, set_selected)
 
     def set_selected_positions(self, spos):
-        self.atoms.selected = (spos is not None and spos.sum() > 0)
+        sel = (spos is not None and spos.sum() > 0)
+        self.atoms.selected = sel
+        self.bonds.selected = sel
         Model.set_selected_positions(self, spos)
     selected_positions = property(Model.get_selected_positions, set_selected_positions)
 
