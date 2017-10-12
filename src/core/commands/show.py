@@ -31,11 +31,7 @@ def show(session, objects=None, what=None, target=None, only=False):
         from . import atomspec
         objects = atomspec.all_objects(session)
 
-    what_to_show = set() if target is None else set(target)
-    if what is not None:
-        what_to_show.update([what])
-    if len(what_to_show) == 0:
-        what_to_show = set(['atoms' if objects.atoms else 'models'])
+    what_to_show = what_objects(target, what, objects)
 
     from ..undo import UndoState
     undo_state = UndoState("show")
@@ -53,6 +49,21 @@ def show(session, objects=None, what=None, target=None, only=False):
         show_models(session, objects, only, undo_state)
 
     session.undo.register(undo_state)
+
+def what_objects(target, what, objects):
+    what_to_show = set() if target is None else set(target)
+    if what is not None:
+        what_to_show.update([what])
+    if len(what_to_show) == 0:
+        if objects.atoms:
+            what_to_show.add('atoms')
+        if objects.bonds:
+            what_to_show.add('bonds')
+        if objects.pseudobonds:
+            what_to_show.add('pseudobonds')
+        if len(what_to_show) == 0:
+            what_to_show.add('models')
+    return what_to_show
 
 def show_atoms(session, objects, only, undo_state):
     atoms = objects.atoms

@@ -27,11 +27,8 @@ def hide(session, objects=None, what=None, target=None):
         from . import atomspec
         objects = atomspec.all_objects(session)
 
-    what_to_hide = set() if target is None else set(target)
-    if what is not None:
-        what_to_hide.update([what])
-    if len(what_to_hide) == 0:
-        what_to_hide = set(['atoms' if objects.atoms else 'models'])
+    from .show import what_objects
+    what_to_hide = what_objects(target, what, objects)
 
     from ..undo import UndoState
     undo_state = UndoState("hide")
