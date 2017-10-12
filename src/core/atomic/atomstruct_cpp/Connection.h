@@ -61,6 +61,7 @@ protected:
     bool  _halfbond = true;
     float  _radius = 0.2;
     Rgba  _rgba;
+    bool  _selected = false;
 public:
     Connection(Atom* a1, Atom* a2) { _atoms[0] = a1; _atoms[1] = a2; }
 
@@ -124,6 +125,8 @@ public:
     void  set_radius(float r);
     virtual bool shown() const;
     bool  visible() const { return _hide ? false : _display; }
+    bool  selected() const { return _selected; }
+    void  set_selected(bool s);
 };
 
 class ATOMSTRUCT_IMEX UniqueConnection: public Connection {
@@ -232,6 +235,16 @@ UniqueConnection::finish_construction()
     if (a1->connects_to(a2))
         throw std::invalid_argument(err_msg_exists());
     add_to_atoms();
+}
+
+inline void
+Connection::set_selected(bool s)
+{
+    if (s == _selected)
+        return;
+    graphics_changes()->set_gc_select();
+    track_change(ChangeTracker::REASON_SELECTED);
+    _selected = s;
 }
 
 } //  namespace atomstruct

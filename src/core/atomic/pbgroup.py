@@ -72,12 +72,36 @@ class PseudobondGroup(PseudobondGroupData, Model):
             t.remove_handler(h.pop())
         self._handlers = []
 
+    # Atom specifier API
+    def atomspec_has_pseudobonds(self):
+        return True
+
+    def atomspec_pseudobonds(self):
+        return self.pseudobonds
+
     def _set_selected(self, sel):
-        a1, a2 = self.pseudobonds.atoms
-        a1.selected = sel
-        a2.selected = sel
+        self.pseudobonds.selected = sel
         Model.set_selected(self, sel)
     selected = property(Model.get_selected, _set_selected)
+
+    def selected_items(self, itype):
+        if itype == 'pseudobonds':
+            pbonds = self.pseudobonds
+            if pbonds.num_selected > 0:
+                return [pbonds.filter(pbonds.selected)]
+        return []
+
+    def any_part_selected(self):
+        if self.pseudobonds.num_selected > 0:
+            return True
+        for c in self.child_models():
+            if c.any_part_selected():
+                return True
+        return False
+
+    def clear_selection(self):
+        self.selected = False
+        self.pseudobonds.selected = False
 
     def _get_dashes(self):
         return self._dashes
@@ -148,7 +172,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
             
         if changes & self._SELECT_CHANGE:
             from . import structure as s
-            d.selected_positions = s._selected_bond_cylinders(bond_atoms)
+            d.selected_positions = s._selected_bond_cylinders(pbonds)
 
     def _update_positions(self, pbonds, bond_atoms):
         ba1, ba2 = bond_atoms
@@ -207,9 +231,27 @@ class PseudobondGroup(PseudobondGroupData, Model):
     def reset_state(self, session):
         pass
 
+# -----------------------------------------------------------------------------
+#
+def selected_pseudobonds(session):
+    '''All selected bonds in all structures as an :class:`.Bonds` collection.'''
+    blist = []
+    for m in session.models.list(type = PseudbondGroup):
+        pbonds = m.pseudobonds
+        pbsel = pbonds.selected
+        if len(pbsel) > 0:
+            blist.append(pbonds[pbsel])
+    from .molarray import concatenate, Pseudobonds
+    pbonds = concatenate(blist, Pseudobonds)
+    return pbonds
+
+# -----------------------------------------------------------------------------
+#
 def all_pseudobond_groups(models):
     return [m for m in models.list() if isinstance(m, PseudobondGroup)]
 
+# -----------------------------------------------------------------------------
+#
 def interatom_pseudobonds(atoms, group_name = None):
     structures = atoms.unique_structures
     if len(structures) == 0:

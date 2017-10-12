@@ -33,13 +33,16 @@ def style(session, objects=None, atom_style=None, atom_radius=None,
     dashes : int
       Number of dashes shown for pseudobonds.
     '''
-    from ..atomic import all_atoms, Atom
-    atoms = all_atoms(session) if objects is None else objects.atoms
+    if objects is None:
+        from . import atomspec
+        objects = atomspec.all_objects(session)
+    atoms = objects.atoms
 
     from ..undo import UndoState
     undo_state = UndoState("style")
     what = []
     if atom_style is not None:
+        from ..atomic import Atom
         s = {
             'sphere': Atom.SPHERE_STYLE,
             'ball': Atom.BALL_STYLE,
@@ -59,23 +62,17 @@ def style(session, objects=None, atom_style=None, atom_radius=None,
         what.append('%d atom radii' % len(atoms))
 
     if stick_radius is not None:
-        b = atoms.intra_bonds
+        b = objects.bonds
         undo_state.add(b, "radii", b.radii, stick_radius)
         b.radii = stick_radius
         what.append('%d bond radii' % len(b))
 
     if pseudobond_radius is not None:
-        from ..atomic import interatom_pseudobonds, concatenate
-        pb = interatom_pseudobonds(atoms)
+        pb = objects.pseudobonds
         undo_state.add(pb, "radii", pb.radii, pseudobond_radius)
         pb.radii = pseudobond_radius
-        pbs = [pb]
-        for pbg in pseudobond_groups(objects, session, interatom = False):
-            pb = pbg.pseudobonds
-            undo_state.add(pb, "radii", pb.radii, pseudobond_radius)
-            pb.radii = pseudobond_radius
-            pbs.append(pb)
-        what.append('%d pseudobond radii' % len(concatenate(pbs, remove_duplicates=True)))
+        from ..atomic import concatenate
+        what.append('%d pseudobond radii' % len(pb))
 
     if ball_scale is not None:
         mols = atoms.unique_structures
@@ -85,7 +82,7 @@ def style(session, objects=None, atom_style=None, atom_radius=None,
         what.append('%d ball scales' % len(mols))
 
     if dashes is not None:
-        pbgs = pseudobond_groups(objects, session)
+        pbgs = objects.pseudobonds.unique_groups
         for pbg in pbgs:
             undo_state.add(pbg, "dashes", pbg.dashes, dashes)
             pbg.dashes = dashes
@@ -98,31 +95,6 @@ def style(session, objects=None, atom_style=None, atom_radius=None,
         log.info(msg)
 
     session.undo.register(undo_state)
-
-# -----------------------------------------------------------------------------
-#
-def pseudobond_groups(objects, session, interatom = True):
-    from ..atomic import PseudobondGroup, all_atoms
-
-    # Explicitly specified global pseudobond groups
-    models = session.models.list() if objects is None else objects.models
-    pbgs = set(m for m in models if isinstance(m, PseudobondGroup))
-
-    if interatom:
-        atoms = all_atoms(session) if objects is None else objects.atoms
-
-        # Intra-molecular pseudobond groups with bonds between specified atoms.
-        for m in atoms.unique_structures:
-            molpbgs = [pbg for pbg in m.pbg_map.values()
-                       if pbg.pseudobonds.between_atoms(atoms).any()]
-            pbgs.update(molpbgs)
-
-        # Global pseudobond groups with bonds between specified atoms
-        gpbgs = [pbg for pbg in session.models.list(type = PseudobondGroup)
-                 if pbg.pseudobonds.between_atoms(atoms).any()]
-        pbgs.update(gpbgs)
-
-    return pbgs
 
 # -----------------------------------------------------------------------------
 #

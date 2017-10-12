@@ -66,7 +66,7 @@ def show_atoms(session, objects, only, undo_state):
         other_atoms.displays = False
 
 def show_bonds(session, objects, only, undo_state):
-    bonds = objects.atoms.intra_bonds
+    bonds = objects.bonds
     undo_state.add(bonds, "displays", bonds.displays, True)
     bonds.displays = True
     a1, a2 = bonds.atoms
@@ -84,9 +84,7 @@ def show_bonds(session, objects, only, undo_state):
             other_bonds.displays = False
 
 def show_pseudobonds(session, objects, only, undo_state):
-    atoms = objects.atoms
-    from .. import atomic
-    pbonds = atomic.interatom_pseudobonds(atoms)
+    pbonds = objects.pseudobonds
     undo_state.add(pbonds, "displays", pbonds.displays, True)
     pbonds.displays = True
     a1, a2 = pbonds.atoms
@@ -95,10 +93,11 @@ def show_pseudobonds(session, objects, only, undo_state):
     undo_state.add(a2, "displays", a1.displays, True)
     a2.displays = True
     if only:
+        from ..atomic import concatenate
+        atoms = concatenate([a1,a2])
         pbs = sum([[pbg.pseudobonds for pbg in m.pbg_map.values()]
                    for m in atoms.unique_structures], [])
         if pbs:
-            from ..atomic import concatenate
             all_pbonds = concatenate(pbs)
             other_pbonds = all_pbonds - pbonds
             undo_state.add(other_pbonds, "displays", other_pbonds.displays, False)
