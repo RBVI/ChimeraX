@@ -12,16 +12,20 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.commands import CmdDesc
-from chimerax.core.commands import StringArg, BoolArg, FloatArg, IntArg, EnumOf
+from chimerax.core.commands import StringArg, BoolArg, EnumOf, ListOf
 
-OrganizationTypes = ["educational",
-                     "non-profit",
-                     "commercial",
-                     "personal"]
-UsageTypes = ["research",
-              "teaching",
-              "presentation",
-              "personal"]
+ResearchAreas = ["atomic structure analysis",
+                 "cryoEM",
+                 "light microscopy",
+                 "drug design",
+                 "teaching",
+                 "presentation/publication",
+                 "other"]
+FundingSources = ["NIH",
+                  "NSF",
+                  "EMBO",
+                  "Wellcome Trust",
+                  "other"]
 #RegistrationURL = "https://www.rbvi.ucsf.edu/chimerax/cgi-bin/chimerax_registration.py"
 RegistrationURL = "https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/chimerax_registration.py"
 DiscussionURL = "https://www.rbvi.ucsf.edu/mailman/subscribe/chimerax-users"
@@ -35,7 +39,9 @@ for reporting summary usage statistics; no
 individual data will be released."""
 
 
-def register(session, name, email, organization, type, usage, nih_funded,
+def register(session, name, email, organization=None,
+             research=None, research_other="",
+             funding=None, funding_other="",
              join_discussion=False, join_announcements=True):
     from chimerax.core.errors import UserError
     from .nag import check_registration
@@ -46,19 +52,27 @@ def register(session, name, email, organization, type, usage, nih_funded,
     # Normalize input
     name = name.strip()
     email = email.strip()
-    organization = organization.strip()
-    type = type.strip().casefold()
-    usage = usage.strip().casefold()
-    nih_funded = "yes" if nih_funded else ""
+    organization = organization.strip() if organization is not None else ""
+    research = [u.strip() for u in research] if research is not None else []
+    research_other = research_other.strip()
+    funding = [f.strip() for f in funding] if funding is not None else []
+    funding_other = funding_other.strip()
     # Do some error checking
     if not name:
         raise UserError('"Name" field cannot be empty')
     if not email or '@' not in email:
         raise UserError('"E-mail" field cannot be empty or invalid')
+    if "other" in research and not research_other:
+        raise UserError('"Other research area" field cannot be empty '
+                        'when "other" is selected')
+    if "other" in funding and not funding_other:
+        raise UserError('"Other funding source" field cannot be empty '
+                        'when "other" is selected')
 
     # Get registration from server
-    registration = _get_registration(name, email, organization, type,
-                                     usage, nih_funded)
+    registration = _get_registration(name, email, organization,
+                                     research, research_other,
+                                     funding, funding_other)
     from .nag import install
     if not install(session, registration):
         # Do not join mailing lists if we cannot install registration data
@@ -71,7 +85,8 @@ def register(session, name, email, organization, type, usage, nih_funded,
     if join_announcements:
         _subscribe(session, "announcements", AnnouncementsURL, name, email)
 
-def _get_registration(name, email, organization, org_type, usage, nih_funded):
+def _get_registration(name, email, organization, research, research_other,
+                      funding, funding_other):
     from urllib.parse import urlencode
     from urllib.request import urlopen
     from xml.dom import minidom
@@ -79,18 +94,20 @@ def _get_registration(name, email, organization, org_type, usage, nih_funded):
     # Required fields
     params = {
         "action":"Register from ChimeraX",
-        "user":name,
+        "name":name,
         "email":email,
     }
     # Optional fields
     if organization:
         params["organization"] = organization
-    if org_type:
-        params["type"] = org_type
-    if usage:
-        params["usage"] = usage
-    if nih_funded:
-        params["nih"] = nih_funded
+    if research:
+        params["research"] = research
+    if "other" in research:
+        params["research_other"] = research_other
+    if funding:
+        params["funding"] = funding
+    if "other" in funding:
+        params["funding_other"] = funding_other
     with urlopen(RegistrationURL, urlencode(params).encode()) as f:
         text = f.read()
     try:
@@ -140,15 +157,10 @@ def _subscribe(session, label, url, name, email):
 register_desc = CmdDesc(keyword=[("name", StringArg),
                                  ("email", StringArg),
                                  ("organization", StringArg),
-                                 ("type", EnumOf(OrganizationTypes)),
-                                 ("usage", EnumOf(UsageTypes)),
-                                 ("nih_funded", BoolArg),
+                                 ("research", ListOf(EnumOf(ResearchAreas))),
+                                 ("research_other", StringArg),
+                                 ("funding", ListOf(EnumOf(FundingSources))),
+                                 ("funding_other", StringArg),
                                  ("join_discussion", BoolArg),
                                  ("join_announcements", BoolArg)],
-                        required_arguments=[
-                                  "name",
-                                  "email",
-                                  "organization",
-                                  "type",
-                                  "usage",
-                                  "nih_funded"])
+                        required_arguments=["name", "email"])

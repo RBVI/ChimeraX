@@ -56,21 +56,34 @@ class RegistrationUI(ToolInstance):
         with open(html_file) as f:
             html = f.read()
         from .nag import check_registration
-        from .cmd import OrganizationTypes, UsageTypes
+        from .cmd import ResearchAreas, FundingSources
         expiration = check_registration()
         if expiration is not None:
             exp_msg = ("<p>Your copy of ChimeraX is already registered "
                                 "through %s.</p>" % expiration.strftime("%x"))
         else:
             exp_msg = "<p>Your copy of ChimeraX is unregistered.</p>"
-        org_list = ['<input type="radio" name="org_type" value="%s">%s</input>'
-                    % (ot, ot.capitalize()) for ot in OrganizationTypes]
-        usage_list = ['<input type="radio" name="usage" value="%s">%s'
-                      % (u, u.capitalize()) for u in UsageTypes]
         html = html.replace("EXPIRATION_PLACEHOLDER", exp_msg)
-        html = html.replace("ORGTYPE_PLACEHOLDER", ' '.join(org_list))
-        html = html.replace("USAGE_PLACEHOLDER", ' '.join(usage_list))
+        html = html.replace("RESEARCH_PLACEHOLDER",
+                            self._check_list("research", ResearchAreas, True))
+        html = html.replace("FUNDING_PLACEHOLDER",
+                            self._check_list("funding", FundingSources, False))
         self.html_view.setHtml(html)
+
+    def _check_list(self, name, options, cap):
+        lines = []
+        for o in options:
+            if o == "other":
+                line = ('<input type="checkbox" '
+                        'name="%s" value="%s">%s</input>&nbsp;'
+                        '<input style="width:20em;" type="text" '
+                        'name="%s_other"/>'
+                        % (name, o, o.capitalize(), name))
+            else:
+                line = ('<input type="checkbox" name="%s" value="%s">%s</input>'
+                        % (name, o, o if not cap else o.capitalize()))
+            lines.append(line)
+        return '<br/>'.join(lines)
 
     def _navigate(self, info):
         # "info" is an instance of QWebEngineUrlRequestInfo
@@ -89,9 +102,10 @@ class RegistrationUI(ToolInstance):
             "name": ("Name", None),
             "email": ("E-mail", None),
             "org": ("Organization", ""),
-            "org_type": ("Organization type", ""),
-            "usage": ("Primary usage", ""),
-            "nih_funded": ("Funded by NIH", False),
+            "research": ("Research areas", []),
+            "research_other": ("Other research area", ""),
+            "funding": ("Funding sources", []),
+            "funding_other": ("Other funding source", ""),
             "join_discussion": ("Join discussion mailing list", False),
             "join_announcements": ("Join announcements mailing list", False),
         }
@@ -107,13 +121,17 @@ class RegistrationUI(ToolInstance):
                 else:
                     errors.append("Field %r is required." % label)
             else:
-                # Special processing for boolean values.
-                # If checkbox is unchecked, we do not get
-                # anything in the query so we get the default
-                # False value.  If we get anything, we turn
-                # it into True.
+                # We got a list of values (might be only one).
+                # We use the default value type for some further processing.
+
+                # If the default is boolean, make the value True.
                 if default is False:
                     values[name] = True
+                # If the default value is a list,  we use the supplied list.
+                elif isinstance(default, list):
+                    values[name] = value_list
+                # If the default value is not a list, we use the last
+                # supplied value.
                 else:
                     values[name] = value_list[-1]
         if errors:
@@ -121,6 +139,7 @@ class RegistrationUI(ToolInstance):
             return
         from .cmd import register
         register(self.session, values["name"], values["email"], values["org"],
-                 values["org_type"], values["usage"], values["nih_funded"],
+                 values["research"], values["research_other"],
+                 values["funding"], values["funding_other"],
                  join_discussion=values["join_discussion"],
                  join_announcements=values["join_announcements"])
