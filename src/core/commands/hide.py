@@ -41,12 +41,12 @@ def hide(session, objects=None, what=None, target=None):
         atoms.displays = False
         atoms.update_ribbon_visibility()
     if 'bonds' in what_to_hide:
-        bonds = objects.atoms.intra_bonds
+        bonds = objects.bonds
         undo_state.add(bonds, "displays", bonds.displays, False)
         bonds.displays = False
     if 'pseudobonds' in what_to_hide or 'pbonds' in what_to_hide:
         from .. import atomic
-        pbonds = atomic.interatom_pseudobonds(objects.atoms)
+        pbonds = objects.pseudobonds
         undo_state.add(pbonds, "displays", pbonds.displays, False)
         pbonds.displays = False
     if 'cartoons' in what_to_hide or 'ribbons' in what_to_hide:

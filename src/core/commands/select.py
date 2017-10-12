@@ -113,12 +113,20 @@ def report_selection(session):
     from ..atomic import MolecularSurface, Structure    
     mc = len([m for m in s.models() if not isinstance(m, (Structure, MolecularSurface))])
     ac = sum([len(atoms) for atoms in s.items('atoms')], 0)
+    bc = sum([len(bonds) for bonds in s.items('bonds')], 0)
+    pbc = sum([len(pbonds) for pbonds in s.items('pseudobonds')], 0)
     lines = []
-    if mc == 0 and ac == 0:
+    if mc == 0 and ac == 0 and bc == 0 and pbc == 0:
         lines.append('Nothing')
     if ac != 0:
         plural = ('s' if ac > 1 else '')
         lines.append('%d atom%s' % (ac, plural))
+    if bc != 0:
+        plural = ('s' if bc > 1 else '')
+        lines.append('%d bond%s' % (bc, plural))
+    if pbc != 0:
+        plural = ('s' if pbc > 1 else '')
+        lines.append('%d pseudobond%s' % (pbc, plural))
     if mc != 0:
         plural = ('s' if mc > 1 else '')
         lines.append('%d model%s' % (mc, plural))
@@ -126,23 +134,35 @@ def report_selection(session):
 
 def modify_selection(objects, mode, undo_state, full_residues = False):
     select = (mode == 'add')
-    atoms, models = _atoms_and_models(objects, full_residues = full_residues)
+    atoms, bonds, pbonds, models = _atoms_bonds_models(objects, full_residues = full_residues)
     undo_state.add(atoms, "selected", atoms.selected, select)
+    undo_state.add(bonds, "selected", bonds.selected, select)
+    undo_state.add(pbonds, "selected", pbonds.selected, select)
     atoms.selected = select
+    bonds.selected = select
+    pbonds.selected = select
     for m in models:
         undo_state.add(m, "selected", m.selected, select)
         m.selected = select
 
 def intersect_selection(objects, session, undo_state, full_residues = False):
-    atoms, models = _atoms_and_models(objects, full_residues = full_residues)
+    atoms, bonds, pbonds, models = _atoms_bonds_models(objects, full_residues = full_residues)
     from .. import atomic
     selatoms = atomic.selected_atoms(session)
     subatoms = selatoms - atoms
+    selbonds = atomic.selected_bonds(session)
+    subbonds = selbonds - bonds
+    selpbonds = atomic.selected_pseudobonds(session)
+    subpbonds = selpbonds - pbonds
     from ..atomic import Structure
     selmodels = set(m for m in session.selection.models() if not isinstance(m, Structure))
     submodels = selmodels.difference(models)
     undo_state.add(subatoms, "selected", subatoms.selected, False)
+    undo_state.add(subbonds, "selected", subbonds.selected, False)
+    undo_state.add(subpbonds, "selected", subpbonds.selected, False)
     subatoms.selected = False
+    subbonds.selected = False
+    subpbonds.selected = False
     for m in submodels:
         undo_state.add(m, "selected", m.selected, False)
         m.selected = False
@@ -154,27 +174,35 @@ def clear_selection(session, why, undo_state):
     session.selection.clear()
     session.undo.register(undo_state)
 
-def _atoms_and_models(objects, full_residues = False):
+def _atoms_bonds_models(objects, full_residues = False):
     # Treat selecting molecular surface as selecting atoms.
     # Returned models list does not include atomic models
     atoms = objects.atoms
+    bonds = objects.bonds
+    pbonds = objects.pseudobonds
     satoms = []
     models = []
-    from ..atomic import MolecularSurface, Structure
+    from ..atomic import MolecularSurface, Structure, PseudobondGroup
     for m in objects.models:
         if isinstance(m, MolecularSurface):
             if m.has_atom_patches():
                 satoms.append(m.atoms)
             else:
                 models.append(m)
-        elif not isinstance(m, Structure):
+        elif not isinstance(m, (Structure, PseudobondGroup)):
             models.append(m)
     if satoms:
-        from ..atomic import molarray
-        atoms = molarray.concatenate([atoms] + satoms)
+        from ..atomic import concatenate
+        atoms = concatenate([atoms] + satoms)
     if full_residues:
+        if len(bonds) > 0 or len(pbonds) > 0:
+            a1, a2 = bonds.atoms
+            pa1, pa2 = pbonds.atoms
+            from ..atomic import concatenate
+            atoms = concatenate([atoms, a1, a2, pa1, pa2])
         atoms = atoms.unique_residues.atoms
-    return atoms, models
+        bonds = atoms.intra_bonds
+    return atoms, bonds, pbonds, models
 
 def register_command(session):
     from . import CmdDesc, register, ObjectsArg, NoArg, create_alias, AtomsArg, BoolArg

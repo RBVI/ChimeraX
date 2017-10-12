@@ -47,20 +47,22 @@ selection <a href="mousemode.html">with the mouse</a>,
 and arrow-key navigation of the 
 <a href="../selection.html#cascade">selection cascade</a>
 </ul>
+Up to 10 undo/redo actions are remembered.
 Other actions/commands cannot be undone, including 
 <a href="surface.html"><b>surface</b></a>,
 <a href="volume.html"><b>volume</b></a>,
 <a href="set.html"><b>set</b></a>,
 <a href="label.html"><b>label</b></a>, and many others.
 In addition, after a <a href="../selection.html">selection</a> change is undone,
-using <a href="select.html"><b>select down</b></a> or the keyboard down arrow
-to navigate the <a href="../selection.html#cascade">selection cascade</a>
+using <a href="select.html#modify"><b>select down</b></a> or the keyboard down
+arrow to navigate the <a href="../selection.html#cascade">selection cascade</a>
 may not work as expected, although <b>undo/redo</b> can still be used to
 navigate the previous <a href="../selection.html">selection</a> states.
 </p><p>
 The same stack of actions can be undone/redone using the <b>Edit</b> menu
-or the keyboard shortcuts shown in that menu. The <b>Edit</b> menu also
-shows the type of action that would be next undone.
+or the keyboard shortcuts shown in that menu (platform-dependent).
+The <b>Edit</b> menu also shows the type of action that would be next undone,
+with entries grayed out when no actions are available to undo or redo.
 </p>
 
 <hr>

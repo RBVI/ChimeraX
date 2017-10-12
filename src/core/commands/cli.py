@@ -1970,8 +1970,6 @@ def register(name, cmd_desc=(), function=None, *, logger=None, parent_info=None)
         else:
             parent_info.add_subcommand(word, name)
             word_info = parent_info.subcommands[word]
-            if word_info.is_deferred():
-                word_info.lazy_register()
         parent_info = word_info
 
     if isinstance(function, _Defer):

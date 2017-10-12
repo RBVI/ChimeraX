@@ -196,6 +196,8 @@ class Atom(State):
     residue = c_property('atom_residue', cptr, astype = _residue, read_only = True,
         doc = ":class:`Residue` the atom belongs to.")
     selected = c_property('atom_selected', npy_bool, doc="Whether the atom is selected.")
+    has_selected_bond = c_property('atom_has_selected_bond', npy_bool, read_only = True,
+                                   doc = "Whether any connected bond is selected.")
     serial_number = c_property('atom_serial_number', int32,
         doc="Atom serial number from input file.")
     structure = c_property('atom_structure', cptr, astype=_atomic_structure, read_only=True,
@@ -482,8 +484,14 @@ class Bond(State):
     '''Hide mask for backbone bonds in ribbon.'''
     HIDE_ISOLDE = 0x2
     '''Hide mask for backbone bonds for ISOLDE.'''
+    HIDE_NUCLEOTIDE = 0x4
+    '''Hide mask for sidechain atoms in nucleotides.'''
     hide = c_property('bond_hide', int32)
     '''Whether bond is hidden (overrides display).  Integer bitmask.'''
+    selected = c_property('bond_selected', npy_bool)
+    '''Whether the bond is selected.'''
+    ends_selected = c_property('bond_ends_selected', npy_bool, read_only = True)
+    '''Whether both bond end atoms are selected.'''
     shown = c_property('bond_shown', npy_bool, read_only = True)
     '''Whether bond is visible and both atoms are shown and at least one is not Sphere style. Read only.'''
     structure = c_property('bond_structure', cptr, astype = _atomic_structure, read_only = True)
@@ -582,6 +590,8 @@ class Pseudobond(State):
     '''
     radius = c_property('pseudobond_radius', float32)
     '''Displayed cylinder radius for the bond.'''
+    selected = c_property('pseudobond_selected', npy_bool)
+    '''Whether the pseudobond is selected.'''
     shown = c_property('pseudobond_shown', npy_bool, read_only = True)
     '''Whether bond is visible and both atoms are shown. Read only.'''
     shown_when_atoms_hidden = c_property('pseudobond_shown_when_atoms_hidden', npy_bool, doc =
