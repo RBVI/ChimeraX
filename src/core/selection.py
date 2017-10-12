@@ -152,16 +152,22 @@ class SelectionPromoter:
         if len(promotions) == 0 or promotions[0].level <= level:
             # Check if some but not all children are selected.
             nsel = [c for c in children if c not in sel]
-            if nsel and len(nsel) < len(children):
-                for c in nsel:
-                    self._add_promotion(ModelSelectionPromotion(c,level+0.5), promotions)
+            if nsel:
+                if len(nsel) < len(children):
+                    # Some children are selected so select all children
+                    for c in nsel:
+                        self._add_promotion(ModelSelectionPromotion(c,level+0.5), promotions)
+            elif children and not drawing.selected and drawing is not self._drawing:
+                # All children selected so select parent
+                self._add_promotion(ModelSelectionPromotion(drawing,level), promotions)
 
             # Check if some but not all instances are selected.
             sp = drawing.selected_positions
             if sp is not None:
                 ns = sp.sum()
                 if ns < len(sp) and ns > 0:
-                    self._add_promotion(ModelSelectionPromotion(drawing,level), promotions)
+                    # Some instances are selected so select all instances
+                    self._add_promotion(ModelSelectionPromotion(drawing,level + 0.3), promotions)
                     sel.add(drawing)
 
     def _add_promotion(self, p, promotions):
