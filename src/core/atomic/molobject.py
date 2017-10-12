@@ -478,6 +478,8 @@ class Bond(State):
     '''Hide mask for backbone bonds in ribbon.'''
     HIDE_ISOLDE = 0x2
     '''Hide mask for backbone bonds for ISOLDE.'''
+    HIDE_NUCLEOTIDE = 0x4
+    '''Hide mask for sidechain atoms in nucleotides.'''
     hide = c_property('bond_hide', int32)
     '''Whether bond is hidden (overrides display).  Integer bitmask.'''
     selected = c_property('bond_selected', npy_bool)
