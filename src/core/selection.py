@@ -66,17 +66,17 @@ class Selection:
         session.undo.register(undo_state)
 
     def undo_add_selected(self, undo_state, new_state, old_state=None):
-        from .atomic.molarray import Atoms
-        atoms = self.items("atoms")
-        if atoms:
-            if isinstance(atoms, Atoms):
-                orig = self._orig_state(atoms, old_state)
-                undo_state.add(atoms, "selected", orig, new_state)
-            else:
-                for a in atoms:
-                    orig = self._orig_state(a, old_state)
-
-                    undo_state.add(a, "selected", orig, new_state)
+        from .atomic import Atoms, Bonds, Pseudobonds
+        for oname, otype in (('atoms', Atoms), ('bonds', Bonds), ('pseudobonds', Pseudobonds)):
+            items = self.items(oname)
+            if items:
+                if isinstance(items, otype):
+                    orig = self._orig_state(items, old_state)
+                    undo_state.add(items, "selected", orig, new_state)
+                else:
+                    for i in items:
+                        orig = self._orig_state(i, old_state)
+                        undo_state.add(i, "selected", orig, new_state)
         models = [m for m in self.all_models() if m.selected]
         if models:
             for m in models:
