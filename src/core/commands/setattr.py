@@ -54,30 +54,12 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False):
         items = objects.models
         target = "models"
     elif "bonds".startswith(target):
-        items = atoms.intra_bonds
+        items = objects.bonds
     elif "pseudobonds".startswith(target):
-        if atoms:
-            items = atoms.intra_pseudobonds
-        else:
-            pb_grps = []
-            from ..atomic import PseudobondGroup, concatenate
-            for m in objects.models:
-                if isinstance(m, PseudobondGroup):
-                    pb_grps.append(m)
-            if pb_grps:
-                items = concatenate([g.pseudobonds for g in pb_grps])
-            else:
-                items = None
+        items = objects.pseudobonds
         target = "pseudobonds"
     elif "groups".startswith(target):
-        if atoms:
-            items = atoms.intra_pseudobonds.unique_groups
-        else:
-            items = []
-            from ..atomic import PseudobondGroup, concatenate
-            for m in objects.models:
-                if isinstance(m, PseudobondGroup):
-                    items.append(m)
+        items = objects.pseudobonds.unique_groups
         target = "groups"
     elif "surfaces".startswith(target):
         from . import MolecularSurface

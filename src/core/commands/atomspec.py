@@ -532,6 +532,8 @@ def _add_model_parts(session, model, sub_parts, results):
     if not model.atomspec_has_atoms():
         if not sub_parts:
             results.add_model(model)
+            if model.atomspec_has_pseudobonds():
+                results.add_pseudobonds(model.atomspec_pseudobonds())
         return
     atoms = model.atomspec_atoms()
     if not sub_parts:
@@ -781,6 +783,7 @@ class AtomSpec:
             results = Objects.intersect(left_results, right_results)
         else:
             raise RuntimeError("unknown operator: %s" % repr(self._operator))
+        results.add_bonds(results.atoms.intra_bonds)
         return results
 
     def find_matches(self, session, models, results):

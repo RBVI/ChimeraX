@@ -52,7 +52,7 @@ def _element_selector(symbol, models, results):
             atoms = m.atoms.filter(m.atoms.element_names == symbol)
             if len(atoms) > 0:
                 results.add_model(m)
-                results.add_atoms(atoms)
+                results.add_atoms(atoms, bonds=True)
 
 def _idatm_selector(symbol, models, results):
     from ..atomic import Structure
@@ -61,10 +61,10 @@ def _idatm_selector(symbol, models, results):
             atoms = m.atoms.filter(m.atoms.idatm_types == symbol)
             if len(atoms) > 0:
                 results.add_model(m)
-                results.add_atoms(atoms)
+                results.add_atoms(atoms, bonds=True)
 
 def _sel_selector(session, models, results):
-    from ..atomic import Structure
+    from ..atomic import Structure, PseudobondGroup
     for m in models:
         if m.selected:
             results.add_model(m)
@@ -76,6 +76,13 @@ def _sel_selector(session, models, results):
         if isinstance(m, Structure):
             for atoms in m.selected_items('atoms'):
                 results.add_atoms(atoms)
+            for bonds in m.selected_items('bonds'):
+                results.add_bonds(bonds)
+        if isinstance(m, PseudobondGroup):
+            pbonds = m.pseudobonds
+            bsel = pbonds.selected
+            if bsel.any():
+                results.add_pseudobonds(pbonds[bsel])
 
 def _nonmodel_child_selected(m):
     from ..models import Model
@@ -90,7 +97,7 @@ def _all_selector(session, models, results):
     for m in models:
         results.add_model(m)
         if isinstance(m, Structure):
-            results.add_atoms(m.atoms)
+            results.add_atoms(m.atoms, bonds=True)
 
 def _strands_selector(session, models, results):
     from ..atomic import Structure
@@ -99,7 +106,7 @@ def _strands_selector(session, models, results):
             strands = m.residues.filter(m.residues.is_strand)
             if strands:
                 results.add_model(m)
-                results.add_atoms(strands.atoms)
+                results.add_atoms(strands.atoms, bonds=True)
 
 def _structure_category_selector(cat, models, results):
     from ..atomic import Structure
@@ -108,7 +115,7 @@ def _structure_category_selector(cat, models, results):
             atoms = m.atoms.filter(m.atoms.structure_categories == cat)
             if len(atoms) > 0:
                 results.add_model(m)
-                results.add_atoms(atoms)
+                results.add_atoms(atoms, bonds=True)
 
 def _helices_selector(session, models, results):
     from ..atomic import Structure
@@ -117,7 +124,7 @@ def _helices_selector(session, models, results):
             helices = m.residues.filter(m.residues.is_helix)
             if helices:
                 results.add_model(m)
-                results.add_atoms(helices.atoms)
+                results.add_atoms(helices.atoms, bonds=True)
 
 def _coil_selector(session, models, results):
     from ..atomic import Structure
@@ -132,7 +139,7 @@ def _coil_selector(session, models, results):
             coil = coil.filter(coil.existing_principal_atoms.names == "CA")
             if coil:
                 results.add_model(m)
-                results.add_atoms(coil.atoms)
+                results.add_atoms(coil.atoms, bonds=True)
 
 def _polymer_selector(models, results, protein):
     from ..atomic import Structure
@@ -145,27 +152,24 @@ def _polymer_selector(models, results, protein):
                 residues = pas.residues.filter(pas.names!="CA")
             if residues:
                 results.add_model(m)
-                results.add_atoms(residues.atoms)
+                results.add_atoms(residues.atoms, bonds=True)
 
 def _pbonds_selector(session, models, results):
-    from ..atomic import Structure, structure_atoms, interatom_pseudobonds
-    atoms = structure_atoms([m for m in models if isinstance(m, Structure)])
-    pbonds = interatom_pseudobonds(atoms)
-    a1, a2 = pbonds.atoms
-    atoms = a1 | a2
-    for m in atoms.unique_structures:
+    from ..atomic import Pseudobonds, PseudobondGroup, concatenate
+    pbonds = concatenate([pbg.pseudobonds for pbg in models if isinstance(pbg, PseudobondGroup)],
+                         Pseudobonds)
+    results.add_pseudobonds(pbonds)
+    for m in pbonds.unique_groups:
         results.add_model(m)
-    results.add_atoms(atoms)
 
 def _hbonds_selector(session, models, results):
-    from ..atomic import Structure, structure_atoms, interatom_pseudobonds
-    atoms = structure_atoms([m for m in models if isinstance(m, Structure)])
-    pbonds = interatom_pseudobonds(atoms, group_name = 'hydrogen bonds')
-    a1, a2 = pbonds.atoms
-    atoms = a1 | a2
-    for m in atoms.unique_structures:
+    from ..atomic import Pseudobonds, PseudobondGroup, concatenate
+    pbonds = concatenate([pbg.pseudobonds for pbg in models
+                          if isinstance(pbg, PseudobondGroup) and pbg.category == 'hydrogen bonds'],
+                         Pseudobonds)
+    results.add_pseudobonds(pbonds)
+    for m in pbonds.unique_groups:
         results.add_model(m)
-    results.add_atoms(atoms)
 
 def _backbone_selector(session, models, results):
     from ..atomic import Structure, structure_atoms
@@ -174,7 +178,7 @@ def _backbone_selector(session, models, results):
     if backbone:
         for m in backbone.unique_structures:
             results.add_model(m)
-        results.add_atoms(backbone)
+        results.add_atoms(backbone, bonds=True)
 
 def _sidechain_selector(session, models, results):
     from ..atomic import Structure, structure_atoms
@@ -183,7 +187,7 @@ def _sidechain_selector(session, models, results):
     if sidechain:
         for m in sidechain.unique_structures:
             results.add_model(m)
-        results.add_atoms(sidechain)
+        results.add_atoms(sidechain, bonds=True)
 
 def _sideonly_selector(session, models, results):
     from ..atomic import Structure, structure_atoms
@@ -192,7 +196,7 @@ def _sideonly_selector(session, models, results):
     if sideonly:
         for m in sideonly.unique_structures:
             results.add_model(m)
-        results.add_atoms(sideonly)
+        results.add_atoms(sideonly, bonds=True)
 
 def _ribose_selector(session, models, results):
     from ..atomic import Structure, structure_atoms
@@ -201,4 +205,4 @@ def _ribose_selector(session, models, results):
     if ribose:
         for m in ribose.unique_structures:
             results.add_model(m)
-        results.add_atoms(ribose)
+        results.add_atoms(ribose, bonds=True)

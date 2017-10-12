@@ -13,7 +13,6 @@ class ConnectivityError(ValueError):
 class AtomTypeError(ValueError):
     pass
 
-@line_profile
 def test_phi(dp, ap, bp, phi_plane, phi):
     if phi_plane:
         normal = cross(phi_plane[1] - phi_plane[0],
@@ -36,32 +35,31 @@ def test_phi(dp, ap, bp, phi_plane, phi):
             print("phi criteria irrelevant")
     return True
 
-@line_profile
 def get_phi_plane_params(acceptor, bonded1, bonded2):
-    ap = acceptor.scene_coord
+    ap = acceptor._hb_coord
     if bonded2:
         # two principal bonds
         phi_plane = [ap]
         mid_point = zeros(3)
         for bonded in [bonded1, bonded2]:
-            pt = bonded.scene_coord
+            pt = bonded._hb_coord
             phi_plane.append(pt)
             mid_point = mid_point + pt
         phi_base_pos = mid_point / 2.0
     elif bonded1:
         # one principal bond
-        phi_base_pos = bonded1.scene_coord
+        phi_base_pos = bonded1._hb_coord
         grand_bonded = list(bonded1.neighbors)
         if acceptor in grand_bonded:
             grand_bonded.remove(acceptor)
         else:
             raise ValueError("Acceptor %s not found in bond list of %s" % (acceptor, bonded1))
         if len(grand_bonded) == 1:
-            phi_plane = [ap, bonded1.scene_coord, grand_bonded[0].scene_coord]
+            phi_plane = [ap, bonded1._hb_coord, grand_bonded[0]._hb_coord]
         elif len(grand_bonded) == 2:
             phi_plane = [ap]
             for gb in grand_bonded:
-                phi_plane.append(gb.scene_coord)
+                phi_plane.append(gb._hb_coord)
         elif len(grand_bonded) == 0:
             # e.g. O2
             phi_plane = None
@@ -72,12 +70,10 @@ def get_phi_plane_params(acceptor, bonded1, bonded2):
         return None, None
     return phi_plane, phi_base_pos
 
-@line_profile
 def project(point, normal, D):
     # project point into plane defined by normal and D.
     return point - normal * (dot(normal, point) - D)
 
-@line_profile
 def test_theta(dp, donor_hyds, ap, theta):
     if len(donor_hyds) == 0:
         if hbond.verbose:
@@ -94,7 +90,6 @@ def test_theta(dp, donor_hyds, ap, theta):
 
     return False
 
-@line_profile
 def sulphur_compensate(base_r2):
     from .hbond import _compute_cache
     try:

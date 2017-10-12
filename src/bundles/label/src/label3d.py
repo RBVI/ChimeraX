@@ -143,19 +143,11 @@ def objects_by_model(objects, object_type):
         res = atoms.residues.unique()
         model_objects = res.by_structure
     elif object_type == 'pseudobonds':
-        from chimerax.core.atomic import interatom_pseudobonds, PseudobondGroup
-        pbonds = interatom_pseudobonds(atoms)
+        pbonds = objects.pseudobonds
         model_objects = pbonds.by_group
-        pbgs = set(g for g,pbs in model_objects)
-        pbgroups = [(pbg, pbg.pseudobonds) for pbg in objects.models
-                    if isinstance(pbg, PseudobondGroup) and pbg not in pbgs]
-        model_objects.extend(pbgroups)
     elif object_type == 'bonds':
-        model_objects = []
-        for s,satoms in atoms.by_structure:
-            bonds = satoms.intra_bonds
-            if len(bonds) > 0:
-                model_objects.append((s, bonds))
+        bonds = objects.bonds
+        model_objects = bonds.by_structure
     return model_objects
 
 # -----------------------------------------------------------------------------

@@ -1386,9 +1386,12 @@ Structure::set_active_coord_set(CoordSet *cs)
     }
     if (_active_coord_set != new_active) {
         _active_coord_set = new_active;
-        set_gc_shape();
-        set_gc_ribbon();
-        change_tracker()->add_modified(this, ChangeTracker::REASON_ACTIVE_COORD_SET);
+        pb_mgr().change_cs(new_active);
+        if (active_coord_set_change_notify()) {
+            set_gc_shape();
+            set_gc_ribbon();
+            change_tracker()->add_modified(this, ChangeTracker::REASON_ACTIVE_COORD_SET);
+        }
     }
 }
 

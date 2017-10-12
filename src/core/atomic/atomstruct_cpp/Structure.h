@@ -119,6 +119,7 @@ public:
                        RIBBON_TETHER_REVERSE_CONE = 1,
                        RIBBON_TETHER_CYLINDER = 2 };
 protected:
+    bool  _active_coord_set_change_notify = true;
     CoordSet *  _active_coord_set;
     bool  _alt_loc_change_notify = true;
     Atoms  _atoms;
@@ -191,6 +192,7 @@ public:
     Structure(PyObject* logger = nullptr);
     virtual  ~Structure();
 
+    bool  active_coord_set_change_notify() const { return _active_coord_set_change_notify; }
     CoordSet*  active_coord_set() const { return _active_coord_set; };
     bool  alt_loc_change_notify() const { return _alt_loc_change_notify; }
     bool  asterisks_translated;
@@ -269,6 +271,7 @@ public:
     mutable std::unordered_map<const Residue*, size_t>  *session_save_residues;
     void  session_save_setup() const;
     void  session_save_teardown() const;
+    void  set_active_coord_set_change_notify(bool cn) { _active_coord_set_change_notify = cn; }
     void  set_active_coord_set(CoordSet *cs);
     void  set_alt_loc_change_notify(bool cn) { _alt_loc_change_notify = cn; }
     void  set_ball_scale(float bs) {

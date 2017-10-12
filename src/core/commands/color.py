@@ -87,8 +87,8 @@ def color(session, objects, color=None, what=None,
     if getattr(color, 'explicit_transparency', False):
         opacity = color.uint8x4()[3]
 
-    if halfbond is not None and atoms is not None:
-        bonds = atoms.intra_bonds
+    if halfbond is not None:
+        bonds = objects.bonds
         if len(bonds) > 0:
             undo_state.add(bonds, "halfbonds", bonds.halfbonds, halfbond)
             bonds.halfbonds = halfbond
@@ -158,9 +158,9 @@ def color(session, objects, color=None, what=None,
         _set_ribbon_colors(residues, color, opacity, bgcolor, undo_state)
         what.append('%d residues' % len(residues))
 
-    if 'b' in target and color is not None:
-        if atoms is not None:
-            bonds = atoms.intra_bonds
+    if 'b' in target:
+        if color not in _SpecialColors and color is not None:
+            bonds = objects.bonds
             if len(bonds) > 0:
                 if color not in _SpecialColors:
                     color_array = color.uint8x4()
@@ -169,28 +169,13 @@ def color(session, objects, color=None, what=None,
                     what.append('%d bonds' % len(bonds))
 
     if 'p' in target:
-        bl = []
-        apbgs = set()
-        if atoms is not None:
-            from .. import atomic
-            bonds = atomic.interatom_pseudobonds(atoms)
-            if len(bonds) > 0:
-                if color not in _SpecialColors and color is not None:
-                    color_array = color.uint8x4()
-                    undo_state.add(bonds, "colors", bonds.colors, color_array)
-                    bonds.colors = color_array
-                    bl.append(bonds)
-                    apbgs.update(bonds.groups.unique())
-        from ..atomic import PseudobondGroup
-        for pbg in objects.models:
-            if isinstance(pbg, PseudobondGroup) and pbg not in apbgs:
-                if color not in _SpecialColors and color is not None:
-                    color_array = color.uint8x4()
-                    undo_state.add(pbg, "color", pbg.color, color_array)
-                    pbg.color = color_array
-                    bl.append(pbg.pseudobonds)
-        if bl:
-            what.append('%d pseudobonds' % len(atomic.concatenate(bl, remove_duplicates = True)))
+        if color not in _SpecialColors and color is not None:
+            pbonds = objects.pseudobonds
+            if len(pbonds) > 0:
+                color_array = color.uint8x4()
+                undo_state.add(pbonds, "colors", pbonds.colors, color_array)
+                pbonds.colors = color_array
+                what.append('%d pseudobonds' % len(pbonds))
 
     if 'd' in target:
         if not default_target:

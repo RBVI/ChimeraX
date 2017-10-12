@@ -26,11 +26,15 @@ def open(paths):
     # 3d images.
     grids = []
     series_check = True
+    fpaths = set()
     for p in paths:
       tiff_type = tiff_format(p)
       if tiff_type == 'OME':
+        if p in fpaths:
+          continue	# OME file already referenced by a previous OME file.
         from . import ome_tiff
-        grids.extend(ome_tiff.ome_image_grids(p))
+        pgrids = ome_tiff.ome_image_grids(p, fpaths)
+        grids.extend(pgrids)
         series_check = False
       elif tiff_type == 'ImageJ':
         from . import imagej_tiff
@@ -104,7 +108,7 @@ def tiff_format(path):
   if path.endswith('.tif') or path.endswith('.tiff'):
     from PIL import Image
     i = Image.open(path)
-    description_tags = i.tag[270]
+    description_tags = i.tag[270] if 270 in i.tag else []
     for d in description_tags:
       if d.startswith('<?xml'):
         return 'OME'

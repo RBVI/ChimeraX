@@ -1083,6 +1083,25 @@ extern "C" EXPORT size_t atom_num_selected(void *atoms, size_t n)
     }
 }
 
+extern "C" EXPORT void atom_has_selected_bond(void *atoms, size_t n, npy_bool *sel)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            const Atom::Bonds &b = a[i]->bonds();
+	    sel[i] = false;
+            for (size_t j = 0; j != b.size(); ++j)
+	      if (b[j]->selected())
+		{
+		  sel[i] = true;
+		  break;
+		}
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void atom_update_ribbon_visibility(void *atoms, size_t n)
 {
     Atom **a = static_cast<Atom **>(atoms);
@@ -1300,6 +1319,31 @@ extern "C" EXPORT PyObject *bond_rings(void *bond, bool cross_residue, int all_s
     }
 }
 
+extern "C" EXPORT void bond_selected(void *bonds, size_t n, npy_bool *sel)
+{
+    Bond **b = static_cast<Bond **>(bonds);
+    error_wrap_array_get<Bond, bool, npy_bool>(b, n, &Bond::selected, sel);
+}
+
+extern "C" EXPORT void set_bond_selected(void *bonds, size_t n, npy_bool *sel)
+{
+    Bond **b = static_cast<Bond **>(bonds);
+    error_wrap_array_set<Bond, bool, npy_bool>(b, n, &Bond::set_selected, sel);
+}
+
+extern "C" EXPORT void bond_ends_selected(void *bonds, size_t n, npy_bool *sel)
+{
+    Bond **b = static_cast<Bond **>(bonds);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            const Bond::Atoms &a = b[i]->atoms();
+	    sel[i] = (a[0]->selected() && a[1]->selected());
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void bond_shown(void *bonds, size_t n, npy_bool *shown)
 {
     Bond **b = static_cast<Bond **>(bonds);
@@ -1313,6 +1357,20 @@ extern "C" EXPORT int bonds_num_shown(void *bonds, size_t n)
     try {
         for (size_t i = 0; i < n; ++i)
           if (b[i]->shown())
+            count += 1;
+    } catch (...) {
+        molc_error();
+    }
+    return count;
+}
+
+extern "C" EXPORT int bonds_num_selected(void *bonds, size_t n)
+{
+    Bond **b = static_cast<Bond **>(bonds);
+    int count = 0;
+    try {
+        for (size_t i = 0; i < n; ++i)
+          if (b[i]->selected())
             count += 1;
     } catch (...) {
         molc_error();
@@ -1573,6 +1631,32 @@ extern "C" EXPORT void pseudobond_radius(void *pbonds, size_t n, float32_t *radi
     error_wrap_array_get<Pseudobond, float>(b, n, &Pseudobond::radius, radii);
 }
 
+extern "C" EXPORT void pseudobond_selected(void *pbonds, size_t n, npy_bool *sel)
+{
+    Pseudobond **b = static_cast<Pseudobond **>(pbonds);
+    error_wrap_array_get<Pseudobond, bool, npy_bool>(b, n, &Pseudobond::selected, sel);
+}
+
+extern "C" EXPORT void set_pseudobond_selected(void *pbonds, size_t n, npy_bool *sel)
+{
+    Pseudobond **b = static_cast<Pseudobond **>(pbonds);
+    error_wrap_array_set<Pseudobond, bool, npy_bool>(b, n, &Pseudobond::set_selected, sel);
+}
+
+extern "C" EXPORT int pseudobonds_num_selected(void *bonds, size_t n)
+{
+    Bond **b = static_cast<Bond **>(bonds);
+    int count = 0;
+    try {
+        for (size_t i = 0; i < n; ++i)
+          if (b[i]->selected())
+            count += 1;
+    } catch (...) {
+        molc_error();
+    }
+    return count;
+}
+
 extern "C" EXPORT void pseudobond_shown(void *pbonds, size_t n, npy_bool *shown)
 {
     Pseudobond **b = static_cast<Pseudobond **>(pbonds);
@@ -1723,6 +1807,20 @@ extern "C" EXPORT void *pseudobond_group_new_pseudobond(void *pbgroup, void *ato
     }
 }
 
+extern "C" EXPORT void *pseudobond_group_new_pseudobond_csid(void *pbgroup,
+    void *atom1, void *atom2, int cs_id)
+{
+    Proxy_PBGroup *pbg = static_cast<Proxy_PBGroup *>(pbgroup);
+    try {
+        Pseudobond *b = pbg->new_pseudobond(static_cast<Atom *>(atom1), static_cast<Atom *>(atom2),
+            pbg->structure()->find_coord_set(cs_id));
+        return b;
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
 extern "C" EXPORT void pseudobond_group_structure(void *pbgroups, size_t n, pyobject_t *resp)
 {
     Proxy_PBGroup **pbgs = static_cast<Proxy_PBGroup **>(pbgroups);
@@ -1752,6 +1850,29 @@ extern "C" EXPORT void pseudobond_group_pseudobonds(void *pbgroups, size_t n, py
         for (size_t i = 0 ; i != n ; ++i)
             for (auto pb: pbg[i]->pseudobonds())
                 *pseudobonds++ = pb;
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT size_t pseudobond_group_get_num_pseudobonds(void *pbgroup, int cs_id)
+{
+    Proxy_PBGroup *pbg = static_cast<Proxy_PBGroup *>(pbgroup);
+    try {
+        return pbg->pseudobonds(pbg->structure()->find_coord_set(cs_id)).size();
+    } catch (...) {
+        molc_error();
+    }
+    return 0;
+}
+
+extern "C" EXPORT void pseudobond_group_get_pseudobonds(void *pbgroup, int cs_id,
+    Pseudobond **pb_ptrs)
+{
+    Proxy_PBGroup *pbg = static_cast<Proxy_PBGroup *>(pbgroup);
+    try {
+        for (auto pb: pbg->pseudobonds(pbg->structure()->find_coord_set(cs_id)))
+            *pb_ptrs++ = pb;
     } catch (...) {
         molc_error();
     }
@@ -3482,6 +3603,18 @@ extern "C" EXPORT void structure_lower_case_chains(void *mols, size_t n, npy_boo
     } catch (...) {
         molc_error();
     }
+}
+
+extern "C" EXPORT void structure_active_coordset_change_notify(void *structures, size_t n, npy_bool *accn)
+{
+    Structure **s = static_cast<Structure **>(structures);
+    error_wrap_array_get(s, n, &Structure::active_coord_set_change_notify, accn);
+}
+
+extern "C" EXPORT void set_structure_active_coordset_change_notify(void *structures, size_t n, npy_bool *accn)
+{
+    Structure **s = static_cast<Structure **>(structures);
+    error_wrap_array_set(s, n, &Structure::set_active_coord_set_change_notify, accn);
 }
 
 extern "C" EXPORT void structure_alt_loc_change_notify(void *structures, size_t n, npy_bool *alcn)

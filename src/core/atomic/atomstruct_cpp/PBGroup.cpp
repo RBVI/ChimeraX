@@ -89,6 +89,13 @@ StructurePBGroup::clear()
     _pbonds.clear();
 }
 
+void
+CS_PBGroup::change_cs(const CoordSet*)
+{
+    if (structure()->active_coord_set_change_notify())
+        set_gc_display();
+}
+
 CS_PBGroup::~CS_PBGroup()
 {
     _destruction_relevant = false;

@@ -43,6 +43,11 @@ BaseManager::change_category(Proxy_PBGroup* grp, std::string& category)
     _groups.erase(grp->category());
     _groups[category] = grp;
 }
+void
+AS_PBManager::change_cs(const CoordSet* cs)
+{
+    for (auto pbg_info: _groups) pbg_info.second->change_cs(cs);
+}
 
 void
 BaseManager::clear()

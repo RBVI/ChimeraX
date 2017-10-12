@@ -414,7 +414,7 @@ class Structure(Model, StructureData):
             p.colors = bonds.half_colors
             
         if changes & self._SELECT_CHANGE:
-            p.selected_positions = _selected_bond_cylinders(bonds.atoms)
+            p.selected_positions = _selected_bond_cylinders(bonds)
 
     def _custom_bond_x3d(self, stream, x3d_scene, indent, place):
         from numpy import empty, float32
@@ -1704,10 +1704,14 @@ class Structure(Model, StructureData):
             atoms = self.atoms
             if atoms.num_selected > 0:
                 return [atoms.filter(atoms.selected)]
+        elif itype == 'bonds':
+            bonds = self.bonds
+            if bonds.num_selected > 0:
+                return [bonds.filter(bonds.selected)]
         return []
 
     def any_part_selected(self):
-        if self.atoms.num_selected > 0:
+        if self.atoms.num_selected > 0 or self.bonds.num_selected > 0:
             return True
         for c in self.child_models():
             if c.any_part_selected():
@@ -1717,47 +1721,56 @@ class Structure(Model, StructureData):
     def clear_selection(self):
         self.selected = False
         self.atoms.selected = False
+        self.bonds.selected = False
 
     def selection_promotion(self):
         atoms = self.atoms
-        n = atoms.num_selected
-        if n == 0 or n == len(atoms):
+        bonds = self.bonds
+        na = atoms.num_selected
+        nb = bonds.num_selected
+        if (na == 0 and nb == 0) or (na == len(atoms) and nb == len(bonds)):
             return None
         asel = atoms.selected
+        bsel = bonds.selected
 
-        r = atoms.residues
-        rids = r.unique_ids
-        from numpy import unique, in1d
-        sel_rids = unique(rids[asel])
-        ares = in1d(rids, sel_rids)
-        if ares.sum() > n:
-            # Promote to entire residues
-            level = 1004
-            psel = ares
+        if nb > 0 and not bonds[bsel].ends_selected.all():
+            # Promote to include selected bond atoms
+            level = 1005
+            psel = asel | atoms.has_selected_bonds
         else:
-            ssids = r.secondary_structure_ids
-            sel_ssids = unique(ssids[asel])
-            ass = in1d(ssids, sel_ssids)
-            if ass.sum() > n:
-                # Promote to secondary structure
-                level = 1003
-                psel = ass
+            r = atoms.residues
+            rids = r.unique_ids
+            from numpy import unique, in1d
+            sel_rids = unique(rids[asel])
+            ares = in1d(rids, sel_rids)
+            if ares.sum() > na:
+                # Promote to entire residues
+                level = 1004
+                psel = ares
             else:
-                from numpy import array
-                cids = array(r.chain_ids)
-                sel_cids = unique(cids[asel])
-                ac = in1d(cids, sel_cids)
-                if ac.sum() > n:
-                    # Promote to entire chains
-                    level = 1002
-                    psel = ac
+                ssids = r.secondary_structure_ids
+                sel_ssids = unique(ssids[asel])
+                ass = in1d(ssids, sel_ssids)
+                if ass.sum() > na:
+                    # Promote to secondary structure
+                    level = 1003
+                    psel = ass
                 else:
-                    # Promote to entire molecule
-                    level = 1001
-                    ac[:] = True
-                    psel = ac
+                    from numpy import array
+                    cids = array(r.chain_ids)
+                    sel_cids = unique(cids[asel])
+                    ac = in1d(cids, sel_cids)
+                    if ac.sum() > na:
+                        # Promote to entire chains
+                        level = 1002
+                        psel = ac
+                    else:
+                        # Promote to entire molecule
+                        level = 1001
+                        ac[:] = True
+                        psel = ac
 
-        return PromoteAtomSelection(self, level, psel, asel)
+        return PromoteAtomSelection(self, level, psel, asel, bsel)
 
     def surfaces(self):
         '''List of :class:`.MolecularSurface` objects for this structure.'''
@@ -2428,15 +2441,20 @@ class LevelOfDetail(State):
 #
 from ..selection import SelectionPromotion
 class PromoteAtomSelection(SelectionPromotion):
-    def __init__(self, structure, level, atom_sel_mask, prev_sel_mask):
+    def __init__(self, structure, level, atom_sel_mask, prev_atom_sel_mask, prev_bond_sel_mask):
         SelectionPromotion.__init__(self, level)
         self._structure = structure
         self._atom_sel_mask = atom_sel_mask
-        self._prev_sel_mask = prev_sel_mask
+        self._prev_atom_sel_mask = prev_atom_sel_mask
+        self._prev_bond_sel_mask = prev_bond_sel_mask
     def promote(self):
-        self._structure.atoms.selected = self._atom_sel_mask
+        atoms = self._structure.atoms
+        atoms.selected = asel = self._atom_sel_mask
+        atoms[asel].intra_bonds.selected = True
     def demote(self):
-        self._structure.atoms.selected = self._prev_sel_mask
+        s = self._structure
+        s.atoms.selected = self._prev_atom_sel_mask
+        s.bonds.selected = self._prev_bond_sel_mask
 
 # -----------------------------------------------------------------------------
 #
@@ -2530,8 +2548,18 @@ class PickedBond(Pick):
             return a1.residue
         return None
     def select(self, mode = 'add'):
-        for a in self.bond.atoms:
-            select_atom(a, mode)
+        select_bond(self.bond, mode)
+
+# -----------------------------------------------------------------------------
+#
+def select_bond(b, mode = 'add'):
+    if mode == 'add':
+        s = True
+    elif mode == 'subtract':
+        s = False
+    elif mode == 'toggle':
+        s = not b.selected
+    b.selected = s
 
 # -----------------------------------------------------------------------------
 #
@@ -2548,8 +2576,7 @@ class PickedPseudobond(Pick):
             return a1.residue
         return None
     def select(self, mode = 'add'):
-        for a in self.pbond.atoms:
-            select_atom(a, mode)
+        select_bond(self.pbond, mode)
         pbg = self.pbond.group
         pbg._graphics_changed |= pbg._SELECT_CHANGE
 
@@ -2674,12 +2701,11 @@ def _shown_bond_cylinders(bonds):
 # -----------------------------------------------------------------------------
 # Bond is selected if both atoms are selected.
 #
-def _selected_bond_cylinders(bond_atoms):
-    ba1, ba2 = bond_atoms
-    if ba1.num_selected > 0 and ba2.num_selected > 0:
-        from numpy import logical_and, concatenate
-        sel = logical_and(ba1.selected,ba2.selected)
-        sel = concatenate((sel,sel))
+def _selected_bond_cylinders(bonds):
+    if bonds.num_selected > 0:
+        bsel = bonds.selected
+        from numpy import concatenate
+        sel = concatenate((bsel,bsel))
     else:
         sel = None
     return sel
@@ -2743,8 +2769,8 @@ def selected_bonds(session):
     '''All selected bonds in all structures as an :class:`.Bonds` collection.'''
     blist = []
     for m in session.models.list(type = Structure):
-        for a in m.selected_items('atoms'):
-            blist.append(a.intra_bonds)
+        for b in m.selected_items('bonds'):
+            blist.append(b)
     from .molarray import concatenate, Bonds
     bonds = concatenate(blist, Bonds)
     return bonds
