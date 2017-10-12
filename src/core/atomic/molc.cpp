@@ -1723,6 +1723,20 @@ extern "C" EXPORT void *pseudobond_group_new_pseudobond(void *pbgroup, void *ato
     }
 }
 
+extern "C" EXPORT void *pseudobond_group_new_pseudobond_csid(void *pbgroup,
+    void *atom1, void *atom2, int cs_id)
+{
+    Proxy_PBGroup *pbg = static_cast<Proxy_PBGroup *>(pbgroup);
+    try {
+        Pseudobond *b = pbg->new_pseudobond(static_cast<Atom *>(atom1), static_cast<Atom *>(atom2),
+            pbg->structure()->find_coord_set(cs_id));
+        return b;
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
 extern "C" EXPORT void pseudobond_group_structure(void *pbgroups, size_t n, pyobject_t *resp)
 {
     Proxy_PBGroup **pbgs = static_cast<Proxy_PBGroup **>(pbgroups);
@@ -1752,6 +1766,29 @@ extern "C" EXPORT void pseudobond_group_pseudobonds(void *pbgroups, size_t n, py
         for (size_t i = 0 ; i != n ; ++i)
             for (auto pb: pbg[i]->pseudobonds())
                 *pseudobonds++ = pb;
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT size_t pseudobond_group_get_num_pseudobonds(void *pbgroup, int cs_id)
+{
+    Proxy_PBGroup *pbg = static_cast<Proxy_PBGroup *>(pbgroup);
+    try {
+        return pbg->pseudobonds(pbg->structure()->find_coord_set(cs_id)).size();
+    } catch (...) {
+        molc_error();
+    }
+    return 0;
+}
+
+extern "C" EXPORT void pseudobond_group_get_pseudobonds(void *pbgroup, int cs_id,
+    Pseudobond **pb_ptrs)
+{
+    Proxy_PBGroup *pbg = static_cast<Proxy_PBGroup *>(pbgroup);
+    try {
+        for (auto pb: pbg->pseudobonds(pbg->structure()->find_coord_set(cs_id)))
+            *pb_ptrs++ = pb;
     } catch (...) {
         molc_error();
     }
@@ -3482,6 +3519,18 @@ extern "C" EXPORT void structure_lower_case_chains(void *mols, size_t n, npy_boo
     } catch (...) {
         molc_error();
     }
+}
+
+extern "C" EXPORT void structure_active_coordset_change_notify(void *structures, size_t n, npy_bool *accn)
+{
+    Structure **s = static_cast<Structure **>(structures);
+    error_wrap_array_get(s, n, &Structure::active_coord_set_change_notify, accn);
+}
+
+extern "C" EXPORT void set_structure_active_coordset_change_notify(void *structures, size_t n, npy_bool *accn)
+{
+    Structure **s = static_cast<Structure **>(structures);
+    error_wrap_array_set(s, n, &Structure::set_active_coord_set_change_notify, accn);
 }
 
 extern "C" EXPORT void structure_alt_loc_change_notify(void *structures, size_t n, npy_bool *alcn)

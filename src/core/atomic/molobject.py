@@ -369,23 +369,29 @@ class Atom(State):
     of models this atom belongs to.
     '''
 
-    def get_coord(self, crdset_or_altloc):
+    def get_altloc_coord(self, altloc):
         '''
-        Like the 'coord' property, but uses the given coordset ID (integer) / altloc (character)
-        rather than the current coordset / altloc.
+        Like the 'coord' property, but uses the given altloc (character)
+        rather than the current altloc.
         '''
         from numpy import empty, float64
         ai = empty((3,), float64)
-        if isinstance(crdset_or_altloc, int):
-            f = c_function('atom_get_coord_crdset',
-                args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p))
-        elif isinstance(crdset_or_altloc, str):
-            crdset_or_altloc = crdset_or_altloc.encode('utf-8')
-            f = c_function('atom_get_coord_altloc',
-                args = (ctypes.c_void_p, ctypes.c_char, ctypes.c_void_p))
-        else:
-            raise TypeError("crdset_or_altloc value must be int or character")
-        f(self._c_pointer, crdset_or_altloc, pointer(ai))
+        crdset_or_altloc = crdset_or_altloc.encode('utf-8')
+        f = c_function('atom_get_coord_altloc',
+            args = (ctypes.c_void_p, ctypes.c_char, ctypes.c_void_p))
+        f(self._c_pointer, altloc, pointer(ai))
+        return ai
+
+    def get_coordset_coord(self, crdset):
+        '''
+        Like the 'coord' property, but uses the given coordset ID (integer)
+        rather than the current coordset.
+        '''
+        from numpy import empty, float64
+        ai = empty((3,), float64)
+        f = c_function('atom_get_coord_crdset',
+            args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p))
+        f(self._c_pointer, crdset, pointer(ai))
         return ai
 
     def get_scene_coord(self, crdset_or_altloc):
@@ -686,12 +692,39 @@ class PseudobondGroupData:
         f = c_function('pseudobond_group_clear', args = (ctypes.c_void_p,))
         f(self._c_pointer)
 
-    def new_pseudobond(self, atom1, atom2):
-        '''Create a new pseudobond between the specified :class:`Atom` objects.'''
-        f = c_function('pseudobond_group_new_pseudobond',
-                       args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p),
+    def get_num_pseudobonds(self, cs_id):
+        '''Get the number of pseudobonds for a particular coordinate set. Use the 'num_pseudobonds'
+        property to get the number of pseudobonds for the current coordinate set.'''
+        f = c_function('pseudobond_group_get_num_pseudobonds',
+                       args = (ctypes.c_void_p, ctypes.c_int,),
+                       ret = ctypes.c_size_t)
+        return f(self._c_pointer, cs_id)
+
+    def get_pseudobonds(self, cs_id):
+        '''Get the pseudobonds for a particular coordinate set. Use the 'pseudobonds'
+        property to get the pseudobonds for the current coordinate set.'''
+        from numpy import empty
+        ai = empty((self.get_num_pseudobonds(cs_id),), cptr)
+        f = c_function('pseudobond_group_get_pseudobonds',
+                       args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p),
                        ret = ctypes.c_void_p)
-        pb = f(self._c_pointer, atom1._c_pointer, atom2._c_pointer)
+        f(self._c_pointer, cs_id, pointer(ai))
+        return _pseudobonds(ai)
+
+    def new_pseudobond(self, atom1, atom2, cs_id = None):
+        '''Create a new pseudobond between the specified :class:`Atom` objects.
+        If the pseudobond group supports per-coordset pseudobonds, you may
+        specify a coordinate set ID (defaults to the current coordinate set).'''
+        if cs_id is None:
+            f = c_function('pseudobond_group_new_pseudobond',
+                           args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p),
+                           ret = ctypes.c_void_p)
+            pb = f(self._c_pointer, atom1._c_pointer, atom2._c_pointer)
+        else:
+            f = c_function('pseudobond_group_new_pseudobond_csid',
+                           args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int),
+                           ret = ctypes.c_void_p)
+            pb = f(self._c_pointer, atom1._c_pointer, atom2._c_pointer, cs_id)
         return object_map(pb, Pseudobond)
 
     # Graphics changed flags used by rendering code.  Private.
@@ -1553,6 +1586,9 @@ class StructureData:
         '''Deletes the C++ data for this atomic structure.'''
         c_function('structure_delete', args = (ctypes.c_void_p,))(self._c_pointer)
 
+    active_coordset_change_notify = c_property('structure_active_coordset_change_notify', npy_bool,
+    doc='''Whether notifications are issued when the active coordset is changed.  Should only be
+    set to true when temporarily changing the active coordset in a Python script. Boolean''')
     active_coordset_id = c_property('structure_active_coordset_id', int32)
     '''Index of the active coordinate set.'''
     alt_loc_change_notify = c_property('structure_alt_loc_change_notify', npy_bool, doc=

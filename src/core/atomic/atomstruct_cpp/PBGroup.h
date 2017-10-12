@@ -188,6 +188,7 @@ public:
 private:
     friend class Proxy_PBGroup;
     mutable std::unordered_map<const CoordSet*, Pseudobonds>  _pbonds;
+    void  change_cs(const CoordSet* cs);
     void  remove_cs(const CoordSet* cs);
 protected:
     CS_PBGroup(const std::string& cat, Structure* as, BaseManager* manager):
@@ -250,6 +251,11 @@ private:
         static_cast<PBGroup*>(_proxied)->_proxy = this;
         _manager->change_tracker()->add_created(this);
     }
+    void  change_cs(const CoordSet* cs) {
+        if (_group_type == AS_PBManager::GRP_PER_CS)
+            static_cast<CS_PBGroup*>(_proxied)->change_cs(cs);
+    }
+
     void  remove_cs(const CoordSet* cs) {
         if (_group_type == AS_PBManager::GRP_PER_CS)
             static_cast<CS_PBGroup*>(_proxied)->remove_cs(cs);
