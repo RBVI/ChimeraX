@@ -210,6 +210,29 @@ class PseudobondGroup(PseudobondGroupData, Model):
         p = structure.PickedPseudobond(b,f) if b else None
         return p
 
+    def planes_pick(self, planes, exclude=None):
+        if not self.display:
+            return []
+        if exclude is not None and exclude(self):
+            return []
+
+        picks = []
+        from ..geometry import transform_planes
+        for p in self.positions:
+            pplanes = transform_planes(p, planes)
+            picks.extend(self._pseudobonds_planes_pick(pplanes))
+
+        return picks
+
+    def _pseudobonds_planes_pick(self, planes):
+        from .structure import _bonds_planes_pick, PickedPseudobonds
+        pmask = _bonds_planes_pick(self._pbond_drawing, planes)
+        if pmask.sum() == 0:
+            return []
+        bonds = self._visible_pbonds.filter(pmask)
+        p = PickedPseudobonds(bonds)
+        return [p]
+
     def take_snapshot(self, session, flags):
         data = {
             'version': 1,

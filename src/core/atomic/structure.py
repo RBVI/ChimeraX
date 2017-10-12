@@ -1652,6 +1652,8 @@ class Structure(Model, StructureData):
             picks.extend(self._atoms_planes_pick(pplanes))
             picks.extend(self._bonds_planes_pick(pplanes))
             picks.extend(self._ribbon_planes_pick(pplanes))
+            for c in self.child_drawings():
+                picks.extend(c.planes_pick(pplanes, exclude))
 
         return picks
 
@@ -1661,38 +1663,21 @@ class Structure(Model, StructureData):
             return []
 
         xyz = d.positions.shift_and_scale_array()[:,:3]
-
-        picks = []
         from .. import geometry
         pmask = geometry.points_within_planes(xyz, planes)
         if pmask.sum() == 0:
             return []
-
         atoms = self._visible_atoms.filter(pmask)
-
         p = PickedAtoms(atoms)
 
         return [p]
 
     def _bonds_planes_pick(self, planes):
-        d = self._bonds_drawing
-        if d is None or not d.display:
-            return []
-
-        hb_xyz = d.positions.array()[:,:,3]	# Half-bond centers
-        n = len(hb_xyz)//2
-        xyz = 0.5*(hb_xyz[:n] + hb_xyz[n:])	# Bond centers
-
-        picks = []
-        from .. import geometry
-        pmask = geometry.points_within_planes(xyz, planes)
+        pmask = _bonds_planes_pick(self._bonds_drawing, planes)
         if pmask.sum() == 0:
             return []
-
         bonds = self._visible_bonds.filter(pmask)
-
         p = PickedBonds(bonds)
-
         return [p]
 
     def _ribbon_planes_pick(self, planes):
@@ -2561,6 +2546,19 @@ def _bond_intercept(bonds, mxyz1, mxyz2):
 
 # -----------------------------------------------------------------------------
 #
+def _bonds_planes_pick(drawing, planes):
+    if drawing is None or not drawing.display:
+        return []
+
+    hb_xyz = drawing.positions.array()[:,:,3]	# Half-bond centers
+    n = len(hb_xyz)//2
+    xyz = 0.5*(hb_xyz[:n] + hb_xyz[n:])	# Bond centers
+    from .. import geometry
+    pmask = geometry.points_within_planes(xyz, planes)
+    return pmask
+
+# -----------------------------------------------------------------------------
+#
 class PickedBond(Pick):
     def __init__(self, bond, distance):
         Pick.__init__(self, distance)
@@ -2628,6 +2626,17 @@ class PickedPseudobond(Pick):
         select_bond(self.pbond, mode)
         pbg = self.pbond.group
         pbg._graphics_changed |= pbg._SELECT_CHANGE
+
+# -----------------------------------------------------------------------------
+#
+class PickedPseudobonds(Pick):
+    def __init__(self, pbonds):
+        Pick.__init__(self)
+        self.pseudobonds = pbonds
+    def description(self):
+        return '%d pseudobonds' % len(self.pseudobonds)
+    def select(self, mode = 'add'):
+        select_bonds(self.pseudobonds, mode)
 
 # -----------------------------------------------------------------------------
 #
