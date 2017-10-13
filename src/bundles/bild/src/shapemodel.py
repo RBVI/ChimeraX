@@ -13,7 +13,7 @@
 
 import numpy
 from chimerax.core import generic3d
-from chimerax.core.graphics import Pick
+from chimerax.core.graphics import Drawing, Pick
 
 
 class _Shape:
@@ -72,7 +72,7 @@ class _ShapePick(Pick):
                 drawing._add_selected_shape(self.shape)
 
 
-class ShapeModel(generic3d.Generic3DModel):
+class ShapeDrawing(Drawing):
 
     def __init__(self, *args, **kw):
         super().__init__(*args, **kw)
@@ -149,7 +149,6 @@ class ShapeModel(generic3d.Generic3DModel):
             self._add_handler_if_needed()
         asarray = numpy.asarray
         concat = numpy.concatenate
-        color = (numpy.array([color]) * 255).astype(numpy.uint8)
         colors = concat((color,) * vertices.shape[0])
         if self.vertices is None:
             self.vertices = asarray(vertices, dtype=numpy.float32)
@@ -167,3 +166,7 @@ class ShapeModel(generic3d.Generic3DModel):
         self.vertex_colors = asarray(concat((self.vertex_colors, colors)), dtype=numpy.uint8)
         s = _Shape(range(start, self.triangles.shape[0]), balloon_text, atoms)
         self._shapes.append(s)
+
+
+class ShapeModel(ShapeDrawing, generic3d.Generic3DModel):
+    pass

@@ -25,7 +25,7 @@ The plan is to support all of the existing bild format.
 
 from chimerax.core.errors import UserError
 import numpy
-from chimerax.core.geometry import identity, translation, rotation, scale, distance
+from chimerax.core.geometry import identity, translation, rotation, scale, distance, z_align
 from chimerax.core import surface
 from .shapemodel import ShapeModel
 
@@ -364,6 +364,11 @@ def read_bild(session, stream, file_name):
     return b.parse_stream(stream)
 
 
+def _cvt_color(color):
+    color = (numpy.array([color]) * 255).astype(numpy.uint8)
+    return color
+
+
 def add_sphere(model, radius, center, color, xform=None, atoms=None, balloon_text=None):
     # TODO: vary number of triangles with radius
     vertices, normals, triangles = surface.sphere_geometry2(200)
@@ -371,6 +376,7 @@ def add_sphere(model, radius, center, color, xform=None, atoms=None, balloon_tex
     if xform is not None:
         vertices = xform * vertices
         normals = xform.apply_without_translation(normals)
+    color = _cvt_color(color)
     model.add_shape(vertices, normals, triangles, color, atoms, balloon_text)
 
 
@@ -378,7 +384,6 @@ def add_cylinder(model, radius, p0, p1, color, closed=True, xform=None, atoms=No
     h = distance(p0, p1)
     vertices, normals, triangles = surface.cylinder_geometry(radius, height=h, caps=closed)
     # rotate so z-axis matches p0->p1
-    from chimerax.core.geometry import z_align
     xf = z_align(p0, p1)
     inverse = xf.inverse()
     vertices = inverse * (vertices + [0, 0, h / 2])
@@ -386,6 +391,7 @@ def add_cylinder(model, radius, p0, p1, color, closed=True, xform=None, atoms=No
     if xform is not None:
         vertices = xform * vertices
         normals = xform.apply_without_translation(normals)
+    color = _cvt_color(color)
     model.add_shape(vertices, normals, triangles, color, atoms, balloon_text)
 
 
@@ -401,6 +407,7 @@ def add_dashed_cylinder(model, count, radius, p0, p1, color, closed=True, xform=
     if xform is not None:
         vertices = xform * vertices
         normals = xform.apply_without_translation(normals)
+    color = _cvt_color(color)
     model.add_shape(vertices, normals, triangles, color, atoms, balloon_text)
 
 
@@ -409,6 +416,7 @@ def add_box(model, llb, urf, color, xform=None, atoms=None, balloon_text=None):
     if xform is not None:
         vertices = xform * vertices
         normals = xform.apply_without_translation(normals)
+    color = _cvt_color(color)
     model.add_shape(vertices, normals, triangles, color, atoms, balloon_text)
 
 
@@ -423,4 +431,5 @@ def add_cone(model, radius, p0, p1, color, bottom=False, xform=None, atoms=None,
     if xform is not None:
         vertices = xform * vertices
         normals = xform.apply_without_translation(normals)
+    color = _cvt_color(color)
     model.add_shape(vertices, normals, triangles, color, atoms, balloon_text)
