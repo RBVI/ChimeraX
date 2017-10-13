@@ -279,7 +279,7 @@ class Models(State):
         return m
 
     def reset_state(self, session):
-        self.remove([m for m in self.list() if not m.SESSION_ENDURING])
+        self.close([m for m in self.list() if not m.SESSION_ENDURING])
 
     def list(self, model_id=None, type=None):
         if model_id is None:
