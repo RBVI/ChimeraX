@@ -23,8 +23,6 @@ class _Shape:
         # of the triangles for that shape in the vertex array
         self.triangle_range = triangle_range
         self.description = description
-        if atoms is None:
-            atoms = ()
         self.atoms = atoms
 
 
@@ -104,19 +102,21 @@ class ShapeDrawing(Drawing):
 
     def selected_items(self, itype):
         if itype == 'atoms':
-            all_atoms = [s.atoms for s in self._selected_shapes]
-            if not all_atoms:
-                return all_atoms
-            atoms = all_atoms[0]
-            for a in all_atoms[1:]:
-                atoms = atoms | a
+            from chimerax.core.atomic import Atoms
+            atoms = Atoms(None)
+            for s in self._selected_shapes:
+                a = s.atoms
+                if a is not None:
+                    atoms |= Atoms(a)
             return atoms
-        return list(self._selected_shapes)
+        elif itype == 'shapes':
+            return list(self._selected_shapes)
+        return []
 
     def update_selection(self):
         # called by Structure._update_if_needed when atom selection has changed
         # in a child model/drawing
-        self._selected.shapes = [s for s in self._shapes if any(s.atoms.selected)]
+        self._selected.shapes = [s for s in self._shapes if s.atoms and any(s.atoms.selected)]
 
     def _add_selected_shape(self, shape):
         self._selected_shapes.add(shape)
@@ -149,12 +149,17 @@ class ShapeDrawing(Drawing):
             self._add_handler_if_needed()
         asarray = numpy.asarray
         concat = numpy.concatenate
-        colors = concat((color,) * vertices.shape[0])
+        if color.ndim == 1 or color.shape[0] == 1:
+            colors = numpy.empty((vertices.shape[0], 4), dtype=numpy.uint8)
+            colors[:] = color
+        else:
+            colors = color.asarray(color, dtype=numpy.uint8)
+            assert colors.shape[1] == 4 and colors.shape[0] == vertices.shape[0]
         if self.vertices is None:
             self.vertices = asarray(vertices, dtype=numpy.float32)
             self.normals = asarray(normals, dtype=numpy.float32)
             self.triangles = asarray(triangles, dtype=numpy.int32)
-            self.vertex_colors = asarray(colors, dtype=numpy.uint8)
+            self.vertex_colors = colors
             s = _Shape(range(0, self.triangles.shape[0]), balloon_text, atoms)
             self._shapes.append(s)
             return
@@ -163,7 +168,7 @@ class ShapeDrawing(Drawing):
         self.vertices = asarray(concat((self.vertices, vertices)), dtype=numpy.float32)
         self.normals = asarray(concat((self.normals, normals)), dtype=numpy.float32)
         self.triangles = asarray(concat((self.triangles, triangles + offset)), dtype=numpy.int32)
-        self.vertex_colors = asarray(concat((self.vertex_colors, colors)), dtype=numpy.uint8)
+        self.vertex_colors = concat((self.vertex_colors, colors))
         s = _Shape(range(start, self.triangles.shape[0]), balloon_text, atoms)
         self._shapes.append(s)
 
