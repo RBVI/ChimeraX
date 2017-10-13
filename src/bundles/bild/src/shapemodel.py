@@ -89,7 +89,7 @@ class ShapeDrawing(Drawing):
     def first_intercept(self, mxyz1, mxyz2, exclude=None):
         pick = super().first_intercept(mxyz1, mxyz2, exclude)
         if pick is None:
-            return pick
+            return None
         try:
             tn = pick.triangle_number
         except AttributeError:
@@ -116,7 +116,15 @@ class ShapeDrawing(Drawing):
     def update_selection(self):
         # called by Structure._update_if_needed when atom selection has changed
         # in a child model/drawing
-        self._selected.shapes = [s for s in self._shapes if s.atoms and any(s.atoms.selected)]
+        self._selected_shapes = set(s for s in self._shapes if s.atoms and any(s.atoms.selected))
+        tmask = self.selected_triangles_mask
+        if tmask is None:
+            tmask = numpy.zeros(len(self.triangles), bool)
+        else:
+            tmask[:] = False
+        for s in self._selected_shapes:
+            tmask[s.triangle_range] = True
+        self.selected_triangles_mask = tmask
 
     def _add_selected_shape(self, shape):
         self._selected_shapes.add(shape)
