@@ -39,8 +39,8 @@ Most bundles can be built using ChimeraX itself.
 Once built, a bundle is stored as a single file and
 may be exchanged among developers and users, or
 made available to the ChimeraX community via
-the `ChimeraX Toolshed`_, an extension repository
-based on the `Cytoscape App Store`_.
+the `ChimeraX Toolshed`_, a web-based bundle
+repository based on the `Cytoscape App Store`_.
 
 
 Prerequisites
@@ -140,17 +140,61 @@ The ``bundle_info.xml`` file contains information
 read by the ``devel`` command.  It describes both
 what functionality is provided in the bundle,
 and what source code files need to be included
-to build the bundle.  (All Python source files
-in ``src`` are automatically included, but
-additional files, e.g., icons and data files,
-must be explicitly listed for inclusion.)
+to build the bundle.
+
+
+Bundle Information
+^^^^^^^^^^^^^^^^^^
+
 The format of ``bundle_info.xml`` is, as its name
 suggests, `eXtensible Markup Language`_ (XML).
-The supported tags are described in
+Bundle information is grouped into nested *tags*,
+which can have zero or more attributes as well
+as associated text.
+
+The document tag (the one containing all other tags)
+is ``BundleInformation`` whose attributes include
+the bundle name, version, and Python package name.
+(Other attributes are also supported but are not required.)
+``Classifier`` tags provide information about 
+supported functionality.  All Python source files
+in the ``src`` sub-folder are automatically included,
+but additional files, e.g., icons and data files,
+must be explicitly listed (e.g., in ``DataFiles`` tags)
+for inclusion in the bundle.
+
+Examples of ``bundle_info.xml`` files are provided
+in tutorials for building sample bundles
+(see `Writing Bundles in Seven Easy Steps`_).
+The complete set of supported tags are described in
 :ref:`Bundle Information XML Tags`.
 
-The easiest way to understand the source code
-organization is to follow one of the tutorials
+
+Python Package
+^^^^^^^^^^^^^^
+
+The Python package code in ``src`` implements the
+bundle functionality.  ChimeraX assumes that the
+Python package will contain a ``bundle_api`` object
+that derives from :ref:`chimerax.core.toolshed.BundleAPI`.
+The bundle API defines names and calling
+conventions of standard methods, e.g., ``register_command``
+for registering new commands and ``start_tool`` for
+starting a graphical interface tool.  A bundle does
+not need to provide all these methods, as the
+implementation from inherited methods "do the right thing".
+The ``bundle_api`` object, typically defined
+in ``__init__.py``, is the only interface that ChimeraX
+uses to invoke bundle functionality.
+
+TODO: APIs for manipulating ChimeraX data.  Semantic versioning.
+
+
+Writing Bundles in Seven Easy Steps
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The easiest way to start developing ChimeraX
+bundles is to follow these tutorials
 for building sample bundles:
 
 - :ref:`Bundle Tutorial: Hello World`
@@ -160,6 +204,10 @@ for building sample bundles:
 - :ref:`Bundle Tutorial: Save a New File Format`
 - :ref:`Bundle Tutorial: Fetch from Network Database`
 - :ref:`Bundle Tutorial: Define a Chemical Subgroup Selector`
+
+Each tutorial builds on the previous but may also
+be used as reference for adding a specific type of
+functionality to ChimeraX.
 
 
 Building and Testing Bundles
@@ -192,6 +240,17 @@ the bundle, execute the ChimeraX command:
 Some files, such as the bundle itself, may still remain
 and need to be removed manually.
 
+Building bundles as part of a batch process is straightforward,
+as these ChimeraX commands may be invoked directly
+by using commands such as:
+
+``ChimeraX --nogui --exit --cmd 'devel install PATH_TO_SOURCE_CODE_FOLDER exit true``
+
+This example executes the ``devel install`` command without
+displaying a graphics window (``--nogui``) and exits immediately
+after installation (``exit true``).  The initial ``--exit``
+flag guarantees that ChimeraX will exit even if installation
+fails for some reason.
 
 Distributing Bundles
 --------------------
@@ -224,8 +283,8 @@ sign in is supported.  Once signed in, use the
 ``Submit a Bundle`` link at the top of the page
 to initiate submission, and follow the instructions.
 The first time a bundle is submitted to the toolshed,
-approval from ChimeraX staff is needed before it is
-published.  Subsequent submissions, using the same
-sign in credentials, do not need approval and should
-appear immediately on the site.
+it is held for inspection by the ChimeraX team, which
+may contact the authors for more information.
+Once approved, all subsequent submissions of new
+versions of the bundle are posted immediately on the site.
 
