@@ -33,7 +33,7 @@ def select(session, objects=None, polymer=None, residues=False):
     from ..undo import UndoState
     undo_state = UndoState("select")
     if objects is not None:
-        clear_selection(session, "select_clear", undo_state)
+        clear_selection(session, undo_state)
         modify_selection(objects, 'add', undo_state, full_residues = residues)
 
     if polymer is not None:
@@ -60,7 +60,7 @@ def select_subtract(session, objects=None, residues=False):
     from ..undo import UndoState
     undo_state = UndoState("select subtract")
     if objects is None:
-        clear_selection(session, "subtract_clear", undo_state)
+        clear_selection(session, undo_state)
     else:
         modify_selection(objects, 'subtract', undo_state, full_residues = residues)
     session.undo.register(undo_state)
@@ -106,7 +106,10 @@ def select_down(session):
     
 def select_clear(session):
     '''Clear the selection.'''
-    clear_selection(session, "clear", undo_state)
+    from ..undo import UndoState
+    undo_state = UndoState("select clear")
+    clear_selection(session, undo_state)
+    session.undo.register(undo_state)
 
 def report_selection(session):
     s = session.selection
@@ -167,12 +170,9 @@ def intersect_selection(objects, session, undo_state, full_residues = False):
         undo_state.add(m, "selected", m.selected, False)
         m.selected = False
 
-def clear_selection(session, why, undo_state):
-    from ..undo import UndoState
-    undo_state = UndoState("select clear")
+def clear_selection(session, undo_state):
     session.selection.undo_add_selected(undo_state, False)
     session.selection.clear()
-    session.undo.register(undo_state)
 
 def _atoms_bonds_models(objects, full_residues = False):
     # Treat selecting molecular surface as selecting atoms.
