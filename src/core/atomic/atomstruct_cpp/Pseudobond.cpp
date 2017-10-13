@@ -30,7 +30,7 @@ Pseudobond::graphics_changes() const { return static_cast<GraphicsChanges*>(grou
 
 void
 Pseudobond::session_restore(int version, int** ints, float** floats) {
-    Connection::session_restore(session_base_version(version), ints, floats);
+    Connection::session_restore(version, ints, floats);
     auto& int_ptr = *ints;
     auto id = int_ptr[0];
     _shown_when_atoms_hidden = version < 9 ? true : int_ptr[1];
