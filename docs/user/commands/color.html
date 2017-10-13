@@ -67,8 +67,6 @@ Coloring by zone to match nearby atoms or
 <a href="../markers.html">markers</a> applies to nonmolecular surfaces only.
 The absence of an atom or model specifier implies &ldquo;all&rdquo;
 applicable items.
-Bonds and <a href="../pseudobonds.html">pseudobonds</a>
-are considered as specified when both flanking atoms are specified.
 See <a href="#examples">examples</a> below.
 See also: <a href="transparency.html"><b>transparency</b></a>,
 <a href="mlp.html"><b>mlp</b></a>,
@@ -448,11 +446,9 @@ the <b>full</b> range is determined separately for each model.
 </blockquote>
 - color residues 12 and 260-275 in chains A and B, atoms/bonds only
 <blockquote>
-<b>color <a href="atomspec.html#builtin">pbonds</a> &nbsp;yellow
-&nbsp;targ p</b>
+<b>color <a href="atomspec.html#builtin">pbonds</a> &nbsp;yellow</b>
 </blockquote>
-- color all <a href="../pseudobonds">pseudobonds</a>
-yellow, but not their flanking atoms
+- color all <a href="../pseudobonds">pseudobonds</a> yellow
 <blockquote>
 <b>color C &nbsp;bymodel &nbsp;targ a</b>
 </blockquote>
@@ -572,5 +568,5 @@ named <i>cname</i>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2017</address>
+October 2017</address>
 </body></html>

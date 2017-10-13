@@ -361,6 +361,7 @@ hypertext to render in the
 [&nbsp;<b>structureModel</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 [&nbsp;<b>atomic</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>ensembles</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>newTab</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<a href="#options"><i>general-options</i></a>&nbsp;
 </blockquote>
 <p>
@@ -434,7 +435,10 @@ if its name contains either of the following:
 <li>_ch0_
 <li>_0ch_
 </ul>
-(and 0 could be any whole number).
+(and 0 could be any whole number). 
+The <b>channel</b> option allows manually assigning a channel to data
+so that it can be saved along with other datasets in a single (multichannel)
+<a href="save.html#chimap">Chimera map</a> file.
 </blockquote>
 <blockquote>
 <b>alignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
@@ -477,8 +481,14 @@ bypassing chemical perception steps like identifying
 Whether to fetch ensembles associated with an IHM dataset 
 (default <b>false</b>, as these can be quite large).
 </blockquote>
+<blockquote>
+<b>newTab</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to open an HTML file in a new tab of the
+<a href="../window.html#browser">ChimeraX browser</a>
+(default <b>false</b>, replace any current page).
+</blockquote>
 <p>
-<!-- ChimeraX builds after June 20 2017 as per ticket #320 -->
 Another way to open local files is by drag-and-drop onto the ChimeraX icon
 or a running instance of ChimeraX.
 On a Mac, ChimeraX-associated file types can also be opened by 
@@ -498,10 +508,12 @@ in a Terminal window.
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#file-table"><i>format-name</i></a>&nbsp;]
 [&nbsp;<b>coordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>vseries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>channel</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>alignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>structureModel</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 [&nbsp;<b>atomic</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>ensembles</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>newTab</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<a href="#options"><i>general-options</i></a>&nbsp;
 </blockquote>
 <p>
