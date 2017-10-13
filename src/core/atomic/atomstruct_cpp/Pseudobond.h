@@ -53,7 +53,6 @@ protected:
     virtual ~Pseudobond() { graphics_changes()->set_gc_adddel(); }
 
     // convert a global pb_manager version# to version# for Connection base class
-    static int  session_base_version(int /*version*/) { return 1; }
     static int  SESSION_NUM_INTS(int version=CURRENT_SESSION_VERSION) { return version<9 ? 1 : 2; }
     static int  SESSION_NUM_FLOATS(int /*version*/=CURRENT_SESSION_VERSION) { return 0; }
     const char*  err_msg_loop() const

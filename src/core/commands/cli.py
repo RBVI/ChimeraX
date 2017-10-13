@@ -2507,41 +2507,30 @@ class Command:
             kw_args = self._kw_args
             if log:
                 self.log()
-            try:
-                if not isinstance(ci.function, Alias):
-                    try:
-                        result = ci.function(session, **kw_args)
-                    except UserError as e:
-                        self.log_error(str(e))
-                        raise
-                    except:
-                        raise
-                    results.append(result)
-                else:
-                    arg_names = [k for k in kw_args.keys() if isinstance(k, int)]
-                    arg_names.sort()
-                    args = [kw_args[k] for k in arg_names]
-                    if 'optional' in kw_args:
-                        optional = kw_args['optional']
-                    else:
-                        optional = ''
-                    if _used_aliases is None:
-                        used_aliases = {self.command_name}
-                    else:
-                        used_aliases = _used_aliases.copy()
-                        used_aliases.add(self.command_name)
-                    results.append(ci.function(session, *args, optional=optional,
-                                   _used_aliases=used_aliases, log=log))
-            except UserError as err:
-                raise
-            except ValueError as err:
-                # convert function's ValueErrors to UserErrors,
-                # but not those of functions it calls
-                import traceback
-                _, _, exc_traceback = sys.exc_info()
-                if len(traceback.extract_tb(exc_traceback)) > 2:
+            if not isinstance(ci.function, Alias):
+                try:
+                    result = ci.function(session, **kw_args)
+                except UserError as e:
+                    self.log_error(str(e))
                     raise
-                raise UserError(err)
+                except:
+                    raise
+                results.append(result)
+            else:
+                arg_names = [k for k in kw_args.keys() if isinstance(k, int)]
+                arg_names.sort()
+                args = [kw_args[k] for k in arg_names]
+                if 'optional' in kw_args:
+                    optional = kw_args['optional']
+                else:
+                    optional = ''
+                if _used_aliases is None:
+                    used_aliases = {self.command_name}
+                else:
+                    used_aliases = _used_aliases.copy()
+                    used_aliases.add(self.command_name)
+                results.append(ci.function(session, *args, optional=optional,
+                               _used_aliases=used_aliases, log=log))
             if session is not None:
                 from .. import atomic
                 atomic.check_for_changes(session)

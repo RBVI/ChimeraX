@@ -47,14 +47,15 @@ See also: <a href="help.html"><b>help</b></a>,
 The brackets, vertical bars, and parentheses are 
 merely symbolic and should not be included in the typed command.
 </p><p>
-Command names and keywords can be truncated to unique strings.
+Command names and keywords can be truncated to unique strings,
+with rare exceptions specifically noted.
 Command names should be entered as lowercase letters, whereas keywords can be
 completely lowercase or capitalized as shown in the documentation,
 typically camelCase for compound words. 
-If a truncation matches multiple keywords, the one (if any) made up of 
-fewer words is used, for example, <b>silhouettes</b> rather than 
-<b>silhouetteWidth</b> in the <a href="set.html"><b>set</b></a> command;
-otherwise, an ambiguity error is raised.
+If a truncation matches multiple keywords but one is a simpler compound
+(for example, <b>silhouettes</b> rather than 
+<b>silhouetteWidth</b> in the <a href="set.html"><b>set</b></a> command),
+the simpler compound is used; otherwise, an ambiguity error is raised.
 </p><p>
 Boolean (truth) values can also be truncated, with
 synonyms for <b>true</b>: <b>True</b>, <b>1</b>, and

@@ -12,7 +12,6 @@ from .hydpos import hyd_positions
 from math import sqrt
 from numpy import linalg
 
-@line_profile
 def don_theta_tau(donor, donor_hyds, acceptor, sp2_O_rp2, sp2_O_theta, sp3_O_rp2, sp3_O_theta,
         sp3_O_phi, sp3_N_rp2, sp3_N_theta, sp3_N_upsilon, gen_rp2, gen_theta, is_water=False):
         # 'is_water' only for hydrogenless water
@@ -22,8 +21,8 @@ def don_theta_tau(donor, donor_hyds, acceptor, sp2_O_rp2, sp2_O_theta, sp3_O_rp2
         if hbond.verbose:
             print("No hydrogens; default failure")
         return False
-    ap = acceptor.scene_coord
-    dp = donor.scene_coord
+    ap = acceptor._hb_coord
+    dp = donor._hb_coord
 
     acc_type = acceptor.idatm_type
     if acc_type not in type_info:
@@ -64,7 +63,7 @@ def don_theta_tau(donor, donor_hyds, acceptor, sp2_O_rp2, sp2_O_theta, sp3_O_rp2
                 print("testing donor phi")
             bonded = acceptor.neighbors
             phi_plane, base_pos = get_phi_plane_params(acceptor, bonded[0], bonded[1])
-            if not test_phi(donor.scene_coord, ap, base_pos, phi_plane, sp3_O_phi):
+            if not test_phi(donor._hb_coord, ap, base_pos, phi_plane, sp3_O_phi):
                 return False
 
     elif element == 'N' and geom == tetrahedral:
@@ -83,7 +82,7 @@ def don_theta_tau(donor, donor_hyds, acceptor, sp2_O_rp2, sp2_O_theta, sp3_O_rp2
         # test upsilon against lone pair directions
         bonded_pos = []
         for bonded in acceptor.neighbors:
-            bonded_pos.append(bonded.scene_coord)
+            bonded_pos.append(bonded._hb_coord)
         lp_pos = bond_positions(ap, geom, 1.0, bonded_pos)
         if len(lp_pos) > 0:
             # fixed lone pair positions
@@ -117,7 +116,6 @@ def don_theta_tau(donor, donor_hyds, acceptor, sp2_O_rp2, sp2_O_theta, sp3_O_rp2
 
     return test_theta(dp, donor_hyds, ap, theta)
 
-@line_profile
 def don_upsilon_tau(donor, donor_hyds, acceptor,
         sp2_O_r2, sp2_O_upsilon_low, sp2_O_upsilon_high, sp2_O_theta, sp2_O_tau,
         sp3_O_r2, sp3_O_upsilon_low, sp3_O_upsilon_high, sp3_O_theta, sp3_O_tau, sp3_O_phi,
@@ -150,10 +148,10 @@ def don_upsilon_tau(donor, donor_hyds, acceptor,
         # see if lone pairs point at the donor
         bonded_pos = []
         for bonded in acceptor.neighbors:
-            bonded_pos.append(bonded.scene_coord)
+            bonded_pos.append(bonded._hb_coord)
         if len(bonded_pos) > 1:
-            ap = acceptor.scene_coord
-            dp = donor.scene_coord
+            ap = acceptor._hb_coord
+            dp = donor._hb_coord
             lone_pairs = bond_positions(ap, tetrahedral, 1.0, bonded_pos)
             for lp in lone_pairs:
                 up_pos = ap - (lp - ap)
@@ -181,11 +179,10 @@ def don_upsilon_tau(donor, donor_hyds, acceptor,
         print("failed criteria")
     return False
 
-@line_profile
 def test_upsion_tau_acceptor(donor, donor_hyds, acceptor, r2, upsilon_low, upsilon_high,
         theta, tau, tau_sym):
-    dc = donor.scene_coord
-    ac = acceptor.scene_coord
+    dc = donor._hb_coord
+    ac = acceptor._hb_coord
 
     d2 = distance_squared(dc, ac)
     if d2 > r2:
@@ -198,7 +195,7 @@ def test_upsion_tau_acceptor(donor, donor_hyds, acceptor, r2, upsilon_low, upsil
     if len(heavys) != 1:
         raise AtomTypeError("upsilon tau donor (%s) not bonded to"
             " exactly one heavy atom" % donor)
-    ang = angle(heavys[0].scene_coord, dc, ac)
+    ang = angle(heavys[0]._hb_coord, dc, ac)
     if ang < upsilon_low or ang > upsilon_high:
         if hbond.verbose:
             print("upsilon criteria failed (%g < %g or %g > %g)"
@@ -231,7 +228,7 @@ def test_upsion_tau_acceptor(donor, donor_hyds, acceptor, r2, upsilon_low, upsil
         for b in heavys[0].neighbors:
             if b == donor or b.element.number < 2:
                 continue
-            bonded_pos.append(b.scene_coord)
+            bonded_pos.append(b._hb_coord)
         if not bonded_pos:
             if hbond.verbose:
                 print("tau indeterminate; default okay")
@@ -242,7 +239,7 @@ def test_upsion_tau_acceptor(donor, donor_hyds, acceptor, r2, upsilon_low, upsil
                 " should be %d) for donor %s" % (
                 2 * len(bonded_pos), tau_sym, donor.oslIdent()))
 
-    normal = heavys[0].scene_coord - dp
+    normal = heavys[0]._hb_coord - dp
     normal = normal / linalg.norm(normal)
 
     if tau < 0.0:
@@ -274,13 +271,12 @@ def test_upsion_tau_acceptor(donor, donor_hyds, acceptor, r2, upsilon_low, upsil
         print("all taus acceptable (> %g)" % tau)
     return True
 
-@line_profile
 def don_generic(donor, donor_hyds, acceptor, sp2_O_rp2, sp3_O_rp2, sp3_N_rp2,
     sp2_O_r2, sp3_O_r2, sp3_N_r2, gen_rp2, gen_r2, min_hyd_angle, min_bonded_angle):
     if hbond.verbose:
         print("don_generic")
-    dc = donor.scene_coord
-    ac = acceptor.scene_coord
+    dc = donor._hb_coord
+    ac = acceptor._hb_coord
 
     acc_type = acceptor.idatm_type
     if acc_type not in type_info:
@@ -312,8 +308,8 @@ def don_generic(donor, donor_hyds, acceptor, sp2_O_rp2, sp3_O_rp2, sp3_N_rp2,
         r2 = gen_r2
         rp2 = gen_rp2
 
-    ap = acceptor.scene_coord
-    dp = donor.scene_coord
+    ap = acceptor._hb_coord
+    dp = donor._hb_coord
     if len(donor_hyds) == 0:
         d2 = distance_squared(dc, ac)
         if d2 > r2:
@@ -335,7 +331,7 @@ def don_generic(donor, donor_hyds, acceptor, sp2_O_rp2, sp3_O_rp2, sp3_N_rp2,
     for bonded in donor.neighbors:
         if bonded.element.number <= 1:
             continue
-        bp = bonded.scene_coord
+        bp = bonded._hb_coord
         ang = angle(bp, dp, ap)
         if ang < min_bonded_angle:
             if hbond.verbose:
@@ -357,7 +353,6 @@ def don_generic(donor, donor_hyds, acceptor, sp2_O_rp2, sp3_O_rp2, sp3_N_rp2,
         print("hydrogen angle(s) too sharp (< %g)" % min_hyd_angle)
     return False
 
-@line_profile
 def don_water(donor, donor_hyds, acceptor, sp2_O_rp2, sp2_O_r2, sp2_O_theta,
         sp3_O_rp2, sp3_O_r2, sp3_O_theta, sp3_O_phi, sp3_N_rp2, sp3_N_r2,
         sp3_N_theta, sp3_N_upsilon, gen_rp2, gen_r2, gen_theta):
@@ -369,8 +364,8 @@ def don_water(donor, donor_hyds, acceptor, sp2_O_rp2, sp2_O_r2, sp2_O_theta,
             sp2_O_theta, sp3_O_rp2, sp3_O_theta, sp3_O_phi, sp3_N_rp2,
             sp3_N_theta, sp3_N_upsilon, gen_rp2, gen_theta)
 
-    ap = acceptor.scene_coord
-    dp = donor.scene_coord
+    ap = acceptor._hb_coord
+    dp = donor._hb_coord
 
     acc_type = acceptor.idatm_type
     if acc_type not in type_info:

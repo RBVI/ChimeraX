@@ -92,22 +92,22 @@ def _get_registration(name, email, organization, research, research_other,
     from xml.dom import minidom
     from xml.parsers.expat import ExpatError
     # Required fields
-    params = {
-        "action":"Register from ChimeraX",
-        "name":name,
-        "email":email,
-    }
+    params = [
+        ("action", "Register from ChimeraX"),
+        ("name", name),
+        ("email", email),
+    ]
     # Optional fields
     if organization:
-        params["organization"] = organization
-    if research:
-        params["research"] = research
+        params.append(("organization", organization))
+    for r in research:
+        params.append(("research", r))
     if "other" in research:
-        params["research_other"] = research_other
-    if funding:
-        params["funding"] = funding
+        params.append(("research_other", research_other))
+    for f in funding:
+        params.append(("funding", f))
     if "other" in funding:
-        params["funding_other"] = funding_other
+        params.append(("funding_other", funding_other))
     with urlopen(RegistrationURL, urlencode(params).encode()) as f:
         text = f.read()
     try:

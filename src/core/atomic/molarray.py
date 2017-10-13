@@ -548,7 +548,7 @@ class Atoms(Collection):
     visibles = cvec_property('atom_visible', npy_bool, read_only=True,
         doc="Returns whether the Atom should be visible (displayed and not hidden). Returns a "
         ":mod:`numpy` array of boolean values.  Read only.")
-    alt_locs = cvec_property('atom_alt_loc', string, astype=bytearray,
+    alt_locs = cvec_property('atom_alt_loc', string,
                          doc='Returns current alternate location indicators')
 
     def __init__(self, c_pointers = None, guaranteed_live_pointers = False):
