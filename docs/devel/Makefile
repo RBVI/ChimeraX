@@ -17,11 +17,11 @@ include $(TOP)/mk/config.make
 # You can set these variables from the command line.
 SPHINXOPTS    =
 ifdef USE_MAC_FRAMEWORKS
-SPHINXBUILD   = $(PYTHON_EXE) $(PYTHON_FRAMEWORK)/bin/sphinx-build
+SPHINXBUILD   = $(APP_PYTHON_EXE) $(PYTHON_FRAMEWORK)/bin/sphinx-build
 else ifdef WIN32
-SPHINXBUILD   = $(PYTHON_EXE) '$(shell cygpath -m '$(bindir)/Scripts/sphinx-build.exe')'
+SPHINXBUILD   = $(APP_PYTHON_EXE) '$(shell cygpath -m '$(bindir)/Scripts/sphinx-build.exe')'
 else
-SPHINXBUILD   = $(PYTHON_EXE) $(bindir)/sphinx-build
+SPHINXBUILD   = $(APP_PYTHON_EXE) $(bindir)/sphinx-build
 endif
 PAPER         =
 BUILDDIR      = _build
@@ -193,4 +193,4 @@ doctest: conf.py index.rst
 	      "results in $(BUILDDIR)/doctest/output.txt."
 
 llgr: conf.py
-	$(PYTHON_EXE) $(bindir)/rst2html.py --config=conf.py ../src/llgr/llgr.rst > llgr.html
+	$(APP_PYTHON_EXE) $(bindir)/rst2html.py --config=conf.py ../src/llgr/llgr.rst > llgr.html

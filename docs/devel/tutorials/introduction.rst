@@ -24,6 +24,7 @@
     === UCSF ChimeraX Copyright ===
 
 
+===========================
 ChimeraX Developer Tutorial
 ===========================
 
@@ -44,7 +45,7 @@ repository based on the `Cytoscape App Store`_.
 
 
 Prerequisites
--------------
+=============
 
 Other than developing graphical interfaces, writing
 ChimeraX bundles only requires a working knowledge
@@ -64,7 +65,7 @@ e.g., installing Visual Studio 2015 on Microsoft Windows.
 
 
 What is a ChimeraX Bundle?
---------------------------
+==========================
 
 ChimeraX is implemented in Python 3, with chunks
 of C++ thrown in for performance.  A bundle
@@ -124,27 +125,22 @@ to properly integrate the bundle into ChimeraX.)
 
 
 Source Code Organization
-------------------------
+========================
 
 The ChimeraX ``devel`` command expects bundle source
 code to be arranged in a folder (a.k.a., directory)
-in a specific manner: there must be a ``src`` subfolder
-and a ``bundle_info.xml`` file.
+in a specific manner: there must be a
+``bundle_info.xml`` file and a ``src`` subfolder.
 
-The ``src`` folder contains the source code for the
-bundle, and is organized like a `Python package`_.
-The ``__init__.py`` file is required.  All other
-files, source code or data, are optional.
+
+Bundle Information
+------------------
 
 The ``bundle_info.xml`` file contains information
 read by the ``devel`` command.  It describes both
 what functionality is provided in the bundle,
 and what source code files need to be included
 to build the bundle.
-
-
-Bundle Information
-^^^^^^^^^^^^^^^^^^
 
 The format of ``bundle_info.xml`` is, as its name
 suggests, `eXtensible Markup Language`_ (XML).
@@ -167,31 +163,54 @@ Examples of ``bundle_info.xml`` files are provided
 in tutorials for building sample bundles
 (see `Writing Bundles in Seven Easy Steps`_).
 The complete set of supported tags are described in
-:ref:`Bundle Information XML Tags`.
+:doc:`bundle_info`.
 
 
 Python Package
-^^^^^^^^^^^^^^
+--------------
 
-The Python package code in ``src`` implements the
-bundle functionality.  ChimeraX assumes that the
-Python package will contain a ``bundle_api`` object
-that derives from :ref:`chimerax.core.toolshed.BundleAPI`.
-The bundle API defines names and calling
-conventions of standard methods, e.g., ``register_command``
-for registering new commands and ``start_tool`` for
-starting a graphical interface tool.  A bundle does
-not need to provide all these methods, as the
-implementation from inherited methods "do the right thing".
+The ``src`` folder is organized as a `Python package`_,
+and implements the bundle functionality.
+The ``__init__.py`` file is required.  All other
+files, source code or data, are optional.
+
+ChimeraX assumes that the Python package contains
+an object named ``bundle_api`` that is an instance
+of a subclass of :py:class:`chimerax.core.toolshed.BundleAPI`,
+which defines the attributes and methods required
+by ChimeraX.  For example,
+
+- the ``api_version`` attribute controls the calling
+  conventions for defined methods;
+- the ``register_command`` method is called to
+  register bundle commands; and
+- the ``start_tool`` method is called to start a
+  graphical interface tool.
+
+A bundle does not need to provide all bundle API methods,
+as the implementation from inherited methods
+"do the right thing".
+
 The ``bundle_api`` object, typically defined
 in ``__init__.py``, is the only interface that ChimeraX
-uses to invoke bundle functionality.
+uses to invoke bundle functionality.  The bundle can,
+of course, invoke ChimeraX functionality through the
+published APIs for :ref:`ChimeraX Python Modules`.
 
-TODO: APIs for manipulating ChimeraX data.  Semantic versioning.
+Because ChimeraX is implemented (mostly) in Python,
+all code is available for inspection and introspection,
+so developers can essentially use all defined attributes
+and methods.  However, using *only* the published APIs has
+one great advantage.  Published ChimeraX APIs conform
+to `semantic versioning`_ rules, i.e., within the same
+major version of ChimeraX, the APIs from newer minor
+versions will always be compatible with older minor versions.
+That means bundles written for one version of ChimeraX
+will always work with new (minor) versions as well.
 
 
 Writing Bundles in Seven Easy Steps
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------------------
 
 The easiest way to start developing ChimeraX
 bundles is to follow these tutorials
@@ -211,7 +230,7 @@ functionality to ChimeraX.
 
 
 Building and Testing Bundles
-----------------------------
+============================
 
 To build a bundle, start ChimeraX and execute the command:
 
@@ -253,7 +272,7 @@ flag guarantees that ChimeraX will exit even if installation
 fails for some reason.
 
 Distributing Bundles
---------------------
+====================
 
 With ChimeraX bundles being packages as standard Python
 wheel-format files, they can be distributed as plain files
