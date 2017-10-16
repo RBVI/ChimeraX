@@ -69,6 +69,7 @@ and their code location is described with the function descriptions.
 | `select`_ - Select objects
 | `set`_ - Set rendering effects (background color, silhouettes)
 | `show`_ - Show atoms, ribbons, models
+| `size`_ - Change atom, bond, pseudobond sizes
 | `smoothlines`_ * - Smooth paths in line drawings
 | `split`_ - Split atomic structures into pieces
 | `stop`_ - Stop motion
@@ -322,6 +323,10 @@ set
 show
 ====
 .. autofunction:: chimerax.core.commands.show.show
+
+style
+=====
+.. autofunction:: chimerax.core.commands.size.size
 
 smoothlines
 ===========

@@ -11,25 +11,16 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def style(session, objects=None, atom_style=None, atom_radius=None,
-          stick_radius=None, pseudobond_radius=None, ball_scale=None, dashes=None):
-    '''Set the atom and bond display styles and sizes.
+def style(session, objects=None, atom_style=None, dashes=None):
+    '''Set the atom and bond display styles.
 
     Parameters
     ----------
     objects : Objects
-        Change the style of these atoms and pseudobond groups.
+        Change the style of these atoms, bonds and pseudobonds.
         If not specified then all atoms are changed.
     atom_style : "sphere", "ball" or "stick"
         Controls how atoms and bonds are depicted.
-    atom_radius : float or "default"
-      New radius value for atoms.
-    stick_radius : float
-      New radius value for bonds shown in stick style.
-    pseudobond_radius : float
-      New radius value for pseudobonds.
-    ball_scale : float
-      Multiplier times atom radius for determining atom size in ball style (default 0.3).
     dashes : int
       Number of dashes shown for pseudobonds.
     '''
@@ -52,35 +43,6 @@ def style(session, objects=None, atom_style=None, atom_radius=None,
         atoms.draw_modes = s
         what.append('%d atom styles' % len(atoms))
 
-    if atom_radius is not None:
-        if atom_radius == 'default':
-            undo_state.add(atoms, "radii", atoms.radii, atoms.default_radii)
-            atoms.radii = atoms.default_radii
-        else:
-            undo_state.add(atoms, "radii", atoms.radii, atom_radius)
-            atoms.radii = atom_radius
-        what.append('%d atom radii' % len(atoms))
-
-    if stick_radius is not None:
-        b = objects.bonds
-        undo_state.add(b, "radii", b.radii, stick_radius)
-        b.radii = stick_radius
-        what.append('%d bond radii' % len(b))
-
-    if pseudobond_radius is not None:
-        pb = objects.pseudobonds
-        undo_state.add(pb, "radii", pb.radii, pseudobond_radius)
-        pb.radii = pseudobond_radius
-        from ..atomic import concatenate
-        what.append('%d pseudobond radii' % len(pb))
-
-    if ball_scale is not None:
-        mols = atoms.unique_structures
-        for s in mols:
-            undo_state.add(s, "ball_scale", s.ball_scale, ball_scale)
-            s.ball_scale = ball_scale
-        what.append('%d ball scales' % len(mols))
-
     if dashes is not None:
         pbgs = objects.pseudobonds.unique_groups
         for pbg in pbgs:
@@ -99,13 +61,9 @@ def style(session, objects=None, atom_style=None, atom_radius=None,
 # -----------------------------------------------------------------------------
 #
 def register_command(session):
-    from . import register, CmdDesc, ObjectsArg, EmptyArg, EnumOf, Or, IntArg, FloatArg
+    from . import register, CmdDesc, ObjectsArg, EmptyArg, EnumOf, Or, IntArg
     desc = CmdDesc(required = [('objects', Or(ObjectsArg, EmptyArg)),
                                ('atom_style', Or(EnumOf(('sphere', 'ball', 'stick')), EmptyArg))],
-                   keyword = [('atom_radius', Or(EnumOf(['default']), FloatArg)),
-                              ('stick_radius', FloatArg),
-                              ('pseudobond_radius', FloatArg),
-                              ('ball_scale', FloatArg),
-                              ('dashes', IntArg)],
+                   keyword = [('dashes', IntArg)],
                    synopsis='change atom and bond depiction')
     register('style', desc, style, logger=session.logger)
