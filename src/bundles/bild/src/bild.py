@@ -25,7 +25,7 @@ The plan is to support all of the existing bild format.
 
 from chimerax.core.errors import UserError
 import numpy
-from chimerax.core.geometry import identity, translation, rotation, scale, distance, z_align
+from chimerax.core.geometry import identity, translation, rotation, scale, distance, z_align, normalize_vectors
 from chimerax.core import surface
 from .shapemodel import ShapeModel
 
@@ -384,6 +384,7 @@ def get_sphere(radius, center, xform=None):
     if xform is not None:
         vertices = xform * vertices
         normals = xform.apply_without_translation(normals)
+        normalize_vectors(normals)
     return vertices, normals, triangles
 
 
@@ -398,6 +399,7 @@ def get_cylinder(radius, p0, p1, closed=True, xform=None):
     if xform is not None:
         vertices = xform * vertices
         normals = xform.apply_without_translation(normals)
+        normalize_vectors(normals)
     return vertices, normals, triangles
 
 
@@ -413,6 +415,7 @@ def get_dashed_cylinder(count, radius, p0, p1, closed=True, xform=None):
     if xform is not None:
         vertices = xform * vertices
         normals = xform.apply_without_translation(normals)
+        normalize_vectors(normals)
     return vertices, normals, triangles
 
 
@@ -421,6 +424,7 @@ def get_box(llb, urf, xform=None):
     if xform is not None:
         vertices = xform * vertices
         normals = xform.apply_without_translation(normals)
+        normalize_vectors(normals)
     return vertices, normals, triangles
 
 
@@ -435,4 +439,5 @@ def get_cone(radius, p0, p1, bottom=False, xform=None):
     if xform is not None:
         vertices = xform * vertices
         normals = xform.apply_without_translation(normals)
+        normalize_vectors(normals)
     return vertices, normals, triangles
