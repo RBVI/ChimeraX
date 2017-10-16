@@ -101,13 +101,15 @@ class ShapeDrawing(Drawing):
         return pick
 
     def selected_items(self, itype):
-        if itype == 'atoms':
+        if itype in ('atoms', 'bonds'):
             from chimerax.core.atomic import Atoms
             atoms = Atoms(None)
             for s in self._selected_shapes:
                 a = s.atoms
                 if a is not None:
                     atoms |= Atoms(a)
+            if itype == 'bonds':
+                return atoms.intra_bonds
             return atoms
         elif itype == 'shapes':
             return list(self._selected_shapes)
