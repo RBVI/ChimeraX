@@ -75,7 +75,7 @@ def cartoon(session, atoms=None, smooth=None, suppress_backbone_display=None, sp
         if smooth is "default":
             # Convert to C++ default value
             smooth = -1.0
-        undo_state.add(residues, "ribbon_adjusts", residues.ribbon_adjust, smooth)
+        undo_state.add(residues, "ribbon_adjusts", residues.ribbon_adjusts, smooth)
         residues.ribbon_adjusts = smooth
     if suppress_backbone_display is not None:
         undo_state.add(residues, "ribbon_hide_backbones",

@@ -272,6 +272,7 @@ void Structure::_copy(Structure* g) const
     for (auto h = metadata.begin() ; h != metadata.end() ; ++h)
         g->metadata[h->first] = h->second;
     g->pdb_version = pdb_version;
+    g->lower_case_chains = lower_case_chains;
     g->set_ss_assigned(ss_assigned());
     g->set_ribbon_tether_scale(ribbon_tether_scale());
     g->set_ribbon_tether_shape(ribbon_tether_shape());
