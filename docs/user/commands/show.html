@@ -62,7 +62,7 @@ Examples:
 <br>
 <b>hide /b-d cartoons</b>
 <br>
-<b>hide <a href="atomspec.html#builtin">hbonds</a> targ p</b>
+<b>hide <a href="atomspec.html#builtin">hbonds</a></b>
 <br>
 <b>hide <a href="atomspec.html#builtin">nucleic</a> targ cp</b>
 </blockquote>
@@ -90,14 +90,15 @@ both end atoms hidden are also hidden automatically
 </tr><tr>
 <td align="center"><b>bonds</b></td>
 <td align="center"><b>target b</b></td>
-<td align="left">bonds with both end atoms specified; includes end atoms
+<td align="left">
+bonds specified directly or with both end atoms specified; end atoms included
 for <b>show</b> (since they are required to display the bond,
 see <a href="../hierarchy.html">hierarchy</a>) but not for <b>hide</b></td>
 </tr><tr>
 <td align="center"><b>pseudobonds</b> <br>or<br><b>pbonds</b></td>
 <td align="center"><b>target p</b></td>
 <td align="left"><a href="../pseudobonds.html">pseudobonds</a>
-with both end atoms specified; includes end atoms
+specified directly or with both end atoms specified; end atoms included
 for <b>show</b> (since they are required to display the pseudobond,
 see <a href="../hierarchy.html">hierarchy</a>) but not for <b>hide</b></td>
 </tr><tr>
@@ -131,8 +132,10 @@ see <a href="../hierarchy.html">hierarchy</a>)
 </tr>
 </table>
 <p>
-The default <i>level</i> is <b>atoms</b>
-when <a href="atomspec.html"><i>spec</i></a> includes atoms, but
+The default <i>level</i> is <b>atoms</b> when 
+<a href="atomspec.html"><i>spec</i></a> includes atoms,
+<b>pseudobonds</b> when it includes only 
+<a href="../pseudobonds.html">pseudobonds</a>, and
 <b>models</b> when only nonatomic (<i>e.g.</i>, volume) models are specified.
 A blank specification includes atoms when atomic models are present.
 </p><p>
@@ -156,5 +159,5 @@ the <b>only</b> keyword must be given last.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2016</address>
+October 2017</address>
 </body></html>

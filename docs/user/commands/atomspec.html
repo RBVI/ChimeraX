@@ -49,8 +49,8 @@ can be specified using:
     </ul>
   <li><a href="#builtin">built-in classifications</a>
   - <b>sel</b> (current <a href="../selection.html">selection</a>),
-  <b>protein</b>, <b>helix</b>, <b>strand</b>, 
-  <b>solvent</b>, element symbols, functional groups, <i>etc.</i>
+  <b>protein</b>, <b>helix</b>, <b>strand</b>, <b>ligand</b>, <b>hbonds</b>,
+  element symbols, functional groups, <i>etc.</i>
   <li><a href="#user">user-defined targets</a>
   <font color="brown">(not yet implemented)</font> 
   <li><a href="#attributes">attribute</a> names and values
@@ -134,6 +134,11 @@ Thus, an atom can be specified by model number, chain identifier (ID),
 residue number, and atom name. The lack of a specifier is interpreted 
 as all units at the associated level; for example, if no chain ID is given,
 the specification refers to all chains.
+Specifying a set of atoms always specifies any <b><i>bonds</i></b> and
+<a href="../pseudobonds.html">pseudobonds</a> between pairs of atoms in the set.
+A <a href="../pseudobonds.html">pseudobond model</a>
+can also be specified directly by its own model number
+(not necessarily within the atomic-model hierarchy).
 </p><p>
 Chain IDs, residue names and numbers,
 and atom names are read from the input file.
@@ -141,10 +146,6 @@ In <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/tutorials/framepdbin
 standard nomenclature is used for standard amino acid and nucleic acid residues.
 Asterisks (<b>*</b>) in PDB input atom names will be translated 
 to prime symbols (<b>'</b>).
-</p><p>
-A <a href="../pseudobonds.html">pseudobond</a> 
-model can also be specified directly by its own model number
-(not necessarily within the atomic-model hierarchy).
 </p>
 
 <a name="capitalization"></a>

@@ -27,14 +27,11 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>style</b> &nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
 [&nbsp;sphere&nbsp;|&nbsp;stick&nbsp;|&nbsp;ball&nbsp;]
-[&nbsp;atomRadius&nbsp;&nbsp;<i>r<sub><font size=-1>a</font></sub></i>&nbsp;|&nbsp;default&nbsp;]
-[&nbsp;stickRadius&nbsp;&nbsp;<i>r<sub><font size=-1>b</font></sub></i>&nbsp;]
-[&nbsp;ballScale&nbsp;&nbsp;<i>b</i>&nbsp;]
-[&nbsp;pseudobondRadius&nbsp;&nbsp;<i>r<sub><font size=-1>pb</font></sub></i>&nbsp;]
 [&nbsp;dashes&nbsp;&nbsp;<i>N</i>&nbsp;]
 </h3>
 <p>
-The <b>style</b> command sets display style and/or size of atoms and bonds.
+The <b>style</b> command sets display style of atoms and bonds
+and the number of dashes per <a href="../pseudobonds.html">pseudobond</a>.
 The style can be one of the following:
 </p>
 <ul>
@@ -42,38 +39,23 @@ The style can be one of the following:
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/sphere.png"></a>
 - space-filling with full atomic <a href="../radii.html">VDW radii</a>
-(the <a href="../radii.html"><b>default</b> radii</a> are
-assigned by <a href="../atomtypes.html">atom type</a>)
 <li><b>stick</b>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/stick.png"></a>
-- sticks with rounded ends and
-<b>stickRadius</b>&nbsp;<i>r<sub><font size=-1>b</font></sub></i>
-(initial default <b>0.2</b> &Aring;)
+- sticks with rounded ends 
 <li><b>ball</b>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/ball.png"></a>
-- ball-and-stick with atomic <a href="../radii.html">VDW radii</a>
-scaled by the <b>ballScale</b> <i>factor</i> (initial default <b>0.3</b>)
-and bonds shown as sticks with 
-<b>stickRadius</b>&nbsp;<i>r<sub><font size=-1>b</font></sub></i>
-(initial default <b>0.2</b> &Aring;)
+- ball-and-stick with balls proportional to 
+atomic <a href="../radii.html">VDW radii</a>
 </ul>
 <p>
-Note that <a href="../radii.html">VDW radii</a> are also used to calculate
-<a href="surface.html">molecular surfaces</a>, surface areas, and
-contacts based on buried surface areas.
-The <b>ballScale</b> parameter applies to an entire atomic model even
-if only part of the model is specified.
-</p><p>
-Bonds can be <a href="atomspec.html">specified</a> by their endpoint atoms
-or directly by <a href="../selection.html">selection</a>
-and using the word <a href="atomspec.html#builtin"><b>sel</b></a>.
+<a href="../radii.html">VDW radii</a> (for <b>sphere</b> display),
+<b>stick</b> radii, and the scale factor for <b>ball</b> display
+can be adjusted with the <a href="size.html"><b>size</b></a> command.
 </p><p>
 The <b>style</b> command can also set 
-<a href="../pseudobonds.html">pseudobond</a> stick radius 
-(<b>pseudobondRadius</b>&nbsp;<i>r<sub><font size=-1>pb</font></sub></i>)
-and number of <b>dashes</b> <i>N</i>.
+<a href="../pseudobonds.html">pseudobond</a> number of <b>dashes</b> <i>N</i>.
 Only whole numbers of dashes are accepted, with 0
 indicating solid sticks. Currently, odd numbers are rounded down 
 to give an even number of dashes.
@@ -88,9 +70,6 @@ See also:
 <a href="hbonds.html"><b>hbonds</b></a>,
 <a href="crosslinks.html"><b>crosslinks</b></a>,
 <a href="setattr.html"><b>setattr</b></a>,
-<a href="surface.html"><b>surface</b></a>,
-<a href="measure.html"><b>measure</b></a>,
-<a href="contacts.html"><b>contacts</b></a>,
 <a href="../tools/moldisplay.html"><b>Molecule Display Toolbar</b></a>
 </p>
 

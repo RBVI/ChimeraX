@@ -211,8 +211,8 @@ to colormap onto the globe)</td>
 </tr><tr>
 <td align="center">ImageJ or
 <a href="https://www-legacy.openmicroscopy.org/site/products/ome-tiff"
-target="_blank">OME</a> multichannel TIFF</a>
-<br>(specified in file header)</td>
+target="_blank">OME</a> TIFF</a>
+<br>(multiple channels and/or time points specified in file header)</td>
 <td align="center"><b></b></td>
 <td align="center">.tif, .tiff</td>
 <td align="center">microscopy data</td>
@@ -435,7 +435,14 @@ if its name contains either of the following:
 <li>_ch0_
 <li>_0ch_
 </ul>
-(and 0 could be any whole number). 
+(and 0 could be any whole number).
+<!-- OME TIFF header of one file can specify names of all files in the dataset, 
+which ChimeraX will open automatically; maybe rare, currently left undescribed. -->
+Multichannel data opened from a single file or from multiple files
+in a single command (as described above) are automatically grouped,
+in that changing the display style, step size, or plane for one channel 
+in <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>
+changes it for all of the channels in the group.
 The <b>channel</b> option allows manually assigning a channel to data
 so that it can be saved along with other datasets in a single (multichannel)
 <a href="save.html#chimap">Chimera map</a> file.
