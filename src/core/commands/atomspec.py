@@ -783,7 +783,9 @@ class AtomSpec:
             results = Objects.intersect(left_results, right_results)
         else:
             raise RuntimeError("unknown operator: %s" % repr(self._operator))
-        results.add_bonds(results.atoms.intra_bonds)
+        atoms = results.atoms
+        results.add_bonds(atoms.intra_bonds)
+        results.add_pseudobonds(atoms.intra_pseudobonds)
         return results
 
     def find_matches(self, session, models, results):

@@ -18,7 +18,9 @@ Bundles
 Documentation for API that bundles provide
 that are layered on top of the ChimeraX core.
 The user interface documentation is found
-in :doc:`User's Manual </users/index>`.
+in `User's Manual`_.
+
+.. _User's Manual: ../user/index.html
 
 TODO
 ----

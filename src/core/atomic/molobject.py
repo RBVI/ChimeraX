@@ -80,6 +80,11 @@ class Atom(State):
     SPHERE_STYLE, BALL_STYLE, STICK_STYLE = range(3)
 
     HIDE_RIBBON = 0x1
+    '''Hide mask for backbone atoms in ribbon.'''
+    HIDE_ISOLDE = 0x2
+    '''Hide mask for backbone atoms for ISOLDE.'''
+    HIDE_NUCLEOTIDE = 0x4
+    '''Hide mask for sidechain atoms in nucleotides.'''
     BBE_MIN, BBE_RIBBON, BBE_MAX = range(3)
 
     idatm_info_map = c_function('atom_idatm_info_map', args = (), ret = ctypes.py_object)()
@@ -480,14 +485,8 @@ class Bond(State):
     '''
     radius = c_property('bond_radius', float32)
     '''Displayed cylinder radius for the bond.'''
-    HIDE_RIBBON = 0x1
-    '''Hide mask for backbone bonds in ribbon.'''
-    HIDE_ISOLDE = 0x2
-    '''Hide mask for backbone bonds for ISOLDE.'''
-    HIDE_NUCLEOTIDE = 0x4
-    '''Hide mask for sidechain atoms in nucleotides.'''
     hide = c_property('bond_hide', int32)
-    '''Whether bond is hidden (overrides display).  Integer bitmask.'''
+    '''Whether bond is hidden (overrides display).  Integer bitmask.  Use Atom.HIDE_* constants for hide bits.'''
     selected = c_property('bond_selected', npy_bool)
     '''Whether the bond is selected.'''
     ends_selected = c_property('bond_ends_selected', npy_bool, read_only = True)
@@ -1616,7 +1615,7 @@ class StructureData:
     '''Return array of ids of all coordinate sets.'''
     coordset_size = c_property('structure_coordset_size', int32, read_only = True)
     '''Return the size of the active coordinate set array.'''
-    lower_case_chains = c_property('structure_lower_case_chains', npy_bool, read_only = True)
+    lower_case_chains = c_property('structure_lower_case_chains', npy_bool)
     '''Structure has lower case chain ids. Boolean'''
     num_atoms = c_property('structure_num_atoms', size_t, read_only = True)
     '''Number of atoms in structure. Read only.'''

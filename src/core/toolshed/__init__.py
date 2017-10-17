@@ -758,20 +758,25 @@ class BundleAPI:
 
     @staticmethod
     def start_tool(*args):
-        """Called to lazily create a tool instance.
+        """This method is called when the tool is invoked,
+        typically from the application menu.
+        Errors should be reported via exceptions.
 
-        Parameters (v0)
-        ---------------
-        session : :py:class:`~chimerax.core.session.Session` instance.
-        tool_name : str.
-
-        Parameters (v1)
-        ---------------
-        session : :py:class:`~chimerax.core.session.Session` instance.
+        Parameters
+        ----------
+        session : :py:class:`chimerax.core.session.Session` instance.
         bundle_info : instance of :py:class:`BundleInfo`
         tool_info : instance of :py:class:`ToolInfo`
 
-        Errors should be reported via exceptions.
+            Version 1 of the API passes in information for both
+            the tool to be started and the bundle where it was defined.
+
+        session : :py:class:`chimerax.core.session.Session` instance.
+        tool_name : str.
+
+            Version 0 of the API only passes in the name of
+            the tool to be started.
+
 
         Returns
         -------
@@ -782,47 +787,52 @@ class BundleAPI:
 
     @staticmethod
     def register_command(*args):
-        """Called when delayed command line registration occurs.
+        """When ChimeraX starts, it registers placeholders for
+        commands from all bundles.  When a command from this
+        bundle is actually used, ChimeraX calls this method to
+        register the function that implements the command
+        functionality, and then calls the command function.
+        On subsequent uses of the command, ChimeraX will
+        call the command function directly instead of calling
+        this method.
 
-        Parameters (v0)
-        ---------------
-        command : :py:class:`str`
-        logger : :py:class:`~chimerax.core.logger.Logger` instance.
-
-        Parameters (v1)
-        ---------------
+        Parameters
+        ----------
         bundle_info : instance of :py:class:`BundleInfo`
         command_info : instance of :py:class:`CommandInfo`
         logger : :py:class:`~chimerax.core.logger.Logger` instance.
 
-        ``command`` is a string of the command to be registered.
-        Alternatively, in version 1, ``command_info`` is the instance
-        containing information about the command to be registered.
-        This function is called when the command line interface is invoked
-        with one of the registered command names.
+            Version 1 of the API pass in information for both
+            the command to be registered and the bundle where
+            it was defined.
+
+        command : :py:class:`str`
+        logger : :py:class:`~chimerax.core.logger.Logger` instance.
+
+            Version 0 of the API only passes in the name of the
+            command to be registered.
         """
         raise NotImplementedError("BundleAPI.register_command")
 
     @staticmethod
     def register_selector(*args):
-        """Called when delayed selector registration occurs.
+        """This method is called the first time when the selector is used.
 
-        Parameters (v0)
-        ---------------
-        selector_name : :py:class:`str`
-        logger : :py:class:`~chimerax.core.logger.Logger` instance.
-
-        Parameters (v1)
-        ---------------
+        Parameters
+        ----------
         bundle_info : instance of :py:class:`BundleInfo`
         selector_info : instance of :py:class:`SelectorInfo`
-        logger : :py:class:`~chimerax.core.logger.Logger` instance.
+        logger : :py:class:`chimerax.core.logger.Logger` instance.
 
-        ``selector_name`` is the name of the selector to be registered.
-        Alternatively, in version 1, ``selector_info`` is the instance
-        containing information about the selector to be registered.
-        This function is called when the selector invoked with one of
-        the registered names.
+            Version 1 of the API passes in information about
+            both the selector to be registered and the bundle
+            where it is defined.
+
+        selector_name : :py:class:`str`
+        logger : :py:class:`chimerax.core.logger.Logger` instance.
+
+            Version 0 of the API only passes in the name of the
+            selector to be registered.
         """
         raise NotImplementedError("BundleAPI.register_selector")
 
@@ -832,7 +842,7 @@ class BundleAPI:
 
         Second arg must be 'stream' or 'path'.  Depending on the name, either an open
         data stream or a filesystem path will be provided.  The third and fourth
-        arguments are optional (remove "optional_" from their names if you provide them).
+        arguments are optional (remove ``optional_`` from their names if you provide them).
         'format-name' will be the first nickname of the format if it has any, otherwise
         the full format name, but all lower case.  'file_name' if the name of input file,
         with path and compression suffix components stripped.

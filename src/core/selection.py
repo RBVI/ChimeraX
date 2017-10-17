@@ -66,17 +66,17 @@ class Selection:
         session.undo.register(undo_state)
 
     def undo_add_selected(self, undo_state, new_state, old_state=None):
-        from .atomic.molarray import Atoms
-        atoms = self.items("atoms")
-        if atoms:
-            if isinstance(atoms, Atoms):
-                orig = self._orig_state(atoms, old_state)
-                undo_state.add(atoms, "selected", orig, new_state)
-            else:
-                for a in atoms:
-                    orig = self._orig_state(a, old_state)
-
-                    undo_state.add(a, "selected", orig, new_state)
+        from .atomic import Atoms, Bonds, Pseudobonds
+        for oname, otype in (('atoms', Atoms), ('bonds', Bonds), ('pseudobonds', Pseudobonds)):
+            items = self.items(oname)
+            if items:
+                if isinstance(items, otype):
+                    orig = self._orig_state(items, old_state)
+                    undo_state.add(items, "selected", orig, new_state)
+                else:
+                    for i in items:
+                        orig = self._orig_state(i, old_state)
+                        undo_state.add(i, "selected", orig, new_state)
         models = [m for m in self.all_models() if m.selected]
         if models:
             for m in models:
@@ -152,16 +152,22 @@ class SelectionPromoter:
         if len(promotions) == 0 or promotions[0].level <= level:
             # Check if some but not all children are selected.
             nsel = [c for c in children if c not in sel]
-            if nsel and len(nsel) < len(children):
-                for c in nsel:
-                    self._add_promotion(ModelSelectionPromotion(c,level+0.5), promotions)
+            if nsel:
+                if len(nsel) < len(children):
+                    # Some children are selected so select all children
+                    for c in nsel:
+                        self._add_promotion(ModelSelectionPromotion(c,level+0.5), promotions)
+            elif children and not drawing.selected and drawing is not self._drawing:
+                # All children selected so select parent
+                self._add_promotion(ModelSelectionPromotion(drawing,level), promotions)
 
             # Check if some but not all instances are selected.
             sp = drawing.selected_positions
             if sp is not None:
                 ns = sp.sum()
                 if ns < len(sp) and ns > 0:
-                    self._add_promotion(ModelSelectionPromotion(drawing,level), promotions)
+                    # Some instances are selected so select all instances
+                    self._add_promotion(ModelSelectionPromotion(drawing,level + 0.3), promotions)
                     sel.add(drawing)
 
     def _add_promotion(self, p, promotions):

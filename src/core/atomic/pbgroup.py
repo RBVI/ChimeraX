@@ -99,6 +99,13 @@ class PseudobondGroup(PseudobondGroupData, Model):
                 return True
         return False
 
+    def selection_promotion(self):
+        pbonds = self.pseudobonds
+        n = pbonds.num_selected
+        if n == 0 or n == len(pbonds):
+            return None
+        return PromotePseudobondSelection(self, pbonds.selected)
+
     def clear_selection(self):
         self.selected = False
         self.pseudobonds.selected = False
@@ -203,6 +210,29 @@ class PseudobondGroup(PseudobondGroupData, Model):
         p = structure.PickedPseudobond(b,f) if b else None
         return p
 
+    def planes_pick(self, planes, exclude=None):
+        if not self.display:
+            return []
+        if exclude is not None and exclude(self):
+            return []
+
+        picks = []
+        from ..geometry import transform_planes
+        for p in self.positions:
+            pplanes = transform_planes(p, planes)
+            picks.extend(self._pseudobonds_planes_pick(pplanes))
+
+        return picks
+
+    def _pseudobonds_planes_pick(self, planes):
+        from .structure import _bonds_planes_pick, PickedPseudobonds
+        pmask = _bonds_planes_pick(self._pbond_drawing, planes)
+        if pmask.sum() == 0:
+            return []
+        bonds = self._visible_pbonds.filter(pmask)
+        p = PickedPseudobonds(bonds)
+        return [p]
+
     def take_snapshot(self, session, flags):
         data = {
             'version': 1,
@@ -244,6 +274,22 @@ def selected_pseudobonds(session):
     from .molarray import concatenate, Pseudobonds
     pbonds = concatenate(blist, Pseudobonds)
     return pbonds
+
+# -----------------------------------------------------------------------------
+#
+from ..selection import SelectionPromotion
+class PromotePseudobondSelection(SelectionPromotion):
+    def __init__(self, pbgroup, prev_pbond_sel_mask):
+        level = 1001
+        SelectionPromotion.__init__(self, level)
+        self._pbgroup = pbgroup
+        self._prev_pbond_sel_mask = prev_pbond_sel_mask
+    def promote(self):
+        pbonds = self._pbgroup.pseudobonds
+        pbonds.selected = True
+    def demote(self):
+        pbonds = self._pbgroup.pseudobonds
+        pbonds.selected = self._prev_pbond_sel_mask
 
 # -----------------------------------------------------------------------------
 #

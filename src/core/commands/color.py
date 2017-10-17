@@ -92,6 +92,11 @@ def color(session, objects, color=None, what=None,
         if len(bonds) > 0:
             undo_state.add(bonds, "halfbonds", bonds.halfbonds, halfbond)
             bonds.halfbonds = halfbond
+        if 'p' in target:
+            pbonds = objects.pseudobonds
+            if len(pbonds) > 0:
+                undo_state.add(pbonds, "halfbonds", pbonds.halfbonds, halfbond)
+                pbonds.halfbonds = halfbond
 
     if sequential is not None:
         try:

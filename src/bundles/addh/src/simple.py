@@ -90,8 +90,8 @@ def _alt_loc_add_hydrogens(atom, alt_loc_atom, bonding_info, naming_schema, tota
             toward = None
         from chimerax.core.atomic.bond_geom import bond_positions
         from chimerax.core.geometry import distance_squared
-        positions = bond_positions(at_pos, geom, bond_with_H_length(atom, geom),
-            bonded_pos, toward=toward, coplanar=planar, away=away, away2=away2)
+        positions = list(bond_positions(at_pos, geom, bond_with_H_length(atom, geom),
+            bonded_pos, toward=toward, coplanar=planar, away=away, away2=away2))
         if coordinations:
             coord_pos = None
             for pos in positions:
@@ -109,6 +109,8 @@ def _alt_loc_add_hydrogens(atom, alt_loc_atom, bonding_info, naming_schema, tota
     for alt_loc, occupancy, positions in alt_loc_info:
         if added_hs:
             for h, pos in zip(added_hs, positions):
+                if h is None:
+                    continue
                 h.set_alt_loc(alt_loc, True)
                 h.coord = invert * pos
                 h.occupancy = occupancy
@@ -117,4 +119,5 @@ def _alt_loc_add_hydrogens(atom, alt_loc_atom, bonding_info, naming_schema, tota
                 h = new_hydrogen(atom, i+1, total_hydrogens, naming_schema,
                                     invert * pos, bonding_info, alt_loc)
                 added_hs.append(h)
-                h.occupancy = occupancy
+                if h is not None:
+                    h.occupancy = occupancy

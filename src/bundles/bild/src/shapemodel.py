@@ -13,7 +13,7 @@
 
 import numpy
 from chimerax.core import generic3d
-from chimerax.core.graphics import Pick
+from chimerax.core.graphics import Drawing, Pick
 
 
 class _Shape:
@@ -23,8 +23,9 @@ class _Shape:
         # of the triangles for that shape in the vertex array
         self.triangle_range = triangle_range
         self.description = description
-        if atoms is None:
-            atoms = ()
+        from chimerax.core.atomic import Atoms
+        if atoms is not None and not isinstance(atoms, Atoms):
+            atoms = Atoms(atoms)
         self.atoms = atoms
 
 
@@ -38,7 +39,14 @@ class _ShapePick(Pick):
     def description(self):
         d = self.shape.description
         if d is None and self.shape.atoms:
-            d = ','.join(self.shape.atoms.names)
+            from collections import OrderedDict
+            ra = OrderedDict()
+            for a in self.shape.atoms:
+                ra.setdefault(a.residue, []).append(a)
+            d = []
+            for r in ra:
+                d.append("%s@%s" % (r.atomspec(), ','.join(a.name for a in ra[r])))
+            return ','.join(d)
         return d
 
     def drawing(self):
@@ -72,7 +80,7 @@ class _ShapePick(Pick):
                 drawing._add_selected_shape(self.shape)
 
 
-class ShapeModel(generic3d.Generic3DModel):
+class ShapeDrawing(Drawing):
 
     def __init__(self, *args, **kw):
         super().__init__(*args, **kw)
@@ -91,7 +99,7 @@ class ShapeModel(generic3d.Generic3DModel):
     def first_intercept(self, mxyz1, mxyz2, exclude=None):
         pick = super().first_intercept(mxyz1, mxyz2, exclude)
         if pick is None:
-            return pick
+            return None
         try:
             tn = pick.triangle_number
         except AttributeError:
@@ -103,20 +111,32 @@ class ShapeModel(generic3d.Generic3DModel):
         return pick
 
     def selected_items(self, itype):
-        if itype == 'atoms':
-            all_atoms = [s.atoms for s in self._selected_shapes]
-            if not all_atoms:
-                return all_atoms
-            atoms = all_atoms[0]
-            for a in all_atoms[1:]:
-                atoms = atoms | a
+        if itype in ('atoms', 'bonds'):
+            from chimerax.core.atomic import Atoms
+            atoms = Atoms(None)
+            for s in self._selected_shapes:
+                a = s.atoms
+                if a is not None:
+                    atoms |= s
+            if itype == 'bonds':
+                return atoms.intra_bonds
             return atoms
-        return list(self._selected_shapes)
+        elif itype == 'shapes':
+            return list(self._selected_shapes)
+        return []
 
     def update_selection(self):
         # called by Structure._update_if_needed when atom selection has changed
         # in a child model/drawing
-        self._selected.shapes = [s for s in self._shapes if any(s.atoms.selected)]
+        self._selected_shapes = set(s for s in self._shapes if s.atoms and any(s.atoms.selected))
+        tmask = self.selected_triangles_mask
+        if tmask is None:
+            tmask = numpy.zeros(len(self.triangles), bool)
+        else:
+            tmask[:] = False
+        for s in self._selected_shapes:
+            tmask[s.triangle_range] = True
+        self.selected_triangles_mask = tmask
 
     def _add_selected_shape(self, shape):
         self._selected_shapes.add(shape)
@@ -149,13 +169,17 @@ class ShapeModel(generic3d.Generic3DModel):
             self._add_handler_if_needed()
         asarray = numpy.asarray
         concat = numpy.concatenate
-        color = (numpy.array([color]) * 255).astype(numpy.uint8)
-        colors = concat((color,) * vertices.shape[0])
+        if color.ndim == 1 or color.shape[0] == 1:
+            colors = numpy.empty((vertices.shape[0], 4), dtype=numpy.uint8)
+            colors[:] = color
+        else:
+            colors = color.asarray(color, dtype=numpy.uint8)
+            assert colors.shape[1] == 4 and colors.shape[0] == vertices.shape[0]
         if self.vertices is None:
             self.vertices = asarray(vertices, dtype=numpy.float32)
             self.normals = asarray(normals, dtype=numpy.float32)
             self.triangles = asarray(triangles, dtype=numpy.int32)
-            self.vertex_colors = asarray(colors, dtype=numpy.uint8)
+            self.vertex_colors = colors
             s = _Shape(range(0, self.triangles.shape[0]), balloon_text, atoms)
             self._shapes.append(s)
             return
@@ -164,6 +188,10 @@ class ShapeModel(generic3d.Generic3DModel):
         self.vertices = asarray(concat((self.vertices, vertices)), dtype=numpy.float32)
         self.normals = asarray(concat((self.normals, normals)), dtype=numpy.float32)
         self.triangles = asarray(concat((self.triangles, triangles + offset)), dtype=numpy.int32)
-        self.vertex_colors = asarray(concat((self.vertex_colors, colors)), dtype=numpy.uint8)
+        self.vertex_colors = concat((self.vertex_colors, colors))
         s = _Shape(range(start, self.triangles.shape[0]), balloon_text, atoms)
         self._shapes.append(s)
+
+
+class ShapeModel(ShapeDrawing, generic3d.Generic3DModel):
+    pass

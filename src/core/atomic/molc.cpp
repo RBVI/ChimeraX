@@ -3605,6 +3605,17 @@ extern "C" EXPORT void structure_lower_case_chains(void *mols, size_t n, npy_boo
     }
 }
 
+extern "C" EXPORT void set_structure_lower_case_chains(void *structures, size_t n, npy_bool *lcc)
+{
+    Structure **s = static_cast<Structure **>(structures);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            s[i]->lower_case_chains = lcc[i];
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void structure_active_coordset_change_notify(void *structures, size_t n, npy_bool *accn)
 {
     Structure **s = static_cast<Structure **>(structures);

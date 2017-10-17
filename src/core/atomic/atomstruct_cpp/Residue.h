@@ -343,7 +343,7 @@ Residue::ribbon_clear_hide() {
     for (auto atom: atoms()) {
         atom->set_hide(atom->hide() & ~Atom::HIDE_RIBBON);
         for (auto bond: atom->bonds())
-            bond->set_hide(bond->hide() & ~Bond::HIDE_RIBBON);
+            bond->set_hide(bond->hide() & ~Atom::HIDE_RIBBON);
     }
 }
 

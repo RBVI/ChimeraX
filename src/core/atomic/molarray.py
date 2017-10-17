@@ -548,7 +548,7 @@ class Atoms(Collection):
     visibles = cvec_property('atom_visible', npy_bool, read_only=True,
         doc="Returns whether the Atom should be visible (displayed and not hidden). Returns a "
         ":mod:`numpy` array of boolean values.  Read only.")
-    alt_locs = cvec_property('atom_alt_loc', string, astype=bytearray,
+    alt_locs = cvec_property('atom_alt_loc', string,
                          doc='Returns current alternate location indicators')
 
     def __init__(self, c_pointers = None, guaranteed_live_pointers = False):
@@ -1200,7 +1200,7 @@ class StructureDatas(Collection):
     chains = cvec_property('structure_chains', cptr, 'num_chains', astype = _chains,
                            read_only = True, per_object = False)
     '''A single :class:`.Chains` object containing chains for all structures. Read only.'''
-    lower_case_chains = cvec_property('structure_lower_case_chains', npy_bool, read_only=True)
+    lower_case_chains = cvec_property('structure_lower_case_chains', npy_bool)
     '''A numpy bool array of lower_case_names of each structure.'''
     num_atoms = cvec_property('structure_num_atoms', size_t, read_only = True)
     '''Number of atoms in each structure. Read only.'''
