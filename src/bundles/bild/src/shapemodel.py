@@ -23,6 +23,9 @@ class _Shape:
         # of the triangles for that shape in the vertex array
         self.triangle_range = triangle_range
         self.description = description
+        from chimerax.core.atomic import Atoms
+        if atoms is not None and not isinstance(atoms, Atoms):
+            atoms = Atoms(atoms)
         self.atoms = atoms
 
 
@@ -107,7 +110,7 @@ class ShapeDrawing(Drawing):
             for s in self._selected_shapes:
                 a = s.atoms
                 if a is not None:
-                    atoms |= Atoms(a)
+                    atoms |= s
             if itype == 'bonds':
                 return atoms.intra_bonds
             return atoms
