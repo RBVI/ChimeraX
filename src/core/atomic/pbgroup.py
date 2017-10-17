@@ -266,7 +266,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
 def selected_pseudobonds(session):
     '''All selected bonds in all structures as an :class:`.Bonds` collection.'''
     blist = []
-    for m in session.models.list(type = PseudbondGroup):
+    for m in session.models.list(type = PseudobondGroup):
         pbonds = m.pseudobonds
         pbsel = pbonds.selected
         if len(pbsel) > 0:
