@@ -39,7 +39,14 @@ class _ShapePick(Pick):
     def description(self):
         d = self.shape.description
         if d is None and self.shape.atoms:
-            d = ','.join(self.shape.atoms.names)
+            from collections import OrderedDict
+            ra = OrderedDict()
+            for a in self.shape.atoms:
+                ra.setdefault(a.residue, []).append(a)
+            d = []
+            for r in ra:
+                d.append("%s@%s" % (r.atomspec(), ','.join(a.name for a in ra[r])))
+            return ','.join(d)
         return d
 
     def drawing(self):
