@@ -1615,7 +1615,7 @@ class StructureData:
     '''Return array of ids of all coordinate sets.'''
     coordset_size = c_property('structure_coordset_size', int32, read_only = True)
     '''Return the size of the active coordinate set array.'''
-    lower_case_chains = c_property('structure_lower_case_chains', npy_bool, read_only = True)
+    lower_case_chains = c_property('structure_lower_case_chains', npy_bool)
     '''Structure has lower case chain ids. Boolean'''
     num_atoms = c_property('structure_num_atoms', size_t, read_only = True)
     '''Number of atoms in structure. Read only.'''
