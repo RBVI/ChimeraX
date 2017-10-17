@@ -374,8 +374,6 @@ class Structure(Model, StructureData):
         radii = self._atom_display_radii(atoms)
         tab = ' ' * indent
         for xyz, r, c in zip(atoms.coords, radii, p.colors):
-            if not v:
-                continue
             print('%s<Transform translation="%g %g %g">' % (tab, xyz[0], xyz[1], xyz[2]), file=stream)
             print('%s <Shape>' % tab, file=stream)
             self.reuse_appearance(stream, x3d_scene, indent + 2, c)
