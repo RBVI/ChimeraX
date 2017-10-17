@@ -1,0 +1,43 @@
+<BundleInfo name="ChimeraX-NucleicAcids" version="0.1" package="chimerax.nucleic_acids"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Create nucleotide-specific displays</Synopsis>
+  <Description>
+  Create special nucleotide-specific displays of the base and sugar moieties.
+  Such displays are generally combined with various atomic representations
+  and/or cartoons.
+  <p>
+  See also <a href="http://nar.oxfordjournals.org/cgi/content/full/34/4/e29">
+	  Nucleic acid visualization with UCSF Chimera</a>.
+  Couch GS, Hendrix DK, Ferrin TE. Nucleic Acids Res. 2006 Feb 14;34(4):e29.
+  </p>
+  </Description>
+
+  <Categories>
+    <Category name="General"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <Classifiers>
+    <!-- Development Status should be compatible with bundle version number -->
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <!--
+    <ChimeraXClassifier>ChimeraX :: Tool :: Nucleotides Tool :: General :: Manipulate nucleotide representations</ChimeraXClassifier>
+    -->
+    <ChimeraXClassifier>ChimeraX :: Command :: nucleotides :: General :: Manipulate nucleotide representations</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: ~nucleotides :: General :: Undo nucleotide representations</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: nucleotides style :: General :: Create custom nucleotide style</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: nucleotides style list :: General :: List custom nucleotide styles </ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: nucleotides style delete :: General :: Delete custom nucleotide style </ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: nucleotides ndbcolor :: General :: Color residues according to NDB conventions </ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

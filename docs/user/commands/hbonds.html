@@ -63,11 +63,10 @@ but different names can be assigned and used.
 When multiple pseudobond models have the same name, specific models can be 
 removed with the <a href="close.html"><b>close</b></a> command.
 </p><p>
-Pseudobonds are only shown if their endpoint atoms are shown;
+A pseudobond is only shown when both of its endpoint atoms are shown;
 <b>reveal true</b> can be used to display all involved residues 
 so that all of the H-bonds will be shown (<a href="#reveal">details...</a>).
-Since a backbone atom is considered as shown when its cartoon is
-<a href="cartoon.html#suppress">suppressing</a> the backbone atoms,
+Since a backbone atom is considered as shown when only its cartoon is shown,
 a pseudobond (which goes the atom position) may appear to be floating in space. 
 Floating pseudobonds can be hidden with the command
 <b><a href="cartoon.html">cartoon suppress false</a></b>,
@@ -124,10 +123,11 @@ The command-line specifier <a href="atomspec.html#builtin"><b>hbonds</b></a>
 (not to be confused with the command) refers to pseudobonds in the 
 pseudobond model named <b>hydrogen bonds</b>.
 An interactive histogram of pseudobond lengths can be plotted with 
-<a href="crosslinks.html#histogram"><b>crosslinks histogram</b></a>, and a chain 
-network diagram summarizing intra- and interchain pseudobonds can be shown with
-<a href="crosslinks.html#network"><b>crosslinks network</b></a>.
+<a href="crosslinks.html#histogram"><b>crosslinks histogram</b></a>, and a 
+chain network diagram summarizing intra- and interchain pseudobonds can be
+shown with <a href="crosslinks.html#network"><b>crosslinks network</b></a>.
 See also: <a href="style.html"><b>style</b></a>,
+<a href="size.html"><b>size</b></a>,
 <a href="color.html"><b>color</b></a>
 </p>
 
@@ -217,7 +217,7 @@ the <a href="color.html"><b>color</b></a> command, for example:
   <b>radius</b> &nbsp;<i>r</i>
 <br>Radius in &Aring; to use for <a href="../pseudobonds.html">pseudobonds</a>
 depicting H-bonds (default <b>0.075</b>);
-can be changed later with <a href="style.html"><b>style</b></a>.
+can be changed later with <a href="size.html"><b>size</b></a>.
 </blockquote>
 <blockquote>
   <b>dashes</b> &nbsp;<i>N</i>

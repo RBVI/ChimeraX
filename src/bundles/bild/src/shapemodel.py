@@ -23,6 +23,9 @@ class _Shape:
         # of the triangles for that shape in the vertex array
         self.triangle_range = triangle_range
         self.description = description
+        from chimerax.core.atomic import Atoms
+        if atoms is not None and not isinstance(atoms, Atoms):
+            atoms = Atoms(atoms)
         self.atoms = atoms
 
 
@@ -36,7 +39,14 @@ class _ShapePick(Pick):
     def description(self):
         d = self.shape.description
         if d is None and self.shape.atoms:
-            d = ','.join(self.shape.atoms.names)
+            from collections import OrderedDict
+            ra = OrderedDict()
+            for a in self.shape.atoms:
+                ra.setdefault(a.residue, []).append(a)
+            d = []
+            for r in ra:
+                d.append("%s@%s" % (r.atomspec(), ','.join(a.name for a in ra[r])))
+            return ','.join(d)
         return d
 
     def drawing(self):
@@ -107,7 +117,7 @@ class ShapeDrawing(Drawing):
             for s in self._selected_shapes:
                 a = s.atoms
                 if a is not None:
-                    atoms |= Atoms(a)
+                    atoms |= s
             if itype == 'bonds':
                 return atoms.intra_bonds
             return atoms

@@ -141,6 +141,21 @@ def _coil_selector(session, models, results):
                 results.add_model(m)
                 results.add_atoms(coil.atoms, bonds=True)
 
+def _get_missing_structure(struct, atoms):
+    pbg = struct.pseudobond_group("missing structure", create_type=None)
+    pbs = []
+    if pbg:
+        for pb in pbg.pseudobonds:
+            a1, a2 = pb.atoms
+            if a1 in atoms and a2 in atoms:
+                pbs.append(pb)
+    return pbs, pbg
+
+def _add_missing_structure(results, pbs, pbg):
+    from ..atomic import Pseudobonds
+    results.add_pseudobonds(Pseudobonds(pbs))
+    results.add_model(pbg)
+
 def _polymer_selector(models, results, protein):
     from ..atomic import Structure
     for m in models:
@@ -150,9 +165,13 @@ def _polymer_selector(models, results, protein):
                 residues = pas.residues.filter(pas.names=="CA")
             else:
                 residues = pas.residues.filter(pas.names!="CA")
+            atoms = residues.atoms
+            pbs, pbg = _get_missing_structure(m, atoms)
             if residues:
                 results.add_model(m)
-                results.add_atoms(residues.atoms, bonds=True)
+                results.add_atoms(atoms, bonds=True)
+                if pbs:
+                    _add_missing_structure(results, pbs, pbg)
 
 def _pbonds_selector(session, models, results):
     from ..atomic import Pseudobonds, PseudobondGroup, concatenate
@@ -176,8 +195,11 @@ def _backbone_selector(session, models, results):
     atoms = structure_atoms([m for m in models if isinstance(m, Structure)])
     backbone = atoms.filter(atoms.is_backbones())
     if backbone:
-        for m in backbone.unique_structures:
-            results.add_model(m)
+        for s, struct_backbone in backbone.by_structure:
+            results.add_model(s)
+            pbs, pbg = _get_missing_structure(s, struct_backbone)
+            if pbs:
+                _add_missing_structure(results, pbs, pbg)
         results.add_atoms(backbone, bonds=True)
 
 def _sidechain_selector(session, models, results):
