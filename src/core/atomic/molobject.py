@@ -2098,6 +2098,9 @@ class Element:
         ret = size_t)()
 
     def __init__(self, element_pointer):
+        if not isinstance(element_pointer, int) or element_pointer < 256:
+            raise ValueError("Do not use Element constructor directly;"
+                " use Element.get_element method to get an Element instance")
         set_c_pointer(self, element_pointer)
 
     # cpp_pointer and deleted are "base class" methods, though for performance reasons
