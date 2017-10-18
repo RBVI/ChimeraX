@@ -131,7 +131,7 @@ def nucleotides(session, representation, *, glycosidic=default.GLYCOSIDIC, orien
         NA.set_normal(molecules, residues)
     elif representation == 'fill/fill':
         # TODO
-        residues.fill_rings = True
+        # residues.fill_rings = True
         if orient:
             NA.set_orient(molecules, residues)
         else:

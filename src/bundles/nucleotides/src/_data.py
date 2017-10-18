@@ -376,6 +376,7 @@ def add_style(name, info, session=None):
     from chimerax.core.errors import LimitationError
     raise LimitationError("Custom styles are not supported at this time")
     # TODO: rest of this
+    """
     exists = name in user_styles
     if exists and user_styles[name] == info:
         return
@@ -389,7 +390,7 @@ def add_style(name, info, session=None):
         return
     # if anything is displayed in this style, rebuild it
     for mol in session.models:
-        nuc_info = getattr(mol, 'nucleotide_info', None)
+        nuc_info = getattr(mol, '_nucleotide_info', None)
         if nuc_info is None:
             continue
         if mol in _need_rebuild:
@@ -399,17 +400,20 @@ def add_style(name, info, session=None):
             if slab_params and slab_params['style'] == name:
                 _need_rebuild.add(mol)
                 break
+    """
 
 
 def remove_style(name):
     from chimerax.core.errors import LimitationError
     raise LimitationError("Custom styles are not supported at this time")
     # TODO: rest of this
+    """
     del user_styles[name]
     del pref_styles[name]
     from chimera import preferences
     preferences.save()
     chimera.triggers.activateTrigger(TRIGGER_SLAB_STYLES, name)
+    """
 
 
 def list_styles(custom_only=False):
@@ -420,7 +424,8 @@ def list_styles(custom_only=False):
 
 def initialize():
     return
-    # TODO:
+    # TODO: rest of this
+    """
     global pref, user_styles, pref_styles
     from chimera import preferences
     pref = preferences.addCategory(PREF_CATEGORY,
@@ -429,6 +434,7 @@ def initialize():
     import copy
     user_styles = copy.deepcopy(pref_styles)
     chimera.triggers.addTrigger(TRIGGER_SLAB_STYLES)
+    """
 
 
 def ndb_color(residues):
@@ -454,12 +460,14 @@ def ndb_color(residues):
 
 
 def _nuc_drawing(mol, create=True, recreate=False):
+    # creates mol._nucleotide_info for per-residue information
+    # creates mol._nucleotides_drawing for the drawing
     # from chimerax.bild.shapemodel import ShapeDrawing
     from chimerax.bild.shapemodel import ShapeModel
     global _mol_handler, _rebuild_handler
     try:
         # expect this to succeed most of the time
-        info = mol.nucleotide_info
+        info = mol._nucleotide_info
         if recreate:
             mol.remove_drawing(mol._nucleotides_drawing)
             # mol._nucleotides_drawing = ShapeDrawing('nucleotides')
@@ -472,7 +480,7 @@ def _nuc_drawing(mol, create=True, recreate=False):
         # nd = mol._nucleotides_drawing = ShapeDrawing('nucleotides')
         nd = mol._nucleotides_drawing = ShapeModel('nucleotides', None)
         mol.add_drawing(nd)
-        mol.nucleotide_info = weakref.WeakKeyDictionary()
+        mol._nucleotide_info = weakref.WeakKeyDictionary()
         # if _mol_handler is None:
         #     _mol_handler = chimera.triggers.add_handler('Model',
         #                                     _trackMolecules, None)
@@ -480,7 +488,7 @@ def _nuc_drawing(mol, create=True, recreate=False):
             from chimerax.core.atomic import get_triggers
             _rebuild_handler = get_triggers(mol.session).add_handler(
                 'changes', _rebuild)
-        return mol.nucleotide_info, nd
+        return mol._nucleotide_info, nd
 
 # def _trackMolecules(trigger_name, closure, changes):
 #     """Model trigger handler"""
@@ -564,7 +572,7 @@ def _rebuild(trigger_name, changes):
         sides = {}
         for k in SideOptions:
             sides[k] = []
-        for r in nuc_info:
+        for r in tuple(nuc_info):
             if r.deleted:
                 # Sometimes the residues are gone,
                 # but there's a still reference to them.
@@ -574,22 +582,22 @@ def _rebuild(trigger_name, changes):
         if not nuc_info:
             # no residues to track in structure
             mol.remove_drawing(nd)
-            del mol.nucleotide_info
+            del mol._nucleotide_info
             continue
-        allresidue_info = set(nuc_info.keys())
+        all_residues = set(nuc_info.keys())
         # create shapes
         hide_sugars = set()
         hide_bases = set()
         residues = sides['ladder']
         if not residues:
-            mol.ladder_params = {}
+            mol._ladder_params = {}
         else:
             residues = Residues(residues=residues)
             # redo all ladder nodes
             hide_sugars.update(residues)
             hide_bases.update(residues)
             # TODO: hide hydrogens between matched bases
-            make_ladder(nd, residues, **mol.ladder_params)
+            make_ladder(nd, residues, **mol._ladder_params)
             set_hide_atoms(True, Always_RE, BackboneRE, residues)
         residues = sides['fill/slab'] + sides['slab']
         if residues:
@@ -604,8 +612,8 @@ def _rebuild(trigger_name, changes):
             for r in residues:
                 draw_orientation(nd, r)
         # make sure sugar/base atoms are hidden/shown
-        show_sugars = allresidue_info - hide_sugars
-        show_bases = allresidue_info - hide_bases
+        show_sugars = all_residues - hide_sugars
+        show_bases = all_residues - hide_bases
         showresidue_info = show_sugars - hide_bases
         show_sugars.difference_update(showresidue_info)
         show_bases.difference_update(showresidue_info)
@@ -967,8 +975,6 @@ def set_orient(molecules, residues):
         rd.pop('slab params', None)
         rd.pop('tube params', None)
         rd['side'] = 'orient'
-        rd[SUGAR] = []
-        rd[BASE] = []
 
 
 def set_slab(side, molecules, residues, style=default.STYLE, **slab_params):
@@ -1000,8 +1006,6 @@ def set_slab(side, molecules, residues, style=default.STYLE, **slab_params):
         else:
             rd['tube params'] = tube_params
         rd['side'] = side
-        rd[SUGAR] = []
-        rd[BASE] = []
 
 
 def make_slab(nd, residues, rds):
@@ -1023,26 +1027,23 @@ def make_tube(nd, residues, rds):
 
 
 def set_ladder(molecules, residues, **ladder_params):
+    _need_rebuild.update(molecules)
     rds = {}
     for mol in molecules:
         nuc_info, nd = _nuc_drawing(mol)
         rds[mol] = nuc_info
-        if hasattr(mol, 'ladder_params'):
-            if mol.ladder_params == ladder_params:
+        if hasattr(mol, '_ladder_params'):
+            if mol._ladder_params == ladder_params:
                 continue
-            _need_rebuild.add(mol)
-        mol.ladder_params = ladder_params
+        mol._ladder_params = ladder_params
     for r in residues:
         rd = rds[r.structure].setdefault(r, {})
         cur_side = rd.get('side', None)
         if cur_side == 'ladder':
             continue
-        _need_rebuild.add(r.structure)
         rd.pop('slab params', None)
         rd.pop('tube params', None)
         rd['side'] = 'ladder'
-        rd[SUGAR] = []
-        rd[BASE] = []
 
 
 def make_ladder(nd, residues, rung_radius=0, show_stubs=True, skip_nonbase_Hbonds=False):
@@ -1200,8 +1201,6 @@ def make_ladder(nd, residues, rung_radius=0, show_stubs=True, skip_nonbase_Hbond
 #         for rid in srds:
 #             r = SimpleSession.idLookup(rid)
 #             rd = rds[r] = srds[rid]
-#             rd[SUGAR] = []
-#             rd[BASE] = []
 #         _need_rebuild.add(m)
 #
 #
@@ -1257,8 +1256,6 @@ def make_ladder(nd, residues, rung_radius=0, show_stubs=True, skip_nonbase_Hbond
 #         for rid in srds:
 #             r = scenes.get_obj_by_id(rid)
 #             rd = rds[r] = srds[rid]
-#             rd[SUGAR] = []
-#             rd[BASE] = []
 #         _need_rebuild.add(m)
 #     for m in list(_data):
 #         if m in mols or m.__destroyed__:
