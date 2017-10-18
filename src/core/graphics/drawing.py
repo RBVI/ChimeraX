@@ -172,15 +172,13 @@ class Drawing:
         that the graphics needs to be redrawn."""
         rn = self._redraw_needed
         if rn is not None:
-            rn(**kw)
+            rn(self, **kw)
 
     def _get_shape_changed(self):
         rn = self._redraw_needed
         return rn.shape_changed if rn else False
     def _set_shape_changed(self, changed):
-        rn = self._redraw_needed
-        if rn:
-            rn.shape_changed = changed
+        self.redraw_needed(shape_changed = True)
     shape_changed = property(_get_shape_changed, _set_shape_changed)
     '''Did this drawing or any drawing in the same tree change shape since the last redraw.'''
     

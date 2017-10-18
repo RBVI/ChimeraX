@@ -327,6 +327,7 @@ from chimerax.core.graphics import Drawing
 class ObjectLabel(Drawing):
 
     pickable = False		# Don't allow mouse selection of labels
+    casts_shadows = False
     
     def __init__(self, object, view, offset = None, text = None, color = None,
                  size = 24, font = 'Arial'):
