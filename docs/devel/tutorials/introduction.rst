@@ -1,16 +1,5 @@
 ..  vim: set expandtab shiftwidth=4 softtabstop=4:
 
-.. _Cytoscape: http://www.cytoscape.org/
-.. _Mozilla Firefox: https://www.mozilla.org/firefox/
-.. _ChimeraX Toolshed: https://cxtoolshed.rbvi.ucsf.edu/
-.. _Cytoscape App Store: http://apps.cytoscape.org/
-.. _Python wheel: https://wheel.readthedocs.org/
-.. _Python package: https://docs.python.org/3/tutorial/modules.html#packages
-.. _eXtensible Markup Language: https://en.wikipedia.org/wiki/XML
-.. _PyQt: https://riverbankcomputing.com/software/pyqt/intro
-.. _C and C++ Extensions: https://docs.python.org/3/extending/building.html
-.. _CPython: https://en.wikipedia.org/wiki/CPython
-
 .. 
     === UCSF ChimeraX Copyright ===
     Copyright 2017 Regents of the University of California.
@@ -22,6 +11,18 @@
     including partial copies, of the software or any revisions
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
+
+.. _Cytoscape: http://www.cytoscape.org/
+.. _Mozilla Firefox: https://www.mozilla.org/firefox/
+.. _ChimeraX Toolshed: https://cxtoolshed.rbvi.ucsf.edu/
+.. _Cytoscape App Store: http://apps.cytoscape.org/
+.. _Python wheel: https://wheel.readthedocs.org/
+.. _Python package: https://docs.python.org/3/tutorial/modules.html#packages
+.. _eXtensible Markup Language: https://en.wikipedia.org/wiki/XML
+.. _PyQt: https://riverbankcomputing.com/software/pyqt/intro
+.. _C and C++ Extensions: https://docs.python.org/3/extending/building.html
+.. _CPython: https://en.wikipedia.org/wiki/CPython
+.. _semantic versioning: http://semver.org
 
 
 ===========================
@@ -160,7 +161,7 @@ must be explicitly listed (e.g., in ``DataFiles`` tags)
 for inclusion in the bundle.
 
 Examples of ``bundle_info.xml`` files are provided
-in tutorials for building sample bundles
+in tutorials for building example bundles
 (see `Writing Bundles in Seven Easy Steps`_).
 The complete set of supported tags are described in
 :doc:`bundle_info`.
@@ -207,6 +208,10 @@ major version of ChimeraX, the APIs from newer minor
 versions will always be compatible with older minor versions.
 That means bundles written for one version of ChimeraX
 will always work with new (minor) versions as well.
+(Semantic versioning only applies for pure Python
+ChimeraX bundles.  Bundles containing code that
+compile against ChimeraX C++ APIs are only guaranteed
+to work with the exact version used in development.)
 
 
 Writing Bundles in Seven Easy Steps
@@ -214,15 +219,15 @@ Writing Bundles in Seven Easy Steps
 
 The easiest way to start developing ChimeraX
 bundles is to follow these tutorials
-for building sample bundles:
+for building example bundles:
 
-- :ref:`Bundle Tutorial: Hello World`
-- :ref:`Bundle Tutorial: Add a Command`
-- :ref:`Bundle Tutorial: Add a Tool`
-- :ref:`Bundle Tutorial: Read a New File Format`
-- :ref:`Bundle Tutorial: Save a New File Format`
-- :ref:`Bundle Tutorial: Fetch from Network Database`
-- :ref:`Bundle Tutorial: Define a Chemical Subgroup Selector`
+- :doc:`tutorial_hello`
+- :doc:`tutorial_command`
+- :doc:`tutorial_tool`
+- :doc:`tutorial_read_format`
+- :doc:`tutorial_save_format`
+- :doc:`tutorial_fetch`
+- :doc:`tutorial_selector`
 
 Each tutorial builds on the previous but may also
 be used as reference for adding a specific type of

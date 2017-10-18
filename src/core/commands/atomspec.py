@@ -717,11 +717,13 @@ class _Invert:
         if models is None:
             models = session.models.list(**kw)
         results = self._atomspec.evaluate(session, models)
+        add_implied_bonds(results)
         results.invert(session, models)
         return results
 
     def find_matches(self, session, models, results):
         self._atomspec.find_matches(session, models, results)
+        add_implied_bonds(results)
         results.invert(session, models)
         return results
 
@@ -783,15 +785,18 @@ class AtomSpec:
             results = Objects.intersect(left_results, right_results)
         else:
             raise RuntimeError("unknown operator: %s" % repr(self._operator))
-        atoms = results.atoms
-        results.add_bonds(atoms.intra_bonds)
-        results.add_pseudobonds(atoms.intra_pseudobonds)
+        add_implied_bonds(results)
         return results
 
     def find_matches(self, session, models, results):
         my_results = self.evaluate(session, models)
         results.combine(my_results)
         return results
+
+def add_implied_bonds(objects):
+    atoms = objects.atoms
+    objects.add_bonds(atoms.intra_bonds)
+    objects.add_pseudobonds(atoms.intra_pseudobonds)
 
 
 #
