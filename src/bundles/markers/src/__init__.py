@@ -36,5 +36,5 @@ class _MarkersAPI(BundleAPI):
 
 bundle_api = _MarkersAPI()
 
-from .markers import MarkerMouseMode, ConnectMouseMode
-from .markers import mark_map_center
+from .mouse import MarkerMouseMode, ConnectMouseMode
+from .mouse import mark_map_center
