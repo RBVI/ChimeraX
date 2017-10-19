@@ -19,6 +19,7 @@ from chimerax.core.tools import ToolInstance
 # ------------------------------------------------------------------------------
 #
 class MarkerModeSettings(ToolInstance):
+    SESSION_ENDURING = True
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
@@ -26,7 +27,7 @@ class MarkerModeSettings(ToolInstance):
         self.display_name = 'Markers'
 
         from chimerax.core.ui.gui import MainToolWindow
-        tw = MainToolWindow(self)
+        tw = MainToolWindow(self, close_destroys=False)
         self.tool_window = tw
         parent = tw.ui_area
         
