@@ -21,6 +21,9 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>ChimeraX :: Tool :: Marker Placement :: Volume Data :: Place markers on density maps</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: DataFormat :: Marker model :: cmm :: Generic 3D objects :: .cmm :: :: https://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/volumepathtracer/volumepathtracer.html#markerfiles :: :: :: Markers and links </ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Open :: Marker model :: cmm ::</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Save :: Marker model :: cmm :: true :: models:Models</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

@@ -172,15 +172,13 @@ class Drawing:
         that the graphics needs to be redrawn."""
         rn = self._redraw_needed
         if rn is not None:
-            rn(**kw)
+            rn(self, **kw)
 
     def _get_shape_changed(self):
         rn = self._redraw_needed
         return rn.shape_changed if rn else False
     def _set_shape_changed(self, changed):
-        rn = self._redraw_needed
-        if rn:
-            rn.shape_changed = changed
+        self.redraw_needed(shape_changed = True)
     shape_changed = property(_get_shape_changed, _set_shape_changed)
     '''Did this drawing or any drawing in the same tree change shape since the last redraw.'''
     
@@ -1179,6 +1177,15 @@ class Drawing:
                 print("%s<IndexedTriangleSet USE='%s'/>" % (tab, name), file=stream)
                 return
             def_use = "%s='%s' " % (use, name)
+
+        def bulk_write(values, chunk_size, stream):
+            # break up list of values into chucks to try to avoid bug on Mac OS X writing huge strings
+
+            sep = ''
+            for i in range(0, len(values), chunk_size):
+                print('%s%s' % (sep, ' '.join(values[i:i + chunk_size])), end='', file=stream)
+                sep = ' '
+
         indices = ['%g' % i for i in indices]
         print('%s<IndexedTriangleSet %sindex="%s"' % (tab, def_use, ' '.join(indices)), end='', file=stream)
 
@@ -1189,17 +1196,25 @@ class Drawing:
             print(' normalPerVertex="false"', end='', file=stream)
         print('>', file=stream)
         vertices = ['%g' % x for x in self.vertices.flatten()]
-        print('%s <Coordinate point="%s"/>' % (tab, ' '.join(vertices)), file=stream)
+        print('%s <Coordinate point="' % tab, end='', file=stream)
+        bulk_write(vertices, 3 * 1024, stream)
+        print('"/>', file=stream)
         if normals is not None:
             normals = ['%g' % x for x in normals.flatten()]
-            print('%s <Normal vector="%s"/>' % (tab, ' '.join(normals)), file=stream)
+            print('%s <Normal vector="' % tab, end='', file=stream)
+            bulk_write(normals, 3 * 1024, stream)
+            print('"/>', file=stream)
         if colors is not None:
             if any_transp:
                 colors = ['%g' % x for x in (colors / 255).flatten()]
-                print('%s <ColorRGBA color="%s"/>' % (tab, ' '.join(colors)), file=stream)
+                print('%s <ColorRGBA color="' % tab, end='', file=stream)
+                bulk_write(colors, 4 * 1024, stream)
+                print('"/>', file=stream)
             else:
                 colors = ['%g' % x for x in (colors[:, 0:3] / 255).flatten()]
-                print('%s <Color color="%s"/>' % (tab, ' '.join(colors)), file=stream)
+                print('%s <Color color="' % tab, end='', file=stream)
+                bulk_write(colors, 3 * 1024, stream)
+                print('"/>', file=stream)
         print('%s</IndexedTriangleSet>' % tab, file=stream)
 
     def custom_x3d(self, stream, x3d_scene, indent, place):

@@ -847,7 +847,7 @@ class BundleAPI:
         the full format name, but all lower case.  'file_name' if the name of input file,
         with path and compression suffix components stripped.
 
-        You shouldn't actually use "**kw" but instead use the actual keyword args that
+        You shouldn't actually use 'kw' but instead use the actual keyword args that
         your format declares that it accepts (in its bundle_info.xml file).
 
         Returns
@@ -988,6 +988,10 @@ _CallBundleAPI = {
     0: _CallBundleAPIv0,
     1: _CallBundleAPIv1,
 }
+
+
+# Import classes that developers might want to use
+from .info import BundleInfo, CommandInfo, ToolInfo, SelectorInfo, FormatInfo
 
 
 # Toolshed is a singleton.  Multiple calls to init returns the same instance.
