@@ -85,10 +85,10 @@ class MarkerModeSettings(ToolInstance):
 
     def update_settings(self):
         s = self.session
-        from .markers import marker_settings
-        mode = marker_settings(s, 'placement_mode')
+        from . import mouse
+        mode = mouse._mouse_marker_settings(s, 'placement_mode')
         self.mode_button.setText(self.mode_menu_names[mode])
-        lnew = marker_settings(s, 'link_new_markers')
+        lnew = mouse._mouse_marker_settings(s, 'link_new_markers')
         from PyQt5.QtCore import Qt
         self.link_new_button.setChecked(Qt.Checked if lnew else Qt.Unchecked)
         
@@ -101,13 +101,13 @@ class MarkerModeSettings(ToolInstance):
     def mode_change_cb(self, mode):
         self.mode_button.setText(self.mode_menu_names[mode])
 
-        from .markers import marker_settings
-        s = marker_settings(self.session)
+        from . import mouse
+        s = mouse._mouse_marker_settings(self.session)
         s['placement_mode'] = mode
 
     def link_new_cb(self, link):
-        from .markers import marker_settings
-        s = marker_settings(self.session)
+        from . import mouse
+        s = mouse._mouse_marker_settings(self.session)
         s['link_new_markers'] = link
 
         

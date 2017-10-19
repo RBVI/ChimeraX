@@ -37,13 +37,11 @@ class MarkerMouseMode(MouseMode):
 
     @property
     def placement_mode(self):
-        from .markers import marker_settings
-        return marker_settings(self.session, 'placement_mode')
+        return _mouse_marker_settings(self.session, 'placement_mode')
 
     @property
     def link_new(self):
-        from .markers import marker_settings
-        return marker_settings(self.session, 'link_new_markers')
+        return _mouse_marker_settings(self.session, 'link_new_markers')
 
     def mouse_down(self, event):
         mode = self.placement_mode
@@ -78,8 +76,7 @@ class MarkerMouseMode(MouseMode):
         if c is None:
             log.status('No marker placed')
             return
-        from .markers import place_marker
-        place_marker(self.session, c, link_to_selected = self.link_new)
+        _mouse_place_marker(self.session, c, link_to_selected = self.link_new)
             
     def place_on_maximum(self, event):
         from chimerax.core.map import Volume
@@ -89,15 +86,13 @@ class MarkerMouseMode(MouseMode):
         sxyz, v = first_volume_maxima(xyz1, xyz2, vlist)
         if sxyz is not None:
             self._set_sizes(v)
-            from .markers import place_marker
-            place_marker(self.session, sxyz, link_to_selected = self.link_new)
+            _mouse_place_marker(self.session, sxyz, link_to_selected = self.link_new)
 
     def _set_sizes(self, volume):
         if not self._set_initial_sizes:
             return
         self._set_initial_sizes = False
-        from .markers import marker_settings
-        ms = marker_settings(self.session)
+        ms = _mouse_marker_settings(self.session)
         r = max(volume.data.step)
         ms['marker radius'] = r
         ms['link radius'] = 0.5*r
@@ -110,8 +105,7 @@ class MarkerMouseMode(MouseMode):
         sxyz, v = volume_plane_intercept(xyz1, xyz2, vlist)
         if sxyz is not None:
             self._set_sizes(v)
-            from .markers import place_marker
-            place_marker(self.session, sxyz, link_to_selected = self.link_new)
+            _mouse_place_marker(self.session, sxyz, link_to_selected = self.link_new)
 
     def link_consecutive(self, event):
         s = self.session
@@ -185,8 +179,7 @@ class MarkerMouseMode(MouseMode):
         from math import exp
         r = m.radius * exp(-0.01*dy)
         m.radius = r
-        from .markers import marker_settings
-        s = marker_settings(self.session)
+        s = _mouse_marker_settings(self.session)
         from chimerax.core.atomic import Atom
         if isinstance(m, Atom):
             s['marker radius'] = r
@@ -218,8 +211,7 @@ class ConnectMouseMode(MarkerMouseMode):
     icon_file = 'bond.png'
 
     def enable(self):
-        from .markers import marker_settings
-        s = marker_settings(self.session)
+        s = _mouse_marker_settings(self.session)
         s['placement_mode'] = 'link'
         MarkerMouseMode.enable(self)
         
@@ -248,8 +240,7 @@ def mark_map_center(volume):
         varea = surface.vertex_areas(va, ta)
         a = varea.sum()
         c = varea.dot(va)/a
-        from .markers import place_marker
-        place_marker(volume.session, c)
+        _mouse_place_marker(volume.session, c)
         
 # -----------------------------------------------------------------------------
 #
@@ -346,3 +337,52 @@ def first_maximum_along_ray(volume, xyz_in, xyz_out, threshold):
         return t
 
   return None
+    
+def _mouse_marker_settings(session, attr = None):
+    if not hasattr(session, '_marker_settings'):
+        session._marker_settings = {
+            'molecule': None,
+            'next_marker_num': 1,
+            'marker_chain_id': 'M',
+            'marker color': (255,255,0,255),	# yellow
+            'marker radius': 1.0,
+            'link color': (101,156,239,255),	# cornflowerblue
+            'link radius': 0.5,
+            'placement_mode': 'maximum',        # Modes: 'maximum', 'plane', 'surface', 'surface center'
+                                                #        'link', 'move', 'resize', 'delete'
+            'link_new_markers': False,
+        }
+    s = session._marker_settings
+    return s if attr is None else s[attr]
+
+def _mouse_markerset(session):
+    ms = _mouse_marker_settings(session)
+    m = ms['molecule']
+    if m is None or m.was_deleted:
+        from .markers import MarkerSet
+        mlist = [m for m in session.models.list(type = MarkerSet)]
+        if mlist:
+            m = mlist[0]
+        else:
+            m = MarkerSet(session, 'markers')
+            session.models.add([m])
+        ms['molecule'] = m
+    return m
+    
+def _mouse_place_marker(session, center, link_to_selected = False, select = True):
+    m = _mouse_markerset(session)
+    ms = _mouse_marker_settings(session)
+    a = m.create_marker(center, ms['marker color'], ms['marker radius'], ms['next_marker_num'])
+    ms['next_marker_num'] += 1
+    session.logger.status('Placed marker')
+    if link_to_selected:
+        from chimerax.core.atomic import selected_atoms
+        atoms = selected_atoms(session)
+        if len(atoms) == 1:
+            al = atoms[0]
+            if a.structure == al.structure and a is not al:
+                from .markers import create_link
+                create_link(al, a)
+    if select:
+        session.selection.clear()
+        a.selected = True

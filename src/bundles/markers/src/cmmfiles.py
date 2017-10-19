@@ -13,9 +13,8 @@ def read_cmm(session, path):
 #
 def write_cmm(session, path, models = None):
     if models is None:
-        from chimerax.core.atomic import Structure
-        models = [m for m in session.models.list(type = Structure)
-                  if getattr(m, 'is_markerset', False)]
+        from .markers import MarkerSet
+        models = session.models.list(type = MarkerSet)
     f = open(path, 'w')
     f.write(markersets_as_xml(models))
     f.close()
@@ -185,9 +184,8 @@ def create_marker_sets(session, marker_set_tuples):
   marker_sets = []
   for set_attributes, marker_attributes, link_attributes in marker_set_tuples:
     name = str(set_attributes.get('name', ''))
-    from .markers import new_markerset, create_marker, create_link
-    ms = new_markerset(session, add_to_session = False)
-    ms.name = name
+    from .markers import MarkerSet, create_link
+    ms = MarkerSet(session, name)
     ms.markerset_extra_attributes = leftover_keys(set_attributes, ('name',))
 
     id_to_marker = {}
@@ -205,7 +203,7 @@ def create_marker_sets(session, marker_set_tuples):
       ng = float(mdict.get('ng', '1'))
       nb = float(mdict.get('nb', '1'))
       rgba = tuple(int(c*255) for c in (r,g,b,1))
-      m = create_marker(ms, (x,y,z), rgba, radius, id)
+      m = ms.create_marker((x,y,z), rgba, radius, id)
       if 'note' in mdict:
           m.marker_note = str(mdict['note'])
           if 'nr' in mdict and 'ng' in mdict and 'nb' in mdict:

@@ -11,84 +11,40 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def marker_settings(session, attr = None):
-    if not hasattr(session, '_marker_settings'):
-        session._marker_settings = {
-            'molecule': None,
-            'next_marker_num': 1,
-            'marker_chain_id': 'M',
-            'marker color': (255,255,0,255),	# yellow
-            'marker radius': 1.0,
-            'link color': (101,156,239,255),	# cornflowerblue
-            'link radius': 0.5,
-            'placement_mode': 'maximum',        # Modes: 'maximum', 'plane', 'surface', 'surface center'
-                                                #        'link', 'move', 'resize', 'delete'
-            'link_new_markers': False,
-        }
-    s = session._marker_settings
-    return s if attr is None else s[attr]
+from chimerax.core.atomic import Structure
+class MarkerSet(Structure):
 
-def _marker_molecule(session):
-    ms = marker_settings(session)
-    m = ms['molecule']
-    if m is None or m.was_deleted:
+    def __init__(self, session, name = 'markers'):
         from chimerax.core.atomic import Structure
-        mlist = [m for m in session.models.list(type = Structure) if m.name == 'markers']
-        if mlist:
-            m = mlist[0]
-        else:
-            m = new_markerset(session)
-        ms['molecule'] = m
-    return m
+        Structure.__init__(self, session, name = 'markers', auto_style = False)
+        self.ball_scale = 1.0
 
-def new_markerset(session, add_to_session = True):
-    from chimerax.core.atomic import Structure
-    m = Structure(session, name = 'markers', auto_style = False)
-    m.ball_scale = 1.0
-    m.is_markerset = True
-    if add_to_session:
-        session.models.add([m])
-    return m
-    
-def place_marker(session, center, link_to_selected = False, select = True):
-    m = _marker_molecule(session)
-    ms = marker_settings(session)
-    a = create_marker(m, center, ms['marker color'], ms['marker radius'], ms['next_marker_num'])
-    ms['next_marker_num'] += 1
-    session.logger.status('Placed marker')
-    if link_to_selected:
-        from chimerax.core.atomic import selected_atoms
-        atoms = selected_atoms(session)
-        if len(atoms) == 1:
-            al = atoms[0]
-            if a.structure == al.structure and a is not al:
-                create_link(al, a)
-    if select:
-        session.selection.clear()
-        a.selected = True
+    def create_marker(self, xyz, rgba, radius, id):
+        a = self.new_atom('', 'H')
+        a.coord = xyz
+        a.color = rgba	# 0-255 values
+        a.radius = radius
+        a.draw_mode = a.BALL_STYLE	# Sphere style hides bonds between markers, so use ball style.
+        chain_id = 'M'
+        r = self.new_residue('mark', chain_id, id)
+        r.add_atom(a)
+        self.new_atoms()
+        return a
 
-def create_marker(mset, xyz, rgba, radius, id):
-    a = mset.new_atom('', 'H')
-    a.coord = xyz
-    a.color = rgba	# 0-255 values
-    a.radius = radius
-    a.draw_mode = a.BALL_STYLE	# Sphere style hides bonds between markers, so use ball style.
-    ms = marker_settings(a.structure.session)
-    cid = ms['marker_chain_id']
-    r = mset.new_residue('mark', cid, id)
-    r.add_atom(a)
-    mset.new_atoms()
-    return a
+    @staticmethod
+    def restore_snapshot(session, data):
+        s = MarkerSet(session)
+        Structure.set_state_from_snapshot(s, session, data)
+        return s
+
     
 def create_link(atom1, atom2, rgba = None, radius = None):
     m = atom1.structure
     b = m.new_bond(atom1,atom2)
     if rgba is None:
-        ms = marker_settings(m.session)
-        rgba = ms['link color']
+        rgba = (255,255,0,255)
     if radius is None:
-        ms = marker_settings(m.session)
-        radius = ms['link radius']
+        radius = 1.0
     b.radius = radius
     b.color = rgba
     b.halfbond = False

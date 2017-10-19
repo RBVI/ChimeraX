@@ -34,7 +34,16 @@ class _MarkersAPI(BundleAPI):
         from . import cmmfiles
         return cmmfiles.write_cmm(session, path, models)
 
+    @staticmethod
+    def get_class(class_name):
+        # 'get_class' is called by session code to get class saved in a session
+        if class_name == 'MarkerSet':
+            from .markers import MarkerSet
+            return MarkerSet
+        return None
+
 bundle_api = _MarkersAPI()
 
+from .markers import MarkerSet, create_link
 from .mouse import MarkerMouseMode, ConnectMouseMode
 from .mouse import mark_map_center
