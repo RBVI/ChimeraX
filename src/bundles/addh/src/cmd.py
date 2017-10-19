@@ -204,6 +204,7 @@ def post_add(session, fake_n, fake_c):
         n = hn.neighbors[0]
         h = add_atom("H", "H", fc, hn.coord, serial_number=hn.serial_number, bonded_to=n)
         h.color = determine_h_color(n)
+        h.hide = n.hide
         fc.structure.delete_atom(hn)
 
 def _acid_check(r, protonation, res_types, atom_names):
@@ -751,6 +752,7 @@ def new_hydrogen(parent_atom, h_num, total_hydrogens, naming_schema, pos, parent
         parent_atom.residue, pos, serial_number=_serial, bonded_to=parent_atom, alt_loc=alt_loc)
     _serial = new_h.serial_number + 1
     new_h.color = determine_h_color(parent_atom)
+    new_h.hide = parent_atom.hide
     import sys
     return new_h
 
