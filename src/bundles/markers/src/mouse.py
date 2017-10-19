@@ -138,11 +138,12 @@ class MarkerMouseMode(MouseMode):
         pick = picked_object(x, y, self.session.main_view)
         m = l = None
         from chimerax.core.atomic import PickedAtom, PickedBond
-        if isinstance(pick, PickedAtom):
-            m = pick.atom    
-        elif isinstance(pick, PickedBond):
+        from .markers import MarkerSet
+        if isinstance(pick, PickedAtom) and isinstance(pick.atom.structure, MarkerSet):
+            m = pick.atom
+        elif isinstance(pick, PickedBond) and isinstance(pick.bond.structure, MarkerSet):
             l = pick.bond
-        if select:
+        if select and (m or l):
             select_pick(self.session, pick, 'replace')
         return m, l
 
