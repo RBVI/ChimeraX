@@ -1182,8 +1182,8 @@ class Drawing:
             # break up list of values into chucks to try to avoid bug on Mac OS X writing huge strings
 
             sep = ''
-            for i range(0, len(values), chunk_size):
-                print('%s%s' % (sep, ' '.join(values[i:i + chunk_size])), file=stream)
+            for i in range(0, len(values), chunk_size):
+                print('%s%s' % (sep, ' '.join(values[i:i + chunk_size])), end='', file=stream)
                 sep = ' '
 
         indices = ['%g' % i for i in indices]
@@ -1201,18 +1201,18 @@ class Drawing:
         print('"/>', file=stream)
         if normals is not None:
             normals = ['%g' % x for x in normals.flatten()]
-            print('%s <Normal vector="' % tab, file=stream)
+            print('%s <Normal vector="' % tab, end='', file=stream)
             bulk_write(normals, 3 * 1024, stream)
             print('"/>', file=stream)
         if colors is not None:
             if any_transp:
                 colors = ['%g' % x for x in (colors / 255).flatten()]
-                print('%s <ColorRGBA color="' % tab, file=stream)
+                print('%s <ColorRGBA color="' % tab, end='', file=stream)
                 bulk_write(colors, 4 * 1024, stream)
                 print('"/>', file=stream)
             else:
                 colors = ['%g' % x for x in (colors[:, 0:3] / 255).flatten()]
-                print('%s <Color color="' % tab, file=stream)
+                print('%s <Color color="' % tab, end='', file=stream)
                 bulk_write(colors, 3 * 1024, stream)
                 print('"/>', file=stream)
         print('%s</IndexedTriangleSet>' % tab, file=stream)
