@@ -31,8 +31,6 @@ def close(session, models=None):
 
     m.close(cmodels)
 
-    session.main_view.remove_overlays()
-    
 def have_all_child_models(models):
     '''
     Return a set containing those models in the given models that have all

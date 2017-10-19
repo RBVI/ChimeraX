@@ -114,10 +114,11 @@ The depiction of a peptide helix or strand starts at the CA atom of its first
 
 <a name="subcommands"></a>
 <p class="nav">
-[<a href="#top">back to top</a>]
-<h3>Cartoon Subcommands</h3>
+[<a href="#top">back to top: cartoon</a>]
+<h3>Cartoon Subcommands: Style, Tether</h3>
 <p>
-Subcommands of <b>cartoon</b> control per-model settings.
+The subcommands <a href="#style"><b>cartoon style</b></a> and 
+<a href="#tether"><b>cartoon tether</b></a> control per-model settings.
 Parameters not specified in the command retain their current values.
 Changes affect only models that are already present,
 not those opened later.
@@ -137,6 +138,7 @@ not those opened later.
 [&nbsp;<b>arrowScale</b>&nbsp;&nbsp;<i>factor</i>&nbsp;]
 [&nbsp;<b>barScale</b>&nbsp;&nbsp;<i>factor</i>&nbsp;]
 [&nbsp;<b>sides</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>divisions</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>barSides</b>&nbsp;&nbsp;<i>N<font size="-1"><sub>b</sub></font></i>&nbsp;]
 [&nbsp;<b>modeHelix</b>&nbsp;tube&nbsp;|&nbsp;wrap&nbsp;|&nbsp;default&nbsp;]
 [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;|&nbsp;<b>auto</b>&nbsp;]
@@ -194,14 +196,14 @@ component) is used if it gives a low average distance to the &alpha;-carbons;
 otherwise, an arc (circle segment) fit to the &alpha;-carbon coordinates 
 is used instead. For a helix of 3-5 residues, the axis of an idealized 
 &alpha;-helix fit to the &alpha;-carbons is used.
-Increasing the number of <a href="#sides"><b>sides</b></a> is recommended
-to give tubes a rounded rather than faceted appearance.
+Increasing the number of <a href="#sides"><b>sides</b></a> from 12
+is recommended to give tubes a more rounded (smoother) appearance.
 Other than <a href="#radius"><b>radius</b></a>
 and <a href="#sides"><b>sides</b></a>,
 most helix settings such as width, height, cross-section, and arrows
 do not apply to helices in the <b>tube</b> mode. Tube-helix example:
 <blockquote>
-<b>cartoon style &nbsp;modeh tube &nbsp;rad 2.0 &nbsp;sides 18</b>
+<b>cartoon style &nbsp;modeh tube &nbsp;rad 2.0 &nbsp;sides 24</b>
 </blockquote>
   </blockquote><blockquote>
 <a name="radius"></a>
@@ -215,6 +217,16 @@ capped at a maximum of 2.5 &Aring;.
 Where a displayed &alpha;-carbon is offset from the tube surface,
 a <a href="#tether">tether</a> will be drawn.
   </blockquote><blockquote>
+<a name="sides"></a>
+<b>sides</b>&nbsp;&nbsp;<i>N</i>
+<br>The number of straight-line segments
+used to draw an <a href="#xsection"><b>oval</b> cross-section</a> or 
+the circumference of a <a href="#hmode"><b>tube</b> helix</a>, with higher numbers 
+corresponding to finer subdivisions (initial default <b>12</b>).
+Shading is used to give a smooth, rounded appearance despite
+this approximation of the shape.
+See also: <a href="graphics.html"><b>graphics</b></a>
+  </blockquote><blockquote>
 <b>arrows</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
 <br>Whether to show arrowheads at the 
 C-terminal ends of peptide strands (initial default <b>true</b>).
@@ -227,14 +239,11 @@ C-terminal ends of peptide helices (initial default <b>false</b>).
 <br>The <i>factor</i> (initial default <b>2.0</b>)
 is multiplied by the width of helix or strand to give the arrowhead width.
   </blockquote><blockquote>
-<a name="sides"></a>
-<b>sides</b>&nbsp;&nbsp;<i>N</i>
-<br>The number of straight-line segments
-used to draw an <a href="#xsection"><b>oval</b> cross-section</a> or 
-<a href="#hmode"><b>tube</b> helix</a>, with higher numbers 
-corresponding to finer subdivisions (initial default <b>12</b>).
-Shading is used to give a smooth, rounded appearance despite
-this approximation of the shape with facets.
+<a name="divisions"></a>
+<b>divisions</b>&nbsp;&nbsp;<i>N</i>
+<br>The number of divisions per residue along the path of the ribbon
+(initial default <b>20</b>).
+See also: <a href="graphics.html"><b>graphics</b></a>
   </blockquote><blockquote>
 <b>barSides</b>&nbsp;&nbsp;<i>N<font size="-1"><sub>b</sub></font></i>
 <br>The number of straight-line segments
@@ -262,8 +271,6 @@ car style <a href="atomspec.html#builtin">strand</a> xsection rect width 2
 <br>
 cartoon style <a href="atomspec.html#builtin">nucleic</a> 
 width 2 thickness 2 xsection round
-<br>
-ribbon style modeh tube sides 24 rad 2
 <br>
 rib style x rect
 <br>
@@ -309,5 +316,5 @@ The tether color tracks the color of the corresponding &alpha;-carbon.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2017</address>
+September 2017</address>
 </body></html>

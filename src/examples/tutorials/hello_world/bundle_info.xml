@@ -1,0 +1,55 @@
+<!--
+ChimeraX bundle names must start with "ChimeraX-"
+to avoid clashes with package names in pypi.python.org.
+When uploaded to the ChimeraX toolshed, the bundle
+will be displayed without the ChimeraX- prefix.
+-->
+
+<BundleInfo name="ChimeraX-HelloWorld"
+	    version="0.1" package="chimerax.hello_world"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <!-- Additional information about bundle source -->
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <!-- Synopsis is a one-line description
+       Description is a full multi-line description -->
+  <Synopsis>Basic example for adding a command</Synopsis>
+  <Description>Basic example code for implementing ChimeraX bundle.
+
+Implements command "hello" to print the string "hello world" in the log.
+  </Description>
+
+  <!-- Categories is a list where this bundle should appear -->
+  <Categories>
+    <Category name="General"/>
+  </Categories>
+
+  <!-- Dependencies on other ChimeraX/Python packages -->
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <!-- Python and ChimeraX-specific classifiers
+       From https://pypi.python.org/pypi?%3Aaction=list_classifiers
+       Some Python classifiers are always inserted by the build process.
+       These include the Environment and Operating System classifiers
+       as well as:
+         Framework :: ChimeraX
+         Intended Audience :: Science/Research
+         Programming Language :: Python :: 3
+         Topic :: Scientific/Engineering :: Visualization
+         Topic :: Scientific/Engineering :: Chemistry
+         Topic :: Scientific/Engineering :: Bio-Informatics
+       The "ChimeraX :: Bundle" classifier is also supplied automatically.  -->
+  <Classifiers>
+    <!-- Development Status should be compatible with bundle version number -->
+    <PythonClassifier>Development Status :: 3 - Alpha</PythonClassifier>
+    <PythonClassifier>License :: Freeware</PythonClassifier>
+    <!-- ChimeraX classifiers describe supplied functionality -->
+    <ChimeraXClassifier>ChimeraX :: Command :: hello :: General :: Print "hello world" in the log</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

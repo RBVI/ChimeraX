@@ -52,6 +52,11 @@ def save(session, filename, models=None, format=None, **kw):
         suffix = fmt.extensions[0]
         filename += suffix
 
+    # TODO: The following line does a graphics update so that if the save command is exporting
+    # data in a script (e.g. scene export) the graphics is up to date.  Does not seem like the
+    # ideal solution to put this update here.
+    session.update_loop.draw_new_frame(session)
+    
     if models:
         kw["models"] = models
     try:

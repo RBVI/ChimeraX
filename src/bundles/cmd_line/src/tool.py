@@ -30,7 +30,7 @@ class CommandLine(ToolInstance):
         self.tool_window = MainToolWindow(self, close_destroys=False)
         parent = self.tool_window.ui_area
         self.history_dialog = _HistoryDialog(self)
-        from PyQt5.QtWidgets import QComboBox, QHBoxLayout, QLineEdit, QLabel
+        from PyQt5.QtWidgets import QComboBox, QHBoxLayout, QLabel
         label = QLabel(parent)
         label.setText("Command:")
         class CmdText(QComboBox):
@@ -44,11 +44,12 @@ class CommandLine(ToolInstance):
 
             def keyPressEvent(self, event, forwarded=False):
                 self._processing_key = True
-                if forwarded:
-                    # Give command line the focus, so that up/down arrow work as
-                    # exepcted rather than changing the selection level
-                    self.setFocus()
                 from PyQt5.QtCore import Qt
+                from PyQt5.QtGui import QKeySequence
+                want_focus = forwarded and event.key() not in [Qt.Key_Control,
+                                                               Qt.Key_Shift,
+                                                               Qt.Key_Meta,
+                                                               Qt.Key_Alt]
                 import sys
                 control_key = Qt.MetaModifier if sys.platform == "darwin" else Qt.ControlModifier
                 shifted = event.modifiers() & Qt.ShiftModifier
@@ -56,6 +57,12 @@ class CommandLine(ToolInstance):
                     self.tool.history_dialog.up(shifted)
                 elif event.key() == Qt.Key_Down:  # down arrow
                     self.tool.history_dialog.down(shifted)
+                elif event.matches(QKeySequence.Undo):
+                    want_focus = False
+                    session.undo.undo()
+                elif event.matches(QKeySequence.Redo):
+                    want_focus = False
+                    session.undo.redo()
                 elif event.modifiers() & control_key:
                     if event.key() == Qt.Key_N:
                         self.tool.history_dialog.down(shifted)
@@ -69,6 +76,10 @@ class CommandLine(ToolInstance):
                         QComboBox.keyPressEvent(self, event)
                 else:
                     QComboBox.keyPressEvent(self, event)
+                if want_focus:
+                    # Give command line the focus, so that up/down arrow work as
+                    # exepcted rather than changing the selection level
+                    self.setFocus()
                 self._processing_key = False
 
             def retain_selection_on_focus_out(self):

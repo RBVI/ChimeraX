@@ -33,7 +33,8 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="usageconventions.html">Usage</a>: <br><b>open formats</b>
 </h3>
 <p>
-The command <b>open</b> reads data from:
+The command <b>open</b> reads data in several
+<a href="#formats">formats</a> from:
 <ul>
 <li><a href="#local">local files</a>
 <li><a href="#url">URLs</a>
@@ -42,6 +43,9 @@ The command <b>open</b> reads data from:
 Input files may contain data to be displayed or commands or code to be executed.
 Local files can also be browsed/opened with <b>File... Open</b> in the menu,
 in which case the proper filename <a href="#file-table">suffix</a> is required.
+A file browser window can also be shown by giving
+<a href="usageconventions.html#browse"><b>browse</b></a> as the filename 
+in the <b>open</b> command.
 See also: 
 <a href="close.html"><b>close</b></a>,
 <a href="save.html"><b>save</b></a>,
@@ -71,7 +75,7 @@ Examples:
 
 <a name="formats"></a>
 <p class="nav">
-[<a href="#top">back to top</a>]
+[<a href="#top">back to top: open</a>]
 </p>
 <h3>Input Formats</h3>
 <p>
@@ -189,7 +193,7 @@ density map</td>
 <a href="http://www.hdfgroup.org/HDF5/" target="_blank">HDF5</a>)</td>
 <td align="center"><b>cmap</b></td>
 <td align="center">.cmp<br>.cmap</td>
-<td align="center">density map</td>
+<td align="center">volume data</td>
 </tr><tr>
 <td align="center">Directional FSC (Fourier shell correlation)</td>
 <td align="center"><b>dres</b></td>
@@ -205,13 +209,21 @@ to colormap onto the globe)</td>
 <td align="center">.omap</td>
 <td align="center">density map</td>
 </tr><tr>
+<td align="center">ImageJ or
+<a href="https://www-legacy.openmicroscopy.org/site/products/ome-tiff"
+target="_blank">OME</a> TIFF</a>
+<br>(multiple channels and/or time points specified in file header)</td>
+<td align="center"><b></b></td>
+<td align="center">.tif, .tiff</td>
+<td align="center">microscopy data</td>
+</tr><tr>
 <td align="center">Image stack
 <br>(grayscale image series in multiple files or a single multipage file,
 in formats supported by
 <a href="http://www.pythonware.com/products/pil/" target="_blank">PIL</a>)</td>
 <td align="center"><b>images</b></td>
 <td align="center">.tif, .tiff<br>.png<br>.pgm</td>
-<td align="center">density map</td>
+<td align="center">image stack</td>
 </tr><tr>
 <td align="center">
 <a href="http://www.bitplane.com/imaris" target="_blank">Imaris</a> map</td>
@@ -242,12 +254,27 @@ target="_blank">COLLADA</a></td>
 <td align="center">.dae</td>
 <td align="center">graphical objects<br>(geometry nodes define surfaces)</td>
 </tr><tr>
+<td align="center"><a href="https://www.khronos.org/gltf"
+target="_blank">GL Transmission Format</a></td>
+<td align="center"><b>gltf</b></td>
+<td align="center">.glb</td>
+<td align="center">graphical objects</td>
+</tr><tr>
+<td align="center">
+<a href="http://www.fileformat.info/format/wavefrontobj/egff.htm"
+target="_blank">Wavefront OBJ</a>
+</td>
+<td align="center"><b>obj</b></td>
+<td align="center">.obj</td>
+<td align="center">graphical objects
+<br>(geometric and texture vertices, vertex normals, faces; no colors)</td>
+</tr><tr>
 <td align="center"><a href="http://en.wikipedia.org/wiki/STL_%28file_format%29#Binary_STL"
 target="_blank">STereoLithography (binary)</a></td>
 <td align="center"><b>stl</b></td>
 <td align="center">.stl</td>
 <td align="center">triangle-based format (binary)
-native to stereolithography CAD software
+native to stereolithography CAD software</td>
 <tr><tr>
 <td align="center"><a href="http://vtk.org/" 
 target="_blank">Visualization Toolkit (VTK) PolyData</a></td>
@@ -320,7 +347,7 @@ hypertext to render in the
 
 <a name="local"></a>
 <p class="nav">
-[<a href="#top">back to top</a>]
+[<a href="#top">back to top: open</a>]
 </p>
 <h3>Local Files</h3>
 <blockquote>
@@ -329,9 +356,12 @@ hypertext to render in the
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#file-table"><i>format-name</i></a>&nbsp;]
 [&nbsp;<b>coordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>vseries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>channel</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>alignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>structureModel</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>atomic</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>ensembles</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>newTab</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<a href="#options"><i>general-options</i></a>&nbsp;
 </blockquote>
 <p>
@@ -344,6 +374,9 @@ home directory. One or more files can be specified at a time by including
 <b>*</b> (wild card), <b>?</b> (single-character wild card), 
 and/or square-bracketed character ranges in the <i>filename</i>
 (Unix-style pathname expansion or <b><i>globbing</i></b>).
+Substituting the word <a href="usageconventions.html#browse"><b>browse</b></a>
+for the filename brings up a file browser window for choosing the
+name and location interactively.
 </p><p>
 The file format can be indicated with either the <i>filename</i> suffix or
 the <b>format</b> option (where <i>format-name</i> can be truncated).
@@ -380,6 +413,39 @@ for playback with
 If the option is not used, 3D TIFF images and
 <a href="save.html#chimap">Chimera map</a> files containing five or more
 same-sized maps are automatically interpreted as series, if possible.
+When multiple maps are opened in a single command (multiple files specified with 
+wild cards or globbing), time ordering is automatically discerned from the
+filenames, if possible: for example, a file will be identified as time point 12 
+if its name contains either of the following:
+<ul class="none">
+<li>_stack0012_
+<li>_0012stack_
+</ul>
+(and 0012 could be any integer).
+</blockquote>
+<blockquote>
+<b>channel</b>&nbsp;&nbsp;<i>N</i>
+<br>
+Assign channel number <i>N</i> to map; typically used for light microscopy data.
+When multiple maps are opened in a single command (multiple files specified with 
+wild cards or globbing), channel numbers are automatically discerned from the
+filenames, if possible: for example, a file will be identified as channel 0
+if its name contains either of the following:
+<ul class="none">
+<li>_ch0_
+<li>_0ch_
+</ul>
+(and 0 could be any whole number).
+<!-- OME TIFF header of one file can specify names of all files in the dataset, 
+which ChimeraX will open automatically; maybe rare, currently left undescribed. -->
+Multichannel data opened from a single file or from multiple files
+in a single command (as described above) are automatically grouped,
+in that changing the display style, step size, or plane for one channel 
+in <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>
+changes it for all of the channels in the group.
+The <b>channel</b> option allows manually assigning a channel to data
+so that it can be saved along with other datasets in a single (multichannel)
+<a href="save.html#chimap">Chimera map</a> file.
 </blockquote>
 <blockquote>
 <b>alignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
@@ -403,13 +469,33 @@ The coordinates of the existing model will be replaced with the new,
 unless <b>replace false</b> is used to indicate appending the new frames instead.
 </blockquote>
 <blockquote>
+<a name="atomicStructure"></a>
+<b>atomic</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to interpret coordinates read from mmCIF or PDB format as an atomic model 
+(<b>true</b>, default).
+Setting the option to <b>false</b> is appropriate for data such as SAXS models 
+that are simply collections of points 
+(possibly with connecting &ldquo;bonds&rdquo;)
+rather than realistically spaced atoms;
+it classifies the models as Structure rather than atomicStructure, 
+bypassing chemical perception steps like identifying
+<a href="../atomtypes.html">atom types</a>.
+</blockquote>
+<blockquote>
 <b>ensembles</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
 Whether to fetch ensembles associated with an IHM dataset 
 (default <b>false</b>, as these can be quite large).
 </blockquote>
+<blockquote>
+<b>newTab</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to open an HTML file in a new tab of the
+<a href="../window.html#browser">ChimeraX browser</a>
+(default <b>false</b>, replace any current page).
+</blockquote>
 <p>
-<!-- ChimeraX builds after June 20 2017 as per ticket #320 -->
 Another way to open local files is by drag-and-drop onto the ChimeraX icon
 or a running instance of ChimeraX.
 On a Mac, ChimeraX-associated file types can also be opened by 
@@ -419,7 +505,7 @@ in a Terminal window.
 
 <a name="url"></a>
 <p class="nav">
-[<a href="#top">back to top</a>]
+[<a href="#top">back to top: open</a>]
 </p>
 <h3>URLs</h3>
 
@@ -429,9 +515,12 @@ in a Terminal window.
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#file-table"><i>format-name</i></a>&nbsp;]
 [&nbsp;<b>coordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>vseries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>channel</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>alignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>structureModel</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>atomic</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>ensembles</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>newTab</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<a href="#options"><i>general-options</i></a>&nbsp;
 </blockquote>
 <p>
@@ -448,7 +537,7 @@ are stored locally as described <a href="#ignoreCache">below</a>.
 
 <a name="fetch"></a>
 <p class="nav">
-[<a href="#top">back to top</a>]
+[<a href="#top">back to top: open</a>]
 </p>
 <h3>Fetch from Online Databases</h3>
 
@@ -587,7 +676,7 @@ Chimera instructions</a> for available identifiers</td>
 
 <a name="options"></a>
 <p class="nav">
-[<a href="#top">back to top</a>]
+[<a href="#top">back to top: open</a>]
 </p>
 <h3>General Options</h3>
 <blockquote>
@@ -627,7 +716,6 @@ can be opened in either order.
 Gaps in the structure sequence relative to the sequence in the alignment file 
 can only occur where residues are missing from the structure (for example, 
 a flexible loop with insufficient density to determine coordinates).
-<!-- check the following -->
 Associations are reported in the <a href="../window.html">status line</a>
 and the <a href="../tools/log.html"><b>Log</b></a>.
 A structure (even if it has multiple chains) cannot be associated with more
@@ -640,5 +728,5 @@ the single best-matching sequence is associated.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2017</address>
+October 2017</address>
 </body></html>

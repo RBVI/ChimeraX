@@ -28,14 +28,9 @@ class Subsampled_Grid(Grid_Data):
 
     self.available_subsamplings = {(1,1,1): pg}
 
-    Grid_Data.__init__(self, pg.size, pg.value_type, pg.origin, pg.step,
-                       pg.cell_angles, pg.rotation, pg.symmetries,
-                       name = pg.name, path = pg.path, file_type = pg.file_type,
-                       grid_id = pg.grid_id, default_color = pg.rgba)
-    if hasattr(pg, 'time') and pg.time is not None:
-      self.time = pg.time
-    if hasattr(pg, 'channel') and pg.channel is not None:
-      self.channel = pg.channel
+    settings = pg.settings()
+    Grid_Data.__init__(self, path = pg.path, file_type = pg.file_type,
+                       grid_id = pg.grid_id, **settings)
 
   # ---------------------------------------------------------------------------
   #
@@ -57,18 +52,46 @@ class Subsampled_Grid(Grid_Data):
     if csize in self.available_subsamplings:
       del self.available_subsamplings[csize]
     self.available_subsamplings[csize] = grid_data
+
+  # ---------------------------------------------------------------------------
+  # Return the subsampling and size of subsampled matrix for the requested
+  # ijk_step.
+  #
+  def choose_subsampling(self, ijk_step):
+
+    compatible = []
+    for step, grid in self.available_subsamplings.items():
+      if (ijk_step[0] % step[0] == 0 and
+          ijk_step[1] % step[1] == 0 and
+          ijk_step[2] % step[2] == 0):
+        e = ((ijk_step[0] // step[0]) *
+             (ijk_step[1] // step[1]) *
+             (ijk_step[2] // step[2]))
+        compatible.append((e, step, grid.size))
+
+    if len(compatible) == 0:
+      return (1,1,1), self.size
+
+    subsampling, size = min(compatible)[1:]
+    return subsampling, size
     
   # ---------------------------------------------------------------------------
   #
   def matrix(self, ijk_origin = (0,0,0), ijk_size = None,
              ijk_step = (1,1,1), progress = None, from_cache_only = False,
-             subsampling = (1,1,1)):
+             subsampling = None):
 
+    if subsampling is None:
+      subsampling, ss_size = self.choose_subsampling(ijk_step)
+      
     if ijk_size == None:
       ijk_size = self.size
 
     d = self.available_subsamplings[tuple(subsampling)]
-    m = d.matrix(ijk_origin, ijk_size, ijk_step, progress, from_cache_only)
+    origin = [i//s for i,s in zip(ijk_origin, subsampling)]
+    size = [(i+s-1)//s for i,s in zip(ijk_size, subsampling)]
+    step = [i//s for i,s in zip(ijk_step, subsampling)]
+    m = d.matrix(origin, size, step, progress, from_cache_only)
     return m
 
   # ---------------------------------------------------------------------------

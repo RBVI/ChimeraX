@@ -23,7 +23,8 @@ import sys
 import plistlib
 import datetime
 from distlib.version import NormalizedVersion as Version
-from chimerax.core import io, session, configfile, core_settings
+from chimerax.core import io, configfile
+from ChimeraX_main import init
 
 configfile.only_use_defaults = True
 
@@ -103,10 +104,8 @@ def dump_format(f):
             d2["public.mime-type"] = mime_types[0]
     return d
 
-#sess = session.Session("unknown", minimal=True)
-#core_settings.init(sess)
-#session._register_core_file_formats(sess)
-from ChimeraX_main import init
+
+# Initialize ChimeraX to get all registered file types
 init([app_name, "--nogui"], event_loop=False)
 
 chimera_types = [f.name for f in io.formats() if f.name.startswith('Chimera')]

@@ -30,9 +30,10 @@ Pseudobond::graphics_changes() const { return static_cast<GraphicsChanges*>(grou
 
 void
 Pseudobond::session_restore(int version, int** ints, float** floats) {
-    Connection::session_restore(session_base_version(version), ints, floats);
+    Connection::session_restore(version, ints, floats);
     auto& int_ptr = *ints;
     auto id = int_ptr[0];
+    _shown_when_atoms_hidden = version < 9 ? true : int_ptr[1];
     int_ptr += SESSION_NUM_INTS(version);
     auto ses_map = group()->manager()->session_restore_pbs;
     (*ses_map)[id] = this;
@@ -46,6 +47,7 @@ Pseudobond::session_save(int** ints, float** floats) const {
     // IDs issued during group->session_save_setup
     auto ses_map = group()->manager()->session_save_pbs;
     int_ptr[0] = (*ses_map)[this];
+    int_ptr[1] = _shown_when_atoms_hidden;
     int_ptr += SESSION_NUM_INTS();
 }
 

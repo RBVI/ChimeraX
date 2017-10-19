@@ -46,7 +46,7 @@ def transparency(session, objects, percent, target='s'):
 
     if 'b' in target:
         # bonds
-        bonds = atoms.intra_bonds
+        bonds = objects.bonds
         if bonds:
             c = bonds.colors
             c[:, 3] = alpha
@@ -55,8 +55,7 @@ def transparency(session, objects, percent, target='s'):
 
     if 'p' in target:
         # pseudobonds
-        from .. import atomic
-        bonds = atomic.interatom_pseudobonds(atoms)
+        bonds = objects.pseudobonds
         if bonds:
             c = bonds.colors
             c[:, 3] = alpha
@@ -88,27 +87,30 @@ def _set_surface_transparency(atoms, objects, session, alpha):
     for s in surfs:
         vcolors = s.vertex_colors
         amask = s.atoms.mask(atoms)
-        if vcolors is None and amask.all():
+        all_atoms = amask.all()
+        if all_atoms:
             c = s.colors
             c[:, 3] = alpha
             s.colors = c
-        else:
             if vcolors is None:
-                from numpy import empty, uint8
-                vcolors = empty((len(s.vertices), 4), uint8)
-                vcolors[:] = s.color
-            v2a = s.vertex_to_atom_map()
-            if v2a is None:
-                if amask.all():
-                    v = slice(len(vcolors))
-                else:
-                    session.logger.info('No atom associations for surface #%s'
-                                        % s.id_string())
-                    continue
+                continue
+
+        if vcolors is None:
+            from numpy import empty, uint8
+            vcolors = empty((len(s.vertices), 4), uint8)
+            vcolors[:] = s.color
+        v2a = s.vertex_to_atom_map()
+        if v2a is None:
+            if amask.all():
+                v = slice(len(vcolors))
             else:
-                v = amask[v2a]
-            vcolors[v, 3] = alpha
-            s.vertex_colors = vcolors
+                session.logger.info('No atom associations for surface #%s'
+                                    % s.id_string())
+                continue
+        else:
+            v = amask[v2a]
+        vcolors[v, 3] = alpha
+        s.vertex_colors = vcolors
 
     # Handle surface models specified without specifying atoms
     from ..atomic import MolecularSurface, Structure

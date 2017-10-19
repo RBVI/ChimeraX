@@ -87,8 +87,8 @@ def atom_site_lines(m, anum_offset, cid_suffix, entities):
     n = len(xyz)
     elem = atoms.element_names
     aname = atoms.names
-    aloc = atoms.alt_locs
-    occ = atoms.occupancy
+    aloc = [a if a != ' ' else '.' for a in atoms.alt_locs]
+    occ = atoms.occupancies
     bfact = atoms.bfactors
     res = atoms.residues
     rname = res.names
@@ -98,14 +98,11 @@ def atom_site_lines(m, anum_offset, cid_suffix, entities):
     model_num = 1
     
     lines = [('%s %s %s %s %s %s %d %d %.3f %.3f %.3f %.2f %.2f %d' %
-             (a+1+anum_offset, elem[a], aname[a], alt_loc_text(aloc[a]), rname[a], cid[a] + cid_suffix, eid[a], rnum[a],
+             (a+1+anum_offset, elem[a], aname[a], aloc[a], rname[a], cid[a] + cid_suffix, eid[a], rnum[a],
               xyz[a,0], xyz[a,1], xyz[a,2], occ[a], bfact[a], model_num))
              for a in range(n)]
         
     return lines
-
-def alt_loc_text(i):
-    return '.' if i == 32 else chr(i)
 
 #
 # To determine entity id, use residue name if in_chain is false, use sequence if in_chain is true.

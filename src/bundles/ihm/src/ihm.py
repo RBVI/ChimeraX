@@ -425,88 +425,123 @@ class IHMModel(Model):
 
         # Model id groups
         gmodel = {id:g for g in group_models for id in g.ihm_model_ids}
+        smodels = self.make_sphere_models_by_group(mspheres, mnames, gmodel, group_coordsets)
 
-        if group_coordsets:
-            gsm = {}	# Group sphere model table
-            for mid, slist in mspheres.items():
-                g = gmodel[mid]
-                if g in gsm:
-                    gsm[g].add_coordinates(mid, slist)
-                else:
-                    sm = SphereModel(self.session, mnames.get(mid, 'sphere model'), mid, slist)
-                    sm.ihm_group_id = g.group_id
-                    g.add([sm])
-                    gsm[g] = sm
-            smodels = list(gsm.values())
-            for sm in smodels:
-                if len(sm.ihm_model_ids) > 1:
-                    sm.name = '%d models' % len(sm.ihm_model_ids)
-        else:
-            smodels = [SphereModel(self.session, mnames.get(mid, 'sphere model'), mid, slist)
-                       for mid, slist in mspheres.items()]
-            smodels.sort(key = lambda m: m.ihm_model_ids[0])
-
-            # Add sphere models to group
-            for sm in smodels:
-                g = gmodel[sm.ihm_model_ids[0]]
-                g.add([sm])
-                sm.ihm_group_id = g.group_id
-
-            # Undisplay all but first sphere model in each group
-            gfound = set()
-            for sm in smodels:
-                gid = sm.ihm_group_id
-                if gid in gfound:
-                    sm.display = False
-                else:
-                    gfound.add(gid)
+        # Warn about groups with missing models.
+        smids = set(sum((sm.ihm_model_ids for sm in smodels), []))
+        for g in group_models:
+            missing = [mid for mid in g.ihm_model_ids if mid not in smids]
+            if missing:
+                msg = ('Missing sphere models (id %s) for group %s (id %s)'
+                       % (','.join('%s' % mid for mid in missing), g.name, g.group_id))
+                self.session.logger.info(msg)
 
         # Open ensemble sphere models that are not included in ihm sphere obj table.
-        emodels = []
-        if load_ensembles:
-            eit = self.tables['ihm_ensemble_info']
-            ei_fields = ['ensemble_name', 'model_group_id', 'ensemble_file_id']
-            ei = eit.fields(ei_fields, allow_missing_fields = True)
-            from os.path import isfile, join
-            for mname, gid, file_id in ei:
-                finfo = self.file_info(file_id)
-                if finfo is None:
-                    continue
-                fname = finfo.file_name
-                if fname.endswith('.dcd'):
-                    gsm = [sm for sm in smodels if sm.ihm_group_id == gid]
-                    if len(gsm) != 1:
-                        continue  # Don't have exactly one sphere model for this group id
-                    sm = gsm[0].copy(name = mname)
-                    dcd_path = finfo.path(self.session)
-                    from chimerax.md_crds.read_coords import read_coords
-                    read_coords(self.session, dcd_path, sm, format_name = 'dcd', replace=True)
-                    sm.active_coordset_id = 1
-                elif fname.endswith('.pdb') or fname.endswith('.pdb.gz'):
-                    fstream = finfo.stream(self.session, uncompress = True)
-                    if fstream is None:
-                        continue
-                    from chimerax.core.atomic.pdb import open_pdb
-                    mlist,msg = open_pdb(self.session, fstream, mname,
-                                         auto_style = False, coordsets = True)
-                    sm = mlist[0]
-                sm.display = False
-                sm.name += ' %d models' % sm.num_coordsets
-                sm.ss_assigned = True	# Don't assign secondary structure to sphere model
-                atoms = sm.atoms
-                from chimerax.core.atomic.colors import chain_colors
-                atoms.colors = chain_colors(atoms.residues.chain_ids)
-                gmodel[gid].add([sm])
-                emodels.append(sm)
-
-            # Copy bead radii from best score model to ensemble models
-            if smodels and emodels:
-                r = smodels[0].atoms.radii
-                for em in emodels:
-                    em.atoms.radii = r
+        emodels = self.load_sphere_model_ensembles(smodels, gmodel) if load_ensembles else []
 
         return smodels, emodels
 
+    # -----------------------------------------------------------------------------
+    #
+    def make_sphere_models_by_group(self, mspheres, mnames, gmodel, group_coordsets):
+        # Find sphere models by group
+        msg = {}
+        for mid, slist in mspheres.items():
+            msg.setdefault(gmodel[mid],[]).append((mid,slist))
+
+        # Sort models in a group by model id.
+        for ms in msg.values():
+            ms.sort(key = lambda ms: ms[0])
+
+        # Sort groups by id
+        gs = list(msg.keys())
+        gs.sort()
+        
+        smodels = []
+        for g in gs:
+            ms = msg[g]
+            if group_coordsets and self.same_sphere_atoms(ms):
+                # For groups with matching residue / atom names use coordinate set.
+                mid, slist = ms[0]
+                sm = SphereModel(self.session, mnames.get(mid, 'sphere model'), mid, slist)
+                sm.ihm_group_id = g.group_id
+                g.add([sm])
+                for mid, slist in ms[1:]:
+                    sm.add_coordinates(mid, slist)
+                smodels.append(sm)
+                if len(ms) > 1:
+                    sm.name = '%d models' % len(ms)
+            else:
+                # Make separate sphere models, do not use coordinate sets.
+                for i, (mid, slist) in enumerate(ms):
+                    sm = SphereModel(self.session, mnames.get(mid, 'sphere model'), mid, slist)
+                    sm.ihm_group_id = g.group_id
+                    sm.display = (i == 0)            # Undisplay all but first sphere model in each group
+                    smodels.append(sm)
+                    g.add([sm])
+
+        return smodels
+
+    # -----------------------------------------------------------------------------
+    #
+    def same_sphere_atoms(self, mslist):
+        # Check if all sphere models have identical atoms in same order so that
+        # a coordinate set could be used to represent them.
+        sphere_ids = None
+        for model_id, sphere_list in mslist:
+            sids = [(asym_id,sb,se) for (asym_id, sb,se,xyz,r) in sphere_list]
+            if sphere_ids is None:
+                sphere_ids = sids
+            elif sids != sphere_ids:
+                return False
+        return True
+    
+    # -----------------------------------------------------------------------------
+    #
+    def load_sphere_model_ensembles(self, smodels, gmodel):
+        eit = self.tables['ihm_ensemble_info']
+        ei_fields = ['ensemble_name', 'model_group_id', 'ensemble_file_id']
+        ei = eit.fields(ei_fields, allow_missing_fields = True)
+        from os.path import isfile, join
+        for mname, gid, file_id in ei:
+            finfo = self.file_info(file_id)
+            if finfo is None:
+                continue
+            fname = finfo.file_name
+            if fname.endswith('.dcd'):
+                gsm = [sm for sm in smodels if sm.ihm_group_id == gid]
+                if len(gsm) != 1:
+                    continue  # Don't have exactly one sphere model for this group id
+                sm = gsm[0].copy(name = mname)
+                dcd_path = finfo.path(self.session)
+                from chimerax.md_crds.read_coords import read_coords
+                read_coords(self.session, dcd_path, sm, format_name = 'dcd', replace=True)
+                sm.active_coordset_id = 1
+            elif fname.endswith('.pdb') or fname.endswith('.pdb.gz'):
+                fstream = finfo.stream(self.session, uncompress = True)
+                if fstream is None:
+                    continue
+                from chimerax.core.atomic.pdb import open_pdb
+                mlist,msg = open_pdb(self.session, fstream, mname,
+                                     auto_style = False, coordsets = True)
+                sm = mlist[0]
+            sm.display = False
+            sm.name += ' %d models' % sm.num_coordsets
+            sm.ss_assigned = True	# Don't assign secondary structure to sphere model
+            atoms = sm.atoms
+            from chimerax.core.atomic.colors import chain_colors
+            atoms.colors = chain_colors(atoms.residues.chain_ids)
+            gmodel[gid].add([sm])
+            emodels.append(sm)
+
+        # Copy bead radii from best score model to ensemble models
+        if smodels and emodels:
+            r = smodels[0].atoms.radii
+            for em in emodels:
+                em.atoms.radii = r
+
+        return emodels
+    
     # -----------------------------------------------------------------------------
     #
     def read_crosslinks(self):
@@ -1020,8 +1055,13 @@ def make_crosslink_pseudobonds(session, xlinks, atom_lookup,
             elif a2 is None:
                 missing.append((xl.asym2, xl.seq2))
         if missing:
-            smiss = ','.join('/%s:%d' % (asym_id, seq_num) for asym_id, seq_num in missing)
-            session.logger.info('Missing %d crosslink residues %s' % (len(missing), smiss))
+            smiss = ','.join('/%s:%d' % (asym_id, seq_num) for asym_id, seq_num in missing[:3])
+            if len(missing) > 3:
+                smiss += '...'
+            msg = 'Missing %d %s crosslink residues %s' % (len(missing), type, smiss)
+            if parent is not None and hasattr(parent, 'name'):
+                msg = parent.name + ' ' + msg
+            session.logger.info(msg)
                 
     return pbgs
 
@@ -1373,11 +1413,9 @@ class SphereModel(Structure):
         
         self._asym_models = {}
         self._sphere_atom = sa = {}	# (asym_id, res_num) -> sphere atom
-        self._sphere_ids = sids = []
         
         from chimerax.core.atomic.colors import chain_rgba8
         for (asym_id, sb,se,xyz,r) in sphere_list:
-            sids.append((asym_id, sb, se))
             aname = 'CA'
             a = self.new_atom(aname, 'C')
             a.coord = xyz
@@ -1408,19 +1446,8 @@ class SphereModel(Structure):
 
     def add_coordinates(self, model_id, sphere_list):
         self.ihm_model_ids.append(model_id)
-        sids = [(asym_id,sb,se) for (asym_id, sb,se,xyz,r) in sphere_list]
-        if sids != self._sphere_ids:
-            mismatch = ''
-            for i in range(len(sids)):
-                if sids[i] != self._sphere_ids[i]:
-                    mismatch = '%s and %s' % (self._sphere_ids[i], sids[i])
-                    break
-            raise ValueError("Can't use coordinate sets for models %s and %s in group %s"
-                             % (model_id, self.ihm_model_ids[-1], self.ihm_group_id) +
-                             "because the sphere asym_id and begin end residues don't match " + mismatch)
-                             
         from numpy import array, float64
         cxyz = array(tuple(xyz for (asym_id, sb,se,xyz,r) in sphere_list), float64)
         id = len(self.ihm_model_ids)
         self.add_coordset(id, cxyz)
-        # TODO: Sphere radius values which may differ from one coordinate set to another.
+        # TODO: What if sphere radius values differ from one coordinate set to another?

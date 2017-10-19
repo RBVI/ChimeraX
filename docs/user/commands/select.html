@@ -24,63 +24,107 @@ or derivations thereof.
 class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: select</h3>
-<h3><a href="usageconventions.html">Usage</a>:
-<br><b>select</b>&nbsp;&nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
-[&nbsp;polymer&nbsp;&nbsp;<a href="atomspec.html"><i>chain-spec</i></a>&nbsp;]
-</h3>
-
-<h3><a href="usageconventions.html">Usage</a>:
-<br><b>select</b> (&nbsp;add&nbsp;|&nbsp;subtract&nbsp;|&nbsp;intersect&nbsp;) 
-&nbsp;<a href="atomspec.html"><i>spec</i></a></h3>
-
-<h3><a href="usageconventions.html">Usage</a>:
-<br><b>~select</b> &nbsp;<a href="atomspec.html"><i>spec</i></a></h3>
-
-<h3><a href="usageconventions.html">Usage</a>:
-<br><b>select clear</b>
-</h3>
-
-<h3><a href="usageconventions.html">Usage</a>:
-<br><b>select zone</b>
-&nbsp;<a href="atomspec.html"><i>ref-spec</i></a>
-&nbsp;<i>cutoff</i>&nbsp;
-[&nbsp;<a href="atomspec.html"><i>other-spec</i></a>&nbsp;]
-[&nbsp;<b>extend</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>residues</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-</h3>
 <p>
 A <a href="../selection.html">selection</a>
-specifies items (models or their parts) for subsequent operations
-and is shown with green outlines in the graphics window.
-The <b>select</b> command makes a new selection or modifies
-an existing selection. See also: 
-<a href="mousemode.html"><b>mousemode</b></a>,
-<a href="surface.html#zone"><b>surface zone</b></a>
+specifies items (models or their parts) for subsequent operations; the
+selected items are highlighted with green outlines in the graphics window.
+The <b>select</b> command can:
+</p>
+<ul>
+<li>make a <a href="#new">new selection</a> of specified items
+<li><a href="#modify">modify</a> an existing selection
+<li>select by <a href="#zone">zone</a> (distance cutoff from specified items)
+</ul>
 <p>
-If used without an <b>add</b>, <b>subtract</b>, or <b>intersect</b> keyword,
-the <b>select</b> command replaces any previous selection with a new selection 
-containing the items in <a href="atomspec.html"><i>spec</i></a>.
-The <b>polymer</b> option restricts that selection to only the 
-biopolymer chains with the same sequences (the same macromolecular entities) 
-as the chains in <a href="atomspec.html"><i>chain-spec</i></a>.
-Examples:
+For click-to-select, see <a href="mousemode.html"><b>mousemode</b></a>.
+See also:
+<a href="../selection.html#sel-vs-spec">selection vs. specification</a>
+</p>
+
+<a name="new"></a>
+<p class="nav">
+[<a href="#top">back to top: select</a>]
+</p>
+<h3>New Selection</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>select</b>&nbsp;&nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
+[&nbsp;<b>residues</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>polymer</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;]
+</blockquote>
+
+<p>
+The top-level <b>select</b> command replaces any previous selection
+with a new one containing the specified items
+(<a href="atomspec.html"><i>spec</i></a>).
+The <b>residues</b> option (default <b>false</b>) promotes any
+specified atoms to whole residues. 
+The <b>polymer</b> option restricts the result to only the biopolymer chains 
+with the same sequences as the chains in 
+<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
+(the same macromolecular entities). Example:
 </p>
 <blockquote>
-<b>select #1 polymer /a</b>
+<b>select #2 polymer #1/a</b>
+</blockquote>
+&ndash; select biopolymer chains in model 2 that have the same sequence
+as chain A of model 1
+
+<a name="modify"></a>
+<p class="nav">
+[<a href="#top">back to top: select</a>]
+</p>
+<h3>Modify Selection</h3>
+
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>: <b>select</b>
+(&nbsp;<b>add</b>&nbsp;|&nbsp;<b>subtract</b>&nbsp;|&nbsp;<b>intersect</b>&nbsp;) 
+&nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
+[&nbsp;<b>residues</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 <br>
-<b>select ent /d</b>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>select</b>
+(&nbsp;<b>up</b>&nbsp;|&nbsp;<b>down</b>&nbsp;|&nbsp;<b>clear</b>&nbsp;)
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>~select</b> &nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
+[&nbsp;<b>residues</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 </blockquote>
 <p>
-Otherwise, <b>select</b> can be used to <b>add</b>, <b>subtract</b>, 
-or <b>intersect</b> the <a href="atomspec.html">specified</a> items
-with the current selection, or to <b>clear</b> it by deselecting everything.
+Subcommands of <b>select</b> can be used to:
+<ul>
+<li><b>add</b>, <b>subtract</b>, or <b>intersect</b> the specified items
+(<a href="atomspec.html"><i>spec</i></a>)
+with the current selection; the <b>residues</b> option promotes any specified
+atoms to whole residues before the operation is performed
+<li>navigate <b>up</b> or back <b>down</b> the
+<a href="../selection.html#cascade">selection cascade</a>
+(same as using the up and down arrow keys)
+<li><b>clear</b> the selection
+</ul>
 The <b>~select</b> command can be used to deselect specified items
 (like <b>select subtract</b>) or with a blank specification
 to deselect everything (like <b>select clear</b>).
-</p><p>
-The <b>select zone</b> command selects atoms
+</p>
+
+<a name="zone"></a>
+<p class="nav">
+[<a href="#top">back to top: select</a>]
+</p>
+<h3>Zone Selection</h3>
+
+<blockquote><a href="usageconventions.html"><b>Usage</b></a>:
+<b>select zone</b>
+&nbsp;<a href="atomspec.html"><i>ref-spec</i></a>
+&nbsp;<i>cutoff</i>&nbsp;
+[&nbsp;<a href="atomspec.html"><i>other-spec</i></a>&nbsp;]
+[&nbsp;<b>extend</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>residues</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+</blockquote>
+<p>
+The command <b>select zone</b> selects atoms
 and/or surfaces in <a href="atomspec.html"><i>other-spec</i></a> that are
-within a &nbsp;<i>cutoff</i>&nbsp; distance of the atoms and/or surfaces in 
+within the <i>cutoff</i> distance of the atoms and/or surfaces in 
 <a href="atomspec.html"><i>ref-spec</i></a>. A blank (omitted)
 <a href="atomspec.html"><i>other-spec</i></a> indicates &ldquo;all.&rdquo;
 Although <a href="surface.html">molecular surfaces</a> can be included
@@ -92,6 +136,9 @@ The <b>extend</b> option (default <b>false</b>)
 indicates whether the reference items should also be selected.
 The <b>residues</b> option (default <b>false</b>) indicates whether to 
 select all atoms of a residue if any atom in the residue is within the zone.
+See also: <a href="surface.html#zone"><b>surface zone</b></a>,
+<a href="atomspec.html#zones">zone atom specification</a>
+</p><p>
 Examples:
 </p>
 <blockquote><b>
@@ -101,8 +148,24 @@ sel zone #1.2 8
 <br>
 sel zone sel 5 extend t
 </b></blockquote>
+<p>
+Alternatively, the top-level <a href="#top"><b>select</b></a> command
+can be used with <a href="atomspec.html#zones">zone specifications</a>
+to give the same results as the examples above:
+</p>
+<blockquote><b>
+select ligand :<4.5 & protein
+<br>
+sel #1.2 @<8 & ~ #1.2
+<br>
+sel sel @<5
+</b></blockquote>
+<p>
+One advantage of <b>select zone</b>, however, is that it works with
+non-atomic model types.
+</p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2017</address>
+September 2017</address>
 </body></html>

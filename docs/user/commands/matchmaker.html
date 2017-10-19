@@ -35,7 +35,8 @@ The <b>matchmaker</b> (or <b>mmaker</b>) command
 superimposes protein or nucleic acid structures by first creating 
 a pairwise sequence alignment, then fitting the aligned residue pairs.
 Residue types and/or protein secondary structure information
-can be used to align the sequences.
+can be used to align the sequences, and the pairwise alignment can be shown
+in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>.
 <a name="matchatom">
 Fitting uses one point per residue:  CA in
 amino acid residues and C4' in nucleic acid residues.
@@ -152,14 +153,10 @@ specified residues.
 
 <a name="options"></a>
 <p class="nav">
-[<a href="#top">back to top</a>]
+[<a href="#top">back to top: matchmaker</a>]
 </p>
 <h3>Options</h3>
 <p>
-Option keywords and Boolean (truth) values can be truncated, with
-synonyms for true: True, 1, and synonyms for false: False, 0.
-A vertical bar &ldquo;|&rdquo; designates mutually exclusive values, and
-default settings are indicated with <b>bold</b>.
 Most of the options affect <a href="#scoring">alignment scoring</a>.
 </p>
 <blockquote>
@@ -276,14 +273,14 @@ in the sequence alignment.
   associated with the nongap positions of the corresponding sequence;
   missing structure residues are reported as <b>None</b>
   <li><b>Residue usage in match (1=used, 0=unused):</b> 
-  followed by two lines, each a comma-separated list of zeroes and ones,
+  followed by two lines, each a comma-separated list of zeros and ones,
   indicating which structure residues were used in the final fit
   </ul>
 </blockquote>
 
 <a name="scoring"></a>
 <p class="nav">
-[<a href="#top">back to top</a>]
+[<a href="#top">back to top: matchmaker</a>]
 </p>
 <h3>Alignment Scoring Options</h3>
 <p>

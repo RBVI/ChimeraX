@@ -26,7 +26,7 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False):
       Attribute name
     attr_value : string
       If attr_name.lower() ends in "color", will be treated as a color name, otherwise as
-      whatever type it "looks like": int, float, string.
+      whatever type it "looks like": int, bool, float, string.
     create : bool
       Whether to create the attribute if the object doesn't already have it
     """
@@ -54,30 +54,12 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False):
         items = objects.models
         target = "models"
     elif "bonds".startswith(target):
-        items = atoms.intra_bonds
+        items = objects.bonds
     elif "pseudobonds".startswith(target):
-        if atoms:
-            items = atoms.intra_pseudobonds
-        else:
-            pb_grps = []
-            from ..atomic import PseudobondGroup, concatenate
-            for m in objects.models:
-                if isinstance(m, PseudobondGroup):
-                    pb_grps.append(m)
-            if pb_grps:
-                items = concatenate([g.pseudobonds for g in pb_grps])
-            else:
-                items = None
+        items = objects.pseudobonds
         target = "pseudobonds"
     elif "groups".startswith(target):
-        if atoms:
-            items = atoms.intra_pseudobonds.unique_groups
-        else:
-            items = []
-            from ..atomic import PseudobondGroup, concatenate
-            for m in objects.models:
-                if isinstance(m, PseudobondGroup):
-                    items.append(m)
+        items = objects.pseudobonds.unique_groups
         target = "groups"
     elif "surfaces".startswith(target):
         from . import MolecularSurface
@@ -89,19 +71,15 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False):
         raise UserError("No items of type '%s' found" % target)
 
     if attr_name.lower().endswith("color"):
+        if not isinstance(attr_value, str):
+            raise UserError("Trouble parsing shortened color name; please use full name")
         from . import ColorArg
         try:
             value = ColorArg.parse(attr_value, session)[0].uint8x4()
         except Exception as e:
             raise UserError(str(e))
     else:
-        try:
-            value = int(attr_value)
-        except ValueError:
-            try:
-                value = float(attr_value)
-            except ValueError:
-                value = attr_value
+        value = attr_value
 
     from ..atomic.molarray import Collection
     if isinstance(items, Collection):
@@ -145,12 +123,12 @@ def attempt_set_attr(item, attr_name, value, orig_attr_name, value_string):
 #
 def register_command(session):
     from . import register, CmdDesc, ObjectsArg
-    from . import EmptyArg, Or, StringArg, BoolArg
+    from . import EmptyArg, Or, StringArg, BoolArg, IntArg, FloatArg
     from ..map import MapArg
     desc = CmdDesc(required=[('objects', Or(ObjectsArg, EmptyArg)),
                             ('target', StringArg),
                             ('attr_name', StringArg),
-                            ('attr_value', StringArg)],
+                            ('attr_value', Or(BoolArg, IntArg, FloatArg, StringArg))],
                    keyword=[('create', BoolArg)],
                    synopsis="set attributes")
     register('setattr', desc, set_attr, logger=session.logger)

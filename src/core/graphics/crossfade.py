@@ -14,6 +14,7 @@
 # Allow fading from one scene to another
 
 from .drawing import Drawing
+from ..errors import LimitationError
 
 
 class CrossFade(Drawing):
@@ -30,6 +31,9 @@ class CrossFade(Drawing):
         self.frame = 0
         self.rgba = None
 
+        has_graphics = session.main_view.render is not None
+        if not has_graphics:
+            raise LimitationError("Unable to do crossfade without rendering images")
         self.capture_image(session)
 
     def capture_image(self, session):
@@ -84,6 +88,10 @@ class MotionBlur(Drawing):
         self.attenuate = 0.5
         "All preceding frames are additionally dimmed by this factor."
         self.changed = True
+
+        has_graphics = viewer.render is not None
+        if not has_graphics:
+            raise LimitationError("Unable to do motion blur without rendering images")
         self.capture_image()
 
     def draw(self, renderer, place, draw_pass, selected_only=False):

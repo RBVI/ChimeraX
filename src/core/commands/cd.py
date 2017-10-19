@@ -29,8 +29,8 @@ def cd(session, directory=None):
 
 
 def register_command(session):
-    from . import register, CmdDesc, FileNameArg
+    from . import register, CmdDesc, OpenFolderNameArg
     desc = CmdDesc(
-        optional=[('directory', FileNameArg)],
+        optional=[('directory', OpenFolderNameArg)],
         synopsis='Change the current working directory')
     register('cd', desc, cd, logger=session.logger)

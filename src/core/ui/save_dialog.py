@@ -39,6 +39,13 @@ class _SaveFormat:
     def save(self, session, filename):
         return self._save(session, filename)
 
+def _add_missing_suffix(filename, fmt):
+    import os.path
+    ext = os.path.splitext(filename)[1]
+    exts = fmt.extensions
+    if exts and ext not in exts:
+        filename += exts[0]
+    return filename
 
 class MainSaveDialogBase:
 
@@ -55,7 +62,8 @@ class MainSaveDialogBase:
         for fmt in formats(open=False):
             if fmt.category not in (SESSION, "Image"):
                 self.register(fmt.name, lambda fmt=fmt: export_file_filter(format_name=fmt.name),
-                    None, None, lambda ses, fn, fmt=fmt: fmt.export_func(ses, fn, fmt.name))
+                    None, None, lambda ses, fn, fmt=fmt:
+                    fmt.export(ses, _add_missing_suffix(fn, fmt), fmt.name))
 
     def register(self, format_name, wildcard, make_ui, update, save):
         self._registered_formats[format_name] = _SaveFormat(format_name, wildcard, make_ui,

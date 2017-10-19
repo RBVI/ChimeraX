@@ -4,7 +4,7 @@ License (from _license-agreement.txt in zip archive):
 
 	Minicons Free Vector Icons Pack by Webalys is licensed
 	under a Creative Commons Attribution 3.0 Unported License:
-	http://creativecommons.org/licenses/by/3.0/dee d.en_US
+	http://creativecommons.org/licenses/by/3.0/deed.en_US
 
 	This Pack is published under a Creative Commons Attribution
 	license and Free for both personal and commercial use.  You
@@ -19,7 +19,13 @@ License (from _license-agreement.txt in zip archive):
 To extract the icons:
 ---------------------
 
-1. inkscape Minicons-Free.eps
+1. On Linux:
+
+	inkscape Minicons-Free.eps 
+
+   On Windows:
+
+	import Minicons-Free.ai with external converter
 
 2. Object / Ungroup the image
 
@@ -41,6 +47,6 @@ To extract the icons:
 
   e. File / Save As: icon.svg
 
-  f. File / Export PNG Image:
+  f. No longer used:
 
-     64x64 pixels
+     File / Export PNG Image: 64x64 pixels

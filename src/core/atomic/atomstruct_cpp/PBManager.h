@@ -125,6 +125,7 @@ private:
     friend class CoordSet;
     AS_PBManager(Structure* as): StructureManager(as) {}
 
+    void  change_cs(const CoordSet* cs);
     void  remove_cs(const CoordSet* cs);
 public:
     ChangeTracker*  change_tracker() const;

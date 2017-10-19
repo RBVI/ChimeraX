@@ -43,6 +43,11 @@ BaseManager::change_category(Proxy_PBGroup* grp, std::string& category)
     _groups.erase(grp->category());
     _groups[category] = grp;
 }
+void
+AS_PBManager::change_cs(const CoordSet* cs)
+{
+    for (auto pbg_info: _groups) pbg_info.second->change_cs(cs);
+}
 
 void
 BaseManager::clear()
@@ -162,7 +167,7 @@ BaseManager::session_info(PyObject** ints, PyObject** floats, PyObject** misc) c
         *int_array++ = grp->group_type();
         grp->session_save(&int_array, &float_array);
     }
-    return 1;
+    return CURRENT_SESSION_VERSION;
 }
 
 void
@@ -180,9 +185,9 @@ BaseManager::session_save_setup() const
 void
 BaseManager::session_restore(int version, int** ints, float** floats, PyObject* misc)
 {
-    if (version > 1)
-        throw std::invalid_argument(
-            "Session pseudobond version too new; don't know how to restore");
+    if (version > CURRENT_SESSION_VERSION)
+        throw std::invalid_argument("Don't know how to restore new session data; update your"
+            " version of ChimeraX");
 
     clear(); // only really relevant for global manager, but oh well
 

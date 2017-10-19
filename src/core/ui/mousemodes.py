@@ -43,6 +43,10 @@ class MouseMode:
         self.last_mouse_position = None
         '''Last mouse position during a mouse drag.'''
 
+    def enable(self):
+        '''Override if mode wants to know that it has been bound to a mouse button.'''
+        pass
+
     def mouse_down(self, event):
         '''
         Override this method to handle mouse down events.
@@ -95,14 +99,14 @@ class MouseMode:
         '''
         pass
 
-    def pixel_size(self, min_scene_frac = 1e-5):
+    def pixel_size(self, center = None, min_scene_frac = 1e-5):
         '''
         Report the pixel size in scene units at the center of rotation.
         Clamp the value to be at least min_scene_fraction times the width
         of the displayed models.
         '''
         v = self.view
-        psize = v.pixel_size()
+        psize = v.pixel_size(center)
         b = v.drawing_bounds()
         if not b is None:
             w = b.width()
@@ -173,6 +177,7 @@ class MouseModes:
         if mode is not None and not isinstance(mode, NullMouseMode):
             b = MouseBinding(button, modifiers, mode)
             self._bindings.append(b)
+            mode.enable()
 
     def bind_standard_mouse_modes(self, buttons = ('left', 'middle', 'right', 'wheel', 'pause')):
         '''
@@ -482,6 +487,9 @@ def mouse_drag_select(start_xy, event, mode, session, view):
 
 def select_pick(session, pick, mode = 'replace'):
     sel = session.selection
+    from ..undo import UndoState
+    undo_state = UndoState("select")
+    sel.undo_add_selected(undo_state, False)
     if pick is None:
         if mode == 'replace':
             sel.clear()
@@ -496,6 +504,8 @@ def select_pick(session, pick, mode = 'replace'):
         else:
             pick.select(mode)
     sel.clear_promotion_history()
+    sel.undo_add_selected(undo_state, True, old_state=False)
+    session.undo.register(undo_state)
 
 class RotateMouseMode(MouseMode):
     '''
@@ -661,16 +671,19 @@ class ZoomMouseMode(MouseMode):
 
         dx, dy = self.mouse_motion(event)
         psize = self.pixel_size()
-        self.zoom(3*psize*dy)
+        delta_z = 3*psize*dy
+        self.zoom(delta_z, stereo_scaling = not event.alt_down())
 
     def wheel(self, event):
         d = event.wheel_value()
         psize = self.pixel_size()
-        self.zoom(100*d*psize)
+        self.zoom(100*d*psize, stereo_scaling = not event.alt_down())
 
-    def zoom(self, delta_z):
+    def zoom(self, delta_z, stereo_scaling = False):
         v = self.view
         c = v.camera
+        if stereo_scaling and c.name == 'stereo':
+            v.stereo_scaling(delta_z)
         if c.name == 'orthographic':
             c.field_width = max(c.field_width - delta_z, self.pixel_size())
             # TODO: Make camera field_width a property so it knows to redraw.
@@ -726,6 +739,39 @@ class AtomCenterOfRotationMode(MouseMode):
             from chimerax.core.commands import cofr
             xyz = pick.atom.scene_coord
             cofr.cofr(self.session,pivot=xyz)
+
+class LabelMode(MouseMode):
+    '''Click an atom,ribbon,pseudobond or bond to label or unlabel it with default label.'''
+    name = 'label'
+    icon_file = 'label.png'
+
+    def mouse_down(self, event):
+        MouseMode.mouse_down(self, event)
+        x,y = event.position()
+        ses = self.session
+        pick = picked_object(x, y, ses.main_view)
+        if pick is None:
+            return
+        from ..objects import Objects
+        objects = Objects()
+        from .. import atomic
+        if isinstance(pick, atomic.PickedAtom):
+            objects.add_atoms(atomic.Atoms([pick.atom]))
+            object_type = 'atoms'
+        elif isinstance(pick, atomic.PickedResidue):
+            objects.add_atoms(pick.residue.atoms)
+            object_type = 'residues'
+        elif isinstance(pick, atomic.PickedPseudobond):
+            objects.add_atoms(atomic.Atoms(pick.pbond.atoms))
+            object_type = 'pseudobonds'
+        elif isinstance(pick, atomic.PickedBond):
+            objects.add_atoms(atomic.Atoms(pick.bond.atoms))
+            object_type = 'bonds'
+        else:
+            return
+        from chimerax.label.label3d import label, label_delete
+        if label_delete(ses, objects, object_type) == 0:
+            label(ses, objects, object_type)
            
 class NullMouseMode(MouseMode):
     '''Used to assign no mode to a mouse button.'''
@@ -894,7 +940,7 @@ class ClipRotateMouseMode(MouseMode):
 
 def standard_mouse_mode_classes():
     '''List of core MouseMode classes.'''
-    from .. import markers
+    from chimerax import markers
     from ..map import series, mouselevel, moveplanes
     mode_classes = [
         SelectMouseMode,
@@ -910,11 +956,11 @@ def standard_mouse_mode_classes():
         ClipMouseMode,
         ClipRotateMouseMode,
         ObjectIdMouseMode,
+        LabelMode,
         AtomCenterOfRotationMode,
         mouselevel.ContourLevelMouseMode,
         moveplanes.PlanesMouseMode,
         markers.MarkerMouseMode,
-        markers.MarkCenterMouseMode,
         markers.ConnectMouseMode,
         series.PlaySeriesMouseMode,
         NullMouseMode,

@@ -4,7 +4,6 @@ from chimerax.core.atomic.idatm import type_info, tetrahedral, planar
 from chimerax.core.atomic import Element
 from chimerax.core.atomic.bond_geom import bond_positions
 
-@line_profile
 def hyd_positions(heavy, include_lone_pairs=False):
     """Return list of positions for hydrogens attached to this atom.
        If a hydrogen could be in one of several positions, don't return any of those.
@@ -22,7 +21,7 @@ def hyd_positions(heavy, include_lone_pairs=False):
     # convert to Points
     hyd_locs = []
     for hyd in hyds:
-        hyd_locs.append(hyd.scene_coord)
+        hyd_locs.append(hyd._hb_coord)
 
     if hyd_locs and not include_lone_pairs:
         # explicit hydrogens "win" over atom types
@@ -37,7 +36,7 @@ def hyd_positions(heavy, include_lone_pairs=False):
             subs = info.substituents
         bonded_locs = hyd_locs[:]
         for b_heavy in bonded_heavys:
-            bonded_locs.append(b_heavy.scene_coord)
+            bonded_locs.append(b_heavy._hb_coord)
     else:
         return hyd_locs
 
@@ -55,7 +54,7 @@ def hyd_positions(heavy, include_lone_pairs=False):
         # the "empty" bond could be anywhere
         return hyd_locs
 
-    heavy_loc = heavy.scene_coord
+    heavy_loc = heavy._hb_coord
     bond_len = Element.bond_length(heavy.element, "H")
 
     if geom == planar:
@@ -69,7 +68,7 @@ def hyd_positions(heavy, include_lone_pairs=False):
                 continue
             for atom in b_heavy.neighbors:
                 if atom != heavy:
-                    coplanar.append(atom.scene_coord)
+                    coplanar.append(atom._hb_coord)
 
     else:
         coplanar = None

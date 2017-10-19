@@ -52,6 +52,7 @@ Atom::~Atom()
     }
     DestructionUser(this);
     structure()->change_tracker()->add_deleted(this);
+    graphics_changes()->set_gc_adddel();
 }
 
 void
@@ -862,7 +863,8 @@ Atom::has_missing_structure_pseudobond() const
 }
 
 bool
-Atom::is_backbone(BackboneExtent bbe) const {
+Atom::is_backbone(BackboneExtent bbe) const
+{
     // hydrogens depend on the heavy atom they're attached to
     if (element().number() == 1) {
         if (bonds().size() == 1) {
@@ -896,19 +898,39 @@ Atom::is_ribose() const {
 }
 
 bool
-Atom::is_sidechain() const {
+Atom::is_side_connector() const
+{
     // hydrogens depend on the heavy atom they're attached to
     if (element().number() == 1) {
         if (bonds().size() == 1) {
             auto bonded = *neighbors().begin();
             // need to check neighbor element to prevent possible infinite loop for H2
-            return bonded->element().number() > 1 && bonded->is_sidechain();
+            return bonded->element().number() > 1 && bonded->is_side_connector();
+        }
+        return false;
+    }
+    const std::set<AtomName>* sc_names = residue()->side_connector_atom_names();
+    if (sc_names == nullptr)
+        return false;
+    return sc_names->find(name()) != sc_names->end();
+}
+
+bool
+Atom::is_side_chain(bool only) const {
+    // hydrogens depend on the heavy atom they're attached to
+    if (element().number() == 1) {
+        if (bonds().size() == 1) {
+            auto bonded = *neighbors().begin();
+            // need to check neighbor element to prevent possible infinite loop for H2
+            return bonded->element().number() > 1 && bonded->is_side_chain(only);
         }
         return false;
     }
     const std::set<AtomName>* bb_names = residue()->backbone_atom_names(BBE_MAX);
     if (bb_names == nullptr)
         return false;
+    if (!only && is_side_connector())
+        return true;
     return !is_backbone(BBE_MAX);
 }
 
@@ -1112,14 +1134,16 @@ Atom::set_alt_loc(char alt_loc, bool create, bool _from_residue)
 {
     if (alt_loc == _alt_loc || alt_loc == ' ')
         return;
-    graphics_changes()->set_gc_shape();
-    structure()->change_tracker()->add_modified(this, ChangeTracker::REASON_ALT_LOC);
+    if (structure()->alt_loc_change_notify()) {
+        graphics_changes()->set_gc_shape();
+        structure()->change_tracker()->add_modified(this, ChangeTracker::REASON_ALT_LOC);
+    }
     if (create) {
         if (_alt_loc_map.find(alt_loc) != _alt_loc_map.end()) {
             set_alt_loc(alt_loc, create=false);
             return;
         }
-    _alt_loc_map[alt_loc];    // Create map entry.
+        _alt_loc_map[alt_loc];    // Create map entry.
         _alt_loc = alt_loc;
         return;
     }
@@ -1136,7 +1160,8 @@ Atom::set_alt_loc(char alt_loc, bool create, bool _from_residue)
         _Alt_loc_info &info = (*i).second;
         _serial_number = info.serial_number;
         _alt_loc = alt_loc;
-        structure()->change_tracker()->add_modified(this, ChangeTracker::REASON_COORD);
+        if (structure()->alt_loc_change_notify())
+            structure()->change_tracker()->add_modified(this, ChangeTracker::REASON_COORD);
     } else {
         residue()->set_alt_loc(alt_loc);
     }

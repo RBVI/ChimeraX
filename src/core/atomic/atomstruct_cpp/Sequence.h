@@ -22,6 +22,7 @@
 #include <string>
 
 #include "imex.h"
+#include "polymer.h"
 #include "PythonInstance.h"
 #include "session.h"
 #include "string_types.h"
@@ -71,6 +72,9 @@ public:
     static void  assign_rname3to1(const ResName& rname, char let,
         bool protein);
     static char  nucleic3to1(const ResName& rn);
+    static PolymerType  rname_polymer_type(const ResName& rn) {
+        return protein3to1(rn) == 'X' ? (nucleic3to1(rn) == 'X' ? PT_NONE : PT_NUCLEIC) : PT_AMINO;
+    }
     static char  protein3to1(const ResName& rn);
     static char  rname3to1(const ResName& rn);
 

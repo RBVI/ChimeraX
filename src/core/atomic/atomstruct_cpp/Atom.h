@@ -163,7 +163,8 @@ public:
     const AtomType&  idatm_type() const;
     bool  is_backbone(BackboneExtent bbe) const;
     bool  is_ribose() const;
-    bool  is_sidechain() const;
+    bool  is_side_connector() const;
+    bool  is_side_chain(bool only) const;
     const AtomName&  name() const { return _name; }
     const Neighbors&  neighbors() const { return _neighbors; }
     Bonds::size_type  num_explicit_bonds() const; // includes missing-structure bonds

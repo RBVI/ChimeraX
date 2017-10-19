@@ -1,0 +1,87 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: size</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: size</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>size</b> &nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
+[&nbsp;atomRadius&nbsp;&nbsp;<i>r<sub><font size=-1>a</font></sub></i>&nbsp;|&nbsp;default&nbsp;]
+[&nbsp;ballScale&nbsp;&nbsp;<i>b</i>&nbsp;]
+[&nbsp;stickRadius&nbsp;&nbsp;<i>r<sub><font size=-1>b</font></sub></i>&nbsp;]
+[&nbsp;pseudobondRadius&nbsp;&nbsp;<i>r<sub><font size=-1>pb</font></sub></i>&nbsp;]
+</h3>
+<p>
+The <b>size</b> command sets the following:
+</p>
+<ul>
+<li>
+<b>atomRadius</b>&nbsp;<i>r<sub><font size=-1>a</font></sub></i>
+- atomic <a href="../radii.html">VDW radius</a> as shown in
+<a href="style.html">sphere display</a>.
+The <a href="../radii.html">default VDW radii</a>
+assigned by <a href="../atomtypes.html">atom type</a> can be restored
+by giving <b>default</b> as the value. Since VDW radii are also used to
+generate <a href="surface.html">molecular surfaces</a>,
+<a href="measure.html">measure surface areas</a>, and identify chain-chain
+<a href="contacts.html">contacts</a> based on buried surface areas,
+it may be appropriate to restore the <b>default</b> values
+before such calculations.
+<li>
+<b>ballScale</b> <i>factor</i> (initial default <b>0.3</b>)
+- scale factor to multiply by <a href="../radii.html">VDW radius</a>
+for <a href="style.html">ball display</a>.
+The <b>ballScale</b> parameter applies to an entire atomic model even
+if only part of the model is specified.
+<li>
+<b>stickRadius</b>&nbsp;<i>r<sub><font size=-1>b</font></sub></i>
+(initial default <b>0.2</b> &Aring;)
+- bond stick radius in <a href="style.html">ball and stick displays</a>
+<li>
+<b>pseudobondRadius</b>&nbsp;<i>r<sub><font size=-1>pb</font></sub></i>
+- <a href="../pseudobonds.html">pseudobond</a> stick radius
+</ul>
+<p>
+Style is controlled with the <a href="style.html"><b>style</b></a> command
+and/or <a href="../tools/moldisplay.html"><b>Molecule Display</b></a> icons.
+</p><p>
+Bonds and <a href="../pseudobonds.html">pseudobonds</b></a>
+can be <a href="atomspec.html">specified</a> by their endpoint atoms
+or directly by <a href="../selection.html">selection</a>
+and using the word <a href="atomspec.html#builtin"><b>sel</b></a>.
+<a href="../pseudobonds.html">Pseudobonds</a> can also be specified
+by pseudobond model number or <a href="atomspec.html#builtin">built-in
+classifications</a>: <b>pbonds</b>, <b>hbonds</b>.
+</p><p>
+See also: 
+<a href="cartoon.html#style"><b>cartoon style</b></a>,
+<a href="set.html#subdivision"><b>set subdivision</b></a>,
+<a href="hbonds.html"><b>hbonds</b></a>,
+<a href="crosslinks.html"><b>crosslinks</b></a>,
+<a href="setattr.html"><b>setattr</b></a>
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+October 2017</address>
+</body></html>

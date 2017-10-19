@@ -39,6 +39,7 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;computeSS&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;holdSteady&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
 [&nbsp;loop&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;bounce&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;pauseFrames&nbsp;&nbsp;<i>M</i>&nbsp;]
 </h3>
 <a name="slider"></a>
@@ -100,7 +101,11 @@ any negative frame numbers are converted to the corresponding
 actual frame numbers. 
 <p>
 The <b>loop</b> option indicates repeating playback
-<i>N</i> times, wrapping directly from <i>end</i> to <i>start</i>.
+<i>N</i> times, jumping directly from <i>end</i> to <i>start</i>
+if <b>bounce</b> is <b>false</b> (default).
+If <b>bounce</b> is <b>true</b>, each loop plays forward from
+<i>start</i> to <i>end</i> and backward from <i>end</i> to <i>start</i>
+instead of abruptly wrapping.
 The <b>pauseFrames</b> option can be used to slow playback by showing each
 trajectory frame for <i>M</i> image update frames (default <b>1</b>;
 see <a href="#framesdef">frames terminology</a>).
@@ -138,12 +143,11 @@ Examples:
 
 <a name="framesdef"></a>
 <p class="nav">
-[<a href="#top">back to top</a>]
+[<a href="#top">back to top: coordset</a>]
 </p>
 <h3>Frames Terminology</h3>
 <p>
-Note that &ldquo;frames&rdquo; is commonly used for the following 
-disparate concepts:
+Note that &ldquo;frames&rdquo; is commonly used for two disparate concepts:
 </p>
 <ul>
 <li>coordinate sets from successive time points in a 
@@ -161,7 +165,7 @@ applies in a particular situation.
 
 <a name="ssnote"></a>
 <p class="nav">
-[<a href="#top">back to top</a>]
+[<a href="#top">back to top: coordset</a>]
 </p>
 <h3>Recomputing Secondary Structure</h3>
 <p>
@@ -182,5 +186,5 @@ For example, to reassign secondary structure at every fifth frame:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-June 2017</address>
+October 2017</address>
 </body></html>

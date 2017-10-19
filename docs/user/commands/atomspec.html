@@ -17,14 +17,6 @@ or derivations thereof.
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
 <title>Atom Specification (ChimeraX)</title>
 </head><body>
-<p>
-<font color="brown">
-** Some of the examples in this page don't work &ndash; zone and attribute 
-specifications are not yet implemented, and attribute examples/tables
-show names from Chimera that may not exist in ChimeraX. **
-</font>
-</p>
-<hr>
 
 <a name="top"></a>
 <a href="../index.html">
@@ -46,18 +38,24 @@ can be specified using:
   <ul>
   <li><a href="#hierarchy">hierarchical specifiers</a>
   - model number, chain ID, residue name or number, atom name
+    <ul>
+    <li><a href="#capitalization">capitalization</a>
+    <li><a href="#lists">lists and ranges</a>
+    <li><a href="#implicit">implicit operations</a>
+<!--
+    <li><a href="#wildcards">wild cards</a>
+    <font color="brown">(not yet implemented)</font> 
+-->
+    </ul>
   <li><a href="#builtin">built-in classifications</a>
   - <b>sel</b> (current <a href="../selection.html">selection</a>),
-  <b>protein</b>, <b>helix</b>, <b>strand</b>, 
-  <b>solvent</b>, element symbols, functional groups, <i>etc.</i>
+  <b>protein</b>, <b>helix</b>, <b>strand</b>, <b>ligand</b>, <b>hbonds</b>,
+  element symbols, functional groups, <i>etc.</i>
   <li><a href="#user">user-defined targets</a>
   <font color="brown">(not yet implemented)</font> 
-  <li><a href="#zones">zones</a> - by distance from other items
-  <font color="brown">(not yet implemented, but see
-  <a href="select.html"><b>select zone</b></a>
-  and <a href="surface.html#zone"><b>surface zone</b></a>)</font>
-  <li><a href="#descriptors">attribute</a> names and values
+  <li><a href="#attributes">attribute</a> names and values
   <font color="brown">(not yet implemented)</font>
+  <li><a href="#zones">zones</a> - by distance from other items
   <li><a href="#combinations">combinations</a> of the above
   </ul>
 <br>
@@ -82,8 +80,10 @@ but there are <a href="atomspec-diffsum.html">differences</a>.
 </p>
 
 <a name="hierarchy"></a>
-<h3><a href="#top" class="nounder"><b>&larr;</b></a>
-Hierarchical Specifiers</h3>
+<p class="nav">
+[<a href="#top">back to top: Target Specification</a>]
+</p>
+<h3>Hierarchical Specifiers</h3>
 
 <table border width="95%" cellpadding="10" cellspacing="0">
 <tr>
@@ -134,6 +134,11 @@ Thus, an atom can be specified by model number, chain identifier (ID),
 residue number, and atom name. The lack of a specifier is interpreted 
 as all units at the associated level; for example, if no chain ID is given,
 the specification refers to all chains.
+Specifying a set of atoms always specifies any <b><i>bonds</i></b> and
+<a href="../pseudobonds.html">pseudobonds</a> between pairs of atoms in the set.
+A <a href="../pseudobonds.html">pseudobond model</a>
+can also be specified directly by its own model number
+(not necessarily within the atomic-model hierarchy).
 </p><p>
 Chain IDs, residue names and numbers,
 and atom names are read from the input file.
@@ -141,18 +146,20 @@ In <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/tutorials/framepdbin
 standard nomenclature is used for standard amino acid and nucleic acid residues.
 Asterisks (<b>*</b>) in PDB input atom names will be translated 
 to prime symbols (<b>'</b>).
-</p><p>
-A <a href="../pseudobonds.html">pseudobond</a> 
-model can also be specified directly by its own model number
-(not necessarily within the atomic-model hierarchy).
-</p><p>
-<b>Capitalization</b><br>
+</p>
+
+<a name="capitalization"></a>
+<h4><a href="#hierarchy" class="nounder"><b>&larr;</b></a> Capitalization</h4>
+<p>
 In the command line, capitalization of chain IDs,
 residue names, and atom names is not important, with one exception:
 when a model contains both uppercase and lowercase chain identifiers,
 case matters for chain specification in that model only.
-</p><p>
-<b>Lists and ranges</b><br>
+</p>
+
+<a name="lists"></a>
+<h4><a href="#hierarchy" class="nounder"><b>&larr;</b></a> Lists and Ranges</h4>
+<p>
 Model and residue numbers are integers, 
 although a residue number may have an insertion code directly appended.
 Multiple model numbers or residue numbers can be indicated by 
@@ -220,11 +227,13 @@ Examples:
 </blockquote>
 - submodels 1-3 of all models that have them
 <font color="brown">
-(this is the only type of wildcard currently implemented)</font>
+(this is the only type of <a href="#wildcards">wild card</a>
+currently implemented)</font>
 </p>
 
 <a name="implicit"></a>
-<h3>Implicit Operations</h3>
+<h4><a href="#hierarchy" class="nounder"><b>&larr;</b></a>
+Implicit Operations</h4>
 <p>
 In the examples above, the hierarchical symbols were used only in descending 
 order (<b># / : @</b>), with each successive level applying to the levels
@@ -270,8 +279,8 @@ only the named atoms in both chains
 </p>
 
 <a name="wildcards"></a>
-<h3>Wild Cards
-<font color="brown">(not yet implemented)</font></h3>
+<h4><a href="#hierarchy" class="nounder"><b>&larr;</b></a>
+Wild Cards <font color="brown">(not yet implemented)</font></h4>
 <p>
 The <b>global wild card *</b> matches all atoms in a residue
 or all residues in a model. It stands alone as a symbol, that is,
@@ -309,8 +318,10 @@ Examples:
 
 <hr>
 <a name="builtin"></a>
-<h3><a href="#top" class="nounder"><b>&larr;</b></a>
-Built-in Classifications</h3>
+<p class="nav">
+[<a href="#top">back to top: Target Specification</a>]
+</p>
+<h3>Built-in Classifications</h3>
 <p>
 Built-in classifications include:
 <ul>
@@ -320,10 +331,15 @@ Built-in classifications include:
 <li>biopolymer types <b>protein</b>, <b>nucleic</b> or <b>nucleic-acid</b>,
 and their subparts:
   <ul>
-  <li><b>sidechain</b> - amino acid sidechain (not including CA), nucleic 
-  acid base (not including ribose C1'), and any directly attached hydrogens
+  <li><b>sidechain</b> - amino acid sidechain + CA (for connectivity
+  to <a href="cartoon.html">cartoon</a> representations), nucleic acid base
+  + <b>ribose</b> (see below), and any directly attached hydrogens
+  <li><b>sideonly</b> - amino acid sidechain,
+  nucleic acid base, and any directly attached hydrogens
   <li><b>mainchain</b> (or <b>backbone</b>) 
-  - the complement of <b>sidechain</b>
+  - the complement of <b>sideonly</b>, namely:
+  peptide N, CA, C, O, nucleic acid phosphoribosyl backbone,
+  and any directly attached hydrogens
   <li><b>ribose</b> - backbone ribose and deoxyribose moieties
   </ul>
 <li>protein/peptide secondary structure types:
@@ -343,10 +359,8 @@ or if nothing is selected, all atomic models
 <li><b>selMaps</b> - the currently <a href="../selection.html">selected</a>
 volume models, or if none are selected, all volume models
 <li><b>pbonds</b> - all <a href="../pseudobonds.html">pseudobonds</a>
-and their flanking atoms
 <li><b>hbonds</b> - H-bond <a href="../pseudobonds.html">pseudobonds</a>
 (those in a pseudobond model named <b>hydrogen bonds</b>)
-and their flanking atoms
 </ul>
 <p>
 Built-in classifications cannot be redefined by the user.
@@ -438,8 +452,10 @@ see <a href="#combinations">combinations</a>)
 
 <hr>
 <a name="user"></a>
-<h3><a href="#top" class="nounder"><b>&larr;</b></a>
-User-Defined Targets
+<p class="nav">
+[<a href="#top">back to top: Target Specification</a>]
+</p>
+<h3>User-Defined Targets
 <font color="brown">(not yet implemented)</font></h3>
 <!--
 <p>
@@ -454,52 +470,11 @@ User-defined targets include:
 -->
 
 <hr>
-<a name="zones"></a>
-<h3><a href="#top" class="nounder"><b>&larr;</b></a>
-Zones
-<font color="brown">(not yet implemented, but see
-<a href="select.html"><b>select zone</b></a>
-and <a href="surface.html#zone"><b>surface zone</b></a>)</font>
-</h3>
-<p>
-Atoms, residues or atomic models within or beyond some distance of a 
-reference set of atoms can be specified as a zone.
-</p><p>
-A zone specification has the following parts:
-<ol>
-<li>reference-atom specification
-<li><b><i>zone operator</i></b>, comprising both:
-  <ul>
-  <li>a level symbol: <b>@</b> (atom-based cutoff), <b>:</b> (residue-based), 
-  <b>/</b> (chain-based), or <b>#</b> (atomic model-based)
-  <li>an inequality symbol: 
-    <b>&lt;</b> (less than), <b>&gt;</b> (greater than), 
-    <b>&lt;=</b> (less than or equal to), or
-    <b>&gt;=</b> (greater than or equal to)
-  </ul>
-<li>distance cutoff
-</ol>
-Examples:
-<blockquote>
-<b>@nz &nbsp;@&lt;= &nbsp;3.8</b>
-</blockquote>
-- atoms within 3.8 &Aring; of atoms named NZ
-<blockquote>
-<b>#1:gtp &nbsp;:&lt; &nbsp;10.5</b>
-</blockquote>
-- residues with any atom less than 10.5 &Aring; from any atom 
-in GTP residue(s) of model 1
-<blockquote>
-<b>#1:gtp &nbsp;:&gt;= &nbsp;10.5</b>
-</blockquote>
-- residues without any atom less than 10.5 &Aring; from any atom 
-in GTP residue(s) of model 1
+<a name="attributes"></a>
+<p class="nav">
+[<a href="#top">back to top: Target Specification</a>]
 </p>
-
-<hr>
-<a name="descriptors"></a>
-<h3><a href="#top" class="nounder"><b>&larr;</b></a> Attributes
-<font color="brown">(not yet implemented)</font></h3>
+<h3>Attributes <font color="brown">(not yet implemented)</font></h3>
 <p>
 Attributes are properties of atoms, residues and models,
 specified by <a href="#attrnames">attribute name</a> and value
@@ -516,8 +491,10 @@ or as a comma-separated list of component values
 each value can range from zero to 1 and specification of <i>alpha</i>
 (1 &ndash; transparency) is optional.
 -->
-</p><p>
-<b>Evaluation Symbols</b><br>
+</p>
+<h4><a href="#attributes" class="nounder"><b>&larr;</b></a>
+Evaluation Symbols</h4>
+<p>
 Besides <b>=</b> (equals), attributes with numerical values can also be used 
 with <b>&gt;</b> (greater than), <b>&lt;</b> (less than), <b>&gt;=</b>
 (greater than or equal to), and <b>&lt;=</b> (less than or equal to).
@@ -534,15 +511,11 @@ For example, <b>::^kdHydrophobicity</b> designates residues
 -->
 </p>
 
+<!--
 <table border width="95%" cellpadding="4" cellspacing="0">
 <tr><th colspan="2"><a name="atprops">Selected Atom Attributes</a>
 <sup><a href="#note">**</a></sup/></th></tr>
 <tr>
-<!--
-<td align=center><b>altLoc=</b><i>altloc</i></td>
-<td><i>altloc</i> is the alternate location identifier of the atom</td>
-</tr><tr>
--->
 <td align=center><b>areaSAS=</b><i>sasa</i></td>
 <td><i>sasa</i> is the solvent-accessible
 surface area of the atom (available when a
@@ -611,12 +584,18 @@ of the atom in &Aring; (may have been changed by the user from the
 molecular surface)</td>
 </tr>
 </table>
+-->
 
 <a name="attr-examples"></a>
 <p>
-Examples 
-(with <b>&amp;</b> for intersection and <b>~</b> for negation, 
-see <a href="#combinations">combinations</a>):
+<font color="brown">
+**&nbsp;The examples in this section don't work &ndash; attribute 
+specifications are not yet implemented, and the attribute names
+are taken from Chimera and may not exist in ChimeraX.&nbsp;**
+</font>
+</p><p>
+Examples include <b>&amp;</b> for intersection and <b>~</b> for negation, 
+see <a href="#combinations">combinations</a>:
 </p>
 <blockquote>
 <b>@ca & @@bfactor>40</b>
@@ -654,6 +633,7 @@ see <a href="#combinations">combinations</a>):
 being blue, and <i>vice versa</i>
 </p>
 
+<!--
 <table border width="95%" cellpadding="4" cellspacing="0">
 <tr><th colspan="2"><a name="resprops">Selected Residue Attributes</a>
 <sup><a href="#note">**</a></sup/></th></tr>
@@ -729,10 +709,12 @@ can also be used to recompute assignments.
 </p><p>
 Examples:
 </p>
+-->
 <blockquote>
 <b>::numAtoms>=10</b>
 </blockquote>
 - residues with 10 or more atoms
+<!--
 <br><br>
 <table border width="95%" cellpadding="4" cellspacing="0">
 <tr><th colspan="2"><a name="modprops">Selected Atomic-Model Attributes</a>
@@ -772,12 +754,11 @@ of peptide/protein helix ribbon segments</td>
 </table>
 <p>
 <sup><a name="note">**</a></sup>Additional attributes can be created
-<!--
 <ul>
 <li> arbitrarily with 
 <a href="http://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/defineattrib/defineattrib.html"><b>Define
 Attribute</b></a>, <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/defattr.html"><b>defattr</b></a>, or
-<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/setattr.html"><b>setattr</b></a> 
+<a href="setattr.html"><b>setattr</b></a> 
 (these also allow changing the values of existing attributes)
 <li> by combining other attributes using the
 <a href="http://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/calculator/calculator.html"><b>Attribute 
@@ -795,7 +776,8 @@ target="_top"><b>Multalign Viewer</b></a>
 -->
 
 <a name="attrnames"></a>
-<h3>Attribute Names</h3>
+<h4><a href="#attributes" class="nounder"><b>&larr;</b></a>
+Attribute Names</h4>
 <p>
 <!--
 The preceding lists of attributes are not exhaustive.
@@ -836,9 +818,57 @@ Attributes defined in the Python layer will not be included, however.
 <p>
 
 <hr>
+<a name="zones"></a>
+<p class="nav">
+[<a href="#top">back to top: Target Specification</a>]
+</p>
+<h3>Zones</h3>
+<p>
+Atoms, residues or atomic models within or beyond some distance of a 
+reference set of atoms can be specified in the command line as a zone. See also:
+<a href="select.html#zone"><b>select zone</b></a>,
+<a href="surface.html#zone"><b>surface zone</b></a>
+</p><p>
+A zone specification has the following parts:
+<ol>
+<li>reference-atom specification
+<li><b><i>zone operator</i></b>, comprising both:
+  <ul>
+  <li>a level symbol: <b>@</b> (atom-based cutoff), <b>:</b> (residue-based), 
+  <b>/</b> (chain-based), or <b>#</b> (atomic-model-based)
+<!-- chain-based means promoted to all atoms with that chain ID -->
+  <li>an inequality symbol: 
+    <b>&lt;</b> (less than; for zones, also includes equal to)
+    or <b>&gt;</b> (greater than)
+  </ul>
+<li>distance cutoff
+</ol>
+Examples:
+<blockquote>
+<b>@nz &nbsp;@&lt; &nbsp;3.8</b>
+</blockquote>
+- atoms within 3.8 &Aring; of atoms named NZ
+<blockquote>
+<b>#1:gtp &nbsp;:&lt; &nbsp;10.5</b>
+</blockquote>
+- residues with any atom within 10.5 &Aring; of any atom 
+in GTP residue(s) of model 1
+<blockquote>
+<b>#1:gtp &nbsp;:&gt; &nbsp;10.5</b>
+</blockquote>
+- residues farther than 10.5 &Aring; from any atom
+in GTP residue(s) of model 1; the complement of the previous example
+</p><p>
+Zone specifiations are also useful in <a href="#combinations">combination</a>
+with other types of specifications.
+</p>
+
+<hr>
 <a name="combinations"></a>
-<h3><a href="#top" class="nounder"><b>&larr;</b></a>
-Combinations</h3>
+<p class="nav">
+[<a href="#top">back to top: Target Specification</a>]
+</p>
+<h3>Combinations</h3>
 <p>
 Atom specifications can be combined with the operators:
 <ul>
@@ -868,22 +898,25 @@ Examples:
 </blockquote>
 - atoms named CA in chains B, E of model 1 and chains A, D of model 2
 <blockquote>
-<b>#1:asp,glu &amp; (#2 :&lt;= 10)</b>
+<b>#1:asp,glu &amp; (#2 :&lt; 10)</b>
 </blockquote>
 - aspartate and glutamate residues in model 1 
 that are within 10 &Aring; of model 2
 <blockquote>
-<b>:phe,tyr &amp; (sidechain | @ca)</b>
+<b>(ligand | ions) @&lt; 4.8</b>
 </blockquote>
-- sidechain and CA atoms of phenylalanine and tyrosine
+- atoms within 4.8 &Aring; of <a href="#surfcats">ligand</a> or 
+<a href="#surfcats">ions</a>
 <blockquote>
-<b>(ligand | protein) @&lt;= 4.8</b>
+<b>ligand | (ions @&lt; 4.8)</b>
 </blockquote>
-- atoms within 4.8 &Aring; of <a href="#surfcats">ligand</a> or protein
+- <a href="#surfcats">ligand</a> plus atoms within 4.8 &Aring; of
+<a href="#surfcats">ions</a>
 <blockquote>
-<b>ligand | (protein @&lt;= 4.8)</b>
+<b>(ions @&lt; 4) &amp; ~ions</b>
 </blockquote>
-- <a href="#surfcats">ligand</a> plus atoms within 4.8 &Aring; of protein
+- atoms within 4 &Aring; of <a href="#surfcats">ions</a>,
+excluding the ions themselves
 <blockquote>
 <b>Ng+ | N3+</b>
 </blockquote>
@@ -897,13 +930,21 @@ formally positive nitrogens
 </blockquote>
 - cysteine sulfur atoms not participating in a disulfide bond
 <blockquote>
-<b>(ions @&lt;= 4) &amp; ~ions</b>
+<b>:phe,tyr &amp; <a href="#builtin">sidechain</a></b>
 </blockquote>
-- atoms within 4 &Aring; of <a href="#surfcats">ions</a>,
-excluding the ions themselves
+- phenylalanine and tyrosine sidechains (including CA)
+<blockquote>
+<b><a href="#builtin">sidechain</a> & ligand :<4</b>
+</blockquote>
+- sidechains (including peptide CA and nucleic acid ribose) 
+of residues with any atom within 4 &Aring; of <a href="#surfcats">ligand</a>
+<blockquote>
+<b><a href="#builtin">sideonly</a> & ligand @<4</b>
+</blockquote>
+- sidechain atoms within 4 &Aring; of <a href="#surfcats">ligand</a>
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2017</address>
+October 2017</address>
 </body></html> 

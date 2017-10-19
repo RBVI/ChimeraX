@@ -79,20 +79,6 @@ class OpenGLContext:
         '''Swap back and front OpenGL buffers.'''
         pass
 
-# OpenGL stipple patterns for various line types
-from .linetype import LineType
-_stipple_patterns = {
-        LineType.Solid: 0xffff,
-        LineType.Dashed: 0x1f1f,
-        LineType.Dotted: 0x0303,
-        LineType.DashedDotted: 0x0fc3,
-        LineType.DashDotDot: 0x3f33,
-}
-
-def stipple(line_type):
-    """Return unsigned short stipple pattern for given line_type"""
-    return _stipple_pattern.get(line_type, 0xffff)
-
 class Render:
     '''
     Manage shaders, viewing matrices and lighting parameters to render a scene.
@@ -691,7 +677,7 @@ class Render:
         GL.glClear(flags)
 
     def enable_depth_test(self, enable):
-        'Enable OpenGL depth testing.'
+        'Enable OpenGL depth testing.  Disabling also disables writing depth buffer.'
         if enable:
             GL.glEnable(GL.GL_DEPTH_TEST)
         else:
@@ -894,7 +880,8 @@ class Render:
         This routine must be called before start_rendering_outline().
         '''
         mfb = self.make_mask_framebuffer()
-        self.copy_to_framebuffer(mfb, color=False)
+        cfb = self.current_framebuffer()
+        cfb.copy_to_framebuffer(mfb, color=False)
     
     def start_rendering_outline(self):
         '''Must call set_outline_depth() before invoking this routine.'''
@@ -1017,7 +1004,8 @@ class Render:
     def finish_silhouette_drawing(self, thickness, color, depth_jump,
                                   perspective_near_far_ratio):
         fb = self.pop_framebuffer()
-        self.copy_from_framebuffer(fb, depth=False)
+        cfb = self.current_framebuffer()
+        cfb.copy_from_framebuffer(fb, depth=False)
         self.draw_depth_outline(fb.depth_texture, thickness, color, depth_jump,
                                 perspective_near_far_ratio)
 
@@ -1067,34 +1055,6 @@ class Render:
         if p is not None:
             v = (xs, ys, depth_jump, perspective_near_far_ratio)
             p.set_float4("depth_shift_and_jump", v)
-
-    def copy_from_framebuffer(self, framebuffer, color=True, depth=True):
-        # Copy current framebuffer contents to another framebuffer.  This
-        # leaves read and draw framebuffers set to the current framebuffer.
-        cfb = self.current_framebuffer()
-        GL.glBindFramebuffer(GL.GL_READ_FRAMEBUFFER, framebuffer.fbo)
-        GL.glBindFramebuffer(GL.GL_DRAW_FRAMEBUFFER, cfb.fbo)
-        what = GL.GL_COLOR_BUFFER_BIT if color else 0
-        if depth:
-            what |= GL.GL_DEPTH_BUFFER_BIT
-        w, h = framebuffer.width, framebuffer.height
-        GL.glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, what, GL.GL_NEAREST)
-        # Restore read buffer
-        GL.glBindFramebuffer(GL.GL_READ_FRAMEBUFFER, cfb.fbo)
-
-    def copy_to_framebuffer(self, framebuffer, color=True, depth=True):
-        # Copy current framebuffer contents to another framebuffer.  This
-        # leaves read and draw framebuffers set to the current framebuffer.
-        cfb = self.current_framebuffer()
-        GL.glBindFramebuffer(GL.GL_READ_FRAMEBUFFER, cfb.fbo)
-        GL.glBindFramebuffer(GL.GL_DRAW_FRAMEBUFFER, framebuffer.fbo)
-        what = GL.GL_COLOR_BUFFER_BIT if color else 0
-        if depth:
-            what |= GL.GL_DEPTH_BUFFER_BIT
-        w, h = framebuffer.width, framebuffer.height
-        GL.glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, what, GL.GL_NEAREST)
-        # Restore draw buffer
-        GL.glBindFramebuffer(GL.GL_DRAW_FRAMEBUFFER, cfb.fbo)
 
     def finish_rendering(self):
         GL.glFinish()
@@ -1164,7 +1124,6 @@ class Framebuffer:
                  depth=True, depth_texture=None,
                  alpha=False):
 
-        self.fbo = None
         if width is not None and height is not None:
             w, h = width, height
         elif color_texture is not None:
@@ -1178,85 +1137,33 @@ class Framebuffer:
         self.height = h
         self.alpha = alpha
         self.viewport = None if w is None else (0, 0, w, h)
-
+        self.color = color
         self.color_texture = color_texture
-        if not color or color_texture or w is None:
-            self.color_rb = None
-        else:
-            self.color_rb = self.color_renderbuffer(w, h, alpha)
+        self.depth = depth
         self.depth_texture = depth_texture
-        if not depth or depth_texture or w is None:
-            self.depth_rb = None
-        else:
-            self.depth_rb = self.depth_renderbuffer(w, h)
 
+        self._color_rb = None
+        self._depth_rb = None
+        self._deleted = False
+
+        self._fbo = 0 if w is None else self._create_framebuffer()
+
+    def _create_framebuffer(self):
+        w, h = self.width, self.height
         if w is None:
             fbo = 0
         elif not self.valid_size(w, h):
-            fbo = None
+            raise OpenGLError('Attempt to activate an unallocated framebuffer')
         else:
-            fbo = self.create_fbo(color_texture or self.color_rb,
-                                  depth_texture or self.depth_rb)
-        self.fbo = fbo
+            if self._color_rb is None and self.color and self.color_texture is None and w is not None:
+                self._color_rb = self.color_renderbuffer(w, h, self.alpha)
+            if self._depth_rb is None and self.depth and self.depth_texture is None and w is not None:
+                self._depth_rb = self.depth_renderbuffer(w, h)
+            fbo = self._create_fbo(self.color_texture or self._color_rb,
+                                   self.depth_texture or self._depth_rb)
+        return fbo
 
-    def __del__(self):
-        if self.fbo is not None:
-            raise RuntimeError('OpenGL framebuffer was not deleted before core.graphics.Framebuffer destroyed')
-
-    def delete(self):
-        if self.fbo is None:
-            return
-        
-        if self.fbo == 0:
-            self.fbo = None
-            return
-            
-        if self.color_rb is not None:
-            GL.glDeleteRenderbuffers(1, (self.color_rb,))
-        if self.depth_rb is not None:
-            GL.glDeleteRenderbuffers(1, (self.depth_rb,))
-        GL.glDeleteFramebuffers(1, (self.fbo,))
-        self.color_rb = self.depth_rb = self.fbo = None
-
-        ct = self.color_texture
-        dt = self.depth_texture
-        if ct is not None:
-            ct.delete_texture()
-        if dt is not None:
-            dt.delete_texture()
-        self.color_texture = self.depth_texture = None
-
-    def valid_size(self, width, height):
-
-        max_rb_size = GL.glGetInteger(GL.GL_MAX_RENDERBUFFER_SIZE)
-        max_tex_size = GL.glGetInteger(GL.GL_MAX_TEXTURE_SIZE)
-        max_size = min(max_rb_size, max_tex_size)
-        return width <= max_size and height <= max_size
-
-    def color_renderbuffer(self, width, height, alpha = False):
-
-        color_rb = GL.glGenRenderbuffers(1)
-        GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, color_rb)
-        fmt = GL.GL_RGBA8 if alpha else GL.GL_RGB8
-        GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, fmt, width, height)
-        return color_rb
-
-    def depth_renderbuffer(self, width, height):
-
-        depth_rb = GL.glGenRenderbuffers(1)
-        GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, depth_rb)
-        if stencil8_needed:
-            # AMD driver requires GL_DEPTH24_STENCIL8 for blitting instead of
-            # GL_DEPTH_COMPONENT24 even though we don't have any stencil planes
-            iformat = GL.GL_DEPTH24_STENCIL8
-        else:
-            iformat = GL.GL_DEPTH_COMPONENT24
-        GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, iformat, width, height)
-        GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, 0)
-        return depth_rb
-
-    def create_fbo(self, color_buf, depth_buf):
-
+    def _create_fbo(self, color_buf, depth_buf):
         fbo = GL.glGenFramebuffers(1)
         GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, fbo)
 
@@ -1293,6 +1200,62 @@ class Framebuffer:
 
         return fbo
 
+    def __del__(self):
+        if not self._deleted:
+            raise RuntimeError('OpenGL framebuffer was not deleted before core.graphics.Framebuffer destroyed')
+
+    def delete(self):
+        self._deleted = True
+        
+        fbo = self._fbo
+        if fbo is not None and fbo != 0:
+            if self._color_rb is not None:
+                GL.glDeleteRenderbuffers(1, (self._color_rb,))
+            if self._depth_rb is not None:
+                GL.glDeleteRenderbuffers(1, (self._depth_rb,))
+            GL.glDeleteFramebuffers(1, (fbo,))
+            self._color_rb = self._depth_rb = None
+            self._fbo = None
+            
+        ct = self.color_texture
+        if ct is not None:
+            ct.delete_texture()
+            self.color_texture = None
+        
+        dt = self.depth_texture
+        if dt is not None:
+            dt.delete_texture()
+            self.depth_texture = None
+
+    def valid_size(self, width, height):
+
+        max_rb_size = GL.glGetInteger(GL.GL_MAX_RENDERBUFFER_SIZE)
+        max_tex_size = GL.glGetInteger(GL.GL_MAX_TEXTURE_SIZE)
+        max_size = min(max_rb_size, max_tex_size)
+        return width <= max_size and height <= max_size
+
+    def color_renderbuffer(self, width, height, alpha = False):
+
+        color_rb = GL.glGenRenderbuffers(1)
+        GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, color_rb)
+        fmt = GL.GL_RGBA8 if alpha else GL.GL_RGB8
+        GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, fmt, width, height)
+        return color_rb
+
+    def depth_renderbuffer(self, width, height):
+
+        depth_rb = GL.glGenRenderbuffers(1)
+        GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, depth_rb)
+        if stencil8_needed:
+            # AMD driver requires GL_DEPTH24_STENCIL8 for blitting instead of
+            # GL_DEPTH_COMPONENT24 even though we don't have any stencil planes
+            iformat = GL.GL_DEPTH24_STENCIL8
+        else:
+            iformat = GL.GL_DEPTH_COMPONENT24
+        GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, iformat, width, height)
+        GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, 0)
+        return depth_rb
+
     def set_cubemap_face(self, face):
         level = 0
         GL.glFramebufferTexture2D(GL.GL_FRAMEBUFFER,
@@ -1301,10 +1264,40 @@ class Framebuffer:
                                   self.color_texture.id, level)
 
     def valid(self):
-        return self.fbo is not None
+        return self._fbo is not None
 
     def activate(self):
-        GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.fbo)
+        GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self._fbo)
+
+    def copy_from_framebuffer(self, framebuffer, color=True, depth=True):
+        # Copy current framebuffer contents to another framebuffer.  This
+        # leaves read and draw framebuffers set to the current framebuffer.
+        from_id = framebuffer._fbo
+        to_id = self._fbo
+        GL.glBindFramebuffer(GL.GL_READ_FRAMEBUFFER, from_id)
+        GL.glBindFramebuffer(GL.GL_DRAW_FRAMEBUFFER, to_id)
+        what = GL.GL_COLOR_BUFFER_BIT if color else 0
+        if depth:
+            what |= GL.GL_DEPTH_BUFFER_BIT
+        w, h = framebuffer.width, framebuffer.height
+        GL.glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, what, GL.GL_NEAREST)
+        # Restore read buffer
+        GL.glBindFramebuffer(GL.GL_READ_FRAMEBUFFER, to_id)
+
+    def copy_to_framebuffer(self, framebuffer, color=True, depth=True):
+        # Copy current framebuffer contents to another framebuffer.  This
+        # leaves read and draw framebuffers set to the current framebuffer.
+        from_id = self._fbo
+        to_id = framebuffer._fbo
+        GL.glBindFramebuffer(GL.GL_READ_FRAMEBUFFER, from_id)
+        GL.glBindFramebuffer(GL.GL_DRAW_FRAMEBUFFER, to_id)
+        what = GL.GL_COLOR_BUFFER_BIT if color else 0
+        if depth:
+            what |= GL.GL_DEPTH_BUFFER_BIT
+        w, h = framebuffer.width, framebuffer.height
+        GL.glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, what, GL.GL_NEAREST)
+        # Restore draw buffer
+        GL.glBindFramebuffer(GL.GL_DRAW_FRAMEBUFFER, from_id)
 
 class Lighting:
     '''
@@ -1446,23 +1439,23 @@ class Bindings:
                     'instance_shift_and_scale': 4, 'instance_placement': 5}
 
     def __init__(self):
-        self.vao_id = GL.glGenVertexArrays(1)
-        self.bound_attr_ids = {}        # Maps buffer to list of ids
-        self.bound_attr_buffers = {}	# Maps attribute id to bound buffer (or None).
+        self._vao_id = GL.glGenVertexArrays(1)
+        self._bound_attr_ids = {}        # Maps buffer to list of ids
+        self._bound_attr_buffers = {}	# Maps attribute id to bound buffer (or None).
 
     def __del__(self):
-        if self.vao_id is not None:
+        if self._vao_id is not None:
             raise RuntimeError('OpenGL vertex array object was not deleted before core.graphics.Bindings destroyed')
 
     def delete_bindings(self):
         'Delete the OpenGL vertex array object.'
-        if self.vao_id is not None:
-            GL.glDeleteVertexArrays(1, (self.vao_id,))
-            self.vao_id = None
+        if self._vao_id is not None:
+            GL.glDeleteVertexArrays(1, (self._vao_id,))
+            self._vao_id = None
 
     def activate(self):
         'Activate the bindings by binding the OpenGL vertex array object.'
-        GL.glBindVertexArray(self.vao_id)
+        GL.glBindVertexArray(self._vao_id)
 
     def bind_shader_variable(self, buffer):
         '''
@@ -1474,11 +1467,11 @@ class Bindings:
         btype = buffer.buffer_type
         if buf_id is None:
             # Unbind already bound variable
-            for a in self.bound_attr_ids.get(buffer, []):
-                if self.bound_attr_buffers[a] is buffer:
+            for a in self._bound_attr_ids.get(buffer, []):
+                if self._bound_attr_buffers[a] is buffer:
                     GL.glDisableVertexAttribArray(a)
-                    self.bound_attr_buffers[a] = None
-            self.bound_attr_ids[buffer] = []
+                    self._bound_attr_buffers[a] = None
+            self._bound_attr_ids[buffer] = []
             if btype == GL.GL_ELEMENT_ARRAY_BUFFER:
                 GL.glBindBuffer(btype, 0)
             return
@@ -1503,14 +1496,14 @@ class Bindings:
             GL.glVertexAttribPointer(attr_id, ncomp, gtype, normalize, 0, None)
             GL.glEnableVertexAttribArray(attr_id)
             GL.glVertexAttribDivisor(attr_id, 1 if buffer.instance_buffer else 0)
-            self.bound_attr_ids[buffer] = [attr_id]
-            self.bound_attr_buffers[attr_id] = buffer
+            self._bound_attr_ids[buffer] = [attr_id]
+            self._bound_attr_buffers[attr_id] = buffer
         else:
             # Matrices use multiple vector attributes
             esize = buffer.array_element_bytes()
             abytes = ncomp * esize
             stride = nattr * abytes
-            bab = self.bound_attr_buffers
+            bab = self._bound_attr_buffers
             import ctypes
             for a in range(nattr):
                 # Pointer arg must be void_p, not an integer.
@@ -1520,7 +1513,7 @@ class Bindings:
                 GL.glEnableVertexAttribArray(a_id)
                 GL.glVertexAttribDivisor(a_id, 1 if buffer.instance_buffer else 0)
                 bab[a_id] = buffer
-            self.bound_attr_ids[buffer] = [attr_id + a for a in range(nattr)]
+            self._bound_attr_ids[buffer] = [attr_id + a for a in range(nattr)]
         GL.glBindBuffer(btype, 0)
 
         # print('bound shader variable', vname, attr_id, nattr, ncomp)

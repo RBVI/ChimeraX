@@ -27,25 +27,27 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>label</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
-[&nbsp;atoms&nbsp;|&nbsp;residues&nbsp;|&nbsp;pseudobonds&nbsp;]
+[&nbsp;atoms&nbsp;|&nbsp;residues&nbsp;|&nbsp;bonds&nbsp;|&nbsp;pseudobonds&nbsp;]
 &nbsp;<a href="#options"><i>options</i></a></h3>
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>label
 delete</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
-[&nbsp;atoms&nbsp;|&nbsp;residues&nbsp;|&nbsp;pseudobonds&nbsp;]
+[&nbsp;atoms&nbsp;|&nbsp;residues&nbsp;|&nbsp;bonds&nbsp;|&nbsp;pseudobonds&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>label listfonts</b>
 </h3>
 <p>
 The <b>label</b> command shows labels that move along with the associated
-<b>atoms</b>, <b>residues</b>, or <b>pseudobonds</b> in 3D.
+<b>atoms</b>, <b>residues</b>, <b>bonds</b>, or <b>pseudobonds</b> in 3D.
 These &ldquo;3D&rdquo; (although flat in appearance)
 labels can be of multiple colors and sizes, and both atom and residue 
 labels can be shown for the same atom at the same time.
-A label is automatically hidden, however, when the corresponding
-item (atom, residue, or <a href="../pseudobonds.html">pseudobond</a>) is hidden.
+A label is automatically hidden, however, when the corresponding item 
+(atom, residue, bond, or <a href="../pseudobonds.html">pseudobond</a>) is hidden.
+3D labels can also be added/deleted by clicking in the graphics window
+(see <a href="mousemode.html"><b>mousemode</b></a>).
 </p><p>
 For adding titles and other text at fixed positions in the window
 for presentation-quality images and movies,
@@ -63,21 +65,21 @@ in the <a href="../tools/log.html"><b>Log</b></a>
 Using a blank <a href="atomspec.html"><i>atom-spec</i></a> with the 
 <b>label</b> command indicates acting on all current 3D labels, 
 optionally restricted with the
-<b>atoms</b>, <b>residues</b>, or <b>pseudobonds</b> keyword;
+<b>atoms</b>, <b>residues</b>, <b>bonds</b>, or <b>pseudobonds</b> keyword;
 if <a href="atomspec.html"><i>atom-spec</i></a> is not blank,
 the default is to act on labels for <b>atoms</b> only. A non-blank 
 <a href="atomspec.html"><i>atom-spec</i></a> is required to create new labels.
 For <b>label delete</b> (regardless of whether the 
 <a href="atomspec.html"><i>atom-spec</i></a> is blank),
 the default is to act on all types of 3D labels unless narrowed with the
-<b>atoms</b>, <b>residues</b>, or <b>pseudobonds</b> keyword.
+<b>atoms</b>, <b>residues</b>, <b>bonds</b>, or <b>pseudobonds</b> keyword.
 <p>
 
 <a name="options"></a>
 <p class="nav">
-[<a href="#top">back to top</a>]
+[<a href="#top">back to top: label</a>]
 </p>
-<h4>Options</h4>
+<h3>Options</h3>
 <p>
 None of the following settings will revert an existing label to the default value 
 unless <b>default</b> is specified explicitly in the command.
@@ -91,7 +93,7 @@ or <b>default</b> information based on the object type being labeled:
 <ul>
 <li>for <b>atoms</b> (default), atom name
 <li>for <b>residues</b>, residue name and number
-<li>for <b>pseudobonds</b>, length
+<li>for <b>bonds</b> or <b>pseudobonds</b>, length
 </ul>
 Arbitrary <i>label-contents</i> can include 
 letters, numbers, symbols from the keyboard; 
@@ -153,5 +155,5 @@ applies to all 3D labels no matter which atoms are
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2017</address>
+October 2017</address>
 </body></html> 
