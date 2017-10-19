@@ -21,6 +21,19 @@ class _MarkersAPI(BundleAPI):
         p = marker_panel(session, tool_name)
         return p
 
+    @staticmethod
+    def open_file(session, path):
+        # 'open_file' is called by session code to open a file
+        # returns (list of models, status message)
+        from . import cmmfiles
+        return cmmfiles.read_cmm(session, path)
+
+    @staticmethod
+    def save_file(session, path, models=None):
+        # 'save_file' is called by session code to save a file
+        from . import cmmfiles
+        return cmmfiles.write_cmm(session, path, models)
+
 bundle_api = _MarkersAPI()
 
 from .markers import MarkerMouseMode, ConnectMouseMode
