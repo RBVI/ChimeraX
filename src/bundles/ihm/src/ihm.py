@@ -554,15 +554,15 @@ class IHMModel(Model):
             'seq_id_1',
             'asym_id_2',
             'seq_id_2',
-            'type',
+            'restraint_type',
             'distance_threshold'
             ]
         clrt_rows = clrt.fields(clrt_fields)
         xlinks = {}
-        for asym_id_1, seq_id_1, asym_id_2, seq_id_2, type, distance_threshold in clrt_rows:
+        for asym_id_1, seq_id_1, asym_id_2, seq_id_2, rtype, distance_threshold in clrt_rows:
             xl = Crosslink(asym_id_1, int(seq_id_1), asym_id_2, int(seq_id_2),
                            float(distance_threshold))
-            xlinks.setdefault(type, []).append(xl)
+            xlinks.setdefault(rtype, []).append(xl)
 
         xlmodels = [CrossLinkModel(self.session, xltype, len(xllist))
                     for xltype, xllist in xlinks.items()]
