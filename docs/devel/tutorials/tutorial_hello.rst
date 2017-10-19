@@ -16,6 +16,7 @@
 .. _Python wheel: https://wheel.readthedocs.org/
 .. _Python package: https://docs.python.org/3/tutorial/modules.html#packages
 .. _eXtensible Markup Language: https://en.wikipedia.org/wiki/XML
+.. _Python package setup scripts: https://docs.python.org/3/distutils/setupscript.html
 
 .. _Bundle Example\: Hello World:
 
@@ -56,6 +57,17 @@ need to type quote characters in some steps.
 
 Sample Files
 ============
+
+The files in the ``hello_world`` are:
+
+``hello_world`` - bundle folder
+    ``bundle_info.xml`` - bundle information read by ChimeraX
+    ``src`` - source code to Python package for bundle
+        ``__init__.py`` - package initializer and interface to ChimeraX
+        ``cmd.py`` - source code to implement ``hello`` command
+
+The file contents are shown below.
+
 
 ``bundle_info.xml``
 -------------------
@@ -107,3 +119,84 @@ in the ``version`` attribute of the ``Dependency`` tag for
 additional bundle that must be installed.  During installation
 for this bundle, if any of the bundles listed in ``Dependency``
 tags are missing, they are automatically installed as well.
+
+Finally, there are ``Classifier`` tags, of which there are two
+flavors: Python and ChimeraX.  Values for Python classifiers
+are the same as those found in standard `Python package setup
+scripts`_.  Values for ``ChimeraXClassifier`` tags classifiers
+follow the same form as Python classifiers, using ``::`` as
+separators among data fields.
+The first data field must be the string ``ChimeraX``.
+The second field specifies the type of functionality supplied,
+in this case, a command.
+For command classifiers, the third field is the name of the
+command, in this case, ``hello``.  (Commands may be a single
+word or multiple words.  The latter is useful for grouping
+multiple commands by sharing the same first word.)
+The fourth field for command classifiers is its category,
+in this case, ``General``.  (The category for a command is
+reserved for future use but does not currently affect ChimeraX
+behavior.)
+The final data field for command classifiers is a synopsis
+of what the command does, and is shown as help text in the
+ChimeraX interface.
+
+All bundle functionality must be listed in in ChimeraX
+classifiers in order for ChimeraX to integrate them into
+its user interface.  In this example, the bundle only
+provides a single new command-line interface command.
+Reference documentation for bundle information tags, and
+specifically ChimeraX classifiers, is in :doc:`bundle_info`.
+
+
+``src``
+-------
+
+``src`` is the folder containing the source code for the
+Python package that implements the bundle functionality.
+The ChimeraX ``devel`` command automatically includes all
+``.py`` files in ``src`` as part of the bundle.  (Additional
+files may also be included using bundle information tags
+such as ``DataFiles`` as shown in :doc:`tutorials_tool`.)
+The only required file in ``src`` is ``__init__.py``.
+Other ``.py`` files are typically arranged to implement
+different types of functionality.  For example, ``cmd.py``
+is used for command-line commands; ``tool.py`` or ``gui.py``
+for graphical interfaces; ``io.py`` for reading and saving
+files, etc.
+
+
+``__init__.py``
+---------------
+
+.. literalinclude:: ../../../src/examples/tutorials/hello_world/src/__init__.py
+    :language: python
+    :linenos:
+
+``__init__.py`` contains the initialization code that defines
+the ``bundle_api`` object that ChimeraX needs in order to
+invoke bundle functionality.  ChimeraX expects ``bundle_api``
+conform to :py:class:`chimerax.core.toolshed.BundleAPI`, which
+has one public attribute, ``api_version``, and these methods:
+
+- ``start_tool`` - invoked to display a graphical interface
+- ``register_command`` - invoked the first time a bundle command is used
+- ``register_selector`` - invoked the first time a bundle chemical subgroup selector is used
+- ``open_file`` - invoked when a file of a bundle-supported format is opened
+- ``save_file`` - invoked when a file of a bundle-supported format is saved
+- ``initialize`` - invoked when ChimeraX starts up and the bundle needs custom initialization
+- ``finish`` - invoked when ChimeraX exits and the bundle needs custom clean up
+- ``get_class`` - invoked when a session is saved and a bundle object needs to be serialized
+
+
+``cmd.py``
+----------
+
+.. literalinclude:: ../../../src/examples/tutorials/hello_world/src/cmd.py
+    :language: python
+    :linenos:
+
+To implement the ``hello`` command, we need two components:
+a function that prints ``Hello world!`` to the ChimeraX log,
+and a description to register so that ChimeraX knows how to
+call the function.
