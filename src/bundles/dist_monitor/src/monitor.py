@@ -40,6 +40,8 @@ class DistancesMonitor(State):
         self._distances_shown = shown
         self._update_distances()
 
+    distances_shown = property(_get_distances_shown, _set_distances_shown)
+
     def remove_group(self, group):
         self.monitored_groups.discard(group)
         if group in self.update_callbacks:
@@ -50,7 +52,7 @@ class DistancesMonitor(State):
             for mg in list(self.monitored_groups):
                 if mg.deleted:
                     self.remove_group(mg)
-        for pb in changes.created_pseudobonds:
+        for pb in changes.created_pseudobonds():
             if pb.group in self.monitored_groups:
                 self._update_distances(pseudobonds=[pb])
         if "position changed" in changes.structure_reasons() \
@@ -68,17 +70,17 @@ class DistancesMonitor(State):
         from chimerax.label.label3d import labels_model, PseudobondLabel
         for grp, pbs in by_group.items():
             lm = labels_model(grp, create=True)
-            if self.show_distances:
+            if self.distances_shown:
                 from .settings import settings
                 fmt = "%%.%df" % settings.precision
                 if settings.show_units:
                     fmt += u'\u00C5'
                 for pb in pbs:
-                    lm.add_labels([pb], PseudobondLabel, self.session.main_view, None,
-                        fmt % pb.length, grp.color.uint8x4(), None, None, None)
+                    lm.add_labels([pb], PseudobondLabel, self.session.main_view,
+                        settings={ 'text': fmt % pb.length, 'color': grp.color })
             else:
-                lm.add_labels(pbs, PseudobondLabel, self.session.main_view, None, "",
-                    grp.color.uint8x4(), None, None, None)
+                lm.add_labels(pbs, PseudobondLabel, self.session.main_view, None,
+                    settings={ 'text': "", 'color': grp.color })
             if grp in self.update_callbacks:
                 self.update_callbacks[group]()
 
