@@ -245,24 +245,13 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
                             continue
                         for ea in end.residue.atoms:
                             ea.display = True
-        #from StructMeasure import DistMonitor
-        if show_dist:
-            from chimerax.core.errors import LimitationError
-            raise LimitationError("Showing distance on H-bonds not yet implemented")
-            #TODO
-        """
-            DistMonitor.addMonitoredGroup(pbg)
-        else:
-            DistMonitor.removeMonitoredGroup(pbg)
-            global _sceneHandlersAdded
-            if not _sceneHandlersAdded:
-                from chimera import triggers, SCENE_TOOL_SAVE, SCENE_TOOL_RESTORE
-                triggers.addHandler(SCENE_TOOL_SAVE, _sceneSave, None)
-                triggers.addHandler(SCENE_TOOL_RESTORE, _sceneRestore, None)
-                _sceneHandlersAdded = True
-        """
         if pbg.id is None:
             session.models.add([pbg])
+
+        if show_dist:
+            session.pb_dist_monitor.add_group(pbg)
+        else:
+            session.pb_dist_monitor.remove_group(pbg)
 
 def restrict_hbonds(hbonds, atoms, restrict):
     filtered = []

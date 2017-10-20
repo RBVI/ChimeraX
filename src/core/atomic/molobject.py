@@ -1997,6 +1997,7 @@ class CoordSet(State):
         '''Has the C++ side been deleted?'''
         return not hasattr(self, '_c_pointer')
 
+    id = c_property('coordset_id', int32, read_only = True, doc="ID number of coordset")
     structure = c_property('coordset_structure', cptr, astype=_atomic_structure, read_only=True,
         doc=":class:`.AtomicStructure` the coordset belongs to")
 

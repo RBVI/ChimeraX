@@ -3366,6 +3366,12 @@ extern "C" EXPORT void change_tracker_add_modified(void *vct, int class_num, voi
 // -------------------------------------------------------------------------
 // coordset functions
 //
+extern "C" EXPORT void coordset_id(void *coordsets, size_t n, int32_t *index)
+{
+    CoordSet **a = static_cast<CoordSet **>(coordsets);
+    error_wrap_array_get(a, n, &CoordSet::id, index);
+}
+
 extern "C" EXPORT void coordset_structure(void *coordsets, size_t n, pyobject_t *molp)
 {
     CoordSet **cs = static_cast<CoordSet **>(coordsets);

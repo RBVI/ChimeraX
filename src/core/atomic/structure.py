@@ -229,6 +229,18 @@ class Structure(Model, StructureData):
         self._graphics_changed |= self._SHAPE_CHANGE
     pseudobond_radius = property(_get_pseudobond_radius, _set_pseudobond_radius)
 
+    def _structure_set_position(self, pos):
+        if pos != self.position:
+            Model.position.fset(self, pos)
+            self.session.change_tracker.add_modified(self, "position changed")
+    position = property(Model.position.fget, _structure_set_position)
+
+    def _structure_set_positions(self, positions):
+        if positions != self.positions:
+            Model.positions.fset(self, positions)
+            self.session.change_tracker.add_modified(self, "position changed")
+    positions = property(Model.positions.fget, _structure_set_positions)
+
     def initial_color(self, bg_color):
         from .colors import structure_color
         return structure_color(self.id, bg_color)
