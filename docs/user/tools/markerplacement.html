@@ -1,0 +1,79 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Marker Placement</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Marker Placement</h3>
+<p>
+<b>Marker Placement</b> sets the mode of interaction for manually placing
+<a href="../markers.html">markers</a>; it controls how the <b>place marker</b>
+<a href="../commands/mousemode.html">mouse mode</a> works.
+It can be opened from the <b>Tools</b> menu
+(<a href="../window.html#toolstart">more...</a>)
+or by clicking the <b>place marker</b>
+<a href="mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="mouse-icons/marker.png"></a>
+or <b>connect markers</b>
+<a href="mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="mouse-icons/bond.png"></a> icon
+in the <a href="mousemodes.html"><b>Mouse Modes for Right Button</b></a> toolbar.
+</p><p>
+<b>Mouse mode</b> options:
+</p>
+<ul>
+<li><b>Place marker at density maximum</b>
+- add marker at the nearest local maximum above the 
+<a href="volumeviewer.html#threshold">threshold</a>
+along the line of sight
+<li><b>Place marker on volume plane</b>
+- add marker in single-plane volume display
+<li><b>Place marker on surface</b>
+- add marker at the nearest surface point along the line of sight
+<li><b>Place marker at center of connected surface</b>
+- add marker at the geometric center of the clicked surface blob, 
+ignoring other blobs
+<li><b>Link consecutively clicked markers</b>
+<a href="mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="mouse-icons/bond.png"></a>
+- <a href="../selection.html">select</a> and link (bond)
+successively clicked markers (atoms)
+<li><b>Move markers</b>
+- drag marker (atom) to reposition
+<li><b>Resize markers or links</b>
+- drag to adjust marker/link radii
+(also acts on atoms and stick bonds; restore default radii
+with the <a href="../commands/size.html"><b>size</b></a> command)
+<li><b>Delete markers or links</b>
+- delete markers and links (atoms and bonds)
+</ul>
+<p>
+There is also a checkbox to <b>Link new marker to 
+<a href="../selection.html">selected</a> marker</b> as markers are added.
+See also: <a href="volumeviewer.html"><b>Volume Viewer</b></a>,
+<a href="../commands/vseries.html"><b>vseries</b></a>
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+October 2017</address>
+</body></html>
