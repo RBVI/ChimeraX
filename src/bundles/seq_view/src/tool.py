@@ -489,8 +489,15 @@ class SequenceViewer(ToolInstance):
 
     def show_ss(self, show=True):
         # show == None means don't change show states, but update regions
-        # ... not yet implemented
-        self.region_browser.show_ss(show if show is not None else True)
+        # ... not yet implemented, so see if the regions exist and their
+        # display is True...
+        rb = self.region_browser
+        if show == None:
+            hreg = rb.get_region(rb.ACTUAL_HELICES_REG_NAME)
+            if not hreg:
+                return
+            show = hreg.shown
+        rb.show_ss(show)
 
     @classmethod
     def restore_snapshot(cls, session, data):
