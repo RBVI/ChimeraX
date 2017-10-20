@@ -1309,6 +1309,8 @@ class CoordSets(Collection):
     def __init__(self, cs_pointers = None):
         Collection.__init__(self, cs_pointers, molobject.CoordSet, CoordSets)
 
+    ids = cvec_property('coordset_id', uint32, read_only = True,
+        doc="ID numbers of coordsets")
     structures = cvec_property('coordset_structure', cptr, astype=_atomic_structures,
         read_only=True, doc="Returns an :class:`AtomicStructure` for each coordset. Read only.")
 
