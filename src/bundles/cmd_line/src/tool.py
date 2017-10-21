@@ -41,6 +41,18 @@ class CommandLine(ToolInstance):
                 from PyQt5.QtCore import Qt
                 # defer context menu to parent
                 self.setContextMenuPolicy(Qt.NoContextMenu)
+                self.setAcceptDrops(True)
+
+            def dragEnterEvent(self, event):
+                if event.mimeData().text():
+                    event.acceptProposedAction()
+
+            def dropEvent(self, event):
+                text = event.mimeData().text()
+                if text.startswith("file://"):
+                    text = text[7:]
+                self.lineEdit().insert(text)
+                event.acceptProposedAction()
 
             def keyPressEvent(self, event, forwarded=False):
                 self._processing_key = True
@@ -82,14 +94,6 @@ class CommandLine(ToolInstance):
                     self.setFocus()
                 self._processing_key = False
 
-            def retain_selection_on_focus_out(self):
-                # prevent de-selection of text when focus lost
-                if self._processing_key:
-                    return
-                le = self.lineEdit()
-                if not le.hasFocus() and not le.selectedText() and le.text():
-                    le.selectAll()
-
         self.text = CmdText(parent, self)
         self.text.setEditable(True)
         self.text.setCompleter(None)
@@ -99,10 +103,8 @@ class CommandLine(ToolInstance):
         layout.addWidget(label)
         layout.addWidget(self.text, 1)
         parent.setLayout(layout)
-        self.text.lineEdit().returnPressed.connect(self.execute)
-        self.text.lineEdit().editingFinished.connect(self.text.lineEdit().selectAll)
         # lineEdit() seems to be None during entire CmdText constructor, so connect here...
-        self.text.lineEdit().selectionChanged.connect(self.text.retain_selection_on_focus_out)
+        self.text.lineEdit().returnPressed.connect(self.execute)
         self.text.currentTextChanged.connect(self.text_changed)
         self.text.forwarded_keystroke = lambda e: self.text.keyPressEvent(e, forwarded=True)
         session.ui.register_for_keystrokes(self.text)
