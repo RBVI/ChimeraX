@@ -463,22 +463,20 @@ def _nuc_drawing(mol, create=True, recreate=False):
     # creates mol._nucleotide_info for per-residue information
     # creates mol._nucleotides_drawing for the drawing
     # from chimerax.bild.shapemodel import ShapeDrawing
-    from chimerax.bild.shapemodel import ShapeModel
+    from chimerax.bild.drawing import ShapeDrawing
     global _mol_handler, _rebuild_handler
     try:
         # expect this to succeed most of the time
         info = mol._nucleotide_info
         if recreate:
             mol.remove_drawing(mol._nucleotides_drawing)
-            # mol._nucleotides_drawing = ShapeDrawing('nucleotides')
-            mol._nucleotides_drawing = ShapeModel('nucleotides', None)
+            mol._nucleotides_drawing = ShapeDrawing('nucleotides')
             mol.add_drawing(mol._nucleotides_drawing)
         return info, mol._nucleotides_drawing
     except AttributeError:
         if not create:
             return None, None
-        # nd = mol._nucleotides_drawing = ShapeDrawing('nucleotides')
-        nd = mol._nucleotides_drawing = ShapeModel('nucleotides', None)
+        nd = mol._nucleotides_drawing = ShapeDrawing('nucleotides')
         mol.add_drawing(nd)
         mol._nucleotide_info = weakref.WeakKeyDictionary()
         # if _mol_handler is None:
