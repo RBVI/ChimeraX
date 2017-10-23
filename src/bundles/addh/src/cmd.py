@@ -199,7 +199,7 @@ def post_add(session, fake_n, fake_c):
             continue
         for nb in c.neighbors:
             if nb.element.number == 1:
-                session.logger.info("Removing spurious proton from 'C' of %s" % str(fc))
+                session.logger.info("%s is not terminus, removing H atom from 'C'" % str(fc))
                 nb.structure.delete_atom(nb)
         # the N proton may have been named 'HN'; fix that
         hn = fc.find_atom("HN")
