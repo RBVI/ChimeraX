@@ -94,6 +94,16 @@ class CommandLine(ToolInstance):
                     self.setFocus()
                 self._processing_key = False
 
+            def retain_sel_on_focus_out(self):
+                # if a full command has been selected, retain that selection on
+                # focus out so that it is easy to type a new command
+                if self._processing_key:
+                    return
+                le = self.lineEdit()
+                if not le.hasFocus() and not le.selectedText() \
+                        and self.count() > 0 and self.itemText(0) == self.currentText():
+                    le.selectAll()
+
         self.text = CmdText(parent, self)
         self.text.setEditable(True)
         self.text.setCompleter(None)
@@ -104,6 +114,7 @@ class CommandLine(ToolInstance):
         layout.addWidget(self.text, 1)
         parent.setLayout(layout)
         # lineEdit() seems to be None during entire CmdText constructor, so connect here...
+        self.text.lineEdit().selectionChanged.connect(self.text.retain_sel_on_focus_out)
         self.text.lineEdit().returnPressed.connect(self.execute)
         self.text.currentTextChanged.connect(self.text_changed)
         self.text.forwarded_keystroke = lambda e: self.text.keyPressEvent(e, forwarded=True)
