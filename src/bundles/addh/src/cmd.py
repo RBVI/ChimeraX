@@ -428,7 +428,7 @@ def _prep_add(session, structures, unknowns_info, need_all=False, **prot_schemes
                 type_info_for_atom[atom] = unknowns_info[atom]
                 atoms.append(atom)
                 continue
-            logger.info("Unknown hydridization for atom (%s) of residue type %s" %
+            logger.info("Unknown hybridization for atom (%s) of residue type %s" %
                     (atom.name, atom.residue.name))
         naming_schemas.update(determine_naming_schemas(struct, type_info_for_atom))
 
