@@ -58,6 +58,10 @@ def cmd_addh(session, structures=None, hbond=True, in_isolation=True, use_his_na
         for structure in structures:
             structure.alt_loc_change_notify = True
     atoms = struct_collection.atoms
+    # If side chains are displayed, then the CA is _not_ hidden, so we
+    # need to let the ribbon code update the hide bits so that the CA's
+    # hydrogen gets hidden...
+    atoms.update_ribbon_visibility()
     session.logger.info("%s hydrogens added" %
         (len(atoms.filter(atoms.elements.numbers == 1)) - num_pre_hs))
 #TODO: hbond_add_hydrogens
