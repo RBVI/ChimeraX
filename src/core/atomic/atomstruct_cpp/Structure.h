@@ -288,7 +288,11 @@ public:
     void  set_input_seq_info(const ChainID& chain_id, const std::vector<ResName>& res_names) { _input_seq_info[chain_id] = res_names; }
     void  set_ss_assigned(bool sa) { _ss_assigned = sa; }
     bool  ss_assigned() const { return _ss_assigned; }
-    void  start_change_tracking(ChangeTracker* ct) { _change_tracker = ct; ct->add_created(this); }
+    void  start_change_tracking(ChangeTracker* ct) {
+        _change_tracker = ct;
+        ct->add_created(this);
+        pb_mgr().start_change_tracking(ct);
+    }
     void  use_best_alt_locs();
 
     // ribbon stuff
