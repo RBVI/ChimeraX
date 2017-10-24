@@ -38,13 +38,16 @@ an atom label.
 analogous to an atomic model.
 </ul>
 <p>
-Markers and links can be created with the mouse
+Markers and links can be created and adjusted with the mouse
 (see <a href="commands/mousemode.html"><b>mousemode</b></a> and
 <a href="tools/markerplacement.html"><b>Marker Placement</b></a>)
 or with certain commands
 (<a href="commands/vseries.html#measure"><b>vseries measure</b></a>).
 Markers and links can be saved to and read from 
 <a href="#markerfiles">marker files</a>.
+</p><p>
+Markers and links are shown in the <a href="commands/style.html">ball style</a>
+when initially created and when read from a file.
 </p>
 
 <a name="markerfiles"></a>
@@ -60,6 +63,9 @@ links, colors, and radii.
 (but not
 <a href="#smooth">smooth paths</a> or <a href="#surfaces">surfaces</a>).
 -->
+<font color="brown">
+However, ChimeraX does not yet save labels on markers as marker notes,
+and marker notes are not shown as labels when read from a file.</font>
 Marker files can be opened and saved using the <b>File</b> menu
 or the commands <a href="commands/open.html"><b>open</b></a> and
 <a href="commands/save.html"><b>save</b></a>, respectively.
@@ -81,28 +87,22 @@ The following marker file describes two markers connected by a link:
 The <b>r</b>, <b>g</b>, and <b>b</b> attributes are red, green,
 and blue color components, respectively, with possible values ranging
 from 0 to 1.
-<!--
 </p><p>
 Extra attributes can be present within the marker, link, and marker_set
 tags, as a mechanism for retaining information from or passing information to
-other programs. For example, the marker description
+other programs.  For example, the following marker description
+includes a <b>frame</b> attribute:
 <pre>
 &lt;marker id="3" x="195.43" y="166.62" z="174.03" r="1" g="1" b="0" radius="5"
  note="cap domain" nr="1" ng="1" nb="0" frame="5"/&gt;
 </pre>
-includes a <b>frame</b> attribute used by
-<a href="commands/vseries.html"><b>vseries</b></a>
+<!-- 
+The <b>frame</b> attribute is used by the
+<a href="commands/vseries.html"><b>vseries</b></a> command
 to synchronise marker display with series playback.
-The following examples
-include the extra attributes <b>somethingextra</b> and <b>leprechaun</b>:
-<pre>
-&lt;marker id="3" x="3.23" y="4.34" z="5.45" r="0" g="0" b="1" radius=".4"
- note="105" somethingextra="hoola hoop"/&gt;
-&lt;link id1="1" id2="2" r="0" g="1" b="0" radius=".2" leprechaun="gold"/&gt;
-</pre>
+-->
 Extra attributes from an input file are retained and included
 in files written back out.
--->
 </p>
 
 <hr>

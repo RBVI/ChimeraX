@@ -29,36 +29,34 @@ class="clRight" title="User Guide Index"/></a>
 <br><b>coordset</b>
 &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
 &nbsp;<i>frame</i>
-[&nbsp;computeSS&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;holdSteady&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
+[&nbsp;<b>computeSS</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>holdSteady</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>coordset</b>
 &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
-[<i>start</i>],[<i>end</i>][,<i>step</i>]
-[&nbsp;computeSS&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;holdSteady&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
-[&nbsp;loop&nbsp;&nbsp;<i>N</i>&nbsp;]
-[&nbsp;bounce&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;pauseFrames&nbsp;&nbsp;<i>M</i>&nbsp;]
-</h3>
-<a name="slider"></a>
-<h3><a href="usageconventions.html">Usage</a>:
-<br><b>coordset slider</b>
-&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
-[&nbsp;computeSS&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;holdSteady&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
-[&nbsp;pauseFrames&nbsp;&nbsp;<i>M</i>&nbsp;]
+[<i>start</i>,][<i>end</i>][,<i>step</i>]
+[&nbsp;<b>computeSS</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>holdSteady</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
+[&nbsp;<b>pauseFrames</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
+[&nbsp;<b>loop</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>bounce</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 </h3>
 <p>
-<b>Coordset</b> displays the <a href="#framesdef">frames</a> (coordinate sets)
-of a <a href="../trajectories.html">trajectory</a>.
+The <b>coordset</b> command displays the <a href="#framesdef">frames</a> 
+(coordinate sets) of a <a href="../trajectories.html">trajectory</a>,
+and the <a href="#slider"><b>coordset slider</b></a> subcommand
+shows a graphical interface for interactive playback.
 The number of coordinate sets in a trajectory
 can be reported with the command <a href="info.html"><b>info</b></a>.
 See also: 
 <a href="morph.html"><b>morph</b></a>,
 <a href="mseries.html"><b>mseries</b></a>,
 <a href="../movies.html">making movies</a>
+</p><p>
+The <i>model-spec</i> is the model number of the trajectory, preceded by #.
+A comma-separated list or range of model numbers can be used
+to specify multiple trajectories at once.
 </p><p>
 Protein <a href="cartoon.html">cartoon</a> (ribbon) display
 depends on which residues are in helices and strands,
@@ -72,11 +70,11 @@ or to run it less frequently than every frame shown,
 see <a href="#ssnote">below</a>.
 Running the calculation may slow playback.
 </p><p>
-The <i>model-spec</i> is the model number of the trajectory, preceded by #.
-A comma-separated list or range of model numbers can be used
-to specify multiple trajectories at once.
 Atoms to hold as steady as possible upon frame updates can be
 <a href="atomspec.html">specified</a> using the <b>holdSteady</b> keyword.
+The <b>pauseFrames</b> option can be used to slow playback by showing each
+trajectory frame for <i>M</i> image update frames (default <b>1</b>;
+see <a href="#framesdef">frames terminology</a>).
 </p><p>
 Supplying only one <i>frame</i> number without commas indicates simply
 going to that frame.  A positive number is taken literally, whereas a
@@ -92,13 +90,31 @@ Examples:
 <p>
 Supplying comma-separated frame numbers indicates playing from <i>start</i>
 to <i>end</i> in increments of <i>step</i>. As shown in the examples below,
-using &ldquo;.&rdquo; for the <i>start</i> number indicates the current frame,
-and the <i>end</i> number (but not its preceding comma) can be omitted
-to indicate the last frame.
+using &ldquo;.&rdquo; for the <i>start</i> number indicates the current frame.
+The <i>end</i> number can be omitted to indicate the last frame,
+and omitting all three numbers (<i>start</i>, <i>end</i>, <i>step</i>)
+indicates playing from the first frame to the last.
 The default <i>step</i> is <b>1</b> if <i>start</i> &lt; <i>end</i>,
 <b>&ndash;1</b> if <i>start</i> &gt; <i>end</i>, determined after
 any negative frame numbers are converted to the corresponding
-actual frame numbers. 
+actual frame numbers.  Examples:
+</p>
+<blockquote>
+<b>coordset #1 1,21 holdSteady @ca</b><br>
+&nbsp;&nbsp;
+- play from frame 1 to 21 of trajectory model #1, holding CA atoms steady<br>
+<b>coordset #1 .,15</b><br>
+&nbsp;&nbsp; - play from the current frame to frame 15<br>
+<b>coordset #1 5,</b><br>
+&nbsp;&nbsp; - play from frame 5 to the end<br>
+<b>coordset #1</b><br>
+&nbsp;&nbsp; - play from frame 1 to the end<br>
+<b>coordset #1 21,1</b><br>
+&nbsp;&nbsp; - play from frame 21 to 1, backwards<br>
+<b>coordset #1 -1,1,-10</b><br>
+&nbsp;&nbsp;
+- play from the last frame to the first, every 10th frame, backwards
+</blockquote>
 <p>
 The <b>loop</b> option indicates repeating playback
 <i>N</i> times, jumping directly from <i>end</i> to <i>start</i>
@@ -106,40 +122,33 @@ if <b>bounce</b> is <b>false</b> (default).
 If <b>bounce</b> is <b>true</b>, each loop plays forward from
 <i>start</i> to <i>end</i> and backward from <i>end</i> to <i>start</i>
 instead of abruptly wrapping.
-The <b>pauseFrames</b> option can be used to slow playback by showing each
-trajectory frame for <i>M</i> image update frames (default <b>1</b>;
-see <a href="#framesdef">frames terminology</a>).
-</p><p>
-The command <b>coordset slider</b> shows a graphical interface
-in which the slider can be dragged or a frame number entered directly.
+</p>
+
+<a name="slider"></a>
+<p class="nav">
+[<a href="#top">back to top: coordset</a>]
+</p>
+<h3>Coordset Slider</h3>
+<blockquote><a href="usageconventions.html"><b>Usage</b></a>:
+<b>coordset slider</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
+[&nbsp;<b>computeSS</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>holdSteady</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
+[&nbsp;<b>pauseFrames</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
+</blockquote>
+<p>
+The <b>coordset slider</b> subcommand shows a graphical interface
+for <a href="../trajectories.html">trajectory</a> playback.
+The slider can be dragged or a frame number entered directly.
 The interface also includes a play/pause button and another
 (marked with a red dot) for recording a movie.
 The <b>computeSS</b>, <b>holdSteady</b>, and <b>pauseFrames</b> options are 
-the same as described above for the main <b>coordset</b> command.
+as described <a href="#top">above</a> for the main <b>coordset</b> command.
 A separate slider is shown for each specified 
 <a href="../trajectories.html">trajectory</a> model,
-and appears automatically when a multi-model mmCIF or PDB file is opened as a 
-<a href="../trajectories.html">trajectory</a>.
-</p><p>
-Examples:
-<blockquote>
-<b>coordset #1 1,21 holdSteady @ca</b><br>
-&nbsp;&nbsp;
-- play from frame 1 to 21 of trajectory model #1, holding CA atoms steady<br>
-<b>coordset #1 .,15</b><br>
-&nbsp;&nbsp; - play from the current frame to frame 15<br>
-<b>coordset #1 1,</b><br>
-&nbsp;&nbsp; - play from frame 1 to the end<br>
-<!--
-<b>coordset #1 ,,5</b><br>
-&nbsp;&nbsp; - play from the current frame to the end, every 5th frame<br>
--->
-<b>coordset #1 21,1</b><br>
-&nbsp;&nbsp; - play from frame 21 to 1, backwards<br>
-<b>coordset #1 -1,1,-10</b><br>
-&nbsp;&nbsp;
-- play from the last frame to the first, every 10th frame, backwards
-</blockquote>
+and appears automatically when a multi-model mmCIF or PDB file is 
+opened as a <a href="../trajectories.html">trajectory</a>.
+</p>
 
 <a name="framesdef"></a>
 <p class="nav">
