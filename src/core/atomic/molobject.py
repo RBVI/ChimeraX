@@ -1416,13 +1416,13 @@ class StructureSeq(Sequence):
         '''Return the residue at index one less than the given residue,
         or None if no such residue exists.'''
         pos = self.res_map[r]
-        return self.residue_at(pos-1)
+        return None if pos == 0 else self.residue_at(pos-1)
 
     def residue_after(self, r):
         '''Return the residue at index one more than the given residue,
         or None if no such residue exists.'''
         pos = self.res_map[r]
-        return self.residue_at(pos+1)
+        return None if pos+1 >= len(self) else self.residue_at(pos+1)
 
     @staticmethod
     def restore_snapshot(session, data):
