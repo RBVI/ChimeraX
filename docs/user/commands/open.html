@@ -35,17 +35,24 @@ class="clRight" title="User Guide Index"/></a>
 <p>
 The command <b>open</b> reads data in several
 <a href="#formats">formats</a> from:
+<p>
 <ul>
 <li><a href="#local">local files</a>
 <li><a href="#url">URLs</a>
 <li><a href="#fetch">online databases</a>
 </ul>
+<p>
 Input files may contain data to be displayed or commands or code to be executed.
-Local files can also be browsed/opened with <b>File... Open</b> in the menu,
-in which case the proper filename <a href="#file-table">suffix</a> is required.
-A file browser window can also be shown by giving
+Local files can browsed interactively by giving
 <a href="usageconventions.html#browse"><b>browse</b></a> as the filename 
-in the <b>open</b> command.
+in the <b>open</b> command 
+(or by using <b>File... Open</b> in the menu instead of a command, 
+in which case the proper filename <a href="#file-table">suffix</a> is required).
+Another way to open local files is by drag-and-drop onto the ChimeraX icon
+or a running instance of ChimeraX.
+On a Mac, ChimeraX-associated file types can also be opened by 
+double-clicking them in a Finder window or using &ldquo;open&rdquo; 
+in a Terminal window.
 See also: 
 <a href="close.html"><b>close</b></a>,
 <a href="save.html"><b>save</b></a>,
@@ -398,10 +405,12 @@ Further command options:
 <b>coordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
 Whether to open a multi-model file in mmCIF or PDB format as a
-<a href="../trajectories.html">trajectory</a>. Only one frame
-(coordinate set) of a trajectory can be viewed at a time, although different
-frames can be accessed or played back sequentially with the
-<a href="coordset.html"><b>coordset</b></a> command.
+<a href="../trajectories.html">trajectory</a> and show a
+<a href="coordset.html#slider">slider</a> graphical interface.
+Only one frame (coordinate set) of a trajectory can be viewed at a time;
+different frames can be accessed or played back sequentially with the
+<a href="coordset.html"><b>coordset</b></a> command or
+the <a href="coordset.html#slider">slider interface</a>.
 By default, the multiple models in the file will be opened not as a
 <a href="../trajectories.html">trajectory</a> but as
 separate submodels that can be shown/hidden/specified independently 
@@ -503,13 +512,6 @@ Whether to open an HTML file in a new tab of the
 <a href="../window.html#browser">ChimeraX browser</a>
 (default <b>false</b>, replace any current page).
 </blockquote>
-<p>
-Another way to open local files is by drag-and-drop onto the ChimeraX icon
-or a running instance of ChimeraX.
-On a Mac, ChimeraX-associated file types can also be opened by 
-double-clicking them in a Finder window or using &ldquo;open&rdquo; 
-in a Terminal window.
-</p>
 
 <a name="url"></a>
 <p class="nav">
@@ -707,7 +709,9 @@ automatically adjusting the appearance of a newly opened atomic model
 based on its contents.
 Bypassing this calculation shows all atoms as white spheres, and may be 
 useful in rare cases where generating the rule-based representation is slow
-(such as drawing cartoons for very large numbers of models).
+(such as drawing cartoons for very large numbers of models) or 
+when chemical perception is inappropriate (such as for a SAXS bead model). 
+See also: <a href="../markers.html">markers and links</a>
 </blockquote>
 <blockquote>
 <b>autoAssociate</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false

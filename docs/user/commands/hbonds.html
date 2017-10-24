@@ -91,12 +91,12 @@ chain IDs may be used instead, as in the following example:
 write results to the <a href="../tools/log.html"><b>Log</b></a>
 <blockquote>
 <b><a href="show.html">hide</a>; <a href="cartoon.html">cartoon</a> suppress f
-<br>hb (/a & protein) restrict (/b & protein) reveal true</b>
+<br>hb (/a & protein) restrict (/b & protein) reveal t show t</b>
 </blockquote>
 &ndash; hide all atoms and show cartoon (enabling coincident backbone-atom display),
-then identify H-bonds between
-chain A protein and chain B protein, displaying the residues involved;
-the parentheses are not required, but may be included for clarity
+then identify H-bonds between chain A protein and chain B protein, 
+displaying the residues involved and showing distance labels;
+the parentheses are not required, just included for clarity
 <blockquote>
 <b><a href="delete.html">del</a> solvent; <a href="show.html">hide</a> protein
 <br>hb sidechain restrict both reveal t color yellow radius .08
@@ -232,10 +232,10 @@ can be changed later with <a href="style.html"><b>style</b></a>.
 <a name="showDist"></a>
 <b>showDist</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>Whether to label the <a href="../pseudobonds.html">pseudobonds</a>
-with the corresponding distances.
-Regardless of this option, any <a href="../pseudobonds.html">pseudobonds</a>
-can be labeled by length with <a href="label.html"><b>label</b></a>
-and plotted as a histogram by length with
+with the corresponding distances. Label color, size, and font can be
+adjusted with the <a href="label.html"><b>label</b></a> command,
+which can also be used to add the labels later or to delete them.
+The distances (pseudobond lengths) can also be plotted as a histogram with
 <a href="crosslinks.html#histogram"><b>crosslinks histogram</b></a>.
 </blockquote>
 <blockquote>
@@ -413,13 +413,11 @@ Not all of the possible donor-acceptor combinations were listed
 in the Mills and Dean parameter tables; some categories of sulfur
 were not surveyed, and several combinations of the surveyed types
 were not observed frequently enough to collect good statistics on their
-geometries.  In such cases, <b>FindHbond</b>
-applies estimated H-bond criteria.
+geometries.  In such cases, estimated H-bond criteria are applied.
 </p><p>
 When there are no explicit hydrogens on a potential donor atom,
-<b>FindHBond</b> will use the donor
-<a href="../atomtypes.html">atom type</a> to infer their presence.
-For functional groups where the hydrogen
+the donor <a href="../atomtypes.html">atom type</a> will be used
+to infer their presence. For functional groups where the hydrogen
 positions are well-determined by the positions of the nonhydrogen atoms,
 the H-bonds detected in the presence and absence of explicit hydrogen
 atoms should be virtually identical.  For functional groups where the
