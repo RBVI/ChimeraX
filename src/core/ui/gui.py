@@ -209,9 +209,11 @@ class UI(QApplication):
         """
         from PyQt5.QtCore import Qt
         if event.key() == Qt.Key_Up:
-            self.session.selection.promote()
+            from ..commands import run
+            run(self.session, 'select up')
         elif event.key() == Qt.Key_Down:
-            self.session.selection.demote()
+            from ..commands import run
+            run(self.session, 'select down')
         elif self._keystroke_sinks:
             self._keystroke_sinks[-1].forwarded_keystroke(event)
 
@@ -301,7 +303,6 @@ class MainWindow(QMainWindow, PlainTextLog):
         dw = QDesktopWidget()
         main_screen = dw.availableGeometry(dw.primaryScreen())
         self.resize(main_screen.width()*.67, main_screen.height()*.67)
-        self.setDockOptions(self.dockOptions() | self.GroupedDragging)
 
         from PyQt5.QtCore import QSize
         class GraphicsArea(QStackedWidget):
@@ -477,16 +478,6 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def edit_redo_cb(self, session):
         session.undo.redo()
-
-    def edit_ccp_cb(self, session, key):
-        # Cut/Copy/Paste callback
-        from PyQt5.QtCore import QEvent, Qt
-        from PyQt5.QtGui import QKeyEvent
-        ui = session.ui
-        w = ui.focusWidget()
-        if w:
-            ui.postEvent(w, QKeyEvent(QEvent.KeyPress, key, Qt.ControlModifier))
-            ui.postEvent(w, QKeyEvent(QEvent.KeyRelease, key, Qt.ControlModifier))
 
     def update_undo(self, undo_manager):
         self._set_undo(self.undo_action, "Undo", undo_manager.top_undo_name())
@@ -666,6 +657,7 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def _populate_menus(self, session):
         from PyQt5.QtWidgets import QAction
+        from PyQt5.QtGui import QKeySequence
         from PyQt5.QtCore import Qt
 
         mb = self.menuBar()
@@ -687,34 +679,20 @@ class MainWindow(QMainWindow, PlainTextLog):
         file_menu.addAction(quit_action)
         file_menu.setToolTipsVisible(True)
 
-        """
         edit_menu = mb.addMenu("&Edit")
         self.undo_action = QAction("&Undo", self)
         self.undo_action.setEnabled(False)
-        self.undo_action.setShortcut("Ctrl+Z")
+        self.undo_action.setShortcut(QKeySequence.Undo)
         self.undo_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_undo_cb(sess))
         edit_menu.addAction(self.undo_action)
         self.redo_action = QAction("&Redo", self)
         self.redo_action.setEnabled(False)
-        self.redo_action.setShortcut("Ctrl+R")
+        self.redo_action.setShortcut(QKeySequence.Redo)
         self.redo_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_redo_cb(sess))
         edit_menu.addAction(self.redo_action)
-        edit_menu.addSeparator()
-        cut_action = QAction("&Cut", self)
-        # cut_action.setShortcut("Ctrl+X")
-        cut_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_ccp_cb(sess, Qt.Key_X))
-        edit_menu.addAction(cut_action)
-        copy_action = QAction("&Copy", self)
-        # copy_action.setShortcut("Ctrl+C")
-        copy_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_ccp_cb(sess, Qt.Key_C))
-        edit_menu.addAction(copy_action)
-        paste_action = QAction("&Paste", self)
-        # paste_action.setShortcut("Ctrl+V")
-        paste_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_ccp_cb(sess, Qt.Key_V))
-        edit_menu.addAction(paste_action)
-        """
 
         self.tools_menu = mb.addMenu("&Tools")
+        self.tools_menu.setToolTipsVisible(True)
         self.update_tools_menu(session)
 
         self.favorites_menu = mb.addMenu("Fa&vorites")

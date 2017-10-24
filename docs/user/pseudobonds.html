@@ -38,20 +38,20 @@ See also:
 <a href="commands/struts.html"><b>struts</b></a>
 </p><p>
 <a name="floaters"></a>
-Pseudobonds are only displayed when both of their endpoint atoms are displayed.
-However, a backbone atom is considered as displayed when its cartoon is
-<a href="commands/cartoon.html#suppress">suppressing</a> the backbone atoms.
-Thus, a pseudobond (which goes the atom position)
-may appear to be floating in space.
-Floating pseudobonds can be hidden with the command 
+A pseudobond is only shown when both of its endpoint atoms are shown.
+Since a backbone atom is considered as shown when only its cartoon is shown,
+a pseudobond (which goes the atom position) may appear to be floating in space.
+Floating pseudobonds can be hidden with the command
 <b><a href="commands/cartoon.html">cartoon suppress false</a></b>,
-with the side effect of showing any backbone atoms that were already
-displayed but suppressed.
+which also enables explicitly showing any backbone atoms of interest 
+(at the same time as the cartoon).
 See also: <a href="hierarchy.html">display hierarchy</a>
 </p><p>
 Commands that act on pseudobonds include
 <a href="commands/color.html"><b>color</b></a>,
 <a href="commands/style.html"><b>style</b></a>,
+<a href="commands/size.html"><b>size</b></a>,
+<a href="commands/label.html"><b>label</b></a>,
 <a href="commands/show.html"><b>show</b></a>,
 <a href="commands/show.html"><b>hide</b></a>,
 <a href="commands/close.html"><b>close</b></a>,
@@ -59,18 +59,14 @@ and <a href="commands/crosslinks.html"><b>crosslinks</b></a>.
 For example,
 an interactive histogram of pseudobond lengths can be plotted with
 <a href="commands/crosslinks.html#histogram"><b>crosslinks histogram</b></a>.
-The command-line specifiers
-<a href="commands/atomspec.html#builtin"><b>hbonds</b></a> and
-<a href="commands/atomspec.html#builtin"><b>pbonds</b></a>
-refer to hydrogen-bond pseudobonds and all pseudobonds, respectively,
-as well as their endpoint atoms.
-Certain commands (<a href="commands/color.html"><b>color</b></a>,
-<a href="commands/show.html"><b>show</b></a>) may require using
-the <b>target p</b> option to indicate acting on pseudobonds
-and not their flanking atoms. 
+Pseudobonds can be <a href="commands/atomspec.html">specified</a>
+in commands by their endpoint atoms, pseudobond model number, or
+<a href="commands/atomspec.html#builtin">built-in classifications</a>:
+<b>sel</b> (when <a href="selection.html">selected</a>),
+<b>pbonds</b>, <b>hbonds</b>.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-August 2017</address>
+October 2017</address>
 </body></html>

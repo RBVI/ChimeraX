@@ -12,6 +12,8 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
+.. _ChimeraX Python Modules:
+
 Python Modules
 ==============
 

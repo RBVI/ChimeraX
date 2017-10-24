@@ -176,35 +176,36 @@ class View:
             if self.silhouettes:
                 r.start_silhouette_drawing()
             r.draw_background()
-            if mdraw:
-                perspective_near_far_ratio \
-                    = self._update_projection(vnum, camera=camera)
-                cp = camera.get_position(vnum)
-                cpinv = cp.inverse()
-                if shadows and stf is not None:
-                    r.set_shadow_transform(stf * cp)
-                if multishadows > 0 and mstf is not None:
-                    r.set_multishadow_transforms(mstf, cp, msdepth)
-                    # Initial depth pass optimization to avoid lighting
-                    # calculation on hidden geometry
-                    draw_depth(r, cpinv, mdraw)
-                    r.allow_equal_depth(True)
-                self._start_timing()
-                r.set_view_matrix(cpinv)
-                draw_opaque(r, mdraw)
-                if any_selected:
-                    r.set_outline_depth()       # copy depth to outline framebuffer
-                draw_transparent(r, mdraw)    
-                self._finish_timing()
-                if multishadows > 0:
-                    r.allow_equal_depth(False)
-                if any_selected:
-                    draw_selection_outline(r, cpinv, mdraw)
+            if len(mdraw) == 0:
+                continue
+            perspective_near_far_ratio \
+                = self._update_projection(vnum, camera=camera)
+            cp = camera.get_position(vnum)
+            cpinv = cp.inverse()
+            if shadows and stf is not None:
+                r.set_shadow_transform(stf * cp)
+            if multishadows > 0 and mstf is not None:
+                r.set_multishadow_transforms(mstf, cp, msdepth)
+                # Initial depth pass optimization to avoid lighting
+                # calculation on hidden geometry
+                draw_depth(r, cpinv, mdraw)
+                r.allow_equal_depth(True)
+            self._start_timing()
+            r.set_view_matrix(cpinv)
+            draw_opaque(r, mdraw)
+            if any_selected:
+                r.set_outline_depth()       # copy depth to outline framebuffer
+            draw_transparent(r, mdraw)    
+            self._finish_timing()
+            if multishadows > 0:
+                r.allow_equal_depth(False)
             if self.silhouettes:
                 r.finish_silhouette_drawing(self.silhouette_thickness,
                                             self.silhouette_color,
                                             self.silhouette_depth_jump,
                                             perspective_near_far_ratio)
+            if any_selected:
+                draw_selection_outline(r, cpinv, mdraw)
 
         camera.combine_rendered_camera_views(r)
 
@@ -237,11 +238,11 @@ class View:
             if self.center_of_rotation_method == 'front center':
                 self._update_center_of_rotation = True
             # TODO: If model transparency effects multishadows, will need to detect those changes.
-            self._multishadow_update_needed = True
+            if dm.shadows_changed():
+                self._multishadow_update_needed = True
 
         c.redraw_needed = False
-        dm.redraw_needed = False
-        dm.shape_changed = False
+        dm.clear_changes()
 
         self.redraw_needed = True
 
@@ -486,7 +487,8 @@ class View:
     def _use_shadow_map(self, light_direction, drawings):
 
         # Compute drawing bounds so shadow map can cover all drawings.
-        center, radius, bdrawings = _drawing_bounds(drawings, self)
+        sdrawings = None if drawings is None else [d for d in drawings if getattr(d, 'casts_shadows', True)]
+        center, radius, bdrawings = _drawing_bounds(sdrawings, self)
         if center is None or radius == 0:
             return None
 
@@ -536,7 +538,8 @@ class View:
             return self._multishadow_transforms, self._multishadow_depth
 
         # Compute drawing bounds so shadow map can cover all drawings.
-        center, radius, bdrawings = _drawing_bounds(drawings, self)
+        sdrawings = None if drawings is None else [d for d in drawings if getattr(d, 'casts_shadows', True)]
+        center, radius, bdrawings = _drawing_bounds(sdrawings, self)
         if center is None or radius == 0:
             return None, None
 
@@ -605,9 +608,8 @@ class View:
         c = self.camera
         from ..geometry import identity
         c.position = identity()
-        w,h = self.window_size
-        c.view_all(b, aspect = h/w, pad = pad)
-        self._center_of_rotation = b.center()
+        c.view_all(b, window_size = self.window_size, pad = pad)
+        self._center_of_rotation = cr = b.center()
         self._update_center_of_rotation = True
 
     def view_all(self, bounds = None, pad = 0):
@@ -620,8 +622,7 @@ class View:
             bounds = self.drawing_bounds()
             if bounds is None:
                 return
-        w,h = self.window_size
-        self.camera.view_all(bounds, aspect = h/w, pad = pad)
+        self.camera.view_all(bounds, window_size = self.window_size, pad = pad)
         if self._center_of_rotation_method in ('front center', 'center of view'):
             self._update_center_of_rotation = True
 
@@ -885,6 +886,30 @@ class View:
                 p = self.center_of_rotation	# Compute center of rotation
         return self.camera.view_width(p) / self.window_size[0]
 
+    def stereo_scaling(self, delta_z):
+        '''
+        If in stereo camera mode change eye separation so that
+        when models moved towards camera by delta_z, their center
+        of bounding box appears to stay at the same depth, giving
+        the appearance that the models were simply scaled in size.
+        Another way to understand this is the models are scaled
+        when measured as a multiple of stereo eye separation.
+        '''
+        c = self.camera
+        if not hasattr(c, 'eye_separation_scene'):
+            return
+        b = self.drawing_bounds()
+        if b is None:
+            return
+        from ..geometry import distance
+        d = distance(b.center(), c.position.origin())
+        if d == 0 and delta_z > 0.5*d:
+            return
+        f = 1 - delta_z / d
+        from math import exp
+        c.eye_separation_scene *= f
+        c.redraw_needed = True
+
 
 class ClipPlanes:
     '''
@@ -1013,17 +1038,30 @@ class _RedrawNeeded:
     def __init__(self):
         self.redraw_needed = False
         self.shape_changed = True
+        self.shape_changed_drawings = set()
         self.cached_drawing_bounds = None
         self.cached_any_part_selected = None
 
-    def __call__(self, shape_changed=False, selection_changed=False):
+    def __call__(self, drawing, shape_changed=False, selection_changed=False):
         self.redraw_needed = True
         if shape_changed:
             self.shape_changed = True
+            self.shape_changed_drawings.add(drawing)
             self.cached_drawing_bounds = None
         if selection_changed:
             self.cached_any_part_selected = None
 
+    def shadows_changed(self):
+        for d in self.shape_changed_drawings:
+            if getattr(d, 'casts_shadows', True):
+                return True
+        return False
+
+    def clear_changes(self):
+        self.redraw_needed = False
+        self.shape_changed = False
+        self.shape_changed_drawings.clear()
+        
 
 def _drawing_bounds(drawings, view):
     if drawings is None:

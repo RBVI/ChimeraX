@@ -20,8 +20,8 @@ atom_specifier   = left:as_term operator:'&' right:atom_specifier
                  | left:as_term
                  ;
 
-as_term          = '(' atomspec:atom_specifier ')'
-                 | '~' tilde:as_term
+as_term          = '(' atomspec:atom_specifier ')' [zone:zone_selector]
+                 | '~' tilde:as_term [zone:zone_selector]
                  | selector:selector_name [zone:zone_selector]
                  | models:model_list
                  ;

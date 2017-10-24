@@ -272,6 +272,7 @@ void Structure::_copy(Structure* g) const
     for (auto h = metadata.begin() ; h != metadata.end() ; ++h)
         g->metadata[h->first] = h->second;
     g->pdb_version = pdb_version;
+    g->lower_case_chains = lower_case_chains;
     g->set_ss_assigned(ss_assigned());
     g->set_ribbon_tether_scale(ribbon_tether_scale());
     g->set_ribbon_tether_shape(ribbon_tether_shape());
@@ -406,6 +407,7 @@ Structure::_delete_atom(Atom* a)
             [&b](Bond* ub) { return ub == b; });
         _bonds.erase(bi);
     }
+    a->residue()->remove_atom(a);
     typename Atoms::iterator i = std::find_if(_atoms.begin(), _atoms.end(),
         [&a](Atom* ua) { return ua == a; });
     _atoms.erase(i);
@@ -622,6 +624,7 @@ Structure::new_atom(const char* name, const Element& e)
     add_atom(a);
     if (e.number() == 1)
         ++_num_hyds;
+    _idatm_valid = false;
     return a;
 }
 
@@ -698,6 +701,23 @@ Structure::new_residue(const ResName& name, const ChainID& chain,
     Residue *r = new Residue(this, name, chain, pos, insert);
     _residues.insert(ri, r);
     return r;
+}
+
+void
+Structure::reorder_residues(const Structure::Residues& new_order)
+{
+    if (new_order.size() != _residues.size())
+        throw std::invalid_argument("New residue order not same length as old order");
+    std::set<Residue*> seen;
+    for (auto r: new_order) {
+        if (seen.find(r) != seen.end())
+            throw std::invalid_argument("Duplicate residue in new residue order");
+        seen.insert(r);
+        if (r->structure() != this)
+            throw std::invalid_argument("Residue not belonging to this structure"
+                " in new residue order");
+    }
+    _residues = new_order;
 }
 
 const Structure::Rings&
@@ -1368,9 +1388,12 @@ Structure::set_active_coord_set(CoordSet *cs)
     }
     if (_active_coord_set != new_active) {
         _active_coord_set = new_active;
-        set_gc_shape();
-        set_gc_ribbon();
-        change_tracker()->add_modified(this, ChangeTracker::REASON_ACTIVE_COORD_SET);
+        pb_mgr().change_cs(new_active);
+        if (active_coord_set_change_notify()) {
+            set_gc_shape();
+            set_gc_ribbon();
+            change_tracker()->add_modified(this, ChangeTracker::REASON_ACTIVE_COORD_SET);
+        }
     }
 }
 

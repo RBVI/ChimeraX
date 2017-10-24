@@ -6,27 +6,29 @@
 #    clean: remove files used in building wheel
 
 # Theoretically, you should only need to change
-# 1. the CHIMERAX_APP definition,
-# 2. (if you want to install into ChimeraX.app instead of for
-#    the current user) the "devel build" and "devel install"
-#    commands in the "install" and "wheel" targets, and
-# 3. (if you need to generate files such as self-signed certificates
-#    or files from template expansion) the "generated_files" and
-#    "clean_generated_files" targets
+# 1. the CHIMERAX_APP definition (or define in environment),
+# 2. the "devel build" and "devel install" commands in the
+#    "install" and "wheel" targets, (e.g., if you want to
+#    install into ChimeraX.app instead of for the current
+#    user, add "user false"), and
+# 3. the "generated_files" and "clean_generated_files" targets
+#    (e.g., if you need to generate files such as self-signed
+#    certificates or data files from template expansion)
 
 # Define where ChimeraX is installed.
 OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
 # CHIMERAX_APP is the ChimeraX install folder
+# We use ?= to let CHIMERAX_APP environment variable override
 ifeq ($(OS),CYGWIN_NT)
 # Windows
-CHIMERAX_APP = "/c/Program Files/ChimeraX.app"
+CHIMERAX_APP ?= "/c/Program Files/ChimeraX.app"
 endif
 ifeq ($(OS),Darwin)
 # Mac
-CHIMERAX_APP = /Applications/ChimeraX.app
+CHIMERAX_APP ?= /Applications/ChimeraX.app
 endif
 ifeq ($(OS),Linux)
-CHIMERAX_APP = /usr/local/bin/ChimeraX.app
+CHIMERAX_APP ?= /usr/local/bin/ChimeraX.app
 endif
 
 # Platform-dependent settings.  Should not need fixing.

@@ -87,10 +87,67 @@ def save_image(session, path, format_name, width=None, height=None,
             from .errors import UserError
             raise UserError('Unknown image file suffix "%s"' % suffix)
 
+    from .session import standard_metadata
+    std_metadata = standard_metadata()
+    metadata = {}
+    if fmt.name == 'png':
+        metadata['optimize'] = True
+        # if dpi is not None:
+        #     metadata['dpi'] = (dpi, dpi)
+        from PIL import PngImagePlugin
+        pnginfo = PngImagePlugin.PngInfo()
+        # tags are from <https://www.w3.org/TR/PNG/#11textinfo>
+
+        def add_text(keyword, value):
+            try:
+                b = value.encode('latin-1')
+            except UnicodeEncodeError:
+                pnginfo.add_itxt(keyword, value)
+            else:
+                pnginfo.add_text(keyword, b)
+        # add_text('Title', description)
+        add_text('Creation Time', std_metadata['created'])
+        add_text('Software', std_metadata['generator'])
+        add_text('Author', std_metadata['creator'])
+        add_text('Copy' 'right', std_metadata['dateCopyrighted'])
+        metadata['pnginfo'] = pnginfo
+    elif fmt.name == 'tiff':
+        # metadata['compression'] = 'lzw:2'
+        # metadata['description'] = description
+        metadata['software'] = std_metadata['generator']
+        # TIFF dates are YYYY:MM:DD HH:MM:SS (local timezone)
+        import datetime as dt
+        metadata['date_time'] = dt.datetime.now().strftime('%Y:%m:%d %H:%M:%S')
+        metadata['artist'] = std_metadata['creator']
+        # TIFF copy right is ASCII, so no Unicode symbols
+        cp = std_metadata['dateCopyrighted']
+        if cp[0] == '\N{COPYRIGHT SIGN}':
+            cp = 'Copy' 'right' + cp[1:]
+        metadata['copy' 'right'] = cp
+        # if units == 'pixels':
+        #     dpi = None
+        # elif units in ('points', 'inches'):
+        #     metadata['resolution unit'] = 'inch'
+        #     metadata['x resolution'] = dpi
+        #     metadata['y resolution'] = dpi
+        # elif units in ('millimeters', 'centimeters'):
+        #     adjust = convert['centimeters'] / convert['inches']
+        #     dpcm = dpi * adjust
+        #     metadata['resolution unit'] = 'cm'
+        #     metadata['x resolution'] = dpcm
+        #     metadata['y resolution'] = dpcm
+    elif fmt.name == 'jpeg':
+        metadata['quality'] = quality
+        # if dpi is not None:
+        #     # PIL's jpeg_encoder requires integer dpi values
+        #     metadata['dpi'] = (int(dpi), int(dpi))
+        # TODO: create exif with metadata using piexif package?
+        # metadata['exif'] = exif
+
     view = session.main_view
     i = view.image(width, height, supersample=supersample,
                    transparent_background=transparent_background)
-    i.save(path, fmt.pil_name, quality=quality)
+    i.save(path, fmt.pil_name, **metadata)
 
 
 def register_image_save(session):

@@ -25,10 +25,10 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3>Selection</h3>
 <p>
-A <b><i>selection</i></b> is a set of items (atoms, residues, models)
-chosen by the user:
+A <b><i>selection</i></b> is a set of items (atoms, bonds, residues, models)
+chosen by the user that:
 <ul>
-<li>shown with green outlines in the graphics window
+<li>is highlighted with green outlines in the graphics window
 <li>marks the items for subsequent operations:
   <ul>
   <li>can be <a href="commands/atomspec.html#builtin">specified</a> 
@@ -51,12 +51,18 @@ chosen by the user:
   <a href="tools/sequenceviewer.html">sequence</a>
   <li>with various other commands and tools
   </ul>
-<li>can be broadened with the up arrow key, narrowed with the down arrow key,
-within selection cascade:
+<a name="cascade"></a>
+<li>can be broadened with the up arrow key
+or command <a href="commands/select.html#modify"><b>select up</b></a>,
+and subsequently narrowed with the down arrow key
+or <a href="commands/select.html#modify"><b>select down</b></a>,
+within the <b><i>selection cascades</i></b>:
   <ul>
-  <li>atom &harr; residue &harr; protein secondary structure element 
-  (helix, strand, or coil) &harr; all atoms with same chain ID &harr; whole model
-  &harr; all models
+  <li>atom or bond &harr; residue &harr; protein secondary structure element 
+  (helix, strand, or coil) &harr; all atoms with same chain ID &harr; 
+  whole model &harr; model hierarchy
+  <li><a href="pseudobonds.html">pseudobond</a> &harr; 
+  pseudobond model &harr; model hierarchy
   </ul>
 </ul>
 <p>
@@ -82,7 +88,23 @@ If the mouseclick is on a surface region that does not overlie another
 selectable object, however, the surface model will be selected.
 </p>
 
+<a name="sel-vs-spec"></a>
+<p class="nav">
+[<a href="#top">back to top: Selection</a>]
+</p>
+<h3>Selection vs. Direct Specification in Commands</h3>
+<p>
+Command-line <a href="commands/atomspec.html">target specification</a> strings,
+including <a href="commands/atomspec.html#combinations">logical operations</a>
+(and/or/not) and <a href="commands/atomspec.html#zones">zones</a>, can be given
+directly in commands, bypassing selection.
+However, <a href="commands/atomspec.html">target specification</a> may include
+<b>sel</b>, <b>selAtoms</b>, and <b>selMaps</b> to indicate the current selection,
+and selections are useful in other contexts,
+such as defining the scope of action when an icon is clicked.
+</p>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-August 2017</address>
+October 2017</address>
 </body></html>

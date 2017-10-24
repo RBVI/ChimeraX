@@ -63,35 +63,71 @@ but different names can be assigned and used.
 When multiple pseudobond models have the same name, specific models can be 
 removed with the <a href="close.html"><b>close</b></a> command.
 </p><p>
-Pseudobonds are only shown if their endpoint atoms are shown;
+A pseudobond is only shown when both of its endpoint atoms are shown;
 <b>reveal true</b> can be used to display all involved residues 
 so that all of the H-bonds will be shown (<a href="#reveal">details...</a>).
-Since a backbone atom is considered as shown when its cartoon is
-<a href="cartoon.html#suppress">suppressing</a> the backbone atoms,
+Since a backbone atom is considered as shown when only its cartoon is shown,
 a pseudobond (which goes the atom position) may appear to be floating in space. 
 Floating pseudobonds can be hidden with the command
 <b><a href="cartoon.html">cartoon suppress false</a></b>,
 with the side effect of showing any backbone atoms that were already
 displayed but suppressed.
-</p>
+</p><p>
+<a name="examples">Examples:</a>
+<blockquote>
+<b><a href="show.html">hide</a><br>hb ligand restrict protein reveal true</b>
+</blockquote>
+&ndash; hide all atoms, then identify H-bonds between 
+<a href="atomspec.html#builtin"><b>ligand</b></a> and
+<a href="atomspec.html#builtin"><b>protein</b></a>,
+displaying the residues involved; note that the automatic classifier
+<a href="atomspec.html#builtin"><b>ligand</b></a> may not specify exactly
+(or only) the atoms of interest, and in that case, residue names, numbers, and/or
+chain IDs may be used instead, as in the following example:
+<blockquote>
+<b>hb /a:nad restrict cross log true reveal true</b>
+</blockquote>
+&ndash; calculate H-bonds between the NAD residue in chain A and everything else,
+write results to the <a href="../tools/log.html"><b>Log</b></a>
+<blockquote>
+<b><a href="show.html">hide</a>; <a href="cartoon.html">cartoon</a> suppress f
+<br>hb (/a & protein) restrict (/b & protein) reveal t show t</b>
+</blockquote>
+&ndash; hide all atoms and show cartoon (enabling coincident backbone-atom display),
+then identify H-bonds between chain A protein and chain B protein, 
+displaying the residues involved and showing distance labels;
+the parentheses are not required, just included for clarity
+<blockquote>
+<b><a href="delete.html">del</a> solvent; <a href="show.html">hide</a> protein
+<br>hb sidechain restrict both reveal t color yellow radius .08
+<br>hb sidechain restrict both salt t name "salt bridges" col magenta radius .1</b>
+</blockquote>
+&ndash; 
+delete <a href="atomspec.html#builtin"><b>solvent</b></a>,
+hide <a href="atomspec.html#builtin"><b>protein</b></a> atoms, and
+calculate all sidechain-sidechain H-bonds and their salt bridge subset
+as two separate <a href="../pseudobonds.html">pseudobond models</a>,
+displaying the involved residues and making the salt-bridge pseudobonds fatter
+so that they are clearly visible over the others
 
 <a name="related"></a>
 <p class="nav">
 [<a href="#top">back to top: hbonds</a>]
 </p>
-<h4>H-Bond-Related Features</h4>
+<h3>H-Bond-Related Features</h3>
 <p>
 Independent of the <a href="#top"><b>hbonds</b></a> command,
 reading an mmCIF file with base-pairing H-bond information automatically creates
 <b>hydrogen bonds</b> <a href="../pseudobonds.html">pseudobonds</a>.
 The command-line specifier <a href="atomspec.html#builtin"><b>hbonds</b></a>
-(not to be confused with the command) refers to pseudobonds
-in the <b>hydrogen bonds</b> model(s) and their endpoint atoms.
+(not to be confused with the command) refers to pseudobonds in the 
+pseudobond model named <b>hydrogen bonds</b>.
 An interactive histogram of pseudobond lengths can be plotted with 
-<a href="crosslinks.html#histogram"><b>crosslinks histogram</b></a>, and a chain 
-network diagram summarizing intra- and interchain pseudobonds can be shown with
-<a href="crosslinks.html#network"><b>crosslinks network</b></a>.
+<a href="crosslinks.html#histogram"><b>crosslinks histogram</b></a>, and a 
+chain network diagram summarizing intra- and interchain pseudobonds can be
+shown with <a href="crosslinks.html#network"><b>crosslinks network</b></a>.
 See also: <a href="style.html"><b>style</b></a>,
+<a href="size.html"><b>size</b></a>,
 <a href="color.html"><b>color</b></a>
 </p>
 
@@ -99,7 +135,7 @@ See also: <a href="style.html"><b>style</b></a>,
 <p class="nav">
 [<a href="#top">back to top: hbonds</a>]
 </p>
-<h4>Command Options</h4>
+<h3>Command Options</h3>
 <p>
 Option keywords and Boolean (truth) values can be truncated, with
 synonyms for true: True, 1, and synonyms for false: False, 0.
@@ -181,7 +217,7 @@ the <a href="color.html"><b>color</b></a> command, for example:
   <b>radius</b> &nbsp;<i>r</i>
 <br>Radius in &Aring; to use for <a href="../pseudobonds.html">pseudobonds</a>
 depicting H-bonds (default <b>0.075</b>);
-can be changed later with <a href="style.html"><b>style</b></a>.
+can be changed later with <a href="size.html"><b>size</b></a>.
 </blockquote>
 <blockquote>
   <b>dashes</b> &nbsp;<i>N</i>
@@ -193,15 +229,13 @@ to give an even number of dashes. The number of dashes
 can be changed later with <a href="style.html"><b>style</b></a>.
 </blockquote>
 <blockquote>
-<font color="brown">
 <a name="showDist"></a>
 <b>showDist</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>Whether to label the <a href="../pseudobonds.html">pseudobonds</a>
-with the corresponding distances (not yet implemented).
-</font>
-However, any <a href="../pseudobonds.html">pseudobonds</a>
-can be labeled by length with <a href="label.html"><b>label</b></a>
-and plotted as a histogram by length with
+with the corresponding distances. Label color, size, and font can be
+adjusted with the <a href="label.html"><b>label</b></a> command,
+which can also be used to add the labels later or to delete them.
+The distances (pseudobond lengths) can also be plotted as a histogram with
 <a href="crosslinks.html#histogram"><b>crosslinks histogram</b></a>.
 </blockquote>
 <blockquote>
@@ -246,6 +280,13 @@ rather than regenerating it each time the command is used;
 useful for calculations on different conformations of the same structure.
 The default is <b>true</b> for a <a href="../trajectories.html">trajectory</a>, 
 otherwise <b>false</b>.
+</blockquote>
+<blockquote>
+<b>perCoordset</b> &nbsp;true&nbsp;|&nbsp;false
+<br>Whether to calculate and retain H-bonds for each frame of a 
+<a href="../trajectories.html">trajectory</a>, instead of just the current frame.
+The default is <b>true</b> for a <a href="../trajectories.html">trajectory</a>
+if it is the only atomic model present or specified in the command.
 </blockquote>
 <blockquote>
 <a name="relax"></a>
@@ -299,8 +340,10 @@ The information includes donor and acceptor atom specifications
 (see <a href="#namingStyle"><b>namingStyle</b></a>),
 donor-acceptor distances, and when hydrogens are present,
 hydrogen atom specifications and hydrogen-acceptor distances.
-<i>File</i> is the output file name/pathname; 
-if it includes spaces, it must be enclosed in quotation marks.
+<i>File</i> is the output file pathname,
+enclosed in quotation marks if it includes spaces,
+or the word <a href="usageconventions.html#browse"><b>browse</b></a>
+to specify it interactively in a file browser window.
 </blockquote>
 <blockquote>
   <a name="log"><b>log</b> &nbsp;true&nbsp;|&nbsp;<b>false</b></a>
@@ -336,7 +379,7 @@ when <a href="#selRestrict"><b>selRestrict</b></a> is specified.
 <p class="nav">
 [<a href="#top">back to top: hbonds</a>]
 </p>
-<h4>Method and Geometric Criteria</h4>
+<h3>Method and Geometric Criteria</h3>
 <p>
 Distance and angle cutoffs for H-bonding
 are based on a survey of small-molecule crystal structures, as described in
@@ -370,13 +413,11 @@ Not all of the possible donor-acceptor combinations were listed
 in the Mills and Dean parameter tables; some categories of sulfur
 were not surveyed, and several combinations of the surveyed types
 were not observed frequently enough to collect good statistics on their
-geometries.  In such cases, <b>FindHbond</b>
-applies estimated H-bond criteria.
+geometries.  In such cases, estimated H-bond criteria are applied.
 </p><p>
 When there are no explicit hydrogens on a potential donor atom,
-<b>FindHBond</b> will use the donor
-<a href="../atomtypes.html">atom type</a> to infer their presence.
-For functional groups where the hydrogen
+the donor <a href="../atomtypes.html">atom type</a> will be used
+to infer their presence. For functional groups where the hydrogen
 positions are well-determined by the positions of the nonhydrogen atoms,
 the H-bonds detected in the presence and absence of explicit hydrogen
 atoms should be virtually identical.  For functional groups where the
@@ -388,5 +429,5 @@ all of its possible positions.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-September 2017</address>
+October 2017</address>
 </body></html>

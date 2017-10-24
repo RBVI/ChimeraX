@@ -64,7 +64,7 @@ Notes
 -----
 
 AtomSpecArg arguments should always be optional because
-not providing and atom specifier is the same as choosing
+not providing an atom specifier is the same as choosing
 all atoms.
 
 """
@@ -210,18 +210,22 @@ class _AtomSpecSemantics:
 
     def as_term(self, ast):
         # print("as_term", ast)
-        if ast.atomspec is not None:
+        if ast.zone:
+            if ast.atomspec is not None:
+                ast.zone.model = ast.atomspec
+            elif ast.tilde is not None:
+                ast.zone.model = ast.tilde
+            elif ast.selector is not None:
+                ast.zone.model = ast.selector
+            return _Term(ast.zone)
+        elif ast.atomspec is not None:
             return ast.atomspec
         elif ast.tilde is not None:
             return _Invert(ast.tilde)
-        elif ast.models is not None:
-            return _Term(ast.models)
+        elif ast.selector is not None:
+            return _Term(ast.selector)
         else:
-            if ast.zone:
-                ast.zone.model = ast.selector
-                return _Term(ast.zone)
-            else:
-                return _Term(ast.selector)
+            return _Term(ast.models)
 
     def selector_name(self, ast):
         # print("selector_name", ast)
@@ -528,6 +532,8 @@ def _add_model_parts(session, model, sub_parts, results):
     if not model.atomspec_has_atoms():
         if not sub_parts:
             results.add_model(model)
+            if model.atomspec_has_pseudobonds():
+                results.add_pseudobonds(model.atomspec_pseudobonds())
         return
     atoms = model.atomspec_atoms()
     if not sub_parts:
@@ -692,6 +698,9 @@ class _Term:
         """Return Objects for model elements that match."""
         from ..objects import Objects
         results = Objects()
+        return self.find_matches(session, models, results)
+
+    def find_matches(self, session, models, results):
         self._specifier.find_matches(session, models, results)
         return results
 
@@ -708,6 +717,13 @@ class _Invert:
         if models is None:
             models = session.models.list(**kw)
         results = self._atomspec.evaluate(session, models)
+        add_implied_bonds(results)
+        results.invert(session, models)
+        return results
+
+    def find_matches(self, session, models, results):
+        self._atomspec.find_matches(session, models, results)
+        add_implied_bonds(results)
         results.invert(session, models)
         return results
 
@@ -769,7 +785,18 @@ class AtomSpec:
             results = Objects.intersect(left_results, right_results)
         else:
             raise RuntimeError("unknown operator: %s" % repr(self._operator))
+        add_implied_bonds(results)
         return results
+
+    def find_matches(self, session, models, results):
+        my_results = self.evaluate(session, models)
+        results.combine(my_results)
+        return results
+
+def add_implied_bonds(objects):
+    atoms = objects.atoms
+    objects.add_bonds(atoms.intra_bonds)
+    objects.add_pseudobonds(atoms.intra_pseudobonds)
 
 
 #

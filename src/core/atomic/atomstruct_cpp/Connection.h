@@ -23,6 +23,7 @@
 #include "destruct.h"
 #include "Real.h"
 #include "Rgba.h"
+#include "session.h"
 
 // "forward declare" PyObject, which is a typedef of a struct,
 // as per the python mailing list:
@@ -41,13 +42,10 @@ class ATOMSTRUCT_IMEX Connection {
 public:
     typedef Atom*  Atoms[2];
 
-    // Since this is a base class shared between Bond and Pseudobond,
-    // the version number is specific to this class, rather than the
-    // global number.  The conversion will be done by the derived class.
-    // Therefore, update the derived class's session_base_version() when
-    // this class's version changes
-    static int  SESSION_NUM_INTS(int /*version*/=0) { return 3; }
-    static int  SESSION_NUM_FLOATS(int /*version*/=0) { return 1; }
+    static int  SESSION_NUM_INTS(int version=CURRENT_SESSION_VERSION) {
+        return version < 11 ? 3 : 4;
+    }
+    static int  SESSION_NUM_FLOATS(int /*version*/=CURRENT_SESSION_VERSION) { return 1; }
 protected:
     virtual const char*  err_msg_loop() const
         { return "Can't connect atom to itself"; }
@@ -61,6 +59,7 @@ protected:
     bool  _halfbond = true;
     float  _radius = 0.2;
     Rgba  _rgba;
+    bool  _selected = false;
 public:
     Connection(Atom* a1, Atom* a2) { _atoms[0] = a1; _atoms[1] = a2; }
 
@@ -74,10 +73,10 @@ public:
     Real  sqlength() const;
 
     // session related
-    static int  session_num_floats(int version=0) {
+    static int  session_num_floats(int version=CURRENT_SESSION_VERSION) {
         return SESSION_NUM_FLOATS(version) + Rgba::session_num_floats();
     }
-    static int  session_num_ints(int version=0) {
+    static int  session_num_ints(int version=CURRENT_SESSION_VERSION) {
         return SESSION_NUM_INTS(version) + Rgba::session_num_ints();
     }
     void  session_restore(int version, int** ints, float** floats) {
@@ -86,6 +85,7 @@ public:
         _display = int_ptr[0];
         _hide = int_ptr[1];
         _halfbond = int_ptr[2];
+        _selected = version < 11 ? false : int_ptr[3];
         int_ptr += SESSION_NUM_INTS(version);
 
         auto& float_ptr = *floats;
@@ -98,6 +98,7 @@ public:
         int_ptr[0] = _display;
         int_ptr[1] = _hide;
         int_ptr[2] = _halfbond;
+        int_ptr[3] = _selected;
         int_ptr += SESSION_NUM_INTS();
 
         auto& float_ptr = *floats;
@@ -124,6 +125,8 @@ public:
     void  set_radius(float r);
     virtual bool shown() const;
     bool  visible() const { return _hide ? false : _display; }
+    bool  selected() const { return _selected; }
+    void  set_selected(bool s);
 };
 
 class ATOMSTRUCT_IMEX UniqueConnection: public Connection {
@@ -232,6 +235,16 @@ UniqueConnection::finish_construction()
     if (a1->connects_to(a2))
         throw std::invalid_argument(err_msg_exists());
     add_to_atoms();
+}
+
+inline void
+Connection::set_selected(bool s)
+{
+    if (s == _selected)
+        return;
+    graphics_changes()->set_gc_select();
+    track_change(ChangeTracker::REASON_SELECTED);
+    _selected = s;
 }
 
 } //  namespace atomstruct

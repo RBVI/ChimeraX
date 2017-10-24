@@ -20,7 +20,9 @@ This documentation is for application APIs
 that are not in the :ref:`ChimeraX Core <core>`
 nor in the :doc:`bundles` layered on the core.
 The user interface documentation is found
-in :doc:`User's Manual </users/index>`.
+in `User's Manual`_.
+
+.. _User's Manual: ../user/index.html
 
 TODO: evaluate if this is needed.
 
@@ -31,4 +33,4 @@ TODO: evaluate if this is needed.
 
     apps/moduleapp/moduleapp.rst
 
-    webapp.rst
+..    webapp.rst

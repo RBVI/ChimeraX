@@ -328,10 +328,10 @@ class SteamVRCamera(Camera):
         from chimerax.core.graphics.camera import perspective_view_width
         return perspective_view_width(point, self.position.origin(), fov)
 
-    def view_all(self, bounds, aspect = None, pad = 0):
+    def view_all(self, bounds, window_size = None, pad = 0):
         fov = 100	# Effective field of view, degrees
         from chimerax.core.graphics.camera import perspective_view_all
-        self.position = perspective_view_all(bounds, self.position, fov, aspect, pad)
+        self.position = perspective_view_all(bounds, self.position, fov, window_size, pad)
         self._last_position = None
         self._last_h = None
         self.fit_scene_to_room(bounds)
@@ -427,6 +427,7 @@ class SteamVRCamera(Camera):
     
 from chimerax.core.models import Model
 class HandControllerModel(Model):
+    casts_shadows = False
     _controller_colors = ((200,200,0,255), (0,200,200,255))
 
     def __init__(self, device_index, session, vr_system, show = True, size = 0.20, aspect = 0.2):
@@ -715,6 +716,7 @@ class HandControllerModel(Model):
         from chimerax.core.graphics import Drawing
         from chimerax.core.graphics.drawing import rgba_drawing
         self._icon_drawing = d = Drawing('VR icons')
+        d.casts_shadows = False
         rgba = self.tiled_icons() # numpy uint8 (ny,nx,4) array
         s = self._cone_length
         h,w = rgba.shape[:2]
@@ -734,6 +736,7 @@ class HandControllerModel(Model):
         
         from chimerax.core.graphics import Drawing
         self._icon_highlight_drawing = d = Drawing('VR icon highlight')
+        d.casts_shadows = False
         s = self._cone_length
         from chimerax.core.surface import sphere_geometry
         va, na, ta = sphere_geometry(200)

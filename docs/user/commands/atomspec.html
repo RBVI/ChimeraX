@@ -49,8 +49,8 @@ can be specified using:
     </ul>
   <li><a href="#builtin">built-in classifications</a>
   - <b>sel</b> (current <a href="../selection.html">selection</a>),
-  <b>protein</b>, <b>helix</b>, <b>strand</b>, 
-  <b>solvent</b>, element symbols, functional groups, <i>etc.</i>
+  <b>protein</b>, <b>helix</b>, <b>strand</b>, <b>ligand</b>, <b>hbonds</b>,
+  element symbols, functional groups, <i>etc.</i>
   <li><a href="#user">user-defined targets</a>
   <font color="brown">(not yet implemented)</font> 
   <li><a href="#attributes">attribute</a> names and values
@@ -134,6 +134,11 @@ Thus, an atom can be specified by model number, chain identifier (ID),
 residue number, and atom name. The lack of a specifier is interpreted 
 as all units at the associated level; for example, if no chain ID is given,
 the specification refers to all chains.
+Specifying a set of atoms always specifies any <b><i>bonds</i></b> and
+<a href="../pseudobonds.html">pseudobonds</a> between pairs of atoms in the set.
+A <a href="../pseudobonds.html">pseudobond model</a>
+can also be specified directly by its own model number
+(not necessarily within the atomic-model hierarchy).
 </p><p>
 Chain IDs, residue names and numbers,
 and atom names are read from the input file.
@@ -141,10 +146,6 @@ In <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/tutorials/framepdbin
 standard nomenclature is used for standard amino acid and nucleic acid residues.
 Asterisks (<b>*</b>) in PDB input atom names will be translated 
 to prime symbols (<b>'</b>).
-</p><p>
-A <a href="../pseudobonds.html">pseudobond</a> 
-model can also be specified directly by its own model number
-(not necessarily within the atomic-model hierarchy).
 </p>
 
 <a name="capitalization"></a>
@@ -330,10 +331,15 @@ Built-in classifications include:
 <li>biopolymer types <b>protein</b>, <b>nucleic</b> or <b>nucleic-acid</b>,
 and their subparts:
   <ul>
-  <li><b>sidechain</b> - amino acid sidechain (not including CA), nucleic 
-  acid base (not including ribose C1'), and any directly attached hydrogens
+  <li><b>sidechain</b> - amino acid sidechain + CA (for connectivity
+  to <a href="cartoon.html">cartoon</a> representations), nucleic acid base
+  + <b>ribose</b> (see below), and any directly attached hydrogens
+  <li><b>sideonly</b> - amino acid sidechain,
+  nucleic acid base, and any directly attached hydrogens
   <li><b>mainchain</b> (or <b>backbone</b>) 
-  - the complement of <b>sidechain</b>
+  - the complement of <b>sideonly</b>, namely:
+  peptide N, CA, C, O, nucleic acid phosphoribosyl backbone,
+  and any directly attached hydrogens
   <li><b>ribose</b> - backbone ribose and deoxyribose moieties
   </ul>
 <li>protein/peptide secondary structure types:
@@ -353,10 +359,8 @@ or if nothing is selected, all atomic models
 <li><b>selMaps</b> - the currently <a href="../selection.html">selected</a>
 volume models, or if none are selected, all volume models
 <li><b>pbonds</b> - all <a href="../pseudobonds.html">pseudobonds</a>
-and their flanking atoms
 <li><b>hbonds</b> - H-bond <a href="../pseudobonds.html">pseudobonds</a>
 (those in a pseudobond model named <b>hydrogen bonds</b>)
-and their flanking atoms
 </ul>
 <p>
 Built-in classifications cannot be redefined by the user.
@@ -832,6 +836,7 @@ A zone specification has the following parts:
   <ul>
   <li>a level symbol: <b>@</b> (atom-based cutoff), <b>:</b> (residue-based), 
   <b>/</b> (chain-based), or <b>#</b> (atomic-model-based)
+<!-- chain-based means promoted to all atoms with that chain ID -->
   <li>an inequality symbol: 
     <b>&lt;</b> (less than; for zones, also includes equal to)
     or <b>&gt;</b> (greater than)
@@ -925,12 +930,21 @@ formally positive nitrogens
 </blockquote>
 - cysteine sulfur atoms not participating in a disulfide bond
 <blockquote>
-<b>:phe,tyr &amp; (sidechain | @ca)</b>
+<b>:phe,tyr &amp; <a href="#builtin">sidechain</a></b>
 </blockquote>
-- sidechain and CA atoms of phenylalanine and tyrosine
+- phenylalanine and tyrosine sidechains (including CA)
+<blockquote>
+<b><a href="#builtin">sidechain</a> & ligand :<4</b>
+</blockquote>
+- sidechains (including peptide CA and nucleic acid ribose) 
+of residues with any atom within 4 &Aring; of <a href="#surfcats">ligand</a>
+<blockquote>
+<b><a href="#builtin">sideonly</a> & ligand @<4</b>
+</blockquote>
+- sidechain atoms within 4 &Aring; of <a href="#surfcats">ligand</a>
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2017</address>
+October 2017</address>
 </body></html> 
