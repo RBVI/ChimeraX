@@ -17,10 +17,10 @@ from .acceptor_geom import acc_syn_anti, acc_phi_psi, acc_theta_tau, acc_generic
 from .donor_geom import don_theta_tau, don_upsilon_tau, don_generic, don_water
 from .common_geom import ConnectivityError, AtomTypeError
 from chimerax.chem_group import find_group
-from chimerax.core.geometry import AdaptiveTree, distance_squared
+from chimerax.core.geometry import distance_squared
 from .hydpos import hyd_positions
 from chimerax.core.atomic.idatm import type_info, tetrahedral, planar, linear, single
-from chimerax.core.atomic import Element
+from chimerax.core.atomic import Element, atom_search_tree
 from chimerax.core.errors import UserError
 import copy
 
@@ -485,16 +485,18 @@ def find_hbonds(session, structures, *, inter_model=True, intra_model=True, dono
                     if structure not in _a_cache:
                         _a_cache[structure] = {}
                     _a_cache[structure][(dist_slop, angle_slop)] = cache
-            xyz = []
+            #xyz = []
             has_sulfur[structure] = False
             for acc_atom in acc_atoms:
-                c = acc_atom._hb_coord
-                xyz.append([c[0], c[1], c[2]])
+                #c = acc_atom._hb_coord
+                #xyz.append([c[0], c[1], c[2]])
                 if acc_atom.element == Element.get_element('S'):
                     has_sulfur[structure] = True
             session.logger.status("Building search tree of acceptor atoms", blank_after=0)
-            acc_trees[structure] = AdaptiveTree(xyz, acc_data, 3.0)
-        
+            #acc_trees[structure] = AdaptiveTree(xyz, acc_data, 3.0)
+            acc_trees[structure] = atom_search_tree(acc_atoms, data=acc_data, sep_val=3.0,
+                scene_coords=(Atom._hb_coord == Atom.scene_coord))
+
         if process_key not in processed_donor_params:
             # find max donor distances before they get squared..
 
@@ -568,7 +570,7 @@ def find_hbonds(session, structures, *, inter_model=True, intra_model=True, dono
                         td = test_dist + SULFUR_COMP
                     else:
                         td = test_dist
-                    accs = acc_trees[acc_structure].search_tree([coord[0], coord[1], coord[2]], td)
+                    accs = acc_trees[acc_structure].search_tree(coord, td)
                     if verbose:
                         session.logger.info("Found %d possible acceptors for donor %s:"
                             % (len(accs), donor_atom))

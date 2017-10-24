@@ -12,7 +12,7 @@
 from .molobject import Atom, Bond, Chain, Element, Pseudobond, Residue, Sequence, StructureSeq, \
 	add_to_object_map, PseudobondManager, ChangeTracker
 from .molobject import SeqMatchMap, estimate_assoc_params, try_assoc, StructAssocError
-# pbgroup must preced molarray since molarray uses interatom_pseudobonds in global scope
+# pbgroup must precede molarray since molarray uses interatom_pseudobonds in global scope
 from .pbgroup import PseudobondGroup, all_pseudobond_groups, interatom_pseudobonds, selected_pseudobonds
 from .molarray import Atoms, AtomicStructures, Bonds, Chains, Pseudobonds, Residues, concatenate
 from .structure import AtomicStructure, Structure, LevelOfDetail
@@ -26,3 +26,4 @@ from .pdbmatrices import biological_unit_matrices
 from .triggers import get_triggers
 from .mmcif import open_mmcif
 from .pdb import open_pdb
+from .search import atom_search_tree
