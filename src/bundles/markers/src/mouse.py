@@ -189,18 +189,15 @@ class MarkerMouseMode(MouseMode):
 
     def delete_marker_or_link(self, event):
         x,y = event.position()
-        from chimerax.core.ui.mousemodes import picked_object, select_pick
-        pick = picked_object(x, y, self.session.main_view)
-        from chimerax.core.atomic import PickedAtom, PickedBond
-        if isinstance(pick, PickedAtom):
-            a = pick.atom
-            if a.structure.num_atoms == 1:
+        m, l = self.picked_marker_or_link(event)
+        if m:
+            if m.structure.num_atoms == 1:
                 # TODO: Leaving an empty structure causes errors
-                self.session.models.close([a.structure])
+                self.session.models.close([m.structure])
             else:
-                a.delete()
-        elif isinstance(pick, PickedBond):
-            pick.bond.delete()
+                m.delete()
+        elif l:
+            l.delete()
 
     def mouse_up(self, event):
         self._moving_marker = None
