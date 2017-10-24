@@ -25,7 +25,7 @@ def complete_terminal_carboxylate(session, cter):
         oxt = add_atom("OXT", Element.get_element("O"), cter, loc, bonded_to=c)
         session.logger.info("Missing OXT added to C-terminal residue %s" % str(cter))
 
-def determine_terminii(session, structs):
+def determine_termini(session, structs):
     real_N = []
     real_C = []
     fake_N = []
@@ -36,22 +36,22 @@ def determine_terminii(session, structs):
         for chain in s.chains:
             if chain.from_seqres:
                 sr_res.update(chain.residues)
-                rn, rc, fn, fc = terminii_from_seqres(chain)
-                logger.info("Terminii for %s determined from SEQRES records" % chain.full_name)
+                rn, rc, fn, fc = termini_from_seqres(chain)
+                logger.info("Termini for %s determined from SEQRES records" % chain.full_name)
             else:
-                rn, rc, fn, fc = guess_terminii(chain)
+                rn, rc, fn, fc = guess_termini(chain)
                 if chain.fromSeqres == None:
                     logger.info("No SEQRES records for %s;" % chain.full_name, add_newline=False)
                 else:
                     logger.info("SEQRES records don't match %s;" % chain.full_name,
                         add_newline=False)
-                replyobj.info(" guessing terminii instead")
+                replyobj.info(" guessing termini instead")
             real_N.extend(rn)
             real_C.extend(rc)
             fake_N.extend(fn)
             fake_C.extend(fc)
         if sr_res:
-            # Look for peptide terminii not in SEQRES records
+            # Look for peptide termini not in SEQRES records
             from chimerax.core.atomic import Sequence
             protein3to1 = Sequence.protein3to1
             for r in s.residues:
@@ -64,16 +64,16 @@ def determine_terminii(session, structs):
                 n = r.find_atom("N")
                 c = r.find_atom("C")
                 if ca and o and n and c:
-                    for atom_name, terminii in [('N', real_N), ('C', real_C)]:
+                    for atom_name, termini in [('N', real_N), ('C', real_C)]:
                         for nb in r.find_atom(atom_name).neighbors:
                             if nb.residue != r:
                                 break
                         else:
-                            terminii.append(r)
+                            termini.append(r)
 
     return real_N, real_C, fake_N, fake_C
 
-def terminii_from_seqres(chain):
+def termini_from_seqres(chain):
     real_N = []
     real_C = []
     fake_N = []
@@ -94,7 +94,7 @@ def terminii_from_seqres(chain):
         last = res
     return real_N, real_C, fake_N, fake_C
 
-def guess_terminii(seq):
+def guess_termini(seq):
     real_N = []
     real_C = []
     fake_N = []
