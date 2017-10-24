@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .util import complete_terminal_carboxylate, determine_terminii, determine_naming_schemas
+from .util import complete_terminal_carboxylate, determine_termini, determine_naming_schemas
 from chimerax.core.atomic import Element
 from chimerax.core.atomic.struct_edit import add_atom
 from chimerax.core.atomic.colors import element_colors
@@ -367,24 +367,24 @@ def _prep_add(session, structures, unknowns_info, need_all=False, **prot_schemes
     idatm_type = {} # need this later; don't want a recomp
     hydrogen_totals= {}
 
-    # add missing OXTs of "real" C terminii;
-    # delete hydrogens of "fake" N terminii after protonation
+    # add missing OXTs of "real" C termini;
+    # delete hydrogens of "fake" N termini after protonation
     # and add a single "HN" back on, using same dihedral as preceding residue;
-    # delete extra hydrogen of "fake" C terminii after protonation
+    # delete extra hydrogen of "fake" C termini after protonation
     logger = session.logger
-    real_N, real_C, fake_N, fake_C = determine_terminii(session, structures)
+    real_N, real_C, fake_N, fake_C = determine_termini(session, structures)
     logger.info("Chain-initial residues that are actual N"
-        " terminii: %s" % ", ".join([str(r) for r in real_N]))
+        " termini: %s" % ", ".join([str(r) for r in real_N]))
     logger.info("Chain-initial residues that are not actual N"
-        " terminii: %s" % ", ".join([str(r) for r in fake_N]))
+        " termini: %s" % ", ".join([str(r) for r in fake_N]))
     logger.info("Chain-final residues that are actual C"
-        " terminii: %s" % ", ".join([str(r) for r in real_C]))
+        " termini: %s" % ", ".join([str(r) for r in real_C]))
     logger.info("Chain-final residues that are not actual C"
-        " terminii: %s" % ", ".join([str(r) for r in fake_C]))
+        " termini: %s" % ", ".join([str(r) for r in fake_C]))
     for rc in real_C:
         complete_terminal_carboxylate(session, rc)
 
-    # ensure that N terminii are protonated as N3+ (since Npl will fail)
+    # ensure that N termini are protonated as N3+ (since Npl will fail)
     for nter in real_N+fake_N:
         n = nter.find_atom("N")
         if not n:

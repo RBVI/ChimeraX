@@ -3,7 +3,7 @@
 from chimerax.core.commands import CmdDesc
 
 
-def hello(session):
+def hello_world(session):
     # All command functions are invoked with ``session`` as its
     # first argument.  Useful session attributes include:
     #   logger: chimerax.core.logger.Logger instance
@@ -11,5 +11,5 @@ def hello(session):
     session.logger.info("Hello world!")
 
 # CmdDesc contains the command description.  For the
-# "hello_world" command, we expect no arguments.
-hello_desc = CmdDesc()
+# "hello" command, we expect no arguments.
+hello_world_desc = CmdDesc()

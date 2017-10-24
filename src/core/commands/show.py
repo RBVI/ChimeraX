@@ -57,8 +57,9 @@ def what_objects(target, what, objects):
     if len(what_to_show) == 0:
         if objects.atoms:
             what_to_show.add('atoms')
-        if objects.bonds:
-            what_to_show.add('bonds')
+        # don't implicitly add bonds; they will hide/show as 
+        # their endpoint atoms hide/show, and then other code
+        # only has to deal with hiding/showing atoms and not bonds
         if objects.pseudobonds:
             what_to_show.add('pseudobonds')
         if len(what_to_show) == 0:
