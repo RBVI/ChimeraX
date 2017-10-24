@@ -12,7 +12,6 @@
 # === UCSF ChimeraX Copyright ===
 
 import numpy
-from chimerax.core import generic3d
 from chimerax.core.graphics import Drawing, Pick
 
 
@@ -29,7 +28,7 @@ class _Shape:
         self.atoms = atoms
 
 
-class _ShapePick(Pick):
+class PickedShape(Pick):
 
     def __init__(self, distance, shape, drawing):
         super().__init__(distance)
@@ -72,12 +71,41 @@ class _ShapePick(Pick):
         if mode == 'add':
             drawing._add_selected_shape(self.shape)
         elif mode == 'subtract':
-            drawing._remove_selected_shapes(self.shape)
+            drawing._remove_selected_shape(self.shape)
         elif mode == 'toggle':
             if self.shape in drawing._selected_shapes:
                 drawing._remove_selected_shape(self.shape)
             else:
                 drawing._add_selected_shape(self.shape)
+
+
+class PickedShapes:
+
+    def __init__(self, shapes, drawing):
+        Pick.__init__(self)
+        self.shapes = shapes
+        self._drawing = drawing
+
+    def description(self):
+        return '%d shapes' % len(self.shapes)
+
+    def select(self, mode = 'add'):
+        drawing = self._drawing
+        if mode == 'add':
+            drawing._add_selected_shapes(self.shapes)
+        elif mode == 'subtract':
+            drawing._remove_selected_shapes(self.shapes)
+        elif mode == 'toggle':
+            adding, removing = [], []
+            for s in self.shapes:
+                if s in drawing._selected_shapes:
+                    removing.append(s)
+                else:
+                    adding.append(s)
+            if removing:
+                drawing._remove_selected_shapes(removing)
+            if adding:
+                drawing._add_selected_shapes(adding)
 
 
 class ShapeDrawing(Drawing):
@@ -96,8 +124,8 @@ class ShapeDrawing(Drawing):
         self._shapes.clear()
         super().delete()
 
-    def first_intercept(self, mxyz1, mxyz2, exclude=None):
-        pick = super().first_intercept(mxyz1, mxyz2, exclude)
+    def _first_intercept_excluding_children(self, mxyz1, mxyz2):
+        pick = super()._first_intercept_excluding_children(mxyz1, mxyz2)
         if pick is None:
             return None
         try:
@@ -106,9 +134,28 @@ class ShapeDrawing(Drawing):
             return pick
         for s in self._shapes:
             if tn in s.triangle_range:
-                pick = _ShapePick(pick.distance, s, self)
+                pick = PickedShape(pick.distance, s, self)
                 break
         return pick
+
+    def planes_pick(self, planes, exclude=None):
+        if not self.display:
+            return []
+        if exclude is not None and exclude(self):
+            return []
+
+        picks = []
+        all_picks = super().planes_pick(planes, exclude)
+        from chimerax.core.graphics import TrianglesPick
+        for p in all_picks:
+            if not isinstance(p, TrianglesPick) or p.drawing() is not self:
+                picks.append(p)
+                continue
+            tmask = p._triangles_mask
+            shapes = [s for s in self._shapes if tmask[s.triangle_range].sum() > 0]
+            if shapes:
+                picks.append(PickedShapes(shapes, self))
+        return picks
 
     def selected_items(self, itype):
         if itype in ('atoms', 'bonds'):
@@ -124,6 +171,10 @@ class ShapeDrawing(Drawing):
         elif itype == 'shapes':
             return list(self._selected_shapes)
         return []
+
+    def clear_selection(self, include_children=True):
+        self._selected_shapes.clear()
+        super().clear_selection(include_children=include_children)
 
     def update_selection(self):
         # called by Structure._update_if_needed when atom selection has changed
@@ -146,10 +197,28 @@ class ShapeDrawing(Drawing):
         tmask[shape.triangle_range] = True
         self.selected_triangles_mask = tmask
 
+    def _add_selected_shapes(self, shapes):
+        self._selected_shapes.update(shapes)
+        tmask = self.selected_triangles_mask
+        if tmask is None:
+            tmask = numpy.zeros(len(self.triangles), bool)
+        for s in shapes:
+            tmask[s.triangle_range] = True
+        self.selected_triangles_mask = tmask
+
     def _remove_selected_shape(self, shape):
         self._selected_shapes.remove(shape)
         tmask = self.selected_triangles_mask
+        if tmask is None:
+            return
         tmask[shape.triangle_range] = False
+        self.selected_triangles_mask = tmask
+
+    def _remove_selected_shapes(self, shapes):
+        self._selected_shapes.difference_update(shapes)
+        tmask = self.selected_triangles_mask
+        for s in shapes:
+            tmask[s.triangle_range] = False
         self.selected_triangles_mask = tmask
 
     def _add_handler_if_needed(self):
@@ -191,7 +260,3 @@ class ShapeDrawing(Drawing):
         self.vertex_colors = concat((self.vertex_colors, colors))
         s = _Shape(range(start, self.triangles.shape[0]), balloon_text, atoms)
         self._shapes.append(s)
-
-
-class ShapeModel(ShapeDrawing, generic3d.Generic3DModel):
-    pass

@@ -624,6 +624,7 @@ Structure::new_atom(const char* name, const Element& e)
     add_atom(a);
     if (e.number() == 1)
         ++_num_hyds;
+    _idatm_valid = false;
     return a;
 }
 

@@ -27,7 +27,7 @@ from chimerax.core.errors import UserError
 import numpy
 from chimerax.core.geometry import identity, translation, rotation, scale, distance, z_align, normalize_vectors
 from chimerax.core import surface
-from .shapemodel import ShapeModel
+from .drawing import ShapeDrawing
 
 
 def _interp(t, a, b):
@@ -66,7 +66,10 @@ def _is_int(i):
 class _BildFile:
 
     def __init__(self, session, filename):
-        self.model = ShapeModel(filename, session)
+        from chimerax.core import generic3d
+        self.model = generic3d.Generic3DModel(filename, session)
+        self.drawing = ShapeDrawing('shapes')
+        self.model.add_drawing(self.drawing)
         self.session = session
         # parse input
         self.warned = set()
@@ -150,7 +153,7 @@ class _BildFile:
                            xform=self.transforms[-1])
         from numpy import concatenate as concat
         t += len(vertices)
-        self.model.add_shape(
+        self.drawing.add_shape(
             concat((vertices, v)), concat((normals, n)), concat((triangles, t)),
             _cvt_color(self.cur_color), self.cur_atoms, balloon_text)
         self.num_objects += 1
@@ -172,7 +175,7 @@ class _BildFile:
         self.num_boxes += 1
         balloon_text = 'box %d' % self.num_boxes
         vertices, normals, triangles = get_box(llb, urf, self.transforms[-1])
-        self.model.add_shape(
+        self.drawing.add_shape(
             vertices, normals, triangles,
             _cvt_color(self.cur_color), self.cur_atoms, balloon_text)
         self.num_objects += 1
@@ -213,7 +216,7 @@ class _BildFile:
         balloon_text = 'cone %d' % self.num_cones
         vertices, normals, triangles = get_cone(
             radius, p0, p1, bottom=bottom, xform=self.transforms[-1])
-        self.model.add_shape(
+        self.drawing.add_shape(
             vertices, normals, triangles,
             _cvt_color(self.cur_color), self.cur_atoms, balloon_text)
         self.num_objects += 1
@@ -234,7 +237,7 @@ class _BildFile:
         balloon_text = 'cylinder %d' % self.num_cylinders
         vertices, normals, triangles = get_cylinder(
             radius, p0, p1, closed=closed, xform=self.transforms[-1])
-        self.model.add_shape(
+        self.drawing.add_shape(
             vertices, normals, triangles,
             _cvt_color(self.cur_color), self.cur_atoms, balloon_text)
         self.num_objects += 1
@@ -256,7 +259,7 @@ class _BildFile:
         balloon_text = 'cylinder %d' % self.num_cylinders
         vertices, normals, triangles = get_dashed_cylinder(
             count, radius, p0, p1, closed=closed, xform=self.transforms[-1])
-        self.model.add_shape(
+        self.drawing.add_shape(
             vertices, normals, triangles,
             _cvt_color(self.cur_color), self.cur_atoms, balloon_text)
         self.num_objects += 1
@@ -307,7 +310,7 @@ class _BildFile:
         balloon_text = 'sphere %d' % self.num_spheres
         vertices, normals, triangles = get_sphere(
             radius, center, self.transforms[-1])
-        self.model.add_shape(
+        self.drawing.add_shape(
             vertices, normals, triangles,
             _cvt_color(self.cur_color), self.cur_atoms, balloon_text)
         self.num_objects += 1

@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .util import complete_terminal_carboxylate, determine_terminii, determine_naming_schemas
+from .util import complete_terminal_carboxylate, determine_termini, determine_naming_schemas
 from chimerax.core.atomic import Element
 from chimerax.core.atomic.struct_edit import add_atom
 from chimerax.core.atomic.colors import element_colors
@@ -58,6 +58,10 @@ def cmd_addh(session, structures=None, hbond=True, in_isolation=True, use_his_na
         for structure in structures:
             structure.alt_loc_change_notify = True
     atoms = struct_collection.atoms
+    # If side chains are displayed, then the CA is _not_ hidden, so we
+    # need to let the ribbon code update the hide bits so that the CA's
+    # hydrogen gets hidden...
+    atoms.update_ribbon_visibility()
     session.logger.info("%s hydrogens added" %
         (len(atoms.filter(atoms.elements.numbers == 1)) - num_pre_hs))
 #TODO: hbond_add_hydrogens
@@ -195,7 +199,7 @@ def post_add(session, fake_n, fake_c):
             continue
         for nb in c.neighbors:
             if nb.element.number == 1:
-                session.logger.info("Removing spurious proton from 'C' of %s" % str(fc))
+                session.logger.info("%s is not terminus, removing H atom from 'C'" % str(fc))
                 nb.structure.delete_atom(nb)
         # the N proton may have been named 'HN'; fix that
         hn = fc.find_atom("HN")
@@ -363,24 +367,24 @@ def _prep_add(session, structures, unknowns_info, need_all=False, **prot_schemes
     idatm_type = {} # need this later; don't want a recomp
     hydrogen_totals= {}
 
-    # add missing OXTs of "real" C terminii;
-    # delete hydrogens of "fake" N terminii after protonation
+    # add missing OXTs of "real" C termini;
+    # delete hydrogens of "fake" N termini after protonation
     # and add a single "HN" back on, using same dihedral as preceding residue;
-    # delete extra hydrogen of "fake" C terminii after protonation
+    # delete extra hydrogen of "fake" C termini after protonation
     logger = session.logger
-    real_N, real_C, fake_N, fake_C = determine_terminii(session, structures)
+    real_N, real_C, fake_N, fake_C = determine_termini(session, structures)
     logger.info("Chain-initial residues that are actual N"
-        " terminii: %s" % ", ".join([str(r) for r in real_N]))
+        " termini: %s" % ", ".join([str(r) for r in real_N]))
     logger.info("Chain-initial residues that are not actual N"
-        " terminii: %s" % ", ".join([str(r) for r in fake_N]))
+        " termini: %s" % ", ".join([str(r) for r in fake_N]))
     logger.info("Chain-final residues that are actual C"
-        " terminii: %s" % ", ".join([str(r) for r in real_C]))
+        " termini: %s" % ", ".join([str(r) for r in real_C]))
     logger.info("Chain-final residues that are not actual C"
-        " terminii: %s" % ", ".join([str(r) for r in fake_C]))
+        " termini: %s" % ", ".join([str(r) for r in fake_C]))
     for rc in real_C:
         complete_terminal_carboxylate(session, rc)
 
-    # ensure that N terminii are protonated as N3+ (since Npl will fail)
+    # ensure that N termini are protonated as N3+ (since Npl will fail)
     for nter in real_N+fake_N:
         n = nter.find_atom("N")
         if not n:
@@ -428,7 +432,7 @@ def _prep_add(session, structures, unknowns_info, need_all=False, **prot_schemes
                 type_info_for_atom[atom] = unknowns_info[atom]
                 atoms.append(atom)
                 continue
-            logger.info("Unknown hydridization for atom (%s) of residue type %s" %
+            logger.info("Unknown hybridization for atom (%s) of residue type %s" %
                     (atom.name, atom.residue.name))
         naming_schemas.update(determine_naming_schemas(struct, type_info_for_atom))
 

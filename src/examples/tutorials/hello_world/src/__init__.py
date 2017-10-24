@@ -28,14 +28,17 @@ class _MyAPI(BundleAPI):
         # synopsis from bundle_info.xml if none is supplied
         # by the code.
         from . import cmd
-        desc = cmd.hello_desc
+        desc = cmd.hello_world_desc
         if desc.synopsis is None:
             desc.synopsis = ci.synopsis
 
         # We then register the function as the command callback
         # with the chimerax.core.commands module.
+        # Note that the command name registered is not hardwired,
+        # but actually comes from bundle_info.xml.  In this example,
+        # the command name is "hello", not "hello world".
         from chimerax.core.commands import register
-        register(ci.name, desc, cmd.hello)
+        register(ci.name, desc, cmd.hello_world)
 
 
 # Create the ``bundle_api`` object that ChimeraX expects.

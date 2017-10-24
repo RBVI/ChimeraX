@@ -3155,7 +3155,7 @@ extern "C" EXPORT void* sseq_residue_at(void *sseq_ptr, size_t i)
 {
     StructureSeq *sseq = static_cast<StructureSeq*>(sseq_ptr);
     try {
-        return sseq->residues()[i];
+        return sseq->residues().at(i);
     } catch (...) {
         molc_error();
         return nullptr;

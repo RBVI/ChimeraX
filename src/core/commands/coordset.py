@@ -30,13 +30,14 @@ def coordset(session, structures, index_range, hold_steady = None,
   ----------
   structures : list of Structure
     List of structures to show as assemblies.
-  index_range : 3-tuple with integer or None elements
+  index_range : 3-tuple with integer or None elements, or just None
     Starting, ending and step coordinate set ids.  If starting id is None start with
     the currently shown coordinate set.  If ending id is None treat it as the last
     coordset.  If step id is None use step 1 if start < end else step -1.  Otherwise
     coordinate set is changed from start to end incrementing by step with one step
     taken per graphics frame.  Negative start / end ids are relative to the (one past)
     the last coordinate set, so -1 refers to the last coordinate set.
+	If index_range is just None, then treated as 1,None,None.
   hold_steady : Atoms
     Collection of atoms to hold steady while changing coordinate set.
     The atomic structure is repositioned to minimize change in RMSD of these atoms.
@@ -55,6 +56,8 @@ def coordset(session, structures, index_range, hold_steady = None,
     from ..errors import UserError
     raise UserError('No structures specified')
 
+  if index_range is None:
+  	index_range = (1,None,None)
   for m in structures:
     s,e,step = absolute_index_range(index_range, m)
     hold = hold_steady.intersect(m.atoms) if hold_steady else None
@@ -95,10 +98,10 @@ def coordset_slider(session, structures, hold_steady = None,
 # -----------------------------------------------------------------------------
 #
 def register_command(session):
-    from . import CmdDesc, register, StructuresArg, ListOf, IntArg, AtomsArg, BoolArg
+    from . import CmdDesc, register, StructuresArg, ListOf, IntArg, AtomsArg, BoolArg, Or, EmptyArg
     desc = CmdDesc(
         required = [('structures', StructuresArg),
-                    ('index_range', IndexRangeArg)],
+                    ('index_range', Or(IndexRangeArg,EmptyArg))],
         keyword = [('hold_steady', AtomsArg),
                    ('pause_frames', IntArg),
                    ('loop', IntArg),

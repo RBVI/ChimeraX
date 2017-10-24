@@ -130,9 +130,7 @@ The first data field must be the string ``ChimeraX``.
 The second field specifies the type of functionality supplied,
 in this case, a command.
 For command classifiers, the third field is the name of the
-command, in this case, ``hello``.  (Commands may be a single
-word or multiple words.  The latter is useful for grouping
-multiple commands by sharing the same first word.)
+command, in this case, ``hello``.
 The fourth field for command classifiers is its category,
 in this case, ``General``.  (The category for a command is
 reserved for future use but does not currently affect ChimeraX
@@ -140,6 +138,15 @@ behavior.)
 The final data field for command classifiers is a synopsis
 of what the command does, and is shown as help text in the
 ChimeraX interface.
+
+Commands may be a single word or multiple words.
+The latter is useful for grouping multiple commands by
+sharing the same first word.  ChimeraX also automatically
+support unambiguous prefixes as abbreviations.  For example,
+the user can use ``hel`` as an abbreviation for ``hello``
+if no other command begins with ``hel``; however, ``h``
+is not an abbreviation because the ``hide`` command also
+starts with ``h``.
 
 All bundle functionality must be listed in in ChimeraX
 classifiers in order for ChimeraX to integrate them into
@@ -236,13 +243,14 @@ to :py:func:`chimerax.core.commands.register`, whose arguments are:
 - ``function`` - a Python function to process the command.
 
 In this example, the command name comes from the command information
-instance, ``ci.name``.  The argument description comes from another
-package module, ``cmd.hello_desc``, possibly augmented with help text
-from ``ci.synopsis``, and the command-processing function also comes
-from the same module, ``cmd.hello``.  The arguments that ``cmd.hello``
-will be called with are determined by the attributes of
-``cmd.hello_desc`` and is described below in the description
-for file ``cmd.py``.
+instance, ``ci.name``.  Both the argument description and the Python
+function are defined in another package module: ``cmd.py``.
+The argument description comes from ``cmd.hello_world_desc``, possibly
+augmented with help text from ``ci.synopsis``.  The command-processing
+function also comes from the same module, ``cmd.hello_world``.
+The arguments that ``cmd.hello_world`` will be called with are
+determined by the attributes of ``cmd.hello_world_desc`` and is
+described below.
 
 Note that ``register_command`` and other ``BundleAPI`` methods are static
 methods and are not associated with the ``bundle_api`` instance.
@@ -258,7 +266,36 @@ other data.  If necessary, the methods can, of course, refer to
     :language: python
     :linenos:
 
-To implement the ``hello`` command, we need two components:
+To implement the ``hello`` command, two components are needed:
 a function that prints ``Hello world!`` to the ChimeraX log,
 and a description to register so that ChimeraX knows how to
-call the function.
+parse the typed command text and call the function with the
+appropriate arguments.
+In this simple example, ``hello_world`` is the name of the function
+and ``hello_world_desc`` is the description for the command.
+(Note that the function and description names need not match
+the command name.)
+
+``hello_world_desc``, the command description, is an
+instance of `chimerax.core.commands.CmdDesc`.  No
+arguments are passed to the constructor, meaning the
+user should not type anything after the command name.
+If additional text is entered after the command, ChimeraX will flag
+that as an error and display an error message without invoking
+the ``hello_world`` function.
+
+If the command is entered correctly, ChimeraX calls the
+``hello_world`` function with a single argument, ``session``,
+which provides access to session data such as the open models
+and current selection.  For this example, ``hello_world`` uses
+the session logger, an instance of `chimerax.core.logger.Logger`,
+to display the informational message "Hello world!"  The message
+is displayed in the log window when the ChimeraX graphical
+interface is displayed; otherwise, it is printed to the console.
+
+Later tutorials will discuss how to use the command description
+to inform ChimeraX how to convert input text to Python values
+and map them to arguments when calling the command-processing
+function.
+
+.. include:: build_test_distribute.rst
