@@ -12,14 +12,16 @@ def read_cmm(session, path):
 # -----------------------------------------------------------------------------
 #
 def write_cmm(session, path, models = None):
+    from .markers import MarkerSet
     if models is None:
-        from .markers import MarkerSet
-        models = session.models.list(type = MarkerSet)
+        mlist = session.models.list(type = MarkerSet)
+    else:
+        mlist = [m for m in models if isinstance(m, MarkerSet)]
     f = open(path, 'w')
-    f.write(markersets_as_xml(models))
+    f.write(markersets_as_xml(mlist))
     f.close()
-    mc = sum([m.num_atoms for m in models], 0)
-    session.logger.info('Wrote %d marker sets containing %d markers' % (len(models), mc))
+    mc = sum([m.num_atoms for m in mlist], 0)
+    session.logger.info('Wrote %d marker sets containing %d markers' % (len(mlist), mc))
     
 # ---------------------------------------------------------------------------
 #
