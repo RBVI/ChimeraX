@@ -78,6 +78,9 @@ class Slider(ToolInstance):
     def hide(self):
         self.tool_window.shown = False
 
+    def set_slider(self, position):
+        self.slider.setValue(position)
+        
     def value_changed_cb(self, event):
         v = self.value_box.value()
         self.slider.setValue(v)

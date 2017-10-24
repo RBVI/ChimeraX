@@ -16,7 +16,7 @@ class MarkerSet(Structure):
 
     def __init__(self, session, name = 'markers'):
         from chimerax.core.atomic import Structure
-        Structure.__init__(self, session, name = 'markers', auto_style = False)
+        Structure.__init__(self, session, name = name, auto_style = False)
         self.ball_scale = 1.0
 
     def create_marker(self, xyz, rgba, radius, id):
