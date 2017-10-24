@@ -2033,7 +2033,7 @@ class ChangeTracker:
             for ptr in modded.pointers:
                 f(self._c_pointer, class_num, ptr, reason.encode('utf-8'))
         else:
-            f(self._c_pointer, self._class_to_int(modded.__class__), modded._c_pointer,
+            f(self._c_pointer, self._inst_to_int(modded), modded._c_pointer,
                 reason.encode('utf-8'))
     @property
     def changed(self):
@@ -2070,6 +2070,8 @@ class ChangeTracker:
 
     def _class_to_int(self, klass):
         # has to tightly coordinate wih change_track_add_modified
+        #
+        # used with Collections, so can use exact equality test
         if klass.__name__ == "Atom":
             return 0
         if klass.__name__ == "Bond":
@@ -2088,7 +2090,29 @@ class ChangeTracker:
             return 6
         if klass.__name__ == "CoordSet":
             return 7
-        raise AssertionError("Unknown class for change tracking")
+        raise AssertionError("Unknown class for change tracking: %s" % klass.__name__)
+
+    def _inst_to_int(self, inst):
+        # has to tightly coordinate wih change_track_add_modified
+        #
+        # used with instances, so may be a derived subclass
+        if isinstance(inst, Atom):
+            return 0
+        if isinstance(inst, Bond):
+            return 1
+        if isinstance(inst, Pseudobond):
+            return 2
+        if isinstance(inst, Residue):
+            return 3
+        if isinstance(inst, Chain):
+            return 4
+        if isinstance(inst, StructureData):
+            return 5
+        if isinstance(inst, PseudobondGroupData):
+            return 6
+        if isinstance(inst, CoordSet):
+            return 7
+        raise AssertionError("Unknown class for change tracking: %s" % inst.__class__.__name__)
 
 # -----------------------------------------------------------------------------
 #
