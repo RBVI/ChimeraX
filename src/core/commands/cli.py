@@ -2279,31 +2279,26 @@ class Command:
                 else:
                     required = 'required "%s"' % _user_kw(kw_name)
                 self._error = 'Missing %s positional argument' % required
-            m = _whitespace.match(text)
-            start = m.end()
-            if start:
-                self.amount_parsed += start
-                text = text[start:]
-            if text and text[0] == ';':
-                text = ''
-            if kw_name in self._ci._optional:
-                # check if next token matches a keyword and if so,
-                # terminate positional arguments
-                if not text:
-                    return last_anno, None
-                _, tmp, _ = next_token(text, no_raise=True)
-                if not tmp:
-                    return last_anno, None
-                if tmp[0].isalpha():
-                    tmp = _user_kw(tmp).casefold()
-                    if any(kw.casefold().startswith(tmp) for kw in self._ci._keyword_map):
-                        return last_anno, None
+            text = self._skip_white_space(text)
+            if kw_name in self._ci._optional and self._start_of_keywords(text):
+                return last_anno, None
             try:
                 value, text = self._parse_arg(anno, text, session, False)
                 kwn = '%s_' % kw_name if is_python_keyword(kw_name) else kw_name
                 self._kw_args[kwn] = value
                 self._error = ""
                 last_anno = anno
+                if hasattr(anno, 'allow_repeat') and anno.allow_repeat:
+                    self._kw_args[kwn] = values = [value]
+                    while True:
+                        text = self._skip_white_space(text)
+                        if self._start_of_keywords(text):
+                            return last_anno, None
+                        try:
+                            value, text = self._parse_arg(anno, text, session, False)
+                        except:
+                            break
+                        values.append(value)
             except ValueError as err:
                 if isinstance(err, AnnotationError) and err.offset:
                     # We got an error with an offset, that means that an
@@ -2326,6 +2321,29 @@ class Command:
                 # optional and wrong type, try as keyword
                 return last_anno, anno
         return last_anno, None
+
+    def _skip_white_space(self, text):
+        m = _whitespace.match(text)
+        start = m.end()
+        if start:
+            self.amount_parsed += start
+            text = text[start:]
+        if text and text[0] == ';':
+            text = ''
+        return text
+
+    def _start_of_keywords(self, text):
+        # check if next token matches a keyword
+        if not text:
+            return True
+        _, tmp, _ = next_token(text, no_raise=True)
+        if not tmp:
+            return True
+        if tmp[0].isalpha():
+            tmp = _user_kw(tmp).casefold()
+            if any(kw.casefold().startswith(tmp) for kw in self._ci._keyword_map):
+                return True
+        return False
 
     def _process_keyword_arguments(self, final, prev_annos):
         # side effects:
