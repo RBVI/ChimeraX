@@ -1684,7 +1684,7 @@ class Structure(Model, StructureData):
 
     def _bonds_planes_pick(self, planes):
         pmask = _bonds_planes_pick(self._bonds_drawing, planes)
-        if pmask.sum() == 0:
+        if pmask is None or pmask.sum() == 0:
             return []
         bonds = self._visible_bonds.filter(pmask)
         p = PickedBonds(bonds)
@@ -2558,7 +2558,7 @@ def _bond_intercept(bonds, mxyz1, mxyz2):
 #
 def _bonds_planes_pick(drawing, planes):
     if drawing is None or not drawing.display:
-        return []
+        return None
 
     hb_xyz = drawing.positions.array()[:,:,3]	# Half-bond centers
     n = len(hb_xyz)//2

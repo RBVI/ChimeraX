@@ -227,7 +227,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
     def _pseudobonds_planes_pick(self, planes):
         from .structure import _bonds_planes_pick, PickedPseudobonds
         pmask = _bonds_planes_pick(self._pbond_drawing, planes)
-        if pmask.sum() == 0:
+        if pmask is None or pmask.sum() == 0:
             return []
         bonds = self._visible_pbonds.filter(pmask)
         p = PickedPseudobonds(bonds)
