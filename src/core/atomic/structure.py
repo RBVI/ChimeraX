@@ -15,6 +15,7 @@ from .. import toolshed
 from ..models import Model
 from ..state import State
 from .molobject import StructureData
+from ..graphics import Drawing, Pick, PickedTriangles
 
 CATEGORY = toolshed.STRUCTURE
 
@@ -48,11 +49,7 @@ class Structure(Model, StructureData):
 
         # for now, restore attrs to default initial values even for sessions...
         self._atoms_drawing = None
-        self._visible_atoms = None	# Only visible atoms included in Drawing
         self._bonds_drawing = None
-        self._visible_bonds = None	# Only visible bonds included in Drawing
-        self._cached_atom_bounds = None
-        self._atom_bounds_needs_update = True
         self._ribbon_drawing = None
         self._ribbon_t2r = {}         # ribbon triangles-to-residue map
         self._ribbon_r2t = {}         # ribbon residue-to-triangles map
@@ -301,7 +298,7 @@ class Structure(Model, StructureData):
 
     def new_atoms(self):
         # TODO: Handle instead with a C++ notification that atoms added or deleted
-        self._atom_bounds_needs_update = True
+        pass
 
     def _update_graphics_if_needed(self, *_):
         gc = self._graphics_changed
@@ -321,8 +318,6 @@ class Structure(Model, StructureData):
         self._update_graphics(gc)
         self.redraw_needed(shape_changed = s,
                            selection_changed = (gc & self._SELECT_CHANGE))
-        if s:
-            self._atom_bounds_needs_update = True
 
         if gc & self._SELECT_CHANGE:
             # Update selection in child drawings (e.g., surfaces)
@@ -344,8 +339,8 @@ class Structure(Model, StructureData):
         p = self._atoms_drawing
         if p is None:
             changes = self._ALL_CHANGE
-            self._atoms_drawing = p = self.new_drawing('atoms')
-            self._atoms_drawing.custom_x3d = self._custom_atom_x3d
+            self._atoms_drawing = p = AtomsDrawing('atoms')
+            self.add_drawing(p)
             # Update level of detail of spheres
             self._level_of_detail.set_atom_sphere_geometry(p)
 
@@ -354,9 +349,9 @@ class Structure(Model, StructureData):
 
         if changes & self._DISPLAY_CHANGE:
             all_atoms = self.atoms
-            self._visible_atoms = all_atoms[all_atoms.visibles]
+            p.visible_atoms = all_atoms[all_atoms.visibles]
 
-        atoms = self._visible_atoms
+        atoms = p.visible_atoms
         
         if changes & self._SHAPE_CHANGE:
             # Set instanced sphere center position and radius
@@ -377,22 +372,6 @@ class Structure(Model, StructureData):
             # Set selected
             p.selected_positions = atoms.selected if atoms.num_selected > 0 else None
 
-    def _custom_atom_x3d(self, stream, x3d_scene, indent, place):
-        from numpy import empty, float32
-        p = self._atoms_drawing
-        atoms = self._visible_atoms
-        if atoms is None:
-            return
-        radii = self._atom_display_radii(atoms)
-        tab = ' ' * indent
-        for xyz, r, c in zip(atoms.coords, radii, p.colors):
-            print('%s<Transform translation="%g %g %g">' % (tab, xyz[0], xyz[1], xyz[2]), file=stream)
-            print('%s <Shape>' % tab, file=stream)
-            self.reuse_appearance(stream, x3d_scene, indent + 2, c)
-            print('%s  <Sphere radius="%g"/>' % (tab, r), file=stream)
-            print('%s </Shape>' % tab, file=stream)
-            print('%s</Transform>' % tab, file=stream)
-
     def _atom_display_radii(self, atoms):
         return atoms.display_radii(self.ball_scale, self.bond_radius)
     
@@ -403,8 +382,9 @@ class Structure(Model, StructureData):
             if self.num_bonds_visible == 0:
                 return
             changes = self._ALL_CHANGE
-            self._bonds_drawing = p = self.new_drawing('bonds')
-            self._bonds_drawing.custom_x3d = self._custom_bond_x3d
+            self._bonds_drawing = p = BondsDrawing('bonds', PickedBond, PickedBonds)
+            self.add_drawing(p)
+            p.skip_bounds = True
             # Update level of detail of cylinders
             self._level_of_detail.set_bond_cylinder_geometry(p)
 
@@ -413,9 +393,9 @@ class Structure(Model, StructureData):
 
         if changes & self._DISPLAY_CHANGE:
             all_bonds = self.bonds
-            self._visible_bonds = all_bonds[all_bonds.showns]
+            p.visible_bonds = all_bonds[all_bonds.showns]
 
-        bonds = self._visible_bonds
+        bonds = p.visible_bonds
 
         if changes & self._SHAPE_CHANGE:
             p.positions = bonds.halfbond_cylinder_placements(p.positions.opengl_matrices())
@@ -425,27 +405,6 @@ class Structure(Model, StructureData):
             
         if changes & self._SELECT_CHANGE:
             p.selected_positions = _selected_bond_cylinders(bonds)
-
-    def _custom_bond_x3d(self, stream, x3d_scene, indent, place):
-        from numpy import empty, float32
-        p = self._bonds_drawing
-        bonds = self._visible_bonds
-        if bonds is None:
-            return
-        ba1, ba2 = bonds.atoms
-        cyl_info = _halfbond_cylinder_x3d(ba1.coords, ba2.coords, bonds.radii)
-        tab = ' ' * indent
-        for ci, c in zip(cyl_info, p.colors):
-            h = ci[0]
-            r = ci[1]
-            rot = ci[2:6]
-            xyz = ci[6:9]
-            print('%s<Transform translation="%g %g %g" rotation="%g %g %g %g">' % (tab, xyz[0], xyz[1], xyz[2], rot[0], rot[1], rot[2], rot[3]), file=stream)
-            print('%s <Shape>' % tab, file=stream)
-            self.reuse_appearance(stream, x3d_scene, indent + 2, c)
-            print('%s  <Cylinder height="%g" radius="%g" bottom="false" top="false"/>' % (tab, h, r), file=stream)
-            print('%s </Shape>' % tab, file=stream)
-            print('%s</Transform>' % tab, file=stream)
 
     def _update_level_of_detail(self, total_atoms):
         lod = self._level_of_detail
@@ -466,7 +425,8 @@ class Structure(Model, StructureData):
 
     def _create_ribbon_graphics(self):
         if self._ribbon_drawing is None:
-            self._ribbon_drawing = p = self.new_drawing('ribbon')
+            self._ribbon_drawing = p = RibbonsDrawing('ribbon')
+            self.add_drawing(p)
             p.display = True
         else:
             p = self._ribbon_drawing
@@ -511,7 +471,8 @@ class Structure(Model, StructureData):
             if not any_display:
                 continue
             residues = atoms.residues
-            rp = p.new_drawing(self.name + " " + str(residues[0]) + " ribbons")
+            rp = RibbonsDrawing(self.name + " " + str(residues[0]) + " ribbons")
+            p.add_drawing(rp)
             t2r = []
             # Always update all atom visibility so that undisplaying ribbon
             # will bring back previously hidden backbone atoms
@@ -873,6 +834,7 @@ class Structure(Model, StructureData):
             m = residues[0].structure
             if m.ribbon_tether_scale > 0 and any(tethered):
                 tp = p.new_drawing(str(self) + " ribbon_tethers")
+                tp.skip_bounds = True
                 nc = m.ribbon_tether_sides
                 from .. import surface
                 if m.ribbon_tether_shape == self.TETHER_CYLINDER:
@@ -1516,40 +1478,13 @@ class Structure(Model, StructureData):
                 tp.colors = colors
 
     def bounds(self, positions = True):
-        # TODO: Cache bounds
         self._update_graphics_if_needed()       # Ribbon bound computed from graphics
-        ab = self._atom_bounds()
-        rb = self._ribbon_bounds()
-        sb = tuple(s.bounds() for s in self.surfaces())
-        from ..geometry import bounds
-        b = bounds.union_bounds((ab, rb) + sb)
-        if positions:
-            b = bounds.copies_bounding_box(b, self.positions)
+        import sys, time
+        start = time.time()
+        b = super().bounds(positions=positions)
+        stop = time.time()
+        print('structure bounds time:', (stop - start) * 1e6, file=sys.__stderr__)
         return b
-
-    def _atom_bounds(self):
-        if not self._atom_bounds_needs_update:
-            return self._cached_atom_bounds
-        a = self.atoms
-        adisp = a[a.displays]
-        xyz = adisp.coords
-        radii = adisp.radii
-        # TODO: Currently 40% of time is taken in getting atom radii because
-        #       they are recomputed from element and bonds every time. Ticket #789.
-        #       If that was fixed by using a precomputed radius, then it would make
-        #       sense to optimize this bounds calculation in C++ so arrays
-        #       of display state, radii and coordinates are not needed.
-        from .. import geometry
-        b = geometry.sphere_bounds(xyz, radii)
-        self._cached_atom_bounds = b
-        self._atom_bounds_needs_update = False
-        return b
-
-    def _ribbon_bounds(self):
-        rd = self._ribbon_drawing
-        if rd is None or not rd.display:
-            return None
-        return rd.bounds()
 
     def first_intercept(self, mxyz1, mxyz2, exclude=None):
         if not self.display or (exclude and exclude(self)):
@@ -1577,8 +1512,8 @@ class Structure(Model, StructureData):
     def _position_intercepts(self, place, mxyz1, mxyz2, exclude=None):
         # TODO: check intercept of bounding box as optimization
         xyz1, xyz2 = place.inverse() * (mxyz1, mxyz2)
-        pa = self._atom_first_intercept(xyz1, xyz2)
-        pb = self._bond_first_intercept(xyz1, xyz2)
+        pa = None if self._atoms_drawing is None else self._atoms_drawing.first_intercept(xyz1, xyz2)
+        pb = None if self._bonds_drawing is None else self._bonds_drawing.first_intercept(xyz1, xyz2)
         if pb and pa:
             a = pa.atom
             if a.draw_mode == a.STICK_STYLE and a in pb.bond.atoms:
@@ -1592,36 +1527,6 @@ class Structure(Model, StructureData):
         # TODO: for now, tethers pick nothing, but it should either pick
         #       the residue or the guide atom.
         return picks
-
-    def _atom_first_intercept(self, mxyz1, mxyz2):
-        d = self._atoms_drawing
-        if d is None or not d.display or self._visible_atoms is None:
-            return None
-
-        xyzr = d.positions.shift_and_scale_array()
-        xyz,r = xyzr[:,:3], xyzr[:,3]
-
-        # Check for atom sphere intercept
-        from .. import geometry
-        fmin, anum = geometry.closest_sphere_intercept(xyz, r, mxyz1, mxyz2)
-
-        if fmin is None:
-            return None
-
-        atom = self._visible_atoms[anum]
-
-        # Create pick object
-        s = PickedAtom(atom, fmin)
-
-        return s
-
-    def _bond_first_intercept(self, mxyz1, mxyz2):
-        d = self._bonds_drawing
-        if d and d.display:
-            b,f = _bond_intercept(self.bonds, mxyz1, mxyz2)
-            if b:
-                return PickedBond(b, f)
-        return None
 
     def _pseudobond_first_intercept(self, mxyz1, mxyz2):
         fc = bc = None
@@ -1669,7 +1574,7 @@ class Structure(Model, StructureData):
 
     def _atoms_planes_pick(self, planes):
         d = self._atoms_drawing
-        if d is None or not d.display or self._visible_atoms is None:
+        if d is None or not d.display or d.visible_atoms is None:
             return []
 
         xyz = d.positions.shift_and_scale_array()[:,:3]
@@ -1677,16 +1582,19 @@ class Structure(Model, StructureData):
         pmask = geometry.points_within_planes(xyz, planes)
         if pmask.sum() == 0:
             return []
-        atoms = self._visible_atoms.filter(pmask)
+        atoms = d.visible_atoms.filter(pmask)
         p = PickedAtoms(atoms)
 
         return [p]
 
     def _bonds_planes_pick(self, planes):
-        pmask = _bonds_planes_pick(self._bonds_drawing, planes)
+        d = self._bonds_drawing
+        if d is None or not d.display or d.visible_bonds is None:
+            return []
+        pmask = _bonds_planes_pick(d, planes)
         if pmask is None or pmask.sum() == 0:
             return []
-        bonds = self._visible_bonds.filter(pmask)
+        bonds = d.visible_bonds.filter(pmask)
         p = PickedBonds(bonds)
         return [p]
 
@@ -1695,9 +1603,8 @@ class Structure(Model, StructureData):
         for d, t2r in self._ribbon_t2r.items():
             if d.display:
                 rp = d.planes_pick(planes)
-                from ..graphics import TrianglesPick
                 for p in rp:
-                    if isinstance(p, TrianglesPick) and p.drawing() is d:
+                    if isinstance(p, PickedTriangles) and p.drawing() is d:
                         tmask = p._triangles_mask
                         res = [rtr.residue for rtr in t2r if tmask[rtr.start:rtr.end].sum() > 0]
                         if res:
@@ -1742,6 +1649,7 @@ class Structure(Model, StructureData):
         self.selected = False
         self.atoms.selected = False
         self.bonds.selected = False
+        super().clear_selection()
 
     def selection_promotion(self):
         atoms = self.atoms
@@ -2025,6 +1933,140 @@ class Structure(Model, StructureData):
                 expand_by = atoms.filter(not_a()).full_structures.atoms
         if expand_by:
             results.add_atoms(expand_by)
+
+class AtomsDrawing(Drawing):
+    # can't have any child drawings
+    # requires self.parent._atom_display_radii()
+
+    def __init__(self, name):
+        self.visible_atoms = None
+        super().__init__(name)
+
+    def bounds(self, positions=True):
+        if not positions:
+            return self._geometry_bounds()
+        cpb = self._cached_position_bounds
+        if cpb is not None:
+            return cpb
+        a = self.visible_atoms
+        adisp = a[a.displays]
+        xyz = adisp.coords
+        radii = self.parent._atom_display_radii(adisp)
+        # TODO: Currently 40% of time is taken in getting atom radii because
+        #       they are recomputed from element and bonds every time. Ticket #789.
+        #       If that was fixed by using a precomputed radius, then it would make
+        #       sense to optimize this bounds calculation in C++ so arrays
+        #       of display state, radii and coordinates are not needed.
+        from .. import geometry
+        b = geometry.sphere_bounds(xyz, radii)
+        self._cached_position_bounds = b
+        return b
+
+    def add_drawing(self, d):
+        raise NotImplemented("AtomsDrawing may not have children")
+
+    def first_intercept(self, mxyz1, mxyz2):
+        if not self.display or self.visible_atoms is None:
+            return None
+
+        xyzr = self.positions.shift_and_scale_array()
+        xyz,r = xyzr[:,:3], xyzr[:,3]
+
+        # Check for atom sphere intercept
+        from .. import geometry
+        fmin, anum = geometry.closest_sphere_intercept(xyz, r, mxyz1, mxyz2)
+
+        if fmin is None:
+            return None
+
+        atom = self.visible_atoms[anum]
+
+        # Create pick object
+        s = PickedAtom(atom, fmin)
+
+        return s
+
+    def custom_x3d(self, stream, x3d_scene, indent, place):
+        from numpy import empty, float32
+        atoms = self.visible_atoms
+        if atoms is None:
+            return
+        radii = self.parent._atom_display_radii(atoms)
+        tab = ' ' * indent
+        for xyz, r, c in zip(atoms.coords, radii, self.colors):
+            print('%s<Transform translation="%g %g %g">' % (tab, xyz[0], xyz[1], xyz[2]), file=stream)
+            print('%s <Shape>' % tab, file=stream)
+            self.reuse_appearance(stream, x3d_scene, indent + 2, c)
+            print('%s  <Sphere radius="%g"/>' % (tab, r), file=stream)
+            print('%s </Shape>' % tab, file=stream)
+            print('%s</Transform>' % tab, file=stream)
+
+class BondsDrawing(Drawing):
+    # Used for both bonds and pseudoonds
+    # can't have any child drawings
+
+    def __init__(self, name, pick_class, picks_class):
+        self.visible_bonds = None
+        self._pick_class = pick_class
+        self._picks_class = picks_class
+        super().__init__(name)
+
+    def bounds(self, positions=True):
+        if not positions:
+            return self._geometry_bounds()
+        cpb = self._cached_position_bounds
+        if cpb is not None:
+            return cpb
+        bonds = self.visible_bonds
+        if bonds is None:
+            return None
+        ba1, ba2 = bonds.atoms
+        c1, c2, r = ba1.coords, ba2.coords, bonds.radii
+        r.shape = (r.shape[0], 1)
+        from numpy import amin, amax
+        xyz_min = amin([amin(c1 - r, axis=0), amin(c2 - r, axis=0)], axis=0)
+        xyz_max = amax([amax(c1 + r, axis=0), amax(c2 + r, axis=0)], axis=0)
+        from .. import geometry
+        b = geometry.Bounds(xyz_min, xyz_max)
+        self._cached_position_bounds = b
+        return b
+
+    def add_drawing(self, d):
+        raise NotImplemented("BondsDrawing may not have children")
+
+    def first_intercept(self, mxyz1, mxyz2):
+        if self.display:
+            bonds = self.visible_bonds
+            b, f = _bond_intercept(bonds, mxyz1, mxyz2)
+            if b:
+                return self._pick_class(b, f)
+        return None
+
+    def custom_x3d(self, stream, x3d_scene, indent, place):
+        # TODO: handle dashed bonds
+        from numpy import empty, float32
+        bonds = self.visible_bonds
+        if bonds is None:
+            return
+        ba1, ba2 = bonds.atoms
+        cyl_info = _halfbond_cylinder_x3d(ba1.coords, ba2.coords, bonds.radii)
+        tab = ' ' * indent
+        for ci, c in zip(cyl_info, self.colors):
+            h = ci[0]
+            r = ci[1]
+            rot = ci[2:6]
+            xyz = ci[6:9]
+            print('%s<Transform translation="%g %g %g" rotation="%g %g %g %g">' % (tab, xyz[0], xyz[1], xyz[2], rot[0], rot[1], rot[2], rot[3]), file=stream)
+            print('%s <Shape>' % tab, file=stream)
+            self.reuse_appearance(stream, x3d_scene, indent + 2, c)
+            print('%s  <Cylinder height="%g" radius="%g" bottom="false" top="false"/>' % (tab, h, r), file=stream)
+            print('%s </Shape>' % tab, file=stream)
+            print('%s</Transform>' % tab, file=stream)
+
+class RibbonsDrawing(Drawing):
+
+    pass
+
 
 class AtomicStructure(Structure):
     """
@@ -2478,7 +2520,6 @@ class PromoteAtomSelection(SelectionPromotion):
 
 # -----------------------------------------------------------------------------
 #
-from ..graphics import Pick
 class PickedAtom(Pick):
     def __init__(self, atom, distance):
         Pick.__init__(self, distance)
@@ -2650,7 +2691,6 @@ class PickedPseudobonds(Pick):
 
 # -----------------------------------------------------------------------------
 #
-from ..graphics import Pick
 class PickedResidue(Pick):
     def __init__(self, residue, distance):
         Pick.__init__(self, distance)
