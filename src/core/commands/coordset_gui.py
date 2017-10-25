@@ -58,7 +58,7 @@ class CoordinateSetSlider(Slider):
     # Override ToolInstance method
     def delete(self):
         from .. import atomic
-        t = atomic.get_triggers(session)
+        t = atomic.get_triggers(self.session)
         t.remove_handler(self._coordset_change_handler)
         self._coordset_change_handler = None
 
