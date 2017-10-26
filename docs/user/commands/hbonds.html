@@ -26,7 +26,7 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="../index.html#commands">Command</a>: hbonds</h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>hbonds</b> 
-&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>&nbsp;
+&nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>&nbsp;
 [&nbsp;<b>saltOnly</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>restrict</b>&nbsp;&nbsp;cross&nbsp;|&nbsp;both&nbsp;|&nbsp;any&nbsp;|&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>&nbsp;]
 [&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>colorname</i></a>&nbsp;]
@@ -52,6 +52,7 @@ The total number of H-bonds found is reported in the
 consistent with the criteria, even if they could not coexist simultaneously.
 Distances and other details can be <a href="#log">logged</a>
 and/or <a href="#saveFile">saved</a> to a file.
+See also: <a href="addh.html"><b>addh</b></a>
 </p><p>
 By <a href="#makePseudobonds">default</a>, 
 the H-bonds are shown as dashed <a href="../pseudobonds.html">pseudobonds</a>.
@@ -136,12 +137,7 @@ See also: <a href="style.html"><b>style</b></a>,
 [<a href="#top">back to top: hbonds</a>]
 </p>
 <h3>Command Options</h3>
-<p>
-Option keywords and Boolean (truth) values can be truncated, with
-synonyms for true: True, 1, and synonyms for false: False, 0.
-A vertical bar &ldquo;|&rdquo; designates mutually exclusive values, and
-default settings are indicated with <b>bold</b>.
-</p>
+
 <blockquote>
 <a name="saltOnly"></a>
 <b>saltOnly</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
@@ -282,7 +278,7 @@ The default is <b>true</b> for a <a href="../trajectories.html">trajectory</a>,
 otherwise <b>false</b>.
 </blockquote>
 <blockquote>
-<b>perCoordset</b> &nbsp;true&nbsp;|&nbsp;false
+<b>coordsets</b> &nbsp;true&nbsp;|&nbsp;false
 <br>Whether to calculate and retain H-bonds for each frame of a 
 <a href="../trajectories.html">trajectory</a>, instead of just the current frame.
 The default is <b>true</b> for a <a href="../trajectories.html">trajectory</a>
