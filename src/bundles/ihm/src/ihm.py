@@ -74,17 +74,22 @@ class IHMModel(Model):
         emmodels = em2d + em3d
         self.electron_microscopy_models = emmodels
 
-        # Make restraint model groupsy
+        # Make restraint model groups
         rmodels = xlmodels + emmodels
         if rmodels:
             r_group = Model('Restraints', self.session)
             r_group.add(rmodels)
             self.add([r_group])
 
-        # Sphere models, ensemble models, groups
-        smodels, emodels, gmodels = self.read_sphere_models(load_ensembles)
+        # Map model id to group id.
+        mgroup = self.model_id_to_group_id()
+        
+        # Sphere models, ensemble models, atomic models
+        smodels, emodels = self.make_sphere_models(mgroup, load_ensembles = load_ensembles)
         self.sphere_models = smodels
         self.ensemble_sphere_models = emodels
+        amodels = self.read_atomic_models(filename, mgroup)
+        self.atomic_models = amodels
 
         # Align 2DEM to projection position for first sphere model
         if smodels:
@@ -98,27 +103,22 @@ class IHMModel(Model):
         # Add crosslinks to sphere models
         if show_sphere_crosslinks:
             self.create_sphere_model_crosslinks(xlinks, smodels, emodels, xlmodels)
+            # TODO: Add crosslinks to result atomic models
+            if amodels and xlinks:
+                self.session.logger.warning('Crosslinks not yet shown for atomic models.')
         if show_atom_crosslinks:
             self.create_starting_model_crosslinks(xlinks, stmodels, xlmodels)
     
         # Align starting models to first sphere model
         if smodels:
+            # TODO: Align to first result model, could be spheres or atomic
             align_starting_models_to_spheres(stmodels, smodels[0])
     
         # Ensemble localization
         self.localization_models = lmaps = self.read_localization_maps()
-        for gm in gmodels:
-            gm.add([lmap for lmap in lmaps if lmap.group_id == gm.group_id])
 
-        # Create results model group
-        if gmodels:
-            if len(gmodels) == 1:
-                gmodels[0].name = 'Result sphere models'
-                self.add(gmodels)
-            else:
-                rs_group = Model('Result sphere models', self.session)
-                rs_group.add(gmodels)
-                self.add([rs_group])
+        # Put sphere, ensemble, atomic models and localization maps into parent group models.
+        self.group_result_models(smodels, emodels, amodels, lmaps, mgroup)
 
     def read_tables(self, filename):
         # Read ihm tables
@@ -139,6 +139,7 @@ class IHMModel(Model):
                        'ihm_2dem_class_average_fitting', # 2D EM orientation relative to model
                        'ihm_3dem_restraint',		# 3d electron microscopy
                        ]
+        from os.path import basename
         from chimerax.core.atomic import mmcif
         table_list = mmcif.get_mmcif_tables(filename, table_names)
         tables = dict(zip(table_names, table_list))
@@ -367,87 +368,52 @@ class IHMModel(Model):
 
     # -----------------------------------------------------------------------------
     #
-    def read_sphere_models(self, load_ensembles):
-        gmodels = self.make_sphere_model_groups()
-        for g in gmodels[1:]:
-            g.display = False	# Only show first group.
-        self.add(gmodels)
-
-        smodels, emodels = self.make_sphere_models(gmodels, load_ensembles = load_ensembles)
-        return smodels, emodels, gmodels
-
-    # -----------------------------------------------------------------------------
-    #
-    def make_sphere_model_groups(self):
-        mlt = self.tables['ihm_model_list']
-        ml_fields = [
-            'model_id',
-            'model_group_id',
-            'model_group_name',]
-        ml = mlt.fields(ml_fields)
-        gm = {}
-        for mid, gid, gname in ml:
-            gm.setdefault((gid, gname), []).append(mid)
-        models = []
-        for (gid, gname), mid_list in gm.items():
-            g = Model(gname, self.session)
-            g.group_id = gid
-            g.ihm_model_ids = mid_list
-            models.append(g)
-        models.sort(key = lambda g: g.group_id)
-        return models
-
-    # -----------------------------------------------------------------------------
-    #
-    def make_sphere_models(self, group_models, group_coordsets = True, load_ensembles = False):
+    def model_names(self):
         mlt = self.tables['ihm_model_list']
         ml_fields = ['model_id', 'model_name']
         ml = mlt.fields(ml_fields, allow_missing_fields = True)
         mnames = {mid:mname for mid,mname in ml if mname}
+        return mnames
+
+    # -----------------------------------------------------------------------------
+    #
+    def make_sphere_models(self, model_group, group_coordsets = True, load_ensembles = False):
+        mnames = self.model_names()
 
         sost = self.tables['ihm_sphere_obj_site']
-        sos_fields = [
-            'seq_id_begin',
-            'seq_id_end',
-            'asym_id',
-            'cartn_x',
-            'cartn_y',
-            'cartn_z',
-            'object_radius',
-            'model_id']
-        spheres = sost.fields(sos_fields)
-        mspheres = {}
-        for seq_beg, seq_end, asym_id, x, y, z, radius, model_id in spheres:
-            sb, se = int(seq_beg), int(seq_end)
-            xyz = float(x), float(y), float(z)
-            r = float(radius)
-            mspheres.setdefault(model_id, []).append((asym_id,sb,se,xyz,r))
-
-        # Model id groups
-        gmodel = {id:g for g in group_models for id in g.ihm_model_ids}
-        smodels = self.make_sphere_models_by_group(mspheres, mnames, gmodel, group_coordsets)
-
-        # Warn about groups with missing models.
-        smids = set(sum((sm.ihm_model_ids for sm in smodels), []))
-        for g in group_models:
-            missing = [mid for mid in g.ihm_model_ids if mid not in smids]
-            if missing:
-                msg = ('Missing sphere models (id %s) for group %s (id %s)'
-                       % (','.join('%s' % mid for mid in missing), g.name, g.group_id))
-                self.session.logger.info(msg)
+        if sost is None:
+            smodels = []
+        else:
+            sos_fields = [
+                'seq_id_begin',
+                'seq_id_end',
+                'asym_id',
+                'cartn_x',
+                'cartn_y',
+                'cartn_z',
+                'object_radius',
+                'model_id']
+            spheres = sost.fields(sos_fields)
+            mspheres = {}
+            for seq_beg, seq_end, asym_id, x, y, z, radius, model_id in spheres:
+                sb, se = int(seq_beg), int(seq_end)
+                xyz = float(x), float(y), float(z)
+                r = float(radius)
+                mspheres.setdefault(model_id, []).append((asym_id,sb,se,xyz,r))
+            smodels = self.make_sphere_models_by_group(mspheres, mnames, model_group, group_coordsets)
 
         # Open ensemble sphere models that are not included in ihm sphere obj table.
-        emodels = self.load_sphere_model_ensembles(smodels, gmodel) if load_ensembles else []
+        emodels = self.load_sphere_model_ensembles(smodels) if load_ensembles else []
 
         return smodels, emodels
 
     # -----------------------------------------------------------------------------
     #
-    def make_sphere_models_by_group(self, mspheres, mnames, gmodel, group_coordsets):
+    def make_sphere_models_by_group(self, mspheres, mnames, model_group, group_coordsets):
         # Find sphere models by group
         msg = {}
         for mid, slist in mspheres.items():
-            msg.setdefault(gmodel[mid],[]).append((mid,slist))
+            msg.setdefault(model_group[mid],[]).append((mid,slist))
 
         # Sort models in a group by model id.
         for ms in msg.values():
@@ -464,8 +430,7 @@ class IHMModel(Model):
                 # For groups with matching residue / atom names use coordinate set.
                 mid, slist = ms[0]
                 sm = SphereModel(self.session, mnames.get(mid, 'sphere model'), mid, slist)
-                sm.ihm_group_id = g.group_id
-                g.add([sm])
+                sm.ihm_group_id = g
                 for mid, slist in ms[1:]:
                     sm.add_coordinates(mid, slist)
                 smodels.append(sm)
@@ -475,10 +440,9 @@ class IHMModel(Model):
                 # Make separate sphere models, do not use coordinate sets.
                 for i, (mid, slist) in enumerate(ms):
                     sm = SphereModel(self.session, mnames.get(mid, 'sphere model'), mid, slist)
-                    sm.ihm_group_id = g.group_id
+                    sm.ihm_group_id = g
                     sm.display = (i == 0)            # Undisplay all but first sphere model in each group
                     smodels.append(sm)
-                    g.add([sm])
 
         return smodels
 
@@ -497,12 +461,13 @@ class IHMModel(Model):
         return True
     
     # -----------------------------------------------------------------------------
+    # Note ensemble models are AtomicStructure models, not SphereModel.
     #
-    def load_sphere_model_ensembles(self, smodels, gmodel):
+    def load_sphere_model_ensembles(self, smodels):
         eit = self.tables['ihm_ensemble_info']
         ei_fields = ['ensemble_name', 'model_group_id', 'ensemble_file_id']
         ei = eit.fields(ei_fields, allow_missing_fields = True)
-        from os.path import isfile, join
+        emodels = []
         for mname, gid, file_id in ei:
             finfo = self.file_info(file_id)
             if finfo is None:
@@ -525,13 +490,13 @@ class IHMModel(Model):
                 mlist,msg = open_pdb(self.session, fstream, mname,
                                      auto_style = False, coordsets = True)
                 sm = mlist[0]
+            sm.ihm_group_id = gid
             sm.display = False
             sm.name += ' %d models' % sm.num_coordsets
             sm.ss_assigned = True	# Don't assign secondary structure to sphere model
             atoms = sm.atoms
             from chimerax.core.atomic.colors import chain_colors
             atoms.colors = chain_colors(atoms.residues.chain_ids)
-            gmodel[gid].add([sm])
             emodels.append(sm)
 
         # Copy bead radii from best score model to ensemble models
@@ -541,7 +506,99 @@ class IHMModel(Model):
                 em.atoms.radii = r
 
         return emodels
-    
+
+    # -----------------------------------------------------------------------------
+    #
+    def read_atomic_models(self, path, mgroup):
+        from chimerax.core.atomic import open_mmcif
+        models, msg = open_mmcif(self.session, path)
+
+        # Assign IHM model ids.
+        if models:
+            mnames = self.model_names()
+        for i,m in enumerate(models):
+            # TODO: Need to read model id from the ihm_model_id field in atom_site table.
+            mid = str(i+1)
+            m.ihm_model_ids = [mid]
+            m.ihm_group_id = mgroup[mid]
+            if mid in mnames:
+                m.name = mnames[mid]
+        if models:
+            self.session.logger.warning('Warning: ihm_model_id in atom_site table currently ignored.  '
+                                        'Assuming ihm model ids in atom_site table are 1,2,3,...')
+        return models
+        
+    # -----------------------------------------------------------------------------
+    #
+    def group_result_models(self, smodels, emodels, amodels, lmaps, model_group):
+
+        group_models = self.make_model_groups()
+        group = {g.ihm_group_id:g for g in group_models}
+
+        # Add models to groups.
+        for m in smodels + emodels + amodels + lmaps:
+            group[m.ihm_group_id].add([m])
+
+        # Warn about groups with missing models.
+        smids = set(sum((m.ihm_model_ids for m in smodels+amodels), []))
+        for g in group_models:
+            missing = [mid for mid in g.ihm_model_ids if mid not in smids]
+            if missing:
+                msg = ('Missing sphere models (id %s) for group %s (id %s)'
+                       % (','.join('%s' % mid for mid in missing), g.name, g.ihm_group_id))
+                self.session.logger.info(msg)
+        
+        # Create results model group
+        if group_models:
+            if len(group_models) == 1:
+                group_models[0].name = 'Result models'
+                self.add(group_models)
+            else:
+                rs_group = Model('Result models', self.session)
+                rs_group.add(group_models)
+                self.add([rs_group])
+
+        return group_models
+
+    # -----------------------------------------------------------------------------
+    #
+    def model_id_to_group_id(self):
+        mlt = self.tables['ihm_model_list']
+        ml_fields = [
+            'model_id',
+            'model_group_id',]
+        ml = mlt.fields(ml_fields)
+        mgroup = {mid:gid for mid, gid in ml}
+        return mgroup
+
+    # -----------------------------------------------------------------------------
+    #
+    def make_model_groups(self):
+        mlt = self.tables['ihm_model_list']
+        ml_fields = [
+            'model_id',
+            'model_group_id',
+            'model_group_name',]
+        ml = mlt.fields(ml_fields)
+        gm = {}
+        for mid, gid, gname in ml:
+            gm.setdefault((gid, gname), []).append(mid)
+        gmodels = []
+        for (gid, gname), mid_list in gm.items():
+            g = Model(gname, self.session)
+            g.ihm_group_id = gid
+            g.ihm_model_ids = mid_list
+            gmodels.append(g)
+
+        gmodels.sort(key = lambda g: g.ihm_group_id)
+
+        for g in gmodels[1:]:
+            g.display = False	# Only show first group.
+            
+        self.add(gmodels)
+        
+        return gmodels
+        
     # -----------------------------------------------------------------------------
     #
     def read_crosslinks(self):
@@ -557,11 +614,12 @@ class IHMModel(Model):
             'restraint_type',
             'distance_threshold'
             ]
-        clrt_rows = clrt.fields(clrt_fields)
+        # restraint_type and distance_threshold can be missing
+        clrt_rows = clrt.fields(clrt_fields, allow_missing_fields = True)
         xlinks = {}
         for asym_id_1, seq_id_1, asym_id_2, seq_id_2, rtype, distance_threshold in clrt_rows:
-            xl = Crosslink(asym_id_1, int(seq_id_1), asym_id_2, int(seq_id_2),
-                           float(distance_threshold))
+            d = float(distance_threshold) if distance_threshold is not None else None
+            xl = Crosslink(asym_id_1, int(seq_id_1), asym_id_2, int(seq_id_2), d)
             xlinks.setdefault(rtype, []).append(xl)
 
         xlmodels = [CrossLinkModel(self.session, xltype, len(xllist))
@@ -684,9 +742,6 @@ class IHMModel(Model):
         lmaps = self.read_ensemble_localization_maps()
         if len(lmaps) == 0:
             lmaps = self.read_gaussian_localization_maps()
-        if lmaps:
-            for g in lmaps[1:]:
-                g.display = False	# Only show first ensemble
         return lmaps
 
     # -----------------------------------------------------------------------------
@@ -722,7 +777,7 @@ class IHMModel(Model):
             gid, n = ens_group[ensemble_id]
             name = 'Localization map ensemble %s' % ensemble_id
             m = Model(name, self.session)
-            m.group_id = gid
+            m.ihm_group_id = gid
             pmods.append(m)
             for asym_id, file_id in sorted(asym_loc):
                 finfo = self.file_info(file_id)
@@ -793,7 +848,7 @@ class IHMModel(Model):
             asym_gaussians = cov[ensemble_id]
             gid, n = ens_group[ensemble_id]
             m = Model('Localization map ensemble %s of %d models' % (ensemble_id, n), self.session)
-            m.group_id = gid
+            m.ihm_group_id = gid
             pmods.append(m)
             for asym_id in sorted(asym_gaussians.keys()):
                 g = probability_grid(asym_gaussians[asym_id])
@@ -822,6 +877,7 @@ class IHMModel(Model):
         nt = sum([len(sqm.template_models) for sqm in self.sequence_alignment_models], 0)
         nem = len(self.electron_microscopy_models)
         ns = len(self.sphere_models)
+        na = len(self.atomic_models)
         nse = len(self.ensemble_sphere_models)
         nl = sum([len(lm.child_models()) for lm in self.localization_models], 0)
         xldesc = ', '.join('%d %s crosslinks' % (len(xls),type)
@@ -830,8 +886,8 @@ class IHMModel(Model):
         msg = ('Opened IHM file %s\n'
                ' %d xray/nmr models, %d comparative models, %d sequence alignments, %d templates\n'
                ' %s, %d electron microscopy images\n'
-               ' %d sphere models, %d ensembles with %s models, %d localization maps' %
-               (self.filename, nx, nc, nsa, nt, xldesc, nem, ns, nse, esizes, nl))
+               ' %d atomic models, %d sphere models, %d ensembles with %s models, %d localization maps' %
+               (self.filename, nx, nc, nsa, nt, xldesc, nem, na, ns, nse, esizes, nl))
         return msg
 
 
@@ -1002,7 +1058,7 @@ class CrossLinkModel(Model):
     def __init__(self, session, crosslink_type, count):
         name = '%d %s crosslinks' % (count, crosslink_type)
         Model.__init__(self, name, session)
-        self.crosslink_type = crosslink_type
+        self.crosslink_type = crosslink_type if crosslink_type else ''
         self._pseudobond_groups = []
 
     def add_pseudobond_models(self, pbgs):
