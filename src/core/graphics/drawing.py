@@ -1138,7 +1138,7 @@ class Drawing:
         # x3d_scene.need(x3d.Components.Rendering, 5)  # ClipPlane
         x3d_scene.need(x3d.Components.Shape, 1)  # Appearance, Material, Shape
         # x3d_scene.need(x3d.Components.Shape, 2)  # LineProperties
-        x3d_scene.need(x3d.Components.Shape, 3)  # Shaders
+        # x3d_scene.need(x3d.Components.Shape, 3)  # FillProperties
         # x3d_scene.need(x3d.Components.Geometry3D, 1)  # Cylinder, Sphere
         # x3d_scene.need(x3d.Components.Geometry3D, 4)  # Extrusion
         if self.texture or self.multitexture:

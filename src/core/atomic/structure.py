@@ -1479,11 +1479,7 @@ class Structure(Model, StructureData):
 
     def bounds(self, positions = True):
         self._update_graphics_if_needed()       # Ribbon bound computed from graphics
-        import sys, time
-        start = time.time()
         b = super().bounds(positions=positions)
-        stop = time.time()
-        print('structure bounds time:', (stop - start) * 1e6, file=sys.__stderr__)
         return b
 
     def first_intercept(self, mxyz1, mxyz2, exclude=None):
@@ -1612,6 +1608,14 @@ class Structure(Model, StructureData):
                             rc = Residues(res)
                             picks.append(PickedResidues(rc))
         return picks
+
+    def x3d_needs(self, x3d_scene):
+        self._update_graphics_if_needed()       # Ribbon drawing lazily computed
+        super().x3d_needs(x3d_scene)
+
+    def write_x3d(self, *args, **kw):
+        self._update_graphics_if_needed()       # Ribbon drawing lazily computed
+        super().write_x3d(*args, **kw)
 
     def set_selected(self, sel):
         self.atoms.selected = sel
@@ -1948,9 +1952,13 @@ class AtomsDrawing(Drawing):
         cpb = self._cached_position_bounds
         if cpb is not None:
             return cpb
+        # TODO: use the next two lines instead of the following four for a 5% speedup
+        # should be okay to change since Structure.bounds does _update_graphics_if_needed first
+        # xyzr = self.positions.shift_and_scale_array()
+        # coords, radii = xyzr[:, :3], xyzr[:, 3]
         a = self.visible_atoms
         adisp = a[a.displays]
-        xyz = adisp.coords
+        coords = adisp.coords
         radii = self.parent._atom_display_radii(adisp)
         # TODO: Currently 40% of time is taken in getting atom radii because
         #       they are recomputed from element and bonds every time. Ticket #789.
@@ -1958,7 +1966,7 @@ class AtomsDrawing(Drawing):
         #       sense to optimize this bounds calculation in C++ so arrays
         #       of display state, radii and coordinates are not needed.
         from .. import geometry
-        b = geometry.sphere_bounds(xyz, radii)
+        b = geometry.sphere_bounds(coords, radii)
         self._cached_position_bounds = b
         return b
 
@@ -1970,12 +1978,11 @@ class AtomsDrawing(Drawing):
             return None
 
         xyzr = self.positions.shift_and_scale_array()
-        xyz,r = xyzr[:,:3], xyzr[:,3]
+        coords, radii = xyzr[:,:3], xyzr[:,3]
 
         # Check for atom sphere intercept
         from .. import geometry
-        fmin, anum = geometry.closest_sphere_intercept(xyz, r, mxyz1, mxyz2)
-
+        fmin, anum = geometry.closest_sphere_intercept(coords, radii, mxyz1, mxyz2)
         if fmin is None:
             return None
 
@@ -1983,17 +1990,22 @@ class AtomsDrawing(Drawing):
 
         # Create pick object
         s = PickedAtom(atom, fmin)
-
         return s
+
+    def x3d_needs(self, x3d_scene):
+        from .. import x3d
+        x3d_scene.need(x3d.Components.Grouping, 1)  # Group, Transform
+        x3d_scene.need(x3d.Components.Shape, 1)  # Appearance, Material, Shape
+        x3d_scene.need(x3d.Components.Geometry3D, 1)  # Sphere
 
     def custom_x3d(self, stream, x3d_scene, indent, place):
         from numpy import empty, float32
-        atoms = self.visible_atoms
-        if atoms is None:
+        if self.empty_drawing():
             return
-        radii = self.parent._atom_display_radii(atoms)
+        xyzr = self.positions.shift_and_scale_array()
+        coords, radii = xyzr[:, :3], xyzr[:, 3]
         tab = ' ' * indent
-        for xyz, r, c in zip(atoms.coords, radii, self.colors):
+        for xyz, r, c in zip(coords, radii, self.colors):
             print('%s<Transform translation="%g %g %g">' % (tab, xyz[0], xyz[1], xyz[2]), file=stream)
             print('%s <Shape>' % tab, file=stream)
             self.reuse_appearance(stream, x3d_scene, indent + 2, c)
@@ -2041,6 +2053,12 @@ class BondsDrawing(Drawing):
             if b:
                 return self._pick_class(b, f)
         return None
+
+    def x3d_needs(self, x3d_scene):
+        from .. import x3d
+        x3d_scene.need(x3d.Components.Grouping, 1)  # Group, Transform
+        x3d_scene.need(x3d.Components.Shape, 1)  # Appearance, Material, Shape
+        x3d_scene.need(x3d.Components.Geometry3D, 1)  # Cylinder
 
     def custom_x3d(self, stream, x3d_scene, indent, place):
         # TODO: handle dashed bonds
