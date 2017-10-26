@@ -102,10 +102,8 @@ class IHMModel(Model):
                         
         # Add crosslinks to sphere models
         if show_sphere_crosslinks:
-            self.create_sphere_model_crosslinks(xlinks, smodels, emodels, xlmodels)
-            # TODO: Add crosslinks to result atomic models
-            if amodels and xlinks:
-                self.session.logger.warning('Crosslinks not yet shown for atomic models.')
+            self.create_result_model_crosslinks(xlinks, smodels, emodels, amodels, xlmodels)
+            self.set_initial_sphere_display(smodels)
         if show_atom_crosslinks:
             self.create_starting_model_crosslinks(xlinks, stmodels, xlmodels)
     
@@ -518,6 +516,7 @@ class IHMModel(Model):
             mnames = self.model_names()
         for i,m in enumerate(models):
             # TODO: Need to read model id from the ihm_model_id field in atom_site table.
+            m.display = (i == 0)	# Show only first atomic model
             mid = str(i+1)
             m.ihm_model_ids = [mid]
             m.ihm_group_id = mgroup[mid]
@@ -609,17 +608,19 @@ class IHMModel(Model):
         clrt_fields = [
             'asym_id_1',
             'seq_id_1',
+            'atom_id_1',
             'asym_id_2',
             'seq_id_2',
+            'atom_id_2',
             'restraint_type',
             'distance_threshold'
             ]
         # restraint_type and distance_threshold can be missing
         clrt_rows = clrt.fields(clrt_fields, allow_missing_fields = True)
         xlinks = {}
-        for asym_id_1, seq_id_1, asym_id_2, seq_id_2, rtype, distance_threshold in clrt_rows:
+        for asym_id_1, seq_id_1, atom_id_1, asym_id_2, seq_id_2, atom_id_2, rtype, distance_threshold in clrt_rows:
             d = float(distance_threshold) if distance_threshold is not None else None
-            xl = Crosslink(asym_id_1, int(seq_id_1), asym_id_2, int(seq_id_2), d)
+            xl = Crosslink(asym_id_1, int(seq_id_1), atom_id_1, asym_id_2, int(seq_id_2), atom_id_2, d)
             xlinks.setdefault(rtype, []).append(xl)
 
         xlmodels = [CrossLinkModel(self.session, xltype, len(xllist))
@@ -629,22 +630,37 @@ class IHMModel(Model):
 
     # -----------------------------------------------------------------------------
     #
-    def create_sphere_model_crosslinks(self, xlinks, smodels, emodels, xlmodels):
+    def set_initial_sphere_display(self, smodels):
+        if len(smodels) == 0:
+            return
+
+        # Hide spheres of first model except multi-residue beads and pseudobond endpoints
+        # Other parts of structure are depicted using starting models.
+        # TODO: Don't hide spheres if there are no starting models.
+        smodel = smodels[0]
+    
+        # Show only multi-residue spheres and crosslink end-point spheres
+        satoms = smodel.atoms
+        satoms.displays = False
+        satoms.filter(satoms.residues.names != '1').displays = True
+
+        # Show pseudobond endpoints
+        from chimerax.core.atomic import PseudobondGroup
+        pbgs = [pbg for pbg in smodel.child_models() if isinstance(pbg, PseudobondGroup)]
+        for pbg in pbgs:
+            a1,a2 = pbg.pseudobonds.atoms
+            a1.displays = True
+            a2.displays = True
+
+    # -----------------------------------------------------------------------------
+    #
+    def create_result_model_crosslinks(self, xlinks, smodels, emodels, amodels, xlmodels):
         xpbgs = []
         # Create cross links for sphere models
-        for i,smodel in enumerate(smodels):
+        for smodel in smodels:
             pbgs = make_crosslink_pseudobonds(self.session, xlinks, smodel.residue_sphere,
                                               name = smodel.ihm_group_id,
                                               parent = smodel)
-            if i == 0:
-                # Show only multi-residue spheres and crosslink end-point spheres
-                satoms = smodel.atoms
-                satoms.displays = False
-                satoms.filter(satoms.residues.names != '1').displays = True
-                for pbg in pbgs:
-                    a1,a2 = pbg.pseudobonds.atoms
-                    a1.displays = True
-                    a2.displays = True
             xpbgs.extend(pbgs)
 
         if emodels and smodels:
@@ -654,6 +670,17 @@ class IHMModel(Model):
                                                   parent = emodel)
                 xpbgs.extend(pbgs)
 
+        for amodel in amodels:
+            # TODO: Ignoring atom specification in crosslink.  Uses principle atom.
+            pbgs = make_crosslink_pseudobonds(self.session, xlinks, atom_lookup([amodel]),
+                                              radius = 0.2, parent = amodel)
+            xpbgs.extend(pbgs)
+            
+        # TODO: Add crosslinks to result atomic models
+        if amodels and xlinks:
+            self.session.logger.warning('Crosslinks not yet shown for atomic models.')
+
+        # Allow hiding pseudobond groups for multiple result models.
         for xlm in xlmodels:
             pbgs = [pbg for pbg in xpbgs if pbg.crosslink_type == xlm.crosslink_type]
             xlm.add_pseudobond_models(pbgs)
@@ -1043,11 +1070,13 @@ class DatabaseDataSet(DataSet):
 # -----------------------------------------------------------------------------
 #
 class Crosslink:
-    def __init__(self, asym1, seq1, asym2, seq2, dist):
-        self.asym1 = asym1
-        self.seq1 = seq1
+    def __init__(self, asym1, seq1, atom1, asym2, seq2, atom2, dist):
+        self.asym1 = asym1	# Chain id
+        self.seq1 = seq1	# Residue number, integer
+        self.atom1 = atom1 	# Atom name, can be None
         self.asym2 = asym2
         self.seq2 = seq2
+        self.atom2 = atom2
         self.distance = dist
 
 # -----------------------------------------------------------------------------
@@ -1095,8 +1124,8 @@ def make_crosslink_pseudobonds(session, xlinks, atom_lookup,
         missing = []
         apairs = {}
         for xl in xlist:
-            a1 = atom_lookup(xl.asym1, xl.seq1)
-            a2 = atom_lookup(xl.asym2, xl.seq2)
+            a1 = atom_lookup(xl.asym1, xl.seq1, xl.atom1)
+            a2 = atom_lookup(xl.asym2, xl.seq2, xl.atom2)
             if (a1,a2) in apairs or (a2,a1) in apairs:
                 # Crosslink already created between multiresidue beads
                 continue
@@ -1443,17 +1472,19 @@ def align_starting_models_to_spheres(amodels, smodel):
 def atom_lookup(models):
     amap = {}
     for m in models:
-        res = m.residues
-        for res_num, atom in zip(res.numbers, res.principal_atoms):
-            amap[(m.asym_id, res_num)] = atom
-    def lookup(asym_id, res_num, amap=amap):
-        return amap.get((asym_id, res_num))
+        for a in m.atoms:
+            res = a.residue
+            amap[(res.chain_id, res.number, a.name)] = a
+        for r in m.residues:
+            amap[(res.chain_id, res.number, None)] = r.principal_atom
+    def lookup(asym_id, res_num, atom_name, amap=amap):
+        return amap.get((asym_id, res_num, atom_name))
     return lookup
     
 # -----------------------------------------------------------------------------
 #
 def ensemble_sphere_lookup(emodel, smodel):
-    def lookup(asym_id, res_num, atoms=emodel.atoms, smodel=smodel):
+    def lookup(asym_id, res_num, atom_name, atoms=emodel.atoms, smodel=smodel):
         a = smodel.residue_sphere(asym_id, res_num)
         return None if a is None else atoms[a.coord_index]
     return lookup
@@ -1497,7 +1528,7 @@ class SphereModel(Structure):
         m.positions = self.positions
         return m
     
-    def residue_sphere(self, asym_id, res_num):
+    def residue_sphere(self, asym_id, res_num, atom_name=None):
         return self._sphere_atom.get((asym_id,res_num))
 
     def add_coordinates(self, model_id, sphere_list):
