@@ -307,7 +307,7 @@ def _make_shared_data(session, protonation_models, in_isolation):
     # since adaptive search tree is static, it will not include
     # hydrogens added after this; they will have to be found by
     # looking off their heavy atoms
-    global search_tree, _radii, _metals, ident_pos_models, _h_coloring
+    global search_tree, _radii, _metals, ident_pos_models, _h_coloring, _solvent_atoms
     _radii = {}
     xyzs = []
     vals = []
@@ -349,10 +349,11 @@ def _make_shared_data(session, protonation_models, in_isolation):
     _metals = AdaptiveTree(metal_xyzs, metal_vals, _metal_dist)
     from weakref import WeakKeyDictionary
     _h_coloring = WeakKeyDictionary()
+    _solvent_atoms = WeakKeyDictionary()
 
 def _delete_shared_data():
-    global search_tree, _radii, _metals, ident_pos_models
-    search_tree = radii = _metals = ident_pos_models = None
+    global search_tree, _radii, _metals, ident_pos_model, _h_coloring
+    search_tree = radii = _metals = ident_pos_models = _h_coloring = None
 
 asp_prot_names, asp_res_names = ["OD1", "OD2"], ["ASP", "ASH"]
 glu_prot_names, glu_res_names = ["OE1", "OE2"], ["GLU", "GLH"]
@@ -752,28 +753,50 @@ def new_hydrogen(parent_atom, h_num, total_hydrogens, naming_schema, pos, parent
         parent_pos = parent_atom.coord
         if metal_clash(metal_pos, pos, parent_pos, parent_atom, parent_type_info):
             return
+    # determine added H color before actually adding it...
+    h_color = determine_h_color(parent_atom)
     new_h = add_atom(_h_name(parent_atom, h_num, total_hydrogens, naming_schema), "H",
         parent_atom.residue, pos, serial_number=_serial, bonded_to=parent_atom, alt_loc=alt_loc)
     _serial = new_h.serial_number + 1
-    new_h.color = determine_h_color(parent_atom)
+    new_h.color = h_color
     new_h.hide = parent_atom.hide
     import sys
     return new_h
 
 def determine_h_color(parent_atom):
-    global _h_coloring
+    global _h_coloring, _solvent_atoms
     res = parent_atom.residue
-    if res.name in res.water_res_names:
+    struct = parent_atom.structure
+    if struct not in _solvent_atoms:
+        from weakref import WeakSet
+        solvent_set = WeakSet()
+        struct_atoms = struct.atoms
+        solvent_set.update(
+            [a for a in struct_atoms.filter(struct_atoms.structure_categories == "solvent")])
+        _solvent_atoms[struct] = solvent_set
+    else:
+        solvent_set = _solvent_atoms[struct]
+    if res.name in res.water_res_names or parent_atom in solvent_set:
         return element_colors(1)
     if parent_atom.structure in _h_coloring:
         color_scheme = _h_coloring[parent_atom.structure]
     else:
-        parent_color = parent_atom.color
-        from numpy import allclose
-        if allclose(parent_color, element_colors(parent_atom.element.number)):
-            color_scheme = "element"
+        num_match_elements = 0
+        for a in parent_atom.structure.atoms:
+            if a.residue.name in res.water_res_names or struct in solvent_set:
+                continue
+            if a.element.name == "C":
+                continue
+            if (a.color == element_colors(a.element.number)).all():
+                num_match_elements += 1
+                if num_match_elements > 1:
+                    color_scheme = "element"
+                    break
+            else:
+                color_scheme = "parent"
+                break
         else:
-            color_scheme = "parent"
+            color_scheme = "element"
         _h_coloring[parent_atom.structure] = color_scheme
     return parent_atom.color if color_scheme == "parent" else element_colors(1)
 

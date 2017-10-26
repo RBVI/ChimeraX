@@ -281,7 +281,7 @@ StructurePBGroup::session_num_floats(int version) const {
 int
 CS_PBGroup::session_num_ints(int version) const {
     int num_ints = SESSION_NUM_INTS(version) + StructurePBGroupBase::session_num_ints(version)
-        + 2 * pseudobonds().size(); // that last is for references to coord sets and # pbonds
+        + 2 * _pbonds.size(); // that last is for references to coord sets and # pbonds
     for (auto crdset_pbs: _pbonds) {
         // the +2 in the next line is for the atom IDs
         num_ints += crdset_pbs.second.size() * (Pseudobond::session_num_ints(version) + 2);
