@@ -16,7 +16,7 @@ from chimerax.core.atomic import Element
 from chimerax.core.atomic.struct_edit import add_atom
 from chimerax.core.atomic.colors import element_colors
 
-def cmd_addh(session, structures=None, hbond=True, in_isolation=True, use_his_name=True,
+def cmd_addh(session, structures, hbond=True, in_isolation=True, use_his_name=True,
     use_glu_name=True, use_asp_name=True, use_lys_name=True, use_cys_name=True):
 
     if structures is None:
@@ -861,9 +861,10 @@ def _h_name(atom, h_num, total_hydrogens, naming_schema):
     return h_name
 
 def register_command(command_name, logger):
-    from chimerax.core.commands import CmdDesc, register, AtomicStructuresArg, BoolArg
+    from chimerax.core.commands import CmdDesc, register, AtomicStructuresArg, BoolArg, Or, EmptyArg
     desc = CmdDesc(
-        keyword = [('structures', AtomicStructuresArg), ('hbond', BoolArg),
+        required=[('structures', Or(AtomicStructuresArg,EmptyArg))],
+        keyword = [('hbond', BoolArg),
             ('in_isolation', BoolArg), ('use_his_name', BoolArg), ('use_glu_name', BoolArg),
             ('use_asp_name', BoolArg), ('use_lys_name', BoolArg), ('use_cys_name', BoolArg)],
         synopsis = 'Add hydrogens'
