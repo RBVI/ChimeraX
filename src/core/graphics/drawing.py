@@ -76,7 +76,8 @@ class Drawing:
         self._selected_triangles_mask = None  # bool numpy array
         self._child_drawings = []
 
-        self._cached_bounds = None
+        self._cached_geometry_bounds = None
+        self._cached_position_bounds = None
 
         # Geometry and colors
         self.vertices = None
@@ -188,9 +189,14 @@ class Drawing:
             self.redraw_needed()
         if key in self._effects_buffers:
             self._attribute_changes.add(key)
-            sc = key in ('vertices', 'triangles', '_triangle_mask', '_displayed_positions', '_positions')
+            sc = key in ('vertices', 'triangles', '_triangle_mask')
             if sc:
-                self._cached_bounds = None
+                self._cached_geometry_bounds = None
+                self._cached_position_bounds = None
+            else:
+                sc = key in ('_displayed_positions', '_positions')
+                if sc:
+                    self._cached_position_bounds = None
             self.redraw_needed(shape_changed=sc)
 
         super(Drawing, self).__setattr__(key, value)
@@ -376,7 +382,6 @@ class Drawing:
     def clear_selection(self, include_children=True):
         '''Unselect this drawing and child drawings in if include_children is True.'''
         self.selected = False
-        self.selected_triangles_mask = None
         self.redraw_needed(selection_changed=True)
         if include_children:
             for d in self.child_drawings():
@@ -775,17 +780,34 @@ class Drawing:
         The bounds of drawing and displayed children and displayed positions
         in the parent model coordinate system.
         '''
-        dbounds = [d.bounds() for d in self.child_drawings() if d.display]
-        if not self.empty_drawing():
-            dbounds.append(self._geometry_bounds())
-        if len(dbounds) == 1:
-            b = dbounds[0]
-        else:
+        dbounds = [d.bounds() for d in self.child_drawings() if d.display and not hasattr(d, 'skip_bounds')]
+        if dbounds and positions:
             from ..geometry import bounds
             b = bounds.union_bounds(dbounds)
-        if positions:
+            cb = bounds.copies_bounding_box(b, self.get_positions(displayed_only=True))
+        else:
+            cb = None
+        if self.empty_drawing():
+            return cb
+        if not positions:
+            b = self._geometry_bounds()
+            if dbounds:
+                dbounds.append(b)
+                from ..geometry import bounds
+                b = bounds.union_bounds(dbounds)
+            return b
+        if self._cached_position_bounds is not None:
+            pb = self._cached_position_bounds
+        else:
+            b = self._geometry_bounds()
             from ..geometry import bounds
-            b = bounds.copies_bounding_box(b, self.get_positions(displayed_only=True))
+            pb = bounds.copies_bounding_box(
+                    b, self.get_positions(displayed_only=True))
+            self._cached_position_bounds = pb
+        if cb is None:
+            return pb
+        from ..geometry import bounds
+        b = bounds.union_bounds([pb, cb])
         return b
 
     def _geometry_bounds(self):
@@ -793,7 +815,7 @@ class Drawing:
         Return the bounds of the drawing not including positions nor children
         in this drawing's coordinate system.
         '''
-        cb = self._cached_bounds
+        cb = self._cached_geometry_bounds
         if cb is not None:
             return cb
 
@@ -811,7 +833,7 @@ class Drawing:
         xyz_max = va.max(axis=0)
         from ..geometry.bounds import Bounds
         b = Bounds(xyz_min, xyz_max)
-        self._cached_bounds = b
+        self._cached_geometry_bounds = b
         return b
 
     def first_intercept(self, mxyz1, mxyz2, exclude=None):
@@ -873,14 +895,14 @@ class Drawing:
         if self.positions.is_identity():
             fmin, tmin = closest_triangle_intercept(va, ta, mxyz1, mxyz2)
             if fmin is not None:
-                p = TrianglePick(fmin, tmin, 0, self)
+                p = PickedTriangle(fmin, tmin, 0, self)
         else:
             pos_nums = self.bounds_intercept_copies(self._geometry_bounds(), mxyz1, mxyz2)
             for i in pos_nums:
                 cxyz1, cxyz2 = self.positions[i].inverse() * (mxyz1, mxyz2)
                 fmin, tmin = closest_triangle_intercept(va, ta, cxyz1, cxyz2)
                 if fmin is not None and (p is None or fmin < p.distance):
-                    p = TrianglePick(fmin, tmin, i, self)
+                    p = PickedTriangle(fmin, tmin, i, self)
         return p
 
     def bounds_intercept_copies(self, bounds, mxyz1, mxyz2):
@@ -940,7 +962,7 @@ class Drawing:
                             # Pick displayed positions only
                             from numpy import logical_and
                             logical_and(pmask, dp, pmask)
-                        picks.append(InstancePick(pmask, self))
+                        picks.append(PickedInstance(pmask, self))
             else:
                 # For non-instances pick using all vertices.
                 from ..geometry import transform_planes
@@ -955,7 +977,7 @@ class Drawing:
                     if tm is not None:
                         logical_and(tmask, tm, tmask)
                     if tmask.sum() > 0:
-                        picks.append(TrianglesPick(tmask, self))
+                        picks.append(PickedTriangles(tmask, self))
         from ..geometry import transform_planes
         for d in self.child_drawings():
             for p in self.positions:
@@ -1643,7 +1665,7 @@ class Pick:
         '''
         pass
 
-class TrianglePick(Pick):
+class PickedTriangle(Pick):
     '''
     A picked triangle of a drawing.
     '''
@@ -1715,7 +1737,7 @@ class TrianglePick(Pick):
                 return True
         return False
 
-class TrianglesPick(Pick):
+class PickedTriangles(Pick):
     '''
     Picked triangles of a drawing.
     '''
@@ -1750,7 +1772,7 @@ class TrianglesPick(Pick):
         d.selected = s
 
 
-class InstancePick(Pick):
+class PickedInstance(Pick):
     '''
     A picked triangle of a drawing.
     '''
