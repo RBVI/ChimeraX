@@ -696,6 +696,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         self.update_tools_menu(session)
 
         self.favorites_menu = mb.addMenu("Fa&vorites")
+        self.favorites_menu.setToolTipsVisible(True)
         self._make_settings_ui(session)
         self.update_favorites_menu(session)
 
@@ -720,19 +721,13 @@ class MainWindow(QMainWindow, PlainTextLog):
         help_menu.addAction(about_action)
 
     def update_favorites_menu(self, session):
-        from PyQt5.QtWidgets import QMenu, QAction
-        favorites_menu = QMenu("Fa&vorites")
-        favorites_menu.setToolTipsVisible(True)
-        favorites_menu.addSeparator()
+        from PyQt5.QtWidgets import QAction
+        self.favorites_menu.clear()
+        self.favorites_menu.addSeparator()
         settings = QAction("Settings...", self)
         settings.setToolTip("Show/set ChimeraX settings")
         settings.triggered.connect(lambda arg, self=self: self.settings_ui_widget.show())
-        favorites_menu.addAction(settings)
-        mb = self.menuBar()
-        old_action = self.favorites_menu.menuAction()
-        mb.insertMenu(old_action, favorites_menu)
-        mb.removeAction(old_action)
-        self.favorites_menu = favorites_menu
+        self.favorites_menu.addAction(settings)
 
     def update_tools_menu(self, session):
         self._checkbutton_tools = {}

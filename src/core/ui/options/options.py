@@ -170,6 +170,9 @@ class Option(metaclass=ABCMeta):
         # create (as self.widget) the widget to display the option value
         pass
 
+class ColorOption(Option):
+    """Option for colors"""
+
 
 class EnumOption(Option):
     """Option for enumerated values"""

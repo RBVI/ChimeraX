@@ -83,3 +83,20 @@ def color_to_numpy_rgba8(color):
 
 def hex_color_name(color):
     return "#%02x%02x%02x" % tuple(color_to_numpy_rgba8(color)[:3])
+
+class MultiColorButton(ColorButton):
+    """Like ColorButton, but can be used when multiple different colors are present.
+       Typically used in option panels when the objects involved have multiple different
+       colors for an attribute.
+    """
+
+    def set_color(self, color):
+        """Like ColorButton.set_color, but None means multiple colors"""
+        if color is None:
+            import os
+            this_dir, fname = os.path.split(__file__)
+            self.setStyleSheet("background-image: url(%s);" % os.path.join(this_dir, "multi.png"))
+            self.setText(">1")
+        else:
+            self.setText("")
+            ColorButton.set_color(self, color)
