@@ -125,7 +125,8 @@ class IHMModel(Model):
         table_names = ['ihm_struct_assembly',  		# Asym ids, entity ids, and entity names
                        'ihm_model_list',		# Model groups
                        'ihm_sphere_obj_site',		# Bead model for each cluster
-                       'ihm_cross_link_restraint',	# Crosslinks
+                       'ihm_cross_link_list',		# Crosslinks
+                       'ihm_cross_link_restraint',	# Crosslinks, handles ambiguous crosslinks
                        'ihm_predicted_contact_restraint', # Predicted contacts
                        'ihm_ensemble_info',		# Names of ensembles, e.g. cluster 1, 2, ...
                        'ihm_gaussian_obj_ensemble',	# Distribution of ensemble models
@@ -607,9 +608,18 @@ class IHMModel(Model):
     #
     def read_crosslinks(self):
         xlinks = {}
+        cllt = self.tables['ihm_cross_link_list']
+        if cllt:
+            cllt_fields = ['id', 'linker_type']
+            cllt_rows = cllt.fields(cllt_fields, allow_missing_fields = True)
+            cl_type = dict(cllt_rows)
+        else:
+            cl_type = {}
+        
         clrt = self.tables['ihm_cross_link_restraint']
         if clrt:
             clrt_fields = [
+                'group_id',
                 'asym_id_1',
                 'seq_id_1',
                 'atom_id_1',
@@ -621,10 +631,11 @@ class IHMModel(Model):
                 ]
             # restraint_type and distance_threshold can be missing
             clrt_rows = clrt.fields(clrt_fields, allow_missing_fields = True)
-            for asym_id_1, seq_id_1, atom_id_1, asym_id_2, seq_id_2, atom_id_2, rtype, distance_threshold in clrt_rows:
-                d = float(distance_threshold) if distance_threshold is not None else None
-                xl = Crosslink(asym_id_1, int(seq_id_1), atom_id_1, asym_id_2, int(seq_id_2), atom_id_2, d)
-                xlinks.setdefault(rtype, []).append(xl)
+            for g_id, asym_id_1, seq_id_1, atom_id_1, asym_id_2, seq_id_2, atom_id_2, rtype, dist in clrt_rows:
+                d, dlow = distance_thresholds(dist, dist, rtype)
+                xl = Crosslink(asym_id_1, int(seq_id_1), atom_id_1, asym_id_2, int(seq_id_2), atom_id_2, d, dlow)
+                ct = cl_type.get(g_id, '')
+                xlinks.setdefault(ct, []).append(xl)
 
         pc = self.read_predicted_contacts()
         if pc:
@@ -656,10 +667,7 @@ class IHMModel(Model):
         xlinks = []
         pcrt_rows = pcrt.fields(pcrt_fields, allow_missing_fields = True)
         for asym_id_1, seq_id_1, atom_id_1, asym_id_2, seq_id_2, atom_id_2, rtype, dlower, dupper in pcrt_rows:
-            upper = dupper is not None and rtype in ('upper bound', 'lower and upper bound')
-            d = float(dupper) if upper else None
-            lower = dlower is not None and rtype in ('lower bound', 'lower and upper bound')
-            dlow = float(dlower) if lower else None
+            d, dlow = distance_thresholds(dupper, dlower, rtype)
             xl = Crosslink(asym_id_1, int(seq_id_1), atom_id_1, asym_id_2, int(seq_id_2), atom_id_2, d, dlow)
             xlinks.append(xl)
 
@@ -1201,6 +1209,15 @@ def make_crosslink_pseudobonds(session, xlinks, atom_lookup,
             session.logger.info(msg)
                 
     return pbgs
+
+# -----------------------------------------------------------------------------
+#
+def distance_thresholds(dupper, dlower, restraint_type):
+    upper = dupper is not None and restraint_type in ('upper bound', 'lower and upper bound', 'harmonic')
+    d = float(dupper) if upper else None
+    lower = dlower is not None and restraint_type in ('lower bound', 'lower and upper bound', 'harmonic')
+    dlow = float(dlower) if lower else None
+    return d, dlow
 
 # -----------------------------------------------------------------------------
 #
