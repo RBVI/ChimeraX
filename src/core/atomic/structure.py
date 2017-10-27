@@ -286,9 +286,11 @@ class Structure(Model, StructureData):
         if shown:
             return most_common_color(shown.colors)
         return most_common_color(atoms.colors)
+
     def _set_single_color(self, color):
         self.atoms.colors = color
         self.residues.ribbon_colors = color
+
     single_color = property(_get_single_color, _set_single_color)
 
     def _get_spline_normals(self):
