@@ -148,7 +148,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
         d = self._pbond_drawing
         if d is None:
             from .structure import BondsDrawing, PickedPseudobond, PickedPseudobonds
-            d = self._bond_drawing = BondsDrawing(
+            d = self._pbond_drawing = BondsDrawing(
                 'pbonds', PickedPseudobond, PickedPseudobonds)
             self.add_drawing(d)
             d._visible_atoms = None
