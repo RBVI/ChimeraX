@@ -64,7 +64,7 @@ class IHMModel(Model):
         self.starting_models = stmodels
         self.sequence_alignment_models = seqmodels
 
-        # Crosslinks
+        # Crosslinks and predicted contacts
         xlinks, xlmodels = self.read_crosslinks()
         self.crosslink_models = xlinks
 
@@ -103,9 +103,11 @@ class IHMModel(Model):
         # Add crosslinks to sphere models
         if show_sphere_crosslinks:
             self.create_result_model_crosslinks(xlinks, smodels, emodels, amodels, xlmodels)
-            self.set_initial_sphere_display(smodels)
         if show_atom_crosslinks:
             self.create_starting_model_crosslinks(xlinks, stmodels, xlmodels)
+
+        # Show spheres and atoms that have crosslink restraints
+        self.set_initial_atom_display(smodels, amodels)
     
         # Align starting models to first sphere model
         if smodels:
@@ -124,6 +126,7 @@ class IHMModel(Model):
                        'ihm_model_list',		# Model groups
                        'ihm_sphere_obj_site',		# Bead model for each cluster
                        'ihm_cross_link_restraint',	# Crosslinks
+                       'ihm_predicted_contact_restraint', # Predicted contacts
                        'ihm_ensemble_info',		# Names of ensembles, e.g. cluster 1, 2, ...
                        'ihm_gaussian_obj_ensemble',	# Distribution of ensemble models
                        'ihm_localization_density_files', # Spatial distribution of ensemble models
@@ -509,7 +512,7 @@ class IHMModel(Model):
     #
     def read_atomic_models(self, path, mgroup):
         from chimerax.core.atomic import open_mmcif
-        models, msg = open_mmcif(self.session, path)
+        models, msg = open_mmcif(self.session, path, auto_style = False)
 
         # Assign IHM model ids.
         if models:
@@ -522,6 +525,8 @@ class IHMModel(Model):
             m.ihm_group_id = mgroup[mid]
             if mid in mnames:
                 m.name = mnames[mid]
+            m.apply_auto_styling(self.session)
+            
         if models:
             self.session.logger.warning('Warning: ihm_model_id in atom_site table currently ignored.  '
                                         'Assuming ihm model ids in atom_site table are 1,2,3,...')
@@ -601,28 +606,30 @@ class IHMModel(Model):
     # -----------------------------------------------------------------------------
     #
     def read_crosslinks(self):
-        clrt = self.tables['ihm_cross_link_restraint']
-        if clrt is None:
-            return [], []
-
-        clrt_fields = [
-            'asym_id_1',
-            'seq_id_1',
-            'atom_id_1',
-            'asym_id_2',
-            'seq_id_2',
-            'atom_id_2',
-            'restraint_type',
-            'distance_threshold'
-            ]
-        # restraint_type and distance_threshold can be missing
-        clrt_rows = clrt.fields(clrt_fields, allow_missing_fields = True)
         xlinks = {}
-        for asym_id_1, seq_id_1, atom_id_1, asym_id_2, seq_id_2, atom_id_2, rtype, distance_threshold in clrt_rows:
-            d = float(distance_threshold) if distance_threshold is not None else None
-            xl = Crosslink(asym_id_1, int(seq_id_1), atom_id_1, asym_id_2, int(seq_id_2), atom_id_2, d)
-            xlinks.setdefault(rtype, []).append(xl)
+        clrt = self.tables['ihm_cross_link_restraint']
+        if clrt:
+            clrt_fields = [
+                'asym_id_1',
+                'seq_id_1',
+                'atom_id_1',
+                'asym_id_2',
+                'seq_id_2',
+                'atom_id_2',
+                'restraint_type',
+                'distance_threshold'
+                ]
+            # restraint_type and distance_threshold can be missing
+            clrt_rows = clrt.fields(clrt_fields, allow_missing_fields = True)
+            for asym_id_1, seq_id_1, atom_id_1, asym_id_2, seq_id_2, atom_id_2, rtype, distance_threshold in clrt_rows:
+                d = float(distance_threshold) if distance_threshold is not None else None
+                xl = Crosslink(asym_id_1, int(seq_id_1), atom_id_1, asym_id_2, int(seq_id_2), atom_id_2, d)
+                xlinks.setdefault(rtype, []).append(xl)
 
+        pc = self.read_predicted_contacts()
+        if pc:
+            xlinks['predicted contacts'] = pc
+        
         xlmodels = [CrossLinkModel(self.session, xltype, len(xllist))
                     for xltype, xllist in xlinks.items()]
 
@@ -630,23 +637,53 @@ class IHMModel(Model):
 
     # -----------------------------------------------------------------------------
     #
-    def set_initial_sphere_display(self, smodels):
-        if len(smodels) == 0:
-            return
+    def read_predicted_contacts(self):
+        pcrt = self.tables['ihm_predicted_contact_restraint']
+        if pcrt is None:
+            return []
+        pcrt_fields = [
+            'asym_id_1',
+            'seq_id_1',
+            'atom_id_1',
+            'asym_id_2',
+            'seq_id_2',
+            'atom_id_2',
+            'restraint_type',
+            'distance_lower_limit',
+            'distance_upper_limit'
+        ]
+        # restraint_type and distance_lower_limit, distance_upper_limit can be missing
+        xlinks = []
+        pcrt_rows = pcrt.fields(pcrt_fields, allow_missing_fields = True)
+        for asym_id_1, seq_id_1, atom_id_1, asym_id_2, seq_id_2, atom_id_2, rtype, dlower, dupper in pcrt_rows:
+            upper = dupper is not None and rtype in ('upper bound', 'lower and upper bound')
+            d = float(dupper) if upper else None
+            lower = dlower is not None and rtype in ('lower bound', 'lower and upper bound')
+            dlow = float(dlower) if lower else None
+            xl = Crosslink(asym_id_1, int(seq_id_1), atom_id_1, asym_id_2, int(seq_id_2), atom_id_2, d, dlow)
+            xlinks.append(xl)
 
-        # Hide spheres of first model except multi-residue beads and pseudobond endpoints
-        # Other parts of structure are depicted using starting models.
-        # TODO: Don't hide spheres if there are no starting models.
-        smodel = smodels[0]
+        return xlinks
     
-        # Show only multi-residue spheres and crosslink end-point spheres
-        satoms = smodel.atoms
-        satoms.displays = False
-        satoms.filter(satoms.residues.names != '1').displays = True
+    # -----------------------------------------------------------------------------
+    #
+    def set_initial_atom_display(self, smodels, amodels):
+        if smodels:
+            # Hide spheres of first model except multi-residue beads and pseudobond endpoints
+            # Other parts of structure are depicted using starting models.
+            # TODO: Don't hide spheres if there are no starting models.
+            smodel = smodels[0]
+
+            # Show only multi-residue spheres and crosslink end-point spheres
+            satoms = smodel.atoms
+            satoms.displays = False
+            satoms.filter(satoms.residues.names != '1').displays = True
 
         # Show pseudobond endpoints
         from chimerax.core.atomic import PseudobondGroup
-        pbgs = [pbg for pbg in smodel.child_models() if isinstance(pbg, PseudobondGroup)]
+        pbgs = sum([[pbg for pbg in m.child_models() if isinstance(pbg, PseudobondGroup)]
+                    for m in smodels[:1] + amodels], [])
+        print ('Showing endpoints for pbgroups', [pbg.name for pbg in pbgs])
         for pbg in pbgs:
             a1,a2 = pbg.pseudobonds.atoms
             a1.displays = True
@@ -675,10 +712,6 @@ class IHMModel(Model):
             pbgs = make_crosslink_pseudobonds(self.session, xlinks, atom_lookup([amodel]),
                                               radius = 0.2, parent = amodel)
             xpbgs.extend(pbgs)
-            
-        # TODO: Add crosslinks to result atomic models
-        if amodels and xlinks:
-            self.session.logger.warning('Crosslinks not yet shown for atomic models.')
 
         # Allow hiding pseudobond groups for multiple result models.
         for xlm in xlmodels:
@@ -1070,14 +1103,23 @@ class DatabaseDataSet(DataSet):
 # -----------------------------------------------------------------------------
 #
 class Crosslink:
-    def __init__(self, asym1, seq1, atom1, asym2, seq2, atom2, dist):
+    def __init__(self, asym1, seq1, atom1, asym2, seq2, atom2, dist, dist_low = None):
         self.asym1 = asym1	# Chain id
         self.seq1 = seq1	# Residue number, integer
         self.atom1 = atom1 	# Atom name, can be None
         self.asym2 = asym2
         self.seq2 = seq2
         self.atom2 = atom2
-        self.distance = dist
+        self.distance_upper = dist	# Upper bound, can be None
+        self.distance_lower = dist_low	# Lower bound, can be None
+
+    def color(self, length, color, long_color, short_color):
+        d, dlow = self.distance_upper, self.distance_lower
+        if d is not None and length > d:
+            return long_color
+        elif dlow is not None and length < dlow:
+            return short_color
+        return color
 
 # -----------------------------------------------------------------------------
 # Crosslink model controls display of pseudobond groups but does not display
@@ -1087,7 +1129,8 @@ class CrossLinkModel(Model):
     def __init__(self, session, crosslink_type, count):
         name = '%d %s crosslinks' % (count, crosslink_type)
         Model.__init__(self, name, session)
-        self.crosslink_type = crosslink_type if crosslink_type else ''
+        self.crosslink_type = cc = crosslink_type if crosslink_type else ''
+        self.color = crosslink_colors(cc)[0]
         self._pseudobond_groups = []
 
     def add_pseudobond_models(self, pbgs):
@@ -1103,6 +1146,14 @@ class CrossLinkModel(Model):
             pbg.display = display
     display = property(_get_display, _set_display)
 
+    def _get_single_color(self):
+        return self.color
+    def _set_single_color(self, color):
+        self.color = color
+        for pbg in self._pseudobond_groups:
+            pbg.single_color = color
+    single_color = property(_get_single_color, _set_single_color)
+
 # -----------------------------------------------------------------------------
 #
 def make_crosslink_pseudobonds(session, xlinks, atom_lookup,
@@ -1110,17 +1161,19 @@ def make_crosslink_pseudobonds(session, xlinks, atom_lookup,
                                parent = None,
                                radius = 1.0,
                                color = (0,255,0,255),		# Green
-                               long_color = (255,0,0,255)):	# Red
+                               long_color = (255,0,0,255),	# Red
+                               short_color = (0,0,255,255)):	# Blue
     
     pbgs = []
     new_pbgroup = session.pb_manager.get_group if parent is None else parent.pseudobond_group
-    for type, xlist in xlinks.items():
-        xname = '%d %s crosslinks' % (len(xlist), type)
+    for xltype, xlist in xlinks.items():
+        xname = '%d %s crosslinks' % (len(xlist), xltype)
         if name is not None:
             xname += ' ' + name
         g = new_pbgroup(xname)
-        g.crosslink_type = type
+        g.crosslink_type = xltype
         pbgs.append(g)
+        color, long_color, short_color = crosslink_colors(xltype)
         missing = []
         apairs = {}
         for xl in xlist:
@@ -1131,10 +1184,9 @@ def make_crosslink_pseudobonds(session, xlinks, atom_lookup,
                 continue
             if a1 and a2 and a1 is not a2:
                 b = g.new_pseudobond(a1, a2)
-                b.color = long_color if b.length > xl.distance else color
+                b.color = xl.color(b.length, color, long_color, short_color)
                 b.radius = radius
                 b.halfbond = False
-                b.restraint_distance = xl.distance
             elif a1 is None:
                 missing.append((xl.asym1, xl.seq1))
             elif a2 is None:
@@ -1143,13 +1195,29 @@ def make_crosslink_pseudobonds(session, xlinks, atom_lookup,
             smiss = ','.join('/%s:%d' % (asym_id, seq_num) for asym_id, seq_num in missing[:3])
             if len(missing) > 3:
                 smiss += '...'
-            msg = 'Missing %d %s crosslink residues %s' % (len(missing), type, smiss)
+            msg = 'Missing %d %s crosslink residues %s' % (len(missing), xltype, smiss)
             if parent is not None and hasattr(parent, 'name'):
                 msg = parent.name + ' ' + msg
             session.logger.info(msg)
                 
     return pbgs
 
+# -----------------------------------------------------------------------------
+#
+_crosslink_colors = {}
+def crosslink_colors(xltype):
+    global _crosslink_colors
+    if xltype not in _crosslink_colors:
+        colors = [('lightgreen', 'lime', 'lime'),
+                  ('lightskyblue', 'deepskyblue', 'deepskyblue'),
+                  ('plum', 'magenta', 'magenta'),
+                  ('peachpuff', 'peru', 'peru'),
+                  ('aquamarine', 'aqua', 'aqua')]
+        i = len(_crosslink_colors) % len(colors)
+        from chimerax.core.colors import BuiltinColors
+        _crosslink_colors[xltype] = tuple(BuiltinColors[c].uint8x4() for c in colors[i])
+    return _crosslink_colors[xltype]
+    
 # -----------------------------------------------------------------------------
 #
 def probability_grid(wcc, voxel_size = 5, cutoff_sigmas = 3):
