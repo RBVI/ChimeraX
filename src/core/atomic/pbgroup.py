@@ -136,6 +136,17 @@ class PseudobondGroup(PseudobondGroupData, Model):
         Model.name.fset(self, name)
     name = property(_get_name, _set_name)
 
+    def _get_single_color(self):
+        pbonds = self.pseudobonds
+        from ..colors import most_common_color
+        shown = pbonds.filter(pbonds.displays)
+        if shown:
+            return most_common_color(shown.colors)
+        return self.color
+    def _set_single_color(self, color):
+        self.pseudobonds.colors = color
+    single_color = property(_get_single_color, _set_single_color)
+
     def _update_graphics_if_needed(self, *_):
         gc = self._graphics_changed
         if gc:
