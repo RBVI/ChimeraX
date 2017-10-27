@@ -13,7 +13,7 @@
 # -----------------------------------------------------------------------------
 #
 def label(session, objects = None, object_type = None, text = None,
-          offset = None, color = None, size = None, font = None, on_top = None):
+          offset = None, color = None, size = None, height = None, font = None, on_top = None):
     '''Create atom labels. The belong to a child model named "labels" of the structure.
 
     Parameters
@@ -32,6 +32,8 @@ def label(session, objects = None, object_type = None, text = None,
       and white is used on dark backgrounds.
     size : int or "default"
       Font size in pixels. Default 24.
+    height : float or "fixed"
+      Text height in scene units.  Or if "fixed" use fixed pixel height on screen.
     font : string or "default"
       Font name.  This must be a true type font installed on Mac in /Library/Fonts
       and is the name of the font file without the ".ttf" suffix.  Default "Arial".
@@ -67,6 +69,10 @@ def label(session, objects = None, object_type = None, text = None,
         settings['size'] = 24
     elif size is not None:
         settings['size'] = size
+    if height == 'fixed':
+        settings['height'] = None
+    elif height is not None:
+        settings['height'] = height
     if font == 'default':
         settings['font'] = 'Arial'
     elif font is not None:
@@ -174,7 +180,7 @@ def labels_model(parent, create = False):
 #
 def register_label_command(logger):
 
-    from chimerax.core.commands import CmdDesc, register, ObjectsArg, StringArg
+    from chimerax.core.commands import CmdDesc, register, ObjectsArg, StringArg, FloatArg
     from chimerax.core.commands import Float3Arg, ColorArg, IntArg, BoolArg, EnumOf, Or, EmptyArg
 
     otype = EnumOf(('atoms','residues','pseudobonds','bonds'))
@@ -185,6 +191,7 @@ def register_label_command(logger):
                               ('offset', Or(DefArg, Float3Arg)),
                               ('color', Or(DefArg, ColorArg)),
                               ('size', Or(DefArg, IntArg)),
+                              ('height', Or(EnumOf(['fixed']), FloatArg)),
                               ('font', StringArg),
                               ('on_top', BoolArg)],
                    synopsis = 'Create atom labels')
@@ -330,7 +337,7 @@ class ObjectLabel(Drawing):
     casts_shadows = False
     
     def __init__(self, object, view, offset = None, text = None, color = None,
-                 size = 24, font = 'Arial'):
+                 size = 24, height = None, font = 'Arial'):
         Drawing.__init__(self, 'label %s' % self.default_text())
 
         self.object = object
@@ -339,6 +346,7 @@ class ObjectLabel(Drawing):
         self._text = text
         self._color = color
         self.size = size
+        self.height = height	# None or height in world coords.  If None used fixed screen size.
         self._pixel_size = (100,10)	# Size of label in pixels, calculated from size attribute
 
         self.font = font
@@ -443,9 +451,13 @@ class ObjectLabel(Drawing):
             return	# Label deleted
         view = self.view
         spos = self.scene_position
-        psize = view.pixel_size(spos*xyz)
         pw,ph = self._pixel_size
-        w,h = psize * pw, psize * ph
+        sh = self.height	# Scene height
+        if sh is None:
+            psize = view.pixel_size(spos*xyz)
+            w,h = psize * pw, psize * ph
+        else:
+            w, h = sh*pw/ph, sh
         cpos = view.camera.position	# Camera position in scene coords
         clpos = spos.inverse() * cpos  # Camera pos in label drawing coords
         cam_xaxis, cam_yaxis, cam_zaxis = clpos.axes()
@@ -462,9 +474,10 @@ class ObjectLabel(Drawing):
 #
 class AtomLabel(ObjectLabel):
     def __init__(self, object, view, offset = None, text = None, color = None,
-                 size = 24, font = 'Arial'):
+                 size = 24, height = None, font = 'Arial'):
         self.atom = object
-        ObjectLabel.__init__(self, object, view, offset=offset, text=text, color=color, size=size, font=font)
+        ObjectLabel.__init__(self, object, view, offset=offset, text=text, color=color,
+                             size=size, height=height, font=font)
     def default_text(self):
         aname = self.atom.name
         return aname if aname else ('%d' % self.atom.residue.number)
@@ -481,9 +494,10 @@ class AtomLabel(ObjectLabel):
 #
 class ResidueLabel(ObjectLabel):
     def __init__(self, object, view, offset = None, text = None, color = None,
-                 size = 24, font = 'Arial'):
+                 size = 24, height = None, font = 'Arial'):
         self.residue = object
-        ObjectLabel.__init__(self, object, view, offset=offset, text=text, color=color, size=size, font=font)
+        ObjectLabel.__init__(self, object, view, offset=offset, text=text, color=color,
+                             size=size, height=height, font=font)
     def default_text(self):
         r = self.residue
         return '%s %d' % (r.name, r.number)
@@ -498,9 +512,10 @@ class ResidueLabel(ObjectLabel):
 #
 class PseudobondLabel(ObjectLabel):
     def __init__(self, object, view, offset = None, text = None, color = None,
-                 size = 24, font = 'Arial'):
+                 size = 24, height = None, font = 'Arial'):
         self.pseudobond = object
-        ObjectLabel.__init__(self, object, view, offset=offset, text=text, color=color, size=size, font=font)
+        ObjectLabel.__init__(self, object, view, offset=offset, text=text, color=color,
+                             size=size, height=height, font=font)
     def default_text(self):
         return '%.2f' % self.pseudobond.length
     def default_offset(self):
