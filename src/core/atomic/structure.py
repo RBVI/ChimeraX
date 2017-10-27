@@ -106,72 +106,8 @@ class Structure(Model, StructureData):
 
     def added_to_session(self, session):
         if self._auto_style:
-            color = self.initial_color(session.main_view.background_color)
-            self.set_color(color)
-
-            atoms = self.atoms
-            if self.num_chains == 0:
-                lighting = "default"
-                from .molobject import Atom, Bond
-                atoms.draw_modes = Atom.STICK_STYLE
-                from .colors import element_colors
-                het_atoms = atoms.filter(atoms.element_numbers != 6)
-                het_atoms.colors = element_colors(het_atoms.element_numbers)
-            elif self.num_chains < 5:
-                lighting = "default"
-                from .molobject import Atom, Bond
-                atoms.draw_modes = Atom.STICK_STYLE
-                from .colors import element_colors
-                het_atoms = atoms.filter(atoms.element_numbers != 6)
-                het_atoms.colors = element_colors(het_atoms.element_numbers)
-                ribbonable = self.chains.existing_residues
-                # 10 residues or less is basically a trivial depiction if ribboned
-                if len(ribbonable) > 10:
-                    atoms.displays = False
-                    ligand = atoms.filter(atoms.structure_categories == "ligand").residues
-                    ribbonable -= ligand
-                    metal_atoms = atoms.filter(atoms.elements.is_metal)
-                    metal_atoms.draw_modes = Atom.SPHERE_STYLE
-                    ions = atoms.filter(atoms.structure_categories == "ions")
-                    lone_ions = ions.filter(ions.residues.num_atoms == 1)
-                    lone_ions.draw_modes = Atom.SPHERE_STYLE
-                    ligand |= metal_atoms.residues
-                    display = ligand
-                    pas = ribbonable.existing_principal_atoms
-                    nucleic = pas.residues.filter(pas.names != "CA")
-                    display |= nucleic
-                    if ligand:
-                        # show residues interacting with ligand
-                        lig_points = ligand.atoms.coords
-                        mol_points = atoms.coords
-                        from ..geometry import find_closest_points
-                        close_indices = find_closest_points(lig_points, mol_points, 3.6)[1]
-                        display |= atoms.filter(close_indices).residues
-                    display_atoms = display.atoms
-                    if self.num_residues > 1:
-                        display_atoms = display_atoms.filter(display_atoms.idatm_types != "HC")
-                    display_atoms.displays = True
-                    ribbonable.ribbon_displays = True
-            elif self.num_chains < 250:
-                lighting = "full" if self.num_atoms < 300000 else "full multiShadow 16"
-                from .colors import chain_colors, element_colors
-                residues = self.residues
-                residues.ribbon_colors = chain_colors(residues.chain_ids)
-                atoms.colors = chain_colors(atoms.residues.chain_ids)
-                from .molobject import Atom
-                ligand_atoms = atoms.filter(atoms.structure_categories == "ligand")
-                ligand_atoms.draw_modes = Atom.STICK_STYLE
-                ligand_atoms.colors = element_colors(ligand_atoms.element_numbers)
-                solvent_atoms = atoms.filter(atoms.structure_categories == "solvent")
-                solvent_atoms.draw_modes = Atom.BALL_STYLE
-                solvent_atoms.colors = element_colors(solvent_atoms.element_numbers)
-            else:
-                lighting = "soft multiShadow 16"
-            from ..commands import Command
-            if len([m for m in session.models.list()
-                    if isinstance(m, self.__class__)]) == 1:
-                cmd = Command(session)
-                cmd.run("lighting " + lighting, log=False)
+            self.apply_auto_styling(set_lighting = self._is_only_model())
+                
         self._start_change_tracking(session.change_tracker)
 
         # Setup handler to manage C++ data changes that require graphics updates.
@@ -181,6 +117,82 @@ class Structure(Model, StructureData):
     def removed_from_session(self, session):
         gu = structure_graphics_updater(session)
         gu.remove_structure(self)
+
+    def _is_only_model(self):
+        id = self.id
+        d = len(id)
+        for m in self.session.models.list():
+            if m.id[:d] != id:
+                return False
+        return True
+
+    def apply_auto_styling(self, set_lighting = False):
+        color = self.initial_color(self.session.main_view.background_color)
+        self.set_color(color)
+
+        atoms = self.atoms
+        if self.num_chains == 0:
+            lighting = "default"
+            from .molobject import Atom, Bond
+            atoms.draw_modes = Atom.STICK_STYLE
+            from .colors import element_colors
+            het_atoms = atoms.filter(atoms.element_numbers != 6)
+            het_atoms.colors = element_colors(het_atoms.element_numbers)
+        elif self.num_chains < 5:
+            lighting = "default"
+            from .molobject import Atom, Bond
+            atoms.draw_modes = Atom.STICK_STYLE
+            from .colors import element_colors
+            het_atoms = atoms.filter(atoms.element_numbers != 6)
+            het_atoms.colors = element_colors(het_atoms.element_numbers)
+            ribbonable = self.chains.existing_residues
+            # 10 residues or less is basically a trivial depiction if ribboned
+            if len(ribbonable) > 10:
+                atoms.displays = False
+                ligand = atoms.filter(atoms.structure_categories == "ligand").residues
+                ribbonable -= ligand
+                metal_atoms = atoms.filter(atoms.elements.is_metal)
+                metal_atoms.draw_modes = Atom.SPHERE_STYLE
+                ions = atoms.filter(atoms.structure_categories == "ions")
+                lone_ions = ions.filter(ions.residues.num_atoms == 1)
+                lone_ions.draw_modes = Atom.SPHERE_STYLE
+                ligand |= metal_atoms.residues
+                display = ligand
+                pas = ribbonable.existing_principal_atoms
+                nucleic = pas.residues.filter(pas.names != "CA")
+                display |= nucleic
+                if ligand:
+                    # show residues interacting with ligand
+                    lig_points = ligand.atoms.coords
+                    mol_points = atoms.coords
+                    from ..geometry import find_closest_points
+                    close_indices = find_closest_points(lig_points, mol_points, 3.6)[1]
+                    display |= atoms.filter(close_indices).residues
+                display_atoms = display.atoms
+                if self.num_residues > 1:
+                    display_atoms = display_atoms.filter(display_atoms.idatm_types != "HC")
+                display_atoms.displays = True
+                ribbonable.ribbon_displays = True
+        elif self.num_chains < 250:
+            lighting = "full" if self.num_atoms < 300000 else "full multiShadow 16"
+            from .colors import chain_colors, element_colors
+            residues = self.residues
+            residues.ribbon_colors = chain_colors(residues.chain_ids)
+            atoms.colors = chain_colors(atoms.residues.chain_ids)
+            from .molobject import Atom
+            ligand_atoms = atoms.filter(atoms.structure_categories == "ligand")
+            ligand_atoms.draw_modes = Atom.STICK_STYLE
+            ligand_atoms.colors = element_colors(ligand_atoms.element_numbers)
+            solvent_atoms = atoms.filter(atoms.structure_categories == "solvent")
+            solvent_atoms.draw_modes = Atom.BALL_STYLE
+            solvent_atoms.colors = element_colors(solvent_atoms.element_numbers)
+        else:
+            lighting = "soft multiShadow 16"
+
+        if set_lighting:
+            from ..commands import Command
+            cmd = Command(self.session)
+            cmd.run("lighting " + lighting, log=False)
 
     def take_snapshot(self, session, flags):
         data = {'model state': Model.take_snapshot(self, session, flags),
@@ -243,7 +255,11 @@ class Structure(Model, StructureData):
 
     def initial_color(self, bg_color):
         from .colors import structure_color
-        return structure_color(self.id, bg_color)
+        id = self.id
+        if id is None:
+            max_id = max((m.id[0] for m in self.session.models.list(type = Structure)), default = 0)
+            id = (max_id + 1,)
+        return structure_color(id, bg_color)
 
     def set_initial_color(self):
         c = self.initial_color(self.session.main_view.background_color)
