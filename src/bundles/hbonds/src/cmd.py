@@ -23,7 +23,7 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
     reveal=False, naming_style=None, log=False, cache_DA=None,
     color=AtomicStructure.default_hbond_color, slop_color=BuiltinColors["dark orange"],
     show_dist=False, intra_res=True, intra_mol=True, dashes=None,
-    salt_only=False, name="hydrogen bonds", per_coordset=True):
+    salt_only=False, name="hydrogen bonds", coordsets=True):
 
     """Wrapper to be called by command line.
 
@@ -72,8 +72,8 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
         'cache_da': cache_DA
     }
 
-    doing_per_coordset = per_coordset and len(structures) == 1 and structures[0].num_coordsets > 1
-    if doing_per_coordset:
+    doing_coordsets = coordsets and len(structures) == 1 and structures[0].num_coordsets > 1
+    if doing_coordsets:
         hb_func = find_coordset_hbonds
         struct_info = structures[0]
     else:
@@ -81,7 +81,7 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
         struct_info = structures
 
     result = hb_func(session, struct_info, dist_slop=dist_slop, angle_slop=angle_slop, **base_kw)
-    if doing_per_coordset:
+    if doing_coordsets:
         hb_lists = result
     else:
         hb_lists = [result]
@@ -106,7 +106,7 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
             hbonds[:] = [hb for hb in hbonds if hb[0].residue != hb[1].residue]
 
 
-    if doing_per_coordset:
+    if doing_coordsets:
         cs_ids = structures[0].coordset_ids
         output_info = (inter_model, intra_model, relax, dist_slop, angle_slop,
                                 structures, hb_lists, cs_ids)
@@ -123,7 +123,7 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
     if save_file is not None:
         _file_output(save_file, output_info, naming_style)
 
-    if doing_per_coordset:
+    if doing_coordsets:
         session.logger.status("%d hydrogen bonds found in %d coordsets" % (sum([len(hbs)
             for hbs in hb_lists]), len(cs_ids)), log=True, blank_after=120)
     else:
@@ -134,7 +134,7 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
     if two_colors:
         # color relaxed constraints differently
         precise_result = hb_func(session, struct_info, **base_kw)
-        if doing_per_coordset:
+        if doing_coordsets:
             precise_lists = precise_result
         else:
             precise_lists = [precise_result]
@@ -148,7 +148,7 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
                 precise[:] = [hb for hb in precise
                     if hb[0] in sb_donors and hb[1] in sb_acceptors]
         # give another opportunity to read the result...
-        if doing_per_coordset:
+        if doing_coordsets:
             session.logger.status("%d strict hydrogen bonds found in %d coordsets" % (sum([len(hbs)
                 for hbs in precise_lists]), len(cs_ids)), log=True, blank_after=120)
         else:
@@ -176,7 +176,7 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
             if closures:
                 session.models.close(closures)
         hb_info = [(result, session.pb_manager.get_group(name))]
-    elif doing_per_coordset:
+    elif doing_coordsets:
         hb_info = [(result, structures[0].pseudobond_group(name, create_type="coordset"))]
     else:
         per_structure = {s:[] for s in structures}
@@ -194,12 +194,12 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
         else:
             if dashes is not None:
                 pbg.dashes = dashes
-        if not doing_per_coordset:
+        if not doing_coordsets:
             grp_hbonds = [grp_hbonds]
 
         for i, cs_hbonds in enumerate(grp_hbonds):
             pre_existing = {}
-            if doing_per_coordset:
+            if doing_coordsets:
                 cs_id = cs_ids[i]
                 pbg_pseudobonds = pbg.get_pseudobonds(cs_id)
             else:
@@ -224,7 +224,7 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
                 if (don,acc) in pre_existing:
                     pb = pre_existing[(don,acc)]
                 else:
-                    if doing_per_coordset:
+                    if doing_coordsets:
                         pb = pbg.new_pseudobond(don, acc, cs_id)
                     else:
                         pb = pbg.new_pseudobond(don, acc)
@@ -444,7 +444,7 @@ def register_command(command_name, logger):
                 ('reveal', BoolArg), ('retain_current', BoolArg), ('save_file', SaveFileNameArg),
                 ('log', BoolArg), ('naming_style', EnumOf(('simple', 'command', 'serial'))),
                 ('batch', BoolArg), ('dashes', NonNegativeIntArg), ('salt_only', BoolArg),
-                ('name', StringArg), ('per_coordset', BoolArg)],
+                ('name', StringArg), ('coordsets', BoolArg)],
             synopsis = 'Find hydrogen bonds'
         )
         register('hbonds', desc, cmd_hbonds, logger=logger)

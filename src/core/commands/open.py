@@ -35,6 +35,12 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
         to cache.
     '''
 
+    if isinstance(filename, list):
+        models = []
+        for fname in filename:
+            models.extend(open(session, fname, format=format, name=name,
+                               from_database=from_database, ignore_cache=ignore_cache, **kw))
+        return models
     if ':' in filename:
         prefix, fname = filename.split(':', maxsplit=1)
         from .. import fetch
@@ -178,7 +184,7 @@ def open_formats(session):
 
 
 def register_command(session):
-    from . import CmdDesc, register, DynamicEnum, StringArg, BoolArg, OpenFileNameArg
+    from . import CmdDesc, register, DynamicEnum, StringArg, BoolArg, OpenFileNameArg, RepeatOf
 
     def formats():
         from .. import io, fetch
@@ -195,7 +201,7 @@ def register_command(session):
         from .. import fetch
         return [f.database_name for f in fetch.fetch_databases().values()]
     desc = CmdDesc(
-        required=[('filename', OpenFileNameArg)],
+        required=[('filename', RepeatOf(OpenFileNameArg))],
         keyword=[
             ('format', DynamicEnum(formats)),
             ('name', StringArg),

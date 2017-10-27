@@ -39,12 +39,14 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;same&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;hideModels&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;play&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;slider&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 </h3>
 <p>
 The <b>morph</b> command creates a 
 <a href="../trajectories.html">trajectory</a> that morphs between two or
 more atomic models. The trajectory can be played back
-with the command <a href="coordset.html"><b>coordset</b></a>.
+with the <a href="coordset.html"><b>coordset</b></a> command
+or the <a href="#slider">slider</a> graphical interface.
 See also: 
 <a href="../movies.html">making movies</a>
 </p><p>
@@ -169,9 +171,17 @@ which is opened as a separate model.
 The <b>hideModels</b> option (default <b>true</b>) hides the input models,
 and the <b>play</b> option 
 (default <b>true</b>) plays through the resulting trajectory a single time. 
-Regardless of the <b>play</b> option, the 
-<a href="coordset.html"><b>coordset</b></a> command can be used to replay
-the trajectory.
+Regardless of the <b>play</b> option, the
+<a href="coordset.html"><b>coordset</b></a> command 
+and/or the <a href="#slider">slider</a> can be used to replay the trajectory.
+</p><p>
+<a name="slider"></a>
+The <b>slider</b> option (default <b>true</b>) shows a graphical interface
+for trajectory playback.
+The slider can be dragged or a frame number entered directly.
+The interface also includes a play/pause button and another
+(marked with a red dot) for recording a movie. See also:
+<a href="coordset.html#slider"><b>coordset slider</b></a>
 </p>
 
 <a name="pairing"></a>
@@ -262,5 +272,5 @@ and unattractive morph trajectory.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-May 2017</address>
+October 2017</address>
 </body></html>

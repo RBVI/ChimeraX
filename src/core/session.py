@@ -454,7 +454,7 @@ class Session:
             mgr.cleanup()
             self.triggers.activate_trigger("end save session", self)
 
-    def restore(self, stream, metadata_only=False):
+    def restore(self, stream, path=None, metadata_only=False):
         """Deserialize session from binary stream."""
         from . import serialize
         if hasattr(stream, 'peek'):
@@ -497,6 +497,7 @@ class Session:
         self.triggers.activate_trigger("begin restore session", self)
         try:
             self.reset()
+            self.session_file_path = path
             self.metadata.update(metadata)
             attr_info = self.metadata.pop('attr_info', {})
             while True:
@@ -739,7 +740,7 @@ def open(session, path):
     # TODO: active trigger to allow user to stop overwritting
     # current session
     session.session_file_path = path
-    session.restore(stream)
+    session.restore(stream, path=path)
     return [], "opened ChimeraX session"
 
 

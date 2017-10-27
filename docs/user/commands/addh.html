@@ -1,0 +1,111 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: addh</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: addh</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>addh</b> 
+&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
+<font color="brown">
+[&nbsp;<b>hbond</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+</font>
+[&nbsp;<b>inIsolation</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+&nbsp;<a href="#options"><i>other-options</i></a>
+</h3>
+<p>
+The <b>addh</b> command adds hydrogen atoms to atomic models, as well as
+OXT atoms where missing from peptide C-termini.
+See also: <a href="delete.html"><b>delete</b></a>,
+<a href="hbonds.html"><b>hbonds</b></a>
+</p><p>
+Hydrogens are added to entire atomic model(s) 
+even if only parts of models are specified.
+Placement is based on <a href="../atomtypes.html">atom types</a>
+and to avoid clashes, if possible.
+The positions of pre-existing atoms are not changed, but
+any lone pairs and atoms of unidentifiable element are deleted.
+<!--
+If any atom cannot be assigned a type, a dialog will appear for specifying
+its proper substituent geometry and number of substituents.
+-->
+</p><p>
+<font color="brown">
+Specifying <b>hbond false</b> is currently required:
+</font>
+<br>
+The <b>hbond</b> option (default <b>true</b>) controls 
+whether H-bond formation should also be considered.
+Considering H-bonds increases calculation time and may not
+produce a globally optimal network of H-bonds.
+</p><p>
+The <b>inIsolation</b> option (default <b>true</b>) indicates using
+only the atoms within the same model. Otherwise,
+other models in the vicinity (except sibling submodels of the same model)
+may affect hydrogen placement, even if the other models were not
+designated for hydrogen addition. 
+Sibling submodels of the same model (<i>e.g.</i>, #1.1, #1.2, #1.3, ...)
+are always treated in isolation from one another, even if this option is 
+<b>false</b>.
+</p><p>
+<a name="options"></a>
+The remaining options allow alternative protonation states of certain amino acids
+to be specified with special residue names:
+</p>
+<table border cellpadding="4" cellspacing="0"><tr>
+<td align="center" style="background-color:#cccccc"><b>option</b></td>
+<td align="center" style="background-color:#cccccc"><b>true (default)</b></td>
+<td align="center" style="background-color:#cccccc"><b>false</b></td>
+</tr><tr>
+<td align="center"><b>useHisName</b></td>
+<td align="center">HIS unspecified (guess from local environment),
+<br>HID &delta;-nitrogen protonated, HIE &epsilon;-nitrogen protonated, 
+<br>HIP both sidechain nitrogens protonated</td>
+<td align="center">all treated as unspecified</td>
+</tr><tr>
+<td align="center"><b>useAspName</b></td>
+<td align="center">ASP negatively charged, ASH neutral (OD2-protonated)</td>
+<td align="center">all negatively charged</td>
+</tr><tr>
+<td align="center"><b>useGluName</b></td>
+<td align="center">GLU negatively charged, GLH neutral (OE2-protonated)</td>
+<td align="center">all negatively charged</td>
+</tr><tr>
+<td align="center"><b>useLysName</b></td>
+<td align="center">LYS positively charged, LYN neutral</td>
+<td align="center">all positively charged</td>
+</tr><tr>
+<td align="center"><b>useCysName</b></td>
+<td align="center">CYS neutral, CYM negatively charged</td>
+<td align="center">all neutral</td>
+</tr></table>
+<p>
+An attempt is made to preserve coloring schemes, coloring the added hydrogens
+<a href="colortables.html#element">by element</a> (white)
+and/or to match their bond partners.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+October 2017</address>
+</body></html>

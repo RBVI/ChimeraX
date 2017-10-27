@@ -146,9 +146,9 @@ class ShapeDrawing(Drawing):
 
         picks = []
         all_picks = super().planes_pick(planes, exclude)
-        from chimerax.core.graphics import TrianglesPick
+        from chimerax.core.graphics import PickedTriangles
         for p in all_picks:
-            if not isinstance(p, TrianglesPick) or p.drawing() is not self:
+            if not isinstance(p, PickedTriangles) or p.drawing() is not self:
                 picks.append(p)
                 continue
             tmask = p._triangles_mask
