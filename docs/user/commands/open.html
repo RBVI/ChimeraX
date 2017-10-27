@@ -368,6 +368,7 @@ hypertext to render in the
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>open</b> &nbsp;<i>filename</i>&nbsp;
+[&nbsp;<i>filename2</i>...&nbsp;]
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#file-table"><i>format-name</i></a>&nbsp;]
 [&nbsp;<b>coordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>vseries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
@@ -385,18 +386,24 @@ either absolute or relative to the current working directory as
 reported by <a href="pwd.html"><b>pwd</b></a>.
 The working directory can be changed with <a href="cd.html"><b>cd</b></a>.
 A pathname may start with &ldquo;<b>~</b>&rdquo; to indicate the user's 
-home directory. One or more files can be specified at a time by including 
-<b>*</b> (wild card), <b>?</b> (single-character wild card), 
-and/or square-bracketed character ranges in the <i>filename</i>
+home directory. 
+One or more files can be specified with a single filename
+by including <b>*</b> (wild card), <b>?</b> (single-character wild card), 
+and/or square-bracketed character ranges
 (Unix-style pathname expansion or <b><i>globbing</i></b>).
 Substituting the word <a href="usageconventions.html#browse"><b>browse</b></a>
 for the filename brings up a file browser window for choosing the
 name and location interactively.
+Specifying multiple filenames is equivalent to using the <b>open</b> command 
+multiple times with the same options for each filename.
 </p><p>
 The file format can be indicated with either the <i>filename</i> suffix or
 the <b>format</b> option (where <i>format-name</i> can be truncated).
 Files that are gzipped, as indicated by their additional .gz suffix, 
 can also be read.
+</p><p>
+Opening a Chimera session file automatically runs
+<a href="close.html"><b>close session</b></a> first.
 </p><p>
 Further command options:
 </p>
@@ -554,6 +561,7 @@ are stored locally as described <a href="#ignoreCache">below</a>.
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>: <b>open</b> 
 [&nbsp;<a href="#fetch-table"><i>prefix</i></a>:]<i>identifier</i>&nbsp;
+[[&nbsp;<a href="#fetch-table"><i>prefix2</i></a>:]<i>identifier2</i>...&nbsp;]
 [&nbsp;<b>fromDatabase</b>&nbsp;&nbsp;<a href="#fetch-table"><i>source</i></a>&nbsp;]
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#fetch-table"><i>format-name</i></a>&nbsp;]
 [&nbsp;<a href="#coordsets"><b>coordsets</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
@@ -569,6 +577,8 @@ The default database for a 4-character identifier without prefix is the
 target="_blank">RCSB Protein Data Bank</a>; the default format
 for that database is <b>mmcif</b>, although <b>pdb</b> or <b>mmtf</b>
 can be specified with the <b>format</b> option.
+Specifying multiple identifiers is equivalent to using the <b>open</b> command
+multiple times with the same options for each identifier.
 </p><p>
 Opening a structure in mmCIF format automatically shows a clickable table of
 <a href="sym.html#assembly">assembly information</a>

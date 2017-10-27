@@ -29,8 +29,6 @@ class PseudobondGroup(PseudobondGroupData, Model):
             session = s.session
         Model.__init__(self, self.category, session)
         self._pbond_drawing = None
-        self._visible_pbonds = None		# Drawing only contains visible pseudobonds
-        self._visible_pbond_atoms = None
         self._dashes = 9
         self._global_group = (s is None)
         self._handlers = []
@@ -109,6 +107,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
     def clear_selection(self):
         self.selected = False
         self.pseudobonds.selected = False
+        super().clear_selection()
 
     def _get_dashes(self):
         return self._dashes
@@ -159,8 +158,11 @@ class PseudobondGroup(PseudobondGroupData, Model):
 
         d = self._pbond_drawing
         if d is None:
-            d = self.new_drawing('pbonds')
-            self._pbond_drawing = d
+            from .structure import BondsDrawing, PickedPseudobond, PickedPseudobonds
+            d = self._pbond_drawing = BondsDrawing(
+                'pbonds', PickedPseudobond, PickedPseudobonds)
+            self.add_drawing(d)
+            d._visible_atoms = None
             va, na, ta = _pseudobond_geometry(self._dashes//2)
             d.vertices = va
             d.normals = na
@@ -174,13 +176,13 @@ class PseudobondGroup(PseudobondGroupData, Model):
         if changes & (self._ADDDEL_CHANGE | self._DISPLAY_CHANGE):
             changes = self._ALL_CHANGE
             
-        if changes & self._DISPLAY_CHANGE or self._visible_pbonds is None:
+        if changes & self._DISPLAY_CHANGE or d.visible_bonds is None:
             vpb = self._shown_pbonds(self.pseudobonds)
-            self._visible_pbonds = vpb
-            self._visible_pbond_atoms = vpb.atoms
+            d.visible_bonds = vpb
+            d._visible_atoms = vpb.atoms
         
-        pbonds = self._visible_pbonds
-        bond_atoms = self._visible_pbond_atoms
+        pbonds = d.visible_bonds
+        bond_atoms = d._visible_atoms
 
         if changes & self._SHAPE_CHANGE:
             d.positions = self._update_positions(pbonds, bond_atoms)
@@ -237,10 +239,13 @@ class PseudobondGroup(PseudobondGroupData, Model):
 
     def _pseudobonds_planes_pick(self, planes):
         from .structure import _bonds_planes_pick, PickedPseudobonds
-        pmask = _bonds_planes_pick(self._pbond_drawing, planes)
+        d = self._pbond_drawing
+        if d is None or not d.display or d.visible_bonds is None:
+            return []
+        pmask = _bonds_planes_pick(d, planes)
         if pmask is None or pmask.sum() == 0:
             return []
-        bonds = self._visible_pbonds.filter(pmask)
+        bonds = d.visible_bonds.filter(pmask)
         p = PickedPseudobonds(bonds)
         return [p]
 
