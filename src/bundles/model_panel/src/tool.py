@@ -143,9 +143,9 @@ class ModelPanel(ToolInstance):
                 item._model = model
                 item_stack[len_id:] = [item]
                 self._items.append(item)
-                if bg_color is not None:
-                    from chimerax.core.ui.widgets import ColorButton
-                    but = ColorButton(has_alpha_channel=True, max_size=(16,16))
+                if bg_color is not False:
+                    from chimerax.core.ui.widgets import MultiColorButton
+                    but = MultiColorButton(has_alpha_channel=True, max_size=(16,16))
                     def set_single_color(rgba, m=model):
                         for cm in m.all_models():
                             cm.single_color = rgba
@@ -154,7 +154,7 @@ class ModelPanel(ToolInstance):
                     self.tree.setItemWidget(item, self.COLOR_COLUMN, but)
             item.setText(self.ID_COLUMN, model_id_string)
             bg = item.background(self.ID_COLUMN)
-            if bg_color is None:
+            if bg_color is False:
                 bg.setStyle(Qt.NoBrush)
             else:
                 but = self.tree.itemWidget(item, self.COLOR_COLUMN)

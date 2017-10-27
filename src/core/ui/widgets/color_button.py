@@ -95,8 +95,13 @@ class MultiColorButton(ColorButton):
         if color is None:
             import os
             this_dir, fname = os.path.split(__file__)
-            self.setStyleSheet("background-image: url(%s);" % os.path.join(this_dir, "multi.png"))
-            self.setText(">1")
+            icon_file = "multi.png"
+            max_size = self.maximumSize()
+            if max_size.width() == max_size.height():
+                test_icon = "multi%d.png" % max_size.width()
+                if os.path.exists(os.path.join(this_dir, "icons", test_icon)):
+                    icon_file = test_icon
+            self.setStyleSheet("background-image: url(%s);"
+                % os.path.join(this_dir, "icons", icon_file))
         else:
-            self.setText("")
             ColorButton.set_color(self, color)
