@@ -441,8 +441,7 @@ class Structure(Model, StructureData):
 
     def _create_ribbon_graphics(self):
         if self._ribbon_drawing is None:
-            self._ribbon_drawing = p = RibbonsDrawing('ribbon')
-            self.add_drawing(p)
+            self._ribbon_drawing = p = self.new_drawing('ribbon')
             p.display = True
         else:
             p = self._ribbon_drawing
@@ -487,7 +486,7 @@ class Structure(Model, StructureData):
             if not any_display:
                 continue
             residues = atoms.residues
-            rp = RibbonsDrawing(self.name + " " + str(residues[0]) + " ribbons")
+            rp = RibbonDrawing(self.name + " " + str(residues[0]) + " ribbons")
             p.add_drawing(rp)
             t2r = []
             # Always update all atom visibility so that undisplaying ribbon
@@ -1495,7 +1494,11 @@ class Structure(Model, StructureData):
 
     def bounds(self, positions = True):
         self._update_graphics_if_needed()       # Ribbon bound computed from graphics
+        # import sys, time
+        # start = time.time()
         b = super().bounds(positions=positions)
+        # stop = time.time()
+        # print('structure bounds time:', (stop - start) * 1e6, file=sys.__stderr__)
         return b
 
     def first_intercept(self, mxyz1, mxyz2, exclude=None):
@@ -1524,47 +1527,40 @@ class Structure(Model, StructureData):
     def _position_intercepts(self, place, mxyz1, mxyz2, exclude=None):
         # TODO: check intercept of bounding box as optimization
         xyz1, xyz2 = place.inverse() * (mxyz1, mxyz2)
-        pa = None if self._atoms_drawing is None else self._atoms_drawing.first_intercept(xyz1, xyz2)
-        pb = None if self._bonds_drawing is None else self._bonds_drawing.first_intercept(xyz1, xyz2)
-        if pb and pa:
-            a = pa.atom
-            if a.draw_mode == a.STICK_STYLE and a in pb.bond.atoms:
-                pb = None	# Pick atom if stick bond and its atom are picked.
-        ppb = self._pseudobond_first_intercept(xyz1, xyz2)
-        pr = self._ribbon_first_intercept(xyz1, xyz2)
-        # Handle molecular surfaces
-        ps = self.first_intercept_children(self.child_models(), mxyz1, mxyz2, exclude)
-        picks = [p for p in [pa, pb, ppb, pr, ps] if p]
-
-        # TODO: for now, tethers pick nothing, but it should either pick
-        #       the residue or the guide atom.
+        pa = None
+        pb = None
+        ppb = None
+        picks = []
+        for d in self.child_drawings():
+            if not d.display or (exclude is not None and exclude(d)):
+                continue
+            p = d.first_intercept(xyz1, xyz2)
+            if p is None:
+                continue
+            if isinstance(p, PickedAtom):
+                pa = p
+            elif isinstance(p, PickedBond):
+                pb = p
+                continue
+            elif isinstance(p, PickedPseudobond):
+                ppb = p
+                continue
+            picks.append(p)
+        if pb:
+            if pa:
+                a = pa.atom
+                if a.draw_mode != a.STICK_STYLE or a not in pb.bond.atoms:
+                    picks.append(pb)
+            else:
+                picks.append(pb)
+        if ppb:
+            if pa:
+                a = pa.atom
+                if a.draw_mode != a.STICK_STYLE or a not in ppb.pbond.atoms:
+                    picks.append(ppb)
+            else:
+                picks.append(ppb)
         return picks
-
-    def _pseudobond_first_intercept(self, mxyz1, mxyz2):
-        fc = bc = None
-        for pbg in self.pbg_map.values():
-            d = pbg._pbond_drawing
-            if d and d.display:
-                b,f = _bond_intercept(pbg.pseudobonds, mxyz1, mxyz2)
-                if f is not None and (fc is None or f < fc):
-                    fc = f
-                    bc = b
-
-        p = PickedPseudobond(bc, fc) if bc else None
-        return p
-
-    def _ribbon_first_intercept(self, mxyz1, mxyz2):
-        pclosest = None
-        for d, t2r in self._ribbon_t2r.items():
-            if d.display:
-                p = d.first_intercept(mxyz1, mxyz2)
-                if p and (pclosest is None or p.distance < pclosest.distance):
-                    from bisect import bisect_right
-                    n = bisect_right(t2r, p.triangle_number)
-                    if n > 0:
-                        triangle_range = t2r[n - 1]
-                        pclosest = PickedResidue(triangle_range.residue, p.distance)
-        return pclosest
 
     def planes_pick(self, planes, exclude=None):
         if not self.display:
@@ -1669,6 +1665,7 @@ class Structure(Model, StructureData):
         self.selected = False
         self.atoms.selected = False
         self.bonds.selected = False
+        self.residues.ribbon_selected = False
         super().clear_selection()
 
     def selection_promotion(self):
@@ -1989,8 +1986,8 @@ class AtomsDrawing(Drawing):
     def add_drawing(self, d):
         raise NotImplemented("AtomsDrawing may not have children")
 
-    def first_intercept(self, mxyz1, mxyz2):
-        if not self.display or self.visible_atoms is None:
+    def first_intercept(self, mxyz1, mxyz2, exclude=None):
+        if not self.display or self.visible_atoms is None or (exclude and exclude(self)):
             return None
 
         xyzr = self.positions.shift_and_scale_array()
@@ -2062,12 +2059,13 @@ class BondsDrawing(Drawing):
     def add_drawing(self, d):
         raise NotImplemented("BondsDrawing may not have children")
 
-    def first_intercept(self, mxyz1, mxyz2):
-        if self.display:
-            bonds = self.visible_bonds
-            b, f = _bond_intercept(bonds, mxyz1, mxyz2)
-            if b:
-                return self._pick_class(b, f)
+    def first_intercept(self, mxyz1, mxyz2, exclude=None):
+        if not self.display or (exclude and exclude(self)):
+            return None
+        bonds = self.visible_bonds
+        b, f = _bond_intercept(bonds, mxyz1, mxyz2)
+        if b:
+            return self._pick_class(b, f)
         return None
 
     def x3d_needs(self, x3d_scene):
@@ -2097,9 +2095,23 @@ class BondsDrawing(Drawing):
             print('%s </Shape>' % tab, file=stream)
             print('%s</Transform>' % tab, file=stream)
 
-class RibbonsDrawing(Drawing):
 
-    pass
+class RibbonDrawing(Drawing):
+    # TODO: eliminate need for parent.parent._ribbon_t2r
+
+    def first_intercept(self, mxyz1, mxyz2, exclude=None):
+        if not self.display or (exclude and exclude(self)):
+            return None
+        p = super().first_intercept(mxyz1, mxyz2)
+        if p is None:
+            return None
+        t2r = self.parent.parent._ribbon_t2r[self]
+        from bisect import bisect_right
+        n = bisect_right(t2r, p.triangle_number)
+        if n > 0:
+            triangle_range = t2r[n - 1]
+            return PickedResidue(triangle_range.residue, p.distance)
+        return None
 
 
 class AtomicStructure(Structure):
