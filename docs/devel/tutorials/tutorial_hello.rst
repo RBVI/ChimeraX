@@ -58,7 +58,7 @@ need to type quote characters in some steps.
 Sample Files
 ============
 
-The files in the ``hello_world`` bundle are:
+The files in the ``hello_world`` folder are:
 
 ``hello_world`` - bundle folder
     ``bundle_info.xml`` - bundle information read by ChimeraX
