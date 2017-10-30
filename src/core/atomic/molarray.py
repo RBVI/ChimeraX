@@ -376,13 +376,6 @@ class Atoms(Collection):
     names = cvec_property('atom_name', string,
         doc="Returns a numpy array of atom names.  Can be set with such an array (or equivalent "
         "sequence), or with a single string.  Atom names are limited to 4 characters.")
-    @property
-    def num_selected(self):
-        "Number of selected atoms."
-        f = c_function('atom_num_selected',
-                       args = [ctypes.c_void_p, ctypes.c_size_t],
-                       ret = ctypes.c_size_t)
-        return f(self._c_pointers, len(self))
     hides = cvec_property('atom_hide', int32,
     doc="Whether atom is hidden (overrides display).  Returns a :mod:`numpy` array of int32 bitmask."
         "\n\nPossible values:\n\n"
@@ -406,8 +399,16 @@ class Atoms(Collection):
     is_riboses = cvec_property('atom_is_ribose', npy_bool, read_only = True,
         doc="Whether each atom is part of an nucleic acid ribose moiety."
             " Returns numpy bool array. Read only.")
-    is_sidechains = cvec_property('atom_is_sidechain', npy_bool, read_only = True,
+    is_side_chains = cvec_property('atom_is_side_chain', npy_bool, read_only = True,
         doc="Whether each atom is part of an amino/nucleic acid sidechain."
+            " Includes atoms needed to connect to backbone (CA/ribose)."
+            " Returns numpy bool array. Read only.")
+    is_side_connectors = cvec_property('atom_is_side_connector', npy_bool, read_only = True,
+        doc="Whether each atom is needed to connect to backbone (CA/ribose)."
+            " Returns numpy bool array. Read only.")
+    is_side_onlys = cvec_property('atom_is_side_only', npy_bool, read_only = True,
+        doc="Whether each atom is part of an amino/nucleic acid sidechain."
+            " Does not include atoms needed to connect to backbone (CA/ribose)."
             " Returns numpy bool array. Read only.")
     occupancies = cvec_property('atom_occupancy', float32)
 
@@ -489,8 +490,16 @@ class Atoms(Collection):
     selected = cvec_property('atom_selected', npy_bool,
         doc="numpy bool array whether each Atom is selected.")
     selecteds = selected
-    serial_numbers = cvec_property('atom_serial_number', uint32, read_only = True,
-        doc="Serial numbers of atoms")
+    @property
+    def num_selected(self):
+        "Number of selected atoms."
+        f = c_function('atom_num_selected',
+                       args = [ctypes.c_void_p, ctypes.c_size_t],
+                       ret = ctypes.c_size_t)
+        return f(self._c_pointers, len(self))
+    has_selected_bonds = cvec_property('atom_has_selected_bond', npy_bool, read_only = True)
+    '''For each atom is any connected bond selected.'''
+    serial_numbers = cvec_property('atom_serial_number', int32, doc="Serial numbers of atoms")
     @property
     def shown_atoms(self):
         '''
@@ -539,7 +548,7 @@ class Atoms(Collection):
     visibles = cvec_property('atom_visible', npy_bool, read_only=True,
         doc="Returns whether the Atom should be visible (displayed and not hidden). Returns a "
         ":mod:`numpy` array of boolean values.  Read only.")
-    alt_locs = cvec_property('atom_alt_loc', byte, astype=bytearray,
+    alt_locs = cvec_property('atom_alt_loc', string,
                          doc='Returns current alternate location indicators')
 
     def __init__(self, c_pointers = None, guaranteed_live_pointers = False):
@@ -675,6 +684,11 @@ class Bonds(Collection):
     Can be set with such an array (or equivalent sequence), or with a
     single floating-point number.
     '''
+    selected = cvec_property('bond_selected', npy_bool)
+    '''numpy bool array whether each Bond is selected.'''
+    selecteds = selected
+    ends_selected = cvec_property('bond_ends_selected', npy_bool, read_only = True)
+    '''For each bond are both of its endpoint atoms selected.'''
     showns = cvec_property('bond_shown', npy_bool, read_only = True)
     '''
     Whether each bond is displayed, visible and has both atoms shown,
@@ -684,9 +698,33 @@ class Bonds(Collection):
     '''Returns an :class:`.StructureDatas` with the structure for each bond. Read only.'''
 
     @property
+    def unique_structures(self):
+        "The unique structures as an :class:`.AtomicStructures` collection"
+        return self.structures.unique()
+
+    @property
+    def by_structure(self):
+        "Return list of 2-tuples of (structure, Bonds for that structure)."
+        bstruct = self.structures._pointers
+        return [(us, self.filter(bstruct==us._c_pointer.value)) for us in self.unique_structures]
+
+    def delete(self):
+        '''Delete the C++ Bonds objects'''
+        c_function('bond_delete',
+            args = [ctypes.c_void_p, ctypes.c_size_t])(self._c_pointers, len(self))
+
+    @property
     def num_shown(self):
         '''Number of bonds shown.'''
         f = c_function('bonds_num_shown', args = [ctypes.c_void_p, ctypes.c_size_t], ret = ctypes.c_size_t)
+        return f(self._c_pointers, len(self))
+
+    @property
+    def num_selected(self):
+        "Number of selected bonds."
+        f = c_function('bonds_num_selected',
+                       args = [ctypes.c_void_p, ctypes.c_size_t],
+                       ret = ctypes.c_size_t)
         return f(self._c_pointers, len(self))
 
     @property
@@ -810,6 +848,9 @@ class Pseudobonds(Collection):
     Can be set with such an array (or equivalent sequence), or with a
     single floating-point number.
     '''
+    selected = cvec_property('pseudobond_selected', npy_bool)
+    '''numpy bool array whether each Pseudobond is selected.'''
+    selecteds = selected
     showns = cvec_property('pseudobond_shown', npy_bool, read_only = True)
     '''
     Whether each pseudobond is displayed, visible and has both atoms displayed.
@@ -860,6 +901,14 @@ class Pseudobonds(Collection):
         gps = self.groups
         gpp = gps._pointers
         return [(g, self.filter(gpp==g._c_pointer.value)) for g in gps.unique()]
+
+    @property
+    def num_selected(self):
+        "Number of selected pseudobonds."
+        f = c_function('pseudobonds_num_selected',
+                       args = [ctypes.c_void_p, ctypes.c_size_t],
+                       ret = ctypes.c_size_t)
+        return f(self._c_pointers, len(self))
 
     _ses_ids = cvec_property('pseudobond_get_session_id', int32, read_only = True,
         doc="Used internally to save/restore in sessions")
@@ -1139,6 +1188,9 @@ class StructureDatas(Collection):
     def __init__(self, mol_pointers):
         Collection.__init__(self, mol_pointers, molobject.StructureData, StructureDatas)
 
+    alt_loc_change_notifies = cvec_property('structure_alt_loc_change_notify', npy_bool)
+    '''Whether notifications are issued when altlocs are changed.  Should only be
+    set to true when temporarily changing alt locs in a Python script. Numpy bool array.'''
     atoms = cvec_property('structure_atoms', cptr, 'num_atoms', astype = _atoms,
                           read_only = True, per_object = False)
     '''A single :class:`.Atoms` containing atoms for all structures. Read only.'''
@@ -1148,7 +1200,7 @@ class StructureDatas(Collection):
     chains = cvec_property('structure_chains', cptr, 'num_chains', astype = _chains,
                            read_only = True, per_object = False)
     '''A single :class:`.Chains` object containing chains for all structures. Read only.'''
-    lower_case_chains = cvec_property('structure_lower_case_chains', npy_bool, read_only=True)
+    lower_case_chains = cvec_property('structure_lower_case_chains', npy_bool)
     '''A numpy bool array of lower_case_names of each structure.'''
     num_atoms = cvec_property('structure_num_atoms', size_t, read_only = True)
     '''Number of atoms in each structure. Read only.'''
@@ -1257,6 +1309,8 @@ class CoordSets(Collection):
     def __init__(self, cs_pointers = None):
         Collection.__init__(self, cs_pointers, molobject.CoordSet, CoordSets)
 
+    ids = cvec_property('coordset_id', uint32, read_only = True,
+        doc="ID numbers of coordsets")
     structures = cvec_property('coordset_structure', cptr, astype=_atomic_structures,
         read_only=True, doc="Returns an :class:`AtomicStructure` for each coordset. Read only.")
 

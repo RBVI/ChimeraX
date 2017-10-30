@@ -21,7 +21,7 @@
 # Can use -1 for last frame.  Frame numbers start at 1.
 #
 def coordset(session, structures, index_range, hold_steady = None,
-             pause_frames = 1, loop = 1, compute_ss = False):
+             pause_frames = 1, loop = 1, bounce = False, compute_ss = False):
   '''
   Change which coordinate set is shown for a structure.  Can play through
   a range of coordinate sets.  
@@ -30,13 +30,14 @@ def coordset(session, structures, index_range, hold_steady = None,
   ----------
   structures : list of Structure
     List of structures to show as assemblies.
-  index_range : 3-tuple with integer or None elements
+  index_range : 3-tuple with integer or None elements, or just None
     Starting, ending and step coordinate set ids.  If starting id is None start with
     the currently shown coordinate set.  If ending id is None treat it as the last
     coordset.  If step id is None use step 1 if start < end else step -1.  Otherwise
     coordinate set is changed from start to end incrementing by step with one step
     taken per graphics frame.  Negative start / end ids are relative to the (one past)
     the last coordinate set, so -1 refers to the last coordinate set.
+	If index_range is just None, then treated as 1,None,None.
   hold_steady : Atoms
     Collection of atoms to hold steady while changing coordinate set.
     The atomic structure is repositioned to minimize change in RMSD of these atoms.
@@ -45,6 +46,8 @@ def coordset(session, structures, index_range, hold_steady = None,
      down playback.  Default 1.
   loop : integer
     How many times to repeat playing through the coordinates in the specified range.
+  bounce : bool
+    Whether to reverse direction instead of jumping to beginning when looping.  Default false.
   compute_ss : bool
     Whether to recompute secondary structure using dssp for every new frame.  Default false.
   '''
@@ -53,10 +56,13 @@ def coordset(session, structures, index_range, hold_steady = None,
     from ..errors import UserError
     raise UserError('No structures specified')
 
+  if index_range is None:
+  	index_range = (1,None,None)
   for m in structures:
     s,e,step = absolute_index_range(index_range, m)
     hold = hold_steady.intersect(m.atoms) if hold_steady else None
-    CoordinateSetPlayer(m, s, e, step, hold, pause_frames, loop, compute_ss).start()
+    csp = CoordinateSetPlayer(m, s, e, step, hold, pause_frames, loop, bounce, compute_ss)
+    csp.start()
 
 # -----------------------------------------------------------------------------
 #
@@ -92,13 +98,14 @@ def coordset_slider(session, structures, hold_steady = None,
 # -----------------------------------------------------------------------------
 #
 def register_command(session):
-    from . import CmdDesc, register, StructuresArg, ListOf, IntArg, AtomsArg, BoolArg
+    from . import CmdDesc, register, StructuresArg, ListOf, IntArg, AtomsArg, BoolArg, Or, EmptyArg
     desc = CmdDesc(
         required = [('structures', StructuresArg),
-                    ('index_range', IndexRangeArg)],
+                    ('index_range', Or(IndexRangeArg,EmptyArg))],
         keyword = [('hold_steady', AtomsArg),
                    ('pause_frames', IntArg),
                    ('loop', IntArg),
+                   ('bounce', BoolArg),
                    ('compute_ss', BoolArg)],
         synopsis = 'show coordinate sets')
     register('coordset', desc, coordset, logger=session.logger)
@@ -176,7 +183,8 @@ def absolute_index_range(index_range, mol):
 class CoordinateSetPlayer:
 
   def __init__(self, structure, istart, iend, istep,
-               steady_atoms = None, pause_frames = 1, loop = 1, compute_ss = False):
+               steady_atoms = None, pause_frames = 1, loop = 1, bounce = False,
+               compute_ss = False):
 
     self.structure = structure
     self.istart = istart
@@ -186,6 +194,8 @@ class CoordinateSetPlayer:
     self.steady_atoms = steady_atoms
     self.pause_frames = pause_frames
     self.loop = loop
+    self.bounce = bounce
+    self._reverse = False	# Whether playing in opposite direction after bounce
     self.compute_ss = compute_ss
     self._pause_count = 0
     self._steady_coords = None
@@ -219,14 +229,20 @@ class CoordinateSetPlayer:
       return
     i = self.inext
     self.change_coordset(i)
-    self.inext += self.istep
-    if ((self.istep > 0 and self.inext > self.iend) or
-        (self.istep < 0 and self.inext < self.iend)):
-      if self.loop <= 1:
-        self.stop()
-      else:
-        self.inext = self.istart
+    s,e,st = self.istart, self.iend, self.istep
+    i += (-st if self._reverse else st)
+    if (s <= e and s <= i and i <= e) or (s > e and e <= i and i <= s):
+      self.inext = i
+    else:
+      # Reached the end of the range.  Loop or stop.
+      if self.bounce:
+        self._reverse = not self._reverse
+      r = self._reverse
+      self.inext = e if r else s
+      if not r:
         self.loop -= 1
+      if self.loop <= 0:
+        self.stop()
 
   def change_coordset(self, cs):
     m = self.structure

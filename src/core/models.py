@@ -97,7 +97,8 @@ class Model(State, Drawing):
         if val == self._name:
             return
         self._name = val
-        self.session.triggers.activate_trigger(MODEL_NAME_CHANGED, self)
+        if self._id != None:  # model actually open
+            self.session.triggers.activate_trigger(MODEL_NAME_CHANGED, self)
     name = property(_get_name, _set_name)
 
     def _model_set_position(self, pos):
@@ -216,6 +217,10 @@ class Model(State, Drawing):
         # Return True if there are atoms in this model
         return False
 
+    def atomspec_has_pseudobonds(self):
+        # Return True if there are pseudobonds in this model
+        return False
+
     def atomspec_zone(self, session, coords, distance, target_type, operator, results):
         # Ignore zone request by default
         pass
@@ -274,7 +279,7 @@ class Models(State):
         return m
 
     def reset_state(self, session):
-        self.remove([m for m in self.list() if not m.SESSION_ENDURING])
+        self.close([m for m in self.list() if not m.SESSION_ENDURING])
 
     def list(self, model_id=None, type=None):
         if model_id is None:

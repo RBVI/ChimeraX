@@ -11,8 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from . import Annotation, AnnotationError
-
 
 def undo(session):
     '''Undo last undoable action.
@@ -22,12 +20,14 @@ def undo(session):
     except IndexError:
         session.logger.error("No undo action is available")
 
+
 def undo_list(session):
     '''List undoable actions
     '''
     msgs = _list_stack("undo", session.undo.undo_stack)
     msgs.extend(_list_stack("redo", session.undo.redo_stack))
     session.logger.info(''.join(msgs), is_html=True)
+
 
 def _list_stack(label, stack):
     msgs = ["<p>There are %d %s actions</p>" % (len(stack), label)]
@@ -37,10 +37,12 @@ def _list_stack(label, stack):
     msgs.append("</ul>")
     return msgs
 
+
 def undo_clear(session):
     '''Clear all undoable and redoable actions
     '''
     stack = session.undo.clear()
+
 
 def undo_depth(session, depth=None):
     if depth is None:
@@ -55,6 +57,7 @@ def undo_depth(session, depth=None):
         else:
             session.logger.info("Undo stack depth is unlimited")
 
+
 def redo(session):
     '''Redo last undone action.
     '''
@@ -62,6 +65,7 @@ def redo(session):
         session.undo.redo()
     except IndexError:
         session.logger.error("No redo action is available")
+
 
 def register_command(session):
     from . import CmdDesc, register, IntArg
@@ -74,5 +78,8 @@ def register_command(session):
     desc = CmdDesc(optional=[('depth', IntArg)],
                    synopsis='set undo/redo stack depth')
     register('undo depth', desc, undo_depth, logger=session.logger)
-    desc = CmdDesc(synopsis='redo last undone action')
+    desc = CmdDesc(
+        synopsis='redo last undone action',
+        url='help:user/commands/undo.html#redo'
+    )
     register('redo', desc, redo, logger=session.logger)

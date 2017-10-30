@@ -117,8 +117,16 @@ without losing the overall window configuration.
 Icon toolbars and the <a href="tools/cli.html"><b>Command Line</b></a>
 are excluded from this toggling.
 </p><p>
-Panel contents (away from the title bar) may have their own specific context menus.
+Panel contents (away from the title bar) may have their own specific context menus,
+typically including:
 </p>
+<ul>
+<li><b>Hide this tool</b>
+<li><b>Help</b>
+- show documentation in the <a href="#browser"><b>Help Viewer</b></a>
+<li>(if applicable) <b>Start this tool at ChimeraX startup</b>
+- whether the ChimeraX window should include the tool upon subsequent startup
+</ul>
 
 <a name="browser"></a>
 <p class="nav">
@@ -127,18 +135,17 @@ Panel contents (away from the title bar) may have their own specific context men
 <h3>ChimeraX Browser and Help Viewer</h3>
 <p>
 The <b>Help Viewer</b> is a built-in HTML browser. 
-ChimeraX help pages are written in HTML and can be shown in the 
-<b>Help Viewer</b> by using the <b>Help</b> menu, the
+ChimeraX help pages are written in HTML and can be shown in 
+this built-in browser using the <b>Help</b> menu, the
 <a href="commands/help.html"><b>help</b></a> command, tool context menus,
 and/or links in the <a href="tools/log.html"><b>Log</b></a>.
 The <b>Help Viewer</b> opens as a separate window, but can be
 docked to and undocked from the main window like other panels,
 as described <a href="#panelcontrol">above</a>.
-The name listed for the <b>Help Viewer</b> in panel title-bar menus
-will be the title of the HTML page it is showing.
-Buttons and context menus are provided for navigation
-(back, forward, reload) and adjusting the font size, 
-and there is a field for entering search text.
+(In panel title-bar menus, it is listed
+by the title of the HTML page it is showing.)
+It includes a search field and icon buttons for navigation
+(back, forward, reload), opening a new tab, and adjusting the font size.
 </p><p>
 An important advantage of the built-in browser is that it provides a simple
 mechanism to execute ChimeraX commands by clicking special links, for example:
@@ -171,8 +178,38 @@ can be shown in the ChimeraX browser with commands:
 <br>&ndash; or &ndash;<br>
 <b><a href="commands/open.html">open</a> &nbsp;<i>local-file.html</i></b>
 </blockquote>
+<p>
 Local files can also be opened with <b>File... Open</b> in the menu.
+</p><p>
+<b>Help Viewer</b> keyboard shortcuts 
+(on Mac, <img src="icon-clover.png" width="12px"> replaces Ctrl):
+</p>
+<blockquote>
+<table border cellpadding="4" cellspacing="0">
+<tr>
+<th>keyboard shortcut</th><th>action</th>
+</tr><tr>
+<td>Ctrl-+, Ctrl-=</td><td align="center">enlarge</td>
+</tr><tr>
+<td>Ctrl--</td><td align="center">shrink</td>
+</tr><tr>
+<td>Ctrl-0</td><td align="center">baseline size</td>
+</tr><tr>
+<td>Ctrl-t</td><td align="center">open new tab</td>
+</tr><tr>
+<td>Ctrl-w</td><td align="center">close current tab</td>
+</tr><tr>
+<td>Ctrl-tab</td><td align="center">next tab</td>
+</tr><tr>
+<td>Ctrl-Shift-tab</td><td align="center">previous tab</td>
+</tr><tr>
+<td>Ctrl-N (N = 1&ndash;8)</td><td align="center">Nth tab</td>
+</tr><tr>
+<td>Ctrl-9</td><td align="center">last (rightmost) tab</td>
+</tr>
+</table>
+</blockquote>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-August 2017</address>
+October 2017</address>
 </body></html> 

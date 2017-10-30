@@ -27,7 +27,7 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>setattr</b>
 &nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
-&nbsp;<i>level</i> &nbsp;<i>attr_name</i>&nbsp; &nbsp;<i>value</i>&nbsp;
+&nbsp;<i>level</i> &nbsp;<i>attr-name</i>&nbsp; &nbsp;<i>value</i>&nbsp;
 [&nbsp;<b>create</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 </h3>
 <p>
@@ -37,16 +37,16 @@ of the <a href="atomspec.html">specified</a> items
 at the indicated <i>level</i> to a single user-supplied value.
 The attribute may remain multi-valued, however, 
 as only a subset of the items may have been specified.
+Following the usual convention, a blank specification means &ldquo;all.&rdquo;
 A new attribute will not be created unless <b>create</b> is true 
 (default <b>false</b>).
 </p><p>
 Although <b>setattr</b> does not restrict which attributes it can affect,
-using it for certain attributes may not make sense.
-In some cases, another command already exists to perform the same task.
-For example, the following are equivalent:
+using it for certain attributes may not make sense. In some cases,
+another command may already exist to perform the same task, for example:
 <blockquote>
 <b>setattr /a res ribbon_color orange</b>
-<br>
+<br>&ndash; is equivalent to &ndash;<br>
 <a href="color.html"><b>color</b></a> <b>/a orange targ r</b>
 </blockquote>
 <!--
@@ -57,6 +57,7 @@ evaluated before the attribute value is changed.
 -->
 </p><p>
 The <i>level</i> can be any one of the following, with truncations allowed:
+</p>
 <ul>
 <li><b>atoms</b>
 <li><b>residues</b>
@@ -64,14 +65,27 @@ The <i>level</i> can be any one of the following, with truncations allowed:
 <li><b>bonds</b>
 <li><b>pseudobonds</b>
 - individual <a href="../pseudobonds.html">pseudobonds</a>
+  <ul class="none"><li>example:
+  <b>setattr <a href="atomspec.html#builtin">sel</a> p radius 0.5</b></ul>
 <li><b>structures</b> - atomic models
 <li><b>surfaces</b> - surface models
 <li><b>groups</b> - <a href="../pseudobonds.html">pseudobond models</a>
+  <ul class="none"><li>example: <b>setattr g halfbond false</b></ul>
 <li><b>models</b> - models of all applicable types
 </ul>
+<p>
+Regardless of whether the attribute already exists, 
+the data type is discerned as follows: 
 </p>
+<ol>
+<li> the value is parsed to identify data type in the order:
+Boolean, integer, floating-point (real), character string
+<li>if the data type is character string and 
+<i>attr-name</i> ends in &ldquo;color,&rdquo;
+the value is interpreted as a <a href="colornames.html">color specifier</a>
+</ol>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2017</address>
+September 2017</address>
 </body></html>

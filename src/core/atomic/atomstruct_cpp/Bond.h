@@ -35,8 +35,7 @@ class Structure;
 class ATOMSTRUCT_IMEX Bond: public UniqueConnection, public PythonInstance {
     friend class Structure;
 public:
-    // HIDE_ constants are masks for hide bits in Atom
-    static const unsigned int  HIDE_RIBBON = 0x1;
+    // use Atom::HIDE_* constants for hide bits
     typedef std::vector<const Ring*>  Rings;
 private:
     Bond(Structure*, Atom*, Atom*);
@@ -47,7 +46,6 @@ private:
         { return "Can't bond an atom to itself"; }
     mutable Rings  _rings;
 
-    static int  session_base_version(int /*version*/) { return 1; }
     static int  SESSION_NUM_INTS(int /*version*/=CURRENT_SESSION_VERSION) { return 0; }
     static int  SESSION_NUM_FLOATS(int /*version*/=CURRENT_SESSION_VERSION) { return 0; }
 public:
@@ -69,12 +67,10 @@ public:
 
     // session related
     static int  session_num_floats(int version=CURRENT_SESSION_VERSION) {
-        return SESSION_NUM_FLOATS(version)
-            + UniqueConnection::session_num_floats(session_base_version(version));
+        return SESSION_NUM_FLOATS(version) + UniqueConnection::session_num_floats(version);
     }
     static int  session_num_ints(int version=CURRENT_SESSION_VERSION) {
-        return SESSION_NUM_INTS(version)
-            + UniqueConnection::session_num_ints(session_base_version(version));
+        return SESSION_NUM_INTS(version) + UniqueConnection::session_num_ints(version);
     }
     // session_restore and session_save simply inherited from UniqueConnection
 

@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .hbond import rec_dist_slop, rec_angle_slop, find_hbonds
+from .hbond import rec_dist_slop, rec_angle_slop, find_hbonds, find_coordset_hbonds
 
 from chimerax.core.atomic import AtomicStructure, Atoms
 from chimerax.core.colors import BuiltinColors
@@ -23,7 +23,7 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
     reveal=False, naming_style=None, log=False, cache_DA=None,
     color=AtomicStructure.default_hbond_color, slop_color=BuiltinColors["dark orange"],
     show_dist=False, intra_res=True, intra_mol=True, dashes=None,
-    salt_only=False, name="hydrogen bonds"):
+    salt_only=False, name="hydrogen bonds", coordsets=True):
 
     """Wrapper to be called by command line.
 
@@ -63,36 +63,56 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
     if not relax:
         dist_slop = angle_slop = 0.0
 
-    if cache_DA == None:
-        # cache trajectories by default
-        cache_DA = len(structures) == 1 and structures[0].num_coordsets > 1
+    base_kw = {
+        'inter_model': inter_model,
+        'intra_model': intra_model,
+        'donors': donors,
+        'acceptors': acceptors,
+        'inter_submodel': inter_submodel,
+        'cache_da': cache_DA
+    }
 
-    hbonds = find_hbonds(session, structures, inter_model=inter_model,
-        intra_model=intra_model, dist_slop=dist_slop,
-        angle_slop=angle_slop, donors=donors, acceptors=acceptors,
-        inter_submodel=inter_submodel, cache_da=cache_DA)
-    # filter on salt bridges first, since we need access to all H-bonds in order
-    # to assess which histidines should be considered salt-bridge donors
-    if salt_only:
-        sb_donors, sb_acceptors = salt_preprocess(hbonds)
-        hbonds = [hb for hb in hbonds
-            if hb[0] in sb_donors and hb[1] in sb_acceptors]
-    hbonds = restrict_hbonds(hbonds, atoms, restrict)
-    if not intra_mol:
-        mol_num = 0
-        mol_map = {}
-        for s in structures:
-            for m in s.molecules:
-                mol_num += 1
-                for a in m:
-                    mol_map[a] = mol_num
-        hbonds = [hb for hb in hbonds if mol_map[hb[0]] != mol_map[hb[1]]]
-    if not intra_res:
-        hbonds = [hb for hb in hbonds if hb[0].residue != hb[1].residue]
+    doing_coordsets = coordsets and len(structures) == 1 and structures[0].num_coordsets > 1
+    if doing_coordsets:
+        hb_func = find_coordset_hbonds
+        struct_info = structures[0]
+    else:
+        hb_func = find_hbonds
+        struct_info = structures
+
+    result = hb_func(session, struct_info, dist_slop=dist_slop, angle_slop=angle_slop, **base_kw)
+    if doing_coordsets:
+        hb_lists = result
+    else:
+        hb_lists = [result]
+    for hbonds in hb_lists:
+        # filter on salt bridges first, since we need access to all H-bonds in order
+        # to assess which histidines should be considered salt-bridge donors
+        if salt_only:
+            sb_donors, sb_acceptors = salt_preprocess(hbonds)
+            hbonds = [hb for hb in hbonds
+                if hb[0] in sb_donors and hb[1] in sb_acceptors]
+        hbonds[:] = restrict_hbonds(hbonds, atoms, restrict)
+        if not intra_mol:
+            mol_num = 0
+            mol_map = {}
+            for s in structures:
+                for m in s.molecules:
+                    mol_num += 1
+                    for a in m:
+                        mol_map[a] = mol_num
+            hbonds[:] = [hb for hb in hbonds if mol_map[hb[0]] != mol_map[hb[1]]]
+        if not intra_res:
+            hbonds[:] = [hb for hb in hbonds if hb[0].residue != hb[1].residue]
 
 
-    output_info = (inter_model, intra_model, relax, dist_slop, angle_slop,
-                            structures, hbonds)
+    if doing_coordsets:
+        cs_ids = structures[0].coordset_ids
+        output_info = (inter_model, intra_model, relax, dist_slop, angle_slop,
+                                structures, hb_lists, cs_ids)
+    else:
+        output_info = (inter_model, intra_model, relax, dist_slop, angle_slop,
+                                structures, result, None)
     if log:
         import io
         buffer = io.StringIO()
@@ -100,41 +120,43 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
         _file_output(buffer, output_info, naming_style)
         buffer.write("</pre>")
         session.logger.info(buffer.getvalue(), is_html=True)
-    if save_file == '-':
-        from chimerax.core.errors import LimitationError
-        raise LimitationError("Browsing for file name not yet implemented")
-        #TODO
-        from MolInfoDialog import SaveMolInfoDialog
-        SaveMolInfoDialog(output_info, _file_output,
-                    initialfile="hbond.info",
-                    title="Choose H-Bond Save File",
-                    historyID="H-bond info")
-    elif save_file is not None:
+    if save_file is not None:
         _file_output(save_file, output_info, naming_style)
 
-    session.logger.status("%d hydrogen bonds found" % len(hbonds), log=True, blank_after=120)
+    if doing_coordsets:
+        session.logger.status("%d hydrogen bonds found in %d coordsets" % (sum([len(hbs)
+            for hbs in hb_lists]), len(cs_ids)), log=True, blank_after=120)
+    else:
+        session.logger.status("%d hydrogen bonds found" % len(result), log=True, blank_after=120)
     if not make_pseudobonds:
         return
 
     if two_colors:
         # color relaxed constraints differently
-        precise = find_hbonds(session, structures,
-            inter_model=inter_model, intra_model=intra_model,
-            donors=donors, acceptors=acceptors,
-            inter_submodel=inter_submodel, cache_da=cache_DA)
-        precise = restrict_hbonds(precise, atoms, restrict)
-        if not intra_mol:
-            precise = [hb for hb in precise is mol_map[hb[0]] != mol_map[hb[1]]]
-        if not intra_res:
-            precise = [hb for hb in precise if hb[0].residue != hb[1].residue]
-        if salt_only:
-            precise = [hb for hb in precise
-                if hb[0] in sb_donors and hb[1] in sb_acceptors]
+        precise_result = hb_func(session, struct_info, **base_kw)
+        if doing_coordsets:
+            precise_lists = precise_result
+        else:
+            precise_lists = [precise_result]
+        for precise in precise_lists:
+            precise[:] = restrict_hbonds(precise, atoms, restrict)
+            if not intra_mol:
+                precise[:] = [hb for hb in precise is mol_map[hb[0]] != mol_map[hb[1]]]
+            if not intra_res:
+                precise[:] = [hb for hb in precise if hb[0].residue != hb[1].residue]
+            if salt_only:
+                precise[:] = [hb for hb in precise
+                    if hb[0] in sb_donors and hb[1] in sb_acceptors]
         # give another opportunity to read the result...
-        session.logger.status("%d hydrogen bonds found" % len(hbonds), blank_after=120)
+        if doing_coordsets:
+            session.logger.status("%d strict hydrogen bonds found in %d coordsets" % (sum([len(hbs)
+                for hbs in precise_lists]), len(cs_ids)), log=True, blank_after=120)
+        else:
+            session.logger.status("%d strict hydrogen bonds found" % len(precise_result),
+                log=True, blank_after=120)
 
     # a true inter-model computation should be placed in a global group, otherwise
-    # into indvidual per-structure groups
+    # into individual per-structure groups
     submodels = False
     m_ids = set()
     for s in structures:
@@ -153,74 +175,83 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
                     closures.append(pbg)
             if closures:
                 session.models.close(closures)
-        hb_info = [(hbonds, session.pb_manager.get_group(name))]
+        hb_info = [(result, session.pb_manager.get_group(name))]
+    elif doing_coordsets:
+        hb_info = [(result, structures[0].pseudobond_group(name, create_type="coordset"))]
     else:
         per_structure = {s:[] for s in structures}
-        for hb in hbonds:
+        for hb in result:
             per_structure[hb[0].structure].append(hb)
         hb_info = [(hbs, s.pseudobond_group(name, create_type="coordset"))
             for s, hbs in per_structure.items()]
 
     for grp_hbonds, pbg in hb_info:
-        pre_existing = {}
         if not retain_current:
             pbg.clear()
             pbg.color = bond_color.uint8x4()
             pbg.radius = radius
             pbg.dashes = dashes if dashes is not None else AtomicStructure.default_hbond_dashes
         else:
-            for pb in pbg.pseudobonds:
-                pre_existing[pb.atoms] = pb
             if dashes is not None:
                 pbg.dashes = dashes
+        if not doing_coordsets:
+            grp_hbonds = [grp_hbonds]
 
-        from chimerax.core.geometry import distance_squared
-        for don, acc in grp_hbonds:
-            nearest = None
-            for h in [x for x in don.neighbors if x.element.number == 1]:
-                sqdist = distance_squared(h.scene_coord, acc.scene_coord)
-                if nearest is None or sqdist < nsqdist:
-                    nearest = h
-                    nsqdist = sqdist
-            if nearest is not None:
-                don = nearest
-            pb = pre_existing[(don,acc)] if (don,acc) in pre_existing \
-                else pbg.new_pseudobond(don, acc)
-            if two_colors:
-                if (don, acc) in precise:
-                    color = bond_color
-                else:
-                    color = slop_color
+        for i, cs_hbonds in enumerate(grp_hbonds):
+            pre_existing = {}
+            if doing_coordsets:
+                cs_id = cs_ids[i]
+                pbg_pseudobonds = pbg.get_pseudobonds(cs_id)
             else:
-                color = bond_color
-            rgba = pb.color
-            rgba[:3] = color.uint8x4()[:3] # preserve transparency
-            pb.color = rgba
-            pb.radius = radius
-            if reveal:
-                for end in [don, acc]:
-                    if end.display:
-                        continue
-                    for ea in end.residue.atoms:
-                        ea.display = True
-        #from StructMeasure import DistMonitor
-        if show_dist:
-            from chimerax.core.errors import LimitationError
-            raise LimitationError("Showing distance on H-bonds not yet implemented")
-            #TODO
-        """
-            DistMonitor.addMonitoredGroup(pbg)
-        else:
-            DistMonitor.removeMonitoredGroup(pbg)
-            global _sceneHandlersAdded
-            if not _sceneHandlersAdded:
-                from chimera import triggers, SCENE_TOOL_SAVE, SCENE_TOOL_RESTORE
-                triggers.addHandler(SCENE_TOOL_SAVE, _sceneSave, None)
-                triggers.addHandler(SCENE_TOOL_RESTORE, _sceneRestore, None)
-                _sceneHandlersAdded = True
-        """
+                pbg_pseudobonds = pbg.pseudobonds
+            if two_colors:
+                precise = set(precise_lists[i])
+            if retain_current:
+                for pb in pbg_pseudobonds:
+                    pre_existing[pb.atoms] = pb
+
+            from chimerax.core.geometry import distance_squared
+            for don, acc in cs_hbonds:
+                nearest = None
+                heavy_don = don
+                for h in [x for x in don.neighbors if x.element.number == 1]:
+                    sqdist = distance_squared(h.scene_coord, acc.scene_coord)
+                    if nearest is None or sqdist < nsqdist:
+                        nearest = h
+                        nsqdist = sqdist
+                if nearest is not None:
+                    don = nearest
+                if (don,acc) in pre_existing:
+                    pb = pre_existing[(don,acc)]
+                else:
+                    if doing_coordsets:
+                        pb = pbg.new_pseudobond(don, acc, cs_id)
+                    else:
+                        pb = pbg.new_pseudobond(don, acc)
+                if two_colors:
+                    if (heavy_don, acc) in precise:
+                        color = bond_color
+                    else:
+                        color = slop_color
+                else:
+                    color = bond_color
+                rgba = pb.color
+                rgba[:3] = color.uint8x4()[:3] # preserve transparency
+                pb.color = rgba
+                pb.radius = radius
+                if reveal:
+                    for end in [don, acc]:
+                        if end.display:
+                            continue
+                        for ea in end.residue.atoms:
+                            ea.display = True
         if pbg.id is None:
             session.models.add([pbg])
+
+        if show_dist:
+            session.pb_dist_monitor.add_group(pbg)
+        else:
+            session.pb_dist_monitor.remove_group(pbg)
 
 def restrict_hbonds(hbonds, atoms, restrict):
     filtered = []
@@ -251,7 +282,7 @@ def restrict_hbonds(hbonds, atoms, restrict):
 
 def _file_output(file_name, output_info, naming_style):
     inter_model, intra_model, relax_constraints, \
-            dist_slop, angle_slop, structures, hbonds = output_info
+            dist_slop, angle_slop, structures, hbond_info, cs_ids = output_info
     from chimerax.core.io import open_filename
     out_file = open_filename(file_name, 'w')
     if inter_model:
@@ -266,41 +297,62 @@ def _file_output(file_name, output_info, naming_style):
     out_file.write("Models used:\n")
     for s in structures:
         out_file.write("\t%s %s\n" % (s.id_string(), s.name))
-    out_file.write("\nH-bonds (donor, acceptor, hydrogen, D..A dist, D-H..A dist):\n")
-    # want the bonds listed in some kind of consistent order...
-    hbonds.sort()
+    if cs_ids is None:
+        hbond_lists = [hbond_info]
+    else:
+        hbond_lists = hbond_info
 
-    # figure out field widths to make things line up
-    dwidth = awidth = hwidth = 0
-    labels = {}
-    from chimerax.core.geometry import distance
-    for don, acc in hbonds:
-        labels[don] = don.__str__(style=naming_style)
-        labels[acc] = acc.__str__(style=naming_style)
-        dwidth = max(dwidth, len(labels[don]))
-        awidth = max(awidth, len(labels[acc]))
-        da = distance(don.scene_coord, acc.scene_coord)
-        dha = None
-        for h in don.neighbors:
-            if h.element.number != 1:
-                continue
-            d = distance(h.scene_coord, acc.scene_coord)
-            if dha is None or d < dha:
-                dha = d
-                hyd = h
-        if dha is None:
-            dha_out = "N/A"
-            hyd_out = "no hydrogen"
+    for i, hbonds in enumerate(hbond_lists):
+        if cs_ids is None:
+            cs_id = None
         else:
-            dha_out = "%5.3f" % dha
-            hyd_out = hyd.__str__(style=naming_style)
-        hwidth = max(hwidth, len(hyd_out))
-        labels[(don, acc)] = (hyd_out, da, dha_out)
-    for don, acc in hbonds:
-        hyd_out, da, dha_out = labels[(don, acc)]
-        out_file.write("%*s  %*s  %*s  %5.3f  %s\n" % (
-            0-dwidth, labels[don], 0-awidth, labels[acc],
-            0-hwidth, hyd_out, da, dha_out))
+            cs_id = cs_ids[i]
+            out_file.write("\nCoordinate set %d" % cs_id)
+        out_file.write("\nH-bonds (donor, acceptor, hydrogen, D..A dist, D-H..A dist):\n")
+        # want the bonds listed in some kind of consistent order...
+        hbonds.sort()
+
+        # figure out field widths to make things line up
+        dwidth = awidth = hwidth = 0
+        labels = {}
+        from chimerax.core.geometry import distance
+        for don, acc in hbonds:
+            if cs_id is None:
+                don_coord = don.scene_coord
+                acc_coord = acc.scene_coord
+            else:
+                don_coord = don.get_coordset_coord(cs_id)
+                acc_coord = acc.get_coordset_coord(cs_id)
+            labels[don] = don.__str__(style=naming_style)
+            labels[acc] = acc.__str__(style=naming_style)
+            dwidth = max(dwidth, len(labels[don]))
+            awidth = max(awidth, len(labels[acc]))
+            da = distance(don_coord, acc_coord)
+            dha = None
+            for h in don.neighbors:
+                if h.element.number != 1:
+                    continue
+                if cs_id is None:
+                    h_coord = h.scene_coord
+                else:
+                    h_coord = h.get_coordset_coord(cs_id)
+                d = distance(h_coord, acc_coord)
+                if dha is None or d < dha:
+                    dha = d
+                    hyd = h
+            if dha is None:
+                dha_out = "N/A"
+                hyd_out = "no hydrogen"
+            else:
+                dha_out = "%5.3f" % dha
+                hyd_out = hyd.__str__(style=naming_style)
+            hwidth = max(hwidth, len(hyd_out))
+            labels[(don, acc)] = (hyd_out, da, dha_out)
+        for don, acc in hbonds:
+            hyd_out, da, dha_out = labels[(don, acc)]
+            out_file.write("%*s  %*s  %*s  %5.3f  %s\n" % (
+                0-dwidth, labels[don], 0-awidth, labels[acc],
+                0-hwidth, hyd_out, da, dha_out))
     if out_file != file_name:
         # we opened it, so close it...
         out_file.close()
@@ -392,7 +444,7 @@ def register_command(command_name, logger):
                 ('reveal', BoolArg), ('retain_current', BoolArg), ('save_file', SaveFileNameArg),
                 ('log', BoolArg), ('naming_style', EnumOf(('simple', 'command', 'serial'))),
                 ('batch', BoolArg), ('dashes', NonNegativeIntArg), ('salt_only', BoolArg),
-                ('name', StringArg)],
+                ('name', StringArg), ('coordsets', BoolArg)],
             synopsis = 'Find hydrogen bonds'
         )
         register('hbonds', desc, cmd_hbonds, logger=logger)

@@ -45,7 +45,8 @@ pausing the cursor over something in the graphics window without
 clicking any buttons. See also:
 <a href="device.html"><b>device</b></a>,
 <a href="../tools/mousemodes.html"><b>Mouse Modes for Right Button</b></a>
-toolbar, <a href="../window.html">ChimeraX window</a>
+toolbar, <a href="../tools/markerplacement.html"><b>Marker Placement</b></a>,
+<a href="../window.html">ChimeraX window</a>
 </p><p>
 Given without arguments, the <b>mousemode</b> command reports the current
 assignments in the <a href="../tools/log.html"><b>Log</b></a>. 
@@ -59,8 +60,12 @@ Initial defaults include:
 <li>Ctrl-left: new <a href="../selection.html">selection</a>
 <li>Shift-Ctrl-left: toggle <a href="../selection.html">selection</a>
 </ul>
-A touchpad or single-button mouse can be used with modifier keys
-to emulate middle and right mouse buttons (<a href="#emulation">more...</a>).
+A <b>touchpad or single-button mouse</b> can be used with modifier keys
+to emulate middle and right mouse buttons.
+On a Mac, these are <b>alt</b> and <b>command</b> 
+(<img src="../icon-clover.png" width="12px">), respectively.
+In other words, leaving <b>alt left</b> and <b>command left</b>
+unassigned allows them to serve the middle- and right-button functions.
 <p>
 Possible values of <i>function</i> are listed in the table 
 <a href="#functions">below</a>. They can be truncated to unique strings.
@@ -167,6 +172,13 @@ see also <a href="clip.html"><b>clip</b></a></td>
 see also <a href="clip.html"><b>clip</b></a></td>
 <td align="center"><img src="../tools/mouse-icons/cliprot.png" width="35px"></td>
 </tr><tr>
+<td align="center"><b>label</b></td>
+<td align="center">label/unlabel atom, bond,
+<a href="../pseudobonds.html">pseudobond</a>, or residue
+<br>(by clicking on ribbon segment);
+see also <a href="label.html"><b>label</b></a></td>
+<td align="center"><img src="../tools/mouse-icons/label.png" width="35px"></td>
+</tr><tr>
 <td align="center"><b>pivot</b><br>(shift right)</td>
 <td align="center">set center of rotation to atom;
 see also <a href="cofr.html"><b>cofr</b></a></td>
@@ -190,17 +202,13 @@ see also <a href="cofr.html"><b>cofr</b></a></td>
 </tr><tr>
 <a name="#markerdef"></a>
 <td align="center"><b>place marker</b></td>
-<td align="center">place <a href="../markers.html">marker</a> on surface</td>
+<td align="center">place <a href="../markers.html">marker</a>
+(<a href="../tools/markerplacement.html">details...</a>)</td>
 <td align="center"><img src="../tools/mouse-icons/marker.png" width="35px"></td>
 </tr><tr>
-<td align="center"><b>mark centroid</b></td>
-<td align="center">place <a href="../markers.html">marker</a>
-at centroid of surface blob</td>
-<td align="center"><img src="../tools/mouse-icons/marker2.png" width="35px"></td>
-</tr><tr>
 <td align="center"><b>connect markers</b></td>
-<td align="center"><a href="../selection">select</a> and link (bond) 
-successively clicked <a href="../markers.html">markers</a> (atoms)</td>
+<td align="center"><a href="../selection">select</a> and link
+successively clicked <a href="../markers.html">markers</a></td>
 <td align="center"><img src="../tools/mouse-icons/bond.png" width="35px"></td>
 </tr><tr>
 <td align="center"><b>play map series</b></td>
@@ -217,20 +225,7 @@ successively clicked <a href="../markers.html">markers</a> (atoms)</td>
 </tr>
 </table>
 
-<a name="emulation"></a>
-<p class="nav">
-[<a href="#top">back to top: mousemode</a>]
-</p>
-<h3>Touchpad or Single-Button Mouse</h3>
-<p>
-Middle- and right-button clicks can be emulated 
-by combining touchpad or single-button mouse clicks with modifier keys;
-on a Mac, these are <b>alt</b> and <b>command</b> 
-<img src="../icon-clover.png" width="12px">, respectively.
-In other words, leaving <b>alt left</b> and <b>command left</b>
-unassigned allows them to serve the middle- and right-button functions.
-</p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-April 2017</address>
+October 2017</address>
 </body></html>

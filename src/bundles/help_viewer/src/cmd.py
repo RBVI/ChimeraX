@@ -29,7 +29,7 @@ def help(session, topic=None, *, option=None, is_query=False):
     if topic is None:
         if is_query:
             return True
-        topic = 'help:user'
+        topic = 'help:index.html'
     if topic.startswith('cxcmd:'):
         from urllib.parse import unquote
         cmd = unquote(topic.split(':', 1)[1])
@@ -87,8 +87,8 @@ def help(session, topic=None, *, option=None, is_query=False):
             alias = cli.expand_alias(cmd_name)
             if not alias:
                 break
-            #if not is_query:
-            #    run(session, "usage %s" % cmd_name, log=False)
+            # if not is_query:
+            #     run(session, "usage %s" % cmd_name, log=False)
             alias_words = alias.split()
             for i in range(len(alias_words)):
                 try:
@@ -102,12 +102,13 @@ def help(session, topic=None, *, option=None, is_query=False):
         run(session, "usage %s" % topic, log=False)
         return
     from . import show_url
-    show_url(session, url, new=(option == 'new'))
+    show_url(session, url, new_tab=(option == 'newTab'))
+
 
 help_desc = CmdDesc(
     optional=[
         ('option',
-         Or(EnumOf(['new'], abbreviations=False), EmptyArg)),
+         Or(EnumOf(['newTab'], abbreviations=False), EmptyArg)),
         ('topic', RestOfLine)
     ],
     non_keyword=('option', 'topic'),

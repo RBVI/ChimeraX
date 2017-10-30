@@ -129,7 +129,7 @@ def _build_bundle(d):
         for sel_name, sd in sel_d.items():
             _debug("processing selector: %s" % sel_name)
             synopsis = sd.get("synopsis", "")
-            si = CommandInfo(sel_name, synopsis)
+            si = SelectorInfo(sel_name, synopsis)
             bi.selectors.append(si)
 
     #
@@ -154,11 +154,11 @@ def _build_bundle(d):
             dangerous = fd.get("dangerous", True)
             synopsis = fd.get("synopsis", "")
             encoding = fd.get("encoding", "")
-            fi = CommandInfo(name=fmt_name, nicknames=nicknames,
-                             category=categories, suffixes=suffixes,
-                             mime_types=mime_types, url=url, icon=icon,
-                             dangerous=dangerous, synopsis=synopsis,
-                             encoding=encoding)
+            fi = FormatInfo(name=fmt_name, nicknames=nicknames,
+                            category=categories, suffixes=suffixes,
+                            mime_types=mime_types, url=url, icon=icon,
+                            dangerous=dangerous, synopsis=synopsis,
+                            encoding=encoding)
             format_map[fmt_name] = fi
             bi.formats.append(fi)
 
@@ -191,7 +191,7 @@ def _build_bundle(d):
     else:
         from .installed import _extract_extra_keywords
         for fmt_name, fd in open_d.items():
-            _debug("processing open: %s" % filetype_name)
+            _debug("processing open: %s" % fmt_name)
             try:
                 fi = format_map[fmt_name]
             except KeyError:
@@ -213,9 +213,8 @@ def _build_bundle(d):
         # No save from database methods defined
         pass
     else:
-        from .info import FormatInfo
         for fmt_name, fd in save_d.items():
-            _debug("processing save: %s" % filetype_name)
+            _debug("processing save: %s" % fmt_name)
             try:
                 fi = format_map[fmt_name]
             except KeyError:

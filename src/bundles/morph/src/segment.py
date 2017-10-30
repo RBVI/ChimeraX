@@ -55,7 +55,7 @@ def segmentSieve(rList0, rList1, fraction=0.5):
         return segments
 
 # Require same chain id, same residue number and same atom name for pairing.
-def segmentHingeSame(m0, m1, fraction=0.5, min_hinge_spacing=6):
+def segmentHingeSame(m0, m1, fraction=0.5, min_hinge_spacing=6, log=None):
 
         # Split by chain
         cr0, cr1 = m0.residues.by_chain, m1.residues.by_chain
@@ -82,12 +82,11 @@ def segmentHingeSame(m0, m1, fraction=0.5, min_hinge_spacing=6):
         #
         # Split each part on hinges and collate results
         #
-        segments = []
-        for rList0, rList1 in parts:
-                segments.extend(segmentHingeResidues(rList0, rList1, fraction, min_hinge_spacing))
+        segments = find_hinges(parts, fraction, min_hinge_spacing, log)
+
         return segments, atomMap
 
-def segmentHingeExact(m0, m1, fraction=0.5, min_hinge_spacing=6):
+def segmentHingeExact(m0, m1, fraction=0.5, min_hinge_spacing=6, log=None):
 
         # Split by chain
         cr0, cr1 = m0.residues.by_chain, m1.residues.by_chain
@@ -103,7 +102,8 @@ def segmentHingeExact(m0, m1, fraction=0.5, min_hinge_spacing=6):
         atomMap = {}
         for (s0,cid0,r0list), (s1,cid1,r1list) in zip(cr0, cr1):
                 if len(r0list) != len(r1list):
-                        raise ValueError("Chains %s and %s have different number of residues" % (cid0, cid1))
+                        raise ValueError('%s chain %s (%d) and %s chain %s (%d) have different number of residues'
+                                         % (s0.name, cid0, len(r0list), s1.name, cid1, len(r1list)))
                 curCat = None
                 curRList0 = None
                 curRList1 = None
@@ -126,12 +126,11 @@ def segmentHingeExact(m0, m1, fraction=0.5, min_hinge_spacing=6):
         #
         # Split each part on hinges and collate results
         #
-        segments = []
-        for rList0, rList1 in parts:
-                segments.extend(segmentHingeResidues(rList0, rList1, fraction, min_hinge_spacing))
+        segments = find_hinges(parts, fraction, min_hinge_spacing, log)
+
         return segments, atomMap
 
-def segmentHingeApproximate(m0, m1, fraction=0.5, min_hinge_spacing=6, matrix="BLOSUM-62"):
+def segmentHingeApproximate(m0, m1, fraction=0.5, min_hinge_spacing=6, matrix="BLOSUM-62", log=None):
         #
         # Get the chains from each model.  If they do not have the
         # same number of chains, we give up.  Otherwise, we assume
@@ -165,7 +164,7 @@ def segmentHingeApproximate(m0, m1, fraction=0.5, min_hinge_spacing=6, matrix="B
         if set(m0map.keys()) == set(m1map.keys()):
                 seqPairs = [ (m0map[k], m1map[k]) for k in m0map.keys() ]
         else:
-                seqPairs = zip(m0seqs, m1seqs)
+                seqPairs = list(zip(m0seqs, m1seqs))
 
         #
         # For each chain pair, we align them using MatchMaker to get
@@ -183,7 +182,10 @@ def segmentHingeApproximate(m0, m1, fraction=0.5, min_hinge_spacing=6, matrix="B
                 "Nucleic",
         ]
         session = m0.session
-        for seq0, seq1 in seqPairs:
+        ns = len(seqPairs)
+        for si, (seq0, seq1) in enumerate(seqPairs):
+                if log:
+                        log.status('Aligning sequences %d of %d' % (si+1, ns))
                 for matrix in matrices:
                         if (matrix_compatible(session, seq0, matrix)
                         and matrix_compatible(session, seq1, matrix)):
@@ -221,9 +223,7 @@ def segmentHingeApproximate(m0, m1, fraction=0.5, min_hinge_spacing=6, matrix="B
         #
         # Split each part on hinges and collate results
         #
-        segments = []
-        for rList0, rList1 in parts:
-                segments.extend(segmentHingeResidues(rList0, rList1, fraction, min_hinge_spacing))
+        segments = find_hinges(parts, fraction, min_hinge_spacing, log)
 
         #
         # Identify any residues that were not in sequences but have
@@ -279,6 +279,15 @@ def segmentHingeApproximate(m0, m1, fraction=0.5, min_hinge_spacing=6, matrix="B
         #
         # print ("Matched %d residues in %d segments" % (matched, len(segments)))
         return segments, atomMap
+
+def find_hinges(parts, fraction, min_hinge_spacing, log = None):
+        segments = []
+        for pi, (rList0, rList1) in enumerate(parts):
+                if log:
+                        log.status('Finding hinge residues for %d of %d groups' % (pi+1, len(parts)))
+                segs = segmentHingeResidues(rList0, rList1, fraction, min_hinge_spacing)
+                segments.extend(segs)
+        return segments
 
 def segmentHingeResidues(rList0, rList1, fraction, min_hinge_spacing):
         #

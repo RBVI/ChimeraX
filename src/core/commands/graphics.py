@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def graphics(session, atom_triangles = None, bond_triangles = None,
-             ribbon_divisions = None, ribbon_sides = None):
+             ribbon_divisions = None, ribbon_sides = None, max_frame_rate = None):
     '''
     Set graphics rendering parameters.
 
@@ -28,6 +28,8 @@ def graphics(session, atom_triangles = None, bond_triangles = None,
         Number of segments to use for one residue of a ribbon, minimum 2 (default 20).
     ribbon_sides : integer
         Number of segments to use around circumference of ribbon, minimum 4 (default 12).
+    max_frame_rate : float
+        Set maximum graphics frame rate (default 60).
     '''
     from ..atomic.structure import structure_graphics_updater
     gu = structure_graphics_updater(session)
@@ -35,12 +37,12 @@ def graphics(session, atom_triangles = None, bond_triangles = None,
     change = False
     from ..errors import UserError
     if atom_triangles is not None:
-        if atom_triangles < 4:
+        if atom_triangles != 0 and atom_triangles < 4:
             raise UserError('Minimum number of atom triangles is 4')
         lod.atom_fixed_triangles = atom_triangles if atom_triangles > 0 else None
         change = True
     if bond_triangles is not None:
-        if bond_triangles < 12:
+        if bond_triangles != 0 and bond_triangles < 12:
             raise UserError('Minimum number of bond triangles is 12')
         lod.bond_fixed_triangles = bond_triangles if bond_triangles > 0 else None
         change = True
@@ -55,13 +57,20 @@ def graphics(session, atom_triangles = None, bond_triangles = None,
         from .cartoon import cartoon_style
         cartoon_style(session, sides = 2*(ribbon_sides//2))
         change = True
+    if max_frame_rate is not None:
+        msec = 1000.0 / max_frame_rate
+        session.ui.main_window.graphics_window.set_redraw_interval(msec)
+        change = True
 
     if change:
         gu.update_level_of_detail()
     else:
         na = gu.num_atoms_shown
-        msg = ('Atom triangles %d, bond triangles %d, ribbon divisions %d' %
-               (lod.atom_sphere_triangles(na), lod.bond_cylinder_triangles(na), lod.ribbon_divisions))
+        msec = session.ui.main_window.graphics_window.redraw_interval
+        rate = 1000.0 / msec if msec > 0 else 1000.0
+        msg = ('Atom triangles %d, bond triangles %d, ribbon divisions %d, max framerate %.3g' %
+               (lod.atom_sphere_triangles(na), lod.bond_cylinder_triangles(na), lod.ribbon_divisions,
+                rate))
         session.logger.status(msg, log = True)
     
 def graphics_restart(session):
@@ -75,12 +84,13 @@ def graphics_restart(session):
     session.update_loop.unblock_redraw()
 
 def register_command(session):
-    from .cli import CmdDesc, register, IntArg
+    from .cli import CmdDesc, register, IntArg, FloatArg
     desc = CmdDesc(
         keyword=[('atom_triangles', IntArg),
                  ('bond_triangles', IntArg),
                  ('ribbon_divisions', IntArg),
-                 ('ribbon_sides', IntArg)],
+                 ('ribbon_sides', IntArg),
+                 ('max_frame_rate', FloatArg)],
         synopsis='Set graphics rendering parameters'
     )
     register('graphics', desc, graphics, logger=session.logger)

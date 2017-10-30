@@ -24,22 +24,88 @@ or derivations thereof.
 class="clRight" title="User Guide Index"/></a>
 
 <h3>Markers and Links</h3>
+<ul>
+<li>A <b><i>marker</i></b> is a pseudoatom, typically used to mark the position
+of some feature within <a href="tools/volumeviewer.html">volume data</a>;
+markers are implemented as atoms, so actions that apply to
+atoms in ChimeraX also apply to markers:
+they can be <a href="commands/atomspec.html">specified</a> in commands,
+<a href="selection.html">selected</a>, <i>etc.</i>
+<li>A <b><i>marker note</i></b> is a text label on a marker, analogous to
+an atom label.
+<li>A <b><i>link</i></b> is a connection between markers, analogous to a bond.
+<li>A <b><i>marker set</i></b> is a named collection of markers and links,
+analogous to an atomic model.
+</ul>
 <p>
-<b><i>Markers</i></b></a> are pseudoatoms that mark points in 3D space.
-Markers are implemented as atoms and can be handled in the same ways 
-(<a href="commands/atomspec.html">specified</a> in commands,
-<a href="selection.html">selected</a>, <i>etc.</i>).
-<b><i>Links</i></b> between markers are equivalent to covalent bonds
-between atoms.
-</p><p>
-Markers and links can be created with the mouse
-(see <a href="commands/mousemode.html"><b>mousemode</b></a>)
+Markers and links can be created and adjusted with the mouse
+(see <a href="commands/mousemode.html"><b>mousemode</b></a> and
+<a href="tools/markerplacement.html"><b>Marker Placement</b></a>)
 or with certain commands
 (<a href="commands/vseries.html#measure"><b>vseries measure</b></a>).
-See also: <a href="commands/style.html"><b>style</b></a>
+Markers and links can be saved to and read from 
+<a href="#markerfiles">marker files</a>.
+</p><p>
+Markers and links are shown in the <a href="commands/style.html">ball style</a>
+when initially created and when read from a file.
+</p>
+
+<a name="markerfiles"></a>
+<p class="nav">
+[<a href="#top">back to top: Markers and Links</a>]
+</p>
+<h3>Marker Files</h3>
+<p>
+Marker file format (.cmm) is the same in ChimeraX as in Chimera.
+It includes marker set name(s), marker positions, marker notes,
+links, colors, and radii.
+<!--
+(but not
+<a href="#smooth">smooth paths</a> or <a href="#surfaces">surfaces</a>).
+-->
+<font color="brown">
+However, ChimeraX does not yet save labels on markers as marker notes,
+and marker notes are not shown as labels when read from a file.</font>
+Marker files can be opened and saved using the <b>File</b> menu
+or the commands <a href="commands/open.html"><b>open</b></a> and
+<a href="commands/save.html"><b>save</b></a>, respectively.
+</p><p>
+The format is actually XML, plain text that can be read or created
+by other programs or &ldquo;manually&rdquo; in a text editor.
+Libraries for parsing XML are available in many programming languages.
+The following marker file describes two markers connected by a link:
+</p>
+<pre>
+&lt;marker_set name="marker set 1"&gt;
+&lt;marker id="1" x="-6.1267" y="17.44" z="-3.1338"  radius="0.35217"/&gt;
+&lt;marker id="2" x="1.5395" y="16.277" z="-3.0339" r="0" g="1" b="1"
+               radius="0.5" note="An example note"/&gt;
+&lt;link id1="2" id2="1" r="1" g="1" b="0" radius="0.17609"/&gt;
+&lt;/marker_set&gt;
+</pre>
+<p>
+The <b>r</b>, <b>g</b>, and <b>b</b> attributes are red, green,
+and blue color components, respectively, with possible values ranging
+from 0 to 1.
+</p><p>
+Extra attributes can be present within the marker, link, and marker_set
+tags, as a mechanism for retaining information from or passing information to
+other programs.  For example, the following marker description
+includes a <b>frame</b> attribute:
+<pre>
+&lt;marker id="3" x="195.43" y="166.62" z="174.03" r="1" g="1" b="0" radius="5"
+ note="cap domain" nr="1" ng="1" nb="0" frame="5"/&gt;
+</pre>
+<!-- 
+The <b>frame</b> attribute is used by the
+<a href="commands/vseries.html"><b>vseries</b></a> command
+to synchronise marker display with series playback.
+-->
+Extra attributes from an input file are retained and included
+in files written back out.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-April 2017</address>
+October 2017</address>
 </body></html>

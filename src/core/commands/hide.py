@@ -27,11 +27,8 @@ def hide(session, objects=None, what=None, target=None):
         from . import atomspec
         objects = atomspec.all_objects(session)
 
-    what_to_hide = set() if target is None else set(target)
-    if what is not None:
-        what_to_hide.update([what])
-    if len(what_to_hide) == 0:
-        what_to_hide = set(['atoms' if objects.atoms else 'models'])
+    from .show import what_objects
+    what_to_hide = what_objects(target, what, objects)
 
     from ..undo import UndoState
     undo_state = UndoState("hide")
@@ -39,14 +36,15 @@ def hide(session, objects=None, what=None, target=None):
         atoms = objects.atoms
         undo_state.add(atoms, "displays", atoms.displays, False)
         atoms.displays = False
+        atoms.update_ribbon_visibility()
     if 'bonds' in what_to_hide:
-        bonds = objects.atoms.intra_bonds
+        bonds = objects.bonds
         undo_state.add(bonds, "displays", bonds.displays, False)
         bonds.displays = False
     if 'pseudobonds' in what_to_hide or 'pbonds' in what_to_hide:
         from .. import atomic
-        pbonds = atomic.interatom_pseudobonds(objects.atoms)
-        undo_state.add(pbond, "displays", pbonds.displays, False)
+        pbonds = objects.pseudobonds
+        undo_state.add(pbonds, "displays", pbonds.displays, False)
         pbonds.displays = False
     if 'cartoons' in what_to_hide or 'ribbons' in what_to_hide:
         res = objects.atoms.unique_residues
@@ -81,7 +79,7 @@ def hide_models(objects, undo_state):
             m.display_positions = dp
     else:
         for m in objects.models:
-            if m in ud:
+            if m in ud_display:
                 ud_display[m][1] = False
             else:
                 ud_display[m] = [m.display, True]

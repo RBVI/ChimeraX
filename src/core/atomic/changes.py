@@ -62,6 +62,9 @@ class Changes:
     def created_chains(self, include_new_structures=True):
         return self._created_objects("Chain", include_new_structures)
 
+    def created_coordsets(self, include_new_structures=True):
+        return self._created_objects("CoordSet", include_new_structures)
+
     def created_structures(self):
         """includes atomic structures"""
         return self._changes["Structure"].created
@@ -89,6 +92,9 @@ class Changes:
     def modified_chains(self):
         return self._changes["Chain"].modified
 
+    def modified_coordsets(self):
+        return self._changes["CoordSet"].modified
+
     def modified_structures(self):
         return self._changes["Structure"].modified
 
@@ -100,12 +106,6 @@ class Changes:
 
     def modified_residues(self):
         return self._changes["Residue"].modified
-
-    def num_created_coordsets(self, include_new_structures=True):
-        num_in_existing = len(self._changes["CoordSet"].created)
-        if not include_new_structures:
-            return num_in_existing
-        return sum([s.num_coordsets for s in self._changes["Structure"].created]) + num_in_existing
 
     def num_deleted_atoms(self):
         return self._changes["Atom"].total_deleted
@@ -131,9 +131,6 @@ class Changes:
     def num_deleted_structures(self):
         """Not possible to distinguish between AtomicStructures and Structures"""
         return self._changes["Structure"].total_deleted
-
-    def num_modified_coordsets(self):
-        return len(self._changes["CoordSet"].modified)
 
     def pseudobond_reasons(self):
         return self._changes["Pseudobond"].reasons

@@ -66,8 +66,10 @@ class HtmlView(QWebEngineView):
         self._size_hint = size_hint
         if profile is not None:
             self._profile = profile
+            self._private_profile = False
         else:
-            p = self._profile = QWebEngineProfile(self)
+            p = self._profile = QWebEngineProfile(self.parent())
+            self._private_profile = True
             set_user_agent(p)
             if interceptor is not None:
                 self._intercept = _RequestInterceptor(callback=interceptor)
@@ -84,6 +86,14 @@ class HtmlView(QWebEngineView):
         s = page.settings()
         s.setAttribute(s.LocalStorageEnabled, True)
         self.setAcceptDrops(False)
+
+    def deleteLater(self):  # noqa
+        if self._private_profile:
+            p = self._profile
+            p.downloadRequested.disconnect()
+            p.removeAllUrlSchemeHandlers()
+            p.setRequestInterceptor(None)
+        super().deleteLater()
 
     @property
     def profile(self):
@@ -204,9 +214,9 @@ class ChimeraXHtmlView(HtmlView):
     def download_requested(self, item):
         # "item" is an instance of QWebEngineDownloadItem
         # print("ChimeraXHtmlView.download_requested", item)
-        import os.path, os
-        urlFile = item.url().fileName()
-        base, extension = os.path.splitext(urlFile)
+        import os
+        url_file = item.url().fileName()
+        base, extension = os.path.splitext(url_file)
         # print("ChimeraXHtmlView.download_requested connect", item.mimeType(), extension)
         # Normally, we would look at the download type or MIME type,
         # but since neither one is set by the server, we look at the
@@ -220,25 +230,25 @@ class ChimeraXHtmlView(HtmlView):
                 # the same version of the bundle multiple times.
                 parts = base.rsplit('_', 1)
                 if len(parts) == 2 and parts[1].isdigit():
-                    urlFile = parts[0] + extension
-            filePath = os.path.join(os.path.dirname(item.path()), urlFile)
+                    url_file = parts[0] + extension
+            file_path = os.path.join(os.path.dirname(item.path()), url_file)
             from pip.wheel import Wheel, InvalidWheelFilename
             try:
-                w = Wheel(filePath)
+                w = Wheel(file_path)
                 if not w.supported():
                     raise ValueError("unsupported wheel platform")
             except (InvalidWheelFilename, ValueError):
                 pass
             finally:
-                item.setPath(filePath)
+                item.setPath(file_path)
                 # print("ChimeraXHtmlView.download_requested clean")
                 try:
                     # Guarantee that file name is available
-                    os.remove(filePath)
+                    os.remove(file_path)
                 except OSError:
                     pass
                 self._pending_downloads.append(item)
-                self.session.logger.info("Downloading bundle %s" % urlFile)
+                self.session.logger.info("Downloading bundle %s" % url_file)
                 item.finished.connect(self.download_finished)
                 item.accept()
                 return
@@ -246,7 +256,7 @@ class ChimeraXHtmlView(HtmlView):
         path, filt = QFileDialog.getSaveFileName(directory=item.path())
         if not path:
             return
-        self.session.logger.info("Downloading file %s" % urlFile)
+        self.session.logger.info("Downloading file %s" % url_file)
         item.setPath(path)
         # print("ChimeraXHTMLView.download_requested accept")
         item.accept()
@@ -261,7 +271,6 @@ class ChimeraXHtmlView(HtmlView):
             else:
                 finished.append(item)
         self._pending_downloads = pending
-        need_reload = False
         for item in finished:
             item.finished.disconnect()
             filename = item.path()

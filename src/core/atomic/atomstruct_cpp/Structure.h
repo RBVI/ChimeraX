@@ -119,7 +119,9 @@ public:
                        RIBBON_TETHER_REVERSE_CONE = 1,
                        RIBBON_TETHER_CYLINDER = 2 };
 protected:
+    bool  _active_coord_set_change_notify = true;
     CoordSet *  _active_coord_set;
+    bool  _alt_loc_change_notify = true;
     Atoms  _atoms;
     float  _ball_scale = 0.25;
     Bonds  _bonds;
@@ -190,7 +192,9 @@ public:
     Structure(PyObject* logger = nullptr);
     virtual  ~Structure();
 
+    bool  active_coord_set_change_notify() const { return _active_coord_set_change_notify; }
     CoordSet*  active_coord_set() const { return _active_coord_set; };
+    bool  alt_loc_change_notify() const { return _alt_loc_change_notify; }
     bool  asterisks_translated;
     const Atoms&  atoms() const { return _atoms; }
     float  ball_scale() const { return _ball_scale; }
@@ -251,6 +255,7 @@ public:
         bool /*consider_chain_ids*/ = true) const {
             return std::vector<std::pair<Chain::Residues,PolymerType>>();
         }
+    void  reorder_residues(const Residues&); 
     const Residues&  residues() const { return _residues; }
     const Rings&  rings(bool cross_residues = false,
         unsigned int all_size_threshold = 0,
@@ -266,7 +271,9 @@ public:
     mutable std::unordered_map<const Residue*, size_t>  *session_save_residues;
     void  session_save_setup() const;
     void  session_save_teardown() const;
+    void  set_active_coord_set_change_notify(bool cn) { _active_coord_set_change_notify = cn; }
     void  set_active_coord_set(CoordSet *cs);
+    void  set_alt_loc_change_notify(bool cn) { _alt_loc_change_notify = cn; }
     void  set_ball_scale(float bs) {
         if (bs == _ball_scale) return;
         set_gc_shape(); _ball_scale = bs;
@@ -281,7 +288,11 @@ public:
     void  set_input_seq_info(const ChainID& chain_id, const std::vector<ResName>& res_names) { _input_seq_info[chain_id] = res_names; }
     void  set_ss_assigned(bool sa) { _ss_assigned = sa; }
     bool  ss_assigned() const { return _ss_assigned; }
-    void  start_change_tracking(ChangeTracker* ct) { _change_tracker = ct; ct->add_created(this); }
+    void  start_change_tracking(ChangeTracker* ct) {
+        _change_tracker = ct;
+        ct->add_created(this);
+        pb_mgr().start_change_tracking(ct);
+    }
     void  use_best_alt_locs();
 
     // ribbon stuff

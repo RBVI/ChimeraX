@@ -45,7 +45,7 @@ def sphere_geometry2(ntri):
     '''
     from ..geometry import sphere
     va, ta = sphere.sphere_triangulation(ntri)
-    return va, va, ta
+    return va, va[:], ta
 
 
 # -----------------------------------------------------------------------------
@@ -239,7 +239,7 @@ def box_geometry(llb, urf):
     # llb = v0 -|---v1 |
     #         \ |     \|
     #          v4 ---- v5
-    from numpy import array, float32, int32
+    from numpy import array, float32, uint32
     vertices = array([
         # -x, v0-v4-v2-v6
         [llb[0], llb[1], llb[2]],

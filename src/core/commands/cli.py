@@ -324,6 +324,12 @@ def _user_kw(kw_name):
     return words[0] + ''.join([x.capitalize() for x in words[1:]])
 
 
+def _user_kw_cnt(kw_name):
+    """Return user version of a keyword argument name and number of words."""
+    words = kw_name.split('_')
+    return words[0] + ''.join([x.capitalize() for x in words[1:]]), len(words)
+
+
 class AnnotationError(UserError, ValueError):
     """Error, with optional offset, in annotation"""
 
@@ -734,23 +740,36 @@ class EnumOf(Annotation):
 class DynamicEnum(Annotation):
     '''Enumerated type where enumeration values computed from a function.'''
 
-    def __init__(self, values_func):
-        Annotation.__init__(self)
+    def __init__(self, values_func, name=None, url=None, html_name=None):
+        Annotation.__init__(self, url=url)
+        self.__name = name
+        self.__html_name = html_name
         self.values_func = values_func
+
 
     def parse(self, text, session):
         return EnumOf(self.values_func()).parse(text, session)
 
     @property
     def name(self):
+        if self.__name is not None:
+            return self.__name
         return 'one of ' + ', '.join("'%s'" % str(v)
                                      for v in sorted(self.values_func()))
 
     @property
     def _html_name(self):
+        if self.__html_name is not None:
+            return self.__html_name
         from html import escape
-        return 'one of ' + ', '.join("<b>%s</b>" % escape(str(v))
+        if self.__name is not None:
+            name = self.__name
+        else:
+            name = 'one of ' + ', '.join("<b>%s</b>" % escape(str(v))
                                      for v in sorted(self.values_func()))
+        if self.url is None:
+            return name
+        return '<a href="%s">%s</a>' % (escape(self.url), name)
 
 
 class Or(Annotation):
@@ -899,7 +918,9 @@ class FileNameArg(Annotation):
         import os.path
         return os.path.expanduser(token), text, rest
 
+
 _browse_string = "browse"
+
 
 def _browse_parse(text, session, item_kind, accept_mode, dialog_mode):
     path, text, rest = FileNameArg.parse(text, session)
@@ -909,6 +930,9 @@ def _browse_parse(text, session, item_kind, accept_mode, dialog_mode):
         from PyQt5.QtWidgets import QFileDialog
         dlg = QFileDialog()
         dlg.setAcceptMode(accept_mode)
+        if accept_mode == QFileDialog.AcceptOpen and dialog_mode != QFileDialog.DirectoryOnly:
+            from ..ui.open_save import open_file_filter
+            dlg.setNameFilter(open_file_filter(all=True))
         dlg.setFileMode(dialog_mode)
         if dlg.exec():
             paths = dlg.selectedFiles()
@@ -920,6 +944,7 @@ def _browse_parse(text, session, item_kind, accept_mode, dialog_mode):
         text = path
     return path, text, rest
 
+
 class OpenFileNameArg(FileNameArg):
     """Annotation for a file to open"""
     name = "name of a file to open/read"
@@ -927,8 +952,10 @@ class OpenFileNameArg(FileNameArg):
     @staticmethod
     def parse(text, session):
         from PyQt5.QtWidgets import QFileDialog
-        return _browse_parse(text, session, "file",
-            QFileDialog.AcceptOpen, QFileDialog.ExistingFile)
+        return _browse_parse(
+            text, session, "file", QFileDialog.AcceptOpen,
+            QFileDialog.ExistingFile)
+
 
 class SaveFileNameArg(FileNameArg):
     """Annotation for a file to save"""
@@ -937,8 +964,9 @@ class SaveFileNameArg(FileNameArg):
     @staticmethod
     def parse(text, session):
         from PyQt5.QtWidgets import QFileDialog
-        return _browse_parse(text, session, "file",
-            QFileDialog.AcceptSave, QFileDialog.AnyFile)
+        return _browse_parse(
+            text, session, "file", QFileDialog.AcceptSave, QFileDialog.AnyFile)
+
 
 class OpenFolderNameArg(FileNameArg):
     """Annotation for a folder to open from"""
@@ -947,8 +975,10 @@ class OpenFolderNameArg(FileNameArg):
     @staticmethod
     def parse(text, session):
         from PyQt5.QtWidgets import QFileDialog
-        return _browse_parse(text, session, "folder",
-            QFileDialog.AcceptOpen, QFileDialog.DirectoryOnly)
+        return _browse_parse(
+            text, session, "folder", QFileDialog.AcceptOpen,
+            QFileDialog.DirectoryOnly)
+
 
 class SaveFolderNameArg(FileNameArg):
     """Annotation for a folder to save to"""
@@ -957,8 +987,9 @@ class SaveFolderNameArg(FileNameArg):
     @staticmethod
     def parse(text, session):
         from PyQt5.QtWidgets import QFileDialog
-        return _browse_parse(text, session, "folder",
-            QFileDialog.AcceptSave, QFileDialog.DirectoryOnly)
+        return _browse_parse(
+            text, session, "folder", QFileDialog.AcceptSave,
+            QFileDialog.DirectoryOnly)
 
 # Atom Specifiers are used in lots of places
 # avoid circular import by importing here
@@ -1080,6 +1111,18 @@ class PseudobondsArg(ObjectsArg):
         from ..atomic import Pseudobonds, concatenate
         pbonds = concatenate(pblist, Pseudobonds)
         return pbonds, used, rest
+
+    
+class BondsArg(ObjectsArg):
+    """Parse command specifier for bonds"""
+    name = 'a bonds specifier'
+
+    @classmethod
+    def parse(cls, text, session):
+        objects, used, rest = super().parse(text, session)
+        from ..atomic import PseudobondGroup, interatom_pseudobonds
+        bonds = objects.atoms.intra_bonds
+        return bonds, used, rest
 
 
 class SurfacesArg(AtomSpecArg):
@@ -1696,7 +1739,12 @@ class CmdDesc:
         self._keyword.update(optional_keywords)
         self._hidden = set(hidden)
         # keyword_map is what would user would type
-        self._keyword_map = {_user_kw(n): n for n in self._keyword}
+
+        def fill_keyword_map(n):
+            kw, cnt = _user_kw_cnt(n)
+            return kw, (n, cnt)
+        self._keyword_map = {}
+        self._keyword_map.update(fill_keyword_map(n) for n in self._keyword)
         self._postconditions = postconditions
         self._required_arguments = required_arguments
         self.url = url
@@ -1823,10 +1871,10 @@ class _WordInfo:
         self.cmd_desc = None  # prevent recursion
         try:
             deferred.call()
-        except:
-            raise RuntimeError("delayed registration failed")
+        except Exception as e:
+            raise RuntimeError("delayed command registration failed (%s)" % e)
         if self.cmd_desc is None and not self.has_subcommands():
-            raise RuntimeError("delayed registration didn't register the command")
+            raise RuntimeError("delayed command registration didn't register the command")
 
     def add_subcommand(self, word, name, cmd_desc=None, *, logger=None):
         try:
@@ -1922,8 +1970,6 @@ def register(name, cmd_desc=(), function=None, *, logger=None, parent_info=None)
         else:
             parent_info.add_subcommand(word, name)
             word_info = parent_info.subcommands[word]
-            if word_info.is_deferred():
-                word_info.lazy_register()
         parent_info = word_info
 
     if isinstance(function, _Defer):
@@ -2029,7 +2075,11 @@ def add_keyword_arguments(name, kw_info):
                 " than previous registration (%s)" % (
                     name, kw, repr(arg_type), repr(cmd._ci._keyword[kw])))
     cmd._ci._keyword.update(kw_info)
-    cmd._ci._keyword_map.update((_user_kw(n), n) for n in kw_info)
+
+    def fill_keyword_map(n):
+        kw, cnt = _user_kw_cnt(n)
+        return kw, (n, cnt)
+    cmd._ci._keyword_map.update(fill_keyword_map(n) for n in kw_info)
 
 
 class _FakeSession:
@@ -2229,32 +2279,26 @@ class Command:
                 else:
                     required = 'required "%s"' % _user_kw(kw_name)
                 self._error = 'Missing %s positional argument' % required
-            m = _whitespace.match(text)
-            start = m.end()
-            if start:
-                self.amount_parsed += start
-                text = text[start:]
-            if text and text[0] == ';':
-                text = ''
-            if kw_name in self._ci._optional:
-                # check if next token matches a keyword and if so,
-                # terminate positional arguments
-                if not text:
-                    return last_anno, None
-                _, tmp, _ = next_token(text, no_raise=True)
-                if not tmp:
-                    return last_anno, None
-                if tmp[0].isalpha():
-                    tmp = _user_kw(tmp)
-                    if (any(kw.startswith(tmp) for kw in self._ci._keyword_map) or
-                            any(kw.casefold().startswith(tmp) for kw in self._ci._keyword_map)):
-                        return last_anno, None
+            text = self._skip_white_space(text)
+            if kw_name in self._ci._optional and self._start_of_keywords(text):
+                return last_anno, None
             try:
                 value, text = self._parse_arg(anno, text, session, False)
                 kwn = '%s_' % kw_name if is_python_keyword(kw_name) else kw_name
                 self._kw_args[kwn] = value
                 self._error = ""
                 last_anno = anno
+                if hasattr(anno, 'allow_repeat') and anno.allow_repeat:
+                    self._kw_args[kwn] = values = [value]
+                    while True:
+                        text = self._skip_white_space(text)
+                        if self._start_of_keywords(text):
+                            return last_anno, None
+                        try:
+                            value, text = self._parse_arg(anno, text, session, False)
+                        except:
+                            break
+                        values.append(value)
             except ValueError as err:
                 if isinstance(err, AnnotationError) and err.offset:
                     # We got an error with an offset, that means that an
@@ -2277,6 +2321,29 @@ class Command:
                 # optional and wrong type, try as keyword
                 return last_anno, anno
         return last_anno, None
+
+    def _skip_white_space(self, text):
+        m = _whitespace.match(text)
+        start = m.end()
+        if start:
+            self.amount_parsed += start
+            text = text[start:]
+        if text and text[0] == ';':
+            text = ''
+        return text
+
+    def _start_of_keywords(self, text):
+        # check if next token matches a keyword
+        if not text:
+            return True
+        _, tmp, _ = next_token(text, no_raise=True)
+        if not tmp:
+            return True
+        if tmp[0].isalpha():
+            tmp = _user_kw(tmp).casefold()
+            if any(kw.casefold().startswith(tmp) for kw in self._ci._keyword_map):
+                return True
+        return False
 
     def _process_keyword_arguments(self, final, prev_annos):
         # side effects:
@@ -2303,21 +2370,26 @@ class Command:
             if arg_name not in self._ci._keyword_map:
                 self.completion_prefix = word
                 folded_arg_name = arg_name.casefold()
-                self.completions = [x for x in self._ci._keyword_map
-                                    if x.startswith(arg_name) or
-                                    x.casefold().startswith(folded_arg_name)]
-                if (final or len(text) > len(chars)) and self.completions:
+                kw_map = self._ci._keyword_map
+                completions = [(kw, kw_map[kw][1]) for kw in kw_map
+                               if kw.casefold().startswith(folded_arg_name)]
+                if (final or len(text) > len(chars)) and completions:
                     # require shortened keywords to be unambiguous
-                    unambiguous = (
-                        len(self.completions) == 1 or len(self.completions[0]) == len(arg_name) or
-                        all(x.startswith(self.completions[0]) for x in self.completions)
-                    )
+                    if len(completions) == 1:
+                        unambiguous = True
+                    elif len(completions[0][0]) == len(arg_name):
+                        unambiguous = True
+                    elif 1 == len([cnt for kw, cnt in completions if cnt == completions[0][1]]):
+                        unambiguous = True
+                    else:
+                        unambiguous = False
                     if unambiguous:
-                        c = self.completions[0]
+                        c = completions[0][0]
                         self._replace(chars, c)
                         text = self.current_text[self.amount_parsed:]
                         self.completions = []
                         continue
+                    self.completions = list(c[0] for c in completions)
                     self._error = "Expected keyword " + commas('"%s"' % x for x in self.completions)
                     return
                 expected = []
@@ -2338,7 +2410,7 @@ class Command:
                 self.amount_parsed += start
                 text = text[start:]
 
-            kw_name = self._ci._keyword_map[arg_name]
+            kw_name = self._ci._keyword_map[arg_name][0]
             anno = self._ci._keyword[kw_name]
             if not text and anno != NoArg:
                 self._error = 'Missing "%s" keyword\'s argument' % _user_kw(kw_name)
@@ -2453,41 +2525,30 @@ class Command:
             kw_args = self._kw_args
             if log:
                 self.log()
-            try:
-                if not isinstance(ci.function, Alias):
-                    try:
-                        result = ci.function(session, **kw_args)
-                    except UserError as e:
-                        self.log_error(str(e))
-                        raise
-                    except:
-                        raise
-                    results.append(result)
-                else:
-                    arg_names = [k for k in kw_args.keys() if isinstance(k, int)]
-                    arg_names.sort()
-                    args = [kw_args[k] for k in arg_names]
-                    if 'optional' in kw_args:
-                        optional = kw_args['optional']
-                    else:
-                        optional = ''
-                    if _used_aliases is None:
-                        used_aliases = {self.command_name}
-                    else:
-                        used_aliases = _used_aliases.copy()
-                        used_aliases.add(self.command_name)
-                    results.append(ci.function(session, *args, optional=optional,
-                                   _used_aliases=used_aliases, log=log))
-            except UserError as err:
-                raise
-            except ValueError as err:
-                # convert function's ValueErrors to UserErrors,
-                # but not those of functions it calls
-                import traceback
-                _, _, exc_traceback = sys.exc_info()
-                if len(traceback.extract_tb(exc_traceback)) > 2:
+            if not isinstance(ci.function, Alias):
+                try:
+                    result = ci.function(session, **kw_args)
+                except UserError as e:
+                    self.log_error(str(e))
                     raise
-                raise UserError(err)
+                except:
+                    raise
+                results.append(result)
+            else:
+                arg_names = [k for k in kw_args.keys() if isinstance(k, int)]
+                arg_names.sort()
+                args = [kw_args[k] for k in arg_names]
+                if 'optional' in kw_args:
+                    optional = kw_args['optional']
+                else:
+                    optional = ''
+                if _used_aliases is None:
+                    used_aliases = {self.command_name}
+                else:
+                    used_aliases = _used_aliases.copy()
+                    used_aliases.add(self.command_name)
+                results.append(ci.function(session, *args, optional=optional,
+                               _used_aliases=used_aliases, log=log))
             if session is not None:
                 from .. import atomic
                 atomic.check_for_changes(session)

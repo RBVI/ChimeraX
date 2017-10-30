@@ -91,6 +91,7 @@ public:
         session_restore_pbs = nullptr;
         _ses_id_to_struct_map = nullptr;
     }
+    void  start_change_tracking(ChangeTracker* ct) { _change_tracker = ct; }
 };
 
 class ATOMSTRUCT_IMEX StructureManager: public BaseManager {
@@ -125,6 +126,7 @@ private:
     friend class CoordSet;
     AS_PBManager(Structure* as): StructureManager(as) {}
 
+    void  change_cs(const CoordSet* cs);
     void  remove_cs(const CoordSet* cs);
 public:
     ChangeTracker*  change_tracker() const;

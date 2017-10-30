@@ -292,6 +292,7 @@ class Session:
 
     The metadata attribute should be a dictionary with information about
     the session, e.g., a thumbnail, a description, the author, etc.
+    See :py:func:`standard_metadata`.
 
     Attributes that support the :py:class:`State` API are automatically added as state managers
     (e.g. the session's add_state_manager method is called with the 'tag' argument
@@ -431,12 +432,14 @@ class Session:
                 stream.write(b'# ChimeraX Session version 3\n')
                 stream = serialize.msgpack_serialize_stream(stream)
                 fserialize = serialize.msgpack_serialize
+            metadata = standard_metadata(self.metadata)
+            # TODO: put thumbnail in metadata
             # stash attribute info into metadata...
             attr_info = {}
             for tag, container in self._state_containers.items():
                 attr_info[tag] = getattr(self, tag, None) == container
-            self.metadata['attr_info'] = attr_info
-            fserialize(stream, self.metadata)
+            metadata['attr_info'] = attr_info
+            fserialize(stream, metadata)
             # guarantee that bundles are serialized first, so on restoration,
             # all of the related code will be loaded before the rest of the
             # session is restored
@@ -451,7 +454,7 @@ class Session:
             mgr.cleanup()
             self.triggers.activate_trigger("end save session", self)
 
-    def restore(self, stream, metadata_only=False):
+    def restore(self, stream, path=None, metadata_only=False):
         """Deserialize session from binary stream."""
         from . import serialize
         if hasattr(stream, 'peek'):
@@ -494,6 +497,7 @@ class Session:
         self.triggers.activate_trigger("begin restore session", self)
         try:
             self.reset()
+            self.session_file_path = path
             self.metadata.update(metadata)
             attr_info = self.metadata.pop('attr_info', {})
             while True:
@@ -544,6 +548,77 @@ class InScriptFlag:
         return self._level > 0
 
 
+def standard_metadata(previous_metadata={}):
+    """Fill in standard metadata for created files
+
+    Parameters
+    ----------
+    previous_metadata : dict
+        Optional dictionary of previous metadata.
+
+    The standard metadata consists of:
+
+    name            value
+    -------------------------------------------------------
+    generator       HTML user agent (app name version (os))
+    created         date first created
+    modified        date last modified after being created
+    creator         user name(s)
+    dateCopyrighted copyright(s)
+
+    creator and dateCopyrighted can be lists if there
+    is previous metadata with different values.
+
+    dates are in ISO 8601 UTC time.  Also see
+    <http://www.w3.org/TR/NOTE-datetime>.
+
+    Metadata names are inspired by the HTML5 metadata,
+    https://www.w3.org/TR/html5/document-metadata.html.
+    """
+    from .fetch import html_user_agent
+    from chimerax import app_dirs
+    from html import unescape
+    import os
+    import datetime
+
+    metadata = {}
+    if previous_metadata:
+        metadata.update(previous_metadata)
+    generator = unescape(html_user_agent(app_dirs))
+    generator += ", http://www.rbvi.ucsf.edu/chimerax/"
+    metadata['generator'] = generator
+    now = datetime.datetime.utcnow()
+    iso_date = now.isoformat() + 'Z'
+    if 'created' in previous_metadata:
+        metadata['modified'] = iso_date
+    else:
+        metadata['created'] = iso_date
+    year = now.year
+    # TODO: get user and copy right from settings
+    # TODO: better way to get full user name
+    user = os.environ.get('USERNAME', None)
+    if user is None:
+        user = os.getlogin()
+    tmp = metadata.setdefault('creator', [])
+    if not isinstance(tmp, list):
+        tmp = [tmp]
+    if user not in tmp:
+        tmp = tmp + [user]
+    if len(tmp) == 1:
+        tmp = tmp[0]
+    metadata['creator'] = tmp
+    cpyrght = '\N{COPYRIGHT SIGN} %d %s' % (year, user)
+    tmp = metadata.setdefault('dateCopyrighted', [])
+    if not isinstance(tmp, list):
+        tmp = [tmp]
+    if cpyrght not in tmp:
+        tmp = tmp + [cpyrght]
+    if len(tmp) == 1:
+        tmp = tmp[0]
+    metadata['dateCopyrighted'] = tmp
+    return metadata
+
+
 def save(session, path, version=3, uncompressed=False):
     """command line version of saving a session"""
     my_open = None
@@ -574,7 +649,6 @@ def save(session, path, version=3, uncompressed=False):
                 raise UserError(e)
 
     session.logger.warning("<b><i>Session file format is not finalized, and thus might not be restorable in other versions of ChimeraX.</i></b>", is_html=True)
-    # TODO: put thumbnail in session metadata
     session.session_file_path = path
     try:
         session.save(output, version=version)
@@ -666,7 +740,7 @@ def open(session, path):
     # TODO: active trigger to allow user to stop overwritting
     # current session
     session.session_file_path = path
-    session.restore(stream)
+    session.restore(stream, path=path)
     return [], "opened ChimeraX session"
 
 
@@ -681,24 +755,8 @@ def save_x3d(session, path, transparent_background=False):
     # Settle on using Interchange profile as that is the intent of
     # X3D exporting.
     from . import x3d
-    from .fetch import html_user_agent
-    from chimerax import app_dirs
-    from html import unescape
-    import datetime
-    import os
     x3d_scene = x3d.X3DScene()
-    meta = {}
-    generator = unescape(html_user_agent(app_dirs))
-    generator += ", %s" % "http://www.cgl.ucsf.edu/chimerax/"
-    meta['generator'] = generator
-    year = datetime.datetime.today().year
-    # TODO: better way to get full user name
-    user = os.environ.get('USERNAME', None)
-    if user is None:
-        user = os.getlogin()
-    meta['author'] = user
-    # Split 'copy' 'right' so updating code does not try to replace it
-    meta['copy' 'right'] = '© %d by %s.  All Rights reserved.' % (year, user)
+    metadata = standard_metadata()
 
     # record needed X3D components
     x3d_scene.need(x3d.Components.EnvironmentalEffects, 1)  # Background
@@ -715,7 +773,7 @@ def save_x3d(session, path, transparent_background=False):
 
     with _builtin_open(path, 'w', encoding='utf-8') as stream:
         x3d_scene.write_header(
-            stream, 0, meta, profile_name='Interchange',
+            stream, 0, metadata, profile_name='Interchange',
             # TODO? Skip units since it confuses X3D viewers and requires version 3.3
             units={'length': ('ångström', 1e-10)},
             # not using any of Chimera's extensions yet
