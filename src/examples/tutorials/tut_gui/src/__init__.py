@@ -14,10 +14,10 @@ class _MyAPI(BundleAPI):
 
     # Override method
     @staticmethod
-    def start_tool(bi, ti, logger):
+    def start_tool(session, bi, ti):
+        # session is an instance of chimerax.core.session.Session
         # bi is an instance of chimerax.core.toolshed.BundleInfo
         # ti is an instance of chimerax.core.toolshed.ToolInfo
-        # logger is an instance of chimerax.core.logger.Logger
 
         # This method is called once for each time the tool is invoked.
 
