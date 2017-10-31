@@ -34,7 +34,7 @@ Source Code Organization
 The source code for this example may be downloaded
 as a `zip-format file
 <http://www.rbvi.ucsf.edu/chimerax/cgi-bin/XXX>`_
-and the content folder, named `hello_world` extracted.
+containing a folder named `tut_cmd`.
 Alternatively, one can start with an empty folder
 and create source files based on the samples below.
 The source folder may be arbitrarily named, as it is
@@ -48,7 +48,7 @@ Sample Files
 
 The files in the ``tut_cmd`` folder are:
 
-``hello_world`` - bundle folder
+``tut_cmd`` - bundle folder
     ``bundle_info.xml`` - bundle information read by ChimeraX
     ``src`` - source code to Python package for bundle
         ``__init__.py`` - package initializer and interface to ChimeraX

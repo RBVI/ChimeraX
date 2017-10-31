@@ -114,6 +114,7 @@ html_theme = 'classic'
 # documentation.
 html_theme_options = {
     #'collapsiblesidebar': True,
+    'codebgcolor': '#F8FFF8',
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
