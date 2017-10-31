@@ -46,7 +46,8 @@ and "tutorial highlight" commands from a graphical interface.
     <PythonClassifier>License :: Freeware</PythonClassifier>
     <!-- ChimeraX classifiers describe supplied functionality -->
     <!-- Register a graphical interface tool -->
-    <ChimeraXClassifier>ChimeraX :: Tool :: Tutorial GUI :: General :: Graphical interface to "tutorial" commands</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Tool :: Tutorial GUI ::
+      General :: Graphical interface to "tutorial" commands</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
