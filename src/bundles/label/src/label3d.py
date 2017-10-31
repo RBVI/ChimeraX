@@ -13,7 +13,8 @@
 # -----------------------------------------------------------------------------
 #
 def label(session, objects = None, object_type = None, text = None,
-          offset = None, color = None, size = None, font = None, on_top = None):
+          offset = None, orient = None, color = None, size = None, height = None, font = None,
+          on_top = None):
     '''Create atom labels. The belong to a child model named "labels" of the structure.
 
     Parameters
@@ -23,15 +24,21 @@ def label(session, objects = None, object_type = None, text = None,
       If None then adjust settings of all existing labels.
     object_type : 'atoms', 'residues', 'pseudobonds', 'bonds'
       What type of object to label.
-    offset : float 3-tuple or "default"
-      Offset of label from atom center in screen coordinates in physical units (Angstroms)
     text : string or "default"
       Displayed text of the label.
+    offset : float 3-tuple or "default"
+      Offset of label from atom center in screen coordinates in physical units (Angstroms)
+    orient : float
+      Reorient the labels to face the view direction only when the view direction changes
+      changes by the specified number of degrees.  Default 0 makes the labels always face
+      the view direction.  This option is primarily of interest with virtual reality viewing.
     color : Color or "default"
       Color of the label text.  If no color is specified black is used on light backgrounds
       and white is used on dark backgrounds.
     size : int or "default"
       Font size in pixels. Default 24.
+    height : float or "fixed"
+      Text height in scene units.  Or if "fixed" use fixed pixel height on screen.
     font : string or "default"
       Font name.  This must be a true type font installed on Mac in /Library/Fonts
       and is the name of the font file without the ".ttf" suffix.  Default "Arial".
@@ -58,6 +65,8 @@ def label(session, objects = None, object_type = None, text = None,
         settings['offset'] = None
     elif offset is not None:
         settings['offset'] = offset
+    if orient is not None:
+        settings['orient'] = orient
     from chimerax.core.colors import Color
     if isinstance(color, Color):
         settings['color'] = color.uint8x4()
@@ -67,6 +76,10 @@ def label(session, objects = None, object_type = None, text = None,
         settings['size'] = 24
     elif size is not None:
         settings['size'] = size
+    if height == 'fixed':
+        settings['height'] = None
+    elif height is not None:
+        settings['height'] = height
     if font == 'default':
         settings['font'] = 'Arial'
     elif font is not None:
@@ -174,7 +187,7 @@ def labels_model(parent, create = False):
 #
 def register_label_command(logger):
 
-    from chimerax.core.commands import CmdDesc, register, ObjectsArg, StringArg
+    from chimerax.core.commands import CmdDesc, register, ObjectsArg, StringArg, FloatArg
     from chimerax.core.commands import Float3Arg, ColorArg, IntArg, BoolArg, EnumOf, Or, EmptyArg
 
     otype = EnumOf(('atoms','residues','pseudobonds','bonds'))
@@ -183,8 +196,10 @@ def register_label_command(logger):
                    optional = [('object_type', otype)],
                    keyword = [('text', Or(DefArg, StringArg)),
                               ('offset', Or(DefArg, Float3Arg)),
+                              ('orient', FloatArg),
                               ('color', Or(DefArg, ColorArg)),
                               ('size', Or(DefArg, IntArg)),
+                              ('height', Or(EnumOf(['fixed']), FloatArg)),
                               ('font', StringArg),
                               ('on_top', BoolArg)],
                    synopsis = 'Create atom labels')
@@ -266,6 +281,8 @@ class ObjectLabels(Model):
     def _update_graphics_if_needed(self, *_):
         if not self.visible:
             return
+        # TODO: Only update if camera moved, atom display changed, label property text, color, offset changed...
+        #  Currently every label has position recomputed every graphics update and it is slow for 50 labels.
         delo = []
         for o,ld in self._label_drawings.items():
             ld._update_graphics()
@@ -277,7 +294,7 @@ class ObjectLabels(Model):
     SESSION_SAVE = True
     
     def take_snapshot(self, session, flags):
-        lattrs = ('object', 'offset', 'text', 'color', 'size', 'font')
+        lattrs = ('object', 'text', 'offset', 'orient', 'color', 'size', 'height', 'font')
         lstate = tuple({attr:getattr(ld, attr) for attr in lattrs}
                        for ld in self._label_drawings.values())
         data = {'model state': Model.take_snapshot(self, session, flags),
@@ -299,7 +316,7 @@ class ObjectLabels(Model):
         v = self.session.main_view
         for ls in data['labels state']:
             o = ls['object']
-            kw = {attr:ls[attr] for attr in ('offset', 'text', 'color', 'size', 'font')}
+            kw = {attr:ls[attr] for attr in ('text', 'offset', 'orient', 'color', 'size', 'height', 'font')}
             cls = label_class(o)
             ld[o] = ol = cls(o, v, **kw)
             self.add_drawing(ol)
@@ -329,16 +346,19 @@ class ObjectLabel(Drawing):
     pickable = False		# Don't allow mouse selection of labels
     casts_shadows = False
     
-    def __init__(self, object, view, offset = None, text = None, color = None,
-                 size = 24, font = 'Arial'):
+    def __init__(self, object, view, offset = None, orient = 0, text = None, color = None,
+                 size = 24, height = None, font = 'Arial'):
         Drawing.__init__(self, 'label %s' % self.default_text())
 
         self.object = object
         self.view = view	# View is used to update label position to face camera
         self._offset = offset
+        self.orient = orient	# Degrees change in view direction before reorienting labels
+        self._last_camera_position = None
         self._text = text
         self._color = color
         self.size = size
+        self.height = height	# None or height in world coords.  If None used fixed screen size.
         self._pixel_size = (100,10)	# Size of label in pixels, calculated from size attribute
 
         self.font = font
@@ -438,15 +458,27 @@ class ObjectLabel(Drawing):
             self._position_label()	# Size of billboard changed.
 
     def _position_label(self):
+        # TODO: For VR when fixed scene height and orientation used, don't recalculate label position.
         xyz = self.location()
         if xyz is None:
             return	# Label deleted
         view = self.view
         spos = self.scene_position
-        psize = view.pixel_size(spos*xyz)
         pw,ph = self._pixel_size
-        w,h = psize * pw, psize * ph
+        sh = self.height	# Scene height
+        if sh is None:
+            psize = view.pixel_size(spos*xyz)
+            w,h = psize * pw, psize * ph
+        else:
+            w, h = sh*pw/ph, sh
         cpos = view.camera.position	# Camera position in scene coords
+        if self.orient > 0:
+            lcp = self._last_camera_position
+            from math import degrees
+            if lcp is not None and degrees((lcp.inverse()*cpos).rotation_angle()) < self.orient:
+                cpos = lcp
+            else:
+                self._last_camera_position = cpos
         clpos = spos.inverse() * cpos  # Camera pos in label drawing coords
         cam_xaxis, cam_yaxis, cam_zaxis = clpos.axes()
         from numpy import array, float32
@@ -461,10 +493,11 @@ class ObjectLabel(Drawing):
 # -----------------------------------------------------------------------------
 #
 class AtomLabel(ObjectLabel):
-    def __init__(self, object, view, offset = None, text = None, color = None,
-                 size = 24, font = 'Arial'):
+    def __init__(self, object, view, offset = None, orient = 0, text = None, color = None,
+                 size = 24, height = None, font = 'Arial'):
         self.atom = object
-        ObjectLabel.__init__(self, object, view, offset=offset, text=text, color=color, size=size, font=font)
+        ObjectLabel.__init__(self, object, view, offset=offset, orient=orient, text=text, color=color,
+                             size=size, height=height, font=font)
     def default_text(self):
         aname = self.atom.name
         return aname if aname else ('%d' % self.atom.residue.number)
@@ -480,10 +513,11 @@ class AtomLabel(ObjectLabel):
 # -----------------------------------------------------------------------------
 #
 class ResidueLabel(ObjectLabel):
-    def __init__(self, object, view, offset = None, text = None, color = None,
-                 size = 24, font = 'Arial'):
+    def __init__(self, object, view, offset = None, orient = 0, text = None, color = None,
+                 size = 24, height = None, font = 'Arial'):
         self.residue = object
-        ObjectLabel.__init__(self, object, view, offset=offset, text=text, color=color, size=size, font=font)
+        ObjectLabel.__init__(self, object, view, offset=offset, orient=orient, text=text, color=color,
+                             size=size, height=height, font=font)
     def default_text(self):
         r = self.residue
         return '%s %d' % (r.name, r.number)
@@ -497,10 +531,11 @@ class ResidueLabel(ObjectLabel):
 # -----------------------------------------------------------------------------
 #
 class PseudobondLabel(ObjectLabel):
-    def __init__(self, object, view, offset = None, text = None, color = None,
-                 size = 24, font = 'Arial'):
+    def __init__(self, object, view, offset = None, orient = 0, text = None, color = None,
+                 size = 24, height = None, font = 'Arial'):
         self.pseudobond = object
-        ObjectLabel.__init__(self, object, view, offset=offset, text=text, color=color, size=size, font=font)
+        ObjectLabel.__init__(self, object, view, offset=offset, orient=orient, text=text, color=color,
+                             size=size, height=height, font=font)
     def default_text(self):
         return '%.2f' % self.pseudobond.length
     def default_offset(self):
