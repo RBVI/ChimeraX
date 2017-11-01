@@ -27,6 +27,7 @@ def cmd_contacts(session, test_atoms, *,
         **kw):
     return _cmd(session, test_atoms, group_name, hbond_allowance, overlap_cutoff, "contacts", **kw)
 
+_continuous_attr = "_clashes_continuous_id"
 def _cmd(session, test_atoms, group_name, hbond_allowance, overlap_cutoff, test_type,
         atom_color=defaults["atom_color"],
         attr_name=defaults["attr_name"],
@@ -47,7 +48,7 @@ def _cmd(session, test_atoms, group_name, hbond_allowance, overlap_cutoff, test_
         reveal=False,
         save_file=None,
         set_attrs=defaults["action_attr"],
-        select_clashes=defaults["action_select"],
+        select=defaults["action_select"],
         summary=True,
         test="other"):
     from chimerax.core.colors import Color
@@ -58,12 +59,11 @@ def _cmd(session, test_atoms, group_name, hbond_allowance, overlap_cutoff, test_
     if pb_color is not None and not isinstance(pb_color, Color):
         pb_color = Color(rgba=pb_color)
     from chimerax.core.errors import UserError
-    continuous_attr = "_clashes_continuous_id"
     from chimerax.core.atomic import get_triggers
     if continuous:
         if set_attrs or save_file != None or log:
             raise UserError("log/setAttrs/saveFile not allowed with continuous detection")
-        if getattr(session, continuous_attr, None) == None:
+        if getattr(session, _continuous_attr, None) == None:
             from inspect import getargvalues, currentframe
             arg_names, fArgs, fKw, frame_dict = getargvalues(currentframe())
             call_data = [frame_dict[an] for an in arg_names]
@@ -71,15 +71,15 @@ def _cmd(session, test_atoms, group_name, hbond_allowance, overlap_cutoff, test_
                 if 'position change' in changes.atomic_structure_reasons():
                     if not call_data[0]:
                         # all atoms gone
-                        delattr(session, continuous_attr)
+                        delattr(session, _continuous_attr)
                         from chimerax.core.triggerset import DEREGISTER
                         return DEREGISTER
                     _cmd(*tuple(call_data))
                     return _motionCB(myData)
-            setattr(session, continuous_attr, get_triggers(session).add_handler(
+            setattr(session, _continuous_attr, get_triggers(session).add_handler(
                         'changes', changes_cb))
-    elif getattr(session, continuous_attr, None) != None:
-        get_triggers(session).remove_handler(getattr(session, continuous_attr))
+    elif getattr(session, _continuous_attr, None) != None:
+        get_triggers(session).remove_handler(getattr(session, _continuous_attr))
         delattr(session, continous_attr)
     from .clashes import find_clashes
     clashes = find_clashes(session, test_atoms, attr_name=attr_name,
@@ -87,7 +87,7 @@ def _cmd(session, test_atoms, group_name, hbond_allowance, overlap_cutoff, test_
         distance_only=distance_only, group_name=group_name, hbond_allowance=hbond_allowance,
         inter_model=inter_model, inter_submodel=inter_submodel, intra_res=intra_res,
         intra_mol=intra_mol, test=test)
-    if select_clashes:
+    if select:
         session.selection.clear()
         for a in clashes.keys():
             a.selected = True
@@ -142,9 +142,9 @@ def _cmd(session, test_atoms, group_name, hbond_allowance, overlap_cutoff, test_
             clash_atoms.colors = atom_color.uint8x4()
             scolor(session, clash_atoms, atom_color)
         if nonatom_color is not None:
-            color_atoms = Atoms([a for a in attr_atoms if a not in clashes])
-            color_atoms.colors = nonatom_color.uint8x4()
-            scolor(session, color_atoms, nonatom_color)
+            noncolor_atoms = Atoms([a for a in attr_atoms if a not in clashes])
+            noncolor_atoms.colors = nonatom_color.uint8x4()
+            scolor(session, noncolor_atoms, nonatom_color)
     if reveal:
         # display sidechain or backbone as appropriate for undisplayed atoms
         reveal_atoms = clash_atoms.filter(clash_atoms.displays == False)
@@ -209,11 +209,12 @@ def _file_output(file_name, info, naming_style):
     print("\n%d %s" % (len(data), test_type), file=out_file)
     field_width1 = max([len(l1) for v, l1, l2, d in data] + [5])
     field_width2 = max([len(l2) for v, l1, l2, d in data] + [5])
-    print("%*s  %*s  overlap  distance" % (0-field_width1, "atom1", 0-field_width2, "atom2"),
+    #print("%*s  %*s  overlap  distance" % (0-field_width1, "atom1", 0-field_width2, "atom2"),
+    print(f"{'atom1':^{field_width1}}  {'atom2':^{field_width2}}  overlap  distance",
         file=out_file)
     for v, l1, l2, d in data:
-        print("%*s  %*s  %5.3f  %5.3f" % (
-            0-field_width1, l1, 0-field_width2, l2, v, d), file=out_file)
+        print(f"%*s  %*s   %5.3f    %5.3f" % (0-field_width1, l1, 0-field_width2, l2, v, d),
+            file=out_file)
     if file_name != out_file:
         # only close file if we opened it...
         out_file.close()
@@ -225,6 +226,8 @@ def cmd_xcontacts(session, group_name="contacts"):
     _xcmd(session, group_name)
 
 def _xcmd(session, group_name):
+    if getattr(session, _continuous_attr, None) != None:
+        get_triggers(session).remove_handler(getattr(session, _continuous_attr))
     pbg = session.pb_manager.get_group(group_name, create=False)
     pbgs = [pbg] if pbg else []
     from chimerax.core.atomic import AtomicStructure
@@ -250,7 +253,7 @@ def register_command(command_name, logger):
                 ('naming_style', EnumOf(('simple', 'command', 'serial'))),
                 ('nonatom_color', Or(NoneArg,ColorArg)), ('pb_color', Or(NoneArg,ColorArg)),
                 ('pb_radius', FloatArg), ('reveal', BoolArg), ('save_file', SaveFileNameArg),
-                ('set_attrs', BoolArg), ('select_clashes', BoolArg), ('summary', BoolArg),
+                ('set_attrs', BoolArg), ('select', BoolArg), ('summary', BoolArg),
                 ('test', Or(EnumOf(('others', 'self')), AtomsArg))], }
         register('clashes', CmdDesc(**kw, synopsis="Find clashes"), cmd_clashes, logger=logger)
         register('contactz', CmdDesc(**kw, synopsis="Find contacts"), cmd_contacts, logger=logger)
