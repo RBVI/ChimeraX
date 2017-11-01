@@ -46,7 +46,7 @@ Source Code Organization
 The source code for this example may be downloaded
 as a `zip-format file
 <http://www.rbvi.ucsf.edu/chimerax/cgi-bin/XXX>`_
-and the content folder, named `hello_world` extracted.
+containing a folder named `hello_world`.
 Alternatively, one can start with an empty folder
 and create source files based on the samples below.
 The source folder may be arbitrarily named, as it is
@@ -58,7 +58,7 @@ need to type quote characters in some steps.
 Sample Files
 ============
 
-The files in the ``hello_world`` bundle are:
+The files in the source code folder are:
 
 ``hello_world`` - bundle folder
     ``bundle_info.xml`` - bundle information read by ChimeraX

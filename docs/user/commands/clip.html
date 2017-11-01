@@ -25,45 +25,46 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: clip</h3>
 
-<h3><a href="usageconventions.html">Usage</a>:
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>clip</b>
-[&nbsp;near&nbsp;&nbsp;<i>offset<sub><font size="-1">near</font></sub></i>&nbsp;|&nbsp;off&nbsp;]
-[&nbsp;far&nbsp;&nbsp;<i>offset<sub><font size="-1">far</font></sub></i>&nbsp;|&nbsp;off&nbsp;]
-[&nbsp;front&nbsp;&nbsp;<i>offset<sub><font size="-1">front</font></sub></i>&nbsp;|&nbsp;off&nbsp;]
-[&nbsp;back&nbsp;&nbsp;<i>offset<sub><font size="-1">back</font></sub></i>&nbsp;|&nbsp;off&nbsp;]
-[&nbsp;position&nbsp;&nbsp;<i>refpoint</i>&nbsp;]
-[&nbsp;axis&nbsp;&nbsp;<i>normal</i></a>&nbsp;]
+[&nbsp;<b>near</b>&nbsp;&nbsp;<i>offset<sub><font size="-1">near</font></sub></i>&nbsp;|&nbsp;off&nbsp;]
+[&nbsp;<b>far</b>&nbsp;&nbsp;<i>offset<sub><font size="-1">far</font></sub></i>&nbsp;|&nbsp;off&nbsp;]
+[&nbsp;<b>front</b>&nbsp;&nbsp;<i>offset<sub><font size="-1">front</font></sub></i>&nbsp;|&nbsp;off&nbsp;]
+[&nbsp;<b>back</b>&nbsp;&nbsp;<i>offset<sub><font size="-1">back</font></sub></i>&nbsp;|&nbsp;off&nbsp;]
+[&nbsp;<b>position</b>&nbsp;&nbsp;<i>refpoint</i>&nbsp;]
+[&nbsp;<b>axis</b>&nbsp;&nbsp;<i>normal</i></a>&nbsp;]
 [&nbsp;<b>coordinateSystem</b>
 &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 </h3>
-<h3><a href="usageconventions.html">Usage</a>:
-<br><b>clip</b> off
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>clip</b> &nbsp;<b>off</b>
 </h3>
-<h3><a href="usageconventions.html">Usage</a>:
-<br><b>clip</b> list
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>clip</b> &nbsp;<b>list</b>
 </h3>
 
 <p>
 The <b>clip</b> command controls clipping planes. 
 Up to four planes can be active:
 <ul>
-<li><b><i>near</i></b> and <b><i>far</i></b> planes are
+<li><b>near</b> and <b>far</b> planes are
 always perpendicular to the line of sight and do not move with the scene
-<li><b><i>front</i></b> and <b><i>back</i></b> planes
+<li><b>front</b> and <b>back</b> planes
 move along with the scene and can be oriented in any direction
 </ul>
+If given without arguments, <b>clip</b> acts like <b>clip front 0</b>.
 The command <b>clip off</b> turns off all clipping planes, whereas 
 <b>clip list</b> reports the locations of any active clipping planes.
 See also: <a href="view.html"><b>view</b></a>,
 <a href="mousemode.html"><b>mousemode</b></a>,
 <a href="../tools/sideview.html"><b>Side View</b></a>
 </p><p>
-Each plane can be turned on or off individually, and specifying
-an offset activates a plane if it was not already active.
-All plane offsets are in physical distance units (generally &Aring;), with 
+Each plane can be activated or turned <b>off</b> individually; 
+specifying an <i>offset</i> activates a plane if it was not already active.
+Offsets are in physical distance units (generally &Aring;), with 
 positive values increasing away from the viewer for the near/far planes.
-Plane offsets are relative to the <b>position</b> reference point, if given.
-If no reference point is given, offsets are relative to the current positions 
+The offsets are relative to the <b>position</b> reference point, if given.
+Otherwise, offsets are relative to the current positions 
 of the planes, or (if a plane is newly activated)
 the center of the bounding box of displayed models.
 The position of a plane is forgotten when it is turned off.
@@ -97,5 +98,5 @@ to the screen Z-axis or line of sight.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-September 2016</address>
+October 2017</address>
 </body></html>

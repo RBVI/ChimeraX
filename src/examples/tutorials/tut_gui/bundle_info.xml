@@ -5,8 +5,8 @@ When uploaded to the ChimeraX toolshed, the bundle
 will be displayed without the ChimeraX- prefix.
 -->
 
-<BundleInfo name="ChimeraX-HelloWorld"
-	    version="0.1" package="chimerax.hello_world"
+<BundleInfo name="ChimeraX-Tutorial_GUI"
+	    version="0.1" package="chimerax.tut_gui"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -16,10 +16,11 @@ will be displayed without the ChimeraX- prefix.
 
   <!-- Synopsis is a one-line description
        Description is a full multi-line description -->
-  <Synopsis>Basic example for adding a command</Synopsis>
-  <Description>Basic example code for implementing ChimeraX bundle.
+  <Synopsis>Example for adding a graphical interface tool</Synopsis>
+  <Description>Example code for implementing ChimeraX bundle.
 
-Implements command "hello" to print the string "hello world" in the log.
+Implements tool "Tutorial GUI" to access "tutorial cofm"
+and "tutorial highlight" commands from a graphical interface.
   </Description>
 
   <!-- Categories is a list where this bundle should appear -->
@@ -28,29 +29,25 @@ Implements command "hello" to print the string "hello world" in the log.
   </Categories>
 
   <!-- Dependencies on other ChimeraX/Python packages -->
+  <!-- This example uses functionality from the Tutorial_Command bundle -->
   <Dependencies>
     <Dependency name="ChimeraX-Core" version=">=0.1"/>
+    <Dependency name="ChimeraX-Tutorial_Command" version=">=0.1"/>
   </Dependencies>
 
-  <!-- Python and ChimeraX-specific classifiers
-       From https://pypi.python.org/pypi?%3Aaction=list_classifiers
-       Some Python classifiers are always inserted by the build process.
-       These include the Environment and Operating System classifiers
-       as well as:
-         Framework :: ChimeraX
-         Intended Audience :: Science/Research
-         Programming Language :: Python :: 3
-         Topic :: Scientific/Engineering :: Visualization
-         Topic :: Scientific/Engineering :: Chemistry
-         Topic :: Scientific/Engineering :: Bio-Informatics
-       The "ChimeraX :: Bundle" classifier is also supplied automatically.  -->
+  <!-- Non-Python files that are part of package -->
+  <DataFiles>
+    <DataFile>gui.html</DataFile>
+  </DataFiles>
+
   <Classifiers>
     <!-- Development Status should be compatible with bundle version number -->
     <PythonClassifier>Development Status :: 3 - Alpha</PythonClassifier>
     <PythonClassifier>License :: Freeware</PythonClassifier>
     <!-- ChimeraX classifiers describe supplied functionality -->
-    <ChimeraXClassifier>ChimeraX :: Command :: hello :: General ::
-	Print "hello world" in the log</ChimeraXClassifier>
+    <!-- Register a graphical interface tool -->
+    <ChimeraXClassifier>ChimeraX :: Tool :: Tutorial GUI ::
+      General :: Graphical interface to "tutorial" commands</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

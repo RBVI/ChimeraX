@@ -24,16 +24,16 @@ or derivations thereof.
 class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: graphics</h3>
-<h3><a href="usageconventions.html">Usage</a>:
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>graphics</b> 
-[&nbsp;atomTriangles&nbsp;&nbsp;<i>N<sub>a</sub></i>&nbsp;]
-[&nbsp;bondTriangles&nbsp;&nbsp;<i>N<sub>b</sub></i>&nbsp;]
-[&nbsp;ribbonDivisions&nbsp;&nbsp;<i>N<sub>d</sub></i>&nbsp;]
-[&nbsp;ribbonSides&nbsp;&nbsp;<i>N<sub>s</sub></i>&nbsp;]
-[&nbsp;maxFrameRate&nbsp;&nbsp;<i>N<sub>f</sub></i>&nbsp;]
+[&nbsp;<b>atomTriangle</b>s&nbsp;&nbsp;<i>N<sub>a</sub></i>&nbsp;]
+[&nbsp;<b>bondTriangle</b>s&nbsp;&nbsp;<i>N<sub>b</sub></i>&nbsp;]
+[&nbsp;<b>ribbonDivision</b>s&nbsp;&nbsp;<i>N<sub>d</sub></i>&nbsp;]
+[&nbsp;<b>ribbonSide</b>s&nbsp;&nbsp;<i>N<sub>s</sub></i>&nbsp;]
+[&nbsp;<b>maxFrameRate</b>&nbsp;&nbsp;<i>N<sub>f</sub></i>&nbsp;]
 </h3>
-<h3><a href="usageconventions.html">Usage</a>:
-<br><b>graphics restart</b> 
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>graphics</b> &nbsp;<b>restart</b> 
 </h3>
 <p>
 Normally, the fineness of atom and bond triangulation is adjusted automatically 
@@ -46,21 +46,22 @@ See also: <a href="cartoon.html#style"><b>cartoon style</b></a>
 The <b>graphics</b> command allows instead using fixed numbers of triangles:
 </p>
 <ul>
-<li><b>atomTriangles <i>N<sub>a</sub></i></b> - triangles per atom
+<li><b>atomTriangles</b> <i>N<sub>a</sub></i> - triangles per atom
 (minimum 4, except that 0 specifies going back to automatic adjustment)
-<li><b>bondTriangles <i>N<sub>b</sub></i></b> - triangles per bond
+<li><b>bondTriangles</b> <i>N<sub>b</sub></i> - triangles per bond
 (minimum 12, except that 0 specifies going back to automatic adjustment)
-<li><b>ribbonDivisions <i>N<sub>d</sub></i></b> - divisions per residue 
+<li><b>ribbonDivisions</b> <i>N<sub>d</sub></i> - divisions per residue 
 lengthwise along the cartoon (initial default <b>20</b>, minimum 2)
-<li><b>ribbonSides <i>N<sub>s</sub></i></b> - number of sides used to approximate 
-an oval or round cartoon cross-section (initial default <b>12</b>, minimum 4)
+<li><b>ribbonSides</b> <i>N<sub>s</sub></i>
+- number of sides used to approximate an oval or round cartoon cross-section
+(initial default <b>12</b>, minimum 4)
 </ul>
 <p>
 The <b>maxFrameRate</b> option sets the target
 <a href="../movies.html#framerate">frame rate</a> in ChimeraX
 to <i>N<sub>f</sub></i>&nbsp; frames per second (initial default <b>60</b>).
-The actual redraw rate may be lower than the target,
-depending on the rendering speed of the computer and the complexity of the scene.
+The actual redraw rate may be lower than the target, depending on the 
+rendering speed of the computer and the complexity of the scene.
 </p><p>
 Without options, <b>graphics</b> reports the current triangles per atom and bonds, 
 ribbon divisions per residue, and maximum frame rate
