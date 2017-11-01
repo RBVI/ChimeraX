@@ -248,6 +248,7 @@ class ObjectLabels(Model):
             
         h = self._structure_change_handler
         if h is not None:
+            from chimerax.core.atomic import get_triggers
             get_triggers(self.session).remove_handler(h)
             self._structure_change_handler = None
         
