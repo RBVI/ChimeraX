@@ -41,8 +41,10 @@ the center of mass.
     <!-- ChimeraX classifiers describe supplied functionality -->
     <!-- Register two commands for printing the center of mass
 	 and selecting/coloring atom(s) nearest the center of mass of atoms -->
-    <ChimeraXClassifier>ChimeraX :: Command :: tutorial cofm :: General :: Print center of mass of atoms</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: tutorial highlight :: General :: Highlight atoms near center of mass</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: tutorial cofm :: General ::
+	Print center of mass of atoms</ChimeraXClassifier>
+<ChimeraXClassifier>ChimeraX :: Command :: tutorial highlight :: General ::
+	Highlight atoms near center of mass</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

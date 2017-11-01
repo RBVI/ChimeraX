@@ -228,12 +228,30 @@ class ObjectLabels(Model):
         self._label_drawings = {}	# Map object (Atom, Residue, Pseudobond, Bond) to ObjectLabel
 
         t = session.triggers
-        self._handler = t.add_handler('graphics update', self._update_graphics_if_needed)
+        self._update_graphics_handler = t.add_handler('graphics update', self._update_graphics_if_needed)
+
+        from chimerax.core.atomic import get_triggers
+        ta = get_triggers(session)
+        self._structure_change_handler = ta.add_handler('changes', self._structure_changed)
+        
+        self._update_label_graphics = True
+
+        # Optimize label repositioning when minimum camera move specified.
+        self._reorient_angle = 0
+        self._last_camera_position = None
 
     def delete(self):
-        if self._handler is not None:
-            self.session.triggers.remove_handler(self._handler)
-            self._handler = None
+        h = self._update_graphics_handler
+        if h is not None:
+            self.session.triggers.remove_handler(h)
+            self._update_graphics_handler = None
+            
+        h = self._structure_change_handler
+        if h is not None:
+            from chimerax.core.atomic import get_triggers
+            get_triggers(self.session).remove_handler(h)
+            self._structure_change_handler = None
+        
         Model.delete(self)
 
     def draw(self, renderer, place, draw_pass, selected_only=False):
@@ -255,8 +273,9 @@ class ObjectLabels(Model):
                 lo = ld[o]
                 for k,v in settings.items():
                     setattr(lo, k, v)
-                lo._needs_update = True
         if objects:
+            self._update_label_graphics = True
+            self._reorient_angle = 0
             self.redraw_needed()
 
     def delete_labels(self, objects):
@@ -278,19 +297,41 @@ class ObjectLabels(Model):
         return [o for o,l in self._label_drawings.items()
                 if label_class is None or isinstance(l, label_class)]
 
+    def _structure_changed(self, tname, changes):
+        # If atoms undisplayed, or radii change, or names change, can effect label display.
+        self._update_label_graphics = True
+        self.redraw_needed()
+
     def _update_graphics_if_needed(self, *_):
         if not self.visible:
             return
-        # TODO: Only update if camera moved, atom display changed, label property text, color, offset changed...
-        #  Currently every label has position recomputed every graphics update and it is slow for 50 labels.
+
+        camera_move = self.session.main_view.camera.redraw_needed
+        if not self._update_label_graphics:
+            if not camera_move:
+                return
+            if self._reorient_angle > 0:
+                # Don't update label positions if minimum camera motion has not occured.
+                # This optimization is to maintain high frame rate with virtual reality.
+                cpos = self.session.main_view.camera.position
+                lcpos = self._last_camera_position
+                from math import degrees
+                if lcpos is not None and degrees((cpos.inverse() * lcpos).rotation_angle()) < self._reorient_angle:
+                    return
+                self._last_camera_position = cpos
+
+        self._reorient_angle = min([ld.orient for ld in self._label_drawings.values()], default = 0)
+
+        # TODO: Label update is quite slow 0.015 sec for 30 labels, makes VR stutter.
+        self._update_label_graphics = False
         delo = []
         for o,ld in self._label_drawings.items():
-            ld._update_graphics()
+            ld._update_graphics(camera_move)
             if ld.object_deleted:
                 delo.append(o)
         if delo:
             self.delete_labels(delo)
-
+        
     SESSION_SAVE = True
     
     def take_snapshot(self, session, flags):
@@ -372,8 +413,23 @@ class ObjectLabel(Drawing):
         self.texture_coordinates = tc
         self.use_lighting = False
 
-        self._needs_update = True		# Has text, color, size, font changed.
+        self._texture_needs_update = True		# Has text, color, size, font changed.
+        self._position_needs_update = True		# Has label position changed relative to atom?
 
+    # Attributes that cause texture update
+    _texture_attrs = ('text', 'size', 'font', 'color')
+    
+    # Attributes that cause new label position or scale
+    _position_attrs = ('offset', 'orient', 'height')
+    
+    # Note if attribute change requires texture or position update
+    def __setattr__(self, attr, value):
+        if attr in self._texture_attrs:
+            self._texture_needs_update = True
+        if attr in self._position_attrs:
+            self._position_needs_update = True
+        super().__setattr__(attr, value)
+        
     def default_text(self):
         '''Override this to define the default label text for object.'''
         return ''
@@ -394,14 +450,12 @@ class ObjectLabel(Drawing):
         return self.default_offset() if self._offset is None else self._offset
     def _set_offset(self, offset):
         self._offset = offset
-        self._needs_update = True
     offset = property(_get_offset, _set_offset)
     
     def _get_text(self):
         return self.default_text() if self._text is None else self._text
     def _set_text(self, text):
         self._text = text
-        self._needs_update = True
     text = property(_get_text, _set_text)
     
     def _get_color(self):
@@ -414,7 +468,6 @@ class ObjectLabel(Drawing):
         return rgba8
     def _set_color(self, color):
         self._color = color
-        self._needs_update = True
     color = property(_get_color, _set_color)
 
     @property
@@ -427,17 +480,17 @@ class ObjectLabel(Drawing):
         self._update_label_texture()  # This needs to be done during draw in case texture delete needed.
         Drawing.draw(self, renderer, place, draw_pass, selected_only)
 
-    def _update_graphics(self):
+    def _update_graphics(self, camera_move = True):
         disp = self.visible()
         if disp != self.display:
             self.display = disp
-        if self.display:
+        if self.display and (camera_move or self._position_needs_update):
             self._position_label()
 
     def _update_label_texture(self):
-        if not self._needs_update:
+        if not self._texture_needs_update:
             return
-        self._needs_update = False
+        self._texture_needs_update = False
         s = self.size
         rgba8 = (255,255,255,255)
         from .label2d import text_image_rgba
@@ -458,6 +511,7 @@ class ObjectLabel(Drawing):
             self._position_label()	# Size of billboard changed.
 
     def _position_label(self):
+        self._position_needs_update = False
         # TODO: For VR when fixed scene height and orientation used, don't recalculate label position.
         xyz = self.location()
         if xyz is None:
@@ -526,7 +580,7 @@ class ResidueLabel(ObjectLabel):
         return None if r.deleted else r.center
     def visible(self):
         r = self.residue
-        return (not r.deleted) and (r.ribbon_display or r.atoms.displays.any())
+        return (not r.deleted) and ((r.ribbon_display and r.polymer_type != r.PT_NONE) or r.atoms.displays.any())
 
 # -----------------------------------------------------------------------------
 #

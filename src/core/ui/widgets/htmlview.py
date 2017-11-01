@@ -138,7 +138,13 @@ class HtmlView(QWebEngineView):
         self.setEnabled(True)
 
     def setUrl(self, url):  # noqa
+        if isinstance(url, str):
+            from PyQt5.QtCore import QUrl
+            url = QUrl(url)
         super().setUrl(url)
+
+    def runJavaScript(self, js):    # noqa
+        self.page().runJavaScript(js)
 
 
 class _RequestInterceptor(QWebEngineUrlRequestInterceptor):
