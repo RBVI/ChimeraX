@@ -39,7 +39,7 @@
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
 ]
     <ChimeraXClassifier>ChimeraX :: Command :: clashes :: Structure Analysis :: Find atoms with steric clashes</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: contacts :: Structure Analysis :: Finds atoms in contact with one another</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: contactz :: Structure Analysis :: Finds atoms in contact with one another</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Command :: ~clashes :: Structure Analysis :: Clear clash pseudobond</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Command :: ~contacts :: Structure Analysis :: Clear contact pseudobond</ChimeraXClassifier>
 ]

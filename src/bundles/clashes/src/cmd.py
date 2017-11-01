@@ -239,7 +239,7 @@ def register_command(command_name, logger):
     from chimerax.core.commands \
         import CmdDesc, register, BoolArg, FloatArg, ColorArg, Or, EnumOf, AtomsArg, NoneArg, \
             SaveFileNameArg, NonNegativeIntArg, StringArg, AttrNameArg
-    if command_name in ["clashes", "contacts"]:
+    if command_name in ["clashes", "contactz"]:
         kw = { 'required': [('test_atoms', AtomsArg)],
             'keyword': [('group_name', StringArg), ('hbond_allowance', FloatArg),
                 ('overlap_cutoff', FloatArg), ('atom_color', Or(NoneArg,ColorArg)),
@@ -253,7 +253,7 @@ def register_command(command_name, logger):
                 ('set_attrs', BoolArg), ('select_clashes', BoolArg), ('summary', BoolArg),
                 ('test', Or(EnumOf(('others', 'self')), AtomsArg))], }
         register('clashes', CmdDesc(**kw, synopsis="Find clashes"), cmd_clashes, logger=logger)
-        register('contacts', CmdDesc(**kw, synopsis="Find contacts"), cmd_contacts, logger=logger)
+        register('contactz', CmdDesc(**kw, synopsis="Find contacts"), cmd_contacts, logger=logger)
     else:
         kw = { 'keyword': [('group_name', StringArg)] }
         desc = CmdDesc(keyword = [('group_name', StringArg)], synopsis = 'Clear hydrogen bonds')
