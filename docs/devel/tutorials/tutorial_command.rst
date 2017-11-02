@@ -33,7 +33,7 @@ Source Code Organization
 
 The source code for this example may be downloaded
 as a `zip-format file
-<http://www.rbvi.ucsf.edu/chimerax/cgi-bin/XXX>`_
+<http://www.rbvi.ucsf.edu/chimerax/cgi-bin/bundle_tutorial.zip?name=tut_cmd>`_
 containing a folder named `tut_cmd`.
 Alternatively, one can start with an empty folder
 and create source files based on the samples below.
@@ -101,4 +101,16 @@ files, etc.
     :language: python
     :linenos:
 
+
 .. include:: build_test_distribute.rst
+
+What's Next
+===========
+
+- :doc:`tutorial_hello` (previous topic)
+- :doc:`tutorial_command` (current topic)
+- :doc:`tutorial_tool` (next topic)
+- :doc:`tutorial_read_format`
+- :doc:`tutorial_save_format`
+- :doc:`tutorial_fetch`
+- :doc:`tutorial_selector`
