@@ -14,21 +14,21 @@
 from .settings import defaults
 
 def cmd_clashes(session, test_atoms, *,
-        group_name="clashes",
+        name="clashes",
         hbond_allowance=defaults["clash_hbond_allowance"],
         overlap_cutoff=defaults["clash_threshold"],
         **kw):
-    return _cmd(session, test_atoms, group_name, hbond_allowance, overlap_cutoff, "clashes", **kw)
+    return _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, "clashes", **kw)
 
 def cmd_contacts(session, test_atoms, *,
-        group_name="contacts",
+        name="contacts",
         hbond_allowance=defaults["clash_hbond_allowance"],
         overlap_cutoff=defaults["contact_threshold"],
         **kw):
-    return _cmd(session, test_atoms, group_name, hbond_allowance, overlap_cutoff, "contacts", **kw)
+    return _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, "contacts", **kw)
 
 _continuous_attr = "_clashes_continuous_id"
-def _cmd(session, test_atoms, group_name, hbond_allowance, overlap_cutoff, test_type,
+def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
         atom_color=defaults["atom_color"],
         attr_name=defaults["attr_name"],
         bond_separation=defaults["bond_separation"],
@@ -84,7 +84,7 @@ def _cmd(session, test_atoms, group_name, hbond_allowance, overlap_cutoff, test_
     from .clashes import find_clashes
     clashes = find_clashes(session, test_atoms, attr_name=attr_name,
         bond_separation=bond_separation, clash_threshold=overlap_cutoff,
-        distance_only=distance_only, group_name=group_name, hbond_allowance=hbond_allowance,
+        distance_only=distance_only, group_name=name, hbond_allowance=hbond_allowance,
         inter_model=inter_model, inter_submodel=inter_submodel, intra_res=intra_res,
         intra_mol=intra_mol, test=test)
     if select:
@@ -116,7 +116,7 @@ def _cmd(session, test_atoms, group_name, hbond_allowance, overlap_cutoff, test_
         else:
             session.logger.status("No %s" % test_type, log=True)
     if not (set_attrs or color_atoms or make_pseudobonds or reveal):
-        _xcmd(session, group_name)
+        _xcmd(session, name)
         return clashes
     from chimerax.core.atomic import all_atoms
     if test == "self":
@@ -160,9 +160,9 @@ def _cmd(session, test_atoms, group_name, hbond_allowance, overlap_cutoff, test_
         reveal_atoms.displays = True
     if make_pseudobonds:
         if len(clash_atoms.unique_structures) > 1:
-            pbg = session.pb_manager.get_group(group_name)
+            pbg = session.pb_manager.get_group(name)
         else:
-            pbg = clash_atoms[0].structure.pseudobond_group(group_name)
+            pbg = clash_atoms[0].structure.pseudobond_group(name)
         pbg.clear()
         pbg.radius = pb_radius
         if pb_color is not None:
@@ -175,7 +175,7 @@ def _cmd(session, test_atoms, group_name, hbond_allowance, overlap_cutoff, test_
                     continue
                 pbg.new_pseudobond(a, clasher)
     else:
-        _xcmd(session, group_name)
+        _xcmd(session, name)
     return clashes
 
 def _file_output(file_name, info, naming_style):
@@ -219,11 +219,11 @@ def _file_output(file_name, info, naming_style):
         # only close file if we opened it...
         out_file.close()
 
-def cmd_xclashes(session, group_name="clashes"):
-    _xcmd(session, group_name)
+def cmd_xclashes(session, name="clashes"):
+    _xcmd(session, name)
 
-def cmd_xcontacts(session, group_name="contacts"):
-    _xcmd(session, group_name)
+def cmd_xcontacts(session, name="contacts"):
+    _xcmd(session, name)
 
 def _xcmd(session, group_name):
     if getattr(session, _continuous_attr, None) != None:
@@ -245,7 +245,7 @@ def register_command(command_name, logger):
             SaveFileNameArg, NonNegativeIntArg, StringArg, AttrNameArg
     if command_name in ["clashes", "contactz"]:
         kw = { 'required': [('test_atoms', AtomsArg)],
-            'keyword': [('group_name', StringArg), ('hbond_allowance', FloatArg),
+            'keyword': [('name', StringArg), ('hbond_allowance', FloatArg),
                 ('overlap_cutoff', FloatArg), ('atom_color', Or(NoneArg,ColorArg)),
                 ('attr_name', AttrNameArg), ('bond_separation', NonNegativeIntArg),
                 ('color_atoms', BoolArg), ('continuous', BoolArg), ('distance_only', FloatArg),
@@ -259,8 +259,7 @@ def register_command(command_name, logger):
         register('clashes', CmdDesc(**kw, synopsis="Find clashes"), cmd_clashes, logger=logger)
         register('contactz', CmdDesc(**kw, synopsis="Find contacts"), cmd_contacts, logger=logger)
     else:
-        kw = { 'keyword': [('group_name', StringArg)] }
-        desc = CmdDesc(keyword = [('group_name', StringArg)], synopsis = 'Clear hydrogen bonds')
+        kw = { 'keyword': [('name', StringArg)] }
         register('~clashes', CmdDesc(synopsis="Remove clash pseudobonds", **kw), cmd_xclashes,
             logger=logger)
         register('~contacts', CmdDesc(synopsis="Remove contact pseudobonds", **kw), cmd_xcontacts,
