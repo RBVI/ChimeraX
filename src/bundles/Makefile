@@ -41,5 +41,6 @@ clean:
 	rm -rf __pycache__
 
 align_algs.install: alignments.install
-sim_matrices.install: alignments.install
+crosslinks.install: interfaces.install
 match_maker.install: align_algs.install sim_matrices.install
+sim_matrices.install: alignments.install
