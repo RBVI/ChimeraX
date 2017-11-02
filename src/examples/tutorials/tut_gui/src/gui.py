@@ -62,44 +62,48 @@ class TutorialGUI(HtmlToolInstance):
 
         # First check that the path is a real command
         command = url.path()
-        if command not in ["cofm", "highlight"]:
+        if command == "update_models":
+            self.update_models()
+            return
+        elif command in ["cofm", "highlight"]:
+            # Collect the optional parameters from URL query parameters
+            # and construct a command to execute
+            from urllib.parse import parse_qs
+            query = parse_qs(url.query())
+
+            # First the command
+            cmd_text = ["tutorial", command]
+
+            # Next the atom specifier
+            target = query["target"][0]
+            models = query["model"]
+            if target == "sel":
+                cmd_text.append("sel")
+            elif target == "model":
+                cmd_text.append(''.join(models))
+            # else target must be "all":
+            #   for which we leave off atom specifier completely
+
+            # Then "highlight" specific parameters
+            if command == "highlight":
+                color = query["color"][0]
+                cmd_text.append(color)
+                count = query["count"][0]
+                cmd_text.extend(["count", count])
+
+            # Add remaining global options
+            weighted = "weighted" in query
+            cmd_text.extend(["weighted", "true" if weighted else "false"])
+            transformed = "transformed" in query
+            cmd_text.extend(["transformed", "true" if transformed else "false"])
+
+            # Run the command
+            cmd = ' '.join(cmd_text)
+            from chimerax.core.commands import run
+            run(self.session, cmd)
+        else:
             from chimerax.core.errors import UserError
             raise UserError("unknown tutorial command: %s" % command)
-
-        # Collect the optional parameters from URL query parameters
-        # and construct a command to execute
-        from urllib.parse import parse_qs
-        query = parse_qs(url.query())
-
-        # First the command
-        cmd_text = ["tutorial", command]
-
-        # Next the atom specifier
-        target = query["target"][0]
-        models = query["model"]
-        if target == "sel":
-            cmd_text.append("sel")
-        elif target == "model":
-            cmd_text.append(''.join(models))
-        # else target == "all", for which we leave off the specifier completely
-
-        # Then "highlight" specific parameters
-        if command == "highlight":
-            color = query["color"][0]
-            cmd_text.append(color)
-            count = query["count"][0]
-            cmd_text.extend(["count", count])
-
-        # Add remaining global options
-        weighted = "weighted" in query
-        cmd_text.extend(["weighted", "true" if weighted else "false"])
-        transformed = "transformed" in query
-        cmd_text.extend(["transformed", "true" if transformed else "false"])
-
-        # Run the command
-        cmd = ' '.join(cmd_text)
-        from chimerax.core.commands import run
-        run(self.session, cmd)
 
     def update_models(self, trigger=None, trigger_data=None):
         # Update the <select> options in the web form with current
