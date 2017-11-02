@@ -42,7 +42,7 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
         log=defaults["action_log"],
         make_pseudobonds=defaults["action_pseudobonds"],
         naming_style=None,
-        nonatom_color=defaults["nonatom_color"],
+        other_atom_color=defaults["other_atom_color"],
         pb_color=defaults["pb_color"],
         pb_radius=defaults["pb_radius"],
         reveal=False,
@@ -54,8 +54,8 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
     from chimerax.core.colors import Color
     if atom_color is not None and not isinstance(atom_color, Color):
         atom_color = Color(rgba=atom_color)
-    if nonatom_color is not None and not isinstance(nonatom_color, Color):
-        nonatom_color = Color(rgba=nonatom_color)
+    if other_atom_color is not None and not isinstance(other_atom_color, Color):
+        other_atom_color = Color(rgba=other_atom_color)
     if pb_color is not None and not isinstance(pb_color, Color):
         pb_color = Color(rgba=pb_color)
     from chimerax.core.errors import UserError
@@ -141,10 +141,10 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
         if atom_color is not None:
             clash_atoms.colors = atom_color.uint8x4()
             scolor(session, clash_atoms, atom_color)
-        if nonatom_color is not None:
-            noncolor_atoms = Atoms([a for a in attr_atoms if a not in clashes])
-            noncolor_atoms.colors = nonatom_color.uint8x4()
-            scolor(session, noncolor_atoms, nonatom_color)
+        if other_atom_color is not None:
+            other_color_atoms = Atoms([a for a in attr_atoms if a not in clashes])
+            other_color_atoms.colors = other_atom_color.uint8x4()
+            scolor(session, other_color_atoms, other_atom_color)
     if reveal:
         # display sidechain or backbone as appropriate for undisplayed atoms
         reveal_atoms = clash_atoms.filter(clash_atoms.displays == False)
@@ -243,7 +243,7 @@ def register_command(command_name, logger):
     from chimerax.core.commands \
         import CmdDesc, register, BoolArg, FloatArg, ColorArg, Or, EnumOf, AtomsArg, NoneArg, \
             SaveFileNameArg, NonNegativeIntArg, StringArg, AttrNameArg
-    if command_name in ["clashes", "contactz"]:
+    if command_name in ["clashes", "contacts"]:
         kw = { 'required': [('test_atoms', AtomsArg)],
             'keyword': [('name', StringArg), ('hbond_allowance', FloatArg),
                 ('overlap_cutoff', FloatArg), ('atom_color', Or(NoneArg,ColorArg)),
@@ -252,7 +252,7 @@ def register_command(command_name, logger):
                 ('inter_model', BoolArg), ('inter_submodel', BoolArg), ('intra_mol', BoolArg),
                 ('intra_res', BoolArg), ('log', BoolArg), ('make_pseudobonds', BoolArg),
                 ('naming_style', EnumOf(('simple', 'command', 'serial'))),
-                ('nonatom_color', Or(NoneArg,ColorArg)), ('pb_color', Or(NoneArg,ColorArg)),
+                ('other_atom_color', Or(NoneArg,ColorArg)), ('pb_color', Or(NoneArg,ColorArg)),
                 ('pb_radius', FloatArg), ('reveal', BoolArg), ('save_file', SaveFileNameArg),
                 ('set_attrs', BoolArg), ('select', BoolArg), ('summary', BoolArg),
                 ('test', Or(EnumOf(('others', 'self')), AtomsArg))], }

@@ -1,5 +1,5 @@
 <BundleInfo name="ChimeraX-Contacts" version="1.0"
-	    package="chimerax.contacts"
+	    package="chimerax.interfaces"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
@@ -20,7 +20,7 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: contacts :: Molecular structure :: Display chain contact maps</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: interfaces :: Molecular structure :: Display chain contact maps</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
