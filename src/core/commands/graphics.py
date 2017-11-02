@@ -12,7 +12,8 @@
 # === UCSF ChimeraX Copyright ===
 
 def graphics(session, atom_triangles = None, bond_triangles = None,
-             ribbon_divisions = None, ribbon_sides = None, max_frame_rate = None):
+             ribbon_divisions = None, ribbon_sides = None, max_frame_rate = None,
+             frame_rate = None):
     '''
     Set graphics rendering parameters.
 
@@ -30,6 +31,8 @@ def graphics(session, atom_triangles = None, bond_triangles = None,
         Number of segments to use around circumference of ribbon, minimum 4 (default 12).
     max_frame_rate : float
         Set maximum graphics frame rate (default 60).
+    frame_rate : bool
+        Whether to show status message with average frame rate each second.
     '''
     from ..atomic.structure import structure_graphics_updater
     gu = structure_graphics_updater(session)
@@ -61,6 +64,9 @@ def graphics(session, atom_triangles = None, bond_triangles = None,
         msec = 1000.0 / max_frame_rate
         session.ui.main_window.graphics_window.set_redraw_interval(msec)
         change = True
+    if frame_rate is not None:
+        show_frame_rate(session, frame_rate)
+        change = True
 
     if change:
         gu.update_level_of_detail()
@@ -84,13 +90,14 @@ def graphics_restart(session):
     session.update_loop.unblock_redraw()
 
 def register_command(session):
-    from .cli import CmdDesc, register, IntArg, FloatArg
+    from .cli import CmdDesc, register, IntArg, FloatArg, BoolArg
     desc = CmdDesc(
         keyword=[('atom_triangles', IntArg),
                  ('bond_triangles', IntArg),
                  ('ribbon_divisions', IntArg),
                  ('ribbon_sides', IntArg),
-                 ('max_frame_rate', FloatArg)],
+                 ('max_frame_rate', FloatArg),
+                 ('frame_rate', BoolArg)],
         synopsis='Set graphics rendering parameters'
     )
     register('graphics', desc, graphics, logger=session.logger)
@@ -98,3 +105,74 @@ def register_command(session):
         synopsis='restart graphics drawing after an error'
     )
     register('graphics restart', desc, graphics_restart, logger=session.logger)
+
+def show_frame_rate(session, show):
+    frr = getattr(session, '_frame_rate_reporter', None)
+    if show:
+        if frr is None:
+            session._frame_rate_reporter = frr = FrameRateReporter(session)
+        frr.report(True)
+    elif frr:
+        frr.report(False)
+
+# Report frame rate.
+class FrameRateReporter:
+    def __init__(self, session):
+        self.session = session
+        self.report_interval = 1.0	# seconds
+        self._new_frame_handler = None
+        self._frame_drawn_handler = None
+        self._num_frames = 0
+        self._last_time = None
+        self._cumulative_times = {'draw_time': 0,
+                                  'new_frame_time': 0,
+                                  'atomic_check_for_changes_time': 0,
+                                  'drawing_change_time': 0,
+                                  'clip_time': 0}
+    def report(self, enable):
+        t = self.session.triggers
+        if enable:
+            if self._new_frame_handler is None:
+                self._new_frame_handler = t.add_handler('new frame', self.new_frame_cb)
+                self._frame_drawn_handler = t.add_handler('frame drawn', self.frame_drawn_cb)
+        else:
+            nfh, fdh = self._new_frame_handler, self._frame_drawn_handler
+            if nfh:
+                t.remove_handler(nfh)
+            if fdh:
+                t.remove_handler(fdh)
+            self._new_frame_handler = self._frame_drawn_handler = None
+            
+    def new_frame_cb(self, *ignore):
+        # Make frames draw continuously even if scene does not change
+        self.session.main_view.redraw_needed = True
+
+    def frame_drawn_cb(self, *ignore):
+        from time import time
+        t = time()
+        lt = self._last_time
+        if lt is None:
+            self._last_time = t
+            self._num_frames = 0
+            return
+        self.record_times()
+        self._num_frames += 1
+        nf = self._num_frames
+        dt = t - lt
+        if dt > self.report_interval:
+            fps = nf / dt
+            msg = '%.1f frames per second' % fps
+            ct = self._cumulative_times
+            msg += ', ' + ', '.join(['%s %.0f%%' % (k[:-5], 100*v/dt) for k,v in ct.items()])
+            self.session.logger.status(msg)
+            self._last_time = t
+            self._num_frames = 0
+            ct = self._cumulative_times
+            for k in ct.keys():
+                ct[k] = 0
+
+    def record_times(self):
+        u = self.session.update_loop
+        ct = self._cumulative_times
+        for k in ct.keys():
+            ct[k] += getattr(u, 'last_'+k)
