@@ -18,7 +18,7 @@ import re
 import weakref
 from . import default
 import numpy
-from chimerax.core.geometry import Place, translation, scale, distance, z_align, Plane, normalize_vector, normalize_vectors
+from chimerax.core.geometry import Place, translation, scale, distance, distance_squared, z_align, Plane, normalize_vector, normalize_vectors
 from chimerax.core.surface import box_geometry, sphere_geometry2, cylinder_geometry
 from chimerax.core.atomic import Residues, Sequence
 nucleic3to1 = Sequence.nucleic3to1
@@ -33,11 +33,11 @@ _rebuilding = False
 
 SideOptions = ['orient', 'fill/slab', 'slab', 'tube/slab', 'ladder']
 
-BackboneRE = re.compile("^(C[345]'|O[35]'|P|OP[12])$", re.I)
-BackboneSugarRE = re.compile("^(C[12345]'|O[2345]'|P|OP[12])$", re.I)
-BaseAtomsRE = re.compile("^(C[245678]|C5M|N[1234679]|O[246])$", re.I)
+BackboneRE = re.compile("^(C[345]'|H[345]'|O[35]'|HO[3]'|P|OP[123]|HOP[123])$", re.I)
+BackboneSugarRE = re.compile("^(C[12345]'|H[12345]'|O[2345]'|HO[2345]'|P|OP[123]|HOP[123])$", re.I)
+BaseAtomsRE = re.compile("^(C[245678]|H[245678]|C5M|N[1234679]|H[1234679][123]|O[246])$", re.I)
 BaseExceptRE = re.compile("^C1'$", re.I)
-SugarAtomsRE = re.compile("^(C[1234]|O[24])'$", re.I)
+SugarAtomsRE = re.compile("^(C[1234]'|H[1234]'|O[24]'|HO[24]')$", re.I)
 SugarExceptRE = re.compile("^(C5|N[19]|C5'|O3')$", re.I)
 SugarAtomsNoRibRE = re.compile("^(C[12]|O[24])'$", re.I)
 SugarExceptNoRibRE = re.compile("^(C5|N[19]|C[34]')$", re.I)
@@ -83,7 +83,7 @@ PSEUDO_PYRIMIDINE = 'pseudo-pyrimidine'
 # <http://ndbserver.rutgers.edu/archives/report/tsukuba/tsukuba.pdf>.
 standard_bases = {
     'A': {
-        "base": PURINE,
+        "tag": PURINE,
         "ring atom names": _full_purine,
         "NDB color": "red",
         "atoms": {
@@ -102,7 +102,7 @@ standard_bases = {
         "other bonds": (("C1'", "N9"), ("C4", "C5"), ("C6", "N6"))
     },
     'C': {
-        "base": PYRIMIDINE,
+        "tag": PYRIMIDINE,
         "ring atom names": _pyrimidine,
         "NDB color": "yellow",
         "atoms": {
@@ -119,7 +119,7 @@ standard_bases = {
         "other bonds": (("C1'", "N1"), ("O2", "C2"), ("C4", "N4"))
     },
     'G': {
-        "base": PURINE,
+        "tag": PURINE,
         "ring atom names": _full_purine,
         "NDB color": "green",
         "atoms": {
@@ -141,7 +141,7 @@ standard_bases = {
     'I': {
         # inosine (NOS) -- like G, but without the N2
         # taken from RNAView, ndbserver.rutgers.edu
-        "base": PURINE,
+        "tag": PURINE,
         "ring atom names": _full_purine,
         "NDB color": "dark green",
         "atoms": {
@@ -163,7 +163,7 @@ standard_bases = {
         # pseudouridine (PSU) -- like U with the base ring flipped
         # (C1'->C5 not N1)
         # taken from RNAView, ndbserver.rutgers.edu
-        "base": PSEUDO_PYRIMIDINE,
+        "tag": PSEUDO_PYRIMIDINE,
         "ring atom names": _pyrimidine,
         "NDB color": "light gray",
         "atoms": {
@@ -180,7 +180,7 @@ standard_bases = {
         "other bonds": (("C1'", "C5"), ("O2", "C2"), ("C4", "O4"))
     },
     'T': {
-        "base": PYRIMIDINE,
+        "tag": PYRIMIDINE,
         "ring atom names": _pyrimidine,
         "NDB color": "blue",
         "atoms": {
@@ -199,7 +199,7 @@ standard_bases = {
         "other bonds": (("C1'", "N1"), ("O2", "C2"), ("C4", "O4"), ("C5", "C5M"), ("C5", "C7"))
     },
     'U': {
-        "base": PYRIMIDINE,
+        "tag": PYRIMIDINE,
         "ring atom names": _pyrimidine,
         "NDB color": "cyan",
         "atoms": {
@@ -254,7 +254,7 @@ for b in standard_bases.values():
             max[2] = coord[2]
     b['min coord'] = min
     b['max coord'] = max
-    if b['base'] == PURINE:
+    if b['tag'] == PURINE:
         if purine_min is None:
             purine_min = list(min)
             purine_max = list(max)
@@ -271,7 +271,7 @@ for b in standard_bases.values():
                 purine_max[1] = max[1]
             if purine_max[2] < max[2]:
                 purine_max[2] = max[2]
-    elif b['base'] == PYRIMIDINE:
+    elif b['tag'] == PYRIMIDINE:
         if pyrimidine_min is None:
             pyrimidine_min = min[:]
             pyrimidine_max = max[:]
@@ -350,10 +350,10 @@ _BaseAnchors = {
 }
 
 
-def anchor(sugar_or_base, base):
+def anchor(sugar_or_base, tag):
     if sugar_or_base == SUGAR:
         return "C1'"
-    return _BaseAnchors[base]
+    return _BaseAnchors[tag]
 
 
 user_styles = {}
@@ -736,9 +736,9 @@ def draw_slab(nd, residue, style, thickness, orient, shape, show_gly):
         return False
     plane = Plane([a.coord for a in atoms])
     info = find_style(style)
-    base = standard['base']
-    slab_corners = info[base]
-    origin = residue.find_atom(anchor(info[ANCHOR], base)).coord
+    tag = standard['tag']
+    slab_corners = info[tag]
+    origin = residue.find_atom(anchor(info[ANCHOR], tag)).coord
     origin = plane.nearest(origin)
 
     pts = [plane.nearest(a.coord) for a in atoms[0:2]]
@@ -782,15 +782,17 @@ def draw_slab(nd, residue, style, thickness, orient, shape, show_gly):
         renormalize = True
     else:
         raise RuntimeError('unknown base shape')
+
+    description = '%s %s' % (residue.atomspec(), tag)
     va = xf * va
     na = xf.apply_without_translation(na)
     if renormalize:
         normalize_vectors(na)
-    nd.add_shape(va, na, ta, color, atoms)
+    nd.add_shape(va, na, ta, color, atoms, description)
 
     if show_gly:
         c1p = residue.find_atom("C1'")
-        ba = residue.find_atom(anchor(info[ANCHOR], base))
+        ba = residue.find_atom(anchor(info[ANCHOR], tag))
         if c1p and ba:
             c1p.hide = False
             ba.hide = False
@@ -799,18 +801,18 @@ def draw_slab(nd, residue, style, thickness, orient, shape, show_gly):
         return True
 
     # show slab orientation by putting "bumps" on surface
-    if standard['base'] == PYRIMIDINE:
+    if tag == PYRIMIDINE:
         center = (llx + urx) / 2.0, (lly + ury) / 2, half_thickness
         va, na, ta = get_sphere(half_thickness, center)
-        nd.add_shape(va, na, ta, color, atoms)
+        nd.add_shape(va, na, ta, color, atoms, description)
     else:
         # purine
         center = (llx + urx) / 2.0, lly + (ury - lly) / 3, half_thickness
         va, na, ta = get_sphere(half_thickness, center)
-        nd.add_shape(va, na, ta, color, atoms)
+        nd.add_shape(va, na, ta, color, atoms, description)
         center = (llx + urx) / 2.0, lly + (ury - lly) * 2 / 3, half_thickness
         va, na, ta = get_sphere(half_thickness, center)
-        nd.add_shape(va, na, ta, color, atoms)
+        nd.add_shape(va, na, ta, color, atoms, description)
     return True
 
 
@@ -884,10 +886,10 @@ def sugar_tube(nd, residue, anchor=SUGAR, show_gly=False):
                 n = 'I'
             else:
                 n = nucleic3to1(t)
-            base = standard_bases[n]['base']
+            tag = standard_bases[n]['tag']
         except KeyError:
             return []
-        aname = _BaseAnchors[base]
+        aname = _BaseAnchors[tag]
         if not aname:
             return []
     a = residue.find_atom(aname)
@@ -921,10 +923,12 @@ def sugar_tube(nd, residue, anchor=SUGAR, show_gly=False):
             return []
         ep1 = (c3p.coord + c4p.coord) / 2
 
+    description = '%s sugar' % residue.atomspec()
+
     va, na, ta = get_cylinder(radius, ep0, ep1, bottom=False)
-    nd.add_shape(va, na, ta, color, atoms=None)
+    nd.add_shape(va, na, ta, color, None, description)
     va, na, ta = get_sphere(radius, ep0)
-    nd.add_shape(va, na, ta, color, atoms=None)
+    nd.add_shape(va, na, ta, color, None, description)
 
     set_hide_atoms(True, SugarAtomsRE, SugarExceptRE, [residue])
 
@@ -1099,8 +1103,8 @@ def make_ladder(nd, residues, rung_radius=0, show_stubs=True, skip_nonbase_Hbond
         r1color = r1.ribbon_color
         # choose mid-point to make purine larger
         try:
-            isPurine0 = standard_bases[nucleic3to1(r0.name)]['base'] == PURINE
-            isPurine1 = standard_bases[nucleic3to1(r1.name)]['base'] == PURINE
+            isPurine0 = standard_bases[nucleic3to1(r0.name)]['tag'] == PURINE
+            isPurine1 = standard_bases[nucleic3to1(r1.name)]['tag'] == PURINE
         except KeyError:
             isPurine0 = False
             isPurine1 = False
@@ -1112,9 +1116,9 @@ def make_ladder(nd, residues, rung_radius=0, show_stubs=True, skip_nonbase_Hbond
             mid = 1.0 - purine_pyrimidine_ratio
         midpt = c3p0[1] + mid * (c3p1[1] - c3p0[1])
         va, na, ta = get_cylinder(radius, c3p0[1], midpt, top=False)
-        nd.add_shape(va, na, ta, r0color, r0.atoms)
+        nd.add_shape(va, na, ta, r0color, r0.atoms, r0.atomspec())
         va, na, ta = get_cylinder(radius, c3p1[1], midpt, top=False)
-        nd.add_shape(va, na, ta, r1color, r1.atoms)
+        nd.add_shape(va, na, ta, r1color, r1.atoms, r1.atomspec())
         if not non_base[0]:
             matched_residues.add(r0)
         if not non_base[1]:
@@ -1134,12 +1138,12 @@ def make_ladder(nd, residues, rung_radius=0, show_stubs=True, skip_nonbase_Hbond
         # find farthest atom from C3'
         dist_atom = (0, None)
         for a in r.atoms:
-            dist = ep0.sqdistance(a.coord)
+            dist = distance_squared(ep0, a.coord)
             if dist > dist_atom[0]:
                 dist_atom = (dist, a)
         ep1 = dist_atom[1].coord
         va, na, ta = get_cylinder(rung_radius, ep0, ep1)
-        nd.add_shape(va, na, ta, color, r.atoms)
+        nd.add_shape(va, na, ta, color, r.atoms, r.atomspec())
 
 
 # def save_session(trigger, closure, file):
