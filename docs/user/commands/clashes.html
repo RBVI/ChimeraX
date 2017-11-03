@@ -1,0 +1,364 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: clashes, contacts</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: clashes, contacts</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br>(&nbsp;<b>clashes</b>&nbsp;|&nbsp;<b>contacts</b>&nbsp;)
+&nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>&nbsp;
+[&nbsp;<b>test</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>&nbsp;|&nbsp;<b>other</b>&nbsp;|&nbsp;self&nbsp;]
+[&nbsp;<b>overlapCutoff</b>&nbsp;&nbsp;<i>cutoff</i>&nbsp;]
+[&nbsp;<b>hbondAllowance</b>&nbsp;&nbsp;<i>allowance</i>&nbsp;]
+[&nbsp;<b>distanceOnly</b>&nbsp;&nbsp;<i>dist</i>&nbsp;]
+[&nbsp;<b>reveal</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>pbColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>colorname</i></a>&nbsp;]
+[&nbsp;<b>pbRadius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
+[&nbsp;<b>name</b> &nbsp;<i>name</i>&nbsp;]
+&nbsp;<a href="#options"><i>other-options</i></a></h3>
+</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br>(&nbsp;<b>~clashes</b>&nbsp;|&nbsp;<b>~contacts</b>&nbsp;)
+[&nbsp;<b>name</b> &nbsp;<i>name</i>&nbsp;]
+</h3>
+<p>
+The <b>clashes</b> and <b>contacts</b> commands are the same 
+except for their default interaction criteria, meant to identify:  
+</p>
+<ul>
+<li><b><i>clashes</i></b>
+- unfavorable interactions where atoms are too close together; close contacts
+<li><b><i>contacts</i></b>
+- all kinds of direct interactions:
+polar and nonpolar, favorable and unfavorable (including clashes)
+</ul>
+<p>
+The <a name="overlap-def"><b><i>overlap</i></b></a>
+between two atoms is defined as the sum of their
+<a href="../radii.html">VDW radii</a> minus the
+distance between them and minus an <a href="#hbondAllowance">allowance</a>
+for potentially hydrogen-bonded pairs:
+</p>
+<blockquote>
+<i>overlap<sub>ij</sub></i> =
+r<sub>VDW<i>i</i></sub> + r<sub>VDW<i>j</i></sub>
+&ndash; d<sub>ij</sub> &ndash; <i>allowance<sub>ij</sub></i>
+</blockquote>
+<p>
+<a name="recommended"></a>
+For <b>clashes</b>, 
+<a href="#overlapCutoff"><b>overlapCutoff</b></a>
+values of 0.4-1.0 &Aring; (default <b>0.6</b>)
+and <a href="#hbondAllowance"><b>hbondAllowance</b></a>
+values of 0.2-0.6 &Aring; (default <b>0.4</b>) are generally reasonable.
+For <b>contacts</b>, negative
+<a href="#overlapCutoff"><b>overlapCutoff</b></a>
+values of 0.0-(&ndash;1.0) &Aring; (default <b>&ndash;0.4</b>)
+with an <a href="#hbondAllowance"><b>hbondAllowance</b></a>
+of 0.0 &Aring; (default <b>0.0</b>) are generally reasonable.
+</p><p>
+Normally, a clash or contact is identified based on the <i>overlap</i>,
+but the <a href="#distanceOnly"><b>distanceOnly</b></a> option allows using
+center-to-center distances instead.
+</p><p>
+By <a href="#makePseudobonds">default</a>,
+clashes/contacts are shown as <a href="../pseudobonds.html">pseudobonds</a>.
+A pseudobond is only shown when both of its endpoint atoms are shown;
+<b>reveal true</b> can be used to display atoms as needed
+so that all of the interactions will be shown (<a href="#reveal">details...</a>).
+Pseudobond color and radius can be specified.
+The default <b>name</b> of the pseudobond model for creation
+(and for removal with <b>~clashes</b> or <b>contacts</b>) 
+is <b>clashes</b> or <b>contacts</b>,
+but different names can be <a href="#name">assigned</a>.
+When multiple pseudobond models have the same name, specific models can be
+removed with the <a href="close.html"><b>close</b></a> command.
+</p><p>
+During <a href="#continuous">continuous monitoring</a>,
+such interactions can also be shown with 
+<a href="../selection.html">selection</a> and atom coloring.
+Discontinuous monitoring additionally allows 
+<a href="#log">logging</a> the detailed results
+and/or <a href="#saveFile">saving</a> them to a file.
+The command <b>~clashes</b> or <b>~contacts</b>
+removes <a href="../pseudobonds.html">pseudobonds</a> that have
+been drawn to show the interactions and halts any continuous monitoring.
+</p><p>
+Pseudobonds can be labeled by length with 
+the <a href="label.html"><b>label</b></a> command.
+An interactive histogram of pseudobond lengths can be plotted with 
+<a href="crosslinks.html#histogram"><b>crosslinks histogram</b></a>, and a 
+chain network diagram summarizing intra- and interchain pseudobonds can be
+shown with <a href="crosslinks.html#network"><b>crosslinks network</b></a>.
+See also: 
+<a href="interfaces.html"><b>interfaces</b></a>,
+<a href="hbonds.html"><b>hbonds</b></a>
+</p>
+
+<a name="options"></a>
+<p class="nav">
+[<a href="#top">back to top: clashes, contacts</a>]
+</p>
+<h3>Options</h3>
+
+<blockquote>
+<b>test</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>&nbsp;|&nbsp;<b>other</b>&nbsp;|&nbsp;self
+<br>
+Which interactions to find: 
+between <a href="atomspec.html"><i>atom-spec1</i></a>
+and <a href="atomspec.html"><i>atom-spec2</i></a>,
+between <a href="atomspec.html"><i>atom-spec1</i></a> and all other atoms
+(<b>other</b> or <b>others</b>, default),
+or among <a href="atomspec.html"><i>atom-spec1</i></a> (<b>self</b>).
+</blockquote>
+<blockquote>
+<a name="overlapCutoff"></a>
+<b>overlapCutoff</b> &nbsp;<i>cutoff</i>
+<br>
+Pairs of atoms with <a href="#overlap-def"><i>overlap</i></a>
+&ge; <i>cutoff</i> will be identified.
+A larger positive <i>cutoff</i> restricts the results to more severe
+clashes, whereas a negative <i>cutoff</i> can also identify
+favorable contacts.
+(default <b>0.6</b> &Aring; for <b>clashes</b> and
+<b>&ndash;0.4</b> &Aring; for <b>contacts</b>;
+see <a href="#recommended">above</a> for suggested value ranges).
+</blockquote>
+<blockquote>
+<a name="hbondAllowance"></a>
+<b>hbondAllowance</b> &nbsp;<i>allowance</i>
+<br>
+An <i>allowance</i> &gt; 0 
+reflects the observation that atoms sharing a hydrogen bond can
+favorably approach each other more closely than would be expected
+from their <a href="../radii.html">VDW radii</a>
+(default <b>0.4</b> &Aring; for <b>clashes</b>
+and <b>0.0</b> &Aring; for <b>contacts</b>;
+see <a href="#recommended">above</a> for suggested value ranges).
+In the calculation of <a href="#overlap-def"><i>overlap</i></a>,
+the <i>allowance</i> is only subtracted for pairs comprised of
+a donor (or donor-borne hydrogen) and an acceptor.
+This is equivalent to using smaller radii to characterize hydrogen-bonding
+interactions (for example, see
+<a href="http://www.ncbi.nlm.nih.gov/pubmed/9672047" target="_blank">Li
+and Nussinov</a>, Proteins 32:111 (1998)).
+Possible donor groups are hydrogen-bearing nitrogen, oxygen, and sulfur atoms,
+and possible acceptor groups are nitrogen, oxygen, and sulfur atoms with a
+lone pair.
+</blockquote>
+<blockquote>
+<a name="distanceOnly"></a>
+<b>distanceOnly</b> &nbsp;<i>dist</i>
+<br>
+Specifying this option indicates ignoring <a href="#overlap-def">overlap</a>
+and using center-to-center distance &le; <i>dist</i>
+as the interaction criterion instead.
+</blockquote>
+<blockquote>
+<a name="makePseudobonds"></a>
+<b>makePseudobonds</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to create 
+<a href="../pseudobonds.html">pseudobonds</a> to show contacts/clashes.
+Pseudobonds are only displayed when both endpoint atoms are displayed,
+but the <a href="#reveal"><b>reveal</b></a> option can be used to ensure
+showing all of the identified interactions.
+</blockquote>
+<blockquote>
+<a name="reveal"></a>
+<b>reveal</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to display all clash/contact atoms to ensure displaying the
+<a href="../pseudobonds.html">pseudobonds</a> between them.
+(Hiding an atom also hides its bonds and pseudobonds.)
+To avoid showing disconnected atoms, the entire residue will be shown,
+except that amino acid and nucleic acid residues are split into
+<a href="atomspec.html#builtin">sidechain</a> and
+<a href="atomspec.html#builtin">backbone</a>
+moieties separately displayed by this option.
+Note that displayed backbone atoms may still be invisible when
+cartoon is also shown.
+Floating pseudobonds in the presence of cartoon can be hidden with the command
+<b><a href="cartoon.html">cartoon suppress false</a></b>,
+with the side effect of showing any backbone atoms that are
+displayed but suppressed by the cartoon.
+</blockquote>
+<blockquote>
+<b>pbColor</b> &nbsp;<a href="colornames.html"><i>colorname</i></a>
+<br>
+Color to use for the
+<a href="../pseudobonds.html">pseudobonds</a>
+when <a href="#makePseudobonds"><b>makePseudobonds</b></a> is <b>true</b>
+(default <b>yellow</b>);
+can be changed later with <a href="color.html"><b>color</b></a>.
+</blockquote>
+<blockquote>
+<b>pbRadius</b> &nbsp;<i>r</i>
+<br>
+Radius in &Aring; to use for the <a href="../pseudobonds.html">pseudobonds</a>
+(default <b>0.075</b>);
+can be changed later with <a href="size.html"><b>size</b></a>.
+</blockquote>
+<blockquote>
+<a name="name"></a>
+<b>name</b> &nbsp;<i>name</i>
+<br>Name for the <a href="../pseudobonds.html">pseudobond model</a>
+(default <b>clashes</b> or <b>contacts</b>, also the default name for deletion
+with <b>~clashes</b> or <b>~contacts</b>). Using a new name creates a separate
+model that can be hidden/shown/closed independently.
+Names containing spaces must be enclosed in quotation marks.
+</blockquote>
+<blockquote>
+<b>interModel</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to look for interactions between models.
+</blockquote>
+<blockquote>
+<b>interSubmodel</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to look for interactions between
+<a href="atomspec.html#hierarchy">submodels</a> of the same model.
+</blockquote>
+<blockquote>
+<b>bondSeparation</b> &nbsp;<i>N</i>
+<br>
+Interactions between atoms that are &le; <i>N</i> bonds apart
+will be ignored (<i>N</i>=<b>4</b> by default).
+</blockquote>
+<blockquote>
+<b>intraRes</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>Whether to include intraresidue interactions.
+</blockquote>
+<blockquote>
+<b>intraMol</b> <b>true</b>&nbsp;|&nbsp;false
+<br>Whether to include intramolecular interactions,
+where a molecule is defined as a covalently bonded set of atoms.
+</blockquote>
+<blockquote>
+<a name="continuous"></a>
+<b>continuous</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to initiate continuous checking, which will continue until
+the specified atoms are removed, or <b>~clashes</b> (<b>~contacts</b>) is used,
+or <b>clashes</b> (<b>contacts</b>) is used again without setting this option to 
+<b>true</b> (since <b>false</b> is the default).
+Only moving a model relative to another will trigger a new check.
+</blockquote>
+<blockquote>
+<a name="select"></a>
+<b>select</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to <a href="../selection.html">select</a>
+the identified clash/contact atoms (and deselect all other atoms).
+</blockquote>
+<blockquote>
+<a name="colorAtoms"></a>
+<b>colorAtoms</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to color the identified clash/contact atoms
+the <a href="#atomColor"><b>atomColor</b></a> and the remaining atoms
+the <a href="#otherAtomColor"><b>otherAtomColor</b></a>.
+</blockquote>
+<blockquote>
+<a name="atomColor"></a>
+<b>atomColor</b> &nbsp;<a href="colornames.html"><i>colorname</i></a>
+<br>
+Color to use for the identified clash/contact atoms
+when <a href="#colorAtoms"><b>colorAtoms</b></a> is <b>true</b>
+(default <b>red</b>).  
+</blockquote>
+<blockquote>
+<a name="otherAtomColor"></a>
+<b>otherAtomColor</b> &nbsp;<a href="colornames.html"><i>colorname</i></a>
+<br>
+Color to use for atoms other than the identified clash/contact atoms
+when <a href="#colorAtoms"><b>colorAtoms</b></a> is <b>true</b>
+(default <b>none</b>).
+</blockquote>
+<blockquote>
+<a name="setAttrs"></a>
+<b>setAttrs</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to assign the largest <a href="#overlap-def">overlap</a>
+per atom as an attribute.
+Disallowed with <a href="#continuous">continuous monitoring</a>.
+</blockquote>
+<blockquote>
+<a name="attrName"></a>
+<b>attrName</b> &nbsp;<i>attr-name</i>
+<br>
+Name for atom attribute (default <b>overlap</b>)
+assigned when <a href="#setAttrs"><b>setAttrs</b></a> is <b>true</b>.
+</blockquote>
+<blockquote>
+<a name="saveFile"></a>
+<b>saveFile</b> &nbsp;<i>file</i>
+<br>
+Specify writing contact/clash information to a file
+(disallowed with <a href="#continuous">continuous monitoring</a>).
+The information includes atom specifications
+(see <a href="#namingStyle"><b>namingStyle</b></a>),
+<a href="#overlap-def">overlaps</a>, and interatomic distances.
+<i>File</i> is the output file pathname,
+enclosed in quotation marks if it includes spaces,
+or the word <a href="usageconventions.html#browse"><b>browse</b></a>
+to specify it interactively in a file browser window.
+</blockquote>
+<blockquote>
+<a name="log"></a>
+<b>log</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to write information (as described above for
+<a href="#saveFile"><b>saveFile</b></a>) to the
+<a href="../tools/log.html"><b>Log</b></a>.
+Disallowed with <a href="#continuous">continuous monitoring</a>.
+</blockquote>
+<blockquote>
+<a name="namingStyle"></a>
+<b>namingStyle</b> simple&nbsp;|&nbsp;command&nbsp;|&nbsp;serial</a>
+<br>
+How to describe atoms in contact/clash information written
+to a <a href="#saveFile">file</a> or the <a href="#log">log</a>:
+<ul>
+<li><b>simple</b> - chain ID (preceded by slash),
+residue name, residue number, atom name (for example, /B ASN 21 OD1)
+<li><b>command</b>
+- <a href="atomspec.html#hierarchy">command-line specifier</a>
+(for example, /B:21@OD1)
+<li><b>serial</b> - atom serial number
+(for example, 126)
+</ul>
+Model number will be included when multiple models are present.
+</blockquote>
+<blockquote>
+<a name="summary"><b>summary</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false</a>
+<br>
+Whether to write the total number of interactions found to
+the <a href="../window.html">status line</a>
+and <a href="../tools/log.html"><b>Log</b></a>.
+</blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+November 2017</address>
+</body></html>

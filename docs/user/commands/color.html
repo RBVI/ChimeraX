@@ -26,8 +26,8 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="../index.html#commands">Command</a>: color, rainbow</h3>
 <p>
 The <b>color</b> command colors atomic models, including
-<a href="cartoon.html">cartoon</a> and 
-<a href="surface.html">molecular surface</a> representations.
+atoms, bonds, <a href="../pseudobonds.html">pseudobonds</a>,
+<a href="cartoon.html">cartoons</a>, and <a href="surface.html">molecular surfaces</a>.
 It can also apply to nonmolecular surfaces, depending on the type of coloring:
 </p>
 <ul>
@@ -568,7 +568,7 @@ surface-only), create new atom attribute named <b>esp</b>
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>color delete</b>
-(&nbsp;<i>cname</i>&nbsp;|&nbsp;all&nbsp;)
+(&nbsp;<i>cname</i>&nbsp;|&nbsp;custom&nbsp;)
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>color list</b>
@@ -593,7 +593,7 @@ Examples:
 </blockquote>
 <p>
 The command <b>color delete</b> can be used to &ldquo;forget&rdquo; a specific
-user-defined color or <b>all</b> user-defined colors. 
+user-defined color or all <b>custom</b> (user-defined) colors. 
 A <a href="colornames.html#builtin">built-in color name</a> cannot be deleted.
 </p><p>
 The command <b>color list</b> lists color names along with

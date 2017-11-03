@@ -15,7 +15,7 @@ or derivations thereof.
 
 <head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
-<title>Command: contacts</title>
+<title>Command: interfaces</title>
 </head><body>
 
 <a name="top"></a>
@@ -27,33 +27,35 @@ class="clRight" title="User Guide Index"/></a>
 * experimental feature, with deficiencies we hope to address in the future *
 </font>
 
-<h3><a href="../index.html#commands">Command</a>: contacts</h3>
+<h3><a href="../index.html#commands">Command</a>: interfaces</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>contacts</b>
+<br><b>interfaces</b>
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 [&nbsp;<b>probeRadius</b>&nbsp;&nbsp;<i>rad</i>&nbsp;]
 [&nbsp;<b>areaCutoff</b>&nbsp;&nbsp;<i>interface-area</i>&nbsp;] 
 [&nbsp;<b>interfaceResidueAreaCutoff</b>&nbsp;&nbsp;<i>res-area</i>&nbsp;] 
 </h3>
 <p>
-The <b>contacts</b> command calculates the buried 
+The <b>interfaces</b> command calculates the buried 
 <a href="surface.html#surfdefs">solvent-accessible surface</a>
 area (SASA) for each pair of chains in the
 <a href="atomspec.html">specified</a> set of atoms, based on chain IDs,
 and generates a <a href="#diagram">network diagram</a>
-of the interchain contacts. Unspecified atoms are ignored, but
+of the interchain interfaces. Unspecified atoms are ignored, but
 solvent, ions, and ligand residues are <i>not</i> excluded automatically.
 The buried SASA is calculated as described for
 <a href="measure.html#buriedArea"><b>measure buriedArea</b></a>,
 and results are reported in the <a href="../tools/log.html"><b>Log</b></a>.
 See also:
+<a href="clashes.html"><b>clashes</b>, <b>contacts</b></a>,
+<a href="hbonds.html"><b>hbonds</b></a>,
 <a href="../radii.html">VDW radii</a>
 </p><p>
 The default <b>probeRadius</b> <i>rad</i> for calculating each SAS
 is <b>1.4</b> &Aring;, often used to approximate a water molecule.
 Interfaces with at least <i>interface-area</i> buried
 (default <b>300</b> &Aring;<sup>2</sup>, can be changed with the
-<b>areaCutoff</b> option) are counted as contacts
+<b>areaCutoff</b> option) are counted as interfaces
 and shown as lines in the <a href="#diagram">diagram</a>.
 Residues with at least <i>res-area</i> buried
 (default <b>15</b> &Aring;<sup>2</sup>, can be changed with the
@@ -63,17 +65,17 @@ Residues with at least <i>res-area</i> buried
 
 <a name="diagram"></a>
 <p class="nav">
-[<a href="#top">back to top: contacts</a>]
+[<a href="#top">back to top: interfaces</a>]
 </p>
 <h3>Chain-Chain Network Diagram</h3>
 <p>
 <table class="clRight">
 <tr><td><img class="outline" src="contacts.png" width="330px"
-alt="1i50 'contact protein' diagram"
-title="1i50 'contact protein' diagram"></td></tr>
+alt="1i50 'interfaces protein' diagram"
+title="1i50 'interfaces protein' diagram"></td></tr>
 </table>
 In the 2D network diagram
-created by the <a href="#top"><b>contacts</b></a> command,
+created by the <a href="#top"><b>interfaces</b></a> command,
 the <b><i>nodes</i></b> (circles) represent chains,
 and the <b><i>edges</i></b> (lines) between nodes 
 represent chain-chain interfaces. 
@@ -95,7 +97,7 @@ the atoms of the two nodes.
 Alt-clicking the background of the diagram clears any selection.
 </p><p>
 Most of these actions apply only to the atoms that were specified
-in the <b>contacts</b> command; any other atoms are ignored.
+in the <b>interfaces</b> command; any other atoms are ignored.
 Showing/hiding atoms by interacting with the diagram does not affect
 <a href="cartoon.html">cartoon</a> or <a href="surface.html">surface</a>
 displays.
@@ -118,7 +120,7 @@ right-clicking<a href="../window.html#mac-context">*</a>
 various parts of the <a href="#diagram">chain-chain network diagram</a>.
 Most of the menu entries act on only the atoms used in the 
 buried-area calculations, as specified in the 
-<a href="#top"><b>contacts</b></a> command.
+<a href="#top"><b>interfaces</b></a> command.
 </p><p>
 <a name="bgmenu"></a>
 The <b>background</b> context menu includes:
@@ -256,7 +258,7 @@ of <i>chain2</i>
 
 <a name="residue-plot"></a>
 <p class="nav">
-[<a href="#top">back to top: contacts</a>]
+[<a href="#top">back to top: interfaces</a>]
 </p>
 <h3>Interface Residue Plot</h3>
 <p>
@@ -298,5 +300,5 @@ the corresponding residue in the structure (same as clicking the node)
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2017</address>
+November 2017</address>
 </body></html>

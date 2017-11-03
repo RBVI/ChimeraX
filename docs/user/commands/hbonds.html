@@ -24,18 +24,19 @@ or derivations thereof.
 class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: hbonds</h3>
-<h3><a href="usageconventions.html">Usage</a>:
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>hbonds</b> 
 &nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>&nbsp;
 [&nbsp;<b>saltOnly</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>restrict</b>&nbsp;&nbsp;cross&nbsp;|&nbsp;both&nbsp;|&nbsp;any&nbsp;|&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>&nbsp;]
+[&nbsp;<b>restrict</b>&nbsp;&nbsp;cross&nbsp;|&nbsp;both&nbsp;|&nbsp;<b>any</b>&nbsp;|&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>&nbsp;]
+[&nbsp;<b>reveal</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>showDist</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>colorname</i></a>&nbsp;]
 [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
 [&nbsp;<b>dashes</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>name</b> &nbsp;<i>name</i>&nbsp;]
-[&nbsp;<b>reveal</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<a href="#options"><i>other-options</i></a></h3>
-<h3><a href="usageconventions.html">Usage</a>:
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>~hbonds</b> 
 [&nbsp;<b>name</b> &nbsp;<i>name</i>&nbsp;]
 </h3>
@@ -52,27 +53,22 @@ The total number of H-bonds found is reported in the
 consistent with the criteria, even if they could not coexist simultaneously.
 Distances and other details can be <a href="#log">logged</a>
 and/or <a href="#saveFile">saved</a> to a file.
-See also: <a href="addh.html"><b>addh</b></a>
+See also: <a href="addh.html"><b>addh</b></a>,
+<a href="clashes.html"><b>clashes</b>, <b>contacts</b></a>
 </p><p>
 By <a href="#makePseudobonds">default</a>, 
 the H-bonds are shown as dashed <a href="../pseudobonds.html">pseudobonds</a>.
-Their <b>color</b>, <b>radius</b>, and number of <b>dashes</b> can be 
+A pseudobond is only shown when both of its endpoint atoms are shown;
+<b>reveal true</b> can be used to display atoms as needed
+so that all of the H-bonds will be shown (<a href="#reveal">details...</a>).
+The pseudobonds can be <a href="#showDist">labeled by distance</a>, 
+and their <b>color</b>, <b>radius</b>, and number of <b>dashes</b> can be 
 specified. The pseudobonds can be removed with the <b>~hbonds</b> command.
-The default <a href="#name">name</a> of the pseudobond model(s) for creation
+The default <b>name</b> of the pseudobond model(s) for creation
 (and for removal with the <b>~hbonds</b> command) is <b>hydrogen bonds</b>,
-but different names can be assigned and used.
+but a different name can be <a href="#name">assigned</a>.
 When multiple pseudobond models have the same name, specific models can be 
 removed with the <a href="close.html"><b>close</b></a> command.
-</p><p>
-A pseudobond is only shown when both of its endpoint atoms are shown;
-<b>reveal true</b> can be used to display all involved residues 
-so that all of the H-bonds will be shown (<a href="#reveal">details...</a>).
-Since a backbone atom is considered as shown when only its cartoon is shown,
-a pseudobond (which goes the atom position) may appear to be floating in space. 
-Floating pseudobonds can be hidden with the command
-<b><a href="cartoon.html">cartoon suppress false</a></b>,
-with the side effect of showing any backbone atoms that were already
-displayed but suppressed.
 </p><p>
 <a name="examples">Examples:</a>
 <blockquote>
@@ -81,8 +77,8 @@ displayed but suppressed.
 &ndash; hide all atoms, then identify H-bonds between 
 <a href="atomspec.html#builtin"><b>ligand</b></a> and
 <a href="atomspec.html#builtin"><b>protein</b></a>,
-displaying the residues involved; note that the automatic classifier
-<a href="atomspec.html#builtin"><b>ligand</b></a> may not specify exactly
+showing atoms as needed to show all H-bonds; note that
+<a href="atomspec.html#builtin"><b>ligand</b></a> may not always specify exactly
 (or only) the atoms of interest, and in that case, residue names, numbers, and/or
 chain IDs may be used instead, as in the following example:
 <blockquote>
@@ -95,8 +91,8 @@ write results to the <a href="../tools/log.html"><b>Log</b></a>
 <br>hb (/a & protein) restrict (/b & protein) reveal t show t</b>
 </blockquote>
 &ndash; hide all atoms and show cartoon (enabling coincident backbone-atom display),
-then identify H-bonds between chain A protein and chain B protein, 
-displaying the residues involved and showing distance labels;
+then identify H-bonds between chain A protein and chain B protein,
+displaying atoms as needed to show all H-bonds, labeled by distance;
 the parentheses are not required, just included for clarity
 <blockquote>
 <b><a href="delete.html">del</a> solvent; <a href="show.html">hide</a> protein
@@ -136,7 +132,7 @@ See also: <a href="style.html"><b>style</b></a>,
 <p class="nav">
 [<a href="#top">back to top: hbonds</a>]
 </p>
-<h3>Command Options</h3>
+<h3>Options</h3>
 
 <blockquote>
 <a name="saltOnly"></a>
@@ -176,11 +172,8 @@ no H-bonds will be found)
 The pseudobonds will be drawn between the donor and acceptor atoms,
 or if hydrogens are present, between the hydrogens and acceptor atoms. 
 H-bond pseudobonds are only displayed when both endpoint atoms are displayed,
-but the <a href="#reveal"><b>reveal</b></a> option can be used to ensure 
-all H-bonds are displayed by displaying the associated residues.
-For purposes of pseudobond display, backbone atoms are considered as displayed 
-when their display is being
-<a href="cartoon.html#suppress">suppressed</a> by cartoon (ribbon).
+but the <a href="#reveal"><b>reveal</b></a> option can be used to ensure
+showing all H-bonds.
 <p>
 The number of H-bonds found may exceed the apparent number of pseudobonds 
 because the same pair of atoms could be identified as both
@@ -190,13 +183,32 @@ interactions could form at a time.
 </p>
 </blockquote>
 <blockquote>
-<a name="name"></a>
-<b>name</b> &nbsp;<i>name</i>
-<br>Name for the <a href="../pseudobonds.html">pseudobond model</a>
-(default <b>hydrogen bonds</b>, also the default name for deletion
-with <b>~hbonds</b>). Using a new name creates a separate
-model that can be hidden/shown/closed independently.
-Names containing spaces must be enclosed in quotation marks.
+<a name="reveal"></a>
+<b>reveal</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>Whether to display all H-bonding atoms to ensure displaying the H-bond
+<a href="../pseudobonds.html">pseudobonds</a> between them.
+(Hiding an atom also hides its bonds and pseudobonds.)
+To avoid showing disconnected atoms, the entire residue will be shown,
+except that amino acid and nucleic acid residues are split into 
+<a href="atomspec.html#builtin">sidechain</a> and
+<a href="atomspec.html#builtin">backbone</a>
+moieties separately displayed by this option.
+Note that displayed backbone atoms may still be invisible when
+cartoon is also shown.
+Floating pseudobonds in the presence of cartoon can be hidden with the command
+<b><a href="cartoon.html">cartoon suppress false</a></b>,
+with the side effect of showing any backbone atoms that are
+displayed but suppressed by the cartoon.
+</blockquote>
+<blockquote>
+<a name="showDist"></a>
+<b>showDist</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>Whether to label the <a href="../pseudobonds.html">pseudobonds</a>
+with the corresponding distances. Label color, size, and font can be
+adjusted with the <a href="label.html"><b>label</b></a> command,
+which can also be used to add the labels later or to delete them.
+The distances (pseudobond lengths) can also be plotted as a histogram with
+<a href="crosslinks.html#histogram"><b>crosslinks histogram</b></a>.
 </blockquote>
 <blockquote>
   <b>color</b> &nbsp;<i>colorname</i>
@@ -204,10 +216,9 @@ Names containing spaces must be enclosed in quotation marks.
 depicting H-bonds (but see also <a href="#twoColors"><b>twoColors</b></a>
 and <a href="#slopColor"><b>slopColor</b></a>).
 The <i>colorname</i> can be any <a href="colornames.html">color name</a>
-that specifies a single color (default <b>dark cyan</b>).
-Subsequent recoloring without recalculating the H-bonds can be done with 
-the <a href="color.html"><b>color</b></a> command, for example:
-<b>color&nbsp;<a href="atomspec.html#builtin">hbonds</a>&nbsp;goldenrod&nbsp;target&nbsp;p</b>
+that specifies a single color (default <b>dark cyan</b>);
+can be changed later with <a href="color.html"><b>color</b></a>, for example:
+<b>color&nbsp;<a href="atomspec.html#builtin">hbonds</a>&nbsp;goldenrod</b>
 </blockquote>
 <blockquote>
   <b>radius</b> &nbsp;<i>r</i>
@@ -225,25 +236,13 @@ to give an even number of dashes. The number of dashes
 can be changed later with <a href="style.html"><b>style</b></a>.
 </blockquote>
 <blockquote>
-<a name="showDist"></a>
-<b>showDist</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
-<br>Whether to label the <a href="../pseudobonds.html">pseudobonds</a>
-with the corresponding distances. Label color, size, and font can be
-adjusted with the <a href="label.html"><b>label</b></a> command,
-which can also be used to add the labels later or to delete them.
-The distances (pseudobond lengths) can also be plotted as a histogram with
-<a href="crosslinks.html#histogram"><b>crosslinks histogram</b></a>.
-</blockquote>
-<blockquote>
-<a name="reveal"></a>
-<b>reveal</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
-<br>Whether to display all atoms of a residue containing an
-H-bonding atom if that atom is not displayed initially,
-to ensure displaying all H-bond <a href="../pseudobonds.html">pseudobonds</a>.
-(By default, if the atom on either end of a
-<a href="../pseudobonds.html">pseudobond</a> representing
-an H-bond is not shown, the pseudobond itself is not shown, although
-it still exists; displaying the atom allows the H-bond to be shown.)
+<a name="name"></a>
+<b>name</b> &nbsp;<i>name</i>
+<br>Name for the <a href="../pseudobonds.html">pseudobond model</a>
+(default <b>hydrogen bonds</b>, also the default name for deletion
+with <b>~hbonds</b>). Using a new name creates a separate
+model that can be hidden/shown/closed independently.
+Names containing spaces must be enclosed in quotation marks.
 </blockquote>
 <blockquote>
   <b>interSubmodel</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
@@ -425,5 +424,5 @@ all of its possible positions.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-October 2017</address>
+November 2017</address>
 </body></html>
