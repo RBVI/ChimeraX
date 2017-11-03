@@ -1,0 +1,48 @@
+<BundleInfo name="ChimeraX-Clashes" version="1.0" package="chimerax.clashes"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <!-- Additional information about bundle source -->
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <!-- Synopsis is a one-line description
+       Description is a full multi-line description -->
+  <Synopsis>Find clashes/contacts in structures</Synopsis>
+  <Description>Find atomic clashes/contacts in structures</Description>
+
+  <!-- Categories is a list where this bundle should appear -->
+  <Categories>
+    <Category name="Structure Analysis"/>
+  </Categories>
+
+  <!-- Dependencies on other ChimeraX/Python packages -->
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <!-- Python and ChimeraX-specific classifiers
+       From https://pypi.python.org/pypi?%3Aaction=list_classifiers
+       Some Python classifiers are always inserted by the build process.
+       These include the Environment and Operating System classifiers
+       as well as:
+         Framework :: ChimeraX
+         Intended Audience :: Science/Research
+         Programming Language :: Python :: 3
+         Topic :: Scientific/Engineering :: Visualization
+         Topic :: Scientific/Engineering :: Chemistry
+         Topic :: Scientific/Engineering :: Bio-Informatics
+       The "ChimeraX :: Bundle" classifier is also supplied automatically.  -->
+  <Classifiers>
+    <!-- Development Status should be compatible with bundle version number -->
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+]
+    <ChimeraXClassifier>ChimeraX :: Command :: clashes :: Structure Analysis :: Find atoms with steric clashes</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: contacts :: Structure Analysis :: Finds atoms in contact with one another</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: ~clashes :: Structure Analysis :: Clear clash pseudobond</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: ~contacts :: Structure Analysis :: Clear contact pseudobond</ChimeraXClassifier>
+]
+  </Classifiers>
+
+</BundleInfo>

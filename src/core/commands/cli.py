@@ -907,6 +907,22 @@ class PasswordArg(StringArg):
         token, text, rest = StringArg.parse(text, session)
         return token, "******", rest
 
+class AttrNameArg(StringArg):
+    """Annotation for a Python attribute name"""
+    name = "a Python attribute name"
+
+    @staticmethod
+    def parse(text, session):
+        token, text, rest = StringArg.parse(text, session)
+        if not text:
+            raise AnnotationError("Attribute names can't be empty strings")
+        non_underscore = text.remove('_')
+        if not non_underscore.isalnum():
+            raise AnnotationError("Attribute names can consist only of alphanumeric"
+                " characters and underscores")
+        if text[0].isdigit():
+            raise AnnotationError("Attribute names cannot start with a digit")
+        return token, text, rest
 
 class FileNameArg(Annotation):
     """Base class for Open/SaveFileNameArg"""

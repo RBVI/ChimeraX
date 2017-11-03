@@ -45,7 +45,7 @@ Source Code Organization
 
 The source code for this example may be downloaded
 as a `zip-format file
-<http://www.rbvi.ucsf.edu/chimerax/cgi-bin/XXX>`_
+<http://www.rbvi.ucsf.edu/chimerax/cgi-bin/bundle_tutorial?name=hello_world>`_
 containing a folder named `hello_world`.
 Alternatively, one can start with an empty folder
 and create source files based on the samples below.
@@ -299,3 +299,14 @@ and map them to arguments when calling the command-processing
 function.
 
 .. include:: build_test_distribute.rst
+
+What's Next
+===========
+
+- :doc:`tutorial_hello` (current topic)
+- :doc:`tutorial_command` (next topic)
+- :doc:`tutorial_tool`
+- :doc:`tutorial_read_format`
+- :doc:`tutorial_save_format`
+- :doc:`tutorial_fetch`
+- :doc:`tutorial_selector`

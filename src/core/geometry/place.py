@@ -81,7 +81,7 @@ class Place:
         self._inverse = None    # Cached inverse.
 
     def __eq__(self, p):
-        return (p.matrix == self.matrix).all()
+        return p is self or (p.matrix == self.matrix).all()
 
     def __mul__(self, p):
         '''Multiplication of a Place and a point transforms from local
