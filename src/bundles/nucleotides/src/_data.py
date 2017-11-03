@@ -462,8 +462,7 @@ def ndb_color(residues):
 def _nuc_drawing(mol, create=True, recreate=False):
     # creates mol._nucleotide_info for per-residue information
     # creates mol._nucleotides_drawing for the drawing
-    # from chimerax.bild.shapemodel import ShapeDrawing
-    from chimerax.bild.drawing import ShapeDrawing
+    from chimerax.core.surface import ShapeDrawing
     global _mol_handler, _rebuild_handler
     try:
         # expect this to succeed most of the time

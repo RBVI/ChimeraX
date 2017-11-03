@@ -27,7 +27,6 @@ from chimerax.core.errors import UserError
 import numpy
 from chimerax.core.geometry import identity, translation, rotation, scale, distance, z_align, normalize_vectors
 from chimerax.core import surface
-from .drawing import ShapeDrawing
 
 
 def _interp(t, a, b):
@@ -68,7 +67,7 @@ class _BildFile:
     def __init__(self, session, filename):
         from chimerax.core import generic3d
         self.model = generic3d.Generic3DModel(filename, session)
-        self.drawing = ShapeDrawing('shapes')
+        self.drawing = surface.ShapeDrawing('shapes')
         self.model.add_drawing(self.drawing)
         self.session = session
         # parse input
