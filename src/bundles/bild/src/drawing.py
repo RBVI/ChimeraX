@@ -196,6 +196,8 @@ class ShapeDrawing(Drawing):
             tmask = numpy.zeros(len(self.triangles), bool)
         tmask[shape.triangle_range] = True
         self.selected_triangles_mask = tmask
+        if shape.atoms:
+            shape.atoms.selected = True
 
     def _add_selected_shapes(self, shapes):
         self._selected_shapes.update(shapes)
@@ -204,10 +206,14 @@ class ShapeDrawing(Drawing):
             tmask = numpy.zeros(len(self.triangles), bool)
         for s in shapes:
             tmask[s.triangle_range] = True
+            if s.atoms:
+                s.atoms.selected = True
         self.selected_triangles_mask = tmask
 
     def _remove_selected_shape(self, shape):
         self._selected_shapes.remove(shape)
+        if shape.atoms:
+            shape.atoms.selected = False
         tmask = self.selected_triangles_mask
         if tmask is None:
             return
@@ -219,6 +225,8 @@ class ShapeDrawing(Drawing):
         tmask = self.selected_triangles_mask
         for s in shapes:
             tmask[s.triangle_range] = False
+            if s.atoms:
+                s.atoms.selected = False
         self.selected_triangles_mask = tmask
 
     def _add_handler_if_needed(self):
@@ -230,10 +238,10 @@ class ShapeDrawing(Drawing):
         from chimerax.core.selection import SELECTION_CHANGED
         self.session.triggers.add_handler(SELECTION_CHANGED, self.update_selection)
 
-    def add_shape(self, vertices, normals, triangles, color, atoms=None, balloon_text=None):
+    def add_shape(self, vertices, normals, triangles, color, atoms=None, description=None):
         # extend drawing's vertices, normals, vertex_colors, and triangles
         # atoms is a molarray.Atoms collection
-        # balloon_text is what shows up when hovered over
+        # description is what shows up when hovered over
         if atoms is not None:
             self._add_handler_if_needed()
         asarray = numpy.asarray
@@ -249,7 +257,7 @@ class ShapeDrawing(Drawing):
             self.normals = asarray(normals, dtype=numpy.float32)
             self.triangles = asarray(triangles, dtype=numpy.int32)
             self.vertex_colors = colors
-            s = _Shape(range(0, self.triangles.shape[0]), balloon_text, atoms)
+            s = _Shape(range(0, self.triangles.shape[0]), description, atoms)
             self._shapes.append(s)
             return
         offset = self.vertices.shape[0]
@@ -258,5 +266,5 @@ class ShapeDrawing(Drawing):
         self.normals = asarray(concat((self.normals, normals)), dtype=numpy.float32)
         self.triangles = asarray(concat((self.triangles, triangles + offset)), dtype=numpy.int32)
         self.vertex_colors = concat((self.vertex_colors, colors))
-        s = _Shape(range(start, self.triangles.shape[0]), balloon_text, atoms)
+        s = _Shape(range(start, self.triangles.shape[0]), description, atoms)
         self._shapes.append(s)

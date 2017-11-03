@@ -145,7 +145,7 @@ class _BildFile:
         p2 = numpy.array(data[3:6])
         junction = p1 + rho * (p2 - p1)
         self.num_arrows += 1
-        balloon_text = 'arrow %d' % self.num_arrows
+        description = 'arrow %d' % self.num_arrows
         vertices, normals, triangles = get_cylinder(
             r1, p1, junction,
             closed=True, xform=self.transforms[-1])
@@ -155,7 +155,7 @@ class _BildFile:
         t += len(vertices)
         self.drawing.add_shape(
             concat((vertices, v)), concat((normals, n)), concat((triangles, t)),
-            _cvt_color(self.cur_color), self.cur_atoms, balloon_text)
+            _cvt_color(self.cur_color), self.cur_atoms, description)
         self.num_objects += 1
 
     def atomspec_command(self, tokens):
@@ -173,11 +173,11 @@ class _BildFile:
         llb = numpy.array(data[0:3])
         urf = numpy.array(data[3:6])
         self.num_boxes += 1
-        balloon_text = 'box %d' % self.num_boxes
+        description = 'box %d' % self.num_boxes
         vertices, normals, triangles = get_box(llb, urf, self.transforms[-1])
         self.drawing.add_shape(
             vertices, normals, triangles,
-            _cvt_color(self.cur_color), self.cur_atoms, balloon_text)
+            _cvt_color(self.cur_color), self.cur_atoms, description)
         self.num_objects += 1
 
     def comment_command(self, tokens):
@@ -213,12 +213,12 @@ class _BildFile:
         else:
             bottom = False
         self.num_cones += 1
-        balloon_text = 'cone %d' % self.num_cones
+        description = 'cone %d' % self.num_cones
         vertices, normals, triangles = get_cone(
             radius, p0, p1, bottom=bottom, xform=self.transforms[-1])
         self.drawing.add_shape(
             vertices, normals, triangles,
-            _cvt_color(self.cur_color), self.cur_atoms, balloon_text)
+            _cvt_color(self.cur_color), self.cur_atoms, description)
         self.num_objects += 1
 
     def cylinder_command(self, tokens):
@@ -234,12 +234,12 @@ class _BildFile:
         else:
             closed = False
         self.num_cylinders += 1
-        balloon_text = 'cylinder %d' % self.num_cylinders
+        description = 'cylinder %d' % self.num_cylinders
         vertices, normals, triangles = get_cylinder(
             radius, p0, p1, closed=closed, xform=self.transforms[-1])
         self.drawing.add_shape(
             vertices, normals, triangles,
-            _cvt_color(self.cur_color), self.cur_atoms, balloon_text)
+            _cvt_color(self.cur_color), self.cur_atoms, description)
         self.num_objects += 1
 
     def dashed_cylinder_command(self, tokens):
@@ -256,12 +256,12 @@ class _BildFile:
         else:
             closed = False
         self.num_cylinders += 1
-        balloon_text = 'cylinder %d' % self.num_cylinders
+        description = 'cylinder %d' % self.num_cylinders
         vertices, normals, triangles = get_dashed_cylinder(
             count, radius, p0, p1, closed=closed, xform=self.transforms[-1])
         self.drawing.add_shape(
             vertices, normals, triangles,
-            _cvt_color(self.cur_color), self.cur_atoms, balloon_text)
+            _cvt_color(self.cur_color), self.cur_atoms, description)
         self.num_objects += 1
 
     def pop_command(self, tokens):
@@ -307,12 +307,12 @@ class _BildFile:
         center = numpy.array(data[0:3])
         radius = data[3]
         self.num_spheres += 1
-        balloon_text = 'sphere %d' % self.num_spheres
+        description = 'sphere %d' % self.num_spheres
         vertices, normals, triangles = get_sphere(
             radius, center, self.transforms[-1])
         self.drawing.add_shape(
             vertices, normals, triangles,
-            _cvt_color(self.cur_color), self.cur_atoms, balloon_text)
+            _cvt_color(self.cur_color), self.cur_atoms, description)
         self.num_objects += 1
 
     def translate_command(self, tokens):
