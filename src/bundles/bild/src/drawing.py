@@ -15,100 +15,14 @@ import numpy
 from chimerax.core.graphics import Drawing, Pick
 
 
-class _Shape:
-
-    def __init__(self, triangle_range, description, atoms):
-        # triangle_range is a range object that corresponds to the indices
-        # of the triangles for that shape in the vertex array
-        self.triangle_range = triangle_range
-        self.description = description
-        from chimerax.core.atomic import Atoms
-        if atoms is not None and not isinstance(atoms, Atoms):
-            atoms = Atoms(atoms)
-        self.atoms = atoms
-
-
-class PickedShape(Pick):
-
-    def __init__(self, distance, shape, drawing):
-        super().__init__(distance)
-        self.shape = shape
-        self._drawing = drawing
-
-    def description(self):
-        d = self.shape.description
-        if d is None and self.shape.atoms:
-            from collections import OrderedDict
-            ra = OrderedDict()
-            for a in self.shape.atoms:
-                ra.setdefault(a.residue, []).append(a)
-            d = []
-            for r in ra:
-                d.append("%s@%s" % (r.atomspec(), ','.join(a.name for a in ra[r])))
-            return ','.join(d)
-        return d
-
-    def drawing(self):
-        return self._drawing
-
-    def id_string(self):
-        d = self.drawing()
-        return d.id_string() if hasattr(d, 'id_string') else '?'
-
-    def is_transparent(self):
-        d = self.drawing()
-        vc = d.vertex_colors
-        if vc is None:
-            return d.color[3] < 255
-        t = self.triangle_num
-        for v in d.triangle_range[t]:
-            if vc[v, 3] < 255:
-                return True
-        return False
-
-    def select(self, mode='add'):
-        drawing = self._drawing
-        if mode == 'add':
-            drawing._add_selected_shape(self.shape)
-        elif mode == 'subtract':
-            drawing._remove_selected_shape(self.shape)
-        elif mode == 'toggle':
-            if self.shape in drawing._selected_shapes:
-                drawing._remove_selected_shape(self.shape)
-            else:
-                drawing._add_selected_shape(self.shape)
-
-
-class PickedShapes:
-
-    def __init__(self, shapes, drawing):
-        Pick.__init__(self)
-        self.shapes = shapes
-        self._drawing = drawing
-
-    def description(self):
-        return '%d shapes' % len(self.shapes)
-
-    def select(self, mode = 'add'):
-        drawing = self._drawing
-        if mode == 'add':
-            drawing._add_selected_shapes(self.shapes)
-        elif mode == 'subtract':
-            drawing._remove_selected_shapes(self.shapes)
-        elif mode == 'toggle':
-            adding, removing = [], []
-            for s in self.shapes:
-                if s in drawing._selected_shapes:
-                    removing.append(s)
-                else:
-                    adding.append(s)
-            if removing:
-                drawing._remove_selected_shapes(removing)
-            if adding:
-                drawing._add_selected_shapes(adding)
-
-
 class ShapeDrawing(Drawing):
+    """Extend Drawing with knowledge of individual shapes
+
+    The only additional public API is the :py:meth:`add_shape` method.
+
+    If an individual shape corresponds to atom or multiple atoms, then
+    when that shape it picked, the atoms are picked too and vice-versa.
+    """
 
     def __init__(self, *args, **kw):
         super().__init__(*args, **kw)
@@ -239,11 +153,26 @@ class ShapeDrawing(Drawing):
         self.session.triggers.add_handler(SELECTION_CHANGED, self.update_selection)
 
     def add_shape(self, vertices, normals, triangles, color, atoms=None, description=None):
+        """Add shape to drawing
+
+        Parameters
+        ----------
+        vertices : :py:class:`numpy.array` of coordinates
+        normals : :py:class:`numpy.array` of normals, one per vertex
+        triangles : :py:class:`numpy.array` of vertex indices, multiple of 3
+        color : either a single 4 element uint8 :py:class:`numpy.array`;
+            or an array of those values, one per vertex
+        atoms : a sequence of :py:class:`~chimerax.core.atomic.Atom`s
+            or an :py:class:`~chimerax.core.atomic.Atoms` collection.
+        description : a string describing the shape
+
+        The vertices, normals, and triangles can custom or the results from one of the
+        :py:mod:`~chimerax.core.surface`'s geometry functions.  If the description is
+        not given, it defaults to a list of the atoms.
+        """
         # extend drawing's vertices, normals, vertex_colors, and triangles
         # atoms is a molarray.Atoms collection
         # description is what shows up when hovered over
-        if atoms is not None:
-            self._add_handler_if_needed()
         asarray = numpy.asarray
         concat = numpy.concatenate
         if color.ndim == 1 or color.shape[0] == 1:
@@ -253,6 +182,8 @@ class ShapeDrawing(Drawing):
             colors = color.asarray(color, dtype=numpy.uint8)
             assert colors.shape[1] == 4 and colors.shape[0] == vertices.shape[0]
         if self.vertices is None:
+            if atoms is not None:
+                self._add_handler_if_needed()
             self.vertices = asarray(vertices, dtype=numpy.float32)
             self.normals = asarray(normals, dtype=numpy.float32)
             self.triangles = asarray(triangles, dtype=numpy.int32)
@@ -268,3 +199,96 @@ class ShapeDrawing(Drawing):
         self.vertex_colors = concat((self.vertex_colors, colors))
         s = _Shape(range(start, self.triangles.shape[0]), description, atoms)
         self._shapes.append(s)
+
+
+class _Shape:
+
+    def __init__(self, triangle_range, description, atoms):
+        # triangle_range is a range object that corresponds to the indices
+        # of the triangles for that shape in the vertex array
+        self.triangle_range = triangle_range
+        self.description = description
+        from chimerax.core.atomic import Atoms
+        if atoms is not None and not isinstance(atoms, Atoms):
+            atoms = Atoms(atoms)
+        self.atoms = atoms
+
+
+class PickedShape(Pick):
+
+    def __init__(self, distance, shape, drawing):
+        super().__init__(distance)
+        self.shape = shape
+        self._drawing = drawing
+
+    def description(self):
+        d = self.shape.description
+        if d is None and self.shape.atoms:
+            from collections import OrderedDict
+            ra = OrderedDict()
+            for a in self.shape.atoms:
+                ra.setdefault(a.residue, []).append(a)
+            d = []
+            for r in ra:
+                d.append("%s@%s" % (r.atomspec(), ','.join(a.name for a in ra[r])))
+            return ','.join(d)
+        return d
+
+    def drawing(self):
+        return self._drawing
+
+    def id_string(self):
+        d = self.drawing()
+        return d.id_string() if hasattr(d, 'id_string') else '?'
+
+    def is_transparent(self):
+        d = self.drawing()
+        vc = d.vertex_colors
+        if vc is None:
+            return d.color[3] < 255
+        t = self.triangle_num
+        for v in d.triangle_range[t]:
+            if vc[v, 3] < 255:
+                return True
+        return False
+
+    def select(self, mode='add'):
+        drawing = self._drawing
+        if mode == 'add':
+            drawing._add_selected_shape(self.shape)
+        elif mode == 'subtract':
+            drawing._remove_selected_shape(self.shape)
+        elif mode == 'toggle':
+            if self.shape in drawing._selected_shapes:
+                drawing._remove_selected_shape(self.shape)
+            else:
+                drawing._add_selected_shape(self.shape)
+
+
+class PickedShapes:
+
+    def __init__(self, shapes, drawing):
+        Pick.__init__(self)
+        self.shapes = shapes
+        self._drawing = drawing
+
+    def description(self):
+        return '%d shapes' % len(self.shapes)
+
+    def select(self, mode = 'add'):
+        drawing = self._drawing
+        if mode == 'add':
+            drawing._add_selected_shapes(self.shapes)
+        elif mode == 'subtract':
+            drawing._remove_selected_shapes(self.shapes)
+        elif mode == 'toggle':
+            adding, removing = [], []
+            for s in self.shapes:
+                if s in drawing._selected_shapes:
+                    removing.append(s)
+                else:
+                    adding.append(s)
+            if removing:
+                drawing._remove_selected_shapes(removing)
+            if adding:
+                drawing._add_selected_shapes(adding)
