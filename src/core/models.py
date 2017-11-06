@@ -415,9 +415,12 @@ class Models(State):
         # when firing this trigger, so do it last
         session.triggers.activate_trigger(REMOVE_MODELS, mlist)
 
+        return mlist
+
     def close(self, models):
-        self.remove(models)
-        for m in models:
+        # Removed models include children of specified models.
+        mremoved = self.remove(models)
+        for m in mremoved:
             m.delete()
 
     def open(self, filenames, id=None, format=None, name=None, **kw):
