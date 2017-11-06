@@ -45,8 +45,8 @@ Source Code Organization
 
 The source code for this example may be downloaded
 as a `zip-format file
-<http://www.rbvi.ucsf.edu/chimerax/cgi-bin/XXX>`_
-and the content folder, named `hello_world` extracted.
+<http://www.rbvi.ucsf.edu/chimerax/cgi-bin/bundle_tutorial?name=hello_world>`_
+containing a folder named `hello_world`.
 Alternatively, one can start with an empty folder
 and create source files based on the samples below.
 The source folder may be arbitrarily named, as it is
@@ -58,7 +58,7 @@ need to type quote characters in some steps.
 Sample Files
 ============
 
-The files in the ``hello_world`` folder are:
+The files in the source code folder are:
 
 ``hello_world`` - bundle folder
     ``bundle_info.xml`` - bundle information read by ChimeraX
@@ -299,3 +299,14 @@ and map them to arguments when calling the command-processing
 function.
 
 .. include:: build_test_distribute.rst
+
+What's Next
+===========
+
+- :doc:`tutorial_hello` (current topic)
+- :doc:`tutorial_command` (next topic)
+- :doc:`tutorial_tool`
+- :doc:`tutorial_read_format`
+- :doc:`tutorial_save_format`
+- :doc:`tutorial_fetch`
+- :doc:`tutorial_selector`

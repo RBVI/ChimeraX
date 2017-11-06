@@ -25,22 +25,15 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: morph</h3>
 
-<h3><a href="usageconventions.html">Usage</a>:
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>morph</b>
 &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
-[&nbsp;frames&nbsp;&nbsp;<i>N</i>&nbsp;]
-[&nbsp;method&nbsp;&nbsp;corkscrew&nbsp;|&nbsp;independent&nbsp;|&nbsp;linear&nbsp;]
-[&nbsp;rate&nbsp;&nbsp;<i>function</i>&nbsp;]
-[&nbsp;coreFraction&nbsp;&nbsp;<i>f</i>&nbsp;]
-[&nbsp;minHingeSpacing&nbsp;&nbsp;<i>M</i>&nbsp;]
-[&nbsp;colorSegments&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;colorCore&nbsp;&nbsp;<a href="colornames.html"><i>color</i></a>&nbsp;]
-[&nbsp;cartesian&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;same&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;hideModels&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;play&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;slider&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-</h3>
+[&nbsp;<b>frames</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>same</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>hideModels</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>play</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>slider</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+&nbsp;<a href="#morph-parameters"><i>morph-parameters</i></a></h3>
 <p>
 The <b>morph</b> command creates a 
 <a href="../trajectories.html">trajectory</a> that morphs between two or
@@ -57,6 +50,7 @@ desired for morphing.
 Although the same model number cannot be given more than once, a given structure 
 can be opened multiple times to give copies with different model numbers.
 Examples:
+</p>
 <blockquote><b>
 morph #3,1,2 frames 40
 <br>
@@ -64,17 +58,12 @@ morph #1.1-20 same t
 <br>
 morph #2,5 core 0.1 frames 30
 </b></blockquote>
-</p><p>
-Only the <a href="#pairing">atoms in common</a>
+<p>
+Only the <a href="#pairing"><b><i>atoms in common</i></b></a>
 among the input structures will be included in the resulting trajectory.
 The models can have different numbers of residues or different
 sequences (homologs or mutants can be compared), but currently
-they must contain <a href="#pairing">equal numbers of chains</a>.
-Chains are paired by chain ID if the sets of IDs are identical,
-otherwise by order of occurrence in the input files.
-Extra chains in the input models should be
-<a href="delete.html">deleted</a> beforehand or <a href="split.html">split</a>
-into separate models not used in morphing 
+they must contain equal numbers of chains
 (see <a href="#limitations">limitations</a>).
 </p><p>
 <a name="stage"></a>
@@ -93,81 +82,26 @@ and Gerstein</a>, <i>Nucleic Acids Res</i> <b>28</b>:1665 (2000).
 <li><a name="flexible">coordinate changes within the atom groups</a>
 </ol>
 <p>
+Coordinates for the <a href="#pairing">atoms in common</a> 
+from the input structures and the intermediate coordinate sets 
+comprise the frames of the <a href="../trajectories.html">trajectory</a>,
+which is opened as a separate model. 
+</p><p>
 The <b>frames</b> option (default <i>N</i> = <b>20</b>) indicates generating 
 <i>N</i>&ndash;1 intermediate coordinate sets per <a href="#stage">stage</a>,
 giving a total number of frames in the trajectory
 = 1 + <i>N</i>(number of stages).
 </p><p>
-The <b>method</b> option controls how to calculate the rigid-body transformations:
-  <ul>
-  <li> <b>corkscrew</b> (default)
-  - each group's starting and ending positions are related
-  by a rotation about a center chosen to describe as much of the movement
-  as possible, and a translation along the axis of rotation;
-  these two components are interpolated
-  <li> <b>independent</b>
-  - each group's starting and ending positions are related
-  by a rotation about the group's center of mass, and a translation;
-  these two components are interpolated
-  <li> <b>linear</b>
-  - each group's starting and ending positions are related by a translation,
-  which is interpolated
-  </ul>
-The <b>rate</b> option controls the temporal distribution of
-conformational changes within a <a href="#stage">stage</a>,
-with possible values:
-  <ul>
-  <li> <b>linear</b> (default)
-  - coordinate changes will be distributed approximately evenly
-  <li> <b>ramp down</b>
-  - coordinates will change most rapidly near the starting conformation
-  <li> <b>ramp up</b>
-  - coordinates will change most rapidly near the ending conformation
-  <li> <b>sinusoidal</b> - coordinates will change most rapidly halfway
-  between the starting and ending conformations
-  </ul>
-The <b>coreFraction</b> <i>f</i> (default <b>0.5</b>) is what fraction
-of the residues in a chain to group in the first step of hinge detection.
-The best-matching fraction <i>f</i> of residues (best-fitting between
-the starting and ending structures) comprises one group
-and the remaining (1&ndash;<i>f</i>) a second group. Going through the
-residues in order, hinges are added between consecutive residues where
-there is a change from one group to the other, as long as a hinge is
-at least <b>minHingeSpacing</b> <i>M</i> residues 
-away from the previous hinge (does not create a
-segment shorter than <i>M</i> residues, default <b>6</b>).
-The <b>colorSegments</b> option (default <b>false</b>)
-shows the resulting segments in different colors (chosen automatically),
-whereas <b>colorCore</b> uses the specified
-<a href="colornames.html"><i>color</i></a> for residues in the initial core.
-Although segments are recomputed at each <a href="#stage">stage</a> 
-of a multistage morph, segment coloring only shows the first set.
-</p><p>
-The <b>cartesian</b> option</b> (default <b>false</b>) indicates whether
-<a href="#flexible">within-group coordinate changes</a>
-should be interpolated strictly in Cartesian space.
-Otherwise, internal coordinates will be used for the
-interpolation where possible. Using internal coordinates is slower
-but produces less distortion. A trajectory made with Cartesian forcing
-may be acceptable if few atomic details will be shown (for example,
-if only ribbons will be displayed).
-</p><p>
 <a name="same"></a>
-The <b>same</b> option</b> (default <b>false</b>) indicates whether to
-assume that the input structures have the same sequences, atom names, 
-residue numbering, and chain IDs. Although this is typically
-the case for members of an NMR ensemble, it is not necessarily so for
-different structures of the same biopolymer. If <b>true</b>, atoms 
-are paired by atom name, residue number, and chain ID (all must match).
-If <b>false</b>, atoms are paired as described <a href="#pairing">below</a>. 
-Setting <b>same</b> to <b>true</b> may make the calculation slightly faster,
-but otherwise there is little harm in staying with the default
-if there is any doubt as to whether numbering/naming are the same.
+The <b>same</b> option indicates that the input structures 
+have the same sequences, atom names, residue numbering, and chain IDs, 
+as is typically the case for members of an NMR ensemble 
+(default <b>false</b>, atoms paired as described 
+<a href="#pairing">below</a>). Setting this option to <b>true</b> may 
+make the calculation slightly faster, but otherwise there is little harm
+in staying with the default if there is any doubt as to 
+whether numbering/naming are the same.
 </p><p>
-Coordinates for the <a href="#pairing">atoms in common</a> 
-from the <a href="#stage">stage</a> endpoints (input structures) 
-and the coordinate sets comprise the frames of the trajectory, 
-which is opened as a separate model.
 The <b>hideModels</b> option (default <b>true</b>) hides the input models,
 and the <b>play</b> option 
 (default <b>true</b>) plays through the resulting trajectory a single time. 
@@ -183,6 +117,86 @@ The interface also includes a play/pause button and another
 (marked with a red dot) for recording a movie. See also:
 <a href="coordset.html#slider"><b>coordset slider</b></a>
 </p>
+
+<a name="morph-parameters"></a>
+<p class="nav">
+[<a href="#top">back to top: morph</a>]
+</p>
+<h3>Morphing Parameters</h3>
+<blockquote>
+<b>method</b>&nbsp;(&nbsp;<b>corkscrew</b>&nbsp;|&nbsp;independent&nbsp;|&nbsp;linear&nbsp;)
+<br>
+How to calculate the rigid-body transformations
+within a <a href="#stage">stage</a>:
+  <ul>
+  <li><b>corkscrew</b> (default)
+  - each group's starting and ending positions are related
+  by a rotation about a center chosen to describe as much of the movement
+  as possible, and a translation along the axis of rotation;
+  these two components are interpolated
+  <li><b>independent</b>
+  - each group's starting and ending positions are related
+  by a rotation about the group's center of mass, and a translation;
+  these two components are interpolated
+  <li><b>linear</b>
+  - each group's starting and ending positions are related by a translation,
+  which is interpolated
+  </ul>
+</blockquote>
+<blockquote>
+<b>rate</b>&nbsp;&nbsp;<i>function</i>
+<br>
+How conformational changes within a <a href="#stage">stage</a>
+are distributed across the trajectory, where the <i>function</i> can be:
+  <ul>
+  <li><b>linear</b> (default)
+  - coordinate changes will be distributed approximately evenly
+  <li><b>ramp down</b>
+  - coordinates will change most rapidly near the starting conformation
+  <li><b>ramp up</b>
+  - coordinates will change most rapidly near the ending conformation
+  <li><b>sinusoidal</b> - coordinates will change most rapidly halfway
+  between the starting and ending conformations
+  </ul>
+</blockquote>
+<blockquote>
+<b>coreFraction</b>&nbsp;&nbsp;<i>f</i>
+<br>
+<b>minHingeSpacing</b>&nbsp;&nbsp;<i>M</i>
+<br>
+<b>colorSegments</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+<b>colorCore</b>&nbsp;&nbsp;<a href="colornames.html"><i>color</i></a>
+<br><br style="line-height:5px">
+The <b>coreFraction</b> <i>f</i> (default <b>0.5</b>) is the
+fraction of the residues in a chain
+to group in the first step of hinge detection.
+The best-matching fraction <i>f</i> of residues (best-fitting between
+the starting and ending structures) comprises one group
+and the remaining (1&ndash;<i>f</i>) a second group. Going through the
+residues in order, hinges are added between consecutive residues where
+there is a change from one group to the other, as long as a hinge is
+at least <b>minHingeSpacing</b> <i>M</i> residues 
+away from the previous hinge (does not create a
+segment shorter than <i>M</i> residues, default <b>6</b>).
+The <b>colorSegments</b> option
+shows the resulting segments in different colors (chosen automatically),
+whereas <b>colorCore</b> uses the specified
+<a href="colornames.html"><i>color</i></a> for residues in the initial core.
+Although segments are recomputed for each <a href="#stage">stage</a> 
+of a multistage morph, segment coloring only shows the first set.
+</blockquote>
+<blockquote>
+<b>cartesian</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether <a href="#flexible">within-group coordinate changes</a>
+should be interpolated strictly in Cartesian space.
+Otherwise, internal coordinates will be used for the
+interpolation where possible. Using internal coordinates is slower
+but produces less distortion. A trajectory made with Cartesian forcing
+may be acceptable if few atomic details will be shown (for example,
+if only ribbons will be displayed).
+</blockquote>
 
 <a name="pairing"></a>
 <p class="nav">

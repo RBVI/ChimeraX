@@ -35,13 +35,19 @@ and "tutorial highlight" commands from a graphical interface.
     <Dependency name="ChimeraX-Tutorial_Command" version=">=0.1"/>
   </Dependencies>
 
+  <!-- Non-Python files that are part of package -->
+  <DataFiles>
+    <DataFile>gui.html</DataFile>
+  </DataFiles>
+
   <Classifiers>
     <!-- Development Status should be compatible with bundle version number -->
     <PythonClassifier>Development Status :: 3 - Alpha</PythonClassifier>
     <PythonClassifier>License :: Freeware</PythonClassifier>
     <!-- ChimeraX classifiers describe supplied functionality -->
     <!-- Register a graphical interface tool -->
-    <ChimeraXClassifier>ChimeraX :: Tool :: Tutorial GUI :: General :: Graphical interface to "tutorial" commands</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Tool :: Tutorial GUI ::
+      General :: Graphical interface to "tutorial" commands</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

@@ -16,6 +16,16 @@ from chimerax.core.ui import HtmlToolInstance
 
 class TutorialGUI(HtmlToolInstance):
 
+    # Inheriting from HtmlToolInstance gets us the following attributes
+    # after initialization:
+    #   self.tool_window: instance of chimerax.core.ui.gui.MainToolWindow
+    #   self.html_view: instance of chimerax.core.ui.widgets.HtmlView
+    # Defining methods in this subclass also trigger some automated callbacks:
+    #   handle_scheme: called when custom-scheme link is visited
+    #   update_models: called when models are opened or closed
+    # If cleaning up is needed on finish, override the ``delete`` method
+    # but be sure to call ``delete`` from the superclass at the end.
+
     SESSION_ENDURING = False    # Does this instance persist when session closes
     SESSION_SAVE = False        # No session saving for now
     CUSTOM_SCHEME = "tutorial"  # Scheme used in HTML for callback into Python
@@ -29,8 +39,15 @@ class TutorialGUI(HtmlToolInstance):
 
         # Initialize base class.  ``size_hint`` is the suggested
         # initial tool size in pixels.
-        super().__init__(session, ti.name, size_hint=(575, 200))
+        super().__init__(session, ti.name, size_hint=(575, 400))
         self._build_ui()
+
+    def _build_ui(self):
+        # Fill in html viewer with initial page in the module
+        import os.path
+        html_file = os.path.join(os.path.dirname(__file__), "gui.html")
+        import pathlib
+        self.html_view.setUrl(pathlib.Path(html_file).as_uri())
 
     def handle_scheme(self, url):
         # ``url`` - ``PyQt5.QtCore.QUrl`` instance
@@ -45,24 +62,79 @@ class TutorialGUI(HtmlToolInstance):
 
         # First check that the path is a real command
         command = url.path()
-        if command not in ["cofm", "highlight"]:
-            from chimerax.errors import UserError
+        if command == "update_models":
+            self.update_models()
+            return
+        elif command in ["cofm", "highlight"]:
+            # Collect the optional parameters from URL query parameters
+            # and construct a command to execute
+            from urllib.parse import parse_qs
+            query = parse_qs(url.query())
+
+            # First the command
+            cmd_text = ["tutorial", command]
+
+            # Next the atom specifier
+            target = query["target"][0]
+            models = query["model"]
+            if target == "sel":
+                cmd_text.append("sel")
+            elif target == "model":
+                cmd_text.append(''.join(models))
+            # else target must be "all":
+            #   for which we leave off atom specifier completely
+
+            # Then "highlight" specific parameters
+            if command == "highlight":
+                color = query["color"][0]
+                cmd_text.append(color)
+                count = query["count"][0]
+                cmd_text.extend(["count", count])
+
+            # Add remaining global options
+            weighted = "weighted" in query
+            cmd_text.extend(["weighted", "true" if weighted else "false"])
+            transformed = "transformed" in query
+            cmd_text.extend(["transformed", "true" if transformed else "false"])
+
+            # Run the command
+            cmd = ' '.join(cmd_text)
+            from chimerax.core.commands import run
+            run(self.session, cmd)
+        else:
+            from chimerax.core.errors import UserError
             raise UserError("unknown tutorial command: %s" % command)
 
-        # Collect the optional parameters from URL query parameters
-        from urllib.parse import parse_qs
-        query = parse_qs(url.query())
-        weighted = "weighted" in query
-        transformed = "transformed" in query
-        if command == "highlight":
-            try:
-                color = query["color"]
-                count = query["count"]
-                # TODO: map HTML color to ChimeraX color
-                # TODO: convert "count" from string to integer
-            except KeyError as e:
-                from chimerax.errors import UserError
-                raise UserError("parameter '%s' is missing" % e)
+    def update_models(self, trigger=None, trigger_data=None):
+        # Update the <select> options in the web form with current
+        # list of atomic structures.  Also enable/disable submit
+        # buttons depending on whether there are any structures open.
 
-        # TODO: Construct a command and run it
-        from chimerax.core.commands import run
+        # Get the list of atomic structures
+        from chimerax.core.atomic import AtomicStructure
+        options = []
+        for m in self.session.models:
+            if not isinstance(m, AtomicStructure):
+                continue
+            spec = m.atomspec()
+            options.append(("%s: %s" % (spec, m.name), spec))
+
+        # Construct Javascript for updating <select> and submit buttons
+        if not options:
+            options_text = ""
+            disabled_text = "true";
+        else:
+            options_text = ''.join(['<option value="%s">%s</option>' % (v, t)
+                                    for t, v in options])
+            disabled_text = "false";
+        import json
+        js = self.JSUpdate % (json.dumps(options_text), disabled_text)
+        self.html_view.runJavaScript(js)
+
+    JSUpdate = """
+document.getElementById("model").innerHTML = %s;
+var buttons = document.getElementsByClassName("submit");
+for (var i = 0; i != buttons.length; ++i) {
+    buttons[i].disabled = %s;
+}
+"""

@@ -14,7 +14,7 @@
     
 # ------------------------------------------------------------------------------
 #
-from chimerax.contacts.graph import Plot
+from chimerax.interfaces.graph import Plot
 class LengthsPlot(Plot):
 
     help = 'help:user/commands/crosslinks.html#histogram'
@@ -102,7 +102,7 @@ class LengthsPlot(Plot):
     
 # ------------------------------------------------------------------------------
 #
-from chimerax.contacts.graph import Plot
+from chimerax.interfaces.graph import Plot
 class EnsemblePlot(Plot):
     
     def __init__(self, session, pbond, ensemble_model):

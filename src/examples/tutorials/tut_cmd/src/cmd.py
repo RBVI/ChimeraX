@@ -133,11 +133,13 @@ def _get_cofm(session, atoms, transformed, weighted):
     # ``coords`` is a ``numpy`` float array of shape (N, 3)
     # If we want weighted center, we have to multiply coordinates
     # by the atomic mass
-    if weighted:
-        coords *= atoms.elements.masses
+    if not weighted:
+        cofm = coords.mean(coords, axis=0)
+    else:
+        m = atoms.elements.masses
+        c = coords * m[:,None]
+        cofm = c.sum(axis=0) / m.sum()
 
     # To get the average coordinates, we use ``numpy.mean``
-    import numpy
-    cofm = numpy.mean(coords, axis=0)
     # print("DEBUG: center of mass:", cofm)
     return atoms, coords, cofm

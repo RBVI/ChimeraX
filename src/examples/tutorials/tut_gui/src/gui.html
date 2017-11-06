@@ -1,0 +1,34 @@
+<html>
+<head>
+<title>Tutorial: Tool Example</title>
+</head>
+<body onload="window.location = 'tutorial:update_models';">
+<h2>Tutorial: Tool Example</h2>
+<form method="get">
+<h4>Global Options</h4>
+<ul>
+<li><input type="checkbox" name="weighted">Weighted by atomic mass</input></li>
+<li><input type="checkbox" name="transformed" checked="checked">
+    Use scene (transformed) coordinates</input></li>
+<li>
+    <input type="radio" name="target" value="sel" checked="checked">Selected</input>
+    <input type="radio" name="target" value="all">All</input>
+    <input type="radio" name="target" value="model">Structure</input><br/>
+    <select name="model" id="model">
+        <option value="none" selected="selected">No atomic structures open</option>
+    </select>
+</li>
+</ul>
+<input class="submit" type="submit" formaction="tutorial:cofm" disabled="true"
+    value="Report Center of Mass"/>
+<h4>Highlight Options</h4>
+<ul>
+<li><input type="color" name="color" value="#ff0000">Color</input></li>
+<li>Number of atoms (1-5):
+    <input type="number" name="count" value="1" min="1" max="5"/></li>
+</ul>
+<input class="submit" type="submit" formaction="tutorial:highlight" disabled="true"
+    value="Highlight Center of Mass"/>
+</form>
+</body>
+</html>

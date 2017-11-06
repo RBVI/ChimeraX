@@ -15,7 +15,12 @@ class UpdateLoop:
 
     def __init__(self):
         self._block_redraw_count = 0
-
+        self.last_draw_time = 0
+        self.last_new_frame_time = 0
+        self.last_atomic_check_for_changes_time = 0
+        self.last_drawing_change_time = 0
+        self.last_clip_time = 0
+        
     def draw_new_frame(self, session):
         '''
         Draw the scene if it has changed or camera or rendering options have changed.
@@ -28,20 +33,33 @@ class UpdateLoop:
             # Avoid redrawing during callbacks of the current redraw.
             return False
 
+        # TODO: Would be nice to somehow minimize all the ugly timing.
+        # TODO: Maybe timing is slowing things down a little, if so make it optional.
         view = session.main_view
         self.block_redraw()
+        from time import time
         try:
+            t0 = time()
             session.triggers.activate_trigger('new frame', self)
+            self.last_new_frame_time = time() - t0
             from . import atomic
+            t0 = time()
             atomic.check_for_changes(session)
+            self.last_atomic_check_for_changes_time = time() - t0
             from . import surface
+            t0 = time()
             surface.update_clip_caps(view)
+            self.last_clip_time = time() - t0
+            t0 = time()
             changed = view.check_for_drawing_change()
+            self.last_drawing_change_time = time() - t0
             if changed:
                 from .graphics import OpenGLError, OpenGLVersionError
                 try:
                     if session.ui.is_gui:
+                        t0 = time()
                         view.draw(check_for_changes = False)
+                        self.last_draw_time = time() - t0
                 except OpenGLVersionError as e:
                     self.block_redraw()
                     session.logger.error(str(e))

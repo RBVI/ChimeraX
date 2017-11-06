@@ -25,34 +25,26 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: cartoon, ribbon</h3>
 
-<h3><a href="usageconventions.html">Usage</a>:
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br>(&nbsp;<b>cartoon</b>&nbsp;|&nbsp;<b>ribbon</b>&nbsp;)
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
-[&nbsp;smooth&nbsp;&nbsp;<i>factor</i>&nbsp;|&nbsp;default&nbsp;]
-[&nbsp;suppressBackboneDisplay&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>smooth</b>&nbsp;&nbsp;<i>factor</i>&nbsp;|&nbsp;default&nbsp;]
+[&nbsp;<b>suppressBackboneDisplay</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 </h3>
-<h3><a href="usageconventions.html">Usage</a>:
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br>(&nbsp;<b>cartoon hide</b>&nbsp;|&nbsp;<b>ribbon hide</b>&nbsp;)
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 </h3>
 <p>
 The <b>cartoon</b> or <b>ribbon</b> command shows a simplified backbone 
-representation of the <a href="atomspec.html">specified</a> biopolymer 
-residues, with additional settings for smoothing and whether a 
-residue's backbone atoms can be shown at the same time as its cartoon segment.
-These settings can be different for different residues.
-The <a href="#subcommands">subcommands</a> of <b>cartoon</b>, however,
-control per-model settings:
-<ul>
-<li><a href="#style"><b>cartoon style</b></a>
-- width, thickness, and shape; secondary structure representations like
-<a href="#hmode">helix tubes</a>
-<li><a href="#tether"><b>cartoon tether</b></a>
-- connectors between smoothed strands and offset &alpha;-carbons
-</ul>
-<p>
-Changes in settings apply only to the models already present, 
-not subsequently opened models.
+representation of the <a href="atomspec.html">specified</a> biopolymer residues.
+The command <b>cartoon hide</b> (<b>ribbon hide</b>) hides cartoon
+for the <a href="atomspec.html">specified</a> residues.
+The commands <a href="show.html"><b>hide</b></a> and 
+<a href="show.html"><b>show</b></a> can also be used to control cartoon display.
+Protein secondary structure (helix and strand)
+assignments are read from the input structure file
+or calculated with <a href="dssp.html"><b>dssp</b></a>.
 See also:
 <a href="rungs.html"><b>rungs</b></a>,
 <a href="struts.html"><b>struts</b></a>,
@@ -62,33 +54,47 @@ See also:
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/ribhide.png"></a>
 </p><p>
-The command <b>cartoon hide</b> (or <b>ribbon hide</b>) hides cartoon
-for the <a href="atomspec.html">specified</a> residues.
-The commands <a href="show.html"><b>hide</b></a> and 
-<a href="show.html"><b>show</b></a> can also be used to control cartoon display.
+Cartoon settings are only changed when explicitly specified;
+there are no command defaults, only initial default settings of a structure
+when it is first opened. Changes only apply to models that are already present,
+not those opened later.
 </p><p>
-Protein helix and strand secondary structure element (SSE)
-assignments are read from the input structure file
-or calculated with <a href="dssp.html"><b>dssp</b></a>.
+The following settings can be different for different residues:
+<blockquote>
+<b>smooth</b> &nbsp;<i>factor</i>
+<br>
+The <i>factor</i> controls the balance between smoothing peptide &beta;-strands 
+versus following the exact positions of the &alpha;-carbons
+(initial default <b>1.0</b> maximally smoothed, ranging to 0.0 for unsmoothed).
+Specifying <b>default</b> instead of a numerical value sets the value to 1.0. 
+Smoothing applies only to peptide strands, not to helices, coil, or nucleic acids.
+Lower values may be desired for strand residues with sidechains displayed,
+to preclude showing <a href="#tether">tethers</a>.
+</blockquote>
+<blockquote>
+<a name="suppress"></a>
+<b>suppressBackboneDisplay</b> &nbsp;true&nbsp;|&nbsp;false
+<br>
+Whether showing cartoon for a residue suppresses the display of
+its backbone atoms (initial default <b>true</b>). 
+The backbone atoms suppressed  by cartoons are N, C, and O in amino acids
+and the phosphate moieties including  O5' in nucleic acids.
+Simultaneous display can be enabled by setting this option to <b>false</b>.
+</blockquote>
+<p>
+The <a href="#subcommands">subcommands</a> of <b>cartoon</b>, however,
+control per-model settings:
+</p>
+<ul>
+<li><a href="#style"><b>cartoon style</b></a>
+- width, thickness, and shape; secondary structure representations like
+<a href="#hmode">helix tubes</a>
+<li><a href="#tether"><b>cartoon tether</b></a>
+- connectors between smoothed strands and offset &alpha;-carbons
+</ul>
+<p>
 The cartoon path is guided by CA atoms (&alpha;-carbons) in peptides 
 and C5' in nucleic acids. 
-The <b>smooth</b> <i>factor</i> sets the balance between smoothing peptide 
-strands versus following the exact positions of the &alpha;-carbons (0.0 
-unsmoothed, default <b>1.0</b> maximally smoothed).
-Specifying <b>default</b> instead of a numerical value sets the value to 1.0. 
-Smoothing applies only to peptide &beta;-strands,
-not &alpha;-helices, coil, or nucleic acids.
-Each residue can have a different value of <i>factor</i>,
-and lower values are recommended where sidechains are displayed,
-to preclude showing <a href="#tether">tethers</a>.
-</p><p>
-<a name="suppress"></a>
-By default, showing the cartoon for a residue suppresses the display of
-its backbone atoms. Simultaneous display can be enabled with 
-<b>suppress false</b>; otherwise,
-the backbone atoms hidden by cartoons are N, C, and O in amino acids
-and the phosphate moieties including  O5' in nucleic acids.
-</p><p>
 <a name="orientation"></a>
 The transverse orientation of a residue's ribbon segment is set
 according to the type of secondary structure and/or polymer:
@@ -105,8 +111,8 @@ around the computed tubes instead)
 both the preceding and following peptide planes 
 (like their line of intersection)
 </ul>
-Peptide residues at the beginning or end of an SSE are given
-the same orientation as the adjacent residue in that SSE.
+Peptide residues at the beginning or end of a secondary structure element (SSE)
+are given the same orientation as the adjacent residue in that SSE.
 The depiction of a peptide helix or strand starts at the CA atom of its first 
 (N-terminal) residue and ends at the CA atom of its last (C-terminal) residue.
 </blockquote>
@@ -119,9 +125,6 @@ The depiction of a peptide helix or strand starts at the CA atom of its first
 <p>
 The subcommands <a href="#style"><b>cartoon style</b></a> and 
 <a href="#tether"><b>cartoon tether</b></a> control per-model settings.
-Parameters not specified in the command retain their current values.
-Changes affect only models that are already present,
-not those opened later.
 </p>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -150,10 +153,9 @@ secondary structure representations, width, thickness, and shape.
 Given without options, it reports the current settings for each atomic model. 
 </p><p>
 The following options can have different values for
-different types of secondary structure even within the same model;
-these can be changed separately by using the words
 <b>helix</b>, <b>strand</b>, <b>coil</b>, and/or <b>nucleic</b> in the
-<a href="atomspec.html#builtin"><i>atom-spec</i></a>.
+same model (and these words can be used in the
+<a href="atomspec.html#builtin"><i>atom-spec</i></a>).
 Conversely, a blank <a href="atomspec.html"><i>atom-spec</i></a>
 indicates all applicable models and secondary structure types.
 </p>
@@ -189,7 +191,6 @@ Spiraling ribbons from the <b>wrap</b> mode wrap around the calculated
 tubes, whereas those from the initial <b>default</b> mode
 are oriented as described <a href="#orientation">above</a>.
 <p>
-<a name="tubes"></a>
 Helix <b>tube</b> calculations use &alpha;-carbon coordinates.
 For a helix of 6 or more residues, a straight tube axis (first principal
 component) is used if it gives a low average distance to the &alpha;-carbons; 
@@ -221,7 +222,7 @@ a <a href="#tether">tether</a> will be drawn.
 <b>sides</b>&nbsp;&nbsp;<i>N</i>
 <br>The number of straight-line segments
 used to draw an <a href="#xsection"><b>oval</b> cross-section</a> or 
-the circumference of a <a href="#hmode"><b>tube</b> helix</a>, with higher numbers 
+the circumference of a <a href="#hmode">tube</a>, with higher numbers 
 corresponding to finer subdivisions (initial default <b>12</b>).
 Shading is used to give a smooth, rounded appearance despite
 this approximation of the shape.
@@ -281,9 +282,9 @@ cartoon style #2 arrows f wid 1 thick 1 x round
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
-<a name="tether">
+<a name="tether"></a>
 (&nbsp;<b>cartoon</b>&nbsp;|&nbsp;<b>ribbon</b>&nbsp;)
-<b>tether</b></a> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+<b>tether</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 [&nbsp;<b>shape</b>&nbsp;<b>cone</b>&nbsp;|&nbsp;steeple&nbsp;|&nbsp;cylinder&nbsp;]
 [&nbsp;<b>sides</b>&nbsp;&nbsp<i>N<font size="-1"><sub>t</sub></font></i>&nbsp;]
 [&nbsp;<b>scale</b>&nbsp;&nbsp<i>scale</i>&nbsp;]
@@ -316,5 +317,5 @@ The tether color tracks the color of the corresponding &alpha;-carbon.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2017</address>
+October 2017</address>
 </body></html>

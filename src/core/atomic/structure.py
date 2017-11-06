@@ -2885,9 +2885,10 @@ def all_structures(session):
 
 # -----------------------------------------------------------------------------
 #
-def all_atoms(session):
+def all_atoms(session, atomic_only=False):
     '''All atoms in all structures as an :class:`.Atoms` collection.'''
-    return structure_atoms(all_structures(session))
+    func = all_atomic_structures if atomic_only else all_structures
+    return structure_atoms(func(session))
 
 # -----------------------------------------------------------------------------
 #

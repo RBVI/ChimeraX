@@ -36,3 +36,5 @@ span.nowrap {white-space: nowrap}
 p.nav {font-size: 85%; margin-top: -10; margin-bottom: 0px; 
    text-align: right; position: relative; top: 20px }
 p.nav2 {font-size: 85%; text-align: left}
+
+h3.usage {font-weight: normal}
