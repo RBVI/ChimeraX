@@ -2356,9 +2356,12 @@ class Command:
         if not tmp:
             return True
         if tmp[0].isalpha():
-            tmp = _user_kw(tmp).casefold()
-            if any(kw.casefold().startswith(tmp) for kw in self._ci._keyword_map):
+            # Don't change case of what user types.  Fixes "show O".
+            tmp = _user_kw(tmp)
+            if (any(kw.startswith(tmp) for kw in self._ci._keyword_map) or
+                    any(kw.casefold().startswith(tmp) for kw in self._ci._keyword_map)):
                 return True
+
         return False
 
     def _process_keyword_arguments(self, final, prev_annos):
@@ -2385,10 +2388,10 @@ class Command:
             arg_name = _user_kw(word)
             if arg_name not in self._ci._keyword_map:
                 self.completion_prefix = word
-                folded_arg_name = arg_name.casefold()
                 kw_map = self._ci._keyword_map
+                # Don't change case of what user types.
                 completions = [(kw, kw_map[kw][1]) for kw in kw_map
-                               if kw.casefold().startswith(folded_arg_name)]
+                               if kw.startswith(arg_name) or kw.casefold().startswith(arg_name)]
                 if (final or len(text) > len(chars)) and completions:
                     # require shortened keywords to be unambiguous
                     if len(completions) == 1:
