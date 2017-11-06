@@ -2942,9 +2942,15 @@ def registered_commands(multiword=False, _start=None):
             if word_info.is_deferred():
                 continue
             if word_info.cmd_desc:
-                yield word
+                if parent_cmd:
+                    yield '%s %s' % (parent_cmd, word)
+                else:
+                    yield word
             if word_info.has_subcommands():
-                yield from cmds('%s %s' % (parent_cmd, word), word_info)
+                if parent_cmd:
+                    yield from cmds('%s %s' % (parent_cmd, word), word_info)
+                else:
+                    yield from cmds(word, word_info)
     return list(cmds('', parent_info))
 
 
