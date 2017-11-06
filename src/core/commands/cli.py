@@ -1881,16 +1881,16 @@ class _WordInfo:
     def is_deferred(self):
         return isinstance(self.cmd_desc, _Defer)
 
-    def lazy_register(self):
+    def lazy_register(self, cmd_name):
         deferred = self.cmd_desc
         assert(isinstance(deferred, _Defer))
         self.cmd_desc = None  # prevent recursion
         try:
             deferred.call()
         except Exception as e:
-            raise RuntimeError("delayed command registration failed (%s)" % e)
+            raise RuntimeError("delayed command registration for %r failed (%s)" % (cmd_name, e))
         if self.cmd_desc is None and not self.has_subcommands():
-            raise RuntimeError("delayed command registration didn't register the command")
+            raise RuntimeError("delayed command registration for %r didn't register the command" % cmd_name)
 
     def add_subcommand(self, word, name, cmd_desc=None, *, logger=None):
         try:
@@ -2238,7 +2238,7 @@ class Command:
             cmd_name = self.current_text[self.start:self.amount_parsed]
             cmd_name = ' '.join(cmd_name.split())   # canonicalize
             if what.is_deferred():
-                what.lazy_register()
+                what.lazy_register(cmd_name)
             if what.cmd_desc is not None:
                 if no_aliases:
                     if what.is_alias():
@@ -2928,10 +2928,13 @@ def registered_commands(multiword=False, _start=None):
         words.sort(key=lambda x: x[x[0] == '~':])
         return words
 
-    def cmds(parent_info):
-        for word_info in list(parent_info.subcommands.values()):
+    def cmds(parent_cmd, parent_info):
+        for word, word_info in list(parent_info.subcommands.items()):
             if word_info.is_deferred():
-                word_info.lazy_register()
+                if parent_cmd:
+                    word_info.lazy_register('%s %s' % (parent_cmd, word))
+                else:
+                    word_info.lazy_register(word)
         words = list(parent_info.subcommands.keys())
         words.sort(key=lambda x: x[x[0] == '~':].lower())
         for word in words:
@@ -2941,9 +2944,8 @@ def registered_commands(multiword=False, _start=None):
             if word_info.cmd_desc:
                 yield word
             if word_info.has_subcommands():
-                for word2 in cmds(word_info):
-                    yield "%s %s" % (word, word2)
-    return list(cmds(parent_info))
+                yield from cmds('%s %s' % (parent_cmd, word), word_info)
+    return list(cmds('', parent_info))
 
 
 class Alias:
@@ -3056,7 +3058,10 @@ def list_aliases(all=False, logger=None):
         for word, word_info in list(parent_info.subcommands.items()):
             if word_info.is_deferred():
                 try:
-                    word_info.lazy_register()
+                    if partial_name:
+                        word_info.lazy_register('%s %s' % (partial_name, word))
+                    else:
+                        word_info.lazy_register(word)
                 except RuntimeError as e:
                     if logger:
                         logger.warning(str(e))
