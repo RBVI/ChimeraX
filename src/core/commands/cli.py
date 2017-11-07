@@ -1881,16 +1881,16 @@ class _WordInfo:
     def is_deferred(self):
         return isinstance(self.cmd_desc, _Defer)
 
-    def lazy_register(self):
+    def lazy_register(self, cmd_name):
         deferred = self.cmd_desc
         assert(isinstance(deferred, _Defer))
         self.cmd_desc = None  # prevent recursion
         try:
             deferred.call()
         except Exception as e:
-            raise RuntimeError("delayed command registration failed (%s)" % e)
+            raise RuntimeError("delayed command registration for %r failed (%s)" % (cmd_name, e))
         if self.cmd_desc is None and not self.has_subcommands():
-            raise RuntimeError("delayed command registration didn't register the command")
+            raise RuntimeError("delayed command registration for %r didn't register the command" % cmd_name)
 
     def add_subcommand(self, word, name, cmd_desc=None, *, logger=None):
         try:
@@ -2238,7 +2238,7 @@ class Command:
             cmd_name = self.current_text[self.start:self.amount_parsed]
             cmd_name = ' '.join(cmd_name.split())   # canonicalize
             if what.is_deferred():
-                what.lazy_register()
+                what.lazy_register(cmd_name)
             if what.cmd_desc is not None:
                 if no_aliases:
                     if what.is_alias():
@@ -2356,9 +2356,12 @@ class Command:
         if not tmp:
             return True
         if tmp[0].isalpha():
-            tmp = _user_kw(tmp).casefold()
-            if any(kw.casefold().startswith(tmp) for kw in self._ci._keyword_map):
+            # Don't change case of what user types.  Fixes "show O".
+            tmp = _user_kw(tmp)
+            if (any(kw.startswith(tmp) for kw in self._ci._keyword_map) or
+                    any(kw.casefold().startswith(tmp) for kw in self._ci._keyword_map)):
                 return True
+
         return False
 
     def _process_keyword_arguments(self, final, prev_annos):
@@ -2385,10 +2388,10 @@ class Command:
             arg_name = _user_kw(word)
             if arg_name not in self._ci._keyword_map:
                 self.completion_prefix = word
-                folded_arg_name = arg_name.casefold()
                 kw_map = self._ci._keyword_map
+                # Don't change case of what user types.
                 completions = [(kw, kw_map[kw][1]) for kw in kw_map
-                               if kw.casefold().startswith(folded_arg_name)]
+                               if kw.startswith(arg_name) or kw.casefold().startswith(arg_name)]
                 if (final or len(text) > len(chars)) and completions:
                     # require shortened keywords to be unambiguous
                     if len(completions) == 1:
@@ -2925,10 +2928,13 @@ def registered_commands(multiword=False, _start=None):
         words.sort(key=lambda x: x[x[0] == '~':])
         return words
 
-    def cmds(parent_info):
-        for word_info in list(parent_info.subcommands.values()):
+    def cmds(parent_cmd, parent_info):
+        for word, word_info in list(parent_info.subcommands.items()):
             if word_info.is_deferred():
-                word_info.lazy_register()
+                if parent_cmd:
+                    word_info.lazy_register('%s %s' % (parent_cmd, word))
+                else:
+                    word_info.lazy_register(word)
         words = list(parent_info.subcommands.keys())
         words.sort(key=lambda x: x[x[0] == '~':].lower())
         for word in words:
@@ -2936,11 +2942,16 @@ def registered_commands(multiword=False, _start=None):
             if word_info.is_deferred():
                 continue
             if word_info.cmd_desc:
-                yield word
+                if parent_cmd:
+                    yield '%s %s' % (parent_cmd, word)
+                else:
+                    yield word
             if word_info.has_subcommands():
-                for word2 in cmds(word_info):
-                    yield "%s %s" % (word, word2)
-    return list(cmds(parent_info))
+                if parent_cmd:
+                    yield from cmds('%s %s' % (parent_cmd, word), word_info)
+                else:
+                    yield from cmds(word, word_info)
+    return list(cmds('', parent_info))
 
 
 class Alias:
@@ -3053,7 +3064,10 @@ def list_aliases(all=False, logger=None):
         for word, word_info in list(parent_info.subcommands.items()):
             if word_info.is_deferred():
                 try:
-                    word_info.lazy_register()
+                    if partial_name:
+                        word_info.lazy_register('%s %s' % (partial_name, word))
+                    else:
+                        word_info.lazy_register(word)
                 except RuntimeError as e:
                     if logger:
                         logger.warning(str(e))

@@ -27,19 +27,23 @@ class="clRight" title="User Guide Index"/></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br>(&nbsp;<b>clashes</b>&nbsp;|&nbsp;<b>contacts</b>&nbsp;)
 &nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>&nbsp;
-[&nbsp;<b>test</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>&nbsp;|&nbsp;<b>other</b>&nbsp;|&nbsp;self&nbsp;]
+[&nbsp;<b>test</b>&nbsp;&nbsp;self&nbsp;|&nbsp;<b>other</b>&nbsp;|&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>&nbsp;]
+<!--
 [&nbsp;<b>overlapCutoff</b>&nbsp;&nbsp;<i>cutoff</i>&nbsp;]
 [&nbsp;<b>hbondAllowance</b>&nbsp;&nbsp;<i>allowance</i>&nbsp;]
 [&nbsp;<b>distanceOnly</b>&nbsp;&nbsp;<i>dist</i>&nbsp;]
+-->
 [&nbsp;<b>reveal</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>pbColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>colorname</i></a>&nbsp;]
 [&nbsp;<b>pbRadius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
-[&nbsp;<b>name</b> &nbsp;<i>name</i>&nbsp;]
+<!--
+[&nbsp;<a href="#name"><b>name</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
+-->
 &nbsp;<a href="#options"><i>other-options</i></a></h3>
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br>(&nbsp;<b>~clashes</b>&nbsp;|&nbsp;<b>~contacts</b>&nbsp;)
-[&nbsp;<b>name</b> &nbsp;<i>name</i>&nbsp;]
+[&nbsp;<a href="#name"><b>name</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
 </h3>
 <p>
 The <b>clashes</b> and <b>contacts</b> commands are the same 
@@ -52,7 +56,15 @@ except for their default interaction criteria, meant to identify:
 - all kinds of direct interactions:
 polar and nonpolar, favorable and unfavorable (including clashes)
 </ul>
+See also: 
+<a href="hbonds.html"><b>hbonds</b></a>,
+<a href="interfaces.html"><b>interfaces</b></a>
 <p>
+A non-blank <a href="atomspec.html"><i>atom-spec1</i></a> is required.
+The <a href="#options"><b>test</b></a> option indicates
+whether to look for interactions among the specified atoms or between
+them and other atoms (<a href="#options">details...</a>).
+</p><p>
 The <a name="overlap-def"><b><i>overlap</i></b></a>
 between two atoms is defined as the sum of their
 <a href="../radii.html">VDW radii</a> minus the
@@ -63,32 +75,50 @@ for potentially hydrogen-bonded pairs:
 <i>overlap<sub>ij</sub></i> =
 r<sub>VDW<i>i</i></sub> + r<sub>VDW<i>j</i></sub>
 &ndash; d<sub>ij</sub> &ndash; <i>allowance<sub>ij</sub></i>
-</blockquote>
 <p>
 <a name="recommended"></a>
-For <b>clashes</b>, 
-<a href="#overlapCutoff"><b>overlapCutoff</b></a>
-values of 0.4-1.0 &Aring; (default <b>0.6</b>)
-and <a href="#hbondAllowance"><b>hbondAllowance</b></a>
-values of 0.2-0.6 &Aring; (default <b>0.4</b>) are generally reasonable.
-For <b>contacts</b>, negative
-<a href="#overlapCutoff"><b>overlapCutoff</b></a>
-values of 0.0-(&ndash;1.0) &Aring; (default <b>&ndash;0.4</b>)
-with an <a href="#hbondAllowance"><b>hbondAllowance</b></a>
-of 0.0 &Aring; (default <b>0.0</b>) are generally reasonable.
-</p><p>
-Normally, a clash or contact is identified based on the <i>overlap</i>,
+<table border cellpadding="4" cellspacing="0"><tr>
+<th style="background-color: #eaeaea" rowspan="2">&nbsp;command&nbsp;</th>
+<th style="background-color: #eaeaea" colspan="2">
+<a href="#overlapCutoff">overlapCutoff</a> (&Aring;)</th>
+<th style="background-color: #eaeaea" colspan="2">
+<a href="#hbondAllowance">hbondAllowance</a> (&Aring;)</th>
+</tr><tr>
+<td align="center" style="background-color: #eaeaea">default</td>
+<td align="center" style="background-color: #eaeaea">usual range</td>
+<td align="center" style="background-color: #eaeaea">default</td>
+<td align="center" style="background-color: #eaeaea">usual range</td>
+</tr><tr>
+<td align="center"><b>clashes</b></a></td>
+<td align="center"><b>0.6</b></td>
+<td align="center">0.4-1.0</td>
+<td align="center"><b>0.4</b></td>
+<td align="center">0.2-0.6</td>
+</tr><tr>
+<td align="center"><b>contacts</b></a></td>
+<td align="center"><b>&minus;0.4</b></td>
+<td align="center">0.0-(&minus;1.0)</td>
+<td align="center"><b>0.0</b></td>
+<td align="center">0.0</td>
+</tr>
+</table>
+</blockquote>
+<p>
+Normally, a clash or contact is identified based on the <i>overlap</i> cutoff,
 but the <a href="#distanceOnly"><b>distanceOnly</b></a> option allows using
-center-to-center distances instead.
+a center-to-center distance cutoff instead. 
+Both measures are reported in the detailed results.
 </p><p>
 By <a href="#makePseudobonds">default</a>,
-clashes/contacts are shown as <a href="../pseudobonds.html">pseudobonds</a>.
+clashes/contacts are shown as <a href="../pseudobonds.html">pseudobonds</a>,
+and their <a href="#pbColor">color</a> and <a href="#pbRadius">radius</a>
+can be specified.
 A pseudobond is only shown when both of its endpoint atoms are shown;
-<b>reveal true</b> can be used to display atoms as needed
-so that all of the interactions will be shown (<a href="#reveal">details...</a>).
-Pseudobond color and radius can be specified.
-The default <b>name</b> of the pseudobond model for creation
-(and for removal with <b>~clashes</b> or <b>contacts</b>) 
+<a href="#reveal"><b>reveal true</b></a>
+can be used to display atoms as needed so that 
+all of the interactions will be shown.
+The default name of the pseudobond model for creation
+(and for removal with <b>~clashes</b> or <b>~contacts</b>) 
 is <b>clashes</b> or <b>contacts</b>,
 but different names can be <a href="#name">assigned</a>.
 When multiple pseudobond models have the same name, specific models can be
@@ -101,18 +131,15 @@ Discontinuous monitoring additionally allows
 <a href="#log">logging</a> the detailed results
 and/or <a href="#saveFile">saving</a> them to a file.
 The command <b>~clashes</b> or <b>~contacts</b>
-removes <a href="../pseudobonds.html">pseudobonds</a> that have
-been drawn to show the interactions and halts any continuous monitoring.
+removes the indicated pseudobonds and halts any continuous monitoring.
 </p><p>
-Pseudobonds can be labeled by length with 
-the <a href="label.html"><b>label</b></a> command.
+<a href="../pseudobonds.html">Pseudobonds</a> can be labeled by length with 
+the <a href="label.html"><b>label</b></a> command and changed between 
+solid and dashed with <a href="style.html"><b>style</b></a>.
 An interactive histogram of pseudobond lengths can be plotted with 
 <a href="crosslinks.html#histogram"><b>crosslinks histogram</b></a>, and a 
 chain network diagram summarizing intra- and interchain pseudobonds can be
 shown with <a href="crosslinks.html#network"><b>crosslinks network</b></a>.
-See also: 
-<a href="interfaces.html"><b>interfaces</b></a>,
-<a href="hbonds.html"><b>hbonds</b></a>
 </p>
 
 <a name="options"></a>
@@ -122,14 +149,17 @@ See also:
 <h3>Options</h3>
 
 <blockquote>
-<b>test</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>&nbsp;|&nbsp;<b>other</b>&nbsp;|&nbsp;self
+<b>test</b>&nbsp;&nbsp;self&nbsp;|&nbsp;<b>other</b>&nbsp;|&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>
 <br>
-Which interactions to find: 
-between <a href="atomspec.html"><i>atom-spec1</i></a>
-and <a href="atomspec.html"><i>atom-spec2</i></a>,
+Which interactions to find:
+among <a href="atomspec.html"><i>atom-spec1</i></a> (<b>self</b>),
 between <a href="atomspec.html"><i>atom-spec1</i></a> and all other atoms
 (<b>other</b> or <b>others</b>, default),
-or among <a href="atomspec.html"><i>atom-spec1</i></a> (<b>self</b>).
+or between <a href="atomspec.html"><i>atom-spec1</i></a>
+and <a href="atomspec.html"><i>atom-spec2</i></a>.
+If set to <b>other</b> but there are no other atoms
+(because <a href="atomspec.html"><i>atom-spec1</i></a> contains all atoms),
+<b>self</b> is automatically used instead.
 </blockquote>
 <blockquote>
 <a name="overlapCutoff"></a>
@@ -204,6 +234,7 @@ with the side effect of showing any backbone atoms that are
 displayed but suppressed by the cartoon.
 </blockquote>
 <blockquote>
+<a name="pbColor"></a>
 <b>pbColor</b> &nbsp;<a href="colornames.html"><i>colorname</i></a>
 <br>
 Color to use for the
@@ -213,6 +244,7 @@ when <a href="#makePseudobonds"><b>makePseudobonds</b></a> is <b>true</b>
 can be changed later with <a href="color.html"><b>color</b></a>.
 </blockquote>
 <blockquote>
+<a name="pbRadius"></a>
 <b>pbRadius</b> &nbsp;<i>r</i>
 <br>
 Radius in &Aring; to use for the <a href="../pseudobonds.html">pseudobonds</a>

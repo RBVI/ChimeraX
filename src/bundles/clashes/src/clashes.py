@@ -25,15 +25,18 @@ def find_clashes(session, test_atoms,
         inter_submodel=False,
         intra_res=False,
         intra_mol=True,
+        res_separation=None,
         test="others"):
     """Detect steric clashes/contacts
 
        'test_atoms' should be an Atoms collection.
 
        If 'test' is 'others' then non-bonded clashes between atoms in
-       'test_atoms' and non-'test_atoms' atoms will be found.  If 'test'
-       is 'self' then non-bonded clashes within 'test_atoms' atoms will be
-       found.  Otherwise 'test' should be a list of atoms to test against.
+       'test_atoms' and non-'test_atoms' atoms will be found.  However, if
+       there are no non-'test_atoms' (i.e. test_atoms is all the atoms that
+       exist), then 'others' will be treated as 'self'.  If 'test' is 'self'
+       then non-bonded clashes within 'test_atoms' atoms will be found.
+       Otherwise 'test' should be a list of atoms to test against.
        The "clash value" is the sum of the VDW radii minus the distance,
        keeping only the maximal clash (which must exceed 'clash_threshold').
 
@@ -53,6 +56,10 @@ def find_clashes(session, test_atoms,
        Inter-submodel clashes are ignored unless inter_submodel is True.
        Inter-model clashes are ignored unless inter_model is True.
 
+       If res_separation is not None, it should be a positive integer -- in which
+       case for residues in the same chain, clashes/contacts are ignored unless
+       the residues are at least that far apart in the sequence.
+
        Returns a dictionary keyed on atoms, with values that are
        dictionaries keyed on clashing atom with value being the clash value.
     """
@@ -65,28 +72,31 @@ def find_clashes(session, test_atoms,
     # useful as it might otherwise be)
     if test == "others":
         if inter_model:
-            from chimera.core.atomic import all_atoms
+            from chimerax.core.atomic import all_atoms
             universe_atoms = all_atoms(session)
         else:
-            from chimera.core.atomic import structure_atoms
+            from chimerax.core.atomic import structure_atoms
             universe_atoms = structure_atoms(test_atoms.unique_structures)
         other_atoms = universe_atoms.subtract(test_atoms)
         if len(other_atoms) == 0:
-            from chimerax.core.errors import UserError
-            raise UserError("All atoms are in test set: no others available to test against")
-        if distance_only:
-            cutoff = distance_only
+            # no other atoms, change test to "self"
+            test = "self"
+            search_atoms = test_atoms
         else:
-            cutoff = 2.0 * assumed_max_vdw - clash_threshold
-        if use_scene_coords:
-            test_coords = test_atoms.scene_coords
-            other_coords = other_atoms.scene_coords
-        else:
-            test_coords = test_atoms.coords
-            other_coords = other_atoms.coords
-        t_close, o_close = find_close_points(test_coords, other_coords, cutoff)
-        test_atoms = test_atoms[t_close]
-        search_atoms = other_atoms[o_close]
+            if distance_only:
+                cutoff = distance_only
+            else:
+                cutoff = 2.0 * assumed_max_vdw - clash_threshold
+            if use_scene_coords:
+                test_coords = test_atoms.scene_coords
+                other_coords = other_atoms.scene_coords
+            else:
+                test_coords = test_atoms.coords
+                other_coords = other_atoms.coords
+            from chimerax.core.geometry import find_close_points
+            t_close, o_close = find_close_points(test_coords, other_coords, cutoff)
+            test_atoms = test_atoms[t_close]
+            search_atoms = other_atoms[o_close]
     elif not isinstance(test, str):
         search_atoms = test
     else:
@@ -128,6 +138,11 @@ def find_clashes(session, test_atoms,
                 continue
             if a in clashes and nb in clashes[a]:
                 continue
+            if res_separation is not None:
+                if a.residue.chain is not None and a.residue.chain == nb.residue.chain:
+                    residues = a.residue.chain.residues
+                    if abs(residues.index(a.residue) - residues.index(nb.residue)) < res_separation:
+                        continue
             if not inter_submodel \
             and a.structure.id[0] == nb.structure.id[0] \
             and a.structure.id[1:] != nb.structure.id[1:]:

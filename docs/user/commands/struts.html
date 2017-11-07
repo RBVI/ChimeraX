@@ -24,38 +24,41 @@ or derivations thereof.
 class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: struts</h3>
-<h3><a href="usageconventions.html">Usage</a>:
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>struts</b>
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
-[&nbsp;length&nbsp;&nbsp;<i>maxlen</i>&nbsp;]
-[&nbsp;loop&nbsp;&nbsp;<i>maxlooplen</i>&nbsp;]
-[&nbsp;fattenRibbon&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>length</b>&nbsp;&nbsp;<i>maxlen</i>&nbsp;]
+[&nbsp;<b>loop</b>&nbsp;&nbsp;<i>maxlooplen</i>&nbsp;]
+[&nbsp;<b>fattenRibbon</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#options"><i>other-options</i></a>
 </h3>
-<h3><a href="usageconventions.html">Usage</a>:
-<br><b>~struts</b>
-[&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>struts delete</b>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
 </h3>
 <p>
 The <b>struts</b> command adds <a href="../pseudobonds.html">pseudobonds</a>
 to a molecular structure to strengthen it for 3D printing.
-Pairs of atoms within the maximum strut length of each other
-are considered in order of increasing distance.
-A strut is added if the shortest through-bond distance between the two atoms,
-including any existing struts, is greater than the maximum
-&ldquo;loop&rdquo; length.
-By default, ribbons (cartoons) are also thickened to make them more robust.
-The <b>~struts</b> command removes struts connected to the specified atoms,
-or all struts if no atoms are specified.
 See also: 
 <a href="cartoon.html"><b>cartoon</b></a>, 
 <a href="rungs.html"><b>rungs</b></a>, 
 <a href="save.html"><b>save</b></a>, 
-the
+the <a href="http://www.rbvi.ucsf.edu/chimerax/features.html#struts"
+target="_blank">ChimeraX struts highlight</a>, the
 <a href="http://www.rbvi.ucsf.edu/Outreach/technotes/ModelGallery/index.html"
-target="_blank">Chimera 3D Model Gallery</a>,
-<a href="http://www.munfred.com/proteins.html"
-target="_blank">Eduardo's Guide for 3D Printing Proteins</a>
+target="_blank">Chimera 3D Model Gallery</a>
+</p><p>
+A non-blank <a href="atomspec.html"><i>atom-spec</i></a> is required to
+create new struts (it is rarely a good idea to use all atoms).
+Pairs of atoms within the maximum strut length of each other
+(<i>maxlen</i>, default <b>7.0</b> &Aring;) 
+are considered in order of increasing distance.
+A strut is added if the shortest through-bond distance between the two atoms,
+including any existing struts, is greater than the maximum &ldquo;loop&rdquo;
+length (default <b>30.0</b> &Aring;).
+By default, ribbons (cartoons) are also thickened to make them more robust.
+The <b>struts delete</b> command removes struts connected to the specified atoms,
+or all struts if the <a href="atomspec.html"><i>atom-spec</i></a> is blank.
 </p><p>
 Protein example:
 <blockquote>
@@ -63,18 +66,13 @@ Protein example:
 </blockquote>
 Nucleic acid example:
 <blockquote>
-<b>struts @C5’ length 15 loop 80 radius 1</b>
+<b>struts @C5' length 15 loop 80 radius 1</b>
 </blockquote>
 </p>
 
-<a name="options">
+<a name="options"></a>
 <h3>Options</h3>
-</a><p>
-Option keywords and Boolean (truth) values can be truncated, with
-synonyms for true: True, 1, and synonyms for false: False, 0.
-A vertical bar &ldquo;|&rdquo; designates mutually exclusive values, and
-default settings are indicated with <b>bold</b>.
-</p>
+
 <blockquote>
   <b>length</b> &nbsp;<i>maxlen</i>
 <br>
@@ -146,5 +144,5 @@ different set of atoms will not be replaced.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2017</address>
+November 2017</address>
 </body></html>

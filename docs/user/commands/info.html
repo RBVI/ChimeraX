@@ -24,7 +24,7 @@ or derivations thereof.
 class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: info</h3>
-<h3><a href="usageconventions.html">Usage</a>:
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>info</b> &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
 </h3>
 <p>
@@ -41,26 +41,27 @@ See also:
 <a href="open.html"><b>open</b></a>,
 <a href="sym.html"><b>sym</b></a>
 </p><p>
-Several subcommands of <b>info</b> specify sending information
-to the <a href="../tools/log.html"><b>Log</b></a>
-or to &ldquo;client&rdquo; programs:
+Various subcommands of <b>info</b> report other data or attributes to the
+<a href="../tools/log.html"><b>Log</b></a> or to &ldquo;client&rdquo; programs:
 </p>
 <ul>
-<li><a href="#atoms"><b>atoms</b></a>
-<li><a href="#residues"><b>residues</b></a>
-<li><a href="#resattr"><b>resattr</b></a>
-<li><a href="#chains"><b>chains</b></a>
-<li><a href="#polymers"><b>polymers</b></a>
-<li><a href="#models"><b>models</b></a>
-<li><a href="#selection"><b>selection</b></a>
-<li><a href="#bounds"><b>bounds</b></a>
-<li><a href="#distmat"><b>distmat</b></a>
-<li><b><a href="#notify">notify</a>
+<li><a href="#atoms"><b>info atoms</b></a>
+<li><a href="#residues"><b>info residues</b></a>
+<li><a href="#resattr"><b>info resattr</b></a>
+<li><a href="#chains"><b>info chains</b></a>
+<li><a href="#polymers"><b>info polymers</b></a>
+<li><a href="#models"><b>info models</b></a>
+<li><a href="#selection"><b>info selection</b></a>
+<li><a href="#bounds"><b>info bounds</b></a>
+<li><a href="#distmat"><b>info distmat</b></a>
+<li><b><a href="#notify">info notify</a>
 (&nbsp;start&nbsp;|&nbsp;suspend&nbsp;|&nbsp;resume&nbsp;|&nbsp;stop&nbsp;)</b>
 </ul>
 <p>
-Some of these subcommands also report <b>id</b>,
-which is a unique identifier but not an attribute.
+Some of the subcommands report values for <b>id</b> (unique identifier)
+and/or <b>index</b> (residue position in biopolymer chain, starting with 0),
+but these are not attributes.
+See also: <a href="setattr.html"><b>setattr</b></a>
 </p>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -212,5 +213,5 @@ the given URL with the message encoded as parameter
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2017</address>
+November 2017</address>
 </body></html>

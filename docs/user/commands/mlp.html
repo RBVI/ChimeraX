@@ -24,13 +24,13 @@ or derivations thereof.
 class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: mlp</h3>
-<h3><a href="usageconventions.html">Usage</a>:
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>mlp</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
-[&nbsp;method&nbsp;&nbsp;fauchere&nbsp;|&nbsp;brasseur&nbsp;|&nbsp;type5&nbsp;|&nbsp;dubost&nbsp;|&nbsp;buckingham&nbsp;[&nbsp;nexp&nbsp;&nbsp;<i>n</i>&nbsp;]]
-[&nbsp;maxDistance&nbsp;&nbsp;<i>D</i>&nbsp;]
-[&nbsp;spacing&nbsp;&nbsp;<i>s</i>&nbsp;]
-[&nbsp;<b>map</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>color</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>method</b>&nbsp;&nbsp;<b>fauchere</b>&nbsp;|&nbsp;brasseur&nbsp;|&nbsp;type5&nbsp;|&nbsp;dubost&nbsp;|&nbsp;buckingham&nbsp;[&nbsp;<b>nexp</b>&nbsp;&nbsp;<i>n</i>&nbsp;]]
+[&nbsp;<b>maxDistance</b>&nbsp;&nbsp;<i>D</i>&nbsp;]
+[&nbsp;<b>spacing</b>&nbsp;&nbsp;<i>s</i>&nbsp;]
+[&nbsp;<b>map</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<i><a href="#palette-options">palette-options</a></i>&nbsp;
 </h3>
 <p>
@@ -60,6 +60,8 @@ See also:
 <a href="color.html"><b>color</b></a>,
 <a href="surface.html"><b>surface</b></a>,
 <a href="volume.html"><b>volume</b></a>,
+the <a href="http://www.rbvi.ucsf.edu/chimerax/features.html#mlp"
+target="_blank">ChimeraX MLP highlight</a>,
 some <a href="http://www.rbvi.ucsf.edu/chimera/data/mlp-sep2016/"
 target="_blank">comparisons</a> at the Chimera website
 </p><p>
@@ -72,17 +74,18 @@ Positive potentials correspond to more lipophilic (more hydrophobic) areas,
 negative to less lipophilic (more hydrophilic) areas. 
 </p><p>
 The <b>method</b> specifies how the atomic values propagate through space,
-with factors based on the distance <i>d</i> from the atom.
-Choices of <b>method</b>:
+with factors based on the distance <i>d</i> from the atom
+(default <b>fauchere</b>):
 <ul>
 <font size="+1">
-<li><b>fauchere</b> (default): <i>e</i><sup>&ndash;<i>d</i></sup>
+<li><b>fauchere</b>: <i>e</i><sup>&ndash;<i>d</i></sup>
 <li><b>brasseur</b>: <i>e</i><sup>&ndash;<i>d</i>/3.1</sup>
 <li><b>type5</b>: <i>e</i><sup>&ndash;<i>d</i><sup>&nbsp;&frac12;</sup></sup>
 <li><b>dubost</b>: (1+<i>d</i>)<sup>&ndash;1</sup>
 <li><b>buckingham</b>: <i>d</i><sup>&nbsp;&ndash;<i>n</i></sup>
 </font>
-<br>... <i>n</i> given with the <b>nexp</b> option (default <b>3.0</b>)
+<br>... <i>n</i> given with the <b>nexp</b> option
+(default <b>3.0</b> if this method is used)
 </ul>
 The <b>maxDistance</b> <i>D</i> is a distance cutoff
 beyond which an atom's contribution is ignored (default <b>5.0</b> &Aring;).
@@ -129,5 +132,5 @@ and/or <a href="save.html">saving</a> the maps to file.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2017</address>
+November 2017</address>
 </body></html>

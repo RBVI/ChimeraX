@@ -1562,65 +1562,6 @@ class Structure(Model, StructureData):
                 picks.append(ppb)
         return picks
 
-    def planes_pick(self, planes, exclude=None):
-        if not self.display:
-            return []
-        if exclude is not None and exclude(self):
-            return []
-
-        picks = []
-        from ..geometry import transform_planes
-        for p in self.positions:
-            pplanes = transform_planes(p, planes)
-            picks.extend(self._atoms_planes_pick(pplanes))
-            picks.extend(self._bonds_planes_pick(pplanes))
-            picks.extend(self._ribbon_planes_pick(pplanes))
-            for c in self.child_drawings():
-                picks.extend(c.planes_pick(pplanes, exclude))
-
-        return picks
-
-    def _atoms_planes_pick(self, planes):
-        d = self._atoms_drawing
-        if d is None or not d.display or d.visible_atoms is None:
-            return []
-
-        xyz = d.positions.shift_and_scale_array()[:,:3]
-        from .. import geometry
-        pmask = geometry.points_within_planes(xyz, planes)
-        if pmask.sum() == 0:
-            return []
-        atoms = d.visible_atoms.filter(pmask)
-        p = PickedAtoms(atoms)
-
-        return [p]
-
-    def _bonds_planes_pick(self, planes):
-        d = self._bonds_drawing
-        if d is None or not d.display or d.visible_bonds is None:
-            return []
-        pmask = _bonds_planes_pick(d, planes)
-        if pmask is None or pmask.sum() == 0:
-            return []
-        bonds = d.visible_bonds.filter(pmask)
-        p = PickedBonds(bonds)
-        return [p]
-
-    def _ribbon_planes_pick(self, planes):
-        picks = []
-        for d, t2r in self._ribbon_t2r.items():
-            if d.display:
-                rp = d.planes_pick(planes)
-                for p in rp:
-                    if isinstance(p, PickedTriangles) and p.drawing() is d:
-                        tmask = p._triangles_mask
-                        res = [rtr.residue for rtr in t2r if tmask[rtr.start:rtr.end].sum() > 0]
-                        if res:
-                            from .molarray import Residues
-                            rc = Residues(res)
-                            picks.append(PickedResidues(rc))
-        return picks
-
     def x3d_needs(self, x3d_scene):
         self._update_graphics_if_needed()       # Ribbon drawing lazily computed
         super().x3d_needs(x3d_scene)
@@ -2005,6 +1946,23 @@ class AtomsDrawing(Drawing):
         s = PickedAtom(atom, fmin)
         return s
 
+    def planes_pick(self, planes, exclude=None):
+        if not self.display:
+            return []
+        if exclude is not None and exclude(self):
+            return []
+        if self.visible_atoms is None:
+            return []
+
+        xyz = self.positions.shift_and_scale_array()[:,:3]
+        from .. import geometry
+        pmask = geometry.points_within_planes(xyz, planes)
+        if pmask.sum() == 0:
+            return []
+        atoms = self.visible_atoms.filter(pmask)
+        p = PickedAtoms(atoms)
+        return [p]
+
     def x3d_needs(self, x3d_scene):
         from .. import x3d
         x3d_scene.need(x3d.Components.Grouping, 1)  # Group, Transform
@@ -2068,6 +2026,21 @@ class BondsDrawing(Drawing):
             return self._pick_class(b, f)
         return None
 
+    def planes_pick(self, planes, exclude=None):
+        if not self.display:
+            return []
+        if exclude is not None and exclude(self):
+            return []
+        if self.visible_bonds is None:
+            return []
+
+        pmask = _bonds_planes_pick(self, planes)
+        if pmask is None or pmask.sum() == 0:
+            return []
+        bonds = self.visible_bonds.filter(pmask)
+        p = PickedBonds(bonds)
+        return [p]
+
     def x3d_needs(self, x3d_scene):
         from .. import x3d
         x3d_scene.need(x3d.Components.Grouping, 1)  # Group, Transform
@@ -2112,6 +2085,24 @@ class RibbonDrawing(Drawing):
             triangle_range = t2r[n - 1]
             return PickedResidue(triangle_range.residue, p.distance)
         return None
+
+    def planes_pick(self, planes, exclude=None):
+        if not self.display:
+            return []
+        if exclude is not None and exclude(self):
+            return []
+        t2r = self.parent.parent._ribbon_t2r[self]
+        picks = []
+        rp = super().planes_pick(planes)
+        for p in rp:
+            if isinstance(p, PickedTriangles) and p.drawing() is self:
+                tmask = p._triangles_mask
+                res = [rtr.residue for rtr in t2r if tmask[rtr.start:rtr.end].sum() > 0]
+                if res:
+                    from .molarray import Residues
+                    rc = Residues(res)
+                    picks.append(PickedResidues(rc))
+        return picks
 
 
 class AtomicStructure(Structure):
