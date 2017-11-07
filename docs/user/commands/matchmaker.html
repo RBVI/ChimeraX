@@ -24,12 +24,13 @@ or derivations thereof.
 class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: matchmaker, mmaker</h3>
-<h3><a href="usageconventions.html">Usage</a>:
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br>(&nbsp;<b>matchmaker</b>&nbsp;|&nbsp;<b>mmaker</b>&nbsp;)
 &nbsp;<a href="atomspec.html"><i>matchstruct</i></a>&nbsp; <b>to</b> 
 &nbsp;<a href="atomspec.html"><i>refstruct</i></a>&nbsp;
-[&nbsp;bring&nbsp;<a href="atomspec.html"><i>other-models</i></a>&nbsp;]
-&nbsp;<a href="#options"><i>options</i></a></h3>
+[&nbsp;<b>bring</b>&nbsp;&nbsp;<a href="atomspec.html"><i>other-models</i></a>&nbsp;]
+&nbsp;<a href="#options"><i>options</i></a>&nbsp;
+&nbsp;<a href="#scoring"><i>scoring-options</i></a></h3>
 <p>
 The <b>matchmaker</b> (or <b>mmaker</b>) command
 superimposes protein or nucleic acid structures by first creating 
@@ -37,14 +38,22 @@ a pairwise sequence alignment, then fitting the aligned residue pairs.
 Residue types and/or protein secondary structure information
 can be used to align the sequences, and the pairwise alignment can be shown
 in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>.
-<a name="matchatom">
+<a name="matchatom"></a>
 Fitting uses one point per residue:  CA in
 amino acid residues and C4' in nucleic acid residues.
 If a nucleic acid residue lacks a C4' atom 
 (some lower-resolution structures are P traces), 
 its P atom will be paired with the P atom of the aligned residue.
-</a>
 </p><p>
+The method was originally implemented in Chimera, as described in:
+</p>
+<blockquote>
+<a href="http://www.biomedcentral.com/1471-2105/7/339" target="_blank">
+Tools for integrated sequence-structure analysis with UCSF Chimera.</a>
+Meng EC, Pettersen EF, Couch GS, Huang CC, Ferrin TE.
+<i>BMC Bioinformatics.</i> 2006 Jul 12;7:339.
+</blockquote>
+<p>
 Note: if it is already known which residue numbers in one structure
 should be paired with which residue numbers in the other,
 another possibility is to use the <a href="align.html"><b>align</b></a>
@@ -70,7 +79,7 @@ When <i>matchstruct</i> includes only a single model,
 one or more additional models to move along with it 
 can be specified with the <b>bring</b> option. 
 </p><p>
-Sequence alignment scores,
+Sequence <a href="#scoring">alignment scores</a>,
 parameter values, and final match RMSDs are reported in the
 <a href="../tools/log.html"><b>Log</b></a>.
 If the fit is <a href="#cutoffDistance">iterated</a>,
@@ -156,36 +165,35 @@ specified residues.
 [<a href="#top">back to top: matchmaker</a>]
 </p>
 <h3>Options</h3>
-<p>
-Most of the options affect <a href="#scoring">alignment scoring</a>.
-</p>
 <blockquote>
-    <a name="pairing"><b>pairing</b> <i>mode</i></a>
-    <br>The <i>mode</i> controls which chain sequences are used 
-    to construct the reference-match alignment:
-    <ul>
-    <li><b>bb</b> (default) - use the pair of chains,
-     one from the match model and one from the reference model, 
-     with the highest alignment score;
-    <i>matchstruct</i> and <i>refstruct</i> 
-    should each specify a model or part of a model
-    <li><b>bs</b> - use the chain in the match model that gives the best 
-    alignment score with a specific chain in the reference model;
-    <i>matchstruct</i> should specify a model or part of a model, and
-    <i>refstruct</i> should specify a chain
-    <li><b>ss</b> - pair specific chain(s) in the match model with
-    specific chain(s) in the reference model; 
-    <i>matchstruct</i> and <i>refstruct</i> 
-    should specify equal numbers of chains
-    </ul>
+<a name="pairing"><b>pairing</b> &nbsp;<i>mode</i></a>
+<br>The <i>mode</i> controls which chain sequences are used 
+to construct the reference-match alignment:
+<ul>
+<li><b>bb</b> (default) - use the pair of chains,
+ one from the match model and one from the reference model, 
+ with the highest <a href="#scoring">alignment score</a>;
+<i>matchstruct</i> and <i>refstruct</i> 
+should each specify a model or part of a model
+<li><b>bs</b> - use the chain in the match model that gives the best 
+<a href="#scoring">alignment score</a> with a specific chain in the reference model;
+<i>matchstruct</i> should specify a model or part of a model, and
+<i>refstruct</i> should specify a chain
+<li><b>ss</b> - pair specific chain(s) in the match model with
+specific chain(s) in the reference model; 
+<i>matchstruct</i> and <i>refstruct</i> 
+should specify equal numbers of chains
+</ul>
 </blockquote>
 <blockquote>
-  <a name="algorithm"><b>alg</b> <i>alignment-algorithm</i></a>
-    <br>The <i>alignment-algorithm</i> can be:
-    <ul>
-    <li> <b>nw</b> (or <b>needle</b>; default) - Needleman-Wunsch, global
-    <li> <b>sw</b> (or <b>smith</b>) - Smith-Waterman, local
-    </ul>
+<a name="algorithm"><b>alg</b> &nbsp;<i>alignment-algorithm</i></a>
+<br>The <i>alignment-algorithm</i> can be:
+<ul>
+<li> <b>nw</b> (or <b>needle</b>; default) - Needleman-Wunsch, global
+<li> <b>sw</b> (or <b>smith</b>) - Smith-Waterman, local
+</ul>
+The <a href="#scoring">alignment scoring options</a>
+allow for fine-tuning, if needed.
 </blockquote>
 <blockquote>
 <a name="show"><b>showAlignment</b> &nbsp;true&nbsp;|&nbsp;<b>false</b></a>
@@ -288,7 +296,7 @@ Sequence alignment scores can include a residue similarity term,
 a secondary structure term (if protein), and gap penalties.
 </p>
 <blockquote>
-  <a name="matrix"><b>matrix</b> <i>similarity-matrix</i></a>
+  <a name="matrix"><b>matrix</b> &nbsp;<i>similarity-matrix</i></a>
     <br>The <i>similarity-matrix</i> can be any of:
 <!--
     those listed in the
@@ -312,7 +320,7 @@ a secondary structure term (if protein), and gap penalties.
     </p>
 </blockquote>
 <blockquote>
-  <a name="ssFraction"><b>ssFraction</b> <i>fraction</i>&nbsp;|&nbsp;false</a>
+  <a name="ssFraction"><b>ssFraction</b> &nbsp;<i>fraction</i>&nbsp;|&nbsp;false</a>
     <br>
     <i>Fraction</i> is the relative weight of the secondary structure term
     for proteins and can range from 0 to 1 (default <b>0.3</b>).
@@ -337,7 +345,7 @@ a secondary structure term (if protein), and gap penalties.
     are not computed.
 </blockquote>
 <blockquote>
-  <a name="gapOpen"><b>gapOpen</b> <i>opening-penalty</i></a>
+  <a name="gapOpen"><b>gapOpen</b> &nbsp;<i>opening-penalty</i></a>
     <br>
     When <a href="#ssFraction">secondary structure scoring</a> is
     <b><i>not</i></b> used, the <i>opening-penalty</i> is subtracted from the
@@ -348,13 +356,13 @@ a secondary structure term (if protein), and gap penalties.
     are used instead.
 </blockquote>
 <blockquote>
-  <b>gapExtend</b> <i>extension-penalty</i>
+  <b>gapExtend</b> &nbsp;<i>extension-penalty</i>
     <br>
     The <i>extension-penalty</i> is subtracted from the
     score for each increment in gap length (<b>1</b> by default).
 </blockquote>
 <blockquote>
-  <a name="ssGap"><b>hgap</b> <i>intrahelix-penalty</i></a>
+  <a name="ssGap"><b>hgap</b> &nbsp;<i>intrahelix-penalty</i></a>
     <br>
     When <a href="#ssFraction">secondary structure scoring</a> is used, the
     <i>intrahelix-penalty</i> is subtracted from the
@@ -364,7 +372,7 @@ a secondary structure term (if protein), and gap penalties.
     <a href="#gapOpen"><b>gapOpen</b></a>) is used instead.
 </blockquote>
 <blockquote>
-  <b>sgap</b> <i>intrastrand-penalty</i>
+  <b>sgap</b> &nbsp;<i>intrastrand-penalty</i>
     <br>
     When <a href="#ssFraction">secondary structure scoring</a> is used, the
     <i>intrastrand-penalty</i> is subtracted from the
@@ -374,7 +382,7 @@ a secondary structure term (if protein), and gap penalties.
     <a href="#gapOpen"><b>gapOpen</b></a>) is used instead.
 </blockquote>
 <blockquote>
-  <b>ogap</b> <i>other-penalty</i>
+  <b>ogap</b> &nbsp;<i>other-penalty</i>
     <br>
     When <a href="#ssFraction">secondary structure scoring</a> is used, the
     <i>other-penalty</i> is subtracted from the
@@ -385,7 +393,7 @@ a secondary structure term (if protein), and gap penalties.
     <a href="#gapOpen"><b>gapOpen</b></a>) is used instead.
 </blockquote>
 <blockquote>
-  <b>matHH</b> <i>helix-helix-score</i>
+  <b>matHH</b> &nbsp;<i>helix-helix-score</i>
   <br>
   When <a href="#ssFraction">secondary structure scoring</a> is used,
   <i>helix-helix-score</i> is the value added to the secondary structure
@@ -393,7 +401,7 @@ a secondary structure term (if protein), and gap penalties.
   (default <b>6</b>).
 </blockquote>
 <blockquote>
-  <b>matSS</b> <i>strand-strand-score</i>
+  <b>matSS</b> &nbsp;<i>strand-strand-score</i>
   <br>
   When <a href="#ssFraction">secondary structure scoring</a> is used,
   <i>strand-strand-score</i> is the value added to the secondary structure
@@ -401,7 +409,7 @@ a secondary structure term (if protein), and gap penalties.
   (default <b>6</b>).
 </blockquote>
 <blockquote>
-  <b>matOO</b> <i>other-other-score</i>
+  <b>matOO</b> &nbsp;<i>other-other-score</i>
   <br>
   When <a href="#ssFraction">secondary structure scoring</a> is used,
   <i>other-other-score</i> is the value added to the secondary structure
@@ -409,7 +417,7 @@ a secondary structure term (if protein), and gap penalties.
   non-strand residue (default <b>4</b>).
 </blockquote>
 <blockquote>
-  <b>matHS</b> <i>helix-strand-score</i>
+  <b>matHS</b> &nbsp;<i>helix-strand-score</i>
   <br>
   When <a href="#ssFraction">secondary structure scoring</a> is used,
   <i>helix-strand-score</i> is the value added to the secondary structure
@@ -417,7 +425,7 @@ a secondary structure term (if protein), and gap penalties.
   (default <b>-9</b>).
 </blockquote>
 <blockquote>
-  <b>matHO</b> <i>helix-other-score</i>
+  <b>matHO</b> &nbsp;<i>helix-other-score</i>
   <br>
   When <a href="#ssFraction">secondary structure scoring</a> is used,
   <i>helix-other-score</i> is the value added to the secondary structure
@@ -425,7 +433,7 @@ a secondary structure term (if protein), and gap penalties.
   non-strand residue (default <b>-6</b>).
 </blockquote>
 <blockquote>
-  <b>matSO</b> <i>strand-other-score</i>
+  <b>matSO</b> &nbsp;<i>strand-other-score</i>
   <br>
   When <a href="#ssFraction">secondary structure scoring</a> is used,
   <i>strand-other-score</i> is the value added to the secondary structure
@@ -435,5 +443,5 @@ a secondary structure term (if protein), and gap penalties.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2017</address>
+November 2017</address>
 </body></html>

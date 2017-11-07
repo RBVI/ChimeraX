@@ -24,39 +24,22 @@ or derivations thereof.
 class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: setattr</h3>
-<h3><a href="usageconventions.html">Usage</a>:
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>setattr</b>
 &nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
 &nbsp;<i>level</i> &nbsp;<i>attr-name</i>&nbsp; &nbsp;<i>value</i>&nbsp;
-[&nbsp;<b>create</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>create</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 </h3>
 <p>
 <b>Setattr</b> is a general, multipurpose attribute-setting command.
 It sets an attribute (existing or new)
 of the <a href="atomspec.html">specified</a> items 
 at the indicated <i>level</i> to a single user-supplied value.
-The attribute may remain multi-valued, however, 
-as only a subset of the items may have been specified.
 Following the usual convention, a blank specification means &ldquo;all.&rdquo;
 A new attribute will not be created unless <b>create</b> is true 
-(default <b>false</b>).
+(default <b>false</b>). See also: <a href="info.html"><b>info</b></a>
 </p><p>
-Although <b>setattr</b> does not restrict which attributes it can affect,
-using it for certain attributes may not make sense. In some cases,
-another command may already exist to perform the same task, for example:
-<blockquote>
-<b>setattr /a res ribbon_color orange</b>
-<br>&ndash; is equivalent to &ndash;<br>
-<a href="color.html"><b>color</b></a> <b>/a orange targ r</b>
-</blockquote>
-<!--
-It is possible, however, to set an attribute that is also used
-in the <a href="atomspec.html"><i>atom-spec</i></a>
-because the specification will be
-evaluated before the attribute value is changed.
--->
-</p><p>
-The <i>level</i> can be any one of the following, with truncations allowed:
+The <i>level</i> can be any one of the following:
 </p>
 <ul>
 <li><b>atoms</b>
@@ -84,8 +67,26 @@ Boolean, integer, floating-point (real), character string
 <i>attr-name</i> ends in &ldquo;color,&rdquo;
 the value is interpreted as a <a href="colornames.html">color specifier</a>
 </ol>
+<p>
+Although <b>setattr</b> does not restrict which attributes it can affect,
+using it for certain attributes may not make sense. In some cases,
+a simpler command may already exist to perform the same task, for example:
+</p>
+<blockquote>
+<b>setattr /a res ribbon_color orange</b>
+<br>&ndash; is equivalent to &ndash;<br>
+<a href="color.html"><b>color</b></a> <b>/a orange targ r</b>
+</blockquote>
+<!--
+<p>
+It is possible, however, to set an attribute that is also used
+in the <a href="atomspec.html"><i>atom-spec</i></a>
+because the specification will be
+evaluated before the attribute value is changed.
+</p>
+-->
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2017</address>
+November 2017</address>
 </body></html>
