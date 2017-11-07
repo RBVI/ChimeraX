@@ -257,7 +257,7 @@ def register_command(command_name, logger):
                 ('set_attrs', BoolArg), ('select', BoolArg), ('summary', BoolArg),
                 ('test', Or(EnumOf(('others', 'self')), AtomsArg))], }
         register('clashes', CmdDesc(**kw, synopsis="Find clashes"), cmd_clashes, logger=logger)
-        register('contactz', CmdDesc(**kw, synopsis="Find contacts"), cmd_contacts, logger=logger)
+        register('contacts', CmdDesc(**kw, synopsis="Find contacts"), cmd_contacts, logger=logger)
     else:
         kw = { 'keyword': [('name', StringArg)] }
         register('~clashes', CmdDesc(synopsis="Remove clash pseudobonds", **kw), cmd_xclashes,
