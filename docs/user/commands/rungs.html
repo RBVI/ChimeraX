@@ -24,16 +24,16 @@ or derivations thereof.
 class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: rungs</h3>
-<h3><a href="usageconventions.html">Usage</a>:
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>rungs</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
-[&nbsp;radius&nbsp;<i>r</i>&nbsp;]
-[&nbsp;color&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;] 
-[&nbsp;halfbond&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;hideAtoms&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;showRibbon&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;hideHbonds&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>radius</b>&nbsp;<i>r</i>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;] 
+[&nbsp;<b>halfbond</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>hideAtoms</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>hideHbonds</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>showRibbon</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 </h3>
-<h3><a href="usageconventions.html">Usage</a>:
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>rungs hide</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
 </h3>
 <p>
@@ -65,23 +65,27 @@ The <b>hideAtoms</b> option indicates hiding the atoms/bonds of the
 not including the rung endpoint atoms, which must remain shown for the
 rungs themselves to be shown.
 The <b>hideHbonds</b> option (default <b>true</b>) indicates hiding any
-H-bond representations (also pseudobonds, typically shown as dashed lines).
-The <b>showRibbons</b> option (default <b>true</b>) indicates whether
+<a href="hbonds.html#related">H-bond pseudobonds</a>.
+The <b>showRibbon</b> option (default <b>true</b>) indicates whether
 to show the ribbon (cartoon) segments of the residues. 
 Setting a hiding option to false will not show already hidden items, and 
 setting <b>showRibbon</b> to false will not hide any cartoon segments that
 are already shown. 
 </p><p>
 The following commands can be used to show nucleic acid atoms and 
-and their pre-existing H-bonds again after rungs have been hidden:
+their pre-existing H-bonds again after rungs have been hidden:
 </p>
 <blockquote><b>
 <a href="show.html">show</a> <a href="atomspec.html#builtin">nucleic</a>
 <br>
-<a href="show.html">show</a> <a href="atomspec.html#builtin">hbonds</a> target p
+<a href="show.html">show</a> <a href="atomspec.html#builtin">hbonds</a>
 </b></blockquote>
+<p>
+The second command may not be needed if the H-bonds were only invisible
+because their endpoint atoms were hidden.
+</p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2017</address>
+November 2017</address>
 </body></html>

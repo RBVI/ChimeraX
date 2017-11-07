@@ -34,7 +34,7 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>reveal</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>pbColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>colorname</i></a>&nbsp;]
 [&nbsp;<b>pbRadius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
-[&nbsp;<b>name</b> &nbsp;<i>name</i>&nbsp;]
+[&nbsp;<b>name</b>&nbsp;&nbsp;<i>name</i>&nbsp;]
 &nbsp;<a href="#options"><i>other-options</i></a></h3>
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -52,6 +52,9 @@ except for their default interaction criteria, meant to identify:
 - all kinds of direct interactions:
 polar and nonpolar, favorable and unfavorable (including clashes)
 </ul>
+See also: 
+<a href="hbonds.html"><b>hbonds</b></a>,
+<a href="interfaces.html"><b>interfaces</b></a>
 <p>
 The <a name="overlap-def"><b><i>overlap</i></b></a>
 between two atoms is defined as the sum of their
@@ -84,9 +87,8 @@ center-to-center distances instead.
 By <a href="#makePseudobonds">default</a>,
 clashes/contacts are shown as <a href="../pseudobonds.html">pseudobonds</a>.
 A pseudobond is only shown when both of its endpoint atoms are shown;
-<b>reveal true</b> can be used to display atoms as needed
-so that all of the interactions will be shown (<a href="#reveal">details...</a>).
-Pseudobond color and radius can be specified.
+<b>reveal true</b> can be used to display atoms as needed so that 
+all of the interactions will be shown (<a href="#reveal">details...</a>).
 The default <b>name</b> of the pseudobond model for creation
 (and for removal with <b>~clashes</b> or <b>contacts</b>) 
 is <b>clashes</b> or <b>contacts</b>,
@@ -101,18 +103,16 @@ Discontinuous monitoring additionally allows
 <a href="#log">logging</a> the detailed results
 and/or <a href="#saveFile">saving</a> them to a file.
 The command <b>~clashes</b> or <b>~contacts</b>
-removes <a href="../pseudobonds.html">pseudobonds</a> that have
+removes any pseudobonds that have
 been drawn to show the interactions and halts any continuous monitoring.
 </p><p>
-Pseudobonds can be labeled by length with 
-the <a href="label.html"><b>label</b></a> command.
+<a href="../pseudobonds.html">Pseudobonds</a> can be labeled by length with 
+the <a href="label.html"><b>label</b></a> command and changed between 
+solid and dashed with <a href="style.html"><b>style</b></a>.
 An interactive histogram of pseudobond lengths can be plotted with 
 <a href="crosslinks.html#histogram"><b>crosslinks histogram</b></a>, and a 
 chain network diagram summarizing intra- and interchain pseudobonds can be
 shown with <a href="crosslinks.html#network"><b>crosslinks network</b></a>.
-See also: 
-<a href="interfaces.html"><b>interfaces</b></a>,
-<a href="hbonds.html"><b>hbonds</b></a>
 </p>
 
 <a name="options"></a>
