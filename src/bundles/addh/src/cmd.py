@@ -640,9 +640,9 @@ def find_rotamer_nearest(at_pos, idatm_type, atom, neighbor, check_dist):
     nearby = search_tree.search_tree(center, check_dist)
     near_pos = n = near_atom = None
     for nb in nearby:
-        nb_sc = nb._addh_coord
-        from numpy import allclose
-        if allclose(nb_sc, at_pos) or allclose(nb_sc, n_pos):
+        # using numpy.allclose() is *very* slow, so...
+        nb_sc = list(nb._addh_coord)
+        if nb_sc == list(at_pos) or nb_sc == list(n_pos):
             # exclude atoms from identical-copy structure also...
             continue
         if nb.structure != atom.structure and (
