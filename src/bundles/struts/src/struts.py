@@ -72,7 +72,8 @@ def struts(session, atoms, length = 7.0, loop = 30.0, radius = 0.6, color = None
 
 def register_struts_command(logger):
 
-    from chimerax.core.commands import CmdDesc, register, AtomsArg, FloatArg, ColorArg, BoolArg, StringArg, ModelIdArg
+    from chimerax.core.commands import CmdDesc, register, create_alias
+    from chimerax.core.commands import AtomsArg, FloatArg, ColorArg, BoolArg, StringArg, ModelIdArg
 
     desc = CmdDesc(
         required = [('atoms', AtomsArg)],
@@ -91,6 +92,7 @@ def register_struts_command(logger):
     desc = CmdDesc(optional = [('atoms', AtomsArg)],
                    synopsis = 'Delete bonds created with the struts command')
     register('struts delete', desc, struts_delete, logger=logger)
+    create_alias('~struts', 'struts delete')
 
 def brace(atoms, max_length, max_loop_length, model, log):
 
@@ -226,6 +228,9 @@ def thick_ribbon(atoms):
         xsm.set_nucleic_scale(nw, nh)
 
 def struts_delete(session, atoms = None):
+    '''
+    Delete struts between the specified atoms.
+    '''
 
     slist = strut_models(session)
     if atoms is None:
@@ -236,7 +241,7 @@ def struts_delete(session, atoms = None):
             remove = set()
             pbonds = s.pseudobonds
             a1, a2 = pbonds.atoms
-            pbrem = a1.mask(atoms) | a2.mask()
+            pbrem = a1.mask(atoms) | a2.mask(atoms)
             if pbrem.sum() == len(pbonds):
                 sclose.append(s)
             else:
