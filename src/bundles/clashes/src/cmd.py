@@ -50,7 +50,7 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
         set_attrs=defaults["action_attr"],
         select=defaults["action_select"],
         summary=True,
-        test="other"):
+        test="others"):
     from chimerax.core.colors import Color
     if atom_color is not None and not isinstance(atom_color, Color):
         atom_color = Color(rgba=atom_color)

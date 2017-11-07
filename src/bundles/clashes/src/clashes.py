@@ -65,10 +65,10 @@ def find_clashes(session, test_atoms,
     # useful as it might otherwise be)
     if test == "others":
         if inter_model:
-            from chimera.core.atomic import all_atoms
+            from chimerax.core.atomic import all_atoms
             universe_atoms = all_atoms(session)
         else:
-            from chimera.core.atomic import structure_atoms
+            from chimerax.core.atomic import structure_atoms
             universe_atoms = structure_atoms(test_atoms.unique_structures)
         other_atoms = universe_atoms.subtract(test_atoms)
         if len(other_atoms) == 0:
@@ -84,6 +84,7 @@ def find_clashes(session, test_atoms,
         else:
             test_coords = test_atoms.coords
             other_coords = other_atoms.coords
+        from chimerax.core.geometry import find_close_points
         t_close, o_close = find_close_points(test_coords, other_coords, cutoff)
         test_atoms = test_atoms[t_close]
         search_atoms = other_atoms[o_close]
