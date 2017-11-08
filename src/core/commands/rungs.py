@@ -127,4 +127,4 @@ def register_command(session):
     desc = CmdDesc(optional = [('atoms', AtomsArg)],
                    synopsis='Hide rungs for specified residues')
     register('rungs hide', desc, rungs_hide, logger=session.logger)
-    create_alias('~rungs', 'rungs hide')
+    create_alias('~rungs', 'rungs hide $*')
