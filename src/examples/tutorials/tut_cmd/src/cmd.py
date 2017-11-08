@@ -26,6 +26,11 @@ def cofm(session, atoms, weighted=False, transformed=True):
     session.logger.info("%s center of mass: %s" %
                         ("weighted" if weighted else "unweighted", cofm))
 
+
+cofm_desc = CmdDesc(required=[("atoms", Or(AtomsArg, EmptyArg))],
+                    optional=[("weighted", BoolArg),
+                              ("transformed", BoolArg)])
+
 # CmdDesc contains the command description.
 # For the "cofm" command, we expect three arguments:
 #   ``atoms``       - collection of atoms (required), default: all atoms
@@ -63,9 +68,6 @@ def cofm(session, atoms, weighted=False, transformed=True):
 # translates to a ``chimerax.core.atomic.Atoms`` instance for the function
 # parameter; if not, "atoms" matches EmptyArg, which translates to ``None``.
 #
-cofm_desc = CmdDesc(required=[("atoms", Or(AtomsArg, EmptyArg))],
-                    optional=[("weighted", BoolArg),
-                              ("transformed", BoolArg)])
 
 
 def highlight(session, atoms, color, weighted=False, transformed=True, count=1):
@@ -81,19 +83,21 @@ def highlight(session, atoms, color, weighted=False, transformed=True, count=1):
     atoms, coords, cofm = _get_cofm(session, atoms, transformed, weighted)
 
     # Compute the distance of each atom from the cofm
+    # using the NumPy vector norm function
     from numpy.linalg import norm
     distances = norm(coords - cofm, axis=1)
 
-    # Sort the array so to get the indices to the closest atoms
+    # Sort the array and get the "count" indices to the closest atoms
     if count > len(atoms):
         count = len(atoms)
     from numpy import argsort
     atom_indices = argsort(distances)[:count]
 
-    # Collect the atoms we need
+    # Create a collection of atoms from the indices
     chosen = atoms[atom_indices]
 
-    # Update their colors
+    # Update their "colors".  Assigning a single value to an
+    # array means assign the same value for all elements.
     chosen.colors = color.uint8x4()
 
 
