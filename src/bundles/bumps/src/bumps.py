@@ -92,7 +92,6 @@ def radial_extrema(volume, center_point, max_radius):
     return r, ijk
 
 def protrusion_sizes(r, ijk, data, base_area, log = None):
-    voxel_volume = data.step[0]*data.step[1]*data.step[2]
     covered = set()
     rval = r[ijk[:,2],ijk[:,1],ijk[:,0]]
     from numpy import argsort
@@ -103,7 +102,11 @@ def protrusion_sizes(r, ijk, data, base_area, log = None):
         if tuple(p) in covered:
             h = v = None
         else:
-            h, v, con, reached = protrusion_height(r, p, base_area)
+            voxel_volume = data.step[0]*data.step[1]*data.step[2]
+            from math import pow
+            voxel_area = pow(voxel_volume, 2/3)
+            base_count = base_area / voxel_area
+            h, v, con, reached = protrusion_height(r, p, base_count)
             covered.update(reached)
             v *= voxel_volume
         sizes[o] = (h,v,con)
@@ -162,30 +165,40 @@ def create_markers(session, xyz, radius, colors, name):
     session.models.add([m])
     return m
 
-def protrusion_height(a, start, base_area):
+def protrusion_height(a, start, base_count):
     s = tuple(start)
     r0 = a[s[2],s[1],s[0]]
     hmax = 0
     border = [(0,s)]
     reached = set()
     reached.add(s)
+    prot = set()	# Points that are part of protrusion.
+    fill = set()	# Watershed spill points
     bounds = (a.shape[2], a.shape[1], a.shape[0])
-    volume = 1
+    volume = 0
     from heapq import heappop, heappush
-    while border and len(border) <= base_area:
-        rb, b = heappop(border)
+    while border and len(border) <= base_count:
+        h, b = heappop(border)
+        if h >= hmax:
+            hmax = h
+            volume += 1
+            prot.add(b)
+            if fill:
+                # Only add watershed spill points if the filled basin
+                # can be added before base_count is reached.
+                prot.update(fill)
+                volume += len(fill)
+                fill.clear()
+        else:
+            fill.add(b)
         for s in neighbors(b, bounds):
             if s not in reached:
                 reached.add(s)
                 r = a[s[2],s[1],s[0]]
                 if r > 0:
-                    h = r0-r
-                    heappush(border, (h,s))
-                    volume += 1
-                    if h > hmax:
-                        hmax = h
+                    heappush(border, (r0-r,s))
     con = (len(border) > 0)
-    return hmax, volume, con, reached
+    return hmax, volume, con, prot
 
 def neighbors(ijk, ijk_max):
     i0,j0,k0 = ijk
