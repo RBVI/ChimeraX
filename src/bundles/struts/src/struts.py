@@ -92,7 +92,7 @@ def register_struts_command(logger):
     desc = CmdDesc(optional = [('atoms', AtomsArg)],
                    synopsis = 'Delete bonds created with the struts command')
     register('struts delete', desc, struts_delete, logger=logger)
-    create_alias('~struts', 'struts delete')
+    create_alias('~struts', 'struts delete $*')
 
 def brace(atoms, max_length, max_loop_length, model, log):
 
