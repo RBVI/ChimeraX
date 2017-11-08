@@ -762,20 +762,21 @@ def draw_slab(nd, residue, style, thickness, orient, shape, show_gly):
     if shape == 'box':
         llb = (llx, lly, llz)
         urf = (urx, ury, urz)
+        xf2 = xf
         va, na, ta = box_geometry(llb, urf)
         renormalize = False
     elif shape == 'tube':
         radius = (urx - llx) / 2 * _SQRT2
-        xf = xf * translation(center)
-        xf = xf * scale(1, 1, half_thickness * _SQRT2 / radius)
+        xf2 = xf * translation(center)
+        xf2 = xf2 * scale(1, 1, half_thickness * _SQRT2 / radius)
         height = ury - lly
         va, na, ta = get_cylinder(radius, (0, -height, 0), (0, height, 0))
         renormalize = True
     elif shape == 'ellipsoid':
         # need to reach anchor atom
-        xf = xf * translation(center)
+        xf2 = xf * translation(center)
         sr = (ury - lly) / 2 * _SQRT3
-        xf = xf * scale((urx - llx) / 2 * _SQRT3 / sr, 1,
+        xf2 = xf2 * scale((urx - llx) / 2 * _SQRT3 / sr, 1,
                         half_thickness * _SQRT3 / sr)
         va, na, ta = get_sphere(sr, (0, 0, 0))
         renormalize = True
@@ -783,8 +784,8 @@ def draw_slab(nd, residue, style, thickness, orient, shape, show_gly):
         raise RuntimeError('unknown base shape')
 
     description = '%s %s' % (residue.atomspec(), tag)
-    va = xf * va
-    na = xf.apply_without_translation(na)
+    va = xf2 * va
+    na = xf2.apply_without_translation(na)
     if renormalize:
         normalize_vectors(na)
     nd.add_shape(va, na, ta, color, atoms, description)
@@ -803,14 +804,17 @@ def draw_slab(nd, residue, style, thickness, orient, shape, show_gly):
     if tag == PYRIMIDINE:
         center = (llx + urx) / 2.0, (lly + ury) / 2, half_thickness
         va, na, ta = get_sphere(half_thickness, center)
+        va = xf * va
         nd.add_shape(va, na, ta, color, atoms, description)
     else:
         # purine
         center = (llx + urx) / 2.0, lly + (ury - lly) / 3, half_thickness
         va, na, ta = get_sphere(half_thickness, center)
+        va = xf * va
         nd.add_shape(va, na, ta, color, atoms, description)
         center = (llx + urx) / 2.0, lly + (ury - lly) * 2 / 3, half_thickness
         va, na, ta = get_sphere(half_thickness, center)
+        va = xf * va
         nd.add_shape(va, na, ta, color, atoms, description)
     return True
 
