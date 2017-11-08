@@ -246,7 +246,7 @@ def struts_delete(session, atoms = None):
                 sclose.append(s)
             else:
                 for b in pbonds.filter(pbrem):
-                    s.delete_pseudobond(b)
+                    b.delete()
                 if s.num_pseudobonds == 0:
                     sclose.append(s)
         if sclose:
