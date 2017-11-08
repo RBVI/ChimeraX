@@ -58,6 +58,9 @@ def bumps(session, volume, center = None, max_radius = None, base_area = 10.0, h
     colors = marker_colors([size_hvc[i] for i in keep], height, color)
     create_markers(session, xyz, marker_radius, colors, name)
 
+    msg = 'Found %d bumps, minimum height %.3g, base area %.3g' % (len(xyz), height, base_area)
+    session.logger.status(msg, log=True)
+    
 def register_bumps_command(logger):
 
     from chimerax.core.commands import CmdDesc, register, CenterArg, FloatArg, Color8Arg, StringArg, BoolArg
