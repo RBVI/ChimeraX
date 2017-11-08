@@ -343,6 +343,7 @@ stop
 struts
 ======
 .. autofunction:: chimerax.struts.struts.struts
+.. autofunction:: chimerax.struts.struts.struts_delete
 
 style
 =====

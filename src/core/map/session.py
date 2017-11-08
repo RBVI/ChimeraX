@@ -266,7 +266,6 @@ def state_from_grid_data(data, session_path = None):
     
   dt = data
   relpath = relative_path(dt.path, session_path)
-  print ('relative path', relpath, dt.path, session_path)
   s = {'path': relpath,
        'file_type': dt.file_type,
        'name': dt.name,

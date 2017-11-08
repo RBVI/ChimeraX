@@ -25,6 +25,7 @@ def find_clashes(session, test_atoms,
         inter_submodel=False,
         intra_res=False,
         intra_mol=True,
+        res_separation=None,
         test="others"):
     """Detect steric clashes/contacts
 
@@ -54,6 +55,10 @@ def find_clashes(session, test_atoms,
        unless intra_mol is True.
        Inter-submodel clashes are ignored unless inter_submodel is True.
        Inter-model clashes are ignored unless inter_model is True.
+
+       If res_separation is not None, it should be a positive integer -- in which
+       case for residues in the same chain, clashes/contacts are ignored unless
+       the residues are at least that far apart in the sequence.
 
        Returns a dictionary keyed on atoms, with values that are
        dictionaries keyed on clashing atom with value being the clash value.
@@ -133,6 +138,11 @@ def find_clashes(session, test_atoms,
                 continue
             if a in clashes and nb in clashes[a]:
                 continue
+            if res_separation is not None:
+                if a.residue.chain is not None and a.residue.chain == nb.residue.chain:
+                    residues = a.residue.chain.residues
+                    if abs(residues.index(a.residue) - residues.index(nb.residue)) < res_separation:
+                        continue
             if not inter_submodel \
             and a.structure.id[0] == nb.structure.id[0] \
             and a.structure.id[1:] != nb.structure.id[1:]:

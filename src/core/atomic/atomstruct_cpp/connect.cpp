@@ -498,18 +498,17 @@ connect_structure(Structure* as, std::vector<Residue *>* start_residues,
                     if (other->residue() != r) {
                         if (a->residue()->is_het() && !is_mod_res) {
                             // not coordination...
-                            if (!(other->element().is_metal()
-                            || a->element().is_metal())
+                            if (!(other->element().is_metal() || a->element().is_metal())
                             // and not disulphide...
-                            && !(other->element() == Element::S
-                            && a->element() == Element::S)
-                            ) {
+                            && !(other->element() == Element::S && a->element() == Element::S)) {
                                 prelinked = true;
                                 break;
                             }
                         } else {
                             // non-Het should always link to preceding...
-                            if (other->residue() == link_res) {
+                            // (ignore disulphide linkage)
+                            if (other->residue() == link_res
+                            && !(other->element() == Element::S && a->element() == Element::S)) {
                                 prelinked = true;
                                 break;
                             }

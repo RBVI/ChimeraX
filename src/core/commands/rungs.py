@@ -114,7 +114,7 @@ def rungs_for_atoms(session, atoms, create = True):
     return rungs
 
 def register_command(session):
-    from . import register, CmdDesc, AtomsArg, EmptyArg, ColorArg, Or, FloatArg, BoolArg
+    from . import register, CmdDesc, AtomsArg, EmptyArg, ColorArg, Or, FloatArg, BoolArg, create_alias
     desc = CmdDesc(optional = [('atoms', AtomsArg)],
                    keyword = [('color', ColorArg),
                                ('radius', FloatArg),
@@ -127,3 +127,4 @@ def register_command(session):
     desc = CmdDesc(optional = [('atoms', AtomsArg)],
                    synopsis='Hide rungs for specified residues')
     register('rungs hide', desc, rungs_hide, logger=session.logger)
+    create_alias('~rungs', 'rungs hide')

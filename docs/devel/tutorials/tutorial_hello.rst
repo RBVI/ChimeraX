@@ -25,7 +25,7 @@
 Bundle Example: Hello World
 ============================
 
-This example will describe how to create a ChimeraX bundle
+This example describes how to create a ChimeraX bundle
 that defines a new command, ``hello``.  The steps in
 implementing the bundle are:
 
