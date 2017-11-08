@@ -805,16 +805,19 @@ def draw_slab(nd, residue, style, thickness, orient, shape, show_gly):
         center = (llx + urx) / 2.0, (lly + ury) / 2, half_thickness
         va, na, ta = get_sphere(half_thickness, center)
         va = xf * va
+        na = xf.apply_without_translation(na)
         nd.add_shape(va, na, ta, color, atoms, description)
     else:
         # purine
         center = (llx + urx) / 2.0, lly + (ury - lly) / 3, half_thickness
         va, na, ta = get_sphere(half_thickness, center)
         va = xf * va
+        na = xf.apply_without_translation(na)
         nd.add_shape(va, na, ta, color, atoms, description)
         center = (llx + urx) / 2.0, lly + (ury - lly) * 2 / 3, half_thickness
         va, na, ta = get_sphere(half_thickness, center)
         va = xf * va
+        na = xf.apply_without_translation(na)
         nd.add_shape(va, na, ta, color, atoms, description)
     return True
 
