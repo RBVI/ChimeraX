@@ -9,7 +9,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def bumps(session, volume, center = None, max_radius = None, base_area = 10.0, height = 1.0,
+def bumps(session, volume, center = None, range = None, base_area = 10.0, height = 1.0,
           marker_radius = 1.0, marker_color = (100,200,100,255), color_surface = True,
           name = 'bumps', all_extrema = False):
     '''
@@ -26,7 +26,7 @@ def bumps(session, volume, center = None, max_radius = None, base_area = 10.0, h
         Map to find protrusions on.  Highest surface contour level used.
     center : Center
         Point which is the cell center for finding radial protrusions.
-    max_radius : float or None
+    range : float or None
         How far out from center to look for protrusions.
     base_area : float
         Area of base of protrusion.  Protrusion is extended inward until this
@@ -47,29 +47,23 @@ def bumps(session, volume, center = None, max_radius = None, base_area = 10.0, h
     '''
 
     c = center.scene_coordinates()
-    r, ijk = radial_extrema(volume, c, max_radius)
-    indices, size_hvc, mask = protrusion_sizes(r, ijk, volume.data, base_area, height,
-                                               all_extrema, log = session.logger)
+    b = Bumps(session, name, volume, c, range=range, base_area=base_area, height=height,
+              marker_radius=marker_radius, marker_color=marker_color, color_surface=color_surface,
+              all_extrema=all_extrema)
 
-    xyz = volume.data.ijk_to_xyz_transform * ijk[indices]
-    colors = marker_colors(size_hvc, height, marker_color)
-    create_markers(session, xyz, marker_radius, colors, name)
-
-    msg = 'Found %d bumps, minimum height %.3g, base area %.3g' % (len(xyz), height, base_area)
+    msg = 'Found %d bumps, minimum height %.3g, base area %.3g' % (b.num_atoms, height, base_area)
     session.logger.status(msg, log=True)
-
-    if color_surface:
-        color_surface_from_mask(volume, mask)
     
 def register_bumps_command(logger):
 
-    from chimerax.core.commands import CmdDesc, register, CenterArg, FloatArg, Color8Arg, StringArg, BoolArg
+    from chimerax.core.commands import CmdDesc, register
+    from chimerax.core.commands import CenterArg, FloatArg, Color8Arg, StringArg, BoolArg, SaveFileNameArg, ModelsArg
     from chimerax.core.map import MapArg
 
     desc = CmdDesc(
         required = [('volume', MapArg)],
         keyword = [('center', CenterArg),
-                   ('max_radius', FloatArg),
+                   ('range', FloatArg),
                    ('base_area', FloatArg),
                    ('height', FloatArg),
                    ('marker_radius', FloatArg),
@@ -81,6 +75,96 @@ def register_bumps_command(logger):
         synopsis = 'Mark protrusions in 3D image data'
     )
     register('bumps', desc, bumps, logger=logger)
+    desc = CmdDesc(
+        optional = [('bumps', ModelsArg)],
+        keyword = [('save', SaveFileNameArg),
+                   ('signal_map', MapArg)],
+        synopsis = 'Output table reporting protrusions in 3D image data'
+    )
+    register('bumps report', desc, bumps_report, logger=logger)
+
+
+def bumps_report(session, bumps = None, save = None, signal_map = None):
+    '''
+    Output a text table of protrusions, tip locations, volumes, heights....
+
+    Parameters
+    ----------
+    bumps : list of Bumps models
+        Previously computed Bumps models to produce table for.
+    save : filepath
+        Path to save text table.  If not specified then table is output to log.
+    signal : Volume
+        Report the sum of intensity values from this map for each protrusion.
+    '''
+    bmodels = [m for m in bumps if isinstance(m, Bumps)]
+    text = '\n\n'.join([m.bumps_report(signal_map) for m in bmodels])
+    if save:
+        f = open(save, 'w')
+        f.write(text)
+        f.close()
+    else:
+        session.logger.info(text)
+    
+from chimerax.markers import MarkerSet
+class Bumps(MarkerSet):
+    def __init__(self, session, name, volume, center, range = None, base_area = 10.0, height = 1.0,
+                 marker_radius = 1.0, marker_color = (100,200,100,255), color_surface = True,
+                 all_extrema = False):
+
+        MarkerSet.__init__(self, session, name)
+
+        self.bump_map = volume
+        self.bump_center = center
+        self.bump_range = range
+        self.bump_base_area = base_area
+        self.bump_min_height = height
+                 
+        r, ijk = radial_extrema(volume, center, range)
+        indices, size_hvc, mask = protrusion_sizes(r, ijk, volume.data, base_area, height,
+                                                   all_extrema, log = session.logger)
+        self.bump_mask = mask
+
+        xyz = volume.data.ijk_to_xyz_transform * ijk[indices]
+        colors = marker_colors(size_hvc, height, marker_color)
+        markers = [self.create_marker(p, rgba, marker_radius, i+1)
+                   for i,(p,rgba) in enumerate(zip(xyz,colors))]
+            
+        for i,m in enumerate(markers):
+            h,v,c = size_hvc[i]
+            m.bump_id = i + 1
+            m.bump_tip_ijk = ijk[indices[i]]
+            m.bump_height = h
+            m.bump_points = v
+            m.bump_connected = c
+
+        session.models.add([self])
+
+        if color_surface:
+            color_surface_from_mask(volume, mask)
+
+    def bumps_report(self, signal_map = None):
+        lines = ['# ' + self.bump_map.name]
+        lines.append('#  %d protrusions, base area %.4g, minimum height %.4g,' %
+                     (self.num_atoms, self.bump_base_area, self.bump_min_height)
+                     + ' cell center ijk %.4g %.4g %.4g, ' % tuple(self.bump_center)
+                     + 'range %s' % ('none' if self.bump_range is None else '%.4g' % self.bump_range))
+        columns = '# id    i    j    k   points   height'
+        if signal_map:
+            columns += '  signal'
+            sig_array = signal_map.full_matrix()
+        lines.append(columns)
+        
+        for a in self.atoms:
+            if hasattr(a, 'bump_id'):
+                i,j,k = a.bump_tip_ijk
+                line = '%4d %4d %4d %4d %6d %9.4g' % (a.bump_id, i, j, k, a.bump_points, a.bump_height)
+                if signal_map:
+                    sig = sig_array[self.bump_mask == a.bump_id].sum()
+                    line += ' %8.6g' % sig
+                lines.append(line)
+        text = '\n'.join(lines)
+        return text
 
 def radial_extrema(volume, center_point, max_radius):
     level = max(volume.surface_levels)
@@ -122,7 +206,7 @@ def protrusion_sizes(r, ijk, data, base_area, height,
             if h is not None:
                 pp = array(tuple(points), int32)
                 mask[pp[:,2],pp[:,1],pp[:,0]] = len(indices)
-        if c % 50 == 0 and log is not None:
+        if c % 100 == 0 and log is not None:
             log.status('Protrusion height %d of %d' % (c, len(ijk)))
     return indices, sizes, mask
 
@@ -166,16 +250,6 @@ def marker_colors(size_hvc, height, normal_color):
             color = normal_color
         colors.append(color)
     return colors
-
-def create_markers(session, xyz, radius, colors, name):
-    if len(xyz) == 0:
-        return None
-    from chimerax.markers import MarkerSet
-    m = MarkerSet(session, name)
-    for i,(p,rgba) in enumerate(zip(xyz,colors)):
-        m.create_marker(p, rgba, radius, i)
-    session.models.add([m])
-    return m
 
 def protrusion_height(a, start, base_count):
     s = tuple(start)
