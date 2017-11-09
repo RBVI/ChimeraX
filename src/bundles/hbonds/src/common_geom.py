@@ -1,8 +1,8 @@
 # vim: set expandtab ts=4 sw=4:
 
 
-from numpy import cross, linalg, zeros, dot
-from chimerax.core.geometry import angle
+from numpy import zeros, dot
+from chimerax.core.geometry import angle, cross_product, normalize_vector
 from . import hbond
 
 SULFUR_COMP = 0.35
@@ -15,9 +15,8 @@ class AtomTypeError(ValueError):
 
 def test_phi(dp, ap, bp, phi_plane, phi):
     if phi_plane:
-        normal = cross(phi_plane[1] - phi_plane[0],
-                        phi_plane[2] - phi_plane[1])
-        normal = normal / linalg.norm(normal)
+        normal = normalize_vector(cross_product(phi_plane[1] - phi_plane[0],
+                        phi_plane[2] - phi_plane[1]))
         D = dot(normal, phi_plane[1])
         bproj = project(bp, normal, D)
         aproj = project(ap, normal, D)

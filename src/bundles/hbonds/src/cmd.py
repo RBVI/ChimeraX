@@ -266,6 +266,7 @@ def restrict_hbonds(hbonds, atoms, restrict):
         custom_atoms = set(restrict)
     else:
         custom_atoms = None
+    atoms = set(atoms)
     for d, a in hbonds:
         d_in = d in atoms
         a_in = a in atoms
