@@ -170,10 +170,6 @@ class Option(metaclass=ABCMeta):
         # create (as self.widget) the widget to display the option value
         pass
 
-class ColorOption(Option):
-    """Option for colors"""
-
-
 class EnumOption(Option):
     """Option for enumerated values"""
     values = ()
@@ -210,6 +206,24 @@ class EnumOption(Option):
     def _menu_cb(self, label):
         self.set(label)
         self._make_callback()
+
+class RgbaOption(Option):
+    """Option for rgba colors"""
+
+    def get(self):
+        return self.widget.color
+
+    def set(self, value):
+        """Accepts a wide variety of values, not just rgba"""
+        self.widget.color = value
+
+    def set_multiple(self):
+        self.widget.color = None
+
+    def _make_widget(self, **kw):
+        from ..widgets import MultiColorButton
+        self.widget = MultiColorButton(max_size=(16,16), has_alpha_channel=True)
+        self.widget.color_changed.connect(lambda c, s=self: s._make_callback())
 
 class SymbolicEnumOption(EnumOption):
     """Option for enumerated values with symbolic names"""

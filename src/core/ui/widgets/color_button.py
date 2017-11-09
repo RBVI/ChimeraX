@@ -50,9 +50,17 @@ class ColorButton(QPushButton):
         self.clicked.connect(self.show_color_chooser)
         self._color = None
 
+    def get_color(self):
+        return self._color
+
     def set_color(self, color):
+        rgba = color_to_numpy_rgba8(color)
+        if (rgba == self._color).all():
+            return
         self.setStyleSheet('background-color: %s' % hex_color_name(color))
-        self._color = color_to_numpy_rgba8(color)
+        self._color = rgba
+
+    color = property(get_color, set_color)
 
     def show_color_chooser(self):
         from PyQt5.QtWidgets import QColorDialog
@@ -71,15 +79,19 @@ class ColorButton(QPushButton):
 def color_to_numpy_rgba8(color):
     if isinstance(color, QColor):
         return array([color.red(), color.green(), color.blue(), color.alpha()], dtype=uint8)
-    if isinstance(color[0], int):
+    from ...colors import Color
+    if isinstance(color, Color):
+        return color.uint8x4()
+    import numbers
+    if isinstance(color[0], numbers.Integral):
         if len(color) == 3:
             color = list(color) + [255]
         return array(color, dtype=uint8)
-    if isinstance(color[0], float):
+    if isinstance(color[0], numbers.Real):
         if len(color) == 3:
             color = list(color) + [1.0]
         return array([min(255, max(0, int(ch*255.0 + 0.5))) for ch in color], dtype=uint8)
-    return color
+    raise ValueError("Don't know how to convert %s to integral numpy array" % repr(color))
 
 def hex_color_name(color):
     return "#%02x%02x%02x" % tuple(color_to_numpy_rgba8(color)[:3])
@@ -105,3 +117,6 @@ class MultiColorButton(ColorButton):
                 % os.path.join(this_dir, "icons", icon_file))
         else:
             ColorButton.set_color(self, color)
+
+    color = property(ColorButton.get_color, set_color)
+

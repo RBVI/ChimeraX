@@ -19,7 +19,8 @@ TODO
 """
 
 from ..core_settings import settings as core_settings
-from .options import SymbolicEnumOption
+from .options import SymbolicEnumOption, RgbaOption
+from .widgets import hex_color_name
 
 class AtomSpecOption(SymbolicEnumOption):
     values = ("command", "serial", "simple")
@@ -58,19 +59,19 @@ class CoreSettingsPanel:
             None,
             """How to format display of atomic data<br>
             <table>
-            <tr><td>simple</td><td>Simple readable form</td></tr>
-            <tr><td>command line</td><td>From used in commands</td></tr>
-            <tr><td>serial number</td><td>Atom serial number</td></tr>
+            <tr><td>simple</td><td>&nbsp;</td><td>Simple readable form</td></tr>
+            <tr><td>command line</td><td>&nbsp;</td><td>Form used in commands</td></tr>
+            <tr><td>serial number</td><td>&nbsp;</td><td>Atom serial number</td></tr>
             </table>"""),
-#        'bg_color': (
-#            "Background color",
-#            "Background",
-#            ColorOption,
-#            "set bgColor %s",
-#            lambda val: val.hex_with_alpha(),
-#            lambda ses, cb: ses.triggers.add_handler("background color changed", cb),
-#            lambda ses: ses.main_view.background_color,
-#            "Background color of main graphics window"),
+        'bg_color': (
+            "Background color",
+            "Background",
+            RgbaOption,
+            "set bgColor %s",
+            hex_color_name,
+            lambda ses, cb: ses.triggers.add_handler("background color changed", cb),
+            lambda ses: ses.main_view.background_color,
+            "Background color of main graphics window"),
     }
 
     def __init__(self, session, ui_area):
@@ -94,7 +95,7 @@ class CoreSettingsPanel:
                 attr_name=setting, balloon=balloon)
             panel.add_option(opt)
             if notifier is not None:
-                notifier(ses, lambda tn, data, fetch=fetcher, opt=opt: opt.set(fetch()))
+                notifier(session, lambda tn, data, fetch=fetcher, ses=session, opt=opt: opt.set(fetch(ses)))
 
         categories.sort()
         for category in categories:
@@ -105,8 +106,6 @@ class CoreSettingsPanel:
 
     def _opt_cb(self, opt):
         setting = opt.attr_name
-        import sys
-        print("_opt_cb: setting", setting, "to", opt.value, file=sys.__stderr__)
         setattr(core_settings, setting, opt.value)
 
         opt_name, category, opt_class, updater, converter, notifier, fetcher, balloon \
@@ -119,8 +118,8 @@ class CoreSettingsPanel:
             val = opt.value
             if converter:
                 val = converter(val)
-            from ..commands import run_command
-            run_command(self.session, updater % val)
+            from ..commands import run
+            run(self.session, updater % val)
         else:
             updater(self.session, opt.value)
 
