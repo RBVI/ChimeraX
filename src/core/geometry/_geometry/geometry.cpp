@@ -24,6 +24,7 @@
 #include "spline.h"			// use natural_cubic_spline
 #include "transform.h"			// use affine_transform_vertices, ...
 #include "vector_ops.h"			// use inner_product_64
+#include "matrix.h"         // defines look_at
 
 namespace Geometry_Cpp
 {
@@ -68,6 +69,9 @@ static struct PyMethodDef geometry_cpp_methods[] =
    METH_VARARGS|METH_KEYWORDS, segment_intercepts_spheres_doc},
   {const_cast<char*>("closest_cylinder_intercept"), (PyCFunction)closest_cylinder_intercept,
    METH_VARARGS|METH_KEYWORDS, closest_cylinder_intercept_doc},
+
+  /* matrix.h */
+  {const_cast<char*>("look_at"), (PyCFunction)look_at, METH_VARARGS, NULL},
 
   /* spline.h */
   {const_cast<char*>("natural_cubic_spline"), (PyCFunction)natural_cubic_spline,

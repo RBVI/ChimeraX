@@ -92,7 +92,7 @@ def register_struts_command(logger):
     desc = CmdDesc(optional = [('atoms', AtomsArg)],
                    synopsis = 'Delete bonds created with the struts command')
     register('struts delete', desc, struts_delete, logger=logger)
-    create_alias('~struts', 'struts delete')
+    create_alias('~struts', 'struts delete $*')
 
 def brace(atoms, max_length, max_loop_length, model, log):
 
@@ -246,7 +246,7 @@ def struts_delete(session, atoms = None):
                 sclose.append(s)
             else:
                 for b in pbonds.filter(pbrem):
-                    s.delete_pseudobond(b)
+                    b.delete()
                 if s.num_pseudobonds == 0:
                     sclose.append(s)
         if sclose:

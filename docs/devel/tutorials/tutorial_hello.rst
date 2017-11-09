@@ -72,15 +72,14 @@ The file contents are shown below.
 ``bundle_info.xml``
 -------------------
 
-.. literalinclude:: ../../../src/examples/tutorials/hello_world/bundle_info.xml
-    :language: xml
-    :linenos:
-
-
 ``bundle_info.xml`` is an `_eXtensible Markup Language`_
 format file whose tags are listed in :doc:`bundle_info`.
 While there are many tags defined, only a few are needed
 for bundles written completely in Python.
+
+.. literalinclude:: ../../../src/examples/tutorials/hello_world/bundle_info.xml
+    :language: xml
+    :linenos:
 
 The document tag (which contains all other tags)
 is named ``BundleInfo``, whose required
