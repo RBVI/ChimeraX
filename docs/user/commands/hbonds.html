@@ -63,11 +63,11 @@ A pseudobond is only shown when both of its endpoint atoms are shown;
 <b>reveal true</b> can be used to display atoms as needed
 so that all of the H-bonds will be shown (<a href="#reveal">details...</a>).
 The pseudobonds can be <a href="#showDist">labeled by distance</a>, 
-and their <b>color</b>, <b>radius</b>, and number of <b>dashes</b> can be 
-specified. The pseudobonds can be removed with the <b>~hbonds</b> command.
-The default <b>name</b> of the pseudobond model(s) for creation
-(and for removal with the <b>~hbonds</b> command) is <b>hydrogen bonds</b>,
-but a different name can be <a href="#name">assigned</a>.
+and their <a href="#color">color</a>, <a href="#radius">radius</a>,
+and <a href="#dashes">number of dashes</a> can be specified.
+The pseudobonds can be removed with the <b>~hbonds</b> command.
+The default <a href="#name">name</a> of the pseudobond model(s) for creation
+(and for removal with the <b>~hbonds</b> command) is <b>hydrogen bonds</b>.
 When multiple pseudobond models have the same name, specific models can be 
 removed with the <a href="close.html"><b>close</b></a> command.
 </p><p>
@@ -210,6 +210,7 @@ The distances (pseudobond lengths) can also be plotted as a histogram with
 <a href="crosslinks.html#histogram"><b>crosslinks histogram</b></a>.
 </blockquote>
 <blockquote>
+<a name="color"></a>
   <b>color</b> &nbsp;<i>colorname</i>
 <br>Color to use for <a href="../pseudobonds.html">pseudobonds</a>
 depicting H-bonds (but see also <a href="#twoColors"><b>twoColors</b></a>
@@ -220,12 +221,14 @@ can be changed later with <a href="color.html"><b>color</b></a>, for example:
 <b>color&nbsp;<a href="atomspec.html#builtin">hbonds</a>&nbsp;goldenrod</b>
 </blockquote>
 <blockquote>
+<a name="radius"></a>
   <b>radius</b> &nbsp;<i>r</i>
 <br>Radius in &Aring; to use for <a href="../pseudobonds.html">pseudobonds</a>
 depicting H-bonds (default <b>0.075</b>);
 can be changed later with <a href="size.html"><b>size</b></a>.
 </blockquote>
 <blockquote>
+<a name="dashes"></a>
   <b>dashes</b> &nbsp;<i>N</i>
 <br>Number of dashes to use for <a href="../pseudobonds.html">pseudobonds</a>
 depicting H-bonds (default <b>6</b>).
@@ -238,6 +241,7 @@ can be changed later with <a href="style.html"><b>style</b></a>.
 <a name="name"></a>
 <b>name</b> &nbsp;<i>name</i>
 <br>Name for the <a href="../pseudobonds.html">pseudobond model</a>
+created to show interactions
 (default <b>hydrogen bonds</b>, also the default name for deletion
 with <b>~hbonds</b>). Using a new name creates a separate
 model that can be hidden/shown/closed independently.
@@ -346,11 +350,11 @@ to specify it interactively in a file browser window.
 <a href="../tools/log.html"><b>Log</b></a>.
 </blockquote>
 <blockquote>
-  <a name="namingStyle"><b>namingStyle</b> &nbsp;simple&nbsp;|&nbsp;command&nbsp;|&nbsp;serial</a>
+  <a name="namingStyle"><b>namingStyle</b> &nbsp;<b>simple</b>&nbsp;|&nbsp;command&nbsp;|&nbsp;serial</a>
 <br>How to describe atoms in H-bond information
 written to a <a href="#saveFile">file</a> or the <a href="#log">log</a>:
 <ul>
-<li><b>simple</b> - chain ID (preceded by slash), 
+<li><b>simple</b> (default) - chain ID (preceded by slash), 
 residue name, residue number, atom name (for example, /B ASN 21 OD1)
 <li><b>command</b>
 - <a href="atomspec.html#hierarchy">command-line specifier</a>
