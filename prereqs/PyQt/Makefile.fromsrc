@@ -60,7 +60,7 @@ endif
 $(SOURCE): $(DISTRIBUTION)
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
 ifeq ($(PYQT_LICENSE),commercial)
-	cp pyqt-commercial.sip $(SOURCE)/sip/
+	cp -fp pyqt-commercial.sip $(SOURCE)/sip/
 endif
 ifneq (,$(PATCHES))
 	for f in $(PATCHES) ; do \
