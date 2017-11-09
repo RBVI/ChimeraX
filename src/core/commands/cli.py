@@ -746,7 +746,6 @@ class DynamicEnum(Annotation):
         self.__html_name = html_name
         self.values_func = values_func
 
-
     def parse(self, text, session):
         return EnumOf(self.values_func()).parse(text, session)
 
@@ -766,7 +765,7 @@ class DynamicEnum(Annotation):
             name = self.__name
         else:
             name = 'one of ' + ', '.join("<b>%s</b>" % escape(str(v))
-                                     for v in sorted(self.values_func()))
+                                         for v in sorted(self.values_func()))
         if self.url is None:
             return name
         return '<a href="%s">%s</a>' % (escape(self.url), name)
@@ -907,6 +906,7 @@ class PasswordArg(StringArg):
         token, text, rest = StringArg.parse(text, session)
         return token, "******", rest
 
+
 class AttrNameArg(StringArg):
     """Annotation for a Python attribute name"""
     name = "a Python attribute name"
@@ -919,10 +919,11 @@ class AttrNameArg(StringArg):
         non_underscore = text.remove('_')
         if not non_underscore.isalnum():
             raise AnnotationError("Attribute names can consist only of alphanumeric"
-                " characters and underscores")
+                                  " characters and underscores")
         if text[0].isdigit():
             raise AnnotationError("Attribute names cannot start with a digit")
         return token, text, rest
+
 
 class FileNameArg(Annotation):
     """Base class for Open/SaveFileNameArg"""
@@ -1128,7 +1129,7 @@ class PseudobondsArg(ObjectsArg):
         pbonds = concatenate(pblist, Pseudobonds)
         return pbonds, used, rest
 
-    
+
 class BondsArg(ObjectsArg):
     """Parse command specifier for bonds"""
     name = 'a bonds specifier'
@@ -1136,7 +1137,6 @@ class BondsArg(ObjectsArg):
     @classmethod
     def parse(cls, text, session):
         objects, used, rest = super().parse(text, session)
-        from ..atomic import PseudobondGroup, interatom_pseudobonds
         bonds = objects.atoms.intra_bonds
         return bonds, used, rest
 
@@ -1942,7 +1942,7 @@ _aliased_commands = {}  # { name: _WordInfo instance }
 _available_commands = None
 
 
-def register(name, cmd_desc=(), function=None, *, logger=None, parent_info=None):
+def register(name, cmd_desc=(), function=None, *, logger=None, _parent_info=None):
     """register function that implements command
 
     :param name: the name of the command and may include spaces.
@@ -1978,15 +1978,15 @@ def register(name, cmd_desc=(), function=None, *, logger=None, parent_info=None)
         url = _get_help_url(words)
         if url is not None:
             cmd_desc.url = url
-    if parent_info is None:
-        parent_info = _commands
+    if _parent_info is None:
+        _parent_info = _commands
     for word in words[:-1]:
-        if not parent_info.has_subcommands():
-            word_info = parent_info.add_subcommand(word)
+        if not _parent_info.has_subcommands():
+            word_info = _parent_info.add_subcommand(word)
         else:
-            parent_info.add_subcommand(word, name)
-            word_info = parent_info.subcommands[word]
-        parent_info = word_info
+            _parent_info.add_subcommand(word, name)
+            word_info = _parent_info.subcommands[word]
+        _parent_info = word_info
 
     if isinstance(function, _Defer):
         cmd_desc = function
@@ -1998,7 +1998,7 @@ def register(name, cmd_desc=(), function=None, *, logger=None, parent_info=None)
                 print(msg)
             else:
                 logger.warning(msg)
-    parent_info.add_subcommand(words[-1], name, cmd_desc)
+    _parent_info.add_subcommand(words[-1], name, cmd_desc)
     return function     # needed when used as a decorator
 
 
@@ -2020,7 +2020,7 @@ def _get_help_url(words):
     return None
 
 
-def deregister(name, *, is_user_alias=False, parent_info=None):
+def deregister(name, *, is_user_alias=False, _parent_info=None):
     """Remove existing command and subcommands
 
     :param name: the name of the command
@@ -2029,16 +2029,16 @@ def deregister(name, *, is_user_alias=False, parent_info=None):
     # none of the exceptions below should happen
     words = name.split()
     name = ' '.join(words)  # canonicalize
-    if parent_info is None:
-        parent_info = _commands
+    if _parent_info is None:
+        _parent_info = _commands
     for word in words:
-        word_info = parent_info.subcommands.get(word, None)
+        word_info = _parent_info.subcommands.get(word, None)
         if word_info is None:
             if is_user_alias:
                 raise UserError('No alias named %s exists' % dq_repr(name))
             raise RuntimeError('unregistering unknown command: "%s"' % name)
-        parent_info = word_info
-    if is_user_alias and not parent_info.is_user_alias():
+        _parent_info = word_info
+    if is_user_alias and not _parent_info.is_user_alias():
         raise UserError('%s is not a user alias' % dq_repr(name))
 
     if word_info.has_subcommands():
@@ -2047,8 +2047,8 @@ def deregister(name, *, is_user_alias=False, parent_info=None):
 
     hidden_word = _aliased_commands.get(name, None)
     if hidden_word:
-        parent_info = hidden_word.parent
-        parent_info.subcommands[word] = hidden_word
+        _parent_info = hidden_word.parent
+        _parent_info.subcommands[word] = hidden_word
         del _aliased_commands[name]
     else:
         # allow command to be reregistered with same cmd_desc
@@ -2056,13 +2056,13 @@ def deregister(name, *, is_user_alias=False, parent_info=None):
             word_info.cmd_desc.function = None
         # remove association between cmd_desc and word
         word_info.cmd_desc = None
-        parent_info = word_info.parent
+        _parent_info = word_info.parent
         assert(len(word_info.subcommands) == 0)
-        del parent_info.subcommands[word]
+        del _parent_info.subcommands[word]
 
 
 def register_available(*args, **kw):
-    return register(*args, parent_info=_available_commands, **kw)
+    return register(*args, _parent_info=_available_commands, **kw)
 
 
 def clear_available():

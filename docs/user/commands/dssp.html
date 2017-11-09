@@ -33,8 +33,14 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>report</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 </h3>
 <p>
-The <b>dssp</b> command identifies helices and strands in protein
-atomic coordinates. It is an implementation of the algorithm for 
+The <b>dssp</b> command assigns amino acid residues to helices and strands 
+by identifying hydrogen-bonding patterns in protein atomic coordinates.
+H-bonds and virtual hydrogens from the <b>dssp</b> calculation are not shown
+on the structure, but see also: 
+<a href="hbonds.html"><b>hbonds</b></a>,
+<a href="addh.html"><b>addh</b></a>
+</p><p>
+The <b>dssp</b> command implements the algorithm for 
 <b>D</b>efining the <b>S</b>econdary <b>S</b>tructure of
 <b>P</b>roteins described in:
 <blockquote>
@@ -63,11 +69,11 @@ secondary structure assignments
 </ul>
 <p>
 The calculation applies to all protein/peptide chains in models 
-containing the <a href="atomspec.html">specified</a> atoms.
+containing the specified atoms.
 The coordinates of protein backbone atoms (N, CA, C, O, and optionally H)
 are used to identify hydrogen bonds, which in turn define
-which residues are in helices and strands. If an amide
-hydrogen is not present, it is placed 1.01 &Aring; from N along the bisector
+which residues are in helices and strands. If an amide hydrogen is not present,
+one is (virtually) placed 1.01 &Aring; from N along the bisector
 of (1) the vector opposite the bisector of C-N-CA, and (2) the vector
 opposite the C-O vector from the previous amino acid.
 </p><p>
@@ -145,5 +151,5 @@ participates. Sheets are named sequentially from N- to C-terminus.
 </tr></table>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2017</address>
+November 2017</address>
 </body></html>
