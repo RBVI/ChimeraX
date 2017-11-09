@@ -31,7 +31,7 @@ from .cli import OpenFileNameArg, SaveFileNameArg, OpenFolderNameArg, SaveFolder
 from .cli import AttrNameArg
 from .cli import add_keyword_arguments
 
-from .colorarg import ColorArg, ColormapArg, ColormapRangeArg
+from .colorarg import ColorArg, Color8Arg, ColormapArg, ColormapRangeArg
 from .symarg import SymmetryArg
 
 from .atomspec import AtomSpecArg, all_objects

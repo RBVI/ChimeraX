@@ -152,6 +152,12 @@ def _parse_rgba_values(text):
     c.explicit_transparency = transparent
     return c
 
+class Color8Arg(ColorArg):
+    @staticmethod
+    def parse(text, session):
+        c, text, rest = ColorArg.parse(text, session)
+        return c.uint8x4(), text, rest
+
 from . import Or, TupleOf, FloatArg, EnumOf
 ColormapRangeArg = Or(TupleOf(FloatArg, 2), EnumOf(['full']))
 
