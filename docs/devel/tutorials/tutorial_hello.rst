@@ -25,7 +25,7 @@
 Bundle Example: Hello World
 ============================
 
-This example will describe how to create a ChimeraX bundle
+This example describes how to create a ChimeraX bundle
 that defines a new command, ``hello``.  The steps in
 implementing the bundle are:
 
@@ -45,8 +45,8 @@ Source Code Organization
 
 The source code for this example may be downloaded
 as a `zip-format file
-<http://www.rbvi.ucsf.edu/chimerax/cgi-bin/XXX>`_
-and the content folder, named `hello_world` extracted.
+<http://www.rbvi.ucsf.edu/chimerax/cgi-bin/bundle_tutorial?name=hello_world>`_
+containing a folder named `hello_world`.
 Alternatively, one can start with an empty folder
 and create source files based on the samples below.
 The source folder may be arbitrarily named, as it is
@@ -58,7 +58,7 @@ need to type quote characters in some steps.
 Sample Files
 ============
 
-The files in the ``hello_world`` bundle are:
+The files in the source code folder are:
 
 ``hello_world`` - bundle folder
     ``bundle_info.xml`` - bundle information read by ChimeraX
@@ -72,15 +72,14 @@ The file contents are shown below.
 ``bundle_info.xml``
 -------------------
 
-.. literalinclude:: ../../../src/examples/tutorials/hello_world/bundle_info.xml
-    :language: xml
-    :linenos:
-
-
 ``bundle_info.xml`` is an `_eXtensible Markup Language`_
 format file whose tags are listed in :doc:`bundle_info`.
 While there are many tags defined, only a few are needed
 for bundles written completely in Python.
+
+.. literalinclude:: ../../../src/examples/tutorials/hello_world/bundle_info.xml
+    :language: xml
+    :linenos:
 
 The document tag (which contains all other tags)
 is named ``BundleInfo``, whose required
@@ -299,3 +298,14 @@ and map them to arguments when calling the command-processing
 function.
 
 .. include:: build_test_distribute.rst
+
+What's Next
+===========
+
+- :doc:`tutorial_hello` (current topic)
+- :doc:`tutorial_command` (next topic)
+- :doc:`tutorial_tool`
+- :doc:`tutorial_read_format`
+- :doc:`tutorial_save_format`
+- :doc:`tutorial_fetch`
+- :doc:`tutorial_selector`

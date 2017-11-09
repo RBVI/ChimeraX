@@ -21,6 +21,10 @@ size_t = ctype_type_to_numpy[ctypes.c_size_t]   # numpy dtype for size_t
 # These routines convert C++ pointers to Python objects and are used for defining
 # the object properties.
 #
+def _py_atoms(p):
+    return [object_map(ptr, Atom) for ptr in p]
+def _py_bonds(p):
+    return [object_map(ptr, Bond) for ptr in p]
 def _atoms(p):
     from .molarray import Atoms
     return Atoms(p)
@@ -133,8 +137,8 @@ class Atom(State):
 
     alt_loc = c_property('atom_alt_loc', string, doc='Alternate location indicator')
     bfactor = c_property('atom_bfactor', float32, doc = "B-factor, floating point value.")
-    bonds = c_property('atom_bonds', cptr, "num_bonds", astype=_bonds, read_only=True,
-        doc="Bonds connected to this atom as an array of :py:class:`Bonds` objects. Read only.")
+    bonds = c_property('atom_bonds', cptr, "num_bonds", astype=_py_bonds, read_only=True,
+        doc="Bonds connected to this atom as a list of :py:class:`Bond` objects. Read only.")
     chain_id = c_property('atom_chain_id', string, read_only = True,
         doc = "Protein Data Bank chain identifier. Limited to 4 characters. Read only string.")
     color = c_property('atom_color', uint8, 4, doc="Color RGBA length 4 numpy uint8 array.")
@@ -188,7 +192,7 @@ class Atom(State):
         doc = "Whether this atom is part of an amino/nucleic acid sidechain."
         "  Does not include atoms needed to connect to backbone (CA/ribose). Read only.")
     name = c_property('atom_name', string, doc = "Atom name. Maximum length 4 characters.")
-    neighbors = c_property('atom_neighbors', cptr, "num_bonds", astype=_atoms, read_only=True,
+    neighbors = c_property('atom_neighbors', cptr, "num_bonds", astype=_py_atoms, read_only=True,
         doc=":class:`.Atom`\\ s connnected to this atom directly by one bond. Read only.")
     num_bonds = c_property("atom_num_bonds", size_t, read_only=True,
         doc="Number of bonds connected to this atom. Read only.")

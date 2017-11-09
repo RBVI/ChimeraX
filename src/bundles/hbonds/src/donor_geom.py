@@ -3,14 +3,13 @@
 """donor geometry testing functions"""
 
 from chimerax.core.atomic.idatm import type_info, planar, tetrahedral
-from chimerax.core.geometry import angle, distance_squared
+from chimerax.core.geometry import angle, distance_squared, normalize_vector
 from chimerax.core.atomic.bond_geom import bond_positions
 from . import hbond
 from .common_geom import AtomTypeError, get_phi_plane_params, \
         test_phi, project, test_theta, sulphur_compensate
 from .hydpos import hyd_positions
 from math import sqrt
-from numpy import linalg
 
 def don_theta_tau(donor, donor_hyds, acceptor, sp2_O_rp2, sp2_O_theta, sp3_O_rp2, sp3_O_theta,
         sp3_O_phi, sp3_N_rp2, sp3_N_theta, sp3_N_upsilon, gen_rp2, gen_theta, is_water=False):
@@ -239,8 +238,7 @@ def test_upsion_tau_acceptor(donor, donor_hyds, acceptor, r2, upsilon_low, upsil
                 " should be %d) for donor %s" % (
                 2 * len(bonded_pos), tau_sym, donor.oslIdent()))
 
-    normal = heavys[0]._hb_coord - dp
-    normal = normal / linalg.norm(normal)
+    normal = normalize_vector(heavys[0]._hb_coord - dp)
 
     if tau < 0.0:
         test = lambda ang, t=tau: ang <= 0.0 - t

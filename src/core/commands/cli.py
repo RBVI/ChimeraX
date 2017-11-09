@@ -746,7 +746,6 @@ class DynamicEnum(Annotation):
         self.__html_name = html_name
         self.values_func = values_func
 
-
     def parse(self, text, session):
         return EnumOf(self.values_func()).parse(text, session)
 
@@ -766,7 +765,7 @@ class DynamicEnum(Annotation):
             name = self.__name
         else:
             name = 'one of ' + ', '.join("<b>%s</b>" % escape(str(v))
-                                     for v in sorted(self.values_func()))
+                                         for v in sorted(self.values_func()))
         if self.url is None:
             return name
         return '<a href="%s">%s</a>' % (escape(self.url), name)
@@ -906,6 +905,24 @@ class PasswordArg(StringArg):
     def parse(text, session):
         token, text, rest = StringArg.parse(text, session)
         return token, "******", rest
+
+
+class AttrNameArg(StringArg):
+    """Annotation for a Python attribute name"""
+    name = "a Python attribute name"
+
+    @staticmethod
+    def parse(text, session):
+        token, text, rest = StringArg.parse(text, session)
+        if not text:
+            raise AnnotationError("Attribute names can't be empty strings")
+        non_underscore = text.remove('_')
+        if not non_underscore.isalnum():
+            raise AnnotationError("Attribute names can consist only of alphanumeric"
+                                  " characters and underscores")
+        if text[0].isdigit():
+            raise AnnotationError("Attribute names cannot start with a digit")
+        return token, text, rest
 
 
 class FileNameArg(Annotation):
@@ -1112,7 +1129,7 @@ class PseudobondsArg(ObjectsArg):
         pbonds = concatenate(pblist, Pseudobonds)
         return pbonds, used, rest
 
-    
+
 class BondsArg(ObjectsArg):
     """Parse command specifier for bonds"""
     name = 'a bonds specifier'
@@ -1120,7 +1137,6 @@ class BondsArg(ObjectsArg):
     @classmethod
     def parse(cls, text, session):
         objects, used, rest = super().parse(text, session)
-        from ..atomic import PseudobondGroup, interatom_pseudobonds
         bonds = objects.atoms.intra_bonds
         return bonds, used, rest
 
@@ -1865,16 +1881,16 @@ class _WordInfo:
     def is_deferred(self):
         return isinstance(self.cmd_desc, _Defer)
 
-    def lazy_register(self):
+    def lazy_register(self, cmd_name):
         deferred = self.cmd_desc
         assert(isinstance(deferred, _Defer))
         self.cmd_desc = None  # prevent recursion
         try:
             deferred.call()
         except Exception as e:
-            raise RuntimeError("delayed command registration failed (%s)" % e)
+            raise RuntimeError("delayed command registration for %r failed (%s)" % (cmd_name, e))
         if self.cmd_desc is None and not self.has_subcommands():
-            raise RuntimeError("delayed command registration didn't register the command")
+            raise RuntimeError("delayed command registration for %r didn't register the command" % cmd_name)
 
     def add_subcommand(self, word, name, cmd_desc=None, *, logger=None):
         try:
@@ -1926,7 +1942,7 @@ _aliased_commands = {}  # { name: _WordInfo instance }
 _available_commands = None
 
 
-def register(name, cmd_desc=(), function=None, *, logger=None, parent_info=None):
+def register(name, cmd_desc=(), function=None, *, logger=None, _parent_info=None):
     """register function that implements command
 
     :param name: the name of the command and may include spaces.
@@ -1962,15 +1978,15 @@ def register(name, cmd_desc=(), function=None, *, logger=None, parent_info=None)
         url = _get_help_url(words)
         if url is not None:
             cmd_desc.url = url
-    if parent_info is None:
-        parent_info = _commands
+    if _parent_info is None:
+        _parent_info = _commands
     for word in words[:-1]:
-        if not parent_info.has_subcommands():
-            word_info = parent_info.add_subcommand(word)
+        if not _parent_info.has_subcommands():
+            word_info = _parent_info.add_subcommand(word)
         else:
-            parent_info.add_subcommand(word, name)
-            word_info = parent_info.subcommands[word]
-        parent_info = word_info
+            _parent_info.add_subcommand(word, name)
+            word_info = _parent_info.subcommands[word]
+        _parent_info = word_info
 
     if isinstance(function, _Defer):
         cmd_desc = function
@@ -1982,7 +1998,7 @@ def register(name, cmd_desc=(), function=None, *, logger=None, parent_info=None)
                 print(msg)
             else:
                 logger.warning(msg)
-    parent_info.add_subcommand(words[-1], name, cmd_desc)
+    _parent_info.add_subcommand(words[-1], name, cmd_desc)
     return function     # needed when used as a decorator
 
 
@@ -2004,7 +2020,7 @@ def _get_help_url(words):
     return None
 
 
-def deregister(name, *, is_user_alias=False, parent_info=None):
+def deregister(name, *, is_user_alias=False, _parent_info=None):
     """Remove existing command and subcommands
 
     :param name: the name of the command
@@ -2013,16 +2029,16 @@ def deregister(name, *, is_user_alias=False, parent_info=None):
     # none of the exceptions below should happen
     words = name.split()
     name = ' '.join(words)  # canonicalize
-    if parent_info is None:
-        parent_info = _commands
+    if _parent_info is None:
+        _parent_info = _commands
     for word in words:
-        word_info = parent_info.subcommands.get(word, None)
+        word_info = _parent_info.subcommands.get(word, None)
         if word_info is None:
             if is_user_alias:
                 raise UserError('No alias named %s exists' % dq_repr(name))
             raise RuntimeError('unregistering unknown command: "%s"' % name)
-        parent_info = word_info
-    if is_user_alias and not parent_info.is_user_alias():
+        _parent_info = word_info
+    if is_user_alias and not _parent_info.is_user_alias():
         raise UserError('%s is not a user alias' % dq_repr(name))
 
     if word_info.has_subcommands():
@@ -2031,8 +2047,8 @@ def deregister(name, *, is_user_alias=False, parent_info=None):
 
     hidden_word = _aliased_commands.get(name, None)
     if hidden_word:
-        parent_info = hidden_word.parent
-        parent_info.subcommands[word] = hidden_word
+        _parent_info = hidden_word.parent
+        _parent_info.subcommands[word] = hidden_word
         del _aliased_commands[name]
     else:
         # allow command to be reregistered with same cmd_desc
@@ -2040,13 +2056,13 @@ def deregister(name, *, is_user_alias=False, parent_info=None):
             word_info.cmd_desc.function = None
         # remove association between cmd_desc and word
         word_info.cmd_desc = None
-        parent_info = word_info.parent
+        _parent_info = word_info.parent
         assert(len(word_info.subcommands) == 0)
-        del parent_info.subcommands[word]
+        del _parent_info.subcommands[word]
 
 
 def register_available(*args, **kw):
-    return register(*args, parent_info=_available_commands, **kw)
+    return register(*args, _parent_info=_available_commands, **kw)
 
 
 def clear_available():
@@ -2222,7 +2238,7 @@ class Command:
             cmd_name = self.current_text[self.start:self.amount_parsed]
             cmd_name = ' '.join(cmd_name.split())   # canonicalize
             if what.is_deferred():
-                what.lazy_register()
+                what.lazy_register(cmd_name)
             if what.cmd_desc is not None:
                 if no_aliases:
                     if what.is_alias():
@@ -2340,9 +2356,12 @@ class Command:
         if not tmp:
             return True
         if tmp[0].isalpha():
-            tmp = _user_kw(tmp).casefold()
-            if any(kw.casefold().startswith(tmp) for kw in self._ci._keyword_map):
+            # Don't change case of what user types.  Fixes "show O".
+            tmp = _user_kw(tmp)
+            if (any(kw.startswith(tmp) for kw in self._ci._keyword_map) or
+                    any(kw.casefold().startswith(tmp) for kw in self._ci._keyword_map)):
                 return True
+
         return False
 
     def _process_keyword_arguments(self, final, prev_annos):
@@ -2369,10 +2388,10 @@ class Command:
             arg_name = _user_kw(word)
             if arg_name not in self._ci._keyword_map:
                 self.completion_prefix = word
-                folded_arg_name = arg_name.casefold()
                 kw_map = self._ci._keyword_map
+                # Don't change case of what user types.
                 completions = [(kw, kw_map[kw][1]) for kw in kw_map
-                               if kw.casefold().startswith(folded_arg_name)]
+                               if kw.startswith(arg_name) or kw.casefold().startswith(arg_name)]
                 if (final or len(text) > len(chars)) and completions:
                     # require shortened keywords to be unambiguous
                     if len(completions) == 1:
@@ -2909,10 +2928,13 @@ def registered_commands(multiword=False, _start=None):
         words.sort(key=lambda x: x[x[0] == '~':])
         return words
 
-    def cmds(parent_info):
-        for word_info in list(parent_info.subcommands.values()):
+    def cmds(parent_cmd, parent_info):
+        for word, word_info in list(parent_info.subcommands.items()):
             if word_info.is_deferred():
-                word_info.lazy_register()
+                if parent_cmd:
+                    word_info.lazy_register('%s %s' % (parent_cmd, word))
+                else:
+                    word_info.lazy_register(word)
         words = list(parent_info.subcommands.keys())
         words.sort(key=lambda x: x[x[0] == '~':].lower())
         for word in words:
@@ -2920,11 +2942,16 @@ def registered_commands(multiword=False, _start=None):
             if word_info.is_deferred():
                 continue
             if word_info.cmd_desc:
-                yield word
+                if parent_cmd:
+                    yield '%s %s' % (parent_cmd, word)
+                else:
+                    yield word
             if word_info.has_subcommands():
-                for word2 in cmds(word_info):
-                    yield "%s %s" % (word, word2)
-    return list(cmds(parent_info))
+                if parent_cmd:
+                    yield from cmds('%s %s' % (parent_cmd, word), word_info)
+                else:
+                    yield from cmds(word, word_info)
+    return list(cmds('', parent_info))
 
 
 class Alias:
@@ -3037,7 +3064,10 @@ def list_aliases(all=False, logger=None):
         for word, word_info in list(parent_info.subcommands.items()):
             if word_info.is_deferred():
                 try:
-                    word_info.lazy_register()
+                    if partial_name:
+                        word_info.lazy_register('%s %s' % (partial_name, word))
+                    else:
+                        word_info.lazy_register(word)
                 except RuntimeError as e:
                     if logger:
                         logger.warning(str(e))

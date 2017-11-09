@@ -106,18 +106,24 @@ def _alt_loc_add_hydrogens(atom, alt_loc_atom, bonding_info, naming_schema, tota
     # delay adding Hs until all positions computed so that neighbors, etc. correct
     # for later alt locs
     added_hs = []
+    from chimerax.core.atomic import Atom
     for alt_loc, occupancy, positions in alt_loc_info:
         if added_hs:
             for h, pos in zip(added_hs, positions):
                 if h is None:
                     continue
                 h.set_alt_loc(alt_loc, True)
-                h.coord = invert * pos
+                if Atom._addh_coord == Atom.scene_coord:
+                    h.coord = invert * pos
+                else:
+                    h.coord = pos
                 h.occupancy = occupancy
         else:
             for i, pos in enumerate(positions):
+                if Atom._addh_coord == Atom.scene_coord:
+                    pos = invert * pos
                 h = new_hydrogen(atom, i+1, total_hydrogens, naming_schema,
-                                    invert * pos, bonding_info, alt_loc)
+                                    pos, bonding_info, alt_loc)
                 added_hs.append(h)
                 if h is not None:
                     h.occupancy = occupancy

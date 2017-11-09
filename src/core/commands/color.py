@@ -75,7 +75,8 @@ def color(session, objects, color=None, what=None,
                        'surfaces':'s', 'bonds':'b', 'pseudobonds':'p'}
         if target is None:
             target = ''
-        target += what_target[what]
+        for w in what:
+            target += what_target[w]
 
     from ..undo import UndoState
     undo_state = UndoState(undo_name)
@@ -464,9 +465,9 @@ _SequentialColor = {
 #
 def register_command(session):
     from . import register, CmdDesc, ColorArg, ColormapArg, ColormapRangeArg, ObjectsArg, create_alias
-    from . import EmptyArg, Or, EnumOf, StringArg, TupleOf, FloatArg, BoolArg, AtomsArg
+    from . import EmptyArg, Or, EnumOf, StringArg, ListOf, FloatArg, BoolArg, AtomsArg
     from ..map import MapArg
-    what_arg = EnumOf(('atoms', 'cartoons', 'ribbons', 'surfaces', 'bonds', 'pseudobonds'))
+    what_arg = ListOf(EnumOf(('atoms', 'cartoons', 'ribbons', 'surfaces', 'bonds', 'pseudobonds')))
     desc = CmdDesc(required=[('objects', Or(ObjectsArg, EmptyArg))],
                    optional=[('color', Or(ColorArg, EnumOf(_SpecialColors))),
                              ('what', what_arg)],

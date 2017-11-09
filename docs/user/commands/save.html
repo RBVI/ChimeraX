@@ -24,16 +24,16 @@ or derivations thereof.
 class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: save</h3>
-<h3><a href="usageconventions.html">Usage</a>:
-<br><b>save</b> &nbsp;<i>filename</i>
+
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>save</b> 
+[&nbsp;<a href="#image"><b>image</b></a>&nbsp;|&nbsp;<b>session</b>&nbsp;|&nbsp;<a href="#map"><b>map</b></a>&nbsp;]
+&nbsp;<i>filename</i>
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#formats"><i>file-format</i></a>&nbsp;]
+[&nbsp;<b>models</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 &nbsp;<i>other-options</i>
 </h3>
-<h3><a href="usageconventions.html">Usage</a>:
-<br><b>save</b> [&nbsp;<b>session</b>&nbsp;] &nbsp;<i>filename</i>
-[&nbsp;<b>format</b>&nbsp;&nbsp;<b>ses</b>&nbsp;]
-</h3>
-<h3><a href="usageconventions.html">Usage</a>:
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>save</b> <b>formats</b>
 </h3>
 <p>
@@ -46,6 +46,15 @@ as reported by <a href="pwd.html"><b>pwd</b></a>.
 The working directory can be changed with <a href="cd.html"><b>cd</b></a>.
 Giving the word <a href="usageconventions.html#browse"><b>browse</b></a>
 instead of a filename opens a file browser window for choosing it interactively.
+</p><p>
+An initial
+<b>image</b>, <b>session</b>, or <b>map</b> keyword before the <i>filename</i>
+is optional if the file type is specified with either the 
+<a href="#formats"><i>filename</i> suffix</a> or the <b>format</b> option. 
+Some file types have no preceding keyword and must be specified with the 
+<a href="#formats"><i>filename</i> suffix</a> or the <b>format</b> option. 
+If the format is specified separately, the
+appropriate suffix will be added to <i>filename</i>.
 </p><p>
 Sessions and images include all contents, but for other file types,
 the <b>models</b> option can be used to specify which model(s) to save.
@@ -71,14 +80,6 @@ See also: <a href="open.html"><b>open</b></a>,
 <p>
 The command <b>save formats</b> lists the possible output formats in the
 <a href="../tools/log.html"><b>Log</b></a>.
-</p><p>
-An initial
-<b>image</b>, <b>session</b>, or <b>map</b> keyword before the <i>filename</i>
-is optional if the file type is specified with either the <i>filename</i> 
-suffix or the <b>format</b> option. Some file types have no 
-preceding keyword and must be specified with either the <i>filename</i>
-suffix or the <b>format</b> option. If the format is specified separately, the
-appropriate suffix will be added to <i>filename</i>.
 </p>
 <table border cellpadding="4" cellspacing="0"><tr>
 <th style="background-color: #eaeaea">initial keyword</th>

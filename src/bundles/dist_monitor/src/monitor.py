@@ -63,6 +63,9 @@ class DistancesMonitor(State):
     def _update_distances(self, pseudobonds=None):
         if pseudobonds is None:
             pseudobonds = [pb for mg in self.monitored_groups for pb in mg.pseudobonds]
+            set_color = False
+        else:
+            set_color = True
         by_group = {}
         for pb in pseudobonds:
             by_group.setdefault(pb.group, []).append(pb)
@@ -70,17 +73,20 @@ class DistancesMonitor(State):
         from chimerax.label.label3d import labels_model, PseudobondLabel
         for grp, pbs in by_group.items():
             lm = labels_model(grp, create=True)
+            label_settings = { 'color': grp.color } if set_color else {}
             if self.distances_shown:
                 from .settings import settings
                 fmt = "%%.%df" % settings.precision
                 if settings.show_units:
                     fmt += u'\u00C5'
                 for pb in pbs:
+                    label_settings['text'] = fmt % pb.length
                     lm.add_labels([pb], PseudobondLabel, self.session.main_view,
-                        settings={ 'text': fmt % pb.length, 'color': grp.color })
+                        settings=label_settings)
             else:
+                label_settings['text'] = ""
                 lm.add_labels(pbs, PseudobondLabel, self.session.main_view, None,
-                    settings={ 'text': "", 'color': grp.color })
+                    settings=label_settings)
             if grp in self.update_callbacks:
                 self.update_callbacks[group]()
 

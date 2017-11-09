@@ -26,7 +26,7 @@ class _MyAPI(BundleAPI):
     def register_command(command_name, logger):
         # 'register_command' is called by the toolshed on start up
         from . import cmd
-        cmd.register_contacts(logger)
+        cmd.register_interfaces(logger)
 
     @staticmethod
     def get_class(class_name):

@@ -24,12 +24,12 @@ or derivations thereof.
 class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: size</h3>
-<h3><a href="usageconventions.html">Usage</a>:
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>size</b> &nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
-[&nbsp;atomRadius&nbsp;&nbsp;<i>r<sub><font size=-1>a</font></sub></i>&nbsp;|&nbsp;default&nbsp;]
-[&nbsp;ballScale&nbsp;&nbsp;<i>b</i>&nbsp;]
-[&nbsp;stickRadius&nbsp;&nbsp;<i>r<sub><font size=-1>b</font></sub></i>&nbsp;]
-[&nbsp;pseudobondRadius&nbsp;&nbsp;<i>r<sub><font size=-1>pb</font></sub></i>&nbsp;]
+[&nbsp;<b>atomRadius</b>&nbsp;&nbsp;<i>r<sub><font size=-1>a</font></sub></i>&nbsp;|&nbsp;default&nbsp;]
+[&nbsp;<b>ballScale</b>&nbsp;&nbsp;<i>b</i>&nbsp;]
+[&nbsp;<b>stickRadius</b>&nbsp;&nbsp;<i>r<sub><font size=-1>b</font></sub></i>&nbsp;]
+[&nbsp;<b>pseudobondRadius</b>&nbsp;&nbsp;<i>r<sub><font size=-1>pb</font></sub></i>&nbsp;]
 </h3>
 <p>
 The <b>size</b> command sets the following:
@@ -42,9 +42,10 @@ The <b>size</b> command sets the following:
 The <a href="../radii.html">default VDW radii</a>
 assigned by <a href="../atomtypes.html">atom type</a> can be restored
 by giving <b>default</b> as the value. Since VDW radii are also used to
+find interatomic <a href="clashes.html">clashes and contacts</a>,
 generate <a href="surface.html">molecular surfaces</a>,
 <a href="measure.html">measure surface areas</a>, and identify chain-chain
-<a href="contacts.html">contacts</a> based on buried surface areas,
+<a href="interfaces.html">interfaces</a> based on buried surface areas,
 it may be appropriate to restore the <b>default</b> values
 before such calculations.
 <li>

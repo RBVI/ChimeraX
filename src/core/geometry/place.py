@@ -81,7 +81,7 @@ class Place:
         self._inverse = None    # Cached inverse.
 
     def __eq__(self, p):
-        return (p.matrix == self.matrix).all()
+        return p is self or (p.matrix == self.matrix).all()
 
     def __mul__(self, p):
         '''Multiplication of a Place and a point transforms from local
@@ -347,24 +347,15 @@ def interpolate_rotation(place1, place2, fraction):
     center = (0,0,0)
     return r1.interpolate(r2, center, fraction)
 
+# look_at is called a lot when finding hbonds and having the import inside the
+# function is actually a non-trivial cost
+from ._geometry import look_at as  c_look_at
 def look_at(from_pt, to_pt, up):
     '''
     Return a Place object that represents looking from 'from_pt' to 'to_pt'
     with 'up' pointing up.
     '''
-    import numpy
-    from numpy.linalg import norm
-    normalize = lambda v: v/norm(v)
-
-    # Compute rotation
-    p01 = normalize(to_pt - from_pt)
-    x = normalize(numpy.cross(up, p01))
-    y = normalize(numpy.cross(p01, x))
-    xf = Place(axes=numpy.array([x, y, numpy.negative(p01)]),
-        origin=numpy.array([0.0, 0.0, 0.0])).transpose()
-
-    # Compute translation and return
-    return translation(numpy.negative(xf * from_pt)) * xf
+    return Place(matrix=c_look_at(from_pt, to_pt, up))
 
 def z_align(pt1, pt2):
     '''

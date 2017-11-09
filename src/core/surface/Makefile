@@ -18,7 +18,7 @@ APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/surface
 SUBDIRS	= _surface
 
 PYSRCS = __init__.py area.py cap.py collada.py colorzone.py \
-	 dust.py gaussian.py gridsurf.py icosahedron.py \
+	 drawing.py dust.py gaussian.py gridsurf.py icosahedron.py \
 	 sasa.py shapes.py split.py topology.py tube.py zone.py
 
 # All needed subdirectories must be set by now.

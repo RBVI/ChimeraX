@@ -25,11 +25,11 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: 2dlabels</h3>
 
-<h3><a href="usageconventions.html">Usage</a>:
-<br><b>2dlabels</b>&nbsp;&nbsp;<i>action</i>&nbsp;&nbsp;<i>arguments</i>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>2dlabels</b>&nbsp;(&nbsp;<b>create</b>&nbsp;|&nbsp;<b>change</b>&nbsp;|&nbsp;<b>delete</b>&nbsp;)&nbsp;<i>name</i>&nbsp;&nbsp;<i>options</i>
 </h3>
-<h3><a href="usageconventions.html">Usage</a>:
-<br><b>2dlabels fonts</b>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>2dlabels</b> &nbsp;<b>fonts</b>
 </h3>
 <p>
 The <b>2dlabels</b> command allows adding 2D text and
@@ -38,9 +38,6 @@ for presentation-quality images and movies.
 The labels can be of multiple colors and sizes.
 They exist in the X,Y plane (the plane of the screen) 
 and do not move along with the scene.
-The command <b>2dlabels fonts</b> lists the available fonts
-in the <a href="../tools/log.html"><b>Log</b></a>.
-</p><p>
 For labels that move along with the associated atoms in 3D,
 see the <a href="label.html"><b>label</b></a> command.
 See also:
@@ -49,22 +46,6 @@ See also:
 <a href="../images.html">making images</a>,
 <a href="../movies.html">making movies</a>
 </p><p>
-The <b><i>action</i></b> can be one of the following:
-</p>
-<ul>
-<li><a href="#create"><b>create</b></a>
-- create a 2D text/symbol label
-<li><a href="#change"><b>change</b></a>
-- modify a 2D text/symbol label
-<li><a href="#delete"><b>delete</b></a>
-- delete a 2D text/symbol label 
-</ul>
-<p>
-Action and argument keywords (given below) can be truncated.
-A vertical bar &ldquo;|&rdquo; designates mutually exclusive options, and
-default values are indicated with <b>bold</b>.
-Synonyms for true: True, 1.  Synonyms for false: False, 0.
-</p>
 Examples:
 <blockquote><b>
 2dlabels create lab1 text 'Green Fluorescent Protein' color light sea green size 26 xpos .03  ypos .92 vis true
@@ -72,7 +53,14 @@ Examples:
 2dlabels change lab1 ypos .03 size 40
 <br>
 2dlabels delete all
+<br>
+2dlab fonts
 </b></blockquote>
+<p>
+<b>2dlabels fonts</b> lists the available fonts
+in the <a href="../tools/log.html"><b>Log</b></a>.
+The other subcommands and their options are detailed below:
+</p>
 
 <a href="#top" class="nounder">&bull;</a>
 <a name="create"><b>2dlabels create</b></a> &nbsp;<i>name</i>
@@ -147,5 +135,5 @@ or the word <b>all</b> can be used to specify all 2D labels collectively.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2017</address>
+October 2017</address>
 </body></html> 

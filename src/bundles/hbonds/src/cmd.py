@@ -243,8 +243,13 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
                     for end in [don, acc]:
                         if end.display:
                             continue
-                        for ea in end.residue.atoms:
-                            ea.display = True
+                        res_atoms = end.residue.atoms
+                        if end.is_side_chain:
+                            res_atoms.filter(res_atoms.is_side_chains == True).displays = True
+                        elif end.is_backbone:
+                            res_atoms.filter(res_atoms.is_backbones == True).displays = True
+                        else:
+                            res_atoms.displays = True
         if pbg.id is None:
             session.models.add([pbg])
 
@@ -261,6 +266,7 @@ def restrict_hbonds(hbonds, atoms, restrict):
         custom_atoms = set(restrict)
     else:
         custom_atoms = None
+    atoms = set(atoms)
     for d, a in hbonds:
         d_in = d in atoms
         a_in = a in atoms
