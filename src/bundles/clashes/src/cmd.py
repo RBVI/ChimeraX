@@ -34,6 +34,7 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
         bond_separation=defaults["bond_separation"],
         color_atoms=defaults["action_color"],
         continuous=False,
+        dashes=None,
         distance_only=None,
         inter_model=True,
         inter_submodel=False,
@@ -50,6 +51,7 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
         save_file=None,
         set_attrs=defaults["action_attr"],
         select=defaults["action_select"],
+        show_dist=False,
         summary=True,
         test="others"):
     from chimerax.core.colors import Color
@@ -168,6 +170,8 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
         pbg.radius = pb_radius
         if pb_color is not None:
             pbg.color = pb_color.uint8x4()
+        if dashes is not None:
+            pbg.dashes = dashes
         seen = set()
         for a in clash_atoms:
             seen.add(a)
@@ -175,6 +179,10 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
                 if clasher in seen:
                     continue
                 pbg.new_pseudobond(a, clasher)
+        if show_dist:
+            session.pb_dist_monitor.add_group(pbg)
+        else:
+            session.pb_dist_monitor.remove_group(pbg)
     else:
         _xcmd(session, name)
     return clashes
@@ -256,6 +264,7 @@ def register_command(command_name, logger):
                 ('other_atom_color', Or(NoneArg,ColorArg)), ('pb_color', Or(NoneArg,ColorArg)),
                 ('pb_radius', FloatArg), ('res_separation', PositiveIntArg), ('reveal', BoolArg),
                 ('save_file', SaveFileNameArg), ('set_attrs', BoolArg), ('select', BoolArg),
+                ('show_dist', BoolArg), ('dashes', NonNegativeIntArg),
                 ('summary', BoolArg), ('test', Or(EnumOf(('others', 'self')), AtomsArg))], }
         register('clashes', CmdDesc(**kw, synopsis="Find clashes"), cmd_clashes, logger=logger)
         register('contacts', CmdDesc(**kw, synopsis="Find contacts"), cmd_contacts, logger=logger)

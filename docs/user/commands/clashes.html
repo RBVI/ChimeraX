@@ -27,7 +27,7 @@ class="clRight" title="User Guide Index"/></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br>(&nbsp;<b>clashes</b>&nbsp;|&nbsp;<b>contacts</b>&nbsp;)
 &nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>&nbsp;
-[&nbsp;<b>test</b>&nbsp;&nbsp;self&nbsp;|&nbsp;<b>other</b>&nbsp;|&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>&nbsp;]
+[&nbsp;<b>test</b>&nbsp;&nbsp;self&nbsp;|&nbsp;<b>others</b>&nbsp;|&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>&nbsp;]
 <!--
 [&nbsp;<b>overlapCutoff</b>&nbsp;&nbsp;<i>cutoff</i>&nbsp;]
 [&nbsp;<b>hbondAllowance</b>&nbsp;&nbsp;<i>allowance</i>&nbsp;]
@@ -149,15 +149,14 @@ shown with <a href="crosslinks.html#network"><b>crosslinks network</b></a>.
 <h3>Options</h3>
 
 <blockquote>
-<b>test</b>&nbsp;&nbsp;self&nbsp;|&nbsp;<b>other</b>&nbsp;|&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>
+<b>test</b>&nbsp;&nbsp;self&nbsp;|&nbsp;<b>others</b>&nbsp;|&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>
 <br>
 Which interactions to find:
 among <a href="atomspec.html"><i>atom-spec1</i></a> (<b>self</b>),
 between <a href="atomspec.html"><i>atom-spec1</i></a> and all other atoms
-(<b>other</b> or <b>others</b>, default),
-or between <a href="atomspec.html"><i>atom-spec1</i></a>
+(<b>others</b>, default), or between <a href="atomspec.html"><i>atom-spec1</i></a>
 and <a href="atomspec.html"><i>atom-spec2</i></a>.
-If set to <b>other</b> but there are no other atoms
+If set to <b>others</b> but there are no other atoms
 (because <a href="atomspec.html"><i>atom-spec1</i></a> contains all atoms),
 <b>self</b> is automatically used instead.
 </blockquote>

@@ -34,21 +34,22 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>showRibbon</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>rungs hide</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
+<br>(&nbsp;<b>~rungs</b>&nbsp;|&nbsp;<b>rungs&nbsp;hide</b>&nbsp;)
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
 </h3>
 <p>
 The <b>rungs</b> command shows a simple broken-ladder representation
-of the nucleic acid residues containing the
-<a href="atomspec.html">specified</a> atoms,
+of the nucleic acid residues containing the specified atoms,
 or if nothing is specified, all nucleic acid residues.
-The rung representation for a nucleic acid residue is a cylinder 
-from the ribose C3' to N1 (if purine) or N3 (if pyrimidine),
-implemented as a <a href="../pseudobonds.html">pseudobond</a>.
-The command <b>rungs hide</b> undisplays any rungs of the specified residues.
+A <a href="../pseudobonds.html">pseudobond model</a> named <b>rungs</b>
+is created, in which the rung for each residue is a 
+<a href="../pseudobonds.html">pseudobond</a> from the ribose C3' 
+to the nucleic acid base N1 (if purine) or N3 (if pyrimidine).
+The <b>~rungs</b> or <b>rungs hide</b> command
+undisplays any rungs of the specified residues.
 See also: 
-<a href="show.html"><b>show</b></a>,
-<a href="color.html"><b>color</b></a>,
 <a href="cartoon.html"><b>cartoon</b></a>,
+<a href="show.html"><b>show</b></a>,
 <a href="struts.html"><b>struts</b></a>
 </p><p>
 The initial default rung <b>radius</b> <i>r</i> is <b>0.5</b> &Aring;,
@@ -56,12 +57,13 @@ and the initial default <b>color</b> is to match the cartoon of each residue.
 If <b>halfbond</b> is true (initial default <b>false</b>), the <b>color</b>
 setting is not used; instead, the two halves of each rung will be colored
 to match the endpoint atoms, and will track any subsequent color changes
-of those atoms.
-Once created, rung pseudobonds retain their existing radius and color settings
-unless those settings are changed explicitly.
+of those atoms. Parameters that are not specified retain their current values.
+Color and radius can be changed with 
+subsequent uses of the <b>rungs</b> command or with other commands
+(<a href="color.html"><b>color</b></a>, <a href="size.html"><b>size</b></a>).
 </p><p>
 The <b>hideAtoms</b> option indicates hiding the atoms/bonds of the 
-<a href="atomspec.html">specified</a> residues (default <b>true</b>),
+specified residues (default <b>true</b>),
 not including the rung endpoint atoms, which must remain shown for the
 rungs themselves to be shown.
 The <b>hideHbonds</b> option (default <b>true</b>) indicates hiding any
@@ -72,17 +74,12 @@ Setting a hiding option to false will not show already hidden items, and
 setting <b>showRibbon</b> to false will not hide any cartoon segments that
 are already shown. 
 </p><p>
-The following commands can be used to show nucleic acid atoms and 
-their pre-existing H-bonds again after rungs have been hidden:
-</p>
-<blockquote><b>
-<a href="show.html">show</a> <a href="atomspec.html#builtin">nucleic</a>
-<br>
-<a href="show.html">show</a> <a href="atomspec.html#builtin">hbonds</a>
-</b></blockquote>
-<p>
-The second command may not be needed if the H-bonds were only invisible
-because their endpoint atoms were hidden.
+Showing atoms again after hiding rungs (for example, with the command:
+<b><a href="show.html">show</a> <a href="atomspec.html#builtin">nucleic</a></b>)
+may make the rungs reappear. 
+They can be hidden without hiding the atoms by <a href="show.html">hiding</a> or
+<a href="close.html">closing</a> the <b>rungs</b>
+<a href="../pseudobond.html">pseudobond model</a> by model number.
 </p>
 
 <hr>
