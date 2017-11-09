@@ -10,7 +10,8 @@
 # === UCSF ChimeraX Copyright ===
 
 def bumps(session, volume, center = None, max_radius = None, base_area = 10.0, height = 1.0,
-          marker_radius = 1.0, color = (100,200,100,255), name = 'bumps', all_extrema = False):
+          marker_radius = 1.0, marker_color = (100,200,100,255), color_surface = True,
+          name = 'bumps', all_extrema = False):
     '''
     Find protrusions on T-cells in 3d light microscopy.
 
@@ -34,7 +35,7 @@ def bumps(session, volume, center = None, max_radius = None, base_area = 10.0, h
         Minimum height of a protrusion to be marked.
     marker_radius : float
         Size of marker spheres to place at protrusion tips.
-    color : uint8 4-tuple
+    marker_color : uint8 4-tuple
         Color of markers.  Default light green.
     name : string
         Name of created marker model. Default "bumps".
@@ -47,19 +48,18 @@ def bumps(session, volume, center = None, max_radius = None, base_area = 10.0, h
 
     c = center.scene_coordinates()
     r, ijk = radial_extrema(volume, c, max_radius)
-    size_hvc = protrusion_sizes(r, ijk, volume.data, base_area, log = session.logger)
+    indices, size_hvc, mask = protrusion_sizes(r, ijk, volume.data, base_area, height,
+                                               all_extrema, log = session.logger)
 
-    if all_extrema:
-        from numpy import arange
-        keep = arange(len(ijk))
-    else:
-        keep = [i for i,(h,v,con) in enumerate(size_hvc) if h and con and h > height]
-    xyz = volume.data.ijk_to_xyz_transform * ijk[keep]
-    colors = marker_colors([size_hvc[i] for i in keep], height, color)
+    xyz = volume.data.ijk_to_xyz_transform * ijk[indices]
+    colors = marker_colors(size_hvc, height, marker_color)
     create_markers(session, xyz, marker_radius, colors, name)
 
     msg = 'Found %d bumps, minimum height %.3g, base area %.3g' % (len(xyz), height, base_area)
     session.logger.status(msg, log=True)
+
+    if color_surface:
+        color_surface_from_mask(volume, mask)
     
 def register_bumps_command(logger):
 
@@ -73,7 +73,8 @@ def register_bumps_command(logger):
                    ('base_area', FloatArg),
                    ('height', FloatArg),
                    ('marker_radius', FloatArg),
-                   ('color', Color8Arg),
+                   ('marker_color', Color8Arg),
+                   ('color_surface', BoolArg),
                    ('name', StringArg),
                    ('all_extrema', BoolArg),],
         required_arguments = ['center'],
@@ -94,12 +95,15 @@ def radial_extrema(volume, center_point, max_radius):
     ijk = array(rmax.nonzero()[::-1]).transpose()
     return r, ijk
 
-def protrusion_sizes(r, ijk, data, base_area, log = None):
+def protrusion_sizes(r, ijk, data, base_area, height,
+                     keep_all = False, log = None):
     covered = set()
     rval = r[ijk[:,2],ijk[:,1],ijk[:,0]]
-    from numpy import argsort
+    from numpy import argsort, zeros, int32, array
     ro = argsort(rval)[::-1]
-    sizes = [None]*len(ro)
+    sizes = []
+    indices = []
+    mask = zeros(r.shape, int32)
     for c,o in enumerate(ro):
         p = ijk[o]
         if tuple(p) in covered:
@@ -109,13 +113,18 @@ def protrusion_sizes(r, ijk, data, base_area, log = None):
             from math import pow
             voxel_area = pow(voxel_volume, 2/3)
             base_count = base_area / voxel_area
-            h, v, con, reached = protrusion_height(r, p, base_count)
-            covered.update(reached)
+            h, v, con, points = protrusion_height(r, p, base_count)
+            covered.update(points)
             v *= voxel_volume
-        sizes[o] = (h,v,con)
-        if c % 10 == 0 and log is not None:
+        if keep_all or (h and h >= height and con):
+            indices.append(o)
+            sizes.append((h,v,con))
+            if h is not None:
+                pp = array(tuple(points), int32)
+                mask[pp[:,2],pp[:,1],pp[:,0]] = len(indices)
+        if c % 50 == 0 and log is not None:
             log.status('Protrusion height %d of %d' % (c, len(ijk)))
-    return sizes
+    return indices, sizes, mask
 
 def radius_map(data, center_point):
     # Compute radius map.
@@ -211,4 +220,37 @@ def neighbors(ijk, ijk_max):
              and k0+k>=0 and j0+j>=0 and i0+i>=0
              and k0+k<ksz and j0+j<jsz and i0+i<isz)]
     return n
+
+def color_surface_from_mask(volume, mask):
+    # Color maps using protrusion mask.
+    emask = extend_mask(mask)
+    from chimerax.core.geometry import Place
+    tf = Place().matrix
+    n = mask.max()
+    from numpy import random, uint8, int32, float32, empty
+    pcolors = random.randint(0, 255, (n+1,4), dtype = uint8)
+    pcolors[:,3] = 255
+    from chimerax.core.map import _map
+    for d in volume.surface_drawings:
+        values = empty((len(d.vertices),), float32)
+        _map.interpolate_volume_data(d.vertices, tf, emask, 'nearest', values)
+        mi = values.astype(int32)      # Interpolated values are float, not int.
+        pcolors[0,:] = d.color
+        d.vertex_colors = pcolors[mi]
     
+def extend_mask(mask):
+    mn = max_neighbors(mask)
+    mn *= (mask == 0)
+    mn += mask
+    return mn
+
+def max_neighbors(a):
+    m = a.copy()
+    from numpy import maximum
+    maximum(m[:-1,:,:], a[1:,:,:], m[:-1,:,:])
+    maximum(m[1:,:,:], a[:-1,:,:], m[1:,:,:])
+    maximum(m[:,:-1,:], a[:,1:,:], m[:,:-1,:])
+    maximum(m[:,1:,:], a[:,:-1,:], m[:,1:,:])
+    maximum(m[:,:,:-1], a[:,:,1:], m[:,:,:-1])
+    maximum(m[:,:,1:], a[:,:,:-1], m[:,:,1:])
+    return m
