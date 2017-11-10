@@ -24,9 +24,26 @@
 
     <p>
       Mark all protrusions of map one using center point defined by model #2 (a single marker),
-      with protrusion base area 100, height 1, and maximum distance from center 75.  Height,
-      distance and area are in physical units, e.g. micron and micron**2.
+      with protrusion base area 100, height 1, and maximum distance from center 75.  
     </p>
+
+    <p>
+      To place the single
+      marker at the center of the cell one method is to use the marker placement mouse mode
+      (the yellow ball on gray surface in the column of mouse mode icons on the left edge of the
+      ChimeraX window).  Use the "Place marker at center of connected surface" mode set in the
+      "Markers" panel that appears on the right when the mouse mode is enabled.  Use a threshold
+      for the map so that the cell of interest is not connected to other cells, and right click on
+      that cell to place the single marker.
+    </p>
+
+    <p>
+      Height, distance and area are in physical units, typically micron and micron**2.
+      The distances used in this example are not in microns because the 3D image data used did
+      not have the voxel size set in microns, instead it defaulted to voxel size 1, so the distances
+      are in image grid index units.
+    </p>
+    
 
     <pre>
     bumps #1 center #2 height 1 base 100 range 75
