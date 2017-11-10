@@ -60,6 +60,9 @@ def register_bumps_command(logger):
     from chimerax.core.commands import CenterArg, FloatArg, Color8Arg, StringArg, BoolArg, SaveFileNameArg, ModelsArg
     from chimerax.core.map import MapArg
 
+    from os.path import dirname, join
+    help_url = 'help:' + join(dirname(__file__), 'bumps.html')
+    
     desc = CmdDesc(
         required = [('volume', MapArg)],
         keyword = [('center', CenterArg),
@@ -72,14 +75,16 @@ def register_bumps_command(logger):
                    ('name', StringArg),
                    ('all_extrema', BoolArg),],
         required_arguments = ['center'],
-        synopsis = 'Mark protrusions in 3D image data'
+        synopsis = 'Mark protrusions in 3D image data',
+        url = help_url
     )
     register('bumps', desc, bumps, logger=logger)
     desc = CmdDesc(
         optional = [('bumps', ModelsArg)],
         keyword = [('save', SaveFileNameArg),
                    ('signal_map', MapArg)],
-        synopsis = 'Output table reporting protrusions in 3D image data'
+        synopsis = 'Output table reporting protrusions in 3D image data',
+        url = help_url
     )
     register('bumps report', desc, bumps_report, logger=logger)
 
@@ -97,7 +102,10 @@ def bumps_report(session, bumps = None, save = None, signal_map = None):
     signal : Volume
         Report the sum of intensity values from this map for each protrusion.
     '''
-    bmodels = [m for m in bumps if isinstance(m, Bumps)]
+    if bumps is None:
+        bmodels = session.models.list(type=Bumps)
+    else:
+        bmodels = [m for m in bumps if isinstance(m, Bumps)]
     text = '\n\n'.join([m.bumps_report(signal_map) for m in bmodels])
     if save:
         f = open(save, 'w')
