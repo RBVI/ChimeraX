@@ -34,11 +34,10 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>distanceOnly</b>&nbsp;&nbsp;<i>dist</i>&nbsp;]
 -->
 [&nbsp;<b>reveal</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>showDist</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>pbColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>colorname</i></a>&nbsp;]
 [&nbsp;<b>pbRadius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
-<!--
 [&nbsp;<a href="#name"><b>name</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
--->
 &nbsp;<a href="#options"><i>other-options</i></a></h3>
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -110,17 +109,16 @@ a center-to-center distance cutoff instead.
 Both measures are reported in the detailed results.
 </p><p>
 By <a href="#makePseudobonds">default</a>,
-clashes/contacts are shown as <a href="../pseudobonds.html">pseudobonds</a>,
-and their <a href="#pbColor">color</a> and <a href="#pbRadius">radius</a>
-can be specified.
+clashes/contacts are shown as <a href="../pseudobonds.html">pseudobonds</a>.
 A pseudobond is only shown when both of its endpoint atoms are shown;
-<a href="#reveal"><b>reveal true</b></a>
-can be used to display atoms as needed so that 
-all of the interactions will be shown.
-The default name of the pseudobond model for creation
+<b>reveal true</b> can be used to display atoms as needed
+so that all of the interactions will be shown (<a href="#reveal">details...</a>).
+The pseudobonds can be <a href="#showDist">labeled by distance</a>,
+and their <a href="#pbColor">color</a>, <a href="#pbRadius">radius</a>,
+and <a href="#dashes">number of dashes</a> can be specified.
+The default <a href="#name">name</a> of the pseudobond model for creation
 (and for removal with <b>~clashes</b> or <b>~contacts</b>) 
-is <b>clashes</b> or <b>contacts</b>,
-but different names can be <a href="#name">assigned</a>.
+is <b>clashes</b> or <b>contacts</b>.
 When multiple pseudobond models have the same name, specific models can be
 removed with the <a href="close.html"><b>close</b></a> command.
 </p><p>
@@ -233,6 +231,16 @@ with the side effect of showing any backbone atoms that are
 displayed but suppressed by the cartoon.
 </blockquote>
 <blockquote>
+<a name="showDist"></a>
+<b>showDist</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>Whether to label the <a href="../pseudobonds.html">pseudobonds</a>
+with the corresponding distances. Label color, size, and font can be
+adjusted with the <a href="label.html"><b>label</b></a> command,
+which can also be used to add the labels later or to delete them.
+The distances (pseudobond lengths) can also be plotted as a histogram with
+<a href="crosslinks.html#histogram"><b>crosslinks histogram</b></a>.
+</blockquote>
+<blockquote>
 <a name="pbColor"></a>
 <b>pbColor</b> &nbsp;<a href="colornames.html"><i>colorname</i></a>
 <br>
@@ -251,9 +259,20 @@ Radius in &Aring; to use for the <a href="../pseudobonds.html">pseudobonds</a>
 can be changed later with <a href="size.html"><b>size</b></a>.
 </blockquote>
 <blockquote>
+<a name="dashes"></a>
+<b>dashes</b> &nbsp;<i>N</i>
+<br>Number of dashes to use for <a href="../pseudobonds.html">pseudobonds</a>
+depicting interactions (default <b>6</b>).
+Only whole numbers are accepted, with 0
+indicating solid sticks. Currently, odd numbers are rounded down
+to give an even number of dashes. The number of dashes
+can be changed later with <a href="style.html"><b>style</b></a>.
+</blockquote>
+<blockquote>
 <a name="name"></a>
 <b>name</b> &nbsp;<i>name</i>
 <br>Name for the <a href="../pseudobonds.html">pseudobond model</a>
+created to show interactions
 (default <b>clashes</b> or <b>contacts</b>, also the default name for deletion
 with <b>~clashes</b> or <b>~contacts</b>). Using a new name creates a separate
 model that can be hidden/shown/closed independently.
@@ -275,6 +294,12 @@ Whether to look for interactions between
 <br>
 Interactions between atoms that are &le; <i>N</i> bonds apart
 will be ignored (<i>N</i>=<b>4</b> by default).
+</blockquote>
+<blockquote>
+<b>resSeparation</b> &nbsp;<i>N</i>
+<br>
+If given, only consider interactions between residues
+at least <i>N</i> apart in sequence.
 </blockquote>
 <blockquote>
 <b>intraRes</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
@@ -366,12 +391,12 @@ Disallowed with <a href="#continuous">continuous monitoring</a>.
 </blockquote>
 <blockquote>
 <a name="namingStyle"></a>
-<b>namingStyle</b> simple&nbsp;|&nbsp;command&nbsp;|&nbsp;serial</a>
+<b>namingStyle</b> &nbsp;<b>simple</b>&nbsp;|&nbsp;command&nbsp;|&nbsp;serial</a>
 <br>
 How to describe atoms in contact/clash information written
 to a <a href="#saveFile">file</a> or the <a href="#log">log</a>:
 <ul>
-<li><b>simple</b> - chain ID (preceded by slash),
+<li><b>simple</b> (default) - chain ID (preceded by slash),
 residue name, residue number, atom name (for example, /B ASN 21 OD1)
 <li><b>command</b>
 - <a href="atomspec.html#hierarchy">command-line specifier</a>
