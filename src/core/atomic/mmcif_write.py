@@ -60,6 +60,8 @@ def write_mmcif(session, path, models=None):
     f.write(text)
     f.close()
 
+    session.logger.warning("<b><i>Current mmCIF file output only includes atom coordinates and secondary structure but is missing sequences and other data.  We will provide more complete mmCIF output in future ChimeraX versions.</i></b>", is_html=True)
+
 atom_site_header = '''loop_
 _atom_site.id 
 _atom_site.type_symbol 
