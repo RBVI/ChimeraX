@@ -3,12 +3,12 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 # PYTHON_VERSION is in config.make
-PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).1
+PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).3
 DISTRIBUTION = Python-$(PYTHON_PATCH_LEVEL).tar.xz
 SOURCE = $(tmpdir)/Python-$(PYTHON_PATCH_LEVEL)
 
 PIP_VERSION = 9.0.1
-WHEEL_VERSION = 0.29.0
+WHEEL_VERSION = 0.30.0
 
 ifdef WIN32
 DYNLOAD_DIR = $(bindir)/DLLs
