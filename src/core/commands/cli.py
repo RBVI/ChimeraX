@@ -472,6 +472,7 @@ class Aggregate(Annotation):
         used = ''
         if self.prefix and text.startswith(self.prefix):
             text = text[len(self.prefix):]
+            used += self.prefix
         while 1:
             i = text.find(self.separator)
             if i == -1:
