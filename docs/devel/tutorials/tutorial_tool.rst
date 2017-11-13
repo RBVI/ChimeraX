@@ -188,13 +188,132 @@ menu item from the ``Tools`` menu.
     :language: python
     :linenos:
 
+``chimerax.core.ui.HtmlToolInstance`` is the base class for
+simplifying construction of tools with HTML-based graphical
+interface.  When an instance of a subclass of ``HtmlToolInstance``
+is created, its constructor must call the ``HtmlToolInstance``
+constructor to set up the graphical interface framework.
+The arguments to the ``HtmlToolInstance`` constructor is the
+session and the tool name.  An optional argument, ``size_hint``,
+may be supplied to guide the tool layout, but, as the name suggests,
+it is only a hint and may not be honored.
+The superclass constructor creates a ChimeraX tool which contains
+a single widget for displaying an HTML page.  The widget is
+accessible using the ``html_view`` attribute, an instance of
+``chimerax.core.ui.widgets.HtmlView``.  In this example, the
+``TutorialGUI`` constructor calls its superclass constructor
+and then its own ``_build_ui`` method, which simply constructs
+the URL to a static HTML file in the bundle Python package and
+displays it in the widget using ``self.html_view.setUrl``.
+
+The ``HtmlToolInstance`` class also helps manage threading
+issues that arise from the way HTML is displayed using `PyQt5`_.
+The underlying `Qt WebEngine`_ machinery uses a separate thread
+for rendering HTML, so developers need to make sure that code
+is run in the proper thread.  In particular, access to shared
+data must be synchronized between the Qt main and WebEngine
+threads.  ``HtmlToolInstance`` simplifies the issues by calling
+subclass methods in the main thread when an interesting event
+occurs in the WebEngine thread.
+
+The ``HtmlToolInstance`` constructor checks the derived
+class for the presence of an attribute, ``CUSTOM_SCHEME`` and
+a method, ``handle_scheme``.  If both are defined, then 
+the base class will arrange for ``handle_scheme`` to be called
+(in the main thread) whenever a link matching ``CUSTOM_SCHEME``
+is followed.  In this example, the custom scheme is ``tutorial``
+(line 31), so when the user clicks on links such as
+``tutorial:cofm`` and ``tutorial:highlight`` (see ``gui.html``
+below), ``handle_scheme`` is called with the clicked URL as
+its lone argument.  Currently, the argument is an instance
+of ``PyQt5.QtCore.QUrl`` but that may change later to remove
+explicit dependency on PyQt.  ``handle_scheme`` is expected
+to parse the URL and take appropriate action depending on
+the data.  In this example, the `URL`_ *path* is a command
+name and the *query* contains data for command arguments.
+Three command names are supported: ``update_models``, ``cofm``,
+and ``highlight``.  ``update_models`` is invoked when the page
+is loaded (see ``gui.html`` below) and is handled as special case
+(see below).
+For the other commands, known query fields are ``target``,
+``model``, ``color``, ``count``, ``weighted`` and ``transformed``.
+The command names and query fields are combined to generate
+a ChimeraX command string, which is then executed using
+``chimerax.core.commands.run``.  The main benefit of executing
+a command string is automatic display of command and replies
+in the ChimeraX log.
+
+The ``HtmlToolInstance`` class also helps monitoring the
+opening and closing of models.  If the derived class defines
+a method named ``update_models``, the method will be called
+whenever a new models is opened or an existing model is closed.
+Note that this is *not* when a model instance is *created*
+or *deleted*, because transient models that are not shown to
+the user (opened) do not trigger calls to ``update_models``.
+``update_models`` is typically called with two arguments:
+the name of the triggering event (either "add models" or
+"remove models") and the list of models added or removed.
+In this example, ``update_models`` is used for updating
+the HTML drop-down list of models, so only the currently
+opened models are important, and neither the trigger
+name nor the models added or removed is relevant.
+In fact, its arguments are given default values so that
+``update_models`` can be called with no arguments when
+the HTML page is first loaded.  Whether called in response
+to model addition/removal or HTML events, ``update_models``
+does the following:
+
+#. build a list of 2-tuples of (*display text*, *atom_specifier*),
+   one for each open model.
+#. convert the list into HTML strings of ``option`` elements.
+#. concatenated into a single HTML text string.
+#. set a string to "true" or "false" depending on whether there are
+   any models open.
+#. combine the HTML text string and the boolean string with a
+   JavaScript template to generate a JavaScript script.
+#. execute the JavaScript script in the HTML widget using
+   ``self.html_view.runJavaScript``.
+
+Note the conversion from Python string to JavaScript string is
+accomplished using ``json.dumps``, which properly handles special
+characters such as quotes.  The JavaScript template uses standard
+`JavaScript HTML DOM`_ functionality to manipulate the HTML page
+contents.
+
 
 ``gui.html``
 ----------
 
+``gui.html`` is an `HTML 5`_ file containing the skeleton of
+the graphical user interface, consisting of a form with multiple
+elements such as check boxes for boolean options and radio
+buttons for multiple-choice options.  Even more exotic inputs
+like color selection or date and time are supported in
+`HTML 5 forms`_.
+
+
 .. literalinclude:: ../../../src/examples/tutorials/tut_gui/src/gui.html
     :language: html
     :linenos:
+
+
+The ``name`` attributes in the HTML form elements correspond
+to the query field names, and are exactly the same set
+of query field names expected by ``handle_scheme`` in
+``gui.py``.
+
+The ``select`` element is the drop-down list that is modified when
+``update_models`` runs its generated JavaScript script.
+To make the element easier to find, it not only has a ``name``
+attribute, which does not have to be unique among all elements,
+but also an ``id`` attribute, which is (or should be) unique.
+The JavaScript ``getElementById`` function returns a single element,
+whereas ``getElementsByName`` function returns a list of elements.
+
+The two ``submit`` buttons are tagged with class name ``submit``
+so that they can be found using ``getElementsByClassName``.
+The buttons are enabled or disabled in the same JavaScript
+script that updates the drop-down list of models.
 
 
 .. include:: build_test_distribute.rst

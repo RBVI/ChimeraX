@@ -9,6 +9,11 @@
   <Synopsis>Find protrusions in density maps</Synopsis>
   <Description>Find protrusions of cells in light microscopy 3d images.</Description>
 
+  <DataFiles>
+    <DataFile>bumps.html</DataFile>
+    <DataFile>bumps.png</DataFile>
+  </DataFiles>
+
   <Categories>
     <Category name="Volume Data"/>
   </Categories>
