@@ -340,7 +340,12 @@ class ConfigFile:
             raise AttributeError("Unknown property name: %s" % name)
         if only_use_defaults:
             raise UserError("Custom configuration is disabled")
-        if value == self.PROPERTY_INFO[name].default:
+        # numpy has a retarded overload of __eq__, so...
+        if type(value).__module__ == "numpy":
+            test = lambda default: (value == default).all()
+        else:
+            test = lambda default: value == default
+        if test(self.PROPERTY_INFO[name].default):
             if name not in self._config['DEFAULT']:
                 # name is not in ini file and is default, so don't save it
                 return
@@ -481,10 +486,6 @@ class Value:
         if new_value != value:
             raise ValueError('value changed while saving it')
         return str_value
-
-    def default(self):
-        return self.default
-
 
 if __name__ == '__main__':
     # simple test

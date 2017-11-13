@@ -19,7 +19,7 @@ TODO
 """
 
 from ..core_settings import settings as core_settings
-from .options import SymbolicEnumOption, RgbaOption
+from .options import SymbolicEnumOption, ColorOption
 from .widgets import hex_color_name
 
 class AtomSpecOption(SymbolicEnumOption):
@@ -66,7 +66,7 @@ class CoreSettingsPanel:
         'bg_color': (
             "Background color",
             "Background",
-            RgbaOption,
+            ColorOption,
             "set bgColor %s",
             hex_color_name,
             lambda ses, cb: ses.triggers.add_handler("background color changed", cb),
@@ -75,11 +75,12 @@ class CoreSettingsPanel:
     }
 
     def __init__(self, session, ui_area):
-        from PyQt5.QtWidgets import QTabWidget, QBoxLayout
+        from PyQt5.QtWidgets import QTabWidget, QBoxLayout, QWidget, QPushButton
         from .options import OptionsPanel
         self.session = session
+        self.options = {}
         panels = {}
-        tab_widget = QTabWidget()
+        self.tab_widget = tab_widget = QTabWidget()
         categories = []
 
         for setting, setting_info in self.settings_info.items():
@@ -94,14 +95,36 @@ class CoreSettingsPanel:
             opt = opt_class(opt_name, getattr(core_settings, setting), self._opt_cb,
                 attr_name=setting, balloon=balloon)
             panel.add_option(opt)
+            self.options[setting] = opt
             if notifier is not None:
-                notifier(session, lambda tn, data, fetch=fetcher, ses=session, opt=opt: opt.set(fetch(ses)))
+                notifier(session,
+                    lambda tn, data, fetch=fetcher, ses=session, opt=opt: opt.set(fetch(ses)))
 
         categories.sort()
         for category in categories:
             tab_widget.addTab(panels[category], category)
-        layout = QBoxLayout(QBoxLayout.LeftToRight)
+        layout = QBoxLayout(QBoxLayout.TopToBottom)
         layout.addWidget(tab_widget)
+
+        button_container = QWidget()
+        bc_layout = QBoxLayout(QBoxLayout.LeftToRight)
+        bc_layout.setContentsMargins(0, 0, 0, 0)
+        save_button = QPushButton("Save")
+        save_button.clicked.connect(self._save)
+        save_button.setToolTip("Save as startup defaults")
+        bc_layout.addWidget(save_button)
+        reset_button = QPushButton("Reset")
+        reset_button.clicked.connect(self._reset)
+        reset_button.setToolTip("Reset to initial-installation defaults")
+        bc_layout.addWidget(reset_button)
+        restore_button = QPushButton("Restore")
+        restore_button.clicked.connect(self._restore)
+        restore_button.setToolTip("Restore from saved defaults")
+        bc_layout.addWidget(restore_button)
+
+        button_container.setLayout(bc_layout)
+        layout.addWidget(button_container)
+
         ui_area.setLayout(layout)
 
     def _opt_cb(self, opt):
@@ -123,3 +146,44 @@ class CoreSettingsPanel:
         else:
             updater(self.session, opt.value)
 
+    def _reset(self, all_categories=False):
+        from ..configfile import Value
+        if not all_categories:
+            cur_cat = self.tab_widget.tabText(self.tab_widget.currentIndex())
+        for setting, setting_info in self.settings_info.items():
+            if not all_categories and setting_info[1] != cur_cat:
+                continue
+            default_val = core_settings.PROPERTY_INFO[setting]
+            if isinstance(default_val, Value):
+                default_val = default_val.default
+            opt = self.options[setting]
+            opt.set(default_val)
+            self._opt_cb(opt)
+
+    def _restore(self, all_categories=False):
+        if not all_categories:
+            cur_cat = self.tab_widget.tabText(self.tab_widget.currentIndex())
+        for setting, setting_info in self.settings_info.items():
+            if not all_categories and setting_info[1] != cur_cat:
+                continue
+            restore_val = core_settings.saved_value(setting)
+            opt = self.options[setting]
+            opt.set(restore_val)
+            self._opt_cb(opt)
+
+    def _save(self, all_categories=False):
+        # need to ensure "current value" is up to date before saving...
+        cur_cat = self.tab_widget.tabText(self.tab_widget.currentIndex())
+        for setting, setting_info in self.settings_info.items():
+            if not all_categories and setting_info[1] != cur_cat:
+                continue
+            opt = self.options[setting]
+            setattr(core_settings, setting, opt.get())
+        if all_categories:
+            core_settings.save()
+            return
+        save_settings = []
+        for setting, setting_info in self.settings_info.items():
+            if setting_info[1] == cur_cat:
+                save_settings.append(setting)
+        core_settings.save(settings=save_settings)

@@ -225,6 +225,13 @@ class RgbaOption(Option):
         self.widget = MultiColorButton(max_size=(16,16), has_alpha_channel=True)
         self.widget.color_changed.connect(lambda c, s=self: s._make_callback())
 
+class ColorOption(RgbaOption):
+    """Option for rgba colors"""
+
+    def get(self):
+        from ...colors import Color
+        return Color(rgba=RgbaOption.get(self))
+
 class SymbolicEnumOption(EnumOption):
     """Option for enumerated values with symbolic names"""
     values = ()
