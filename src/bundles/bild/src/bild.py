@@ -379,13 +379,21 @@ def _cvt_color(color):
     return color
 
 
+def _xform_normals(xform, normals):
+    # transform normal correctly even if there is scaling or shear
+    m = xform.zero_translation()
+    m = m.inverse()
+    m = m.transpose()
+    return m.apply_without_translation(normals)
+
+
 def get_sphere(radius, center, xform=None):
     # TODO: vary number of triangles with radius
     vertices, normals, triangles = surface.sphere_geometry2(200)
     vertices = vertices * radius + center
     if xform is not None:
         vertices = xform * vertices
-        normals = xform.apply_without_translation(normals)
+        normals = _xform_normals(xform, normals)
         normalize_vectors(normals)
     return vertices, normals, triangles
 
@@ -397,10 +405,11 @@ def get_cylinder(radius, p0, p1, closed=True, xform=None):
     xf = z_align(p0, p1)
     inverse = xf.inverse()
     vertices = inverse * (vertices + [0, 0, h / 2])
+    # don't need to use _xform_normals because inverse is orthonormal
     normals = inverse.apply_without_translation(normals)
     if xform is not None:
         vertices = xform * vertices
-        normals = xform.apply_without_translation(normals)
+        normals = _xform_normals(xform, normals)
         normalize_vectors(normals)
     return vertices, normals, triangles
 
@@ -413,10 +422,11 @@ def get_dashed_cylinder(count, radius, p0, p1, closed=True, xform=None):
     xf = z_align(p0, p1)
     inverse = xf.inverse()
     vertices = inverse * (vertices + [0, 0, h / 2])
+    # don't need to use _xform_normals because inverse is orthonormal
     normals = inverse.apply_without_translation(normals)
     if xform is not None:
         vertices = xform * vertices
-        normals = xform.apply_without_translation(normals)
+        normals = _xform_normals(xform, normals)
         normalize_vectors(normals)
     return vertices, normals, triangles
 
@@ -425,7 +435,7 @@ def get_box(llb, urf, xform=None):
     vertices, normals, triangles = surface.box_geometry(llb, urf)
     if xform is not None:
         vertices = xform * vertices
-        normals = xform.apply_without_translation(normals)
+        normals = _xform_normals(xform, normals)
         normalize_vectors(normals)
     return vertices, normals, triangles
 
@@ -437,9 +447,10 @@ def get_cone(radius, p0, p1, bottom=False, xform=None):
     xf = z_align(p0, p1)
     inverse = xf.inverse()
     vertices = inverse * vertices
+    # don't need to use _xform_normals because inverse is orthonormal
     normals = inverse.apply_without_translation(normals)
     if xform is not None:
         vertices = xform * vertices
-        normals = xform.apply_without_translation(normals)
+        normals = _xform_normals(xform, normals)
         normalize_vectors(normals)
     return vertices, normals, triangles
