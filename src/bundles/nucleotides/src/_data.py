@@ -684,7 +684,7 @@ def get_cylinder(radius, p0, p1, bottom=True, top=True):
 
 def get_sphere(radius, pt):
     # TODO: chose number of triangles
-    vertices, normals, triangles = sphere_geometry2(30)
+    vertices, normals, triangles = sphere_geometry2(300)
     vertices = vertices * radius + pt
     return vertices, normals, triangles
 
@@ -752,13 +752,13 @@ def draw_slab(nd, residue, style, thickness, orient, shape, show_gly):
     xf = xf * standard["correction factor"]
 
     color = atoms[0].color
-    half_thickness = thickness / 2.0
+    half_thickness = thickness / 2
 
     llx, lly = slab_corners[0]
     llz = -half_thickness
     urx, ury = slab_corners[1]
     urz = half_thickness
-    center = (llx + urx) / 2.0, (lly + ury) / 2.0, 0
+    center = (llx + urx) / 2, (lly + ury) / 2, 0
     if shape == 'box':
         llb = (llx, lly, llz)
         urf = (urx, ury, urz)
@@ -768,16 +768,17 @@ def draw_slab(nd, residue, style, thickness, orient, shape, show_gly):
     elif shape == 'tube':
         radius = (urx - llx) / 2 * _SQRT2
         xf2 = xf * translation(center)
-        xf2 = xf2 * scale(1, 1, half_thickness * _SQRT2 / radius)
+        xf2 = xf2 * scale((1, 1, half_thickness * _SQRT2 / radius))
         height = ury - lly
-        va, na, ta = get_cylinder(radius, (0, -height, 0), (0, height, 0))
+        va, na, ta = get_cylinder(radius, numpy.array((0, -height / 2, 0)),
+                                  numpy.array((0, height / 2, 0)))
         renormalize = True
     elif shape == 'ellipsoid':
         # need to reach anchor atom
         xf2 = xf * translation(center)
         sr = (ury - lly) / 2 * _SQRT3
-        xf2 = xf2 * scale((urx - llx) / 2 * _SQRT3 / sr, 1,
-                        half_thickness * _SQRT3 / sr)
+        xf2 = xf2 * scale(((urx - llx) / 2 * _SQRT3 / sr, 1,
+                           half_thickness * _SQRT3 / sr))
         va, na, ta = get_sphere(sr, (0, 0, 0))
         renormalize = True
     else:
@@ -785,8 +786,12 @@ def draw_slab(nd, residue, style, thickness, orient, shape, show_gly):
 
     description = '%s %s' % (residue.atomspec(), tag)
     va = xf2 * va
-    na = xf2.apply_without_translation(na)
     if renormalize:
+        # since there is scaling, need to use inverse transpose for normals
+        tmp = xf2.zero_translation()
+        tmp = tmp.inverse()
+        tmp = tmp.transpose()
+        na = tmp.apply_without_translation(na)
         normalize_vectors(na)
     nd.add_shape(va, na, ta, color, atoms, description)
 
