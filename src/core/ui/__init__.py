@@ -15,4 +15,5 @@ from .mousemodes import MouseMode, SelectMouseMode, RotateMouseMode, TranslateMo
                 RotateSelectedMouseMode, TranslateSelectedMouseMode, ZoomMouseMode, mod_key_info
 from .ui_cmd import register_ui_command
 from .htmltool import HtmlToolInstance
+from .font import shrink_font
 # Do not import anything from .gui so nogui mode works when UI toolkit can't be imported

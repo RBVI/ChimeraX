@@ -75,7 +75,9 @@ class CoreSettingsPanel:
     }
 
     def __init__(self, session, ui_area):
-        from PyQt5.QtWidgets import QTabWidget, QBoxLayout, QWidget, QPushButton
+        from PyQt5.QtWidgets import QTabWidget, QBoxLayout, QWidget, QPushButton, QGridLayout, \
+            QCheckBox
+        from PyQt5.QtCore import Qt
         from .options import OptionsPanel
         self.session = session
         self.options = {}
@@ -104,26 +106,33 @@ class CoreSettingsPanel:
         for category in categories:
             tab_widget.addTab(panels[category], category)
         layout = QBoxLayout(QBoxLayout.TopToBottom)
-        layout.addWidget(tab_widget)
+        layout.setSpacing(5)
+        layout.addWidget(tab_widget, 1)
 
         button_container = QWidget()
-        bc_layout = QBoxLayout(QBoxLayout.LeftToRight)
+        bc_layout = QGridLayout()
         bc_layout.setContentsMargins(0, 0, 0, 0)
+        bc_layout.setVerticalSpacing(5)
+        self.all_check = QCheckBox("Buttons affect all categories")
+        self.all_check.setToolTip("If not checked, buttons only affect current category")
+        from . import shrink_font
+        shrink_font(self.all_check)
+        bc_layout.addWidget(self.all_check, 0, 0, 1, 3, Qt.AlignRight)
         save_button = QPushButton("Save")
         save_button.clicked.connect(self._save)
         save_button.setToolTip("Save as startup defaults")
-        bc_layout.addWidget(save_button)
+        bc_layout.addWidget(save_button, 1, 0)
         reset_button = QPushButton("Reset")
         reset_button.clicked.connect(self._reset)
         reset_button.setToolTip("Reset to initial-installation defaults")
-        bc_layout.addWidget(reset_button)
+        bc_layout.addWidget(reset_button, 1, 1)
         restore_button = QPushButton("Restore")
         restore_button.clicked.connect(self._restore)
         restore_button.setToolTip("Restore from saved defaults")
-        bc_layout.addWidget(restore_button)
+        bc_layout.addWidget(restore_button, 1, 2)
 
         button_container.setLayout(bc_layout)
-        layout.addWidget(button_container)
+        layout.addWidget(button_container, 0)
 
         ui_area.setLayout(layout)
 
@@ -146,8 +155,9 @@ class CoreSettingsPanel:
         else:
             updater(self.session, opt.value)
 
-    def _reset(self, all_categories=False):
+    def _reset(self):
         from ..configfile import Value
+        all_categories = self.all_check.isChecked()
         if not all_categories:
             cur_cat = self.tab_widget.tabText(self.tab_widget.currentIndex())
         for setting, setting_info in self.settings_info.items():
@@ -160,7 +170,8 @@ class CoreSettingsPanel:
             opt.set(default_val)
             self._opt_cb(opt)
 
-    def _restore(self, all_categories=False):
+    def _restore(self):
+        all_categories = self.all_check.isChecked()
         if not all_categories:
             cur_cat = self.tab_widget.tabText(self.tab_widget.currentIndex())
         for setting, setting_info in self.settings_info.items():
@@ -171,19 +182,17 @@ class CoreSettingsPanel:
             opt.set(restore_val)
             self._opt_cb(opt)
 
-    def _save(self, all_categories=False):
+    def _save(self):
+        all_categories = self.all_check.isChecked()
         # need to ensure "current value" is up to date before saving...
         cur_cat = self.tab_widget.tabText(self.tab_widget.currentIndex())
+        save_settings = []
         for setting, setting_info in self.settings_info.items():
             if not all_categories and setting_info[1] != cur_cat:
                 continue
             opt = self.options[setting]
             setattr(core_settings, setting, opt.get())
-        if all_categories:
-            core_settings.save()
-            return
-        save_settings = []
-        for setting, setting_info in self.settings_info.items():
-            if setting_info[1] == cur_cat:
-                save_settings.append(setting)
+            save_settings.append(setting)
+        # We don't simply use core_settings.save() when all_categories is True
+        # since there may be core settings that aren't presented in the GUI
         core_settings.save(settings=save_settings)
