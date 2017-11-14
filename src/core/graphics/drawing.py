@@ -485,8 +485,17 @@ class Drawing:
     '''Color for each position used when per-vertex coloring is not
     specified.'''
 
-    def get_vertex_colors(self):
-        return self._vertex_colors
+    def get_vertex_colors(self, create = False, copy = False):
+        vc = self._vertex_colors
+        if vc is None:
+            if create:
+                nv = len(self.vertices)
+                from numpy import empty, uint8
+                vc = empty((nv,4), uint8)
+                vc[:] = self.color
+        elif copy:
+            vc = vc.copy()
+        return vc
     def set_vertex_colors(self, vcolors):
         self._vertex_colors = vcolors
         self._opaque_vertex_color_count = opaque_count(vcolors)

@@ -288,18 +288,20 @@ def _set_ribbon_colors(residues, color, opacity, bgcolor, undo_state):
 def _set_surface_colors(session, atoms, color, opacity, bgcolor=None,
                         map=None, palette=None, range=None, offset=0, undo_state=None):
     # TODO: save undo data
-    from .scolor import scolor
+    from .scolor import color_surfaces_at_atoms, color_surfaces_by_map_value
     if color in _SpecialColors:
         if color == 'fromatoms':
-            ns = scolor(session, atoms, opacity=opacity, byatom=True)
+            ns = color_surfaces_at_atoms(atoms, opacity=opacity)
         else:
             # Surface colored different from atoms
             c = _computed_atom_colors(atoms, color, opacity, bgcolor)
-            ns = scolor(session, atoms, opacity=opacity, byatom=True, per_atom_colors=c)
+            ns = color_surfaces_at_atoms(atoms, opacity=opacity, per_atom_colors=c)
             
+    elif map:
+        ns = color_surfaces_by_map_value(atoms, opacity=opacity, map=map, palette=palette,
+                                        range=range, offset=offset)
     else:
-        ns = scolor(session, atoms, color, opacity=opacity,
-                    map=map, palette=palette, range=range, offset=offset)
+        ns = color_surfaces_at_atoms(atoms, color, opacity=opacity)
     return ns
 
 def _set_model_colors(session, m, color, map, opacity, palette, range, offset):
@@ -449,8 +451,8 @@ def _set_sequential_structures(session, selected, cmap, opacity, target, undo_st
             _set_ribbon_colors(m.residues, c, opacity, None, undo_state)
         if 's' in target:
             # TODO: save surface undo data
-            from .scolor import scolor
-            ns = scolor(session, m.atoms, c)
+            from .scolor import color_surfaces_at_atoms
+            color_surfaces_at_atoms(m.atoms, c)
 
 # -----------------------------------------------------------------------------
 #
