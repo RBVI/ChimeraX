@@ -18,7 +18,7 @@ import re
 import weakref
 from . import default
 import numpy
-from chimerax.core.geometry import Place, translation, scale, distance, distance_squared, z_align, Plane, normalize_vector, normalize_vectors
+from chimerax.core.geometry import Place, translation, scale, distance, distance_squared, z_align, Plane, normalize_vector
 from chimerax.core.surface import box_geometry, sphere_geometry2, cylinder_geometry
 from chimerax.core.atomic import Residues, Sequence
 nucleic3to1 = Sequence.nucleic3to1
@@ -678,7 +678,7 @@ def get_cylinder(radius, p0, p1, bottom=True, top=True):
     xf = z_align(p0, p1)
     inverse = xf.inverse()
     vertices = inverse * (vertices + [0, 0, h / 2])
-    normals = inverse.apply_without_translation(normals)
+    inverse.update_normals(normals, pure=True)
     return vertices, normals, triangles
 
 
@@ -764,7 +764,7 @@ def draw_slab(nd, residue, style, thickness, orient, shape, show_gly):
         urf = (urx, ury, urz)
         xf2 = xf
         va, na, ta = box_geometry(llb, urf)
-        renormalize = False
+        pure_rotation = True
     elif shape == 'tube':
         radius = (urx - llx) / 2 * _SQRT2
         xf2 = xf * translation(center)
@@ -772,7 +772,7 @@ def draw_slab(nd, residue, style, thickness, orient, shape, show_gly):
         height = ury - lly
         va, na, ta = get_cylinder(radius, numpy.array((0, -height / 2, 0)),
                                   numpy.array((0, height / 2, 0)))
-        renormalize = True
+        pure_rotation = False
     elif shape == 'ellipsoid':
         # need to reach anchor atom
         xf2 = xf * translation(center)
@@ -780,19 +780,13 @@ def draw_slab(nd, residue, style, thickness, orient, shape, show_gly):
         xf2 = xf2 * scale(((urx - llx) / 2 * _SQRT3 / sr, 1,
                            half_thickness * _SQRT3 / sr))
         va, na, ta = get_sphere(sr, (0, 0, 0))
-        renormalize = True
+        pure_rotation = False
     else:
         raise RuntimeError('unknown base shape')
 
     description = '%s %s' % (residue.atomspec(), tag)
-    va = xf2 * va
-    if renormalize:
-        # since there is scaling, need to use inverse transpose for normals
-        tmp = xf2.zero_translation()
-        tmp = tmp.inverse()
-        tmp = tmp.transpose()
-        na = tmp.apply_without_translation(na)
-        normalize_vectors(na)
+    xf2.move(va)
+    xf2.update_normals(na, pure=pure_rotation)
     nd.add_shape(va, na, ta, color, atoms, description)
 
     if show_gly:
@@ -809,20 +803,20 @@ def draw_slab(nd, residue, style, thickness, orient, shape, show_gly):
     if tag == PYRIMIDINE:
         center = (llx + urx) / 2.0, (lly + ury) / 2, half_thickness
         va, na, ta = get_sphere(half_thickness, center)
-        va = xf * va
-        na = xf.apply_without_translation(na)
+        xf.move(va)
+        xf.update_normals(na, pure=True)
         nd.add_shape(va, na, ta, color, atoms, description)
     else:
         # purine
         center = (llx + urx) / 2.0, lly + (ury - lly) / 3, half_thickness
         va, na, ta = get_sphere(half_thickness, center)
-        va = xf * va
-        na = xf.apply_without_translation(na)
+        xf.move(va)
+        xf.update_normals(na, pure=True)
         nd.add_shape(va, na, ta, color, atoms, description)
         center = (llx + urx) / 2.0, lly + (ury - lly) * 2 / 3, half_thickness
         va, na, ta = get_sphere(half_thickness, center)
-        va = xf * va
-        na = xf.apply_without_translation(na)
+        xf.move(va)
+        xf.update_normals(na, pure=True)
         nd.add_shape(va, na, ta, color, atoms, description)
     return True
 

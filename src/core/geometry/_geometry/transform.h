@@ -22,6 +22,7 @@ PyObject *scale_and_shift_vertices(PyObject *, PyObject *args);
 PyObject *scale_vertices(PyObject *, PyObject *args);
 PyObject *shift_vertices(PyObject *, PyObject *args);
 PyObject *affine_transform_vertices(PyObject *, PyObject *args);
+PyObject *affine_transform_normals(PyObject *, PyObject *args);
 
 }
 
