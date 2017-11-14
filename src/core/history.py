@@ -26,8 +26,8 @@ application will still work.
 from .orderedset import OrderedSet
 
 
-def filename(tag, unversioned=True):
-    """Return appropriate filename for cache file.
+def _history_filename(tag, unversioned=True):
+    """Return appropriate filename for history file.
 
     Parameters
     ----------
@@ -39,15 +39,30 @@ def filename(tag, unversioned=True):
     """
     from chimerax import app_dirs, app_dirs_unversioned
     if unversioned:
-        cache_dir = app_dirs_unversioned.user_cache_dir
+        cache_dir = app_dirs_unversioned.user_data_dir
     else:
-        cache_dir = app_dirs.user_cache_dir
-    import os
+        cache_dir = app_dirs.user_data_dir
+    import os.path
     return os.path.join(cache_dir, tag)
 
 
-class ObjectCache:
-    """Maintain an object in application's cache on disk.
+def _old_history_filename(tag, unversioned=True):
+    """Return old filename for history file.
+    A different directory was used in older ChimeraX versions
+    and this routine provides the old file location for backwards
+    compatibility.
+    """
+    from chimerax import app_dirs, app_dirs_unversioned
+    if unversioned:
+        cache_dir = app_dirs_unversioned.user_cache_dir
+    else:
+        cache_dir = app_dirs.user_cache_dir
+    import os.path
+    return os.path.join(cache_dir, tag)
+
+
+class ObjectHistory:
+    """Maintain an object in application's history on disk.
 
     Parameters
     ----------
@@ -61,15 +76,23 @@ class ObjectCache:
     """
 
     def __init__(self, tag, unversioned=True):
-        self.filename = filename(tag, unversioned)
+        self._filename = _history_filename(tag, unversioned)
+        # Older ChimeraX saved history in a location that was deleted on Mac on OS upgrades.
+        # Look in old location if file does not exist in new location for backwards compatibility.
+        self._old_filename = _old_history_filename(tag, unversioned)
 
     def load(self):
         """Return deserialized object from history file."""
         import json
-        import os
-        if not os.path.exists(self.filename):
+        from os.path import exists
+        if exists(self._filename):
+            path = self._filename
+        elif exists(self._old_filename):
+            # Backwards compatibility, history files used to be saved in a different location.
+            path = self._old_filename
+        else:
             return None
-        with open(self.filename, encoding='utf-8') as f:
+        with open(path, encoding='utf-8') as f:
             return json.load(f)
 
     def save(self, obj):
@@ -82,7 +105,7 @@ class ObjectCache:
         """
         import json
         from .safesave import SaveTextFile
-        with SaveTextFile(self.filename) as f:
+        with SaveTextFile(self._filename) as f:
             json.dump(obj, f, ensure_ascii=False)
 
 
@@ -112,7 +135,7 @@ class FIFOHistory:
                  auto_save=True):
         self._capacity = capacity
         self._auto_save = auto_save
-        self._history = ObjectCache(tag, unversioned)
+        self._history = ObjectHistory(tag, unversioned)
         obj = self._history.load()
         if obj is None:
             obj = []
@@ -224,7 +247,7 @@ class LRUSetHistory(OrderedSet):
                  auto_save=True):
         self._capacity = capacity
         self._auto_save = auto_save
-        self._history = ObjectCache(tag, unversioned)
+        self._history = ObjectHistory(tag, unversioned)
         obj = self._history.load()
         if obj is None:
             obj = []
@@ -271,7 +294,7 @@ if __name__ == '__main__':
 
     print('test LRU history file', flush=True)
     history = LRUSetHistory(128, session, 'test_history')
-    testfile = filename('test_history')
+    testfile = _history_filename('test_history')
 
     if os.path.exists(testfile):
         print('testfile:', testfile, 'already exists')
@@ -292,7 +315,7 @@ if __name__ == '__main__':
 
     print('test FIFO history file', flush=True)
     history = FIFOHistory(3, session, 'test_history')
-    testfile = filename('test_history')
+    testfile = _history_filename('test_history')
 
     if os.path.exists(testfile):
         print('testfile:', testfile, 'already exists')
