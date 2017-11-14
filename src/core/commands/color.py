@@ -319,15 +319,10 @@ def _set_model_colors(session, m, color, map, opacity, palette, range, offset):
             surfs = [m]
         else:
             surfs = []
+        from .scolor import color_surface_by_map_value
         for s in surfs:
-            from .scolor import volume_color_source
-            cs = volume_color_source(s, map, palette, range, offset=offset)
-            vcolors = cs.vertex_colors(s, session.logger.info)
-            if opacity is not None:
-                vcolors[:,3] = opacity
-            else:
-                vcolors[:,3] = s.color[3] if s.vertex_colors is None else s.vertex_colors[:,3]
-            s.vertex_colors = vcolors
+            color_surface_by_map_value(s, map, palette=palette, range=range,
+                                       offset=offset, opacity=opacity)
 
 # -----------------------------------------------------------------------------
 # Chain ids in each structure are colored from color map ordered alphabetically.

@@ -128,6 +128,16 @@ def color_surfaces_by_map_value(atoms = None, opacity = None, map = None,
 
     return len(surfs)
 
+def color_surface_by_map_value(surf, map, palette = None, range = None,
+                               offset = None, opacity = None):
+    cs = volume_color_source(surf, map, palette, range, offset=offset)
+    vcolors = cs.vertex_colors(surf, map.session.logger.info)
+    if opacity is not None:
+        vcolors[:,3] = opacity
+    else:
+        vcolors[:,3] = surf.color[3] if surf.vertex_colors is None else surf.vertex_colors[:,3]
+    surf.vertex_colors = vcolors
+
 def surface_vertex_mask(surf, atoms):
     if atoms is None:
         nv = len(surf.vertices)
