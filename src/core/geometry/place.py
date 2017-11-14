@@ -122,6 +122,19 @@ class Place:
             m34.transform_points(cxyz, self.matrix)
             return cxyz
 
+    def update_vectors(self, xyz):
+        '''Apply transform with zero shift to an array of vectors,
+        modifying the vectors in place.'''
+        m34.transform_vectors(xyz, self.matrix)
+
+    def update_normals(self, xyz, pure=False):
+        '''Apply inverse transpose of transform with zero shift to an array of normal vectors,
+        modifying the vectors in place.  Optimize if pure rotation.'''
+        if pure:
+            m34.transform_vectors(xyz, self.matrix)
+        else:
+            m34.transform_normals(xyz, self.matrix)
+
     def inverse(self):
         '''Return the inverse transform.'''
         if self._inverse is None:
