@@ -634,6 +634,19 @@ class MainWindow(QMainWindow, PlainTextLog):
         sb.showMessage("Welcome to ChimeraX")
         self.setStatusBar(sb)
 
+    def _make_settings_ui(self, session):
+        from .core_settings_ui import CoreSettingsPanel
+        from PyQt5.QtWidgets import QDockWidget, QWidget, QVBoxLayout
+        self.settings_ui_widget = dw = QDockWidget("ChimeraX settings", self)
+        dw.closeEvent = lambda e, dw=dw: dw.hide()
+        container = QWidget()
+        CoreSettingsPanel(session, container)
+        dw.setWidget(container)
+        from PyQt5.QtCore import Qt
+        self.addDockWidget(Qt.RightDockWidgetArea, dw)
+        dw.setFloating(True)
+        dw.hide()
+
     def _new_tool_window(self, tw):
         if self.hide_tools:
             self._hide_tools_shown_states[tw] = True
@@ -682,6 +695,11 @@ class MainWindow(QMainWindow, PlainTextLog):
         self.tools_menu.setToolTipsVisible(True)
         self.update_tools_menu(session)
 
+        self.favorites_menu = mb.addMenu("Fa&vorites")
+        self.favorites_menu.setToolTipsVisible(True)
+        self._make_settings_ui(session)
+        self.update_favorites_menu(session)
+
         help_menu = mb.addMenu("&Help")
         help_menu.setToolTipsVisible(True)
         for entry, topic, tooltip in (
@@ -701,6 +719,15 @@ class MainWindow(QMainWindow, PlainTextLog):
         about_action = QAction("About %s %s" % (ad.appauthor, ad.appname), self)
         about_action.triggered.connect(self._about)
         help_menu.addAction(about_action)
+
+    def update_favorites_menu(self, session):
+        from PyQt5.QtWidgets import QAction
+        self.favorites_menu.clear()
+        self.favorites_menu.addSeparator()
+        settings = QAction("Settings...", self)
+        settings.setToolTip("Show/set ChimeraX settings")
+        settings.triggered.connect(lambda arg, self=self: self.settings_ui_widget.show())
+        self.favorites_menu.addAction(settings)
 
     def update_tools_menu(self, session):
         self._checkbutton_tools = {}

@@ -11,3 +11,4 @@
 .. _Python package: https://docs.python.org/3/tutorial/modules.html#packages
 .. _Python package setup scripts: https://docs.python.org/3/distutils/setupscript.html
 .. _URL: https://en.wikipedia.org/wiki/URL
+.. _XYZ format: https://en.wikipedia.org/wiki/XYZ_file_format

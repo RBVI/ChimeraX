@@ -3,12 +3,12 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 # PYTHON_VERSION is in config.make
-PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).1
+PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).3
 DISTRIBUTION = Python-$(PYTHON_PATCH_LEVEL).tar.xz
 SOURCE = $(tmpdir)/Python-$(PYTHON_PATCH_LEVEL)
 
 PIP_VERSION = 9.0.1
-WHEEL_VERSION = 0.29.0
+WHEEL_VERSION = 0.30.0
 
 ifdef WIN32
 DYNLOAD_DIR = $(bindir)/DLLs
@@ -183,6 +183,7 @@ else ifdef USE_MAC_FRAMEWORKS
 		@executable_path/$(shell python -c 'import os; print(os.path.relpath("$(PYTHON_FRAMEWORK)/Python", "$(pyappdir)"))') \
 		$(pyappdir)/Python
 	$(RSYNC) $(SOURCE)/Misc/valgrind-python.supp $(datadir)
+	sed -i -e 's;obj:.*libcrypto.*;obj:*/libcrypto.so.*;' $(datadir)/valgrind-python.supp
 
 else
 	# Linux or Mac OS X without framework
@@ -206,6 +207,7 @@ ifeq ($(OS),Darwin)
 		chmod 444 $(libdir)/$$pylib
 endif
 	$(RSYNC) $(SOURCE)/Misc/valgrind-python.supp $(datadir)
+	sed -i -e 's;obj:.*libcrypto.*;obj:*/libcrypto.so.*;' $(datadir)/valgrind-python.supp
 endif
 	# Since pip comes with Python 3.5, update it now so installs on
 	# Windows will work.  Wheel is needed so bdist_wheel will work.
@@ -236,6 +238,7 @@ else ifdef USE_MAC_FRAMEWORKS
 	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ \
 		$(PYTHON_LIBRARY_DIR) $(app_libdir)
 	$(RSYNC) $(datadir)/valgrind-python.supp $(app_datadir)
+	sed -i -e 's;obj:.*libcrypto.*;obj:*/libcrypto.so.*;' $(app_datadir)/valgrind-python.supp
 	$(RSYNC) $(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI) $(app_includedir)
 else
 	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ \
@@ -243,6 +246,7 @@ else
 		$(PYTHON_LIBRARY_DIR) $(app_libdir)
 	$(RSYNC) $(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI) $(app_includedir)
 	$(RSYNC) $(datadir)/valgrind-python.supp $(app_datadir)
+	sed -i -e 's;obj:.*libcrypto.*;obj:*/libcrypto.so.*;' $(app_datadir)/valgrind-python.supp
 endif
 	$(APP_PYTHON_EXE) -m ensurepip --upgrade
 	$(APP_PYTHON_EXE) -m pip install --upgrade \

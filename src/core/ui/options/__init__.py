@@ -1,3 +1,5 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -9,5 +11,5 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .htmlview import HtmlView, ChimeraXHtmlView
-from .color_button import ColorButton, MultiColorButton, hex_color_name
+from .options import OptionsPanel
+from .options import ColorOption, EnumOption, RgbaOption, SymbolicEnumOption
