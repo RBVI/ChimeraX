@@ -41,34 +41,18 @@ def scolor(session, atoms = None, color = None, opacity = None, byatom = False,
     atom colors, or use a single color, or color by electrostatic potential,
     or color radially.  TODO: Only a few options are currently supported.
     '''
-    if atoms is None or len(atoms) == 0:
-        return 0
-        
-    from .. import atomic
-    surfs = atomic.surfaces_with_atoms(atoms, session.models)
+    if by_atom:
+        ns = color_surfaces_at_atoms(atoms, color = color, opacity = opacity,
+                                     per_atom_colors = per_atom_colors)
+    elif map is not None:
+        ns = color_surfaces_by_map_value(atoms, opacity=opacity, map=map,
+                                         palette=palette, range=range, offset=offset)
+    elif color is not None or opacity is not None:
+        ns = color_surfaces_at_atoms(atoms, color = color, opacity = opacity)
+    else:
+        ns = 0
 
-    for s in surfs:
-        v, all_atoms = surface_vertex_mask(s, atoms)
-        if v is None:
-            continue	# Some atoms colored but no vertex to atom mapping
-
-        vcolors = s.get_vertex_colors(create = True, copy = True)
-        if byatom:
-            vcolors[v] = surface_vertex_colors(s, v, atoms, per_atom_colors)
-        elif not map is None:
-            cs = volume_color_source(s, map, palette, range, offset=offset)
-            vcolors[v] = cs.vertex_colors(s, session.logger.info)[v]
-        elif not color is None:
-            vcolors[v] = color.uint8x4()
-
-        surface_vertex_opacities(s, opacity, v, vcolors)
-
-        s.vertex_colors = vcolors
-
-        if all_atoms:
-            set_surface_single_color(s, color, opacity)
-
-    return len(surfs)
+    return ns
 
 def register_command(session):
     from . import cli, color, ColorArg, FloatArg, ColormapArg, ColormapRangeArg
@@ -86,46 +70,23 @@ def register_command(session):
     cli.register('scolor', _scolor_desc, scolor, logger=session.logger)
 
 def color_surfaces_at_atoms(atoms = None, color = None, opacity = None, per_atom_colors = None):
-    if atoms is None or len(atoms) == 0:
-        return
-
-    session = atoms[0].structure.session
     from .. import atomic
-    surfs = atomic.surfaces_with_atoms(atoms, session.models)
+    surfs = atomic.surfaces_with_atoms(atoms)
     for s in surfs:
-        v, all_atoms = surface_vertex_mask(s, atoms)
-        if v is None:
-            continue	# Some atoms colored but no vertex to atom mapping
-        vcolors = s.get_vertex_colors(create = True, copy = True)
-        c = surface_vertex_colors(s, v, atoms, per_atom_colors) if color is None else color.uint8x4()
-        vcolors[v] = c
-        surface_vertex_opacities(s, opacity, v, vcolors)
-        s.vertex_colors = vcolors
-        if all_atoms:
-            set_surface_single_color(s, color, opacity)
-
+        s.color_atom_patches(atoms, color, opacity, per_atom_colors)
     return len(surfs)
 
 def color_surfaces_by_map_value(atoms = None, opacity = None, map = None,
                                 palette = None, range = None, offset = 0):
-    if atoms is None or len(atoms) == 0:
-        return 0
-
-    session = map.session
     from .. import atomic
-    surfs = atomic.surfaces_with_atoms(atoms, session.models)
-
+    surfs = atomic.surfaces_with_atoms(atoms)
     for s in surfs:
-        v, all_atoms = surface_vertex_mask(s, atoms)
-        if v is None:
-            continue	# Some atoms colored but no vertex to atom mapping
-
-        cs = volume_color_source(s, map, palette, range, offset=offset)
-        vcolors = s.get_vertex_colors(create = True, copy = True)
-        vcolors[v] = cs.vertex_colors(s, session.logger.info)[v]
-        surface_vertex_opacities(s, opacity, v, vcolors)
-        s.vertex_colors = vcolors
-
+        v, all_atoms = s.vertices_for_atoms(atoms)
+        if v is not None:
+            cs = volume_color_source(s, map, palette, range, offset=offset)
+            vcolors = s.get_vertex_colors(create = True, copy = True)
+            vcolors[v] = cs.vertex_colors(s, s.session.logger.info)[v]
+            s.set_vertex_colors_and_opacities(v, vcolors, opacity)
     return len(surfs)
 
 def color_surface_by_map_value(surf, map, palette = None, range = None,
@@ -138,49 +99,12 @@ def color_surface_by_map_value(surf, map, palette = None, range = None,
         vcolors[:,3] = surf.color[3] if surf.vertex_colors is None else surf.vertex_colors[:,3]
     surf.vertex_colors = vcolors
 
-def surface_vertex_mask(surf, atoms):
-    if atoms is None:
-        nv = len(surf.vertices)
-        v = slice(nv)
-        all_atoms = True
-    else:
-        ai = surf.atoms.mask(atoms)
-        v2a = surf.vertex_to_atom_map()
-        all_atoms = ai.all()
-        if all_atoms:
-            nv = len(surf.vertices)
-            v = slice(nv)
-        elif v2a is not None:
-            v = ai[v2a]		# Vertices for the given atoms
-        else:
-            v = None
-    return v, all_atoms
-
-def surface_vertex_colors(surf, vmask, atoms, per_atom_colors):
-    v2a = surf.vertex_to_atom_map()
-    if v2a is None:
-        from ..errors import UserError
-        raise UserError('Surface #%s does not have atom patches, cannot color by atom'
-                        % surf.id_string())
-    if per_atom_colors is None:
-        c = surf.atoms.colors[v2a[vmask],:]
-    else:
-        sa2a = atoms.indices(surf.atoms)
-        c = per_atom_colors[sa2a[v2a[vmask]],:]
-    return c
-
 def surface_vertex_opacities(surf, opacity, vmask, vcolors):
     if opacity is None:
         # Preserve current transparency
         vcolors[vmask,3] = surf.vertex_colors[vmask,3] if surf.vertex_colors is not None else surf.color[3]
     elif opacity != 'computed':
         vcolors[vmask,3] = opacity
-
-def set_surface_single_color(surf, color, opacity):
-    c8 = surf.color if color is None else color.uint8x4()
-    if opacity is not None and opacity != 'computed':
-        c8[3] = opacity
-    surf.color = c8
 
 def scolor_command(cmdname, args):
     from Commands import doExtensionFunc, parse_enumeration, CommandError

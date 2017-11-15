@@ -221,6 +221,24 @@ class MolecularSurface(Model):
             self._vertex_to_atom = None
         return self._vertex_to_atom
 
+    def vertices_for_atoms(self, atoms):
+        if atoms is None:
+            nv = len(self.vertices)
+            v = slice(nv)
+            all_atoms = True
+        else:
+            ai = self.atoms.mask(atoms)
+            v2a = self.vertex_to_atom_map()
+            all_atoms = ai.all()
+            if all_atoms:
+                nv = len(self.vertices)
+                v = slice(nv)
+            elif v2a is not None:
+                v = ai[v2a]		# Vertices for the given atoms
+            else:
+                v = None
+        return v, all_atoms
+
     def _maximum_atom_to_surface_distance(self):
         res = self.resolution
         if res is None:
@@ -293,6 +311,46 @@ class MolecularSurface(Model):
         csum /= len(vc)
         acolor = csum.astype(uint8)
         return acolor
+
+    def color_atom_patches(self, atoms, color = None, opacity = None, per_atom_colors = None):
+        v, all_atoms = self.vertices_for_atoms(atoms)
+        if v is None:
+            return	# Some atoms colored but no vertex to atom mapping
+        if all_atoms and color is not None:
+            self.set_color_and_opacity(color, opacity)
+        else:
+            c = self._surface_vertex_colors_from_atoms(v, atoms, per_atom_colors) if color is None else color.uint8x4()
+            vcolors = self.get_vertex_colors(create = True, copy = True)
+            vcolors[v] = c
+            self.set_vertex_colors_and_opacities(v, vcolors, opacity)
+
+    def set_color_and_opacity(self, color = None, opacity = None):
+        c8 = self.color if color is None else color.uint8x4()
+        if opacity is not None and opacity != 'computed':
+            c8[3] = opacity
+        self.single_color = c8
+
+    def _surface_vertex_colors_from_atoms(self, vmask, atoms, per_atom_colors):
+        v2a = self.vertex_to_atom_map()
+        if v2a is None:
+            from ..errors import UserError
+            raise UserError('Surface #%s does not have atom patches, cannot color by atom'
+                            % self.id_string())
+        if per_atom_colors is None:
+            c = self.atoms.colors[v2a[vmask],:]
+        else:
+            sa2a = atoms.indices(self.atoms)
+            c = per_atom_colors[sa2a[v2a[vmask]],:]
+        return c
+
+    def set_vertex_colors_and_opacities(self, vmask, vcolors, opacity = None):
+        if opacity is None:
+            # Preserve current transparency
+            cvc = self.vertex_colors
+            vcolors[vmask,3] = cvc[vmask,3] if cvc is not None else self.color[3]
+        elif opacity != 'computed':
+            vcolors[vmask,3] = opacity
+        self.vertex_colors = vcolors
 
     def first_intercept(self, mxyz1, mxyz2, exclude = None):
         # Pick atom associated with surface patch
@@ -403,17 +461,21 @@ def surfaces_overlapping_atoms(surfs, atoms):
     osurfs = [s for s,i in zip(surfs,si) if i]
     return osurfs
 
-def surfaces_with_atoms(atoms, models):
+def surfaces_with_atoms(atoms):
+    if atoms is None or len(atoms) == 0:
+        return []
+    top_drawing = atoms[0].structure.session.models.drawing
+
     surfs = []
-    for m in list(atoms.unique_structures) + [models.drawing]:
+    for m in list(atoms.unique_structures) + [top_drawing]:
         for s in m.child_drawings():
             if isinstance(s, MolecularSurface):
                 if len(atoms.intersect(s.atoms)) > 0:
                     surfs.append(s)
     return surfs
 
-def show_surface_atom_patches(atoms, models, only = False):
-    surfs = surfaces_with_atoms(atoms, models)
+def show_surface_atom_patches(atoms, only = False):
+    surfs = surfaces_with_atoms(atoms)
     for s in surfs:
         s.show(atoms & s.atoms, only = only)
     return surfs
@@ -422,8 +484,8 @@ def show_surface_patches(surf_models, only = False):
     for s in surf_models:
         s.show(s.atoms, only = only)
 
-def hide_surface_atom_patches(atoms, models):
-    surfs = surfaces_with_atoms(atoms, models)
+def hide_surface_atom_patches(atoms):
+    surfs = surfaces_with_atoms(atoms)
     for s in surfs:
         s.hide(atoms & s.atoms)
     return surfs
@@ -432,11 +494,12 @@ def hide_surface_patches(surf_models):
     for s in surf_models:
         s.hide(s.atoms)
 
-def close_surfaces(atoms_or_surfs, models):
+def close_surfaces(atoms_or_surfs):
     from . import Atoms
-    surfs = (surfaces_with_atoms(atoms_or_surfs, models)
+    surfs = (surfaces_with_atoms(atoms_or_surfs)
              if isinstance(atoms_or_surfs, Atoms) else atoms_or_surfs)
     if surfs:
+        models = surfs[0].session.models
         models.close(surfs)
 
 def buried_area(a1, a2, probe_radius):
