@@ -634,6 +634,13 @@ class MainWindow(QMainWindow, PlainTextLog):
         sb.showMessage("Welcome to ChimeraX")
         self.setStatusBar(sb)
 
+    def _dockability_change(self, tool_name, dockable):
+        """Call back from 'ui dockable' command"""
+        for ti, tool_windows in self.tool_instance_to_windows.items():
+            if ti.tool_name == tool_name:
+                for win in tool_windows:
+                    win._mw_set_dockable(dockable)
+
     def _make_settings_ui(self, session):
         from .core_settings_ui import CoreSettingsPanel
         from PyQt5.QtWidgets import QDockWidget, QWidget, QVBoxLayout
@@ -928,6 +935,9 @@ class ToolWindow(StatusLogger):
         from the main window.  It will be allowed to dock in the allowed_areas,
         the value of which is a bitmask formed from Qt's Qt.DockWidgetAreas flags.
         """
+        if self.tool_instance.tool_name in self.session.ui.settings.undockable:
+            from PyQt5.QtCore import Qt
+            allowed_areas = Qt.NoDockWidgetArea
         self.__toolkit.manage(placement, allowed_areas, fixed_size)
 
     def _get_shown(self):
@@ -977,6 +987,9 @@ class ToolWindow(StatusLogger):
             self.clear()
         self.__toolkit.destroy()
         self.__toolkit = None
+
+    def _mw_set_dockable(self, dockable):
+        self.__toolkit.dockable = dockable
 
     def _mw_set_shown(self, shown):
         self.__toolkit.shown = shown
@@ -1083,6 +1096,19 @@ class _Qt:
             self.status_bar = None
         self.dock_widget.destroy()
 
+    def _get_dockable(self):
+        from PyQt5.QtCore import Qt
+        return self.dock_widget.allowedAreas() != Qt.NoDockWidgetArea
+
+    def _set_dockable(self, dockable):
+        from PyQt5.QtCore import Qt
+        areas = Qt.AllDockWidgetAreas if dockable else Qt.NoDockWidgetArea
+        self.dock_widget.setAllowedAreas(areas)
+        if not dockable and not self.dock_widget.isFloating():
+            self.dock_widget.setFloating(True)
+
+    dockable = property(_get_dockable, _set_dockable)
+
     def manage(self, placement, allowed_areas, fixed_size=False):
         from PyQt5.QtCore import Qt
         placements = self.tool_window.placements
@@ -1102,7 +1128,7 @@ class _Qt:
         self.ui_area.updateGeometry()
         mw = self.main_window
         mw.addDockWidget(side, self.dock_widget)
-        if placement is None:
+        if placement is None or allowed_areas == Qt.NoDockWidgetArea:
             self.dock_widget.setFloating(True)
         self.dock_widget.setAllowedAreas(allowed_areas)
 
@@ -1200,8 +1226,8 @@ def show_context_menu(event, tool_instance, fill_cb, autostartable):
         no_help_action = QAction("No help available")
         no_help_action.setEnabled(False)
         menu.addAction(no_help_action)
+    session = ti.session
     if autostartable:
-        session = ti.session
         autostart = ti.tool_name in session.ui.settings.autostart
         auto_action = QAction("Start this tool at ChimeraX startup")
         auto_action.setCheckable(True)
@@ -1212,4 +1238,14 @@ def show_context_menu(event, tool_instance, fill_cb, autostartable):
             run(ses, "ui autostart %s %s" % (("true" if arg else "false"),
             quote_if_necessary(ti.tool_name))))
         menu.addAction(auto_action)
+    undockable = ti.tool_name in session.ui.settings.undockable
+    dock_action = QAction("This tool's windows are dockable")
+    dock_action.setCheckable(True)
+    dock_action.setChecked(not undockable)
+    from ..commands import run, quote_if_necessary
+    dock_action.triggered.connect(
+        lambda arg, ses=session, run=run, tool_name=ti.tool_name:
+        run(ses, "ui dockable %s %s" % (("true" if arg else "false"),
+        quote_if_necessary(ti.tool_name))))
+    menu.addAction(dock_action)
     menu.exec(event.globalPos())
