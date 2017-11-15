@@ -79,6 +79,8 @@ class MolecularSurface(Model):
         self.resolution = resolution    # Only used for Gaussian surface
         self.level = level		# Contour level for Gaussian surface, atomic number units
         self.color = color
+        self._atom_patch_colors = None
+        self._atom_patch_color_mask = None
         self.visible_patches = visible_patches
         self.sharp_boundaries = sharp_boundaries
         self._refinement_steps = 1	# Used for fixing sharp edge problems near 3 atom junctions.
@@ -173,6 +175,7 @@ class MolecularSurface(Model):
         self.normals = na
         self.triangles = ta
         self.triangle_mask = self._calc_triangle_mask()
+        self._show_atom_patch_colors()
         self.update_selection()
 
     def _calc_triangle_mask(self):
@@ -300,6 +303,8 @@ class MolecularSurface(Model):
     def _set_single_color(self, color):
         self.color = color
         self.vertex_colors = None
+        self._atom_patch_colors = None
+        self._atom_patch_color_mask = None
     single_color = property(_get_single_color, _set_single_color)
 
     def _average_color(self):
@@ -323,7 +328,35 @@ class MolecularSurface(Model):
             vcolors = self.get_vertex_colors(create = True, copy = True)
             vcolors[v] = c
             self.set_vertex_colors_and_opacities(v, vcolors, opacity)
+            self._update_atom_patch_colors(atoms, color, per_atom_colors)
 
+    def _update_atom_patch_colors(self, atoms, color, per_atom_colors):
+        if color is not None:
+            acolors = color.uint8x4()
+        elif per_atom_colors is not None:
+            acolors = per_atom_colors[atoms.mask(self.atoms)]
+        else:
+            acolors = atoms.intersect(self.atoms).colors
+        ai = self.atoms.mask(atoms)
+        apc = self._atom_patch_colors
+        if apc is None:
+            na = len(self.atoms)
+            from numpy import empty, uint8, bool
+            self._atom_patch_colors = c = empty((na,4), uint8)
+            c[ai] = acolors
+            self._atom_patch_color_mask = ai
+        else:
+            apc[ai] = acolors
+            m = self._atom_patch_color_mask
+            from numpy import logical_or
+            logical_or(m, ai, m)
+
+    def _show_atom_patch_colors(self):
+        apc = self._atom_patch_colors
+        if apc is not None:
+            m = self._atom_patch_color_mask
+            self.color_atom_patches(self.atoms.filter(m), per_atom_colors = apc[m])
+            
     def set_color_and_opacity(self, color = None, opacity = None):
         c8 = self.color if color is None else color.uint8x4()
         if opacity is not None and opacity != 'computed':
@@ -382,7 +415,7 @@ class MolecularSurface(Model):
     # State save/restore in ChimeraX
     _save_attrs = ('_refinement_steps', '_vertex_to_atom', '_vertex_to_atom_count', '_max_radius',
                    'vertices', 'normals', 'triangles', 'triangle_mask', 'vertex_colors', 'color',
-                   'joined_triangles')
+                   'joined_triangles', '_atom_patch_colors', '_atom_patch_color_mask')
 
     def take_snapshot(self, session, flags):
         init_attrs = ('atoms', 'show_atoms', 'probe_radius', 'grid_spacing', 'resolution', 'level',
@@ -403,7 +436,8 @@ class MolecularSurface(Model):
                              d['sharp_boundaries'])
         Model.set_state_from_snapshot(s, session, d['model state'])
         for attr in MolecularSurface._save_attrs:
-            setattr(s, attr, d[attr])
+            if attr in d:
+                setattr(s, attr, d[attr])
 
     def reset_state(self, session):
         pass
