@@ -248,7 +248,7 @@ Atom::_set_structure_category(Atom::StructCat sc) const
 {
     if (sc == _structure_category)
         return;
-    change_tracker()->add_modified(const_cast<Atom*>(this),
+    change_tracker()->add_modified(structure(), const_cast<Atom*>(this),
         ChangeTracker::REASON_STRUCTURE_CATEGORY);
     _structure_category = sc;
 }
@@ -256,7 +256,7 @@ Atom::_set_structure_category(Atom::StructCat sc) const
 inline void
 Atom::set_computed_idatm_type(const char* it) {
     if (!idatm_is_explicit() && _computed_idatm_type != it) {
-        change_tracker()->add_modified(this, ChangeTracker::REASON_IDATM_TYPE);
+        change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_IDATM_TYPE);
     }
     _computed_idatm_type =  it;
 }
@@ -268,7 +268,7 @@ Atom::set_idatm_type(const char* it) {
     if (!(_explicit_idatm_type.empty() && _computed_idatm_type == it)
     && !(*it == '\0' && _explicit_idatm_type == _computed_idatm_type)
     && !(!_explicit_idatm_type.empty() && it == _explicit_idatm_type)) {
-        change_tracker()->add_modified(this, ChangeTracker::REASON_IDATM_TYPE);
+        change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_IDATM_TYPE);
     }
     _explicit_idatm_type = it;
 }
@@ -277,7 +277,7 @@ inline void
 Atom::set_name(const AtomName& name) {
     if (name == _name)
         return;
-    change_tracker()->add_modified(this, ChangeTracker::REASON_NAME);
+    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_NAME);
     _name = name;
 }
 

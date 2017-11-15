@@ -54,7 +54,7 @@ Residue::Residue(Structure *as, const ResName& name, const ChainID& chain, int n
     _ribbon_hide_backbone(true), _ribbon_rgba({160,160,0,255}),
     _ss_id(-1), _ss_type(SS_COIL), _structure(as)
 {
-    _structure->change_tracker()->add_created(this);
+    change_tracker()->add_created(_structure, this);
 }
 
 Residue::~Residue() {
@@ -62,7 +62,7 @@ Residue::~Residue() {
     if (_ribbon_display)
         _structure->_ribbon_display_count -= 1;
     _structure->set_gc_ribbon();
-    _structure->change_tracker()->add_deleted(this);
+    change_tracker()->add_deleted(this);
 }
 
 void
@@ -368,7 +368,7 @@ Residue::set_ribbon_selected(bool s)
     if (s == _ribbon_selected)
         return;
     _structure->set_gc_select();
-    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_SELECTED);
+    change_tracker()->add_modified(_structure, this, ChangeTracker::REASON_SELECTED);
     _ribbon_selected = s;
 }
 

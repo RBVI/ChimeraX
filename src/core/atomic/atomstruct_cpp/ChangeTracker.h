@@ -16,9 +16,10 @@
 #ifndef atomstruct_ChangeTracker
 #define atomstruct_ChangeTracker
 
+#include <array>
+#include <map>
 #include <set>
 #include <string>
-#include <vector>
 
 #include "imex.h"
 
@@ -57,11 +58,12 @@ protected:
     int  _ptr_to_type(C*);
 
     bool  _discarding;
-    // vector much faster than map...
-    std::vector<Changes>  _type_changes;
+    // array much faster than map...
+    std::array<Changes, _num_types>  _global_type_changes;
+    mutable std::map<Structure*, std::array<Changes, _num_types>>  _structure_type_changes;
 
 public:
-    ChangeTracker() : _discarding(false), _type_changes(_num_types) {};
+    ChangeTracker() : _discarding(false) {};
 
     static const std::string  REASON_ACTIVE_COORD_SET;
     static const std::string  REASON_ALT_LOC;
@@ -100,8 +102,20 @@ public:
     void  add_created(C* ptr) {
         if (_discarding)
             return;
-        auto& changes = _type_changes[_ptr_to_type(ptr)];
+        auto& changes = _global_type_changes[_ptr_to_type(ptr)];
         changes.created.insert(ptr);
+    }
+
+    template<class C>
+    void  add_created(Structure* s, C* ptr) {
+        if (_discarding)
+            return;
+        auto& g_changes = _global_type_changes[_ptr_to_type(ptr)];
+        g_changes.created.insert(ptr);
+        if (s != nullptr) {
+            auto& s_changes = _structure_type_changes[s][_ptr_to_type(ptr)];
+            s_changes.created.insert(ptr);
+        }
     }
 
     // this aggregate routine seemingly *slower* than calling the single-pointer version in a loop,
@@ -110,7 +124,7 @@ public:
     void  add_created(const std::set<C*>& ptrs) {
         if (_discarding)
             return;
-        auto& changes = _type_changes[_ptr_to_type(static_cast<typename std::set<C*>::value_type>(nullptr))];
+        auto& changes = _global_type_changes[_ptr_to_type(static_cast<typename std::set<C*>::value_type>(nullptr))];
         // looping through and inserting individually empirically faster than the commented-out
         //   single call below, possibly due to the generic nature of that call
         for (auto ptr: ptrs)
@@ -124,7 +138,7 @@ public:
     void  add_created(const std::vector<C*>& ptrs) {
         if (_discarding)
             return;
-        auto& changes = _type_changes[_ptr_to_type(static_cast<typename std::vector<C*>::value_type>(nullptr))];
+        auto& changes = _global_type_changes[_ptr_to_type(static_cast<typename std::vector<C*>::value_type>(nullptr))];
         // looping through and inserting individually empirically faster than the commented-out
         //   single call below, possibly due to the generic nature of that call
         for (auto ptr: ptrs)
@@ -132,11 +146,30 @@ public:
         //changes.created.insert(ptrs.begin(), ptrs.end());
     }
 
+    // this aggregate routine seemingly *slower* than calling the single-pointer version in a loop,
+    //   possibly due to inlining chicanery
+    template<class C>
+    void  add_created(Structure* s, const std::set<C*>& ptrs) {
+        if (_discarding)
+            return;
+        auto& g_changes = _global_type_changes[_ptr_to_type(static_cast<typename std::set<C*>::value_type>(nullptr))];
+        // looping through and inserting individually empirically faster than the commented-out
+        //   single call below, possibly due to the generic nature of that call
+        for (auto ptr: ptrs)
+            g_changes.created.insert(ptr);
+        if (s != nullptr) {
+            auto& s_changes = _structure_type_changes[s]
+                [_ptr_to_type(static_cast<typename std::set<C*>::value_type>(nullptr))];
+            for (auto ptr: ptrs)
+                s_changes.created.insert(ptr);
+        }
+    }
+
     template<class C>
     void  add_modified(C* ptr, const std::string& reason) {
         if (_discarding)
             return;
-        auto& changes = _type_changes[_ptr_to_type(ptr)];
+        auto& changes = _global_type_changes[_ptr_to_type(ptr)];
         if (changes.created.find(static_cast<const void*>(ptr)) == changes.created.end()) {
             // newly created objects don't also go in modified set
             changes.modified.insert(ptr);
@@ -145,10 +178,30 @@ public:
     }
 
     template<class C>
-    void  add_modified(C* ptr, const std::string& reason, const std::string& reason2) {
-        auto& changes = _type_changes[_ptr_to_type(ptr)];
+    void  add_modified(Structure* s, C* ptr, const std::string& reason) {
         if (_discarding)
             return;
+        auto& g_changes = _global_type_changes[_ptr_to_type(ptr)];
+        if (g_changes.created.find(static_cast<const void*>(ptr)) == g_changes.created.end()) {
+            // newly created objects don't also go in modified set
+            g_changes.modified.insert(ptr);
+            g_changes.reasons.insert(reason);
+        }
+        if (s != nullptr) {
+        auto& s_changes = _structure_type_changes[s][_ptr_to_type(ptr)];
+            if (s_changes.created.find(static_cast<const void*>(ptr)) == s_changes.created.end()) {
+                // newly created objects don't also go in modified set
+                s_changes.modified.insert(ptr);
+                s_changes.reasons.insert(reason);
+            }
+        }
+    }
+
+    template<class C>
+    void  add_modified(C* ptr, const std::string& reason, const std::string& reason2) {
+        if (_discarding)
+            return;
+        auto& changes = _global_type_changes[_ptr_to_type(ptr)];
         if (changes.created.find(static_cast<const void*>(ptr)) == changes.created.end()) {
             // newly created objects don't also go in modified set
             changes.modified.insert(ptr);
@@ -158,24 +211,68 @@ public:
     }
 
     template<class C>
+    void  add_modified(Structure* s, C* ptr, const std::string& reason, const std::string& reason2) {
+        if (_discarding)
+            return;
+        auto& g_changes = _global_type_changes[_ptr_to_type(ptr)];
+        if (g_changes.created.find(static_cast<const void*>(ptr)) == g_changes.created.end()) {
+            // newly created objects don't also go in modified set
+            g_changes.modified.insert(ptr);
+            g_changes.reasons.insert(reason);
+            g_changes.reasons.insert(reason2);
+        }
+        if (s != nullptr) {
+            auto& s_changes = _structure_type_changes[s][_ptr_to_type(ptr)];
+            if (s_changes.created.find(static_cast<const void*>(ptr)) == s_changes.created.end()) {
+                // newly created objects don't also go in modified set
+                s_changes.modified.insert(ptr);
+                s_changes.reasons.insert(reason);
+                s_changes.reasons.insert(reason2);
+            }
+        }
+    }
+
+    template<class C>
     void  add_deleted(C* ptr) {
         if (_discarding)
             return;
-        auto& changes = _type_changes[_ptr_to_type(ptr)];
+        auto& changes = _global_type_changes[_ptr_to_type(ptr)];
         ++changes.num_deleted;
         changes.created.erase(ptr);
         changes.modified.erase(ptr);
     }
 
+    template<class C>
+    void  add_deleted(Structure* s, C* ptr) {
+        if (_discarding)
+            return;
+        auto& g_changes = _global_type_changes[_ptr_to_type(ptr)];
+        ++g_changes.num_deleted;
+        g_changes.created.erase(ptr);
+        g_changes.modified.erase(ptr);
+        if (s != nullptr) {
+            auto& s_changes = _structure_type_changes[s][_ptr_to_type(ptr)];
+            ++s_changes.num_deleted;
+            s_changes.created.erase(ptr);
+            s_changes.modified.erase(ptr);
+        }
+    }
+
     bool  changed() const {
-        for (auto& changes: _type_changes) {
+        for (auto& changes: _global_type_changes) {
             if (changes.changed())
                 return true;
         }
         return false;
     }
-    void  clear() { for (auto& changes: _type_changes) changes.clear(); }
-    const std::vector<Changes>&  get_changes() const { return _type_changes; }
+    void  clear() {
+        for (auto& changes: _global_type_changes) changes.clear();
+        _structure_type_changes.clear();
+    }
+    const std::array<Changes, _num_types>&  get_changes() const { return _global_type_changes; }
+    const std::array<Changes, _num_types>&  get_changes(Structure* s) const {
+        return _structure_type_changes[s];
+    }
     const std::string  python_class_names[_num_types] = {
         "Atom", "Bond", "Pseudobond", "Residue", "Chain",
         "StructureData", "PseudobondGroupData", "CoordSet"
