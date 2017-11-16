@@ -63,7 +63,7 @@ StructureSeq::bulk_set(const StructureSeq::Residues& residues,
     if (del_chars)
         delete chars;
     if (ischain)
-        _structure->change_tracker()->add_modified(dynamic_cast<Chain*>(this),
+        _structure->change_tracker()->add_modified(structure(), dynamic_cast<Chain*>(this),
             ChangeTracker::REASON_SEQUENCE, ChangeTracker::REASON_RESIDUES);
 }
 
@@ -72,7 +72,7 @@ StructureSeq::clear_residues() {
     // only called from ~AtomicStructure...
     _residues.clear();
     _res_map.clear();
-    _structure->change_tracker()->add_modified(dynamic_cast<Chain*>(this),
+    _structure->change_tracker()->add_modified(_structure, dynamic_cast<Chain*>(this),
         ChangeTracker::REASON_RESIDUES);
     demote_to_sequence();
 }
@@ -119,7 +119,7 @@ StructureSeq::operator+=(StructureSeq& addition)
     if (ischain) {
         _structure->remove_chain(dynamic_cast<Chain*>(&addition));
         addition.demote_to_sequence();
-        _structure->change_tracker()->add_modified(dynamic_cast<Chain*>(this),
+        _structure->change_tracker()->add_modified(_structure, dynamic_cast<Chain*>(this),
             ChangeTracker::REASON_SEQUENCE, ChangeTracker::REASON_RESIDUES);
     }
     return *this;
@@ -143,7 +143,7 @@ StructureSeq::pop_back()
         }
         if (ischain) {
             back->set_chain(nullptr);
-            structure->change_tracker()->add_modified(dynamic_cast<Chain*>(this),
+            structure->change_tracker()->add_modified(structure, dynamic_cast<Chain*>(this),
                 ChangeTracker::REASON_SEQUENCE, ChangeTracker::REASON_RESIDUES);
         }
     }
@@ -169,7 +169,7 @@ StructureSeq::pop_front()
         }
         if (ischain) {
             front->set_chain(nullptr);
-            structure->change_tracker()->add_modified(dynamic_cast<Chain*>(this),
+            structure->change_tracker()->add_modified(structure, dynamic_cast<Chain*>(this),
                 ChangeTracker::REASON_SEQUENCE, ChangeTracker::REASON_RESIDUES);
         }
     }
@@ -185,7 +185,7 @@ StructureSeq::push_back(Residue* r)
     _residues.push_back(r);
     if (is_chain()) {
         r->set_chain(dynamic_cast<Chain*>(this));
-        _structure->change_tracker()->add_modified(dynamic_cast<Chain*>(this),
+        _structure->change_tracker()->add_modified(_structure, dynamic_cast<Chain*>(this),
             ChangeTracker::REASON_SEQUENCE, ChangeTracker::REASON_RESIDUES);
     }
 }
@@ -206,7 +206,7 @@ StructureSeq::push_front(Residue* r)
     _res_map[r] = 0;
     if (is_chain()) {
         r->set_chain(dynamic_cast<Chain*>(this));
-        _structure->change_tracker()->add_modified(dynamic_cast<Chain*>(this),
+        _structure->change_tracker()->add_modified(_structure, dynamic_cast<Chain*>(this),
             ChangeTracker::REASON_SEQUENCE, ChangeTracker::REASON_RESIDUES);
     }
 }
@@ -217,7 +217,7 @@ StructureSeq::remove_residue(Residue* r) {
     *ri = nullptr;
     bool ischain = is_chain();
     if (ischain)
-        _structure->change_tracker()->add_modified(dynamic_cast<Chain*>(this),
+        _structure->change_tracker()->add_modified(_structure, dynamic_cast<Chain*>(this),
             ChangeTracker::REASON_SEQUENCE, ChangeTracker::REASON_RESIDUES);
     if (no_structure_left()) {
         if (DestructionCoordinator::destruction_parent() != _structure && ischain)
@@ -335,7 +335,7 @@ StructureSeq::set(unsigned i, Residue *r, char character)
         }
     }
     if (ischain)
-        structure->change_tracker()->add_modified(dynamic_cast<Chain*>(this),
+        structure->change_tracker()->add_modified(structure, dynamic_cast<Chain*>(this),
             ChangeTracker::REASON_SEQUENCE, ChangeTracker::REASON_RESIDUES);
 }
 
@@ -368,7 +368,7 @@ StructureSeq::set_from_seqres(bool fs)
     }
     _from_seqres = fs;
     if (is_chain())
-        _structure->change_tracker()->add_modified(dynamic_cast<Chain*>(this),
+        _structure->change_tracker()->add_modified(_structure, dynamic_cast<Chain*>(this),
             ChangeTracker::REASON_SEQUENCE, ChangeTracker::REASON_RESIDUES);
 }
 

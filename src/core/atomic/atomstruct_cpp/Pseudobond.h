@@ -80,9 +80,7 @@ public:
     }
     void  session_restore(int version, int** ints, float** floats);
     void  session_save(int** ints, float** floats) const;
-    void  track_change(const std::string& reason) const {
-        change_tracker()->add_modified(this, reason);
-    }
+    void  track_change(const std::string& reason) const;
 };
 
 }  // namespace atomstruct
@@ -108,6 +106,11 @@ public:
     CoordSet*  coord_set() const { return _cs; }
 
 };
+
+inline void
+Pseudobond::track_change(const std::string& reason) const {
+    change_tracker()->add_modified(group()->structure(), this, reason);
+}
 
 }  // namespace atomstruct
 

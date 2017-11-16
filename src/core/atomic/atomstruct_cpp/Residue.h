@@ -150,6 +150,9 @@ public:
     const std::set<AtomName>*  ribose_atom_names() const;
     const std::set<AtomName>*  side_connector_atom_names() const;
 
+    // change tracking
+    ChangeTracker*  change_tracker() const;
+
     // graphics related
     float  ribbon_adjust() const;
     const Rgba&  ribbon_color() const { return _ribbon_rgba; }
@@ -170,6 +173,9 @@ public:
 #include "Chain.h"
 
 namespace atomstruct {
+
+inline ChangeTracker*
+Residue::change_tracker() const { return structure()->change_tracker(); }
 
 inline const std::set<AtomName>*
 Residue::backbone_atom_names(BackboneExtent bbe) const
@@ -254,7 +260,7 @@ inline void
 Residue::set_is_het(bool ih) {
     if (ih == _is_het)
         return;
-    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_IS_HET);
+    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_IS_HET);
     _is_het = ih;
 }
 
@@ -272,7 +278,7 @@ inline void
 Residue::set_ribbon_adjust(float a) {
     if (a == _ribbon_adjust)
         return;
-    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_ADJUST);
+    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_RIBBON_ADJUST);
     _structure->set_gc_ribbon();
     _ribbon_adjust = a;
 }
@@ -281,7 +287,7 @@ inline void
 Residue::set_ribbon_color(const Rgba& rgba) {
     if (rgba == _ribbon_rgba)
         return;
-    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_COLOR);
+    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_RIBBON_COLOR);
     _structure->set_gc_ribbon();
     _ribbon_rgba = rgba;
 }
@@ -290,7 +296,7 @@ inline void
 Residue::set_ribbon_display(bool d) {
     if (d == _ribbon_display)
         return;
-    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_DISPLAY);
+    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_RIBBON_DISPLAY);
     _structure->set_gc_ribbon();
     _ribbon_display = d;
     if (d)
@@ -305,7 +311,7 @@ inline void
 Residue::set_ribbon_hide_backbone(bool d) {
     if (d == _ribbon_hide_backbone)
         return;
-    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_HIDE_BACKBONE);
+    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_RIBBON_HIDE_BACKBONE);
     _structure->set_gc_ribbon();
     _ribbon_hide_backbone = d;
 }
@@ -315,7 +321,7 @@ Residue::set_ss_id(int ss_id)
 {
     if (ss_id == _ss_id)
         return;
-    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_SS_ID);
+    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_SS_ID);
     _ss_id = ss_id;
     _structure->set_gc_ribbon();
 }
@@ -326,7 +332,7 @@ Residue::set_ss_type(SSType sst)
     if (sst == _ss_type)
         return;
     _structure->set_ss_assigned(true);
-    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_SS_TYPE);
+    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_SS_TYPE);
     _ss_type = sst;
     _structure->set_gc_ribbon();
 }

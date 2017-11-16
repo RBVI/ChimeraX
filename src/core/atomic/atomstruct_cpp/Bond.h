@@ -77,7 +77,7 @@ public:
     // change tracking
     ChangeTracker*  change_tracker() const;
     void track_change(const std::string& reason) const {
-        change_tracker()->add_modified(this, reason);
+        change_tracker()->add_modified(structure(), this, reason);
     }
 
     // graphics related
