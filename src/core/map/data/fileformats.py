@@ -27,6 +27,7 @@ file_types = (
   ('Chimera map', 'cmap', ['cmap'], ['cmp','cmap'], False),
 #  ('CNS or XPLOR density map', 'xplor', ['xplor'], ['cns','xplor'], False),
 #  ('DelPhi or GRASP potential', 'delphi', ['delphi'], ['phi'], False),
+  ('DeltaVision map', 'deltavision', ['dv'], ['dv'], False),
   ('DSN6 density map', 'dsn6', ['dsn6'], ['omap'], False),
 #  ('DOCK scoring grid', 'dock', ['dock'], ['bmp','cnt','nrg'], False),
 #  ('EMAN HDF map', 'emanhdf', ['emanhdf'], ['hdf', 'h5'], False),
