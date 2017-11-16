@@ -66,6 +66,10 @@ protected:
     // array much faster than map...
     ChangesArray  _global_type_changes;
     mutable std::map<Structure*, ChangesArray>  _structure_type_changes;
+    std::set<Structure*> _dead_structures;
+    bool  _structure_okay(Structure* s) {
+        return s != nullptr && _dead_structures.find(s) == _dead_structures.end();
+    }
 
 public:
     ChangeTracker() : _discarding(false) {};
@@ -109,7 +113,7 @@ public:
             return;
         auto& g_changes = _global_type_changes[_ptr_to_type(ptr)];
         g_changes.created.insert(ptr);
-        if (s != nullptr) {
+        if (_structure_okay(s)) {
             auto& s_changes = _structure_type_changes[s][_ptr_to_type(ptr)];
             s_changes.created.insert(ptr);
         }
@@ -127,7 +131,7 @@ public:
         for (auto ptr: ptrs)
             g_changes.created.insert(ptr);
         //g_changes.created.insert(ptrs.begin(), ptrs.end());
-        if (s != nullptr) {
+        if (_structure_okay(s)) {
             auto& s_changes = _structure_type_changes[s]
                 [_ptr_to_type(static_cast<typename std::set<C*>::value_type>(nullptr))];
             for (auto ptr: ptrs)
@@ -145,7 +149,7 @@ public:
             g_changes.modified.insert(ptr);
             g_changes.reasons.insert(reason);
         }
-        if (s != nullptr) {
+        if (_structure_okay(s)) {
         auto& s_changes = _structure_type_changes[s][_ptr_to_type(ptr)];
             if (s_changes.created.find(static_cast<const void*>(ptr)) == s_changes.created.end()) {
                 // newly created objects don't also go in modified set
@@ -166,7 +170,7 @@ public:
             g_changes.reasons.insert(reason);
             g_changes.reasons.insert(reason2);
         }
-        if (s != nullptr) {
+        if (_structure_okay(s)) {
             auto& s_changes = _structure_type_changes[s][_ptr_to_type(ptr)];
             if (s_changes.created.find(static_cast<const void*>(ptr)) == s_changes.created.end()) {
                 // newly created objects don't also go in modified set
@@ -187,7 +191,8 @@ public:
         g_changes.modified.erase(ptr);
         if (s == static_cast<void*>(ptr)) {
             _structure_type_changes.erase(s);
-        } else if (s != nullptr) {
+            _dead_structures.insert(s);
+        } else if (_structure_okay(s)) {
             auto& s_changes = _structure_type_changes[s][_ptr_to_type(ptr)];
             ++s_changes.num_deleted;
             s_changes.created.erase(ptr);
@@ -205,6 +210,7 @@ public:
     void  clear() {
         for (auto& changes: _global_type_changes) changes.clear();
         _structure_type_changes.clear();
+        _dead_structures.clear();
     }
     const ChangesArray&  get_global_changes() const {
         return _global_type_changes;

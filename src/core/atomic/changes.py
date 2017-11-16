@@ -27,10 +27,6 @@ def check_for_changes(session):
         from . import get_triggers
         get_triggers(session).activate_trigger("changes", Changes(global_changes))
         for s, s_changes in structure_changes.items():
-            from .structure import Structure
-            # temp kludge to get stuff working until I can get deletion working right
-            if not isinstance(s, Structure):
-                continue
             s.triggers.activate_trigger("changes", Changes(s_changes))
     finally:
         ul.unblock_redraw()
