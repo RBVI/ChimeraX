@@ -35,7 +35,7 @@ SideOptions = ['orient', 'fill/slab', 'slab', 'tube/slab', 'ladder']
 
 BackboneRE = re.compile("^(C[345]'|H[345]'|O[35]'|HO[3]'|P|OP[123]|HOP[123])$", re.I)
 BackboneSugarRE = re.compile("^(C[12345]'|H[12345]'|O[2345]'|HO[2345]'|P|OP[123]|HOP[123])$", re.I)
-BaseAtomsRE = re.compile("^(C[245678]|H[245678]|C5M|N[1234679]|H[1234679][123]|O[246])$", re.I)
+BaseAtomsRE = re.compile("^(C[245678]|H[245678]|C5M|N[1234679]|H1|H[1234679][123]|O[246])$", re.I)
 BaseExceptRE = re.compile("^C1'$", re.I)
 SugarAtomsRE = re.compile("^(C[1234]'|H[1234]'|O[24]'|HO[24]')$", re.I)
 SugarExceptRE = re.compile("^(C5|N[19]|C5'|O3')$", re.I)
@@ -636,7 +636,7 @@ def set_hide_atoms(hide, AtomsRE, exceptRE, residues):
             if AtomsRE.match(a.name):
                 atoms.append(a)
                 continue
-            if a.element.number != H:
+            if a.element != H:
                 continue
             b = a.neighbors
             if not b:
