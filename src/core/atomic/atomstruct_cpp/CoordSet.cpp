@@ -41,7 +41,7 @@ CoordSet::~CoordSet()
 {
     if (DestructionCoordinator::destruction_parent() != _structure)
         _structure->pb_mgr().remove_cs(this);
-    _structure->change_tracker()->add_deleted(this);
+    _structure->change_tracker()->add_deleted(_structure, this);
 }
 
 void

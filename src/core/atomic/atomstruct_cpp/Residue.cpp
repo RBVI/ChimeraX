@@ -62,7 +62,7 @@ Residue::~Residue() {
     if (_ribbon_display)
         _structure->_ribbon_display_count -= 1;
     _structure->set_gc_ribbon();
-    change_tracker()->add_deleted(this);
+    change_tracker()->add_deleted(_structure, this);
 }
 
 void

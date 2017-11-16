@@ -235,7 +235,7 @@ private:
     ~Proxy_PBGroup() {
         _destruction_relevant = false;
         auto du = DestructionUser(this);
-        manager()->change_tracker()->add_deleted(this);
+        manager()->change_tracker()->add_deleted(structure(), this);
         if (_group_type == AS_PBManager::GRP_NORMAL)
             delete static_cast<StructurePBGroup*>(_proxied);
         else

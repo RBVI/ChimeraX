@@ -69,7 +69,7 @@ Structure::Structure(PyObject* logger):
 Structure::~Structure() {
     // assign to variable so that it lives to end of destructor
     auto du = DestructionUser(this);
-    change_tracker()->add_deleted(this);
+    change_tracker()->add_deleted(this, this);
     for (auto b: _bonds)
         delete b;
     for (auto a: _atoms)

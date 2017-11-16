@@ -51,7 +51,7 @@ Atom::~Atom()
         _aniso_u = nullptr;
     }
     DestructionUser(this);
-    change_tracker()->add_deleted(this);
+    change_tracker()->add_deleted(structure(), this);
     graphics_changes()->set_gc_adddel();
 }
 

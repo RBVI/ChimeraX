@@ -3359,19 +3359,29 @@ extern "C" EXPORT void change_tracker_add_modified(void *vct, int class_num, voi
     ChangeTracker* ct = static_cast<ChangeTracker*>(vct);
     try {
         if (class_num == 0) {
-            ct->add_modified(static_cast<Atom*>(modded), reason);
+            auto atomic_ptr = static_cast<Atom*>(modded);
+            ct->add_modified(atomic_ptr->structure(), atomic_ptr, reason);
         } else if (class_num == 1) {
-            ct->add_modified(static_cast<Bond*>(modded), reason);
+            auto atomic_ptr = static_cast<Bond*>(modded);
+            ct->add_modified(atomic_ptr->structure(), atomic_ptr, reason);
         } else if (class_num == 2) {
-            ct->add_modified(static_cast<Pseudobond*>(modded), reason);
+            auto atomic_ptr = static_cast<Pseudobond*>(modded);
+            ct->add_modified(atomic_ptr->group()->structure(), atomic_ptr, reason);
         } else if (class_num == 3) {
-            ct->add_modified(static_cast<Residue*>(modded), reason);
+            auto atomic_ptr = static_cast<Residue*>(modded);
+            ct->add_modified(atomic_ptr->structure(), atomic_ptr, reason);
         } else if (class_num == 4) {
-            ct->add_modified(static_cast<Chain*>(modded), reason);
+            auto atomic_ptr = static_cast<Chain*>(modded);
+            ct->add_modified(atomic_ptr->structure(), atomic_ptr, reason);
         } else if (class_num == 5) {
-            ct->add_modified(static_cast<AtomicStructure*>(modded), reason);
+            auto atomic_ptr = static_cast<AtomicStructure*>(modded);
+            ct->add_modified(atomic_ptr, atomic_ptr, reason);
         } else if (class_num == 6) {
-            ct->add_modified(static_cast<Proxy_PBGroup*>(modded), reason);
+            auto atomic_ptr = static_cast<Proxy_PBGroup*>(modded);
+            ct->add_modified(atomic_ptr->structure(), atomic_ptr, reason);
+        } else if (class_num == 7) {
+            auto atomic_ptr = static_cast<CoordSet*>(modded);
+            ct->add_modified(atomic_ptr->structure(), atomic_ptr, reason);
         } else {
             throw std::invalid_argument("Bad class value to ChangeTracker.add_modified()");
         }

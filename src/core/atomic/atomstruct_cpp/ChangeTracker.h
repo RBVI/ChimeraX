@@ -104,14 +104,6 @@ public:
     static const std::string  REASON_SS_TYPE;
     
     template<class C>
-    void  add_created(C* ptr) {
-        if (_discarding)
-            return;
-        auto& changes = _global_type_changes[_ptr_to_type(ptr)];
-        changes.created.insert(ptr);
-    }
-
-    template<class C>
     void  add_created(Structure* s, C* ptr) {
         if (_discarding)
             return;
@@ -126,34 +118,6 @@ public:
     // this aggregate routine seemingly *slower* than calling the single-pointer version in a loop,
     //   possibly due to inlining chicanery
     template<class C>
-    void  add_created(const std::set<C*>& ptrs) {
-        if (_discarding)
-            return;
-        auto& changes = _global_type_changes[_ptr_to_type(static_cast<typename std::set<C*>::value_type>(nullptr))];
-        // looping through and inserting individually empirically faster than the commented-out
-        //   single call below, possibly due to the generic nature of that call
-        for (auto ptr: ptrs)
-            changes.created.insert(ptr);
-        //changes.created.insert(ptrs.begin(), ptrs.end());
-    }
-
-    // this aggregate routine seemingly *slower* than calling the single-pointer version in a loop,
-    //   possibly due to inlining chicanery
-    template<class C>
-    void  add_created(const std::vector<C*>& ptrs) {
-        if (_discarding)
-            return;
-        auto& changes = _global_type_changes[_ptr_to_type(static_cast<typename std::vector<C*>::value_type>(nullptr))];
-        // looping through and inserting individually empirically faster than the commented-out
-        //   single call below, possibly due to the generic nature of that call
-        for (auto ptr: ptrs)
-            changes.created.insert(ptr);
-        //changes.created.insert(ptrs.begin(), ptrs.end());
-    }
-
-    // this aggregate routine seemingly *slower* than calling the single-pointer version in a loop,
-    //   possibly due to inlining chicanery
-    template<class C>
     void  add_created(Structure* s, const std::set<C*>& ptrs) {
         if (_discarding)
             return;
@@ -162,23 +126,12 @@ public:
         //   single call below, possibly due to the generic nature of that call
         for (auto ptr: ptrs)
             g_changes.created.insert(ptr);
+        //g_changes.created.insert(ptrs.begin(), ptrs.end());
         if (s != nullptr) {
             auto& s_changes = _structure_type_changes[s]
                 [_ptr_to_type(static_cast<typename std::set<C*>::value_type>(nullptr))];
             for (auto ptr: ptrs)
                 s_changes.created.insert(ptr);
-        }
-    }
-
-    template<class C>
-    void  add_modified(C* ptr, const std::string& reason) {
-        if (_discarding)
-            return;
-        auto& changes = _global_type_changes[_ptr_to_type(ptr)];
-        if (changes.created.find(static_cast<const void*>(ptr)) == changes.created.end()) {
-            // newly created objects don't also go in modified set
-            changes.modified.insert(ptr);
-            changes.reasons.insert(reason);
         }
     }
 
@@ -199,19 +152,6 @@ public:
                 s_changes.modified.insert(ptr);
                 s_changes.reasons.insert(reason);
             }
-        }
-    }
-
-    template<class C>
-    void  add_modified(C* ptr, const std::string& reason, const std::string& reason2) {
-        if (_discarding)
-            return;
-        auto& changes = _global_type_changes[_ptr_to_type(ptr)];
-        if (changes.created.find(static_cast<const void*>(ptr)) == changes.created.end()) {
-            // newly created objects don't also go in modified set
-            changes.modified.insert(ptr);
-            changes.reasons.insert(reason);
-            changes.reasons.insert(reason2);
         }
     }
 
@@ -238,16 +178,6 @@ public:
     }
 
     template<class C>
-    void  add_deleted(C* ptr) {
-        if (_discarding)
-            return;
-        auto& changes = _global_type_changes[_ptr_to_type(ptr)];
-        ++changes.num_deleted;
-        changes.created.erase(ptr);
-        changes.modified.erase(ptr);
-    }
-
-    template<class C>
     void  add_deleted(Structure* s, C* ptr) {
         if (_discarding)
             return;
@@ -255,7 +185,9 @@ public:
         ++g_changes.num_deleted;
         g_changes.created.erase(ptr);
         g_changes.modified.erase(ptr);
-        if (s != nullptr) {
+        if (s == static_cast<void*>(ptr)) {
+            _structure_type_changes.erase(s);
+        } else if (s != nullptr) {
             auto& s_changes = _structure_type_changes[s][_ptr_to_type(ptr)];
             ++s_changes.num_deleted;
             s_changes.created.erase(ptr);
