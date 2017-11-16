@@ -140,14 +140,14 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
             clash_vals.sort()
             setattr(a, attr_name, clash_vals[-1])
     if color_atoms:
-        from chimerax.core.commands.scolor import scolor
+        from chimerax.core.commands.scolor import color_surfaces_at_atoms
         if atom_color is not None:
             clash_atoms.colors = atom_color.uint8x4()
-            scolor(session, clash_atoms, atom_color)
+            color_surfaces_at_atoms(clash_atoms, atom_color)
         if other_atom_color is not None:
             other_color_atoms = Atoms([a for a in attr_atoms if a not in clashes])
             other_color_atoms.colors = other_atom_color.uint8x4()
-            scolor(session, other_color_atoms, other_atom_color)
+            color_surfaces_at_atoms(other_color_atoms, other_atom_color)
     if reveal:
         # display sidechain or backbone as appropriate for undisplayed atoms
         reveal_atoms = clash_atoms.filter(clash_atoms.displays == False)

@@ -134,7 +134,7 @@ def show_surfaces(session, objects, only, undo_state):
 
     # Show existing surfaces
     from ..atomic import molsurf, concatenate, Atoms
-    surfs = molsurf.show_surface_atom_patches(atoms, session.models, only = only)
+    surfs = molsurf.show_surface_atom_patches(atoms, only = only)
 
     # Create new surfaces if they don't yet exist.
     if surfs:

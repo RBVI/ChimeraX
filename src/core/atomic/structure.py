@@ -64,6 +64,9 @@ class Structure(Model, StructureData):
                 ("save_teardown", "end save session")]:
             self._ses_handlers.append(t.add_handler(trig_name,
                     lambda *args, qual=ses_func: self._ses_call(qual)))
+        from .. import triggerset
+        self.triggers = triggerset.TriggerSet()
+        self.triggers.add_trigger("changes")
 
         self._make_drawing()
 
@@ -286,9 +289,11 @@ class Structure(Model, StructureData):
         if shown:
             return most_common_color(shown.colors)
         return most_common_color(atoms.colors)
+
     def _set_single_color(self, color):
         self.atoms.colors = color
         self.residues.ribbon_colors = color
+
     single_color = property(_get_single_color, _set_single_color)
 
     def _get_spline_normals(self):

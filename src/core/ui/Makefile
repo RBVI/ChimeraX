@@ -12,7 +12,7 @@
 TOP= ../../..
 include $(TOP)/mk/config.make
 
-SUBDIRS	+= widgets
+SUBDIRS	+= options widgets
 
 include $(TOP)/mk/subdir.make
 

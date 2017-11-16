@@ -63,13 +63,13 @@ Structure::Structure(PyObject* logger):
     asterisks_translated(false), is_traj(false),
     lower_case_chains(false), pdb_version(0)
 {
-    change_tracker()->add_created(this);
+    change_tracker()->add_created(this, this);
 }
 
 Structure::~Structure() {
     // assign to variable so that it lives to end of destructor
     auto du = DestructionUser(this);
-    change_tracker()->add_deleted(this);
+    change_tracker()->add_deleted(this, this);
     for (auto b: _bonds)
         delete b;
     for (auto a: _atoms)
@@ -383,7 +383,7 @@ Structure::delete_alt_locs()
         auto occupancy = a->occupancy();
         auto serial_number = a->serial_number();
         a->_alt_loc = ' ';
-        change_tracker()->add_modified(a, ChangeTracker::REASON_ALT_LOC);
+        change_tracker()->add_modified(this, a, ChangeTracker::REASON_ALT_LOC);
         a->_alt_loc_map.clear();
         if (aniso_u != nullptr)
             a->set_aniso_u((*aniso_u)[0], (*aniso_u)[1], (*aniso_u)[2],
@@ -1392,7 +1392,7 @@ Structure::set_active_coord_set(CoordSet *cs)
         if (active_coord_set_change_notify()) {
             set_gc_shape();
             set_gc_ribbon();
-            change_tracker()->add_modified(this, ChangeTracker::REASON_ACTIVE_COORD_SET);
+            change_tracker()->add_modified(this, this, ChangeTracker::REASON_ACTIVE_COORD_SET);
         }
     }
 }

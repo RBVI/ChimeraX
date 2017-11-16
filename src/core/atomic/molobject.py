@@ -2048,25 +2048,31 @@ class ChangeTracker:
     def changes(self):
         f = c_function('change_tracker_changes', args = (ctypes.c_void_p,),
             ret = ctypes.py_object)
-        data = f(self._c_pointer)
+        global_data, per_structure_data = f(self._c_pointer)
         class Changes:
             def __init__(self, created, modified, reasons, total_deleted):
                 self.created = created
                 self.modified = modified
                 self.reasons = reasons
                 self.total_deleted = total_deleted
-        final_changes = {}
-        for k, v in data.items():
-            created_ptrs, mod_ptrs, reasons, tot_del = v
-            temp_ns = {}
-            # can't effectively use locals() as the third argument as per the
-            # Python 3 documentation for exec() and locals()
-            exec("from .molarray import {}s as collection".format(k), globals(), temp_ns)
-            collection = temp_ns['collection']
-            fc_key = k[:-4] if k.endswith("Data") else k
-            final_changes[fc_key] = Changes(collection(created_ptrs),
-                collection(mod_ptrs), reasons, tot_del)
-        return final_changes
+        def process_changes(data):
+            final_changes = {}
+            for k, v in data.items():
+                created_ptrs, mod_ptrs, reasons, tot_del = v
+                temp_ns = {}
+                # can't effectively use locals() as the third argument as per the
+                # Python 3 documentation for exec() and locals()
+                exec("from .molarray import {}s as collection".format(k), globals(), temp_ns)
+                collection = temp_ns['collection']
+                fc_key = k[:-4] if k.endswith("Data") else k
+                final_changes[fc_key] = Changes(collection(created_ptrs),
+                    collection(mod_ptrs), reasons, tot_del)
+            return final_changes
+        global_changes = process_changes(global_data)
+        per_structure_changes = {}
+        for s_ptr, structure_data in per_structure_data.items():
+            per_structure_changes[_atomic_structure(s_ptr)] = process_changes(structure_data)
+        return global_changes, per_structure_changes
 
     def clear(self):
         f = c_function('change_tracker_clear', args = (ctypes.c_void_p,))

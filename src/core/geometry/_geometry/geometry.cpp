@@ -82,6 +82,7 @@ static struct PyMethodDef geometry_cpp_methods[] =
   {const_cast<char*>("scale_vertices"), scale_vertices, METH_VARARGS, NULL},
   {const_cast<char*>("shift_vertices"), shift_vertices, METH_VARARGS, NULL},
   {const_cast<char*>("affine_transform_vertices"), affine_transform_vertices, METH_VARARGS, NULL},
+  {const_cast<char*>("affine_transform_normals"), affine_transform_normals, METH_VARARGS, NULL},
 
   /* vector_ops.h */
   {const_cast<char*>("inner_product_64"), (PyCFunction)inner_product_64,

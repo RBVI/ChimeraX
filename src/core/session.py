@@ -482,6 +482,8 @@ class Session:
                     "Need newer version of ChimeraX to restore session")
             fdeserialize = serialize.msgpack_deserialize
         metadata = fdeserialize(stream)
+        if metadata is None:
+            raise UserError("Corrupt session file (missing metadata)")
         metadata['session_version'] = version
         if metadata_only:
             self.metadata.update(metadata)
@@ -598,7 +600,9 @@ def standard_metadata(previous_metadata={}):
     # TODO: better way to get full user name
     user = os.environ.get('USERNAME', None)
     if user is None:
-        user = os.getlogin()
+        user = os.environ.get('LOGNAME', None)
+    if user is None:
+        user = 'Unknown user'
     tmp = metadata.setdefault('creator', [])
     if not isinstance(tmp, list):
         tmp = [tmp]

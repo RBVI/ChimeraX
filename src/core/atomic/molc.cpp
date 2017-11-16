@@ -3277,53 +3277,70 @@ extern "C" EXPORT npy_bool change_tracker_changed(void *vct)
     }
 }
 
+static PyObject* changes_as_py_dict(const ChangeTracker::ChangesArray& all_changes,
+    const std::string* python_class_names)
+{
+    PyObject* changes_data = PyDict_New();
+    for (size_t i = 0; i < all_changes.size(); ++i) {
+        auto& class_changes = all_changes[i];
+        auto class_name = python_class_names[i];
+        PyObject* key = unicode_from_string(class_name);
+        PyObject* value = PyTuple_New(4);
+
+        // first tuple item:  created objects
+        void **ptrs;
+        PyObject *ptr_array = python_voidp_array(class_changes.created.size(), &ptrs);
+        size_t j = 0;
+        for (auto ptr: class_changes.created)
+            ptrs[j++] = const_cast<void*>(ptr);
+        PyTuple_SET_ITEM(value, 0, ptr_array);
+
+        // second tuple item:  modified objects
+        ptr_array = python_voidp_array(class_changes.modified.size(), &ptrs);
+        j = 0;
+        for (auto ptr: class_changes.modified)
+            ptrs[j++] = const_cast<void*>(ptr);
+        PyTuple_SET_ITEM(value, 1, ptr_array);
+
+        // third tuple item:  list of reasons
+        PyObject* reasons = PyList_New(class_changes.reasons.size());
+        j = 0;
+        for (auto reason: class_changes.reasons)
+            PyList_SetItem(reasons, j++, unicode_from_string(reason));
+        PyTuple_SET_ITEM(value, 2, reasons);
+
+        // fourth tuple item:  total number of deleted objects
+        PyTuple_SET_ITEM(value, 3, PyLong_FromLong(class_changes.num_deleted));
+
+        PyDict_SetItem(changes_data, key, value);
+        Py_DECREF(key);
+        Py_DECREF(value);
+    }
+    return changes_data;
+}
+
 extern "C" EXPORT PyObject* change_tracker_changes(void *vct)
 {
     ChangeTracker* ct = static_cast<ChangeTracker*>(vct);
-    PyObject* changes_data = NULL;
+    const std::string* python_class_names = ct->python_class_names;
+    PyObject* ret_tuple = PyTuple_New(2);
     try {
-        changes_data = PyDict_New();
-        auto& all_changes = ct->get_changes();
-        for (size_t i = 0; i < all_changes.size(); ++i) {
-            auto& class_changes = all_changes[i];
-            auto class_name = ct->python_class_names[i];
-            PyObject* key = unicode_from_string(class_name);
-            PyObject* value = PyTuple_New(4);
-
-            // first tuple item:  created objects
-            void **ptrs;
-            PyObject *ptr_array = python_voidp_array(class_changes.created.size(), &ptrs);
-            size_t j = 0;
-            for (auto ptr: class_changes.created)
-                ptrs[j++] = const_cast<void*>(ptr);
-            PyTuple_SetItem(value, 0, ptr_array);
-
-            // second tuple item:  modified objects
-            ptr_array = python_voidp_array(class_changes.modified.size(), &ptrs);
-            j = 0;
-            for (auto ptr: class_changes.modified)
-                ptrs[j++] = const_cast<void*>(ptr);
-            PyTuple_SetItem(value, 1, ptr_array);
-
-            // third tuple item:  list of reasons
-            PyObject* reasons = PyList_New(class_changes.reasons.size());
-            j = 0;
-            for (auto reason: class_changes.reasons)
-                PyList_SetItem(reasons, j++, unicode_from_string(reason));
-            PyTuple_SetItem(value, 2, reasons);
-
-            // fourth tuple item:  total number of deleted objects
-            PyTuple_SetItem(value, 3, PyLong_FromLong(class_changes.num_deleted));
-
-            PyDict_SetItem(changes_data, key, value);
+        PyTuple_SET_ITEM(ret_tuple, 0,
+            changes_as_py_dict(ct->get_global_changes(), python_class_names));
+        PyObject* struct_changes_dict = PyDict_New();
+        for (auto& s_changes: ct->get_structure_changes()) {
+            PyObject* key = PyLong_FromVoidPtr(static_cast<void*>(s_changes.first));
+            PyObject* value = changes_as_py_dict(s_changes.second, python_class_names);
+            PyDict_SetItem(struct_changes_dict, key, value);
             Py_DECREF(key);
             Py_DECREF(value);
         }
+        PyTuple_SET_ITEM(ret_tuple, 1, struct_changes_dict);
     } catch (...) {
-        Py_XDECREF(changes_data);
+        Py_XDECREF(ret_tuple);
         molc_error();
     }
-    return changes_data;
+    return ret_tuple;
 }
 
 extern "C" EXPORT void change_tracker_clear(void *vct)
@@ -3342,19 +3359,29 @@ extern "C" EXPORT void change_tracker_add_modified(void *vct, int class_num, voi
     ChangeTracker* ct = static_cast<ChangeTracker*>(vct);
     try {
         if (class_num == 0) {
-            ct->add_modified(static_cast<Atom*>(modded), reason);
+            auto atomic_ptr = static_cast<Atom*>(modded);
+            ct->add_modified(atomic_ptr->structure(), atomic_ptr, reason);
         } else if (class_num == 1) {
-            ct->add_modified(static_cast<Bond*>(modded), reason);
+            auto atomic_ptr = static_cast<Bond*>(modded);
+            ct->add_modified(atomic_ptr->structure(), atomic_ptr, reason);
         } else if (class_num == 2) {
-            ct->add_modified(static_cast<Pseudobond*>(modded), reason);
+            auto atomic_ptr = static_cast<Pseudobond*>(modded);
+            ct->add_modified(atomic_ptr->group()->structure(), atomic_ptr, reason);
         } else if (class_num == 3) {
-            ct->add_modified(static_cast<Residue*>(modded), reason);
+            auto atomic_ptr = static_cast<Residue*>(modded);
+            ct->add_modified(atomic_ptr->structure(), atomic_ptr, reason);
         } else if (class_num == 4) {
-            ct->add_modified(static_cast<Chain*>(modded), reason);
+            auto atomic_ptr = static_cast<Chain*>(modded);
+            ct->add_modified(atomic_ptr->structure(), atomic_ptr, reason);
         } else if (class_num == 5) {
-            ct->add_modified(static_cast<AtomicStructure*>(modded), reason);
+            auto atomic_ptr = static_cast<AtomicStructure*>(modded);
+            ct->add_modified(atomic_ptr, atomic_ptr, reason);
         } else if (class_num == 6) {
-            ct->add_modified(static_cast<Proxy_PBGroup*>(modded), reason);
+            auto atomic_ptr = static_cast<Proxy_PBGroup*>(modded);
+            ct->add_modified(atomic_ptr->structure(), atomic_ptr, reason);
+        } else if (class_num == 7) {
+            auto atomic_ptr = static_cast<CoordSet*>(modded);
+            ct->add_modified(atomic_ptr->structure(), atomic_ptr, reason);
         } else {
             throw std::invalid_argument("Bad class value to ChangeTracker.add_modified()");
         }

@@ -71,6 +71,7 @@ setup(
         "PKG_NAME.map.data.apbs",
         "PKG_NAME.map.data.ccp4",
         "PKG_NAME.map.data.cmap",
+        "PKG_NAME.map.data.deltavision",
         "PKG_NAME.map.data.dsn6",
         "PKG_NAME.map.data.imagestack",
         "PKG_NAME.map.data.ims",
@@ -82,6 +83,7 @@ setup(
         "PKG_NAME.toolshed",
         "PKG_NAME.ui",
         "PKG_NAME.ui.widgets",
+        "PKG_NAME.ui.options",
         "PKG_NAME.webservices",
     ],
     package_data={

@@ -21,6 +21,7 @@ Some core triggers are registered elsewhere, such as in the View constructor.
 
 trigger_info = {
     "app quit": True,
+    "background color changed": True,
     "begin restore session": False,
     "begin save session": False,
     "end restore session": False,

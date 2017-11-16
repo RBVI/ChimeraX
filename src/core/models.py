@@ -302,9 +302,11 @@ class Models(State):
                 d.add_drawing(m)
 
         # Clear model ids if they are not subids of parent id.
+        need_fire_id_trigger = []
         for model in models:
             if model.id and model.id[:-1] != d.id:
                 # Model has id that is not a subid of parent, so assign new id.
+                need_fire_id_trigger.append(model)
                 del self._models[model.id]
                 model.id = None
                 if hasattr(model, 'parent'):
@@ -318,6 +320,12 @@ class Models(State):
             children = model.child_models()
             if children:
                 self.add(children, model, _notify=False)
+
+        # IDs that change from None to non-None don't fire the MODEL_ID_CHANGED
+        # trigger, so do it by hand
+        for id_changed_model in need_fire_id_trigger:
+            session = self._session()
+            session.triggers.activate_trigger(MODEL_ID_CHANGED, id_changed_model)
 
         # Notify that models were added
         if _notify:

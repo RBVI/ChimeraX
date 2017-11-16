@@ -53,7 +53,7 @@ def hide(session, objects=None, what=None, target=None):
     if 'surfaces' in what_to_hide:
         from ..atomic import molsurf
         # TODO: save undo data
-        molsurf.hide_surface_atom_patches(objects.atoms, session.models)
+        molsurf.hide_surface_atom_patches(objects.atoms)
     if 'models' in what_to_hide:
         hide_models(objects, undo_state)
 

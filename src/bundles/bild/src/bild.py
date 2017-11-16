@@ -25,7 +25,7 @@ The plan is to support all of the existing bild format.
 
 from chimerax.core.errors import UserError
 import numpy
-from chimerax.core.geometry import identity, translation, rotation, scale, distance, z_align, normalize_vectors
+from chimerax.core.geometry import identity, translation, rotation, scale, distance, z_align
 from chimerax.core import surface
 
 
@@ -74,6 +74,7 @@ class _BildFile:
         self.warned = set()
         self.lineno = 0
         self.transforms = [identity()]
+        self.pure = [True]   # True if corresponding transform has pure rotation
         self.cur_color = [1.0, 1.0, 1.0, 1.0]
         self.cur_transparency = 0
         self.cur_atoms = None
@@ -147,9 +148,9 @@ class _BildFile:
         description = 'arrow %d' % self.num_arrows
         vertices, normals, triangles = get_cylinder(
             r1, p1, junction,
-            closed=True, xform=self.transforms[-1])
+            closed=True, xform=self.transforms[-1], pure=self.pure[-1])
         v, n, t = get_cone(r2, junction, p2, bottom=True,
-                           xform=self.transforms[-1])
+                           xform=self.transforms[-1], pure=self.pure[-1])
         from numpy import concatenate as concat
         t += len(vertices)
         self.drawing.add_shape(
@@ -173,7 +174,7 @@ class _BildFile:
         urf = numpy.array(data[3:6])
         self.num_boxes += 1
         description = 'box %d' % self.num_boxes
-        vertices, normals, triangles = get_box(llb, urf, self.transforms[-1])
+        vertices, normals, triangles = get_box(llb, urf, self.transforms[-1], pure=self.pure[-1])
         self.drawing.add_shape(
             vertices, normals, triangles,
             _cvt_color(self.cur_color), self.cur_atoms, description)
@@ -214,7 +215,7 @@ class _BildFile:
         self.num_cones += 1
         description = 'cone %d' % self.num_cones
         vertices, normals, triangles = get_cone(
-            radius, p0, p1, bottom=bottom, xform=self.transforms[-1])
+            radius, p0, p1, bottom=bottom, xform=self.transforms[-1], pure=self.pure[-1])
         self.drawing.add_shape(
             vertices, normals, triangles,
             _cvt_color(self.cur_color), self.cur_atoms, description)
@@ -235,7 +236,7 @@ class _BildFile:
         self.num_cylinders += 1
         description = 'cylinder %d' % self.num_cylinders
         vertices, normals, triangles = get_cylinder(
-            radius, p0, p1, closed=closed, xform=self.transforms[-1])
+            radius, p0, p1, closed=closed, xform=self.transforms[-1], pure=self.pure[-1])
         self.drawing.add_shape(
             vertices, normals, triangles,
             _cvt_color(self.cur_color), self.cur_atoms, description)
@@ -257,7 +258,7 @@ class _BildFile:
         self.num_cylinders += 1
         description = 'cylinder %d' % self.num_cylinders
         vertices, normals, triangles = get_dashed_cylinder(
-            count, radius, p0, p1, closed=closed, xform=self.transforms[-1])
+            count, radius, p0, p1, closed=closed, xform=self.transforms[-1], pure=self.pure[-1])
         self.drawing.add_shape(
             vertices, normals, triangles,
             _cvt_color(self.cur_color), self.cur_atoms, description)
@@ -267,6 +268,7 @@ class _BildFile:
         if len(self.transforms) == 1:
             raise ValueError("Empty transformation stack")
         self.transforms.pop()
+        self.pure.pop()
 
     def rotate_command(self, tokens):
         if len(tokens) not in (3, 5):
@@ -287,6 +289,7 @@ class _BildFile:
             axis = numpy.array(data[1:4])
         xform = rotation(axis, angle)
         self.transforms.append(self.transforms[-1] * xform)
+        self.pure.append(self.pure[-1])
 
     def scale_command(self, tokens):
         if len(tokens) not in (2, 3, 4):
@@ -298,6 +301,7 @@ class _BildFile:
             data.append(data[0])
         xform = scale(data)
         self.transforms.append(self.transforms[-1] * xform)
+        self.pure.append(False)
 
     def sphere_command(self, tokens):
         if len(tokens) != 5:
@@ -308,7 +312,7 @@ class _BildFile:
         self.num_spheres += 1
         description = 'sphere %d' % self.num_spheres
         vertices, normals, triangles = get_sphere(
-            radius, center, self.transforms[-1])
+            radius, center, self.transforms[-1], pure=self.pure[-1])
         self.drawing.add_shape(
             vertices, normals, triangles,
             _cvt_color(self.cur_color), self.cur_atoms, description)
@@ -320,6 +324,7 @@ class _BildFile:
         data = [self.parse_float(x) for x in tokens[1:4]]
         xform = translation(data)
         self.transforms.append(self.transforms[-1] * xform)
+        self.pure.append(self.pure[-1])
 
     def transparency_command(self, tokens):
         if len(tokens) != 2:
@@ -379,33 +384,31 @@ def _cvt_color(color):
     return color
 
 
-def get_sphere(radius, center, xform=None):
+def get_sphere(radius, center, xform=None, pure=False):
     # TODO: vary number of triangles with radius
     vertices, normals, triangles = surface.sphere_geometry2(200)
     vertices = vertices * radius + center
     if xform is not None:
-        vertices = xform * vertices
-        normals = xform.apply_without_translation(normals)
-        normalize_vectors(normals)
+        xform.move(vertices)
+        xform.update_normals(normals, pure=pure)
     return vertices, normals, triangles
 
 
-def get_cylinder(radius, p0, p1, closed=True, xform=None):
+def get_cylinder(radius, p0, p1, closed=True, xform=None, pure=False):
     h = distance(p0, p1)
     vertices, normals, triangles = surface.cylinder_geometry(radius, height=h, caps=closed)
     # rotate so z-axis matches p0->p1
     xf = z_align(p0, p1)
     inverse = xf.inverse()
     vertices = inverse * (vertices + [0, 0, h / 2])
-    normals = inverse.apply_without_translation(normals)
+    inverse.update_normals(normals, pure=True)
     if xform is not None:
-        vertices = xform * vertices
-        normals = xform.apply_without_translation(normals)
-        normalize_vectors(normals)
+        xform.move(vertices)
+        xform.update_normals(normals, pure=pure)
     return vertices, normals, triangles
 
 
-def get_dashed_cylinder(count, radius, p0, p1, closed=True, xform=None):
+def get_dashed_cylinder(count, radius, p0, p1, closed=True, xform=None, pure=False):
     h = distance(p0, p1)
     vertices, normals, triangles = surface.dashed_cylinder_geometry(count, radius, height=h, caps=closed)
     # rotate so z-axis matches p0->p1
@@ -413,33 +416,30 @@ def get_dashed_cylinder(count, radius, p0, p1, closed=True, xform=None):
     xf = z_align(p0, p1)
     inverse = xf.inverse()
     vertices = inverse * (vertices + [0, 0, h / 2])
-    normals = inverse.apply_without_translation(normals)
+    inverse.update_normals(normals, pure=True)
     if xform is not None:
-        vertices = xform * vertices
-        normals = xform.apply_without_translation(normals)
-        normalize_vectors(normals)
+        xform.move(vertices)
+        xform.update_normals(normals, pure=pure)
     return vertices, normals, triangles
 
 
-def get_box(llb, urf, xform=None):
+def get_box(llb, urf, xform=None, pure=False):
     vertices, normals, triangles = surface.box_geometry(llb, urf)
     if xform is not None:
-        vertices = xform * vertices
-        normals = xform.apply_without_translation(normals)
-        normalize_vectors(normals)
+        xform.move(vertices)
+        xform.update_normals(normals, pure=pure)
     return vertices, normals, triangles
 
 
-def get_cone(radius, p0, p1, bottom=False, xform=None):
+def get_cone(radius, p0, p1, bottom=False, xform=None, pure=False):
     h = distance(p0, p1)
     vertices, normals, triangles = surface.cone_geometry(radius, height=h, caps=bottom)
     from chimerax.core.geometry import z_align
     xf = z_align(p0, p1)
     inverse = xf.inverse()
     vertices = inverse * vertices
-    normals = inverse.apply_without_translation(normals)
+    inverse.update_normals(normals, pure=True)
     if xform is not None:
-        vertices = xform * vertices
-        normals = xform.apply_without_translation(normals)
-        normalize_vectors(normals)
+        xform.move(vertices)
+        xform.update_normals(normals, pure=pure)
     return vertices, normals, triangles

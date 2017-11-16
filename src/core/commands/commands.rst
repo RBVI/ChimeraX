@@ -20,6 +20,7 @@ and their code location is described with the function descriptions.
 | `2dlabels`_ * - Show text labels with graphics
 | `alias`_ - Define aliases for commands
 | `align`_ - Align one set of atoms to another
+| `bumps`_ * - Mark cell protrusions in 3D light microscopy
 | `cage`_ * - Place models on polygonal cages
 | `camera`_ - Change camera settings
 | `cartoon`_ * - Display atomic structure ribbons or pipes/planks
@@ -103,6 +104,10 @@ alias
 align
 =====
 .. autofunction:: chimerax.core.commands.align.align
+
+bumps
+=====
+.. autofunction:: chimerax.bumps.bumps.bumps
 
 cage
 ====

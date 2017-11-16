@@ -65,7 +65,8 @@ class ModelPanel(ToolInstance):
             MODEL_ID_CHANGED, MODEL_NAME_CHANGED
         self.session.triggers.add_handler(ADD_MODELS, self._initiate_fill_tree)
         self.session.triggers.add_handler(REMOVE_MODELS, self._initiate_fill_tree)
-        self.session.triggers.add_handler(MODEL_ID_CHANGED, self._fill_tree)
+        self.session.triggers.add_handler(MODEL_ID_CHANGED,
+            lambda *args: self._fill_tree(*args, always_rebuild=True))
         self.session.triggers.add_handler(MODEL_NAME_CHANGED, self._fill_tree)
         from chimerax.core import atomic
         atomic.get_triggers(self.session).add_handler("changes", self._changes_cb)
@@ -110,11 +111,11 @@ class ModelPanel(ToolInstance):
             self._frame_drawn_handler = self.session.triggers.add_handler(
                 "frame drawn", self._fill_tree)
 
-    def _fill_tree(self, *args):
+    def _fill_tree(self, *args, always_rebuild=False):
         if not self.displayed():
             # Don't update panel when it is hidden.
             return
-        update = self._process_models()
+        update = self._process_models() and not always_rebuild
         if not update:
             expanded_models = { i._model : i.isExpanded()
                                 for i in self._items if hasattr(i, '_model')}
@@ -143,9 +144,9 @@ class ModelPanel(ToolInstance):
                 item._model = model
                 item_stack[len_id:] = [item]
                 self._items.append(item)
-                if bg_color is not None:
-                    from chimerax.core.ui.widgets import ColorButton
-                    but = ColorButton(has_alpha_channel=True, max_size=(16,16))
+                if bg_color is not False:
+                    from chimerax.core.ui.widgets import MultiColorButton
+                    but = MultiColorButton(has_alpha_channel=True, max_size=(16,16))
                     def set_single_color(rgba, m=model):
                         for cm in m.all_models():
                             cm.single_color = rgba
@@ -154,7 +155,7 @@ class ModelPanel(ToolInstance):
                     self.tree.setItemWidget(item, self.COLOR_COLUMN, but)
             item.setText(self.ID_COLUMN, model_id_string)
             bg = item.background(self.ID_COLUMN)
-            if bg_color is None:
+            if bg_color is False:
                 bg.setStyle(Qt.NoBrush)
             else:
                 but = self.tree.itemWidget(item, self.COLOR_COLUMN)
