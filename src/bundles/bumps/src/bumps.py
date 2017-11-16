@@ -37,6 +37,9 @@ def bumps(session, volume, center = None, range = None, base_area = 10.0, height
         Size of marker spheres to place at protrusion tips.
     marker_color : uint8 4-tuple
         Color of markers.  Default light green.
+    color_surface : bool
+        Whether to color the protrusion surface near the protrusion grid points.
+        Each protrusion is assigned a random color.  Default true.
     name : string
         Name of created marker model. Default "bumps".
     all_extrema : bool
@@ -315,7 +318,8 @@ def color_surface_from_mask(volume, mask):
     from chimerax.core.map import _map
     for d in volume.surface_drawings:
         values = empty((len(d.vertices),), float32)
-        _map.interpolate_volume_data(d.vertices, tf, emask, 'nearest', values)
+        vijk = volume.data.xyz_to_ijk(d.vertices)
+        _map.interpolate_volume_data(vijk, tf, emask, 'nearest', values)
         mi = values.astype(int32)      # Interpolated values are float, not int.
         pcolors[0,:] = d.color
         d.vertex_colors = pcolors[mi]
