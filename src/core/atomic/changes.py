@@ -27,7 +27,7 @@ def check_for_changes(session):
         from . import get_triggers
         get_triggers(session).activate_trigger("changes", Changes(global_changes))
         for s, s_changes in structure_changes.items():
-            s.triggers.activate_trigger("changes", Changes(s_changes))
+            s.triggers.activate_trigger("changes", (s, Changes(s_changes)))
     finally:
         ul.unblock_redraw()
 
