@@ -22,10 +22,12 @@ def check_for_changes(session):
     ul = session.update_loop
     ul.block_redraw()
     try:
-        changes = Changes(ct.changes)
+        global_changes, structure_changes = ct.changes
         ct.clear()
         from . import get_triggers
-        get_triggers(session).activate_trigger("changes", changes)
+        get_triggers(session).activate_trigger("changes", Changes(global_changes))
+        for s, s_changes in structure_changes.items():
+            s.triggers.activate_trigger("changes", Changes(s_changes))
     finally:
         ul.unblock_redraw()
 

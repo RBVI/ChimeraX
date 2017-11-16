@@ -64,6 +64,9 @@ class Structure(Model, StructureData):
                 ("save_teardown", "end save session")]:
             self._ses_handlers.append(t.add_handler(trig_name,
                     lambda *args, qual=ses_func: self._ses_call(qual)))
+        from .. import triggerset
+        self.triggers = triggerset.TriggerSet()
+        self.triggers.add_trigger("changes")
 
         self._make_drawing()
 

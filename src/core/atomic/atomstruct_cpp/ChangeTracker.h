@@ -54,13 +54,18 @@ public:
 class ATOMSTRUCT_IMEX ChangeTracker {
 protected:
     static const int  _num_types = 8;
+
+public:
+    typedef std::array<Changes, _num_types>  ChangesArray;
+
+protected:
     template<class C>
     int  _ptr_to_type(C*);
 
     bool  _discarding;
     // array much faster than map...
-    std::array<Changes, _num_types>  _global_type_changes;
-    mutable std::map<Structure*, std::array<Changes, _num_types>>  _structure_type_changes;
+    ChangesArray  _global_type_changes;
+    mutable std::map<Structure*, ChangesArray>  _structure_type_changes;
 
 public:
     ChangeTracker() : _discarding(false) {};
@@ -269,9 +274,11 @@ public:
         for (auto& changes: _global_type_changes) changes.clear();
         _structure_type_changes.clear();
     }
-    const std::array<Changes, _num_types>&  get_changes() const { return _global_type_changes; }
-    const std::array<Changes, _num_types>&  get_changes(Structure* s) const {
-        return _structure_type_changes[s];
+    const ChangesArray&  get_global_changes() const {
+        return _global_type_changes;
+    }
+    const std::map<Structure*, ChangesArray>&  get_structure_changes() const {
+        return _structure_type_changes;
     }
     const std::string  python_class_names[_num_types] = {
         "Atom", "Bond", "Pseudobond", "Residue", "Chain",
