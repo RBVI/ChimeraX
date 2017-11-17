@@ -77,13 +77,11 @@ class _BildFile:
         self.pure = [True]   # True if corresponding transform has pure rotation
         self.cur_color = [1.0, 1.0, 1.0, 1.0]
         self.cur_transparency = 0
+        self.cur_pos = numpy.array([0.0, 0.0, 0.0])
+        self.last_pos_is_move = True  # set whenever cur_pos is set
         self.cur_atoms = None
         self.num_objects = 0
-        self.num_arrows = 0
-        self.num_boxes = 0
-        self.num_cylinders = 0
-        self.num_cones = 0
-        self.num_spheres = 0
+        self.LINE_RADIUS = 0.08
 
     def parse_stream(self, stream):
         for line in stream.readlines():
@@ -136,7 +134,7 @@ class _BildFile:
 
     def arrow_command(self, tokens):
         if len(tokens) not in (7, 8, 9, 10):
-            raise ValueError("Expected 'x1 y1 z1 x2 y2 z2 [r1 [r2 [rho]]]' after .arrow")
+            raise ValueError("Expected 'x1 y1 z1 x2 y2 z2 [r1 [r2 [rho]]]' after %s" % tokens[0])
         data = [self.parse_float(x) for x in tokens[1:]]
         r1 = data[6] if len(tokens) > 7 else 0.1
         r2 = data[7] if len(tokens) > 8 else 4 * r1
@@ -144,8 +142,8 @@ class _BildFile:
         p1 = numpy.array(data[0:3])
         p2 = numpy.array(data[3:6])
         junction = p1 + rho * (p2 - p1)
-        self.num_arrows += 1
-        description = 'arrow %d' % self.num_arrows
+        self.num_objects += 1
+        description = 'object %d: arrow' % self.num_objects
         vertices, normals, triangles = get_cylinder(
             r1, p1, junction,
             closed=True, xform=self.transforms[-1], pure=self.pure[-1])
@@ -156,7 +154,6 @@ class _BildFile:
         self.drawing.add_shape(
             concat((vertices, v)), concat((normals, n)), concat((triangles, t)),
             _cvt_color(self.cur_color), self.cur_atoms, description)
-        self.num_objects += 1
 
     def atomspec_command(self, tokens):
         atomspec = ' '.join(tokens[1:])
@@ -168,17 +165,16 @@ class _BildFile:
 
     def box_command(self, tokens):
         if len(tokens) != 7:
-            raise ValueError("Expected 'x1 y1 z1 x2 y2 z2' after .box")
+            raise ValueError("Expected 'x1 y1 z1 x2 y2 z2' after %s" % tokens[0])
         data = [self.parse_float(x) for x in tokens[1:7]]
         llb = numpy.array(data[0:3])
         urf = numpy.array(data[3:6])
-        self.num_boxes += 1
-        description = 'box %d' % self.num_boxes
+        self.num_objects += 1
+        description = 'object %d: box' % self.num_objects
         vertices, normals, triangles = get_box(llb, urf, self.transforms[-1], pure=self.pure[-1])
         self.drawing.add_shape(
             vertices, normals, triangles,
             _cvt_color(self.cur_color), self.cur_atoms, description)
-        self.num_objects += 1
 
     def comment_command(self, tokens):
         # ignore comments
@@ -196,14 +192,14 @@ class _BildFile:
                     self.cur_color[0:3] = c.rgba[0:3]
                     self.cur_color[3] = 1 - self.cur_transparency
         elif len(tokens) != 4:
-            raise ValueError("Expected 'R G B' values or color name after .color")
+            raise ValueError("Expected 'R G B' values or color name after %s" % tokens[0])
         else:
             self.cur_color[0:3] = [self.parse_float(x) for x in tokens[1:4]]
 
     def cone_command(self, tokens):
         if len(tokens) not in (8, 9) or (
                 len(tokens) == 9 and tokens[8] != 'open'):
-            raise ValueError("Expected 'x1 y1 z1 x2 y2 z2 radius [open]' after .cylinder")
+            raise ValueError("Expected 'x1 y1 z1 x2 y2 z2 radius [open]' after %s" % tokens[0])
         data = [self.parse_float(x) for x in tokens[1:8]]
         p0 = numpy.array(data[0:3])
         p1 = numpy.array(data[3:6])
@@ -212,19 +208,18 @@ class _BildFile:
             bottom = True
         else:
             bottom = False
-        self.num_cones += 1
-        description = 'cone %d' % self.num_cones
+        self.num_objects += 1
+        description = 'object %d: cone' % self.num_objects
         vertices, normals, triangles = get_cone(
             radius, p0, p1, bottom=bottom, xform=self.transforms[-1], pure=self.pure[-1])
         self.drawing.add_shape(
             vertices, normals, triangles,
             _cvt_color(self.cur_color), self.cur_atoms, description)
-        self.num_objects += 1
 
     def cylinder_command(self, tokens):
         if len(tokens) not in (8, 9) or (
                 len(tokens) == 9 and tokens[8] != 'open'):
-            raise ValueError("Expected 'x1 y1 z1 x2 y2 z2 radius [open]' after .cylinder")
+            raise ValueError("Expected 'x1 y1 z1 x2 y2 z2 radius [open]' after %s" % tokens[0])
         data = [self.parse_float(x) for x in tokens[1:8]]
         p0 = numpy.array(data[0:3])
         p1 = numpy.array(data[3:6])
@@ -233,19 +228,18 @@ class _BildFile:
             closed = True
         else:
             closed = False
-        self.num_cylinders += 1
-        description = 'cylinder %d' % self.num_cylinders
+        self.num_objects += 1
+        description = 'object %d: cylinder' % self.num_objects
         vertices, normals, triangles = get_cylinder(
             radius, p0, p1, closed=closed, xform=self.transforms[-1], pure=self.pure[-1])
         self.drawing.add_shape(
             vertices, normals, triangles,
             _cvt_color(self.cur_color), self.cur_atoms, description)
-        self.num_objects += 1
 
     def dashed_cylinder_command(self, tokens):
         if len(tokens) not in (9, 10) or (
                 len(tokens) == 10 and tokens[9] != 'open'):
-            raise ValueError("Expected 'count x1 y1 z1 x2 y2 z2 radius [open]' after .cylinder")
+            raise ValueError("Expected 'count x1 y1 z1 x2 y2 z2 radius [open]' after %s" % tokens[0])
         count = self.parse_int(tokens[1])
         data = [self.parse_float(x) for x in tokens[2:9]]
         p0 = numpy.array(data[0:3])
@@ -255,14 +249,88 @@ class _BildFile:
             closed = True
         else:
             closed = False
-        self.num_cylinders += 1
-        description = 'cylinder %d' % self.num_cylinders
+        self.num_objects += 1
+        description = 'object %d: dashed cylinder' % self.num_objects
         vertices, normals, triangles = get_dashed_cylinder(
             count, radius, p0, p1, closed=closed, xform=self.transforms[-1], pure=self.pure[-1])
         self.drawing.add_shape(
             vertices, normals, triangles,
             _cvt_color(self.cur_color), self.cur_atoms, description)
+
+    def dot_command(self, tokens):
+        if len(tokens) != 4:
+            raise UserError("Expected 'x y z' after %s" % tokens[0])
+        data = [self.parse_float(x) for x in tokens[1:4]]
+        center = numpy.array(data[0:3])
         self.num_objects += 1
+        description = 'object %d: dot' % self.num_objects
+        vertices, normals, triangles = get_sphere(
+            self.LINE_RADIUS, center, self.transforms[-1], pure=self.pure[-1])
+        self.drawing.add_shape(
+            vertices, normals, triangles,
+            _cvt_color(self.cur_color), self.cur_atoms, description)
+        self.cur_pos = center
+        self.last_pos_is_move = False
+
+    def draw_command(self, tokens):
+        if len(tokens) != 4:
+            raise ValueError("Expected 'x y z' after %s" % tokens[0])
+        data = [self.parse_float(x) for x in tokens[1:4]]
+        xyz = numpy.array(data[0:3])
+        radius = self.LINE_RADIUS
+        p0 = self.cur_pos
+        if tokens[0] in ('.draw', '.d'):
+            p1 = xyz
+        else:
+            p1 = p0 + xyz
+        self.num_objects += 1
+        description = 'object %d: vector' % self.num_objects
+        from numpy import concatenate as concat
+        v1, n1, t1 = get_sphere(
+            radius, p1, self.transforms[-1], pure=self.pure[-1])
+        v2, n2, t2 = get_cylinder(
+            radius, p0, p1, closed=False, xform=self.transforms[-1], pure=self.pure[-1])
+        t2 += len(v1)
+        if self.last_pos_is_move:
+            v3, n3, t3 = get_sphere(
+                radius, p0, self.transforms[-1], pure=self.pure[-1])
+            t3 += len(v1) + len(v2)
+        else:
+            v3 = n3 = numpy.array([], dtype=v1.dtype)
+            t3 = numpy.array([], dtype=t1.dtype)
+            v3.shape = n3.shape = t3.shape = (0, 3)
+        self.drawing.add_shape(
+            concat((v1, v2, v3)), concat((n1, n2, n3)), concat((t1, t2, t3)),
+            _cvt_color(self.cur_color), self.cur_atoms, description)
+        self.cur_pos = p1
+        self.last_pos_is_move = False
+
+    def marker_command(self, tokens):
+        if len(tokens) != 4:
+            raise ValueError("Expected 'x y z' after %s" % tokens[0])
+        data = [self.parse_float(x) for x in tokens[1:4]]
+        center = numpy.array(data[0:3])
+        self.num_objects += 1
+        description = 'object %d: marker' % self.num_objects
+        llb = center - 0.5
+        urf = center + 0.5
+        vertices, normals, triangles = get_box(llb, urf, self.transforms[-1], pure=self.pure[-1])
+        self.drawing.add_shape(
+            vertices, normals, triangles,
+            _cvt_color(self.cur_color), self.cur_atoms, description)
+        self.cur_pos = center
+        self.last_pos_is_move = False
+
+    def move_command(self, tokens):
+        if len(tokens) != 4:
+            raise UserError("Expected 'x y z' after %s" % tokens[0])
+        data = [self.parse_float(x) for x in tokens[1:4]]
+        xyz = numpy.array(data[0:3])
+        if tokens[0] in ('.move', '.m'):
+            self.cur_pos = xyz
+        else:
+            self.cur_pos += xyz
+        self.last_pos_is_move = True
 
     def pop_command(self, tokens):
         if len(self.transforms) == 1:
@@ -282,7 +350,7 @@ class _BildFile:
             elif tokens[2] == 'z':
                 axis = (1., 0., 0.)
             else:
-                raise UserError("Expected 'x', 'y', or 'z' axis")
+                raise UserError("Expected 'x', 'y', or 'z' axis in %s" % tokens[0])
         else:
             data = [self.parse_float(x) for x in tokens[1:5]]
             angle = data[0]
@@ -293,7 +361,7 @@ class _BildFile:
 
     def scale_command(self, tokens):
         if len(tokens) not in (2, 3, 4):
-            raise ValueError("Expected 'x [y [z]]' after .scale")
+            raise ValueError("Expected 'x [y [z]]' after %s" % tokens[0])
         data = [self.parse_float(x) for x in tokens[1:]]
         if len(data) == 1:
             data.extend([data[0], data[0]])
@@ -305,18 +373,17 @@ class _BildFile:
 
     def sphere_command(self, tokens):
         if len(tokens) != 5:
-            raise UserError("Expected 'x y z radius' after .sphere")
+            raise UserError("Expected 'x y z radius' after %s" % tokens[0])
         data = [self.parse_float(x) for x in tokens[1:5]]
         center = numpy.array(data[0:3])
         radius = data[3]
-        self.num_spheres += 1
-        description = 'sphere %d' % self.num_spheres
+        self.num_objects += 1
+        description = 'object %d: sphere' % self.num_objects
         vertices, normals, triangles = get_sphere(
             radius, center, self.transforms[-1], pure=self.pure[-1])
         self.drawing.add_shape(
             vertices, normals, triangles,
             _cvt_color(self.cur_color), self.cur_atoms, description)
-        self.num_objects += 1
 
     def translate_command(self, tokens):
         if len(tokens) != 4:
@@ -328,9 +395,33 @@ class _BildFile:
 
     def transparency_command(self, tokens):
         if len(tokens) != 2:
-            raise UserError("Expected 'value' after .transparency")
+            raise UserError("Expected 'value' after %s" % tokens[0])
         self.cur_transparency = self.parse_float(tokens[1])
         self.cur_color[3] = 1 - self.cur_transparency
+
+    def vector_command(self, tokens):
+        if len(tokens) != 7:
+            raise ValueError("Expected 'x1 y1 z1 x2 y2 z2' after %s" % tokens[0])
+        data = [self.parse_float(x) for x in tokens[1:7]]
+        p0 = numpy.array(data[0:3])
+        p1 = numpy.array(data[3:6])
+        radius = self.LINE_RADIUS
+        self.num_objects += 1
+        description = 'object %d: vector' % self.num_objects
+        from numpy import concatenate as concat
+        v1, n1, t1 = get_sphere(
+            radius, p0, self.transforms[-1], pure=self.pure[-1])
+        v2, n2, t2 = get_cylinder(
+            radius, p0, p1, closed=False, xform=self.transforms[-1], pure=self.pure[-1])
+        t2 += len(v1)
+        v3, n3, t3 = get_sphere(
+            radius, p1, self.transforms[-1], pure=self.pure[-1])
+        t3 += len(v1) + len(v2)
+        self.drawing.add_shape(
+            concat((v1, v2, v3)), concat((n1, n2, n3)), concat((t1, t2, t3)),
+            _cvt_color(self.cur_color), self.cur_atoms, description)
+        self.cur_pos = p1
+        self.last_pos_is_move = False
 
     _commands = {
         '.arrow': arrow_command,
@@ -342,18 +433,19 @@ class _BildFile:
         '.color': color_command,
         '.cone': cone_command,
         '.cylinder': cylinder_command,
-        '.d': lambda self, tokens: self.unimplemented('.d', tokens),
-        '.dot': lambda self, tokens: self.unimplemented('.dot', tokens),
-        '.dotat': lambda self, tokens: self.unimplemented('.dotat', tokens),
-        '.dr': lambda self, tokens: self.unimplemented('.dr', tokens),
-        '.draw': lambda self, tokens: self.unimplemented('.draw', tokens),
-        '.drawrel': lambda self, tokens: self.unimplemented('.drawrel', tokens),
+        '.d': draw_command,
+        '.dashedcylinder': dashed_cylinder_command,
+        '.dot': dot_command,
+        '.dotat': dot_command,
+        '.dr': draw_command,
+        '.draw': draw_command,
+        '.drawrel': draw_command,
         '.font': lambda self, tokens: self.unimplemented('.font', tokens),
-        '.m': lambda self, tokens: self.unimplemented('.m', tokens),
-        '.marker': lambda self, tokens: self.unimplemented('.marker', tokens),
-        '.move': lambda self, tokens: self.unimplemented('.move', tokens),
-        '.mr': lambda self, tokens: self.unimplemented('.mr', tokens),
-        '.moverel': lambda self, tokens: self.unimplemented('.moverel', tokens),
+        '.m': move_command,
+        '.marker': marker_command,
+        '.move': move_command,
+        '.mr': move_command,
+        '.moverel': move_command,
         '.polygon': lambda self, tokens: self.unimplemented('.polygon', tokens),
         '.pop': pop_command,
         '.rot': rotate_command,
@@ -363,8 +455,8 @@ class _BildFile:
         '.tran': translate_command,
         '.translate': translate_command,
         '.transparency': transparency_command,
-        '.v': lambda self, tokens: self.unimplemented('.v', tokens),
-        '.vector': lambda self, tokens: self.unimplemented('.vector', tokens),
+        '.v': vector_command,
+        '.vector': vector_command,
     }
 
 
