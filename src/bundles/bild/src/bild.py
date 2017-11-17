@@ -333,6 +333,33 @@ class _BildFile:
             self.cur_pos += xyz
         self.last_pos_is_move = True
 
+    def polygon_command(self, tokens):
+        # TODO: use GLU to tesselate polygon
+        #     for now, find center and make a triangle fan
+        if len(tokens) % 3 != 1:
+            raise UserError("Expected 'x1 y1 z1 ... xN yN zN' after %s" % tokens[0])
+        data = [self.parse_float(x) for x in tokens[1:]]
+        from numpy import concatenate as concat
+        vertices = numpy.array(data, dtype=numpy.float32)
+        n = len(data) // 3
+        vertices.shape = (n, 3)
+        center = numpy.average(vertices, axis=0)
+        center.shape = (1, 3)
+        if n < 3:
+            raise UserError("Need at least 3 vertices in a polygon")
+        self.num_objects += 1
+        description = 'object %d: polygon' % self.num_objects
+        vertices = concat((vertices, center))
+        normals = numpy.empty(vertices.shape, dtype=numpy.float32)
+        triangles = numpy.empty((n, 3), dtype=numpy.int32)
+        for i in range(n):
+            triangles[i] = n, i, (i + 1) % n
+        norm = numpy.cross(vertices[0] - vertices[n], vertices[1] - vertices[n])
+        normals[0:n + 1] = norm
+        self.drawing.add_shape(
+            vertices, normals, triangles,
+            _cvt_color(self.cur_color), self.cur_atoms, description)
+
     def pop_command(self, tokens):
         if len(self.transforms) == 1:
             raise ValueError("Empty transformation stack")
@@ -447,7 +474,7 @@ class _BildFile:
         '.move': move_command,
         '.mr': move_command,
         '.moverel': move_command,
-        '.polygon': lambda self, tokens: self.unimplemented('.polygon', tokens),
+        '.polygon': polygon_command,
         '.pop': pop_command,
         '.rot': rotate_command,
         '.rotate': rotate_command,
