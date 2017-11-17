@@ -30,7 +30,7 @@ from chimerax.core import surface
 
 
 def _interp(t, a, b):
-    return [t * (b[i] - a[i]) for i in range(3)]
+    return [a[i] + t * (b[i] - a[i]) for i in range(3)]
 
 
 def _rgb_color(color_number):
@@ -262,10 +262,11 @@ class _BildFile:
             raise UserError("Expected 'x y z' after %s" % tokens[0])
         data = [self.parse_float(x) for x in tokens[1:4]]
         center = numpy.array(data[0:3])
+        radius = 1
         self.num_objects += 1
         description = 'object %d: dot' % self.num_objects
         vertices, normals, triangles = get_sphere(
-            self.LINE_RADIUS, center, self.transforms[-1], pure=self.pure[-1])
+            radius, center, self.transforms[-1], pure=self.pure[-1])
         self.drawing.add_shape(
             vertices, normals, triangles,
             _cvt_color(self.cur_color), self.cur_atoms, description)
