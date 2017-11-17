@@ -11,46 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from PyQt5.QtWidgets import QWidget, QFormLayout
-
-class OptionsPanel(QWidget):
-    """OptionsPanel is a container for Options"""
-
-    def __init__(self, parent=None, *, sorting=None, **kw):
-        """sorting:
-             None; options shown in order added
-             True: options sorted alphabetically by name
-             func: options sorted based on the provided key function
-        """
-        QWidget.__init__(self, parent, **kw)
-        self._sorting = sorting
-        self._options = []
-        self.setLayout(QFormLayout())
-
-    def add_option(self, option):
-        if self._sorting is None:
-            insert_row = len(self._options)
-        else:
-            if self._sorting is True:
-                test = lambda o1, o2: o1.name < o2.name
-            else:
-                test = lambda o1, o2: self._sorting(o1) < self._sorting(o2)
-            for insert_row in range(len(self._options)):
-                if test(option, self._options[insert_row]):
-                    break
-            else:
-                insert_row = len(self._options)
-        self.layout().insertRow(insert_row, option.name, option.widget)
-        if option.balloon:
-            self.layout().itemAt(insert_row,
-                QFormLayout.LabelRole).widget().setToolTip(option.balloon)
-
-def recurse_getattr(obj, attr_name):
-    attrs = attr_name.split('.')
-    for a in attrs:
-        obj = getattr(obj, a)
-    return obj
-
 from abc import ABCMeta, abstractmethod
 
 class Option(metaclass=ABCMeta):
@@ -160,8 +120,8 @@ class Option(metaclass=ABCMeta):
         # put widget in 'disabled' (inactive) state
         self.widget.setDisabled(True)
 
-    def _make_callback(self):
-        # Called by GUI to propagate changes back to program
+    def make_callback(self):
+        # Called (usually by GUI) to propagate changes back to program
         if self._callback:
             self._callback(self)
 
@@ -169,6 +129,12 @@ class Option(metaclass=ABCMeta):
     def _make_widget(self):
         # create (as self.widget) the widget to display the option value
         pass
+
+def recurse_getattr(obj, attr_name):
+    attrs = attr_name.split('.')
+    for a in attrs:
+        obj = getattr(obj, a)
+    return obj
 
 class EnumOption(Option):
     """Option for enumerated values"""
@@ -205,7 +171,7 @@ class EnumOption(Option):
 
     def _menu_cb(self, label):
         self.set(label)
-        self._make_callback()
+        self.make_callback()
 
 class RgbaOption(Option):
     """Option for rgba colors"""
@@ -223,7 +189,7 @@ class RgbaOption(Option):
     def _make_widget(self, **kw):
         from ..widgets import MultiColorButton
         self.widget = MultiColorButton(max_size=(16,16), has_alpha_channel=True)
-        self.widget.color_changed.connect(lambda c, s=self: s._make_callback())
+        self.widget.color_changed.connect(lambda c, s=self: s.make_callback())
 
 class ColorOption(RgbaOption):
     """Option for rgba colors"""
@@ -251,11 +217,11 @@ class SymbolicEnumOption(EnumOption):
         self._value = None
         EnumOption.set_multiple(self)
 
-    def _make_callback(self):
+    def make_callback(self):
         label = self.widget.text()
         i = list(self.labels).index(label)
         self._value = self.values[i]
-        EnumOption._make_callback(self)
+        EnumOption.make_callback(self)
 
     def _make_widget(self, **kw):
         self._value = self.default
@@ -264,4 +230,4 @@ class SymbolicEnumOption(EnumOption):
 
     def _menu_cb(self, label):
         self.set(self.values[self.labels.index(label)])
-        self._make_callback()
+        self.make_callback()
