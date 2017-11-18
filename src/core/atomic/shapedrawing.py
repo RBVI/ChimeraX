@@ -15,7 +15,7 @@ import numpy
 from chimerax.core.graphics import Drawing, Pick
 
 
-class ShapeDrawing(Drawing):
+class AtomicShapeDrawing(Drawing):
     """Extend Drawing with knowledge of individual shapes
 
     The only additional public API is the :py:meth:`add_shape` method.
@@ -46,10 +46,10 @@ class ShapeDrawing(Drawing):
             tn = pick.triangle_number
         except AttributeError:
             return pick
-        for s in self._shapes:
-            if tn in s.triangle_range:
-                pick = PickedShape(pick.distance, s, self)
-                break
+        s = _search(self._shapes, tn)
+        if s is None:
+            return None
+        pick = PickedAtomicShape(pick.distance, s, self)
         return pick
 
     def planes_pick(self, planes, exclude=None):
@@ -68,7 +68,7 @@ class ShapeDrawing(Drawing):
             tmask = p._triangles_mask
             shapes = [s for s in self._shapes if tmask[s.triangle_range].sum() > 0]
             if shapes:
-                picks.append(PickedShapes(shapes, self))
+                picks.append(PickedAtomicShapes(shapes, self))
         return picks
 
     def selected_items(self, itype):
@@ -166,9 +166,9 @@ class ShapeDrawing(Drawing):
             or an :py:class:`~chimerax.core.atomic.Atoms` collection.
         description : a string describing the shape
 
-        The vertices, normals, and triangles can custom or the results from one of the
-        :py:mod:`~chimerax.core.surface`'s geometry functions.  If the description is
-        not given, it defaults to a list of the atoms.
+        The vertices, normals, and triangles can be custom or the results
+        from one of the :py:mod:`~chimerax.core.surface`'s geometry functions.
+        If the description is not given, it defaults to a list of the atoms.
         """
         # extend drawing's vertices, normals, vertex_colors, and triangles
         # atoms is a molarray.Atoms collection
@@ -188,7 +188,7 @@ class ShapeDrawing(Drawing):
             self.normals = asarray(normals, dtype=numpy.float32)
             self.triangles = asarray(triangles, dtype=numpy.int32)
             self.vertex_colors = colors
-            s = _Shape(range(0, self.triangles.shape[0]), description, atoms)
+            s = _AtomicShape(range(0, self.triangles.shape[0]), description, atoms)
             self._shapes.append(s)
             return
         offset = self.vertices.shape[0]
@@ -197,11 +197,46 @@ class ShapeDrawing(Drawing):
         self.normals = asarray(concat((self.normals, normals)), dtype=numpy.float32)
         self.triangles = asarray(concat((self.triangles, triangles + offset)), dtype=numpy.int32)
         self.vertex_colors = concat((self.vertex_colors, colors))
-        s = _Shape(range(start, self.triangles.shape[0]), description, atoms)
+        s = _AtomicShape(range(start, self.triangles.shape[0]), description, atoms)
         self._shapes.append(s)
 
+    def extend_shape(self, vertices, normals, triangles, color=None):
+        """Extend previous shape
 
-class _Shape:
+        Parameters
+        ----------
+        vertices : :py:class:`numpy.array` of coordinates
+        normals : :py:class:`numpy.array` of normals, one per vertex
+        triangles : :py:class:`numpy.array` of vertex indices, multiple of 3
+        color : either None, a single 4 element uint8 :py:class:`numpy.array`;
+            or an array of those values, one per vertex.  If None, then the
+            color is same as the last color of the existing shape.
+        The associated atoms and description are that of the extended shape.
+
+        """
+        if self.vertices is None:
+            raise ValueError("no shape to extend")
+        asarray = numpy.asarray
+        concat = numpy.concatenate
+        if color is None or color.ndim == 1 or color.shape[0] == 1:
+            colors = numpy.empty((vertices.shape[0], 4), dtype=numpy.uint8)
+            if color is None:
+                colors[:] = self.vertex_colors[-1]
+            else:
+                colors[:] = color
+        else:
+            colors = color.asarray(color, dtype=numpy.uint8)
+            assert colors.shape[1] == 4 and colors.shape[0] == vertices.shape[0]
+        offset = self.vertices.shape[0]
+        self.vertices = asarray(concat((self.vertices, vertices)), dtype=numpy.float32)
+        self.normals = asarray(concat((self.normals, normals)), dtype=numpy.float32)
+        self.triangles = asarray(concat((self.triangles, triangles + offset)), dtype=numpy.int32)
+        self.vertex_colors = concat((self.vertex_colors, colors))
+        s = self._shapes[-1]
+        s.triangle_range = range(s.triangle_range.start, self.triangles.shape[0])
+
+
+class _AtomicShape:
 
     def __init__(self, triangle_range, description, atoms):
         # triangle_range is a range object that corresponds to the indices
@@ -214,7 +249,7 @@ class _Shape:
         self.atoms = atoms
 
 
-class PickedShape(Pick):
+class PickedAtomicShape(Pick):
 
     def __init__(self, distance, shape, drawing):
         super().__init__(distance)
@@ -265,7 +300,7 @@ class PickedShape(Pick):
                 drawing._add_selected_shape(self.shape)
 
 
-class PickedShapes:
+class PickedAtomicShapes:
 
     def __init__(self, shapes, drawing):
         Pick.__init__(self)
@@ -292,3 +327,21 @@ class PickedShapes:
                 drawing._remove_selected_shapes(removing)
             if adding:
                 drawing._add_selected_shapes(adding)
+
+
+def _search(shapes, tri):
+    # Binary search a list of shapes whose triangle_ranges are
+    # ascending, non-overlaping, and consecutive for a triangle.
+    # Returns matching shape, or None if not found.
+    lo = 0
+    hi = len(shapes)
+    while lo < hi:
+        mid = (lo + hi) // 2
+        tr = shapes[mid].triangle_range
+        if tri < tr.start:
+            hi = mid
+        elif tri >= tr.stop:
+            lo = mid + 1
+        else:
+            return shapes[mid]
+    return None
