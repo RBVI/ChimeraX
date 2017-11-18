@@ -78,7 +78,9 @@ class _BildFile:
         self.cur_color = [1.0, 1.0, 1.0, 1.0]
         self.cur_transparency = 0
         self.cur_pos = array([0.0, 0.0, 0.0])
-        self.last_pos_is_move = True  # set whenever cur_pos is set
+        self.cur_pos_is_move = True  # set whenever cur_pos is set
+        self.cur_char_pos = array([0.0, 0.0, 0.0])
+        self.cur_font = ['SANS', 12, 'PLAIN']
         self.cur_atoms = None
         self.num_objects = 0
         self.LINE_RADIUS = 0.08
@@ -95,7 +97,7 @@ class _BildFile:
                 # TODO: text
                 if 'text' not in self.warned:
                     self.warned.add('text')
-                    self.session.logger.warning('text is not supported on line %d' % self.lineno)
+                    self.session.logger.warning('text is not implemented on line %d' % self.lineno)
                 continue
             func = self._commands.get(tokens[0], None)
             if func is None:
@@ -109,13 +111,6 @@ class _BildFile:
             except ValueError as e:
                 self.session.logger.warning('%s on line %d' % (e, self.lineno))
         return [self.model], "Opened BILD data containing %d objects" % self.num_objects
-
-    def unimplemented(self, command, tokens):
-        if command in self.warned:
-            return
-        self.warned.add(command)
-        self.session.logger.warning(
-            '%s command is not implemented on line %d' % (command, self.lineno))
 
     def parse_color(self, x):
         # Use *Arg for consistent error messages
@@ -175,6 +170,13 @@ class _BildFile:
         self.drawing.add_shape(
             vertices, normals, triangles,
             _cvt_color(self.cur_color), self.cur_atoms, description)
+
+    def cmov_command(self, tokens):
+        if len(tokens) != 4:
+            raise UserError("Expected 'x y z' after %s" % tokens[0])
+        data = [self.parse_float(x) for x in tokens[1:4]]
+        xyz = array(data[0:3])
+        self.cur_char_pos = xyz
 
     def comment_command(self, tokens):
         # ignore comments
@@ -271,7 +273,7 @@ class _BildFile:
             vertices, normals, triangles,
             _cvt_color(self.cur_color), self.cur_atoms, description)
         self.cur_pos = center
-        self.last_pos_is_move = False
+        self.cur_pos_is_move = False
 
     def draw_command(self, tokens):
         if len(tokens) != 4:
@@ -294,12 +296,12 @@ class _BildFile:
         vertices, normals, triangles = get_cylinder(
             radius, p0, p1, closed=False, xform=self.transforms[-1], pure=self.pure[-1])
         self.drawing.extend_shape(vertices, normals, triangles)
-        if self.last_pos_is_move:
+        if self.cur_pos_is_move:
             vertices, normals, triangles = get_sphere(
                 radius, p0, self.transforms[-1], pure=self.pure[-1])
             self.drawing.extend_shape(vertices, normals, triangles)
         self.cur_pos = p1
-        self.last_pos_is_move = False
+        self.cur_pos_is_move = False
 
     def marker_command(self, tokens):
         if len(tokens) != 4:
@@ -315,7 +317,32 @@ class _BildFile:
             vertices, normals, triangles,
             _cvt_color(self.cur_color), self.cur_atoms, description)
         self.cur_pos = center
-        self.last_pos_is_move = False
+        self.cur_pos_is_move = False
+
+    def font_command(self, tokens):
+        # TODO: need to handle platform font families with spaces in them
+        if len(tokens) not in (3, 4):
+            raise UserError("Expected 'fontFamily pointSize [style]' after %s" % tokens[0])
+        family = tokens[1].lower()
+        if family in ('times', 'serif'):
+            family = 'SERIF'
+        elif family in ('helvetica', 'sans'):
+            family = 'SANS'
+        elif family in ('courier', 'typewriter'):
+            family = 'TYPEWRITER'
+        else:
+            raise UserError('Unknown font family')
+        size = self.parse_int(tokens[2])
+        if size < 1:
+            raise UserError('Font size must be at least 1')
+        if len(tokens) == 3:
+            style = 'PLAIN'
+        else:
+            style = tokens[3].lower()
+            if style not in ('plain', 'bold', 'italic', 'bolditalic'):
+                raise UserError('unknown font style')
+            style = style.upper()
+        self.cur_font = [family, size, style]
 
     def move_command(self, tokens):
         if len(tokens) != 4:
@@ -326,7 +353,7 @@ class _BildFile:
             self.cur_pos = xyz
         else:
             self.cur_pos += xyz
-        self.last_pos_is_move = True
+        self.cur_pos_is_move = True
 
     def polygon_command(self, tokens):
         # TODO: use GLU to tesselate polygon
@@ -440,14 +467,14 @@ class _BildFile:
             radius, p1, self.transforms[-1], pure=self.pure[-1])
         self.drawing.extend_shape(vertices, normals, triangles)
         self.cur_pos = p1
-        self.last_pos_is_move = False
+        self.cur_pos_is_move = False
 
     _commands = {
         '.arrow': arrow_command,
         '.atomspec': atomspec_command,
         '.box': box_command,
         '.c': comment_command,
-        '.cmov': lambda self, tokens: self.unimplemented('.cmov', tokens),
+        '.cmov': cmov_command,
         '.comment': comment_command,
         '.color': color_command,
         '.cone': cone_command,
@@ -459,7 +486,7 @@ class _BildFile:
         '.dr': draw_command,
         '.draw': draw_command,
         '.drawrel': draw_command,
-        '.font': lambda self, tokens: self.unimplemented('.font', tokens),
+        '.font': font_command,
         '.m': move_command,
         '.marker': marker_command,
         '.move': move_command,
