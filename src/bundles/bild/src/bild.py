@@ -81,6 +81,7 @@ class _BildFile:
         self.cur_pos_is_move = True  # set whenever cur_pos is set
         self.cur_char_pos = array([0.0, 0.0, 0.0])
         self.cur_font = ['SANS', 12, 'PLAIN']
+        self.cur_description = None
         self.cur_atoms = None
         self.num_objects = 0
         self.LINE_RADIUS = 0.08
@@ -138,7 +139,10 @@ class _BildFile:
         p2 = array(data[3:6])
         junction = p1 + rho * (p2 - p1)
         self.num_objects += 1
-        description = 'object %d: arrow' % self.num_objects
+        if self.cur_description is not None:
+            description = self.cur_description
+        else:
+            description = 'object %d: arrow' % self.num_objects
         vertices, normals, triangles = get_cylinder(
             r1, p1, junction,
             closed=True, xform=self.transforms[-1], pure=self.pure[-1])
@@ -165,7 +169,10 @@ class _BildFile:
         llb = array(data[0:3])
         urf = array(data[3:6])
         self.num_objects += 1
-        description = 'object %d: box' % self.num_objects
+        if self.cur_description is not None:
+            description = self.cur_description
+        else:
+            description = 'object %d: box' % self.num_objects
         vertices, normals, triangles = get_box(llb, urf, self.transforms[-1], pure=self.pure[-1])
         self.drawing.add_shape(
             vertices, normals, triangles,
@@ -211,7 +218,10 @@ class _BildFile:
         else:
             bottom = False
         self.num_objects += 1
-        description = 'object %d: cone' % self.num_objects
+        if self.cur_description is not None:
+            description = self.cur_description
+        else:
+            description = 'object %d: cone' % self.num_objects
         vertices, normals, triangles = get_cone(
             radius, p0, p1, bottom=bottom, xform=self.transforms[-1], pure=self.pure[-1])
         self.drawing.add_shape(
@@ -231,7 +241,10 @@ class _BildFile:
         else:
             closed = False
         self.num_objects += 1
-        description = 'object %d: cylinder' % self.num_objects
+        if self.cur_description is not None:
+            description = self.cur_description
+        else:
+            description = 'object %d: cylinder' % self.num_objects
         vertices, normals, triangles = get_cylinder(
             radius, p0, p1, closed=closed, xform=self.transforms[-1], pure=self.pure[-1])
         self.drawing.add_shape(
@@ -252,7 +265,10 @@ class _BildFile:
         else:
             closed = False
         self.num_objects += 1
-        description = 'object %d: dashed cylinder' % self.num_objects
+        if self.cur_description is not None:
+            description = self.cur_description
+        else:
+            description = 'object %d: dashed cylinder' % self.num_objects
         vertices, normals, triangles = get_dashed_cylinder(
             count, radius, p0, p1, closed=closed, xform=self.transforms[-1], pure=self.pure[-1])
         self.drawing.add_shape(
@@ -266,7 +282,10 @@ class _BildFile:
         center = array(data[0:3])
         radius = 1
         self.num_objects += 1
-        description = 'object %d: dot' % self.num_objects
+        if self.cur_description is not None:
+            description = self.cur_description
+        else:
+            description = 'object %d: dot' % self.num_objects
         vertices, normals, triangles = get_sphere(
             radius, center, self.transforms[-1], pure=self.pure[-1])
         self.drawing.add_shape(
@@ -287,7 +306,10 @@ class _BildFile:
         else:
             p1 = p0 + xyz
         self.num_objects += 1
-        description = 'object %d: vector' % self.num_objects
+        if self.cur_description is not None:
+            description = self.cur_description
+        else:
+            description = 'object %d: vector' % self.num_objects
         vertices, normals, triangles = get_sphere(
             radius, p1, self.transforms[-1], pure=self.pure[-1])
         self.drawing.add_shape(
@@ -309,7 +331,10 @@ class _BildFile:
         data = [self.parse_float(x) for x in tokens[1:4]]
         center = array(data[0:3])
         self.num_objects += 1
-        description = 'object %d: marker' % self.num_objects
+        if self.cur_description is not None:
+            description = self.cur_description
+        else:
+            description = 'object %d: marker' % self.num_objects
         llb = center - 0.5
         urf = center + 0.5
         vertices, normals, triangles = get_box(llb, urf, self.transforms[-1], pure=self.pure[-1])
@@ -355,6 +380,12 @@ class _BildFile:
             self.cur_pos += xyz
         self.cur_pos_is_move = True
 
+    def note_command(self, tokens):
+        if len(tokens) == 1:
+            self.cur_description = None
+        else:
+            self.cur_description = ' '.join(tokens[1:])
+
     def polygon_command(self, tokens):
         # TODO: use GLU to tesselate polygon
         #     for now, find center and make a triangle fan
@@ -367,7 +398,10 @@ class _BildFile:
         if n < 3:
             raise UserError("Need at least 3 vertices in a polygon")
         self.num_objects += 1
-        description = 'object %d: polygon' % self.num_objects
+        if self.cur_description is not None:
+            description = self.cur_description
+        else:
+            description = 'object %d: polygon' % self.num_objects
         from chimerax.core.geometry import Plane
         plane = Plane(vertices)
         loops = ((0, len(vertices) - 1),)
@@ -425,7 +459,10 @@ class _BildFile:
         center = array(data[0:3])
         radius = data[3]
         self.num_objects += 1
-        description = 'object %d: sphere' % self.num_objects
+        if self.cur_description is not None:
+            description = self.cur_description
+        else:
+            description = 'object %d: sphere' % self.num_objects
         vertices, normals, triangles = get_sphere(
             radius, center, self.transforms[-1], pure=self.pure[-1])
         self.drawing.add_shape(
@@ -454,7 +491,10 @@ class _BildFile:
         p1 = array(data[3:6])
         radius = self.LINE_RADIUS
         self.num_objects += 1
-        description = 'object %d: vector' % self.num_objects
+        if self.cur_description is not None:
+            description = self.cur_description
+        else:
+            description = 'object %d: vector' % self.num_objects
         vertices, normals, triangles = get_sphere(
             radius, p0, self.transforms[-1], pure=self.pure[-1])
         self.drawing.add_shape(
@@ -492,6 +532,7 @@ class _BildFile:
         '.move': move_command,
         '.mr': move_command,
         '.moverel': move_command,
+        '.note': note_command,
         '.polygon': polygon_command,
         '.pop': pop_command,
         '.rot': rotate_command,
