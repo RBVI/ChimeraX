@@ -2,7 +2,7 @@ PREREQ_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 36.7.2
+VERSION = 37.0.0
 
 # Need to install from source, so don't put in pips
 
