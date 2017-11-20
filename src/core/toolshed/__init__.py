@@ -871,6 +871,17 @@ class BundleAPI:
         raise NotImplementedError("BundleAPI.save_file")
 
     @staticmethod
+    def fetch_from_database(session, identifier, **kw):
+        """Called to fetch an entry from a network resource.
+
+        Arguments and return values are as described for save functions in
+        :py:mod:`chimerax.core.fetch`.
+        The format name will be in the **format_name** keyword.
+        Whether a cache may be used will be in the **ignore_cache** keyword.
+        """
+        raise NotImplementedError("BundleAPI.fetch_from_database")
+
+    @staticmethod
     def initialize(session, bundle_info):
         """Called to initialize a bundle in a session.
 
@@ -924,12 +935,14 @@ class BundleAPI:
 
 #
 # _CallBundleAPI is used to call a bundle method with the
-# correct arguments depending on the API version used
-# by the bundle.  Note that open_file, save_file and get_class
-# are not called via this mechanism.  ../io.py handles the
-# argument passing for open_file and save_file using
-# introspection.  get_class() is more of a lookup than
-# an invocation and the calling convertion should not change.
+# correct arguments depending on the API version used by the
+# bundle.  Note that open_file, save_file, fetch_from_database,
+# and get_class are not called via this mechanism.
+# ../io.py handles the argument passing for open_file and
+# save_file using introspection.
+# ../fetch.py handles the argument passing for fetch_from_database.
+# get_class() is more of a lookup than an invocation and the
+# calling convertion should not change.
 #
 class _CallBundleAPIv0:
 
