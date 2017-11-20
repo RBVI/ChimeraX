@@ -156,10 +156,11 @@ class _BildFile:
 
     def atomspec_command(self, tokens):
         atomspec = ' '.join(tokens[1:])
-        if not atomspec or atomspec == 'none':
-            atomspec = None
+        if not atomspec:
+            self.cur_atoms = None
+            return
         from chimerax.core.commands import AtomSpecArg
-        a, _, _ = AtomSpecArg(atomspec)
+        a, _, _ = AtomSpecArg.parse(atomspec, self.session)
         self.cur_atoms = a.evaluate(self.session).atoms
 
     def box_command(self, tokens):
@@ -381,10 +382,11 @@ class _BildFile:
         self.cur_pos_is_move = True
 
     def note_command(self, tokens):
-        if len(tokens) == 1:
+        description = ' '.join(tokens[1:])
+        if not description:
             self.cur_description = None
         else:
-            self.cur_description = ' '.join(tokens[1:])
+            self.cur_description = description
 
     def polygon_command(self, tokens):
         # TODO: use GLU to tesselate polygon

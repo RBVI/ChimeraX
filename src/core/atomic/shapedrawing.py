@@ -32,7 +32,7 @@ class AtomicShapeDrawing(Drawing):
 
     def delete(self):
         if self._selection_handler:
-            self.session.remove_handler(self._selection_handler)
+            self.parent.session.remove_handler(self._selection_handler)
             self._selection_handler = None
         self._selected_shapes.clear()
         self._shapes.clear()
@@ -150,7 +150,7 @@ class AtomicShapeDrawing(Drawing):
         if hasattr(self, 'parent') and isinstance(self.parent, Structure):
             return
         from chimerax.core.selection import SELECTION_CHANGED
-        self.session.triggers.add_handler(SELECTION_CHANGED, self.update_selection)
+        self.parent.session.triggers.add_handler(SELECTION_CHANGED, lambda *args, s=self: s.update_selection())
 
     def add_shape(self, vertices, normals, triangles, color, atoms=None, description=None):
         """Add shape to drawing
