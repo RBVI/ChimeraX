@@ -57,10 +57,12 @@ def open_file(session, stream, fname, format_name="FASTA", return_vals=None,
             ident if ident is not None else fname, attrs=file_attrs,
             markups=file_markups, auto_associate=auto_associate, **kw)]
     else:
+        if ident is None:
+            ident = fname
         alignments = []
-        for seq in seqs:
-            alignments.append(session.alignments.new_alignment([seq],
-                ident if ident is not None else fname,
+        for i, seq in enumerate(seqs):
+            final_ident = ident if len(seqs) == 1 else "%s-%d" % (ident, i+1)
+            alignments.append(session.alignments.new_alignment([seq], final_ident,
                 auto_associate=auto_associate, **kw))
     if return_vals == "alignments":
         return alignments
