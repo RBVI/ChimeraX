@@ -53,7 +53,7 @@ SRCS = $(PYSRCS) $(CSRCS)
 # By default, we install for just the current user.
 
 install:	bundle_info.xml $(SRCS) generated_files
-	$(RUN) "devel install . exit true"
+	$(RUN) "devel install . user false exit true"
 
 wheel:	bundle_info.xml $(SRCS) generated_files
 	$(RUN) "devel build . exit true"
