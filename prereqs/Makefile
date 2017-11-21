@@ -114,7 +114,7 @@ endif
 
 # keep in alphabetical order, dependencies go below
 SUBDIRS	+= imex msgpack networkx numexpr numpy openmm \
-	   pcre pdbfixer pips pycollada \
+	   pcre pdbfixer pips \
 	   PyOpenGL PyQt pytables Python \
 	   scipy setuptools wrappy3
 
@@ -205,8 +205,6 @@ pillow.app-install: setuptools.app-install zlib.app-install
 pillow.install: setuptools.install zlib.install
 pips.app-install: setuptools.app-install
 pips.install: setuptools.install
-pycollada.app-install: setuptools.app-install pips.app-install
-pycollada.install: setuptools.install pips.install
 PyOpenGL.app-install: setuptools.app-install pips.app-install
 PyOpenGL.install: setuptools.install pips.install
 PyQt.app-install: setuptools.app-install openssl.app-install zlib.app-install
