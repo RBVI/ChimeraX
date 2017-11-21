@@ -105,7 +105,7 @@ class Option(metaclass=ABCMeta):
         if not self.attr_name:
             raise ValueError("No attribute associated with %s" % repr(self))
         setter = recurse_setattr if '.' in self.attr_name else setattr
-        setter(obj, self.attr_name, v)
+        setter(obj, self.attr_name, self.get())
 
     @abstractmethod
     def set_multiple(self):

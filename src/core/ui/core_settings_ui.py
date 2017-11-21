@@ -84,7 +84,7 @@ class CoreSettingsPanel:
             opt_name, category, opt_class, updater, converter, notifier, fetcher, balloon \
                 = setting_info
             opt = opt_class(opt_name, getattr(core_settings, setting), self._opt_cb,
-                attr_info=setting, balloon=balloon)
+                attr_name=setting, balloon=balloon)
             self.options_widget.add_option(category, opt)
             """
             self.options[setting] = opt
@@ -103,7 +103,7 @@ class CoreSettingsPanel:
     def _opt_cb(self, opt):
         opt.set_attribute(core_settings)
 
-        setting = opt.attr_name or opt.attr_names
+        setting = opt.attr_name
         opt_name, category, opt_class, updater, converter, notifier, fetcher, balloon \
             = self.settings_info[setting]
         if updater is None:
