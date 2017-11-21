@@ -315,7 +315,7 @@ class BundleInfo:
                     raise ToolshedError(
                         "no fetch_from_database function found for bundle \"%s\""
                         % self.name)
-                if f == BundleAPI.save_file:
+                if f == BundleAPI.fetch_from_database:
                     raise ToolshedError("bundle \"%s\"'s API forgot to override fetch_from_database()" % self.name)
                 # optimize by replacing fetch_from_database for (database, format)
 

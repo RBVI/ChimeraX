@@ -57,6 +57,10 @@ outdated:
 
 app-outdated:
 	$(APP_PIP) list --outdated --format=columns
+	@echo "Known issues:"
+	@echo "  comtypes ('post2' suffix is irrelevant)"
+	@echo "  grako (3.16.5 is the last version that works)"
+	@echo "  parso ('Shell' bundle really wants 0.1.0)"
 
 src-outdated:
 	$(PYTHON_EXE) -m package_checker ../../src

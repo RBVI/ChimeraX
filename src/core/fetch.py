@@ -458,6 +458,7 @@ class DatabaseFetch:
         if f is None:
             self.fetch_function[format_name] = fetch_function
         else:
+            self.fetch_function[f.name] = fetch_function
             for name in f.nicknames:
                 self.fetch_function[name] = fetch_function
 

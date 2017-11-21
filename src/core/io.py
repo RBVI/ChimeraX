@@ -73,6 +73,10 @@ SCRIPT = "Command script"
 class FileFormat:
     """Keep tract of information about various data sources
 
+    ..attribute:: name
+
+        Official name for format.
+
     ..attribute:: category
 
         Type of data (STRUCTURE, SEQUENCE, etc.)
