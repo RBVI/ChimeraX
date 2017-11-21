@@ -116,10 +116,23 @@ class Atom(State):
                 if self.name != other.name else self.serial_number < other.serial_number
         return self.residue < other.residue
 
-    def __str__(self, atom_only = False, style = None):
+    def __str__(self, atom_only = False, style = None, relative_to=None):
         if style == None:
             from ..core_settings import settings
             style = settings.atomspec_contents
+        if relative_to:
+            if self.residue == relative_to.residue:
+                return self.__str__(atom_only=True, style=style)
+            if self.structure == relative_to.structure:
+                # tautology for bonds, but this func is conscripted by pseudobonds, so test...
+                if style.startswith('serial'):
+                    return self.__str__(atom_only=True, style=style)
+                chain_str = "" if  self.residue.chain_id == relative_to.residue.chain_id \
+                    else '/' + self.residue.chain_id + (' ' if style.startswith("simple") else "")
+                res_str = self.residue.__str__(residue_only=True)
+                atom_str = self.__str__(atom_only=True, style=style)
+                joiner = "" if res_str.startswith(":") else " "
+                return chain_str + res_str + joiner + atom_str
         if style.startswith("simple"):
             atom_str = self.name
         elif style.startswith("command"):
@@ -458,17 +471,7 @@ class Bond(State):
     def __str__(self, style = None):
         a1, a2 = self.atoms
         bond_sep = " \N{Left Right Arrow} "
-        if a1.residue == a2.residue:
-            return a1.__str__(style=style) + bond_sep + a2.__str__(atom_only=True, style=style)
-        if a1.structure == a2.structure:
-            # tautology for bonds, but this func is conscripted by pseudobonds, so test...
-            chain_str = "" if  a1.residue.chain_id == a2.residue.chain_id \
-                else '/' + a2.residue.chain_id + ' '
-            res_str = a2.residue.__str__(residue_only=True)
-            atom_str = a2.__str__(atom_only=True, style=style)
-            joiner = "" if res_str.startswith(":") else " "
-            return a1.__str__(style=style) + bond_sep + chain_str + res_str + joiner + atom_str
-        return a1.__str__(style=style) + bond_sep + a2.__str__(style=style)
+        return a1.__str__(style=style) + bond_sep + a2.__str__(style=style, relative_to=a1)
 
     def atomspec(self):
         return a1.atomspec() + a2.atomspec()

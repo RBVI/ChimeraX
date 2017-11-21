@@ -24,7 +24,7 @@ def distance(session, atoms):
     a1, a2 = atoms
     pb = grp.new_pseudobond(a1, a2)
     session.logger.info(("Distance between %s and %s: " + session.pb_dist_monitor.distance_format)
-        % (a1, a2, pb.length))
+        % (a1, a2.__str__(relative_to=a1), pb.length))
 
 def register_command(session):
     from . import CmdDesc, register, AtomsArg, AnnotationError
