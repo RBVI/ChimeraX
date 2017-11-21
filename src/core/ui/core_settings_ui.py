@@ -101,9 +101,9 @@ class CoreSettingsPanel:
         ui_area.setLayout(layout)
 
     def _opt_cb(self, opt):
-        setting = opt.attr_name
-        setattr(core_settings, setting, opt.value)
+        opt.set_attribute(core_settings)
 
+        setting = opt.attr_name
         opt_name, category, opt_class, updater, converter, notifier, fetcher, balloon \
             = self.settings_info[setting]
         if updater is None:
