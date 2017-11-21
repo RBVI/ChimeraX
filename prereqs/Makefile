@@ -115,7 +115,7 @@ endif
 # keep in alphabetical order, dependencies go below
 SUBDIRS	+= imex msgpack networkx numexpr numpy openmm \
 	   pcre pdbfixer pips \
-	   PyOpenGL PyQt pytables Python \
+	   PyOpenGL PyQt Python \
 	   scipy setuptools wrappy3
 
 # All needed subdirectories must be set by now.
@@ -209,8 +209,6 @@ PyOpenGL.app-install: setuptools.app-install pips.app-install
 PyOpenGL.install: setuptools.install pips.install
 PyQt.app-install: setuptools.app-install openssl.app-install zlib.app-install
 PyQt.install: setuptools.install openssl.install zlib.install
-pytables.app-install: hdf5.app-install numexpr.app-install pips.app-install setuptools.app-install zlib.app-install
-pytables.install: hdf5.install numexpr.install pips.install setuptools.install zlib.install
 pythomnic3k.app-install: setuptools.app-install
 pythomnic3k.install: setuptools.install
 Python.app-install: zlib.app-install openssl.app-install expat.app-install
