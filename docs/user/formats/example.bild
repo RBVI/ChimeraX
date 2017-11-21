@@ -1,0 +1,34 @@
+.color white
+.dot 0 0 0
+.color red
+.vector 0 0 0 20 0 0
+.dot 20 0 0
+.color green
+.vector 0 0 0 0 20 0
+.dot 0 20 0
+.color blue
+.vector 0 0 0 0 0 20
+.dot 0 0 20
+.color 44
+.arrow 1 1 1 5 5 5
+.arrow 1 1 2 8 6 9
+.arrow 1 2 1 10 10 4
+.arrow 2 1 1 -2 7 10
+.color 22
+.polygon 20 0 0 0 20 0 0 0 20
+.color 5
+.marker 20 20 20
+.dr -20 0 0
+.v 20 20 20 20 0 20
+.dr 0 20 -20
+.v 20 20 20 20 20 0
+.dr -20 0 20
+.dr 20 -20 0
+.color 12
+.sphere 10 10 10 3
+.color 10
+.arrow 19 19 19 12 12 12 0.2 1.0
+.color 53
+.cylinder 14 -5 14 14 0 14 2 open
+.sphere 14 -5 14 2
+.sphere 14 0 14 2

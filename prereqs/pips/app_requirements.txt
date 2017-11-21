@@ -10,14 +10,17 @@ distlib==0.2.6
 filelock==2.0.13
 line_profiler==2.0
 matplotlib==2.1.0
-openvr==1.0.401
+networkx==2.0
+openvr==1.0.1001
 Pillow==4.3.0
 psutil==5.4.1
+pycollada==0.6
 python-dateutil==2.6.1
 qtconsole==4.3.1
 six==1.11.0
 sortedcontainers==1.5.7
 suds-jurko==0.6
+tables==3.4.2
 webcolors==1.7
 #
 # Documentation
