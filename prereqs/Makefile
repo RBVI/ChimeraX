@@ -113,7 +113,7 @@ endif
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
-SUBDIRS	+= imex msgpack networkx numexpr numpy openmm \
+SUBDIRS	+= imex msgpack numexpr numpy openmm \
 	   pcre pdbfixer pips \
 	   PyOpenGL PyQt Python \
 	   scipy setuptools wrappy3
@@ -191,8 +191,6 @@ llvm.install: py7zip.install
 mesa.install: py7zip.install llvm.install pkgconfig.install
 msgpack.app-install: setuptools.app-install
 msgpack.install: setuptools.install
-networkx.app-install: setuptools.app-install
-networkx.install: setuptools.install
 numexpr.app-install: setuptools.app-install numpy.app-install pips.app-install
 numexpr.install: setuptools.install numpy.install pips.install
 openmm.app-install: Python.app-install numpy.app-install pips.app-install
