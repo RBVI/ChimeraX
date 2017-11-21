@@ -13,42 +13,46 @@
 
 SINGLE_PREFIX = "single_seq_"
 
+from chimerax.core.options import Option, BooleanOption, IntOption, OptionalRGBAOption
+class OptionalRGBAPair(Option): pass # maybe make it a real option?
+
 defaults = {
-    "block space": True,
-    SINGLE_PREFIX + "block space": False,
-	"column_separation": 0,
-    SINGLE_PREFIX + "column_separation": -2,
-    "error_region_shown": True,
-    "error_region_borders": (None, None),
-    "error_region_interiors": ((1.0, 0.3, 0.3, 1.0), "pink"),
-    "gap_region_shown": True,
-    "gap_region_borders": ("black", [chan/255.0 for chan in (190, 190, 190, 255)]),
-    "gap_region_interiors": (None, None),
-    "line_width": -5,
-    SINGLE_PREFIX + "line_width": -5,
-    "new_region_border": None,
-    "new_region_interior": [chan/255.0 for chan in (233, 218, 198, 255)],
-    "sel_region_border": None,
-    "sel_region_interior": "light green",
-    "show_ruler_at_startup": True,
-    "show_sel": True,
+    "block space": (BooleanOption, True),
+    SINGLE_PREFIX + "block space": (BooleanOption, False),
+	"column_separation": (IntOption, 0),
+    SINGLE_PREFIX + "column_separation": (IntOption, -2),
+    "error_region_shown": (BooleanOption, True),
+    "error_region_borders": (OptionalRGBAPair, (None, None)),
+    "error_region_interiors": (OptionalRGBAPair, ((1.0, 0.3, 0.3, 1.0), "pink")),
+    "gap_region_shown": (BooleanOption, True),
+    "gap_region_borders": (OptionalRGBAPair, ("black",
+        [chan/255.0 for chan in (190, 190, 190, 255)])),
+    "gap_region_interiors": (OptionalRGBAPair, (None, None)),
+    "line_width": (IntOption, -5),
+    SINGLE_PREFIX + "line_width": (IntOption, -5),
+    "new_region_border": (OptionalRGBAOption, None),
+    "new_region_interior": (OptionalRGBAOption, [chan/255.0 for chan in (233, 218, 198, 255)]),
+    "sel_region_border": (OptionalRGBAOption, None),
+    "sel_region_interior": (OptionalRGBAOption, "light green"),
+    "show_ruler_at_startup": (BooleanOption, True),
+    "show_sel": (BooleanOption, True),
     # if 'wrap_if' is True, then alignment will be wrapped if the number of
     # sequences is no more than 'wrap_threshold'.  If 'wrap_if' is false, then
     # wrapping will occur if 'wrap' is true.  Wrapping will occur at
     # 'line_width' columns, if positive.  if negative, alignment will be
     # wrapped to window size, at a multiple of abs(line_width) characters.
-    "wrap": False,
-    SINGLE_PREFIX + "wrap": True,
-    "wrap_if": True,
-    SINGLE_PREFIX + "wrap_if": False,
-    "wrap_threshold": 8,
+    "wrap": (BooleanOption, False),
+    SINGLE_PREFIX + "wrap": (BooleanOption, True),
+    "wrap_if": (BooleanOption, True),
+    SINGLE_PREFIX + "wrap_if": (BooleanOption, False),
+    "wrap_threshold": (IntOption, 8),
 }
 
 from  chimerax.core.settings import Settings
 from copy import deepcopy
 
 class _SVSettings(Settings):
-	EXPLICIT_SAVE = deepcopy(defaults)
+	EXPLICIT_SAVE = { k: v[-1] for k, v in defaults.items() }
 
 def init(session):
     # each SV instance has its own settings instance
