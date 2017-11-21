@@ -21,7 +21,7 @@ def register_core_commands(session):
         'alias', 'align',
         'camera', 'cartoon', 'cd', 'clip', 'close', 'cofr', 'color', 'colorname',
         'coordset', 'crossfade',
-        'delete', 'devel', 'dssp', 'exit', 'graphics', 'hide',
+        'delete', 'devel', 'distance', 'dssp', 'exit', 'graphics', 'hide',
         'lighting',
         'material', 'measure_buriedarea', 'measure_length', 'measure_sasa', 'mousemode', 'move',
         'open', 'palette', 'pdbimages', 'perframe', 'pwd',

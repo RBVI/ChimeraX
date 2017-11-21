@@ -47,9 +47,7 @@ protected:
     PBGroup*  _group;
     bool  _shown_when_atoms_hidden;
 
-    Pseudobond(Atom* a1, Atom* a2, PBGroup* grp): Connection(a1, a2), _group(grp),
-            _shown_when_atoms_hidden(true) { _halfbond = false; _radius = 0.05;
-    }
+    Pseudobond(Atom* a1, Atom* a2, PBGroup* grp);
     virtual ~Pseudobond() { graphics_changes()->set_gc_adddel(); }
 
     // convert a global pb_manager version# to version# for Connection base class
