@@ -1214,7 +1214,7 @@ def show_context_menu(event, tool_instance, fill_cb, autostartable):
     if not menu.isEmpty():
         menu.addSeparator()
     ti = tool_instance
-    hide_tool_action = QAction("Hide this tool")
+    hide_tool_action = QAction("Hide tool")
     hide_tool_action.triggered.connect(lambda arg, ti=ti: ti.display(False))
     menu.addAction(hide_tool_action)
     if ti.help is not None:
@@ -1229,7 +1229,7 @@ def show_context_menu(event, tool_instance, fill_cb, autostartable):
     session = ti.session
     if autostartable:
         autostart = ti.tool_name in session.ui.settings.autostart
-        auto_action = QAction("Start this tool at ChimeraX startup")
+        auto_action = QAction("Start at ChimeraX startup")
         auto_action.setCheckable(True)
         auto_action.setChecked(autostart)
         from ..commands import run, quote_if_necessary
@@ -1239,7 +1239,7 @@ def show_context_menu(event, tool_instance, fill_cb, autostartable):
             quote_if_necessary(ti.tool_name))))
         menu.addAction(auto_action)
     undockable = ti.tool_name in session.ui.settings.undockable
-    dock_action = QAction("This tool's windows are dockable")
+    dock_action = QAction("Dockable tool")
     dock_action.setCheckable(True)
     dock_action.setChecked(not undockable)
     from ..commands import run, quote_if_necessary

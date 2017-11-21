@@ -41,7 +41,7 @@ def scolor(session, atoms = None, color = None, opacity = None, byatom = False,
     atom colors, or use a single color, or color by electrostatic potential,
     or color radially.  TODO: Only a few options are currently supported.
     '''
-    if by_atom:
+    if byatom:
         ns = color_surfaces_at_atoms(atoms, color = color, opacity = opacity,
                                      per_atom_colors = per_atom_colors)
     elif map is not None:

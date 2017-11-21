@@ -94,6 +94,8 @@ class HelpUI(ToolInstance):
     # do not close when opening session (especially if web page asked to open session)
     SESSION_ENDURING = True
 
+    help = "help:user/tools/browser.html"
+
     def __init__(self, session):
         tool_name = "Help Viewer"
         ToolInstance.__init__(self, session, tool_name)

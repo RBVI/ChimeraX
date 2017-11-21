@@ -16,29 +16,44 @@ from abc import ABCMeta, abstractmethod
 class Option(metaclass=ABCMeta):
     """Base class (and common API) for all options"""
 
-    multiple_value = "-- mulitple --"
+    multiple_value = "-- multiple --"
     read_only = False
 
-    get_attribute = getattr
-    set_attribute = setattr
+    def __init__(self, name, default, callback, *, balloon=None, attr_name=None, attr_names=None,
+            attr_info=None, **kw):
+        """'attr_names' is used for multi-attribute options, and should be sequence of strings
+        equal to the number of attributes, and in such cases 'attr_name' should be None.
+        'attr_info' can be used generically in place of attr_name/attr_names and should be
+        a string or a sequence of strings.
+        
+        If otherwise unspecified (including by class attributes), selfattr_name defaults to
+        self.name, and self.attr_names defaults to None"""
 
-    def __init__(self, name, default, callback, *, balloon=None, attr_name=None, **kw):
         # non-empty name overrides any default name
         if name or not hasattr(self, 'name'):
             self.name = name
 
+        if attr_info:
+            if isinstance(attr_info, str):
+                attr_name = attr_info
+            else:
+                attr_names = attr_info
         if attr_name:
             self.attr_name = attr_name
+            self.attr_names = None
+        elif attr_names:
+            self.attr_name = None
+            self.attr_names = tuple(attr_names)
+        elif has_attr(self, 'attr_name'):
+            self.attr_names = None
+        elif has_attr(self, 'attr_names'):
+            self.attr_name = None
         else:
-            if not hasattr(self, 'attr_name'):
-                if self.name:
-                    self.attr_name = self.name
-                else:
-                    self.attr_name = ""
-
-        self.multi_attribute = '.' in self.attr_name
-        if self.multi_attribute:
-            self.get_attribute = recurse_getattr
+            if self.name:
+                self.attr_name = self.name
+            else:
+                self.attr_name = None
+            self.attr_names = None
 
         self._callback = callback
         if default != None or not hasattr(self, 'default'):
@@ -48,11 +63,23 @@ class Option(metaclass=ABCMeta):
 
         if balloon or not hasattr(self, 'balloon'):
             self.balloon = balloon
-        command_line = hasattr(self, 'in_class') and '.' not in self.attr_name
+        command_line = False
+        if hasattr(self, 'in_class'):
+            if self.attr_names:
+                for attr_name in self.attr_names:
+                    if '.' in attr_name:
+                        break
+                else:
+                    command_line = True
+            elif self.attr_name:
+                command_line = '.' in self.attr_name
         if self.balloon or command_line:
             balloon = self.balloon if self.balloon else ""
             if command_line:
-                attr_balloon = "attribute name: " + self.attr_name
+                if self.attr_name:
+                    attr_balloon = "attribute name: " + self.attr_name
+                else:
+                    attr_balloon = "attribute names: " + ", ".join(self.attr_names)
                 attr_vals = None
                 if hasattr(self, "attr_values_balloon"):
                     attr_balloon += '\n' + self.attr_values_balloon
@@ -99,6 +126,31 @@ class Option(metaclass=ABCMeta):
         # set the option's value
         pass
 
+    def get_attribute(self, obj):
+        if not self.attr_name and not self.attr_names:
+            raise ValueError("No attribute(s) associated with %s" % repr(self))
+        fetched = []
+        attr_names = [self.attr_name] if self.attr_name else self.attr_names
+        for attr_name in attr_names:
+            fetcher = recurse_getattr if '.' in attr_name else getattr
+            fetched.append(fetcher(obj, attr_name))
+        if len(fetched) == 1:
+            return fetched[0]
+        return fetched
+
+    def set_attribute(self, obj):
+        if not self.attr_name and not self.attr_names:
+            raise ValueError("No attribute(s) associated with %s" % repr(self))
+        if self.attr_name:
+            vals = [self.get()]
+            attr_names = [self.attr_name]
+        else:
+            vals = self.get()
+            attr_names = self.attr_names
+        for attr_name, v in zip(attr_names, vals):
+            setter = recurse_setattr if '.' in attr_name else setattr
+            setter(obj, attr_name, v)
+
     @abstractmethod
     def set_multiple(self):
         # indicate that the items the option covers have multiple different values
@@ -135,6 +187,12 @@ def recurse_getattr(obj, attr_name):
     for a in attrs:
         obj = getattr(obj, a)
     return obj
+
+def recurse_setattr(obj, attr_name, val):
+    attrs = attr_name.split('.')
+    for a in attrs[:-1]:
+        obj = getattr(obj, a)
+    setattr(obj, attrs[-1], val)
 
 class EnumOption(Option):
     """Option for enumerated values"""

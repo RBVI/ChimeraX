@@ -3,11 +3,7 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 include ../pips/Makefile.pip
 
-ifdef WIN32
-VERSION = 2.6.2
-else
-VERSION = 2.6.2
-endif
+VERSION = 2.6.4
 DISTRIBUTION = numexpr-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/numexpr-$(VERSION)
 

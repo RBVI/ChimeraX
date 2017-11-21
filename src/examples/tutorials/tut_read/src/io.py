@@ -2,11 +2,17 @@
 
 
 def open_xyz(session, stream):
+    """Read an XYZ file from a file-like object.
+
+    Returns the 2-tuple return value appropriate for the
+    ``chimerax.core.toolshed.BundleAPI.open_file`` method.
+    """
     structures = []
+    line_number = 0
     atoms = 0
     bonds = 0
     while True:
-        s = _read_block(session, stream)
+        s, line_number = _read_block(session, stream, line_number)
         if not s:
             break
         structures.append(s)
@@ -17,51 +23,84 @@ def open_xyz(session, stream):
     return structures, status
 
 
-def _read_block(session, stream):
+def _read_block(session, stream, line_number):
+    # XYZ files are stored in blocks, with each block representing
+    # a set of atoms.  This function reads a single block
+    # and builds a ChimeraX AtomStructure instance containing
+    # the atoms listed in the block.
+
     # First line should be an integer count of the number of
-    # atoms in the block.  Each block gets turned into an
-    # AtomicStructure instance.
+    # atoms in the block.
     count_line = stream.readline()
     if not count_line:
-        return None
+        # Reached EOF, normal termination condition
+        return None, line_number
+    line_number += 1
     try:
         count = int(count_line)
     except ValueError:
-        # XXX: Should emit an error message
-        return None
+        session.logger.error("line %d: atom count missing" % line_number)
+        return None, line_number
+
+    # Create the AtomicStructure instance for atoms in this block.
+    # All atoms in the structure are placed in one residue
+    # since XYZ format does not partition atoms into groups.
     from chimerax.core.atomic import AtomicStructure
+    from numpy import array, float64
     s = AtomicStructure(session)
+    residue = s.new_residue("UNK", 'A', 1)
+
+    # XYZ format supplies the atom element type only, but
+    # ChimeraX keeps track of both the element type and
+    # a unique name for each atom.  To construct the unique
+    # atom name, the # 'element_count' dictionary is used
+    # to track the number of atoms of each element type so far,
+    # and the current count is used to build unique atom names.
+    element_count = {}
 
     # Next line is a comment line
     s.comment = stream.readline().strip()
+    line_number += 1
 
     # There should be "count" lines of atoms.
-    from numpy import array, float64
-    residue = s.new_residue("UNK", 'A', 1)
-    element_count = {}
     for n in range(count):
         atom_line = stream.readline()
         if not atom_line:
-            # XXX: Should emit an error message
-            return None
+            session.logger.error("line %d: atom data missing" % line_number)
+            return None, line_number
+        line_number += 1
+
+        # Extract available data
         parts = atom_line.split()
         if len(parts) != 4:
-            # XXX: Should emit an error message
-            return None
-        # Extract available data
-        element = parts[0]
-        xyz = [float(v) for v in parts[1:]]
+            session.logger.error("line %d: atom data malformatted"
+                                 % line_number)
+            return None, line_number
 
-        # Convert to required initializers
-        # XXX: May need to convert element to usable form
+        # Convert to required parameters for creating atom.
+        # Since XYZ format only required atom element, we
+        # create a unique atom name by putting a number after
+        # the element name.
+        xyz = [float(v) for v in parts[1:]]
+        element = parts[0]
         n = element_count.get(element, 0) + 1
         name = element + str(n)
         element_count[element] = n
 
-        # Create atom
+        # Create atom in AtomicStructure instance 's',
+        # set its coordinates, and add to residue
         atom = s.new_atom(name, element)
         atom.coord = array(xyz, dtype=float64)
         residue.add_atom(atom)
+
+    # Use AtomicStructure method to add bonds based on interatomic distances
     s.connect_structure([residue], [residue], [], [])
-    s.new_atoms()   # tell structure it needs to update
-    return s
+
+    # Updating state such as atom types while adding atoms iteratively
+    # is unnecessary (and generally incorrect for partial structures).
+    # When all atoms have been added, the instance is notified to
+    # tell it to update internal state.
+    s.new_atoms()
+
+    # Return AtomicStructure instance and current line number
+    return s, line_number
