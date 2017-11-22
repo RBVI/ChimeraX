@@ -254,6 +254,18 @@ class ObjectLabels(Model):
         
         Model.delete(self)
 
+    def _get_single_color(self):
+        from chimerax.core.colors import most_common_color
+        lcolors = [ld.color for ld in self._label_drawings.values()]
+        c = most_common_color(lcolors) if lcolors else None
+        return c
+    def _set_single_color(self, color):
+        for ld in self._label_drawings.values():
+            ld.color = color
+        self._update_label_graphics = True
+        self.redraw_needed()
+    single_color = property(_get_single_color, _set_single_color)
+
     def draw(self, renderer, place, draw_pass, selected_only=False):
         if self.on_top:
             renderer.enable_depth_test(False)
