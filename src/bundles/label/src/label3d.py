@@ -300,6 +300,8 @@ class ObjectLabels(Model):
     def _structure_changed(self, tname, changes):
         # If atoms undisplayed, or radii change, or names change, can effect label display.
         self._update_label_graphics = True
+        for ld in self._label_drawings.values():
+            ld._position_needs_update = True
         self.redraw_needed()
 
     def _update_graphics_if_needed(self, *_):
