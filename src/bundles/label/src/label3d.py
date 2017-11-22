@@ -229,6 +229,7 @@ class ObjectLabels(Model):
 
         t = session.triggers
         self._update_graphics_handler = t.add_handler('graphics update', self._update_graphics_if_needed)
+        self._background_color_handler = t.add_handler('background color changed', self._background_changed_cb)
 
         from chimerax.core.atomic import get_triggers
         ta = get_triggers(session)
@@ -241,10 +242,11 @@ class ObjectLabels(Model):
         self._last_camera_position = None
 
     def delete(self):
-        h = self._update_graphics_handler
-        if h is not None:
-            self.session.triggers.remove_handler(h)
-            self._update_graphics_handler = None
+        for hattr in ('_update_graphics_handler', '_background_color_handler'):
+            h = getattr(self, hattr)
+            if h is not None:
+                self.session.triggers.remove_handler(h)
+                setattr(self, hattr, None)
             
         h = self._structure_change_handler
         if h is not None:
@@ -316,6 +318,11 @@ class ObjectLabels(Model):
             ld._position_needs_update = True
         self.redraw_needed()
 
+    def _background_changed_cb(self, *_):
+        self._update_label_graphics = True
+        for ld in self._label_drawings.values():
+            ld._texture_needs_update = True
+            
     def _update_graphics_if_needed(self, *_):
         if not self.visible:
             return
