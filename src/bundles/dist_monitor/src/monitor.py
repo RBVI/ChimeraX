@@ -31,6 +31,14 @@ class DistancesMonitor(State):
         if group.num_pseudobonds > 0:
             self._update_distances(group.pseudobonds)
 
+    @property
+    def distance_format(self):
+        from .settings import settings
+        fmt = "%%.%df" % settings.precision
+        if settings.show_units:
+            fmt += u'\u00C5'
+        return fmt
+
     def _get_distances_shown(self):
         return self._distances_shown
 
@@ -75,10 +83,7 @@ class DistancesMonitor(State):
             lm = labels_model(grp, create=True)
             label_settings = { 'color': grp.color } if set_color else {}
             if self.distances_shown:
-                from .settings import settings
-                fmt = "%%.%df" % settings.precision
-                if settings.show_units:
-                    fmt += u'\u00C5'
+                fmt = self.distance_format
                 for pb in pbs:
                     label_settings['text'] = fmt % pb.length
                     lm.add_labels([pb], PseudobondLabel, self.session.main_view,

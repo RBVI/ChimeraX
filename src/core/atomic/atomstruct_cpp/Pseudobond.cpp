@@ -22,6 +22,13 @@
 
 namespace atomstruct {
 
+Pseudobond::Pseudobond(Atom* a1, Atom* a2, PBGroup* grp): Connection(a1, a2), _group(grp),
+        _shown_when_atoms_hidden(true) {
+    _halfbond = false;
+    _radius = 0.05;
+    change_tracker()->add_created(grp->structure(), this);
+}
+
 ChangeTracker*
 Pseudobond::change_tracker() const { return atoms()[0]->change_tracker(); }
 

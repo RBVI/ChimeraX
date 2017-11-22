@@ -11,22 +11,17 @@
 
 # Makefile for user guide
 #
-TOP	= ../..
+TOP	= ../../..
 include $(TOP)/mk/config.make
 
-SUBDIRS = tools formats
+DOCDIR = $(app_datadir)/docs/user/formats
 
-DOCDIR = $(app_datadir)/docs/user
-
-SRCS = $(wildcard *.html) userdocs.css commands
-IMAGES = $(wildcard *.png) $(wildcard *.svg) $(wildcard *.jpg)
-OTHER = $(wildcard *.cxc)
-
-# All needed subdirectories must be set by now.
-include $(TOP)/mk/subdir.make
+SRCS = $(wildcard *.html)
+IMAGES = $(wildcard *.png)
+BILD = $(wildcard *.bild)
 
 install:
 	if [ ! -d "$(DOCDIR)" ]; then mkdir -p $(DOCDIR); fi
-	$(RSYNC) $(SRCS) $(IMAGES) $(OTHER) $(DOCDIR)
+	$(RSYNC) $(SRCS) $(IMAGES) $(BILD) $(DOCDIR)
 
 clean:

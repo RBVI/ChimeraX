@@ -151,7 +151,6 @@ def nucleotides(session, representation, *, glycosidic=default.GLYCOSIDIC, orien
     elif representation == 'ladder':
         NA.set_ladder(molecules, residues, rung_radius=radius,
                       show_stubs=stubs, skip_nonbase_Hbonds=ignore)
-    NA._rebuild(None, None)  # TODO
 
 
 nucleotides_ndbcolor_desc = CmdDesc(
