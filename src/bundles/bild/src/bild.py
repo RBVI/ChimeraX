@@ -154,7 +154,7 @@ class _BildFile:
             xform=self.transforms[-1], pure=self.pure[-1])
         self.drawing.extend_shape(vertices, normals, triangles)
 
-    def atomspec_command(self, tokens):
+    def associate_command(self, tokens):
         atomspec = ' '.join(tokens[1:])
         if not atomspec:
             self.cur_atoms = None
@@ -513,7 +513,7 @@ class _BildFile:
 
     _commands = {
         '.arrow': arrow_command,
-        '.atomspec': atomspec_command,
+        '.associate': associate_command,
         '.box': box_command,
         '.c': comment_command,
         '.cmov': cmov_command,

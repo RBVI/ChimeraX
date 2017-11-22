@@ -1,5 +1,6 @@
-<BundleInfo name="ChimeraX-Nucleotides" version="0.1" package="chimerax.nucleic_acids"
-  	    minSessionVersion="1" maxSessionVersion="1">
+<BundleInfo name="ChimeraX-Nucleotides" version="0.1"
+	package="chimerax.nucleotides"
+  	minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
   <Email>chimerax@cgl.ucsf.edu</Email>

@@ -26,7 +26,6 @@ nucleic3to1 = Sequence.nucleic3to1
 _SQRT2 = math.sqrt(2)
 _SQRT3 = math.sqrt(3)
 
-_mol_handler = None
 _rebuild_handler = None
 _need_rebuild = weakref.WeakSet()
 _rebuilding = False
@@ -463,7 +462,6 @@ def _nuc_drawing(mol, create=True, recreate=False):
     # creates mol._nucleotide_info for per-residue information
     # creates mol._nucleotides_drawing for the drawing
     from chimerax.core.atomic import AtomicShapeDrawing
-    global _mol_handler, _rebuild_handler
     try:
         # expect this to succeed most of the time
         info = mol._nucleotide_info
@@ -478,149 +476,105 @@ def _nuc_drawing(mol, create=True, recreate=False):
         nd = mol._nucleotides_drawing = AtomicShapeDrawing('nucleotides')
         mol.add_drawing(nd)
         mol._nucleotide_info = weakref.WeakKeyDictionary()
-        # if _mol_handler is None:
-        #     _mol_handler = chimera.triggers.add_handler('Model',
-        #                                     _trackMolecules, None)
-        if _rebuild_handler is None:
-            from chimerax.core.atomic import get_triggers
-            _rebuild_handler = get_triggers(mol.session).add_handler(
-                'changes', _rebuild)
+        handler = getattr(mol, '_nucleotide_changes', None)
+        if handler is None:
+            handler = mol.triggers.add_handler('changes', _rebuild_molecule)
+            mol._nucleotide_changes = handler
         return mol._nucleotide_info, nd
 
-# def _trackMolecules(trigger_name, closure, changes):
-#     """Model trigger handler"""
-#     # Track when Molecules and VRML models are deleted to see if
-#     # they are ones that we're interested in.
-#     if _rebuilding:
-#         # don't care about structure changes while we're rebuilding
-#         # the VRML models
-#         return
-#     if not changes:
-#         return
-#     if 'major' in changes.reasons:
-#         for mol in changes.modified:
-#             try:
-#                 md = _data[mol]
-#             except KeyError:
-#                 continue
-#             _need_rebuild.add(mol)
-#     deleted = changes.deleted
-#     if not deleted:
-#         return
-#     # First remove all Molecules.  With weak dictionaries
-#     # most of this cleanup should be unnecessary.
-#     for mol in list(deleted):
-#         try:
-#             md = _data[mol]
-#         except KeyError:
-#             continue
-#         try:
-#             vrml = md[VRML]
-#             # our VRML models are always associated with mol,
-#             # so they should always be on the deleted list.
-#             deleted.remove(vrml)
-#         except KeyError:
-#             pass
-#         deleted.remove(mol)
-#         del _data[mol]
-#     # Now look for VRML models whose structure still exists
-#     # so we can remove the nucleotides data and unhide any hidden atoms
-#     for v in deleted:
-#         if not isinstance(v, chimera.VRMLModel):
-#             continue
-#         # find the parent structure
-#         for mol in _data:
-#             try:
-#                 if _data[mol][VRML] == v:
-#                     break
-#             except KeyError:
-#                 continue
-#         else:
-#             continue
-#         residues = _data[mol].residue_info.keys()
-#         del _data[mol]
-#         # unhide any atoms we would have hidden
-#         set_hide_atoms(False, Always_RE, BackboneRE, residues)
-#         chimera.viewer.invalidateCache(mol)
-#     if _data:
-#         return
-#     global _mol_handler, _rebuild_handler
-#     chimera.triggers.deleteHandler('Model', _mol_handler)
-#     _mol_handler = None
-#     chimera.triggers.deleteHandler('monitor changes', _rebuild_handler)
-#     _rebuild_handler = None
-#     _need_rebuild.clear()
+
+def _remove_nuc_drawing(mol, nd):
+    mol.remove_drawing(nd)
+    del mol._nucleotide_info
+    h = mol._nucleotide_changes
+    mol._nucleotide_changes = None
+    mol.trigger.remove_handler(h)
+    _need_rebuild.discard(mol)
 
 
-def _rebuild(trigger_name, changes):
+def _init_rebuild_handler(session):
+    global _rebuild_handler
+    if _rebuild_handler is None:
+        _rebuild_handler = session.triggers.add_handler('new frame', _rebuild)
+
+
+def _rebuild(trigger_name, update_loop):
     """'monitor changes' trigger handler"""
     global _rebuilding
-    # TODO: check changes for things we're interested in
-    # ie., add/delete/moving atoms
     if not _need_rebuild or _rebuilding:
         return
     _rebuilding = True
-    for mol in _need_rebuild:
-        nuc_info, nd = _nuc_drawing(mol, recreate=True)
-        if nuc_info is None:
-            continue
-        # figure out which residues are of which type because
-        # ladder needs knowledge about the whole structure
-        sides = {}
-        for k in SideOptions:
-            sides[k] = []
-        for r in tuple(nuc_info):
-            if r.deleted:
-                # Sometimes the residues are gone,
-                # but there's a still reference to them.
-                del nuc_info[r]
-                continue
-            sides[nuc_info[r]['side']].append(r)
-        if not nuc_info:
-            # no residues to track in structure
-            mol.remove_drawing(nd)
-            del mol._nucleotide_info
-            continue
-        all_residues = set(nuc_info.keys())
-        # create shapes
-        hide_sugars = set()
-        hide_bases = set()
-        residues = sides['ladder']
-        if not residues:
-            mol._ladder_params = {}
-        else:
-            residues = Residues(residues=residues)
-            # redo all ladder nodes
-            hide_sugars.update(residues)
-            hide_bases.update(residues)
-            # TODO: hide hydrogens between matched bases
-            make_ladder(nd, residues, **mol._ladder_params)
-            set_hide_atoms(True, Always_RE, BackboneRE, residues)
-        residues = sides['fill/slab'] + sides['slab']
-        if residues:
-            hide_bases.update(make_slab(nd, residues, nuc_info))
-        residues = sides['tube/slab']
-        if residues:
-            hide_sugars.update(residues)
-            make_tube(nd, residues, nuc_info)
-            hide_bases.update(make_slab(nd, residues, nuc_info))
-        residues = sides['orient']
-        if residues:
-            for r in residues:
-                draw_orientation(nd, r)
-        # make sure sugar/base atoms are hidden/shown
-        show_sugars = all_residues - hide_sugars
-        show_bases = all_residues - hide_bases
-        showresidue_info = show_sugars - hide_bases
-        show_sugars.difference_update(showresidue_info)
-        show_bases.difference_update(showresidue_info)
-        set_hide_atoms(False, Always_RE, NeverRE, showresidue_info)
-        set_hide_atoms(False, BackboneSugarRE, NeverRE, show_sugars)
-        non_ribbon_sugars = [r for r in hide_sugars if not r.ribbon_display]
-        set_hide_atoms(False, BackboneRE, NeverRE, non_ribbon_sugars)
-        set_hide_atoms(False, BaseAtomsRE, BaseExceptRE, show_bases)
+    for mol in list(_need_rebuild):
+        _rebuild_molecule('internal', mol)
+    # assert len(_need_rebuild) == 0
     _need_rebuild.clear()
     _rebuilding = False
+
+
+def _rebuild_molecule(name, mol):
+    if isinstance(mol, tuple):
+        mol, changes = mol
+        # TODO: check changes for reasons we're interested in
+        # ie., add/delete/moving atoms
+    nuc_info, nd = _nuc_drawing(mol, recreate=True)
+    if nuc_info is None:
+        _need_rebuild.discard(mol)
+        return
+    # figure out which residues are of which type because
+    # ladder needs knowledge about the whole structure
+    sides = {}
+    for k in SideOptions:
+        sides[k] = []
+    for r in tuple(nuc_info):
+        if r.deleted:
+            # Sometimes the residues are gone,
+            # but there's a still reference to them.
+            del nuc_info[r]
+            continue
+        sides[nuc_info[r]['side']].append(r)
+    if not nuc_info:
+        # no residues to track in structure
+        _remove_nuc_drawing(mol, nd)
+        return
+    all_residues = set(nuc_info.keys())
+    # create shapes
+    hide_sugars = set()
+    hide_bases = set()
+    residues = sides['ladder']
+    if not residues:
+        mol._ladder_params = {}
+    else:
+        residues = Residues(residues=residues)
+        # redo all ladder nodes
+        hide_sugars.update(residues)
+        hide_bases.update(residues)
+        # TODO: hide hydrogens between matched bases
+        make_ladder(nd, residues, **mol._ladder_params)
+        set_hide_atoms(True, Always_RE, BackboneRE, residues)
+    residues = sides['fill/slab'] + sides['slab']
+    if residues:
+        hide_bases.update(make_slab(nd, residues, nuc_info))
+    residues = sides['tube/slab']
+    if residues:
+        hide_sugars.update(residues)
+        make_tube(nd, residues, nuc_info)
+        hide_bases.update(make_slab(nd, residues, nuc_info))
+    residues = sides['orient']
+    if residues:
+        for r in residues:
+            draw_orientation(nd, r)
+    # make sure sugar/base atoms are hidden/shown
+    show_sugars = all_residues - hide_sugars
+    show_bases = all_residues - hide_bases
+    showresidue_info = show_sugars - hide_bases
+    show_sugars.difference_update(showresidue_info)
+    show_bases.difference_update(showresidue_info)
+    set_hide_atoms(False, Always_RE, NeverRE, showresidue_info)
+    set_hide_atoms(False, BackboneSugarRE, NeverRE, show_sugars)
+    non_ribbon_sugars = [r for r in hide_sugars if not r.ribbon_display]
+    set_hide_atoms(False, BackboneRE, NeverRE, non_ribbon_sugars)
+    set_hide_atoms(False, BaseAtomsRE, BaseExceptRE, show_bases)
+    _need_rebuild.discard(mol)
 
 
 def set_hide_atoms(hide, AtomsRE, exceptRE, residues):
@@ -956,6 +910,7 @@ def _c3pos(residue):
 
 
 def set_normal(molecules, residues):
+    _init_rebuild_handler(molecules[0].session)
     rds = {}
     for m in molecules:
         nuc_info, nd = _nuc_drawing(m)
@@ -969,6 +924,7 @@ def set_normal(molecules, residues):
 
 
 def set_orient(molecules, residues):
+    _init_rebuild_handler(molecules[0].session)
     rds = {}
     for m in molecules:
         nuc_info, nd = _nuc_drawing(m)
@@ -985,6 +941,7 @@ def set_orient(molecules, residues):
 
 
 def set_slab(side, molecules, residues, style=default.STYLE, **slab_params):
+    _init_rebuild_handler(molecules[0].session)
     if not side.startswith('tube'):
         tube_params = None
     else:
@@ -1034,6 +991,7 @@ def make_tube(nd, residues, rds):
 
 
 def set_ladder(molecules, residues, **ladder_params):
+    _init_rebuild_handler(molecules[0].session)
     _need_rebuild.update(molecules)
     rds = {}
     for mol in molecules:
