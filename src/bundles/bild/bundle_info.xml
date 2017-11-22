@@ -31,7 +31,7 @@
     <!-- Development Status should be compatible with bundle version number -->
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: DataFormat :: BILD :: bild :: Generic 3D objects :: .bild,.bld :: :: https://www.cgl.ucsf.edu/chimera/docs/UsersGuide/bild.html :: :: :: UCSF Chimera BILD format</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: DataFormat :: BILD :: bild :: Generic 3D objects :: .bild,.bld :: :: help:user/formats/bild.html :: :: :: UCSF Chimera BILD format</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Open :: BILD :: ::</ChimeraXClassifier>
   </Classifiers>
 
