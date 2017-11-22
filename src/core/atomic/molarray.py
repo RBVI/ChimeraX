@@ -121,11 +121,12 @@ class Collection(State):
         set_cvec_pointer(self, pointers)
         remove_deleted_pointers(pointers)
 
-    def __eq__(self, atoms):
-        if not isinstance(atoms, Collection):
+    def __eq__(self, items):
+        if not isinstance(items, Collection):
             return False
         import numpy
-        return numpy.array_equal(atoms._pointers, self._pointers)
+        return numpy.array_equal(items._pointers, self._pointers)
+
     def hash(self):
         '''
         Can be used for quickly determining if collections have the same elements in the same order.
@@ -909,6 +910,9 @@ class Pseudobonds(Collection):
                        args = [ctypes.c_void_p, ctypes.c_size_t],
                        ret = ctypes.c_size_t)
         return f(self._c_pointers, len(self))
+
+    def with_group(self, pbg):
+        return self.filter(self.groups._pointers == pbg.cpp_pointer)
 
     _ses_ids = cvec_property('pseudobond_get_session_id', int32, read_only = True,
         doc="Used internally to save/restore in sessions")

@@ -708,6 +708,12 @@ class PseudobondGroupData:
         f = c_function('pseudobond_group_clear', args = (ctypes.c_void_p,))
         f(self._c_pointer)
 
+    def delete_pseudobond(self, pb):
+        '''Delete a specific pseudobond from a group'''
+        f = c_function('pseudobond_group_delete_pseudobond',
+            args = (ctypes.c_void_p, ctypes.c_void_p))
+        f(self._c_pointer, pb._c_pointer)
+
     def get_num_pseudobonds(self, cs_id):
         '''Get the number of pseudobonds for a particular coordinate set. Use the 'num_pseudobonds'
         property to get the number of pseudobonds for the current coordinate set.'''
