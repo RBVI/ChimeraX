@@ -895,25 +895,25 @@ link_up(PDB& link_ssbond, Structure *as, std::set<Atom *> *conect_atoms, PyObjec
     }
     Residue *res1 = pdb_res_to_chimera_res(as, pdb_res1);
     if (!res1) {
-        logger::warning(py_logger, "Cannot find LINK residue ", pdb_res1.name,
+        logger::warning(py_logger, "Cannot find LINK/SSBOND residue ", pdb_res1.name,
             " (", pdb_res1.seq_num, pdb_res1.i_code, ")");
         return;
     }
     Residue *res2 = pdb_res_to_chimera_res(as, pdb_res2);
     if (!res2) {
-        logger::warning(py_logger, "Cannot find LINK residue ", pdb_res2.name,
+        logger::warning(py_logger, "Cannot find LINK/SSBOND residue ", pdb_res2.name,
             " (", pdb_res2.seq_num, pdb_res2.i_code, ")");
         return;
     }
     Atom* a1 = pdb_atom_to_chimera_atom(as, res1, pdb_atom1);
     if (a1 == nullptr) {
-        logger::warning(py_logger, "Cannot find LINK atom ", pdb_atom1,
+        logger::warning(py_logger, "Cannot find LINK/SSBOND atom ", pdb_atom1,
             " in residue ", res1->str());
         return;
     }
     Atom* a2 = pdb_atom_to_chimera_atom(as, res2, pdb_atom2);
     if (a2 == nullptr) {
-        logger::warning(py_logger, "Cannot find LINK atom ", pdb_atom2,
+        logger::warning(py_logger, "Cannot find LINK/SSBOND atom ", pdb_atom2,
             " in residue ", res2->str());
         return;
     }
