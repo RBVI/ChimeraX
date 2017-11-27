@@ -55,6 +55,25 @@ class DistancesMonitor(State):
         if group in self.update_callbacks:
             del self.update_callbacks[group]
 
+    def set_distance_format_params(self, *, decimal_places=None, show_units=None, save=False):
+        """Set the distance format parameters (and update all distances)
+        
+        'show_units' controls whether the angstrom symbol is displayed.  'save' indicates
+        whether the new settings should be saved as defaults.  Values of None for 'decimal_places'
+        and 'show_units' indicate that the current setting should not be changed.
+        """
+        from .settings import settings
+        save_attrs = []
+        if decimal_places is not None:
+            settings.precision = decimal_places
+            save_attrs.append('precision')
+        if show_units is not None:
+            settings.show_units = show_units
+            save_attrs.append('show_units')
+        if save:
+            settings.save(settings=save_attrs)
+        self._update_distances()
+
     def _changes_handler(self, _, changes):
         if changes.num_deleted_pseudobond_groups() > 0:
             for mg in list(self.monitored_groups):

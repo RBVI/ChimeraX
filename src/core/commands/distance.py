@@ -47,9 +47,13 @@ def xdistance(session, pbonds=None):
     for pb in dist_pbonds:
         pbg.delete_pseudobond(pb)
 
+def distance_format(session, *, decimal_places=None, symbol=None, save=False):
+    session.pb_dist_monitor.set_distance_format_params(decimal_places=decimal_places,
+        show_units=symbol, save=save)
+
 def register_command(session):
     from . import CmdDesc, register, AtomsArg, AnnotationError, PseudobondsArg, Or, EmptyArg, \
-        ColorArg, NonNegativeIntArg, FloatArg
+        ColorArg, NonNegativeIntArg, FloatArg, BoolArg
     # eventually this will handle more than just atoms, but for now...
     class AtomPairArg(AtomsArg):
         name = "an atom-pair specifier"
@@ -70,3 +74,7 @@ def register_command(session):
         required = [('pbonds', Or(PseudobondsArg,EmptyArg))],
         synopsis = 'remove distance monitors')
     register('~distance', xd_desc, xdistance, logger=session.logger)
+    df_desc = CmdDesc(
+        keyword = [('decimal_places', NonNegativeIntArg), ('symbol', BoolArg), ('save', BoolArg)],
+        synopsis = 'set distance formatting')
+    register('distance format', df_desc, distance_format, logger=session.logger)
