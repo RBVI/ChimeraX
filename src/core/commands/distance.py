@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def distance(session, atoms):
+def distance(session, atoms, *, color=None, dashes=None, radius=None):
     '''
     Show/report distance between two atoms.
     '''
@@ -19,10 +19,20 @@ def distance(session, atoms):
     if not grp:
         # create group and add to DistMonitor
         grp = session.pb_manager.get_group("distances")
+        if color is not None:
+            grp.color = color.uint8x4()
+        if radius is not None:
+            grp.radius = radius
         session.models.add([grp])
         session.pb_dist_monitor.add_group(grp)
     a1, a2 = atoms
     pb = grp.new_pseudobond(a1, a2)
+    if color is not None:
+        pb.color = color.uint8x4()
+    if dashes is not None:
+        grp.dashes = dashes
+    if radius is not None:
+        pb.radius = radius
     session.logger.info(("Distance between %s and %s: " + session.pb_dist_monitor.distance_format)
         % (a1, a2.__str__(relative_to=a1), pb.length))
 
@@ -38,7 +48,8 @@ def xdistance(session, pbonds=None):
         pbg.delete_pseudobond(pb)
 
 def register_command(session):
-    from . import CmdDesc, register, AtomsArg, AnnotationError, PseudobondsArg, Or, EmptyArg
+    from . import CmdDesc, register, AtomsArg, AnnotationError, PseudobondsArg, Or, EmptyArg, \
+        ColorArg, NonNegativeIntArg, FloatArg
     # eventually this will handle more than just atoms, but for now...
     class AtomPairArg(AtomsArg):
         name = "an atom-pair specifier"
@@ -52,6 +63,7 @@ def register_command(session):
             return atoms, text, rest
     d_desc = CmdDesc(
         required = [('atoms', AtomPairArg)],
+        keyword = [('color', ColorArg), ('dashes', NonNegativeIntArg), ('radius', FloatArg)],
         synopsis = 'show/report distance')
     register('distance', d_desc, distance, logger=session.logger)
     xd_desc = CmdDesc(
