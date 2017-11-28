@@ -125,6 +125,8 @@ def nucleotides(session, representation, *, glycosidic=default.GLYCOSIDIC, orien
     residues = objects.atoms.unique_residues
     from chimerax.core.atomic import Residue
     residues = residues.filter(residues.polymer_types == Residue.PT_NUCLEIC)
+    if len(residues) == 0:
+        return
     molecules = residues.unique_structures
     if representation == 'atoms':
         # TODO: residues.fill_rings = False
@@ -139,6 +141,8 @@ def nucleotides(session, representation, *, glycosidic=default.GLYCOSIDIC, orien
     elif representation.endswith('slab'):
         if representation.startswith('fill'):
             # TODO: residues.fill_rings = True
+            show_gly = True
+        elif representation == 'slab':
             show_gly = True
         else:
             show_gly = glycosidic
