@@ -37,14 +37,14 @@ def __getattr__(self, attr_name, look_in_class=None):
             raise
 
 @classmethod
-def register_attr(cls, registerer, attr_name, default_value=_NoDefault, attr_type=None):
-    cls._attr_registration.register(registerer, attr_name, default_value, attr_type)
+def register_attr(cls, session, attr_name, registerer, default_value=_NoDefault, attr_type=None):
+    cls._attr_registration.register(session, attr_name, registerer, default_value, attr_type)
 
 # used within the class to hold the registration info
 class AttrRegistration:
-    def __init__(self, class_name):
+    def __init__(self, class_):
         self.reg_attr_info = {}
-        self.class_name = class_name
+        self.class_ = class_
         self._session_attrs = {}
         self._ses_attr_counts = {}
 
@@ -52,9 +52,9 @@ class AttrRegistration:
         try:
             registrant, default_value, attr_type = self.reg_attr_info[attr_name]
         except KeyError:
-            raise AttributeError("'%s' object has no attribute '%s'" % (self.class_name, attr_name))
+            raise AttributeError("'%s' object has no attribute '%s'" % (self.class_.__name__, attr_name))
         if default_value == _NoDefault:
-            raise AttributeError("'%s' object has no attribute '%s'" % (self.class_name, attr_name))
+            raise AttributeError("'%s' object has no attribute '%s'" % (self.class_.__name__, attr_name))
         return default_value
 
     def register(self, session, attr_name, registrant, default_value, attr_type):
@@ -63,7 +63,7 @@ class AttrRegistration:
             if prev_default == default_value and prev_type == attr_type:
                 return
             raise ValueError("Registration of attr '%s' with %s by %s conflicts with previous"
-                " registration by %s" % (attr_name, self.class_name, registrant, prev_registrant))
+                " registration by %s" % (attr_name, self.class_.__name__, registrant, prev_registrant))
         self.reg_attr_info[attr_name] = (registrant, default_value, attr_type)
         session_attrs = self._session_attrs.setdefault(session, set())
         if attr_name not in session_attrs:
@@ -73,7 +73,7 @@ class AttrRegistration:
     # session functions; called from manager, not directly from session-saving mechanism,
     # so API varies from that for State class
     def reset_state(self, session):
-        if session not self._session_attrs:
+        if session not in self._session_attrs:
             return
         for attr_name in self._session_attrs[session]:
             if self._ses_attr_counts[attr_name] == 1:
@@ -90,8 +90,8 @@ class AttrRegistration:
         data = {'reg_attr_info': ses_reg_attr_info}
         return data
 
-    def restore_session_data(session, data):
-        for attr_name, reg_info in data['reg_attr_info'].items:
+    def restore_session_data(self, session, data):
+        for attr_name, reg_info in data['reg_attr_info'].items():
             self.register(session, attr_name, *reg_info)
 
 # used in session so that registered attributes get saved/restored
@@ -106,7 +106,7 @@ class RegAttrManager(State):
     def __init__(self):
         for reg_class in registerable_classes:
             if not hasattr(reg_class, '_attr_registration'):
-                reg_class._attr_registration = AttrRegistration(reg_class.__name__)
+                reg_class._attr_registration = AttrRegistration(reg_class)
                 reg_class.__getattr__ = __getattr__
                 reg_class.register_attr = register_attr
 
@@ -119,15 +119,17 @@ class RegAttrManager(State):
 
     def take_snapshot(self, session, flags):
         # force save of registration instance session info
-        return { 'registrations':
-            {rc.__name__: rc._attr_registration.take_snapshot(session, flags)
-                for rc in registerable_classes} }
+        return {
+            'version': 1,
+            'registrations': {rc.__name__: rc._attr_registration.take_snapshot(session, flags)
+                for rc in registerable_classes}
+        }
 
     @staticmethod
     def restore_snapshot(session, data):
-        class_map = { reg_class.__name__: reg_class for reg_class in registerable_classes }
         inst = RegAttrManager()
+        from .. import bundle_api
         for class_name, registration in data['registrations'].items():
-            if class_name in class_map:
-                class_map[class_name]._attr_registration.restore_session_data(session, registration)
+            bundle_api.get_class(class_name)._attr_registration.restore_session_data(
+                session, registration)
         return inst

@@ -34,6 +34,7 @@ _class_class_init = {
     'Chains': '.atomic',
     'ClipPlane': '.graphics',
     'Color': '.colors',
+    'CoordSet': '.atomic',
     'Drawing': '.graphics',
     'Generic3DModel': '.generic3d',
     'GridDataState': '.map.session',
