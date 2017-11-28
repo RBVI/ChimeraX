@@ -40,7 +40,12 @@ delete</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 </h3>
 <p>
 The <b>label</b> command shows labels that move along with the associated
-<b>atoms</b>, <b>residues</b>, <b>bonds</b>, or <b>pseudobonds</b> in 3D.
+<b>atoms</b>, <b>residues</b>, <b>bonds</b>, or <b>pseudobonds</b> in 3D,
+with <a href="#text">default contents</a>: atom name, residue name and number,
+and bond or <a href="../pseudobonds.html">pseudobond</a> length.
+See also: <a href="distance.html"><b>distance</b></a>,
+<a href="2dlabels.html"><b>2dlabels</b></a>
+</p><p>
 These &ldquo;3D&rdquo; (although flat in appearance)
 labels can be of multiple colors and sizes, and both atom and residue 
 labels can be shown for the same atom at the same time.
@@ -79,6 +84,7 @@ Parameters that are not specified retain their current values.
 </p>
 
 <blockquote>
+<a name="text"></a>
 <b>text</b>&nbsp;&nbsp;<i>label-contents</i>&nbsp;|&nbsp;<b>default</b>
 <br>
 Text contents of the label, which can be an arbitrary string 
@@ -86,7 +92,7 @@ or <b>default</b> information based on the object type being labeled:
 <ul>
 <li>for <b>atoms</b> (default), atom name
 <li>for <b>residues</b>, residue name and number
-<li>for <b>bonds</b> or <b>pseudobonds</b>, length
+<li>for <b>bonds</b> or <b>pseudobonds</b>, length 
 </ul>
 Arbitrary <i>label-contents</i> can include 
 letters, numbers, symbols from the keyboard; 
