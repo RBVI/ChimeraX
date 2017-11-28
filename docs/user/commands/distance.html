@@ -1,0 +1,104 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: distance</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: distance</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>distance</b>
+&nbsp;<a href="atomspec.html"><i>atom1</i></a>&nbsp;
+&nbsp;<a href="atomspec.html"><i>atom2</i></a>&nbsp;
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>colorname</i></a>&nbsp;]
+[&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
+[&nbsp;<b>dashes</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>~distance</b>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>distance format</b>
+[&nbsp;<b>decimalPlaces</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>symbol</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>save</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+</h3>
+<p>
+The <b>distance</b> command adds a <a href="../pseudobonds.html">pseudobond</a>
+between the specified atoms and labels it with the distance. The current 
+distance is also reported in the <a href="../tools/log.html"><b>Log</b></a>.
+The label will update automatically to reflect any changes in distance,
+but updates are not sent to the <a href="../tools/log.html"><b>Log</b></a>.
+See also: 
+<a href="clashes.html"><b>clashes/contacts</b></a>,
+<a href="hbonds.html"><b>hbonds</b></a>,
+<a href="crosslinks.html"><b>crosslinks</b></a>,
+<a href="label.html"><b>label</b></a>
+</p><p>
+Distance-monitor <a href="../pseudobonds.html">pseudobonds</a>
+are added to a model named <b>distances</b>, with properties matching
+the first monitor in the model unless different values are given:
+<blockquote>
+<a name="color"></a>
+<b>color</b> &nbsp;<a href="colornames.html"><i>colorname</i></a>
+<br>
+Color to use for the
+<a href="../pseudobonds.html">pseudobonds</a>
+(default <b>yellow</b>);
+can be changed later with <a href="color.html"><b>color</b></a>.
+</blockquote>
+<blockquote>
+<a name="radius"></a>
+<b>radius</b> &nbsp;<i>r</i>
+<br>
+Radius in &Aring; to use for the <a href="../pseudobonds.html">pseudobonds</a>
+(default <b>0.1</b>);
+can be changed later with <a href="size.html"><b>size</b></a>.
+</blockquote>
+<blockquote>
+<a name="dashes"></a>
+<b>dashes</b> &nbsp;<i>N</i>
+<br>Number of dashes per <a href="../pseudobonds.html">pseudobond</a>
+(default <b>9</b>).
+Only whole numbers are accepted, with 0
+indicating solid sticks. Currently, odd numbers are rounded down
+to give an even number of dashes. The number of dashes
+can be changed later with <a href="style.html"><b>style</b></a>.
+</blockquote>
+<p>
+The <b>~distance</b> command removes any distance monitors among the 
+specified atoms, or if nothing is specified, all distance monitors.
+</p><p>
+Distances are assumed to be in Angstroms.
+The <b>distance format</b> command controls distance-label format:
+the number of digits after the decimal point (initial default <b>3</b>), 
+whether to show the Angstrom symbol &Aring; (initial default <b>true</b>), 
+and whether to save these format settings to a user's ChimeraX preferences.
+Parameters that are not specified retain their current values.
+Label color, size, and font can be
+adjusted with the <a href="label.html"><b>label</b></a> command.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+November 2017</address>
+</body></html>
