@@ -40,12 +40,8 @@ def determine_termini(session, structs):
                 logger.info("Termini for %s determined from SEQRES records" % chain.full_name)
             else:
                 rn, rc, fn, fc = guess_termini(chain)
-                if chain.fromSeqres == None:
-                    logger.info("No SEQRES records for %s;" % chain.full_name, add_newline=False)
-                else:
-                    logger.info("SEQRES records don't match %s;" % chain.full_name,
-                        add_newline=False)
-                replyobj.info(" guessing termini instead")
+                logger.info("No usable SEQRES records for %s; guessing termini instead"
+                    % chain.full_name)
             real_N.extend(rn)
             real_C.extend(rc)
             fake_N.extend(fn)
