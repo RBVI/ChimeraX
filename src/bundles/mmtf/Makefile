@@ -12,12 +12,15 @@ CHIMERAX_APP = ../../../ChimeraX.app
 OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
 ifeq ($(OS),CYGWIN_NT)
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX.exe
+PYMOD_EXT = pyd
 endif
 ifeq ($(OS),Darwin)
 CHIMERAX_EXE = $(CHIMERAX_APP)/Contents/bin/ChimeraX
+PYMOD_EXT = so
 endif
 ifeq ($(OS),Linux)
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
+PYMOD_EXT = so
 endif
 RUN = $(CHIMERAX_EXE) --nogui --exit --cmd
 
@@ -49,7 +52,7 @@ clean:
 	if [ -x $(CHIMERAX_EXE) ]; then \
 		$(RUN) "devel clean . exit true" ; \
 	else \
-		rm -rf build dist *.egg-info src/__pycache__ ; \
+		rm -rf build dist *.egg-info src/__pycache__ src/*.$(PYMOD_EXT) ; \
 	fi
 	rm -rf $(MMTF_CPP_SOURCE) $(MSGPACK_SOURCE)
 

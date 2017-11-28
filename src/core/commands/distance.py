@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def distance(session, atoms):
+def distance(session, atoms, *, color=None, dashes=None, radius=None):
     '''
     Show/report distance between two atoms.
     '''
@@ -19,10 +19,20 @@ def distance(session, atoms):
     if not grp:
         # create group and add to DistMonitor
         grp = session.pb_manager.get_group("distances")
+        if color is not None:
+            grp.color = color.uint8x4()
+        if radius is not None:
+            grp.radius = radius
         session.models.add([grp])
         session.pb_dist_monitor.add_group(grp)
     a1, a2 = atoms
     pb = grp.new_pseudobond(a1, a2)
+    if color is not None:
+        pb.color = color.uint8x4()
+    if dashes is not None:
+        grp.dashes = dashes
+    if radius is not None:
+        pb.radius = radius
     session.logger.info(("Distance between %s and %s: " + session.pb_dist_monitor.distance_format)
         % (a1, a2.__str__(relative_to=a1), pb.length))
 
@@ -37,8 +47,13 @@ def xdistance(session, pbonds=None):
     for pb in dist_pbonds:
         pbg.delete_pseudobond(pb)
 
+def distance_format(session, *, decimal_places=None, symbol=None, save=False):
+    session.pb_dist_monitor.set_distance_format_params(decimal_places=decimal_places,
+        show_units=symbol, save=save)
+
 def register_command(session):
-    from . import CmdDesc, register, AtomsArg, AnnotationError, PseudobondsArg, Or, EmptyArg
+    from . import CmdDesc, register, AtomsArg, AnnotationError, PseudobondsArg, Or, EmptyArg, \
+        ColorArg, NonNegativeIntArg, FloatArg, BoolArg
     # eventually this will handle more than just atoms, but for now...
     class AtomPairArg(AtomsArg):
         name = "an atom-pair specifier"
@@ -52,9 +67,14 @@ def register_command(session):
             return atoms, text, rest
     d_desc = CmdDesc(
         required = [('atoms', AtomPairArg)],
+        keyword = [('color', ColorArg), ('dashes', NonNegativeIntArg), ('radius', FloatArg)],
         synopsis = 'show/report distance')
     register('distance', d_desc, distance, logger=session.logger)
     xd_desc = CmdDesc(
         required = [('pbonds', Or(PseudobondsArg,EmptyArg))],
         synopsis = 'remove distance monitors')
     register('~distance', xd_desc, xdistance, logger=session.logger)
+    df_desc = CmdDesc(
+        keyword = [('decimal_places', NonNegativeIntArg), ('symbol', BoolArg), ('save', BoolArg)],
+        synopsis = 'set distance formatting')
+    register('distance format', df_desc, distance_format, logger=session.logger)
