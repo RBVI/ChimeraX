@@ -699,16 +699,20 @@ class ObjectIdMouseMode(MouseMode):
     '''
     name = 'identify object'
     def pause(self, position):
-        if self.session.ui.activeWindow() is None:
+        ui = self.session.ui
+        if ui.activeWindow() is None:
             # Qt 5.7 gives app mouse events on Mac even if another application has the focus,
             # and even if the this app is minimized, it gets events for where it used to be on the screen.
             return
-        
+        # ensure that no other top-level window is above the graphics
+        from PyQt5.QtGui import QCursor
+        if ui.topLevelAt(QCursor.pos()) != ui.main_window:
+            return
         x,y = position
         p = picked_object(x, y, self.view)
 
         # Show atom spec balloon
-        pu = self.session.ui.main_window.graphics_window.popup
+        pu = ui.main_window.graphics_window.popup
         if p:
             pu.show_text(p.description(), (x+10,y))
             res = getattr(p, 'residue', None)
