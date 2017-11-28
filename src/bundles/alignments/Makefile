@@ -39,7 +39,7 @@ clean:
 	if [ -x $(CHIMERAX_EXE) ]; then \
 		$(RUN) "devel clean . exit true" ; \
 	else \
-		rm -rf build dist *.egg-info src/__pycache__ ; \
+		rm -rf build dist *.egg-info src/__pycache__ src/*/__pycache__; \
 	fi
 
 pylint:

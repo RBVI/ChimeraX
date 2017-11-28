@@ -543,19 +543,28 @@ extern "C" EXPORT void atom_visible(void *atoms, size_t n, npy_bool *visible)
     error_wrap_array_get<Atom, bool, npy_bool>(a, n, &Atom::visible, visible);
 }
 
-extern "C" EXPORT void atom_alt_loc(void *atoms, size_t n, char *alt_loc)
+extern "C" EXPORT void atom_alt_loc(void *atoms, size_t n, pyobject_t *alt_locs)
 {
     Atom **a = static_cast<Atom **>(atoms);
-    error_wrap_array_get<Atom, char>(a, n, &Atom::alt_loc, alt_loc);
+    char buffer[2];
+    buffer[1] = '\0';
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            buffer[0] = a[i]->alt_loc();
+            alt_locs[i] = unicode_from_string(buffer);
+        }
+    } catch (...) {
+        molc_error();
+    }
 }
 
-extern "C" EXPORT void set_atom_alt_loc(void *atoms, size_t n, char *alt_locs)
+extern "C" EXPORT void set_atom_alt_loc(void *atoms, size_t n, pyobject_t *alt_locs)
 {
     Atom **a = static_cast<Atom **>(atoms);
     // can't use error_wrap_array_set because set_alt_loc takes multiple args
     try {
         for (size_t i = 0; i < n; ++i)
-            a[i]->set_alt_loc(alt_locs[i]);
+            a[i]->set_alt_loc(PyUnicode_AsUTF8(static_cast<PyObject *>(alt_locs[i]))[0]);
     } catch (...) {
         molc_error();
     }
@@ -563,6 +572,8 @@ extern "C" EXPORT void set_atom_alt_loc(void *atoms, size_t n, char *alt_locs)
 
 extern "C" EXPORT void atom_set_alt_loc(void *atom, char alt_loc, bool create, bool from_residue)
 {
+    // this one used in the Atom class so that the additional args can be supplied,
+    // whereas set_atom_alt_loc is used for the setter half of alt_loc properties
     Atom *a = static_cast<Atom *>(atom);
     error_wrap(a, &Atom::set_alt_loc, alt_loc, create, from_residue);
 }
@@ -573,6 +584,45 @@ extern "C" EXPORT void atom_has_alt_loc(void *atoms, size_t n, char alt_loc, npy
     try {
         for (size_t i = 0; i < n; ++i)
             has[i] = a[i]->has_alt_loc(alt_loc);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT PyObject *atom_alt_locs(void *atom)
+{
+    Atom *a = static_cast<Atom *>(atom);
+    PyObject *py_alt_locs = nullptr;
+    try {
+        const auto& alt_locs = a->alt_locs();
+        py_alt_locs = PyList_New(alt_locs.size());
+        if (py_alt_locs == nullptr)
+            return nullptr;
+        size_t p = 0;
+        for (auto alt_loc: alt_locs) {
+            PyObject* py_alt_loc = PyUnicode_FromFormat("%c", (int)alt_loc);
+            if (py_alt_loc == nullptr) {
+                Py_DECREF(py_alt_locs);
+                return nullptr;
+            }
+            PyList_SET_ITEM(py_alt_locs, p++, py_alt_loc);
+        }
+        return py_alt_locs;
+    } catch (...) {
+        Py_XDECREF(py_alt_locs);
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" EXPORT void atom_set_coord(void *atom, void *xyz, int cs_id)
+{
+    Atom *a = static_cast<Atom *>(atom);
+    try {
+        auto cs = a->structure()->find_coord_set(cs_id);
+        if (cs == nullptr)
+            throw std::logic_error("No such coordset ID");
+        a->set_coord(Point((double*)xyz), cs);
     } catch (...) {
         molc_error();
     }
@@ -748,12 +798,34 @@ extern "C" EXPORT void atom_is_ribose(void *atoms, size_t n, npy_bool *is_ribose
     }
 }
 
-extern "C" EXPORT void atom_is_sidechain(void *atoms, size_t n, npy_bool *is_sidechain)
+extern "C" EXPORT void atom_is_side_chain(void *atoms, size_t n, npy_bool *is_side_chain)
 {
     Atom **a = static_cast<Atom **>(atoms);
     try {
         for (size_t i = 0; i != n; ++i)
-            is_sidechain[i] = a[i]->is_sidechain();
+            is_side_chain[i] = a[i]->is_side_chain(false);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void atom_is_side_connector(void *atoms, size_t n, npy_bool *is_side_connector)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            is_side_connector[i] = a[i]->is_side_connector();
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void atom_is_side_only(void *atoms, size_t n, npy_bool *is_side_only)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            is_side_only[i] = a[i]->is_side_chain(true);
     } catch (...) {
         molc_error();
     }
@@ -763,6 +835,17 @@ extern "C" EXPORT void atom_serial_number(void *atoms, size_t n, int32_t *index)
 {
     Atom **a = static_cast<Atom **>(atoms);
     error_wrap_array_get(a, n, &Atom::serial_number, index);
+}
+
+extern "C" EXPORT void set_atom_serial_number(void *atoms, size_t n, int32_t *serial)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            a[i]->set_serial_number(serial[i]);
+    } catch (...) {
+        molc_error();
+    }
 }
 
 extern "C" EXPORT void atom_structure(void *atoms, size_t n, pyobject_t *molp)
@@ -1000,6 +1083,25 @@ extern "C" EXPORT size_t atom_num_selected(void *atoms, size_t n)
     }
 }
 
+extern "C" EXPORT void atom_has_selected_bond(void *atoms, size_t n, npy_bool *sel)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            const Atom::Bonds &b = a[i]->bonds();
+	    sel[i] = false;
+            for (size_t j = 0; j != b.size(); ++j)
+	      if (b[j]->selected())
+		{
+		  sel[i] = true;
+		  break;
+		}
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void atom_update_ribbon_visibility(void *atoms, size_t n)
 {
     Atom **a = static_cast<Atom **>(atoms);
@@ -1217,6 +1319,31 @@ extern "C" EXPORT PyObject *bond_rings(void *bond, bool cross_residue, int all_s
     }
 }
 
+extern "C" EXPORT void bond_selected(void *bonds, size_t n, npy_bool *sel)
+{
+    Bond **b = static_cast<Bond **>(bonds);
+    error_wrap_array_get<Bond, bool, npy_bool>(b, n, &Bond::selected, sel);
+}
+
+extern "C" EXPORT void set_bond_selected(void *bonds, size_t n, npy_bool *sel)
+{
+    Bond **b = static_cast<Bond **>(bonds);
+    error_wrap_array_set<Bond, bool, npy_bool>(b, n, &Bond::set_selected, sel);
+}
+
+extern "C" EXPORT void bond_ends_selected(void *bonds, size_t n, npy_bool *sel)
+{
+    Bond **b = static_cast<Bond **>(bonds);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            const Bond::Atoms &a = b[i]->atoms();
+	    sel[i] = (a[0]->selected() && a[1]->selected());
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void bond_shown(void *bonds, size_t n, npy_bool *shown)
 {
     Bond **b = static_cast<Bond **>(bonds);
@@ -1230,6 +1357,20 @@ extern "C" EXPORT int bonds_num_shown(void *bonds, size_t n)
     try {
         for (size_t i = 0; i < n; ++i)
           if (b[i]->shown())
+            count += 1;
+    } catch (...) {
+        molc_error();
+    }
+    return count;
+}
+
+extern "C" EXPORT int bonds_num_selected(void *bonds, size_t n)
+{
+    Bond **b = static_cast<Bond **>(bonds);
+    int count = 0;
+    try {
+        for (size_t i = 0; i < n; ++i)
+          if (b[i]->selected())
             count += 1;
     } catch (...) {
         molc_error();
@@ -1259,6 +1400,17 @@ extern "C" EXPORT void *bond_other_atom(void *bond, void *atom)
       molc_error();
     }
     return oa;
+}
+
+extern "C" EXPORT void bond_delete(void *bonds, size_t n)
+{
+    Bond **b = static_cast<Bond **>(bonds);
+    try {
+        for (size_t i = 0; i != n; ++i)
+	    b[i]->structure()->delete_bond(b[i]);
+    } catch (...) {
+        molc_error();
+    }
 }
 
 extern "C" EXPORT void bond_halfbond_cylinder_placements(void *bonds, size_t n, float32_t *m44)
@@ -1479,6 +1631,32 @@ extern "C" EXPORT void pseudobond_radius(void *pbonds, size_t n, float32_t *radi
     error_wrap_array_get<Pseudobond, float>(b, n, &Pseudobond::radius, radii);
 }
 
+extern "C" EXPORT void pseudobond_selected(void *pbonds, size_t n, npy_bool *sel)
+{
+    Pseudobond **b = static_cast<Pseudobond **>(pbonds);
+    error_wrap_array_get<Pseudobond, bool, npy_bool>(b, n, &Pseudobond::selected, sel);
+}
+
+extern "C" EXPORT void set_pseudobond_selected(void *pbonds, size_t n, npy_bool *sel)
+{
+    Pseudobond **b = static_cast<Pseudobond **>(pbonds);
+    error_wrap_array_set<Pseudobond, bool, npy_bool>(b, n, &Pseudobond::set_selected, sel);
+}
+
+extern "C" EXPORT int pseudobonds_num_selected(void *bonds, size_t n)
+{
+    Bond **b = static_cast<Bond **>(bonds);
+    int count = 0;
+    try {
+        for (size_t i = 0; i < n; ++i)
+          if (b[i]->selected())
+            count += 1;
+    } catch (...) {
+        molc_error();
+    }
+    return count;
+}
+
 extern "C" EXPORT void pseudobond_shown(void *pbonds, size_t n, npy_bool *shown)
 {
     Pseudobond **b = static_cast<Pseudobond **>(pbonds);
@@ -1629,6 +1807,31 @@ extern "C" EXPORT void *pseudobond_group_new_pseudobond(void *pbgroup, void *ato
     }
 }
 
+extern "C" EXPORT void *pseudobond_group_new_pseudobond_csid(void *pbgroup,
+    void *atom1, void *atom2, int cs_id)
+{
+    Proxy_PBGroup *pbg = static_cast<Proxy_PBGroup *>(pbgroup);
+    try {
+        Pseudobond *b = pbg->new_pseudobond(static_cast<Atom *>(atom1), static_cast<Atom *>(atom2),
+            pbg->structure()->find_coord_set(cs_id));
+        return b;
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" EXPORT void *pseudobond_group_delete_pseudobond(void *pbgroup, void *pb)
+{
+    Proxy_PBGroup *pbg = static_cast<Proxy_PBGroup *>(pbgroup);
+    try {
+        pbg->delete_pseudobond(static_cast<Pseudobond *>(pb));
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
 extern "C" EXPORT void pseudobond_group_structure(void *pbgroups, size_t n, pyobject_t *resp)
 {
     Proxy_PBGroup **pbgs = static_cast<Proxy_PBGroup **>(pbgroups);
@@ -1658,6 +1861,29 @@ extern "C" EXPORT void pseudobond_group_pseudobonds(void *pbgroups, size_t n, py
         for (size_t i = 0 ; i != n ; ++i)
             for (auto pb: pbg[i]->pseudobonds())
                 *pseudobonds++ = pb;
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT size_t pseudobond_group_get_num_pseudobonds(void *pbgroup, int cs_id)
+{
+    Proxy_PBGroup *pbg = static_cast<Proxy_PBGroup *>(pbgroup);
+    try {
+        return pbg->pseudobonds(pbg->structure()->find_coord_set(cs_id)).size();
+    } catch (...) {
+        molc_error();
+    }
+    return 0;
+}
+
+extern "C" EXPORT void pseudobond_group_get_pseudobonds(void *pbgroup, int cs_id,
+    Pseudobond **pb_ptrs)
+{
+    Proxy_PBGroup *pbg = static_cast<Proxy_PBGroup *>(pbgroup);
+    try {
+        for (auto pb: pbg->pseudobonds(pbg->structure()->find_coord_set(cs_id)))
+            *pb_ptrs++ = pb;
     } catch (...) {
         molc_error();
     }
@@ -2940,7 +3166,7 @@ extern "C" EXPORT void* sseq_residue_at(void *sseq_ptr, size_t i)
 {
     StructureSeq *sseq = static_cast<StructureSeq*>(sseq_ptr);
     try {
-        return sseq->residues()[i];
+        return sseq->residues().at(i);
     } catch (...) {
         molc_error();
         return nullptr;
@@ -3062,53 +3288,70 @@ extern "C" EXPORT npy_bool change_tracker_changed(void *vct)
     }
 }
 
+static PyObject* changes_as_py_dict(const ChangeTracker::ChangesArray& all_changes,
+    const std::string* python_class_names)
+{
+    PyObject* changes_data = PyDict_New();
+    for (size_t i = 0; i < all_changes.size(); ++i) {
+        auto& class_changes = all_changes[i];
+        auto class_name = python_class_names[i];
+        PyObject* key = unicode_from_string(class_name);
+        PyObject* value = PyTuple_New(4);
+
+        // first tuple item:  created objects
+        void **ptrs;
+        PyObject *ptr_array = python_voidp_array(class_changes.created.size(), &ptrs);
+        size_t j = 0;
+        for (auto ptr: class_changes.created)
+            ptrs[j++] = const_cast<void*>(ptr);
+        PyTuple_SET_ITEM(value, 0, ptr_array);
+
+        // second tuple item:  modified objects
+        ptr_array = python_voidp_array(class_changes.modified.size(), &ptrs);
+        j = 0;
+        for (auto ptr: class_changes.modified)
+            ptrs[j++] = const_cast<void*>(ptr);
+        PyTuple_SET_ITEM(value, 1, ptr_array);
+
+        // third tuple item:  list of reasons
+        PyObject* reasons = PyList_New(class_changes.reasons.size());
+        j = 0;
+        for (auto reason: class_changes.reasons)
+            PyList_SetItem(reasons, j++, unicode_from_string(reason));
+        PyTuple_SET_ITEM(value, 2, reasons);
+
+        // fourth tuple item:  total number of deleted objects
+        PyTuple_SET_ITEM(value, 3, PyLong_FromLong(class_changes.num_deleted));
+
+        PyDict_SetItem(changes_data, key, value);
+        Py_DECREF(key);
+        Py_DECREF(value);
+    }
+    return changes_data;
+}
+
 extern "C" EXPORT PyObject* change_tracker_changes(void *vct)
 {
     ChangeTracker* ct = static_cast<ChangeTracker*>(vct);
-    PyObject* changes_data = NULL;
+    const std::string* python_class_names = ct->python_class_names;
+    PyObject* ret_tuple = PyTuple_New(2);
     try {
-        changes_data = PyDict_New();
-        auto& all_changes = ct->get_changes();
-        for (size_t i = 0; i < all_changes.size(); ++i) {
-            auto& class_changes = all_changes[i];
-            auto class_name = ct->python_class_names[i];
-            PyObject* key = unicode_from_string(class_name);
-            PyObject* value = PyTuple_New(4);
-
-            // first tuple item:  created objects
-            void **ptrs;
-            PyObject *ptr_array = python_voidp_array(class_changes.created.size(), &ptrs);
-            size_t j = 0;
-            for (auto ptr: class_changes.created)
-                ptrs[j++] = const_cast<void*>(ptr);
-            PyTuple_SetItem(value, 0, ptr_array);
-
-            // second tuple item:  modified objects
-            ptr_array = python_voidp_array(class_changes.modified.size(), &ptrs);
-            j = 0;
-            for (auto ptr: class_changes.modified)
-                ptrs[j++] = const_cast<void*>(ptr);
-            PyTuple_SetItem(value, 1, ptr_array);
-
-            // third tuple item:  list of reasons
-            PyObject* reasons = PyList_New(class_changes.reasons.size());
-            j = 0;
-            for (auto reason: class_changes.reasons)
-                PyList_SetItem(reasons, j++, unicode_from_string(reason));
-            PyTuple_SetItem(value, 2, reasons);
-
-            // fourth tuple item:  total number of deleted objects
-            PyTuple_SetItem(value, 3, PyLong_FromLong(class_changes.num_deleted));
-
-            PyDict_SetItem(changes_data, key, value);
+        PyTuple_SET_ITEM(ret_tuple, 0,
+            changes_as_py_dict(ct->get_global_changes(), python_class_names));
+        PyObject* struct_changes_dict = PyDict_New();
+        for (auto& s_changes: ct->get_structure_changes()) {
+            PyObject* key = PyLong_FromVoidPtr(static_cast<void*>(s_changes.first));
+            PyObject* value = changes_as_py_dict(s_changes.second, python_class_names);
+            PyDict_SetItem(struct_changes_dict, key, value);
             Py_DECREF(key);
             Py_DECREF(value);
         }
+        PyTuple_SET_ITEM(ret_tuple, 1, struct_changes_dict);
     } catch (...) {
-        Py_XDECREF(changes_data);
+        Py_XDECREF(ret_tuple);
         molc_error();
     }
-    return changes_data;
+    return ret_tuple;
 }
 
 extern "C" EXPORT void change_tracker_clear(void *vct)
@@ -3127,19 +3370,29 @@ extern "C" EXPORT void change_tracker_add_modified(void *vct, int class_num, voi
     ChangeTracker* ct = static_cast<ChangeTracker*>(vct);
     try {
         if (class_num == 0) {
-            ct->add_modified(static_cast<Atom*>(modded), reason);
+            auto atomic_ptr = static_cast<Atom*>(modded);
+            ct->add_modified(atomic_ptr->structure(), atomic_ptr, reason);
         } else if (class_num == 1) {
-            ct->add_modified(static_cast<Bond*>(modded), reason);
+            auto atomic_ptr = static_cast<Bond*>(modded);
+            ct->add_modified(atomic_ptr->structure(), atomic_ptr, reason);
         } else if (class_num == 2) {
-            ct->add_modified(static_cast<Pseudobond*>(modded), reason);
+            auto atomic_ptr = static_cast<Pseudobond*>(modded);
+            ct->add_modified(atomic_ptr->group()->structure(), atomic_ptr, reason);
         } else if (class_num == 3) {
-            ct->add_modified(static_cast<Residue*>(modded), reason);
+            auto atomic_ptr = static_cast<Residue*>(modded);
+            ct->add_modified(atomic_ptr->structure(), atomic_ptr, reason);
         } else if (class_num == 4) {
-            ct->add_modified(static_cast<Chain*>(modded), reason);
+            auto atomic_ptr = static_cast<Chain*>(modded);
+            ct->add_modified(atomic_ptr->structure(), atomic_ptr, reason);
         } else if (class_num == 5) {
-            ct->add_modified(static_cast<AtomicStructure*>(modded), reason);
+            auto atomic_ptr = static_cast<AtomicStructure*>(modded);
+            ct->add_modified(atomic_ptr, atomic_ptr, reason);
         } else if (class_num == 6) {
-            ct->add_modified(static_cast<Proxy_PBGroup*>(modded), reason);
+            auto atomic_ptr = static_cast<Proxy_PBGroup*>(modded);
+            ct->add_modified(atomic_ptr->structure(), atomic_ptr, reason);
+        } else if (class_num == 7) {
+            auto atomic_ptr = static_cast<CoordSet*>(modded);
+            ct->add_modified(atomic_ptr->structure(), atomic_ptr, reason);
         } else {
             throw std::invalid_argument("Bad class value to ChangeTracker.add_modified()");
         }
@@ -3151,6 +3404,12 @@ extern "C" EXPORT void change_tracker_add_modified(void *vct, int class_num, voi
 // -------------------------------------------------------------------------
 // coordset functions
 //
+extern "C" EXPORT void coordset_id(void *coordsets, size_t n, int32_t *index)
+{
+    CoordSet **a = static_cast<CoordSet **>(coordsets);
+    error_wrap_array_get(a, n, &CoordSet::id, index);
+}
+
 extern "C" EXPORT void coordset_structure(void *coordsets, size_t n, pyobject_t *molp)
 {
     CoordSet **cs = static_cast<CoordSet **>(coordsets);
@@ -3388,6 +3647,41 @@ extern "C" EXPORT void structure_lower_case_chains(void *mols, size_t n, npy_boo
     } catch (...) {
         molc_error();
     }
+}
+
+extern "C" EXPORT void set_structure_lower_case_chains(void *structures, size_t n, npy_bool *lcc)
+{
+    Structure **s = static_cast<Structure **>(structures);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            s[i]->lower_case_chains = lcc[i];
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void structure_active_coordset_change_notify(void *structures, size_t n, npy_bool *accn)
+{
+    Structure **s = static_cast<Structure **>(structures);
+    error_wrap_array_get(s, n, &Structure::active_coord_set_change_notify, accn);
+}
+
+extern "C" EXPORT void set_structure_active_coordset_change_notify(void *structures, size_t n, npy_bool *accn)
+{
+    Structure **s = static_cast<Structure **>(structures);
+    error_wrap_array_set(s, n, &Structure::set_active_coord_set_change_notify, accn);
+}
+
+extern "C" EXPORT void structure_alt_loc_change_notify(void *structures, size_t n, npy_bool *alcn)
+{
+    Structure **s = static_cast<Structure **>(structures);
+    error_wrap_array_get(s, n, &Structure::alt_loc_change_notify, alcn);
+}
+
+extern "C" EXPORT void set_structure_alt_loc_change_notify(void *structures, size_t n, npy_bool *alcn)
+{
+    Structure **s = static_cast<Structure **>(structures);
+    error_wrap_array_set(s, n, &Structure::set_alt_loc_change_notify, alcn);
 }
 
 extern "C" EXPORT void structure_num_atoms(void *mols, size_t n, size_t *natoms)
@@ -3767,6 +4061,22 @@ extern "C" EXPORT void set_structure_ss_assigned(void *structures, size_t n, npy
     error_wrap_array_set(s, n, &Structure::set_ss_assigned, ss_assigned);
 }
 
+extern "C" EXPORT void structure_reorder_residues(void *structure, PyObject *py_new_order)
+{
+    Structure *s = static_cast<Structure *>(structure);
+    Structure::Residues new_order;
+    auto size = PyList_GET_SIZE(py_new_order);
+    for (int i = 0; i < size; ++i) {
+        new_order.push_back(
+            static_cast<Residue*>(PyLong_AsVoidPtr(PyList_GET_ITEM(py_new_order, i))));
+    }
+    try {
+        s->reorder_residues(new_order);
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void structure_ribbon_display_count(void *mols, size_t n, int32_t *ribbon_display_count)
 {
     Structure **m = static_cast<Structure **>(mols);
@@ -4100,15 +4410,26 @@ extern "C" EXPORT void structure_delete(void *mol)
     }
 }
 
-extern "C" EXPORT void *structure_new_atom(void *mol, const char *atom_name, const char *element_name)
+extern "C" EXPORT void *structure_new_atom(void *mol, const char *atom_name, void *element)
 {
     Structure *m = static_cast<Structure *>(mol);
+    Element *e = static_cast<Element *>(element);
     try {
-        Atom *a = m->new_atom(atom_name, Element::get_element(element_name));
+        Atom *a = m->new_atom(atom_name, *e);
         return a;
     } catch (...) {
         molc_error();
         return nullptr;
+    }
+}
+
+extern "C" EXPORT void structure_delete_atom(void *mol, void *atom)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        m->delete_atom(static_cast<Atom *>(atom));
+    } catch (...) {
+        molc_error();
     }
 }
 
@@ -4121,6 +4442,36 @@ extern "C" EXPORT void *structure_new_bond(void *mol, void *atom1, void *atom2)
     } catch (...) {
         molc_error();
         return nullptr;
+    }
+}
+
+extern "C" EXPORT void structure_new_coordset_default(void *mol)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        m->new_coord_set();
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void structure_new_coordset_index(void *mol, int32_t index)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        m->new_coord_set(index);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void structure_new_coordset_index_size(void *mol, int32_t index, int32_t size)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        m->new_coord_set(index, size);
+    } catch (...) {
+        molc_error();
     }
 }
 
@@ -4295,6 +4646,11 @@ extern "C" EXPORT void element_number(void *elements, size_t n, uint8_t *number)
 {
     Element **e = static_cast<Element **>(elements);
     error_wrap_array_get(e, n, &Element::number, number);
+}
+
+extern "C" EXPORT size_t element_NUM_SUPPORTED_ELEMENTS()
+{
+    return static_cast<size_t>(Element::NUM_SUPPORTED_ELEMENTS);
 }
 
 extern "C" EXPORT void element_mass(void *elements, size_t n, float *mass)

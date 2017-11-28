@@ -169,7 +169,14 @@ class Map_Series(Model):
 
     v2.data.set_step(v1.data.step)
     v2.data.set_origin(v1.data.origin)
-    v2.copy_settings_from(v1, copy_xform = False)
+    v2.copy_settings_from(v1, copy_xform = False, copy_region = False)
+    if v1.is_full_region():
+      # Handle case where some times have smaller map size than others.
+      ijk_min, ijk_max, ijk_step = v2.full_region()
+    else:
+      ijk_min, ijk_max, ijk_step = v1.region
+    v2.new_region(ijk_min, ijk_max, ijk_step, show = False)
+    
     if normalize_thresholds:
       self.copy_threshold_rank_levels(v1, v2)
 

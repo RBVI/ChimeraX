@@ -47,13 +47,10 @@ protected:
     PBGroup*  _group;
     bool  _shown_when_atoms_hidden;
 
-    Pseudobond(Atom* a1, Atom* a2, PBGroup* grp): Connection(a1, a2), _group(grp),
-            _shown_when_atoms_hidden(true) { _halfbond = false; _radius = 0.05;
-    }
+    Pseudobond(Atom* a1, Atom* a2, PBGroup* grp);
     virtual ~Pseudobond() { graphics_changes()->set_gc_adddel(); }
 
     // convert a global pb_manager version# to version# for Connection base class
-    static int  session_base_version(int /*version*/) { return 1; }
     static int  SESSION_NUM_INTS(int version=CURRENT_SESSION_VERSION) { return version<9 ? 1 : 2; }
     static int  SESSION_NUM_FLOATS(int /*version*/=CURRENT_SESSION_VERSION) { return 0; }
     const char*  err_msg_loop() const
@@ -81,9 +78,7 @@ public:
     }
     void  session_restore(int version, int** ints, float** floats);
     void  session_save(int** ints, float** floats) const;
-    void  track_change(const std::string& reason) const {
-        change_tracker()->add_modified(this, reason);
-    }
+    void  track_change(const std::string& reason) const;
 };
 
 }  // namespace atomstruct
@@ -109,6 +104,11 @@ public:
     CoordSet*  coord_set() const { return _cs; }
 
 };
+
+inline void
+Pseudobond::track_change(const std::string& reason) const {
+    change_tracker()->add_modified(group()->structure(), this, reason);
+}
 
 }  // namespace atomstruct
 

@@ -212,6 +212,7 @@ from chimerax.core.graphics.drawing import Drawing
 class LabelDrawing(Drawing):
 
     pickable = False
+    casts_shadows = False
     
     def __init__(self, label):
         Drawing.__init__(self, 'label %s' % label.name)

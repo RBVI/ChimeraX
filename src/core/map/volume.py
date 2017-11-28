@@ -432,6 +432,11 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
+  def full_region(self):
+    return full_region(self.data.size)
+
+  # ---------------------------------------------------------------------------
+  #
   def is_full_region(self, region = None):
 
     if region is None:
@@ -1492,6 +1497,7 @@ class Volume(Model):
   # ---------------------------------------------------------------------------
   # Applying point_xform to points gives Chimera world coordinates.  If the
   # point_xform is None then the points are in local volume coordinates.
+  # The returned values are float32.
   #
   def interpolated_values(self, points, point_xform = None,
                           out_of_bounds_list = False, subregion = 'all',
@@ -1560,9 +1566,12 @@ class Volume(Model):
       log.info('Minimum RMS scale factor for "%s" above level %.5g is %.5g\n'
                % (v.name_with_id(), level, scale))
     if scale != 1:
-      # Copy array only if scaling.
       if const_values:
-        values = values.copy()
+        # Copy array only if scaling and the values come from another map
+        # without interpolation because the grids matched, and values should
+        # not be modified.
+        from numpy import float32
+        values = values.astype(float32)
       values *= scale
     if values.dtype != m.dtype:
       values = values.astype(m.dtype, copy=False)

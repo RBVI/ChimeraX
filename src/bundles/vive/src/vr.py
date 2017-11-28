@@ -162,9 +162,9 @@ class SteamVRCamera(Camera):
         # TODO: Scaling models to be huge causes clipping at far clip plane.
 
         # Left and right projections are different. OpenGL 4x4.
-        pl = vrs.getProjectionMatrix(openvr.Eye_Left, zNear, zFar, openvr.API_OpenGL)
+        pl = vrs.getProjectionMatrix(openvr.Eye_Left, zNear, zFar)
         self.projection_left = hmd44_to_opengl44(pl)
-        pr = vrs.getProjectionMatrix(openvr.Eye_Right, zNear, zFar, openvr.API_OpenGL)
+        pr = vrs.getProjectionMatrix(openvr.Eye_Right, zNear, zFar)
         self.projection_right = hmd44_to_opengl44(pr)
 
         # Eye shifts from hmd pose.
@@ -387,7 +387,7 @@ class SteamVRCamera(Camera):
             fb.openvr_texture = ovrt = openvr.Texture_t()
             from ctypes import c_void_p
             ovrt.handle = c_void_p(int(t.id))
-            ovrt.eType = openvr.API_OpenGL
+            ovrt.eType = openvr.TextureType_OpenGL
             ovrt.eColorSpace = openvr.ColorSpace_Gamma
         return fb
 
@@ -427,6 +427,7 @@ class SteamVRCamera(Camera):
     
 from chimerax.core.models import Model
 class HandControllerModel(Model):
+    casts_shadows = False
     _controller_colors = ((200,200,0,255), (0,200,200,255))
 
     def __init__(self, device_index, session, vr_system, show = True, size = 0.20, aspect = 0.2):
@@ -715,6 +716,7 @@ class HandControllerModel(Model):
         from chimerax.core.graphics import Drawing
         from chimerax.core.graphics.drawing import rgba_drawing
         self._icon_drawing = d = Drawing('VR icons')
+        d.casts_shadows = False
         rgba = self.tiled_icons() # numpy uint8 (ny,nx,4) array
         s = self._cone_length
         h,w = rgba.shape[:2]
@@ -734,6 +736,7 @@ class HandControllerModel(Model):
         
         from chimerax.core.graphics import Drawing
         self._icon_highlight_drawing = d = Drawing('VR icon highlight')
+        d.casts_shadows = False
         s = self._cone_length
         from chimerax.core.surface import sphere_geometry
         va, na, ta = sphere_geometry(200)

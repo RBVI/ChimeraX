@@ -27,21 +27,21 @@ namespace atomstruct {
 CoordSet::CoordSet(Structure* as, int cs_id):
     _cs_id(cs_id), _structure(as)
 {
-    as->change_tracker()->add_created(this);
+    as->change_tracker()->add_created(as, this);
 }
 
 CoordSet::CoordSet(Structure* as, int cs_id, int size):
     _cs_id(cs_id), _structure(as)
 {
     _coords.reserve(size);
-    as->change_tracker()->add_created(this);
+    as->change_tracker()->add_created(as, this);
 }
 
 CoordSet::~CoordSet()
 {
     if (DestructionCoordinator::destruction_parent() != _structure)
         _structure->pb_mgr().remove_cs(this);
-    _structure->change_tracker()->add_deleted(this);
+    _structure->change_tracker()->add_deleted(_structure, this);
 }
 
 void
@@ -54,7 +54,7 @@ CoordSet::set_coords(Real *xyz, size_t n)
     for (size_t i = nc ; i < n ; ++i, c += 3)
     add_coord(Coord(xyz[c], xyz[c+1], xyz[c+2]));
 
-    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_COORDSET);
+    _structure->change_tracker()->add_modified(_structure, this, ChangeTracker::REASON_COORDSET);
 }
 
 float

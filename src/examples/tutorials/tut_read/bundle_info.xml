@@ -1,0 +1,46 @@
+<!--
+ChimeraX bundle names must start with "ChimeraX-"
+to avoid clashes with package names in pypi.python.org.
+When uploaded to the ChimeraX toolshed, the bundle
+will be displayed without the ChimeraX- prefix.
+-->
+
+<BundleInfo name="ChimeraX-Tutorial_Read_Format"
+	    version="0.1" package="chimerax.tut_read"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <!-- Additional information about bundle source -->
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <!-- Synopsis is a one-line description
+       Description is a full multi-line description -->
+  <Synopsis>Example for reading XYZ format files</Synopsis>
+  <Description>Example code for implementing ChimeraX bundle.
+
+Implements capability for reading XYZ format files and creating
+ChimeraX atomic structures.
+  </Description>
+
+  <!-- Categories is a list where this bundle should appear -->
+  <Categories>
+    <Category name="General"/>
+  </Categories>
+
+  <!-- Dependencies on other ChimeraX/Python packages -->
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <Classifiers>
+    <!-- Development Status should be compatible with bundle version number -->
+    <PythonClassifier>Development Status :: 3 - Alpha</PythonClassifier>
+    <PythonClassifier>License :: Freeware</PythonClassifier>
+    <!-- ChimeraX classifiers describe supplied functionality -->
+    <!-- Register XYZ format as one of the supported input file formats -->
+    <ChimeraXClassifier>ChimeraX :: DataFormat :: XYZ :: :: Molecule structure :: .xyz :: :: :: :: :: XYZ format :: utf-8</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Open :: XYZ :: XYZ ::</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

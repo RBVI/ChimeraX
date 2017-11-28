@@ -140,17 +140,23 @@ class ColorArg(cli.Annotation):
 def _parse_rgba_values(text):
     values = text.split(',')
     if len(values) not in (3,4):
-        raise ValueError('Color must be 3 or 4 comman-separate numbers 0-100')
+        raise ValueError('Color must be 3 or 4 comma-separated numbers 0-100')
     try:
         rgba = tuple(float(v)/100.0 for v in values)
     except:
-        raise ValueError('Color must be 3 or 4 comman-separate numbers 0-100')
+        raise ValueError('Color must be 3 or 4 comma-separated numbers 0-100')
     transparent = (len(rgba) == 4)
     if len(rgba) == 3:
         rgba += (1.0,)
     c = Color(rgba)
     c.explicit_transparency = transparent
     return c
+
+class Color8Arg(ColorArg):
+    @staticmethod
+    def parse(text, session):
+        c, text, rest = ColorArg.parse(text, session)
+        return c.uint8x4(), text, rest
 
 from . import Or, TupleOf, FloatArg, EnumOf
 ColormapRangeArg = Or(TupleOf(FloatArg, 2), EnumOf(['full']))

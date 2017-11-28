@@ -512,6 +512,10 @@ AtomicStructure::polymers(AtomicStructure::PolymerMissingStructure missing_struc
         if (connection == connected.end()) {
             if (in_chain) {
                 chain.push_back(r);
+                if (pt == PT_NONE) {
+                    // all 'X'; look at residue
+                    pt = r->find_atom("CA") ? PT_AMINO : PT_NUCLEIC;
+                }
                 polys.emplace_back(chain, pt);
                 chain.clear();
                 in_chain = false;
@@ -524,8 +528,13 @@ AtomicStructure::polymers(AtomicStructure::PolymerMissingStructure missing_struc
                 pt = Sequence::rname_polymer_type(r->name());
         }
     }
-    if (in_chain)
+    if (in_chain) {
+        if (pt == PT_NONE) {
+            // all 'X'; look at residue
+            pt = chain.back()->find_atom("CA") ? PT_AMINO : PT_NUCLEIC;
+        }
         polys.emplace_back(chain, pt);
+    }
 
     _polymers_computed = true;
     return polys;

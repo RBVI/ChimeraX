@@ -217,6 +217,10 @@ class Model(State, Drawing):
         # Return True if there are atoms in this model
         return False
 
+    def atomspec_has_pseudobonds(self):
+        # Return True if there are pseudobonds in this model
+        return False
+
     def atomspec_zone(self, session, coords, distance, target_type, operator, results):
         # Ignore zone request by default
         pass
@@ -275,7 +279,7 @@ class Models(State):
         return m
 
     def reset_state(self, session):
-        self.remove([m for m in self.list() if not m.SESSION_ENDURING])
+        self.close([m for m in self.list() if not m.SESSION_ENDURING])
 
     def list(self, model_id=None, type=None):
         if model_id is None:
@@ -298,9 +302,11 @@ class Models(State):
                 d.add_drawing(m)
 
         # Clear model ids if they are not subids of parent id.
+        need_fire_id_trigger = []
         for model in models:
             if model.id and model.id[:-1] != d.id:
                 # Model has id that is not a subid of parent, so assign new id.
+                need_fire_id_trigger.append(model)
                 del self._models[model.id]
                 model.id = None
                 if hasattr(model, 'parent'):
@@ -314,6 +320,12 @@ class Models(State):
             children = model.child_models()
             if children:
                 self.add(children, model, _notify=False)
+
+        # IDs that change from None to non-None don't fire the MODEL_ID_CHANGED
+        # trigger, so do it by hand
+        for id_changed_model in need_fire_id_trigger:
+            session = self._session()
+            session.triggers.activate_trigger(MODEL_ID_CHANGED, id_changed_model)
 
         # Notify that models were added
         if _notify:
@@ -411,9 +423,12 @@ class Models(State):
         # when firing this trigger, so do it last
         session.triggers.activate_trigger(REMOVE_MODELS, mlist)
 
+        return mlist
+
     def close(self, models):
-        self.remove(models)
-        for m in models:
+        # Removed models include children of specified models.
+        mremoved = self.remove(models)
+        for m in mremoved:
             m.delete()
 
     def open(self, filenames, id=None, format=None, name=None, **kw):

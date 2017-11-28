@@ -176,35 +176,36 @@ class View:
             if self.silhouettes:
                 r.start_silhouette_drawing()
             r.draw_background()
-            if mdraw:
-                perspective_near_far_ratio \
-                    = self._update_projection(vnum, camera=camera)
-                cp = camera.get_position(vnum)
-                cpinv = cp.inverse()
-                if shadows and stf is not None:
-                    r.set_shadow_transform(stf * cp)
-                if multishadows > 0 and mstf is not None:
-                    r.set_multishadow_transforms(mstf, cp, msdepth)
-                    # Initial depth pass optimization to avoid lighting
-                    # calculation on hidden geometry
-                    draw_depth(r, cpinv, mdraw)
-                    r.allow_equal_depth(True)
-                self._start_timing()
-                r.set_view_matrix(cpinv)
-                draw_opaque(r, mdraw)
-                if any_selected:
-                    r.set_outline_depth()       # copy depth to outline framebuffer
-                draw_transparent(r, mdraw)    
-                self._finish_timing()
-                if multishadows > 0:
-                    r.allow_equal_depth(False)
-                if any_selected:
-                    draw_selection_outline(r, cpinv, mdraw)
+            if len(mdraw) == 0:
+                continue
+            perspective_near_far_ratio \
+                = self._update_projection(vnum, camera=camera)
+            cp = camera.get_position(vnum)
+            cpinv = cp.inverse()
+            if shadows and stf is not None:
+                r.set_shadow_transform(stf * cp)
+            if multishadows > 0 and mstf is not None:
+                r.set_multishadow_transforms(mstf, cp, msdepth)
+                # Initial depth pass optimization to avoid lighting
+                # calculation on hidden geometry
+                draw_depth(r, cpinv, mdraw)
+                r.allow_equal_depth(True)
+            self._start_timing()
+            r.set_view_matrix(cpinv)
+            draw_opaque(r, mdraw)
+            if any_selected:
+                r.set_outline_depth()       # copy depth to outline framebuffer
+            draw_transparent(r, mdraw)    
+            self._finish_timing()
+            if multishadows > 0:
+                r.allow_equal_depth(False)
             if self.silhouettes:
                 r.finish_silhouette_drawing(self.silhouette_thickness,
                                             self.silhouette_color,
                                             self.silhouette_depth_jump,
                                             perspective_near_far_ratio)
+            if any_selected:
+                draw_selection_outline(r, cpinv, mdraw)
 
         camera.combine_rendered_camera_views(r)
 
@@ -237,11 +238,11 @@ class View:
             if self.center_of_rotation_method == 'front center':
                 self._update_center_of_rotation = True
             # TODO: If model transparency effects multishadows, will need to detect those changes.
-            self._multishadow_update_needed = True
+            if dm.shadows_changed():
+                self._multishadow_update_needed = True
 
         c.redraw_needed = False
-        dm.redraw_needed = False
-        dm.shape_changed = False
+        dm.clear_changes()
 
         self.redraw_needed = True
 
@@ -273,6 +274,8 @@ class View:
                 lp.depth_cue_color = tuple(color[:3])
         self._background_rgba = color
         self.redraw_needed = True
+        if self.triggers:
+            self.triggers.activate_trigger("background color changed", self)
     background_color = property(get_background_color, set_background_color)
     '''Background color as R, G, B, A values in 0-1 range.'''
 
@@ -484,7 +487,8 @@ class View:
     def _use_shadow_map(self, light_direction, drawings):
 
         # Compute drawing bounds so shadow map can cover all drawings.
-        center, radius, bdrawings = _drawing_bounds(drawings, self)
+        sdrawings = None if drawings is None else [d for d in drawings if getattr(d, 'casts_shadows', True)]
+        center, radius, bdrawings = _drawing_bounds(sdrawings, self)
         if center is None or radius == 0:
             return None
 
@@ -534,7 +538,8 @@ class View:
             return self._multishadow_transforms, self._multishadow_depth
 
         # Compute drawing bounds so shadow map can cover all drawings.
-        center, radius, bdrawings = _drawing_bounds(drawings, self)
+        sdrawings = None if drawings is None else [d for d in drawings if getattr(d, 'casts_shadows', True)]
+        center, radius, bdrawings = _drawing_bounds(sdrawings, self)
         if center is None or radius == 0:
             return None, None
 
@@ -1033,17 +1038,30 @@ class _RedrawNeeded:
     def __init__(self):
         self.redraw_needed = False
         self.shape_changed = True
+        self.shape_changed_drawings = set()
         self.cached_drawing_bounds = None
         self.cached_any_part_selected = None
 
-    def __call__(self, shape_changed=False, selection_changed=False):
+    def __call__(self, drawing, shape_changed=False, selection_changed=False):
         self.redraw_needed = True
         if shape_changed:
             self.shape_changed = True
+            self.shape_changed_drawings.add(drawing)
             self.cached_drawing_bounds = None
         if selection_changed:
             self.cached_any_part_selected = None
 
+    def shadows_changed(self):
+        for d in self.shape_changed_drawings:
+            if getattr(d, 'casts_shadows', True):
+                return True
+        return False
+
+    def clear_changes(self):
+        self.redraw_needed = False
+        self.shape_changed = False
+        self.shape_changed_drawings.clear()
+        
 
 def _drawing_bounds(drawings, view):
     if drawings is None:

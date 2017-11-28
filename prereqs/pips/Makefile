@@ -7,7 +7,8 @@ include Makefile.pip
 # Force LANG to UTF-8 so that grako will install successfully
 LANG	= en_US.UTF-8
 
-PATCHES = pillow_ome_tiff.patch pillow_i16s_tiff.patch
+#PATCHES = pillow_ome_tiff.patch pillow_i16s_tiff.patch
+PATCHES = pillow_ome_tiff.patch
 
 all:
 
@@ -57,6 +58,10 @@ outdated:
 
 app-outdated:
 	$(APP_PIP) list --outdated --format=columns
+	@echo "Known issues:"
+	@echo "  comtypes ('post2' suffix is irrelevant)"
+	@echo "  grako (3.16.5 is the last version that works)"
+	@echo "  parso ('Shell' bundle really wants 0.1.0)"
 
 src-outdated:
 	$(PYTHON_EXE) -m package_checker ../../src

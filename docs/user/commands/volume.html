@@ -25,8 +25,9 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: volume</h3>
 
-<h3><a href="usageconventions.html">Usage</a>:
-<br><b>volume</b> &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>volume</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
 &nbsp;<a href="#options"><i>options</i></a></h3>
 <p>
 The <b>volume</b> command controls the display of density maps and
@@ -54,6 +55,7 @@ See also:
 <a href="vseries.html"><b>vseries</b></a>,
 <a href="molmap.html"><b>molmap</b></a>,
 <a href="fitmap.html"><b>fitmap</b></a>,
+<a href="bumps.html"><b>bumps</b></a>,
 <a href="surface.html#sop"><b>surface</b> operations</a>,
 <a href="sym.html"><b>sym</b></a>,
 <a href="smoothlines.html"><b>smoothlines</b></a>,
@@ -111,8 +113,8 @@ default settings are indicated with <b>bold</b>.
 <p class="nav">
 [<a href="#top">back to top: volume</a>]
 </p>
-<h3>General Display Options &nbsp;&nbsp;&nbsp;
-(Usage:&nbsp;<a href="#top">volume</a>&nbsp;&nbsp;<i>model-spec</i>&nbsp;&nbsp;<i>options</i>)</h3>
+<h3 class="usage"><b>General Display Options</b> &nbsp;&nbsp;&nbsp;
+(Usage:&nbsp;<a href="#top"><b>volume</b></a>&nbsp;&nbsp;<i>model-spec</i>&nbsp;&nbsp;<i>options</i>)</h3>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
   <b>show</b>
@@ -318,8 +320,8 @@ is significant.
 <p class="nav">
 [<a href="#top">back to top: volume</a>]
 </p>
-<h3>Sampling and Size Options &nbsp;&nbsp;&nbsp;
-(Usage:&nbsp;<a href="#top">volume</a>&nbsp;&nbsp;<i>model-spec</i>&nbsp;&nbsp;<i>options</i>)</h3>
+<h3 class="usage"><b>Sampling and Size Options</b> &nbsp;&nbsp;&nbsp;
+(Usage:&nbsp;<a href="#top"><b>volume</b></a>&nbsp;&nbsp;<i>model-spec</i>&nbsp;&nbsp;<i>options</i>)</h3>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
   <b>step</b> &nbsp;<i>N</i> | <i>Nx,Ny,Nz</i>
@@ -389,8 +391,8 @@ regardless of which are specified:
 <p class="nav">
 [<a href="#top">back to top: volume</a>]
 </p>
-<h3>Dimension and Scale Options &nbsp;&nbsp;&nbsp;
-(Usage:&nbsp;<a href="#top">volume</a>&nbsp;&nbsp;<i>model-spec</i>&nbsp;&nbsp;<i>options</i>)</h3>
+<h3 class="usage"><b>Dimension and Scale Options</b> &nbsp;&nbsp;&nbsp;
+(Usage:&nbsp;<a href="#top"><b>volume</b></a>&nbsp;&nbsp;<i>model-spec</i>&nbsp;&nbsp;<i>options</i>)</h3>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
   <b>region</b> &nbsp;all | <i>name</i> | <i>i1,j1,k1,i2,j2,k2</i>
@@ -617,8 +619,8 @@ regardless of which are specified:
 <p class="nav">
 [<a href="#top">back to top: volume</a>]
 </p>
-<h3>Planes Options &nbsp;&nbsp;&nbsp;
-(Usage:&nbsp;<a href="#top">volume</a>&nbsp;&nbsp;<i>model-spec</i>&nbsp;&nbsp;<i>options</i>)</h3>
+<h3 class="usage"><b>Planes Options</b> &nbsp;&nbsp;&nbsp;
+(Usage:&nbsp;<a href="#top"><b>volume</b></a>&nbsp;&nbsp;<i>model-spec</i>&nbsp;&nbsp;<i>options</i>)</h3>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
   <b>planes</b> &nbsp;<i>axis</i>,<i>start</i>[,<i>end</i>[,<i>increment</i>[,<i>depth</i>]]]
@@ -693,8 +695,8 @@ regardless of which are specified:
 <p class="nav">
 [<a href="#top">back to top: volume</a>]
 </p>
-<h3>Surface and Mesh Display Options &nbsp;&nbsp;&nbsp;
-(Usage:&nbsp;<a href="#top">volume</a>&nbsp;&nbsp;<i>model-spec</i>&nbsp;&nbsp;<i>options</i>)</h3>
+<h3 class="usage"><b>Surface and Mesh Display Options</b> &nbsp;&nbsp;&nbsp;
+(Usage:&nbsp;<a href="#top"><b>volume</b></a>&nbsp;&nbsp;<i>model-spec</i>&nbsp;&nbsp;<i>options</i>)</h3>
 <p>
 The <b>surface</b> and <b>mesh</b> <a href="#style">display styles</a>
 both depict isosurfaces.
@@ -828,8 +830,8 @@ both depict isosurfaces.
 <p class="nav">
 [<a href="#top">back to top: volume</a>]
 </p>
-<h3>Solid Display Options &nbsp;&nbsp;&nbsp;
-(Usage:&nbsp;<a href="#top">volume</a>&nbsp;&nbsp;<i>model-spec</i>&nbsp;&nbsp;<i>options</i>)</h3>
+<h3 class="usage"><b>Solid Display Options</b> &nbsp;&nbsp;&nbsp;
+(Usage:&nbsp;<a href="#top"><b>volume</b></a>&nbsp;&nbsp;<i>model-spec</i>&nbsp;&nbsp;<i>options</i>)</h3>
 <p>
   The <b>solid</b> <a href="#style">display style</a>
   shows data as a semitransparent solid.
@@ -1118,7 +1120,7 @@ of the density map to obtain a cube of the requested size.
 If <b>size</b> is used instead, rounding may yield edges
 that differ slightly in grid dimensions.
 Marker/atom size can be changed with the
-<a href="style.html"><b>style</b></a> command.
+<a href="size.html"><b>size</b></a> command.
 </blockquote>
 
 <a href="#vop" class="nounder">&bull;</a>
@@ -1136,7 +1138,7 @@ Extend a map to cover specified atoms or to fill a rectangular box,
 using map symmetries and periodicity.
 The output dimensions can be specified as:
   <ul>
-  <li><b>atomBox</b> spanning the <a href="atomspec.html">specified</a> atoms
+  <li><b>atomBox</b> spanning the specified atoms
   plus any extra <b>pad</b> in each dimension
   (<i>d</i> is in units of physical distance, default <b>5.0</b>)
   <li><b>box</b> or just individual dimensions <b>x</b>, <b>y</b>, and/or <b>z</b>
@@ -1963,5 +1965,5 @@ caused by nonperiodicity of the original data.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2017</address>
+November 2017</address>
 </body></html>

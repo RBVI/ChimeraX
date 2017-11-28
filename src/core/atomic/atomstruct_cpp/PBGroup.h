@@ -64,6 +64,7 @@ protected:
     friend class Proxy_PBGroup;
     Proxy_PBGroup* _proxy; // the proxy for this group
     float  _radius = 0.1;
+    Structure*  _structure = nullptr;
 
     // the manager will need to be declared as a friend...
     PBGroup(const std::string& cat, BaseManager* manager):
@@ -112,10 +113,11 @@ public:
         Rgba::Channel a = 255) { this->set_color(Rgba(r,g,b,a)); }
     virtual void  set_halfbond(bool hb);
     virtual void  set_radius(float r);
+    Structure*  structure() const { return _structure; }
 
     // change tracking
     void  track_change(const std::string& reason) const {
-        manager()->change_tracker()->add_modified(proxy(), reason);
+        manager()->change_tracker()->add_modified(structure(), proxy(), reason);
     }
 };
 
@@ -128,9 +130,8 @@ public:
 protected:
     friend class AS_PBManager;
     void  _check_structure(Atom* a1, Atom* a2);
-    Structure*  _structure;
     StructurePBGroupBase(const std::string& cat, Structure* as, BaseManager* manager):
-        PBGroup(cat, manager), _structure(as) {}
+        PBGroup(cat, manager) { _structure = as; }
     virtual  ~StructurePBGroupBase() {}
 public:
     virtual Pseudobond*  new_pseudobond(Atom* e1, Atom* e2) = 0;
@@ -148,7 +149,6 @@ public:
     virtual void  session_save(int** ints, float** floats) const {
         PBGroup::session_save(ints, floats);
     }
-    Structure*  structure() const { return _structure; }
 };
 
 class ATOMSTRUCT_IMEX StructurePBGroup: public StructurePBGroupBase {
@@ -188,6 +188,7 @@ public:
 private:
     friend class Proxy_PBGroup;
     mutable std::unordered_map<const CoordSet*, Pseudobonds>  _pbonds;
+    void  change_cs(const CoordSet* cs);
     void  remove_cs(const CoordSet* cs);
 protected:
     CS_PBGroup(const std::string& cat, Structure* as, BaseManager* manager):
@@ -234,7 +235,7 @@ private:
     ~Proxy_PBGroup() {
         _destruction_relevant = false;
         auto du = DestructionUser(this);
-        manager()->change_tracker()->add_deleted(this);
+        manager()->change_tracker()->add_deleted(structure(), this);
         if (_group_type == AS_PBManager::GRP_NORMAL)
             delete static_cast<StructurePBGroup*>(_proxied);
         else
@@ -248,8 +249,13 @@ private:
             _proxied = new CS_PBGroup(_category, _structure, _manager);
         _proxy = this;
         static_cast<PBGroup*>(_proxied)->_proxy = this;
-        _manager->change_tracker()->add_created(this);
+        _manager->change_tracker()->add_created(structure(), this);
     }
+    void  change_cs(const CoordSet* cs) {
+        if (_group_type == AS_PBManager::GRP_PER_CS)
+            static_cast<CS_PBGroup*>(_proxied)->change_cs(cs);
+    }
+
     void  remove_cs(const CoordSet* cs) {
         if (_group_type == AS_PBManager::GRP_PER_CS)
             static_cast<CS_PBGroup*>(_proxied)->remove_cs(cs);

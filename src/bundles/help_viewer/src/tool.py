@@ -94,15 +94,18 @@ class HelpUI(ToolInstance):
     # do not close when opening session (especially if web page asked to open session)
     SESSION_ENDURING = True
 
+    help = "help:user/tools/browser.html"
+
     def __init__(self, session):
         tool_name = "Help Viewer"
         ToolInstance.__init__(self, session, tool_name)
         from chimerax.core.ui.gui import MainToolWindow
         self.tool_window = MainToolWindow(self)
+        self._confirm = set()
         parent = self.tool_window.ui_area
 
         # UI content code
-        from PyQt5.QtWidgets import QToolBar, QVBoxLayout, QAction, QLineEdit, QTabWidget, QShortcut
+        from PyQt5.QtWidgets import QToolBar, QVBoxLayout, QAction, QLineEdit, QTabWidget, QShortcut, QStatusBar
         from PyQt5.QtGui import QIcon
         from PyQt5.QtCore import Qt
         shortcuts = (
@@ -127,6 +130,7 @@ class HelpUI(ToolInstance):
         self.toolbar = tb = QToolBar()
         # tb.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         layout = QVBoxLayout()
+        layout.setContentsMargins(0, 1, 0, 0)
         layout.addWidget(tb)
         parent.setLayout(layout)
         import os.path
@@ -138,6 +142,8 @@ class HelpUI(ToolInstance):
             ("forward", "Forward", "Next page", self.page_forward,
                 Qt.Key_Forward, False),
             ("reload", "Reload", "Reload page", self.page_reload,
+                Qt.Key_Reload, True),
+            ("new_tab", "New Tab", "New Tab", lambda: self.create_tab(empty=True),
                 Qt.Key_Reload, True),
             ("zoom_in", "Zoom in", "Zoom in", self.page_zoom_in,
                 [Qt.CTRL + Qt.Key_Plus, Qt.Key_ZoomIn, Qt.CTRL + Qt.Key_Equal], True),
@@ -188,7 +194,13 @@ class HelpUI(ToolInstance):
         self.tabs.tabCloseRequested.connect(self.close_tab)
         layout.addWidget(self.tabs)
 
+        self.status_bar = QStatusBar()
+        layout.addWidget(self.status_bar)
+
         self.tool_window.manage(placement=None)
+
+    def status(self, message):
+        self.status_bar.showMessage(message, 2000)
 
     def create_tab(self, *, empty=False, background=False):
         w = _HelpWebView(self.session, self)
@@ -200,25 +212,29 @@ class HelpUI(ToolInstance):
             self.url.setFocus(Qt.ShortcutFocusReason)
         if not background:
             self.tabs.setCurrentWidget(w)
-        w.loadFinished.connect(lambda okay, w=w: self.page_loaded(w, okay))
-        w.urlChanged.connect(lambda url, w=w: self.url_changed(w, url))
-        w.titleChanged.connect(lambda title, w=w: self.title_changed(w, title))
+        p = w.page()
+        p.loadFinished.connect(lambda okay, w=w: self.page_loaded(w, okay))
+        p.urlChanged.connect(lambda url, w=w: self.url_changed(w, url))
+        p.titleChanged.connect(lambda title, w=w: self.title_changed(w, title))
+        p.linkHovered.connect(self.link_hovered)
         return w
 
-    def show(self, url, *, new=False):
+    def show(self, url, *, new_tab=False, confirm=False):
         from urllib.parse import urlparse, urlunparse
         parts = urlparse(url)
         if not parts.scheme:
             parts = list(parts)
             parts[0] = "http"
         url = urlunparse(parts)  # canonicalize
-        if new or self.tabs.count() == 0:
+        if new_tab or self.tabs.count() == 0:
             w = self.create_tab()
         else:
             w = self.tabs.currentWidget()
         from PyQt5.QtCore import QUrl
         w.setUrl(QUrl(url))
         self.display(True)
+        # if confirm and w not in self._confirm:
+        #     pass
 
     def go_to(self):
         self.show(self.url.text())
@@ -295,6 +311,13 @@ class HelpUI(ToolInstance):
             self.tool_window.title = title
         i = self.tabs.indexOf(w)
         self.tabs.setTabText(i, title)
+
+    def link_hovered(self, url):
+        from PyQt5.QtCore import QUrl
+        try:
+            self.status(_qurl2text(QUrl(url)))
+        except:
+            self.status(url)
 
     def tab_changed(self, i):
         if i >= 0:

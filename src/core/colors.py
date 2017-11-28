@@ -681,10 +681,12 @@ BuiltinColors['transparent'] = (0, 0, 0, 0)
 
 
 def most_common_color(colors):
-    import numpy
-    as32 = colors.view(numpy.int32).reshape((len(colors),))
-    unique, indices, counts = numpy.unique(as32, return_index=True, return_counts=True)
-    max_index = numpy.argmax(counts)
+    from numpy import ndarray, array, uint8, int32, argmax, unique
+    if not isinstance(colors, ndarray):
+        colors = array(colors, uint8)
+    as32 = colors.view(int32).reshape((len(colors),))
+    unique, indices, counts = unique(as32, return_index=True, return_counts=True)
+    max_index = argmax(counts)
     if counts[max_index] < len(colors) / 10:
         return None
     return colors[indices[max_index]]

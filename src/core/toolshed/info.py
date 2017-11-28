@@ -196,9 +196,18 @@ class BundleInfo:
         logger : :py:class:`~chimerax.core.logger.Logger` instance
             Where to log error messages.
         """
-        self._register_commands(logger)
-        self._register_file_types(logger)
-        self._register_selectors(logger)
+        try:
+            self._register_commands(logger)
+        except Exception as e:
+            logger.warning(str(e))
+        try:
+            self._register_file_types(logger)
+        except Exception as e:
+            logger.warning(str(e))
+        try:
+            self._register_selectors(logger)
+        except Exception as e:
+            logger.warning(str(e))
 
     def deregister(self, logger):
         """Deregister bundle commands, tools, data formats, selectors, etc.
@@ -306,7 +315,7 @@ class BundleInfo:
                     raise ToolshedError(
                         "no fetch_from_database function found for bundle \"%s\""
                         % self.name)
-                if f == BundleAPI.save_file:
+                if f == BundleAPI.fetch_from_database:
                     raise ToolshedError("bundle \"%s\"'s API forgot to override fetch_from_database()" % self.name)
                 # optimize by replacing fetch_from_database for (database, format)
 
@@ -367,8 +376,8 @@ class BundleInfo:
                 api = self._get_api(session.logger)
                 api._api_caller.initialize(api, session, self)
             except Exception as e:
-                import traceback, sys
-                traceback.print_exc(file=sys.stdout)
+                import traceback
+                session.logger.warning(traceback.format_exc())
                 raise ToolshedError(
                     "initialize() failed in bundle %s:\n%s" % (self.name, str(e)))
 

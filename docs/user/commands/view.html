@@ -64,8 +64,8 @@ See also: <a href="cofr.html"><b>cofr</b></a>,
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>view</b> &nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
+[&nbsp;<b>orient</b>&nbsp;]
 [&nbsp;<b>pad</b>&nbsp;&nbsp;<i>fraction</i>&nbsp;]
-[&nbsp;<b>orient</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>clip</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 <br>
 <a href="usageconventions.html"><b>Usage</b></a>:
@@ -92,7 +92,7 @@ center of the bounding box of the relevant items,
 or if nothing is specified, allowed to vary according to the
 <a href="cofr.html#method">front center method</a>.
 </p><p>
-Using <b>orient true</b> (default <b>false</b>)
+The <b>orient</b> option
 additionally rotates the scene to a standard orientation with 
 X-axis horizontal increasing rightward, Y-axis vertical increasing upward,
 and Z-axis perpendicular to the screen increasing toward the viewer;
@@ -105,7 +105,7 @@ models relative to the scene (aligns individual model coordinates with
 An overall reset can be achieved with:
 </p>
 <blockquote>
-<b>view orient true; view initial</b>
+<b>view orient; view initial</b>
 </blockquote>
 <p>
 ...where the second command only has an effect if a model has been
@@ -242,5 +242,5 @@ The following commands are equivalent:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2017</address>
+October 2017</address>
 </body></html>

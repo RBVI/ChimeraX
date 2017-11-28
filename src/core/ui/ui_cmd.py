@@ -19,10 +19,15 @@ def register_ui_command(logger):
     from ..commands import CmdDesc, register
     from ..commands import BoolArg, StringArg
 
-    ui_desc = CmdDesc(
+    ui_autostart_desc = CmdDesc(
         required=[('do_start', BoolArg), ('tool_name', StringArg)],
         synopsis = 'control whether a tool is launched at ChimeraX startup')
-    register('ui autostart', ui_desc, ui_autostart, logger=logger)
+    register('ui autostart', ui_autostart_desc, ui_autostart, logger=logger)
+
+    ui_dockable_desc = CmdDesc(
+        required=[('dockable', BoolArg), ('tool_name', StringArg)],
+        synopsis = "control whether a tool's windows can be docked")
+    register('ui dockable', ui_dockable_desc, ui_dockable, logger=logger)
 
 # -----------------------------------------------------------------------------
 #
@@ -41,3 +46,23 @@ def ui_autostart(session, do_start, tool_name):
             autostart.remove(tool_name)
     settings.autostart = autostart
     settings.save()
+
+# -----------------------------------------------------------------------------
+#
+def ui_dockable(session, dockable, tool_name):
+    '''
+    Control whether a tool's windows are dockable
+    '''
+
+    settings = session.ui.settings
+    undockable_tools = settings.undockable[:]
+    if dockable:
+        while tool_name in undockable_tools:
+            undockable_tools.remove(tool_name)
+    else:
+        if tool_name not in undockable_tools:
+            undockable_tools.append(tool_name)
+    settings.undockable = undockable_tools
+    settings.save()
+    if session.ui.is_gui:
+        session.ui.main_window._dockability_change(tool_name, dockable)

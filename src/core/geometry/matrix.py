@@ -798,6 +798,14 @@ def transform_vectors(vectors, tf):
 
 # -----------------------------------------------------------------------------
 #
+def transform_normals(vectors, tf):
+    r = tf[:, :3]
+    from ._geometry import affine_transform_normals
+    affine_transform_normals(vectors, r)
+
+
+# -----------------------------------------------------------------------------
+#
 def xform_points(points, xf, to_xf=None):
     if to_xf is None:
         txf = xf

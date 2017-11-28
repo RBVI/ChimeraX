@@ -66,7 +66,7 @@ def standard_shortcuts(session):
 
         # Scene
         ('va', 'view', 'View all', gcat, noarg, smenu),
-        ('dv', 'view orient true', 'Default orientation', gcat, noarg, smenu),
+        ('dv', 'view orient', 'Default orientation', gcat, noarg, smenu),
 #        ('Sp', save_position, 'Save position, restore it with pp', gcat, sesarg, smenu),
 #        ('pp', restore_position, 'Restore previous position saved with Sp', gcat, sesarg, smenu, sep),
 
@@ -502,7 +502,7 @@ def toggle_box_faces(m):
   m.show('solid')
 
 def mark_map_surface_center(m):
-    from chimerax.core import markers
+    from chimerax import markers
     markers.mark_map_center(m)
 
 def enable_move_planes_mouse_mode(mouse_modes, button = 'right'):
@@ -517,12 +517,12 @@ def enable_contour_mouse_mode(mouse_modes, button = 'right'):
 
 def enable_marker_mouse_mode(mouse_modes, button = 'right'):
     m = mouse_modes
-    from chimerax.core import markers
+    from chimerax import markers
     m.bind_mouse_mode(button, markers.MarkerMouseMode(m.session))
 
 def enable_mark_center_mouse_mode(mouse_modes, button = 'right'):
     m = mouse_modes
-    from chimerax.core import markers
+    from chimerax import markers
     m.bind_mouse_mode(button, markers.MarkCenterMouseMode(m.session))
 
 def enable_map_series_mouse_mode(mouse_modes, button = 'right'):

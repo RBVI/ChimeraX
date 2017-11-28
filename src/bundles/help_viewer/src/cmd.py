@@ -102,13 +102,13 @@ def help(session, topic=None, *, option=None, is_query=False):
         run(session, "usage %s" % topic, log=False)
         return
     from . import show_url
-    show_url(session, url, new=(option == 'new'))
+    show_url(session, url, new_tab=(option == 'newTab'))
 
 
 help_desc = CmdDesc(
     optional=[
         ('option',
-         Or(EnumOf(['new'], abbreviations=False), EmptyArg)),
+         Or(EnumOf(['newTab'], abbreviations=False), EmptyArg)),
         ('topic', RestOfLine)
     ],
     non_keyword=('option', 'topic'),

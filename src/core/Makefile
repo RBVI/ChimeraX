@@ -64,6 +64,7 @@ app-install: wheel
 	$(APP_BOOTSTRAP_PIP) install -U $(WHEEL)
 
 wheel: setup.py
+	rm -f $(WHEEL)
 	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel --plat-name $(BIN_PLATFORM)
 	rm -rf $(WHL_BNDL_NAME).egg-info
 
@@ -92,7 +93,7 @@ dir:
 	if [ ! -d "$(PKG_DIR)" ]; then mkdir -p $(PKG_DIR); fi
 
 clean:
-	rm -rf __pycache__ build dist $(WHL_BNDL_NAME).egg-info setup.py $(GENSRCS)
+	rm -rf __pycache__ build dist $(WHL_BNDL_NAME).egg-info setup.py $(GENSRCS) _serialize.cpp
 
 pylint:
 	$(PYLINT) $(PYSRCS)

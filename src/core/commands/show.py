@@ -31,11 +31,7 @@ def show(session, objects=None, what=None, target=None, only=False):
         from . import atomspec
         objects = atomspec.all_objects(session)
 
-    what_to_show = set() if target is None else set(target)
-    if what is not None:
-        what_to_show.update([what])
-    if len(what_to_show) == 0:
-        what_to_show = set(['atoms' if objects.atoms else 'models'])
+    what_to_show = what_objects(target, what, objects)
 
     from ..undo import UndoState
     undo_state = UndoState("show")
@@ -54,6 +50,22 @@ def show(session, objects=None, what=None, target=None, only=False):
 
     session.undo.register(undo_state)
 
+def what_objects(target, what, objects):
+    what_to_show = set() if target is None else set(target)
+    if what is not None:
+        what_to_show.update([what])
+    if len(what_to_show) == 0:
+        if objects.atoms:
+            what_to_show.add('atoms')
+        # don't implicitly add bonds; they will hide/show as 
+        # their endpoint atoms hide/show, and then other code
+        # only has to deal with hiding/showing atoms and not bonds
+        if objects.pseudobonds:
+            what_to_show.add('pseudobonds')
+        if len(what_to_show) == 0:
+            what_to_show.add('models')
+    return what_to_show
+
 def show_atoms(session, objects, only, undo_state):
     atoms = objects.atoms
     undo_state.add(atoms, "displays", atoms.displays, True)
@@ -66,7 +78,7 @@ def show_atoms(session, objects, only, undo_state):
         other_atoms.displays = False
 
 def show_bonds(session, objects, only, undo_state):
-    bonds = objects.atoms.intra_bonds
+    bonds = objects.bonds
     undo_state.add(bonds, "displays", bonds.displays, True)
     bonds.displays = True
     a1, a2 = bonds.atoms
@@ -84,9 +96,7 @@ def show_bonds(session, objects, only, undo_state):
             other_bonds.displays = False
 
 def show_pseudobonds(session, objects, only, undo_state):
-    atoms = objects.atoms
-    from .. import atomic
-    pbonds = atomic.interatom_pseudobonds(atoms)
+    pbonds = objects.pseudobonds
     undo_state.add(pbonds, "displays", pbonds.displays, True)
     pbonds.displays = True
     a1, a2 = pbonds.atoms
@@ -95,10 +105,11 @@ def show_pseudobonds(session, objects, only, undo_state):
     undo_state.add(a2, "displays", a1.displays, True)
     a2.displays = True
     if only:
+        from ..atomic import concatenate
+        atoms = concatenate([a1,a2])
         pbs = sum([[pbg.pseudobonds for pbg in m.pbg_map.values()]
                    for m in atoms.unique_structures], [])
         if pbs:
-            from ..atomic import concatenate
             all_pbonds = concatenate(pbs)
             other_pbonds = all_pbonds - pbonds
             undo_state.add(other_pbonds, "displays", other_pbonds.displays, False)
@@ -123,7 +134,7 @@ def show_surfaces(session, objects, only, undo_state):
 
     # Show existing surfaces
     from ..atomic import molsurf, concatenate, Atoms
-    surfs = molsurf.show_surface_atom_patches(atoms, session.models, only = only)
+    surfs = molsurf.show_surface_atom_patches(atoms, only = only)
 
     # Create new surfaces if they don't yet exist.
     if surfs:

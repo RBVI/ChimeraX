@@ -478,14 +478,14 @@ class ModelPlacesArg(Annotation):
 
 def register_command(session):
     from . import CmdDesc, register, ObjectsArg, FloatArg
-    from . import StringArg, PositiveIntArg, Or, BoolArg
+    from . import StringArg, PositiveIntArg, Or, BoolArg, NoArg
     from . import PlaceArg, ModelsArg, TopModelsArg, Or, CoordSysArg
     desc = CmdDesc(
         optional=[('objects', Or(ObjectsArg, NamedViewArg)),
                   ('frames', PositiveIntArg)],
         keyword=[('clip', BoolArg),
                  ('cofr', BoolArg),
-                 ('orient', BoolArg),
+                 ('orient', NoArg),
                  ('pad', FloatArg)],
         synopsis='adjust camera so everything is visible')
     register('view', desc, view, logger=session.logger)

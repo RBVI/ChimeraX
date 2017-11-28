@@ -14,7 +14,7 @@
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-SUBDIRS = tools
+SUBDIRS = tools formats
 
 DOCDIR = $(app_datadir)/docs/user
 

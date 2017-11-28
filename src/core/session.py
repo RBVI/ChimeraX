@@ -454,7 +454,7 @@ class Session:
             mgr.cleanup()
             self.triggers.activate_trigger("end save session", self)
 
-    def restore(self, stream, metadata_only=False):
+    def restore(self, stream, path=None, metadata_only=False):
         """Deserialize session from binary stream."""
         from . import serialize
         if hasattr(stream, 'peek'):
@@ -482,6 +482,8 @@ class Session:
                     "Need newer version of ChimeraX to restore session")
             fdeserialize = serialize.msgpack_deserialize
         metadata = fdeserialize(stream)
+        if metadata is None:
+            raise UserError("Corrupt session file (missing metadata)")
         metadata['session_version'] = version
         if metadata_only:
             self.metadata.update(metadata)
@@ -497,6 +499,7 @@ class Session:
         self.triggers.activate_trigger("begin restore session", self)
         try:
             self.reset()
+            self.session_file_path = path
             self.metadata.update(metadata)
             attr_info = self.metadata.pop('attr_info', {})
             while True:
@@ -597,7 +600,9 @@ def standard_metadata(previous_metadata={}):
     # TODO: better way to get full user name
     user = os.environ.get('USERNAME', None)
     if user is None:
-        user = os.getlogin()
+        user = os.environ.get('LOGNAME', None)
+    if user is None:
+        user = 'Unknown user'
     tmp = metadata.setdefault('creator', [])
     if not isinstance(tmp, list):
         tmp = [tmp]
@@ -739,7 +744,7 @@ def open(session, path):
     # TODO: active trigger to allow user to stop overwritting
     # current session
     session.session_file_path = path
-    session.restore(stream)
+    session.restore(stream, path=path)
     return [], "opened ChimeraX session"
 
 

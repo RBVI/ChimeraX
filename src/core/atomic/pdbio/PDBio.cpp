@@ -122,7 +122,7 @@ read_one_structure(std::pair<char *, PyObject *> (*read_func)(void *),
     std::vector<Residue *> *end_residues,
     std::vector<PDB> *secondary_structure,
     std::vector<PDB::Conect_> *conect_records,
-    std::vector<PDB::Link_> *link_records,
+    std::vector<PDB> *link_ssbond_records,
     std::set<MolResId> *mod_res, bool *reached_end,
     PyObject *py_logger, bool explode, bool *eof)
 {
@@ -551,47 +551,12 @@ start_t = end_t;
             break;
 
         case PDB::LINK:
-            link_records->push_back(record.link);
+            link_ssbond_records->push_back(record);
             break;
 
         case PDB::SSBOND: {
-            // process SSBOND records as CONECT because midas
-            // used to use them that way
-            auto chain_id = ChainID({record.ssbond.res[0].chain_id});
-            Residue *ssres = as->find_residue(chain_id,
-                record.ssbond.res[0].seq_num, record.ssbond.res[0].i_code);
-            if (ssres == nullptr)
-                break;
-            if (ssres->name() != record.ssbond.res[0].name) {
-                logger::warning(py_logger, "First res name in SSBOND record (",
-                    record.ssbond.res[0].name, ") does not match actual"
-                    " residue (", ssres->name(), "); skipping.");
-                break;
-            }
-            Atom *ap0 = ssres->find_atom("SG");
-            if (ap0 == nullptr) {
-                logger::warning(py_logger, "Atom SG not found in ", ssres);
-                break;
-            }
-
-            chain_id = ChainID({record.ssbond.res[1].chain_id});
-            ssres = as->find_residue(chain_id,
-                record.ssbond.res[1].seq_num, record.ssbond.res[1].i_code);
-            if (ssres == nullptr)
-                break;
-            if (ssres->name() != record.ssbond.res[1].name) {
-                logger::warning(py_logger, "Second res name in SSBOND record (",
-                    record.ssbond.res[1].name, ") does not match actual"
-                    " residue (", ssres->name(), "); skipping.");
-                break;
-            }
-            Atom *ap1 = ssres->find_atom("SG");
-            if (ap1 == nullptr) {
-                logger::warning(py_logger, "Atom SG not found in ", ssres);
-                break;
-            }
-            if (!ap0->connects_to(ap1))
-                (void) ap0->structure()->new_bond(ap0, ap1);
+            // process SSBOND records as CONECT because Phenix uses them that way
+            link_ssbond_records->push_back(record);
             break;
         }
 
@@ -872,50 +837,83 @@ prune_short_bonds(Structure *as)
 }
 
 static void
-link_up(PDB::Link_ &link, Structure *as, std::set<Atom *> *conect_atoms,
-                        PyObject *py_logger)
+extract_linkup_record_info(PDB& link_ssbond, int* sym1, int* sym2,
+    PDB::Residue* pdb_res1, PDB::Residue* pdb_res2, PDB::Atom* pdb_atom1, PDB::Atom* pdb_atom2)
 {
-    if (link.sym[0] != link.sym[1]) {
-        // don't use LINKs to symmetry copies;
+    if (link_ssbond.type() == PDB::SSBOND) {
+        *sym1 = link_ssbond.ssbond.sym[0];
+        *sym2 = link_ssbond.ssbond.sym[1];
+        *pdb_res1 = link_ssbond.ssbond.res[0];
+        *pdb_res2 = link_ssbond.ssbond.res[1];
+        strcpy(*pdb_atom1, "SG");
+        strcpy(*pdb_atom2, "SG");
+    } else if (link_ssbond.type() == PDB::LINK) {
+        *sym1 = link_ssbond.link.sym[0];
+        *sym2 = link_ssbond.link.sym[1];
+        *pdb_res1 = link_ssbond.link.res[0];
+        *pdb_res2 = link_ssbond.link.res[1];
+        strcpy(*pdb_atom1, link_ssbond.link.name[0]);
+        strcpy(*pdb_atom2, link_ssbond.link.name[1]);
+    } else {
+        std::stringstream err_msg;
+        err_msg << "Trying to extact linkup info from non-LINK/SSBOND record (record is: '"
+            << link_ssbond.c_str() << "')";
+        throw std::logic_error(err_msg.str().c_str());
+    }
+}
+
+static Residue*
+pdb_res_to_chimera_res(Structure* as, PDB::Residue& pdb_res)
+{
+    ResName rname = pdb_res.name;
+    ChainID cid({pdb_res.chain_id});
+    canonicalize_res_name(rname);
+    return as->find_residue(cid, pdb_res.seq_num, pdb_res.i_code, rname);
+}
+
+static Atom*
+pdb_atom_to_chimera_atom(Structure* as, Residue* res, PDB::Atom& pdb_aname)
+{
+    AtomName aname = pdb_aname;
+    canonicalize_atom_name(aname, &as->asterisks_translated);
+    return res->find_atom(aname);
+}
+
+static void
+link_up(PDB& link_ssbond, Structure *as, std::set<Atom *> *conect_atoms, PyObject *py_logger)
+{
+    int sym1, sym2;
+    PDB::Residue pdb_res1, pdb_res2;
+    PDB::Atom pdb_atom1, pdb_atom2;
+    extract_linkup_record_info(link_ssbond,
+        &sym1, &sym2, &pdb_res1, &pdb_res2, &pdb_atom1, &pdb_atom2);
+    if (sym1 != sym2) {
+        // don't use LINKs/SSBONDs to symmetry copies;
         // skip if symmetry operators differ (or blank vs. non-blank)
         // (FYI, 1555 is identity transform)
         return;
     }
-    AtomName aname;
-    ResName rname;
-    PDB::Residue res = link.res[0];
-    ChainID cid({res.chain_id});
-    rname = res.name;
-    canonicalize_res_name(rname);
-    Residue *res1 = as->find_residue(cid, res.seq_num, res.i_code, rname);
+    Residue *res1 = pdb_res_to_chimera_res(as, pdb_res1);
     if (!res1) {
-        logger::warning(py_logger, "Cannot find LINK residue ", res.name,
-            " (", res.seq_num, res.i_code, ")");
+        logger::warning(py_logger, "Cannot find LINK/SSBOND residue ", pdb_res1.name,
+            " (", pdb_res1.seq_num, pdb_res1.i_code, ")");
         return;
     }
-    res = link.res[1];
-    cid = ChainID({res.chain_id});
-    rname = res.name;
-    canonicalize_res_name(rname);
-    Residue *res2 = as->find_residue(cid, res.seq_num, res.i_code, rname);
+    Residue *res2 = pdb_res_to_chimera_res(as, pdb_res2);
     if (!res2) {
-        logger::warning(py_logger, "Cannot find LINK residue ", res.name,
-            " (", res.seq_num, res.i_code, ")");
+        logger::warning(py_logger, "Cannot find LINK/SSBOND residue ", pdb_res2.name,
+            " (", pdb_res2.seq_num, pdb_res2.i_code, ")");
         return;
     }
-    aname = link.name[0];
-    canonicalize_atom_name(aname, &as->asterisks_translated);
-    Atom *a1 = res1->find_atom(aname);
+    Atom* a1 = pdb_atom_to_chimera_atom(as, res1, pdb_atom1);
     if (a1 == nullptr) {
-        logger::warning(py_logger, "Cannot find LINK atom ", aname,
+        logger::warning(py_logger, "Cannot find LINK/SSBOND atom ", pdb_atom1,
             " in residue ", res1->str());
         return;
     }
-    aname = link.name[1];
-    canonicalize_atom_name(aname, &as->asterisks_translated);
-    Atom *a2 = res2->find_atom(aname);
+    Atom* a2 = pdb_atom_to_chimera_atom(as, res2, pdb_atom2);
     if (a2 == nullptr) {
-        logger::warning(py_logger, "Cannot find LINK atom ", aname,
+        logger::warning(py_logger, "Cannot find LINK/SSBOND atom ", pdb_atom2,
             " in residue ", res2->str());
         return;
     }
@@ -958,7 +956,7 @@ read_pdb(PyObject *pdb_file, PyObject *py_logger, bool explode, bool atomic)
     typedef std::vector<PDB::Conect_> Conects;
     typedef std::unordered_map<Structure *, Conects> ConectMap;
     ConectMap conect_map;
-    typedef std::vector<PDB::Link_> Links;
+    typedef std::vector<PDB> Links;
     typedef std::unordered_map<Structure *, Links> LinkMap;
     LinkMap link_map;
     std::unordered_map<Structure *, std::set<MolResId> > mod_res_map;
