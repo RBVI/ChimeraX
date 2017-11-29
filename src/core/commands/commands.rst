@@ -228,6 +228,8 @@ material
 measure
 =======
 .. autofunction:: chimerax.core.commands.measure_buriedarea.measure_buriedarea
+.. autofunction:: chimerax.core.commands.measure_sasa.measure_convexity		  
+.. autofunction:: chimerax.core.commands.measure_sasa.measure_length
 .. autofunction:: chimerax.core.commands.measure_sasa.measure_sasa
 
 mlp

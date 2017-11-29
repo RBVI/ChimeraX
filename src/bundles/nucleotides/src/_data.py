@@ -79,7 +79,8 @@ PSEUDO_PYRIMIDINE = 'pseudo-pyrimidine'
 # From "A Standard Reference Frame for the Description of Nucleic Acid
 # Base-pair Geometry", Olsen et. al., J. Mol. Biol. (2001) V. 313, pp.
 # 229-237.  A preliminary version is available for free at
-# <http://ndbserver.rutgers.edu/archives/report/tsukuba/tsukuba.pdf>.
+# <http://ndbserver.rutgers.edu/ndbmodule/archives/reports/tsukuba/tsukuba.pdf>.
+# DOI: 10.1006/jmbi.2001.4987
 standard_bases = {
     'A': {
         "tag": PURINE,
@@ -620,7 +621,7 @@ def set_hide_atoms(hide, AtomsRE, exceptRE, residues):
                     continue
                 if a.display:
                     # bring back atom
-                    ra.hide &= ra.HIDE_NUCLEOTIDE
+                    ra.hide &= ~ra.HIDE_NUCLEOTIDE
 
 
 def get_cylinder(radius, p0, p1, bottom=True, top=True):
@@ -747,8 +748,8 @@ def draw_slab(nd, residue, style, thickness, orient, shape, show_gly):
         c1p = residue.find_atom("C1'")
         ba = residue.find_atom(anchor(info[ANCHOR], tag))
         if c1p and ba:
-            c1p.hide = False
-            ba.hide = False
+            c1p.hide &= ~c1p.HIDE_NUCLEOTIDE
+            ba.hide &= ~ba.HIDE_NUCLEOTIDE
 
     if not orient:
         return True
@@ -847,13 +848,13 @@ def sugar_tube(nd, residue, anchor=SUGAR, show_gly=False):
                 n = nucleic3to1(t)
             tag = standard_bases[n]['tag']
         except KeyError:
-            return []
+            return
         aname = _BaseAnchors[tag]
         if not aname:
-            return []
+            return
     a = residue.find_atom(aname)
     if not a or not a.display:
-        return []
+        return
     ep0 = a.coord
     radius = a.structure.bond_radius
     color = a.color
