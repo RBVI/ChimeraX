@@ -24,7 +24,7 @@ class _MyAPI(BundleAPI):
             desc = getattr(cmd, func_name + "_desc")
             register(cmd_name, desc, func)
         from chimerax.core.commands import create_alias
-        create_alias("~" + base_cmd, base_cmd + " atoms $*", logger=logger)
+        create_alias("~" + base_cmd, base_cmd + " $* atoms", logger=logger)
 
 
 bundle_api = _MyAPI()
