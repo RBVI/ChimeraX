@@ -54,6 +54,9 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
         show_dist=False,
         summary=True,
         test="others"):
+    from chimerax.core.errors import UserError
+    if not test_atoms:
+        raise UserError("No atoms in given atom specifier")
     from chimerax.core.colors import Color
     if atom_color is not None and not isinstance(atom_color, Color):
         atom_color = Color(rgba=atom_color)
@@ -61,7 +64,6 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
         other_atom_color = Color(rgba=other_atom_color)
     if color is not None and not isinstance(color, Color):
         color = Color(rgba=color)
-    from chimerax.core.errors import UserError
     from chimerax.core.atomic import get_triggers
     if continuous:
         if set_attrs or save_file != None or log:
