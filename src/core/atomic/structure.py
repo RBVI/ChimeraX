@@ -2618,16 +2618,17 @@ def select_atoms(a, mode = 'add'):
 # -----------------------------------------------------------------------------
 # Handles bonds and pseudobonds.
 #
-def _bond_intercept(bonds, mxyz1, mxyz2):
+def _bond_intercept(bonds, mxyz1, mxyz2, scene_coordinates = False):
 
     bshown = bonds.showns
     bs = bonds.filter(bshown)
     a1, a2 = bs.atoms
-    xyz1, xyz2, r = a1.coords, a2.coords, bs.radii
+    cxyz1, cxyz2 = (a1.scene_coords, a2.scene_coords) if scene_coordinates else (a1.coords, a2.coords)
+    r = bs.radii
 
     # Check for atom sphere intercept
     from .. import geometry
-    f, bnum = geometry.closest_cylinder_intercept(xyz1, xyz2, r, mxyz1, mxyz2)
+    f, bnum = geometry.closest_cylinder_intercept(cxyz1, cxyz2, r, mxyz1, mxyz2)
 
     if f is None:
         return None, None

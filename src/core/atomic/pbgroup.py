@@ -219,7 +219,13 @@ class PseudobondGroup(PseudobondGroupData, Model):
         if not self.display or (exclude and exclude(self)):
             return None
         from . import structure
-        b,f = structure._bond_intercept(self.pseudobonds, mxyz1, mxyz2)
+        if self._global_group:
+            # Use scene coordinates since atoms may belong to different models.
+            p = self.position
+            sxyz1, sxyz2 = p * mxyz1, p * mxyz2
+            b,f = structure._bond_intercept(self.pseudobonds, mxyz1, mxyz2, scene_coordinates = True)
+        else:
+            b,f = structure._bond_intercept(self.pseudobonds, mxyz1, mxyz2)
         p = structure.PickedPseudobond(b,f) if b else None
         return p
 
