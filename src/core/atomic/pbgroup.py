@@ -70,6 +70,17 @@ class PseudobondGroup(PseudobondGroupData, Model):
             t.remove_handler(h.pop())
         self._handlers = []
 
+    # Don't allow changing a pseudobond group position.
+    # Pseudobonds are always drawn to their end-point atoms so the model position
+    # should never be used.  But child models (e.g. labels) and things like picking
+    # may unintentially use it.  So prevent it from being changed.
+    def _dont_set_position(self, position):
+        pass
+    position = property(Model.position.fget, _dont_set_position)
+    def _dont_set_positions(self, positions):
+        pass
+    positions = property(Model.positions.fget, _dont_set_positions)
+
     # Atom specifier API
     def atomspec_has_pseudobonds(self):
         return True
