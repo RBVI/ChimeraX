@@ -235,10 +235,10 @@ currently implemented)</font>
 <h4><a href="#hierarchy" class="nounder"><b>&larr;</b></a>
 Implicit Operations</h4>
 <p>
-In the examples above, the hierarchical symbols were used only in descending 
-order (<b># / : @</b>), with each successive level applying to the levels
-that came before it. However, the hierarchy can be &ldquo;reset&rdquo; 
-by repeating a level or returning to a higher level.
+When the hierarchical symbols are used in descending order (<b># / : @</b>),
+each successive level only specifies items within the broader specification
+that came before it. The hierarchy can be &ldquo;reset&rdquo; for lower
+levels, however, by repeating or returning to a higher level.
 Examples:
 <blockquote>
 <b>:12,14@CA</b>
@@ -257,17 +257,18 @@ Examples:
 - <i>all</i> atoms of chain A,
 CA atoms of residues 12-20 and N atom of residue 14 in chain B
 <blockquote>
-<b>/a:50-60,66/b:52-62,69@n,ca,c,o</b>
+<b>/a:10-20,26/b:12-22,29@n,ca,c,o</b>
 </blockquote>
-- <i>all</i> atoms of chain A residues 50-60 and 66, plus
-atoms named N, CA, C, O in chain B residues 52-62 and 69
+- <i>all</i> atoms of chain A residues 10-20 and 26, plus
+atoms named N, CA, C, O in chain B residues 12-22 and 29
 <blockquote>
-<b>/a:50-60,66/b:52-62,69 & @n,ca,c,o</b>
+<b>/a:10-20,26@n,ca,c,o/b:12-22,29@n,ca,c,o</b>
+<br>- or -<br>
+<b>/a:10-20,26/b:12-22,29 & @n,ca,c,o</b>
 </blockquote>
-- atoms named N, CA, C, O in chain A residues 50-60, 66
-and in chain B residues 52-62, 69; intersection <b>&amp;</b>
-(see <a href="#combinations">combinations</a>) is needed to specify
-only the named atoms in both chains
+- atoms named N, CA, C, O in chain A residues 10-20, 26
+and in chain B residues 12-22, 29 (<b>&amp;</b> means intersection,
+see <a href="#combinations">combinations</a>)
 <blockquote>
 <b>#1,2.1</b>
 </blockquote>
@@ -946,5 +947,5 @@ of residues with any atom within 4 &Aring; of <a href="#surfcats">ligand</a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2017</address>
+November 2017</address>
 </body></html> 
