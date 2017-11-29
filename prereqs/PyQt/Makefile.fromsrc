@@ -13,8 +13,8 @@ REMOTE_DIR = plato.cgl.ucsf.edu:/usr/local/src/PyQt5
 
 # VERSION is overriden by Makefile
 VERSION = 5.9
-PYQT_MINOR_VERSION =
-QT_MINOR_VERSION = 1
+PYQT_MINOR_VERSION = 2
+QT_MINOR_VERSION = 3
 ifeq (,$(PYQT_MINOR_VERSION))
 PYQT_VERSION = $(VERSION)
 else
