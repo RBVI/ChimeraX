@@ -489,7 +489,7 @@ def _remove_nuc_drawing(mol, nd):
     del mol._nucleotide_info
     h = mol._nucleotide_changes
     mol._nucleotide_changes = None
-    mol.trigger.remove_handler(h)
+    mol.triggers.remove_handler(h)
     _need_rebuild.discard(mol)
 
 
@@ -512,11 +512,22 @@ def _rebuild(trigger_name, update_loop):
     _rebuilding = False
 
 
-def _rebuild_molecule(name, mol):
+_AtomReasons = frozenset(['color changed', 'coord changed', 'display changed'])
+
+
+def _rebuild_molecule(trigger_name, mol):
     if isinstance(mol, tuple):
         mol, changes = mol
-        # TODO: check changes for reasons we're interested in
+        # check changes for reasons we're interested in
         # ie., add/delete/moving atoms
+        rebuild = changes.num_deleted_atoms() != 0 or len(changes.created_atoms()) != 0
+        if not rebuild:
+            rebuild = 'active_coordset changed' in changes.structure_reasons()
+            if not rebuild:
+                reasons = set(changes.atom_reasons())
+                rebuild = not reasons.isdisjoint(_AtomReasons)
+                if not rebuild:
+                    return
     nuc_info, nd = _nuc_drawing(mol, recreate=True)
     if nuc_info is None:
         _need_rebuild.discard(mol)

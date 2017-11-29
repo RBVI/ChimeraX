@@ -69,7 +69,7 @@ protected:
     // the manager will need to be declared as a friend...
     PBGroup(const std::string& cat, BaseManager* manager):
         _category(cat), _destruction_relevant(true), _manager(manager), _proxy(nullptr) { }
-    virtual  ~PBGroup() {}
+    virtual  ~PBGroup() { }
 
     // can't call pure virtuals from base class destructors, so
     // make the code easily available to derived classes...

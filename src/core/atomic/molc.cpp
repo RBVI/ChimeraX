@@ -1821,14 +1821,13 @@ extern "C" EXPORT void *pseudobond_group_new_pseudobond_csid(void *pbgroup,
     }
 }
 
-extern "C" EXPORT void *pseudobond_group_delete_pseudobond(void *pbgroup, void *pb)
+extern "C" EXPORT void pseudobond_group_delete_pseudobond(void *pbgroup, void *pb)
 {
     Proxy_PBGroup *pbg = static_cast<Proxy_PBGroup *>(pbgroup);
     try {
         pbg->delete_pseudobond(static_cast<Pseudobond *>(pb));
     } catch (...) {
         molc_error();
-        return nullptr;
     }
 }
 

@@ -27,23 +27,15 @@ def _select_endres(session, models, results):
         # chains is an instance of chimerax.core.atomic.molarray.Chains
         # whose elements are chimerax.core.atomic.molarray.Chain instances
         for c in chains:
-            residues = c.residues
+            residues = c.existing_residues
             # residues is an instance of chimerax.core.atomic.molarray.Residues
-            # whose elements are chimerax.core.atomic.molarray.Residue instances
-            # or None (if residue is listed in sequence but coordinate data
-            # is missing).  To add the residues, we start from either
-            # end and quit after the first "real"/non-None residue.
+            # whose elements are chimerax.core.atomic.molarray.Residue
+            # instances.
             # 'results' only holds models, atoms and bonds, not residues.
             # We add atoms from the residues on the ends.  Bonds between
             # atoms in each residue are also added.
-            for r in residues:
-                if r is not None:
-                    results.add_atoms(r.atoms, bonds=True)
-                    break
-            for r in reversed(residues):
-                if r is not None:
-                    results.add_atoms(r.atoms, bonds=True)
-                    break
+            results.add_atoms(residues[0].atoms, bonds=True)
+            results.add_atoms(residues[-1].atoms, bonds=True)
 
 
 # Map selector name to corresponding callback function.
