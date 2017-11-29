@@ -127,7 +127,7 @@ but the hierarchy allows grouping.
 That is, submodels at any level can be specified individually 
 by their own numbers, or collectively by their parent model number.
 </p><p>
-A molecular model contains one or more <b><i>chains</i></b>, 
+An atomic model contains one or more <b><i>chains</i></b>, 
 each chain contains one or more <b><i>residues</i></b>, and each residue
 contains one or more <b><i>atoms</i></b>.
 Thus, an atom can be specified by model number, chain identifier (ID),
@@ -135,10 +135,13 @@ residue number, and atom name. The lack of a specifier is interpreted
 as all units at the associated level; for example, if no chain ID is given,
 the specification refers to all chains.
 Specifying a set of atoms always specifies any <b><i>bonds</i></b> and
-<a href="../pseudobonds.html">pseudobonds</a> between pairs of atoms in the set.
+<a href="../pseudobonds.html"><b><i>pseudobonds</i></b></a>
+between pairs of atoms in the set.
 A <a href="../pseudobonds.html">pseudobond model</a>
 can also be specified directly by its own model number
 (not necessarily within the atomic-model hierarchy).
+<a href="../markers.html"><b><i>Markers</i></b> and <b><i>links</i></b></a>
+are basically the same as atoms and bonds and can be specified in the same ways.
 </p><p>
 Chain IDs, residue names and numbers,
 and atom names are read from the input file.
