@@ -42,7 +42,7 @@ SugarAtomsNoRibRE = re.compile("^(C[12]|O[24])'$", re.I)
 SugarExceptNoRibRE = re.compile("^(C5|N[19]|C[34]')$", re.I)
 
 
-class Always_RE:
+class AlwaysRE:
     def match(self, text):
         return True
 
@@ -52,7 +52,7 @@ class NeverRE:
         return False
 
 
-Always_RE = Always_RE()
+AlwaysRE = AlwaysRE()
 NeverRE = NeverRE()
 
 # # clockwise rings
@@ -522,14 +522,18 @@ def _rebuild_molecule(trigger_name, mol):
         mol, changes = mol
         # check changes for reasons we're interested in
         # ie., add/delete/moving atoms
-        rebuild = changes.num_deleted_atoms() != 0 or len(changes.created_atoms()) != 0
-        if not rebuild:
-            rebuild = 'active_coordset changed' in changes.structure_reasons()
-            if not rebuild:
-                reasons = set(changes.atom_reasons())
-                rebuild = not reasons.isdisjoint(_AtomReasons)
-                if not rebuild:
-                    return
+        if changes.num_deleted_atoms() != 0 or len(changes.created_atoms()) != 0:
+            pass  # rebuild
+        elif 'ribbon_display changed' in changes.residue_reasons():
+            # rebuild
+            mol.bounds()  # need to recompute ribbon first  TODO: another way?
+        elif 'active_coordset changed' in changes.structure_reasons():
+            pass  # rebuild
+        else:
+            reasons = set(changes.atom_reasons())
+            if reasons.isdisjoint(_AtomReasons):
+                # no reason to rebuild
+                return
     nuc_info, nd = _nuc_drawing(mol, recreate=True)
     if nuc_info is None:
         _need_rebuild.discard(mol)
@@ -562,9 +566,10 @@ def _rebuild_molecule(trigger_name, mol):
         # redo all ladder nodes
         hide_sugars.update(residues)
         hide_bases.update(residues)
-        # TODO: hide hydrogens between matched bases
+        # TODO: hide hydrogen bonds between matched bases
         make_ladder(nd, residues, **mol._ladder_params)
-        set_hide_atoms(True, Always_RE, BackboneRE, residues)
+        set_hide_atoms(True, SugarAtomsNoRibRE, AlwaysRE, residues)
+        set_hide_atoms(True, BaseAtomsRE, AlwaysRE, residues)
     residues = sides['fill/slab'] + sides['slab']
     if residues:
         hide_bases.update(make_slab(nd, residues, nuc_info))
@@ -583,10 +588,9 @@ def _rebuild_molecule(trigger_name, mol):
     showresidue_info = show_sugars - hide_bases
     show_sugars.difference_update(showresidue_info)
     show_bases.difference_update(showresidue_info)
-    set_hide_atoms(False, Always_RE, NeverRE, showresidue_info)
-    set_hide_atoms(False, BackboneSugarRE, NeverRE, show_sugars)
+    set_hide_atoms(False, AlwaysRE, NeverRE, showresidue_info)
+    set_hide_atoms(False, SugarAtomsRE, NeverRE, show_sugars)
     non_ribbon_sugars = [r for r in hide_sugars if not r.ribbon_display]
-    set_hide_atoms(False, BackboneRE, NeverRE, non_ribbon_sugars)
     set_hide_atoms(False, BaseAtomsRE, BaseExceptRE, show_bases)
     _need_rebuild.discard(mol)
 
@@ -944,7 +948,6 @@ def set_normal(molecules, residues):
         if rds[r.structure].pop(r, None) is not None:
             changed.add(r)
             _need_rebuild.add(r.structure)
-    set_hide_atoms(False, Always_RE, BackboneRE, changed)
 
 
 def set_orient(molecules, residues):
