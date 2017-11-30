@@ -481,6 +481,7 @@ def _nuc_drawing(mol, create=True, recreate=False):
         if handler is None:
             handler = mol.triggers.add_handler('changes', _rebuild_molecule)
             mol._nucleotide_changes = handler
+            mol.ribbon_want_backbone = True
         return mol._nucleotide_info, nd
 
 
@@ -489,6 +490,7 @@ def _remove_nuc_drawing(mol, nd):
     del mol._nucleotide_info
     h = mol._nucleotide_changes
     mol._nucleotide_changes = None
+    mol.ribbon_want_backbone = False
     mol.triggers.remove_handler(h)
     _need_rebuild.discard(mol)
 
@@ -892,7 +894,12 @@ def sugar_tube(nd, residue, anchor=SUGAR, show_gly=False):
         c4p = residue.find_atom("C4'")
         if not c4p:
             return []
-        ep1 = (c3p.coord + c4p.coord) / 2
+        try:
+            c3p_coord = c3p.structure.ribbon_coords(c3p)
+            c4p_coord = c4p.structure.ribbon_coords(c4p)
+            ep1 = (c3p_coord + c4p_coord) / 2
+        except KeyError:
+            ep1 = (c3p.coord + c4p.coord) / 2
 
     description = '%s sugar' % residue.atomspec()
 
@@ -918,6 +925,11 @@ def _c3pos(residue):
     #             s = chimera.Spline(chimera.Spline.BSpline,
     #                                residue.ribbonCenters())
     #             return c3p, s.coordinate((o3pPos + c5pPos) / 2)
+    try:
+        coord = c3p.structure.ribbon_coords(c3p)
+        return c3p, coord
+    except KeyError:
+        pass
     return c3p, c3p.coord
 
 
