@@ -17,6 +17,13 @@ def measure_convexity(session, surfaces, palette = None, range = None, smoothing
     spanned by the triangles incident at the vertex.  The surface vertices are colored
     based on convexity value.
 
+    This definition of convexity is not standard and gives mottled coloring because the
+    values depend strongly on the triangulation.  Vertices surrounded by large triangles
+    on a smooth surface will have sharper cone angles then vertices surrounded by small
+    triangles.  (Normalizing by vertex triangle areas does not help because the patch about
+    a vertex is often irregular in shape.) To ameliorate this the "smoothing_iterations"
+    option is useful.
+
     Parameters
     ----------
     surface : Model list
