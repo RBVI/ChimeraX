@@ -36,7 +36,7 @@ class Structure(Model, StructureData):
             '_pseudobond_radius': 0.05,
             '_use_spline_normals': False,
             'ribbon_xs_mgr': XSectionManager(),
-            'ribbon_want_backbone': False,
+            '_ribbon_want_backbone': False,
             'filename': None,
         }
 
@@ -1511,7 +1511,6 @@ class Structure(Model, StructureData):
     }
 
     def _ribbon_spline_position(self, ribbon, residues):
-        self._ribbon_spline_backbone = {}
         for n, r in enumerate(residues):
             first = (r == residues[0])
             last = (r == residues[-1])
@@ -1527,10 +1526,16 @@ class Structure(Model, StructureData):
                     p = ribbon.position(n - 1, 1 + position)
                 self._ribbon_spline_backbone[a] = p
 
-    def ribbon_coords(self, a):
-        return self._ribbon_spline_backbone[a]
+    def _get_ribbon_want_backbone(self):
+        return self._ribbon_want_backbone
+    def _set_ribbon_want_backbone(self, want):
+        if want and want != self._ribbon_want_backbone:
+            self._graphics_changed |= self._RIBBON_CHANGE
+        self._ribbon_want_backbone = want
+    ribbon_want_backbone = property(_get_ribbon_want_backbone,
+                                    _set_ribbon_want_backbone)
 
-    def atom_ribbon_position(self, a):
+    def ribbon_coord(self, a):
         return self._ribbon_spline_backbone[a]
 
     def _update_ribbon_tethers(self):

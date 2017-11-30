@@ -42,7 +42,7 @@ SugarAtomsNoRibRE = re.compile("^(C[12]|O[24])'$", re.I)
 SugarExceptNoRibRE = re.compile("^(C5|N[19]|C[34]')$", re.I)
 
 
-class Always_RE:
+class AlwaysRE:
     def match(self, text):
         return True
 
@@ -52,7 +52,7 @@ class NeverRE:
         return False
 
 
-Always_RE = Always_RE()
+AlwaysRE = AlwaysRE()
 NeverRE = NeverRE()
 
 # # clockwise rings
@@ -481,6 +481,7 @@ def _nuc_drawing(mol, create=True, recreate=False):
         if handler is None:
             handler = mol.triggers.add_handler('changes', _rebuild_molecule)
             mol._nucleotide_changes = handler
+            mol.ribbon_want_backbone = True
         return mol._nucleotide_info, nd
 
 
@@ -489,6 +490,7 @@ def _remove_nuc_drawing(mol, nd):
     del mol._nucleotide_info
     h = mol._nucleotide_changes
     mol._nucleotide_changes = None
+    mol.ribbon_want_backbone = False
     mol.triggers.remove_handler(h)
     _need_rebuild.discard(mol)
 
@@ -520,14 +522,18 @@ def _rebuild_molecule(trigger_name, mol):
         mol, changes = mol
         # check changes for reasons we're interested in
         # ie., add/delete/moving atoms
-        rebuild = changes.num_deleted_atoms() != 0 or len(changes.created_atoms()) != 0
-        if not rebuild:
-            rebuild = 'active_coordset changed' in changes.structure_reasons()
-            if not rebuild:
-                reasons = set(changes.atom_reasons())
-                rebuild = not reasons.isdisjoint(_AtomReasons)
-                if not rebuild:
-                    return
+        if changes.num_deleted_atoms() != 0 or len(changes.created_atoms()) != 0:
+            pass  # rebuild
+        elif 'ribbon_display changed' in changes.residue_reasons():
+            # rebuild
+            mol.bounds()  # need to recompute ribbon first  TODO: another way?
+        elif 'active_coordset changed' in changes.structure_reasons():
+            pass  # rebuild
+        else:
+            reasons = set(changes.atom_reasons())
+            if reasons.isdisjoint(_AtomReasons):
+                # no reason to rebuild
+                return
     nuc_info, nd = _nuc_drawing(mol, recreate=True)
     if nuc_info is None:
         _need_rebuild.discard(mol)
@@ -560,9 +566,10 @@ def _rebuild_molecule(trigger_name, mol):
         # redo all ladder nodes
         hide_sugars.update(residues)
         hide_bases.update(residues)
-        # TODO: hide hydrogens between matched bases
+        # TODO: hide hydrogen bonds between matched bases
         make_ladder(nd, residues, **mol._ladder_params)
-        set_hide_atoms(True, Always_RE, BackboneRE, residues)
+        set_hide_atoms(True, SugarAtomsNoRibRE, AlwaysRE, residues)
+        set_hide_atoms(True, BaseAtomsRE, AlwaysRE, residues)
     residues = sides['fill/slab'] + sides['slab']
     if residues:
         hide_bases.update(make_slab(nd, residues, nuc_info))
@@ -581,10 +588,9 @@ def _rebuild_molecule(trigger_name, mol):
     showresidue_info = show_sugars - hide_bases
     show_sugars.difference_update(showresidue_info)
     show_bases.difference_update(showresidue_info)
-    set_hide_atoms(False, Always_RE, NeverRE, showresidue_info)
-    set_hide_atoms(False, BackboneSugarRE, NeverRE, show_sugars)
+    set_hide_atoms(False, AlwaysRE, NeverRE, showresidue_info)
+    set_hide_atoms(False, SugarAtomsRE, NeverRE, show_sugars)
     non_ribbon_sugars = [r for r in hide_sugars if not r.ribbon_display]
-    set_hide_atoms(False, BackboneRE, NeverRE, non_ribbon_sugars)
     set_hide_atoms(False, BaseAtomsRE, BaseExceptRE, show_bases)
     _need_rebuild.discard(mol)
 
@@ -892,7 +898,12 @@ def sugar_tube(nd, residue, anchor=SUGAR, show_gly=False):
         c4p = residue.find_atom("C4'")
         if not c4p:
             return []
-        ep1 = (c3p.coord + c4p.coord) / 2
+        try:
+            c3p_coord = c3p.structure.ribbon_coords(c3p)
+            c4p_coord = c4p.structure.ribbon_coords(c4p)
+            ep1 = (c3p_coord + c4p_coord) / 2
+        except KeyError:
+            ep1 = (c3p.coord + c4p.coord) / 2
 
     description = '%s sugar' % residue.atomspec()
 
@@ -918,6 +929,11 @@ def _c3pos(residue):
     #             s = chimera.Spline(chimera.Spline.BSpline,
     #                                residue.ribbonCenters())
     #             return c3p, s.coordinate((o3pPos + c5pPos) / 2)
+    try:
+        coord = c3p.structure.ribbon_coords(c3p)
+        return c3p, coord
+    except KeyError:
+        pass
     return c3p, c3p.coord
 
 
@@ -932,7 +948,6 @@ def set_normal(molecules, residues):
         if rds[r.structure].pop(r, None) is not None:
             changed.add(r)
             _need_rebuild.add(r.structure)
-    set_hide_atoms(False, Always_RE, BackboneRE, changed)
 
 
 def set_orient(molecules, residues):
@@ -1059,8 +1074,8 @@ def make_ladder(nd, residues, rung_radius=0, show_stubs=True, skip_nonbase_Hbond
         if rung_radius and not any(non_base):
             radius = rung_radius
         elif r0.ribbon_display and r1.ribbon_display:
-            style = r0.ribbonFindStyle()
-            radius = min(style.width(.5), style.thickness(.5))
+            mgr = mol.ribbon_xs_mgr
+            radius = 2 * min(mgr.scale_nucleic)
         else:
             # TODO: radius = a0.structure.stickScale \
             #     * chimera.Molecule.DefaultBondRadius
