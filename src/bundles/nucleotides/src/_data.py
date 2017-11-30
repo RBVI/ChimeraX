@@ -33,13 +33,13 @@ _rebuilding = False
 SideOptions = ['orient', 'fill/slab', 'slab', 'tube/slab', 'ladder']
 
 BackboneRE = re.compile("^(C[345]'|H[345]'|O[35]'|HO[3]'|P|OP[123]|HOP[123])$", re.I)
-BackboneSugarRE = re.compile("^(C[12345]'|H[12345]'|O[2345]'|HO[2345]'|P|OP[123]|HOP[123])$", re.I)
+BackboneRiboseRE = re.compile("^(C[12345]'|H[12345]'|O[2345]'|HO[2345]'|P|OP[123]|HOP[123])$", re.I)
 BaseAtomsRE = re.compile("^(C[245678]|H[245678]|C5M|N[1234679]|H1|H[1234679][123]|O[246])$", re.I)
 BaseExceptRE = re.compile("^C1'$", re.I)
-SugarAtomsRE = re.compile("^(C[1234]'|H[1234]'|O[24]'|HO[24]')$", re.I)
-SugarExceptRE = re.compile("^(C5|N[19]|C5'|O3')$", re.I)
-SugarAtomsNoRibRE = re.compile("^(C[12]|O[24])'$", re.I)
-SugarExceptNoRibRE = re.compile("^(C5|N[19]|C[34]')$", re.I)
+RiboseAtomsRE = re.compile("^(C[1234]'|H[1234]'|O[24]'|HO[24]')$", re.I)
+RiboseExceptRE = re.compile("^(C5|N[19]|C5'|O3')$", re.I)
+RiboseAtomsNoRibRE = re.compile("^(C[12]|O[24])'$", re.I)
+RiboseExceptNoRibRE = re.compile("^(C5|N[19]|C[34]')$", re.I)
 
 
 class AlwaysRE:
@@ -65,11 +65,11 @@ _full_purine_1 = (0, 1, 6, 7, 8)
 _full_purine_2 = (1, 2, 3, 4, 5, 6)
 _pyrimidine = ("N1", "C2", "N3", "C4", "C5", "C6")
 _pyrimidine_1 = (0, 1, 2, 3, 4, 5)
-_sugar = ("C1'", "C2'", "C3'", "C4'", "O4'")
+_ribose = ("C1'", "C2'", "C3'", "C4'", "O4'")
 
 ANCHOR = 'anchor'
 BASE = 'base'
-SUGAR = 'sugar'
+RIBOSE = 'ribose'
 PURINE = 'purine'
 PYRIMIDINE = 'pyrimidine'
 PSEUDO_PYRIMIDINE = 'pseudo-pyrimidine'
@@ -330,13 +330,13 @@ system_styles = {
         PSEUDO_PYRIMIDINE: ((0.0, -3.5), (2.1, 0.0)),
     },
     'fat': {
-        ANCHOR: SUGAR,
+        ANCHOR: RIBOSE,
         PURINE: ((0.0, -4.87), (3.3, 0.0)),
         PYRIMIDINE: ((0.0, -2.97), (3.3, 0.0)),
         PSEUDO_PYRIMIDINE: ((0.0, -2.97), (3.3, 0.0)),
     },
     'big': {
-        ANCHOR: SUGAR,
+        ANCHOR: RIBOSE,
         PURINE: ((0.0, -5.47), (4.4, 0.0)),
         PYRIMIDINE: ((0.0, -3.97), (4.4, 0.0)),
         PSEUDO_PYRIMIDINE: ((0.0, -3.97), (4.4, 0.0)),
@@ -350,8 +350,8 @@ _BaseAnchors = {
 }
 
 
-def anchor(sugar_or_base, tag):
-    if sugar_or_base == SUGAR:
+def anchor(ribose_or_base, tag):
+    if ribose_or_base == RIBOSE:
         return "C1'"
     return _BaseAnchors[tag]
 
@@ -522,9 +522,7 @@ def _rebuild_molecule(trigger_name, mol):
         mol, changes = mol
         # check changes for reasons we're interested in
         # ie., add/delete/moving atoms
-        if changes.num_deleted_atoms() != 0 or len(changes.created_atoms()) != 0:
-            pass  # rebuild
-        elif 'ribbon_display changed' in changes.residue_reasons():
+        if 'ribbon_display changed' in changes.residue_reasons():
             # rebuild
             mol.bounds()  # need to recompute ribbon first  TODO: another way?
         elif 'active_coordset changed' in changes.structure_reasons():
@@ -556,7 +554,7 @@ def _rebuild_molecule(trigger_name, mol):
         return
     all_residues = set(nuc_info.keys())
     # create shapes
-    hide_sugars = set()
+    hide_riboses = set()
     hide_bases = set()
     residues = sides['ladder']
     if not residues:
@@ -564,33 +562,33 @@ def _rebuild_molecule(trigger_name, mol):
     else:
         residues = Residues(residues=residues)
         # redo all ladder nodes
-        hide_sugars.update(residues)
+        hide_riboses.update(residues)
         hide_bases.update(residues)
         # TODO: hide hydrogen bonds between matched bases
         make_ladder(nd, residues, **mol._ladder_params)
-        set_hide_atoms(True, SugarAtomsNoRibRE, AlwaysRE, residues)
+        set_hide_atoms(True, RiboseAtomsNoRibRE, AlwaysRE, residues)
         set_hide_atoms(True, BaseAtomsRE, AlwaysRE, residues)
     residues = sides['fill/slab'] + sides['slab']
     if residues:
         hide_bases.update(make_slab(nd, residues, nuc_info))
     residues = sides['tube/slab']
     if residues:
-        hide_sugars.update(residues)
+        hide_riboses.update(residues)
         make_tube(nd, residues, nuc_info)
         hide_bases.update(make_slab(nd, residues, nuc_info))
     residues = sides['orient']
     if residues:
         for r in residues:
             draw_orientation(nd, r)
-    # make sure sugar/base atoms are hidden/shown
-    show_sugars = all_residues - hide_sugars
+    # make sure ribose/base atoms are hidden/shown
+    show_riboses = all_residues - hide_riboses
     show_bases = all_residues - hide_bases
-    showresidue_info = show_sugars - hide_bases
-    show_sugars.difference_update(showresidue_info)
+    showresidue_info = show_riboses - hide_bases
+    show_riboses.difference_update(showresidue_info)
     show_bases.difference_update(showresidue_info)
     set_hide_atoms(False, AlwaysRE, NeverRE, showresidue_info)
-    set_hide_atoms(False, SugarAtomsRE, NeverRE, show_sugars)
-    non_ribbon_sugars = [r for r in hide_sugars if not r.ribbon_display]
+    set_hide_atoms(False, RiboseAtomsRE, NeverRE, show_riboses)
+    non_ribbon_riboses = [r for r in hide_riboses if not r.ribbon_display]
     set_hide_atoms(False, BaseAtomsRE, BaseExceptRE, show_bases)
     _need_rebuild.discard(mol)
 
@@ -689,7 +687,9 @@ def get_ring(r, base_ring):
     return atoms
 
 
-def draw_slab(nd, residue, style, thickness, orient, shape, show_gly):
+def draw_slab(nd, residue, *, style=default.STYLE, thickness=default.THICKNESS,
+              hide=default.HIDE, orient=default.ORIENT, shape=default.SHAPE,
+              show_gly=default.GLYCOSIDIC):
     try:
         t = residue.name
         if t in ('PSU', 'P'):
@@ -793,12 +793,6 @@ def draw_slab(nd, residue, style, thickness, orient, shape, show_gly):
     return True
 
 
-def slab_nodes(nd, residue, style=default.STYLE, thickness=default.THICKNESS,
-               hide=default.HIDE, orient=default.ORIENT, shape=default.SHAPE,
-               show_gly=default.GLYCOSIDIC):
-    return draw_slab(nd, residue, style, thickness, orient, shape, show_gly)
-
-
 def bonds_between(atoms):
     bonds = []
     for i in range(len(atoms) - 1):
@@ -849,10 +843,10 @@ def draw_orientation(nd, residue):
         orient_planar_ring(nd, ring, indices)
 
 
-def sugar_tube(nd, residue, anchor=SUGAR, show_gly=False):
-    if anchor == SUGAR:
+def ribose_tube(nd, residue, anchor=RIBOSE, show_gly=False):
+    if anchor == RIBOSE:
         show_gly = False
-    if anchor == SUGAR or show_gly:
+    if anchor == RIBOSE or show_gly:
         aname = "C1'"
     else:
         try:
@@ -899,20 +893,20 @@ def sugar_tube(nd, residue, anchor=SUGAR, show_gly=False):
         if not c4p:
             return []
         try:
-            c3p_coord = c3p.structure.ribbon_coords(c3p)
-            c4p_coord = c4p.structure.ribbon_coords(c4p)
+            c3p_coord = c3p.ribbon_coord
+            c4p_coord = c4p.ribbon_coord
             ep1 = (c3p_coord + c4p_coord) / 2
         except KeyError:
             ep1 = (c3p.coord + c4p.coord) / 2
 
-    description = '%s sugar' % residue.atomspec()
+    description = '%s ribose' % residue.atomspec()
 
     va, na, ta = get_cylinder(radius, ep0, ep1, bottom=False)
     nd.add_shape(va, na, ta, color, None, description)
     va, na, ta = get_sphere(radius, ep0)
     nd.add_shape(va, na, ta, color, None, description)
 
-    set_hide_atoms(True, SugarAtomsRE, SugarExceptRE, [residue])
+    set_hide_atoms(True, RiboseAtomsRE, RiboseExceptRE, [residue])
 
 
 def _c3pos(residue):
@@ -930,7 +924,7 @@ def _c3pos(residue):
     #                                residue.ribbonCenters())
     #             return c3p, s.coordinate((o3pPos + c5pPos) / 2)
     try:
-        coord = c3p.structure.ribbon_coords(c3p)
+        coord = c3p.ribbon_coord
         return c3p, coord
     except KeyError:
         pass
@@ -1006,7 +1000,7 @@ def make_slab(nd, residues, rds):
         if params.get('hide', default.HIDE):
             hide_bases.add(r)
             set_hide_atoms(True, BaseAtomsRE, BaseExceptRE, [r])
-        if not slab_nodes(nd, r, **params):
+        if not draw_slab(nd, r, **params):
             hide_bases.discard(r)
     return hide_bases
 
@@ -1014,7 +1008,7 @@ def make_slab(nd, residues, rds):
 def make_tube(nd, residues, rds):
     # should be called before make_slab
     for r in residues:
-        sugar_tube(nd, r, **rds[r]['tube params'])
+        ribose_tube(nd, r, **rds[r]['tube params'])
 
 
 def set_ladder(molecules, residues, **ladder_params):
@@ -1053,8 +1047,8 @@ def make_ladder(nd, residues, rung_radius=0, show_stubs=True, skip_nonbase_Hbond
     # h-bond
     depict_bonds = {}
     for a0, a1 in bonds:
-        non_base = (BackboneSugarRE.match(a0.name),
-                    BackboneSugarRE.match(a1.name))
+        non_base = (BackboneRiboseRE.match(a0.name),
+                    BackboneRiboseRE.match(a1.name))
         if skip_nonbase_Hbonds and any(non_base):
             continue
         r0 = a0.residue
