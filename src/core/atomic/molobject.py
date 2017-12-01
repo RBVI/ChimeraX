@@ -240,6 +240,10 @@ class Atom(State):
             r = self.maximum_bond_radius(self.structure.bond_radius)
         return r
 
+    @property
+    def ribbon_coord(self):
+        return self.structure.ribbon_coord(self)
+
     def maximum_bond_radius(self, default_radius = 0.2):
         "Return maximum bond radius.  Used for stick style atom display."
         f = c_function('atom_maximum_bond_radius',

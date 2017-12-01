@@ -513,6 +513,15 @@ class Ribbon:
         #normals = curvature_to_normals(curvature, tangents, prev_normal)
         return coords, tangents, normals
 
+    def position(self, seg, t):
+        # Compute coordinates for segment seg with parameter t
+        from numpy import array, dot
+        coeffs = [self.coefficients[0][seg],
+                  self.coefficients[1][seg],
+                  self.coefficients[2][seg]]
+        st = array([1.0, t, t*t, t*t*t])
+        return array([dot(st, coeffs[0]), dot(st, coeffs[1]), dot(st, coeffs[2])])
+
 
 from ..state import State
 

@@ -36,6 +36,7 @@ class Structure(Model, StructureData):
             '_pseudobond_radius': 0.05,
             '_use_spline_normals': False,
             'ribbon_xs_mgr': XSectionManager(),
+            '_ribbon_want_backbone': False,
             'filename': None,
         }
 
@@ -54,6 +55,7 @@ class Structure(Model, StructureData):
         self._ribbon_t2r = {}         # ribbon triangles-to-residue map
         self._ribbon_r2t = {}         # ribbon residue-to-triangles map
         self._ribbon_tether = []      # ribbon tethers from ribbon to floating atoms
+        self._ribbon_spline_backbone = {}     # backbone atom positions on ribbon
 
         from . import molobject
         molobject.add_to_object_map(self)
@@ -454,6 +456,7 @@ class Structure(Model, StructureData):
         self._ribbon_t2r = {}
         self._ribbon_r2t = {}
         self._ribbon_tether = []
+        self._ribbon_spline_backbone = {}
         if self.ribbon_display_count == 0:
             return
         from .ribbon import Ribbon
@@ -868,6 +871,10 @@ class Structure(Model, StructureData):
                                             m.ribbon_tether_shape, m.ribbon_tether_scale))
             else:
                 self._ribbon_tether.append((atoms, None, None, None, None, None))
+
+            # Cache position of backbone atoms on ribbon
+            if self.ribbon_want_backbone:
+                self._ribbon_spline_position(ribbon, residues)
 
             # Create spine if necessary
             if self.ribbon_show_spine:
@@ -1483,6 +1490,53 @@ class Structure(Model, StructureData):
                 for start, end in residues[2]:
                     m[start:end] = True
                 p.selected_triangles_mask = m
+
+    # Position of atoms on ribbon in spline parameter units.
+    # Negative means on the spline between previous residue
+    # and this one; positive between this and next.
+    # These are copied from Chimera.  May want to do a survey
+    # of closest spline parameters across many structures instead.
+    _RibbonPositions = {
+        # Amino acid
+        "N":  -1/3.,
+        "CA":  0.,
+        "C":   1/3.,
+        # Nucleotide
+        "P":   -2/6.,
+        "O5'": -1/6.,
+        "C5'":  0.,
+        "C4'":  1/6.,
+        "C3'":  2/6.,
+        "O3'":  3/6.,
+    }
+
+    def _ribbon_spline_position(self, ribbon, residues):
+        for n, r in enumerate(residues):
+            first = (r == residues[0])
+            last = (r == residues[-1])
+            for atom_name, position in self._RibbonPositions.items():
+                a = r.find_atom(atom_name)
+                if a is None:
+                    continue
+                if last:
+                    p = ribbon.position(n - 1, 1 + position)
+                elif position >= 0 or first:
+                    p = ribbon.position(n, position)
+                else:
+                    p = ribbon.position(n - 1, 1 + position)
+                self._ribbon_spline_backbone[a] = p
+
+    def _get_ribbon_want_backbone(self):
+        return self._ribbon_want_backbone
+    def _set_ribbon_want_backbone(self, want):
+        if want and want != self._ribbon_want_backbone:
+            self._graphics_changed |= self._RIBBON_CHANGE
+        self._ribbon_want_backbone = want
+    ribbon_want_backbone = property(_get_ribbon_want_backbone,
+                                    _set_ribbon_want_backbone)
+
+    def ribbon_coord(self, a):
+        return self._ribbon_spline_backbone[a]
 
     def _update_ribbon_tethers(self):
         from numpy import around

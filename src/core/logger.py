@@ -398,12 +398,20 @@ class Logger(StatusLogger):
         elif isinstance(exception_value, CancelOperation):
             pass  # Cancelled operations are not reported
         else:
+            from html import escape
             if error_description:
-                tb_msg = error_description
+                tb_msg = escape(error_description)
             else:
                 tb = format_exception(ei[0], ei[1], ei[2])
                 tb_msg = "".join(tb)
-            self.info(tb_msg)
+                # preserve exception traceback's indentation
+                tmp = []
+                for line in tb_msg.split('\n'):
+                    text = line.lstrip()
+                    num_spaces = len(line) - len(text)
+                    tmp.append('&nbsp;' * num_spaces + escape(text))
+                tb_msg = "<br>\n".join(tmp)
+            self.info(tb_msg, is_html=True)
 
             err = "".join(format_exception_only(ei[0], ei[1]))
             loc = "".join(format_tb(ei[2])[-1:])

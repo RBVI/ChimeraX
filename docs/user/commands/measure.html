@@ -36,21 +36,19 @@ Possible values of <i>property</i>:
 <li><a href="#buriedArea"><b>buriedArea</b></a> 
 - calculate <a href="surface.html#surfdefs">solvent-accessible surface</a>
 area buried between two sets of atoms
+<li><a href="#convexity"><b>convexity</b></a>
+- calculate convexity at each surface vertex, color the surface accordingly
+<li><a href="#length"><b>length</b></a>
+- sum bond lengths
 <li><a href="#sasa"><b>sasa</b></a>
 - calculate <a href="surface.html#surfdefs">solvent-accessible surface</a>
 area
 </ul>
+<p>
 See also: <a href="interfaces.html"><b>interfaces</b></a>,
 <a href="surface.html"><b>surface</b></a>,
 <a href="surface.html#zone"><b>surface zone</b></a>,
 <a href="../radii.html">VDW radii</a>
-<p>
-Each property keyword has different arguments, described below.  
-Models are specified by model number preceded by #.
-Keywords and Boolean (truth) values can be truncated, with
-synonyms for true: True, 1, and synonyms for false: False, 0.
-A vertical bar &ldquo;|&rdquo; designates mutually exclusive options,
-and default settings are indicated with <b>bold</b>.
 </p>
 <a href="#top" class="nounder">&bull;</a>
 <a name="buriedArea"><b>measure buriedArea</b></a>
@@ -62,7 +60,7 @@ and default settings are indicated with <b>bold</b>.
 [&nbsp;<b>select</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 </h3>
-<p>
+<blockquote>
 Calculate the <a href="surface.html#surfdefs">solvent-accessible surface</a>
 (SAS) area buried between two sets of atoms, defined as:
 <blockquote>
@@ -107,6 +105,45 @@ Examples:
 buried between <a href="atomspec.html#builtin"><b>ligand</b></a> and
 <a href="atomspec.html#builtin"><b>protein</b></a>
 </blockquote>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="convexity"><b>measure convexity</b>
+&nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
+[&nbsp;<b>smoothingIterations</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+&nbsp;<a href="color.html#palette-options"><i>palette-options</i></a>&nbsp;
+<blockquote>
+Compute the convexity at each surface vertex and color the surface
+to show the values.
+Convexity is calculated as 2&pi; minus the cone-angle spanned by the 
+triangles incident at the vertex, optionally smoothed by averaging with 
+neighboring (edge-connected) vertices for a specified number of iterations
+(default <b>5</b>). Smoothing is generally recommended, given that this
+definition of convexity is nonstandard and the unsmoothed values 
+depend strongly on the triangulation:
+vertices surrounded by large triangles on a smooth surface 
+will have sharper cone angles than vertices surrounded by small triangles.
+(Normalizing by triangle areas does not help because the patch about
+a vertex is often irregular in shape.)
+Mottled coloring may indicate the need for more smoothing.
+<a name="palette-options"></a>
+The <i>palette-options</i> for coloring are the same as
+<a href="color.html#palette-options">described for <b>color</b></a>,
+except with defaults:
+<blockquote>
+<b>palette&nbsp;cyan-gray-maroon&nbsp;&nbsp;range&nbsp;-1,1</b>
+</blockquote>
+See also: <a href="mlp.html"><b>mlp</b></a>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="length"><b>measure length</b></a>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+<blockquote>
+Sum the lengths of all bonds between specified atoms 
+(<a href="../markers.html">markers</a>);
+primarily used to measure the length of traced paths of markers.
+</blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
 <a name="sasa"><b>measure sasa</b></a>
@@ -114,7 +151,7 @@ buried between <a href="atomspec.html#builtin"><b>ligand</b></a> and
 [&nbsp;<b>probeRadius</b>&nbsp;&nbsp;<i>rad</i>&nbsp;]
 [&nbsp;<b>sum</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>&nbsp;]
 </h3>
-<p>
+<blockquote>
 Calculate a <a href="surface.html#surfdefs">solvent-accessible surface</a>
 (SAS) enclosing the atoms in &nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>
 and report the total surface area
@@ -139,8 +176,9 @@ Example:
 and report both the total area and the contribution from
 phenylalanine, tyrosine, and tryptophan residues
 </blockquote>
+</blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2017</address>
+November 2017</address>
 </body></html>

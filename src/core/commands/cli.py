@@ -2386,25 +2386,26 @@ class Command:
                 self.completion_prefix = word
                 kw_map = self._ci._keyword_map
                 # Don't change case of what user types.
-                completions = [(kw, kw_map[kw][1]) for kw in kw_map
+                completions = [(kw_map[kw][1], kw) for kw in kw_map
                                if kw.startswith(arg_name) or kw.casefold().startswith(arg_name)]
+                completions.sort()
                 if (final or len(text) > len(chars)) and completions:
                     # require shortened keywords to be unambiguous
                     if len(completions) == 1:
                         unambiguous = True
-                    elif len(completions[0][0]) == len(arg_name):
+                    elif len(completions[0][1]) == len(arg_name):
                         unambiguous = True
-                    elif 1 == len([cnt for kw, cnt in completions if cnt == completions[0][1]]):
+                    elif 1 == len([cnt for cnt, kw in completions if cnt == completions[0][0]]):
                         unambiguous = True
                     else:
                         unambiguous = False
                     if unambiguous:
-                        c = completions[0][0]
+                        c = completions[0][1]
                         self._replace(chars, c)
                         text = self.current_text[self.amount_parsed:]
                         self.completions = []
                         continue
-                    self.completions = list(c[0] for c in completions)
+                    self.completions = list(c[1] for c in completions)
                     self._error = "Expected keyword " + commas('"%s"' % x for x in self.completions)
                     return
                 expected = []
