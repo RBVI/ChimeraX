@@ -13,9 +13,17 @@
 
 from ..state import State
 from numpy import uint8, int32, uint32, float64, float32, byte, bool as npy_bool
-from .molc import string, cptr, pyobject, c_property, set_c_pointer, c_function, c_array_function, ctype_type_to_numpy, pointer
+from .molc import CFunctions, string, cptr, pyobject, set_c_pointer, pointer, size_t
 import ctypes
-size_t = ctype_type_to_numpy[ctypes.c_size_t]   # numpy dtype for size_t
+
+# -------------------------------------------------------------------------------
+# Access functions from libmolc C library.
+#
+_atomic_c_functions = CFunctions('libmolc')
+c_property = _atomic_c_functions.c_property
+cvec_property = _atomic_c_functions.cvec_property
+c_function = _atomic_c_functions.c_function
+c_array_function = _atomic_c_functions.c_array_function
 
 # -------------------------------------------------------------------------------
 # These routines convert C++ pointers to Python objects and are used for defining
@@ -354,7 +362,7 @@ class Atom(State):
         vtype = ctypes.c_uint8
         v = vtype()
         v_ref = ctypes.byref(v)
-        f = c_array_function('atom_is_backbone', args=(ctype_type_to_numpy[ctypes.c_int],), per_object=False)
+        f = c_array_function('atom_is_backbone', args=(int32,), per_object=False)
         a_ref = ctypes.byref(self._c_pointer)
         f(a_ref, 1, bb_extent, v_ref)
         return bool(v.value)

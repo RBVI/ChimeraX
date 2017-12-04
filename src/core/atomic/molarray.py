@@ -48,10 +48,10 @@ are automatically removed from the collection.  Because they are mutable they
 cannot be used as keys in dictionary or added to sets.
 '''
 from numpy import uint8, int32, uint32, float64, float32, uintp, byte, bool as npy_bool, integer, empty, array
-from .molc import string, cptr, pyobject, cvec_property, set_cvec_pointer, c_function, c_array_function, pointer, ctype_type_to_numpy
+from .molc import string, cptr, pyobject, set_cvec_pointer, pointer, size_t
 from . import molobject
+from .molobject import c_function, c_array_function, cvec_property
 import ctypes
-size_t = ctype_type_to_numpy[ctypes.c_size_t]   # numpy dtype for size_t
 
 def _atoms(p):
     return Atoms(p)
