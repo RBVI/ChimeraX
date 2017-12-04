@@ -59,7 +59,7 @@ class ShapeOption(EnumOption):
 
 
 class AnchorOption(EnumOption):
-        values = [NA.SUGAR, NA.BASE]
+        values = [NA.RIBOSE, NA.BASE]
 
 
 class Float2Option(Option):
@@ -206,7 +206,7 @@ class Interface(ModelessDialog):
                 self.showBackbone = BackboneOption(
                     parent, row.next(), 'Show backbone as', 'ribbon', None)
                 self.showSide = SideOption(
-                    parent, row.next(), 'Show side (sugar/base) as', 'fill/slab',
+                    parent, row.next(), 'Show side (ribose/base) as', 'fill/slab',
                     self._showSideCB)
                 self.showOrientation = BooleanOption(
                     parent, row.next(), 'Show base orientation', default.ORIENT, None)
@@ -427,7 +427,7 @@ class Interface(ModelessDialog):
                         if self.currentStyle is None:
                                 info = self._getInfo()
                                 NA.addStyle(None, info)
-                        showGly = self.anchor.get() != NA.SUGAR
+                        showGly = self.anchor.get() != NA.RIBOSE
                         if showGly and side.startswith('tube'):
                                 showGly = self.showGlycosidic.get()
                         NA.set_slab(side, molecules, residues,

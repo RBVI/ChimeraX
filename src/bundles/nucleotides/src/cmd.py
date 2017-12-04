@@ -3,8 +3,8 @@
 #
 #       nucleotides ndbcolor [atom-spec]
 #       nucleotides [atom-spec] sidechain_type [keyword options]
-#               * show side chains -- sugar/bases
-#               * type is one of atoms, fill/fill, fill/slab, tube/slab, ladder
+#               * show side chains -- ribose/bases
+#               * type is one of atoms, fill/fill, fill/slab, tube/slab, slab, ladder
 #               * fill/fill is same as:
 #                       nuc sidechain atoms atom-spec; fillring thick atom-spec
 #               * options vary with sidechain type
@@ -28,7 +28,7 @@
 #       nucleotides add style-name options
 #               * create/modify slab style, all options are required
 #               * options are:
-#                       anchor (sugar|base)
+#                       anchor (ribose|base)
 #                       (purine|pyrimidine) (lower-left|ll|upper-right|ur) x y
 #       nucleotides delete style-name
 #               * delete style
@@ -44,7 +44,7 @@ from chimerax.core.commands import (
     EmptyArg, StringArg, ObjectsArg, all_objects
 )
 
-AnchorArg = EnumOf(("base", "sugar"))
+AnchorArg = EnumOf(("base", "ribose"))
 Float4Arg = TupleOf(FloatArg, 4, name="lower left x, y, upper right x, y")
 nucleotides_style_desc = CmdDesc(
     required=[("name", StringArg)],
@@ -148,13 +148,13 @@ def nucleotides(session, representation, *, glycosidic=default.GLYCOSIDIC, orien
             show_gly = glycosidic
         if show_gly:
             info = NA.find_style(style)
-            show_gly = info[NA.ANCHOR] != NA.SUGAR
+            show_gly = info[NA.ANCHOR] != NA.RIBOSE
         NA.set_slab(representation, molecules, residues, style=style,
                     thickness=thickness, orient=orient,
                     shape=shape, show_gly=show_gly, hide=hide)
     elif representation == 'ladder':
         NA.set_ladder(molecules, residues, rung_radius=radius,
-                      show_stubs=stubs, skip_nonbase_Hbonds=ignore)
+                      show_stubs=stubs, skip_nonbase_Hbonds=ignore, hide=hide)
 
 
 nucleotides_ndbcolor_desc = CmdDesc(

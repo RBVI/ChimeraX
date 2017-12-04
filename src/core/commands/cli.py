@@ -1119,15 +1119,10 @@ class PseudobondsArg(ObjectsArg):
     @classmethod
     def parse(cls, text, session):
         objects, used, rest = super().parse(text, session)
-        from ..atomic import PseudobondGroup, interatom_pseudobonds
-        pb = interatom_pseudobonds(objects.atoms)
-        pbgs = set(pb.groups.unique())
-        pblist = [m.pseudobonds for m in objects.models
-                  if isinstance(m, PseudobondGroup) and m not in pbgs]
-        if len(pb) > 0:
-            pblist.append(pb)
-        from ..atomic import Pseudobonds, concatenate
-        pbonds = concatenate(pblist, Pseudobonds)
+        from ..atomic import interatom_pseudobonds, Pseudobonds, concatenate
+        apb = interatom_pseudobonds(objects.atoms)
+        opb = objects.pseudobonds
+        pbonds = concatenate([apb, opb], Pseudobonds)
         return pbonds, used, rest
 
 

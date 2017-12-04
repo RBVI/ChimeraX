@@ -29,6 +29,7 @@ ChimeraX.app
 imex.h
 setup.py
 *.egg-info
+.eggs
 dist
 *~
 *.out
