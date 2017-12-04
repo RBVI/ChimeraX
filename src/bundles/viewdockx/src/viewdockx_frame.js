@@ -4,56 +4,35 @@ function init() {
 
     $(document).ready(function() {
         $.tablesorter.addParser({
-            // set a unique id
-            // id: 'name',
             id: 'id_col',
-            is: function(s, viewdockx_table, cell, $cell) {
+            is: function(s) {
                 // return false so this parser is not auto detected
                 return false;
             },
-            format: function(s, viewdockx_table, cell, cellIndex) {
-                var $cell = $(cell);
-                // alert(cellIndex)
-                // I could have used $(cell).data(), 
-
-                // alert(cellIndex);
-
-                if (cellIndex === 0) {
-                    s = s.split("\n")[0].trim();
-                    var dec = (s + "").split(".")[1];
-                    // alert(dec);
-                    return dec;
-                }
-
-
-                return s;
+            format: function(s) {
+                // Assume less than 100,000 models or submodels
+                // and convert id to 10-character zero-padded string
+                // which sorts correctly as text
+                var pad = "00000";
+                var padlen = pad.length;
+                var parts = s.split("\n")[0].trim().split(".");
+                var n = pad.substring(0, padlen - parts[0].length) + parts[0]
+                      + pad.substring(0, padlen - parts[1].length) + parts[1];
+                return n;
 
             },
-            // flag for filter widget (true = ALWAYS search parsed values; false = search cell text)
-            parsed: false,
             // set type, either numeric or text
-            type: 'numeric'
+            type: 'text'
         });
-        // $('viewdockx_table').find('thead th').addClass("{sorter:'id_col'}");
         $("#viewdockx_table").tablesorter({
             theme: 'blue',
             headers: {
                 0: { sorter: 'id_col' }
-                // 4: { sorter: 'id_col' }
-            },
-            widgets: ['zebra']
+            }
         });
-        /*
-        $("#viewdockx_table").fixedHeaderTable({
-            footer: false,
-            cloneHeadToFoot: false,
-            fixedColumn: false
-        });
-        */
     });
 
     $("#show_checkboxes").click(function() {
-
         if ($(this).is(":checked")) {
             $(".checkbox").show();
             $(".link").hide();
@@ -61,21 +40,17 @@ function init() {
             $(".checkbox").hide();
             $(".link").show();
         }
-
     });
 
     $(".struct").click(function() {
-
         if ($(this).is(":checked")) {
             window.location = $(this).attr('href') + "&display=1";
         } else {
             window.location = $(this).attr('href') + "&display=0";
         }
-
     });
 
     $("#check_all").click(function() {
-
         if ($(this).is(":checked")) {
             $(".struct").prop('checked', true);
             window.location = "viewdockx:check_all?show_all=true";
@@ -85,12 +60,9 @@ function init() {
         }
     });
 
-
     var data_array = [];
     var label_array = [];
     var property;
-
-
 
     $('#viewdockx_table tr td').on('click', function() {
         var $currentTable = $(this).closest('table');
@@ -111,7 +83,6 @@ function init() {
         property = $('#viewdockx_table th').eq($(this).index()).text();
 
     });
-
 
     // var vdx_chart=null; 
     $('#graph_btn').on('click', function() {
