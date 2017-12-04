@@ -1,0 +1,80 @@
+/*
+ * Content "full" is divided into "control" and "data"
+ * sections that fill 100% of the height.  "data" uses
+ * available space and is scrollable when needed.
+ */
+html, body, #full {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+#full {
+  display:flex;
+  flex-direction: column;
+}
+#control {
+  flex: none;
+}
+#data {
+  flex: 1;
+  overflow: auto;
+}
+
+/*
+ * Style one and only table
+ * "id" is always the left-most column
+ */
+table, th, td {
+  border: 1px solid grey;
+  border-collapse: collapse;
+}
+th {
+  font-family:arial;
+  background-color: #00FFCC;
+  background-position: right center;
+  background-repeat: no-repeat;
+  background-size: 16px;
+}
+td {
+  background-color: #CCFFF5;
+  text-align: center;
+  font-family:arial;
+}
+th.id {
+  background-color: #c266ff;
+  text-align: center;
+}
+td.id {
+  background-color: #ebccff;
+  text-align: left;
+}
+.selected {
+  background-color: yellow;
+}
+
+/*
+ * Put indicators on sorted column
+ */
+table thead tr .tablesorter-headerAsc {
+  background-image: url("lib/downarrow.png");
+  padding-right: 16px;
+}
+table thead tr .tablesorter-headerDesc {
+  background-image: url("lib/uparrow.png");
+  padding-right: 16px;
+}
+
+/*
+ * Control elements
+ */
+.checkbox {
+  display: none;
+  white-space: nowrap
+}
+.bar rect {
+  fill: teal;
+}
+.bar text {
+  fill: #fff;
+  font: 10px sans-serif;
+}

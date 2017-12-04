@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+   <base href="URLBASE" />
+   <link rel="stylesheet" type="text/css" href="viewdockx_frame.css">
+   <script src="lib/jquery-3.2.1.min.js"></script>
+   <script src="lib/jquery.tablesorter.combined.js"></script>
+   <script src="lib/jquery.fixedheadertable.min.js"></script>
+   <!-- <script src="lib/Chart.bundle.min.js"></script> -->
+   <!-- <script src="lib/d3/d3.min.js"></script> -->
+   <script src="viewdockx_frame.js"></script>
+</head>
+
+<body onload="init();">
+  <div id="full">
+    <div id="data">
+      TABLE
+      <!--
+      <canvas id="viewdockx_chart" width="1600" height="900"></canvas>
+      <canvas id="viewdock_histogram" width="400" height="400"></canvas>
+      <svg width="960" height="500"></svg>
+      -->
+    </div>
+    <div id="control">
+      <input type="checkbox" id="show_checkboxes">show checkboxes
+      <span class="checkbox">
+        <input type="checkbox" id="check_all"/>check all
+      </span>
+      <input id="graph_btn" type="button" value="graph" />
+      <input id="histogram_btn" type="button" value="histogram" />
+    </div>
+  </div>
+</body>
+</html>
