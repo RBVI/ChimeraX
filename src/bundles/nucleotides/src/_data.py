@@ -34,8 +34,10 @@ SideOptions = ['orient', 'fill/slab', 'slab', 'tube/slab', 'ladder']
 
 BackboneRiboseRE = re.compile("^(C[12345]'|H[12345]'|O[2345]'|HO[2345]'|P|OP[123]|HOP[123])$", re.I)
 BaseAtomsRE = re.compile("^(C[245678]|C5M|N[1234679]|O[246])$", re.I)
+RiboseAtomsRE = re.compile("^(C[1234]'|O[24]')$", re.I)
+BaseRiboseAtomsRE = re.compile("^(C[245678]|C5M|N[1234679]|O[246]|C[1234]'|O[24]')$", re.I)
 # NoRib versions are missing C3' and C4' from Ribose
-RiboseAtomsNoRibRE = re.compile("^(C[12]|O[24])'$", re.I)
+RiboseAtomsNoRibRE = re.compile("^(C[12]'|O[24]')$", re.I)
 BaseRiboseAtomsNoRibRE = re.compile("^(C[245678]|C5M|N[1234679]|O[246]|C[12]'|O[24]')$", re.I)
 
 
@@ -520,7 +522,7 @@ def _rebuild_molecule(trigger_name, mol):
         # check changes for reasons we're interested in
         # ie., add/delete/moving atoms
         if 'ribbon_display changed' in changes.residue_reasons():
-            pass # rebuild
+            pass  # rebuild
         elif 'active_coordset changed' in changes.structure_reasons():
             pass  # rebuild
         else:
@@ -588,12 +590,20 @@ def _rebuild_molecule(trigger_name, mol):
     hide_riboses.difference_update(hide_all)
     hide_bases.difference_update(hide_all)
 
-    set_hide_atoms(False, BaseRiboseAtomsNoRibRE, show_all)
+    set_hide_atoms(False, BaseRiboseAtomsRE, show_all)
     set_hide_atoms(False, BaseAtomsRE, show_riboses)
-    set_hide_atoms(False, RiboseAtomsNoRibRE, show_bases)
-    set_hide_atoms(True, BaseRiboseAtomsNoRibRE, hide_all)
-    set_hide_atoms(True, BaseAtomsRE, hide_riboses)
-    set_hide_atoms(True, RiboseAtomsNoRibRE, hide_bases)
+    set_hide_atoms(False, RiboseAtomsRE, show_bases)
+    set_hide_atoms(True, BaseAtomsRE, hide_bases)
+    r = Residues(residues=hide_all)
+    r2 = r.filter(r.ribbon_displays)
+    r3 = r - r2
+    set_hide_atoms(True, BaseRiboseAtomsRE, r2)
+    set_hide_atoms(True, BaseRiboseAtomsNoRibRE, r3)
+    r = Residues(residues=hide_riboses)
+    r2 = r.filter(r.ribbon_displays)
+    r3 = r - r2
+    set_hide_atoms(True, RiboseAtomsRE, r2)
+    set_hide_atoms(True, RiboseAtomsNoRibRE, r3)
 
     """
     for residue in show_glys:
@@ -923,6 +933,7 @@ def set_normal(molecules, residues):
         if rds[r.structure].pop(r, None) is not None:
             changed.add(r)
             _need_rebuild.add(r.structure)
+    set_hide_atoms(False, BaseRiboseAtomsRE, changed)
 
 
 def set_orient(molecules, residues):
