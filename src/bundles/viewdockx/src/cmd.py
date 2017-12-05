@@ -2,7 +2,6 @@
 
 from chimerax.core.commands import CmdDesc, AtomicStructuresArg
 from chimerax.core.atomic import AtomicStructure
-# from . import _sample
 
 
 def viewdock(session, structures=None):

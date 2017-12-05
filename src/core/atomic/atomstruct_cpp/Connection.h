@@ -122,6 +122,8 @@ public:
     void  set_display(bool d);
     void  set_halfbond(bool hb);
     void  set_hide(int h);
+    void  set_hide_bits(int bit_mask) { set_hide(hide() | bit_mask); }
+    void  clear_hide_bits(int bit_mask) { set_hide(hide() & ~bit_mask); }
     void  set_radius(float r);
     virtual bool shown() const;
     bool  visible() const { return _hide ? false : _display; }
