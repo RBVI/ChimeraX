@@ -21,7 +21,7 @@ class EM_Grid(Grid_Data):
 
   def __init__(self, path):
 
-    import em_format
+    from . import em_format
     d = em_format.EM_Data(path)
     self.em_data = d
 

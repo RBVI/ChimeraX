@@ -18,11 +18,11 @@ def points_ijk_bounds(points, pad, data):
 
   xyz_min, xyz_max = bounding_box(points)
 
-  box_min = map(lambda x, p=pad: x-p, xyz_min)
-  box_max = map(lambda x, p=pad: x+p, xyz_max)
+  box_min = [x-pad for x in xyz_min]
+  box_max = [x+pad for x in xyz_max]
   corners = box_corners(box_min, box_max)
 
-  ijk_min, ijk_max = bounding_box(map(data.xyz_to_ijk, corners))
+  ijk_min, ijk_max = bounding_box([data.xyz_to_ijk(c) for c in corners])
 
   # TODO: This is not the tightest bounding box for skewed boxes.
   #     Should take ijk min/max then add size of padding skewed to ijk space.

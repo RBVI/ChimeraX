@@ -9,10 +9,18 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-# -----------------------------------------------------------------------------
-# Situs density map file reader.
-#
-def open(path):
+TOP = ../../../../..
+include $(TOP)/mk/config.make
 
-  from .situs_grid import SITUS_Grid
-  return [SITUS_Grid(path)]
+PKG_DIR = $(PYSITEDIR)/chimerax/core/map/data/imod
+
+PYSRCS = __init__.py imod_grid.py
+
+all: $(PYOBJS)
+
+install: all
+	-mkdir -p $(PKG_DIR)
+	$(RSYNC) $(PYSRCS) $(PKG_DIR)
+
+clean:
+	rm -rf __pycache__

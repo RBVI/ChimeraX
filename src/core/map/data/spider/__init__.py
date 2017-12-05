@@ -15,5 +15,5 @@
 #
 def open(path):
 
-  from spider_grid import SPIDER_Grid
+  from .spider_grid import SPIDER_Grid
   return [SPIDER_Grid(path)]

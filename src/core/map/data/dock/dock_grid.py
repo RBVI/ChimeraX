@@ -46,7 +46,7 @@ class Dock_Grid(Grid_Data):
 #
 def read_dock_file(path):
 
-  import dock_format
+  from . import dock_format
   dock_data = dock_format.Dock_Data(path)
 
   grids = []

@@ -18,7 +18,7 @@ from .. import Grid_Data
 class Plt_Grid(Grid_Data):
 
 	def __init__(self, path):
-		import plt_format
+		from . import plt_format
 		dm = plt_format.Plt_map(path)
 		self.density_map = dm
 

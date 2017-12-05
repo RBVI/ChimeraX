@@ -54,11 +54,7 @@ class PROFEC_Potential:
   def __init__(self, path):
 
     self.path = path
-    #
-    # Open file in binary mode 'rb'.  Opening in mode 'r' in Python 2.4.2
-    # on Windows with '\n' line endings gives incorrect f.tell() values,
-    #
-    f = open(path, 'rb')
+    f = open(path, 'r')
 
     line = skip_comment_lines(f, '#')
 
@@ -99,7 +95,7 @@ def skip_comment_lines(f, comment_character):
 def read_line_values(line, count, type, descrip):
 
   try:
-    values = map(type, line.split()[:count])
+    values = [type(f) for f in line.split()[:count]]
   except:
     raise FileFormatError('Error parsing %s on line:\n %s' % (descrip, line))
   return values
