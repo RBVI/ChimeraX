@@ -12,13 +12,9 @@
 TOP = ../../../..
 include $(TOP)/mk/config.make
 
-#SUBDIRS	= amira apbs ccp4 cmap delphi dock dsn6 emanhdf gaussian \
-#	gopenmol imagestack imod macmolplt mrc netcdf pif priism \
-#	profec situs spider tiff tom_em uhbd xplor
-
-# TODO: Port other file readers from Python 2 to Python 3.
-
-SUBDIRS	= amira apbs ccp4 cmap deltavision dsn6 imagestack ims mrc
+SUBDIRS	= amira apbs ccp4 cmap delphi deltavision dock dsn6 emanhdf gaussian \
+	  gopenmol imagestack imod ims macmolplt mrc priism profec \
+	  pif situs spider tom_em uhbd xplor
 
 PKG_DIR = $(PYSITEDIR)/chimerax/core/map/data
 APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/map/data

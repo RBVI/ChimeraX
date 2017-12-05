@@ -39,7 +39,7 @@ def open_grid_files(paths_and_types, stack_images = True):
 
   if unknown_type_paths:
     import os.path
-    file_names = map(os.path.basename, unknown_type_paths)
+    file_names = [os.path.basename(p) for p in unknown_type_paths]
     files = ', '.join(file_names)
     msg = 'Unknown file types for %s' % files
     error_message = error_message + msg

@@ -14,5 +14,5 @@
 #
 def open(path):
 
-  from gaussian_grid import read_gaussian_file
+  from .gaussian_grid import read_gaussian_file
   return read_gaussian_file(path)

@@ -40,7 +40,7 @@ class Priism_Data:
 
     self.data_size = (v['NumCol'],
                       v['NumRow'],
-                      v['NumSections'] / (v['NumWaves'] * v['NumTimes']))
+                      v['NumSections'] // (v['NumWaves'] * v['NumTimes']))
     xlen, ylen, zlen = v['dx'], v['dy'], v['dz']
     if xlen > 0 and ylen > 0 and zlen > 0:
       self.data_step = (xlen, ylen, zlen)
@@ -68,7 +68,7 @@ class Priism_Data:
           msg = '%s = %d is <= 0' % (attrib, v[attrib])
         else:
           msg = '%s = %.5g is <= 0' % (attrib, v[attrib])
-        raise SyntaxError, msg
+        raise SyntaxError(msg)
 
     self.check_data_type(v)
       
@@ -155,9 +155,9 @@ class Priism_Data:
     prev_bend = 0
     for bstart, bend, type, fname, descrip in fields:
       if type_sizes[type] != bend - bstart + 1:
-        print 'Size error: ', bstart, bend, type, fname, descrip
+        print ('Size error: ', bstart, bend, type, fname, descrip)
       if bstart != prev_bend + 1:
-        print 'Gap error: ', bstart, bend, type, fname, descrip
+        print ('Gap error: ', bstart, bend, type, fname, descrip)
       prev_bend = bend
       format = format + type_map[type]
     return format
@@ -175,24 +175,24 @@ class Priism_Data:
     
     itype = v['ImageType']
     if itype < 0 or itype > 3:
-      raise SyntaxError, 'Priism image type %d is not image data (0-3)' % itype
+      raise SyntaxError('Priism image type %d is not image data (0-3)' % itype)
 
     ptype = v['PixelType']
     if not ptype in (0,1,2,5,6,7):
-      raise SyntaxError, ('Priism data value type (%d) ' % ptype +
-                          'is not unsigned 8 bit integers, ' +
-                          'signed or unsigned 16 bit integers, ' +
-                          'signed 32 bit integers, or 32 bit floats')
+      raise SyntaxError('Priism data value type (%d) ' % ptype +
+                        'is not unsigned 8 bit integers, ' +
+                        'signed or unsigned 16 bit integers, ' +
+                        'signed 32 bit integers, or 32 bit floats')
 
     times = v['NumTimes']
     if times < 1:
-      raise SyntaxError, 'Priism data time points < 1 (%d)' % (times,)
+      raise SyntaxError('Priism data time points < 1 (%d)' % (times,))
     waves = v['NumWaves']
     if waves < 1:
-      raise SyntaxError, 'Priism data number of wavelengths < 1 (%d)' % (waves,)
+      raise SyntaxError('Priism data number of wavelengths < 1 (%d)' % (waves,))
     iseq = v['ImgSequence']
     if iseq < 0 or iseq > 2:
-      raise SyntaxError, 'Priism data undefined axis order (%d)' % (iseq,)
+      raise SyntaxError('Priism data undefined axis order (%d)' % (iseq,))
     
 # -----------------------------------------------------------------------------
 #
