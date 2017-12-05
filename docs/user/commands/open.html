@@ -34,7 +34,7 @@ class="clRight" title="User Guide Index"/></a>
 </h3>
 <p>
 The command <b>open</b> reads data in several
-<a href="#formats">formats</a> from:
+<a href="#formats">input formats</a> from:
 <p>
 <ul>
 <li><a href="#local">local files</a>
@@ -209,6 +209,11 @@ target="_blank">DeltaVision</a> map</td>
 <td align="center">.cmp<br>.cmap</td>
 <td align="center">volume data</td>
 </tr><tr>
+<td align="center">CNS or XPLOR density map</td>
+<td align="center"><b>xplor</b></td>
+<td align="center">.cns<br>.xplor</td>
+<td align="center">unformatted ASCII density map</td>
+</tr><tr>
 <td align="center">Directional FSC (Fourier shell correlation)</td>
 <td align="center"><b>dres</b></td>
 <td align="center">.dres</td>
@@ -217,11 +222,47 @@ target="_blank">DeltaVision</a> map</td>
 an XYZ vector and a resolution or other value
 to colormap onto the globe)</td>
 </tr><tr>
+<td align="center">DelPhi or GRASP potential</td>
+<td align="center"><b>delphi</b></td>
+<td align="center">.phi</td>
+<td align="center">electrostatic potential calculated with
+<a href="http://compbio.clemson.edu/delphi" target="_blank">DelPhi</a>
+(the academic version) or 
+<a href="http://honig.c2b2.columbia.edu/grasp/" target="_blank">GRASP</a></td>
+</tr><tr>
+<td align="center">DOCK scoring grid</td>
+<td align="center"><b>dock</b></td>
+<td align="center">.bmp<br>.cnt<br>.nrg</td>
+<td align="center">
+<a href="http://dock.compbio.ucsf.edu/index.html"
+target="_blank">DOCK</a> (versions 4, 5, 6)
+bump, contact, and energy scoring grids<br>
+(suffixes not interchangeable; <i>gridname</i>.bmp required for reading
+<i>gridname</i>.cnt and/or <i>gridname</i>.nrg)</td>
+</tr><tr>
 <td align="center">DSN6 density map</td>
 <td align="center"><b>dsn6</b></td>
 <!-- dsn6 format name is shared, program figures out which variant -->
 <td align="center">.omap</td>
 <td align="center">density map</td>
+</tr><tr>
+<td align="center">EMAN HDF map
+<br>(based on the hierarchical data format
+<a href="http://www.hdfgroup.org/HDF5/" target="_blank">HDF5</a>)</td>
+<td align="center"><b>emanhdf</b></td>
+<td align="center">.hdf<br>.h5</td>
+<td align="center">electron density map</td>
+</tr><tr>
+<td align="center">Gaussian cube grid</td>
+<td align="center"><b>cube</b></td>
+<td align="center">.cube<br>.cub</td>
+<td align="center">orbitals, electron densities, other</td>
+</tr><tr>
+<td align="center"><a href="https://research.csc.fi/-/gopenmol_download"
+target="_blank">gOpenMol</a> grid</td>
+<td align="center"><b>gopenmol</b></td>
+<td align="center">.plt</td>
+<td align="center">orbitals, electron densities, other</td>
 </tr><tr>
 <td align="center">ImageJ or
 <a href="https://www-legacy.openmicroscopy.org/site/products/ome-tiff"
@@ -246,17 +287,81 @@ in formats supported by
 <td align="center">3D-5D image<br>(could be time series and/or multichannel)</td>
 </tr><tr>
 <td align="center">
+<a href="http://bio3d.colorado.edu/imod/doc/mrc_format.txt"
+target="_blank">IMOD map</a>
+<br>(MRC map with signed 8-bit mode interpreted as unsigned)</td>
+<td align="center"><b>imodmap</b></td>
+<td align="center">.rec</td>
+<td align="center">electron density map</td>
+</tr><tr>
+<td align="center">
+<a href="https://brettbode.github.io/wxmacmolplt/MacMolPlt_Manual.html"
+target="_blank">MacMolPlt</a> grid
+<br>(<a href="https://brettbode.github.io/wxmacmolplt/Manual_pages/MacMolPlt_Files.html#SurfExport"
+target="_blank">3D surfaces</a>)</td>
+<td align="center"><b>macmolplt</b></td>
+<td align="center">.mmp</td>
+<td align="center">3D surface data</td>
+</tr><tr>
+<td align="center">
 <a href="http://www2.mrc-lmb.cam.ac.uk/research/locally-developed-software/image-processing-software/#image"
 target="_blank">MRC</a> density map</td>
 <td align="center"><b>mrc</b></td>
 <td align="center">.mrc</td>
 <td align="center">density map</td>
+</tr><tr>
+<td align="center">Priism microscope image or time series</td>
+<td align="center"><b>priism</b></td>
+<td align="center">.xyzw<br>.xyzt&nbsp;(time&nbsp;series)</td>
+<td align="center">3D light or EM data</td>
+<!--
+</tr><tr>
+<td align="center">Priism time series</td>
+<td align="center"><b>priism_t</b></td>
+<td align="center">.xyzt</td>
+<td align="center">time series of 3D light or EM data</td>
+-->
+</tr><tr>
+<td align="center">PROFEC free energy grid</td>
+<td align="center"><b>profec</b></td>
+<td align="center">.profec</td>
+<td align="center">interaction free energy grid from PROFEC
+(in <a href="http://ambermd.org/index.html" target="_blank"><b>Amber</b></a>
+versions 6 and 7)</td>
+</tr><tr>
+<td align="center">Purdue image format</td>
+<td align="center"><b>pif</b></td>
+<td align="center">.pif</td>
+<td align="center">electron density map</td>
+</tr><tr>
+<td align="center"><a href="http://situs.biomachina.org/index.html"
+target="_blank">Situs</a> map file</td>
+<td align="center"><b>situs</b></td>
+<td align="center">.situs<br>.sit</td>
+<td align="center">electron density map</td>
+</tr><tr>
+<td align="center">SPIDER volume data</td>
+<td align="center"><b>spider</b></td>
+<td align="center">.spi<br>.vol</td>
+<td align="center">electron density map</td>
 <tr><tr>
 <td align="center"><a href="http://huanglab.ucsf.edu/STORM.html"
 target="_blank">STochastic Optical Reconstruction Microscopy (STORM)</a></td>
 <td align="center"><b>storm</b></td>
 <td align="center">.storm</td>
 <td align="center">super-resolution optical microscopy data</td>
+</tr><tr>
+<td align="center"><a href="https://www.biochem.mpg.de/tom"
+target="_blank">TOM toolbox</a> EM density map</td>
+<td align="center"><b>tom_em</b></td>
+<td align="center">.em</td>
+<td align="center">electron density map</td>
+</tr><tr>
+<td align="center">UHBD grid, binary</td>
+<td align="center"><b>uhbd</b></td>
+<td align="center">.grd</td>
+<td align="center">electrostatic potential calculated with
+University of Houston Brownian Dynamics (UHBD)</td>
 <tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
 <a name="object"></a>
@@ -757,5 +862,5 @@ the single best-matching sequence is associated.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2017</address>
+December 2017</address>
 </body></html>
