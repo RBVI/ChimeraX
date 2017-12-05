@@ -217,7 +217,7 @@ Sequence::set_name(std::string& name)
 {
     auto old_name = _name;
     _name = name;
-    auto inst = py_instance();
+    auto inst = py_instance(false);
     if (inst != nullptr) {
         auto gil = AcquireGIL();
         auto ret = PyObject_CallMethod(inst, "_cpp_rename", "s", old_name.c_str());

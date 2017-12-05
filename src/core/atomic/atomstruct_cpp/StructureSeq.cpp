@@ -88,7 +88,7 @@ StructureSeq::copy() const
 void
 StructureSeq::demote_to_sequence()
 {
-    auto inst = py_instance();
+    auto inst = py_instance(false);
     if (inst != nullptr) {
         auto gil = AcquireGIL();
         _structure = nullptr;

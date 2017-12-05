@@ -38,7 +38,7 @@ class Bond;
 class Chain;
 class Structure;
 
-class ATOMSTRUCT_IMEX Residue: public PythonInstance {
+class ATOMSTRUCT_IMEX Residue: public PythonInstance<Residue> {
 public:
     typedef std::vector<Atom *>  Atoms;
     typedef std::multimap<AtomName, Atom *>  AtomsMap;

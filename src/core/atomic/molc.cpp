@@ -5330,3 +5330,77 @@ extern "C" EXPORT void pointer_intersects_each(void *pointer_arrays, size_t na, 
         molc_error();
     }
 }
+
+// inform C++ about relevant class objects
+//
+extern "C" EXPORT void set_atom_pyclass(PyObject* py_class)
+{
+    try {
+        Atom::set_py_class(py_class);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void set_bond_pyclass(PyObject* py_class)
+{
+    try {
+        Bond::set_py_class(py_class);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void set_coordset_pyclass(PyObject* py_class)
+{
+    try {
+        CoordSet::set_py_class(py_class);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void set_pbgroup_pyclass(PyObject* py_class)
+{
+    try {
+        PBGroup::set_py_class(py_class);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void set_pseudobond_pyclass(PyObject* py_class)
+{
+    try {
+        Pseudobond::set_py_class(py_class);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void set_residue_pyclass(PyObject* py_class)
+{
+    try {
+        Residue::set_py_class(py_class);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void set_ring_pyclass(PyObject* py_class)
+{
+    try {
+        Ring::set_py_class(py_class);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void set_sequence_pyclass(PyObject* py_class)
+{
+    try {
+        Sequence::set_py_class(py_class);
+    } catch (...) {
+        molc_error();
+    }
+}

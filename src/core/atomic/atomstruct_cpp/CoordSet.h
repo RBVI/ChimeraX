@@ -27,7 +27,7 @@
 
 namespace atomstruct {
 
-class ATOMSTRUCT_IMEX CoordSet: public PythonInstance {
+class ATOMSTRUCT_IMEX CoordSet: public PythonInstance<CoordSet> {
     friend class Atom;
     friend class Structure;
 

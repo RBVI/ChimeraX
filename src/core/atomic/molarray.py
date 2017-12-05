@@ -99,7 +99,6 @@ class Collection(State):
     '''
     def __init__(self, items, object_class, objects_class):
         import numpy
-        from time import time
         if items is None:
             # Empty Atoms
             pointers = numpy.empty((0,), cptr)

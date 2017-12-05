@@ -82,6 +82,7 @@ PBManager.o: ChangeTracker.h destruct.h Structure.h PBGroup.h PBManager.h Python
 Point.o: Point.h
 Pseudobond.o: Atom.h ChangeTracker.h Connection.h PBGroup.h PBManager.h Pseudobond.h \
 	PythonInstance.h session.h
+PythonInstance.o: PythonInstance.h
 Residue.o: Atom.h Bond.h ChangeTracker.h destruct.h PythonInstance.h \
 	Residue.h session.h tmpl/TemplateCache.h
 RibbonXSection.o: RibbonXSection.h
@@ -91,5 +92,4 @@ seq_assoc.o: Chain.h Structure.h Residue.h seq_assoc.h
 Sequence.o: Sequence.h session.h
 Structure.o: Atom.h Bond.h ChangeTracker.h CoordSet.h destruct.h PBGroup.h PBManager.h \
 	Pseudobond.h PythonInstance.h Structure.h Residue.h
-StructureSeq.o: Structure.h Chain.h ChangeTracker.h destruct.h \
-	PythonInstance.h Structure.h Sequence.h Residue.h
+StructureSeq.o: Structure.h Chain.h ChangeTracker.h destruct.h Structure.h Sequence.h Residue.h

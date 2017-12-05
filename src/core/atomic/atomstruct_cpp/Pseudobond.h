@@ -36,7 +36,7 @@ class ChangeTracker;
 class GraphicsChanges;
 class PBGroup;
 
-class ATOMSTRUCT_IMEX Pseudobond: public Connection, public PythonInstance
+class ATOMSTRUCT_IMEX Pseudobond: public Connection, public PythonInstance<Pseudobond>
 {
 public:
     friend class PBGroup;

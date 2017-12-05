@@ -24,7 +24,7 @@ namespace atomstruct {
 
 class Bond;
 
-class ATOMSTRUCT_IMEX Ring: public PythonInstance {
+class ATOMSTRUCT_IMEX Ring: public PythonInstance<Ring> {
 public:
     typedef std::set<Atom*>  Atoms;
     typedef std::set<Bond*>  Bonds;

@@ -39,7 +39,7 @@ class Structure;
 class Proxy_PBGroup;
 class Pseudobond;
 
-class ATOMSTRUCT_IMEX BaseManager: public PythonInstance {
+class ATOMSTRUCT_IMEX BaseManager: public PythonInstance<BaseManager> {
 public:
     // so that subclasses can create multiple types of groups...
     static const int GRP_NONE = 0;

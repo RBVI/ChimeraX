@@ -32,7 +32,7 @@ class Residue;
 class Ring;
 class Structure;
 
-class ATOMSTRUCT_IMEX Bond: public UniqueConnection, public PythonInstance {
+class ATOMSTRUCT_IMEX Bond: public UniqueConnection, public PythonInstance<Bond> {
     friend class Structure;
 public:
     // use Atom::HIDE_* constants for hide bits

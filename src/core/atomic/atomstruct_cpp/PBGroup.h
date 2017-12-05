@@ -47,7 +47,7 @@ class Proxy_PBGroup;
 class Structure;
 
 class ATOMSTRUCT_IMEX PBGroup: public DestructionObserver, public GraphicsChanges,
-        public PythonInstance {
+        public PythonInstance<PBGroup> {
 public:
     typedef std::set<Pseudobond*>  Pseudobonds;
 

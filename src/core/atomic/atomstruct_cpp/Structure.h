@@ -90,7 +90,7 @@ public:
 // add any) so that they can be treated identically in the Python
 // layer.  Some atomic-structure-specific methods will have no-op
 // implementations in Structure and real implementations in AtomicStructure.
-class ATOMSTRUCT_IMEX Structure: public GraphicsChanges, public PythonInstance {
+class ATOMSTRUCT_IMEX Structure: public GraphicsChanges, public PythonInstance<Structure> {
     friend class Atom; // for IDATM stuff and structure categories
     friend class Bond; // for checking if make_chains() has been run yet, struct categories
     friend class Residue; // for _polymers_computed

@@ -2412,6 +2412,14 @@ class SeqMatchMap(State):
 # -----------------------------------------------------------------------------
 #
 
+# tell the C++ layer about class objects whose Python objects can be instantiated directly
+# from C++ with just a pointer...
+from .pbgroup import PBGroup
+for class_ in [Atom, Bond, CoordSet, PBGroup, Pseudobond, Residue, Ring, Sequence]:
+    func_name = "set_" + class_.__name__.lower() + "_pyclass"
+    f = c_function(func_name, args = (ctypes.py_object,))
+    f(class_)
+
 # The C++ function Structure::py_object() calls object_map(), so if this function is
 # renamed or it's call signature is modified (or this module is moved) then that C++
 # function must be updated

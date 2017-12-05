@@ -42,7 +42,7 @@ public:
     SeqIndexError(const std::string& msg) : std::range_error(msg) {}
 };
 
-class ATOMSTRUCT_IMEX Sequence: public PythonInstance {
+class ATOMSTRUCT_IMEX Sequence: public PythonInstance<Sequence> {
 public:
     typedef std::vector<char>  Contents;
 protected:

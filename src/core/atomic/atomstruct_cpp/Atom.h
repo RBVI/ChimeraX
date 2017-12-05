@@ -53,7 +53,7 @@ class CoordSet;
 class Residue;
 class Ring;
 
-class ATOMSTRUCT_IMEX Atom: public PythonInstance  {
+class ATOMSTRUCT_IMEX Atom: public PythonInstance<Atom>  {
     friend class AtomicStructure;
     friend class UniqueConnection;
     friend class Structure;

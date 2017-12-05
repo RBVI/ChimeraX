@@ -22,7 +22,6 @@
 
 #include "imex.h"
 #include "polymer.h"
-#include "PythonInstance.h"
 #include "Sequence.h"
 #include "session.h"
 #include "string_types.h"
