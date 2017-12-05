@@ -31,7 +31,6 @@ class ViewDockTool(HtmlToolInstance):
         """ Called to update page with current list of models"""
         from urllib.parse import urlunparse, urlencode
         if trigger_data is not None:
-
             for struct in self.structures:
                 if struct in trigger_data:
                     self.structures.remove(struct)
@@ -128,18 +127,18 @@ class ViewDockTool(HtmlToolInstance):
         table.append("</tbody>")
         table.append("</table>")
 
-        import os
+        import os.path
         from PyQt5.QtCore import QUrl
-        dir_path = os.path.dirname(os.path.abspath(__file__))
+        dir_path = os.path.dirname(__file__)
         qurl = QUrl.fromLocalFile(os.path.join(dir_path, "viewdockx.html"))
-        with open(os.path.join(dir_path, "viewdockx_frame.html"), "r") as file:
+        with open(os.path.join(dir_path, "viewdockx_table.html"), "r") as file:
             template = file.read()
         output = template.replace("TABLE", ('\n'.join(table)))\
                          .replace("URLBASE", qurl.url())
         self.html_view.setHtml(output, qurl)
         # Debug
-        with open("viewdock.html", "w") as f:
-            print(output, file=f)
+        #with open("viewdock.html", "w") as f:
+        #    print(output, file=f)
 
     def handle_scheme(self, url):
         # Called when custom link is clicked.
@@ -189,7 +188,39 @@ class ViewDockTool(HtmlToolInstance):
             struct.display = struct in structures
 
     def _cb_graph(self, query):
-        pass
+        ChartTool(self.session, "ViewDock Chart", structures=self.structures)
 
     def _cb_histogram(self, query):
         pass
+
+
+class ChartTool(HtmlToolInstance):
+
+    SESSION_ENDURING = False
+    SESSION_SAVE = False
+    CUSTOM_SCHEME = "viewdockx"
+
+    def __init__(self, session, tool_name, structures=None):
+        self.display_name = "ViewDockX"
+        super().__init__(session, tool_name, size_hint=(575,400))
+        if structures is None:
+            from chimerax.core.atomic import AtomicStructure
+            structures = session.models.list(type=AtomicStructure)
+        self.structures = structures
+        from chimerax.core.models import REMOVE_MODELS
+        self._remove_handler = session.triggers.add_handler(REMOVE_MODELS,
+                                                            self._update_models)
+        self._update_models()
+
+    def _update_models(self):
+        import os.path
+        from PyQt5.QtCore import QUrl
+        dir_path = os.path.dirname(__file__)
+        qurl = QUrl.fromLocalFile(os.path.join(dir_path, "viewdockx.html"))
+        with open(os.path.join(dir_path, "viewdockx_chart.html"), "r") as file:
+            template = file.read()
+        output = template.replace("URLBASE", qurl.url())
+        self.html_view.setHtml(output, qurl)
+        # Debug
+        #with open("viewdock_chart.html", "w") as f:
+        #    print(output, file=f)
