@@ -15,8 +15,8 @@
 # Save and restore map series state.
 #
 def map_series_states(session):
-    from .series import Map_Series
-    s = [state_from_series(s, session) for s in session.model_list() if isinstance(s, Map_Series)]
+    from .series import MapSeries
+    s = [state_from_series(s, session) for s in session.model_list(type = MapSeries)]
     return s
 
 # -----------------------------------------------------------------------------
@@ -25,8 +25,8 @@ def restore_map_series(ms_states, session, file_paths, attributes_only = False):
     for ms_state in ms_states:
         from ..session import find_volumes_by_session_id
         maps = find_volumes_by_session_id(ms_state['maps'], session)
-        from .series import Map_Series
-        ms = Map_Series(ms_state['name'], maps, session)
+        from .series import MapSeries
+        ms = MapSeries(ms_state['name'], maps, session)
         ms.id = ms_state['id']
         oids = session.object_ids
         if 'session_id' in ms_state:

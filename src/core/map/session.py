@@ -472,8 +472,8 @@ def state_from_map(volume):
   s['session_volume_id'] = session_volume_id(v)
   s['version'] = 1
   if hasattr(v, 'parent'):
-    from .series import Map_Series
-    if isinstance(v.parent, Map_Series):
+    from .series import MapSeries
+    if isinstance(v.parent, MapSeries):
       s['in_map_series'] = True
   return s
 

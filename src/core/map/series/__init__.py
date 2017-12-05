@@ -11,6 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .series import Map_Series
+from .series import MapSeries
 from .vseries_command import register_vseries_command
 from .play import PlaySeriesMouseMode
