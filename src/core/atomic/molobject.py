@@ -88,9 +88,8 @@ class Atom(State):
 
     To create an Atom use the :class:`.AtomicStructure` new_atom() method.
     '''
-
+    # constants are replicated in Atoms class
     SPHERE_STYLE, BALL_STYLE, STICK_STYLE = range(3)
-
     HIDE_RIBBON = 0x1
     '''Hide mask for backbone atoms in ribbon.'''
     HIDE_ISOLDE = 0x2
