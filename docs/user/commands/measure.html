@@ -113,9 +113,8 @@ buried between <a href="atomspec.html#builtin"><b>ligand</b></a> and
 [&nbsp;<b>smoothingIterations</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 &nbsp;<a href="color.html#palette-options"><i>palette-options</i></a>&nbsp;
 <blockquote>
-Compute the convexity at each surface vertex and color the surface
-to show the values.
-Convexity is calculated as 2&pi; minus the cone-angle spanned by the 
+Color a surface by the convexity at each vertex, 
+calculated as 2&pi; minus the cone-angle spanned by the 
 triangles incident at the vertex, optionally smoothed by averaging with 
 neighboring (edge-connected) vertices for a specified number of iterations
 (default <b>5</b>). Smoothing is generally recommended, given that this
@@ -123,9 +122,9 @@ definition of convexity is nonstandard and the unsmoothed values
 depend strongly on the triangulation:
 vertices surrounded by large triangles on a smooth surface 
 will have sharper cone angles than vertices surrounded by small triangles.
-(Normalizing by triangle areas does not help because the patch about
-a vertex is often irregular in shape.)
-Mottled coloring may indicate the need for more smoothing.
+(Normalizing by triangle areas does not help because the patch around
+a vertex is often irregular in shape.) 
+Unsmoothed values typically give mottled coloring.
 <a name="palette-options"></a>
 The <i>palette-options</i> for coloring are the same as
 <a href="color.html#palette-options">described for <b>color</b></a>,
@@ -133,7 +132,8 @@ except with defaults:
 <blockquote>
 <b>palette&nbsp;cyan-gray-maroon&nbsp;&nbsp;range&nbsp;-1,1</b>
 </blockquote>
-See also: <a href="mlp.html"><b>mlp</b></a>
+See also: <a href="mlp.html"><b>mlp</b></a>, 
+<a href="color.html"><b>color</b></a>
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -180,5 +180,5 @@ phenylalanine, tyrosine, and tryptophan residues
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2017</address>
+December 2017</address>
 </body></html>
