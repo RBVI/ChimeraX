@@ -73,7 +73,7 @@ class Gaussian_Cube:
     ao = read_line_values(f.readline(), if3_line, 'atom count / origin')
     num_atoms = abs(ao[0])
     have_orbitals = (ao[0] < 0)
-    self.origin = tuple(map(lambda o: bohr_radius * o, ao[1:]))
+    self.origin = tuple(bohr_radius * o for o in ao[1:])
     
     grid_size = []
     step = []
@@ -89,10 +89,10 @@ class Gaussian_Cube:
       axis = sa[1:]
       n = norm(axis)
       step.append(n)
-      grid_axes.append(map(lambda x: x/n, axis))
+      grid_axes.append([x/n for x in axis])
     self.grid_size = tuple(grid_size)
-    self.step = tuple(map(lambda s: bohr_radius * s, step))
-    self.grid_axes = tuple(map(tuple, grid_axes))
+    self.step = tuple(bohr_radius * s for s in step)
+    self.grid_axes = tuple(tuple(ga) for ga in grid_axes)
 
     if4_line = (int, float, float, float, float)
     atoms = []
@@ -139,7 +139,7 @@ def read_line_values(line, types, descrip):
 
   try:
     fields = line.split()[:len(types)]
-    values = map(lambda t, f: t(f), types, fields)
+    values = [t(f) for t,f in zip(types, fields)]
   except:
     raise FileFormatError('Error parsing %s on line:\n %s' % (descrip, line))
   return values

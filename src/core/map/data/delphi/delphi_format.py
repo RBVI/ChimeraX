@@ -29,7 +29,7 @@ class DelPhi_Data:
     file.seek(0,0)                              # goto beginning of file
 
     if self.file_size == 0:
-      raise SyntaxError, 'Empty file'
+      raise SyntaxError('Empty file')
 
     swap = self.need_to_swap_bytes(file)
     uplbl = self.read_record(file, swap)
@@ -54,15 +54,15 @@ class DelPhi_Data:
       self.value_type = float64
       sc = params[:32]
     else:
-      raise SyntaxError, ('Parameter record size %d must be 16 or 20 or 36'
-                          % len(params))
+      raise SyntaxError('Parameter record size %d must be 16 or 20 or 36'
+                        % len(params))
     pval = string_values(sc, self.value_type, swap)
     scale = pval[0]
     xyz_center = pval[1:4]
 
     step = 1.0/scale
     half_size = step * ((size - 1) / 2)
-    xyz_origin = map(lambda c, hs=half_size: c - hs, xyz_center)
+    xyz_origin = [(c - half_size) for c in xyz_center]
 
     self.swap = swap
     self.size = (size, size, size)
@@ -85,10 +85,10 @@ class DelPhi_Data:
     from numpy import int32
     size = string_values(file.read(4), int32, swap)[0]
     if size < 0:
-      raise SyntaxError, 'Negative record size %d' % size
+      raise SyntaxError('Negative record size %d' % size)
     if size > self.file_size:
-      raise SyntaxError, ('Record size %d > file size %d'
-                          % (size, self.file_size))
+      raise SyntaxError('Record size %d > file size %d'
+                        % (size, self.file_size))
 
     if skip:
       file.seek(size, 1)
@@ -99,8 +99,8 @@ class DelPhi_Data:
     from numpy import int32
     esize = string_values(file.read(4), int32, swap)[0]
     if esize != size:
-      raise SyntaxError, ('Record size at end of record %d' % esize + 
-                          ' != size at head of record %d' % size)
+      raise SyntaxError('Record size at end of record %d' % esize + 
+                        ' != size at head of record %d' % size)
       
     return string
     

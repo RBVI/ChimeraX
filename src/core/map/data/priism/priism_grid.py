@@ -31,7 +31,7 @@ class Priism_Grid(Grid_Data):
 
     size = priism_data.data_size
     xyz_step = priism_data.data_step
-    xyz_origin = map(lambda a, b: a * b, priism_data.data_origin, xyz_step)
+    xyz_origin = [a * b for a,b in zip(priism_data.data_origin, xyz_step)]
     value_type = wd.element_type
 
     wavelength = wd.wavelength
@@ -65,7 +65,7 @@ class Priism_Grid(Grid_Data):
 #
 def read_priism_file(path):
 
-  import priism_format
+  from . import priism_format
   priism_data = priism_format.Priism_Data(path)
 
   grids = [Priism_Grid(priism_data, wd) for wd in priism_data.wavelength_data]

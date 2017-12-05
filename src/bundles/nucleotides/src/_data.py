@@ -20,11 +20,13 @@ from . import default
 import numpy
 from chimerax.core.geometry import Place, translation, scale, distance, distance_squared, z_align, Plane, normalize_vector
 from chimerax.core.surface import box_geometry, sphere_geometry2, cylinder_geometry
-from chimerax.core.atomic import Residues, Sequence
+from chimerax.core.atomic import Residues, Atoms, Sequence
 nucleic3to1 = Sequence.nucleic3to1
 
 _SQRT2 = math.sqrt(2)
 _SQRT3 = math.sqrt(3)
+
+HIDE_NUCLEOTIDE = Atoms.HIDE_NUCLEOTIDE
 
 _rebuild_handler = None
 _need_rebuild = weakref.WeakSet()
@@ -32,14 +34,13 @@ _rebuilding = False
 
 SideOptions = ['orient', 'fill/slab', 'slab', 'tube/slab', 'ladder']
 
-BackboneRE = re.compile("^(C[345]'|H[345]'|O[35]'|HO[3]'|P|OP[123]|HOP[123])$", re.I)
 BackboneRiboseRE = re.compile("^(C[12345]'|H[12345]'|O[2345]'|HO[2345]'|P|OP[123]|HOP[123])$", re.I)
-BaseAtomsRE = re.compile("^(C[245678]|H[245678]|C5M|N[1234679]|H1|H[1234679][123]|O[246])$", re.I)
-BaseExceptRE = re.compile("^C1'$", re.I)
-RiboseAtomsRE = re.compile("^(C[1234]'|H[1234]'|O[24]'|HO[24]')$", re.I)
-RiboseExceptRE = re.compile("^(C5|N[19]|C5'|O3')$", re.I)
-RiboseAtomsNoRibRE = re.compile("^(C[12]|O[24])'$", re.I)
-RiboseExceptNoRibRE = re.compile("^(C5|N[19]|C[34]')$", re.I)
+BaseAtomsRE = re.compile("^(C[245678]|C5M|N[1234679]|O[246])$", re.I)
+RiboseAtomsRE = re.compile("^(C[1234]'|O[24]')$", re.I)
+BaseRiboseAtomsRE = re.compile("^(C[245678]|C5M|N[1234679]|O[246]|C[1234]'|O[24]')$", re.I)
+# NoRib versions are missing C3' and C4' from Ribose
+RiboseAtomsNoRibRE = re.compile("^(C[12]'|O[24]')$", re.I)
+BaseRiboseAtomsNoRibRE = re.compile("^(C[245678]|C5M|N[1234679]|O[246]|C[12]'|O[24]')$", re.I)
 
 
 class AlwaysRE:
@@ -523,8 +524,7 @@ def _rebuild_molecule(trigger_name, mol):
         # check changes for reasons we're interested in
         # ie., add/delete/moving atoms
         if 'ribbon_display changed' in changes.residue_reasons():
-            # rebuild
-            mol.bounds()  # need to recompute ribbon first  TODO: another way?
+            pass  # rebuild
         elif 'active_coordset changed' in changes.structure_reasons():
             pass  # rebuild
         else:
@@ -532,6 +532,7 @@ def _rebuild_molecule(trigger_name, mol):
             if reasons.isdisjoint(_AtomReasons):
                 # no reason to rebuild
                 return
+    mol.bounds()  # need to recompute ribbon first  TODO: another way?
     nuc_info, nd = _nuc_drawing(mol, recreate=True)
     if nuc_info is None:
         _need_rebuild.discard(mol)
@@ -552,56 +553,77 @@ def _rebuild_molecule(trigger_name, mol):
         # no residues to track in structure
         _remove_nuc_drawing(mol, nd)
         return
-    all_residues = set(nuc_info.keys())
+    all_residues = Residues(nuc_info.keys())
     # create shapes
-    hide_riboses = set()
-    hide_bases = set()
+    hide_riboses = []
+    hide_bases = []
     residues = sides['ladder']
     if not residues:
         mol._ladder_params = {}
     else:
-        residues = Residues(residues=residues)
+        residues = Residues(residues)
         # redo all ladder nodes
-        hide_riboses.update(residues)
-        hide_bases.update(residues)
         # TODO: hide hydrogen bonds between matched bases
-        make_ladder(nd, residues, **mol._ladder_params)
-        set_hide_atoms(True, RiboseAtomsNoRibRE, AlwaysRE, residues)
-        set_hide_atoms(True, BaseAtomsRE, AlwaysRE, residues)
+        hide_residues = make_ladder(nd, residues, **mol._ladder_params)
+        hide_riboses.extend(hide_residues)
+        hide_bases.extend(hide_residues)
     residues = sides['fill/slab'] + sides['slab']
     if residues:
-        hide_bases.update(make_slab(nd, residues, nuc_info))
+        hide_bases.extend(make_slab(nd, residues, nuc_info))
     residues = sides['tube/slab']
     if residues:
-        hide_riboses.update(residues)
-        make_tube(nd, residues, nuc_info)
-        hide_bases.update(make_slab(nd, residues, nuc_info))
+        hide_residues, show_gly = make_tube(nd, residues, nuc_info)
+        hide_riboses.extend(hide_residues)
+        hide_residues = make_slab(nd, residues, nuc_info)
+        hide_bases.extend(hide_residues)
     residues = sides['orient']
     if residues:
         for r in residues:
             draw_orientation(nd, r)
+    hide_riboses = Residues(hide_riboses)
+    hide_bases = Residues(hide_bases)
+
     # make sure ribose/base atoms are hidden/shown
-    show_riboses = all_residues - hide_riboses
-    show_bases = all_residues - hide_bases
-    showresidue_info = show_riboses - hide_bases
-    show_riboses.difference_update(showresidue_info)
-    show_bases.difference_update(showresidue_info)
-    set_hide_atoms(False, AlwaysRE, NeverRE, showresidue_info)
-    set_hide_atoms(False, RiboseAtomsRE, NeverRE, show_riboses)
-    non_ribbon_riboses = [r for r in hide_riboses if not r.ribbon_display]
-    set_hide_atoms(False, BaseAtomsRE, BaseExceptRE, show_bases)
+    hide_all = hide_riboses & hide_bases
+    hide_riboses = hide_riboses - hide_all
+    hide_bases = hide_bases - hide_all
+
+    all_residues.atoms.clear_hide_bits(HIDE_NUCLEOTIDE)
+
+    set_hide_atoms(BaseAtomsRE, hide_bases)
+    rib_res = hide_all.filter(hide_all.ribbon_displays)
+    other_res = hide_all - rib_res
+    set_hide_atoms(BaseRiboseAtomsRE, rib_res)
+    set_hide_atoms(BaseRiboseAtomsNoRibRE, other_res)
+    rib_res = hide_riboses.filter(hide_riboses.ribbon_displays)
+    other_res = hide_riboses - rib_res
+    set_hide_atoms(RiboseAtomsRE, rib_res)
+    set_hide_atoms(RiboseAtomsNoRibRE, other_res)
+
+    """
+    for residue in show_glys:
+        params = nuc_info[residue]['slab params']
+        style = params['style']
+        info = find_style(style)
+        c1p = residue.find_atom("C1'")
+        ba = residue.find_atom(anchor(info[ANCHOR], tag))
+        if c1p and ba:
+            c1p.clear_hide_bits(HIDE_NUCLEOTIDE)
+            ba.clear_hide_bits(HIDE_NUCLEOTIDE)
+    """
+
+    # TODO: If a hidden atom is pseudobonded to another atom,
+    # then hide the pseudobond.
+
     _need_rebuild.discard(mol)
 
 
-def set_hide_atoms(hide, AtomsRE, exceptRE, residues):
-    # Hide that atoms match AtomsRE and associated hydrogens.  If
-    # a hidden atom is bonded to a displayed atom, then bring it back
-    # except for the ones in exceptRE.  If a hidden atom is pseudobonded
-    # to another atom, then hide the pseudobond.
+def set_hide_atoms(AtomsRE, residues):
+    # Hide that atoms match AtomsRE and associated hydrogens.
     from chimerax.core.atomic import Element
     H = Element.get_element(1)
+    atoms = []
     for r in residues:
-        atoms = []
         for a in r.atoms:
             if AtomsRE.match(a.name):
                 atoms.append(a)
@@ -613,30 +635,7 @@ def set_hide_atoms(hide, AtomsRE, exceptRE, residues):
                 continue
             if AtomsRE.match(b[0].name):
                 atoms.append(a)
-        if not atoms:
-            continue
-
-        if hide:
-            for ra in atoms:
-                ra.hide |= ra.HIDE_NUCLEOTIDE
-        else:
-            for ra in atoms:
-                ra.hide &= ~ra.HIDE_NUCLEOTIDE
-
-        # set hide bit for atoms that bond to non-hidden atoms
-        for ra in atoms:
-            for b in ra.bonds:
-                a = b.other_atom(ra)
-                if a in atoms:
-                    continue
-                if exceptRE.match(a.name):
-                    continue
-                d = b.display
-                if not d:
-                    continue
-                if a.display:
-                    # bring back atom
-                    ra.hide &= ~ra.HIDE_NUCLEOTIDE
+    Atoms(atoms).set_hide_bits(HIDE_NUCLEOTIDE)
 
 
 def get_cylinder(radius, p0, p1, bottom=True, top=True):
@@ -688,8 +687,7 @@ def get_ring(r, base_ring):
 
 
 def draw_slab(nd, residue, *, style=default.STYLE, thickness=default.THICKNESS,
-              hide=default.HIDE, orient=default.ORIENT, shape=default.SHAPE,
-              show_gly=default.GLYCOSIDIC):
+              hide=default.HIDE, orient=default.ORIENT, shape=default.SHAPE):
     try:
         t = residue.name
         if t in ('PSU', 'P'):
@@ -760,13 +758,6 @@ def draw_slab(nd, residue, *, style=default.STYLE, thickness=default.THICKNESS,
     xf2.move(va)
     xf2.update_normals(na, pure=pure_rotation)
     nd.add_shape(va, na, ta, color, atoms, description)
-
-    if show_gly:
-        c1p = residue.find_atom("C1'")
-        ba = residue.find_atom(anchor(info[ANCHOR], tag))
-        if c1p and ba:
-            c1p.hide &= ~c1p.HIDE_NUCLEOTIDE
-            ba.hide &= ~ba.HIDE_NUCLEOTIDE
 
     if not orient:
         return True
@@ -843,7 +834,7 @@ def draw_orientation(nd, residue):
         orient_planar_ring(nd, ring, indices)
 
 
-def ribose_tube(nd, residue, anchor=RIBOSE, show_gly=False):
+def draw_tube(nd, residue, *, anchor=RIBOSE, show_gly=False):
     if anchor == RIBOSE:
         show_gly = False
     if anchor == RIBOSE or show_gly:
@@ -862,42 +853,27 @@ def ribose_tube(nd, residue, anchor=RIBOSE, show_gly=False):
             return
         aname = _BaseAnchors[tag]
         if not aname:
-            return
+            return False
     a = residue.find_atom(aname)
     if not a or not a.display:
-        return
+        return False
     ep0 = a.coord
     radius = a.structure.bond_radius
     color = a.color
 
     # calculate position between C3' and C4' on ribbon
-    # TODO
-    # hasRibbon = residue.ribbon_display and residue.hasRibbon()
-    # if hasRibbon:
-    #     rrc = residue.ribbonResidueClass
-    #     found, o3pPos = rrc.position("O3'")
-    #     if not found:
-    #         return []
-    #     found, c5pPos = rrc.position("C5'")
-    #     if not found:
-    #         return []
-    #     s = chimera.Spline(chimera.Spline.BSpline,
-    #                        residue.ribbonCenters())
-    #     ep1 = s.coordinate((o3pPos + c5pPos) / 2)
-    # else:
-    if 1:
-        c3p = residue.find_atom("C3'")
-        if not c3p:
-            return []
-        c4p = residue.find_atom("C4'")
-        if not c4p:
-            return []
-        try:
-            c3p_coord = c3p.ribbon_coord
-            c4p_coord = c4p.ribbon_coord
-            ep1 = (c3p_coord + c4p_coord) / 2
-        except KeyError:
-            ep1 = (c3p.coord + c4p.coord) / 2
+    c3p = residue.find_atom("C3'")
+    if not c3p:
+        return False
+    c4p = residue.find_atom("C4'")
+    if not c4p:
+        return False
+    try:
+        c3p_coord = c3p.ribbon_coord
+        c4p_coord = c4p.ribbon_coord
+        ep1 = (c3p_coord + c4p_coord) / 2
+    except KeyError:
+        ep1 = (c3p.coord + c4p.coord) / 2
 
     description = '%s ribose' % residue.atomspec()
 
@@ -905,24 +881,13 @@ def ribose_tube(nd, residue, anchor=RIBOSE, show_gly=False):
     nd.add_shape(va, na, ta, color, None, description)
     va, na, ta = get_sphere(radius, ep0)
     nd.add_shape(va, na, ta, color, None, description)
-
-    set_hide_atoms(True, RiboseAtomsRE, RiboseExceptRE, [residue])
+    return True
 
 
 def _c3pos(residue):
     c3p = residue.find_atom("C3'")
     if not c3p:
         return None
-    # TODO:
-    # if residue.ribbon_display and residue.hasRibbon():
-    #     rrc = residue.ribbonResidueClass
-    #     found, o3pPos = rrc.position("O3'")
-    #     if found:
-    #         found, c5pPos = rrc.position("C5'")
-    #         if found:
-    #             s = chimera.Spline(chimera.Spline.BSpline,
-    #                                residue.ribbonCenters())
-    #             return c3p, s.coordinate((o3pPos + c5pPos) / 2)
     try:
         coord = c3p.ribbon_coord
         return c3p, coord
@@ -937,11 +902,12 @@ def set_normal(molecules, residues):
     for m in molecules:
         nuc_info, nd = _nuc_drawing(m)
         rds[m] = nuc_info
-    changed = set()
+    changed = []
     for r in residues:
         if rds[r.structure].pop(r, None) is not None:
-            changed.add(r)
+            changed.append(r)
             _need_rebuild.add(r.structure)
+    Residues(changed).atoms.clear_hide_bits(HIDE_NUCLEOTIDE)
 
 
 def set_orient(molecules, residues):
@@ -971,6 +937,7 @@ def set_slab(side, molecules, residues, style=default.STYLE, **slab_params):
             'show_gly': slab_params.get('show_gly', default.GLYCOSIDIC),
             ANCHOR: info[ANCHOR],
         }
+    slab_params.pop('show_gly', None)
     slab_params['style'] = style
     rds = {}
     for m in molecules:
@@ -994,21 +961,35 @@ def set_slab(side, molecules, residues, style=default.STYLE, **slab_params):
 
 
 def make_slab(nd, residues, rds):
-    hide_bases = set()
+    # returns collection of residues whose bases are drawn as slabs and
+    # and have their atoms hidden
+    hidden = []
     for r in residues:
         params = rds[r]['slab params']
-        if params.get('hide', default.HIDE):
-            hide_bases.add(r)
-            set_hide_atoms(True, BaseAtomsRE, BaseExceptRE, [r])
+        hide_base = params.get('hide', default.HIDE)
         if not draw_slab(nd, r, **params):
-            hide_bases.discard(r)
-    return hide_bases
+            hide_base = False
+        if hide_base:
+            hidden.append(r)
+    return hidden
 
 
 def make_tube(nd, residues, rds):
     # should be called before make_slab
+    hidden = []
+    shown = []
     for r in residues:
-        ribose_tube(nd, r, **rds[r]['tube params'])
+        params = rds[r]['slab params']
+        hide_ribose = params.get('hide', default.HIDE)
+        show_gly = hide_ribose and params.get('show_gly', default.GLYCOSIDIC)
+        if not draw_tube(nd, r, **rds[r]['tube params']):
+            hide_ribose = False
+            show_gly = False
+        if hide_ribose:
+            hidden.append(r)
+        if show_gly:
+            shown.append(r)
+    return hidden, shown
 
 
 def set_ladder(molecules, residues, **ladder_params):
@@ -1032,9 +1013,12 @@ def set_ladder(molecules, residues, **ladder_params):
         rd['side'] = 'ladder'
 
 
-def make_ladder(nd, residues, rung_radius=0, show_stubs=True, skip_nonbase_Hbonds=False):
+def make_ladder(nd, residues, *, rung_radius=0, show_stubs=True, skip_nonbase_Hbonds=False, hide=default.HIDE):
     """generate links between residues that are hydrogen bonded together"""
-    # create list of atoms from residues for donors and acceptors
+    # returns set of residues whose bases are drawn as rungs and
+    # and have their atoms hidden
+
+    # Create list of atoms from residues for donors and acceptors
     mol = residues.unique_structures[0]
 
     pbg = mol.pseudobond_group(mol.PBG_HYDROGEN_BONDS, create_type=None)
@@ -1109,7 +1093,9 @@ def make_ladder(nd, residues, rung_radius=0, show_stubs=True, skip_nonbase_Hbond
             matched_residues.add(r1)
 
     if not show_stubs:
-        return
+        if hide:
+            return matched_residues
+        return ()
     # draw stubs for unmatched nucleotide residues
     for r in residues:
         if r in matched_residues:
@@ -1128,6 +1114,10 @@ def make_ladder(nd, residues, rung_radius=0, show_stubs=True, skip_nonbase_Hbond
         ep1 = dist_atom[1].coord
         va, na, ta = get_cylinder(rung_radius, ep0, ep1)
         nd.add_shape(va, na, ta, color, r.atoms, r.atomspec())
+        matched_residues.add(r)
+    if hide:
+        return matched_residues
+    return ()
 
 
 # def save_session(trigger, closure, file):

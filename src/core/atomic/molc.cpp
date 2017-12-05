@@ -201,6 +201,18 @@ error_wrap_array_set(T** instances, size_t n, void (T::*pm)(Elem), Elem2* args)
     }
 }
 
+// wrap array calling single argument member function
+template <typename T, typename Elem, typename Elem2 = Elem> void
+error_wrap_array_1arg(T** instances, size_t n, void (T::*pm)(Elem), Elem2 arg)
+{
+    try {
+        for (size_t i = 0; i < n; ++i)
+            (instances[i]->*pm)(arg);
+    } catch (...) {
+        molc_error();
+    }
+}
+
 
 using namespace atomstruct;
 
@@ -535,6 +547,18 @@ extern "C" EXPORT void set_atom_hide(void *atoms, size_t n, int32_t *hide)
 {
     Atom **a = static_cast<Atom **>(atoms);
     error_wrap_array_set<Atom, int, int>(a, n, &Atom::set_hide, hide);
+}
+
+extern "C" EXPORT void set_atom_hide_bits(void *atoms, size_t n, int32_t bit_mask)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    error_wrap_array_1arg<Atom, int, int>(a, n, &Atom::set_hide_bits, bit_mask);
+}
+
+extern "C" EXPORT void clear_atom_hide_bits(void *atoms, size_t n, int32_t bit_mask)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    error_wrap_array_1arg<Atom, int, int>(a, n, &Atom::clear_hide_bits, bit_mask);
 }
 
 extern "C" EXPORT void atom_visible(void *atoms, size_t n, npy_bool *visible)
@@ -1123,9 +1147,9 @@ extern "C" EXPORT void atom_update_ribbon_visibility(void *atoms, size_t n)
                     }
             }
             if (hide)
-                atom->set_hide(atom->hide() | Atom::HIDE_RIBBON);
+                atom->set_hide_bits(Atom::HIDE_RIBBON);
             else
-                atom->set_hide(atom->hide() & ~Atom::HIDE_RIBBON);
+                atom->clear_hide_bits(Atom::HIDE_RIBBON);
         }
     } catch (...) {
         molc_error();
@@ -1260,6 +1284,18 @@ extern "C" EXPORT void set_bond_hide(void *bonds, size_t n, int32_t *hide)
 {
     Bond **a = static_cast<Bond **>(bonds);
     error_wrap_array_set<Bond, int, int>(a, n, &Bond::set_hide, hide);
+}
+
+extern "C" EXPORT void set_bond_hide_bits(void *bonds, size_t n, int32_t bit_mask)
+{
+    Bond **a = static_cast<Bond **>(bonds);
+    error_wrap_array_1arg<Bond, int, int>(a, n, &Bond::set_hide_bits, bit_mask);
+}
+
+extern "C" EXPORT void clear_bond_hide_bits(void *bonds, size_t n, int32_t bit_mask)
+{
+    Bond **a = static_cast<Bond **>(bonds);
+    error_wrap_array_1arg<Bond, int, int>(a, n, &Bond::clear_hide_bits, bit_mask);
 }
 
 extern "C" EXPORT void bond_visible(void *bonds, size_t n, uint8_t *visible)
@@ -2535,7 +2571,7 @@ static void residue_update_hide(Residue *r, Atom *anchor)
         for (auto atom: r->atoms())
             if ((atom->hide() & Atom::HIDE_RIBBON) == 0
                     && atom->is_backbone(BBE_RIBBON) && atom != anchor)
-                atom->set_hide(atom->hide() | Atom::HIDE_RIBBON);
+                atom->set_hide_bits(Atom::HIDE_RIBBON);
     }
     else {
         // Ribbon is not shown or does not hide backbone
@@ -2543,7 +2579,7 @@ static void residue_update_hide(Residue *r, Atom *anchor)
         for (auto atom: r->atoms())
             if ((atom->hide() & Atom::HIDE_RIBBON) != 0
                     && atom->is_backbone(BBE_RIBBON) && atom != anchor)
-                atom->set_hide(atom->hide() & ~Atom::HIDE_RIBBON);
+                atom->clear_hide_bits(Atom::HIDE_RIBBON);
     }
 }
 
@@ -2829,7 +2865,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int
                     for (auto atom: a)
                         if ((atom->hide() & Atom::HIDE_RIBBON) == 0
                                 && atom->is_backbone(BBE_RIBBON) && atom != center)
-                            atom->set_hide(atom->hide() | Atom::HIDE_RIBBON);
+                            atom->set_hide_bits(Atom::HIDE_RIBBON);
 #if 0
                     // Not sure if this code is still needed.
                     // Bonds are not drawn if the atoms are not visible.
@@ -2839,7 +2875,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int
                         if ((bond->hide() & Bond::HIDE_RIBBON) == 0
                                 && atoms[0]->is_backbone(BBE_RIBBON)
                                 && atoms[1]->is_backbone(BBE_RIBBON))
-                            bond->set_hide(bond->hide() | Bond::HIDE_RIBBON);
+                            bond->set_hide_bits(Bond::HIDE_RIBBON);
                     }
 #endif
                 }
@@ -2848,13 +2884,13 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int
                     for (auto atom: a)
                         if ((atom->hide() & Atom::HIDE_RIBBON) != 0
                                 && atom->is_backbone(BBE_RIBBON) && atom != center)
-                            atom->set_hide(atom->hide() & ~Atom::HIDE_RIBBON);
+                            atom->clear_hide_bits(Atom::HIDE_RIBBON);
                     for (auto bond: r[i]->bonds_between(r[i])) {
                         auto atoms = bond->atoms();
                         if ((bond->hide() & Bond::HIDE_RIBBON) != 0
                                 && atoms[0]->is_backbone(BBE_RIBBON)
                                 && atoms[1]->is_backbone(BBE_RIBBON))
-                            bond->set_hide(bond->hide() & ~Bond::HIDE_RIBBON);
+                            bond->clear_hide_bits(Bond::HIDE_RIBBON);
                     }
                 }
             }

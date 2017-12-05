@@ -14,5 +14,5 @@
 #
 def open(path):
 
-  from macmolplt_grid import MacMolPlt_Grid
+  from .macmolplt_grid import MacMolPlt_Grid
   return [MacMolPlt_Grid(path)]

@@ -223,6 +223,8 @@ public:
     void  set_color(const Rgba& rgba);
     void  set_display(bool d);
     void  set_hide(int h);
+    void  set_hide_bits(int bit_mask) { set_hide(hide() | bit_mask); }
+    void  clear_hide_bits(int bit_mask) { set_hide(hide() & ~bit_mask); }
     void  set_selected(bool s);
     bool  visible() const { return _display && !_hide; }
 };

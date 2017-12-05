@@ -14,7 +14,7 @@
 def write_brix(grid_data, path, options = {}, progress = None):
 
     d = grid_data
-    xyz_size = map(lambda a,b: a*b, d.step, d.size)
+    xyz_size = [a*b for a,b in zip(d.step, d.size)]
     origin = tuple([round(-x) for x in d.xyz_to_ijk((0,0,0))])
     size = d.size
     cell_size = d.size

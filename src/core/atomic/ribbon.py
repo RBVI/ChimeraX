@@ -1081,7 +1081,7 @@ def get_orthogonal_component(v, ref):
 
 
 def constrained_normals(tangents, n_start, n_end, flip_mode, s_flipped, e_flipped, no_twist):
-    from .molc import c_function
+    from .molobject import c_function
     import ctypes
     f = c_function("constrained_normals",
                    args=(ctypes.py_object, ctypes.py_object, ctypes.py_object,

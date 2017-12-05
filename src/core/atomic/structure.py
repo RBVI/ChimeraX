@@ -36,7 +36,6 @@ class Structure(Model, StructureData):
             '_pseudobond_radius': 0.05,
             '_use_spline_normals': False,
             'ribbon_xs_mgr': XSectionManager(),
-            '_ribbon_want_backbone': False,
             'filename': None,
         }
 
@@ -641,11 +640,9 @@ class Structure(Model, StructureData):
             # Perform any smoothing (e.g., strand smoothing
             # to remove lasagna sheets, pipes and planks
             # display as cylinders and planes, etc.)
-            tethered = zeros(len(atoms), bool)
             self._smooth_ribbon(residues, coords, guides, atoms, ssids,
-                                tethered, xs_front, xs_back, p,
+                                xs_front, xs_back, p,
                                 helix_ranges, sheet_ranges)
-            tethered &= displays
             if False:
                 # Debugging code to display line from control point to guide
                 cp = p.new_drawing(str(self) + " control points")
@@ -852,6 +849,17 @@ class Structure(Model, StructureData):
             # Save mappings for picking
             self._ribbon_t2r[rp] = t2r
 
+            # Cache position of backbone atoms on ribbon
+            # and get list of tethered atoms
+            self._ribbon_spline_position(ribbon, residues)
+            from numpy.linalg import norm
+            from .molarray import Atoms
+            tether_atoms = Atoms(list(self._ribbon_spline_backbone.keys()))
+            spline_coords = array(list(self._ribbon_spline_backbone.values()))
+            atom_coords = tether_atoms.coords
+            offsets = array(atom_coords) - spline_coords
+            tethered = norm(offsets, axis=1) > self.bond_radius
+
             # Create tethers if necessary
             from numpy import any
             m = residues[0].structure
@@ -867,14 +875,13 @@ class Structure(Model, StructureData):
                     va, na, ta = surface.cone_geometry(nc=nc, caps=False, points_up=False)
                 tp.geometry = va, ta
                 tp.normals = na
-                self._ribbon_tether.append((atoms, tp, coords[tethered], atoms.filter(tethered),
-                                            m.ribbon_tether_shape, m.ribbon_tether_scale))
+                self._ribbon_tether.append((tether_atoms, tp,
+                                            spline_coords[tethered],
+                                            tether_atoms.filter(tethered),
+                                            m.ribbon_tether_shape,
+                                            m.ribbon_tether_scale))
             else:
-                self._ribbon_tether.append((atoms, None, None, None, None, None))
-
-            # Cache position of backbone atoms on ribbon
-            if self.ribbon_want_backbone:
-                self._ribbon_spline_position(ribbon, residues)
+                self._ribbon_tether.append((tether_atoms, None, None, None, None, None))
 
             # Create spine if necessary
             if self.ribbon_show_spine:
@@ -932,7 +939,7 @@ class Structure(Model, StructureData):
         sp.colors = sp_colors
         #C
 
-    def _smooth_ribbon(self, rlist, coords, guides, atoms, ssids, tethered,
+    def _smooth_ribbon(self, rlist, coords, guides, atoms, ssids,
                        xs_front, xs_back, p, helix_ranges, sheet_ranges):
         ribbon_adjusts = rlist.ribbon_adjusts
         if self.ribbon_mode_helix == self.RIBBON_MODE_DEFAULT:
@@ -940,27 +947,27 @@ class Structure(Model, StructureData):
             # XXX: Skip helix smoothing for now since it does not work well for bent helices
             pass
             # for start, end in helix_ranges:
-            #     self._smooth_helix(coords, guides, tethered, xs_front, xs_back,
+            #     self._smooth_helix(coords, guides, xs_front, xs_back,
             #                        ribbon_adjusts, start, end, p)
         elif self.ribbon_mode_helix == self.RIBBON_MODE_ARC:
             for start, end in helix_ranges:
-                self._arc_helix(rlist, coords, guides, ssids, tethered, xs_front, xs_back,
+                self._arc_helix(rlist, coords, guides, ssids, xs_front, xs_back,
                                 ribbon_adjusts, start, end, p)
         elif self.ribbon_mode_helix == self.RIBBON_MODE_WRAP:
             for start, end in helix_ranges:
-                self._wrap_helix(rlist, coords, guides, ssids, tethered, xs_front, xs_back,
+                self._wrap_helix(rlist, coords, guides, ssids, xs_front, xs_back,
                                  ribbon_adjusts, start, end, p)
         if self.ribbon_mode_strand == self.RIBBON_MODE_DEFAULT:
             # Smooth strands
             for start, end in sheet_ranges:
-                self._smooth_strand(rlist, coords, guides, tethered, xs_front, xs_back,
+                self._smooth_strand(rlist, coords, guides, xs_front, xs_back,
                                     ribbon_adjusts, start, end, p)
         elif self.ribbon_mode_strand == self.RIBBON_MODE_ARC:
             for start, end in sheet_ranges:
-                self._arc_strand(rlist, coords, guides, tethered, xs_front, xs_back,
+                self._arc_strand(rlist, coords, guides, xs_front, xs_back,
                                  ribbon_adjusts, start, end, p)
 
-    def _smooth_helix(self, rlist, coords, guides, tethered, xs_front, xs_back,
+    def _smooth_helix(self, rlist, coords, guides, xs_front, xs_back,
                       ribbon_adjusts, start, end, p):
         # Try to fix up the ribbon orientation so that it is parallel to the helical axis
         from numpy import dot, newaxis, mean
@@ -997,12 +1004,8 @@ class Structure(Model, StructureData):
         # Originally, we just update the guide location to
         # the same relative place as before
         #   guides[start:end] = new_coords + delta_guides
-        # Update the tethered array (we compare against self.bond_radius
-        # because we want to create cones for the "worst" case which is
-        # when the atoms are displayed in stick mode, with radius self.bond_radius)
-        tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
 
-    def _arc_helix(self, rlist, coords, guides, ssids, tethered, xs_front, xs_back,
+    def _arc_helix(self, rlist, coords, guides, ssids, xs_front, xs_back,
                    ribbon_adjusts, start, end, p):
         # Only bother if at least one residue is displayed
         displays = rlist.ribbon_displays
@@ -1020,7 +1023,6 @@ class Structure(Model, StructureData):
         normals, binormals = hc.cylinder_normals()
         icenters, inormals, ibinormals = hc.cylinder_intermediates()
         coords[start:end] = centers
-        tethered[start:end] = True
 
         # Compute unit circle in 2D
         mgr = self.ribbon_xs_mgr
@@ -1281,7 +1283,7 @@ class Structure(Model, StructureData):
             self._add_r2t(res, triangle_range)
         self._ribbon_t2r[ssp] = t2r
 
-    def _wrap_helix(self, rlist, coords, guides, ssids, tethered, xs_front, xs_back,
+    def _wrap_helix(self, rlist, coords, guides, ssids, xs_front, xs_back,
                     ribbon_adjusts, start, end, p):
         # Only bother if at least one residue is displayed
         displays = rlist.ribbon_displays
@@ -1293,14 +1295,13 @@ class Structure(Model, StructureData):
         directions = hc.cylinder_directions()
         coords[start:end] = hc.cylinder_surface()
         guides[start:end] = coords[start:end] + directions
-        tethered[start:end] = True
         if False:
             # Debugging code to display guides of secondary structure
             self._ss_guide_display(p, str(self) + " helix guide " + str(start),
                                    coords[start:end], guides[start:end])
     
 
-    def _smooth_strand(self, rlist, coords, guides, tethered, xs_front, xs_back,
+    def _smooth_strand(self, rlist, coords, guides, xs_front, xs_back,
                        ribbon_adjusts, start, end, p):
         if (end - start + 1) <= 2:
             # Short strands do not need smoothing
@@ -1343,10 +1344,8 @@ class Structure(Model, StructureData):
             self._ss_display(p, str(self) + " strand " + str(start), ideal)
             self._ss_guide_display(p, str(self) + " strand guide " + str(start),
                                    coords[start:end], guides[start:end])
-        # Update the tethered array
-        tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
 
-    def _arc_strand(self, rlist, coords, guides, tethered, xs_front, xs_back,
+    def _arc_strand(self, rlist, coords, guides, xs_front, xs_back,
                        ribbon_adjusts, start, end, p):
         if (end - start + 1) <= 2:
             # Short strands do not need to be shown as planks
@@ -1373,8 +1372,6 @@ class Structure(Model, StructureData):
         #delta = guides[start:end] - coords[start:end]
         #guides[start:end] = coords[start:end] + delta
         guides[start:end] = coords[start:end] + binormals
-        offsets = coords[start:end] - centers
-        tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
         if True:
             # Debugging code to display center of secondary structure
             self._ss_display(p, str(self) + " strand " + str(start), centers)
@@ -1492,6 +1489,8 @@ class Structure(Model, StructureData):
                 p.selected_triangles_mask = m
 
     # Position of atoms on ribbon in spline parameter units.
+    # These should correspond to the "minimum" backbone atoms
+    # listed in atomstruct/Residue.cpp.
     # Negative means on the spline between previous residue
     # and this one; positive between this and next.
     # These are copied from Chimera.  May want to do a survey
@@ -1525,15 +1524,6 @@ class Structure(Model, StructureData):
                 else:
                     p = ribbon.position(n - 1, 1 + position)
                 self._ribbon_spline_backbone[a] = p
-
-    def _get_ribbon_want_backbone(self):
-        return self._ribbon_want_backbone
-    def _set_ribbon_want_backbone(self, want):
-        if want and want != self._ribbon_want_backbone:
-            self._graphics_changed |= self._RIBBON_CHANGE
-        self._ribbon_want_backbone = want
-    ribbon_want_backbone = property(_get_ribbon_want_backbone,
-                                    _set_ribbon_want_backbone)
 
     def ribbon_coord(self, a):
         return self._ribbon_spline_backbone[a]
@@ -2672,16 +2662,17 @@ def select_atoms(a, mode = 'add'):
 # -----------------------------------------------------------------------------
 # Handles bonds and pseudobonds.
 #
-def _bond_intercept(bonds, mxyz1, mxyz2):
+def _bond_intercept(bonds, mxyz1, mxyz2, scene_coordinates = False):
 
     bshown = bonds.showns
     bs = bonds.filter(bshown)
     a1, a2 = bs.atoms
-    xyz1, xyz2, r = a1.coords, a2.coords, bs.radii
+    cxyz1, cxyz2 = (a1.scene_coords, a2.scene_coords) if scene_coordinates else (a1.coords, a2.coords)
+    r = bs.radii
 
     # Check for atom sphere intercept
     from .. import geometry
-    f, bnum = geometry.closest_cylinder_intercept(xyz1, xyz2, r, mxyz1, mxyz2)
+    f, bnum = geometry.closest_cylinder_intercept(cxyz1, cxyz2, r, mxyz1, mxyz2)
 
     if f is None:
         return None, None

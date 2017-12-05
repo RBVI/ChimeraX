@@ -11,26 +11,33 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def measure_convexity(session, surfaces, palette = None, range = None, smoothing_iterations = 0):
+def measure_convexity(session, surfaces, palette = None, range = None, smoothing_iterations = 5):
     '''
     Compute the convexity at each surface vertex defined as 2*pi minus the cone-angle
     spanned by the triangles incident at the vertex.  The surface vertices are colored
     based on convexity value.
 
+    This definition of convexity is not standard and gives mottled coloring because the
+    values depend strongly on the triangulation.  Vertices surrounded by large triangles
+    on a smooth surface will have sharper cone angles then vertices surrounded by small
+    triangles.  (Normalizing by vertex triangle areas does not help because the patch about
+    a vertex is often irregular in shape.) To ameliorate this the "smoothing_iterations"
+    option is useful.
+
     Parameters
     ----------
     surface : Model list
     palette : Colormap
-      Default color palette is cyan-white-maroon.
+      Default color palette is cyan-gray-maroon.
     range : 2-tuple of float or "full"
       Minimum and maximum convexity values corresponding to ends of color palette.
     smoothing_iterations : int
       Convexity values are averaged with neighbor vertices connected by an edge.
-      This value specifies how many rounds of smoothing to perform.  Default 0.
+      This value specifies how many rounds of smoothing to perform.  Default 5.
     '''
     if palette is None:
         from .. import colors
-        palette = colors.BuiltinColormaps['cyan-white-maroon']
+        palette = colors.BuiltinColormaps['cyan-gray-maroon']
     if range is None and not palette.values_specified:
         range = (-1,1)
     if range is not None and range != 'full':

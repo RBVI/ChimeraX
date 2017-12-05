@@ -48,10 +48,10 @@ are automatically removed from the collection.  Because they are mutable they
 cannot be used as keys in dictionary or added to sets.
 '''
 from numpy import uint8, int32, uint32, float64, float32, uintp, byte, bool as npy_bool, integer, empty, array
-from .molc import string, cptr, pyobject, cvec_property, set_cvec_pointer, c_function, c_array_function, pointer, ctype_type_to_numpy
+from .molc import string, cptr, pyobject, set_cvec_pointer, pointer, size_t
 from . import molobject
+from .molobject import c_function, c_array_function, cvec_property
 import ctypes
-size_t = ctype_type_to_numpy[ctypes.c_size_t]   # numpy dtype for size_t
 
 def _atoms(p):
     return Atoms(p)
@@ -100,20 +100,20 @@ class Collection(State):
     def __init__(self, items, object_class, objects_class):
         import numpy
         if items is None:
-            # Empty Atoms
+            # Empty
             pointers = numpy.empty((0,), cptr)
-        elif (type(items) in [list, tuple] or
-              isinstance(items, numpy.ndarray) and items.dtype == numpy.object):
-            # presumably items of the object_class
-            pointers = numpy.array([i._c_pointer.value for i in items], cptr)
         elif isinstance(items, numpy.ndarray) and items.dtype == numpy.uintp:
             # C++ pointers array
             pointers = items
         else:
-            t = str(type(items))
-            if isinstance(items, numpy.ndarray):
-                t += ' type %s' % str(items.dtype)
-            raise ValueError('Collection items of unrecognized type "%s"' % t)
+            # presume iterable of objects of the object_class
+            try:
+                pointers = numpy.array([i._c_pointer.value for i in items], cptr)
+            except:
+                t = str(type(items))
+                if isinstance(items, numpy.ndarray):
+                    t += ' type %s' % str(items.dtype)
+                raise ValueError('Collection items of unrecognized type "%s"' % t)
         self._pointers = pointers
         self._object_class = object_class
         self._objects_class = objects_class
@@ -331,7 +331,17 @@ class Atoms(Collection):
     without creating Python :py:class:`Atom` objects which require much more memory
     and are slower to use in computation.
     '''
-    SPHERE_STYLE, BALL_STYLE, STICK_STYLE = range(3)
+    # replicate Atom class constants
+    from .molobject import Atom
+    SPHERE_STYLE = Atom.SPHERE_STYLE
+    BALL_STYLE = Atom.BALL_STYLE
+    STICK_STYLE = Atom.STICK_STYLE
+    HIDE_RIBBON = Atom.HIDE_RIBBON
+    HIDE_ISOLDE = Atom.HIDE_ISOLDE
+    HIDE_NUCLEOTIDE = Atom.HIDE_NUCLEOTIDE
+    BBE_MIN = Atom.BBE_MIN
+    BBE_RIBBON = Atom.BBE_RIBBON
+    BBE_MAX = Atom.BBE_MAX
 
     bfactors = cvec_property('atom_bfactor', float32)
     @property
@@ -383,6 +393,19 @@ class Atoms(Collection):
         "    Hide mask for backbone atoms in ribbon.\n\n"
         "Can be set with such an array (or equivalent sequence), or with a single "
         "integer value.")
+
+    def set_hide_bits(self, bit_mask):
+        """Set Atom's hide bits in bit mask"""
+        n = len(self)
+        f = c_array_function('set_atom_hide_bits', args=(uint32,), per_object=False)
+        f(self._c_pointers, n, bit_mask)
+
+    def clear_hide_bits(self, bit_mask):
+        """Clear Atom's hide bits in bit mask"""
+        n = len(self)
+        f = c_array_function('clear_atom_hide_bits', args=(uint32,), per_object=False)
+        f(self._c_pointers, n, bit_mask)
+
     idatm_types = cvec_property('atom_idatm_type', string,
         doc="Returns a numpy array of IDATM types.  Can be set with such an array (or equivalent "
         "sequence), or with a single string.")
@@ -551,8 +574,8 @@ class Atoms(Collection):
     alt_locs = cvec_property('atom_alt_loc', string,
                          doc='Returns current alternate location indicators')
 
-    def __init__(self, c_pointers = None, guaranteed_live_pointers = False):
-        Collection.__init__(self, c_pointers, molobject.Atom, Atoms)
+    def __init__(self, atom_pointers = None):
+        Collection.__init__(self, atom_pointers, molobject.Atom, Atoms)
 
     def delete(self):
         '''Delete the C++ Atom objects'''
@@ -933,10 +956,7 @@ class Residues(Collection):
 
     Collection of C++ residue objects.
     '''
-    def __init__(self, residue_pointers = None, residues = None):
-        if residues is not None:
-            # Extract C pointers from list of Python Residue objects.
-            residue_pointers = array([r._c_pointer.value for r in residues], cptr)
+    def __init__(self, residue_pointers = None):
         Collection.__init__(self, residue_pointers, molobject.Residue, Residues)
 
     atoms = cvec_property('residue_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True, per_object = False, doc =
