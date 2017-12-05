@@ -384,6 +384,19 @@ class Atoms(Collection):
         "    Hide mask for backbone atoms in ribbon.\n\n"
         "Can be set with such an array (or equivalent sequence), or with a single "
         "integer value.")
+
+    def set_hide_bits(self, bit_mask):
+        """Set Atom's hide bits in bit mask"""
+        n = len(self)
+        f = c_array_function('set_atom_hide_bits', args=(uint32,), per_object=False)
+        f(self._c_pointers, n, bit_mask)
+
+    def clear_hide_bits(self, bit_mask):
+        """Clear Atom's hide bits in bit mask"""
+        n = len(self)
+        f = c_array_function('clear_atom_hide_bits', args=(uint32,), per_object=False)
+        f(self._c_pointers, n, bit_mask)
+
     idatm_types = cvec_property('atom_idatm_type', string,
         doc="Returns a numpy array of IDATM types.  Can be set with such an array (or equivalent "
         "sequence), or with a single string.")
@@ -552,7 +565,7 @@ class Atoms(Collection):
     alt_locs = cvec_property('atom_alt_loc', string,
                          doc='Returns current alternate location indicators')
 
-    def __init__(self, c_pointers = None, guaranteed_live_pointers = False):
+    def __init__(self, c_pointers = None):
         Collection.__init__(self, c_pointers, molobject.Atom, Atoms)
 
     def delete(self):
@@ -934,11 +947,8 @@ class Residues(Collection):
 
     Collection of C++ residue objects.
     '''
-    def __init__(self, residue_pointers = None, residues = None):
-        if residues is not None:
-            # Extract C pointers from list of Python Residue objects.
-            residue_pointers = array([r._c_pointer.value for r in residues], cptr)
-        Collection.__init__(self, residue_pointers, molobject.Residue, Residues)
+    def __init__(self, c_pointers = None):
+        Collection.__init__(self, c_pointers, molobject.Residue, Residues)
 
     atoms = cvec_property('residue_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True, per_object = False, doc =
     '''Return :class:`.Atoms` belonging to each residue all as a single collection. Read only.''')

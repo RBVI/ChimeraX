@@ -193,6 +193,16 @@ class Atom(State):
         "    Hide mask for backbone atoms for ISOLDE.\n"
         "HIDE_NUCLEOTIDE\n"
         "    Hide mask for sidechain atoms in nucleotides.\n")
+    def set_hide_bits(self, bit_mask):
+        """Set Atom's hide bits in bit mask"""
+        f = c_array_function('set_atom_hide_bits', args=(uint32,), per_object=False)
+        a_ref = ctypes.byref(self._c_pointer)
+        f(a_ref, 1, bit_mask)
+    def clear_hide_bits(self, bit_mask):
+        """Clear Atom's hide bits in bit mask"""
+        f = c_array_function('clear_atom_hide_bits', args=(uint32,), per_object=False)
+        a_ref = ctypes.byref(self._c_pointer)
+        f(a_ref, 1, bit_mask)
     _idatm_type = c_property('atom_idatm_type', string, doc = "IDATM type")
     def _get_idatm_type(self):
         return self._idatm_type
@@ -506,6 +516,16 @@ class Bond(State):
     '''Displayed cylinder radius for the bond.'''
     hide = c_property('bond_hide', int32)
     '''Whether bond is hidden (overrides display).  Integer bitmask.  Use Atom.HIDE_* constants for hide bits.'''
+    def set_hide_bits(self, bit_mask):
+        """Set Atom's hide bits in bit mask"""
+        f = c_array_function('set_bond_hide_bits', args=(uint32,), per_object=False)
+        b_ref = ctypes.byref(self._c_pointer)
+        f(b_ref, 1, bit_mask)
+    def clear_hide_bits(self, bit_mask):
+        """Clear Atom's hide bits in bit mask"""
+        f = c_array_function('clear_bond_hide_bits', args=(uint32,), per_object=False)
+        b_ref = ctypes.byref(self._c_pointer)
+        f(b_ref, 1, bit_mask)
     selected = c_property('bond_selected', npy_bool)
     '''Whether the bond is selected.'''
     ends_selected = c_property('bond_ends_selected', npy_bool, read_only = True)
