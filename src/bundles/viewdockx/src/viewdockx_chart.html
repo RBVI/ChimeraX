@@ -6,14 +6,21 @@
    <link rel="stylesheet" type="text/css" href="viewdockx_chart.css">
    <script src="lib/jquery-3.2.1.min.js"></script>
    <script src="lib/flot/jquery.flot.min.js"></script>
+   <script src="lib/flot/jquery.flot.resize.min.js"></script>
    <script src="viewdockx_chart.js"></script>
 </head>
 
 <body onload="init();">
   <div id="full">
     <div id="control">
-      <input id="graph_btn" type="button" value="graph"/>
-      <input id="histogram_btn" type="button" value="histogram"/>
+      <table id="column_table">
+	<tr>
+	  <td><input type="radio" name="sort" value="0">sort</input>
+	    <input type="checkbox" name=show" value="0">show</input></td>
+	  <td>Input order</td>
+	  <td></td>
+	</tr>
+      </table>
     </div>
     <div id="data">
     </div>
