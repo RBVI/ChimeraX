@@ -3033,7 +3033,7 @@ def open_grids(session, grids, name, **kw):
     for d in grids:
       show_data = show
       if is_series or is_multichannel:
-        show_data = False	# Map_Series or MapChannelsModel classes will decide which to show
+        show_data = False	# MapSeries or MapChannelsModel classes will decide which to show
       vkw = {'show_data': show_data, 'show_dialog': False}
       if hasattr(d, 'initial_style') and d.initial_style in ('surface', 'mesh', 'solid'):
         vkw['representation'] = d.initial_style
@@ -3052,15 +3052,15 @@ def open_grids(session, grids, name, **kw):
       if len(set(len(cm) for cm in cmaps.values())) > 1:
         session.logger.warning('Map channels have differing numbers of series maps: %s'
                                % ', '.join('%d (%d)' % (c,cm) for c, cm in cmaps.items()))
-      from .series import Map_Series
-      ms = [Map_Series('channel %d' % c, cm, session) for c, cm in cmaps.items()]
+      from .series import MapSeries
+      ms = [MapSeries('channel %d' % c, cm, session) for c, cm in cmaps.items()]
       mc = MultiChannelSeries(name, ms, session)
       msg = ('Opened multichannel map series %s, %d channels, %d images per channel'
              % (name, len(ms), len(maps)//len(ms)))
       models = [mc]
     elif is_series:
-      from .series import Map_Series
-      ms = Map_Series(name, maps, session)
+      from .series import MapSeries
+      ms = MapSeries(name, maps, session)
       msg = 'Opened map series %s, %d images' % (name, len(maps))
       models = [ms]
     elif is_multichannel:

@@ -14,7 +14,7 @@
 # -----------------------------------------------------------------------------
 #
 from ...models import Model
-class Map_Series(Model):
+class MapSeries(Model):
 
   def __init__(self, name, maps, session):
 
@@ -209,7 +209,7 @@ class Map_Series(Model):
   @staticmethod
   def restore_snapshot(session, data):
     maps = []
-    s = Map_Series('series', maps, session)
+    s = MapSeries('series', maps, session)
     Model.set_state_from_snapshot(s, session, data['model state'])
 
     # Parent models are always restored before child models.

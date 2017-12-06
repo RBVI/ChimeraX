@@ -349,8 +349,8 @@ class PlaySeriesMouseMode(MouseMode):
     self.last_mouse_x = None
 
   def play_series(self):
-    from . import Map_Series
-    series = tuple(m for m in self.session.models.list() if isinstance(m, Map_Series))
+    from . import MapSeries
+    series = tuple(self.session.models.list(type = MapSeries))
     if series != self._series:
       self._player = Play_Series(series, self.session, rendering_cache_size = 10) if series else None
     return self._player
