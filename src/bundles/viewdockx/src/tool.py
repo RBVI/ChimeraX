@@ -2,7 +2,99 @@
 from chimerax.core.ui import HtmlToolInstance
 
 
-class ViewDockTool(HtmlToolInstance):
+class _BaseTool:
+
+    def setup(self, session, structures):
+        #
+        # Get list of structures that we are displaying
+        #
+        if structures is None:
+            # Include structures only if they have viewdock data
+            from chimerax.core.atomic import AtomicStructure
+            structures = [s for s in session.models.list(type=AtomicStructure)
+                          if hasattr(s, "viewdock_comment")]
+        else:
+            structures = [s for s in structures
+                          if hasattr(s, "viewdock_comment")]
+        if not structures:
+            raise ValueError("No suitable models found for ViewDockX")
+        self.structures = structures
+        from chimerax.core.models import REMOVE_MODELS
+        self._remove_handler = session.triggers.add_handler(REMOVE_MODELS,
+                                                            self._update_models)
+
+        #
+        # Get union of categories found in all viewdock_comment attributes
+        #
+        category_set = set()
+        for s in self.structures:
+            try:
+                category_set.update([key for key in s.viewdock_comment])
+            except AttributeError:
+                pass
+        # "name" category is a special case that we separate out
+        for category in category_set:
+            if category.lower() == "name":
+                self.category_name = category
+                category_set.remove(category)
+                break
+        else:
+            self.category_name = None
+        self.category_list = sorted(list(category_set), key=str.lower)
+
+    def _update_models(self, trigger=None, trigger_data=None):
+        """ Called to update page with current list of models"""
+        if trigger_data is not None:
+            for s in self.structures:
+                if s in trigger_data:
+                    self.structures.remove(s)
+
+    def make_data_arrays(self):
+        # Construct separate dictionaries for numeric and text data
+        numeric_data = {}
+        text_data = {}
+        # First make the id and name columns
+        id_list = []
+        name_list = []
+        name_attr = self.category_name
+        for s in self.structures:
+            id_list.append(s.id_string())
+            if name_attr:
+                name_list.append(s.viewdock_comment.get(name_attr, "unnamed"))
+        text_data["Id"] = id_list
+        if name_attr:
+            text_data[name_attr] = name_list
+        # Now make numeric and text versions for each category
+        # If there are more numbers than text, then assume numeric
+        for category in self.category_list:
+            numeric_list = []
+            text_list = []
+            num_numeric = 0
+            num_text = 0
+            for s in self.structures:
+                datum = s.viewdock_comment.get(category, None)
+                if not datum:
+                    numeric_list.append(None)
+                else:
+                    try:
+                        numeric_list.append(int(datum))
+                        num_numeric += 1
+                    except ValueError:
+                        try:
+                            numeric_list.append(float(datum))
+                            num_numeric += 1
+                        except ValueError:
+                            numeric_list.append(None)
+                            num_text += 1
+                text_list.append(datum)
+            if num_numeric > num_text:
+                numeric_data[category] = numeric_list
+            else:
+                text_data[category] = text_list
+        return numeric_data, text_data
+
+
+class ViewDockTool(HtmlToolInstance, _BaseTool):
 
     SESSION_ENDURING = False
     SESSION_SAVE = False
@@ -11,10 +103,12 @@ class ViewDockTool(HtmlToolInstance):
     def __init__(self, session, tool_name, structures=None):
         self.display_name = "ViewDockX"
         super().__init__(session, tool_name, size_hint=(575,200))
-        if structures is None:
-            from chimerax.core.atomic import AtomicStructure
-            structures = session.models.list(type=AtomicStructure)
-        self.structures = structures
+        try:
+            self.setup(session, structures)
+        except ValueError as e:
+            session.logger.error(str(e))
+            self.delete()
+            return
         from chimerax.core.models import REMOVE_MODELS
         self._remove_handler = session.triggers.add_handler(REMOVE_MODELS,
                                                             self._update_models)
@@ -29,52 +123,27 @@ class ViewDockTool(HtmlToolInstance):
 
     def _update_models(self, trigger=None, trigger_data=None):
         """ Called to update page with current list of models"""
-        from urllib.parse import urlunparse, urlencode
-        if trigger_data is not None:
-            for struct in self.structures:
-                if struct in trigger_data:
-                    self.structures.remove(struct)
-            if not self.structures:
-                self.delete()
-                return
+        super()._update_models(trigger, trigger_data)
+        if not self.structures:
+            self.delete()
+            return
 
-        # TRANSFERS ALL KEYS INTO A SET, THEN A LIST
-        category_set = set()
-        for struct in self.structures:
-            try:
-                category_set.update({key for key in struct.viewdock_comment})
-            except AttributeError:
-                pass
-        category_list = sorted(list(category_set), key=str.lower)
-
-        ####################
-        ####    TABLE   ####
-        ####################
-
+        # Table container
         table = []
         table.append('<table id="viewdockx_table" class="tablesorter" '
                      'style="width:100%">')
 
-        ###########################
-        ###    COLUMN HEADERS   ###
-        ###########################
-
-        #   COLUMN HEADER    | ID |
+        # Table column headers: model_id [name] all_other_columns
         table.append('<thead><tr>')
         table.append('<th class="id">ID</th>')
-
-        #   COLUMN HEADERS    | NAME |...|...|...
-        table.append('<th>NAME</th>')
-        for category in category_list:
-            if category.upper() == "NAME":
-                pass
-            else:
-                table.append('<th>{}</th>'.format(category.upper()))
+        if self.category_name:
+            table.append('<th>NAME</th>')
+        for category in self.category_list:
+            table.append('<th>{}</th>'.format(category.upper()))
         table.append("</tr></thead>")
 
-        ########################
-        ###    COLUMN DATA   ###
-        ########################
+        # Table cell data
+        from urllib.parse import urlunparse, urlencode
         table.append('<tbody>')
         for struct in self.structures:
             try:
@@ -86,58 +155,50 @@ class ViewDockTool(HtmlToolInstance):
             args = [("atomspec", struct.atomspec())]
             query = urlencode(args)
 
-            #url = urlunparse((self.CUSTOM_SCHEME, "", "", "", query, ""))
             checkbox_url = urlunparse((self.CUSTOM_SCHEME, "",
                                        "checkbox", "", query, ""))
             link_url = urlunparse((self.CUSTOM_SCHEME, "",
                                    "link", "", query, ""))
 
-            # ADDING ID VALUE
+            # First column is always model id
             table.append("<tr>")
             table.extend(['<td class="id">',
                           # for checkbox + atomspec string
                           '<span class="checkbox">'
                           '<input class="checkbox, struct" '
-                          'type="checkbox" href="{}"/>'
-                          '{}</span>'.format(checkbox_url,
-                                             struct.atomspec()[1:]),
+                          'type="checkbox" href="{}"/>{}</span>'
+                          .format(checkbox_url, struct.atomspec()[1:]),
                           # for atomspec links only
                           '<span class="link"><a href="{}">{}</a></span>'
                           .format(link_url, struct.atomspec()[1:]),
                           '</td>'])
 
-            # ADDING VALUE FOR NAME
-            for category in category_list:
-                if category.upper() == "NAME":
-                    try:
-                        table.append(
-                            '<td>{}</td>'.format(comment_dict[category]))
-                    except KeyError:
-                        table.append('<td>missing</td>')
+            # If there is a name column, it is second
+            if self.category_name:
+                v = comment_dict.get(self.category_name, "-")
+                table.append('<td>{}</td>'.format(v))
 
-            # ADDING THE REST
-            for category in category_list:
-                try:
-                    if category.upper() != "NAME":
-                        table.append('<td>{}</td>'
-                                     .format(comment_dict[category]))
-                except KeyError:
-                    table.append('<td>missing</td>')
+            # All other columns in alphabetical order
+            for category in self.category_list:
+                v = comment_dict.get(category, "-")
+                table.append('<td>{}</td>'.format(v))
             table.append("</tr>")
         table.append("</tbody>")
         table.append("</table>")
 
         import os.path
+        template_path = os.path.join(os.path.dirname(__file__),
+                                     "viewdockx_table.html")
+        with open(template_path, "r") as f:
+            template = f.read()
+        # template path also serves as the <base> tag value for relative links
         from PyQt5.QtCore import QUrl
-        dir_path = os.path.dirname(__file__)
-        qurl = QUrl.fromLocalFile(os.path.join(dir_path, "viewdockx.html"))
-        with open(os.path.join(dir_path, "viewdockx_table.html"), "r") as file:
-            template = file.read()
+        qurl = QUrl.fromLocalFile(template_path)
         output = template.replace("TABLE", ('\n'.join(table)))\
                          .replace("URLBASE", qurl.url())
         self.html_view.setHtml(output, qurl)
         # Debug
-        #with open("viewdock.html", "w") as f:
+        #with open("vtable.html", "w") as f:
         #    print(output, file=f)
 
     def handle_scheme(self, url):
@@ -194,7 +255,7 @@ class ViewDockTool(HtmlToolInstance):
         pass
 
 
-class ChartTool(HtmlToolInstance):
+class ChartTool(HtmlToolInstance, _BaseTool):
 
     SESSION_ENDURING = False
     SESSION_SAVE = False
@@ -203,24 +264,48 @@ class ChartTool(HtmlToolInstance):
     def __init__(self, session, tool_name, structures=None):
         self.display_name = "ViewDockX"
         super().__init__(session, tool_name, size_hint=(575,400))
-        if structures is None:
-            from chimerax.core.atomic import AtomicStructure
-            structures = session.models.list(type=AtomicStructure)
-        self.structures = structures
-        from chimerax.core.models import REMOVE_MODELS
-        self._remove_handler = session.triggers.add_handler(REMOVE_MODELS,
-                                                            self._update_models)
-        self._update_models()
+        try:
+            self.setup(session, structures)
+        except ValueError as e:
+            session.logger.error(str(e))
+            self.delete()
+            return
+        self._setup_page()
 
-    def _update_models(self):
+    def _setup_page(self):
         import os.path
-        from PyQt5.QtCore import QUrl
         dir_path = os.path.dirname(__file__)
-        qurl = QUrl.fromLocalFile(os.path.join(dir_path, "viewdockx.html"))
-        with open(os.path.join(dir_path, "viewdockx_chart.html"), "r") as file:
-            template = file.read()
+        template_path = os.path.join(os.path.dirname(__file__),
+                                     "viewdockx_chart.html")
+        with open(template_path, "r") as f:
+            template = f.read()
+        from PyQt5.QtCore import QUrl
+        qurl = QUrl.fromLocalFile(template_path)
         output = template.replace("URLBASE", qurl.url())
         self.html_view.setHtml(output, qurl)
+        self.html_view.loadFinished.connect(self._load_finished)
         # Debug
-        #with open("viewdock_chart.html", "w") as f:
+        #with open("vchart.html", "w") as f:
         #    print(output, file=f)
+
+    def _load_finished(self, success):
+        # First time through, we need to wait for the page to load
+        # before trying to update data.  Afterwards, we don't care.
+        if success:
+            self._update_models()
+            self.html_view.loadFinished.disconnect(self._load_finished)
+
+    def _update_models(self, trigger=None, trigger_data=None):
+        super()._update_models(trigger, trigger_data)
+        if not self.structures:
+            self.delete()
+            return
+
+        import json
+        js = self.JSUpdate % json.dumps(self.make_data_arrays())
+        self.html_view.runJavaScript(js)
+
+    JSUpdate = """
+columns = %s;
+reload();
+"""
