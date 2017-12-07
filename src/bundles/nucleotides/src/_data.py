@@ -20,7 +20,7 @@ from . import default
 import numpy
 from chimerax.core.geometry import Place, translation, scale, distance, distance_squared, z_align, Plane, normalize_vector
 from chimerax.core.surface import box_geometry, sphere_geometry2, cylinder_geometry
-from chimerax.core.atomic import Residues, Atoms, Sequence
+from chimerax.core.atomic import Residues, Atoms, Sequence, Pseudobonds
 nucleic3to1 = Sequence.nucleic3to1
 
 _SQRT2 = math.sqrt(2)
@@ -460,6 +460,55 @@ def ndb_color(residues):
         r.ribbon_color = c
 
 
+def hydrogen_bonds(residues, bases_only=False):
+    # Return tuple of hydrogen bonds between the given residues, and
+    # other hydrogen bonds connected to the residues.
+    # residues should be from only one molecule
+
+    # Create list of atoms from residues for donors and acceptors
+    mol = residues[0].structure
+
+    # make a set for quick inclusion test
+    residue_set = set(residues)
+
+    pbg = mol.pseudobond_group(mol.PBG_HYDROGEN_BONDS, create_type=None)
+    if not pbg:
+        hbonds = ()
+    else:
+        hbonds = pbg.pseudobonds
+
+    interresidue_hbonds = []
+    other_hbonds = []
+    other_base = []
+    for hb in hbonds:
+        a0, a1 = hb.atoms
+        r0 = a0.residue
+        r1 = a1.residue
+        if r0 not in residue_set:
+            if r1 not in residue_set:
+                continue
+            other_hbonds.append(hb)
+            other_base.append(False)
+            continue
+        if r1 not in residue_set:
+            other_hbonds.append(hb)
+            other_base.append(False)
+            continue
+        non_base = (BackboneRiboseRE.match(a0.name),
+                    BackboneRiboseRE.match(a1.name))
+        if bases_only and any(non_base):
+            other_hbonds.append(hb)
+            other_base.append(False)
+            continue
+        if r0.connects_to(r1):
+            # skip covalently bonded residues
+            other_hbonds.append(hb)
+            other_base.append(True)
+            continue
+        interresidue_hbonds.append(hb)
+    return Pseudobonds(interresidue_hbonds), Pseudobonds(other_hbonds), other_base
+
+
 def _nuc_drawing(mol, create=True, recreate=False):
     # creates mol._nucleotide_info for per-residue information
     # creates mol._nucleotides_drawing for the drawing
@@ -582,6 +631,10 @@ def _rebuild_molecule(trigger_name, mol):
             draw_orientation(nd, r)
     hide_riboses = Residues(hide_riboses)
     hide_bases = Residues(hide_bases)
+
+    interresidue_hbonds, other_hbonds, _ = hydrogen_bonds(hide_bases)
+    interresidue_hbonds.shown_when_atoms_hiddens = False
+    other_hbonds.shown_when_atoms_hiddens = True
 
     # make sure ribose/base atoms are hidden/shown
     hide_all = hide_riboses & hide_bases
@@ -896,21 +949,28 @@ def _c3pos(residue):
     return c3p, c3p.coord
 
 
-def set_normal(molecules, residues):
+def set_normal(residues):
+    molecules = residues.unique_structures
     _init_rebuild_handler(molecules[0].session)
     rds = {}
     for m in molecules:
         nuc_info, nd = _nuc_drawing(m)
         rds[m] = nuc_info
-    changed = []
+    changed = {}
     for r in residues:
         if rds[r.structure].pop(r, None) is not None:
-            changed.append(r)
-            _need_rebuild.add(r.structure)
-    Residues(changed).atoms.clear_hide_bits(HIDE_NUCLEOTIDE)
+            changed.setdefault(r.structure, []).append(r)
+    _need_rebuild.update(changed.keys())
+    import itertools
+    Residues(itertools.chain(*changed.values())).atoms.clear_hide_bits(HIDE_NUCLEOTIDE)
+    for residues in changed.values():
+        interresidue_hbonds, other_hbonds, _ = hydrogen_bonds(residues)
+        interresidue_hbonds.shown_when_atoms_hiddens = True
+        other_hbonds.shown_when_atoms_hiddens = True
 
 
-def set_orient(molecules, residues):
+def set_orient(residues):
+    molecules = residues.unique_structures
     _init_rebuild_handler(molecules[0].session)
     rds = {}
     for m in molecules:
@@ -927,7 +987,8 @@ def set_orient(molecules, residues):
         rd['side'] = 'orient'
 
 
-def set_slab(side, molecules, residues, style=default.STYLE, **slab_params):
+def set_slab(side, residues, style=default.STYLE, **slab_params):
+    molecules = residues.unique_structures
     _init_rebuild_handler(molecules[0].session)
     if not side.startswith('tube'):
         tube_params = None
@@ -992,7 +1053,8 @@ def make_tube(nd, residues, rds):
     return hidden, shown
 
 
-def set_ladder(molecules, residues, **ladder_params):
+def set_ladder(residues, **ladder_params):
+    molecules = residues.unique_structures
     _init_rebuild_handler(molecules[0].session)
     _need_rebuild.update(molecules)
     rds = {}
@@ -1019,7 +1081,10 @@ def make_ladder(nd, residues, *, rung_radius=0, show_stubs=True, skip_nonbase_Hb
     # and have their atoms hidden
 
     # Create list of atoms from residues for donors and acceptors
-    mol = residues.unique_structures[0]
+    mol = residues[0].structure
+
+    # make a set for quick inclusion test
+    residue_set = set(residues)
 
     pbg = mol.pseudobond_group(mol.PBG_HYDROGEN_BONDS, create_type=None)
     if not pbg:
@@ -1031,12 +1096,14 @@ def make_ladder(nd, residues, *, rung_radius=0, show_stubs=True, skip_nonbase_Hb
     # h-bond
     depict_bonds = {}
     for a0, a1 in bonds:
+        r0 = a0.residue
+        r1 = a1.residue
+        if r0 not in residue_set or r1 not in residue_set:
+            continue
         non_base = (BackboneRiboseRE.match(a0.name),
                     BackboneRiboseRE.match(a1.name))
         if skip_nonbase_Hbonds and any(non_base):
             continue
-        r0 = a0.residue
-        r1 = a1.residue
         if r0.connects_to(r1):
             # skip covalently bonded residues
             continue
