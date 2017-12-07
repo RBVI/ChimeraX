@@ -50,14 +50,13 @@ cannot be used as keys in dictionary or added to sets.
 from numpy import uint8, int32, uint32, float64, float32, uintp, byte, bool as npy_bool, integer, empty, array
 from .molc import string, cptr, pyobject, set_cvec_pointer, pointer, size_t
 from . import molobject
-from .molobject import c_function, c_array_function, cvec_property
+from .molobject import c_function, c_array_function, cvec_property, Atom
 import ctypes
 
 def _atoms(p):
     return Atoms(p)
 def _atoms_or_nones(p):
-    from .molobject import object_map, Atom
-    return [object_map(ptr, Atom) if ptr else None for ptr in p]
+    return [Atom.c_ptr_to_py_inst(ptr) if ptr else None for ptr in p]
 def _non_null_atoms(p):
     return Atoms(p[p!=0])
 def _bonds(p):
@@ -144,16 +143,15 @@ class Collection(State):
     def __iter__(self):
         '''Iterator over collection objects.'''
         if not hasattr(self, '_object_list'):
-            from .molobject import object_map
             c = self._object_class
-            self._object_list = [object_map(p,c) for p in self._pointers]
+            self._object_list = [c.c_ptr_to_py_inst(p) for p in self._pointers]
+        #TODO: isn't caching here a bug?
         return iter(self._object_list)
     def __getitem__(self, i):
         '''Indexing of collection objects using square brackets, *e.g.* c[i].'''
         import numpy
         if isinstance(i,(int,integer)):
-            from .molobject import object_map
-            v = object_map(self._pointers[i], self._object_class)
+            v = self._object_class.c_ptr_to_py_inst(self._pointers[i])
         elif isinstance(i, (slice, numpy.ndarray)):
             v = self._objects_class(self._pointers[i])
         else:
@@ -258,10 +256,9 @@ class Collection(State):
     def instances(self, instantiate=True):
         '''Returns a list of the Python instances.  If 'instantiate' is False, then for
         those items that haven't yet been instantiated, None will be returned.'''
-        from .molobject import object_map
         if instantiate:
-            return [object_map(p, self._object_class) for p in self._pointers]
-        return [object_map(p, None) for p in self._pointers]
+            return [self._object_class.c_ptr_to_py_inst(p) for p in self._pointers]
+        return [self._object_class.c_ptr_to_existing_py_inst(p) for p in self._pointers]
     STATE_VERSION = 1
     def take_snapshot(self, session, flags):
         return {'version': self.STATE_VERSION,

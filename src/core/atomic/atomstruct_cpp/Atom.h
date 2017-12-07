@@ -21,6 +21,7 @@
 #include <element/Element.h>
 #include <map>
 #include <memory>
+#include <pyinstance/PythonInstance.h>
 #include <set>
 #include <string>
 #include <vector>
@@ -30,7 +31,6 @@
 #include "Coord.h"
 #include "imex.h"
 #include "Point.h"
-#include "PythonInstance.h"
 #include "Rgba.h"
 #include "session.h"
 #include "string_types.h"
@@ -53,7 +53,7 @@ class CoordSet;
 class Residue;
 class Ring;
 
-class ATOMSTRUCT_IMEX Atom: public PythonInstance<Atom>  {
+class ATOMSTRUCT_IMEX Atom: public pyinstance::PythonInstance<Atom>  {
     friend class AtomicStructure;
     friend class UniqueConnection;
     friend class Structure;

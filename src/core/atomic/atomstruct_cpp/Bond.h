@@ -16,12 +16,12 @@
 #ifndef atomstruct_Bond
 #define atomstruct_Bond
 
+#include <pyinstance/PythonInstance.h>
 #include <set>
 #include <vector>
 
 #include "Connection.h"
 #include "imex.h"
-#include "PythonInstance.h"
 #include "session.h"
 
 namespace atomstruct {
@@ -32,7 +32,7 @@ class Residue;
 class Ring;
 class Structure;
 
-class ATOMSTRUCT_IMEX Bond: public UniqueConnection, public PythonInstance<Bond> {
+class ATOMSTRUCT_IMEX Bond: public UniqueConnection, public pyinstance::PythonInstance<Bond> {
     friend class Structure;
 public:
     // use Atom::HIDE_* constants for hide bits

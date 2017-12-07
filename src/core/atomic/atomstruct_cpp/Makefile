@@ -27,9 +27,9 @@ CXXFLAGS	+= -Wno-logical-op-parentheses
 endif
 LIBS	+= tmpl/*.$(OBJ_EXT)
 ifeq ($(WIN32),msvc)
-LIBS	+= libelement.lib libioutil.lib libchutil.lib libappdirs.lib liblogger.lib libarrays.lib $(PYTHON_LIB)
+LIBS	+= libelement.lib libpyinstance.lib libioutil.lib libchutil.lib libappdirs.lib liblogger.lib libarrays.lib $(PYTHON_LIB)
 else
-LIBS	+= -lelement -lioutil -lchutil -lappdirs -llogger -larrays $(PYTHON_LIB)
+LIBS	+= -lelement -lpyinstance -lioutil -lchutil -lappdirs -llogger -larrays $(PYTHON_LIB)
 endif
 
 $(SHLIB): imex.h $(OBJS) $(SUBDIR_INSTALL)
@@ -63,33 +63,31 @@ endif
 $(SUBDIR_INSTALL): imex.h
 
 Atom.o: Atom.h Bond.h ChangeTracker.h CoordSet.h destruct.h PBGroup.h \
-	Pseudobond.h PythonInstance.h Residue.h session.h Structure.h
+	Pseudobond.h Residue.h session.h Structure.h
 AtomicStructure.o: Atom.h AtomicStructure.h Bond.h CoordSet.h destruct.h Structure.h \
-	PBGroup.h Pseudobond.h PythonInstance.h Residue.h seq_assoc.h
+	PBGroup.h Pseudobond.h Residue.h seq_assoc.h
 AtomTypes.o: AtomicStructure.h Bond.h Coord.h Residue.h tmpl/TAexcept.h
 Bond.o: Atom.h Bond.h Chain.h ChangeTracker.h Connection.h Structure.h \
-	PythonInstance.h Residue.h Sequence.h session.h
-Chain.o: Chain.h ChangeTracker.h PythonInstance.h StructureSeq.h
+	Residue.h Sequence.h session.h
+Chain.o: Chain.h ChangeTracker.h StructureSeq.h
 ChangeTracker.o: ChangeTracker.h
 CompSS.o: Atom.h AtomicStructure.h Coord.h Residue.h Structure.h
 connect.o: Atom.h Bond.h connect.h Coord.h destruct.h Structure.h MolResId.h PBGroup.h \
 	Residue.h string_types.h tmpl/Residue.h tmpl/Atom.h tmpl/residues.h
-CoordSet.o: Atom.h ChangeTracker.h CoordSet.h destruct.h PythonInstance.h session.h Structure.h
+CoordSet.o: Atom.h ChangeTracker.h CoordSet.h destruct.h session.h Structure.h
 destruct.o: destruct.h
-PBGroup.o: Atom.h ChangeTracker.h destruct.h PBGroup.h Pseudobond.h \
-	PythonInstance.h session.h Structure.h
-PBManager.o: ChangeTracker.h destruct.h Structure.h PBGroup.h PBManager.h PythonInstance.h
+PBGroup.o: Atom.h ChangeTracker.h destruct.h PBGroup.h Pseudobond.h session.h Structure.h
+PBManager.o: ChangeTracker.h destruct.h Structure.h PBGroup.h PBManager.h 
 Point.o: Point.h
 Pseudobond.o: Atom.h ChangeTracker.h Connection.h PBGroup.h PBManager.h Pseudobond.h \
-	PythonInstance.h session.h
-PythonInstance.o: PythonInstance.h
-Residue.o: Atom.h Bond.h ChangeTracker.h destruct.h PythonInstance.h \
+	session.h
+Residue.o: Atom.h Bond.h ChangeTracker.h destruct.h \
 	Residue.h session.h tmpl/TemplateCache.h
 RibbonXSection.o: RibbonXSection.h
-Ring.o: Atom.h Bond.h Coord.h PythonInstance.h Real.h Ring.h
+Ring.o: Atom.h Bond.h Coord.h Real.h Ring.h
 RingCalc.o: Bond.h Structure.h Residue.h
 seq_assoc.o: Chain.h Structure.h Residue.h seq_assoc.h
 Sequence.o: Sequence.h session.h
 Structure.o: Atom.h Bond.h ChangeTracker.h CoordSet.h destruct.h PBGroup.h PBManager.h \
-	Pseudobond.h PythonInstance.h Structure.h Residue.h
+	Pseudobond.h Structure.h Residue.h
 StructureSeq.o: Structure.h Chain.h ChangeTracker.h destruct.h Structure.h Sequence.h Residue.h

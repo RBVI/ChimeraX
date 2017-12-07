@@ -56,9 +56,6 @@ class Structure(Model, StructureData):
         self._ribbon_tether = []      # ribbon tethers from ribbon to floating atoms
         self._ribbon_spline_backbone = {}     # backbone atom positions on ribbon
 
-        from . import molobject
-        molobject.add_to_object_map(self)
-
         self._ses_handlers = []
         t = self.session.triggers
         for ses_func, trig_name in [("save_setup", "begin save session"),

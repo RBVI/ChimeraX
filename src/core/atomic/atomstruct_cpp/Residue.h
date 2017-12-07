@@ -17,6 +17,7 @@
 #define atomstruct_Residue
 
 #include <map>
+#include <pyinstance/PythonInstance.h>
 #include <set>
 #include <string>
 #include <vector>
@@ -25,7 +26,6 @@
 #include "ChangeTracker.h"
 #include "imex.h"
 #include "polymer.h"
-#include "PythonInstance.h"
 #include "Real.h"
 #include "Rgba.h"
 #include "session.h"
@@ -38,7 +38,7 @@ class Bond;
 class Chain;
 class Structure;
 
-class ATOMSTRUCT_IMEX Residue: public PythonInstance<Residue> {
+class ATOMSTRUCT_IMEX Residue: public pyinstance::PythonInstance<Residue> {
 public:
     typedef std::vector<Atom *>  Atoms;
     typedef std::multimap<AtomName, Atom *>  AtomsMap;

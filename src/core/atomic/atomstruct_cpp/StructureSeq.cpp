@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <exception>
+#include <pyinstance/PythonInstance.h>
 #include <Python.h>
 #include <sstream>
 
@@ -90,7 +91,7 @@ StructureSeq::demote_to_sequence()
 {
     auto inst = py_instance(false);
     if (inst != nullptr) {
-        auto gil = AcquireGIL();
+        auto gil = pyinstance::AcquireGIL();
         _structure = nullptr;
         auto ret = PyObject_CallMethod(inst, "_cpp_demotion", nullptr);
         if (ret == nullptr) {

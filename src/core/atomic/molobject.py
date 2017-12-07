@@ -30,29 +30,30 @@ c_array_function = _atomic_c_functions.c_array_function
 # the object properties.
 #
 def _py_atoms(p):
-    return [object_map(ptr, Atom) for ptr in p]
+    return [Atom.c_ptr_to_py_inst(ptr) for ptr in p]
 def _py_bonds(p):
-    return [object_map(ptr, Bond) for ptr in p]
+    return [Bond.c_ptr_to_py_inst(ptr) for ptr in p]
 def _atoms(p):
     from .molarray import Atoms
     return Atoms(p)
 def _atom_pair(p):
-    return (object_map(p[0],Atom), object_map(p[1],Atom))
+    return (Atom.c_ptr_to_py_inst(p[0]), Atom.c_ptr_to_py_inst(p[1]))
 def _atom_or_none(p):
-    return object_map(p, Atom) if p else None
+    return Atom.c_ptr_to_py_inst(p) if p else None
 def _bonds(p):
     from .molarray import Bonds
     return Bonds(p)
 def _chain(p):
-    if not p: return None
-    return object_map(p, Chain)
+    if not p:
+        return None
+    return Chain.c_ptr_to_py_inst(p)
 def _element(p):
-    return object_map(p, Element)
+    return Element.c_ptr_to_py_inst(p)
 def _pseudobonds(p):
     from .molarray import Pseudobonds
     return Pseudobonds(p)
 def _residue(p):
-    return object_map(p, Residue)
+    return Residue.c_ptr_to_py_inst(p)
 def _residues(p):
     from .molarray import Residues
     return Residues(p)
@@ -63,18 +64,16 @@ def _non_null_residues(p):
     from .molarray import Residues
     return Residues(p[p!=0])
 def _residue_or_none(p):
-    return object_map(p, Residue) if p else None
+    return Residue.c_ptr_to_py_inst(p) if p else None
 def _residues_or_nones(p):
-    return [_residue(rptr) if rptr else None for rptr in p]
+    return [_residue_or_none(rptr) for rptr in p]
 def _chains(p):
     from .molarray import Chains
     return Chains(p)
 def _atomic_structure(p):
-    if not p: return None
-    return object_map(p, StructureData)
+    return StructureData.c_ptr_to_py_inst(p) if p else None
 def _pseudobond_group(p):
-    from .pbgroup import PseudobondGroup
-    return object_map(p, PseudobondGroup)
+    return PseudobondGroupData.c_ptr_to_py_inst(p)
 def _pseudobond_group_map(pbgc_map):
     pbg_map = dict((name, _pseudobond_group(pbg)) for name, pbg in pbgc_map.items())
     return pbg_map
@@ -457,7 +456,7 @@ class Atom(State):
 
     @staticmethod
     def restore_snapshot(session, data):
-        return object_map(data['structure'].session_id_to_atom(data['ses_id']), Atom)
+        return _atom_ptr_to_inst(data['structure'].session_id_to_atom(data['ses_id']))
 
 # -----------------------------------------------------------------------------
 #
@@ -542,8 +541,8 @@ class Bond(State):
         '''Return the :class:`Atom` at the other end of this bond opposite
         the specified atom.'''
         f = c_function('bond_other_atom', args = (ctypes.c_void_p, ctypes.c_void_p), ret = ctypes.c_void_p)
-        c = f(self._c_pointer, atom._c_pointer)
-        return object_map(c, Atom)
+        o = f(self._c_pointer, atom._c_pointer)
+        return _atom_ptr_to_inst(o)
 
     def delete(self):
         '''Delete this Bond from it's Structure'''
@@ -577,7 +576,7 @@ class Bond(State):
 
     @staticmethod
     def restore_snapshot(session, data):
-        return object_map(data['structure'].session_id_to_bond(data['ses_id']), Bond)
+        return _bond_ptr_to_inst(data['structure'].session_id_to_bond(data['ses_id']))
 
 # -----------------------------------------------------------------------------
 #
@@ -670,7 +669,7 @@ class Pseudobond(State):
         group, id = data
         f = c_function('pseudobond_group_resolve_session_id',
             args = [ctypes.c_void_p, ctypes.c_int], ret = ctypes.c_void_p)
-        return object_map(f(group._c_pointer, id), Pseudobond)
+        return _pseudobond_ptr_to_inst(f(group._c_pointer, id))
 
 # -----------------------------------------------------------------------------
 #
@@ -778,7 +777,7 @@ class PseudobondGroupData:
                            args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int),
                            ret = ctypes.c_void_p)
             pb = f(self._c_pointer, atom1._c_pointer, atom2._c_pointer, cs_id)
-        return object_map(pb, Pseudobond)
+        return _pseudobond_ptr_to_inst(pb)
 
     # Graphics changed flags used by rendering code.  Private.
     _SHAPE_CHANGE = 0x1
@@ -824,9 +823,16 @@ class PseudobondManager(State):
         pbg = f(self._c_pointer, category.encode('utf-8'), create)
         if not pbg:
             return None
-        from .pbgroup import PseudobondGroup
-        return object_map(pbg,
-            lambda ptr, ses=self.session: PseudobondGroup(ptr, session=ses))
+        # C++ layer doesn't know how to create Python global pseudobond groups, because it can't
+        # supply session arg, so see if the group already exists (and return that if so),
+        # otherwise create the group and inform the C++ layer
+        inst = _pbgroup_ptr_to_existing_inst(pbg)
+        if not inst:
+            from .pbgroup import PseudobondGroup
+            inst = PseudobondGroup(pbg, session=self.session)
+            f = c_function('set_pbgroup_py_instance', args = (ctypes.c_void_p, ctypes.py_object))
+            f(pbg, inst)
+        return inst
 
     @property
     def group_map(self):
@@ -837,8 +843,15 @@ class PseudobondManager(State):
         ptr_map = f(self._c_pointer)
         obj_map = {}
         for cat, pbg_ptr in ptr_map.items():
-            obj = object_map(pbg_ptr,
-                lambda ptr, ses=self.session: PseudobondGroup(ptr, session=ses))
+            # get the python pbg instance if it already exists; otherwise create it
+            # and inform the C++ layer
+            obj = _pbgroup_ptr_to_existing_inst(pbg_ptr)
+            if not obj:
+                from .pbgroup import PseudobondGroup
+                obj = PseudobondGroup(pbg_ptr, session=self.session)
+                f = c_function('set_pbgroup_py_instance',
+                    args = (ctypes.c_void_p, ctypes.py_object))
+                f(pbg_ptr, obj)
             obj_map[cat] = obj
         return obj_map
 
@@ -856,7 +869,7 @@ class PseudobondManager(State):
         obj_map = {}
         for ptr, ses_id in ptr_map.items():
             # shouldn't be _creating_ any objects, so pass None as the type
-            obj_map[ses_id] = object_map(ptr, None)
+            obj_map[ses_id] = _pbgroup_ptr_to_existing_inst(ptr)
         data = {'version': version,
                 'mgr data':retvals,
                 'structure mapping': obj_map}
@@ -1071,7 +1084,7 @@ class Residue(State):
 
     @staticmethod
     def restore_snapshot(session, data):
-        return object_map(data['structure'].session_id_to_residue(data['ses_id']), Residue)
+        return _residue_ptr_to_inst(data['structure'].session_id_to_residue(data['ses_id']))
 
 
 # -----------------------------------------------------------------------------
@@ -1180,6 +1193,8 @@ class Sequence(State):
             args = (ctypes.c_char_p, ctypes.c_char_p), ret = ctypes.c_void_p)(
                 name.encode('utf-8'), characters.encode('utf-8'))
         set_c_pointer(self, seq_pointer)
+        f = c_function('set_sequence_py_instance', args = (ctypes.c_void_p, ctypes.pyobject))
+        f(self._c_pointer, self)
 
     # cpp_pointer and deleted are "base class" methods, though for performance reasons
     # we are placing them directly in each class rather than using a base class,
@@ -1586,7 +1601,10 @@ class Chain(StructureSeq):
 
     @staticmethod
     def restore_snapshot(session, data):
-        chain = object_map(data['structure'].session_id_to_chain(data['ses_id']), Chain)
+        ptr = data['structure'].session_id_to_chain(data['ses_id'])
+        chain = _sseq_ptr_to_existing_inst(ptr)
+        if not chain:
+            chain = Chain(ptr)
         chain.description = data.get('description', None)
         return chain
 
@@ -1621,6 +1639,8 @@ class StructureData:
             new_func = 'atomic_structure_new' if isinstance(self, AtomicStructure) else 'structure_new'
             mol_pointer = c_function(new_func, args = (ctypes.py_object,), ret = ctypes.c_void_p)(logger)
         set_c_pointer(self, mol_pointer)
+        f = c_function('set_structure_py_instance', args = (ctypes.c_void_p, ctypes.py_object))
+        f(self._c_pointer, self)
 
     # cpp_pointer and deleted are "base class" methods, though for performance reasons
     # we are placing them directly in each class rather than using a base class,
@@ -2440,44 +2460,38 @@ class SeqMatchMap(State):
 #
 
 # tell the C++ layer about class objects whose Python objects can be instantiated directly
-# from C++ with just a pointer...
-from .pbgroup import PBGroup
-for class_ in [Atom, Bond, CoordSet, PBGroup, Pseudobond, Residue, Ring, Sequence]:
-    func_name = "set_" + class_.__name__.lower() + "_pyclass"
+# from C++ with just a pointer, and put functions in those classes for getting the instance
+# from the pointer (needed by Collections)
+for class_obj in [Atom, Bond, CoordSet, Element, PseudobondGroupData, Pseudobond, Residue, Ring]:
+    cname = class_obj.__name__.lower()
+    if cname.endswith("data"):
+        cname = cname[:-4]
+    func_name = "set_" + cname + "_pyclass"
     f = c_function(func_name, args = (ctypes.py_object,))
-    f(class_)
+    f(class_obj)
 
-# The C++ function Structure::py_object() calls object_map(), so if this function is
-# renamed or it's call signature is modified (or this module is moved) then that C++
-# function must be updated
-_object_map = {}	# Map C++ pointer to Python object
-def object_map(p, object_type):
-    global _object_map
-    o = _object_map.get(p, None)
-    if o is None and object_type is not None:
-        _object_map[p] = o = object_type(p)
-    return o
+    func_name = cname + "_py_inst"
+    class_obj.c_ptr_to_py_inst = lambda ptr, fname=func_name: c_function(fname,
+        args = (ctypes.c_void_p,), ret = ctypes.py_object)(ctypes.c_void_p(int(ptr)))
+    func_name = cname + "_existing_py_inst"
+    class_obj.c_ptr_to_existing_py_inst = lambda ptr, fname=func_name: c_function(fname,
+        args = (ctypes.c_void_p,), ret = ctypes.py_object)(ctypes.c_void_p(int(ptr)))
 
-def add_to_object_map(object):
-    _object_map[object._c_pointer.value] = object
+# Chain/StructureSeq/Sequence classes could theoretically be handled the same as the
+# above classes, but the fact that classes are not first-class objects in C++ makes
+# this extremely difficult, so therefore they are treated as not directly instantiable 
+# from C++ and therefore require a different "<class>_py_inst" function...
+for class_obj in [Sequence, StructureSeq, Chain]:
+    cname = class_obj.__name__.lower()
+    func_name = cname + "_existing_py_inst"
+    class_obj.c_ptr_to_py_inst = lambda ptr, klass=class_obj, fname=func_name: c_function(fname,
+        args = (ctypes.c_void_p,), ret = ctypes.py_object)(ctypes.c_void_p(int(ptr))) or klass(ptr)
+    class_obj.c_ptr_to_existing_py_inst = lambda ptr, fname=func_name: c_function(fname,
+        args = (ctypes.c_void_p,), ret = ctypes.py_object)(ctypes.c_void_p(int(ptr)))
 
-def register_object_map_deletion_handler(omap):
-    # When a C++ object such as an Atom is deleted the pointer is removed
-    # from the object map if it exists and the Python object has its _c_pointer
-    # attribute deleted.
-    f = c_function('object_map_deletion_handler', args = [ctypes.c_void_p], ret = ctypes.c_void_p)
-    p = ctypes.c_void_p(id(omap))
-    global _omd_handler
-    _omd_handler = Object_Map_Deletion_Handler(f(p))
-
-_omd_handler = None
-class Object_Map_Deletion_Handler:
-    def __init__(self, h):
-        self.h = h
-        self.delete_handler = c_function('delete_object_map_deletion_handler', args = [ctypes.c_void_p])
-    def __del__(self):
-        # Make sure object map deletion handler is removed before Python exits
-        # so later C++ deletes don't cause segfault on exit.
-        self.delete_handler(self.h)
-
-register_object_map_deletion_handler(_object_map)
+# Structure/AtomicStructure cannot be instantiated with just a pointer, and therefore
+# differs slightly from both the above...
+StructureData.c_ptr_to_py_inst = lambda ptr: c_function("structure_py_inst",
+    args = (ctypes.c_void_p,), ret = ctypes.py_object)(ctypes.c_void_p(int(ptr)))
+StructureData.c_ptr_to_existing_py_inst = lambda ptr: c_function("structure_existing_py_inst",
+    args = (ctypes.c_void_p,), ret = ctypes.py_object)(ctypes.c_void_p(int(ptr)))

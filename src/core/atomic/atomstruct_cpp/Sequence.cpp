@@ -16,6 +16,7 @@
 #include <cctype>
 #include <exception>
 #include <iostream>
+#include <pyinstance/PythonInstance.h>
 #include <Python.h>
 
 #define ATOMSTRUCT_EXPORT
@@ -219,7 +220,7 @@ Sequence::set_name(std::string& name)
     _name = name;
     auto inst = py_instance(false);
     if (inst != nullptr) {
-        auto gil = AcquireGIL();
+        auto gil = pyinstance::AcquireGIL();
         auto ret = PyObject_CallMethod(inst, "_cpp_rename", "s", old_name.c_str());
         if (ret == nullptr) {
             throw std::runtime_error("Calling Sequence _cpp_rename method failed.");

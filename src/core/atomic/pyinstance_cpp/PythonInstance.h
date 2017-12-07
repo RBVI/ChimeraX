@@ -13,8 +13,8 @@
  * === UCSF ChimeraX Copyright ===
  */
 
-#ifndef atomstruct_python_instance
-#define atomstruct_python_instance
+#ifndef pyinstance_python_instance
+#define pyinstance_python_instance
 
 #include <map>
 #include <sstream>
@@ -26,9 +26,9 @@
 
 #include "imex.h"
 
-namespace atomstruct {
+namespace pyinstance {
 
-class ATOMSTRUCT_IMEX AcquireGIL {
+class PYINSTANCE_IMEX AcquireGIL {
 public:
     AcquireGIL();
     ~AcquireGIL();
@@ -57,11 +57,11 @@ public:
     WrongPyAttrTypeError(const std::string msg) : PyAttrError(msg) {}
 };
 
-ATOMSTRUCT_IMEX extern std::map<const void*, PyObject*>  _pyinstance_object_map;
+PYINSTANCE_IMEX extern std::map<const void*, PyObject*>  _pyinstance_object_map;
 
 // this is a template class so that different derived classes have separate static variables
 template<class C>
-class ATOMSTRUCT_IMEX PythonInstance {
+class PYINSTANCE_IMEX PythonInstance {
 private:
     static std::string _buffer;  // so that the const char* from std::string will hang around
     static PyObject*  _py_class;
@@ -189,8 +189,10 @@ PythonInstance<C>::py_instance(bool create) const
     if (i != _pyinstance_object_map.end())
         return (*i).second;
 
-    if (!create)
-        return nullptr;
+    if (!create) {
+        Py_INCREF(Py_None);
+        return Py_None;
+    }
 
     PyObject* class_inst = py_class();
     if (class_inst == nullptr) {
@@ -218,6 +220,6 @@ PythonInstance<C>::py_instance(bool create) const
     return py_inst;
 }
 
-}  // namespace atomstruct
+}  // namespace pyinstance
 
-#endif  // atomstruct_python_instance
+#endif  // pyinstance_python_instance

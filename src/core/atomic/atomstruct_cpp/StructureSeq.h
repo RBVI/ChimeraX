@@ -89,6 +89,7 @@ public:
     void  pop_front();
     void  push_back(Residue* r);
     void  push_front(Residue* r);
+    PyObject*  py_instance(bool create) { return Sequence::py_instance(create); }
     void  python_destroyed() { if (!is_chain()) delete this; }
     const ResMap&  res_map() const { return _res_map; }
     const Residues&  residues() const { return _residues; }

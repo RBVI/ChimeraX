@@ -16,15 +16,14 @@
 #ifndef atomstruct_Ring
 #define atomstruct_Ring
 
+#include <pyinstance/PythonInstance.h>
 #include <set>
-
-#include "PythonInstance.h"
 
 namespace atomstruct {
 
 class Bond;
 
-class ATOMSTRUCT_IMEX Ring: public PythonInstance<Ring> {
+class ATOMSTRUCT_IMEX Ring: public pyinstance::PythonInstance<Ring> {
 public:
     typedef std::set<Atom*>  Atoms;
     typedef std::set<Bond*>  Bonds;

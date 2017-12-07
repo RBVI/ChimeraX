@@ -16,18 +16,18 @@
 #ifndef atomstruct_CoordSet
 #define atomstruct_CoordSet
 
-#include "Coord.h"
-#include "imex.h"
-#include "PythonInstance.h"
-#include "session.h"
-
+#include <pyinstance/PythonInstance.h>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
+#include "Coord.h"
+#include "imex.h"
+#include "session.h"
+
 namespace atomstruct {
 
-class ATOMSTRUCT_IMEX CoordSet: public PythonInstance<CoordSet> {
+class ATOMSTRUCT_IMEX CoordSet: public pyinstance::PythonInstance<CoordSet> {
     friend class Atom;
     friend class Structure;
 

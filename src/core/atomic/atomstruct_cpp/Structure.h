@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <element/Element.h>
 #include <map>
+#include <pyinstance/PythonInstance.h>
 #include <set>
 #include <string>
 #include <unordered_map>
@@ -30,7 +31,6 @@
 #include "destruct.h"
 #include "PBManager.h"
 #include "polymer.h"
-#include "PythonInstance.h"
 #include "Rgba.h"
 #include "Ring.h"
 #include "session.h"
@@ -90,7 +90,8 @@ public:
 // add any) so that they can be treated identically in the Python
 // layer.  Some atomic-structure-specific methods will have no-op
 // implementations in Structure and real implementations in AtomicStructure.
-class ATOMSTRUCT_IMEX Structure: public GraphicsChanges, public PythonInstance<Structure> {
+class ATOMSTRUCT_IMEX Structure: public GraphicsChanges,
+        public pyinstance::PythonInstance<Structure> {
     friend class Atom; // for IDATM stuff and structure categories
     friend class Bond; // for checking if make_chains() has been run yet, struct categories
     friend class Residue; // for _polymers_computed

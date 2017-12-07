@@ -15,7 +15,7 @@
 
 #include "PythonInstance.h"
 
-namespace atomstruct {
+namespace pyinstance {
 
 // RAII for Python GIL
 static PyGILState_STATE gil_state;

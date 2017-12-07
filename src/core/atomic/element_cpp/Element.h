@@ -20,6 +20,7 @@
 
 #include <iostream>
 #include <map>
+#include <pyinstance/PythonInstance.h>
 #include <set>
 #include <string>
 
@@ -34,7 +35,7 @@ extern template class ELEMENT_IMEX std::set<std::string>;
 extern template class ELEMENT_IMEX std::set<int>;
 #endif
 
-class ELEMENT_IMEX Element {
+class ELEMENT_IMEX Element: public pyinstance::PythonInstance<Element> {
 public:
     // Atomic Symbols:
     enum AS {
