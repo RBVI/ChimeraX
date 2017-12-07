@@ -19,11 +19,14 @@ function reload() {
     var table = document.getElementById("column_table");
     // Save sort and shown columns
     var sort_column = null;
-    var sort_buttons = document.getElementsByName("sort")
-    for (var i = 0; i < sort_buttons.length; i++)
-        sort_column = sort_buttons[i].value;
+    var sort_buttons = document.getElementsByName("sort");
+    for (var i = 0; i < sort_buttons.length; i++) {
+        var e = sort_buttons[i];
+        if (e.checked)
+            sort_column = e.value;
+    }
     var show_columns = [];
-    var show_buttons = document.getElementsByName("show")
+    var show_buttons = document.getElementsByName("show");
     for (var i = 0; i < show_buttons.length; i++) {
         var e = show_buttons[i];
         if (e.checked && columns[0].includes(e.value))
@@ -31,6 +34,7 @@ function reload() {
     }
     if (show_columns.length == 0)
         show_columns.push(Object.keys(columns[0])[0])
+
     // Clear out the table and fill in with text
     // then numeric column names
     while (table.hasChildNodes())
@@ -65,11 +69,29 @@ function reload() {
 }
 
 function update_plot() {
-    var opts = { xaxes: [ { }, { show: false } ] }
-    var ids = columns[1]["Id"]
-    var order = ids.map(function(e, i) { return i; });
+    // parameters for flot
     var series = [];
+    var opts = { xaxes: [ { }, { show: false } ] }
+
+    // Get order of compounds based on sort column
+    var text = columns[1];
     var numeric = columns[0];
+    var ids = text["Id"]
+    var order = ids.map(function(e, i) { return i; });
+    var sort_column = null;
+    var sort_buttons = document.getElementsByName("sort");
+    for (var i = 0; i < sort_buttons.length; i++) {
+        var e = sort_buttons[i];
+        if (e.checked)
+            sort_column = e.value;
+    }
+    if (sort_column != null) {
+        var data = numeric[sort_column];
+        order.sort(function(a, b) { return data[a] < data[b] ? -1 :
+                                           data[a] > data[b] ? 1 : 0 });
+    }
+
+    // Generate a series for each shown column
     var show_buttons = document.getElementsByName("show")
     for (var i = 0; i < show_buttons.length; i++) {
         var e = show_buttons[i];
@@ -79,10 +101,14 @@ function update_plot() {
         var data = numeric[label];
         series.push({ label: label,
                       points: { show: true },
+                      lines: { show: true },
                       xaxis: 2,
-                      data: order.map(function(e, i) { return [e, data[i]]; })
+                      data: order.map(function(e, i) {
+                                        return [i, data[order[i]]]; })
                     })
     }
+
+    // Show the data
     $.plot("#data", series, opts);
 }
 
