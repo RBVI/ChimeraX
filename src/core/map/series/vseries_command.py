@@ -406,6 +406,6 @@ class SeriesArg(AtomSpecArg):
     def parse(cls, text, session):
         value, used, rest = super().parse(text, session)
         models = value.evaluate(session).models
-        from .series import Map_Series
-        ms = [m for m in models if isinstance(m, Map_Series)]
+        from .series import MapSeries
+        ms = [m for m in models if isinstance(m, MapSeries)]
         return ms, used, rest

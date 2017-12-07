@@ -39,7 +39,7 @@ file_types = (
   ('MacMolPlt grid', 'macmolplt', ['macmolplt'], ['mmp'], False),
   ('MRC density map', 'mrc', ['mrc'], ['mrc'], False),
   ('NetCDF generic array', 'netcdf', ['netcdf'], ['nc'], False),
-  ('Priism microscope image', 'priism', ['priism'], ['xyzw'], False),
+  ('Priism microscope image', 'priism', ['priism'], ['xyzw', 'xyzt'], False),
   ('PROFEC free energy grid', 'profec', ['profec'], ['profec'], False),
   ('Purdue image format', 'pif', ['pif'], ['pif'], False),
   ('SITUS map file', 'situs', ['situs'], ['sit','situs'], False),

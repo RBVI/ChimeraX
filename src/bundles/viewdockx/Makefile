@@ -23,7 +23,7 @@ RUN = $(CHIMERAX_EXE) --nogui --exit --cmd
 
 SRCS = $(wildcard src/*.py)
 
-wheel:	bundle_info.xml $(SRCS)
+wheel:	bundle_info.xml $(SRCS) src/lib/flot
 	$(RUN) "devel build . exit true"
 
 install app-install:	bundle_info.xml $(SRCS)
@@ -44,3 +44,6 @@ clean:
 
 pylint:
 	$(CHIMERAX_EXE) -m flake8 $(filter %.py, $(SRCS))
+
+src/lib/flot:	flot-0.8.3.zip
+	unzip $? && mv flot src/lib
