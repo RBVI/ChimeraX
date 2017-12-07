@@ -93,6 +93,12 @@ class _BaseTool:
                 text_data[category] = text_list
         return numeric_data, text_data
 
+    def show_only(self, atomspec):
+        from chimerax.core.commands.cli import StructuresArg
+        structures = StructuresArg.parse(atomspec, self.session)[0]
+        for s in self.structures:
+            s.display = s in structures
+
 
 class ViewDockTool(HtmlToolInstance, _BaseTool):
 
@@ -239,14 +245,7 @@ class ViewDockTool(HtmlToolInstance, _BaseTool):
 
     def _cb_link(self, query):
         """shows only selected structure"""
-        from chimerax.core.commands.cli import StructuresArg
-        try:
-            atomspec = query["atomspec"][0]
-        except (KeyError, ValueError):
-            atomspec = "missing"
-        structures = StructuresArg.parse(atomspec, self.session)[0]
-        for struct in self.structures:
-            struct.display = struct in structures
+        self.show_only(query["atomspec"][0])
 
     def _cb_graph(self, query):
         ChartTool(self.session, "ViewDock Chart", structures=self.structures)
@@ -304,6 +303,18 @@ class ChartTool(HtmlToolInstance, _BaseTool):
         import json
         js = self.JSUpdate % json.dumps(self.make_data_arrays())
         self.html_view.runJavaScript(js)
+
+    def handle_scheme(self, url):
+        # Called when custom link is clicked.
+        # "info" is an instance of QWebEngineUrlRequestInfo
+        from urllib.parse import parse_qs
+        method = getattr(self, "_cb_" + url.path())
+        query = parse_qs(url.query())
+        method(query)
+
+    def _cb_plot_click(self, query):
+        """shows or hides all structures"""
+        self.show_only("#" + query["id"][0])
 
     JSUpdate = """
 columns = %s;
