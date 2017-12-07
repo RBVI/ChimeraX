@@ -133,7 +133,8 @@ function plot_click(event, pos, item) {
     if (item == null)
         return;
     var id = columns[1]["Id"][item.dataIndex];
-    window.location = "viewdockx:plot_click?id=" + id;
+    var action = "show_only";
+    window.location = "viewdockx:" + action + "?id=" + id;
 }
 
 function plot_hover(event, pos, item) {

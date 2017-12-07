@@ -99,6 +99,20 @@ class _BaseTool:
         for s in self.structures:
             s.display = s in structures
 
+    def show_toggle(self, atomspec):
+        from chimerax.core.commands.cli import StructuresArg
+        structures = StructuresArg.parse(atomspec, self.session)[0]
+        for s in structures:
+            if s in self.structures:
+                s.display = not s.display
+
+    def show_set(self, atomspec, onoff):
+        from chimerax.core.commands.cli import StructuresArg
+        structures = StructuresArg.parse(atomspec, self.session)[0]
+        for s in structures:
+            if s in self.structures:
+                s.display = onoff
+
 
 class ViewDockTool(HtmlToolInstance, _BaseTool):
 
@@ -217,31 +231,11 @@ class ViewDockTool(HtmlToolInstance, _BaseTool):
 
     def _cb_check_all(self, query):
         """shows or hides all structures"""
-        show_all = query["show_all"][0]
-        if show_all == "true":
-            for struct in self.structures:
-                struct.display = True
-        else:
-            for struct in self.structures:
-                struct.display = False
+        self.show_set("#", query["show_all"][0] == True)
 
     def _cb_checkbox(self, query):
         """shows or hides individual structure"""
-        from chimerax.core.commands.cli import StructuresArg
-        try:
-            atomspec = query["atomspec"][0]
-            disp = query["display"][0]
-        except (KeyError, ValueError):
-            atomspec = "missing"
-        structures = StructuresArg.parse(atomspec, self.session)[0]
-        if disp == "0":
-            for struct in self.structures:
-                if structures[0] == struct:
-                    struct.display = False
-        else:
-            for struct in self.structures:
-                if structures[0] == struct:
-                    struct.display = True
+        self.show_set(query["atomspec"][0], query["display"][0] != 0)
 
     def _cb_link(self, query):
         """shows only selected structure"""
@@ -312,9 +306,13 @@ class ChartTool(HtmlToolInstance, _BaseTool):
         query = parse_qs(url.query())
         method(query)
 
-    def _cb_plot_click(self, query):
+    def _cb_show_only(self, query):
         """shows or hides all structures"""
         self.show_only("#" + query["id"][0])
+
+    def _cb_show_toggle(self, query):
+        """shows or hides all structures"""
+        self.show_toggle("#" + query["id"][0])
 
     JSUpdate = """
 columns = %s;
