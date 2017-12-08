@@ -6,6 +6,16 @@ class _BaseTool:
 
     def setup(self, session, structures):
         #
+        # Set attributes that may be examined during delete.
+        # Must be done before raising exceptions.
+        #
+        self._remove_handler = None
+        self._display_handler = None
+        self.category_name = None
+        self.category_list = []
+        self.structures = []
+
+        #
         # Get list of structures that we are displaying
         #
         if structures is None:
@@ -16,12 +26,15 @@ class _BaseTool:
         else:
             structures = [s for s in structures
                           if hasattr(s, "viewdock_comment")]
+
         if not structures:
             raise ValueError("No suitable models found for ViewDockX")
         self.structures = structures
-        from chimerax.core.models import REMOVE_MODELS
-        self._remove_handler = session.triggers.add_handler(REMOVE_MODELS,
-                                                            self._update_models)
+        t = session.triggers
+        from chimerax.core.models import REMOVE_MODELS, MODEL_DISPLAY_CHANGED
+        self._remove_handler = t.add_handler(REMOVE_MODELS, self._update_models)
+        self._display_handler = t.add_handler(MODEL_DISPLAY_CHANGED,
+                                              self._update_display)
 
         #
         # Get union of categories found in all viewdock_comment attributes
@@ -48,6 +61,18 @@ class _BaseTool:
             for s in self.structures:
                 if s in trigger_data:
                     self.structures.remove(s)
+
+    def _update_display(self, trigger, trigger_data):
+        pass
+
+    def delete_handlers(self):
+        t = self.session.triggers
+        if self._remove_handler:
+            t.remove_handler(self._remove_handler)
+            self._remove_handler = None
+        if self._display_handler:
+            t.remove_handler(self._display_handler)
+            self._display_handler = None
 
     def make_data_arrays(self):
         # Construct separate dictionaries for numeric and text data
@@ -133,12 +158,17 @@ class ViewDockTool(HtmlToolInstance, _BaseTool):
         self._remove_handler = session.triggers.add_handler(REMOVE_MODELS,
                                                             self._update_models)
         self._update_models()
+        self.html_view.loadFinished.connect(self._load_finished)
+
+    def _load_finished(self, success):
+        # First time through, we need to wait for the page to load
+        # before trying to update data.  Afterwards, we don't care.
+        if success:
+            self._update_display()
+            self.html_view.loadFinished.disconnect(self._load_finished)
 
     def delete(self):
-        t = self.session.triggers
-        if self._remove_handler:
-            t.remove_handler(self._remove_handler)
-            self._remove_handler = None
+        self.delete_handlers()
         super().delete()
 
     def _update_models(self, trigger=None, trigger_data=None):
@@ -153,8 +183,9 @@ class ViewDockTool(HtmlToolInstance, _BaseTool):
         table.append('<table id="viewdockx_table" class="tablesorter" '
                      'style="width:100%">')
 
-        # Table column headers: model_id [name] all_other_columns
+        # Table column headers: checkbox model_id [name] all_other_columns
         table.append('<thead><tr>')
+        table.append('<th/>')
         table.append('<th class="id">ID</th>')
         if self.category_name:
             table.append('<th>NAME</th>')
@@ -165,35 +196,36 @@ class ViewDockTool(HtmlToolInstance, _BaseTool):
         # Table cell data
         from urllib.parse import urlunparse, urlencode
         table.append('<tbody>')
-        for struct in self.structures:
+        for s in self.structures:
             try:
-                comment_dict = struct.viewdock_comment
+                comment_dict = s.viewdock_comment
             except AttributeError:  # for files with empty comment sections
                 comment_dict = {}
 
             # MAKES THE URL FOR EACH STRUCTURE
-            args = [("atomspec", struct.atomspec())]
-            query = urlencode(args)
+            atomspec = s.atomspec()
+            query = urlencode([("atomspec", atomspec)])
 
             checkbox_url = urlunparse((self.CUSTOM_SCHEME, "",
                                        "checkbox", "", query, ""))
             link_url = urlunparse((self.CUSTOM_SCHEME, "",
                                    "link", "", query, ""))
 
-            # First column is always model id
             table.append("<tr>")
-            table.extend(['<td class="id">',
-                          # for checkbox + atomspec string
-                          '<span class="checkbox">'
-                          '<input class="checkbox, struct" '
-                          'type="checkbox" href="{}"/>{}</span>'
-                          .format(checkbox_url, struct.atomspec()[1:]),
-                          # for atomspec links only
-                          '<span class="link"><a href="{}">{}</a></span>'
-                          .format(link_url, struct.atomspec()[1:]),
+            # First column is always checkbox
+            table.extend(['<td>',
+                          '<input class="structure" '
+                          'type="checkbox" id="cb_{}" href="{}"/>'
+                          .format(atomspec[1:], checkbox_url),
                           '</td>'])
 
-            # If there is a name column, it is second
+            # Second column is always model id
+            table.extend(['<td class="id">',
+                          '<a href="{}">{}</a>'
+                          .format(link_url, atomspec[1:]),
+                          '</td>'])
+
+            # If there is a name column, it is next
             if self.category_name:
                 v = comment_dict.get(self.category_name, "-")
                 table.append('<td>{}</td>'.format(v))
@@ -221,6 +253,16 @@ class ViewDockTool(HtmlToolInstance, _BaseTool):
         #with open("vtable.html", "w") as f:
         #    print(output, file=f)
 
+    def _update_display(self, trigger=None, trigger_data=None):
+        if trigger_data is not None:
+            structures = [trigger_data]
+        else:
+            structures = self.structures
+        import json
+        onoff = [(s.atomspec()[1:], s.display) for s in structures]
+        js = "update_display(%s);" % json.dumps(onoff)
+        self.html_view.runJavaScript(js)
+
     def handle_scheme(self, url):
         # Called when custom link is clicked.
         # "info" is an instance of QWebEngineUrlRequestInfo
@@ -235,7 +277,7 @@ class ViewDockTool(HtmlToolInstance, _BaseTool):
 
     def _cb_checkbox(self, query):
         """shows or hides individual structure"""
-        self.show_set(query["atomspec"][0], query["display"][0] != 0)
+        self.show_set(query["atomspec"][0], query["display"][0] != "0")
 
     def _cb_link(self, query):
         """shows only selected structure"""
@@ -293,9 +335,8 @@ class ChartTool(HtmlToolInstance, _BaseTool):
         if not self.structures:
             self.delete()
             return
-
         import json
-        js = self.JSUpdate % json.dumps(self.make_data_arrays())
+        js = "update_columns(%s);" % json.dumps(self.make_data_arrays())
         self.html_view.runJavaScript(js)
 
     def handle_scheme(self, url):
@@ -313,8 +354,3 @@ class ChartTool(HtmlToolInstance, _BaseTool):
     def _cb_show_toggle(self, query):
         """shows or hides all structures"""
         self.show_toggle("#" + query["id"][0])
-
-    JSUpdate = """
-columns = %s;
-reload();
-"""

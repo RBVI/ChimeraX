@@ -17,7 +17,8 @@ function make_button(btype, name, value, text, checked) {
     return label;
 }
 
-function reload() {
+function update_columns(new_columns) {
+    columns = new_columns;
     var table = document.getElementById("column_table");
     // Save sort and shown columns
     var sort_column = null;
