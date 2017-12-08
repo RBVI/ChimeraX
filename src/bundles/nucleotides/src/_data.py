@@ -606,6 +606,7 @@ def _rebuild_molecule(trigger_name, mol):
     # create shapes
     hide_riboses = []
     hide_bases = []
+    show_glys = []
     residues = sides['ladder']
     if not residues:
         mol._ladder_params = {}
@@ -618,13 +619,16 @@ def _rebuild_molecule(trigger_name, mol):
         hide_bases.extend(hide_residues)
     residues = sides['fill/slab'] + sides['slab']
     if residues:
-        hide_bases.extend(make_slab(nd, residues, nuc_info))
-    residues = sides['tube/slab']
-    if residues:
-        hide_residues, show_gly = make_tube(nd, residues, nuc_info)
-        hide_riboses.extend(hide_residues)
         hide_residues = make_slab(nd, residues, nuc_info)
         hide_bases.extend(hide_residues)
+        show_glys.extend(hide_residues)
+    residues = sides['tube/slab']
+    if residues:
+        hide_residues = make_slab(nd, residues, nuc_info)
+        hide_bases.extend(hide_residues)
+        hide_residues, need_glys = make_tube(nd, hide_residues, nuc_info)
+        hide_riboses.extend(hide_residues)
+        show_glys.extend(need_glys)
     residues = sides['orient']
     if residues:
         for r in residues:
@@ -653,17 +657,14 @@ def _rebuild_molecule(trigger_name, mol):
     set_hide_atoms(RiboseAtomsRE, rib_res)
     set_hide_atoms(RiboseAtomsNoRibRE, other_res)
 
-    """
     for residue in show_glys:
-        params = nuc_info[residue]['slab params']
-        style = params['style']
-        info = find_style(style)
+        rd = nuc_info[residue]
+        tag = standard_bases[rd['name']]['tag']
+        ba = residue.find_atom(anchor(BASE, tag))
         c1p = residue.find_atom("C1'")
-        ba = residue.find_atom(anchor(info[ANCHOR], tag))
         if c1p and ba:
             c1p.clear_hide_bits(HIDE_NUCLEOTIDE)
             ba.clear_hide_bits(HIDE_NUCLEOTIDE)
-    """
 
     # TODO: If a hidden atom is pseudobonded to another atom,
     # then hide the pseudobond.
@@ -739,19 +740,10 @@ def get_ring(r, base_ring):
     return atoms
 
 
-def draw_slab(nd, residue, *, style=default.STYLE, thickness=default.THICKNESS,
-              hide=default.HIDE, orient=default.ORIENT, shape=default.SHAPE):
-    try:
-        t = residue.name
-        if t in ('PSU', 'P'):
-            n = 'P'
-        elif t in ('NOS', 'I'):
-            n = 'I'
-        else:
-            n = nucleic3to1(t)
-    except KeyError:
-        return False
-    standard = standard_bases[n]
+def draw_slab(nd, residue, name, *, style=default.STYLE,
+              thickness=default.THICKNESS, hide=default.HIDE,
+              orient=default.ORIENT, shape=default.SHAPE):
+    standard = standard_bases[name]
     ring_atom_names = standard["ring atom names"]
     atoms = get_ring(residue, ring_atom_names)
     if not atoms:
@@ -887,23 +879,13 @@ def draw_orientation(nd, residue):
         orient_planar_ring(nd, ring, indices)
 
 
-def draw_tube(nd, residue, *, anchor=RIBOSE, show_gly=False):
+def draw_tube(nd, residue, name, *, anchor=RIBOSE, show_gly=False):
     if anchor == RIBOSE:
         show_gly = False
     if anchor == RIBOSE or show_gly:
         aname = "C1'"
     else:
-        try:
-            t = residue.name
-            if t in ('PSU', 'P'):
-                n = 'P'
-            elif t in ('NOS', 'I'):
-                n = 'I'
-            else:
-                n = nucleic3to1(t)
-            tag = standard_bases[n]['tag']
-        except KeyError:
-            return
+        tag = standard_bases[name]['tag']
         aname = _BaseAnchors[tag]
         if not aname:
             return False
@@ -1005,7 +987,20 @@ def set_slab(side, residues, style=default.STYLE, **slab_params):
         nuc_info, nd = _nuc_drawing(m)
         rds[m] = nuc_info
     for r in residues:
+        try:
+            t = r.name
+            if t in ('PSU', 'P'):
+                n = 'P'
+            elif t in ('NOS', 'I'):
+                n = 'I'
+            else:
+                n = nucleic3to1(t)
+        except KeyError:
+            continue
+
         rd = rds[r.structure].setdefault(r, {})
+        rd['name'] = n
+
         cur_side = rd.get('side', None)
         if cur_side == side:
             cur_params = rd.get('slab params', None)
@@ -1028,7 +1023,7 @@ def make_slab(nd, residues, rds):
     for r in residues:
         params = rds[r]['slab params']
         hide_base = params.get('hide', default.HIDE)
-        if not draw_slab(nd, r, **params):
+        if not draw_slab(nd, r, rds[r]['name'], **params):
             hide_base = False
         if hide_base:
             hidden.append(r)
@@ -1037,20 +1032,21 @@ def make_slab(nd, residues, rds):
 
 def make_tube(nd, residues, rds):
     # should be called before make_slab
-    hidden = []
-    shown = []
+    hidden_ribose = []
+    shown_gly = []
     for r in residues:
-        params = rds[r]['slab params']
-        hide_ribose = params.get('hide', default.HIDE)
-        show_gly = hide_ribose and params.get('show_gly', default.GLYCOSIDIC)
-        if not draw_tube(nd, r, **rds[r]['tube params']):
+        hide_ribose = True
+        rd = rds[r]
+        params = rd['tube params']
+        show_gly = params.get('show_gly', default.GLYCOSIDIC)
+        if not draw_tube(nd, r, rd['name'], **params):
             hide_ribose = False
             show_gly = False
         if hide_ribose:
-            hidden.append(r)
+            hidden_ribose.append(r)
         if show_gly:
-            shown.append(r)
-    return hidden, shown
+            shown_gly.append(r)
+    return hidden_ribose, shown_gly
 
 
 def set_ladder(residues, **ladder_params):
