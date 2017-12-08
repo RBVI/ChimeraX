@@ -636,9 +636,10 @@ def _rebuild_molecule(trigger_name, mol):
     hide_riboses = Residues(hide_riboses)
     hide_bases = Residues(hide_bases)
 
-    interresidue_hbonds, other_hbonds, _ = hydrogen_bonds(hide_bases)
-    interresidue_hbonds.shown_when_atoms_hiddens = False
-    other_hbonds.shown_when_atoms_hiddens = True
+    if hide_bases:
+        interresidue_hbonds, other_hbonds, _ = hydrogen_bonds(hide_bases)
+        interresidue_hbonds.shown_when_atoms_hiddens = False
+        other_hbonds.shown_when_atoms_hiddens = True
 
     # make sure ribose/base atoms are hidden/shown
     hide_all = hide_riboses & hide_bases
