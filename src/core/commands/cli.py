@@ -969,10 +969,12 @@ class OpenFileNameArg(FileNameArg):
 
     @staticmethod
     def parse(text, session):
-        from PyQt5.QtWidgets import QFileDialog
-        return _browse_parse(
-            text, session, "file", QFileDialog.AcceptOpen,
-            QFileDialog.ExistingFile)
+        if session.ui.is_gui:
+            from PyQt5.QtWidgets import QFileDialog
+            accept_mode, dialog_mode = QFileDialog.AcceptOpen, QFileDialog.ExistingFile
+        else:
+            accept_mode = dialog_mode = None
+        return _browse_parse(text, session, "file", accept_mode, dialog_mode)
 
 
 class SaveFileNameArg(FileNameArg):
@@ -981,9 +983,12 @@ class SaveFileNameArg(FileNameArg):
 
     @staticmethod
     def parse(text, session):
-        from PyQt5.QtWidgets import QFileDialog
-        return _browse_parse(
-            text, session, "file", QFileDialog.AcceptSave, QFileDialog.AnyFile)
+        if session.ui.is_gui:
+            from PyQt5.QtWidgets import QFileDialog
+            accept_mode, dialog_mode = QFileDialog.AcceptSave, QFileDialog.AnyFile
+        else:
+            accept_mode = dialog_mode = None
+        return _browse_parse(text, session, "file", accept_mode, dialog_mode)
 
 
 class OpenFolderNameArg(FileNameArg):
@@ -992,10 +997,13 @@ class OpenFolderNameArg(FileNameArg):
 
     @staticmethod
     def parse(text, session):
-        from PyQt5.QtWidgets import QFileDialog
+        if session.ui.is_gui:
+            from PyQt5.QtWidgets import QFileDialog
+            accept_mode, dialog_mode = QFileDialog.AcceptOpen, QFileDialog.DirectoryOnly
+        else:
+            accept_mode = dialog_mode = None
         return _browse_parse(
-            text, session, "folder", QFileDialog.AcceptOpen,
-            QFileDialog.DirectoryOnly)
+            text, session, "folder", accept_mode, dialog_mode)
 
 
 class SaveFolderNameArg(FileNameArg):
@@ -1004,10 +1012,13 @@ class SaveFolderNameArg(FileNameArg):
 
     @staticmethod
     def parse(text, session):
-        from PyQt5.QtWidgets import QFileDialog
+        if session.ui.is_gui:
+            from PyQt5.QtWidgets import QFileDialog
+            accept_mode, dialog_mode = QFileDialog.AcceptSave, QFileDialog.DirectoryOnly
+        else:
+            accept_mode = dialog_mode = None
         return _browse_parse(
-            text, session, "folder", QFileDialog.AcceptSave,
-            QFileDialog.DirectoryOnly)
+            text, session, "folder", accept_mode, dialog_mode)
 
 # Atom Specifiers are used in lots of places
 # avoid circular import by importing here
