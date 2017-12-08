@@ -2,6 +2,7 @@
 
 columns = [{}, {}];
 tooltip_shown = false;
+shift_down = false;
 
 function make_button(btype, name, value, text, checked) {
     var label = document.createElement("label");
@@ -134,7 +135,7 @@ function plot_click(event, pos, item) {
     if (item == null)
         return;
     var id = columns[1]["Id"][item.dataIndex];
-    var action = "show_only";
+    var action = shift_down ? "show_toggle" : "show_only";
     window.location = "viewdockx:" + action + "?id=" + id;
 }
 
@@ -199,5 +200,6 @@ function init() {
 		}).appendTo("body");
         $("#data").bind("plotclick", plot_click);
         $("#data").bind("plothover", plot_hover);
+        $("#data").mousedown(function(e) { shift_down = e.shiftKey; });
     });
 }
