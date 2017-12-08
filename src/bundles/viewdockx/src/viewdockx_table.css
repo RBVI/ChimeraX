@@ -29,27 +29,19 @@ table, th, td {
   border-collapse: collapse;
 }
 th {
+  background-color: #BBB;
+  text-align: center;
   font-family:arial;
-  background-color: #00FFCC;
   background-position: right center;
   background-repeat: no-repeat;
   background-size: 16px;
 }
 td {
-  background-color: #CCFFF5;
   text-align: center;
   font-family:arial;
 }
-th.id {
-  background-color: #c266ff;
-  text-align: center;
-}
 td.id {
-  background-color: #ebccff;
   text-align: left;
-}
-.selected {
-  background-color: yellow;
 }
 
 /*
@@ -62,19 +54,4 @@ table thead tr .tablesorter-headerAsc {
 table thead tr .tablesorter-headerDesc {
   background-image: url("lib/uparrow.png");
   padding-right: 16px;
-}
-
-/*
- * Control elements
- */
-.checkbox {
-  display: none;
-  white-space: nowrap
-}
-.bar rect {
-  fill: teal;
-}
-.bar text {
-  fill: #fff;
-  font: 10px sans-serif;
 }

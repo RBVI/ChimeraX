@@ -127,17 +127,16 @@ def nucleotides(session, representation, *, glycosidic=default.GLYCOSIDIC, orien
     residues = residues.filter(residues.polymer_types == Residue.PT_NUCLEIC)
     if len(residues) == 0:
         return
-    molecules = residues.unique_structures
     if representation == 'atoms':
         # TODO: residues.fill_rings = False
-        NA.set_normal(molecules, residues)
+        NA.set_normal(residues)
     elif representation == 'fill/fill':
         # TODO
         # residues.fill_rings = True
         if orient:
-            NA.set_orient(molecules, residues)
+            NA.set_orient(residues)
         else:
-            NA.set_normal(molecules, residues)
+            NA.set_normal(residues)
     elif representation.endswith('slab'):
         if representation.startswith('fill'):
             # TODO: residues.fill_rings = True
@@ -149,11 +148,11 @@ def nucleotides(session, representation, *, glycosidic=default.GLYCOSIDIC, orien
         if show_gly:
             info = NA.find_style(style)
             show_gly = info[NA.ANCHOR] != NA.RIBOSE
-        NA.set_slab(representation, molecules, residues, style=style,
+        NA.set_slab(representation, residues, style=style,
                     thickness=thickness, orient=orient,
                     shape=shape, show_gly=show_gly, hide=hide)
     elif representation == 'ladder':
-        NA.set_ladder(molecules, residues, rung_radius=radius,
+        NA.set_ladder(residues, rung_radius=radius,
                       show_stubs=stubs, skip_nonbase_Hbonds=ignore, hide=hide)
 
 
