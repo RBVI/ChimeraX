@@ -139,14 +139,14 @@ class _BaseTool:
                 s.display = onoff
 
 
-class ViewDockTool(HtmlToolInstance, _BaseTool):
+class TableTool(HtmlToolInstance, _BaseTool):
 
     SESSION_ENDURING = False
     SESSION_SAVE = False
-    CUSTOM_SCHEME = "viewdockx"
+    CUSTOM_SCHEME = "vdxtable"
 
     def __init__(self, session, tool_name, structures=None):
-        self.display_name = "ViewDockX"
+        self.display_name = "ViewDockX Table"
         super().__init__(session, tool_name, size_hint=(575,200))
         try:
             self.setup(session, structures)
@@ -283,8 +283,11 @@ class ViewDockTool(HtmlToolInstance, _BaseTool):
         """shows only selected structure"""
         self.show_only(query["atomspec"][0])
 
-    def _cb_graph(self, query):
-        ChartTool(self.session, "ViewDock Chart", structures=self.structures)
+    def _cb_chart(self, query):
+        ChartTool(self.session, "ViewDockX Chart", structures=self.structures)
+
+    def _cb_plot(self, query):
+        pass
 
     def _cb_histogram(self, query):
         pass
@@ -294,10 +297,10 @@ class ChartTool(HtmlToolInstance, _BaseTool):
 
     SESSION_ENDURING = False
     SESSION_SAVE = False
-    CUSTOM_SCHEME = "viewdockx"
+    CUSTOM_SCHEME = "vdxchart"
 
     def __init__(self, session, tool_name, structures=None):
-        self.display_name = "ViewDockX"
+        self.display_name = "ViewDockX Chart"
         super().__init__(session, tool_name, size_hint=(575,400))
         try:
             self.setup(session, structures)

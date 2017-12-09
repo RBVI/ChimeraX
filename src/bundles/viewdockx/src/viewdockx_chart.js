@@ -1,78 +1,50 @@
 // vim: set expandtab shiftwidth=4 softtabstop=4:
 
-columns = [{}, {}];
-tooltip_shown = false;
-shift_down = false;
+var columns = [{}, {}];
+var tooltip_shown = false;
+var shift_down = false;
+var custom_scheme = "vdxchart";
 
 function make_button(btype, name, value, text, checked) {
-    var label = document.createElement("label");
-    var btn = document.createElement("input");
-    btn.type = btype;
-    btn.name = name;
-    btn.className = name;
-    btn.value = value;
-    btn.checked = checked;
-    btn.onclick = update_plot;
-    label.appendChild(btn);
-    label.appendChild(document.createTextNode(text));
-    return label;
+    return $("<label/>").text(text).append(
+                $("<input/>", {"type":btype, "name":name,
+                               "value":value, "class":name,
+                               "checked":checked}).click(update_plot));
 }
 
 function update_columns(new_columns) {
     columns = new_columns;
-    var table = document.getElementById("column_table");
     // Save sort and shown columns
-    var sort_column = null;
-    var sort_buttons = document.getElementsByClassName("sort");
-    for (var i = 0; i < sort_buttons.length; i++) {
-        var e = sort_buttons[i];
-        if (e.checked)
-            sort_column = e.value;
-    }
-    var show_columns = [];
-    var show_buttons = document.getElementsByClassName("show");
-    for (var i = 0; i < show_buttons.length; i++) {
-        var e = show_buttons[i];
-        if (e.checked && columns[0].includes(e.value))
-            show_columns.push(e.value);
-    }
+    var sort_column = $(".sort:checked").attr("value");
+    var show_columns = []
+    $(".show:checked").map(function() {
+        if (this.value in columns[0])
+            show_columns.push(this.value);
+    });
     if (show_columns.length == 0)
         show_columns.push(Object.keys(columns[0])[0])
 
     // Clear out the table and fill in with text
     // then numeric column names
-    while (table.hasChildNodes())
-        table.removeChild(table.lastChild);
-    for (r in columns[1]) {
-        var tr = document.createElement("tr");
-        table.appendChild(tr);
-        var td0 = document.createElement("td");
-        tr.appendChild(td0);
-        var td1 = document.createElement("td");
-        td1.textContent = r;
-        tr.appendChild(td1);
-        var td2 = document.createElement("td");
-        td2.className = "value";
-        td2.value = r;
-        tr.appendChild(td2);
-    }
-    for (r in columns[0]) {
-        var tr = document.createElement("tr");
-        table.appendChild(tr);
-        var td0 = document.createElement("td");
-        td0.appendChild(make_button("radio", "sort", r, "sort",
-                                    r == sort_column));
-        td0.appendChild(make_button("checkbox", "show", r, "show",
-                                    show_columns.includes(r)));
-        tr.appendChild(td0);
-        var td1 = document.createElement("td");
-        td1.textContent = r;
-        tr.appendChild(td1);
-        var td2 = document.createElement("td");
-        td2.className = "value";
-        td2.value = r;
-        tr.appendChild(td2);
-    }
+    $("#column_table").empty();
+    $.each(columns[1], function(r, v) {
+        $("#column_table").append($("<tr/>").append(
+                                    $("<td/>"),
+                                    $("<td/>").text(r),
+                                    $("<td/>").addClass("value")
+                                              .prop("title", r)))
+        });
+    $.each(columns[0], function(r, v) {
+        var sort_btn = make_button("radio", "sort", r, "sort",
+                                   r == sort_column);
+        var show_btn = make_button("checkbox", "show", r, "show",
+                                   show_columns.includes(r));
+        $("#column_table").append($("<tr/>").append(
+                                    $("<td/>").append(sort_btn, show_btn),
+                                    $("<td/>").text(r),
+                                    $("<td/>").addClass("value")
+                                              .prop("title", r)))
+        });
     update_plot();
 }
 
@@ -99,13 +71,7 @@ function update_plot() {
     var numeric = columns[0];
     var ids = text["Id"]
     var order = ids.map(function(e, i) { return i; });
-    var sort_column = null;
-    var sort_buttons = document.getElementsByClassName("sort");
-    for (var i = 0; i < sort_buttons.length; i++) {
-        var e = sort_buttons[i];
-        if (e.checked)
-            sort_column = e.value;
-    }
+    var sort_column = $(".sort:checked").attr("value");
     if (sort_column != null) {
         var data = numeric[sort_column];
         order.sort(function(a, b) { return data[a] < data[b] ? -1 :
@@ -113,19 +79,15 @@ function update_plot() {
     }
 
     // Generate a series for each shown column
-    var show_buttons = document.getElementsByClassName("show");
-    for (var i = 0; i < show_buttons.length; i++) {
-        var e = show_buttons[i];
-        if (!e.checked)
-            continue;
-        var label = e.value;
+    $(".show:checked").each(function() {
+        var label = this.value;
         var data = numeric[label];
         series.push({ label: label,
                       xaxis: 2,
                       data: order.map(function(e, i) {
                                         return [i, data[order[i]]]; })
                     })
-    }
+    });
 
     // Show the data
     $.plot("#data", series, opts);
@@ -136,7 +98,7 @@ function plot_click(event, pos, item) {
         return;
     var id = columns[1]["Id"][item.dataIndex];
     var action = shift_down ? "show_toggle" : "show_only";
-    window.location = "viewdockx:" + action + "?id=" + id;
+    window.location = custom_scheme + ":" + action + "?id=" + id;
 }
 
 function plot_hover(event, pos, item) {
@@ -170,21 +132,15 @@ function plot_hover(event, pos, item) {
         // Show data values in control table
         var numeric = columns[0];
         var text = columns[1];
-        var value_cells = document.getElementsByClassName("value");
-        for (var i = 0; i < value_cells.length; i++) {
-            var e = value_cells[i];
-            var data = numeric[e.value];
-            if (data == null)
-                data = text[e.value];
-            if (data == null)
-                value = "";
-            else {
-                value = data[item.dataIndex];
-                if (value == null)
-                    value = "";
-            }
-            e.textContent = value;
-        }
+        $(".value").each(function() {
+            var column_name = this.title;
+            var value = "";
+            if (column_name in numeric)
+                value = numeric[column_name][item.dataIndex];
+            else if (column_name in text)
+                value = text[column_name][item.dataIndex];
+            this.textContent = value;
+        });
     }
 }
 

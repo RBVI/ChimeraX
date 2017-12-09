@@ -1,5 +1,7 @@
 // vim: set expandtab shiftwidth=4 softtabstop=4:
 
+var custom_scheme = "vdxtable";
+
 function update_display(new_display) {
     for (var i = 0; i < new_display.length; i++) {
         var id = new_display[i][0];
@@ -49,7 +51,7 @@ function init() {
     });
 
     $("#show_all_btn").click(function() {
-        window.location = "viewdockx:check_all?show_all=true";
+        window.location = custom_scheme + ":check_all?show_all=true";
     });
 
     var data_array = [];
@@ -76,10 +78,13 @@ function init() {
 
     });
 
-    $('#graph_btn').on('click', function() {
-        window.location = "viewdockx:graph";
+    $('#chart_btn').on('click', function() {
+        window.location = custom_scheme + ":chart";
+    });
+    $('#plot_btn').on('click', function() {
+        window.location = custom_scheme + ":plot";
     });
     $('#histogram_btn').on('click', function() {
-        window.location = "viewdockx:histogram";
+        window.location = custom_scheme + ":histogram";
     });
 }
