@@ -1,12 +1,13 @@
 // vim: set expandtab shiftwidth=4 softtabstop=4:
 
-var custom_scheme = "vdxtable";
-
-function update_display(new_display) {
-    for (var i = 0; i < new_display.length; i++) {
-        var id = new_display[i][0];
-        var checked = new_display[i][1];
-        document.getElementById("cb_" + id).checked = checked;
+var vdxtable = {
+    custom_scheme: "vdxtable",
+    update_display: function(new_display) {
+        for (var i = 0; i < new_display.length; i++) {
+            var id = new_display[i][0];
+            var checked = new_display[i][1];
+            document.getElementById("cb_" + id).checked = checked;
+        }
     }
 }
 
@@ -51,7 +52,7 @@ function init() {
     });
 
     $("#show_all_btn").click(function() {
-        window.location = custom_scheme + ":check_all?show_all=true";
+        window.location = vdxtable.custom_scheme + ":check_all?show_all=true";
     });
 
     var data_array = [];
@@ -79,12 +80,12 @@ function init() {
     });
 
     $('#chart_btn').on('click', function() {
-        window.location = custom_scheme + ":chart";
+        window.location = vdxtable.custom_scheme + ":chart";
     });
     $('#plot_btn').on('click', function() {
-        window.location = custom_scheme + ":plot";
+        window.location = vdxtable.custom_scheme + ":plot";
     });
     $('#histogram_btn').on('click', function() {
-        window.location = custom_scheme + ":histogram";
+        window.location = vdxtable.custom_scheme + ":histogram";
     });
 }

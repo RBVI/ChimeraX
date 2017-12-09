@@ -74,7 +74,7 @@ class _BaseTool:
             t.remove_handler(self._display_handler)
             self._display_handler = None
 
-    def make_data_arrays(self):
+    def make_arrays(self):
         # Construct separate dictionaries for numeric and text data
         numeric_data = {}
         text_data = {}
@@ -158,7 +158,6 @@ class TableTool(HtmlToolInstance, _BaseTool):
         self._remove_handler = session.triggers.add_handler(REMOVE_MODELS,
                                                             self._update_models)
         self._update_models()
-        self.html_view.loadFinished.connect(self._load_finished)
 
     def _load_finished(self, success):
         # First time through, we need to wait for the page to load
@@ -249,6 +248,7 @@ class TableTool(HtmlToolInstance, _BaseTool):
         output = template.replace("TABLE", ('\n'.join(table)))\
                          .replace("URLBASE", qurl.url())
         self.html_view.setHtml(output, qurl)
+        self.html_view.loadFinished.connect(self._load_finished)
         # Debug
         #with open("vtable.html", "w") as f:
         #    print(output, file=f)
@@ -260,7 +260,7 @@ class TableTool(HtmlToolInstance, _BaseTool):
             structures = self.structures
         import json
         onoff = [(s.atomspec()[1:], s.display) for s in structures]
-        js = "update_display(%s);" % json.dumps(onoff)
+        js = "vdxtable.update_display(%s);" % json.dumps(onoff)
         self.html_view.runJavaScript(js)
 
     def handle_scheme(self, url):
@@ -339,7 +339,7 @@ class ChartTool(HtmlToolInstance, _BaseTool):
             self.delete()
             return
         import json
-        js = "update_columns(%s);" % json.dumps(self.make_data_arrays())
+        js = "vdxchart.update_columns(%s);" % json.dumps(self.make_arrays())
         self.html_view.runJavaScript(js)
 
     def handle_scheme(self, url):
